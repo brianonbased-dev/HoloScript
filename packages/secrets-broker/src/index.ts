@@ -644,3 +644,19 @@ export {
   type RotateKekInput,
   type RotateKekResult,
 } from './secret-store';
+export {
+  createEnvKekProvider,
+  generateKekBase64,
+  kekEnvVar,
+  KEK_CURRENT_ENV,
+  EnvKekConfigError,
+  type EnvKekProviderDeps,
+} from './env-kek-provider';
+export {
+  createSecretResolver,
+  AuthRequiredError,
+  type SecretResolver,
+  type SecretResolverDeps,
+  type ResolveInput,
+  type SecretResolveAudit,
+} from './secret-resolver';
