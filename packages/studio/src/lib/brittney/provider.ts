@@ -44,10 +44,11 @@ export interface ResolvedBrittneyProvider {
 }
 
 /**
- * Default Ollama model for Brittney. Must match the model name the local
- * Ollama instance serves (configured during app install / Quest 3 setup).
+ * Default Ollama model for Brittney. The brittney-qwen-v23 Ollama tag is retired;
+ * the current sovereign default is qwen2.5-coder:7b (matches BRITTNEY_SOVEREIGN_DEFAULT_MODEL
+ * in SovereignGeneratorAdapter). Override with BRITTNEY_MODEL env var.
  */
-const OLLAMA_DEFAULT_MODEL = 'brittney-qwen-v23:latest';
+const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || 'qwen2.5-coder:7b';
 
 /**
  * Resolve Brittney's LLM provider from environment variables.

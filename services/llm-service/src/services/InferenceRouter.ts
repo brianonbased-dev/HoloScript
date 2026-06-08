@@ -357,7 +357,7 @@ class OllamaLocalProvider implements InferenceProvider {
 
   constructor() {
     this.url = process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
-    this.model = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
+    this.model = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
   }
 
   async isAvailable(): Promise<boolean> {

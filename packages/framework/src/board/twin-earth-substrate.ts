@@ -180,7 +180,7 @@ export interface ParticipationModeConfig {
   mode: ParticipationMode;
   /** Model provider — only relevant for AI participants. */
   modelProvider?: 'cloud' | 'local' | 'sovereign';
-  /** Model identifier — e.g., 'brittney-qwen-v23', 'gemma4:e4b'. */
+  /** Model identifier — e.g., 'qwen2.5-coder:7b', 'gemma4:e4b'. */
   modelId?: string;
   /** For BYOK: the API key or local endpoint is held by the participant. */
   byokEndpoint?: string;

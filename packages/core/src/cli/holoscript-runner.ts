@@ -129,7 +129,7 @@ function defaultModelForProvider(provider: CLIOptions['provider']): string {
     case 'openai':
       return 'gpt-4.1';
     case 'ollama':
-      return 'brittney-qwen-v23:latest';
+      return 'qwen2.5-coder:7b';
     case 'anthropic':
     default:
       return 'claude-sonnet-4-6';

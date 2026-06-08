@@ -70,7 +70,7 @@ export interface SovereignGeneratorAdapterOptions {
   cloudEndpoint?: string;
   /** API key for cloud endpoint (default: env BRITTNEY_API_KEY) */
   cloudApiKey?: string;
-  /** Model name for local Brittney (default: brittney-qwen-v23:latest) */
+  /** Model name for local Brittney (default: qwen2.5-coder:7b via env BRITTNEY_MODEL) */
   localModel?: string;
   /** Model name for cloud Brittney (default: brittney-standard) */
   cloudModel?: string;
@@ -95,8 +95,16 @@ const DEFAULT_LOCAL_ENDPOINT =
   (typeof process !== 'undefined' && process.env.OLLAMA_HOST) ||
   'http://localhost:11434';
 
+/**
+ * Default Ollama model for sovereign Brittney inference.
+ * The brittney-qwen-v23 Ollama tag is retired; the live sovereign stack uses
+ * qwen2.5-coder:7b via the vast.ai Ollama worker (P.008 serving autoscaler).
+ * Override with BRITTNEY_MODEL env var to point at any pulled Ollama tag.
+ */
+export const BRITTNEY_SOVEREIGN_DEFAULT_MODEL = 'qwen2.5-coder:7b';
+
 const DEFAULT_LOCAL_MODEL =
-  (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) || 'brittney-qwen-v23:latest';
+  (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) || BRITTNEY_SOVEREIGN_DEFAULT_MODEL;
 
 const DEFAULT_CLOUD_ENDPOINT =
   (typeof process !== 'undefined' && process.env.BRITTNEY_SERVICE_URL) || '';

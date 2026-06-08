@@ -48,6 +48,7 @@ export interface BrittneyCloudProviderConfig extends Omit<LLMProviderConfig, 'ap
 export const BRITTNEY_CLOUD_MODELS = [
   'brittney-standard',
   'brittney-pro',
+  /** @deprecated Ollama tag retired 2026-06-08; kept for backward-compat with existing agent packages */
   'brittney-qwen-v23',
 ] as const;
 

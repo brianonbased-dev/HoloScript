@@ -530,7 +530,7 @@ async function handleScaffold(args: Record<string, unknown>) {
   const features = (args.features as string[]) || [];
   const desc = description.toLowerCase();
 
-  // Try model first — brittney-qwen-v23 scores 8/10 on scene generation
+  // Try model first — qwen2.5-coder:7b (sovereign default) for scene generation
   const modelCode = await tryModelScaffold(description, type, features);
   if (modelCode) {
     return {

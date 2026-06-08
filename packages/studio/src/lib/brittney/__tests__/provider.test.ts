@@ -55,7 +55,7 @@ describe('resolveBrittneyProvider', () => {
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('ollama');
     expect(result.provider.name).toBe('local-llm');
-    expect(result.model).toBe('brittney-qwen-v23:latest');
+    expect(result.model).toBe('qwen2.5-coder:7b');
     expect(result.maxTokens).toBe(4096);
   });
 

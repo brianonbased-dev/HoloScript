@@ -354,7 +354,7 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
   if (!aiInitialized && process.env.OLLAMA_URL) {
     try {
       const ollamaUrl = process.env.OLLAMA_URL;
-      const ollamaModel = process.env.OLLAMA_MODEL || 'brittney-qwen-v23:latest';
+      const ollamaModel = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
       const ollamaAdapter = useOllama({ baseUrl: ollamaUrl, model: ollamaModel });
       if (await ollamaAdapter.isReady()) {
         const adapter = getDefaultAIAdapter();

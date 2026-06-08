@@ -40,7 +40,7 @@ export interface GraphRAGOptions {
   file?: string;
   /** Ollama base URL for LLM queries (last-resort fallback, default: 'http://localhost:11434') */
   ollamaUrl?: string;
-  /** LLM model for answer generation (default: 'brittney-qwen-v23' for Ollama fallback) */
+  /** LLM model for answer generation (default: 'qwen2.5-coder:7b' for Ollama fallback) */
   llmModel?: string;
   /**
    * LLM provider for answer generation.
@@ -138,7 +138,7 @@ export class GraphRAGEngine {
     this.graph = graph;
     this.index = index;
     this.ollamaUrl = options?.ollamaUrl ?? 'http://localhost:11434';
-    this.llmModel = options?.llmModel ?? 'brittney-qwen-v23';
+    this.llmModel = options?.llmModel ?? 'qwen2.5-coder:7b';
     this.llmProvider = options?.llmProvider;
   }
 
