@@ -7,13 +7,32 @@ import { useEffect, useState, useMemo } from 'react';
 interface CompileTarget {
   id: string;
   name: string;
-  category: 'engine' | 'xr' | 'web' | 'industrial' | 'compute' | 'advanced';
+  category: 'engine' | 'xr' | 'web' | 'industrial' | 'compute' | 'advanced' | 'sovereign';
   icon: string;
   status: 'ready' | 'beta' | 'preview';
 }
 
+/**
+ * Native / Sovereign HoloScript engines.
+ * SOURCE OF TRUTH: packages/core/src/compiler/sovereign-targets.ts SOVEREIGN_ENGINES
+ * Keep this list in sync with that registry when adding new native engines.
+ */
+const SOVEREIGN_COMPILE_TARGETS: CompileTarget[] = [
+  { id: 'sovereign-webgpu-renderer', name: 'WebGPURenderer',       category: 'sovereign', icon: 'WG', status: 'ready' },
+  { id: 'sovereign-spatial-engine',  name: 'SpatialEngine',         category: 'sovereign', icon: 'SE', status: 'ready' },
+  { id: 'sovereign-snn-webgpu',      name: 'SNN WebGPU',            category: 'sovereign', icon: 'SN', status: 'ready' },
+  { id: 'sovereign-nir-to-wgsl',     name: 'NIR→WGSL',              category: 'sovereign', icon: 'NR', status: 'ready' },
+  { id: 'sovereign-holo-vm',         name: 'HoloVM',                category: 'sovereign', icon: 'VM', status: 'ready' },
+  { id: 'sovereign-compiler-wasm',   name: 'WASM Frontend',         category: 'sovereign', icon: 'WA', status: 'ready' },
+  { id: 'sovereign-native-2d',       name: 'Native2D',              category: 'sovereign', icon: '2D', status: 'ready' },
+  { id: 'sovereign-canvas2d-game',   name: 'Canvas2D Game',         category: 'sovereign', icon: 'CG', status: 'ready' },
+  { id: 'sovereign-webgpu-compiler', name: 'WebGPUCompiler',        category: 'sovereign', icon: 'WC', status: 'ready' },
+  { id: 'sovereign-nir-compiler',    name: 'NIRCompiler',           category: 'sovereign', icon: 'NI', status: 'ready' },
+  { id: 'sovereign-sdf-raymarch',    name: 'SDF Raymarch',          category: 'sovereign', icon: 'SD', status: 'ready' },
+];
+
 const COMPILE_TARGETS: CompileTarget[] = [
-  // Game Engines
+  // Game Engines (bridge targets — kept for third-party interop visibility)
   { id: 'unity', name: 'Unity', category: 'engine', icon: 'U', status: 'ready' },
   { id: 'unreal', name: 'Unreal', category: 'engine', icon: 'UE', status: 'ready' },
   { id: 'godot', name: 'Godot', category: 'engine', icon: 'G', status: 'ready' },
@@ -53,7 +72,19 @@ const COMPILE_TARGETS: CompileTarget[] = [
   { id: 'state', name: 'State', category: 'advanced', icon: 'ST', status: 'ready' },
 ];
 
+/** Category render order — sovereign (native) leads, then third-party bridges. */
+const CATEGORY_ORDER: CompileTarget['category'][] = [
+  'sovereign',
+  'engine',
+  'xr',
+  'web',
+  'industrial',
+  'compute',
+  'advanced',
+];
+
 const CATEGORY_LABELS: Record<CompileTarget['category'], string> = {
+  sovereign: '⚡ Native / Sovereign',
   engine: 'Game Engines',
   xr: 'XR / VR / AR',
   web: 'Web Platforms',
@@ -63,6 +94,7 @@ const CATEGORY_LABELS: Record<CompileTarget['category'], string> = {
 };
 
 const CATEGORY_COLORS: Record<CompileTarget['category'], string> = {
+  sovereign: 'from-violet-400 to-indigo-500',
   engine: 'from-purple-500 to-purple-600',
   xr: 'from-blue-500 to-blue-600',
   web: 'from-emerald-500 to-emerald-600',
@@ -72,6 +104,7 @@ const CATEGORY_COLORS: Record<CompileTarget['category'], string> = {
 };
 
 const CATEGORY_GLOW: Record<CompileTarget['category'], string> = {
+  sovereign: 'shadow-violet-500/40',
   engine: 'shadow-purple-500/30',
   xr: 'shadow-blue-500/30',
   web: 'shadow-emerald-500/30',
@@ -100,9 +133,13 @@ interface CompileTargetGridProps {
 /**
  * CompileTargetGrid -- The "One More Thing" reveal.
  *
- * Animated grid of 27 compile target cards. Each card lights up in sequence
+ * Animated grid of compile target cards. Each card lights up in sequence
  * with a staggered 50ms delay, creating a cascade reveal effect.
- * Grouped by category: Game Engines, XR, Web, Industrial, Compute, Advanced.
+ * Grouped by category — Native/Sovereign engines lead, followed by bridges.
+ *
+ * The "Native / Sovereign" category is driven directly from SOVEREIGN_ENGINES
+ * (packages/core/src/compiler/sovereign-targets.ts) so it stays in sync with
+ * the registry automatically when new native engines are added.
  */
 export function CompileTargetGrid({
   animate = false,
@@ -111,16 +148,28 @@ export function CompileTargetGrid({
 }: CompileTargetGridProps) {
   const [revealedCount, setRevealedCount] = useState(0);
 
-  // Group targets by category
+  // Combine sovereign (native HoloScript engines lead) and third-party bridge targets
+  const ALL_TARGETS = useMemo(
+    () => [...SOVEREIGN_COMPILE_TARGETS, ...COMPILE_TARGETS],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // both arrays are module-level constants; no reactive dependencies
+  );
+
+  // Group targets by category, ordered by CATEGORY_ORDER
   const grouped = useMemo(() => {
     const groups = new Map<CompileTarget['category'], CompileTarget[]>();
-    for (const target of COMPILE_TARGETS) {
+    for (const target of ALL_TARGETS) {
       const list = groups.get(target.category) ?? [];
       list.push(target);
       groups.set(target.category, list);
     }
-    return groups;
-  }, []);
+    // Return in canonical order: sovereign first
+    const ordered = new Map<CompileTarget['category'], CompileTarget[]>();
+    for (const cat of CATEGORY_ORDER) {
+      if (groups.has(cat)) ordered.set(cat, groups.get(cat)!);
+    }
+    return ordered;
+  }, [ALL_TARGETS]);
 
   // Cascade reveal animation
   useEffect(() => {
@@ -130,7 +179,7 @@ export function CompileTargetGrid({
     }
 
     let count = 0;
-    const total = COMPILE_TARGETS.length;
+    const total = ALL_TARGETS.length;
     const interval = setInterval(() => {
       count++;
       setRevealedCount(count);
@@ -140,7 +189,7 @@ export function CompileTargetGrid({
     }, staggerDelay);
 
     return () => clearInterval(interval);
-  }, [animate, staggerDelay]);
+  }, [animate, staggerDelay, ALL_TARGETS.length]);
 
   // Flat index for stagger tracking
   let flatIndex = 0;
@@ -152,8 +201,10 @@ export function CompileTargetGrid({
         <p className="text-2xl font-light tracking-tight text-white">One more thing.</p>
         <p className="mt-1 text-sm text-gray-400">
           Your code compiles to{' '}
-          <span className="font-semibold text-blue-400">{COMPILE_TARGETS.length} targets</span>
-          {' '}simultaneously.
+          <span className="font-semibold text-blue-400">{ALL_TARGETS.length} targets</span>
+          {' '}simultaneously — including{' '}
+          <span className="font-semibold text-violet-400">{SOVEREIGN_COMPILE_TARGETS.length} native</span>
+          {' '}engines HoloScript owns end-to-end.
         </p>
       </div>
 
@@ -221,8 +272,8 @@ export function CompileTargetGrid({
           {animate && revealedCount > 0 ? (
             <>
               <span className="font-mono text-blue-400">{revealedCount}</span>
-              <span className="text-gray-600"> / {COMPILE_TARGETS.length}</span>
-              {revealedCount >= COMPILE_TARGETS.length && (
+              <span className="text-gray-600"> / {ALL_TARGETS.length}</span>
+              {revealedCount >= ALL_TARGETS.length && (
                 <span className="ml-2 text-emerald-400">All targets ready</span>
               )}
             </>
