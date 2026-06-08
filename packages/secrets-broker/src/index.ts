@@ -617,4 +617,30 @@ export * from './types';
 export { createSecretGrant, checkSecretGrantPolicy, createPolicyGatedSecretGrant } from './grant';
 export { allowOnly, denyAll, allowAgentForRef, fromHoloDoorPolicy } from './policy';
 export { createMemoryLeaseAdapter, createNoOpLeaseAdapter } from './lease-adapter';
+export {
+  createPostgresLeaseAdapter,
+  SECRET_LEASES_DDL,
+  type LeaseQueryRunner,
+  type PostgresLeaseAdapterDeps,
+} from './postgres-lease-adapter';
 export { provisionBrokeredSession, localFileProvisionAdapter } from './provision';
+export {
+  createSecretStore,
+  createInMemorySecretBackend,
+  SECRET_STORE_DDL,
+  OwnerMismatchError,
+  SecretNotFoundError,
+  DecryptError,
+  type SecretStore,
+  type SecretStoreDeps,
+  type SecretStoreBackend,
+  type KekProvider,
+  type SecretRow,
+  type PutInput,
+  type PutResult,
+  type GetInput,
+  type GetResult,
+  type SecretMetadata,
+  type RotateKekInput,
+  type RotateKekResult,
+} from './secret-store';
