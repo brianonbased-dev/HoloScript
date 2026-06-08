@@ -25,3 +25,9 @@ packages/snn-webgpu/src/wgsl-raw.d.ts
 packages/studio/src/r3f-jsx.d.ts
 packages/studio/src/tauri-shim.d.ts
 packages/studio/src/wgsl-raw.d.ts
+# Added 2026-06-08 (F.064 edge repair) — hand-authored Web Speech API ambient decl
+# (top-level SpeechRecognition/SpeechRecognitionEvent absent from lib.dom.d.ts), needed by
+# committed useBrittneyVoice code (42798ca16) but left UNTRACKED → an orphan blocking the
+# emit gate for every committer. Same category as the studio type shims above (tauri-shim /
+# r3f-jsx). Tracked + allowlisted to complete the orphaned commit and unblock the team.
+packages/studio/src/types/web-speech-api.d.ts
