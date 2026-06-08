@@ -24,13 +24,8 @@
  * @module secrets-broker/secret-resolver
  */
 
-import {
-  DecryptError,
-  OwnerMismatchError,
-  SecretNotFoundError,
-  type SecretRef,
-  type SecretStore,
-} from './secret-store';
+import { DecryptError, OwnerMismatchError, SecretNotFoundError, type SecretStore } from './secret-store';
+import type { SecretRef } from './types';
 
 /** Thrown when a resolve is attempted without an authenticated owner identity. */
 export class AuthRequiredError extends Error {

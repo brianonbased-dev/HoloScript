@@ -623,6 +623,11 @@ export {
   type LeaseQueryRunner,
   type PostgresLeaseAdapterDeps,
 } from './postgres-lease-adapter';
+export {
+  createPostgresSecretBackend,
+  type SecretQueryRunner,
+  type PostgresSecretBackendDeps,
+} from './postgres-secret-backend';
 export { provisionBrokeredSession, localFileProvisionAdapter } from './provision';
 export {
   createSecretStore,
@@ -660,3 +665,11 @@ export {
   type ResolveInput,
   type SecretResolveAudit,
 } from './secret-resolver';
+export {
+  createNeedsKeyHandler,
+  registerNeedsKeyTrait,
+  type NeedsKeyConfig,
+  type NeedsKeyResolution,
+  type NeedsKeyDispatchContext,
+  type NeedsKeyTraitHandler,
+} from './needs-key-trait';
