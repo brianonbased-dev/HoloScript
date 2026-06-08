@@ -103,7 +103,7 @@ RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
 # dist/index.d.ts, which broke Studio's next build tsc gate after ignoreBuildErrors
 # was re-enabled). Use tsc --emitDeclarationOnly directly — same pattern as framework.
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
-RUN cd packages/std && npx tsup --no-dts && npx tsc --emitDeclarationOnly --skipLibCheck
+RUN cd packages/std && npx tsup --no-dts && npx tsc --emitDeclarationOnly
 RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/platform && npx tsup --no-dts && (npx tsup --dts-only || true)
