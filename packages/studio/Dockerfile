@@ -53,21 +53,17 @@ COPY packages/ packages/
 # Engine itself stays --no-dts (build-engine-no-dts.sh) — its tsup OOMs on the
 # full graph; engine src is walked directly via tsconfig path alias instead.
 # core stays --no-dts because it has hand-crafted index.d.ts via generate-types.mjs.
-# DTS patterns — both fail loudly, no || true:
+# DTS patterns (both fail loudly):
 #   A) npx tsup — packages with dts:true in tsup.config.ts; JS+dts in one pass.
 #   B) npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 #      — packages where tsup's rollup-plugin-dts fails on complex type graphs;
 #        JS via tsup (fail loud on JS errors), .d.ts via tsc (fail loud on missing types).
 RUN cd packages/crdt && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/crdt-spatial && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
-# snn-webgpu's dts emit MUST succeed and fail loudly (NOT `|| true`): Studio's
-# `next build` type-check walks engine SOURCE, and engine/src/simulation/
-# SNNCognitionEngine.ts imports values from '@holoscript/snn-webgpu'. Without
-# its dist/index.d.ts the strict type-check fails TS7016 "Could not find a
-# declaration file … implicitly has an 'any' type". tsup.config.ts already sets
-# dts:true; the emit is heavy (~50s, large type graph + WGSL) and was OOMing
-# silently under the old `|| true`, leaving no .d.ts. Bump the heap and require
-# success so a missing declaration breaks the build here, not opaquely later.
+# snn-webgpu: engine/src/simulation/SNNCognitionEngine.ts imports from
+# '@holoscript/snn-webgpu'; without dist/index.d.ts Studio's type-check fails TS7016.
+# Uses tsup --dts-only (not pattern B tsc) because WGSL shader types need tsup's
+# resolver. Emit is heavy (~50s, large type graph + WGSL) — bump the heap.
 RUN cd packages/snn-webgpu && npx tsup --no-dts && NODE_OPTIONS=--max-old-space-size=4096 npx tsup --dts-only
 RUN cd packages/uaal && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/agent-protocol && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
@@ -90,19 +86,13 @@ RUN cd packages/llm-provider && npx tsup
 # build container. The single-pass tsup proved fine in the prior Dockerfile,
 # so we keep it + add the missing tsc declaration step.
 #
-# Both the JS build (`tsup --no-dts`) and the tsc declaration emit MUST succeed
-# and fail loudly. The earlier `|| true` tolerance was a workaround for core
-# statically re-exporting the namespaced domain plugins from
-# `@holoscript/core/traits`, which dragged ~189 plugin source files (incl. `.tsx`
-# importing react/three) into framework's program → TS2307 in this slim build.
-# That re-export was removed at the source (core/src/traits/index.ts +
-# scripts/generate-types.mjs); core no longer depends on domain-plugin source, so
-# framework's tsc now type-checks clean here and the tolerance is no longer needed.
+# Both steps fail loudly. Historical note: core once re-exported domain plugins
+# from `@holoscript/core/traits`, pulling ~189 plugin source files (incl. `.tsx`
+# importing react/three) into framework's program → TS2307. That re-export was
+# removed (core/src/traits/index.ts + generate-types.mjs); tsc type-checks clean.
 RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
-# std: tsup --dts-only was silently failing in Docker (chokidar/glob in src/fs
-# caused tsup's rollup-plugin-dts to exit non-zero; || true hid it, leaving no
-# dist/index.d.ts, which broke Studio's next build tsc gate after ignoreBuildErrors
-# was re-enabled). Use tsc --emitDeclarationOnly directly — same pattern as framework.
+# std: tsup's rollup-plugin-dts fails (chokidar/glob in src/fs causes it to exit
+# non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/std && npx tsup --no-dts && npx tsc --emitDeclarationOnly
 RUN cd packages/config && npx tsup
@@ -124,10 +114,8 @@ RUN cd packages/secrets-broker && npx tsup --no-dts && npx tsc --emitDeclaration
 # vm/index.ts -> @holoscript/holo-vm. Without their dist on disk the type-check
 # fails "Cannot find module '@holoscript/holoembed'". Deps already built above
 # (holoembed: config + snn-webgpu; holo-vm: core), so they slot in here.
-# holoembed: tsup --dts-only was silently failing in Docker (snn-webgpu external + GPU types cause
-# rollup-plugin-dts to error; || true hid this, leaving no dist/index.d.ts, which
-# broke Studio's next build tsc gate because engine/src/simulation/ConjectureEngine.ts
-# imports '@holoscript/holoembed'). Use tsc --emitDeclarationOnly directly.
+# holoembed: tsup's rollup-plugin-dts fails (snn-webgpu external + GPU types cause
+# it to error). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/holoembed && npx tsup --no-dts && npx tsc --emitDeclarationOnly
 RUN cd packages/holo-vm && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
