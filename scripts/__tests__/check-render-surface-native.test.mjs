@@ -155,6 +155,21 @@ console.log("check-render-surface-native.test.mjs");
   cleanup(dir);
 }
 
+// 8. --files (staged-scope): only the named paths are judged — a peer's unstaged net-new render
+//    .tsx on disk does NOT block, but a STAGED net-new one still does (the multi-agent fix, D.077).
+{
+  const dir = setup({ "Legacy.tsx": "export const L = () => <mesh />;\n" });
+  run(dir, ["--update"]); // allowlist = [Legacy]
+  addFile(dir, "PeerWip.tsx", "export const P = () => <mesh />;\n"); // unstaged peer net-new on disk
+  addFile(dir, "Mine.tsx", "export const M = () => <mesh />;\n"); // a net-new file, not allowlisted
+  const onlyAllowed = run(dir, ["--files", "packages/r3f-renderer/src/Legacy.tsx"]);
+  assertEq(onlyAllowed.code, 0, "--files scopes to staged: peer's unstaged net-new on disk does NOT block (exit 0)");
+  const stagedNew = run(dir, ["--files", "packages/r3f-renderer/src/Mine.tsx"]);
+  assertEq(stagedNew.code, 1, "--files still blocks a STAGED net-new hand-authored render (exit 1)");
+  assertMatch(stagedNew.out, /SURFACE-GREW\s+packages\/r3f-renderer\/src\/Mine\.tsx/, "names the staged offender");
+  cleanup(dir);
+}
+
 if (testsFailed > 0) {
   console.error(`\n${testsFailed}/${testsRun} tests failed`);
   process.exit(1);

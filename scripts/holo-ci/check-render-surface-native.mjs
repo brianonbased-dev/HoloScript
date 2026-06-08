@@ -68,6 +68,19 @@ const RENDER_ROOTS = (rootsIdx >= 0 ? args[rootsIdx + 1] : 'packages/r3f-rendere
   .map((s) => s.trim())
   .filter(Boolean);
 
+// --files <comma|newline list>: evaluate ONLY these repo-relative paths instead of walking the
+// whole working tree. Used by the pre-commit dev floor to scope the freeze to STAGED render files,
+// so a peer's unstaged net-new render .tsx cannot block another agent's commit in the shared tree
+// (multi-agent fix, D.077). HoloCI's no-arg full-tree run stays the authoritative layer.
+const filesIdx = args.indexOf('--files');
+const EXPLICIT_FILES =
+  filesIdx >= 0
+    ? (args[filesIdx + 1] || '')
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
+
 const ALLOWLIST = join(ROOT, 'scripts', 'holo-ci', 'render-surface-native-allowlist.json');
 
 // First N lines of a file are scanned for the generation header (compilers emit it at the top,
@@ -141,6 +154,27 @@ for (const rootAbs of presentRoots) {
   }
 }
 
+// --files scope (staged-only): replace the full-tree candidate set with just the named paths.
+// Skipped under --update (seeding must always reflect the full surface).
+const SCOPED = EXPLICIT_FILES !== null && !UPDATE;
+if (SCOPED) {
+  const byRel = new Map(candidates.map((c) => [c.rel, c]));
+  candidates.length = 0;
+  for (const f of EXPLICIT_FILES) {
+    const rel = toPosix(f);
+    if (!rel.endsWith('.tsx')) continue;
+    if (!RENDER_ROOTS.some((r) => rel === r || rel.startsWith(r + '/'))) continue;
+    candidates.push(
+      byRel.get(rel) ?? {
+        rel,
+        abs: join(ROOT, rel),
+        example: isExample(rel),
+        generated: hasHeader(join(ROOT, rel)),
+      }
+    );
+  }
+}
+
 // Files that must be accounted for = render .tsx that are neither examples nor compiler-generated.
 const handAuthored = candidates.filter((c) => !c.example && !c.generated).map((c) => c.rel).sort();
 
@@ -201,14 +235,17 @@ for (const rel of handAuthored) {
   }
 }
 
-// (2) allowlist hygiene: entries that moved/migrated
-for (const rel of allow.allow || []) {
-  if (!presentRelSet.has(rel)) {
-    errors.push(`SURFACE-SHRANK  ${rel} is allowlisted but no longer present (removed/renamed/moved) — reconcile via --update`);
-  } else {
-    const c = candidates.find((x) => x.rel === rel);
-    if (c && c.generated) {
-      notes.push(`MIGRATED-CAN-PRUNE  ${rel} now carries a generation header — migrated to HS-native; prune from allowlist via --update`);
+// (2) allowlist hygiene: entries that moved/migrated. Full-tree only — a staged-scoped (--files)
+// run sees just the committed files, so it must NOT flag the rest of the allowlist as missing.
+if (!SCOPED) {
+  for (const rel of allow.allow || []) {
+    if (!presentRelSet.has(rel)) {
+      errors.push(`SURFACE-SHRANK  ${rel} is allowlisted but no longer present (removed/renamed/moved) — reconcile via --update`);
+    } else {
+      const c = candidates.find((x) => x.rel === rel);
+      if (c && c.generated) {
+        notes.push(`MIGRATED-CAN-PRUNE  ${rel} now carries a generation header — migrated to HS-native; prune from allowlist via --update`);
+      }
     }
   }
 }
