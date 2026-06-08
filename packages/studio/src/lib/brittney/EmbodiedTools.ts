@@ -107,16 +107,15 @@ export async function executeEmbodiedTool(
       composite?: Record<string, unknown> | null;
     };
 
-    if (!payload.composite) {
+    if (!payload.composite || payload.stale) {
+      // Cache is empty or stale — fall back to /api/health for a live system
+      // status check so Brittney can answer "is everything ok?" truthfully
+      // without requiring the ai-ecosystem voice adapter to have run recently.
+      const fallback = await fetchHealthFallback(baseUrl);
       return {
         tool: toolName,
         success: true,
-        data: {
-          health: 'unknown',
-          summary: 'Status not yet reported by the ai-ecosystem voice adapter.',
-          voice: 'I have no recent status to share.',
-          stale: true,
-        },
+        data: fallback,
       };
     }
 
@@ -146,7 +145,7 @@ export async function executeEmbodiedTool(
         urgency: c.composite_urgency,
         participating_count: c.participating_count,
         ts: c.ts,
-        stale: payload.stale === true,
+        stale: payload.stale ?? false,
         age_ms: payload.age_ms,
         skills,
       },
@@ -158,6 +157,137 @@ export async function executeEmbodiedTool(
       success: false,
       data: null,
       error: isTimeout ? 'embodied composite fetch timeout' : `embodied composite fetch failed: ${(e as Error).message}`,
+    };
+  }
+}
+
+// ─── Health fallback ──────────────────────────────────────────────────────────
+
+/**
+ * Fetch a live health snapshot from /api/health and convert it into the
+ * same shape that read_embodied_status normally returns.
+ *
+ * Called when /api/embodied/composite has no composite cached yet (or the
+ * cache is stale). This ensures Brittney can answer "is everything ok?"
+ * truthfully from live data — without requiring the ai-ecosystem voice
+ * adapter (embodied.mjs) to have pushed a composite recently.
+ *
+ * The /api/health endpoint is fast (DB query + env-var inspection) and
+ * does not require authentication, so a same-process self-call is safe.
+ *
+ * We never surface raw /api/health JSON to the LLM — we normalize it into
+ * the same { health, summary, voice, stale, skills[] } shape the tool
+ * contract defines.
+ */
+async function fetchHealthFallback(baseUrl: string): Promise<Record<string, unknown>> {
+  interface HealthResponse {
+    degraded?: boolean;
+    ai?: { provider: string; connected: boolean };
+    taskBoard?: { mode: string; degraded: boolean; error?: string };
+    teamActivity?: {
+      active_teams: number;
+      total_agents: number;
+      tasks_completed_today: number;
+    };
+  }
+
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 2000);
+    const res = await fetch(`${baseUrl}/api/health`, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    clearTimeout(tid);
+
+    if (!res.ok) {
+      return {
+        health: 'unknown',
+        summary: `Studio /api/health returned ${res.status} — service may be starting up.`,
+        voice: 'I could not reach the health endpoint. Services may be starting up.',
+        stale: false,
+        source: 'health-fallback-error',
+        skills: [],
+      };
+    }
+
+    const h = (await res.json()) as HealthResponse;
+
+    // Determine overall health from /api/health fields.
+    const boardDegraded = h.taskBoard?.degraded ?? true;
+    const aiConnected = h.ai?.connected ?? false;
+
+    let health: 'ok' | 'warn' | 'down' | 'unknown';
+    if (!h.degraded && aiConnected) {
+      health = 'ok';
+    } else if (h.degraded && !boardDegraded) {
+      health = 'warn'; // DB up but AI disconnected
+    } else if (h.degraded && boardDegraded) {
+      health = 'warn'; // some degradation
+    } else {
+      health = 'unknown';
+    }
+
+    // Build a skill-level breakdown for /api/health's known checks.
+    const skills: Array<Record<string, unknown>> = [];
+
+    // Task board skill
+    skills.push({
+      skill: 'task-board',
+      health: boardDegraded ? 'warn' : 'ok',
+      glyph: boardDegraded ? '⚠' : '✅',
+      summary: boardDegraded
+        ? `running in-memory (${h.taskBoard?.error ? h.taskBoard.error.slice(0, 60) : 'DB not connected'})`
+        : `DB-backed; ${h.teamActivity?.active_teams ?? 0} teams, ${h.teamActivity?.tasks_completed_today ?? 0} tasks today`,
+      urgency: boardDegraded ? 2 : 0,
+    });
+
+    // AI provider skill
+    skills.push({
+      skill: 'ai-provider',
+      health: aiConnected ? 'ok' : 'warn',
+      glyph: aiConnected ? '✅' : '⚠',
+      summary: aiConnected
+        ? `${h.ai?.provider ?? 'unknown'} connected`
+        : 'no AI provider configured (ANTHROPIC_API_KEY / OLLAMA_HOST unset)',
+      urgency: aiConnected ? 0 : 3,
+    });
+
+    // Voice summary
+    let voice: string;
+    if (health === 'ok') {
+      voice = 'Studio is healthy — AI and task board are both up.';
+    } else if (health === 'warn') {
+      const issue = !aiConnected ? 'AI provider is not connected.' : 'Task board is running in-memory.';
+      voice = `Studio is mostly up but ${issue}`;
+    } else {
+      voice = 'Studio health is unclear. Some services may be starting up.';
+    }
+
+    const summary: string =
+      health === 'ok'
+        ? 'all systems ok (via /api/health)'
+        : skills.find((s) => s.urgency && Number(s.urgency) > 0)?.summary as string ??
+          'some services degraded';
+
+    return {
+      health,
+      glyph: { ok: '✅', warn: '⚠', down: '🔴', unknown: '❓' }[health],
+      summary,
+      voice,
+      stale: false, // live data from this request
+      source: 'health-fallback',
+      note: 'Composite from /api/embodied/composite was absent or stale; this is a live /api/health snapshot. For full ecosystem status, run the embodied skill (node ~/.ai-ecosystem/skills/embodied/scripts/embodied.mjs --surface voice).',
+      skills,
+    };
+  } catch (e) {
+    return {
+      health: 'unknown',
+      summary: 'Could not reach /api/health — service may be starting.',
+      voice: 'I have no live status right now. Services may be starting up.',
+      stale: false,
+      source: 'health-fallback-exception',
+      skills: [],
     };
   }
 }
