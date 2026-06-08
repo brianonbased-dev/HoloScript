@@ -49,6 +49,7 @@ const TEMPLATE_REGISTRY: Record<string, () => Promise<{ default: SceneTemplate }
   'building-walkthrough': () => import('./templates/building-walkthrough'),
   'interior-design': () => import('./templates/interior-design'),
   'urban-planning': () => import('./templates/urban-planning'),
+  'room-acoustics': () => import('./templates/room-acoustics'),
   'smart-home': () => import('./templates/smart-home'),
   'farm-twin': () => import('./templates/farm-twin'),
   'greenhouse-monitor': () => import('./templates/greenhouse-monitor'),

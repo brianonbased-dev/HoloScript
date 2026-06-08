@@ -488,6 +488,7 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'building-walkthrough': 'architecture-viz',
   'interior-design': 'architecture-viz',
   'urban-planning': 'architecture-viz',
+  'room-acoustics': 'architecture-viz',
   // Agriculture
   'farm-twin': 'agri-tech',
   'greenhouse-monitor': 'agri-tech',
@@ -732,6 +733,12 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
       label: 'Urban Planning',
       emoji: '🏙️',
       description: 'City-scale visualization',
+    },
+    {
+      id: 'room-acoustics',
+      label: 'Room Acoustics',
+      emoji: '🔊',
+      description: 'HoloAcoustics reverberation & speech-clarity twin',
     },
   ],
   agriculture: [
