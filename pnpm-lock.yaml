@@ -50,6 +50,7 @@ overrides:
   basic-ftp: '>=5.3.1'
   fast-uri: '>=3.1.2'
   fast-xml-builder: '>=1.1.7'
+  zod: '>=4.4.3'
 
 importers:
 
@@ -148,7 +149,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   benchmarks/crdt-performance:
     dependencies:
@@ -223,16 +224,16 @@ importers:
         version: link:../llm-provider
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
-        version: 1.27.1(zod@4.3.6)
+        version: 1.27.1(zod@4.4.3)
       drizzle-orm:
         specifier: '>=0.45.2'
         version: 0.45.2(@opentelemetry/api@1.9.0)(@upstash/redis@1.37.0)(pg@8.18.0)
       openai:
         specifier: ^6.32.0
-        version: 6.32.0(zod@4.3.6)
+        version: 6.32.0(zod@4.4.3)
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     optionalDependencies:
       '@huggingface/transformers':
         specifier: ^3.8.1
@@ -273,7 +274,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/adapter-postgres:
     dependencies:
@@ -298,7 +299,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/agent-protocol:
     devDependencies:
@@ -316,9 +317,9 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
       zod:
-        specifier: ^4.3.6
+        specifier: '>=4.4.3'
         version: 4.4.3
 
   packages/ai-validator:
@@ -327,8 +328,8 @@ importers:
         specifier: workspace:^
         version: link:../core
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -344,7 +345,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/aibrittney:
     dependencies:
@@ -362,7 +363,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/auth:
     dependencies:
@@ -384,7 +385,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/benchmark:
     dependencies:
@@ -415,7 +416,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/cli:
     dependencies:
@@ -485,7 +486,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
       vscode-languageserver:
         specifier: ^9.0.1
         version: 9.0.1
@@ -519,7 +520,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/compiler-wasm: {}
 
@@ -533,7 +534,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-appstore:
     dependencies:
@@ -567,7 +568,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-core:
     dependencies:
@@ -583,7 +584,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-github:
     dependencies:
@@ -608,7 +609,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-moltbook:
     dependencies:
@@ -627,7 +628,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-railway:
     dependencies:
@@ -649,7 +650,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-upstash:
     dependencies:
@@ -677,7 +678,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/connector-vscode:
     dependencies:
@@ -696,7 +697,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/core:
     dependencies:
@@ -746,8 +747,8 @@ importers:
         specifier: ^19.2.0
         version: 19.2.4
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     optionalDependencies:
       '@gltf-transform/core':
         specifier: ^3.7.0
@@ -880,7 +881,7 @@ importers:
         version: 60.0.1
       openai:
         specifier: ^6.32.0
-        version: 6.39.1(ws@8.20.0)(zod@4.3.6)
+        version: 6.42.0(ws@8.20.0)(zod@4.4.3)
       pixelmatch:
         specifier: ^5.3.0
         version: 5.3.0
@@ -953,7 +954,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/core-types: {}
 
@@ -989,7 +990,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/crdt-spatial:
     dependencies:
@@ -1020,7 +1021,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/create-holoscript:
     dependencies:
@@ -1042,7 +1043,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/engine:
     dependencies:
@@ -1100,7 +1101,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/formatter:
     devDependencies:
@@ -1115,7 +1116,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/framework:
     dependencies:
@@ -1126,8 +1127,8 @@ importers:
         specifier: workspace:^
         version: link:../llm-provider
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       tsup:
         specifier: ^8.0.0
@@ -1137,7 +1138,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/graphql-api:
     dependencies:
@@ -1222,7 +1223,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/holo-vm:
     dependencies:
@@ -1241,7 +1242,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/holoembed:
     dependencies:
@@ -1266,7 +1267,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
       webgpu:
         specifier: ^0.3.8
         version: 0.3.8
@@ -1303,7 +1304,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/hololand-platform:
     dependencies:
@@ -1331,7 +1332,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/holomap:
     dependencies:
@@ -1350,7 +1351,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/holomesh-web:
     dependencies:
@@ -1401,8 +1402,8 @@ importers:
         specifier: workspace:^
         version: link:../core
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       tsup:
         specifier: ^8.0.1
@@ -1412,7 +1413,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/holoscript-agent:
     dependencies:
@@ -1434,13 +1435,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/holoscript-cdn:
     devDependencies:
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/linter:
     dependencies:
@@ -1459,7 +1460,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/llm-provider:
     dependencies:
@@ -1481,7 +1482,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/lsp:
     dependencies:
@@ -1524,13 +1525,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/marketplace-agentkit:
     dependencies:
       '@coinbase/agentkit':
         specifier: ^0.10.4
-        version: 0.10.4(@tanstack/react-query@5.100.14)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.4)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.14.0)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
+        version: 0.10.4(@tanstack/react-query@5.101.0)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.4)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.14.1)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -1546,7 +1547,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/marketplace-api:
     dependencies:
@@ -1597,13 +1598,13 @@ importers:
         version: 7.7.4
       viem:
         specifier: ^2.47.1
-        version: 2.47.2(typescript@5.9.3)(zod@4.3.6)
+        version: 2.47.2(typescript@5.9.3)(zod@4.4.3)
       winston:
         specifier: ^3.11.0
         version: 3.19.0
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/compression':
         specifier: ^1.7.5
@@ -1631,7 +1632,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/marketplace-web:
     dependencies:
@@ -1701,7 +1702,7 @@ importers:
         version: 7.7.1
       '@vitejs/plugin-react':
         specifier: ^5.1.1
-        version: 5.1.4(vite@8.0.14)
+        version: 5.1.4(vite@8.0.16)
       eslint:
         specifier: ^9.39.1
         version: 9.39.2
@@ -1716,7 +1717,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/mcp-server:
     dependencies:
@@ -1752,7 +1753,7 @@ importers:
         version: link:../secrets-broker
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
-        version: 1.27.1(zod@4.3.6)
+        version: 1.27.1(zod@4.4.3)
       '@noble/post-quantum':
         specifier: ^0.6.0
         version: 0.6.0
@@ -1794,13 +1795,13 @@ importers:
         version: 1.58.2
       viem:
         specifier: ^2.47.1
-        version: 2.47.2(typescript@5.9.3)(zod@4.3.6)
+        version: 2.47.2(typescript@5.9.3)(zod@4.4.3)
       ws:
         specifier: ^8.20.0
         version: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@playwright/test':
         specifier: ^1.58.2
@@ -1825,7 +1826,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@8.0.16)
 
   packages/mcp-server-adversarial:
     devDependencies:
@@ -1837,7 +1838,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/mesh:
     dependencies:
@@ -1872,8 +1873,8 @@ importers:
         specifier: ^19.2.0
         version: 19.2.4
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     optionalDependencies:
       '@gltf-transform/core':
         specifier: ^3.7.0
@@ -2006,7 +2007,7 @@ importers:
         version: 60.0.1
       openai:
         specifier: ^6.32.0
-        version: 6.39.1(ws@8.20.0)(zod@4.3.6)
+        version: 6.42.0(ws@8.20.0)(zod@4.4.3)
       pixelmatch:
         specifier: ^5.3.0
         version: 5.3.0
@@ -2073,7 +2074,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/mvc-schema:
     dependencies:
@@ -2090,8 +2091,8 @@ importers:
         specifier: ^1.6.4
         version: 1.6.4
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -2107,7 +2108,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/partner-sdk:
     dependencies:
@@ -2126,7 +2127,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/platform:
     dependencies:
@@ -2161,8 +2162,8 @@ importers:
         specifier: ^19.2.0
         version: 19.2.4
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     optionalDependencies:
       '@gltf-transform/core':
         specifier: ^3.7.0
@@ -2295,7 +2296,7 @@ importers:
         version: 60.0.1
       openai:
         specifier: ^6.32.0
-        version: 6.39.1(ws@8.20.0)(zod@4.3.6)
+        version: 6.42.0(ws@8.20.0)(zod@4.4.3)
       pixelmatch:
         specifier: ^5.3.0
         version: 5.3.0
@@ -2362,7 +2363,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/aerospace-plugin:
     dependencies:
@@ -2434,7 +2435,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/energy-grid-plugin:
     dependencies:
@@ -2474,7 +2475,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/film3d-volumetrics-plugin:
     dependencies:
@@ -2515,7 +2516,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/game-security-plugin:
     dependencies:
@@ -2534,7 +2535,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/geolocation-gis-plugin:
     dependencies:
@@ -2565,7 +2566,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/hr-workforce-plugin:
     dependencies:
@@ -2636,7 +2637,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/radio-astronomy-plugin:
     dependencies:
@@ -2652,7 +2653,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/remotion-r3f-plugin: {}
 
@@ -2703,7 +2704,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/threat-intelligence-plugin:
     dependencies:
@@ -2722,7 +2723,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/plugins/trait-audit-plugin:
     dependencies:
@@ -2842,7 +2843,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/r3f-renderer:
     dependencies:
@@ -2894,7 +2895,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/react-agent-sdk:
     dependencies:
@@ -2907,7 +2908,7 @@ importers:
     devDependencies:
       '@storybook/addon-docs':
         specifier: ^10.2.17
-        version: 10.2.17(@types/react@19.2.14)(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14)
+        version: 10.2.17(@types/react@19.2.14)(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16)
       '@storybook/addon-links':
         specifier: ^10.2.17
         version: 10.2.17(react@19.2.4)(storybook@10.2.17)
@@ -2916,7 +2917,7 @@ importers:
         version: 10.2.17(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)(typescript@5.9.3)
       '@storybook/react-vite':
         specifier: ^10.2.17
-        version: 10.2.17(esbuild@0.27.3)(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)(typescript@5.9.3)(vite@8.0.14)
+        version: 10.2.17(esbuild@0.27.3)(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)(typescript@5.9.3)(vite@8.0.16)
       '@testing-library/react':
         specifier: ^14.2.0
         version: 14.3.1(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
@@ -2961,7 +2962,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/registry:
     dependencies:
@@ -2978,8 +2979,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.12
@@ -2998,7 +2999,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/runtime:
     dependencies:
@@ -3038,7 +3039,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/secrets-broker:
     devDependencies:
@@ -3053,7 +3054,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/security-sandbox:
     dependencies:
@@ -3087,7 +3088,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/snn-webgpu:
     devDependencies:
@@ -3117,7 +3118,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
       webgpu:
         specifier: ^0.3.8
         version: 0.3.8
@@ -3135,7 +3136,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/std:
     dependencies:
@@ -3154,13 +3155,13 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/studio:
     dependencies:
       '@anthropic-ai/sdk':
         specifier: 0.88.0
-        version: 0.88.0(zod@4.3.6)
+        version: 0.88.0(zod@4.4.3)
       '@auth/drizzle-adapter':
         specifier: 1.11.1
         version: 1.11.1
@@ -3370,7 +3371,7 @@ importers:
         version: 0.182.0
       viem:
         specifier: ^2.47.1
-        version: 2.47.2(typescript@5.9.3)(zod@4.3.6)
+        version: 2.47.2(typescript@5.9.3)(zod@4.4.3)
       web-vitals:
         specifier: 5.1.0
         version: 5.1.0
@@ -3387,8 +3388,8 @@ importers:
         specifier: ^13.6.20
         version: 13.6.29
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
       zundo:
         specifier: ^2.3.0
         version: 2.3.0(zustand@4.5.7)
@@ -3458,7 +3459,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: '>=7.3.2'
-        version: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+        version: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)
       vitest:
         specifier: ^4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
@@ -3473,7 +3474,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/studio-plugin-sdk:
     dependencies:
@@ -3504,7 +3505,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/studio-ui-graph:
     dependencies:
@@ -3572,7 +3573,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/ui:
     dependencies:
@@ -3603,7 +3604,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react':
         specifier: ^5.1.1
-        version: 5.1.4(vite@8.0.14)
+        version: 5.1.4(vite@8.0.16)
       '@vitest/coverage-v8':
         specifier: ^4.1.5
         version: 4.1.5(vitest@4.1.5)
@@ -3633,7 +3634,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   packages/video-tutorials:
     dependencies:
@@ -3668,8 +3669,8 @@ importers:
         specifier: ^1.22.0
         version: 1.29.2
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -3826,7 +3827,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   services/absorb-service:
     dependencies:
@@ -3841,7 +3842,7 @@ importers:
         version: link:../../packages/core
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
-        version: 1.27.1(zod@4.3.6)
+        version: 1.27.1(zod@4.4.3)
       cors:
         specifier: ^2.8.5
         version: 2.8.6
@@ -3864,8 +3865,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/cors':
         specifier: ^2.8.17
@@ -3890,7 +3891,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   services/export-api:
     dependencies:
@@ -3960,7 +3961,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   services/holoscript-net:
     dependencies:
@@ -4066,10 +4067,10 @@ importers:
         version: 5.9.3
       vite-plugin-node-polyfills:
         specifier: ^0.25.0
-        version: 0.25.0(vite@8.0.14)
+        version: 0.25.0(vite@8.0.16)
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   services/holoscript-net-v2:
     dependencies:
@@ -4124,7 +4125,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   services/llm-service:
     dependencies:
@@ -4153,8 +4154,8 @@ importers:
         specifier: ^13.0.0
         version: 13.0.0
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/cors':
         specifier: ^2.8.17
@@ -4195,7 +4196,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+        version: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
 
   services/studio-api:
     dependencies:
@@ -4257,8 +4258,8 @@ importers:
         specifier: ^20.4.1
         version: 20.4.1(@types/node@24.10.13)
       zod:
-        specifier: ^4.3.6
-        version: 4.3.6
+        specifier: '>=4.4.3'
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.10.1
@@ -4324,24 +4325,11 @@ packages:
       typescript: 5.9.3
     dev: false
 
-  /@anthropic-ai/sdk@0.88.0(zod@4.3.6):
-    resolution: {integrity: sha512-QQOtB5U9ZBJQj6y1ICmDZl14LWa4JCiJRoihI+0yuZ4OjbONrakP0yLwPv4DJFb3VYCtQM31bTOpCBMs2zghPw==}
-    hasBin: true
-    peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-    dependencies:
-      json-schema-to-ts: 3.1.1
-      zod: 4.3.6
-    dev: false
-
   /@anthropic-ai/sdk@0.88.0(zod@4.4.3):
     resolution: {integrity: sha512-QQOtB5U9ZBJQj6y1ICmDZl14LWa4JCiJRoihI+0yuZ4OjbONrakP0yLwPv4DJFb3VYCtQM31bTOpCBMs2zghPw==}
     hasBin: true
     peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       zod:
         optional: true
@@ -5621,7 +5609,7 @@ packages:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  /@base-org/account@2.4.0(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@3.25.76):
+  /@base-org/account@2.4.0(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@4.4.3):
     resolution: {integrity: sha512-A4Umpi8B9/pqR78D1Yoze4xHyQaujioVRqqO3d6xuDFw9VRtjg6tK3bPlwE0aW+nVH/ntllCpPa2PbI8Rnjcug==}
     dependencies:
       '@coinbase/cdp-sdk': 1.44.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
@@ -5629,9 +5617,9 @@ packages:
       clsx: 1.2.1
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
-      ox: 0.6.9(typescript@5.9.3)(zod@3.25.76)
+      ox: 0.6.9(typescript@5.9.3)(zod@4.4.3)
       preact: 10.24.2
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
       zustand: 5.0.3(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -5648,7 +5636,7 @@ packages:
       - zod
     dev: false
 
-  /@base-org/account@2.5.2(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76):
+  /@base-org/account@2.5.2(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-B3e0XiZWHXgCPLRXk0dDGA2WN8eFk/MDprqRX1Xl4PPx1LAdzynGcGUg6rnidMrIQ/GSL+oelWDHdGbWtCOOoA==}
     dependencies:
       '@coinbase/cdp-sdk': 1.44.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
@@ -5656,9 +5644,9 @@ packages:
       clsx: 1.2.1
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
-      ox: 0.6.9(typescript@5.9.3)(zod@3.25.76)
+      ox: 0.6.9(typescript@5.9.3)(zod@4.4.3)
       preact: 10.24.2
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
       zustand: 5.0.3(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -5985,15 +5973,15 @@ packages:
       w3c-keyname: 2.2.8
     dev: false
 
-  /@coinbase/agentkit@0.10.4(@tanstack/react-query@5.100.14)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.4)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.14.0)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0):
+  /@coinbase/agentkit@0.10.4(@tanstack/react-query@5.101.0)(@types/node@24.10.13)(@zerodev/webauthn-key@5.5.0)(abitype@1.2.4)(fastestsmallesttextencoderdecoder@1.0.22)(graphql@16.14.1)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0):
     resolution: {integrity: sha512-1ZnjY6ohuBXqseZDUhrkFnlU+UjNBr9TeZjpa4wjR8pGQq2RhhVKXQSe5UOFpitgtK3z8ytsQXTHwKRohkExKw==}
     dependencies:
       '@across-protocol/app-sdk': 0.2.3(viem@2.38.3)
       '@alloralabs/allora-sdk': 0.1.1
-      '@base-org/account': 2.5.2(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+      '@base-org/account': 2.5.2(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
       '@coinbase/cdp-sdk': 1.44.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      '@coinbase/coinbase-sdk': 0.20.0(typescript@5.9.3)(zod@3.25.76)
-      '@coinbase/x402': 0.6.6(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
+      '@coinbase/coinbase-sdk': 0.20.0(typescript@5.9.3)(zod@4.4.3)
+      '@coinbase/x402': 0.6.6(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
       '@ensofinance/sdk': 2.0.12
       '@jup-ag/api': 6.0.48
       '@privy-io/public-api': 2.18.5
@@ -6001,7 +5989,7 @@ packages:
       '@solana/kit': 2.3.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.0)
       '@solana/spl-token': 0.4.14(@solana/web3.js@1.98.4)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/web3.js': 1.98.4(typescript@5.9.3)
-      '@vaultsfyi/sdk': 2.1.14(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)
+      '@vaultsfyi/sdk': 2.1.14(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)
       '@x402/evm': 2.5.0(ethers@6.16.0)(typescript@5.9.3)
       '@x402/fetch': 2.5.0(typescript@5.9.3)
       '@x402/svm': 2.9.0(@solana/kit@2.3.0)
@@ -6015,14 +6003,14 @@ packages:
       clanker-sdk: 4.2.10(@types/node@24.10.13)(typescript@5.9.3)(viem@2.38.3)
       decimal.js: 10.6.0
       ethers: 6.16.0
-      graphql-request: 7.4.0(graphql@16.14.0)
+      graphql-request: 7.4.0(graphql@16.14.1)
       md5: 2.3.0
       opensea-js: 7.4.0
       reflect-metadata: 0.2.2
-      sushi: 6.2.1(typescript@5.9.3)(viem@2.38.3)(zod@3.25.76)
+      sushi: 6.2.1(typescript@5.9.3)(viem@2.38.3)(zod@4.4.3)
       twitter-api-v2: 1.29.0
       viem: 2.38.3(typescript@5.9.3)(zod@4.4.3)
-      zod: 3.25.76
+      zod: 4.4.3
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6075,14 +6063,14 @@ packages:
       '@solana-program/token': 0.9.0(@solana/kit@5.5.1)
       '@solana/kit': 5.5.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/web3.js': 1.98.4(typescript@5.9.3)
-      abitype: 1.0.6(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.0.6(typescript@5.9.3)(zod@4.4.3)
       axios: 1.17.0
       axios-retry: 4.5.0(axios@1.17.0)
       jose: 6.2.2
       md5: 2.3.0
       uncrypto: 0.1.3
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -6093,11 +6081,11 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@coinbase/coinbase-sdk@0.20.0(typescript@5.9.3)(zod@3.25.76):
+  /@coinbase/coinbase-sdk@0.20.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-OoMMktKbjmeEwtwQCK3kIIoX5M+hNelxAGX5Llymvw6bmyrMDaEBZ/Myga9kaLJ+7Hi5Y4jPDy4Cy2MGxxXg6w==}
     dependencies:
       '@scure/bip32': 1.7.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.3)
       axios: 1.17.0
       axios-mock-adapter: 1.22.0(axios@1.17.0)
       axios-retry: 4.5.0(axios@1.17.0)
@@ -6109,7 +6097,7 @@ packages:
       ethers: 6.16.0
       jose: 5.10.0
       secp256k1: 5.0.1
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -6135,16 +6123,16 @@ packages:
       - supports-color
     dev: false
 
-  /@coinbase/wallet-sdk@4.3.6(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@3.25.76):
+  /@coinbase/wallet-sdk@4.3.6(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@4.4.3):
     resolution: {integrity: sha512-4q8BNG1ViL4mSAAvPAtpwlOs1gpC+67eQtgIwNvT3xyeyFFd+guwkc8bcX5rTmQhXpqnhzC4f0obACbP9CqMSA==}
     dependencies:
       '@noble/hashes': 1.4.0
       clsx: 1.2.1
       eventemitter3: 5.0.1
       idb-keyval: 6.2.1
-      ox: 0.6.9(typescript@5.9.3)(zod@3.25.76)
+      ox: 0.6.9(typescript@5.9.3)(zod@4.4.3)
       preact: 10.24.2
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
       zustand: 5.0.3(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
       - '@types/react'
@@ -6157,14 +6145,14 @@ packages:
       - zod
     dev: false
 
-  /@coinbase/x402@0.6.6(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0):
+  /@coinbase/x402@0.6.6(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0):
     resolution: {integrity: sha512-a/Z4TK7ijR8WOqVtNtcOy0PxPF9kt+0ytvTJuNxjbjM14JcW2bQx9L2/8X7DwpkSuXJG8L01cukWUrLrh6v4zw==}
     requiresBuild: true
     dependencies:
       '@coinbase/cdp-sdk': 1.44.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      x402: 0.6.6(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      x402: 0.6.6(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0)
+      zod: 4.4.3
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6418,6 +6406,15 @@ packages:
     dependencies:
       '@emnapi/wasi-threads': 1.2.1
       tslib: 2.8.1
+    dev: true
+    optional: true
+
+  /@emnapi/core@1.11.0:
+    resolution: {integrity: sha512-l9Oo58x0HOP5znGzVhYW9U3e5wVuA4LAZU2AGezTmkhO1CgQRFDhDg4nneHsu/t3WniXg9QrG2nIXL/ZS8ln8Q==}
+    requiresBuild: true
+    dependencies:
+      '@emnapi/wasi-threads': 1.2.2
+      tslib: 2.8.1
     optional: true
 
   /@emnapi/runtime@1.10.0:
@@ -6425,10 +6422,26 @@ packages:
     requiresBuild: true
     dependencies:
       tslib: 2.8.1
+    dev: true
+    optional: true
+
+  /@emnapi/runtime@1.11.0:
+    resolution: {integrity: sha512-55coeOFKHv1ywEcUXJtWU5f+Jr/W5tZDvZig8DLKSwUN1JpROQ4rk/SNOQiFWmaR/VKF4zuFyW1B8JduOSv6Pg==}
+    requiresBuild: true
+    dependencies:
+      tslib: 2.8.1
     optional: true
 
   /@emnapi/wasi-threads@1.2.1:
     resolution: {integrity: sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==}
+    requiresBuild: true
+    dependencies:
+      tslib: 2.8.1
+    dev: true
+    optional: true
+
+  /@emnapi/wasi-threads@1.2.2:
+    resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
     requiresBuild: true
     dependencies:
       tslib: 2.8.1
@@ -6816,7 +6829,7 @@ packages:
       globals: 14.0.0
       ignore: 5.3.2
       import-fresh: 3.3.1
-      js-yaml: 4.1.1
+      js-yaml: 4.2.0
       minimatch: 10.2.5
       strip-json-comments: 3.1.1
     transitivePeerDependencies:
@@ -7322,7 +7335,7 @@ packages:
     dependencies:
       '@metamask/rpc-errors': 7.0.2
       eventemitter3: 5.0.1
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -7483,12 +7496,12 @@ packages:
       graphql: 16.13.2
     dev: false
 
-  /@graphql-typed-document-node/core@3.2.0(graphql@16.14.0):
+  /@graphql-typed-document-node/core@3.2.0(graphql@16.14.1):
     resolution: {integrity: sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==}
     peerDependencies:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
     dependencies:
-      graphql: 16.14.0
+      graphql: 16.14.1
     dev: false
 
   /@graphql-yoga/subscription@5.0.5:
@@ -7771,7 +7784,7 @@ packages:
     cpu: [wasm32]
     requiresBuild: true
     dependencies:
-      '@emnapi/runtime': 1.10.0
+      '@emnapi/runtime': 1.11.0
     optional: true
 
   /@img/sharp-win32-arm64@0.34.5:
@@ -7881,7 +7894,7 @@ packages:
       ts-proto: 2.11.2
     dev: false
 
-  /@joshwooding/vite-plugin-react-docgen-typescript@0.6.4(typescript@5.9.3)(vite@8.0.14):
+  /@joshwooding/vite-plugin-react-docgen-typescript@0.6.4(typescript@5.9.3)(vite@8.0.16):
     resolution: {integrity: sha512-6PyZBYKnnVNqOSB0YFly+62R7dmov8segT27A+RVTBVd4iAE6kbW9QBJGlyR2yG4D4ohzhZSTIu7BK1UTtmFFA==}
     peerDependencies:
       typescript: '>= 4.3.x'
@@ -7893,7 +7906,7 @@ packages:
       glob: 13.0.6
       react-docgen-typescript: 2.4.0(typescript@5.9.3)
       typescript: 5.9.3
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     dev: true
 
   /@jridgewell/gen-mapping@0.3.13:
@@ -8629,7 +8642,7 @@ packages:
       '@ethereumjs/tx': 4.2.0
       '@types/debug': 4.1.13
       debug: 4.4.3
-      semver: 7.8.1
+      semver: 7.8.3
       superstruct: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -8669,43 +8682,12 @@ packages:
       - supports-color
     dev: false
 
-  /@modelcontextprotocol/sdk@1.27.1(zod@4.3.6):
-    resolution: {integrity: sha512-sr6GbP+4edBwFndLbM60gf07z0FQ79gaExpnsjMGePXqFcSSb7t6iscpjk9DhFhwd+mTEQrzNafGP8/iGGFYaA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@cfworker/json-schema': ^4.1.1
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      '@cfworker/json-schema':
-        optional: true
-    dependencies:
-      '@hono/node-server': 1.19.14(hono@4.12.14)
-      ajv: 8.18.0
-      ajv-formats: 3.0.1(ajv@8.18.0)
-      content-type: 1.0.5
-      cors: 2.8.6
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.0.6
-      express: 5.2.1
-      express-rate-limit: 8.3.1(express@5.2.1)
-      hono: 4.12.14
-      jose: 6.2.2
-      json-schema-typed: 8.0.2
-      pkce-challenge: 5.0.1
-      raw-body: 3.0.2
-      zod: 4.3.6
-      zod-to-json-schema: 3.25.1(zod@4.3.6)
-    transitivePeerDependencies:
-      - supports-color
-    dev: false
-
   /@modelcontextprotocol/sdk@1.27.1(zod@4.4.3):
     resolution: {integrity: sha512-sr6GbP+4edBwFndLbM60gf07z0FQ79gaExpnsjMGePXqFcSSb7t6iscpjk9DhFhwd+mTEQrzNafGP8/iGGFYaA==}
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
-      zod: ^3.25 || ^4.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
@@ -8865,8 +8847,8 @@ packages:
     resolution: {integrity: sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==}
     requiresBuild: true
     dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.10.0
+      '@emnapi/core': 1.11.0
+      '@emnapi/runtime': 1.11.0
       '@tybys/wasm-util': 0.10.2
     dev: true
     optional: true
@@ -8875,8 +8857,8 @@ packages:
     resolution: {integrity: sha512-SeDnOO0Tk7Okiq6DbXmmBODgOAb9dp9gjlphokTUxmt8U3liIP1ZsozBahH69j/RJv+Rfs6IwUKHTgQYJ/HBAw==}
     requiresBuild: true
     dependencies:
-      '@emnapi/core': 1.10.0
-      '@emnapi/runtime': 1.10.0
+      '@emnapi/core': 1.11.0
+      '@emnapi/runtime': 1.11.0
       '@tybys/wasm-util': 0.10.2
     dev: false
     optional: true
@@ -9546,6 +9528,10 @@ packages:
     resolution: {integrity: sha512-FESMOxil5Se014ui/Eq8fT5uHJo6nIRwH0PfJrZJXs6Gek3ZVFOrpUv3YIZT20m+extU98Hg1Ym72U58rlsxUQ==}
     dev: true
 
+  /@oxc-project/types@0.133.0:
+    resolution: {integrity: sha512-KzkdCd6Uxqnf6l3HOw1xfatAlUURA0g14cvBYFyJ5SaNOQbOUvBr9PKArcPcrNIeRsBdgcUzOGrhKveVpvOIGA==}
+    dev: true
+
   /@panva/hkdf@1.2.1:
     resolution: {integrity: sha512-6oclG6Y3PiDFcoyk8srjLfVKyMfVCKJ27JwNPViuXziFpmdz+MZnZN/aKY0JGXgYuO/VghU0jcOAZgWXZ1Dmrw==}
     dev: false
@@ -9730,7 +9716,7 @@ packages:
     resolution: {integrity: sha512-U++bkJmeXA7IzMU3Y+cUBnExpxwkOERmoD7C2q6C3UPu2getl/bGJMGeoiXPLvxziMRM4FVpQAhXCtj5OVB1iQ==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
     dev: false
 
   /@privy-io/public-api@2.18.5:
@@ -9741,7 +9727,7 @@ packages:
       bs58: 5.0.0
       ethers: 5.8.0
       libphonenumber-js: 1.12.37
-      zod: 3.25.76
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -10592,7 +10578,7 @@ packages:
       '@remotion/renderer': 4.0.424(react-dom@19.2.4)(react@19.2.4)
       '@remotion/studio-shared': 4.0.424(react-dom@19.2.4)(react@19.2.4)
       '@remotion/web-renderer': 4.0.424(react-dom@19.2.4)(react@19.2.4)
-      '@remotion/zod-types': 4.0.424(react-dom@19.2.4)(react@19.2.4)(zod@3.22.3)
+      '@remotion/zod-types': 4.0.424(react-dom@19.2.4)(react@19.2.4)(zod@4.4.3)
       mediabunny: 1.34.4
       memfs: 3.4.3
       open: 8.4.2
@@ -10601,7 +10587,7 @@ packages:
       remotion: 4.0.424(react-dom@19.2.4)(react@19.2.4)
       semver: 7.5.3
       source-map: 0.7.3
-      zod: 3.22.3
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -10619,7 +10605,7 @@ packages:
       '@remotion/renderer': 4.0.448(react-dom@19.2.4)(react@19.2.4)
       '@remotion/studio-shared': 4.0.448(react-dom@19.2.4)(react@19.2.4)
       '@remotion/web-renderer': 4.0.448(react-dom@19.2.4)(react@19.2.4)
-      '@remotion/zod-types': 4.0.448(react-dom@19.2.4)(react@19.2.4)(zod@4.3.6)
+      '@remotion/zod-types': 4.0.448(react-dom@19.2.4)(react@19.2.4)(zod@4.4.3)
       mediabunny: 1.39.2
       memfs: 3.4.3
       open: 8.4.2
@@ -10628,7 +10614,7 @@ packages:
       remotion: 4.0.448(react-dom@19.2.4)(react@19.2.4)
       semver: 7.5.3
       source-map: 0.7.3
-      zod: 4.3.6
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -10670,36 +10656,36 @@ packages:
       '@remotion/media-parser': 4.0.424
     dev: false
 
-  /@remotion/zod-types@4.0.424(react-dom@19.2.4)(react@19.2.4)(zod@3.22.3):
+  /@remotion/zod-types@4.0.424(react-dom@19.2.4)(react@19.2.4)(zod@4.4.3):
     resolution: {integrity: sha512-tQEr18cRKGEJZNOF4bnP2fPEPDkGLYCKT8mReCL0Z8tZu5Noaw77gXaZtydiINm7f2SprjF7vzC+r27F2WBCJA==}
     peerDependencies:
-      zod: 3.22.3
+      zod: '>=4.4.3'
     dependencies:
       remotion: 4.0.424(react-dom@19.2.4)(react@19.2.4)
-      zod: 3.22.3
+      zod: 4.4.3
     transitivePeerDependencies:
       - react
       - react-dom
     dev: false
 
-  /@remotion/zod-types@4.0.448(react-dom@19.2.4)(react@19.2.4)(zod@4.3.6):
+  /@remotion/zod-types@4.0.448(react-dom@19.2.4)(react@19.2.4)(zod@4.4.3):
     resolution: {integrity: sha512-3Hvtz30SrnKq0H7PokzrF12XS/d4BOdEt3xB3Y9obpy9JYPqDRI2p0OUpdrpJv03+4hxG6GhI1N38Of0xCMYcQ==}
     peerDependencies:
-      zod: 4.3.6
+      zod: '>=4.4.3'
     dependencies:
       remotion: 4.0.448(react-dom@19.2.4)(react@19.2.4)
-      zod: 4.3.6
+      zod: 4.4.3
     transitivePeerDependencies:
       - react
       - react-dom
     dev: false
 
-  /@reown/appkit-common@1.7.8(typescript@5.9.3)(zod@3.22.4):
+  /@reown/appkit-common@1.7.8(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-ridIhc/x6JOp7KbDdwGKY4zwf8/iK8EYBl+HtWrruutSLwZyVi5P8WaZa+8iajL6LcDcDF7LoyLwMTym7SRuwQ==}
     dependencies:
       big.js: 6.2.2
       dayjs: 1.11.13
-      viem: 2.47.2(typescript@5.9.3)(zod@3.22.4)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -10707,27 +10693,14 @@ packages:
       - zod
     dev: false
 
-  /@reown/appkit-common@1.7.8(typescript@5.9.3)(zod@3.25.76):
-    resolution: {integrity: sha512-ridIhc/x6JOp7KbDdwGKY4zwf8/iK8EYBl+HtWrruutSLwZyVi5P8WaZa+8iajL6LcDcDF7LoyLwMTym7SRuwQ==}
-    dependencies:
-      big.js: 6.2.2
-      dayjs: 1.11.13
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - zod
-    dev: false
-
-  /@reown/appkit-controllers@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76):
+  /@reown/appkit-controllers@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-IdXlJlivrlj6m63VsGLsjtPHHsTWvKGVzWIP1fXZHVqmK+rZCBDjCi9j267Rb9/nYRGHWBtlFQhO8dK35WfeDA==}
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.25.76)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
       '@reown/appkit-wallet': 1.7.8(typescript@5.9.3)
-      '@walletconnect/universal-provider': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/universal-provider': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       valtio: 1.13.2(react@18.3.1)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -10757,13 +10730,13 @@ packages:
       - zod
     dev: false
 
-  /@reown/appkit-pay@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76):
+  /@reown/appkit-pay@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-OSGQ+QJkXx0FEEjlpQqIhT8zGJKOoHzVnyy/0QFrl3WrQTjCzg0L6+i91Ad5Iy1zb6V5JjqtfIFpRVRWN4M3pw==}
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-utils': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@3.25.76)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-utils': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@4.4.3)
       lit: 3.3.0
       valtio: 1.13.2(react@18.3.1)
     transitivePeerDependencies:
@@ -10801,13 +10774,13 @@ packages:
       buffer: 6.0.3
     dev: false
 
-  /@reown/appkit-scaffold-ui@1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@3.25.76):
+  /@reown/appkit-scaffold-ui@1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@4.4.3):
     resolution: {integrity: sha512-RCeHhAwOrIgcvHwYlNWMcIDibdI91waaoEYBGw71inE0kDB8uZbE7tE6DAXJmDkvl0qPh+DqlC4QbJLF1FVYdQ==}
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-utils': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@3.25.76)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-utils': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@4.4.3)
       '@reown/appkit-wallet': 1.7.8(typescript@5.9.3)
       lit: 3.3.0
     transitivePeerDependencies:
@@ -10840,11 +10813,11 @@ packages:
       - zod
     dev: false
 
-  /@reown/appkit-ui@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76):
+  /@reown/appkit-ui@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-1hjCKjf6FLMFzrulhl0Y9Vb9Fu4royE+SXCPSWh4VhZhWqlzUFc7kutnZKx8XZFVQH4pbBvY62SpRC93gqoHow==}
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
       '@reown/appkit-wallet': 1.7.8(typescript@5.9.3)
       lit: 3.3.0
       qrcode: 1.5.3
@@ -10877,19 +10850,19 @@ packages:
       - zod
     dev: false
 
-  /@reown/appkit-utils@1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@3.25.76):
+  /@reown/appkit-utils@1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@4.4.3):
     resolution: {integrity: sha512-8X7UvmE8GiaoitCwNoB86pttHgQtzy4ryHZM9kQpvjQ0ULpiER44t1qpVLXNM4X35O0v18W0Dk60DnYRMH2WRw==}
     peerDependencies:
       valtio: 1.13.2
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
       '@reown/appkit-polyfills': 1.7.8
       '@reown/appkit-wallet': 1.7.8(typescript@5.9.3)
       '@walletconnect/logger': 2.1.2
-      '@walletconnect/universal-provider': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/universal-provider': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       valtio: 1.13.2(react@18.3.1)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -10922,32 +10895,32 @@ packages:
   /@reown/appkit-wallet@1.7.8(typescript@5.9.3):
     resolution: {integrity: sha512-kspz32EwHIOT/eg/ZQbFPxgXq0B/olDOj3YMu7gvLEFz4xyOFd/wgzxxAXkp5LbG4Cp++s/elh79rVNmVFdB9A==}
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.22.4)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
       '@reown/appkit-polyfills': 1.7.8
       '@walletconnect/logger': 2.1.2
-      zod: 3.22.4
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
     dev: false
 
-  /@reown/appkit@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76):
+  /@reown/appkit@1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-51kTleozhA618T1UvMghkhKfaPcc9JlKwLJ5uV+riHyvSoWPKPRIa5A6M1Wano5puNyW0s3fwywhyqTHSilkaA==}
     dependencies:
-      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-pay': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+      '@reown/appkit-common': 1.7.8(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-controllers': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-pay': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
       '@reown/appkit-polyfills': 1.7.8
-      '@reown/appkit-scaffold-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@3.25.76)
-      '@reown/appkit-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
-      '@reown/appkit-utils': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@3.25.76)
+      '@reown/appkit-scaffold-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@4.4.3)
+      '@reown/appkit-ui': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
+      '@reown/appkit-utils': 1.7.8(react@18.3.1)(typescript@5.9.3)(valtio@1.13.2)(zod@4.4.3)
       '@reown/appkit-wallet': 1.7.8(typescript@5.9.3)
       '@walletconnect/types': 2.21.0
-      '@walletconnect/universal-provider': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/universal-provider': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       bs58: 6.0.0
       valtio: 1.13.2(react@18.3.1)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -10990,8 +10963,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-android-arm64@1.0.3:
+    resolution: {integrity: sha512-454rs7jHngixp/NMxd5srYD57OnzSlZ/eFTETjORQHLwJG1lRtmNOJcBerZlfu4GjKqeq8aCCIQrMdHyhI51Hw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [android]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-darwin-arm64@1.0.2:
     resolution: {integrity: sha512-vdFA9+C/rekyGce7WqHs/xoT0ioZEWaOFyZLIV1mEeNFaFDUQrPIo8Vs2GvJ6eetb3rzDUtUBgzto3ExpXJB3w==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-darwin-arm64@1.0.3:
+    resolution: {integrity: sha512-PcAhP+ynjURNyy8SKGl5DQP94aGuB/7JrXJb/t7P+hanXvQVMWzUvRRhBAcg/lNRadBhoUPqSoP4xw5tR/KBEA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [darwin]
@@ -11008,8 +10999,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-darwin-x64@1.0.3:
+    resolution: {integrity: sha512-9YpfeUvSE2RS7wysJ81uOZkXJz7f7Q55H2Gvp3VEw/EsahqDtrphrZ0EwDLK5vvKOzaCrBsjF8JmnMLcUt78Gg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-freebsd-x64@1.0.2:
     resolution: {integrity: sha512-m41o7M0YWtUdqk61Tb+jnKb2rN++iRdIASlExkUoKfIAH30DOHCB8fVLzSUpbWHHU8esmEioY62PxzexE8MBuA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [freebsd]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-freebsd-x64@1.0.3:
+    resolution: {integrity: sha512-yB1IlAsSNHncV6SCTL27/MVGR5htvQsoGxIv5KMGXALp+Ll1wYsn+x98M9MW7qa+NdSbvrrY7ANI4wLJ0n1e6g==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [freebsd]
@@ -11026,8 +11035,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-linux-arm-gnueabihf@1.0.3:
+    resolution: {integrity: sha512-Yi30IVAAfLUCy2MseFjbB1jAMDl1VMCAas5StnYp8da9+CKvMd2H2cbEjWcw5NPaPqzvYkVIaF1nNUG+b7u/sw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-linux-arm64-gnu@1.0.2:
     resolution: {integrity: sha512-1jn6qDU5iiOgFgygDzKUuKP0maTi0/f1+sBLgvij/76C77Nm3ts6ufz9Bjg5q5dduxiUIxtq86JIoBvo1xQ4Ig==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-linux-arm64-gnu@1.0.3:
+    resolution: {integrity: sha512-jsO7R8To+AdlYgUmN5sHSCZbfhtMBkO0WUx8iORQnPcMMdgr7qM2DQmMwgabs3GhNztdmoKkMKQFHD6DTMCIQw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
@@ -11044,8 +11071,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-linux-arm64-musl@1.0.3:
+    resolution: {integrity: sha512-VWkUHwWriDciit80wleYwKILoR/KMvxh/IdwS/paX+ZgpuRpCrKLUdadJbc0NpBEiyhpYawsJ73j9aCvOH+f7Q==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-linux-ppc64-gnu@1.0.2:
     resolution: {integrity: sha512-hgO5Abm0w5UL6FEa2iFnZqo2KlK7TQ5QhV5x09hujBf7t5KzHQ1VmfPuTpqRy/rNlSxua3eWH374xxiVrP+lcA==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [ppc64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-linux-ppc64-gnu@1.0.3:
+    resolution: {integrity: sha512-5f1laC0SlIR0yDbFCd8acUhvJIag6N3zC5P7oUPN6wX0aOma+uKJ0wBDH5aq7I1PVI2ttTlhJwzwRIBnLiSGEg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [ppc64]
     os: [linux]
@@ -11062,8 +11107,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-linux-s390x-gnu@1.0.3:
+    resolution: {integrity: sha512-Iq4ko0r4XsgbrF/LunNgHtAGLRRVE2kXonAXQ/MV0mC6jQpMOhW1SvtZja2EhC/kd05++bP78dsqBeIQyYJ6Yg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [s390x]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-linux-x64-gnu@1.0.2:
     resolution: {integrity: sha512-0+bOkiQ779+r1WpoHOWHqncvyySci0vKph+myNDYb+im6meJAzHQXay6oEgnkHuUGouM1LKTZwqKpBow6Kj7CQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-linux-x64-gnu@1.0.3:
+    resolution: {integrity: sha512-B8m6tD5+/N5FeNQFbKlLA/2yVq9ycQP1SeedyEYYKWBNR3ZQbkvIUcNnDNM03lO1l5F2roiiFJGgvoLLyZXtSg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
@@ -11080,8 +11143,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-linux-x64-musl@1.0.3:
+    resolution: {integrity: sha512-pSdpdUJHkuCxun9LE7jvgUB9qsRgaiyNNCX7m/AvHTcq67AiT/Yhoxvw5zPfhrM8k/BfP8ce/hMOpthKDpEUow==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-openharmony-arm64@1.0.2:
     resolution: {integrity: sha512-1v5vHasdfQAZoEHakBV72LIFAC9JjnymsiKxp+GEr/ma3+NJCPSaYK+qavInOovJkgwFrs7GccX2d6IgDA3Z5w==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [openharmony]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-openharmony-arm64@1.0.3:
+    resolution: {integrity: sha512-OXXS3RKJgX2uLwM+gYyuH5omcH8fL1LJs96pZGgtetVCahON57+d4SJHzTgZiOjxgGkSnpXpOsWuPDGAKAigEg==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [openharmony]
@@ -11101,6 +11182,18 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-wasm32-wasi@1.0.3:
+    resolution: {integrity: sha512-JTtb8BWFynicNSoPrehsCzBtOKjZ6jhMiPFEmOiuXg1Fl8dn2KHQob+GuPSGR0dryQa1PQJbzjF3dqO/whhjLg==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [wasm32]
+    requiresBuild: true
+    dependencies:
+      '@emnapi/core': 1.10.0
+      '@emnapi/runtime': 1.10.0
+      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
+    dev: true
+    optional: true
+
   /@rolldown/binding-win32-arm64-msvc@1.0.2:
     resolution: {integrity: sha512-SqKonF56vA/L2yHwHYcEp2P34URpOZ7d1fS635cTkpDnUtEGdUbhI6NzsPdqeSWvAAeGDrxjWjNmibDIdFf9/A==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -11110,8 +11203,26 @@ packages:
     dev: true
     optional: true
 
+  /@rolldown/binding-win32-arm64-msvc@1.0.3:
+    resolution: {integrity: sha512-gEdFFEN70A/jxb2svrWsN3aDL7OUtmvlOy+6fa2jxG8K0wQ1ZbdeLGnidov6Yu5/733dI5ySfzFlQ/cb0bSz1g==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
   /@rolldown/binding-win32-x64-msvc@1.0.2:
     resolution: {integrity: sha512-v7qRI7gXLRINcOGXt+7YmAZ6iFuyZVMIoXAxhd8oP+DR9dLfL9GfNIx7PLMxmhZdvq8waUJBQiWN9EKNy+TRBQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: true
+    optional: true
+
+  /@rolldown/binding-win32-x64-msvc@1.0.3:
+    resolution: {integrity: sha512-eXB7CHuaQdqmJcc3koCNtNPmT/bj2gc999kUFgBxG8Ac0NdgXc4rkCHhqrgrhN3zddvvvrgzj1e90SuSfmyIXA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [win32]
@@ -11491,10 +11602,10 @@ packages:
     resolution: {integrity: sha512-ojSshQPKwVvSMR8yT2L/QtUkV5SXi/IfDiJ4/8d6UbTPjiHVmxZzUAzGD8Tzks1b9+qQkZa0isUOvYObedITaw==}
     dev: true
 
-  /@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@3.25.76):
+  /@safe-global/safe-apps-provider@0.18.6(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-4LhMmjPWlIO8TTDC2AwLk44XKXaK6hfBTWyljDm0HQ6TWlOEijVWNrt2s3OCVMSxlXAcEzYfqyu1daHZooTC2Q==}
     dependencies:
-      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@3.25.76)
+      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@4.4.3)
       events: 3.3.0
     transitivePeerDependencies:
       - bufferutil
@@ -11503,11 +11614,11 @@ packages:
       - zod
     dev: false
 
-  /@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@3.25.76):
+  /@safe-global/safe-apps-sdk@9.1.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-N5p/ulfnnA2Pi2M3YeWjULeWbjo7ei22JwU/IXnhoHzKq3pYCN6ynL9mJBOlvDVv892EgLPCWCOwQk/uBT2v0Q==}
     dependencies:
       '@safe-global/safe-gateway-typescript-sdk': 3.23.1
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -13775,13 +13886,13 @@ packages:
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
     dev: false
 
-  /@storybook/addon-docs@10.2.17(@types/react@19.2.14)(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14):
+  /@storybook/addon-docs@10.2.17(@types/react@19.2.14)(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16):
     resolution: {integrity: sha512-c414xi7rxlaHn92qWOxtEkcOMm0/+cvBui0gUsgiWOZOM8dHChGZ/RjMuf1pPDyOrSsybLsPjZhP0WthsMDkdQ==}
     peerDependencies:
       storybook: ^10.2.17
     dependencies:
       '@mdx-js/react': 3.1.1(@types/react@19.2.14)(react@19.2.4)
-      '@storybook/csf-plugin': 10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14)
+      '@storybook/csf-plugin': 10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16)
       '@storybook/icons': 2.0.1(react-dom@19.2.4)(react@19.2.4)
       '@storybook/react-dom-shim': 10.2.17(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)
       react: 19.2.4
@@ -13810,23 +13921,23 @@ packages:
       storybook: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
     dev: true
 
-  /@storybook/builder-vite@10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14):
+  /@storybook/builder-vite@10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16):
     resolution: {integrity: sha512-m/OBveTLm5ds/tUgHmmbKzgSi/oeCpQwm5rZa49vP2BpAd41Q7ER6TzkOoISzPoNNMAcbVmVc5vn7k6hdbPSHw==}
     peerDependencies:
       storybook: ^10.2.17
       vite: '>=7.3.2'
     dependencies:
-      '@storybook/csf-plugin': 10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14)
+      '@storybook/csf-plugin': 10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16)
       storybook: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       ts-dedent: 2.2.0
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - esbuild
       - rollup
       - webpack
     dev: true
 
-  /@storybook/csf-plugin@10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14):
+  /@storybook/csf-plugin@10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16):
     resolution: {integrity: sha512-crHH8i/4mwzeXpWRPgwvwX2vjytW42zyzTRySUax5dTU8o9sjk4y+Z9hkGx3Nmu1TvqseS8v1Z20saZr/tQcWw==}
     peerDependencies:
       esbuild: ^0.27.3
@@ -13847,7 +13958,7 @@ packages:
       esbuild: 0.27.3
       storybook: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       unplugin: 2.3.11
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     dev: true
 
   /@storybook/global@5.0.0:
@@ -13876,7 +13987,7 @@ packages:
       storybook: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
     dev: true
 
-  /@storybook/react-vite@10.2.17(esbuild@0.27.3)(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)(typescript@5.9.3)(vite@8.0.14):
+  /@storybook/react-vite@10.2.17(esbuild@0.27.3)(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)(typescript@5.9.3)(vite@8.0.16):
     resolution: {integrity: sha512-E/1hNmxVsjy9l3TuaNufSqkdz8saTJUGEs8GRCjKlF7be2wljIwewUxjAT3efk+bxOCw76ZmqGHk6MnRa3y7Gw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -13884,9 +13995,9 @@ packages:
       storybook: ^10.2.17
       vite: '>=7.3.2'
     dependencies:
-      '@joshwooding/vite-plugin-react-docgen-typescript': 0.6.4(typescript@5.9.3)(vite@8.0.14)
+      '@joshwooding/vite-plugin-react-docgen-typescript': 0.6.4(typescript@5.9.3)(vite@8.0.16)
       '@rollup/pluginutils': 5.3.0
-      '@storybook/builder-vite': 10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.14)
+      '@storybook/builder-vite': 10.2.17(esbuild@0.27.3)(storybook@10.2.17)(vite@8.0.16)
       '@storybook/react': 10.2.17(react-dom@19.2.4)(react@19.2.4)(storybook@10.2.17)(typescript@5.9.3)
       empathic: 2.0.0
       magic-string: 0.30.21
@@ -13896,7 +14007,7 @@ packages:
       resolve: 1.22.11
       storybook: 10.2.17(@testing-library/dom@10.4.1)(prettier@3.8.1)(react-dom@19.2.4)(react@19.2.4)
       tsconfig-paths: 4.2.0
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - esbuild
       - rollup
@@ -13933,8 +14044,8 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@tanstack/query-core@5.100.14:
-    resolution: {integrity: sha512-5X41dGpxgeaHISCRW2oYwcSycZeULZzAunaudXT9ov1KOTj9xwt0CH6hbwqP1/z74ZWF7rYFnDpyYH07XFcZew==}
+  /@tanstack/query-core@5.101.0:
+    resolution: {integrity: sha512-cQetA74EB+seWySv1TTKr828TnP0u39m6LykwDXIo84SNortpDkp30TMEjkqtYCNP9c40uT/iwl6MLiufEt0Ow==}
     dev: false
 
   /@tanstack/query-core@5.90.20:
@@ -13945,12 +14056,12 @@ packages:
     resolution: {integrity: sha512-QdpLP5VzVMgo4VtaPppRA2W04UFjIqX+bxke/ZJhE5cfd5UPkRzqIAJQt9uXkQJjqE8LBOMbKv7f8HCsZltXlg==}
     dev: false
 
-  /@tanstack/react-query@5.100.14(react@18.3.1):
-    resolution: {integrity: sha512-oOr6aRdSFEwWhzxEkD/9ZcItM3+LjBSkeVmadWKwUssAHTsqd/7bOjWrX4AbvEkoEhgAxzN0Xk6H/aYzXiYBAw==}
+  /@tanstack/react-query@5.101.0(react@18.3.1):
+    resolution: {integrity: sha512-rLlJXSpkqfizLWgkR5+eLeIk0MvTx/meEIR7LRjxic+qxiQP8zVjq7BqQkiCMNLQBlLfuOLqqr6KO5GtrDlmSg==}
     peerDependencies:
       react: ^18 || ^19
     dependencies:
-      '@tanstack/query-core': 5.100.14
+      '@tanstack/query-core': 5.101.0
       react: 18.3.1
     dev: false
 
@@ -15480,10 +15591,10 @@ packages:
       '@vanilla-extract/css': 1.17.3
     dev: false
 
-  /@vaultsfyi/sdk@2.1.14(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3):
+  /@vaultsfyi/sdk@2.1.14(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3):
     resolution: {integrity: sha512-p3pvHOzAPV3vOJ+P0+wbUp2J76iVVppv80j3DXw0Jm773N7gbcnqRLfpJZM0Jbs/TruoeY9JWdh8gYdDbVyoOQ==}
     dependencies:
-      x402-fetch: 0.7.0(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)
+      x402-fetch: 0.7.0(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -15540,7 +15651,7 @@ packages:
       - supports-color
     dev: true
 
-  /@vitejs/plugin-react@5.1.4(vite@8.0.14):
+  /@vitejs/plugin-react@5.1.4(vite@8.0.16):
     resolution: {integrity: sha512-VIcFLdRi/VYRU8OL/puL7QXMYafHmqOnwTZY50U1JPlCNj30PxCMx65c494b1K9be9hX83KVt0+gTEwTWLqToA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
@@ -15552,7 +15663,7 @@ packages:
       '@rolldown/pluginutils': 1.0.0-rc.3
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -15576,7 +15687,7 @@ packages:
       obug: 2.1.1
       std-env: 4.0.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(@vitest/ui@4.1.5)(vite@8.0.14)
+      vitest: 4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16)
     dev: true
 
   /@vitest/expect@3.2.4:
@@ -15631,7 +15742,24 @@ packages:
       '@vitest/spy': 4.1.5
       estree-walker: 3.0.3
       magic-string: 0.30.21
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)
+    dev: true
+
+  /@vitest/mocker@4.1.5(vite@8.0.16):
+    resolution: {integrity: sha512-/x2EmFC4mT4NNzqvC3fmesuV97w5FC903KPmey4gsnJiMQ3Be1IlDKVaDaG8iqaLFHqJ2FVEkxZk5VmeLjIItw==}
+    peerDependencies:
+      msw: ^2.4.9
+      vite: '>=7.3.2'
+    peerDependenciesMeta:
+      msw:
+        optional: true
+      vite:
+        optional: true
+    dependencies:
+      '@vitest/spy': 4.1.5
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     dev: true
 
   /@vitest/pretty-format@3.2.4:
@@ -15874,7 +16002,7 @@ packages:
     resolution: {integrity: sha512-cfWa1fCGBxrvaHRhvV3Is0MgmrbSCxYTXCSCau2I0a1Xw1N1pHAvkWCiXPRAqjvToILvguNyEwjevUqAuBQWvQ==}
     dev: true
 
-  /@wagmi/connectors@6.2.0(@tanstack/react-query@5.100.14)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)(zod@3.25.76):
+  /@wagmi/connectors@6.2.0(@tanstack/react-query@5.101.0)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)(zod@4.4.3):
     resolution: {integrity: sha512-2NfkbqhNWdjfibb4abRMrn7u6rPjEGolMfApXss6HCDVt9AW2oVC6k8Q5FouzpJezElxLJSagWz9FW1zaRlanA==}
     peerDependencies:
       '@wagmi/core': 2.22.1
@@ -15884,18 +16012,18 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@base-org/account': 2.4.0(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@3.25.76)
-      '@coinbase/wallet-sdk': 4.3.6(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@3.25.76)
+      '@base-org/account': 2.4.0(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@4.4.3)
+      '@coinbase/wallet-sdk': 4.3.6(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(zod@4.4.3)
       '@gemini-wallet/core': 0.3.2(viem@2.47.2)
       '@metamask/sdk': 0.33.1
-      '@safe-global/safe-apps-provider': 0.18.6(typescript@5.9.3)(zod@3.25.76)
-      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@3.25.76)
+      '@safe-global/safe-apps-provider': 0.18.6(typescript@5.9.3)(zod@4.4.3)
+      '@safe-global/safe-apps-sdk': 9.1.0(typescript@5.9.3)(zod@4.4.3)
       '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
-      '@walletconnect/ethereum-provider': 2.21.1(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/ethereum-provider': 2.21.1(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
       cbw-sdk: /@coinbase/wallet-sdk@3.9.3
-      porto: 0.2.35(@tanstack/react-query@5.100.14)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)
+      porto: 0.2.35(@tanstack/react-query@5.101.0)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)
       typescript: 5.9.3
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -16044,7 +16172,7 @@ packages:
       '@wallet-standard/base': 1.1.0
     dev: false
 
-  /@walletconnect/core@2.21.0(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/core@2.21.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-o6R7Ua4myxR8aRUAJ1z3gT9nM+jd2B2mfamu6arzy1Cc6vi10fIwFWb6vg3bC8xJ6o9H3n/cN5TOW3aA9Y1XVw==}
     engines: {node: '>=18'}
     dependencies:
@@ -16060,7 +16188,7 @@ packages:
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
       '@walletconnect/types': 2.21.0
-      '@walletconnect/utils': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/utils': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/window-getters': 1.0.1
       es-toolkit: 1.33.0
       events: 3.3.0
@@ -16091,7 +16219,7 @@ packages:
       - zod
     dev: false
 
-  /@walletconnect/core@2.21.1(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/core@2.21.1(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-Tp4MHJYcdWD846PH//2r+Mu4wz1/ZU/fr9av1UWFiaYQ2t2TPLDiZxjLw54AAEpMqlEHemwCgiRiAmjR1NDdTQ==}
     engines: {node: '>=18'}
     dependencies:
@@ -16107,7 +16235,7 @@ packages:
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
       '@walletconnect/types': 2.21.1
-      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/window-getters': 1.0.1
       es-toolkit: 1.33.0
       events: 3.3.0
@@ -16144,20 +16272,20 @@ packages:
       tslib: 1.14.1
     dev: false
 
-  /@walletconnect/ethereum-provider@2.21.1(react@18.3.1)(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/ethereum-provider@2.21.1(react@18.3.1)(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-SSlIG6QEVxClgl1s0LMk4xr2wg4eT3Zn/Hb81IocyqNSGfXpjtawWxKxiC5/9Z95f1INyBD6MctJbL/R1oBwIw==}
     deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
     dependencies:
-      '@reown/appkit': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@3.25.76)
+      '@reown/appkit': 1.7.8(react@18.3.1)(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/jsonrpc-http-connection': 1.0.8
       '@walletconnect/jsonrpc-provider': 1.0.14
       '@walletconnect/jsonrpc-types': 1.0.4
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/keyvaluestorage': 1.1.1
-      '@walletconnect/sign-client': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/sign-client': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/types': 2.21.1
-      '@walletconnect/universal-provider': 2.21.1(typescript@5.9.3)(zod@3.25.76)
-      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/universal-provider': 2.21.1(typescript@5.9.3)(zod@4.4.3)
+      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -16310,18 +16438,18 @@ packages:
       tslib: 1.14.1
     dev: false
 
-  /@walletconnect/sign-client@2.21.0(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/sign-client@2.21.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-z7h+PeLa5Au2R591d/8ZlziE0stJvdzP9jNFzFolf2RG/OiXulgFKum8PrIyXy+Rg2q95U9nRVUF9fWcn78yBA==}
     deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
     dependencies:
-      '@walletconnect/core': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/core': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.2
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.1.2
       '@walletconnect/time': 1.0.2
       '@walletconnect/types': 2.21.0
-      '@walletconnect/utils': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/utils': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -16349,18 +16477,18 @@ packages:
       - zod
     dev: false
 
-  /@walletconnect/sign-client@2.21.1(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/sign-client@2.21.1(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-QaXzmPsMnKGV6tc4UcdnQVNOz4zyXgarvdIQibJ4L3EmLat73r5ZVl4c0cCOcoaV7rgM9Wbphgu5E/7jNcd3Zg==}
     deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
     dependencies:
-      '@walletconnect/core': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/core': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.2
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.1.2
       '@walletconnect/time': 1.0.2
       '@walletconnect/types': 2.21.1
-      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -16456,7 +16584,7 @@ packages:
       - uploadthing
     dev: false
 
-  /@walletconnect/universal-provider@2.21.0(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/universal-provider@2.21.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-mtUQvewt+X0VBQay/xOJBvxsB3Xsm1lTwFjZ6WUwSOTR1X+FNb71hSApnV5kbsdDIpYPXeQUbGt2se1n5E5UBg==}
     deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
     dependencies:
@@ -16467,9 +16595,9 @@ packages:
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
-      '@walletconnect/sign-client': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/sign-client': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/types': 2.21.0
-      '@walletconnect/utils': 2.21.0(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/utils': 2.21.0(typescript@5.9.3)(zod@4.4.3)
       es-toolkit: 1.33.0
       events: 3.3.0
     transitivePeerDependencies:
@@ -16499,7 +16627,7 @@ packages:
       - zod
     dev: false
 
-  /@walletconnect/universal-provider@2.21.1(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/universal-provider@2.21.1(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-Wjx9G8gUHVMnYfxtasC9poGm8QMiPCpXpbbLFT+iPoQskDDly8BwueWnqKs4Mx2SdIAWAwuXeZ5ojk5qQOxJJg==}
     deprecated: 'Reliability and performance improvements. See: https://github.com/WalletConnect/walletconnect-monorepo/releases'
     dependencies:
@@ -16510,9 +16638,9 @@ packages:
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
-      '@walletconnect/sign-client': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/sign-client': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       '@walletconnect/types': 2.21.1
-      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@3.25.76)
+      '@walletconnect/utils': 2.21.1(typescript@5.9.3)(zod@4.4.3)
       es-toolkit: 1.33.0
       events: 3.3.0
     transitivePeerDependencies:
@@ -16542,7 +16670,7 @@ packages:
       - zod
     dev: false
 
-  /@walletconnect/utils@2.21.0(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/utils@2.21.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-zfHLiUoBrQ8rP57HTPXW7rQMnYxYI4gT9yTACxVW6LhIFROTF6/ytm5SKNoIvi4a5nX5dfXG4D9XwQUCu8Ilig==}
     dependencies:
       '@noble/ciphers': 1.2.1
@@ -16561,7 +16689,7 @@ packages:
       detect-browser: 5.3.0
       query-string: 7.1.3
       uint8arrays: 3.1.0
-      viem: 2.23.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.23.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -16588,7 +16716,7 @@ packages:
       - zod
     dev: false
 
-  /@walletconnect/utils@2.21.1(typescript@5.9.3)(zod@3.25.76):
+  /@walletconnect/utils@2.21.1(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-VPZvTcrNQCkbGOjFRbC24mm/pzbRMUq2DSQoiHlhh0X1U7ZhuIrzVtAoKsrzu6rqjz0EEtGxCr3K1TGRqDG4NA==}
     dependencies:
       '@noble/ciphers': 1.2.1
@@ -16607,7 +16735,7 @@ packages:
       detect-browser: 5.3.0
       query-string: 7.1.3
       uint8arrays: 3.1.0
-      viem: 2.23.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.23.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -16784,13 +16912,13 @@ packages:
   /@x402/core@2.5.0:
     resolution: {integrity: sha512-nUr8HW8WhkU1DvrpUfsRvALy5NF8UWKoFezZOtX61mohxp2lWZpJ2GnvscxDM8nmBAbtIollmksd5z5pj8InXw==}
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
     dev: false
 
   /@x402/core@2.9.0:
     resolution: {integrity: sha512-IqPITHYx6XHlgLPtparuKKwoB+3wQdgt0F+WUH1e3WHMeiWdp+xTtQDy+6yOKuObNFI1S1iVbQFz0GivR/Vv3w==}
     dependencies:
-      zod: 3.25.76
+      zod: 4.4.3
     dev: false
 
   /@x402/evm@2.5.0(ethers@6.16.0)(typescript@5.9.3):
@@ -16798,8 +16926,8 @@ packages:
     dependencies:
       '@x402/core': 2.5.0
       '@x402/extensions': 2.5.0(ethers@6.16.0)(typescript@5.9.3)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - ethers
@@ -16815,8 +16943,8 @@ packages:
       ajv: 8.18.0
       siwe: 2.3.2(ethers@6.16.0)
       tweetnacl: 1.0.3
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - ethers
@@ -16828,8 +16956,8 @@ packages:
     resolution: {integrity: sha512-D2jH3bn0nf8w9Jg3Vxo+6reE6Z9GickzkSIw+udITJFvsrGOpfjZvhcTeflLcthCODk4Nuu9Oe8x7Q3NLUdaRQ==}
     dependencies:
       '@x402/core': 2.5.0
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -16942,8 +17070,8 @@ packages:
       viem: 2.22.12
     dependencies:
       '@zoralabs/protocol-deployments': 0.7.5
-      abitype: 1.2.4(typescript@5.9.3)(zod@4.3.6)
-      viem: 2.47.2(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.4(typescript@5.9.3)(zod@4.4.3)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     dev: false
 
   /abbrev@4.0.0:
@@ -16951,11 +17079,11 @@ packages:
     engines: {node: ^20.17.0 || >=22.9.0}
     dev: true
 
-  /abitype@1.0.6(typescript@5.9.3)(zod@3.25.76):
+  /abitype@1.0.6(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-MMSqYh4+C/aVqI2RQaWqbvI4Kxo5cQV40WQ4QFtDnNzCkqChm8MuENhElmynZlO0qUy/ObkEUaXtKqYnx1Kp3A==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: ^3 >=3.22.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -16963,14 +17091,14 @@ packages:
         optional: true
     dependencies:
       typescript: 5.9.3
-      zod: 3.25.76
+      zod: 4.4.3
     dev: false
 
-  /abitype@1.0.8(typescript@5.9.3)(zod@3.25.76):
+  /abitype@1.0.8(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-ZeiI6h3GnW06uYDLx0etQtX/p8E24UaHHBj57RSjK7YBFe7iuVn07EDpOeP451D06sF27VOz9JJPlIKJmXgkEg==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: ^3 >=3.22.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -16978,14 +17106,14 @@ packages:
         optional: true
     dependencies:
       typescript: 5.9.3
-      zod: 3.25.76
+      zod: 4.4.3
     dev: false
 
   /abitype@1.1.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-6Vh4HcRxNMLA0puzPjM5GBgT4aAcFGKZzSgAXvuZ27shJP6NEpielTuqbBmZILR5/xd0PizkBGy5hReKz9jl5A==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -16994,58 +17122,13 @@ packages:
     dependencies:
       typescript: 5.9.3
       zod: 4.4.3
-    dev: false
-
-  /abitype@1.2.3(typescript@5.9.3)(zod@3.22.4):
-    resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-      zod:
-        optional: true
-    dependencies:
-      typescript: 5.9.3
-      zod: 3.22.4
-    dev: false
-
-  /abitype@1.2.3(typescript@5.9.3)(zod@3.25.76):
-    resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-      zod:
-        optional: true
-    dependencies:
-      typescript: 5.9.3
-      zod: 3.25.76
-    dev: false
-
-  /abitype@1.2.3(typescript@5.9.3)(zod@4.3.6):
-    resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-      zod:
-        optional: true
-    dependencies:
-      typescript: 5.9.3
-      zod: 4.3.6
     dev: false
 
   /abitype@1.2.3(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -17056,26 +17139,11 @@ packages:
       zod: 4.4.3
     dev: false
 
-  /abitype@1.2.4(typescript@5.9.3)(zod@4.3.6):
-    resolution: {integrity: sha512-dpKH+N27vRjarMVTFFkeY445VTKftzGWpL0FiT7xmVmzQRKazZexzC5uHG0f6XKsVLAuUlndnbGau6lRejClxg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-      zod:
-        optional: true
-    dependencies:
-      typescript: 5.9.3
-      zod: 4.3.6
-    dev: false
-
   /abitype@1.2.4(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-dpKH+N27vRjarMVTFFkeY445VTKftzGWpL0FiT7xmVmzQRKazZexzC5uHG0f6XKsVLAuUlndnbGau6lRejClxg==}
     peerDependencies:
       typescript: '>=5.0.4'
-      zod: ^3.22.0 || ^4.0.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -17758,8 +17826,8 @@ packages:
         optional: true
     dev: false
 
-  /bare-fs@4.7.1:
-    resolution: {integrity: sha512-WDRsyVN52eAx/lBamKD6uyw8H4228h/x0sGGGegOamM2cd7Pag88GfMQalobXI+HaEUxpCkbKQUDOQqt9wawRw==}
+  /bare-fs@4.7.2:
+    resolution: {integrity: sha512-aTvMFUWkBmjzKtEQMDGGDNF8bkfpD5N1b/FCwt7A3wrU4t1o/e/85Wzkluh6JlODCjqVESYCkQCdTXqZ9G7VFg==}
     engines: {bare: '>=1.16.0'}
     requiresBuild: true
     peerDependencies:
@@ -17769,7 +17837,7 @@ packages:
         optional: true
     dependencies:
       bare-events: 2.8.2
-      bare-path: 3.0.0
+      bare-path: 3.0.1
       bare-stream: 2.8.0(bare-events@2.8.2)
       bare-url: 2.3.2
       fast-fifo: 1.3.2
@@ -17786,8 +17854,8 @@ packages:
     dev: false
     optional: true
 
-  /bare-path@3.0.0:
-    resolution: {integrity: sha512-tyfW2cQcB5NN8Saijrhqn0Zh7AnFNsnczRcuWODH0eYAXBsJ5gVxAUuNr7tsHSC6IZ77cA0SitzT+s47kot8Mw==}
+  /bare-path@3.0.1:
+    resolution: {integrity: sha512-ghj2DSK/2e99a1anTVPCV4m4YIYtrbXhfM7V3D7XZLOTsybnYyaJloymGqssQc8l/or0UoDyRtNQkmkEF/ysgQ==}
     requiresBuild: true
     dependencies:
       bare-os: 3.6.2
@@ -17819,7 +17887,7 @@ packages:
     resolution: {integrity: sha512-ZMq4gd9ngV5aTMa5p9+UfY0b3skwhHELaDkhEHetMdX0LRkW9kzaym4oo/Eh+Ghm0CCDuMTsRIGM/ytUc1ZYmw==}
     requiresBuild: true
     dependencies:
-      bare-path: 3.0.0
+      bare-path: 3.0.1
     dev: false
     optional: true
 
@@ -18481,7 +18549,7 @@ packages:
     dependencies:
       devtools-protocol: 0.0.1367902
       mitt: 3.0.1
-      zod: 3.23.8
+      zod: 4.4.3
     dev: false
 
   /cipher-base@1.0.7:
@@ -20223,8 +20291,8 @@ packages:
       graceful-fs: 4.2.11
       tapable: 2.3.0
 
-  /enhanced-resolve@5.22.1:
-    resolution: {integrity: sha512-6QEuw3zoX1SJQc7b87aBXke/no+mG2bTBgw29gWMQonLmpEkWoCAVkl+M49e48AZlWzxiDzDZzYdp6kobcyLww==}
+  /enhanced-resolve@5.23.0:
+    resolution: {integrity: sha512-yJN/BOOLxcOW2aQgeif9mSnaUB8KtvmMMp56oA1kx1CRfBKbhZm2pJ+NBY+3eOboHxix8lfjWpHE0Ei5U8RbSA==}
     engines: {node: '>=10.13.0'}
     dependencies:
       graceful-fs: 4.2.11
@@ -21990,13 +22058,13 @@ packages:
       - graphql-middleware
     dev: false
 
-  /graphql-request@7.4.0(graphql@16.14.0):
+  /graphql-request@7.4.0(graphql@16.14.1):
     resolution: {integrity: sha512-xfr+zFb/QYbs4l4ty0dltqiXIp07U6sl+tOKAb0t50/EnQek6CVVBLjETXi+FghElytvgaAWtIOt3EV7zLzIAQ==}
     peerDependencies:
       graphql: 14 - 16
     dependencies:
-      '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.0)
-      graphql: 16.14.0
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.14.1)
+      graphql: 16.14.1
     dev: false
 
   /graphql-scalars@1.25.0(graphql@16.13.2):
@@ -22056,8 +22124,8 @@ packages:
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
     dev: false
 
-  /graphql@16.14.0:
-    resolution: {integrity: sha512-BBvQ/406p+4CZbTpCbVPSxfzrZrbnuWSP1ELYgyS6B+hNeKzgrdB4JczCa5VZUBQrDa9hUngm0KnexY6pJRN5Q==}
+  /graphql@16.14.1:
+    resolution: {integrity: sha512-cQOsSMS/IrDz82PVyRDvf/Q1F/bRbBVjJlh+xYOkI1qw2bWRvWGiWc+m2O0d6l4Bt1fyY+8kzJ8JFWGJqNeDBg==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
     dev: false
 
@@ -23388,6 +23456,13 @@ packages:
     hasBin: true
     dependencies:
       argparse: 2.0.1
+
+  /js-yaml@4.2.0:
+    resolution: {integrity: sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw==}
+    hasBin: true
+    dependencies:
+      argparse: 2.0.1
+    dev: true
 
   /jscpd-sarif-reporter@4.0.6:
     resolution: {integrity: sha512-b9Sm3IPZ3+m8Lwa4gZa+4/LhDhlc/ZLEsLXKSOy1DANQ6kx0ueqZT+fUHWEdQ6m0o3+RIVIa7DmvLSojQD05ng==}
@@ -25792,27 +25867,12 @@ packages:
       is-wsl: 2.2.0
     dev: false
 
-  /openai@6.32.0(zod@4.3.6):
+  /openai@6.32.0(zod@4.4.3):
     resolution: {integrity: sha512-j3k+BjydAf8yQlcOI7WUQMQTbbF5GEIMAE2iZYCOzwwB3S2pCheaWYp+XZRNAch4jWVc52PMDGRRjutao3lLCg==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
-    dependencies:
-      zod: 4.3.6
-    dev: false
-
-  /openai@6.34.0(zod@4.4.3):
-    resolution: {integrity: sha512-yEr2jdGf4tVFYG6ohmr3pF6VJuveP0EA/sS8TBx+4Eq5NT10alu5zg2dmxMXMgqpihRDQlFGpRt2XwsGj+Fyxw==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       ws:
         optional: true
@@ -25822,13 +25882,27 @@ packages:
       zod: 4.4.3
     dev: false
 
-  /openai@6.39.1(ws@8.20.0)(zod@4.3.6):
-    resolution: {integrity: sha512-z3dO9fEWOXBzlXynVb/xZ/tujzUjFWQWn3C0n0mw6Vo0zJTbEkaN4b2cLWjhJ6haJQx8LlREoafHRl+Gu/Hl+A==}
+  /openai@6.34.0(zod@4.4.3):
+    resolution: {integrity: sha512-yEr2jdGf4tVFYG6ohmr3pF6VJuveP0EA/sS8TBx+4Eq5NT10alu5zg2dmxMXMgqpihRDQlFGpRt2XwsGj+Fyxw==}
     hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: '>=4.4.3'
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+    dependencies:
+      zod: 4.4.3
+    dev: false
+
+  /openai@6.42.0(ws@8.20.0)(zod@4.4.3):
+    resolution: {integrity: sha512-1WFEt/uXMXOLhYRNkgJWo08Y2YNvNwpVU72K7ibrWgWpNOXd4VojXLbe6SQ4bLiUQ3Y8jz4IiyVkylJCL1DtZg==}
     requiresBuild: true
     peerDependencies:
       ws: ^8.18.0
-      zod: ^3.25 || ^4.0
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       ws:
         optional: true
@@ -25836,7 +25910,7 @@ packages:
         optional: true
     dependencies:
       ws: 8.20.0(bufferutil@4.1.0)(utf-8-validate@5.0.10)
-      zod: 4.3.6
+      zod: 4.4.3
     dev: false
     optional: true
 
@@ -25915,69 +25989,6 @@ packages:
       safe-push-apply: 1.0.0
     dev: true
 
-  /ox@0.14.0(typescript@5.9.3)(zod@3.22.4):
-    resolution: {integrity: sha512-WLOB7IKnmI3Ol6RAqY7CJdZKl8QaI44LN91OGF1061YIeN6bL5IsFcdp7+oQShRyamE/8fW/CBRWhJAOzI35Dw==}
-    peerDependencies:
-      typescript: '>=5.4.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.22.4)
-      eventemitter3: 5.0.1
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - zod
-    dev: false
-
-  /ox@0.14.0(typescript@5.9.3)(zod@3.25.76):
-    resolution: {integrity: sha512-WLOB7IKnmI3Ol6RAqY7CJdZKl8QaI44LN91OGF1061YIeN6bL5IsFcdp7+oQShRyamE/8fW/CBRWhJAOzI35Dw==}
-    peerDependencies:
-      typescript: '>=5.4.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
-      eventemitter3: 5.0.1
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - zod
-    dev: false
-
-  /ox@0.14.0(typescript@5.9.3)(zod@4.3.6):
-    resolution: {integrity: sha512-WLOB7IKnmI3Ol6RAqY7CJdZKl8QaI44LN91OGF1061YIeN6bL5IsFcdp7+oQShRyamE/8fW/CBRWhJAOzI35Dw==}
-    peerDependencies:
-      typescript: '>=5.4.0'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
-      eventemitter3: 5.0.1
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - zod
-    dev: false
-
   /ox@0.14.0(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-WLOB7IKnmI3Ol6RAqY7CJdZKl8QaI44LN91OGF1061YIeN6bL5IsFcdp7+oQShRyamE/8fW/CBRWhJAOzI35Dw==}
     peerDependencies:
@@ -25999,7 +26010,7 @@ packages:
       - zod
     dev: false
 
-  /ox@0.6.7(typescript@5.9.3)(zod@3.25.76):
+  /ox@0.6.7(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-17Gk/eFsFRAZ80p5eKqv89a57uXjd3NgIf1CaXojATPBuujVc/fQSVhBeAU9JCRB+k7J50WQAyWTxK19T9GgbA==}
     peerDependencies:
       typescript: '>=5.4.0'
@@ -26012,14 +26023,14 @@ packages:
       '@noble/hashes': 1.7.1
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.3)
       eventemitter3: 5.0.1
       typescript: 5.9.3
     transitivePeerDependencies:
       - zod
     dev: false
 
-  /ox@0.6.9(typescript@5.9.3)(zod@3.25.76):
+  /ox@0.6.9(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-wi5ShvzE4eOcTwQVsIPdFr+8ycyX+5le/96iAJutaZAvCes1J0+RvpEPg5QDPDiaR0XQQAvZVl7AwqQcINuUug==}
     peerDependencies:
       typescript: '>=5.4.0'
@@ -26032,7 +26043,7 @@ packages:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.3)
       eventemitter3: 5.0.1
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -26616,7 +26627,7 @@ packages:
     engines: {node: '>=12.0.0'}
     dev: false
 
-  /porto@0.2.35(@tanstack/react-query@5.100.14)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5):
+  /porto@0.2.35(@tanstack/react-query@5.101.0)(@wagmi/core@2.22.1)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5):
     resolution: {integrity: sha512-gu9FfjjvvYBgQXUHWTp6n3wkTxVtEcqFotM7i3GEZeoQbvLGbssAicCz6hFZ8+xggrJWwi/RLmbwNra50SMmUQ==}
     hasBin: true
     peerDependencies:
@@ -26648,7 +26659,7 @@ packages:
       wagmi:
         optional: true
     dependencies:
-      '@tanstack/react-query': 5.100.14(react@18.3.1)
+      '@tanstack/react-query': 5.101.0(react@18.3.1)
       '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
       hono: 4.12.14
       idb-keyval: 6.2.2
@@ -26656,8 +26667,8 @@ packages:
       ox: 0.9.17(typescript@5.9.3)(zod@4.4.3)
       react: 18.3.1
       typescript: 5.9.3
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      wagmi: 2.19.5(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@4.4.3)
       zod: 4.4.3
       zustand: 5.0.13(react@18.3.1)(use-sync-external-store@1.4.0)
     transitivePeerDependencies:
@@ -28084,6 +28095,31 @@ packages:
       '@rolldown/binding-win32-x64-msvc': 1.0.2
     dev: true
 
+  /rolldown@1.0.3:
+    resolution: {integrity: sha512-i00lAJ2ks1BYr7rjNjKC7BcqAS7nVfiT3QX1SI5aY+AFHblCmaUf9OE9dbdzDvW6dJxbi2ZCZiy9v3CcwOiX3g==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    dependencies:
+      '@oxc-project/types': 0.133.0
+      '@rolldown/pluginutils': 1.0.1
+    optionalDependencies:
+      '@rolldown/binding-android-arm64': 1.0.3
+      '@rolldown/binding-darwin-arm64': 1.0.3
+      '@rolldown/binding-darwin-x64': 1.0.3
+      '@rolldown/binding-freebsd-x64': 1.0.3
+      '@rolldown/binding-linux-arm-gnueabihf': 1.0.3
+      '@rolldown/binding-linux-arm64-gnu': 1.0.3
+      '@rolldown/binding-linux-arm64-musl': 1.0.3
+      '@rolldown/binding-linux-ppc64-gnu': 1.0.3
+      '@rolldown/binding-linux-s390x-gnu': 1.0.3
+      '@rolldown/binding-linux-x64-gnu': 1.0.3
+      '@rolldown/binding-linux-x64-musl': 1.0.3
+      '@rolldown/binding-openharmony-arm64': 1.0.3
+      '@rolldown/binding-wasm32-wasi': 1.0.3
+      '@rolldown/binding-win32-arm64-msvc': 1.0.3
+      '@rolldown/binding-win32-x64-msvc': 1.0.3
+    dev: true
+
   /rollup@4.60.1:
     resolution: {integrity: sha512-VmtB2rFU/GroZ4oL8+ZqXgSA38O6GR8KSIvWmEFv63pQ0G6KaBH9s07PO8XTXP4vI+3UJUEypOfjkGfmSBBR0w==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
@@ -28301,6 +28337,12 @@ packages:
     resolution: {integrity: sha512-rkVq3IXh+4FDGch+KwzX3aV9W3kO54GyEgpvBzSyctDA6Xtd7RJQV1xmXbeQp5v7+VzLOfVqiutSE6GICgPFvg==}
     engines: {node: '>=10'}
     hasBin: true
+
+  /semver@7.8.3:
+    resolution: {integrity: sha512-wnilbGyMxzbY7dNOl7jpKbLSjcfeweJWU5j4+u5qW+6/wuGD9KzIGOyZnQVSBM9E7DtWaaH3CyHkppYrKYoxwg==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dev: false
 
   /send@1.2.1:
     resolution: {integrity: sha512-1gnZf7DFcoIcajTjTwjwuDjzuz4PPcY2StKPlsGAQ1+YH20IRVrBaXSWmdjowTJ6u8Rc01PoYOGHXfP1mYcZNQ==}
@@ -29184,12 +29226,12 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  /sushi@6.2.1(typescript@5.9.3)(viem@2.38.3)(zod@3.25.76):
+  /sushi@6.2.1(typescript@5.9.3)(viem@2.38.3)(zod@4.4.3):
     resolution: {integrity: sha512-qg181ucsgVzfpSZ33/JqLc6xJrkfOJIROzcxyGsAqzmDvjj7nRZpctxKjgcLNmlllDn1OjA29ryqsWX/JS3IdA==}
     peerDependencies:
       typescript: '>= 5.8.3 < 6'
       viem: '*'
-      zod: '*'
+      zod: '>=4.4.3'
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -29206,7 +29248,7 @@ packages:
       toformat: 2.0.0
       typescript: 5.9.3
       viem: 2.38.3(typescript@5.9.3)(zod@4.4.3)
-      zod: 3.25.76
+      zod: 4.4.3
     dev: false
 
   /suspend-react@0.1.3(react@19.2.4):
@@ -29374,8 +29416,8 @@ packages:
       pump: 3.0.3
       tar-stream: 3.1.7
     optionalDependencies:
-      bare-fs: 4.7.1
-      bare-path: 3.0.0
+      bare-fs: 4.7.2
+      bare-path: 3.0.1
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -29647,6 +29689,14 @@ packages:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
+
+  /tinyglobby@0.2.17:
+    resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
+    engines: {node: '>=12.0.0'}
+    dependencies:
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+    dev: true
 
   /tinyrainbow@2.0.0:
     resolution: {integrity: sha512-op4nsTR47R6p0vMUUoYl/a+ljLFVtlfaXkLQmqfLR1qHma1h/ysYk4hEXZ880bf2CYgTskvTa/e196Vd5dDQXw==}
@@ -30850,7 +30900,7 @@ packages:
       vfile-message: 4.0.3
     dev: false
 
-  /viem@2.23.2(typescript@5.9.3)(zod@3.25.76):
+  /viem@2.23.2(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-NVmW/E0c5crMOtbEAqMF0e3NmvQykFXhLOc/CkLIXOlzHSA6KXVz3CYVmaKqBF8/xtjsjHAGjdJN3Ru1kFJLaA==}
     peerDependencies:
       typescript: '>=5.0.4'
@@ -30862,9 +30912,9 @@ packages:
       '@noble/hashes': 1.7.1
       '@scure/bip32': 1.6.2
       '@scure/bip39': 1.5.4
-      abitype: 1.0.8(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.0.8(typescript@5.9.3)(zod@4.4.3)
       isows: 1.0.6(ws@8.18.0)
-      ox: 0.6.7(typescript@5.9.3)(zod@3.25.76)
+      ox: 0.6.7(typescript@5.9.3)(zod@4.4.3)
       typescript: 5.9.3
       ws: 8.18.0
     transitivePeerDependencies:
@@ -30896,75 +30946,6 @@ packages:
       - zod
     dev: false
 
-  /viem@2.47.2(typescript@5.9.3)(zod@3.22.4):
-    resolution: {integrity: sha512-etDIwDgmDiGaPg8rUbJtUFuC3/nAJCbhMYyfh5dOcqNNkzBWTNcS2VluPSM5JVo+9U3b2hle2RkBEq3+xyvlvg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.22.4)
-      isows: 1.0.7(ws@8.18.3)
-      ox: 0.14.0(typescript@5.9.3)(zod@3.22.4)
-      typescript: 5.9.3
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-    dev: false
-
-  /viem@2.47.2(typescript@5.9.3)(zod@3.25.76):
-    resolution: {integrity: sha512-etDIwDgmDiGaPg8rUbJtUFuC3/nAJCbhMYyfh5dOcqNNkzBWTNcS2VluPSM5JVo+9U3b2hle2RkBEq3+xyvlvg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
-      isows: 1.0.7(ws@8.18.3)
-      ox: 0.14.0(typescript@5.9.3)(zod@3.25.76)
-      typescript: 5.9.3
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-    dev: false
-
-  /viem@2.47.2(typescript@5.9.3)(zod@4.3.6):
-    resolution: {integrity: sha512-etDIwDgmDiGaPg8rUbJtUFuC3/nAJCbhMYyfh5dOcqNNkzBWTNcS2VluPSM5JVo+9U3b2hle2RkBEq3+xyvlvg==}
-    peerDependencies:
-      typescript: '>=5.0.4'
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
-      isows: 1.0.7(ws@8.18.3)
-      ox: 0.14.0(typescript@5.9.3)(zod@4.3.6)
-      typescript: 5.9.3
-      ws: 8.18.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-    dev: false
-
   /viem@2.47.2(typescript@5.9.3)(zod@4.4.3):
     resolution: {integrity: sha512-etDIwDgmDiGaPg8rUbJtUFuC3/nAJCbhMYyfh5dOcqNNkzBWTNcS2VluPSM5JVo+9U3b2hle2RkBEq3+xyvlvg==}
     peerDependencies:
@@ -30988,14 +30969,14 @@ packages:
       - zod
     dev: false
 
-  /vite-plugin-node-polyfills@0.25.0(vite@8.0.14):
+  /vite-plugin-node-polyfills@0.25.0(vite@8.0.16):
     resolution: {integrity: sha512-rHZ324W3LhfGPxWwQb2N048TThB6nVvnipsqBUJEzh3R9xeK9KI3si+GMQxCuAcpPJBVf0LpDtJ+beYzB3/chg==}
     peerDependencies:
       vite: '>=7.3.2'
     dependencies:
       '@rollup/plugin-inject': 5.0.5
       node-stdlib-browser: 1.3.1
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
     transitivePeerDependencies:
       - rollup
     dev: true
@@ -31051,7 +31032,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vite@8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0):
+  /vite@8.0.14(@types/node@24.10.13)(esbuild@0.27.3):
     resolution: {integrity: sha512-s4BJJ+5y1pYL6Otw51FHhVJQhPnuRinKig64g/1+EUNaJsd3gCKdD31IPFvswUgW9/60QT9oFHbZHbQK5imcxw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
@@ -31101,6 +31082,60 @@ packages:
       postcss: 8.5.15
       rolldown: 1.0.2
       tinyglobby: 0.2.16
+    optionalDependencies:
+      fsevents: 2.3.3
+    dev: true
+
+  /vite@8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0):
+    resolution: {integrity: sha512-h9bXPmJichP5fLmVQo3PyaGSDE2n3aPuomeAlVRm0JLmt4rY6zmPKd59HYI4LNW8oTK7tlTsuC7l/m7awx9Jcw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      '@vitejs/devtools': ^0.1.18
+      esbuild: ^0.27.3
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: '>=2.8.3'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      '@vitejs/devtools':
+        optional: true
+      esbuild:
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+    dependencies:
+      '@types/node': 24.10.13
+      esbuild: 0.27.3
+      lightningcss: 1.32.0
+      picomatch: 4.0.4
+      postcss: 8.5.15
+      rolldown: 1.0.3
+      tinyglobby: 0.2.17
       tsx: 4.21.0
     optionalDependencies:
       fsevents: 2.3.3
@@ -31169,13 +31204,13 @@ packages:
       tinyexec: 1.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 3.1.0
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - msw
     dev: true
 
-  /vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@8.0.14):
+  /vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(vite@8.0.16):
     resolution: {integrity: sha512-9Xx1v3/ih3m9hN+SbfkUyy0JAs72ap3r7joc87XL6jwF0jGg6mFBvQ1SrwaX+h8BlkX6Hz9shdd1uo6AF+ZGpg==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
@@ -31220,7 +31255,7 @@ packages:
       '@types/node': 24.10.13
       '@vitest/coverage-v8': 4.1.5(vitest@4.1.5)
       '@vitest/expect': 4.1.5
-      '@vitest/mocker': 4.1.5(vite@8.0.14)
+      '@vitest/mocker': 4.1.5(vite@8.0.16)
       '@vitest/pretty-format': 4.1.5
       '@vitest/runner': 4.1.5
       '@vitest/snapshot': 4.1.5
@@ -31237,7 +31272,7 @@ packages:
       tinyexec: 1.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 3.1.0
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - msw
@@ -31311,7 +31346,7 @@ packages:
       - msw
     dev: true
 
-  /vitest@4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.14):
+  /vitest@4.1.5(@types/node@24.10.13)(@vitest/coverage-v8@4.1.5)(jsdom@28.1.0)(vite@8.0.16):
     resolution: {integrity: sha512-9Xx1v3/ih3m9hN+SbfkUyy0JAs72ap3r7joc87XL6jwF0jGg6mFBvQ1SrwaX+h8BlkX6Hz9shdd1uo6AF+ZGpg==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     hasBin: true
@@ -31355,7 +31390,7 @@ packages:
       '@types/node': 24.10.13
       '@vitest/coverage-v8': 4.1.5(vitest@4.1.5)
       '@vitest/expect': 4.1.5
-      '@vitest/mocker': 4.1.5(vite@8.0.14)
+      '@vitest/mocker': 4.1.5(vite@8.0.16)
       '@vitest/pretty-format': 4.1.5
       '@vitest/runner': 4.1.5
       '@vitest/snapshot': 4.1.5
@@ -31373,7 +31408,7 @@ packages:
       tinyexec: 1.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 3.1.0
-      vite: 8.0.14(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
+      vite: 8.0.16(@types/node@24.10.13)(esbuild@0.27.3)(tsx@4.21.0)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - msw
@@ -31447,7 +31482,7 @@ packages:
       xml-name-validator: 5.0.0
     dev: true
 
-  /wagmi@2.19.5(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@3.25.76):
+  /wagmi@2.19.5(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@4.4.3):
     resolution: {integrity: sha512-RQUfKMv6U+EcSNNGiPbdkDtJwtuFxZWLmvDiQmjjBgkuPulUwDJsKhi7gjynzJdsx2yDqhHCXkKsbbfbIsHfcQ==}
     peerDependencies:
       '@tanstack/react-query': '>=5.0.0'
@@ -31458,13 +31493,13 @@ packages:
       typescript:
         optional: true
     dependencies:
-      '@tanstack/react-query': 5.100.14(react@18.3.1)
-      '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.100.14)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)(zod@3.25.76)
+      '@tanstack/react-query': 5.101.0(react@18.3.1)
+      '@wagmi/connectors': 6.2.0(@tanstack/react-query@5.101.0)(@wagmi/core@2.22.1)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.4.0)(viem@2.47.2)(wagmi@2.19.5)(zod@4.4.3)
       '@wagmi/core': 2.22.1(react@18.3.1)(typescript@5.9.3)(viem@2.38.3)
       react: 18.3.1
       typescript: 5.9.3
       use-sync-external-store: 1.4.0(react@18.3.1)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -31689,7 +31724,7 @@ packages:
       acorn-import-phases: 1.0.4(acorn@8.16.0)
       browserslist: 4.28.2
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.22.1
+      enhanced-resolve: 5.23.0
       es-module-lexer: 2.1.0
       eslint-scope: 5.1.1
       events: 3.3.0
@@ -32011,12 +32046,12 @@ packages:
       is-wsl: 3.1.0
     dev: true
 
-  /x402-fetch@0.7.0(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3):
+  /x402-fetch@0.7.0(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3):
     resolution: {integrity: sha512-HS7v6wsIVrU8TvAGBwRmA3I+ZXbanPraA3OMj90y6Hn1Mej1wAELOK4VpGh6zI8d6w5E464BnGu9o0FE+8DRAA==}
     dependencies:
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      x402: 0.7.3(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      x402: 0.7.3(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -32056,7 +32091,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /x402@0.6.6(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0):
+  /x402@0.6.6(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(ws@8.20.0):
     resolution: {integrity: sha512-gKkxqKBT0mH7fSLld6Mz9ML52dmu1XeOPhVtiUCA3EzkfY6p0EJ3ijKhIKN0Jh8Q6kVXrFlJ/4iAUS1dNDA2lA==}
     dependencies:
       '@scure/base': 1.2.6
@@ -32065,9 +32100,9 @@ packages:
       '@solana-program/token-2022': 0.4.2(@solana/kit@2.3.0)
       '@solana/kit': 2.3.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.0)
       '@solana/transaction-confirmation': 2.3.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)(ws@8.20.0)
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      wagmi: 2.19.5(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@4.4.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -32108,7 +32143,7 @@ packages:
       - ws
     dev: false
 
-  /x402@0.7.3(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3):
+  /x402@0.7.3(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3):
     resolution: {integrity: sha512-8CIZsdMTOn52PjMH/ErVke9ebeZ7ErwiZ5FL3tN3Wny7Ynxs3LkuB/0q7IoccRLdVXA7f2lueYBJ2iDrElhXnA==}
     dependencies:
       '@scure/base': 1.2.6
@@ -32121,9 +32156,9 @@ packages:
       '@wallet-standard/app': 1.1.0
       '@wallet-standard/base': 1.1.0
       '@wallet-standard/features': 1.1.0
-      viem: 2.47.2(typescript@5.9.3)(zod@3.25.76)
-      wagmi: 2.19.5(@tanstack/react-query@5.100.14)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@3.25.76)
-      zod: 3.25.76
+      viem: 2.47.2(typescript@5.9.3)(zod@4.4.3)
+      wagmi: 2.19.5(@tanstack/react-query@5.101.0)(fastestsmallesttextencoderdecoder@1.0.22)(react@18.3.1)(typescript@5.9.3)(viem@2.47.2)(zod@4.4.3)
+      zod: 4.4.3
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -32366,18 +32401,10 @@ packages:
       toposort: 2.0.2
     dev: false
 
-  /zod-to-json-schema@3.25.1(zod@4.3.6):
-    resolution: {integrity: sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==}
-    peerDependencies:
-      zod: ^3.25 || ^4
-    dependencies:
-      zod: 4.3.6
-    dev: false
-
   /zod-to-json-schema@3.25.1(zod@4.4.3):
     resolution: {integrity: sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==}
     peerDependencies:
-      zod: ^3.25 || ^4
+      zod: '>=4.4.3'
     dependencies:
       zod: 4.4.3
     dev: false
@@ -32386,30 +32413,10 @@ packages:
     resolution: {integrity: sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      zod: ^3.25.0 || ^4.0.0
+      zod: '>=4.4.3'
     dependencies:
       zod: 4.4.3
     dev: true
-
-  /zod@3.22.3:
-    resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
-    dev: false
-
-  /zod@3.22.4:
-    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-    dev: false
-
-  /zod@3.23.8:
-    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
-    dev: false
-
-  /zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-    dev: false
-
-  /zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
-    dev: false
 
   /zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}

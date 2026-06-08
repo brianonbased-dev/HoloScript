@@ -103,6 +103,7 @@
     "architecture:check": "node scripts/check-architecture-coupling.js",
     "check:boundary": "node scripts/boundary-ratchet.mjs",
     "check:boundary:update": "node scripts/boundary-ratchet.mjs --update",
+    "check:studio-typecheck": "node scripts/holo-ci/studio-typecheck.mjs",
     "check:publish-surface": "node scripts/holo-ci/check-publish-surface.mjs",
     "check:publish-surface:update": "node scripts/holo-ci/check-publish-surface.mjs --update",
     "check:solver-smoke": "node scripts/holo-ci/solver-smoke-check.mjs",
@@ -230,7 +231,8 @@
       "drizzle-orm": ">=0.45.2",
       "basic-ftp": ">=5.3.1",
       "fast-uri": ">=3.1.2",
-      "fast-xml-builder": ">=1.1.7"
+      "fast-xml-builder": ">=1.1.7",
+      "zod": ">=4.4.3"
     },
     "auditConfig": {
       "ignoreGhsas": [

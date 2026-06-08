@@ -17,27 +17,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 
-interface IWebSpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface IWebSpeechRecognitionErrorEvent extends Event {
-  error: string;
-}
-
-// Poly-fill type for SpeechRecognition (may not be in old TS DOM lib)
-interface IWebSpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((event: IWebSpeechRecognitionEvent) => void) | null;
-  onerror: ((event: IWebSpeechRecognitionErrorEvent) => void) | null;
-  onend: ((event: any) => void) | null;
-}
 
 export interface UseAssistantVoiceReturn {
   isListening: boolean;
@@ -70,7 +49,7 @@ export function useAssistantVoice(): UseAssistantVoiceReturn {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
-  const recognitionRef = useRef<IWebSpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -87,7 +66,7 @@ export function useAssistantVoice(): UseAssistantVoiceReturn {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    recognition.onresult = (event: IWebSpeechRecognitionEvent) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let final = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -102,7 +81,7 @@ export function useAssistantVoice(): UseAssistantVoiceReturn {
       setInterimTranscript(interim);
     };
 
-    recognition.onerror = (event: IWebSpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       logger.warn('[AssistantVoice] SpeechRecognition error:', event.error);
       setIsListening(false);
     };
