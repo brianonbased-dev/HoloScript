@@ -50,6 +50,13 @@ type GateSpec = {
 };
 
 const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
+  'type-check': {
+    description:
+      'TypeScript type check across all packages (tsc --noEmit) — fast gate that blocks expensive build/test when type errors exist',
+    step: 'pnpm exec tsc --noEmit',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.25 },
+  },
   'frozen-lockfile': {
     description:
       'Frozen-lockfile drift gate: fail loud if any package.json ⇄ pnpm-lock.yaml is out of sync (ERR_PNPM_OUTDATED_LOCKFILE bricks deploys)',
@@ -149,6 +156,12 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
 };
 
 const HOLOLAND_GATES: Record<string, GateSpec> = {
+  'type-check': {
+    description: 'HoloLand TypeScript type check (tsc --noEmit)',
+    step: 'pnpm exec tsc --noEmit',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.25 },
+  },
   lint: {
     description: 'HoloLand lint gate (pnpm lint)',
     step: 'pnpm lint',
@@ -464,6 +477,83 @@ function checkSpendAuthz(
   return null; // allowed
 }
 
+// ─── Shared helpers (used by MCP tool handler + GitHub webhook handler) ──────
+
+/**
+ * Post GitHub commit statuses for every CI gate context.
+ * Requires GITHUB_TOKEN env var with repo:status scope.
+ * Non-fatal: silently skips when the token is absent (dev / misconfigured).
+ */
+export async function postGithubStatuses(
+  repo: string,
+  sha: string,
+  contexts: string[],
+  state: 'pending' | 'success' | 'failure' | 'error',
+  description: string,
+): Promise<void> {
+  const token = process.env.GITHUB_TOKEN || '';
+  if (!token) return;
+  const targetUrl = `https://github.com/${repo}/commit/${sha}`;
+  await Promise.allSettled(
+    contexts.map((context) =>
+      fetch(`https://api.github.com/repos/${repo}/statuses/${sha}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+        body: JSON.stringify({ state, context, description, target_url: targetUrl }),
+        signal: AbortSignal.timeout(10_000),
+      }).catch(() => { /* non-fatal */ })
+    )
+  );
+}
+
+/**
+ * Submit a pre-built workload to the fleet orchestrator.
+ * Uses the server's own orchestrator key (HOLOSCRIPT_API_KEY).
+ */
+export async function submitWorkload(
+  workload: HoloCiWorkload['workload'],
+): Promise<{ ok: boolean; workloadId?: string; error?: string }> {
+  const apiKey = readOrchestratorKey();
+  if (!apiKey) {
+    return {
+      ok: false,
+      error: 'orchestrator key not provisioned (HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY unset)',
+    };
+  }
+  try {
+    const res = await fetch(`${orchestratorUrl()}/gpu/workload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'x-mcp-api-key': apiKey,
+      },
+      body: JSON.stringify(workload),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) {
+      return { ok: false, error: `orchestrator /gpu/workload → ${res.status}` };
+    }
+    const parsed = await res
+      .json()
+      .catch(() => ({}) as { id?: string; workload_id?: string });
+    const wlId =
+      (parsed as { id?: string; workload_id?: string })?.id ??
+      (parsed as { workload_id?: string })?.workload_id ??
+      workload.id;
+    return { ok: true, workloadId: wlId };
+  } catch (err) {
+    return {
+      ok: false,
+      error: `orchestrator submit failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 // ─── Tool definition ─────────────────────────────────────────────────────────
 export const holoCiTools: Tool[] = [
   {
@@ -557,67 +647,28 @@ export async function handleHoloCiTool(
   const authzDenial = checkSpendAuthz(callerToken, profile, built);
   if (authzDenial) return authzDenial;
 
-  const apiKey = readOrchestratorKey();
-  if (!apiKey) {
+  const result = await submitWorkload(built.workload);
+  if (!result.ok) {
     return {
       ok: false,
-      error:
-        'Orchestrator key not provisioned on this server (HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY unset). Cannot submit to the fleet. Provision the key as a server env secret, or re-run with dryRun:true to preview the workload.',
+      error: result.error,
+      hint: 'Provision HOLOSCRIPT_API_KEY as a server env secret, or re-run with dryRun:true to preview.',
       contexts: built.contexts,
     };
   }
 
-  try {
-    const res = await fetch(`${orchestratorUrl()}/gpu/workload`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'x-mcp-api-key': apiKey,
-      },
-      body: JSON.stringify(built.workload),
-      signal: AbortSignal.timeout(20_000),
-    });
-
-    const text = await res.text();
-    let parsed: unknown = text;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      /* leave as text */
-    }
-
-    if (!res.ok) {
-      return {
-        ok: false,
-        error: `orchestrator /gpu/workload → ${res.status}`,
-        detail: typeof parsed === 'string' ? parsed.slice(0, 400) : parsed,
-      };
-    }
-
-    const wlId =
-      (parsed as { id?: string; workload_id?: string })?.id ??
-      (parsed as { workload_id?: string })?.workload_id ??
-      built.workload.id;
-
-    // Record the successful submit against the caller's daily quota.
-    if (callerToken) {
-      recordSubmit(tokenFingerprint(callerToken));
-    }
-
-    return {
-      ok: true,
-      dispatched: true,
-      repo: normalizedRepoKey(repo),
-      profile,
-      workloadId: wlId,
-      jobCount: built.workload.jobs.length,
-      contexts: built.contexts,
-      orchestrator: parsed,
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      error: `orchestrator submit failed: ${err instanceof Error ? err.message : String(err)}`,
-    };
+  // Record the successful submit against the caller's daily quota.
+  if (callerToken) {
+    recordSubmit(tokenFingerprint(callerToken));
   }
+
+  return {
+    ok: true,
+    dispatched: true,
+    repo: normalizedRepoKey(repo),
+    profile,
+    workloadId: result.workloadId,
+    jobCount: built.workload.jobs.length,
+    contexts: built.contexts,
+  };
 }

@@ -39,6 +39,7 @@ import { handlePublicDiscoveryRoutes } from './routes/public-discovery-routes';
 import { handleInviteRoutes } from './routes/invite-routes';
 import { handleStoryWeaverGenerationRoutes } from './routes/storyweaver-generation-routes';
 import { handleWebhookRoutes } from './routes/webhook-routes';
+import { handleGithubWebhookRoutes } from './routes/github-webhook-routes';
 import { GossipProtocol, type GossipPacket } from '@holoscript/framework';
 
 const meshGossip = new GossipProtocol();
@@ -219,6 +220,7 @@ export async function handleHoloMeshRoute(
   if (await handleInviteRoutes(req, res, pathname, method)) return true;
   if (await handleStoryWeaverGenerationRoutes(req, res, pathname, method, url)) return true;
   if (handlePublicDiscoveryRoutes(req, res)) return true;
+  if (await handleGithubWebhookRoutes(req, res, pathname, method)) return true;
   if (await handleWebhookRoutes(req, res, pathname, method, url)) return true;
 
   // 3. Fallback/Uncached routes
