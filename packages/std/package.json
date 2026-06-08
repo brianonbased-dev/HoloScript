@@ -72,6 +72,10 @@
     "url": "https://github.com/brianonbased-dev/HoloScript.git",
     "directory": "packages/std"
   },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "glob": "^13.0.0"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "~5.9.3",
