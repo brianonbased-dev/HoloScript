@@ -781,7 +781,7 @@ export async function handleTool(
   // Skeleton interop — rig_match_skeleton (G4)
   if (name === 'rig_match_skeleton') {
     const { handleRigMatchSkeleton } = await import('./tools/rig_match_skeleton');
-    return handleRigMatchSkeleton(args as Parameters<typeof handleRigMatchSkeleton>[0]);
+    return handleRigMatchSkeleton(args as unknown as Parameters<typeof handleRigMatchSkeleton>[0]);
   }
 
   throw new Error(`Unknown tool: ${name}`);

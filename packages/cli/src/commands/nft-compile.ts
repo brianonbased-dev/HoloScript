@@ -14,7 +14,7 @@ import ora from 'ora';
 import { NFTMarketplaceCompiler } from '@holoscript/core/compiler/NFTMarketplaceCompiler';
 import {
   GasOptimizationAnalyzer,
-  _ANALYZER_PRESETS,
+  ANALYZER_PRESETS as _ANALYZER_PRESETS,
 } from '@holoscript/core/compiler/GasOptimizationAnalyzer';
 import type { NFTMarketplaceAST } from '@holoscript/core/parser/NFTMarketplaceTypes';
 
