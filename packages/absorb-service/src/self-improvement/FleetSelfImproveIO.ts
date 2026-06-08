@@ -34,6 +34,7 @@ import type {
   VitestSuiteResult,
   LintResult,
 } from './SelfImproveCommand';
+import { GRPOPromptExtractor, createNodeFS } from './GRPOPromptExtractor';
 
 const execAsync = promisify(exec);
 
@@ -106,36 +107,23 @@ export class FleetSelfImproveIO implements SelfImproveIO {
   }
 
   async queryUntested(_query: string): Promise<UntestedTarget[]> {
-    const files = this.collectSourceFiles(this.rootDir);
-    const targets: UntestedTarget[] = [];
+    const sourceFiles = this.collectSourceFiles(this.rootDir);
+    const testFiles = this.collectTestFiles(this.rootDir);
 
-    for (const filePath of files) {
-      if (this.hasSiblingTest(filePath)) continue;
-      let content: string;
-      try {
-        content = fs.readFileSync(filePath, 'utf8');
-      } catch {
-        continue;
-      }
-      const symbols = this.extractExportedSymbols(content);
-      if (symbols.length === 0) continue;
+    const extractor = new GRPOPromptExtractor(
+      { rootDir: this.rootDir },
+      createNodeFS(),
+    );
+    const prompts = await extractor.extractLowCoverageExports(sourceFiles, testFiles);
 
-      const rel = path.relative(this.rootDir, filePath).split(path.sep).join('/');
-      // Relevance: bigger untested files with more exports first.
-      const relevanceScore = symbols.length * 10 + Math.min(content.length / 100, 500);
-      targets.push({
-        symbolName: symbols[0],
-        filePath: rel,
-        language: 'typescript',
-        relevanceScore,
-        description: `Exported ${symbols.length === 1 ? 'symbol' : 'symbols'} (${symbols
-          .slice(0, 4)
-          .join(', ')}${symbols.length > 4 ? ', …' : ''}) in an untested module`,
-      });
-    }
-
-    targets.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    return targets;
+    return prompts.map((p) => ({
+      symbolName: p.symbolName,
+      filePath: p.filePath,
+      language: 'typescript' as const,
+      // Map difficulty to a numeric relevance score for downstream sorting.
+      relevanceScore: p.difficulty === 'hard' ? 90 : p.difficulty === 'medium' ? 60 : 30,
+      description: p.instruction,
+    }));
   }
 
   async generateTest(target: UntestedTarget): Promise<GeneratedTest> {
@@ -340,26 +328,32 @@ export class FleetSelfImproveIO implements SelfImproveIO {
     return out;
   }
 
-  private hasSiblingTest(filePath: string): boolean {
-    const dir = path.dirname(filePath);
-    const base = path.basename(filePath, '.ts');
-    const candidates = [
-      path.join(dir, `${base}.test.ts`),
-      path.join(dir, `${base}.spec.ts`),
-      path.join(dir, '__tests__', `${base}.test.ts`),
-      path.join(dir, '__tests__', `${base}.spec.ts`),
-    ];
-    return candidates.some((c) => fs.existsSync(c));
-  }
-
-  private extractExportedSymbols(content: string): string[] {
-    const symbols: string[] = [];
-    const re = /export\s+(?:async\s+)?(?:function|class|const|interface|type|enum)\s+([A-Za-z_$][\w$]*)/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(content)) !== null) {
-      if (m[1] && !symbols.includes(m[1])) symbols.push(m[1]);
-    }
-    return symbols;
+  private collectTestFiles(root: string): string[] {
+    // Same walk as collectSourceFiles but targets test/spec files.
+    // Does NOT exclude __tests__ directories so tests inside them are found.
+    const excludeForTests = new Set([...this.excludeDirs].filter((d) => d !== '__tests__'));
+    const out: string[] = [];
+    const walk = (dir: string): void => {
+      let entries: fs.Dirent[];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const e of entries) {
+        if (e.isDirectory()) {
+          if (excludeForTests.has(e.name)) continue;
+          walk(path.join(dir, e.name));
+        } else if (
+          e.isFile() &&
+          (e.name.endsWith('.test.ts') || e.name.endsWith('.spec.ts'))
+        ) {
+          out.push(path.join(dir, e.name));
+        }
+      }
+    };
+    walk(path.resolve(root));
+    return out;
   }
 
   private proposalTestPath(sourceRel: string): string {
