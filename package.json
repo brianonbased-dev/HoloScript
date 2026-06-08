@@ -30,6 +30,7 @@
     "preflight": "node scripts/preflight.mjs",
     "preflight:full": "node scripts/preflight.mjs --full",
     "preflight:fix": "node scripts/preflight.mjs --fix",
+    "validate:dockerfile": "node scripts/validate-dockerfile-build.mjs",
     "lint": "eslint packages/*/src/**/*.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
