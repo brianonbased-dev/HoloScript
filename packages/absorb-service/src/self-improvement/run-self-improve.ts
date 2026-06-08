@@ -15,14 +15,16 @@
  *   tsx run-self-improve.ts [--root <dir>] [--max-iterations N] [--json]
  *   tsx run-self-improve.ts --targets-only            # list coverage gaps (feeder)
  *
- * LLM (sovereign, OpenAI-protocol — P.009): set
- *   HOLO_SELF_IMPROVE_LLM_URL   full chat/completions URL of the sovereign serving
- *                               endpoint (P.008 vast/Studio serving) — a production
- *                               https:// URL, NEVER localhost.
- *   HOLO_SELF_IMPROVE_LLM_MODEL model id
- *   HOLO_SELF_IMPROVE_LLM_KEY   optional bearer
- * No URL → fails LOUD (never fakes generation, never silently falls back to localhost).
- * Production-over-dev (Vision Pillar 6): there is no localhost default by design.
+ * LLM (sovereign serving, P.008/P.009): resolves the warm serving box from the
+ * orchestrator /serve registry exactly like Brittney's resolveFleet (scale-to-zero
+ * aware) — no bespoke URL, no localhost. Env (all optional, prod defaults):
+ *   FLEET_INFERENCE_KEY        bearer for the serving box's OpenAI /v1 (needed to call it)
+ *   BRITTNEY_FLEET_MODEL       served model (default qwen2.5-coder:1.5b)
+ *   MCP_ORCHESTRATOR_URL       /serve registry host (default prod orchestrator)
+ *   HOLOSCRIPT_API_KEY         x-mcp-api-key for /serve/resolve
+ *   HOLO_SELF_IMPROVE_LLM_URL  optional explicit /v1/chat/completions override (ops pin)
+ * Cold serving → fails LOUD ("retry, autoscaler is warming") — never fakes, never localhost.
+ * Production-over-dev (Vision Pillar 6).
  *
  * @module self-improvement
  */
@@ -54,22 +56,48 @@ function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
-/** Build a sovereign LLM completion fn (OpenAI-protocol). Fails loud if unconfigured. */
+/**
+ * Sovereign LLM completion (P.008/P.009). Resolves the warm serving box from the
+ * orchestrator /serve registry the SAME way Brittney's resolveFleet does — no bespoke
+ * URL, no localhost, scale-to-zero aware. HOLO_SELF_IMPROVE_LLM_URL pins an explicit
+ * /v1/chat/completions URL for ops overrides. Fails LOUD (never fakes generation).
+ */
 function buildLLMComplete(): LLMComplete {
-  const url = process.env['HOLO_SELF_IMPROVE_LLM_URL'];
-  const model = process.env['HOLO_SELF_IMPROVE_LLM_MODEL'] || 'qwen2.5-coder';
-  const key = process.env['HOLO_SELF_IMPROVE_LLM_KEY'];
-  if (!url) {
-    return async () => {
+  const explicitUrl = process.env['HOLO_SELF_IMPROVE_LLM_URL'];
+  const orch = (
+    process.env['BRITTNEY_FLEET_ORCH_URL'] ||
+    process.env['MCP_ORCHESTRATOR_URL'] ||
+    process.env['ORCHESTRATOR_URL'] ||
+    'https://mcp-orchestrator-production-45f9.up.railway.app'
+  ).replace(/\/+$/, '');
+  const model = process.env['BRITTNEY_FLEET_MODEL'] || 'qwen2.5-coder:1.5b';
+  const bearer = process.env['FLEET_INFERENCE_KEY'] || process.env['SERVE_INFERENCE_KEY'] || '';
+  const resolveKey =
+    process.env['BRITTNEY_FLEET_RESOLVE_KEY'] || process.env['HOLOSCRIPT_API_KEY'] || '';
+
+  async function resolveChatUrl(): Promise<string> {
+    if (explicitUrl) return explicitUrl;
+    const r = await fetch(`${orch}/serve/resolve?model=${encodeURIComponent(model)}`, {
+      headers: resolveKey ? { 'x-mcp-api-key': resolveKey } : {},
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!r.ok) {
+      throw new Error(`/serve/resolve ${r.status} — cannot resolve sovereign serving endpoint`);
+    }
+    const body = (await r.json()) as { status?: string; url?: string };
+    if (body.status !== 'warm' || !body.url) {
       throw new Error(
-        'HOLO_SELF_IMPROVE_LLM_URL is not set — refusing to fake test generation. ' +
-          'Point it at the sovereign OpenAI-protocol chat endpoint (P.009).'
+        `Sovereign serving is cold for "${model}" — the resolve bumped demand so the autoscaler ` +
+          `will warm a box shortly. Re-run in ~1-2 min, or pin HOLO_SELF_IMPROVE_LLM_URL.`
       );
-    };
+    }
+    return `${body.url.replace(/\/+$/, '')}/v1/chat/completions`;
   }
+
   return async ({ system, user }) => {
+    const url = await resolveChatUrl();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (key) headers['Authorization'] = `Bearer ${key}`;
+    if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
     const res = await fetch(url, {
       method: 'POST',
       headers,
@@ -86,9 +114,7 @@ function buildLLMComplete(): LLMComplete {
       signal: AbortSignal.timeout(120_000),
     });
     if (!res.ok) throw new Error(`LLM ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error('LLM returned no content');
     return content;
