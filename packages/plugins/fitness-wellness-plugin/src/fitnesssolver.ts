@@ -96,7 +96,13 @@ export interface TrainingLoadResult {
   chronicLoad: number;
   /** ACWR = acute / chronic */
   acwr: number;
-  /** Injury risk category per Gabbett (2016) */
+  /**
+   * Injury-risk category per Gabbett (2016) ACWR bands:
+   *  - 'high'      → ACWR < 0.8          (under-prepared / detraining)
+   *  - 'low'       → 0.8 ≤ ACWR ≤ 1.3    (sweet spot)
+   *  - 'moderate'  → 1.3 < ACWR ≤ 1.5    (ramp-up)
+   *  - 'very-high' → ACWR > 1.5          (danger zone)
+   */
   riskCategory: 'low' | 'moderate' | 'high' | 'very-high';
 }
 
@@ -324,14 +330,24 @@ export function acuteChronicWorkloadRatio(workloads: number[]): TrainingLoadResu
 
   const acwr = chronicLoad === 0 ? 0 : acuteLoad / chronicLoad;
 
+  // Injury-risk bands (Gabbett 2016, "training–injury prevention paradox").
+  // Ordered ascending by ACWR; the bands are contiguous and exhaustive, so
+  // each ACWR maps to exactly one category — no dead branch, no re-assignment.
   let riskCategory: TrainingLoadResult['riskCategory'];
-  if (acwr < 0.8 || acwr > 1.5) riskCategory = 'high';
-  else if (acwr > 1.3) riskCategory = 'moderate';
-  else if (acwr > 1.5) riskCategory = 'very-high';
-  else riskCategory = 'low';
-
-  // Refine very-high
-  if (acwr > 1.5) riskCategory = 'very-high';
+  if (acwr < 0.8) {
+    // Under-prepared / detraining: chronically low load leaves the athlete
+    // unconditioned, which itself carries elevated injury risk.
+    riskCategory = 'high';
+  } else if (acwr <= 1.3) {
+    // "Sweet spot" (0.8–1.3): acute load matched to the chronic base — lowest risk.
+    riskCategory = 'low';
+  } else if (acwr <= 1.5) {
+    // Ramp-up zone (1.3–1.5): load climbing faster than the base supports.
+    riskCategory = 'moderate';
+  } else {
+    // Danger zone (> 1.5): acute spike well beyond the chronic base — highest risk.
+    riskCategory = 'very-high';
+  }
 
   return { acuteLoad, chronicLoad, acwr, riskCategory };
 }

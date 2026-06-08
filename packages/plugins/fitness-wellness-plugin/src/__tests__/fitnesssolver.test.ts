@@ -20,6 +20,7 @@ import {
   analyzeFitness,
   buildFitnessReceipt,
   ACTIVITY_METS,
+  type TrainingLoadResult,
 } from '../fitnesssolver';
 
 // ─── 1-Rep Max ────────────────────────────────────────────────────────────────
@@ -294,6 +295,60 @@ describe('acuteChronicWorkloadRatio', () => {
 
   it('throws for fewer than 7 days', () => {
     expect(() => acuteChronicWorkloadRatio([100, 100, 100])).toThrow();
+  });
+});
+
+// ─── ACWR risk-band classification (Gabbett 2016) ─────────────────────────────
+// Regression for the fixed band→category mapping (was: dead `>1.5` branch +
+// ACWR<0.8 mislabelled 'high' alongside the >1.5 danger zone). Each band must
+// map to exactly one category. Boundaries are derived from the solver, not the
+// old buggy output:
+//   high  → ACWR < 0.8 | low → 0.8..1.3 | moderate → 1.3..1.5 | very-high → >1.5
+describe('acuteChronicWorkloadRatio — risk-band classification', () => {
+  // Build a 14-day series whose ACWR equals `target`. Over a 14-day window the
+  // chronic load is the mean of all 14 days and the acute load is the mean of
+  // the last 7. With the first 7 days at baseline `c` and the last 7 at `a`:
+  //   acwr = 2a / (c + a)   ⇒   a = c · target / (2 − target)
+  const seriesForACWR = (target: number, c = 1000): number[] => {
+    const a = (c * target) / (2 - target);
+    return [...Array<number>(7).fill(c), ...Array<number>(7).fill(a)];
+  };
+  const categoryAt = (target: number): TrainingLoadResult['riskCategory'] =>
+    acuteChronicWorkloadRatio(seriesForACWR(target)).riskCategory;
+
+  it('ACWR < 0.8 (under-prepared / detraining) → high', () => {
+    const r = acuteChronicWorkloadRatio(seriesForACWR(0.6));
+    expect(r.acwr).toBeCloseTo(0.6, 6);
+    expect(r.riskCategory).toBe('high');
+    expect(categoryAt(0.79)).toBe('high'); // just below the sweet-spot floor
+  });
+
+  it('0.8 ≤ ACWR ≤ 1.3 (sweet spot) → low', () => {
+    const r = acuteChronicWorkloadRatio(seriesForACWR(1.0));
+    expect(r.acwr).toBeCloseTo(1.0, 6);
+    expect(r.riskCategory).toBe('low');
+    expect(categoryAt(0.81)).toBe('low'); // sweet-spot floor (0.8 inclusive)
+    expect(categoryAt(1.29)).toBe('low'); // sweet-spot ceiling (1.3 inclusive)
+  });
+
+  it('1.3 < ACWR ≤ 1.5 (ramp-up) → moderate', () => {
+    const r = acuteChronicWorkloadRatio(seriesForACWR(1.4));
+    expect(r.acwr).toBeCloseTo(1.4, 6);
+    expect(r.riskCategory).toBe('moderate');
+    expect(categoryAt(1.31)).toBe('moderate'); // just past the sweet-spot ceiling
+    expect(categoryAt(1.49)).toBe('moderate'); // just below the danger-zone floor
+  });
+
+  it('ACWR > 1.5 (danger zone) → very-high', () => {
+    const r = acuteChronicWorkloadRatio(seriesForACWR(1.8));
+    expect(r.acwr).toBeCloseTo(1.8, 6);
+    expect(r.riskCategory).toBe('very-high');
+    expect(categoryAt(1.51)).toBe('very-high'); // just past the danger-zone floor
+  });
+
+  it('maps the four bands onto exactly the four documented categories', () => {
+    const assigned = new Set([0.6, 1.0, 1.4, 1.8].map(categoryAt));
+    expect(assigned).toEqual(new Set(['high', 'low', 'moderate', 'very-high']));
   });
 });
 
