@@ -286,8 +286,9 @@ export function buildWorkload(opts: {
   sha: string;
   profile?: Profile;
   tier?: 'T1' | 'T2' | 'T3';
+  lane?: 'ci' | 'ci-public';
 }): HoloCiWorkload {
-  const { sha, profile = 'full', tier = 'T2' } = opts;
+  const { sha, profile = 'full', tier = 'T2', lane = 'ci' } = opts;
   if (!SHA_RE.test(sha)) throw new Error(`unsafe commit sha "${sha}" (expected 7–40 hex chars)`);
   const repoKey = normalizedRepoKey(opts.repo);
   if (!ALLOWED_REPOS.includes(repoKey)) {
@@ -316,7 +317,7 @@ export function buildWorkload(opts: {
       id: `ci-${shortSha}-${Date.now().toString(36)}`,
       name: `holo-ci ${repoKey}@${shortSha} (${profile})`,
       description: `Native CI run for ${repoKey} @ ${sha} — profile=${profile}`,
-      lane: 'ci',
+      lane,
       jobs,
     },
     contexts: jobs.map((j) => `holo-ci/${j.id}`),
