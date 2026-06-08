@@ -65,6 +65,7 @@
   },
   "dependencies": {
     "@holoscript/agent-protocol": "workspace:^",
+    "@holoscript/core": "workspace:^",
     "@holoscript/core-types": "workspace:^",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.2",
@@ -156,7 +157,6 @@
     }
   },
   "devDependencies": {
-    "@holoscript/core": "workspace:*",
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@types/three": "^0.170.0",
