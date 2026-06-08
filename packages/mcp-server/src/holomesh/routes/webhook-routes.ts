@@ -130,9 +130,14 @@ export async function handleWebhookRoutes(
   res: http.ServerResponse,
   pathname: string,
   method: string,
+  url: string = pathname,
 ): Promise<boolean> {
 
   if (pathname !== '/webhook/railway' || method !== 'POST') return false;
+
+  // Team ID: prefer ?team= query param so each user can configure their own
+  // webhook URL without server-side env vars. Falls back to HOLOMESH_TEAM_ID.
+  const teamId = new URL(url, 'http://localhost').searchParams.get('team') || TEAM_ID;
 
   let rawBody = '';
   try {
@@ -163,20 +168,20 @@ export async function handleWebhookRoutes(
   }
 
   const content = buildEventMessage(body);
-  if (content && TEAM_ID) {
+  if (content && teamId) {
     const msg: TeamMessage = {
       id: `railway-${Date.now().toString(36)}`,
-      teamId: TEAM_ID,
+      teamId,
       fromAgentId: 'railway-webhook',
       fromAgentName: 'Railway',
       content,
       messageType: 'text',
       createdAt: new Date().toISOString(),
     };
-    const messages = teamMessageStore.get(TEAM_ID) || [];
+    const messages = teamMessageStore.get(teamId) || [];
     messages.push(msg);
-    teamMessageStore.set(TEAM_ID, messages.slice(-500));
-    broadcastToRoom(TEAM_ID, { type: 'team:message', agent: 'Railway', data: msg });
+    teamMessageStore.set(teamId, messages.slice(-500));
+    broadcastToRoom(teamId, { type: 'team:message', agent: 'Railway', data: msg });
   }
 
   json(res, 200, { ok: true });

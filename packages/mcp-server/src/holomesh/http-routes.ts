@@ -219,7 +219,7 @@ export async function handleHoloMeshRoute(
   if (await handleInviteRoutes(req, res, pathname, method)) return true;
   if (await handleStoryWeaverGenerationRoutes(req, res, pathname, method, url)) return true;
   if (handlePublicDiscoveryRoutes(req, res)) return true;
-  if (await handleWebhookRoutes(req, res, pathname, method)) return true;
+  if (await handleWebhookRoutes(req, res, pathname, method, url)) return true;
 
   // 3. Fallback/Uncached routes
   if (pathname === '/api/holomesh/health' && method === 'GET') {
