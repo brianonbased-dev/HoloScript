@@ -40,6 +40,11 @@ module.exports = {
     // through '@holoscript/core/hololand' — missing entry caused
     // mcp-server crashloop (prod outage 2026-05-16).
     'hololand/index': 'src/hololand/index.ts',
+    // Required by mcp-server/src/generators.ts (generate_world) at runtime through
+    // '@holoscript/core/world' — missing entry made generate_world 500 with
+    // "Cannot find module .../dist/world/index.js" (surfaced by the persona dogfood
+    // harness 2026-06-08; same Docker-entry-drift class as the entries above).
+    'world/index': 'src/world/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
