@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { PanelSplitter } from '@holoscript/ui';
-import { Sparkles, Code2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Sparkles, Code2, ChevronUp, ChevronDown, Play } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 
@@ -45,6 +46,7 @@ const HoloScriptEditor = dynamic(
 );
 
 export default function VibeCodingPage() {
+  const router = useRouter();
   const [topHeight, setTopHeight] = useState(500);
   const [canvasCollapsed, setCanvasCollapsed] = useState(false);
 
@@ -95,6 +97,15 @@ export default function VibeCodingPage() {
               )}
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => router.push('/playground')}
+            className="absolute top-3 right-3 z-10 flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-700/30 hover:bg-purple-700/50 px-3 py-1.5 text-[11px] font-semibold text-purple-200 backdrop-blur shadow-md transition"
+          >
+            <Play className="h-3 w-3" />
+            Test build
+          </button>
 
           {!canvasCollapsed && (
             <div className="flex-1 w-full h-full relative">
