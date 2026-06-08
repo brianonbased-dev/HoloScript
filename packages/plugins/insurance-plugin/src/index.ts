@@ -10,6 +10,7 @@ import { createRiskAssessmentHandler } from './traits/RiskAssessmentTrait';
 import { createUnderwritingHandler } from './traits/UnderwritingTrait';
 
 export * from './actuarial';
+export * from './fairness-underwriting';
 
 export const pluginMeta = { name: '@holoscript/plugin-insurance', version: '1.0.0', traits: ['policy', 'claim', 'risk_assessment', 'underwriting', 'actuarial_math'] };
 export const traitHandlers = [createPolicyHandler(), createClaimHandler(), createRiskAssessmentHandler(), createUnderwritingHandler()];

@@ -3,7 +3,8 @@
   "version": "2.0.0",
   "main": "src/index.ts",
   "peerDependencies": {
-    "@holoscript/core": "workspace:*"
+    "@holoscript/core": "workspace:*",
+    "@holoscript/engine": "workspace:*"
   },
   "license": "MIT",
   "scripts": {
