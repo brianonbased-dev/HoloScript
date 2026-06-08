@@ -33,7 +33,6 @@
     "@holoscript/linter",
     "@holoscript/llm-provider",
     "@holoscript/lsp",
-    "@holoscript/marketplace-agentkit",
     "@holoscript/marketplace-api",
     "@holoscript/mcp-server",
     "@holoscript/mesh",
