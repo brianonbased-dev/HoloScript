@@ -70,6 +70,15 @@ RUN cd packages/agent-protocol && npx tsup --no-dts && npx tsc --emitDeclaration
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
+# Emit engine .d.ts the wgsl-safe way (tsup --dts-only — same pattern as snn-webgpu above;
+# plain tsc can't load engine's .wgsl imports). The no-dts build above ships JS only, but
+# mesh's dts emit (below) AND Studio's `next build` both import @holoscript/engine{,/gpu,
+# /physics/PhysicsTypes} (33 files in studio/src) and need these types. Without this step the
+# build fails TS7016 at the mesh tsc --emitDeclarationOnly step, then again in next build.
+# Heap-bumped for engine's large auto-discovered multi-entry type graph. Root cause of the
+# all-day studio deploy failures (2026-06-07; mcp-server/absorb build mesh --no-dts so they
+# were unaffected). Completes the "fix at source" intent of 2568f997e for the engine->mesh case.
+RUN cd packages/engine && NODE_OPTIONS=--max-old-space-size=8192 npx tsup --dts-only
 # llm-provider MUST build before framework: framework/src/ai/adapters.ts and
 # framework/src/llm/llm-adapter.ts import '@holoscript/llm-provider' (workspace
 # dep), so framework's `tsc -p tsconfig.build.json` step below needs
