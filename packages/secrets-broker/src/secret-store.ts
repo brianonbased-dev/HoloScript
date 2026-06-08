@@ -74,6 +74,13 @@ export interface KekProvider {
   getKek(kekId?: string): Promise<Buffer>;
   /** The id of the KEK that `getKek()` (no arg) currently returns. */
   currentKekId(): string;
+  /**
+   * Whether this provider sources the KEK from a production-grade store (KMS / HSM /
+   * service-scoped secret) rather than a shared-surface env var. The env provider sets
+   * `false`; the KMS provider sets `true`. Read by the SecretStore's
+   * `requireProductionGradeKek` gate — `undefined` is treated as NOT production-grade.
+   */
+  readonly productionGrade?: boolean;
 }
 
 // ── Stored row (ciphertext only — never plaintext) ──────────────────────────
@@ -185,6 +192,22 @@ export class DecryptError extends Error {
   }
 }
 
+/**
+ * Thrown at construction when `requireProductionGradeKek` is set but the KEK provider is
+ * not production-grade (e.g. the env provider). The Phase-3 gate: no real user secret may
+ * be backed by a shared-surface env KEK in production.
+ */
+export class InsecureKekError extends Error {
+  constructor() {
+    super(
+      'secret-store: requireProductionGradeKek is set but the KEK provider is not ' +
+        'production-grade — use createKmsKekProvider (KMS / HSM / service-scoped secret), ' +
+        'not the env provider, before storing real user secrets'
+    );
+    this.name = 'InsecureKekError';
+  }
+}
+
 // ── Public API surface ───────────────────────────────────────────────────────
 
 export interface PutInput {
@@ -237,6 +260,12 @@ export interface RotateKekResult {
 export interface SecretStoreDeps {
   backend: SecretStoreBackend;
   kekProvider: KekProvider;
+  /**
+   * Phase-3 safety gate: when true, the store REFUSES to construct unless
+   * `kekProvider.productionGrade` is true — so a dev/env KEK can never back real user
+   * secrets in production. The app sets this from NODE_ENV (or an explicit flag).
+   */
+  requireProductionGradeKek?: boolean;
   /** Optional fixed clock for deterministic tests. */
   now?: () => Date;
 }
@@ -336,6 +365,10 @@ function openValue(row: SecretRow, dek: Buffer): string {
  */
 export function createSecretStore(deps: SecretStoreDeps): SecretStore {
   const { backend, kekProvider } = deps;
+  // Phase-3 gate: refuse to back real secrets with a non-production KEK in production.
+  if (deps.requireProductionGradeKek && !kekProvider.productionGrade) {
+    throw new InsecureKekError();
+  }
   const now = deps.now ?? (() => new Date());
 
   return {

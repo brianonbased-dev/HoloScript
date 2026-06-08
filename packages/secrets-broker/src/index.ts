@@ -636,6 +636,7 @@ export {
   OwnerMismatchError,
   SecretNotFoundError,
   DecryptError,
+  InsecureKekError,
   type SecretStore,
   type SecretStoreDeps,
   type SecretStoreBackend,
@@ -657,6 +658,12 @@ export {
   EnvKekConfigError,
   type EnvKekProviderDeps,
 } from './env-kek-provider';
+export {
+  createKmsKekProvider,
+  KmsKekError,
+  type KmsKeyring,
+  type KmsKekProviderDeps,
+} from './kms-kek-provider';
 export {
   createSecretResolver,
   AuthRequiredError,

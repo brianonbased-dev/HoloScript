@@ -96,6 +96,8 @@ export function createEnvKekProvider(deps: EnvKekProviderDeps = {}): KekProvider
   };
 
   return {
+    // DEV/BOOTSTRAP only — the SecretStore's requireProductionGradeKek gate rejects this.
+    productionGrade: false,
     currentKekId,
     async getKek(kekId?: string): Promise<Buffer> {
       const id = kekId ?? currentKekId();
