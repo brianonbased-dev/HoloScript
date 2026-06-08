@@ -687,6 +687,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'state' });
     case 'compile_to_3dgs':
       return handleCompileToTarget({ ...args, target: '3dgs' });
+    case 'compile_to_code_editor':
+      return handleCompileToTarget({ ...args, target: 'code-editor' });
 
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
@@ -1338,6 +1340,24 @@ export const compilerTools: Tool[] = [
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
         options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_code_editor',
+    description:
+      'Compile a HoloScript composition annotated with @code_editor traits into a ' +
+      'CodeMirror 6 configuration bundle (JSON). Used by Studio to load editor ' +
+      'config from holoscript-editor.hs at runtime.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source (.hs/.holo) with @code_editor traits' },
+        options: {
+          type: 'object',
+          description: 'Compiler options: indent (number), strictTraits (boolean)',
+        },
       },
       required: ['code'],
     },

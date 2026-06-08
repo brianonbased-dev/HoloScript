@@ -73,7 +73,8 @@ export type ExportTarget =
   | 'phone-sleeve-vr' // Phone Sleeve VR (smartphone-as-headset stereoscopic WebXR)
   | 'native-2d' // Native 2D UI for mobile/desktop fallback
   | 'canvas2d-game' // Native 2D canvas GAME (trait-driven, self-contained offline HTML)
-  | '3dgs'; // Gaussian Splatting (KHR_gaussian_splatting glTF extension)
+  | '3dgs' // Gaussian Splatting (KHR_gaussian_splatting glTF extension)
+  | 'code-editor'; // CodeMirror 6 editor configuration bundle (Studio native editor)
 
 /**
  * Circuit configuration per target

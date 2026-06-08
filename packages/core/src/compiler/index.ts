@@ -118,6 +118,10 @@ export { SemanticSceneGraph } from './SemanticSceneGraph';
 export { MCPConfigCompiler } from './MCPConfigCompiler';
 export type { MCPConfigCompilerOptions, MCPConfigTarget } from './MCPConfigCompiler';
 
+// Studio native code editor compiler (CodeMirror 6 config bundle)
+export { CodeEditorCompiler } from './CodeEditorCompiler';
+export type { CodeEditorConfig, CodeEditorCompilerOptions } from './CodeEditorCompiler';
+
 // Sprint 3: Agent inference
 // @ts-expect-error During migration
 export { AgentInferenceExportTarget } from './AgentInferenceExportTarget';

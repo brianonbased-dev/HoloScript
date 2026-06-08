@@ -186,7 +186,9 @@ export type CompilerName =
   | 'state'
   | 'trait-composition'
   // mixin
-  | 'domain-block';
+  | 'domain-block'
+  // studio
+  | 'code-editor';
 
 // ---------------------------------------------------------------------------
 // ANS Capability Path Constants
@@ -274,6 +276,9 @@ export const ANSCapabilityPath = {
 
   // ── mixin ────────────────────────────────────────────────────────────
   DOMAIN_BLOCK: '/compile/mixin/domain-block',
+
+  // ── studio ───────────────────────────────────────────────────────────
+  CODE_EDITOR: '/compile/studio/code-editor',
 } as const;
 
 export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANSCapabilityPath];
@@ -342,6 +347,8 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'trait-composition': ANSDomain.META,
   // mixin
   'domain-block': ANSDomain.MIXIN,
+  // studio
+  'code-editor': ANSDomain.META,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -393,6 +400,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   state: ANSCapabilityPath.STATE,
   'trait-composition': ANSCapabilityPath.TRAIT_COMPOSITION,
   'domain-block': ANSCapabilityPath.DOMAIN_BLOCK,
+  'code-editor': ANSCapabilityPath.CODE_EDITOR,
 } as const;
 
 // ---------------------------------------------------------------------------

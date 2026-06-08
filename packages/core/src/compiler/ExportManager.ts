@@ -60,6 +60,7 @@ import { PhoneSleeveVRCompiler } from './PhoneSleeveVRCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
 import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
+import { CodeEditorCompiler } from './CodeEditorCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -268,6 +269,8 @@ class CompilerFactory {
         return new GaussianSplattingCompiler(options);
       case 'canvas2d-game':
         return new Canvas2DGameCompiler(options);
+      case 'code-editor':
+        return new CodeEditorCompiler();
       default:
         throw new Error(`Unknown export target: ${target}`);
     }

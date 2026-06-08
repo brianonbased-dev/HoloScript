@@ -2573,9 +2573,6 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../core
-      '@holoscript/engine':
-        specifier: workspace:*
-        version: link:../../engine
 
   packages/plugins/legal-document-plugin:
     dependencies:

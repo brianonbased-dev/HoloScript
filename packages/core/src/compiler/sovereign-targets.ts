@@ -58,6 +58,7 @@ export const NATIVE_COMPILE_MODES = [
   'trait-composition', // native trait composition
   'incremental', // incremental compilation mode
   'multi-layer', // multi-layer orchestrator (VR layer bridges to Babylon)
+  'code-editor', // CodeEditorCompiler → CM6 config JSON bundle (Studio native editor)
 ] as const satisfies readonly ExportTarget[];
 
 /**

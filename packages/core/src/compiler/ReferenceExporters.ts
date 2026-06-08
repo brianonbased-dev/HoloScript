@@ -14,6 +14,7 @@
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type { ExportTarget } from './CircuitBreaker';
 import { Native2DCompiler } from './Native2DCompiler';
+import { CodeEditorCompiler } from './CodeEditorCompiler';
 
 // =============================================================================
 // TYPES
@@ -566,6 +567,22 @@ class WASMReferenceExporter extends ReferenceExporter {
 }
 
 /**
+ * Code Editor Reference Exporter — wraps CodeEditorCompiler to emit a CM6 config bundle.
+ */
+class CodeEditorReferenceExporter extends ReferenceExporter {
+  export(composition: HoloComposition): ExportResult {
+    const output = new CodeEditorCompiler().compile(composition);
+    return {
+      target: 'code-editor',
+      output,
+      format: 'json',
+      warnings: [],
+      usedFallback: true,
+    };
+  }
+}
+
+/**
  * Native 2D Reference Exporter — wraps Native2DCompiler to emit a hydration-free
  * HTML page. This is the fallback that makes getExportManager().export('native-2d')
  * succeed (the MCP compile_to_native_2d tool path), fixing the observed
@@ -613,6 +630,7 @@ export class ReferenceExporterRegistry {
     this.exporters.set('r3f', new R3FReferenceExporter());
     this.exporters.set('babylon', new BabylonReferenceExporter());
     this.exporters.set('native-2d', new Native2DReferenceExporter());
+    this.exporters.set('code-editor', new CodeEditorReferenceExporter());
 
     // VR Platforms
     this.exporters.set('openxr', new OpenXRReferenceExporter());
