@@ -1,6 +1,7 @@
 {
   "name": "@holoscript/marketplace-agentkit",
   "version": "1.0.0",
+  "private": true,
   "description": "Optional Coinbase AgentKit integration for HoloScript marketplace agents",
   "main": "src/index.ts",
   "types": "src/index.ts",

@@ -7,7 +7,7 @@ settings:
 overrides:
   hono: '>=4.12.14'
   '@hono/node-server': '>=1.19.13'
-  axios: '>=1.15.0'
+  axios: '>=1.16.0'
   follow-redirects: '>=1.16.0'
   dompurify: '>=3.4.0'
   glob: ^13.0.6
@@ -48,6 +48,7 @@ overrides:
   vite: '>=7.3.2'
   drizzle-orm: '>=0.45.2'
   basic-ftp: '>=5.3.0'
+  fast-uri: '>=3.1.2'
 
 importers:
 
@@ -5639,6 +5640,7 @@ packages:
       - fastestsmallesttextencoderdecoder
       - immer
       - react
+      - supports-color
       - typescript
       - use-sync-external-store
       - utf-8-validate
@@ -5665,6 +5667,7 @@ packages:
       - fastestsmallesttextencoderdecoder
       - immer
       - react
+      - supports-color
       - typescript
       - use-sync-external-store
       - utf-8-validate
@@ -6072,8 +6075,8 @@ packages:
       '@solana/kit': 5.5.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.3)
       '@solana/web3.js': 1.98.4(typescript@5.9.3)
       abitype: 1.0.6(typescript@5.9.3)(zod@3.25.76)
-      axios: 1.15.1
-      axios-retry: 4.5.0(axios@1.15.1)
+      axios: 1.17.0
+      axios-retry: 4.5.0(axios@1.17.0)
       jose: 6.2.2
       md5: 2.3.0
       uncrypto: 0.1.3
@@ -6084,6 +6087,7 @@ packages:
       - debug
       - encoding
       - fastestsmallesttextencoderdecoder
+      - supports-color
       - typescript
       - utf-8-validate
     dev: false
@@ -6093,9 +6097,9 @@ packages:
     dependencies:
       '@scure/bip32': 1.7.0
       abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
-      axios: 1.15.1
-      axios-mock-adapter: 1.22.0(axios@1.15.1)
-      axios-retry: 4.5.0(axios@1.15.1)
+      axios: 1.17.0
+      axios-mock-adapter: 1.22.0(axios@1.17.0)
+      axios-retry: 4.5.0(axios@1.17.0)
       bip32: 4.0.0
       bip39: 3.1.0
       decimal.js: 10.6.0
@@ -6108,6 +6112,7 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - debug
+      - supports-color
       - typescript
       - utf-8-validate
       - zod
@@ -6449,9 +6454,10 @@ packages:
   /@ensofinance/sdk@2.0.12:
     resolution: {integrity: sha512-+Mohddgxaadn+yN0Z7S84gu0PrlbjK+lKUq0z4qqXv1vgk3I3qv84OXkhqLsxDxNbVK+Xr6uwfo7AnyENeZBlw==}
     dependencies:
-      axios: 1.15.1
+      axios: 1.17.0
     transitivePeerDependencies:
       - debug
+      - supports-color
     dev: false
 
   /@envelop/core@5.5.1:
@@ -17272,7 +17278,7 @@ packages:
     resolution: {integrity: sha512-PlXPeEWMXMZ7sPYOHqmDyCJzcfNrUr3fGNKtezX14ykXOEIvyK81d+qydx89KY5O71FKMPaQ2vBfBFI5NHR63A==}
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.0
+      fast-uri: 3.1.2
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -17659,33 +17665,35 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /axios-mock-adapter@1.22.0(axios@1.15.1):
+  /axios-mock-adapter@1.22.0(axios@1.17.0):
     resolution: {integrity: sha512-dmI0KbkyAhntUR05YY96qg2H6gg0XMl2+qTW0xmYg6Up+BFBAJYRLROMXRdDEL06/Wqwa0TJThAYvFtSFdRCZw==}
     peerDependencies:
-      axios: '>=1.15.0'
+      axios: '>=1.16.0'
     dependencies:
-      axios: 1.15.1
+      axios: 1.17.0
       fast-deep-equal: 3.1.3
       is-buffer: 2.0.5
     dev: false
 
-  /axios-retry@4.5.0(axios@1.15.1):
+  /axios-retry@4.5.0(axios@1.17.0):
     resolution: {integrity: sha512-aR99oXhpEDGo0UuAlYcn2iGRds30k366Zfa05XWScR9QaQD4JYiP3/1Qt1u7YlefUOK+cn0CcwoL1oefavQUlQ==}
     peerDependencies:
-      axios: '>=1.15.0'
+      axios: '>=1.16.0'
     dependencies:
-      axios: 1.15.1
+      axios: 1.17.0
       is-retry-allowed: 2.2.0
     dev: false
 
-  /axios@1.15.1:
-    resolution: {integrity: sha512-WOG+Jj8ZOvR0a3rAn+Tuf1UQJRxw5venr6DgdbJzngJE3qG7X0kL83CZGpdHMxEm+ZK3seAbvFsw4FfOfP9vxg==}
+  /axios@1.17.0:
+    resolution: {integrity: sha512-J8SwNxprqqpbfenehxWYXE7CW+wM1BB4w3+N+g+/Wx40xM4rsLrfPmHHxSWIxJLYDgSY/HqlFPIYb2/S3rxafw==}
     dependencies:
       follow-redirects: 1.16.0
       form-data: 4.0.5
+      https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
+      - supports-color
     dev: false
 
   /axobject-query@4.1.0:
@@ -21323,8 +21331,8 @@ packages:
     resolution: {integrity: sha512-wpYMUmFu5f00Sm0cj2pfivpmawLZ0NKdviQ4w9zJeR8JVtOpOxHmLaJuj0vxvGqMJQWyP/COUkF75/57OKyRag==}
     dev: false
 
-  /fast-uri@3.1.0:
-    resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
+  /fast-uri@3.1.2:
+    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
 
   /fast-xml-builder@1.1.4:
     resolution: {integrity: sha512-f2jhpN4Eccy0/Uz9csxh3Nu6q4ErKxf0XIsasomfOihuSUa3/xw6w8dnOtCDgEItQFJG8KyXPzQXzcODDrrbOg==}
