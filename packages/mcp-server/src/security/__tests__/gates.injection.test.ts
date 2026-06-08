@@ -100,3 +100,63 @@ describe('gate1: injection patterns — backtick command-substitution', () => {
     expect(result.passed).toBe(false);
   });
 });
+
+/**
+ * HoloScript `{{ }}` @fetch row-template bindings are the language's own syntax
+ * (founder-console.holo uses {{label}}/{{url}}), consumed by parseHolo() — never a
+ * server-side template engine. They are exempted from the SSTI guard ONLY on
+ * HoloScript-source fields (code/content/source) of compile/validate tools. Every
+ * other defense (shell, path traversal, ${process.}, proto-pollution) stays armed
+ * even on those fields, and {{ }} stays blocked everywhere else. W.GOLD.039 class.
+ */
+describe('gate1: HoloScript {{ }} @fetch bindings — source-field exemption', () => {
+  const cfg = {
+    maxBodySize: 1 * 1024 * 1024,
+    maxArgStringLength: 100 * 1024,
+    maxArgDepth: 10,
+    blockInjectionPatterns: true,
+    rateLimitPerMinute: 1000,
+  };
+  const call = (tool: string, args: Record<string, unknown>) =>
+    gate1ValidateRequest(tool, args, 'test-client', cfg);
+
+  // ── Legitimate HoloScript {{binding}} on a source field — must PASS ────────
+  it('PASSES {{label}}/{{url}} @fetch bindings on compile_to_native_2d code', () => {
+    const r = call('compile_to_native_2d', {
+      code: 'object "Row" { @text { content: "{{label}}" } @button { onClick: "open({{url}})" } }',
+    });
+    expect(r.passed, r.reason).toBe(true);
+  });
+  for (const tool of [
+    'compile_to_native_2d',
+    'compile_to_r3f',
+    'compile_holoscript',
+    'compile_pipeline',
+    'validate_holoscript',
+  ]) {
+    it(`PASSES {{field}} binding on ${tool}`, () => {
+      expect(call(tool, { code: '@fetch each {{item}}' }).passed).toBe(true);
+    });
+  }
+
+  // ── Defense preserved on the SAME source field ────────────────────────────
+  it('STILL BLOCKS ${process.env} on the code field (not a template binding)', () => {
+    expect(call('compile_to_native_2d', { code: 'x = ${process.env.SECRET}' }).passed).toBe(false);
+  });
+  it('STILL BLOCKS shell rm injection on the code field', () => {
+    expect(call('compile_to_native_2d', { code: 'go; rm -rf /tmp' }).passed).toBe(false);
+  });
+  it('STILL BLOCKS path traversal on the code field', () => {
+    expect(
+      call('compile_to_native_2d', { code: 'load ../../etc/passwd ../../etc/shadow' }).passed
+    ).toBe(false);
+  });
+
+  // ── {{ }} is NOT exempt outside the source-field allowlist ─────────────────
+  it('STILL BLOCKS {{ }} on a non-source field of a compile tool', () => {
+    expect(call('compile_to_native_2d', { note: '{{x}}' }).passed).toBe(false);
+  });
+  it('STILL BLOCKS {{ }} on a non-compile tool even in a code field', () => {
+    expect(call('holomesh_send_message', { code: '{{x}}' }).passed).toBe(false);
+  });
+});

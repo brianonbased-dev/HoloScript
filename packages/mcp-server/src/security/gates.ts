@@ -62,6 +62,23 @@ export const DEFAULT_GATE1_CONFIG: Gate1Config = {
   rateLimitPerMinute: 120,
 };
 
+/**
+ * Mustache-style `{{ ... }}` binding. Flagged as SSTI on generic arg values, but is
+ * legitimate HoloScript @fetch row-template syntax (e.g. founder-console.holo uses
+ * {{label}}/{{url}}) — so it is skipped ONLY on HoloScript-source fields of
+ * compile/validate tools (see isHoloSourceField / TEMPLATE_EXEMPT_PATTERNS). The
+ * compile path feeds `code` to parseHolo(), never to a server-side template engine.
+ * Declared above INJECTION_PATTERNS (which references it) to avoid a TDZ error.
+ */
+const MUSTACHE_BINDING_PATTERN = /\{\{.*\}\}/;
+
+/**
+ * Templating-only patterns safe to skip on a verified HoloScript-source field. Every
+ * other INJECTION_PATTERN (shell, path traversal, proto-pollution, ${process.},
+ * JSON-RPC) stays enforced even on those fields.
+ */
+const TEMPLATE_EXEMPT_PATTERNS: readonly RegExp[] = [MUSTACHE_BINDING_PATTERN];
+
 // Injection patterns that should never appear in tool arguments
 const INJECTION_PATTERNS = [
   // Shell injection
@@ -86,13 +103,42 @@ const INJECTION_PATTERNS = [
   /__proto__/,
   /constructor\s*\.\s*prototype/,
 
-  // Server-side template injection
-  /\{\{.*\}\}/,
+  // Server-side template injection. MUSTACHE_BINDING_PATTERN is exempted on
+  // HoloScript-source fields (code/content/source) of compile/validate tools —
+  // `{{field}}` is the canonical @fetch row-template syntax of the HoloScript
+  // language, consumed by parseHolo() (W.GOLD.039 Sapir-Whorf class: don't block
+  // the vocabulary of the language being compiled). `${...process.}` stays armed
+  // on ALL fields — it is never valid HoloScript.
+  MUSTACHE_BINDING_PATTERN,
   /\$\{.*process\./,
 
   // MCP protocol injection (attempt to inject JSON-RPC commands)
   /"jsonrpc"\s*:\s*"2\.0".*"method"\s*:/,
 ];
+
+/**
+ * Tools whose HoloScript-source field carries raw .hs/.holo source that the
+ * HoloScript parser (not a server-side template engine) consumes — so Mustache
+ * bindings are legitimate language syntax there.
+ */
+const HOLO_SOURCE_TOOL_PREFIXES = [
+  'compile_to_',
+  'compile_holoscript',
+  'compile_pipeline',
+  'validate_holoscript',
+];
+
+/** Arg fields known to carry raw HoloScript source. */
+const HOLO_SOURCE_FIELDS = new Set(['code', 'content', 'source']);
+
+function isHoloSourceField(toolName: string, fieldPath: string): boolean {
+  const isHoloSourceTool = HOLO_SOURCE_TOOL_PREFIXES.some(
+    (p) => toolName === p || toolName.startsWith(p)
+  );
+  // Guard on exact top-level field membership so a nested attacker object named
+  // "code" deeper in the arg tree is NOT exempted.
+  return isHoloSourceTool && HOLO_SOURCE_FIELDS.has(fieldPath);
+}
 
 /** Rate limiter: sliding window per client */
 const rateLimitWindows = new Map<string, number[]>();
@@ -165,7 +211,7 @@ export function gate1ValidateRequest(
 
   // Injection pattern detection
   if (config.blockInjectionPatterns) {
-    const injections = detectInjectionPatterns(args);
+    const injections = detectInjectionPatterns(args, toolName);
     if (injections.length > 0) {
       return {
         passed: false,
@@ -207,10 +253,15 @@ function measureDepth(obj: unknown, current = 0): number {
   return Math.max(current + 1, ...values.map((val) => measureDepth(val, current + 1)));
 }
 
-function detectInjectionPatterns(obj: unknown, path = ''): string[] {
+function detectInjectionPatterns(obj: unknown, toolName = '', path = ''): string[] {
   const findings: string[] = [];
   if (typeof obj === 'string') {
+    // On a verified HoloScript-source field, skip templating-only patterns ({{ }}
+    // bindings) — valid language syntax, not injection. Shell, path traversal,
+    // ${process.}, proto-pollution and JSON-RPC patterns all still apply.
+    const skipTemplate = isHoloSourceField(toolName, path);
     for (const pattern of INJECTION_PATTERNS) {
+      if (skipTemplate && TEMPLATE_EXEMPT_PATTERNS.includes(pattern)) continue;
       if (pattern.test(obj)) {
         findings.push(`Injection pattern in ${path || 'value'}: ${pattern.source}`);
         break; // One finding per value is enough
@@ -218,7 +269,7 @@ function detectInjectionPatterns(obj: unknown, path = ''): string[] {
     }
   } else if (Array.isArray(obj)) {
     obj.forEach((item, i) => {
-      findings.push(...detectInjectionPatterns(item, `${path}[${i}]`));
+      findings.push(...detectInjectionPatterns(item, toolName, `${path}[${i}]`));
     });
   } else if (obj && typeof obj === 'object') {
     // Check for prototype pollution keys
@@ -229,6 +280,7 @@ function detectInjectionPatterns(obj: unknown, path = ''): string[] {
       findings.push(
         ...detectInjectionPatterns(
           (obj as Record<string, unknown>)[key],
+          toolName,
           path ? `${path}.${key}` : key
         )
       );

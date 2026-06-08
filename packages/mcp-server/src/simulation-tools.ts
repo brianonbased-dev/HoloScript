@@ -113,6 +113,109 @@ function asTriple(value: unknown, fallback: NumberTriple): NumberTriple {
   return tuple;
 }
 
+function normalizeStructuralConfig(config: Record<string, unknown>): Record<string, unknown> {
+  // Pass-through: already engine-shaped (vertices/tetrahedra typed arrays + loads).
+  if (config.vertices !== undefined || config.tetrahedra !== undefined) return config;
+
+  // Map the advertised MCP schema {nodes, elements, materials, forces, constraints}
+  // → solver TET10Config {vertices, tetrahedra, material, loads, constraints}. The
+  // structural path previously bypassed normalization (only thermal was mapped), so a
+  // schema-correct config hit `config.vertices.length` on undefined and crashed.
+  const nodes = Array.isArray(config.nodes) ? config.nodes : [];
+  const elements = Array.isArray(config.elements) ? config.elements : [];
+
+  if (nodes.length === 0)
+    throw new Error(
+      'solve_structural: config.nodes must be a non-empty array of [x,y,z] coordinates'
+    );
+  if (elements.length === 0)
+    throw new Error(
+      'solve_structural: config.elements must be a non-empty array of 10-node TET10 index arrays'
+    );
+
+  const vertices = new Float64Array(nodes.length * 3);
+  nodes.forEach((node, i) => {
+    const [x, y, z] = asTriple(node, [0, 0, 0]);
+    vertices[i * 3] = x;
+    vertices[i * 3 + 1] = y;
+    vertices[i * 3 + 2] = z;
+  });
+
+  const tetrahedra = new Uint32Array(elements.length * 10);
+  elements.forEach((el, e) => {
+    if (!Array.isArray(el) || el.length !== 10) {
+      throw new Error(
+        `solve_structural: element ${e} must have exactly 10 node indices (TET10), got ${Array.isArray(el) ? el.length : typeof el}`
+      );
+    }
+    for (let a = 0; a < 10; a++) {
+      const idx = asNumber(el[a], -1);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= nodes.length) {
+        throw new Error(
+          `solve_structural: element ${e} node ${a} index ${el[a]} out of range [0, ${nodes.length - 1}]`
+        );
+      }
+      tetrahedra[e * 10 + a] = idx;
+    }
+  });
+
+  const mat = asRecord(config.materials) ?? asRecord(config.material) ?? {};
+  const material = {
+    youngs_modulus: asNumber(mat.E ?? mat.youngs_modulus, 200e9),
+    poisson_ratio: asNumber(mat.nu ?? mat.poisson_ratio, 0.3),
+    yield_strength: asNumber(mat.yield_strength ?? mat.yieldStrength, 250e6),
+    density: asNumber(mat.density, 7850),
+  };
+
+  const rawConstraints = Array.isArray(config.constraints) ? config.constraints : [];
+  const constraints = rawConstraints.map((raw, i) => {
+    const c = asRecord(raw) ?? {};
+    const nodeIndex = asNumber(c.nodeIndex, -1);
+    if (nodeIndex < 0 || nodeIndex >= nodes.length) {
+      throw new Error(
+        `solve_structural: constraint ${i} nodeIndex ${c.nodeIndex} out of range [0, ${nodes.length - 1}]`
+      );
+    }
+    const dofs = [c.dx === true ? 0 : -1, c.dy === true ? 1 : -1, c.dz === true ? 2 : -1].filter(
+      (d): d is 0 | 1 | 2 => d >= 0
+    );
+    // No axis flagged → treat as fully fixed (matches "fix this node" intent).
+    const allFixed = dofs.length === 0 || dofs.length === 3;
+    return allFixed
+      ? { id: `c-${i}`, type: 'fixed' as const, nodes: [nodeIndex] }
+      : { id: `c-${i}`, type: 'roller' as const, nodes: [nodeIndex], dofs };
+  });
+
+  const rawForces = Array.isArray(config.forces) ? config.forces : [];
+  const loads = rawForces.map((raw, i) => {
+    const f = asRecord(raw) ?? {};
+    const nodeIndex = asNumber(f.nodeIndex, -1);
+    if (nodeIndex < 0 || nodeIndex >= nodes.length) {
+      throw new Error(
+        `solve_structural: force ${i} nodeIndex ${f.nodeIndex} out of range [0, ${nodes.length - 1}]`
+      );
+    }
+    return {
+      id: `f-${i}`,
+      type: 'point' as const,
+      nodeIndex,
+      force: [asNumber(f.fx, 0), asNumber(f.fy, 0), asNumber(f.fz, 0)] as [number, number, number],
+    };
+  });
+
+  return {
+    vertices,
+    tetrahedra,
+    material,
+    constraints,
+    loads,
+    useGPU: config.useGPU === true, // default CPU on server (no WebGPU) — avoids GPU init churn
+    ...(typeof config.maxIterations === 'number' ? { maxIterations: config.maxIterations } : {}),
+    ...(typeof config.tolerance === 'number' ? { tolerance: config.tolerance } : {}),
+    ...(config.nonlinear === true ? { nonlinear: true } : {}),
+  };
+}
+
 function normalizeThermalSource(value: unknown, index: number): Record<string, unknown> | null {
   const source = asRecord(value);
   if (!source) return null;
@@ -457,7 +560,10 @@ export async function handleSimulationTool(name: string, args: Record<string, un
 
   const { config } = args as { config: Record<string, unknown> };
   if (!config) throw new Error('config is required for simulation tools');
-  const solverConfig = name === 'solve_thermal' ? normalizeThermalConfig(config) : config;
+  const solverConfig =
+    name === 'solve_thermal'
+      ? normalizeThermalConfig(config)
+      : normalizeStructuralConfig(config);
 
   try {
     let recorder: LocalTraceRecorder;

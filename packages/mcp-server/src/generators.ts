@@ -278,12 +278,20 @@ interface AIGenerationMetadata {
   attemptedProviders?: LLMProviderName[];
 }
 
+// F.112: generation is SOVEREIGN-default. Sovereign serving (Brittney Cloud =
+// vast Ollama/PyWorker fleet P.008, or a local Ollama/llama.cpp/bitnet server) is
+// tried FIRST; frontier APIs (Anthropic/OpenAI/Gemini) are BYOK fallback ONLY.
+// HOLOSCRIPT_MCP_AI_PROVIDER still force-pins for explicit overrides. NOTE: this is
+// necessary-but-not-sufficient — a sovereign provider must also be REGISTERED, which
+// needs BRITTNEY_SERVICE_URL / HOLOSCRIPT_LOCAL_LLM_URL set in the mcp-server env
+// (Railway dashboard); without one, anthropic-BYOK fallback is correct behavior.
 const AI_PROVIDER_PRIORITY: readonly LLMProviderName[] = [
-  'anthropic',
+  'brittney-cloud', // sovereign serving fleet (BRITTNEY_SERVICE_URL) — native default
+  'local-llm', // local Ollama / llama.cpp / LM Studio (HOLOSCRIPT_LOCAL_LLM_URL)
+  'bitnet', // dedicated bitnet.cpp server (HOLOSCRIPT_BITNET_URL)
+  'anthropic', // BYOK frontier fallback
   'openai',
   'gemini',
-  'local-llm', // any llama.cpp / Ollama / LM Studio server
-  'bitnet', // dedicated bitnet.cpp server (HOLOSCRIPT_BITNET_URL required)
   'mock',
 ];
 
@@ -394,6 +402,30 @@ function normalizeSceneAIOutput(code: string): string {
   return wrapSceneFragment(trimmed);
 }
 
+/**
+ * Deterministically repair the parser-fatal patterns LLM generators emit, so the
+ * output compiles through the compiler MCP path. Proven against compile_to_r3f /
+ * compile_to_native_2d / compile_to_canvas2d_game (a named composition with quoted
+ * hex compiles green; the raw LLM forms below are rejected by the parser):
+ *   (a) anonymous `composition {`                  -> `composition "GeneratedScene" {`
+ *   (b) bare hex args `@color(#abc)` / `c: #abc` / `(1, #abc)` -> quoted string
+ * Idempotent: already-valid output (named composition, quoted colors) passes through
+ * unchanged. A third class — generator-emitted unsupported primitives (`light{}`) /
+ * niche traits — is tracked separately; the exact offending token must be confirmed
+ * before stripping, to avoid removing valid root-level lighting.
+ */
+export function normalizeGeneratedHoloScript(
+  code: string,
+  _targetFormat: 'hs' | 'hsplus' | 'holo'
+): string {
+  let out = code;
+  // (a) name an anonymous composition root (does NOT touch `composition "X" {`)
+  out = out.replace(/\bcomposition\s*\{/g, 'composition "GeneratedScene" {');
+  // (b) quote bare #hex used as a value, after `(`, `,` or `:` (skips already-quoted)
+  out = out.replace(/([(,]\s*|:\s*)(#[0-9a-fA-F]{3,8})\b/g, (_m, lead, hex) => `${lead}"${hex}"`);
+  return out;
+}
+
 async function tryGenerateWithAI(
   prompt: string,
   targetFormat: 'hs' | 'hsplus' | 'holo'
@@ -430,7 +462,7 @@ async function tryGenerateWithAI(
       });
 
       return {
-        code: result.code,
+        code: normalizeGeneratedHoloScript(result.code, targetFormat),
         provider: result.provider,
         attemptedProviders: [...attemptedProviders],
         detectedTraits: result.detectedTraits,
