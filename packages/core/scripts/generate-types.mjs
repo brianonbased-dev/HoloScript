@@ -4230,6 +4230,10 @@ export class HoloScriptPlusRuntimeImpl {
 
 export function createRuntime(options?: RuntimeOptions): HoloScriptPlusRuntimeImpl;
 
+// --- plugin-trait-registrar ---
+export interface TraitRegistrarTarget { registerTrait(name: string, handler: unknown): void; }
+export function registerPluginTraits(target: TraitRegistrarTarget, pluginId: string, handlers: readonly unknown[]): void;
+
 // --- Local runtime symbols (cannot be re-exported from peer subpaths) ---
 export class HoloScriptAgentRuntime {
   constructor(...args: any[]);
