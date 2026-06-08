@@ -12,3 +12,17 @@ export * from './frame2d';
 
 export const pluginMeta = { name: '@holoscript/plugin-civil-engineering', version: '1.0.0', traits: ['structural_analysis', 'load_bearing', 'material_fatigue', 'dsm_frame_2d'] };
 export const traitHandlers = [createStructuralAnalysisHandler(), createLoadBearingHandler(), createMaterialFatigueHandler()];
+
+// Runtime integration — behavioral trait handler + registrar that wire the
+// deterministic Direct-Stiffness-Method 2D frame solver into HoloScriptRuntime's
+// dispatch. Closes the built-but-dead-wired gap for `dsm_frame_2d`, mirroring
+// government-civic's `civic_decision` reference integration.
+export {
+  CIVIL_ENGINEERING_PLUGIN_ID,
+  dsmFrame2dHandler,
+  registerCivilEngineeringTraitHandlers,
+  type DsmFrame2dTraitConfig,
+  type DsmFrame2dSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';

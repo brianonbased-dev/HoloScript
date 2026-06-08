@@ -15,3 +15,17 @@ export * from './fixedincome';
 
 export const pluginMeta = { name: '@holoscript/plugin-banking-finance', version: '1.0.0', traits: ['account', 'transaction', 'kyc', 'portfolio', 'risk_model', 'fixed_income_solver'] };
 export const traitHandlers = [createAccountHandler(), createTransactionHandler(), createKYCHandler(), createPortfolioHandler(), createRiskModelHandler()];
+
+// Runtime integration — behavioral trait handler + registrar that wire the
+// deterministic bond-pricing solver into HoloScriptRuntime's dispatch. Closes
+// the built-but-dead-wired gap for `fixed_income_solver`, mirroring
+// government-civic's `civic_decision` reference integration.
+export {
+  BANKING_FINANCE_PLUGIN_ID,
+  fixedIncomeSolverHandler,
+  registerBankingFinanceTraitHandlers,
+  type FixedIncomeSolverTraitConfig,
+  type FixedIncomeSolverSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';

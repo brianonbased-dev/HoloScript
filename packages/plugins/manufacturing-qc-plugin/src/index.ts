@@ -12,5 +12,19 @@ import { createBOMHandler } from './traits/BOMTrait';
 
 export * from './spc';
 
+// Runtime integration — behavioral trait handler + registrar that wire the
+// deterministic SPC capability solver into HoloScriptRuntime's dispatch. Closes
+// the built-but-dead-wired gap for `spc`, mirroring government-civic's
+// `civic_decision` reference integration.
+export {
+  MANUFACTURING_QC_PLUGIN_ID,
+  spcHandler,
+  registerManufacturingQcTraitHandlers,
+  type SpcTraitConfig,
+  type SpcSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';
+
 export const pluginMeta = { name: '@holoscript/plugin-manufacturing-qc', version: '1.0.0', traits: ['production_line', 'quality_gate', 'defect_tracking', 'bom', 'spc'] };
 export const traitHandlers = [createProductionLineHandler(), createQualityGateHandler(), createDefectTrackingHandler(), createBOMHandler()];
