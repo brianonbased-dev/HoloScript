@@ -129,6 +129,13 @@ export function applyDirectives(node: ASTNode, ctx: ApplyDirectivesContext): voi
         handler.onAttach?.(node as unknown as HSPlusNode, d.config || {}, {
           emit: (event: string, payload: unknown) => ctx.emit(event, payload),
           getScaleMultiplier: () => ctx.getCurrentScale() || 1,
+          // premortem 2026-06-07 (task_1780881034070_wnlv): the attach context
+          // previously lacked state access, so a handler's `setState` no-op'd on
+          // attach and solver results never reached durable runtime state (only
+          // the fire-and-forget emit). Mirror updateTraits' context so attach-time
+          // results are persisted for receipt / SimulationContract readers (D.057).
+          getState: () => ctx.state.getSnapshot(),
+          setState: (updates: Record<string, HoloScriptValue>) => ctx.state.update(updates),
         } as unknown as TraitContext);
       }
 

@@ -561,8 +561,20 @@ export class HoloScriptRuntime implements IParentRuntime {
    */
   public registerTrait(name: string, handler: TraitHandler<Record<string, unknown>>): void {
     const vrName = name as VRTraitName; // Cast for now, dynamic traits expand the type implicitly
-    // @ts-expect-error During migration
-    this.traitHandlers.set(vrName, handler);
+    // Collision guard (premortem 2026-06-07, task_1780881034070_wnlv): the trait
+    // handler map is shared across all plugins. Wiring ~50 domain plugins risks two
+    // plugins registering the same trait name (e.g. 'vitals_monitor' is declared by
+    // 4 plugins today). A blind overwrite silently shadows the first solver with the
+    // second — wrong-solver-runs-silently, a dangerous class in e.g. medical surfaces.
+    // Keep-first + warn loud so the collision is detectable, not silent.
+    if (this.traitHandlers.has(vrName)) {
+      logger.warn(
+        `Trait '${name}' is already registered; ignoring the duplicate (keep-first). ` +
+          `Trait names must be unique across plugins — rename or namespace before wiring.`,
+      );
+      return;
+    }
+    this.traitHandlers.set(vrName, handler as TraitHandler<unknown>);
     logger.info(`Registered trait: ${name}`);
   }
 

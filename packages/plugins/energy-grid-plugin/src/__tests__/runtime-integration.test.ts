@@ -103,4 +103,23 @@ describe('energy-grid -> HoloScript runtime integration (task_1780878631657_j63f
     expect(errors).toHaveLength(1);
     expect(String(errors[0].error)).toContain('slack');
   });
+
+  it('persists the solver result into durable runtime state on ATTACH (premortem DEFECT-2)', async () => {
+    const runtime = new HoloScriptRuntime();
+    registerEnergyGridTraitHandlers(runtime);
+
+    await runtime.executeNode(powerFlowOrb(TWO_BUS_MODEL) as never);
+    await flush();
+
+    // Before the Phase-0 seam fix, the onAttach context had no setState, so the
+    // handler's setState?.() no-op'd and this state was empty even though the
+    // solve happened — a receipt / SimulationContract integrity hole (D.057).
+    const state = runtime.getState() as Record<string, unknown>;
+    const persisted = state['power_flow:grid'] as
+      | { converged?: boolean; slackBusId?: string }
+      | undefined;
+    expect(persisted).toBeDefined();
+    expect(persisted?.converged).toBe(true);
+    expect(persisted?.slackBusId).toBe('slack');
+  });
 });
