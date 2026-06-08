@@ -9,6 +9,27 @@ import { questProofGuardReason } from '../../lib/questProofGuards';
 
 type Status = 'OK' | 'WARN' | 'FAIL';
 
+// ── Gate stats types (G1b) ────────────────────────────────────────────────────
+interface GateStatsData {
+  todayProposals: number;
+  todayPushed: number;
+  todayBounced: number;
+  pendingVetting: number;
+  last48hProposals: number;
+  last48hPushed: number;
+}
+interface GateAlarm {
+  alarm: string;
+  reason: string;
+  severity: 'warn' | 'critical';
+}
+interface GateStatsResponse {
+  ok: boolean;
+  stats: GateStatsData | null;
+  alarms: GateAlarm[];
+  summary: string;
+}
+
 interface ProofPage {
   id: string;
   label: string;
@@ -245,6 +266,11 @@ export function QuestProofPanel() {
   const [inbox, setInbox] = useState<FounderInboxItem[]>([]);
   const nextActionsApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/next-actions`, []);
   const [nextActions, setNextActions] = useState<ProposedAction[]>([]);
+  // Gate stats (G1b): counter tile + alarm state
+  const gateStatsApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/gate-stats`, []);
+  const [gateStats, setGateStats] = useState<GateStatsData | null>(null);
+  const [gateAlarms, setGateAlarms] = useState<GateAlarm[]>([]);
+  const [gateSummary, setGateSummary] = useState<string>('');
   const [board, setBoard] = useState<Record<string, unknown>[]>([]);
   const [decidingAll, setDecidingAll] = useState(false);
   const boardApiPath = useMemo(() => `${pathPrefix()}/api/quest-proof/board`, []);
@@ -357,6 +383,25 @@ export function QuestProofPanel() {
     const interval = window.setInterval(() => void loadNextActions(), 6000);
     return () => window.clearInterval(interval);
   }, [clientReady, loadNextActions]);
+
+  // Gate stats (G1b): poll /api/quest-proof/gate-stats every 30s (slower than inbox —
+  // stats are aggregate counts, not real-time tiles; 30s is fine).
+  const loadGateStats = useCallback(async () => {
+    if (!clientReady) return;
+    const res = await fetchWithTimeout(gateStatsApiPath, {}, 3000);
+    if (!res?.ok) return;
+    const data = (await res.json()) as GateStatsResponse;
+    if (data.ok && data.stats) setGateStats(data.stats);
+    if (Array.isArray(data.alarms)) setGateAlarms(data.alarms);
+    if (typeof data.summary === 'string') setGateSummary(data.summary);
+  }, [gateStatsApiPath, clientReady]);
+
+  useEffect(() => {
+    if (!clientReady) return undefined;
+    void loadGateStats();
+    const interval = window.setInterval(() => void loadGateStats(), 30000);
+    return () => window.clearInterval(interval);
+  }, [clientReady, loadGateStats]);
 
   const approveAction = useCallback(
     async (a: ProposedAction) => {
@@ -563,6 +608,109 @@ export function QuestProofPanel() {
             />
           </label>
         </div>
+
+        {/* Gate counter tile (G1b) — always rendered when stats are available so the
+            founder sees "0 pending" (gate healthy) vs "N pending" vs ALARM.
+            An empty inbox with no counter tile would be ambiguous (gate broken? nothing pending?).
+            R1: "empty inbox MUST mean nothing-pending, never pipe-broke." */}
+        {gateStats !== null && (
+          <div
+            data-testid="gate-counter-tile"
+            style={{
+              marginTop: 16,
+              border: `1px solid ${gateAlarms.length > 0 ? '#dc2626' : gateStats.pendingVetting > 0 ? '#f59e0b' : '#16a34a'}`,
+              borderRadius: 10,
+              background: gateAlarms.length > 0 ? '#1f0707' : gateStats.pendingVetting > 0 ? '#1a1000' : '#071a0f',
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            {/* Left: icon + label */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
+              <span style={{ fontSize: 18 }}>
+                {gateAlarms.length > 0 ? '🚨' : gateStats.pendingVetting > 0 ? '⏳' : '✅'}
+              </span>
+              <span
+                style={{
+                  fontWeight: 900,
+                  fontSize: 14,
+                  color: gateAlarms.length > 0 ? '#f87171' : gateStats.pendingVetting > 0 ? '#fbbf24' : '#4ade80',
+                }}
+              >
+                Approval Gate
+              </span>
+            </div>
+            {/* Middle: stat chips */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              {gateStats.pendingVetting > 0 && (
+                <span
+                  style={{
+                    background: '#78350f',
+                    color: '#fde68a',
+                    borderRadius: 999,
+                    padding: '2px 10px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {gateStats.pendingVetting} pending vetting
+                </span>
+              )}
+              {gateStats.todayBounced > 0 && (
+                <span
+                  style={{
+                    background: '#450a0a',
+                    color: '#fca5a5',
+                    borderRadius: 999,
+                    padding: '2px 10px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {gateStats.todayBounced} bounced today
+                </span>
+              )}
+              {gateStats.todayPushed > 0 && (
+                <span
+                  style={{
+                    background: '#052e16',
+                    color: '#86efac',
+                    borderRadius: 999,
+                    padding: '2px 10px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {gateStats.todayPushed} pushed
+                </span>
+              )}
+              {gateStats.pendingVetting === 0 && gateStats.todayBounced === 0 && gateStats.todayPushed === 0 && (
+                <span style={{ color: '#6b7280', fontSize: 12 }}>gate idle — nothing pending</span>
+              )}
+            </div>
+            {/* Right: alarm messages */}
+            {gateAlarms.length > 0 && (
+              <div style={{ width: '100%', marginTop: 6 }}>
+                {gateAlarms.map((a) => (
+                  <div
+                    key={a.alarm}
+                    style={{
+                      color: a.severity === 'critical' ? '#fca5a5' : '#fbbf24',
+                      fontSize: 11,
+                      marginTop: 2,
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    {a.severity === 'critical' ? '🚨' : '⚠️'} {a.alarm}: {a.reason}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {inbox.length > 0 && (
           <div
