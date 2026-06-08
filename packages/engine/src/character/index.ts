@@ -100,3 +100,16 @@ export {
   IdleBehaviorSystem,
   createIdleBehaviorSystem,
 } from './IdleBehaviorSystem';
+
+// Skeleton standard profile registry (G1 — explicit profile registry)
+export {
+  type SkeletonStandardId,
+  type SkeletonBoneEntry,
+  type SkeletonStandardProfile,
+  type SkeletonMatchCandidate,
+  SKELETON_PROFILES,
+  resolveProfileBone,
+  buildReverseMap,
+  matchSkeletonStandard,
+  validateProfileCoverage,
+} from './SkeletonStandardRegistry';

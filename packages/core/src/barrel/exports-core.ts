@@ -2,6 +2,9 @@
 // Asset Registry
 export { AssetRegistry } from '../assets/AssetRegistry';
 
+// Asset Metadata types (SemanticTags used by engine skeleton conformance tests + rig_match_skeleton MCP)
+export type { SemanticTags } from '../assets/AssetMetadata';
+
 // Safe JSON parsing utilities
 export {
   safeJsonParse,

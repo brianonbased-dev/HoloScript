@@ -14,6 +14,7 @@ export type {
   LODLevel,
   AssetDependency,
   PlatformCompatibility,
+  SemanticTags,
 } from './AssetMetadata';
 export {
   createAssetMetadata,

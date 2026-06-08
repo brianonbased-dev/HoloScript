@@ -175,6 +175,27 @@ export interface SemanticTags {
   /** Rig type for characters */
   rig?: 'humanoid' | 'quadruped' | 'biped' | 'custom' | 'none';
 
+  /**
+   * Skeleton standard profile ID (G2 — SkeletonStandardRegistry).
+   * Populated by the asset importer when a rig is detected.
+   * Values match SkeletonStandardId: 'vrm1' | 'vrm0' | 'rpm' | 'mixamo' |
+   * 'ue_mannequin' | 'metahuman' | 'daz_genesis8' | 'daz_genesis9' |
+   * 'autorig_pro' | 'cc3' | 'holoscript_65'
+   */
+  skeletonStandard?: string;
+
+  /**
+   * Version string of the skeleton standard profile used (e.g. '1.0.0').
+   * Allows detecting when a mapping pack was updated after import.
+   */
+  skeletonVersion?: string;
+
+  /**
+   * Confidence of the skeleton standard detection, 0.0–1.0.
+   * 1.0 = declared by source tool; <1.0 = inferred by bone-name matching.
+   */
+  mappingConfidence?: number;
+
   /** Material type */
   material?: 'pbr' | 'unlit' | 'toon' | 'custom';
 

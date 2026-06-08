@@ -56,6 +56,7 @@ import { oracleMcpTools } from './oracle-mcp-tools';
 import { secretsBrokerTools } from './secrets-broker-tools';
 import { holoTunnelTools } from './holo-tunnel-tools';
 import { simulationBillingTools } from './simulation-billing-tools';
+import { rigMatchSkeletonToolDefinition } from './tools/rig_match_skeleton';
 
 /**
  * All MCP tools for HoloScript
@@ -769,6 +770,8 @@ export const tools: Tool[] = [
   ...receiptQueryTools,
   ...holoTunnelTools,
   ...simulationBillingTools,
+  // Skeleton interop (G4 — rig_match_skeleton)
+  rigMatchSkeletonToolDefinition,
 ];
 
 // Tool name type for type safety
