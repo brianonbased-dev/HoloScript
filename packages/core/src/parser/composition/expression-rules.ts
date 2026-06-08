@@ -86,6 +86,8 @@ const KEYWORDS_AS_IDENTIFIERS: TokenType[] = [
   'CONSTRAINT',
   'TERRAIN',
   'PARTICLES',
+  // Behavior/AI keywords that appear as property names in state + NPC blocks
+  'BEHAVIOR',
   // Game/AI keywords that can appear as property names
   'SHAPE',
   'NPC',

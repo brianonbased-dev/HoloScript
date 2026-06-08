@@ -295,6 +295,13 @@ export class HoloCompositionParser {
               composition.environment = this.parseEnvironmentBody();
             } else if (decoratorName === 'state') {
               composition.state = this.parseStateBody();
+            } else if (decoratorName === 'state_machine') {
+              // @state_machine { initial: "..." state "name" { ... } ... }
+              // Route through the real SM body parser so it lands in composition.stateMachines,
+              // not as an opaque trait blob that compilers can't read.
+              if (this.check('LBRACE')) {
+                composition.stateMachines.push(this.parseStateMachineFromDecorator());
+              }
             } else {
               // Capture unknown root-level traits (e.g., @page, @metadata)
               composition.traits = composition.traits || [];
@@ -551,7 +558,11 @@ export class HoloCompositionParser {
     this.pushContext('composition');
 
     this.expect('COMPOSITION');
-    const name = this.expectString();
+    // Accept either a quoted name ("FleetWorker") or a bare identifier (FleetWorker).
+    // HoloScript+ source files commonly use unquoted composition names.
+    const name = this.check('STRING') ? this.expectString()
+               : this.check('IDENTIFIER') ? this.expectIdentifier()
+               : this.expectString();
     this.skipNewlines();
     this.expect('LBRACE');
     this.skipNewlines();
@@ -730,6 +741,12 @@ export class HoloCompositionParser {
               composition.state = this.parseStateBody();
             } else if (decoratorName === 'world' || decoratorName === 'environment') {
               composition.environment = this.parseEnvironmentBody();
+            } else if (decoratorName === 'state_machine') {
+              // @state_machine { initial: "..." state "name" { ... } ... }
+              // Route through the real SM body parser so it lands in composition.stateMachines.
+              if (this.check('LBRACE')) {
+                composition.stateMachines.push(this.parseStateMachineFromDecorator());
+              }
             } else {
               // Capture unknown decorator arguments (e.g. @page, @metadata)
               composition.traits = composition.traits || [];
@@ -4255,6 +4272,124 @@ export class HoloCompositionParser {
 
     this.expect('RBRACE');
     this.popContext();
+    return sm;
+  }
+
+  /**
+   * Parse the body of an `@state_machine { ... }` decorator.
+   *
+   * Called after @ and state_machine tokens are already consumed — starts
+   * at the opening LBRACE. Handles:
+   *   - `initial: "stateName"` / `initialState: "stateName"`
+   *   - `state "name" { on_entry { ... } on_exit { ... } transitions { ... } }`
+   *   - `state identifier { ... }` (unquoted state names)
+   *
+   * Stores the result in composition.stateMachines so compilers can read it.
+   * Without this, @state_machine blocks were stored as opaque traits and
+   * invisible to compile_to_a2a_agent_card and other compilers.
+   */
+  private parseStateMachineFromDecorator(): HoloStateMachine {
+    const startLoc = this.currentLocation();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const sm: HoloStateMachine = {
+      type: 'StateMachine',
+      name: 'implicit',
+      initialState: '',
+      states: {},
+    };
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      if (this.check('STATE')) {
+        this.advance(); // consume 'state'
+        const stateName =
+          this.check('STRING') || this.check('IDENTIFIER') ? this.advance().value : 'anonymous';
+        if (!sm.initialState) sm.initialState = stateName;
+        if (this.check('LBRACE')) {
+          this.expect('LBRACE');
+          this.skipNewlines();
+          const state: HoloState_Machine = {
+            type: 'State_Machine',
+            name: stateName,
+            actions: [],
+            transitions: [],
+          };
+          while (!this.check('RBRACE') && !this.isAtEnd()) {
+            this.skipNewlines();
+            if (this.check('RBRACE')) break;
+            const key = this.expectIdentifier();
+            if (this.check('COLON')) {
+              this.advance();
+              if (key === 'enter' || key === 'entry' || key === 'on_entry') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.entry = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'exit' || key === 'on_exit') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.exit = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'actions') {
+                state.actions = this.parseBehaviorActions();
+              } else if (key === 'transitions') {
+                state.transitions = this.parseStateTransitions();
+              } else if (key === 'timeout') {
+                state.timeout = this.parseValue() as number;
+              } else {
+                this.parseValue();
+              }
+            } else if (this.check('LBRACE')) {
+              if (key === 'enter' || key === 'entry' || key === 'on_entry') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.entry = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'exit' || key === 'on_exit') {
+                this.expect('LBRACE');
+                this.skipNewlines();
+                state.exit = this.parseStatementBlock();
+                this.expect('RBRACE');
+              } else if (key === 'transitions') {
+                state.transitions = this.parseStateTransitions();
+              } else {
+                this.skipBlock();
+              }
+            }
+            this.skipNewlines();
+          }
+          this.expect('RBRACE');
+          sm.states[stateName] = state;
+        }
+        this.skipNewlines();
+        continue;
+      }
+
+      const key = this.expectIdentifier();
+      if (key === 'initial' || key === 'initialState') {
+        this.expect('COLON');
+        sm.initialState = this.parseValue() as string;
+      } else if (key === 'name') {
+        this.expect('COLON');
+        sm.name = this.parseValue() as string;
+      } else if (key === 'states' && this.check('COLON')) {
+        this.advance();
+        sm.states = this.parseStateMachineStates();
+      } else if (this.check('COLON')) {
+        this.advance();
+        this.parseValue();
+      } else if (this.check('LBRACE')) {
+        this.skipBlock();
+      }
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    sm.loc = { start: startLoc, end: this.currentLocation() };
     return sm;
   }
 
