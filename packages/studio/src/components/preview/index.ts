@@ -1,1 +1,1 @@
-export { DragonPreview } from './DragonPreview';
+export { ScenePreviewPanel } from './ScenePreviewPanel';

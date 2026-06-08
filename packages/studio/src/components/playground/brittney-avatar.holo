@@ -1,0 +1,47 @@
+composition "BrittneyAvatar" {
+  // Placeholder geometry — replace head/body with photo-derived 2D sprite
+  // once 2D reference images are processed. Scale + position tuned for a
+  // 2-unit-tall humanoid standing at y=0.
+
+  object "Head" {
+    geometry: "sphere"
+    @material(color: "#d8b4fe", roughness: 0.3, metalness: 0.05)
+    position: [0, 1.72, 0]
+    scale: [0.44, 0.44, 0.44]
+  }
+
+  object "Body" {
+    geometry: "capsule"
+    @material(color: "#7c3aed", roughness: 0.4, metalness: 0.0)
+    position: [0, 0.9, 0]
+    scale: [0.34, 0.76, 0.34]
+  }
+
+  object "LeftArm" {
+    geometry: "cylinder"
+    @material(color: "#7c3aed", roughness: 0.4)
+    position: [-0.52, 1.05, 0]
+    scale: [0.12, 0.52, 0.12]
+  }
+
+  object "RightArm" {
+    geometry: "cylinder"
+    @material(color: "#7c3aed", roughness: 0.4)
+    position: [0.52, 1.05, 0]
+    scale: [0.12, 0.52, 0.12]
+  }
+
+  object "LeftLeg" {
+    geometry: "cylinder"
+    @material(color: "#5b21b6", roughness: 0.5)
+    position: [-0.18, 0.18, 0]
+    scale: [0.13, 0.52, 0.13]
+  }
+
+  object "RightLeg" {
+    geometry: "cylinder"
+    @material(color: "#5b21b6", roughness: 0.5)
+    position: [0.18, 0.18, 0]
+    scale: [0.13, 0.52, 0.13]
+  }
+}

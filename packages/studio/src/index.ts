@@ -119,7 +119,6 @@ export { CalibrationUncertaintyIndicator } from './components/ai/CalibrationUnce
 export { ConfidenceAwareXRUI } from './components/xr/ConfidenceAwareXRUI';
 
 // Scene Preview & Diff
-export { DragonPreview } from './components/preview/DragonPreview';
 export { HoloDiffPanel } from './components/diff/HoloDiffPanel';
 
 // Editors & Inspectors
