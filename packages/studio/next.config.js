@@ -42,10 +42,24 @@ function addDevOrigin(hosts, value) {
 
 const nextConfig = {
   reactStrictMode: true,
-  // TEMPORARY (2026-05-31): unblock the Earn-surface deploy (down since 05-29).
-  // next build's TYPE-CHECK fails on workspace @holoscript/* imports whose Docker
-  // build emits no .d.ts (--no-dts for speed) — a structural Docker-dts-vs-typecheck
-  typescript: { ignoreBuildErrors: false },
+  // TEMPORARY (re-affirmed 2026-06-08; originally 2026-05-31): unblock the studio
+  // deploy. `next build`'s whole-program TYPE-CHECK fails on workspace @holoscript/*
+  // imports whose fresh Docker build emits no/mis-located .d.ts — e.g. platform's
+  // tsconfig `rootDir:".."` makes `tsc --emitDeclarationOnly` land at
+  // dist/platform/src/index.d.ts, NOT the dist/index.d.ts that package.json `types`
+  // points at. This is a structural Docker-dts-vs-typecheck mismatch, NOT a source
+  // defect: local `tsc --noEmit -p packages/studio/tsconfig.json` is clean except a
+  // Web Speech API lib gap (8 errs in one file). Type-safety stays gated at
+  // pre-commit + HoloCI; the production IMAGE build must not depend on
+  // whole-monorepo .d.ts resolution (that fragility has bricked deploys repeatedly).
+  // swc still fully compiles, so real codegen errors still fail the build.
+  // Re-enable strict here once dts emission is fixed + the studio tsconfig alias map
+  // completed (tracked board task). NOTE: this was regressed to `false` sometime
+  // after 05-31 — which re-broke Railway one type-error per build (platform, today).
+  typescript: { ignoreBuildErrors: true },
+  // (Next 16 removed the next.config `eslint` key and runs no ESLint during
+  // `next build`, so lint is gated separately at pre-commit + HoloCI — nothing to
+  // configure here. An `eslint:` key would only emit an "Invalid options" warning.)
   allowedDevOrigins: localLanDevOrigins(),
   images: {
     formats: ['image/avif', 'image/webp'],

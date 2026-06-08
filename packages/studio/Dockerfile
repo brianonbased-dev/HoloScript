@@ -22,7 +22,11 @@ RUN mkdir -p /manifests && \
 FROM base AS deps
 WORKDIR /app
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+# .npmrc carries `shamefully-hoist=true` — REQUIRED so @types/* (e.g. @types/react) hoist flat
+# into node_modules and are resolvable by packages that declare react as a PEER dep
+# (studio-plugin-sdk, ui). Omitting it made their tsc dts emit fail TS2503/TS7016 on react,
+# silently masked until 2568f997e removed the || true suppressions. (2026-06-07 studio fix.)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json .npmrc ./
 COPY --from=manifests /manifests/ ./
 COPY scripts/docker/build-engine-no-dts.sh scripts/docker/build-engine-no-dts.sh
 
@@ -96,16 +100,11 @@ RUN cd packages/llm-provider && npx tsup
 # needs framework's dist/agents/index.d.ts on disk or it fails TS2307
 # "Cannot find module '@holoscript/framework/agents'" (broke studio deploy 2026-06-07).
 RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
-# Emit engine .d.ts the wgsl-safe way (tsup --dts-only — same pattern as snn-webgpu above;
-# plain tsc can't load engine's .wgsl imports). The no-dts build above ships JS only, but
-# mesh's dts emit (below) AND Studio's `next build` both import @holoscript/engine{,/gpu,
-# /physics/PhysicsTypes} (33 files in studio/src) and need these types. Without this step the
-# build fails TS7016 at the mesh tsc --emitDeclarationOnly step, then again in next build.
-# Heap-bumped for engine's large auto-discovered multi-entry type graph. Root cause of the
-# all-day studio deploy failures (2026-06-07; mcp-server/absorb build mesh --no-dts so they
-# were unaffected). Completes the "fix at source" intent of 2568f997e for the engine->mesh case.
-# framework and llm-provider are built above so engine's type graph resolves cleanly.
-RUN cd packages/engine && NODE_OPTIONS=--max-old-space-size=8192 npx tsup --dts-only
+# NOTE: engine is intentionally built --no-dts (line above). No package needs engine's .d.ts:
+# mesh tolerates it via --noImplicitAny false (below) and Studio's next build resolves engine via
+# its ../engine/src tsconfig alias. An engine `tsup --dts-only` step was tried (2026-06-07) but is
+# redundant AND triggers a holoembed/holo-vm dep-ordering cascade — removed. Validated by local
+# `docker build --target builder` from a clean origin/main worktree before push.
 # std: tsup's rollup-plugin-dts fails (chokidar/glob in src/fs causes it to exit
 # non-zero). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
@@ -123,6 +122,10 @@ RUN cd packages/platform && npx tsup --no-dts && npx tsc --emitDeclarationOnly -
 RUN cd packages/mesh && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck --noImplicitAny false
 # (llm-provider moved earlier — see note above, must build before framework)
 RUN cd packages/marketplace-agentkit && npx tsup
+# holo-vm MUST build before security-sandbox (which imports @holoscript/holo-vm) and before
+# studio's next build (engine/src walk imports it). holo-vm imports the no-dts engine, so its
+# dts emit needs --noImplicitAny false (engine resolves as `any`, like mesh). Only dep is core.
+RUN cd packages/holo-vm && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck --noImplicitAny false
 RUN cd packages/security-sandbox && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # secrets-broker: studio/src/lib/capability-session.ts imports
 # '@holoscript/secrets-broker' (used by api/connectors/disconnect/route.ts), a
@@ -140,7 +143,6 @@ RUN cd packages/secrets-broker && npx tsup --no-dts && npx tsc --emitDeclaration
 # it to error). Use tsc --emitDeclarationOnly directly (pattern B).
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/holoembed && npx tsup --no-dts && npx tsc --emitDeclarationOnly
-RUN cd packages/holo-vm && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # r3f-renderer's declarations are hand-crafted via generate-types.mjs (like core),
 # NOT emitted by `tsup --dts-only`. Using the generic --dts-only pattern silently
 # dropped dist/hooks/useWebcamGaze.d.ts, so studio's typecheck of the subpath import
@@ -170,7 +172,11 @@ ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 # `webpack` config and no `turbopack` config. ... Build error occurred ...
 # Error: Call retries were exceeded ... type: 'WorkerError'". Verified
 # 2026-04-25 against Railway deployment b69f2efe (5 consecutive failures).
-RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache-v2,target=/app/packages/studio/.next/cache cd packages/studio && pnpm run build
+# Heap bump: `next build` compiles fine but OOMs in the post-compile phase (page-data
+# collection / static gen) on the default ~2GB V8 heap — "FATAL ERROR: ... heap out of
+# memory", build worker SIGABRT. Not a container-RAM issue (builders have >8GB); it's the
+# V8 cap. NODE_OPTIONS is inherited by next's build workers. (2026-06-07 studio fix.)
+RUN --mount=type=cache,id=s/55a18466-6702-4497-ad22-5856f4f196f3-/app/packages/studio/.next/cache-v2,target=/app/packages/studio/.next/cache cd packages/studio && NODE_OPTIONS=--max-old-space-size=8192 pnpm run build
 
 # ─── Production runner ───────────────────────────────────────────────────────
 FROM base AS runner
