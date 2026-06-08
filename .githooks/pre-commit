@@ -41,6 +41,7 @@ if [ -n "$SECRET_DIFF" ]; then
     scan_secret "NPM token"            'npm_[A-Za-z0-9]{20,}'
     scan_secret "Slack token"          'xox[bpas]-[A-Za-z0-9-]{10,}'
     scan_secret "Private key block"    'BEGIN [A-Z ]*PRIVATE KEY'
+    scan_secret "HoloScript bearer"    'hs_sk_[A-Za-z0-9]{20,}'
     if command -v gitleaks &> /dev/null; then
         gitleaks protect --staged --redact --no-banner --config .gitleaks.toml 2>/dev/null \
             || { echo -e "${RED}gitleaks flagged staged secrets${NC}"; FAILED=1; }
