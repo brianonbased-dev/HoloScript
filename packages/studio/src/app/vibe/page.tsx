@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { PanelSplitter } from '@holoscript/ui';
 import { Sparkles, Code2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores';
+import { useScenePipeline } from '@/hooks/useScenePipeline';
 
 const BrittneyChatPanel = dynamic(
   () => import('@/components/ai/BrittneyChatPanel').then((m) => ({ default: m.BrittneyChatPanel })),
@@ -46,7 +47,17 @@ const HoloScriptEditor = dynamic(
 export default function VibeCodingPage() {
   const [topHeight, setTopHeight] = useState(500);
   const [canvasCollapsed, setCanvasCollapsed] = useState(false);
+
+  const code = useSceneStore((s) => s.code);
+  const setR3FTree = useSceneStore((s) => s.setR3FTree);
+  const setErrors = useSceneStore((s) => s.setErrors);
   const r3fTree = useSceneStore((s) => s.r3fTree);
+
+  const { r3fTree: pipedTree, errors: pipelineErrors } = useScenePipeline(code);
+  useEffect(() => {
+    setR3FTree(pipedTree);
+    setErrors(pipelineErrors);
+  }, [pipedTree, pipelineErrors, setR3FTree, setErrors]);
 
   // When collapsed, the canvas area shrinks to a thin header strip so the code
   // editor fills the screen. Uncollapsing restores the previous manual height.
