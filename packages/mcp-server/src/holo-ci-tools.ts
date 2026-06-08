@@ -74,11 +74,13 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
   },
   secrets: {
     description: 'Secret scan (gitleaks — blocks ghp_/classic sk-/AKIA/private-keys; F.106)',
+    // Git-native mode (no --no-git): reads committed content via git log, never traverses
+    // gitignored node_modules. Lockstep with ai-ecosystem/scripts/holo-ci/gates.mjs (obr9 2026-06-08).
     step: [
       'GL=8.21.2',
       'curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL}/gitleaks_${GL}_linux_x64.tar.gz" | tar -xz gitleaks',
       'CFG=""; [ -f .gitleaks.toml ] && CFG="--config .gitleaks.toml"',
-      './gitleaks detect --no-git --source . $CFG --redact --no-banner --exit-code 1',
+      './gitleaks detect --source . $CFG --redact --no-banner --exit-code 1',
     ].join('\n'),
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
@@ -170,11 +172,13 @@ const HOLOLAND_GATES: Record<string, GateSpec> = {
   },
   secrets: {
     description: 'Secret scan (gitleaks — blocks ghp_/classic sk-/AKIA/private-keys; F.106)',
+    // Git-native mode (no --no-git): reads committed content via git log, never traverses
+    // gitignored node_modules. Lockstep with ai-ecosystem/scripts/holo-ci/gates.mjs (obr9 2026-06-08).
     step: [
       'GL=8.21.2',
       'curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL}/gitleaks_${GL}_linux_x64.tar.gz" | tar -xz gitleaks',
       'CFG=""; [ -f .gitleaks.toml ] && CFG="--config .gitleaks.toml"',
-      './gitleaks detect --no-git --source . $CFG --redact --no-banner --exit-code 1',
+      './gitleaks detect --source . $CFG --redact --no-banner --exit-code 1',
     ].join('\n'),
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
@@ -213,11 +217,13 @@ const GENERIC_GATES: Record<string, GateSpec> = {
   },
   secrets: {
     description: 'Secret scan (gitleaks — blocks ghp_/classic sk-/AKIA/private-keys; F.106)',
+    // Git-native mode (no --no-git): reads committed content via git log, never traverses
+    // gitignored node_modules. Lockstep with ai-ecosystem/scripts/holo-ci/gates.mjs (obr9 2026-06-08).
     step: [
       'GL=8.21.2',
       'curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL}/gitleaks_${GL}_linux_x64.tar.gz" | tar -xz gitleaks',
       'CFG=""; [ -f .gitleaks.toml ] && CFG="--config .gitleaks.toml"',
-      './gitleaks detect --no-git --source . $CFG --redact --no-banner --exit-code 1',
+      './gitleaks detect --source . $CFG --redact --no-banner --exit-code 1',
     ].join('\n'),
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
