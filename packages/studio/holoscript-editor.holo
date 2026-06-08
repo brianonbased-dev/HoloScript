@@ -1,0 +1,73 @@
+{
+  "code_editor": {
+    "language": "holoscript",
+    "theme": "holoscript-dark",
+    "readonly": false,
+    "height": "100%",
+    "font_family": "JetBrains Mono, Fira Mono, Cascadia Code, monospace",
+    "font_size": 12,
+    "line_height": 20,
+    "tab_size": 2,
+    "word_wrap": true,
+    "value": {
+      "__bind": true,
+      "source": "useSceneStore.code",
+      "write": "useSceneStore.setCode",
+      "debounce_ms": 300
+    }
+  },
+  "lsp_client": {
+    "diagnostics_tool": "hs_diagnostics",
+    "completions_tool": "hs_autocomplete",
+    "hover_tool": "hs_hover",
+    "diagnostics_debounce_ms": 750,
+    "hover_delay_ms": 400,
+    "static_completions": true
+  },
+  "editor_gutters": {
+    "line_numbers": true,
+    "fold_gutter": true,
+    "lint_gutter": true,
+    "active_line_highlight": true
+  },
+  "editor_keybindings": {
+    "format": {
+      "key": "Ctrl-Shift-F",
+      "mac": "Cmd-Shift-F"
+    },
+    "save_flush": {
+      "key": "Ctrl-S",
+      "mac": "Cmd-S"
+    },
+    "blame": {
+      "key": "Ctrl-Shift-B",
+      "mac": "Cmd-Shift-B"
+    }
+  },
+  "store_diagnostics": {
+    "source": {
+      "__bind": true,
+      "source": "useSceneStore.errors"
+    },
+    "severity": "error",
+    "debounce_ms": 0
+  },
+  "editor_toolbar": {
+    "code_binding": {
+      "__bind": true,
+      "source": "useSceneStore.code",
+      "write": "useSceneStore.setCode"
+    }
+  },
+  "spatial_blame": {
+    "workspace_path_binding": {
+      "__bind": true,
+      "source": "useWorkspaceStore.activeWorkspacePath"
+    },
+    "file_path": "scene-1.holo",
+    "trigger_key": {
+      "key": "Ctrl-Shift-B",
+      "mac": "Cmd-Shift-B"
+    }
+  }
+}

@@ -527,6 +527,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'vrr',
     'multi-layer',
     '3dgs',
+    'code-editor',
   ] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
@@ -543,6 +544,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', '3dgs'] as unknown as ExportTarget[],
     Advanced: ['vrr', 'multi-layer'] as unknown as ExportTarget[],
+    'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
   };
 
   return { targets, categories };
