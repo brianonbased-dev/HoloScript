@@ -11,7 +11,7 @@ import { useSceneStore } from '@/lib/stores';
 import { AIGeneratorWizard } from '@/components/generative/AIGeneratorWizard';
 
 const HoloScriptEditor = dynamic(
-  () => import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
+  () => import('@/components/editor/CodeMirrorEditor').then((m) => ({ default: m.CodeMirrorEditor })),
   { ssr: false, loading: () => <div className="flex h-full items-center justify-center text-xs text-zinc-500">Loading editor...</div> }
 );
 

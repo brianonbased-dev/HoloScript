@@ -98,7 +98,7 @@ const SceneRenderer = dynamic(
 
 const HoloScriptEditor = dynamic(
   () =>
-    import('@/components/editor/HoloScriptEditor').then((m) => ({ default: m.HoloScriptEditor })),
+    import('@/components/editor/CodeMirrorEditor').then((m) => ({ default: m.CodeMirrorEditor })),
   {
     ssr: false,
     loading: () => (
