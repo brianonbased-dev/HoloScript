@@ -80,10 +80,13 @@ export interface DeployerEvents {
 
 export abstract class BaseDeployer extends EventEmitter {
   protected name: string;
+  /** Injectable exec for testing — set directly on the instance to override the default */
+  public _execAsync: (cmd: string, opts?: { timeout?: number }) => Promise<unknown>;
 
-  constructor(name: string) {
+  constructor(name: string, execFn?: (cmd: string, opts?: { timeout?: number }) => Promise<unknown>) {
     super();
     this.name = name;
+    this._execAsync = execFn ?? execAsync;
   }
 
   /**
@@ -124,7 +127,7 @@ export abstract class BaseDeployer extends EventEmitter {
     const command = `holoscript compile --out "${outputDir}" ${flags.join(' ')}`.trim();
 
     try {
-      await execAsync(command, { timeout: 120_000 });
+      await this._execAsync(command, { timeout: 120_000 });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const fallbackOutput: BuildOutput = {

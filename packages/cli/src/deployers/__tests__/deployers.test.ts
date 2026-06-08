@@ -747,6 +747,11 @@ describe('BaseDeployer - Build Step', () => {
       apiToken: 'test-token',
       accountId: 'test-account',
     });
+    // Inject a failing exec so tests don't depend on holoscript CLI being
+    // installed (or absent) in the current environment.
+    deployer._execAsync = async () => {
+      throw new Error('command not found: holoscript');
+    };
   });
 
   it('should emit build:start event', async () => {
@@ -758,7 +763,7 @@ describe('BaseDeployer - Build Step', () => {
     try {
       await deployer.buildProject(config);
     } catch {
-      // Expected to fail since holoscript CLI isn't installed in test
+      // Expected to fail — _execAsync is injected to throw
     }
 
     expect(handler).toHaveBeenCalledOnce();

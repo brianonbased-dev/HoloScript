@@ -12,13 +12,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   ProtocolPhase,
   PHASE_NAMES,
-  BaseAgent,
-  BaseService,
-  ServiceLifecycle,
-  ServiceError,
-  ServiceErrorCode,
-  GoalSynthesizer,
-  MicroPhaseDecomposer,
   isPattern,
   isWisdom,
   isGotcha,
@@ -29,6 +22,15 @@ import {
   type Wisdom,
   type Gotcha,
 } from '../index';
+import {
+  BaseAgent,
+  BaseService,
+  ServiceLifecycle,
+  ServiceError,
+  ServiceErrorCode,
+  GoalSynthesizer,
+  MicroPhaseDecomposer,
+} from '@holoscript/framework';
 
 // =============================================================================
 // HELPERS

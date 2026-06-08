@@ -23,7 +23,11 @@ describe('.hsplus parse/compile grammar contract', () => {
     const source = path.join(repoRoot, 'examples/three-format-showcase/smart-gallery.hsplus');
 
     const parseResult = await runCli(['parse', source, '--json']);
-    expect(parseResult.stdout).toContain('Validation passed');
+    // CLI outputs "Validation successful!" (updated message); accept both for forward compat
+    expect(
+      parseResult.stdout.includes('Validation passed') ||
+        parseResult.stdout.includes('Validation successful')
+    ).toBe(true);
     expect(parseResult.stderr).not.toContain('Error parsing');
 
     const compileResult = await runCli(['compile', source, '--target', 'threejs']);

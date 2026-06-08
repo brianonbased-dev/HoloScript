@@ -42,6 +42,7 @@ import {
   PLUGIN_DESCRIPTOR,
   STRUCTURAL_BIOLOGY_OBJECT_TYPES,
   STRUCTURAL_BIOLOGY_TRAITS,
+  BRIDGE_TRAITS,
   register,
   chainHash,
   verifyChain,
@@ -336,7 +337,8 @@ describe('[Paper-12 §RemainingWork item 2] structural-biology HoloScript-vs-Ope
     };
     register(host);
     expect(new Set(objectTypes)).toEqual(new Set(STRUCTURAL_BIOLOGY_OBJECT_TYPES));
-    expect(new Set(traits)).toEqual(new Set(STRUCTURAL_BIOLOGY_TRAITS));
+    // register() registers both core traits and v0.2.0 bridge traits
+    expect(new Set(traits)).toEqual(new Set([...STRUCTURAL_BIOLOGY_TRAITS, ...BRIDGE_TRAITS]));
   });
 
   it('measures LOC, toolchain steps, provenance visibility; writes the camera-ready artifact', () => {

@@ -3,6 +3,12 @@ import {
   ProtocolPhase,
   PHASE_NAMES,
   PHASE_DISPLAY_NAMES,
+  isPattern,
+  isWisdom,
+  isGotcha,
+} from '../index';
+import type { PhaseResult, Pattern, Wisdom, Gotcha, AgentIdentity } from '../index';
+import {
   BaseAgent,
   BaseService,
   ServiceLifecycle,
@@ -10,11 +16,7 @@ import {
   ServiceErrorCode,
   GoalSynthesizer,
   MicroPhaseDecomposer,
-  isPattern,
-  isWisdom,
-  isGotcha,
-} from '../index';
-import type { PhaseResult, Pattern, Wisdom, Gotcha, AgentIdentity } from '../index';
+} from '@holoscript/framework';
 
 // =============================================================================
 // PROTOCOL PHASE TESTS
