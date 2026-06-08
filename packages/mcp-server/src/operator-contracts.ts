@@ -384,6 +384,12 @@ holo_tunnel_status
 sim_quote
 sim_run_paid
 sim_fleet_status
+compile_to_canvas2d_game
+compile_to_code_editor
+explain_fairness_receipt
+fairness_sweep
+holo_ci_dispatch
+render_world_on_fleet
 `.trim().split(/\s+/);
 
 export const operatorContractExemptions: Record<string, OperatorContractExemption> = {};
