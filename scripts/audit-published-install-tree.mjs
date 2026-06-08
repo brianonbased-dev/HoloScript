@@ -43,16 +43,28 @@ function headers() {
   return h;
 }
 
+// How long to wait between retries for packages that returned 404 (npm CDN
+// propagation lag — a package published seconds ago may not be visible yet).
+const PROPAGATION_RETRY_DELAY_MS = parseInt(process.env.AUDIT_RETRY_DELAY_MS || '20000', 10);
+const PROPAGATION_RETRY_COUNT = parseInt(process.env.AUDIT_RETRY_COUNT || '3', 10);
+
 const packumentCache = new Map();
 async function packument(name) {
   if (packumentCache.has(name)) return packumentCache.get(name);
   const url = `${REGISTRY.replace(/\/$/, '')}/${name.replace('/', '%2f')}`;
   let pk = null;
-  try {
-    const r = await fetch(url, { headers: headers() });
-    if (r.ok) pk = await r.json();
-  } catch {
-    /* network error → treated as unresolvable below */
+  for (let attempt = 0; attempt <= PROPAGATION_RETRY_COUNT; attempt++) {
+    if (attempt > 0) {
+      if (!JSON_OUT) process.stderr.write(`[audit-published-install-tree] ${name} not yet visible; retrying in ${PROPAGATION_RETRY_DELAY_MS / 1000}s (attempt ${attempt}/${PROPAGATION_RETRY_COUNT})...\n`);
+      await new Promise((r) => setTimeout(r, PROPAGATION_RETRY_DELAY_MS));
+    }
+    try {
+      const r = await fetch(url, { headers: headers() });
+      if (r.ok) { pk = await r.json(); break; }
+      if (r.status !== 404) break; // non-404 error — don't retry
+    } catch {
+      break; // network error — treated as unresolvable below
+    }
   }
   packumentCache.set(name, pk);
   return pk;
