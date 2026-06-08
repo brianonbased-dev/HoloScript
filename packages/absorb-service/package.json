@@ -65,6 +65,8 @@
     "start": "node --max-old-space-size=8192 dist/index.js",
     "build": "tsup",
     "dev": "tsup --watch",
+    "self-improve": "tsx src/self-improvement/run-self-improve.ts",
+    "self-improve:targets": "tsx src/self-improvement/run-self-improve.ts --targets-only",
     "test": "vitest run --passWithNoTests",
     "check:language-registry": "node scripts/check-language-registry.mjs",
     "test:watch": "vitest",

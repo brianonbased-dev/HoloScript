@@ -67,6 +67,16 @@ export {
   type AcceptedExample,
 } from './SelfImproveHarvester';
 
+// Concrete propose-only SelfImproveIO that lets the FLEET actually run the engine
+// (the previously-missing production wiring). The CLI entry (run-self-improve.ts) is
+// invoked by path, not exported here, to keep its shebang out of the library bundle.
+export {
+  FleetSelfImproveIO,
+  type FleetSelfImproveIOOptions,
+  type SelfImproveProposal,
+  type LLMComplete,
+} from './FleetSelfImproveIO';
+
 export { computeRougeL } from './GRPOPromptExtractor';
 
 export {
