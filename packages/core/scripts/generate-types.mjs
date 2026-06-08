@@ -5685,6 +5685,25 @@ export class Native2DCompiler extends CompilerBase {
   compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
   [key: string]: any;
 }
+
+// Sovereign target classification (D.006 native-vs-bridge registry — sovereign-targets.ts)
+export const SOVEREIGN_TARGETS: readonly ExportTarget[];
+export const BRIDGE_TARGETS: readonly ExportTarget[];
+export const NATIVE_COMPILE_MODES: readonly ExportTarget[];
+export interface SovereignEngine {
+  id: string;
+  name: string;
+  file: string;
+  kind: 'renderer' | 'engine' | 'runtime' | 'compiler' | 'frontend';
+  maturity: string;
+  tests: boolean;
+  promoted: boolean;
+  note: string;
+}
+export const SOVEREIGN_ENGINES: readonly SovereignEngine[];
+export function isSovereignTarget(target: ExportTarget): boolean;
+export function isBridgeTarget(target: ExportTarget): boolean;
+export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
 `;
 
 const r3fDTS = `export interface R3FNode {

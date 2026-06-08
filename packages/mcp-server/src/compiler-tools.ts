@@ -42,6 +42,7 @@ import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 import { generateWebGPUBrowserTemplate } from './renderer';
+import { targetSovereignty } from '@holoscript/core/compiler';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
@@ -522,6 +523,7 @@ async function handleDomainBlock(
 export async function handleListExportTargets(_args: Record<string, unknown>): Promise<{
   targets: ExportTarget[];
   categories: Record<string, ExportTarget[]>;
+  sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'>;
 }> {
   const targets: ExportTarget[] = [
     'urdf',
@@ -568,7 +570,12 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
   };
 
-  return { targets, categories };
+  const sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'> = {};
+  for (const t of targets) {
+    sovereignty[t] = targetSovereignty(t);
+  }
+
+  return { targets, categories, sovereignty };
 }
 
 export async function handleGetCircuitBreakerStatus(
@@ -1590,7 +1597,7 @@ export const compilerTools: Tool[] = [
   {
     name: 'list_export_targets',
     description:
-      'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.)',
+      'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.) and sovereignty classification per target (sovereign = native HoloScript runtime/renderer; bridge = emits to third-party engine; mode = compile orchestrator).',
     inputSchema: {
       type: 'object',
       properties: {},
