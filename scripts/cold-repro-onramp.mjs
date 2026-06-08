@@ -181,7 +181,7 @@ function buildWorkspaceVersionMap(pkgDir) {
   return map;
 }
 
-function resolveWorkspaceSpec(name, spec, versionMap) {
+function resolveWorkspaceSpec(name, spec, versionMap, looseMode = false) {
   // spec is e.g. "workspace:*" | "workspace:^" | "workspace:~" | "workspace:1.2.3"
   const rest = spec.slice('workspace:'.length);
   const version = versionMap.get(name);
@@ -192,12 +192,22 @@ function resolveWorkspaceSpec(name, spec, versionMap) {
     return 'latest';
   }
   if (rest === '*' || rest === '') return version;
-  if (rest === '^') return `^${version}`;
+  if (rest === '^') {
+    if (looseMode) {
+      // In --local pre-publish mode the NEW version may not be on npm yet (we're
+      // about to publish it). Use ^major.0.0 so the install resolves to the
+      // currently-published major (e.g. ^8.0.0 matches the existing 8.0.5).
+      // The --published gate after changeset publish verifies exact version pins.
+      const major = parseInt(version.split('.')[0], 10);
+      return `^${major}.0.0`;
+    }
+    return `^${version}`;
+  }
   if (rest === '~') return `~${version}`;
   return rest; // explicit range, e.g. workspace:>=1.0.0 — strip the prefix only
 }
 
-function rewriteWorkspaceSpecs(manifest, versionMap) {
+function rewriteWorkspaceSpecs(manifest, versionMap, looseMode = false) {
   const fields = [
     'dependencies',
     'optionalDependencies',
@@ -210,7 +220,7 @@ function rewriteWorkspaceSpecs(manifest, versionMap) {
     if (!block) continue;
     for (const [dep, spec] of Object.entries(block)) {
       if (typeof spec === 'string' && spec.startsWith('workspace:')) {
-        block[dep] = resolveWorkspaceSpec(dep, spec, versionMap);
+        block[dep] = resolveWorkspaceSpec(dep, spec, versionMap, looseMode);
         rewrites += 1;
       }
     }
@@ -254,7 +264,10 @@ function makeTarball(pkgDirArg) {
       fail('setup-error', 'packed tarball has no package/package.json');
     }
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-    const rewrites = rewriteWorkspaceSpecs(manifest, versionMap);
+    // looseMode=true: use ^major.0.0 ranges so intra-monorepo deps that haven't
+    // been published yet (new version, pre-publish) resolve to the latest published
+    // major. The --published gate after changeset publish verifies exact pins.
+    const rewrites = rewriteWorkspaceSpecs(manifest, versionMap, true);
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
     log(
       `[cold-repro-onramp] rewrote ${rewrites} workspace: spec(s) → registry versions ` +
