@@ -74,6 +74,7 @@ interface DispatchSettings {
   capUsd: number;
   maxDispatches: number;
   dryRun: boolean;
+  executeAfterClaim: boolean;
 }
 
 const DEFAULT_SETTINGS: DispatchSettings = {
@@ -81,6 +82,7 @@ const DEFAULT_SETTINGS: DispatchSettings = {
   capUsd: 25,
   maxDispatches: 1,
   dryRun: true,
+  executeAfterClaim: false,
 };
 
 function loadSettings(): DispatchSettings {
@@ -112,14 +114,21 @@ interface DispatchDecision {
   error?: string;
 }
 
+interface DispatchedItem extends DispatchDecision {
+  success: boolean;
+  error?: string;
+  executionRecord?: string;
+}
+
 interface DispatchResult {
   dryRun: boolean;
   teamId: string;
   plan?: { decisions: DispatchDecision[]; unassigned: string[]; capReached: boolean };
-  dispatched?: (DispatchDecision & { success: boolean; error?: string })[];
+  dispatched?: DispatchedItem[];
   spend?: { dayKey: string; spentUsd: number; capUsd: number; remainingUsd: number };
   agentCount?: number;
   taskCount?: number;
+  executorEnabled?: boolean;
   executorNote?: string;
 }
 
@@ -138,12 +147,28 @@ export function FleetPanel() {
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const settingsLoaded = useRef(false);
 
-  // Load from localStorage once
+  // Server-side config (caps, executor status)
+  const [serverConfig, setServerConfig] = useState<{ executorEnabled: boolean; spend: { capUsd: number; spentUsd: number; remainingUsd: number } } | null>(null);
+
+  // Mission schedules from /api/agents/fleet/schedules
+  interface MissionSchedule { id: string; name: string; description: string; skills: string[]; schedules: string[] }
+  const [missionSchedules, setMissionSchedules] = useState<MissionSchedule[]>([]);
+  const [schedulesOpen, setSchedulesOpen] = useState(false);
+
+  // Load from localStorage + server config once
   useEffect(() => {
     if (!settingsLoaded.current) {
       settingsLoaded.current = true;
       setSettings(loadSettings());
     }
+    fetch('/api/agents/fleet/dispatch')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setServerConfig(d); })
+      .catch(() => {});
+    fetch('/api/agents/fleet/schedules')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.schedules) setMissionSchedules(d.schedules); })
+      .catch(() => {});
   }, []);
 
   const updateSettings = useCallback((patch: Partial<DispatchSettings>) => {
@@ -235,6 +260,7 @@ export function FleetPanel() {
           maxDispatches: settings.maxDispatches,
           capUsd: settings.capUsd,
           dryRun: isDry,
+          executeAfterClaim: !isDry && settings.executeAfterClaim,
         }),
       });
       const json = await res.json() as DispatchResult;
@@ -342,6 +368,34 @@ export function FleetPanel() {
         <div className="text-[8px] text-studio-muted mt-1">Source: latest team fleet snapshot</div>
       </div>
 
+      {/* SCHEDULES SECTION */}
+      {missionSchedules.length > 0 && (
+        <div className="border-t border-studio-border/40 pt-2">
+          <button
+            className="w-full flex items-center justify-between text-[10px] font-semibold mb-1 hover:text-studio-accent"
+            onClick={() => setSchedulesOpen((v) => !v)}
+          >
+            <span>🗓 SCHEDULES</span>
+            <span className="text-[8px] text-studio-muted">{schedulesOpen ? '▲' : '▼'} {missionSchedules.length} missions</span>
+          </button>
+          {schedulesOpen && (
+            <div className="space-y-1">
+              {missionSchedules.map((m) => (
+                <div key={m.id} className="border border-studio-border/30 rounded px-1.5 py-0.5 bg-studio-panel/20">
+                  <div className="flex justify-between items-start">
+                    <span className="font-medium text-[9px]">{m.name}</span>
+                    <span className="text-[8px] text-studio-muted ml-1 shrink-0">{m.schedules.join(', ')}</span>
+                  </div>
+                  <div className="text-[8px] text-studio-muted truncate">{m.description}</div>
+                  <div className="text-[7px] text-studio-muted/70 mt-0.5">{m.skills.join(' · ')}</div>
+                </div>
+              ))}
+              <div className="text-[7px] text-studio-muted">Schedules execute via HoloShell Team registry → board tasks → daemon claim</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* DISPATCH SECTION */}
       <div className="border-t border-studio-border/40 pt-2">
         <button
@@ -397,6 +451,24 @@ export function FleetPanel() {
               />
               <span className="text-[9px]">Dry run (preview only — no claim)</span>
             </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.executeAfterClaim}
+                onChange={(e) => updateSettings({ executeAfterClaim: e.target.checked })}
+                className="accent-studio-accent"
+                disabled={settings.dryRun}
+              />
+              <span className={`text-[9px] ${settings.dryRun ? 'opacity-40' : ''}`}>
+                Execute after claim (LLM works the task)
+                {serverConfig?.executorEnabled && <span className="ml-1 text-emerald-400">• server ON</span>}
+              </span>
+            </label>
+            {serverConfig && (
+              <div className="text-[8px] text-studio-muted pt-0.5 border-t border-studio-border/20">
+                Server cap: ${serverConfig.spend.capUsd}/day • remaining today: ${serverConfig.spend.remainingUsd.toFixed(2)}
+              </div>
+            )}
           </div>
         )}
 
@@ -452,6 +524,12 @@ export function FleetPanel() {
                 </div>
                 <div className="text-[8px] text-studio-muted">→ {d.agentHandle}</div>
                 {d.error && <div className="text-[8px] text-red-400">{d.error}</div>}
+                {d.executionRecord && (
+                  <details className="mt-0.5">
+                    <summary className="text-[8px] text-studio-muted cursor-pointer">execution record ▶</summary>
+                    <pre className="text-[7px] text-studio-muted whitespace-pre-wrap mt-0.5 max-h-24 overflow-y-auto">{d.executionRecord}</pre>
+                  </details>
+                )}
               </div>
             ))}
 

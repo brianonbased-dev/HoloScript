@@ -12,8 +12,22 @@ interface BoardTask {
   claimedByName?: string;
 }
 
-const TEAM_ID = 'team_1777834718247_unr35n';
-const BOARD_URL = `/api/holomesh/team/${TEAM_ID}/board`;
+const DEFAULT_TEAM_ID = 'team_1777834718247_unr35n';
+
+function getTeamId(): string {
+  if (typeof window === 'undefined') return DEFAULT_TEAM_ID;
+  try {
+    const raw = localStorage.getItem('fleet-dispatch-settings');
+    if (raw) {
+      const s = JSON.parse(raw) as { teamId?: string };
+      if (s.teamId?.trim()) return s.teamId.trim();
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_TEAM_ID;
+}
+
+// Resolved once per render cycle; re-reads on each load() call via the closure.
+const boardUrl = () => `/api/holomesh/team/${getTeamId()}/board`;
 
 type BoardAction = 'claim' | 'done' | 'block' | 'reopen';
 
@@ -50,7 +64,7 @@ export function BoardPanel() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch(BOARD_URL);
+      const res = await fetch(boardUrl());
       if (res.ok) {
         const json = await res.json();
         const list: BoardTask[] = extractBoardTasks(json).map((t: any) => ({
@@ -82,7 +96,7 @@ export function BoardPanel() {
   useEffect(() => { load(); }, []);
 
   const patchTask = async (id: string, action: BoardAction, extra: Record<string, unknown> = {}) => {
-    await fetch(`${BOARD_URL}/${id}`, {
+    await fetch(`${boardUrl()}/${id}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action, ...extra }),

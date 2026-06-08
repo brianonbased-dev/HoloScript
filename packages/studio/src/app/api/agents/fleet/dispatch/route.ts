@@ -10,6 +10,8 @@ import {
   type FleetAgent,
   type FleetDispatchPlan,
 } from '@/lib/brittney/FleetOrchestrator';
+import { resolveBrittneyProviderAsync } from '@/lib/brittney/provider';
+import type { LLMMessage, LLMStreamChunk } from '@holoscript/llm-provider';
 
 /**
  * POST /api/agents/fleet/dispatch
@@ -164,6 +166,78 @@ async function claimTask(
   }
 }
 
+// ── GET handler — current config + spend state ───────────────────────────────
+
+export async function GET() {
+  const capUsd = Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD;
+  const executorEnabled = process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
+  // TODO(Phase 2): hydrate spentUsd from persisted snapshot
+  const governor = new SpendGovernor({ capUsd });
+  return NextResponse.json({
+    teamId: DEFAULT_TEAM_ID,
+    executorEnabled,
+    spend: governor.snapshot(),
+  });
+}
+
+// ── Executor (FLEET_EXECUTOR_ENABLED=true gate) ───────────────────────────────
+
+/**
+ * Run a task through Brittney and return the execution record as evidence.
+ * Gated by FLEET_EXECUTOR_ENABLED so the claim-only path remains the safe default.
+ * Result is the LLM's full text response — suitable as board close evidence.
+ */
+async function executeTaskWithBrittney(task: BoardTask): Promise<string> {
+  const resolved = await resolveBrittneyProviderAsync();
+  const messages: LLMMessage[] = [
+    {
+      role: 'user',
+      content:
+        `You are an autonomous agent executing a board task. Reason through the task, produce a concrete plan, and carry out any steps you can with your available tools.\n\n` +
+        `Task: ${task.title}\n` +
+        (task.description ? `Description: ${task.description}\n` : '') +
+        (task.role ? `Role: ${task.role}\n` : '') +
+        `\nRespond with: what you did (or would do), any decisions made, and the verification evidence (test results, commit hash, or analysis) that proves the task is complete.`,
+    },
+  ];
+
+  const req = {
+    model: resolved.model,
+    messages,
+    max_tokens: Math.min(resolved.maxTokens, 4096),
+    system:
+      'You are Brittney, executing an autonomous fleet task. Be concise and factual. ' +
+      'Produce a verifiable execution record: what was done, how it was verified.',
+  };
+
+  const chunks: string[] = [];
+  for await (const chunk of resolved.provider.streamCompletion(req) as AsyncIterable<LLMStreamChunk>) {
+    if (chunk.type === 'text_delta' && chunk.text) chunks.push(chunk.text);
+  }
+  return chunks.join('').trim() || '(no output from executor)';
+}
+
+async function closeTask(
+  teamId: string,
+  taskId: string,
+  evidence: string,
+  clientAuth?: string | null,
+): Promise<void> {
+  try {
+    await fetch(
+      `${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/board/${encodeURIComponent(taskId)}`,
+      {
+        method: 'PATCH',
+        headers: holomeshHeaders(clientAuth),
+        body: JSON.stringify({ action: 'done', verification_evidence: evidence }),
+        signal: AbortSignal.timeout(8_000),
+      },
+    );
+  } catch {
+    // non-fatal — task was claimed; close failure is logged but doesn't fail the response
+  }
+}
+
 // ── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -184,6 +258,8 @@ export async function POST(req: NextRequest) {
     ? Math.min(Math.max(1, params['maxDispatches']), 10)
     : 1;
   const dryRun = params['dryRun'] === true || params['dryRun'] === 'true';
+  const executorEnabled = params['executeAfterClaim'] === true ||
+    process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
 
   // Fetch live state
   const [tasks, agents] = await Promise.all([
@@ -236,11 +312,20 @@ export async function POST(req: NextRequest) {
       clientAuth,
     );
 
+    let executionRecord: string | undefined;
     if (claim.success) {
       governor.record(decision.estimatedSpendUsd);
       console.log(
         `[fleet-metric] dispatch task=${decision.task.id} agent=${decision.agent.handle} score=${decision.score.toFixed(2)} est=$${decision.estimatedSpendUsd} reason="${decision.reason}"`,
       );
+      if (executorEnabled) {
+        try {
+          executionRecord = await executeTaskWithBrittney(decision.task);
+          await closeTask(teamId, decision.task.id, executionRecord, clientAuth);
+        } catch (execErr) {
+          executionRecord = `Executor error: ${execErr instanceof Error ? execErr.message : String(execErr)}`;
+        }
+      }
     }
 
     dispatched.push({
@@ -249,6 +334,7 @@ export async function POST(req: NextRequest) {
       agentHandle: decision.agent.handle,
       estimatedSpendUsd: decision.estimatedSpendUsd,
       reason: decision.reason,
+      ...(executionRecord !== undefined ? { executionRecord } : {}),
     });
   }
 
@@ -261,7 +347,9 @@ export async function POST(req: NextRequest) {
       capReached: plan.capReached,
     },
     spend: governor.snapshot(),
-    executorNote:
-      'Tasks claimed. Actual LLM execution per agent is Phase 2 (sandboxing required — see research/2026-06-07_brittney-fleet-orchestrator-wiring.md §5).',
+    executorEnabled,
+    executorNote: executorEnabled
+      ? 'Tasks claimed and executed. Execution records in dispatched[].executionRecord.'
+      : 'Tasks claimed. Set FLEET_EXECUTOR_ENABLED=true or pass executeAfterClaim:true to also execute.',
   });
 }
