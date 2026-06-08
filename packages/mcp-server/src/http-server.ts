@@ -2488,7 +2488,9 @@ const httpServer = http.createServer(async (req, res) => {
 
       const params = (body.params as Record<string, unknown>) || {};
       const name = typeof params.name === 'string' ? params.name : '';
-      const isFreeTool = method === 'tools/call' && (name === 'parse_hs' || name === 'health');
+      const isFreeTool =
+        method === 'tools/call' &&
+        (PUBLIC_ANON_TOOLS.has(name) || name === 'parse_hs' || name === 'health');
 
       if (!auth.active) {
         if (isFreeTool) {
