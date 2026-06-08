@@ -13,7 +13,13 @@
  * consumed. The remaining ENERGY_GRID_TRAITS and the rest of the tier follow
  * the same registrar shape once the architecture clears /premortem (PATH 3).
  */
-import { solveDCPowerFlow, type DCPowerFlowResult, type EnergyGridModel } from './index';
+import { registerPluginTraits } from '@holoscript/core/runtime';
+import {
+  ENERGY_GRID_PLUGIN_ID,
+  solveDCPowerFlow,
+  type DCPowerFlowResult,
+  type EnergyGridModel,
+} from './index';
 
 /** Config carried by an orb's `@power_flow` trait directive. */
 export interface PowerFlowTraitConfig {
@@ -137,5 +143,5 @@ export interface TraitRegistrar {
  * invoke the energy-grid solver for `@power_flow` orbs.
  */
 export function registerEnergyGridTraitHandlers(registrar: TraitRegistrar): void {
-  registrar.registerTrait(powerFlowHandler.name, powerFlowHandler);
+  registerPluginTraits(registrar, ENERGY_GRID_PLUGIN_ID, [powerFlowHandler]);
 }

@@ -263,6 +263,7 @@ import type { IParentRuntime } from './runtime/IParentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
 import { TraitHandler } from './traits/TraitTypes';
+import { TRAIT_OWNER_KEY } from './runtime/plugin-trait-registrar';
 import type { TraitEvent } from './traits/TraitTypes';
 import type { HSPlusNode } from './types/HoloScriptPlus';
 import type { HSPlusDirective, HSPlusTraitDirective } from './types/AdvancedTypeSystem';
@@ -567,10 +568,13 @@ export class HoloScriptRuntime implements IParentRuntime {
     // 4 plugins today). A blind overwrite silently shadows the first solver with the
     // second — wrong-solver-runs-silently, a dangerous class in e.g. medical surfaces.
     // Keep-first + warn loud so the collision is detectable, not silent.
-    if (this.traitHandlers.has(vrName)) {
+    const existingHandler = this.traitHandlers.get(vrName);
+    if (existingHandler) {
+      const priorOwner = (existingHandler as Record<string, unknown>)[TRAIT_OWNER_KEY] ?? 'unknown';
+      const incomingOwner = (handler as Record<string, unknown>)[TRAIT_OWNER_KEY] ?? 'unknown';
       logger.warn(
-        `Trait '${name}' is already registered; ignoring the duplicate (keep-first). ` +
-          `Trait names must be unique across plugins — rename or namespace before wiring.`,
+        `Trait '${name}' is already registered by '${String(priorOwner)}'; ignoring the duplicate ` +
+          `from '${String(incomingOwner)}' (keep-first). Trait names must be unique across plugins.`,
       );
       return;
     }

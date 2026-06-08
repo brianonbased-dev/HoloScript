@@ -26,6 +26,13 @@ import { lazyPeerSymbol } from './barrel/lazy-peer';
 // Local runtime classes. `./HoloScriptRuntime` lazy-resolves its own engine
 // peers internally (see that file), so this re-export is cold-safe.
 export * from './HoloScriptRuntime';
+// Shared plugin trait registrar (cold-safe, no optional peers) — premortem P1.
+export {
+  registerPluginTraits,
+  TRAIT_OWNER_KEY,
+  type PluginTraitHandler,
+  type TraitRegistrarTarget,
+} from './runtime/plugin-trait-registrar';
 export { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 export type { AgentSeed, DurableAgentState, LosableAgentState } from './HoloScriptAgentRuntime';
 // Debugger constructs HoloScriptRuntime (-> @holoscript/engine, lazy), so it

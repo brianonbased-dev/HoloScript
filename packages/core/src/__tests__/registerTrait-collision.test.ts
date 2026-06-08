@@ -12,6 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { HoloScriptRuntime } from '../HoloScriptRuntime';
+import { registerPluginTraits } from '../runtime/plugin-trait-registrar';
 
 function dupOrb(): unknown {
   return {
@@ -52,5 +53,40 @@ describe('registerTrait collision guard (task_1780881034070_wnlv)', () => {
     // Only the first-registered handler runs; the duplicate was rejected
     // (keep-first), not silently shadowing the original.
     expect(fired).toEqual(['FIRST']);
+  });
+
+  it('shared registrar (registerPluginTraits): two plugins claiming one name -> keep-first', async () => {
+    const runtime = new HoloScriptRuntime();
+    const fired: string[] = [];
+
+    const handlerFor = (marker: string) => ({
+      name: 'shared_dup',
+      onAttach: (
+        _node: unknown,
+        _config: unknown,
+        ctx: { emit: (event: string, payload?: unknown) => void },
+      ) => ctx.emit('shared_dup_fired', { marker }),
+    });
+
+    // Two different plugins register the same trait name through the shared
+    // P1 registrar; the owner-tagged collision guard keeps the first.
+    registerPluginTraits(runtime, 'plugin-alpha', [handlerFor('ALPHA')]);
+    registerPluginTraits(runtime, 'plugin-beta', [handlerFor('BETA')]);
+
+    runtime.on('shared_dup_fired', (e: unknown) => fired.push((e as { marker: string }).marker));
+
+    const orb = {
+      type: 'orb',
+      name: 'shared_collider',
+      properties: {},
+      methods: [],
+      position: [0, 0, 0],
+      hologram: { shape: 'orb', color: '#ffffff', size: 1, glow: false, interactive: false },
+      directives: [{ type: 'trait', name: 'shared_dup', config: {} }],
+    };
+    await runtime.executeNode(orb as never);
+    await flush();
+
+    expect(fired).toEqual(['ALPHA']);
   });
 });
