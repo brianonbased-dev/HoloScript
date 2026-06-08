@@ -14,7 +14,13 @@
  * No Next/runtime imports — unit-testable standalone.
  */
 
-export type ProposedActionType = 'code' | 'spatial' | 'service_rental' | 'mobility_coordination';
+import {
+  type FounderActionType,
+  IRREVERSIBLE_RE,
+  inferFounderActionType,
+} from '@holoscript/framework';
+
+export type ProposedActionType = FounderActionType;
 
 export interface ProposedAction {
   id: string;
@@ -44,18 +50,8 @@ interface BoardTaskLike {
   priority?: number;
 }
 
-const IRREVERSIBLE_RE =
-  /\b(deploy|force[- ]?push|reset|delete|retire|spend|pay|purchase|rent|mainnet|treasury|trezor|custody|sign|broadcast|merge to main|publish (on-chain|edition))\b/i;
-
-const SPATIAL_RE = /\b(world|scene|hololand|zone|render|hologram|quilt|avatar|reconstruct|holomap)\b/i;
-const RENTAL_RE = /\b(rent|rental|gpu|fleet|vast|provision|compute)\b/i;
-const MOBILITY_RE = /\b(mobility|door-to-door)\b|(?:trip|navigate)\b/i;
-
 export function inferActionType(title: string): ProposedActionType {
-  if (RENTAL_RE.test(title)) return 'service_rental';
-  if (MOBILITY_RE.test(title)) return 'mobility_coordination';
-  if (SPATIAL_RE.test(title)) return 'spatial';
-  return 'code';
+  return inferFounderActionType(title);
 }
 
 /** Strip the bracketed [scope][tag] prefixes board titles carry, for a clean chip label. */

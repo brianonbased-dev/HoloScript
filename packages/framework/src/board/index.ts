@@ -1263,6 +1263,18 @@ export {
 } from './holoshell-physical-actuation-receipts';
 
 export {
+  // Founder reversibility policy — canonical single source (task_1780431630769_a2um)
+  type FounderActionType,
+  type FounderReversibility,
+  IRREVERSIBLE_RE,
+  SPATIAL_RE,
+  RENTAL_RE,
+  MOBILITY_RE,
+  inferFounderActionType,
+  deriveFounderReversibility,
+} from './founder-reversibility';
+
+export {
   BOARD_WEBHOOK_EVENT_TYPES,
   BOARD_WEBHOOK_ORDERING_GUARANTEE,
   BOARD_WEBHOOK_FETCH_BY_ID_BEHAVIOR,

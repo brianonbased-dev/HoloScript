@@ -320,6 +320,18 @@ export {
   deleteTask,
 } from './board';
 
+// Founder reversibility policy — canonical shared regexes (task_1780431630769_a2um)
+export {
+  type FounderActionType,
+  type FounderReversibility,
+  IRREVERSIBLE_RE,
+  SPATIAL_RE,
+  RENTAL_RE,
+  MOBILITY_RE,
+  inferFounderActionType,
+  deriveFounderReversibility,
+} from './board';
+
 // HoloLand receipt model (task_1778186605462_4z0o)
 export {
   HARDWARE_RECEIPT_KINDS,
