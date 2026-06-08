@@ -863,6 +863,19 @@ const httpServer = http.createServer(async (req, res) => {
   // unauthenticated — independent third-party verification is the whole point
   // (closes the TVCG external-repro "no public HTTP path" caveat).
   if (url === '/verify-cael') {
+    const rl = getRateLimit(`anon:${clientIP}`, PUBLIC_ANON_RATE_LIMIT);
+    setRateLimitHeaders(res, rl);
+    if (rl.remaining === 0) {
+      res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          message: `Verification endpoint limited to ${PUBLIC_ANON_RATE_LIMIT} requests/minute per IP.`,
+          retry_after_seconds: Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000)),
+        })
+      );
+      return;
+    }
     const wantsHtml = req.method === 'GET' && (req.headers.accept || '').includes('text/html');
     try {
       let traceId: string | null = null;

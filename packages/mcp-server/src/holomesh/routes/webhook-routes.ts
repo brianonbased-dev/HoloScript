@@ -27,7 +27,12 @@ const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 const WEBHOOK_SECRET = process.env.RAILWAY_WEBHOOK_SECRET || '';
 
 function verifyRailwaySignature(body: string, signature: string | undefined): boolean {
-  if (!WEBHOOK_SECRET) return true; // skip validation in dev if not configured
+  if (!WEBHOOK_SECRET) {
+    // In production an unconfigured secret is a misconfiguration — fail closed.
+    // In dev, Railway webhooks are typically not configured locally.
+    if (process.env.NODE_ENV === 'production') return false;
+    return true;
+  }
   if (!signature) return false;
   const expected = createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
   if (expected.length !== signature.length) return false;
