@@ -491,7 +491,13 @@ export async function postGithubStatuses(
   state: 'pending' | 'success' | 'failure' | 'error',
   description: string,
 ): Promise<void> {
-  const token = process.env.GITHUB_TOKEN || '';
+  // GITHUB_TOKEN is a known-invalid ambient token on this machine (lib.mjs note).
+  // Use PERSONAL_ACCESS_TOKEN or PAT_TOKEN — the real credentials in .env.
+  const token =
+    process.env.PERSONAL_ACCESS_TOKEN ||
+    process.env.PAT_TOKEN ||
+    process.env.GITHUB_TOKEN ||
+    '';
   if (!token) return;
   const targetUrl = `https://github.com/${repo}/commit/${sha}`;
   await Promise.allSettled(
