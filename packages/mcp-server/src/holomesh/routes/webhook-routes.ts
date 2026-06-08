@@ -1,19 +1,24 @@
 /**
  * webhook-routes.ts — inbound webhook handlers for external service events.
  *
- * Currently wired:
- *   POST /webhook/railway  — Railway deploy status events → team room message
+ * POST /webhook/railway  — All Railway event types → team room message
  *
- * Railway sends a JSON payload with an HMAC-SHA256 signature in the
- * X-Railway-Signature header (hex, keyed by RAILWAY_WEBHOOK_SECRET).
- * If the env var is not set, signature validation is skipped (dev mode).
- * Set RAILWAY_WEBHOOK_SECRET in the Railway environment vars and add the
- * webhook in the Railway dashboard pointing to:
- *   https://<mcp-domain>/webhook/railway
+ * Handles every event Railway can send:
+ *   Deployment: Crashed, OOM Killed, Failed, Deployed, Redeployed, Slept,
+ *               Resumed, Restarted, Removed, Building, Deploying, Waiting,
+ *               Needs Approval, Queued
+ *   VolumeAlert: Triggered, Resolved
+ *   Monitor:     Triggered, Resolved, Deleted
+ *
+ * Railway signs the body with HMAC-SHA256; set RAILWAY_WEBHOOK_SECRET in
+ * the mcp-server Railway env var and configure the webhook URL in the
+ * Railway dashboard:  https://<mcp-domain>/webhook/railway
+ *
+ * Also set HOLOMESH_TEAM_ID to your team ID so messages route correctly.
  */
 import type http from 'http';
 import { createHmac } from 'node:crypto';
-import { json, parseJsonBody } from '../utils';
+import { json } from '../utils';
 import { teamMessageStore } from '../state';
 import { broadcastToRoom } from '../team-room';
 import type { TeamMessage } from '../types';
@@ -22,47 +27,103 @@ const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 const WEBHOOK_SECRET = process.env.RAILWAY_WEBHOOK_SECRET || '';
 
 function verifyRailwaySignature(body: string, signature: string | undefined): boolean {
-  if (!WEBHOOK_SECRET) return true; // skip if no secret configured
+  if (!WEBHOOK_SECRET) return true; // skip validation in dev if not configured
   if (!signature) return false;
   const expected = createHmac('sha256', WEBHOOK_SECRET).update(body).digest('hex');
-  // Constant-time comparison to avoid timing attacks
   if (expected.length !== signature.length) return false;
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   return diff === 0;
 }
 
-function deployStatusEmoji(status: string): string {
-  switch (status?.toUpperCase()) {
-    case 'SUCCESS': return '✅';
-    case 'FAILED':  return '❌';
-    case 'CRASHED': return '💥';
-    case 'REMOVED': return '🗑️';
-    default:        return '🔄';
-  }
+type Sub<T extends string> = T;
+
+// ── Emoji + label tables ─────────────────────────────────────────────────────
+
+const DEPLOYMENT_STATUS: Record<string, { emoji: string; label: string; silent?: boolean }> = {
+  CRASHED:        { emoji: '💥', label: 'crashed' },
+  OOM_KILLED:     { emoji: '🧠', label: 'OOM killed' },
+  FAILED:         { emoji: '❌', label: 'failed' },
+  DEPLOYED:       { emoji: '✅', label: 'deployed' },
+  REDEPLOYED:     { emoji: '♻️', label: 'redeployed' },
+  SUCCESS:        { emoji: '✅', label: 'deployed' },
+  SLEPT:          { emoji: '😴', label: 'slept' },
+  RESUMED:        { emoji: '▶️', label: 'resumed' },
+  RESTARTED:      { emoji: '🔄', label: 'restarted' },
+  REMOVED:        { emoji: '🗑️', label: 'removed' },
+  BUILDING:       { emoji: '🔨', label: 'building', silent: true },
+  DEPLOYING:      { emoji: '🚀', label: 'deploying', silent: true },
+  WAITING:        { emoji: '⏳', label: 'waiting', silent: true },
+  NEEDS_APPROVAL: { emoji: '🔐', label: 'needs approval' },
+  QUEUED:         { emoji: '📋', label: 'queued', silent: true },
+};
+
+// ── Event builders ────────────────────────────────────────────────────────────
+
+function field(obj: unknown, key: string): string {
+  return ((obj as Record<string, unknown>)?.[key] as string) || '';
+}
+function nested(obj: unknown, ...keys: string[]): unknown {
+  let cur = obj;
+  for (const k of keys) cur = (cur as Record<string, unknown>)?.[k];
+  return cur;
 }
 
-function buildDeployMessage(body: Record<string, unknown>): string | null {
-  const type = (body.type as string || '').toUpperCase();
-  if (type !== 'DEPLOY') return null; // only handle deploy events for now
+function buildDeploymentMessage(body: Record<string, unknown>): string | null {
+  const raw    = (field(body, 'status') || field(nested(body, 'deployment'), 'status')).toUpperCase();
+  const entry  = DEPLOYMENT_STATUS[raw];
+  if (!entry) return null;
+  if (entry.silent) return null; // suppress noisy in-progress events
 
-  const status     = (body.status as string) || ((body.deployment as Record<string, unknown>)?.status as string) || 'UNKNOWN';
-  const svcName    = (body.service as Record<string, unknown>)?.name as string || 'unknown-service';
-  const envName    = (body.environment as Record<string, unknown>)?.name as string || '';
-  const meta       = (body.deployment as Record<string, unknown>)?.meta as Record<string, unknown> || {};
-  const commitHash = (meta.commitHash as string || '').slice(0, 8);
-  const commitMsg  = (meta.commitMessage as string || '').split('\n')[0].slice(0, 80);
-  const projName   = (body.project as Record<string, unknown>)?.name as string || '';
+  const svc    = field(nested(body, 'service'), 'name') || 'service';
+  const env    = field(nested(body, 'environment'), 'name');
+  const meta   = nested(body, 'deployment', 'meta') as Record<string, string> || {};
+  const sha    = (meta.commitHash || meta.commitSha || '').slice(0, 8);
+  const msg    = (meta.commitMessage || '').split('\n')[0].slice(0, 72);
+  const proj   = field(nested(body, 'project'), 'name');
 
-  const emoji = deployStatusEmoji(status);
-  const parts = [`${emoji} Railway deploy ${status.toLowerCase()}`];
-  if (svcName) parts.push(`— ${svcName}`);
-  if (envName) parts.push(`(${envName})`);
-  if (commitHash) parts.push(`@ ${commitHash}`);
-  if (commitMsg) parts.push(`"${commitMsg}"`);
-  if (projName && projName !== svcName) parts.push(`[${projName}]`);
+  const parts = [`${entry.emoji} Railway ${svc} ${entry.label}`];
+  if (env) parts.push(`(${env})`);
+  if (sha) parts.push(`@ ${sha}`);
+  if (msg) parts.push(`"${msg}"`);
+  if (proj && proj !== svc) parts.push(`[${proj}]`);
   return parts.join(' ');
 }
+
+function buildVolumeAlertMessage(body: Record<string, unknown>): string | null {
+  const status = field(body, 'status').toUpperCase();
+  const emoji  = status === 'TRIGGERED' ? '⚠️' : status === 'RESOLVED' ? '✅' : '📦';
+  const label  = status === 'TRIGGERED' ? 'volume alert triggered' : status === 'RESOLVED' ? 'volume alert resolved' : `volume ${status.toLowerCase()}`;
+  const vol    = field(nested(body, 'volume'), 'name') || field(body, 'volumeName') || 'volume';
+  const proj   = field(nested(body, 'project'), 'name');
+  const parts  = [`${emoji} Railway ${label} — ${vol}`];
+  if (proj) parts.push(`[${proj}]`);
+  return parts.join(' ');
+}
+
+function buildMonitorMessage(body: Record<string, unknown>): string | null {
+  const status  = field(body, 'status').toUpperCase();
+  const emoji   = status === 'TRIGGERED' ? '🚨' : status === 'RESOLVED' ? '✅' : status === 'DELETED' ? '🗑️' : '📊';
+  const label   = status === 'TRIGGERED' ? 'monitor triggered' : status === 'RESOLVED' ? 'monitor resolved' : status === 'DELETED' ? 'monitor deleted' : `monitor ${status.toLowerCase()}`;
+  const name    = field(nested(body, 'monitor'), 'name') || field(body, 'monitorName') || 'monitor';
+  const proj    = field(nested(body, 'project'), 'name');
+  const parts   = [`${emoji} Railway ${label} — ${name}`];
+  if (proj) parts.push(`[${proj}]`);
+  return parts.join(' ');
+}
+
+function buildEventMessage(body: Record<string, unknown>): string | null {
+  const type = field(body, 'type').toUpperCase().replace(/-/g, '_');
+
+  if (type === 'DEPLOYMENT' || type === 'DEPLOY') return buildDeploymentMessage(body);
+  if (type === 'VOLUME_ALERT' || type === 'VOLUMEALERT') return buildVolumeAlertMessage(body);
+  if (type === 'MONITOR') return buildMonitorMessage(body);
+
+  // Unknown type — post a generic notice so we don't silently drop it.
+  return `🔔 Railway event: ${type}`;
+}
+
+// ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function handleWebhookRoutes(
   req: http.IncomingMessage,
@@ -75,10 +136,10 @@ export async function handleWebhookRoutes(
 
   let rawBody = '';
   try {
-    // Parse raw body for signature verification, then re-parse as JSON.
     rawBody = await new Promise<string>((resolve, reject) => {
       const chunks: Buffer[] = [];
-      req.on('data', (c: Buffer) => { if (chunks.reduce((s, b) => s + b.length, 0) < 64_000) chunks.push(c); });
+      let size = 0;
+      req.on('data', (c: Buffer) => { size += c.length; if (size < 64_000) chunks.push(c); });
       req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
       req.on('error', reject);
     });
@@ -101,7 +162,7 @@ export async function handleWebhookRoutes(
     return true;
   }
 
-  const content = buildDeployMessage(body);
+  const content = buildEventMessage(body);
   if (content && TEAM_ID) {
     const msg: TeamMessage = {
       id: `railway-${Date.now().toString(36)}`,
