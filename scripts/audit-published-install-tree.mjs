@@ -77,11 +77,19 @@ function resolveVersion(pk, spec) {
   const tags = pk['dist-tags'] || {};
   if (tags[spec]) return tags[spec]; // dist-tag (latest, alpha, ...)
   if (pk.versions[spec]) return spec; // exact
+  // Bare exact version spec (no ^ / ~ / >= operator): npm resolves EXACT only.
+  // If the exact version isn't published, treat as not-found (ETARGET).
+  // Do NOT fall through to range resolution for bare exact specs — that would
+  // silently pick 2.0.1 for a pin of 1.0.0, masking the phantom-pin failure.
+  const specStr = String(spec).trim();
+  if (/^\d+\.\d+\.\d+/.test(specStr) && !/^[\^~>=<]/.test(specStr)) {
+    return null; // bare exact version not present → phantom
+  }
   // ^ / ~ / >= ranges: pick highest version sharing the leading numeric.
-  const m = String(spec).match(/(\d+)\.(\d+)\.(\d+)/);
+  const m = specStr.match(/(\d+)\.(\d+)\.(\d+)/);
   if (!m) return tags.latest || null;
   const wantMajor = Number(m[1]);
-  const op = String(spec).trim()[0];
+  const op = specStr[0];
   const candidates = versions
     .filter((v) => /^\d+\.\d+\.\d+$/.test(v))
     .map((v) => v.split('.').map(Number))
