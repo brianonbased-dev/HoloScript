@@ -77,6 +77,7 @@ import { handleInboundGossip, HoloMeshWorldState, HoloMeshDiscovery } from './ho
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import { initStores, teamStore, keyRegistry } from './holomesh/state';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
+import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
@@ -3490,6 +3491,9 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
 // Load team, social, and agent state
 (async () => {
   await initStores();
+
+  // Drain ci-public lane on Railway's spare CPU (zero marginal cost co-location).
+  startCiPublicWorker().catch(() => { /* non-fatal */ });
 
   // Rehydrate the daimōn emergence corpus (D.053) from durable storage so the
   // in-memory soul-observation / daemon Maps survive restart. Additive; never

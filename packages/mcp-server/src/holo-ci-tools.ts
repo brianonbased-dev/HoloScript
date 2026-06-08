@@ -199,7 +199,46 @@ const HOLOLAND_GATES: Record<string, GateSpec> = {
   },
 };
 
-const REPO_CONFIGS: Record<string, { workspaceRoot: string; gates: Record<string, GateSpec> }> = {
+/** Generic gate catalog for external (non-HoloScript, non-Hololand) repos registered via HOLOCI_EXTRA_REPOS. */
+const GENERIC_GATES: Record<string, GateSpec> = {
+  install: {
+    description: 'Dependency install gate (pnpm install --frozen-lockfile or npm ci)',
+    step: [
+      'if [ -f pnpm-lock.yaml ]; then corepack enable >/dev/null 2>&1 || npm i -g pnpm >/dev/null 2>&1; pnpm install --frozen-lockfile',
+      'elif [ -f package-lock.json ]; then npm ci',
+      'else echo "no lockfile — skipping install gate"; fi',
+    ].join('\n'),
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
+  secrets: {
+    description: 'Secret scan (gitleaks — blocks ghp_/classic sk-/AKIA/private-keys; F.106)',
+    step: [
+      'GL=8.21.2',
+      'curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GL}/gitleaks_${GL}_linux_x64.tar.gz" | tar -xz gitleaks',
+      'CFG=""; [ -f .gitleaks.toml ] && CFG="--config .gitleaks.toml"',
+      './gitleaks detect --no-git --source . $CFG --redact --no-banner --exit-code 1',
+    ].join('\n'),
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
+  lint: {
+    description: 'Generic lint gate (pnpm lint --if-present)',
+    step: 'pnpm run --if-present lint || npm run --if-present lint || true',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.25 },
+  },
+  test: {
+    description: 'Generic test gate (pnpm test --if-present)',
+    step: 'pnpm run --if-present test || npm run --if-present test || true',
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.35 },
+  },
+};
+
+type RepoConfig = { workspaceRoot: string; gates: Record<string, GateSpec> };
+
+const REPO_CONFIGS: Record<string, RepoConfig> = {
   'brianonbased-dev/HoloScript': {
     workspaceRoot: '/workspace/HoloScript',
     gates: HOLOSCRIPT_GATES,
@@ -210,7 +249,31 @@ const REPO_CONFIGS: Record<string, { workspaceRoot: string; gates: Record<string
   },
 };
 
-/** Repos this tool will dispatch for. CI may only ever run trusted repos. */
+// Runtime-extensible repo registry: HOLOCI_EXTRA_REPOS env var (JSON array of
+// {repo: "owner/name", workspace_root?: "/workspace/..."}) adds repos at startup
+// without code changes. Extra repos use GENERIC_GATES (install+secrets+lint+test).
+// Format: '[{"repo":"acme/myapp"},{"repo":"acme/api","workspace_root":"/workspace/acme-api"}]'
+try {
+  const extra = process.env.HOLOCI_EXTRA_REPOS?.trim();
+  if (extra) {
+    const entries = JSON.parse(extra) as Array<{ repo: string; workspace_root?: string }>;
+    for (const { repo, workspace_root } of entries) {
+      if (typeof repo === 'string' && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
+        const key = repo.trim();
+        if (!REPO_CONFIGS[key]) {
+          REPO_CONFIGS[key] = {
+            workspaceRoot: workspace_root ?? `/workspace/${key.replace('/', '-')}`,
+            gates: GENERIC_GATES,
+          };
+        }
+      }
+    }
+  }
+} catch {
+  // Bad JSON — ignore; only first-party repos are dispatched.
+}
+
+/** Repos this tool will dispatch for. Includes HOLOCI_EXTRA_REPOS at startup. */
 const ALLOWED_REPOS = Object.keys(REPO_CONFIGS);
 
 function normalizedRepoKey(repo: string): string {

@@ -29,8 +29,8 @@ import type { TeamMessage } from '../types';
 
 const TEAM_ID = process.env.HOLOMESH_TEAM_ID || '';
 
-function verifyGithubSignature(body: string, signature: string | undefined): boolean {
-  const secret = process.env.GITHUB_WEBHOOK_SECRET || '';
+function verifyGithubSignature(body: string, signature: string | undefined, repoSecret?: string): boolean {
+  const secret = repoSecret || process.env.GITHUB_WEBHOOK_SECRET || '';
   if (!secret) return true; // dev: skip verification when secret not configured
   if (!signature) return false;
   const expected = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');
@@ -38,6 +38,18 @@ function verifyGithubSignature(body: string, signature: string | undefined): boo
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
   return diff === 0;
+}
+
+function getWebhookSecret(repo: string): string | undefined {
+  try {
+    const raw = process.env.HOLOCI_WEBHOOK_SECRETS?.trim();
+    if (!raw) return undefined;
+    const map = JSON.parse(raw) as Record<string, unknown>;
+    const found = map[repo];
+    return typeof found === 'string' && found.length > 0 ? found : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function postToRoom(content: string): void {
@@ -88,7 +100,15 @@ export async function handleGithubWebhookRoutes(
   }
 
   const sig = req.headers['x-hub-signature-256'] as string | undefined;
-  if (!verifyGithubSignature(rawBody, sig)) {
+  // Resolve per-repo secret before verifying (HOLOCI_WEBHOOK_SECRETS env JSON map).
+  // Pre-parse the repo slug from raw body to look up the secret — safe because we
+  // haven't trusted the body yet (we're just picking a key for HMAC selection).
+  let earlyRepo = '';
+  try {
+    const peek = JSON.parse(rawBody) as { repository?: { full_name?: string } };
+    earlyRepo = String(peek?.repository?.full_name || '');
+  } catch { /* use global secret */ }
+  if (!verifyGithubSignature(rawBody, sig, getWebhookSecret(earlyRepo))) {
     json(res, 401, { error: 'invalid_signature' });
     return true;
   }
