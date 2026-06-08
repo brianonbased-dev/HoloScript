@@ -170,8 +170,13 @@ describe('SpendGovernor', () => {
   });
 
   it('exposes a snapshot for persistence', () => {
+    // Inject a `now` on the same UTC day as the pinned dayKey so snapshot() does not
+    // roll the day. The prior version called snapshot() with the live clock and so
+    // relied on the wall clock being 2026-06-07 — it broke at the next UTC midnight
+    // (the cloud-authored core was never run on a real seat; this is that failure).
+    const sameDay = new Date('2026-06-07T12:00:00Z');
     const g = new SpendGovernor({ capUsd: 10, dayKey: '2026-06-07', spentUsd: 3 });
-    expect(g.snapshot()).toMatchObject({ dayKey: '2026-06-07', spentUsd: 3, capUsd: 10, remainingUsd: 7 });
+    expect(g.snapshot(sameDay)).toMatchObject({ dayKey: '2026-06-07', spentUsd: 3, capUsd: 10, remainingUsd: 7 });
   });
 });
 
