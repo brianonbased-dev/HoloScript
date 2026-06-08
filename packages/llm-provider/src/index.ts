@@ -71,6 +71,17 @@ export type {
   // refactor (Brittney route migration to unified streaming surface).
   LLMStreamChunk,
   Capabilities,
+  // Inline moderation types — added 2026-06-08 (A-020): OpenAI inline moderation
+  // passthrough eliminates a separate POST /v1/moderations call for HoloDoor gates.
+  InlineModerationRequest,
+  InlineModerationResult,
+  // Provider extension types
+  ProviderExtensions,
+  OpenAIProviderExtensions,
+  AnthropicProviderExtensions,
+  GrokProviderExtensions,
+  GeminiProviderExtensions,
+  OllamaProviderExtensions,
 } from './types';
 
 export {
@@ -96,6 +107,7 @@ export {
   OPENAI_CAPABILITIES,
   messagesToOpenAIResponsesInput,
   parseOpenAIResponsesResult,
+  parseOpenAIModerationResult,
   toolSpecsToOpenAIResponseTools,
 } from './adapters/openai';
 export type { OpenAIModel } from './adapters/openai';

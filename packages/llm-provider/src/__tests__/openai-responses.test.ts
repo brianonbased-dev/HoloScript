@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   messagesToOpenAIResponsesInput,
   parseOpenAIResponsesResult,
+  parseOpenAIModerationResult,
   toolSpecsToOpenAIResponseTools,
 } from '../adapters/openai';
 import type { LLMMessage, ToolSpec } from '../types';
@@ -156,5 +157,120 @@ describe('parseOpenAIResponsesResult', () => {
     expect(result.model).toBe('gpt-5.4-mini');
     expect(result.finishReason).toBe('stop');
     expect(result.usage.totalTokens).toBe(3);
+  });
+
+  it('surfaces inline moderation result when present in response (A-020 2026-06-08)', () => {
+    // Simulate OpenAI Responses API response with inline moderation result
+    // (req.provider.openai.moderation = { input: "all" } was set on request).
+    const result = parseOpenAIResponsesResult(
+      {
+        model: 'gpt-5.5',
+        status: 'completed',
+        output: [
+          {
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'Here is a cube scene.' }],
+          },
+        ],
+        usage: { input_tokens: 10, output_tokens: 5 },
+        moderation: {
+          flagged: false,
+          results: [
+            {
+              flagged: false,
+              categories: {
+                hate: false,
+                'hate/threatening': false,
+                'self-harm': false,
+                sexual: false,
+                'sexual/minors': false,
+                violence: false,
+                'violence/graphic': false,
+              },
+              category_scores: {
+                hate: 0.0001,
+                'hate/threatening': 0.00002,
+                'self-harm': 0.00001,
+                sexual: 0.00003,
+                'sexual/minors': 0.00001,
+                violence: 0.0002,
+                'violence/graphic': 0.00001,
+              },
+            },
+          ],
+        },
+      },
+      'gpt-5.5'
+    );
+
+    expect(result.moderationResult).toBeDefined();
+    expect(result.moderationResult!.flagged).toBe(false);
+    expect(result.moderationResult!.categories['hate']).toBe(false);
+    expect(result.moderationResult!.categories['violence']).toBe(false);
+    expect(result.moderationResult!.categoryScores).toBeDefined();
+    expect(result.moderationResult!.categoryScores!['hate']).toBeCloseTo(0.0001);
+    // Response content unaffected.
+    expect(result.content).toBe('Here is a cube scene.');
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('moderationResult is undefined when moderation is absent from response', () => {
+    const result = parseOpenAIResponsesResult(
+      {
+        model: 'gpt-5.5',
+        status: 'completed',
+        output: [
+          {
+            type: 'message',
+            role: 'assistant',
+            content: [{ type: 'output_text', text: 'Hi.' }],
+          },
+        ],
+        usage: { input_tokens: 2, output_tokens: 1 },
+      },
+      'gpt-5.5'
+    );
+
+    expect(result.moderationResult).toBeUndefined();
+  });
+});
+
+describe('parseOpenAIModerationResult', () => {
+  it('returns undefined for non-object input', () => {
+    expect(parseOpenAIModerationResult(null)).toBeUndefined();
+    expect(parseOpenAIModerationResult(undefined)).toBeUndefined();
+    expect(parseOpenAIModerationResult('string')).toBeUndefined();
+  });
+
+  it('parses results-array format (Responses API)', () => {
+    const result = parseOpenAIModerationResult({
+      flagged: true,
+      results: [
+        {
+          flagged: true,
+          categories: { hate: true, sexual: false },
+          category_scores: { hate: 0.95, sexual: 0.01 },
+        },
+      ],
+    });
+
+    expect(result).toBeDefined();
+    expect(result!.flagged).toBe(true);
+    expect(result!.categories['hate']).toBe(true);
+    expect(result!.categories['sexual']).toBe(false);
+    expect(result!.categoryScores!['hate']).toBeCloseTo(0.95);
+  });
+
+  it('parses flat format (Chat Completions compat)', () => {
+    const result = parseOpenAIModerationResult({
+      flagged: false,
+      categories: { violence: false, 'violence/graphic': false },
+    });
+
+    expect(result).toBeDefined();
+    expect(result!.flagged).toBe(false);
+    expect(result!.categories['violence']).toBe(false);
+    expect(result!.categoryScores).toBeUndefined();
   });
 });

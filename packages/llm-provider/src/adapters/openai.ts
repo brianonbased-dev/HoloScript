@@ -12,6 +12,7 @@ import { BaseLLMAdapter } from '../base-adapter';
 import type {
   AssistantContentBlock,
   Capabilities,
+  InlineModerationResult,
   LLMCompletionRequest,
   LLMCompletionResponse,
   LLMMessage,
@@ -174,6 +175,65 @@ export function messagesToOpenAIResponsesInput(messages: LLMMessage[]): OpenAIRe
 }
 
 /**
+ * Parse an OpenAI inline moderation object (from the `moderation` field on
+ * Responses / Chat Completions responses) into the provider-neutral
+ * `InlineModerationResult` shape.
+ *
+ * OpenAI wire format (Responses API, verified 2026-06-08 A-020):
+ *   {
+ *     "flagged": true,
+ *     "results": [{ "categories": { "hate": false, ... }, "category_scores": { ... }, "flagged": true }]
+ *   }
+ *
+ * We surface the top-level `flagged` plus the per-category maps from the first
+ * result entry (all content in a generation request is single-item). Callers
+ * that need per-item details can read `raw`.
+ */
+export function parseOpenAIModerationResult(value: unknown): InlineModerationResult | undefined {
+  if (!asRecord(value)) return undefined;
+  const mod = value as Record<string, unknown>;
+  const flagged = typeof mod.flagged === 'boolean' ? mod.flagged : false;
+
+  // Prefer the first results-array entry for category maps.
+  const results = asArray(mod.results);
+  const firstResult = asRecord(results[0]);
+  let categories: Record<string, boolean> = {};
+  let categoryScores: Record<string, number> | undefined;
+
+  if (firstResult) {
+    const cats = asRecord(firstResult.categories);
+    if (cats) {
+      for (const [k, v] of Object.entries(cats)) {
+        if (typeof v === 'boolean') categories[k] = v;
+      }
+    }
+    const scores = asRecord(firstResult.category_scores ?? firstResult.categoryScores);
+    if (scores) {
+      categoryScores = {};
+      for (const [k, v] of Object.entries(scores)) {
+        if (typeof v === 'number' && Number.isFinite(v)) categoryScores[k] = v;
+      }
+      if (Object.keys(categoryScores).length === 0) categoryScores = undefined;
+    }
+  } else {
+    // Flat format: categories directly on the object (Chat Completions compat).
+    const cats = asRecord(mod.categories);
+    if (cats) {
+      for (const [k, v] of Object.entries(cats)) {
+        if (typeof v === 'boolean') categories[k] = v;
+      }
+    }
+  }
+
+  return {
+    flagged,
+    categories,
+    ...(categoryScores ? { categoryScores } : {}),
+    raw: value,
+  };
+}
+
+/**
  * Parse an OpenAI Responses API result into the provider-neutral completion
  * shape. Exported so the wire contract is testable without live API calls.
  */
@@ -246,6 +306,8 @@ export function parseOpenAIResponsesResult(
     assistantBlocks.push({ type: 'text', text: outputText });
   }
 
+  const moderationResult = parseOpenAIModerationResult(record.moderation);
+
   return {
     content: textParts.join(''),
     usage: parseOpenAIUsage(record.usage),
@@ -255,6 +317,7 @@ export function parseOpenAIResponsesResult(
     toolUses: toolUses.length > 0 ? toolUses : undefined,
     assistantBlocks: assistantBlocks.length > 0 ? assistantBlocks : undefined,
     requestId: stringField(record._request_id) ?? stringField(record.id),
+    ...(moderationResult ? { moderationResult } : {}),
     raw: response,
   };
 }
@@ -485,6 +548,13 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       stream: false,
       store: this.store,
       ...(this.reasoningEffort ? { reasoning: { effort: this.reasoningEffort } } : {}),
+      // Inline moderation passthrough (A-020 2026-06-08): when caller sets
+      // req.provider.openai.moderation, OpenAI runs content-moderation on
+      // the generation inputs and returns a `moderation` result in the
+      // response — eliminating a separate POST /v1/moderations round-trip.
+      ...(request.provider?.openai?.moderation
+        ? { moderation: request.provider.openai.moderation }
+        : {}),
     };
 
     const tools = filterGenericTools(request.tools);

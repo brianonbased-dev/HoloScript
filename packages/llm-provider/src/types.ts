@@ -508,6 +508,24 @@ export interface LLMCompletionResponse {
    */
   responseHeaders?: Record<string, string>;
 
+  /**
+   * Inline moderation result from the provider.
+   *
+   * Populated by the OpenAI adapter when `req.provider.openai.moderation` was
+   * set on the request — the response carries the moderation verdict alongside
+   * the generation output in a single round-trip.
+   *
+   * Anthropic analog: built-in safety layer surfaces as `finishReason:
+   * "content_filter"` (mapped from `stop_reason: "refusal"`). No separate
+   * result object is emitted; `moderationResult` will be `undefined` on
+   * Anthropic responses. Callers that need a unified HoloDoor gate should
+   * check both `finishReason === "content_filter"` (Anthropic) and
+   * `moderationResult?.flagged === true` (OpenAI) at the call site.
+   *
+   * See `InlineModerationResult` for the field contract.
+   */
+  moderationResult?: InlineModerationResult;
+
   /** Raw response from the provider (for debugging) */
   raw?: unknown;
 }
@@ -1106,11 +1124,73 @@ export interface AnthropicProviderExtensions {
   betaHeaders?: string[];
 }
 
+/**
+ * Inline moderation request object accepted by OpenAI Responses/Chat Completions.
+ *
+ * When present, OpenAI runs content-moderation on the generation request and
+ * returns a `moderationResult` alongside the response — eliminating a separate
+ * POST /v1/moderations call for HoloDoor policy gates.
+ *
+ * Wire form: `{ "moderation": { "input": "all" | string[], "model": "omni-moderation-latest" } }`
+ * Source: developers.openai.com/api/docs/changelog (verified 2026-06-08 A-020).
+ */
+export interface InlineModerationRequest {
+  /**
+   * Which content to moderate.
+   * - `"all"` — moderate all text/image inputs in the request.
+   * - `string[]` — explicit item IDs to moderate (Responses API only).
+   */
+  input: 'all' | string[];
+  /**
+   * Moderation model to use. Defaults to `"omni-moderation-latest"` if omitted.
+   */
+  model?: string;
+}
+
+/**
+ * Inline moderation result returned by OpenAI alongside a generation response.
+ *
+ * Maps to the `moderation` field on the Responses API response object when
+ * `moderationRequest` was set on the request. The `results` array contains one
+ * entry per moderated item.
+ *
+ * Anthropic analog: built-in safety layer. When Claude stops for policy reasons
+ * the `stop_reason` is `"refusal"` (mapped to `finishReason: "content_filter"`
+ * in this SDK). No separate result object is emitted — the stop_reason IS the
+ * moderation signal. Callers that need a unified gate should check both
+ * `finishReason === "content_filter"` (Anthropic) and `moderationResult.flagged`
+ * (OpenAI) at the call site.
+ */
+export interface InlineModerationResult {
+  /** True if any category was flagged by the moderation model. */
+  flagged: boolean;
+  /**
+   * Per-category flag map. Keys are moderation category names
+   * (e.g. `"hate"`, `"self-harm"`, `"sexual"`, `"violence"`).
+   */
+  categories: Record<string, boolean>;
+  /**
+   * Per-category confidence scores (0–1). Present when the provider returns them.
+   */
+  categoryScores?: Record<string, number>;
+  /** Raw provider result for categories this SDK hasn't typed yet. */
+  raw?: unknown;
+}
+
 export interface OpenAIProviderExtensions {
   reasoningEffort?: OpenAIReasoningEffort;
   parallelToolCalls?: boolean;
   /** Responses API background mode — long-running task returns a token; poll for completion. */
   background?: boolean;
+  /**
+   * Inline moderation request. When set, OpenAI runs content-moderation on
+   * the generation request and returns a `moderationResult` on the response
+   * — no separate POST /v1/moderations call needed. HoloDoor policy gates
+   * use this to enforce content policy in one round-trip.
+   *
+   * Source: developers.openai.com/api/docs/changelog (verified 2026-06-08 A-020).
+   */
+  moderation?: InlineModerationRequest;
 }
 
 /**
