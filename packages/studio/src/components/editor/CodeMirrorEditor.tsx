@@ -31,10 +31,19 @@ import { SpatialBlameOverlay } from '@/components/versionControl/SpatialBlameOve
 import { holoScriptExtensions } from './holoScriptCM';
 import { formatHoloScript } from './holoScriptLanguage';
 import { getDiagnostics, getCompletions, getHover } from '@/lib/ide/ideClient';
+import { getEditorConfig } from '@/lib/editor/holoEditorConfig';
 
 interface HoloScriptEditorProps {
   height?: string;
 }
+
+// Timing constants from holoscript-editor.holo (compiled from holoscript-editor.hs)
+const _holoConfig = getEditorConfig();
+const LSP_DIAGNOSTICS_DEBOUNCE = _holoConfig.lsp_client?.diagnostics_debounce_ms ?? 750;
+const LSP_HOVER_DELAY = _holoConfig.lsp_client?.hover_delay_ms ?? 400;
+const STORE_ERRORS_DEBOUNCE = _holoConfig.store_diagnostics?.debounce_ms ?? 0;
+const CODE_DEBOUNCE = _holoConfig.code_editor?.value?.debounce_ms ?? 300;
+const SPATIAL_BLAME_FILE = _holoConfig.spatial_blame?.file_path ?? 'scene-1.holo';
 
 export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorProps) {
   const code = useSceneStore((s) => s.code);
@@ -70,7 +79,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           const ln = view.state.doc.line(lineNum);
           return { from: ln.from, to: ln.to, severity: 'error', message: e.message };
         }),
-      { delay: 0 },
+      { delay: STORE_ERRORS_DEBOUNCE },
     );
 
     // ── Linter 2: LSP diagnostics (debounced, async server round-trip) ────────
@@ -88,7 +97,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           return { from, to: ln.to, severity: sev, message: d.message };
         });
       },
-      { delay: 750 },
+      { delay: LSP_DIAGNOSTICS_DEBOUNCE },
     );
 
     // ── LSP autocomplete source (async, merged after static completions) ──────
@@ -145,7 +154,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
           },
         };
       },
-      { hoverTime: 400 },
+      { hoverTime: LSP_HOVER_DELAY },
     );
 
     const formatKeymap = keymap.of([
@@ -194,7 +203,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
       if (!update.docChanged) return;
       const value = update.state.doc.toString();
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => setCodeRef.current(value), 300);
+      debounceRef.current = setTimeout(() => setCodeRef.current(value), CODE_DEBOUNCE);
     });
 
     const state = EditorState.create({
@@ -248,7 +257,7 @@ export function CodeMirrorEditor({ height: _height = '100%' }: HoloScriptEditorP
       {blameTarget && (
         <SpatialBlameOverlay
           workspacePath={blameWorkspacePath || undefined}
-          filePath="scene-1.holo"
+          filePath={SPATIAL_BLAME_FILE}
           line={blameTarget.line}
           traitLabel={blameTarget.traitLabel}
           onClose={() => setBlameTarget(null)}
