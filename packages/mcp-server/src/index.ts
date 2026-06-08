@@ -337,7 +337,12 @@ function registerCategory(toolArray: Tool[], handler: ToolHandler) {
 
 // 1. Explicitly mapped domains
 registerCategory(compilerTools, (name, args, _signingCtx) => handleCompilerTool(name, args));
-registerCategory(holoCiTools, (name, args, _signingCtx) => handleHoloCiTool(name, args));
+// Thread the caller signer address (from signed envelopes) as the token identity
+// for per-caller spend authorisation. For unsigned / stdio callers signingCtx is
+// undefined and callerToken is undefined → those callers are unconditionally trusted.
+registerCategory(holoCiTools, (name, args, signingCtx) =>
+  handleHoloCiTool(name, args, signingCtx?.signer ?? undefined)
+);
 registerCategory(networkingTools, (name, args, _signingCtx) => handleNetworkingTool(name, args));
 registerCategory(snapshotTools, (name, args, _signingCtx) => handleSnapshotTool(name, args));
 registerCategory(monitoringTools, (name, args, _signingCtx) => handleMonitoringTool(name, args));

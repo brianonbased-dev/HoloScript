@@ -16,8 +16,28 @@
  * ai-ecosystem/scripts/holo-ci/{gates,lib}.mjs. It is duplicated rather than
  * imported because HoloScript and ai-ecosystem are separate repos with no
  * shared module path. Keep the two in sync when gates change.
+ *
+ * ## Spend authorisation (task_1780456938486_eldw)
+ *
+ * Two-layer guard applied on every non-dry submit:
+ *
+ * 1. **Per-caller daily submit cap** — in-memory rolling-24h window, keyed by a
+ *    SHA-256 fingerprint of the caller token (never stored in the clear). Default
+ *    cap = `HOLOCI_DAILY_SUBMIT_CAP` env var (defaults to 3 submits/day). The
+ *    server's own orchestrator key (founder seat) is exempt.  When the cap is
+ *    exceeded the handler returns `ok:false` with `capExceeded:true` AND the
+ *    dry-run preview so the caller can still inspect the workload.
+ *
+ * 2. **Token → identity → spend allowance lookup** — the caller token is hashed
+ *    to a stable fingerprint and checked against a per-identity allowance table
+ *    (`HOLOCI_SPEND_ALLOWANCES` env JSON, keyed by SHA-256 fingerprint). When no
+ *    entry is found the caller is treated as `restricted` (cap = 1/day, no full
+ *    profile).  Founder-key callers are always `unlimited`.  The allowance table
+ *    can be provisioned at deploy time; a future follow-up can replace this with
+ *    a live orchestrator /identity/allowance lookup once that endpoint exists.
  */
 
+import { createHash } from 'node:crypto';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 // ─── Gate catalog (port of gates.mjs) ───────────────────────────────────────
@@ -286,6 +306,149 @@ function orchestratorUrl(): string {
   ).replace(/\/$/, '');
 }
 
+// ─── Per-caller spend authorisation ─────────────────────────────────────────
+
+/**
+ * Tier of spend authority granted to a caller.
+ *
+ * - `founder`     – unlimited submits, any profile.
+ * - `trusted`     – up to HOLOCI_DAILY_SUBMIT_CAP (default 3) submits/day, any profile.
+ * - `restricted`  – cap capped at 1/day, quick-profile only (no full-profile GPU spend).
+ */
+type CallerTier = 'founder' | 'trusted' | 'restricted';
+
+/** SHA-256 of a raw token string (hex, 64 chars). Never log the token itself. */
+function tokenFingerprint(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Resolve caller tier from the token fingerprint.
+ *
+ * Priority:
+ * 1. Fingerprint matches the server's own orchestrator key → founder (unlimited).
+ * 2. `HOLOCI_SPEND_ALLOWANCES` JSON env var contains the fingerprint → use declared tier.
+ * 3. Fallback → restricted.
+ *
+ * `HOLOCI_SPEND_ALLOWANCES` format (JSON object):
+ *   { "<sha256-fingerprint>": "trusted" | "founder" | "restricted", ... }
+ */
+function resolveCallerTier(callerFingerprint: string): CallerTier {
+  // Server's own orchestrator key is always founder-tier (self-dispatch).
+  const serverKey = process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
+  if (serverKey && tokenFingerprint(serverKey) === callerFingerprint) return 'founder';
+
+  // Provisioned allowance table (deploy-time env JSON).
+  const raw = process.env.HOLOCI_SPEND_ALLOWANCES || '';
+  if (raw) {
+    try {
+      const table = JSON.parse(raw) as Record<string, string>;
+      const tier = table[callerFingerprint];
+      if (tier === 'founder' || tier === 'trusted' || tier === 'restricted') return tier;
+    } catch {
+      // Malformed env — fail safe to restricted.
+    }
+  }
+
+  return 'restricted';
+}
+
+/**
+ * Rolling-24h submit counter, keyed by caller fingerprint.
+ * Each entry is a list of submit timestamps (ms since epoch).
+ * In-memory only — resets on server restart (intentional: short-lived guard,
+ * not a durable audit log). A follow-up can persist to Redis if needed.
+ */
+const _submitLedger = new Map<string, number[]>();
+
+const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Returns how many submits the caller has made in the last 24 h. */
+function recentSubmitCount(fingerprint: string, nowMs: number = Date.now()): number {
+  const ts = _submitLedger.get(fingerprint) ?? [];
+  return ts.filter((t) => nowMs - t < WINDOW_MS).length;
+}
+
+/** Record a new submit for the caller. Prunes entries older than 24 h. */
+function recordSubmit(fingerprint: string, nowMs: number = Date.now()): void {
+  const ts = (_submitLedger.get(fingerprint) ?? []).filter((t) => nowMs - t < WINDOW_MS);
+  ts.push(nowMs);
+  _submitLedger.set(fingerprint, ts);
+}
+
+/** Test-only: reset the ledger. */
+export function resetSubmitLedger(): void {
+  _submitLedger.clear();
+}
+
+/**
+ * Effective daily cap for a caller tier.
+ * `HOLOCI_DAILY_SUBMIT_CAP` overrides the trusted tier cap.
+ */
+function effectiveCap(tier: CallerTier): number {
+  if (tier === 'founder') return Infinity;
+  const envCap = Number(process.env.HOLOCI_DAILY_SUBMIT_CAP || '');
+  const trustedCap = Number.isFinite(envCap) && envCap > 0 ? envCap : 3;
+  return tier === 'trusted' ? trustedCap : 1; // restricted = 1/day
+}
+
+/**
+ * Gate a non-dry submit against the per-caller spend policy.
+ *
+ * Returns `null` if the submit is allowed; otherwise returns the error payload
+ * the handler should return (always includes the dry-run workload preview so
+ * the caller can still see what would have run).
+ *
+ * @param callerToken  Raw bearer token or MCP key from the caller. Hashed before use.
+ *                     Pass `undefined` when the caller is the stdio/local process
+ *                     (trusted unconditionally — no network attacker path).
+ * @param profile      Workload profile the caller is requesting.
+ * @param dryPreview   Workload preview to attach to error responses.
+ */
+function checkSpendAuthz(
+  callerToken: string | undefined,
+  profile: Profile,
+  dryPreview: HoloCiWorkload
+): null | Record<string, unknown> {
+  // stdio / local process — no token, fully trusted (no network path).
+  if (!callerToken) return null;
+
+  const fingerprint = tokenFingerprint(callerToken);
+  const tier = resolveCallerTier(fingerprint);
+  const cap = effectiveCap(tier);
+  const used = recentSubmitCount(fingerprint);
+
+  // Tier check: restricted callers may not submit full-profile workloads.
+  if (tier === 'restricted' && profile === 'full') {
+    return {
+      ok: false,
+      capExceeded: false,
+      tierDenied: true,
+      tier,
+      error:
+        'Full-profile GPU workloads require a trusted or founder token. ' +
+        'Use profile:"quick" or contact the server operator to upgrade your token tier.',
+      dryRunPreview: dryPreview,
+    };
+  }
+
+  // Daily cap check.
+  if (used >= cap) {
+    return {
+      ok: false,
+      capExceeded: true,
+      tier,
+      used,
+      cap: cap === Infinity ? null : cap,
+      resetInMs: WINDOW_MS, // approximate (client can retry after ~24 h)
+      error: `Daily CI submit cap reached (${used}/${cap === Infinity ? '∞' : cap} in last 24 h). Re-run with dryRun:true to preview the workload without spending.`,
+      dryRunPreview: dryPreview,
+    };
+  }
+
+  return null; // allowed
+}
+
 // ─── Tool definition ─────────────────────────────────────────────────────────
 export const holoCiTools: Tool[] = [
   {
@@ -322,9 +485,22 @@ export const holoCiTools: Tool[] = [
 ];
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
+
+/**
+ * Handle `holo_ci_dispatch` tool calls.
+ *
+ * @param name         Tool name — returns `null` when not `holo_ci_dispatch`.
+ * @param args         Tool arguments from the MCP client.
+ * @param callerToken  Raw bearer token or MCP key for the requesting client.
+ *                     Used only for per-caller spend authorisation — hashed
+ *                     before any use, never stored or logged in the clear.
+ *                     Pass `undefined` for stdio (local) callers that are
+ *                     unconditionally trusted.
+ */
 export async function handleHoloCiTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  callerToken?: string
 ): Promise<unknown | null> {
   if (name !== 'holo_ci_dispatch') return null;
 
@@ -360,6 +536,11 @@ export async function handleHoloCiTool(
       workload: built.workload,
     };
   }
+
+  // ── Spend authorisation gate (non-dry path only) ──────────────────────────
+  // Must happen AFTER dryRun branch so previews are never gated.
+  const authzDenial = checkSpendAuthz(callerToken, profile, built);
+  if (authzDenial) return authzDenial;
 
   const apiKey = readOrchestratorKey();
   if (!apiKey) {
@@ -402,6 +583,11 @@ export async function handleHoloCiTool(
       (parsed as { id?: string; workload_id?: string })?.id ??
       (parsed as { workload_id?: string })?.workload_id ??
       built.workload.id;
+
+    // Record the successful submit against the caller's daily quota.
+    if (callerToken) {
+      recordSubmit(tokenFingerprint(callerToken));
+    }
 
     return {
       ok: true,
