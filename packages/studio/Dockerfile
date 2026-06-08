@@ -123,7 +123,12 @@ RUN cd packages/secrets-broker && npx tsup --no-dts && (npx tsup --dts-only || t
 # vm/index.ts -> @holoscript/holo-vm. Without their dist on disk the type-check
 # fails "Cannot find module '@holoscript/holoembed'". Deps already built above
 # (holoembed: config + snn-webgpu; holo-vm: core), so they slot in here.
-RUN cd packages/holoembed && npx tsup --no-dts && (npx tsup --dts-only || true)
+# holoembed: tsup --dts-only silently fails (snn-webgpu external + GPU types cause
+# rollup-plugin-dts to error; || true hid this, leaving no dist/index.d.ts, which
+# broke Studio's next build tsc gate because engine/src/simulation/ConjectureEngine.ts
+# imports '@holoscript/holoembed'). Use tsc --emitDeclarationOnly directly.
+# tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
+RUN cd packages/holoembed && npx tsup --no-dts && npx tsc --emitDeclarationOnly
 RUN cd packages/holo-vm && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
 # r3f-renderer's declarations are hand-crafted via generate-types.mjs (like core),

@@ -1,5 +1,8 @@
 import { InputBindings } from '../input/InputBindings.js';
-import { WebRTCTransport } from '@holoscript/core/runtime';
+
+interface AudioTransport {
+  setMicrophoneEnabled(enabled: boolean): void;
+}
 
 export class VoiceManager {
   private isPttPressed = false;
@@ -8,7 +11,7 @@ export class VoiceManager {
 
   constructor(
     private input: InputBindings,
-    private transport: WebRTCTransport
+    private transport: AudioTransport
   ) {}
 
   update(): void {

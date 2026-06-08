@@ -22,8 +22,8 @@
       "@/*": ["./src/*"],
       "@holoscript/core": ["../core/dist/index.d.ts"],
       "@holoscript/core/*": ["../core/dist/*"],
-      "@holoscript/engine": ["../engine/dist/index.d.ts"],
-      "@holoscript/engine/*": ["../engine/dist/*"],
+      "@holoscript/engine": ["../engine/src/index.ts"],
+      "@holoscript/engine/*": ["../engine/src/*"],
       "@holoscript/std": ["../std/dist/index.d.ts"],
       "@holoscript/std/*": ["../std/src/*"],
       // Narrow source-maps for the specific subpath modules studio imports whose
