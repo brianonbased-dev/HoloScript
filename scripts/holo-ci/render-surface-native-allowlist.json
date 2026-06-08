@@ -260,6 +260,7 @@
     "packages/studio/src/components/diff/components/ObjectDiffCard.tsx",
     "packages/studio/src/components/diff/components/SourceEditorDrawer.tsx",
     "packages/studio/src/components/diff/components/TextDiffRow.tsx",
+    "packages/studio/src/components/editor/CodeMirrorEditor.tsx",
     "packages/studio/src/components/editor/DeployButton.tsx",
     "packages/studio/src/components/editor/EditorToolbar.tsx",
     "packages/studio/src/components/editor/HoloScriptEditor.tsx",

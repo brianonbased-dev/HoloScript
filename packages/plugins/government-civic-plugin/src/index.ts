@@ -15,22 +15,8 @@ import { createCivicComplianceHandler } from './traits/CivicComplianceTrait';
 export const pluginMeta = {
   name: '@holoscript/plugin-government-civic',
   version: '1.0.0',
-  traits: ['permit', 'public_meeting', 'service_request', 'voting_record', 'civic_compliance', 'civic_decision'],
+  traits: ['permit', 'public_meeting', 'service_request', 'voting_record', 'civic_compliance'],
 };
-
-// Runtime integration — behavioral trait handler + registrar that wire the
-// deterministic TOPSIS MCDA solver into HoloScriptRuntime's dispatch. Closes
-// the built-but-dead-wired gap for `civic_decision`, mirroring energy-grid's
-// `power_flow` reference integration.
-export {
-  GOVERNMENT_CIVIC_PLUGIN_ID,
-  civicDecisionHandler,
-  registerGovernmentCivicTraitHandlers,
-  type CivicDecisionTraitConfig,
-  type CivicDecisionSolvedEvent,
-  type RuntimeTraitHandler,
-  type TraitRegistrar,
-} from './runtime';
 
 export const traitHandlers = [
   createPermitHandler(),
