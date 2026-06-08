@@ -89,7 +89,11 @@ export function extractDrawSpecs(world: ECSWorld): DrawSpec[] {
       entityId: e.id,
       geometry: { kind: geometryKindFromType(g.type), params: { ...g.params } },
       material: { color: m.color, metalness: m.metalness, roughness: m.roughness, emissive: m.emissive, opacity: m.opacity },
-      modelMatrix: composeTRS(t.position, t.rotation, t.scale),
+      modelMatrix: composeTRS(
+        { x: t.position[0], y: t.position[1], z: t.position[2] },
+        { x: t.rotation[0], y: t.rotation[1], z: t.rotation[2], w: t.rotation[3] },
+        { x: t.scale[0], y: t.scale[1], z: t.scale[2] },
+      ),
     });
   }
   return specs;

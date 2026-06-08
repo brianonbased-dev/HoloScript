@@ -11,8 +11,8 @@ import type { GeometryKind } from './draw-spec';
 
 export interface PrimitiveMesh {
   /** Interleaved is avoided for clarity: flat XYZ positions, 3 floats per vertex. */
-  positions: Float32Array;
-  indices: Uint32Array;
+  positions: Float32Array<ArrayBuffer>;
+  indices: Uint32Array<ArrayBuffer>;
   vertexCount: number;
 }
 
