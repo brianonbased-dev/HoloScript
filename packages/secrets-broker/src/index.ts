@@ -665,6 +665,16 @@ export {
   type KmsKekProviderDeps,
 } from './kms-kek-provider';
 export {
+  createScopedSecretKeyring,
+  ScopedSecretKeyringError,
+  type ScopedSecretKeyringDeps,
+} from './scoped-secret-keyring';
+export {
+  sealResolveReceipt,
+  verifyResolveReceiptChain,
+  type SecretResolveReceipt,
+} from './resolve-receipt';
+export {
   createSecretResolver,
   AuthRequiredError,
   type SecretResolver,
