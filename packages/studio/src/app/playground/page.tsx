@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Sparkles } from 'lucide-react';
 import { useSceneStore } from '@/lib/stores/sceneStore';
 import { BrittneyPresenceHUD } from '@/components/playground/BrittneyPresenceHUD';
+import { readState } from '@/features/playground/sharing/url-encoder';
 
 const DesktopViewer = dynamic(
   () => import('@/embed/DesktopViewer').then((m) => ({ default: m.DesktopViewer })),
@@ -26,6 +27,20 @@ function EmptyState() {
 export default function PlaygroundPage() {
   const code = useSceneStore((s) => s.code);
   const setErrors = useSceneStore((s) => s.setErrors);
+  const setCode = useSceneStore((s) => s.setCode);
+
+  // "Send to playground": a share link (#v1/…) carries a world to display. Load it
+  // into the scene store on mount so DesktopViewer renders it — the same store the
+  // vibe→playground path feeds. No hash → no-op (an in-session/vibe scene is kept).
+  useEffect(() => {
+    let cancelled = false;
+    readState().then((shared) => {
+      if (!cancelled && shared?.source) setCode(shared.source);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [setCode]);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#07070f]">
