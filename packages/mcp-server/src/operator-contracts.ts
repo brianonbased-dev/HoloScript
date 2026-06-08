@@ -220,6 +220,7 @@ absorb_provenance_answer
 get_tool_manifest
 suggest_tools_for_goal
 batch_tool_call
+get_tool_health
 holoscript_compose_traits
 holoscript_compile_healthcare
 holoscript_compile_robotics

@@ -432,7 +432,8 @@ export async function handleTool(
       return browserScreenshot(BrowserScreenshotSchema.parse(args));
     case 'get_tool_manifest':
     case 'suggest_tools_for_goal':
-    case 'batch_tool_call': {
+    case 'batch_tool_call':
+    case 'get_tool_health': {
       const { tools: allTools } = await import('./tools');
       const result = await handleToolingDiscoveryTool(
         name,
