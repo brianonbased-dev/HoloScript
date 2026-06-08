@@ -5,25 +5,47 @@
  * Uses fetch-based HTTP requests (no SDK dependency) for maximum compatibility.
  * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, and legacy Gemini models.
  *
- * @version 1.0.0
+ * Function calling uses the standard generateContent API (not the Interactions/
+ * Live API). Tool calls appear as `functionCall` parts in the response
+ * candidates, and tool results are fed back as `functionResponse` parts in
+ * the next `contents[]` turn.
+ *
+ * Interactions API note (A-020, 2026-06-08): The Gemini Interactions API
+ * removed the `outputs` field and replaced it with a `steps[]` array
+ * (user_input + model_output step types). This adapter uses `generateContent`
+ * (not the Interactions/Live endpoint) and therefore reads `candidates[0]`
+ * directly. If this adapter is ever extended to use the Interactions API,
+ * iterate `response.steps` (not `response.outputs`) and find
+ * `step.type === 'model_output'` for content. History for Interactions API
+ * multi-turn goes in `input.steps[]`, not `contents[]`.
+ *
+ * @version 1.1.0
  */
 
 import { BaseLLMAdapter } from '../base-adapter';
 import type {
+  AssistantContentBlock,
   Capabilities,
   LLMCompletionRequest,
   LLMCompletionResponse,
+  LLMMessage,
   GeminiProviderConfig,
+  ToolSpec,
+  ToolUseBlock,
 } from '../types';
 import {
   LLMAuthenticationError,
   LLMRateLimitError,
   LLMContextLengthError,
   LLMProviderError,
+  filterGenericTools,
   messageContentAsString,
 } from '../types';
 
-// Available Google Gemini models
+// Available Google Gemini models.
+// gemini-3.1-flash-image-preview and gemini-3-pro-image-preview are NOT
+// included — they shut down June 25 2026 per the Interactions API breaking
+// changes notice (ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026).
 export const GEMINI_MODELS = [
   'gemini-3.5-flash',
   'gemini-3-flash-preview',
@@ -38,14 +60,37 @@ export type GeminiModel = (typeof GEMINI_MODELS)[number];
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
+/** A single part inside a Gemini `content` object. */
+interface GeminiPart {
+  text?: string;
+  /** Emitted by the model when it wants to invoke a function. */
+  functionCall?: {
+    name: string;
+    args: Record<string, unknown>;
+  };
+  /** Provided by the caller to return a function result to the model. */
+  functionResponse?: {
+    name: string;
+    response: Record<string, unknown>;
+  };
+}
+
 interface GeminiContent {
-  parts: Array<{ text: string }>;
+  parts: GeminiPart[];
   role: 'user' | 'model';
 }
 
+/**
+ * Gemini `generateContent` response shape.
+ *
+ * NOTE: The Interactions/Live API (not used here) replaced the `outputs`
+ * field with `steps[]` as of the May 2026 breaking-change notice
+ * (A-020, 2026-06-08). This adapter reads `candidates[]` from the
+ * standard REST `generateContent` endpoint, which is unaffected.
+ */
 interface GeminiResponse {
   candidates?: Array<{
-    content: { parts: Array<{ text: string }> };
+    content: { parts: GeminiPart[]; role: string };
     finishReason: string;
   }>;
   usageMetadata?: {
@@ -57,6 +102,17 @@ interface GeminiResponse {
     code: number;
     message: string;
     status: string;
+  };
+}
+
+/** Gemini function declaration for the `tools` request field. */
+interface GeminiFunctionDeclaration {
+  name: string;
+  description: string;
+  parameters: {
+    type: string;
+    properties: Record<string, unknown>;
+    required?: string[];
   };
 }
 
@@ -140,10 +196,9 @@ export class GeminiAdapter extends BaseLLMAdapter {
     const systemMessage = request.messages.find((m) => m.role === 'system');
     const conversationMessages = request.messages.filter((m) => m.role !== 'system');
 
-    const contents: GeminiContent[] = conversationMessages.map((m) => ({
-      parts: [{ text: messageContentAsString(m.content) }],
-      role: m.role === 'assistant' ? 'model' : 'user',
-    }));
+    const contents: GeminiContent[] = conversationMessages.map((m) =>
+      this.messageToGeminiContent(m)
+    );
 
     const body: Record<string, unknown> = {
       contents,
@@ -158,8 +213,20 @@ export class GeminiAdapter extends BaseLLMAdapter {
     // Add system instruction if present
     if (systemMessage) {
       body.systemInstruction = {
-        parts: [{ text: systemMessage.content }],
+        parts: [{ text: messageContentAsString(systemMessage.content) }],
       };
+    }
+
+    // Add function declarations when tools are requested. Only generic
+    // ToolSpec entries are forwarded — provider-specific shapes (e.g.
+    // AnthropicAdvisorToolSpec) are filtered out.
+    const genericTools = filterGenericTools(request.tools);
+    if (genericTools.length > 0) {
+      body.tools = [
+        {
+          functionDeclarations: geminiToolsFromToolSpecs(genericTools),
+        },
+      ];
     }
 
     return await this.withRetry(async () => {
@@ -188,22 +255,7 @@ export class GeminiAdapter extends BaseLLMAdapter {
           );
         }
 
-        const candidate = data.candidates?.[0];
-        const content = candidate?.content?.parts?.map((p) => p.text).join('') ?? '';
-        const usage = data.usageMetadata;
-
-        return {
-          content,
-          usage: {
-            promptTokens: usage?.promptTokenCount ?? 0,
-            completionTokens: usage?.candidatesTokenCount ?? 0,
-            totalTokens: usage?.totalTokenCount ?? 0,
-          },
-          model,
-          provider: 'gemini' as const,
-          finishReason: this.mapFinishReason(candidate?.finishReason),
-          raw: data,
-        };
+        return parseGeminiResponse(data, model);
       } catch (err: unknown) {
         clearTimeout(timeoutId);
         if (
@@ -222,17 +274,52 @@ export class GeminiAdapter extends BaseLLMAdapter {
     });
   }
 
-  private mapFinishReason(reason: string | undefined): LLMCompletionResponse['finishReason'] {
-    switch (reason) {
-      case 'STOP':
-        return 'stop';
-      case 'MAX_TOKENS':
-        return 'length';
-      case 'SAFETY':
-        return 'content_filter';
-      default:
-        return 'stop';
+  /**
+   * Translate a provider-neutral LLMMessage to a Gemini `content` object.
+   *
+   * Handles three message shapes:
+   *   1. Plain string content → single `text` part.
+   *   2. Assistant message with `tool_use` blocks → `functionCall` parts so
+   *      Gemini sees the model's prior tool invocations in history.
+   *   3. User message with `tool_result` blocks → `functionResponse` parts so
+   *      Gemini receives the results of those invocations.
+   */
+  private messageToGeminiContent(message: LLMMessage): GeminiContent {
+    const role = message.role === 'assistant' ? 'model' : 'user';
+
+    if (typeof message.content === 'string') {
+      return { parts: [{ text: message.content }], role };
     }
+
+    const parts: GeminiPart[] = [];
+    for (const block of message.content) {
+      if (block.type === 'text') {
+        parts.push({ text: block.text });
+      } else if (block.type === 'tool_use') {
+        // Model turn: translate tool_use → functionCall part
+        parts.push({
+          functionCall: {
+            name: block.name,
+            args: block.input,
+          },
+        });
+      } else if (block.type === 'tool_result') {
+        // User turn: translate tool_result → functionResponse part
+        parts.push({
+          functionResponse: {
+            name: block.tool_use_id, // best proxy — caller should normalise to name
+            response: { output: block.content },
+          },
+        });
+      }
+      // AnthropicFileContentBlock types are not forwarded to Gemini
+    }
+
+    if (parts.length === 0) {
+      parts.push({ text: messageContentAsString(message.content) });
+    }
+
+    return { parts, role };
   }
 
   private mapGeminiError(
@@ -258,4 +345,105 @@ export class GeminiAdapter extends BaseLLMAdapter {
     }
     return new LLMProviderError(message, 'gemini', status, status >= 500 && status < 600);
   }
+}
+
+// =============================================================================
+// Module-level helpers (exported for unit-testing without instantiation)
+// =============================================================================
+
+/**
+ * Map a Gemini `finishReason` string to the provider-neutral finish reason.
+ */
+export function mapGeminiFinishReason(
+  reason: string | undefined
+): LLMCompletionResponse['finishReason'] {
+  switch (reason) {
+    case 'STOP':
+      return 'stop';
+    case 'MAX_TOKENS':
+      return 'length';
+    case 'SAFETY':
+      return 'content_filter';
+    case 'FUNCTION_CALL':
+      // Gemini sets finishReason=FUNCTION_CALL when the model wants to invoke a
+      // function rather than returning a final text response.
+      return 'tool_use';
+    default:
+      return 'stop';
+  }
+}
+
+/**
+ * Convert an array of provider-neutral `ToolSpec` objects to Gemini function
+ * declarations for the `tools[0].functionDeclarations` request field.
+ */
+export function geminiToolsFromToolSpecs(tools: ToolSpec[]): GeminiFunctionDeclaration[] {
+  return tools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: {
+      type: 'object',
+      properties: tool.input_schema.properties,
+      required: tool.input_schema.required,
+    },
+  }));
+}
+
+/**
+ * Parse a Gemini `generateContent` response into the provider-neutral
+ * `LLMCompletionResponse` shape.
+ *
+ * Handles both plain text responses and function-call responses:
+ * - Text parts → `content` string + `TextBlock` entries in `assistantBlocks`.
+ * - `functionCall` parts → `ToolUseBlock` entries in `toolUses` and
+ *   `assistantBlocks`. Caller must execute tools and re-feed results via a
+ *   follow-up request containing the prior assistant turn + `functionResponse`
+ *   user messages.
+ *
+ * Exported for unit-testing without live API access.
+ */
+export function parseGeminiResponse(data: GeminiResponse, fallbackModel: string): LLMCompletionResponse {
+  const candidate = data.candidates?.[0];
+  const parts = candidate?.content?.parts ?? [];
+  const usage = data.usageMetadata;
+
+  const textParts: string[] = [];
+  const toolUses: ToolUseBlock[] = [];
+  const assistantBlocks: AssistantContentBlock[] = [];
+
+  for (const part of parts) {
+    if (part.functionCall) {
+      const id = `call_${toolUses.length}_${part.functionCall.name}`;
+      const toolUse: ToolUseBlock = {
+        type: 'tool_use',
+        id,
+        name: part.functionCall.name,
+        input: part.functionCall.args ?? {},
+      };
+      toolUses.push(toolUse);
+      assistantBlocks.push(toolUse);
+    } else if (typeof part.text === 'string' && part.text.length > 0) {
+      textParts.push(part.text);
+      assistantBlocks.push({ type: 'text', text: part.text });
+    }
+  }
+
+  const finishReason = toolUses.length > 0
+    ? 'tool_use'
+    : mapGeminiFinishReason(candidate?.finishReason);
+
+  return {
+    content: textParts.join(''),
+    usage: {
+      promptTokens: usage?.promptTokenCount ?? 0,
+      completionTokens: usage?.candidatesTokenCount ?? 0,
+      totalTokens: usage?.totalTokenCount ?? 0,
+    },
+    model: fallbackModel,
+    provider: 'gemini' as const,
+    finishReason,
+    toolUses: toolUses.length > 0 ? toolUses : undefined,
+    assistantBlocks: assistantBlocks.length > 0 ? assistantBlocks : undefined,
+    raw: data,
+  };
 }
