@@ -84,3 +84,11 @@ describe('render_world_on_fleet — fail-closed', () => {
     expect(r.error).toMatch(/required/);
   });
 });
+
+describe('render_world_on_fleet — command always self-ensures the runtime', () => {
+  it('emits a repo-relative runner invocation (no /workspace/ absolute path)', async () => {
+    const r = await call({ world: 'composition "D" {}', target: 'gltf', dryRun: true });
+    expect(r.workload?.jobs[0].command).toContain('node scripts/world-render-runner.mjs');
+    expect(r.workload?.jobs[0].command).not.toContain('/workspace/');
+  });
+});
