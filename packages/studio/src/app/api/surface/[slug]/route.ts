@@ -23,6 +23,7 @@ const ALLOWED_SLUGS = new Set([
   'operations',
   'home',
   'workspace',
+  'projects',
 ]);
 
 function resolveCompositionsDir(): string {

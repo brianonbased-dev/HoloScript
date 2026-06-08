@@ -1,0 +1,381 @@
+/**
+ * Projects — Studio Page Composition
+ *
+ * Defines the full UI surface for the /projects page. The header, repo list,
+ * empty-states (not-connected + no-repos + loading), and "Import a repo" CTA
+ * render natively via HoloSurfaceRenderer. ProjectsView.tsx is reduced to:
+ *   1. Load repos via useGitHubRepos (IndexedDB / API data bridge)
+ *   2. Bridge data into composition state via setState
+ *   3. Handle emits: open → setShowImport(true), signin → signIn('github')
+ *
+ * This is the template conversion for the other 9 holo-pages whose page.holo
+ * is currently @slot(HandWrittenComponent). Follow the founder-console
+ * side-by-side cutover discipline (task clgo / board native-program).
+ *
+ * @format .hsplus (state + computed + logic + UI surface)
+ * @page /projects
+ */
+
+composition "Projects" {
+
+  state {
+    // Data bridged in by ProjectsView.tsx host
+    repos: []
+    isLoading: true
+    isConnected: false
+    connectionError: ""
+    search: ""
+    showImport: false
+
+    // Derived display flags (computed below)
+    showNotConnected: true
+    showLoading: false
+    showEmpty: false
+    showList: false
+  }
+
+  computed {
+    repoCount: $repos.length
+    hasSearch: $search != ""
+    notConnectedAndNotLoading: $isConnected == false
+    connectedAndLoading: $isConnected == true && $isLoading == true
+    connectedAndEmpty: $isConnected == true && $isLoading == false && $repoCount == 0
+    connectedAndLoaded: $isConnected == true && $isLoading == false && $repoCount > 0
+    errorMessage: $connectionError != "" ? $connectionError : "Sign in with GitHub to list and absorb your repos."
+  }
+
+  logic {
+    on "open" { $showImport = true }
+    on "signin" { /* handled by host: signIn('github') */ }
+    on "close-import" { $showImport = false }
+  }
+
+  // ── Root shell ──────────────────────────────────────────────────────────────
+
+  object "Shell" {
+    type: "ui"
+    uiType: "panel"
+    direction: "column"
+    padding: 32
+
+    // ── Header ──────────────────────────────────────────────────────────────
+
+    object "Header" {
+      type: "ui"
+      uiType: "panel"
+      direction: "row"
+      align: "center"
+      justify: "space-between"
+      marginBottom: 24
+
+      object "TitleGroup" {
+        type: "ui"
+        uiType: "panel"
+        direction: "row"
+        align: "center"
+        gap: 12
+
+        object "BackLink" {
+          type: "ui"
+          uiType: "button"
+          text: "←"
+          onClick: "back"
+          color: "#94a3b8"
+          fontSize: 18
+        }
+
+        object "TitleStack" {
+          type: "ui"
+          uiType: "panel"
+          direction: "column"
+          gap: 2
+
+          object "PageTitle" {
+            type: "ui"
+            uiType: "text"
+            text: "My Repositories"
+            fontSize: 22
+            fontWeight: "700"
+            color: "#f1f5f9"
+          }
+
+          object "PageSubtitle" {
+            type: "ui"
+            uiType: "text"
+            text: "Absorb a GitHub repo into a HoloScript workspace."
+            fontSize: 13
+            color: "#64748b"
+          }
+        }
+      }
+
+      // "Import a repo" CTA — only shown when connected
+      object "ImportCTA" {
+        type: "ui"
+        uiType: "button"
+        text: "⚡ Import a repo"
+        onClick: "open"
+        visible: $isConnected
+        backgroundColor: "#10b981"
+        color: "#ffffff"
+        fontSize: 13
+        fontWeight: "600"
+        padding: 10
+        cornerRadius: 8
+      }
+    }
+
+    // ── Not-connected empty state ────────────────────────────────────────────
+
+    object "NotConnected" {
+      type: "ui"
+      uiType: "panel"
+      visible: $notConnectedAndNotLoading
+      direction: "column"
+      align: "center"
+      padding: 32
+      backgroundColor: "#0f172a"
+      borderColor: "#1e293b"
+      cornerRadius: 12
+
+      object "NotConnectedIcon" {
+        type: "ui"
+        uiType: "text"
+        text: "📁"
+        fontSize: 32
+        textAlign: "center"
+        marginBottom: 12
+      }
+
+      object "NotConnectedTitle" {
+        type: "ui"
+        uiType: "text"
+        text: "Connect GitHub to see your repositories"
+        fontSize: 14
+        fontWeight: "500"
+        color: "#f1f5f9"
+        textAlign: "center"
+        marginBottom: 4
+      }
+
+      object "NotConnectedDetail" {
+        type: "ui"
+        uiType: "text"
+        text: $errorMessage
+        fontSize: 12
+        color: "#64748b"
+        textAlign: "center"
+        marginBottom: 16
+      }
+
+      object "SignInBtn" {
+        type: "ui"
+        uiType: "button"
+        text: "Continue with GitHub"
+        onClick: "signin"
+        fontSize: 13
+        fontWeight: "500"
+        color: "#cbd5e1"
+        padding: 10
+        cornerRadius: 8
+        borderColor: "#1e293b"
+        backgroundColor: "#0a0a12"
+      }
+    }
+
+    // ── Loading state ────────────────────────────────────────────────────────
+
+    object "Loading" {
+      type: "ui"
+      uiType: "panel"
+      visible: $connectedAndLoading
+      direction: "row"
+      align: "center"
+      justify: "center"
+      padding: 64
+
+      object "LoadingText" {
+        type: "ui"
+        uiType: "text"
+        text: "Loading your repositories…"
+        fontSize: 13
+        color: "#64748b"
+      }
+    }
+
+    // ── Connected: search + list ─────────────────────────────────────────────
+
+    object "ConnectedBody" {
+      type: "ui"
+      uiType: "panel"
+      visible: $isConnected
+      direction: "column"
+      gap: 16
+
+      // Search bar (display only — search interaction stays in host React)
+      object "SearchBar" {
+        type: "ui"
+        uiType: "panel"
+        direction: "row"
+        align: "center"
+        gap: 8
+        padding: 10
+        borderColor: "#1e293b"
+        backgroundColor: "#050508"
+        cornerRadius: 8
+
+        object "SearchIcon" {
+          type: "ui"
+          uiType: "text"
+          text: "🔍"
+          fontSize: 14
+          color: "#64748b"
+        }
+
+        object "SearchHint" {
+          type: "ui"
+          uiType: "text"
+          text: "Search your repositories…"
+          fontSize: 13
+          color: "#475569"
+        }
+      }
+
+      // No-repos empty state (connected but zero results)
+      object "NoRepos" {
+        type: "ui"
+        uiType: "panel"
+        visible: $connectedAndEmpty
+        padding: 32
+        borderColor: "#1e293b"
+        backgroundColor: "#0f172a"
+        cornerRadius: 12
+
+        object "NoReposText" {
+          type: "ui"
+          uiType: "text"
+          text: "No repositories found for this account."
+          fontSize: 13
+          color: "#64748b"
+          textAlign: "center"
+        }
+      }
+
+      // Repo list — data-bound to $repos array
+      object "RepoList" {
+        type: "ui"
+        uiType: "list"
+        items: $repos
+        visible: $connectedAndLoaded
+        direction: "column"
+        gap: 8
+
+        // Per-repo row template
+        object "RepoCard" {
+          type: "ui"
+          uiType: "button"
+          onClick: "open"
+          direction: "row"
+          align: "center"
+          justify: "space-between"
+          gap: 12
+          padding: 12
+          borderColor: "#1e293b"
+          backgroundColor: "#050508"
+          cornerRadius: 8
+
+          object "RepoMeta" {
+            type: "ui"
+            uiType: "panel"
+            direction: "column"
+            gap: 2
+            grow: 1
+
+            object "RepoName" {
+              type: "ui"
+              uiType: "text"
+              text: $name
+              fontSize: 13
+              fontWeight: "500"
+              color: "#f1f5f9"
+            }
+
+            object "RepoDesc" {
+              type: "ui"
+              uiType: "text"
+              text: $description
+              fontSize: 11
+              color: "#64748b"
+            }
+
+            object "RepoStats" {
+              type: "ui"
+              uiType: "panel"
+              direction: "row"
+              gap: 12
+
+              object "RepoLang" {
+                type: "ui"
+                uiType: "text"
+                text: $language
+                fontSize: 11
+                color: "#475569"
+              }
+            }
+          }
+
+          object "AbsorbBadge" {
+            type: "ui"
+            uiType: "text"
+            text: "⚡ Absorb"
+            fontSize: 11
+            fontWeight: "500"
+            color: "#10b981"
+            padding: 6
+            cornerRadius: 6
+            backgroundColor: "#10b981"
+          }
+        }
+      }
+    }
+  }
+
+  // ── Tests ────────────────────────────────────────────────────────────────────
+
+  @test {
+    name: "initial state: not connected, not loading list"
+    assert: { $isConnected == false }
+  }
+
+  @test {
+    name: "notConnectedAndNotLoading true on init"
+    assert: { $notConnectedAndNotLoading == true }
+  }
+
+  @test {
+    name: "connectedAndLoaded false on init"
+    assert: { $connectedAndLoaded == false }
+  }
+
+  @test {
+    name: "repoCount zero on init"
+    assert: { $repoCount == 0 }
+  }
+
+  @test {
+    name: "connectedAndLoaded true when connected, not loading, repos present"
+    setup: { $isConnected = true, $isLoading = false, $repos = [{ name: "repo-a" }] }
+    assert: { $connectedAndLoaded == true }
+  }
+
+  @test {
+    name: "connectedAndEmpty true when connected, not loading, no repos"
+    setup: { $isConnected = true, $isLoading = false, $repos = [] }
+    assert: { $connectedAndEmpty == true }
+  }
+
+  @test {
+    name: "errorMessage falls back to sign-in prompt"
+    assert: { $errorMessage == "Sign in with GitHub to list and absorb your repos." }
+  }
+}
