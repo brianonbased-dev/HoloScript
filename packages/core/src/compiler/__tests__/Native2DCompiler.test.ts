@@ -141,3 +141,100 @@ describe('Native2DCompiler fidelity', () => {
     expect(react).toContain('{`Open room`}');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Semantic entity / layout → real HTML DOM (tp-business dogfood, task_1780922175339_7hxi)
+// ---------------------------------------------------------------------------
+describe('Native2DCompiler semantic entity mapping', () => {
+  /** Mirror of what generate_semantic_ui emits for an inventory dashboard:
+   *  mesh objects carrying @semantic_entity + @semantic_layout + @color traits. */
+  function makeSemanticComposition(): HoloComposition {
+    // stock_table with table layout
+    const stockTable = objectDecl('mesh_table', [
+      trait('semantic_entity', { _arg0: 'stock_table' }),
+      trait('semantic_layout', { _arg0: 'table', columns: ['item', 'quantity', 'reorder_level'] }),
+      trait('color', { _arg0: '#16213e' }),
+    ]);
+
+    // add_item_form with form layout
+    const addItemForm = objectDecl('mesh_form', [
+      trait('semantic_entity', { _arg0: 'add_item_form' }),
+      trait('semantic_layout', { _arg0: 'form', fields: ['item', 'quantity', 'reorder_level'] }),
+      trait('color', { _arg0: '#0f3460' }),
+    ]);
+
+    // low_stock_alert_panel with alert_list layout
+    const alertPanel = objectDecl('mesh_alert', [
+      trait('semantic_entity', { _arg0: 'low_stock_alert_panel' }),
+      trait('semantic_layout', { _arg0: 'alert_list', filter: 'quantity<reorder_level' }),
+      trait('color', { _arg0: '#e63946' }),
+    ]);
+
+    // dashboard_title — entity only + @content
+    const title = objectDecl('text_title', [
+      trait('semantic_entity', { _arg0: 'dashboard_title' }),
+      trait('content', { _arg0: 'Inventory Dashboard' }),
+      trait('color', { _arg0: 'white' }),
+    ]);
+
+    // submit_button — entity + @content (button keyword in name)
+    const submitBtn = objectDecl('text_btn', [
+      trait('semantic_entity', { _arg0: 'submit_button' }),
+      trait('content', { _arg0: '[ + Add Item ]' }),
+    ]);
+
+    return {
+      type: 'Composition',
+      name: 'GeneratedScene',
+      objects: [stockTable, addItemForm, alertPanel, title, submitBtn],
+      templates: [],
+      spatialGroups: [],
+      lights: [],
+      imports: [],
+      timelines: [],
+      audio: [],
+      zones: [],
+      transitions: [],
+      conditionals: [],
+      iterators: [],
+      npcs: [],
+      quests: [],
+      abilities: [],
+      dialogues: [],
+      stateMachines: [],
+      achievements: [],
+      talentTrees: [],
+      shapes: [],
+    };
+  }
+
+  it('emits a <table> with column headers for @semantic_layout(table)', () => {
+    const html = new Native2DCompiler().compile(makeSemanticComposition(), '');
+    expect(html).toContain('<table');
+    expect(html).toContain('item');
+    expect(html).toContain('reorder');
+  });
+
+  it('emits a <form> with inputs for @semantic_layout(form)', () => {
+    const html = new Native2DCompiler().compile(makeSemanticComposition(), '');
+    expect(html).toContain('<form');
+    expect(html).toContain('<input');
+  });
+
+  it('emits an alert list for @semantic_layout(alert_list)', () => {
+    const html = new Native2DCompiler().compile(makeSemanticComposition(), '');
+    expect(html).toContain('data-holo-semantic="alert_list"');
+  });
+
+  it('emits a title span for @semantic_entity + @content (non-button)', () => {
+    const html = new Native2DCompiler().compile(makeSemanticComposition(), '');
+    expect(html).toContain('Inventory Dashboard');
+    expect(html).toContain('data-holo-entity="dashboard_title"');
+  });
+
+  it('emits a <button> for @semantic_entity named *button* + @content', () => {
+    const html = new Native2DCompiler().compile(makeSemanticComposition(), '');
+    expect(html).toContain('<button');
+    expect(html).toContain('[ + Add Item ]');
+  });
+});

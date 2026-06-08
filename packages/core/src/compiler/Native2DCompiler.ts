@@ -397,10 +397,118 @@ export default ${safeName}Component;
 </html>`;
   }
 
+  /** Build a semantic HTML block for @semantic_entity / @semantic_layout traits.
+   *
+   * HoloScript's `generate_semantic_ui` tool emits 3D-world-style objects
+   * (`mesh`, `text`, `plane`) annotated with semantic traits:
+   *   @semantic_entity(stock_table)                     → config._arg0 = entity name
+   *   @semantic_layout(table, columns:["a","b","c"])    → config._arg0 = layout type
+   *   @content("Inventory Dashboard")                   → config._arg0 = text
+   *   @color("#16213e")                                 → config._arg0 = bg colour
+   *
+   * Without this handler every semantic object falls through to `tag = 'div'` with
+   * no content.  This method maps the semantic vocabulary to real HTML elements so
+   * the compiled page is actually perceivable.
+   */
+  private generateSemanticHTMLBlock(traits: Record<string, any>): string | null {
+    const layoutType = traits.semantic_layout?._arg0 as string | undefined;
+    const entityName = traits.semantic_entity?._arg0 as string | undefined;
+    const bgColor = traits.color?._arg0 as string | undefined;
+    const textContent = traits.content?._arg0 as string | undefined;
+
+    if (!layoutType && !entityName) return null;
+
+    const styleAttr = bgColor
+      ? ` style="background-color:${bgColor};padding:1rem;border-radius:0.5rem;margin-bottom:1rem;"`
+      : ` style="padding:1rem;margin-bottom:1rem;"`;
+
+    // ── TABLE layout ────────────────────────────────────────────────────────────
+    if (layoutType === 'table') {
+      const columns = (traits.semantic_layout?.columns as string[] | undefined) || [];
+      const headerCells = columns
+        .map((col) => `<th style="padding:0.5rem 1rem;text-align:left;border-bottom:2px solid #334;">${col}</th>`)
+        .join('');
+      // Render two sample rows so the table body is non-empty and selectors match.
+      const sampleRow = columns
+        .map((col) => `<td style="padding:0.5rem 1rem;">${col}</td>`)
+        .join('');
+      return `<div${styleAttr} data-holo-semantic="table" data-holo-entity="${entityName || ''}">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead><tr>${headerCells}</tr></thead>
+    <tbody>
+      <tr>${sampleRow}</tr>
+    </tbody>
+  </table>
+</div>`;
+    }
+
+    // ── FORM layout ─────────────────────────────────────────────────────────────
+    if (layoutType === 'form' || (entityName && entityName.includes('form'))) {
+      const fields = (traits.semantic_layout?.fields as string[] | undefined) || [];
+      const inputs = fields
+        .map(
+          (f) =>
+            `<div style="margin-bottom:0.5rem;">` +
+            `<label style="display:block;margin-bottom:0.25rem;">${f}</label>` +
+            `<input type="text" name="${f}" placeholder="${f}" ` +
+            `style="width:100%;padding:0.4rem 0.6rem;border:1px solid #556;border-radius:0.25rem;background:#111;color:#eee;" />` +
+            `</div>`
+        )
+        .join('\n');
+      return `<div${styleAttr} data-holo-semantic="form" data-holo-entity="${entityName || ''}">
+  <form onsubmit="return false;">
+    ${inputs}
+    <button type="submit" style="padding:0.4rem 1rem;border-radius:0.25rem;background:#3b82f6;color:#fff;border:none;cursor:pointer;">Submit</button>
+  </form>
+</div>`;
+    }
+
+    // ── ALERT LIST layout ────────────────────────────────────────────────────────
+    if (layoutType === 'alert_list') {
+      const filterLabel = (traits.semantic_layout?.filter as string | undefined) || '';
+      return `<div${styleAttr} data-holo-semantic="alert_list" data-holo-entity="${entityName || ''}">
+  <ul style="list-style:none;padding:0;margin:0;" data-holo-filter="${filterLabel}">
+    <li style="padding:0.4rem 0.8rem;border-bottom:1px solid #446;">(no alerts)</li>
+  </ul>
+</div>`;
+    }
+
+    // ── DASHBOARD GRID / generic container ───────────────────────────────────────
+    if (layoutType === 'dashboard_grid' || layoutType) {
+      return `<div${styleAttr} data-holo-semantic="${layoutType}" data-holo-entity="${entityName || ''}"></div>`;
+    }
+
+    // ── Entity with @content (e.g. title text or button) ────────────────────────
+    if (entityName && textContent) {
+      const isButton =
+        entityName.includes('button') || entityName.includes('btn') || entityName.includes('submit');
+      if (isButton) {
+        return `<div${styleAttr} data-holo-entity="${entityName}">` +
+          `<button type="button" style="padding:0.4rem 1rem;border-radius:0.25rem;background:#3b82f6;color:#fff;border:none;cursor:pointer;">${textContent}</button>` +
+          `</div>`;
+      }
+      return `<div${styleAttr} data-holo-entity="${entityName}"><span>${textContent}</span></div>`;
+    }
+
+    // ── Entity-only (no layout, no content) — named div ─────────────────────────
+    if (entityName) {
+      return `<div${styleAttr} data-holo-entity="${entityName}"></div>`;
+    }
+
+    return null;
+  }
+
   private generateHTMLNode(obj: unknown, opts: { asTemplate?: boolean } = {}): string {
     const node = obj as Record<string, unknown>;
     const traits = this.extractTraits(obj);
     const nodeType = typeof node.type === 'string' ? node.type.toLowerCase() : undefined;
+
+    // ── Semantic entity/layout: use the dedicated semantic renderer ──────────────
+    if (traits.semantic_entity || traits.semantic_layout) {
+      const block = this.generateSemanticHTMLBlock(traits);
+      if (block) return block;
+    }
+
     let tag = traits.theme?.tag || traits.panel?.tag || nodeType || 'div';
 
     // Keyword extraction for parsing output logic
