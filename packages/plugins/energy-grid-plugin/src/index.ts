@@ -665,6 +665,18 @@ export const pluginMeta = {
   objectTypes: ENERGY_GRID_OBJECT_TYPES,
 };
 
+// Runtime integration — behavioral trait handlers + registrar that wire the
+// DC power-flow solver into HoloScriptRuntime's dispatch. Closes the
+// built-but-dead-wired gap for `power_flow` (task_1780878631657_j63f PATH-2).
+export {
+  powerFlowHandler,
+  registerEnergyGridTraitHandlers,
+  type PowerFlowTraitConfig,
+  type PowerFlowSolvedEvent,
+  type RuntimeTraitHandler,
+  type TraitRegistrar,
+} from './runtime';
+
 function activeLines(model: EnergyGridModel): EnergyLine[] {
   return model.lines.filter((line) => line.status !== 'open');
 }
