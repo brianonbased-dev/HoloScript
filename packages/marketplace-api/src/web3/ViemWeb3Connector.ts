@@ -10,7 +10,7 @@
  */
 
 import { createPublicClient, http, type Address, formatEther } from 'viem';
-import { base, baseGoerli, mainnet } from 'viem/chains';
+import { base, baseSepolia, mainnet } from 'viem/chains';
 
 // Minimal local interface — mirrors the Web3Connector contract from @holoscript/core
 // without importing it (it is not exported from the published dist/index.d.ts).
@@ -38,7 +38,7 @@ export interface Web3Connector {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CHAINS: Record<string, any> = {
   base,
-  'base-testnet': baseGoerli,
+  'base-testnet': baseSepolia,
   ethereum: mainnet,
 };
 
@@ -50,8 +50,8 @@ function getChainById(id: number) {
   switch (id) {
     case 8453:
       return base;
-    case 84531:
-      return baseGoerli;
+    case 84532:
+      return baseSepolia;
     case 1:
       return mainnet;
     default:

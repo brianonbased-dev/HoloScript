@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WalletConnection } from '../../web3/WalletConnection';
 import { GasEstimator } from '../../web3/GasEstimator';
 import { createPublicClient, http, parseEther, type Address } from 'viem';
-import { base, baseGoerli } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 
 // ---------------------------------------------------------------------------
 // Mock viem's createPublicClient so no real RPC calls are made.
@@ -63,7 +63,7 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
 
       expect(wallet).toBeDefined();
       expect(wallet.isConnected()).toBe(false);
-      expect(wallet.getChainId()).toBe(84531); // Base Goerli chain ID
+      expect(wallet.getChainId()).toBe(84532); // Base Sepolia chain ID
     });
 
     it('should use environment variable for custom RPC URL', () => {
@@ -355,7 +355,7 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
 
     it('should estimate gas on Base Goerli', async () => {
       const publicClient = createPublicClient({
-        chain: baseGoerli,
+        chain: baseSepolia,
         transport: http(),
       });
 
@@ -374,7 +374,7 @@ describe('ZoraCoinsTrait Blockchain Integration', () => {
 
     it('should get testnet gas prices', async () => {
       const publicClient = createPublicClient({
-        chain: baseGoerli,
+        chain: baseSepolia,
         transport: http(),
       });
 

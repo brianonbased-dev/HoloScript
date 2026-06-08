@@ -18,12 +18,12 @@
 import { _WalletConnection } from '../src/web3/WalletConnection';
 import { GasEstimator } from '../src/web3/GasEstimator';
 import { createPublicClient, http, type Address } from 'viem';
-import { baseGoerli } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 
 // Configuration from environment
 const TEST_WALLET_ADDRESS = process.env.TEST_WALLET_ADDRESS as Address;
 const TEST_COLLECTION_ID = process.env.TEST_COLLECTION_ID as Address;
-const BASE_TESTNET_RPC_URL = process.env.BASE_TESTNET_RPC_URL || 'https://goerli.base.org';
+const BASE_TESTNET_RPC_URL = process.env.BASE_TESTNET_RPC_URL || 'https://sepolia.base.org';
 
 // Test configuration
 const TEST_MINT_QUANTITY = BigInt(1); // Mint 1 NFT for testing
@@ -66,7 +66,7 @@ async function step1_checkBalance(): Promise<TestResult> {
     logInfo(`Wallet Address: ${TEST_WALLET_ADDRESS}`);
 
     const publicClient = createPublicClient({
-      chain: baseGoerli,
+      chain: baseSepolia,
       transport: http(BASE_TESTNET_RPC_URL),
     });
 
@@ -116,7 +116,7 @@ async function step2_estimateGas(): Promise<TestResult> {
     logInfo(`Mint Quantity: ${TEST_MINT_QUANTITY}`);
 
     const publicClient = createPublicClient({
-      chain: baseGoerli,
+      chain: baseSepolia,
       transport: http(BASE_TESTNET_RPC_URL),
     });
 
@@ -212,7 +212,7 @@ async function step4_verifyTransaction(): Promise<TestResult> {
 
   try {
     const publicClient = createPublicClient({
-      chain: baseGoerli,
+      chain: baseSepolia,
       transport: http(BASE_TESTNET_RPC_URL),
     });
 

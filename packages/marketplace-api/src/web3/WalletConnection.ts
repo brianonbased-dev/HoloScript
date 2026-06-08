@@ -18,7 +18,7 @@ import {
   type Address,
   type Transport,
 } from 'viem';
-import { base, baseGoerli } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 
 /**
  * Supported chains for Zora Coins deployment
@@ -48,7 +48,7 @@ export class WalletConnection {
    */
   constructor(config: WalletConfig = {}) {
     // Determine chain
-    this.chain = config.chain === 'base-testnet' ? baseGoerli : base;
+    this.chain = config.chain === 'base-testnet' ? baseSepolia : base;
 
     // Create public client (read-only access)
     this.publicClient = createPublicClient({
@@ -79,7 +79,7 @@ export class WalletConnection {
     }
 
     // Fallback to public RPCs
-    return chain === 'base-testnet' ? 'https://goerli.base.org' : 'https://mainnet.base.org';
+    return chain === 'base-testnet' ? 'https://sepolia.base.org' : 'https://mainnet.base.org';
   }
 
   /**
