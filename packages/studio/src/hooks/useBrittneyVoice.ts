@@ -49,15 +49,23 @@ export interface UseAssistantVoiceReturn {
   clearTranscript: () => void;
 }
 
+interface WindowWithWebkitSpeech {
+  webkitSpeechRecognition?: typeof SpeechRecognition;
+}
+
+function getSpeechRecognitionConstructor(): typeof SpeechRecognition | undefined {
+  if (typeof window === 'undefined') return undefined;
+  if (typeof SpeechRecognition !== 'undefined') return SpeechRecognition;
+  return (window as unknown as WindowWithWebkitSpeech).webkitSpeechRecognition;
+}
+
 export function useAssistantVoice(): UseAssistantVoiceReturn {
-  const SpeechRecognition = typeof window !== 'undefined'
-      ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
-      : undefined;
+  const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
 
   const [isSupported, setIsSupported] = useState(false);
   useEffect(() => {
-    setIsSupported(!!SpeechRecognition);
-  }, [SpeechRecognition]);
+    setIsSupported(!!SpeechRecognitionCtor);
+  }, [SpeechRecognitionCtor]);
 
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -72,9 +80,9 @@ export function useAssistantVoice(): UseAssistantVoiceReturn {
   }, []);
 
   const startListening = useCallback(() => {
-    if (!SpeechRecognition || isListening) return;
+    if (!SpeechRecognitionCtor || isListening) return;
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
@@ -107,7 +115,7 @@ export function useAssistantVoice(): UseAssistantVoiceReturn {
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
-  }, [SpeechRecognition, isListening]);
+  }, [SpeechRecognitionCtor, isListening]);
 
   const stopListening = useCallback(() => {
     if (!recognitionRef.current) return;
