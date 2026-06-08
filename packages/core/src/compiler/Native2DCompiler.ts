@@ -317,25 +317,38 @@ export default ${safeName}Component;
   private generateHTMLPage(name: string, objects: unknown[], composition: HoloComposition): string {
     const content = objects.map((obj) => this.generateHTMLNode(obj)).join('\n      ');
 
-    let bgColor = '#ffffff';
-    let color = '#000000';
+    // Resolve theme: dark by default; only use light when explicitly declared
+    let isDark = true;
+    let bgColor = '#050510';
+    let color = '#ffffff';
 
     // Extract background environment theme
     if (composition.environment?.properties) {
       const themeProp = composition.environment.properties.find((p) => p.key === 'theme');
       const bgProp = composition.environment.properties.find((p) => p.key === 'backgroundColor');
-      if (
-        themeProp?.value === 'dark' ||
-        (
-          composition as unknown as {
-            traits?: Array<{ name: string; config?: { dark?: boolean } }>;
-          }
-        ).traits?.some((t) => t.name === 'theme' && t.config?.dark)
-      ) {
+      const fgProp = composition.environment.properties.find((p) => p.key === 'color');
+      if (themeProp?.value === 'light') {
+        isDark = false;
+        bgColor = (bgProp?.value as string) || '#ffffff';
+        color = (fgProp?.value as string) || '#000000';
+      } else if (themeProp?.value === 'dark' || !themeProp) {
+        isDark = true;
         bgColor = (bgProp?.value as string) || '#050510';
-        color = '#ffffff';
+        color = (fgProp?.value as string) || '#ffffff';
       }
     }
+    if (
+      (
+        composition as unknown as {
+          traits?: Array<{ name: string; config?: { dark?: boolean; light?: boolean } }>;
+        }
+      ).traits?.some((t) => t.name === 'theme' && t.config?.light)
+    ) {
+      isDark = false;
+      bgColor = '#ffffff';
+      color = '#000000';
+    }
+    void isDark; // used below via bgColor/color
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -343,10 +356,132 @@ export default ${safeName}Component;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${name}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      /* HoloScript Native2D — minimal Tailwind-compatible utility CSS (no CDN dependency) */
+      *, *::before, *::after { box-sizing: border-box; }
       body { margin: 0; padding: 0; background-color: ${bgColor}; color: ${color}; font-family: system-ui, -apple-system, sans-serif; }
-      /* Basic resets and custom trait animations to mirror React Framer variants */
+      /* --- Typography --- */
+      .text-5xl { font-size: 3rem; line-height: 1; }
+      .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+      .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+      .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+      .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+      .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+      .text-xs { font-size: 0.75rem; line-height: 1rem; }
+      .font-bold { font-weight: 700; }
+      .font-semibold { font-weight: 600; }
+      .font-medium { font-weight: 500; }
+      .tracking-tight { letter-spacing: -0.025em; }
+      /* --- Colors --- */
+      .text-white { color: #fff; }
+      .text-black { color: #000; }
+      .text-gray-300 { color: #d1d5db; }
+      .text-gray-400 { color: #9ca3af; }
+      .text-gray-500 { color: #6b7280; }
+      .text-gray-600 { color: #4b5563; }
+      /* --- Backgrounds --- */
+      .bg-white { background-color: #fff; }
+      .bg-gray-800 { background-color: #1f2937; }
+      .bg-gray-900 { background-color: #111827; }
+      .bg-gray-950 { background-color: #030712; }
+      .bg-blue-600 { background-color: #2563eb; }
+      .bg-blue-700 { background-color: #1d4ed8; }
+      .bg-indigo-600 { background-color: #4f46e5; }
+      .bg-indigo-500 { background-color: #6366f1; }
+      /* --- Hover states --- */
+      .hover\\:bg-blue-700:hover { background-color: #1d4ed8; }
+      .hover\\:bg-gray-800:hover { background-color: #1f2937; }
+      .hover\\:bg-indigo-500:hover { background-color: #6366f1; }
+      .hover\\:text-white:hover { color: #fff; }
+      /* --- Spacing --- */
+      .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+      .px-4 { padding-left: 1rem; padding-right: 1rem; }
+      .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .px-8 { padding-left: 2rem; padding-right: 2rem; }
+      .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+      .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+      .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+      .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+      .py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+      .p-4 { padding: 1rem; }
+      .p-6 { padding: 1.5rem; }
+      .p-8 { padding: 2rem; }
+      .mt-2 { margin-top: 0.5rem; }
+      .mt-4 { margin-top: 1rem; }
+      .mt-6 { margin-top: 1.5rem; }
+      .mt-8 { margin-top: 2rem; }
+      .mb-2 { margin-bottom: 0.5rem; }
+      .mb-4 { margin-bottom: 1rem; }
+      .mb-6 { margin-bottom: 1.5rem; }
+      .gap-2 { gap: 0.5rem; }
+      .gap-4 { gap: 1rem; }
+      .gap-6 { gap: 1.5rem; }
+      .gap-8 { gap: 2rem; }
+      .space-y-2 > * + * { margin-top: 0.5rem; }
+      .space-y-4 > * + * { margin-top: 1rem; }
+      /* --- Borders & Radius --- */
+      .border { border-width: 1px; border-style: solid; }
+      .border-gray-600 { border-color: #4b5563; }
+      .border-gray-700 { border-color: #374151; }
+      .border-gray-800 { border-color: #1f2937; }
+      .rounded { border-radius: 0.25rem; }
+      .rounded-lg { border-radius: 0.5rem; }
+      .rounded-xl { border-radius: 0.75rem; }
+      .rounded-2xl { border-radius: 1rem; }
+      .rounded-full { border-radius: 9999px; }
+      /* --- Shadows --- */
+      .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+      .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); }
+      .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
+      .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); }
+      /* --- Layout --- */
+      .flex { display: flex; }
+      .inline-flex { display: inline-flex; }
+      .grid { display: grid; }
+      .block { display: block; }
+      .hidden { display: none; }
+      .items-center { align-items: center; }
+      .items-start { align-items: flex-start; }
+      .justify-center { justify-content: center; }
+      .justify-between { justify-content: space-between; }
+      .flex-col { flex-direction: column; }
+      .flex-wrap { flex-wrap: wrap; }
+      .flex-1 { flex: 1 1 0%; }
+      .w-full { width: 100%; }
+      .w-auto { width: auto; }
+      .max-w-sm { max-width: 24rem; }
+      .max-w-md { max-width: 28rem; }
+      .max-w-lg { max-width: 32rem; }
+      .max-w-xl { max-width: 36rem; }
+      .max-w-2xl { max-width: 42rem; }
+      .max-w-3xl { max-width: 48rem; }
+      .max-w-4xl { max-width: 56rem; }
+      .max-w-5xl { max-width: 64rem; }
+      .max-w-6xl { max-width: 72rem; }
+      .max-w-7xl { max-width: 80rem; }
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      .text-center { text-align: center; }
+      .text-left { text-align: left; }
+      .text-right { text-align: right; }
+      .relative { position: relative; }
+      .absolute { position: absolute; }
+      /* --- Interaction --- */
+      .cursor-pointer { cursor: pointer; }
+      .select-none { user-select: none; }
+      .transition-all { transition: all 0.15s ease; }
+      .transition { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+      .outline-none { outline: none; }
+      /* Focus ring for inputs */
+      .focus\\:ring-2:focus { box-shadow: 0 0 0 2px rgba(99,102,241,0.5); }
+      .focus\\:ring-indigo-500:focus { box-shadow: 0 0 0 2px #6366f1; }
+      /* --- Opacity --- */
+      .opacity-50 { opacity: 0.5; }
+      .opacity-75 { opacity: 0.75; }
+      /* --- Overflow --- */
+      .overflow-hidden { overflow: hidden; }
+      .overflow-auto { overflow: auto; }
+      /* --- Custom HoloScript trait animations --- */
       .glow-btn:hover { box-shadow: 0 0 15px rgba(255,255,255,0.5); }
       .lift-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
       .lift-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }

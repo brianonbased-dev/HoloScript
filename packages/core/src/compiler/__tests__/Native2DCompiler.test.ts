@@ -238,3 +238,42 @@ describe('Native2DCompiler semantic entity mapping', () => {
     expect(html).toContain('[ + Add Item ]');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Styling: inline CSS, no CDN dependency (task_1780203169908_xeg0)
+// ---------------------------------------------------------------------------
+describe('Native2DCompiler static-HTML styling', () => {
+  it('does NOT reference cdn.tailwindcss.com (dead CDN removed)', () => {
+    const html = new Native2DCompiler().compile(makeComposition(), '');
+    expect(html).not.toContain('cdn.tailwindcss.com');
+  });
+
+  it('embeds inline utility CSS with Tailwind-compatible class definitions', () => {
+    const html = new Native2DCompiler().compile(makeComposition(), '');
+    expect(html).toContain('.text-5xl');
+    expect(html).toContain('.rounded-lg');
+    expect(html).toContain('.bg-blue-600');
+    expect(html).toContain('.shadow-lg');
+    expect(html).toContain('.transition-all');
+  });
+
+  it('defaults to dark theme (dark body background) when no theme env declared', () => {
+    const html = new Native2DCompiler().compile(makeComposition(), '');
+    // Default is dark: #050510 background, #ffffff text
+    expect(html).toContain('#050510');
+    expect(html).not.toContain('background-color: #ffffff');
+  });
+
+  it('uses light theme when environment declares theme:light', () => {
+    const lightComposition = {
+      ...makeComposition(),
+      environment: {
+        type: 'Environment' as const,
+        properties: [{ key: 'theme', value: 'light' }],
+      },
+    };
+    const html = new Native2DCompiler().compile(lightComposition as Parameters<Native2DCompiler['compile']>[0], '');
+    expect(html).toContain('#ffffff');
+    expect(html).not.toContain('#050510');
+  });
+});
