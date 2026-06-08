@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "build": "tsup && tsc --emitDeclarationOnly --declarationDir dist --skipLibCheck",
+    "build": "tsup",
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",

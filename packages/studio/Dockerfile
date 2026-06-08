@@ -137,7 +137,7 @@ RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd 
 # `@holoscript/r3f-renderer/hooks/useWebcamGaze` failed (implicit any). Run the real
 # type generator so all subpath .d.ts files (incl. ./hooks/useWebcamGaze) are present.
 RUN cd packages/r3f-renderer && npx tsup --no-dts && node scripts/generate-types.mjs
-RUN cd packages/studio-plugin-sdk && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/studio-plugin-sdk && npx tsup
 RUN cd packages/ui && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/connector-core && npx tsup --no-dts && (npx tsup --dts-only || true)
 RUN cd packages/connector-appstore && npx tsup --no-dts && (npx tsup --dts-only || true)

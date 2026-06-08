@@ -11,7 +11,7 @@ export default defineConfig({
     'src/types.ts',
   ],
   format: ['esm'],
-  dts: false,
+  dts: true,
   clean: true,
   sourcemap: true,
 });
