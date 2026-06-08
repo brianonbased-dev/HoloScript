@@ -337,12 +337,20 @@ export class URDFCompiler extends CompilerBase {
     const trait = obj.traits?.find((t) => this.getTraitName(t) === traitName);
     if (!trait) return undefined;
     if (typeof trait === 'string') return {};
-    // Return the trait object minus the name
-    const { name: _name, ...config } = trait as unknown as { name: string } & Record<
-      string,
-      unknown
-    >;
-    return config;
+    // Handle both formats:
+    // 1. { name: 'trait', config: {...} } - formal HoloObjectTrait (parser output)
+    // 2. { name: 'trait', prop1: val1, ... } - inline test/shorthand format
+    const traitObj = trait as unknown as Record<string, unknown>;
+    if ('config' in traitObj && typeof traitObj.config === 'object') {
+      return traitObj.config as Record<string, unknown>;
+    }
+    // Spread properties directly (excluding 'name' and AST 'type' marker)
+    const { name: _name, ...rest } = traitObj;
+    if (rest.type === 'ObjectTrait') {
+      const { type: _type, ...config } = rest;
+      return config;
+    }
+    return rest;
   }
 
   /** Map HoloScript joint types to URDF joint types */
@@ -507,13 +515,18 @@ export class URDFCompiler extends CompilerBase {
 
   /** Extract mass from physics property or trait */
   private extractMass(obj: HoloObjectDecl): number | undefined {
-    // Try physics property first
+    // 1. Try @physics trait config (parser output format: {type:'ObjectTrait', name:'physics', config:{mass:N}})
+    const physicsTraitConfig = this.getTraitConfig(obj, 'physics');
+    if (physicsTraitConfig?.mass !== undefined && typeof physicsTraitConfig.mass === 'number') {
+      return physicsTraitConfig.mass;
+    }
+    // 2. Try physics property on the object (inline shorthand format)
     const physicsProp = obj.properties.find((p) => p.key === 'physics');
     if (physicsProp && typeof physicsProp.value === 'object' && !Array.isArray(physicsProp.value)) {
       const massEntry = (physicsProp.value as Record<string, unknown>).mass;
       if (typeof massEntry === 'number') return massEntry;
     }
-    // Try mass property directly
+    // 3. Try mass property directly
     const massProp = obj.properties.find((p) => p.key === 'mass');
     if (massProp && typeof massProp.value === 'number') return massProp.value;
     return undefined;

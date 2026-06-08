@@ -502,10 +502,17 @@ export class USDPhysicsCompiler extends CompilerBase {
       this.emitBlank();
     }
 
-    // Root prim for articulation (if robot)
-    const isRobot = this.prims.some((p) =>
+    // Root prim for articulation (if robot).
+    // Trigger: either an explicit articulation_root trait on a prim, OR any
+    // non-fixed joints present when enableArticulation is true (robot with joints
+    // but no explicit root annotation still needs the ArticulationRoot wrapper).
+    const hasExplicitRoot = this.prims.some((p) =>
       p.apis.some((a) => a.type === 'PhysicsArticulationRootAPI')
     );
+    const hasNonFixedJoints = this.joints.some(
+      (j) => j.jointType !== 'fixed'
+    );
+    const isRobot = hasExplicitRoot || hasNonFixedJoints;
     if (isRobot && this.options.enableArticulation) {
       this.emitArticulationRoot();
     } else {
@@ -1116,7 +1123,10 @@ export class USDPhysicsCompiler extends CompilerBase {
 
     // Process joint
     if (jointConfig) {
-      const jointType = this.mapJointType(String(jointConfig.type || 'fixed'));
+      // Accept both 'type' (USD convention) and 'jointType' (HoloScript trait convention)
+      const jointType = this.mapJointType(
+        String(jointConfig.type || jointConfig.jointType || 'fixed')
+      );
       // Build USD prim paths for joint body references.
       // body0: if connectedBody is specified, resolve it as a path under the
       //   articulation root; if not, use the root Xform path as the fixed base.
