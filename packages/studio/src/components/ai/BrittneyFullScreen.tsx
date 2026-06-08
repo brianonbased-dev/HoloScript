@@ -318,7 +318,7 @@ export function BrittneyFullScreen() {
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
             setProgressLabel(`Running ${tc.name}...`);
-            const result = executeTool(tc.name, tc.arguments, storeActions);
+            const result = executeTool(tc.name, tc.arguments, storeActions, { confirmed: true });
             setProgressLabel(null);
             toolResults.push(result);
             setMessages((m) =>

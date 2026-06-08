@@ -148,10 +148,10 @@ const CalibrationUncertaintyIndicator = dynamic(
   { ssr: false }
 );
 
-const DragonPreview = dynamic(
+const ScenePreviewPanel = dynamic(
   () =>
-    import('@/components/preview/DragonPreview').then((m) => ({
-      default: m.DragonPreview,
+    import('@/components/preview/ScenePreviewPanel').then((m) => ({
+      default: m.ScenePreviewPanel,
     })),
   { ssr: false }
 );
@@ -477,7 +477,7 @@ export function StudioPanelOverlays({
 
       {dragonPreviewOpen && (
         <div className="studio-drawer fixed right-0 top-12 bottom-0 z-40 w-96 max-w-full border-l border-studio-border shadow-2xl animate-slide-in-from-right">
-          <DragonPreview />
+          <ScenePreviewPanel />
         </div>
       )}
 

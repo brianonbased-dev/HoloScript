@@ -448,6 +448,7 @@
     "packages/studio/src/components/plugins/SandboxedPluginsPanel.tsx",
     "packages/studio/src/components/preview/DragonPreview.tsx",
     "packages/studio/src/components/preview/LivePreviewBar.tsx",
+    "packages/studio/src/components/preview/ScenePreviewPanel.tsx",
     "packages/studio/src/components/profiler/PerformanceOverlay.tsx",
     "packages/studio/src/components/profiler/ProfilerOverlay.tsx",
     "packages/studio/src/components/profiler/ProfilerPanel.tsx",
