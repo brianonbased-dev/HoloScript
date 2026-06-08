@@ -35,6 +35,7 @@ import { protocolTools } from './protocol-tools';
 import { codeHealthTools } from './code-health-tools';
 import { simulationTools } from './simulation-tools';
 import { holoCiTools } from './holo-ci-tools';
+import { worldRenderTools } from './world-render-tools';
 import { absorbProvenanceTools } from './absorb-provenance-tools';
 import { toolingDiscoveryTools } from './tooling-discovery-tools';
 import { compilerTools } from './compiler-tools';
@@ -748,6 +749,7 @@ export const tools: Tool[] = [
   ...oracleTools,
   ...simulationTools,
   ...holoCiTools,
+  ...worldRenderTools,
   ...absorbProvenanceTools,
   ...toolingDiscoveryTools,
   ...compilerTools,
