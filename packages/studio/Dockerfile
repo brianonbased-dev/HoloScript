@@ -53,12 +53,13 @@ COPY packages/ packages/
 # Engine itself stays --no-dts (build-engine-no-dts.sh) — its tsup OOMs on the
 # full graph; engine src is walked directly via tsconfig path alias instead.
 # core stays --no-dts because it has hand-crafted index.d.ts via generate-types.mjs.
-# JS compilation must succeed (fail loudly); only dts emission is tolerated as
-# optional — tsc later reports the specific gap if a needed type is missing.
-# Pattern: `npx tsup --no-dts` fails the build on JS errors; `npx tsup --dts-only || true`
-# attempts declaration emit and silently ignores dts-only failures (tsup 8+ flag).
-RUN cd packages/crdt && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/crdt-spatial && npx tsup --no-dts && (npx tsup --dts-only || true)
+# DTS patterns — both fail loudly, no || true:
+#   A) npx tsup — packages with dts:true in tsup.config.ts; JS+dts in one pass.
+#   B) npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+#      — packages where tsup's rollup-plugin-dts fails on complex type graphs;
+#        JS via tsup (fail loud on JS errors), .d.ts via tsc (fail loud on missing types).
+RUN cd packages/crdt && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/crdt-spatial && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # snn-webgpu's dts emit MUST succeed and fail loudly (NOT `|| true`): Studio's
 # `next build` type-check walks engine SOURCE, and engine/src/simulation/
 # SNNCognitionEngine.ts imports values from '@holoscript/snn-webgpu'. Without
@@ -68,8 +69,8 @@ RUN cd packages/crdt-spatial && npx tsup --no-dts && (npx tsup --dts-only || tru
 # silently under the old `|| true`, leaving no .d.ts. Bump the heap and require
 # success so a missing declaration breaks the build here, not opaquely later.
 RUN cd packages/snn-webgpu && npx tsup --no-dts && NODE_OPTIONS=--max-old-space-size=4096 npx tsup --dts-only
-RUN cd packages/uaal && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/agent-protocol && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/uaal && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/agent-protocol && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 RUN cd packages/core-types && npx tsup
 RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-engine-no-dts.sh
@@ -79,7 +80,7 @@ RUN chmod +x scripts/docker/build-engine-no-dts.sh && ./scripts/docker/build-eng
 # llm-provider's dist/*.d.ts on disk or it fails with TS2307 "Cannot find module
 # '@holoscript/llm-provider'" (broke 3 consecutive Studio deploys 2026-05-26).
 # llm-provider has no workspace deps, so it can build right after engine.
-RUN cd packages/llm-provider && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/llm-provider && npx tsup
 # Framework needs BOTH the tsup JS build AND a tsc declaration emit because
 # tsup.config.ts has dts: false (subpath dts via tsup is unreliable for this
 # package). Without the tsc step, dist/agents/index.d.ts etc. don't exist, and
@@ -104,33 +105,32 @@ RUN cd packages/framework && npx tsup --no-dts && npx tsc -p tsconfig.build.json
 # was re-enabled). Use tsc --emitDeclarationOnly directly — same pattern as framework.
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/std && npx tsup --no-dts && npx tsc --emitDeclarationOnly
-RUN cd packages/config && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/absorb-service && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/platform && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/mesh && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/config && npx tsup
+RUN cd packages/absorb-service && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/platform && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/mesh && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # (llm-provider moved earlier — see note above, must build before framework)
-RUN cd packages/marketplace-agentkit && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/security-sandbox && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/marketplace-agentkit && npx tsup
+RUN cd packages/security-sandbox && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # secrets-broker: studio/src/lib/capability-session.ts imports
 # '@holoscript/secrets-broker' (used by api/connectors/disconnect/route.ts), a
 # workspace:* dep. Without its dist on disk, Studio's `next build` (step 32)
 # fails with "Module not found: Can't resolve '@holoscript/secrets-broker'".
 # Zero workspace deps, so it builds standalone here among the leaf packages.
-RUN cd packages/secrets-broker && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/secrets-broker && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # holoembed + holo-vm: Studio's `next build` type-check walks engine SOURCE
 # (tsconfig alias "@holoscript/engine": ["../engine/src"]). engine/src imports
 # both — ConjectureEngine.ts -> @holoscript/holoembed, and engine/src/index.ts +
 # vm/index.ts -> @holoscript/holo-vm. Without their dist on disk the type-check
 # fails "Cannot find module '@holoscript/holoembed'". Deps already built above
 # (holoembed: config + snn-webgpu; holo-vm: core), so they slot in here.
-# holoembed: tsup --dts-only silently fails (snn-webgpu external + GPU types cause
+# holoembed: tsup --dts-only was silently failing in Docker (snn-webgpu external + GPU types cause
 # rollup-plugin-dts to error; || true hid this, leaving no dist/index.d.ts, which
 # broke Studio's next build tsc gate because engine/src/simulation/ConjectureEngine.ts
 # imports '@holoscript/holoembed'). Use tsc --emitDeclarationOnly directly.
 # tsconfig.json has declaration:true + outDir:dist so this produces dist/index.d.ts.
 RUN cd packages/holoembed && npx tsup --no-dts && npx tsc --emitDeclarationOnly
-RUN cd packages/holo-vm && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd "$plugin" && npx tsc --noEmit false --declaration false 2>/dev/null || true); done
+RUN cd packages/holo-vm && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 # r3f-renderer's declarations are hand-crafted via generate-types.mjs (like core),
 # NOT emitted by `tsup --dts-only`. Using the generic --dts-only pattern silently
 # dropped dist/hooks/useWebcamGaze.d.ts, so studio's typecheck of the subpath import
@@ -138,13 +138,13 @@ RUN for plugin in packages/plugins/*/; do [ -f "$plugin/tsconfig.json" ] && (cd 
 # type generator so all subpath .d.ts files (incl. ./hooks/useWebcamGaze) are present.
 RUN cd packages/r3f-renderer && npx tsup --no-dts && node scripts/generate-types.mjs
 RUN cd packages/studio-plugin-sdk && npx tsup
-RUN cd packages/ui && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/connector-core && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/connector-appstore && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/connector-github && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/connector-railway && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/connector-upstash && npx tsup --no-dts && (npx tsup --dts-only || true)
-RUN cd packages/connector-vscode && npx tsup --no-dts && (npx tsup --dts-only || true)
+RUN cd packages/ui && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/connector-core && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+RUN cd packages/connector-appstore && npx tsup
+RUN cd packages/connector-github && npx tsup
+RUN cd packages/connector-railway && npx tsup
+RUN cd packages/connector-upstash && npx tsup
+RUN cd packages/connector-vscode && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
 
 # Ensure webpack stubs exist (Docker cache can miss them)
 RUN test -f packages/studio/src/lib/empty-module.js || \

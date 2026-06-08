@@ -11,7 +11,7 @@ export default defineConfig({
     'adapters/xai': 'src/adapters/xai.ts',
   },
   format: ['esm', 'cjs'],
-  dts: false,
+  dts: true,
   sourcemap: true,
   clean: true,
   splitting: false,
