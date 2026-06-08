@@ -41,6 +41,7 @@ import { useAgentStore } from '@/lib/stores/agentStore';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
 import {
   buildWorkspaceAssistantContext,
+  type BrittneyAbsorbStatusContext,
   type BrittneyBoardContext,
   type BrittneyDaemonJobContext,
   type BrittneyGitContext,
@@ -298,6 +299,7 @@ export function BrittneyChatPanel() {
   const [workspaceJobs, setWorkspaceJobs] = useState<BrittneyDaemonJobContext[]>([]);
   const [assistantTeamId, setAssistantTeamId] = useState<string | null>(null);
   const [teamBoard, setTeamBoard] = useState<BrittneyBoardContext | null>(null);
+  const [vibeAbsorbStatus, setVibeAbsorbStatus] = useState<BrittneyAbsorbStatusContext | null>(null);
 
   const executorRef = useRef<SimulationToolExecutor | null>(null);
   if (!executorRef.current) {
@@ -394,6 +396,60 @@ export function BrittneyChatPanel() {
       '';
     setAssistantTeamId(storedTeamId.trim() || null);
   }, []);
+
+  // ─── /vibe session-start probe ──────────────────────────────────────────────
+  // On the /vibe route Brittney has no active workspace, so she can't determine
+  // which repos are scanned or what the board looks like. This effect fires once
+  // on mount (when pathname is /vibe) to proactively fetch the Absorb project
+  // list so Brittney's first reply reflects real operating context rather than
+  // assumed defaults. Board context is already fetched via loadTeamBoardContext.
+  useEffect(() => {
+    if (pathname !== '/vibe') return;
+    let cancelled = false;
+
+    async function probeVibeSessionContext() {
+      try {
+        const absorbRes = await fetch('/api/absorb/projects');
+        if (cancelled) return;
+        if (absorbRes.ok) {
+          interface AbsorbProject {
+            id: string;
+            name?: string | null;
+            status?: string | null;
+            repoUrl?: string | null;
+            stats?: { totalFiles?: number | null; totalSymbols?: number | null } | null;
+          }
+          interface AbsorbProjectsPayload {
+            projects?: AbsorbProject[];
+          }
+          const payload = (await absorbRes.json()) as AbsorbProjectsPayload;
+          const projects = (payload.projects ?? []).map((p) => ({
+            id: p.id,
+            name: p.name ?? null,
+            status: p.status ?? null,
+            repoUrl: p.repoUrl ?? null,
+            totalFiles: p.stats?.totalFiles ?? null,
+            totalSymbols: p.stats?.totalSymbols ?? null,
+          }));
+          setVibeAbsorbStatus({ projects });
+        } else {
+          setVibeAbsorbStatus({ projects: [], error: `absorb/projects ${absorbRes.status}` });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setVibeAbsorbStatus({
+            projects: [],
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
+
+    void probeVibeSessionContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     let cancelled = false;
@@ -532,6 +588,7 @@ export function BrittneyChatPanel() {
         lastError: agentLastError,
       },
       toolCalls: toolCallHistory.slice(-8),
+      absorbStatus: vibeAbsorbStatus,
     });
 
     // Create streaming assistant message placeholder
@@ -669,6 +726,7 @@ export function BrittneyChatPanel() {
     agentCycleCount,
     agentLastError,
     toolCallHistory,
+    vibeAbsorbStatus,
     addTrait,
     removeTrait,
     setTraitProperty,

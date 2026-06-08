@@ -115,6 +115,20 @@ export interface BrittneyToolRunContext {
   error?: string;
 }
 
+export interface BrittneyAbsorbProjectContext {
+  id: string;
+  name?: string | null;
+  status?: string | null;
+  repoUrl?: string | null;
+  totalFiles?: number | null;
+  totalSymbols?: number | null;
+}
+
+export interface BrittneyAbsorbStatusContext {
+  projects: BrittneyAbsorbProjectContext[];
+  error?: string;
+}
+
 export interface BuildWorkspaceAssistantContextInput {
   sceneContext: string;
   historyScope: string;
@@ -126,6 +140,7 @@ export interface BuildWorkspaceAssistantContextInput {
   daemonJobs?: BrittneyDaemonJobContext[];
   agentRuntime?: BrittneyAgentRuntimeContext | null;
   toolCalls?: BrittneyToolRunContext[];
+  absorbStatus?: BrittneyAbsorbStatusContext | null;
 }
 
 function cleanText(value: string | null | undefined): string | null {
@@ -371,6 +386,31 @@ function buildAgentRuntimeSection(
   return lines.join('\n');
 }
 
+function buildAbsorbStatusSection(
+  absorb: BrittneyAbsorbStatusContext | null | undefined
+): string | null {
+  if (!absorb) return null;
+  const lines: string[] = ['--- Absorb Scans ---'];
+  if (absorb.error) {
+    lines.push(`Absorb status error: ${absorb.error}`);
+    return lines.join('\n');
+  }
+  if (absorb.projects.length === 0) {
+    lines.push('No repos have been Absorbed yet. Use absorb_scan_repo to connect a codebase.');
+    return lines.join('\n');
+  }
+  lines.push(`${absorb.projects.length} project(s) scanned:`);
+  for (const p of absorb.projects.slice(0, 6)) {
+    const repo = cleanText(p.repoUrl) ?? p.id;
+    const stats =
+      p.totalFiles != null
+        ? ` — ${p.totalFiles} files, ${p.totalSymbols ?? 0} symbols`
+        : '';
+    lines.push(`  - ${p.name ?? p.id} [${p.status ?? 'unknown'}] ${repo}${stats}`);
+  }
+  return lines.join('\n');
+}
+
 function buildToolRunSection(toolCalls: BrittneyToolRunContext[] | undefined): string | null {
   const calls = (toolCalls ?? []).slice(-8);
   if (calls.length === 0) return null;
@@ -394,6 +434,7 @@ export function buildWorkspaceAssistantContext(
     buildWorkspaceSection(input),
     buildGitSection(input.git),
     buildBoardSection(input.board, input.teamId),
+    buildAbsorbStatusSection(input.absorbStatus),
     buildDaemonSection(input.daemonJobs),
     buildAgentRuntimeSection(input.agentRuntime),
     buildToolRunSection(input.toolCalls),
