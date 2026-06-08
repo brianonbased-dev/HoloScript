@@ -79,15 +79,6 @@ export const STUDIO_PRIMARY_NAVIGATION_ITEMS: StudioNavigationItemDefinition[] =
     surfaceClass: 'account-workspace',
     navigationLane: 'primary',
   },
-  {
-    id: 'operations',
-    label: 'Operations',
-    href: '/operations',
-    exact: false,
-    description: 'Live fleet, CI, Lotus gate, and board state (D.081 operate surface)',
-    surfaceClass: 'lab',
-    navigationLane: 'primary',
-  },
 ];
 
 export const STUDIO_SETTINGS_NAVIGATION_ITEM: StudioNavigationItemDefinition = {
@@ -101,6 +92,15 @@ export const STUDIO_SETTINGS_NAVIGATION_ITEM: StudioNavigationItemDefinition = {
 };
 
 export const STUDIO_LAB_NAVIGATION_ITEMS: StudioNavigationItemDefinition[] = [
+  {
+    id: 'operations',
+    label: 'Operations',
+    href: '/operations',
+    exact: false,
+    description: 'Live fleet, CI, Lotus gate, and board state (D.081 operate surface)',
+    surfaceClass: 'lab',
+    navigationLane: 'lab',
+  },
   {
     id: 'vibe',
     label: 'Vibe',
@@ -213,6 +213,7 @@ export const STUDIO_ROUTE_SURFACES: StudioRouteSurface[] = [
     'Connector hub reachable when labs are shown.'
   ),
   route('/learn', 'archive', 'direct', 'Redirects to academy content.'),
+  route('/lotus-slice', 'lab', 'direct', 'I.007 lotus render proof — botanical_lotus compiled from .holo to R3F pixels.'),
   route('/p043-quest-capture', 'lab', 'direct', 'P043 Quest 3 capture surface for SKU matrix artifacts.'),
   route('/pipeline', 'lab', 'direct', 'Pipeline playground route.'),
   route('/pipeline/chaining', 'lab', 'direct', 'Pipeline chaining playground route.'),
