@@ -100,6 +100,22 @@ export function buildInboxPayload(input: InboxPushInput): InboxPushPayload {
   return { kind: 'intelligence', scope: 'team', content: JSON.stringify(content) };
 }
 
+/** Compact vetting summary embedded in a pre-vetted inbox push (G2). */
+export interface InboxVettingSummary {
+  /** Receipt schema, e.g. 'holoscript.founder-vetting.v1' */
+  schema: string;
+  /** One-line glance summary for the badge (F.099). */
+  glance: string | null;
+  /** Stage-2 pre-test status: 'GREEN' when gate passed. */
+  tests: string | null;
+  /** Reviewer skills that returned PASS (at least one required for a full-gate push). */
+  reviewers: string[];
+  /** F.095 classes detected (e.g. ['spend', 'governance']). */
+  classes: string[];
+  /** Express lane: Stage-3 deferred (reversible+time-critical only). */
+  express: boolean;
+}
+
 export interface FounderInboxItem {
   id: string;
   label: string;
@@ -110,6 +126,11 @@ export interface FounderInboxItem {
   state: InboxState;
   dedupKey: string;
   ts: string;
+  // ── Pre-Vetted Approval Gate fields (G2 — holoscript.founder-vetting.v1) ──────
+  /** True when the item passed the Founder Gate (Stage 1–4 all GREEN). */
+  preVetted: boolean;
+  /** Compact vetting summary for the badge render. Null on unvetted pushes. */
+  vetting: InboxVettingSummary | null;
 }
 
 interface RawFeedItem {
@@ -159,6 +180,20 @@ export function parseFounderInboxEntries(feedItems: unknown, limit = 25): Founde
     const state = normalizeState(parsed.state);
     const dedupKey =
       (typeof parsed.dedupKey === 'string' && parsed.dedupKey) || defaultDedupKey(kind, url, taskId);
+    // ── Pre-Vetted Approval Gate fields (G2) ──────────────────────────────────
+    const preVetted = parsed.preVetted === true;
+    let vetting: InboxVettingSummary | null = null;
+    if (preVetted && parsed.vetting && typeof parsed.vetting === 'object') {
+      const v = parsed.vetting as Record<string, unknown>;
+      vetting = {
+        schema: typeof v.schema === 'string' ? v.schema : 'holoscript.founder-vetting.v1',
+        glance: typeof v.glance === 'string' ? v.glance : null,
+        tests: typeof v.tests === 'string' ? v.tests : null,
+        reviewers: Array.isArray(v.reviewers) ? (v.reviewers as unknown[]).filter((r): r is string => typeof r === 'string') : [],
+        classes: Array.isArray(v.classes) ? (v.classes as unknown[]).filter((c): c is string => typeof c === 'string') : [],
+        express: v.express === true,
+      };
+    }
     const item: FounderInboxItem = {
       id: String(raw.id ?? raw.feedId ?? `${url}:${ts}`),
       label: label.slice(0, 200),
@@ -169,6 +204,8 @@ export function parseFounderInboxEntries(feedItems: unknown, limit = 25): Founde
       state,
       dedupKey,
       ts,
+      preVetted,
+      vetting,
     };
     const existing = byKey.get(dedupKey);
     if (!existing || supersedes(item, existing)) byKey.set(dedupKey, item);

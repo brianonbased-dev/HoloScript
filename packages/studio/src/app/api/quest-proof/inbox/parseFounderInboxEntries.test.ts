@@ -111,4 +111,66 @@ describe('parseFounderInboxEntries', () => {
     ]);
     expect(items).toHaveLength(2);
   });
+
+  // ── Pre-Vetted Approval Gate (G2 — holoscript.founder-vetting.v1) ──────────
+
+  it('unvetted push has preVetted:false and vetting:null', () => {
+    const items = parseFounderInboxEntries([push({ id: 'f1' })]);
+    expect(items[0].preVetted).toBe(false);
+    expect(items[0].vetting).toBeNull();
+  });
+
+  it('pre-vetted push with vetting payload exposes badge fields on the item', () => {
+    const vetting = {
+      schema: 'holoscript.founder-vetting.v1',
+      glance: 'GPU spend approved by /founder — tests GREEN, Stage 1-4 pass',
+      tests: 'GREEN',
+      reviewers: ['/critic', '/founder'],
+      classes: ['spend'],
+      express: false,
+    };
+    const items = parseFounderInboxEntries([
+      push({ id: 'f1', preVetted: true, vetting }),
+    ]);
+    expect(items).toHaveLength(1);
+    expect(items[0].preVetted).toBe(true);
+    expect(items[0].vetting).not.toBeNull();
+    expect(items[0].vetting!.schema).toBe('holoscript.founder-vetting.v1');
+    expect(items[0].vetting!.tests).toBe('GREEN');
+    expect(items[0].vetting!.reviewers).toEqual(['/critic', '/founder']);
+    expect(items[0].vetting!.glance).toContain('GPU spend');
+    expect(items[0].vetting!.express).toBe(false);
+  });
+
+  it('express-lane push is correctly flagged in the vetting summary', () => {
+    const vetting = {
+      schema: 'holoscript.founder-vetting.v1',
+      glance: 'prod rollback — reversible, time-critical, Stage-3 deferred',
+      tests: 'GREEN',
+      reviewers: ['/critic'],
+      classes: [],
+      express: true,
+    };
+    const items = parseFounderInboxEntries([
+      push({ id: 'f1', preVetted: true, vetting }),
+    ]);
+    expect(items[0].vetting!.express).toBe(true);
+  });
+
+  it('preVetted:true with no vetting payload yields preVetted:true and vetting:null (backward-compat)', () => {
+    // An older payload might set preVetted but omit the vetting object.
+    const items = parseFounderInboxEntries([
+      push({ id: 'f1', preVetted: true }), // no vetting key
+    ]);
+    expect(items[0].preVetted).toBe(true);
+    expect(items[0].vetting).toBeNull();
+  });
+
+  it('malformed vetting object (not an object) falls back to vetting:null', () => {
+    const items = parseFounderInboxEntries([
+      push({ id: 'f1', preVetted: true, vetting: 'corrupt-string' }),
+    ]);
+    expect(items[0].preVetted).toBe(true);
+    expect(items[0].vetting).toBeNull();
+  });
 });

@@ -740,17 +740,76 @@ export function QuestProofPanel() {
               <span style={{ color: '#94a3b8', fontSize: 12 }}>pushed to you by agents</span>
             </div>
             <div style={{ display: 'grid', gap: 10 }}>
-              {inbox.map((item) => (
-                <ActionTile
-                  key={item.id}
-                  label={item.label}
-                  sublabel={`${item.kind} · ${item.pushedBy} · ${item.state}`}
-                  actionLabel="Open"
-                  href={item.url}
-                  onTap={() => setLastOpened(item.url)}
-                  testId={`inbox-${item.id}`}
-                />
-              ))}
+              {inbox.map((item) => {
+                // ── Pre-vetted badge + glance render (G2 — holoscript.founder-vetting.v1) ──
+                // F.099: show, don't reference. When gate passed, render the badge inline
+                // so the founder sees "✅ Pre-vetted · tests GREEN · reviewed by /critic · <glance>"
+                // without needing to follow a link or look anything up.
+                const vetted = item.preVetted && item.vetting;
+                const badgeLabel = vetted
+                  ? [
+                      'Pre-vetted',
+                      item.vetting!.tests === 'GREEN' ? 'tests GREEN' : null,
+                      item.vetting!.reviewers.length > 0
+                        ? `reviewed by ${item.vetting!.reviewers.join(', ')}`
+                        : null,
+                      item.vetting!.express ? 'express lane' : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : null;
+                const glanceLine = vetted && item.vetting!.glance ? item.vetting!.glance : null;
+                return (
+                  <div key={item.id} style={{ display: 'grid', gap: 6 }}>
+                    {vetted && (
+                      <div
+                        data-testid={`inbox-vetted-badge-${item.id}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          background: '#052e16',
+                          border: '1px solid #16a34a',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: '#4ade80',
+                        }}
+                      >
+                        <span style={{ fontSize: 14 }}>✅</span>
+                        <span>{badgeLabel}</span>
+                        {glanceLine && (
+                          <span
+                            style={{
+                              color: '#86efac',
+                              fontWeight: 400,
+                              borderLeft: '1px solid #16a34a',
+                              paddingLeft: 8,
+                              marginLeft: 2,
+                            }}
+                          >
+                            {glanceLine}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <ActionTile
+                      key={item.id}
+                      label={item.label}
+                      sublabel={
+                        vetted
+                          ? `${item.kind} · ${item.pushedBy} · ${item.state} · holoscript.founder-vetting.v1`
+                          : `${item.kind} · ${item.pushedBy} · ${item.state}`
+                      }
+                      actionLabel="Open"
+                      href={item.url}
+                      onTap={() => setLastOpened(item.url)}
+                      testId={`inbox-${item.id}`}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
