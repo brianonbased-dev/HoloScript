@@ -23,8 +23,9 @@
  *   MCP_ORCHESTRATOR_URL       /serve registry host (default prod orchestrator)
  *   HOLOSCRIPT_API_KEY         x-mcp-api-key for /serve/resolve
  *   HOLO_SELF_IMPROVE_LLM_URL  optional explicit /v1/chat/completions override (ops pin)
- * Cold serving → fails LOUD ("retry, autoscaler is warming") — never fakes, never localhost.
- * Production-over-dev (Vision Pillar 6).
+ * Cold serving → BYOK Anthropic fallback (F.112 — fallback ONLY) if ANTHROPIC_API_KEY is
+ * set; else fails LOUD ("retry, autoscaler is warming"). Never fakes, never localhost.
+ * Production-over-dev (Vision Pillar 6); sovereign-first, frontier-API last.
  *
  * @module self-improvement
  */
@@ -94,30 +95,59 @@ function buildLLMComplete(): LLMComplete {
     return `${body.url.replace(/\/+$/, '')}/v1/chat/completions`;
   }
 
+  const anthropicKey = process.env['ANTHROPIC_API_KEY'];
+  const anthropicModel = process.env['HOLO_SELF_IMPROVE_ANTHROPIC_MODEL'] || 'claude-sonnet-4-6';
+
   return async ({ system, user }) => {
-    const url = await resolveChatUrl();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        max_tokens: 2048,
-        temperature: 0.2,
-        stream: false,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    });
-    if (!res.ok) throw new Error(`LLM ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error('LLM returned no content');
-    return content;
+    // 1. Sovereign serving (native default, F.112).
+    try {
+      const url = await resolveChatUrl();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (bearer) headers['Authorization'] = `Bearer ${bearer}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          max_tokens: 2048,
+          temperature: 0.2,
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) throw new Error(`sovereign LLM ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error('sovereign LLM returned no content');
+      return content;
+    } catch (sovereignErr) {
+      // 2. BYOK Anthropic fallback (F.112 — fallback ONLY, never the default).
+      if (!anthropicKey) throw sovereignErr;
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: anthropicModel,
+          max_tokens: 2048,
+          system,
+          messages: [{ role: 'user', content: user }],
+        }),
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!res.ok) throw new Error(`Anthropic fallback ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      const data = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
+      const text = data.content?.find((b) => b.type === 'text')?.text;
+      if (!text) throw new Error('Anthropic fallback returned no content');
+      return text;
+    }
   };
 }
 
