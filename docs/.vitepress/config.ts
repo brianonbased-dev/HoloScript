@@ -191,7 +191,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guides/' },
-      { text: 'Strategy', link: '/strategy/v8-vision-rfc' },
+      { text: 'Strategy', link: '/strategy/ROADMAP' },
       {
         text: 'Learn',
         items: [
@@ -785,7 +785,8 @@ export default defineConfig({
         {
           text: 'Ecosystem Strategy',
           items: [
-            { text: 'V8 Vision RFC', link: '/strategy/v8-vision-rfc' },
+            { text: 'Roadmap', link: '/strategy/ROADMAP' },
+            { text: 'V8 Ideas Backlog', link: '/strategy/v8-IDEAS-BACKLOG' },
             { text: 'Lotus Architecture', link: '/strategy/lotus-architecture' },
           ],
         },

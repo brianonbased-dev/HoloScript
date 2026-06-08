@@ -1,8 +1,61 @@
-# HoloScript Vision & Strategy RFC (v6.x → v8.0+)
+# HoloScript v8 Ideas Backlog
 
-**Author:** Brian (Founder) & Antigravity  
-**Date:** March 25, 2026  
-**Status:** DRAFT (Internal Strategy Offsite)
+> **Status:** BACKLOG / IDEAS-ONLY — not an active roadmap.
+> **Authoritative roadmap:** [ROADMAP.md](./ROADMAP.md) (6.x is the public line; v7/v8 were disowned as drift in the 2026-05-18 refresh).
+> **Original RFC author:** Brian (Founder) & Antigravity, March 25 2026. History preserved via `git mv` from `v8-vision-rfc.md`.
+
+---
+
+## Revival Gate
+
+**Any item in this backlog that an agent wishes to promote to active work MUST first pass a dual verdict:**
+
+1. **`/journalist` verdict** — Run the journalist skill against the v6 capability the backlog item depends on. The journalist produces a sourced evidence report: is that capability real, shipped, and reproducible from the public install path? Or was it overclaimed?
+2. **`/deep-ratchet` verdict** — Run deep-ratchet on the same capability. The ratchet assigns a truth-tier (REAL / THIN / OVERCLAIMED / PHANTOM) and a blocking severity.
+
+**Gate rule:** An item may only be revived if BOTH verdicts return tier REAL or THIN with no blocking severity. A THIN verdict must also name the concrete gap and confirm it does not invalidate the item's premise.
+
+**Rationale:** This backlog was seeded before the 2026-05-18 ROADMAP honesty correction. Several items depend on v6 capabilities that were overclaimed (e.g., trait counts of 3,300 vs ~1,809 actual; see W.666 phantom-baseline failure). Building v8 features on OVERCLAIMED baselines repeats that failure mode. The gate ensures each revival starts from a verified truth-tier, not a stale assumption.
+
+**How to revive an item:**
+
+1. Identify the v6 capability the item depends on (e.g., "Wisdom/Gotcha traits compile-time enforcement").
+2. Run `/journalist "Is [capability] real and reproducible from the public install path?"` — save the verdict report.
+3. Run `/deep-ratchet "[capability]"` — save the truth-tier result.
+4. If both return REAL or THIN (non-blocking): annotate the backlog item inline with the verdict refs (commit hash + date), then file a board task with those refs as `verification_evidence`.
+5. If either returns OVERCLAIMED or PHANTOM: do NOT revive. File a board task to fix the underlying capability first, referencing the ratchet finding.
+
+**Skills required:** `/journalist` + `/deep-ratchet` (both must be invoked; one alone is insufficient).
+
+### Worked Example — Studio 2.0 AI Co-Pilot Mode
+
+**Backlog item (Section 1):** "AI Co-Pilot Mode: Type 'add volumetric film set with depth-of-field bokeh,' and the exact corresponding trait subgraph is generated."
+
+**v6 dependency:** Semantic trait-graph generation from natural language in Studio.
+
+**Step 1 — `/journalist` verdict (hypothetical run):**
+> "Journalist report 2026-06-07: Studio's `generate_semantic_ui` MCP tool accepts a natural-language prompt and returns a `.holo` scene stub. Verified against public install path (mcp.holoscript.net `get_examples`). Capability is present but outputs a flat trait list, not a subgraph with depth-of-field or volumetric traits specifically. Truth: THIN — the base generation hook exists; the Film3D-specific vocabulary is absent."
+
+**Step 2 — `/deep-ratchet` verdict (hypothetical run):**
+> "Deep-ratchet 2026-06-07: `generate_semantic_ui` THIN — function exists, domain vocabulary for Film3D/volumetrics not in trait registry (zero `@gaussian-splat`, `@depth-of-field` traits at v6). Blocking severity: MEDIUM (feature premise partially invalidated — the 'exact corresponding trait subgraph' claim requires traits that don't exist yet)."
+
+**Gate result:** THIN + MEDIUM blocking → **DO NOT REVIVE as-is.** Board task required: "Add `@gaussian-splat` and `@depth-of-field` traits to registry (Film3D vocab gap)." Once that ships and re-ratchet returns THIN non-blocking or REAL, the AI Co-Pilot item may be promoted.
+
+**Annotation on item (add inline when a real verdict runs):**
+```
+<!-- REVIVAL-GATE: journalist=THIN (2026-06-07, commit <hash>), ratchet=THIN/MEDIUM-blocking -->
+<!-- STATUS: BLOCKED — Film3D trait vocab gap. Dependency task: <board-id> -->
+```
+
+---
+
+*Original RFC content preserved below. Do not edit; treat as ideas archive.*
+
+---
+
+**Original RFC Author:** Brian (Founder) & Antigravity
+**Original RFC Date:** March 25, 2026
+**Original RFC Status:** DRAFT (Internal Strategy Offsite)
 
 ---
 
