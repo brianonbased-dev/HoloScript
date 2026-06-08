@@ -53,6 +53,7 @@ const TEMPLATE_REGISTRY: Record<string, () => Promise<{ default: SceneTemplate }
   'farm-twin': () => import('./templates/farm-twin'),
   'greenhouse-monitor': () => import('./templates/greenhouse-monitor'),
   'precision-agriculture': () => import('./templates/precision-agriculture'),
+  'soil-remediation': () => import('./templates/soil-remediation'),
   'nft-gallery': () => import('./templates/nft-gallery'),
   'token-forge': () => import('./templates/token-forge'),
   'social-avatar': () => import('./templates/social-avatar'),

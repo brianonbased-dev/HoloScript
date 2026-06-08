@@ -492,6 +492,7 @@ export const SUBCATEGORY_PRESET_MAP: Record<string, string> = {
   'farm-twin': 'agri-tech',
   'greenhouse-monitor': 'agri-tech',
   'precision-agriculture': 'agri-tech',
+  'soil-remediation': 'agri-tech',
   // Creator Economy
   'nft-gallery': 'creator-economy',
   'token-forge': 'creator-economy',
@@ -751,6 +752,12 @@ export const SUBCATEGORIES: Record<string, SubCategory[]> = {
       label: 'Precision Ag',
       emoji: '🛰️',
       description: 'Drone and satellite crop analysis',
+    },
+    {
+      id: 'soil-remediation',
+      label: 'Soil Remediation',
+      emoji: '🌍',
+      description: 'HoloRemediate verifiable bioremediation twin',
     },
   ],
   creator: [
