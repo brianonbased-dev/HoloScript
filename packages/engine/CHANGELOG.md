@@ -1,5 +1,16 @@
 # @holoscript/engine
 
+## 6.1.3
+
+### Patch Changes
+
+- 6dc9732: Add engine WGSL raw declarations and Paper 6 browser artifact typing so Studio CI can build engine-sourced WebGPU surfaces.
+- Updated dependencies [c64fc1a]
+  - @holoscript/core@8.0.6
+  - @holoscript/snn-webgpu@8.0.6
+  - @holoscript/uaal@8.0.6
+  - @holoscript/holoembed@6.1.2
+
 ## 6.1.0
 
 ### Changed

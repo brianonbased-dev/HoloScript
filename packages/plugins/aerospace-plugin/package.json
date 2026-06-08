@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/aerospace-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Aerospace simulation plugin with orbital trajectory, propulsion, re-entry thermal, structural-load harnesses, and CAEL receipts.",
   "main": "dist/index.js",

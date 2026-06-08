@@ -1,5 +1,12 @@
 # @holoscript/plugin-film3d-volumetrics
 
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [c64fc1a]
+  - @holoscript/core@8.0.6
+
 ## 2.0.0
 
 ### Patch Changes

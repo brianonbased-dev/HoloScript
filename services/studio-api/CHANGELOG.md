@@ -1,5 +1,12 @@
 # @holoscript/studio-api
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [c64fc1a]
+  - @holoscript/core@8.0.6
+
 ## 1.0.3
 
 ### Patch Changes

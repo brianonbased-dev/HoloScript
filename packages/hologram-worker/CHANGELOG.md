@@ -1,5 +1,12 @@
 # @holoscript/hologram-worker
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [6dc9732]
+  - @holoscript/engine@6.1.3
+
 ## 0.1.2
 
 ### Patch Changes

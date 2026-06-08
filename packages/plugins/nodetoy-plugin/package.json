@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/nodetoy-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "NodeToy shader-graph bridge — compiles NodeToy node graphs to GLSL/WGSL @shader traits via @holoscript/core compiler.",
   "main": "dist/index.js",
