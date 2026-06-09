@@ -395,6 +395,60 @@ export const hologramToolDefinitions: Tool[] = [
       required: ['hash', 'asset'],
     },
   },
+  {
+    name: 'holo_hologram_inject_world',
+    description:
+      'Inject a rendered hologram (by content hash) into a HoloLand world as a placed object on the ' +
+      'semantic-state representation lane (W.701). Composes the hologram .holo code into a world ' +
+      'state delta and pushes it via push_state_delta so agents and pixel-stream viewers both see it. ' +
+      'Requires a HoloLand world ID and a content hash from a prior holo_hologram_render or ' +
+      'holo_hologram_upload_bundle call. Returns the entity ID assigned to the hologram object ' +
+      'in the world and the share URL.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        worldId: {
+          type: 'string',
+          description: 'HoloLand world ID to inject the hologram into.',
+        },
+        hash: {
+          type: 'string',
+          description: 'Content-addressed bundle hash (64-char hex) from a prior render/upload.',
+        },
+        shareUrl: {
+          type: 'string',
+          description: 'Public share URL for the hologram viewer (from worker or upload result).',
+        },
+        position: {
+          type: 'array',
+          items: { type: 'number' },
+          minItems: 3,
+          maxItems: 3,
+          description:
+            'World-space [x, y, z] spawn position. Defaults to [0, 1.5, -3] (eye-level, 3 m ahead).',
+        },
+        scale: {
+          type: 'array',
+          items: { type: 'number' },
+          minItems: 3,
+          maxItems: 3,
+          description:
+            'World-space [x, y, z] scale. Defaults to [2, 1.5, 1] (portrait-format hologram).',
+        },
+        label: {
+          type: 'string',
+          description: 'Optional display label for the world object. Defaults to the hash prefix.',
+        },
+        representationLane: {
+          type: 'string',
+          enum: ['semantic-state', 'pixel-stream'],
+          description:
+            'Which representation lane to target. Defaults to "semantic-state" (agent-native, W.701).',
+        },
+      },
+      required: ['worldId', 'hash'],
+    },
+  },
 ];
 
 const HOLOGRAM_NAMES = new Set(hologramToolDefinitions.map((t) => t.name));
@@ -681,6 +735,10 @@ export async function handleHologramTool(
     return { ok: true, ...result };
   }
 
+  if (name === 'holo_hologram_inject_world') {
+    return handleHologramInjectWorld(args);
+  }
+
   const mediaType = assertMediaType(args.mediaType);
   const compositionSource = resolveCompositionSource(args, mediaType);
   const objectName = typeof args.name === 'string' ? args.name : undefined;
@@ -811,4 +869,112 @@ export async function handleHologramTool(
     default:
       return undefined;
   }
+}
+
+// ── HoloLand semantic-state lane injection ───────────────────────────────────
+
+/**
+ * Representation lane for the inject_world tool.
+ * W.701: 'semantic-state' is the agent-native lane; 'pixel-stream' is the
+ * WebXR/headset lane. Both read the same world state — the lane determines
+ * how the state delta is serialised to the connecting party.
+ */
+type HologramRepresentationLane = 'semantic-state' | 'pixel-stream';
+
+/**
+ * Inject a previously-rendered hologram bundle into a HoloLand world as a
+ * placed object on the semantic-state representation lane.
+ *
+ * Design (W.701 dual-representation model):
+ *   1. Build a minimal `.holo` composition that references the hologram by
+ *      its content hash (so the viewer fetches the bundle from Studio store).
+ *   2. Construct a `push_state_delta` payload:
+ *        - entityId   = "hologram:<hash-prefix>" — stable, collision-free ID
+ *        - payload    = { type, worldId, hash, shareUrl, position, scale,
+ *                         label, representationLane, holoCode, injectedAt }
+ *   3. Call `handleNetworkingTool('push_state_delta', ...)` locally rather
+ *      than making an HTTP round-trip — same process, no extra auth.
+ *
+ * Returns { ok, entityId, worldId, hash, shareUrl, representationLane }.
+ */
+async function handleHologramInjectWorld(args: Record<string, unknown>): Promise<unknown> {
+  const worldId = typeof args.worldId === 'string' ? args.worldId.trim() : '';
+  const hash = typeof args.hash === 'string' ? args.hash.trim() : '';
+  const shareUrl = typeof args.shareUrl === 'string' ? args.shareUrl.trim() : '';
+  const label =
+    typeof args.label === 'string' && args.label.trim()
+      ? args.label.trim()
+      : `hologram-${hash.slice(0, 8)}`;
+  const laneRaw = typeof args.representationLane === 'string' ? args.representationLane.trim() : '';
+  const lane: HologramRepresentationLane =
+    laneRaw === 'pixel-stream' ? 'pixel-stream' : 'semantic-state';
+
+  if (!worldId) throw new Error('hologram inject_world: worldId is required');
+  if (!hash) throw new Error('hologram inject_world: hash (content hash) is required');
+
+  // Parse position / scale with safe defaults.
+  const rawPos = Array.isArray(args.position) ? args.position : null;
+  const position: [number, number, number] =
+    rawPos && rawPos.length >= 3
+      ? [Number(rawPos[0]) || 0, Number(rawPos[1]) || 1.5, Number(rawPos[2]) || -3]
+      : [0, 1.5, -3];
+
+  const rawScale = Array.isArray(args.scale) ? args.scale : null;
+  const scale: [number, number, number] =
+    rawScale && rawScale.length >= 3
+      ? [Number(rawScale[0]) || 2, Number(rawScale[1]) || 1.5, Number(rawScale[2]) || 1]
+      : [2, 1.5, 1];
+
+  // Stable entity ID — deterministic from worldId + hash so the same hologram
+  // injected twice into the same world produces an idempotent delta (LWW).
+  const entityId = `hologram:${worldId}:${hash.slice(0, 12)}`;
+
+  // Minimal .holo composition that references the bundle by content hash.
+  // The Studio viewer resolves depth.bin / quilt.png / mvhevc.mp4 via
+  // GET /api/hologram/asset/:hash/:asset.
+  const holoCode = [
+    `composition "HoloGram ${label}" {`,
+    '  environment {',
+    '    skybox: "night"',
+    '    ambient_light: 0.2',
+    '  }',
+    `  object "${label}" {`,
+    `    @hologram_bundle { hash: "${hash}"${shareUrl ? `, shareUrl: "${shareUrl}"` : ''} }`,
+    `    geometry: "plane"`,
+    `    position: [${position.join(', ')}]`,
+    `    scale: [${scale.join(', ')}]`,
+    '  }',
+    '}',
+  ].join('\n');
+
+  // State delta — the payload that push_state_delta broadcasts to all
+  // subscribers of this world on the semantic-state lane.
+  const stateDelta = {
+    type: 'hologram-object',
+    worldId,
+    hash,
+    shareUrl: shareUrl || null,
+    position,
+    scale,
+    label,
+    representationLane: lane,
+    holoCode,
+    injectedAt: new Date().toISOString(),
+  };
+
+  // Dispatch locally to the networking push_state_delta handler.
+  const { handleNetworkingTool } = await import('./networking-tools');
+  await handleNetworkingTool('push_state_delta', { entityId, payload: stateDelta });
+
+  return {
+    ok: true,
+    entityId,
+    worldId,
+    hash,
+    shareUrl: shareUrl || null,
+    representationLane: lane,
+    position,
+    scale,
+    label,
+  };
 }

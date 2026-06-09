@@ -9,6 +9,9 @@ const { callWorkerMock, workerConfiguredMock } = vi.hoisted(() => ({
   workerConfiguredMock: vi.fn(),
 }));
 
+// Hoisted at module top so vitest can rewrite imports in the inject_world suite.
+const networkingMock = vi.hoisted(() => ({ handleNetworkingTool: vi.fn() }));
+
 vi.mock('../hologram-renderer', () => ({
   renderHologramBundle: renderHologramBundleMock,
 }));
@@ -69,6 +72,8 @@ describe('hologram mcp tools', () => {
     expect(names).toContain('holo_hologram_send');
     expect(names).toContain('holo_hologram_upload_bundle');
     expect(names).toContain('holo_hologram_get_asset');
+    // W.701 HoloLand semantic-state lane: task_1781033663943_c9c3
+    expect(names).toContain('holo_hologram_inject_world');
   });
 
   it('identifies hologram tool names', () => {
@@ -78,6 +83,7 @@ describe('hologram mcp tools', () => {
     expect(isHologramToolName('holo_hologram_render')).toBe(true);
     expect(isHologramToolName('holo_hologram_publish_feed')).toBe(true);
     expect(isHologramToolName('holo_hologram_send')).toBe(true);
+    expect(isHologramToolName('holo_hologram_inject_world')).toBe(true);
     expect(isHologramToolName('holo_reconstruct_from_video')).toBe(false);
   });
 
@@ -682,6 +688,112 @@ describe('hologram mcp tools', () => {
           asset: 'depth.bin',
         } as Record<string, unknown>)
       ).rejects.toThrow('Not found');
+    });
+  });
+
+  // ── holo_hologram_inject_world — HoloLand semantic-state lane (W.701) ────────
+  // Authority: task_1781033663943_c9c3
+
+  describe('holo_hologram_inject_world', () => {
+    beforeEach(() => {
+      networkingMock.handleNetworkingTool.mockReset();
+      networkingMock.handleNetworkingTool.mockResolvedValue({ ok: true });
+    });
+
+    it('requires worldId', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_inject_world', {
+          hash: 'abc123def456',
+        } as Record<string, unknown>)
+      ).rejects.toThrow('worldId is required');
+    });
+
+    it('requires hash', async () => {
+      await expect(
+        handleHologramTool('holo_hologram_inject_world', {
+          worldId: 'world_test',
+        } as Record<string, unknown>)
+      ).rejects.toThrow('hash (content hash) is required');
+    });
+
+    it('returns expected fields on success', async () => {
+      vi.doMock('../networking-tools', () => networkingMock);
+      const { handleHologramTool: freshHandle } = await import('../hologram-mcp-tools');
+
+      const result = await freshHandle('holo_hologram_inject_world', {
+        worldId: 'world_abc',
+        hash: 'deadbeef1234567890abcdef',
+        shareUrl: 'https://studio.holoscript.net/hologram/deadbeef',
+      } as Record<string, unknown>);
+
+      expect(result).toMatchObject({
+        ok: true,
+        worldId: 'world_abc',
+        hash: 'deadbeef1234567890abcdef',
+        representationLane: 'semantic-state',
+      });
+      // entityId must be deterministic from worldId + hash prefix
+      expect((result as Record<string, unknown>).entityId).toBe(
+        'hologram:world_abc:deadbeef1234'
+      );
+      vi.doUnmock('../networking-tools');
+    });
+
+    it('defaults to semantic-state lane', async () => {
+      vi.doMock('../networking-tools', () => networkingMock);
+      const { handleHologramTool: freshHandle } = await import('../hologram-mcp-tools');
+
+      const result = (await freshHandle('holo_hologram_inject_world', {
+        worldId: 'world_xyz',
+        hash: 'cafebabe5678',
+      } as Record<string, unknown>)) as Record<string, unknown>;
+
+      expect(result.representationLane).toBe('semantic-state');
+      vi.doUnmock('../networking-tools');
+    });
+
+    it('accepts pixel-stream lane override', async () => {
+      vi.doMock('../networking-tools', () => networkingMock);
+      const { handleHologramTool: freshHandle } = await import('../hologram-mcp-tools');
+
+      const result = (await freshHandle('holo_hologram_inject_world', {
+        worldId: 'world_xyz',
+        hash: 'cafebabe5678',
+        representationLane: 'pixel-stream',
+      } as Record<string, unknown>)) as Record<string, unknown>;
+
+      expect(result.representationLane).toBe('pixel-stream');
+      vi.doUnmock('../networking-tools');
+    });
+
+    it('uses default position and scale when not provided', async () => {
+      vi.doMock('../networking-tools', () => networkingMock);
+      const { handleHologramTool: freshHandle } = await import('../hologram-mcp-tools');
+
+      const result = (await freshHandle('holo_hologram_inject_world', {
+        worldId: 'world_def',
+        hash: 'aabbccdd1122',
+      } as Record<string, unknown>)) as Record<string, unknown>;
+
+      expect(result.position).toEqual([0, 1.5, -3]);
+      expect(result.scale).toEqual([2, 1.5, 1]);
+      vi.doUnmock('../networking-tools');
+    });
+
+    it('accepts custom position and scale', async () => {
+      vi.doMock('../networking-tools', () => networkingMock);
+      const { handleHologramTool: freshHandle } = await import('../hologram-mcp-tools');
+
+      const result = (await freshHandle('holo_hologram_inject_world', {
+        worldId: 'world_def',
+        hash: 'aabbccdd1122',
+        position: [5, 2, -10],
+        scale: [3, 2, 1],
+      } as Record<string, unknown>)) as Record<string, unknown>;
+
+      expect(result.position).toEqual([5, 2, -10]);
+      expect(result.scale).toEqual([3, 2, 1]);
+      vi.doUnmock('../networking-tools');
     });
   });
 });
