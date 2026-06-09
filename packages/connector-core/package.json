@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/connector-core",
+  "private": true,
   "version": "1.0.0",
   "description": "Foundational abstract interfaces and MCP Registrar for the Studio Integration Hub",
   "main": "dist/index.js",

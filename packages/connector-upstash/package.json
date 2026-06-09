@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/connector-upstash",
+  "private": true,
   "version": "1.0.0",
   "description": "Upstash MCP Connector for HoloScript Studio Integration Hub - Redis caching, Vector search, QStash scheduling",
   "main": "dist/index.js",

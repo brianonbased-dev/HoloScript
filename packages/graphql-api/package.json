@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/graphql-api",
+  "private": true,
   "version": "0.1.4",
   "description": "GraphQL API layer for HoloScript compiler with TypeGraphQL and Apollo Server",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/connector-moltbook",
+  "private": true,
   "version": "1.0.0",
   "description": "Moltbook social platform connector — posts, comments, DMs, search, karma, submolts. Wraps moltbook.com/api/v1 as MCP tools with rate-limit awareness.",
   "type": "module",

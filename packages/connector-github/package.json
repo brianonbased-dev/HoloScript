@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/connector-github",
+  "private": true,
   "version": "1.0.0",
   "description": "GitHub MCP Connector for HoloScript Studio Integration Hub - repo, issue, PR, and CI/CD operations",
   "main": "dist/index.js",

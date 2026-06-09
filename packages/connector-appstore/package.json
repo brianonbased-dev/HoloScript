@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/connector-appstore",
+  "private": true,
   "version": "1.0.0",
   "description": "Dual-platform App Store connector for HoloScript - Apple App Store Connect and Google Play Developer API integration",
   "main": "dist/index.js",

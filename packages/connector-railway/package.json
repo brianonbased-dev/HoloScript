@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/connector-railway",
+  "private": true,
   "version": "1.0.0",
   "description": "Railway MCP Connector for HoloScript Studio Integration Hub",
   "main": "dist/index.js",

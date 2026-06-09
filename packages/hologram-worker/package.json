@@ -1,5 +1,6 @@
 {
   "name": "@holoscript/hologram-worker",
+  "private": true,
   "version": "0.1.3",
   "description": "Railway hologram render worker — ONNX depth, Playwright quilt, ffmpeg stereo/parallax; uploads to Studio",
   "license": "MIT",
