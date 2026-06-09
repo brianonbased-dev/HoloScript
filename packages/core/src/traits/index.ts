@@ -72,6 +72,7 @@ export * from './EyeTrackedTrait';
 export * from './FaceTrackingTrait';
 export * from './FactionTrait';
 export * from './FBXTrait';
+export * from './FormationControlTrait';
 export * from './FeedbackLoopTrait';
 export * from './FlowFieldTrait';
 export { granularMaterialHandler } from './GranularMaterialTrait';

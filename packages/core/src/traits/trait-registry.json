@@ -1290,6 +1290,23 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "formation_control": {
+        "id": "formation_control",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [
+            { "name": "shape", "type": "string", "default": "triangle" },
+            { "name": "spacing", "type": "number", "default": 3.0 },
+            { "name": "anchor", "type": "string", "default": "" },
+            { "name": "sync_rate_hz", "type": "number", "default": 10 },
+            { "name": "rotation_offset_rad", "type": "number", "default": 0 },
+            { "name": "y_offset", "type": "number", "default": 0 }
+        ],
+        "compileHints": [],
+        "composable": ["mitosis", "csp_channel", "llm_agent", "patrol"],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "morph": {
         "id": "morph",
         "namespace": "@holoscript/core",

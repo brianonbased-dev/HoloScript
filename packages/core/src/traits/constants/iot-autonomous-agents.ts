@@ -19,6 +19,7 @@ export const IOT_AUTONOMOUS_AGENTS_TRAITS = [
   'faction',
   'patrol',
   'mitosis',
+  'formation_control',
   'agent_spawner',
   'delegation',
   'command',
