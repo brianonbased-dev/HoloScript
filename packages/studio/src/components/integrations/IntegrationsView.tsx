@@ -19,6 +19,7 @@ import React from 'react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { ServiceConnectorPanel } from '@/components/integrations/ServiceConnectorPanel';
 import { ConnectorStatusOverview } from '@/components/integrations/ConnectorStatusOverview';
+import { SelfImproveRunsPanel } from '@/components/integrations/SelfImproveRunsPanel';
 
 export function IntegrationsView() {
   const composition = useHoloComposition('/api/surface/integrations');
@@ -57,6 +58,9 @@ export function IntegrationsView() {
 
       {/* At-a-glance health grid — all connectors + MCP infra in one view */}
       <ConnectorStatusOverview />
+
+      {/* Self-improve run receipts — pass-rate, last-run, abort reason (D.081) */}
+      <SelfImproveRunsPanel />
 
       {/* Irreducible widget — stays as @slot */}
       <div className="flex-1 overflow-hidden">

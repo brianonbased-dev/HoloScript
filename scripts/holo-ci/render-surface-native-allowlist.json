@@ -316,6 +316,7 @@
     "packages/studio/src/components/integrations/ConnectorStatusOverview.tsx",
     "packages/studio/src/components/integrations/GitHubOAuthModal.tsx",
     "packages/studio/src/components/integrations/IntegrationsView.tsx",
+    "packages/studio/src/components/integrations/SelfImproveRunsPanel.tsx",
     "packages/studio/src/components/integrations/ServiceConnectorPanel.tsx",
     "packages/studio/src/components/keyframes/KeyframeEditor.tsx",
     "packages/studio/src/components/knowledge/WPGEntryForm.tsx",
