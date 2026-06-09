@@ -23,6 +23,7 @@
 | HoloMesh / Teams        | Team board, presence, messages, suggestions, and knowledge are production coordination surfaces.                                                                                                          | [packages/mcp-server/src/holomesh/README.md](../../packages/mcp-server/src/holomesh/README.md)                                                                                         |
 | Absorb                  | Codebase intelligence is a first-class service and local graph workflow, not an aspirational research item.                                                                                               | [packages/absorb-service/README.md](../../packages/absorb-service/README.md)                                                                                                           |
 | Physical and twin stack | Robotics, WoT, MQTT, digital-twin, WebGPU, WebXR, and demo-scene substrate exist; the gap is repeatable validation and operator-facing docs.                                                              | [docs/research/ECOSYSTEM_EXPANSION_ROADMAP.md](../research/ECOSYSTEM_EXPANSION_ROADMAP.md), [docs/physics/PHYSICS_ENHANCEMENTS_ROADMAP.md](../physics/PHYSICS_ENHANCEMENTS_ROADMAP.md) |
+| Capability utilization  | Built capability outpaces wired surfaces; orphaned MCP tools and lib exports are machine-tracked, and the active work is wiring or retiring them (lane 5).                                                | `ai-ecosystem/docs/capability-cartographer/orphan-snapshot.json`, `ai-ecosystem/docs/handbooks/ecosystem-utilization-ratchet.md`                                                       |
 
 ---
 
@@ -67,7 +68,37 @@ The missing work is not basic capability. It is making this path obvious, measur
 
 Active roadmaps must answer "what is true now?" in the first screen. Historical plans move to `docs/archive/`; active plans keep a dated refresh block, source links, and a drift guard in `pnpm docs:roadmap:drift`.
 
-### 5. Promoted Seed Backlog
+### 5. Wire What's Already Built (Utilization)
+
+Added 2026-06-09. The substrate has consistently out-shipped its own surfaces:
+capabilities exist as MCP tools, API routes, and lib exports that no skill,
+doc, or workflow ever invokes (W.GOLD.343 — capabilities without surfaces are
+invisible). The 2026-04-28 capability-orphans audit found ~5.9× more tools than
+skill wrappings; the tracked orphan snapshot
+(`ai-ecosystem/docs/capability-cartographer/orphan-snapshot.json`) is the live
+ledger of what shipped but was never wired.
+
+Before building anything new, check whether an orphaned capability already
+covers it (`/capabilities`, `/reach`). The lane's work is connective, not
+generative:
+
+- Run the utilization ratchet (`pnpm run ecosystem:utilization-ratchet` in
+  ai-ecosystem) on a recurring cadence; file its `boardSeeds` to the board.
+- Drive the orphan snapshot toward zero by giving each orphan cluster an owning
+  skill, doc, or workflow — or explicitly retiring it. Newly shipped tools must
+  not enter the snapshot (`scripts/capability-orphan-reconciler.mjs` is the
+  diff gate).
+- Wire existing-but-disconnected pairs surfaced by audits: trait docs without
+  handlers, compiler targets without smoke commands, services without health
+  probes in docs (overlaps lane 3 — the physical lanes are the biggest
+  orphan clusters).
+
+**Done when:** the orphan reconciler reports zero untriaged orphans for two
+consecutive ratchet runs, and every entry in the snapshot carries either an
+owning surface or an explicit retirement decision. Counts stay in the snapshot
+file, not here.
+
+### 6. Promoted Seed Backlog
 
 Source seed: [HoloScript Autonomous Enhancements Summary](../../idea-seeds/archive-farm/2026-05-12_archive_holoscript-autonomous-enhancements-summary.md), promoted on 2026-05-20 from the archived [Autonomous Enhancements Summary](../archive/AUTONOMOUS_ENHANCEMENTS_2026-02-26.md).
 
