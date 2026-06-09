@@ -33,6 +33,7 @@ import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '@/lib/bri
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
 import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
+import { HS_AUTHORING_TOOLS, HS_AUTHORING_TOOL_NAMES } from '@/lib/brittney/HsAuthoringTools';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
 import {
   isSceneMutationTool,
@@ -96,6 +97,7 @@ const SERVER_EXECUTED_TOOL_NAMES = new Set([
   ...MCP_TOOL_NAMES,
   ...LOTUS_TOOL_NAMES,
   ...EMBODIED_TOOL_NAMES,
+  ...HS_AUTHORING_TOOL_NAMES,
 ]);
 
 /**
@@ -106,7 +108,13 @@ const SERVER_EXECUTED_TOOL_NAMES = new Set([
  * shape with `input_schema` instead of `parameters`. This function
  * performs that rename.
  */
-function convertToolsToProviderFormat(): ToolSpec[] {
+function convertToolsToProviderFormat(opts: { includeAuthoring?: boolean } = {}): ToolSpec[] {
+  // `includeAuthoring` gates the hs_* authoring tools (hs_diagnostics / hs_refactor).
+  // Defaults ON (binds in every session); this is the seam for future per-mode
+  // scoping — once the route can distinguish a /vibe-casual turn from a code
+  // session, pass `false` to drop the authoring tax on casual turns. No mode
+  // signal reaches the route today, so it stays on by default for now.
+  const { includeAuthoring = true } = opts;
   const allDefs = [
     ...BRITTNEY_TOOLS,
     ...STUDIO_API_TOOLS,
@@ -114,6 +122,7 @@ function convertToolsToProviderFormat(): ToolSpec[] {
     ...SIMULATION_TOOLS,
     ...LOTUS_TOOLS,
     ...EMBODIED_TOOLS,
+    ...(includeAuthoring ? HS_AUTHORING_TOOLS : []),
   ];
 
   return allDefs.map((t) => ({
@@ -625,7 +634,10 @@ export async function POST(request: NextRequest) {
                               reason: lotus.error,
                             },
                           });
-                        } else if (MCP_TOOL_NAMES.has(tc.name)) {
+                        } else if (
+                          MCP_TOOL_NAMES.has(tc.name) ||
+                          HS_AUTHORING_TOOL_NAMES.has(tc.name)
+                        ) {
                           result = await executeMCPTool(tc.name, tc.input, {
                             workspaceId: mcpWorkspaceId,
                             allowFounderWorkspace,

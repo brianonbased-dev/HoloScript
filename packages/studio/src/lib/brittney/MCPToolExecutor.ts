@@ -192,6 +192,25 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
       method: 'holo_explain_trait',
       buildArgs: (args) => ({ trait_name: args['trait_name'] }),
     },
+    // HoloScript-as-IDE authoring (GOLD->Brittney follow-on, (A)-slim, verified live 2026-06-09).
+    hs_diagnostics: {
+      baseUrl: holoUrl,
+      method: 'hs_diagnostics',
+      buildArgs: (args) => ({
+        code: args['code'],
+        ...(args['severity'] ? { severity: args['severity'] } : {}),
+      }),
+    },
+    hs_refactor: {
+      baseUrl: holoUrl,
+      method: 'hs_refactor',
+      buildArgs: (args) => ({
+        code: args['code'],
+        operation: args['operation'],
+        ...(args['target'] ? { target: args['target'] } : {}),
+        ...(args['newName'] ? { newName: args['newName'] } : {}),
+      }),
+    },
     // Migration & formats (data/architecture → native HoloScript)
     map_data: {
       baseUrl: holoUrl,
