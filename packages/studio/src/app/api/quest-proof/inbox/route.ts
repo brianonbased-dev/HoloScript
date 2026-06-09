@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 /**
  * Founder Console Inbox — server route (slice B).
  *
- * GET  /api/quest-proof/inbox  — read pushed artifacts for QuestProofPanel (6s poll)
+ * GET  /api/quest-proof/inbox  — read pushed artifacts for the Founder Console (6s poll)
  * POST /api/quest-proof/inbox  — push an artifact from an agent script
  *
  * Transport: the deployed team feed at mcp.holoscript.net. The Studio route

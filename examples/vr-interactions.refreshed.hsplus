@@ -1,14 +1,14 @@
 // ============================================================================
 // VR Interactions — Sensory Lab
-// A-009 refresh — 2026-06-01
+// A-009 refresh — 2026-06-01 | updated 2026-06-09 (grab_feedback_profile SHIPPED)
 //
 // Original intent: showcase @grabbable, @throwable, @hoverable, @pointable
 // in a minimal VR sandbox.
 //
 // Refresh adds:
-//   @haptic_cue      — controller vibration on grab, release, and throw
-//   @spatial_audio_cue — positional sound per interaction type
-//   @bloom_reactive  — objects glow brighter when actively held
+//   @grab_feedback_profile — SHIPPED (task_1780979310274_xi4g): bundles
+//     @haptic_cue + @spatial_audio_cue + @bloom_reactive into a single
+//     declaration per grabbable object. Reduces 15+ lines to 6 per template.
 //
 // Scene story:
 //   You stand in an indigo dojo. Each object announces itself through your
@@ -17,24 +17,12 @@
 //   release burst. The orbs bloom as you hold them — their glow peaks in
 //   your grip and fades as they leave your hand. Everything that can be
 //   touched tells you so.
-//
-// MISSING-TRAIT WISH (queued for Phase 4):
-//   @grab_feedback_profile — a single trait that bundles grab haptic pattern,
-//   spatial audio on pickup/release, and bloom intensity curve into one
-//   declaration. Currently requires three separate traits (@haptic_cue +
-//   @spatial_audio_cue + @bloom_reactive) that must be kept in sync manually.
-//   Proposed API:
-//     @grab_feedback_profile {
-//       haptic: { grab: "soft_pulse", throw: "sharp_snap", intensity: 0.7 }
-//       audio:  { grab: "pickup.wav", release: "release.wav", volume: 0.6 }
-//       bloom:  { held_intensity: 2.5, idle_intensity: 0.8, ramp_ms: 80 }
-//     }
 // ============================================================================
 
 composition "VRInteractions_SensoryLab" {
-  version: "7.0"
-  description: "VR interaction sandbox with haptic, spatial audio, and reactive bloom feedback"
-  tags: ["a009", "refresh", "vr", "haptics", "spatial-audio", "interaction"]
+  version: "8.0"
+  description: "VR interaction sandbox — grab_feedback_profile edition"
+  tags: ["a009", "refresh", "vr", "haptics", "spatial-audio", "interaction", "grab-feedback-profile"]
 
   environment {
     backgroundColor: "#0d0d1a"
@@ -53,29 +41,11 @@ composition "VRInteractions_SensoryLab" {
     emissive: "#003344"
     emissiveIntensity: 0.6
 
-    // Vibrate softly on grab; sharp snap on release/throw
-    @haptic_cue {
-      pattern: "soft_pulse"
-      intensity: 0.55
-      duration: 120
-      trigger_on: "grab"
-    }
-
-    // Positional audio — hear it exactly where it is in space
-    @spatial_audio_cue {
-      event: "grabbed"
-      sound: "audio/orb_pickup.wav"
-      volume: 0.65
-      max_distance: 6.0
-      rolloff: "linear"
-    }
-
-    // Held object blooms; fades back on release
-    @bloom_reactive {
-      base_intensity: 0.6
-      peak_intensity: 2.4
-      pulse_period_s: 0.0
-      trigger: "grab_active"
+    // Replaces the manual trio: @haptic_cue + @spatial_audio_cue + @bloom_reactive
+    @grab_feedback_profile {
+      haptic: { grab: "soft_pulse", throw: "sharp_snap", release: "click", intensity: 0.55 }
+      audio:  { grab: "audio/orb_pickup.wav", release: "audio/orb_pickup.wav", volume: 0.65 }
+      bloom:  { idle_intensity: 0.6, held_intensity: 2.4, ramp_ms: 80 }
     }
   }
 
@@ -87,26 +57,10 @@ composition "VRInteractions_SensoryLab" {
     emissive: "#330a0a"
     emissiveIntensity: 0.4
 
-    @haptic_cue {
-      pattern: "sharp_snap"
-      intensity: 0.8
-      duration: 60
-      trigger_on: "throw"
-    }
-
-    @spatial_audio_cue {
-      event: "thrown"
-      sound: "audio/block_throw.wav"
-      volume: 0.75
-      max_distance: 8.0
-      rolloff: "inverse"
-    }
-
-    @bloom_reactive {
-      base_intensity: 0.4
-      peak_intensity: 1.9
-      pulse_period_s: 0.0
-      trigger: "grab_active"
+    @grab_feedback_profile {
+      haptic: { grab: "buzz", throw: "sharp_snap", release: "click", intensity: 0.8 }
+      audio:  { grab: "audio/block_throw.wav", release: "audio/block_throw.wav", volume: 0.75 }
+      bloom:  { idle_intensity: 0.4, held_intensity: 1.9, ramp_ms: 60 }
     }
   }
 
@@ -118,6 +72,8 @@ composition "VRInteractions_SensoryLab" {
     emissive: "#003322"
     emissiveIntensity: 0.5
 
+    // Non-grab feedback: keep explicit @haptic_cue + @spatial_audio_cue
+    // (grab_feedback_profile is grab-specific; hover/point use separate events)
     @haptic_cue {
       pattern: "click"
       intensity: 0.4
@@ -173,26 +129,10 @@ composition "VRInteractions_SensoryLab" {
     emissive: "#332200"
     emissiveIntensity: 0.5
 
-    @haptic_cue {
-      pattern: "rumble"
-      intensity: 0.6
-      duration: 150
-      trigger_on: "grab"
-    }
-
-    @spatial_audio_cue {
-      event: "grabbed"
-      sound: "audio/ball_pickup.wav"
-      volume: 0.6
-      max_distance: 5.0
-      rolloff: "linear"
-    }
-
-    @bloom_reactive {
-      base_intensity: 0.5
-      peak_intensity: 2.2
-      pulse_period_s: 0.0
-      trigger: "grab_active"
+    @grab_feedback_profile {
+      haptic: { grab: "rumble", throw: "sharp_snap", release: "click", intensity: 0.6 }
+      audio:  { grab: "audio/ball_pickup.wav", release: "audio/ball_pickup.wav", volume: 0.6 }
+      bloom:  { idle_intensity: 0.5, held_intensity: 2.2, ramp_ms: 80 }
     }
   }
 

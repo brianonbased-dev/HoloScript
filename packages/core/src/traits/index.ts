@@ -97,6 +97,7 @@ export { GranularMaterial } from './GranularMaterialTrait';
 export * from './HandMenuTrait';
 export * from './HandMeshAITrait';
 export * from './HandTrackingTrait';
+export * from './GrabFeedbackProfileTrait';
 export * from './HapticCueTrait';
 export * from './HapticTrait';
 export * from './HeadTrackedAudioTrait';

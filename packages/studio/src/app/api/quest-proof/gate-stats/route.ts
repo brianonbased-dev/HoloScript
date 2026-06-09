@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
  * GET /api/quest-proof/gate-stats
  *
  * Returns live gate stats from the founder-gate event log for the counter tile
- * in QuestProofPanel (G1b). No auth required — read-only aggregate counts.
+ * in the Founder Console (G1b). No auth required — read-only aggregate counts.
  *
  * Response shape:
  * {
