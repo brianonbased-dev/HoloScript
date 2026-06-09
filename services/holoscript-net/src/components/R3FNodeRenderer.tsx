@@ -14,6 +14,9 @@ import {
 } from '@holoscript/r3f-renderer';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
+import { CompiledLotusMeshNode } from './scene/CompiledLotusMeshNode';
+import { TimelineDriver } from './scene/TimelineDriver';
+import { AnimatedTransformGroup } from './scene/AnimatedTransformGroup';
 
 interface R3FNodeRendererProps {
   node: R3FNode;
@@ -30,6 +33,25 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
   switch (node.type) {
     case 'mesh': {
+      // I.007: a node carrying a compiled-from-.holo material spec renders via
+      // CompiledLotusMeshNode (material built from the declaration, not hand-authored).
+      // Its scaffold nodes (water + lily pads) are emitted as generic mesh children.
+      if (props.__compiledMaterial) {
+        const scaffoldNodes = (props.__scaffoldNodes as R3FNode[] | undefined) ?? [];
+        return (
+          <group
+            position={props.position as [number, number, number] | undefined}
+            rotation={props.rotation as [number, number, number] | undefined}
+            scale={props.scale as [number, number, number] | number | undefined}
+          >
+            <CompiledLotusMeshNode node={node} />
+            {scaffoldNodes.map((n, i) => (
+              <R3FNodeRenderer key={n.id || `scaffold-${i}`} node={n} />
+            ))}
+          </group>
+        );
+      }
+
       // Check if this mesh has a custom shader trait
       const isShaderMesh = hasShaderTrait(node);
       // Check if this mesh has LOD configuration
@@ -76,8 +98,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'group': {
       const { batchableDraftMeshes, rest } = partitionStudioChildren(node.children);
-      return (
-        <group position={props.position} rotation={props.rotation} scale={props.scale}>
+      const inner = (
+        <>
           {batchableDraftMeshes.length > 0 && (
             <DraftMeshNode
               key="r3f-draft-batch"
@@ -86,9 +108,27 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
             />
           )}
           {renderNetChildList(rest)}
+        </>
+      );
+      // A compiled node may declare its transform is timeline-driven (a stem that
+      // rises, a leaf that unfurls): play those channels generically.
+      if (props.__animatedTransform) {
+        return <AnimatedTransformGroup node={node}>{inner}</AnimatedTransformGroup>;
+      }
+      return (
+        <group position={props.position} rotation={props.rotation} scale={props.scale}>
+          {inner}
         </group>
       );
     }
+
+    // Compiled `.holo` `timeline` block — drives developmentalTime + other animated
+    // targets that compiled mesh nodes read via timelineRuntime.
+    case 'Timeline':
+      return <TimelineDriver node={node} />;
+    case 'TimelineEntry':
+      // Data node consumed by TimelineDriver; renders nothing standalone.
+      return null;
 
     case 'directionalLight':
       return (

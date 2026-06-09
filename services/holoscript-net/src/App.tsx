@@ -5,7 +5,7 @@ import LiquidBlob from './components/LiquidBlob';
 import SpatialBackground from './components/SpatialBackground';
 import { MagicMomentWizard } from './components/MagicMomentWizard';
 import LiveEvidenceStrip from './components/LiveEvidenceStrip';
-import LotusProgram from './components/LotusProgram';
+import LotusSection from './components/LotusSection';
 
 // Icons
 const IconCheck = () => (
@@ -351,7 +351,7 @@ export function HoloScriptLandingComponent() {
           </div>
         </section>
 
-        <LotusProgram />
+        <LotusSection />
 
         {/* Claim 1: Build Physics-Aware Worlds */}
         <section className="py-24 relative flex flex-col gap-3 w-full p-[12px] semantic-layout-priority border-t border-white/5">
