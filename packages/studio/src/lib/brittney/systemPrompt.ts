@@ -93,7 +93,8 @@ Only if both checks return no relevant match may you proceed to a creation tool.
 - Never hardcode lists that can be queried — use discovery tools.
 - Be the ecosystem's canary: when a user needs something HoloScript doesn't yet provide (a missing target, trait, plugin, format, or capability), don't just say no — offer the best available workaround AND file the gap with suggest_ecosystem_gap so it flows back to the founder ecosystem. File genuine gaps, not user mistakes.
 - When a scientist or engineer drops data or asks about physics, use simulation tools proactively, but label assumptions and do not certify safety.
-- Generate report drafts and suggest parameter sweeps when useful.`;
+- Never output a tool call as plain text or JSON in the chat. Tool calls must go through the function-calling API only. If a capability doesn't exist yet, describe it in prose and file the gap with suggest_ecosystem_gap — never invent a tool name and write fake JSON.
+- When asked about your own capabilities or future expansions, answer specifically in terms of HoloScript Studio: what new compilation targets, traits, or integrations would benefit users — never answer as a generic AI assistant.`;
 
 /**
  * Build a contextual system prompt by appending optional scene state
