@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/plugin-film-vfx",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Film/VFX domain plugin for HoloScript — shot lists, color grading, DMX lighting, director AI, and virtual production",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -40,8 +40,8 @@
     "url": "https://github.com/brianonbased-dev/HoloScript/issues"
   },
   "peerDependencies": {
-    "@holoscript/core": "workspace:*",
-    "@holoscript/crdt-spatial": "workspace:*"
+    "@holoscript/core": ">=8.0.0",
+    "@holoscript/crdt-spatial": ">=1.0.0"
   },
   "peerDependenciesMeta": {
     "@holoscript/crdt-spatial": {
