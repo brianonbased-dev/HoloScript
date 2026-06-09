@@ -1,6 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
+import { POST as dispatchPOST } from '../dispatch/route';
 
 /**
  * POST /api/agents/fleet/scheduler-tick
@@ -44,17 +45,16 @@ export async function POST(req: NextRequest) {
   const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
   if (authHeader) fetchHeaders['Authorization'] = authHeader;
 
-  // Internal call — use the request's own origin
-  const origin = req.nextUrl.origin;
+  // Call the dispatch handler directly — avoids the Railway LB self-fetch loop
+  // that returns 502 when the public hostname resolves back through the load balancer.
+  const internalReq = new NextRequest(new URL('/api/agents/fleet/dispatch', 'http://internal'), {
+    method: 'POST',
+    headers: fetchHeaders,
+    body: JSON.stringify(dispatchBody),
+  });
 
   try {
-    const dispatchRes = await fetch(`${origin}/api/agents/fleet/dispatch`, {
-      method: 'POST',
-      headers: fetchHeaders,
-      body: JSON.stringify(dispatchBody),
-      signal: AbortSignal.timeout(290_000),
-    });
-
+    const dispatchRes = await dispatchPOST(internalReq);
     const data: unknown = await dispatchRes.json().catch(() => null);
 
     if (!dispatchRes.ok) {
