@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { suggestTraits, generateObject, generateScene } from '../generators';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { suggestTraits, generateObject, generateScene, generateWorldNative } from '../generators';
 
 vi.mock('@holoscript/llm-provider', () => ({
   createProviderManager: vi.fn(() => ({
@@ -301,5 +301,121 @@ describe('generateScene', () => {
   it('should include requested features', () => {
     const result = generateScene('a game arena', { features: ['multiplayer', 'physics'] });
     expect(result.code).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generateWorldNative — sovereign backend fallback + mock mode
+// ---------------------------------------------------------------------------
+
+describe('generateWorldNative', () => {
+  const SOVEREIGN_URL_KEY = 'HOLOSCRIPT_SOVEREIGN_BASE_URL';
+  const SOVEREIGN_MOCK_KEY = 'HOLOSCRIPT_SOVEREIGN_MOCK';
+
+  beforeEach(() => {
+    // Start each test with a clean sovereign env state
+    delete process.env[SOVEREIGN_URL_KEY];
+    delete process.env[SOVEREIGN_MOCK_KEY];
+  });
+
+  afterEach(() => {
+    delete process.env[SOVEREIGN_URL_KEY];
+    delete process.env[SOVEREIGN_MOCK_KEY];
+    vi.restoreAllMocks();
+  });
+
+  it('falls back to text-LLM path when no sovereign URL is configured', async () => {
+    // No env vars set — sovereign backend not configured.
+    // Should succeed via PATH 2 (LLM) or PATH 3 (heuristic), never throw.
+    const result = await generateWorldNative('a quiet forest clearing');
+    expect(result).toBeDefined();
+    expect(result.holoCode).toBeDefined();
+    expect(result.holoCode).toMatch(/composition/i);
+    // source must be one of the non-sovereign paths
+    expect(['text-llm', 'heuristic']).toContain(result.source);
+  });
+
+  it('uses mock mode when HOLOSCRIPT_SOVEREIGN_MOCK=true (no live URL needed)', async () => {
+    // Mock the Sovereign3DAdapter module import so tests are network-free.
+    vi.doMock('@holoscript/core/world', () => ({
+      Sovereign3DAdapter: class {
+        constructor(opts: { mockMode?: boolean }) {
+          if (!opts.mockMode) throw new Error('expected mockMode=true');
+        }
+        async generate(req: { prompt: string; format: string }) {
+          return {
+            generationId: 'mock_test_123',
+            assetUrl: `https://mock.local/world.splat`,
+            metadata: {
+              format: req.format,
+              bounds: [-20, 0, -20, 20, 12, 20],
+              agentStart: [0, 0, 0] as [number, number, number],
+              waypoints: [[0, 0, 0]] as [number, number, number][],
+              generationMs: 5,
+            },
+          };
+        }
+      },
+    }));
+
+    process.env[SOVEREIGN_MOCK_KEY] = 'true';
+
+    const result = await generateWorldNative('a moonlit desert');
+    expect(result.source).toBe('sovereign-3d');
+    expect(result.assetUrl).toBeDefined();
+    expect(result.holoCode).toMatch(/world_asset/);
+    expect(result.format).toBeDefined();
+
+    vi.doUnmock('@holoscript/core/world');
+  });
+
+  it('falls back gracefully when sovereign backend is configured but offline', async () => {
+    // Sovereign URL is explicitly set (non-default) but the service is offline.
+    // The fetch will fail with a network error — generateWorldNative must catch
+    // it and fall through to PATH 2/3 rather than propagating the exception.
+    vi.doMock('@holoscript/core/world', () => ({
+      Sovereign3DAdapter: class {
+        constructor() {}
+        async generate() {
+          throw new Error('fetch failed');
+        }
+      },
+    }));
+
+    process.env[SOVEREIGN_URL_KEY] = 'wss://api.hololand.io';
+
+    const result = await generateWorldNative('a floating sky island');
+    // Must succeed — source is the fallback path, not sovereign-3d
+    expect(result).toBeDefined();
+    expect(result.holoCode).toBeDefined();
+    expect(result.source).not.toBe('sovereign-3d');
+    expect(['text-llm', 'heuristic']).toContain(result.source);
+
+    vi.doUnmock('@holoscript/core/world');
+  });
+
+  it('does NOT swallow errors from mock mode (mock failures are code bugs)', async () => {
+    vi.doMock('@holoscript/core/world', () => ({
+      Sovereign3DAdapter: class {
+        constructor() {}
+        async generate() {
+          throw new Error('mock internal error');
+        }
+      },
+    }));
+
+    process.env[SOVEREIGN_MOCK_KEY] = 'true';
+
+    await expect(generateWorldNative('anything')).rejects.toThrow('mock internal error');
+
+    vi.doUnmock('@holoscript/core/world');
+  });
+
+  it('returns valid holoCode composition root on heuristic path', async () => {
+    // Ensure no sovereign env is set — forces PATH 3 if LLM is also unavailable.
+    const result = await generateWorldNative('an ancient ruin surrounded by jungle');
+    expect(result.holoCode).toBeDefined();
+    expect(typeof result.holoCode).toBe('string');
+    expect(result.holoCode.length).toBeGreaterThan(10);
   });
 });

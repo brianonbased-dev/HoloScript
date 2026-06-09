@@ -801,39 +801,50 @@ export async function generateWorldNative(
   const startMs = Date.now();
 
   // ─── PATH 1: Sovereign3DAdapter ─────────────────────────────────────────────
-  // Only attempt when the caller has explicitly configured the 3D backend.
+  // Attempt when:
+  //   (a) HOLOSCRIPT_SOVEREIGN_BASE_URL is explicitly set to a non-default URL, OR
+  //   (b) HOLOSCRIPT_SOVEREIGN_MOCK=true is set (mock mode works without a live backend)
   // The default fallback URL ('https://api.holoscript.net/sovereign') is NOT
   // treated as "available" — it is the deploy target, not a live service.
+  //
+  // If the sovereign backend is configured but unreachable (fetch failed / network
+  // error / timeout) and mock mode is OFF, the error is caught and we fall through
+  // to PATH 2 rather than surfacing a hard failure to the caller. This covers the
+  // case where HOLOSCRIPT_SOVEREIGN_BASE_URL is set in the environment but the
+  // service is not yet deployed (e.g. wss://api.hololand.io offline).
   const sovereignBaseUrl = process.env.HOLOSCRIPT_SOVEREIGN_BASE_URL?.trim();
+  const sovereignMock = Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK);
   const sovereignBackendLive =
-    sovereignBaseUrl &&
-    sovereignBaseUrl !== '' &&
-    sovereignBaseUrl !== 'https://api.holoscript.net/sovereign';
+    sovereignMock ||
+    (sovereignBaseUrl &&
+      sovereignBaseUrl !== '' &&
+      sovereignBaseUrl !== 'https://api.holoscript.net/sovereign');
 
   if (sovereignBackendLive) {
     const { Sovereign3DAdapter } = await import('@holoscript/core/world');
     const adapter = new Sovereign3DAdapter({
-      mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
+      mockMode: sovereignMock,
     });
 
-    const result = await adapter.generate({
-      prompt,
-      format: options.format ?? '3dgs',
-      quality: options.quality ?? 'high',
-      ...(options.input_image ? { input_image: options.input_image } : {}),
-      ...(options.input_images?.length ? { input_images: options.input_images } : {}),
-      ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
-      ...(options.interactiveMode !== undefined ? { interactiveMode: options.interactiveMode } : {}),
-      ...(options.seed !== undefined ? { seed: options.seed } : {}),
-    });
+    try {
+      const result = await adapter.generate({
+        prompt,
+        format: options.format ?? '3dgs',
+        quality: options.quality ?? 'high',
+        ...(options.input_image ? { input_image: options.input_image } : {}),
+        ...(options.input_images?.length ? { input_images: options.input_images } : {}),
+        ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
+        ...(options.interactiveMode !== undefined ? { interactiveMode: options.interactiveMode } : {}),
+        ...(options.seed !== undefined ? { seed: options.seed } : {}),
+      });
 
-    // Build a companion .holo composition referencing the generated 3D asset
-    const navLine = result.navmeshUrl ? `\n  navmesh { url: "${result.navmeshUrl}" }` : '';
-    const interactiveLine = options.interactiveMode
-      ? `\n  physics { enabled: true, collisions: true }`
-      : '';
+      // Build a companion .holo composition referencing the generated 3D asset
+      const navLine = result.navmeshUrl ? `\n  navmesh { url: "${result.navmeshUrl}" }` : '';
+      const interactiveLine = options.interactiveMode
+        ? `\n  physics { enabled: true, collisions: true }`
+        : '';
 
-    const holoCode = `composition "GeneratedWorld" {
+      const holoCode = `composition "GeneratedWorld" {
   environment {
     world_asset: "${result.assetUrl}"
     format: "${result.metadata.format}"
@@ -846,29 +857,41 @@ export async function generateWorldNative(
   }
 }`;
 
-    return {
-      assetUrl: result.assetUrl,
-      generationId: result.generationId,
-      format: result.metadata.format,
-      ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
-      ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
-      holoCode,
-      source: 'sovereign-3d',
-      metrics: {
-        ...(result.metadata.splatCount !== undefined
-          ? { splatCount: result.metadata.splatCount }
-          : {}),
-        ...(result.metadata.triangleCount !== undefined
-          ? { triangleCount: result.metadata.triangleCount }
-          : {}),
-        ...(result.metadata.generationMs !== undefined
-          ? { generationMs: result.metadata.generationMs }
-          : {}),
-        bounds: result.metadata.bounds,
-        ...(result.metadata.agentStart ? { agentStart: result.metadata.agentStart } : {}),
-        ...(result.metadata.waypoints ? { waypoints: result.metadata.waypoints } : {}),
-      },
-    };
+      return {
+        assetUrl: result.assetUrl,
+        generationId: result.generationId,
+        format: result.metadata.format,
+        ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
+        ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
+        holoCode,
+        source: 'sovereign-3d',
+        metrics: {
+          ...(result.metadata.splatCount !== undefined
+            ? { splatCount: result.metadata.splatCount }
+            : {}),
+          ...(result.metadata.triangleCount !== undefined
+            ? { triangleCount: result.metadata.triangleCount }
+            : {}),
+          ...(result.metadata.generationMs !== undefined
+            ? { generationMs: result.metadata.generationMs }
+            : {}),
+          bounds: result.metadata.bounds,
+          ...(result.metadata.agentStart ? { agentStart: result.metadata.agentStart } : {}),
+          ...(result.metadata.waypoints ? { waypoints: result.metadata.waypoints } : {}),
+        },
+      };
+    } catch (err) {
+      // Sovereign backend unreachable (network error / offline / fetch failed).
+      // Fall through to PATH 2 (LLM) so generate_world succeeds even when the
+      // 3D service is not yet deployed. Mock mode failures are re-thrown (they
+      // indicate a code bug, not a network outage).
+      if (sovereignMock) throw err;
+      // Log once so operators can see the fallback reason without it being fatal.
+      console.warn(
+        `[generateWorldNative] Sovereign3DAdapter unreachable (${(err as Error).message ?? err}); ` +
+          'falling back to text-LLM path. Set HOLOSCRIPT_SOVEREIGN_MOCK=true to use deterministic mock output instead.'
+      );
+    }
   }
 
   // ─── PATH 2: Brittney text-LLM (same proven path as generate_scene) ─────────
