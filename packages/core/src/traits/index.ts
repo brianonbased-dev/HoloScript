@@ -261,6 +261,7 @@ export * from './SubtitleTrait';
 export * from './SyncTierTrait';
 export * from './TenantConfigSchema';
 export * from './TenantTrait';
+export * from './TelescopeOpticsTrait';
 export * from './TerrainAnchorTrait';
 export { telemetryHandler } from './TelemetryTrait';
 export * from './TimeoutGuardTrait';
