@@ -2378,7 +2378,7 @@ importers:
   packages/plugins/alphafold-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/assimp-plugin: {}
@@ -2386,43 +2386,43 @@ importers:
   packages/plugins/banking-finance-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/civil-engineering-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/culture-keyword-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/domain-plugin-template:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/economic-primitives-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/education-lms-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/emergency-response:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
     devDependencies:
       '@types/node':
@@ -2450,16 +2450,16 @@ importers:
   packages/plugins/fashion-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/film-vfx-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
       '@holoscript/crdt-spatial':
-        specifier: workspace:*
+        specifier: '>=1.0.0'
         version: link:../../crdt-spatial
       loro-crdt:
         specifier: ^1.0.0
@@ -2481,7 +2481,7 @@ importers:
   packages/plugins/film3d-volumetrics-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
       '@holoscript/crdt-spatial':
         specifier: workspace:^
@@ -2497,13 +2497,13 @@ importers:
   packages/plugins/fitness-wellness-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/forensics-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
     devDependencies:
       '@types/node':
@@ -2522,7 +2522,7 @@ importers:
   packages/plugins/game-security-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
     devDependencies:
       '@types/node':
@@ -2541,19 +2541,19 @@ importers:
   packages/plugins/geolocation-gis-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/government-civic-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/hardware-invention-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
     devDependencies:
       '@types/node':
@@ -2572,28 +2572,28 @@ importers:
   packages/plugins/hr-workforce-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/insurance-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
       '@holoscript/engine':
-        specifier: workspace:*
+        specifier: '>=6.1.0'
         version: link:../../engine
 
   packages/plugins/legal-document-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/manufacturing-qc-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/marble-genie3-plugin: {}
@@ -2601,7 +2601,7 @@ importers:
   packages/plugins/medical-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/mixamo-plugin: {}
@@ -2611,7 +2611,7 @@ importers:
   packages/plugins/neuroscience-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/niantic-lgm-plugin: {}
@@ -2627,7 +2627,7 @@ importers:
   packages/plugins/qm-bridge:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
       '@holoscript/engine':
         specifier: workspace:^
@@ -2643,7 +2643,7 @@ importers:
   packages/plugins/radio-astronomy-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
       '@holoscript/engine':
         specifier: workspace:^
@@ -2661,19 +2661,19 @@ importers:
   packages/plugins/restaurant-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/retail-ecommerce-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/robotics-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/scenethesis-plugin: {}
@@ -2681,7 +2681,7 @@ importers:
   packages/plugins/scientific-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/structural-biology-plugin: {}
@@ -2691,7 +2691,7 @@ importers:
   packages/plugins/therapy-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
     devDependencies:
       '@types/node':
@@ -2710,7 +2710,7 @@ importers:
   packages/plugins/threat-intelligence-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
     devDependencies:
       '@types/node':
@@ -2729,22 +2729,22 @@ importers:
   packages/plugins/trait-audit-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/travel-hospitality-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/urban-planning-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
       '@holoscript/framework':
-        specifier: workspace:*
+        specifier: '>=6.1.0'
         version: link:../../framework
 
   packages/plugins/urdf: {}
@@ -2795,13 +2795,13 @@ importers:
   packages/plugins/wine-food-beverage-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/plugins/wisdom-gotcha-plugin:
     dependencies:
       '@holoscript/core':
-        specifier: workspace:*
+        specifier: '>=8.0.0'
         version: link:../../core
 
   packages/preview-component:
@@ -3007,12 +3007,12 @@ importers:
       '@holoscript/core':
         specifier: workspace:^
         version: link:../core
+      '@holoscript/engine':
+        specifier: workspace:^
+        version: link:../engine
       '@react-three/fiber':
         specifier: ^9.5.0
         version: 9.5.0(@types/react@19.2.14)(react@19.2.4)(three@0.182.0)
-      cannon-es:
-        specifier: ^0.20.0
-        version: 0.20.0
       monaco-editor:
         specifier: 0.55.1
         version: 0.55.1
@@ -18345,10 +18345,6 @@ packages:
   /caniuse-lite@1.0.30001793:
     resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
 
-  /cannon-es@0.20.0:
-    resolution: {integrity: sha512-eZhWTZIkFOnMAJOgfXJa9+b3kVlvG+FX4mdkpePev/w/rP5V8NRquGyEozcjPfEoXUlb+p7d9SUcmDSn14prOA==}
-    dev: false
-
   /canonicalize@2.1.0:
     resolution: {integrity: sha512-F705O3xrsUtgt98j7leetNhTWPe+5S72rlL5O4jA1pKqBVQ/dT1O1D6PFxmSXvc0SUOinWS57DKx0I3CHrXJHQ==}
     hasBin: true
@@ -21314,7 +21310,7 @@ packages:
     resolution: {integrity: sha512-an2S5quJMiy5bnZKEf6AkfH/7r8CzHvhchU40gxN+OM6HPhe7Z9T1FUychcf2M9PpPOO0Hf7BAEfJkw2TDIBDw==}
     engines: {node: '>=12.0.0'}
     dependencies:
-      readable-stream: 3.6.2
+      readable-stream: 4.7.0
       webextension-polyfill: 0.10.0
     dev: false
 

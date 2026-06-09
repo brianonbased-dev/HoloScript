@@ -61,7 +61,7 @@
   },
   "dependencies": {
     "@holoscript/core": "workspace:^",
-    "cannon-es": "^0.20.0"
+    "@holoscript/engine": "workspace:^"
   },
   "peerDependencies": {
     "@react-three/fiber": "^9.5.0",

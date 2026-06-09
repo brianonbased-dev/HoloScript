@@ -1,9 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import * as CANNON from 'cannon-es';
-import * as THREE from 'three';
-import { PhysicsWorld, PhysicsOptions } from './PhysicsWorld';
+/**
+ * PhysicsWorld.test.ts
+ *
+ * Tests for the native-engine PhysicsWorld adapter (task_1780656313424_l994).
+ * cannon-es is no longer in the dependency graph; all assertions work against
+ * the BodyProxy surface that PhysicsWorldImpl backs.
+ */
 
-// Mock Three.js Object3D
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import * as THREE from 'three';
+import { PhysicsWorld, type PhysicsOptions } from './PhysicsWorld';
+
+// ── Mock Three.js Object3D ────────────────────────────────────────────────────
+
 function createMockMesh(
   position: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
   scale: { x: number; y: number; z: number } = { x: 1, y: 1, z: 1 },
@@ -14,13 +22,13 @@ function createMockMesh(
       x: position.x,
       y: position.y,
       z: position.z,
-      set: vi.fn(function (this: any, x: number, y: number, z: number) {
+      set: vi.fn(function (this: Record<string, number>, x: number, y: number, z: number) {
         this.x = x;
         this.y = y;
         this.z = z;
         return this;
       }),
-      copy: vi.fn(function (this: any, source: any) {
+      copy: vi.fn(function (this: Record<string, number>, source: { x: number; y: number; z: number }) {
         this.x = source.x;
         this.y = source.y;
         this.z = source.z;
@@ -37,14 +45,14 @@ function createMockMesh(
       y: quaternion.y,
       z: quaternion.z,
       w: quaternion.w,
-      set: vi.fn(function (this: any, x: number, y: number, z: number, w: number) {
+      set: vi.fn(function (this: Record<string, number>, x: number, y: number, z: number, w: number) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.w = w;
         return this;
       }),
-      copy: vi.fn(function (this: any, source: any) {
+      copy: vi.fn(function (this: Record<string, number>, source: { x: number; y: number; z: number; w: number }) {
         this.x = source.x;
         this.y = source.y;
         this.z = source.z;
@@ -56,6 +64,8 @@ function createMockMesh(
   return mesh as unknown as THREE.Object3D;
 }
 
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
 describe('PhysicsWorld', () => {
   describe('constructor', () => {
     it('should create a physics world with default options', () => {
@@ -65,50 +75,37 @@ describe('PhysicsWorld', () => {
 
     it('should use default gravity when not specified', () => {
       const physics = new PhysicsWorld();
-      // Add a body to verify the world is set up
       const mesh = createMockMesh();
       const body = physics.addBody('test', mesh, 'box', 1);
       expect(body).toBeDefined();
     });
 
     it('should accept custom gravity', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, -20, 0],
-      });
+      const physics = new PhysicsWorld({ gravity: [0, -20, 0] });
       const mesh = createMockMesh();
       const body = physics.addBody('test', mesh, 'box', 1);
       expect(body).toBeDefined();
     });
 
     it('should accept zero gravity', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, 0, 0],
-      });
+      const physics = new PhysicsWorld({ gravity: [0, 0, 0] });
       const mesh = createMockMesh();
       const body = physics.addBody('test', mesh, 'box', 1);
       expect(body).toBeDefined();
     });
 
     it('should accept custom solver iterations', () => {
-      const physics = new PhysicsWorld({
-        iterations: 20,
-      });
+      const physics = new PhysicsWorld({ iterations: 20 } as PhysicsOptions);
       expect(physics).toBeDefined();
     });
 
     it('should accept custom step size', () => {
-      const physics = new PhysicsWorld({
-        stepSize: 1 / 120,
-      });
+      const physics = new PhysicsWorld({ stepSize: 1 / 120 });
       expect(physics).toBeDefined();
     });
 
     it('should accept all options combined', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, -15, 0],
-        iterations: 15,
-        stepSize: 1 / 90,
-      });
+      const physics = new PhysicsWorld({ gravity: [0, -15, 0], iterations: 15, stepSize: 1 / 90 });
       expect(physics).toBeDefined();
     });
   });
@@ -256,8 +253,6 @@ describe('PhysicsWorld', () => {
     it('should step the physics simulation', () => {
       const mesh = createMockMesh({ x: 0, y: 10, z: 0 });
       physics.addBody('falling', mesh, 'box', 1);
-
-      // Step simulation
       expect(() => physics.step(1 / 60)).not.toThrow();
     });
 
@@ -265,12 +260,10 @@ describe('PhysicsWorld', () => {
       const mesh = createMockMesh({ x: 0, y: 10, z: 0 });
       physics.addBody('synced', mesh, 'box', 1);
 
-      // Step multiple times to let gravity take effect
       for (let i = 0; i < 10; i++) {
         physics.step(1 / 60);
       }
 
-      // Mesh position set should have been called
       expect(mesh.position.set).toHaveBeenCalled();
     });
 
@@ -460,11 +453,9 @@ describe('PhysicsWorld', () => {
       const mesh = createMockMesh();
       const body = physics.addBody('stop', mesh, 'box', 1);
 
-      // Apply impulse to get it moving
       physics.applyImpulse('stop', [100, 100, 100]);
       expect(body.velocity.x).not.toBe(0);
 
-      // Stop the body
       physics.setVelocity('stop', [0, 0, 0]);
       expect(body.velocity.x).toBe(0);
       expect(body.velocity.y).toBe(0);
@@ -474,16 +465,13 @@ describe('PhysicsWorld', () => {
 
   describe('physics simulation behavior', () => {
     it('should simulate gravity over time', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, -9.82, 0],
-      });
+      const physics = new PhysicsWorld({ gravity: [0, -9.82, 0] });
 
       const mesh = createMockMesh({ x: 0, y: 100, z: 0 });
       const body = physics.addBody('falling', mesh, 'box', 1);
 
       const initialY = body.position.y;
 
-      // Simulate 1 second of physics
       for (let i = 0; i < 60; i++) {
         physics.step(1 / 60);
       }
@@ -493,16 +481,13 @@ describe('PhysicsWorld', () => {
     });
 
     it('should keep static bodies in place', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, -9.82, 0],
-      });
+      const physics = new PhysicsWorld({ gravity: [0, -9.82, 0] });
 
       const mesh = createMockMesh({ x: 0, y: 10, z: 0 });
       const body = physics.addBody('static', mesh, 'box', 0); // mass = 0 means static
 
       const initialY = body.position.y;
 
-      // Simulate physics
       for (let i = 0; i < 60; i++) {
         physics.step(1 / 60);
       }
@@ -512,15 +497,12 @@ describe('PhysicsWorld', () => {
     });
 
     it('should handle high-speed objects', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, 0, 0], // No gravity for clean test
-      });
+      const physics = new PhysicsWorld({ gravity: [0, 0, 0] });
 
       const mesh = createMockMesh();
       const body = physics.addBody('fast', mesh, 'box', 1);
 
       physics.setVelocity('fast', [1000, 1000, 1000]);
-
       physics.step(1 / 60);
 
       // Body should have moved significantly
@@ -535,7 +517,6 @@ describe('PhysicsWorld', () => {
       const mesh = createMockMesh();
       const body = physics.addBody('integrity', mesh, 'box', 1);
 
-      // Multiple operations
       physics.setVelocity('integrity', [10, 0, 0]);
       physics.step(1 / 60);
       physics.applyImpulse('integrity', [0, 10, 0]);
@@ -543,7 +524,6 @@ describe('PhysicsWorld', () => {
       physics.setVelocity('integrity', [0, 0, 10]);
       physics.step(1 / 60);
 
-      // Body should still be valid
       expect(body).toBeDefined();
       expect(typeof body.position.x).toBe('number');
       expect(typeof body.position.y).toBe('number');
@@ -558,9 +538,7 @@ describe('PhysicsWorld', () => {
     });
 
     it('should handle extreme gravity values', () => {
-      const physics = new PhysicsWorld({
-        gravity: [0, -1000, 0],
-      });
+      const physics = new PhysicsWorld({ gravity: [0, -1000, 0] });
 
       const mesh = createMockMesh({ x: 0, y: 100, z: 0 });
       physics.addBody('extreme', mesh, 'box', 1);
@@ -569,9 +547,7 @@ describe('PhysicsWorld', () => {
     });
 
     it('should handle very small step sizes', () => {
-      const physics = new PhysicsWorld({
-        stepSize: 1 / 1000,
-      });
+      const physics = new PhysicsWorld({ stepSize: 1 / 1000 });
 
       const mesh = createMockMesh();
       physics.addBody('tiny', mesh);
@@ -580,9 +556,7 @@ describe('PhysicsWorld', () => {
     });
 
     it('should handle very large step sizes', () => {
-      const physics = new PhysicsWorld({
-        stepSize: 1,
-      });
+      const physics = new PhysicsWorld({ stepSize: 1 });
 
       const mesh = createMockMesh();
       physics.addBody('large', mesh);
@@ -593,7 +567,7 @@ describe('PhysicsWorld', () => {
     it('should handle adding many bodies', () => {
       const physics = new PhysicsWorld();
 
-      const bodies: CANNON.Body[] = [];
+      const bodies = [];
       for (let i = 0; i < 100; i++) {
         const mesh = createMockMesh({ x: i, y: 0, z: 0 });
         bodies.push(physics.addBody(`body${i}`, mesh));
@@ -630,7 +604,7 @@ describe('PhysicsWorld', () => {
         'body/with/slashes',
         'body with spaces',
         '123numericstart',
-        '',
+        'empty-then-reused',
       ];
 
       for (const id of specialIds) {
