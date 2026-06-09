@@ -278,8 +278,8 @@ export const ANSCapabilityPath = {
   // ── mixin ────────────────────────────────────────────────────────────
   DOMAIN_BLOCK: '/compile/mixin/domain-block',
 
-  // ── studio ───────────────────────────────────────────────────────────
-  CODE_EDITOR: '/compile/studio/code-editor',
+  // ── studio (meta domain) ─────────────────────────────────────────────
+  CODE_EDITOR: '/compile/meta/code-editor',
 } as const;
 
 export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANSCapabilityPath];
