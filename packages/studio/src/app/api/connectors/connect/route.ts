@@ -53,15 +53,12 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Set token in environment (ephemeral for this request)
-        process.env.GITHUB_TOKEN = token;
-
-        // @ts-ignore - Temporary bypass for stale connector types
-        const github = new GitHubConnector();
-        // @ts-ignore
+        // Pass credentials directly to the connector — NEVER stash them in process.env,
+        // which is a single process-global shared across ALL concurrent requests and would
+        // bleed one user's token into another user's session.
+        const github = new GitHubConnector({ token });
         await github.connect();
 
-        // @ts-ignore
         const healthy = await github.health();
         if (!healthy) {
           return NextResponse.json(
@@ -71,7 +68,6 @@ export async function POST(req: NextRequest) {
         }
 
         // Get authenticated user info
-        // @ts-ignore
         const userResult = await github.executeTool('github_user_get', {});
         const userData =
           userResult && typeof userResult === 'object' && 'data' in userResult
@@ -97,18 +93,13 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Set credentials in environment (ephemeral for this request)
-        process.env.RAILWAY_TOKEN = token;
-        if (project) {
-          process.env.RAILWAY_PROJECT_ID = project;
-        }
-
-        // @ts-ignore
-        const railway = new RailwayConnector();
-        // @ts-ignore
+        // Pass credentials directly to the connector — never stash them in the shared
+        // process.env global (cross-request credential bleed). The single `token` here is
+        // a Railway project token; the project id is echoed back to the caller for later
+        // calls rather than persisted in global state.
+        const railway = new RailwayConnector({ projectToken: token });
         await railway.connect();
 
-        // @ts-ignore
         const healthy = await railway.health();
         if (!healthy) {
           return NextResponse.json(
@@ -144,29 +135,27 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Set environment variables for available subsystems
-        if (hasRedis) {
-          process.env.UPSTASH_REDIS_URL = redisUrl;
-          process.env.UPSTASH_REDIS_TOKEN = redisToken;
-        }
-        if (hasVector) {
-          process.env.UPSTASH_VECTOR_URL = vectorUrl;
-          process.env.UPSTASH_VECTOR_TOKEN = vectorToken;
-        }
-        if (hasQStash) {
-          process.env.QSTASH_TOKEN = qstashToken;
-        }
+        // Pass credentials directly to the connector — never stash them in the shared
+        // process.env global (cross-request credential bleed).
+        const upstashCredentials = {
+          redis: hasRedis ? { url: redisUrl, token: redisToken } : undefined,
+          vector: hasVector ? { url: vectorUrl, token: vectorToken } : undefined,
+          qstash: hasQStash ? { token: qstashToken } : undefined,
+        };
 
         // Dynamically import to avoid bundling issues
-        // @ts-ignore
         const { UpstashConnector } = await import(
           /* webpackIgnore: true */ '@holoscript/connector-upstash'
         );
-        const upstash = new (UpstashConnector as unknown as new () => {
+        const upstash = new (UpstashConnector as unknown as new (c?: {
+          redis?: { url?: string; token?: string };
+          vector?: { url?: string; token?: string };
+          qstash?: { token?: string };
+        }) => {
           connect(): Promise<void>;
           health(): Promise<boolean>;
           getCapabilities(): unknown;
-        })();
+        })(upstashCredentials);
         await upstash.connect();
 
         const healthy = await upstash.health();
@@ -204,25 +193,26 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Set environment variables
-        if (hasApple) {
-          process.env.APPLE_KEY_ID = appleKeyId;
-          process.env.APPLE_ISSUER_ID = appleIssuerId;
-          process.env.APPLE_PRIVATE_KEY = applePrivateKey;
-        }
-        if (hasGoogle) {
-          process.env.GOOGLE_SERVICE_ACCOUNT = googleServiceAccount;
-        }
+        // Pass credentials directly to the connector — never stash them in the shared
+        // process.env global (cross-request credential bleed).
+        const appstoreCredentials = {
+          apple: hasApple
+            ? { keyId: appleKeyId, issuerId: appleIssuerId, privateKey: applePrivateKey }
+            : undefined,
+          google: hasGoogle ? { serviceAccount: googleServiceAccount } : undefined,
+        };
 
-        // @ts-ignore
         const { AppStoreConnector } = await import(
           /* webpackIgnore: true */ '@holoscript/connector-appstore'
         );
-        const appstore = new (AppStoreConnector as unknown as new () => {
+        const appstore = new (AppStoreConnector as unknown as new (c?: {
+          apple?: { keyId: string; issuerId: string; privateKey: string };
+          google?: { serviceAccount: string };
+        }) => {
           connect(): Promise<void>;
           health(): Promise<boolean>;
           getCapabilities(): unknown;
-        })();
+        })(appstoreCredentials);
         await appstore.connect();
 
         const healthy = await appstore.health();
@@ -247,16 +237,12 @@ export async function POST(req: NextRequest) {
       case 'vscode': {
         const { bridgeUrl } = credentials;
 
-        // Set bridge URL in environment
-        if (bridgeUrl) {
-          process.env.VSCODE_BRIDGE_URL = bridgeUrl;
-        }
-
-        // @ts-ignore
+        // Pass the bridge URL directly to the connector — never stash it in the shared
+        // process.env global (cross-request bleed).
         const { VSCodeConnector } = await import(
           /* webpackIgnore: true */ '@holoscript/connector-vscode'
         );
-        const vscode = new VSCodeConnector();
+        const vscode = new VSCodeConnector({ bridgeUrl });
         await vscode.connect();
 
         const healthy = await vscode.health();

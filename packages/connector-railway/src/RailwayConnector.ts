@@ -2,13 +2,26 @@ import { ServiceConnector, McpRegistrar } from '@holoscript/connector-core';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { railwayTools } from './tools.js';
 
+/** Per-instance Railway credentials. Prefer this over RAILWAY_* env vars so a
+ *  multi-tenant server never stashes one user's token in shared global state. */
+export interface RailwayConnectorCredentials {
+  /** Account/workspace token (broadest scope). */
+  apiToken?: string;
+  /** Project token (CI/CD scoped). */
+  projectToken?: string;
+}
+
 export class RailwayConnector extends ServiceConnector {
   private apiKey: string | null = null;
   private readonly apiUrl = 'https://backboard.railway.app/graphql/v2';
   private registrar = new McpRegistrar();
+  private readonly injectedApiToken: string | null;
+  private readonly injectedProjectToken: string | null;
 
-  constructor() {
+  constructor(credentials?: RailwayConnectorCredentials) {
     super();
+    this.injectedApiToken = credentials?.apiToken ?? null;
+    this.injectedProjectToken = credentials?.projectToken ?? null;
   }
 
   private isProjectToken = false;
@@ -18,11 +31,16 @@ export class RailwayConnector extends ServiceConnector {
     // Priority: Account token (broadest) → Project token (CI/CD scoped)
     // Account/workspace tokens use: Authorization: Bearer <token>
     // Project tokens use: Project-Access-Token: <token>
-    if (process.env.RAILWAY_API_TOKEN) {
-      this.apiKey = process.env.RAILWAY_API_TOKEN;
+    // Prefer per-instance injected creds; fall back to env for legacy/server use. A
+    // caller must NEVER write the token to process.env to pass it here — that global is
+    // shared across concurrent requests and bleeds one user's credential into another's.
+    const apiToken = this.injectedApiToken ?? process.env.RAILWAY_API_TOKEN ?? null;
+    const projectToken = this.injectedProjectToken ?? process.env.RAILWAY_TOKEN ?? null;
+    if (apiToken) {
+      this.apiKey = apiToken;
       this.isProjectToken = false;
-    } else if (process.env.RAILWAY_TOKEN) {
-      this.apiKey = process.env.RAILWAY_TOKEN;
+    } else if (projectToken) {
+      this.apiKey = projectToken;
       this.isProjectToken = true;
     } else {
       this.apiKey = null;

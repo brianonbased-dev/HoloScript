@@ -31,17 +31,25 @@ import { upstashTools } from './tools.js';
  * - UPSTASH_VECTOR_URL, UPSTASH_VECTOR_TOKEN
  * - QSTASH_TOKEN, QSTASH_CURRENT_SIGNING_KEY, QSTASH_NEXT_SIGNING_KEY
  */
+/** Per-instance Upstash credentials. Prefer over env so a multi-tenant server never
+ *  stashes one user's credentials in shared global state. */
+export interface UpstashConnectorCredentials {
+  redis?: { url?: string; token?: string };
+  vector?: { url?: string; token?: string };
+  qstash?: { token?: string };
+}
+
 export class UpstashConnector extends ServiceConnector {
   private redis: RedisSubsystem;
   private vector: VectorSubsystem;
   private qstash: QStashSubsystem;
   private registrar = new McpRegistrar();
 
-  constructor() {
+  constructor(credentials?: UpstashConnectorCredentials) {
     super();
-    this.redis = new RedisSubsystem();
-    this.vector = new VectorSubsystem();
-    this.qstash = new QStashSubsystem();
+    this.redis = new RedisSubsystem(credentials?.redis);
+    this.vector = new VectorSubsystem(credentials?.vector);
+    this.qstash = new QStashSubsystem(credentials?.qstash);
   }
 
   /**

@@ -17,20 +17,34 @@ import { githubTools } from './tools.js';
  *
  * Authentication via GITHUB_TOKEN environment variable.
  */
+/** Per-instance GitHub credentials. Prefer this over the GITHUB_TOKEN env var so a
+ *  multi-tenant server never has to stash one user's token in shared global state. */
+export interface GitHubConnectorCredentials {
+  token?: string;
+}
+
 export class GitHubConnector extends ServiceConnector {
   private octokit: Octokit | null = null;
   private token: string | null = null;
+  private readonly injectedToken: string | null;
   private registrar = new McpRegistrar();
 
-  constructor() {
+  constructor(credentials?: GitHubConnectorCredentials) {
     super();
+    this.injectedToken = credentials?.token ?? null;
   }
 
   async connect(): Promise<void> {
-    this.token = process.env.GITHUB_TOKEN || null;
+    // Prefer the injected per-instance token; fall back to env only for legacy/server
+    // single-tenant use. A caller must NEVER write the token to process.env to pass it
+    // here — that global is shared across all concurrent requests and bleeds one user's
+    // credential into another's.
+    this.token = this.injectedToken ?? process.env.GITHUB_TOKEN ?? null;
 
     if (!this.token) {
-      throw new Error('GITHUB_TOKEN environment variable is required');
+      throw new Error(
+        'GitHub token is required (pass { token } to the constructor or set GITHUB_TOKEN)'
+      );
     }
 
     const auth = createTokenAuth(this.token);

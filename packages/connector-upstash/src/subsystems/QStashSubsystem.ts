@@ -20,19 +20,29 @@ export type { ScheduleConfig, PublishConfig } from '../types.js';
  * - Dead letter queue (DLQ) for failures
  * - Health monitoring pings
  */
+/** Per-instance Upstash QStash credentials. Prefer over env so a multi-tenant server
+ *  never stashes one user's token in shared global state. */
+export interface QStashSubsystemCredentials {
+  token?: string;
+}
+
 export class QStashSubsystem {
   private client: Client | null = null;
   private receiver: Receiver | null = null;
   private isConnected = false;
+  private readonly injectedToken: string | null;
+
+  constructor(credentials?: QStashSubsystemCredentials) {
+    this.injectedToken = credentials?.token ?? null;
+  }
 
   /**
-   * Connect to Upstash QStash using environment variables.
-   * Requires QSTASH_TOKEN.
-   * Optionally initializes webhook signature verification with
-   * QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY.
+   * Connect to Upstash QStash. Prefers the per-instance injected token; falls back to the
+   * QSTASH_TOKEN env var for legacy/server single-tenant use. Optionally initializes webhook
+   * signature verification with QSTASH_CURRENT_SIGNING_KEY and QSTASH_NEXT_SIGNING_KEY (env).
    */
   async connect(): Promise<void> {
-    const token = process.env.QSTASH_TOKEN;
+    const token = this.injectedToken ?? process.env.QSTASH_TOKEN;
 
     if (!token) {
       throw new Error('QSTASH_TOKEN environment variable is required');

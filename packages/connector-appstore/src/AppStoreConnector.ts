@@ -44,14 +44,23 @@ import { resolve, extname } from 'path';
  * - APPLE_PRIVATE_KEY: Private key content or path to .p8 file
  * - GOOGLE_SERVICE_ACCOUNT: Service account JSON or path to file
  */
+/** Per-instance App Store credentials. Prefer over the APPLE_ / GOOGLE_ env vars so a
+ *  multi-tenant server never stashes one user's credentials in shared global state. */
+export interface AppStoreConnectorCredentials {
+  apple?: { keyId: string; issuerId: string; privateKey: string };
+  google?: { serviceAccount: string };
+}
+
 export class AppStoreConnector extends ServiceConnector {
   private appleClient: AppleAppStoreClient | null = null;
   private googleClient: GooglePlayClient | null = null;
   private webhookHandler: WebhookHandler;
   private registrar = new McpRegistrar();
+  private readonly injectedCredentials: AppStoreConnectorCredentials | null;
 
-  constructor() {
+  constructor(credentials?: AppStoreConnectorCredentials) {
     super();
+    this.injectedCredentials = credentials ?? null;
     this.webhookHandler = new WebhookHandler();
   }
 
@@ -110,9 +119,11 @@ export class AppStoreConnector extends ServiceConnector {
    * Load Apple credentials from environment
    */
   private loadAppleCredentials(): AppleCredentials | null {
-    const keyId = process.env.APPLE_KEY_ID;
-    const issuerId = process.env.APPLE_ISSUER_ID;
-    const privateKeyEnv = process.env.APPLE_PRIVATE_KEY;
+    // Prefer per-instance injected creds; fall back to env for legacy/server single-tenant use.
+    const injected = this.injectedCredentials?.apple;
+    const keyId = injected?.keyId ?? process.env.APPLE_KEY_ID;
+    const issuerId = injected?.issuerId ?? process.env.APPLE_ISSUER_ID;
+    const privateKeyEnv = injected?.privateKey ?? process.env.APPLE_PRIVATE_KEY;
 
     if (!keyId || !issuerId || !privateKeyEnv) {
       return null;
@@ -141,7 +152,9 @@ export class AppStoreConnector extends ServiceConnector {
    * Load Google credentials from environment
    */
   private loadGoogleCredentials(): GoogleCredentials | null {
-    const serviceAccountEnv = process.env.GOOGLE_SERVICE_ACCOUNT;
+    // Prefer per-instance injected creds; fall back to env for legacy/server single-tenant use.
+    const serviceAccountEnv =
+      this.injectedCredentials?.google?.serviceAccount ?? process.env.GOOGLE_SERVICE_ACCOUNT;
 
     if (!serviceAccountEnv) {
       return null;

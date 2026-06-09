@@ -19,17 +19,31 @@ export type { CompositionMetadata } from '../types.js';
  * - Hybrid search (vector + metadata)
  * - Namespace isolation (per-user/per-project)
  */
+/** Per-instance Upstash Vector credentials. Prefer over env so a multi-tenant server
+ *  never stashes one user's credentials in shared global state. */
+export interface VectorSubsystemCredentials {
+  url?: string;
+  token?: string;
+}
+
 export class VectorSubsystem {
   private index: Index | null = null;
   private isConnected = false;
+  private readonly injectedUrl: string | null;
+  private readonly injectedToken: string | null;
+
+  constructor(credentials?: VectorSubsystemCredentials) {
+    this.injectedUrl = credentials?.url ?? null;
+    this.injectedToken = credentials?.token ?? null;
+  }
 
   /**
-   * Connect to Upstash Vector using environment variables.
-   * Requires UPSTASH_VECTOR_URL and UPSTASH_VECTOR_TOKEN.
+   * Connect to Upstash Vector. Prefers per-instance injected credentials; falls back to
+   * UPSTASH_VECTOR_URL and UPSTASH_VECTOR_TOKEN env vars for legacy/server single-tenant use.
    */
   async connect(): Promise<void> {
-    const url = process.env.UPSTASH_VECTOR_URL;
-    const token = process.env.UPSTASH_VECTOR_TOKEN;
+    const url = this.injectedUrl ?? process.env.UPSTASH_VECTOR_URL;
+    const token = this.injectedToken ?? process.env.UPSTASH_VECTOR_TOKEN;
 
     if (!url || !token) {
       throw new Error(

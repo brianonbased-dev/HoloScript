@@ -13,17 +13,31 @@ import type { CacheStatistics, BatchCacheResult } from '../types.js';
  * - Cache statistics (key counts per domain)
  * - Atomic operations with JSON serialization
  */
+/** Per-instance Upstash Redis credentials. Prefer over env so a multi-tenant server
+ *  never stashes one user's credentials in shared global state. */
+export interface RedisSubsystemCredentials {
+  url?: string;
+  token?: string;
+}
+
 export class RedisSubsystem {
   private redis: Redis | null = null;
   private isConnected = false;
+  private readonly injectedUrl: string | null;
+  private readonly injectedToken: string | null;
+
+  constructor(credentials?: RedisSubsystemCredentials) {
+    this.injectedUrl = credentials?.url ?? null;
+    this.injectedToken = credentials?.token ?? null;
+  }
 
   /**
-   * Connect to Upstash Redis using environment variables.
-   * Requires UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN.
+   * Connect to Upstash Redis. Prefers per-instance injected credentials; falls back to
+   * UPSTASH_REDIS_URL and UPSTASH_REDIS_TOKEN env vars for legacy/server single-tenant use.
    */
   async connect(): Promise<void> {
-    const url = process.env.UPSTASH_REDIS_URL;
-    const token = process.env.UPSTASH_REDIS_TOKEN;
+    const url = this.injectedUrl ?? process.env.UPSTASH_REDIS_URL;
+    const token = this.injectedToken ?? process.env.UPSTASH_REDIS_TOKEN;
 
     if (!url || !token) {
       throw new Error(

@@ -14,19 +14,28 @@ import { vscodeTools } from './tools.js';
  * The extension bridge endpoint is set via VSCODE_BRIDGE_URL environment variable
  * or defaults to http://localhost:17420
  */
+/** Per-instance VSCode bridge config. Prefer this over the VSCODE_BRIDGE_URL env var so a
+ *  multi-tenant server never stashes one request's bridge target in shared global state. */
+export interface VSCodeConnectorCredentials {
+  bridgeUrl?: string;
+}
+
 export class VSCodeConnector extends ServiceConnector {
   private bridgeUrl: string = 'http://localhost:17420';
   private registrar = new McpRegistrar();
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private workspaceInfo: WorkspaceInfo | null = null;
+  private readonly injectedBridgeUrl: string | null;
 
-  constructor() {
+  constructor(credentials?: VSCodeConnectorCredentials) {
     super();
+    this.injectedBridgeUrl = credentials?.bridgeUrl ?? null;
   }
 
   async connect(): Promise<void> {
-    // Configure bridge URL from environment
-    this.bridgeUrl = process.env.VSCODE_BRIDGE_URL || 'http://localhost:17420';
+    // Prefer the injected per-instance bridge URL; fall back to env for legacy/server use.
+    this.bridgeUrl =
+      this.injectedBridgeUrl ?? process.env.VSCODE_BRIDGE_URL ?? 'http://localhost:17420';
 
     // Discover the running extension via bridge health check
     const reachable = await this.ping();

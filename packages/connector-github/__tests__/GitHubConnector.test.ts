@@ -130,9 +130,15 @@ describe('GitHubConnector', () => {
       delete process.env.GITHUB_TOKEN;
       const newConnector = new GitHubConnector();
 
-      await expect(newConnector.connect()).rejects.toThrow(
-        'GITHUB_TOKEN environment variable is required'
-      );
+      await expect(newConnector.connect()).rejects.toThrow('GitHub token is required');
+    });
+
+    it('uses an injected token without reading process.env (no cross-request env bleed)', async () => {
+      delete process.env.GITHUB_TOKEN;
+      const injected = new GitHubConnector({ token: 'injected-token' });
+      await injected.connect();
+      expect(injected['isConnected']).toBe(true);
+      expect(injected['token']).toBe('injected-token');
     });
 
     it('should disconnect properly', async () => {
