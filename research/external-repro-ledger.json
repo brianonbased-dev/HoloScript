@@ -1,0 +1,66 @@
+[
+  {
+    "date": "2026-06-09T22:33:37.971Z",
+    "gate": "cli-version-parity",
+    "cliVersion": "8.0.9",
+    "coreVersionLocal": "8.0.8",
+    "mcpVersion": "timeout",
+    "summary": {
+      "total": 5,
+      "passed": 0,
+      "drifted": 0,
+      "cliFailures": 5,
+      "mcpFailures": 5,
+      "inconclusive": 5
+    },
+    "ok": false
+  },
+  {
+    "date": "2026-06-09T22:39:04.825Z",
+    "gate": "cli-version-parity",
+    "cliVersion": "8.0.9",
+    "coreVersionLocal": "8.0.8",
+    "mcpVersion": "6.1.1",
+    "summary": {
+      "total": 7,
+      "passed": 3,
+      "drifted": 4,
+      "cliFailures": 0,
+      "mcpFailures": 0,
+      "inconclusive": 0
+    },
+    "ok": false
+  },
+  {
+    "date": "2026-06-09T22:40:06.600Z",
+    "gate": "cli-version-parity",
+    "cliVersion": "8.0.9",
+    "coreVersionLocal": "8.0.8",
+    "mcpVersion": "6.1.1",
+    "summary": {
+      "total": 7,
+      "passed": 3,
+      "drifted": 4,
+      "cliFailures": 0,
+      "mcpFailures": 1,
+      "inconclusive": 0
+    },
+    "ok": false
+  },
+  {
+    "date": "2026-06-09T22:40:46.009Z",
+    "gate": "cli-version-parity",
+    "cliVersion": "8.0.9",
+    "coreVersionLocal": "8.0.8",
+    "mcpVersion": "6.1.1",
+    "summary": {
+      "total": 7,
+      "passed": 3,
+      "drifted": 4,
+      "cliFailures": 0,
+      "mcpFailures": 0,
+      "inconclusive": 0
+    },
+    "ok": false
+  }
+]
