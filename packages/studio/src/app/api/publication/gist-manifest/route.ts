@@ -67,12 +67,22 @@ async function deployToHolomesh(params: {
 /**
  * Legacy: when `GIST_MANIFEST_REQUIRE_X402=true`, require a non-empty `x402Receipt`.
  * Prefer `GIST_MANIFEST_X402_TIER` for explicit policy (see below).
+ *
+ * @deprecated Use `GIST_MANIFEST_X402_TIER` instead. This flag will be removed in a future
+ * release. Set `GIST_MANIFEST_X402_TIER=required` to preserve the same behaviour.
  */
 function requireX402Enabled(): boolean {
-  return (
+  const enabled =
     process.env.GIST_MANIFEST_REQUIRE_X402 === 'true' ||
-    process.env.GIST_MANIFEST_REQUIRE_X402 === '1'
-  );
+    process.env.GIST_MANIFEST_REQUIRE_X402 === '1';
+  if (enabled && process.env.NODE_ENV === 'production') {
+    console.warn(
+      '[gist-manifest] GIST_MANIFEST_REQUIRE_X402 is deprecated and will be removed in a ' +
+        'future release. Migrate to GIST_MANIFEST_X402_TIER=required to preserve the same ' +
+        'behaviour. See packages/studio/src/app/api/publication/gist-manifest/route.ts.'
+    );
+  }
+  return enabled;
 }
 
 type X402Tier = 'off' | 'required' | 'strict';

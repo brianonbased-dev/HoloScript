@@ -76,6 +76,40 @@ describe('POST /api/publication/gist-manifest — x402 tiers', () => {
     expect(j.manifest.x402_receipt?.payment_id).toBe('pay_1');
   });
 
+  it('emits deprecation warning when GIST_MANIFEST_REQUIRE_X402 is set in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GIST_MANIFEST_X402_TIER', '');
+    vi.stubEnv('GIST_MANIFEST_REQUIRE_X402', 'true');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const req = new NextRequest('http://localhost/api/publication/gist-manifest', {
+      method: 'POST',
+      body: JSON.stringify(baseBody),
+    });
+    await POST(req);
+
+    expect(warnSpy).toHaveBeenCalled();
+    expect(warnSpy.mock.calls[0]![0]).toContain('GIST_MANIFEST_REQUIRE_X402');
+    expect(warnSpy.mock.calls[0]![0]).toContain('deprecated');
+    warnSpy.mockRestore();
+  });
+
+  it('does not emit deprecation warning when GIST_MANIFEST_REQUIRE_X402 is unset', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('GIST_MANIFEST_X402_TIER', 'off');
+    vi.stubEnv('GIST_MANIFEST_REQUIRE_X402', '');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const req = new NextRequest('http://localhost/api/publication/gist-manifest', {
+      method: 'POST',
+      body: JSON.stringify(baseBody),
+    });
+    await POST(req);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
   it('embeds film3dAttestation into manifest', async () => {
     vi.stubEnv('GIST_MANIFEST_X402_TIER', 'off');
 

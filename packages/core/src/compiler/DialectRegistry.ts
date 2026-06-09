@@ -217,6 +217,13 @@ class DialectRegistryImpl {
       const available = [...this.dialects.keys()].join(', ');
       throw new Error(`Unknown dialect "${name}". Available: ${available}`);
     }
+    if (desc.experimental && process.env['NODE_ENV'] === 'production') {
+      console.warn(
+        `[DialectRegistry] Experimental dialect "${name}" is being used in production. ` +
+          `This dialect is not yet stable and may change without notice. ` +
+          `Set NODE_ENV!=production or migrate to a stable dialect when one is available.`
+      );
+    }
     return desc.factory(options);
   }
 

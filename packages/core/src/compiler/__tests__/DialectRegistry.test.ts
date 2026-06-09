@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DialectRegistry } from '../DialectRegistry';
 import { registerBuiltinDialects } from '../registerBuiltinDialects';
 
@@ -164,6 +164,50 @@ describe('DialectRegistry', () => {
     it('node-service outputs .ts files', () => {
       const info = DialectRegistry.get('node-service');
       expect(info!.outputExtensions).toContain('.ts');
+    });
+  });
+
+  describe('experimental production warning', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('emits console.warn when experimental dialect is created in production', () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        DialectRegistry.create('node-service');
+      } catch {
+        // factory may throw without valid options — we only care that warn fired
+      }
+      expect(warnSpy).toHaveBeenCalledOnce();
+      expect(warnSpy.mock.calls[0]![0]).toContain('node-service');
+      expect(warnSpy.mock.calls[0]![0]).toContain('Experimental');
+      warnSpy.mockRestore();
+    });
+
+    it('does not emit console.warn when experimental dialect is created outside production', () => {
+      vi.stubEnv('NODE_ENV', 'test');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        DialectRegistry.create('node-service');
+      } catch {
+        // factory may throw without valid options — we only care that warn did not fire
+      }
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it('does not emit console.warn for stable (non-experimental) dialects in production', () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        DialectRegistry.create('unity');
+      } catch {
+        // factory may throw — we only care that warn did not fire
+      }
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
   });
 });
