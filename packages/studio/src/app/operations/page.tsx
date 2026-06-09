@@ -103,6 +103,28 @@ interface StabilizerTelemetry {
   source: string;
 }
 
+interface HoloShellProcess {
+  pid: number;
+  reason: string;
+  ageSec: number;
+  command: string;
+}
+
+interface HoloShellPending {
+  id: string;
+  operation: string;
+  targetCount: number;
+  timestamp: string;
+}
+
+interface HoloShellExecution {
+  id: string;
+  preflightId: string;
+  operation: string;
+  executedAtShort: string;
+  summary: { killed: number; errors: number };
+}
+
 function timeAgo(iso?: string): string {
   if (!iso) return '—';
   const t = new Date(iso).getTime();
@@ -173,6 +195,10 @@ export default function OperationsPage() {
   const [stabilizer, setStabilizer] = useState<StabilizerTelemetry | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lastTick, setLastTick] = useState<string>('');
+  const [holoshellProcs, setHoloshellProcs] = useState<HoloShellProcess[] | null>(null);
+  const [holoshellPending, setHoloshellPending] = useState<HoloShellPending[] | null>(null);
+  const [holoshellHistory, setHoloshellHistory] = useState<HoloShellExecution[] | null>(null);
+  const [approving, setApproving] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
@@ -243,9 +269,56 @@ export default function OperationsPage() {
       errs.stabilizer = e instanceof Error ? e.message : 'failed';
     }
 
+    // HoloShell stale processes
+    try {
+      const r = await fetch('/api/holoshell/stale-processes', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`holoshell-procs ${r.status}`);
+      const j = await r.json();
+      setHoloshellProcs(Array.isArray(j.items) ? j.items : []);
+    } catch (e: unknown) {
+      errs.holoshellProcs = e instanceof Error ? e.message : 'failed';
+    }
+
+    // HoloShell pending consents
+    try {
+      const r = await fetch('/api/holoshell/pending-consents', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`holoshell-pending ${r.status}`);
+      const j = await r.json();
+      setHoloshellPending(Array.isArray(j.items) ? j.items : []);
+    } catch (e: unknown) {
+      errs.holoshellPending = e instanceof Error ? e.message : 'failed';
+    }
+
+    // HoloShell execution history
+    try {
+      const r = await fetch('/api/holoshell/execution-history', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`holoshell-history ${r.status}`);
+      const j = await r.json();
+      setHoloshellHistory(Array.isArray(j.items) ? j.items : []);
+    } catch (e: unknown) {
+      errs.holoshellHistory = e instanceof Error ? e.message : 'failed';
+    }
+
     setErrors(errs);
     setLastTick(new Date().toLocaleTimeString());
   }, [teamId]);
+
+  const approveConsent = useCallback(
+    async (preflightId: string) => {
+      setApproving(preflightId);
+      try {
+        const r = await fetch('/api/holoshell/consent/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preflightId }),
+        });
+        if (r.ok) await load();
+      } finally {
+        setApproving(null);
+      }
+    },
+    [load]
+  );
 
   useEffect(() => {
     if (!isFounder) return; // non-founders never trigger the operate proxies
@@ -553,6 +626,78 @@ export default function OperationsPage() {
             </div>
           ) : (
             <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
+        {/* HOLOSHELL STALE PROCESSES */}
+        <Card title="🖥️ HoloShell — Stale Processes">
+          {errors.holoshellProcs ? (
+            <div className="text-xs text-red-400">Error: {errors.holoshellProcs}</div>
+          ) : holoshellProcs === null ? (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          ) : holoshellProcs.length === 0 ? (
+            <div className="text-xs text-emerald-400">No stale processes ✓</div>
+          ) : (
+            <div className="space-y-1">
+              {holoshellProcs.map((p) => (
+                <div key={p.pid} className="text-[10px] font-mono text-amber-300 truncate">
+                  PID {p.pid} · {p.ageSec}s · {p.reason}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* HOLOSHELL PENDING CONSENTS */}
+        <Card title="🔐 HoloShell — Pending Consents">
+          {errors.holoshellPending ? (
+            <div className="text-xs text-red-400">Error: {errors.holoshellPending}</div>
+          ) : holoshellPending === null ? (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          ) : holoshellPending.length === 0 ? (
+            <div className="text-xs text-emerald-400">No pending consents ✓</div>
+          ) : (
+            <div className="space-y-2">
+              {holoshellPending.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between gap-2 rounded border border-studio-border/40 bg-studio-panel/20 px-2 py-1"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-studio-text truncate">
+                      {c.operation} · {c.targetCount} targets
+                    </div>
+                    <div className="text-[9px] text-studio-muted">{timeAgo(c.timestamp)}</div>
+                  </div>
+                  <button
+                    className="shrink-0 rounded bg-blue-600 px-2 py-0.5 text-[10px] text-white hover:bg-blue-500 disabled:opacity-50"
+                    disabled={approving === c.id}
+                    onClick={() => approveConsent(c.id)}
+                  >
+                    {approving === c.id ? '…' : 'Approve'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* HOLOSHELL EXECUTION HISTORY */}
+        <Card title="📜 HoloShell — Execution History">
+          {errors.holoshellHistory ? (
+            <div className="text-xs text-red-400">Error: {errors.holoshellHistory}</div>
+          ) : holoshellHistory === null ? (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          ) : holoshellHistory.length === 0 ? (
+            <div className="text-xs text-studio-muted">No executions yet.</div>
+          ) : (
+            <div className="space-y-0.5">
+              {holoshellHistory.slice(0, 8).map((e) => (
+                <div key={e.id} className="text-[10px] font-mono text-studio-muted truncate">
+                  {e.executedAtShort} · killed:{e.summary.killed} err:{e.summary.errors}
+                </div>
+              ))}
+            </div>
           )}
         </Card>
       </div>
