@@ -61,6 +61,10 @@ interface CachedToken {
   accessToken: string;
   refreshToken?: string;
   expiresAt: number; // ms since epoch
+}
+
+/** Registered OAuth client credentials — persisted across token invalidations. */
+interface OAuthClient {
   clientId: string;
   clientSecret: string;
 }
@@ -71,6 +75,7 @@ const REFRESH_BUFFER_SECS = 60;
 // ── McpClient ────────────────────────────────────────────────────────────────
 
 export class McpClient {
+  private _oauthClient: OAuthClient | null = null;
   private _tokenCache: CachedToken | null = null;
   private _tokenInflight: Promise<CachedToken> | null = null;
 
@@ -163,27 +168,42 @@ export class McpClient {
 
   /**
    * Try to refresh an existing token first; fall back to full registration + issue.
+   *
+   * The OAuth client registration (_oauthClient) is kept separate from the
+   * access-token cache (_tokenCache) so that clearing the token cache on 401
+   * does not lose the clientId/clientSecret and force an unnecessary re-registration.
    */
   private async _acquireToken(): Promise<CachedToken> {
     // Attempt refresh if we have a cached refresh token.
-    if (this._tokenCache?.refreshToken) {
+    if (this._tokenCache?.refreshToken && this._oauthClient) {
       try {
         const refreshed = await this._refreshToken(
-          this._tokenCache.clientId,
-          this._tokenCache.clientSecret,
+          this._oauthClient.clientId,
+          this._oauthClient.clientSecret,
           this._tokenCache.refreshToken
         );
         this._tokenCache = refreshed;
         return refreshed;
       } catch {
-        // Refresh failed; fall through to full re-registration.
+        // Refresh failed; fall through to re-issue (skip re-registration if client is known).
         this._tokenCache = null;
       }
     }
 
-    // Register a new service client and issue credentials.
-    const { clientId, clientSecret } = await this._registerClient();
-    const token = await this._issueToken(clientId, clientSecret);
+    // Re-issue using existing client credentials if available.
+    if (this._oauthClient) {
+      const token = await this._issueToken(
+        this._oauthClient.clientId,
+        this._oauthClient.clientSecret
+      );
+      this._tokenCache = token;
+      return token;
+    }
+
+    // First run: register a new service client, then issue.
+    const oauthClient = await this._registerClient();
+    this._oauthClient = oauthClient;
+    const token = await this._issueToken(oauthClient.clientId, oauthClient.clientSecret);
     this._tokenCache = token;
     return token;
   }
@@ -254,7 +274,7 @@ export class McpClient {
     }
 
     const body = await res.json() as Record<string, unknown>;
-    return this._parseCachedToken(body, clientId, clientSecret);
+    return this._parseCachedToken(body);
   }
 
   /**
@@ -285,14 +305,10 @@ export class McpClient {
     }
 
     const body = await res.json() as Record<string, unknown>;
-    return this._parseCachedToken(body, clientId, clientSecret);
+    return this._parseCachedToken(body);
   }
 
-  private _parseCachedToken(
-    body: Record<string, unknown>,
-    clientId: string,
-    clientSecret: string
-  ): CachedToken {
+  private _parseCachedToken(body: Record<string, unknown>): CachedToken {
     const accessToken = body.access_token as string | undefined;
     if (!accessToken) {
       throw new Error(`oauth/token: no access_token in response — ${JSON.stringify(body).slice(0, 200)}`);
@@ -302,8 +318,6 @@ export class McpClient {
       accessToken,
       refreshToken: body.refresh_token as string | undefined,
       expiresAt: Date.now() + expiresIn * 1000,
-      clientId,
-      clientSecret,
     };
   }
 
@@ -330,9 +344,14 @@ export class McpClient {
 
   // ── Visible for testing ────────────────────────────────────────────────────
 
-  /** Inject a pre-issued token (for tests that stub out the OAuth endpoints). */
-  _setTokenForTest(token: CachedToken): void {
+  /**
+   * Inject a pre-issued token (for tests that stub out the OAuth endpoints).
+   * Optionally pre-sets the OAuth client credentials too (avoids re-registration
+   * when testing token refresh / 401 retry paths).
+   */
+  _setTokenForTest(token: CachedToken, client?: OAuthClient): void {
     this._tokenCache = token;
+    if (client) this._oauthClient = client;
   }
 
   /** Flush the cached token (forces re-authentication on the next call). */

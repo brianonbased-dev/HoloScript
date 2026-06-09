@@ -122,14 +122,14 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     expect(calls).toHaveLength(4);
   });
 
-  it('retries with a fresh token on 401 and invalidates the cache', async () => {
+  it('retries with a fresh token on 401 without re-registering the client', async () => {
     const freshTokenResponse = { ...TOKEN_RESPONSE, access_token: 'hs_new_token' };
     const { fetchFn, calls } = makeFetch([
-      { status: 200, body: REGISTER_RESPONSE }, // register
+      { status: 200, body: REGISTER_RESPONSE }, // register (only once)
       { status: 200, body: TOKEN_RESPONSE },     // token
       { status: 401, body: { error: 'invalid_token' } }, // tool call → 401
-      // Retry path: cache cleared, re-register + new token
-      { status: 200, body: REGISTER_RESPONSE },
+      // Retry path: token cache cleared, but _oauthClient is preserved —
+      // re-issue using the existing client credentials (no re-registration).
       { status: 200, body: freshTokenResponse },
       { status: 200, body: { ok: true } },       // tool call retry
     ]);
@@ -144,6 +144,9 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
 
     const result = await client.callTool({ server: 's', tool: 't', args: {} });
     expect(result.ok).toBe(true);
+
+    // Only 5 calls: register, token, 401-tool, fresh-token, retry-tool (no second register).
+    expect(calls).toHaveLength(5);
 
     // The retry tool call must carry the NEW bearer token.
     const retryToolCall = calls[calls.length - 1];
@@ -235,12 +238,10 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
       fetchImpl: fetchFn,
     });
 
-    client._setTokenForTest({
-      accessToken: 'pre-issued-token',
-      expiresAt: Date.now() + 3600 * 1000,
-      clientId: 'cid',
-      clientSecret: 'csec',
-    });
+    client._setTokenForTest(
+      { accessToken: 'pre-issued-token', expiresAt: Date.now() + 3600 * 1000 },
+      { clientId: 'cid', clientSecret: 'csec' }
+    );
 
     await client.callTool({ server: 's', tool: 't', args: {} });
 
