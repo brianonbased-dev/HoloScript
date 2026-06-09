@@ -116,67 +116,12 @@ export declare function buildAdversarialTrajectoryReport(
   topPriorityLimit?: number
 ): AdversarialTrajectoryReport;
 export declare function serializeReport(report: AdversarialTrajectoryReport): string;
-
-// --- Common scene replay result shape (shared by all three scenes) ---
-export interface SceneReplayResult {
-  readonly sceneId: string;
-  readonly seed: number;
-  readonly sceneHash: SceneHash;
-  readonly objects: readonly unknown[];
-  readonly events: readonly unknown[];
-  readonly actionTrace: readonly ActionStep[];
-  readonly observationTrace: readonly ObservationStep[];
-  readonly contactCount: number;
-  readonly predicateViolationCount: number;
-  readonly invalidActionCount: number;
-  readonly eventLogHash: string;
-}
-
-// --- Builder helpers (DeterministicFailureScene) ---
-export interface DeterministicSceneAction {
-  readonly type: string;
-  readonly payload: Readonly<Record<string, unknown>>;
-}
-export interface DeterministicFailureSceneOptions {
-  readonly seed?: number;
-  readonly discoveredAtMs?: number;
-}
-export interface DeterministicFailureSceneResult extends SceneReplayResult {
-  readonly camera: unknown;
-}
-export interface DeterministicFailureTrajectoryBuild {
-  readonly result: DeterministicFailureSceneResult;
-  readonly trajectory: AdversarialTrajectory;
-}
-export declare const DEFAULT_DETERMINISTIC_FAILURE_ACTIONS: readonly DeterministicSceneAction[];
-export declare function buildDeterministicFailureTrajectory(
-  actions?: readonly DeterministicSceneAction[],
-  options?: DeterministicFailureSceneOptions
-): DeterministicFailureTrajectoryBuild;
-
-// --- Builder helpers (HumanoidRockThrowScene) ---
-export interface HumanoidRockThrowSceneOptions {
-  readonly seed?: number;
-  readonly discoveredAtMs?: number;
-}
-export interface HumanoidRockThrowTrajectoryBuild {
-  readonly result: SceneReplayResult;
-  readonly trajectory: AdversarialTrajectory;
-}
-export declare function buildHumanoidRockThrowTrajectory(
-  options?: HumanoidRockThrowSceneOptions
-): HumanoidRockThrowTrajectoryBuild;
-
-// --- Builder helpers (TwoAgentHandoffCatchScene) ---
-export interface TwoAgentHandoffCatchSceneOptions {
-  readonly seed?: number;
-  readonly discoveredAtMs?: number;
-}
-export interface TwoAgentHandoffCatchTrajectoryBuild {
-  readonly result: SceneReplayResult;
-  readonly trajectory: AdversarialTrajectory;
-}
-export declare function buildTwoAgentHandoffCatchTrajectory(
-  options?: TwoAgentHandoffCatchSceneOptions
-): TwoAgentHandoffCatchTrajectoryBuild;
 export declare function isReportCountsConsistent(report: AdversarialTrajectoryReport): boolean;
+// --- Builder result types ---
+export interface DeterministicFailureTrajectoryBuild { readonly result: any; readonly trajectory: AdversarialTrajectory; }
+export interface HumanoidRockThrowTrajectoryBuild { readonly result: any; readonly trajectory: AdversarialTrajectory; }
+export interface TwoAgentHandoffCatchTrajectoryBuild { readonly result: any; readonly trajectory: AdversarialTrajectory; }
+// --- Builder functions ---
+export function buildDeterministicFailureTrajectory(actions?: readonly any[], options?: any): DeterministicFailureTrajectoryBuild;
+export function buildHumanoidRockThrowTrajectory(options?: any): HumanoidRockThrowTrajectoryBuild;
+export function buildTwoAgentHandoffCatchTrajectory(options?: any): TwoAgentHandoffCatchTrajectoryBuild;

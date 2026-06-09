@@ -4213,11 +4213,16 @@ const runtimeDTS = `// @holoscript/core/runtime — engine/mesh/framework-backed
 
 export class HoloScriptRuntime {
   execute(ast: any, context?: any): Promise<any>;
+  executeProgram(nodes: ASTNode[], depth?: number): Promise<ExecutionResult[]>;
+  getContext(): RuntimeContext;
+  startVisualizationServer(port?: number): void;
+  reset(): void;
 }
 
+export interface RuntimeContext { [key: string]: any; }
 export interface RuntimeOptions { [key: string]: any; }
 export interface Renderer { [key: string]: any; }
-export interface ExecutionResult { success: boolean; result?: any; error?: string; duration?: number; memoryUsed?: number; }
+export interface ExecutionResult { success: boolean; output?: any; hologram?: any; spatialPosition?: any; error?: string; executionTime?: number; learningSignals?: Record<string, any>; result?: any; duration?: number; memoryUsed?: number; }
 
 export class HoloScriptPlusRuntimeImpl {
   constructor(options?: RuntimeOptions);
@@ -5704,6 +5709,7 @@ export const SOVEREIGN_ENGINES: readonly SovereignEngine[];
 export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
+export function compilePipelineSourceToNode(source: string, options?: any): any;
 `;
 
 const r3fDTS = `export interface R3FNode {
@@ -6922,6 +6928,14 @@ export declare function buildAdversarialTrajectoryReport(
 ): AdversarialTrajectoryReport;
 export declare function serializeReport(report: AdversarialTrajectoryReport): string;
 export declare function isReportCountsConsistent(report: AdversarialTrajectoryReport): boolean;
+// --- Builder result types ---
+export interface DeterministicFailureTrajectoryBuild { readonly result: any; readonly trajectory: AdversarialTrajectory; }
+export interface HumanoidRockThrowTrajectoryBuild { readonly result: any; readonly trajectory: AdversarialTrajectory; }
+export interface TwoAgentHandoffCatchTrajectoryBuild { readonly result: any; readonly trajectory: AdversarialTrajectory; }
+// --- Builder functions ---
+export function buildDeterministicFailureTrajectory(actions?: readonly any[], options?: any): DeterministicFailureTrajectoryBuild;
+export function buildHumanoidRockThrowTrajectory(options?: any): HumanoidRockThrowTrajectoryBuild;
+export function buildTwoAgentHandoffCatchTrajectory(options?: any): TwoAgentHandoffCatchTrajectoryBuild;
 `;
 
 const paper0cSpikeDTS = `/** @holoscript/core/paper-0c-spike — CAEL paper-0c primitives (subgrid attestation) */

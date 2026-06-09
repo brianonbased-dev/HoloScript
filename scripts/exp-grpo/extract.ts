@@ -22,8 +22,8 @@ import { Readable } from 'node:stream';
 import {
   GRPOPromptExtractor,
   type PromptExtractorFS,
-} from '../packages/absorb-service/src/self-improvement/GRPOPromptExtractor.js';
-import { FocusedDPOSplitter } from '../packages/absorb-service/src/self-improvement/FocusedDPOSplitter.js';
+} from '@holoscript/absorb-service/self-improvement';
+import { FocusedDPOSplitter } from '@holoscript/absorb-service/self-improvement';
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -87,11 +87,11 @@ const realFS: PromptExtractorFS = {
       return false;
     }
   },
-  resolve: (...s) => nodePath.resolve(...s),
-  relative: (from, to) => nodePath.relative(from, to),
-  dirname: (p) => nodePath.dirname(p),
-  basename: (p, ext?) => nodePath.basename(p, ext),
-  join: (...s) => nodePath.join(...s),
+  resolve: (...s: string[]) => nodePath.resolve(...s),
+  relative: (from: string, to: string) => nodePath.relative(from, to),
+  dirname: (p: string) => nodePath.dirname(p),
+  basename: (p: string, ext?: string) => nodePath.basename(p, ext),
+  join: (...s: string[]) => nodePath.join(...s),
 };
 
 // ---------------------------------------------------------------------------
@@ -143,7 +143,7 @@ async function main() {
   const validPairs = dpoPairs.filter((p) => p.metadata.qualityScore >= 0.5);
   console.error(
     `[extract] DPO: ${validPairs.length} valid pairs ` +
-      `(${dpoStats.pairsGenerated} total, ${dpoStats.invalidPairs} invalid)`
+      `(${dpoStats.totalPairs} total, ${dpoStats.rejectedPairs} rejected)`
   );
 
   const dpoPath = nodePath.join(OUT_DIR, 'dpo-pairs.jsonl');

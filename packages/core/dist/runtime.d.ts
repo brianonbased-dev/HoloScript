@@ -2,52 +2,18 @@
 // Hand-crafted to mirror src/runtime.ts exactly (the value surface of dist/runtime.js).
 // Requires the optional peers (@holoscript/engine, @holoscript/mesh, @holoscript/framework) installed.
 
-/** Execution result shape — mirrors dist/index.d.ts ExecutionResult exactly */
-export interface ExecutionResult {
-  success: boolean;
-  result?: unknown;
-  error?: string;
-  duration?: number;
-  memoryUsed?: number;
-  executionTime?: number;
-  hologram?: { shape?: string; color?: string; [key: string]: unknown };
-  spatialPosition?: { x: number; y: number; z: number; [key: string]: unknown };
-  output?: unknown;
-}
-
-/** Minimal runtime context — mirrors the shape callers destructure */
-export interface RuntimeContext {
-  variables: Map<string, unknown>;
-  functions: Map<string, unknown>;
-  [key: string]: unknown;
-}
-
 export class HoloScriptRuntime {
-  constructor(importLoader?: unknown, customFunctions?: Record<string, (...args: unknown[]) => unknown>);
-  execute(ast: unknown, context?: unknown): Promise<unknown>;
-  executeProgram(nodes: unknown[], depth?: number): Promise<ExecutionResult[]>;
-  executeHoloProgram(statements: unknown[], scopeOverride?: unknown): Promise<ExecutionResult[]>;
+  execute(ast: any, context?: any): Promise<any>;
+  executeProgram(nodes: ASTNode[], depth?: number): Promise<ExecutionResult[]>;
   getContext(): RuntimeContext;
-  reset(): void;
   startVisualizationServer(port?: number): void;
-  broadcast(type: string, payload: unknown): void;
-  on(event: string, handler: (...args: unknown[]) => unknown): void;
-  off(event: string, handler?: (...args: unknown[]) => unknown): void;
-  emit(event: string, data?: unknown): Promise<void>;
-  setVariable(name: string, value: unknown, scopeOverride?: unknown): void;
-  getVariable(name: string, scopeOverride?: unknown): unknown;
-  callFunction(name: string, args?: unknown[]): Promise<unknown>;
-  registerFunction(name: string, handler: (...args: unknown[]) => unknown): void;
-  registerTrait(name: string, handler: unknown): void;
-  getState(): Record<string, unknown>;
-  getRootScope(): unknown;
-  getExecutionHistory(): ExecutionResult[];
-  getCallStack(): string[];
+  reset(): void;
 }
 
+export interface RuntimeContext { [key: string]: any; }
 export interface RuntimeOptions { [key: string]: any; }
 export interface Renderer { [key: string]: any; }
-export interface ExecutionResult { success: boolean; result?: any; error?: string; duration?: number; memoryUsed?: number; }
+export interface ExecutionResult { success: boolean; output?: any; hologram?: any; spatialPosition?: any; error?: string; executionTime?: number; learningSignals?: Record<string, any>; result?: any; duration?: number; memoryUsed?: number; }
 
 export class HoloScriptPlusRuntimeImpl {
   constructor(options?: RuntimeOptions);

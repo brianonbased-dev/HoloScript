@@ -503,3 +503,4 @@ export const SOVEREIGN_ENGINES: readonly SovereignEngine[];
 export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
+export function compilePipelineSourceToNode(source: string, options?: any): any;
