@@ -22,7 +22,7 @@
  *
  * @version 5.3.0
  * @category showcase, forest, twilight
- * @traits @volumetric_clouds @wind @bioluminescent @ambient @lod_managed
+ * @traits @volumetric_clouds @wind @bioluminescent @ambient @lod_managed @time_of_day
  */
 
 composition "RealisticForest_Twilight" {
@@ -43,6 +43,25 @@ composition "RealisticForest_Twilight" {
       color: "#4a5a7a",
       height_falloff: 0.12,
       start: 8.0
+    }
+  }
+
+  // ── Time-of-day driver — orchestrates sky phases for this scene ─────────────
+  // Emits time_of_day_tick every frame; @ambient time_envelope subscribers
+  // (ForestSoundscape, CricketAmbient) read current_phase + phase_t to scale
+  // their volumes.  Skybox exposure, fog, and bioluminescent intensity also
+  // key off this driver.  Starts at golden hour to match the scene story.
+
+  object "ForestTimeDriver" {
+    @time_of_day {
+      cycle_duration_minutes: 24
+      start_phase: "golden"
+      phases: {
+        dawn:   { sun_intensity: 0.25, ambient_light: 0.10, fog_density: 0.032, sky_exposure: 0.6 }
+        golden: { sun_intensity: 0.60, ambient_light: 0.18, fog_density: 0.018, sky_exposure: 1.0 }
+        dusk:   { sun_intensity: 0.30, ambient_light: 0.14, fog_density: 0.024, sky_exposure: 0.7 }
+        dark:   { sun_intensity: 0.02, ambient_light: 0.06, fog_density: 0.040, sky_exposure: 0.2 }
+      }
     }
   }
 

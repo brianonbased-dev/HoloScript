@@ -262,6 +262,7 @@ export * from './TenantTrait';
 export * from './TerrainAnchorTrait';
 export { telemetryHandler } from './TelemetryTrait';
 export * from './TimeoutGuardTrait';
+export * from './TraitTimeOfDay';
 export * from './TransformTrait';
 export * from './TokenGatedTrait';
 export * from './TrackingTopologyTrait';

@@ -16,6 +16,7 @@ export const ATMOSPHERE_SKY_TRAITS = [
   'stratus_clouds',
   'cloud_shadow',
   'day_night_cycle',
+  'time_of_day',
   'twilight',
   'rainbow_arc',
   'lightning_flash',
