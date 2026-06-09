@@ -482,11 +482,39 @@ export async function POST(request: NextRequest) {
             // Stream the LLM response via the unified provider surface.
             // LLMStreamChunk events are translated to SSE events that the
             // client already consumes — identical format regardless of backend.
+
+            // On the first round only: detect scene-creation intent and force
+            // apply_code via tool_choice so the model doesn't output JSON in chat.
+            const latestUserText: string =
+              round === 0
+                ? (() => {
+                    const last = [...llmMessages].reverse().find((m) => m.role === 'user');
+                    return typeof last?.content === 'string' ? last.content : '';
+                  })()
+                : '';
+            const isSceneCreation =
+              round === 0 &&
+              /\b(write|create|build|make|generate|scaffold)\b.{0,80}\b(scene|composition|world|holoscript|space|environment|sphere|cube|object|model|room)\b/i.test(
+                latestUserText
+              );
+            const hasApplyCode = tools.some(
+              (t) =>
+                ('name' in t && t.name === 'apply_code') ||
+                ('function' in t && (t as { function: { name: string } }).function.name === 'apply_code')
+            );
+
             const request: LLMCompletionRequest = {
               messages: roundMessages,
               maxTokens,
               tools: tools.length > 0 ? tools : undefined,
               stream: true,
+              ...(isSceneCreation && hasApplyCode
+                ? {
+                    provider: {
+                      anthropic: { toolChoice: { type: 'tool' as const, name: 'apply_code' } },
+                    },
+                  }
+                : {}),
             };
 
             let stopReason: string | null = null;

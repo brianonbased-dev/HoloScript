@@ -1128,6 +1128,12 @@ export interface AnthropicProviderExtensions {
   compaction?: { type: 'compact_20260112' };
   /** Opt-in beta headers (e.g. `managed-agents-2026-04-01`, `advisor-tool-2026-03-01`). */
   betaHeaders?: string[];
+  /**
+   * Anthropic `tool_choice` — controls whether/which tool the model must call.
+   * `{ type: 'auto' }` default, `{ type: 'any' }` forces at least one tool,
+   * `{ type: 'tool', name: 'fn' }` forces a specific tool.
+   */
+  toolChoice?: { type: 'auto' | 'any' | 'none' } | { type: 'tool'; name: string };
 }
 
 /**

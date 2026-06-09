@@ -516,6 +516,10 @@ export class AnthropicAdapter extends BaseLLMAdapter {
           // Only set tools when the caller passed any — keeps the request
           // shape identical to the working pre-tool-use path when tools=[].
           ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
+          // tool_choice — only set when tools are present and the caller requested it.
+          ...(request.tools && request.tools.length > 0 && request.provider?.anthropic?.toolChoice
+            ? { tool_choice: request.provider.anthropic.toolChoice as never }
+            : {}),
           // Adaptive thinking + output_config.effort (see buildThinkingAndOutputForAnthropic).
           ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
           ...(thinkingOut.output_config
@@ -693,6 +697,9 @@ export class AnthropicAdapter extends BaseLLMAdapter {
           content: m.content as never,
         })),
         ...(request.tools && request.tools.length > 0 ? { tools: request.tools as never } : {}),
+        ...(request.tools && request.tools.length > 0 && request.provider?.anthropic?.toolChoice
+          ? { tool_choice: request.provider.anthropic.toolChoice as never }
+          : {}),
         ...(thinkingOut.thinking ? { thinking: thinkingOut.thinking as never } : {}),
         ...(thinkingOut.output_config ? { output_config: thinkingOut.output_config as never } : {}),
         // Server-side compaction + per-loop task budgets. Same plumbing as
