@@ -690,6 +690,12 @@ export {
   type SecretResolveAudit,
 } from './secret-resolver';
 export {
+  checkSecretAccess,
+  PolicyDeniedError,
+  type SecretAccessPolicy,
+  type SecretAccessDecision,
+} from './secret-access-policy';
+export {
   createNeedsKeyHandler,
   registerNeedsKeyTrait,
   type NeedsKeyConfig,
