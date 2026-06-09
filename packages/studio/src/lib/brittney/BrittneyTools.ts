@@ -316,14 +316,40 @@ export const BRITTNEY_TOOLS = [
     type: 'function' as const,
     function: {
       name: 'apply_code',
-      description:
-        'Replace the current scene HoloScript source code in the editor. Use this to write a complete new composition, restructure the scene, or make multi-object edits that would be cumbersome one-object-at-a-time. Always write the full, valid HoloScript code — not a partial diff or fragment.',
+      description: [
+        'ALWAYS use this tool when the user asks to write, create, make, or build a scene.',
+        'Never output code or JSON in chat — call apply_code with the full HoloScript source.',
+        '',
+        'HoloScript composition syntax (use this format, not JSON):',
+        'composition "Scene Name" {',
+        '  environment { skybox: "night"  ambient_light: 0.3 }',
+        '  object "Sphere" {',
+        '    geometry: "sphere"',
+        '    position: [0, 1.5, 0]',
+        '    scale: [1.5, 1.5, 1.5]',
+        '    color: "#ffff00"',
+        '    @emissive { color: "#ffff00", intensity: 3.0 }',
+        '    @bloom { strength: 1.5, radius: 0.4 }',
+        '  }',
+        '  object "Floor" {',
+        '    @static',
+        '    geometry: "plane"',
+        '    position: [0, 0, 0]',
+        '    rotation: [-90, 0, 0]',
+        '    scale: [20, 20, 1]',
+        '    material: { roughness: 0.2, metalness: 0.5 }',
+        '  }',
+        '}',
+        '',
+        'Rules: top-level is composition "Name" { }; objects use object "Name" { }; traits use @traitName or @traitName { key: value }; properties are key: value (no commas between properties); vectors are [x, y, z]. NEVER use JSON format.',
+      ].join('\n'),
       parameters: {
         type: 'object',
         properties: {
           code: {
             type: 'string',
-            description: 'Complete HoloScript composition code to load into the scene editor',
+            description:
+              'Complete HoloScript composition source (composition "Name" { object "Name" { ... } } format — NOT JSON)',
           },
         },
         required: ['code'],
