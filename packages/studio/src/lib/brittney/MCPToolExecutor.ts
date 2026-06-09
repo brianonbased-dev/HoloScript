@@ -302,7 +302,16 @@ async function executeOrchestratorTool(
   context: MCPToolExecutionContext
 ): Promise<MCPToolResult> {
   const baseUrl = getOrchestratorUrl();
-  const apiKey = getAPIKey();
+  // GOLD->Brittney Part 3 (option a): founder-session knowledge queries carry the
+  // dedicated GOLD_FOUNDER_KEY so the orchestrator grants UNMETERED knowledge read
+  // (full GOLD, every tier). Non-founder sessions use the regular metered key, so
+  // public users only ever see the Diamond public-tier carve-out. Server-side only;
+  // scoped to knowledge_query — every other orchestrator route keeps the normal key.
+  const goldFounderKey = process.env['GOLD_FOUNDER_KEY'];
+  const apiKey =
+    name === 'knowledge_query' && context.allowFounderWorkspace === true && goldFounderKey
+      ? goldFounderKey
+      : getAPIKey();
 
   let url = `${baseUrl}${config.path}`;
 
