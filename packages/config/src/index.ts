@@ -27,7 +27,10 @@ export {
   getOpenAIKey,
   getRailwayToken,
   getTeamId,
+  getOAuthToken,
+  invalidateOAuthTokenCache,
   mcpAuthHeaders,
+  mcpAuthHeadersAsync,
   holomeshAuthHeaders,
   absorbAuthHeaders,
 } from './auth';

@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ENDPOINTS, getEndpoint } from '../endpoints';
-import { getMcpApiKey, getHolomeshKey, mcpAuthHeaders, holomeshAuthHeaders } from '../auth';
+import {
+  getMcpApiKey,
+  getHolomeshKey,
+  mcpAuthHeaders,
+  mcpAuthHeadersAsync,
+  getOAuthToken,
+  invalidateOAuthTokenCache,
+  holomeshAuthHeaders,
+} from '../auth';
 import { validateConfig, requireConfig } from '../validate';
 
 describe('endpoints', () => {
@@ -58,14 +66,122 @@ describe('auth (server-side)', () => {
     }
   });
 
-  it('mcpAuthHeaders returns correct header', () => {
+  it('mcpAuthHeaders returns correct header (legacy)', () => {
     const headers = mcpAuthHeaders();
     expect(headers['x-mcp-api-key']).toBe('test-mcp-key');
+    expect(headers['x-holoscript-api-key']).toBe('test-mcp-key');
   });
 
   it('holomeshAuthHeaders returns Bearer token', () => {
     const headers = holomeshAuthHeaders();
     expect(headers['Authorization']).toBe('Bearer test-holomesh-key');
+  });
+
+  describe('getOAuthToken', () => {
+    afterEach(() => {
+      // Always clear cache and credentials after each OAuth test
+      invalidateOAuthTokenCache();
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+      vi.restoreAllMocks();
+    });
+
+    it('returns undefined when client credentials are not configured', async () => {
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+      const token = await getOAuthToken();
+      expect(token).toBeUndefined();
+    });
+
+    it('fetches an OAuth token and caches it', async () => {
+      process.env.HOLOSCRIPT_MCP_CLIENT_ID = 'test-client-id';
+      process.env.HOLOSCRIPT_MCP_CLIENT_SECRET = 'test-client-secret';
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: 'oauth-bearer-token', expires_in: 3600, token_type: 'Bearer' }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      const token1 = await getOAuthToken();
+      expect(token1).toBe('oauth-bearer-token');
+
+      // Second call should use cache — fetch only called once
+      const token2 = await getOAuthToken();
+      expect(token2).toBe('oauth-bearer-token');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      // Verify request shape
+      const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(url).toContain('/oauth/token');
+      const body = new URLSearchParams(opts.body as string);
+      expect(body.get('grant_type')).toBe('client_credentials');
+      expect(body.get('client_id')).toBe('test-client-id');
+      expect(body.get('client_secret')).toBe('test-client-secret');
+    });
+
+    it('throws on non-OK token response', async () => {
+      process.env.HOLOSCRIPT_MCP_CLIENT_ID = 'bad-client';
+      process.env.HOLOSCRIPT_MCP_CLIENT_SECRET = 'bad-secret';
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: 'Bad Request',
+        text: async () => '{"error":"invalid_client"}',
+      }));
+
+      await expect(getOAuthToken()).rejects.toThrow('400');
+    });
+
+    it('invalidateOAuthTokenCache forces re-fetch on next call', async () => {
+      process.env.HOLOSCRIPT_MCP_CLIENT_ID = 'test-client-id';
+      process.env.HOLOSCRIPT_MCP_CLIENT_SECRET = 'test-client-secret';
+
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: 'token-v1', expires_in: 3600 }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      await getOAuthToken();
+      invalidateOAuthTokenCache();
+      await getOAuthToken();
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('mcpAuthHeadersAsync', () => {
+    afterEach(() => {
+      invalidateOAuthTokenCache();
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+      vi.restoreAllMocks();
+    });
+
+    it('returns OAuth Bearer token when client credentials are configured', async () => {
+      process.env.HOLOSCRIPT_MCP_CLIENT_ID = 'test-client-id';
+      process.env.HOLOSCRIPT_MCP_CLIENT_SECRET = 'test-client-secret';
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ access_token: 'async-bearer-token', expires_in: 3600 }),
+      }));
+
+      const headers = await mcpAuthHeadersAsync();
+      expect(headers['Authorization']).toBe('Bearer async-bearer-token');
+      expect(headers['x-mcp-api-key']).toBeUndefined();
+    });
+
+    it('falls back to legacy headers when no client credentials set', async () => {
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_ID;
+      delete process.env.HOLOSCRIPT_MCP_CLIENT_SECRET;
+
+      const headers = await mcpAuthHeadersAsync();
+      expect(headers['x-mcp-api-key']).toBe('test-mcp-key');
+      expect(headers['Authorization']).toBeUndefined();
+    });
   });
 });
 
