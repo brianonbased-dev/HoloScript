@@ -744,18 +744,29 @@ export interface NativeWorldGenerationOptions {
 }
 
 export interface NativeWorldGenerationResult {
-  /** Primary asset URL (.splat / .ply / .glb) */
-  assetUrl: string;
-  /** Navmesh .glb URI — present when navEnabled=true */
+  /**
+   * Primary asset URL (.splat / .ply / .glb).
+   * Absent when source='text-llm' — the sovereign 3D backend is not yet deployed;
+   * holoCode is still valid HoloScript that can be rendered as a scene.
+   */
+  assetUrl?: string;
+  /** Navmesh .glb URI — present when navEnabled=true and source='sovereign-3d' */
   navmeshUrl?: string;
-  /** Point cloud URI — present when format='both' */
+  /** Point cloud URI — present when format='both' and source='sovereign-3d' */
   pointCloudUrl?: string;
-  /** Opaque backend job ID */
-  generationId: string;
+  /** Opaque backend job ID — absent when source='text-llm' */
+  generationId?: string;
   /** Format actually produced */
   format: string;
   /** Auto-generated companion HoloScript code (.holo) */
   holoCode: string;
+  /**
+   * Generation surface used.
+   * - 'sovereign-3d'  — Sovereign3DAdapter (Brittney v43+ 3D splat backend), live asset URL present
+   * - 'text-llm'      — Brittney/LLM text path (same as generate_scene), no 3D asset yet
+   * - 'heuristic'     — deterministic fallback, no LLM available
+   */
+  source: 'sovereign-3d' | 'text-llm' | 'heuristic';
   metrics: {
     splatCount?: number;
     triangleCount?: number;
@@ -767,45 +778,62 @@ export interface NativeWorldGenerationResult {
 }
 
 /**
- * Generate a sovereign 3D world using the native Sovereign3DAdapter (Brittney v43+).
+ * Generate a sovereign 3D world using the native Sovereign3DAdapter (Brittney v43+)
+ * when the 3D backend is deployed, or the proven Brittney text-LLM path when it is not.
  *
- * This bypasses any third-party bridge — everything runs through HoloScript's
- * own inference pipeline. Supports neural_field output (exclusive to sovereign-3d),
- * navmesh generation, multi-view photogrammetry, and ultra-quality tier.
+ * Resolution order:
+ *   1. Sovereign3DAdapter — only when HOLOSCRIPT_SOVEREIGN_BASE_URL is explicitly set
+ *      (proves the backend is deployed; default 'https://api.holoscript.net/sovereign'
+ *      is intentionally NOT treated as "available" — that endpoint is not deployed).
+ *   2. tryGenerateWithAI text path — Brittney cloud / local-llm / BYOK; same mechanism
+ *      as generate_scene.  Returns a real .holo world composition; no 3D splat asset.
+ *   3. Heuristic fallback — deterministic, no LLM needed.
+ *
+ * This is an honest capability-gap posture (per /founder ruling 2026-06-08):
+ * the tool succeeds with real output, source field declares which surface was used,
+ * and assetUrl is absent when the 3D backend is not yet deployed.
  */
 export async function generateWorldNative(
   prompt: string,
   options: NativeWorldGenerationOptions = {}
 ): Promise<NativeWorldGenerationResult> {
-  const { Sovereign3DAdapter } = await import('@holoscript/core/world');
-
-  const adapter = new Sovereign3DAdapter({
-    // HOLOSCRIPT_SOVEREIGN_MOCK=true enables deterministic mock output when the
-    // live sovereign service (wss://api.hololand.io) is offline or not yet deployed.
-    mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
-  });
-
-  const result = await adapter.generate({
-    prompt,
-    format: options.format ?? '3dgs',
-    quality: options.quality ?? 'high',
-    ...(options.input_image ? { input_image: options.input_image } : {}),
-    ...(options.input_images?.length ? { input_images: options.input_images } : {}),
-    ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
-    ...(options.interactiveMode !== undefined ? { interactiveMode: options.interactiveMode } : {}),
-    ...(options.seed !== undefined ? { seed: options.seed } : {}),
-  });
-
-  const fmt = options.format ?? '3dgs';
   const safePrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, ' ');
+  const startMs = Date.now();
 
-  // Build a companion .holo composition that references the generated asset
-  const navLine = result.navmeshUrl ? `\n  navmesh { url: "${result.navmeshUrl}" }` : '';
-  const interactiveLine = options.interactiveMode
-    ? `\n  physics { enabled: true, collisions: true }`
-    : '';
+  // ─── PATH 1: Sovereign3DAdapter ─────────────────────────────────────────────
+  // Only attempt when the caller has explicitly configured the 3D backend.
+  // The default fallback URL ('https://api.holoscript.net/sovereign') is NOT
+  // treated as "available" — it is the deploy target, not a live service.
+  const sovereignBaseUrl = process.env.HOLOSCRIPT_SOVEREIGN_BASE_URL?.trim();
+  const sovereignBackendLive =
+    sovereignBaseUrl &&
+    sovereignBaseUrl !== '' &&
+    sovereignBaseUrl !== 'https://api.holoscript.net/sovereign';
 
-  const holoCode = `composition "GeneratedWorld" {
+  if (sovereignBackendLive) {
+    const { Sovereign3DAdapter } = await import('@holoscript/core/world');
+    const adapter = new Sovereign3DAdapter({
+      mockMode: Boolean(process.env.HOLOSCRIPT_SOVEREIGN_MOCK),
+    });
+
+    const result = await adapter.generate({
+      prompt,
+      format: options.format ?? '3dgs',
+      quality: options.quality ?? 'high',
+      ...(options.input_image ? { input_image: options.input_image } : {}),
+      ...(options.input_images?.length ? { input_images: options.input_images } : {}),
+      ...(options.navEnabled !== undefined ? { navEnabled: options.navEnabled } : {}),
+      ...(options.interactiveMode !== undefined ? { interactiveMode: options.interactiveMode } : {}),
+      ...(options.seed !== undefined ? { seed: options.seed } : {}),
+    });
+
+    // Build a companion .holo composition referencing the generated 3D asset
+    const navLine = result.navmeshUrl ? `\n  navmesh { url: "${result.navmeshUrl}" }` : '';
+    const interactiveLine = options.interactiveMode
+      ? `\n  physics { enabled: true, collisions: true }`
+      : '';
+
+    const holoCode = `composition "GeneratedWorld" {
   environment {
     world_asset: "${result.assetUrl}"
     format: "${result.metadata.format}"
@@ -818,27 +846,83 @@ export async function generateWorldNative(
   }
 }`;
 
+    return {
+      assetUrl: result.assetUrl,
+      generationId: result.generationId,
+      format: result.metadata.format,
+      ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
+      ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
+      holoCode,
+      source: 'sovereign-3d',
+      metrics: {
+        ...(result.metadata.splatCount !== undefined
+          ? { splatCount: result.metadata.splatCount }
+          : {}),
+        ...(result.metadata.triangleCount !== undefined
+          ? { triangleCount: result.metadata.triangleCount }
+          : {}),
+        ...(result.metadata.generationMs !== undefined
+          ? { generationMs: result.metadata.generationMs }
+          : {}),
+        bounds: result.metadata.bounds,
+        ...(result.metadata.agentStart ? { agentStart: result.metadata.agentStart } : {}),
+        ...(result.metadata.waypoints ? { waypoints: result.metadata.waypoints } : {}),
+      },
+    };
+  }
+
+  // ─── PATH 2: Brittney text-LLM (same proven path as generate_scene) ─────────
+  // Returns a rich .holo world composition — real runnable HoloScript output.
+  // No 3D splat asset; source='text-llm' declares this honestly.
+  const worldPrompt = `Create a complete HoloScript world composition for: ${prompt}.
+Include an environment block with skybox, lighting, and terrain. Add 3-6 named objects
+that populate the world. Use traits like @physics, @collidable, @anchor, @world_locked
+where appropriate. Return only valid HoloScript code with a composition root.`;
+
+  const aiResult = await tryGenerateWithAI(worldPrompt, 'holo');
+  const rawAiCode = aiResult ? normalizeSceneAIOutput(aiResult.code) : '';
+
+  if (aiResult && isUsableSceneCode(rawAiCode)) {
+    return {
+      holoCode: rawAiCode,
+      format: 'holo',
+      source: 'text-llm',
+      metrics: { generationMs: Date.now() - startMs },
+    };
+  }
+
+  // ─── PATH 3: Heuristic fallback — deterministic, always succeeds ─────────────
+  const interactiveLine = options.interactiveMode
+    ? `\n  physics { enabled: true, collisions: true }`
+    : '';
+
+  const heuristicCode = `composition "GeneratedWorld" {
+  // Generated from: ${safePrompt}
+  environment {
+    skybox: "gradient"
+    ambient_light: 0.6
+    fog: 0.02
+  }${interactiveLine}
+
+  object "Ground" {
+    geometry: "plane"
+    scale: [50, 1, 50]
+    position: [0, 0, 0]
+    @collidable
+    @world_locked
+  }
+
+  object "Camera" {
+    position: [0, 1.7, 0]
+    @tracked
+  }
+}`;
+
   return {
-    assetUrl: result.assetUrl,
-    generationId: result.generationId,
-    format: result.metadata.format,
-    ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
-    ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
-    holoCode,
-    metrics: {
-      ...(result.metadata.splatCount !== undefined
-        ? { splatCount: result.metadata.splatCount }
-        : {}),
-      ...(result.metadata.triangleCount !== undefined
-        ? { triangleCount: result.metadata.triangleCount }
-        : {}),
-      ...(result.metadata.generationMs !== undefined
-        ? { generationMs: result.metadata.generationMs }
-        : {}),
-      bounds: result.metadata.bounds,
-      ...(result.metadata.agentStart ? { agentStart: result.metadata.agentStart } : {}),
-      ...(result.metadata.waypoints ? { waypoints: result.metadata.waypoints } : {}),
-    },
+    holoCode: heuristicCode,
+    format: 'holo',
+    source: 'heuristic',
+    metrics: { generationMs: Date.now() - startMs },
   };
 }
 

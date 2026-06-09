@@ -1736,8 +1736,9 @@ async function handleGenerateWorld(args: Record<string, unknown>): Promise<unkno
 
   return {
     success: true,
-    generationId: result.generationId,
-    assetUrl: result.assetUrl,
+    source: result.source,
+    ...(result.generationId ? { generationId: result.generationId } : {}),
+    ...(result.assetUrl ? { assetUrl: result.assetUrl } : {}),
     format: result.format,
     ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
     ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
