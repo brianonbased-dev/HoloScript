@@ -32,4 +32,5 @@ export const FABRIC_CLOTH_TRAITS = [
   'tattered',
   'flowing',
   'billowing',
+  'woven_animation',
 ] as const;

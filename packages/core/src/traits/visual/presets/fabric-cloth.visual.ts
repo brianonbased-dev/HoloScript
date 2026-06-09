@@ -155,4 +155,9 @@ export const FABRIC_CLOTH_VISUALS: Record<string, TraitVisualConfig> = {
     tags: ['fabric', 'animated'],
     layer: 'visual_effect',
   },
+  woven_animation: {
+    material: { roughness: 0.88, metalness: 0.0, color: '#8B6914' },
+    tags: ['fabric', 'animated', 'procedural', 'weaving'],
+    layer: 'visual_effect',
+  },
 };

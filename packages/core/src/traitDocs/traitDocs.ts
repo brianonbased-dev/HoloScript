@@ -2078,6 +2078,143 @@ on @hololand.player_joined(player) {
 }`,
     since: '2.0.0',
   },
+
+  // ============================================================================
+  // Fabric / Cloth Animation Traits
+  // ============================================================================
+  woven_animation: {
+    name: 'WovenAnimationTrait',
+    annotation: '@woven_animation',
+    description:
+      'Procedurally animates the active weaving process on a tapestry or cloth object. Drives weft-thread advancement row by row, shuttle movement, growing completion percentage, and warp thread tension variance — enabling "in-progress artwork" scenes without custom animation scripting. Designed to compose with @tapestry (cloth physics/drape) and @cloth_simulation.',
+    category: 'animation',
+    properties: [
+      {
+        name: 'weft_speed_mm_per_s',
+        type: 'number',
+        description:
+          'Rate at which the weft thread advances across the warp, in millimetres per second of simulated weaving. Controls how quickly new rows appear.',
+        default: '12.0',
+      },
+      {
+        name: 'completion_pct',
+        type: 'number',
+        description:
+          'Initial woven completion as a percentage (0–100). Determines how much of the tapestry surface is pre-filled at scene start. Animates toward 100 over time.',
+        default: '0',
+      },
+      {
+        name: 'shuttle_visible',
+        type: 'boolean',
+        description:
+          'When true, a procedural shuttle mesh is rendered traversing the shed opening with each weft pass.',
+        default: 'true',
+      },
+      {
+        name: 'warp_tension_variance',
+        type: 'number',
+        description:
+          'Amplitude of per-warp-thread tension noise (0–1). At 0 all threads are uniformly taut; at 1 threads exhibit visible sag variation typical of hand-loomed cloth.',
+        default: '0.15',
+      },
+      {
+        name: 'advance_direction',
+        type: '"bottom_up" | "top_down"',
+        description:
+          'Direction the woven region expands — bottom_up (traditional floor-loom, cloth grows upward) or top_down (tapestry/frame-loom, cloth grows downward).',
+        default: '"bottom_up"',
+      },
+      {
+        name: 'thread_material_override',
+        type: 'string | null',
+        description:
+          'Asset reference to a material applied to in-flight weft threads. When null, inherits the parent tapestry material.',
+        default: 'null',
+      },
+      {
+        name: 'rows_per_beat',
+        type: 'number',
+        description:
+          'Number of weft rows inserted per animation beat (one shuttle pass = one beat). Higher values produce denser cloth faster.',
+        default: '1',
+      },
+      {
+        name: 'shed_open_angle_deg',
+        type: 'number',
+        description:
+          'Angle in degrees by which alternate warp threads open to create the shed for the shuttle. Affects visible separation between warp sets during the pass.',
+        default: '18',
+        range: [5, 45],
+      },
+    ],
+    methods: [
+      {
+        name: 'setCompletion',
+        signature: 'setCompletion(pct: number): void',
+        description: 'Jump the woven completion to an arbitrary percentage without animating.',
+        parameters: [
+          {
+            name: 'pct',
+            type: 'number',
+            description: 'Target completion percentage (0–100)',
+          },
+        ],
+      },
+      {
+        name: 'pause',
+        signature: 'pause(): void',
+        description: 'Pause the weaving animation, freezing the shuttle mid-pass.',
+        parameters: [],
+      },
+      {
+        name: 'resume',
+        signature: 'resume(): void',
+        description: 'Resume the weaving animation from where it was paused.',
+        parameters: [],
+      },
+      {
+        name: 'getCompletion',
+        signature: 'getCompletion(): number',
+        description: 'Return the current woven completion percentage.',
+        parameters: [],
+        returns: 'number',
+      },
+    ],
+    events: [
+      {
+        name: 'onRowComplete',
+        description: 'Fired each time a weft row is fully woven.',
+        payload: '{ row: number, completion_pct: number }',
+      },
+      {
+        name: 'onWeavingComplete',
+        description: 'Fired when completion_pct reaches 100.',
+        payload: '{ total_rows: number, elapsed_s: number }',
+      },
+      {
+        name: 'onShuttlePass',
+        description: 'Fired at the start and end of each shuttle traversal.',
+        payload: '{ direction: "left_to_right" | "right_to_left", row: number }',
+      },
+    ],
+    example: `@tapestry({ weave_pattern: "twill", width_m: 1.2, height_m: 1.8 })
+@woven_animation({
+  weft_speed_mm_per_s: 20,
+  completion_pct: 0,
+  shuttle_visible: true,
+  warp_tension_variance: 0.2,
+  advance_direction: "bottom_up",
+  thread_material_override: "assets/golden_thread.mat"
+})
+orb rune_loom_tapestry {
+  position: [0, 1, -2]
+  on_weaving_complete: {
+    play_sound: "loom_done.mp3"
+    spawn_effect: "completion_sparkle"
+  }
+}`,
+    since: '6.2.0',
+  },
 };
 
 /**

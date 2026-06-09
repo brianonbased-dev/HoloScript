@@ -1,4 +1,14 @@
 {
+    "a_i_driver": {
+        "id": "a_i_driver",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "abtest": {
         "id": "abtest",
         "namespace": "@holoscript/core",
@@ -29,6 +39,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "agent_badge": {
+        "id": "agent_badge",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "agent_discovery": {
         "id": "agent_discovery",
         "namespace": "@holoscript/core",
@@ -49,8 +69,28 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "a_i_driver": {
-        "id": "a_i_driver",
+    "agent_profile": {
+        "id": "agent_profile",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "agent_room": {
+        "id": "agent_room",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "agent_wall": {
+        "id": "agent_wall",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -99,16 +139,6 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "neural_upscaling": {
-        "id": "neural_upscaling",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
     "alert": {
         "id": "alert",
         "namespace": "@holoscript/core",
@@ -118,6 +148,15 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "alphafold-plugin": {
+        "id": "alphafold-plugin",
+        "namespace": "@holoscript/alphafold-plugin",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "alt_text": {
         "id": "alt_text",
@@ -209,6 +248,25 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "background_music": {
+        "id": "background_music",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "banking-finance": {
+        "id": "banking-finance",
+        "namespace": "@holoscript/plugin-banking-finance",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "behavior_tree": {
         "id": "behavior_tree",
         "namespace": "@holoscript/core",
@@ -260,6 +318,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "body_tracking": {
+        "id": "body_tracking",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "botanical_lotus": {
         "id": "botanical_lotus",
         "namespace": "@holoscript/core",
@@ -281,16 +349,6 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "body_tracking": {
-        "id": "body_tracking",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
     "buffer": {
         "id": "buffer",
         "namespace": "@holoscript/core",
@@ -303,6 +361,36 @@
     },
     "buoyancy": {
         "id": "buoyancy",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "button": {
+        "id": "button",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "c_r_d_t_room": {
+        "id": "c_r_d_t_room",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "card": {
+        "id": "card",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -351,6 +439,15 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "civil-engineering": {
+        "id": "civil-engineering",
+        "namespace": "@holoscript/plugin-civil-engineering",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "cloth": {
         "id": "cloth",
         "namespace": "@holoscript/core",
@@ -370,6 +467,26 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "collaborative": {
+        "id": "collaborative",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "color_grade": {
+        "id": "color_grade",
+        "composable": [],
+        "namespace": "@holoscript/plugin-film-vfx",
+        "properties": [],
+        "category": "plugin",
+        "compileHints": [],
+        "source": "film_vfx",
+        "conflicts": []
     },
     "compute": {
         "id": "compute",
@@ -421,16 +538,6 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "c_r_d_t_room": {
-        "id": "c_r_d_t_room",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
     "cron": {
         "id": "cron",
         "namespace": "@holoscript/core",
@@ -440,6 +547,15 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "culture-keyword": {
+        "id": "culture-keyword",
+        "namespace": "@holoscript/plugin-culture-keyword",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "data_binding": {
         "id": "data_binding",
@@ -501,6 +617,44 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "director_ai": {
+        "id": "director_ai",
+        "composable": [],
+        "namespace": "@holoscript/plugin-film-vfx",
+        "properties": [],
+        "category": "plugin",
+        "compileHints": [],
+        "source": "film_vfx",
+        "conflicts": []
+    },
+    "dmx_lighting": {
+        "id": "dmx_lighting",
+        "composable": [],
+        "namespace": "@holoscript/plugin-film-vfx",
+        "properties": [],
+        "category": "plugin",
+        "compileHints": [],
+        "source": "film_vfx",
+        "conflicts": []
+    },
+    "domain-plugin-template": {
+        "id": "domain-plugin-template",
+        "namespace": "@holoscript/domain-plugin-template",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "economic-primitives": {
+        "id": "economic-primitives",
+        "namespace": "@holoscript/plugin-economic-primitives",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "economy": {
         "id": "economy",
         "namespace": "@holoscript/core",
@@ -510,6 +664,15 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "education-lms": {
+        "id": "education-lms",
+        "namespace": "@holoscript/plugin-education-lms",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "embedding_search": {
         "id": "embedding_search",
@@ -521,8 +684,17 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "emotional_voice": {
-        "id": "emotional_voice",
+    "emergency-response": {
+        "id": "emergency-response",
+        "namespace": "@holoscript/plugin-emergency-response",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "emotion": {
+        "id": "emotion",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -541,8 +713,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "emotion": {
-        "id": "emotion",
+    "emotional_voice": {
+        "id": "emotional_voice",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -591,6 +763,15 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "fashion": {
+        "id": "fashion",
+        "namespace": "@holoscript/plugin-fashion",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "fbx": {
         "id": "fbx",
         "namespace": "@holoscript/core",
@@ -611,18 +792,35 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "flow_field": {
-        "id": "flow_field",
-        "namespace": "@holoscript/core",
-        "category": "other",
+    "film-vfx": {
+        "id": "film-vfx",
+        "namespace": "@holoscript/plugin-film-vfx",
+        "category": "domain-vertical",
         "properties": [],
         "compileHints": [],
         "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
+        "conflicts": []
     },
-    "granular_material": {
-        "id": "granular_material",
+    "film3d-volumetrics": {
+        "id": "film3d-volumetrics",
+        "namespace": "@holoscript/plugin-film3d-volumetrics",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "fitness-wellness": {
+        "id": "fitness-wellness",
+        "namespace": "@holoscript/plugin-fitness-wellness",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "flow_field": {
+        "id": "flow_field",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -638,6 +836,71 @@
         "properties": [],
         "compileHints": [],
         "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "forensics": {
+        "id": "forensics",
+        "namespace": "@holoscript/plugin-forensics",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "form": {
+        "id": "form",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "formation_control": {
+        "id": "formation_control",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [
+            {
+                "name": "shape",
+                "type": "string",
+                "default": "triangle"
+            },
+            {
+                "name": "spacing",
+                "type": "number",
+                "default": 3.0
+            },
+            {
+                "name": "anchor",
+                "type": "string",
+                "default": ""
+            },
+            {
+                "name": "sync_rate_hz",
+                "type": "number",
+                "default": 10
+            },
+            {
+                "name": "rotation_offset_rad",
+                "type": "number",
+                "default": 0
+            },
+            {
+                "name": "y_offset",
+                "type": "number",
+                "default": 0
+            }
+        ],
+        "compileHints": [],
+        "composable": [
+            "mitosis",
+            "csp_channel",
+            "llm_agent",
+            "patrol"
+        ],
         "conflicts": [],
         "source": "holoscript"
     },
@@ -682,8 +945,17 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "geospatial_anchor": {
-        "id": "geospatial_anchor",
+    "geolocation-gis": {
+        "id": "geolocation-gis",
+        "namespace": "@holoscript/plugin-geolocation-gis",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "geospatial": {
+        "id": "geospatial",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -692,8 +964,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "geospatial": {
-        "id": "geospatial",
+    "geospatial_anchor": {
+        "id": "geospatial_anchor",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -772,6 +1044,26 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "granular_material": {
+        "id": "granular_material",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "guestbook": {
+        "id": "guestbook",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "hand_mesh_ai": {
         "id": "hand_mesh_ai",
         "namespace": "@holoscript/core",
@@ -792,6 +1084,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "haptic": {
+        "id": "haptic",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "haptic_cue": {
         "id": "haptic_cue",
         "namespace": "@holoscript/core",
@@ -802,15 +1104,14 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "haptic": {
-        "id": "haptic",
-        "namespace": "@holoscript/core",
-        "category": "other",
+    "hardware-invention": {
+        "id": "hardware-invention",
+        "namespace": "@holoscript/plugin-hardware-invention",
+        "category": "domain-vertical",
         "properties": [],
         "compileHints": [],
         "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
+        "conflicts": []
     },
     "head_tracked_audio": {
         "id": "head_tracked_audio",
@@ -852,145 +1153,23 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "agent_profile": {
-        "id": "agent_profile",
-        "namespace": "@holoscript/core",
-        "category": "other",
+    "holoscript-web-preview": {
+        "id": "holoscript-web-preview",
+        "namespace": "holoscript-web-preview",
+        "category": "domain-vertical",
         "properties": [],
         "compileHints": [],
         "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
+        "conflicts": []
     },
-    "profile_theme": {
-        "id": "profile_theme",
-        "namespace": "@holoscript/core",
-        "category": "other",
+    "hr-workforce": {
+        "id": "hr-workforce",
+        "namespace": "@holoscript/plugin-hr-workforce",
+        "category": "domain-vertical",
         "properties": [],
         "compileHints": [],
         "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "status_mood": {
-        "id": "status_mood",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "agent_badge": {
-        "id": "agent_badge",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "visitor_counter": {
-        "id": "visitor_counter",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "top8_friends": {
-        "id": "top8_friends",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "guestbook": {
-        "id": "guestbook",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "agent_wall": {
-        "id": "agent_wall",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "agent_room": {
-        "id": "agent_room",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "background_music": {
-        "id": "background_music",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "spatial_comment": {
-        "id": "spatial_comment",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "room_portal": {
-        "id": "room_portal",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "trait_showcase": {
-        "id": "trait_showcase",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "trait_marketplace": {
-        "id": "trait_marketplace",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
+        "conflicts": []
     },
     "hrtf": {
         "id": "hrtf",
@@ -1012,6 +1191,45 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "icon": {
+        "id": "icon",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "image": {
+        "id": "image",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "input": {
+        "id": "input",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "insurance": {
+        "id": "insurance",
+        "namespace": "@holoscript/plugin-insurance",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "interactive_graph": {
         "id": "interactive_graph",
         "namespace": "@holoscript/core",
@@ -1021,6 +1239,32 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "jepa_objective": {
+        "id": "jepa_objective",
+        "namespace": "@holoscript/core",
+        "category": "ai",
+        "properties": [
+            "latent_space",
+            "world_model",
+            "sigreg",
+            "physics_grounded"
+        ],
+        "compileHints": [
+            "jepa",
+            "world_model",
+            "verifiable_prediction",
+            "simulation_contract"
+        ],
+        "composable": [
+            "embedding_trait",
+            "inference_trait",
+            "simulation_contract",
+            "cael"
+        ],
+        "conflicts": [],
+        "source": "holoscript",
+        "description": "JEPA (Joint Embedding Predictive Architecture) world-model training objective with SIGReg regularization (LeWM variant). Sovereign build-internal primitive per NMoS 2026-05-19. When composed with SimulationContract produces the first cryptographically verifiable WorldModelReceipts. Core of the HoloScript AI Lab positioning (D.054)."
     },
     "joint": {
         "id": "joint",
@@ -1042,6 +1286,25 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "layout": {
+        "id": "layout",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "legal-document": {
+        "id": "legal-document",
+        "namespace": "@holoscript/plugin-legal-document",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "light_estimation": {
         "id": "light_estimation",
         "namespace": "@holoscript/core",
@@ -1062,8 +1325,28 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "link": {
+        "id": "link",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "lip_sync": {
         "id": "lip_sync",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "list": {
+        "id": "list",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1220,8 +1503,17 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "marketplace_integration": {
-        "id": "marketplace_integration",
+    "manufacturing-qc": {
+        "id": "manufacturing-qc",
+        "namespace": "@holoscript/plugin-manufacturing-qc",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "marketplace": {
+        "id": "marketplace",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1230,8 +1522,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "marketplace": {
-        "id": "marketplace",
+    "marketplace_integration": {
+        "id": "marketplace_integration",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1260,6 +1552,15 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "medical-plugin": {
+        "id": "medical-plugin",
+        "namespace": "@holoscript/medical-plugin",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "memory": {
         "id": "memory",
         "namespace": "@holoscript/core",
@@ -1287,23 +1588,6 @@
         "properties": [],
         "compileHints": [],
         "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "formation_control": {
-        "id": "formation_control",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [
-            { "name": "shape", "type": "string", "default": "triangle" },
-            { "name": "spacing", "type": "number", "default": 3.0 },
-            { "name": "anchor", "type": "string", "default": "" },
-            { "name": "sync_rate_hz", "type": "number", "default": 10 },
-            { "name": "rotation_offset_rad", "type": "number", "default": 0 },
-            { "name": "y_offset", "type": "number", "default": 0 }
-        ],
-        "compileHints": [],
-        "composable": ["mitosis", "csp_channel", "llm_agent", "patrol"],
         "conflicts": [],
         "source": "holoscript"
     },
@@ -1367,6 +1651,15 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "narupa-plugin": {
+        "id": "narupa-plugin",
+        "namespace": "@holoscript/narupa-plugin",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "negotiation": {
         "id": "negotiation",
         "namespace": "@holoscript/core",
@@ -1387,8 +1680,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "networked_avatar": {
-        "id": "networked_avatar",
+    "networked": {
+        "id": "networked",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1397,8 +1690,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "networked": {
-        "id": "networked",
+    "networked_avatar": {
+        "id": "networked_avatar",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1436,6 +1729,25 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "neural_upscaling": {
+        "id": "neural_upscaling",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "neuroscience": {
+        "id": "neuroscience",
+        "namespace": "@holoscript/plugin-neuroscience",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "nft": {
         "id": "nft",
@@ -1489,6 +1801,16 @@
     },
     "orbital": {
         "id": "orbital",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "panel": {
+        "id": "panel",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1576,8 +1898,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "point_cloud": {
-        "id": "point_cloud",
+    "poi": {
+        "id": "poi",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1586,8 +1908,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "poi": {
-        "id": "poi",
+    "point_cloud": {
+        "id": "point_cloud",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1626,6 +1948,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "profile_theme": {
+        "id": "profile_theme",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "quota": {
         "id": "quota",
         "namespace": "@holoscript/core",
@@ -1635,6 +1967,15 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "radio-astronomy-plugin": {
+        "id": "radio-astronomy-plugin",
+        "namespace": "@holoscript/radio-astronomy-plugin",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "rag_knowledge": {
         "id": "rag_knowledge",
@@ -1686,6 +2027,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "render_network": {
+        "id": "render_network",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "rendering": {
         "id": "rendering",
         "namespace": "@holoscript/core",
@@ -1696,8 +2047,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "render_network": {
-        "id": "render_network",
+    "responsive": {
+        "id": "responsive",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1705,6 +2056,24 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "restaurant": {
+        "id": "restaurant",
+        "namespace": "@holoscript/plugin-restaurant",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "retail-ecommerce": {
+        "id": "retail-ecommerce",
+        "namespace": "@holoscript/plugin-retail-ecommerce",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "reverb_zone": {
         "id": "reverb_zone",
@@ -1736,6 +2105,15 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "robotics-plugin": {
+        "id": "robotics-plugin",
+        "namespace": "@holoscript/robotics-plugin",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "role": {
         "id": "role",
         "namespace": "@holoscript/core",
@@ -1758,6 +2136,16 @@
     },
     "room_mesh": {
         "id": "room_mesh",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "room_portal": {
+        "id": "room_portal",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1798,16 +2186,6 @@
     },
     "scheduler": {
         "id": "scheduler",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "spatial_text_layout": {
-        "id": "spatial_text_layout",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1866,6 +2244,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "shareable": {
+        "id": "shareable",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "shared_anchor": {
         "id": "shared_anchor",
         "namespace": "@holoscript/core",
@@ -1896,6 +2284,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "shot_list": {
+        "id": "shot_list",
+        "composable": [],
+        "namespace": "@holoscript/plugin-film-vfx",
+        "properties": [],
+        "category": "plugin",
+        "compileHints": [],
+        "source": "film_vfx",
+        "conflicts": []
+    },
     "skeleton": {
         "id": "skeleton",
         "namespace": "@holoscript/core",
@@ -1908,36 +2306,6 @@
     },
     "slidable": {
         "id": "slidable",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "shareable": {
-        "id": "shareable",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "collaborative": {
-        "id": "collaborative",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "tweetable": {
-        "id": "tweetable",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -1976,6 +2344,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "spatial_adjacent": {
+        "id": "spatial_adjacent",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "spatial_audio_cue": {
         "id": "spatial_audio_cue",
         "namespace": "@holoscript/core",
@@ -1996,8 +2374,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "spatial_adjacent": {
-        "id": "spatial_adjacent",
+    "spatial_comment": {
+        "id": "spatial_comment",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2008,36 +2386,6 @@
     },
     "spatial_contains": {
         "id": "spatial_contains",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "spatial_reachable": {
-        "id": "spatial_reachable",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "spatial_input_hand_tracking": {
-        "id": "spatial_input_hand_tracking",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "spatial_input_gaze_transient_pointer": {
-        "id": "spatial_input_gaze_transient_pointer",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2066,6 +2414,26 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "spatial_input_gaze_transient_pointer": {
+        "id": "spatial_input_gaze_transient_pointer",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "spatial_input_hand_tracking": {
+        "id": "spatial_input_hand_tracking",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "spatial_navigation": {
         "id": "spatial_navigation",
         "namespace": "@holoscript/core",
@@ -2086,6 +2454,16 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "spatial_reachable": {
+        "id": "spatial_reachable",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "spatial_temporal_adjacent": {
         "id": "spatial_temporal_adjacent",
         "namespace": "@holoscript/core",
@@ -2098,6 +2476,16 @@
     },
     "spatial_temporal_reachable": {
         "id": "spatial_temporal_reachable",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "spatial_text_layout": {
+        "id": "spatial_text_layout",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2136,16 +2524,6 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "sso_saml": {
-        "id": "sso_saml",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
     "sso_oidc": {
         "id": "sso_oidc",
         "namespace": "@holoscript/core",
@@ -2156,8 +2534,28 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "sso_saml": {
+        "id": "sso_saml",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "stable_diffusion": {
         "id": "stable_diffusion",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "status_mood": {
+        "id": "status_mood",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2196,6 +2594,26 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "tailwind": {
+        "id": "tailwind",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "telemetry": {
+        "id": "telemetry",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "tenant": {
         "id": "tenant",
         "namespace": "@holoscript/core",
@@ -2216,8 +2634,8 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "telemetry": {
-        "id": "telemetry",
+    "text": {
+        "id": "text",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2225,19 +2643,47 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "text_to_universe": {
+        "id": "text_to_universe",
+        "composable": [],
+        "namespace": "@holoscript/plugin-film-vfx",
+        "properties": [],
+        "category": "plugin",
+        "compileHints": [],
+        "source": "film_vfx",
+        "conflicts": []
+    },
+    "theme": {
+        "id": "theme",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "therapy": {
+        "id": "therapy",
+        "namespace": "@holoscript/plugin-therapy",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "threat-intelligence": {
+        "id": "threat-intelligence",
+        "namespace": "@holoscript/plugin-threat-intelligence",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "timeout_guard": {
         "id": "timeout_guard",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "transform": {
-        "id": "transform",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2256,8 +2702,76 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "top8_friends": {
+        "id": "top8_friends",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "trait-audit": {
+        "id": "trait-audit",
+        "namespace": "@holoscript/plugin-trait-audit",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
+    "trait_marketplace": {
+        "id": "trait_marketplace",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "trait_showcase": {
+        "id": "trait_showcase",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "transform": {
+        "id": "transform",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "travel-hospitality": {
+        "id": "travel-hospitality",
+        "namespace": "@holoscript/plugin-travel-hospitality",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
+    },
     "trigger": {
         "id": "trigger",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "tweetable": {
+        "id": "tweetable",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2275,6 +2789,15 @@
         "composable": [],
         "conflicts": [],
         "source": "holoscript"
+    },
+    "urban-planning": {
+        "id": "urban-planning",
+        "namespace": "@holoscript/plugin-urban-planning",
+        "category": "domain-vertical",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": []
     },
     "urdf_robot": {
         "id": "urdf_robot",
@@ -2308,56 +2831,6 @@
     },
     "vector_db": {
         "id": "vector_db",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "vision": {
-        "id": "vision",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "voice_input": {
-        "id": "voice_input",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "voice_mesh": {
-        "id": "voice_mesh",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "voice_output": {
-        "id": "voice_output",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "voice_proximity": {
-        "id": "voice_proximity",
         "namespace": "@holoscript/core",
         "category": "other",
         "properties": [],
@@ -2518,6 +2991,76 @@
         "conflicts": [],
         "source": "holoscript"
     },
+    "virtual_production": {
+        "id": "virtual_production",
+        "composable": [],
+        "namespace": "@holoscript/plugin-film-vfx",
+        "properties": [],
+        "category": "plugin",
+        "compileHints": [],
+        "source": "film_vfx",
+        "conflicts": []
+    },
+    "vision": {
+        "id": "vision",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "visitor_counter": {
+        "id": "visitor_counter",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "voice_input": {
+        "id": "voice_input",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "voice_mesh": {
+        "id": "voice_mesh",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "voice_output": {
+        "id": "voice_output",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "voice_proximity": {
+        "id": "voice_proximity",
+        "namespace": "@holoscript/core",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
     "volumetric": {
         "id": "volumetric",
         "namespace": "@holoscript/core",
@@ -2588,504 +3131,6 @@
         "conflicts": [],
         "source": "holoscript"
     },
-    "wot_thing": {
-        "id": "wot_thing",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "panel": {
-        "id": "panel",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "layout": {
-        "id": "layout",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "text": {
-        "id": "text",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "button": {
-        "id": "button",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "image": {
-        "id": "image",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "input": {
-        "id": "input",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "link": {
-        "id": "link",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "icon": {
-        "id": "icon",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "card": {
-        "id": "card",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "list": {
-        "id": "list",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "form": {
-        "id": "form",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "responsive": {
-        "id": "responsive",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "theme": {
-        "id": "theme",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "tailwind": {
-        "id": "tailwind",
-        "namespace": "@holoscript/core",
-        "category": "other",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": [],
-        "source": "holoscript"
-    },
-    "shot_list": {
-        "id": "shot_list",
-        "composable": [],
-        "namespace": "@holoscript/plugin-film-vfx",
-        "properties": [],
-        "category": "plugin",
-        "compileHints": [],
-        "source": "film_vfx",
-        "conflicts": []
-    },
-    "color_grade": {
-        "id": "color_grade",
-        "composable": [],
-        "namespace": "@holoscript/plugin-film-vfx",
-        "properties": [],
-        "category": "plugin",
-        "compileHints": [],
-        "source": "film_vfx",
-        "conflicts": []
-    },
-    "dmx_lighting": {
-        "id": "dmx_lighting",
-        "composable": [],
-        "namespace": "@holoscript/plugin-film-vfx",
-        "properties": [],
-        "category": "plugin",
-        "compileHints": [],
-        "source": "film_vfx",
-        "conflicts": []
-    },
-    "director_ai": {
-        "id": "director_ai",
-        "composable": [],
-        "namespace": "@holoscript/plugin-film-vfx",
-        "properties": [],
-        "category": "plugin",
-        "compileHints": [],
-        "source": "film_vfx",
-        "conflicts": []
-    },
-    "virtual_production": {
-        "id": "virtual_production",
-        "composable": [],
-        "namespace": "@holoscript/plugin-film-vfx",
-        "properties": [],
-        "category": "plugin",
-        "compileHints": [],
-        "source": "film_vfx",
-        "conflicts": []
-    },
-    "text_to_universe": {
-        "id": "text_to_universe",
-        "composable": [],
-        "namespace": "@holoscript/plugin-film-vfx",
-        "properties": [],
-        "category": "plugin",
-        "compileHints": [],
-        "source": "film_vfx",
-        "conflicts": []
-    },
-    "alphafold-plugin": {
-        "id": "alphafold-plugin",
-        "namespace": "@holoscript/alphafold-plugin",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "banking-finance": {
-        "id": "banking-finance",
-        "namespace": "@holoscript/plugin-banking-finance",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "civil-engineering": {
-        "id": "civil-engineering",
-        "namespace": "@holoscript/plugin-civil-engineering",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "culture-keyword": {
-        "id": "culture-keyword",
-        "namespace": "@holoscript/plugin-culture-keyword",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "domain-plugin-template": {
-        "id": "domain-plugin-template",
-        "namespace": "@holoscript/domain-plugin-template",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "economic-primitives": {
-        "id": "economic-primitives",
-        "namespace": "@holoscript/plugin-economic-primitives",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "education-lms": {
-        "id": "education-lms",
-        "namespace": "@holoscript/plugin-education-lms",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "emergency-response": {
-        "id": "emergency-response",
-        "namespace": "@holoscript/plugin-emergency-response",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "fashion": {
-        "id": "fashion",
-        "namespace": "@holoscript/plugin-fashion",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "film-vfx": {
-        "id": "film-vfx",
-        "namespace": "@holoscript/plugin-film-vfx",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "film3d-volumetrics": {
-        "id": "film3d-volumetrics",
-        "namespace": "@holoscript/plugin-film3d-volumetrics",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "fitness-wellness": {
-        "id": "fitness-wellness",
-        "namespace": "@holoscript/plugin-fitness-wellness",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "forensics": {
-        "id": "forensics",
-        "namespace": "@holoscript/plugin-forensics",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "geolocation-gis": {
-        "id": "geolocation-gis",
-        "namespace": "@holoscript/plugin-geolocation-gis",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "hardware-invention": {
-        "id": "hardware-invention",
-        "namespace": "@holoscript/plugin-hardware-invention",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "hr-workforce": {
-        "id": "hr-workforce",
-        "namespace": "@holoscript/plugin-hr-workforce",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "insurance": {
-        "id": "insurance",
-        "namespace": "@holoscript/plugin-insurance",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "legal-document": {
-        "id": "legal-document",
-        "namespace": "@holoscript/plugin-legal-document",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "manufacturing-qc": {
-        "id": "manufacturing-qc",
-        "namespace": "@holoscript/plugin-manufacturing-qc",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "medical-plugin": {
-        "id": "medical-plugin",
-        "namespace": "@holoscript/medical-plugin",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "neuroscience": {
-        "id": "neuroscience",
-        "namespace": "@holoscript/plugin-neuroscience",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "radio-astronomy-plugin": {
-        "id": "radio-astronomy-plugin",
-        "namespace": "@holoscript/radio-astronomy-plugin",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "restaurant": {
-        "id": "restaurant",
-        "namespace": "@holoscript/plugin-restaurant",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "retail-ecommerce": {
-        "id": "retail-ecommerce",
-        "namespace": "@holoscript/plugin-retail-ecommerce",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "robotics-plugin": {
-        "id": "robotics-plugin",
-        "namespace": "@holoscript/robotics-plugin",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "narupa-plugin": {
-        "id": "narupa-plugin",
-        "namespace": "@holoscript/narupa-plugin",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "therapy": {
-        "id": "therapy",
-        "namespace": "@holoscript/plugin-therapy",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "threat-intelligence": {
-        "id": "threat-intelligence",
-        "namespace": "@holoscript/plugin-threat-intelligence",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "trait-audit": {
-        "id": "trait-audit",
-        "namespace": "@holoscript/plugin-trait-audit",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "travel-hospitality": {
-        "id": "travel-hospitality",
-        "namespace": "@holoscript/plugin-travel-hospitality",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "urban-planning": {
-        "id": "urban-planning",
-        "namespace": "@holoscript/plugin-urban-planning",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
-    "holoscript-web-preview": {
-        "id": "holoscript-web-preview",
-        "namespace": "holoscript-web-preview",
-        "category": "domain-vertical",
-        "properties": [],
-        "compileHints": [],
-        "composable": [],
-        "conflicts": []
-    },
     "wine-food-beverage": {
         "id": "wine-food-beverage",
         "namespace": "@holoscript/plugin-wine-food-beverage",
@@ -3104,30 +3149,122 @@
         "composable": [],
         "conflicts": []
     },
-    "jepa_objective": {
-        "id": "jepa_objective",
+    "wot_thing": {
+        "id": "wot_thing",
         "namespace": "@holoscript/core",
-        "category": "ai",
+        "category": "other",
+        "properties": [],
+        "compileHints": [],
+        "composable": [],
+        "conflicts": [],
+        "source": "holoscript"
+    },
+    "woven_animation": {
+        "id": "woven_animation",
+        "namespace": "@holoscript/core",
+        "category": "visual",
+        "description": "Procedurally animates the active weaving process on a tapestry or cloth object \u2014 weft advancement, shuttle movement, completion growth, and warp tension variance.",
         "properties": [
-            "latent_space",
-            "world_model",
-            "sigreg",
-            "physics_grounded"
+            {
+                "name": "weft_speed_mm_per_s",
+                "type": "number",
+                "default": 12.0,
+                "description": "Rate of weft advancement in mm/s"
+            },
+            {
+                "name": "completion_pct",
+                "type": "number",
+                "default": 0,
+                "description": "Initial woven completion percentage (0-100)"
+            },
+            {
+                "name": "shuttle_visible",
+                "type": "boolean",
+                "default": true,
+                "description": "Whether the shuttle mesh is rendered"
+            },
+            {
+                "name": "warp_tension_variance",
+                "type": "number",
+                "default": 0.15,
+                "description": "Per-warp tension noise amplitude (0-1)"
+            },
+            {
+                "name": "advance_direction",
+                "type": "string",
+                "default": "bottom_up",
+                "description": "bottom_up or top_down"
+            },
+            {
+                "name": "thread_material_override",
+                "type": "string",
+                "default": null,
+                "description": "Asset ref for weft thread material"
+            },
+            {
+                "name": "rows_per_beat",
+                "type": "number",
+                "default": 1,
+                "description": "Weft rows per shuttle beat"
+            },
+            {
+                "name": "shed_open_angle_deg",
+                "type": "number",
+                "default": 18,
+                "description": "Warp shed angle in degrees (5-45)"
+            }
         ],
         "compileHints": [
-            "jepa",
-            "world_model",
-            "verifiable_prediction",
-            "simulation_contract"
+            {
+                "target": "r3f",
+                "supported": true,
+                "notes": "Full procedural weave animation via useFrame"
+            },
+            {
+                "target": "unity",
+                "supported": true,
+                "notes": "Compiled to AnimationClip + custom MonoBehaviour"
+            },
+            {
+                "target": "unreal",
+                "supported": true,
+                "notes": "Compiled to UAnimNotify + procedural mesh update"
+            },
+            {
+                "target": "gltf",
+                "supported": false,
+                "notes": "gLTF has no procedural weave semantics; bake to keyframes"
+            },
+            {
+                "target": "babylon",
+                "supported": true,
+                "notes": "Compiled via BabylonJS Animation + custom shader"
+            },
+            {
+                "target": "webxr",
+                "supported": true,
+                "notes": "Inherits r3f/babylon target support"
+            }
         ],
         "composable": [
-            "embedding_trait",
-            "inference_trait",
-            "simulation_contract",
-            "cael"
+            "tapestry",
+            "cloth_simulation",
+            "advanced_cloth",
+            "quilted",
+            "animation"
         ],
-        "conflicts": [],
+        "conflicts": [
+            "static"
+        ],
         "source": "holoscript",
-        "description": "JEPA (Joint Embedding Predictive Architecture) world-model training objective with SIGReg regularization (LeWM variant). Sovereign build-internal primitive per NMoS 2026-05-19. When composed with SimulationContract produces the first cryptographically verifiable WorldModelReceipts. Core of the HoloScript AI Lab positioning (D.054)."
+        "since": "6.2.0",
+        "tags": [
+            "fabric",
+            "cloth",
+            "animation",
+            "procedural",
+            "weaving",
+            "tapestry"
+        ]
     }
 }
