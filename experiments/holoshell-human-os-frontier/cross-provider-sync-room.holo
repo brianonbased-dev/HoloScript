@@ -1,0 +1,382 @@
+/**
+ * HoloShell Cross-Provider Sync Room
+ *
+ * Visible room concept for:
+ * "Connect my email, cloud drive, local project files, GitHub, and a tracking
+ * spreadsheet into one auditable workflow — without me knowing which API each
+ * provider uses or how the data moves between them."
+ *
+ * Human job: "I need to see what is new across all my tools, pull the right
+ * pieces together, and have a receipt I can trust."
+ *
+ * The room makes fragmented providers feel like one deterministic workspace.
+ * Every cross-provider action is a visible plan before it executes, every
+ * result is a signed receipt, and no data moves without the user seeing it.
+ *
+ * Created: task_1780476203277_yhd9
+ */
+
+composition "HoloShell Cross-Provider Sync Room" {
+  environment {
+    backgroundColor: "#0d1219"
+    ambient_light: 0.52
+    shadows: true
+    fog: { near: 12, far: 60, color: "#0d1219" }
+  }
+
+  // ── Templates ──
+
+  template "ProviderPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    scale: [1.62, 0.72, 0.04]
+    material: {
+      color: "#151d28"
+      emissive: "#1e3a5f"
+      emissiveIntensity: 0.14
+      transparent: true
+      opacity: 0.94
+    }
+  }
+
+  template "SyncLaneConnector" {
+    @anchor
+    geometry: "cylinder"
+    scale: [0.03, 1.2, 0.03]
+    material: { color: "#3d8ee0" }
+  }
+
+  template "FlowToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.13, 0.13, 0.13]
+    material: { color: "#7dcfff" }
+  }
+
+  template "GapMarker" {
+    @grabbable
+    @collidable
+    geometry: "octahedron"
+    scale: [0.11, 0.11, 0.11]
+    material: {
+      color: "#e0af68"
+      emissive: "#f0c060"
+      emissiveIntensity: 0.3
+    }
+  }
+
+  template "ReceiptToken" {
+    @grabbable
+    @collidable
+    geometry: "sphere"
+    scale: [0.15, 0.15, 0.15]
+    material: { color: "#9ece6a" }
+  }
+
+  // ── Row 0: Human question (back wall) ──
+
+  object "HumanQuestion" using "ProviderPanel" {
+    position: [0, 2.5, -3.4]
+    scale: [3.6, 0.82, 0.04]
+    label: "What is new across my tools, and what should I do about it?"
+    properties: {
+      humanJob: "surface new emails, file changes, GitHub events, and spreadsheet deltas in one place without requiring the user to understand REST APIs, OAuth flows, or sync protocols"
+      defaultPromise: "read providers first — no writes without a visible plan and explicit approval"
+      sourceContract: "HoloScript owns receipts, policy, replay keys, schema normalisation; HoloLand renders the sync room; providers remain opaque behind capability tokens"
+      scorecardNotes: {
+        human_determinism: "user sees what each provider returned before any cross-provider write"
+        non_developer_clarity: "no API tokens, browser dev tools, or terminal required"
+        hardware_reality: "touches real Google, GitHub, local filesystem, and spreadsheet state"
+        ai_containment: "agents read, normalise, and propose — never write without an approval receipt"
+        holoscript_source: ".holo + .hsplus + .hs represent every layer of the sync"
+        multi_agent_value: "each provider lane has a specialist agent; outcomes compose via the sync orchestrator"
+        reversibility: "every proposed write is a staged plan with rollback instructions before execution"
+        hololand_path: "sync room becomes a persistent HoloLand world: each provider is a room zone, each diff event becomes a quest item or NPC prompt"
+      }
+    }
+  }
+
+  // ── Row 1: Provider ingest panels (sources) ──
+
+  object "GmailProvider" using "ProviderPanel" {
+    position: [-5.2, 1.45, -2.0]
+    label: "Gmail inbox"
+    properties: {
+      absorptionPath: "Native API / MCP (Gmail REST API via @connector/google-mail)"
+      trustState: "external"
+      elevationCondition: "OAuth2 PKCE + narrow scopes (readonly, send) → verified"
+      agent: "browser-agent (headless: false) or google-mail-mcp if provisioned"
+      reads: ["unread messages", "thread subjects", "attachment metadata", "label state"]
+      mutationDefault: "none — all writes require explicit approval receipt"
+      absorptionGap: "no @holoscript/connector-google-mail MCP server provisioned yet"
+    }
+  }
+
+  object "GoogleDriveProvider" using "ProviderPanel" {
+    position: [-2.6, 1.45, -2.0]
+    label: "Google Drive"
+    properties: {
+      absorptionPath: "Native API / MCP (Drive REST v3 via @connector/google-drive)"
+      trustState: "external"
+      elevationCondition: "OAuth2 + drive.file scope + file-hash comparison → verified"
+      agent: "browser-agent or google-drive-mcp"
+      reads: ["recently modified files", "shared permissions", "folder deltas", "revision metadata"]
+      mutationDefault: "none — copy/move/rename requires guarded receipt"
+      absorptionGap: "no @holoscript/connector-google-drive MCP server provisioned yet"
+    }
+  }
+
+  object "LocalFilesProvider" using "ProviderPanel" {
+    position: [0, 1.45, -2.0]
+    label: "Local project files"
+    properties: {
+      absorptionPath: "CLI / PowerShell (filesystem native — highest trust after browser)"
+      trustState: "local"
+      elevationCondition: "filesystem read is always local — no elevation needed"
+      agent: "holoshell-filesystem-agent (already shipped)"
+      reads: ["git status", "untracked files", "directory delta vs last sync receipt", "file hashes"]
+      mutationDefault: "none — writes use explicit path list (never glob)"
+      absorptionGap: "sync-receipt comparison primitive not yet a first-class .hs stage"
+    }
+  }
+
+  object "GitHubProvider" using "ProviderPanel" {
+    position: [2.6, 1.45, -2.0]
+    label: "GitHub"
+    properties: {
+      absorptionPath: "Native API / MCP (GitHub REST API via gh CLI or MCP)"
+      trustState: "verified"
+      elevationCondition: "gh auth login + scoped PAT → already at verified tier"
+      agent: "holoshell-gh-cli-agent (gh CLI already present on machine)"
+      reads: ["open PRs", "recent commits", "issue state", "CI run results", "repo release tags"]
+      mutationDefault: "none — PR creation / issue close requires guarded receipt"
+      absorptionGap: "no structured receipt schema for gh CLI stdout yet"
+    }
+  }
+
+  object "SpreadsheetProvider" using "ProviderPanel" {
+    position: [5.2, 1.45, -2.0]
+    label: "Tracking spreadsheet (Google Sheets)"
+    properties: {
+      absorptionPath: "Native API / MCP (Sheets REST API via @connector/google-sheets)"
+      trustState: "external"
+      elevationCondition: "OAuth2 + spreadsheets.readonly scope → external; spreadsheets scope → verified on write"
+      agent: "browser-agent or google-sheets-mcp"
+      reads: ["row count delta", "recently edited cells", "formula changes", "named range values"]
+      mutationDefault: "none — append/update requires user-visible plan + approval token"
+      absorptionGap: "no @holoscript/connector-google-sheets MCP server provisioned yet"
+    }
+  }
+
+  // ── Row 2: Sync lane connectors (visual flow lines) ──
+
+  object "GmailToOrchestratorLane" using "SyncLaneConnector" {
+    position: [-5.2, 0.98, -1.4]
+    rotation: [0, 0, 0]
+    label: "Gmail → orchestrator"
+  }
+
+  object "DriveToOrchestratorLane" using "SyncLaneConnector" {
+    position: [-2.6, 0.98, -1.4]
+    label: "Drive → orchestrator"
+  }
+
+  object "LocalToOrchestratorLane" using "SyncLaneConnector" {
+    position: [0, 0.98, -1.4]
+    label: "Local → orchestrator"
+  }
+
+  object "GitHubToOrchestratorLane" using "SyncLaneConnector" {
+    position: [2.6, 0.98, -1.4]
+    label: "GitHub → orchestrator"
+  }
+
+  object "SheetToOrchestratorLane" using "SyncLaneConnector" {
+    position: [5.2, 0.98, -1.4]
+    label: "Sheets → orchestrator"
+  }
+
+  // ── Row 2: Orchestrator ──
+
+  object "SyncOrchestrator" using "ProviderPanel" {
+    position: [0, 0.72, -0.8]
+    scale: [4.8, 0.82, 0.04]
+    label: "Cross-provider sync orchestrator"
+    properties: {
+      role: "normalise all provider receipts into a unified diff view; plan cross-provider writes; hold approval gate"
+      normalises: ["gmail_receipt", "drive_receipt", "local_receipt", "github_receipt", "sheets_receipt"]
+      produces: ["unified_delta_view", "cross_provider_write_plan", "approval_token", "sync_receipt"]
+      approvalPolicy: "every write plan is human-visible before execution; no silent auto-sync"
+      substrateLayers: {
+        holoscript_policy: "cross-provider-sync-policy.hsplus — state machine, approval gates, rollback triggers"
+        holoscript_pipeline: "cross-provider-sync-pipeline.hs — ingest, normalise, diff, plan, write stages"
+        hololand_surface: "sync room + diff feed + write-plan approval zone"
+      }
+    }
+  }
+
+  // ── Row 3: Output panels ──
+
+  object "UnifiedDeltaPanel" using "ProviderPanel" {
+    position: [-3.5, -0.55, 0.1]
+    label: "Unified delta view"
+    properties: {
+      humanFacing: true
+      shows: ["new emails matching query", "drive files modified since last run", "git status summary", "open PRs with CI state", "spreadsheet rows added or changed"]
+      sortOrder: "relevance (author-date + relationship to active board tasks)"
+      noDeltaState: "if all providers agree with last receipt, show 'all synced' and exit"
+    }
+  }
+
+  object "WriteProposalPanel" using "ProviderPanel" {
+    position: [0, -0.55, 0.1]
+    label: "Cross-provider write proposals"
+    properties: {
+      humanFacing: true
+      examples: [
+        "append 3 GitHub issues to spreadsheet tracker",
+        "create Drive folder for new project branch",
+        "file HoloMesh board task from email action item",
+        "label Gmail thread after spreadsheet row update"
+      ]
+      defaultState: "staged_plan — user approves before execution"
+      approvalToken: "required per proposal"
+      rollbackNote: "each proposal includes a compensating action description"
+    }
+  }
+
+  object "SyncReceiptPanel" using "ProviderPanel" {
+    position: [3.5, -0.55, 0.1]
+    label: "Sync receipt"
+    properties: {
+      humanFacing: true
+      contains: ["run timestamp", "provider ingest receipts (5)", "delta hashes", "write proposals staged", "writes executed", "approval tokens captured", "errors or skipped providers"]
+      replayable: true
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-06-09/cross-provider-sync-receipt.json"
+    }
+  }
+
+  // ── Row 4: Gap markers ──
+
+  object "GoogleConnectorMcpGap" using "GapMarker" {
+    position: [-4.2, -1.6, 0.5]
+    label: "Gap: no @holoscript/connector-google MCP (Gmail + Drive + Sheets)"
+    properties: {
+      gapKind: "HoloScript substrate gap"
+      targetPackage: "packages/plugins/connector-google"
+      absorptionPathToday: "Browser Automation (trustState: external)"
+      absorptionPathGoal: "Native MCP (trustState: verified)"
+      boardTask: "file against packages/plugins — connector-google MCP with Gmail+Drive+Sheets scopes"
+    }
+  }
+
+  object "GhReceiptSchemaMcpGap" using "GapMarker" {
+    position: [0, -1.6, 0.5]
+    label: "Gap: no structured receipt schema for gh CLI stdout"
+    properties: {
+      gapKind: "HoloScript substrate gap"
+      targetPackage: "packages/core or packages/holoshell-agent"
+      absorptionPathToday: "unstructured stdout parsed ad-hoc"
+      absorptionPathGoal: ".hs pipeline stage that produces signed CliReceipt from gh output"
+      boardTask: "file against packages/core — gh CLI stdout → structured HoloShell receipt"
+    }
+  }
+
+  object "SyncDiffPrimitiveGap" using "GapMarker" {
+    position: [4.2, -1.6, 0.5]
+    label: "Gap: no first-class sync-receipt diff .hs stage"
+    properties: {
+      gapKind: "HoloScript substrate gap"
+      targetPackage: "packages/core pipelines"
+      absorptionPathToday: "ad-hoc diff in pipeline transform"
+      absorptionPathGoal: "DeltaSource stage that compares current ingest against last-run receipt by hash"
+      boardTask: "file against packages/core — DeltaSource stage with hash-comparison and receipt anchor"
+    }
+  }
+
+  // ── Row 5: Receipt trail ──
+
+  object "GmailIngestReceipt" using "ReceiptToken" {
+    position: [-4.4, -2.5, 0.8]
+    label: "Gmail ingest receipt"
+    properties: {
+      receiptKind: "provider_ingest"
+      provider: "gmail"
+      mutationPerformed: false
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-06-09/gmail-ingest-receipt.json"
+    }
+  }
+
+  object "DriveIngestReceipt" using "ReceiptToken" {
+    position: [-2.2, -2.5, 0.8]
+    material: { color: "#7dcfff" }
+    label: "Drive ingest receipt"
+    properties: {
+      receiptKind: "provider_ingest"
+      provider: "google-drive"
+      mutationPerformed: false
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-06-09/drive-ingest-receipt.json"
+    }
+  }
+
+  object "LocalIngestReceipt" using "ReceiptToken" {
+    position: [0, -2.5, 0.8]
+    material: { color: "#9ece6a" }
+    label: "Local filesystem receipt"
+    properties: {
+      receiptKind: "provider_ingest"
+      provider: "local-filesystem"
+      mutationPerformed: false
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-06-09/local-ingest-receipt.json"
+    }
+  }
+
+  object "GitHubIngestReceipt" using "ReceiptToken" {
+    position: [2.2, -2.5, 0.8]
+    material: { color: "#e0af68" }
+    label: "GitHub ingest receipt"
+    properties: {
+      receiptKind: "provider_ingest"
+      provider: "github"
+      mutationPerformed: false
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-06-09/github-ingest-receipt.json"
+    }
+  }
+
+  object "SheetsIngestReceipt" using "ReceiptToken" {
+    position: [4.4, -2.5, 0.8]
+    material: { color: "#f7768e" }
+    label: "Sheets ingest receipt"
+    properties: {
+      receiptKind: "provider_ingest"
+      provider: "google-sheets"
+      mutationPerformed: false
+      evidencePath: ".bench-logs/holoshell-human-os-frontier/2026-06-09/sheets-ingest-receipt.json"
+    }
+  }
+
+  // ── Timeline ──
+
+  object "SyncTimeline" {
+    @anchor
+    geometry: "cube"
+    position: [0, -3.2, 0.8]
+    scale: [9.0, 0.07, 0.14]
+    color: "#3d5470"
+    label: "timeline: auth_check → ingest_providers → normalise → diff → plan_writes → approve → execute → verify → receipt"
+  }
+
+  // ── Rollback drawer ──
+
+  object "RollbackDrawer" using "ProviderPanel" {
+    position: [0, -4.0, 2.0]
+    label: "Rollback: no provider writes without approval token; compensating actions named per proposal"
+    properties: {
+      defaultMutation: "none"
+      rollback: "each write proposal stores the inverse action (delete/unlabel/unfile); compensating action is queued automatically on failure"
+      privateInventory: "email subjects, file names, spreadsheet contents are runtime data only — not committed to this repo"
+    }
+  }
+}

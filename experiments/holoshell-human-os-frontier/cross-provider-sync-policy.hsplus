@@ -1,0 +1,369 @@
+// HoloShell cross-provider sync policy and state machine.
+// Governs multi-provider ingest (Gmail, Drive, local files, GitHub, Sheets),
+// normalisation, diff, write-plan approval, execution, and receipt.
+
+composition "HoloShellCrossProviderSyncPolicy" {
+  state SyncState {
+    selectedWorkflow: "cross-provider-sync"
+    runId: ""
+    providersConfigured: ["gmail", "google-drive", "local-filesystem", "github", "google-sheets"]
+    providersIngested: []
+    providersSkipped: []
+    deltaItemCount: 0
+    writeProposalCount: 0
+    writeProposalsApproved: 0
+    writesExecuted: 0
+    writesFailed: 0
+    receiptsCaptured: 0
+    approvalTokensCaptured: 0
+    currentLane: "orchestrator"
+    blockers: []
+  }
+
+  // ── Permission envelopes ──
+
+  template "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    breakGlass: false
+    receiptRequired: true
+    humanVisible: true
+  }
+
+  template "ProviderIngestPermission" using "PermissionEnvelope" {
+    readOnly: true
+    guardedExecute: false
+    mutationAllowed: false
+    scopes: {
+      gmail: ["readonly"]
+      drive: ["drive.readonly"]
+      sheets: ["spreadsheets.readonly"]
+      github: ["repo:read"]
+      local: ["fs.read"]
+    }
+    note: "All ingest is read-only. OAuth tokens are user-delegated and narrow-scoped."
+  }
+
+  template "WriteProposalPermission" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: false
+    requiresApprovalToken: true
+    mutationAllowed: true
+    allowedOperations: [
+      "append_spreadsheet_row",
+      "create_drive_folder",
+      "file_holomesh_board_task",
+      "apply_gmail_label",
+      "create_github_issue",
+      "update_local_file"
+    ]
+    note: "Every write is proposed as a visible plan; execution requires a fresh approval token per proposal."
+  }
+
+  template "BreakGlassPermission" using "PermissionEnvelope" {
+    readOnly: false
+    guardedExecute: true
+    breakGlass: true
+    requiresFreshHumanGestureBeforeExecution: true
+    allowedOperations: [
+      "delete_drive_file",
+      "close_github_pr",
+      "send_gmail",
+      "delete_spreadsheet_rows"
+    ]
+    note: "Destructive or communication operations. Require an explicit, fresh human gesture — never auto-execute."
+  }
+
+  // ── Receipt templates ──
+
+  template "ProviderIngestReceipt" {
+    receiptType: "cross_provider_ingest_receipt"
+    sourceNative: true
+    replayable: true
+    mutationPerformed: false
+    requiredArtifacts: ["providerName", "ingestTimestamp", "rawResponseHash", "deltaItemCount", "skippedReason"]
+  }
+
+  template "WriteProposalReceipt" {
+    receiptType: "cross_provider_write_proposal_receipt"
+    requiresApprovalToken: true
+    mutationPerformed: false
+    requiredArtifacts: ["proposalId", "targetProvider", "operation", "parameters", "compensatingAction", "approvalToken"]
+    note: "Staged plan — not executed until approvalToken is captured."
+  }
+
+  template "WriteExecutionReceipt" {
+    receiptType: "cross_provider_write_execution_receipt"
+    requiresApprovalToken: true
+    mutationPerformed: true
+    requiredArtifacts: ["proposalId", "executionTimestamp", "outcomeStatus", "responseHash", "compensatingAction", "approvalToken"]
+  }
+
+  template "SyncRunReceipt" {
+    receiptType: "cross_provider_sync_run_receipt"
+    replayable: true
+    requiredArtifacts: [
+      "runId", "startTimestamp", "endTimestamp",
+      "providersIngested", "providersSkipped",
+      "deltaItemCount", "writeProposalCount",
+      "writesExecuted", "writesFailed",
+      "approvalTokensCaptured",
+      "ingestReceiptHashes", "writeReceiptHashes"
+    ]
+  }
+
+  // ── State machine ──
+
+  state_machine "SyncWorkflow" {
+    initial: "idle"
+    states: [
+      "idle",
+      "auth_checking",
+      "ingesting",
+      "normalised",
+      "diffed",
+      "plan_staged",
+      "awaiting_approval",
+      "executing",
+      "verified",
+      "error",
+      "blocked"
+    ]
+    transition "start"            { from: "idle",              to: "auth_checking" }
+    transition "auth_ok"          { from: "auth_checking",     to: "ingesting" }
+    transition "auth_failed"      { from: "auth_checking",     to: "blocked" }
+    transition "ingest_complete"  { from: "ingesting",         to: "normalised" }
+    transition "ingest_partial"   { from: "ingesting",         to: "normalised"
+                                    nb: "some providers skipped; skippedReason recorded" }
+    transition "diff_complete"    { from: "normalised",        to: "diffed" }
+    transition "no_delta"         { from: "diffed",            to: "verified"
+                                    nb: "all providers match last receipt — run ends cleanly" }
+    transition "plan_proposals"   { from: "diffed",            to: "plan_staged" }
+    transition "submit_for_review"{ from: "plan_staged",       to: "awaiting_approval" }
+    transition "approve_all"      { from: "awaiting_approval", to: "executing" }
+    transition "approve_partial"  { from: "awaiting_approval", to: "executing"
+                                    nb: "user approved a subset; unapproved proposals remain staged" }
+    transition "reject_all"       { from: "awaiting_approval", to: "verified"
+                                    nb: "user rejected all proposals; run closes with ingest receipts only" }
+    transition "execute_complete" { from: "executing",         to: "verified" }
+    transition "execute_error"    { from: "executing",         to: "error" }
+    transition "block"            { from: "*",                 to: "blocked" }
+  }
+
+  // ── Provider absorption paths ──
+
+  capability "GmailAbsorption" {
+    @agent { type: "holoshell"; source: "browser" }
+    trustState: "external"
+    permissions: [
+      { with: "holoscript://identity/oauth", can: "identity/delegate",
+        nb: { provider: "google", scopes: ["readonly"], neverScopes: ["admin", "send", "compose"] } }
+      { with: "holoscript://browser/session", can: "browser/automate",
+        nb: { domains: ["mail.google.com"], headless: false, userVisible: true } }
+    ]
+    absorptionGap: "no @holoscript/connector-google-mail MCP; using browser automation today"
+    replacementPath: "@holoscript/connector-google-mail with UCAN capability tokens"
+  }
+
+  capability "DriveAbsorption" {
+    @agent { type: "holoshell"; source: "browser" }
+    trustState: "external"
+    permissions: [
+      { with: "holoscript://identity/oauth", can: "identity/delegate",
+        nb: { provider: "google", scopes: ["drive.readonly"], neverScopes: ["drive", "admin"] } }
+      { with: "holoscript://browser/session", can: "browser/automate",
+        nb: { domains: ["drive.google.com"], headless: false, userVisible: true } }
+    ]
+    absorptionGap: "no @holoscript/connector-google-drive MCP; using browser automation today"
+    replacementPath: "@holoscript/connector-google-drive with deterministic file-hash sync"
+  }
+
+  capability "LocalFilesystemAbsorption" {
+    @agent { type: "holoshell"; source: "native-api" }
+    trustState: "local"
+    permissions: [
+      { with: "holoscript://fs/project", can: "fs/read",
+        nb: { pathPrefixes: ["C:\\Users\\Josep\\Documents\\GitHub\\"], readOnly: true } }
+      { with: "holoscript://process/exec", can: "process/spawn",
+        nb: { allowedBinaries: ["git"], maxInvocations: 20 } }
+    ]
+    absorptionGap: "DeltaSource .hs stage (hash-comparison vs last receipt) not yet a first-class primitive"
+    replacementPath: "sovereign @holoscript/delta-source stage with receipt-anchored hash comparison"
+  }
+
+  capability "GitHubAbsorption" {
+    @agent { type: "holoshell"; source: "cli" }
+    trustState: "known"
+    permissions: [
+      { with: "holoscript://process/exec", can: "process/spawn",
+        nb: { allowedBinaries: ["gh"], allowedArgs: ["pr list", "issue list", "run list", "release list", "repo view"],
+              readOnly: true } }
+    ]
+    absorptionGap: "no structured receipt schema for gh CLI stdout; output parsed ad-hoc today"
+    replacementPath: "CliReceipt stage in packages/core that signs gh stdout into a typed HoloShell receipt"
+  }
+
+  capability "SheetsAbsorption" {
+    @agent { type: "holoshell"; source: "browser" }
+    trustState: "external"
+    permissions: [
+      { with: "holoscript://identity/oauth", can: "identity/delegate",
+        nb: { provider: "google", scopes: ["spreadsheets.readonly"], neverScopes: ["spreadsheets", "admin"] } }
+      { with: "holoscript://browser/session", can: "browser/automate",
+        nb: { domains: ["docs.google.com"], headless: false, userVisible: true } }
+    ]
+    absorptionGap: "no @holoscript/connector-google-sheets MCP; using browser automation today"
+    replacementPath: "@holoscript/connector-google-sheets with cell-level diff receipts"
+  }
+
+  // ── Substrate gap registry ──
+
+  gap "GoogleConnectorMcp" {
+    kind: "holoscript_substrate_gap"
+    affects: ["GmailAbsorption", "DriveAbsorption", "SheetsAbsorption"]
+    priority: 2
+    description: "Three Google provider absorptions require browser automation fallback because no @holoscript/connector-google MCP server exists."
+    boardTaskTitle: "[holoshell-substrate] @holoscript/connector-google — Gmail+Drive+Sheets MCP with OAuth2+PKCE"
+    targetPackage: "packages/plugins/connector-google"
+    trustUpgrade: "external → verified"
+  }
+
+  gap "GhCliReceiptSchema" {
+    kind: "holoscript_substrate_gap"
+    affects: ["GitHubAbsorption"]
+    priority: 3
+    description: "gh CLI stdout is parsed ad-hoc; no signed CliReceipt schema exists in packages/core."
+    boardTaskTitle: "[holoshell-substrate] CliReceipt schema for gh CLI stdout → signed HoloShell receipt"
+    targetPackage: "packages/core"
+    trustUpgrade: "known → verified"
+  }
+
+  gap "DeltaSourceStage" {
+    kind: "holoscript_substrate_gap"
+    affects: ["LocalFilesystemAbsorption"]
+    priority: 3
+    description: "No first-class DeltaSource .hs pipeline stage for hash-comparison vs last-run receipt."
+    boardTaskTitle: "[holoshell-substrate] DeltaSource stage — hash-comparison vs last receipt anchor"
+    targetPackage: "packages/core"
+    trustUpgrade: "none (runtime improvement)"
+  }
+
+  gap "HoloLandSyncRoom" {
+    kind: "hololand_product_gap"
+    affects: ["SyncOrchestrator"]
+    priority: 4
+    description: "The sync room is designed as a HoloLand world but no HoloLand implementation exists yet."
+    boardTaskTitle: "[hololand-product] cross-provider sync world — diff feed + write-plan approval zone"
+    targetRepo: "Hololand"
+    trustUpgrade: "none (new product surface)"
+  }
+
+  // ── Agent roles ──
+
+  role "GmailLaneAgent" {
+    laneId: "gmail-lane"
+    owns: ["gmail_auth_check", "gmail_ingest", "gmail_receipt_sign", "gmail_label_apply"]
+  }
+
+  role "DriveLaneAgent" {
+    laneId: "drive-lane"
+    owns: ["drive_auth_check", "drive_ingest", "drive_receipt_sign", "drive_folder_create"]
+  }
+
+  role "LocalLaneAgent" {
+    laneId: "local-lane"
+    owns: ["git_status_read", "file_hash_delta", "local_receipt_sign", "local_file_write"]
+  }
+
+  role "GitHubLaneAgent" {
+    laneId: "github-lane"
+    owns: ["gh_auth_check", "gh_pr_list", "gh_issue_list", "gh_run_list", "gh_receipt_sign"]
+  }
+
+  role "SheetsLaneAgent" {
+    laneId: "sheets-lane"
+    owns: ["sheets_auth_check", "sheets_ingest", "sheets_receipt_sign", "sheets_row_append"]
+  }
+
+  role "SyncOrchestrator" {
+    laneId: "orchestrator"
+    owns: ["normalise_receipts", "run_diff", "plan_writes", "approval_gate", "execute_writes", "assemble_sync_receipt"]
+  }
+
+  // ── Actions ──
+
+  action checkAuth(provider) {
+    emit("holoshell:cross_provider_sync:auth_check", {
+      provider: provider,
+      workflow: SyncState.selectedWorkflow,
+      lane: SyncState.currentLane
+    })
+  }
+
+  action recordIngest(provider, receipt) {
+    SyncState.providersIngested.push(provider)
+    SyncState.deltaItemCount = SyncState.deltaItemCount + receipt.deltaItemCount
+    SyncState.receiptsCaptured = SyncState.receiptsCaptured + 1
+    emit("holoshell:cross_provider_sync:ingested", {
+      provider: provider,
+      deltaItemCount: receipt.deltaItemCount,
+      receiptHash: receipt.hash,
+      workflow: SyncState.selectedWorkflow
+    })
+  }
+
+  action recordSkipped(provider, reason) {
+    SyncState.providersSkipped.push({ provider: provider, reason: reason })
+    emit("holoshell:cross_provider_sync:skipped", {
+      provider: provider,
+      reason: reason
+    })
+  }
+
+  action stageWriteProposal(proposal) {
+    SyncState.writeProposalCount = SyncState.writeProposalCount + 1
+    emit("holoshell:cross_provider_sync:proposal_staged", {
+      proposalId: proposal.id,
+      targetProvider: proposal.targetProvider,
+      operation: proposal.operation,
+      compensatingAction: proposal.compensatingAction
+    })
+  }
+
+  action captureApproval(proposalId, approvalToken) {
+    SyncState.approvalTokensCaptured = SyncState.approvalTokensCaptured + 1
+    SyncState.writeProposalsApproved = SyncState.writeProposalsApproved + 1
+    emit("holoshell:cross_provider_sync:approved", {
+      proposalId: proposalId,
+      approvalToken: approvalToken
+    })
+  }
+
+  action recordWrite(proposalId, outcomeStatus, responseHash) {
+    if (outcomeStatus == "success") {
+      SyncState.writesExecuted = SyncState.writesExecuted + 1
+    } else {
+      SyncState.writesFailed = SyncState.writesFailed + 1
+    }
+    emit("holoshell:cross_provider_sync:executed", {
+      proposalId: proposalId,
+      outcomeStatus: outcomeStatus,
+      responseHash: responseHash
+    })
+  }
+
+  action blockOn(reason, evidencePath, ownerSurface) {
+    SyncWorkflow.transition("block")
+    SyncState.blockers.push({
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+    emit("holoshell:cross_provider_sync:blocker", {
+      reason: reason,
+      evidencePath: evidencePath,
+      ownerSurface: ownerSurface
+    })
+  }
+}
