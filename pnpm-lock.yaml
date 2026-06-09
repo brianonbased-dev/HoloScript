@@ -3510,6 +3510,9 @@ importers:
 
   packages/studio-ui-graph:
     dependencies:
+      '@holoscript/config':
+        specifier: workspace:^
+        version: link:../config
       ts-morph:
         specifier: ^27.0.2
         version: 27.0.2

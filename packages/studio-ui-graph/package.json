@@ -41,6 +41,7 @@
     "test:coverage": "vitest run --coverage --config vitest.config.ts --passWithNoTests"
   },
   "dependencies": {
+    "@holoscript/config": "workspace:^",
     "ts-morph": "^27.0.2"
   },
   "engines": {

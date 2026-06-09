@@ -1,13 +1,21 @@
 import { readFileSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { mcpAuthHeadersAsync } from '@holoscript/config';
 
 /**
- * v1.0 — publish the .holo to the production knowledge store so any agent on
+ * v1.1 — publish the .holo to the production knowledge store so any agent on
  * the mesh can query it via the orchestrator's /knowledge/query endpoint.
  *
  * Default target: the MCP orchestrator's knowledge-store, which already
  * federates across workspaces. We post a single `pattern` entry with the
  * full .holo content as `content` and structured metadata for filtering.
+ *
+ * Auth (OAuth 2.1 preferred):
+ *   When HOLOSCRIPT_MCP_CLIENT_ID + HOLOSCRIPT_MCP_CLIENT_SECRET are set,
+ *   issues a client_credentials bearer token and sends
+ *   `Authorization: Bearer <token>`. Falls back to the legacy
+ *   `x-mcp-api-key` header (HOLOSCRIPT_API_KEY / MCP_API_KEY) when
+ *   OAuth credentials are absent. Explicit --api-key overrides both.
  *
  * After publish, agents can ask:
  *   POST /knowledge/query  { "search": "Studio pages using SceneStore" }
@@ -25,7 +33,11 @@ export interface PublishOptions {
   endpoint?: string;
   /** Workspace id under which the entry lives. Default: 'ai-ecosystem'. */
   workspaceId?: string;
-  /** Auth header value. Default: $HOLOSCRIPT_API_KEY (or $MCP_API_KEY). */
+  /**
+   * Explicit auth key override. When set, sends the legacy x-mcp-api-key
+   * header instead of negotiating OAuth 2.1 bearer.
+   * @deprecated Prefer environment-level OAuth credentials.
+   */
   apiKey?: string;
   /** Don't actually POST — just print the payload that would be sent. */
   dryRun?: boolean;
@@ -51,7 +63,6 @@ export async function publishHolo(opts: PublishOptions): Promise<PublishResult> 
   const endpoint = opts.endpoint ?? DEFAULT_ENDPOINT;
   const workspaceId = opts.workspaceId ?? DEFAULT_WORKSPACE;
   const entryId = opts.entryId ?? DEFAULT_ENTRY_ID;
-  const apiKey = opts.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '';
 
   const content = readFileSync(opts.holoPath, 'utf8');
   const sha = createHash('sha256').update(content).digest('hex').slice(0, 16);
@@ -107,17 +118,35 @@ export async function publishHolo(opts: PublishOptions): Promise<PublishResult> 
     };
   }
 
-  if (!apiKey) {
-    throw new Error(
-      'publishHolo: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — set the env var or pass --api-key'
-    );
+  // Resolve auth headers.
+  // Priority: explicit --api-key override > OAuth 2.1 client_credentials > legacy env key.
+  let authHeaders: Record<string, string>;
+  if (opts.apiKey) {
+    // Explicit CLI override — use legacy header directly.
+    authHeaders = { 'x-mcp-api-key': opts.apiKey };
+  } else {
+    // mcpAuthHeadersAsync: issues OAuth bearer when HOLOSCRIPT_MCP_CLIENT_ID +
+    // HOLOSCRIPT_MCP_CLIENT_SECRET are configured; falls back to x-mcp-api-key
+    // (HOLOSCRIPT_API_KEY / MCP_API_KEY) when they are absent.
+    authHeaders = await mcpAuthHeadersAsync();
+    // Guard: neither OAuth nor legacy key available.
+    const hasAuth =
+      'Authorization' in authHeaders ||
+      ('x-mcp-api-key' in authHeaders && (authHeaders['x-mcp-api-key'] || '').length > 0);
+    if (!hasAuth) {
+      throw new Error(
+        'publishHolo: no auth credentials — set HOLOSCRIPT_MCP_CLIENT_ID + ' +
+          'HOLOSCRIPT_MCP_CLIENT_SECRET for OAuth, or HOLOSCRIPT_API_KEY for legacy key auth, ' +
+          'or pass --api-key'
+      );
+    }
   }
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-mcp-api-key': apiKey,
+      ...authHeaders,
     },
     body: JSON.stringify(payload),
   });
