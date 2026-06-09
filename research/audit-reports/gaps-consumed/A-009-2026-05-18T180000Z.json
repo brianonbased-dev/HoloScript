@@ -1,0 +1,15 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-18T18:00:00Z",
+  "gaps": [
+    {
+      "type": "b",
+      "title": "Add @woven_animation trait for active weaving process on tapestry objects (A-009 example-driven request)",
+      "description": "While composing the Rune-Loom of the Sigil Weavers stress-test (rune-loom-sigil-weavers-*-2026-05-18.holo), the scene required expressing a tapestry being actively woven — thread advancing row by row with visible shuttle movement, growing completion, and warp thread tension. The existing @tapestry trait handles cloth physics and drape simulation but has no concept of the weaving process itself. Proposed API: @woven_animation { weft_speed_mm_per_s, completion_pct, shuttle_visible, warp_tension_variance, advance_direction: 'bottom_up' | 'top_down', thread_material_override }. This would enable procedural 'in-progress artwork' scenes without custom animation scripting.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension", "tapestry", "fabric-cloth", "animation"],
+      "dedup_key": "a009-trait-woven_animation"
+    }
+  ]
+}

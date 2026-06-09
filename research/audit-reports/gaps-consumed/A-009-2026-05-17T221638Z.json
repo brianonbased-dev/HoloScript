@@ -1,0 +1,14 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-17T22:16:38Z",
+  "gaps": [
+    {
+      "title": "Add TraitCoronaSimulation for solar corona rendering (A-009 example-driven request)",
+      "description": "While refreshing examples/solar_system.refreshed.holo (2026-05-17), the solar orrery scene wanted to render a physically accurate solar corona. Currently the Sun is faked with bloom + @emissive_gi. A real @corona_simulation trait would support: (1) MHD flux-tube loop geometry (prominence arcs), (2) radial streamer belt pattern (equatorial current sheet visible at solar min), (3) coronal hole fast-wind regions shown as open-field polar plumes, (4) CME event trigger API for edu-XR space-weather demos. Suggested API shape: @corona_simulation { base_temperature_mk: 1.5, loop_count: 24, prominence_seed: 42, streamer_belt: true, coronal_holes: [\"north\", \"south\"], cme_enabled: false }. Without this trait the corona remains a bloom approximation — visually plausible but not distinguishable from any emissive sphere.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension", "solar", "astrophysics", "edu-xr"],
+      "dedup_key": "a009-trait-corona_simulation"
+    }
+  ]
+}

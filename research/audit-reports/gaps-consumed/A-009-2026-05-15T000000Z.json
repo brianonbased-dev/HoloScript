@@ -1,0 +1,25 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-15T00:00:00Z",
+  "gaps": [
+    {
+      "type": "missing_trait_wish",
+      "title": "Add TraitTimeOfDay for sky-cycle orchestration (A-009 example-driven request)",
+      "description": "During Phase 2 refresh of examples/showcase/realistic-forest.refreshed.holo, the scene needed a driver for time-of-day phases (dawn/golden_hour/dusk/dark) to orchestrate: (1) ambient sound crossfades (birdsong->crickets), (2) skybox exposure ramp, (3) fog density/color progression, (4) emissive intensity scaling for bioluminescent objects. No TraitTimeOfDay.ts or equivalent exists. Suggested API: @time_of_day { cycle_duration_minutes: 24, start_phase: 'golden', phases: { dawn: {...}, golden: {...}, dusk: {...}, dark: {...} } } — exposes current_phase and phase_t (0-1) for downstream trait subscriptions (time_envelope in @ambient already references this interface but has nothing to drive it).",
+      "priority": "low",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "feature-request",
+        "trait-extension",
+        "forest-scene",
+        "ambient-audio",
+        "lighting"
+      ],
+      "dedup_key": "a009-trait-time_of_day",
+      "source_example": "examples/showcase/realistic-forest.refreshed.holo",
+      "phase": "2-refresh"
+    }
+  ]
+}

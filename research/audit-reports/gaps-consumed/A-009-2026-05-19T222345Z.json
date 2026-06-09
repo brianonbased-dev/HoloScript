@@ -1,0 +1,15 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-05-19T22:23:45Z",
+  "gaps": [
+    {
+      "type": "b",
+      "title": "Add TraitTelescopeOptics for physical telescope magnification + FOV (A-009 example-driven request)",
+      "description": "While composing alpine-observatory-midnight stress-test, the @eyepiece_view render_portal required manually specifying fov_deg: 0.67 and magnification: 200 as disconnected magic numbers. A @telescope_optics trait would derive these from physical parameters: objective_diameter_mm, focal_length_mm, eyepiece_focal_length_mm, barlow_factor. It should also expose exit_pupil_mm (human eye limit: 7mm dark-adapted), limiting_magnitude (Dawes limit + aperture), and diffraction_ring_visibility. This enables physically accurate rendering of any telescope combination and catches unrealistic configs at validation time. Suggested API shape: @telescope_optics(objective_diameter_mm: 600, focal_length_mm: 2400, eyepiece_focal_length_mm: 12, barlow_factor: 1.0) → derives fov_deg=0.25, magnification=200, exit_pupil_mm=3.0. Pairs naturally with @starfield and @aurora for observatory scenes.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "feature-request", "trait-extension"],
+      "dedup_key": "a009-trait-telescope_optics"
+    }
+  ]
+}
