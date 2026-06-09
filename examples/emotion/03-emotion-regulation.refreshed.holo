@@ -10,9 +10,10 @@
 //   @avatar_embodiment — NPC meshes tracked to BVH capture, not float-in-space
 //   Spatial layout  — NPCs placed in a triangle; camera sees all three
 //
-// Missing-trait wish (queued for Phase-4 emission):
-//   @neural_expression — a trait mapping EEG alpha/theta ratios to facial
-//   blendshapes in real time. No Trait*.ts implements it yet.
+// Phase-4 addition (2026-06-09):
+//   @neural_expression — NeuralExpressionTrait.ts now shipped.
+//   Used on DrCira below to map her EEG alpha/theta ratios to facial
+//   blendshapes in real time, complementing the @biofeedback layer.
 
 composition "EmpathyArchitecture" {
 
@@ -166,6 +167,7 @@ composition "EmpathyArchitecture" {
   }
 
   // Dr Cira — Ambivalent. Bittersweet. Aura shifts rose <-> blue.
+  // @neural_expression drives real-time blendshapes from her EEG bands.
   entity DrCira {
     @avatar_embodiment {
       rig_type: "humanoid"
@@ -173,6 +175,14 @@ composition "EmpathyArchitecture" {
       motion_source: "bvh://idle-stand-pensive.bvh"
       blend_expressions: true
       height: 1.68
+    }
+    @neural_expression {
+      sources: ["eeg_alpha", "eeg_theta"]
+      blendshape_map: {
+        eeg_alpha: { browDown: "-0.6x", jawOpen: "-0.4x" }
+        eeg_theta: { cheekPuff: "0.3x" }
+      }
+      smoothing_hz: 10
     }
     @animated {
       clips: [

@@ -169,6 +169,7 @@ export const TRAIT_RESOURCE_COSTS: Record<string, Partial<Record<ResourceCategor
   '@multi_agent': { agentCount: 3, memoryMB: 15 },
   '@agent_discovery': { agentCount: 1, memoryMB: 2 },
   '@neural_animation': { memoryMB: 8, gpuDrawCalls: 2 },
+  '@neural_expression': { memoryMB: 1 },
   '@neural_forge': { memoryMB: 16, agentCount: 1 },
   '@local_llm': { memoryMB: 32, agentCount: 1 },
   '@rag_knowledge': { memoryMB: 8 },

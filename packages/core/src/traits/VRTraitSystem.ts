@@ -402,6 +402,7 @@ import { mqttSourceHandler } from './MQTTSourceTrait';
 import { multiAgentHandler } from './MultiAgentTrait';
 import { networkedAvatarHandler } from './NetworkedAvatarTrait';
 import { neuralAnimationHandler } from './NeuralAnimationTrait';
+import { neuralExpressionHandler } from './NeuralExpressionTrait';
 import { neuralForgeHandler } from './NeuralForgeTrait';
 import { npcAIHandler } from './NPCAITrait';
 import { objectTrackingHandler } from './ObjectTrackingTrait';
@@ -2016,6 +2017,7 @@ export class VRTraitRegistry {
     this.register(multiAgentHandler as TraitHandler);
     this.register(networkedAvatarHandler as TraitHandler);
     this.register(neuralAnimationHandler as TraitHandler);
+    this.register(neuralExpressionHandler as TraitHandler);
     this.register(neuralForgeHandler as TraitHandler);
     this.register(npcAIHandler as TraitHandler);
     this.register(objectTrackingHandler as TraitHandler);
@@ -2545,6 +2547,7 @@ export {
   multiAgentHandler,
   networkedAvatarHandler,
   neuralAnimationHandler,
+  neuralExpressionHandler,
   neuralForgeHandler,
   npcAIHandler,
   objectTrackingHandler,

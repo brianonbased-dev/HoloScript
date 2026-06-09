@@ -278,6 +278,7 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
   '@nerf': ['render:spawn', 'resource:gpu'],
   '@networked_avatar': ['io:network'],
   '@neural_animation': ['agent:spawn', 'resource:cpu'],
+  '@neural_expression': ['io:read', 'resource:cpu'],
   '@neural_forge': ['agent:spawn', 'resource:cpu'],
   '@neural_link': ['agent:spawn', 'resource:cpu'],
   '@nft': [],

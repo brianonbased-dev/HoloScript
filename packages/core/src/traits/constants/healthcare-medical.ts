@@ -24,6 +24,7 @@ export const HEALTHCARE_MEDICAL_TRAITS = [
   'meditation',
   'breathing_exercise',
   'biofeedback',
+  'neural_expression',
   'exposure_therapy',
   'pain_management',
   'rehabilitation',
