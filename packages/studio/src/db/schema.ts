@@ -575,6 +575,32 @@ export const characters = pgTable(
 );
 
 // =============================================================================
+// USER API KEYS (programmatic Brittney access)
+// =============================================================================
+// Keys are issued via POST /api/user/api-keys. The raw key (bk_<base64url>)
+// is shown ONCE at creation and never stored. Only the SHA-256 hash is kept.
+
+export const userApiKeys = pgTable(
+  'user_api_keys',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    keyHash: text('key_hash').notNull().unique(), // SHA-256(rawKey)
+    keyPrefix: varchar('key_prefix', { length: 16 }).notNull(), // display hint: "bk_xxxxxxx"
+    label: text('label').notNull().default(''),
+    revokedAt: timestamp('revoked_at', { mode: 'date' }),
+    lastUsedAt: timestamp('last_used_at', { mode: 'date' }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_user_api_keys_user').on(t.userId),
+    uniqueIndex('idx_user_api_keys_hash').on(t.keyHash),
+  ]
+);
+
+// =============================================================================
 // HOLOMESH TEAM PRESENCE SESSIONS
 // =============================================================================
 // Tracks per-agent presence sessions within a team for slot health analytics.

@@ -9,8 +9,11 @@ import { getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
 import { authOptions } from './auth';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
+import { getDb } from '../db/client';
+import { users as usersTable } from '../db/schema';
 
 /**
  * Get the current session in a server component or API route.
@@ -115,6 +118,57 @@ export async function requireFounder(request?: Request) {
     return NextResponse.json({ error: 'Founder access required' }, { status: 403 });
   }
   return auth;
+}
+
+/**
+ * Guard that accepts either a NextAuth session OR a Brittney API key
+ * (`Authorization: Bearer bk_*`). API-key callers get a synthetic session
+ * built from their DB user row so the Brittney route can treat both paths
+ * identically (credits, rate-limiting, BYOK vault, workspace resolution).
+ *
+ * ```ts
+ * export async function POST(request: Request) {
+ *   const auth = await requireAuthOrApiKey(request);
+ *   if (auth instanceof NextResponse) return auth; // 401 / 503
+ *   const { user } = auth;
+ *   // ...
+ * }
+ * ```
+ */
+export async function requireAuthOrApiKey(request: Request) {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer bk_')) {
+    const rawKey = authHeader.slice('Bearer '.length);
+    // Lazy import avoids circular dep at module parse time.
+    const { validateApiKey } = await import('./brittney/userApiKeys');
+    const keyResult = await validateApiKey(rawKey);
+    if (!keyResult) {
+      return NextResponse.json({ error: 'Invalid or revoked API key' }, { status: 401 });
+    }
+    const db = getDb();
+    if (!db) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
+    }
+    const rows = await db
+      .select({ id: usersTable.id, name: usersTable.name, email: usersTable.email, image: usersTable.image })
+      .from(usersTable)
+      .where(eq(usersTable.id, keyResult.userId))
+      .limit(1);
+    if (!rows.length) {
+      return NextResponse.json({ error: 'Invalid or revoked API key' }, { status: 401 });
+    }
+    const u = rows[0];
+    return {
+      user: {
+        id: u.id,
+        name: u.name ?? null,
+        email: u.email ?? null,
+        image: u.image ?? null,
+        githubUsername: '',
+      },
+    };
+  }
+  return requireAuth(request);
 }
 
 /**

@@ -59,7 +59,7 @@ import {
 } from '@/lib/brittney/HoloShellOperatorBridge';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
-import { requireAuth } from '@/lib/api-auth';
+import { requireAuthOrApiKey } from '@/lib/api-auth';
 import { resolveUserSecret } from '@/lib/secrets/userSecretStore';
 import {
   isFounderWorkspaceIdentity,
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
   let __phase: BrittneyPhase = 'auth';
   try {
     // SEC-T03: gate on authenticated session before any LLM spend.
-    const auth = await requireAuth(request);
+    const auth = await requireAuthOrApiKey(request);
     if (auth instanceof NextResponse) return auth;
     const mcpWorkspaceId = resolveWorkspaceIdForIdentity(auth.user);
     const allowFounderWorkspace = isFounderWorkspaceIdentity(auth.user);
