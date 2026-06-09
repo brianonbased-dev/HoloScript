@@ -28,6 +28,7 @@ import { useState, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
+import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
 
 // ── Types (kept host-side; not exposed to composition) ─────────────────────────
 
@@ -320,6 +321,12 @@ export function SettingsView() {
               Please sign in to access settings.
             </div>
           )}
+        </div>
+      )}
+
+      {session?.user?.id && (
+        <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 24px 40px' }}>
+          <BrittneyAPIKeysPanel />
         </div>
       )}
     </>

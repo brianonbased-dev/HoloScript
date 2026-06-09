@@ -498,6 +498,7 @@
     "packages/studio/src/components/self-custody/Step5Ownership.tsx",
     "packages/studio/src/components/self-custody/Step6Success.tsx",
     "packages/studio/src/components/settings/APIKeysPanel.tsx",
+    "packages/studio/src/components/settings/BrittneyAPIKeysPanel.tsx",
     "packages/studio/src/components/settings/SettingsView.tsx",
     "packages/studio/src/components/shader-editor/MaterialPreview.tsx",
     "packages/studio/src/components/shader-editor/NodePalette.tsx",
