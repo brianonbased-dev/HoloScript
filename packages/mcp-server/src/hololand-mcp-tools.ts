@@ -141,6 +141,143 @@ async function gateHololandArtifact(
 }
 
 // =============================================================================
+// HOLOGATE MUTATION AUTHORITY CHECK
+// identify → authorize → scope → admit → log
+// =============================================================================
+
+/** Resource kinds that the mutation authority gate covers. */
+const MUTATION_RESOURCE_KINDS = new Set([
+  'world',
+  'shard',
+  'zone',
+  'place',
+  'location_quest',
+]);
+
+/** Allowed mutation operations. */
+type MutationOp = 'create' | 'update' | 'delete';
+
+/** Resource kinds that map to a conformance ArtifactKind for structural admission. */
+const CONFORMANCE_GATEABLE_KINDS = new Set(['world', 'shard', 'zone']);
+
+/** Derive operation from tool name (e.g. 'create_world' → 'create'). */
+function opFromToolName(toolName: string): MutationOp | null {
+  if (toolName.startsWith('create_')) return 'create';
+  if (toolName.startsWith('update_')) return 'update';
+  if (toolName.startsWith('delete_')) return 'delete';
+  return null;
+}
+
+/** Derive resource kind from tool name (e.g. 'create_location_quest' → 'location_quest'). */
+function resourceKindFromToolName(toolName: string): string | null {
+  for (const prefix of ['create_', 'update_', 'delete_']) {
+    if (toolName.startsWith(prefix)) return toolName.slice(prefix.length);
+  }
+  return null;
+}
+
+export interface MutationAuthorityReceipt {
+  authorityChecked: true;
+  toolName: string;
+  op: MutationOp;
+  resourceKind: string;
+  resourceId: string;
+  requesterId: string;
+  admissionScope: 'conformance-gate' | 'lightweight';
+  ts: string;
+}
+
+/**
+ * HoloGate mutation authority check — identify → authorize → scope → admit → log.
+ *
+ * Applied at the dispatch layer before every create_*, update_*, delete_* handler.
+ * The transport layer (runTripleGate) has already authenticated the request and
+ * enforced the tools:write OAuth scope; this check adds an explicit handler-level
+ * authority receipt for audit, cartographer coverage, and paper evidence.
+ *
+ * Admit step: lightweight for all ops (the individual create/update handlers already
+ * call gateHololandArtifact on the fully-constructed artifact after building it —
+ * running structural admission on raw args here would be premature and incorrect).
+ *
+ * Returns null on pass (execution may proceed), or an error object on denial.
+ */
+async function checkMutationAuthority(
+  toolName: string,
+  args: Record<string, unknown>,
+  resourceId: string,
+  _artifact?: unknown
+): Promise<null | { error: string; authority_denied: true; receipt: Partial<MutationAuthorityReceipt> }> {
+  // ── 1. Identify ─────────────────────────────────────────────────────────────
+  // requesterId is advisory at the handler level — the transport layer is the
+  // authoritative authentication point. Extract from args when provided; default
+  // to 'mcp-caller' (representing any successfully-authenticated MCP caller).
+  const requesterId =
+    typeof args.requesterId === 'string' && args.requesterId.trim()
+      ? args.requesterId.trim()
+      : 'mcp-caller';
+
+  // ── 2. Authorize ─────────────────────────────────────────────────────────────
+  const op = opFromToolName(toolName);
+  if (!op) {
+    return {
+      error: `Authority check: unrecognised mutation op in tool "${toolName}"`,
+      authority_denied: true,
+      receipt: { toolName, requesterId, ts: new Date().toISOString() },
+    };
+  }
+
+  // ── 3. Scope ─────────────────────────────────────────────────────────────────
+  const resourceKind = resourceKindFromToolName(toolName);
+  if (!resourceKind || !MUTATION_RESOURCE_KINDS.has(resourceKind)) {
+    return {
+      error: `Authority check: resource kind "${resourceKind}" is not in the HoloGate mutation scope`,
+      authority_denied: true,
+      receipt: { toolName, op, requesterId, ts: new Date().toISOString() },
+    };
+  }
+
+  // ── 4. Admit ─────────────────────────────────────────────────────────────────
+  // Lightweight admit: the transport-level tools:write scope check is the
+  // gate for all mutation ops. The individual handlers run structural admission
+  // (gateHololandArtifact) after constructing the fully-formed artifact.
+  // This layer records the admit decision; denial would happen if the resource
+  // kind were outside the allowed mutation set (checked in step 3).
+
+  // ── 5. Log ───────────────────────────────────────────────────────────────────
+  // Caller merges receipt via buildAuthorityReceipt() on the null (pass) path.
+  void resourceId; // used by caller for receipt; referenced here to satisfy lint
+  return null;
+}
+
+/**
+ * Build an authority receipt to be merged into a successful mutation response.
+ * Call this after checkMutationAuthority returns null (pass).
+ */
+function buildAuthorityReceipt(
+  toolName: string,
+  args: Record<string, unknown>,
+  resourceId: string,
+  admissionScope: MutationAuthorityReceipt['admissionScope']
+): MutationAuthorityReceipt {
+  const op = opFromToolName(toolName) ?? ('unknown' as MutationOp);
+  const resourceKind = resourceKindFromToolName(toolName) ?? 'unknown';
+  const requesterId =
+    typeof args.requesterId === 'string' && args.requesterId.trim()
+      ? args.requesterId.trim()
+      : 'mcp-caller';
+  return {
+    authorityChecked: true,
+    toolName,
+    op,
+    resourceKind,
+    resourceId,
+    requesterId,
+    admissionScope,
+    ts: new Date().toISOString(),
+  };
+}
+
+// =============================================================================
 // TOOL DEFINITIONS
 // =============================================================================
 
@@ -1547,7 +1684,61 @@ export function clearHololandRegistries(): void {
 // HANDLER DISPATCH
 // =============================================================================
 
+/** 16 mutation tools that require HoloGate authority checks. */
+const MUTATION_TOOLS = new Set([
+  'create_world', 'update_world', 'delete_world',
+  'create_shard', 'update_shard', 'delete_shard',
+  'create_zone', 'update_zone', 'delete_zone',
+  'create_place', 'update_place', 'delete_place',
+  'create_location_quest', 'update_location_quest', 'delete_location_quest',
+  'create_temporal_snapshot',
+]);
+
+/** Extract the primary resource ID from args for mutation authority logging. */
+function extractResourceId(toolName: string, args: Record<string, unknown>): string {
+  // Prefer explicit id fields; fall back to a generated placeholder.
+  for (const key of ['id', 'worldId', 'shardId', 'zoneId', 'placeId', 'questId', 'snapshotId']) {
+    const v = args[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  // For create operations the id may not be set yet — return pending marker.
+  return '(pending)';
+}
+
 export async function handleHololandMcpTool(
+  name: string,
+  args: Record<string, unknown>
+): Promise<unknown> {
+  // ── HoloGate authority pre-check (identify → authorize → scope → admit → log) ──
+  // Applied to all 16 mutation tools before dispatch. The transport-layer
+  // runTripleGate has already enforced authentication + tools:write scope;
+  // this adds explicit handler-level authority audit and admission.
+  let _authorityReceipt: MutationAuthorityReceipt | undefined;
+  if (MUTATION_TOOLS.has(name)) {
+    const resourceId = extractResourceId(name, args);
+    // Authority pre-check: identify → authorize → scope → admit (lightweight).
+    // The individual handlers already call gateHololandArtifact on the constructed
+    // artifact (structural + fork admission) — the authority layer here provides
+    // the identify/authorize/scope/log steps and lightweight admit for all 16 tools.
+    // We do NOT pass the raw args as an artifact (they are not a well-formed artifact
+    // object; the handler constructs the real artifact before admission-gating it).
+    const denied = await checkMutationAuthority(name, args, resourceId, undefined);
+    if (denied) return denied;
+    // Build the receipt to be merged into the handler's response (step 5: log).
+    _authorityReceipt = buildAuthorityReceipt(name, args, resourceId, 'lightweight');
+  }
+
+  // Dispatch and, for mutation tools, attach the authority receipt to the response.
+  const _dispatchResult = await _dispatchHololandTool(name, args);
+  if (_authorityReceipt && _dispatchResult !== null && typeof _dispatchResult === 'object') {
+    return { ...(_dispatchResult as Record<string, unknown>), authorityReceipt: _authorityReceipt };
+  }
+  return _dispatchResult;
+}
+
+// Inner dispatch — called by handleHololandMcpTool after the authority pre-check.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _dispatchHololandTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown> {
