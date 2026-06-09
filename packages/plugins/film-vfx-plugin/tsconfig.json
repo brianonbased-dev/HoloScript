@@ -12,8 +12,12 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@holoscript/core/runtime": ["node_modules/@holoscript/core/dist/runtime.d.ts"]
+    }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "exclude": ["node_modules", "dist", "tests", "src/__tests__"]
 }

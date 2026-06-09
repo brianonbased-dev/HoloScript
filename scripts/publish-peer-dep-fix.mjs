@@ -13,7 +13,7 @@
  *   DRY_RUN=0 node scripts/publish-peer-dep-fix.mjs # real publish
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync, copyFileSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, copyFileSync, readdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
@@ -46,7 +46,36 @@ function viewVersion(name) {
   } catch { return null; }
 }
 
+// Build full name→version map by scanning all package dirs (handles non-obvious
+// dir names like packages/holoscript → @holoscript/sdk)
+const _pkgVersionMap = new Map();
+function _scanPackageDir(base) {
+  if (!existsSync(base)) return;
+  for (const entry of readdirSync(base)) {
+    const entryPath = join(base, entry);
+    if (!statSync(entryPath).isDirectory()) continue;
+    const pkgPath = join(entryPath, 'package.json');
+    if (existsSync(pkgPath)) {
+      try {
+        const d = JSON.parse(readFileSync(pkgPath, 'utf8'));
+        if (d.name && d.version) _pkgVersionMap.set(d.name, d.version);
+      } catch { /* skip malformed */ }
+    }
+  }
+}
+_scanPackageDir(join(ROOT, 'packages'));
+_scanPackageDir(join(ROOT, 'packages', 'plugins'));
+_scanPackageDir(join(ROOT, 'packages', 'providers'));
+// Deeper scan: packages/* may contain sub-packages (e.g. packages/holoscript/)
+for (const entry of readdirSync(join(ROOT, 'packages'))) {
+  const entryPath = join(ROOT, 'packages', entry);
+  if (statSync(entryPath).isDirectory()) _scanPackageDir(entryPath);
+}
+
 function resolveWorkspaceVersion(pkgName) {
+  // Direct map lookup first (handles all alias dirs)
+  if (_pkgVersionMap.has(pkgName)) return _pkgVersionMap.get(pkgName);
+  // Fallback: guess dir from package name
   const name = pkgName.replace('@holoscript/', '');
   for (const sub of ['packages', join('packages', 'plugins'), join('packages', 'providers')]) {
     const p = join(ROOT, sub, name, 'package.json');
