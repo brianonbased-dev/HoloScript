@@ -77,6 +77,14 @@ export interface HoloEntityDef {
   components: HoloComponentData[];
   /** Parent entity index (-1 for root) */
   parentIndex: number;
+  /**
+   * Initial trait IDs applied at entity-init time (before any function executes).
+   * Uses the stable HoloTraitId numeric keys. The VM's initializeEntities() reads
+   * this array and calls entity.traits.add(id) for each entry, exactly as if an
+   * APPLY_TRAIT opcode had run. This mirrors how HolobCompiler emits trait annotations
+   * (@rigid, @grabbable, etc.) from .holo source into the bytecode init section.
+   */
+  initialTraits?: number[];
 }
 
 export interface HoloComponentData {
@@ -280,6 +288,23 @@ export class HoloBytecodeBuilder {
     values: Record<string, HoloOperand>
   ): this {
     this.entities[entityIdx].components.push({ componentType, values });
+    return this;
+  }
+
+  /**
+   * Add an initial trait ID to an entity (applied at VM load time, before any function runs).
+   *
+   * Uses the stable HoloTraitId numeric keys. Equivalent to an APPLY_TRAIT opcode in an
+   * init function, but stored declaratively in the entity definition so that
+   * NativeHoloRenderer can read entity.traits immediately after HoloVM.load() without
+   * needing to tick the VM.
+   */
+  addTraitToEntity(entityIdx: number, traitId: number): this {
+    const entity = this.entities[entityIdx];
+    if (!entity.initialTraits) {
+      entity.initialTraits = [];
+    }
+    entity.initialTraits.push(traitId);
     return this;
   }
 

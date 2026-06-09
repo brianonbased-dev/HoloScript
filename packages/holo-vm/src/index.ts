@@ -19,6 +19,7 @@ export {
   LightType,
   SyncTier,
   ValueType,
+  HoloTraitId,
   getOpcodeFamily,
   getOpcodeName,
   isControlFlow,

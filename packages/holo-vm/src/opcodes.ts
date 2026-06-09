@@ -276,6 +276,33 @@ export enum SyncTier {
 }
 
 // =============================================================================
+// CANONICAL TRAIT IDs (stable numeric keys used by APPLY_TRAIT / REMOVE_TRAIT)
+//
+// These IDs are the HoloVM-side integer keys that bytecode embeds when a .holo
+// trait annotation (@rigid, @grabbable, etc.) compiles to an APPLY_TRAIT opcode.
+// They are intentionally stable — changing a value is a bytecode-format break.
+// All IDs < 0x100 are reserved for the native trait set; 0x100–0xFFFF are
+// available for domain plugins.
+// =============================================================================
+
+export enum HoloTraitId {
+  /** @rigid — entity has simulated rigid-body physics. */
+  Rigid = 0x01,
+  /** @grabbable — entity responds to XR/pointer grab gestures. */
+  Grabbable = 0x02,
+  /** @collidable — entity participates in collision detection. */
+  Collidable = 0x03,
+  /** @gravity — entity is subject to world gravity. */
+  Gravity = 0x04,
+  /** @trigger — entity fires events on intersection (non-colliding). */
+  Trigger = 0x05,
+  /** @hoverable — entity highlights on pointer proximity. */
+  Hoverable = 0x06,
+  /** @clickable — entity fires a click event on selection. */
+  Clickable = 0x07,
+}
+
+// =============================================================================
 // VALUE TYPE TAGS (for PUSH operand encoding)
 // =============================================================================
 

@@ -419,6 +419,21 @@ export class HoloVM {
         this.world.setComponent(entityId, comp.componentType, comp.values);
       }
 
+      // Apply initial traits declared in the entity definition.
+      // This is the declarative counterpart to an APPLY_TRAIT opcode — it lets
+      // NativeHoloRenderer read entity.traits immediately after load() without
+      // needing a tick. The HolobCompiler emits .holo trait annotations (@rigid,
+      // @grabbable, etc.) into this initialTraits array.
+      if (entityDef.initialTraits) {
+        const entity = this.world.getEntity(entityId);
+        if (entity) {
+          for (const traitId of entityDef.initialTraits) {
+            entity.traits.add(traitId);
+          }
+          entity.dirty = true;
+        }
+      }
+
       // Set parent if specified
       if (entityDef.parentIndex >= 0) {
         // Entity indices are 1-based in the world
