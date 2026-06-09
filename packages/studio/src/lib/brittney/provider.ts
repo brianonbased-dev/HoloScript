@@ -32,6 +32,17 @@ import {
 
 export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud' | 'fleet';
 
+/**
+ * Per-user BYOK keys resolved server-side from the HoloKey vault (F.112). When present,
+ * they OVERRIDE the shared env keys so a user's own credential — not a global founder key —
+ * backs their session. Absent/null fields fall back to env, so behaviour is unchanged when
+ * a user has stored nothing (or the vault is unconfigured).
+ */
+export interface BrittneyByokKeys {
+  /** The user's own Anthropic key (vault:ANTHROPIC_API_KEY). Overrides ANTHROPIC_API_KEY. */
+  anthropicKey?: string | null;
+}
+
 export interface ResolvedBrittneyProvider {
   /** The unified provider (Anthropic, Ollama, or Brittney Cloud). */
   provider: ILLMProvider;
@@ -65,10 +76,11 @@ const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || 'qwen2.5-coder:7b';
  *   - OLLAMA_BASE_URL env (alternative key)
  *   - the Ollama default port (resolved inside resolveOllama)
  */
-export function resolveBrittneyProvider(): ResolvedBrittneyProvider {
+export function resolveBrittneyProvider(byok?: BrittneyByokKeys): ResolvedBrittneyProvider {
   const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  // Per-user BYOK key (resolved from the HoloKey vault) OVERRIDES the shared env key. F.112.
+  const anthropicKey = byok?.anthropicKey || process.env.ANTHROPIC_API_KEY;
   const ollamaHost = process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL;
   const cloudUrl = process.env.BRITTNEY_SERVICE_URL;
 
@@ -237,7 +249,9 @@ async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
  * (BRITTNEY_FLEET_MODEL / FLEET_INFERENCE_KEY) is present and no explicit provider is set.
  * Everything else delegates to the sync `resolveBrittneyProvider`.
  */
-export async function resolveBrittneyProviderAsync(): Promise<ResolvedBrittneyProvider> {
+export async function resolveBrittneyProviderAsync(
+  byok?: BrittneyByokKeys
+): Promise<ResolvedBrittneyProvider> {
   const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
   const fleetConfigured =
     explicit === 'fleet' ||
@@ -250,11 +264,11 @@ export async function resolveBrittneyProviderAsync(): Promise<ResolvedBrittneyPr
       // Cold/unreachable fleet → fall back to a sync provider for THIS request. If none is
       // configured, resolveBrittneyProvider() throws its own error — surface the fleet one.
       try {
-        return resolveBrittneyProvider();
+        return resolveBrittneyProvider(byok);
       } catch {
         throw fleetErr;
       }
     }
   }
-  return resolveBrittneyProvider();
+  return resolveBrittneyProvider(byok);
 }

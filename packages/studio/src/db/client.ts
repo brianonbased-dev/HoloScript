@@ -36,6 +36,18 @@ export function getDb() {
 }
 
 /**
+ * Get the raw `pg` connection pool, creating it on first call (shared with
+ * {@link getDb}). Returns null when DATABASE_URL is not configured. Used by
+ * modules that need a raw query runner rather than the Drizzle instance — e.g.
+ * the HoloKey user-secret store's Postgres backend (`createPostgresSecretBackend`).
+ */
+export function getPool(): Pool | null {
+  // getDb() creates _pool as a side effect when DATABASE_URL is present.
+  getDb();
+  return _pool;
+}
+
+/**
  * Close the database connection pool. Call on server shutdown.
  */
 export async function closeDb() {

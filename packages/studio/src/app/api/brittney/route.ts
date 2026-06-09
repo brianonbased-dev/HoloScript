@@ -60,6 +60,7 @@ import {
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
+import { resolveUserSecret } from '@/lib/secrets/userSecretStore';
 import {
   isFounderWorkspaceIdentity,
   resolveWorkspaceIdForIdentity,
@@ -166,10 +167,20 @@ export async function POST(request: NextRequest) {
     let resolved: ReturnType<typeof resolveBrittneyProvider> | null = null;
     if (!holoshellOperator.requested) {
       __phase = 'provider';
+      // Per-user BYOK (F.112): if this user stored their OWN Anthropic key in the HoloKey
+      // vault, resolve it (owner-bound, fail-closed) so it overrides the shared env key.
+      // Fail-soft — null when the vault is unconfigured or the user stored nothing, leaving
+      // the existing sovereign/env path unchanged.
+      const ownerId = (auth as { user?: { id?: string } }).user?.id ?? '';
+      const byokAnthropicKey = ownerId
+        ? await resolveUserSecret({ ownerId, name: 'ANTHROPIC_API_KEY', purpose: 'brittney-chat' })
+        : null;
       try {
         // Async: prefers the sovereign serving fleet (dynamic-resolve), falling back to
         // the sync providers (cloud/ollama/anthropic-BYOK) when the fleet is cold (P.008).
-        resolved = await resolveBrittneyProviderAsync();
+        resolved = await resolveBrittneyProviderAsync(
+          byokAnthropicKey ? { anthropicKey: byokAnthropicKey } : undefined
+        );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return sseResponse([
