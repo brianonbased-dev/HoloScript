@@ -62,5 +62,21 @@
       "inconclusive": 0
     },
     "ok": false
+  },
+  {
+    "date": "2026-06-09T23:24:44.037Z",
+    "gate": "cli-version-parity",
+    "cliVersion": "local",
+    "coreVersionLocal": "local",
+    "mcpVersion": "8.0.9",
+    "summary": {
+      "total": 7,
+      "passed": 7,
+      "drifted": 0,
+      "cliFailures": 0,
+      "mcpFailures": 0,
+      "inconclusive": 0
+    },
+    "ok": true
   }
 ]

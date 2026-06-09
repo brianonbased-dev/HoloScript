@@ -2057,7 +2057,8 @@ async function main(): Promise<void> {
         process.exit(0);
       }
 
-      console.log(`\n\x1b[36mCompiling ${options.input} → ${target}\x1b[0m\n`);
+      // Status/progress goes to stderr so stdout is reserved for compiled code output
+      process.stderr.write(`\n\x1b[36mCompiling ${options.input} → ${target}\x1b[0m\n\n`);
 
       try {
         const isHolo = filePath.endsWith('.holo');
@@ -2193,6 +2194,88 @@ async function main(): Promise<void> {
             }
           }
 
+          process.exit(0);
+        }
+
+        // Special handling for babylon target — use core BabylonCompiler
+        // (aligns CLI output with MCP server which also routes through ExportManager→BabylonCompiler)
+        if (target === 'babylon') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: Babylon.js compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser, BabylonCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for Babylon.js:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          // Debug lines go to stderr so stdout contains only the compiled code
+          process.stderr.write(`\x1b[2m[DEBUG] Compiling to Babylon.js (TypeScript class-based)...\x1b[0m\n`);
+          const compiler = new BabylonCompiler({
+            className: 'GeneratedScene',
+            typescript: true,
+          });
+          const babylonOutput = compiler.compile(parseResult.ast, '');
+
+          process.stderr.write(`\x1b[2m[DEBUG] Code generation complete. Length: ${babylonOutput.length}\x1b[0m\n`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const tsPath = outputPath.endsWith('.ts') ? outputPath : outputPath + '.ts';
+            writeCompileOutputFile(tsPath, babylonOutput);
+            process.stderr.write(`\x1b[32m✓ Babylon.js written to ${tsPath}\x1b[0m\n`);
+          } else {
+            process.stdout.write(babylonOutput + '\n');
+          }
+
+          process.stderr.write(`\x1b[32m✓ Compilation successful!\x1b[0m\n\n`);
+          process.exit(0);
+        }
+
+        // Special handling for unity target — use core UnityCompiler
+        // (aligns CLI output with MCP server which also routes through ExportManager→UnityCompiler)
+        if (target === 'unity') {
+          if (!isHolo) {
+            console.error(`\x1b[31mError: Unity compilation requires .holo files.\x1b[0m`);
+            process.exit(1);
+          }
+
+          const { HoloCompositionParser, UnityCompiler } = await import('@holoscript/core');
+          const compositionParser = new HoloCompositionParser();
+          const parseResult = compositionParser.parse(content);
+
+          if (!parseResult.success || !parseResult.ast) {
+            console.error(`\x1b[31mError parsing for Unity:\x1b[0m`);
+            parseResult.errors.forEach((e: { message: string }) => console.error(`  ${e.message}`));
+            process.exit(1);
+          }
+
+          // Debug lines go to stderr so stdout contains only the compiled code
+          process.stderr.write(`\x1b[2m[DEBUG] Compiling to Unity C# (TypeScript class-based)...\x1b[0m\n`);
+          const compiler = new UnityCompiler({
+            className: 'GeneratedScene',
+            namespace: 'HoloScript',
+          });
+          const unityOutput = compiler.compile(parseResult.ast, '');
+
+          process.stderr.write(`\x1b[2m[DEBUG] Code generation complete. Length: ${unityOutput.length}\x1b[0m\n`);
+
+          if (options.output) {
+            const outputPath = path.resolve(options.output);
+            const csPath = outputPath.endsWith('.cs') ? outputPath : outputPath + '.cs';
+            writeCompileOutputFile(csPath, unityOutput);
+            process.stderr.write(`\x1b[32m✓ Unity C# written to ${csPath}\x1b[0m\n`);
+          } else {
+            process.stdout.write(unityOutput + '\n');
+          }
+
+          process.stderr.write(`\x1b[32m✓ Compilation successful!\x1b[0m\n\n`);
           process.exit(0);
         }
 

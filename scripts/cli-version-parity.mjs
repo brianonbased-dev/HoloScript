@@ -355,12 +355,17 @@ function compileViaCLI(code, ext, target) {
   const ms = Date.now() - start;
   try { rmSync(fixDir, { recursive: true, force: true }); } catch { /* best-effort */ }
 
-  // The CLI prepends header lines before the JSON output (e.g.
-  // "--- R3F Scene Graph ---" or "--- Unity Output ---"). Strip everything
-  // before the first '{' so the semantic comparison operates on JSON only.
+  // Strip CLI header banners only when the output is JSON (r3f, state, etc.).
+  // The banner pattern is "--- ... ---" (dashes + title). For text-based targets
+  // (babylon TypeScript, unity C#, etc.) the output starts directly with
+  // comments and code — don't strip those, it would remove semantic tokens.
   if (output) {
+    // Only strip if a "--- ... ---" banner header appears before the first '{'.
     const jsonStart = output.indexOf('{');
-    if (jsonStart > 0) output = output.slice(jsonStart);
+    const bannerMatch = /^[\s\S]*?---\s+\w/m.test(output);
+    if (bannerMatch && jsonStart > 0) {
+      output = output.slice(jsonStart);
+    }
   }
 
   return { ok, output: output ? normalizeOutput(output) : null, errorMsg, ms };
