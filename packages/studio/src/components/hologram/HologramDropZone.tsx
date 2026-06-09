@@ -132,7 +132,7 @@ export function HologramDropZone({
       switch (media.type) {
         case 'image':
           return `  object "${media.name}" {
-    @image src:"${media.file.name}"
+    @image src:"${media.previewUrl}"
     @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu" }
     @displacement { scale: 0.3, segments: 128 }
     @depth_to_normal
@@ -143,7 +143,7 @@ export function HologramDropZone({
 
         case 'gif':
           return `  object "${media.name}" {
-    @animated_texture { src: "${media.file.name}", fps: 24, max_frames: 500 }
+    @animated_texture { src: "${media.previewUrl}", fps: 24, max_frames: 500 }
     @segment { model: "rembg", remove_background: true }
     @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu", temporal_smoothing: 0.8 }
     @holographic_sprite { depth_scale: 0.5, render_mode: "displacement" }
@@ -154,7 +154,7 @@ export function HologramDropZone({
 
         case 'video':
           return `  object "${media.name}" {
-    @video { src: "${media.file.name}", autoplay: true, loop: true, muted: true }
+    @video { src: "${media.previewUrl}", autoplay: true, loop: true, muted: true }
     @depth_estimation { model: "depth-anything-v2-small", backend: "webgpu", temporal_smoothing: 0.8 }
     @displacement { scale: 0.25, segments: 64 }
     position: [${xPos}, ${yPos}, -3]
@@ -192,8 +192,8 @@ ${objects.join('\n\n')}
     onCompositionGenerated(code);
     setGenerating(false);
 
-    // Cleanup preview URLs
-    files.forEach((f) => URL.revokeObjectURL(f.previewUrl));
+    // Don't revoke blob URLs here — they're now embedded in the generated code
+    // and must stay valid until the renderer loads the media.
     setFiles([]);
   }, [files, onCompositionGenerated]);
 
