@@ -211,6 +211,22 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
         ...(args['newName'] ? { newName: args['newName'] } : {}),
       }),
     },
+    hs_ai_review: {
+      baseUrl: holoUrl,
+      method: 'hs_ai_review',
+      buildArgs: (args) => ({
+        code: args['code'],
+        ...(args['focus'] ? { focus: args['focus'] } : {}),
+      }),
+    },
+    hs_ai_fix_code: {
+      baseUrl: holoUrl,
+      method: 'hs_ai_fix_code',
+      buildArgs: (args) => ({
+        code: args['code'],
+        ...(args['format'] ? { format: args['format'] } : {}),
+      }),
+    },
     // Migration & formats (data/architecture → native HoloScript)
     map_data: {
       baseUrl: holoUrl,

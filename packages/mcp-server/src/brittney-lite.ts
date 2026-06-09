@@ -262,6 +262,9 @@ async function handleExplainError(args: Record<string, unknown>) {
 
 async function handleFixCode(args: Record<string, unknown>) {
   const code = args.code as string;
+  if (typeof code !== 'string' || !code.trim()) {
+    return { error: '"code" is required — pass the HoloScript/.hsplus source to fix.' };
+  }
 
   // Try model first — send broken code, validate fix through parser
   const modelFixed = await tryModelFix(code);
@@ -361,6 +364,9 @@ async function handleFixCode(args: Record<string, unknown>) {
 
 async function handleReview(args: Record<string, unknown>) {
   const code = args.code as string;
+  if (typeof code !== 'string' || !code.trim()) {
+    return { error: '"code" is required — pass the HoloScript/.hsplus source to review.' };
+  }
   const focus = (args.focus as string) || 'all';
   const issues: Array<{
     severity: string;

@@ -16,8 +16,10 @@
  *    Brittney's in-memory scene.
  *  - the positional LSP family (hs_hover / hs_go_to_definition /
  *    hs_find_references) — Brittney has a scene + chat, no cursor.
- *  - hs_ai_review / hs_ai_fix_code — probed `scaffold` (throw on missing
- *    input); revisit after a server-side input guard lands.
+ *  (hs_ai_review / hs_ai_fix_code were probed `scaffold` — they threw on missing
+ *  input; the mcp-server input guard landed 2026-06-09 and both verified useful on
+ *  real input — review caught a duplicate trait + grade, fix returned a
+ *  parser-validated fix — so they ARE bound below now.)
  *
  * Both bound tools take `code` — exactly what Brittney already has (scene
  * source / the generated `.hsplus`). Execution routes through
@@ -81,6 +83,59 @@ const hsRefactor: StudioToolDefinition = {
   },
 };
 
-export const HS_AUTHORING_TOOLS: StudioToolDefinition[] = [hsDiagnostics, hsRefactor];
+const hsAiReview: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'hs_ai_review',
+    description:
+      'AI review of HoloScript / .hsplus code for best practices: trait-compatibility warnings (e.g. @grabbable pairs with @collidable), performance & structure issues, multiplayer-readiness, plus a model review and a letter grade. Use to sanity-check a composition before shipping.',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript / .hsplus code to review',
+        },
+        focus: {
+          type: 'string',
+          enum: ['performance', 'traits', 'structure', 'multiplayer', 'all'],
+          description: 'Focus area (default: all)',
+        },
+      },
+      required: ['code'],
+    },
+  },
+};
+
+const hsAiFixCode: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'hs_ai_fix_code',
+    description:
+      'Take broken HoloScript / .hsplus code and return a corrected, PARSER-VALIDATED version — fixes unbalanced braces, unknown traits, missing required properties, and common mistakes. Returns the fixed code + the list of fixes applied.',
+    parameters: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript / .hsplus code to fix',
+        },
+        format: {
+          type: 'string',
+          enum: ['hs', 'hsplus', 'holo', 'auto'],
+          description: 'Expected format (default: auto-detect)',
+        },
+      },
+      required: ['code'],
+    },
+  },
+};
+
+export const HS_AUTHORING_TOOLS: StudioToolDefinition[] = [
+  hsDiagnostics,
+  hsRefactor,
+  hsAiReview,
+  hsAiFixCode,
+];
 
 export const HS_AUTHORING_TOOL_NAMES = new Set(HS_AUTHORING_TOOLS.map((t) => t.function.name));
