@@ -33,6 +33,18 @@
       "serviceId": "50555ebe-0d62-463b-a080-13abdadbdad9",
       "healthUrl": "https://absorb.holoscript.net/health",
       "healthAuthHeader": null
+    },
+    {
+      "name": "llm-service",
+      "project": "HoloScript",
+      "projectId": "45da3535-e14d-4022-a57e-1e5a96ee48d0",
+      "environment": "production",
+      "environmentId": "9cccd9a6-12e3-483f-b382-dba1efbb229d",
+      "service": "llm-service",
+      "serviceId": "a4f847f4-2793-43f2-92d9-570a34f625cd",
+      "healthUrl": "https://llm-service-production.up.railway.app/api/health",
+      "healthAuthHeader": null,
+      "_note": "brittney-service (fleet-metric O1 emitter). Source: services/llm-service. Needs GitHub source connected in Railway UI (serviceConnect requires OAuth; API token is project-scoped only). Env vars: NODE_ENV=production, PORT=8000, REQUIRE_AUTH=true, BRITTNEY_PROVIDER=fleet, HOLOSCRIPT_API_KEY, FLEET_REGISTRY_URL, FLEET_REGISTRY_KEY."
     }
   ]
 }
