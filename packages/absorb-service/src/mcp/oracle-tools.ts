@@ -14,6 +14,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { mcpAuthHeadersAsync } from '@holoscript/config';
 
 // =============================================================================
 // DECISION TREES (inline for zero-latency responses)
@@ -104,19 +105,27 @@ function appendOracleTelemetry(event: Record<string, unknown>): void {
   }
 }
 
-async function queryKnowledgeStore(search: string, limit: number = 5): Promise<any[]> {
-  const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
-  if (!apiKey) return [];
+async function queryKnowledgeStore(search: string, limit: number = 5): Promise<unknown[]> {
+  // Require at least one auth credential to be present before attempting the request.
+  const hasApiKey = Boolean(process.env.HOLOSCRIPT_API_KEY || process.env.MCP_API_KEY);
+  const hasOAuthCreds = Boolean(
+    process.env.HOLOSCRIPT_MCP_CLIENT_ID && process.env.HOLOSCRIPT_MCP_CLIENT_SECRET
+  );
+  if (!hasApiKey && !hasOAuthCreds) return [];
 
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
 
+    // Use OAuth 2.1 bearer token when client credentials are configured;
+    // falls back to x-mcp-api-key pair automatically (mcpAuthHeadersAsync).
+    const authHeaders = await mcpAuthHeadersAsync();
+
     const res = await fetch(`${ORCHESTRATOR_URL}/knowledge/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-mcp-api-key': apiKey,
+        ...authHeaders,
       },
       body: JSON.stringify({ search, limit, workspace_id: 'ai-ecosystem' }),
       signal: controller.signal,
@@ -206,9 +215,11 @@ export async function handleOracleTool(
   const kEntries = await queryKnowledgeStore(searchTerms, 5);
 
   if (kEntries.length > 0) {
-    const formatted = kEntries
+    const formatted = (
+      kEntries as Array<{ id?: string; type?: string; content?: string }>
+    )
       .map(
-        (e: { id?: string; type?: string; content?: string }) =>
+        (e) =>
           `- **[${e.id || e.type}]** ${e.content?.substring(0, 200) || 'No content'}${e.content && e.content.length > 200 ? '...' : ''}`
       )
       .join('\n');
