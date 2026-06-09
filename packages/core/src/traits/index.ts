@@ -80,6 +80,7 @@ export { granularMaterialHandler } from './GranularMaterialTrait';
 export * from './FluidTrait';
 export * from './GaussianSplatBakingPipeline';
 export * from './GaussianSplatTrait';
+export * from './GazeFocusAnalyticsTrait';
 export * from './GeospatialAnchorTrait';
 export * from './GeospatialEnvTrait';
 export * from './GestureTrait';

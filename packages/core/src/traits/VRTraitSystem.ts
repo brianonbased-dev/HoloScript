@@ -94,6 +94,7 @@ import { motionReducedHandler } from './MotionReducedTrait';
 import { subtitleHandler } from './SubtitleTrait';
 import { screenReaderHandler } from './ScreenReaderTrait';
 import { gaussianSplatHandler } from './GaussianSplatTrait';
+import { gazeFocusAnalyticsHandler } from './GazeFocusAnalyticsTrait';
 import { nerfHandler } from './NerfTrait';
 import { volumetricVideoHandler } from './VolumetricVideoTrait';
 import { pointCloudHandler } from './PointCloudTrait';
@@ -1650,6 +1651,7 @@ export class VRTraitRegistry {
 
     // Phase 4: Gaussian Splatting & Volumetric
     this.register(gaussianSplatHandler as TraitHandler);
+    this.register(gazeFocusAnalyticsHandler as TraitHandler);
     this.register(nerfHandler as TraitHandler);
     this.register(volumetricVideoHandler as TraitHandler);
     this.register(pointCloudHandler as TraitHandler);
@@ -2235,6 +2237,7 @@ export {
   skeletonHandler,
   bodyHandler,
   gaussianSplatHandler,
+  gazeFocusAnalyticsHandler,
   nerfHandler,
   volumetricVideoHandler,
   proactiveHandler,
