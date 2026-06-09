@@ -184,7 +184,24 @@ export * from './LotusPetalTrait';
 export * from './LotusCenterTrait';
 export * from './LotusGardenerTrait';
 export * from './LotusGenesisTriggerTrait';
-export * from './BioluminescentTrait';
+// lerp is already exported by GrabFeedbackProfileTrait (line ~100); exclude it here to avoid TS2308 ambiguity.
+export {
+  type Vec3Like,
+  type BioluminescentConfig,
+  type BioluminescentOutput,
+  clamp01,
+  resolveBioluminescentPattern,
+  pulseAt,
+  distSquared,
+  proximityAt,
+  splitmix32,
+  hash4ToUnit,
+  valueNoise3D,
+  voronoi3D,
+  patternAt,
+  deriveBioluminescentOutput,
+  bioluminescentHandler,
+} from './BioluminescentTrait';
 export * from './BeatmapTrait';
 export * from './BloomReactiveTrait';
 export * from './ReidEmbeddingTrait';
