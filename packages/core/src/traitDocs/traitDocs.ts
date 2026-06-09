@@ -33,6 +33,7 @@ export interface PropertyDoc {
   description: string;
   default?: string;
   required?: boolean;
+  range?: [number, number];
 }
 
 export interface MethodDoc {
