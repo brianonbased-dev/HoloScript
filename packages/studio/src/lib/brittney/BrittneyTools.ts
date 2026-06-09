@@ -722,6 +722,32 @@ export function executeTool(
   return applyTool(toolName, args, store);
 }
 
+/**
+ * Resolve a scene node by the name an agent supplied, robust to the common
+ * "agent referred to the object by a slightly-off name" miss — e.g. Brittney
+ * naming a hologram by its source-image filename ("Screenshot 2026-06-09 141644")
+ * when the actual node is "Hologram – Screenshot 2026-06-09 141644". Ladder:
+ * exact name (case-insensitive) -> exact id -> UNAMBIGUOUS substring match
+ * (either direction). Ambiguous (>1 substring hit) or no match returns undefined,
+ * so it never silently edits the wrong object — the caller reports not-found.
+ */
+function resolveSceneNode<T extends { id: string; name: string }>(
+  nodes: readonly T[],
+  objName: string
+): T | undefined {
+  const q = (objName ?? '').trim().toLowerCase();
+  if (!q) return undefined;
+  const exact = nodes.find((n) => n.name.toLowerCase() === q);
+  if (exact) return exact;
+  const byId = nodes.find((n) => n.id.toLowerCase() === q);
+  if (byId) return byId;
+  const subs = nodes.filter((n) => {
+    const nm = n.name.toLowerCase();
+    return nm.includes(q) || q.includes(nm);
+  });
+  return subs.length === 1 ? subs[0] : undefined;
+}
+
 function applyTool(
   toolName: string,
   args: Record<string, unknown>,
@@ -734,7 +760,7 @@ function applyTool(
         const objName = args.object_name as string;
         const traitName = args.trait_name as string;
         const properties = (args.properties as Record<string, unknown>) ?? {};
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return {
             tool: toolName,
@@ -752,7 +778,7 @@ function applyTool(
       case 'remove_trait': {
         const objName = args.object_name as string;
         const traitName = args.trait_name as string;
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -771,7 +797,7 @@ function applyTool(
         const traitName = args.trait_name as string;
         const key = args.property_key as string;
         const value = args.property_value;
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -855,7 +881,7 @@ function applyTool(
       case 'compose_traits': {
         const objName = args.object_name as string;
         const traitNames = args.trait_names as string[];
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -896,7 +922,7 @@ function applyTool(
 
       case 'delete_object': {
         const objName = args.object_name as string;
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -909,7 +935,7 @@ function applyTool(
       case 'move_object': {
         const objName = args.object_name as string;
         const position = args.position as [number, number, number];
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -926,7 +952,7 @@ function applyTool(
       case 'rotate_object': {
         const objName = args.object_name as string;
         const rotation = args.rotation as [number, number, number];
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -943,7 +969,7 @@ function applyTool(
       case 'scale_object': {
         const objName = args.object_name as string;
         const scale = args.scale as [number, number, number];
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -960,7 +986,7 @@ function applyTool(
       case 'rename_object': {
         const objName = args.object_name as string;
         const newName = args.new_name as string;
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -978,7 +1004,7 @@ function applyTool(
       case 'duplicate_object': {
         const objName = args.object_name as string;
         const newName = args.new_name as string;
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
 
@@ -1026,7 +1052,7 @@ function applyTool(
 
       case 'get_object': {
         const objName = args.object_name as string;
-        const node = store.nodes.find((n) => n.name.toLowerCase() === objName.toLowerCase());
+        const node = resolveSceneNode(store.nodes, objName);
         if (!node)
           return { tool: toolName, success: false, message: `Object "${objName}" not found` };
         const detail = {
