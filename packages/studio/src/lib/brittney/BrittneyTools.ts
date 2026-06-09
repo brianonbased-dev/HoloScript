@@ -312,6 +312,24 @@ export const BRITTNEY_TOOLS = [
       },
     },
   },
+  {
+    type: 'function' as const,
+    function: {
+      name: 'apply_code',
+      description:
+        'Replace the current scene HoloScript source code in the editor. Use this to write a complete new composition, restructure the scene, or make multi-object edits that would be cumbersome one-object-at-a-time. Always write the full, valid HoloScript code — not a partial diff or fragment.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: {
+            type: 'string',
+            description: 'Complete HoloScript composition code to load into the scene editor',
+          },
+        },
+        required: ['code'],
+      },
+    },
+  },
 ];
 
 // ─── Tool result type ─────────────────────────────────────────────────────────
@@ -378,6 +396,7 @@ const MUTATING_TOOL_NAMES: ReadonlySet<string> = new Set([
   'scale_object',
   'rename_object',
   'duplicate_object',
+  'apply_code',
 ]);
 
 export function isBrittneyMutationTool(toolName: string): boolean {
@@ -1068,6 +1087,20 @@ function applyTool(
           success: true,
           message: JSON.stringify(detail),
         };
+      }
+
+      case 'apply_code': {
+        const newCode = args.code as string;
+        if (typeof newCode !== 'string' || !newCode.trim()) {
+          return {
+            tool: toolName,
+            success: false,
+            message: 'apply_code requires a non-empty code argument.',
+          };
+        }
+        setToolHistoryLabel('Apply code', recordHistory);
+        store.setCode(newCode);
+        return { tool: toolName, success: true, message: 'Applied HoloScript code to the scene editor.' };
       }
 
       default:
