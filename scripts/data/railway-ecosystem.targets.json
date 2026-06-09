@@ -45,6 +45,18 @@
       "healthUrl": "https://llm-service-production.up.railway.app/api/health",
       "healthAuthHeader": null,
       "_note": "brittney-service (fleet-metric O1 emitter). Source: services/llm-service. Needs GitHub source connected in Railway UI (serviceConnect requires OAuth; API token is project-scoped only). Env vars: NODE_ENV=production, PORT=8000, REQUIRE_AUTH=true, BRITTNEY_PROVIDER=fleet, HOLOSCRIPT_API_KEY, FLEET_REGISTRY_URL, FLEET_REGISTRY_KEY."
+    },
+    {
+      "name": "studio",
+      "project": "HoloScript",
+      "projectId": "45da3535-e14d-4022-a57e-1e5a96ee48d0",
+      "environment": "production",
+      "environmentId": "9cccd9a6-12e3-483f-b382-dba1efbb229d",
+      "service": "studio",
+      "serviceId": "55a18466-6702-4497-ad22-5856f4f196f3",
+      "healthUrl": "https://studio-production-a071.up.railway.app/api/health",
+      "healthAuthHeader": null,
+      "_note": "Brittney Studio (Next.js). Env vars: HOLOSCRIPT_API_KEY, HOLOMESH_API_KEY, HOLOSCRIPT_WORKSPACE_ID, NEXTAUTH_SECRET, NEXTAUTH_URL. Per W.692: update BOTH per-service and shared vars when rotating keys."
     }
   ]
 }
