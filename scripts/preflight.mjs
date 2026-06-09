@@ -13,12 +13,16 @@
  *   pnpm preflight --check=lockfile,imports  # specific checks only
  *   pnpm preflight --check=dependency_audit  # bounded pnpm audit JSON/SKIP
  *   pnpm preflight --check=typescript,ts    # TypeScript only (changed packages, max 8)
+ *   pnpm preflight --check=creds            # credential health only (creds-doctor)
+ *   pnpm preflight --check=env_divergence   # .env divergence detector only
+ *   HOLOSCRIPT_PREFLIGHT_SKIP_CREDS=1 pnpm preflight  # skip creds check (fleet workers)
  */
 
 import { execSync, spawnSync } from 'child_process';
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'fs';
 import { join, relative, resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
+import { homedir } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -766,6 +770,119 @@ function checkMetrics() {
   }
 }
 
+// ── Check: Credential Health (creds-doctor) ─────────────────────────────────
+// Runs creds-doctor.mjs from ai-ecosystem (the canonical credential validator).
+// Exit code 0 → pass, 1 → warn (not fail) during 30-day ramp-up period.
+// Set HOLOSCRIPT_PREFLIGHT_SKIP_CREDS=1 to skip in fleet-worker contexts that
+// legitimately lack external provider creds (gpu-runner, vast workers etc).
+// Premortem ruling: wire as WARN not FAIL to avoid breaking fleet CI workers
+// who have VAST_API_KEY but not RAILWAY_API_TOKEN or PERSONAL_ACCESS_TOKEN.
+
+function checkCreds() {
+  const start = Date.now();
+
+  // Escape hatch for fleet-worker mode (documented in checkCreds header above)
+  if (process.env.HOLOSCRIPT_PREFLIGHT_SKIP_CREDS === '1') {
+    record('creds', 'skip', 'HOLOSCRIPT_PREFLIGHT_SKIP_CREDS=1 — skipped', [], 0);
+    return;
+  }
+
+  const homeDir = process.env.HOME || process.env.USERPROFILE || homedir();
+  const doctorPath = join(homeDir, '.ai-ecosystem', 'scripts', 'creds-doctor.mjs');
+  if (!existsSync(doctorPath)) {
+    record('creds', 'skip', 'creds-doctor.mjs not found (ai-ecosystem sibling not present)', [], 0);
+    return;
+  }
+
+  // Use process.execPath (not a shell command) so we don't need WIN32_SPAWN —
+  // passing node explicitly avoids the ENOENT and the shell path-splitting issue
+  // on Windows paths with spaces (e.g. "C:\Program Files\...").
+  const result = spawnSync(process.execPath, [doctorPath, '--json'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    timeout: 60_000,
+    stdio: 'pipe',
+  });
+  const duration = Date.now() - start;
+  const out = (result.stdout || '').trim();
+  const errOut = (result.stderr || '').trim();
+
+  if (result.status === 0) {
+    record('creds', 'pass', 'All critical provider credentials healthy', [], duration);
+    return;
+  }
+
+  // Parse JSON output if available to surface specific failures
+  let issues = [];
+  try {
+    const parsed = JSON.parse(out);
+    const checks = parsed?.checks ?? [];
+    issues = checks
+      .filter((c) => c.status === 'STALE' || c.status === 'SHADOWED' || c.status === 'MISSING')
+      .map((c) => ({ file: c.provider ?? c.key ?? '?', reason: `${c.status}: ${c.message ?? ''}`.trim() }));
+  } catch {
+    if (out) issues = [{ file: 'creds-doctor', reason: out.slice(0, 500) }];
+    else if (errOut) issues = [{ file: 'creds-doctor', reason: errOut.slice(0, 500) }];
+  }
+
+  // WARN not FAIL (premortem ruling — fleet-worker contexts may legitimately lack some creds)
+  record(
+    'creds',
+    'warn',
+    `${issues.length || 1} provider credential(s) stale or shadowed — run node ~/.ai-ecosystem/scripts/creds-doctor.mjs for details`,
+    issues,
+    duration
+  );
+}
+
+// ── Check: .env Divergence Detector ─────────────────────────────────────────
+// Calls detectEnvDivergence() from provider-tokens.mjs (which covers both
+// ai-ecosystem/.env and HoloScript/.env) and reports as a warning. Never
+// gates the build — detection only.
+
+async function checkEnvDivergence() {
+  const start = Date.now();
+  const homeDir = process.env.HOME || process.env.USERPROFILE || homedir();
+  const providerTokensPath = join(
+    homeDir, '.ai-ecosystem', 'scripts', 'lib', 'provider-tokens.mjs'
+  );
+  if (!existsSync(providerTokensPath)) {
+    record('env_divergence', 'skip', 'provider-tokens.mjs not found (ai-ecosystem sibling not present)', [], 0);
+    return;
+  }
+  try {
+    const { detectEnvDivergence } = await import(pathToFileURL(providerTokensPath).href);
+    const { onlyIn, differs } = detectEnvDivergence();
+    const duration = Date.now() - start;
+
+    const onlyInEntries = Object.entries(onlyIn ?? {});
+    const differCount = (differs ?? []).length;
+
+    if (onlyInEntries.length === 0 && differCount === 0) {
+      record('env_divergence', 'pass', '.env files are in sync', [], duration);
+      return;
+    }
+
+    const issues = [];
+    for (const [file, keys] of onlyInEntries) {
+      issues.push({ file: relative(ROOT, file), reason: `keys only here: ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? ` (+${keys.length - 5} more)` : ''}` });
+    }
+    for (const d of (differs ?? []).slice(0, 10)) {
+      issues.push({ file: d.key, reason: `values differ across .env files (category: ${d.category})` });
+    }
+
+    record(
+      'env_divergence',
+      'warn',
+      `${onlyInEntries.length} files with unique keys + ${differCount} keys with differing values`,
+      issues,
+      duration
+    );
+  } catch (e) {
+    record('env_divergence', 'skip', `detectEnvDivergence failed: ${String(e).slice(0, 200)}`, [], 0);
+  }
+}
+
 // ── Main ────────────────────────────────────────────────────────────────────
 
 const totalStart = Date.now();
@@ -819,6 +936,8 @@ if (shouldRun('dts')) checkDTS();
 if (shouldRun('circular')) checkCircular();
 if (shouldRun('simulation') || shouldRun('holosim')) checkSimulationContracts();
 if (shouldRun('metrics')) checkMetrics();
+if (shouldRun('creds') || shouldRun('credentials')) checkCreds();
+if (shouldRun('env_divergence') || shouldRun('env-divergence') || FLAGS.full) await checkEnvDivergence();
 
 const totalDuration = Date.now() - totalStart;
 
