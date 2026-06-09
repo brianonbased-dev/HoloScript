@@ -231,6 +231,16 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_secrets_grant: ['tools:admin'],
   holo_secrets_resolve: ['tools:admin'],
   holo_secrets_revoke: ['tools:admin'],
+
+  // === Conformance Artifact Admission Gate (HoloGate §admission) ===
+  // conformance_list_rules: read-only catalog query
+  // conformance_check_artifact: validates an artifact against the admission gate (no side-effects)
+  // conformance_admit_artifact: explicit admission decision — same validation but framed as an
+  //   authoritative gate action (ecosystem write-once receipt implied); mapped to tools:write
+  //   so it gates behind the same scope as other ecosystem mutation tools.
+  conformance_list_rules: ['tools:read'],
+  conformance_check_artifact: ['tools:read'],
+  conformance_admit_artifact: ['tools:write'],
 };
 
 // ── Scope Classification ─────────────────────────────────────────────────────
@@ -324,6 +334,11 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   holo_secrets_grant: 'critical',
   holo_secrets_resolve: 'critical',
   holo_secrets_revoke: 'critical',
+
+  // Conformance Artifact Admission Gate (HoloGate §admission)
+  conformance_list_rules: 'low',
+  conformance_check_artifact: 'medium',
+  conformance_admit_artifact: 'high',
 };
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────
