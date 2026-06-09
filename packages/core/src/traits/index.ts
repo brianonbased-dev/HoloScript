@@ -46,6 +46,7 @@ export * from './ConsentGateTrait';
 export * from './constraintConfig';
 export * from './ControllerInputTrait';
 export * from './ControlNetTrait';
+export * from './CoronaSimulationTrait';
 export * from './CRDTRoomTrait';
 export * from './CRDTRoomTraitHandler';
 export * from './CronTrait';

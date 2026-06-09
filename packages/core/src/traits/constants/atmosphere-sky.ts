@@ -21,4 +21,8 @@ export const ATMOSPHERE_SKY_TRAITS = [
   'rainbow_arc',
   'lightning_flash',
   'meteor_shower',
+  // Solar corona — MHD flux-tube loops, streamer belt, coronal holes, CME events (A-009)
+  'corona_simulation',
 ] as const;
+
+export type AtmosphereSkyTraitName = (typeof ATMOSPHERE_SKY_TRAITS)[number];

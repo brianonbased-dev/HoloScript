@@ -260,6 +260,7 @@ import { HoloScriptAgentRuntime } from './HoloScriptAgentRuntime';
 import type { IParentRuntime } from './runtime/IParentRuntime';
 import { mitosisHandler } from './traits/MitosisTrait';
 import { orbitalHandler } from './traits/OrbitalTrait';
+import { coronaSimulationHandler } from './traits/CoronaSimulationTrait';
 import { TraitHandler } from './traits/TraitTypes';
 import { TRAIT_OWNER_KEY } from './runtime/plugin-trait-registrar';
 import type { TraitEvent } from './traits/TraitTypes';
@@ -492,6 +493,10 @@ export class HoloScriptRuntime implements IParentRuntime {
     this.traitHandlers.set('mitosis' as VRTraitName, mitosisHandler);
     // @ts-expect-error During migration
     this.traitHandlers.set('orbital' as VRTraitName, orbitalHandler);
+    this.traitHandlers.set(
+      'corona_simulation' as VRTraitName,
+      coronaSimulationHandler as TraitHandler<unknown>
+    );
 
     // Initialize Extension Registry
     this.extensionRegistry = new ExtensionRegistry(this);

@@ -22,11 +22,10 @@
 //   side of each planet picks up a faint warm ambient. The day/night cycle on
 //   Earth switches to city-lights texture as each hemisphere turns away from the Sun.
 //
-// MISSING-TRAIT WISH (queued for Phase 4):
-//   @corona_simulation — procedural solar corona with prominence loops and
-//   coronal hole fast wind. Currently faked with bloom + emissive_gi.
-//   A real trait would support MHD flux-tube geometry, streamer belts,
-//   and CME events — useful for edu-XR and space-weather visualizations.
+// @corona_simulation now shipped (A-009, 2026-06-09):
+//   Procedural solar corona with MHD flux-tube loops, streamer belt,
+//   coronal hole polar plumes, and CME event trigger API.
+//   See packages/core/src/traits/CoronaSimulationTrait.ts
 // ============================================================================
 
 composition "SolarSystem_Orrery" {
@@ -82,6 +81,17 @@ composition "SolarSystem_Orrery" {
       color: "#fff8e0",
       scale: 2.5,
       flare_count: 7
+    }
+
+    // Procedural solar corona — MHD flux-tube loops, streamer belt,
+    // polar coronal holes, and space-weather CME demo API (A-009)
+    @corona_simulation {
+      base_temperature_mk: 1.5,
+      loop_count: 24,
+      prominence_seed: 42,
+      streamer_belt: true,
+      coronal_holes: ["north", "south"],
+      cme_enabled: false
     }
   }
 

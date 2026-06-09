@@ -1058,6 +1058,22 @@ const BLOCK_COMPLETIONS: CompletionItem[] = [
     documentation: 'Lens flare from bright light sources',
   },
   {
+    label: 'corona_simulation',
+    kind: 'module',
+    detail: 'Solar corona simulation',
+    insertText:
+      'corona_simulation {\n' +
+      '  base_temperature_mk: 1.5\n' +
+      '  loop_count: 24\n' +
+      '  prominence_seed: 42\n' +
+      '  streamer_belt: true\n' +
+      '  coronal_holes: ["north", "south"]\n' +
+      '  cme_enabled: false\n' +
+      '}',
+    documentation:
+      'Procedural solar corona with MHD flux-tube loops, streamer belt, coronal holes, and CME event API (A-009)',
+  },
+  {
     label: 'god_rays',
     kind: 'module',
     detail: 'God rays / light shafts',
