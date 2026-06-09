@@ -50,6 +50,7 @@ overrides:
   basic-ftp: '>=5.3.1'
   fast-uri: '>=3.1.2'
   fast-xml-builder: '>=1.1.7'
+  tmp: '>=0.2.6'
   zod: '>=4.4.3'
 
 importers:
@@ -15948,7 +15949,7 @@ packages:
       parse-semver: 1.1.1
       read: 1.0.7
       semver: 7.7.4
-      tmp: 0.2.5
+      tmp: 0.2.7
       typed-rest-client: 1.8.11
       url-join: 4.0.1
       xml2js: 0.5.0
@@ -29724,8 +29725,8 @@ packages:
       tldts-core: 7.0.22
     dev: true
 
-  /tmp@0.2.5:
-    resolution: {integrity: sha512-voyz6MApa1rQGUxT3E+BK7/ROe8itEx7vD8/HEvt4xwXucvQ5G5oeEiHkmHZJuBO21RpOf+YYm9MOivj709jow==}
+  /tmp@0.2.7:
+    resolution: {integrity: sha512-e0votIpp4Uo2AJYSzVHV6xCcawuiez3DzqDAbrTc3YxBkplN6e+dM13ZeIcZnDg/QpSuU2zfZ3rzwY8ukEnaXw==}
     engines: {node: '>=14.14'}
     dev: true
 
