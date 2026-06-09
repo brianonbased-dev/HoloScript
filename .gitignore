@@ -68,7 +68,10 @@ yarn-error.log*
 .git_commit_msg.txt
 .lint-main.txt
 .local-worker-key
+.local-worker-key.legacy*.json
 .preflight-result.json
+# Claude local settings contain shell permission strings with env vars — never commit
+.claude/settings.local.json
 audit-results/
 /.scratch/
 

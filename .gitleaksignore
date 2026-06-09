@@ -1,0 +1,51 @@
+# .gitleaksignore — false positives and history-only leaks (files since deleted/untracked)
+# Format: one fingerprint per line (commit:file:rule:line)
+# Maintained per: security audit 2026-06-09
+
+# ── docs/reviews/2026-05-08.md (commit 9001c5ad) ──────────────────────────────
+# Bitquery/Ory API key quoted in a review doc — HEAD already redacted
+# (security commit e75e78813 replaced it with <REDACTED> on 2026-06-08)
+9001c5ad44bffb311d5751879b07959f81ad8571:docs/reviews/2026-05-08.md:generic-api-key:58
+
+# Qdrant JWT quoted in a review doc — HEAD already redacted (same commit above)
+9001c5ad44bffb311d5751879b07959f81ad8571:docs/reviews/2026-05-08.md:jwt:59
+
+# ── packages/holoscript-agent/README.md (commit 8ea36cc1) ────────────────────
+# Truncated placeholder key "holomesh_sk_1f351b0c..." — the trailing "..." proves
+# it is an intentionally-truncated README example, not a full secret.
+8ea36cc161f8f9b647712d0086b235a66046db06:packages/holoscript-agent/README.md:generic-api-key:60
+
+# ── .agent/workflows/absorb-orchestrator-funnel.md (commit 5f2b0a4f) ─────────
+# holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR — legacy HoloMesh key from
+# team_d141a6972eac1e9d (obsolete team; current team is team_1777834718247_unr35n).
+# File deleted from tree in commit 5a749f2bc. Key no longer in .env or active use.
+5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:23
+5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:45
+5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:53
+5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:65
+5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:79
+5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:89
+
+# ── .local-worker-key.legacy.1775327969021.json (commit e0e642b4) ─────────────
+# holomesh_sk_sh2cGmwD6-FIjVJHfkTIaEPfcx7PfgbS — legacy worker key (file name
+# includes ".legacy." marker). File deleted from tree. Key not in current .env.
+e0e642b46ecd3038596887f5a909412a22e38575:.local-worker-key.legacy.1775327969021.json:generic-api-key:1
+
+# ── packages/marketplace-api/src/protocol/ProtocolRegistry.ts (commit 29c7044) ─
+# 0x5086d1bcea28999da9875111e3592688fbfa821db63214c695ca35f00f5e0e23 is an
+# Ethereum event topic hash (UPDATED_TOKEN_TOPIC) — a public on-chain constant
+# derived from keccak256, not a private secret.
+29c704446b96ddb289321d1ce9d3901351928c8e:packages/marketplace-api/src/protocol/ProtocolRegistry.ts:generic-api-key:528
+
+# ── .claude/settings.local.json ── (file untracked since commit 1e6b63ba8) ───
+# Bitquery/Ory API key in shell permission strings — file since untracked.
+# Key was already-rotated at the time of the 2026-05-08 review P0 finding.
+7cc0b7128c4a7138a211f135f2223fd8f71f2fd6:.claude/settings.local.json:generic-api-key:87
+
+# Qdrant JWT in shell permission strings (3 commits, 3 lines) — file untracked.
+# JWT payload is {"access":"m"} for a Qdrant Cloud cluster that has been
+# replaced. Key no longer active.
+6c4a0f1ef4fa0ce29859a1aed322546f296b4621:.claude/settings.local.json:jwt:114
+6c4a0f1ef4fa0ce29859a1aed322546f296b4621:.claude/settings.local.json:jwt:115
+6c4a0f1ef4fa0ce29859a1aed322546f296b4621:.claude/settings.local.json:jwt:116
+24129ec0d8e40208e18f5f10c0261f8b1372056b:.claude/settings.local.json:jwt:116
