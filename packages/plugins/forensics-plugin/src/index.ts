@@ -24,13 +24,12 @@ import type { TraitRegistrarTarget } from '@holoscript/core/runtime';
 import { evidenceChainHandler } from './traits/EvidenceChainTrait';
 import { sceneReconstructionHandler } from './traits/SceneReconstructionTrait';
 import { chainOfCustodyHandler } from './traits/ChainOfCustodyTrait';
-import type { TraitHandler } from './traits/types';
 
-export const FORENSICS_TRAITS: TraitHandler<unknown>[] = [
+export const FORENSICS_TRAITS = [
   evidenceChainHandler,
   sceneReconstructionHandler,
   chainOfCustodyHandler,
-];
+] as const;
 
 export function registerForensicsPlugin(runtime: TraitRegistrarTarget): void {
   registerPluginTraits(runtime, 'forensics', FORENSICS_TRAITS);
