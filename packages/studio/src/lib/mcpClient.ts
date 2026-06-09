@@ -357,7 +357,12 @@ export const DEFAULT_MCP_CONFIG: MCPServerConfig = {
   url:
     process.env.NEXT_PUBLIC_MCP_ORCHESTRATOR_URL ||
     'https://mcp-orchestrator-production-45f9.up.railway.app',
-  apiKey: process.env.NEXT_PUBLIC_MCP_API_KEY || process.env.HOLOSCRIPT_API_KEY || '',
+  // SERVER-ONLY key: never reference NEXT_PUBLIC_* here. This lib is imported by
+  // client components (e.g. MCPServerConfigPanel), and Next inlines NEXT_PUBLIC_
+  // vars into the browser bundle — that would leak one shared MCP key to every
+  // visitor. On the server this resolves to the real key; in the browser it is ''
+  // (callers pass a per-server key, or route privileged calls through /api/mcp/*).
+  apiKey: process.env.HOLOSCRIPT_API_KEY || '',
   enabled: true,
   healthCheckInterval: 30000, // 30 seconds
   timeout: 10000, // 10 seconds

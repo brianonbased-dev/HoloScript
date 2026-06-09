@@ -7,8 +7,6 @@ import type { Annotation } from 'agentation';
 import { useToast } from '../app/providers';
 import { resolveWorkspaceIdForIdentity } from '@/lib/workspace/workspaceIdentity';
 
-const KNOWLEDGE_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/sync';
-
 /**
  * Full Agentation integration hook.
  *
@@ -81,9 +79,6 @@ export function useAgentation() {
       );
       if (worth.length === 0) return;
 
-      const apiKey = process.env.NEXT_PUBLIC_MCP_API_KEY || process.env.HOLOSCRIPT_API_KEY;
-      if (!apiKey) return;
-
       const entries = worth.map((a) => ({
         id: `ann.${a.id}`,
         workspace_id: workspaceId,
@@ -111,11 +106,15 @@ export function useAgentation() {
       }));
 
       try {
-        await fetch(KNOWLEDGE_ENDPOINT, {
+        // Route through the same-origin server proxy so the privileged MCP key
+        // stays server-side. A `'use client'` module must NEVER read
+        // NEXT_PUBLIC_MCP_API_KEY — Next inlines it into the browser bundle,
+        // exposing one shared key to every visitor (cross-user leak). The
+        // `/api/knowledge/sync` route injects the key from server env.
+        await fetch('/api/knowledge/sync', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-mcp-api-key': apiKey,
           },
           body: JSON.stringify({
             workspace_id: workspaceId,
