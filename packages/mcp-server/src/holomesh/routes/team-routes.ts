@@ -2106,5 +2106,60 @@ export async function handleTeamRoutes(
     return true;
   }
 
+  // ── Machine-state pub/sub ─────────────────────────────────────────────────
+  // PUT /api/holomesh/machine-state/:seatId — local publisher deposits snapshot
+  // GET /api/holomesh/machine-state/:seatId — Studio (or any agent) reads it
+  //
+  // The snapshot is an in-memory map: seatId → { snapshot, publishedAt }.
+  // TTL = 10 minutes. No persistence — the publisher re-pushes every 2 min.
+  // Auth: same Bearer key gate as the rest of HoloMesh. Rate-limited to
+  // 1 PUT per seat per 30s to prevent floods.
+  const machineStateMatch = pathname.match(/^\/api\/holomesh\/machine-state\/([a-zA-Z0-9_\-]{3,80})$/);
+  if (machineStateMatch) {
+    const seatId = machineStateMatch[1];
+    if (method === 'PUT' || method === 'POST') {
+      const authResult = requireAuth(req, res);
+      if (!authResult) return true;
+      // Rate-limit: 1 push per seat per 30s
+      const lastPush = machineStateRateLimit.get(seatId);
+      const now = Date.now();
+      if (lastPush && now - lastPush < 30_000) {
+        json(res, 429, { error: 'rate_limited', retry_after_ms: 30_000 - (now - lastPush) });
+        return true;
+      }
+      const body = await parseJsonBody(req);
+      if (!body || typeof body !== 'object') {
+        json(res, 400, { error: 'body must be a JSON object' });
+        return true;
+      }
+      machineStateStore.set(seatId, { snapshot: body as Record<string, unknown>, publishedAt: new Date().toISOString() });
+      machineStateRateLimit.set(seatId, now);
+      json(res, 200, { success: true, seatId, publishedAt: machineStateStore.get(seatId)!.publishedAt });
+      return true;
+    }
+    if (method === 'GET') {
+      const authResult = requireAuth(req, res);
+      if (!authResult) return true;
+      const entry = machineStateStore.get(seatId);
+      if (!entry) {
+        json(res, 404, { error: 'no snapshot for seat', seatId });
+        return true;
+      }
+      // Expire stale entries (10 min TTL)
+      const ageMs = Date.now() - new Date(entry.publishedAt).getTime();
+      if (ageMs > 10 * 60 * 1000) {
+        machineStateStore.delete(seatId);
+        json(res, 404, { error: 'snapshot_expired', seatId, ageMs });
+        return true;
+      }
+      json(res, 200, { success: true, seatId, ...entry });
+      return true;
+    }
+  }
+
   return false;
 }
+
+// ── Machine-state in-memory store (module-level, persists across requests) ──
+const machineStateStore = new Map<string, { snapshot: Record<string, unknown>; publishedAt: string }>();
+const machineStateRateLimit = new Map<string, number>();

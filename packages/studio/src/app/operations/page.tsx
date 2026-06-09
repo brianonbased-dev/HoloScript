@@ -125,6 +125,35 @@ interface HoloShellExecution {
   summary: { killed: number; errors: number };
 }
 
+interface MachineStateSnapshot {
+  schema: string;
+  collectedAt: string;
+  platform: string;
+  nodeVersion: string;
+  gpu: {
+    name: string;
+    totalMB: number;
+    freeMB: number;
+    usedMB: number;
+    utilizationPct: number;
+  } | null;
+  hostMemory: {
+    totalMB?: number;
+    freeMB?: number;
+    usedMB?: number;
+    nodeHeapUsedMB?: number;
+    nodeHeapTotalMB?: number;
+    source: string;
+  } | null;
+  staleProcessCount: number;
+}
+
+interface MachineStateData {
+  snapshot: MachineStateSnapshot;
+  publishedAt?: string;
+  _source?: string;
+}
+
 function timeAgo(iso?: string): string {
   if (!iso) return '—';
   const t = new Date(iso).getTime();
@@ -198,6 +227,7 @@ export default function OperationsPage() {
   const [holoshellProcs, setHoloshellProcs] = useState<HoloShellProcess[] | null>(null);
   const [holoshellPending, setHoloshellPending] = useState<HoloShellPending[] | null>(null);
   const [holoshellHistory, setHoloshellHistory] = useState<HoloShellExecution[] | null>(null);
+  const [machineState, setMachineState] = useState<MachineStateData | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
 
   useEffect(() => {
@@ -297,6 +327,16 @@ export default function OperationsPage() {
       setHoloshellHistory(Array.isArray(j.items) ? j.items : []);
     } catch (e: unknown) {
       errs.holoshellHistory = e instanceof Error ? e.message : 'failed';
+    }
+
+    // Machine state (pub/sub via prod MCP cache or local fallback)
+    try {
+      const r = await fetch('/api/holoshell/machine-state', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`machine-state ${r.status}`);
+      const j = await r.json();
+      if (j.snapshot) setMachineState(j as MachineStateData);
+    } catch (e: unknown) {
+      errs.machineState = e instanceof Error ? e.message : 'failed';
     }
 
     setErrors(errs);
@@ -678,6 +718,104 @@ export default function OperationsPage() {
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+        </Card>
+
+        {/* MACHINE STATE */}
+        <Card title="🖥️ Machine State">
+          {errors.machineState ? (
+            <div className="space-y-1">
+              <div className="text-xs text-red-400">Error: {errors.machineState}</div>
+              <div className="text-[9px] text-studio-muted">
+                Start holoshell-operate-room-server.mjs or wait for publisher snapshot.
+              </div>
+            </div>
+          ) : machineState === null ? (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          ) : (
+            <div className="space-y-3">
+              {/* GPU */}
+              {machineState.snapshot.gpu ? (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                    GPU — {machineState.snapshot.gpu.name}
+                  </div>
+                  <div className="flex items-end gap-5">
+                    <Stat
+                      label="VRAM used"
+                      value={`${machineState.snapshot.gpu.usedMB.toLocaleString()} MB`}
+                      tone={
+                        machineState.snapshot.gpu.usedMB / machineState.snapshot.gpu.totalMB > 0.9
+                          ? 'text-red-400'
+                          : 'text-studio-text'
+                      }
+                    />
+                    <Stat label="VRAM free" value={`${machineState.snapshot.gpu.freeMB.toLocaleString()} MB`} />
+                    <Stat
+                      label="util %"
+                      value={`${machineState.snapshot.gpu.utilizationPct}%`}
+                      tone={machineState.snapshot.gpu.utilizationPct > 80 ? 'text-amber-300' : 'text-emerald-400'}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[10px] text-studio-muted">GPU — not detected</div>
+              )}
+
+              {/* Host memory */}
+              {machineState.snapshot.hostMemory && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-studio-muted mb-1">
+                    RAM ({machineState.snapshot.hostMemory.source})
+                  </div>
+                  {'totalMB' in machineState.snapshot.hostMemory && machineState.snapshot.hostMemory.totalMB ? (
+                    <div className="flex items-end gap-5">
+                      <Stat
+                        label="used"
+                        value={`${((machineState.snapshot.hostMemory.usedMB ?? 0) / 1024).toFixed(1)} GB`}
+                        tone={
+                          (machineState.snapshot.hostMemory.usedMB ?? 0) /
+                            (machineState.snapshot.hostMemory.totalMB ?? 1) >
+                          0.85
+                            ? 'text-amber-300'
+                            : 'text-studio-text'
+                        }
+                      />
+                      <Stat
+                        label="free"
+                        value={`${((machineState.snapshot.hostMemory.freeMB ?? 0) / 1024).toFixed(1)} GB`}
+                        tone="text-emerald-400"
+                      />
+                      <Stat
+                        label="total"
+                        value={`${((machineState.snapshot.hostMemory.totalMB ?? 0) / 1024).toFixed(0)} GB`}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-studio-muted">
+                      Node heap: {machineState.snapshot.hostMemory.nodeHeapUsedMB ?? '—'} /{' '}
+                      {machineState.snapshot.hostMemory.nodeHeapTotalMB ?? '—'} MB
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stale process count */}
+              <div className="flex items-end gap-5">
+                <Stat
+                  label="stale procs"
+                  value={machineState.snapshot.staleProcessCount}
+                  tone={machineState.snapshot.staleProcessCount > 0 ? 'text-amber-300' : 'text-emerald-400'}
+                />
+              </div>
+
+              {/* Source + age */}
+              <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1 flex gap-3">
+                <span>source: {machineState._source ?? 'unknown'}</span>
+                <span>collected {timeAgo(machineState.snapshot.collectedAt)}</span>
+                {machineState.publishedAt && <span>published {timeAgo(machineState.publishedAt)}</span>}
+              </div>
             </div>
           )}
         </Card>
