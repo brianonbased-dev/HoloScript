@@ -64,7 +64,12 @@ import {
   type AgentCard,
   deriveSkillTags,
 } from './a2a';
-import { getOAuth21Service, SCOPE_CATEGORIES, type TokenIntrospection } from './security/oauth21';
+import {
+  getOAuth21Service,
+  SCOPE_CATEGORIES,
+  type TokenIntrospection,
+  type OAuthScope,
+} from './security/oauth21';
 import type { TokenIntrospectionWithTenant } from './security/tenant-auth';
 import { runTripleGate } from './security/gates';
 import { getAuditLogger, type AuditEventType, type AuditResultStatus } from './security/audit-log';
@@ -221,6 +226,122 @@ const oauth2 = getOAuth2Provider({
   backend: tokenBackend,
 });
 const auditLog = getAuditLogger();
+
+// ── Durable OAuth bridge (task_1781078719152_ym9w) ──────────────────────────
+// The legacy oauth21 registry is module-level in-memory and wiped on EVERY
+// deploy. With push→deploy firing many times a day, every cached client_id and
+// live Bearer died on each push — surfacing as raw invalid_client JSON tabs in
+// the founder's browser whenever a Claude instance (re)connected via
+// mcp-remote, whose OAuth fallback opens a browser and has no headless mode.
+// Bridge strategy: register/issue through the legacy service (sync, unchanged
+// call sites), write clients + tokens through to the Postgres-backed
+// OAuth2Provider, and rehydrate the legacy maps from it on miss.
+
+oauth.setDurableIntrospector(async (token) => {
+  const result = await oauth2.introspect(token);
+  if (!result.active) return undefined;
+  return {
+    active: true,
+    clientId: result.clientId,
+    scopes: (result.scopes || []) as OAuthScope[],
+    agentId: result.agentId,
+    expiresAt: result.expiresAt,
+    issuedAt: result.issuedAt,
+  };
+});
+
+/** Rehydrate a client from the durable registry into the legacy in-memory one. */
+async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
+  if (!clientId || oauth.getClient(clientId)) return;
+  try {
+    const durable = await oauth2.getClient(clientId);
+    if (durable) {
+      oauth.importClient({
+        clientId: durable.clientId,
+        clientSecret: durable.clientSecretHash,
+        clientName: durable.clientName,
+        redirectUris: durable.redirectUris,
+        scopes: durable.scopes as OAuthScope[],
+        createdAt: durable.createdAt,
+        clientType: durable.clientType,
+        rateLimit: durable.rateLimit,
+      });
+    }
+  } catch (err) {
+    console.warn(
+      '[auth] durable client hydration failed:',
+      err instanceof Error ? err.message : err
+    );
+  }
+}
+
+/** Rehydrate a refresh token from the durable registry before a refresh grant. */
+async function ensureRefreshTokenHydrated(refreshToken: string | undefined): Promise<void> {
+  if (!refreshToken || oauth.getRefreshTokenRecord(refreshToken)) return;
+  try {
+    const durable = await oauth2.getStoredRefreshToken(refreshToken);
+    if (durable && !durable.used && durable.expiresAt > Date.now()) {
+      oauth.importRefreshToken({
+        token: durable.token,
+        clientId: durable.clientId,
+        scopes: durable.scopes as OAuthScope[],
+        issuedAt: durable.issuedAt,
+        expiresAt: durable.expiresAt,
+        chainId: durable.chainId,
+        used: durable.used,
+      });
+    }
+  } catch (err) {
+    console.warn(
+      '[auth] durable refresh-token hydration failed:',
+      err instanceof Error ? err.message : err
+    );
+  }
+}
+
+/** Write tokens issued by the legacy service through to the durable registry. */
+async function persistIssuedTokens(
+  tokenResponse: {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    scope?: string;
+  },
+  clientId: string,
+  agentId?: string
+): Promise<void> {
+  try {
+    const now = Date.now();
+    const scopes = (tokenResponse.scope || '').split(' ').filter(Boolean);
+    if (tokenResponse.access_token) {
+      await oauth2.importAccessToken({
+        token: tokenResponse.access_token,
+        clientId,
+        scopes,
+        issuedAt: now,
+        expiresAt: now + (tokenResponse.expires_in || 3600) * 1000,
+        agentId,
+      });
+    }
+    if (tokenResponse.refresh_token) {
+      const record = oauth.getRefreshTokenRecord(tokenResponse.refresh_token);
+      await oauth2.importRefreshToken({
+        token: tokenResponse.refresh_token,
+        clientId,
+        scopes: record ? (record.scopes as string[]) : scopes,
+        issuedAt: record?.issuedAt ?? now,
+        expiresAt: record?.expiresAt ?? now + 86_400_000,
+        chainId: record?.chainId ?? tokenResponse.refresh_token,
+        used: false,
+      });
+    }
+  } catch (err) {
+    console.warn(
+      '[auth] durable token write-through failed:',
+      err instanceof Error ? err.message : err
+    );
+  }
+}
 
 // ── Simple per-IP rate limiter for OAuth endpoints ──────────────────────────
 const RATE_LIMIT = parseInt(process.env.OAUTH_RATE_LIMIT || '100', 10);
@@ -1495,8 +1616,10 @@ const httpServer = http.createServer(async (req, res) => {
         rateLimit,
       });
 
-      // Also register with the new OAuth2Provider (token-store backed).
-      // Keep this visible so we do not silently diverge the two registries.
+      // Also register with the new OAuth2Provider (token-store backed) using
+      // the SAME identity, so the durable copy is reachable by the credentials
+      // the caller holds. The previous divergent dual-write (separate generated
+      // ids) made the Postgres copy useless for rehydration after deploys.
       try {
         await oauth2.registerClient({
           clientName,
@@ -1504,6 +1627,8 @@ const httpServer = http.createServer(async (req, res) => {
           scopes,
           clientType,
           rateLimit,
+          clientId,
+          clientSecret,
         });
       } catch (oauth2Err) {
         console.warn(
@@ -1620,6 +1745,8 @@ const httpServer = http.createServer(async (req, res) => {
       }
 
       // Validate against the same registry used by POST /oauth/register and POST /oauth/token.
+      // Rehydrate from the durable registry first — the in-memory one is wiped on deploys.
+      await ensureClientHydrated(clientId);
       const client = oauth.getClient(clientId);
       if (!client) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -1760,6 +1887,13 @@ const httpServer = http.createServer(async (req, res) => {
       const grantType = body.grant_type as string;
       const dpopHeader = req.headers['dpop'] as string | undefined;
 
+      // Rehydrate durable state before the sync grant handlers consult the
+      // in-memory maps (wiped on every deploy).
+      await ensureClientHydrated(body.client_id as string);
+      if (grantType === 'refresh_token') {
+        await ensureRefreshTokenHydrated(body.refresh_token as string | undefined);
+      }
+
       let tokenResponse;
 
       switch (grantType) {
@@ -1810,6 +1944,15 @@ const httpServer = http.createServer(async (req, res) => {
         clientId: body.client_id as string,
         ip: clientIP,
       });
+
+      // Write the issued tokens through to the durable registry so they
+      // survive redeploys of the in-memory maps. Fire-and-forget: durable
+      // write failure must not fail the grant.
+      void persistIssuedTokens(
+        tokenResponse as { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string },
+        body.client_id as string,
+        body.agent_id as string | undefined
+      );
 
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
@@ -1862,7 +2005,22 @@ const httpServer = http.createServer(async (req, res) => {
     try {
       const body = await parseJsonBody(req);
       const token = body.token as string;
-      const result = oauth.introspect(token);
+      let result = oauth.introspect(token);
+
+      // Fall back to the durable registry — the in-memory maps are wiped on deploys.
+      if (!result.active) {
+        const durable = await oauth2.introspect(token);
+        if (durable.active) {
+          result = {
+            active: true,
+            clientId: durable.clientId,
+            scopes: (durable.scopes || []) as OAuthScope[],
+            agentId: durable.agentId,
+            expiresAt: durable.expiresAt,
+            issuedAt: durable.issuedAt,
+          };
+        }
+      }
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(

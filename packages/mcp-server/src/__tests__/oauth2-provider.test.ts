@@ -1268,3 +1268,108 @@ describe('Scope Bridging', () => {
     }
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. Durable OAuth bridge — deploy-survival (task_1781078719152_ym9w)
+// ═══════════════════════════════════════════════════════════════════════════════
+// The legacy oauth21 registry is in-memory and wiped on every deploy. The fix
+// dual-writes clients with the SAME identity and write-throughs issued tokens,
+// so the durable store can rehydrate the legacy maps after a wipe. These tests
+// pin the import-mode contracts that rehydration depends on.
+
+describe('Durable bridge — same-identity client registration', () => {
+  let store: TokenStore;
+
+  beforeEach(() => {
+    store = new TokenStore({ backend: new InMemoryTokenStore(), ttl: DEFAULT_TTL });
+  });
+
+  it('registerClient honors an externally-issued clientId + clientSecret', async () => {
+    const result = await store.registerClient({
+      clientName: 'legacy-parity',
+      redirectUris: ['http://localhost:1/cb'],
+      scopes: ['tools:read'],
+      clientId: 'hsc_legacy_issued_id',
+      clientSecret: 'hs_legacy_issued_secret',
+    });
+
+    expect(result.clientId).toBe('hsc_legacy_issued_id');
+    expect(result.clientSecret).toBe('hs_legacy_issued_secret');
+
+    const stored = await store.getClient('hsc_legacy_issued_id');
+    expect(stored).toBeDefined();
+    // Secret is stored as the same SHA-256 hex hash the legacy registry uses.
+    const expectedHash = createHash('sha256').update('hs_legacy_issued_secret').digest('hex');
+    expect(stored!.clientSecretHash).toBe(expectedHash);
+  });
+
+  it('registerClient still generates credentials when none are imported', async () => {
+    const result = await store.registerClient({
+      clientName: 'generated',
+      redirectUris: [],
+      scopes: ['tools:read'],
+    });
+    expect(result.clientId).toBeTruthy();
+    expect(result.clientSecret).toBeTruthy();
+    expect(result.clientId).not.toBe('hsc_legacy_issued_id');
+  });
+});
+
+describe('Durable bridge — token write-through and introspection', () => {
+  let provider: OAuth2Provider;
+
+  beforeEach(() => {
+    resetOAuth2Provider();
+    provider = new OAuth2Provider({ backend: new InMemoryTokenStore() });
+  });
+
+  it('importAccessToken makes a legacy-issued Bearer introspectable durably', async () => {
+    const now = Date.now();
+    await provider.importAccessToken({
+      token: 'hs_legacy_bearer',
+      clientId: 'hsc_some_client',
+      scopes: ['tools:read'],
+      issuedAt: now,
+      expiresAt: now + 3_600_000,
+      agentId: 'agent-1',
+    });
+
+    const result = await provider.introspect('hs_legacy_bearer');
+    expect(result.active).toBe(true);
+    expect(result.clientId).toBe('hsc_some_client');
+    expect(result.agentId).toBe('agent-1');
+  });
+
+  it('importRefreshToken round-trips through getStoredRefreshToken', async () => {
+    const now = Date.now();
+    await provider.importRefreshToken({
+      token: 'hs_legacy_refresh',
+      clientId: 'hsc_some_client',
+      scopes: ['tools:read'],
+      issuedAt: now,
+      expiresAt: now + 86_400_000,
+      chainId: 'chain-1',
+      used: false,
+    });
+
+    const stored = await provider.getStoredRefreshToken('hs_legacy_refresh');
+    expect(stored).toBeDefined();
+    expect(stored!.clientId).toBe('hsc_some_client');
+    expect(stored!.chainId).toBe('chain-1');
+    expect(stored!.used).toBe(false);
+  });
+
+  it('expired imported tokens introspect as inactive', async () => {
+    const now = Date.now();
+    await provider.importAccessToken({
+      token: 'hs_expired_bearer',
+      clientId: 'hsc_some_client',
+      scopes: ['tools:read'],
+      issuedAt: now - 7_200_000,
+      expiresAt: now - 3_600_000,
+    });
+
+    const result = await provider.introspect('hs_expired_bearer');
+    expect(result.active).toBe(false);
+  });
+});

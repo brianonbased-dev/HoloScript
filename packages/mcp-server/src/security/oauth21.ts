@@ -199,6 +199,18 @@ function startCleanupTimer(): void {
 export class OAuth21Service {
   private config: OAuth21Config;
 
+  /**
+   * Optional async fallback into a durable token registry (the Postgres-backed
+   * OAuth2Provider). Injected by http-server at boot to avoid an import cycle.
+   * Consulted by authenticateRequestAsync when the in-memory maps miss — i.e.
+   * after a deploy wiped them.
+   */
+  private durableIntrospector?: (token: string) => Promise<TokenIntrospection | undefined>;
+
+  setDurableIntrospector(fn: (token: string) => Promise<TokenIntrospection | undefined>): void {
+    this.durableIntrospector = fn;
+  }
+
   constructor(config: Partial<OAuth21Config> = {}) {
     this.config = { ...DEFAULT_OAUTH_CONFIG, ...config };
 
@@ -247,6 +259,33 @@ export class OAuth21Service {
 
   getClient(clientId: string): RegisteredClient | undefined {
     return clients.get(clientId);
+  }
+
+  /**
+   * Rehydrate a client from a durable registry (e.g. the Postgres-backed
+   * OAuth2Provider store). `clientSecret` must already be the SHA-256 hash.
+   * The module-level maps here are wiped on every deploy; without rehydration
+   * every cached client_id strands with "Unknown client_id" — which surfaced
+   * as raw invalid_client JSON tabs in the founder's browser on every Claude
+   * instance start (task_1781078719152_ym9w).
+   */
+  importClient(client: RegisteredClient): void {
+    clients.set(client.clientId, client);
+  }
+
+  /** Rehydrate an access token from a durable registry. */
+  importAccessToken(token: AccessToken): void {
+    accessTokens.set(token.token, token);
+  }
+
+  /** Rehydrate a refresh token from a durable registry. */
+  importRefreshToken(token: RefreshToken): void {
+    refreshTokens.set(token.token, token);
+  }
+
+  /** Read the full refresh-token record (for durable write-through after issuance). */
+  getRefreshTokenRecord(token: string): RefreshToken | undefined {
+    return refreshTokens.get(token);
   }
 
   revokeClient(clientId: string): boolean {
@@ -583,6 +622,32 @@ export class OAuth21Service {
     const apiKey = (typeof headers['x-api-key'] === 'string' ? headers['x-api-key'] : '') || '';
     const mcpApiKey =
       (typeof headers['x-mcp-api-key'] === 'string' ? headers['x-mcp-api-key'] : '') || '';
+
+    // 0.5 Try the durable token registry (Postgres-backed OAuth2Provider).
+    // The in-memory maps above are wiped on every deploy; tokens written
+    // through to the durable store stay valid, so rehydrate and accept them.
+    if (authHeader.startsWith('Bearer ') && this.durableIntrospector) {
+      const token = authHeader.slice(7);
+      try {
+        const durable = await this.durableIntrospector(token);
+        if (durable?.active) {
+          accessTokens.set(token, {
+            token,
+            clientId: durable.clientId || 'durable-import',
+            scopes: (durable.scopes || []) as OAuthScope[],
+            issuedAt: durable.issuedAt || Date.now(),
+            expiresAt: durable.expiresAt || Date.now() + this.config.accessTokenTTL * 1000,
+            agentId: durable.agentId,
+          });
+          return {
+            ...durable,
+            scopes: expandScopes((durable.scopes || []) as OAuthScope[]),
+          };
+        }
+      } catch {
+        // Durable registry unavailable — fall through to other strategies.
+      }
+    }
 
     let keyToValidate = apiKey || mcpApiKey;
     if (!keyToValidate && authHeader.startsWith('Bearer ')) {

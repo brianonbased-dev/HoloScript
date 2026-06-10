@@ -484,6 +484,19 @@ export class TokenStore {
     return this.backend.markRefreshTokenUsed(token);
   }
 
+  /**
+   * Write-through an externally-issued access token (legacy oauth21 registry
+   * parity) so Bearers survive redeploys of the in-memory registry.
+   */
+  async importAccessToken(token: StoredAccessToken): Promise<void> {
+    await this.backend.setAccessToken(token);
+  }
+
+  /** Write-through an externally-issued refresh token (legacy registry parity). */
+  async importRefreshToken(token: StoredRefreshToken): Promise<void> {
+    await this.backend.setRefreshToken(token);
+  }
+
   async revokeRefreshChain(chainId: string): Promise<void> {
     return this.backend.revokeChain(chainId);
   }
@@ -565,6 +578,14 @@ export class TokenStore {
     clientType?: 'confidential' | 'public';
     rateLimit?: number;
     maxClients?: number;
+    /**
+     * Import mode: reuse an externally-issued identity so parallel registries
+     * (legacy in-memory oauth21 + this durable store) share ONE client_id.
+     * Without this the /oauth/register dual-write diverges and the durable
+     * copy is unreachable by the credentials the caller holds.
+     */
+    clientId?: string;
+    clientSecret?: string;
   }): Promise<{ clientId: string; clientSecret: string }> {
     const maxClients = params.maxClients || 1000;
     const count = await this.backend.countClients();
@@ -572,8 +593,8 @@ export class TokenStore {
       throw new Error('Maximum client registration limit reached');
     }
 
-    const clientId = this.generateClientId();
-    const clientSecret = this.generateToken();
+    const clientId = params.clientId ?? this.generateClientId();
+    const clientSecret = params.clientSecret ?? this.generateToken();
 
     await this.backend.setClient({
       clientId,

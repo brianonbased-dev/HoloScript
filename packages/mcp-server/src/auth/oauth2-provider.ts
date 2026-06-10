@@ -42,6 +42,7 @@ import {
   type TokenStoreBackend,
   type StoredAccessToken,
   type StoredClient,
+  type StoredRefreshToken,
 } from './token-store';
 
 // ── Configuration ────────────────────────────────────────────────────────────
@@ -170,6 +171,9 @@ export class OAuth2Provider {
     scopes: string[];
     clientType?: 'confidential' | 'public';
     rateLimit?: number;
+    /** Import mode: reuse a legacy-issued identity (see TokenStore.registerClient). */
+    clientId?: string;
+    clientSecret?: string;
   }): Promise<{ clientId: string; clientSecret: string }> {
     return this.store.registerClient({
       ...params,
@@ -183,6 +187,24 @@ export class OAuth2Provider {
 
   async revokeClient(clientId: string): Promise<boolean> {
     return this.store.revokeClient(clientId);
+  }
+
+  /**
+   * Write-through tokens issued by the legacy in-memory oauth21 registry so
+   * they survive redeploys. The deploy-wipe of that registry stranded every
+   * cached client_id and live Bearer (founder-reported invalid_client browser
+   * tabs, task_1781078719152_ym9w).
+   */
+  async importAccessToken(token: StoredAccessToken): Promise<void> {
+    await this.store.importAccessToken(token);
+  }
+
+  async importRefreshToken(token: StoredRefreshToken): Promise<void> {
+    await this.store.importRefreshToken(token);
+  }
+
+  async getStoredRefreshToken(token: string): Promise<StoredRefreshToken | undefined> {
+    return this.store.getRefreshToken(token);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
