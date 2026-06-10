@@ -25,7 +25,8 @@ export interface ToolPropertySchema {
   type: string;
   description?: string;
   enum?: string[];
-  items?: { type: string };
+  // Recursive so array items can carry full object schemas (e.g. board_add_task's tasks[]).
+  items?: ToolPropertySchema;
   properties?: Record<string, ToolPropertySchema>;
   required?: string[];
 }

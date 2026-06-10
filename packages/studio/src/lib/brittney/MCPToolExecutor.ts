@@ -72,6 +72,11 @@ function getAPIKey(): string {
   return process.env['HOLOSCRIPT_API_KEY'] ?? process.env['MCP_API_KEY'] ?? '';
 }
 
+/** The founder ecosystem team — board + suggestion tools always target it. */
+function getEcosystemTeamId(): string {
+  return process.env['HOLOMESH_TEAM_ID'] ?? 'team_1777834718247_unr35n';
+}
+
 function getWorkspaceArg(args: Record<string, unknown>): string | null {
   const raw = args['workspace_id'] ?? args['workspaceId'];
   return typeof raw === 'string' && raw.trim().length > 0 ? raw : null;
@@ -276,7 +281,7 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
       baseUrl: holoUrl,
       method: 'holomesh_suggest',
       buildArgs: (args) => ({
-        team_id: process.env['HOLOMESH_TEAM_ID'] ?? 'team_1777834718247_unr35n',
+        team_id: getEcosystemTeamId(),
         title: `[user gap] ${String(args['title'] ?? 'unspecified gap').slice(0, 180)}`,
         ...(args['description'] ? { description: String(args['description']).slice(0, 2000) } : {}),
         category: (args['category'] as string) ?? 'other',
@@ -285,6 +290,29 @@ function getDirectMCPConfigs(): Record<string, DirectMCPConfig> {
           1000
         ),
       }),
+    },
+    // HoloMesh board (founder sessions only — gated in executeMCPTool)
+    board_add_task: {
+      baseUrl: holoUrl,
+      method: 'holomesh_board_add',
+      buildArgs: (args) => ({
+        team_id: getEcosystemTeamId(),
+        tasks: (Array.isArray(args['tasks']) ? args['tasks'] : [])
+          .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null)
+          .slice(0, 10)
+          .map((t) => ({
+            title: String(t['title'] ?? 'untitled task').slice(0, 200),
+            ...(t['description'] ? { description: String(t['description']).slice(0, 2000) } : {}),
+            ...(typeof t['priority'] === 'number' ? { priority: t['priority'] } : {}),
+            ...(typeof t['role'] === 'string' ? { role: t['role'] } : {}),
+            source: 'brittney',
+          })),
+      }),
+    },
+    board_list_tasks: {
+      baseUrl: holoUrl,
+      method: 'holomesh_board_list',
+      buildArgs: () => ({ team_id: getEcosystemTeamId() }),
     },
     // Absorb MCP
     absorb_run: {
@@ -576,6 +604,22 @@ export async function executeMCPTool(
   context: MCPToolExecutionContext = {}
 ): Promise<MCPToolResult> {
   try {
+    // HoloMesh board access is founder-session-only: the board is the agent
+    // team's work queue, and public Studio sessions must not enqueue or read
+    // team work. The public-facing channel stays suggest_ecosystem_gap.
+    if (
+      (name === 'board_add_task' || name === 'board_list_tasks') &&
+      context.allowFounderWorkspace !== true
+    ) {
+      return {
+        tool: name,
+        success: false,
+        data: null,
+        error:
+          'The HoloMesh board is founder-session-only. Use suggest_ecosystem_gap to surface this to the team instead.',
+      };
+    }
+
     // Local handlers (custom logic — package registries, ecosystem canon) first
     const localHandler = LOCAL_HANDLERS[name];
     if (localHandler) {

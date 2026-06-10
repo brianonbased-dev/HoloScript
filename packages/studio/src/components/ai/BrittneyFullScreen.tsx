@@ -7,7 +7,12 @@ import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import { Send, Loader2, CheckCircle2, XCircle, Mic, MicOff, ArrowRight } from 'lucide-react';
 import { streamAssistant, buildRichContext } from '@/lib/brittney';
-import type { AssistantMessage, ToolCallPayload, ToolResult } from '@/lib/brittney';
+import type {
+  AssistantMessage,
+  ToolCallPayload,
+  ToolResult,
+  ToolResultPayload,
+} from '@/lib/brittney';
 import { executeTool } from '@/lib/brittney';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
@@ -400,9 +405,29 @@ export function BrittneyFullScreen() {
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
             setProgressLabel(`Running ${tc.name}...`);
-            const result = executeTool(tc.name, tc.arguments, storeActions, { confirmed: true });
+            // Server-executed tools resolve on the server, which streams a
+            // tool_result with the real outcome — running them through the
+            // client executor too only manufactured "Unknown tool" failures.
+            if (!tc.serverExecuted) {
+              const result = executeTool(tc.name, tc.arguments, storeActions, { confirmed: true });
+              setProgressLabel(null);
+              toolResults.push(result);
+              setMessages((m) =>
+                m.map((msg) =>
+                  msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+                )
+              );
+            }
+          } else if (event.type === 'tool_result') {
+            // Server-side MCP/embodied/studio tool resolved — surface the
+            // real outcome (this surface previously dropped these events).
+            const trp = event.payload as ToolResultPayload;
             setProgressLabel(null);
-            toolResults.push(result);
+            toolResults.push({
+              tool: trp.name,
+              success: trp.success,
+              message: trp.error ? trp.error : `${trp.name} ok`,
+            });
             setMessages((m) =>
               m.map((msg) =>
                 msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg

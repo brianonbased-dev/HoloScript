@@ -45,6 +45,13 @@ export interface AssistantPersistOptions {
 export interface ToolCallPayload {
   name: string;
   arguments: Record<string, unknown>;
+  /**
+   * True when the SERVER executes this tool itself and will stream a matching
+   * `tool_result` event. Clients must NOT run these through their local
+   * executor — doing so manufactures "Unknown tool" failures for every
+   * MCP/Studio-API/Lotus/embodied call.
+   */
+  serverExecuted?: boolean;
 }
 
 /**

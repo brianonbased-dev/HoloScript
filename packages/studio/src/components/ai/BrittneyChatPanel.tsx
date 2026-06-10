@@ -840,29 +840,36 @@ export function BrittneyChatPanel() {
           );
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
-          let result: ToolResult;
+          // Server-executed tools (MCP / Studio API / Lotus / embodied) resolve
+          // on the server, which streams a tool_result with the real outcome.
+          // Running them through the client executor too only manufactured
+          // "Unknown tool" err badges next to the real result (founder repro
+          // 2026-06-10: 16/26 and 24/36 "err" on turns that mostly succeeded).
+          if (!tc.serverExecuted) {
+            let result: ToolResult;
 
-          if (executorRef.current?.isSimulationTool(tc.name)) {
-            const simRes = await executorRef.current.execute(
-              tc.name,
-              tc.arguments as Record<string, unknown>
+            if (executorRef.current?.isSimulationTool(tc.name)) {
+              const simRes = await executorRef.current.execute(
+                tc.name,
+                tc.arguments as Record<string, unknown>
+              );
+              result = {
+                tool: tc.name,
+                success: simRes.success,
+                message: simRes.message,
+              };
+            } else {
+              result = executeTool(tc.name, tc.arguments, storeActions);
+            }
+
+            StudioEvents.brittneyToolCalled(tc.name, result.success);
+            toolResults.push(result);
+            setChatMessages((m) =>
+              m.map((msg) =>
+                msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+              )
             );
-            result = {
-              tool: tc.name,
-              success: simRes.success,
-              message: simRes.message,
-            };
-          } else {
-            result = executeTool(tc.name, tc.arguments, storeActions);
           }
-
-          StudioEvents.brittneyToolCalled(tc.name, result.success);
-          toolResults.push(result);
-          setChatMessages((m) =>
-            m.map((msg) =>
-              msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
-            )
-          );
         } else if (event.type === 'tool_result') {
           // Server-side MCP/embodied/studio tool resolved. The `data` field
           // carries the raw MCP envelope so hologram-typed responses
@@ -880,6 +887,7 @@ export function BrittneyChatPanel() {
                 : `${trp.name} ok`,
             envelope: trp.data,
           };
+          StudioEvents.brittneyToolCalled(trp.name, trp.success);
           toolResults.push(result);
           setChatMessages((m) =>
             m.map((msg) =>

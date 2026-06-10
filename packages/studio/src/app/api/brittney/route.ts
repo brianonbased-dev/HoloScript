@@ -52,6 +52,7 @@ import { EMBODIED_TOOLS, EMBODIED_TOOL_NAMES } from '@/lib/brittney/EmbodiedTool
 import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
+import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
 import { fetchUserRepos } from '@/lib/brittney/githubContext';
 import {
   resolveHoloShellOperatorConfig,
@@ -435,6 +436,7 @@ export async function POST(request: NextRequest) {
     // conversion just renames `parameters` → `input_schema`.
     __phase = 'tool-conversion';
     const tools = convertToolsToProviderFormat();
+    const toolNameSet = new Set(tools.map((t) => t.name));
 
     __phase = 'stream-init';
     const encoder = new TextEncoder();
@@ -530,6 +532,21 @@ export async function POST(request: NextRequest) {
           }
         };
 
+        /**
+         * Round-boundary separator: round N+1's narration must not glue onto
+         * round N's last sentence in the clients' accumulated text (founder
+         * repro 2026-06-10: "…unblocks the rest.Plan and pattern confirmed.").
+         * Streams as a normal text event so every chat surface AND the
+         * persisted transcript get the same paragraph break.
+         */
+        const sendRoundSeparator = (): void => {
+          if (fullAssistantText.length === 0 || fullAssistantText.endsWith('\n')) return;
+          const sep = '\n\n';
+          fullAssistantText += sep;
+          __completionChars += sep.length;
+          send({ type: 'text', payload: sep });
+        };
+
         const simContractCheckSafe: SimContractCheck | null = simContractCheck ?? null;
 
         try {
@@ -542,6 +559,9 @@ export async function POST(request: NextRequest) {
             ...llmMessages,
           ];
           let debited = false;
+          // Raw-JSON rescue is single-shot per request so a model that keeps
+          // emitting JSON-as-text cannot ping-pong the loop to MAX_TOOL_ROUNDS.
+          let textRescueUsed = false;
 
           for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
             // Tool-call accumulators for this round.
@@ -757,6 +777,54 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // ── Raw-JSON tool-call rescue ──────────────────────────────────
+            // Small/sovereign models sometimes emit a tool invocation as plain
+            // text ({"name":"…","arguments":{…}}) instead of a native tool_use
+            // block — the turn then ends with raw JSON in the chat and nothing
+            // executed (founder repro 2026-06-10: a turn ending in
+            // {"name":"tend_garden"} — a scene action, not a tool). A known
+            // server tool is executed through the normal continuation
+            // machinery; anything else gets one corrective round so the model
+            // recovers in prose instead of stalling.
+            if (
+              stopReason !== 'tool_use' &&
+              pendingToolCalls.length === 0 &&
+              rejectedMutations.length === 0 &&
+              !textRescueUsed &&
+              round < MAX_TOOL_ROUNDS
+            ) {
+              const rescue = parseTextToolCall(roundText);
+              if (rescue) {
+                textRescueUsed = true;
+                if (SERVER_EXECUTED_TOOL_NAMES.has(rescue.name)) {
+                  const rescueId = `text-rescue-${round}`;
+                  roundToolCalls.push({ name: rescue.name, input: rescue.args });
+                  allToolCalls.push({ id: rescueId, name: rescue.name, input: rescue.args });
+                  pendingToolCalls.push({ id: rescueId, name: rescue.name, input: rescue.args });
+                  send({
+                    type: 'tool_call',
+                    payload: { name: rescue.name, arguments: rescue.args, serverExecuted: true },
+                  });
+                  stopReason = 'tool_use';
+                } else {
+                  roundMessages = [
+                    ...roundMessages,
+                    { role: 'assistant' as const, content: roundText },
+                    {
+                      role: 'user' as const,
+                      content: toolNameSet.has(rescue.name)
+                        ? `Your last reply was a raw JSON tool call written as text — it was NOT executed. Invoke "${rescue.name}" natively as a tool call, or answer the user's request in prose.`
+                        : `Your last reply was a raw JSON tool call written as text for "${rescue.name}", which is not an available tool. Nothing was executed. Answer the user's request in prose, or invoke one of your actual tools natively.`,
+                    },
+                  ];
+                  commitCaelForRound();
+                  sendRoundSeparator();
+                  roundText = '';
+                  continue;
+                }
+              }
+            }
+
             // If the model stopped for tool_use AND there is server-side work
             // to feed back (executed tools OR contract-rejected mutations),
             // run another round.
@@ -880,6 +948,8 @@ export async function POST(request: NextRequest) {
               ];
               // CAEL: commit the round's record before continuing.
               commitCaelForRound();
+              // Paragraph-break the next round's narration away from this one.
+              sendRoundSeparator();
               // Reset round text for next round.
               roundText = '';
               // Continue to next round.

@@ -557,6 +557,61 @@ const suggestEcosystemGap: StudioToolDefinition = {
   },
 };
 
+// ─── HoloMesh board (founder sessions only — enforced in MCPToolExecutor) ───
+
+const boardAddTask: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'board_add_task',
+    description:
+      "Add one or more tasks to the ecosystem HoloMesh team board — the shared work queue every agent claims from. Use when the user asks to file, queue, or schedule work for the agent team ('add a task to the board', 'file this for the team'). Founder sessions only; for public-user gaps use suggest_ecosystem_gap instead.",
+    parameters: {
+      type: 'object',
+      properties: {
+        tasks: {
+          type: 'array',
+          description: 'Tasks to add to the board.',
+          items: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description: 'Short imperative task title (max 200 chars).',
+              },
+              description: {
+                type: 'string',
+                description:
+                  'What to do, why, and any file paths / evidence the claiming agent needs (max ~2000 chars).',
+              },
+              priority: {
+                type: 'number',
+                description: 'Priority 1-10 (1 = critical, default 5).',
+              },
+              role: {
+                type: 'string',
+                enum: ['coder', 'tester', 'researcher', 'reviewer', 'flex'],
+                description: 'Preferred agent role for the task.',
+              },
+            },
+            required: ['title'],
+          },
+        },
+      },
+      required: ['tasks'],
+    },
+  },
+};
+
+const boardListTasks: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'board_list_tasks',
+    description:
+      'List the ecosystem HoloMesh team board: open, claimed, and blocked tasks plus the recent done log. Use to check what the agent team is already working on before filing duplicates. Founder sessions only.',
+    parameters: { type: 'object', properties: {} },
+  },
+};
+
 // ─── Export all MCP tools ──────────────────────────────────────────────────
 
 export const MCP_TOOLS: StudioToolDefinition[] = [
@@ -589,6 +644,9 @@ export const MCP_TOOLS: StudioToolDefinition[] = [
   selectModality,
   // Ecosystem canary
   suggestEcosystemGap,
+  // HoloMesh board (founder sessions only)
+  boardAddTask,
+  boardListTasks,
 ];
 
 /**
