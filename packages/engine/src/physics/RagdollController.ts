@@ -189,22 +189,29 @@ export class RagdollController {
         const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
         if (dist > 0 && dist !== bone.length) {
-          const diff = (dist - bone.length) / dist;
-          const mx = dx * diff * 0.5;
-          const my = dy * diff * 0.5;
-          const mz = dz * diff * 0.5;
+          const error = dist - bone.length;
+          // Weight corrections by inverse mass so heavy bodies move less.
+          // invMass = 1/mass; totalInvMass = invMass_bone + invMass_parent.
+          const invBone   = 1 / bone.mass;
+          const invParent = 1 / parent.mass;
+          const totalInv  = invBone + invParent;
+          // If totalInv is zero (both infinite mass) skip to avoid division by zero.
+          if (totalInv === 0) break;
+          const boneShare   = invBone   / totalInv;
+          const parentShare = invParent / totalInv;
+          const scale = error / dist;
 
           setVec3(
             bone.position,
-            getX(bone.position) - mx,
-            getY(bone.position) - my,
-            getZ(bone.position) - mz
+            getX(bone.position) - dx * scale * boneShare,
+            getY(bone.position) - dy * scale * boneShare,
+            getZ(bone.position) - dz * scale * boneShare
           );
           setVec3(
             parent.position,
-            getX(parent.position) + mx,
-            getY(parent.position) + my,
-            getZ(parent.position) + mz
+            getX(parent.position) + dx * scale * parentShare,
+            getY(parent.position) + dy * scale * parentShare,
+            getZ(parent.position) + dz * scale * parentShare
           );
         }
 

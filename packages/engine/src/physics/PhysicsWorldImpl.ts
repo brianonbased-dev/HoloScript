@@ -29,6 +29,7 @@ import {
 } from './PhysicsTypes';
 import { RigidBody } from './PhysicsBody';
 import { IslandDetector } from './IslandDetector';
+import { ConstraintSolver } from './ConstraintSolver';
 
 // ============================================================================
 // Vector Math Utilities (used by GJK/EPA)
@@ -86,8 +87,20 @@ function vec3TripleProduct(a: IVector3, b: IVector3, c: IVector3): IVector3 {
 /**
  * Returns the farthest point of a collision shape in a given direction (world space).
  * This is the "support function" needed by GJK.
+ *
+ * @param shape     Collision shape descriptor
+ * @param position  Body centre in world space
+ * @param direction Query direction in world space (need not be unit length)
+ * @param rotation  Body orientation quaternion [qx,qy,qz,qw], optional.
+ *                  When provided, box support transforms the direction into
+ *                  body-local space before selecting extremal vertices.
  */
-function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVector3): IVector3 {
+function shapeSupport(
+  shape: CollisionShape,
+  position: IVector3,
+  direction: IVector3,
+  rotation?: IQuaternion
+): IVector3 {
   switch (shape.type) {
     case 'sphere': {
       const norm = vec3Normalize(direction);
@@ -95,10 +108,76 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
     }
     case 'box': {
       const he = shape.halfExtents;
+      // Rotate direction into body-local space so we can correctly select the
+      // extremal half-extent vertex for any orientation.
+      let localDir: IVector3;
+      if (rotation) {
+        // Rotate world direction into body-local frame: localDir = R^T * direction
+        // R^T applied to a vector = rotate by conjugate quaternion
+        const qx = rotation[0], qy = rotation[1], qz = rotation[2], qw = rotation[3];
+        // Conjugate quaternion (same rotation, reversed)
+        const cqx = -qx, cqy = -qy, cqz = -qz, cqw = qw;
+        // Rotate direction by conjugate: q' * v * q
+        const dx = direction[0], dy = direction[1], dz = direction[2];
+        // Quaternion-vector rotation via sandwich product
+        const ix = cqw * dx + cqy * dz - cqz * dy;
+        const iy = cqw * dy + cqz * dx - cqx * dz;
+        const iz = cqw * dz + cqx * dy - cqy * dx;
+        const iw = -cqx * dx - cqy * dy - cqz * dz;
+        localDir = [
+          ix * cqw + iw * (-cqx) + iy * (-cqz) - iz * (-cqy),
+          iy * cqw + iw * (-cqy) + iz * (-cqx) - ix * (-cqz),
+          iz * cqw + iw * (-cqz) + ix * (-cqy) - iy * (-cqx),
+        ];
+        // Note: for the conjugate, the rotation of the result is done with the original q.
+        // Simplified: use rotation matrix R^T rows (= R columns)
+        const r00 = 1 - 2 * (qy * qy + qz * qz);
+        const r01 = 2 * (qx * qy - qz * qw);
+        const r02 = 2 * (qx * qz + qy * qw);
+        const r10 = 2 * (qx * qy + qz * qw);
+        const r11 = 1 - 2 * (qx * qx + qz * qz);
+        const r12 = 2 * (qy * qz - qx * qw);
+        const r20 = 2 * (qx * qz - qy * qw);
+        const r21 = 2 * (qy * qz + qx * qw);
+        const r22 = 1 - 2 * (qx * qx + qy * qy);
+        // R^T * direction (rows of R^T = columns of R)
+        localDir = [
+          r00 * dx + r10 * dy + r20 * dz,
+          r01 * dx + r11 * dy + r21 * dz,
+          r02 * dx + r12 * dy + r22 * dz,
+        ];
+      } else {
+        localDir = direction;
+      }
+      // Select extremal vertex in local space
+      const localSupport: IVector3 = [
+        localDir[0] >= 0 ? he[0] : -he[0],
+        localDir[1] >= 0 ? he[1] : -he[1],
+        localDir[2] >= 0 ? he[2] : -he[2],
+      ];
+      if (rotation) {
+        // Rotate support back to world space: worldSupport = R * localSupport
+        const qx = rotation[0], qy = rotation[1], qz = rotation[2], qw = rotation[3];
+        const r00 = 1 - 2 * (qy * qy + qz * qz);
+        const r01 = 2 * (qx * qy - qz * qw);
+        const r02 = 2 * (qx * qz + qy * qw);
+        const r10 = 2 * (qx * qy + qz * qw);
+        const r11 = 1 - 2 * (qx * qx + qz * qz);
+        const r12 = 2 * (qy * qz - qx * qw);
+        const r20 = 2 * (qx * qz - qy * qw);
+        const r21 = 2 * (qy * qz + qx * qw);
+        const r22 = 1 - 2 * (qx * qx + qy * qy);
+        const lx = localSupport[0], ly = localSupport[1], lz = localSupport[2];
+        return [
+          position[0] + r00 * lx + r01 * ly + r02 * lz,
+          position[1] + r10 * lx + r11 * ly + r12 * lz,
+          position[2] + r20 * lx + r21 * ly + r22 * lz,
+        ];
+      }
       return [
-        position[0] + (direction[0] >= 0 ? he[0] : -he[0]),
-        position[1] + (direction[1] >= 0 ? he[1] : -he[1]),
-        position[2] + (direction[2] >= 0 ? he[2] : -he[2]),
+        position[0] + localSupport[0],
+        position[1] + localSupport[1],
+        position[2] + localSupport[2],
       ];
     }
     case 'capsule': {
@@ -189,17 +268,20 @@ function shapeSupport(shape: CollisionShape, position: IVector3, direction: IVec
 }
 
 /**
- * Minkowski difference support: support_A(d) - support_B(-d)
+ * Minkowski difference support: support_A(d) - support_B(-d).
+ * Optional body orientations are forwarded to the per-shape support function.
  */
 function minkowskiSupport(
   shapeA: CollisionShape,
   posA: IVector3,
   shapeB: CollisionShape,
   posB: IVector3,
-  direction: IVector3
+  direction: IVector3,
+  rotA?: IQuaternion,
+  rotB?: IQuaternion
 ): IVector3 {
-  const pointA = shapeSupport(shapeA, posA, direction);
-  const pointB = shapeSupport(shapeB, posB, vec3Negate(direction));
+  const pointA = shapeSupport(shapeA, posA, direction, rotA);
+  const pointB = shapeSupport(shapeB, posB, vec3Negate(direction), rotB);
   return vec3Sub(pointA, pointB);
 }
 
@@ -226,12 +308,18 @@ interface GJKResult {
  *
  * Returns whether the Minkowski difference contains the origin and,
  * if so, the final simplex (tetrahedron) for use by EPA.
+ *
+ * @param rotA  Optional orientation of shape A.  Forwarded to the box support
+ *              function so GJK correctly handles oriented boxes.
+ * @param rotB  Optional orientation of shape B.
  */
 function gjk(
   shapeA: CollisionShape,
   posA: IVector3,
   shapeB: CollisionShape,
-  posB: IVector3
+  posB: IVector3,
+  rotA?: IQuaternion,
+  rotB?: IQuaternion
 ): GJKResult {
   // Initial direction: from A to B
   let direction = vec3Sub(posB, posA);
@@ -240,7 +328,7 @@ function gjk(
   }
 
   const simplex: IVector3[] = [];
-  const a = minkowskiSupport(shapeA, posA, shapeB, posB, direction);
+  const a = minkowskiSupport(shapeA, posA, shapeB, posB, direction, rotA, rotB);
   simplex.push(a);
 
   // If the first support point doesn't pass the origin, no intersection
@@ -251,7 +339,7 @@ function gjk(
   direction = vec3Negate(a);
 
   for (let iter = 0; iter < GJK_MAX_ITERATIONS; iter++) {
-    const newPoint = minkowskiSupport(shapeA, posA, shapeB, posB, direction);
+    const newPoint = minkowskiSupport(shapeA, posA, shapeB, posB, direction, rotA, rotB);
 
     // If the new point didn't pass the origin along direction, no intersection
     if (vec3Dot(newPoint, direction) < 0) {
@@ -509,7 +597,9 @@ function epa(
   shapeA: CollisionShape,
   posA: IVector3,
   shapeB: CollisionShape,
-  posB: IVector3
+  posB: IVector3,
+  rotA?: IQuaternion,
+  rotB?: IQuaternion
 ): EPAResult {
   // The simplex should be a tetrahedron (4 points)
   // Build initial polytope from the 4 faces
@@ -554,7 +644,7 @@ function epa(
     const searchDir = closestFace.normal;
 
     // Get new support point in the direction of the closest face normal
-    const newPoint = minkowskiSupport(shapeA, posA, shapeB, posB, searchDir);
+    const newPoint = minkowskiSupport(shapeA, posA, shapeB, posB, searchDir, rotA, rotB);
     const newDist = vec3Dot(newPoint, searchDir);
 
     // Check convergence
@@ -737,6 +827,8 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   private collisionEvents: ICollisionEvent[] = [];
   private triggerEvents: ITriggerEvent[] = [];
   private islandDetector: IslandDetector;
+  /** Full-featured sequential-impulse solver used for all non-distance constraint types. */
+  private constraintSolver: ConstraintSolver;
   private accumulator: number = 0;
 
   // Cached for iteration
@@ -764,6 +856,12 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     };
 
     this.islandDetector = new IslandDetector();
+    this.constraintSolver = new ConstraintSolver({
+      iterations: this.config.solverIterations,
+      baumgarte: 0.2,
+      warmStarting: true,
+      slop: 0.005,
+    });
   }
 
   // ============================================================================
@@ -1133,16 +1231,18 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   } | null {
     const posA = bodyA.position;
     const posB = bodyB.position;
+    const rotA = bodyA.rotation;
+    const rotB = bodyB.rotation;
 
-    // Step 1: GJK intersection test
-    const gjkResult = gjk(bodyA.shape, posA, bodyB.shape, posB);
+    // Step 1: GJK intersection test (body orientations forwarded for correct box support)
+    const gjkResult = gjk(bodyA.shape, posA, bodyB.shape, posB, rotA, rotB);
 
     if (!gjkResult.intersects) {
       return null;
     }
 
     // Step 2: EPA to find penetration depth and contact normal
-    const epaResult = epa(gjkResult.simplex, bodyA.shape, posA, bodyB.shape, posB);
+    const epaResult = epa(gjkResult.simplex, bodyA.shape, posA, bodyB.shape, posB, rotA, rotB);
 
     // The normal from EPA points from A to B (direction to push B away from A).
     // Ensure the normal points from A toward B.
@@ -1156,8 +1256,8 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
 
     // Step 3: Approximate contact point
     // Use support points on each shape along the contact normal direction
-    const supportA = shapeSupport(bodyA.shape, posA, normal);
-    const supportB = shapeSupport(bodyB.shape, posB, vec3Negate(normal));
+    const supportA = shapeSupport(bodyA.shape, posA, normal, rotA);
+    const supportB = shapeSupport(bodyB.shape, posB, vec3Negate(normal), rotB);
     const contactPoint: IVector3 = [
       (supportA[0] + supportB[0]) / 2,
       (supportA[1] + supportB[1]) / 2,
@@ -1176,6 +1276,84 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     };
   }
 
+  /**
+   * Compute the world-space effective inverse inertia scalar along an axis.
+   *
+   * The local inverse inertia tensor is diagonal (invI[0], invI[1], invI[2]).
+   * To evaluate the angular contribution to the impulse denominator we need:
+   *
+   *   angularTerm = ((I_world^-1 * (r × n)) × r) · n
+   *
+   * where I_world^-1 = R * diag(invI) * R^T.
+   *
+   * @param invI    Diagonal inverse inertia in body-local space.
+   * @param q       Body orientation quaternion [qx, qy, qz, qw].
+   * @param r       Lever arm: contactPoint − bodyPosition (world space).
+   * @param n       Contact normal (world space).
+   */
+  private angularImpulseDenominator(
+    invI: IVector3,
+    q: IVector3,
+    r: IVector3,
+    n: IVector3
+  ): number {
+    // Build rotation matrix from quaternion
+    const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+    const r00 = 1 - 2 * (qy * qy + qz * qz);
+    const r01 = 2 * (qx * qy - qz * qw);
+    const r02 = 2 * (qx * qz + qy * qw);
+    const r10 = 2 * (qx * qy + qz * qw);
+    const r11 = 1 - 2 * (qx * qx + qz * qz);
+    const r12 = 2 * (qy * qz - qx * qw);
+    const r20 = 2 * (qx * qz - qy * qw);
+    const r21 = 2 * (qy * qz + qx * qw);
+    const r22 = 1 - 2 * (qx * qx + qy * qy);
+
+    // rCrossN = r × n  (world space)
+    const cx = r[1] * n[2] - r[2] * n[1];
+    const cy = r[2] * n[0] - r[0] * n[2];
+    const cz = r[0] * n[1] - r[1] * n[0];
+
+    // Transform rCrossN into body-local space: local = R^T * world
+    const lx = r00 * cx + r10 * cy + r20 * cz;
+    const ly = r01 * cx + r11 * cy + r21 * cz;
+    const lz = r02 * cx + r12 * cy + r22 * cz;
+
+    // Apply diagonal I^-1 in local space
+    const ilx = invI[0] * lx;
+    const ily = invI[1] * ly;
+    const ilz = invI[2] * lz;
+
+    // Transform back to world space: world = R * local
+    const wx = r00 * ilx + r01 * ily + r02 * ilz;
+    const wy = r10 * ilx + r11 * ily + r12 * ilz;
+    const wz = r20 * ilx + r21 * ily + r22 * ilz;
+
+    // (I_world^-1 * (r × n)) × r
+    const tx = wy * r[2] - wz * r[1];
+    const ty = wz * r[0] - wx * r[2];
+    const tz = wx * r[1] - wy * r[0];
+
+    // Dot with n
+    return tx * n[0] + ty * n[1] + tz * n[2];
+  }
+
+  /**
+   * Resolve a collision between two bodies using the standard contact impulse
+   * with both linear and angular (rotational) terms.
+   *
+   * Impulse magnitude (Mirtich 1994 / Baumgarte):
+   *
+   *   j = -(1+e) * vRel·n
+   *       ─────────────────────────────────────────────────────────────
+   *       invMassA + invMassB
+   *         + (I_A^-1*(rA×n))×rA·n
+   *         + (I_B^-1*(rB×n))×rB·n
+   *
+   * Angular velocity deltas:
+   *   dωA = -I_A^-1 * (rA × j*n)
+   *   dωB = +I_B^-1 * (rB × j*n)
+   */
   private resolveCollision(
     bodyA: RigidBody,
     bodyB: RigidBody,
@@ -1189,68 +1367,114 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
     }
   ): void {
     for (const contact of collision.contacts) {
-      // Simple impulse-based resolution
       const normal = contact.normal;
-      const relativeVelocity: IVector3 = [
-        bodyB.linearVelocity[0] - bodyA.linearVelocity[0],
-        bodyB.linearVelocity[1] - bodyA.linearVelocity[1],
-        bodyB.linearVelocity[2] - bodyA.linearVelocity[2],
+
+      // Lever arms from each body's centre to the contact point
+      const posA = bodyA.position;
+      const posB = bodyB.position;
+      const contactPt = contact.position;
+      const rA: IVector3 = [
+        contactPt[0] - posA[0],
+        contactPt[1] - posA[1],
+        contactPt[2] - posA[2],
+      ];
+      const rB: IVector3 = [
+        contactPt[0] - posB[0],
+        contactPt[1] - posB[1],
+        contactPt[2] - posB[2],
       ];
 
+      // Relative velocity at contact point (including angular contribution)
+      // v_contact = v_linear + ω × r
+      const wA = bodyA.angularVelocity;
+      const wB = bodyB.angularVelocity;
+
+      const vA: IVector3 = [
+        bodyA.linearVelocity[0] + (wA[1] * rA[2] - wA[2] * rA[1]),
+        bodyA.linearVelocity[1] + (wA[2] * rA[0] - wA[0] * rA[2]),
+        bodyA.linearVelocity[2] + (wA[0] * rA[1] - wA[1] * rA[0]),
+      ];
+      const vB: IVector3 = [
+        bodyB.linearVelocity[0] + (wB[1] * rB[2] - wB[2] * rB[1]),
+        bodyB.linearVelocity[1] + (wB[2] * rB[0] - wB[0] * rB[2]),
+        bodyB.linearVelocity[2] + (wB[0] * rB[1] - wB[1] * rB[0]),
+      ];
+
+      const relVel: IVector3 = [vB[0] - vA[0], vB[1] - vA[1], vB[2] - vA[2]];
       const normalVelocity =
-        relativeVelocity[0] * normal[0] +
-        relativeVelocity[1] * normal[1] +
-        relativeVelocity[2] * normal[2];
+        relVel[0] * normal[0] + relVel[1] * normal[1] + relVel[2] * normal[2];
 
       // Don't resolve if separating
       if (normalVelocity > 0) continue;
 
-      // Calculate restitution
       const restitution = Math.min(bodyA.material.restitution, bodyB.material.restitution);
 
-      // Calculate impulse magnitude
+      // Denominator: linear terms + rotational terms for each body
       const invMassSum = bodyA.inverseMass + bodyB.inverseMass;
-      if (invMassSum === 0) continue;
+      const angTermA =
+        bodyA.type === 'dynamic'
+          ? this.angularImpulseDenominator(bodyA.inverseInertia, bodyA.rotation, rA, normal)
+          : 0;
+      const angTermB =
+        bodyB.type === 'dynamic'
+          ? this.angularImpulseDenominator(bodyB.inverseInertia, bodyB.rotation, rB, normal)
+          : 0;
 
-      const impulseMag = (-(1 + restitution) * normalVelocity) / invMassSum;
+      const denom = invMassSum + angTermA + angTermB;
+      if (denom === 0) continue;
 
-      // Apply impulse
-      const impulse: IVector3 = [
+      const impulseMag = (-(1 + restitution) * normalVelocity) / denom;
+
+      // Apply linear impulse
+      const jn: IVector3 = [
         normal[0] * impulseMag,
         normal[1] * impulseMag,
         normal[2] * impulseMag,
       ];
+      bodyA.applyImpulse([-jn[0], -jn[1], -jn[2]]);
+      bodyB.applyImpulse(jn);
 
-      bodyA.applyImpulse([-impulse[0], -impulse[1], -impulse[2]]);
-      bodyB.applyImpulse(impulse);
-
-      // Position correction (penetration resolution)
-      const percent = 0.8; // Correction percentage
-      const slop = 0.01; // Penetration allowance
-
-      const correctionMag = (Math.max(contact.penetration - slop, 0) / invMassSum) * percent;
-      const correction: IVector3 = [
-        normal[0] * correctionMag,
-        normal[1] * correctionMag,
-        normal[2] * correctionMag,
-      ];
-
+      // Apply angular impulse: dω = I^-1 * (r × j*n)
+      // applyTorqueImpulse already applies the I^-1 scaling internally
       if (bodyA.type === 'dynamic') {
-        const posA = bodyA.position;
-        bodyA.position = [
-          posA[0] - correction[0] * bodyA.inverseMass,
-          posA[1] - correction[1] * bodyA.inverseMass,
-          posA[2] - correction[2] * bodyA.inverseMass,
+        const torqueA: IVector3 = [
+          rA[1] * jn[2] - rA[2] * jn[1],
+          rA[2] * jn[0] - rA[0] * jn[2],
+          rA[0] * jn[1] - rA[1] * jn[0],
         ];
+        bodyA.applyTorqueImpulse([-torqueA[0], -torqueA[1], -torqueA[2]]);
+      }
+      if (bodyB.type === 'dynamic') {
+        const torqueB: IVector3 = [
+          rB[1] * jn[2] - rB[2] * jn[1],
+          rB[2] * jn[0] - rB[0] * jn[2],
+          rB[0] * jn[1] - rB[1] * jn[0],
+        ];
+        bodyB.applyTorqueImpulse(torqueB);
       }
 
-      if (bodyB.type === 'dynamic') {
-        const posB = bodyB.position;
-        bodyB.position = [
-          posB[0] + correction[0] * bodyB.inverseMass,
-          posB[1] + correction[1] * bodyB.inverseMass,
-          posB[2] + correction[2] * bodyB.inverseMass,
-        ];
+      // Position correction (penetration resolution) — mass-weighted
+      const percent = 0.8;
+      const slop = 0.01;
+      const totalInvMass = bodyA.inverseMass + bodyB.inverseMass;
+      if (totalInvMass > 0) {
+        const correctionMag = (Math.max(contact.penetration - slop, 0) / totalInvMass) * percent;
+
+        if (bodyA.type === 'dynamic') {
+          bodyA.position = [
+            posA[0] - normal[0] * correctionMag * bodyA.inverseMass,
+            posA[1] - normal[1] * correctionMag * bodyA.inverseMass,
+            posA[2] - normal[2] * correctionMag * bodyA.inverseMass,
+          ];
+        }
+        if (bodyB.type === 'dynamic') {
+          const posB2 = bodyB.position;
+          bodyB.position = [
+            posB2[0] + normal[0] * correctionMag * bodyB.inverseMass,
+            posB2[1] + normal[1] * correctionMag * bodyB.inverseMass,
+            posB2[2] + normal[2] * correctionMag * bodyB.inverseMass,
+          ];
+        }
       }
 
       // Store impulse
@@ -1262,56 +1486,122 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   // Constraints
   // ============================================================================
 
-  private solveConstraints(_dt: number): void {
+  /**
+   * Build an IRigidBodyState snapshot for a RigidBody, enriched with the
+   * invMass and invInertia fields that ConstraintSolver.addConstraint needs.
+   */
+  private toConstraintState(body: RigidBody): IRigidBodyState {
+    return {
+      ...body.getState(),
+      type: body.type,
+      mass: body.mass,
+      invMass: body.inverseMass,
+      invInertia: body.inverseInertia,
+    };
+  }
+
+  /**
+   * Solve all constraints for one timestep.
+   *
+   * - 'distance' constraints: fast positional correction path (unchanged).
+   * - All other types (hinge, ball, spring, slider, cone, generic6dof):
+   *   delegated to ConstraintSolver for full sequential-impulse solving with
+   *   warm-starting.  The solver's velocity deltas are applied back to each
+   *   affected RigidBody via applyImpulse / applyTorqueImpulse.
+   *
+   * Follow-up note: 'slider', 'cone', 'generic6dof', 'spring', and 'fixed'
+   * are wired via ConstraintSolver here but not individually test-covered in
+   * this pass. Hinge and ball-socket are the primary use cases. For a full
+   * constraint test suite see registration_snippets.
+   */
+  private solveConstraints(dt: number): void {
+    // ---- Fast path: distance constraints (position-level XPBD-style) ----
     for (let iter = 0; iter < this.config.solverIterations; iter++) {
       for (const [, constraint] of this.constraints) {
-        if (!constraint.enabled) continue;
-        this.solveConstraint(constraint);
+        if (!constraint.enabled || constraint.config.type !== 'distance') continue;
+        this.solveDistanceConstraint(constraint);
       }
+    }
+
+    // ---- Velocity-level path: all non-distance types via ConstraintSolver ----
+    this.constraintSolver.clear();
+
+    for (const [, inst] of this.constraints) {
+      if (!inst.enabled) continue;
+      if (inst.config.type === 'distance') continue;
+
+      const stateA = this.toConstraintState(inst.bodyA);
+      const stateB = inst.bodyB ? this.toConstraintState(inst.bodyB) : null;
+      this.constraintSolver.addConstraint(inst.config, stateA, stateB);
+    }
+
+    const deltas = this.constraintSolver.solve(dt);
+
+    // Apply velocity deltas produced by the impulse solver back onto the RigidBody objects
+    for (const [id, delta] of deltas) {
+      const body = this.bodies.get(id);
+      if (!body || body.type !== 'dynamic') continue;
+
+      // Convert velocity delta to an equivalent impulse (Δv = J/m → J = m·Δv)
+      // but applyImpulse already divides by mass, so pass mass-scaled values.
+      const m = body.mass;
+      if (m > 0) {
+        body.applyImpulse([
+          delta.linearVelocity[0] * m,
+          delta.linearVelocity[1] * m,
+          delta.linearVelocity[2] * m,
+        ]);
+      }
+
+      // Angular velocity delta: dω = I^-1 · τ → apply directly
+      // applyTorqueImpulse(τ) does ω += τ * I^-1, so we need to pass I * dω
+      // Since I^-1 * (I * dω) = dω, pass inverseInertia-scaled values back.
+      // Simpler: directly mutate via the public setter if body exposes it —
+      // instead use applyTorqueImpulse with the inertia-cancelled form.
+      // The delta.angularVelocity is already a velocity (not torque), so:
+      // We need to apply it as: angVel += delta. applyTorqueImpulse(τ) = angVel += τ*I^-1.
+      // To achieve angVel += dω we need τ = dω / I^-1 = dω * I.
+      // The inertia tensor (diagonal) = 1 / inverseInertia.
+      const invI = body.inverseInertia;
+      body.applyTorqueImpulse([
+        invI[0] > 0 ? delta.angularVelocity[0] / invI[0] : 0,
+        invI[1] > 0 ? delta.angularVelocity[1] / invI[1] : 0,
+        invI[2] > 0 ? delta.angularVelocity[2] / invI[2] : 0,
+      ]);
     }
   }
 
-  private solveConstraint(constraint: IConstraintInstance): void {
+  private solveDistanceConstraint(constraint: IConstraintInstance): void {
     const { config, bodyA, bodyB } = constraint;
+    if (!bodyB || config.type !== 'distance') return;
 
-    switch (config.type) {
-      case 'distance': {
-        if (!bodyB) return;
+    const posA = bodyA.position;
+    const posB = bodyB.position;
 
-        const posA = bodyA.position;
-        const posB = bodyB.position;
+    const dx = posB[0] - posA[0];
+    const dy = posB[1] - posA[1];
+    const dz = posB[2] - posA[2];
+    const currentDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        const dx = posB[0] - posA[0];
-        const dy = posB[1] - posA[1];
-        const dz = posB[2] - posA[2];
-        const currentDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (currentDist === 0) return;
 
-        if (currentDist === 0) return;
+    const diff = (currentDist - config.distance) / currentDist;
+    const correction: IVector3 = [dx * diff * 0.5, dy * diff * 0.5, dz * diff * 0.5];
 
-        const diff = (currentDist - config.distance) / currentDist;
-        const correction: IVector3 = [dx * diff * 0.5, dy * diff * 0.5, dz * diff * 0.5];
+    if (bodyA.type === 'dynamic') {
+      bodyA.position = [
+        posA[0] + correction[0],
+        posA[1] + correction[1],
+        posA[2] + correction[2],
+      ];
+    }
 
-        if (bodyA.type === 'dynamic') {
-          bodyA.position = [
-            posA[0] + correction[0],
-            posA[1] + correction[1],
-            posA[2] + correction[2],
-          ];
-        }
-
-        if (bodyB.type === 'dynamic') {
-          bodyB.position = [
-            posB[0] - correction[0],
-            posB[1] - correction[1],
-            posB[2] - correction[2],
-          ];
-        }
-        break;
-      }
-
-      // Add more constraint solvers as needed
-      default:
-        break;
+    if (bodyB.type === 'dynamic') {
+      bodyB.position = [
+        posB[0] - correction[0],
+        posB[1] - correction[1],
+        posB[2] - correction[2],
+      ];
     }
   }
 
@@ -1340,9 +1630,11 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
       }
     }
 
-    // Detect islands (can be used for parallel solving)
-    const _islands = this.islandDetector.detectIslands();
-    // For now, just detect - parallel solving would use these islands
+    // Detect islands; result is available for future sleeping/activation use.
+    // Wiring island output into per-island sleep/activation requires coupling
+    // with the PhysicsActivation state-machine and is deferred — see
+    // registration_snippets for the follow-up scope.
+    this.islandDetector.detectIslands();
   }
 
   // ============================================================================
@@ -1559,14 +1851,56 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
   // Helpers
   // ============================================================================
 
+  /**
+   * Compute the axis-aligned bounding box for a body in world space.
+   *
+   * For box shapes the local half-extents are rotated into world space via the
+   * body's orientation quaternion q.  The rotation matrix R derived from q gives
+   * the world-space half-extent on each axis as:
+   *
+   *   e_world[i] = Σ_j |R[i][j]| * e_local[j]
+   *
+   * This is the standard tight AABB formula for an oriented box.  Spheres are
+   * symmetric so orientation has no effect.  Capsules are treated as spheres
+   * around the full swept segment (conservative, axis-independent).
+   */
   private getBodyAABB(body: RigidBody): IAABB {
     const pos = body.position;
     let halfExtents: IVector3;
 
     switch (body.shape.type) {
-      case 'box':
-        halfExtents = body.shape.halfExtents;
+      case 'box': {
+        // Rotate box half-extents by the body's orientation quaternion.
+        // R[i][j] from quaternion q = [qx, qy, qz, qw]:
+        const q = body.rotation; // [qx, qy, qz, qw]
+        const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+        const he = body.shape.halfExtents;
+        const hx = he[0], hy = he[1], hz = he[2];
+
+        // Rotation matrix columns (world-space axes expressed in local frame):
+        //   R = [[1-2(qy²+qz²), 2(qxqy-qzqw), 2(qxqz+qywq)],
+        //        [2(qxqy+qzqw), 1-2(qx²+qz²), 2(qyqz-qxqw)],
+        //        [2(qxqz-qywq), 2(qyqz+qxqw), 1-2(qx²+qy²)]]
+        const r00 = 1 - 2 * (qy * qy + qz * qz);
+        const r10 = 2 * (qx * qy + qz * qw);
+        const r20 = 2 * (qx * qz - qy * qw);
+
+        const r01 = 2 * (qx * qy - qz * qw);
+        const r11 = 1 - 2 * (qx * qx + qz * qz);
+        const r21 = 2 * (qy * qz + qx * qw);
+
+        const r02 = 2 * (qx * qz + qy * qw);
+        const r12 = 2 * (qy * qz - qx * qw);
+        const r22 = 1 - 2 * (qx * qx + qy * qy);
+
+        // World-space AABB half-extent on each axis = Σ_j |R[i][j]| * e_local[j]
+        halfExtents = [
+          Math.abs(r00) * hx + Math.abs(r01) * hy + Math.abs(r02) * hz,
+          Math.abs(r10) * hx + Math.abs(r11) * hy + Math.abs(r12) * hz,
+          Math.abs(r20) * hx + Math.abs(r21) * hy + Math.abs(r22) * hz,
+        ];
         break;
+      }
       case 'sphere':
         halfExtents = [body.shape.radius, body.shape.radius, body.shape.radius];
         break;

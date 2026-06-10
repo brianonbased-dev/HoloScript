@@ -61,8 +61,11 @@ export class SpatialHash {
   }
 
   update(id: string, x: number, y: number, z: number): void {
+    // Capture the entry BEFORE remove() deletes it — otherwise the fallback
+    // recreates it with radius 0 and the entry loses its extent forever.
+    const existing = this.entries.get(id);
     this.remove(id);
-    const entry = this.entries.get(id) ?? { id, x, y, z, radius: 0 };
+    const entry = existing ?? { id, x, y, z, radius: 0 };
     entry.x = x;
     entry.y = y;
     entry.z = z;

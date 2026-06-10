@@ -30,12 +30,16 @@ export interface JointDef {
   motorForce: number;
   broken: boolean;
   enabled: boolean;
+  /** Stored rest length for distance joints (set at creation from anchor separation). */
+  restLength: number;
 }
 
 export interface JointState {
   currentForce: number;
   currentAngle: number;
   currentDistance: number;
+  /** Previous distance used to estimate relative velocity for spring damping. */
+  previousDistance: number;
 }
 
 // =============================================================================
@@ -55,13 +59,17 @@ export class JointSystem {
 
   createJoint(type: JointType, bodyA: string, bodyB: string, config?: Partial<JointDef>): JointDef {
     const id = config?.id ?? `joint_${_jointId++}`;
+    const anchorA = config?.anchorA ?? ([0, 0, 0] as Vector3);
+    const anchorB = config?.anchorB ?? ([0, 0, 0] as Vector3);
+    // Compute initial anchor separation as the rest length for spring / distance joints.
+    const initDist = this.distance3D(anchorA, anchorB);
     const joint: JointDef = {
       id,
       type,
       bodyA,
       bodyB,
-      anchorA: config?.anchorA ?? [0, 0, 0],
-      anchorB: config?.anchorB ?? [0, 0, 0],
+      anchorA,
+      anchorB,
       axis: config?.axis ?? [0, 1, 0],
       limits: config?.limits,
       breakForce: config?.breakForce ?? Infinity,
@@ -71,10 +79,16 @@ export class JointSystem {
       motorForce: config?.motorForce ?? 0,
       broken: false,
       enabled: true,
+      restLength: initDist,
     };
 
     this.joints.set(id, joint);
-    this.states.set(id, { currentForce: 0, currentAngle: 0, currentDistance: 0 });
+    this.states.set(id, {
+      currentForce: 0,
+      currentAngle: 0,
+      currentDistance: initDist,
+      previousDistance: initDist,
+    });
 
     // Index by body
     for (const body of [bodyA, bodyB]) {
@@ -105,17 +119,24 @@ export class JointSystem {
 
       switch (joint.type) {
         case 'spring': {
-          const restLength = this.distance3D(joint.anchorA, joint.anchorB);
-          const force =
-            joint.stiffness * (state.currentDistance - restLength) +
-            joint.damping * state.currentForce;
+          // F_spring = k * (currentDistance - restLength)
+          // F_damp   = -c * vRel  where vRel = d(distance)/dt ≈ Δdist / dt
+          // The damping must oppose relative velocity, not be proportional to force.
+          const springForce = joint.stiffness * (state.currentDistance - joint.restLength);
+          const vRel = dt > 0 ? (state.currentDistance - state.previousDistance) / dt : 0;
+          const dampForce = -joint.damping * vRel;
+          const force = springForce + dampForce;
+          state.previousDistance = state.currentDistance;
           state.currentForce = force;
           break;
         }
         case 'distance': {
-          const target = this.distance3D(joint.anchorA, joint.anchorB);
-          state.currentDistance = target;
-          state.currentForce = joint.stiffness * Math.abs(state.currentDistance - target);
+          // Measure actual current separation and compare to the stored rest length.
+          // The rest length was fixed at joint creation — do NOT re-measure it here,
+          // because that would zero the error on every step (the original bug).
+          const currentDist = this.distance3D(joint.anchorA, joint.anchorB);
+          state.currentDistance = currentDist;
+          state.currentForce = joint.stiffness * Math.abs(currentDist - joint.restLength);
           break;
         }
         case 'hinge': {

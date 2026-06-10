@@ -186,6 +186,14 @@ export class RigidBody {
     return this._inverseMass;
   }
 
+  /**
+   * Diagonal inverse inertia tensor in body-local space (1/(kg·m²) per axis).
+   * Returns a copy to prevent mutation of internal state.
+   */
+  public get inverseInertia(): IVector3 {
+    return [...this._inverseInertia] as IVector3;
+  }
+
   public get material(): IPhysicsMaterial {
     return { ...this._material };
   }

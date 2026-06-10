@@ -59,9 +59,15 @@ describe('FluidSim — Production', () => {
 
   // ─── Queries ──────────────────────────────────────────────────────
   it('getKineticEnergy returns sum of kinetic energy', () => {
+    // FSM-1 fix: particle mass is restDensity * h³, not 1.
+    // Default: restDensity=1000, smoothingRadius=1 → mass=1000.
+    // KE = 0.5 * mass * v² = 0.5 * 1000 * 10² = 50000.
     const f = new FluidSim();
+    const h = 1.0; // default smoothingRadius
+    const rho0 = 1000; // default restDensity
+    const expectedMass = rho0 * h * h * h; // 1000
     f.addParticle([0, 0, 0], [10, 0, 0]);
-    expect(f.getKineticEnergy()).toBe(50); // 0.5 * 1 * 100
+    expect(f.getKineticEnergy()).toBe(0.5 * expectedMass * 100); // 50000
   });
 
   it('getAverageDensity returns 0 for empty sim', () => {

@@ -95,6 +95,14 @@ fn cs_predict(@builtin(global_invocation_id) gid: vec3u) {
 
 /**
  * WGSL: Solve distance constraints (one color group at a time)
+ *
+ * XPBD formulation (Macklin 2016):
+ *   alphaTilde = compliance / dt²
+ *   dLambda = (−C − alphaTilde · lambdaAcc) / (wSum + alphaTilde)
+ *   lambdaAcc += dLambda          (reset to 0 at substep start, not per-iteration)
+ *
+ * The lambda accumulator buffer is indexed by constraint index and must be
+ * zeroed by the host at the start of each substep (before the first iteration).
  */
 export const PBD_DISTANCE_SHADER = /* wgsl */ `
 struct DistanceConstraint {
@@ -115,11 +123,17 @@ struct SolveParams {
 @group(0) @binding(1) var<storage, read> masses: array<f32>;
 @group(0) @binding(2) var<storage, read> constraints: array<DistanceConstraint>;
 @group(0) @binding(3) var<uniform> params: SolveParams;
+@group(0) @binding(4) var<storage, read_write> lambdaAcc: array<f32>;
 
 @compute @workgroup_size(256)
 fn cs_solve_distance(@builtin(global_invocation_id) gid: vec3u) {
   let cIdx = gid[0];
   if (cIdx >= params.numConstraints) { return; }
+
+  // Reset lambda accumulator at iteration 0 (start of substep)
+  if (params.iteration == 0u) {
+    lambdaAcc[cIdx] = 0.0;
+  }
 
   let c = constraints[cIdx];
   let iA = c.vertexA * 3u;
@@ -141,12 +155,13 @@ fn cs_solve_distance(@builtin(global_invocation_id) gid: vec3u) {
 
   if (wSum < 1e-7) { return; }
 
-  // XPBD: compliance scaled by dt²
-  let alpha = c.compliance / (params.dt * params.dt);
+  // XPBD: compliance scaled by dt²; accumulate lambda across iterations
+  let alphaTilde = c.compliance / (params.dt * params.dt);
   let C = dist - c.restLength;
-  let lambda = -C / (wSum + alpha);
+  let dLambda = (-C - alphaTilde * lambdaAcc[cIdx]) / (wSum + alphaTilde);
+  lambdaAcc[cIdx] += dLambda;
 
-  let correction = (diff / dist) * lambda;
+  let correction = (diff / dist) * dLambda;
 
   // Apply corrections
   if (invMassA > 0.0) {
@@ -164,6 +179,9 @@ fn cs_solve_distance(@builtin(global_invocation_id) gid: vec3u) {
 
 /**
  * WGSL: Solve volume constraints (one tetrahedron at a time)
+ *
+ * XPBD: accumulates lambda per constraint per substep (binding 4).
+ * Host must zero lambdaAcc before the first iteration of each substep.
  */
 export const PBD_VOLUME_SHADER = /* wgsl */ `
 struct VolumeConstraint {
@@ -187,6 +205,7 @@ struct SolveParams {
 @group(0) @binding(1) var<storage, read> masses: array<f32>;
 @group(0) @binding(2) var<storage, read> constraints: array<VolumeConstraint>;
 @group(0) @binding(3) var<uniform> params: SolveParams;
+@group(0) @binding(4) var<storage, read_write> lambdaAcc: array<f32>;
 
 fn loadPos(idx: u32) -> vec3f {
   let i = idx * 3u;
@@ -204,6 +223,11 @@ fn storePos(idx: u32, p: vec3f) {
 fn cs_solve_volume(@builtin(global_invocation_id) gid: vec3u) {
   let cIdx = gid[0];
   if (cIdx >= params.numConstraints) { return; }
+
+  // Reset lambda accumulator at substep start
+  if (params.iteration == 0u) {
+    lambdaAcc[cIdx] = 0.0;
+  }
 
   let c = constraints[cIdx];
   let p0 = loadPos(c.v0);
@@ -235,13 +259,15 @@ fn cs_solve_volume(@builtin(global_invocation_id) gid: vec3u) {
 
   if (denom < 1e-7) { return; }
 
-  let alpha = c.compliance / (params.dt * params.dt);
-  let lambda = -C / (denom + alpha);
+  // XPBD: accumulate lambda across iterations within a substep
+  let alphaTilde = c.compliance / (params.dt * params.dt);
+  let dLambda = (-C - alphaTilde * lambdaAcc[cIdx]) / (denom + alphaTilde);
+  lambdaAcc[cIdx] += dLambda;
 
-  if (w0 > 0.0) { storePos(c.v0, p0 + g0 * lambda * w0); }
-  if (w1 > 0.0) { storePos(c.v1, p1 + g1 * lambda * w1); }
-  if (w2 > 0.0) { storePos(c.v2, p2 + g2 * lambda * w2); }
-  if (w3 > 0.0) { storePos(c.v3, p3 + g3 * lambda * w3); }
+  if (w0 > 0.0) { storePos(c.v0, p0 + g0 * dLambda * w0); }
+  if (w1 > 0.0) { storePos(c.v1, p1 + g1 * dLambda * w1); }
+  if (w2 > 0.0) { storePos(c.v2, p2 + g2 * dLambda * w2); }
+  if (w3 > 0.0) { storePos(c.v3, p3 + g3 * dLambda * w3); }
 }
 `;
 
@@ -487,20 +513,22 @@ fn cs_normalize_normals(@builtin(global_invocation_id) gid: vec3u) {
 /**
  * WGSL compute shader for bending constraints.
  * Maintains rest dihedral angles between adjacent triangle pairs.
- * Uses XPBD formulation with compliance for stable soft constraints.
+ * Uses XPBD formulation with compliance and lambda accumulation.
  *
  * Buffers:
+ *   binding(0) params      — uniform: dt, numConstraints, compliance, iteration
  *   binding(1) positions   — read_write predicted positions (flat xyz)
  *   binding(2) masses      — read per-vertex masses (0 = pinned)
  *   binding(3) constraints — read 4 u32 per constraint [v0, v1, v2, v3]
  *   binding(4) restAngles  — read rest dihedral angle per constraint
+ *   binding(5) lambdaAcc   — read_write lambda accumulator (reset at iteration 0)
  */
 export const PBD_BENDING_SHADER = /* wgsl */ `
 struct Params {
   dt: f32,
   numConstraints: u32,
   compliance: f32,
-  _pad: f32,
+  iteration: u32,
 };
 
 @group(0) @binding(0) var<uniform> params: Params;
@@ -508,6 +536,7 @@ struct Params {
 @group(0) @binding(2) var<storage, read> masses: array<f32>;
 @group(0) @binding(3) var<storage, read> constraints: array<u32>;
 @group(0) @binding(4) var<storage, read> restAngles: array<f32>;
+@group(0) @binding(5) var<storage, read_write> lambdaAcc: array<f32>;
 
 fn loadPos(i: u32) -> vec3<f32> {
   return vec3<f32>(positions[i * 3u], positions[i * 3u + 1u], positions[i * 3u + 2u]);
@@ -523,6 +552,11 @@ fn storePos(i: u32, p: vec3<f32>) {
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx = gid[0];
   if (idx >= params.numConstraints) { return; }
+
+  // Reset lambda accumulator at substep start
+  if (params.iteration == 0u) {
+    lambdaAcc[idx] = 0.0;
+  }
 
   // v0-v1 = shared edge, v2 = opposite on face 1, v3 = opposite on face 2
   let v0 = constraints[idx * 4u];
@@ -589,19 +623,20 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let w2 = select(0.0, 1.0 / masses[v2], masses[v2] > 0.0);
   let w3 = select(0.0, 1.0 / masses[v3], masses[v3] > 0.0);
 
-  // XPBD: alpha = compliance / dt^2
-  let alpha = params.compliance / (params.dt * params.dt);
+  // XPBD: alphaTilde = compliance / dt²; accumulate lambda across iterations
+  let alphaTilde = params.compliance / (params.dt * params.dt);
   let denom = w0 * dot(g0, g0) + w1 * dot(g1, g1)
-            + w2 * dot(g2, g2) + w3 * dot(g3, g3) + alpha;
+            + w2 * dot(g2, g2) + w3 * dot(g3, g3) + alphaTilde;
   if (denom < 1e-10) { return; }
 
-  let lambda = -C / denom;
+  let dLambda = (-C - alphaTilde * lambdaAcc[idx]) / denom;
+  lambdaAcc[idx] += dLambda;
 
   // Apply position corrections
-  if (w0 > 0.0) { storePos(v0, p0 + g0 * lambda * w0); }
-  if (w1 > 0.0) { storePos(v1, p1 + g1 * lambda * w1); }
-  if (w2 > 0.0) { storePos(v2, p2 + g2 * lambda * w2); }
-  if (w3 > 0.0) { storePos(v3, p3 + g3 * lambda * w3); }
+  if (w0 > 0.0) { storePos(v0, p0 + g0 * dLambda * w0); }
+  if (w1 > 0.0) { storePos(v1, p1 + g1 * dLambda * w1); }
+  if (w2 > 0.0) { storePos(v2, p2 + g2 * dLambda * w2); }
+  if (w3 > 0.0) { storePos(v3, p3 + g3 * dLambda * w3); }
 }
 `;
 
@@ -734,6 +769,8 @@ fn loadPos(idx: u32) -> vec3f {
   return vec3f(predicted[i], predicted[i + 1u], predicted[i + 2u]);
 }
 
+// neighborList stores PARTICLE indices (into particleIdx/lambdas arrays),
+// NOT raw vertex indices.  Using particle indices allows direct lambda lookup.
 @compute @workgroup_size(256)
 fn cs_compute_density_lambda(@builtin(global_invocation_id) gid: vec3u) {
   let pIdx = gid[0];
@@ -745,10 +782,11 @@ fn cs_compute_density_lambda(@builtin(global_invocation_id) gid: vec3u) {
   let nCount = min(neighborCnt[pIdx], params.maxNeighbors);
   let nBase = pIdx * params.maxNeighbors;
 
-  // Compute density
+  // Compute density (neighborList entries are PARTICLE indices)
   var density = poly6(0.0, h) * masses[vi]; // self-contribution
   for (var n = 0u; n < nCount; n++) {
-    let nj = neighborList[nBase + n];
+    let nPIdx = neighborList[nBase + n];   // neighbor particle index
+    let nj = particleIdx[nPIdx];           // neighbor vertex index
     let pj = loadPos(nj);
     let diff = pi - pj;
     let r2 = dot(diff, diff);
@@ -764,7 +802,8 @@ fn cs_compute_density_lambda(@builtin(global_invocation_id) gid: vec3u) {
   var gradI = vec3f(0.0);
 
   for (var n = 0u; n < nCount; n++) {
-    let nj = neighborList[nBase + n];
+    let nPIdx = neighborList[nBase + n];   // neighbor particle index
+    let nj = particleIdx[nPIdx];           // neighbor vertex index
     let pj = loadPos(nj);
     let diff = pi - pj;
     let r = length(diff);
@@ -796,15 +835,16 @@ fn cs_apply_density(@builtin(global_invocation_id) gid: vec3u) {
 
   var correction = vec3f(0.0);
   for (var n = 0u; n < nCount; n++) {
-    let nj = neighborList[nBase + n];
-    // Find lambda for neighbor (it's also a fluid particle)
+    let nPIdx = neighborList[nBase + n];   // neighbor particle index
+    let nj = particleIdx[nPIdx];           // neighbor vertex index
+    let lambdaJ = lambdas[nPIdx];          // neighbor's lambda
     let pj = loadPos(nj);
     let diff = pi - pj;
     let r = length(diff);
     let s = spikyGrad(r, h) / params.restDensity;
     if (r > 1e-7) {
-      // Use lambdaI for simplicity (symmetric correction)
-      correction += diff * ((lambdaI + lambdaI) * s / r);
+      // Symmetric pressure gradient: (λ_i + λ_j) per PBD-fluid (Müller 2003)
+      correction += diff * ((lambdaI + lambdaJ) * s / r);
     }
   }
 
@@ -990,9 +1030,20 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 // =============================================================================
 
 /**
- * Greedy graph coloring for distance/bending constraints.
- * Constraints sharing a vertex cannot be the same color — this allows
- * same-color constraints to execute in parallel without data races.
+ * Greedy edge coloring for distance/bending constraints.
+ *
+ * Two constraints that share a vertex MUST receive different colors so that
+ * same-color constraints can execute in parallel on the GPU without data races.
+ *
+ * Correct algorithm: each vertex tracks the SET of all colors already
+ * assigned to constraints incident to it.  For each new constraint, the
+ * forbidden set is the UNION of both endpoint's incident-color sets.  The
+ * constraint receives the lowest color not in that union.
+ *
+ * The previous implementation stored only a single color per vertex
+ * (vertexColor[v] = color), overwriting earlier assignments.  For a vertex
+ * shared by k constraints, only the last assignment was remembered, so two
+ * earlier constraints on the same vertex could receive the same color.
  */
 export function colorConstraints(
   constraints: Array<{ vertexA: number; vertexB: number }>,
@@ -1000,25 +1051,29 @@ export function colorConstraints(
 ): IConstraintColoring {
   const numConstraints = constraints.length;
   const colors = new Uint32Array(numConstraints);
-  const vertexColor = new Int32Array(numVertices).fill(-1);
+  // Per-vertex set of colors already used by constraints incident to that vertex.
+  // Using number[] instead of Set<number> for allocation efficiency on small
+  // valence meshes; sorted insertion keeps the linear scan fast.
+  const vertexUsedColors: Set<number>[] = Array.from({ length: numVertices }, () => new Set());
 
-  // Build adjacency: for each constraint, track which colors its vertices use
   let maxColor = 0;
 
   for (let i = 0; i < numConstraints; i++) {
     const { vertexA, vertexB } = constraints[i];
 
-    // Find smallest color not used by either vertex's current constraint
+    // Forbidden colors = union of all colors incident to either endpoint
     const forbidden = new Set<number>();
-    if (vertexColor[vertexA] >= 0) forbidden.add(vertexColor[vertexA]);
-    if (vertexColor[vertexB] >= 0) forbidden.add(vertexColor[vertexB]);
+    for (const c of vertexUsedColors[vertexA]) forbidden.add(c);
+    for (const c of vertexUsedColors[vertexB]) forbidden.add(c);
 
+    // Assign the lowest color not in the forbidden set
     let color = 0;
     while (forbidden.has(color)) color++;
 
     colors[i] = color;
-    vertexColor[vertexA] = color;
-    vertexColor[vertexB] = color;
+    // Record this color as incident to both endpoints (not overwrite — add)
+    vertexUsedColors[vertexA].add(color);
+    vertexUsedColors[vertexB].add(color);
     if (color > maxColor) maxColor = color;
   }
 
@@ -1319,8 +1374,18 @@ export function extractBendingPairs(
 
 /**
  * Generate a signed distance field from a triangle mesh.
- * Uses brute-force closest-triangle for each grid cell.
- * For production, use a spatial acceleration structure.
+ *
+ * Distance: brute-force closest-triangle for each grid cell.
+ * Sign: ray-crossing parity test using 3-axis majority vote for robustness
+ * on degenerate geometry (grazing rays, edge/vertex hits).  A point is
+ * inside the mesh when the majority of the three axis-aligned ray-crossing
+ * counts are odd.
+ *
+ * Sign convention: negative = inside, positive = outside.
+ * For compliance=0 (no-compliance XPBD) the sign does not affect constraint
+ * solve direction — this is purely for query correctness.
+ *
+ * For production use, replace the O(N·M) brute force with a BVH.
  */
 export function generateSDF(
   vertices: Float32Array,
@@ -1368,7 +1433,8 @@ export function generateSDF(
 
   const numTris = indices.length / 3;
 
-  // For each grid cell, find distance to closest triangle
+  // For each grid cell, find signed distance to closest triangle.
+  // Sign is determined by 3-axis ray-crossing majority vote for robustness.
   for (let iz = 0; iz < gz; iz++) {
     for (let iy = 0; iy < gy; iy++) {
       for (let ix = 0; ix < gx; ix++) {
@@ -1376,31 +1442,62 @@ export function generateSDF(
         const py = minY + (iy + 0.5) * cellSize;
         const pz = minZ + (iz + 0.5) * cellSize;
 
+        // ── Unsigned distance ──────────────────────────────────────────────
         let closestDist = 1e6;
-
         for (let t = 0; t < numTris; t++) {
           const i0 = indices[t * 3],
             i1 = indices[t * 3 + 1],
             i2 = indices[t * 3 + 2];
           const dist = pointTriangleDistance(
-            px,
-            py,
-            pz,
-            vertices[i0 * 3],
-            vertices[i0 * 3 + 1],
-            vertices[i0 * 3 + 2],
-            vertices[i1 * 3],
-            vertices[i1 * 3 + 1],
-            vertices[i1 * 3 + 2],
-            vertices[i2 * 3],
-            vertices[i2 * 3 + 1],
-            vertices[i2 * 3 + 2]
+            px, py, pz,
+            vertices[i0 * 3], vertices[i0 * 3 + 1], vertices[i0 * 3 + 2],
+            vertices[i1 * 3], vertices[i1 * 3 + 1], vertices[i1 * 3 + 2],
+            vertices[i2 * 3], vertices[i2 * 3 + 1], vertices[i2 * 3 + 2]
           );
           if (dist < closestDist) closestDist = dist;
         }
 
-        // Simple inside/outside: use winding number sign (approximate via normal)
-        sdfData[ix + iy * gx + iz * gx * gy] = closestDist;
+        // ── Sign via 3-axis ray-crossing majority vote ─────────────────────
+        // Cast axis-aligned rays in +x, +y, +z directions and count crossings.
+        // Odd crossing count = inside.  Majority vote across 3 axes reduces
+        // sensitivity to degenerate hits (ray grazes edge or passes through vertex).
+        //
+        // To avoid double-counting when the ray passes exactly through a shared
+        // edge (numerically ≈0 barycentric coordinate), each ray is perturbed
+        // by a small irrational-ratio offset in the two non-axis directions.
+        // The perturbation is much smaller than the cell size, so it does not
+        // affect the sign decision for any non-degenerate cell center.
+        const pertA = cellSize * 1.1731e-3; // irrational ratio 1
+        const pertB = cellSize * 2.3137e-3; // irrational ratio 2
+
+        let crossX = 0; // ray along +x, perturbed in y,z
+        let crossY = 0; // ray along +y, perturbed in x,z
+        let crossZ = 0; // ray along +z, perturbed in x,y
+
+        for (let t = 0; t < numTris; t++) {
+          const i0 = indices[t * 3],
+            i1 = indices[t * 3 + 1],
+            i2 = indices[t * 3 + 2];
+          const ax = vertices[i0 * 3], ay = vertices[i0 * 3 + 1], az = vertices[i0 * 3 + 2];
+          const bx = vertices[i1 * 3], by = vertices[i1 * 3 + 1], bz = vertices[i1 * 3 + 2];
+          const cx = vertices[i2 * 3], cy = vertices[i2 * 3 + 1], cz = vertices[i2 * 3 + 2];
+
+          // +X ray from (px, py+pertA, pz+pertB): perturb non-axis coords
+          if (rayTriangleIntersectAxisAligned(0, px, py + pertA, pz + pertB, ax, ay, az, bx, by, bz, cx, cy, cz)) crossX++;
+          // +Y ray from (px+pertA, py, pz+pertB)
+          if (rayTriangleIntersectAxisAligned(1, px + pertA, py, pz + pertB, ax, ay, az, bx, by, bz, cx, cy, cz)) crossY++;
+          // +Z ray from (px+pertA, py+pertB, pz)
+          if (rayTriangleIntersectAxisAligned(2, px + pertA, py + pertB, pz, ax, ay, az, bx, by, bz, cx, cy, cz)) crossZ++;
+        }
+
+        // Majority vote: inside if at least 2 of the 3 ray counts are odd
+        const insideX = (crossX & 1) === 1;
+        const insideY = (crossY & 1) === 1;
+        const insideZ = (crossZ & 1) === 1;
+        const insideVotes = (insideX ? 1 : 0) + (insideY ? 1 : 0) + (insideZ ? 1 : 0);
+        const sign = insideVotes >= 2 ? -1 : 1;
+
+        sdfData[ix + iy * gx + iz * gx * gy] = sign * closestDist;
       }
     }
   }
@@ -1414,6 +1511,60 @@ export function generateSDF(
     cellSize,
     friction: 0.5,
   };
+}
+
+/**
+ * Axis-aligned ray-triangle intersection for inside/outside sign determination.
+ *
+ * Casts a ray from (ox, oy, oz) in the direction of axis `axis` (0=+X, 1=+Y, 2=+Z).
+ * Returns true if the ray intersects the triangle at a positive t (i.e., in the
+ * forward direction).  Uses Möller–Trumbore with a small epsilon to skip
+ * degenerate (near-parallel or edge-grazing) hits, which the majority-vote caller
+ * handles robustly by taking 3 independent axis results.
+ *
+ * @param axis   0 for +X ray, 1 for +Y ray, 2 for +Z ray
+ */
+function rayTriangleIntersectAxisAligned(
+  axis: 0 | 1 | 2,
+  ox: number, oy: number, oz: number,
+  ax: number, ay: number, az: number,
+  bx: number, by: number, bz: number,
+  cx: number, cy: number, cz: number
+): boolean {
+  // Ray direction d is the unit axis vector
+  const dx = axis === 0 ? 1 : 0;
+  const dy = axis === 1 ? 1 : 0;
+  const dz = axis === 2 ? 1 : 0;
+
+  // Möller–Trumbore algorithm
+  const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
+  const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+
+  // h = d × e2
+  const hx = dy * e2z - dz * e2y;
+  const hy = dz * e2x - dx * e2z;
+  const hz = dx * e2y - dy * e2x;
+
+  const det = e1x * hx + e1y * hy + e1z * hz;
+  const eps = 1e-9;
+  if (Math.abs(det) < eps) return false; // Ray parallel to triangle
+
+  const invDet = 1 / det;
+
+  const sx = ox - ax, sy = oy - ay, sz = oz - az;
+  const u = (sx * hx + sy * hy + sz * hz) * invDet;
+  if (u < 0 || u > 1) return false;
+
+  // q = s × e1
+  const qx = sy * e1z - sz * e1y;
+  const qy = sz * e1x - sx * e1z;
+  const qz = sx * e1y - sy * e1x;
+
+  const v = (dx * qx + dy * qy + dz * qz) * invDet;
+  if (v < 0 || u + v > 1) return false;
+
+  const t = (e2x * qx + e2y * qy + e2z * qz) * invDet;
+  return t > eps; // Only forward intersections
 }
 
 /**
@@ -1529,6 +1680,15 @@ export class PBDSolverCPU {
   private densityCompliance: number = 0.0001;
   private coloring: IConstraintColoring | null = null;
   private sdfColliders: ISDFCollider[] = [];
+  /**
+   * Per-constraint lambda accumulators for XPBD (Macklin 2016).
+   * Reset to 0 at the start of each substep; accumulated across iterations
+   * within the same substep.  Indexed in the same order as the corresponding
+   * constraint arrays (distance, volume, bending).
+   */
+  private distanceLambdaAcc: Float32Array = new Float32Array(0);
+  private volumeLambdaAcc: Float32Array = new Float32Array(0);
+  private bendingLambdaAcc: Float32Array = new Float32Array(0);
 
   constructor(config: ISoftBodyConfig) {
     this.config = config;
@@ -1614,6 +1774,11 @@ export class PBDSolverCPU {
         colorGroup: 0,
       });
     }
+
+    // Allocate XPBD lambda accumulators (zeroed; filled at substep start)
+    this.distanceLambdaAcc = new Float32Array(this.distanceConstraints.length);
+    this.volumeLambdaAcc = new Float32Array(this.volumeConstraints.length);
+    this.bendingLambdaAcc = new Float32Array(this.bendingConstraints.length);
   }
 
   private computeTetVolume(
@@ -1737,6 +1902,11 @@ export class PBDSolverCPU {
     }
 
     // [2] Solve constraints
+    // Reset XPBD lambda accumulators once per substep (i.e., once per step call)
+    this.distanceLambdaAcc.fill(0);
+    this.volumeLambdaAcc.fill(0);
+    this.bendingLambdaAcc.fill(0);
+
     for (let iter = 0; iter < solverIterations; iter++) {
       // Distance constraints (solved per color group for correctness)
       if (this.coloring) {
@@ -1745,19 +1915,19 @@ export class PBDSolverCPU {
           const count = this.coloring.groupCounts[g];
           for (let j = 0; j < count; j++) {
             const ci = this.coloring.sortedIndices[start + j];
-            this.solveDistanceConstraint(this.distanceConstraints[ci], dt);
+            this.solveDistanceConstraint(this.distanceConstraints[ci], ci, dt);
           }
         }
       }
 
       // Volume constraints
-      for (const vc of this.volumeConstraints) {
-        this.solveVolumeConstraint(vc, dt);
+      for (let vi = 0; vi < this.volumeConstraints.length; vi++) {
+        this.solveVolumeConstraint(this.volumeConstraints[vi], vi, dt);
       }
 
       // Bending constraints
-      for (const bc of this.bendingConstraints) {
-        this.solveBendingConstraint(bc, dt);
+      for (let bi = 0; bi < this.bendingConstraints.length; bi++) {
+        this.solveBendingConstraint(this.bendingConstraints[bi], bi, dt);
       }
 
       // SDF collision
@@ -1827,7 +1997,21 @@ export class PBDSolverCPU {
     return this.state;
   }
 
-  private solveDistanceConstraint(c: IPBDDistanceConstraint, dt: number): void {
+  /**
+   * Solve a single distance constraint using XPBD (Macklin 2016).
+   *
+   * XPBD update rule (per iteration within a substep):
+   *   alphaTilde = compliance / dt²
+   *   dLambda = (−C − alphaTilde · lambdaAcc) / (wSum + alphaTilde)
+   *   lambdaAcc += dLambda
+   *
+   * lambdaAcc is reset to 0 once per substep (before the first iteration).
+   * For compliance=0, alphaTilde=0, the term vanishes and the update reduces
+   * to standard PBD — fully backward-compatible.
+   *
+   * @param accIdx  Index into distanceLambdaAcc for this constraint.
+   */
+  private solveDistanceConstraint(c: IPBDDistanceConstraint, accIdx: number, dt: number): void {
     const pred = this.state.predicted;
     const masses = this.config.masses;
     const iA = c.vertexA * 3,
@@ -1844,13 +2028,14 @@ export class PBDSolverCPU {
     const wSum = wA + wB;
     if (wSum < 1e-7) return;
 
-    const alpha = c.compliance / (dt * dt);
+    const alphaTilde = c.compliance / (dt * dt);
     const C = dist - c.restLength;
-    const lambda = -C / (wSum + alpha);
+    const dLambda = (-C - alphaTilde * this.distanceLambdaAcc[accIdx]) / (wSum + alphaTilde);
+    this.distanceLambdaAcc[accIdx] += dLambda;
 
-    const nx = (dx / dist) * lambda;
-    const ny = (dy / dist) * lambda;
-    const nz = (dz / dist) * lambda;
+    const nx = (dx / dist) * dLambda;
+    const ny = (dy / dist) * dLambda;
+    const nz = (dz / dist) * dLambda;
 
     if (wA > 0) {
       pred[iA] -= nx * wA;
@@ -1864,7 +2049,11 @@ export class PBDSolverCPU {
     }
   }
 
-  private solveVolumeConstraint(c: IPBDVolumeConstraint, dt: number): void {
+  /**
+   * Solve a single volume (tetrahedral) constraint using XPBD.
+   * @param accIdx  Index into volumeLambdaAcc for this constraint.
+   */
+  private solveVolumeConstraint(c: IPBDVolumeConstraint, accIdx: number, dt: number): void {
     const pred = this.state.predicted;
     const masses = this.config.masses;
     const [v0, v1, v2, v3] = c.vertices;
@@ -1932,32 +2121,37 @@ export class PBDSolverCPU {
       w3 * (g3x * g3x + g3y * g3y + g3z * g3z);
     if (denom < 1e-7) return;
 
-    const alpha = c.compliance / (dt * dt);
-    const lambda = -C / (denom + alpha);
+    const alphaTilde = c.compliance / (dt * dt);
+    const dLambda = (-C - alphaTilde * this.volumeLambdaAcc[accIdx]) / (denom + alphaTilde);
+    this.volumeLambdaAcc[accIdx] += dLambda;
 
     if (w0 > 0) {
-      pred[v0 * 3] += g0x * lambda * w0;
-      pred[v0 * 3 + 1] += g0y * lambda * w0;
-      pred[v0 * 3 + 2] += g0z * lambda * w0;
+      pred[v0 * 3] += g0x * dLambda * w0;
+      pred[v0 * 3 + 1] += g0y * dLambda * w0;
+      pred[v0 * 3 + 2] += g0z * dLambda * w0;
     }
     if (w1 > 0) {
-      pred[v1 * 3] += g1x * lambda * w1;
-      pred[v1 * 3 + 1] += g1y * lambda * w1;
-      pred[v1 * 3 + 2] += g1z * lambda * w1;
+      pred[v1 * 3] += g1x * dLambda * w1;
+      pred[v1 * 3 + 1] += g1y * dLambda * w1;
+      pred[v1 * 3 + 2] += g1z * dLambda * w1;
     }
     if (w2 > 0) {
-      pred[v2 * 3] += g2x * lambda * w2;
-      pred[v2 * 3 + 1] += g2y * lambda * w2;
-      pred[v2 * 3 + 2] += g2z * lambda * w2;
+      pred[v2 * 3] += g2x * dLambda * w2;
+      pred[v2 * 3 + 1] += g2y * dLambda * w2;
+      pred[v2 * 3 + 2] += g2z * dLambda * w2;
     }
     if (w3 > 0) {
-      pred[v3 * 3] += g3x * lambda * w3;
-      pred[v3 * 3 + 1] += g3y * lambda * w3;
-      pred[v3 * 3 + 2] += g3z * lambda * w3;
+      pred[v3 * 3] += g3x * dLambda * w3;
+      pred[v3 * 3 + 1] += g3y * dLambda * w3;
+      pred[v3 * 3 + 2] += g3z * dLambda * w3;
     }
   }
 
-  private solveBendingConstraint(c: IPBDBendingConstraint, dt: number): void {
+  /**
+   * Solve a single bending constraint using XPBD.
+   * @param accIdx  Index into bendingLambdaAcc for this constraint.
+   */
+  private solveBendingConstraint(c: IPBDBendingConstraint, accIdx: number, dt: number): void {
     const pred = this.state.predicted;
     const masses = this.config.masses;
     const [v0, v1, v2, v3] = c.vertices;
@@ -2058,29 +2252,30 @@ export class PBDSolverCPU {
       w2 * (g2x * g2x + g2y * g2y + g2z * g2z) +
       w3 * (g3x * g3x + g3y * g3y + g3z * g3z);
 
-    const alpha = c.compliance / (dt * dt);
-    if (denom + alpha < 1e-10) return;
-    const lambda = -C / (denom + alpha);
+    const alphaTilde = c.compliance / (dt * dt);
+    if (denom + alphaTilde < 1e-10) return;
+    const dLambda = (-C - alphaTilde * this.bendingLambdaAcc[accIdx]) / (denom + alphaTilde);
+    this.bendingLambdaAcc[accIdx] += dLambda;
 
     if (w0 > 0) {
-      pred[v0 * 3] += g0x * lambda * w0;
-      pred[v0 * 3 + 1] += g0y * lambda * w0;
-      pred[v0 * 3 + 2] += g0z * lambda * w0;
+      pred[v0 * 3] += g0x * dLambda * w0;
+      pred[v0 * 3 + 1] += g0y * dLambda * w0;
+      pred[v0 * 3 + 2] += g0z * dLambda * w0;
     }
     if (w1 > 0) {
-      pred[v1 * 3] += g1x2 * lambda * w1;
-      pred[v1 * 3 + 1] += g1y2 * lambda * w1;
-      pred[v1 * 3 + 2] += g1z2 * lambda * w1;
+      pred[v1 * 3] += g1x2 * dLambda * w1;
+      pred[v1 * 3 + 1] += g1y2 * dLambda * w1;
+      pred[v1 * 3 + 2] += g1z2 * dLambda * w1;
     }
     if (w2 > 0) {
-      pred[v2 * 3] += g2x * lambda * w2;
-      pred[v2 * 3 + 1] += g2y * lambda * w2;
-      pred[v2 * 3 + 2] += g2z * lambda * w2;
+      pred[v2 * 3] += g2x * dLambda * w2;
+      pred[v2 * 3 + 1] += g2y * dLambda * w2;
+      pred[v2 * 3 + 2] += g2z * dLambda * w2;
     }
     if (w3 > 0) {
-      pred[v3 * 3] += g3x * lambda * w3;
-      pred[v3 * 3 + 1] += g3y * lambda * w3;
-      pred[v3 * 3 + 2] += g3z * lambda * w3;
+      pred[v3 * 3] += g3x * dLambda * w3;
+      pred[v3 * 3 + 1] += g3y * dLambda * w3;
+      pred[v3 * 3 + 2] += g3z * dLambda * w3;
     }
   }
 
@@ -2125,6 +2320,13 @@ export class PBDSolverCPU {
   /**
    * CPU density constraint solver (SPH-style for fluid-PBD coupling).
    * Each fluid particle corrects toward rest density using neighbor kernel.
+   *
+   * Position correction (Müller PBD-fluid):
+   *   Δp_i = (1/ρ₀) Σ_j (λ_i + λ_j) ∇_i W(p_i − p_j)
+   *
+   * densityNeighbors[p] stores PARTICLE indices (indices into densityParticles
+   * and the lambdas array), not raw vertex indices.  This allows O(1) lookup
+   * of lambdaJ.
    */
   private solveDensityConstraints(dt: number): void {
     const pred = this.state.predicted;
@@ -2142,6 +2344,7 @@ export class PBDSolverCPU {
     const lambdas = new Float32Array(numParticles);
 
     // Phase 1: Compute lambdas
+    // densityNeighbors[p] contains PARTICLE INDICES (not vertex indices)
     for (let p = 0; p < numParticles; p++) {
       const vi = this.densityParticles[p];
       const i3 = vi * 3;
@@ -2150,9 +2353,10 @@ export class PBDSolverCPU {
         piz = pred[i3 + 2];
       const neighbors = this.densityNeighbors[p];
 
-      // Compute density
+      // Compute density (neighbors stores particle indices → resolve to vertex)
       let density = poly6Coeff * Math.pow(h2, 3) * masses[vi]; // self
-      for (const nj of neighbors) {
+      for (const nPIdx of neighbors) {
+        const nj = this.densityParticles[nPIdx]; // particle-idx → vertex-idx
         const j3 = nj * 3;
         const dx = pix - pred[j3],
           dy = piy - pred[j3 + 1],
@@ -2175,7 +2379,8 @@ export class PBDSolverCPU {
       let giX = 0,
         giY = 0,
         giZ = 0;
-      for (const nj of neighbors) {
+      for (const nPIdx of neighbors) {
+        const nj = this.densityParticles[nPIdx];
         const j3 = nj * 3;
         const dx = pix - pred[j3],
           dy = piy - pred[j3 + 1],
@@ -2198,7 +2403,7 @@ export class PBDSolverCPU {
       lambdas[p] = -C / (gradSumSq + alpha);
     }
 
-    // Phase 2: Apply corrections
+    // Phase 2: Apply corrections using symmetric (λ_i + λ_j) pressure gradient
     for (let p = 0; p < numParticles; p++) {
       const vi = this.densityParticles[p];
       const i3 = vi * 3;
@@ -2211,8 +2416,10 @@ export class PBDSolverCPU {
       let corrX = 0,
         corrY = 0,
         corrZ = 0;
-      for (const nj of neighbors) {
+      for (const nPIdx of neighbors) {
+        const nj = this.densityParticles[nPIdx];
         const j3 = nj * 3;
+        const lambdaJ = lambdas[nPIdx]; // neighbor's lambda (not self-doubled)
         const dx = pix - pred[j3],
           dy = piy - pred[j3 + 1],
           dz = piz - pred[j3 + 2];
@@ -2220,9 +2427,9 @@ export class PBDSolverCPU {
         if (r > 1e-7 && r < h) {
           const diff = h - r;
           const s = (spikyCoeff * diff * diff) / (restDensity * r);
-          corrX += dx * (lambdaI + lambdaI) * s;
-          corrY += dy * (lambdaI + lambdaI) * s;
-          corrZ += dz * (lambdaI + lambdaI) * s;
+          corrX += dx * (lambdaI + lambdaJ) * s;
+          corrY += dy * (lambdaI + lambdaJ) * s;
+          corrZ += dz * (lambdaI + lambdaJ) * s;
         }
       }
 
@@ -2511,7 +2718,10 @@ export class PBDSolverGPU {
     restAngles?: GPUBuffer;
     simParams: GPUBuffer;
     solveParams: GPUBuffer;
+    /** Atomic i32 accumulator for cs_compute_normals (read_write atomic<i32>) */
     normals: GPUBuffer;
+    /** Float32 output buffer for cs_normalize_normals (separate from predicted) */
+    normalsF32: GPUBuffer;
   } | null = null;
 
   private pipelines: {
@@ -2578,6 +2788,11 @@ export class PBDSolverGPU {
       masses: this.createBuffer(masses, GPUBufferUsage.STORAGE),
       indices: this.createBuffer(indices, GPUBufferUsage.STORAGE),
       normals: this.createBuffer(new Int32Array(numVerts * 3), GPUBufferUsage.STORAGE),
+      /** Dedicated float32 normal output — never aliased with predicted positions */
+      normalsF32: this.createBuffer(
+        new Float32Array(numVerts * 3),
+        GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+      ),
       simParams: this.device.createBuffer({
         size: 64,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -2675,7 +2890,7 @@ export class PBDSolverGPU {
         layout: this.pipelines.normalize.getBindGroupLayout(0),
         entries: [
           { binding: 0, resource: { buffer: this.buffers.normals } },
-          { binding: 1, resource: { buffer: this.buffers.predicted } }, // Recycling predicted for float normals
+          { binding: 1, resource: { buffer: this.buffers.normalsF32 } }, // Dedicated float normal buffer
           { binding: 2, resource: { buffer: this.buffers.simParams } },
         ],
       }),

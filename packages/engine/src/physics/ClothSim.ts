@@ -148,7 +148,7 @@ export class ClothSim {
       p.prevPosition = [pos[0], pos[1], pos[2]];
 
       p.position[0] += vx + (wind[0] * dt2) / p.mass;
-      p.position[1] += vy + gravity * dt2;
+      p.position[1] += vy + gravity * dt2 + (wind[1] * dt2) / p.mass;
       p.position[2] += vz + (wind[2] * dt2) / p.mass;
       this.syncParticleCompat(p);
     }

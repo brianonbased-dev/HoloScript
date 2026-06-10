@@ -51,16 +51,22 @@ export class SoftBodyAdapter {
     }
 
     // 2. Create Constraints (Structural)
-    // Connect adjacent vertices (Naive/Simple box topology assumption for demo)
-    // A real implementation would parse the index buffer (faces).
+    // Connect adjacent vertices (naive linear topology for demo).
+    // restLength is computed from the actual rest-state vertex positions so
+    // the soft body starts at equilibrium regardless of mesh scale.
     const _width = Math.sqrt(particles.length); // Assume grid for demo
 
     for (let i = 0; i < particles.length - 1; i++) {
-      // Linear constraint
+      const p1 = particles[i];
+      const p2 = particles[i + 1];
+      const dx = p2.position[0] - p1.position[0];
+      const dy = p2.position[1] - p1.position[1];
+      const dz = p2.position[2] - p1.position[2];
+      const restLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
       constraints.push({
         p1: i,
         p2: i + 1,
-        restLength: 0.1, // Mock
+        restLength,
         stiffness: config.stiffness || 0.5,
       });
     }

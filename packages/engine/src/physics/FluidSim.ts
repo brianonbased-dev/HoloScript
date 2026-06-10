@@ -1,4 +1,5 @@
 import type { Vector3 } from '@holoscript/core';
+import { SpatialHash } from './SpatialHash';
 /**
  * FluidSim.ts
  *
@@ -41,6 +42,17 @@ export class FluidSim {
   private particles: FluidParticle[] = [];
   private config: FluidConfig;
 
+  /**
+   * FSM-2: Spatial hash for O(N) neighbor queries.
+   *
+   * Cell size is set to the smoothing radius so that a radius query only
+   * needs to inspect a 3×3×3 = 27-cell neighbourhood rather than all N
+   * particles.  The hash is rebuilt from scratch each update() call because
+   * SPH particles move every step; incremental update would require a remove
+   * + re-insert per particle which has the same asymptotic cost on small grids.
+   */
+  private spatialHash: SpatialHash;
+
   private toArr3(v: Vector3 | { x: number; y: number; z: number }): [number, number, number] {
     if (Array.isArray(v)) return [v[0], v[1], v[2]];
     return [v.x, v.y, v.z];
@@ -69,6 +81,9 @@ export class FluidSim {
     this.config.boundaryMax = this.toArr3(
       this.config.boundaryMax as Vector3 | { x: number; y: number; z: number }
     );
+    // FSM-2: cell size = smoothingRadius so each query covers exactly the
+    // kernel support sphere with a 3×3×3 cell neighbourhood.
+    this.spatialHash = new SpatialHash(this.config.smoothingRadius);
   }
 
   // ---------------------------------------------------------------------------
@@ -81,12 +96,28 @@ export class FluidSim {
   ): void {
     const p = this.toArr3(position);
     const v = velocity ? this.toArr3(velocity) : [0, 0, 0];
+    // FSM-1 fix: particle mass must be consistent with the rest density so
+    // that the SPH density estimator Σ m_j W(r,h) ≈ ρ₀ when particles are
+    // at their rest spacing.  With mass=1 (old code) the density estimate
+    // was orders of magnitude off from restDensity for typical physics units,
+    // producing enormous pressure forces that blow up the simulation.
+    //
+    // The standard SPH initialisation sets:
+    //   m = ρ₀ × V_particle = ρ₀ × h³
+    // where h is the smoothing radius (which characterises the inter-particle
+    // separation at rest).  This ensures Σ m_j W(r_ij, h) ≈ ρ₀ for a full
+    // neighbourhood of particles.
+    //
+    // Rule G.GOLD.485: never hardcode Earth-only physical constants; restDensity
+    // is a config field with a documented default (1000 kg/m³ for water).
+    const h = this.config.smoothingRadius;
+    const mass = this.config.restDensity * h * h * h;
     this.particles.push({
       position: [p[0], p[1], p[2]],
       velocity: [v[0], v[1], v[2]],
       density: this.config.restDensity,
       pressure: 0,
-      mass: 1,
+      mass,
     });
   }
 
@@ -139,10 +170,29 @@ export class FluidSim {
     const h = this.config.smoothingRadius;
     const dt = this.config.timeStep;
 
-    // 1. Compute density & pressure
-    for (const pi of this.particles) {
+    // FSM-2: rebuild spatial hash each step for O(N) neighbor queries.
+    // Cell size = h so the query radius h only touches a 3×3×3 = 27 cells.
+    this.spatialHash.clear();
+    for (let idx = 0; idx < this.particles.length; idx++) {
+      const pi = this.particles[idx];
+      this.spatialHash.insert({
+        id: String(idx),
+        x: pi.position[0],
+        y: pi.position[1],
+        z: pi.position[2],
+        radius: 0, // point insert; radius query handles the kernel support
+      });
+    }
+
+    // 1. Compute density & pressure (O(N) via spatial hash)
+    for (let idx = 0; idx < this.particles.length; idx++) {
+      const pi = this.particles[idx];
       pi.density = 0;
-      for (const pj of this.particles) {
+      const neighborIds = this.spatialHash.queryRadius(
+        pi.position[0], pi.position[1], pi.position[2], h
+      );
+      for (const jId of neighborIds) {
+        const pj = this.particles[parseInt(jId, 10)];
         const dx = pj.position[0] - pi.position[0];
         const dy = pj.position[1] - pi.position[1];
         const dz = pj.position[2] - pi.position[2];
@@ -152,14 +202,18 @@ export class FluidSim {
       pi.pressure = this.config.gasConstant * (pi.density - this.config.restDensity);
     }
 
-    // 2. Compute forces & integrate
-    for (const pi of this.particles) {
-      let fx = 0,
-        fy = 0,
-        fz = 0;
+    // 2. Compute forces & integrate (O(N) via spatial hash)
+    for (let idx = 0; idx < this.particles.length; idx++) {
+      const pi = this.particles[idx];
+      let fx = 0, fy = 0, fz = 0;
 
-      for (const pj of this.particles) {
-        if (pi === pj) continue;
+      const neighborIds = this.spatialHash.queryRadius(
+        pi.position[0], pi.position[1], pi.position[2], h
+      );
+      for (const jId of neighborIds) {
+        const jIdx = parseInt(jId, 10);
+        if (jIdx === idx) continue;
+        const pj = this.particles[jIdx];
 
         const dx = pj.position[0] - pi.position[0];
         const dy = pj.position[1] - pi.position[1];
@@ -267,5 +321,9 @@ export class FluidSim {
     this.config.boundaryMax = this.toArr3(
       this.config.boundaryMax as Vector3 | { x: number; y: number; z: number }
     );
+    // Rebuild spatial hash if smoothingRadius changed
+    if (config.smoothingRadius !== undefined) {
+      this.spatialHash = new SpatialHash(this.config.smoothingRadius);
+    }
   }
 }

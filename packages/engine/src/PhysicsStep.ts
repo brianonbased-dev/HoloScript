@@ -158,22 +158,47 @@ export class PhysicsStep implements EngineSystem {
       body.rotation = toVec3(body.rotation);
     }
 
-    // 2. Broadphase collision detection (spatial hashing)
+    // 2. Broadphase collision detection (spatial hashing).
+    // Each body is inserted into every cell its bounding sphere overlaps, not
+    // just the cell containing its centre.  This ensures two bodies straddling
+    // a cell boundary are placed in at least one common cell and compared.
+    // Body radius is conservatively taken as half the minimum-distance (0.5)
+    // used in resolveCollision; adjust if radius metadata is added later.
+    const bodyRadius = 0.5; // default sphere radius used for narrowphase
     this.broadphaseGrid.clear();
     for (const body of this.bodies.values()) {
-      const key = this.hashPosition(body.position);
-      if (!this.broadphaseGrid.has(key)) {
-        this.broadphaseGrid.set(key, []);
+      const minCX = Math.floor((body.position[0] - bodyRadius) / this.cellSize);
+      const maxCX = Math.floor((body.position[0] + bodyRadius) / this.cellSize);
+      const minCY = Math.floor((body.position[1] - bodyRadius) / this.cellSize);
+      const maxCY = Math.floor((body.position[1] + bodyRadius) / this.cellSize);
+      const minCZ = Math.floor((body.position[2] - bodyRadius) / this.cellSize);
+      const maxCZ = Math.floor((body.position[2] + bodyRadius) / this.cellSize);
+      for (let cx = minCX; cx <= maxCX; cx++) {
+        for (let cy = minCY; cy <= maxCY; cy++) {
+          for (let cz = minCZ; cz <= maxCZ; cz++) {
+            const key = `${cx},${cy},${cz}`;
+            if (!this.broadphaseGrid.has(key)) {
+              this.broadphaseGrid.set(key, []);
+            }
+            this.broadphaseGrid.get(key)!.push(body.id);
+          }
+        }
       }
-      this.broadphaseGrid.get(key)!.push(body.id);
     }
 
-    // 3. Narrowphase: sphere-sphere collisions within same cell
+    // 3. Narrowphase: sphere-sphere collisions within same cell.
+    // A pair set prevents double-resolving when both bodies span multiple cells.
+    const processedPairs = new Set<string>();
     for (const ids of this.broadphaseGrid.values()) {
       for (let i = 0; i < ids.length; i++) {
         for (let j = i + 1; j < ids.length; j++) {
-          const a = this.bodies.get(ids[i])!;
-          const b = this.bodies.get(ids[j])!;
+          const idA = ids[i];
+          const idB = ids[j];
+          const pairKey = idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;
+          if (processedPairs.has(pairKey)) continue;
+          processedPairs.add(pairKey);
+          const a = this.bodies.get(idA)!;
+          const b = this.bodies.get(idB)!;
           this.resolveCollision(a, b, dt);
         }
       }
@@ -237,17 +262,25 @@ export class PhysicsStep implements EngineSystem {
       b.velocity[2] += (impulse * nz) / b.mass;
     }
 
-    // Positional correction (push apart)
-    const correction = (minDist - dist) * 0.5;
-    if (!a.isStatic) {
-      a.position[0] -= nx * correction;
-      a.position[1] -= ny * correction;
-      a.position[2] -= nz * correction;
-    }
-    if (!b.isStatic) {
-      b.position[0] += nx * correction;
-      b.position[1] += ny * correction;
-      b.position[2] += nz * correction;
+    // Positional correction (push apart), weighted by inverse mass so a
+    // heavier body moves proportionally less (or not at all if static).
+    const correction = minDist - dist;
+    const invMassA = a.isStatic ? 0 : 1 / a.mass;
+    const invMassB = b.isStatic ? 0 : 1 / b.mass;
+    const totalInvMass = invMassA + invMassB;
+    if (totalInvMass > 0) {
+      const corrA = (correction * invMassA) / totalInvMass;
+      const corrB = (correction * invMassB) / totalInvMass;
+      if (!a.isStatic) {
+        a.position[0] -= nx * corrA;
+        a.position[1] -= ny * corrA;
+        a.position[2] -= nz * corrA;
+      }
+      if (!b.isStatic) {
+        b.position[0] += nx * corrB;
+        b.position[1] += ny * corrB;
+        b.position[2] += nz * corrB;
+      }
     }
 
     // Fire collision event

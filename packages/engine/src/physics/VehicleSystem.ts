@@ -109,6 +109,8 @@ export interface VehicleState {
   engineForce: number;
   brakeForce: number;
   steerAngle: number;
+  /** Accumulated yaw heading (radians) integrated from angularVelocity[1] * dt. */
+  heading: number;
 }
 
 // =============================================================================
@@ -227,6 +229,7 @@ export class VehicleSystem {
       engineForce: 0,
       brakeForce: 0,
       steerAngle: 0,
+      heading: 0,
     };
 
     this.vehicles.set(definition.id, state);
@@ -344,6 +347,10 @@ export class VehicleSystem {
       vehicle.angularVelocity[1] *= 0.95; // Natural yaw damping
     }
 
+    // Accumulate heading from yaw rate (integrate angularVelocity[1] * dt).
+    // getForwardVector derives forward from this heading, not from the raw rate.
+    vehicle.heading += vehicle.angularVelocity[1] * dt;
+
     // Integrate position
     vehicle.position[0] += vehicle.linearVelocity[0] * dt;
     vehicle.position[1] += vehicle.linearVelocity[1] * dt;
@@ -390,10 +397,9 @@ export class VehicleSystem {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private getForwardVector(vehicle: VehicleState): IVector3 {
-    // Simplified: use yaw from angular velocity to determine forward direction
-    const yaw = vehicle.angularVelocity[1];
-    // Accumulated yaw approximation (simplified)
-    return vec3(Math.sin(yaw), 0, Math.cos(yaw));
+  getForwardVector(vehicle: VehicleState): IVector3 {
+    // Derive forward direction from the accumulated heading angle (not the raw
+    // angular velocity, which is a rate and must be integrated over time).
+    return vec3(Math.sin(vehicle.heading), 0, Math.cos(vehicle.heading));
   }
 }
