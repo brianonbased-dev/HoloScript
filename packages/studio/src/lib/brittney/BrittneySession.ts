@@ -15,8 +15,31 @@ export interface AssistantMessage {
 }
 
 export interface AssistantStreamEvent {
-  type: 'text' | 'tool_call' | 'tool_result' | 'operator_receipt' | 'error' | 'done';
+  // 'conversation' / 'persisted' are the server-side chat write-through
+  // signals (write-through qq65): 'conversation' arrives early — before any
+  // LLM text — and is THE confirmation that the server persists this turn;
+  // 'persisted' events are informational per-row acks.
+  type:
+    | 'text'
+    | 'tool_call'
+    | 'tool_result'
+    | 'operator_receipt'
+    | 'conversation'
+    | 'persisted'
+    | 'error'
+    | 'done';
   payload: unknown;
+}
+
+/**
+ * Optional conversation identity for server-side chat persistence
+ * (write-through qq65). `conversationId` targets an existing owned thread;
+ * `scope` alone asks the server to create one on miss. Omitting both keeps
+ * the request byte-identical to the legacy (no-persistence) behavior.
+ */
+export interface AssistantPersistOptions {
+  conversationId?: string | null;
+  scope?: string;
 }
 
 export interface ToolCallPayload {
@@ -113,13 +136,22 @@ export function buildRichContext(
 export async function* streamAssistant(
   messages: AssistantMessage[],
   sceneContext: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  persist?: AssistantPersistOptions
 ): AsyncGenerator<AssistantStreamEvent> {
   const response = await fetch('/api/brittney', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal,
-    body: JSON.stringify({ messages, sceneContext }),
+    body: JSON.stringify({
+      messages,
+      sceneContext,
+      // Write-through qq65: only a truthy conversationId is forwarded — a
+      // null/empty id with a scope must fall through to the server's
+      // create-on-miss path instead of failing ownership lookup.
+      ...(persist?.conversationId ? { conversationId: persist.conversationId } : {}),
+      ...(persist?.scope !== undefined ? { scope: persist.scope } : {}),
+    }),
   });
 
   if (!response.ok || !response.body) {

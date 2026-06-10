@@ -9,6 +9,12 @@
 
 import { BRITTNEY_IDENTITY_MARK } from './brand';
 import { buildBrainCachingPromptBlock, type BrainCachingContext } from './caching';
+import type { PastThreadSnippet } from './pastThreads';
+
+// D.053 relational memory budget: hard cap on the past-conversations block so
+// it stays safe on every provider lane (local Ollama's small num_ctx included).
+// ~750 tokens via the codebase's estimateTokens = chars/4 convention.
+const PAST_THREADS_MAX_CHARS = 3000;
 
 export const HOLOSHELL_OPERATOR_CONTEXT = `
 
@@ -115,7 +121,8 @@ export function buildContextualPrompt(
       isPrivate: boolean;
     }>;
   } | null,
-  isFounder = false
+  isFounder = false,
+  pastThreads?: PastThreadSnippet[] | null
 ): string {
   const parts: string[] = [SYSTEM_PROMPT, ECOSYSTEM_OPERATING_CONTEXT, HOLOSHELL_OPERATOR_CONTEXT];
 
@@ -180,6 +187,35 @@ export function buildContextualPrompt(
     if (isLotusGardenScene(sceneContext)) {
       parts.push(LOTUS_GARDEN_CONTEXT);
     }
+  }
+
+  // D.053 relational memory: summaries of the user's OTHER threads in the same
+  // scope. Placed late (after the per-turn scene block) so the stable prompt
+  // prefix stays cacheable, and budget-capped so it is safe on every provider
+  // lane including small local models.
+  if (pastThreads && pastThreads.length > 0) {
+    const mem: string[] = [
+      '\n\n--- Past Conversations (relational memory) ---',
+      `The user has ${pastThreads.length} other recent conversation thread(s) in this workspace, newest first:`,
+    ];
+    let used = 0;
+    for (const t of pastThreads) {
+      const when = t.lastMessageAt ? ` — last active ${t.lastMessageAt.slice(0, 10)}` : '';
+      // Owner-set titles (PATCH rename) are only edge-trimmed at the write
+      // path — collapse whitespace here so an embedded newline can't fabricate
+      // prompt sections (self-injection only, but keep the seam clean).
+      const safeTitle = (t.title || 'Untitled').replace(/\s+/g, ' ').trim();
+      const lines = [`- "${safeTitle}" (${t.messageCount} messages${when})`];
+      for (const excerpt of t.excerpts) lines.push(`    · ${excerpt}`);
+      const entry = lines.join('\n');
+      if (used + entry.length > PAST_THREADS_MAX_CHARS) break;
+      used += entry.length;
+      mem.push(entry);
+    }
+    mem.push(
+      'Use these for continuity when the user references earlier discussions or asks what you worked on together; never invent details beyond these summaries.'
+    );
+    parts.push(mem.join('\n'));
   }
 
   parts.push(

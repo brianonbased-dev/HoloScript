@@ -117,6 +117,48 @@ const GREETING: ChatMessage = {
   text: "Hi! I'm your assistant. Tell me what you want to build and I'll add traits, compose behaviors, and shape the scene for you.",
 };
 
+/**
+ * Map persisted `toolCalls` (write-through qq65) back onto this surface's
+ * ToolResult shape, best-effort. Entries can be the server persistence shape
+ * `{id,name,input,result:{success,error?,data?}}` or the client whitelist
+ * shape `{tool,success,message}` — narrow defensively and never throw;
+ * malformed entries degrade to a generic badge.
+ */
+function toolCallsToToolResults(toolCalls: unknown[]): ToolResult[] {
+  const results: ToolResult[] = [];
+  for (const entry of toolCalls) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const e = entry as Record<string, unknown>;
+    const result =
+      typeof e.result === 'object' && e.result !== null
+        ? (e.result as Record<string, unknown>)
+        : undefined;
+    const tool =
+      typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
+    const success =
+      typeof result?.success === 'boolean'
+        ? result.success
+        : typeof e.success === 'boolean'
+          ? e.success
+          : true;
+    let message = '';
+    if (typeof result?.error === 'string') {
+      message = result.error;
+    } else if (typeof e.message === 'string') {
+      message = e.message;
+    } else if (result && 'data' in result) {
+      try {
+        const json = JSON.stringify(result.data) ?? '';
+        message = json.length > 200 ? `${json.slice(0, 200)}…` : json;
+      } catch {
+        // Circular / non-serializable data — keep the empty message.
+      }
+    }
+    results.push({ tool, success, message });
+  }
+  return results;
+}
+
 // ─── Suggestions ──────────────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
@@ -425,6 +467,8 @@ export function BrittneyChatPanel() {
     selectConversation,
     renameConversation,
     archiveConversation,
+    adoptConversation,
+    enqueueUpload,
   } = useUnifiedBrittneyHistory();
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
@@ -492,11 +536,19 @@ export function BrittneyChatPanel() {
     if (savedHistory.length > 0) {
       setChatMessages([
         GREETING,
-        ...savedHistory.map((m, i) => ({
-          id: `h-${i}`,
-          role: m.role === 'user' ? 'user' : ('assistant' as ChatMessage['role']),
-          text: m.content,
-        })),
+        ...savedHistory.map((m, i) => {
+          // Persisted tool traces (write-through qq65) rebuild the tool
+          // badges best-effort; absent/malformed traces render text-only.
+          const toolResults = Array.isArray(m.toolCalls)
+            ? toolCallsToToolResults(m.toolCalls)
+            : [];
+          return {
+            id: `h-${i}`,
+            role: m.role === 'user' ? 'user' : ('assistant' as ChatMessage['role']),
+            text: m.content,
+            ...(toolResults.length > 0 ? { toolResults } : {}),
+          };
+        }),
       ]);
       setLlmHistory(
         savedHistory.map(
@@ -703,10 +755,20 @@ export function BrittneyChatPanel() {
 
     StudioEvents.brittneyPromptSent(text.length);
 
+    // Write-through qq65: when authenticated, the Brittney route persists
+    // both turns server-side. The local cache is still written immediately
+    // (localOnly) — only the client upload is suppressed. Signed-out flow is
+    // untouched: no conversation identity is sent and uploads behave as today.
+    const serverPersistIntent = sessionStatus === 'authenticated';
+    const userTimestamp = Date.now();
+
     // Add user message to chat
-    const userMsgId = Date.now().toString();
+    const userMsgId = userTimestamp.toString();
     setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
-    persistMessage({ role: 'user', content: text });
+    persistMessage(
+      { role: 'user', content: text, timestamp: userTimestamp },
+      { localOnly: serverPersistIntent }
+    );
 
     // Build updated LLM history
     const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
@@ -744,12 +806,34 @@ export function BrittneyChatPanel() {
 
     let accumulatedText = '';
     const toolResults: ToolResult[] = [];
+    // Set by the server's early `conversation` event — the write-through qq65
+    // confirmation that this turn is persisted server-side. Stays false on
+    // crash/old-server so the legacy client upload path takes over.
+    let conversationConfirmed = false;
 
     try {
       const storeActions = getStoreActions();
 
-      for await (const event of streamAssistant(updatedHistory, assistantContext)) {
-        if (event.type === 'text') {
+      for await (const event of streamAssistant(
+        updatedHistory,
+        assistantContext,
+        undefined,
+        serverPersistIntent
+          ? { conversationId: activeConversationId, scope: assistantHistoryScope }
+          : undefined
+      )) {
+        if (event.type === 'conversation') {
+          // Defensive narrow (write-through qq65): only a string id counts as
+          // confirmation — without one we cannot adopt the thread, so fall
+          // back to the legacy upload instead of trusting a malformed event.
+          const convoId = (event.payload as { conversationId?: unknown } | null)?.conversationId;
+          if (typeof convoId === 'string' && convoId.length > 0) {
+            conversationConfirmed = true;
+            adoptConversation(convoId);
+          }
+        } else if (event.type === 'persisted') {
+          // Informational per-row ack — nothing to do client-side.
+        } else if (event.type === 'text') {
           accumulatedText += event.payload as string;
           setChatMessages((m) =>
             m.map((msg) => (msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg))
@@ -838,7 +922,30 @@ export function BrittneyChatPanel() {
 
     // Update LLM history with the assistant response
     setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
-    persistMessage({ role: 'assistant', content: accumulatedText });
+    // Serializable projection of the turn's tool calls (write-through qq65) —
+    // whitelist {tool,success,message}; envelope/pendingAction/diff are
+    // dropped (non-serializable or too large for a persisted row).
+    const persistedToolCalls = toolResults.map((r) => ({
+      tool: r.tool,
+      success: r.success,
+      message: r.message,
+    }));
+    const assistantHistoryMsg = {
+      role: 'assistant' as const,
+      content: accumulatedText,
+      ...(persistedToolCalls.length > 0 ? { toolCalls: persistedToolCalls } : {}),
+    };
+    if (serverPersistIntent && conversationConfirmed) {
+      // Server persisted both turns — local cache only.
+      persistMessage(assistantHistoryMsg, { localOnly: true });
+    } else if (serverPersistIntent) {
+      // Server never confirmed write-through (crash / pre-qq65 deploy) —
+      // re-enqueue the suppressed user turn and upload normally.
+      enqueueUpload([{ role: 'user', content: text, timestamp: userTimestamp }]);
+      persistMessage(assistantHistoryMsg);
+    } else {
+      persistMessage(assistantHistoryMsg);
+    }
 
     setIsThinking(false);
 
@@ -854,6 +961,10 @@ export function BrittneyChatPanel() {
     input,
     isThinking,
     isUnauthenticated,
+    sessionStatus,
+    activeConversationId,
+    adoptConversation,
+    enqueueUpload,
     llmHistory,
     nodes,
     selectedId,

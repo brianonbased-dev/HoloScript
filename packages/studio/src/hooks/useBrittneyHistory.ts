@@ -13,6 +13,12 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp?: number;
+  /**
+   * Serializable tool-call trace for the turn (write-through qq65). Either
+   * the client whitelist shape `{tool,success,message}` or the server shape
+   * `{id,name,input,result}` — consumers must narrow defensively.
+   */
+  toolCalls?: unknown[];
 }
 
 const PREFIX = 'assistant-history-';

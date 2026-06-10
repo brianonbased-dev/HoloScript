@@ -178,6 +178,38 @@ describe('POST /api/brittney/conversations/[id]/messages', () => {
     );
     expect(res.status).toBe(404);
   });
+
+  it('accepts tool-only turns (empty content + toolCalls) but rejects bare empty content', async () => {
+    mockSession('user-1');
+    const convo = await createConvo();
+    const ok = await POST_MESSAGES(
+      jsonReq({
+        messages: [{ role: 'assistant', content: '', toolCalls: [{ tool: 'apply_code', success: true }] }],
+      }),
+      routeParams(convo.id)
+    );
+    expect(ok.status).toBe(201);
+
+    const bad = await POST_MESSAGES(
+      jsonReq({ messages: [{ role: 'assistant', content: '' }] }),
+      routeParams(convo.id)
+    );
+    expect(bad.status).toBe(400);
+  });
+
+  it('rejects a toolCalls payload above the serialized size bound', async () => {
+    mockSession('user-1');
+    const convo = await createConvo();
+    const res = await POST_MESSAGES(
+      jsonReq({
+        messages: [
+          { role: 'assistant', content: 'big tools', toolCalls: [{ data: 'x'.repeat(70 * 1024) }] },
+        ],
+      }),
+      routeParams(convo.id)
+    );
+    expect(res.status).toBe(413);
+  });
 });
 
 describe('GET /api/brittney/conversations/[id]', () => {

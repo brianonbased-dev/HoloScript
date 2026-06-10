@@ -16,6 +16,9 @@ import { corsHeaders } from '../../../../_lib/cors';
 
 const MAX_BATCH = 100;
 const MAX_CONTENT_CHARS = 128 * 1024;
+// SEC: tool_calls is jsonb with no DB-level bound — cap the serialized payload
+// per message so large MCP/absorb tool results can't bloat rows via this route.
+const MAX_TOOL_CALLS_CHARS = 64 * 1024;
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -44,7 +47,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (m.role !== 'user' && m.role !== 'assistant') {
       return NextResponse.json({ error: 'message role must be "user" or "assistant"' }, { status: 400 });
     }
-    if (typeof m.content !== 'string' || m.content.length === 0) {
+    // Tool-only assistant turns (server write-through parity, qq65): empty
+    // content is valid when the message carries toolCalls — otherwise the
+    // client retry queue wedges on a turn the model answered with tools alone.
+    const hasToolCalls = Array.isArray(m.toolCalls) && m.toolCalls.length > 0;
+    if (typeof m.content !== 'string' || (m.content.length === 0 && !hasToolCalls)) {
       return NextResponse.json({ error: 'message content must be a non-empty string' }, { status: 400 });
     }
     if (m.content.length > MAX_CONTENT_CHARS) {
@@ -53,10 +60,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 413 }
       );
     }
+    const toolCalls = Array.isArray(m.toolCalls) ? m.toolCalls : undefined;
+    if (toolCalls) {
+      let serialized: string;
+      try {
+        serialized = JSON.stringify(toolCalls);
+      } catch {
+        return NextResponse.json({ error: 'toolCalls must be JSON-serializable' }, { status: 400 });
+      }
+      if (serialized.length > MAX_TOOL_CALLS_CHARS) {
+        return NextResponse.json(
+          { error: `toolCalls exceeds ${MAX_TOOL_CALLS_CHARS} serialized characters` },
+          { status: 413 }
+        );
+      }
+    }
     inputs.push({
       role: m.role,
       content: m.content,
-      toolCalls: Array.isArray(m.toolCalls) ? m.toolCalls : undefined,
+      toolCalls,
       timestamp: typeof m.timestamp === 'number' ? m.timestamp : undefined,
     });
   }

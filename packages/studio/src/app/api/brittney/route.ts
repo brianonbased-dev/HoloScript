@@ -82,6 +82,12 @@ import {
   endBrittneyMetric,
   estimateTokens,
 } from '@/lib/brittney/fleetMetrics';
+import {
+  appendMessages,
+  createConversation,
+  getConversation,
+} from '@/lib/brittney/conversationStore';
+import { fetchPastThreads, type PastThreadSnippet } from '@/lib/brittney/pastThreads';
 
 const MAX_REQUESTS_PER_MIN = 20;
 // SEC-T03: cap per-message input size to bound LLM spend from a single request.
@@ -210,6 +216,12 @@ export async function POST(request: NextRequest) {
       closeSession?: boolean;
       simContractCheck?: SimContractCheck | null;
       systemPrompt?: string;
+      // Server-side write-through (task qq65 / D.053): conversation identity.
+      // conversationId = existing brittney_conversations row (must be owned by
+      // the caller); scope alone = create-on-miss. Both optional — chat works
+      // identically without them (VR/Wizard/benchmark surfaces send neither).
+      conversationId?: string;
+      scope?: string;
     }>(request, { maxBytes: 32_000 });
     if (!parsed.ok) {
       const msg =
@@ -228,6 +240,8 @@ export async function POST(request: NextRequest) {
       closeSession,
       simContractCheck,
       systemPrompt: bodySystemPrompt,
+      conversationId: bodyConversationId,
+      scope: bodyScope,
     } = body;
     const sessionId =
       typeof bodySessionId === 'string' && bodySessionId.length > 0
@@ -292,6 +306,20 @@ export async function POST(request: NextRequest) {
     const gate = await checkCredits(request, 'studio_chat');
     if (gate.error) return gate.error;
 
+    // Server-side write-through (task qq65 / D.053): persist the NEW user turn
+    // BEFORE streaming so a client crash mid-stream can never lose it (the
+    // assistant turn persists in the stream's finally). Strictly opt-in via
+    // conversation identity in the body; fail-soft — a persistence failure
+    // silently disables write-through for this turn, never breaks chat. Owner
+    // is auth.user.id (NOT gate.userId, which can be 'free'/'apikey:…').
+    __phase = 'persistence';
+    const persist = await resolveWriteThrough({
+      ownerId: auth.user.id,
+      conversationId: bodyConversationId,
+      scope: bodyScope,
+      latestMsg,
+    });
+
     __phase = 'github-context';
     // Make Brittney aware of WHO she's talking to + their repos, so she can offer
     // to absorb real repos by name instead of a generic URL placeholder. The
@@ -302,6 +330,17 @@ export async function POST(request: NextRequest) {
     const githubContext = ghUsername
       ? { username: ghUsername, repos: ghToken ? await fetchUserRepos(ghToken, ghUsername) : [] }
       : null;
+
+    // D.053 relational memory: summaries of the user's OTHER threads in the
+    // same scope, fed into the system prompt. Fail-soft ([] on any failure),
+    // scope-bounded (no cross-workspace leakage), and only when this turn has
+    // valid conversation identity. Skipped when the client overrides
+    // systemPrompt — the override replaces the whole assembly anyway.
+    __phase = 'past-threads';
+    const pastThreads: PastThreadSnippet[] =
+      !bodySystemPrompt && persist.enabled && persist.scope
+        ? await fetchPastThreads(auth.user.id, persist.scope, persist.conversationId)
+        : [];
 
     __phase = 'system-prompt';
     const systemPrompt =
@@ -315,7 +354,8 @@ export async function POST(request: NextRequest) {
           model: resolved?.model,
         },
         githubContext,
-        allowFounderWorkspace
+        allowFounderWorkspace,
+        pastThreads
       );
     const baseUrl = getBaseUrl(request);
 
@@ -329,16 +369,37 @@ export async function POST(request: NextRequest) {
           sceneContext,
           holoshellOperator
         );
+        const operatorText =
+          receipt.result.finalText ||
+          'HoloShell staged the Brittney operator turn and wrote a receipt.';
+        // Write-through covers the operator early-return too: the streamed
+        // path's finally never runs here, so persist the assistant turn now
+        // (the user turn was persisted in the persistence phase above).
+        if (persist.enabled && persist.conversationId) {
+          try {
+            await appendMessages(auth.user.id, persist.conversationId, [
+              { role: 'assistant', content: operatorText, timestamp: Date.now() },
+            ]);
+          } catch {
+            // Fail-soft: persistence must never break the operator response.
+          }
+        }
         return sseResponse([
+          ...(persist.enabled && persist.conversationId
+            ? [
+                {
+                  type: 'conversation',
+                  payload: { conversationId: persist.conversationId, created: persist.created },
+                },
+              ]
+            : []),
           {
             type: 'operator_receipt',
             payload: summarizeHoloShellOperatorReceipt(receipt),
           },
           {
             type: 'text',
-            payload:
-              receipt.result.finalText ||
-              'HoloShell staged the Brittney operator turn and wrote a receipt.',
+            payload: operatorText,
           },
           { type: 'done', payload: null },
         ]);
@@ -408,6 +469,66 @@ export async function POST(request: NextRequest) {
             isNew: attached.isNew,
           },
         });
+
+        // Write-through handshake (task qq65): announce conversation identity
+        // FIRST — before any LLM bytes — so the client can adopt a server-created
+        // id and suppress its own duplicate upload even if the stream later dies.
+        if (persist.enabled && persist.conversationId) {
+          send({
+            type: 'conversation',
+            payload: { conversationId: persist.conversationId, created: persist.created },
+          });
+          if (persist.userSeq !== null) {
+            send({
+              type: 'persisted',
+              payload: { conversationId: persist.conversationId, role: 'user', seq: persist.userSeq },
+            });
+          }
+        }
+
+        // Cross-round write-through accumulators. roundText resets every tool
+        // round, so the full turn transcript accrues here (mirrors the client's
+        // accumulatedText byte-for-byte: every text_delta, no separators).
+        let fullAssistantText = '';
+        const allToolCalls: PersistedToolCall[] = [];
+        let assistantPersisted = false;
+        /**
+         * Persist the assistant turn exactly once. Called on the success path
+         * (before `done`, so the ack is readable) AND from the finally (crash,
+         * provider error, client abort — the scenarios this feature exists for,
+         * where the partial transcript is the whole point). Fail-soft.
+         */
+        const persistAssistantTurn = async (partial: boolean): Promise<void> => {
+          if (!persist.enabled || !persist.conversationId || assistantPersisted) return;
+          if (fullAssistantText.length === 0 && allToolCalls.length === 0) return;
+          assistantPersisted = true;
+          try {
+            // Enforce the messages route's size bounds on this direct store
+            // call too (review finding): clip content at 128KB and bound the
+            // serialized tool-call array at 64KB with per-input clipping.
+            const appended = await appendMessages(auth.user.id, persist.conversationId, [
+              {
+                role: 'assistant',
+                content: fullAssistantText.slice(0, MAX_PERSISTED_CONTENT_CHARS),
+                toolCalls: boundPersistedToolCalls(allToolCalls),
+                timestamp: Date.now(),
+              },
+            ]);
+            const seq = appended?.messages[0]?.seq;
+            if (typeof seq === 'number') {
+              try {
+                send({
+                  type: 'persisted',
+                  payload: { conversationId: persist.conversationId, role: 'assistant', seq, partial },
+                });
+              } catch {
+                // Client already gone (abort) — the row is durable, which is the point.
+              }
+            }
+          } catch {
+            // Fail-soft: persistence must never break the stream teardown.
+          }
+        };
 
         const simContractCheckSafe: SimContractCheck | null = simContractCheck ?? null;
 
@@ -525,6 +646,7 @@ export async function POST(request: NextRequest) {
               switch (chunk.type) {
                 case 'text_delta': {
                   roundText += chunk.text;
+                  fullAssistantText += chunk.text;
                   __completionChars += chunk.text.length;
                   send({ type: 'text', payload: chunk.text });
                   break;
@@ -552,6 +674,10 @@ export async function POST(request: NextRequest) {
                         : {};
                   // CAEL: record the call attempt regardless of branch.
                   roundToolCalls.push({ name: toolName, input: parsedArgs });
+                  // Write-through: record every call attempt for the persisted
+                  // turn (results attached after server-side execution; client-
+                  // side tools keep result undefined — they execute in the browser).
+                  allToolCalls.push({ id: chunk.id, name: toolName, input: parsedArgs });
 
                   if (SERVER_EXECUTED_TOOL_NAMES.has(toolName)) {
                     // Studio API, MCP, Lotus, or Embodied tool — execute server-side.
@@ -696,6 +822,23 @@ export async function POST(request: NextRequest) {
                     )
                   : [];
 
+              // Write-through: attach (clipped) execution outcomes to the
+              // persisted tool-call records — tool_calls jsonb is unbounded, so
+              // large MCP/absorb payloads are clipped before persistence.
+              for (const r of results) {
+                const recorded = allToolCalls.find((t) => t.id === r.id);
+                if (recorded) recorded.result = clipToolResult(r.result);
+              }
+              for (const rm of rejectedMutations) {
+                const recorded = allToolCalls.find((t) => t.id === rm.id);
+                if (recorded) {
+                  recorded.result = {
+                    success: false,
+                    error: `SimulationContract rejected: ${rm.check.reason ?? 'contract violation'}`,
+                  };
+                }
+              }
+
               // Build the assistant message with tool_use blocks + tool results
               // in LLMMessage format (provider-agnostic).
               const assistantContent: Array<TextBlock | ToolUseBlock> = [
@@ -758,13 +901,25 @@ export async function POST(request: NextRequest) {
             });
           }
 
+          // Write-through: persist the complete assistant turn BEFORE `done`
+          // so the persisted ack is readable (clients stop reading at done).
+          await persistAssistantTurn(false);
+
           send({ type: 'done', payload: null });
         } catch (err: unknown) {
           __errored = true;
+          // Write-through: persist the partial transcript BEFORE the error
+          // sends — on client abort, send() itself throws, and anything after
+          // it in this catch never runs.
+          await persistAssistantTurn(true);
           const msg = err instanceof Error ? err.message : String(err);
           send({ type: 'error', payload: msg });
           send({ type: 'done', payload: null });
         } finally {
+          // Last-resort write-through slot: runs on success, provider error,
+          // AND client abort (the crash-mid-stream case this feature exists
+          // for). No-ops when the turn was already persisted above.
+          await persistAssistantTurn(true);
           endBrittneyMetric(__metric, {
             source: 'studio-chat',
             provider: providerName,
@@ -813,12 +968,187 @@ type BrittneyPhase =
   | 'rate-limit'
   | 'parse'
   | 'credit'
+  | 'persistence'
+  | 'past-threads'
   | 'system-prompt'
   | 'holoshell-operator'
   | 'provider'
   | 'github-context'
   | 'tool-conversion'
   | 'stream-init';
+
+/* ---------------------------------------------------------------------------
+ * Server-side write-through (task qq65 / D.053)
+ * ------------------------------------------------------------------------- */
+
+/** Persisted tool-call record shape stored in brittney_messages.tool_calls. */
+interface PersistedToolCall {
+  id: string;
+  name: string;
+  /** Parsed args, or their clipped JSON serialization when oversized (string). */
+  input: Record<string, unknown> | string;
+  inputClipped?: boolean;
+  result?: { success: boolean; error?: string; data?: unknown; dataClipped?: boolean };
+}
+
+/**
+ * Bound the persisted tool-call array to the same budget the messages route
+ * enforces (MAX_TOOL_CALLS_CHARS): clip each oversized input to its truncated
+ * JSON serialization, then drop trailing calls if the total still exceeds the
+ * cap. Never throws — persistence stays fail-soft.
+ */
+function boundPersistedToolCalls(calls: PersistedToolCall[]): PersistedToolCall[] {
+  const bounded: PersistedToolCall[] = [];
+  let used = 2; // '[]'
+  for (const call of calls) {
+    let entry = call;
+    if (typeof call.input !== 'string') {
+      try {
+        const json = JSON.stringify(call.input);
+        if (typeof json === 'string' && json.length > MAX_PERSISTED_TOOL_RESULT_CHARS) {
+          entry = { ...call, input: json.slice(0, MAX_PERSISTED_TOOL_RESULT_CHARS), inputClipped: true };
+        }
+      } catch {
+        entry = { ...call, input: '(unserializable input)', inputClipped: true };
+      }
+    }
+    let len: number;
+    try {
+      len = JSON.stringify(entry).length + 1;
+    } catch {
+      continue;
+    }
+    if (used + len > MAX_PERSISTED_TOOL_CALLS_CHARS) break;
+    used += len;
+    bounded.push(entry);
+  }
+  return bounded;
+}
+
+interface WriteThroughState {
+  enabled: boolean;
+  conversationId: string | null;
+  /** True when this request lazily created the conversation (scope-only body). */
+  created: boolean;
+  scope: string | null;
+  /** seq of the persisted user turn, for the client ack event. */
+  userSeq: number | null;
+}
+
+const WRITE_THROUGH_DISABLED: WriteThroughState = {
+  enabled: false,
+  conversationId: null,
+  created: false,
+  scope: null,
+  userSeq: null,
+};
+
+// Mirror the conversations routes' caps (MAX_SCOPE_CHARS in conversations/route.ts).
+const MAX_WT_SCOPE_CHARS = 200;
+const MAX_WT_CONVERSATION_ID_CHARS = 64;
+// Write-through calls the appendMessages store FUNCTION directly, so the HTTP
+// messages route's caps never run on this path — the same bounds must be
+// enforced here or a 6-round 16K-token turn can persist multi-hundred-KB rows
+// (review finding, qq65). Values mirror conversations/[id]/messages/route.ts.
+const MAX_PERSISTED_TOOL_RESULT_CHARS = 2000;
+const MAX_PERSISTED_CONTENT_CHARS = 128 * 1024;
+const MAX_PERSISTED_TOOL_CALLS_CHARS = 64 * 1024;
+
+/**
+ * Resolve + arm write-through for this turn and persist the NEW user turn.
+ *
+ * Opt-in: requires conversationId (owned) or scope (create-on-miss). Returns
+ * disabled for the 'benchmark' synthetic identity (not a users row — the uuid
+ * owner FK would reject it) and on ANY error: persistence never breaks chat,
+ * and a non-owned conversationId is a silent skip (no existence leak — same
+ * posture as the conversations routes' indistinguishable 404).
+ */
+async function resolveWriteThrough(opts: {
+  ownerId: string | undefined;
+  conversationId: unknown;
+  scope: unknown;
+  latestMsg: { role: string; content: string } | undefined;
+}): Promise<WriteThroughState> {
+  const ownerId = opts.ownerId ?? '';
+  if (!ownerId || ownerId === 'benchmark') return WRITE_THROUGH_DISABLED;
+
+  const requestedId =
+    typeof opts.conversationId === 'string' &&
+    opts.conversationId.length > 0 &&
+    opts.conversationId.length <= MAX_WT_CONVERSATION_ID_CHARS
+      ? opts.conversationId
+      : null;
+  const requestedScope =
+    typeof opts.scope === 'string' &&
+    opts.scope.trim().length > 0 &&
+    opts.scope.length <= MAX_WT_SCOPE_CHARS
+      ? opts.scope.trim()
+      : null;
+  if (!requestedId && !requestedScope) return WRITE_THROUGH_DISABLED;
+
+  try {
+    let conversationId = requestedId;
+    let scope = requestedScope;
+    let created = false;
+
+    if (conversationId) {
+      const convo = await getConversation(ownerId, conversationId);
+      if (!convo) return WRITE_THROUGH_DISABLED;
+      scope = convo.scope;
+    } else if (scope) {
+      const convo = await createConversation(ownerId, scope);
+      conversationId = convo.id;
+      created = true;
+    }
+    if (!conversationId) return WRITE_THROUGH_DISABLED;
+
+    let userSeq: number | null = null;
+    const { latestMsg } = opts;
+    if (
+      latestMsg &&
+      latestMsg.role === 'user' &&
+      typeof latestMsg.content === 'string' &&
+      latestMsg.content.length > 0
+    ) {
+      const appended = await appendMessages(ownerId, conversationId, [
+        { role: 'user', content: latestMsg.content, timestamp: Date.now() },
+      ]);
+      userSeq = appended?.messages[0]?.seq ?? null;
+    }
+
+    return { enabled: true, conversationId, created, scope, userSeq };
+  } catch {
+    return WRITE_THROUGH_DISABLED;
+  }
+}
+
+/** Clip a tool execution result for persistence (jsonb rows stay bounded). */
+function clipToolResult(result: { success: boolean; data?: unknown; error?: string }): {
+  success: boolean;
+  error?: string;
+  data?: unknown;
+  dataClipped?: boolean;
+} {
+  const out: { success: boolean; error?: string; data?: unknown; dataClipped?: boolean } = {
+    success: result.success,
+  };
+  if (result.error) out.error = String(result.error).slice(0, MAX_PERSISTED_TOOL_RESULT_CHARS);
+  if (result.data !== undefined) {
+    try {
+      const json = JSON.stringify(result.data);
+      if (typeof json === 'string' && json.length > MAX_PERSISTED_TOOL_RESULT_CHARS) {
+        out.data = json.slice(0, MAX_PERSISTED_TOOL_RESULT_CHARS);
+        out.dataClipped = true;
+      } else {
+        out.data = result.data;
+      }
+    } catch {
+      out.data = undefined;
+      out.dataClipped = true;
+    }
+  }
+  return out;
+}
 
 function lastUserMessage(messages: LLMMessage[]): string {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -882,6 +1212,10 @@ function hintForPhase(phase: BrittneyPhase): string {
       return 'Body parsing failed unexpectedly. Likely a content-length or framework-level issue.';
     case 'credit':
       return 'Credit gate backend unavailable. Check credit DB / billing service connectivity.';
+    case 'persistence':
+      return 'Conversation write-through threw unexpectedly (it is designed fail-soft). Check conversationStore / DATABASE_URL connectivity.';
+    case 'past-threads':
+      return 'Past-threads context fetch threw unexpectedly (it is designed fail-soft). Check conversationStore / DATABASE_URL connectivity.';
     case 'system-prompt':
       return 'System prompt construction failed. Check buildContextualPrompt and sceneContext shape.';
     case 'holoshell-operator':

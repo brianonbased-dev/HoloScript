@@ -48,6 +48,48 @@ interface ChatMessage {
   isStreaming?: boolean;
 }
 
+/**
+ * Map persisted `toolCalls` (write-through qq65) back onto this surface's
+ * ToolResult shape, best-effort. Entries can be the server persistence shape
+ * `{id,name,input,result:{success,error?,data?}}` or the client whitelist
+ * shape `{tool,success,message}` — narrow defensively and never throw;
+ * malformed entries degrade to a generic badge.
+ */
+function toolCallsToToolResults(toolCalls: unknown[]): ToolResult[] {
+  const results: ToolResult[] = [];
+  for (const entry of toolCalls) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const e = entry as Record<string, unknown>;
+    const result =
+      typeof e.result === 'object' && e.result !== null
+        ? (e.result as Record<string, unknown>)
+        : undefined;
+    const tool =
+      typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
+    const success =
+      typeof result?.success === 'boolean'
+        ? result.success
+        : typeof e.success === 'boolean'
+          ? e.success
+          : true;
+    let message = '';
+    if (typeof result?.error === 'string') {
+      message = result.error;
+    } else if (typeof e.message === 'string') {
+      message = e.message;
+    } else if (result && 'data' in result) {
+      try {
+        const json = JSON.stringify(result.data) ?? '';
+        message = json.length > 200 ? `${json.slice(0, 200)}…` : json;
+      } catch {
+        // Circular / non-serializable data — keep the empty message.
+      }
+    }
+    results.push({ tool, success, message });
+  }
+  return results;
+}
+
 // ---------------------------------------------------------------------------
 // Streaming cursor
 // ---------------------------------------------------------------------------
@@ -212,9 +254,13 @@ export function BrittneyFullScreen() {
   // Persistent history — unified across every Brittney surface (the thread
   // follows the user to /build, /vibe, /create), not a /start-only scope.
   const {
+    scope: assistantHistoryScope,
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: _clearHistory,
+    activeConversationId,
+    adoptConversation,
+    enqueueUpload,
   } = useUnifiedBrittneyHistory();
 
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -227,11 +273,19 @@ export function BrittneyFullScreen() {
       setShowCards(false);
       setMessages([
         GREETING,
-        ...savedHistory.map((m, i) => ({
-          id: `h-${i}`,
-          role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
-          text: m.content,
-        })),
+        ...savedHistory.map((m, i) => {
+          // Persisted tool traces (write-through qq65) rebuild the tool
+          // badges best-effort; absent/malformed traces render text-only.
+          const toolResults = Array.isArray(m.toolCalls)
+            ? toolCallsToToolResults(m.toolCalls)
+            : [];
+          return {
+            id: `h-${i}`,
+            role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
+            text: m.content,
+            ...(toolResults.length > 0 ? { toolResults } : {}),
+          };
+        }),
       ]);
       setLlmHistory(
         savedHistory.map((m) => ({
@@ -280,9 +334,19 @@ export function BrittneyFullScreen() {
       setInput('');
       setShowCards(false);
 
-      const userMsgId = Date.now().toString();
+      // Write-through qq65: when authenticated, the Brittney route persists
+      // both turns server-side. The local cache is still written immediately
+      // (localOnly) — only the client upload is suppressed. Signed-out flow
+      // is untouched: no conversation identity sent, uploads behave as today.
+      const serverPersistIntent = sessionStatus === 'authenticated';
+      const userTimestamp = Date.now();
+
+      const userMsgId = userTimestamp.toString();
       setMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
-      persistMessage({ role: 'user', content: text });
+      persistMessage(
+        { role: 'user', content: text, timestamp: userTimestamp },
+        { localOnly: serverPersistIntent }
+      );
 
       const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
       setLlmHistory(updatedHistory);
@@ -299,14 +363,36 @@ export function BrittneyFullScreen() {
 
       let accumulatedText = '';
       const toolResults: ToolResult[] = [];
+      // Set by the server's early `conversation` event — the write-through
+      // qq65 confirmation that this turn is persisted server-side. Stays
+      // false on crash/old-server so the legacy client upload takes over.
+      let conversationConfirmed = false;
 
       try {
         // Real store actions so assistant create_object/add_trait tool calls
         // actually populate the shared scene (visible in editor after "Open Editor").
         const storeActions = getStoreActions();
 
-        for await (const event of streamAssistant(updatedHistory, sceneContext)) {
-          if (event.type === 'text') {
+        for await (const event of streamAssistant(
+          updatedHistory,
+          sceneContext,
+          undefined,
+          serverPersistIntent
+            ? { conversationId: activeConversationId, scope: assistantHistoryScope }
+            : undefined
+        )) {
+          if (event.type === 'conversation') {
+            // Defensive narrow (write-through qq65): only a string id counts
+            // as confirmation — without one we cannot adopt the thread, so
+            // fall back to the legacy upload instead of trusting the event.
+            const convoId = (event.payload as { conversationId?: unknown } | null)?.conversationId;
+            if (typeof convoId === 'string' && convoId.length > 0) {
+              conversationConfirmed = true;
+              adoptConversation(convoId);
+            }
+          } else if (event.type === 'persisted') {
+            // Informational per-row ack — nothing to do client-side.
+          } else if (event.type === 'text') {
             accumulatedText += event.payload as string;
             setMessages((m) =>
               m.map((msg) => (msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg))
@@ -348,7 +434,30 @@ export function BrittneyFullScreen() {
       );
 
       setLlmHistory((h) => [...h, { role: 'assistant', content: accumulatedText }]);
-      persistMessage({ role: 'assistant', content: accumulatedText });
+      // Serializable projection of the turn's tool calls (write-through
+      // qq65) — whitelist {tool,success,message}; envelope/pendingAction/diff
+      // are dropped (non-serializable or too large for a persisted row).
+      const persistedToolCalls = toolResults.map((r) => ({
+        tool: r.tool,
+        success: r.success,
+        message: r.message,
+      }));
+      const assistantHistoryMsg = {
+        role: 'assistant' as const,
+        content: accumulatedText,
+        ...(persistedToolCalls.length > 0 ? { toolCalls: persistedToolCalls } : {}),
+      };
+      if (serverPersistIntent && conversationConfirmed) {
+        // Server persisted both turns — local cache only.
+        persistMessage(assistantHistoryMsg, { localOnly: true });
+      } else if (serverPersistIntent) {
+        // Server never confirmed write-through (crash / pre-qq65 deploy) —
+        // re-enqueue the suppressed user turn and upload normally.
+        enqueueUpload([{ role: 'user', content: text, timestamp: userTimestamp }]);
+        persistMessage(assistantHistoryMsg);
+      } else {
+        persistMessage(assistantHistoryMsg);
+      }
       setIsThinking(false);
       setProgressLabel(null);
     },
@@ -356,6 +465,11 @@ export function BrittneyFullScreen() {
       isThinking,
       llmHistory,
       persistMessage,
+      sessionStatus,
+      activeConversationId,
+      assistantHistoryScope,
+      adoptConversation,
+      enqueueUpload,
       nodes,
       addNode,
       removeNode,

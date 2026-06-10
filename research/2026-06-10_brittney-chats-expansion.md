@@ -4,6 +4,17 @@
 **Branch:** `claude/brittney-chats-expansion-okxic8`
 **Scope:** `packages/studio` (schema, API routes, hooks, chat panel)
 
+> **2026-06-09 follow-up (board task qq65) — What-Remains items 1, 3, 6, 7 CLOSED.**
+> Server-side write-through on POST /api/brittney now persists the user turn
+> pre-stream and the assistant turn (text + clipped tool calls) in the stream's
+> catch/finally — crash, provider error, and client abort all keep the turn
+> (item 7). Tool calls persist into `tool_calls` end-to-end with size bounds
+> (item 3). Past-thread summaries from the same scope feed Brittney's system
+> prompt via `lib/brittney/pastThreads.ts` — the first D.053 relational-memory
+> step (item 6). Deploy probe: `GET /api/brittney/conversations` live on prod,
+> 401 auth gate, app healthy through the migration (item 1). Still open:
+> items 2 (offline outbox), 4 (hook-level tests), 5 (search/export).
+
 ## Problem
 
 Brittney's chat engine (streaming, tool loops, provider routing) was production-grade,

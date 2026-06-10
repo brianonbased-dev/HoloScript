@@ -71,6 +71,9 @@ function serverMessagesToLocal(messages: ServerChatMessage[]): ChatMessage[] {
     role: m.role,
     content: m.content,
     timestamp: m.timestamp ? new Date(m.timestamp).getTime() : new Date(m.createdAt).getTime(),
+    // Tool-call traces round-trip into the local cache (write-through qq65)
+    // so hydrated threads can rebuild tool badges, not just text.
+    ...(Array.isArray(m.toolCalls) && m.toolCalls.length > 0 ? { toolCalls: m.toolCalls } : {}),
   }));
 }
 
@@ -218,15 +221,81 @@ export function useUnifiedBrittneyHistory() {
   // ─── Public API ─────────────────────────────────────────────────────────────
 
   const addMessage = useCallback(
-    (msg: ChatMessage) => {
+    (msg: ChatMessage, opts?: { localOnly?: boolean }) => {
       const timestamp = msg.timestamp ?? Date.now();
       local.addMessage({ ...msg, timestamp });
-      if (syncEnabled && msg.content.length > 0) {
-        pendingRef.current.push({ role: msg.role, content: msg.content, timestamp });
+      // localOnly: the server already persisted this turn via chat
+      // write-through (qq65) — keep the instant local cache but skip the
+      // client upload so the row isn't written twice.
+      if (opts?.localOnly) return;
+      const hasToolCalls = Array.isArray(msg.toolCalls) && msg.toolCalls.length > 0;
+      // Tool-only assistant turns (empty text, non-empty toolCalls) are
+      // uploadable too — dropping them loses the tool trace on hydration.
+      if (syncEnabled && (msg.content.length > 0 || hasToolCalls)) {
+        pendingRef.current.push({
+          role: msg.role,
+          content: msg.content,
+          timestamp,
+          ...(hasToolCalls ? { toolCalls: msg.toolCalls } : {}),
+        });
         void flushPending();
       }
     },
     [local, syncEnabled, flushPending]
+  );
+
+  /**
+   * Adopt a conversation the SERVER created (or confirmed) via chat
+   * write-through (qq65). POST /api/brittney with scope-only identity makes
+   * the server lazily create the row and announce it in an early
+   * `conversation` SSE event; this records that id as the active thread so
+   * follow-up turns reuse it. Fully synchronous — no generation bump, since
+   * nothing in-flight is invalidated (the thread only becomes more specific).
+   */
+  const adoptConversation = useCallback((id: string) => {
+    if (!id) return;
+    activeIdRef.current = id;
+    setActiveConversationId(id);
+    writeActiveConversationId(scopeRef.current, id);
+    setConversations((prev) => {
+      if (prev.some((c) => c.id === id)) return prev;
+      // Stub summary mirroring flushPending's lazy-create upsert; the next
+      // list/append response replaces it with server truth.
+      const now = new Date().toISOString();
+      const stub: ConversationSummary = {
+        id,
+        scope: scopeRef.current,
+        title: '',
+        messageCount: 0,
+        lastMessageAt: null,
+        archivedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return [stub, ...prev];
+    });
+  }, []);
+
+  /**
+   * Queue messages onto the legacy client-side upload path. Fallback for
+   * write-through (qq65) turns where the server never confirmed persistence —
+   * the caller suppressed the normal upload, so re-enqueue here to avoid
+   * losing the turn.
+   */
+  const enqueueUpload = useCallback(
+    (msgs: ChatMessage[]) => {
+      for (const msg of msgs) {
+        const hasToolCalls = Array.isArray(msg.toolCalls) && msg.toolCalls.length > 0;
+        pendingRef.current.push({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp ?? Date.now(),
+          ...(hasToolCalls ? { toolCalls: msg.toolCalls } : {}),
+        });
+      }
+      void flushPending();
+    },
+    [flushPending]
   );
 
   /** Start a fresh thread. The server row is created lazily on first message. */
@@ -307,5 +376,7 @@ export function useUnifiedBrittneyHistory() {
     selectConversation,
     renameConversation,
     archiveConversation,
+    adoptConversation,
+    enqueueUpload,
   };
 }
