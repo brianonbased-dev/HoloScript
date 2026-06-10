@@ -1189,32 +1189,57 @@ export class HoloScriptPlusParser {
           this.check('INITIAL');
 
         if (isNodeStart) {
-          const node = this.parseNode();
-          // Attach preceding directives to this node
-          const existingDirectives = node.directives || [];
-          node.directives = [...currentDirectives, ...existingDirectives];
+          // 3. Intercept top-level .hs process statements: connect / execute.
+          // These are IDENTIFIER tokens whose .value matches the keyword.  They
+          // are NOT regular nodes (they have no { } body) so they must be parsed
+          // before the generic parseNode() path which would try — and fail — to
+          // treat the DOT-separated method chains and ARROW tokens as property
+          // block content (the HSP101 / HSP-DOT-ARROW bug).
+          if (this.check('IDENTIFIER') && this.current().value === 'connect') {
+            const connectNode = this.parseHsConnectStatement();
+            topLevelNodes.push(connectNode);
+          } else if (this.check('IDENTIFIER') && this.current().value === 'execute') {
+            const executeNode = this.parseHsExecuteStatement();
+            topLevelNodes.push(executeNode);
+          } else {
+            const node = this.parseNode();
+            // Attach preceding directives to this node
+            const existingDirectives = node.directives || [];
+            node.directives = [...currentDirectives, ...existingDirectives];
 
-          // Extract @version and @migrate directives into template properties
-          if (node.type === 'template') {
-            for (const d of currentDirectives) {
-              if (d.type === 'version') {
-                node.version = d.version;
-              } else if (d.type === 'migrate') {
-                if (!node.migrations) node.migrations = [];
-                node.migrations.push({
-                  type: 'Migration',
-                  fromVersion: d.fromVersion,
-                  body: d.body,
-                });
+            // Extract @version and @migrate directives into template properties
+            if (node.type === 'template') {
+              for (const d of currentDirectives) {
+                if (d.type === 'version') {
+                  node.version = d.version;
+                } else if (d.type === 'migrate') {
+                  if (!node.migrations) node.migrations = [];
+                  node.migrations.push({
+                    type: 'Migration',
+                    fromVersion: d.fromVersion,
+                    body: d.body,
+                  });
+                }
               }
             }
-          }
 
-          topLevelNodes.push(node);
+            topLevelNodes.push(node);
+          }
         } else {
           // If directives with no node, handle as global or fragment
           if (currentDirectives.length > 0) {
             if (this.check('EOF')) {
+              globalDirectives.push(...currentDirectives);
+            } else if (this.check('LBRACE')) {
+              // Top-level directive with paren args followed by a config block:
+              //   @agent_behavior("dashboard-orchestrator") { on: ..., trigger: ... }
+              // Merge the block into the last directive's config. Previously
+              // errored (HSP003), so this is strictly more permissive.
+              const block = this.parseBlockContent();
+              const last = currentDirectives[currentDirectives.length - 1] as unknown as {
+                config?: Record<string, unknown>;
+              };
+              last.config = { ...(last.config || {}), ...block };
               globalDirectives.push(...currentDirectives);
             } else {
               // Unexpected token after directives, report and sync
@@ -1235,25 +1260,6 @@ export class HoloScriptPlusParser {
             // We need to throw to trigger recovery.
             throw new Error('ParseError');
           }
-        }
-
-        // 3. Special Handling for Natural Language "connect" statement
-        // connect A to B
-        if (this.check('IDENTIFIER') && this.current().value === 'connect') {
-          const connection = this.parseConnectionStatement();
-          // connections aren't nodes, but we can treat them as a data node
-          const node: HSPlusNode = {
-            type: 'connection',
-            properties: connection,
-            directives: [],
-            children: [],
-            traits: new Map(),
-            loc: {
-              start: { line: this.current().line, column: 0 },
-              end: { line: this.current().line, column: 0 },
-            },
-          } as unknown as HSPlusNode;
-          topLevelNodes.push(node);
         }
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
@@ -1376,6 +1382,26 @@ export class HoloScriptPlusParser {
           end: { line: this.current().line, column: this.current().column },
         },
       } as unknown as HSPlusNode;
+    }
+
+    // =========================================================================
+    // Special handling for pipeline DSL blocks (transform, filter, branch, validate)
+    // Their bodies contain statement forms the generic property parser rejects:
+    // mapping arrows (sku -> productId : multiply(100)), when-guards
+    // (when x == y -> sink Z), validate constraints (path.field : required, ...),
+    // and YAML-style block scalars (prompt: |). Routed to a dedicated body
+    // parser; falls through to the generic node path when no { body } follows.
+    // =========================================================================
+    if (['transform', 'filter', 'branch', 'validate'].includes(type)) {
+      const savedPos = this.pos;
+      let blockName = 'anonymous';
+      if (this.check('IDENTIFIER') || this.check('STRING')) {
+        blockName = this.advance().value;
+      }
+      if (this.check('LBRACE')) {
+        return this.parsePipelineBlock(type, blockName, startToken);
+      }
+      this.pos = savedPos; // not a DSL block — use the generic node path
     }
 
     // =========================================================================
@@ -1709,6 +1735,7 @@ export class HoloScriptPlusParser {
               token.type === 'INITIAL' ||
               token.type === 'ON_ENTRY' ||
               token.type === 'ON_EXIT' ||
+              token.type === 'ON_ERROR' ||
               token.type === 'TRANSITION';
 
             if (isKeyToken) {
@@ -1834,7 +1861,16 @@ export class HoloScriptPlusParser {
 
               if (this.check('COLON') || this.check('EQUALS')) {
                 this.advance();
-                properties[name] = this.parseValue();
+                const pipeNext = this.peek(1);
+                if (
+                  this.check('PIPE') &&
+                  (!pipeNext || pipeNext.type === 'NEWLINE' || pipeNext.type === 'EOF')
+                ) {
+                  // YAML-style block scalar: template: | ... (indented lines)
+                  properties[name] = this.parseBlockScalar(this.tokens[saved]);
+                } else {
+                  properties[name] = this.parseValue();
+                }
               } else if (
                 childNodeKeywords.includes(name) &&
                 (this.check('LBRACE') || this.check('STRING'))
@@ -1900,15 +1936,32 @@ export class HoloScriptPlusParser {
     const isKeyword = ['STATE_MACHINE', 'STATE', 'ON_ENTRY', 'ON_EXIT', 'TRANSITION'].includes(
       nameToken.type
     );
-    if (nameToken.type !== 'IDENTIFIER' && !isKeyword) {
+    let name: string;
+    if (nameToken.type === 'IDENTIFIER' || isKeyword) {
+      this.advance();
+      name = nameToken.value;
+    } else if (nameToken.type === 'NUMBER' && /^\d+[a-zA-Z]\w*$/.test(nameToken.value)) {
+      // Digit-leading directive names (@2d_canvas, @3d_grid): the lexer emits
+      // NUMBER("2d") followed by an adjacent IDENTIFIER("_canvas") — stitch them
+      // back together. Only fires where the parser previously errored (HSP201),
+      // so it cannot regress a passing parse.
+      this.advance();
+      name = nameToken.value;
+      const next = this.current();
+      if (
+        next.type === 'IDENTIFIER' &&
+        next.line === nameToken.line &&
+        next.column === nameToken.column + nameToken.value.length
+      ) {
+        name += this.advance().value;
+      }
+    } else {
       this.error(
         `Expected directive name, got ${nameToken.type}. Directives start with @ followed by name (e.g., @grabbable)`,
         'HSP201'
       );
       return null;
     }
-    this.advance();
-    const name = nameToken.value;
 
     // =========================================================================
     // Hot-Reload: @version(N) and @migrate from(N) { ... }
@@ -1950,6 +2003,18 @@ export class HoloScriptPlusParser {
         config = this.parseTraitConfig();
       } else if (this.check('LBRACE')) {
         config = this.parseBlockContent();
+      } else if (this.check('COLON')) {
+        // Colon-form trait config: @waypoint: { id: "wp_a" } / @emissive: { color: "#fff" }
+        // Previously errored (HSP001 "Unexpected token COLON in node body"), so
+        // accepting it here is strictly more permissive.
+        this.advance();
+        if (this.check('LPAREN')) {
+          config = this.parseTraitConfig();
+        } else if (this.check('LBRACE')) {
+          config = this.parseBlockContent();
+        } else {
+          config = { value: this.parseValue() };
+        }
       }
       return this.parseTraitSumTail({ type: 'trait', name: name as VRTraitName, config });
     }
@@ -2475,6 +2540,457 @@ export class HoloScriptPlusParser {
     return value;
   }
 
+  /**
+   * Parse a .hs `connect` statement.
+   * Syntax (full .hs format):
+   *   connect <source> -> <target>
+   * where <source> and <target> are dotted member chains, optionally followed
+   * by assignment for state connections:
+   *   connect alarm_bell.alarm_triggered -> guard_captain.state.alert_level = 3
+   *
+   * Strategy: consume the `connect` keyword, then collect all tokens up to
+   * (but not including) the next NEWLINE / EOF as a raw string.  This is
+   * intentionally permissive — the connect statement has a rich surface syntax
+   * (dotted paths, ARROW, assignments) that the generic property parser cannot
+   * handle.  Semantic validation of the wiring is a separate compilation phase.
+   */
+  private parseHsConnectStatement(): HSPlusNode {
+    const startToken = this.current();
+    this.advance(); // consume 'connect'
+
+    // Collect the rest of the line as tokens
+    const toks: Token[] = [];
+    while (!this.check('NEWLINE') && !this.check('EOF')) {
+      toks.push(this.advance());
+    }
+
+    // Split from / to around the ARROW ('->') separator at token level so
+    // member chains reconstruct without spurious spaces ("a.b", not "a . b")
+    const arrowIdx = toks.findIndex((t) => t.type === 'ARROW');
+    const fromToks = arrowIdx >= 0 ? toks.slice(0, arrowIdx) : toks;
+    const toToks = arrowIdx >= 0 ? toks.slice(arrowIdx + 1) : [];
+
+    return {
+      type: 'connection',
+      properties: {
+        from: this.joinTokensSmart(fromToks),
+        to: this.joinTokensSmart(toToks),
+        raw: this.joinTokensSmart(toks),
+      },
+      directives: [],
+      children: [],
+      traits: new Map(),
+      loc: {
+        start: { line: startToken.line, column: startToken.column },
+        end: { line: this.current().line, column: this.current().column },
+      },
+    } as unknown as HSPlusNode;
+  }
+
+  /**
+   * Parse a .hs `execute` statement.
+   * Syntax:
+   *   execute <target>(<args>) [repeat forever | every <interval>]
+   * Examples:
+   *   execute guard_captain.patrol() repeat forever
+   *   execute temp_sensor_A.read() every 1000ms
+   *
+   * Strategy: consume `execute` then collect all tokens to end of line.
+   * The target is the leading member chain plus one balanced call-paren
+   * group; everything after it is the schedule clause.
+   */
+  private parseHsExecuteStatement(): HSPlusNode {
+    const startToken = this.current();
+    this.advance(); // consume 'execute'
+
+    const toks: Token[] = [];
+    while (!this.check('NEWLINE') && !this.check('EOF')) {
+      toks.push(this.advance());
+    }
+
+    let end = toks.length;
+    let depth = 0;
+    for (let i = 0; i < toks.length; i++) {
+      const t = toks[i];
+      if (t.type === 'LPAREN') {
+        depth++;
+      } else if (t.type === 'RPAREN') {
+        depth--;
+        if (depth === 0) {
+          end = i + 1;
+          break;
+        }
+      } else if (
+        depth === 0 &&
+        t.type !== 'IDENTIFIER' &&
+        t.type !== 'DOT' &&
+        t.type !== 'NUMBER'
+      ) {
+        end = i;
+        break;
+      }
+    }
+    const target = this.joinTokensSmart(toks.slice(0, end));
+    const schedule = this.joinTokensSmart(toks.slice(end));
+
+    return {
+      type: 'execute',
+      properties: { target, schedule, raw: this.joinTokensSmart(toks) },
+      directives: [],
+      children: [],
+      traits: new Map(),
+      loc: {
+        start: { line: startToken.line, column: startToken.column },
+        end: { line: this.current().line, column: this.current().column },
+      },
+    } as unknown as HSPlusNode;
+  }
+
+  // ===========================================================================
+  // Pipeline DSL block parsing (transform / filter / branch / validate)
+  // ===========================================================================
+
+  /**
+   * Reassemble token values into readable source text: no spaces around
+   * member/call/index punctuation, string literals re-quoted.
+   */
+  private joinTokensSmart(tokens: Token[]): string {
+    const NO_SPACE_BEFORE = new Set([
+      'DOT',
+      'COMMA',
+      'LPAREN',
+      'RPAREN',
+      'LBRACKET',
+      'RBRACKET',
+      'OPTIONAL_DOT',
+    ]);
+    const NO_SPACE_AFTER = new Set(['DOT', 'LPAREN', 'LBRACKET', 'OPTIONAL_DOT', 'EXCLAMATION']);
+    let out = '';
+    let prev: Token | null = null;
+    for (const t of tokens) {
+      const text = t.type === 'STRING' ? JSON.stringify(t.value) : t.value;
+      if (prev && !NO_SPACE_BEFORE.has(t.type) && !NO_SPACE_AFTER.has(prev.type)) {
+        out += ' ';
+      }
+      out += text;
+      prev = t;
+    }
+    return out;
+  }
+
+  /** Capture a dotted/indexed path: sku, a.b.c, results[0].id, entries[] */
+  private capturePipelinePath(): { raw: string; tokens: Token[] } {
+    const toks: Token[] = [];
+    if (this.check('IDENTIFIER') || this.check('STRING') || this.check('UNDERSCORE')) {
+      toks.push(this.advance());
+    }
+    for (;;) {
+      if (this.check('DOT')) {
+        toks.push(this.advance());
+        if (this.check('IDENTIFIER') || this.check('NUMBER') || this.check('UNDERSCORE')) {
+          toks.push(this.advance());
+        }
+        continue;
+      }
+      if (this.check('LBRACKET')) {
+        let depth = 0;
+        do {
+          const t = this.advance();
+          toks.push(t);
+          if (t.type === 'LBRACKET') depth++;
+          else if (t.type === 'RBRACKET') depth--;
+        } while (depth > 0 && !this.check('EOF'));
+        continue;
+      }
+      break;
+    }
+    return { raw: this.joinTokensSmart(toks), tokens: toks };
+  }
+
+  /** Capture a transform op call: trim() / multiply(100) / increment_if(a == b.c) */
+  private capturePipelineOp(): string {
+    const toks: Token[] = [];
+    if (this.check('IDENTIFIER')) {
+      toks.push(this.advance());
+    }
+    if (this.check('LPAREN')) {
+      let depth = 0;
+      do {
+        const t = this.advance();
+        toks.push(t);
+        if (t.type === 'LPAREN') depth++;
+        else if (t.type === 'RPAREN') depth--;
+      } while (depth > 0 && !this.check('EOF'));
+    }
+    return this.joinTokensSmart(toks);
+  }
+
+  /** True when an ARROW appears before the end of the current statement line. */
+  private hasArrowBeforeEOL(): boolean {
+    for (let look = this.pos; look < this.tokens.length; look++) {
+      const t = this.tokens[look].type;
+      if (t === 'ARROW') return true;
+      if (t === 'NEWLINE' || t === 'EOF' || t === 'RBRACE' || t === 'LBRACE') return false;
+    }
+    return false;
+  }
+
+  /**
+   * Capture expression tokens to end of line, honoring `||` / `&&`
+   * line continuations:
+   *   where: stock != previous.stock
+   *       || costCents != previous.costCents
+   */
+  private captureExpressionToEOL(): Token[] {
+    const toks: Token[] = [];
+    for (;;) {
+      while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+        toks.push(this.advance());
+      }
+      if (this.check('NEWLINE')) {
+        let look = this.pos;
+        while (
+          look < this.tokens.length &&
+          ['NEWLINE', 'INDENT', 'DEDENT'].includes(this.tokens[look].type)
+        ) {
+          look++;
+        }
+        const next = this.tokens[look];
+        if (next && (next.type === 'OR' || next.type === 'AND')) {
+          this.pos = look; // continuation — skip newlines/indents and keep capturing
+          continue;
+        }
+      }
+      break;
+    }
+    return toks;
+  }
+
+  /**
+   * YAML-style block scalar property value:
+   *   prompt: |
+   *     Extract wisdom from this content.
+   *     Return JSON.
+   * Captures the following lines from raw source while they are blank or
+   * indented deeper than the key line, dedents, and skips their tokens.
+   */
+  private parseBlockScalar(keyToken: Token): string {
+    this.advance(); // consume PIPE
+    const keyIndent = keyToken.column - 1; // columns are 1-based
+    const lines = this.source.split('\n');
+    const collected: string[] = [];
+    let lastLine = keyToken.line; // lines are 1-based
+    for (let ln = keyToken.line + 1; ln <= lines.length; ln++) {
+      const text = lines[ln - 1];
+      if (text.trim() === '') {
+        collected.push('');
+        lastLine = ln;
+        continue;
+      }
+      const indent = text.length - text.trimStart().length;
+      if (indent <= keyIndent) break;
+      collected.push(text);
+      lastLine = ln;
+    }
+    // Skip all tokens the scalar block produced
+    while (!this.check('EOF') && this.current().line <= lastLine) {
+      this.advance();
+    }
+    const nonBlank = collected.filter((l) => l.trim() !== '');
+    const minIndent = nonBlank.length
+      ? Math.min(...nonBlank.map((l) => l.length - l.trimStart().length))
+      : 0;
+    return collected
+      .map((l) => l.slice(minIndent))
+      .join('\n')
+      .replace(/\s+$/, '');
+  }
+
+  /** Property value inside a pipeline DSL block. */
+  private parsePipelinePropertyValue(keyToken: Token): unknown {
+    if (this.check('PIPE')) {
+      const next = this.peek(1);
+      if (!next || next.type === 'NEWLINE' || next.type === 'EOF') {
+        return this.parseBlockScalar(keyToken);
+      }
+    }
+    if (this.check('LBRACE') || this.check('LBRACKET')) {
+      return this.parseValue();
+    }
+    const toks = this.captureExpressionToEOL();
+    if (toks.length === 1) {
+      const t = toks[0];
+      if (t.type === 'STRING') return t.value;
+      if (t.type === 'NUMBER') {
+        const n = Number(t.value);
+        return Number.isNaN(n) ? t.value : n;
+      }
+      if (t.value === 'true') return true;
+      if (t.value === 'false') return false;
+      return t.value;
+    }
+    return this.joinTokensSmart(toks);
+  }
+
+  /**
+   * Body parser for pipeline DSL blocks. Handles, per statement:
+   *   key: value                                  → property (incl. block scalars)
+   *   src.path[0] -> dst.path : op() : op2(...)   → mapping child
+   *   when <cond> -> <target>                     → when child (branch)
+   *   default -> <target>                         → default child (branch)
+   *   field.path : rule, rule(...)                → constraint child (validate /
+   *                                                 dotted fields anywhere)
+   * Statements are captured structurally with their raw text preserved;
+   * semantic validation of the wiring is a separate compilation phase.
+   */
+  private parsePipelineBlock(kind: string, name: string, startToken: Token): HSPlusNode {
+    this.expect('LBRACE', `Expected { after ${kind} ${name}`);
+    const properties: Record<string, unknown> = {};
+    const children: HSPlusNode[] = [];
+    const directives: HSPlusDirective[] = [];
+    const traits = new Map<VRTraitName, unknown>();
+
+    const childLoc = (tok: Token) => ({
+      start: { line: tok.line, column: tok.column },
+      end: { line: this.current().line, column: this.current().column },
+    });
+
+    while (!this.check('RBRACE') && !this.check('EOF')) {
+      try {
+        this.skipNewlines();
+        if (this.check('RBRACE') || this.check('EOF')) break;
+
+        if (this.check('AT')) {
+          const directive = this.parseDirective();
+          if (directive) {
+            if (directive.type === 'trait') {
+              traits.set(directive.name as VRTraitName, directive.config);
+              this.hasVRTraits = true;
+            }
+            directives.push(directive);
+          }
+        } else if (
+          kind === 'branch' &&
+          this.check('IDENTIFIER') &&
+          this.current().value === 'when'
+        ) {
+          // when <condition> -> <target>
+          const stmtStart = this.advance();
+          const condToks: Token[] = [];
+          while (!this.check('ARROW') && !this.check('NEWLINE') && !this.check('EOF')) {
+            condToks.push(this.advance());
+          }
+          let target = '';
+          if (this.check('ARROW')) {
+            this.advance();
+            const targetToks: Token[] = [];
+            while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+              targetToks.push(this.advance());
+            }
+            target = this.joinTokensSmart(targetToks);
+          }
+          children.push({
+            type: 'when',
+            condition: this.joinTokensSmart(condToks),
+            target,
+            loc: childLoc(stmtStart),
+          } as unknown as HSPlusNode);
+        } else if (this.hasArrowBeforeEOL()) {
+          // mapping / route with arbitrary LHS expression:
+          //   sku -> productId : multiply(100)
+          //   target.chembl_id + "-" + drug.chembl_id -> binding.id
+          //   [790, 797, 858] -> binding.residues
+          //   default -> sink Dashboard          (branch)
+          const stmtStart = this.current();
+          const lhsToks: Token[] = [];
+          while (!this.check('ARROW') && !this.check('NEWLINE') && !this.check('EOF')) {
+            lhsToks.push(this.advance());
+          }
+          if (this.check('ARROW')) this.advance();
+          const from = this.joinTokensSmart(lhsToks);
+          if (kind === 'branch') {
+            const targetToks: Token[] = [];
+            while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+              targetToks.push(this.advance());
+            }
+            children.push({
+              type: from === 'default' ? 'default' : 'route',
+              from,
+              target: this.joinTokensSmart(targetToks),
+              loc: childLoc(stmtStart),
+            } as unknown as HSPlusNode);
+          } else {
+            const to = this.capturePipelinePath();
+            const ops: string[] = [];
+            while (this.check('COLON')) {
+              this.advance();
+              ops.push(this.capturePipelineOp());
+            }
+            children.push({
+              type: 'mapping',
+              from,
+              to: to.raw,
+              ops,
+              loc: childLoc(stmtStart),
+            } as unknown as HSPlusNode);
+          }
+        } else if (this.check('IDENTIFIER') || this.check('STRING')) {
+          const keyToken = this.current();
+          const path = this.capturePipelinePath();
+
+          if (this.check('COLON')) {
+            this.advance();
+            const pathIsDotted = path.tokens.some((t) => t.type === 'DOT' || t.type === 'LBRACKET');
+            if (kind === 'validate' || pathIsDotted) {
+              // constraint: field.path : required, string, startsWith("EFO_")
+              const ruleToks = this.captureExpressionToEOL();
+              children.push({
+                type: 'constraint',
+                field: path.raw,
+                rules: this.joinTokensSmart(ruleToks),
+                loc: childLoc(keyToken),
+              } as unknown as HSPlusNode);
+            } else {
+              properties[path.raw] = this.parsePipelinePropertyValue(keyToken);
+            }
+          } else {
+            properties[path.raw] = true;
+          }
+        } else if (this.check('COMMA')) {
+          this.advance();
+        } else {
+          this.error(
+            `Unexpected token ${this.current().type} "${this.current().value}" in ${kind} block`,
+            'HSP001'
+          );
+          this.synchronizeProperty();
+        }
+        this.skipNewlines();
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        if (errorMessage !== 'ParseError') console.error(e);
+        this.synchronizeProperty();
+      }
+    }
+
+    this.expect('RBRACE', 'Expected }');
+
+    return {
+      type: kind,
+      name,
+      id: name,
+      properties,
+      directives,
+      children,
+      traits,
+      loc: {
+        start: { line: startToken.line, column: startToken.column },
+        end: { line: this.current().line, column: this.current().column },
+      },
+    } as unknown as HSPlusNode;
+  }
+
+  /** @deprecated Use parseHsConnectStatement for .hs connect syntax */
   private parseConnectionStatement(): Record<string, string> {
     this.expect('IDENTIFIER', 'Expected connect'); // connect
     const from = this.expect('IDENTIFIER', 'Expected from name').value;
@@ -3473,9 +3989,25 @@ export class HoloScriptPlusParser {
 
   private parseOnErrorNode(): HSPlusNode {
     const startToken = this.previous();
+    // Consume optional parameter list: on_error(err) { ... }
+    // The parenthesised params are ignored at parse time; they are
+    // captured only for AST completeness.
+    const params: string[] = [];
+    if (this.check('LPAREN')) {
+      this.advance(); // (
+      while (!this.check('RPAREN') && !this.check('EOF') && !this.check('LBRACE')) {
+        if (this.check('IDENTIFIER')) {
+          params.push(this.advance().value);
+        } else {
+          this.advance(); // skip commas, type annotations, etc.
+        }
+      }
+      if (this.check('RPAREN')) this.advance(); // )
+    }
     const body = this.parseControlFlowBody();
     return {
       type: 'on_error',
+      params,
       body,
       loc: {
         start: { line: startToken.line, column: startToken.column },

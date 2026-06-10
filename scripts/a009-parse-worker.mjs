@@ -20,12 +20,26 @@ for (const filepath of files) {
   const ext = filepath.split('.').pop();
   try {
     const code = readFileSync(filepath, 'utf8');
-    if (ext === 'holo') parseHolo(code);
+    let result;
+    if (ext === 'holo') result = parseHolo(code);
     else if (ext === 'hsplus') {
       const p = new HoloScriptPlusParser();
-      p.parse(code);
-    } else parse(code);
-    process.stdout.write(JSON.stringify({ file: filepath, ok: true }) + '\n');
+      result = p.parse(code);
+    } else result = parse(code);
+    // Parsers report most failures via { success: false } WITHOUT throwing —
+    // counting only thrown errors silently passes broken examples.
+    if (result && result.success === false) {
+      const first = (result.errors || [])[0];
+      process.stdout.write(
+        JSON.stringify({
+          file: filepath,
+          ok: false,
+          error: ((first && first.message) || 'parse reported success: false').slice(0, 240),
+        }) + '\n'
+      );
+    } else {
+      process.stdout.write(JSON.stringify({ file: filepath, ok: true }) + '\n');
+    }
   } catch (e) {
     process.stdout.write(
       JSON.stringify({ file: filepath, ok: false, error: e.message.split('\n')[0].slice(0, 240) }) +

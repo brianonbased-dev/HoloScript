@@ -38,21 +38,31 @@ function collectExamples(dirs) {
   return files;
 }
 
+function checkResult(result) {
+  // Parsers report most failures via { success: false, errors } WITHOUT
+  // throwing — counting only thrown errors silently passes broken examples.
+  if (result && result.success === false) {
+    const first = (result.errors || [])[0];
+    return {
+      ok: false,
+      error: ((first && first.message) || 'parse reported success: false').slice(0, 240),
+    };
+  }
+  return { ok: true };
+}
+
 function tryParse(filepath) {
   const ext = filepath.split('.').pop();
   const code = readFileSync(filepath, 'utf8');
   try {
     if (ext === 'holo') {
-      parseHolo(code);
-      return { ok: true };
+      return checkResult(parseHolo(code));
     }
     if (ext === 'hsplus') {
-      parseHsPlus(code);
-      return { ok: true };
+      return checkResult(parseHsPlus(code));
     }
     // .hs
-    parse(code);
-    return { ok: true };
+    return checkResult(parse(code));
   } catch (e) {
     return { ok: false, error: e.message.split('\n')[0].slice(0, 240) };
   }
