@@ -5,7 +5,8 @@
 > Verification commands for counts — do not hardcode numbers in other docs, link here instead.
 > Verify solver count: `find packages/engine/src/simulation -name "*Solver.ts" | grep -v test | grep -v Adapter`
 > Verify trait count: `find packages/core/src/traits -name "*Trait.ts" | grep -v test`
-> Last updated: 2026-05-19 (via /sim skill enumeration + live file verification)
+> Last updated: 2026-06-10 (post physics/simsci full-surface sweep — whole-file audit of 95 files,
+> 43 verified bug fixes, 2 new solvers; see §2026-06-10 Sweep below)
 
 ---
 
@@ -45,6 +46,8 @@ never calls `initSimulationSolvers()` still produces an empty registry.
 | `UncertaintyQuantification`               | ✅ `UncertaintyQuantification.ts`    | ❌ no trait found                         | ❌ not a factory registrant                   | ✅ `UncertaintyQuantification.test.ts`                   | —                                                                  | Paper 4                                  |
 | `MLSMPMFluid` (browser-native MPM)        | ✅ `physics/MLSMPMFluid.ts`          | ⚠️ no trait handler                       | ✅ `simulation-registry.ts` (`mls-mpm-fluid`) | ✅ MLS-MPM bench in `packages/engine/src/physics/`       | —                                                                  | sovereign-race candidate (Paper TBD)     |
 | `AffinityODESolver` (relational dynamics) | ✅ `simulation/AffinityODESolver.ts` | ✅ `affinityHandler` (`AffinityTrait.ts`) | ✅ `simulation-registry.ts` (`affinity-ode`)  | ✅ `simulation-registry.test.ts` (create + 2-step cycle) | —                                                                  | D.027 Brittney, D.052 ConversationDaemon |
+| `DEMSolver` (granular, new 2026-06-10)    | ✅ `simulation/DEMSolver.ts`         | ❌ no trait yet                           | ✅ `simulation-registry.ts` (`dem-granular`)  | ✅ `DEMSolver.test.ts` (restitution/momentum/determinism) | —                                                                  | Paper 4 candidate                        |
+| `AdjointHeatSolver` (differentiable, new 2026-06-10) | ✅ `simulation/AdjointHeatSolver.ts` | ❌ library API (not registry)  | N/A (direct use)                              | ✅ `AdjointHeatSolver.test.ts` (FD-verified gradients to 1e-8) | —                                                             | differentiable+surrogate+receipts triple (Wave 3 slot) |
 
 ---
 
@@ -120,9 +123,45 @@ never calls `initSimulationSolvers()` still produces an empty registry.
 
 ## GpuBackedSolver Interface Status
 
-> **Gap**: `GpuBackedSolver` mixin interface is defined in `SimSolver.ts` but **zero domain solvers currently implement `readbackOutput()`**.
-> Wave 2 GPU kernel ports (FDTD, NavierStokes, MolecularDynamics) will close this gap.
+> **Updated 2026-06-10**: `readbackOutput()` is now implemented by `StructuralSolver`,
+> `StructuralSolverTET10`, and the GPU adapters in `simulation/adapters/SolverAdapters.ts`
+> (thermal/acoustic stencil + structural CG), with contract integration covered by
+> `SimulationContractWebGpu.test.ts`. The remaining gap is GPU-resident kernels for
+> FDTD, NavierStokes, and MolecularDynamics (still CPU-only).
 > Track via: `grep -r "readbackOutput" packages/engine/src/ --include="*.ts" | grep -v interface | grep -v test`
+
+---
+
+## 2026-06-10 Sweep — audit verdicts and fixes
+
+Whole-file audit of 95 physics/simsci files (9 subsystem auditors), then verified fixes
+(failing-test-first; ~20% of audit claims rejected as false positives on re-verification).
+
+**Fixed (43 verified bugs, all with regression tests):**
+
+- `PBDSolver` — true XPBD lambda accumulation (CPU + WGSL; was iteration-count-dependent PBD mislabeled XPBD), SPH neighbor-lambda, valid constraint graph coloring, **signed** SDF via 3-axis ray-parity, GPU normals binding
+- `PhysicsWorldImpl` — rotation-aware AABBs and GJK/EPA, **angular impulse** in contact resolution (off-center hits now induce spin), hinge/ball-socket wired through the previously-orphaned `ConstraintSolver`
+- `JointSystem` — velocity-proportional damping (was force-proportional), distance-joint rest length (force was always zero); `VehicleSystem` — heading integration (forward vector was derived from angular velocity); `SoftBodyAdapter` — rest lengths from actual geometry (was hardcoded 0.1); `DeformableMesh` — rotational shape matching (polar decomposition)
+- `NavierStokesSolver` — viscous CFL substepping + post-advect BCs; `MultiphaseNSSolver` — level-set reinit guard band + grid-relative eps; `FluidSim` — SPH mass from rest density + SpatialHash neighbors (was O(N²)); `HydraulicSolver` — fundamental-cycle construction
+- `FDTDSolver` — bounded `point_current` source (was DC injection → unbounded energy); GPU stencils — CFL guards (thermal + acoustic)
+- `StructuralSolver` — surface-face pressure loads (was element-index-as-face + pressure/6 scaling); `MolecularDynamicsSolver` — LJ cutoff energy shift + 3(N−1) DoF temperature; `ThermalSolver` — anisotropic implicit Jacobi (default grid is non-cubic; was cubic-only); `SpatialHash.update()` — radius preservation
+- qm-bridge (psi4/tblite/quantum-espresso) — real binary spawn reachable (was unconditional mock fallthrough — the bridge never bridged); configured-but-failing spawn throws loudly instead of silently mocking
+- energy-grid-plugin — DC load flow rewritten to B'·θ = P susceptance-matrix form (was sequential propagation, wrong for meshed networks)
+- mcp-server `solve_structural`/`solve_thermal` — real geometry digests + state digests in CAEL traces (was `geometryHash: 'geo-unavailable'` + empty stateDigests)
+
+**Honest labels (THIN by design or known debt — do not claim these capabilities):**
+
+- `TetGenWasmMesher` — no-op initialize, returns box mesh regardless of input (AutoMesher structured path is the real mesher)
+- `ZKSimContractProof` — salted **hash commitment** (binding + hiding), NOT a zk-SNARK; docs corrected 2026-06-10, class name kept for API stability
+- `fenicsx-bridge` — stub returning TODO receipts; `structural-biology` docking/admet — heuristics, not RDKit/ML
+- `FlowFieldCompute` — claims WebGPU, computes on CPU
+- `VehicleSystem` suspension raycast — flat-plane-only; `JointSystem` — not coupled to a rigid-body world; `PhysicsStep` — standalone lightweight engine with Euler-angle rotation
+
+**New capabilities:**
+
+- `DEMSolver` (`dem-granular`) — Cundall–Strack granular DEM, uniform-grid neighbors, configurable gravity vector (G.GOLD.485)
+- `AdjointHeatSolver` — discrete-adjoint gradients (dJ/dS, dJ/dT0) for thermal diffusion, FD-verified to 1e-8; seed of the differentiable+surrogate+receipts wedge
+- `jacobiIterationAnisotropic` (`ConvergenceControl`) — implicit diffusion on non-cubic grids
 
 ---
 
