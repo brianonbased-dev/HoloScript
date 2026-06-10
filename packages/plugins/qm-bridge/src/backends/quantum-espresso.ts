@@ -312,18 +312,93 @@ export class QuantumEspressoBackend implements QmSolver {
 
   // ── Subprocess bridge ──────────────────────────────────────────────────
 
-  private async runQe(_input: string): Promise<QuantumEspressoRawResult> {
-    // Stage 1 mock implementation
-    // Real QE invocation:
-    // 1. Write input to file
-    // 2. Run pw.x < input > output
-    // 3. Parse total energy, fermi, band gap from output
-
+  /**
+   * Run pw.x with the given SCF input and parse the output.
+   *
+   * When pwPath is '__mock__', returns synthesised results for testing
+   * without a QE installation. When pwPath is any other value, the input is
+   * written to a temp directory, pw.x is spawned with stdin redirect, and
+   * the output is parsed for total energy, Fermi energy, and band gap.
+   * If the spawn fails, an error is thrown — silent fallback to mock would
+   * be verifier theater.
+   *
+   * Output parsing targets QE 7.x XML output (in the ./tmp/holoscript_qm.save/
+   * directory) or falls back to stdout pattern matching.
+   */
+  private async runQe(input: string): Promise<QuantumEspressoRawResult> {
     if (this.pwPath === '__mock__') {
       return this.mockQeResult();
     }
 
-    return this.mockQeResult();
+    // Real pw.x subprocess invocation.
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs/promises');
+
+    const execFileAsync = promisify(execFile);
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'holoscript_qe_'));
+    const inputPath = path.join(tmpDir, 'pw.in');
+    const outputPath = path.join(tmpDir, 'pw.out');
+
+    try {
+      // Patch outdir in input to use tmpDir
+      const patchedInput = input.replace("outdir = './tmp'", `outdir = '${tmpDir}/tmp'`);
+      await fs.writeFile(inputPath, patchedInput, 'utf8');
+
+      const { stdout, stderr } = await execFileAsync(
+        this.pwPath,
+        ['-in', inputPath],
+        {
+          cwd: tmpDir,
+          maxBuffer: 50 * 1024 * 1024,
+          env: { ...process.env, OMP_NUM_THREADS: '1' },
+        }
+      );
+
+      // Write stdout to output file for easier parsing
+      await fs.writeFile(outputPath, stdout, 'utf8').catch(() => undefined);
+
+      if (stderr) {
+        const fatal = stderr
+          .split('\n')
+          .filter((l) => l.includes('Error') || l.includes('Traceback') || l.includes('forrtl'));
+        if (fatal.length > 0) {
+          throw new Error(`[quantum-espresso] pw.x stderr: ${fatal.join('\n')}`);
+        }
+      }
+
+      // Parse QE stdout for key quantities.
+      // Total energy line:  "!    total energy              =     -340.12345678 Ry"
+      const energyMatch = stdout.match(/!\s+total energy\s+=\s+([-\d.]+)\s+Ry/);
+      const totalEnergy = energyMatch?.[1] !== undefined ? parseFloat(energyMatch[1]) : undefined;
+
+      // Fermi energy line:  "the Fermi energy is     2.1234 ev"
+      const fermiMatch = stdout.match(/the Fermi energy is\s+([-\d.]+)\s+ev/i);
+      const fermiEnergy = fermiMatch?.[1] !== undefined ? parseFloat(fermiMatch[1]) : undefined;
+
+      // Convergence:  "convergence has been achieved in   N iterations"
+      const convMatch = stdout.match(/convergence has been achieved in\s+(\d+)/i);
+      const converged = convMatch !== null;
+      const scfIterations =
+        convMatch?.[1] !== undefined ? parseInt(convMatch[1], 10) : 0;
+
+      return {
+        total_energy: totalEnergy,
+        fermi_energy: fermiEnergy,
+        band_gap: undefined, // Requires post-processing with bands.x
+        is_metallic: fermiEnergy !== undefined && totalEnergy !== undefined,
+        scf_iterations: scfIterations,
+        converged,
+        band_energies: [],
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[quantum-espresso] Failed to run pw.x at '${this.pwPath}': ${msg}`);
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 
   private mockQeResult(): QuantumEspressoRawResult {

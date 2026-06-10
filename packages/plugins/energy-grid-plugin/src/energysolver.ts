@@ -108,37 +108,144 @@ export interface EnergyAnalysisResult {
 // ─── DC Load Flow ─────────────────────────────────────────────────────────────
 
 /**
- * Simplified DC load flow for radial networks:
- * θ_i − θ_j = P_ij × X_ij (linearised, lossless)
- * For each branch sequentially from slack bus.
+ * DC load flow using the standard B-matrix (susceptance matrix) formulation.
+ *
+ * Algorithm (Glover, Sarma & Overbye §6.4):
+ *   1. Build the N×N nodal susceptance matrix B where
+ *        B_ii = Σ_j 1/X_ij  (sum of branch susceptances incident to bus i)
+ *        B_ij = -1/X_ij     (negative susceptance of branch i-j)
+ *   2. Remove the slack bus row and column to form the reduced (N-1)×(N-1)
+ *      matrix B'.
+ *   3. Solve the linear system  B' · θ = P / baseMVA  via Gaussian
+ *      elimination with partial pivoting (suitable for small networks).
+ *   4. Compute branch flows: F_ij = (θ_i − θ_j) / X_ij × baseMVA  (MW).
+ *
+ * baseMVA defaults to 100 MVA (industry standard for pu conversion).
  */
-export function dcLoadFlow(buses: GridBus[], branches: GridBranch[]): LoadFlowResult {
+export function dcLoadFlow(
+  buses: GridBus[],
+  branches: GridBranch[],
+  baseMVA = 100
+): LoadFlowResult {
   if (buses.length === 0) throw new Error('No buses provided');
   const slack = buses.find((b) => b.isSlack);
   if (!slack) throw new Error('No slack bus defined');
 
+  const n = buses.length;
+  const busIndex = new Map<string, number>(buses.map((b, i) => [b.id, i]));
+  const slackIdx = busIndex.get(slack.id)!;
+
+  // Validate branches reference known buses
+  for (const br of branches) {
+    if (!busIndex.has(br.fromBusId) || !busIndex.has(br.toBusId)) {
+      throw new Error(`Unknown bus in branch ${br.fromBusId}→${br.toBusId}`);
+    }
+  }
+
+  // ── Step 1: Build full N×N susceptance matrix B ──────────────────────────
+  const B: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0));
+  for (const br of branches) {
+    if (br.reactancePu === 0) throw new Error(`Zero reactance on branch ${br.fromBusId}→${br.toBusId}`);
+    const i = busIndex.get(br.fromBusId)!;
+    const j = busIndex.get(br.toBusId)!;
+    const b_ij = 1 / br.reactancePu;
+    B[i][i] += b_ij;
+    B[j][j] += b_ij;
+    B[i][j] -= b_ij;
+    B[j][i] -= b_ij;
+  }
+
+  // ── Step 2: Build reduced (N-1)×(N-1) system, excluding slack row/col ───
+  const Bprime: number[][] = [];
+  const Pprime: number[] = [];
+  const reducedBusIndices: number[] = []; // maps reduced index → original bus index
+
+  for (let i = 0; i < n; i++) {
+    if (i === slackIdx) continue;
+    const row: number[] = [];
+    for (let j = 0; j < n; j++) {
+      if (j === slackIdx) continue;
+      row.push(B[i][j]);
+    }
+    Bprime.push(row);
+    Pprime.push(buses[i].powerMW / baseMVA);
+    reducedBusIndices.push(i);
+  }
+
+  // ── Step 3: Solve B' · θ = P/baseMVA via Gaussian elimination ───────────
+  const solvedAngles = solveGaussianPivot(Bprime, Pprime);
+
+  // Reconstruct full angle array (slack bus = 0 rad)
   const angles: Record<string, number> = {};
   for (const b of buses) angles[b.id] = 0;
-
-  // Build adjacency: compute angle differences from slack propagation
-  const busMap = Object.fromEntries(buses.map((b) => [b.id, b]));
-  const flows: LoadFlowResult['flows'] = [];
-
-  for (const br of branches) {
-    const from = busMap[br.fromBusId];
-    const to = busMap[br.toBusId];
-    if (!from || !to) throw new Error(`Unknown bus in branch ${br.fromBusId}→${br.toBusId}`);
-    // DC: flow = (θ_from - θ_to) / X; for radial grids propagate from known angle
-    const injectedMW = from.isSlack ? 0 : from.powerMW;
-    const flowMW = injectedMW; // simplified: all injection flows through branch
-    if (!from.isSlack) angles[br.toBusId] = angles[br.fromBusId] - flowMW * br.reactancePu;
-    flows.push({ fromBusId: br.fromBusId, toBusId: br.toBusId, flowMW });
+  for (let k = 0; k < reducedBusIndices.length; k++) {
+    const busOrigIdx = reducedBusIndices[k];
+    angles[buses[busOrigIdx].id] = solvedAngles[k];
   }
+
+  // ── Step 4: Compute branch flows from angle differences ──────────────────
+  const flows: LoadFlowResult['flows'] = branches.map((br) => {
+    const thetaFrom = angles[br.fromBusId] ?? 0;
+    const thetaTo = angles[br.toBusId] ?? 0;
+    const flowMW = ((thetaFrom - thetaTo) / br.reactancePu) * baseMVA;
+    return { fromBusId: br.fromBusId, toBusId: br.toBusId, flowMW };
+  });
 
   const totalGenerationMW = buses.filter((b) => b.powerMW > 0).reduce((s, b) => s + b.powerMW, 0);
   const totalLoadMW = buses.filter((b) => b.powerMW < 0).reduce((s, b) => s - b.powerMW, 0);
 
   return { angles, flows, totalGenerationMW, totalLoadMW };
+}
+
+/**
+ * Gaussian elimination with partial pivoting for Ax = b.
+ * Operates in-place on copies of A and b. Suitable for the small (N-1)×(N-1)
+ * systems arising in DC power flow (N typically < 1000 buses).
+ *
+ * Throws if the matrix is singular (isolated bus or disconnected network).
+ */
+function solveGaussianPivot(Ain: number[][], bin: number[]): number[] {
+  const n = Ain.length;
+  // Deep copy to avoid mutating the caller's arrays
+  const A: number[][] = Ain.map((row) => [...row]);
+  const b: number[] = [...bin];
+
+  for (let col = 0; col < n; col++) {
+    // Partial pivot: find the row with the largest absolute value in this column
+    let maxVal = Math.abs(A[col][col]);
+    let maxRow = col;
+    for (let row = col + 1; row < n; row++) {
+      const v = Math.abs(A[row][col]);
+      if (v > maxVal) { maxVal = v; maxRow = row; }
+    }
+    if (maxVal < 1e-12) {
+      throw new Error('[dcLoadFlow] Singular susceptance matrix — check for isolated buses or disconnected network');
+    }
+    // Swap rows
+    if (maxRow !== col) {
+      [A[col], A[maxRow]] = [A[maxRow], A[col]];
+      [b[col], b[maxRow]] = [b[maxRow], b[col]];
+    }
+    // Eliminate below
+    for (let row = col + 1; row < n; row++) {
+      const factor = A[row][col] / A[col][col];
+      for (let k = col; k < n; k++) {
+        A[row][k] -= factor * A[col][k];
+      }
+      b[row] -= factor * b[col];
+    }
+  }
+
+  // Back substitution
+  const x = new Array<number>(n).fill(0);
+  for (let i = n - 1; i >= 0; i--) {
+    x[i] = b[i];
+    for (let j = i + 1; j < n; j++) {
+      x[i] -= A[i][j] * x[j];
+    }
+    x[i] /= A[i][i];
+  }
+  return x;
 }
 
 // ─── Merit-Order Dispatch ─────────────────────────────────────────────────────

@@ -187,24 +187,82 @@ export class TBLiteBackend implements QmSolver {
 
   // ── Subprocess bridge ──────────────────────────────────────────────────
 
+  /**
+   * Invoke xtb for a single-point (--sp) or geometry optimisation (--opt).
+   *
+   * When xtbPath is '__mock__', returns synthesised results so tests that do
+   * not have xtb installed can still exercise the interface. When xtbPath is
+   * any other value, the XYZ input is written to a temp directory, xtb is
+   * spawned, and the JSON output (xtb --json writes xtbout.json) is parsed.
+   * If the spawn fails, an error is thrown — silent fallback to mock would
+   * be verifier theater.
+   */
   private async runXtb(molecule: MoleculeSpec, task: string): Promise<TBLiteRawResult> {
-    // Generate xtb-compatible XYZ input
-    const xyz = this.moleculeToXyz(molecule);
-
-    // Stage 1 mock implementation
-    // Real xtb invocation:
-    // 1. Write XYZ to file
-    // 2. Run `xtb input.xyz --sp` or `xtb input.xyz --opt`
-    // 3. Parse energy, dipole, charges from JSON output
-
     if (this.xtbPath === '__mock__') {
       return this.mockXtbResult(molecule, task);
     }
 
-    // For now, mock — real subprocess bridge in stage 2
-    void xyz;
-    void task;
-    return this.mockXtbResult(molecule, task);
+    // Real xtb subprocess invocation.
+    const xyz = this.moleculeToXyz(molecule);
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs/promises');
+
+    const execFileAsync = promisify(execFile);
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'holoscript_xtb_'));
+    const inputPath = path.join(tmpDir, 'input.xyz');
+    const jsonOutputPath = path.join(tmpDir, 'xtbout.json');
+
+    try {
+      await fs.writeFile(inputPath, xyz, 'utf8');
+
+      const args = [inputPath, task, '--json', '--namespace', 'xtbout'];
+      // Add method flag (GFN0/GFN1/GFN2)
+      if (this.xtbMethod === 'GFN0-xTB') args.push('--gfn', '0');
+      else if (this.xtbMethod === 'GFN1-xTB') args.push('--gfn', '1');
+      // GFN2-xTB is the default
+
+      const { stderr } = await execFileAsync(this.xtbPath, args, {
+        cwd: tmpDir,
+        maxBuffer: 10 * 1024 * 1024,
+      });
+
+      if (stderr) {
+        const fatal = stderr
+          .split('\n')
+          .filter((l) => l.includes('ERROR') || l.includes('Traceback'));
+        if (fatal.length > 0) {
+          throw new Error(`[tblite] xtb stderr: ${fatal.join('\n')}`);
+        }
+      }
+
+      const jsonRaw = await fs.readFile(jsonOutputPath, 'utf8');
+      const parsed = JSON.parse(jsonRaw) as Record<string, unknown>;
+
+      return {
+        total_energy: typeof parsed['total energy'] === 'number' ? parsed['total energy'] : undefined,
+        converged: true,
+        scf_iterations: typeof parsed['number of iterations taken for SCC'] === 'number'
+          ? (parsed['number of iterations taken for SCC'] as number)
+          : undefined,
+        dipole_moment: Array.isArray(parsed['dipole'])
+          ? (parsed['dipole'] as [number, number, number])
+          : undefined,
+        gradient_norm: typeof parsed['gradient norm'] === 'number'
+          ? (parsed['gradient norm'] as number)
+          : undefined,
+        opt_steps: typeof parsed['optimization steps'] === 'number'
+          ? (parsed['optimization steps'] as number)
+          : undefined,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[tblite] Failed to run xtb at '${this.xtbPath}': ${msg}`);
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
+    }
   }
 
   /** Convert molecule to XYZ format for xtb input. */

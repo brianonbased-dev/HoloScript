@@ -377,9 +377,19 @@ export class Psi4Backend implements QmSolver {
       '13C': 184.133,
     };
 
-    const nucleusLabels = molecule.atoms.map(
-      (a) => `${getAtomicNumber(a.symbol) === 1 ? '1' : a.symbol}H`
-    );
+    // NMR-active isotope labels per element symbol.
+    // Hydrogen → '1H', Carbon → '13C', Nitrogen → '15N', Phosphorus → '31P',
+    // all others → element symbol (NMR inactive or symbol-only convention).
+    const nmrIsotopeLabel = (symbol: string): string => {
+      switch (symbol) {
+        case 'H': return '1H';
+        case 'C': return '13C';
+        case 'N': return '15N';
+        case 'P': return '31P';
+        default: return symbol;
+      }
+    };
+    const nucleusLabels = molecule.atoms.map((a) => nmrIsotopeLabel(a.symbol));
 
     const shieldings = raw.shieldings ?? new Array<number>(molecule.atoms.length).fill(0);
     const chemicalShifts = shieldings.map((s, i) => {
@@ -476,27 +486,68 @@ export class Psi4Backend implements QmSolver {
   /**
    * Run a Psi4 input script and parse the JSON result.
    *
-   * In production, this invokes `psi4` as a subprocess. In test/mock mode,
-   * the result is synthesized. The bridge pattern keeps Psi4 (a C++/Python
-   * application) outside the HoloScript Node.js process.
+   * When psi4Path is '__mock__' or unset, returns synthesised mock data so
+   * the CAEL recording pipeline can be validated end-to-end without a Psi4
+   * installation. When psi4Path is any other value (a real binary path),
+   * the script is written to a temp file, psi4 is spawned as a subprocess,
+   * and the %%QM_RESULT%% marker is parsed from stdout. If the spawn fails
+   * (e.g. binary not found), an error is thrown — silent fallback to mock
+   * would be "verifier theater" (a bridge that always returns mock data is
+   * indistinguishable from a broken bridge).
    */
   private async runPsi4(inputScript: string): Promise<Psi4RawResult> {
-    // In stage 1, we provide a mock implementation that returns
-    // placeholder results. Real Psi4 invocation requires:
-    // 1. Psi4 installed (pip install psi4)
-    // 2. subprocess.spawn('psi4', ['-i', inputPath, '-o', outputPath])
-    // 3. Parse the QM_RESULT marker from output
-    //
-    // The mock returns a minimal converged result so the CAEL recording
-    // pipeline can be validated end-to-end.
-
     if (!this.psi4Path || this.psi4Path === '__mock__') {
       return this.mockPsi4Result(inputScript);
     }
 
-    // Real Psi4 invocation would go here in stage 2
-    // For now, fall through to mock
-    return this.mockPsi4Result(inputScript);
+    // Real Psi4 subprocess invocation.
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const fs = await import('node:fs/promises');
+
+    const execFileAsync = promisify(execFile);
+    const tmpDir = os.tmpdir();
+    const inputPath = path.join(tmpDir, `holoscript_psi4_${Date.now()}.py`);
+    const outputPath = path.join(tmpDir, `holoscript_psi4_${Date.now()}.out`);
+
+    try {
+      await fs.writeFile(inputPath, inputScript, 'utf8');
+
+      const { stdout, stderr } = await execFileAsync(
+        this.psi4Path,
+        ['-i', inputPath, '-o', outputPath],
+        { maxBuffer: 10 * 1024 * 1024 }
+      );
+
+      // Filter deprecation warnings; only fatal errors abort
+      if (stderr) {
+        const fatal = stderr
+          .split('\n')
+          .filter(
+            (l) => l.includes('Error:') || l.includes('Traceback') || l.includes('SyntaxError')
+          );
+        if (fatal.length > 0) {
+          throw new Error(`[psi4] Subprocess error: ${fatal.join('\n')}`);
+        }
+      }
+
+      // Parse the %%QM_RESULT%% marker injected by the script
+      const marker = '%%QM_RESULT%%';
+      const markerIdx = stdout.indexOf(marker);
+      if (markerIdx === -1) {
+        throw new Error('[psi4] Output did not contain %%QM_RESULT%% marker');
+      }
+      const jsonStr = stdout.slice(markerIdx + marker.length).trim().split('\n')[0] ?? '';
+      return JSON.parse(jsonStr) as Psi4RawResult;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[psi4] Failed to run psi4 at '${this.psi4Path}': ${msg}`);
+    } finally {
+      await fs.unlink(inputPath).catch(() => undefined);
+      await fs.unlink(outputPath).catch(() => undefined);
+    }
   }
 
   /** Mock result for testing without Psi4 installed. */
