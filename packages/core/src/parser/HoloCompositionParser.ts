@@ -381,6 +381,10 @@ export class HoloCompositionParser {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
+          // Named scene blocks (v4.6 — scene keyword)
+        } else if (this.check('SCENE')) {
+          if (!composition.scenes) composition.scenes = [];
+          composition.scenes.push(this.parseScene());
           // Domain-specific blocks (v4.1)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -1081,9 +1085,15 @@ export class HoloCompositionParser {
         environment = this.parseEnvironment();
       } else if (this.check('OBJECT')) {
         objects.push(this.parseObject());
+      } else if (this.check('LBRACE')) {
+        // Nested block (unknown keyword body already consumed) — depth-track to avoid early exit
+        this.skipBlock();
       } else {
-        // Skip unknown content to avoid infinite loop
+        // Unknown token (keyword or other) — if followed by a block, skip the block too
         this.advance();
+        if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional name
+        if (this.check('LPAREN')) this.skipParens(); // optional arg list
+        if (this.check('LBRACE')) this.skipBlock(); // optional body
       }
     }
 
@@ -4315,6 +4325,19 @@ export class HoloCompositionParser {
           while (!this.check('RBRACE') && !this.isAtEnd()) {
             this.skipNewlines();
             if (this.check('RBRACE')) break;
+            // Guard: if the current token cannot be an identifier, skip it to
+            // avoid the infinite loop that occurs when expectIdentifier() fails
+            // (adds an error but does NOT advance), e.g. on_tap: transition("x")
+            // leaves "(" as the next token after parseValue() reads "transition".
+            if (
+              this.current().type !== 'IDENTIFIER' &&
+              !this.isKeywordAsIdentifierType(this.current().type)
+            ) {
+              if (this.check('LPAREN')) this.skipParens();
+              else if (this.check('LBRACE')) this.skipBlock();
+              else this.advance();
+              continue;
+            }
             const key = this.expectIdentifier();
             if (this.check('COLON')) {
               this.advance(); // consume :
@@ -4339,7 +4362,16 @@ export class HoloCompositionParser {
               } else if (key === 'onTimeout') {
                 state.onTimeout = this.parseStatementBlock();
               } else {
-                this.parseValue(); // skip unknown value
+                // Unknown key:value — consume the value (which may include
+                // a call expression like `transition("placing")`).
+                if (!this.check('RBRACE') && !this.isAtEnd()) {
+                  const v = this.parseValue();
+                  // parseValue() reads the identifier but NOT a following call
+                  // expression — skip any trailing parens/block.
+                  if (this.check('LPAREN')) this.skipParens();
+                  if (this.check('LBRACE')) this.skipBlock();
+                  void v;
+                }
               }
             } else if (this.check('LBRACE')) {
               // key { ... } shorthand (e.g., enter { ... })
@@ -4356,6 +4388,10 @@ export class HoloCompositionParser {
               } else {
                 this.skipBlock();
               }
+            } else if (this.check('LPAREN')) {
+              // Bare call expression (e.g. key was already the fn name): skip args.
+              this.skipParens();
+              if (this.check('LBRACE')) this.skipBlock();
             }
             this.skipNewlines();
           }
@@ -4366,6 +4402,17 @@ export class HoloCompositionParser {
         continue;
       }
 
+      // Same guard at the outer level (initial:, state-level unknown blocks).
+      if (
+        this.current().type !== 'IDENTIFIER' &&
+        !this.isKeywordAsIdentifierType(this.current().type)
+      ) {
+        if (this.check('LPAREN')) this.skipParens();
+        else if (this.check('LBRACE')) this.skipBlock();
+        else this.advance();
+        this.skipNewlines();
+        continue;
+      }
       const key = this.expectIdentifier();
 
       // Handle `initial: "stateName"` (short form of initialState)
@@ -4379,9 +4426,14 @@ export class HoloCompositionParser {
         // Unknown key:value — skip value
         this.advance(); // consume ':'
         this.parseValue();
+        if (this.check('LPAREN')) this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
       } else if (this.check('LBRACE')) {
         // Unknown block — skip it
         this.skipBlock();
+      } else if (this.check('LPAREN')) {
+        this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
       }
 
       this.skipNewlines();
@@ -4438,6 +4490,17 @@ export class HoloCompositionParser {
           while (!this.check('RBRACE') && !this.isAtEnd()) {
             this.skipNewlines();
             if (this.check('RBRACE')) break;
+            // Guard: skip non-identifier tokens to avoid an infinite loop when
+            // expectIdentifier() fails without advancing (tolerant mode).
+            if (
+              this.current().type !== 'IDENTIFIER' &&
+              !this.isKeywordAsIdentifierType(this.current().type)
+            ) {
+              if (this.check('LPAREN')) this.skipParens();
+              else if (this.check('LBRACE')) this.skipBlock();
+              else this.advance();
+              continue;
+            }
             const key = this.expectIdentifier();
             if (this.check('COLON')) {
               this.advance();
@@ -4458,7 +4521,11 @@ export class HoloCompositionParser {
               } else if (key === 'timeout') {
                 state.timeout = this.parseValue() as number;
               } else {
-                this.parseValue();
+                if (!this.check('RBRACE') && !this.isAtEnd()) {
+                  this.parseValue();
+                  if (this.check('LPAREN')) this.skipParens();
+                  if (this.check('LBRACE')) this.skipBlock();
+                }
               }
             } else if (this.check('LBRACE')) {
               if (key === 'enter' || key === 'entry' || key === 'on_entry') {
@@ -4476,6 +4543,9 @@ export class HoloCompositionParser {
               } else {
                 this.skipBlock();
               }
+            } else if (this.check('LPAREN')) {
+              this.skipParens();
+              if (this.check('LBRACE')) this.skipBlock();
             }
             this.skipNewlines();
           }
@@ -4486,6 +4556,17 @@ export class HoloCompositionParser {
         continue;
       }
 
+      // Guard at outer level too.
+      if (
+        this.current().type !== 'IDENTIFIER' &&
+        !this.isKeywordAsIdentifierType(this.current().type)
+      ) {
+        if (this.check('LPAREN')) this.skipParens();
+        else if (this.check('LBRACE')) this.skipBlock();
+        else this.advance();
+        this.skipNewlines();
+        continue;
+      }
       const key = this.expectIdentifier();
       if (key === 'initial' || key === 'initialState') {
         this.expect('COLON');
@@ -4499,8 +4580,13 @@ export class HoloCompositionParser {
       } else if (this.check('COLON')) {
         this.advance();
         this.parseValue();
+        if (this.check('LPAREN')) this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
       } else if (this.check('LBRACE')) {
         this.skipBlock();
+      } else if (this.check('LPAREN')) {
+        this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
       }
       this.skipNewlines();
     }
@@ -5587,16 +5673,11 @@ export class HoloCompositionParser {
           this.tokens[this.pos + 1]?.type === 'LBRACE'
         ) {
           this.advance(); // consume event name
-          // Simple event handler: skip parameters and body
+          // Simple event handler: skip parameters and body.
+          // Use skipParens() so non-identifier arguments (strings, calls) don't
+          // cause expectIdentifier() to stall without advancing in tolerant mode.
           if (this.check('LPAREN')) {
-            this.advance(); // (
-            const params: HoloParameter[] = [];
-            while (!this.check('RPAREN') && !this.isAtEnd()) {
-              const paramName = this.expectIdentifier();
-              params.push({ type: 'Parameter', name: paramName });
-              if (this.check('COMMA')) this.advance();
-            }
-            this.expect('RPAREN');
+            this.skipParens();
           }
           if (this.check('LBRACE')) {
             this.skipBlock();
