@@ -1,14 +1,31 @@
 {
-  "generatedAt": "2026-06-10T04:38:42.235Z",
-  "rngSeed": "0xdeadbef0",
+  "generatedAt": "2026-06-10T06:41:19.693Z",
   "traitUniverseCount": 2919,
   "subsetSize": 5,
-  "totalInputs": 200,
-  "pass": 200,
-  "fail": 0,
-  "backendsCompared": [
-    "ProvenanceSemiring (TypeScript runtime — packages/core)",
-    "HoloScriptWasm.validateWithTraits (WASM+TS bridge — packages/compiler-wasm)"
-  ],
-  "assertion": "byte-identical provenance fingerprint for every random trait-composition input"
+  "totalInputsPerBlock": 200,
+  "blocks": {
+    "realWasmParserParity": {
+      "ran": true,
+      "wasmVersion": "3.0.0",
+      "pass": 200,
+      "fail": 0,
+      "rngSeed": "0xdeadbef2",
+      "assertion": "Rust WASM parser (compiled binary) and TS path agree on trait-set identity; identical canonical config fingerprint for every input"
+    },
+    "bridgeLayerExtractionParity": {
+      "ran": true,
+      "pass": 200,
+      "fail": 0,
+      "rngSeed": "0xdeadbef1",
+      "assertion": "TS wrapper-layer trait extraction and TS ProvenanceSemiring path produce byte-identical canonical config fingerprints (trait-set identity; Rust binary not involved)"
+    },
+    "conflictResolutionDeterminism": {
+      "ran": true,
+      "rounds": 50,
+      "collidingKeysPerInput": 2,
+      "rngSeed": "0xdeadbef3",
+      "assertion": "ProvenanceSemiring.add resolves real key collisions deterministically (identical canonical fingerprint across repeated evaluations)"
+    }
+  },
+  "nonClaim": "No Rust implementation of the composition semiring exists; this harness establishes front-end/runtime agreement on trait-set identity (real Rust WASM parser + TS bridge layer) plus deterministic conflict resolution in the single TypeScript ProvenanceSemiring."
 }
