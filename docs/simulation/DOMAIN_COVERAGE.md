@@ -165,6 +165,28 @@ Whole-file audit of 95 physics/simsci files (9 subsystem auditors), then verifie
 
 ---
 
+## Manufacturing Lane (CAD / 3D printing — added 2026-06-10)
+
+> CADAM-parity engine path, sovereign (HoloScript SDF kernel, no external CAD dependency).
+> Board task task_1781125573775_6m2u. All under `packages/engine/src/simulation/`.
+
+| Component | What it does | Validation |
+|---|---|---|
+| `SDFPointEvaluator` (pre-existing) | CSG kernel: 21 primitives, boolean + smooth ops, twist/bend/repeat; JS evaluation + grid sampling | conjecture probes + manufacturing tests |
+| `manufacturing/MarchingCubes` | SDF → watertight `SurfaceMesh` (256-case tables, edge-keyed welding, outward winding) | sphere volume 0.6% of 4π/3, CSG box−cylinder 1% of analytic, watertight edge check, resolution convergence |
+| `export/STLExporter` | `SurfaceMesh` → binary/ASCII STL with computed unit normals, scale option | closed-loop round trip through `import/STLParser`, normal correctness |
+| `manufacturing/PrintabilityAnalyzer` | watertight/manifold check, signed volume + orientation, overhang detection vs build direction (`bedEpsilon` first-layer tolerance), build-volume fit, thin-wall heuristic (honestly named — sampling, not medial-axis) | 37 analytic tests on hand-built meshes |
+| `ManufacturingLane.e2e` | parametric part → mesh → pre-flight → STL → reimport → re-verify; parameter change reproduces analytic volume delta | 6 e2e tests |
+
+Pipeline: `.holo`/SDFNode → `marchingCubes()` → `analyzePrintability()` → `exportSTLBinary()` — composes with
+`AutoMesher`/FEM (same `SurfaceMesh` contract) so a printed part can also be structurally verified with receipts —
+the composition CADAM-class tools do not have (W.902).
+
+Open (board-filed): Studio parametric sliders (task_1781125573776_tq83), OpenSCAD-WASM bridge decision
+(task_1781125573776_gsri), GCode slicer phase 1 (task_1781125573776_suzq).
+
+---
+
 ## Evidence Readiness Scores
 
 > **Evidence Readiness** = "can a third party reproduce the claim from shipped artifacts?"
