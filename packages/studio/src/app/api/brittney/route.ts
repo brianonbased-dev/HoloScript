@@ -53,6 +53,7 @@ import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
+import { filterToolsToTier, tierForProvider } from '@/lib/brittney/toolTiers';
 import { fetchUserRepos } from '@/lib/brittney/githubContext';
 import {
   resolveHoloShellOperatorConfig,
@@ -115,22 +116,27 @@ const SERVER_EXECUTED_TOOL_NAMES = new Set([
  * shape with `input_schema` instead of `parameters`. This function
  * performs that rename.
  */
-function convertToolsToProviderFormat(opts: { includeAuthoring?: boolean } = {}): ToolSpec[] {
+function convertToolsToProviderFormat(
+  opts: { includeAuthoring?: boolean; tier?: 'full' | 'core' } = {}
+): ToolSpec[] {
   // `includeAuthoring` gates the hs_* authoring tools (hs_diagnostics / hs_refactor).
-  // Defaults ON (binds in every session); this is the seam for future per-mode
-  // scoping — once the route can distinguish a /vibe-casual turn from a code
-  // session, pass `false` to drop the authoring tax on casual turns. No mode
-  // signal reaches the route today, so it stays on by default for now.
-  const { includeAuthoring = true } = opts;
-  const allDefs = [
-    ...BRITTNEY_TOOLS,
-    ...STUDIO_API_TOOLS,
-    ...MCP_TOOLS,
-    ...SIMULATION_TOOLS,
-    ...LOTUS_TOOLS,
-    ...EMBODIED_TOOLS,
-    ...(includeAuthoring ? HS_AUTHORING_TOOLS : []),
-  ];
+  // `tier` is the tool diet (task_1781123525299_4uhh): small sovereign models
+  // measurably stop tool-calling under the full ~90-definition registry
+  // (fable5 run 20260610T203030: 0/10, zero executions, model claimed it had
+  // no tool access) — tier 'core' trims to the 14 high-signal tools.
+  const { includeAuthoring = true, tier = 'full' } = opts;
+  const allDefs = filterToolsToTier(
+    [
+      ...BRITTNEY_TOOLS,
+      ...STUDIO_API_TOOLS,
+      ...MCP_TOOLS,
+      ...SIMULATION_TOOLS,
+      ...LOTUS_TOOLS,
+      ...EMBODIED_TOOLS,
+      ...(includeAuthoring ? HS_AUTHORING_TOOLS : []),
+    ],
+    tier
+  );
 
   return allDefs.map((t) => ({
     name: t.function.name,
@@ -435,7 +441,9 @@ export async function POST(request: NextRequest) {
     // Same shape as Anthropic's { name, description, input_schema } — the
     // conversion just renames `parameters` → `input_schema`.
     __phase = 'tool-conversion';
-    const tools = convertToolsToProviderFormat();
+    const tools = convertToolsToProviderFormat({
+      tier: tierForProvider(resolved?.providerName),
+    });
     const toolNameSet = new Set(tools.map((t) => t.name));
 
     __phase = 'stream-init';
