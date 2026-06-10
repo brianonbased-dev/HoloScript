@@ -13,6 +13,7 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 // =============================================================================
@@ -85,18 +86,19 @@ const METRICS: MetricDefinition[] = [
 // Files to scan for metric occurrences
 const SCAN_GLOBS = ['README.md', 'docs/strategy/ROADMAP.md', 'packages/mcp-server/README.md'];
 
-// External files (outside HoloScript repo)
+// External files (outside HoloScript repo) — resolved via os.homedir() for portability
+const HOME = os.homedir();
 const EXTERNAL_FILES = [
-  'C:/Users/Josep/.claude/CLAUDE.md',
-  'C:/Users/Josep/.claude/NORTH_STAR.md',
-  'C:/Users/Josep/.gemini/GEMINI.md',
-  'C:/Users/Josep/.claude/skills/holoscript/SKILL.md',
-  'C:/Users/Josep/.claude/skills/documenter/skill.md',
-  'C:/Users/Josep/.claude/skills/holomoltbook/skill.md',
-  'C:/Users/Josep/.claude/skills/holomesh/skill.md',
-  'C:/Users/Josep/.claude/skills/holomesh-oracle/SKILL.md',
-  'C:/Users/Josep/.claude/projects/c--Users-josep--ai-ecosystem/memory/MEMORY.md',
-  'C:/Users/Josep/.ai-ecosystem/STRATEGY.md',
+  path.join(HOME, '.claude', 'CLAUDE.md'),
+  path.join(HOME, '.claude', 'NORTH_STAR.md'),
+  path.join(HOME, '.gemini', 'GEMINI.md'),
+  path.join(HOME, '.claude', 'skills', 'holoscript', 'SKILL.md'),
+  path.join(HOME, '.claude', 'skills', 'documenter', 'skill.md'),
+  path.join(HOME, '.claude', 'skills', 'holomoltbook', 'skill.md'),
+  path.join(HOME, '.claude', 'skills', 'holomesh', 'skill.md'),
+  path.join(HOME, '.claude', 'skills', 'holomesh-oracle', 'SKILL.md'),
+  path.join(HOME, '.claude', 'projects', 'c--Users-josep--ai-ecosystem', 'memory', 'MEMORY.md'),
+  path.join(HOME, '.ai-ecosystem', 'STRATEGY.md'),
 ];
 
 // =============================================================================

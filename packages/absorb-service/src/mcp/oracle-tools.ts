@@ -13,6 +13,7 @@
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { mcpAuthHeadersAsync } from '@holoscript/config';
 
@@ -55,7 +56,8 @@ const ORCHESTRATOR_URL =
   process.env.MCP_ORCHESTRATOR_URL || 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 const ORACLE_TELEMETRY_PATH =
-  process.env.ORACLE_TELEMETRY_PATH || 'C:/Users/Josep/.holoscript/oracle-telemetry.jsonl';
+  process.env.ORACLE_TELEMETRY_PATH ||
+  path.join(os.homedir(), '.holoscript', 'oracle-telemetry.jsonl');
 
 function inferHardwareTarget(question: string, context: string, explicitTarget?: unknown): string {
   if (typeof explicitTarget === 'string' && explicitTarget.trim()) {

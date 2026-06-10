@@ -6,6 +6,7 @@
  */
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
@@ -58,7 +59,8 @@ const TREES: Record<string, string> = {
 };
 
 const ORACLE_TELEMETRY_PATH =
-  process.env.ORACLE_TELEMETRY_PATH || 'C:/Users/Josep/.holoscript/oracle-telemetry.jsonl';
+  process.env.ORACLE_TELEMETRY_PATH ||
+  path.join(os.homedir(), '.holoscript', 'oracle-telemetry.jsonl');
 
 function inferHardwareTarget(question: string, context: string, explicitTarget?: unknown): string {
   if (typeof explicitTarget === 'string' && explicitTarget.trim()) {
