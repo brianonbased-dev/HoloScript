@@ -30,6 +30,11 @@ type DigestSolver = {
   getField(name: string): DigestField | null;
 };
 type ComputeStateDigest = (solver: DigestSolver, hashMode: HashMode) => string;
+type HashGeometry = (
+  vertices: Float64Array | Float32Array | undefined,
+  elements: Uint32Array | undefined,
+  mode?: HashMode
+) => string;
 type SimulationModule = Awaited<ReturnType<typeof getSimulation>>;
 type ThermalDigestSource = {
   getTemperatureField(): Float32Array | Float64Array | number[];
@@ -323,6 +328,105 @@ function getComputeStateDigest(Sim: SimulationModule): ComputeStateDigest | null
   return typeof candidate === 'function' ? (candidate as ComputeStateDigest) : null;
 }
 
+function getHashGeometry(Sim: SimulationModule): HashGeometry | null {
+  const candidate = (Sim as unknown as { hashGeometry?: unknown }).hashGeometry;
+  return typeof candidate === 'function' ? (candidate as HashGeometry) : null;
+}
+
+/**
+ * Compute a geometry hash for a structural mesh.
+ *
+ * Delegates to Simulation.hashGeometry (hashes.ts) which uses FNV-1a over
+ * canonicalized vertex coordinates and connectivity indices.  Falls back to a
+ * local FNV-1a digest of the buffer lengths when the engine export is absent
+ * (e.g., in test environments that do not expose hashGeometry).
+ */
+function computeStructuralGeometryHash(
+  Sim: SimulationModule,
+  solverConfig: Record<string, unknown>,
+  hashMode: HashMode
+): string {
+  const hashGeometryFn = getHashGeometry(Sim);
+  const vertices =
+    solverConfig.vertices instanceof Float64Array || solverConfig.vertices instanceof Float32Array
+      ? (solverConfig.vertices as Float64Array | Float32Array)
+      : undefined;
+  const tetrahedra =
+    solverConfig.tetrahedra instanceof Uint32Array
+      ? (solverConfig.tetrahedra as Uint32Array)
+      : undefined;
+
+  if (hashGeometryFn && vertices && tetrahedra) {
+    return hashGeometryFn(vertices, tetrahedra, hashMode);
+  }
+
+  // Fallback: hash the count of vertices and indices as a minimal fingerprint.
+  const vLen = vertices ? vertices.length : 0;
+  const tLen = tetrahedra ? tetrahedra.length : 0;
+  return fnv1a(`geo-fallback:v${vLen}:t${tLen}`);
+}
+
+/**
+ * Compute a geometry hash for a thermal grid configuration.
+ *
+ * The thermal solver has no explicit vertex/element mesh — only a
+ * structured grid.  We hash the gridResolution and domainSize arrays as
+ * a stable content fingerprint so the init trace entry reflects the
+ * actual spatial discretization instead of the 'geo-unavailable' placeholder.
+ */
+function computeThermalGeometryHash(solverConfig: Record<string, unknown>): string {
+  const gridRes = Array.isArray(solverConfig.gridResolution)
+    ? (solverConfig.gridResolution as number[])
+    : [];
+  const domainSize = Array.isArray(solverConfig.domainSize)
+    ? (solverConfig.domainSize as number[])
+    : [];
+  const key = `thermal-grid:${gridRes.join('x')}:domain:${domainSize.map((d) => d.toFixed(6)).join('x')}`;
+  return `geo-${fnv1a(key).replace('cael-', '')}`;
+}
+
+/**
+ * Compute a state digest for the structural solver after solve().
+ *
+ * StructuralSolverTET10 does not expose fieldNames/getField, so we build
+ * a synthetic field adapter from the displacement and vonMisesStress arrays
+ * and delegate to computeStateDigest.  The field names ('displacement',
+ * 'vonMisesStress') match the FIELD_QUANTUM_REGISTRY patterns in hashes.ts
+ * so the quantum discretization is physically appropriate.
+ */
+function computeStructuralStateDigest(
+  Sim: SimulationModule,
+  displacements: number[] | Float32Array | Float64Array,
+  vonMisesStress: number[] | Float32Array | Float64Array,
+  hashMode: HashMode
+): string | null {
+  const computeSD = getComputeStateDigest(Sim);
+  if (!computeSD) return null;
+
+  const dispField = toFloatField(
+    displacements instanceof Float32Array || displacements instanceof Float64Array
+      ? displacements
+      : new Float32Array(displacements)
+  );
+  const vmField = toFloatField(
+    vonMisesStress instanceof Float32Array || vonMisesStress instanceof Float64Array
+      ? vonMisesStress
+      : new Float32Array(vonMisesStress)
+  );
+
+  return computeSD(
+    {
+      fieldNames: ['displacement', 'vonMisesStress'],
+      getField(name: string): DigestField | null {
+        if (name === 'displacement') return dispField;
+        if (name === 'vonMisesStress') return vmField;
+        return null;
+      },
+    },
+    hashMode
+  );
+}
+
 function toFloatField(value: Float32Array | Float64Array | number[]): Float32Array | Float64Array {
   if (value instanceof Float32Array || value instanceof Float64Array) return value;
   return new Float32Array(value);
@@ -384,13 +488,14 @@ class LocalTraceRecorder {
 
   constructor(
     private solverType: string,
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
+    geometryHash: string
   ) {
     this.append('init', {
       solverType,
       config: canonical(config),
       contractConfig: {},
-      geometryHash: 'geo-unavailable',
+      geometryHash,
       hashMode: this.hashMode,
     });
   }
@@ -599,20 +704,30 @@ export async function handleSimulationTool(
       const solver = new Sim.StructuralSolverTET10(
         solverConfig as unknown as ConstructorParameters<typeof Sim.StructuralSolverTET10>[0]
       );
-      recorder = new LocalTraceRecorder(name, solverConfig);
+      const structGeoHash = computeStructuralGeometryHash(Sim, solverConfig, 'fnv1a');
+      recorder = new LocalTraceRecorder(name, solverConfig, structGeoHash);
 
       await Promise.resolve(solver.solve());
-      recorder.solve();
+      const displacements = solver.getDisplacements();
+      const vonMisesStress = solver.getVonMisesStress();
+      const structStateDigest = computeStructuralStateDigest(
+        Sim,
+        displacements,
+        vonMisesStress,
+        'fnv1a'
+      );
+      recorder.solve(structStateDigest ? [structStateDigest] : []);
       result = {
-        displacements: solver.getDisplacements(),
-        vonMisesStress: solver.getVonMisesStress(),
+        displacements,
+        vonMisesStress,
         safetyFactor: solver.getSafetyFactor(),
       };
     } else {
       const solver = new Sim.ThermalSolver(
         solverConfig as unknown as ConstructorParameters<typeof Sim.ThermalSolver>[0]
       );
-      recorder = new LocalTraceRecorder(name, solverConfig);
+      const thermalGeoHash = computeThermalGeometryHash(solverConfig);
+      recorder = new LocalTraceRecorder(name, solverConfig, thermalGeoHash);
 
       const dt = typeof solverConfig.timeStep === 'number' ? solverConfig.timeStep : 0.01;
       const steps =

@@ -50,6 +50,14 @@ vi.mock('@holoscript/engine', () => {
     Simulation: {
       ThermalSolver,
       StructuralSolverTET10,
+      hashGeometry(
+        vertices: Float64Array | Float32Array | undefined,
+        elements: Uint32Array | undefined,
+        _mode?: string
+      ): string {
+        if (!vertices || !elements) return 'no-geometry';
+        return `geo-mock-${vertices.length}v-${elements.length}e`;
+      },
       computeStateDigest(
         solver: {
           fieldNames?: Iterable<string>;
@@ -73,6 +81,27 @@ vi.mock('@holoscript/engine', () => {
 
 import { handleSimulationTool } from '../simulation-tools';
 import { simulationTools } from '../simulation-tools';
+
+// Minimal TET10 structural config used by geometry-hash and state-digest tests.
+// 4 corner nodes + 6 midpoint nodes = 10 nodes for a single TET10 element.
+const minimalStructuralConfig = {
+  nodes: [
+    [0, 0, 0],
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [0.5, 0, 0],
+    [0.5, 0.5, 0],
+    [0, 0.5, 0],
+    [0, 0, 0.5],
+    [0.5, 0, 0.5],
+    [0, 0.5, 0.5],
+  ],
+  elements: [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+  materials: { E: 200e9, nu: 0.3 },
+  forces: [{ nodeIndex: 1, fx: 1000, fy: 0, fz: 0 }],
+  constraints: [{ nodeIndex: 0 }],
+};
 
 describe('simulation tools with CAEL metadata', () => {
   it('keeps simulation tool property descriptions free of generic returns pollution', () => {
@@ -159,6 +188,67 @@ describe('simulation tools with CAEL metadata', () => {
     expect(verify.success).toBe(false);
     expect(verify.hashChainValid).toBe(false);
     expect(verify.replayValid).toBe(false);
+  });
+
+  it('solve_structural geometry hash in init trace entry is not the placeholder geo-unavailable', async () => {
+    const solve = (await handleSimulationTool('solve_structural', {
+      config: minimalStructuralConfig,
+    })) as Record<string, unknown>;
+
+    expect(solve.success).toBe(true);
+    const traceJSONL = String(solve.traceJSONL);
+    const initLine = traceJSONL.split('\n').find((l) => l.includes('"event":"init"'));
+    expect(initLine).toBeTruthy();
+    const initEntry = JSON.parse(initLine!);
+    const geometryHash = initEntry?.payload?.geometryHash;
+    expect(typeof geometryHash).toBe('string');
+    expect(geometryHash).not.toBe('geo-unavailable');
+    expect(geometryHash).not.toBe('');
+  });
+
+  it('solve_structural recorder.solve() carries non-empty stateDigests', async () => {
+    const solve = (await handleSimulationTool('solve_structural', {
+      config: minimalStructuralConfig,
+    })) as Record<string, unknown>;
+
+    expect(solve.success).toBe(true);
+    const traceJSONL = String(solve.traceJSONL);
+    const solveLine = traceJSONL.split('\n').find((l) => l.includes('"event":"solve"'));
+    expect(solveLine).toBeTruthy();
+    const solveEntry = JSON.parse(solveLine!);
+    const stateDigests = solveEntry?.payload?.stateDigests;
+    expect(Array.isArray(stateDigests)).toBe(true);
+    expect(stateDigests.length).toBeGreaterThan(0);
+    expect(typeof stateDigests[0]).toBe('string');
+    expect(stateDigests[0]).not.toBe('');
+  });
+
+  it('solve_thermal geometry hash in init trace entry is not the placeholder geo-unavailable', async () => {
+    const config = {
+      gridResolution: [3, 3, 3],
+      domainSize: [1, 1, 1],
+      timeStep: 0.01,
+      materials: {},
+      defaultMaterial: 'water',
+      boundaryConditions: [],
+      sources: [],
+      initialTemperature: 20,
+    };
+
+    const solve = (await handleSimulationTool('solve_thermal', { config })) as Record<
+      string,
+      unknown
+    >;
+
+    expect(solve.success).toBe(true);
+    const traceJSONL = String(solve.traceJSONL);
+    const initLine = traceJSONL.split('\n').find((l) => l.includes('"event":"init"'));
+    expect(initLine).toBeTruthy();
+    const initEntry = JSON.parse(initLine!);
+    const geometryHash = initEntry?.payload?.geometryHash;
+    expect(typeof geometryHash).toBe('string');
+    expect(geometryHash).not.toBe('geo-unavailable');
+    expect(geometryHash).not.toBe('');
   });
 
   it('verify_cael_trace rejects one flipped replay output value with a valid trace hash chain', async () => {
