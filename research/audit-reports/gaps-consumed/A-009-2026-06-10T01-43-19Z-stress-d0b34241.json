@@ -1,0 +1,53 @@
+{
+  "gaps": [
+    {
+      "dedup_key": "a009-stress-d0b34241-hsp101-dot-arrow",
+      "priority": "medium",
+      "title": "Parser: HSP101 — DOT/ARROW syntax fails in 13 examples",
+      "description": "13 .hs example files fail with HSP101: Unexpected token DOT or ARROW in property blocks. Affected: agents/guard-patrol.hs, agents/iot-sensor-pipeline.hs, novel-use-cases/04..06. Examples use older method-call syntax not supported by current parser.",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "compiler-bug",
+        "parser-gap"
+      ]
+    },
+    {
+      "dedup_key": "a009-stress-d0b34241-hsp001-colon-on-error",
+      "priority": "medium",
+      "title": "Parser: HSP001 — colon/on_error syntax fails in 15 examples",
+      "description": "15 .hs files fail with HSP001: Unexpected token COLON or ON_ERROR. Affected: ai-agent.hs, autonomous-ecosystems/* (4 files), cryptography/secure-channel-setup.hs, enterprise/tenant-provisioning.hs. Examples use key:value and on_error blocks not in current grammar.",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "compiler-bug",
+        "parser-gap"
+      ]
+    },
+    {
+      "dedup_key": "a009-stress-d0b34241-hsp201-numeric-directive",
+      "priority": "low",
+      "title": "Parser: HSP201 — numeric @2d directive fails in 2 examples",
+      "description": "2 .hs files (general/dashboard.hs, general/login-form.hs) fail with HSP201: Expected directive name, got NUMBER. @2d syntax not recognized. Parser expects alphabetic directive names.",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "parser-gap"
+      ]
+    },
+    {
+      "dedup_key": "a009-stress-d0b34241-hsp300-pipe-operator",
+      "priority": "low",
+      "title": "Parser: HSP300 — PIPE operator in expression fails in 1 example",
+      "description": "pipelines/knowledge-compressor.hs fails with HSP300: Unexpected PIPE token in expression. Pipeline chaining via | operator not supported in current grammar.",
+      "tags": [
+        "auto-filed-by-A-009",
+        "example-driven",
+        "parser-gap"
+      ]
+    }
+  ],
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "fired_at": "2026-06-10T01:43:19Z"
+}
