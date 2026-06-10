@@ -25,12 +25,32 @@ export function parseTextToolCall(
     const obj = JSON.parse(t) as unknown;
     if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return null;
     const record = obj as Record<string, unknown>;
-    if (typeof record['name'] !== 'string' || record['name'].length === 0) return null;
-    const allowedKeys = new Set(['name', 'arguments', 'parameters', 'input', 'id', 'type']);
+    // Key aliases observed in the wild: Anthropic-style {name, arguments},
+    // qwen3.5-as-text {tool, tool_args} (live repro 2026-06-10), plus the
+    // common {tool, args} / {name, parameters|input} variants.
+    const nameRaw = record['name'] ?? record['tool'];
+    if (typeof nameRaw !== 'string' || nameRaw.length === 0) return null;
+    const allowedKeys = new Set([
+      'name',
+      'tool',
+      'arguments',
+      'parameters',
+      'input',
+      'tool_args',
+      'args',
+      'id',
+      'type',
+    ]);
     if (Object.keys(record).some((k) => !allowedKeys.has(k))) return null;
-    const argsRaw = record['arguments'] ?? record['parameters'] ?? record['input'] ?? {};
+    const argsRaw =
+      record['arguments'] ??
+      record['parameters'] ??
+      record['input'] ??
+      record['tool_args'] ??
+      record['args'] ??
+      {};
     if (typeof argsRaw !== 'object' || argsRaw === null || Array.isArray(argsRaw)) return null;
-    return { name: record['name'], args: argsRaw as Record<string, unknown> };
+    return { name: nameRaw, args: argsRaw as Record<string, unknown> };
   } catch {
     return null;
   }

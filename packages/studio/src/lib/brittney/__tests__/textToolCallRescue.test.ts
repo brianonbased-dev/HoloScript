@@ -16,6 +16,20 @@ describe('parseTextToolCall', () => {
     expect(out).toEqual({ name: 'board_add_task', args: { tasks: [] } });
   });
 
+  it('parses the qwen3.5-as-text shape {tool, tool_args} (live repro 2026-06-10)', () => {
+    const out = parseTextToolCall(
+      '```json\n{\n  "tool": "apply_code",\n  "tool_args": {\n    "code": "composition x {}"\n  }\n}\n```'
+    );
+    expect(out).toEqual({ name: 'apply_code', args: { code: 'composition x {}' } });
+  });
+
+  it('accepts {tool, args} as aliases', () => {
+    expect(parseTextToolCall('{"tool": "x", "args": {"a": 1}}')).toEqual({
+      name: 'x',
+      args: { a: 1 },
+    });
+  });
+
   it('accepts "parameters" and "input" as the args key', () => {
     expect(parseTextToolCall('{"name": "x", "parameters": {"a": 1}}')).toEqual({
       name: 'x',
