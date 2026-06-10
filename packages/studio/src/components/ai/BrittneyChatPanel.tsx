@@ -16,7 +16,12 @@ import {
   VolumeX,
   Wrench,
   ChevronDown,
+  MessagesSquare,
+  Plus,
+  Pencil,
+  Archive,
 } from 'lucide-react';
+import type { ConversationSummary } from '@/lib/brittney/conversationsClient';
 import {
   streamAssistant,
   buildRichContext,
@@ -245,6 +250,129 @@ function ToolBadge({
   );
 }
 
+// ─── Conversation switcher ────────────────────────────────────────────────────
+
+/**
+ * Thread picker for the server-backed conversation store. Lists the scope's
+ * threads (newest activity first), starts fresh threads, and exposes
+ * rename/archive per thread. Hidden when signed out — localStorage keeps the
+ * single-thread behavior there.
+ */
+function ConversationSwitcher({
+  conversations,
+  activeId,
+  onSelect,
+  onNew,
+  onRename,
+  onArchive,
+}: {
+  conversations: ConversationSummary[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onRename: (id: string, title: string) => void;
+  onArchive: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [open]);
+
+  const active = conversations.find((c) => c.id === activeId) ?? null;
+  const label = active ? active.title || 'Untitled chat' : 'New chat';
+
+  return (
+    <div ref={containerRef} className="relative min-w-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Conversations"
+        aria-label="Switch conversation"
+        aria-expanded={open}
+        className="flex max-w-[160px] items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] text-studio-muted transition hover:bg-studio-border hover:text-studio-text"
+      >
+        <MessagesSquare className="h-3 w-3 shrink-0" />
+        <span className="truncate">{label}</span>
+        <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-lg border border-studio-border bg-studio-panel shadow-xl">
+          <button
+            type="button"
+            onClick={() => {
+              onNew();
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-1.5 border-b border-studio-border/60 px-2.5 py-1.5 text-left text-[11px] text-studio-accent transition hover:bg-studio-surface"
+          >
+            <Plus className="h-3 w-3" />
+            New chat
+          </button>
+          <div className="max-h-56 overflow-y-auto">
+            {conversations.length === 0 && (
+              <p className="px-2.5 py-2 text-[10px] text-studio-muted">No saved conversations yet.</p>
+            )}
+            {conversations.map((c) => (
+              <div
+                key={c.id}
+                className={`group flex items-center gap-1 px-2.5 py-1.5 transition hover:bg-studio-surface ${
+                  c.id === activeId ? 'bg-studio-surface/60' : ''
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(c.id);
+                    setOpen(false);
+                  }}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className="block truncate text-[11px] text-studio-text">
+                    {c.title || 'Untitled chat'}
+                  </span>
+                  <span className="block text-[9px] text-studio-muted">
+                    {c.messageCount} {c.messageCount === 1 ? 'message' : 'messages'}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = window.prompt('Rename conversation', c.title || 'Untitled chat');
+                    if (next !== null && next.trim()) onRename(c.id, next.trim());
+                  }}
+                  title="Rename conversation"
+                  aria-label={`Rename conversation ${c.title || 'Untitled chat'}`}
+                  className="rounded p-1 text-studio-muted opacity-0 transition hover:text-studio-text group-hover:opacity-100"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onArchive(c.id)}
+                  title="Archive conversation"
+                  aria-label={`Archive conversation ${c.title || 'Untitled chat'}`}
+                  className="rounded p-1 text-studio-muted opacity-0 transition hover:text-amber-400 group-hover:opacity-100"
+                >
+                  <Archive className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 export function BrittneyChatPanel() {
@@ -279,19 +407,28 @@ export function BrittneyChatPanel() {
   const removeNode = useSceneGraphStore((s) => s.removeNode);
   const updateNode = useSceneGraphStore((s) => s.updateNode);
 
-  // Unified history — one thread shared with /start, /build, /create. The old
-  // `routeScope: pathname` made /vibe and /create separate per-page histories;
-  // the unified hook drops route fragmentation and anchors on the workspace.
+  // Unified history — one active thread shared with /start, /build, /create.
+  // The old `routeScope: pathname` made /vibe and /create separate per-page
+  // histories; the unified hook drops route fragmentation, anchors on the
+  // workspace, and (when signed in) syncs threads through
+  // /api/brittney/conversations so history survives browsers and devices.
   const {
     scope: assistantHistoryScope,
+    threadKey: assistantThreadKey,
     history: savedHistory,
     addMessage: persistMessage,
     clearHistory: clearPersistedHistory,
     isLoaded: assistantHistoryLoaded,
+    conversations,
+    activeConversationId,
+    newConversation,
+    selectConversation,
+    renameConversation,
+    archiveConversation,
   } = useUnifiedBrittneyHistory();
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
-  const [loadedHistoryScope, setLoadedHistoryScope] = useState<string | null>(null);
+  const [loadedThreadKey, setLoadedThreadKey] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
@@ -346,10 +483,12 @@ export function BrittneyChatPanel() {
     [ttsEnabled]
   );
 
-  // Load persisted history after storage has resolved for the current workspace/project scope.
+  // Load persisted history after storage has resolved for the current thread.
+  // Keyed on threadKey (scope + active conversation) so switching threads —
+  // not just workspaces — rebuilds the rendered messages and LLM history.
   useEffect(() => {
-    if (!assistantHistoryLoaded || loadedHistoryScope === assistantHistoryScope) return;
-    setLoadedHistoryScope(assistantHistoryScope);
+    if (!assistantHistoryLoaded || loadedThreadKey === assistantThreadKey) return;
+    setLoadedThreadKey(assistantThreadKey);
     if (savedHistory.length > 0) {
       setChatMessages([
         GREETING,
@@ -372,7 +511,7 @@ export function BrittneyChatPanel() {
       setChatMessages([GREETING]);
       setLlmHistory([]);
     }
-  }, [assistantHistoryLoaded, assistantHistoryScope, loadedHistoryScope, savedHistory]);
+  }, [assistantHistoryLoaded, assistantThreadKey, loadedThreadKey, savedHistory]);
 
   // Voice input
   const {
@@ -831,6 +970,16 @@ export function BrittneyChatPanel() {
           }`}
           aria-label={isThinking ? 'Thinking' : 'Ready'}
         />
+        {sessionStatus === 'authenticated' && (
+          <ConversationSwitcher
+            conversations={conversations}
+            activeId={activeConversationId}
+            onSelect={(id) => void selectConversation(id)}
+            onNew={newConversation}
+            onRename={(id, title) => void renameConversation(id, title)}
+            onArchive={(id) => void archiveConversation(id)}
+          />
+        )}
         <div className="ml-auto flex items-center gap-1.5 text-[10px] text-studio-muted">
           <Zap className="h-3 w-3 text-studio-accent" />
           {selectedName ? (

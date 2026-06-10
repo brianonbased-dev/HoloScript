@@ -89,10 +89,23 @@ export function useAssistantHistory(projectId: string) {
     setHistory([]);
   }, [projectId]);
 
+  /**
+   * Replace the whole local thread (server hydration / conversation switch).
+   * Writes through to localStorage so the cache mirrors the new thread.
+   */
+  const replaceHistory = useCallback(
+    (messages: ChatMessage[]) => {
+      writeToStorage(projectId, messages);
+      setHistory(messages.slice(-MAX_MESSAGES));
+    },
+    [projectId]
+  );
+
   return {
     history,
     addMessage,
     clearHistory,
+    replaceHistory,
     isLoaded: loadedProjectId === (projectId || 'default'),
   };
 }

@@ -8,6 +8,13 @@
       "when": 1777516466538,
       "tag": "0000_new_maddog",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781061541404,
+      "tag": "0001_redundant_penance",
+      "breakpoints": true
     }
   ]
 }
