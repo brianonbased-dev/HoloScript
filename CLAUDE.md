@@ -42,6 +42,12 @@ NEVER  → Raw curl against /api/holomesh/team/* /knowledge /message /presence
          /suggestions — use /room skill instead. Recurrent multi-agent
          antipattern; full reasoning in AGENTS.md §"⛔ ANTIPATTERN:
          raw-curl-for-room-ops". One-off endpoint-debug probes excepted.
+NEVER  → On the local desktop surface: pop terminal windows (Start-Process /
+         cmd /c start / Interactive scheduled tasks — S4U only), open browser
+         tabs to verify anything (probe headlessly; a tab is founder-eyes-only
+         on explicit request), or dump unbounded output that blanks the Claude
+         Desktop app (filter at source; big artifacts → file, read slices).
+         Full contract: ~/.ai-ecosystem/docs/handbooks/claude-desktop-anti-patterns.md
 
 ALWAYS → Use .holo for cross-platform compositions
 ALWAYS → Stage git files explicitly: git add path/to/file.ts
