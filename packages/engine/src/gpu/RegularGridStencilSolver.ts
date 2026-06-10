@@ -10,6 +10,60 @@ interface GridShape {
   dz: number;
 }
 
+// ── CFL guard helpers ────────────────────────────────────────────────────────
+
+/**
+ * Validate the explicit thermal diffusion CFL condition.
+ *
+ *   dt ≤ 1 / (2·α·(1/dx² + 1/dy² + 1/dz²))    (d=3 directions)
+ *
+ * Matches the stability check in ThermalSolver (CPU path) which auto-switches
+ * to implicit when this bound is exceeded.  The GPU stencil has no implicit
+ * fallback, so a violated condition must be caught before dispatch.
+ *
+ * @throws {RangeError} when dt exceeds the stability limit
+ */
+function assertThermalCFL(params: ThermalStencilParams): void {
+  const { dx, dy, dz, dt, alpha } = params;
+  // dt_max = 1 / (2·α·(1/dx² + 1/dy² + 1/dz²))
+  const dtMax = 1 / (2 * alpha * (1 / (dx * dx) + 1 / (dy * dy) + 1 / (dz * dz)));
+  if (dt > dtMax) {
+    throw new RangeError(
+      `RegularGridStencilSolver: thermal explicit CFL violated. ` +
+        `dt=${dt} > dt_max=${dtMax.toExponential(4)} ` +
+        `(alpha=${alpha}, dx=${dx}, dy=${dy}, dz=${dz}). ` +
+        `Reduce dt or use the implicit CPU path (ThermalSolver with dt > dt_stable).`
+    );
+  }
+}
+
+/**
+ * Validate the acoustic leapfrog CFL condition.
+ *
+ *   c·dt / min(dx,dy,dz) ≤ 1/√3    (3D Courant number)
+ *
+ * Matches the AcousticSolver (CPU path) CFL limit.  When a velocity field is
+ * provided, the maximum velocity (cUniform is used as a proxy; callers should
+ * ensure cUniform ≥ max(velocityField) when hasVelocity is true).
+ *
+ * @throws {RangeError} when the Courant number exceeds 1/√3
+ */
+function assertAcousticCFL(params: AcousticStencilParams): void {
+  const { dx, dy, dz, dt, cUniform } = params;
+  const minDx = Math.min(dx, dy, dz);
+  // 3D Courant limit: c·dt/dx ≤ 1/√3
+  const courantMax = 1 / Math.sqrt(3);
+  const courant = (cUniform * dt) / minDx;
+  if (courant > courantMax) {
+    throw new RangeError(
+      `RegularGridStencilSolver: acoustic leapfrog CFL violated. ` +
+        `Courant number c·dt/dx=${courant.toFixed(5)} > 1/√3≈${courantMax.toFixed(5)} ` +
+        `(c=${cUniform}, dt=${dt}, min(dx,dy,dz)=${minDx}). ` +
+        `Reduce dt to at most ${((courantMax * minDx) / cUniform).toExponential(4)} s.`
+    );
+  }
+}
+
 export interface ThermalStencilParams extends GridShape {
   dt: number;
   alpha: number;
@@ -78,6 +132,10 @@ export class RegularGridStencilSolver {
     source: Float32Array,
     params: ThermalStencilParams
   ): Promise<Float32Array | null> {
+    // Guard: explicit thermal diffusion stability.
+    // Throws RangeError if dt > 1/(2·α·(1/dx²+1/dy²+1/dz²)).
+    assertThermalCFL(params);
+
     if (!(await this.ensureReady()) || !this.thermalPipeline) return null;
     const zero = new Float32Array(temperature.length);
     return this.dispatch(this.thermalPipeline, temperature, zero, source, {
@@ -93,6 +151,10 @@ export class RegularGridStencilSolver {
     velocity: Float32Array | null,
     params: AcousticStencilParams
   ): Promise<Float32Array | null> {
+    // Guard: acoustic leapfrog Courant condition.
+    // Throws RangeError if c·dt/min(dx,dy,dz) > 1/√3.
+    assertAcousticCFL(params);
+
     if (!(await this.ensureReady()) || !this.acousticPipeline) return null;
     const aux = velocity ?? new Float32Array(current.length);
     return this.dispatch(this.acousticPipeline, current, previous, aux, {

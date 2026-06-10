@@ -185,6 +185,74 @@ export function jacobiIteration(
 }
 
 /**
+ * Anisotropic Jacobi iteration for implicit diffusion on non-cubic grids.
+ * Solves  (I − dt·α·∇²) u = rhs  where the Laplacian uses per-axis spacings:
+ *
+ *   u·(1 + 2(wx+wy+wz)) − wx(u_x± ) − wy(u_y±) − wz(u_z±) = rhs
+ *   with wx = dt·α/dx², wy = dt·α/dy², wz = dt·α/dz²
+ *
+ * Jacobi update:  u ← (rhs + wx·Σu_x± + wy·Σu_y± + wz·Σu_z±) / (1 + 2(wx+wy+wz))
+ *
+ * For dx = dy = dz this is algebraically identical to jacobiIteration with
+ * alpha = dx²/(dt·α), beta = 6 + alpha (multiply numerator and denominator
+ * by dx²/(dt·α)).
+ *
+ * @param grid     Solution field (modified in place; boundary cells untouched)
+ * @param rhs      Right-hand side field
+ * @param wx,wy,wz Per-axis implicit weights dt·α/dxᵢ²
+ * @param maxIter  Maximum iterations
+ * @param tol      Convergence tolerance on max absolute change
+ * @param omega    Relaxation factor (0.67 for damped Jacobi, 1.0 for standard)
+ */
+export function jacobiIterationAnisotropic(
+  grid: RegularGrid3D,
+  rhs: RegularGrid3D,
+  wx: number,
+  wy: number,
+  wz: number,
+  maxIter: number,
+  tol: number,
+  omega = 0.6667
+): ConvergenceResult {
+  const { nx, ny, nz } = grid;
+  const diag = 1 + 2 * (wx + wy + wz);
+  const temp = grid.clone();
+  let maxChange = 0;
+  let iter = 0;
+
+  for (iter = 0; iter < maxIter; iter++) {
+    maxChange = 0;
+
+    for (let k = 1; k < nz - 1; k++) {
+      for (let j = 1; j < ny - 1; j++) {
+        for (let i = 1; i < nx - 1; i++) {
+          const sumX = temp.get(i - 1, j, k) + temp.get(i + 1, j, k);
+          const sumY = temp.get(i, j - 1, k) + temp.get(i, j + 1, k);
+          const sumZ = temp.get(i, j, k - 1) + temp.get(i, j, k + 1);
+
+          const newVal = (rhs.get(i, j, k) + wx * sumX + wy * sumY + wz * sumZ) / diag;
+          const oldVal = temp.get(i, j, k);
+          const relaxed = oldVal + omega * (newVal - oldVal);
+
+          grid.set(i, j, k, relaxed);
+
+          const change = Math.abs(relaxed - oldVal);
+          if (change > maxChange) maxChange = change;
+        }
+      }
+    }
+
+    if (maxChange < tol) {
+      return { converged: true, iterations: iter + 1, residual: maxChange, maxChange };
+    }
+
+    temp.copy(grid);
+  }
+
+  return { converged: false, iterations: iter, residual: maxChange, maxChange };
+}
+
+/**
  * Variable-coefficient Jacobi iteration for grid-based Poisson-like equations.
  * Solves  ∇·(a(x) ∇u) = rhs  on a RegularGrid3D using weighted Jacobi.
  *

@@ -1,19 +1,39 @@
 /**
- * ZKSimContractProof — Hash-based commitment scheme for SimContract compliance
+ * ZKSimContractProof — Salted hash commitment scheme for SimContract compliance
  * without mesh exposure (paper-1/capstone §ZK).
  *
- * Motivation (paper-1-mcp-trust-usenix.tex:1230):
- *   "ZK-SNARKs for proving SimContract compliance without revealing the
- *    proprietary geometry or mesh/material parameters."
+ * ## What this is
  *
- * This module implements a **hash-commitment protocol** that achieves the
- * same _protocol-level_ privacy property as a ZK-SNARK (the verifier learns
- * nothing about the raw geometry) without requiring SNARK circuit machinery.
- * It is the paper's "lightweight ZK analogue" — honest about what it is and
- * sufficient for the compliance-without-disclosure use case described in the
- * paper.
+ * This module implements a **salted hash commitment scheme** (commit-reveal
+ * protocol).  It provides two classical commitment properties:
  *
- * ## Protocol
+ *   • **Binding** — the prover cannot later open the commitment to a different
+ *     geometry hash (collision-resistance of the underlying hash function).
+ *   • **Hiding** — the commitment reveals nothing about the geometry hash
+ *     (pre-image resistance + random salt).
+ *
+ * Protocol identifier: `'hash-commitment-v1'` (see PROTOCOL constant below).
+ *
+ * ## What this is NOT
+ *
+ * This is **NOT** a zero-knowledge proof system and does **NOT** provide
+ * zk-SNARK computational integrity guarantees.  In particular:
+ *
+ *   • The verifier receives no cryptographic proof that the prover executed
+ *     the correct simulation program on the committed geometry.
+ *   • There is no SNARK/STARK circuit, no witness, and no succinct
+ *     non-interactive argument of knowledge.
+ *   • The paper-1 citation (§ZK, "ZK-SNARKs for proving SimContract
+ *     compliance") describes a *future* direction; this prototype delivers
+ *     the privacy property (geometry hiding) only — not the computational
+ *     integrity property.
+ *
+ * The class and export names intentionally retain the "ZK" prefix because
+ * they are referenced in the paper-1 manuscript and in external-facing MCP
+ * tool contracts.  Renaming them would break the published API.  The
+ * protocol's actual nature is documented here and via the PROTOCOL constant.
+ *
+ * ## Protocol (hash-commitment-v1)
  *
  * 1. **Commit**  (Prover)
  *    commitment ← H(geometryHash ‖ salt)
@@ -30,7 +50,8 @@
  *      (b) commitment is well-formed (non-empty hash string)
  *      (c) per-step digests are all distinct (no frozen solver)
  *      (d) the run timestamp is not in the future
- *    If all checks pass → VALID (compliance proven without geometry exposure).
+ *    If all checks pass → VALID (geometry privacy preserved; simulation
+ *    runtime attestation via state digests).
  *
  * 4. **Open**  (Optional — deferred revelation)
  *    Prover can later reveal (geometryHash, salt); verifier checks
@@ -40,6 +61,28 @@
  */
 
 import { type HashMode, HASH_MODE_DEFAULT, hashBytes } from './sha256';
+
+// =============================================================================
+// PROTOCOL METADATA
+// =============================================================================
+
+/**
+ * Stable machine-readable identifier for the commitment scheme implemented
+ * by this module.
+ *
+ * Value: `'hash-commitment-v1'`
+ *
+ * This constant exists so that consumers, audit tools, and downstream
+ * verifiers can programmatically distinguish this salted hash commitment
+ * scheme from a true zero-knowledge proof system.  Include it in any
+ * serialized proof envelope that leaves the trust boundary.
+ *
+ * Protocol properties:
+ *   - Binding:  yes (collision-resistance of the underlying hash)
+ *   - Hiding:   yes (pre-image resistance + random salt)
+ *   - Soundness (computational integrity / zk-SNARK): NO
+ */
+export const PROTOCOL = 'hash-commitment-v1' as const;
 
 // =============================================================================
 // TYPES
@@ -62,11 +105,22 @@ export interface ZKGeometryCommitment {
 }
 
 /**
- * Zero-knowledge compliance proof.
+ * Salted hash commitment compliance proof.
+ *
  * Everything in this record is safe to share with the verifier.
  * Raw vertex/element data is NOT present — only the commitment is.
+ *
+ * Note: despite the "ZK" prefix in the type name (preserved for API
+ * compatibility with paper-1 references), this is a salted hash commitment
+ * scheme — see PROTOCOL constant and module-level doc for details.
  */
 export interface ZKComplianceProof {
+  /**
+   * Protocol identifier.  Always `'hash-commitment-v1'` for proofs produced
+   * by this module.  Allows verifiers to detect proofs from future protocol
+   * versions or from true zk-SNARK systems.
+   */
+  protocol: typeof PROTOCOL;
   /** Public commitment to the geometry (hides raw mesh). */
   commitment: string;
   /** Hash mode used to derive the commitment and state digests. */
@@ -187,6 +241,7 @@ export function generateComplianceProof(params: {
   timestamp?: number;
 }): ZKComplianceProof {
   return {
+    protocol: PROTOCOL,
     commitment: params.commitment,
     hashMode: params.hashMode ?? HASH_MODE_DEFAULT,
     solverType: params.solverType,

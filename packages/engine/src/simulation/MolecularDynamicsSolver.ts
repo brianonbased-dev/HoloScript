@@ -8,7 +8,10 @@
  *
  * ## Potential
  *
- *   V_LJ(r) = 4ε[(σ/r)¹² - (σ/r)⁶], cutoff at r_c = 2.5σ
+ *   V_LJ(r) = 4ε[(σ/r)¹² - (σ/r)⁶] - V_LJ(r_c),  cutoff at r_c = 2.5σ
+ *
+ * The standard shifted potential (subtract V_LJ(r_c) for r < r_c) ensures
+ * energy continuity at the cutoff, improving NVE conservation.
  *
  * ## Integration: Velocity Verlet (symplectic, time-reversible)
  *
@@ -71,6 +74,8 @@ export class MolecularDynamicsSolver {
   private mass: number;
   private rc: number; // cutoff distance
   private rc2: number;
+  /** Energy shift V(r_c) so the potential is continuous at the cutoff. */
+  private vShift: number;
   private targetTemp: number;
   private thermostatTau: number;
 
@@ -92,6 +97,13 @@ export class MolecularDynamicsSolver {
     this.mass = config.mass ?? 1.0;
     this.rc = (config.cutoff ?? 2.5) * this.sig;
     this.rc2 = this.rc * this.rc;
+    // Shifted-potential correction V(r_c) = 4ε[(σ/r_c)¹² − (σ/r_c)⁶]
+    // Subtract this from every pair energy so V(r_c) = 0, ensuring
+    // continuity of the potential at the cutoff (standard shifted LJ).
+    const srcRc = this.sig / this.rc;
+    const srcRc6 = Math.pow(srcRc, 6);
+    const srcRc12 = srcRc6 * srcRc6;
+    this.vShift = 4 * this.eps * (srcRc12 - srcRc6);
     this.targetTemp = config.temperature ?? 1.0;
     this.thermostatTau = config.thermostatTau ?? 0.5;
 
@@ -192,8 +204,10 @@ export class MolecularDynamicsSolver {
         this.forces[j * 3 + 1] -= fy;
         this.forces[j * 3 + 2] -= fz;
 
-        // Potential: V = 4ε[(σ/r)¹² - (σ/r)⁶]
-        this.potentialEnergy += 4 * eps * (sr12 - sr6);
+        // Shifted potential: V(r) - V(r_c) so V is continuous at the cutoff.
+        // V(r_c) = this.vShift (precomputed in constructor).
+        // Forces are unaffected by a constant shift.
+        this.potentialEnergy += 4 * eps * (sr12 - sr6) - this.vShift;
         // Virial for pressure
         this.virial += fMag * r2;
       }
@@ -296,8 +310,15 @@ export class MolecularDynamicsSolver {
       ke += this.mass * this.velocities[i] * this.velocities[i];
     }
     ke *= 0.5;
-    // T = 2KE / (3Nk_B), in reduced units k_B = 1
-    return (2 * ke) / (3 * this.N);
+    // T = 2KE / (N_dof·k_B), in reduced units k_B = 1.
+    // Center-of-mass momentum is removed at init and conserved by pairwise
+    // forces, so N_dof = 3(N−1), not 3N — a factor-2 error for a dimer.
+    return (2 * ke) / this.degreesOfFreedom();
+  }
+
+  /** Translational degrees of freedom: 3(N−1) after CM-momentum removal. */
+  private degreesOfFreedom(): number {
+    return this.N > 1 ? 3 * (this.N - 1) : 3 * this.N;
   }
 
   // ── Public API ──────────────────────────────────────────────────────────
@@ -314,7 +335,7 @@ export class MolecularDynamicsSolver {
     for (let i = 0; i < this.N * 3; i++) {
       ke += 0.5 * this.mass * this.velocities[i] * this.velocities[i];
     }
-    const T = (2 * ke) / (3 * this.N);
+    const T = (2 * ke) / this.degreesOfFreedom();
     const V = this.box[0] * this.box[1] * this.box[2];
     const P = (this.N * T + this.virial / 3) / V;
 

@@ -265,7 +265,16 @@ export class FDTDSolver {
 
   /**
    * Advance one FDTD timestep.
-   * Order: update H (half-step) → update E (full-step) → apply sources.
+   *
+   * Order: update H (half-step) → update E (full-step) → apply sources at E^n
+   * time level → apply PEC → advance clock.
+   *
+   * Source-time convention (Taflove §3.4): after H advances to n+½ and before
+   * E advances to n+1, the additive current J is evaluated at the INTEGER time
+   * level n (i.e. `currentTime` BEFORE the clock increment).  Previous code
+   * called applySources(currentTime + dt), which evaluated the source one full
+   * step ahead and introduced a half-step phase offset (Δφ = 2πf·dt) for all
+   * sinusoidal and pulsed sources.
    */
   step(): void {
     if (this.cpml) this.updateH_cpml();
@@ -274,7 +283,8 @@ export class FDTDSolver {
     if (this.cpml) this.updateE_cpml();
     else this.updateE();
 
-    this.applySources(this.currentTime + this.dt);
+    // Evaluate source at the current (pre-increment) integer time level E^n.
+    this.applySources(this.currentTime);
 
     // PEC backs the CPML (tangential E = 0 at the outer wall). When no PML is
     // configured these are the only boundaries (closed PEC cavity).
@@ -529,8 +539,21 @@ export class FDTDSolver {
 
   private evaluateSource(src: EMSource, t: number): number {
     switch (src.type) {
-      case 'point_current':
+      case 'point_current': {
+        // When pulseWidth is provided, apply a Gaussian temporal envelope:
+        //   J(t) = A · exp(-(t - 4σ)² / (2σ²))
+        // This keeps the injection energy-bounded (the pulse decays to zero),
+        // which is physically correct in any lossless domain.  Without a pulse
+        // envelope a constant DC current in a lossless leapfrog grid pumps
+        // energy without bound (no steady state exists).
+        // Legacy usage without pulseWidth retains the constant-amplitude
+        // behaviour (caller's responsibility to use a lossy medium).
+        if (src.pulseWidth) {
+          const sigma = src.pulseWidth;
+          return src.amplitude * Math.exp(-((t - 4 * sigma) ** 2) / (2 * sigma ** 2));
+        }
         return src.amplitude;
+      }
       case 'sinusoidal': {
         const f = src.frequency ?? 1e9;
         const env = src.pulseWidth

@@ -70,7 +70,7 @@
 import { RegularGrid3D } from './RegularGrid3D';
 import { applyBoundaryConditions, type BoundaryCondition } from './BoundaryConditions';
 import { getMaterial, thermalDiffusivity, type ThermalMaterial } from './MaterialDatabase';
-import { jacobiIteration } from './ConvergenceControl';
+import { jacobiIterationAnisotropic } from './ConvergenceControl';
 import { RegularGridStencilSolver } from '../gpu/RegularGridStencilSolver';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -287,10 +287,18 @@ export class ThermalSolver {
 
   /**
    * Implicit Jacobi: solve (I - dt·α·∇²)T(n+1) = T(n) + dt·Q/(ρcₚ)
+   *
+   * The Laplacian uses per-axis spacings (dx, dy, dz) — the implicit weights
+   * wᵢ = dt·α/dxᵢ² differ per axis on non-cubic grids (the default thermal
+   * grid is non-cubic: domain [10,5,10] at resolution [64,16,64]).
    */
   private stepImplicit(dt: number): void {
     const { nx, ny, nz } = this.temperature;
     const rhoCp = this.material.density * this.material.specific_heat;
+
+    // Snapshot T(n) so tempPrev stays meaningful after implicit steps too
+    // (the explicit path does the same; consumers read tempPrev for ∂T/∂t).
+    this.tempPrev.copy(this.temperature);
 
     // Build RHS: T(n) + dt·Q/(ρcₚ)
     const rhs = this.tempPrev.clone();
@@ -298,21 +306,22 @@ export class ThermalSolver {
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
           const src = this.sourceField.get(i, j, k);
-          rhs.set(i, j, k, this.temperature.get(i, j, k) + (dt * src) / rhoCp);
+          rhs.set(i, j, k, this.tempPrev.get(i, j, k) + (dt * src) / rhoCp);
         }
       }
     }
 
-    // Jacobi parameters for implicit heat equation
-    const dx2 = this.temperature.dx * this.temperature.dx;
-    const alphaCoeff = dx2 / (dt * this.alpha);
-    const beta = 6 + alphaCoeff;
+    // Per-axis implicit weights for the anisotropic Laplacian
+    const wx = (dt * this.alpha) / (this.temperature.dx * this.temperature.dx);
+    const wy = (dt * this.alpha) / (this.temperature.dy * this.temperature.dy);
+    const wz = (dt * this.alpha) / (this.temperature.dz * this.temperature.dz);
 
-    jacobiIteration(
+    jacobiIterationAnisotropic(
       this.temperature,
       rhs,
-      alphaCoeff,
-      beta,
+      wx,
+      wy,
+      wz,
       this.config.maxImplicitIterations ?? 100,
       this.config.implicitTolerance ?? 1e-4
     );

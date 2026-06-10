@@ -116,8 +116,21 @@ export interface StructuralLoad {
   acceleration?: [Acceleration, Acceleration, Acceleration];
   /** Node index for point loads */
   nodeIndex?: number;
-  /** Tetrahedron face indices for distributed loads */
+  /**
+   * Tetrahedron element indices for distributed pressure loads (legacy).
+   * The boundary face of each element (shared by only one tet) is used.
+   * For explicit face control prefer surfaceFaces.
+   */
   surfaceElements?: number[];
+  /**
+   * Explicit face references for distributed pressure loads (preferred).
+   * localFace follows the TET4 convention:
+   *   0 → opposite n3 → {n0, n1, n2}
+   *   1 → opposite n2 → {n0, n1, n3}
+   *   2 → opposite n1 → {n0, n2, n3}
+   *   3 → opposite n0 → {n1, n2, n3}
+   */
+  surfaceFaces?: Array<{ elementIndex: number; localFace: 0 | 1 | 2 | 3 }>;
   /** Pressure in Pa for distributed loads */
   pressure?: Pressure;
 }
@@ -684,32 +697,133 @@ export class StructuralSolver {
           break;
         }
         case 'distributed': {
-          // Pressure load on surface elements (simplified: uniform on triangle faces)
-          if (load.surfaceElements && load.pressure) {
-            for (const faceIdx of load.surfaceElements) {
-              // Each surface element is a triangle face of a tet
-              const tets = this.config.tetrahedra;
-              const verts = this.config.vertices;
-              const n0 = tets[faceIdx * 4],
-                n1 = tets[faceIdx * 4 + 1],
-                n2 = tets[faceIdx * 4 + 2];
-              // Triangle area and normal
-              const ax = verts[n1 * 3] - verts[n0 * 3],
-                ay = verts[n1 * 3 + 1] - verts[n0 * 3 + 1],
-                az = verts[n1 * 3 + 2] - verts[n0 * 3 + 2];
-              const bx = verts[n2 * 3] - verts[n0 * 3],
-                by = verts[n2 * 3 + 1] - verts[n0 * 3 + 1],
-                bz = verts[n2 * 3 + 2] - verts[n0 * 3 + 2];
-              const nx = ay * bz - az * by,
-                ny = az * bx - ax * bz,
-                nz = ax * by - ay * bx;
-              const area = 0.5 * Math.sqrt(nx * nx + ny * ny + nz * nz);
-              if (area < 1e-20) continue;
-              const scale = (load.pressure * area) / (3 * Math.sqrt(nx * nx + ny * ny + nz * nz));
-              for (const n of [n0, n1, n2]) {
-                this.forces[n * 3] += scale * nx;
-                this.forces[n * 3 + 1] += scale * ny;
-                this.forces[n * 3 + 2] += scale * nz;
+          if (!load.pressure) break;
+
+          // TET4 local face → local node indices (opposite node is excluded).
+          // Face 0 (opposite n3): {n0,n1,n2} → local indices [0,1,2]
+          // Face 1 (opposite n2): {n0,n1,n3} → local indices [0,1,3]
+          // Face 2 (opposite n1): {n0,n2,n3} → local indices [0,2,3]
+          // Face 3 (opposite n0): {n1,n2,n3} → local indices [1,2,3]
+          const TET4_FACE_LOCAL: ReadonlyArray<readonly [number, number, number]> = [
+            [0, 1, 2],
+            [0, 1, 3],
+            [0, 2, 3],
+            [1, 2, 3],
+          ];
+
+          /**
+           * Apply a pressure traction to a triangular face.
+           *
+           * Distribute pressure*area/3 per node in the outward normal direction.
+           * The outward normal is determined by checking which direction the
+           * cross product of the two face edges points relative to the opposite
+           * (interior) node of the tetrahedron.
+           *
+           * Derivation:
+           *   n̂ (unnormalized) = (p1−p0) × (p2−p0), |n̂| = 2·A
+           *   F_node = (P·A/3)·n̂/|n̂| = P·n̂/6  (P = pressure, A = face area)
+           */
+          const applyPressureToFace = (
+            pressure: number,
+            fa: number,
+            fb: number,
+            fc: number,
+            oppNode: number
+          ): void => {
+            const verts = this.config.vertices;
+            const ax = verts[fb * 3] - verts[fa * 3],
+              ay = verts[fb * 3 + 1] - verts[fa * 3 + 1],
+              az = verts[fb * 3 + 2] - verts[fa * 3 + 2];
+            const bx = verts[fc * 3] - verts[fa * 3],
+              by = verts[fc * 3 + 1] - verts[fa * 3 + 1],
+              bz = verts[fc * 3 + 2] - verts[fa * 3 + 2];
+            let nx = ay * bz - az * by,
+              ny = az * bx - ax * bz,
+              nz = ax * by - ay * bx;
+            const len2 = nx * nx + ny * ny + nz * nz;
+            if (len2 < 1e-40) return;
+
+            // Orient normal outward (away from the opposite interior node).
+            const dx = verts[oppNode * 3] - verts[fa * 3];
+            const dy = verts[oppNode * 3 + 1] - verts[fa * 3 + 1];
+            const dz = verts[oppNode * 3 + 2] - verts[fa * 3 + 2];
+            if (nx * dx + ny * dy + nz * dz > 0) {
+              nx = -nx;
+              ny = -ny;
+              nz = -nz;
+            }
+
+            // F_node = (P · A / 3) · n̂_unit = P · n̂ / 6
+            // (n̂ = unnormalized cross product, |n̂| = 2A, so P·n̂/6 = P·A/3 · n̂_unit)
+            const scale = pressure / 6;
+            this.forces[fa * 3] += scale * nx;
+            this.forces[fa * 3 + 1] += scale * ny;
+            this.forces[fa * 3 + 2] += scale * nz;
+            this.forces[fb * 3] += scale * nx;
+            this.forces[fb * 3 + 1] += scale * ny;
+            this.forces[fb * 3 + 2] += scale * nz;
+            this.forces[fc * 3] += scale * nx;
+            this.forces[fc * 3 + 1] += scale * ny;
+            this.forces[fc * 3 + 2] += scale * nz;
+          };
+
+          const tets = this.config.tetrahedra;
+
+          // Preferred path: explicit surfaceFaces with (elementIndex, localFace).
+          if (load.surfaceFaces?.length) {
+            for (const { elementIndex, localFace } of load.surfaceFaces) {
+              if (elementIndex < 0 || elementIndex >= this.elementCount) continue;
+              const base = elementIndex * 4;
+              const [la, lb, lc] = TET4_FACE_LOCAL[localFace];
+              // The opposite local node index is the one NOT in {la,lb,lc}.
+              const oppLocal = [0, 1, 2, 3].find((k) => k !== la && k !== lb && k !== lc)!;
+              const fa = tets[base + la];
+              const fb = tets[base + lb];
+              const fc = tets[base + lc];
+              const opp = tets[base + oppLocal];
+              applyPressureToFace(load.pressure, fa, fb, fc, opp);
+            }
+            break;
+          }
+
+          // Legacy path: surfaceElements — enumerate boundary faces of each element.
+          // A face is on the boundary if it is shared by only one tet in the mesh.
+          if (load.surfaceElements?.length) {
+            // Build face-sharing count map: key = sorted triple "a,b,c" → elementIndices
+            const faceCount = new Map<string, number>();
+            const faceToNodes = new Map<string, [number, number, number]>();
+            for (let e = 0; e < this.elementCount; e++) {
+              const base = e * 4;
+              for (let f = 0; f < 4; f++) {
+                const [la, lb, lc] = TET4_FACE_LOCAL[f];
+                const sorted = [tets[base + la], tets[base + lb], tets[base + lc]].sort(
+                  (a, b) => a - b
+                );
+                const key = `${sorted[0]},${sorted[1]},${sorted[2]}`;
+                faceCount.set(key, (faceCount.get(key) ?? 0) + 1);
+                faceToNodes.set(key, [sorted[0], sorted[1], sorted[2]]);
+              }
+            }
+
+            for (const elemIdx of load.surfaceElements) {
+              if (elemIdx < 0 || elemIdx >= this.elementCount) continue;
+              const base = elemIdx * 4;
+              for (let f = 0; f < 4; f++) {
+                const [la, lb, lc] = TET4_FACE_LOCAL[f];
+                const sorted = [tets[base + la], tets[base + lb], tets[base + lc]].sort(
+                  (a, b) => a - b
+                );
+                const key = `${sorted[0]},${sorted[1]},${sorted[2]}`;
+                if ((faceCount.get(key) ?? 0) !== 1) continue; // skip interior faces
+                const [la2, lb2, lc2] = TET4_FACE_LOCAL[f];
+                const oppLocal = [0, 1, 2, 3].find(
+                  (k) => k !== la2 && k !== lb2 && k !== lc2
+                )!;
+                const fa = tets[base + la2];
+                const fb = tets[base + lb2];
+                const fc = tets[base + lc2];
+                const opp = tets[base + oppLocal];
+                applyPressureToFace(load.pressure, fa, fb, fc, opp);
               }
             }
           }

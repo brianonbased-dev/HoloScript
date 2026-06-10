@@ -129,21 +129,41 @@ export class NavierStokesSolver {
 
   /**
    * Advance one timestep.
+   *
+   * Fix NSS-2: applyBoundaryConditions is called BEFORE project() so the
+   * divergence stencil at boundary-adjacent cells reads freshly-enforced
+   * values rather than one-step-stale values.
    */
   step(dt: number): void {
     // 1. Advection (semi-Lagrangian)
+    //
+    // advect() writes only interior cells (1..n-2) into vxTemp/vyTemp/vzTemp,
+    // then copies back to vx/vy/vz.  Boundary cells of the temp buffers are
+    // never written, so they hold stale zeros and the copy overwrites the
+    // boundary values (e.g. the lid velocity U becomes 0 in vx).
+    //
+    // Fix: re-apply boundary conditions immediately after advection so that:
+    //   a) diffuse() sees the correct lid/wall values and propagates them
+    //      into adjacent interior cells;
+    //   b) the divergence stencil in project() reads freshly-enforced BCs.
     this.advect(dt);
+    this.applyBoundaryConditions(); // NSS-2 fix (post-advect)
 
     // 2. Apply body forces
     this.applyBodyForces(dt);
 
-    // 3. Diffusion
+    // 3. Diffusion (with CFL sub-cycling — see diffuse())
     this.diffuse(dt);
 
-    // 4. Pressure projection (enforce incompressibility)
+    // 4. Apply boundary conditions BEFORE projection:
+    //    ensures diffuse() output at boundary cells is consistent with BCs
+    //    before the divergence/pressure solve reads them.
+    this.applyBoundaryConditions();
+
+    // 5. Pressure projection (enforce incompressibility)
     this.project(dt);
 
-    // 5. Apply boundary conditions
+    // 6. Re-enforce boundary conditions after the pressure correction.
     this.applyBoundaryConditions();
 
     this.currentTime += dt;
@@ -210,18 +230,45 @@ export class NavierStokesSolver {
     }
   }
 
-  /** Viscous diffusion: u += dt·ν·∇²u (explicit). */
+  /**
+   * Viscous diffusion: u += dt·ν·∇²u (explicit with CFL sub-cycling).
+   *
+   * ## Stability condition (NSS-1 fix)
+   *
+   *   dt_visc ≤ 1 / (2·ν·(1/dx² + 1/dy² + 1/dz²))
+   *
+   * When the caller-supplied dt exceeds this limit, the diffusion step is
+   * sub-cycled with nSub = ceil(dt / dt_visc_stable) substeps of size
+   * subDt = dt / nSub.  This mirrors the pattern used in ReactionDiffusionSolver
+   * and ThermalSolver (the house pattern).  A safety factor of 0.9 is applied.
+   *
+   * For typical low-viscosity fluids (water ν≈1e-6) at simulation dt values
+   * the guard fires rarely; for high-viscosity fluids (oils, polymers) or fine
+   * grids it prevents the silent NaN propagation that occurred before this fix.
+   */
   private diffuse(dt: number): void {
-    const { vx, vy, vz, nu } = this;
-    const { nx, ny, nz } = vx;
+    const { vx, vy, vz, nu, vxTemp, vyTemp, vzTemp } = this;
+    const { nx, ny, nz, dx, dy, dz } = vx;
 
-    // Explicit diffusion (simple and stable for small dt·ν/dx²)
-    for (let k = 1; k < nz - 1; k++) {
-      for (let j = 1; j < ny - 1; j++) {
-        for (let i = 1; i < nx - 1; i++) {
-          vx.set(i, j, k, vx.get(i, j, k) + dt * nu * vx.laplacian(i, j, k));
-          vy.set(i, j, k, vy.get(i, j, k) + dt * nu * vy.laplacian(i, j, k));
-          vz.set(i, j, k, vz.get(i, j, k) + dt * nu * vz.laplacian(i, j, k));
+    // CFL stability limit for explicit diffusion
+    const dtStable = 0.9 / (2 * nu * (1 / (dx * dx) + 1 / (dy * dy) + 1 / (dz * dz)));
+    const nSub = Math.max(1, Math.ceil(dt / dtStable));
+    const subDt = dt / nSub;
+
+    for (let sub = 0; sub < nSub; sub++) {
+      // Snapshot velocities into temp buffers so each substep reads
+      // the beginning-of-substep values (Jacobi-style, avoids in-place race)
+      vxTemp.copy(vx);
+      vyTemp.copy(vy);
+      vzTemp.copy(vz);
+
+      for (let k = 1; k < nz - 1; k++) {
+        for (let j = 1; j < ny - 1; j++) {
+          for (let i = 1; i < nx - 1; i++) {
+            vx.set(i, j, k, vxTemp.get(i, j, k) + subDt * nu * vxTemp.laplacian(i, j, k));
+            vy.set(i, j, k, vyTemp.get(i, j, k) + subDt * nu * vyTemp.laplacian(i, j, k));
+            vz.set(i, j, k, vzTemp.get(i, j, k) + subDt * nu * vzTemp.laplacian(i, j, k));
+          }
         }
       }
     }

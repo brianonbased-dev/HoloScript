@@ -122,12 +122,26 @@ export class MultiphaseNSSolver {
     const { nx, ny, nz } = this.vx;
 
     // 1. Advect level-set: dφ/dt + u·∇φ = 0
+    //
+    // advectField only fills interior cells (1..n-2) into dst; boundary cells of
+    // phiTemp keep whatever value was there from a previous usage (e.g. the
+    // pressure divergence scratch from the prior call to project()).  After
+    // phi.copy(phiTemp) those stale boundary values would overwrite phi, making
+    // the level-set gradient at boundary-adjacent cells completely wrong.
+    //
+    // Fix: after copying the advected interior, apply zero-gradient (Neumann)
+    // extrapolation to all six boundary faces so that phi continues smoothly
+    // to the ghost-cell layer and stencils on interior cells remain correct.
     this.advectField(this.phi, this.phiTemp, dt);
     this.phi.copy(this.phiTemp);
+    this.extrapolateLevelSetBC();
 
     // 2. Reinitialize periodically
+    // MNS-1 fix: use 5 pseudo-time iterations (3 was insufficient to recover
+    // |∇φ|≈1 after large interface advection; 5 covers a ~2.5-cell narrow band
+    // at dtau = 0.5*dx per substep).
     if (this.stepCount % this.reinitInterval === 0) {
-      this.reinitializeLevelSet(3);
+      this.reinitializeLevelSet(5);
     }
 
     // 3. Compute blended properties + surface tension
@@ -140,7 +154,12 @@ export class MultiphaseNSSolver {
     this.vz.copy(this.vzTemp);
 
     // 5. Apply gravity + surface tension
-    const eps = 1.5 * this.vx.dx; // Heaviside/delta smoothing width
+    // MNS-2 fix: eps must be derived from the phi grid's own spacing, not
+    // from the velocity grid.  For non-cubic or non-uniform grids the two
+    // spacings can differ, making the smeared-interface width dimensionally
+    // inconsistent with the level-set gradient.  Use max(phi spacing) as
+    // recommended in the CSF literature (eps = 1.5–2 × grid size).
+    const eps = 1.5 * Math.max(this.phi.dx, this.phi.dy, this.phi.dz);
     for (let k = 1; k < nz - 1; k++) {
       for (let j = 1; j < ny - 1; j++) {
         for (let i = 1; i < nx - 1; i++) {
@@ -291,20 +310,97 @@ export class MultiphaseNSSolver {
     }
   }
 
-  /** Reinitialize φ to maintain signed-distance property |∇φ| ≈ 1. */
+  /**
+   * Apply zero-gradient (Neumann) extrapolation to φ boundary cells.
+   *
+   * advectField() only writes interior cells (1..n−2) to its destination
+   * buffer.  The six boundary planes are never touched, so they retain
+   * whatever stale value the buffer held from its previous use as the
+   * pressure divergence scratch.  Copying the interior-advected result
+   * back into phi via phi.copy(phiTemp) would therefore overwrite phi's
+   * boundary planes with garbage, corrupting every stencil that touches a
+   * boundary-adjacent cell.
+   *
+   * Zero-gradient extrapolation mirrors the nearest interior cell value
+   * onto each boundary face (∂φ/∂n = 0 on all walls), which is the
+   * standard ghost-cell convention for a level-set passing through a
+   * no-penetration boundary.
+   */
+  private extrapolateLevelSetBC(): void {
+    const { nx, ny, nz } = this.phi;
+    // x-faces
+    for (let k = 0; k < nz; k++) {
+      for (let j = 0; j < ny; j++) {
+        this.phi.set(0,      j, k, this.phi.get(1,      j, k));
+        this.phi.set(nx - 1, j, k, this.phi.get(nx - 2, j, k));
+      }
+    }
+    // y-faces
+    for (let k = 0; k < nz; k++) {
+      for (let i = 0; i < nx; i++) {
+        this.phi.set(i, 0,      k, this.phi.get(i, 1,      k));
+        this.phi.set(i, ny - 1, k, this.phi.get(i, ny - 2, k));
+      }
+    }
+    // z-faces
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        this.phi.set(i, j, 0,      this.phi.get(i, j, 1));
+        this.phi.set(i, j, nz - 1, this.phi.get(i, j, nz - 2));
+      }
+    }
+  }
+
+  /**
+   * Reinitialize φ to maintain signed-distance property |∇φ| ≈ 1.
+   *
+   * ## MNS-1 fix: snapshot-based pseudo-time stepping
+   *
+   * The Sussman et al. (1994) reinitialization PDE is:
+   *
+   *   dφ/dτ = sign(φ₀)(1 − |∇φ|),   φ(x, 0) = φ₀(x)
+   *
+   * Each pseudo-time substep must READ from the φ at the START of the
+   * substep and WRITE to a separate buffer, then swap.  The original
+   * code read and wrote the same grid in one pass, making later cells
+   * in the loop see already-updated values from earlier cells of the
+   * same substep — an order-dependent, non-converging update analogous
+   * to Gauss-Seidel on a non-symmetric problem.
+   *
+   * The fix: copy phi → phiTemp at the start of each pseudo-step,
+   * read gradients from phiTemp, write updates to phi, then leave phi
+   * as the new iterate (phiTemp is overwritten next iteration).
+   *
+   * @param iterations  Number of pseudo-time substeps.  5 is sufficient
+   *   to cover a ~2.5-cell narrow band at dtau = 0.5·dx per substep.
+   */
   private reinitializeLevelSet(iterations: number): void {
     const { nx, ny, nz } = this.phi;
     const dtau = 0.5 * this.phi.dx; // pseudo-timestep
 
     for (let iter = 0; iter < iterations; iter++) {
-      for (let k = 1; k < nz - 1; k++) {
-        for (let j = 1; j < ny - 1; j++) {
-          for (let i = 1; i < nx - 1; i++) {
-            const p = this.phi.get(i, j, k);
-            const [gx, gy, gz] = this.phi.gradient(i, j, k);
+      // Snapshot current phi into phiTemp so we read from the start-of-substep
+      // field while writing the update back to phi (fixes the read-write race).
+      this.phiTemp.copy(this.phi);
+
+      // Guard band: skip cells within 1 layer of the domain boundary.
+      // Cells at i/j/k = 1 or n-2 use a central-difference stencil that
+      // reads the boundary (i/j/k = 0 or n-1) through the gradient() call.
+      // After advection the boundary cells hold extrapolated (Neumann) values,
+      // NOT the true SDF, so the gradient there is only first-order accurate.
+      // Reinitializing those cells based on a corrupted gradient degrades the
+      // field and the error propagates inward over successive steps.
+      // Skipping one extra layer on each side avoids the stale-boundary
+      // contamination while still covering the full narrow-band near the
+      // interface (which lies far from any wall in typical test scenarios).
+      for (let k = 2; k < nz - 2; k++) {
+        for (let j = 2; j < ny - 2; j++) {
+          for (let i = 2; i < nx - 2; i++) {
+            const p = this.phiTemp.get(i, j, k);
+            const [gx, gy, gz] = this.phiTemp.gradient(i, j, k);
             const gradMag = Math.sqrt(gx * gx + gy * gy + gz * gz);
             if (gradMag < 1e-10) continue;
-            // dφ/dτ = sign(φ₀)(1 - |∇φ|)
+            // dφ/dτ = sign(φ₀)(1 − |∇φ|)
             const sign = p > 0 ? 1 : p < 0 ? -1 : 0;
             this.phi.set(i, j, k, p + dtau * sign * (1 - gradMag));
           }
@@ -426,7 +522,7 @@ export class MultiphaseNSSolver {
     let maxV = 0,
       liquidCells = 0,
       interfaceCells = 0;
-    const eps = 1.5 * this.vx.dx;
+    const eps = 1.5 * Math.max(this.phi.dx, this.phi.dy, this.phi.dz);
     for (let k = 0; k < nz; k++)
       for (let j = 0; j < ny; j++)
         for (let i = 0; i < nx; i++) {

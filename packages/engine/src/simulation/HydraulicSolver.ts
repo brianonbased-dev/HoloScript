@@ -143,6 +143,21 @@ interface PipeInternal {
   effectiveDiameter: number; // after valve adjustment
 }
 
+/**
+ * HYD-1: A loop entry records the pipe index AND the traversal sign.
+ *
+ * sign = +1 when the loop traverses the pipe in its fromNode→toNode direction.
+ * sign = −1 when the loop traverses it in the reverse direction (toNode→fromNode).
+ *
+ * Hardy-Cross requires that the algebraic head-loss sum around the loop respects
+ * this direction: h_f is positive when flow is in the positive traversal direction
+ * and the correction ΔQ is added with the same sign to each pipe.
+ */
+interface LoopEntry {
+  pipeIndex: number;
+  sign: number; // +1 or -1
+}
+
 interface NodeInternal {
   index: number;
   config: HydraulicNode;
@@ -157,7 +172,7 @@ export class HydraulicSolver {
   private nodes: NodeInternal[];
   private nodeMap: Map<string, number>;
   private pipeMap: Map<string, number>;
-  private loops: number[][]; // arrays of pipe indices per loop
+  private loops: LoopEntry[][]; // arrays of (pipeIndex, sign) per loop
   private pressures: Float32Array;
   private flowRates: Float32Array;
   private solveResult: ConvergenceResult | null = null;
@@ -240,13 +255,20 @@ export class HydraulicSolver {
       maxCorrection = 0;
 
       for (const loop of this.loops) {
-        // Hardy-Cross: ΔQ = -Σ(hf) / Σ(2|hf|/Q) for each loop
+        // Hardy-Cross: ΔQ = -Σ(sign·hf) / Σ(2|hf|/|Q|) for each loop.
+        //
+        // HYD-1 fix: the signed head loss for a pipe traversed in the
+        // positive direction is +hf(Q); in the negative direction it is
+        // −hf(Q).  Similarly the correction is applied as +dQ*sign to
+        // keep the pipe's own sign convention (positive flow = fromNode→toNode).
         let sumHf = 0;
         let sumDhf = 0;
 
-        for (const pipeIdx of loop) {
-          const pipe = this.pipes[pipeIdx];
-          const hf = this.headLoss(pipe);
+        for (const { pipeIndex, sign } of loop) {
+          const pipe = this.pipes[pipeIndex];
+          // hf carries the flow-direction sign via headLoss()'s V|V| formula.
+          // Multiply by traversal sign to get the algebraic loop contribution.
+          const hf = sign * this.headLoss(pipe);
           const Q = pipe.flowRate;
 
           sumHf += hf;
@@ -258,9 +280,10 @@ export class HydraulicSolver {
         const dQ = -sumHf / sumDhf;
         maxCorrection = Math.max(maxCorrection, Math.abs(dQ));
 
-        // Apply correction to all pipes in the loop
-        for (const pipeIdx of loop) {
-          this.pipes[pipeIdx].flowRate += dQ;
+        // Apply correction with the traversal sign so the pipe's own
+        // flow direction convention (fromNode→toNode = positive) is preserved.
+        for (const { pipeIndex, sign } of loop) {
+          this.pipes[pipeIndex].flowRate += sign * dQ;
         }
       }
 
@@ -497,31 +520,46 @@ export class HydraulicSolver {
   /**
    * Find independent loops using spanning tree fundamental cycles.
    *
-   * Uses BFS to build a spanning tree, then each non-tree edge defines
-   * exactly one fundamental cycle. This guarantees independent loops
+   * Uses BFS to build a spanning tree, then each non-tree chord (back edge)
+   * defines exactly one fundamental cycle.  This guarantees independent loops
    * (no duplicates or overlaps) which Hardy-Cross requires.
+   *
+   * ## HYD-1 fix: direction tracking
+   *
+   * Each returned LoopEntry carries a `sign` field:
+   *   +1  — the loop traverses this pipe in its fromNode→toNode direction
+   *   −1  — the loop traverses it in the reverse direction
+   *
+   * Fundamental cycle for chord (u→v):
+   *   1. Chord u→v:  sign = +1
+   *   2. Tree path v → LCA  (v going UP to LCA, child→parent at each step):
+   *      pipe = pathB[i+1].pipe,  fromTraversal = pathB[i].node (child)
+   *   3. Tree path LCA → u  (LCA going DOWN to u, parent→child at each step):
+   *      pipe = pathA[j+1].pipe,  fromTraversal = pathA[j+1].node (parent)
+   *
+   * Note on pathX[i].pipe semantics (from traceToRoot):
+   *   pathX[0] = {node: start, pipe: -1}
+   *   pathX[i].pipe = pipe that connects pathX[i-1].node (child) to
+   *                   pathX[i].node (parent) in the BFS tree
    */
-  private findLoops(): number[][] {
-    const loops: number[][] = [];
+  private findLoops(): LoopEntry[][] {
+    const loops: LoopEntry[][] = [];
     const n = this.nodes.length;
     if (n === 0) return loops;
 
-    // Build adjacency list: node → [(neighborNode, pipeIndex)]
     const adj: [number, number][][] = Array.from({ length: n }, () => []);
     for (const pipe of this.pipes) {
       adj[pipe.fromNode].push([pipe.toNode, pipe.index]);
       adj[pipe.toNode].push([pipe.fromNode, pipe.index]);
     }
 
-    // BFS spanning tree
     const treeParent = new Map<number, { node: number; pipe: number }>();
     const visited = new Set<number>();
-    const treeEdges = new Set<number>(); // pipe indices in spanning tree
+    const treeEdges = new Set<number>();
 
     const bfs = (start: number): void => {
       const queue: number[] = [start];
       visited.add(start);
-
       while (queue.length > 0) {
         const node = queue.shift()!;
         for (const [neighbor, pipeIdx] of adj[node]) {
@@ -535,22 +573,27 @@ export class HydraulicSolver {
       }
     };
 
-    // BFS from all components
     for (let i = 0; i < n; i++) {
       if (!visited.has(i)) bfs(i);
     }
 
-    // Each non-tree edge creates one fundamental cycle
-    for (const pipe of this.pipes) {
-      if (treeEdges.has(pipe.index)) continue;
+    // Return +1 if pipe goes fromNode→toNode in the given traversal direction.
+    const traversalSign = (pipeIdx: number, fromTraversal: number): number =>
+      this.pipes[pipeIdx].fromNode === fromTraversal ? 1 : -1;
 
-      // Trace paths from both endpoints to their LCA via spanning tree
-      const pathA = this.traceToRoot(pipe.fromNode, treeParent);
-      const pathB = this.traceToRoot(pipe.toNode, treeParent);
+    for (const chord of this.pipes) {
+      if (treeEdges.has(chord.index)) continue;
 
-      // Find LCA (lowest common ancestor)
+      // pathA[i].pipe = pipe connecting pathA[i-1].node (chord.fromNode side)
+      //                 to pathA[i].node (ancestor)
+      const pathA = this.traceToRoot(chord.fromNode, treeParent);
+      // pathB[i].pipe = pipe connecting pathB[i-1].node (chord.toNode side)
+      //                 to pathB[i].node (ancestor)
+      const pathB = this.traceToRoot(chord.toNode, treeParent);
+
+      // Find LCA: first ancestor of chord.toNode that is also an ancestor of chord.fromNode
       const setA = new Set(pathA.map((p) => p.node));
-      let lcaIdx = 0;
+      let lcaIdx = pathB.length - 1;
       for (let i = 0; i < pathB.length; i++) {
         if (setA.has(pathB[i].node)) {
           lcaIdx = i;
@@ -558,18 +601,34 @@ export class HydraulicSolver {
         }
       }
       const lcaNode = pathB[lcaIdx].node;
+      const lcaIdxA = pathA.findIndex((p) => p.node === lcaNode);
 
-      // Collect pipe indices along the cycle
-      const loopPipes: number[] = [pipe.index];
-      for (const entry of pathA) {
-        if (entry.node === lcaNode) break;
-        if (entry.pipe >= 0) loopPipes.push(entry.pipe);
-      }
+      // 1. Chord chord.fromNode → chord.toNode
+      const loopEntries: LoopEntry[] = [{ pipeIndex: chord.index, sign: 1 }];
+
+      // 2. Tree path: chord.toNode → LCA  (child→parent)
+      //    At step i (going from pathB[i] to pathB[i+1]):
+      //      pipe = pathB[i+1].pipe  (connects pathB[i] to pathB[i+1])
+      //      traversal direction = pathB[i].node → pathB[i+1].node (child→parent)
       for (let i = 0; i < lcaIdx; i++) {
-        if (pathB[i].pipe >= 0) loopPipes.push(pathB[i].pipe);
+        const pipeIdx = pathB[i + 1].pipe;
+        if (pipeIdx < 0) continue;
+        const sign = traversalSign(pipeIdx, pathB[i].node);
+        loopEntries.push({ pipeIndex: pipeIdx, sign });
       }
 
-      if (loopPipes.length > 1) loops.push(loopPipes);
+      // 3. Tree path: LCA → chord.fromNode  (parent→child)
+      //    At step j going from pathA[j+1] to pathA[j] (j = lcaIdxA-1 down to 0):
+      //      pipe = pathA[j+1].pipe  (connects pathA[j] to pathA[j+1])
+      //      traversal direction = pathA[j+1].node → pathA[j].node (parent→child)
+      for (let j = lcaIdxA - 1; j >= 0; j--) {
+        const pipeIdx = pathA[j + 1].pipe;
+        if (pipeIdx < 0) continue;
+        const sign = traversalSign(pipeIdx, pathA[j + 1].node);
+        loopEntries.push({ pipeIndex: pipeIdx, sign });
+      }
+
+      if (loopEntries.length > 1) loops.push(loopEntries);
     }
 
     return loops;
