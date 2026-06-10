@@ -161,7 +161,7 @@ export {
   BRITTNEY_CLOUD_MODELS,
   BRITTNEY_CLOUD_CAPABILITIES,
 } from './adapters/brittney-cloud';
-export type { BrittneyCloudModel, BrittneyCloudProviderConfig } from './adapters/brittney-cloud';
+export type { BrittneyCloudModel, BrittneyCloudProviderConfig, BrittneyCloudLane } from './adapters/brittney-cloud';
 
 // Provider manager
 export { LLMProviderManager } from './provider-manager';

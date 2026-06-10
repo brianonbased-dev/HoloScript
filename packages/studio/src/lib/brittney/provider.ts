@@ -144,11 +144,21 @@ function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
     );
   }
   const apiKey = process.env.BRITTNEY_API_KEY ?? '';
-  const tier = (process.env.BRITTNEY_TIER as 'standard' | 'pro') || 'standard';
+  // Both stay UNSET when the env doesn't pin them: an unpinned tier lets the
+  // service promote explicit vision/reasoning lanes to pro, and an unset lane
+  // lets the service's heuristic lane detection run (task-type modulation).
+  const tier = process.env.BRITTNEY_TIER as 'standard' | 'pro' | undefined;
+  const lane = process.env.BRITTNEY_LANE as
+    | 'operator'
+    | 'code'
+    | 'vision'
+    | 'reasoning'
+    | undefined;
   const provider = new BrittneyCloudAdapter({
     baseURL,
     apiKey,
-    tier,
+    ...(tier ? { tier } : {}),
+    ...(lane ? { lane } : {}),
   });
   return {
     provider,
