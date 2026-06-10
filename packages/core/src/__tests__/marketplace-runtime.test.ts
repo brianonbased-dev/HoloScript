@@ -10,8 +10,8 @@ import {
   submissionSummary,
   MarketplacePackage,
   Publisher,
-} from '@holoscript/platform';
-import { MarketplaceRegistry } from '@holoscript/platform';
+} from '@holoscript/marketplace-api';
+import { MarketplaceRegistry } from '@holoscript/marketplace-api';
 import { gateCheck, RuntimeMonitor } from '@holoscript/engine/runtime/SafetyGate';
 import { CultureRuntime } from '@holoscript/engine/runtime/CultureRuntime';
 import { EffectASTNode } from '../compiler/safety/CompilerSafetyPass';

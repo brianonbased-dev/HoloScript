@@ -59,8 +59,8 @@ describe('Cycle 110: Integration Tests', () => {
     // Compiler extracts state from SetState nodes
     const stateDirective = result.directives.find((d) => d.type === 'state');
     expect(stateDirective).toBeDefined();
-    // Compiler extracts lifecycle handlers from OnEvent nodes
-    const lifecycleDirective = result.directives.find((d) => d.type === 'lifecycle');
+    // Compiler extracts event handlers from OnEvent nodes (emitted as type 'event')
+    const lifecycleDirective = result.directives.find((d) => d.type === 'event');
     expect(lifecycleDirective).toBeDefined();
   });
 

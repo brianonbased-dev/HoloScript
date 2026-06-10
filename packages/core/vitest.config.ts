@@ -102,6 +102,13 @@ export default defineConfig({
       },
       { find: '@holoscript/engine', replacement: resolve(__dirname, '../engine/src') },
       { find: '@holoscript/platform', replacement: resolve(__dirname, '../platform/src/index.ts') },
+      // marketplace-api alias for integration tests in this package
+      // (marketplace symbols moved from @holoscript/platform → @holoscript/marketplace-api;
+      // this alias avoids adding a circular prod dep — core is a dep of marketplace-api).
+      {
+        find: '@holoscript/marketplace-api',
+        replacement: resolve(__dirname, '../marketplace-api/src/index.ts'),
+      },
     ],
   },
   test: {

@@ -10,7 +10,7 @@ exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > evaluateExp
 
 exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > evaluateExpression > [L14] boolean expression locks output > L14-exprBoolean 1`] = `"b5bea41b6c623f7c"`;
 
-exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > event emission > [L15] emit(event, data) with no handlers is a no-op (locks absence-of-effect) > L15-emitUnhandled 1`] = `"8b34a7c858d88a58"`;
+exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > event emission > [L15] emit(event, data) with no handlers is a no-op (locks absence-of-effect) > L15-emitUnhandled 1`] = `"3694bd08823ca457"`;
 
 exports[`HoloScriptRuntime characterization (W4-T3 pre-split lock) > execute(array) sequencing > [L9] sequential execution locks composite result > L9-sequence 1`] = `"4d101c5145caca26"`;
 

@@ -96,7 +96,7 @@ describe('P3 Board Starters - Mood + Persistent Traits (task_1779183224900_z051)
         ctx1
       );
 
-      sendEvent(persistentHandler, node1, {}, ctx1, {
+      sendEvent(persistentHandler, node1, { backend: 'file' }, ctx1, {
         type: 'persistent_set',
         key: 'durable-test',
         value: { version: 42, savedAt: 'now' },

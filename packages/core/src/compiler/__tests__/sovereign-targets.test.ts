@@ -57,8 +57,10 @@ describe('sovereign-targets registry', () => {
   it('records honest maturity/test state (no aspirational "real+tested" for the untested 2D emitters)', () => {
     const native2d = SOVEREIGN_ENGINES.find((e) => e.id === 'native-2d');
     const canvas = SOVEREIGN_ENGINES.find((e) => e.id === 'canvas2d-game');
-    // These are REAL but currently untested — the registry must not lie about it (drives a build task).
-    expect(native2d?.tests).toBe(false);
-    expect(canvas?.tests).toBe(false);
+    // I.017 COMPLETE (2026-05-30): both 2D compilers now have real tests.
+    // native-2d (Native2DCompiler) and canvas2d-game (Canvas2DGameCompiler) are
+    // marked tests:true in the registry reflecting the actual test coverage shipped.
+    expect(native2d?.tests).toBe(true);
+    expect(canvas?.tests).toBe(true);
   });
 });
