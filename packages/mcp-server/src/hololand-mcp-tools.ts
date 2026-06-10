@@ -3242,7 +3242,7 @@ function parseDialogueResponse(
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
-  let dialogueLine = lines[0] || '...';
+  const dialogueLine = lines[0] || '...';
   const choices: string[] = [];
 
   for (const line of lines.slice(1)) {
