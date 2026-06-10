@@ -44,18 +44,69 @@ interface ShowResponse {
   capabilities?: string[];
 }
 
-const PROBE_TOOL = {
-  type: 'function',
-  function: {
-    name: 'ping',
-    description: 'Reply to a ping. Always call this tool.',
-    parameters: {
-      type: 'object',
-      properties: { ok: { type: 'boolean' } },
-      required: ['ok'],
+/**
+ * Representative probe, not a ping: gemma4:e2b passed a trivial ping 2/2
+ * (2026-06-10) yet produced prose or wrong-argument calls on real scene
+ * tasks. The probe must demand what real work demands — selecting the right
+ * tool among decoys AND emitting faithful typed arguments.
+ */
+const PROBE_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'create_object',
+      description: 'Create a 3D object in the scene',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          primitive: { type: 'string' },
+          position: { type: 'array', items: { type: 'number' } },
+          radius: { type: 'number' },
+        },
+        required: ['name'],
+      },
     },
   },
-};
+  {
+    type: 'function',
+    function: {
+      name: 'delete_object',
+      description: 'Delete an object from the scene by name',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_objects',
+      description: 'List all objects in the scene',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+];
+
+const PROBE_PROMPT =
+  'Create a sphere named orb-probe with radius 2 at position [1, 2, 3]. Use the appropriate tool.';
+
+function probeArgsFaithful(args: Record<string, unknown>): boolean {
+  const name = String(args['name'] ?? '');
+  const radius = Number(args['radius']);
+  const pos = Array.isArray(args['position']) ? args['position'].map(Number) : null;
+  return (
+    name.includes('orb') &&
+    Math.abs(radius - 2) < 0.01 &&
+    !!pos &&
+    pos.length === 3 &&
+    Math.abs(pos[0] - 1) < 0.01 &&
+    Math.abs(pos[1] - 2) < 0.01 &&
+    Math.abs(pos[2] - 3) < 0.01
+  );
+}
 
 /** Cache per baseURL so a long-lived server probes at most once per TTL. */
 const cache = new Map<string, { choice: LocalModelChoice; at: number }>();
@@ -80,23 +131,39 @@ async function fetchJson<T>(
   }
 }
 
-/** One tiny forced-tools call: does the model ACTUALLY emit tool_calls? */
+/**
+ * One representative tools call: the model must pick create_object among
+ * decoys AND reproduce the requested arguments faithfully. Tool-call
+ * EXISTENCE alone is not enough — that is the lesson of the gemma4 incident.
+ */
 async function probeToolCall(baseURL: string, model: string, timeoutMs: number): Promise<boolean> {
   const body = {
     model,
-    messages: [{ role: 'user', content: 'Ping. You must call the ping tool with ok=true.' }],
-    tools: [PROBE_TOOL],
+    messages: [{ role: 'user', content: PROBE_PROMPT }],
+    tools: PROBE_TOOLS,
     stream: false,
   };
   const resp = await fetchJson<{
-    choices?: Array<{ message?: { tool_calls?: unknown[] } }>;
+    choices?: Array<{
+      message?: { tool_calls?: Array<{ function?: { name?: string; arguments?: unknown } }> };
+    }>;
   }>(
     `${baseURL.replace(/\/$/, '')}/v1/chat/completions`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
     timeoutMs
   );
   const calls = resp?.choices?.[0]?.message?.tool_calls;
-  return Array.isArray(calls) && calls.length > 0;
+  if (!Array.isArray(calls) || calls.length === 0) return false;
+  const create = calls.find((c) => c.function?.name === 'create_object');
+  if (!create) return false;
+  const rawArgs = create.function?.arguments;
+  let args: Record<string, unknown>;
+  try {
+    args = typeof rawArgs === 'string' ? (JSON.parse(rawArgs) as Record<string, unknown>) : ((rawArgs ?? {}) as Record<string, unknown>);
+  } catch {
+    return false;
+  }
+  return probeArgsFaithful(args);
 }
 
 export async function pickLocalModel(

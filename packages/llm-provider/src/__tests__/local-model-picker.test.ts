@@ -36,14 +36,24 @@ function stubOllama(opts: {
     if (u.endsWith('/v1/chat/completions')) {
       const model = JSON.parse(String(init?.body ?? '{}')).model as string;
       const m = opts.models.find((x) => x.name === model);
+      // Faithful create_object call (the representative probe's pass shape).
       return {
         ok: true,
         json: async () => ({
           choices: [
             {
               message: m?.emitsToolCalls
-                ? { tool_calls: [{ function: { name: 'ping', arguments: '{"ok":true}' } }] }
-                : { content: '{"name":"ping","arguments":{"ok":true}}' },
+                ? {
+                    tool_calls: [
+                      {
+                        function: {
+                          name: 'create_object',
+                          arguments: '{"name":"orb-probe","primitive":"sphere","radius":2,"position":[1,2,3]}',
+                        },
+                      },
+                    ],
+                  }
+                : { content: '{"tool":"create_object","tool_args":{"name":"orb-probe"}}' },
             },
           ],
         }),

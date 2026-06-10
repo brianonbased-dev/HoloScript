@@ -231,8 +231,18 @@ describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
                 {
                   message:
                     model === 'fresh:4b'
-                      ? { tool_calls: [{ function: { name: 'ping' } }] }
-                      : { content: '{"name":"ping"}' },
+                      ? {
+                          tool_calls: [
+                            {
+                              function: {
+                                name: 'create_object',
+                                arguments:
+                                  '{"name":"orb-probe","radius":2,"position":[1,2,3]}',
+                              },
+                            },
+                          ],
+                        }
+                      : { content: '{"name":"create_object"}' },
                 },
               ],
             }),
