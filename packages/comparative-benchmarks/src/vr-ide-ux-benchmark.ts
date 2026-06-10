@@ -80,7 +80,7 @@ export async function runVrIdeUxBenchmark(): Promise<UxBenchmarkReport> {
 
   for (const task of TASK_CONFIG) {
     const start = performance.now();
-    let blockers: string[] = [];
+    const blockers: string[] = [];
     let edits = 0;
 
     try {

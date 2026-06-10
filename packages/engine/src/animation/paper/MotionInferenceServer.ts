@@ -121,7 +121,7 @@ function generateMotionClip(req: InferenceRequest): MotionClip {
     const frame = REST_BONES.map(([boneId, rx, ry, rz]) => {
       let px = rx;
       let py = ry;
-      let pz = rz;
+      const pz = rz;
 
       if (category === 'locomotion' && (boneId === 'l_foot' || boneId === 'r_foot')) {
         const phase = boneId === 'l_foot' ? 0 : Math.PI;

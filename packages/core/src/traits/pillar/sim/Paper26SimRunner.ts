@@ -717,7 +717,7 @@ function computePopulationMetrics(agents: AgentState[], tick: number): Populatio
 // ─────────────────────────────────────────────────────────────────────────────
 
 let AGENTS: AgentState[] = [];
-let POPULATION_METRICS: PopulationMetrics[] = [];
+const POPULATION_METRICS: PopulationMetrics[] = [];
 let CURRENT_TICK = 0;
 let START_TIME_MS = Date.now();
 let SIM_RUNNING = false;

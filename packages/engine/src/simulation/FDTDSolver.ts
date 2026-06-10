@@ -488,22 +488,22 @@ export class FDTDSolver {
     const { nx, ny, nz } = this;
 
     // Ex tangential to y and z faces → zero at j=0, j=ny, k=0, k=nz
-    for (let k of [0, nz])
+    for (const k of [0, nz])
       for (let j = 0; j <= ny; j++) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
     for (let k = 0; k <= nz; k++)
-      for (let j of [0, ny]) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
+      for (const j of [0, ny]) for (let i = 0; i < nx; i++) this.Ex.set(i, j, k, 0);
 
     // Ey tangential to x and z faces
-    for (let k of [0, nz])
+    for (const k of [0, nz])
       for (let j = 0; j < ny; j++) for (let i = 0; i <= nx; i++) this.Ey.set(i, j, k, 0);
     for (let k = 0; k <= nz; k++)
-      for (let j = 0; j < ny; j++) for (let i of [0, nx]) this.Ey.set(i, j, k, 0);
+      for (let j = 0; j < ny; j++) for (const i of [0, nx]) this.Ey.set(i, j, k, 0);
 
     // Ez tangential to x and y faces
     for (let k = 0; k < nz; k++)
-      for (let j of [0, ny]) for (let i = 0; i <= nx; i++) this.Ez.set(i, j, k, 0);
+      for (const j of [0, ny]) for (let i = 0; i <= nx; i++) this.Ez.set(i, j, k, 0);
     for (let k = 0; k < nz; k++)
-      for (let j = 0; j <= ny; j++) for (let i of [0, nx]) this.Ez.set(i, j, k, 0);
+      for (let j = 0; j <= ny; j++) for (const i of [0, nx]) this.Ez.set(i, j, k, 0);
   }
 
   /** Apply sources at the current time. */

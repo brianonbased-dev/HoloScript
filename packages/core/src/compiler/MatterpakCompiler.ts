@@ -126,9 +126,9 @@ function parseOBJExtended(text: string): ParsedOBJGroup[] {
 
   let currentGroup: ParsedOBJGroup | null = null;
   let currentMaterial: string | undefined;
-  let vertexOffset = 0;
-  let normalOffset = 0;
-  let uvOffset = 0;
+  const vertexOffset = 0;
+  const normalOffset = 0;
+  const uvOffset = 0;
 
   function flushGroup() {
     if (currentGroup && (currentGroup.triangles.length > 0 || currentGroup.vertices.length > 0)) {

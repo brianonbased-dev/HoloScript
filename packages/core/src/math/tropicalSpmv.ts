@@ -159,7 +159,7 @@ export function barabasiAlbertCsr(n: number, m: number, rng: () => number): Trop
       guard++;
       let tot = 0;
       for (let u = 0; u < v; u++) tot += indeg[u]! + 1;
-      let r = rng() * tot;
+      const r = rng() * tot;
       let acc = 0;
       let pick = 0;
       for (let u = 0; u < v; u++) {

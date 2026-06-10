@@ -197,7 +197,7 @@ export function parseOpenAIModerationResult(value: unknown): InlineModerationRes
   // Prefer the first results-array entry for category maps.
   const results = asArray(mod.results);
   const firstResult = asRecord(results[0]);
-  let categories: Record<string, boolean> = {};
+  const categories: Record<string, boolean> = {};
   let categoryScores: Record<string, number> | undefined;
 
   if (firstResult) {

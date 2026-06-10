@@ -527,12 +527,12 @@ export class GaussianSplattingCompiler extends CompilerBase {
    */
   private jacobiEigenvalues3(a: number[]): { values: number[]; vectors: number[] } {
     // a is row-major symmetric 3x3: [a00,a01,a02,a10,a11,a12,a20,a21,a22]
-    let m = [
+    const m = [
       [a[0], a[1], a[2]],
       [a[3], a[4], a[5]],
       [a[6], a[7], a[8]],
     ];
-    let v = [
+    const v = [
       [1, 0, 0],
       [0, 1, 0],
       [0, 0, 1],

@@ -809,9 +809,9 @@ export class StructuralSolverTET10 {
             const ex2 = x2 - x0,
               ey2 = y2 - y0,
               ez2 = z2 - z0;
-            let nx0 = ey1 * ez2 - ez1 * ey2;
-            let ny0 = ez1 * ex2 - ex1 * ez2;
-            let nz0 = ex1 * ey2 - ey1 * ex2;
+            const nx0 = ey1 * ez2 - ez1 * ey2;
+            const ny0 = ez1 * ex2 - ex1 * ez2;
+            const nz0 = ex1 * ey2 - ey1 * ex2;
 
             // If normal points toward opposite corner, flip to outward normal
             const dotOpp = nx0 * (xo - x0) + ny0 * (yo - y0) + nz0 * (zo - z0);

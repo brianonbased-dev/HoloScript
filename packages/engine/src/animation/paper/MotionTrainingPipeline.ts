@@ -284,7 +284,7 @@ function generateContractedClip(
     const frame = REST_BONES.map(([boneId, rx, ry, rz]) => {
       let px = rx;
       let py = ry;
-      let pz = rz;
+      const pz = rz;
 
       // Category-specific valid motion
       if (category === 'locomotion' && (boneId === 'l_foot' || boneId === 'r_foot')) {

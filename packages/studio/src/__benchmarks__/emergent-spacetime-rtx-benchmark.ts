@@ -154,7 +154,7 @@ function getHardwareInfo(): EmergentSpacetimeBenchmarkResults['hardware'] {
   }
 
   // CPU detection
-  let cpu = navigator.userAgent.match(/\(([^)]+)\)/)?.[1] || 'Unknown CPU';
+  const cpu = navigator.userAgent.match(/\(([^)]+)\)/)?.[1] || 'Unknown CPU';
 
   // Memory
   const deviceMemory = (navigator as any).deviceMemory || null;

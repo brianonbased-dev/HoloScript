@@ -148,7 +148,7 @@ export class MixamoRetargeter {
       if (overrides.skip) continue;
 
       // 3. Resolve target bone name
-      let targetBoneName = overrides.targetBoneName ?? targetMap[humanoidName];
+      const targetBoneName = overrides.targetBoneName ?? targetMap[humanoidName];
       if (!targetBoneName) {
         // No mapping for this bone in the chosen target format
         continue;

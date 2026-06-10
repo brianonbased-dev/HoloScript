@@ -122,7 +122,7 @@ function fallbackPerlinNoise2D(x: number, y: number, seed: number): number {
 // Bridge Class
 // ═══════════════════════════════════════════════════════════════════
 
-let wasmModule: WasmModule | null = null;
+const wasmModule: WasmModule | null = null;
 let bridgeBackend: BridgeBackend = 'fallback';
 
 /**

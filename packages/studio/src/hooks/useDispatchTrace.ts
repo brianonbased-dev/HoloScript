@@ -104,7 +104,7 @@ export function simulateDecision(
   const latency = Math.max(0.1, baseLatency + jitter);
 
   let tier: StudioDispatchTier = 'tier-3-cpu-direct';
-  let accepted = true;
+  const accepted = true;
   let alpha: number | undefined;
   let fallbackReason: string | undefined;
 

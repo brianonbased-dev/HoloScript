@@ -472,7 +472,7 @@ export class ProvenanceSemiring {
       }
       const srcA = String(a.source);
       const srcB = String(b.source);
-      let selectedContext =
+      const selectedContext =
         weightA > weightB
           ? a.context
           : weightA < weightB

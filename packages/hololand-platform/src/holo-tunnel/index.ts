@@ -224,7 +224,7 @@ export function startHoloTunnel(options: HoloTunnelOptions): Promise<HoloTunnelH
         fwdHeaders['host'] = `${localHost}:${localPort}`;
 
         let status = 502;
-        let respHeaders: Record<string, string> = {};
+        const respHeaders: Record<string, string> = {};
         let respBody = '';
 
         try {
