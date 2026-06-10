@@ -409,6 +409,9 @@ registerCategory(hologramContentToolDefinitions, (name, args, _signingCtx) =>
 registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
   handleNegotiationTool(name, args)
 );
+registerCategory(daemonLifecycleTools, (name, args, _signingCtx) =>
+  handleDaemonLifecycleTool(name, args)
+);
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
