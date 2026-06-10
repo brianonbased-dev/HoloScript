@@ -64,23 +64,23 @@ composition "Smart Home Control Panel" {
       brightness: 0.8
       color: "#fff4e0"
     }
-    onStateChange "home_state.mode": {
-      if event.value == "night" {
-        set brightness 0.3
-        set color "#ff8c69"
-      } else_if event.value == "away" {
-        set on false
-      } else_if event.value == "eco" {
-        set brightness 0.5
-      } else {
-        set on true
-        set brightness 0.8
-        set color "#fff4e0"
+    onStateChange: (event) => {
+      if (event.path == "home_state.mode") {
+        if (event.value == "night") {
+          state.brightness = 0.3;
+          state.color = "#ff8c69";
+        } else if (event.value == "away") {
+          state.on = false;
+        } else if (event.value == "eco") {
+          state.brightness = 0.5;
+        } else {
+          state.on = true;
+          state.brightness = 0.8;
+          state.color = "#fff4e0";
+        }
+      } else if (event.path == "home_state.occupancy") {
+        state.on = !!event.value;
       }
-    }
-    onStateChange "home_state.occupancy": {
-      if !event.value { set on false }
-      else { set on true }
     }
   }
 
@@ -158,31 +158,31 @@ composition "Smart Home Control Panel" {
         }
       }
       actions: {
-        set_day_scene: {
-          set home_state.mode "day"
-          set home_state.temperature_target 21.0
+        set_day_scene: () => {
+          home_state.mode = "day";
+          home_state.temperature_target = 21.0;
         }
-        set_night_scene: {
-          set home_state.mode "night"
-          set home_state.temperature_target 18.5
+        set_night_scene: () => {
+          home_state.mode = "night";
+          home_state.temperature_target = 18.5;
         }
-        set_away_scene: {
-          set home_state.mode "away"
-          set home_state.temperature_target 15.0
-          set home_state.occupancy false
+        set_away_scene: () => {
+          home_state.mode = "away";
+          home_state.temperature_target = 15.0;
+          home_state.occupancy = false;
         }
-        set_eco_scene: {
-          set home_state.mode "eco"
-          set home_state.temperature_target 17.0
+        set_eco_scene: () => {
+          home_state.mode = "eco";
+          home_state.temperature_target = 17.0;
         }
       }
     }
     state {
       current_mode: "day"
     }
-    onStateTransition: {
-      set current_mode event.to
-      broadcast "mode_changed" { mode: event.to, from: event.from }
+    onStateTransition: (event) => {
+      state.current_mode = event.to;
+      broadcast("mode_changed", { mode: event.to, from: event.from });
     }
   }
 
@@ -202,8 +202,8 @@ composition "Smart Home Control Panel" {
       mode: ""
       label: ""
     }
-    onClick: {
-      trigger_event state.mode on "house_mode_controller"
+    onClick: (event) => {
+      trigger_event("house_mode_controller", state.mode);
     }
   }
 

@@ -1314,7 +1314,17 @@ export class HoloScriptPlusParser {
     // Special handling for template definitions
     // =========================================================================
     if (type === 'template') {
-      const templateName = this.expect('STRING', 'Expected template name').value;
+      // Accept both quoted and bare template names:
+      //   template "InteractiveButton" { ... }
+      //   template InteractiveButton { ... }
+      // The bare-identifier form previously errored (HSP001), so accepting it
+      // is strictly more permissive.
+      let templateName: string;
+      if (this.check('IDENTIFIER')) {
+        templateName = this.advance().value;
+      } else {
+        templateName = this.expect('STRING', 'Expected template name').value;
+      }
       const templateBody = this.parseBlockContent();
 
       let version: number | undefined;
@@ -2159,22 +2169,34 @@ export class HoloScriptPlusParser {
       }
 
       // Wildcard form: @import * as Namespace from "./path.hs"
+      let wildcardAlias: string | undefined;
       if (this.check('ASTERISK') || (this.check('IDENTIFIER') && this.current().value === '*')) {
         this.advance(); // *
         isWildcard = true;
         if (this.check('IDENTIFIER') && this.current().value === 'as') {
           this.advance(); // as
+          // Grab the namespace alias BEFORE 'from' — previously the parser
+          // skipped straight to expecting the path string here, which broke
+          // the documented `* as Namespace from "./path"` form (HSP001).
+          if (this.check('IDENTIFIER') && this.current().value !== 'from') {
+            wildcardAlias = this.advance().value;
+          }
+        }
+        if (this.check('IDENTIFIER') && this.current().value === 'from') {
+          this.advance(); // from
         }
       }
 
       const path = this.expect('STRING', 'Expected import path string').value;
 
-      // Derive default alias from filename
+      // Derive default alias from filename (wildcard alias wins when present)
       let alias =
+        wildcardAlias ||
         path
           .split('/')
           .pop()
-          ?.replace(/\.[^.]+$/, '') || 'import';
+          ?.replace(/\.[^.]+$/, '') ||
+        'import';
 
       // Handle trailing 'as Alias' on non-named-import forms
       if (!namedImports && this.check('IDENTIFIER') && this.current().value === 'as') {
@@ -4486,6 +4508,15 @@ export class HoloScriptPlusParser {
       return this.parseParenExpression();
     }
 
+    // State-machine transition shorthand in config objects (A-009 .hsplus gap):
+    //   on_event: -> "target" [guard(expr)] [action(name)]
+    // Both '->' and '=>' lex to ARROW; only the thin arrow starts a transition.
+    // ARROW at expression-primary position previously always errored (HSP300),
+    // so accepting it here is strictly more permissive.
+    if (token.type === 'ARROW' && token.value === '->') {
+      return this.parseTransitionShorthand();
+    }
+
     // Handle match expression: match subject { pattern => body, ... }
     if (token.type === 'MATCH') {
       return this.parseMatchExpression();
@@ -4579,6 +4610,46 @@ export class HoloScriptPlusParser {
     const err = new Error('ParseError');
     err.message = 'ParseError';
     throw err;
+  }
+
+  /**
+   * Parse a state-machine transition shorthand value:
+   *   -> "target"
+   *   -> "target" action(callback_name)
+   *   -> "target" guard(state.credits >= 10) action(begin)
+   * Used as the value of on_<event> keys inside @state_machine states config.
+   * Modifiers (action / guard) may appear in any order, each at most once
+   * meaningfully (last one wins, matching general object semantics).
+   */
+  private parseTransitionShorthand(): Record<string, unknown> {
+    this.advance(); // ->
+
+    let target = '';
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      target = this.advance().value;
+    } else {
+      this.error(
+        `Expected target state after -> in transition. Got ${this.current().type} "${this.current().value}"`,
+        'HSP300'
+      );
+    }
+
+    const transition: Record<string, unknown> = { type: 'transition', target };
+
+    // Trailing modifiers: action(name) / guard(expression)
+    while (
+      this.check('IDENTIFIER') &&
+      (this.current().value === 'action' || this.current().value === 'guard') &&
+      this.peek(1).type === 'LPAREN'
+    ) {
+      const kind = this.advance().value; // action | guard
+      this.advance(); // (
+      const arg = this.parseExpression();
+      this.expect('RPAREN', `Expected ) after ${kind} argument in transition`);
+      transition[kind] = arg;
+    }
+
+    return transition;
   }
 
   private parseParenExpression(): unknown {

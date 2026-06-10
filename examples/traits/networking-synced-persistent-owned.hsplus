@@ -32,13 +32,13 @@ composition "Collaborative Whiteboard Room" {
       peer_count: 0
       host_id: ""
     }
-    onPeerJoin: {
-      increment peer_count
-      broadcast "peer_join" { id: event.peer_id, ts: event.timestamp }
+    onPeerJoin: (event) => {
+      state.peer_count += 1;
+      broadcast("peer_join", { id: event.peer_id, ts: event.timestamp });
     }
-    onPeerLeave: {
-      decrement peer_count
-      release_owned_objects event.peer_id
+    onPeerLeave: (event) => {
+      state.peer_count -= 1;
+      release_owned_objects(event.peer_id);
     }
   }
 
@@ -65,14 +65,16 @@ composition "Collaborative Whiteboard Room" {
       color: "#ffd166"
       author: ""
     }
-    onGrab: {
-      claim_ownership self
+    onGrab: (event) => {
+      claim_ownership(self);
     }
-    onRelease: {
-      sync_now self
+    onRelease: (event) => {
+      sync_now(self);
     }
-    onChange "state.text": {
-      sync_now self
+    onChange: (event) => {
+      if (event.path == "state.text") {
+        sync_now(self);
+      }
     }
   }
 
@@ -129,12 +131,12 @@ composition "Collaborative Whiteboard Room" {
     state {
       stroke_count: 0
     }
-    onDraw: {
-      increment stroke_count
-      spawn "PersistentWhiteboardLine" {
-        path_data: event.path
+    onDraw: (event) => {
+      state.stroke_count += 1;
+      spawn("PersistentWhiteboardLine", {
+        path_data: event.path,
         stroke_color: event.color
-      }
+      });
     }
   }
 
@@ -191,9 +193,9 @@ composition "Collaborative Whiteboard Room" {
     state {
       room_locked: false
     }
-    onClick: {
-      toggle room_locked
-      broadcast "room_lock_changed" { locked: state.room_locked }
+    onClick: (event) => {
+      state.room_locked = !state.room_locked;
+      broadcast("room_lock_changed", { locked: state.room_locked });
     }
   }
 }

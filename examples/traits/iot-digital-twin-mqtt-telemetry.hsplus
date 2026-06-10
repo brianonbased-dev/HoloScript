@@ -39,15 +39,15 @@ composition "Smart Factory Digital Twin" {
       connected: false
       last_message_ts: 0
     }
-    onConnect: {
-      set connected true
-      broadcast "mqtt_ready" {}
+    onConnect: (event) => {
+      state.connected = true;
+      broadcast("mqtt_ready", {});
     }
-    onDisconnect: {
-      set connected false
+    onDisconnect: (event) => {
+      state.connected = false;
     }
-    onMessage: {
-      route_to_sensor event.topic event.payload
+    onMessage: (event) => {
+      route_to_sensor(event.topic, event.payload);
     }
   }
 
@@ -76,16 +76,16 @@ composition "Smart Factory Digital Twin" {
       alert_state: "normal"
       unit: "°C"
     }
-    onSensorUpdate: {
-      set value event.value
-      if event.value > 85 {
-        set alert_state "critical"
-        play_audio "alarm_high.ogg"
-        broadcast "temperature_alert" { sensor: state.sensor_id, value: event.value }
-      } else_if event.value > 70 {
-        set alert_state "warning"
+    onSensorUpdate: (event) => {
+      state.value = event.value;
+      if (event.value > 85) {
+        state.alert_state = "critical";
+        play_audio("alarm_high.ogg");
+        broadcast("temperature_alert", { sensor: state.sensor_id, value: event.value });
+      } else if (event.value > 70) {
+        state.alert_state = "warning";
       } else {
-        set alert_state "normal"
+        state.alert_state = "normal";
       }
     }
   }
@@ -110,15 +110,15 @@ composition "Smart Factory Digital Twin" {
       peak: 0.0
       alert_state: "normal"
     }
-    onSensorUpdate: {
-      set value event.value
-      set rms event.rms
-      set peak event.peak
-      if event.peak > 7.1 {
-        set alert_state "critical"
-        broadcast "vibration_alert" { sensor: state.sensor_id, peak: event.peak }
+    onSensorUpdate: (event) => {
+      state.value = event.value;
+      state.rms = event.rms;
+      state.peak = event.peak;
+      if (event.peak > 7.1) {
+        state.alert_state = "critical";
+        broadcast("vibration_alert", { sensor: state.sensor_id, peak: event.peak });
       } else {
-        set alert_state "normal"
+        state.alert_state = "normal";
       }
     }
   }
@@ -150,19 +150,19 @@ composition "Smart Factory Digital Twin" {
       cycle_time_s: 0
       parts_produced: 0
     }
-    onTwinSync: {
-      set spindle_rpm event.spindle_rpm
-      set feed_rate event.feed_rate
-      set power_kw event.power_kw
-      set status event.status
+    onTwinSync: (event) => {
+      state.spindle_rpm = event.spindle_rpm;
+      state.feed_rate = event.feed_rate;
+      state.power_kw = event.power_kw;
+      state.status = event.status;
     }
-    onDivergenceAlert: {
-      broadcast "twin_divergence" {
-        asset: state.physical_asset_id
-        property: event.property
-        physical: event.physical_value
+    onDivergenceAlert: (event) => {
+      broadcast("twin_divergence", {
+        asset: state.physical_asset_id,
+        property: event.property,
+        physical: event.physical_value,
         digital: event.digital_value
-      }
+      });
     }
   }
 
@@ -243,11 +243,11 @@ composition "Smart Factory Digital Twin" {
       total_power_kw: 0.0
       machines_running: 0
     }
-    onTelemetryAggregate: {
-      set avg_temp event.aggregates.temperature.mean
-      set max_vib event.aggregates.vibration.max
-      set total_power_kw event.aggregates.power_kw.sum
-      set machines_running event.aggregates.status.count_active
+    onTelemetryAggregate: (event) => {
+      state.avg_temp = event.aggregates.temperature.mean;
+      state.max_vib = event.aggregates.vibration.max;
+      state.total_power_kw = event.aggregates.power_kw.sum;
+      state.machines_running = event.aggregates.status.count_active;
     }
   }
 }
