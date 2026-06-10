@@ -3,10 +3,14 @@
  *
  * Routes Brittney chat requests to the best available inference provider.
  * 
- * Tiers:
+ * Tiers (how much capability/cost):
  *   - pro:      Kimi K2.5 (1T MoE, 32B active) — advanced reasoning, vision, agentic
  *   - standard: Fireworks (Qwen2.5-Coder-7B fine-tuned) — fast, cheap, code-optimized
  *   - fallback: Together AI, Ollama (local dev)
+ *
+ * Lanes (what kind of work — task-type modulation, see "Lane Routing" below):
+ *   - operator / code / vision / reasoning, with opt-in per-lane model overrides
+ *     via BRITTNEY_LANE_<LANE>_MODEL env vars.
  *
  * All providers implement the same InferenceProvider interface and return
  * an async generator of SSE-compatible events.
@@ -42,6 +46,19 @@ export interface ChatMessage {
   content: string;
 }
 
+/**
+ * Task lane — what KIND of work this request is, independent of cost tier.
+ * Lanes map intent to the model best suited for it (multi-lane model strategy,
+ * ai-ecosystem research/2026-05-13 + EXP-1 router-bench):
+ *   - operator:  conversation / status / HoloShell state routing (fast small model)
+ *   - code:      HoloScript generation, repair, tool-call drafting (code specialist)
+ *   - vision:    screenshot / visual state extraction (vision-capable model)
+ *   - reasoning: hard source-wide reasoning (pro tier by default)
+ */
+export type BrittneyLane = 'operator' | 'code' | 'vision' | 'reasoning';
+
+export const BRITTNEY_LANES: readonly BrittneyLane[] = ['operator', 'code', 'vision', 'reasoning'];
+
 export interface ChatRequest {
   messages: ChatMessage[];
   sceneContext?: string;
@@ -50,6 +67,7 @@ export interface ChatRequest {
   temperature?: number;
   maxTokens?: number;
   tier?: 'pro' | 'standard';
+  lane?: BrittneyLane;
 }
 
 export interface ToolDefinition {
@@ -497,6 +515,74 @@ export class FleetProvider implements InferenceProvider {
 }
 
 // ============================================================================
+// Lane Routing — task-type modulation
+// ============================================================================
+//
+// Tiers answer "how much capability/cost?"; lanes answer "what kind of work?".
+// A request's lane selects the model best suited for the task, per the
+// multi-lane strategy (ai-ecosystem research/2026-05-13) and the EXP-1
+// router-bench finding that small models have complementary strengths.
+//
+// Backward-compatible by construction:
+//   - Lane → model overrides come ONLY from env (BRITTNEY_LANE_<LANE>_MODEL).
+//     No lane env set + no explicit lane on the request = byte-identical routing.
+//   - An explicit request.model always wins over a lane override.
+//   - Tier promotion (vision/reasoning → pro) fires ONLY for an EXPLICIT
+//     request.lane, never from heuristic detection — heuristics must not move
+//     a request onto a more expensive tier on their own.
+
+const LANE_MODEL_ENV: Record<BrittneyLane, string> = {
+  operator: 'BRITTNEY_LANE_OPERATOR_MODEL',
+  code: 'BRITTNEY_LANE_CODE_MODEL',
+  vision: 'BRITTNEY_LANE_VISION_MODEL',
+  reasoning: 'BRITTNEY_LANE_REASONING_MODEL',
+};
+
+const VISION_HINT =
+  /\b(screenshot|screen\s*shot|what(?:'s| is) on (?:my|the) screen|this image|attached image)\b/i;
+
+// A short tool-less turn is operator traffic (status/conversation); anything
+// tool-bearing is scene/code work. Threshold is conservative — misclassifying
+// operator→code costs nothing (code is the current default for everything).
+const OPERATOR_MAX_CHARS = 280;
+
+/**
+ * Resolve the lane for a request. An explicit `request.lane` always wins;
+ * otherwise a conservative heuristic classifies the request.
+ */
+export function detectLane(request: ChatRequest): BrittneyLane {
+  if (request.lane) return request.lane;
+  const lastUser = [...request.messages].reverse().find((m) => m.role === 'user');
+  const text = lastUser?.content ?? '';
+  if (VISION_HINT.test(text)) return 'vision';
+  if (request.tools && request.tools.length > 0) return 'code';
+  if (text.length > 0 && text.length <= OPERATOR_MAX_CHARS) return 'operator';
+  return 'code';
+}
+
+/**
+ * Apply lane routing to a request: resolve the lane, promote explicitly-laned
+ * vision/reasoning requests to the pro tier (Kimi K2.5 is the only
+ * vision-capable provider; standard fallback still applies if pro is down),
+ * and apply the env-configured per-lane model override.
+ */
+export function applyLaneRouting(request: ChatRequest): { request: ChatRequest; lane: BrittneyLane } {
+  const lane = detectLane(request);
+  const next: ChatRequest = { ...request, lane };
+
+  if (request.lane && (lane === 'vision' || lane === 'reasoning') && !request.tier) {
+    next.tier = 'pro';
+  }
+
+  const envModel = process.env[LANE_MODEL_ENV[lane]];
+  if (envModel && !request.model) {
+    next.model = envModel;
+  }
+
+  return { request: next, lane };
+}
+
+// ============================================================================
 // InferenceRouter
 // ============================================================================
 
@@ -517,15 +603,19 @@ export class InferenceRouter {
   }
 
   /**
-   * Stream a chat response, routing by tier
+   * Stream a chat response, routing by lane (what kind of work) then tier
+   * (how much capability/cost):
+   *   - lane:     env-configured per-lane model override (see applyLaneRouting)
    *   - pro:      Kimi K2.5 (falls back to standard if unavailable)
    *   - standard: preferred provider → any available
    */
-  async *chat(request: ChatRequest): AsyncGenerator<StreamEvent> {
+  async *chat(rawRequest: ChatRequest): AsyncGenerator<StreamEvent> {
+    const { request, lane } = applyLaneRouting(rawRequest);
+
     // Pro tier: route to Kimi K2.5
     if (request.tier === 'pro') {
       if (await this.proProvider.isAvailable()) {
-        logger.info(`[InferenceRouter] Pro tier → ${this.proProvider.name}`);
+        logger.info(`[InferenceRouter] lane=${lane} pro tier → ${this.proProvider.name}`);
         yield* this.proProvider.stream(request);
         return;
       }
@@ -535,7 +625,7 @@ export class InferenceRouter {
     // Standard tier: try preferred provider first
     const preferred = this.providers.find(p => p.name === this.preferredProvider);
     if (preferred && await preferred.isAvailable()) {
-      logger.info(`[InferenceRouter] Using ${preferred.name}`);
+      logger.info(`[InferenceRouter] lane=${lane} → ${preferred.name}`);
       yield* preferred.stream(request);
       return;
     }
@@ -543,7 +633,7 @@ export class InferenceRouter {
     // Try any available provider
     for (const provider of this.providers) {
       if (await provider.isAvailable()) {
-        logger.info(`[InferenceRouter] Falling back to ${provider.name}`);
+        logger.info(`[InferenceRouter] lane=${lane} falling back to ${provider.name}`);
         yield* provider.stream(request);
         return;
       }

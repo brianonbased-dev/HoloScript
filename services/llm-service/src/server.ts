@@ -23,7 +23,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService';
 import { AuthService, type AuthPrincipal } from './services/AuthService';
-import { InferenceRouter, type ChatRequest, type StreamEvent } from './services/InferenceRouter';
+import { InferenceRouter, BRITTNEY_LANES, type ChatRequest, type StreamEvent } from './services/InferenceRouter';
 import { RateLimiter } from './services/RateLimiter';
 import { UsageTracker } from './services/UsageTracker';
 import { FleetMetrics } from './services/FleetMetrics';
@@ -170,10 +170,15 @@ app.post('/api/auth/register', async (req: Request, res: Response) => {
  */
 app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Response) => {
   const apiKey = (req as any).apiKey || 'anonymous';
-  const { messages, sceneContext, tools, model, temperature, maxTokens, tier } = req.body;
+  const { messages, sceneContext, tools, model, temperature, maxTokens, tier, lane } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
     res.status(400).json({ error: 'messages array required' });
+    return;
+  }
+
+  if (lane !== undefined && !BRITTNEY_LANES.includes(lane)) {
+    res.status(400).json({ error: `lane must be one of: ${BRITTNEY_LANES.join(', ')}` });
     return;
   }
 
@@ -195,7 +200,10 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
     'X-Accel-Buffering': 'no',
   });
 
-  const request: ChatRequest = { messages, sceneContext, tools, model, temperature, maxTokens, tier: tier || 'standard' };
+  // tier passes through UNSET when the client didn't pin one — the router treats
+  // non-'pro' as standard, and an unset tier is what allows an explicit
+  // lane=vision|reasoning to promote to pro (applyLaneRouting).
+  const request: ChatRequest = { messages, sceneContext, tools, model, temperature, maxTokens, tier, lane };
   let completionText = '';
   let errored = false;
 

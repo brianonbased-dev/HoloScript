@@ -34,6 +34,14 @@ import {
 // Configuration
 // =============================================================================
 
+/**
+ * Task lane — what kind of work requests from this adapter are (task-type
+ * modulation). The service maps lanes to per-lane model overrides
+ * (BRITTNEY_LANE_<LANE>_MODEL) and promotes explicit vision/reasoning lanes
+ * to the pro tier when no tier is pinned.
+ */
+export type BrittneyCloudLane = 'operator' | 'code' | 'vision' | 'reasoning';
+
 export interface BrittneyCloudProviderConfig extends Omit<LLMProviderConfig, 'apiKey'> {
   /** API key — optional for dev mode; required for authenticated endpoints. */
   apiKey?: string;
@@ -41,9 +49,16 @@ export interface BrittneyCloudProviderConfig extends Omit<LLMProviderConfig, 'ap
   /**
    * Inference tier. 'pro' routes to Kimi K2.5 when available;
    * 'standard' uses the preferred available provider (Fireworks,
-   * Together, or Ollama fallback). Default: 'standard'.
+   * Together, or Ollama fallback). Unset = service default (standard),
+   * which also allows lane-based tier promotion server-side.
    */
   tier?: 'standard' | 'pro';
+
+  /**
+   * Task lane for requests from this adapter. Unset = service-side
+   * heuristic detection (backward compatible).
+   */
+  lane?: BrittneyCloudLane;
 }
 
 // =============================================================================
@@ -106,7 +121,8 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
   readonly capabilities: Capabilities = BRITTNEY_CLOUD_CAPABILITIES;
 
   private readonly baseURL: string;
-  private readonly tier: 'standard' | 'pro';
+  private readonly tier?: 'standard' | 'pro';
+  private readonly lane?: BrittneyCloudLane;
 
   constructor(config: BrittneyCloudProviderConfig = {}) {
     super({
@@ -120,7 +136,8 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
       process.env.BRITTNEY_SERVICE_URL ??
       'http://localhost:8000'
     ).replace(/\/$/, '');
-    this.tier = config.tier ?? 'standard';
+    this.tier = config.tier;
+    this.lane = config.lane;
     this.defaultHoloScriptModel = config.defaultModel ?? 'brittney-standard';
   }
 
@@ -144,7 +161,8 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
         content: messageContentAsString(m.content),
       })),
       model: model === 'brittney-standard' || model === 'brittney-pro' ? undefined : model,
-      tier: this.tier,
+      ...(this.tier ? { tier: this.tier } : model === 'brittney-pro' ? { tier: 'pro' } : {}),
+      ...(this.lane ? { lane: this.lane } : {}),
       temperature: request.temperature ?? 0.7,
       maxTokens: request.maxTokens ?? 2048,
       ...(request.tools && request.tools.length > 0 ? { tools: request.tools } : {}),
@@ -292,7 +310,8 @@ export class BrittneyCloudAdapter extends BaseLLMAdapter {
         content: messageContentAsString(m.content),
       })),
       model: model === 'brittney-standard' || model === 'brittney-pro' ? undefined : model,
-      tier: this.tier,
+      ...(this.tier ? { tier: this.tier } : model === 'brittney-pro' ? { tier: 'pro' } : {}),
+      ...(this.lane ? { lane: this.lane } : {}),
       temperature: request.temperature ?? 0.7,
       maxTokens: request.maxTokens ?? 2048,
       ...(request.tools && request.tools.length > 0 ? { tools: request.tools } : {}),

@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FleetProvider, InferenceRouter } from '../InferenceRouter';
+import {
+  FleetProvider,
+  InferenceRouter,
+  applyLaneRouting,
+  detectLane,
+  type ChatRequest,
+} from '../InferenceRouter';
 
 const FLEET_ENV_KEYS = [
   'FLEET_PROVIDER_URL',
@@ -7,6 +13,10 @@ const FLEET_ENV_KEYS = [
   'FLEET_REGISTRY_URL',
   'FLEET_REGISTRY_KEY',
   'FLEET_INFERENCE_KEY',
+  'BRITTNEY_LANE_OPERATOR_MODEL',
+  'BRITTNEY_LANE_CODE_MODEL',
+  'BRITTNEY_LANE_VISION_MODEL',
+  'BRITTNEY_LANE_REASONING_MODEL',
 ] as const;
 const savedEnv: Record<string, string | undefined> = {};
 
@@ -232,5 +242,86 @@ describe('InferenceRouter provider chain', () => {
   it('keeps fireworks as the default standard-tier provider', () => {
     const router = new InferenceRouter();
     expect(router.getPreferredProvider()).toBe('fireworks');
+  });
+});
+
+describe('Lane routing — task-type modulation', () => {
+  const user = (content: string): ChatRequest['messages'] => [{ role: 'user', content }];
+  const aTool = {
+    type: 'function' as const,
+    function: { name: 'apply_trait', description: 'apply a trait', parameters: {} },
+  };
+
+  describe('detectLane', () => {
+    it('honors an explicit request.lane over every heuristic', () => {
+      expect(
+        detectLane({ messages: user('add @physics to the cube'), tools: [aTool], lane: 'operator' }),
+      ).toBe('operator');
+    });
+
+    it('classifies tool-bearing requests as the code lane', () => {
+      expect(detectLane({ messages: user('make it glow'), tools: [aTool] })).toBe('code');
+    });
+
+    it('classifies short tool-less turns as operator traffic', () => {
+      expect(detectLane({ messages: user('what is the scene status?') })).toBe('operator');
+    });
+
+    it('classifies long tool-less prompts as code (the pre-lane default)', () => {
+      expect(detectLane({ messages: user('x'.repeat(500)) })).toBe('code');
+    });
+
+    it('classifies screenshot mentions as the vision lane', () => {
+      expect(detectLane({ messages: user('here is a screenshot of my scene, why is it dark?') })).toBe(
+        'vision',
+      );
+    });
+  });
+
+  describe('applyLaneRouting', () => {
+    it('is byte-identical to pre-lane routing when no lane env and no explicit lane are set', () => {
+      const raw: ChatRequest = { messages: user('make it glow'), tools: [aTool] };
+      const { request, lane } = applyLaneRouting(raw);
+      expect(lane).toBe('code');
+      expect(request.model).toBeUndefined();
+      expect(request.tier).toBeUndefined();
+    });
+
+    it('applies the env-configured per-lane model override', () => {
+      process.env.BRITTNEY_LANE_OPERATOR_MODEL = 'qwen3.5:4b';
+      const { request, lane } = applyLaneRouting({ messages: user('status?') });
+      expect(lane).toBe('operator');
+      expect(request.model).toBe('qwen3.5:4b');
+    });
+
+    it('never overrides an explicit request.model with the lane env model', () => {
+      process.env.BRITTNEY_LANE_OPERATOR_MODEL = 'qwen3.5:4b';
+      const { request } = applyLaneRouting({ messages: user('status?'), model: 'pinned-model' });
+      expect(request.model).toBe('pinned-model');
+    });
+
+    it('promotes an EXPLICIT reasoning lane to the pro tier when no tier is pinned', () => {
+      const { request } = applyLaneRouting({ messages: user('why?'), lane: 'reasoning' });
+      expect(request.tier).toBe('pro');
+    });
+
+    it('respects a pinned tier even for an explicit vision lane', () => {
+      const { request } = applyLaneRouting({
+        messages: user('look at this'),
+        lane: 'vision',
+        tier: 'standard',
+      });
+      expect(request.tier).toBe('standard');
+    });
+
+    it('does NOT promote tier from heuristic detection (cost safety)', () => {
+      // Detected (not explicit) vision lane must not silently move the request
+      // onto the more expensive pro tier.
+      const { request, lane } = applyLaneRouting({
+        messages: user('here is a screenshot of my scene'),
+      });
+      expect(lane).toBe('vision');
+      expect(request.tier).toBeUndefined();
+    });
   });
 });

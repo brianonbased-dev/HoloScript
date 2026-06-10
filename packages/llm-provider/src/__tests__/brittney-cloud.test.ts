@@ -125,14 +125,47 @@ describe('BrittneyCloudAdapter — complete()', () => {
     const [url, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('http://localhost:8000/api/chat');
     expect(opts.method).toBe('POST');
-    expect(JSON.parse(opts.body as string).messages).toHaveLength(1);
-    expect(JSON.parse(opts.body as string).tier).toBe('standard');
+    const body = JSON.parse(opts.body as string);
+    expect(body.messages).toHaveLength(1);
+    // tier/lane are OMITTED when not configured — the service defaults tier
+    // and an unpinned tier allows lane-based promotion server-side.
+    expect(body.tier).toBeUndefined();
+    expect(body.lane).toBeUndefined();
 
     expect(resp.content).toBe('Hello world');
     expect(resp.provider).toBe('brittney-cloud');
     expect(resp.finishReason).toBe('stop');
     expect(resp.usage.promptTokens).toBeGreaterThanOrEqual(0);
     expect(resp.usage.completionTokens).toBeGreaterThanOrEqual(0);
+  });
+
+  it('sends configured tier and lane in the request body', async () => {
+    const laneAdapter = new BrittneyCloudAdapter({
+      baseURL: 'http://localhost:8000',
+      tier: 'standard',
+      lane: 'operator',
+    });
+    const sse = 'data: {"type":"text","payload":"ok"}\n\ndata: {"type":"done","payload":null}\n\n';
+    fetchMock = mockFetchSSE(sse);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await laneAdapter.complete({ messages: [{ role: 'user', content: 'status?' }] });
+
+    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body.tier).toBe('standard');
+    expect(body.lane).toBe('operator');
+  });
+
+  it('maps the brittney-pro model name to tier=pro when no tier is configured', async () => {
+    const sse = 'data: {"type":"text","payload":"ok"}\n\ndata: {"type":"done","payload":null}\n\n';
+    fetchMock = mockFetchSSE(sse);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await adapter.complete({ messages: [{ role: 'user', content: 'hard question' }] }, 'brittney-pro');
+
+    const body = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body.model).toBeUndefined();
+    expect(body.tier).toBe('pro');
   });
 
   it('surfaces tool_call events as toolUses', async () => {
