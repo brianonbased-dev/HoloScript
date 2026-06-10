@@ -1,9 +1,9 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-06-10T06:28:27.445Z",
+  "generatedAt": "2026-06-10T06:44:14.000Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix.md",
-  "scriptCommit": "7e86a2905fd22b472805c330224e532f0ef764d1",
+  "scriptCommit": "8de85b291477cbbd0729f26f3be14e4eeca9f5d7",
   "totals": {
     "papers": 17,
     "cellsByToken": {
@@ -1226,8 +1226,8 @@
       "target": "ECOOP '27 (Feb '27)",
       "basename": "paper-11-hsplus-ecoop.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-11-hsplus-ecoop.tex",
-      "loc": 1162,
-      "sha256Prefix": "101f4cc3",
+      "loc": 1171,
+      "sha256Prefix": "adf54120",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1292,15 +1292,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 1d since last commit"
+          "evidence": "0 open \\todo{}, 0d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
-        "isoDate": "2026-06-08T13:45:32-07:00",
-        "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
+        "hash": "8de85b291477cbbd0729f26f3be14e4eeca9f5d7",
+        "isoDate": "2026-06-09T23:42:30-07:00",
+        "subject": "fix(paper-11): rewrite Cross-Platform Parity to match the real harness — clear OVERCLAIMED verdict"
       },
       "recentCommits": [
+        {
+          "hash": "8de85b291477cbbd0729f26f3be14e4eeca9f5d7",
+          "isoDate": "2026-06-09T23:42:30-07:00",
+          "subject": "fix(paper-11): rewrite Cross-Platform Parity to match the real harness — clear OVERCLAIMED verdict"
+        },
         {
           "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
           "isoDate": "2026-06-08T13:45:32-07:00",
@@ -1320,11 +1325,6 @@
           "hash": "5be0d363437333b3affddb8f6635976a0b0e6dd7",
           "isoDate": "2026-05-28T01:51:21-07:00",
           "subject": "ratchet(papers): correct Paper 6 matrix numbers, honest-demote Paper 11 RTX heading, file next-pillar board tasks"
-        },
-        {
-          "hash": "af74d89d1501c96133268d674e9af173f95c8988",
-          "isoDate": "2026-05-13T23:41:36-07:00",
-          "subject": "docs(ecosystem): add paper 11 readiness model"
         }
       ]
     },
