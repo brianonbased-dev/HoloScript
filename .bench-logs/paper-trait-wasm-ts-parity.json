@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-06-10T04:38:42.235Z",
+  "rngSeed": "0xdeadbef0",
+  "traitUniverseCount": 2919,
+  "subsetSize": 5,
+  "totalInputs": 200,
+  "pass": 200,
+  "fail": 0,
+  "backendsCompared": [
+    "ProvenanceSemiring (TypeScript runtime — packages/core)",
+    "HoloScriptWasm.validateWithTraits (WASM+TS bridge — packages/compiler-wasm)"
+  ],
+  "assertion": "byte-identical provenance fingerprint for every random trait-composition input"
+}
