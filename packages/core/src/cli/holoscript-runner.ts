@@ -84,7 +84,7 @@ export interface CLIOptions {
   cycles: number;
   commit: boolean;
   trial?: number;
-  provider: 'anthropic' | 'xai' | 'openai' | 'ollama';
+  provider: 'sovereign' | 'anthropic' | 'xai' | 'openai' | 'ollama';
   toolProfile: 'claude-hsplus' | 'grok-hsplus' | 'standard';
   model: string;
   timeout: number; // per-cycle timeout in minutes
@@ -122,8 +122,13 @@ export interface CLIOptions {
   walletKey: string;
 }
 
+/** Sentinel model for provider=sovereign — the resolver picks the real model. */
+const SOVEREIGN_AUTO_MODEL = 'auto';
+
 function defaultModelForProvider(provider: CLIOptions['provider']): string {
   switch (provider) {
+    case 'sovereign':
+      return SOVEREIGN_AUTO_MODEL;
     case 'xai':
       return 'grok-3';
     case 'openai':
@@ -153,6 +158,9 @@ function defaultToolProfileForProvider(
 
 function parseProvider(value: string | undefined): CLIOptions['provider'] | undefined {
   const normalized = value?.toLowerCase();
+  if (normalized === 'sovereign' || normalized === 'auto') {
+    return 'sovereign';
+  }
   if (
     normalized === 'anthropic' ||
     normalized === 'xai' ||
@@ -177,7 +185,11 @@ function daemonEnvDefaults(): {
   toolProfile: CLIOptions['toolProfile'];
   model: string;
 } {
-  const provider = parseProvider(process.env.HOLODAEMON_PROVIDER) || 'anthropic';
+  // Sovereign-first default (founder 2026-06-10): the daemon resolves its LLM
+  // the same way Brittney and the fleet do — sovereign serving (fleet → cloud
+  // → ollama) before any BYOK frontier key. HOLODAEMON_PROVIDER pins a
+  // specific backend (anthropic/xai/openai/ollama) when explicitly set.
+  const provider = parseProvider(process.env.HOLODAEMON_PROVIDER) || 'sovereign';
   const toolProfile =
     parseToolProfile(process.env.HOLODAEMON_TOOL_PROFILE) ||
     defaultToolProfileForProvider(provider);
@@ -368,8 +380,39 @@ async function createDaemonLLMProvider(
 ): Promise<import('@holoscript/absorb-service/daemon').LLMProvider> {
   // Dynamic import for ESM compatibility — adapters are loaded only when
   // a daemon session actually needs LLM, not at CLI startup.
-  const { AnthropicAdapter, XAIAdapter, OpenAIAdapter, LocalLLMAdapter } =
+  const { AnthropicAdapter, XAIAdapter, OpenAIAdapter, LocalLLMAdapter, resolveSovereignProviderAsync } =
     await import('@holoscript/llm-provider');
+
+  if (opts.provider === 'sovereign') {
+    // Universal sovereign-first resolution (founder 2026-06-10): serving fleet
+    // → cloud → local Ollama → BYOK frontier keys — the same canonical policy
+    // Brittney and the fleet use (@holoscript/llm-provider sovereign-resolver).
+    const resolved = await resolveSovereignProviderAsync(
+      opts.model && opts.model !== SOVEREIGN_AUTO_MODEL ? { model: opts.model } : {}
+    );
+    console.log(
+      `[daemon] sovereign resolve -> provider=${resolved.providerName} model=${resolved.model}`
+    );
+    return {
+      chat: async ({ system, prompt, maxTokens }) => {
+        const result = await resolved.provider.complete(
+          {
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: prompt },
+            ],
+            maxTokens: Math.min(maxTokens || 4096, resolved.maxTokens),
+          },
+          resolved.model
+        );
+        return {
+          text: result.content,
+          inputTokens: result.usage?.promptTokens ?? 0,
+          outputTokens: result.usage?.completionTokens ?? 0,
+        };
+      },
+    };
+  }
 
   if (opts.provider === 'anthropic') {
     const adapter = new AnthropicAdapter({

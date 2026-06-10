@@ -167,6 +167,19 @@ export type { BrittneyCloudModel, BrittneyCloudProviderConfig, BrittneyCloudLane
 export { LLMProviderManager } from './provider-manager';
 export type { ProviderManagerConfig } from './provider-manager';
 
+// Universal sovereign-first provider resolution (founder 2026-06-10):
+// one policy for HoloClaw, the fleet, and Brittney — sovereign serving
+// (fleet/cloud/ollama) by default, BYOK frontier keys as fallback (F.112).
+export {
+  resolveSovereignProvider,
+  resolveSovereignProviderAsync,
+} from './sovereign-resolver';
+export type {
+  ResolvedSovereignProvider,
+  SovereignProviderName,
+  SovereignResolveOptions,
+} from './sovereign-resolver';
+
 // Quest Generator (Phase 2 Hololand Integration)
 export { QuestGenerator } from './QuestGenerator';
 export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';

@@ -1,6 +1,12 @@
 /**
  * Brittney Provider Resolution — native-default (sovereign serving), BYOK fallback.
  *
+ * NOTE (2026-06-10): this policy is now CANONICAL in
+ * @holoscript/llm-provider `resolveSovereignProviderAsync` (sovereign-resolver.ts),
+ * shared by the HoloClaw daemon and the fleet supervisor. This file predates it
+ * and keeps Brittney-specific extras (per-user BYOK vault keys, tier/lane);
+ * converge it onto the shared resolver when touching this surface next.
+ *
  * Founder directive (2026-06-05): Brittney's LLM deps are NATIVE by default. The
  * ecosystem's own AI runs on sovereign serving — Brittney Cloud (our vast Ollama/
  * PyWorker fleet, P.008) or a local Ollama — NOT a third-party frontier API. A

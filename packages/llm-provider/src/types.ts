@@ -618,7 +618,10 @@ export type LLMProviderName =
   | 'local-llm'
   | 'openrouter'
   | 'xai'
-  | 'brittney-cloud';
+  | 'brittney-cloud'
+  // Meta-name: resolves at boot via resolveSovereignProviderAsync() —
+  // sovereign-first (fleet → cloud → ollama), BYOK frontier fallback (F.112).
+  | 'sovereign';
 
 export interface LLMProviderConfig {
   /** API key for authentication */

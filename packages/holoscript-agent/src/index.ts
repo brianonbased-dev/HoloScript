@@ -9,6 +9,7 @@ import {
   createLocalLLMProvider,
   createXAIProvider,
   createOpenRouterProvider,
+  resolveSovereignProviderAsync,
 } from '@holoscript/llm-provider';
 import type { ILLMProvider, LLMProviderName } from '@holoscript/llm-provider';
 import { loadIdentity, identityForLog } from './identity.js';
@@ -170,6 +171,13 @@ function supervisorProviderFactory(): ProviderFactory {
           baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
           model: spec.model,
         });
+      case 'sovereign':
+        // Universal sovereign-first resolution (founder 2026-06-10): serving
+        // fleet → cloud → local Ollama → BYOK frontier keys — the same policy
+        // HoloClaw's daemon and Brittney use. spec.model (when set) overrides.
+        return resolveSovereignProviderAsync(spec.model ? { model: spec.model } : {}).then(
+          (r) => r.provider
+        );
       case 'mock':
         return createMockProvider();
       default:
