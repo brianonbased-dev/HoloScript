@@ -1,15 +1,15 @@
 {
   "schema": "paper-audit-matrix.v2",
-  "generatedAt": "2026-06-08T19:46:11.224Z",
+  "generatedAt": "2026-06-10T06:28:27.445Z",
   "canonicalRouterPath": "research/paper-audit-matrix.md",
   "matrixSourcePath": "research/paper-audit-matrix/front-matrix.md",
-  "scriptCommit": "6ed566596fc9a62ff8e2b2a358148359d91c51f2",
+  "scriptCommit": "7e86a2905fd22b472805c330224e532f0ef764d1",
   "totals": {
     "papers": 17,
     "cellsByToken": {
-      "✅": 206,
-      "⚠️": 42,
-      "❌": 10,
+      "✅": 215,
+      "⚠️": 35,
+      "❌": 8,
       "➖": 14
     }
   },
@@ -104,7 +104,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 4d since last commit"
         }
       },
       "lastCommit": {
@@ -146,8 +146,8 @@
       "target": "USENIX Sec '26",
       "basename": "paper-1-mcp-trust-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-1-mcp-trust-usenix.tex",
-      "loc": 1825,
-      "sha256Prefix": "5ad7a5e1",
+      "loc": 1852,
+      "sha256Prefix": "0febe0a8",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -212,15 +212,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "6f82d3baa168ec6be661b5b4534b530b19e9b717",
-        "isoDate": "2026-06-05T13:21:27-07:00",
-        "subject": "docs(papers): novelty-defensibility rescopes — P1 physics-solver/recorder-replayer framing, P0c solver-computed-state, P26 tightening + bib citation fixes (Tool Receipts, NabaOS, Faramesh, ToolGate, Zhou)"
+        "hash": "b9d1bc12aa6db6546030209175710c5fc0ae2ae3",
+        "isoDate": "2026-06-08T16:30:44-07:00",
+        "subject": "fix(paper-1): correct NabaOS mischaracterisation — pull from call-surface to result-level re-execution (novelty-defensibility P1 fix)"
       },
       "recentCommits": [
+        {
+          "hash": "b9d1bc12aa6db6546030209175710c5fc0ae2ae3",
+          "isoDate": "2026-06-08T16:30:44-07:00",
+          "subject": "fix(paper-1): correct NabaOS mischaracterisation — pull from call-surface to result-level re-execution (novelty-defensibility P1 fix)"
+        },
         {
           "hash": "6f82d3baa168ec6be661b5b4534b530b19e9b717",
           "isoDate": "2026-06-05T13:21:27-07:00",
@@ -240,11 +245,6 @@
           "hash": "a00680e49c260f8d2bb6c523e34c5a1d4711f25e",
           "isoDate": "2026-05-28T16:44:37-07:00",
           "subject": "fix(papers): program-wide codebase-reflection drift sweep — close stale claims across 8 papers"
-        },
-        {
-          "hash": "b98958387c215a222d7f4dd385b2ab760422378b",
-          "isoDate": "2026-05-20T21:45:59-07:00",
-          "subject": "research(paper-10): depth-distribution + cross-target theorem matrix amendments"
         }
       ]
     },
@@ -319,8 +319,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -428,7 +428,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 4d since last commit"
         }
       },
       "lastCommit": {
@@ -470,8 +470,8 @@
       "target": "USENIX Sec '27",
       "basename": "paper-4-sandbox-usenix.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-4-sandbox-usenix.tex",
-      "loc": 2871,
-      "sha256Prefix": "7fc95a85",
+      "loc": 2875,
+      "sha256Prefix": "1a5a77ad",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -527,8 +527,8 @@
           "evidence": "explicit two-impl/digital-twin equivalence + assertion"
         },
         "decoderCost": {
-          "token": "❌",
-          "evidence": "no decoder/runtime cost on novel claims (W.314 risk)"
+          "token": "✅",
+          "evidence": "asymptotic class declaration + Complexity/Cost heading"
         },
         "scalingMemo": {
           "token": "✅",
@@ -536,15 +536,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "4d5d5ce540eaf0f1892e17cf6ec911a80b970c5e",
-        "isoDate": "2026-06-02T18:40:43-07:00",
-        "subject": "docs(papers): reconcile tropical-semiring mislabel + shared agent-provenance-receipt related-work (task_1780428738566_diph)"
+        "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
+        "isoDate": "2026-06-08T13:45:32-07:00",
+        "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
       },
       "recentCommits": [
+        {
+          "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
+          "isoDate": "2026-06-08T13:45:32-07:00",
+          "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
+        },
         {
           "hash": "4d5d5ce540eaf0f1892e17cf6ec911a80b970c5e",
           "isoDate": "2026-06-02T18:40:43-07:00",
@@ -564,11 +569,6 @@
           "hash": "1d6dd95862118baea2f8a1961990201ca69e61a9",
           "isoDate": "2026-05-28T18:26:39-07:00",
           "subject": "fix(paper-4): replace H3 projection with real A100 SXM4 capture from vast.ai"
-        },
-        {
-          "hash": "1812015b0d25007df1501c3f363574df93341e19",
-          "isoDate": "2026-05-28T17:36:04-07:00",
-          "subject": "fix(paper4): correct hardware tiers — H1 measured spec, H3 projection disclaimer"
         }
       ]
     },
@@ -644,7 +644,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 2d since last commit"
+          "evidence": "0 open \\todo{}, 4d since last commit"
         }
       },
       "lastCommit": {
@@ -751,8 +751,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -860,7 +860,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 34d since last commit"
+          "evidence": "0 open \\todo{}, 36d since last commit"
         }
       },
       "lastCommit": {
@@ -967,8 +967,8 @@
           "evidence": "scaling discussed without memo or quantified target"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -1076,7 +1076,7 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 3d since last commit"
+          "evidence": "0 open \\todo{}, 5d since last commit"
         }
       },
       "lastCommit": {
@@ -1183,8 +1183,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 6d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -1226,8 +1226,8 @@
       "target": "ECOOP '27 (Feb '27)",
       "basename": "paper-11-hsplus-ecoop.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/paper-11-hsplus-ecoop.tex",
-      "loc": 1143,
-      "sha256Prefix": "b8f27491",
+      "loc": 1162,
+      "sha256Prefix": "101f4cc3",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1279,8 +1279,8 @@
           "evidence": "Calibration/Setup/Reproducibility heading + automation pointer"
         },
         "twinTest": {
-          "token": "❌",
-          "evidence": "no two-impl equivalence test"
+          "token": "✅",
+          "evidence": "explicit two-impl/digital-twin equivalence + assertion"
         },
         "decoderCost": {
           "token": "✅",
@@ -1292,15 +1292,20 @@
         },
         "staleness": {
           "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "evidence": "0 open \\todo{}, 1d since last commit"
         }
       },
       "lastCommit": {
-        "hash": "5f9415571a6fcc9836bb22982becd4080def79fe",
-        "isoDate": "2026-06-02T18:26:13-07:00",
-        "subject": "docs(paper-11): re-headline around runtime provenance-semiring + prove distributivity side-condition (task_1780428738566_48z9)"
+        "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
+        "isoDate": "2026-06-08T13:45:32-07:00",
+        "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
       },
       "recentCommits": [
+        {
+          "hash": "f72b0dcb7385d868a6cf11cb25f49a974a6ebc46",
+          "isoDate": "2026-06-08T13:45:32-07:00",
+          "subject": "fix(papers): P4 decoder cost + P11 twin test — flip both matrix cells to green (paper-gap tasks rwkt/ef9k)"
+        },
         {
           "hash": "5f9415571a6fcc9836bb22982becd4080def79fe",
           "isoDate": "2026-06-02T18:26:13-07:00",
@@ -1320,11 +1325,6 @@
           "hash": "af74d89d1501c96133268d674e9af173f95c8988",
           "isoDate": "2026-05-13T23:41:36-07:00",
           "subject": "docs(ecosystem): add paper 11 readiness model"
-        },
-        {
-          "hash": "08a29723b60160792987060f0045ee62310b68c4",
-          "isoDate": "2026-05-12T01:42:13-07:00",
-          "subject": "paper(11): Twin-test fill — order-independence as multi-implementation agreement"
         }
       ]
     },
@@ -1399,8 +1399,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -1507,8 +1507,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -1615,8 +1615,8 @@
           "evidence": "scaling memo cited or quantified scale-out claim with heading"
         },
         "staleness": {
-          "token": "⚠️",
-          "evidence": "0 open \\todo{}, 5d since last commit"
+          "token": "✅",
+          "evidence": "0 open \\todo{}, 7d since last commit"
         }
       },
       "lastCommit": {
@@ -1724,7 +1724,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 14d since last commit"
+          "evidence": "0 open \\todo{}, 15d since last commit"
         }
       },
       "lastCommit": {
@@ -1832,7 +1832,7 @@
         },
         "staleness": {
           "token": "✅",
-          "evidence": "0 open \\todo{}, 10d since last commit"
+          "evidence": "0 open \\todo{}, 12d since last commit"
         }
       },
       "lastCommit": {
