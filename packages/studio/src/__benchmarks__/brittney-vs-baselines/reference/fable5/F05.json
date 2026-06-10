@@ -1,0 +1,12 @@
+{
+  "task_id": "F05",
+  "authored_by": "claude-fable-5 @ ultracode (claude1, founder session 2026-06-10)",
+  "tool_rounds": 1,
+  "output_text": "Torque equation first, with my numbers:\n\nNet torque about the pivot = m1·g·d1 − m2·g·d2 = 0 ⇒ m1·d1 = m2·d2.\nWith m1 = 2 kg and m2 = 4 kg: 2·d1 = 4·d2 ⇒ d1 = 2·d2. I choose d2 = 1.0 m for the 4 kg crate, so d1 = 2.0 m for the 2 kg crate: 2·2.0 = 4·1.0 = 4 N·m·g⁻¹ on each side — net torque zero.\n\nGeometry: plank 6×0.2×1 centered at [0,1,0]; its top surface is at y = 1.1. Each 0.5 m crate rests with its center 0.25 m above that: y = 1.35. The fulcrum is a wedge under the plank center, top at y = 0.9.\n\nPlacement: crate-2kg at [+2.0, 1.35, 0]; crate-4kg at [−1.0, 1.35, 0] — opposite sides, distances per the equation, both resting exactly on the plank surface.",
+  "scene_mutations": [
+    { "tool_name": "create_object", "input": { "name": "fulcrum", "type": "mesh", "primitive": "cone", "position": [0, 0.45, 0], "scale": [0.6, 0.9, 0.6], "color": "#616161" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "plank", "type": "mesh", "primitive": "box", "position": [0, 1, 0], "scale": [6, 0.2, 1], "color": "#a1887f" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "crate-2kg", "type": "mesh", "primitive": "box", "position": [2, 1.35, 0], "scale": [0.5, 0.5, 0.5], "color": "#ffb74d" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "crate-4kg", "type": "mesh", "primitive": "box", "position": [-1, 1.35, 0], "scale": [0.5, 0.5, 0.5], "color": "#8d6e63" }, "sim_contract_passed": true }
+  ]
+}

@@ -110,14 +110,15 @@ describe('cost-tracker', () => {
 });
 
 describe('task corpus', () => {
-  it('loads exactly 30 tasks across 3 tiers (10 each)', () => {
+  it('loads exactly 40 tasks across 4 tiers (10 each)', () => {
     const tasks = loadAllTasks();
-    expect(tasks.length).toBe(30);
+    expect(tasks.length).toBe(40);
     const byTier = new Map<string, number>();
     for (const t of tasks) byTier.set(t.tier, (byTier.get(t.tier) ?? 0) + 1);
     expect(byTier.get('trivial-scene')).toBe(10);
     expect(byTier.get('multi-object-scene')).toBe(10);
     expect(byTier.get('agentic-multi-step')).toBe(10);
+    expect(byTier.get('fable5-dimension')).toBe(10);
   });
 
   it('every task has at least one required criterion', () => {
@@ -129,9 +130,9 @@ describe('task corpus', () => {
 
   it('quick subset has one task from each tier', () => {
     const sub = loadQuickSubset();
-    expect(sub.length).toBe(3);
+    expect(sub.length).toBe(4);
     const tiers = new Set(sub.map((t) => t.tier));
-    expect(tiers.size).toBe(3);
+    expect(tiers.size).toBe(4);
   });
 });
 

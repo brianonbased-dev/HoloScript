@@ -1,0 +1,13 @@
+{
+  "task_id": "F02",
+  "authored_by": "claude-fable-5 @ ultracode (claude1, founder session 2026-06-10)",
+  "tool_rounds": 1,
+  "output_text": "Single batched round: 5 bodies, distances along four different directions so the system reads as orbits, radii exactly as specified.\n\nStatus: built 5/5 — sun (r=2) at origin; planets at distances 6 (+X, r=0.4), 10 (+Z, r=0.7), 14 (−X, r=0.6), 18 (−Z, r=0.5). Nothing failed; nothing was substituted.",
+  "scene_mutations": [
+    { "tool_name": "create_object", "input": { "name": "sun", "type": "mesh", "primitive": "sphere", "position": [0, 0, 0], "radius": 2, "color": "#ffb300" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "planet-1", "type": "mesh", "primitive": "sphere", "position": [6, 0, 0], "radius": 0.4, "color": "#b0bec5" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "planet-2", "type": "mesh", "primitive": "sphere", "position": [0, 0, 10], "radius": 0.7, "color": "#ffcc80" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "planet-3", "type": "mesh", "primitive": "sphere", "position": [-14, 0, 0], "radius": 0.6, "color": "#64b5f6" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "planet-4", "type": "mesh", "primitive": "sphere", "position": [0, 0, -18], "radius": 0.5, "color": "#e57373" }, "sim_contract_passed": true }
+  ]
+}

@@ -1,11 +1,29 @@
-export type DifficultyTier = 'trivial-scene' | 'multi-object-scene' | 'agentic-multi-step';
+export type DifficultyTier =
+  | 'trivial-scene'
+  | 'multi-object-scene'
+  | 'agentic-multi-step'
+  // Fable-5 reference dimensions (founder 2026-06-10): orchestration,
+  // capability-mindset, physics, reality, game-feel — the qualities the
+  // Fable-5-on-Ultracode reference transcripts anchor as Brittney's bar.
+  | 'fable5-dimension';
+
+/** The five benchmark dimensions of the Fable-5 Ultracode reference bar. */
+export type Fable5Dimension =
+  | 'orchestration'
+  | 'capability-mindset'
+  | 'physics'
+  | 'reality'
+  | 'game-feel';
 
 export type ConfigName =
   | 'brittney-prod'
   | 'cursor-baseline'
   | 'claude-code-baseline'
   | 'vanilla-baseline'
-  | 'ollama-baseline';
+  | 'ollama-baseline'
+  // Reference-transcript replay (NOT a live run): curated Fable-5-on-Ultracode
+  // outputs that define the benchmark bar. See configs/fable5-ultracode.ts.
+  | 'fable5-ultracode';
 
 export interface RubricCriterion {
   id: string;
@@ -29,6 +47,8 @@ export interface Task {
   expected_artifacts: string[];
   /** When true, the judge should trust scene mutations over prose for geometric criteria. */
   trust_mutations_over_prose?: boolean;
+  /** Set on fable5-dimension tasks: which reference quality this task probes. */
+  dimension?: Fable5Dimension;
 }
 
 export interface TokenUsage {

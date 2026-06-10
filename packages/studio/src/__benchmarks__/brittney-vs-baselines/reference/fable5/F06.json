@@ -1,0 +1,11 @@
+{
+  "task_id": "F06",
+  "authored_by": "claude-fable-5 @ ultracode (claude1, founder session 2026-06-10)",
+  "tool_rounds": 1,
+  "output_text": "Resting heights, computed from exact surface contact on ground y=0:\n- Bottom cube (2 m): center y = 2/2 = 1.00; top surface at 2.00.\n- Middle cube (1.5 m): center y = 2.00 + 1.5/2 = 2.75; top surface at 3.50.\n- Top cube (1 m): center y = 3.50 + 1/2 = 4.00.\nX centers: 0, +0.4, +0.8 (the required +0.4 m step per level).\n\nStability check (mass ∝ volume):\n- Above the bottom cube: middle (3.375 u) at x=0.4 and top (1 u) at x=0.8 → combined COM x = (3.375·0.4 + 1·0.8)/4.375 = 0.491 m. Bottom footprint spans x ∈ [−1, +1] → 0.491 is inside. Stable.\n- Above the middle cube: top COM x = 0.8. Middle footprint spans x ∈ [−0.35, +1.15] → inside. Stable.\nNo interpenetration (each center is exactly half-height above the surface below), no floating.",
+  "scene_mutations": [
+    { "tool_name": "create_object", "input": { "name": "tower-base", "type": "mesh", "primitive": "box", "position": [0, 1, 0], "scale": [2, 2, 2], "color": "#90a4ae" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "tower-mid", "type": "mesh", "primitive": "box", "position": [0.4, 2.75, 0], "scale": [1.5, 1.5, 1.5], "color": "#78909c" }, "sim_contract_passed": true },
+    { "tool_name": "create_object", "input": { "name": "tower-top", "type": "mesh", "primitive": "box", "position": [0.8, 4, 0], "scale": [1, 1, 1], "color": "#607d8b" }, "sim_contract_passed": true }
+  ]
+}

@@ -5,6 +5,7 @@ import { makeClaudeCodeBaseline } from './claude-code-baseline';
 import { makeCursorBaseline } from './cursor-baseline';
 import { makeVanillaBaseline } from './vanilla-baseline';
 import { makeOllamaBaseline } from './ollama-baseline';
+import { makeFable5UltracodeReference } from './fable5-ultracode';
 
 export interface BuildConfigsOptions {
   anthropicApiKey: string;
@@ -81,6 +82,9 @@ export function buildAllConfigs(opts: BuildConfigsOptions): ConfigRunner[] {
           }),
         ]
       : []),
+    // The Fable-5 Ultracode reference bar — replay of curated reference
+    // transcripts (no credentials, no spend; see configs/fable5-ultracode.ts).
+    makeFable5UltracodeReference(),
   ];
 }
 
@@ -90,6 +94,13 @@ export const ALL_CONFIG_NAMES: ConfigName[] = [
   'claude-code-baseline',
   'vanilla-baseline',
   'ollama-baseline',
+  'fable5-ultracode',
 ];
 
-export { makeBrittneyProd, makeCursorBaseline, makeClaudeCodeBaseline, makeVanillaBaseline };
+export {
+  makeBrittneyProd,
+  makeCursorBaseline,
+  makeClaudeCodeBaseline,
+  makeVanillaBaseline,
+  makeFable5UltracodeReference,
+};

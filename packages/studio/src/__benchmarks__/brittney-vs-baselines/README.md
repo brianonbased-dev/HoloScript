@@ -5,7 +5,8 @@
 
 ## What this does
 
-Runs a 30-task spatial-creation benchmark through 4 configurations:
+Runs a 40-task benchmark (30 spatial-creation + 10 fable5-dimension) through
+these configurations:
 
 | Configuration          | Model      | Tools                               | Scene context |
 | ---------------------- | ---------- | ----------------------------------- | ------------- |
@@ -13,6 +14,22 @@ Runs a 30-task spatial-creation benchmark through 4 configurations:
 | `cursor-baseline`      | Sonnet 4.6 | synthetic FS (read/write/edit/list) | no            |
 | `claude-code-baseline` | Opus 4.7   | synthetic FS (read/write/edit/list) | no            |
 | `vanilla-baseline`     | Opus 4.7   | none                                | no            |
+| `fable5-ultracode`     | Fable 5    | reference-transcript REPLAY         | n/a (replay)  |
+
+### The Fable-5 Ultracode reference bar (founder 2026-06-10)
+
+The `fable5-dimension` tier (tasks F01–F10, `tasks/fable5-dimension.json`)
+probes the five qualities the founder set as Brittney's bar: **orchestration**,
+**capability-mindset** (knowing real capabilities and opportunities — F03 is
+modeled on the live `tend_garden` failure), **physics**, **reality**
+(grounding/no fabrication), and **game feel**. The `fable5-ultracode` config
+replays curated reference transcripts authored by Claude Fable 5 under
+Ultracode (`reference/fable5/`) — it is explicitly a REPLAY, never presented
+as a live run. The judge scores the reference with the same rubric as every
+live config, so reports show Brittney's gap to the bar per dimension.
+`__tests__/fable5-reference.test.ts` enforces that the bar stays green by
+construction: every deterministically-verifiable criterion must pass against
+the reference transcripts.
 
 Each `(task, config)` cell runs `N=3` independent trials. Outputs are judged by
 Opus 4.7 against per-task rubrics via structured-output tool use.

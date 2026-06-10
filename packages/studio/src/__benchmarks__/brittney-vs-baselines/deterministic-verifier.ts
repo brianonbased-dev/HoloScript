@@ -1152,6 +1152,257 @@ function verifyA09(objs: ParsedObject[]): VerificationResult[] {
   ];
 }
 
+// ── Fable-5 dimension verifiers (F01-F10 where deterministically checkable) ──
+
+/** F01 park: 5 trees at r~8, 4 cardinal benches at r~5, ≥12 stones at r~10. */
+function verifyF01(objs: ParsedObject[]): VerificationResult[] {
+  const named = (frag: string) => objs.filter((o) => o.name.toLowerCase().includes(frag));
+  const trees = named('tree');
+  const benches = named('bench');
+  const stones = objs.filter(
+    (o) => o.name.toLowerCase().includes('stone') || o.name.toLowerCase().includes('path')
+  );
+  const horiz = (o: ParsedObject): number => Math.sqrt(o.position[0] ** 2 + o.position[2] ** 2);
+  const treesOnCircle = trees.filter((o) => within(horiz(o), 8, 0.8));
+  const cardinal = benches.filter((o) => {
+    const [x, , z] = o.position;
+    return (
+      (within(Math.abs(x), 5, 0.8) && within(z, 0, 0.8)) ||
+      (within(Math.abs(z), 5, 0.8) && within(x, 0, 0.8))
+    );
+  });
+  const ringStones = stones.filter((o) => within(horiz(o), 10, 1.2));
+  return [
+    {
+      criterion_id: 'trees_on_circle',
+      passed: trees.length === 5 && treesOnCircle.length === 5,
+      rationale: `${trees.length} trees, ${treesOnCircle.length} at r≈8`,
+    },
+    {
+      criterion_id: 'benches_cardinal',
+      passed: benches.length >= 4 && cardinal.length >= 4,
+      rationale: `${benches.length} benches, ${cardinal.length} at cardinal r≈5`,
+    },
+    {
+      criterion_id: 'stone_ring_count',
+      passed: ringStones.length >= 12,
+      rationale: `${ringStones.length} stones at r≈10 (of ${stones.length} stone-like objects)`,
+    },
+  ];
+}
+
+/** F02 solar mockup: 5 bodies; sun r~2 at origin; planet distances 6/10/14/18. */
+function verifyF02(objs: ParsedObject[]): VerificationResult[] {
+  const sun =
+    objs.find((o) => o.name.toLowerCase().includes('sun')) ??
+    objs.find((o) => within(o.radius ?? 0, 2, 0.3) && dist(o.position, [0, 0, 0]) <= 0.3);
+  const planets = objs.filter((o) => o !== sun);
+  const expected = [6, 10, 14, 18];
+  const remaining = [...planets];
+  const matched: number[] = [];
+  for (const d of expected) {
+    const idx = remaining.findIndex((o) => within(dist(o.position, [0, 0, 0]), d, 0.6));
+    if (idx >= 0) {
+      matched.push(d);
+      remaining.splice(idx, 1);
+    }
+  }
+  return [
+    {
+      criterion_id: 'five_bodies',
+      passed: objs.length === 5,
+      rationale: `${objs.length} bodies created`,
+    },
+    {
+      criterion_id: 'sun_at_origin',
+      passed: !!sun && within(sun.radius ?? 0, 2, 0.3) && dist(sun.position, [0, 0, 0]) <= 0.3,
+      rationale: sun
+        ? `sun radius=${sun.radius ?? 'n/a'} at [${sun.position.join(', ')}]`
+        : 'no sun found',
+    },
+    {
+      criterion_id: 'planet_distances',
+      passed: planets.length === 4 && matched.length === 4,
+      rationale: `matched distances: [${matched.join(', ')}] of [${expected.join(', ')}]`,
+    },
+  ];
+}
+
+/** Extract a mass in kg encoded in an object name like "crate-2kg". */
+function massFromName(name: string): number | undefined {
+  const m = name.toLowerCase().match(/(\d+(?:\.\d+)?)\s*kg/);
+  return m ? Number(m[1]) : undefined;
+}
+
+/** F05 seesaw: plank centered at origin (y~1); crates opposite; 2*d1 == 4*d2. */
+function verifyF05(objs: ParsedObject[]): VerificationResult[] {
+  const plank = objs.find(
+    (o) => o.name.toLowerCase().includes('plank') || (o.scale[0] >= 4 && o.scale[1] <= 0.5)
+  );
+  const crates = objs
+    .map((o) => ({ obj: o, mass: massFromName(o.name) }))
+    .filter((c): c is { obj: ParsedObject; mass: number } => c.mass !== undefined);
+  const light = crates.find((c) => within(c.mass, 2, 0.01));
+  const heavy = crates.find((c) => within(c.mass, 4, 0.01));
+  const plankOk =
+    !!plank && within(plank.position[0], 0, 0.2) && within(plank.position[1], 1, 0.2);
+  let opposite = false;
+  let torqueOk = false;
+  let torqueNote = 'crates not found';
+  if (light && heavy) {
+    const d1 = Math.abs(light.obj.position[0]);
+    const d2 = Math.abs(heavy.obj.position[0]);
+    opposite = Math.sign(light.obj.position[0]) !== Math.sign(heavy.obj.position[0]) && d1 > 0 && d2 > 0;
+    const lhs = light.mass * d1;
+    const rhs = heavy.mass * d2;
+    torqueOk = lhs > 0 && within(lhs, rhs, 0.15 * Math.max(lhs, rhs));
+    torqueNote = `2kg at |x|=${d1.toFixed(2)} → ${lhs.toFixed(2)} N·m vs 4kg at |x|=${d2.toFixed(2)} → ${rhs.toFixed(2)} N·m`;
+  }
+  const onPlank =
+    !!plank &&
+    !!light &&
+    !!heavy &&
+    [light.obj, heavy.obj].every((o) => within(o.position[1], plank.position[1] + plank.scale[1] / 2 + o.scale[1] / 2, 0.5));
+  return [
+    {
+      criterion_id: 'plank_centered_on_pivot',
+      passed: plankOk,
+      rationale: plank
+        ? `plank at [${plank.position.join(', ')}], scale [${plank.scale.join(', ')}]`
+        : 'no plank found',
+    },
+    {
+      criterion_id: 'crates_on_plank_opposite',
+      passed: opposite && onPlank,
+      rationale: `opposite=${opposite}, resting-on-plank=${onPlank}`,
+    },
+    {
+      criterion_id: 'torque_balanced',
+      passed: torqueOk,
+      rationale: torqueNote,
+    },
+  ];
+}
+
+/** F06 stepped tower: sizes 2/1.5/1, resting heights, +0.4 X offsets, COM stability. */
+function verifyF06(objs: ParsedObject[]): VerificationResult[] {
+  const boxes = [...objs].sort((a, b) => a.position[1] - b.position[1]).slice(0, 3);
+  const sizes = [2, 1.5, 1];
+  const heights = [1.0, 2.75, 4.0];
+  const xs = [0, 0.4, 0.8];
+  const sizesOk =
+    boxes.length === 3 && boxes.every((o, i) => within(o.scale[0], sizes[i], 0.1));
+  const heightsOk =
+    boxes.length === 3 && boxes.every((o, i) => within(o.position[1], heights[i], 0.15));
+  const offsetsOk = boxes.length === 3 && boxes.every((o, i) => within(o.position[0], xs[i], 0.1));
+  // Static stability: COM of everything above each contact surface within footprint.
+  let stable = boxes.length === 3;
+  if (stable) {
+    for (let support = 0; support < boxes.length - 1; support++) {
+      const above = boxes.slice(support + 1);
+      const mass = (o: ParsedObject) => o.scale[0] * o.scale[1] * o.scale[2];
+      const total = above.reduce((s, o) => s + mass(o), 0);
+      const comX = above.reduce((s, o) => s + mass(o) * o.position[0], 0) / total;
+      const half = boxes[support].scale[0] / 2;
+      if (Math.abs(comX - boxes[support].position[0]) > half) stable = false;
+    }
+  }
+  return [
+    {
+      criterion_id: 'cube_sizes',
+      passed: sizesOk,
+      rationale: `sizes: ${boxes.map((o) => o.scale[0]).join(', ')}`,
+    },
+    {
+      criterion_id: 'resting_heights',
+      passed: heightsOk,
+      rationale: `y centers: ${boxes.map((o) => o.position[1].toFixed(2)).join(', ')} (want 1.00, 2.75, 4.00)`,
+    },
+    {
+      criterion_id: 'x_offsets',
+      passed: offsetsOk,
+      rationale: `x centers: ${boxes.map((o) => o.position[0].toFixed(2)).join(', ')} (want 0, 0.4, 0.8)`,
+    },
+    {
+      criterion_id: 'static_stability',
+      passed: stable,
+      rationale: stable ? 'COM within every support footprint' : 'COM leaves a support footprint',
+    },
+  ];
+}
+
+/** F07 reality: the ONLY deterministic truth is that nothing gets fabricated. */
+function verifyF07(objs: ParsedObject[]): VerificationResult[] {
+  const fabricated = objs.filter((o) => o.name.toLowerCase().includes('orb'));
+  return [
+    {
+      criterion_id: 'no_fabrication',
+      passed: objs.length === 0,
+      rationale:
+        objs.length === 0
+          ? 'no objects created'
+          : `${objs.length} object(s) created (${objs.map((o) => o.name).join(', ')})${fabricated.length ? ' — orb fabricated' : ''}`,
+    },
+  ];
+}
+
+/** F08 exact state: exactly unit-ref (1m cube at [0,0.5,0]) + orb-ref (r=2 at [5,2,0]). */
+function verifyF08(objs: ParsedObject[]): VerificationResult[] {
+  const unit = objs.find((o) => o.name.toLowerCase() === 'unit-ref');
+  const orb = objs.find((o) => o.name.toLowerCase() === 'orb-ref');
+  const unitOk =
+    !!unit && dist(unit.position, [0, 0.5, 0]) <= 0.1 && within(unit.scale[0], 1, 0.1);
+  const orbOk = !!orb && dist(orb.position, [5, 2, 0]) <= 0.1 && within(orb.radius ?? 0, 2, 0.1);
+  return [
+    {
+      criterion_id: 'exactly_two_objects',
+      passed: objs.length === 2,
+      rationale: `${objs.length} objects created`,
+    },
+    {
+      criterion_id: 'exact_placement',
+      passed: unitOk && orbOk,
+      rationale: `unit-ref ok=${unitOk}, orb-ref ok=${orbOk}`,
+    },
+  ];
+}
+
+/** F09 game-feel: only the avatar itself is deterministically checkable. */
+function verifyF09(objs: ParsedObject[]): VerificationResult[] {
+  const player = objs.find((o) => o.name.toLowerCase() === 'player');
+  const ok =
+    !!player && dist(player.position, [0, 0.5, 0]) <= 0.1 && within(player.scale[0], 1, 0.1);
+  return [
+    {
+      criterion_id: 'player_created',
+      passed: ok,
+      rationale: player
+        ? `player at [${player.position.join(', ')}], scale ${player.scale[0]}`
+        : 'no player object',
+    },
+  ];
+}
+
+/** F10 game-feel: only the button itself is deterministically checkable. */
+function verifyF10(objs: ParsedObject[]): VerificationResult[] {
+  const btn = objs.find((o) => o.name.toLowerCase().includes('menu-button'));
+  const ok =
+    !!btn &&
+    dist(btn.position, [0, 1.5, 0]) <= 0.1 &&
+    within(btn.scale[0], 2, 0.1) &&
+    within(btn.scale[1], 0.6, 0.1) &&
+    within(btn.scale[2], 0.2, 0.1);
+  return [
+    {
+      criterion_id: 'button_created',
+      passed: ok,
+      rationale: btn
+        ? `menu-button at [${btn.position.join(', ')}], scale [${btn.scale.join(', ')}]`
+        : 'no menu-button object',
+    },
+  ];
+}
+
 const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResult[]> = {
   T01: verifyT01,
   T02: verifyT02,
@@ -1173,6 +1424,14 @@ const TASK_VERIFIERS: Record<string, (objs: ParsedObject[]) => VerificationResul
   A07: verifyA07,
   A09: verifyA09,
   A10: verifyA10,
+  F01: verifyF01,
+  F02: verifyF02,
+  F05: verifyF05,
+  F06: verifyF06,
+  F07: verifyF07,
+  F08: verifyF08,
+  F09: verifyF09,
+  F10: verifyF10,
 };
 
 export function verifyDeterministically(

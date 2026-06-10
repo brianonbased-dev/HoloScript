@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Task, DifficultyTier } from '../types';
 
-const TIERS: DifficultyTier[] = ['trivial-scene', 'multi-object-scene', 'agentic-multi-step'];
+const TIERS: DifficultyTier[] = [
+  'trivial-scene',
+  'multi-object-scene',
+  'agentic-multi-step',
+  'fable5-dimension',
+];
 
 export function loadAllTasks(rootDir = __dirname): Task[] {
   const out: Task[] = [];
@@ -17,8 +22,8 @@ export function loadAllTasks(rootDir = __dirname): Task[] {
       out.push(t);
     }
   }
-  if (out.length !== 30) {
-    throw new Error(`expected exactly 30 tasks, loaded ${out.length}`);
+  if (out.length !== 40) {
+    throw new Error(`expected exactly 40 tasks, loaded ${out.length}`);
   }
   return out;
 }

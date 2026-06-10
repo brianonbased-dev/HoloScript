@@ -1,0 +1,9 @@
+{
+  "task_id": "F09",
+  "authored_by": "claude-fable-5 @ ultracode (claude1, founder session 2026-06-10)",
+  "tool_rounds": 1,
+  "output_text": "Player created. Jump tuning — each value chosen for how it feels under the thumb, not for the spreadsheet:\n\n- jumpHeight: 2.4 m — clears a 2 m obstacle with visible headroom, so successful jumps read as skill, not luck. Apex arrives in ~0.45 s: long enough to steer, short enough to stay snappy.\n- riseGravityMultiplier: 1.0 — the rise is the promise; keep it clean and predictable so players can aim the apex.\n- fallGravityMultiplier: 1.9 — falls 90% heavier than rises. Symmetric arcs feel floaty and underwater; the heavier fall plants you, makes landings feel earned, and shortens time-to-next-action.\n- coyoteTimeMs: 100 — runs off a ledge still jump for 100 ms. The player's eye lags the physics edge by a few frames; this window makes the game agree with what the player SAW, so missed jumps feel fair.\n- jumpBufferMs: 120 — a jump pressed 120 ms before landing fires on touch-down. Eliminates the 'I pressed it!' dead press, which is the single biggest perceived-responsiveness win in a platformer.\n- landingSquash: scale Y → 0.90 for 100 ms, then recover with a slight 1.03 overshoot — the body confirms the impact. Without it, landings read as teleports; with it, weight exists.\n\nThe shape that emerges: crisp launch, steerable apex, committed fall, forgiving edges, weighty landing — jump arcs you trust by the third press.",
+  "scene_mutations": [
+    { "tool_name": "create_object", "input": { "name": "player", "type": "mesh", "primitive": "box", "position": [0, 0.5, 0], "scale": [1, 1, 1], "color": "#4fc3f7", "traits": { "jump_tuning": { "jumpHeight": 2.4, "riseGravityMultiplier": 1.0, "fallGravityMultiplier": 1.9, "coyoteTimeMs": 100, "jumpBufferMs": 120, "landingSquash": { "scaleY": 0.9, "durationMs": 100, "recoverOvershoot": 1.03 } } } }, "sim_contract_passed": true }
+  ]
+}
