@@ -384,7 +384,9 @@ async function createDaemonLLMProvider(
             { role: 'user', content: prompt },
           ],
           maxTokens: maxTokens || 4096,
-          temperature: 0.2,
+          // No explicit temperature: claude-sonnet-4-6+ rejects values != 1
+          // when thinking/adaptive is active (daemon API-key validation died
+          // on this 2026-06-10) — the Anthropic model default is correct.
         });
         return {
           text: result.content,
