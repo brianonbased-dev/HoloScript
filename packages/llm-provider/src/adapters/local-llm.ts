@@ -294,6 +294,15 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         content: messageContentAsString(m.content),
       })),
       stream: true,
+      // Thinking OFF by default: qwen3.5-class thinking routes the ENTIRE
+      // answer into the think channel on tool turns — the visible reply
+      // arrives empty and post-tool rounds emit no prose (fable5 run
+      // 20260610T233100: F02/F08/F09 failed ONLY on empty output text while
+      // every deterministic geometry check passed; F01 burned its whole 240s
+      // wall clock thinking inside one round). Verified harmless on
+      // non-thinking models (qwen2.5-coder). Opt back in with
+      // HOLO_LLM_LOCAL_THINK=1 for reasoning-heavy non-tool workloads.
+      ...(process.env.HOLO_LLM_LOCAL_THINK === '1' ? {} : { think: false }),
       options: {
         temperature: request.temperature ?? 0.4,
         num_predict: request.maxTokens ?? 2048,
