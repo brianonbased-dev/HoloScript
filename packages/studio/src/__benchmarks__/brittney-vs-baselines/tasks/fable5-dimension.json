@@ -327,7 +327,7 @@
       },
       {
         "id": "chain_in_order",
-        "description": "Feedback chain is listed in execution order: press-in, release overshoot + settle, flash, haptic/audio",
+        "description": "Feedback chain is an explicit, ms-timed execution order covering all four components (press-in, release overshoot + spring settle, activation flash, haptic/audio hook). ANY coherent order passes when its ordering logic is stated — e.g. haptic during press-in is valid UX; an unordered list or missing component fails.",
         "required": true,
         "verifier_type": "llm"
       },
