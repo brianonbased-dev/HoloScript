@@ -147,9 +147,16 @@ export async function pickLocalModel(
   }
   ranked.sort((a, b) => Number(b.modern) - Number(a.modern) || b.paramsB - a.paramsB);
 
-  // Behavioral gate: capabilities lie; only a live tool_calls response counts.
+  // Behavioral gate: capabilities lie; only live tool_calls responses count.
+  // TWO samples, both must pass: a single-sample probe let gemma4:e2b through
+  // on a lucky ping (2026-06-10) and an entire benchmark run silently rode a
+  // flaky tool-caller. Consistency beats size — a model that ping-passes 1/2
+  // loses to a smaller model that passes 2/2.
   for (const c of ranked) {
-    if (await probeToolCall(key, c.name, Math.max(timeoutMs, 30_000))) {
+    const probeMs = Math.max(timeoutMs, 30_000);
+    const passedBoth =
+      (await probeToolCall(key, c.name, probeMs)) && (await probeToolCall(key, c.name, probeMs));
+    if (passedBoth) {
       const choice: LocalModelChoice = {
         model: c.name,
         source: 'discovery',

@@ -307,6 +307,11 @@ async function upgradeOllamaByDiscovery(
   const baseURL =
     process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL || OLLAMA_DEFAULT_BASE_URL;
   const picked = await pickLocalModel(baseURL, { fallback: OLLAMA_DEFAULT_MODEL });
+  // Always log the pick: a benchmark run silently rode the wrong model when
+  // this was invisible (gemma4 flaky-probe incident, 2026-06-10).
+  console.log(
+    `[brittney] ollama discovery picked model=${picked.model} source=${picked.source} verified=${picked.toolCallVerified}`
+  );
   if (picked.model === resolved.model) return resolved;
   const provider = new LocalLLMAdapter({ baseURL, model: picked.model, timeoutMs: 300_000 });
   return { ...resolved, provider, model: picked.model };
