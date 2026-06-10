@@ -575,6 +575,57 @@ export const characters = pgTable(
 );
 
 // =============================================================================
+// BRITTNEY CONVERSATIONS (server-side chat persistence)
+// =============================================================================
+// Chat history previously lived ONLY in browser localStorage (200-message cap,
+// lost on browser close / new device — useBrittneyHistory). These tables are
+// the durable record: one row per conversation thread, one row per message.
+// `scope` is the same string useUnifiedBrittneyHistory resolves
+// (`workspace:<id>` | `project:studio:default`) so a workspace's threads can
+// be listed without joining workspaces.
+
+export const brittneyConversations = pgTable(
+  'brittney_conversations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    scope: text('scope').notNull(),
+    title: text('title').default('').notNull(),
+    messageCount: integer('message_count').default(0).notNull(),
+    lastMessageAt: timestamp('last_message_at', { mode: 'date' }),
+    archivedAt: timestamp('archived_at', { mode: 'date' }),
+    metadata: jsonb('metadata').default({}),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('idx_brittney_convos_owner').on(t.ownerId),
+    index('idx_brittney_convos_owner_scope').on(t.ownerId, t.scope),
+  ]
+);
+
+export const brittneyMessages = pgTable(
+  'brittney_messages',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => brittneyConversations.id, { onDelete: 'cascade' }),
+    // Monotonic position within the conversation — the ordering contract.
+    // Unique per conversation so concurrent appends can't interleave silently.
+    seq: integer('seq').notNull(),
+    role: varchar('role', { length: 16 }).notNull(), // 'user' | 'assistant'
+    content: text('content').notNull(),
+    toolCalls: jsonb('tool_calls').default([]),
+    clientTimestamp: timestamp('client_timestamp', { mode: 'date' }),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex('idx_brittney_msgs_convo_seq').on(t.conversationId, t.seq)]
+);
+
+// =============================================================================
 // USER API KEYS (programmatic Brittney access)
 // =============================================================================
 // Keys are issued via POST /api/user/api-keys. The raw key (bk_<base64url>)
