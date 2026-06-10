@@ -80,6 +80,12 @@ export {
   type MultiphaseStats,
 } from './MultiphaseNSSolver';
 export { MolecularDynamicsSolver, type MDConfig, type MDStats } from './MolecularDynamicsSolver';
+export { DEMSolver, type DEMConfig, type DEMStats } from './DEMSolver';
+export {
+  AdjointHeatSolver,
+  type AdjointHeatConfig,
+  type GradientResult,
+} from './AdjointHeatSolver';
 export {
   ReactionDiffusionSolver,
   type ReactionDiffusionConfig,

@@ -50,6 +50,7 @@ import {
   type NashEffortParams,
 } from './AffinityODESolver';
 import { MLSMPMFluid, type MLSMPMConfig } from '../physics/MLSMPMFluid';
+import { DEMSolver, type DEMConfig } from './DEMSolver';
 import { registerWasmMesher } from './AutoMesher';
 import { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 import type { BoundaryCondition, BCFace } from './BoundaryConditions';
@@ -225,6 +226,34 @@ function parseMLSMPMConfig(raw: Record<string, unknown>): Partial<MLSMPMConfig> 
   };
 }
 
+function parseDEMConfig(raw: Record<string, unknown>): DEMConfig {
+  const radiiRaw = raw.radii as number[] | undefined;
+  const massesRaw = raw.masses as number[] | undefined;
+  const boxRaw = raw.boxBounds as [[number, number], [number, number], [number, number]] | undefined;
+  const posRaw = raw.initialPositions as number[] | undefined;
+  const velRaw = raw.initialVelocities as number[] | undefined;
+  return {
+    particleCount: (raw.particleCount as number) ?? 64,
+    radii: radiiRaw ? new Float64Array(radiiRaw) : undefined,
+    masses: massesRaw ? new Float64Array(massesRaw) : undefined,
+    defaultRadius: (raw.defaultRadius as number) ?? 0.05,
+    defaultMass: (raw.defaultMass as number) ?? 1.0,
+    kn: (raw.kn as number) ?? 1e5,
+    kt: raw.kt as number | undefined,
+    restitution: (raw.restitution as number) ?? 0.5,
+    friction: (raw.friction as number) ?? 0.3,
+    gravity: (raw.gravity as [number, number, number]) ?? [0, -9.81, 0],
+    boxBounds: boxRaw ?? [
+      [-1, 1],
+      [-1, 1],
+      [-1, 1],
+    ],
+    dtSafety: raw.dtSafety as number | undefined,
+    initialPositions: posRaw ? new Float64Array(posRaw) : undefined,
+    initialVelocities: velRaw ? new Float64Array(velRaw) : undefined,
+  };
+}
+
 // ── Idempotent registration ─────────────────────────────────────────────────
 
 let initialized = false;
@@ -324,6 +353,10 @@ export function initSimulationSolvers(): void {
   SimulationSolverFactory.register(
     'mls-mpm-fluid',
     (raw) => new MLSMPMFluid(parseMLSMPMConfig(raw)) as unknown as SimulationSolver
+  );
+  SimulationSolverFactory.register(
+    'dem-granular',
+    (raw) => new DEMSolver(parseDEMConfig(raw)) as unknown as SimulationSolver
   );
   SimulationSolverFactory.register('reaction-diffusion', (raw) => {
     const cfg = raw as Record<string, unknown>;
