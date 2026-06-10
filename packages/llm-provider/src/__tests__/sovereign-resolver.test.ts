@@ -8,6 +8,7 @@ import {
   resolveSovereignProvider,
   resolveSovereignProviderAsync,
 } from '../sovereign-resolver';
+import { __clearLocalModelPickerCache } from '../local-model-picker';
 import { BrittneyCloudAdapter } from '../adapters/brittney-cloud';
 import { LocalLLMAdapter } from '../adapters/local-llm';
 import { AnthropicAdapter } from '../adapters/anthropic';
@@ -49,6 +50,7 @@ const ENV_KEYS = [
 
 beforeEach(() => {
   for (const k of ENV_KEYS) vi.stubEnv(k, '');
+  __clearLocalModelPickerCache();
 });
 
 afterEach(() => {
@@ -185,6 +187,72 @@ describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
     vi.stubGlobal('fetch', fetchSpy);
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('ollama');
+    // Local-model DISCOVERY may probe the ollama box, but the fleet registry
+    // must never be consulted without fleet env.
+    const fleetCalls = fetchSpy.mock.calls.filter((c) =>
+      String(c[0]).includes('/serve/resolve')
+    );
+    expect(fleetCalls.length).toBe(0);
+  });
+
+  it('upgrades the ollama model by discovery when no model is pinned', async () => {
+    vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const u = String(url);
+        if (u.endsWith('/api/tags')) {
+          return {
+            ok: true,
+            json: async () => ({
+              models: [
+                { name: 'old-coder:7b', details: { parameter_size: '7.6B' } },
+                { name: 'fresh:4b', details: { parameter_size: '4.7B' } },
+              ],
+            }),
+          };
+        }
+        if (u.endsWith('/api/show')) {
+          const model = JSON.parse(String(init?.body ?? '{}')).model as string;
+          return {
+            ok: true,
+            json: async () => ({
+              capabilities:
+                model === 'fresh:4b' ? ['completion', 'tools', 'thinking'] : ['completion', 'tools'],
+            }),
+          };
+        }
+        if (u.endsWith('/v1/chat/completions')) {
+          const model = JSON.parse(String(init?.body ?? '{}')).model as string;
+          return {
+            ok: true,
+            json: async () => ({
+              choices: [
+                {
+                  message:
+                    model === 'fresh:4b'
+                      ? { tool_calls: [{ function: { name: 'ping' } }] }
+                      : { content: '{"name":"ping"}' },
+                },
+              ],
+            }),
+          };
+        }
+        return { ok: false, json: async () => ({}) };
+      })
+    );
+    const r = await resolveSovereignProviderAsync();
+    expect(r.providerName).toBe('ollama');
+    expect(r.model).toBe('fresh:4b');
+  });
+
+  it('discovery never overrides an explicitly pinned model', async () => {
+    vi.stubEnv('OLLAMA_HOST', 'http://box:11434');
+    vi.stubEnv('HOLO_LLM_MODEL', 'pinned:1b');
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const r = await resolveSovereignProviderAsync();
+    expect(r.model).toBe('pinned:1b');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

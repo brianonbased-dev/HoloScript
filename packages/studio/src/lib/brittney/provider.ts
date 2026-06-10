@@ -33,6 +33,8 @@ import {
   LocalLLMAdapter,
   BrittneyCloudAdapter,
   OpenAICompatibleAdapter,
+  pickLocalModel,
+  OLLAMA_DEFAULT_BASE_URL,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
@@ -61,11 +63,13 @@ export interface ResolvedBrittneyProvider {
 }
 
 /**
- * Default Ollama model for Brittney. The brittney-qwen-v23 Ollama tag is retired;
- * the current sovereign default is qwen2.5-coder:7b (matches BRITTNEY_SOVEREIGN_DEFAULT_MODEL
- * in SovereignGeneratorAdapter). Override with BRITTNEY_MODEL env var.
+ * Default Ollama model for Brittney. qwen3.5 replaces qwen2.5-coder
+ * (2026-06-10, founder): the older family cannot emit NATIVE tool calls via
+ * Ollama — it writes the call JSON as text (the tend_garden stall and the
+ * zero-objects fable5 benchmark cells). Matches BRITTNEY_SOVEREIGN_DEFAULT_MODEL
+ * in SovereignGeneratorAdapter. Override with BRITTNEY_MODEL env var.
  */
-const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || 'qwen2.5-coder:7b';
+const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || 'qwen3.5:4b';
 
 /**
  * Resolve Brittney's LLM provider from environment variables.
@@ -175,7 +179,7 @@ function resolveCloud(baseURL: string | undefined): ResolvedBrittneyProvider {
 }
 
 function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
-  const baseURL = host || 'http://localhost:11434';
+  const baseURL = host || OLLAMA_DEFAULT_BASE_URL;
   const provider = new LocalLLMAdapter({
     baseURL,
     model: process.env.BRITTNEY_MODEL || OLLAMA_DEFAULT_MODEL,
@@ -280,11 +284,30 @@ export async function resolveBrittneyProviderAsync(
       // Cold/unreachable fleet → fall back to a sync provider for THIS request. If none is
       // configured, resolveBrittneyProvider() throws its own error — surface the fleet one.
       try {
-        return resolveBrittneyProvider(byok);
+        return await upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
       } catch {
         throw fleetErr;
       }
     }
   }
-  return resolveBrittneyProvider(byok);
+  return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
+}
+
+/**
+ * Discovery over hardcodes (founder 2026-06-10): when Brittney lands on local
+ * Ollama with NO explicit BRITTNEY_MODEL pin, enumerate installed models and
+ * pick the best behaviorally-verified tool-caller (capability flags lie:
+ * qwen2.5-coder reports `tools` yet emits call JSON as text — the tend_garden
+ * stall). Pull a better model and Brittney upgrades automatically.
+ */
+async function upgradeOllamaByDiscovery(
+  resolved: ResolvedBrittneyProvider
+): Promise<ResolvedBrittneyProvider> {
+  if (resolved.providerName !== 'ollama' || process.env.BRITTNEY_MODEL) return resolved;
+  const baseURL =
+    process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL || OLLAMA_DEFAULT_BASE_URL;
+  const picked = await pickLocalModel(baseURL, { fallback: OLLAMA_DEFAULT_MODEL });
+  if (picked.model === resolved.model) return resolved;
+  const provider = new LocalLLMAdapter({ baseURL, model: picked.model, timeoutMs: 300_000 });
+  return { ...resolved, provider, model: picked.model };
 }

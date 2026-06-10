@@ -37,7 +37,10 @@ When the user asks for HoloScript code (\`.hs\`, \`.hsplus\`, \`.holo\`), emit i
 For general coding questions, give a complete answer first, then a short rationale. Be concise.`;
 
 export function defaultModel(): string {
-  return process.env.AIBRITTNEY_MODEL ?? 'qwen2.5-coder:7b';
+  // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool
+  // calls via Ollama — it writes the JSON as text (benchmark 2026-06-10:
+  // zero objects across F01-F04; founder caught the stale default).
+  return process.env.AIBRITTNEY_MODEL ?? 'qwen3.5:4b';
 }
 
 export function defaultOllamaHost(): string {

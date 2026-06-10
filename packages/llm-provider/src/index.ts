@@ -180,6 +180,12 @@ export type {
   SovereignResolveOptions,
 } from './sovereign-resolver';
 
+// Local model discovery — picks the best behaviorally-verified tool-calling
+// model from whatever Ollama has installed, instead of a hardcoded tag
+// (founder 2026-06-10: "don't we have a large variety available?").
+export { pickLocalModel, __clearLocalModelPickerCache } from './local-model-picker';
+export type { LocalModelChoice } from './local-model-picker';
+
 // Quest Generator (Phase 2 Hololand Integration)
 export { QuestGenerator } from './QuestGenerator';
 export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';

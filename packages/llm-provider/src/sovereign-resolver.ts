@@ -27,6 +27,7 @@
  */
 
 import type { ILLMProvider } from './types';
+import { OLLAMA_DEFAULT_BASE_URL, pickLocalModel } from './local-model-picker';
 import { AnthropicAdapter } from './adapters/anthropic';
 import { OpenAIAdapter } from './adapters/openai';
 import { XAIAdapter } from './adapters/xai';
@@ -63,7 +64,10 @@ export interface SovereignResolveOptions {
 
 const FLEET_DEFAULT_MODEL = 'qwen2.5-coder:1.5b';
 const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
-const OLLAMA_DEFAULT_MODEL = 'qwen2.5-coder:7b';
+// qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool calls
+// via Ollama — it writes the call JSON as plain text (2026-06-10 zero-objects
+// benchmark finding; founder caught the stale default).
+const OLLAMA_DEFAULT_MODEL = 'qwen3.5:4b';
 
 function env(...names: string[]): string | undefined {
   for (const n of names) {
@@ -163,13 +167,34 @@ export async function resolveSovereignProviderAsync(
       // Cold/unreachable fleet → sync fallback for THIS request. If none is
       // configured either, surface the fleet error (it has the warm-up hint).
       try {
-        return resolveSovereignProvider({ ...opts, explicit: undefined });
+        return await upgradeOllamaByDiscovery(
+          resolveSovereignProvider({ ...opts, explicit: undefined }),
+          opts
+        );
       } catch {
         throw fleetErr;
       }
     }
   }
-  return resolveSovereignProvider(opts);
+  return upgradeOllamaByDiscovery(resolveSovereignProvider(opts), opts);
+}
+
+/**
+ * Discovery over hardcodes (founder 2026-06-10): when the async path lands on
+ * local Ollama with NO explicit model pin, enumerate installed models and pick
+ * the best behaviorally-verified tool-caller instead of the static default.
+ * The sync resolver keeps the static fallback (it cannot await discovery).
+ */
+async function upgradeOllamaByDiscovery(
+  resolved: ResolvedSovereignProvider,
+  opts: SovereignResolveOptions
+): Promise<ResolvedSovereignProvider> {
+  if (resolved.providerName !== 'ollama' || modelOverride(opts)) return resolved;
+  const baseURL = env('OLLAMA_HOST', 'OLLAMA_BASE_URL', 'OLLAMA_URL') || OLLAMA_DEFAULT_BASE_URL;
+  const picked = await pickLocalModel(baseURL, { fallback: OLLAMA_DEFAULT_MODEL });
+  if (picked.model === resolved.model) return resolved;
+  const provider = new LocalLLMAdapter({ baseURL, model: picked.model, timeoutMs: 300_000 });
+  return { ...resolved, provider, model: picked.model };
 }
 
 // ── backends ─────────────────────────────────────────────────────────────────
@@ -209,7 +234,7 @@ function resolveOllama(
   host: string | undefined,
   opts: SovereignResolveOptions
 ): ResolvedSovereignProvider {
-  const baseURL = host || 'http://localhost:11434';
+  const baseURL = host || OLLAMA_DEFAULT_BASE_URL;
   const model = modelOverride(opts) || OLLAMA_DEFAULT_MODEL;
   const provider = new LocalLLMAdapter({ baseURL, model, timeoutMs: 300_000 });
   return {

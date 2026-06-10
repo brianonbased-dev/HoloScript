@@ -70,7 +70,7 @@ export interface SovereignGeneratorAdapterOptions {
   cloudEndpoint?: string;
   /** API key for cloud endpoint (default: env BRITTNEY_API_KEY) */
   cloudApiKey?: string;
-  /** Model name for local Brittney (default: qwen2.5-coder:7b via env BRITTNEY_MODEL) */
+  /** Model name for local Brittney (default: qwen3.5:4b via env BRITTNEY_MODEL) */
   localModel?: string;
   /** Model name for cloud Brittney (default: brittney-standard) */
   cloudModel?: string;
@@ -97,11 +97,14 @@ const DEFAULT_LOCAL_ENDPOINT =
 
 /**
  * Default Ollama model for sovereign Brittney inference.
- * The brittney-qwen-v23 Ollama tag is retired; the live sovereign stack uses
- * qwen2.5-coder:7b via the vast.ai Ollama worker (P.008 serving autoscaler).
+ * qwen3.5 replaces qwen2.5-coder (2026-06-10, founder): the older family
+ * cannot emit NATIVE tool calls via Ollama — it writes the call JSON as
+ * plain text, which is the tend_garden stall / zero-objects benchmark
+ * failure. NOTE: the vast.ai serving pool (P.008) still serves
+ * qwen2.5-coder:1.5b — upgrading the pool template is a separate task.
  * Override with BRITTNEY_MODEL env var to point at any pulled Ollama tag.
  */
-export const BRITTNEY_SOVEREIGN_DEFAULT_MODEL = 'qwen2.5-coder:7b';
+export const BRITTNEY_SOVEREIGN_DEFAULT_MODEL = 'qwen3.5:4b';
 
 const DEFAULT_LOCAL_MODEL =
   (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) ||

@@ -134,7 +134,9 @@ function defaultModelForProvider(provider: CLIOptions['provider']): string {
     case 'openai':
       return 'gpt-4.1';
     case 'ollama':
-      return 'qwen2.5-coder:7b';
+      // qwen3.5 over qwen2.5-coder: the older family can't emit native tool
+      // calls via Ollama (2026-06-10 zero-objects benchmark finding).
+      return 'qwen3.5:4b';
     case 'anthropic':
     default:
       return 'claude-sonnet-4-6';

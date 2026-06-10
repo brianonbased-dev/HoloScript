@@ -48,7 +48,7 @@ function help(): void {
     `  ${GREEN}/clear${RESET}          forget conversation history (keeps system prompt)\n`
   );
   stdout.write(
-    `  ${GREEN}/model${RESET} <name>   switch ollama model (e.g. qwen2.5-coder:7b, brittney-qwen:latest)\n`
+    `  ${GREEN}/model${RESET} <name>   switch ollama model (e.g. qwen3.5:4b, brittney-qwen:latest)\n`
   );
   stdout.write(`  ${GREEN}/system${RESET} <text>  replace system prompt for this session\n`);
   stdout.write(`  ${GREEN}/show${RESET}           print current session config\n`);

@@ -77,7 +77,7 @@ function printHelp(): void {
 
 usage:
   aibrittney                       start REPL against local ollama
-  aibrittney --model <name>        use specific model (e.g. qwen2.5-coder:7b)
+  aibrittney --model <name>        use specific model (e.g. qwen3.5:4b)
   aibrittney --host <url>          point at a remote ollama
   aibrittney --api-key <key>       bearer token for hosted endpoints
   aibrittney --cloud --model kimi-k2.6:cloud
@@ -128,7 +128,7 @@ tool calling (v0.2, opt-in):
 
 prerequisites (local mode):
   - ollama running locally on ${defaultOllamaHost()}
-  - the chosen model pulled (e.g. \`ollama pull qwen2.5-coder:7b\`)
+  - the chosen model pulled (e.g. \`ollama pull qwen3.5:4b\`)
 `);
 }
 
