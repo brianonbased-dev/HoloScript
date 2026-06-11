@@ -1293,7 +1293,7 @@ export class PhysicsWorldImpl implements IPhysicsWorld {
    */
   private angularImpulseDenominator(
     invI: IVector3,
-    q: IVector3,
+    q: IQuaternion,
     r: IVector3,
     n: IVector3
   ): number {

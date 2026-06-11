@@ -56,7 +56,7 @@
  * @see MolecularDynamicsSolver — sibling particle solver, style reference
  */
 
-import type { SimSolver, SolverMode, FieldData } from './SimSolver';
+import type { SolverMode, FieldData } from './SimSolver';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -152,25 +152,33 @@ export interface DEMStats {
 // ── Seeded LCG ────────────────────────────────────────────────────────────────
 
 /**
- * Minimal seeded linear congruential generator (Knuth MMIX parameters).
+ * Minimal seeded PRNG (mulberry32) — deterministic, 32-bit integer math only.
  * Used only for deterministic default particle initialization — no randomness
- * elsewhere in the solver.
+ * elsewhere in the solver. No BigInt: keeps this module type-checkable under
+ * consumers targeting < ES2020 (e.g. studio).
  */
 class LCG {
-  private s: bigint;
+  private s: number;
   constructor(seed: number) {
-    this.s = BigInt(seed >>> 0);
+    this.s = seed >>> 0;
   }
   /** Returns a float in [0, 1). */
   next(): number {
-    this.s = (this.s * 6364136223846793005n + 1442695040888963407n) & 0xffffffffffffffffn;
-    return Number((this.s >> 33n) & 0x7fffffffn) / 0x7fffffff;
+    this.s = (this.s + 0x6d2b79f5) >>> 0;
+    let t = this.s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 0x100000000;
   }
 }
 
 // ── Solver ────────────────────────────────────────────────────────────────────
 
-export class DEMSolver implements SimSolver {
+// NOTE: satisfies the SimSolver shape structurally and registers via the
+// double-cast in simulation-registry.ts (house pattern — a literal
+// `implements SimSolver` fails strict TS because the typed getStats()
+// return (DEMStats) lacks the interface's index signature).
+export class DEMSolver {
   readonly mode: SolverMode = 'transient';
   readonly fieldNames: readonly string[] = ['positions', 'velocities'];
 

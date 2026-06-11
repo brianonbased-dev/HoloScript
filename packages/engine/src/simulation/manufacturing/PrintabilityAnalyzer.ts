@@ -293,29 +293,21 @@ function cross3(
   return [ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx];
 }
 
-// Deterministic LCG — only used to break exact ties in edge-key hashing
-// (not needed in practice; kept for future deterministic jitter).
-// Seeded with a fixed constant — never reads wall-clock or Math.random().
-// Generator: xn+1 = (a·xn + c) mod m  with Knuth constants.
-function makeLCG(seed: number): () => number {
-  let state = seed >>> 0;
-  return (): number => {
-    state = (Math.imul(1664525, state) + 1013904223) >>> 0;
-    return state / 0x100000000;
-  };
-}
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- available for future use
-const _lcg = makeLCG(0xdeadbeef);
-
 /**
- * Pack a directed edge (a, b) as a BigInt key for the edge map.
- * Undirected edges use min/max ordering so both half-edges hash to the same key.
+ * Pack an undirected edge (a, b) as a Map key (min/max ordering so both
+ * half-edges hash identically). Number packing `lo·2³² + hi` is exact while
+ * lo < 2²¹ (Number.MAX_SAFE_INTEGER = 2⁵³); for larger meshes fall back to
+ * string keys — correct for any index, just slower. No BigInt: keeps this
+ * module type-checkable under consumers targeting < ES2020 (e.g. studio).
  */
-function undirectedEdgeKey(a: number, b: number): bigint {
+function undirectedEdgeKey(a: number, b: number, useStringKeys: boolean): number | string {
   const lo = a < b ? a : b;
   const hi = a < b ? b : a;
-  return (BigInt(lo) << 32n) | BigInt(hi);
+  return useStringKeys ? `${lo},${hi}` : lo * 0x100000000 + hi;
 }
+
+/** Vertex-index bound for the exact number-packed edge key (2²¹). */
+const NUMBER_KEY_MAX_VERTEX = 0x200000;
 
 // ── Core analysis ─────────────────────────────────────────────────────────────
 
@@ -405,7 +397,9 @@ export function analyzePrintability(
   // ── Per-triangle geometry pass ────────────────────────────────────────────
   // Computes: signed volume, surface area, overhang detection, degenerate check.
 
-  const edgeMap = new Map<bigint, number>(); // key → count of triangles sharing that edge
+  // key → count of triangles sharing that edge; string keys only for huge meshes
+  const useStringKeys = vertCount >= NUMBER_KEY_MAX_VERTEX;
+  const edgeMap = new Map<number | string, number>();
 
   let signedVolumeSum = 0;
   let surfaceArea = 0;
@@ -442,7 +436,7 @@ export function analyzePrintability(
       [i2, i0],
     ];
     for (const [a, b] of edges) {
-      const key = undirectedEdgeKey(a, b);
+      const key = undirectedEdgeKey(a, b, useStringKeys);
       edgeMap.set(key, (edgeMap.get(key) ?? 0) + 1);
     }
 

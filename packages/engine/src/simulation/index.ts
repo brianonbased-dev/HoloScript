@@ -783,8 +783,12 @@ export {
   listTemperatureDependentMaterials,
 } from './MaterialProperties';
 
-// Export — VTK, CSV, JSON data export for post-processing
+// Export — VTK, CSV, JSON, STL data export for post-processing
 export {
+  exportSTLBinary,
+  exportSTLAscii,
+  type STLBinaryOptions,
+  type STLAsciiOptions,
   exportStructuredPoints,
   exportUnstructuredGrid,
   exportPolyData,
