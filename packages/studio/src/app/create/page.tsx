@@ -465,8 +465,9 @@ const ScriptConsole = dynamic(
 );
 
 const TraitInspector = dynamic(
-  () =>
-    import('@/components/inspector/TraitInspector').then((m) => ({ default: m.TraitInspector })),
+  // B3 consolidation (splendid-popping-lark): re-pointed from inspector/ to panels/
+  // canonical copy. panels/TraitInspector now accepts onOpenPalette + onOpenShaderEditor.
+  () => import('@/components/panels/TraitInspector').then((m) => ({ default: m.TraitInspector })),
   { ssr: false }
 );
 

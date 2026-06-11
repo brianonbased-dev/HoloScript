@@ -380,6 +380,96 @@ export const COMPONENT_REGISTRY = {
     usedIn: ['TBD - needs usage audit'],
     note: 'Separate domain (git-like versioning vs undo history). Not a duplicate.',
   },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // B2 SHARED PRIMITIVES (splendid-popping-lark studio consolidation)
+  // ═══════════════════════════════════════════════════════════════════
+
+  Modal: {
+    canonical: '@holoscript/ui → Modal',
+    exports: ['Modal', 'ModalProps'],
+    domain: 'ui-primitives',
+    description:
+      'Canonical overlay/dialog primitive. Replaces the 46 inline `fixed inset-0` patterns ' +
+      'across 38 studio files. Accepts open/onClose/title/children/size/zIndex/className. ' +
+      'Closes on Escape + backdrop click. Accessible: aria-modal, aria-labelledby.',
+    usedIn: [
+      'components/cloud/DeployWorkflowModal.tsx (migration target)',
+      'components/cloud/DeploymentDetailsModal.tsx (migration target)',
+      'components/marketplace/ContentDetailModal.tsx (migration target)',
+      'components/PublishModal.tsx (migration target)',
+      // ~34 more files — see rg "fixed inset-0" packages/studio/src
+    ],
+  },
+
+  TabGroup: {
+    canonical: '@holoscript/ui → TabGroup',
+    exports: ['TabGroup', 'TabGroupProps', 'TabItem'],
+    domain: 'ui-primitives',
+    description:
+      'Canonical tab switcher primitive. Supports pill (default), line, and filled variants. ' +
+      'Replaces 17+ inline tab-header patterns in studio panels (agents, camera, marketplace...).',
+    usedIn: [
+      'components/camera/CinematicCameraPanel.tsx (migration target)',
+      'components/agents/AgentDashboard.tsx (migration target)',
+      // ~15 more files — see rg "activeTab" packages/studio/src
+    ],
+  },
+
+  PanelFrame: {
+    canonical: 'components/ui/PanelFrame.tsx',
+    exports: ['PanelFrame', 'PanelFrameProps'],
+    domain: 'ui-primitives',
+    description:
+      'Studio-local panel frame with header (icon + title + badge + close) and scrollable body. ' +
+      'Uses studio Tailwind tokens — must stay studio-local, not in @holoscript/ui. ' +
+      'Extends the RightRailPanelHost descriptor pattern.',
+    usedIn: [
+      'components/panels/ModelViewerPanel.tsx (migration target)',
+      // ~40 panel files — see components/panels/
+    ],
+  },
+
+  WizardStep: {
+    canonical: 'components/ui/WizardStep.tsx',
+    exports: ['WizardStep', 'WizardStepProps'],
+    domain: 'ui-primitives',
+    description:
+      'Studio-local wizard step frame: progress dots, title, description, body, prev/next nav. ' +
+      'Covers both Step0-4 onboarding (QuickStart/FirstRun/Onboarding/StudioSetup) and ' +
+      'Step0-4 ImportRepo wizard families (~27 wizard files).',
+    usedIn: [
+      'components/wizard/FirstRunWizard.tsx (migration target)',
+      'components/wizard/OnboardingWizard.tsx (migration target)',
+      'components/wizard/ImportRepoWizard.tsx (migration target)',
+      // ~24 more wizard files
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // B3 REDUNDANCY COLLAPSES
+  // ═══════════════════════════════════════════════════════════════════
+
+  TraitInspector: {
+    canonical: 'components/panels/TraitInspector.tsx',
+    exports: ['TraitInspector', 'TraitInspectorProps'],
+    domain: 'inspector',
+    description:
+      'Visual trait details + culture norm editor. Canonical copy is panels/; ' +
+      'the inspector/ duplicate was deleted (B3 collapse). ' +
+      'Accepts onOpenPalette? + onOpenShaderEditor? shims for app/create compatibility.',
+    usedIn: [
+      'components/panels/RightPanelSidebar.tsx',
+      'app/create/page.tsx (re-pointed from inspector/ to panels/)',
+    ],
+    deprecated: [
+      {
+        file: 'components/inspector/TraitInspector.tsx (DELETED)',
+        export: 'TraitInspector',
+        reason: 'Duplicate — merged props into panels/TraitInspector; panels/ is canonical.',
+      },
+    ],
+  },
 } as const;
 
 /**

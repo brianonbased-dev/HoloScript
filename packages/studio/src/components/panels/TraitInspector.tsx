@@ -9,12 +9,27 @@ import { useTraitInspector, type TraitInfo } from '../../hooks/useTraitInspector
 import type { CulturalNorm, NormCategory } from '@holoscript/core';
 
 // ═══════════════════════════════════════════════════════════════════
+// B3 merge (splendid-popping-lark): Accept the same optional callbacks as the
+// inspector/ copy so app/create/page.tsx can be re-pointed here.  The panels/
+// copy is the canonical home; inspector/TraitInspector.tsx is deleted after
+// this re-point.
 
 interface TraitInspectorProps {
   /** Initial selected trait */
   initialTrait?: string;
   /** Show culture section */
   showCulture?: boolean;
+  /**
+   * Called when the user clicks "Add trait" / the palette button.
+   * Compatibility shim — wired by app/create/page.tsx, ignored here since
+   * this copy doesn't render a palette trigger in its current UI.
+   */
+  onOpenPalette?: () => void;
+  /**
+   * Called when the user opens the shader editor for a material trait.
+   * Compatibility shim — see onOpenPalette.
+   */
+  onOpenShaderEditor?: () => void;
 }
 
 const DANGER_COLORS: Record<string, string> = {
@@ -39,6 +54,8 @@ const CATEGORY_ICONS: Record<NormCategory, string> = {
 export function TraitInspector({
   initialTrait: _initialTrait,
   showCulture = true,
+  onOpenPalette: _onOpenPalette,
+  onOpenShaderEditor: _onOpenShaderEditor,
 }: TraitInspectorProps) {
   const {
     traits,

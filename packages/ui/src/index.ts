@@ -11,3 +11,8 @@ export * from './components/Spinner';
 export * from './components/StatCard';
 export * from './components/UncertaintyIndicator';
 export * from './accessibility/multimodal';
+// ── B2 primitives (studio consolidation, splendid-popping-lark) ──────────────
+export { Modal } from './components/Modal';
+export type { ModalProps } from './components/Modal';
+export { TabGroup } from './components/TabGroup';
+export type { TabGroupProps, TabItem } from './components/TabGroup';
