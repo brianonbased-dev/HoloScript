@@ -80,8 +80,10 @@ async function fetchBoardTasks(teamId: string, clientAuth?: string | null): Prom
 }
 
 async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Promise<FleetAgent[]> {
-  // Try the HoloMesh team members endpoint to get presence + skills
-  const [membersRes, agentsRes] = await Promise.allSettled([
+  // Fetch members, fleet registry, and live presence in parallel.
+  // Presence is the heartbeat source-of-truth: agents absent from presence (no fresh
+  // heartbeat within TTL) are marked offline so the dispatcher never picks a stale seat.
+  const [membersRes, agentsRes, presenceRes] = await Promise.allSettled([
     fetch(`${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/members`, {
       headers: holomeshHeaders(clientAuth),
       signal: AbortSignal.timeout(8_000),
@@ -90,7 +92,23 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
       headers: holomeshHeaders(clientAuth),
       signal: AbortSignal.timeout(8_000),
     }),
+    fetch(`${HOLOMESH_BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/presence`, {
+      headers: holomeshHeaders(clientAuth),
+      signal: AbortSignal.timeout(8_000),
+    }),
   ]);
+
+  // Build a set of agent IDs with a live heartbeat
+  const liveAgentIds = new Set<string>();
+  if (presenceRes.status === 'fulfilled' && presenceRes.value.ok) {
+    const data: unknown = await presenceRes.value.json();
+    const body = data as { online?: unknown[] };
+    for (const p of body.online ?? []) {
+      const entry = p as Record<string, unknown>;
+      const id = String(entry['agentId'] ?? entry['id'] ?? '');
+      if (id) liveAgentIds.add(id);
+    }
+  }
 
   const seen = new Set<string>();
   const agents: FleetAgent[] = [];
@@ -99,6 +117,11 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
     const id = String(raw['id'] ?? raw['agentId'] ?? raw['handle'] ?? '');
     if (!id || seen.has(id)) return;
     seen.add(id);
+    // If presence data is available, use it as the heartbeat gate:
+    // any agent not in the live set is treated as offline so it is never
+    // selected — avoids picking legacy/stale seats (e.g. antigravity-seed).
+    const heartbeatGated = liveAgentIds.size > 0 && !liveAgentIds.has(id);
+    const rawStatus = raw['status'] ? String(raw['status']) : 'online';
     agents.push({
       id,
       handle: String(raw['handle'] ?? raw['name'] ?? id),
@@ -107,7 +130,7 @@ async function fetchFleetAgents(teamId: string, clientAuth?: string | null): Pro
         : Array.isArray(raw['defaultSkills'])
           ? (raw['defaultSkills'] as string[])
           : [],
-      status: raw['status'] ? String(raw['status']) : 'online',
+      status: heartbeatGated ? 'offline' : rawStatus,
       currentTask: raw['currentTask'] ? String(raw['currentTask']) : null,
       mission: raw['mission'] ? String(raw['mission']) : undefined,
     } satisfies FleetAgent);
