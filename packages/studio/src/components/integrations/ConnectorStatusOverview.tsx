@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import clsx from 'clsx';
 import {
   Github as GithubIcon,
@@ -119,6 +120,11 @@ function StatusDot({ health }: { health: Health }) {
 // ─── Component ──────────────────────────────────────────────────────────────
 export function ConnectorStatusOverview() {
   const connections = useConnectorStore((s) => s.connections);
+  // Session truth: signed in with GitHub = connected, regardless of the
+  // per-browser connector store (every /api/github/* route resolves the
+  // session token first). Mirrors ServiceConnectorPanel.
+  const { data: session } = useSession();
+  const githubSessionConnected = session?.githubConnected === true;
   const [infra, setInfra] = useState<InfraResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
@@ -149,7 +155,11 @@ export function ConnectorStatusOverview() {
   const connectorHealth = (c: ConnectorMeta): Health => {
     if (!c.wired) return 'unwired';
     const conn = connections[c.id as ServiceId];
-    return conn ? conn.status : 'disconnected';
+    const storeHealth: Health = conn ? conn.status : 'disconnected';
+    if (c.id === 'github' && githubSessionConnected && storeHealth !== 'connected') {
+      return 'connected';
+    }
+    return storeHealth;
   };
 
   const connectedCount = CONNECTORS.filter((c) => connectorHealth(c) === 'connected').length;

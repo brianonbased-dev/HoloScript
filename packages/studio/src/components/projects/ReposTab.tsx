@@ -43,6 +43,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { PatchReviewPanel } from '@/components/daemon/PatchReviewPanel';
+import { useGitHubRepos } from '@/hooks/useGitHubRepos';
 import {
   ResearchLanePrompt,
   ResearchLaneArtifacts,
@@ -447,6 +448,18 @@ export function ReposTab() {
   const [importName, setImportName] = useState('');
   const [importing, setImporting] = useState(false);
 
+  // Bulk import (founder 2026-06-11: "everything is setup to configure one
+  // project at a time when we have many") — multi-select from the signed-in
+  // user's GitHub repos, imported sequentially to avoid clone storms.
+  const githubRepos = useGitHubRepos();
+  const [selectedRepoUrls, setSelectedRepoUrls] = useState<Set<string>>(new Set());
+  const [bulkProgress, setBulkProgress] = useState<{
+    done: number;
+    total: number;
+    current: string;
+  } | null>(null);
+  const [bulkErrors, setBulkErrors] = useState<string[]>([]);
+
   const [gitStatus, setGitStatus] = useState<GitStatusResponse | null>(null);
   const [branches, setBranches] = useState<GitBranchesResponse | null>(null);
   const [tree, setTree] = useState<GitTreeResponse | null>(null);
@@ -481,6 +494,15 @@ export function ReposTab() {
     () => repoRefFromUrl(activeWorkspace?.repoUrl ?? activeWorkspace?.sourceUrl ?? null),
     [activeWorkspace?.repoUrl, activeWorkspace?.sourceUrl]
   );
+  const importedRepoKeys = useMemo(() => {
+    const normalize = (url: string) => url.toLowerCase().replace(/\.git$/, '');
+    return new Set(
+      workspaces
+        .map((workspace) => workspace.repoUrl ?? workspace.sourceUrl ?? '')
+        .filter(Boolean)
+        .map(normalize)
+    );
+  }, [workspaces]);
   const activeAbsorbProject = useMemo(() => {
     if (!activeWorkspace) return null;
     return activeWorkspace.metadata;
@@ -664,38 +686,48 @@ export function ReposTab() {
     return () => window.clearInterval(timer);
   }, [refreshJobs, workspaceJobs]);
 
+  async function importOneRepo(
+    url: string,
+    branch?: string,
+    name?: string
+  ): Promise<WorkspaceSummary> {
+    const created = await fetchJson<WorkspaceImportResponse>('/api/workspace/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        repoUrl: url,
+        approvedRepos: [url],
+        branch: branch || undefined,
+        name: name || undefined,
+      }),
+    });
+    const workspace: WorkspaceSummary = {
+      id: created.id,
+      name: created.name,
+      repoUrl: created.repoUrl ?? url,
+      sourceUrl: created.repoUrl ?? url,
+      branch: (created.branch ?? branch ?? '') || null,
+      localPath: created.localPath,
+      status: created.status ?? 'ready',
+      currentCommit: created.currentCommit ?? null,
+      fileCount: created.fileCount ?? null,
+      updatedAt: created.createdAt ?? new Date().toISOString(),
+      metadata: {},
+    };
+    setWorkspaces((current) => [workspace, ...current.filter((item) => item.id !== workspace.id)]);
+    return workspace;
+  }
+
   async function handleImport() {
     if (!repoUrl.trim()) return;
     setImporting(true);
     setWorkspaceError(null);
     try {
-      const created = await fetchJson<WorkspaceImportResponse>('/api/workspace/import', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          repoUrl: repoUrl.trim(),
-          approvedRepos: [repoUrl.trim()],
-          branch: importBranch.trim() || undefined,
-          name: importName.trim() || undefined,
-        }),
-      });
-      const workspace: WorkspaceSummary = {
-        id: created.id,
-        name: created.name,
-        repoUrl: created.repoUrl ?? repoUrl.trim(),
-        sourceUrl: created.repoUrl ?? repoUrl.trim(),
-        branch: (created.branch ?? importBranch.trim()) || null,
-        localPath: created.localPath,
-        status: created.status ?? 'ready',
-        currentCommit: created.currentCommit ?? null,
-        fileCount: created.fileCount ?? null,
-        updatedAt: created.createdAt ?? new Date().toISOString(),
-        metadata: {},
-      };
-      setWorkspaces((current) => [
-        workspace,
-        ...current.filter((item) => item.id !== workspace.id),
-      ]);
+      const workspace = await importOneRepo(
+        repoUrl.trim(),
+        importBranch.trim() || undefined,
+        importName.trim() || undefined
+      );
       setActiveWorkspaceId(workspace.id);
       setRepoUrl('');
       setImportBranch('');
@@ -705,6 +737,45 @@ export function ReposTab() {
     } finally {
       setImporting(false);
     }
+  }
+
+  function toggleRepoSelection(url: string) {
+    setSelectedRepoUrls((current) => {
+      const next = new Set(current);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  }
+
+  async function handleBulkImport() {
+    const urls = Array.from(selectedRepoUrls);
+    if (urls.length === 0 || bulkProgress) return;
+    setWorkspaceError(null);
+    setBulkErrors([]);
+    const errors: string[] = [];
+    let firstImported: string | null = null;
+    // Sequential on purpose: each import clones + kicks off absorb server-side;
+    // parallel clones of N repos would stampede the workspace host.
+    for (let i = 0; i < urls.length; i += 1) {
+      const url = urls[i];
+      setBulkProgress({ done: i, total: urls.length, current: url });
+      try {
+        const workspace = await importOneRepo(url);
+        firstImported = firstImported ?? workspace.id;
+        setSelectedRepoUrls((current) => {
+          const next = new Set(current);
+          next.delete(url);
+          return next;
+        });
+      } catch (err) {
+        errors.push(`${url}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    setBulkProgress(null);
+    setBulkErrors(errors);
+    if (firstImported) setActiveWorkspaceId((current) => current ?? firstImported);
+    await loadWorkspaces();
   }
 
   async function runWorkspaceOperation(label: string, operation: () => Promise<void>) {
@@ -950,6 +1021,117 @@ export function ReposTab() {
                 </button>
               </div>
               {workspaceError && <p className="mt-2 text-xs text-rose-300">{workspaceError}</p>}
+            </section>
+
+            {/* Bulk import from the signed-in user's GitHub repos */}
+            <section className="border-b border-slate-800 p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                  <ListTree className="h-4 w-4 text-blue-300" />
+                  Your GitHub Repos
+                </div>
+                {selectedRepoUrls.size > 0 && (
+                  <span className="text-xs text-blue-300">{selectedRepoUrls.size} selected</span>
+                )}
+              </div>
+              {!githubRepos.isConnected ? (
+                <p className="text-xs text-slate-500">
+                  Sign in with GitHub to pick repos from your account.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                    <input
+                      value={githubRepos.search}
+                      onChange={(event) => githubRepos.setSearch(event.target.value)}
+                      placeholder="Filter repos…"
+                      className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900 pl-9 pr-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
+                    />
+                  </div>
+                  <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/50 p-1">
+                    {githubRepos.isLoading ? (
+                      <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-500">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading repos…
+                      </div>
+                    ) : githubRepos.error ? (
+                      <p className="px-2 py-3 text-xs text-rose-300">{githubRepos.error}</p>
+                    ) : githubRepos.repos.length === 0 ? (
+                      <p className="px-2 py-3 text-xs text-slate-500">No repos found.</p>
+                    ) : (
+                      githubRepos.repos.map((repo) => {
+                        const normalizedUrl = repo.cloneUrl.toLowerCase().replace(/\.git$/, '');
+                        const alreadyImported = importedRepoKeys.has(normalizedUrl);
+                        const checked = selectedRepoUrls.has(repo.cloneUrl);
+                        return (
+                          <label
+                            key={repo.id}
+                            className={`flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition ${
+                              alreadyImported
+                                ? 'cursor-default opacity-50'
+                                : checked
+                                  ? 'bg-blue-500/15 text-blue-100'
+                                  : 'text-slate-300 hover:bg-slate-800/80'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={alreadyImported || bulkProgress !== null}
+                              onChange={() => toggleRepoSelection(repo.cloneUrl)}
+                              className="h-3.5 w-3.5 accent-blue-500"
+                            />
+                            <span className="min-w-0 flex-1 truncate font-medium">
+                              {repo.fullName}
+                            </span>
+                            {alreadyImported ? (
+                              <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                                imported
+                              </span>
+                            ) : (
+                              repo.language && (
+                                <span className="shrink-0 text-[10px] text-slate-500">
+                                  {repo.language}
+                                </span>
+                              )
+                            )}
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleBulkImport()}
+                    disabled={selectedRepoUrls.size === 0 || bulkProgress !== null}
+                    className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {bulkProgress ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Importing {bulkProgress.done + 1}/{bulkProgress.total}…
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="h-4 w-4" />
+                        Import selected ({selectedRepoUrls.size})
+                      </>
+                    )}
+                  </button>
+                  {bulkProgress && (
+                    <p className="truncate text-[10px] text-slate-500">{bulkProgress.current}</p>
+                  )}
+                  {bulkErrors.length > 0 && (
+                    <div className="space-y-0.5">
+                      {bulkErrors.map((message) => (
+                        <p key={message} className="text-[10px] text-rose-300">
+                          {message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </section>
 
             <section className="min-h-0 flex-1 overflow-y-auto p-3">

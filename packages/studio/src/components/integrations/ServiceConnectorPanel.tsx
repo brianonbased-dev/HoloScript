@@ -21,6 +21,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import clsx from 'clsx';
 import {
   X,
@@ -64,6 +65,15 @@ interface ServiceConfig {
   connectedAt?: string;
   configFields: ConfigField[];
   recentActivity: ActivityEntry[];
+  /**
+   * True when the connection comes from the signed-in session (GitHub OAuth
+   * sign-in) rather than the per-browser connector store. The session is the
+   * same token every /api/github/* route resolves first — a signed-in user IS
+   * connected, with zero connector setup (founder repro 2026-06-11: panel
+   * showed Disconnected while GitHub APIs worked fine).
+   */
+  viaSession?: boolean;
+  sessionUsername?: string | null;
 }
 
 interface ConfigField {
@@ -301,6 +311,21 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
         </div>
       </div>
 
+      {/* Session-based connection (GitHub OAuth sign-in) */}
+      {service.viaSession && service.status === 'connected' && (
+        <div className="rounded border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-400">
+          <div className="flex items-center gap-1.5 font-medium">
+            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+            Connected via GitHub sign-in
+            {service.sessionUsername ? ` as ${service.sessionUsername}` : ''}
+          </div>
+          <p className="mt-1 text-emerald-400/70">
+            Studio&apos;s GitHub features use your sign-in automatically — no token setup needed.
+            The fields below are an optional override (e.g. a PAT with different scopes).
+          </p>
+        </div>
+      )}
+
       {/* Connected-at timestamp */}
       {service.connectedAt && service.status === 'connected' && (
         <div className="flex items-center gap-1.5 rounded border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs text-emerald-400">
@@ -343,7 +368,17 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
 
       {/* Actions */}
       <div className="flex gap-2">
-        {service.status === 'disconnected' ? (
+        {service.viaSession ? (
+          /* Connected through the signed-in session: nothing to disconnect in
+             the connector store. Offer the optional PAT override only. */
+          <button
+            onClick={handleConnect}
+            disabled={isConnecting || !service.configFields.some((f) => f.value)}
+            className="flex flex-1 items-center justify-center gap-2 rounded border border-studio-border px-4 py-2 text-xs font-medium text-studio-text transition-colors hover:bg-studio-bg-muted disabled:opacity-50"
+          >
+            Save token override (optional)
+          </button>
+        ) : service.status === 'disconnected' ? (
           <>
             <button
               onClick={handleConnect}
@@ -448,6 +483,13 @@ export interface ServiceConnectorPanelProps {
 
 export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
   const [activeTab, setActiveTab] = useState<ServiceId>('github');
+
+  // Session truth: a user signed in with GitHub IS connected — every
+  // /api/github/* route resolves the session token first. The per-browser
+  // connector store only covers the manual PAT/device-flow path.
+  const { data: session } = useSession();
+  const githubSessionConnected = session?.githubConnected === true;
+  const githubUsername = session?.user?.githubUsername ?? null;
 
   // Pull data from store
   const connections = useConnectorStore((s) => s.connections);
@@ -583,12 +625,21 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
                       },
                     ];
 
+      // GitHub: the signed-in session counts as connected (session token is
+      // what /api/github/* actually uses). Store connection, when present,
+      // takes precedence so the PAT path keeps its existing UI.
+      const storeStatus = (connection?.status || 'disconnected') as ConnectionStatus;
+      const viaSession =
+        config.id === 'github' && githubSessionConnected && storeStatus !== 'connected';
+
       return {
         ...config,
-        status: (connection?.status || 'disconnected') as ConnectionStatus,
+        status: viaSession ? ('connected' as ConnectionStatus) : storeStatus,
         connectedAt: connection?.connectedAt,
         configFields,
         recentActivity: serviceActivities,
+        viaSession,
+        sessionUsername: config.id === 'github' ? githubUsername : null,
       };
     });
 
