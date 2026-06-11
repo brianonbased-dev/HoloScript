@@ -74,8 +74,12 @@ describe('/api/github/access route', () => {
 
   it('returns 401 when no token is available', async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
-    const savedToken = process.env.GITHUB_TOKEN;
+    const savedGithubToken = process.env.GITHUB_TOKEN;
+    const savedPat = process.env.PERSONAL_ACCESS_TOKEN;
+    const savedPatToken = process.env.PAT_TOKEN;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.PERSONAL_ACCESS_TOKEN;
+    delete process.env.PAT_TOKEN;
     const req = new NextRequest(
       'http://localhost/api/github/access?owner=brianonbased-dev&repo=HoloScript'
     );
@@ -83,7 +87,9 @@ describe('/api/github/access route', () => {
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toMatch(/Not authenticated/i);
-    if (savedToken !== undefined) process.env.GITHUB_TOKEN = savedToken;
+    if (savedGithubToken !== undefined) process.env.GITHUB_TOKEN = savedGithubToken;
+    if (savedPat !== undefined) process.env.PERSONAL_ACCESS_TOKEN = savedPat;
+    if (savedPatToken !== undefined) process.env.PAT_TOKEN = savedPatToken;
   });
 
   it('returns 400 when owner or repo params are missing', async () => {

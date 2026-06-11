@@ -85,14 +85,20 @@ describe('/api/github/repos route', () => {
 
   it('returns 401 when no token is available', async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
-    const savedToken = process.env.GITHUB_TOKEN;
+    const savedGithubToken = process.env.GITHUB_TOKEN;
+    const savedPat = process.env.PERSONAL_ACCESS_TOKEN;
+    const savedPatToken = process.env.PAT_TOKEN;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.PERSONAL_ACCESS_TOKEN;
+    delete process.env.PAT_TOKEN;
     const req = new NextRequest('http://localhost/api/github/repos');
     const res = await GET(req);
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toMatch(/Not authenticated/i);
-    if (savedToken !== undefined) process.env.GITHUB_TOKEN = savedToken;
+    if (savedGithubToken !== undefined) process.env.GITHUB_TOKEN = savedGithubToken;
+    if (savedPat !== undefined) process.env.PERSONAL_ACCESS_TOKEN = savedPat;
+    if (savedPatToken !== undefined) process.env.PAT_TOKEN = savedPatToken;
   });
 
   it('returns 502 when GitHub API returns a non-ok response', async () => {

@@ -20,6 +20,8 @@ describe('getGitHubToken', () => {
     process.env = { ...envSnapshot };
     process.env.AUTH_SECRET = 'test-auth-secret-for-github-token-helper';
     delete process.env.GITHUB_TOKEN;
+    delete process.env.PERSONAL_ACCESS_TOKEN;
+    delete process.env.PAT_TOKEN;
     delete process.env.STUDIO_ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
     delete process.env.ALLOW_SERVER_GITHUB_TOKEN_FALLBACK;
   });

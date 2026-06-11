@@ -118,14 +118,20 @@ describe('/api/github/pr route', () => {
 
   it('GET returns 401 when no token is available', async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
-    const savedToken = process.env.GITHUB_TOKEN;
+    const savedGithubToken = process.env.GITHUB_TOKEN;
+    const savedPat = process.env.PERSONAL_ACCESS_TOKEN;
+    const savedPatToken = process.env.PAT_TOKEN;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.PERSONAL_ACCESS_TOKEN;
+    delete process.env.PAT_TOKEN;
     const req = new NextRequest('http://localhost/api/github/pr?owner=a&repo=b');
     const res = await GET(req);
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toMatch(/Not authenticated/i);
-    if (savedToken !== undefined) process.env.GITHUB_TOKEN = savedToken;
+    if (savedGithubToken !== undefined) process.env.GITHUB_TOKEN = savedGithubToken;
+    if (savedPat !== undefined) process.env.PERSONAL_ACCESS_TOKEN = savedPat;
+    if (savedPatToken !== undefined) process.env.PAT_TOKEN = savedPatToken;
   });
 
   it('GET returns 400 when owner or repo is missing', async () => {
@@ -138,15 +144,21 @@ describe('/api/github/pr route', () => {
 
   it('POST returns 401 when no token is available', async () => {
     vi.mocked(getServerSession).mockResolvedValueOnce(null);
-    const savedToken = process.env.GITHUB_TOKEN;
+    const savedGithubToken = process.env.GITHUB_TOKEN;
+    const savedPat = process.env.PERSONAL_ACCESS_TOKEN;
+    const savedPatToken = process.env.PAT_TOKEN;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.PERSONAL_ACCESS_TOKEN;
+    delete process.env.PAT_TOKEN;
     const req = new NextRequest('http://localhost/api/github/pr', {
       method: 'POST',
       body: JSON.stringify({ owner: 'a', repo: 'b', title: 't', head: 'h', base: 'main' }),
     });
     const res = await POST(req);
     expect(res.status).toBe(401);
-    if (savedToken !== undefined) process.env.GITHUB_TOKEN = savedToken;
+    if (savedGithubToken !== undefined) process.env.GITHUB_TOKEN = savedGithubToken;
+    if (savedPat !== undefined) process.env.PERSONAL_ACCESS_TOKEN = savedPat;
+    if (savedPatToken !== undefined) process.env.PAT_TOKEN = savedPatToken;
   });
 
   it('POST returns 400 when required fields are missing', async () => {
