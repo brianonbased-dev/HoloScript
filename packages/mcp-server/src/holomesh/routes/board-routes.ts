@@ -1053,8 +1053,19 @@ export async function handleBoardRoutes(
           });
           return true;
         }
-        if (caller.id !== team.ownerId) {
-          const presence = getFreshPresence(teamId, caller.id);
+        // Fleet orchestrators (dispatch route, scheduler-tick) supply body.agentId to claim
+        // on behalf of the planned execution agent. Direct claims use caller.id (bearer identity).
+        const effectiveAgentId =
+          typeof body.agentId === 'string' && body.agentId.trim()
+            ? body.agentId.trim()
+            : caller.id;
+        const effectiveAgentName =
+          typeof body.agentName === 'string' && body.agentName.trim()
+            ? body.agentName.trim()
+            : caller.name;
+
+        if (effectiveAgentId !== team.ownerId) {
+          const presence = getFreshPresence(teamId, effectiveAgentId);
           if (!presence) {
             json(res, 403, {
               error: 'Fresh heartbeat required before claiming a board task',
@@ -1068,15 +1079,15 @@ export async function handleBoardRoutes(
 
         // Fleet auto-join (task_1779315733346_9e0g): usage (claim) ⇒ team membership.
         // Dynamic roster: whoever actually claims/dispatches/hardware-runs for the team is on the team.
-        const existingMember = team.members.find((m) => m.agentId === caller.id);
+        const existingMember = team.members.find((m) => m.agentId === effectiveAgentId);
         if (!existingMember) {
           const memberType =
             (caller.surface && caller.surface.includes('hardware')) || caller.ideType === 'hardware'
               ? 'hardware'
               : 'agent';
           team.members.push({
-            agentId: caller.id,
-            agentName: caller.name,
+            agentId: effectiveAgentId,
+            agentName: effectiveAgentName,
             role: 'member',
             joinedAt: new Date().toISOString(),
             surfaceTag: caller.surfaceTag || caller.surface,
@@ -1092,7 +1103,7 @@ export async function handleBoardRoutes(
               : 'agent';
         }
 
-        result = claimTask(team.taskBoard, taskId, caller.id, caller.name, claimedByTag);
+        result = claimTask(team.taskBoard, taskId, effectiveAgentId, effectiveAgentName, claimedByTag);
         if (result.success && result.task && mutationProvenance) {
           result.task.provenance = cloneBoardProvenance(mutationProvenance);
         }
