@@ -97,6 +97,7 @@ import type { StudioViewCommandId } from '@/lib/studio/viewRegistry';
 import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
 import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
+import { useSimState } from '@/components/simsci/useSimState';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -516,6 +517,30 @@ const PartPreviewCanvas = dynamic(
   { ssr: false }
 );
 
+const SimParamsPanel = dynamic(
+  () =>
+    import('@/components/simsci/SimParamsPanel').then((m) => ({
+      default: m.SimParamsPanel,
+    })),
+  { ssr: false }
+);
+
+const SimRunReportPanel = dynamic(
+  () =>
+    import('@/components/simsci/SimRunReportPanel').then((m) => ({
+      default: m.SimRunReportPanel,
+    })),
+  { ssr: false }
+);
+
+const SimPreviewCanvas = dynamic(
+  () =>
+    import('@/components/simsci/SimPreviewCanvas').then((m) => ({
+      default: m.SimPreviewCanvas,
+    })),
+  { ssr: false }
+);
+
 const AssetLibrary = dynamic(
   () => import('@/components/assets/AssetLibrary').then((m) => ({ default: m.AssetLibrary })),
   { ssr: false }
@@ -554,6 +579,7 @@ const MODE_META: Record<CreateMode, { label: string; icon: typeof Globe }> = {
   world: { label: 'World', icon: Globe },
   part: { label: 'Part', icon: Cpu },
   app: { label: 'App', icon: AppWindow },
+  sim: { label: 'Sim', icon: Atom },
 };
 
 function ModeBadge({ mode }: { mode: CreateMode }) {
@@ -974,6 +1000,16 @@ export default function CreatePage() {
   /** Latest mesh result shared between ParametricSlidersPanel and PrintabilityReportPanel. */
   const [partMeshResult, setPartMeshResult] = useState<MeshResult | null>(null);
 
+  // ── Sim mode panels (auto-open when mode=sim) ─────────────────────────────
+  const simParamsOpen = usePanelVisibilityStore((s) => s.simParamsOpen);
+  const setSimParamsOpen = usePanelVisibilityStore((s) => s.setSimParamsOpen);
+  const toggleSimParamsOpen = usePanelVisibilityStore((s) => s.toggleSimParamsOpen);
+  const simRunReportOpen = usePanelVisibilityStore((s) => s.simRunReportOpen);
+  const setSimRunReportOpen = usePanelVisibilityStore((s) => s.setSimRunReportOpen);
+  const toggleSimRunReportOpen = usePanelVisibilityStore((s) => s.toggleSimRunReportOpen);
+  /** Latest sim result — subscribed from useSimState for breadcrumb + SimPreviewCanvas overlay. */
+  const simResult = useSimState((s) => s.result);
+
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
   const _setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
@@ -1026,7 +1062,7 @@ export default function CreatePage() {
   useEffect(() => {
     // ── 1. mode param ──────────────────────────────────────────────────────
     const modeParam = searchParams.get('mode');
-    if (modeParam === 'world' || modeParam === 'part' || modeParam === 'app') {
+    if (modeParam === 'world' || modeParam === 'part' || modeParam === 'app' || modeParam === 'sim') {
       setCreateMode(modeParam);
     }
 
@@ -1055,12 +1091,17 @@ export default function CreatePage() {
 
     // ── 5. Part mode — auto-open parametric sliders + printability report. ──
     const resolvedMode =
-      modeParam === 'world' || modeParam === 'part' || modeParam === 'app'
+      modeParam === 'world' || modeParam === 'part' || modeParam === 'app' || modeParam === 'sim'
         ? modeParam
         : 'world';
     if (resolvedMode === 'part') {
       setParametricSlidersOpen(true);
       setprintabilityReportOpen(true);
+    }
+    // ── 5b. Sim mode — auto-open sim params + run report panels ──────────────
+    if (resolvedMode === 'sim') {
+      setSimParamsOpen(true);
+      setSimRunReportOpen(true);
     }
 
     // ── 5. URL scene restore (?scene= or ?src= parameters) ─────────────────
@@ -1487,6 +1528,29 @@ export default function CreatePage() {
           />
         ),
       },
+      // ── Sim mode panels ─────────────────────────────────────────────────
+      {
+        id: 'simParams',
+        open: simParamsOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Sim Params',
+        content: (
+          <SimParamsPanel
+            onClose={() => setSimParamsOpen(false)}
+          />
+        ),
+      },
+      {
+        id: 'simRunReport',
+        open: simRunReportOpen,
+        width: 288,
+        errorLabel: 'Sim Run Report',
+        content: (
+          <SimRunReportPanel
+            onClose={() => setSimRunReportOpen(false)}
+          />
+        ),
+      },
       {
         id: 'inspector',
         open: inspectorOpen,
@@ -1528,6 +1592,7 @@ export default function CreatePage() {
       environmentOpen, foundationDaoOpen, showGovernancePanel, showConformancePanel,
       agentMonitorOpen, inspectorOpen, pluginsOpen, sandboxedPluginsOpen,
       parametricSlidersOpen, printabilityReportOpen, partMeshResult,
+      simParamsOpen, simRunReportOpen,
       handleGeneratedSceneCode,
     ]
   );
@@ -1571,7 +1636,8 @@ export default function CreatePage() {
                 <span aria-hidden>›</span>
                 <span
                   className={`rounded px-1.5 py-0.5 ${
-                    createMode === 'part' && partMeshResult?.printability
+                    (createMode === 'part' && partMeshResult?.printability) ||
+                    (createMode === 'sim' && simResult !== null)
                       ? 'bg-white/[0.06] text-studio-text'
                       : ''
                   }`}
@@ -1622,6 +1688,15 @@ export default function CreatePage() {
                 <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#0a0a12]">
                   <div className="w-full h-full">
                     <PartPreviewCanvas meshResult={partMeshResult} />
+                  </div>
+                </div>
+              )}
+
+              {/* Sim-mode preview canvas — center viewport overlay when mode=sim */}
+              {createMode === 'sim' && (
+                <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#0a0a12]">
+                  <div className="w-full h-full">
+                    <SimPreviewCanvas result={simResult} />
                   </div>
                 </div>
               )}

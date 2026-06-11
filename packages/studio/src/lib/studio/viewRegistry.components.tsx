@@ -32,6 +32,8 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "sandboxedPlugins": dynamic(() => import("@/components/plugins/SandboxedPluginsPanel").then((m) => ({ default: pick(m as AnyModule, "SandboxedPluginsPanel") }))),
   "shaderEditor": dynamic(() => import("@/components/shader-editor/ShaderEditorPanel").then((m) => ({ default: pick(m as AnyModule, "ShaderEditorPanel") }))),
   "share": dynamic(() => import("@/components/share/SharePanel").then((m) => ({ default: pick(m as AnyModule, "SharePanel") }))),
+  "simParams": dynamic(() => import("@/components/simsci/SimParamsPanel").then((m) => ({ default: pick(m as AnyModule, "SimParamsPanel") }))),
+  "simRunReport": dynamic(() => import("@/components/simsci/SimRunReportPanel").then((m) => ({ default: pick(m as AnyModule, "SimRunReportPanel") }))),
   "snapshots": dynamic(() => import("@/components/gallery/SnapshotGallery").then((m) => ({ default: pick(m as AnyModule, "SnapshotGallery") }))),
   "templateGallery": dynamic(() => import("@/components/templates/TemplateGallery").then((m) => ({ default: pick(m as AnyModule, "TemplateGallery") }))),
   "timeline": dynamic(() => import("@/components/panels/TimelinePanel").then((m) => ({ default: pick(m as AnyModule, "TimelinePanel") }))),

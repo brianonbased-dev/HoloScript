@@ -1,0 +1,4 @@
+@view({ id: "simParams", title: "Sim Params", icon: "FlaskConical", category: "simulation", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 78 })
+composition "simParams" {
+  object "SimParamsPanel" @slot(component: "SimParamsPanel", import: "@/components/simsci/SimParamsPanel") {}
+}

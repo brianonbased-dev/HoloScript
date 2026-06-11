@@ -16,7 +16,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import { Send, Globe, Box, Code2, ArrowRight, Loader2 } from 'lucide-react';
+import { Send, Globe, Box, Code2, ArrowRight, Loader2, FlaskConical } from 'lucide-react';
 
 // ── Lazy-loaded heavy components ─────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ const ParametricPartDemo = dynamic(
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type CreationMode = 'world' | 'part' | 'app';
+type CreationMode = 'world' | 'part' | 'app' | 'sim';
 
 interface IntentChip {
   mode: CreationMode;
@@ -59,6 +59,12 @@ const INTENT_CHIPS: IntentChip[] = [
     label: 'App',
     icon: <Code2 className="h-4 w-4" />,
     placeholder: 'Describe an app, service, or digital twin...',
+  },
+  {
+    mode: 'sim',
+    label: 'Sim',
+    icon: <FlaskConical className="h-4 w-4" />,
+    placeholder: 'Describe a physics or chemistry simulation...',
   },
 ];
 

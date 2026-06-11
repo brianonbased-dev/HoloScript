@@ -1,0 +1,4 @@
+@view({ id: "simRunReport", title: "Sim Run Report", icon: "Beaker", category: "simulation", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 79 })
+composition "simRunReport" {
+  object "SimRunReportPanel" @slot(component: "SimRunReportPanel", import: "@/components/simsci/SimRunReportPanel") {}
+}

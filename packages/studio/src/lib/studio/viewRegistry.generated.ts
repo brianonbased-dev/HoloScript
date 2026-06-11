@@ -4,7 +4,7 @@
 import type { StudioViewDefinition } from './viewRegistry';
 
 /** Canonical view ids in curated order — the StudioViewId literal-union source. */
-export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport"] as const;
+export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport"] as const;
 
 /** View definitions derived from panel .holo compositions (dogfood), in curated order. */
 export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
@@ -1079,6 +1079,32 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
     "exclusiveWith": []
+  },
+  {
+    "id": "simParams",
+    "title": "Sim Params",
+    "icon": "FlaskConical",
+    "category": "simulation",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.simParams.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "simRunReport",
+    "title": "Sim Run Report",
+    "icon": "Beaker",
+    "category": "simulation",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.simRunReport.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
   }
 ];
 
@@ -1171,6 +1197,14 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   "share": {
     "component": "SharePanel",
     "import": "@/components/share/SharePanel"
+  },
+  "simParams": {
+    "component": "SimParamsPanel",
+    "import": "@/components/simsci/SimParamsPanel"
+  },
+  "simRunReport": {
+    "component": "SimRunReportPanel",
+    "import": "@/components/simsci/SimRunReportPanel"
   },
   "snapshots": {
     "component": "SnapshotGallery",

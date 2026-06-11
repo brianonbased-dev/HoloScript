@@ -9,7 +9,7 @@
  *   - Any panel that wants to react to mode (e.g. SceneGeneratorPanel can filter suggestions)
  *
  * Query param contract:
- *   /create?mode=world|part|app  — sets createMode (defaults to 'world')
+ *   /create?mode=world|part|app|sim  — sets createMode (defaults to 'world')
  *   /create?intake=repo|scan     — accepted and ignored gracefully (no crash)
  *
  * Landing prompt contract:
@@ -19,7 +19,7 @@
 
 import { create } from 'zustand';
 
-export type CreateMode = 'world' | 'part' | 'app';
+export type CreateMode = 'world' | 'part' | 'app' | 'sim';
 
 export interface CreateModeState {
   /** Active creation mode — set from ?mode= on mount. */
