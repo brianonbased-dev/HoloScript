@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveHoloShellApiUrl } from '@/lib/holoshell/apiUrl';
 
 /**
  * /api/holoshell/machine-state — machine-state snapshot for the Operations panel.
@@ -34,9 +35,8 @@ const SEAT_ID =
   process.env.HOLOMESH_AGENT_SURFACE ||
   'local-win-x64';
 
-const HOLOSHELL_API_URL = process.env.HOLOSHELL_API_URL;
-
 export async function GET() {
+  const HOLOSHELL_API_URL = resolveHoloShellApiUrl();
   // Stage 1: prod MCP server cache
   if (MCP_KEY) {
     try {

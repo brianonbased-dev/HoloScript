@@ -5,15 +5,29 @@ export const maxDuration = 300;
  *
  * Catch-all route that proxies admin requests from the Studio frontend
  * to the standalone absorb-service /api/admin/* endpoints.
- * Auth headers are forwarded so absorb-service can verify admin status.
+ *
+ * Auth: an explicit client Authorization header wins; otherwise the
+ * signed-in user's GitHub OAuth token is attached SERVER-SIDE (the session
+ * is the truth — founder repro 2026-06-11: the Admin tab 401'd for an
+ * OAuth-signed-in founder because the client-side absorbFetch only knew
+ * the per-browser connector-store token, which is empty on the OAuth
+ * path). absorb-service verifies admin status from the GitHub identity.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
+import { getGitHubToken } from '../../github/_shared';
 
 import { ENDPOINTS } from '@holoscript/config';
 import { corsHeaders } from '../../_lib/cors';
 const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
+
+async function resolveAdminAuthHeaders(req: NextRequest): Promise<Record<string, string>> {
+  const forwarded = forwardAuthHeaders(req);
+  if (forwarded['Authorization']) return forwarded;
+  const sessionToken = await getGitHubToken(req);
+  return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {};
+}
 
 function buildUpstreamUrl(req: NextRequest): string {
   // Extract the path segments after /api/admin/
@@ -28,7 +42,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(buildUpstreamUrl(req), {
       method: 'GET',
-      headers: { Accept: 'application/json', ...forwardAuthHeaders(req) },
+      headers: { Accept: 'application/json', ...(await resolveAdminAuthHeaders(req)) },
     });
 
     if (!res.ok) {
@@ -55,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(buildUpstreamUrl(req), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...forwardAuthHeaders(req) },
+      headers: { 'Content-Type': 'application/json', ...(await resolveAdminAuthHeaders(req)) },
       body: bodyText,
     });
 
