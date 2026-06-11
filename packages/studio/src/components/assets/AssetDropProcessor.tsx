@@ -275,7 +275,7 @@ export function AssetDropOverlay() {
   };
 
   return (
-    <div className="absolute bottom-16 left-1/2 z-40 -translate-x-1/2 flex items-center gap-2 rounded-xl border border-studio-border bg-studio-panel/95 px-4 py-3 shadow-xl backdrop-blur">
+    <div className="absolute bottom-20 left-1/2 z-30 -translate-x-1/2 flex items-center gap-2 rounded-xl border border-studio-border bg-studio-panel/95 px-4 py-3 shadow-xl backdrop-blur">
       {icons[status.state as keyof typeof icons]}
       <span className="text-sm text-studio-text">
         {messages[status.state as keyof typeof messages]}

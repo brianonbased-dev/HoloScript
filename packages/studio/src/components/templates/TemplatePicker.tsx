@@ -88,12 +88,13 @@ export function TemplatePicker({ onClose }: TemplatePickerProps) {
 
   const [templatesList, setTemplatesList] = useState<SceneTemplate[]>([]);
   const [searchFn, setSearchFn] = useState<((q: string) => SceneTemplate[]) | null>(null);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
 
   useEffect(() => {
     import('@/lib/sceneTemplates').then((m) => {
       setTemplatesList(m.SCENE_TEMPLATES);
       setSearchFn(() => m.searchTemplates);
-    });
+    }).finally(() => setLoadingTemplates(false));
   }, []);
 
   const setCode = useSceneStore((s) => s.setCode);
@@ -183,7 +184,11 @@ export function TemplatePicker({ onClose }: TemplatePickerProps) {
 
         {/* Grid */}
         <div className="flex-1 overflow-y-auto p-5">
-          {results.length === 0 ? (
+          {loadingTemplates ? (
+            <div className="flex h-full items-center justify-center text-sm text-studio-muted animate-pulse">
+              Loading templates…
+            </div>
+          ) : results.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-studio-muted">
               No templates match {query ? `"${query}"` : `category "${activeCategory}"`}
             </div>

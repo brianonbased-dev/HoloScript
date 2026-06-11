@@ -20,8 +20,8 @@ interface SceneTemplate {
   description: string;
   thumbnail: string;
   code: string;
-  objectCount: number;
-  complexity: 'simple' | 'medium' | 'complex';
+  objectCount?: number;
+  complexity?: 'simple' | 'medium' | 'complex';
 }
 
 const COMPLEXITY_COLOR: Record<string, string> = {
@@ -63,16 +63,28 @@ export function TemplateGallery({ onClose }: TemplateGalleryProps) {
   const setCode = useSceneStore((s) => s.setCode);
 
   useEffect(() => {
+    // Use the bundled static template catalogue (same source as TemplatePicker).
+    // /api/templates does not exist — the fetch always 404'd and the gallery
+    // rendered empty. Dynamic import keeps this lazy-loaded and code-split.
     setLoading(true);
-    fetch(
-      `/api/templates?category=${encodeURIComponent(activeCategory)}&q=${encodeURIComponent(q)}`
-    )
-      .then((r) => r.json())
-      .then((d: { templates: SceneTemplate[]; categories: string[] }) => {
-        setTemplates(d.templates);
-        if (d.categories?.length) setCategories(d.categories);
+    import('@/lib/sceneTemplates')
+      .then((m) => {
+        let list = m.SCENE_TEMPLATES as SceneTemplate[];
+        if (activeCategory) list = list.filter((t) => t.category === activeCategory);
+        if (q.trim()) {
+          const lower = q.toLowerCase();
+          list = list.filter(
+            (t) =>
+              t.name.toLowerCase().includes(lower) ||
+              t.description.toLowerCase().includes(lower) ||
+              t.tags.some((tag) => tag.toLowerCase().includes(lower))
+          );
+        }
+        setTemplates(list);
+        const cats = Array.from(new Set(m.SCENE_TEMPLATES.map((t) => t.category))).sort();
+        setCategories(cats);
       })
-      .catch((err) => logger.warn('Swallowed error caught:', err))
+      .catch((err) => logger.warn('[TemplateGallery] load error:', err))
       .finally(() => setLoading(false));
   }, [activeCategory, q]);
 
@@ -168,17 +180,21 @@ export function TemplateGallery({ onClose }: TemplateGalleryProps) {
                     {t.description}
                   </p>
                 </div>
-                <span
-                  className={`shrink-0 text-[9px] font-medium ${COMPLEXITY_COLOR[t.complexity] ?? 'text-studio-muted'}`}
-                >
-                  {t.complexity}
-                </span>
+                {t.complexity && (
+                  <span
+                    className={`shrink-0 text-[9px] font-medium ${COMPLEXITY_COLOR[t.complexity] ?? 'text-studio-muted'}`}
+                  >
+                    {t.complexity}
+                  </span>
+                )}
               </div>
               <div className="mt-1.5 flex items-center gap-2">
-                <div className="flex items-center gap-1 text-[9px] text-studio-muted">
-                  <Layers className="h-2.5 w-2.5" />
-                  {t.objectCount} objects
-                </div>
+                {t.objectCount != null && (
+                  <div className="flex items-center gap-1 text-[9px] text-studio-muted">
+                    <Layers className="h-2.5 w-2.5" />
+                    {t.objectCount} objects
+                  </div>
+                )}
                 <div className="ml-auto flex gap-1 flex-wrap">
                   {t.tags.slice(0, 3).map((tag) => (
                     <span

@@ -69,7 +69,7 @@ export function LivePreviewBar({
       {status === 'disconnected' || status === 'error' ? (
         <button
           onClick={connect}
-          className="flex items-center gap-1 text-studio-muted hover:text-studio-accent transition"
+          className="flex min-h-[24px] items-center gap-1 rounded px-1 text-studio-muted transition hover:text-studio-accent"
           title="Connect to live preview"
         >
           <Play className="h-3 w-3" /> Connect
@@ -77,7 +77,7 @@ export function LivePreviewBar({
       ) : (
         <button
           onClick={disconnect}
-          className="flex items-center gap-1 text-studio-muted hover:text-red-400 transition"
+          className="flex min-h-[24px] items-center gap-1 rounded px-1 text-studio-muted transition hover:text-red-400"
           title="Disconnect"
         >
           <Pause className="h-3 w-3" /> Disconnect
@@ -90,35 +90,35 @@ export function LivePreviewBar({
           <button
             onClick={onPlay}
             title="Run scene"
-            className={`rounded px-1 py-0.5 transition ${
+            className={`flex min-h-[24px] min-w-[24px] items-center justify-center rounded p-1 transition ${
               executionState === 'running'
                 ? 'text-green-400'
                 : 'text-studio-muted hover:text-studio-text'
             }`}
           >
-            <Play className="h-3 w-3" />
+            <Play className="h-4 w-4" />
           </button>
           <button
             onClick={onPause}
             title="Pause scene"
-            className={`rounded px-1 py-0.5 transition ${
+            className={`flex min-h-[24px] min-w-[24px] items-center justify-center rounded p-1 transition ${
               executionState === 'paused'
                 ? 'text-yellow-400'
                 : 'text-studio-muted hover:text-studio-text'
             }`}
           >
-            <Pause className="h-3 w-3" />
+            <Pause className="h-4 w-4" />
           </button>
           <button
             onClick={onStop}
             title="Stop scene"
-            className={`rounded px-1 py-0.5 transition ${
+            className={`flex min-h-[24px] min-w-[24px] items-center justify-center rounded p-1 transition ${
               executionState === 'stopped'
                 ? 'text-red-400'
                 : 'text-studio-muted hover:text-studio-text'
             }`}
           >
-            <Square className="h-3 w-3" />
+            <Square className="h-4 w-4" />
           </button>
         </div>
 

@@ -356,29 +356,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       {/* Social Aspect Ratio Overlays & Recording UI */}
       <ContentCameraUI />
 
-      {/* Gizmo mode toolbar — top-left overlay */}
-      <div
-        className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur"
-        role="toolbar"
-        aria-label="Transform Tools"
-      >
-        {(['translate', 'rotate', 'scale'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => setGizmoMode(m)}
-            className={`rounded-lg px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition ${
-              gizmoMode === m
-                ? 'bg-indigo-500/20 text-indigo-300'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-            title={m.charAt(0).toUpperCase() + m.slice(1)}
-            aria-label={`${m} mode`}
-            aria-pressed={gizmoMode === m}
-          >
-            {m === 'translate' ? 'Move' : m === 'rotate' ? 'Rotate' : 'Scale'}
-          </button>
-        ))}
-      </div>
+      {/* Gizmo mode toolbar removed — ViewportToolbar in page.tsx is the
+           canonical top-left overlay (undo/redo + gizmo + art modes, z-20).
+           Rendering a second gizmo toolbar here caused a top-left stack collision. */}
 
       {/* Sketch toolbar — right side overlay when in sketch mode */}
       {artMode === 'sketch' && (
@@ -390,8 +370,9 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       {/* Builder Hotbar — Minecraft-style bottom toolbar */}
       <BuilderHotbar />
 
-      {/* Hologram drop zone — drag images/GIFs/videos to create 3D hologram compositions */}
-      <div className="absolute bottom-4 right-4 z-10 w-72">
+      {/* Hologram drop zone — drag images/GIFs/videos to create 3D hologram compositions.
+           Positioned above the minimap (bottom-4 right-4 z-30) to avoid overlap. */}
+      <div className="absolute bottom-36 right-4 z-10 w-72">
         <HologramDropZone
           onCompositionGenerated={(code) => {
             setCode(code);
@@ -408,9 +389,13 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         </div>
       )}
 
-      {/* Enter VR / AR buttons — top of viewer so they're visible above the scene */}
+      {/* Enter VR / AR buttons — top-right, below:
+           • AIPromptOverlay "Generate Scene" pill at top-3 right-3 (z-20)
+           • ContentCameraUI record cluster at top-12 right-3 (z-20)
+           Therefore positioned at top-20 to stack cleanly in the right column.
+           Labels hidden below md to keep within narrow viewport columns. */}
       {(xrSupport.vr || xrSupport.ar) && (
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        <div className="absolute top-20 right-3 z-10 flex items-center gap-2">
           {xrSupport.ar && (
             <button
               onClick={() => {
@@ -421,10 +406,10 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
                   )
                 );
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs font-medium text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-accent"
+              className="flex min-h-[28px] items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs font-medium text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-accent"
             >
               <svg
-                className="h-3.5 w-3.5"
+                className="h-3.5 w-3.5 shrink-0"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -432,7 +417,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
               >
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
-              Enter AR
+              <span className="hidden md:inline">Enter AR</span>
             </button>
           )}
           {xrSupport.vr && (
@@ -445,12 +430,12 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
                   )
                 );
               }}
-              className="flex items-center gap-1.5 rounded-lg border border-studio-accent/60 bg-studio-accent/10 px-3 py-1.5 text-xs font-medium text-studio-accent backdrop-blur transition hover:bg-studio-accent hover:text-white"
+              className="flex min-h-[28px] items-center gap-1.5 rounded-lg border border-studio-accent/60 bg-studio-accent/10 px-3 py-1.5 text-xs font-medium text-studio-accent backdrop-blur transition hover:bg-studio-accent hover:text-white"
             >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20.5 7h-17A1.5 1.5 0 002 8.5v7A1.5 1.5 0 003.5 17h3.17a2 2 0 001.66-.9L10.17 14h3.66l1.84 2.1a2 2 0 001.66.9H20.5A1.5 1.5 0 0022 15.5v-7A1.5 1.5 0 0020.5 7zM8.5 13a2 2 0 110-4 2 2 0 010 4zm7 0a2 2 0 110-4 2 2 0 010 4z" />
               </svg>
-              Enter VR
+              <span className="hidden md:inline">Enter VR</span>
             </button>
           )}
         </div>
@@ -460,7 +445,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
       {xrError && (
         <div
           role="alert"
-          className="absolute right-3 top-14 z-10 flex max-w-xs items-start gap-2 rounded-lg border border-red-500/40 bg-red-950/90 px-3 py-2 text-xs text-red-300 backdrop-blur"
+          className="absolute right-3 top-28 z-10 flex max-w-xs items-start gap-2 rounded-lg border border-red-500/40 bg-red-950/90 px-3 py-2 text-xs text-red-300 backdrop-blur"
         >
           <span>{xrError}</span>
           <button

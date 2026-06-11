@@ -37,10 +37,12 @@ export function EditorToolbar({
 }: EditorToolbarProps) {
   const [platform, setPlatform] = useState('quest3');
 
+  // flex-wrap: at narrow widths the safety/platform group and the
+  // voice/deploy group stack instead of overlapping each other.
   return (
-    <div className="flex items-center justify-between border-t border-studio-border bg-studio-bg/80 backdrop-blur-sm px-3 py-1.5 min-h-[36px]">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-studio-border bg-studio-bg/80 backdrop-blur-sm px-3 py-1.5 min-h-[36px]">
       {/* Left: Safety status */}
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-3">
         <SafetyStatusBar code={code} debounceMs={500} onOpenPanel={onOpenSafetyPanel} />
         {/* Compact platform badge */}
         <select

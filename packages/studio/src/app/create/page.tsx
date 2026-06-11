@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { SceneGraphPanel } from '@/components/scene/SceneGraphPanel';
 // SplatCaptureWizard is a modal — lazy-loaded to reduce initial bundle
 import {
   useSceneStore,
@@ -132,34 +131,6 @@ const ShaderEditorPanel = dynamic(
   }
 );
 
-const NodeGraphEditor = dynamic(
-  () =>
-    import('@/components/node-graph/NodeGraphEditor').then((m) => ({ default: m.NodeGraphEditor })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
-        Loading node graph…
-      </div>
-    ),
-  }
-);
-
-const CodebaseInspectorPanel = dynamic(
-  () =>
-    import('@/components/visualization/CodebaseInspectorPanel').then((m) => ({
-      default: m.CodebaseInspectorPanel,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-full items-center justify-center text-xs text-studio-muted animate-pulse">
-        Indexing workspace…
-      </div>
-    ),
-  }
-);
-
 const TemplatePicker = dynamic(
   () =>
     import('@/components/templates/TemplatePicker').then((m) => ({ default: m.TemplatePicker })),
@@ -216,6 +187,22 @@ const SplatCaptureWizard = dynamic(
   () =>
     import('@/components/assets/SplatCaptureWizard').then((m) => ({
       default: m.SplatCaptureWizard,
+    })),
+  { ssr: false }
+);
+
+const ImportRepoWizard = dynamic(
+  () =>
+    import('@/components/wizard/ImportRepoWizard').then((m) => ({
+      default: m.ImportRepoWizard,
+    })),
+  { ssr: false }
+);
+
+const SimulationPanel = dynamic(
+  () =>
+    import('@/components/simulation/SimulationPanel').then((m) => ({
+      default: m.SimulationPanel,
     })),
   { ssr: false }
 );
@@ -541,11 +528,6 @@ const SimPreviewCanvas = dynamic(
   { ssr: false }
 );
 
-const AssetLibrary = dynamic(
-  () => import('@/components/assets/AssetLibrary').then((m) => ({ default: m.AssetLibrary })),
-  { ssr: false }
-);
-
 const HistoryPanel = dynamic(
   () => import('@/components/HistoryPanel').then((m) => ({ default: m.HistoryPanel })),
   { ssr: false }
@@ -627,8 +609,10 @@ function ViewportToolbar({
     return () => window.removeEventListener('keydown', handler);
   }, [setGizmoMode, onToggleProfiler]);
 
+  // max-w reserves the top-right zone for the Generate Scene pill (right-3) —
+  // the toolbar scrolls internally instead of growing underneath it.
   return (
-    <div className="absolute left-2 sm:left-3 top-2 sm:top-3 flex items-center gap-0.5 sm:gap-1 rounded-lg border border-studio-border/60 bg-studio-panel/90 p-0.5 sm:p-1 backdrop-blur">
+    <div className="absolute left-2 sm:left-3 top-2 sm:top-3 z-20 flex max-w-[calc(100%-11rem)] items-center gap-0.5 overflow-x-auto rounded-lg border border-studio-border/60 bg-studio-panel/90 p-0.5 backdrop-blur sm:gap-1 sm:p-1">
       {/* Undo / Redo */}
       <button
         onClick={() => undo()}
@@ -733,16 +717,16 @@ function AIPromptOverlay() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-text"
+        className="absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-3 py-1.5 text-xs text-studio-muted backdrop-blur transition hover:border-studio-accent hover:text-studio-text"
       >
         <Sparkles className="h-3.5 w-3.5 text-studio-accent" />
-        Generate Scene
+        <span className="hidden sm:inline">Generate Scene</span>
       </button>
     );
   }
 
   return (
-    <div className="absolute right-3 top-3 w-72 rounded-xl border border-studio-border bg-studio-panel/95 p-3 shadow-xl backdrop-blur animate-fade-in">
+    <div className="absolute right-3 top-3 z-20 w-72 rounded-xl border border-studio-border bg-studio-panel/95 p-3 shadow-xl backdrop-blur animate-fade-in">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs font-semibold text-studio-text">Generate with AI</span>
         <button
@@ -783,24 +767,6 @@ function AIPromptOverlay() {
   );
 }
 
-// ─── Part-mode placeholder rail section (wired by phase-2 part-panels agent) ──
-// Mounts only when createMode === 'part'. Phase-2 agent replaces this stub with
-// real part tools by reading createMode from useCreateModeStore().
-function PartToolsRailSection() {
-  return (
-    <div className="border-b border-studio-border px-3 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-studio-muted mb-1.5">
-        Part tools
-      </div>
-      <div className="text-[11px] text-studio-muted/60">
-        {/* Phase-2: mount part-specific tool panels here. */}
-        {/* Read createMode from useCreateModeStore() to confirm mode === 'part'. */}
-        Part authoring tools coming soon.
-      </div>
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CreatePage() {
@@ -832,6 +798,9 @@ export default function CreatePage() {
   const createMode = useCreateModeStore((s) => s.createMode);
   const setCreateMode = useCreateModeStore((s) => s.setCreateMode);
   const setLandingPrompt = useCreateModeStore((s) => s.setLandingPrompt);
+
+  // ── Repo import wizard — opened by ?intake=repo ──────────────────────────
+  const [repoWizardOpen, setRepoWizardOpen] = useState(false);
 
   // ── Bottom code editor — collapsible (vibe chassis) ──────────────────────
   const [codeEditorCollapsed, setCodeEditorCollapsed] = useState(false);
@@ -877,31 +846,25 @@ export default function CreatePage() {
   const toggleCritiqueOpen = usePanelVisibilityStore((s) => s.toggleCritiqueOpen);
   const assetPackOpen = usePanelVisibilityStore((s) => s.assetPackOpen);
   const setAssetPackOpen = usePanelVisibilityStore((s) => s.setAssetPackOpen);
-  const toggleAssetPackOpen = usePanelVisibilityStore((s) => s.toggleAssetPackOpen);
   const versionsOpen = usePanelVisibilityStore((s) => s.versionsOpen);
   const setVersionsOpen = usePanelVisibilityStore((s) => s.setVersionsOpen);
-  const toggleVersionsOpen = usePanelVisibilityStore((s) => s.toggleVersionsOpen);
   const replOpen = usePanelVisibilityStore((s) => s.replOpen);
   const setReplOpen = usePanelVisibilityStore((s) => s.setReplOpen);
   const _toggleReplOpen = usePanelVisibilityStore((s) => s.toggleReplOpen);
   const registryOpen = usePanelVisibilityStore((s) => s.registryOpen);
   const setRegistryOpen = usePanelVisibilityStore((s) => s.setRegistryOpen);
-  const toggleRegistryOpen = usePanelVisibilityStore((s) => s.toggleRegistryOpen);
   const remoteOpen = usePanelVisibilityStore((s) => s.remoteOpen);
   const setRemoteOpen = usePanelVisibilityStore((s) => s.setRemoteOpen);
-  const toggleRemoteOpen = usePanelVisibilityStore((s) => s.toggleRemoteOpen);
   const exportOpen = usePanelVisibilityStore((s) => s.exportOpen);
   const setExportOpen = usePanelVisibilityStore((s) => s.setExportOpen);
   const _toggleExportOpen = usePanelVisibilityStore((s) => s.toggleExportOpen);
   const generatorOpen = usePanelVisibilityStore((s) => s.generatorOpen);
   const setGeneratorOpen = usePanelVisibilityStore((s) => s.setGeneratorOpen);
-  const toggleGeneratorOpen = usePanelVisibilityStore((s) => s.toggleGeneratorOpen);
   const multiplayerOpen = usePanelVisibilityStore((s) => s.multiplayerOpen);
   const setMultiplayerOpen = usePanelVisibilityStore((s) => s.setMultiplayerOpen);
   const _toggleMultiplayerOpen = usePanelVisibilityStore((s) => s.toggleMultiplayerOpen);
   const debuggerOpen = usePanelVisibilityStore((s) => s.debuggerOpen);
   const setDebuggerOpen = usePanelVisibilityStore((s) => s.setDebuggerOpen);
-  const toggleDebuggerOpen = usePanelVisibilityStore((s) => s.toggleDebuggerOpen);
   const snapshotsOpen = usePanelVisibilityStore((s) => s.snapshotsOpen);
   const setSnapshotsOpen = usePanelVisibilityStore((s) => s.setSnapshotsOpen);
   const _toggleSnapshotsOpen = usePanelVisibilityStore((s) => s.toggleSnapshotsOpen);
@@ -981,6 +944,10 @@ export default function CreatePage() {
   const setSplatWizardOpen = usePanelVisibilityStore((s) => s.setSplatWizardOpen);
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
+  const toggleAgentMonitorOpen = usePanelVisibilityStore((s) => s.toggleAgentMonitorOpen);
+  const simulationOpen = usePanelVisibilityStore((s) => s.simulationOpen);
+  const setSimulationOpen = usePanelVisibilityStore((s) => s.setSimulationOpen);
+  const toggleSimulationOpen = usePanelVisibilityStore((s) => s.toggleSimulationOpen);
 
   // ── Part mode panels (auto-open when mode=part) ──────────────────────────
   const parametricSlidersOpen = usePanelVisibilityStore((s) => s.parametricSlidersOpen);
@@ -1066,10 +1033,15 @@ export default function CreatePage() {
       setCreateMode(modeParam);
     }
 
-    // ── 2. intake param — accepted, ignored gracefully ─────────────────────
-    // ?intake=repo|scan arrives from the landing page; no crash, no action here.
-    // Reserved for a future phase that wires repo/scan onboarding flows.
-    const _intake = searchParams.get('intake');
+    // ── 2. intake param — open the appropriate onboarding wizard ─────────────
+    // ?intake=repo  → open the GitHub repo import wizard
+    // ?intake=scan  → open the Gaussian Splat capture wizard (splatWizardOpen)
+    const intake = searchParams.get('intake');
+    if (intake === 'repo') {
+      setRepoWizardOpen(true);
+    } else if (intake === 'scan') {
+      setSplatWizardOpen(true);
+    }
 
     // ── 3. sessionStorage landing prompt ──────────────────────────────────
     // Written by the home page / onboarding flow before redirecting to /create.
@@ -1580,6 +1552,14 @@ export default function CreatePage() {
           />
         ),
       },
+      // ── FEA Simulation panel ────────────────────────────────────────────
+      {
+        id: 'simulation',
+        open: simulationOpen,
+        width: 'resizable' as const,
+        errorLabel: 'FEA Simulation',
+        content: <SimulationPanel onClose={() => setSimulationOpen(false)} />,
+      },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -1592,7 +1572,7 @@ export default function CreatePage() {
       environmentOpen, foundationDaoOpen, showGovernancePanel, showConformancePanel,
       agentMonitorOpen, inspectorOpen, pluginsOpen, sandboxedPluginsOpen,
       parametricSlidersOpen, printabilityReportOpen, partMeshResult,
-      simParamsOpen, simRunReportOpen,
+      simParamsOpen, simRunReportOpen, simulationOpen,
       handleGeneratedSceneCode,
     ]
   );
@@ -1632,22 +1612,54 @@ export default function CreatePage() {
             <div className="flex h-9 shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel/80 px-3 backdrop-blur">
               <ModeBadge mode={createMode} />
               <div className="flex items-center gap-1 text-[10px] text-studio-muted">
-                <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-studio-text">Build</span>
+                <button
+                  aria-label="Build — open code editor"
+                  className="rounded bg-white/[0.06] px-1.5 py-0.5 text-studio-text transition hover:bg-white/[0.10]"
+                  onClick={() => {
+                    setCodeEditorCollapsed(false);
+                    // Focus the editor after it becomes visible
+                    setTimeout(() => {
+                      const el = document.querySelector<HTMLElement>('.cm-editor .cm-content');
+                      el?.focus();
+                    }, 80);
+                  }}
+                >
+                  Build
+                </button>
                 <span aria-hidden>›</span>
-                <span
-                  className={`rounded px-1.5 py-0.5 ${
+                <button
+                  aria-label="Verify — open report panel"
+                  className={`rounded px-1.5 py-0.5 transition ${
                     (createMode === 'part' && partMeshResult?.printability) ||
                     (createMode === 'sim' && simResult !== null)
-                      ? 'bg-white/[0.06] text-studio-text'
-                      : ''
+                      ? 'bg-white/[0.06] text-studio-text hover:bg-white/[0.10]'
+                      : 'opacity-50 cursor-default'
                   }`}
+                  onClick={() => {
+                    if (createMode === 'part') {
+                      setprintabilityReportOpen(true);
+                    } else if (createMode === 'sim') {
+                      setSimRunReportOpen(true);
+                    } else if (createMode === 'world' || createMode === 'app') {
+                      setShowConformancePanel(true);
+                    }
+                  }}
                 >
                   Verify
-                </span>
+                </button>
                 <span aria-hidden>›</span>
-                <span>Ship</span>
+                <button
+                  aria-label="Ship — open export panel"
+                  className="rounded px-1.5 py-0.5 transition hover:bg-white/[0.06] hover:text-studio-text"
+                  onClick={() => runViewCommand('studio.view.export.toggle')}
+                >
+                  Ship
+                </button>
               </div>
               <div className="flex-1" />
+              <div title="Collaboration status" className="flex items-center">
+                <CollabStatusDot />
+              </div>
               <button
                 onClick={() => setTemplatePickerOpen(true)}
                 title="Browse scene templates"
@@ -1702,7 +1714,7 @@ export default function CreatePage() {
               )}
 
               {errors.length > 0 && (
-                <div className="absolute left-3 bottom-3 max-w-sm rounded-lg border border-studio-error/30 bg-studio-panel/90 p-3 backdrop-blur">
+                <div className="absolute left-3 bottom-14 max-w-sm rounded-lg border border-studio-error/30 bg-studio-panel/90 p-3 backdrop-blur z-20">
                   <div className="mb-1 flex items-center gap-2 text-xs font-medium text-studio-error">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     Parse Error
@@ -1791,8 +1803,14 @@ export default function CreatePage() {
           {/* OVERLAY: Hotkey Map (full screen modal) */}
           <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />
 
-          {/* FLOATING BRITTNEY DOCK — chat lives over the viewport, never as a column */}
-          <div className="pointer-events-none absolute bottom-3 left-3 z-30">
+          {/* FLOATING BRITTNEY DOCK — chat lives over the viewport, never as a
+              column. bottom-[calc(...)] keeps the pill INSIDE the 3D viewport
+              area (above the code drawer + editor footer), so it never piles
+              onto the Quest/Deploy/voice controls in the editor zone. */}
+          <div
+            className="pointer-events-none absolute left-3 z-30"
+            style={{ bottom: `calc(${effectiveBottomH}px + 3.75rem)` }}
+          >
             {chatOpen ? (
               <div className="pointer-events-auto flex h-[min(540px,calc(100dvh-180px))] w-[380px] flex-col overflow-hidden rounded-xl border border-studio-border bg-studio-panel/95 shadow-2xl backdrop-blur">
                 <div className="flex shrink-0 items-center justify-between border-b border-studio-border px-3 py-1.5">
@@ -1814,16 +1832,21 @@ export default function CreatePage() {
             ) : (
               <button
                 onClick={() => setChatOpen(true)}
-                className="pointer-events-auto flex items-center gap-2 rounded-full border border-studio-border bg-studio-panel/95 px-4 py-2 text-xs text-studio-text shadow-2xl backdrop-blur transition hover:bg-studio-surface"
+                aria-label="Ask Brittney"
+                className="pointer-events-auto flex min-h-[32px] items-center gap-2 rounded-full border border-studio-border bg-studio-panel/95 px-4 py-2 text-xs text-studio-text shadow-2xl backdrop-blur transition hover:bg-studio-surface"
               >
-                <MessageCircle className="h-4 w-4 text-studio-accent" /> Ask Brittney
+                <MessageCircle className="h-4 w-4 shrink-0 text-studio-accent" />
+                <span className="hidden sm:inline">Ask Brittney</span>
               </button>
             )}
           </div>
 
-          {/* PANELS POPOVER — every former icon-rail toggle, one button away */}
+          {/* PANELS POPOVER — every former icon-rail toggle, one button away.
+               Anchored below the slim top bar (top-12 clears the h-9 bar + border).
+               Does NOT overlap the top-right AIPromptOverlay (which lives inside
+               the viewport, below the bar). */}
           {panelsMenuOpen && (
-          <div className="absolute right-3 top-2 z-40 grid max-h-[70vh] grid-cols-6 content-start gap-2 overflow-y-auto rounded-xl border border-studio-border bg-[#1e1e2e]/95 p-3 shadow-2xl backdrop-blur">
+          <div className="absolute right-3 top-12 z-40 grid max-h-[calc(100dvh-6rem)] grid-cols-6 content-start gap-2 overflow-y-auto rounded-xl border border-studio-border bg-[#1e1e2e]/95 p-3 shadow-2xl backdrop-blur">
             {/* Brittney dock toggle */}
             <button
               onClick={toggleChatOpen}
@@ -1872,10 +1895,6 @@ export default function CreatePage() {
             >
               <Share2 className="h-4 w-4" />
             </button>
-            {/* Collab status */}
-            <div className="mt-1 flex justify-center">
-              <CollabStatusDot />
-            </div>
             {/* AI Critique toggle */}
             <button
               onClick={() => runViewCommand('studio.view.critique.toggle')}
@@ -2166,62 +2185,6 @@ export default function CreatePage() {
             >
               <Landmark className="h-4 w-4" />
             </button>
-            {/* Asset Pack Store toggle */}
-            <button
-              onClick={toggleAssetPackOpen}
-              title={assetPackOpen ? 'Close Store' : 'Asset Pack Store'}
-              className={`transition ${assetPackOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Store className="h-4 w-4" />
-            </button>
-            {/* Performance Profiler toggle */}
-            <button
-              onClick={toggleProfilerOpen}
-              title={profilerOpen ? 'Close Profiler' : 'Performance Profiler'}
-              className={`transition ${profilerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Gauge className="h-4 w-4" />
-            </button>
-            {/* Version History toggle */}
-            <button
-              onClick={toggleVersionsOpen}
-              title={versionsOpen ? 'Close History' : 'Version History'}
-              className={`transition ${versionsOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <History className="h-4 w-4" />
-            </button>
-            {/* Trait Registry toggle */}
-            <button
-              onClick={toggleRegistryOpen}
-              title={registryOpen ? 'Close Registry' : 'Trait Registry'}
-              className={`transition ${registryOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Library className="h-4 w-4" />
-            </button>
-            {/* Remote Preview toggle */}
-            <button
-              onClick={toggleRemoteOpen}
-              title={remoteOpen ? 'Close Remote' : 'Remote Preview'}
-              className={`transition ${remoteOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Smartphone className="h-4 w-4" />
-            </button>
-            {/* Debugger toggle (duplicate icon for rail discoverability) */}
-            <button
-              onClick={toggleDebuggerOpen}
-              title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
-              className={`transition ${debuggerOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Bug className="h-4 w-4" />
-            </button>
-            {/* Scene Generator toggle */}
-            <button
-              onClick={toggleGeneratorOpen}
-              title={generatorOpen ? 'Close Generator' : 'AI Scene Generator'}
-              className={`transition ${generatorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
-            >
-              <Wand2 className="h-4 w-4" />
-            </button>
             {/* Node Inspector toggle */}
             <button
               onClick={toggleInspectorOpen}
@@ -2262,6 +2225,33 @@ export default function CreatePage() {
             >
               <Gauge className="h-4 w-4" />
             </button>
+            {/* Agent Monitor toggle */}
+            <button
+              onClick={toggleAgentMonitorOpen}
+              title={agentMonitorOpen ? 'Close Agent Monitor' : 'Agent Monitor'}
+              aria-label={agentMonitorOpen ? 'Close Agent Monitor' : 'Open Agent Monitor'}
+              className={`transition ${agentMonitorOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+            >
+              <Users2 className="h-4 w-4" />
+            </button>
+            {/* Gaussian Splat Capture Wizard toggle */}
+            <button
+              onClick={() => setSplatWizardOpen(true)}
+              title="Open Gaussian Splat Capture Wizard"
+              aria-label="Open Gaussian Splat Capture Wizard"
+              className="text-studio-muted transition hover:text-studio-text"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            {/* FEA Simulation panel toggle */}
+            <button
+              onClick={toggleSimulationOpen}
+              title={simulationOpen ? 'Close FEA Simulation' : 'FEA Simulation'}
+              aria-label={simulationOpen ? 'Close FEA Simulation' : 'Open FEA Simulation'}
+              className={`transition ${simulationOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+            >
+              <Cpu className="h-4 w-4" />
+            </button>
             {/* Hotkey Map toggle */}
             <button
               onClick={toggleHotkeyOpen}
@@ -2280,6 +2270,9 @@ export default function CreatePage() {
 
       {/* Gaussian Splat capture wizard */}
       <SplatCaptureWizard open={splatWizardOpen} onClose={() => setSplatWizardOpen(false)} />
+
+      {/* GitHub Repo import wizard — opened by ?intake=repo */}
+      {repoWizardOpen && <ImportRepoWizard onClose={() => setRepoWizardOpen(false)} />}
 
       {/* Template Picker modal */}
       {templatePickerOpen && <TemplatePicker onClose={() => setTemplatePickerOpen(false)} />}

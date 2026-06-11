@@ -118,7 +118,7 @@ export function ContentCameraUI() {
   };
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between">
+    <div className="pointer-events-none absolute inset-0 z-20">
       {/* Aspect Ratio Overlays (Letterboxing / Pillarboxing) */}
       {aspect === '9:16' && (
         <div className="absolute inset-0 flex">
@@ -134,58 +134,73 @@ export function ContentCameraUI() {
           <div className="bg-black/80 flex-1 transition-all duration-300 backdrop-blur-sm" />
         </div>
       )}
-      {/* Top Toolbar — extra top padding so it clears the LIVE PREVIEW / panel-toggle chrome above */}
-      <div className="pointer-events-auto flex items-center justify-between px-4 pb-4 pt-14">
-        <div className="flex gap-2 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur shadow-lg">
-          <button
-            onClick={() => setAspect('none')}
-            className={`rounded-lg p-2 text-xs font-medium transition ${aspect === 'none' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'}`}
-            title="Free Aspect"
-          >
-            <Square className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setAspect('16:9')}
-            className={`rounded-lg p-2 text-xs font-medium transition ${aspect === '16:9' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'}`}
-            title="Horizontal (16:9)"
-          >
-            <MonitorPlay className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setAspect('9:16')}
-            className={`rounded-lg p-2 text-xs font-medium transition ${aspect === '9:16' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'}`}
-            title="Social / Vertical (9:16)"
-          >
-            <MonitorPlay className="w-4 h-4 rotate-90" />
-          </button>
-        </div>
-
-        <div className="flex gap-3 items-center">
-          {isRecording && (
-            <div className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-red-400 backdrop-blur animate-pulse font-mono text-sm tracking-widest shadow-lg">
-              <div className="w-2 h-2 rounded-full bg-red-500" />
-              {formatTime(recordingTime)}
-            </div>
-          )}
-
+      {/* Camera controls cluster — absolutely positioned in the top-right corner slot
+           (below the AIPromptOverlay pill at top-3, above AR/VR buttons at top-12).
+           z-20 keeps it below panels popover (z-40) and Brittney dock (z-30).
+           At ≥lg: shows aspect-ratio picker + labeled REC button.
+           Below lg: icon-only REC button (28px) so it fits at any viewport width.
+           Recording timer always visible when recording is active. */}
+      <div className="pointer-events-auto absolute top-12 right-3 flex flex-col items-end gap-1.5">
+        {/* Aspect ratio + full-label record row — lg+ only */}
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="flex gap-1 rounded-xl border border-gray-700/60 bg-gray-900/80 p-1 backdrop-blur shadow-lg">
+            <button
+              onClick={() => setAspect('none')}
+              className={`rounded-lg p-1.5 transition ${aspect === 'none' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'}`}
+              title="Free Aspect"
+            >
+              <Square className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setAspect('16:9')}
+              className={`rounded-lg p-1.5 transition ${aspect === '16:9' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'}`}
+              title="Horizontal (16:9)"
+            >
+              <MonitorPlay className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setAspect('9:16')}
+              className={`rounded-lg p-1.5 transition ${aspect === '9:16' ? 'bg-indigo-500/20 text-indigo-300' : 'text-gray-400 hover:text-white'}`}
+              title="Social / Vertical (9:16)"
+            >
+              <MonitorPlay className="w-3.5 h-3.5 rotate-90" />
+            </button>
+          </div>
           <button
             onClick={toggleRecording}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold tracking-wide transition shadow-lg ${
+            title={isRecording ? 'Stop recording' : 'Record viewport'}
+            className={`flex min-h-[28px] items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold tracking-wide transition shadow-lg ${
               isRecording
                 ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/50'
-                : 'bg-studio-accent text-white hover:bg-indigo-500 border border-studio-accent/50'
+                : 'bg-studio-accent/90 text-white hover:bg-indigo-500 border border-studio-accent/50 backdrop-blur'
             }`}
           >
-            {isRecording ? (
-              <StopSquare className="w-4 h-4 fill-current" />
-            ) : (
-              <Camera className="w-4 h-4" />
-            )}
-            {isRecording ? 'STOP' : 'RECORD'}
+            {isRecording ? <StopSquare className="w-3.5 h-3.5 fill-current" /> : <Camera className="w-3.5 h-3.5" />}
+            {isRecording ? 'STOP' : 'REC'}
           </button>
         </div>
+
+        {/* Icon-only record button — below lg (fits any narrow viewport column) */}
+        <button
+          onClick={toggleRecording}
+          title={isRecording ? 'Stop recording' : 'Record viewport'}
+          className={`lg:hidden flex min-h-[28px] min-w-[28px] items-center justify-center rounded-full p-1.5 transition shadow-lg ${
+            isRecording
+              ? 'bg-red-500/20 text-red-500 border border-red-500/50'
+              : 'bg-studio-panel/90 text-studio-muted border border-studio-border/60 backdrop-blur'
+          }`}
+        >
+          {isRecording ? <StopSquare className="w-3.5 h-3.5 fill-current" /> : <Camera className="w-3.5 h-3.5" />}
+        </button>
+
+        {/* Recording timer — always shows when recording regardless of breakpoint */}
+        {isRecording && (
+          <div className="flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-red-400 backdrop-blur animate-pulse font-mono text-xs tracking-widest shadow-lg">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            {formatTime(recordingTime)}
+          </div>
+        )}
       </div>
-      <div /> {/* Spacer for flex-col spacing */}
     </div>
   );
 }

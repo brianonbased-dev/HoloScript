@@ -42,7 +42,7 @@ export function MinimapOverlay({ active, onClose }: MinimapOverlayProps) {
 
   return (
     <div
-      className="absolute bottom-4 left-4 z-30 overflow-hidden rounded-xl border border-studio-border/60 bg-black/70 backdrop-blur-sm"
+      className="absolute bottom-4 right-4 z-30 overflow-hidden rounded-xl border border-studio-border/60 bg-black/70 backdrop-blur-sm"
       style={{ width: MINIMAP_W + 2, userSelect: 'none' }}
     >
       {/* Mini header */}

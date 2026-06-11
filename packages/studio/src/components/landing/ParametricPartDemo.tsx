@@ -172,18 +172,18 @@ export function ParametricPartDemo() {
 
   return (
     <div className="w-full rounded-2xl border border-white/10 bg-[#0d0f1a] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
-        <div className="flex items-center gap-2">
-          <span className="text-white/50 text-xs font-mono">mounting-plate.holo</span>
+      {/* Header — wraps at narrow widths; title truncates before actions are pushed off */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5 border-b border-white/5 bg-white/[0.02]">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-white/50 text-xs font-mono">mounting-plate.holo</span>
           {loading && (
-            <RefreshCw className="h-3 w-3 text-white/30 animate-spin" />
+            <RefreshCw className="h-3 w-3 shrink-0 text-white/30 animate-spin" />
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           {rec && (
             <span
-              className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
+              className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border font-medium ${
                 rec === 'printable'
                   ? 'bg-green-500/10 text-green-400 border-green-500/20'
                   : rec === 'needs-supports'
@@ -201,7 +201,7 @@ export function ParametricPartDemo() {
           <button
             onClick={() => void handleDownloadSTL()}
             disabled={!meshResult || loading}
-            className="flex items-center gap-1.5 text-[11px] text-white/40 hover:text-white/70 transition-colors disabled:opacity-30"
+            className="flex min-h-[28px] items-center gap-1.5 text-[11px] text-white/40 hover:text-white/70 transition-colors disabled:opacity-30"
             title="Download STL"
           >
             <Download className="h-3.5 w-3.5" />
@@ -302,8 +302,8 @@ function SliderRow({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="flex-1 h-1 accent-indigo-500"
       />
-      <span className="text-white/50 text-xs w-16 text-right shrink-0 font-mono">
-        {format(value)} {unit}
+      <span className="text-white/50 text-xs w-20 text-right shrink-0 font-mono whitespace-nowrap">
+        {format(value)}&thinsp;{unit}
       </span>
     </div>
   );
