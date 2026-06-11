@@ -22,10 +22,16 @@ import { ENDPOINTS } from '@holoscript/config';
 import { corsHeaders } from '../../_lib/cors';
 
 const ORCH = process.env.MCP_ORCHESTRATOR_URL || ENDPOINTS.MCP_ORCHESTRATOR;
-// Agent-role orchestrator key (config/auth.ts: HOLOSCRIPT_API_KEY is the
-// orchestrator/knowledge-sync key). Falls back to the HoloMesh key name in
-// case a deploy only set that one.
-const KEY = process.env.HOLOSCRIPT_API_KEY || process.env.HOLOMESH_API_KEY || '';
+// Agent-role orchestrator key. The orchestrator and mcp.holoscript.net accept
+// DIFFERENT keys (verified 2026-06-11: the deployed HOLOSCRIPT_API_KEY passes
+// mcp.holoscript.net but 401s the orchestrator), so a dedicated
+// MCP_ORCHESTRATOR_API_KEY wins when set; the old fallbacks remain for
+// single-key deployments.
+const KEY =
+  process.env.MCP_ORCHESTRATOR_API_KEY ||
+  process.env.HOLOSCRIPT_API_KEY ||
+  process.env.HOLOMESH_API_KEY ||
+  '';
 
 // Read-only telemetry endpoints safe to surface in the Operations console.
 const ALLOWED_PATHS = new Set<string>([
