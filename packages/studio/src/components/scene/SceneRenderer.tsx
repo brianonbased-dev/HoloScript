@@ -17,7 +17,6 @@ import { R3FNodeRenderer } from './R3FNodeRenderer';
 import { GizmoController } from './GizmoController';
 import { PlacementPlane } from './PlacementSystem';
 import { useEditorStore, useSceneGraphStore, useSceneStore } from '@/lib/stores';
-import { HologramDropZone } from '@/components/hologram/HologramDropZone';
 import type { SceneNode } from '@/lib/stores';
 import { ASSET_DRAG_TYPE } from '@/components/assets/AssetLibrary';
 import type { Asset } from '@/components/assets/useAssetStore';
@@ -29,7 +28,6 @@ import { usePhysicsStore } from '@/lib/physicsStore';
 import { SketchCanvas } from '@/components/sketch/SketchCanvas';
 import { SketchToolbar } from '@/components/sketch/SketchToolbar';
 import { useSceneGraphSync } from '@/hooks/useSceneGraphSync';
-import { BuilderHotbar } from '@/components/builder/BuilderHotbar';
 import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/ContentCameraUI';
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
 import { useLOD } from '@/hooks/useLOD';
@@ -152,7 +150,6 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
   const setGizmoMode = useEditorStore((s) => s.setGizmoMode);
   const artMode = useEditorStore((s) => s.artMode);
   const showPerfOverlay = useEditorStore((s) => s.showPerfOverlay);
-  const setCode = useSceneStore((s) => s.setCode);
 
   // Sync R3F tree → scene graph store (flattens nested native asset children)
   useSceneGraphSync(r3fTree);
@@ -367,18 +364,13 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
         </div>
       )}
 
-      {/* Builder Hotbar — Minecraft-style bottom toolbar */}
-      <BuilderHotbar />
-
-      {/* Hologram drop zone — drag images/GIFs/videos to create 3D hologram compositions.
-           Positioned above the minimap (bottom-4 right-4 z-30) to avoid overlap. */}
-      <div className="absolute bottom-36 right-4 z-10 w-72">
-        <HologramDropZone
-          onCompositionGenerated={(code) => {
-            setCode(code);
-          }}
-        />
-      </div>
+      {/* Viewer-first (founder directive 2026-06-10): the viewport stays EMPTY
+           by default. The BuilderHotbar (shape placement) and the persistent
+           HologramDropZone card were removed from the canvas — shape placement
+           lives in the assets/trait panels, and file drops are handled
+           page-wide by HoloFileDropHandler (the isDragOver overlay below only
+           appears WHILE dragging). Hologram-from-media remains available via
+           the hologram panels. */}
 
       {isDragOver && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded border-2 border-dashed border-studio-accent bg-studio-accent/10 backdrop-blur-[1px]">

@@ -1611,6 +1611,17 @@ export default function CreatePage() {
             {/* Slim top bar — the ONLY persistent chrome row of the surface */}
             <div className="flex h-9 shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel/80 px-3 backdrop-blur">
               <ModeBadge mode={createMode} />
+              <button
+                onClick={toggleChatOpen}
+                aria-label={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
+                title={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition hover:bg-white/[0.06] ${
+                  chatOpen ? 'bg-white/[0.06] text-studio-text' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <MessageCircle className="h-3.5 w-3.5 text-studio-accent" />
+                <span className="hidden md:inline">Brittney</span>
+              </button>
               <div className="flex items-center gap-1 text-[10px] text-studio-muted">
                 <button
                   aria-label="Build — open code editor"
@@ -1829,16 +1840,7 @@ export default function CreatePage() {
                   <BrittneyChatPanel />
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={() => setChatOpen(true)}
-                aria-label="Ask Brittney"
-                className="pointer-events-auto flex min-h-[32px] items-center gap-2 rounded-full border border-studio-border bg-studio-panel/95 px-4 py-2 text-xs text-studio-text shadow-2xl backdrop-blur transition hover:bg-studio-surface"
-              >
-                <MessageCircle className="h-4 w-4 shrink-0 text-studio-accent" />
-                <span className="hidden sm:inline">Ask Brittney</span>
-              </button>
-            )}
+            ) : null /* collapsed state lives in the top bar (viewer stays empty) */}
           </div>
 
           {/* PANELS POPOVER — every former icon-rail toggle, one button away.
