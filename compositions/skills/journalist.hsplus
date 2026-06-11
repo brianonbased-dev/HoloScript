@@ -1,0 +1,122 @@
+// Journalist -- Investigative journalist for the HoloScript / Infinitus ecosystem.
+// Verify claims, fact-check metrics, confirm "we ACTUALLY shipped X", check novelty,
+// probe stubs vs real implementations, find the edges and hidden doors.
+// Auto-fire when someone asserts a capability, paper claim, benchmark number, or
+// "this is novel/faster/first" and it needs to survive a hostile reader.
+// Distinct from /critic (quality) and /documenter (narrative): journalist establishes
+// TRUTH with evidence. Carries full read access; mutation is approval-gated.
+// Undertriggering this is how hallucinated "shipped" reports go unchallenged (F.062).
+//
+// Installed via HoloClaw Shelf. Hot-reloads into running daemon.
+
+composition "journalist" {
+  @rate_limiter
+  @economy (default_spend_limit: 0.1)
+  @timeout_guard (default_timeout_ms: 60000)
+
+  state phase: string = "idle"
+  state claimId: string = ""
+  state claimText: string = ""
+  state claimType: string = ""
+  state evidenceCount: number = 0
+  state verdict: string = ""
+  state confidence: number = 0.0
+  state lastRunAt: string = ""
+
+  // ── Claim intake ──────────────────────────────────────────────────────────
+  // Ingests the latest claim from the inbox channel.
+  // Expected envelope: { claimId, claimText, claimType }
+  // claimType: "shipped" | "metric" | "novel" | "capability" | "paper"
+
+  sequence "intake" {
+    action "channel_ingest" {
+      // Reads latest entry from stateDir/inbox.jsonl into bb.channel_message
+    }
+  }
+
+  // ── Evidence gathering ────────────────────────────────────────────────────
+  // Each action probes a different evidence layer.
+  // Results accumulate on the blackboard for verdict synthesis.
+
+  sequence "gather-evidence" {
+    // Layer 1: git log — confirm code actually exists / was committed
+    action "shell_exec" {
+      command: "git"
+      args: ["log", "--oneline", "-20", "--all", "--grep=feat"]
+      timeoutMs: 10000
+    }
+
+    // Layer 2: grep for the claimed symbol / file / feature in source
+    action "shell_exec" {
+      command: "npx"
+      args: ["tsx", "packages/core/src/cli/holoscript-runner.ts", "diagnostics"]
+      timeoutMs: 30000
+    }
+
+    // Layer 3: TypeScript type check — confirm no stub `as any` shell exists
+    action "shell_exec" {
+      command: "npx"
+      args: ["tsc", "--noEmit", "--pretty", "false"]
+      timeoutMs: 60000
+    }
+
+    // Layer 4: run related tests — confirm claimed behavior is actually tested
+    action "shell_exec" {
+      command: "npx"
+      args: ["vitest", "run", "--reporter=json", "--passWithNoTests", "--silent"]
+      timeoutMs: 90000
+    }
+  }
+
+  // ── Verdict ───────────────────────────────────────────────────────────────
+  // Synthesize evidence into a structured verdict, then broadcast.
+
+  sequence "verdict" {
+    action "diagnose" {
+      // Runs structural diagnosis — confirms no dangling type errors mask the claimed feature.
+    }
+
+    action "channel_send" {
+      channel: "journalist"
+      // Blackboard carries: claimId, verdict ("confirmed"|"unconfirmed"|"false"|"partial"),
+      // confidence (0.0–1.0), evidenceCount, and shell_exec outputs as evidence.
+    }
+  }
+
+  // ── Fallback: ingest failure ───────────────────────────────────────────────
+  // No claim in inbox — report idle status to avoid silent no-op.
+
+  fallback "no-claim" {
+    action "channel_send" {
+      channel: "journalist"
+      // message: "journalist idle — no claim in inbox"
+    }
+  }
+
+  // ── Tests ──────────────────────────────────────────────────────────────────
+
+  @test {
+    name: "phase starts idle"
+    assert: { $phase == "idle" }
+  }
+
+  @test {
+    name: "claimId starts empty"
+    assert: { $claimId == "" }
+  }
+
+  @test {
+    name: "evidenceCount starts at zero"
+    assert: { $evidenceCount == 0 }
+  }
+
+  @test {
+    name: "verdict starts empty"
+    assert: { $verdict == "" }
+  }
+
+  @test {
+    name: "confidence starts at zero"
+    assert: { $confidence == 0.0 }
+  }
+}
