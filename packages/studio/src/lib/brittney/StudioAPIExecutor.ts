@@ -310,6 +310,81 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
       return params;
     },
   },
+
+  // Workspace agency (build, write code, move files — founder 2026-06-10).
+  // `workspacePath` is injected server-side by the Brittney route from the
+  // request body's active workspace — never trusted from model args.
+  workspace_list_files: {
+    method: 'POST',
+    path: '/api/workspace/files',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      op: 'list',
+      path: args['path'] ?? '',
+    }),
+  },
+  workspace_read_file: {
+    method: 'POST',
+    path: '/api/workspace/files',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      op: 'read',
+      path: args['path'],
+    }),
+  },
+  workspace_write_file: {
+    method: 'POST',
+    path: '/api/workspace/files',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      op: 'write',
+      path: args['path'],
+      content: args['content'],
+    }),
+  },
+  workspace_move_file: {
+    method: 'POST',
+    path: '/api/workspace/files',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      op: 'move',
+      path: args['from'],
+      toPath: args['to'],
+    }),
+  },
+  workspace_delete_file: {
+    method: 'POST',
+    path: '/api/workspace/files',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      op: 'delete',
+      path: args['path'],
+    }),
+  },
+  workspace_build: {
+    method: 'POST',
+    path: '/api/workspace/build',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      ...(args['script'] ? { script: args['script'] } : {}),
+    }),
+  },
+  workspace_git_status: {
+    method: 'GET',
+    path: '/api/git/status',
+    buildQuery: (args) => ({ workspacePath: String(args['workspacePath'] ?? '') }),
+  },
+  workspace_git_commit: {
+    method: 'POST',
+    path: '/api/git/commit',
+    buildBody: (args) => ({
+      workspacePath: args['workspacePath'],
+      message: args['message'],
+      ...(Array.isArray(args['files']) && args['files'].length > 0
+        ? { files: args['files'] }
+        : {}),
+    }),
+  },
 };
 
 // ─── Path resolution ────────────────────────────────────────────────────────

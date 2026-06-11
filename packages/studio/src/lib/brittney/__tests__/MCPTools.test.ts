@@ -8,8 +8,10 @@ import { executeMCPTool, isMCPTool } from '../MCPToolExecutor';
 // ─── Tool definition tests ─────────────────────────────────────────────────
 
 describe('MCP_TOOLS', () => {
-  it('exports exactly 15 tool definitions', () => {
-    expect(MCP_TOOLS).toHaveLength(15);
+  // No exact-count pin (Zero Hardcoded Stats): the registry grows with the
+  // ecosystem and a pinned length went stale on every addition (15 → 25+).
+  it('exports a non-empty tool registry', () => {
+    expect(MCP_TOOLS.length).toBeGreaterThan(0);
   });
 
   it('every tool has type "function" and a valid function shape', () => {

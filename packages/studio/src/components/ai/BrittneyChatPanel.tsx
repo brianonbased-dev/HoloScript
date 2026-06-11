@@ -820,7 +820,10 @@ export function BrittneyChatPanel() {
         undefined,
         serverPersistIntent
           ? { conversationId: activeConversationId, scope: assistantHistoryScope }
-          : undefined
+          : undefined,
+        // Workspace agency: hands the server the active clone so Brittney's
+        // workspace_* file/build tools operate on the real project.
+        activeWorkspace?.localPath ?? undefined
       )) {
         if (event.type === 'conversation') {
           // Defensive narrow (write-through qq65): only a string id counts as

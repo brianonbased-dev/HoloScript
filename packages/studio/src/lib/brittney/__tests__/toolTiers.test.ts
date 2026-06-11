@@ -3,20 +3,27 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { CORE_TOOL_NAMES, tierForProvider, filterToolsToTier } from '../toolTiers';
 import { BRITTNEY_TOOLS } from '../BrittneyTools';
 import { MCP_TOOLS } from '../MCPTools';
+import { STUDIO_API_TOOLS } from '../StudioAPITools';
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe('tool tiers', () => {
-  it('core stays small enough for 4-8B pickers (<=14 names)', () => {
-    expect(CORE_TOOL_NAMES.length).toBeLessThanOrEqual(14);
+  // Was <=14; raised to <=20 for the workspace agency verbs (founder
+  // 2026-06-10: build / write code / move files must work on sovereign
+  // backends too). Still an order of magnitude under the ~90-definition
+  // registry that drowned the 4B picker in run 20260610T203030.
+  it('core stays small enough for 4-8B pickers (<=20 names)', () => {
+    expect(CORE_TOOL_NAMES.length).toBeLessThanOrEqual(20);
     expect(CORE_TOOL_NAMES).toContain('create_object');
     expect(CORE_TOOL_NAMES).toContain('apply_code');
     expect(CORE_TOOL_NAMES).toContain('board_add_task');
+    expect(CORE_TOOL_NAMES).toContain('workspace_write_file');
+    expect(CORE_TOOL_NAMES).toContain('workspace_build');
   });
 
   it('every core name resolves to a REAL registered tool definition', () => {
     const registered = new Set(
-      [...BRITTNEY_TOOLS, ...MCP_TOOLS].map((t) => t.function.name)
+      [...BRITTNEY_TOOLS, ...MCP_TOOLS, ...STUDIO_API_TOOLS].map((t) => t.function.name)
     );
     for (const name of CORE_TOOL_NAMES) {
       expect(registered.has(name), `core tool ${name} is not registered`).toBe(true);

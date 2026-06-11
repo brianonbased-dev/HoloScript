@@ -855,6 +855,186 @@ const listFiles: StudioToolDefinition = {
   },
 };
 
+// ─── Workspace agency (build, write code, move files — founder 2026-06-10) ──
+//
+// These tools operate on the ACTIVE workspace's local clone. The workspace
+// path is injected server-side by the Brittney route from the request body
+// (never model-supplied), so every definition takes only workspace-relative
+// paths. Without an imported workspace they fail soft with guidance.
+
+const workspaceListFiles: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_list_files',
+    description:
+      "List files and directories in the active workspace's local clone. Returns names, types, and sizes. Use to explore the project you are editing before reading or writing files. Requires an imported workspace (workspace_import).",
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description:
+            'Directory path relative to the workspace root, e.g. "src/components". Omit or pass "" for the root.',
+        },
+      },
+    },
+  },
+};
+
+const workspaceReadFile: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_read_file',
+    description:
+      "Read a file from the active workspace's local clone. Returns the file content (truncated past 256KB). Use this instead of the GitHub read_file whenever a workspace is imported — it reflects local, uncommitted state.",
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'File path relative to the workspace root, e.g. "src/index.ts"',
+        },
+      },
+      required: ['path'],
+    },
+  },
+};
+
+const workspaceWriteFile: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_write_file',
+    description:
+      "Write code: create or overwrite a file in the active workspace's local clone (parent directories are created automatically). This is a REAL file write on disk. Use when the user asks you to write, fix, or refactor project code. Read the file first when modifying existing code, write the complete new content, then verify with workspace_build or the relevant test script — never claim success you haven't verified.",
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'File path relative to the workspace root, e.g. "src/utils/math.ts"',
+        },
+        content: {
+          type: 'string',
+          description: 'The complete file content to write (max 512KB)',
+        },
+      },
+      required: ['path', 'content'],
+    },
+  },
+};
+
+const workspaceMoveFile: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_move_file',
+    description:
+      "Move or rename a file or directory inside the active workspace's local clone. Use when the user asks to reorganize, rename, or restructure project files. Never overwrites — fails if the destination exists. Remember to update imports that reference the old path, then verify with workspace_build.",
+    parameters: {
+      type: 'object',
+      properties: {
+        from: {
+          type: 'string',
+          description: 'Current path relative to the workspace root',
+        },
+        to: {
+          type: 'string',
+          description: 'Destination path relative to the workspace root',
+        },
+      },
+      required: ['from', 'to'],
+    },
+  },
+};
+
+const workspaceDeleteFile: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_delete_file',
+    description:
+      "Delete a file or EMPTY directory from the active workspace's local clone. Use only when the user explicitly asks to remove something — confirm first otherwise. Recursive directory deletion is intentionally not supported; move contents out or delete files individually.",
+    parameters: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Path relative to the workspace root',
+        },
+      },
+      required: ['path'],
+    },
+  },
+};
+
+const workspaceBuild: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_build',
+    description:
+      'Build/verify the active workspace: run a package.json script (build, test, lint, typecheck, …) or "install" to install dependencies. The package manager is auto-detected from the lockfile. Returns the real exit code and output. Use after EVERY workspace_write_file/workspace_move_file batch and report the actual result. If it fails, read the error output, fix the code, and run it again.',
+    parameters: {
+      type: 'object',
+      properties: {
+        script: {
+          type: 'string',
+          description:
+            'package.json script name to run (default "build"), or "install" to install dependencies. The script must exist in the workspace\'s package.json.',
+        },
+      },
+    },
+  },
+};
+
+const workspaceGitStatus: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_git_status',
+    description:
+      "Git status of the active workspace's local clone: branch, ahead/behind, changed files, recent commits. Use after writing/moving files to see what changed before committing.",
+    parameters: { type: 'object', properties: {} },
+  },
+};
+
+const workspaceGitCommit: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'workspace_git_commit',
+    description:
+      "Commit changes in the active workspace's local clone. Stage specific files (preferred) or all changes. Use only after workspace_build (or the relevant test script) passes, and only when the user asked for or clearly expects a commit.",
+    parameters: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          description: 'Commit message, conventional-commit style, e.g. "feat(ui): add dashboard panel"',
+        },
+        files: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Specific workspace-relative file paths to stage. Omit to stage all changed files.',
+        },
+      },
+      required: ['message'],
+    },
+  },
+};
+
+/**
+ * Tools that operate on the active workspace's local clone and need the
+ * server-validated `workspacePath` injected into their args by the Brittney
+ * route (the model never sees or supplies absolute paths).
+ */
+export const WORKSPACE_FS_TOOL_NAMES: ReadonlySet<string> = new Set([
+  'workspace_list_files',
+  'workspace_read_file',
+  'workspace_write_file',
+  'workspace_move_file',
+  'workspace_delete_file',
+  'workspace_build',
+  'workspace_git_status',
+  'workspace_git_commit',
+]);
+
 // ─── Export all Studio API tools ─────────────────────────────────────────────
 
 export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
@@ -899,6 +1079,15 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
   readFile,
   searchCode,
   listFiles,
+  // Workspace agency (build, write code, move files)
+  workspaceListFiles,
+  workspaceReadFile,
+  workspaceWriteFile,
+  workspaceMoveFile,
+  workspaceDeleteFile,
+  workspaceBuild,
+  workspaceGitStatus,
+  workspaceGitCommit,
 ];
 
 /**

@@ -19,7 +19,12 @@
 
 export type ToolTier = 'full' | 'core';
 
-/** The diet: scene CRUD + traits + code + the two ecosystem channels. */
+/**
+ * The diet: scene CRUD + traits + code + the two ecosystem channels + the
+ * workspace agency verbs (founder 2026-06-10: build / write code / move
+ * files must work on sovereign backends too — still ~19 tools, far under
+ * the ~90-definition registry that drowned the 4B picker).
+ */
 export const CORE_TOOL_NAMES: readonly string[] = [
   'create_object',
   'delete_object',
@@ -35,6 +40,11 @@ export const CORE_TOOL_NAMES: readonly string[] = [
   'apply_code',
   'board_add_task',
   'suggest_ecosystem_gap',
+  'workspace_list_files',
+  'workspace_read_file',
+  'workspace_write_file',
+  'workspace_move_file',
+  'workspace_build',
 ];
 
 export function tierForProvider(providerName: string | undefined): ToolTier {

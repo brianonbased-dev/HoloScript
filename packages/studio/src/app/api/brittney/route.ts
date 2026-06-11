@@ -31,7 +31,12 @@ import {
 } from '@holoscript/llm-provider';
 import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '@/lib/brittney/provider';
 import { BRITTNEY_TOOLS } from '@/lib/brittney/BrittneyTools';
-import { STUDIO_API_TOOLS, STUDIO_API_TOOL_NAMES } from '@/lib/brittney/StudioAPITools';
+import {
+  STUDIO_API_TOOLS,
+  STUDIO_API_TOOL_NAMES,
+  WORKSPACE_FS_TOOL_NAMES,
+} from '@/lib/brittney/StudioAPITools';
+import { resolveWorkspaceFsRoot } from '@/lib/workspace/workspaceFs';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
 import { HS_AUTHORING_TOOLS, HS_AUTHORING_TOOL_NAMES } from '@/lib/brittney/HsAuthoringTools';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
@@ -229,6 +234,10 @@ export async function POST(request: NextRequest) {
       // identically without them (VR/Wizard/benchmark surfaces send neither).
       conversationId?: string;
       scope?: string;
+      // Workspace agency (founder 2026-06-10): the active workspace's local
+      // clone path. Validated against the workspaces root below and injected
+      // into workspace_* tool calls server-side — the model never supplies it.
+      workspacePath?: string;
     }>(request, { maxBytes: 32_000 });
     if (!parsed.ok) {
       const msg =
@@ -249,7 +258,18 @@ export async function POST(request: NextRequest) {
       systemPrompt: bodySystemPrompt,
       conversationId: bodyConversationId,
       scope: bodyScope,
+      workspacePath: bodyWorkspacePath,
     } = body;
+
+    // Workspace agency: validate the client-supplied workspace path once and
+    // keep only the resolved form. Invalid/absent paths leave the workspace_*
+    // tools in their fail-soft "no active workspace" mode rather than erroring
+    // the whole chat turn.
+    let workspaceFsPath: string | null = null;
+    if (typeof bodyWorkspacePath === 'string' && bodyWorkspacePath.trim()) {
+      const validatedWorkspace = resolveWorkspaceFsRoot(bodyWorkspacePath.trim());
+      if (validatedWorkspace.ok) workspaceFsPath = validatedWorkspace.resolved;
+    }
     const sessionId =
       typeof bodySessionId === 'string' && bodySessionId.length > 0
         ? bodySessionId
@@ -876,10 +896,24 @@ export async function POST(request: NextRequest) {
                         } else if (EMBODIED_TOOL_NAMES.has(tc.name)) {
                           const emb = await executeEmbodiedTool(tc.name, tc.input);
                           result = { success: emb.success, data: emb.data, error: emb.error };
+                        } else if (WORKSPACE_FS_TOOL_NAMES.has(tc.name) && !workspaceFsPath) {
+                          // Workspace agency without an attached local clone:
+                          // fail soft with actionable guidance instead of a 4xx.
+                          result = {
+                            success: false,
+                            data: null,
+                            error:
+                              'No active workspace with a local clone is attached to this chat. Import a repository first (workspace_import) or open a workspace in Studio, then retry.',
+                          };
                         } else {
+                          // Workspace agency: overwrite any model-supplied
+                          // workspacePath with the server-validated one.
+                          const input = WORKSPACE_FS_TOOL_NAMES.has(tc.name)
+                            ? { ...tc.input, workspacePath: workspaceFsPath }
+                            : tc.input;
                           result = await executeStudioTool(
                             tc.name,
-                            tc.input,
+                            input,
                             baseUrl,
                             forwardHeaders
                           );

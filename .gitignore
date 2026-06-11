@@ -270,6 +270,9 @@ venv/
 *.egg-info/
 dist/
 build/
+# Next.js API routes legitimately named "build" (e.g. POST /api/workspace/build)
+# are source code, not build output — re-include them.
+!packages/studio/src/app/api/**/build/
 
 # macOS
 .DS_Store

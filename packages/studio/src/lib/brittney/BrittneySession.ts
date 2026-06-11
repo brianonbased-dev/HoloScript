@@ -144,7 +144,8 @@ export async function* streamAssistant(
   messages: AssistantMessage[],
   sceneContext: string,
   signal?: AbortSignal,
-  persist?: AssistantPersistOptions
+  persist?: AssistantPersistOptions,
+  workspacePath?: string | null
 ): AsyncGenerator<AssistantStreamEvent> {
   const response = await fetch('/api/brittney', {
     method: 'POST',
@@ -158,6 +159,10 @@ export async function* streamAssistant(
       // create-on-miss path instead of failing ownership lookup.
       ...(persist?.conversationId ? { conversationId: persist.conversationId } : {}),
       ...(persist?.scope !== undefined ? { scope: persist.scope } : {}),
+      // Workspace agency: the active workspace's local clone path enables the
+      // workspace_* file/build tools server-side (validated there, never
+      // echoed into the prompt).
+      ...(workspacePath ? { workspacePath } : {}),
     }),
   });
 
