@@ -1,0 +1,117 @@
+{
+  "gate": 41,
+  "track": "flagship",
+  "name": "Knowledge Mountain mounted in the playable drive-build",
+  "result": "VERIFIED",
+  "entries": 186,
+  "cables": 83,
+  "missingBridges": 40,
+  "mountDigest": "2b5647329ed924d0397114dd6151a785412afefd8d29f288c4c9224847dfb3a8",
+  "terrainDigest": null,
+  "embeddedByteEqual": true,
+  "additive": true,
+  "negativeControl": {
+    "coordinateTamperFlips": true,
+    "cableDropFlips": true
+  },
+  "source": "gold-game-knowledge-mountain.mjs (pure mount) + drive-build.mjs (render) over Gate-39 coords",
+  "honestScope": "mounts the Gate-39 placement IN the build as tier-colored crystals + lineage cables; full WebGL render is headless/manual (Gate-1 pattern). The placement SCIENCE (semantics->x/z, tier->elevation, missing-bridge discovery) is Gate 39 and unchanged here.",
+  "checks": [
+    {
+      "name": "coords artifact present (Gate-39 source)",
+      "pass": true,
+      "detail": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\examples\\gold-game\\knowledge-mountain-coords.json"
+    },
+    {
+      "name": "all real vault entries placed",
+      "pass": true,
+      "detail": "186 entries"
+    },
+    {
+      "name": "lineage cables placed",
+      "pass": true,
+      "detail": "83 cables"
+    },
+    {
+      "name": "mount is deterministic (byte-reproducible — Gate 30 safe)",
+      "pass": true,
+      "detail": "2b5647329ed924d0"
+    },
+    {
+      "name": "every cable connects two placed entries",
+      "pass": true,
+      "detail": "83 cables checked"
+    },
+    {
+      "name": "tier elevation monotonic (bronze base .. diamond peak)",
+      "pass": true,
+      "detail": "band0=-0.55 band2=17.45 band3=26.45 band4=35.31"
+    },
+    {
+      "name": "drive-build exists",
+      "pass": true,
+      "detail": "C:\\Users\\josep\\Documents\\GitHub\\HoloScript\\examples\\gold-game\\drive-build\\index.html"
+    },
+    {
+      "name": "build embeds the knowledge-mountain payload",
+      "pass": true,
+      "detail": "186 entries embedded"
+    },
+    {
+      "name": "embedded geometry is byte-equal to the module output (anti-stale)",
+      "pass": true,
+      "detail": "2b5647329ed924d0 == 2b5647329ed924d0"
+    },
+    {
+      "name": "embedded entry+cable counts match the vault",
+      "pass": true,
+      "detail": "186/83"
+    },
+    {
+      "name": "build renders a KnowledgeMountain group",
+      "pass": true,
+      "detail": "KnowledgeMountain mesh group + per-entry crystals"
+    },
+    {
+      "name": "build draws lineage cables in-world",
+      "pass": true,
+      "detail": "lineage cables rendered"
+    },
+    {
+      "name": "build records the mount on a window flag (observable)",
+      "pass": true,
+      "detail": "mount observable to the runtime"
+    },
+    {
+      "name": "gate-1 receipt records the Gate-41 mount",
+      "pass": true,
+      "detail": "mounted=KnowledgeMountain entries=186"
+    },
+    {
+      "name": "mount is additive (onboarding vault survives)",
+      "pass": true,
+      "detail": "onboarding scene entries=4"
+    },
+    {
+      "name": "mount links back to the Gate-39 terrain seal",
+      "pass": true,
+      "detail": "b265c0993adbd8cf"
+    },
+    {
+      "name": "Gate 39 (the placement source) is itself VERIFIED",
+      "pass": true,
+      "detail": "gate39 entries=186"
+    },
+    {
+      "name": "negative control: tampering one coordinate flips the mount digest",
+      "pass": true,
+      "detail": "2b5647329ed9 -> 878d1ab72a5b"
+    },
+    {
+      "name": "negative control: dropping one cable flips the mount digest",
+      "pass": true,
+      "detail": "83 -> 82 cables"
+    }
+  ],
+  "verifiedAt": "2026-06-05T10:30:29.542Z"
+}

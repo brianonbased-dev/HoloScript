@@ -1,0 +1,107 @@
+{
+  "gate": 10,
+  "track": "flagship",
+  "name": "HoloGraph + HoloEmbed — the real GOLD vault constellation as the playable structure",
+  "verifier": "examples/gold-game/gate-10-holograph-verify.mjs",
+  "implementation": {
+    "holoEmbed": "packages/holoembed (HoloEmbedEncoder — GENUINE 768-dim encoder)",
+    "holoGraph": "exact-by-construction lineage graph (S.HGRAPH model: explicit reference edges -> recall 1.0)"
+  },
+  "corpus": {
+    "source": "pinned snapshot of the real D:/GOLD lineage constellation (ids/titles/refs read live from the vault)",
+    "entries": [
+      {
+        "id": "W.GOLD.537",
+        "refs": [
+          "W.137"
+        ]
+      },
+      {
+        "id": "W.GOLD.534",
+        "refs": [
+          "W.501",
+          "W.511",
+          "W.513",
+          "W.514",
+          "W.GOLD.190",
+          "W.GOLD.191"
+        ]
+      },
+      {
+        "id": "W.GOLD.535",
+        "refs": [
+          "W.GOLD.002"
+        ]
+      },
+      {
+        "id": "W.GOLD.191",
+        "refs": [
+          "W.GOLD.190"
+        ]
+      },
+      {
+        "id": "W.GOLD.190",
+        "refs": []
+      },
+      {
+        "id": "W.GOLD.002",
+        "refs": []
+      }
+    ]
+  },
+  "holoGraph": {
+    "exactByConstruction": true,
+    "inCorpusEdges": 4,
+    "outEdges": {
+      "W.GOLD.537": [],
+      "W.GOLD.534": [
+        "W.GOLD.190",
+        "W.GOLD.191"
+      ],
+      "W.GOLD.535": [
+        "W.GOLD.002"
+      ],
+      "W.GOLD.191": [
+        "W.GOLD.190"
+      ],
+      "W.GOLD.190": [],
+      "W.GOLD.002": []
+    },
+    "reachableFrom534": [
+      "W.GOLD.534",
+      "W.GOLD.190",
+      "W.GOLD.191"
+    ],
+    "navigable": true
+  },
+  "holoEmbed": {
+    "encoder": "HoloEmbedEncoder",
+    "dim": 768,
+    "expectedDim": 768,
+    "semanticQuery": "audit calibration self-application of conclusions",
+    "top3": [
+      {
+        "id": "W.GOLD.191",
+        "score": 0.8945711221816185
+      },
+      {
+        "id": "W.GOLD.534",
+        "score": 0.8848003420111955
+      },
+      {
+        "id": "W.GOLD.537",
+        "score": 0.8842265903814278
+      }
+    ],
+    "topRelevant": true,
+    "deterministic": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "graphDigest": "4d1ee95e7770bc55821d4dac4dd43a1d0dd148998dee7c513989ad72b944e033",
+    "embedDigest": "ef4846d064619aa85937e3bfe0343226758f3c52be45b75fa2ac9759384dead2",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "HoloEmbed embeddings are produced by the GENUINE @holoscript/holoembed HoloEmbedEncoder (768-dim, deterministic) — not a mock. The graph is LOSSLESS BY CONSTRUCTION (S.HGRAPH model): edges ARE the entries’ real cross-references, so traversal returning them is a correctness PROPERTY, not a measured recall — calling it \"recall 1.0\" would be a tautology (deep-ratchet 2026-05-24), so this gate asserts losslessness, not a recall metric. A genuine semantic recall@k would need a LABELED retrieval benchmark the vault does not have (domain labels are sparse; lineage refs ≠ semantic similarity) — that benchmark is a separate build, not a gate-10 patch. The corpus is a PINNED snapshot of the real D:/GOLD constellation (real ids/titles/refs, transcribed for portability since D:/GOLD is not in the repo) — the same pattern gold-vault-game.holo uses to embed real vault entries. PROVEN: the real vault’s lineage constellation is a navigable graph + semantically searchable via real HoloEmbed. A live full-vault scan (all ~300 entries via the absorb-service CodebaseGraph) deepens later.",
+  "verifiedAt": "2026-05-24T21:25:58.826Z"
+}

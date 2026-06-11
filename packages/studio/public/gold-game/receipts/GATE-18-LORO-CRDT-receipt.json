@@ -1,0 +1,46 @@
+{
+  "gate": 18,
+  "track": "flagship",
+  "name": "true Loro CRDT convergence — concurrent vault edits merge commutatively (real loro-crdt)",
+  "verifier": "examples/gold-game/gate-18-loro-crdt-verify.mjs",
+  "library": "loro-crdt (LoroDoc) — GENUINE, already a dep of @holoscript/crdt-spatial + mcp-server",
+  "experiment": {
+    "base": {
+      "B.GRADUATE.001": "bronze",
+      "W.001": "bronze",
+      "W.002": "silver",
+      "W.003": "silver"
+    },
+    "concurrent": {
+      "A": {
+        "W.001": "gold",
+        "W.003": "gold"
+      },
+      "B": {
+        "W.002": "gold",
+        "W.003": "platinum"
+      }
+    }
+  },
+  "result": {
+    "convergedState": {
+      "B.GRADUATE.001": "bronze",
+      "W.001": "gold",
+      "W.002": "gold",
+      "W.003": "platinum"
+    },
+    "converged": true,
+    "bothConcurrentEditsKept": true,
+    "conflictResolvedSame": true,
+    "conflictWinner": "platinum",
+    "commutative": true,
+    "deterministic": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "convergedDigest": "0f93de27e262c0298148532c063fd2f0f58254c64e9eeac7695c4eebaa261b0b",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "Uses the GENUINE loro-crdt library to prove TRUE CRDT convergence on the GOLD game's shared vault state: two replicas make concurrent independent edits with NO shared clock/order, exchange Loro updates, and converge — commutatively, with same-key conflicts resolved deterministically by Loro (fixed peer ids). This is strictly stronger than Gate 17 (which used a shared authoritative event order in-process). PROVEN: real Loro convergence for the game's vault state. NOT done here: replacing the @holoscript/mesh CRDTProtocolHandler's \"Loro-inspired diffs\" with this real Loro binding across the whole mesh package (a broader mesh refactor), and live network transport (this is in-process update exchange, not a socket). The CRDT convergence capability the game needed is now real.",
+  "verifiedAt": "2026-05-23T05:06:02.110Z"
+}

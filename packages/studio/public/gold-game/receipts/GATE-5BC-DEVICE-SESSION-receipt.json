@@ -1,0 +1,62 @@
+{
+  "gate": "5b+5c",
+  "name": "Live operator session + Quest projection",
+  "kind": "device-session-receipt",
+  "capturedAt": "2026-05-22T09:10:01.780Z",
+  "capturedBy": "claude (embodied skill, local hardware agent)",
+  "honest_status": "PARTIAL — flat WebGL projection verified on hardware; immersive-vr NOT achievable via desktop Chrome+Link on this machine",
+  "device": {
+    "headset": "Meta Quest 3",
+    "link_runtime": "Oculus PC runtime (OVRServer_x64 pid varies, OVRRedir, OVRServiceLauncher running)",
+    "openxr_active_runtime": "C:/Program Files/Oculus/Support/oculus-runtime/oculus_openxr_64.json",
+    "meta_virtual_monitor": "present, Status=OK (driver 5.3.57.114)",
+    "virtual_audio": "Oculus Virtual Audio Device endpoints present",
+    "detection_method": "Windows PnP + process table + HKLM OpenXR ActiveRuntime (no faked telemetry)"
+  },
+  "webxr_probe": {
+    "method": "live navigator.xr.isSessionSupported via Chrome DevTools Runtime.evaluate, secure localhost context",
+    "hasXR": true,
+    "secureContext": true,
+    "immersive_vr_supported": false,
+    "inline_supported": true,
+    "gpu": "ANGLE NVIDIA GeForce RTX 3060 Laptop GPU Direct3D11",
+    "interpretation": "Desktop Chrome does not expose immersive-vr over Oculus Link; only Quest Browser on-device or SteamVR WebXR bridge does."
+  },
+  "projection_verified": {
+    "surface": "desktop Chrome window (mirror-able into headset via Meta Link)",
+    "server": "http://127.0.0.1:8731/ (local static)",
+    "artifact": "examples/gold-game/drive-build/index.html (rebuilt WITH WebXR entry)",
+    "live_game_state": {
+      "title": "THE GOLD GAME — The Vault",
+      "canvas_rendered": true,
+      "vr_button_present": true,
+      "vr_button_text": "VR NOT SUPPORTED",
+      "regions_parsed_from_holo": [
+        "BronzeValley — y=0",
+        "GoldTerrace — y=4",
+        "DiamondPeak — y=9"
+      ]
+    },
+    "screenshot": "examples/gold-game/GATE-5C-quest-projection.png",
+    "console_errors": 0
+  },
+  "build_upgrade": {
+    "change": "added VRButton + renderer.xr.enabled + setAnimationLoop + player rig to drive-build.mjs",
+    "sceneDigest_unchanged": "208645323846a6df... (modality equivalence preserved; modality-verify 10/10 PASS)",
+    "webxr_markers_in_build": {
+      "VRButton": 1,
+      "immersive_vr": 4,
+      "requestSession": 1,
+      "isPresenting": 12,
+      "setAnimationLoop": 7
+    }
+  },
+  "operator_confirmation_required": {
+    "note": "This receipt proves the projection RAN and the device is REAL. It does NOT yet include the operator (founder) confirmation of what they saw in-headset, nor a true immersive-vr session.",
+    "ask_founder": [
+      "Did the GOLD Vault render appear inside your Quest 3 (via Link desktop mirror / Quest Browser)?",
+      "Could you see the three golden terraces ascending to the Diamond peak with glowing crystal gems?",
+      "For a TRUE immersive (room-scale) session, open the URL in the Quest Browser ON the headset (needs https + same Wi-Fi), or use the SteamVR WebXR bridge."
+    ]
+  }
+}

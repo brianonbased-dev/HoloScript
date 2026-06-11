@@ -1,0 +1,88 @@
+{
+  "gate": 26,
+  "track": "flagship",
+  "name": "MMO answer gate — shard lobby, named entrants, durable presence, authority handoff, persistent world",
+  "verifier": "examples/gold-game/gate-26-mmo-answer-verify.mjs",
+  "builtOn": "Gate 17 (NETCODE co-presence) — closes the host-migration / persistence gaps its honestScope flagged",
+  "classification": {
+    "answer": "SHARED-WORLD CO-OP WITH AGENTS — not a massively-multiplayer server.",
+    "why": "The five sub-claims a co-op/MMO classification turns on are now PROVEN on real @holoscript/mesh primitives: a shard lobby with multiple NAMED human entrants + an AI curator co-present on one persistent vault; durable presence; authority handoff (host migration + vault-lock force-transfer) when the host disconnects; and persistent shared-world state that survives a session boundary (rehydrated, late entrant sees accumulated history). That is a genuine co-op multiplayer shape.",
+    "notMMO": "NOT claimed: massive concurrency (this is one small shard, in-process, not a fleet of sharded servers under load); no real network transport (two+ ReplicationManager views in one process share the authoritative order — agreement is over the real replication API, not a socket); no horizontal shard fanout / interest management at scale; no persistence backend (the snapshot is in-memory, not a durable DB). Call it MMO only after a shard-fleet + DB-backed persistence + load gate. Today: a proven shared-world AI co-op curation game."
+  },
+  "meshClasses": {
+    "LobbyManager": "REAL — createRoom/joinRoom/listRooms (shard lobby + named entrants); leaveRoom performs genuine host migration ({migrated,newHostId})",
+    "EntityAuthority": "REAL — forceTransfer hands the orphaned server vault-lock to the migrated host (authority handoff)",
+    "ReplicationManager": "REAL — generateUpdates delta broadcast + applyRemoteUpdate convergence (persistent shared state)",
+    "computeStateDigest": "REAL — packages/engine/src/simulation/hashes.ts"
+  },
+  "session": {
+    "shardRoom": "room_1",
+    "host": "Alice",
+    "roster": [
+      "Alice",
+      "Bob",
+      "Cara",
+      "Curator-AI"
+    ],
+    "namedHumanEntrants": [
+      "Alice",
+      "Bob",
+      "Cara"
+    ],
+    "aiCurator": "Curator-AI",
+    "preDropVault": "{\"W.001\":\"Silver\",\"W.002\":\"Silver\",\"W.003\":\"Silver\",\"W.004\":\"Bronze\",\"W.005\":\"Bronze\"}",
+    "presenceBeforeDrop": [
+      "Alice",
+      "Bob",
+      "Cara",
+      "Curator-AI"
+    ],
+    "hostMigration": {
+      "droppedHost": "Alice",
+      "migrated": true,
+      "newHost": "Bob"
+    },
+    "authorityHandoff": {
+      "entry": "W.004",
+      "orphanedLocked": true,
+      "forceTransferredTo": "Bob",
+      "lockReleased": true
+    },
+    "finalVault": {
+      "W.001": "Silver",
+      "W.002": "Silver",
+      "W.003": "Silver",
+      "W.004": "Silver",
+      "W.005": "Bronze"
+    },
+    "persistence": {
+      "session2Room": "room_1",
+      "lateEntrant": "Dave",
+      "lateEntrantView": {
+        "W.001": "Silver",
+        "W.002": "Silver",
+        "W.003": "Silver",
+        "W.004": "Silver",
+        "W.005": "Bronze"
+      }
+    },
+    "eventLog": [
+      "LOBBY room=room_1 host=Alice roster=[Alice,Bob,Cara,Curator-AI]",
+      "GRAD Alice W.001 Bronze->Silver",
+      "GRAD Bob W.002 Bronze->Silver",
+      "GRAD Curator-AI W.003 Bronze->Silver",
+      "START Alice W.004 (lock taken, graduation in flight)",
+      "DROP Alice (host) -> migrated=true newHost=Bob",
+      "GRAD Bob W.004 Bronze->Silver"
+    ]
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "worldDigest": "2fdbbcf8d934818ee519b70387715287f19077ead519d912aef273f70c1d6499",
+    "session2Digest": "2fdbbcf8d934818ee519b70387715287f19077ead519d912aef273f70c1d6499",
+    "digestSurvivesSession": true,
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "PROVEN on GENUINE @holoscript/mesh primitives (not a mock): (1) a shard lobby holds 3 NAMED human entrants + 1 AI curator co-present on ONE vault; (2) all four converge on identical shared state via real replicated deltas; (3) durable presence is tracked by the lobby roster; (4) when the host (holding an in-flight graduation lock) disconnects, LobbyManager migrates the host to the earliest remaining player AND EntityAuthority force-transfers the orphaned vault lock to the new host — the world is not deadlocked by the ghost, no double-graduate, and the remaining players keep advancing the SAME persistent world; (5) the world is persisted, a SECOND session is rehydrated from the snapshot, and a late entrant (Dave) sees the full accumulated history — the converged-world digest is identical across both sessions via the REAL computeStateDigest. CLASSIFICATION: shared-world co-op with agents, NOT MMO. NOT claimed: massive concurrency, real socket transport, shard-fleet fanout, or a durable persistence backend (the snapshot is in-process). The honest answer is the deliverable — the word \"MMO\" is earned by a later shard-fleet + DB + load gate, not by this one.",
+  "verifiedAt": "2026-05-24T02:54:10.758Z"
+}

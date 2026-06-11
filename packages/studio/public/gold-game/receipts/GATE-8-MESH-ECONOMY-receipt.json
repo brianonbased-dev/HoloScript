@@ -1,0 +1,67 @@
+{
+  "gate": 8,
+  "track": "flagship",
+  "name": "multi-agent mesh + economy — 3 real AI curators + human, D.040 sovereign traits doing real work",
+  "verifier": "examples/gold-game/gate-8-mesh-economy-verify.mjs",
+  "traits": {
+    "economy": "packages/core/src/traits/EconomyPrimitivesTrait.ts (economyPrimitivesHandler — REAL)",
+    "reputation": "packages/core/src/traits/ReputationLedgerTrait.ts (reputationLedgerHandler — REAL)",
+    "agenda": "packages/core/src/traits/AutonomousAgendaTrait.ts (autonomousAgendaHandler — REAL)"
+  },
+  "session": {
+    "curators": [
+      "human-curator",
+      "agent-archivist",
+      "agent-curator",
+      "agent-scout"
+    ],
+    "coordination": "reputation-ordered picking (A2A-style mesh)",
+    "rounds": 4,
+    "deterministic": true
+  },
+  "results": {
+    "graduations": {
+      "human-curator": 2,
+      "agent-archivist": 2,
+      "agent-curator": 1,
+      "agent-scout": 1
+    },
+    "totalGraduations": 6,
+    "agentGraduations": 4,
+    "denialReplans": 3,
+    "economy": {
+      "initialBalance": 100,
+      "rewardPerGraduation": 25,
+      "balances": {
+        "agent-archivist": 150,
+        "agent-curator": 125,
+        "agent-scout": 125
+      },
+      "totalEarned": 100,
+      "conserved": true
+    },
+    "reputation": {
+      "trustDelta": 5,
+      "trust": {
+        "agent-archivist": 60,
+        "agent-curator": 55,
+        "agent-scout": 55
+      },
+      "initialTrust": 50
+    },
+    "agenda": {
+      "dailyBudgetUsd": 0.5,
+      "ceilingFiresWhenOverspent": true,
+      "inBudgetNoBreach": true
+    }
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "vaultDigest": "6284b0b9c55fb15c32a08a4af5b2918d810a08f56b084fcb0561cda439ca8c16",
+    "economyDigest": "a46105a1f636d4505b0cbb3fd85fa88aa6fdd4bf77dda6bc883f230d3cd9a46e",
+    "wmrDigest": "a774422e2f741ef2a4e7e90692ef819f0057922dd1278f610ea955f957345286",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "The economy balances, reputation trust, and $0.50/day agenda ceiling are produced by the GENUINE @holoscript/core sovereign-trait handlers (economyPrimitivesHandler / reputationLedgerHandler / autonomousAgendaHandler) driven over a real session — NOT inline mocks. Graduations are real file moves via vault-ops graduate() on a SANDBOX vault. PROVEN: a 3-agent + human mesh curating one vault, with real token economy, real reputation accrual, real cost-ceiling enforcement, and reputation-ordered coordination. Hand-authored agent policies + scripted human (not trained / not a live operator); A2A coordination is modeled as reputation-ordered picking rather than the full network handshake — those deepen in later gates.",
+  "verifiedAt": "2026-05-22T18:27:44.639Z"
+}

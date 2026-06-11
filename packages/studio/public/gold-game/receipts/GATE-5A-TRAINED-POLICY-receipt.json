@@ -1,0 +1,45 @@
+{
+  "gate": "5a",
+  "track": "flagship (sub-gate of Gate 5)",
+  "name": "trained curation policy — learned value model beats a FAIR heuristic on a non-trivial (non-linear) task",
+  "verifier": "examples/gold-game/gate-5a-trained-policy-verify.mjs",
+  "policyModule": "examples/gold-game/gold-game-curation-policy.mjs",
+  "task": "pick which knowledge entry to graduate next; features [lineage L, downstream-links D, tier-inverse Tinv]; TRUE value = 3L+2D+1Tinv + 4·(L·D) keystone interaction (NON-LINEAR)",
+  "training": {
+    "method": "batch gradient descent, linear-in-features model with an L·D interaction feature, zero-init — deterministic (seeded mulberry32, no wall-clock/Math.random)",
+    "seed": 20260522,
+    "episodes": 400,
+    "trainEpisodes": 280,
+    "testEpisodes": 120,
+    "learnedWeights": {
+      "L": 0.312297,
+      "D": 0.212312,
+      "Tinv": 0.100073,
+      "L·D": 0.376777,
+      "bias": -0.006575
+    },
+    "note": "the model learns a positive weight on the L·D interaction feature — the keystone structure a linear hand-rule cannot express."
+  },
+  "evaluation": {
+    "metric": "top-1 next-graduation selection accuracy on HELD-OUT episodes",
+    "trained_withInteraction": 1,
+    "bestPureLinearFit": 0.941667,
+    "fairLinearHeuristic_allFeatures": 0.866667,
+    "crippledLineageOnly_context": 0.6,
+    "random_baseline": 0.247083,
+    "marginOverFair": 0.133333,
+    "trainedBeatsFair": true,
+    "fairIsNonTrivial": true,
+    "fairBeatsCrippled": true,
+    "advantageIsNonLinearity": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts",
+    "algorithm": "sha256",
+    "policyDigest": "f7472de0c5b08f1c8885051c3c84563e1be844130ea5d890bc742d0353c742e4",
+    "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-5a-trained-policy-verify.mjs` to re-derive"
+  },
+  "honestScope": "A learned value model (gradient descent, with an L·D interaction feature) on SYNTHETIC curation episodes whose TRUE value is NON-LINEAR (keystone interaction). PROVEN: the learned policy beats a FAIR hand-authored heuristic — one that uses ALL THREE features with the true linear weights — by a real margin on held-out data, BECAUSE it captures the interaction the fair linear rule structurally cannot (it also beats the best pure-linear fit). The fair baseline is non-trivial (well below 1.0) and genuinely beats the old lineage-only strawman, so the win is not a rigged contest. NOT yet proven (remaining Gate 5 sub-gates): 5b a live human-operator session, 5c Quest projection via /embodied. This is a classical ML baseline on synthetic data, not a deep model on real operator traces.",
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-24T21:04:07.047Z"
+}

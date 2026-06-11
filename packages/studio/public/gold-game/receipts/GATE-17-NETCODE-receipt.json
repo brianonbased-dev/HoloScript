@@ -1,0 +1,86 @@
+{
+  "gate": 17,
+  "track": "flagship",
+  "name": "NETCODE co-presence — two-participant agreement on shared vault state (real @holoscript/mesh)",
+  "verifier": "examples/gold-game/gate-17-netcode-verify.mjs",
+  "modelledOn": "packages/core/src/__tests__/Multiplayer.test.ts (Cycle 108)",
+  "meshClasses": {
+    "EntityAuthority": "REAL — packages/mesh/dist/index.js (lock gates graduation; requestTransfer returns null when locked)",
+    "ReplicationManager": "REAL — generateUpdates delta broadcast + applyRemoteUpdate convergence",
+    "NetworkInterpolation": "REAL — remote curator avatar snapshot buffer + interpolation (midpoint x≈5)",
+    "computeStateDigest": "REAL — packages/engine/src/simulation/hashes.ts"
+  },
+  "session": {
+    "server": "vault-server",
+    "participants": [
+      "human-curator",
+      "agent-curator"
+    ],
+    "entries": [
+      "W.001",
+      "W.002",
+      "W.003",
+      "W.004",
+      "W.005"
+    ],
+    "tierOrder": [
+      "Bronze",
+      "Silver",
+      "Gold",
+      "Platinum",
+      "Diamond"
+    ],
+    "eventLog": [
+      "GRAD human-curator W.001 Bronze->Silver",
+      "GRAD agent-curator W.002 Bronze->Silver",
+      "START human-curator W.003 (lock taken)",
+      "DENY agent-curator W.003 (locked by human-curator; requestTransfer=null)",
+      "GRAD human-curator W.003 Bronze->Silver",
+      "GRAD agent-curator W.004 Bronze->Silver",
+      "GRAD agent-curator W.005 Bronze->Silver",
+      "GRAD human-curator W.001 Silver->Gold"
+    ],
+    "convergedVault": {
+      "W.001": "Gold",
+      "W.002": "Silver",
+      "W.003": "Silver",
+      "W.004": "Silver",
+      "W.005": "Silver"
+    },
+    "conflict": {
+      "entry": "W.003",
+      "firstHolder": "human-curator",
+      "secondContender": "agent-curator",
+      "secondResult": "denied"
+    },
+    "interpolation": {
+      "remote": "agent-curator",
+      "sampledAt": 150,
+      "position": [
+        5,
+        0,
+        0
+      ]
+    },
+    "results": {
+      "r1": "granted",
+      "r2": "granted",
+      "rConflict": "denied",
+      "r3": "granted",
+      "r4": "granted",
+      "r5": "granted",
+      "r6": "granted"
+    }
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "agreementDigest": "4e21fe7d45e1ed8cfd24f1fdd5bdc77d21423e87d18f71674d43f3ac3b595e70",
+    "bothClientsDigest": {
+      "human": "4e21fe7d45e1ed8cfd24f1fdd5bdc77d21423e87d18f71674d43f3ac3b595e70",
+      "agent": "4e21fe7d45e1ed8cfd24f1fdd5bdc77d21423e87d18f71674d43f3ac3b595e70"
+    },
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "PROVEN on the GENUINE @holoscript/mesh primitives (not a mock): EntityAuthority lock resolves the both-curators-graduate-the-same-entry conflict (first takes the lock, second is DENIED — no double-graduate); ReplicationManager broadcasts each landed tier change as a delta and applyRemoteUpdate converges every client; both clients end the session AGREEING on identical vault state (same entries at same tiers + same lock/event history); the agreement digest reproduces via the REAL computeStateDigest. NETWORK TRANSPORT is in-process here (two ReplicationManager views in one process, sharing the authoritative event order) — the agreement is over the real replication API, not over a socket. BUILD TARGETS (NOT claimed present): Loro CRDT convergence (CRDTProtocolHandler defines the interface + \"Loro-inspired\" diffs, but there is NO actual Loro binding wired in), a lockstep/rollback codec, and host-migration (authority handoff for a dropped participant). Today: authority + replicated-delta agreement. Not: deterministic lockstep or graceful host migration.",
+  "verifiedAt": "2026-05-23T04:55:03.846Z"
+}

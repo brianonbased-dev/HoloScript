@@ -17,8 +17,31 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseHolo } from '@holoscript/core';
-// Native2DCompiler is a runtime export of the /compiler subpath (not the main barrel).
-import { Native2DCompiler } from '@holoscript/core/compiler';
+
+/**
+ * Native2DCompiler via dynamic import + interop unwrap: the static named
+ * import from '@holoscript/core/compiler' arrives as a non-constructible
+ * binding under studio's webpack server bundle (CJS/ESM interop wrapping —
+ * observed 2026-06-10: this route 500'd ".Native2DCompiler is not a
+ * constructor" while node resolved the same dist exports as functions).
+ * Same fix as gold-game/receipts/route.ts.
+ */
+async function loadNative2DCompiler(): Promise<new () => {
+  compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown;
+}> {
+  const mod = (await import('@holoscript/core/compiler')) as Record<string, unknown> & {
+    default?: Record<string, unknown>;
+  };
+  const ctor = (mod.Native2DCompiler ?? mod.default?.Native2DCompiler) as
+    | (new () => { compile(ast: never, a: string, b: undefined, opts: { format: string }): unknown })
+    | undefined;
+  if (typeof ctor !== 'function') {
+    throw new Error(
+      `Native2DCompiler not constructible (typeof named=${typeof mod.Native2DCompiler}, default=${typeof mod.default})`
+    );
+  }
+  return ctor;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +71,8 @@ export async function GET() {
         headers: { 'content-type': 'text/plain; charset=utf-8' },
       });
     }
-    html = new Native2DCompiler().compile(parsed.ast as never, '', undefined, {
+    const Native2D = await loadNative2DCompiler();
+    html = new Native2D().compile(parsed.ast as never, '', undefined, {
       format: 'html',
     }) as string;
   } catch (err) {

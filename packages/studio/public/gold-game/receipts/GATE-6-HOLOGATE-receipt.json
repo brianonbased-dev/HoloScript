@@ -1,0 +1,68 @@
+{
+  "gate": 6,
+  "track": "flagship",
+  "name": "interactive VR via REAL HoloGate — entry portal/menu + grab/say intents validated against HoloDoor scope",
+  "artifact": "examples/gold-game/drive-build/index.html (WebXR build that bundles the real validator)",
+  "validator": "packages/mcp-server/src/holo-portal-intent.ts validatePortalIntent (genuine, not a mock)",
+  "verifier": "examples/gold-game/gate-6-hologate-verify.mjs",
+  "policy": {
+    "defaultScope": "drive-avatar",
+    "allowedScopes": [
+      "read-only",
+      "mutate-zone",
+      "drive-avatar"
+    ],
+    "mutableZoneGlobs": [
+      "W_GOLD_*",
+      "B_GRADUATE_*"
+    ],
+    "driveAvatar": {
+      "allow": true,
+      "maxEntities": 16
+    },
+    "enforcement": {
+      "onScopeViolation": "reject"
+    }
+  },
+  "verdicts": {
+    "grab_under_drive_avatar": {
+      "allowed": true,
+      "scope": "drive-avatar"
+    },
+    "grab_under_read_only": {
+      "allowed": false,
+      "scope": "read-only",
+      "reason": "scope 'read-only' cannot perform 'grab'"
+    },
+    "grab_under_mutate_zone_matching_glob": {
+      "allowed": true,
+      "scope": "mutate-zone"
+    },
+    "grab_under_mutate_zone_non_matching_glob": {
+      "allowed": false,
+      "scope": "mutate-zone",
+      "reason": "'grab' on 'P_GOLD_001' requires it to match a mutableZoneGlob under scope 'mutate-zone'"
+    },
+    "say_under_drive_avatar": {
+      "allowed": true,
+      "scope": "drive-avatar"
+    },
+    "say_under_mutate_zone": {
+      "allowed": false,
+      "scope": "mutate-zone",
+      "reason": "'say' is an embodied action requiring scope 'drive-avatar'"
+    }
+  },
+  "buildEmbeds": {
+    "holoGateValidator": true,
+    "controllerInteraction": true,
+    "entryPortalMenu": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "verdictDigest": "e467f829dfc12edcc0943fb5ed38548c52ccae51982cbd01e3cad97efa768251",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "PROVEN: the in-headset grab is gated by the GENUINE HoloGate validator (drive-avatar allows the grab; read-only and mutate-zone-without-a-matching-glob reject it) — the same module the build bundles, so the menu/interaction is real, not decorative. The full hand-on-controller graduate animation is verified by entering VR (hardware-in-the-loop, per 5b/5c). This gate proves the interaction layer + HoloGate gating are real and shipped in the build.",
+  "verifiedAt": "2026-05-22T09:36:33.982Z"
+}

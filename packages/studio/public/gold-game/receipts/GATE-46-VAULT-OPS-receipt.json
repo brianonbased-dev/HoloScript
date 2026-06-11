@@ -1,0 +1,28 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 46,
+  "track": "flagship",
+  "name": "Vault Ops — Graduate (Shepherd) + Resolve (Keeper): all three vault verbs over one world",
+  "timestamp": "2026-05-31T03:39:04.849Z",
+  "checks": {
+    "passed": 19,
+    "total": 19
+  },
+  "opSets": {
+    "graduateReady": 24,
+    "conflicts": 20,
+    "missingLinks": "40 (Gate 45)"
+  },
+  "winScore": 2000,
+  "proves": {
+    "graduate": "the most-cited non-diamond entries are shepherded UP a tier (real graduate.py); enforced by the climb",
+    "resolve": "same-domain near-duplicates competing for a slot are resolved (real vault_collision_guard)",
+    "unified": "L link + C graduate + R resolve compose into one Curator loop with a Vault Health HUD"
+  },
+  "realSeams": [
+    "knowledge-mountain-coords.json (tiers + lineage_in + domains)",
+    "gold-game-vault-ops.mjs pure rules engine",
+    "drive-build carry-up-stairs graduate + aim-resolve"
+  ],
+  "status": "PASS"
+}

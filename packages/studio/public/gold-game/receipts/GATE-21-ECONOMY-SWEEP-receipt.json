@@ -1,0 +1,109 @@
+{
+  "gate": 21,
+  "track": "flagship",
+  "name": "population economy sweep — inflation curve flattens to ~0 as stake→reward; time-to-Diamond bounded + decoupled from credits",
+  "verifier": "examples/gold-game/gate-21-economy-sweep-verify.mjs",
+  "implementation": "real economyPrimitivesHandler + reputationLedgerHandler over a population (8 honest + 3 spammers) × a stake sweep",
+  "params": {
+    "honest": 8,
+    "spammers": 3,
+    "graduationsPerAgent": 10,
+    "reward": 25,
+    "stakeSweep": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25
+    ],
+    "trustDelta": 2,
+    "ratifyThreshold": 55
+  },
+  "curves": {
+    "stake": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25
+    ],
+    "inflationPerAgent": [
+      250,
+      200,
+      150,
+      100,
+      50,
+      0
+    ],
+    "timeToDiamondMedian": [
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "perStake": [
+      {
+        "stake": 0,
+        "inflationPerAgent": 250,
+        "ttdMedian": 3,
+        "spamLost": 0,
+        "spamSelfLimited": 0
+      },
+      {
+        "stake": 5,
+        "inflationPerAgent": 200,
+        "ttdMedian": 3,
+        "spamLost": 3,
+        "spamSelfLimited": 0
+      },
+      {
+        "stake": 10,
+        "inflationPerAgent": 150,
+        "ttdMedian": 3,
+        "spamLost": 3,
+        "spamSelfLimited": 0
+      },
+      {
+        "stake": 15,
+        "inflationPerAgent": 100,
+        "ttdMedian": 3,
+        "spamLost": 3,
+        "spamSelfLimited": 3
+      },
+      {
+        "stake": 20,
+        "inflationPerAgent": 50,
+        "ttdMedian": 3,
+        "spamLost": 3,
+        "spamSelfLimited": 3
+      },
+      {
+        "stake": 25,
+        "inflationPerAgent": 0,
+        "ttdMedian": 3,
+        "spamLost": 3,
+        "spamSelfLimited": 3
+      }
+    ]
+  },
+  "findings": {
+    "monotonicDecreasing": true,
+    "flattensAtReward": true,
+    "inflatesAtZeroStake": true,
+    "ttdBounded": true,
+    "ttdConstant": true,
+    "spamLosesEverywhere": true,
+    "spamSelfLimitsAtHighStake": true
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "sweepDigest": "e3aeed01dfe542a9d91f728ef984b74e74ba4ac49e806f9ecc4c4c2966cbc8f3",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "A population × stake sweep on the GENUINE economy + reputation handlers. PROVEN: the per-agent credit-inflation curve is MONOTONICALLY DECREASING in the stake and flattens to ~0 at stake==reward (the sink fully absorbs the reward), while at zero stake it inflates by ~M×reward; time-to-Diamond (graduations to cross the ratify threshold) is BOUNDED (<=5) and CONSTANT across every stake value — progression is reputation-gated, fully decoupled from the credit economy; spammers lose at every stake>0 and self-limit (insufficient_funds) at high stake. STILL-FAKED, labeled: honest/spam are scripted archetypes (not learned agents) and graduation success is the archetype boolean (the ECONOMY is the real handler under test, not the policy); a single deterministic population, not a stochastic Monte-Carlo distribution; the curve is linear by construction of the stake==reward sink (the result is that the sink WORKS, not a surprising shape).",
+  "verifiedAt": "2026-05-23T06:31:49.028Z"
+}

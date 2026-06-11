@@ -1,0 +1,104 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 38,
+  "track": "flagship",
+  "name": "holographic export leg for the depth-real vista",
+  "verifier": "examples/gold-game/gate-38-holographic-export-verify.mjs",
+  "checks": {
+    "passed": 11,
+    "total": 11
+  },
+  "artifact": "examples/gold-game/gold-vault-holographic-export.json",
+  "targets": [
+    "looking-glass-quilt",
+    "vision-pro-mvhevc",
+    "parallax-preview"
+  ],
+  "quilt": {
+    "compiler": "packages/engine/src/hologram/QuiltCompiler.ts",
+    "device": "16inch",
+    "views": 48,
+    "grid": "8x6",
+    "resolution": [
+      3360,
+      3360
+    ],
+    "baseline": 0.06,
+    "focusDistance": 2,
+    "tileWidth": 420,
+    "tileHeight": 560,
+    "projectedPoints": 2304,
+    "rendererCodeHash": "b04a6a6526050f2054e2c6433e81d067569a6a69f056b27ae6b380b02cca20c0"
+  },
+  "mvhevc": {
+    "compiler": "packages/engine/src/hologram/MVHEVCCompiler.ts",
+    "container": "mov",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "ipd": 0.065,
+    "convergenceDistance": 2.25,
+    "fovDegrees": 70,
+    "stereoMode": "multiview-hevc",
+    "views": [
+      {
+        "eye": "left",
+        "cameraOffset": -0.0325,
+        "viewShear": 0.014444,
+        "layerIndex": 0
+      },
+      {
+        "eye": "right",
+        "cameraOffset": 0.0325,
+        "viewShear": -0.014444,
+        "layerIndex": 1
+      }
+    ],
+    "muxCommandHash": "c9e84a9f0554ff73c5719fd9d05527cf121712cfa31d5ff77b8c0f5630fd2a84",
+    "swiftCodeHash": "2d4f2a021576cccad11e997d87c72048214b49af3cf512e9a96c617ad94f8822",
+    "centerDisparity": 0.031782
+  },
+  "parallax": {
+    "format": "deterministic-parallax-preview",
+    "frames": 9,
+    "cameraOffsets": [
+      -0.04,
+      -0.03,
+      -0.02,
+      -0.01,
+      0,
+      0.01,
+      0.02,
+      0.03,
+      0.04
+    ],
+    "digest": "333b0d2527ccb32517d4f56e363e3b02b9aafd3e52fb3dff71f0087d39d44fe2"
+  },
+  "informationalCodeHashes": {
+    "note": "Source-text hashes of compiler output. INFORMATIONAL ONLY — deliberately NOT part of exportDigest, so honest comment/clarity edits to the compilers do not flip the load-bearing reproducibility digest. exportDigest hashes the semantic geometry (camera offsets, view shears, stereo disparities, parallax field, depth samples), not these strings.",
+    "swiftCodeHash": "2d4f2a021576cccad11e997d87c72048214b49af3cf512e9a96c617ad94f8822",
+    "muxCommandHash": "c9e84a9f0554ff73c5719fd9d05527cf121712cfa31d5ff77b8c0f5630fd2a84",
+    "rendererCodeHash": "b04a6a6526050f2054e2c6433e81d067569a6a69f056b27ae6b380b02cca20c0"
+  },
+  "negativeControl": {
+    "oneDepthCellTamperChangesExportDigest": true
+  },
+  "contract": {
+    "spine": "computeStateDigest(field-bag, sha256)",
+    "digestFields": [
+      "quiltRig",
+      "quiltField",
+      "mvhevcRig",
+      "stereoDisparity",
+      "parallax",
+      "depthSamples"
+    ],
+    "digestExcludes": "compiler source-text strings (swiftCode/muxCommand/rendererCode) — informational only",
+    "exportDigest": "83b73cb51029c82838ca2b1f37bba201bd83789c1a2f68d7f2f651bc4b0abb66",
+    "payloadHash": "2ba64bc0a4eefa854d4160d56f04cd07f46d04d52f323b6fbbc416afb17ec798"
+  },
+  "honestScope": "Compiler-side export proof for the Gate-32 depth world: real QuiltCompiler tile rig/projection, real MVHEVCCompiler stereo metadata/mux instructions, and deterministic parallax preview digest. The exportDigest is computed from the semantic geometric/projection outputs (tile camera offsets, view shears, stereo disparities, parallax field, depth samples) and excludes compiler source-text strings (kept as informational hashes only). It does not rasterize quilt pixels, encode MV-HEVC media bytes, or validate on physical Looking Glass/Vision Pro hardware.",
+  "status": "PASS"
+}

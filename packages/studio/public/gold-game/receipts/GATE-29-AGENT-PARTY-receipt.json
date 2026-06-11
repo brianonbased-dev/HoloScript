@@ -1,0 +1,116 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 29,
+  "track": "flagship",
+  "name": "agent party AI (visible companions)",
+  "timestamp": "2026-05-24T05:08:59.557Z",
+  "coreVersion": "6.1.0",
+  "checks": {
+    "passed": 25,
+    "total": 25
+  },
+  "party": [
+    {
+      "id": "companion-archivist",
+      "name": "Maren the Archivist",
+      "glyph": "📜"
+    },
+    {
+      "id": "companion-scout",
+      "name": "Edda the Scout",
+      "glyph": "🧭"
+    },
+    {
+      "id": "companion-quartermaster",
+      "name": "Bran the Quartermaster",
+      "glyph": "⚖️"
+    }
+  ],
+  "proves": {
+    "choose": "each companion picks a DISTINCT entry by its persona value function",
+    "explain": "rationale grounded in live lineage/trust/balance numbers (not a canned string)",
+    "spend": "real economyPrimitivesHandler reward + autonomousAgendaHandler metered under $0.50/day ceiling",
+    "remember": "per-companion memory of the player persisted to disk; warm party defers the player's prior picks and greets by recall"
+  },
+  "session1": {
+    "warm": false,
+    "distinctPicks": 3,
+    "turns": [
+      {
+        "name": "Maren the Archivist",
+        "picked": "P.PARTY.002",
+        "reason": "5 threads run through \"receipt-with-solver\" — that depth is what the ledger should remember. (lineage=5, my trust=53, balance=125)",
+        "balanceAfter": 125,
+        "trust": 53
+      },
+      {
+        "name": "Edda the Scout",
+        "picked": "P.PARTY.005",
+        "reason": "\"apply-four-refusals-to-own-analysis\" opens ground we haven't mapped — I'll plant the flag there. (lineage=2, my trust=53, balance=125)",
+        "balanceAfter": 125,
+        "trust": 53
+      },
+      {
+        "name": "Bran the Quartermaster",
+        "picked": "B.GRADUATE.001",
+        "reason": "\"graduate-incident-response\" earns its keep for the least outlay — 1 links is plenty. Good stewardship. (lineage=1, my trust=53, balance=125)",
+        "balanceAfter": 125,
+        "trust": 53
+      }
+    ],
+    "greeting": "First climb together. We'll learn what you value.",
+    "memoryAfter": {
+      "sessions": 1,
+      "lastSession": "climb-1",
+      "playerGraduatedEver": [
+        "P.PARTY.001"
+      ],
+      "greeting": "First climb together. We'll learn what you value."
+    },
+    "partyDigest": "b75e53af9ca3124ebf45bc44343fe0dff72b71ac0f6b323637cd3ba3d15a5880",
+    "economyDigest": "236650e952c38c893d05e81c73c08b961b07fc2b646d89d145db91db8445ee28"
+  },
+  "session2": {
+    "warm": true,
+    "greeting": "Welcome back. Last we climbed (session 1), you raised P.PARTY.001. We left those to you.",
+    "deferredPlayerPrior": true,
+    "turns": [
+      {
+        "name": "Maren the Archivist",
+        "picked": "P.PARTY.002"
+      },
+      {
+        "name": "Edda the Scout",
+        "picked": "P.PARTY.005"
+      },
+      {
+        "name": "Bran the Quartermaster",
+        "picked": "B.GRADUATE.001"
+      }
+    ],
+    "memoryAfter": {
+      "sessions": 2,
+      "lastSession": "climb-2",
+      "playerGraduatedEver": [
+        "P.PARTY.001",
+        "P.PARTY.003"
+      ],
+      "greeting": "Welcome back. Last we climbed (session 1), you raised P.PARTY.001. We left those to you."
+    },
+    "partyDigest": "b75e53af9ca3124ebf45bc44343fe0dff72b71ac0f6b323637cd3ba3d15a5880"
+  },
+  "determinism": {
+    "partyDigestReproduces": true,
+    "economyDigestReproduces": true
+  },
+  "aiHumanConnection": "shared trait library (D.040 sovereign traits) + shared world state (one vault) + real-agent companions that remember the human + common receipt spine (computeStateDigest)",
+  "realSeams": [
+    "vault-ops.graduate",
+    "EconomyPrimitivesTrait",
+    "ReputationLedgerTrait",
+    "AutonomousAgendaTrait",
+    "computeStateDigest",
+    "persisted cross-session memory (Gate-4 pattern)"
+  ],
+  "status": "PASS"
+}

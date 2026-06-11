@@ -1,0 +1,72 @@
+{
+  "gate": 14,
+  "track": "flagship",
+  "name": "The Archivist — dialogue + quest arc; verdict driven by accumulated reputation (real DialogueTrait + ReputationLedger)",
+  "verifier": "examples/gold-game/gate-14-archivist-dialogue-verify.mjs",
+  "character": "Maren Vael, the Archivist (TheArchivist in gold-vault-game.holo) — graduate.py/review.py embodied",
+  "implementation": {
+    "dialogue": "packages/core/src/traits/DialogueTrait.ts (dialogueHandler v2.0.0 — REAL; filterOptions enforces the reputation-gated verdict)",
+    "reputation": "packages/core/src/traits/ReputationLedgerTrait.ts (reputationLedgerHandler — REAL; accrues BehaviorFact trust)",
+    "wire": "ledger trust -> dialogue blackboard.reputation -> option condition \"reputation > 0.55\" (the gap /narrative named, closed here)"
+  },
+  "arc": {
+    "initialTrust": 50,
+    "threshold": 0.55,
+    "visits": [
+      {
+        "entry": "uncited-claim",
+        "trust": 38,
+        "reputation": 0.38,
+        "verdict": "send_back",
+        "reachedQuest": false
+      },
+      {
+        "entry": "colliding-duplicate",
+        "trust": 26,
+        "reputation": 0.26,
+        "verdict": "send_back",
+        "reachedQuest": false
+      },
+      {
+        "entry": "cited-clean-pattern",
+        "trust": 34,
+        "reputation": 0.34,
+        "verdict": "send_back",
+        "reachedQuest": false
+      },
+      {
+        "entry": "recovered-lost-index",
+        "trust": 49,
+        "reputation": 0.49,
+        "verdict": "send_back",
+        "reachedQuest": false
+      },
+      {
+        "entry": "cited-clean-scar",
+        "trust": 57,
+        "reputation": 0.57,
+        "verdict": "ratify",
+        "reachedQuest": true
+      }
+    ],
+    "finalTrust": 57,
+    "ratifyVisit": 5,
+    "firstThresholdCross": 5,
+    "quest": {
+      "id": "recover-the-drowned-index",
+      "giver": "npc.maren-archivist",
+      "questType": "discover",
+      "reward": {
+        "reputation": 10,
+        "unlocks": "sealed-reading-room"
+      }
+    }
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest",
+    "verdictDigest": "c9688a690816b1fc938cc97d93d874518b533fe1202b278c86fdcadd89916e02",
+    "reproducible": "run the verifier to re-derive"
+  },
+  "honestScope": "The verdict is decided by the GENUINE DialogueTrait v2.0.0 (its real filterOptions evaluates the option condition against a blackboard) fed by the GENUINE ReputationLedgerTrait trust accrual — not mocks. PROVEN: the Archivist sends low-trust work back, her trust accumulates from quality-weighted submissions, and a threshold crossing flips her verdict to ratify + opens a HoloQuest — driven by ACCUMULATED reputation, not a flag. NOT proven (build targets per /narrative): voice-consistency traits (@verbalFingerprint/@vocabularyRegister) and cross-session ReID (@speechAwareEncounter) are 0.1.0-skeleton; dialogue text is authored (no TTS/voiced lines); multi-session NPC growth + dialogue-emotion-driven quest branching deepen later.",
+  "verifiedAt": "2026-05-23T04:33:43.623Z"
+}

@@ -1,0 +1,16 @@
+{
+  "gate": 0,
+  "concept": "the real GOLD curation system (D:/GOLD) turned into a game for the human, enhanced for agents/AI",
+  "pattern": "professional-system-as-game (HoloLand/HoloShell)",
+  "artifact": "examples/gold-game/gold-vault-game.holo",
+  "command": "node -e \"parseHolo(readFileSync('examples/gold-game/gold-vault-game.holo'))\"",
+  "parse": { "success": true, "errors": 0, "warnings": 0 },
+  "templates": ["HumanCurator", "AgentCurator", "KnowledgeEntry", "Archivist", "VaultCollision"],
+  "tier_regions": ["BronzeValley", "GoldTerrace", "DiamondPeak"],
+  "seeded_real_entries": ["B.GRADUATE.001 (bronze)", "W.GOLD.535 (gold)", "W.GOLD.534 (gold)", "P.GOLD.001 (diamond)"],
+  "deployment_target": "self-contained static web build (R3F index.html) for the D: Drive; opens with no install",
+  "governance": "reads real D:/GOLD read-only; no vault write; not committed",
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T02:40:00Z",
+  "supersedes": "oasis-shard-zero.holo (generic-world placeholder concept)"
+}

@@ -1,0 +1,85 @@
+{
+  "gate": 19,
+  "track": "flagship",
+  "name": "The Played Slice (\"One Climb\") — proven coherent played loop, not isolated mechanics",
+  "verifier": "examples/gold-game/gate-19-played-slice-verify.mjs",
+  "engine": "examples/gold-game/gold-game-loop.mjs (the SAME loop the build/server runs; reuses Gates 2/8/14)",
+  "trace": {
+    "T0": {
+      "vaultDigest": "cc56175fe9bac9eea80b71eccb1ebd7bc60ea57d6fa36be5160f8f7a40fbaf4b",
+      "baseGold": 2
+    },
+    "T1": {
+      "entry": "C.CLIMB.001",
+      "ok": true,
+      "by": "human-curator",
+      "schema": "cael-graduation-v1",
+      "vaultChanged": true,
+      "vaultDigest": "c87b3e7258190e9982a0276471faf4cd16984a37e5a981695c7c425c89579f47"
+    },
+    "T2": {
+      "companion": "agent-companion",
+      "pick": "B.GRADUATE.001",
+      "differentFromHuman": true,
+      "ok": true,
+      "by": "agent-companion",
+      "receiptOnDisk": true,
+      "balanceBefore": 100,
+      "balanceAfter": 125,
+      "earnedReward": true,
+      "trust": 53,
+      "trustAboveInitial": true,
+      "ceilingOk": true
+    },
+    "T3": {
+      "attempted": "C.COLLIDE.001",
+      "ok": false,
+      "error": "C.COLLIDE.001 has no lineage links — cannot graduate",
+      "tierBefore": "bronze",
+      "tierAfter": "bronze",
+      "blockedAndUnchanged": true
+    },
+    "T4": {
+      "initialTrust": 50,
+      "quality": 2,
+      "trustArc": [
+        52,
+        54,
+        56
+      ],
+      "finalTrust": 56,
+      "firstCrossIdx": 2,
+      "accumulationDriven": true
+    },
+    "T5": {
+      "reputationAtPeak": 0.56,
+      "action": "ratify",
+      "node": "quest_open",
+      "ratified": true,
+      "questOpened": true,
+      "quest": {
+        "id": "recover-the-drowned-index",
+        "giver": "npc.maren-archivist",
+        "questType": "discover",
+        "reward": {
+          "reputation": 10,
+          "unlocks": "sealed-reading-room"
+        }
+      },
+      "negativeControl": "send_back"
+    },
+    "T6": {
+      "goldNow": 6,
+      "goldDelta": 4,
+      "goalGraduations": 3,
+      "goldFilled": true,
+      "ratified": true,
+      "win": true,
+      "vaultDigestFinal": "239e5eb5fc89494e98e2dd86207d64bba597c1672f698166aad7b7a4a03c2529",
+      "econDigest": "9f283d102ef74dcaa7f3310a3f7333528e689322b01aa4389447a9c6cbac11b4",
+      "verdictDigest": "08c524e681757ed93c41ce5abd1bc7ca9f917d69ea3d0b1264422629438ae584"
+    }
+  },
+  "honestScope": "Runs the One Climb loop with the GENUINE reused code: vault-ops.graduate() real file moves (Gate 2), economy/reputation/agenda handlers driving the AI companion (Gate 8), and DialogueTrait+ReputationLedger ratifying the human (Gate 14). The acceptance is an OBSERVABLE state-delta trace, not a regex (fixes the F.069 grep-theater shipped in Gate 15). STILL-FAKED, labeled: the companion pick-order + the human play trace are scripted (deterministic), not a trained/live agent; the Archivist lines are authored (no TTS); this is ONE local climb, not a population playtest (economy only accumulates here — the stake sink + N-run balance is the next gate); and the loop is proven server-side/Node (real fs) — the in-browser build calls /api/graduate for live play. PROVEN: a coherent start-to-finish climb where a human graduate changes real vault state, an AI co-curator independently graduates on the same vault with real economy/reputation, a collision blocks, reputation accrues to cross the ratify threshold, and the Archivist ratifies — all reproducible.",
+  "verifiedAt": "2026-05-23T05:30:26.973Z"
+}

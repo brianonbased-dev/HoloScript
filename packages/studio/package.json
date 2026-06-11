@@ -22,6 +22,7 @@
     "inventory:check": "node scripts/studio-inventory.mjs --check docs/STUDIO_INVENTORY_SNAPSHOT.json",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "sync:gold-game": "node scripts/sync-gold-game.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:push": "drizzle-kit push",

@@ -1,0 +1,226 @@
+{
+  "generatedAt": "2026-06-11T00:56:00.455Z",
+  "count": 44,
+  "receipts": [
+    {
+      "name": "GATE-10-HOLOGRAPH-receipt.json",
+      "bytes": 3598,
+      "sha256": "0d72b5c071a29b2794c1510819b76891b961ce24378451bc97a4b97cc43817bd"
+    },
+    {
+      "name": "GATE-11-QUANTUM-receipt.json",
+      "bytes": 4870,
+      "sha256": "8298126dc7c668128af202264317f6be1cd8d3274b2e7d88d2a7dfa945095c63"
+    },
+    {
+      "name": "GATE-12-SOLVERS-receipt.json",
+      "bytes": 1933,
+      "sha256": "3f189e4007b30afb84ea1d20cf5bffef220e45b3376d7f9b67581d2a0f6cd7af"
+    },
+    {
+      "name": "GATE-13-HOLOGRAM-receipt.json",
+      "bytes": 4644,
+      "sha256": "f1f538dae6c3e4afafcdce26a0442498e9166a457f2aa18d34d15782632625d7"
+    },
+    {
+      "name": "GATE-14-ARCHIVIST-receipt.json",
+      "bytes": 3036,
+      "sha256": "88c98bcfd13aff301796087cc4c36ea1662f251eb60857546fb5a48eb77179bb"
+    },
+    {
+      "name": "GATE-15-CONTROLS-receipt.json",
+      "bytes": 2044,
+      "sha256": "1e70d995be40f965a2f606c8c0fcd49477c83fba6f582a09a25aa9ab23853626"
+    },
+    {
+      "name": "GATE-16-AUDIO-receipt.json",
+      "bytes": 3154,
+      "sha256": "94fc35897dc17156e5a022a4435ddc2341b8e17a72152c636bfd1460a49e2f01"
+    },
+    {
+      "name": "GATE-17-NETCODE-receipt.json",
+      "bytes": 3695,
+      "sha256": "21b243f2a2a65afbbddd6f6561d820f7a854c0d63dc0b4cd5df23825e7963434"
+    },
+    {
+      "name": "GATE-18-LORO-CRDT-receipt.json",
+      "bytes": 2025,
+      "sha256": "5f7e7445be6b6ec9fe68e20e4133cab401532ad32c036f3baa0111c656a5513c"
+    },
+    {
+      "name": "GATE-19-PLAYED-SLICE-receipt.json",
+      "bytes": 3523,
+      "sha256": "bd228a5bbbd7eaaeeefa41e56be8b3d3e91be0a6ef23fd35b09ccb9dd919b429"
+    },
+    {
+      "name": "GATE-2-graduate-receipt.json",
+      "bytes": 1211,
+      "sha256": "8714f73fbc863da93dad73f6501caa987a4cbe8a306379cc6dda2a4c78142007"
+    },
+    {
+      "name": "GATE-20-ECONOMY-BALANCE-receipt.json",
+      "bytes": 2673,
+      "sha256": "32a8e4eb3d617dd885869dc49669f7a846182b1fc476b3a9dd207cec4546bed3"
+    },
+    {
+      "name": "GATE-21-ECONOMY-SWEEP-receipt.json",
+      "bytes": 3258,
+      "sha256": "01e5143de8d06c17b494ff59db6efb44335bc3039bddb9c68cbf7df9afa01dac"
+    },
+    {
+      "name": "GATE-26-MMO-ANSWER-receipt.json",
+      "bytes": 5115,
+      "sha256": "6f777e5b6897ad98cc2d6cb6a5925962aa889fb8c7719e017901c92b78531243"
+    },
+    {
+      "name": "GATE-27-SAFE-MUTATION-receipt.json",
+      "bytes": 920,
+      "sha256": "11c8141827e9823c0c7a3c5778e02a7089731bb29537aca38b77209e93d66470"
+    },
+    {
+      "name": "GATE-28-FULLVAULT-receipt.json",
+      "bytes": 4076,
+      "sha256": "d2d580ea80b06f50179cbc6e66e86c826c8e60611d083a03078f125c66ffe9c2"
+    },
+    {
+      "name": "GATE-29-AGENT-PARTY-receipt.json",
+      "bytes": 3820,
+      "sha256": "d007b5c62623a4fa297f569419b75bc77c64e4628914b572b1937bae81f164d0"
+    },
+    {
+      "name": "GATE-3-CURATION-cosession-receipt.json",
+      "bytes": 6031,
+      "sha256": "72d35a581e5a5a23cdb5023440b19c7f3d18ec9daf7cb736467a35576a04e6ce"
+    },
+    {
+      "name": "GATE-30-SHIP-PACKAGING-receipt.json",
+      "bytes": 5068,
+      "sha256": "f9e8af48ec2cf72b1a4df7e6ed1827797cde321d00292a8c46f66fe71f69fc63"
+    },
+    {
+      "name": "GATE-32-HOLOGRAM-IMAGE-TO-WORLD-receipt.json",
+      "bytes": 34018,
+      "sha256": "bf4e02f587059b719ef20b482f73f79b724b438114b146f17ef998af9985ea60"
+    },
+    {
+      "name": "GATE-33-HOLOMAP-SCAN-receipt.json",
+      "bytes": 2826,
+      "sha256": "6f3ef3af43f62af24a4817e1dbd342bb0a6ffa9121afbbcf8719f8dbaf80a45c"
+    },
+    {
+      "name": "GATE-34-PLAYABLE-VISTA-receipt.json",
+      "bytes": 1784,
+      "sha256": "61fdc597521d3c1558d5721a9759993f11dab11cc9e571b6abad8d4a8d6c87da"
+    },
+    {
+      "name": "GATE-35-KITCHEN-SINK-receipt.json",
+      "bytes": 3807,
+      "sha256": "2d3c86359ed8cee7a6feae78ee69b3a922e27e60b212766e48266634b796bc95"
+    },
+    {
+      "name": "GATE-37-SELF-PROOF-receipt.json",
+      "bytes": 2194,
+      "sha256": "042335b88f8dbf48a34ffa5d8cedba7e47cb7c8afbf7e4670fbfa477d0d63c62"
+    },
+    {
+      "name": "GATE-38-HOLOGRAPHIC-EXPORT-receipt.json",
+      "bytes": 3757,
+      "sha256": "bf680a504a6cb6122fa8154ad23359dfd8837ef1b571235197610b0b51432d52"
+    },
+    {
+      "name": "GATE-39-KNOWLEDGE-MOUNTAIN-receipt.json",
+      "bytes": 3191,
+      "sha256": "012c429505684d9b8637ba8a42f86ecf8beec6f918ebeea7020e17245006faeb"
+    },
+    {
+      "name": "GATE-4-CAUSAL-MEMORY-receipt.json",
+      "bytes": 4702,
+      "sha256": "aa46be870fe1c186bed8633c643fa190ae7dee9c594d7c9c7ba7ffc17e25ca09"
+    },
+    {
+      "name": "GATE-41-KNOWLEDGE-MOUNTAIN-MOUNT-receipt.json",
+      "bytes": 3649,
+      "sha256": "ec8acd27a7f2613b67840df34504da71ab77e5032b5c34c405ad257e37386528"
+    },
+    {
+      "name": "GATE-42-HOLOGRAM-RASTER-receipt.json",
+      "bytes": 1288,
+      "sha256": "325ab1aacf04d2f1a17dc1c8f64fae5d36ec90ee54855a6e3fce97b8a633fd71"
+    },
+    {
+      "name": "GATE-43-SOCKET-TRANSPORT-receipt.json",
+      "bytes": 6829,
+      "sha256": "632636ae86684eb65dafafdf3f84a1f822dfc2d757670350826ef5accade9844"
+    },
+    {
+      "name": "GATE-44-COMPOSED-TERRAIN-receipt.json",
+      "bytes": 4343,
+      "sha256": "089423a2277f581b401d96a202fc29991e8f57c69333ffe3cbe4047541191941"
+    },
+    {
+      "name": "GATE-45-HOLOMAP-CAPTURE-receipt.json",
+      "bytes": 2923,
+      "sha256": "84f8c8451a2170807999323f4324c873b8c1f36445408aeed5706730df6f257e"
+    },
+    {
+      "name": "GATE-46-HOLOMAP-COLMAP-PARITY-receipt.json",
+      "bytes": 3053,
+      "sha256": "f7189b57ae4ca865081a06115ca728c275452d5f5d09819537f4954858096579"
+    },
+    {
+      "name": "GATE-46-VAULT-OPS-receipt.json",
+      "bytes": 957,
+      "sha256": "f6ecec8b82ce448733aede8579ec684aefc061b4d50a492ce97e26c77aed2afd"
+    },
+    {
+      "name": "GATE-47-LIGHT-THE-VAULT-receipt.json",
+      "bytes": 978,
+      "sha256": "295ae4b1dfc778ff4ab69e0fc083661fd76db23eef07449f424fd29d07627a20"
+    },
+    {
+      "name": "GATE-5A-TRAINED-POLICY-receipt.json",
+      "bytes": 2756,
+      "sha256": "a71f73503280a86c0455e4ce31b31ebcdf1aee752967989788d941f4b18e0505"
+    },
+    {
+      "name": "GATE-5BC-DEVICE-SESSION-receipt.json",
+      "bytes": 3054,
+      "sha256": "63c33ff22b359ba694501e7777da23fafa7e3f6695e774b6a8df78eb801e7bb1"
+    },
+    {
+      "name": "GATE-6-HOLOGATE-receipt.json",
+      "bytes": 2466,
+      "sha256": "f6c7fe9d67b7729d7e4bd13f4359bb3987fab527e6930b4bf1d7b3bbf6d2305b"
+    },
+    {
+      "name": "GATE-7-CONFORMANCE-receipt.json",
+      "bytes": 4301,
+      "sha256": "c4f6726cfb882aa6d94457730d34d93e7c2d82a65b6dadb3a483fdbf52ae11a8"
+    },
+    {
+      "name": "GATE-8-MESH-ECONOMY-receipt.json",
+      "bytes": 2751,
+      "sha256": "0c1641324fb86da9250a728fcc58210ad26e66f3579e35aadd0c08fad28145af"
+    },
+    {
+      "name": "GATE-9-TWIN-EARTH-receipt.json",
+      "bytes": 2439,
+      "sha256": "19cbef9406d8461de71f6bec3ebd15310b1514e7cc03045acf00b4a62e56d3f4"
+    },
+    {
+      "name": "GOLD-VAULT-2D-receipt.json",
+      "bytes": 2737,
+      "sha256": "e2353a791746a26888cf064f6feebf4deaa3027e62d5e9821505860e280a1d4d"
+    },
+    {
+      "name": "GOLD-VAULT-gate0-receipt.json",
+      "bytes": 1020,
+      "sha256": "62e1692ff9df19019d6a443ded3128f256b159b8b52a4076b63a958680888678"
+    },
+    {
+      "name": "GOLD-VAULT-gate1-receipt.json",
+      "bytes": 10131,
+      "sha256": "d522e123f2030feb958ce26d45f11667b860f7189cc30ac0ba49666985591106"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "gate": 3,
+  "track": "flagship (gold-vault-game) — curation co-session on the REAL graduate verb",
+  "name": "AI<->human connection — shared-vault curation co-session, mutual effect, genuine policy divergence",
+  "artifact": "examples/gold-game/gold-vault-game.holo",
+  "verb": "examples/gold-game/vault-ops.cjs graduate() — real bronze->gold file move + cael-graduation-v1 sealed receipt (SANDBOX vault)",
+  "verifier": "examples/gold-game/gate-3-curation-verify.mjs",
+  "target": "r3f",
+  "session": {
+    "kind": "single shared deterministic session — rounds over ONE shared bronze pool",
+    "rounds": 5,
+    "deterministic": true,
+    "note": "no RNG; the only wall-clock is inside receipt timestamps, which the tier-state digest ignores (same as vault-ops.stateDigest) -> reproduces byte-for-byte"
+  },
+  "pool": {
+    "seedVaultDigest": "71c67c4391427dbe434107f60c94dc88dd254a6e02992c712ca2f609a357d228",
+    "contest": [
+      {
+        "id": "C.CURATE.001",
+        "value": 5
+      },
+      {
+        "id": "C.CURATE.002",
+        "value": 4
+      },
+      {
+        "id": "C.CURATE.003",
+        "value": 3
+      },
+      {
+        "id": "C.CURATE.004",
+        "value": 2
+      },
+      {
+        "id": "B.GRADUATE.001",
+        "value": 1
+      }
+    ],
+    "valueSignal": "lineage_links (mirrors farm.py lineage-detection promotion)"
+  },
+  "policies": {
+    "human": {
+      "driver": "scripted curation trace (recorded human picks), idiosyncratic order — NOT value-sorted",
+      "trace": [
+        "C.CURATE.001",
+        "C.CURATE.003",
+        "B.GRADUATE.001"
+      ]
+    },
+    "agent": {
+      "driver": "value selection — no script; senses live bronze pool each round, graduates highest-lineage entry",
+      "intendedTopTarget": "C.CURATE.001"
+    },
+    "genuinelyDifferent": true
+  },
+  "mutualEffect": {
+    "sharedPool": "one bronze pool; the human acts first each round and a graduation removes the entry, shrinking the agent value set",
+    "humanTookAgentTopTarget": true,
+    "humanTookTopTargetRound": 0,
+    "mutualEffectRound": 0,
+    "humanGraduations": [
+      {
+        "round": 0,
+        "id": "C.CURATE.001",
+        "fromTier": "bronze",
+        "toTier": "gold"
+      },
+      {
+        "round": 1,
+        "id": "C.CURATE.003",
+        "fromTier": "bronze",
+        "toTier": "gold"
+      },
+      {
+        "round": 2,
+        "id": "B.GRADUATE.001",
+        "fromTier": "bronze",
+        "toTier": "gold"
+      }
+    ],
+    "proof": "the agent's pre-session intended top target (highest-value entry) was graduated by the human first, denying it; the agent then graduated the next-best available entry — its choice set is causally reduced by the human on the REAL curation verb."
+  },
+  "agentReplan": {
+    "replanned": true,
+    "deniedTopTarget": true,
+    "intendedTopTarget": "C.CURATE.001",
+    "firstActualTarget": "C.CURATE.002",
+    "agentGraduations": [
+      {
+        "round": 0,
+        "id": "C.CURATE.002",
+        "fromTier": "bronze",
+        "toTier": "gold"
+      },
+      {
+        "round": 1,
+        "id": "C.CURATE.004",
+        "fromTier": "bronze",
+        "toTier": "gold"
+      }
+    ],
+    "actionTypesObserved": [
+      "graduate",
+      "pass"
+    ],
+    "note": "intendedTopTarget != firstActualTarget proves the agent re-planned BECAUSE the shared entry was taken — the curation analog of the compass denial+re-plan, on graduate()."
+  },
+  "contract": {
+    "spine": "REAL computeStateDigest from packages/engine/src/simulation/hashes.ts (imported via tsx) — same fn SimulationContract pushes on solve()",
+    "function": "computeStateDigest(solver, hashMode)",
+    "algorithm": "sha256",
+    "sharedVaultDigest": "dbf49c77cb5a6766dbc26cfff423aba79521aaf6fb4e50f209b091cae03f0d7f",
+    "finalTiers": {
+      "gold": [
+        "B.GRADUATE.001",
+        "C.CURATE.001",
+        "C.CURATE.002",
+        "C.CURATE.003",
+        "C.CURATE.004",
+        "W.GOLD.534",
+        "W.GOLD.535"
+      ],
+      "bronze": []
+    },
+    "reproducible": "run `node_modules/.bin/tsx examples/gold-game/gate-3-curation-verify.mjs` to re-derive"
+  },
+  "worldModelReceipts": {
+    "count": 5,
+    "digest": "c6ac0a352d406c5be6683968d2f0acd87d969a77ca53ddc0fac71b3b9169563c",
+    "schema": "cael-curation-wmr-v1 (round, sensed{poolSize,topAvailable,intendedTop,intendedTopAvailable}, action{type,target}, result{graduated})",
+    "note": "one WorldModelReceipt per agent curation decision; the AI population emits provenance the human population does not — both hashed by the contract fn."
+  },
+  "aiHumanConnection": {
+    "sameSession": true,
+    "sameVault": true,
+    "sameVerb": true,
+    "sameReceiptSpine": true,
+    "genuinePolicyDivergence": true,
+    "mutualEffect": true,
+    "proof": "one shared session: human (scripted curation trace) and agent (value selection) graduate from ONE shared bronze pool via the real graduate() verb; the human takes the agent’s top-value entry first, denying it; the agent re-plans to the next-best. Real file moves + sealed receipts; both digests via the real contract fn.",
+    "honestScope": "The human picks are a RECORDED/scripted trace (deterministic stand-in for live curation input) and the agent value-model is a hand-authored lineage-descending policy — NOT a learned model or a live operator session. Graduations write to a SANDBOX vault; promotion to the governed D:/GOLD stays founder-gated. What is PROVEN: two genuinely different curation policies, in one shared deterministic session, affecting each other through a shared pool on the REAL graduate verb, with the agent re-planning in response and emitting WorldModelReceipts under the real contract digest. What is NOT yet proven: a live human operator session and a trained curation policy (Gate 5 scope via /embodied). This re-grounds the connection mechanics (proven generically on the Oasis compass, commit 7cf8ef3eb) onto the flagship’s real curation verb."
+  },
+  "core": "6.1.0",
+  "verifiedAt": "2026-05-22T07:55:16.172Z"
+}
