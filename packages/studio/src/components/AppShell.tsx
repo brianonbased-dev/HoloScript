@@ -11,7 +11,9 @@ import {
   Wand2,
   FolderGit2,
   Code2,
+  Coins,
   Globe,
+  Home,
   Users,
   Bot,
   Zap,
@@ -57,12 +59,17 @@ interface NavItem {
 }
 
 const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
-  start: MessageCircle,
-  workspace: Code2,
+  // A4 primary nav (7 destinations)
+  home: Home,
   create: Wand2,
   projects: FolderGit2,
+  network: Globe,
+  earn: Coins,
   operations: Activity,
   settings: Settings,
+  // Parked / lab items — kept so the Record is exhaustive against the union
+  start: MessageCircle,
+  workspace: Code2,
   vibe: Sparkles,
   integrations: Zap,
   agents: Bot,

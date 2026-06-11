@@ -1,9 +1,4 @@
-@page({ route: "/integrations" })
-composition "integrations" {
-  // Shell (breadcrumb) is rendered natively by HoloSurfaceRenderer via
-  // compositions/studio/integrations.hsplus. IntegrationsView.tsx is the host.
-  //
-  // ServiceConnectorPanel stays @slot — irreducible: Lucide icon-tabs,
-  // GitHubOAuthModal, SSE activity stream, Zustand connectorStore mutations.
-  object "IntegrationsView" @slot(component: "IntegrationsView", import: "@/components/integrations/IntegrationsView") {}
+@page {
+  route: "/integrations"
+  redirect: "/settings?tab=integrations"
 }

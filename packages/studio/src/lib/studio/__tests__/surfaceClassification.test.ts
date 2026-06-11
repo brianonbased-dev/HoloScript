@@ -78,30 +78,38 @@ describe('Studio surface classification', () => {
     expect(new Set(classifiedRoutes).size).toBe(classifiedRoutes.length);
   });
 
-  it('keeps default navigation on the account/workbench spine', () => {
+  it('keeps the A4 7-destination primary nav (Home / Create / Projects / Network / Earn / Operations / Settings)', () => {
+    // Settings is a pinned footer item, not in STUDIO_PRIMARY_NAVIGATION_ITEMS —
+    // the 6 items below are the main scroll area; Settings is rendered separately.
     const visibleItems = getVisibleStudioNavigationItems(false);
 
     expect(visibleItems).toEqual(STUDIO_PRIMARY_NAVIGATION_ITEMS);
     expect(visibleItems.map((item) => item.href)).toEqual([
-      '/start',
-      '/workspace',
+      '/',
       '/create',
       '/projects',
+      '/holomesh',
+      '/earn',
+      '/operations',
     ]);
     expect(
       visibleItems.every((item) =>
-        ['core-workbench', 'account-workspace'].includes(item.surfaceClass)
+        ['core-workbench', 'account-workspace', 'holomesh-public', 'lab'].includes(
+          item.surfaceClass
+        )
       )
     ).toBe(true);
   });
 
-  it('exposes lab navigation only when the lab flag is enabled', () => {
-    const visibleItems = getVisibleStudioNavigationItems(true);
+  it('labs flag does not change the visible nav (A4 consolidation — lab items are parked)', () => {
+    // Post-A4: getVisibleStudioNavigationItems always returns STUDIO_PRIMARY_NAVIGATION_ITEMS
+    // regardless of the labs flag. STUDIO_LAB_NAVIGATION_ITEMS are kept for structural
+    // completeness but are no longer appended to the rendered nav.
+    const withLabs = getVisibleStudioNavigationItems(true);
+    const withoutLabs = getVisibleStudioNavigationItems(false);
 
-    expect(visibleItems).toEqual([
-      ...STUDIO_PRIMARY_NAVIGATION_ITEMS,
-      ...STUDIO_LAB_NAVIGATION_ITEMS,
-    ]);
+    expect(withLabs).toEqual(withoutLabs);
+    expect(withLabs).toEqual(STUDIO_PRIMARY_NAVIGATION_ITEMS);
     expect(STUDIO_LAB_NAVIGATION_ITEMS.every((item) => item.navigationLane === 'lab')).toBe(true);
   });
 });

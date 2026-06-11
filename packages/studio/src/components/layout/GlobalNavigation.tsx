@@ -8,8 +8,10 @@ import {
   Bot,
   BookOpen,
   Code2,
+  Coins,
   FolderGit2,
   Globe,
+  Home,
   ImagePlus,
   MessageCircle,
   Settings,
@@ -21,22 +23,25 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import {
-  STUDIO_LAB_NAVIGATION_ITEMS,
   STUDIO_PRIMARY_NAVIGATION_ITEMS,
   STUDIO_SETTINGS_NAVIGATION_ITEM,
-  isStudioLabNavigationEnabled,
   type StudioNavigationId,
   type StudioNavigationItemDefinition,
 } from '@/lib/studio/surfaceClassification';
 import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 
 const ICON_BY_NAV_ID: Record<StudioNavigationId, LucideIcon> = {
-  start: MessageCircle,
-  workspace: Code2,
+  // A4 primary nav (7 destinations)
+  home: Home,
   create: Wand2,
   projects: FolderGit2,
+  network: Globe,
+  earn: Coins,
   operations: Activity,
   settings: Settings,
+  // Parked / lab items — kept so the Record is exhaustive against the union
+  start: MessageCircle,
+  workspace: Code2,
   vibe: Sparkles,
   integrations: Zap,
   agents: Bot,
@@ -96,11 +101,10 @@ function SectionDivider() {
 
 export function GlobalNavigation() {
   const pathname = usePathname();
-  const showLabs = isStudioLabNavigationEnabled();
   const { data: session } = useSession();
   const isFounder = isFounderWorkspaceIdentity(session?.user);
-  // Founder-only operate surfaces (e.g. /operations) are hidden from the nav
-  // for everyone else; the action endpoints enforce requireFounder server-side.
+  // Operations (/operations) is founder-gated; action endpoints enforce
+  // requireFounder server-side — nav hides the item for non-founders.
   const primaryItems = isFounder
     ? STUDIO_PRIMARY_NAVIGATION_ITEMS
     : STUDIO_PRIMARY_NAVIGATION_ITEMS.filter((i) => i.id !== 'operations');
@@ -120,22 +124,12 @@ export function GlobalNavigation() {
         </span>
       </div>
 
-      {/* Nav Links */}
+      {/* Nav Links — A4 IA: Home / Create / Projects / Network / Earn / Operations */}
       <div className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
         <NavSection items={primaryItems} pathname={pathname} />
-
-        {showLabs ? (
-          <>
-            <SectionDivider />
-            <div className="px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-              Labs
-            </div>
-            <NavSection items={STUDIO_LAB_NAVIGATION_ITEMS} pathname={pathname} />
-          </>
-        ) : null}
       </div>
 
-      {/* Settings / Footer */}
+      {/* Settings — pinned footer item */}
       <div className="p-3 border-t border-slate-800">
         <Link
           href={STUDIO_SETTINGS_NAVIGATION_ITEM.href}

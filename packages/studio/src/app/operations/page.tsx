@@ -3,6 +3,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
+import { FleetPanel } from '@/components/panels/FleetPanel';
+import { PlatformAdminPanel } from '@/components/operations/PlatformAdminPanel';
+import { AbsorbAdminPanel } from '@/components/operations/AbsorbAdminPanel';
 
 /**
  * /operations — Operations Console (D.081 brick-1, read-only).
@@ -214,9 +217,12 @@ function Sparkline({
   );
 }
 
+type OpsTab = 'infra' | 'admin' | 'absorb' | 'fleet';
+
 export default function OperationsPage() {
   const { data: session, status } = useSession();
   const isFounder = isFounderWorkspaceIdentity(session?.user);
+  const [activeTab, setActiveTab] = useState<OpsTab>('infra');
   const [teamId, setTeamId] = useState<string>(DEFAULT_TEAM);
   const [lotus, setLotus] = useState<LotusStatus | null>(null);
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -392,22 +398,59 @@ export default function OperationsPage() {
     );
   }
 
+  const opsTabs: { key: OpsTab; label: string }[] = [
+    { key: 'infra', label: 'Infra' },
+    { key: 'admin', label: 'Admin' },
+    { key: 'absorb', label: 'Absorb' },
+    { key: 'fleet', label: 'Fleet' },
+  ];
+
   return (
-    <div className="h-full overflow-y-auto p-6 text-studio-text">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-xl font-bold">Operations</h1>
-          <p className="text-xs text-studio-muted">
-            Live fleet · CI · Lotus · board — the infra that used to live only in CLI/cron.
-            Read-only (brick-1).
-          </p>
+    <div className="h-full flex flex-col text-studio-text">
+      {/* Top header + tab bar */}
+      <div className="px-6 pt-5 pb-0 border-b border-studio-border shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-xl font-bold">Operations</h1>
+            <p className="text-xs text-studio-muted">
+              Founder operate surface — Infra · Admin · Absorb · Fleet (D.081).
+            </p>
+          </div>
+          {activeTab === 'infra' && (
+            <div className="text-right text-[10px] text-studio-muted">
+              <div>team {teamId}</div>
+              <div>updated {lastTick || '…'} · 15s poll</div>
+            </div>
+          )}
         </div>
-        <div className="text-right text-[10px] text-studio-muted">
-          <div>team {teamId}</div>
-          <div>updated {lastTick || '…'} · 15s poll</div>
+        <div className="flex gap-1 -mb-px">
+          {opsTabs.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`px-4 py-1.5 text-xs font-medium rounded-t border-b-2 transition-colors ${
+                activeTab === key
+                  ? 'border-studio-accent text-studio-text'
+                  : 'border-transparent text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
+      {/* Tab panels */}
+      {activeTab === 'admin' && <div className="flex-1 overflow-hidden"><PlatformAdminPanel /></div>}
+      {activeTab === 'absorb' && <div className="flex-1 overflow-hidden"><AbsorbAdminPanel /></div>}
+      {activeTab === 'fleet' && (
+        <div className="flex-1 overflow-hidden p-4">
+          <FleetPanel />
+        </div>
+      )}
+
+      {activeTab === 'infra' && (
+      <div className="flex-1 overflow-y-auto p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* LOTUS GATE */}
         <Card
@@ -844,6 +887,8 @@ export default function OperationsPage() {
         D.081 brick-1 · read-only. Next: founder-gated actions (provision worker, dispatch CI, claim
         task) and single-sourcing the Lotus gate so the public bloom can&apos;t overclaim past it.
       </p>
+      </div>
+      )}
     </div>
   );
 }

@@ -3,30 +3,29 @@
 /**
  * Projects — /projects
  *
- * **Native body**: the full page surface (header, repo list, empty-states,
- * CTA) is defined in `compositions/studio/projects.hsplus` and rendered by
- * HoloSurfaceRenderer.  ProjectsView is reduced to its irreducible host
- * responsibilities:
+ * Two-tab layout:
+ *   - "Projects" — GitHub repo browser rendered via HoloSurfaceRenderer
+ *     (composition: compositions/studio/projects.hsplus)
+ *   - "Repos" — Agent workbench (workspace import, git ops, daemon jobs,
+ *     board view, absorb diff). Previously lived at /workspace — moved here
+ *     as part of the A4 IA consolidation (Studio A4 phase).
  *
- *   1. Load repo data via useGitHubRepos (the data source — GitHub API).
- *   2. Bridge data into composition state via setState() on every update.
- *   3. Handle emits that require React side-effects:
- *      - "open"   → open the ImportRepoWizard overlay
- *      - "signin" → trigger GitHub OAuth via signIn('github')
- *      - "back"   → navigate back (handled by Link in the composition)
+ * Host responsibilities for the Projects tab:
+ *   1. Load repo data via useGitHubRepos.
+ *   2. Bridge data into composition state on every update.
+ *   3. Handle emits: "open" → ImportRepoWizard, "signin" → GitHub OAuth.
  *
- * This is the template conversion for the other 9 holo-pages whose page.holo
- * is currently just @slot(HandWrittenComponent).
- *
- * @see compositions/studio/projects.hsplus — the source of truth for layout / UI
+ * @see compositions/studio/projects.hsplus — layout / UI source of truth
  * @module projects/ProjectsView
  */
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { signIn } from 'next-auth/react';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import { useGitHubRepos } from '@/hooks/useGitHubRepos';
+import { ReposTab } from './ReposTab';
 
 // Lazy-load the wizard (large) — only when the user starts an import.
 const ImportRepoWizard = dynamic(
@@ -35,7 +34,14 @@ const ImportRepoWizard = dynamic(
   { ssr: false }
 );
 
+type ProjectsTab = 'projects' | 'repos';
+
 export function ProjectsView() {
+  const searchParams = useSearchParams();
+  const initialTab: ProjectsTab =
+    searchParams?.get('tab') === 'repos' ? 'repos' : 'projects';
+  const [activeTab, setActiveTab] = useState<ProjectsTab>(initialTab);
+
   const { repos, isLoading, error, search, setSearch, isConnected, connectionError } =
     useGitHubRepos();
 
@@ -65,27 +71,60 @@ export function ProjectsView() {
   };
 
   return (
-    <>
-      {!composition.loading && !composition.error ? (
-        <HoloSurfaceRenderer
-          nodes={composition.nodes}
-          state={composition.state}
-          computed={composition.computed}
-          templates={composition.templates}
-          onEmit={handleEmit}
-          className="holo-surface-projects min-h-screen"
-        />
-      ) : (
-        // Fallback while composition loads — minimal shell keeps layout stable
-        <div className="min-h-screen p-8">
-          <div className="mx-auto max-w-3xl">
-            <h1 className="text-2xl font-bold">My Repositories</h1>
-            <p className="text-sm text-studio-muted mt-1">
-              Absorb a GitHub repo into a HoloScript workspace.
-            </p>
-          </div>
-        </div>
+    <div className="flex min-h-screen flex-col">
+      {/* Tab bar */}
+      <div className="flex shrink-0 items-center gap-1 border-b border-slate-800 bg-slate-950 px-4 py-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('projects')}
+          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === 'projects'
+              ? 'bg-slate-700 text-slate-50'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Projects
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('repos')}
+          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === 'repos'
+              ? 'bg-slate-700 text-slate-50'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Repos
+        </button>
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'projects' && (
+        <>
+          {!composition.loading && !composition.error ? (
+            <HoloSurfaceRenderer
+              nodes={composition.nodes}
+              state={composition.state}
+              computed={composition.computed}
+              templates={composition.templates}
+              onEmit={handleEmit}
+              className="holo-surface-projects min-h-[calc(100vh-48px)]"
+            />
+          ) : (
+            // Fallback while composition loads — minimal shell keeps layout stable
+            <div className="flex-1 p-8">
+              <div className="mx-auto max-w-3xl">
+                <h1 className="text-2xl font-bold">My Repositories</h1>
+                <p className="mt-1 text-sm text-studio-muted">
+                  Absorb a GitHub repo into a HoloScript workspace.
+                </p>
+              </div>
+            </div>
+          )}
+        </>
       )}
+
+      {activeTab === 'repos' && <ReposTab />}
 
       {showImport && (
         <ImportRepoWizard
@@ -96,6 +135,6 @@ export function ProjectsView() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }

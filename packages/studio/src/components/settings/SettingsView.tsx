@@ -25,10 +25,12 @@
 
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
+import { IntegrationsView } from '@/components/integrations/IntegrationsView';
 
 // ── Types (kept host-side; not exposed to composition) ─────────────────────────
 
@@ -46,8 +48,23 @@ type OracleStatus = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
+type SettingsTab = 'profile' | 'integrations' | 'api-keys';
+
+const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'profile', label: 'Profile' },
+  { id: 'integrations', label: 'Integrations' },
+  { id: 'api-keys', label: 'API Keys' },
+];
+
 export function SettingsView() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+
+  // ── Tab state — driven by ?tab= query param so /integrations redirect lands correctly
+  const tabParam = searchParams.get('tab') as SettingsTab | null;
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    tabParam && ['profile', 'integrations', 'api-keys'].includes(tabParam) ? tabParam : 'profile'
+  );
 
   // ── Profile form state (React-controlled; kept in host) ────────────────────
   const [displayName, setDisplayName] = useState('');
@@ -247,88 +264,155 @@ export function SettingsView() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <>
-      {!composition.loading && !composition.error ? (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {/* Tab bar — Profile / Integrations / API Keys */}
+      <div
+        style={{
+          borderBottom: '1px solid #2a2a2a',
+          display: 'flex',
+          gap: 0,
+          padding: '0 24px',
+          background: '#111',
+          flexShrink: 0,
+        }}
+      >
+        {SETTINGS_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '14px 20px',
+              fontSize: 14,
+              fontFamily: 'system-ui',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              borderBottom: activeTab === tab.id ? '2px solid #10b981' : '2px solid transparent',
+              color: activeTab === tab.id ? '#e2e8f0' : '#64748b',
+              fontWeight: activeTab === tab.id ? 500 : 400,
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab panels */}
+      {activeTab === 'profile' && (
         <>
-          <HoloSurfaceRenderer
-            nodes={composition.nodes}
-            state={composition.state}
-            computed={composition.computed}
-            templates={composition.templates}
-            onEmit={handleEmit}
-            className="holo-surface-settings"
-          />
-          {/* Form inputs overlay — kept in host because HoloSurfaceRenderer
-              renders inputs as readOnly; controlled state lives here */}
-          {composition.state['showContent'] && (
+          {!composition.loading && !composition.error ? (
+            <>
+              <HoloSurfaceRenderer
+                nodes={composition.nodes}
+                state={composition.state}
+                computed={composition.computed}
+                templates={composition.templates}
+                onEmit={handleEmit}
+                className="holo-surface-settings"
+              />
+              {/* Form inputs overlay — kept in host because HoloSurfaceRenderer
+                  renders inputs as readOnly; controlled state lives here */}
+              {composition.state['showContent'] && (
+                <div
+                  style={{
+                    maxWidth: 600,
+                    margin: '0 auto',
+                    padding: '0 24px',
+                    fontFamily: 'system-ui',
+                  }}
+                >
+                  <label style={{ display: 'block', marginBottom: 12 }}>
+                    <span
+                      style={{ display: 'block', marginBottom: 4, fontSize: 13, color: '#888' }}
+                    >
+                      Display Name
+                    </span>
+                    <input
+                      style={inputStyle}
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your display name"
+                    />
+                  </label>
+
+                  <label style={{ display: 'block', marginBottom: 12 }}>
+                    <span
+                      style={{ display: 'block', marginBottom: 4, fontSize: 13, color: '#888' }}
+                    >
+                      Bio
+                    </span>
+                    <textarea
+                      style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Tell us about yourself"
+                    />
+                  </label>
+
+                  <label style={{ display: 'block', marginBottom: 16 }}>
+                    <span
+                      style={{ display: 'block', marginBottom: 4, fontSize: 13, color: '#888' }}
+                    >
+                      Website
+                    </span>
+                    <input
+                      style={inputStyle}
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://yoursite.com"
+                    />
+                  </label>
+                </div>
+              )}
+            </>
+          ) : (
+            // Fallback while composition loads — minimal shell keeps layout stable
             <div
-              style={{
-                maxWidth: 600,
-                margin: '0 auto',
-                padding: '0 24px',
-                fontFamily: 'system-ui',
-              }}
+              style={{ maxWidth: 600, margin: '0 auto', padding: 24, fontFamily: 'system-ui' }}
             >
-              <label style={{ display: 'block', marginBottom: 12 }}>
-                <span style={{ display: 'block', marginBottom: 4, fontSize: 13, color: '#888' }}>
-                  Display Name
-                </span>
-                <input
-                  style={inputStyle}
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Your display name"
-                />
-              </label>
+              <h1 style={{ fontSize: 24, marginBottom: 24 }}>Settings</h1>
 
-              <label style={{ display: 'block', marginBottom: 12 }}>
-                <span style={{ display: 'block', marginBottom: 4, fontSize: 13, color: '#888' }}>
-                  Bio
-                </span>
-                <textarea
-                  style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Tell us about yourself"
-                />
-              </label>
+              {status === 'loading' && (
+                <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Loading...</div>
+              )}
 
-              <label style={{ display: 'block', marginBottom: 16 }}>
-                <span style={{ display: 'block', marginBottom: 4, fontSize: 13, color: '#888' }}>
-                  Website
-                </span>
-                <input
-                  style={inputStyle}
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                  placeholder="https://yoursite.com"
-                />
-              </label>
+              {status !== 'loading' && !session?.user && (
+                <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
+                  Please sign in to access settings.
+                </div>
+              )}
             </div>
           )}
         </>
-      ) : (
-        // Fallback while composition loads — minimal shell keeps layout stable
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: 24, fontFamily: 'system-ui' }}>
-          <h1 style={{ fontSize: 24, marginBottom: 24 }}>Settings</h1>
+      )}
 
-          {status === 'loading' && (
-            <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>Loading...</div>
-          )}
-
-          {status !== 'loading' && !session?.user && (
-            <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
-              Please sign in to access settings.
-            </div>
-          )}
+      {activeTab === 'integrations' && (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <IntegrationsView />
         </div>
       )}
 
-      {session?.user?.id && (
-        <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 24px 40px' }}>
+      {activeTab === 'api-keys' && session?.user?.id && (
+        <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 24px 40px' }}>
           <BrittneyAPIKeysPanel />
         </div>
       )}
-    </>
+
+      {activeTab === 'api-keys' && !session?.user?.id && (
+        <div
+          style={{
+            maxWidth: 600,
+            margin: '0 auto',
+            padding: 40,
+            textAlign: 'center',
+            color: '#888',
+            fontFamily: 'system-ui',
+          }}
+        >
+          Please sign in to manage API keys.
+        </div>
+      )}
+    </div>
   );
 }
