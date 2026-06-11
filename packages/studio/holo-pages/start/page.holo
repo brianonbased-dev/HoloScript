@@ -1,12 +1,4 @@
-@page({ route: "/start" })
-composition "start" {
-  // @slot intentional — BrittneyFullScreen is fully irreducible:
-  //   - Streaming AI responses (streamAssistant)
-  //   - Voice hooks (useAssistantVoice)
-  //   - Unified history (useUnifiedBrittneyHistory)
-  //   - Scene graph stores (useSceneGraphStore, useSceneStore)
-  //   - Lazy-loaded overlays (FirstLaunchTutorial, OnboardingWizard)
-  // None are expressible in HoloSurfaceRenderer without full component support.
-  // /create (R3F + Monaco) is the other permanent @slot surface.
-  object "BrittneyFullScreen" @slot(component: "BrittneyFullScreen", import: "@/components/ai/BrittneyFullScreen") {}
+@page {
+  route: "/start"
+  redirect: "/"
 }

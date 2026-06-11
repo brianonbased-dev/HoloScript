@@ -1,22 +1,66 @@
 'use client';
 
 /**
- * HoloScript Studio -- Landing Page v2
+ * HoloScript Studio — Prompt-First Landing (Lane A1)
  *
- * Zero-click law: ONE primary action per screen.
- * Flow: Hero -> Live code demo -> How it works -> Stats -> Get Started -> Targets -> Footer
+ * CADAM-style hero: describe → Brittney scaffolds → compile to any platform.
+ * Intent chips (World / Part / App) set the creation mode.
+ * Auth-gated on first SEND, not on view — matching /start behavior.
  *
- * Removed: redundant AbsorbInput (competed with Get Started CTA), inline industry chips
- * (moved to wizard), secondary nav (already in layout).
+ * Removed: marketing wall, redundant OnboardingWizard hero bloat.
+ * Preserved: doc links in footer, compile targets strip, code demo.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useSession, signIn, signOut } from 'next-auth/react';
-import { OnboardingWizard } from '@/components/wizard/OnboardingWizard';
-import { Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSession, signIn } from 'next-auth/react';
+import dynamic from 'next/dynamic';
+import { Send, Globe, Box, Code2, ArrowRight, Loader2 } from 'lucide-react';
 
-// -- Data -------------------------------------------------------------------
+// ── Lazy-loaded heavy components ─────────────────────────────────────────────
+
+const ParametricPartDemo = dynamic(
+  () =>
+    import('@/components/landing/ParametricPartDemo').then((m) => ({
+      default: m.ParametricPartDemo,
+    })),
+  { ssr: false, loading: () => <PartDemoSkeleton /> }
+);
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type CreationMode = 'world' | 'part' | 'app';
+
+interface IntentChip {
+  mode: CreationMode;
+  label: string;
+  icon: React.ReactNode;
+  placeholder: string;
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+const INTENT_CHIPS: IntentChip[] = [
+  {
+    mode: 'world',
+    label: 'World',
+    icon: <Globe className="h-4 w-4" />,
+    placeholder: 'Describe a world, scene, or simulation...',
+  },
+  {
+    mode: 'part',
+    label: 'Part',
+    icon: <Box className="h-4 w-4" />,
+    placeholder: 'Describe a parametric 3D part to manufacture...',
+  },
+  {
+    mode: 'app',
+    label: 'App',
+    icon: <Code2 className="h-4 w-4" />,
+    placeholder: 'Describe an app, service, or digital twin...',
+  },
+];
 
 const COMPILE_TARGETS = [
   { name: 'Unity', category: 'Game Engine', color: 'text-green-400' },
@@ -42,14 +86,10 @@ const HOLO_EXAMPLE = `composition "Dashboard" {
     primary: "#1e3a5f"
     accent: "#3b82f6"
   }
-
   object "StatusPanel" {
     @grabbable
     @physics(mass: 1)
-    @info_popup
-    @label(text: "System Health")
     @gauge(value: 99.7, unit: "%")
-    @texture(src: "panel.png")
     @realtime(interval: 5000)
     geometry: "plane"
     position: [0, 1.5, 0]
@@ -57,16 +97,27 @@ const HOLO_EXAMPLE = `composition "Dashboard" {
 }`;
 
 const TARGET_OUTPUTS: Record<string, { label: string; snippet: string }> = {
+  r3f: {
+    label: 'React Three Fiber',
+    snippet: `export function StatusPanel() {
+  return (
+    <RigidBody mass={1}>
+      <mesh position={[0, 1.5, 0]}>
+        <planeGeometry args={[1.6, 0.9]} />
+        <meshStandardMaterial />
+      </mesh>
+      <GaugeOverlay value={99.7} unit="%" />
+    </RigidBody>
+  );
+}`,
+  },
   unity: {
     label: 'Unity C#',
     snippet: `public class StatusPanel : MonoBehaviour {
   [SerializeField] float mass = 1f;
-  Rigidbody rb;
   void Start() {
-    rb = gameObject.AddComponent<Rigidbody>();
+    var rb = gameObject.AddComponent<Rigidbody>();
     rb.mass = mass;
-    // @grabbable -> XRGrabInteractable
-    // @physics -> Rigidbody + BoxCollider
     // @realtime -> WebSocket polling
   }
 }`,
@@ -75,123 +126,211 @@ const TARGET_OUTPUTS: Record<string, { label: string; snippet: string }> = {
     label: 'URDF (ROS 2)',
     snippet: `<robot name="StatusPanel">
   <link name="base_link">
-    <inertial>
-      <mass value="1.0"/>
-      <origin xyz="0 1.5 0"/>
-    </inertial>
+    <inertial><mass value="1.0"/></inertial>
     <visual>
-      <geometry><box size="1.6 0.9 0.02"/></geometry>
+      <geometry>
+        <box size="1.6 0.9 0.02"/>
+      </geometry>
     </visual>
-    <collision>
-      <geometry><box size="1.6 0.9 0.02"/></geometry>
-    </collision>
   </link>
 </robot>`,
   },
-  r3f: {
-    label: 'React Three Fiber',
-    snippet: `export function StatusPanel() {
-  return (
-    <RigidBody mass={1}>
-      <mesh position={[0, 1.5, 0]}>
-        <planeGeometry args={[1.6, 0.9]} />
-        <meshStandardMaterial
-          map={useTexture("panel.png")}
-        />
-      </mesh>
-      <InfoPopup text="System Health" />
-      <GaugeOverlay value={99.7} unit="%" />
-    </RigidBody>
-  );
-}`,
-  },
-  'native-2d': {
-    label: 'Native 2D (HTML)',
-    snippet: `<div class="status-panel">
-  <img src="panel.png" alt="System Health" />
-  <h3>System Health</h3>
-  <div class="gauge" data-value="99.7">
-    <span>99.7%</span>
-  </div>
-  <span class="status">Operational</span>
-</div>`,
-  },
 };
 
-const STEPS = [
-  {
-    number: '1',
-    title: 'Describe or import',
-    description: 'Paste a GitHub URL, upload data, or describe your business in plain language.',
-  },
-  {
-    number: '2',
-    title: 'AI builds your simulation',
-    description: 'Absorb scans your code into a knowledge graph. Brittney generates compositions.',
-  },
-  {
-    number: '3',
-    title: 'Compile to any platform',
-    description: 'One description becomes Unity, VisionOS, web, robotics, or 36 other targets.',
-  },
-] as const;
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 
-// -- Components -------------------------------------------------------------
-
-function AuthBar() {
-  const { data: session, status } = useSession();
-  if (status === 'loading') return null;
-
+function PartDemoSkeleton() {
   return (
-    <div className="fixed top-0 right-0 p-4 z-50">
-      {session ? (
-        <div className="flex items-center gap-3">
-          <Link href="/absorb" className="text-white/60 hover:text-white text-sm transition-colors">
-            Dashboard
-          </Link>
-          <span className="text-white/30">|</span>
-          <span className="text-white/50 text-sm">{session.user?.name || session.user?.email}</span>
-          <button
-            onClick={() => signOut()}
-            className="text-white/40 hover:text-white/70 text-sm transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => signIn('github')}
-          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-lg text-white text-sm transition-all"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-          </svg>
-          Sign in with GitHub
-        </button>
-      )}
+    <div className="w-full rounded-2xl border border-white/10 bg-[#0d0f1a] h-64 flex items-center justify-center">
+      <div className="w-6 h-6 rounded-full border-2 border-white/10 border-t-white/30 animate-spin" />
     </div>
   );
 }
 
-function CodeDemo() {
-  const [target, setTarget] = useState<string>('r3f');
-  const output = TARGET_OUTPUTS[target] || TARGET_OUTPUTS['r3f'];
+// ── Prompt hero ───────────────────────────────────────────────────────────────
+
+function PromptHero() {
+  const router = useRouter();
+  const { status } = useSession();
+  const [mode, setMode] = useState<CreationMode>('world');
+  const [prompt, setPrompt] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const activeChip = INTENT_CHIPS.find((c) => c.mode === mode) ?? INTENT_CHIPS[0]!;
+
+  const handleSend = useCallback(() => {
+    const text = prompt.trim();
+    if (!text) return;
+
+    // Store prompt for the target page to pick up
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('studio.landing.prompt', text);
+    }
+
+    if (status !== 'authenticated') {
+      // Auth-gate on first send: sign in, then redirect to create
+      void signIn('github', {
+        callbackUrl: `/create?mode=${mode}&prompt=${encodeURIComponent(text)}`,
+      });
+      return;
+    }
+
+    router.push(`/create?mode=${mode}`);
+  }, [prompt, mode, status, router]);
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   return (
-    <section className="w-full max-w-5xl mx-auto">
+    <section className="w-full max-w-2xl mx-auto space-y-4">
+      {/* Title */}
+      <div className="text-center space-y-2 pt-8">
+        <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+          HoloScript Studio
+        </h1>
+        <p className="text-lg text-white/50">
+          Describe it. Build it. Compile to any platform.
+        </p>
+      </div>
+
+      {/* Intent chips */}
+      <div className="flex items-center justify-center gap-2">
+        {INTENT_CHIPS.map((chip) => (
+          <button
+            key={chip.mode}
+            onClick={() => {
+              setMode(chip.mode);
+              inputRef.current?.focus();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all border ${
+              mode === chip.mode
+                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                : 'text-white/40 border-white/10 hover:text-white/70 hover:border-white/20 bg-white/[0.02]'
+            }`}
+          >
+            {chip.icon}
+            {chip.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Prompt input */}
+      <div className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-lg shadow-black/30 transition-colors focus-within:border-indigo-500/30">
+        <textarea
+          ref={inputRef}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder={activeChip.placeholder}
+          rows={3}
+          className="w-full resize-none bg-transparent px-4 py-3.5 pr-16 text-sm text-white placeholder-white/20 outline-none"
+          aria-label="Describe what you want to build"
+        />
+        <button
+          onClick={handleSend}
+          disabled={!prompt.trim()}
+          className="absolute bottom-3 right-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 p-2.5 text-white transition-all shadow disabled:opacity-20 disabled:hover:bg-indigo-600"
+          aria-label="Send prompt"
+        >
+          <Send className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Sub-CTA row */}
+      <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+        <Link
+          href="/start"
+          className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
+        >
+          Chat with Brittney
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+        <span className="text-white/10">·</span>
+        <Link
+          href="/playground"
+          className="text-white/40 hover:text-white/70 transition-colors"
+        >
+          Playground (no sign-in)
+        </Link>
+        <span className="text-white/10">·</span>
+        <Link
+          href="/absorb"
+          className="text-white/40 hover:text-white/70 transition-colors"
+        >
+          Import repo
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+// ── Recent projects (signed-in users only) ────────────────────────────────────
+
+interface ProjectStub {
+  id: string;
+  name: string;
+  updatedAt: string;
+}
+
+function RecentProjects() {
+  const { status } = useSession();
+  const [projects, setProjects] = useState<ProjectStub[]>([]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    fetch('/api/projects')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { projects?: ProjectStub[] } | null) => {
+        if (data?.projects) setProjects(data.projects.slice(0, 4));
+      })
+      .catch(() => {});
+  }, [status]);
+
+  if (projects.length === 0) return null;
+
+  return (
+    <section className="w-full max-w-2xl mx-auto">
+      <p className="text-white/30 text-xs mb-2 uppercase tracking-wider">Recent projects</p>
+      <div className="grid grid-cols-2 gap-2">
+        {projects.map((p) => (
+          <Link
+            key={p.id}
+            href={`/create?projectId=${p.id}`}
+            className="rounded-xl border border-white/8 bg-white/[0.02] px-3 py-2.5 hover:border-white/15 hover:bg-white/[0.04] transition-all"
+          >
+            <p className="text-white/80 text-sm truncate">{p.name}</p>
+            <p className="text-white/30 text-xs mt-0.5">
+              {new Date(p.updatedAt).toLocaleDateString()}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Code demo ─────────────────────────────────────────────────────────────────
+
+function CodeDemo() {
+  const [target, setTarget] = useState<string>('r3f');
+  const output = TARGET_OUTPUTS[target] ?? TARGET_OUTPUTS['r3f']!;
+
+  return (
+    <section className="w-full max-w-4xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Input */}
         <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
             <span className="text-white/50 text-xs font-mono">store.holo</span>
             <span className="text-emerald-400/60 text-xs">input</span>
           </div>
-          <pre className="p-4 text-sm font-mono text-white/80 overflow-x-auto leading-relaxed">
+          <pre className="p-4 text-xs font-mono text-white/70 overflow-x-auto leading-relaxed">
             <code>{HOLO_EXAMPLE}</code>
           </pre>
         </div>
-
-        {/* Output */}
         <div className="rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/[0.02]">
             <div className="flex gap-1">
@@ -211,70 +350,31 @@ function CodeDemo() {
             </div>
             <span className="text-blue-400/60 text-xs">output</span>
           </div>
-          <pre className="p-4 text-sm font-mono text-white/80 overflow-x-auto leading-relaxed">
+          <pre className="p-4 text-xs font-mono text-white/70 overflow-x-auto leading-relaxed">
             <code>{output.snippet}</code>
           </pre>
         </div>
       </div>
-      <p className="text-center text-white/30 text-xs mt-3">
+      <p className="text-center text-white/25 text-xs mt-3">
         Same description. Different target. The compiler carries the platform knowledge.
       </p>
     </section>
   );
 }
 
-function HowItWorks() {
-  return (
-    <section className="w-full max-w-3xl mx-auto">
-      <h2 className="text-center text-white/50 text-sm font-medium mb-8 uppercase tracking-wider">
-        How it works
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {STEPS.map((step) => (
-          <div key={step.number} className="text-center">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-white/10 bg-white/5 text-white/60 text-sm font-bold mb-3">
-              {step.number}
-            </div>
-            <h3 className="text-white font-medium text-sm mb-1">{step.title}</h3>
-            <p className="text-white/40 text-xs leading-relaxed">{step.description}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function StatsStrip() {
-  return (
-    <div className="flex flex-wrap justify-center gap-8 text-sm">
-      {[
-        { value: 'Live', label: 'MCP Health' },
-        { value: '.holo', label: 'Source' },
-        { value: 'Web/XR', label: 'Targets' },
-        { value: 'AI', label: 'Agents' },
-        { value: 'Open', label: 'Packages' },
-        { value: 'Docs', label: 'Guides' },
-      ].map((s) => (
-        <div key={s.label} className="text-center">
-          <div className="text-white font-bold text-lg">{s.value}</div>
-          <div className="text-white/30 text-xs">{s.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+// ── Compile targets ───────────────────────────────────────────────────────────
 
 function CompileTargetStrip() {
   return (
     <section className="w-full max-w-4xl mx-auto">
-      <h2 className="text-center text-white/50 text-sm font-medium mb-4 uppercase tracking-wider">
+      <h2 className="text-center text-white/40 text-xs font-medium mb-4 uppercase tracking-wider">
         Compilation Targets
       </h2>
       <div className="flex flex-wrap justify-center gap-2">
         {COMPILE_TARGETS.map((t) => (
           <span
             key={t.name}
-            className={`px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-xs ${t.color}`}
+            className={`px-2.5 py-1 rounded-lg border border-white/5 bg-white/[0.02] text-xs ${t.color}`}
             title={t.category}
           >
             {t.name}
@@ -285,11 +385,31 @@ function CompileTargetStrip() {
   );
 }
 
-// -- Main Page --------------------------------------------------------------
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+function Footer() {
+  return (
+    <footer className="w-full max-w-4xl mx-auto flex flex-wrap justify-center gap-x-6 gap-y-2 text-white/20 text-xs pb-8">
+      <Link href="/docs" className="hover:text-white/40 transition-colors">
+        Docs
+      </Link>
+      <Link href="/holomesh/discover" className="hover:text-white/40 transition-colors">
+        HoloMesh
+      </Link>
+      <Link href="/registry" className="hover:text-white/40 transition-colors">
+        Registry
+      </Link>
+      <Link href="/playground" className="hover:text-white/40 transition-colors">
+        Playground
+      </Link>
+      <span>HoloScript — Open platform for spatial computing</span>
+    </footer>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [showWizard, setShowWizard] = useState(false);
-
   // Mark as returning on first visit (used by /start to detect returning users)
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -298,72 +418,32 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="min-h-screen flex flex-col items-center px-4 py-16 gap-16 bg-gradient-to-b from-[#0a0a1a] via-[#0d1117] to-[#0a0a1a]">
-      <AuthBar />
-      {showWizard && <OnboardingWizard onClose={() => setShowWizard(false)} />}
+    <main className="min-h-screen flex flex-col items-center px-4 gap-14 bg-gradient-to-b from-[#0a0a1a] via-[#0d1117] to-[#0a0a1a]">
+      {/* Prompt hero with intent chips */}
+      <PromptHero />
 
-      {/* Hero */}
-      <section className="text-center space-y-4 max-w-3xl pt-8">
-        <h1 className="text-5xl font-bold text-white tracking-tight">HoloScript Studio</h1>
-        <p className="text-xl text-white/60">
-          One language. Every platform. Describe it, import it, or build from scratch.
+      {/* Recent projects (signed-in only) */}
+      <RecentProjects />
+
+      {/* CADAM-style parametric part demo */}
+      <section className="w-full max-w-2xl mx-auto">
+        <h2 className="text-center text-white/40 text-xs font-medium mb-4 uppercase tracking-wider">
+          Live Manufacturing Demo
+        </h2>
+        <p className="text-center text-white/25 text-xs mb-4">
+          Adjust sliders — mesh updates in real time via the manufacturing API.
         </p>
-        {/* Primary CTA -- Brittney-first experience */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/vibe"
-            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-purple-600/20 flex items-center gap-2"
-          >
-            Vibe Coding Mode
-            <Sparkles className="w-5 h-5" />
-          </Link>
-          <button
-            onClick={() => setShowWizard(true)}
-            className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-emerald-600/20 hidden sm:block"
-          >
-            Import
-          </button>
-          <Link
-            href="/scan-room"
-            className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-medium text-lg transition-all shadow-lg shadow-indigo-600/20"
-          >
-            HoloMap
-          </Link>
-          <Link
-            href="/playground"
-            className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 rounded-xl text-white/80 hover:text-white font-medium text-lg transition-all"
-          >
-            Playground
-          </Link>
-        </div>
-        <p className="text-white/30 text-sm mt-1">
-          Free tier included. No credit card required.{' '}
-          <Link
-            href="/playground"
-            className="text-white/50 hover:text-white/80 underline-offset-2 hover:underline"
-          >
-            Try the playground without signing in
-          </Link>
-          .
-        </p>
+        <ParametricPartDemo />
       </section>
 
-      {/* Live code demo -- the pitch */}
+      {/* Live code demo */}
       <CodeDemo />
-
-      {/* How it works -- replaces scattered noise */}
-      <HowItWorks />
-
-      {/* Stats -- real numbers */}
-      <StatsStrip />
 
       {/* Compile targets */}
       <CompileTargetStrip />
 
-      {/* Footer */}
-      <footer className="text-white/20 text-xs">
-        HoloScript v7 -- Open platform for spatial computing
-      </footer>
+      {/* Footer with doc links */}
+      <Footer />
     </main>
   );
 }

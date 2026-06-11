@@ -80,16 +80,23 @@ import {
   Pencil,
   PaintBucket,
   Shield,
+  ChevronUp,
+  ChevronDown,
+  Globe,
+  Cpu,
+  AppWindow,
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
 import { RightRailPanelHost } from '@/components/panels/RightRailPanelHost';
-import { ResponsiveStudioLayout } from '@/components/layouts/ResponsiveStudioLayout';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
 import { UXCommandPalette, createStudioPublishingCommands } from '@/core-ui/UXCommandPalette';
 import { runStudioCommand } from '@/lib/studio/commandRegistry';
 import type { StudioViewCommandId } from '@/lib/studio/viewRegistry';
+import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
+import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
+import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -349,10 +356,6 @@ const ParticlePanel = dynamic(
 );
 
 // UndoHistorySidebar removed — consolidated into HistoryPanel (canonical)
-// const UndoHistorySidebar = dynamic(
-//   () => import('@/components/history/UndoHistorySidebar').then((m) => ({ default: m.UndoHistorySidebar })),
-//   { ssr: false }
-// );
 
 const SceneOutliner = dynamic(
   () => import('@/components/outliner/SceneOutliner').then((m) => ({ default: m.SceneOutliner })),
@@ -384,10 +387,6 @@ const AudioVisualizerPanel = dynamic(
 );
 
 // @deprecated GlslShaderPanel removed — shader editing consolidated into ShaderEditorPanel
-// const GlslShaderPanel = dynamic(
-//   () => import('@/components/shader/ShaderEditorPanel').then((m) => ({ default: m.GlslShaderPanel })),
-//   { ssr: false }
-// );
 
 const MultiTransformPanel = dynamic(
   () =>
@@ -413,13 +412,13 @@ const FoundationDAOPanel = dynamic(
   { ssr: false }
 );
 
-// AssetPackStorePanel removed - duplicate of AssetPackPanel (line 216)
+// AssetPackStorePanel removed - duplicate of AssetPackPanel
 
-// ProfilerPanel2 removed — duplicate of ProfilerPanel (line 263)
+// ProfilerPanel2 removed — duplicate of ProfilerPanel
 
-// TraitRegistryPanel removed — misnamed duplicate of RemotePreviewPanel (line 484)
+// TraitRegistryPanel removed — misnamed duplicate of RemotePreviewPanel
 
-// AiSceneGeneratorPanel removed — duplicate of SceneGeneratorPanel (line 274)
+// AiSceneGeneratorPanel removed — duplicate of SceneGeneratorPanel
 
 const NodeInspectorPanel = dynamic(
   () =>
@@ -493,6 +492,30 @@ const BrittneyChatPanel = dynamic(
   { ssr: false }
 );
 
+const ParametricSlidersPanel = dynamic(
+  () =>
+    import('@/components/manufacturing/ParametricSlidersPanel').then((m) => ({
+      default: m.ParametricSlidersPanel,
+    })),
+  { ssr: false }
+);
+
+const PrintabilityReportPanel = dynamic(
+  () =>
+    import('@/components/manufacturing/PrintabilityReportPanel').then((m) => ({
+      default: m.PrintabilityReportPanel,
+    })),
+  { ssr: false }
+);
+
+const PartPreviewCanvas = dynamic(
+  () =>
+    import('@/components/manufacturing/PartPreviewCanvas').then((m) => ({
+      default: m.PartPreviewCanvas,
+    })),
+  { ssr: false }
+);
+
 const AssetLibrary = dynamic(
   () => import('@/components/assets/AssetLibrary').then((m) => ({ default: m.AssetLibrary })),
   { ssr: false }
@@ -521,6 +544,24 @@ function ViewportSkeleton() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#0a0a12]">
       <div className="text-sm text-studio-muted animate-pulse">Loading 3D viewport…</div>
+    </div>
+  );
+}
+
+// ─── Mode badge ───────────────────────────────────────────────────────────────
+
+const MODE_META: Record<CreateMode, { label: string; icon: typeof Globe }> = {
+  world: { label: 'World', icon: Globe },
+  part: { label: 'Part', icon: Cpu },
+  app: { label: 'App', icon: AppWindow },
+};
+
+function ModeBadge({ mode }: { mode: CreateMode }) {
+  const { label, icon: Icon } = MODE_META[mode];
+  return (
+    <div className="flex items-center gap-1.5 rounded-lg border border-studio-border/60 bg-studio-panel/90 px-2.5 py-1.5 text-[11px] font-medium text-studio-muted backdrop-blur">
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {label}
     </div>
   );
 }
@@ -627,8 +668,6 @@ function ViewportToolbar({
   );
 }
 
-// ─── Brittney Chat Panel — see src/components/ai/BrittneyChatPanel.tsx ─────────
-
 // ─── Scene AI Prompt (compact, moved to viewport overlay) ─────────────────────
 
 function AIPromptOverlay() {
@@ -718,6 +757,24 @@ function AIPromptOverlay() {
   );
 }
 
+// ─── Part-mode placeholder rail section (wired by phase-2 part-panels agent) ──
+// Mounts only when createMode === 'part'. Phase-2 agent replaces this stub with
+// real part tools by reading createMode from useCreateModeStore().
+function PartToolsRailSection() {
+  return (
+    <div className="border-b border-studio-border px-3 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-studio-muted mb-1.5">
+        Part tools
+      </div>
+      <div className="text-[11px] text-studio-muted/60">
+        {/* Phase-2: mount part-specific tool panels here. */}
+        {/* Read createMode from useCreateModeStore() to confirm mode === 'part'. */}
+        Part authoring tools coming soon.
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CreatePage() {
@@ -745,16 +802,29 @@ export default function CreatePage() {
     runStudioCommand(commandId);
   }, []);
 
-  // Panel widths (px) — driven by PanelSplitter drag
-  const [leftPanelW, setLeftPanelW] = useState(256);
+  // ── Create mode — ?mode=world|part|app query param ────────────────────────
+  const createMode = useCreateModeStore((s) => s.createMode);
+  const setCreateMode = useCreateModeStore((s) => s.setCreateMode);
+  const setLandingPrompt = useCreateModeStore((s) => s.setLandingPrompt);
+
+  // ── Bottom code editor — collapsible (vibe chassis) ──────────────────────
+  const [codeEditorCollapsed, setCodeEditorCollapsed] = useState(false);
   const [bottomPanelH, setBottomPanelH] = useState(224);
+  const effectiveBottomH = codeEditorCollapsed ? 32 : bottomPanelH;
+
+  // Panel widths (px) — driven by PanelSplitter drag
   const [rightPanelW, setRightPanelW] = useState(288);
+
+  // Panels popover — the single entry point that replaced the icon mega-rail
+  const [panelsMenuOpen, setPanelsMenuOpen] = useState(false);
 
   // ── Panel visibility — centralised in panelVisibilityStore ────────────────
   const paletteOpen = usePanelVisibilityStore((s) => s.paletteOpen);
   const setPaletteOpen = usePanelVisibilityStore((s) => s.setPaletteOpen);
+  // chatOpen drives the FLOATING Brittney dock (bottom-left). Closed on mount
+  // → viewer-first: the viewport is the page; chat is one click away.
   const chatOpen = usePanelVisibilityStore((s) => s.chatOpen);
-  const _setChatOpen = usePanelVisibilityStore((s) => s.setChatOpen);
+  const setChatOpen = usePanelVisibilityStore((s) => s.setChatOpen);
   const toggleChatOpen = usePanelVisibilityStore((s) => s.toggleChatOpen);
   const historyOpen = usePanelVisibilityStore((s) => s.historyOpen);
   const setHistoryOpen = usePanelVisibilityStore((s) => s.setHistoryOpen);
@@ -886,16 +956,23 @@ export default function CreatePage() {
   const agentMonitorOpen = usePanelVisibilityStore((s) => s.agentMonitorOpen);
   const setAgentMonitorOpen = usePanelVisibilityStore((s) => s.setAgentMonitorOpen);
 
-  // Non-panel state (kept local — layout dimensions, left tab)
-  const [leftTab, setLeftTab] = useState<'scene' | 'assets' | 'code' | 'graph' | 'codebase'>(
-    'scene'
+  // ── Part mode panels (auto-open when mode=part) ──────────────────────────
+  const parametricSlidersOpen = usePanelVisibilityStore((s) => s.parametricSlidersOpen);
+  const setParametricSlidersOpen = usePanelVisibilityStore(
+    (s) => s.setParametricSlidersOpen
   );
-  const [spatialBlameTooltip, _setSpatialBlameTooltip] = useState({
-    visible: false,
-    x: 0,
-    y: 0,
-    content: '',
-  });
+  const toggleParametricSlidersOpen = usePanelVisibilityStore(
+    (s) => s.toggleParametricSlidersOpen
+  );
+  const printabilityReportOpen = usePanelVisibilityStore((s) => s.printabilityReportOpen);
+  const setprintabilityReportOpen = usePanelVisibilityStore(
+    (s) => s.setPrintabilityReportOpen
+  );
+  const togglePrintabilityReportOpen = usePanelVisibilityStore(
+    (s) => s.togglePrintabilityReportOpen
+  );
+  /** Latest mesh result shared between ParametricSlidersPanel and PrintabilityReportPanel. */
+  const [partMeshResult, setPartMeshResult] = useState<MeshResult | null>(null);
 
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
@@ -905,7 +982,6 @@ export default function CreatePage() {
 
   // Undo/Redo keyboard shortcuts
   useUndoRedo();
-
   useOllamaStatus();
 
   // ── StudioBridge — AST mutation engine with history tracking ────────────────
@@ -944,10 +1020,50 @@ export default function CreatePage() {
     canRedo: _bridgeCanRedo,
   } = useStudioBridge(emptyAST);
 
-  // ── URL scene restore (?scene= or ?src= parameters) ────────────────────────
+  // ── Mount: parse query params + seed landing prompt ───────────────────────
   const searchParams = useSearchParams();
+
   useEffect(() => {
-    // 1. Check for raw generative source code
+    // ── 1. mode param ──────────────────────────────────────────────────────
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'world' || modeParam === 'part' || modeParam === 'app') {
+      setCreateMode(modeParam);
+    }
+
+    // ── 2. intake param — accepted, ignored gracefully ─────────────────────
+    // ?intake=repo|scan arrives from the landing page; no crash, no action here.
+    // Reserved for a future phase that wires repo/scan onboarding flows.
+    const _intake = searchParams.get('intake');
+
+    // ── 3. sessionStorage landing prompt ──────────────────────────────────
+    // Written by the home page / onboarding flow before redirecting to /create.
+    // Cleared immediately so it doesn't re-seed on the next mount.
+    // Phase-2: wire landingPrompt from useCreateModeStore() into BrittneyChatPanel.
+    try {
+      const stored = sessionStorage.getItem('studio.landing.prompt');
+      if (stored) {
+        setLandingPrompt(stored);
+        sessionStorage.removeItem('studio.landing.prompt');
+      }
+    } catch {
+      // sessionStorage may be unavailable (SSR, private browsing limits) — silent
+    }
+
+    // ── 4. Brittney is on the left rail in this layout; close the right-rail
+    //       instance if the store defaulted it open. ─────────────────────────
+    setChatOpen(false);
+
+    // ── 5. Part mode — auto-open parametric sliders + printability report. ──
+    const resolvedMode =
+      modeParam === 'world' || modeParam === 'part' || modeParam === 'app'
+        ? modeParam
+        : 'world';
+    if (resolvedMode === 'part') {
+      setParametricSlidersOpen(true);
+      setprintabilityReportOpen(true);
+    }
+
+    // ── 5. URL scene restore (?scene= or ?src= parameters) ─────────────────
     const rawSrc = searchParams.get('src');
     if (rawSrc) {
       setCode(rawSrc);
@@ -955,7 +1071,6 @@ export default function CreatePage() {
       return;
     }
 
-    // 2. Check for workspace template
     const templateName = searchParams.get('template');
     if (templateName) {
       setCode(
@@ -966,7 +1081,6 @@ export default function CreatePage() {
       return;
     }
 
-    // 3. Check for workspace agent
     const agentName = searchParams.get('agent');
     if (agentName) {
       setCode(
@@ -977,12 +1091,6 @@ export default function CreatePage() {
       return;
     }
 
-    // 4. Check for a ?scene= parameter. Two shapes supported:
-    //    (a) a published-share id — a short UUID-like token from /api/share.
-    //        Used by the "Open in Studio" button on /shared/[id] and /w/[id].
-    //    (b) a long encoded full scene state (legacy URL-shared drafts).
-    //    We probe (a) first because shape detection is cheap and positive:
-    //    if /api/share/<id> returns 200, we know it's a share id.
     const encoded = searchParams.get('scene');
     if (!encoded) return;
 
@@ -1005,7 +1113,6 @@ export default function CreatePage() {
 
     void tryShareFetch().then((handled) => {
       if (handled) return;
-      // Fall back to the encoded-blob decoder for legacy URLs.
       decodeSceneFromURL(encoded).then((result) => {
         if (!result.ok || !result.scene) return;
         const s = result.scene;
@@ -1035,7 +1142,6 @@ export default function CreatePage() {
       setErrors(pipelineErrors);
       return;
     }
-
     if (executionState === 'stopped') {
       setR3FTree(null);
       setErrors([]);
@@ -1115,8 +1221,319 @@ export default function CreatePage() {
     };
   }, [addToast, getCurrentEditorAst, runPaletteMcpTool]);
 
+  // ── Right-rail panel warehouse (all panels from original /create, default closed) ──
+  const rightRailDescriptors = useMemo(
+    () => [
+      {
+        id: 'history',
+        open: historyOpen,
+        width: 'resizable' as const,
+        errorLabel: 'History Panel',
+        content: <HistoryPanel onClose={() => setHistoryOpen(false)} />,
+      },
+      {
+        id: 'aiMaterial',
+        open: aiMaterialOpen,
+        width: 'resizable' as const,
+        errorLabel: 'AI Material Generator',
+        content: <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />,
+      },
+      {
+        id: 'share',
+        open: shareOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Share Panel',
+        content: <SharePanel onClose={() => setShareOpen(false)} />,
+      },
+      {
+        id: 'critique',
+        open: critiqueOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Scene Critique',
+        content: <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />,
+      },
+      {
+        id: 'assetPack',
+        open: assetPackOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Asset Pack Importer',
+        content: <AssetPackPanel onClose={() => setAssetPackOpen(false)} />,
+      },
+      {
+        id: 'versions',
+        open: versionsOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Scene Versions',
+        content: (
+          <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
+        ),
+      },
+      {
+        id: 'repl',
+        open: replOpen,
+        width: 'resizable' as const,
+        errorLabel: 'REPL',
+        content: <REPLPanel onClose={() => setReplOpen(false)} />,
+      },
+      {
+        id: 'registry',
+        open: registryOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Pack Registry',
+        content: <RegistryPanel onClose={() => setRegistryOpen(false)} />,
+      },
+      {
+        id: 'remote',
+        open: remoteOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Mobile Remote',
+        content: <QRRemotePanel onClose={() => setRemoteOpen(false)} />,
+      },
+      {
+        id: 'export',
+        open: exportOpen,
+        width: 'resizable' as const,
+        content: <ExportPanel onClose={() => setExportOpen(false)} />,
+      },
+      {
+        id: 'generator',
+        open: generatorOpen,
+        width: 'resizable' as const,
+        content: (
+          <SceneGeneratorPanel
+            onClose={() => setGeneratorOpen(false)}
+            onCodeGenerated={handleGeneratedSceneCode}
+            autoApplyOnGenerate
+          />
+        ),
+      },
+      {
+        id: 'profiler',
+        open: profilerOpen,
+        width: 'resizable' as const,
+        content: <ProfilerPanel onClose={() => setProfilerOpen(false)} />,
+      },
+      {
+        id: 'multiplayer',
+        open: multiplayerOpen,
+        width: 'resizable' as const,
+        content: <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} />,
+      },
+      {
+        id: 'debugger',
+        open: debuggerOpen,
+        width: 'resizable' as const,
+        content: <DebuggerPanel onClose={() => setDebuggerOpen(false)} />,
+      },
+      {
+        id: 'snapshots',
+        open: snapshotsOpen,
+        width: 'resizable' as const,
+        content: <SnapshotGallery onClose={() => setSnapshotsOpen(false)} />,
+      },
+      {
+        id: 'assetLib',
+        open: assetLibOpen,
+        width: 'resizable' as const,
+        content: <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />,
+      },
+      {
+        id: 'templateGallery',
+        open: templateGalleryOpen,
+        width: 'resizable' as const,
+        content: <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />,
+      },
+      {
+        id: 'audio',
+        open: audioOpen,
+        width: 'resizable' as const,
+        content: <AudioTraitPanel onClose={() => setAudioOpen(false)} />,
+      },
+      {
+        id: 'exportV2',
+        open: exportV2Open,
+        width: 'resizable' as const,
+        content: <ExportPipelinePanel onClose={() => setExportV2Open(false)} />,
+      },
+      {
+        id: 'nodeGraph',
+        open: nodeGraphOpen,
+        width: 'resizable' as const,
+        content: (
+          <NodeGraphPanel
+            onClose={() => setNodeGraphOpen(false)}
+            onExecutionResult={(result) => {
+              logger.debug(
+                '[NodeGraphPanel] execution',
+                result.success,
+                result.nodeOrder.length,
+                Object.keys(result.outputs).length
+              );
+            }}
+          />
+        ),
+      },
+      {
+        id: 'keyframes',
+        open: keyframesOpen,
+        width: 'resizable' as const,
+        content: <KeyframeEditor onClose={() => setKeyframesOpen(false)} />,
+      },
+      {
+        id: 'particles',
+        open: particlesOpen,
+        width: 'resizable' as const,
+        content: <ParticlePanel onClose={() => setParticlesOpen(false)} />,
+      },
+      {
+        id: 'lod',
+        open: lodOpen,
+        width: 'resizable' as const,
+        content: <LodPanel onClose={() => setLodOpen(false)} />,
+      },
+      // Fixed-width right-rail panels
+      {
+        id: 'undoHistory',
+        open: undoHistoryOpen,
+        width: 256,
+        content: <HistoryPanel onClose={() => setUndoHistoryOpen(false)} />,
+      },
+      { id: 'outliner', open: outlinerOpen, width: 256, content: <SceneOutliner /> },
+      {
+        id: 'material',
+        open: materialOpen,
+        width: 320,
+        content: <MaterialPanel onClose={() => setMaterialOpen(false)} />,
+      },
+      {
+        id: 'physics',
+        open: physicsOpen,
+        width: 288,
+        content: <PhysicsPanel onClose={() => setPhysicsOpen(false)} />,
+      },
+      {
+        id: 'snapshotDiff',
+        open: snapshotDiffOpen,
+        width: 640,
+        content: <SnapshotDiffPanel onClose={() => setSnapshotDiffOpen(false)} />,
+      },
+      {
+        id: 'audioVisualizer',
+        open: audioVisualizerOpen,
+        width: 288,
+        content: <AudioVisualizerPanel onClose={() => setAudioVisualizerOpen(false)} />,
+      },
+      {
+        id: 'multiTransform',
+        open: multiTransformOpen,
+        width: 288,
+        content: <MultiTransformPanel onClose={() => setMultiTransformOpen(false)} />,
+      },
+      {
+        id: 'environment',
+        open: environmentOpen,
+        width: 288,
+        content: <EnvironmentPanel onClose={() => setEnvironmentOpen(false)} />,
+      },
+      {
+        id: 'foundationDao',
+        open: foundationDaoOpen,
+        width: 320,
+        content: <FoundationDAOPanel onClose={() => setFoundationDaoOpen(false)} />,
+      },
+      {
+        id: 'governance',
+        open: showGovernancePanel,
+        width: 320,
+        containerClassName: 'bg-slate-900 z-20',
+        content: <GovernancePanel />,
+      },
+      {
+        id: 'conformance',
+        open: showConformancePanel,
+        width: 320,
+        containerClassName: 'bg-slate-900 z-20',
+        content: <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} />,
+      },
+      {
+        id: 'agentMonitor',
+        open: agentMonitorOpen,
+        width: 320,
+        containerClassName: 'bg-slate-900 z-20',
+        content: <AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} />,
+      },
+      // ── Part mode panels ────────────────────────────────────────────────
+      {
+        id: 'parametricSliders',
+        open: parametricSlidersOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Parametric Sliders',
+        content: (
+          <ParametricSlidersPanel
+            onClose={() => setParametricSlidersOpen(false)}
+            onMeshResult={(result) => setPartMeshResult(result)}
+          />
+        ),
+      },
+      {
+        id: 'printabilityReport',
+        open: printabilityReportOpen,
+        width: 288,
+        errorLabel: 'Printability Report',
+        content: (
+          <PrintabilityReportPanel
+            report={partMeshResult?.printability ?? null}
+            onClose={() => setprintabilityReportOpen(false)}
+          />
+        ),
+      },
+      {
+        id: 'inspector',
+        open: inspectorOpen,
+        width: 288,
+        errorLabel: 'Node Inspector',
+        content: <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />,
+      },
+      {
+        id: 'plugins',
+        open: pluginsOpen,
+        width: 320,
+        errorLabel: 'Plugin Marketplace',
+        content: <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />,
+      },
+      {
+        id: 'sandboxedPlugins',
+        open: sandboxedPluginsOpen,
+        width: 320,
+        errorLabel: 'Sandboxed Plugins',
+        content: (
+          <SandboxedPluginsPanel
+            onClose={() => setSandboxedPluginsOpen(false)}
+            onOpenMarketplace={() => {
+              setSandboxedPluginsOpen(false);
+              setPluginsOpen(true);
+            }}
+          />
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      historyOpen, aiMaterialOpen, shareOpen, critiqueOpen, assetPackOpen,
+      versionsOpen, replOpen, registryOpen, remoteOpen, exportOpen, generatorOpen,
+      profilerOpen, multiplayerOpen, debuggerOpen, snapshotsOpen, assetLibOpen,
+      templateGalleryOpen, audioOpen, exportV2Open, nodeGraphOpen, keyframesOpen,
+      particlesOpen, lodOpen, undoHistoryOpen, outlinerOpen, materialOpen,
+      physicsOpen, snapshotDiffOpen, audioVisualizerOpen, multiTransformOpen,
+      environmentOpen, foundationDaoOpen, showGovernancePanel, showConformancePanel,
+      agentMonitorOpen, inspectorOpen, pluginsOpen, sandboxedPluginsOpen,
+      parametricSlidersOpen, printabilityReportOpen, partMeshResult,
+      handleGeneratedSceneCode,
+    ]
+  );
+
   return (
-    <>
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-studio-bg text-studio-text">
       {/* Multi-scene project tabs */}
       <ProjectTabBar
         onSwitch={(sceneId) => {
@@ -1134,109 +1551,57 @@ export default function CreatePage() {
         onStop={() => setExecutionState('stopped')}
       />
 
-      {/* ── Core Unified Studio Layout ────────────────────────────── */}
-      <ResponsiveStudioLayout leftTitle="Scene" rightTitle="Properties">
+      {/*
+       * ── VIEWER-FIRST CHASSIS ─────────────────────────────────────────────
+       * The viewport IS the page (founder directive 2026-06-10).
+       * CENTER: 3D viewport full-bleed + collapsible code drawer BOTTOM
+       * RIGHT:  RightRailPanelHost — zero footprint until a panel opens
+       * FLOAT:  Brittney dock (bottom-left pill ⇄ panel, chatOpen store),
+       *         Panels popover grid (top-bar button; replaces the icon rail)
+       */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
-          {/* LEFT: Scene Graph + Assets tabbed panel (hidden on mobile, collapsible on tablet) */}
-          <div
-            className="hidden sm:flex shrink-0 flex-col max-w-[50vw]"
-            style={{ width: leftPanelW }}
-          >
-            {/* Tab strip */}
-            <div className="flex shrink-0 border-b border-studio-border">
-              <button
-                onClick={() => setLeftTab('scene')}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
-                  leftTab === 'scene'
-                    ? 'border-b-2 border-studio-accent text-studio-accent'
-                    : 'text-studio-muted hover:text-studio-text'
-                }`}
-              >
-                <List className="h-3.5 w-3.5" />
-                Scene
-              </button>
-              <button
-                onClick={() => setLeftTab('assets')}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
-                  leftTab === 'assets'
-                    ? 'border-b-2 border-studio-accent text-studio-accent'
-                    : 'text-studio-muted hover:text-studio-text'
-                }`}
-              >
-                <Layers className="h-3.5 w-3.5" />
-                Assets
-              </button>
-              <button
-                onClick={() => setLeftTab('code')}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
-                  leftTab === 'code'
-                    ? 'border-b-2 border-studio-accent text-studio-accent'
-                    : 'text-studio-muted hover:text-studio-text'
-                }`}
-              >
-                <Code2 className="h-3.5 w-3.5" />
-                Code
-              </button>
-              <button
-                onClick={() => setLeftTab('graph')}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
-                  leftTab === 'graph'
-                    ? 'border-b-2 border-studio-accent text-studio-accent'
-                    : 'text-studio-muted hover:text-studio-text'
-                }`}
-              >
-                <GitGraph className="h-3.5 w-3.5" />
-                Graph
-              </button>
-              <button
-                onClick={() => setLeftTab('codebase')}
-                className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-medium transition ${
-                  leftTab === 'codebase'
-                    ? 'border-b-2 border-studio-accent text-studio-accent'
-                    : 'text-studio-muted hover:text-studio-text'
-                }`}
-              >
-                <Network className="h-3.5 w-3.5" />
-                Index
-              </button>
-            </div>
-
-            {/* Panel content */}
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <StudioErrorBoundary label="Left Panel">
-                {leftTab === 'scene' ? (
-                  <SceneGraphPanel />
-                ) : leftTab === 'assets' ? (
-                  <AssetLibrary onOpenSplatWizard={() => setSplatWizardOpen(true)} />
-                ) : leftTab === 'graph' ? (
-                  <NodeGraphEditor
-                    onCompile={(glsl) => {
-                      setShaderEditorOpen(true);
-                      logger.debug('[NodeGraph] compiled GLSL', glsl.slice(0, 60));
-                    }}
-                  />
-                ) : leftTab === 'codebase' ? (
-                  <CodebaseInspectorPanel />
-                ) : (
-                  <HoloScriptEditor height="100%" />
-                )}
-              </StudioErrorBoundary>
-            </div>
-          </div>
-
-          {/* ── Left splitter (hidden on mobile) ── */}
-          <div className="hidden sm:block">
-            <PanelSplitter
-              direction="horizontal"
-              onDelta={(d) => setLeftPanelW((w) => Math.max(160, Math.min(w + d, 520)))}
-            />
-          </div>
-
-          {/* CENTER: Viewport + Inspector split */}
+          {/* CENTER + BOTTOM ─────────────────────────────────────────────── */}
           <div className="flex flex-1 flex-col overflow-hidden">
-            {/* Viewport */}
+            {/* Slim top bar — the ONLY persistent chrome row of the surface */}
+            <div className="flex h-9 shrink-0 items-center gap-2 border-b border-studio-border bg-studio-panel/80 px-3 backdrop-blur">
+              <ModeBadge mode={createMode} />
+              <div className="flex items-center gap-1 text-[10px] text-studio-muted">
+                <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-studio-text">Build</span>
+                <span aria-hidden>›</span>
+                <span
+                  className={`rounded px-1.5 py-0.5 ${
+                    createMode === 'part' && partMeshResult?.printability
+                      ? 'bg-white/[0.06] text-studio-text'
+                      : ''
+                  }`}
+                >
+                  Verify
+                </span>
+                <span aria-hidden>›</span>
+                <span>Ship</span>
+              </div>
+              <div className="flex-1" />
+              <button
+                onClick={() => setTemplatePickerOpen(true)}
+                title="Browse scene templates"
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-studio-muted transition hover:bg-white/[0.06] hover:text-studio-text"
+              >
+                <LayoutTemplate className="h-3.5 w-3.5" /> Templates
+              </button>
+              <button
+                onClick={() => setPanelsMenuOpen((v) => !v)}
+                title="All panels (also: Cmd/Ctrl+K command palette)"
+                aria-expanded={panelsMenuOpen}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition hover:bg-white/[0.06] ${
+                  panelsMenuOpen ? 'bg-white/[0.06] text-studio-text' : 'text-studio-muted hover:text-studio-text'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" /> Panels
+              </button>
+            </div>
+            {/* Center: 3D Viewport */}
             <HoloFileDropHandler className="relative flex-1 overflow-hidden">
-              {/* Generative Art Panel — replaces viewport when artMode===generative */}
               {artMode === 'generative' ? (
                 <StudioErrorBoundary label="Generative Art">
                   <GenerativeArtPanel />
@@ -1252,14 +1617,14 @@ export default function CreatePage() {
               <AssetDropOverlay />
               <MinimapOverlay active={minimapOpen} onClose={() => setMinimapOpen(false)} />
 
-              {/* Template picker shortcut */}
-              <button
-                onClick={() => setTemplatePickerOpen(true)}
-                title="Browse scene templates"
-                className="absolute right-3 top-14 z-10 flex items-center gap-1 rounded-lg bg-studio-panel/80 px-2.5 py-1.5 text-[10px] text-studio-muted backdrop-blur hover:bg-studio-surface hover:text-studio-text transition"
-              >
-                <LayoutTemplate className="h-3.5 w-3.5" /> Templates
-              </button>
+              {/* Part-mode preview canvas — center viewport overlay when mode=part */}
+              {createMode === 'part' && (
+                <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#0a0a12]">
+                  <div className="w-full h-full">
+                    <PartPreviewCanvas meshResult={partMeshResult} />
+                  </div>
+                </div>
+              )}
 
               {errors.length > 0 && (
                 <div className="absolute left-3 bottom-3 max-w-sm rounded-lg border border-studio-error/30 bg-studio-panel/90 p-3 backdrop-blur">
@@ -1277,337 +1642,117 @@ export default function CreatePage() {
               )}
             </HoloFileDropHandler>
 
-            {/* Inspector (bottom strip) — Shader Editor — Animation Timeline */}
-            {/* ── Bottom splitter ── */}
-            <PanelSplitter
-              direction="vertical"
-              onDelta={(d) => setBottomPanelH((h) => Math.max(120, Math.min(h - d, 600)))}
-            />
+            {/* Bottom splitter — disabled while code editor collapsed */}
+            {!codeEditorCollapsed && (
+              <PanelSplitter
+                direction="vertical"
+                onDelta={(d) => setBottomPanelH((h) => Math.max(120, Math.min(h - d, 600)))}
+              />
+            )}
+
+            {/* Bottom: Collapsible code editor */}
             <div
-              className="shrink-0"
-              style={{
-                height:
-                  shaderEditorOpen || timelineOpen ? Math.max(bottomPanelH, 320) : bottomPanelH,
-              }}
+              className="shrink-0 flex flex-col overflow-hidden border-t border-studio-border"
+              style={{ height: effectiveBottomH }}
             >
-              {shaderEditorOpen ? (
-                <StudioErrorBoundary label="Shader Editor">
-                  <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
-                </StudioErrorBoundary>
-              ) : timelineOpen ? (
-                <StudioErrorBoundary label="Animation Timeline">
-                  <AnimationTimeline onClose={() => setTimelineOpen(false)} />
-                </StudioErrorBoundary>
-              ) : (
-                <StudioErrorBoundary label="Trait Inspector">
-                  <TraitInspector
-                    onOpenPalette={() => setPaletteOpen(true)}
-                    onOpenShaderEditor={() => setShaderEditorOpen(true)}
-                  />
-                </StudioErrorBoundary>
+              {/* Collapse toggle header */}
+              <div className="flex shrink-0 items-center justify-between border-b border-studio-border bg-studio-panel px-3 py-1">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-studio-muted">
+                  <Code2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  HoloScript
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCodeEditorCollapsed((v) => !v)}
+                  aria-label={codeEditorCollapsed ? 'Expand code editor' : 'Collapse code editor'}
+                  aria-expanded={!codeEditorCollapsed}
+                  title={codeEditorCollapsed ? 'Expand code editor' : 'Collapse code editor'}
+                  className="rounded p-0.5 text-studio-muted hover:text-studio-text hover:bg-white/[0.06] transition"
+                >
+                  {codeEditorCollapsed ? (
+                    <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+
+              {/* Editor content — not rendered while collapsed to avoid focus issues */}
+              {!codeEditorCollapsed && (
+                <>
+                  {shaderEditorOpen ? (
+                    <StudioErrorBoundary label="Shader Editor">
+                      <ShaderEditorPanel onClose={() => setShaderEditorOpen(false)} />
+                    </StudioErrorBoundary>
+                  ) : timelineOpen ? (
+                    <StudioErrorBoundary label="Animation Timeline">
+                      <AnimationTimeline onClose={() => setTimelineOpen(false)} />
+                    </StudioErrorBoundary>
+                  ) : (
+                    <div className="flex-1 overflow-hidden">
+                      <StudioErrorBoundary label="Trait Inspector">
+                        <TraitInspector
+                          onOpenPalette={() => setPaletteOpen(true)}
+                          onOpenShaderEditor={() => setShaderEditorOpen(true)}
+                        />
+                      </StudioErrorBoundary>
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-hidden">
+                    <HoloScriptEditor height="100%" />
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          {/* RIGHT RAIL: resizable panels — collapsed into the descriptor-driven
-           * RightRailPanelHost (was ~23 near-identical {xOpen && (<><PanelSplitter/>…</>)}
-           * blocks). Order preserved for left-to-right stacking; error-boundary coverage
-           * preserved per-panel; custom props (sceneId / onCodeGenerated / onExecutionResult)
-           * supplied via each descriptor's content element. */}
+          {/* RIGHT RAIL: descriptor-driven panel warehouse (all panels, default closed) */}
           <RightRailPanelHost
             rightPanelW={rightPanelW}
             setRightPanelW={setRightPanelW}
-            descriptors={[
-              {
-                id: 'history',
-                open: historyOpen,
-                width: 'resizable',
-                errorLabel: 'History Panel',
-                content: <HistoryPanel onClose={() => setHistoryOpen(false)} />,
-              },
-              {
-                id: 'aiMaterial',
-                open: aiMaterialOpen,
-                width: 'resizable',
-                errorLabel: 'AI Material Generator',
-                content: <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />,
-              },
-              {
-                id: 'share',
-                open: shareOpen,
-                width: 'resizable',
-                errorLabel: 'Share Panel',
-                content: <SharePanel onClose={() => setShareOpen(false)} />,
-              },
-              {
-                id: 'critique',
-                open: critiqueOpen,
-                width: 'resizable',
-                errorLabel: 'Scene Critique',
-                content: <SceneCritiquePanel onClose={() => setCritiqueOpen(false)} />,
-              },
-              {
-                id: 'assetPack',
-                open: assetPackOpen,
-                width: 'resizable',
-                errorLabel: 'Asset Pack Importer',
-                content: <AssetPackPanel onClose={() => setAssetPackOpen(false)} />,
-              },
-              {
-                id: 'versions',
-                open: versionsOpen,
-                width: 'resizable',
-                errorLabel: 'Scene Versions',
-                content: (
-                  <SceneVersionPanel sceneId="scene-1" onClose={() => setVersionsOpen(false)} />
-                ),
-              },
-              {
-                id: 'repl',
-                open: replOpen,
-                width: 'resizable',
-                errorLabel: 'REPL',
-                content: <REPLPanel onClose={() => setReplOpen(false)} />,
-              },
-              {
-                id: 'registry',
-                open: registryOpen,
-                width: 'resizable',
-                errorLabel: 'Pack Registry',
-                content: <RegistryPanel onClose={() => setRegistryOpen(false)} />,
-              },
-              {
-                id: 'remote',
-                open: remoteOpen,
-                width: 'resizable',
-                errorLabel: 'Mobile Remote',
-                content: <QRRemotePanel onClose={() => setRemoteOpen(false)} />,
-              },
-              {
-                id: 'export',
-                open: exportOpen,
-                width: 'resizable',
-                content: <ExportPanel onClose={() => setExportOpen(false)} />,
-              },
-              {
-                id: 'generator',
-                open: generatorOpen,
-                width: 'resizable',
-                content: (
-                  <SceneGeneratorPanel
-                    onClose={() => setGeneratorOpen(false)}
-                    onCodeGenerated={handleGeneratedSceneCode}
-                    autoApplyOnGenerate
-                  />
-                ),
-              },
-              {
-                id: 'profiler',
-                open: profilerOpen,
-                width: 'resizable',
-                content: <ProfilerPanel onClose={() => setProfilerOpen(false)} />,
-              },
-              {
-                id: 'multiplayer',
-                open: multiplayerOpen,
-                width: 'resizable',
-                content: <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} />,
-              },
-              {
-                id: 'debugger',
-                open: debuggerOpen,
-                width: 'resizable',
-                content: <DebuggerPanel onClose={() => setDebuggerOpen(false)} />,
-              },
-              {
-                id: 'snapshots',
-                open: snapshotsOpen,
-                width: 'resizable',
-                content: <SnapshotGallery onClose={() => setSnapshotsOpen(false)} />,
-              },
-              {
-                id: 'assetLib',
-                open: assetLibOpen,
-                width: 'resizable',
-                content: <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />,
-              },
-              {
-                id: 'templateGallery',
-                open: templateGalleryOpen,
-                width: 'resizable',
-                content: <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />,
-              },
-              {
-                id: 'audio',
-                open: audioOpen,
-                width: 'resizable',
-                content: <AudioTraitPanel onClose={() => setAudioOpen(false)} />,
-              },
-              {
-                id: 'exportV2',
-                open: exportV2Open,
-                width: 'resizable',
-                content: <ExportPipelinePanel onClose={() => setExportV2Open(false)} />,
-              },
-              {
-                id: 'nodeGraph',
-                open: nodeGraphOpen,
-                width: 'resizable',
-                content: (
-                  <NodeGraphPanel
-                    onClose={() => setNodeGraphOpen(false)}
-                    onExecutionResult={(result) => {
-                      logger.debug(
-                        '[NodeGraphPanel] execution',
-                        result.success,
-                        result.nodeOrder.length,
-                        Object.keys(result.outputs).length
-                      );
-                    }}
-                  />
-                ),
-              },
-              {
-                id: 'keyframes',
-                open: keyframesOpen,
-                width: 'resizable',
-                content: <KeyframeEditor onClose={() => setKeyframesOpen(false)} />,
-              },
-              {
-                id: 'particles',
-                open: particlesOpen,
-                width: 'resizable',
-                content: <ParticlePanel onClose={() => setParticlesOpen(false)} />,
-              },
-              {
-                id: 'lod',
-                open: lodOpen,
-                width: 'resizable',
-                content: <LodPanel onClose={() => setLodOpen(false)} />,
-              },
-              // Fixed-width right-rail panels (formerly w-64/72/80/[640px] + border-l blocks).
-              {
-                id: 'undoHistory',
-                open: undoHistoryOpen,
-                width: 256,
-                content: <HistoryPanel onClose={() => setUndoHistoryOpen(false)} />,
-              },
-              { id: 'outliner', open: outlinerOpen, width: 256, content: <SceneOutliner /> },
-              {
-                id: 'material',
-                open: materialOpen,
-                width: 320,
-                content: <MaterialPanel onClose={() => setMaterialOpen(false)} />,
-              },
-              {
-                id: 'physics',
-                open: physicsOpen,
-                width: 288,
-                content: <PhysicsPanel onClose={() => setPhysicsOpen(false)} />,
-              },
-              {
-                id: 'snapshotDiff',
-                open: snapshotDiffOpen,
-                width: 640,
-                content: <SnapshotDiffPanel onClose={() => setSnapshotDiffOpen(false)} />,
-              },
-              {
-                id: 'audioVisualizer',
-                open: audioVisualizerOpen,
-                width: 288,
-                content: <AudioVisualizerPanel onClose={() => setAudioVisualizerOpen(false)} />,
-              },
-              {
-                id: 'multiTransform',
-                open: multiTransformOpen,
-                width: 288,
-                content: <MultiTransformPanel onClose={() => setMultiTransformOpen(false)} />,
-              },
-              {
-                id: 'environment',
-                open: environmentOpen,
-                width: 288,
-                content: <EnvironmentPanel onClose={() => setEnvironmentOpen(false)} />,
-              },
-              {
-                id: 'foundationDao',
-                open: foundationDaoOpen,
-                width: 320,
-                content: <FoundationDAOPanel onClose={() => setFoundationDaoOpen(false)} />,
-              },
-              {
-                id: 'governance',
-                open: showGovernancePanel,
-                width: 320,
-                containerClassName: 'bg-slate-900 z-20',
-                content: <GovernancePanel />,
-              },
-              {
-                id: 'conformance',
-                open: showConformancePanel,
-                width: 320,
-                containerClassName: 'bg-slate-900 z-20',
-                content: <ConformanceSuitePanel onClose={() => setShowConformancePanel(false)} />,
-              },
-              {
-                id: 'agentMonitor',
-                open: agentMonitorOpen,
-                width: 320,
-                containerClassName: 'bg-slate-900 z-20',
-                content: <AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} />,
-              },
-              {
-                id: 'inspector',
-                open: inspectorOpen,
-                width: 288,
-                errorLabel: 'Node Inspector',
-                content: <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />,
-              },
-              {
-                id: 'plugins',
-                open: pluginsOpen,
-                width: 320,
-                errorLabel: 'Plugin Marketplace',
-                content: <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />,
-              },
-              {
-                id: 'sandboxedPlugins',
-                open: sandboxedPluginsOpen,
-                width: 320,
-                errorLabel: 'Sandboxed Plugins',
-                content: (
-                  <SandboxedPluginsPanel
-                    onClose={() => setSandboxedPluginsOpen(false)}
-                    onOpenMarketplace={() => {
-                      setSandboxedPluginsOpen(false);
-                      setPluginsOpen(true);
-                    }}
-                  />
-                ),
-              },
-            ]}
+            descriptors={rightRailDescriptors}
           />
-
-          {/* Fixed-width right-rail panels are rendered by RightRailPanelHost above
-           * (descriptors with a numeric `width`). The HotkeyMapOverlay below is a
-           * full-screen modal, not a rail panel, so it stays inline. */}
 
           {/* OVERLAY: Hotkey Map (full screen modal) */}
           <HotkeyMapOverlay open={hotkeyOpen} onClose={() => setHotkeyOpen(false)} />
 
-          {/* RIGHT RAIL: Brittney Chat */}
-          {chatOpen && (
-            <div className="flex w-72 shrink-0 flex-col border-l border-studio-border">
-              <BrittneyChatPanel />
-            </div>
-          )}
+          {/* FLOATING BRITTNEY DOCK — chat lives over the viewport, never as a column */}
+          <div className="pointer-events-none absolute bottom-3 left-3 z-30">
+            {chatOpen ? (
+              <div className="pointer-events-auto flex h-[min(540px,calc(100dvh-180px))] w-[380px] flex-col overflow-hidden rounded-xl border border-studio-border bg-studio-panel/95 shadow-2xl backdrop-blur">
+                <div className="flex shrink-0 items-center justify-between border-b border-studio-border px-3 py-1.5">
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-studio-muted">
+                    <MessageCircle className="h-3.5 w-3.5 text-studio-accent" /> Brittney
+                  </span>
+                  <button
+                    onClick={() => setChatOpen(false)}
+                    aria-label="Collapse Brittney"
+                    className="rounded p-0.5 text-studio-muted transition hover:bg-white/[0.06] hover:text-studio-text"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1">
+                  <BrittneyChatPanel />
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setChatOpen(true)}
+                className="pointer-events-auto flex items-center gap-2 rounded-full border border-studio-border bg-studio-panel/95 px-4 py-2 text-xs text-studio-text shadow-2xl backdrop-blur transition hover:bg-studio-surface"
+              >
+                <MessageCircle className="h-4 w-4 text-studio-accent" /> Ask Brittney
+              </button>
+            )}
+          </div>
 
-          {/* Icon rail -- right edge on desktop, bottom bar on mobile (via studio-icon-rail CSS) */}
-          <div className="studio-icon-rail flex shrink-0 flex-col items-center gap-1 overflow-y-auto border-l border-studio-border bg-[#1e1e2e] px-1.5 py-3">
-            {/* Brittney toggle */}
+          {/* PANELS POPOVER — every former icon-rail toggle, one button away */}
+          {panelsMenuOpen && (
+          <div className="absolute right-3 top-2 z-40 grid max-h-[70vh] grid-cols-6 content-start gap-2 overflow-y-auto rounded-xl border border-studio-border bg-[#1e1e2e]/95 p-3 shadow-2xl backdrop-blur">
+            {/* Brittney dock toggle */}
             <button
               onClick={toggleChatOpen}
-              title={chatOpen ? 'Hide Brittney' : 'Open Brittney'}
+              title={chatOpen ? 'Hide Brittney' : 'Ask Brittney'}
               className="text-studio-muted transition hover:text-studio-text"
             >
               <MessageCircle className="h-4 w-4" />
@@ -1986,7 +2131,7 @@ export default function CreatePage() {
             >
               <Smartphone className="h-4 w-4" />
             </button>
-            {/* Debugger toggle */}
+            {/* Debugger toggle (duplicate icon for rail discoverability) */}
             <button
               onClick={toggleDebuggerOpen}
               title={debuggerOpen ? 'Close Debugger' : 'HoloScript Debugger'}
@@ -2026,6 +2171,22 @@ export default function CreatePage() {
             >
               <Shield className="h-4 w-4" />
             </button>
+            {/* Parametric Sliders toggle (part mode) */}
+            <button
+              onClick={toggleParametricSlidersOpen}
+              title={parametricSlidersOpen ? 'Close Parametric Sliders' : 'Parametric Sliders (Part mode)'}
+              className={`transition ${parametricSlidersOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+            {/* Printability Report toggle (part mode) */}
+            <button
+              onClick={togglePrintabilityReportOpen}
+              title={printabilityReportOpen ? 'Close Printability Report' : 'Printability Report (Part mode)'}
+              className={`transition ${printabilityReportOpen ? 'text-studio-accent' : 'text-studio-muted hover:text-studio-text'}`}
+            >
+              <Gauge className="h-4 w-4" />
+            </button>
             {/* Hotkey Map toggle */}
             <button
               onClick={toggleHotkeyOpen}
@@ -2035,8 +2196,9 @@ export default function CreatePage() {
               <Keyboard className="h-4 w-4" />
             </button>
           </div>
+          )}
         </div>
-      </ResponsiveStudioLayout>
+      </div>
 
       {/* Trait Palette modal */}
       <TraitPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
@@ -2047,29 +2209,17 @@ export default function CreatePage() {
       {/* Template Picker modal */}
       {templatePickerOpen && <TemplatePicker onClose={() => setTemplatePickerOpen(false)} />}
 
-      {/* Scene Search overlay (Sprint S) */}
+      {/* Scene Search overlay */}
       <SceneSearchOverlay open={sceneSearchOpen} onClose={() => setSceneSearchOpen(false)} />
 
-      {/* Sprint T: Script Console (fixed bottom panel, taller on mobile) */}
+      {/* Script Console (fixed bottom panel) */}
       {consoleOpen && (
         <div className="studio-bottom-console fixed bottom-0 left-0 right-0 z-30 h-[280px] border-t border-studio-border shadow-2xl">
           <ScriptConsole />
         </div>
       )}
 
-      {/* OVERLAY: Spatial Blame Tooltip (Git for 3D) */}
-      {spatialBlameTooltip.visible && (
-        <div
-          className="fixed pointer-events-none z-50 bg-slate-900/95 border border-indigo-500/30 rounded-lg p-3 shadow-xl backdrop-blur-md"
-          style={{
-            left: spatialBlameTooltip.x,
-            top: spatialBlameTooltip.y,
-            transform: 'translate(-50%, -100%)',
-          }}
-        >
-          {spatialBlameTooltip.content}
-        </div>
-      )}
-    </>
+      {/* Spatial Blame Tooltip */}
+    </div>
   );
 }

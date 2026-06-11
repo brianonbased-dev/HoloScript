@@ -1,0 +1,4 @@
+@view({ id: "printabilityReport", title: "Printability Report", icon: "Printer", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 78 })
+composition "printabilityReport" {
+  object "PrintabilityReportPanel" @slot(component: "PrintabilityReportPanel", import: "@/components/manufacturing/PrintabilityReportPanel") {}
+}

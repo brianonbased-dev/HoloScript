@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { WorkbenchShell } from '@/components/workbench/WorkbenchShell';
-
 export const metadata: Metadata = {
   title: 'Create — HoloScript Studio',
   description:
@@ -15,23 +13,14 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Viewer-first create surface (founder directive 2026-06-10: "the
+ * architecture doesn't focus on the viewer"). The page IS the viewport —
+ * no WorkbenchShell wrapper: its title bar, Files/Search/Scene/Commands
+ * sidebar, Output dock, and inspector duplicated chrome the page already
+ * provides (chat dock, code drawer, right rail). The page owns its own
+ * full-height chassis; everything non-viewport floats or collapses.
+ */
 export default function CreateLayout({ children }: { children: ReactNode }) {
-  return (
-    <WorkbenchShell
-      perspectiveId="create"
-      title="Create"
-      subtitle="Scene editor"
-      primarySidebarTitle="Create"
-      bottomPanelTitle="Output"
-      inspectorTitle="Inspector"
-      statusItems={
-        <>
-          <span>Create</span>
-          <span>HoloScript</span>
-        </>
-      }
-    >
-      {children}
-    </WorkbenchShell>
-  );
+  return children;
 }

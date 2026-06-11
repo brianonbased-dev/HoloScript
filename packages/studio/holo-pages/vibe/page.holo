@@ -1,4 +1,4 @@
 @page {
-  route: "/templates"
+  route: "/vibe"
   redirect: "/create"
 }

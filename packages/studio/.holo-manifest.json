@@ -9,7 +9,9 @@
     "src\\app\\integrations\\page.tsx",
     "src\\app\\projects\\page.tsx",
     "src\\app\\settings\\page.tsx",
-    "src\\app\\start\\page.tsx"
+    "src\\app\\start\\page.tsx",
+    "src\\app\\build\\page.tsx",
+    "src\\app\\vibe\\page.tsx"
   ],
-  "lastBuild": "2026-05-06T03:02:33.188Z"
+  "lastBuild": "2026-06-11T02:14:54.446Z"
 }

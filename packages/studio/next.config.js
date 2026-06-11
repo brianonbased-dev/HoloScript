@@ -338,6 +338,11 @@ const nextConfig = {
       // Externalize blockchain/wallet packages that don't work in browser
       '@coinbase/agentkit': false,
       // Stub engine + framework deep imports (pulled in via @holoscript/core barrel)
+      // NOTE (2026-06-10): server code that needs the REAL engine (e.g.
+      // /api/manufacturing/* routes) must load it via
+      // `import(/* webpackIgnore: true */ '@holoscript/engine')` — the alias
+      // below applies to ALL webpack layers, and Next's ESM-external interop
+      // proxies break engine namespace access even when exempted here.
       ...Object.fromEntries(
         ['@holoscript/engine', '@holoscript/framework'].flatMap((pkg) => {
           // Generate false aliases for the base package and common subpaths

@@ -1,0 +1,4 @@
+@view({ id: "parametricSliders", title: "Parametric Sliders", icon: "SlidersHorizontal", category: "authoring", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 77 })
+composition "parametricSliders" {
+  object "ParametricSlidersPanel" @slot(component: "ParametricSlidersPanel", import: "@/components/manufacturing/ParametricSlidersPanel") {}
+}
