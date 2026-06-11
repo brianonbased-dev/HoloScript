@@ -178,6 +178,10 @@ if (SCOPED) {
     const rel = toPosix(f);
     if (!rel.endsWith('.tsx')) continue;
     if (!RENDER_ROOTS.some((r) => rel === r || rel.startsWith(r + '/'))) continue;
+    // Staged DELETIONS are surface shrinkage, never growth — a path that no
+    // longer exists on disk cannot be a net-new hand-authored render file.
+    // (Without this, deleting an orphan component tripped SURFACE-GREW.)
+    if (!existsSync(join(ROOT, rel))) continue;
     candidates.push(
       byRel.get(rel) ?? {
         rel,

@@ -1,11 +1,11 @@
 {
   "package": "@holoscript/studio",
   "counts": {
-    "appPages": 73,
-    "apiRoutes": 193,
-    "components": 469,
-    "hooks": 112,
-    "libModules": 391,
+    "appPages": 75,
+    "apiRoutes": 214,
+    "components": 479,
+    "hooks": 115,
+    "libModules": 407,
     "panelKeys": null,
     "panelComponents": 60
   },
@@ -62,14 +62,14 @@
     },
     {
       "bucket": "connectors",
-      "count": 6
-    },
-    {
-      "bucket": "github",
-      "count": 6
+      "count": 7
     },
     {
       "bucket": "quest-proof",
+      "count": 7
+    },
+    {
+      "bucket": "github",
       "count": 6
     },
     {
