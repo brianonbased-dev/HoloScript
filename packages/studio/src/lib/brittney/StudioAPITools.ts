@@ -657,6 +657,59 @@ const dispatchTaskToAgent: StudioToolDefinition = {
   },
 };
 
+// ─── HoloClaw Fleet Skill Tools ─────────────────────────────────────────────
+//
+// HoloClaw skills are `.hsplus` compositions in compositions/skills/. Launching
+// one spawns a HoloDaemon process that runs the composition as an autonomous
+// HoloClaw agent — many skill compositions work the HoloMesh board directly
+// (see scripts/holoclaw-board-bridge.mjs). These two tools let Brittney
+// discover the installed skills and dispatch any of them as a fleet agent,
+// complementing dispatch_task_to_agent (board-task claiming) and start_daemon_job
+// (HoloDaemon mission profiles).
+
+const listHoloClawSkills: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'list_holoclaw_skills',
+    description:
+      'List the installed HoloClaw skills (`.hsplus` compositions) that can be launched as autonomous HoloClaw agents on the HoloMesh fleet. Returns each skill name, its actions, traits, and marketplace status. Use this before run_holoclaw_skill to discover which skills are available, or when the user asks "what skills can I run?" or "what HoloClaw agents are available?".',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+  },
+};
+
+const runHoloClawSkill: StudioToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'run_holoclaw_skill',
+    description:
+      'Launch an installed HoloClaw skill as an autonomous HoloClaw agent on the HoloMesh fleet. Spawns a HoloDaemon process that runs the skill composition for a bounded number of cycles (or always-on), working the board and emitting activity to the fleet feed. Use when the user says "run the <skill> skill", "send <skill> to the fleet", "spin up a HoloClaw agent for <skill>", or "have <skill> work the board". Call list_holoclaw_skills first if you do not know the exact skill name.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description:
+            'The installed skill name to launch (lowercase slug, e.g. "research" or "self-improve"). Must match an installed skill from list_holoclaw_skills.',
+        },
+        cycles: {
+          type: 'number',
+          description: 'How many work cycles the agent should run before exiting (default 5).',
+        },
+        alwaysOn: {
+          type: 'string',
+          enum: ['true', 'false'],
+          description:
+            'Run the agent continuously instead of for a fixed cycle count. Use sparingly — an always-on agent keeps consuming fleet capacity until stopped.',
+        },
+      },
+      required: ['name'],
+    },
+  },
+};
+
 // ─── Daemon Tools ───────────────────────────────────────────────────────────
 
 const startDaemonJob: StudioToolDefinition = {
@@ -1069,6 +1122,9 @@ export const STUDIO_API_TOOLS: StudioToolDefinition[] = [
   getPrompts,
   // Fleet dispatch
   dispatchTaskToAgent,
+  // HoloClaw fleet skills
+  listHoloClawSkills,
+  runHoloClawSkill,
   // Daemon
   startDaemonJob,
   getDaemonStatus,

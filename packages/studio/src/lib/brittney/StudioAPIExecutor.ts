@@ -220,6 +220,23 @@ const ENDPOINTS: Record<string, EndpointConfig> = {
     }),
   },
 
+  // HoloClaw fleet skills
+  list_holoclaw_skills: {
+    method: 'GET',
+    path: '/api/holoclaw',
+  },
+  run_holoclaw_skill: {
+    method: 'POST',
+    path: '/api/holoclaw/run',
+    buildBody: (args) => ({
+      name: args['name'],
+      ...(args['cycles'] !== undefined ? { cycles: Number(args['cycles']) } : {}),
+      ...(args['alwaysOn'] !== undefined
+        ? { alwaysOn: args['alwaysOn'] === 'true' || args['alwaysOn'] === true }
+        : {}),
+    }),
+  },
+
   // Daemon
   start_daemon_job: {
     method: 'POST',

@@ -137,6 +137,16 @@ describe('Tool categories', () => {
     );
   });
 
+  it('has holoclaw fleet skill tools', () => {
+    expect(findTool('list_holoclaw_skills')).toBeDefined();
+    expect(findTool('run_holoclaw_skill')).toBeDefined();
+  });
+
+  it('run_holoclaw_skill requires a skill name', () => {
+    const tool = findTool('run_holoclaw_skill');
+    expect(tool?.function.parameters.required).toEqual(['name']);
+  });
+
   it('has health/config tools', () => {
     expect(findTool('get_capabilities')).toBeDefined();
     expect(findTool('get_mcp_config')).toBeDefined();
@@ -603,6 +613,61 @@ describe('executeStudioTool', () => {
     expect(callUrl).toContain('/api/github/tree');
     expect(callUrl).toContain('owner=user');
     expect(callUrl).toContain('repo=my-repo');
+  });
+
+  // ─── HoloClaw fleet skill tools ────────────────────────────────────────────
+
+  it('list_holoclaw_skills calls GET /api/holoclaw', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ skills: [{ name: 'research' }], total: 1 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const result = await executeStudioTool('list_holoclaw_skills', {}, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callArgs = vi.mocked(fetch).mock.calls[0];
+    expect(callArgs[0]).toBe(`${BASE_URL}/api/holoclaw`);
+    expect((callArgs[1] as RequestInit).method).toBe('GET');
+  });
+
+  it('run_holoclaw_skill POSTs name, cycles, and coerced alwaysOn', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ started: true, name: 'research', pid: 4242 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    const args = { name: 'research', cycles: 3, alwaysOn: 'true' };
+    const result = await executeStudioTool('run_holoclaw_skill', args, BASE_URL);
+    expect(result.success).toBe(true);
+
+    const callArgs = vi.mocked(fetch).mock.calls[0];
+    expect(callArgs[0]).toBe(`${BASE_URL}/api/holoclaw/run`);
+    const init = callArgs[1] as RequestInit;
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ name: 'research', cycles: 3, alwaysOn: true });
+  });
+
+  it('run_holoclaw_skill omits optional fields when not provided', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ started: true, name: 'self-improve' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+
+    await executeStudioTool('run_holoclaw_skill', { name: 'self-improve' }, BASE_URL);
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0][1] as RequestInit).body as string);
+    expect(body).toEqual({ name: 'self-improve' });
+  });
+
+  it('isStudioAPITool returns true for holoclaw fleet tools', () => {
+    expect(isStudioAPITool('list_holoclaw_skills')).toBe(true);
+    expect(isStudioAPITool('run_holoclaw_skill')).toBe(true);
   });
 
   it('isStudioAPITool returns true for github tools', () => {
