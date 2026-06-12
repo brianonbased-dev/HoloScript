@@ -5,6 +5,11 @@ import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { requireAuth } from '@/lib/api-auth';
+import {
+  registerHoloClawFleetAgent,
+  deregisterHoloClawFleetAgent,
+  type FleetRegistration,
+} from '@/lib/holoclaw/fleetLifecycle';
 import { corsHeaders } from '../../_lib/cors';
 
 // ---------------------------------------------------------------------------
@@ -27,6 +32,8 @@ interface RunningSkill {
   startedAt: string;
   skillPath: string;
   process: ChildProcess;
+  /** Fleet registration if the skill was registered as a dispatchable agent. */
+  fleet?: FleetRegistration;
 }
 
 const runningSkills: Map<string, RunningSkill> = new Map(); // name → process
@@ -155,6 +162,14 @@ export async function POST(request: Request) {
   runningSkills.set(name, entry);
   writeLock(name, child.pid);
 
+  // Register the launched skill as a dispatchable HoloMesh fleet agent + open a
+  // presence session (auto register + deregister lifecycle). Best-effort — a
+  // fleet failure must never break the spawn. Forward session auth; the helper
+  // falls back to the configured HoloMesh key.
+  const clientAuth = request.headers.get('authorization');
+  const fleet = await registerHoloClawFleetAgent(name, { clientAuth });
+  if (fleet) entry.fleet = fleet;
+
   // Append stdout/stderr to outbox for activity feed
   const outboxPath = path.join(STATE_DIR, 'outbox.jsonl');
   child.stdout?.on('data', (data: Buffer) => {
@@ -187,6 +202,9 @@ export async function POST(request: Request) {
   child.on('exit', (code) => {
     runningSkills.delete(name);
     removeLock(name);
+    // Close presence + deregister the fleet agent so launched skills never linger
+    // as stale dispatch targets.
+    if (entry.fleet) void deregisterHoloClawFleetAgent(entry.fleet, clientAuth, 'skill_exit');
     const outEntry =
       JSON.stringify({
         timestamp: new Date().toISOString(),
@@ -203,6 +221,17 @@ export async function POST(request: Request) {
     skillPath: path.relative(REPO_ROOT, skillPath),
     cycles,
     alwaysOn,
+    ...(entry.fleet
+      ? {
+          fleet: {
+            agentId: entry.fleet.agentId,
+            teamId: entry.fleet.teamId,
+            handle: entry.fleet.handle,
+            registered: entry.fleet.registered,
+            presence: entry.fleet.presence,
+          },
+        }
+      : {}),
   });
 }
 
