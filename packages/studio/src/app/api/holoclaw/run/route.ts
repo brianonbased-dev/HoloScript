@@ -10,6 +10,12 @@ import {
   deregisterHoloClawFleetAgent,
   type FleetRegistration,
 } from '@/lib/holoclaw/fleetLifecycle';
+import {
+  buildEmbodiedAgentCard,
+  buildEmbodimentActivityEntry,
+  type EmbodiedAgentCard,
+  type HoloClawAgentIdentity,
+} from '@/lib/holoclaw/embodiment';
 import { corsHeaders } from '../../_lib/cors';
 
 // ---------------------------------------------------------------------------
@@ -34,6 +40,8 @@ interface RunningSkill {
   process: ChildProcess;
   /** Fleet registration if the skill was registered as a dispatchable agent. */
   fleet?: FleetRegistration;
+  /** Embodiment artifact — every launched agent is embodied (non-headless). */
+  embodiment?: EmbodiedAgentCard;
 }
 
 const runningSkills: Map<string, RunningSkill> = new Map(); // name → process
@@ -172,6 +180,26 @@ export async function POST(request: Request) {
 
   // Append stdout/stderr to outbox for activity feed
   const outboxPath = path.join(STATE_DIR, 'outbox.jsonl');
+
+  // EMBODIMENT (non-headless guarantee): every launched agent gets a visible,
+  // embodied representation — a deck card + a .holo avatar — even when fleet
+  // registration is disabled. Emit it to the activity feed so the deck, the
+  // Brittney session, and a 3D scene all render the agent the moment it spawns.
+  const identity: HoloClawAgentIdentity = {
+    skill: name,
+    agentId: fleet?.agentId ?? `holoclaw-${name}-local`,
+    teamId: fleet?.teamId ?? (process.env.HOLOMESH_TEAM_ID || 'team_1777834718247_unr35n'),
+    handle: fleet?.handle ?? `holoclaw-${name}`,
+    pid: child.pid,
+    startedAt: entry.startedAt,
+  };
+  const embodiment = buildEmbodiedAgentCard(identity, 'running', fleet?.presence ?? false);
+  entry.embodiment = embodiment;
+  try {
+    fs.appendFileSync(outboxPath, JSON.stringify(buildEmbodimentActivityEntry(embodiment)) + '\n');
+  } catch {
+    /* outbox append is best-effort; the card still rides the response + listing */
+  }
   child.stdout?.on('data', (data: Buffer) => {
     const lines = data.toString().split('\n').filter(Boolean);
     for (const line of lines) {
@@ -205,6 +233,20 @@ export async function POST(request: Request) {
     // Close presence + deregister the fleet agent so launched skills never linger
     // as stale dispatch targets.
     if (entry.fleet) void deregisterHoloClawFleetAgent(entry.fleet, clientAuth, 'skill_exit');
+    // Emit the embodied "stopped" state so the deck/scene retire the avatar
+    // instead of leaving a ghost.
+    if (entry.embodiment) {
+      try {
+        fs.appendFileSync(
+          outboxPath,
+          JSON.stringify(
+            buildEmbodimentActivityEntry({ ...entry.embodiment, status: 'stopped' })
+          ) + '\n'
+        );
+      } catch {
+        /* best-effort */
+      }
+    }
     const outEntry =
       JSON.stringify({
         timestamp: new Date().toISOString(),
@@ -232,6 +274,8 @@ export async function POST(request: Request) {
           },
         }
       : {}),
+    // The embodiment artifact the Brittney session + 3D scene render.
+    embodiment: entry.embodiment,
   });
 }
 
@@ -245,6 +289,8 @@ export async function GET() {
     pid: s.pid,
     startedAt: s.startedAt,
     skillPath: s.skillPath,
+    // Embodied card so the deck renders running agents as visible avatars.
+    embodiment: s.embodiment,
   }));
 
   return NextResponse.json({ running: skills, count: skills.length });
