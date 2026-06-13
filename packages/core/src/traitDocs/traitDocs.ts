@@ -458,6 +458,109 @@ orb character {
     since: '1.3.0',
   },
 
+  motion_source: {
+    name: 'MotionSourceTrait',
+    annotation: '@motion_source',
+    description:
+      'Declares where an embodied agent’s body motion comes from — a motion library (e.g. Mixamo/MotionBricks), live mocap, procedural locomotion, or AI agent intent — and routes the resolved clip into the node’s @animation pipeline and @avatar_embodiment state. Wires motion libraries into clip playback and retargeting without re-implementing either.',
+    category: 'animation',
+    properties: [
+      {
+        name: 'kind',
+        type: '"library" | "mocap" | "procedural" | "agent_intent"',
+        description: 'Where body motion originates.',
+        default: '"library"',
+      },
+      {
+        name: 'library',
+        type: 'string',
+        description: 'Named motion library, e.g. "mixamo" / "motionbricks".',
+      },
+      {
+        name: 'catalog',
+        type: 'Record<string, string | { asset, duration?, loop?, speed? }>',
+        description: 'Intent → clip mapping. Intent names double as AnimationTrait clip/state names.',
+      },
+      {
+        name: 'default_motion',
+        type: 'string',
+        description: 'Motion played on attach.',
+        default: '"idle"',
+      },
+      {
+        name: 'blend',
+        type: 'number',
+        description: 'Crossfade duration in seconds when switching motion.',
+        default: '0.25',
+      },
+      {
+        name: 'frequency',
+        type: 'number',
+        description: 'Procedural re-evaluation rate (Hz).',
+        default: '30',
+      },
+      {
+        name: 'retarget',
+        type: '{ skeleton?, scale?, preset? }',
+        description: 'Declarative skeleton-retarget descriptor consumed by the asset pipeline / MixamoIntegration.',
+      },
+      {
+        name: 'procedural',
+        type: '{ speed_param?, thresholds?, clips? }',
+        description: 'Speed-driven gait selection (idle/walk/run) for kind: "procedural".',
+      },
+      {
+        name: 'autoplay',
+        type: 'boolean',
+        description: 'Auto-play the default motion on attach.',
+        default: 'true',
+      },
+    ],
+    methods: [],
+    events: [
+      {
+        name: 'on_motion_source_ready',
+        description: 'Emitted on attach once the catalog is registered.',
+        payload: '{ node, kind, library, motions }',
+      },
+      {
+        name: 'on_motion_changed',
+        description: 'Emitted when the active motion changes.',
+        payload: '{ node, motion, applied }',
+      },
+      {
+        name: 'motion_request',
+        description: 'Consumed: request a motion by intent/clip name.',
+        payload: '{ intent | motion | clip }',
+      },
+      {
+        name: 'motion_speed',
+        description: 'Consumed: update the speed signal driving procedural gait.',
+        payload: '{ speed }',
+      },
+      {
+        name: 'motion_stop',
+        description: 'Consumed: stop the active motion.',
+        payload: '{}',
+      },
+    ],
+    example: `@avatar_embodiment({ tracking_source: "ai", ik_mode: "full_body" })
+@animation({})
+@motion_source({
+  kind: "library",
+  library: "mixamo",
+  default_motion: "idle",
+  blend: 0.25,
+  catalog: {
+    idle: { asset: "idle.fbx", loop: true },
+    wave: { asset: "wave.fbx", loop: false, duration: 1.2 },
+    walk: { asset: "walk.fbx", loop: true }
+  },
+  retarget: { skeleton: "mixamo", scale: 1.0 }
+})
+orb agent_body {}`,
+  },
+
   skeleton: {
     name: 'SkeletonTrait',
     annotation: '@skeleton',

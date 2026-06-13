@@ -141,6 +141,7 @@ import { remotePresenceHandler } from './RemotePresenceTrait';
 import { sharedWorldHandler } from './SharedWorldTrait';
 import { voiceProximityHandler } from './VoiceProximityTrait';
 import { avatarEmbodimentHandler } from './AvatarEmbodimentTrait';
+import { motionSourceHandler } from './MotionSourceTrait';
 import { spectatorHandler } from './SpectatorTrait';
 import { roleHandler } from './RoleTrait';
 import { geospatialAnchorHandler } from './GeospatialAnchorTrait';
@@ -1725,6 +1726,7 @@ export class VRTraitRegistry {
     this.register(sharedWorldHandler as TraitHandler);
     this.register(voiceProximityHandler as TraitHandler);
     this.register(avatarEmbodimentHandler as TraitHandler);
+    this.register(motionSourceHandler as TraitHandler);
     this.register(spectatorHandler as TraitHandler);
     this.register(roleHandler as TraitHandler);
 
@@ -2323,6 +2325,7 @@ export {
   sharedWorldHandler,
   voiceProximityHandler,
   avatarEmbodimentHandler,
+  motionSourceHandler,
   spectatorHandler,
   roleHandler,
   // Phase 11: Geospatial & AR Cloud

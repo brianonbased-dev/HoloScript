@@ -20,4 +20,7 @@ export const HUMANOID_AVATAR_TRAITS = [
   'pose_estimation',
   'hand_mesh_ai',
   'neural_animation',
+  // Embodied-motion seam: declares where body motion comes from and routes it
+  // into @animation / @avatar_embodiment (see MotionSourceTrait).
+  'motion_source',
 ] as const;

@@ -1611,6 +1611,16 @@
     "conflicts": [],
     "source": "holoscript"
   },
+  "motion_source": {
+    "id": "motion_source",
+    "namespace": "@holoscript/core",
+    "category": "other",
+    "properties": [],
+    "compileHints": [],
+    "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
   "mqtt_sink": {
     "id": "mqtt_sink",
     "namespace": "@holoscript/core",

@@ -85,6 +85,7 @@ export type VRTraitName =
   | 'interactive_graph'
   | 'draft'
   | 'hot_reload'
+  | 'motion_source'
   | (string & {}); // Allow any string for extensibility while preserving autocomplete
 
 // ============================================================================
