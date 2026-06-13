@@ -131,6 +131,13 @@ describe('TensorOpTrait', () => {
       shape: [3, 3],
     });
     expect(getEventCount(c, 'tensor:created')).toBe(1);
+    // matmul needs BOTH operands to exist — the handler emits tensor:error for an
+    // unknown id (TensorOpTrait runBinaryOp). Create the second tensor first.
+    sendEvent(tensorOpHandler, n, { max_dimensions: 4 }, c, {
+      type: 'tensor:create',
+      tensorId: 't2',
+      shape: [3, 3],
+    });
     sendEvent(tensorOpHandler, n, { max_dimensions: 4 }, c, {
       type: 'tensor:matmul',
       a: 't1',
@@ -253,10 +260,17 @@ describe('AstarTrait', () => {
     const n = createMockNode('a');
     const c = createMockContext();
     attachTrait(astarHandler, n, { max_iterations: 10000, heuristic: 'euclidean' }, c);
+    // Handler needs a searchable graph (grid + start + goal); bare from/to yields
+    // astar:path_not_found (no-graph). Mirror the dedicated AstarTrait test.
     sendEvent(astarHandler, n, { max_iterations: 10000, heuristic: 'euclidean' }, c, {
       type: 'astar:find_path',
-      from: [0, 0],
-      to: [10, 10],
+      grid: [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+      ],
+      start: [0, 0],
+      goal: [0, 2],
     });
     expect((getLastEvent(c, 'astar:path_found') as any).heuristic).toBe('euclidean');
   });
@@ -267,15 +281,23 @@ describe('NavmeshSolverTrait', () => {
     const n = createMockNode('nm');
     const c = createMockContext();
     attachTrait(navmeshSolverHandler, n, { cell_size: 0.5 }, c);
+    // Handler derives a REAL navmesh from a point cloud — the bare polygonCount
+    // echo was a tautology (see NavmeshSolverTrait.test.ts). Feed a flat-floor cloud.
+    const floor: Array<{ position: number[]; normal: number[] }> = [];
+    for (let x = 0; x <= 2.0001; x += 0.25) {
+      for (let z = 0; z <= 2.0001; z += 0.25) {
+        floor.push({ position: [x, 0, z], normal: [0, 1, 0] });
+      }
+    }
     sendEvent(navmeshSolverHandler, n, { cell_size: 0.5 }, c, {
       type: 'nav:build',
-      polygonCount: 100,
+      points: floor,
     });
-    expect((getLastEvent(c, 'nav:built') as any).polygons).toBe(100);
+    expect((getLastEvent(c, 'nav:built') as any).nodes).toBeGreaterThan(0);
     sendEvent(navmeshSolverHandler, n, { cell_size: 0.5 }, c, {
       type: 'nav:query',
       from: [0, 0, 0],
-      to: [5, 0, 5],
+      to: [2, 0, 2],
     });
     expect((getLastEvent(c, 'nav:path') as any).meshReady).toBe(true);
   });
