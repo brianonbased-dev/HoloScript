@@ -58,6 +58,14 @@ import { executeEmbodiedTool } from '@/lib/brittney/EmbodiedTools';
 import { executeStudioTool } from '@/lib/brittney/StudioAPIExecutor';
 import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
+import {
+  createOutputScreener,
+  resolveBrittneyPolicyConfig,
+  buildPolicyAuditEvent,
+  policyEventType,
+  policyEventPayload,
+} from '@/lib/brittney/contentPolicy';
+import type { ContentPolicyDecision } from '@holoscript/core/policy';
 import { filterToolsToTier, tierForProvider } from '@/lib/brittney/toolTiers';
 import { fetchUserRepos } from '@/lib/brittney/githubContext';
 import {
@@ -577,6 +585,33 @@ export async function POST(request: NextRequest) {
 
         const simContractCheckSafe: SimContractCheck | null = simContractCheck ?? null;
 
+        // CONTENT POLICY (P.013): every model output delta is screened through the
+        // provider-agnostic ContentPolicyGate before it reaches the client — same
+        // gate for the Anthropic, Ollama, and sovereign-serving lanes. The screener
+        // holds back a short tail until each screen clears it, so a hard-stop phrase
+        // that completes mid-stream is caught before its head escapes (block-before-
+        // deliver). Deterministic tiers only on this hot path (sync, no model calls).
+        const screener = createOutputScreener(resolveBrittneyPolicyConfig());
+        let policyBlocked = false;
+        const emitPolicyDecision = (decision: ContentPolicyDecision): void => {
+          send({ type: policyEventType(decision), payload: policyEventPayload(decision) });
+          try {
+            // No AuditLogger sink in studio yet — log the ledger-ready DSA record
+            // structurally; wiring the sink is a tracked follow-up.
+            console.warn(
+              '[content-policy]',
+              JSON.stringify(buildPolicyAuditEvent(decision, { tenantId: auth.user.id, resourceId: sessionId }))
+            );
+          } catch {
+            // Audit is best-effort; never break the stream.
+          }
+        };
+        const flushPolicyTail = (): void => {
+          const step = screener.flush();
+          if (step.release) send({ type: 'text', payload: step.release });
+          if (step.decision) emitPolicyDecision(step.decision);
+        };
+
         try {
           const MAX_TOOL_ROUNDS = 5;
           let roundMessages = [
@@ -696,7 +731,21 @@ export async function POST(request: NextRequest) {
                   roundText += chunk.text;
                   fullAssistantText += chunk.text;
                   __completionChars += chunk.text.length;
-                  send({ type: 'text', payload: chunk.text });
+                  // Screen before delivery: send only the screened-clean portion.
+                  const screened = screener.feed(chunk.text);
+                  if (screened.release) send({ type: 'text', payload: screened.release });
+                  if (screened.decision) emitPolicyDecision(screened.decision);
+                  if (screened.blocked) {
+                    const notice = `\n\n⚠️ Response withheld by content policy${
+                      screened.decision ? ` — ${screened.decision.reason}` : ''
+                    }.`;
+                    send({ type: 'text', payload: notice });
+                    // Persist only the screened-safe prefix + the block notice;
+                    // the unsafe tail was never delivered and is not stored.
+                    fullAssistantText = screener.deliveredText + notice;
+                    policyBlocked = true;
+                    break;
+                  }
                   break;
                 }
 
@@ -805,6 +854,13 @@ export async function POST(request: NextRequest) {
               }
             }
 
+            // Content policy blocked this round's output (block-before-deliver):
+            // commit the CAEL record (forensic truth retained) then end cleanly.
+            if (policyBlocked) {
+              commitCaelForRound();
+              break;
+            }
+
             // ── Raw-JSON tool-call rescue ──────────────────────────────────
             // Small/sovereign models sometimes emit a tool invocation as plain
             // text ({"name":"…","arguments":{…}}) instead of a native tool_use
@@ -846,6 +902,7 @@ export async function POST(request: NextRequest) {
                     },
                   ];
                   commitCaelForRound();
+                  flushPolicyTail();
                   sendRoundSeparator();
                   roundText = '';
                   continue;
@@ -990,6 +1047,8 @@ export async function POST(request: NextRequest) {
               ];
               // CAEL: commit the round's record before continuing.
               commitCaelForRound();
+              // Release any held-back policy tail before the paragraph break.
+              flushPolicyTail();
               // Paragraph-break the next round's narration away from this one.
               sendRoundSeparator();
               // Reset round text for next round.
@@ -1013,6 +1072,9 @@ export async function POST(request: NextRequest) {
             });
           }
 
+          // Release the final held-back policy tail before persisting / done
+          // (no-op when the turn was policy-blocked — the tail stays withheld).
+          flushPolicyTail();
           // Write-through: persist the complete assistant turn BEFORE `done`
           // so the persisted ack is readable (clients stop reading at done).
           await persistAssistantTurn(false);
