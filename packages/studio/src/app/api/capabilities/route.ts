@@ -163,6 +163,16 @@ const LIVE_OPS: CapabilityEntry[] = [
     triggerable: true,
     note: 'SpendGovernor-bounded planner. dryRun=true returns the plan only (no spend) — safe to run from the browser.',
   },
+  {
+    id: 'fairness-sweep',
+    label: 'Verifiable fairness sweep + receipt',
+    category: 'Governance / Fairness',
+    backing: 'studio POST /api/fairness/sweep → /operations Fairness tab (engine Simulation.runFairnessSweep, in-process)',
+    surface: 'live',
+    gate: 'safe',
+    triggerable: true,
+    note: 'Runs the real FairnessSweep in-process and renders the sovereign FairnessReceipt (4/5ths adverse-impact + determinism grade + regulator crosswalk + replay fingerprint) as a verify card. Also wraps explain_fairness_receipt via /api/mcp/call. D.057 — the receipt IS the product (was orphaned-tool, now surfaced).',
+  },
 ];
 
 /**
@@ -191,16 +201,6 @@ const ORPHANED_TOOLS: CapabilityEntry[] = [
     gate: 'safe',
     triggerable: false,
     note: 'Video → anchored 3D reconstruction pipeline. Real MCP tools; no Studio surface.',
-  },
-  {
-    id: 'fairness-sweep',
-    label: 'Fairness sweep + receipt explainer',
-    category: 'Governance / Fairness',
-    backing: 'MCP fairness_sweep + explain_fairness_receipt (mcp-server/src/fairness-mcp-tools.ts)',
-    surface: 'orphaned-tool',
-    gate: 'safe',
-    triggerable: false,
-    note: 'Runs a fairness sweep and explains the FairnessReceipt. No Studio fairness page — D.057 gap (regulated verifiable orchestration: the receipt IS the product).',
   },
   {
     id: 'render-world-on-fleet',

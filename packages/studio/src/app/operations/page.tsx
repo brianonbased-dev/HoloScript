@@ -7,6 +7,7 @@ import { FleetPanel } from '@/components/panels/FleetPanel';
 import { PlatformAdminPanel } from '@/components/operations/PlatformAdminPanel';
 import { AbsorbAdminPanel } from '@/components/operations/AbsorbAdminPanel';
 import { CapabilitiesPanel } from '@/components/operations/CapabilitiesPanel';
+import { FairnessPanel } from '@/components/operations/FairnessPanel';
 
 /**
  * /operations — Operations Console (D.081 brick-1, read-only).
@@ -330,7 +331,7 @@ function Sparkline({
   );
 }
 
-type OpsTab = 'infra' | 'capabilities' | 'admin' | 'absorb' | 'fleet';
+type OpsTab = 'infra' | 'capabilities' | 'fairness' | 'admin' | 'absorb' | 'fleet';
 
 export default function OperationsPage() {
   const { data: session, status } = useSession();
@@ -550,6 +551,7 @@ export default function OperationsPage() {
   const opsTabs: { key: OpsTab; label: string }[] = [
     { key: 'infra', label: 'Infra' },
     { key: 'capabilities', label: 'Capabilities' },
+    { key: 'fairness', label: 'Fairness' },
     { key: 'admin', label: 'Admin' },
     { key: 'absorb', label: 'Absorb' },
     { key: 'fleet', label: 'Fleet' },
@@ -594,6 +596,11 @@ export default function OperationsPage() {
       {activeTab === 'capabilities' && (
         <div className="flex-1 overflow-hidden flex flex-col">
           <CapabilitiesPanel teamId={teamId} />
+        </div>
+      )}
+      {activeTab === 'fairness' && (
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <FairnessPanel />
         </div>
       )}
       {activeTab === 'admin' && <div className="flex-1 overflow-hidden"><PlatformAdminPanel /></div>}

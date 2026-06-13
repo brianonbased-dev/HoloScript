@@ -355,6 +355,7 @@
     "packages/studio/src/components/operations/CapabilitiesPanel.tsx",
     "packages/studio/src/components/operations/DeploymentPipeline.tsx",
     "packages/studio/src/components/operations/ErrorLogViewer.tsx",
+    "packages/studio/src/components/operations/FairnessPanel.tsx",
     "packages/studio/src/components/operations/PlatformAdminPanel.tsx",
     "packages/studio/src/components/operations/StudioOperationsHub.tsx",
     "packages/studio/src/components/orchestration/AgentEventMonitorPanel.tsx",
