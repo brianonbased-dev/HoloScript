@@ -138,9 +138,13 @@ describe('VisionOSTraitMap', () => {
     }
   });
 
-  it('lists partial traits (all promoted to full)', () => {
+  it('lists partial traits — palm_menu pending full gesture/menu codegen', () => {
     const partialTraits = listTraitsByLevel('partial');
-    expect(partialTraits.length).toBe(0);
+    // palm_menu is genuinely partial: its radial-menu / visible_when / gesture
+    // wiring is not yet emitted to Swift (matches the VisionOSCompiler.smoke
+    // feature gaps). Pin the known-partial set honestly rather than over-claiming
+    // full coverage — promote palm_menu to 'full' when that codegen lands.
+    expect(partialTraits).toContain('palm_menu');
   });
 
   // =========== Individual trait categories ===========

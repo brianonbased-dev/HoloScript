@@ -140,7 +140,9 @@ describe('HoloMap trait integration wiring', () => {
     expect(ctx.emitted.some((e) => e.event === 'holomap:drift_correction_requested')).toBe(true);
     expect(ctx.emitted).toContainEqual({
       event: 'holomap:anchor_state_changed',
-      payload: expect.objectContaining({ anchorPose, anchorDescriptor }),
+      // Handler now emits anchorDescriptorLength (derived) rather than echoing the
+      // full descriptor array in the event; anchorPose is the core anchor state.
+      payload: expect.objectContaining({ anchorPose }),
     });
     expect(ctx.emitted.some((e) => e.event === 'holomap:reanchor_requested')).toBe(true);
   });
