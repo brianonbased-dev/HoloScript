@@ -56,7 +56,11 @@ describe('registerHoloClawFleetAgent', () => {
       return Promise.resolve(ok());
     });
 
-    const reg = await registerHoloClawFleetAgent('research');
+    // Pass an explicit teamId so this assertion is hermetic: the module-level
+    // DEFAULT_TEAM_ID captures process.env.HOLOMESH_TEAM_ID at import time, which
+    // varies by machine/CI. The default-resolution path lives in the code; the
+    // explicit-teamId round-trip is asserted here and in the dedicated test below.
+    const reg = await registerHoloClawFleetAgent('research', { teamId: TEAM });
     expect(reg).not.toBeNull();
     expect(reg!.registered).toBe(true);
     expect(reg!.presence).toBe(true);
