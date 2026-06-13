@@ -58,7 +58,7 @@ describe('MatterpakCompiler', () => {
 
   it('should compile a simple OBJ bundle', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({
+    const result = compiler.compileBundle({
       obj: SIMPLE_OBJ,
     });
 
@@ -75,7 +75,7 @@ describe('MatterpakCompiler', () => {
 
   it('should compile OBJ + MTL bundle', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({
+    const result = compiler.compileBundle({
       obj: SIMPLE_OBJ,
       mtl: SIMPLE_MTL,
     });
@@ -87,7 +87,7 @@ describe('MatterpakCompiler', () => {
 
   it('should compile OBJ + XYZ bundle', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({
+    const result = compiler.compileBundle({
       obj: SIMPLE_OBJ,
       xyz: SIMPLE_XYZ,
     });
@@ -101,7 +101,7 @@ describe('MatterpakCompiler', () => {
 
   it('should center origin by default', () => {
     const compiler = new MatterpakCompiler({ centerOrigin: true });
-    const result = compiler.compile({ obj: SIMPLE_OBJ });
+    const result = compiler.compileBundle({ obj: SIMPLE_OBJ });
     const obj = result.composition!.objects[0];
     // Cube center is at (0.5, 0.5, 0.5); with centerOrigin, it should be shifted
     // The position trait should reflect the centering offset
@@ -110,21 +110,21 @@ describe('MatterpakCompiler', () => {
 
   it('should group as rooms when enabled', () => {
     const compiler = new MatterpakCompiler({ groupAsRooms: true });
-    const result = compiler.compile({ obj: SIMPLE_OBJ });
+    const result = compiler.compileBundle({ obj: SIMPLE_OBJ });
     expect(result.stats.rooms).toBeGreaterThan(0);
     expect(result.composition!.spatialGroups.length).toBeGreaterThan(0);
   });
 
   it('should handle empty OBJ gracefully', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({ obj: '' });
+    const result = compiler.compileBundle({ obj: '' });
     expect(result.success).toBe(true);
     expect(result.stats.vertices).toBe(0);
   });
 
   it('should handle malformed OBJ without crashing', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({
+    const result = compiler.compileBundle({
       obj: 'v 1 2\n f 1 2\n', // Incomplete vertices / faces
     });
     expect(result.success).toBe(true); // Graceful degradation
@@ -132,7 +132,7 @@ describe('MatterpakCompiler', () => {
 
   it('should apply scale and rotation options', () => {
     const compiler = new MatterpakCompiler({ scale: 2.0, rotationY: 90 });
-    const result = compiler.compile({ obj: SIMPLE_OBJ });
+    const result = compiler.compileBundle({ obj: SIMPLE_OBJ });
     const obj = result.composition!.objects[0];
     expect(obj.scale).toEqual({ x: 2.0, y: 2.0, z: 2.0 });
     expect(obj.rotation).toEqual({ x: 0, y: 90, z: 0 });
@@ -140,16 +140,28 @@ describe('MatterpakCompiler', () => {
 
   it('should include lights and camera in composition', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({ obj: SIMPLE_OBJ });
+    const result = compiler.compileBundle({ obj: SIMPLE_OBJ });
     expect(result.composition!.lights.length).toBeGreaterThanOrEqual(2);
     expect(result.composition!.camera).toBeDefined();
   });
 
   it('should include a world block with bounds', () => {
     const compiler = new MatterpakCompiler();
-    const result = compiler.compile({ obj: SIMPLE_OBJ });
+    const result = compiler.compileBundle({ obj: SIMPLE_OBJ });
     expect(result.composition!.worlds).toBeDefined();
     expect(result.composition!.worlds!.length).toBe(1);
-    expect(result.composition!.worlds![0].bounds).toBeDefined();
+    // Bounds are emitted as WorldProperty entries (the type-clean AABB
+    // representation), not the World.bounds?: HoloObject scene-object field.
+    const worldPropKeys = (result.composition!.worlds![0].properties ?? []).map((p) => p.key);
+    expect(worldPropKeys).toEqual(
+      expect.arrayContaining([
+        'boundsMinX',
+        'boundsMinY',
+        'boundsMinZ',
+        'boundsMaxX',
+        'boundsMaxY',
+        'boundsMaxZ',
+      ])
+    );
   });
 });
