@@ -82,7 +82,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modeChanging, setModeChanging] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardTab>('board');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('holoclaw');
 
   useEffect(() => {
     let cancelled = false;
@@ -146,7 +146,10 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const { done, mode, objective, slots } = board;
+  const { mode, objective } = board;
+  const slots = (board as BoardData).slots ?? { roles: [], max: 6 };
+  const done = (board as BoardData).done ?? { recent: [], total: 0 };
+  const boardColumns = (board as BoardData).board ?? { open: [], claimed: [], blocked: [] };
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-studio-bg text-studio-text">
@@ -282,9 +285,9 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {[
-                { label: 'Open', count: board.board.open.length, color: 'text-blue-400' },
-                { label: 'WIP', count: board.board.claimed.length, color: 'text-yellow-400' },
-                { label: 'Block', count: board.board.blocked.length, color: 'text-red-400' },
+                { label: 'Open', count: boardColumns.open.length, color: 'text-blue-400' },
+                { label: 'WIP', count: boardColumns.claimed.length, color: 'text-yellow-400' },
+                { label: 'Block', count: boardColumns.blocked.length, color: 'text-red-400' },
               ].map(({ label, count, color }) => (
                 <div
                   key={label}
