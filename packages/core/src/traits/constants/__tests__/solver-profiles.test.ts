@@ -230,19 +230,26 @@ describe('SESL Solver Profiles', () => {
       );
     });
 
-    it('getSolverProfileIds returns all 5 profile IDs', () => {
+    it('getSolverProfileIds returns all 10 registered profile IDs', () => {
       const ids = getSolverProfileIds();
+      // Original SESL solver-backed domain profiles.
       expect(ids).toContain('networking-ai');
       expect(ids).toContain('iot-autonomous-agents');
       expect(ids).toContain('interop-copresence');
       expect(ids).toContain('universal-service');
       expect(ids).toContain('accessibility');
-      expect(ids.length).toBe(5);
+      // Profiles added since (VR interaction, parser/UI, effects, lighting).
+      expect(ids).toContain('simple-modifiers');
+      expect(ids).toContain('core-vr-interaction');
+      expect(ids).toContain('parser-core-ui');
+      expect(ids).toContain('visual-effects');
+      expect(ids).toContain('lighting');
+      expect(ids.length).toBe(10);
     });
 
-    it('getAllSolverProfiles returns all 5 profiles', () => {
+    it('getAllSolverProfiles returns all 10 profiles', () => {
       const profiles = getAllSolverProfiles();
-      expect(profiles.length).toBe(5);
+      expect(profiles.length).toBe(10);
     });
 
     it('getRequiredEvidenceFields returns correct fields for networking-ai', () => {
