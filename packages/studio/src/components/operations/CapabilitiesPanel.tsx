@@ -207,46 +207,45 @@ export function CapabilitiesPanel({ teamId = DEFAULT_TEAM }: { teamId?: string }
     }
   }, [teamId]);
 
-  // SPEND action: file-as-request. Files a board task whose body is the exact CLI
-  // command; an agent/hardware seat picks it up. NEVER runs the spend here.
+  // SPEND action: file-as-request. Files a SIGNED board task whose body is the
+  // exact CLI command; an agent/hardware seat picks it up. NEVER runs the spend
+  // here. Routes through POST /api/operations/request-run (NOT the raw board
+  // proxy): that route is founder-gated server-side and SIGNS the board envelope
+  // with the Studio seat key so the Phase-3-strict board route accepts it
+  // end-to-end. If the seat key isn't provisioned the route fails closed with an
+  // honest "signing key not provisioned" — surfaced below, never an unsigned POST.
   const fileRequest = useCallback(
     async (cap: CapabilityEntry) => {
       const command = REQUEST_COMMANDS[cap.id] ?? `(run ${cap.backing})`;
       setRequestState((s) => ({ ...s, [cap.id]: 'filing…' }));
       try {
-        // Board-add expects an ARRAY of tasks under `tasks` (board-routes.ts:729).
-        // This POST is auth'd server-side by the proxy's team key; the MCP board
-        // route enforces signing (board-routes.ts:724) and may 401 'signing-rejected'
-        // unless the resolved caller is the founder — which is the CORRECT safe
-        // behavior: a browser cannot forge a signed spend request. On rejection the
-        // error is surfaced honestly below; nothing is executed either way.
-        const r = await fetch(`/api/holomesh/team/${teamId}/board`, {
+        const r = await fetch('/api/operations/request-run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            tasks: [
-              {
-                title: `[capability-request] ${cap.label}`,
-                description: [
-                  `Spend-class capability requested from the Studio Capabilities surface.`,
-                  `Backing: ${cap.backing}`,
-                  ``,
-                  `Run (a hardware/fleet seat must execute — NOT the browser):`,
-                  `    ${command}`,
-                  ``,
-                  `Gate: ${cap.gate}. Founder-gate applies per D.080 before any vast.ai spend.`,
-                ].join('\n'),
-                priority: 5,
-                tags: ['capability-request', 'spend', cap.id],
-              },
-            ],
+            teamId,
+            capabilityId: cap.id,
+            label: cap.label,
+            backing: cap.backing,
+            command,
+            gate: cap.gate,
           }),
         });
+        const j = (await r.json().catch(() => ({}))) as {
+          taskId?: string;
+          error?: string;
+          reason?: string;
+          detail?: string;
+        };
         if (!r.ok) {
-          const j = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error || `board ${r.status}`);
+          // Surface the route's / board's honest rejection (signing-rejected
+          // reason, "signing key not provisioned", membership 403, etc.).
+          throw new Error(j.reason || j.error || `request ${r.status}`);
         }
-        setRequestState((s) => ({ ...s, [cap.id]: 'filed ✓' }));
+        setRequestState((s) => ({
+          ...s,
+          [cap.id]: j.taskId ? `filed ✓ ${j.taskId}` : 'filed ✓',
+        }));
       } catch (e: unknown) {
         setRequestState((s) => ({
           ...s,
