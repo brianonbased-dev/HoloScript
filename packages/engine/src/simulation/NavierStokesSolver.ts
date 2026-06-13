@@ -31,7 +31,7 @@
  */
 
 import { RegularGrid3D } from './RegularGrid3D';
-import { jacobiIteration } from './ConvergenceControl';
+import { jacobiIterationPoissonAnisotropic } from './ConvergenceControl';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -307,12 +307,17 @@ export class NavierStokesSolver {
 
     // 2. Solve Poisson: ∇²φ = ∇·u*  (rescaled, no ρ/dt factor)
     pressure.fill(0);
-    const alpha = dx * dx; // assuming dx ≈ dy ≈ dz
-    const beta = 6; // 3D Laplacian denominator
+    // Anisotropic Poisson coefficients: wᵢ = 1/dxᵢ² per axis. Using a single
+    // isotropic alpha=dx² is wrong when dx ≠ dy ≠ dz (qpaq). The pure-Poisson
+    // variant has diagonal 2(wx+wy+wz) — NOT the +1 identity term of the
+    // implicit-diffusion jacobiIterationAnisotropic.
+    const wx = 1 / (dx * dx);
+    const wy = 1 / (dy * dy);
+    const wz = 1 / (dz * dz);
     const maxIter = this.config.pressureIterations ?? 100;
     const tol = this.config.pressureTolerance ?? 1e-4;
 
-    const result = jacobiIteration(pressure, divergence, alpha, beta, maxIter, tol, 0.6667);
+    const result = jacobiIterationPoissonAnisotropic(pressure, divergence, wx, wy, wz, maxIter, tol, 0.6667);
     this.lastPressureIter = result.iterations;
 
     // 3. Correct velocity: u -= ∇φ  (rescaled: φ = p·dt/ρ, so ∇φ = (dt/ρ)·∇p)

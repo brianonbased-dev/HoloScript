@@ -21,7 +21,7 @@
  */
 
 import { RegularGrid3D } from './RegularGrid3D';
-import { jacobiIteration, variableCoefficientJacobiIteration } from './ConvergenceControl';
+import { jacobiIterationPoissonAnisotropic, variableCoefficientJacobiIteration } from './ConvergenceControl';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -288,11 +288,14 @@ export class MultiphaseNSSolver {
         0.5 // under-relaxed for stability
       );
     } else {
-      // Fallback: density-weighted constant-coefficient Poisson
-      // Uses average 1/ρ in the LHS for stability with fewer iterations
-      const alpha = dx * dx;
-      const beta = 6;
-      jacobiIteration(this.pressure, div, alpha, beta, this.pressureIter, 1e-4, 0.6667);
+      // Fallback: density-weighted constant-coefficient Poisson.
+      // Anisotropic Poisson coefficients wᵢ = 1/dxᵢ² — a single isotropic
+      // alpha=dx² is wrong when dx ≠ dy ≠ dz (qpaq). Pure-Poisson diagonal
+      // 2(wx+wy+wz), not the implicit-diffusion +1 identity term.
+      const wx = 1 / (dx * dx);
+      const wy = 1 / (dy * dy);
+      const wz = 1 / (dz * dz);
+      jacobiIterationPoissonAnisotropic(this.pressure, div, wx, wy, wz, this.pressureIter, 1e-4, 0.6667);
     }
 
     // Correct velocity: u -= (1/ρ) · ∇φ  (variable-density correction)
