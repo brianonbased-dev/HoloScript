@@ -301,8 +301,11 @@ describe('AndroidCompiler', () => {
     it('AndroidCompiler fingerprint for empty Wave1 gate composition', () => {
       const composition = createComposition({ name: 'Wave1SplitCharacterization' });
       const out = compiler.compile(composition);
+      // Re-locked after the verified-correct native-scene-fidelity fix (c8cc38f9f:
+      // ARCore multi-object placement calls each object factory + attaches each
+      // renderable with object-local transform). NativeCompilerFidelity.test.ts passes.
       expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
-        '8cea083e2fd602f6dc12e727bfd51d0e0cf0bcd14b936220dcec0a84a164c119'
+        'd8d6c761c9d83f706a05ee5ebc3fc4406986c5e1d70ce787b8f34074ba2c507f'
       );
     });
   });

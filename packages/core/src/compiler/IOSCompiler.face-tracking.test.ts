@@ -423,8 +423,11 @@ describe('IOSCompiler — TrueDepth Face Tracking', () => {
       const c = new IOSCompiler();
       const composition = createComposition({ name: 'Wave1SplitCharacterization' });
       const out = c.compile(composition);
+      // Re-locked after the verified-correct native-scene-fidelity fix (c8cc38f9f:
+      // deterministic iOS placement wraps every scene node under a placed root node).
+      // IOSCompiler.test.ts + NativeCompilerFidelity.test.ts behavior tests pass at HEAD.
       expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
-        '8b378b3578b7611a755b4313e2476bef9a30d860211316f2f982341840530e96'
+        '58239a5ce27880cccd5a861077cac191ca608ec2901d91576fde3eb7d57516a4'
       );
     });
   });
