@@ -213,7 +213,7 @@ export const economyTools: Tool[] = [
   {
     name: 'get_unified_budget_state',
     description:
-      'Get a unified view of budget pressure across economy + rendering for an agent. Returns economic pressure, resource pressure per category, suggested LOD, and shed candidates.',
+      'Get a unified view of budget pressure across economy + rendering for an agent. Returns economic pressure, resource pressure per category, suggested LOD, and shed candidates. NOTE: this is per-agent economic + render-resource (triangle/draw-call) budget — it does NOT report live fleet/GPU rental spend; for that use the vast spend ledger (scripts/reconcile-vast-ledger.mjs).',
     inputSchema: {
       type: 'object',
       properties: {
