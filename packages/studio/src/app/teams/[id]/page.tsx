@@ -82,7 +82,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modeChanging, setModeChanging] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardTab>('holoclaw');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('board');
 
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +147,7 @@ export default function TeamDashboardPage({ params }: { params: Promise<{ id: st
   }
 
   const { mode, objective } = board;
-  const slots = (board as BoardData).slots ?? { roles: [], max: 6 };
+  const slots = (board as BoardData).slots ?? { roles: [], max: Math.max(team.team.members.length, 20) };
   const done = (board as BoardData).done ?? { recent: [], total: 0 };
   const boardColumns = (board as BoardData).board ?? { open: [], claimed: [], blocked: [] };
 
