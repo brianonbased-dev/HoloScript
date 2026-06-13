@@ -403,6 +403,9 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
   (func $set_playerName (export "set_playerName") (param $value i32)
     (i32.store (i32.const 12) (local.get $value))
   )
+  (func $get_frame_count (export "get_frame_count") (result i32)
+    (global.get $frame_count)
+  )
   
   ;; Object functions
   (func $get_object_count (export "get_object_count") (result i32)
@@ -465,15 +468,26 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
   
   (func $update_object_0 (param $dt f32)
     ;; Update logic for hero
-    ;; (custom logic would be generated here based on traits/lifecycle)
+    ;; trait:@grabbable
+    (call $emit_event (i32.const 503535875) (i32.const 0))
+    ;; trait:@collidable
+    (call $emit_event (i32.const 887547513) (i32.const 0))
+    ;; trait:@networked
+    (call $emit_event (i32.const 785965096) (i32.const 0))
   )
   (func $update_object_1 (param $dt f32)
     ;; Update logic for platform
-    ;; (custom logic would be generated here based on traits/lifecycle)
+    ;; trait:@collidable
+    (call $emit_event (i32.const 887547513) (i32.const 1))
+    ;; trait:@physics
+    (call $emit_event (i32.const 2011417343) (i32.const 1))
   )
   (func $update_object_2 (param $dt f32)
     ;; Update logic for collectible
-    ;; (custom logic would be generated here based on traits/lifecycle)
+    ;; trait:@grabbable
+    (call $emit_event (i32.const 503535875) (i32.const 2))
+    ;; trait:@glowing
+    (call $emit_event (i32.const 263748708) (i32.const 2))
   )
   
   ;; Data sections
@@ -532,6 +546,11 @@ exports[`Compiler golden-output regression > WASM: canonical scene → WAT sourc
     "kind": "function",
     "name": "set_playerName",
     "signature": "(i32) -> void",
+  },
+  {
+    "kind": "function",
+    "name": "get_frame_count",
+    "signature": "() -> i32",
   },
   {
     "kind": "function",
