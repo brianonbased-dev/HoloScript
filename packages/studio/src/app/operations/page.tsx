@@ -77,6 +77,94 @@ interface ServeStatus {
   counts?: { warm?: number; draining?: number; models_with_demand?: number };
 }
 
+// ── Fleet watchdog verdict (mirrors scripts/serving-fleet-watchdog.mjs) ────────
+// The peer Sovereign-Serving card surfaces only ONE of the watchdog's three
+// alarm conditions (dark_under_demand). This computes the SAME consolidated
+// verdict the watchdog emits — healthy / alarm / observe — across all three
+// conditions, from the data this page already fetches (no new endpoint, no
+// proxy change). Keep the thresholds in lock-step with the watchdog so the
+// rendered verdict never diverges from the loud-failing cron source (D.080).
+const WATCHDOG_DEMAND_WINDOW_S = 900; // 15m — a want within this is "live"
+const WATCHDOG_STALE_TTL_S = 300; // 5m — heartbeat older than this is stale
+
+type WatchdogCondition = {
+  code: 'dark_under_demand' | 'stale_workers' | 'no_serving_proof';
+  severity: 'critical' | 'warning' | 'info';
+  detail: string;
+};
+interface WatchdogVerdict {
+  // 'observe' is rendered as the founder-facing "cold-idle-OK" state.
+  verdict: 'healthy' | 'alarm' | 'observe';
+  alarm: boolean;
+  conditions: WatchdogCondition[];
+  warm: number;
+  liveEndpoints: number;
+  freshDemandModels: number;
+  totalFreshWants: number;
+}
+
+function buildWatchdogVerdict(serve: ServeStatus | null, nowMs: number): WatchdogVerdict | null {
+  if (!serve) return null;
+  const endpoints = serve.endpoints ?? [];
+  const demand = serve.demand ?? [];
+  const counts = serve.counts ?? {};
+  const warmFromCounts = Number(counts.warm ?? NaN);
+  const warmEndpoints = endpoints.filter((e) => e.status === 'warm');
+  const warm = Number.isFinite(warmFromCounts) ? warmFromCounts : warmEndpoints.length;
+  const liveEndpoints = endpoints.length;
+
+  const fresh = demand
+    .map((d) => ({
+      model: d.model,
+      wantCount: Number(d.want_count) || 0,
+      ageS: (nowMs - (Number(d.last_want_at) || 0)) / 1000,
+    }))
+    .filter((d) => d.ageS < WATCHDOG_DEMAND_WINDOW_S);
+  const totalFreshWants = fresh.reduce((a, d) => a + d.wantCount, 0);
+
+  const conditions: WatchdogCondition[] = [];
+
+  // 1. DARK-UNDER-DEMAND — warm=0 while a model has fresh demand (critical).
+  if (warm === 0 && fresh.length > 0) {
+    conditions.push({
+      code: 'dark_under_demand',
+      severity: 'critical',
+      detail: `warm=0 while ${fresh.length} model(s) have live wants (${totalFreshWants} total within ${Math.round(WATCHDOG_DEMAND_WINDOW_S / 60)}m). Brittney is on BYOK/local fallback.`,
+    });
+  }
+
+  // 2. STALE-WORKERS — registered endpoint with a stale heartbeat (warning).
+  const stale = endpoints.filter((e) => {
+    const hb = Number(e.last_heartbeat_at ?? 0);
+    if (!hb) return false;
+    return (nowMs - hb) / 1000 > WATCHDOG_STALE_TTL_S;
+  });
+  if (stale.length > 0) {
+    conditions.push({
+      code: 'stale_workers',
+      severity: 'warning',
+      detail: `${stale.length} endpoint(s) have a stale heartbeat (>${Math.round(WATCHDOG_STALE_TTL_S / 60)}m): ${stale.map((e) => e.id || e.model || '?').join(', ')}. Autoscaler may miscount a dead box as live.`,
+    });
+  }
+
+  // 3. NO-SERVING-PROOF — no warm + no live endpoint, demand exists but not
+  //    fresh enough to be dark_under_demand (info — soft observability).
+  const anyDemand = demand.some((d) => (Number(d.want_count) || 0) > 0);
+  if (warm === 0 && liveEndpoints === 0 && anyDemand && fresh.length === 0) {
+    conditions.push({
+      code: 'no_serving_proof',
+      severity: 'info',
+      detail: `no warm or live endpoint; demand exists but is older than ${Math.round(WATCHDOG_DEMAND_WINDOW_S / 60)}m. Cold at scale-to-zero (expected) — confirm the autoscaler can still wake it.`,
+    });
+  }
+
+  const alarm = conditions.some((c) => c.severity === 'critical' || c.severity === 'warning');
+  const verdict: WatchdogVerdict['verdict'] =
+    conditions.length === 0 ? 'healthy' : alarm ? 'alarm' : 'observe';
+
+  return { verdict, alarm, conditions, warm, liveEndpoints, freshDemandModels: fresh.length, totalFreshWants };
+}
+
 interface BoardTask {
   id: string;
   title: string;
@@ -435,6 +523,10 @@ export default function OperationsPage() {
     ? Math.round((now - (Number(topDemand.last_want_at) || 0)) / 60000)
     : null;
 
+  // Consolidated watchdog verdict — all three conditions + healthy/alarm/observe,
+  // mirroring scripts/serving-fleet-watchdog.mjs over the already-fetched serve data.
+  const watchdog = buildWatchdogVerdict(serve, now);
+
   // Founder-gate (brick-2): the operate console exposes fleet/CI/Lotus/board
   // internals and is the host for spend-triggering actions. Hide it from
   // non-founders. The nav item is also hidden; the action endpoints enforce
@@ -508,6 +600,98 @@ export default function OperationsPage() {
       {activeTab === 'infra' && (
       <div className="flex-1 overflow-y-auto p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* FLEET WATCHDOG VERDICT — consolidated healthy/alarm/cold-idle verdict
+            across all 3 watchdog conditions (D.081 / F.099). The peer Sovereign-
+            Serving card shows only dark_under_demand; this shows the full verdict
+            the loud-failing cron (serving-fleet-watchdog.mjs) emits. */}
+        <Card
+          title="🩺 Fleet Watchdog Verdict"
+          accent={
+            errors.serve
+              ? 'text-red-400'
+              : watchdog?.verdict === 'alarm'
+                ? 'text-red-400'
+                : watchdog?.verdict === 'healthy'
+                  ? 'text-emerald-400'
+                  : 'text-studio-text'
+          }
+        >
+          {errors.serve ? (
+            <div className="text-xs text-red-400">Error: {errors.serve}</div>
+          ) : watchdog ? (
+            (() => {
+              const verdictLabel =
+                watchdog.verdict === 'alarm'
+                  ? 'ALARM'
+                  : watchdog.verdict === 'healthy'
+                    ? 'HEALTHY'
+                    : 'COLD-IDLE OK';
+              const verdictTone =
+                watchdog.verdict === 'alarm'
+                  ? 'bg-red-500/20 text-red-300'
+                  : watchdog.verdict === 'healthy'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-studio-border text-studio-muted';
+              const sevTone: Record<WatchdogCondition['severity'], string> = {
+                critical: 'border-red-500/40 bg-red-500/10 text-red-300',
+                warning: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+                info: 'border-studio-border/60 bg-studio-panel/30 text-studio-muted',
+              };
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold ${verdictTone}`}>
+                      {verdictLabel}
+                    </span>
+                    <span className="text-[10px] text-studio-muted">
+                      {watchdog.conditions.length === 0
+                        ? 'no alarm conditions'
+                        : `${watchdog.conditions.length} condition${watchdog.conditions.length === 1 ? '' : 's'}`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end gap-5">
+                    <Stat
+                      label="warm"
+                      value={watchdog.warm}
+                      tone={watchdog.warm > 0 ? 'text-emerald-400' : watchdog.verdict === 'alarm' ? 'text-red-400' : 'text-amber-300'}
+                    />
+                    <Stat label="endpoints" value={watchdog.liveEndpoints} />
+                    <Stat label="fresh wants" value={watchdog.totalFreshWants} />
+                    <Stat label="models w/ demand" value={watchdog.freshDemandModels} />
+                  </div>
+
+                  {watchdog.conditions.length > 0 ? (
+                    <div className="space-y-1">
+                      {watchdog.conditions.map((c) => (
+                        <div
+                          key={c.code}
+                          className={`rounded border p-2 text-[10px] ${sevTone[c.severity]}`}
+                        >
+                          <span className="font-mono font-semibold">[{c.severity}] {c.code}</span>{' '}
+                          — {c.detail}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-emerald-400/90">
+                      Serving healthy — no dark-under-demand, no stale workers, serving proof current.
+                    </div>
+                  )}
+
+                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                    Mirrors <code>scripts/serving-fleet-watchdog.mjs</code> (3 conditions:
+                    dark_under_demand · stale_workers · no_serving_proof). Verdict matches the
+                    loud-failing cron; that loop also files a board task + room DM on a real alarm.
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
         {/* LOTUS GATE */}
         <Card
           title="🪷 Lotus Genesis Gate"
