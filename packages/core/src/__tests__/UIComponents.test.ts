@@ -46,7 +46,8 @@ describe('createUIButton', () => {
     const btn = createUIButton('btn', {});
     const buttonChild = btn.children![0];
     expect(buttonChild.traits).toBeDefined();
-    expect(buttonChild.traits!.some((t: any) => t.name === 'pressable')).toBe(true);
+    // traits is a Map<traitName, config> on HSPlusNode (not an array of {name}).
+    expect((buttonChild.traits as Map<string, unknown>).has('pressable')).toBe(true);
   });
 
   it('sets physics type correctly (base=kinematic, button=dynamic)', () => {
@@ -83,7 +84,7 @@ describe('createUISlider', () => {
   it('attaches slidable + grabbable traits to handle', () => {
     const slider = createUISlider('s', {});
     const handle = slider.children![0];
-    const traitNames = handle.traits!.map((t: any) => t.name);
+    const traitNames = [...(handle.traits as Map<string, unknown>).keys()];
     expect(traitNames).toContain('slidable');
     expect(traitNames).toContain('grabbable');
   });
@@ -91,9 +92,12 @@ describe('createUISlider', () => {
   it('passes axis and length to slidable trait', () => {
     const slider = createUISlider('s', { axis: 'z', length: 0.4 });
     const handle = slider.children![0];
-    const slidableTrait = handle.traits!.find((t: any) => t.name === 'slidable');
-    expect(slidableTrait.properties.axis).toBe('z');
-    expect(slidableTrait.properties.length).toBe(0.4);
+    // Map value is the flat trait config { axis, length } (no nested .properties).
+    const slidableTrait = (handle.traits as Map<string, { axis: string; length: number }>).get(
+      'slidable'
+    )!;
+    expect(slidableTrait.axis).toBe('z');
+    expect(slidableTrait.length).toBe(0.4);
   });
 
   it('uses custom colors', () => {
