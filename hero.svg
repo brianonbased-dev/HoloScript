@@ -1,0 +1,43 @@
+<svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ht hd">
+<title id="ht">HoloScript — one semantic source compiles to 40+ targets</title>
+<desc id="hd">A single .holo semantic source feeds the HoloScript engine, which compiles to six target categories: VR/AR, game engines, robotics, web, science, and advanced formats.</desc>
+<rect width="1200" height="600" fill="#0C1222"/>
+<rect x="0" y="0" width="1200" height="6" fill="#38BDF8"/>
+<text x="56" y="88" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="54" font-weight="700" fill="#F5F8FF">HoloScript</text>
+<text x="58" y="126" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" fill="#9DB0D0">The semantic layer for spatial computing &amp; AI agents</text>
+<rect x="56" y="250" width="210" height="140" rx="14" fill="#121C34" stroke="#38BDF8" stroke-width="2"/>
+<text x="161" y="300" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#CFE6FF">one semantic</text>
+<text x="161" y="325" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#CFE6FF">source</text>
+<text x="161" y="366" text-anchor="middle" font-family="Consolas, monospace" font-size="23" font-weight="700" fill="#38BDF8">.holo</text>
+<text x="316" y="306" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#7E93B6">compiles to</text>
+<line x1="266" y1="320" x2="360" y2="320" stroke="#38BDF8" stroke-width="2.5"/>
+<polygon points="362,320 350,314 350,326" fill="#38BDF8"/>
+<rect x="366" y="258" width="160" height="124" rx="14" fill="#103047" stroke="#38BDF8" stroke-width="2.5"/>
+<text x="446" y="308" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#EAF6FF">HoloScript</text>
+<text x="446" y="332" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#EAF6FF">engine</text>
+<text x="446" y="360" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#8FD3F4">40+ compilers</text>
+<g stroke="#2A3A5C" stroke-width="1.5" fill="none">
+<path d="M526 320 C 590 300, 600 272, 640 272"/>
+<path d="M526 320 C 590 312, 600 322, 640 322"/>
+<path d="M526 320 C 590 340, 600 372, 640 372"/>
+<path d="M526 320 C 590 360, 600 422, 640 422"/>
+<path d="M526 320 C 590 380, 600 472, 640 472"/>
+<path d="M526 320 C 590 400, 600 522, 640 522"/>
+</g>
+<g font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#D6E2F5">
+<rect x="640" y="250" width="504" height="44" rx="10" fill="#121C34" stroke="#243352" stroke-width="1.5"/>
+<circle cx="666" cy="272" r="5" fill="#38BDF8"/><text x="686" y="278">VR / AR — OpenXR · VisionOS · Quest</text>
+<rect x="640" y="300" width="504" height="44" rx="10" fill="#121C34" stroke="#243352" stroke-width="1.5"/>
+<circle cx="666" cy="322" r="5" fill="#38BDF8"/><text x="686" y="328">Game — Unity · Unreal · Godot · R3F</text>
+<rect x="640" y="350" width="504" height="44" rx="10" fill="#121C34" stroke="#243352" stroke-width="1.5"/>
+<circle cx="666" cy="372" r="5" fill="#38BDF8"/><text x="686" y="378">Robotics — ROS2 · URDF · USD</text>
+<rect x="640" y="400" width="504" height="44" rx="10" fill="#121C34" stroke="#243352" stroke-width="1.5"/>
+<circle cx="666" cy="422" r="5" fill="#38BDF8"/><text x="686" y="428">Web — WebGPU · WASM · glTF</text>
+<rect x="640" y="450" width="504" height="44" rx="10" fill="#121C34" stroke="#243352" stroke-width="1.5"/>
+<circle cx="666" cy="472" r="5" fill="#38BDF8"/><text x="686" y="478">Science — AlphaFold · DICOM · solvers</text>
+<rect x="640" y="500" width="504" height="44" rx="10" fill="#121C34" stroke="#243352" stroke-width="1.5"/>
+<circle cx="666" cy="522" r="5" fill="#38BDF8"/><text x="686" y="528">Advanced — 3DGS · USDZ · QASM</text>
+</g>
+<text x="56" y="566" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#6E83A6">one source → 40+ targets</text>
+<text x="1144" y="566" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#38BDF8">holoscript.net</text>
+</svg>
