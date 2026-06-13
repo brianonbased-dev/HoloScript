@@ -9,6 +9,7 @@ import {
   buildAgentAvatarHolo,
   buildEmbodiedAgentCard,
   buildEmbodimentActivityEntry,
+  DEFAULT_AGENT_MOTIONS,
   type HoloClawAgentIdentity,
 } from '../embodiment';
 
@@ -56,6 +57,18 @@ describe('buildAgentAvatarHolo', () => {
     const holo = buildAgentAvatarHolo({ ...ID, skill: 'self-improve' }, 'running');
     expect(holo).toContain('object "HoloClawAgent_self_improve"');
   });
+
+  it('embeds @animation + @motion_source so the agent can move (non-inert)', () => {
+    const holo = buildAgentAvatarHolo(ID, 'running');
+    expect(holo).toContain('@animation');
+    expect(holo).toContain('@motion_source(');
+    expect(holo).toContain('library: "mixamo"');
+    expect(holo).toContain('default_motion: "idle"');
+    expect(holo).toContain('retarget: { skeleton: "mixamo" }');
+    for (const m of DEFAULT_AGENT_MOTIONS) {
+      expect(holo).toContain(`${m}: "${m}"`);
+    }
+  });
 });
 
 describe('buildEmbodiedAgentCard', () => {
@@ -102,5 +115,11 @@ describe('buildEmbodimentActivityEntry', () => {
     const entry = buildEmbodimentActivityEntry(card);
     expect(entry.message).toContain('⬡✕');
     expect(entry.metadata?.status).toBe('stopped');
+  });
+});
+
+describe('DEFAULT_AGENT_MOTIONS', () => {
+  it('locks the canonical agent motion set (Mixamo resolution asserted in core MotionSourceTrait.test.ts)', () => {
+    expect([...DEFAULT_AGENT_MOTIONS]).toEqual(['idle', 'walk', 'run', 'wave', 'speak']);
   });
 });

@@ -13,6 +13,7 @@ import {
 import { VR_TRAITS } from '../constants';
 import { vrTraitRegistry } from '../VRTraitSystem';
 import { parse } from '../../parser/HoloScriptPlusParser';
+import { MixamoPresetMapper } from '../../tools/MixamoIntegration';
 
 // A recording stand-in for the AnimationTrait instance stored at
 // node.__animation_instance. Returns truthy from playback methods so the
@@ -90,6 +91,18 @@ describe('MotionSourceTrait', () => {
     expect(() => parse(src, { enableVRTraits: true })).not.toThrow();
     const result = parse(src, { enableVRTraits: true });
     expect(result).toBeDefined();
+  });
+
+  it('default embodied-agent motions resolve to real Mixamo library presets', () => {
+    // Mirrors studio embodiment.ts DEFAULT_AGENT_MOTIONS — embodied HoloClaw
+    // agents declare these via @motion_source(library:"mixamo"), so each must
+    // map to a real Mixamo animation id at the asset-resolution layer.
+    const mapper = new MixamoPresetMapper();
+    for (const m of ['idle', 'walk', 'run', 'wave', 'speak']) {
+      const mapping = mapper.getMixamoId(m);
+      expect(mapping, `no Mixamo mapping for "${m}"`).toBeDefined();
+      expect(mapping!.mixamoAnimationId).toMatch(/^\d+$/);
+    }
   });
 
   // ── Attach & catalog registration ───────────────────────────────────────────

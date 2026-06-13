@@ -37,6 +37,16 @@ export interface HoloClawAgentIdentity {
 
 export type EmbodiedStatus = 'spawning' | 'running' | 'idle' | 'error' | 'stopped';
 
+/**
+ * Default motion catalog for an embodied agent. Each entry is a canonical
+ * animation-preset name that the Mixamo motion library (MixamoPresetMapper)
+ * resolves to a real animation id at the asset layer — so an embodied HoloClaw
+ * agent can idle, locomote, gesture, and speak via @motion_source instead of
+ * standing inert. Kept as plain preset strings here so embodiment stays
+ * import-free (server-side resolution lives in the Mixamo tool, per G.006).
+ */
+export const DEFAULT_AGENT_MOTIONS = ['idle', 'walk', 'run', 'wave', 'speak'] as const;
+
 export interface EmbodiedAgentCard {
   agentId: string;
   handle: string;
@@ -90,6 +100,7 @@ export function activityChannelForSkill(skill: string): string {
 export function buildAgentAvatarHolo(id: HoloClawAgentIdentity, status: EmbodiedStatus): string {
   const hue = avatarHueForSkill(id.skill);
   const objectName = `HoloClawAgent_${id.skill.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+  const motionCatalog = DEFAULT_AGENT_MOTIONS.map((m) => `${m}: "${m}"`).join(', ');
   return `// Embodied HoloClaw fleet agent — generated at launch (non-headless).
 composition "HoloClaw — ${id.skill}" {
   metadata {
@@ -109,6 +120,15 @@ composition "HoloClaw — ${id.skill}" {
     @networking(url: "wss://mcp.holoscript.net/socket/presence")
     @character_voice(profile: "agent", emotion: "focused")
     @emote
+    @animation
+    @motion_source(
+      kind: "library",
+      library: "mixamo",
+      default_motion: "idle",
+      blend: 0.25,
+      catalog: { ${motionCatalog} },
+      retarget: { skeleton: "mixamo" }
+    )
 
     geometry: "avatar"
     position: [0, 0, 0]
