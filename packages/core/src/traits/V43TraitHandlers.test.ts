@@ -108,9 +108,12 @@ describe('objectTrackingHandler', () => {
           }),
         })
       );
-      expect(ctx.emit).toHaveBeenCalledWith('tracking:init', {
-        target: handler.defaultConfig.tracking_target,
-      });
+      // Handler enriches tracking events with nodeId/target/anchorId; assert the
+      // core field tolerantly so benign payload enrichment doesn't break the lock.
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'tracking:init',
+        expect.objectContaining({ target: handler.defaultConfig.tracking_target })
+      );
     });
   });
 
@@ -123,9 +126,10 @@ describe('objectTrackingHandler', () => {
 
       handler.onDetach!(node, handler.defaultConfig, ctx);
 
-      expect(ctx.emit).toHaveBeenCalledWith('tracking:anchor_removed', {
-        anchorId: 'anchor-xyz',
-      });
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'tracking:anchor_removed',
+        expect.objectContaining({ anchorId: 'anchor-xyz' })
+      );
     });
 
     it('should not emit anchor_removed when no anchorId', () => {
@@ -153,7 +157,10 @@ describe('objectTrackingHandler', () => {
       state.trackingLost = true;
 
       handler.onUpdate!(node, handler.defaultConfig, ctx, 0.016);
-      expect(ctx.emit).toHaveBeenCalledWith('tracking:recovery_attempt', { attempt: 1 });
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'tracking:recovery_attempt',
+        expect.objectContaining({ attempt: 1 })
+      );
     });
 
     it('should not emit recovery_attempt when auto_recover is false', () => {
@@ -193,9 +200,10 @@ describe('objectTrackingHandler', () => {
       expect(state.isTracking).toBe(false);
       expect(state.trackingLost).toBe(true);
       expect(state.trackingConfidence).toBe(0);
-      expect(ctx.emit).toHaveBeenCalledWith('tracking:lost', {
-        target: handler.defaultConfig.tracking_target,
-      });
+      expect(ctx.emit).toHaveBeenCalledWith(
+        'tracking:lost',
+        expect.objectContaining({ target: handler.defaultConfig.tracking_target })
+      );
     });
   });
 });

@@ -83,7 +83,11 @@ describe('ObjectTrackingTrait — Production', () => {
       payload: { anchorId: 'a1' },
     });
     handler.onDetach!(mockNode, config, ctx);
-    expect(ctx.emit).toHaveBeenCalledWith('tracking:anchor_removed', { anchorId: 'a1' });
+    // Handler enriches the payload with nodeId/target; assert the core field tolerantly.
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'tracking:anchor_removed',
+      expect.objectContaining({ anchorId: 'a1' })
+    );
   });
 });
 
