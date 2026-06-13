@@ -6,6 +6,7 @@ import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 import { FleetPanel } from '@/components/panels/FleetPanel';
 import { PlatformAdminPanel } from '@/components/operations/PlatformAdminPanel';
 import { AbsorbAdminPanel } from '@/components/operations/AbsorbAdminPanel';
+import { CapabilitiesPanel } from '@/components/operations/CapabilitiesPanel';
 
 /**
  * /operations — Operations Console (D.081 brick-1, read-only).
@@ -329,7 +330,7 @@ function Sparkline({
   );
 }
 
-type OpsTab = 'infra' | 'admin' | 'absorb' | 'fleet';
+type OpsTab = 'infra' | 'capabilities' | 'admin' | 'absorb' | 'fleet';
 
 export default function OperationsPage() {
   const { data: session, status } = useSession();
@@ -548,6 +549,7 @@ export default function OperationsPage() {
 
   const opsTabs: { key: OpsTab; label: string }[] = [
     { key: 'infra', label: 'Infra' },
+    { key: 'capabilities', label: 'Capabilities' },
     { key: 'admin', label: 'Admin' },
     { key: 'absorb', label: 'Absorb' },
     { key: 'fleet', label: 'Fleet' },
@@ -589,6 +591,11 @@ export default function OperationsPage() {
       </div>
 
       {/* Tab panels */}
+      {activeTab === 'capabilities' && (
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <CapabilitiesPanel teamId={teamId} />
+        </div>
+      )}
       {activeTab === 'admin' && <div className="flex-1 overflow-hidden"><PlatformAdminPanel /></div>}
       {activeTab === 'absorb' && <div className="flex-1 overflow-hidden"><AbsorbAdminPanel /></div>}
       {activeTab === 'fleet' && (

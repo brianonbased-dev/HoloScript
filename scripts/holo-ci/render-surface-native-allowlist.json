@@ -352,6 +352,7 @@
     "packages/studio/src/components/node-graph/NodeGraphPanel.tsx",
     "packages/studio/src/components/operations/AbsorbAdminPanel.tsx",
     "packages/studio/src/components/operations/BuildStatusPanel.tsx",
+    "packages/studio/src/components/operations/CapabilitiesPanel.tsx",
     "packages/studio/src/components/operations/DeploymentPipeline.tsx",
     "packages/studio/src/components/operations/ErrorLogViewer.tsx",
     "packages/studio/src/components/operations/PlatformAdminPanel.tsx",
