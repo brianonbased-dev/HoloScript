@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="hero.svg" alt="HoloScript — one semantic source compiles to 40+ targets" width="100%">
+</p>
+
 # HoloScript
 
 Describe what you want to build. HoloScript turns that description into files that can run, be inspected, and move to the platform you need.
