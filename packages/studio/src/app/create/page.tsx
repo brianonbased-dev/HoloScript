@@ -84,6 +84,7 @@ import {
   Globe,
   Cpu,
   AppWindow,
+  Gamepad2,
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
@@ -97,6 +98,7 @@ import { useCreateModeStore, type CreateMode } from '@/components/create/createM
 import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
 import { useSimState } from '@/components/simsci/useSimState';
+import { useGameState } from '@/components/game/useGameState';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -529,6 +531,30 @@ const SimPreviewCanvas = dynamic(
   { ssr: false }
 );
 
+const GameParamsPanel = dynamic(
+  () =>
+    import('@/components/game/GameParamsPanel').then((m) => ({
+      default: m.GameParamsPanel,
+    })),
+  { ssr: false }
+);
+
+const GameGateLedgerPanel = dynamic(
+  () =>
+    import('@/components/game/GameGateLedgerPanel').then((m) => ({
+      default: m.GameGateLedgerPanel,
+    })),
+  { ssr: false }
+);
+
+const GamePreviewCanvas = dynamic(
+  () =>
+    import('@/components/game/GamePreviewCanvas').then((m) => ({
+      default: m.GamePreviewCanvas,
+    })),
+  { ssr: false }
+);
+
 const HistoryPanel = dynamic(
   () => import('@/components/HistoryPanel').then((m) => ({ default: m.HistoryPanel })),
   { ssr: false }
@@ -563,6 +589,7 @@ const MODE_META: Record<CreateMode, { label: string; icon: typeof Globe }> = {
   part: { label: 'Part', icon: Cpu },
   app: { label: 'App', icon: AppWindow },
   sim: { label: 'Sim', icon: Atom },
+  game: { label: 'Game', icon: Gamepad2 },
 };
 
 function ModeBadge({ mode }: { mode: CreateMode }) {
@@ -978,6 +1005,17 @@ export default function CreatePage() {
   /** Latest sim result — subscribed from useSimState for breadcrumb + SimPreviewCanvas overlay. */
   const simResult = useSimState((s) => s.result);
 
+  // ── Game mode panels (auto-open when mode=game) ───────────────────────────
+  const gameParamsOpen = usePanelVisibilityStore((s) => s.gameParamsOpen);
+  const setGameParamsOpen = usePanelVisibilityStore((s) => s.setGameParamsOpen);
+  const toggleGameParamsOpen = usePanelVisibilityStore((s) => s.toggleGameParamsOpen);
+  const gameGateLedgerOpen = usePanelVisibilityStore((s) => s.gameGateLedgerOpen);
+  const setGameGateLedgerOpen = usePanelVisibilityStore((s) => s.setGameGateLedgerOpen);
+  const toggleGameGateLedgerOpen = usePanelVisibilityStore((s) => s.toggleGameGateLedgerOpen);
+  /** Latest game build result + building flag — drives GamePreviewCanvas + Verify card. */
+  const gameResult = useGameState((s) => s.result);
+  const gameBuilding = useGameState((s) => s.building);
+
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
   const _setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
@@ -1030,7 +1068,13 @@ export default function CreatePage() {
   useEffect(() => {
     // ── 1. mode param ──────────────────────────────────────────────────────
     const modeParam = searchParams.get('mode');
-    if (modeParam === 'world' || modeParam === 'part' || modeParam === 'app' || modeParam === 'sim') {
+    if (
+      modeParam === 'world' ||
+      modeParam === 'part' ||
+      modeParam === 'app' ||
+      modeParam === 'sim' ||
+      modeParam === 'game'
+    ) {
       setCreateMode(modeParam);
     }
 
@@ -1064,7 +1108,11 @@ export default function CreatePage() {
 
     // ── 5. Part mode — auto-open parametric sliders + printability report. ──
     const resolvedMode =
-      modeParam === 'world' || modeParam === 'part' || modeParam === 'app' || modeParam === 'sim'
+      modeParam === 'world' ||
+      modeParam === 'part' ||
+      modeParam === 'app' ||
+      modeParam === 'sim' ||
+      modeParam === 'game'
         ? modeParam
         : 'world';
     if (resolvedMode === 'part') {
@@ -1075,6 +1123,11 @@ export default function CreatePage() {
     if (resolvedMode === 'sim') {
       setSimParamsOpen(true);
       setSimRunReportOpen(true);
+    }
+    // ── 5c. Game mode — auto-open game params + gate ledger panels ───────────
+    if (resolvedMode === 'game') {
+      setGameParamsOpen(true);
+      setGameGateLedgerOpen(true);
     }
 
     // ── 5. URL scene restore (?scene= or ?src= parameters) ─────────────────
@@ -1524,6 +1577,21 @@ export default function CreatePage() {
           />
         ),
       },
+      // ── Game mode panels ────────────────────────────────────────────────
+      {
+        id: 'gameParams',
+        open: gameParamsOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Game Params',
+        content: <GameParamsPanel onClose={() => setGameParamsOpen(false)} />,
+      },
+      {
+        id: 'gameGateLedger',
+        open: gameGateLedgerOpen,
+        width: 288,
+        errorLabel: 'Game Gate Ledger',
+        content: <GameGateLedgerPanel onClose={() => setGameGateLedgerOpen(false)} />,
+      },
       {
         id: 'inspector',
         open: inspectorOpen,
@@ -1574,6 +1642,7 @@ export default function CreatePage() {
       agentMonitorOpen, inspectorOpen, pluginsOpen, sandboxedPluginsOpen,
       parametricSlidersOpen, printabilityReportOpen, partMeshResult,
       simParamsOpen, simRunReportOpen, simulationOpen,
+      gameParamsOpen, gameGateLedgerOpen,
       handleGeneratedSceneCode,
     ]
   );
@@ -1643,7 +1712,8 @@ export default function CreatePage() {
                   aria-label="Verify — open report panel"
                   className={`rounded px-1.5 py-0.5 transition ${
                     (createMode === 'part' && partMeshResult?.printability) ||
-                    (createMode === 'sim' && simResult !== null)
+                    (createMode === 'sim' && simResult !== null) ||
+                    (createMode === 'game' && gameResult !== null)
                       ? 'bg-white/[0.06] text-studio-text hover:bg-white/[0.10]'
                       : 'opacity-50 cursor-default'
                   }`}
@@ -1652,6 +1722,8 @@ export default function CreatePage() {
                       setprintabilityReportOpen(true);
                     } else if (createMode === 'sim') {
                       setSimRunReportOpen(true);
+                    } else if (createMode === 'game') {
+                      setGameGateLedgerOpen(true);
                     } else if (createMode === 'world' || createMode === 'app') {
                       setShowConformancePanel(true);
                     }
@@ -1721,6 +1793,15 @@ export default function CreatePage() {
                 <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#0a0a12]">
                   <div className="w-full h-full">
                     <SimPreviewCanvas result={simResult} />
+                  </div>
+                </div>
+              )}
+
+              {/* Game-mode playable preview — center viewport overlay when mode=game */}
+              {createMode === 'game' && (
+                <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#06060c]">
+                  <div className="w-full h-full">
+                    <GamePreviewCanvas result={gameResult} building={gameBuilding} />
                   </div>
                 </div>
               )}

@@ -1,0 +1,4 @@
+@view({ id: "gameParams", title: "Game Params", icon: "Gamepad2", category: "simulation", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 80 })
+composition "gameParams" {
+  object "GameParamsPanel" @slot(component: "GameParamsPanel", import: "@/components/game/GameParamsPanel") {}
+}

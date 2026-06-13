@@ -16,6 +16,8 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "cloudDeploy": dynamic(() => import("@/components/cloud/CloudDeployPanel").then((m) => ({ default: pick(m as AnyModule, "CloudDeployPanel") }))),
   "export": dynamic(() => import("@/components/export/ExportPanel").then((m) => ({ default: pick(m as AnyModule, "ExportPanel") }))),
   "exportV2": dynamic(() => import("@/components/export/ExportPipelinePanel").then((m) => ({ default: pick(m as AnyModule, "ExportPipelinePanel") }))),
+  "gameGateLedger": dynamic(() => import("@/components/game/GameGateLedgerPanel").then((m) => ({ default: pick(m as AnyModule, "GameGateLedgerPanel") }))),
+  "gameParams": dynamic(() => import("@/components/game/GameParamsPanel").then((m) => ({ default: pick(m as AnyModule, "GameParamsPanel") }))),
   "history": dynamic(() => import("@/components/HistoryPanel").then((m) => ({ default: pick(m as AnyModule, "HistoryPanel") }))),
   "keyframes": dynamic(() => import("@/components/keyframes/KeyframeEditor").then((m) => ({ default: pick(m as AnyModule, "KeyframeEditor") }))),
   "lod": dynamic(() => import("@/components/lod/LodPanel").then((m) => ({ default: pick(m as AnyModule, "LodPanel") }))),
