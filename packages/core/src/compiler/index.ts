@@ -216,6 +216,8 @@ export type { QASMOutput, QuantumAtom } from './QuantumCircuitCompiler';
 export { CompilerBridge } from './CompilerBridge';
 export { Native2DCompiler } from './Native2DCompiler';
 export type { Native2DCompilerOptions } from './Native2DCompiler';
+export { Vector2DCompiler } from './Vector2DCompiler';
+export type { Vector2DCompileOptions, Vector2DCompileResult } from './Vector2DCompiler';
 export { SCMCompiler } from './SCMCompiler';
 export type { SCMCompilerOptions, AffectiveState, SCMDAG } from './SCMCompiler';
 export { mergeSocialCausalModels } from './social-causality';
