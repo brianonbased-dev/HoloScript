@@ -199,6 +199,15 @@ export function createTruck(id: string): VehicleDefinition {
 // VEHICLE SYSTEM
 // =============================================================================
 
+/**
+ * Ground-height probe for suspension raycasts (zgcn). Given a world XZ position
+ * directly under a wheel, returns the ground/terrain surface height (world Y) at
+ * that point. A heightfield terrain supplies `(x, z) => terrain.heightAt(x, z)`;
+ * a collider world can wrap a downward raycast as `(x, z) => hitY`. When omitted,
+ * suspension falls back to a flat ground plane at y = 0 (legacy behavior).
+ */
+export type GroundProbe = (x: number, z: number) => number;
+
 export class VehicleSystem {
   private vehicles: Map<string, VehicleState> = new Map();
 
@@ -239,7 +248,7 @@ export class VehicleSystem {
   /**
    * Update vehicle physics for one timestep.
    */
-  update(vehicleId: string, dt: number): VehicleState | null {
+  update(vehicleId: string, dt: number, groundProbe?: GroundProbe): VehicleState | null {
     const vehicle = this.vehicles.get(vehicleId);
     if (!vehicle) return null;
 
@@ -257,14 +266,20 @@ export class VehicleSystem {
     const forwardDir = this.getForwardVector(vehicle);
 
     for (const wheel of vehicle.wheels) {
-      // Raycast suspension (simplified: ground at y = 0)
+      // Suspension raycast. Per-wheel world XZ under the chassis-local mount,
+      // then probe the ground height there (terrain heightfield or collider
+      // raycast via groundProbe; flat y = 0 when no probe is supplied — zgcn).
+      const wheelWorldX = vehicle.position[0] + wheel.config.connectionPoint[0];
+      const wheelWorldZ = vehicle.position[2] + wheel.config.connectionPoint[2];
+      const groundY = groundProbe ? groundProbe(wheelWorldX, wheelWorldZ) : 0;
       const wheelWorldY = vehicle.position[1] + wheel.config.connectionPoint[1];
       const rayEnd = wheelWorldY - wheel.config.suspensionRestLength - wheel.config.wheelRadius;
 
-      if (rayEnd <= 0) {
-        // Hit ground
+      if (rayEnd <= groundY) {
+        // Wheel reaches the ground surface at this XZ — compression is how far
+        // the ray penetrates below the (possibly non-flat) ground height.
         wheel.isGrounded = true;
-        const compression = -rayEnd;
+        const compression = groundY - rayEnd;
         wheel.suspensionLength = Math.max(
           wheel.config.suspensionRestLength - compression,
           wheel.config.suspensionRestLength - wheel.config.maxSuspensionTravel
@@ -281,11 +296,7 @@ export class VehicleSystem {
         wheel.suspensionForce = Math.max(0, springForce + dampForce);
         totalSuspensionForce += wheel.suspensionForce;
 
-        wheel.contactPoint = vec3(
-          vehicle.position[0] + wheel.config.connectionPoint[0],
-          0,
-          vehicle.position[2] + wheel.config.connectionPoint[2]
-        );
+        wheel.contactPoint = vec3(wheelWorldX, groundY, wheelWorldZ);
       } else {
         wheel.isGrounded = false;
         wheel.suspensionForce = 0;

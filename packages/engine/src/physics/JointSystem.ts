@@ -1,4 +1,5 @@
 import type { Vector3 } from '@holoscript/core';
+import type { IPhysicsWorld } from './PhysicsTypes';
 /**
  * JointSystem.ts
  *
@@ -171,6 +172,77 @@ export class JointSystem {
       if (state.currentForce > joint.breakForce) {
         joint.broken = true;
       }
+    }
+  }
+
+  /**
+   * Couple computed joint forces into the rigid-body world (zgcn).
+   *
+   * `solve()` computes only a scalar `currentForce` magnitude in a vacuum — it
+   * reads neither body positions nor applies anything, so on its own a joint
+   * moves no body (the structural gap audited 2026-06-10). This method closes
+   * the loop for the LINEAR constraint laws (spring, distance): for each enabled
+   * such joint it reads the live positions/velocities of bodyA and bodyB,
+   * computes the constraint force VECTOR along the A→B axis (Hooke restoring term
+   * + axial damping that opposes the separation rate), and applies equal and
+   * opposite forces to the two bodies via the world.
+   *
+   * Force on A points toward B when the bodies are stretched beyond rest length
+   * (pulling them together) and away when compressed; B receives the negation —
+   * so the pair conserves linear momentum. Coincident bodies (no defined axis)
+   * are skipped. Hinge/slider angular DOFs are not force-coupled here — their
+   * rotational constraint is the ConstraintSolver's responsibility; this method
+   * applies exactly the linear law that `currentForce` represents.
+   *
+   * Call once per substep before `world.step(dt)`. Updates joint state
+   * (currentDistance, previousDistance, currentForce) and the break check, so it
+   * subsumes `solve()` for spring/distance joints when a world is present.
+   *
+   * @param world Rigid-body world exposing getBody / applyForce by body id.
+   * @param dt    Substep duration (seconds); reserved for state bookkeeping.
+   */
+  applyForcesToWorld(world: IPhysicsWorld, _dt: number): void {
+    const EPS = 1e-9;
+    for (const [id, joint] of this.joints) {
+      if (!joint.enabled || joint.broken) continue;
+      if (joint.type !== 'spring' && joint.type !== 'distance') continue;
+
+      const a = world.getBody(joint.bodyA);
+      const b = world.getBody(joint.bodyB);
+      if (!a || !b) continue;
+
+      const dx = b.position[0] - a.position[0];
+      const dy = b.position[1] - a.position[1];
+      const dz = b.position[2] - a.position[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist < EPS) continue; // coincident — no defined constraint axis
+
+      const ux = dx / dist;
+      const uy = dy / dist;
+      const uz = dz / dist;
+
+      // Hooke restoring term: >0 when stretched (pull A toward B along +u).
+      const springMag = joint.stiffness * (dist - joint.restLength);
+
+      // Axial damping opposes the separation rate vRel = (vB − vA)·û.
+      const va = a.linearVelocity;
+      const vb = b.linearVelocity;
+      const vRel = (vb[0] - va[0]) * ux + (vb[1] - va[1]) * uy + (vb[2] - va[2]) * uz;
+      const mag = springMag + joint.damping * vRel;
+
+      const fx = mag * ux;
+      const fy = mag * uy;
+      const fz = mag * uz;
+
+      // Equal and opposite: +F on A (toward B when stretched), −F on B.
+      world.applyForce(joint.bodyA, [fx, fy, fz]);
+      world.applyForce(joint.bodyB, [-fx, -fy, -fz]);
+
+      const state = this.states.get(id)!;
+      state.previousDistance = state.currentDistance;
+      state.currentDistance = dist;
+      state.currentForce = Math.abs(mag);
+      if (state.currentForce > joint.breakForce) joint.broken = true;
     }
   }
 
