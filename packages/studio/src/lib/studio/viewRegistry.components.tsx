@@ -13,6 +13,8 @@ export const VIEW_COMPONENTS: Record<string, ComponentType<unknown>> = {
   "aiMaterial": dynamic(() => import("@/components/ai/AIMaterialPanel").then((m) => ({ default: pick(m as AnyModule, "AIMaterialPanel") }))),
   "assetLib": dynamic(() => import("@/components/assets/AssetLibraryPanel").then((m) => ({ default: pick(m as AnyModule, "AssetLibraryPanel") }))),
   "audio": dynamic(() => import("@/components/audio/AudioTraitPanel").then((m) => ({ default: pick(m as AnyModule, "AudioTraitPanel") }))),
+  "avatarParams": dynamic(() => import("@/components/avatar/AvatarParamsPanel").then((m) => ({ default: pick(m as AnyModule, "AvatarParamsPanel") }))),
+  "avatarRigLedger": dynamic(() => import("@/components/avatar/AvatarRigLedgerPanel").then((m) => ({ default: pick(m as AnyModule, "AvatarRigLedgerPanel") }))),
   "cloudDeploy": dynamic(() => import("@/components/cloud/CloudDeployPanel").then((m) => ({ default: pick(m as AnyModule, "CloudDeployPanel") }))),
   "export": dynamic(() => import("@/components/export/ExportPanel").then((m) => ({ default: pick(m as AnyModule, "ExportPanel") }))),
   "exportV2": dynamic(() => import("@/components/export/ExportPipelinePanel").then((m) => ({ default: pick(m as AnyModule, "ExportPipelinePanel") }))),

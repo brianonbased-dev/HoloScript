@@ -4,7 +4,7 @@
 import type { StudioViewDefinition } from './viewRegistry';
 
 /** Canonical view ids in curated order — the StudioViewId literal-union source. */
-export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport","gameParams","gameGateLedger"] as const;
+export const GENERATED_VIEW_IDS = ["palette","chat","history","profiler","shaderEditor","timeline","templatePicker","aiMaterial","share","critique","assetPack","versions","repl","registry","remote","export","generator","multiplayer","debugger","snapshots","assetLib","templateGallery","minimap","audio","exportV2","nodeGraph","keyframes","sceneSearch","particles","lod","console","undoHistory","outliner","material","physics","simulation","snapshotDiff","audioVisualizer","multiTransform","environment","inspector","hotkey","plugins","sandboxedPlugins","splatWizard","agentMonitor","texturePaint","mcpConfig","agentWorkflow","behaviorTree","agentEnsemble","eventMonitor","toolCallGraph","marketplace","pluginManager","cloudDeploy","publish","examples","tutorial","hotkeyOverlay","prompts","blame","dag","calibration","dragonPreview","holoDiff","sliderInspector","traitMatrix","assetImport","cinematicCamera","syntheticData","compilationPipeline","confidenceXR","operationsHub","foundationDao","runtimeTier","parametricSliders","printabilityReport","simParams","simRunReport","gameParams","gameGateLedger","avatarParams","avatarRigLedger"] as const;
 
 /** View definitions derived from panel .holo compositions (dogfood), in curated order. */
 export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
@@ -1131,6 +1131,32 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
     "surfaceClass": "core-workbench",
     "defaultOpen": false,
     "exclusiveWith": []
+  },
+  {
+    "id": "avatarParams",
+    "title": "Avatar Params",
+    "icon": "User",
+    "category": "simulation",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.avatarParams.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
+  },
+  {
+    "id": "avatarRigLedger",
+    "title": "Rig Ledger",
+    "icon": "ShieldCheck",
+    "category": "simulation",
+    "defaultPlacement": "right-rail",
+    "activationCommand": "studio.view.avatarRigLedger.toggle",
+    "workspaceScope": "project",
+    "availabilityGate": "always",
+    "surfaceClass": "core-workbench",
+    "defaultOpen": false,
+    "exclusiveWith": []
   }
 ];
 
@@ -1147,6 +1173,14 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   "audio": {
     "component": "AudioTraitPanel",
     "import": "@/components/audio/AudioTraitPanel"
+  },
+  "avatarParams": {
+    "component": "AvatarParamsPanel",
+    "import": "@/components/avatar/AvatarParamsPanel"
+  },
+  "avatarRigLedger": {
+    "component": "AvatarRigLedgerPanel",
+    "import": "@/components/avatar/AvatarRigLedgerPanel"
   },
   "cloudDeploy": {
     "component": "CloudDeployPanel",

@@ -1,0 +1,4 @@
+@view({ id: "avatarRigLedger", title: "Rig Ledger", icon: "ShieldCheck", category: "simulation", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 83 })
+composition "avatarRigLedger" {
+  object "AvatarRigLedgerPanel" @slot(component: "AvatarRigLedgerPanel", import: "@/components/avatar/AvatarRigLedgerPanel") {}
+}

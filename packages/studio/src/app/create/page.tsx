@@ -85,6 +85,7 @@ import {
   Cpu,
   AppWindow,
   Gamepad2,
+  User,
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
@@ -99,6 +100,7 @@ import type { PrintabilityReport } from '@/components/manufacturing/Printability
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
 import { useSimState } from '@/components/simsci/useSimState';
 import { useGameState } from '@/components/game/useGameState';
+import { useAvatarModeState } from '@/components/avatar/useAvatarModeState';
 
 const SceneRenderer = dynamic(
   () => import('@/components/scene/SceneRenderer').then((m) => ({ default: m.SceneRenderer })),
@@ -555,6 +557,30 @@ const GamePreviewCanvas = dynamic(
   { ssr: false }
 );
 
+const AvatarParamsPanel = dynamic(
+  () =>
+    import('@/components/avatar/AvatarParamsPanel').then((m) => ({
+      default: m.AvatarParamsPanel,
+    })),
+  { ssr: false }
+);
+
+const AvatarRigLedgerPanel = dynamic(
+  () =>
+    import('@/components/avatar/AvatarRigLedgerPanel').then((m) => ({
+      default: m.AvatarRigLedgerPanel,
+    })),
+  { ssr: false }
+);
+
+const AvatarPreviewCanvas = dynamic(
+  () =>
+    import('@/components/avatar/AvatarPreviewCanvas').then((m) => ({
+      default: m.AvatarPreviewCanvas,
+    })),
+  { ssr: false }
+);
+
 const HistoryPanel = dynamic(
   () => import('@/components/HistoryPanel').then((m) => ({ default: m.HistoryPanel })),
   { ssr: false }
@@ -590,6 +616,7 @@ const MODE_META: Record<CreateMode, { label: string; icon: typeof Globe }> = {
   app: { label: 'App', icon: AppWindow },
   sim: { label: 'Sim', icon: Atom },
   game: { label: 'Game', icon: Gamepad2 },
+  avatar: { label: 'Avatar', icon: User },
 };
 
 function ModeBadge({ mode }: { mode: CreateMode }) {
@@ -1016,6 +1043,17 @@ export default function CreatePage() {
   const gameResult = useGameState((s) => s.result);
   const gameBuilding = useGameState((s) => s.building);
 
+  // ── Avatar mode panels (auto-open when mode=avatar) ───────────────────────
+  const avatarParamsOpen = usePanelVisibilityStore((s) => s.avatarParamsOpen);
+  const setAvatarParamsOpen = usePanelVisibilityStore((s) => s.setAvatarParamsOpen);
+  const toggleAvatarParamsOpen = usePanelVisibilityStore((s) => s.toggleAvatarParamsOpen);
+  const avatarRigLedgerOpen = usePanelVisibilityStore((s) => s.avatarRigLedgerOpen);
+  const setAvatarRigLedgerOpen = usePanelVisibilityStore((s) => s.setAvatarRigLedgerOpen);
+  const toggleAvatarRigLedgerOpen = usePanelVisibilityStore((s) => s.toggleAvatarRigLedgerOpen);
+  /** Latest avatar rig result + building flag — drives AvatarPreviewCanvas + Verify card. */
+  const avatarResult = useAvatarModeState((s) => s.result);
+  const avatarBuilding = useAvatarModeState((s) => s.building);
+
   // ── Governance & Conformance — driven by editorStore so StudioHeader Validate button works ──
   const showGovernancePanel = useEditorStore((s) => s.showGovernancePanel);
   const _setShowGovernancePanel = useEditorStore((s) => s.setShowGovernancePanel);
@@ -1073,7 +1111,8 @@ export default function CreatePage() {
       modeParam === 'part' ||
       modeParam === 'app' ||
       modeParam === 'sim' ||
-      modeParam === 'game'
+      modeParam === 'game' ||
+      modeParam === 'avatar'
     ) {
       setCreateMode(modeParam);
     }
@@ -1112,7 +1151,8 @@ export default function CreatePage() {
       modeParam === 'part' ||
       modeParam === 'app' ||
       modeParam === 'sim' ||
-      modeParam === 'game'
+      modeParam === 'game' ||
+      modeParam === 'avatar'
         ? modeParam
         : 'world';
     if (resolvedMode === 'part') {
@@ -1128,6 +1168,11 @@ export default function CreatePage() {
     if (resolvedMode === 'game') {
       setGameParamsOpen(true);
       setGameGateLedgerOpen(true);
+    }
+    // ── 5d. Avatar mode — auto-open avatar params + rig ledger panels ────────
+    if (resolvedMode === 'avatar') {
+      setAvatarParamsOpen(true);
+      setAvatarRigLedgerOpen(true);
     }
 
     // ── 5. URL scene restore (?scene= or ?src= parameters) ─────────────────
@@ -1592,6 +1637,21 @@ export default function CreatePage() {
         errorLabel: 'Game Gate Ledger',
         content: <GameGateLedgerPanel onClose={() => setGameGateLedgerOpen(false)} />,
       },
+      // ── Avatar mode panels ──────────────────────────────────────────────
+      {
+        id: 'avatarParams',
+        open: avatarParamsOpen,
+        width: 'resizable' as const,
+        errorLabel: 'Avatar Params',
+        content: <AvatarParamsPanel onClose={() => setAvatarParamsOpen(false)} />,
+      },
+      {
+        id: 'avatarRigLedger',
+        open: avatarRigLedgerOpen,
+        width: 288,
+        errorLabel: 'Avatar Rig Ledger',
+        content: <AvatarRigLedgerPanel onClose={() => setAvatarRigLedgerOpen(false)} />,
+      },
       {
         id: 'inspector',
         open: inspectorOpen,
@@ -1643,6 +1703,7 @@ export default function CreatePage() {
       parametricSlidersOpen, printabilityReportOpen, partMeshResult,
       simParamsOpen, simRunReportOpen, simulationOpen,
       gameParamsOpen, gameGateLedgerOpen,
+      avatarParamsOpen, avatarRigLedgerOpen,
       handleGeneratedSceneCode,
     ]
   );
@@ -1713,7 +1774,8 @@ export default function CreatePage() {
                   className={`rounded px-1.5 py-0.5 transition ${
                     (createMode === 'part' && partMeshResult?.printability) ||
                     (createMode === 'sim' && simResult !== null) ||
-                    (createMode === 'game' && gameResult !== null)
+                    (createMode === 'game' && gameResult !== null) ||
+                    (createMode === 'avatar' && avatarResult !== null)
                       ? 'bg-white/[0.06] text-studio-text hover:bg-white/[0.10]'
                       : 'opacity-50 cursor-default'
                   }`}
@@ -1724,6 +1786,8 @@ export default function CreatePage() {
                       setSimRunReportOpen(true);
                     } else if (createMode === 'game') {
                       setGameGateLedgerOpen(true);
+                    } else if (createMode === 'avatar') {
+                      setAvatarRigLedgerOpen(true);
                     } else if (createMode === 'world' || createMode === 'app') {
                       setShowConformancePanel(true);
                     }
@@ -1802,6 +1866,15 @@ export default function CreatePage() {
                 <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#06060c]">
                   <div className="w-full h-full">
                     <GamePreviewCanvas result={gameResult} building={gameBuilding} />
+                  </div>
+                </div>
+              )}
+
+              {/* Avatar-mode rig preview — center viewport overlay when mode=avatar */}
+              {createMode === 'avatar' && (
+                <div className="absolute inset-0 z-5 flex items-center justify-center bg-[#06060c]">
+                  <div className="w-full h-full">
+                    <AvatarPreviewCanvas result={avatarResult} building={avatarBuilding} />
                   </div>
                 </div>
               )}
