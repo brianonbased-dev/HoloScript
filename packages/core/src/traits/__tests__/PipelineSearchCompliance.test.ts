@@ -1,7 +1,7 @@
 /**
  * Data Pipeline + Notification + Search + Compliance — Unit Tests
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { etlHandler } from '../EtlTrait';
 import { batchJobHandler } from '../BatchJobTrait';
 import { dataTransformHandler } from '../DataTransformTrait';
@@ -24,6 +24,14 @@ import {
   getLastEvent,
   getEventCount,
 } from './traitTestHelpers';
+
+// WebhookOutTrait/SlackAlertTrait were upgraded from stubs to real HTTP calls
+// (fire-and-forget `fetch().then(emit)`); mock fetch and flush microtasks so the
+// async `:sent` event is observed. A real flush (macrotask) drains the retry
+// wrapper's awaits + the .then callback deterministically.
+afterEach(() => vi.unstubAllGlobals());
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+const mockFetchOk = () => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Data Pipeline / ETL
@@ -99,7 +107,8 @@ describe('DataQualityTrait', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 describe('WebhookOutTrait', () => {
-  it('should send webhook', () => {
+  it('should send webhook', async () => {
+    mockFetchOk();
     const node = createMockNode('w');
     const ctx = createMockContext();
     attachTrait(webhookOutHandler, node, {}, ctx);
@@ -108,6 +117,7 @@ describe('WebhookOutTrait', () => {
       url: 'https://example.com',
       payload: {},
     });
+    await flush(); // fire-and-forget fetchWithRetry().then(emit 'webhook:sent')
     expect(getEventCount(ctx, 'webhook:sent')).toBe(1);
   });
 });
@@ -128,14 +138,21 @@ describe('PagerdutyTrait', () => {
 });
 
 describe('SlackAlertTrait', () => {
-  it('should send alert', () => {
+  it('should send alert', async () => {
+    mockFetchOk();
     const node = createMockNode('s');
     const ctx = createMockContext();
     attachTrait(slackAlertHandler, node, {}, ctx);
-    sendEvent(slackAlertHandler, node, { default_channel: '#alerts' }, ctx, {
-      type: 'slack_alert:send',
-      message: 'Deploy failed',
-    });
+    // webhook_url is required — without it the trait emits slack_alert:error and
+    // never reaches the fetch path (the original test omitted it).
+    sendEvent(
+      slackAlertHandler,
+      node,
+      { default_channel: '#alerts', webhook_url: 'https://hooks.slack.test/x' },
+      ctx,
+      { type: 'slack_alert:send', message: 'Deploy failed' }
+    );
+    await flush(); // fire-and-forget fetch().then(emit 'slack_alert:sent')
     const r = getLastEvent(ctx, 'slack_alert:sent') as any;
     expect(r.channel).toBe('#alerts');
   });
