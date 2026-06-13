@@ -36,6 +36,11 @@ export * from '../spatial';
 // Agent extensions (ISwarmConfig, ISwarmResult, IAgentExtension, etc.)
 export * from '../extensions';
 
+// ContentPolicyGate — the CONTENT axis of the legal/illegal system
+// (provider-agnostic content moderation; pairs with Twin Earth action envelopes
+// and the conformance/founder gates). research/2026-06-13.
+export * from '../policy';
+
 // Worker layer exports
 export * from '../HoloScriptCodeParser';
 export * from '../worker/CompilerWorkerProxy';
