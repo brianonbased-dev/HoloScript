@@ -114,9 +114,12 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
 
   // ─── Fidelity gap assertions ───────────────────────────────────────
   describe('Fidelity Gaps vs Reality Composer Pro', () => {
-    it('GAP: environment.style (mixed/full/progressive) is not emitted to Swift', () => {
-      expect(swiftOutput).not.toContain('mixed');
-      expect(swiftOutput).not.toContain('ImmersionStyle');
+    it('environment.style emits a real ImmersionStyleComponent (gap CLOSED)', () => {
+      // Was a documented gap; the compiler now emits a real
+      // ImmersionStyleComponent(style: .mixed/.full/.progressive) — verified
+      // output contains `root.components.set(ImmersionStyleComponent(style: .mixed))`.
+      expect(swiftOutput).toContain('ImmersionStyleComponent');
+      expect(swiftOutput).toContain('.mixed');
     });
 
     it('GAP: hand_tracking and eye_tracking flags are not wired to Swift', () => {
@@ -161,9 +164,11 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).toContain('@palm_menu — palm-attached radial menu');
     });
 
-    it('GAP: visible_when, radial layout, and menu items are not generated', () => {
-      expect(swiftOutput).not.toContain('visible_when');
-      expect(swiftOutput).not.toContain('radial');
+    it('GAP: palm_menu radial MENU ITEMS not yet rendered (documented-partial stub)', () => {
+      // palm_menu now emits a real AnchoringComponent + a documented-partial
+      // comment that NAMES visible_when/radial as pending (VisionOSTraitMap
+      // level:'partial'). Assert the REAL menu-item rendering is still absent —
+      // checking the documentation keywords would be a false positive.
       expect(swiftOutput).not.toContain('plus');
       expect(swiftOutput).not.toContain('folder');
     });
@@ -174,8 +179,10 @@ describe('VisionOSCompiler — Smoke Suite (CG-005)', () => {
       expect(swiftOutput).not.toContain('to: 360');
     });
 
-    it('GAP: on_pinch / on_release / on_gaze_tap are not wired to gesture recognisers', () => {
-      expect(swiftOutput).not.toContain('on_pinch');
+    it('GAP: palm_menu gesture handlers not yet wired (documented-partial stub)', () => {
+      // on_pinch appears only inside palm_menu's documented-partial comment
+      // ("gestures wired to on_pinch etc."); the REAL gesture recognisers/handlers
+      // (on_release / on_gaze_tap / close_window actions) are still absent.
       expect(swiftOutput).not.toContain('on_release');
       expect(swiftOutput).not.toContain('on_gaze_tap');
       expect(swiftOutput).not.toContain('close_window');
