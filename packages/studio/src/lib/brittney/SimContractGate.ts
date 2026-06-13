@@ -51,6 +51,14 @@ export interface SimContractCheckResult {
   contractId: string;
   mutation: SceneMutation;
   reason?: string;
+  /**
+   * Resolved SimulationContract [min,max] bound for this mutation, when one was
+   * declared and resolved (numeric set_trait_property only). Null/absent for
+   * unscoped scenes, single-sided bounds, non-numeric properties, or other tools.
+   * The compute-trace recorder uses this to avoid degenerate self-grading
+   * (HoloTune Phase 0b BugA — D.086).
+   */
+  resolvedBound?: { min: number; max: number } | null;
 }
 
 export interface ResolvedContract {
@@ -179,12 +187,21 @@ function checkInvariants(
     const value = input.property_value;
     const bounds = contract.propertyBounds?.[traitName]?.[key];
     if (bounds && typeof value === 'number') {
+      // Surface the resolved numeric range so the compute-trace recorder can
+      // record real supervision instead of a degenerate self-grade (BugA). Only a
+      // two-sided [min,max] range is a usable training bound; a single-sided bound
+      // leaves the other end unknown, so resolvedBound stays null there.
+      const resolvedBound =
+        bounds.min !== undefined && bounds.max !== undefined
+          ? { min: bounds.min, max: bounds.max }
+          : null;
       if (bounds.min !== undefined && value < bounds.min) {
         return {
           passed: false,
           contractId: contract.id,
           mutation,
           reason: `${traitName}.${key}=${value} violates contract: below minimum ${bounds.min}`,
+          resolvedBound,
         };
       }
       if (bounds.max !== undefined && value > bounds.max) {
@@ -193,8 +210,10 @@ function checkInvariants(
           contractId: contract.id,
           mutation,
           reason: `${traitName}.${key}=${value} violates contract: above maximum ${bounds.max}`,
+          resolvedBound,
         };
       }
+      return { passed: true, contractId: contract.id, mutation, resolvedBound };
     }
   }
 

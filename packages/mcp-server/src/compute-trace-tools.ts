@@ -20,7 +20,7 @@
 import { type Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   gradeComputeMutation,
-  exportTracesJsonl,
+  exportTracesJsonlResolved,
   computeTraceStats,
   type ComputePropertyBound,
   type ComputeMutation,
@@ -169,7 +169,9 @@ export async function handleComputeTraceTool(
     case 'holo_export_compute_traces': {
       const outPath = typeof args.outPath === 'string' ? args.outPath : undefined;
       const passedOnly = args.passedOnly === undefined ? true : Boolean(args.passedOnly);
-      const result = exportTracesJsonl(outPath, { passedOnly });
+      // BugB: resolved export reads the durable Postgres corpus when the local
+      // JSONL has been wiped (Railway ephemeral FS) — see compute-trace-store.ts.
+      const result = await exportTracesJsonlResolved(outPath, { passedOnly });
       return { ...result, stats: computeTraceStats() };
     }
     case 'holo_compute_trace_stats':

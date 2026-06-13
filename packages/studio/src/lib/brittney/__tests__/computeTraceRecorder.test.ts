@@ -22,11 +22,15 @@ function computeCheck(
     property_value: unknown;
     contractId: string;
     passed: boolean;
+    resolvedBound: { min: number; max: number } | null;
   }> = {}
 ): SimContractCheckResult {
   return {
     passed: overrides.passed ?? true,
     contractId: overrides.contractId ?? 'unscoped',
+    // Default to a real two-sided contract bound so the recorder records (BugA);
+    // pass resolvedBound: null to exercise the unscoped-skip path.
+    resolvedBound: 'resolvedBound' in overrides ? overrides.resolvedBound : { min: 0, max: 2 },
     mutation: {
       tool: 'set_trait_property',
       input: {
@@ -84,11 +88,11 @@ describe('buildGradePayload', () => {
       instruction: 'make the lamp brighter',
       contractId: 'unscoped',
       scene: 'object "Lamp" {}',
-      // self-graded: expected === the applied value (passed-by-construction),
-      // bound anchored at the value, tagged live-brittney.
+      // BugA: bound comes from the resolved contract range (not a degenerate
+      // self-reference); expected === the applied value; tagged live-brittney.
       expectedValue: 0.9,
       opLabel: 'live-brittney',
-      bound: { trait: 'glow', property: 'intensity', min: 0.9, max: 0.9, current: 0.9 },
+      bound: { trait: 'glow', property: 'intensity', min: 0, max: 2, current: 0.9 },
       mutation: {
         tool: 'set_trait_property',
         objectName: 'Lamp',
@@ -106,6 +110,16 @@ describe('buildGradePayload', () => {
       mutation: { tool: 'delete_object', input: { object_name: 'Box' } },
     };
     expect(buildGradePayload({ sessionId: 's', instruction: 'i', scene: '', check })).toBeNull();
+  });
+
+  it('returns null (skip) for an unscoped compute mutation with no resolved bound (BugA)', () => {
+    const payload = buildGradePayload({
+      sessionId: 's',
+      instruction: 'i',
+      scene: '',
+      check: computeCheck({ property_value: 0.5, resolvedBound: null }),
+    });
+    expect(payload).toBeNull();
   });
 });
 

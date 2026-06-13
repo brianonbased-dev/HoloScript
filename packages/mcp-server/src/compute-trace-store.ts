@@ -260,6 +260,42 @@ export function readComputeTraces(): ComputeTraceRecord[] {
   return out;
 }
 
+/**
+ * Read every persisted compute trace from Postgres, oldest-first (created_at).
+ * Unpacks the JSONB `data` column. Returns [] when Postgres is not configured,
+ * the table is empty, or the query fails (honest: never fatal). This is the
+ * Railway-durable counterpart to the JSONL reader — the local file is wiped on
+ * every redeploy; Postgres survives (HoloTune Phase 0b BugB — D.086).
+ */
+export async function readComputeTracesFromPg(): Promise<ComputeTraceRecord[]> {
+  maybeInitPg();
+  if (!pgPool || !pgReady) return [];
+  try {
+    await pgReady;
+    const result = await pgPool.query(
+      'SELECT data FROM compute_trace_corpus ORDER BY created_at ASC'
+    );
+    return result.rows.map((row) => row.data);
+  } catch (e) {
+    console.warn('[ComputeTraceStore] pg read failed:', e);
+    return [];
+  }
+}
+
+/**
+ * Resolve the durable compute corpus, Railway-safe: prefer the local JSONL
+ * (source of truth on dev / single-instance); when it is absent/empty AND
+ * DATABASE_URL is configured, fall back to the Postgres corpus. Use this instead
+ * of the sync readComputeTraces() wherever a complete cross-instance read is
+ * required (e.g. the export path on a deployed, ephemeral-FS instance).
+ */
+export async function readComputeTracesResolved(): Promise<ComputeTraceRecord[]> {
+  const local = readComputeTraces();
+  if (local.length > 0) return local;
+  if (process.env.DATABASE_URL) return readComputeTracesFromPg();
+  return local;
+}
+
 // ── Export (normalized training corpus) ───────────────────────────────────────
 //
 // The corpus consumer (ai-ecosystem/scripts/corpus/harvest_real.py) normalizes
@@ -396,6 +432,29 @@ export function exportTracesJsonl(
   opts: { passedOnly?: boolean } = {}
 ): { path: string; rows: number; bytes: number } {
   let rows = buildNormalizedRows();
+  if (opts.passedOnly) {
+    rows = rows.filter((r) => r.grader.passed);
+  }
+  const target = outPath || path.join(COMPUTE_DIR, 'compute-corpus.normalized.jsonl');
+  ensureDir();
+  const body = rows.map((r) => JSON.stringify(r)).join('\n') + (rows.length ? '\n' : '');
+  fs.writeFileSync(target, body, 'utf8');
+  return { path: target, rows: rows.length, bytes: Buffer.byteLength(body, 'utf8') };
+}
+
+/**
+ * Railway-safe export: identical to exportTracesJsonl, but resolves the corpus via
+ * readComputeTracesResolved() so a deployed (ephemeral-FS) instance reads the
+ * durable Postgres corpus when the local JSONL has been wiped (HoloTune Phase 0b
+ * BugB). Prefer this in the deployed export path; the sync exportTracesJsonl
+ * remains for local/dev where the JSONL is the source of truth.
+ */
+export async function exportTracesJsonlResolved(
+  outPath?: string,
+  opts: { passedOnly?: boolean } = {}
+): Promise<{ path: string; rows: number; bytes: number }> {
+  const records = await readComputeTracesResolved();
+  let rows = buildNormalizedRows(records);
   if (opts.passedOnly) {
     rows = rows.filter((r) => r.grader.passed);
   }

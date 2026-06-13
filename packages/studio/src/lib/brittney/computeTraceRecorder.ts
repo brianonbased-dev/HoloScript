@@ -105,17 +105,20 @@ export function buildGradePayload(args: {
   const tuple = extractComputeTuple(args.check);
   if (!tuple) return null;
 
+  // Only record rows backed by a REAL resolved contract bound (BugA fix, HoloTune
+  // Phase 0b). When the scene is unscoped (default no-op resolver) or the gate
+  // surfaced no two-sided [min,max] range, skip: a degenerate min=max=value bound
+  // self-grades passed-by-construction and carries zero training signal.
+  const rb = args.check.resolvedBound;
+  if (!rb) return null;
+
   const { objectName, traitName, propertyKey, propertyValue } = tuple;
 
-  // No resolved contract bound exists at the live seam (default no-op resolver),
-  // and Brittney is the producer (no independent ground truth). Record honestly:
-  // a permissive bound anchored at the value, expected = the applied value, so the
-  // self-grade is passed-by-construction. opLabel tags it as live-self-graded.
   const bound = {
     trait: traitName,
     property: propertyKey,
-    min: propertyValue,
-    max: propertyValue,
+    min: rb.min,
+    max: rb.max,
     current: propertyValue,
   };
 
