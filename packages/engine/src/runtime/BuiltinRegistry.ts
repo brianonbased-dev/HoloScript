@@ -168,26 +168,34 @@ export class BuiltinRegistry {
       description: 'Pathfinding flow field generation',
       backends: ['cpu', 'gpu'],
       create: async (config) => {
+        const dims = {
+          width: (config.width as number) || 64,
+          height: (config.height as number) || 64,
+          cellSize: (config.cellSize as number) || 1.0,
+        };
+        // HONESTY NOTE (lh8l): the WebGPU compute path is NOT implemented. Both
+        // backends run the deterministic CPU flow-field kernel (FlowFieldCPU);
+        // 'gpu' is reserved for a future WGSL dispatch. For 'cpu' we prefer an
+        // optional @hololand/navigation FlowFieldGenerator when present, and
+        // otherwise fall back to the bundled FlowFieldCPU kernel.
         if (config.backend === 'gpu') {
-          const { FlowFieldCompute } = await import('../gpu/index.js');
-          const ff = new FlowFieldCompute({
-            width: (config.width as number) || 64,
-            height: (config.height as number) || 64,
-            cellSize: (config.cellSize as number) || 1.0,
-          });
+          const { FlowFieldCPU } = await import('../gpu/index.js');
+          const ff = new FlowFieldCPU(dims);
           await ff.initialize();
           return ff;
-        } else {
-          // @ts-ignore — @hololand/navigation CPU fallback (optional peer dep)
-          const { FlowFieldGenerator } = await import('@hololand/navigation').catch(
-            () => import('../gpu/index.js')
-          );
-          return new FlowFieldGenerator({
-            width: (config.width as number) || 64,
-            height: (config.height as number) || 64,
-            cellSize: (config.cellSize as number) || 1.0,
-          });
         }
+        // Optional peer dep: a variable specifier keeps this type-honest (a
+        // non-literal dynamic import resolves to `any`) without a suppression
+        // directive — the module may not be installed.
+        const navSpec = '@hololand/navigation';
+        const nav = (await import(navSpec).catch(() => null)) as {
+          FlowFieldGenerator?: new (d: typeof dims) => unknown;
+        } | null;
+        if (nav?.FlowFieldGenerator) {
+          return new nav.FlowFieldGenerator(dims);
+        }
+        const { FlowFieldCPU } = await import('../gpu/index.js');
+        return new FlowFieldCPU(dims);
       },
     });
 
