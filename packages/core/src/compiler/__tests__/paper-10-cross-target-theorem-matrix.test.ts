@@ -43,7 +43,10 @@ const REFERENCE = `composition Paper10Scene {
     @grabbable
     @physics(mass: 1.0, restitution: 0.8)
     geometry: "capsule"
-    state { active: true; energy: 100.0 }
+    state {
+      active: true
+      energy: 100.0
+    }
   }
   object "AgentA" using "ContractedAgent" { position: [0.0, 1.5, -2.0] }
 }`;
