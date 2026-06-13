@@ -29,6 +29,23 @@ try {
   process.exit(1);
 }
 
+// Subpath export @holoscript/core/policy — emit real .d.ts for the ContentPolicyGate
+// barrel (tsup has dts: false). Consumers (Brittney, HoloLand NPC dialogue, the
+// conformance content-admission gate) import { evaluateContentPolicy,
+// buildContentPolicyConfig, ContentPolicyGate, ... } from '@holoscript/core/policy'
+// and need the full typed surface, not just the runtime JS.
+try {
+  const tscBin = path.join(coreRoot, 'node_modules', 'typescript', 'bin', 'tsc');
+  execFileSync(process.execPath, [tscBin, '-p', 'tsconfig.policy.json'], {
+    cwd: coreRoot,
+    stdio: 'inherit',
+  });
+  console.log('✓ Created policy/index.d.ts');
+} catch (err) {
+  console.error('✗ policy declaration emit failed:', err?.message ?? err);
+  process.exit(1);
+}
+
 // Ensure dist directory exists
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });

@@ -23,6 +23,8 @@ export default defineConfig({
     'type-checker': 'src/HoloScriptTypeChecker.ts',
     debugger: 'src/HoloScriptDebugger.ts',
     'storage/index': 'src/storage/index.ts',
+    // ContentPolicyGate — CONTENT axis of the legal/illegal system (@holoscript/core/policy)
+    'policy/index': 'src/policy/index.ts',
 
     // Compiler targets (dynamically loaded on-demand)
     // VR/AR/XR Compilers

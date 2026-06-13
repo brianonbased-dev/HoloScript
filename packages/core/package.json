@@ -69,6 +69,11 @@
       "import": "./dist/storage/index.js",
       "require": "./dist/storage/index.cjs"
     },
+    "./policy": {
+      "types": "./dist/policy/index.d.ts",
+      "import": "./dist/policy/index.js",
+      "require": "./dist/policy/index.cjs"
+    },
     "./codebase": {
       "types": "./dist/codebase/index.d.ts",
       "import": "./dist/codebase/index.js",
