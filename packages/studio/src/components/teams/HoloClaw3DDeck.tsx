@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Html, Float, Line, Environment } from '@react-three/drei';
 import * as THREE from 'three';
+import type { EmbodiedAgent } from '@/lib/holoclaw/embodiedAgents';
 
 // ---------------------------------------------------------------------------
 // Types & Props
@@ -15,6 +16,8 @@ interface SkillData {
 
 interface HoloClaw3DDeckProps {
   skills: SkillData[];
+  /** Embodied agents (from the embodiment activity feed) rendered as avatars. */
+  agents?: EmbodiedAgent[];
 }
 
 // ---------------------------------------------------------------------------
@@ -145,14 +148,96 @@ function CoordinatorObelisk({ active }: { active: boolean }) {
   );
 }
 
+function EmbodiedAvatarNode({
+  agent,
+  position,
+}: {
+  agent: EmbodiedAgent;
+  position: [number, number, number];
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  // Hue → CSS hsl string; THREE.Color parses it. Matches the embodiment card hue.
+  const color = `hsl(${agent.hue}, 70%, 55%)`;
+  const running = agent.status === 'running';
+
+  useFrame((_, delta) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += delta * (running ? 1.2 : 0.3);
+    }
+  });
+
+  return (
+    <group position={position}>
+      <Float speed={running ? 3 : 1} rotationIntensity={0.4} floatIntensity={0.6}>
+        {/* Avatar body */}
+        <mesh ref={meshRef}>
+          <sphereGeometry args={[0.42, 24, 24]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={running ? 1.4 : 0.35}
+          />
+        </mesh>
+
+        {/* Live-presence ring */}
+        {agent.presence && (
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.68, 0.025, 8, 48]} />
+            <meshBasicMaterial color={color} transparent opacity={0.6} />
+          </mesh>
+        )}
+
+        {/* Tether to the coordinator base */}
+        <Line
+          points={[
+            [0, 0, 0],
+            [-position[0], -position[1] + 1.5, -position[2]],
+          ]}
+          color={color}
+          lineWidth={running ? 1.5 : 0.5}
+          dashed={!running}
+          opacity={0.4}
+          transparent
+        />
+
+        {/* HTML label */}
+        <Html position={[0, -0.85, 0]} center transform sprite zIndexRange={[100, 0]} distanceFactor={8}>
+          <div className="flex flex-col items-center pointer-events-none select-none">
+            <div
+              className="px-2 py-1 rounded bg-[#0f172a]/85 backdrop-blur border text-xs font-bold text-white"
+              style={{
+                borderColor: color,
+                boxShadow: running ? `0 0 10px ${color}` : undefined,
+              }}
+            >
+              {agent.handle}
+            </div>
+            <div className="mt-0.5 flex items-center gap-1">
+              <span className="px-1 py-0.5 rounded bg-black/60 text-[8px] uppercase tracking-wider text-slate-300">
+                {agent.status}
+              </span>
+              {agent.presence && (
+                <span className="px-1 py-0.5 rounded bg-black/60 text-[8px] text-emerald-300">
+                  live
+                </span>
+              )}
+            </div>
+          </div>
+        </Html>
+      </Float>
+    </group>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 
-export function HoloClaw3DDeck({ skills }: HoloClaw3DDeckProps) {
-  const isEngineActive = skills.some((s) => s.status === 'running');
+export function HoloClaw3DDeck({ skills, agents = [] }: HoloClaw3DDeckProps) {
+  const isEngineActive =
+    skills.some((s) => s.status === 'running') || agents.some((a) => a.status === 'running');
 
-  // Distribute tentacles in a spatial ring/sphere layout
+  // Distribute skill tentacles on an outer spatial ring/sphere layout
   const distributedPositions = useMemo(() => {
     const radius = 5;
     return skills.map((_, i) => {
@@ -164,6 +249,19 @@ export function HoloClaw3DDeck({ skills }: HoloClaw3DDeckProps) {
       return [x, y, z] as [number, number, number];
     });
   }, [skills]);
+
+  // Embodied agents orbit the coordinator on a closer inner ring so a launched
+  // HoloClaw agent reads as a VISIBLE avatar, distinct from the skill nodes.
+  const agentPositions = useMemo(() => {
+    const radius = 2.9;
+    return agents.map((_, i) => {
+      const angle = (i / Math.max(1, agents.length)) * Math.PI * 2 + Math.PI / 6;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const y = 1.2 + Math.sin(i * 1.7) * 0.4;
+      return [x, y, z] as [number, number, number];
+    });
+  }, [agents]);
 
   return (
     <div className="w-full h-full bg-[#050508] rounded-lg border border-studio-border overflow-hidden relative">
@@ -180,6 +278,11 @@ export function HoloClaw3DDeck({ skills }: HoloClaw3DDeckProps) {
             {isEngineActive ? 'Engine Connected' : 'Engine Idle'}
           </span>
         </div>
+        {agents.length > 0 && (
+          <div className="mt-1 text-[10px] text-emerald-300/70">
+            {agents.length} embodied agent{agents.length !== 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {/* R3F Canvas */}
@@ -197,6 +300,15 @@ export function HoloClaw3DDeck({ skills }: HoloClaw3DDeckProps) {
             key={skill.name}
             skill={skill}
             position={distributedPositions[i] || [0, 0, 0]}
+          />
+        ))}
+
+        {/* Render embodied agents — visible avatars for launched HoloClaw agents */}
+        {agents.map((agent, i) => (
+          <EmbodiedAvatarNode
+            key={agent.agentId}
+            agent={agent}
+            position={agentPositions[i] || [0, 1.2, 0]}
           />
         ))}
 

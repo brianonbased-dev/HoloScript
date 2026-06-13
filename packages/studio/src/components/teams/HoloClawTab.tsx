@@ -9,8 +9,9 @@
  * @module components/teams/HoloClawTab
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { HoloClaw3DDeck } from './HoloClaw3DDeck';
+import { deriveEmbodiedAgents } from '@/lib/holoclaw/embodiedAgents';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -271,7 +272,13 @@ function SkillCard({ skill }: { skill: SkillWithStatus }) {
 // Live Stream
 // ---------------------------------------------------------------------------
 
-function LiveStream() {
+/**
+ * Single source for the HoloClaw activity feed: tails the live stream and
+ * derives the embodied-agent roster (so the 3D deck and the stream share one
+ * SSE connection). Embodied agents come from `agent_embodiment` events emitted
+ * by the run route on spawn/exit.
+ */
+function useHoloClawActivity() {
   const [entries, setEntries] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [streaming, setStreaming] = useState(false);
@@ -309,6 +316,21 @@ function LiveStream() {
     return () => es.close();
   }, []);
 
+  // Latest embodied state per agent, with stopped agents retired (pure helper).
+  const agents = useMemo(() => deriveEmbodiedAgents(entries), [entries]);
+
+  return { entries, loading, streaming, agents };
+}
+
+function LiveStream({
+  entries,
+  loading,
+  streaming,
+}: {
+  entries: ActivityEntry[];
+  loading: boolean;
+  streaming: boolean;
+}) {
   if (loading) {
     return (
       <div className="text-sm text-studio-muted animate-pulse py-8 text-center">
@@ -630,6 +652,7 @@ export function HoloClawTab() {
   const [section, setSection] = useState<ClawSection>('daemons');
   const [skills, setSkills] = useState<SkillWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const { entries, loading: activityLoading, streaming, agents } = useHoloClawActivity();
 
   const fetchSkills = useCallback(async () => {
     setLoading(true);
@@ -798,6 +821,7 @@ export function HoloClawTab() {
           <div className="h-[600px] w-full relative group">
             <HoloClaw3DDeck
               skills={skills.map((s) => ({ name: s.name, status: s.status, traits: s.traits }))}
+              agents={agents}
             />
             <div className="absolute bottom-4 right-4 text-xs font-mono text-studio-muted opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-2 py-1 rounded backdrop-blur border border-studio-border">
               LMB to Rotate · Scroll to Zoom
@@ -805,7 +829,9 @@ export function HoloClawTab() {
           </div>
         )}
 
-        {section === 'stream' && <LiveStream />}
+        {section === 'stream' && (
+          <LiveStream entries={entries} loading={activityLoading} streaming={streaming} />
+        )}
         {section === 'economy' && <EconomyWidget skills={skills} />}
         {section === 'bounties' && <BountiesWidget />}
         {section === 'commits' && <CommitLogWidget />}
