@@ -53,6 +53,30 @@ interface LotusStatus {
   };
 }
 
+// Sovereign serving fleet (orchestrator /serve/status). Surfaces the
+// scale-to-zero LLM serving state that backs Brittney — warm replicas, per-model
+// demand, and whether serving is DARK while demand is live (the "Brittney
+// silently on BYOK" risk this panel exists to make perceivable). D.081 / F.099.
+interface ServeDemand {
+  model: string;
+  last_want_at: number;
+  want_count: number;
+}
+interface ServeEndpoint {
+  id?: string;
+  model?: string;
+  status?: string;
+  url?: string;
+  gpu?: string;
+  dph?: number | null;
+  last_heartbeat_at?: number;
+}
+interface ServeStatus {
+  endpoints?: ServeEndpoint[];
+  demand?: ServeDemand[];
+  counts?: { warm?: number; draining?: number; models_with_demand?: number };
+}
+
 interface BoardTask {
   id: string;
   title: string;
@@ -225,6 +249,7 @@ export default function OperationsPage() {
   const [activeTab, setActiveTab] = useState<OpsTab>('infra');
   const [teamId, setTeamId] = useState<string>(DEFAULT_TEAM);
   const [lotus, setLotus] = useState<LotusStatus | null>(null);
+  const [serve, setServe] = useState<ServeStatus | null>(null);
   const [board, setBoard] = useState<BoardState | null>(null);
   const [fleet, setFleet] = useState<FleetHealth | null>(null);
   const [stabilizer, setStabilizer] = useState<StabilizerTelemetry | null>(null);
@@ -253,6 +278,15 @@ export default function OperationsPage() {
       setLotus(await r.json());
     } catch (e: unknown) {
       errs.lotus = e instanceof Error ? e.message : 'failed';
+    }
+
+    // Sovereign serving fleet (orchestrator /serve/status — allowlisted in the proxy)
+    try {
+      const r = await fetch('/api/orchestrator/serve/status', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`serve/status ${r.status}`);
+      setServe(await r.json());
+    } catch (e: unknown) {
+      errs.serve = e instanceof Error ? e.message : 'failed';
     }
 
     // Board
@@ -379,6 +413,28 @@ export default function OperationsPage() {
   const ciLane = q?.by_lane?.ci;
   const gateOpen = gate ? gate.papers_with_rtx_bench >= gate.total_papers : false;
 
+  // ── Sovereign serving fleet derived state ──────────────────────────────────
+  const SERVE_DEMAND_WINDOW_MS = 15 * 60 * 1000; // 15m: a want within this is "live"
+  const serveCounts = serve?.counts ?? {};
+  const serveEndpoints = serve?.endpoints ?? [];
+  const serveDemand = serve?.demand ?? [];
+  const warmCount = Number(
+    serveCounts.warm ?? serveEndpoints.filter((e) => e.status === 'warm').length,
+  );
+  const now = Date.now();
+  const freshDemand = serveDemand.filter(
+    (d) => now - (Number(d.last_want_at) || 0) < SERVE_DEMAND_WINDOW_MS,
+  );
+  const freshWants = freshDemand.reduce((a, d) => a + (Number(d.want_count) || 0), 0);
+  // The load-bearing signal this panel exists for: DARK while demand is live.
+  const servingDark = warmCount === 0 && freshDemand.length > 0;
+  const topDemand = [...serveDemand].sort(
+    (a, b) => (Number(b.last_want_at) || 0) - (Number(a.last_want_at) || 0),
+  )[0];
+  const lastWantAgeMin = topDemand
+    ? Math.round((now - (Number(topDemand.last_want_at) || 0)) / 60000)
+    : null;
+
   // Founder-gate (brick-2): the operate console exposes fleet/CI/Lotus/board
   // internals and is the host for spend-triggering actions. Hide it from
   // non-founders. The nav item is also hidden; the action endpoints enforce
@@ -482,6 +538,94 @@ export default function OperationsPage() {
               <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
                 Source: orchestrator gate (evidence-required). The public bloom on holoscript.net
                 derives separately and may differ until single-sourced.
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-studio-muted">Loading…</div>
+          )}
+        </Card>
+
+        {/* SOVEREIGN SERVING FLEET — the Brittney-on-BYOK guard (D.081 / F.099) */}
+        <Card
+          title="🤖 Sovereign Serving (Brittney backend)"
+          accent={servingDark ? 'text-red-400' : warmCount > 0 ? 'text-emerald-400' : 'text-studio-text'}
+        >
+          {errors.serve ? (
+            <div className="text-xs text-red-400">Error: {errors.serve}</div>
+          ) : serve ? (
+            <div className="space-y-3">
+              <div className="flex items-end gap-6">
+                <Stat
+                  label="warm replicas"
+                  value={warmCount}
+                  tone={warmCount > 0 ? 'text-emerald-400' : servingDark ? 'text-red-400' : 'text-amber-300'}
+                />
+                <Stat label="live wants (15m)" value={freshWants} />
+                <Stat label="models w/ demand" value={serveCounts.models_with_demand ?? serveDemand.length} />
+              </div>
+
+              {servingDark ? (
+                <div className="rounded border border-red-500/40 bg-red-500/10 p-2 text-[11px] text-red-300">
+                  🚨 DARK UNDER DEMAND — serving is cold (warm=0) while {freshDemand.length} model(s)
+                  have live wants. Brittney is on BYOK/local fallback. Re-enable the keep-warm
+                  autoscaler (a-033) or pin BYOK deliberately.
+                </div>
+              ) : warmCount > 0 ? (
+                <div className="text-[11px] text-emerald-400/90">
+                  Serving live — {warmCount} warm replica{warmCount === 1 ? '' : 's'}.
+                </div>
+              ) : (
+                <div className="text-[11px] text-studio-muted">
+                  Cold at scale-to-zero (expected when idle). Last want{' '}
+                  {lastWantAgeMin !== null ? `${lastWantAgeMin}m ago` : '—'} → no live demand, so
+                  $0 idle is correct. Proven 21s cold resume on real demand.
+                </div>
+              )}
+
+              {serveDemand.length > 0 && (
+                <div className="space-y-0.5 border-t border-studio-border/40 pt-1">
+                  {serveDemand.slice(0, 4).map((d) => {
+                    const ageMin = Math.round((now - (Number(d.last_want_at) || 0)) / 60000);
+                    const isFresh = now - (Number(d.last_want_at) || 0) < SERVE_DEMAND_WINDOW_MS;
+                    return (
+                      <div key={d.model} className="flex justify-between text-[10px] font-mono">
+                        <span className="truncate text-studio-muted">{d.model}</span>
+                        <span className={isFresh ? 'text-amber-300' : 'text-studio-muted'}>
+                          {d.want_count} wants · {ageMin}m ago
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {serveEndpoints.length > 0 && (
+                <div className="space-y-0.5">
+                  {serveEndpoints.slice(0, 3).map((e, i) => (
+                    <div key={e.id || i} className="text-[10px] font-mono text-emerald-400/80 truncate">
+                      ▶ {e.id || e.model} · {e.status}
+                      {e.gpu ? ` · ${e.gpu}` : ''}
+                      {typeof e.dph === 'number' ? ` · $${e.dph}/hr` : ''}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* TRIGGER — D.081: action the founder/agent can fire from the surface. */}
+              <div className="border-t border-studio-border/40 pt-2">
+                <a
+                  href="https://github.com/brianonbased-dev/ai-ecosystem/blob/main/automations/holoshell-team-automations/registry.json"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block text-[10px] rounded border border-studio-border px-2 py-1 text-studio-muted hover:text-studio-text hover:border-studio-text/40 transition"
+                  title="Re-enable a-033 serving-autoscaler (keep-warm / scale-to-zero) in the HoloShell automation registry"
+                >
+                  ⚙️ Re-enable keep-warm autoscaler (a-033) →
+                </a>
+                <div className="text-[9px] text-studio-muted mt-1">
+                  Watchdog: <code>scripts/serving-fleet-watchdog.mjs --alarm</code> fires a loud
+                  board task + room DM when serving goes dark under demand.
+                </div>
               </div>
             </div>
           ) : (
