@@ -44,6 +44,10 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const fetchHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
   if (authHeader) fetchHeaders['Authorization'] = authHeader;
+  // Forward the fleet service token (the autonomous tick's founder-delegated
+  // credential) so the dispatch route's spend/mutation gate accepts this call.
+  const svcToken = req.headers.get('x-fleet-service-token');
+  if (svcToken) fetchHeaders['x-fleet-service-token'] = svcToken;
 
   // Call the dispatch handler directly — avoids the Railway LB self-fetch loop
   // that returns 502 when the public hostname resolves back through the load balancer.

@@ -2,6 +2,8 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'node:child_process';
+import { timingSafeEqual } from 'node:crypto';
+import { requireAuth, requireFounder } from '@/lib/api-auth';
 import { ENDPOINTS, getHolomeshKey } from '@holoscript/config';
 import {
   planFleetDispatch,
@@ -196,9 +198,45 @@ async function claimTask(
   }
 }
 
+// ── Auth guards ───────────────────────────────────────────────────────────────
+// This endpoint claims board tasks (shared-state mutation) and can drive fleet
+// spend, so it must never be reachable unauthenticated (F.095 class-1; the
+// api-auth.ts comment names requireFounder as THE gate for fleet-spend operate
+// endpoints). Two authorized callers: the founder via an authenticated Studio
+// session, and the autonomous hourly tick (A-035) via the founder-provisioned
+// service token FLEET_DISPATCH_SERVICE_TOKEN sent as `x-fleet-service-token`.
+// FAIL CLOSED: if the token env is unset the service path is OFF and only a
+// founder session is accepted — an unset secret never opens the door.
+
+function fleetServiceTokenOk(req: NextRequest): boolean {
+  const expected = process.env['FLEET_DISPATCH_SERVICE_TOKEN'];
+  if (!expected) return false; // fail closed: no service token configured
+  const presented = req.headers.get('x-fleet-service-token');
+  if (!presented) return false;
+  const a = Buffer.from(presented);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** Read floor: authenticated session OR the fleet service token. */
+async function requireFleetRead(req: NextRequest): Promise<NextResponse | null> {
+  if (fleetServiceTokenOk(req)) return null;
+  const auth = await requireAuth(req);
+  return auth instanceof NextResponse ? auth : null;
+}
+
+/** Spend/mutation gate: founder session OR the fleet service token. */
+async function requireFleetWrite(req: NextRequest): Promise<NextResponse | null> {
+  if (fleetServiceTokenOk(req)) return null;
+  const auth = await requireFounder(req);
+  return auth instanceof NextResponse ? auth : null;
+}
+
 // ── GET handler — current config + spend state ───────────────────────────────
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = await requireFleetRead(req);
+  if (denied) return denied;
   const capUsd = Number(process.env['FLEET_DAILY_SPEND_CAP_USD']) || DEFAULT_DAILY_SPEND_CAP_USD;
   const executorEnabled = process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
   const governor = await loadGovernor(DEFAULT_TEAM_ID, capUsd);
@@ -389,6 +427,11 @@ async function closeTask(
 // ── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Auth floor: no anonymous caller may read the plan/preview or board+fleet
+  // state. Authenticated session OR the provisioned fleet service token (cron).
+  const readDenied = await requireFleetRead(req);
+  if (readDenied) return readDenied;
+
   const clientAuth = req.headers.get('authorization');
 
   let body: unknown;
@@ -410,6 +453,16 @@ export async function POST(req: NextRequest) {
   const dryRun = params['dryRun'] === true || params['dryRun'] === 'true';
   const executorEnabled =
     params['executeAfterClaim'] === true || process.env['FLEET_EXECUTOR_ENABLED'] === 'true';
+
+  // Spend/mutation boundary (F.095 class-1): claiming board tasks + recording
+  // spend (and, with the executor on, real LLM spend) is founder-only. A dry-run
+  // plan (no claim, no spend) stays at the read floor above. The autonomous tick
+  // authorizes via the fleet service token. A non-founder is refused here BEFORE
+  // any board fetch or mutation.
+  if (!dryRun) {
+    const writeDenied = await requireFleetWrite(req);
+    if (writeDenied) return writeDenied;
+  }
 
   // Fetch live state
   const [tasks, agents] = await Promise.all([
