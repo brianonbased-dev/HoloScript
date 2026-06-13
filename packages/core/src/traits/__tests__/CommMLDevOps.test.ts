@@ -2,7 +2,7 @@
  * Communication + ML/Inference + DevOps/CI Traits — Unit Tests
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { emailHandler } from '../EmailTrait';
 import { smsHandler } from '../SmsTrait';
 import { pushNotificationHandler } from '../PushNotificationTrait';
@@ -34,6 +34,11 @@ import {
 async function flushMicrotasks(): Promise<void> {
   for (let i = 0; i < 6; i++) await Promise.resolve();
 }
+
+// Slack/Discord traits do fire-and-forget fetch().then(emit ':sent'); mock fetch
+// and flush so the async event is observed.
+afterEach(() => vi.unstubAllGlobals());
+const mockFetchOk = () => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200 }));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Communication
@@ -92,21 +97,32 @@ describe('PushNotificationTrait', () => {
 });
 
 describe('SlackTrait', () => {
-  it('should send slack message', () => {
+  it('should send slack message', async () => {
+    mockFetchOk();
     const node = createMockNode('sl');
     const ctx = createMockContext();
     attachTrait(slackHandler, node, {}, ctx);
-    sendEvent(slackHandler, node, {}, ctx, { type: 'slack:send', text: 'hello' });
+    // webhook_url is required — without it the trait emits slack:error and never fetches.
+    sendEvent(slackHandler, node, { webhook_url: 'https://hooks.slack.test/x' }, ctx, {
+      type: 'slack:send',
+      text: 'hello',
+    });
+    await flushMicrotasks();
     expect(getEventCount(ctx, 'slack:sent')).toBe(1);
   });
 });
 
 describe('DiscordTrait', () => {
-  it('should send discord message', () => {
+  it('should send discord message', async () => {
+    mockFetchOk();
     const node = createMockNode('d');
     const ctx = createMockContext();
     attachTrait(discordHandler, node, {}, ctx);
-    sendEvent(discordHandler, node, {}, ctx, { type: 'discord:send', content: 'hello' });
+    sendEvent(discordHandler, node, { webhook_url: 'https://discord.test/webhook' }, ctx, {
+      type: 'discord:send',
+      content: 'hello',
+    });
+    await flushMicrotasks();
     expect(getEventCount(ctx, 'discord:sent')).toBe(1);
   });
 });
