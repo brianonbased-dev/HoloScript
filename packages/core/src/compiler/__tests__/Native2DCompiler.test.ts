@@ -373,3 +373,217 @@ describe('Native2DCompiler @bind value-tier className', () => {
     expect(react).not.toContain('>= 55');
   });
 });
+
+// ---------------------------------------------------------------------------
+// "push native" roadmap: @when conditional render, @each list iteration,
+// @bind value formatting (suffix/prefix/precision). Each MUST be a byte-
+// identical no-op when its trait/keys are absent.
+// ---------------------------------------------------------------------------
+
+/** Wrap a single object in a minimal composition with an optional state. */
+function singleNodeComposition(
+  node: HoloObjectDecl,
+  state?: Record<string, unknown>
+): HoloComposition {
+  return {
+    type: 'Composition',
+    name: 'PushNative',
+    objects: [node],
+    templates: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
+    state: state
+      ? {
+          type: 'State',
+          properties: Object.entries(state).map(([key, value]) => ({
+            type: 'StateProperty' as const,
+            key,
+            value,
+          })),
+        }
+      : undefined,
+  };
+}
+
+function reactOf(node: HoloObjectDecl, state?: Record<string, unknown>): string {
+  return new Native2DCompiler().compile(singleNodeComposition(node, state), '', undefined, {
+    format: 'react',
+  });
+}
+
+describe('Native2DCompiler @when conditional render', () => {
+  it('wraps the element in {cond && (...)} for a numeric @when (dropped-frames badge)', () => {
+    const badge = objectDecl('dropped_badge', [
+      trait('text', { variant: 'caption', content: 'dropped frames' }),
+      trait('when', { state: 'snap', path: 'dropped', gt: 0 }),
+    ]);
+    const react = reactOf(badge, { snap: { dropped: 0 } });
+    expect(react).toContain('(snap?.dropped ?? 0) > 0 && (');
+    // The wrapped element is still present inside the conditional.
+    expect(react).toContain('{`dropped frames`}');
+  });
+
+  it('AND-s multiple numeric comparisons on a single @when', () => {
+    const badge = objectDecl('range_badge', [
+      trait('text', { variant: 'caption', content: 'mid' }),
+      trait('when', { state: 'snap', path: 'fps', gte: 30, lt: 55 }),
+    ]);
+    const react = reactOf(badge, { snap: { fps: 0 } });
+    expect(react).toContain('(snap?.fps ?? 0) >= 30 && (snap?.fps ?? 0) < 55 && (');
+  });
+
+  it('supports string equality via eq (empty-state pattern)', () => {
+    const empty = objectDecl('empty_state', [
+      trait('text', { variant: 'caption', content: 'No agents online' }),
+      trait('when', { state: 'agents', path: 'status', eq: 'empty' }),
+    ]);
+    const react = reactOf(empty, { agents: { status: 'loading' } });
+    expect(react).toContain('(agents?.status) === "empty" && (');
+  });
+
+  it('is a byte-identical no-op when @when is absent', () => {
+    const withWhen = objectDecl('node', [
+      trait('text', { variant: 'caption', content: 'hi' }),
+      trait('when', { state: 'snap', path: 'dropped', gt: 0 }),
+    ]);
+    const without = objectDecl('node', [trait('text', { variant: 'caption', content: 'hi' })]);
+    const a = reactOf(withWhen, { snap: { dropped: 0 } });
+    const b = reactOf(without, { snap: { dropped: 0 } });
+    // Stripping the conditional wrapper from `a` yields exactly `b`'s element.
+    expect(b).toContain('<span className="text-sm text-gray-500">');
+    expect(a).toContain('(snap?.dropped ?? 0) > 0 && (');
+    // The inner element markup is identical (same span + content).
+    expect(b).toContain('{`hi`}');
+    expect(a).toContain('{`hi`}');
+  });
+
+  it('rejects an injection attempt in the @when path', () => {
+    const evil = objectDecl('evil', [
+      trait('text', { content: 'x' }),
+      trait('when', { state: 'snap', path: 'fps); alert(1', gt: 0 }),
+    ]);
+    expect(() => reactOf(evil, { snap: {} })).toThrow(/invalid identifier path/);
+  });
+
+  it('rejects an injection attempt in the @when eq string literal', () => {
+    const evil = objectDecl('evil', [
+      trait('text', { content: 'x' }),
+      trait('when', { state: 'snap', path: 'status', eq: '"); alert(1); ("' }),
+    ]);
+    expect(() => reactOf(evil, { snap: {} })).toThrow(/unsafe literal/);
+  });
+});
+
+describe('Native2DCompiler @each list iteration', () => {
+  it('renders the node once per array item via .map with key={i}', () => {
+    const row = objectDecl('agent_row', [
+      trait('text', { variant: 'caption' }),
+      trait('each', { state: 'agents', path: 'list', as: 'agent' }),
+      trait('bind', { state: 'agent', path: 'name' }),
+    ]);
+    const react = reactOf(row, { agents: { list: [] } });
+    expect(react).toContain('(agents?.list ?? []).map((agent, i) => (');
+    expect(react).toContain('key={i}');
+    // Children/content reference the loop variable via @bind state=<as>.
+    expect(react).toContain('{agent?.name ?? "—"}');
+  });
+
+  it('defaults the loop variable to `item` when `as` is omitted', () => {
+    const row = objectDecl('item_row', [
+      trait('text', { variant: 'caption' }),
+      trait('each', { state: 'data', path: 'rows' }),
+      trait('bind', { state: 'item', path: 'label' }),
+    ]);
+    const react = reactOf(row, { data: { rows: [] } });
+    expect(react).toContain('(data?.rows ?? []).map((item, i) => (');
+    expect(react).toContain('{item?.label ?? "—"}');
+  });
+
+  it('is a byte-identical no-op when @each is absent', () => {
+    const without = objectDecl('node', [trait('text', { variant: 'caption', content: 'hi' })]);
+    const react = reactOf(without, { agents: { list: [] } });
+    expect(react).not.toContain('.map((');
+    expect(react).not.toContain('key={i}');
+    expect(react).toContain('<span className="text-sm text-gray-500">');
+  });
+
+  it('rejects an injection attempt in the @each loop variable', () => {
+    const evil = objectDecl('evil', [
+      trait('text', { content: 'x' }),
+      trait('each', { state: 'agents', path: 'list', as: 'a) => evil(' }),
+    ]);
+    expect(() => reactOf(evil, { agents: { list: [] } })).toThrow(/invalid loop variable/);
+  });
+});
+
+describe('Native2DCompiler @bind value formatting', () => {
+  it('applies precision + suffix to the bound value (template literal)', () => {
+    const stat = objectDecl('frame_ms', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', { state: 'snap', path: 'frameMs', precision: 1, suffix: 'ms' }),
+    ]);
+    const react = reactOf(stat, { snap: { frameMs: 0 } });
+    expect(react).toContain('{`${(snap?.frameMs ?? 0).toFixed(1)}ms`}');
+  });
+
+  it('applies a prefix when supplied', () => {
+    const stat = objectDecl('price', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', { state: 'cart', path: 'total', prefix: '$', precision: 2 }),
+    ]);
+    const react = reactOf(stat, { cart: { total: 0 } });
+    expect(react).toContain('{`$${(cart?.total ?? 0).toFixed(2)}`}');
+  });
+
+  it('formats a bare suffix without precision (no toFixed)', () => {
+    const stat = objectDecl('count', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', { state: 'snap', path: 'agents', suffix: ' online' }),
+    ]);
+    const react = reactOf(stat, { snap: { agents: 0 } });
+    expect(react).toContain('{`${(snap?.agents ?? 0)} online`}');
+  });
+
+  it('is a byte-identical no-op when no formatting keys are present', () => {
+    const plain = objectDecl('plain', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', { state: 'snap', path: 'fps', fallback: '—' }),
+    ]);
+    const react = reactOf(plain, { snap: { fps: 0 } });
+    // Exact legacy form: reactive read with fallback, no template literal wrapper.
+    expect(react).toContain('{snap?.fps ?? "—"}');
+    expect(react).not.toContain('.toFixed');
+    expect(react).not.toContain('`${');
+  });
+
+  it('rejects an injection attempt in the @bind suffix literal', () => {
+    const evil = objectDecl('evil', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', { state: 'snap', path: 'fps', suffix: '`}); alert(1); ({`' }),
+    ]);
+    expect(() => reactOf(evil, { snap: {} })).toThrow(/unsafe literal/);
+  });
+
+  it('rejects a non-integer precision', () => {
+    const evil = objectDecl('evil', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', { state: 'snap', path: 'fps', precision: 1.5 }),
+    ]);
+    expect(() => reactOf(evil, { snap: {} })).toThrow(/precision must be an integer/);
+  });
+});

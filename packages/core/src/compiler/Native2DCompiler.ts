@@ -358,30 +358,51 @@ export default ${safeName}Component;
     let safeContent = '';
     // @bind: emit a reactive JSX expression reading a state variable path
     if (traits.bind?.state) {
-      const pathParts = String(traits.bind.path || '').split('.').filter(Boolean);
-      const expr = pathParts.reduce(
-        (acc: string, key: string) => `${acc}?.${key}`,
-        String(traits.bind.state)
-      );
-      const fallback = JSON.stringify(traits.bind.fallback ?? '—');
-      safeContent = `{${expr} ?? ${fallback}}`;
+      safeContent = this.buildBindContentExpr(traits.bind);
     } else if (content) {
       safeContent = `{\`${content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`}`;
     }
 
+    // @each list iteration: render this node once per item of a bound array. The
+    // node's own content/children can reference the loop variable (default `item`)
+    // via @bind state=<as>. A React `key={i}` is injected so the list reconciles.
+    // When the trait is ABSENT, `keyProp` is '' and the element is byte-identical
+    // to the pre-@each output.
+    const each = this.buildEachIterator(traits);
+    const keyProp = each ? ` key={i}` : '';
+
+    let element: string;
     if (tag === 'style') {
       const escapedStyle = (content || '').replace(/`/g, '\\`').replace(/\$/g, '\\$');
-      return `<style dangerouslySetInnerHTML={{ __html: \`${escapedStyle}\` }} />`;
-    }
-
-    if (tag === 'img' || tag === 'input') {
-      return `<${tag}${props} />`;
-    }
-
-    return `<${tag}${props}>
+      element = `<style${keyProp} dangerouslySetInnerHTML={{ __html: \`${escapedStyle}\` }} />`;
+    } else if (tag === 'img' || tag === 'input') {
+      element = `<${tag}${props}${keyProp} />`;
+    } else {
+      element = `<${tag}${props}${keyProp}>
       ${safeContent}
       ${childrenMarkup}
     </${tag}>`;
+    }
+
+    // @each wraps the element in a `.map` over the bound array (applied first so
+    // the conditional, if any, gates the whole iteration).
+    if (each) {
+      element = `{${each.array}.map((${each.as}, i) => (
+      ${element.split('\n').join('\n  ')}
+    ))}`;
+    }
+
+    // @when conditional render: wrap the (possibly iterated) element in
+    // `{<cond> && (<element>)}`. When the trait is ABSENT, the element is
+    // returned unchanged (byte-identical no-op).
+    const whenCond = this.buildWhenCondition(traits);
+    if (whenCond) {
+      element = `{${whenCond} && (
+      ${element.split('\n').join('\n  ')}
+    )}`;
+    }
+
+    return element;
   }
 
   // ============================================================================
@@ -932,6 +953,145 @@ export default ${safeName}Component;
       (acc, b) => `${b.condition} ? ${JSON.stringify(b.className)} : ${acc}`,
       fallback
     );
+  }
+
+  // --------------------------------------------------------------------------
+  // Injection-safety guards — shared by @when / @each / @bind formatting.
+  //
+  // Every value that becomes part of an emitted JSX *expression* (a state name,
+  // a dot-path, a loop variable, a comparison literal) is checked here BEFORE it
+  // is interpolated, so authored .holo source can never escape its expression
+  // context. The threat model mirrors buildBindTierClassName: identifiers must be
+  // identifier-dotpaths; string/class literals may not carry the characters that
+  // break out of a JS string / JSX braces (`" ' \` $ { } < > \`).
+  // --------------------------------------------------------------------------
+
+  /** Reject anything that isn't a dotted chain of JS identifiers (e.g. `snap.fps`,
+   *  `agents.active`). Throws on empty, leading/trailing dots, or invalid chars so
+   *  the value can be safely interpolated into a member-access expression. */
+  private assertSafeDotPath(value: string, where: string): string {
+    if (!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(value)) {
+      throw new Error(`Native2DCompiler ${where}: invalid identifier path ${JSON.stringify(value)}`);
+    }
+    return value;
+  }
+
+  /** Reject string/class literals that contain characters which would break out
+   *  of the surrounding JS string or JSX expression. Used where the literal is
+   *  compared as an equality operand. */
+  private assertSafeLiteral(value: string, where: string): string {
+    if (/["'`$(){}<>\\]/.test(value)) {
+      throw new Error(`Native2DCompiler ${where}: unsafe literal ${JSON.stringify(value)}`);
+    }
+    return value;
+  }
+
+  /** Reject characters that would break out of a JS *template literal* context.
+   *  A backtick closes the literal, a backslash starts an escape, and the `${`
+   *  sequence opens an interpolation — those are the only break-outs. A lone `$`
+   *  (e.g. a currency prefix `$5.00`) is harmless literal text and is allowed. */
+  private assertSafeTemplateLiteral(value: string, where: string): string {
+    if (/[`\\]/.test(value) || value.includes('${')) {
+      throw new Error(`Native2DCompiler ${where}: unsafe literal ${JSON.stringify(value)}`);
+    }
+    return value;
+  }
+
+  /** Build a safe optional-chained member expression `state?.a?.b` from a
+   *  validated state identifier and dot-path. Both halves are guarded. */
+  private buildStatePathExpr(state: string, path: string, where: string): string {
+    this.assertSafeDotPath(state, where);
+    const pathParts = String(path || '').split('.').filter(Boolean);
+    for (const p of pathParts) this.assertSafeDotPath(p, where);
+    return pathParts.reduce((acc: string, key: string) => `${acc}?.${key}`, state);
+  }
+
+  /**
+   * @when conditional render. `@when { state, path, gt?/gte?/lt?/lte?/eq? }` on a
+   * node compiles to a boolean JS expression that the caller wraps as
+   * `{<cond> && (<element>)}`. Numeric comparisons (gt/gte/lt/lte) are AND-ed using
+   * the SAME `(ref ?? 0)` value-coercion as buildBindTierClassName so a badge only
+   * shows when e.g. `dropped > 0`. `eq` supports string/number equality (e.g. show
+   * an empty-state only when `status eq "empty"`). Returns `null` when the trait is
+   * absent or specifies no comparison → caller emits the element unchanged.
+   */
+  private buildWhenCondition(traits: Record<string, any>): string | null {
+    const when = traits.when;
+    if (!when || !when.state) return null;
+    const baseExpr = this.buildStatePathExpr(String(when.state), String(when.path || ''), '@when');
+
+    const conditions: string[] = [];
+    const numRef = `(${baseExpr} ?? 0)`;
+    if (typeof when.gte === 'number') conditions.push(`${numRef} >= ${when.gte}`);
+    if (typeof when.gt === 'number') conditions.push(`${numRef} > ${when.gt}`);
+    if (typeof when.lte === 'number') conditions.push(`${numRef} <= ${when.lte}`);
+    if (typeof when.lt === 'number') conditions.push(`${numRef} < ${when.lt}`);
+    if (when.eq !== undefined) {
+      if (typeof when.eq === 'number') {
+        conditions.push(`(${baseExpr}) === ${when.eq}`);
+      } else {
+        const lit = this.assertSafeLiteral(String(when.eq), '@when eq');
+        conditions.push(`(${baseExpr}) === ${JSON.stringify(lit)}`);
+      }
+    }
+
+    if (conditions.length === 0) return null;
+    return conditions.length === 1 ? conditions[0] : conditions.join(' && ');
+  }
+
+  /**
+   * @each list iteration. `@each { state, path, as? }` on a node renders the node
+   * once per item of the bound array. Returns `{ array, as }` where `array` is the
+   * safe `(state?.path ?? [])` expression the caller `.map()`s over, and `as` is the
+   * validated loop-variable name (default `item`). Children reference the item via
+   * `@bind state=<as>`. Returns `null` when the trait is absent → no iteration.
+   */
+  private buildEachIterator(traits: Record<string, any>): { array: string; as: string } | null {
+    const each = traits.each;
+    if (!each || !each.state) return null;
+    const baseExpr = this.buildStatePathExpr(String(each.state), String(each.path || ''), '@each');
+    const asVar = each.as !== undefined ? String(each.as) : 'item';
+    if (!/^[A-Za-z_$][\w$]*$/.test(asVar)) {
+      throw new Error(`Native2DCompiler @each: invalid loop variable ${JSON.stringify(asVar)}`);
+    }
+    return { array: `(${baseExpr} ?? [])`, as: asVar };
+  }
+
+  /**
+   * @bind content expression with optional formatting. The base reactive read is
+   * `{state?.path ?? fallback}` (unchanged, byte-identical, when no formatting keys
+   * are present). When `precision`, `suffix`, or `prefix` is supplied, the value is
+   * wrapped in a template literal: e.g. `precision:1, suffix:"ms"` →
+   * `{`${(snap?.path ?? 0).toFixed(1)}ms`}`. `prefix`/`suffix` are guarded literals;
+   * `precision` must be an integer.
+   */
+  private buildBindContentExpr(bind: Record<string, any>): string {
+    const baseExpr = this.buildStatePathExpr(String(bind.state), String(bind.path || ''), '@bind');
+    const hasPrecision = typeof bind.precision === 'number';
+    const hasSuffix = bind.suffix !== undefined;
+    const hasPrefix = bind.prefix !== undefined;
+
+    // No formatting keys → emit exactly as before (byte-identical).
+    if (!hasPrecision && !hasSuffix && !hasPrefix) {
+      const fallback = JSON.stringify(bind.fallback ?? '—');
+      return `{${baseExpr} ?? ${fallback}}`;
+    }
+
+    if (hasPrecision && !Number.isInteger(bind.precision)) {
+      throw new Error(
+        `Native2DCompiler @bind: precision must be an integer, got ${JSON.stringify(bind.precision)}`
+      );
+    }
+    const prefix = hasPrefix
+      ? this.assertSafeTemplateLiteral(String(bind.prefix), '@bind prefix')
+      : '';
+    const suffix = hasSuffix
+      ? this.assertSafeTemplateLiteral(String(bind.suffix), '@bind suffix')
+      : '';
+    const valueExpr = hasPrecision
+      ? `(${baseExpr} ?? 0).toFixed(${bind.precision})`
+      : `(${baseExpr} ?? 0)`;
+    return `{\`${prefix}\${${valueExpr}}${suffix}\`}`;
   }
 
   private extractTraits(obj: unknown): Record<string, any> {
