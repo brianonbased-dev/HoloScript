@@ -57,21 +57,21 @@ COPY packages/mesh/ packages/mesh/
 
 # Build in dependency order
 # Skip DTS for shared runtime stack — server image only needs JS runtime.
-RUN cd packages/uaal && npx tsup --no-dts
-RUN cd packages/crdt-spatial && npx tsup --no-dts
-RUN cd packages/snn-webgpu && npx tsup --no-dts
+RUN cd packages/uaal && pnpm exec tsup --no-dts
+RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts
+RUN cd packages/snn-webgpu && pnpm exec tsup --no-dts
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
-RUN cd packages/holomap && npx tsup --no-dts
-RUN cd packages/config && npx tsup --no-dts
+RUN cd packages/holomap && pnpm exec tsup --no-dts
+RUN cd packages/config && pnpm exec tsup --no-dts
 # holoembed (P.009 sovereign embeddings) — engine imports it at runtime and
 # EMBEDDING_PROVIDER=holoembed selects it; build AFTER its deps (config, snn-webgpu).
 # Without this the deployed engine 500s with "Cannot find module @holoscript/holoembed".
-RUN cd packages/holoembed && npx tsup --no-dts
-RUN cd packages/llm-provider && npx tsup --no-dts
-RUN cd packages/secrets-broker && npx tsup --no-dts
+RUN cd packages/holoembed && pnpm exec tsup --no-dts
+RUN cd packages/llm-provider && pnpm exec tsup --no-dts
+RUN cd packages/secrets-broker && pnpm exec tsup --no-dts
 # platform/mesh/engine/framework are inlined into core's Docker bundle — no separate build needed
-RUN cd packages/absorb-service && npx tsup --no-dts
-RUN cd packages/mcp-server && npx tsup
+RUN cd packages/absorb-service && pnpm exec tsup --no-dts
+RUN cd packages/mcp-server && pnpm exec tsup
 
 
 # --- Production stage ---
