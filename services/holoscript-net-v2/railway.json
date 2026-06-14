@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "services/holoscript-net-v2/Dockerfile",
-    "watchPatterns": ["services/holoscript-net-v2/**"]
+    "watchPatterns": ["services/holoscript-net-v2/**", "pnpm-lock.yaml", "package.json"]
   },
   "deploy": {
     "numReplicas": 1,
