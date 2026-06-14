@@ -26,6 +26,12 @@ const SLOT_IMPORTS = {
     component: 'PipelineWorkbench',
     importPath: '@/components/pipeline/PipelineWorkbench',
   },
+  // The WebXR immersive viewer — lets a native .holo page render a walkable scene
+  // by mounting it with a `scene` prop (the .holo scene loaded from examples/).
+  ImmersiveScene: {
+    component: 'ImmersiveViewer',
+    importPath: '@/app/shared/[id]/ImmersiveViewer.client',
+  },
 } as const;
 
 // =============================================================================

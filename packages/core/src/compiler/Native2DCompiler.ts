@@ -158,7 +158,21 @@ export default ${safeName}Component;
       const importPath =
         traits.slot.import || configuredSlot?.importPath || `@/components/${component}`;
       this._slotImports.set(slotName, { component, importPath });
-      const propsStr = traits.slot.props ? ` {...${JSON.stringify(traits.slot.props)}}` : '';
+      // Props for the slot component: flat config keys (everything except the slot's
+      // own name/component/import/props) AND an optional nested `props: {...}`. Flat
+      // keys let a .holo page pass simple scalars (e.g. sceneName: "...") without the
+      // nested-object trait grammar (which only round-trips inside arrays).
+      const RESERVED_SLOT_KEYS = new Set(['name', 'component', 'import', 'props']);
+      const slotProps: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(traits.slot)) {
+        if (!RESERVED_SLOT_KEYS.has(k)) slotProps[k] = v;
+      }
+      if (traits.slot.props && typeof traits.slot.props === 'object') {
+        Object.assign(slotProps, traits.slot.props as Record<string, unknown>);
+      }
+      const propsStr = Object.keys(slotProps).length
+        ? ` {...${JSON.stringify(slotProps)}}`
+        : '';
       return `<div data-holo-slot="${slotName}">
         <${component}${propsStr} />
       </div>`;

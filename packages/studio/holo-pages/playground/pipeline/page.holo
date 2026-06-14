@@ -1,0 +1,11 @@
+composition "AssetPipelineWarehouse" {
+  @page { route: "/playground/pipeline" }
+
+  object "Shell" {
+    @theme { className: "fixed inset-0 bg-[#07070f]" }
+
+    object "ImmersiveScene" {
+      @slot { sceneName: "asset-pipeline-warehouse" }
+    }
+  }
+}

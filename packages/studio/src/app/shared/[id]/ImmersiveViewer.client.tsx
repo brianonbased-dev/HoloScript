@@ -20,13 +20,18 @@
  *  - packages/studio/src/app/shared/[id]/page.tsx (server parent)
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { HoloCompositionParser, R3FCompiler, type R3FNode } from '@holoscript/core';
 import { XRLocomotionController, AgentAvatarTracker } from '@holoscript/xr-embodiment';
 
 interface ImmersiveViewerProps {
-  code: string;
+  /** Inline scene source. Optional when `scene` is given (loaded from the library). */
+  code?: string;
+  /** Native example to load by name from the examples library (via /api/examples/<name>),
+   *  so a compiler-generated .holo PAGE can mount this viewer with just a scene id.
+   *  (`sceneName`, not `scene` — the latter is a reserved .holo keyword.) */
+  sceneName?: string;
   /** Scene name — used as the share title when Publish runs. */
   name?: string;
 }
@@ -479,7 +484,7 @@ async function postQuestProof(
   );
 }
 
-export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
+export function ImmersiveViewer({ code, sceneName, name }: ImmersiveViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -487,7 +492,37 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
   // 3D "Publish" button mesh + 3D QR display plane — created when entering VR.
   const publishButtonRef = useRef<THREE.Mesh | null>(null);
   const qrPlaneRef = useRef<THREE.Mesh | null>(null);
-  const [parsed] = useState(() => extractObjects(code));
+  // Scene source: inline `code`, or fetched from the examples library by `scene`
+  // name — so a compiler-generated .holo page can mount this viewer with a scene id
+  // and the scene stays the single source of truth in examples/ (no inline string).
+  const [source, setSource] = useState<string | null>(code ?? null);
+  const [sceneError, setSceneError] = useState<string | null>(null);
+  useEffect(() => {
+    if (code != null) {
+      setSource(code);
+      return;
+    }
+    if (!sceneName) return;
+    let cancelled = false;
+    fetch(`/api/examples/${encodeURIComponent(sceneName)}`)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((text) => {
+        if (!cancelled) setSource(text);
+      })
+      .catch((e) => {
+        if (!cancelled) setSceneError(e instanceof Error ? e.message : 'scene load failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [code, sceneName]);
+  const parsed = useMemo(
+    () =>
+      source != null
+        ? extractObjects(source)
+        : { objects: [] as ParsedObject[], parseOk: false, error: sceneError ?? 'loading scene…' },
+    [source, sceneError]
+  );
   const [xrSupported, setXrSupported] = useState(false);
   const [xrActive, setXrActive] = useState(false);
   const [xrError, setXrError] = useState<string | null>(null);
@@ -725,7 +760,7 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name ?? 'Voice-authored scene',
-          code,
+          code: source ?? '',
           author: 'Anonymous',
         }),
       });
