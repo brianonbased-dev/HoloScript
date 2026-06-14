@@ -157,6 +157,14 @@ RUN cd packages/connector-github && npx tsup
 RUN cd packages/connector-railway && npx tsup
 RUN cd packages/connector-upstash && npx tsup
 RUN cd packages/connector-vscode && npx tsup --no-dts && npx tsc --emitDeclarationOnly --outDir dist --skipLibCheck
+# xr-embodiment (D.094 agent-generic embodiment): studio's /playground + immersive
+# viewers import '@holoscript/xr-embodiment' and '@holoscript/xr-embodiment/react'.
+# Its exports point at dist/*, dist is gitignored, and it has NO @holoscript/* deps
+# (only externalized three/react/r3f peers) — so it builds standalone here. Missing
+# this step is what bricked EVERY studio deploy from fa9878879 onward (2026-06-14):
+# "Module not found: Can't resolve '@holoscript/xr-embodiment'". `tsup` emits the
+# JS + dts for index/three/react in one pass (verified clean ~8s).
+RUN cd packages/xr-embodiment && npx tsup
 
 # Ensure webpack stubs exist (Docker cache can miss them)
 RUN test -f packages/studio/src/lib/empty-module.js || \
