@@ -10,9 +10,9 @@
 
 | File | Total | Non-empty | Effective (code) |
 |------|-------|-----------|------------------|
-| `packages/plugins/structural-biology-plugin/src/index.ts` | 251 | 219 | 157 |
+| `packages/plugins/structural-biology-plugin/src/index.ts` | 246 | 213 | 151 |
 | `packages/plugins/structural-biology-plugin/package.json` | 29 | 28 | 28 |
-| **Sum** | **280** | **247** | **185** |
+| **Sum** | **275** | **241** | **179** |
 
 ## LOC — OpenUSD side (pinned v25.11)
 
@@ -28,8 +28,8 @@
 
 | Metric | HoloScript | OpenUSD (v25.11 authored) | USD/Holo ratio |
 |--------|------------|----------------------------|-----------------|
-| Effective code LOC | 185 | 323 | **1.75×** |
-| Non-empty LOC | 247 | 362 | **1.47×** |
+| Effective code LOC | 179 | 323 | **1.80×** |
+| Non-empty LOC | 241 | 362 | **1.50×** |
 
 Note: the OpenUSD authored set above does NOT include the .h/.cpp pairs, wrap*.cpp Python bindings, module.cpp, moduleDeps.cpp, tokens.cpp, or generatedSchema.usda that step 3 (`usdGenSchema schema.usda .`) produces. Including those generated files (typically 600–1200 LOC for a plugin of this surface) widens the gap further. The numbers above measure only the lines a USD plugin author actually writes by hand on top of the v25.11 codegen.
 
