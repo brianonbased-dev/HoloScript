@@ -228,7 +228,15 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/scripts/db-migrat
 # Install them explicitly in the runner image so migrations run on cold start.
 # Hide package.json during install because the standalone output's package.json
 # contains pnpm workspace: protocol URLs that npm does not understand.
-RUN mv package.json package.json.bak && npm install pg drizzle-orm --no-save --omit=dev --no-optional && mv package.json.bak package.json && chown -R nextjs:nodejs /app/node_modules
+# Install in an ISOLATED clean dir and copy in — NOT `npm install` against the
+# standalone's node_modules. Since 2026-06-14 the standalone bundle traces workspace
+# packages (e.g. @holoscript/xr-embodiment) into node_modules, and npm's arborist
+# chokes reconciling them: "Cannot destructure property 'package' of 'node.target' as
+# it is null" (exit 1, every runner build). A clean-dir install has no workspace
+# graph to choke on; pg + drizzle-orm are pure-JS (no native bindings) so a copy is safe.
+RUN mkdir -p /tmp/rt && cd /tmp/rt && npm init -y >/dev/null 2>&1 && \
+    npm install pg drizzle-orm --omit=dev --no-optional --no-audit --no-fund && \
+    cp -R node_modules/. /app/node_modules/ && chown -R nextjs:nodejs /app/node_modules
 
 USER nextjs
 EXPOSE 3000
