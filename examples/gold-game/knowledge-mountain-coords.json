@@ -1,7 +1,10 @@
 {
   "generated": "2026-05-24",
-  "n_entries": 186,
-  "n_lineage_edges": 83,
+  "n_entries": 336,
+  "n_skipped": 2,
+  "n_rejected": 0,
+  "n_total_md": 338,
+  "n_lineage_edges": 242,
   "tier_y": {
     "bronze": 0.0,
     "silver": 1.0,
@@ -15,2046 +18,4032 @@
       "title": "",
       "domain": "vault-operations",
       "tier": "bronze",
-      "x": 35.868,
+      "x": 45.109,
       "y": 0.0,
-      "z": 5.873,
+      "z": 36.425,
       "lineage_in": 0,
-      "lineage_out": 2
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "B.GROKIPC.003",
       "title": "",
       "domain": "tooling",
       "tier": "bronze",
-      "x": 14.584,
+      "x": 16.928,
       "y": 0.0,
-      "z": 52.109,
+      "z": 74.339,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "B.VAULT.002",
       "title": "",
       "domain": "knowledge-architecture",
       "tier": "bronze",
-      "x": 45.979,
+      "x": 56.879,
       "y": 0.0,
-      "z": 6.56,
+      "z": 31.641,
       "lineage_in": 0,
-      "lineage_out": 2
+      "lineage_out": 3,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.001",
       "title": "Loro CRDT -- getMap/getList at Doc Level Only",
       "domain": "holomesh-crdt",
       "tier": "gold",
-      "x": 7.809,
+      "x": 9.88,
       "y": 2.0,
-      "z": 33.337,
+      "z": 42.112,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.002",
       "title": "W.AGT.05 (compose existing traits before adding infrastructure) does NOT mean keep logic scattered and add a thin wrapper",
       "domain": "architecture",
       "tier": "gold",
-      "x": -39.743,
+      "x": -35.859,
       "y": 2.0,
-      "z": -22.617,
+      "z": -13.953,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.003",
+      "title": "Virtual Split Only: GodFileDetector creates virtual split plans, never actually splits files",
+      "domain": "absorb",
+      "tier": "gold",
+      "x": -46.881,
+      "y": 2.0,
+      "z": -34.763,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.004",
+      "title": "Reconsolidation resolves differently per domain: excitability uses separate counter map, opinion domains fork, security domain serializes",
+      "domain": "oracle-collision",
+      "tier": "gold",
+      "x": -36.893,
+      "y": 2.0,
+      "z": -37.345,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.005",
+      "title": "HoloScript Studio Browser Testing Gotcha: Browser tool fails when testing studio pages that depend on @holoscript/std",
+      "domain": "archived",
+      "tier": "gold",
+      "x": -38.624,
+      "y": 2.0,
+      "z": -1.838,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.006",
+      "title": "WebGPU Fallback Required: Always provide WASM fallback for WebGPU features. Not all browsers support WebGPU",
+      "domain": "hologram",
+      "tier": "gold",
+      "x": -32.481,
+      "y": 2.0,
+      "z": -49.497,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.007",
+      "title": "Gossip Health Side-Channel Gotcha: When piggybacking health",
+      "domain": "networking",
+      "tier": "gold",
+      "x": -35.971,
+      "y": 2.0,
+      "z": -34.718,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.008",
+      "title": "NEVER Use CRDT for Particle Data: CRDTs are too slow for high-frequency particle updates. Use binary protocol",
+      "domain": "physics",
+      "tier": "gold",
+      "x": -31.22,
+      "y": 2.0,
+      "z": -43.973,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.010",
       "title": "Tier-weighted decay creates intentional feedback loop (earned trust is sticky) but requires active re-evaluation triggers",
       "domain": "oracle-layer4",
       "tier": "gold",
-      "x": -47.605,
+      "x": -35.667,
       "y": 2.0,
-      "z": -49.013,
+      "z": -46.025,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.011",
+      "title": "G.MESH.V6.001: Flow test trait indicators must match backend-specific output (e.g. @grabbable becomes Rigidbody in Unity)",
+      "domain": "testing",
+      "tier": "gold",
+      "x": -21.618,
+      "y": 2.0,
+      "z": -47.853,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.012",
+      "title": "Dawn GPU Test Pattern: Use Dawn (Google's WebGPU impl) for headless GPU testing in CI",
+      "domain": "physics",
+      "tier": "gold",
+      "x": -45.898,
+      "y": 2.0,
+      "z": -27.291,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.013",
+      "title": "Test False Case for Computed Assertions: computed == true as",
+      "domain": "testing",
+      "tier": "gold",
+      "x": -43.737,
+      "y": 2.0,
+      "z": -20.785,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.014",
       "title": "Tier-weighted decay creates intentional feedback loop (earned trust is sticky) but requires active re-evaluation triggers",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -46.289,
+      "x": -35.58,
       "y": 2.0,
-      "z": -51.619,
+      "z": -48.748,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.015",
+      "title": "G.MESH.V6.002: Test suites optimize for experienced failure categories -- next failure will be in uninstrumented category",
+      "domain": "testing",
+      "tier": "gold",
+      "x": -39.884,
+      "y": 2.0,
+      "z": -28.143,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.016",
       "title": "Never overwrite HOLOMESH_WALLET_ADDRESS or HOLOMESH_WALLET_KEY in .env. Wallets may hold funds; API keys are ephemeral sessions",
       "domain": "identity",
       "tier": "platinum",
-      "x": 5.432,
+      "x": -7.612,
       "y": 3.0,
-      "z": 84.405,
+      "z": 71.055,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.017",
       "title": "reuseRate*50 multiplier in computeReputation creates 250:1 p",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -1.053,
+      "x": 13.874,
       "y": 2.0,
-      "z": -23.546,
+      "z": -22.376,
+      "lineage_in": 2,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.018",
+      "title": "Semantic Drift in Compression: Over-compressing a behavior t",
+      "domain": "gotchas",
+      "tier": "gold",
+      "x": 11.62,
+      "y": 2.0,
+      "z": 8.656,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.019",
       "title": "HoloMesh CRDT and daemon gotchas V5-V8",
       "domain": "holomesh-crdt",
       "tier": "gold",
-      "x": 1.052,
+      "x": 1.769,
       "y": 2.0,
-      "z": 15.038,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": 18.384,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.020",
       "title": "SPR Implementation Gotchas",
       "domain": "general",
       "tier": "gold",
-      "x": -12.465,
+      "x": 3.702,
       "y": 2.0,
-      "z": -15.668,
+      "z": 5.062,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.021",
+      "title": "500 Errors Require Local Content Caching: Always write conte",
+      "domain": "moltbook",
+      "tier": "gold",
+      "x": -11.377,
+      "y": 2.0,
+      "z": -32.975,
+      "lineage_in": 2,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.022",
       "title": "500 errors require caching. Moltbook API returns intermitten",
       "domain": "moltbook-security",
       "tier": "gold",
-      "x": -17.854,
+      "x": -24.344,
       "y": 2.0,
-      "z": -31.724,
+      "z": -33.989,
+      "lineage_in": 2,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.023",
+      "title": "Quality Tier Skip Maps: Post-processing renderer must use qu",
+      "domain": "rendering",
+      "tier": "gold",
+      "x": -9.211,
+      "y": 2.0,
+      "z": -52.043,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.024",
+      "title": "G.MESH.V5.002: Action count assertions in daemon tests \ufffd eve",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -39.721,
+      "y": 2.0,
+      "z": -8.058,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.025",
       "title": "When extracting packages (A.011-style), ALL Dockerfiles must",
       "domain": "infrastructure",
       "tier": "gold",
-      "x": -32.321,
+      "x": -29.624,
       "y": 2.0,
-      "z": -19.73,
+      "z": -5.362,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.026",
       "title": "Cross-package relative imports in HoloScript monorepo cause",
       "domain": "docker-build",
       "tier": "gold",
-      "x": -36.897,
+      "x": -35.705,
       "y": 2.0,
-      "z": -25.456,
+      "z": -20.146,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.141",
       "title": "Mocked-DB tests pass, prod migration breaks",
       "domain": "general",
       "tier": "gold",
-      "x": 23.393,
+      "x": 22.509,
       "y": 2.0,
-      "z": 45.299,
+      "z": 73.729,
       "lineage_in": 3,
-      "lineage_out": 3
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.280",
       "title": "Mocked-DB tests pass, prod migration breaks",
       "domain": "general",
       "tier": "gold",
-      "x": 23.393,
+      "x": 22.509,
       "y": 2.0,
-      "z": 45.299,
+      "z": 73.729,
       "lineage_in": 1,
-      "lineage_out": 3
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.281",
       "title": "Git autocrlf breaks content hashes - LF-canonicalize for text",
       "domain": "general",
       "tier": "gold",
-      "x": 118.395,
+      "x": 132.049,
       "y": 2.0,
-      "z": -13.235,
+      "z": 4.154,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.282",
       "title": "NEVER hardcode domain vocabulary into @holoscript/core",
       "domain": "product",
       "tier": "gold",
-      "x": 68.9,
+      "x": 80.176,
       "y": 2.0,
-      "z": -29.194,
+      "z": -23.888,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.283",
       "title": "TET10 Force Distribution Gotcha",
       "domain": "general",
       "tier": "gold",
-      "x": 107.316,
+      "x": 125.905,
       "y": 2.0,
-      "z": -57.332,
+      "z": -45.91,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.284",
+      "title": "Hook path portability: never use %USERPROFILE% literals",
+      "domain": "general",
+      "tier": "platinum",
+      "x": 77.469,
+      "y": 3.0,
+      "z": 28.029,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.285",
       "title": "git add verify-then-commit has a race window when peers are active",
       "domain": "general",
       "tier": "gold",
-      "x": 76.187,
+      "x": 84.069,
       "y": 2.0,
-      "z": 28.027,
+      "z": 61.247,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.286",
       "title": "Git autocrlf breaks content hashes - LF-canonicalize for text",
       "domain": "general",
       "tier": "gold",
-      "x": 117.955,
+      "x": 131.285,
       "y": 2.0,
-      "z": -14.743,
+      "z": 1.074,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.287",
       "title": "A2A/MCP Tool Drift",
       "domain": "holoscript-v6",
       "tier": "gold",
-      "x": 99.159,
+      "x": 112.079,
       "y": 2.0,
-      "z": -49.593,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": -44.118,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.288",
       "title": "KnowledgeExtractor depends on CodebaseGraph being fully populated \ufffd if absorb_ru",
       "domain": "absorb-pipeline",
       "tier": "gold",
-      "x": 101.999,
+      "x": 118.423,
       "y": 2.0,
-      "z": -54.849,
+      "z": -45.993,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.289",
       "title": "Railway Dockerfile",
       "domain": "docker-build",
       "tier": "gold",
-      "x": 73.925,
+      "x": 92.066,
       "y": 2.0,
-      "z": -24.515,
+      "z": -21.775,
       "lineage_in": 2,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.290",
       "title": "TET10 Force Distribution Gotcha",
       "domain": "general",
       "tier": "gold",
-      "x": 98.62,
+      "x": 117.444,
       "y": 2.0,
-      "z": -57.69,
+      "z": -47.658,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.291",
       "title": "git add verify-then-commit has a race window when peers are active",
       "domain": "general",
       "tier": "gold",
-      "x": 68.791,
+      "x": 75.986,
       "y": 2.0,
-      "z": 35.022,
+      "z": 69.237,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.292",
       "title": "parent_id (snake_case) for nested replies",
       "domain": "moltbook-security",
       "tier": "gold",
-      "x": 93.087,
+      "x": 111.181,
       "y": 2.0,
-      "z": -55.622,
+      "z": -60.029,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.293",
       "title": "Feed post IDs are ephemeral",
       "domain": "moltbook-security",
       "tier": "gold",
-      "x": 91.282,
+      "x": 112.898,
       "y": 2.0,
-      "z": -46.107,
+      "z": -46.967,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.294",
+      "title": "Quality Tier Skip Maps: Post-processing renderer must use quality tier skip maps",
+      "domain": "rendering",
+      "tier": "gold",
+      "x": 97.79,
+      "y": 2.0,
+      "z": -54.946,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.295",
       "title": "Loro doc",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": 73.383,
+      "x": 89.477,
       "y": 2.0,
-      "z": -45.166,
+      "z": -46.023,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.296",
       "title": "KnowledgeExtractor depends on CodebaseGraph being fully populated \ufffd if absorb_ru",
       "domain": "absorb-pipeline",
       "tier": "gold",
-      "x": 92.155,
+      "x": 109.563,
       "y": 2.0,
-      "z": -55.151,
+      "z": -48.954,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.297",
       "title": "F.022 Handoff Source Disambiguation (pairs with F.021)",
       "domain": "general",
       "tier": "gold",
-      "x": 6.549,
+      "x": 7.934,
       "y": 2.0,
-      "z": 36.247,
+      "z": 63.809,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.298",
       "title": "Performance claims in papers need code:line verification",
       "domain": "general",
       "tier": "gold",
-      "x": 1.005,
+      "x": 2.595,
       "y": 2.0,
-      "z": 29.914,
+      "z": 59.083,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.299",
+      "title": ".ts Files with JSX Need .tsx: TypeScript files containing JS",
+      "domain": "typescript",
+      "tier": "gold",
+      "x": -8.702,
+      "y": 2.0,
+      "z": 21.588,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.300",
       "title": "Verify HEAD --stat after EVERY commit; pre-commit hooks can auto-stage unintended files",
       "domain": "general",
       "tier": "gold",
-      "x": 21.741,
+      "x": 22.043,
       "y": 2.0,
-      "z": 45.604,
+      "z": 74.187,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.301",
       "title": "In multi-agent sessions overlapping on the same repository,",
       "domain": "agentic-coordination",
       "tier": "gold",
-      "x": -7.569,
+      "x": -6.559,
       "y": 2.0,
-      "z": 4.728,
+      "z": 18.785,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.302",
       "title": "PAGES_ARCHITECTURE.md documented 14 pages but 34 exist. Alwa",
       "domain": "studio",
       "tier": "gold",
-      "x": -18.638,
+      "x": -19.845,
       "y": 2.0,
-      "z": -6.452,
+      "z": 7.927,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.303",
       "title": "Git autocrlf breaks content hashes across platforms \ufffd normalize to LF before hashing",
       "domain": "general",
       "tier": "gold",
-      "x": 79.233,
+      "x": 76.193,
       "y": 2.0,
-      "z": 31.099,
+      "z": 63.932,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.304",
+      "title": "CORRECTED: x402 Facilitator is NOT types-only. x402-facilita",
+      "domain": "economy",
+      "tier": "gold",
+      "x": -14.231,
+      "y": 2.0,
+      "z": 9.255,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "G.GOLD.305",
+      "title": "/room knowledge pattern misroutes in 2+ distinct failure modes",
+      "domain": "general",
+      "tier": "gold",
+      "x": 28.33,
+      "y": 2.0,
+      "z": 13.961,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": "admin-escape"
+    },
+    {
+      "id": "G.GOLD.308",
+      "title": "Co-authored tests + code = shared wrong model",
+      "domain": "general",
+      "tier": "gold",
+      "x": -7.788,
+      "y": 2.0,
+      "z": 35.716,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": "admin-escape"
+    },
+    {
+      "id": "G.GOLD.309",
+      "title": "Label hypotheses as hypotheses; don't ship plausible-causation as established fact",
+      "domain": "general",
+      "tier": "gold",
+      "x": -3.612,
+      "y": 2.0,
+      "z": 34.245,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": "admin-escape"
+    },
+    {
+      "id": "G.GOLD.321",
+      "title": "Orphan test files bypass the untracked-siblings gate (inverse case)",
+      "domain": "general",
+      "tier": "gold",
+      "x": -6.214,
+      "y": 2.0,
+      "z": 32.932,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": "admin-escape"
+    },
+    {
+      "id": "G.GOLD.332",
+      "title": "SNN spike-time quantization required for CAEL hash determinism",
+      "domain": "general",
+      "tier": "gold",
+      "x": -7.549,
+      "y": 2.0,
+      "z": 40.815,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": "admin-escape"
+    },
+    {
+      "id": "G.GOLD.347",
+      "title": "/room claim auto-writes GOLD vault on related tasks",
+      "domain": "general",
+      "tier": "gold",
+      "x": 7.762,
+      "y": 2.0,
+      "z": 27.681,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": "admin-escape"
     },
     {
       "id": "G.GOLD.479",
       "title": "TMPDIR vs %TEMP% \u2014 hook scripts that hardcode /tmp/ silently break on Windows",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 31.541,
+      "x": 28.273,
       "y": 2.0,
-      "z": 76.617,
+      "z": 98.443,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.480",
       "title": "Windows path forms \u2014 D:/, /d/, and D:\\ are not interchangeable across PS / Bash / Node",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 37.221,
+      "x": 35.184,
       "y": 2.0,
-      "z": 73.279,
+      "z": 102.58,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.481",
       "title": "PowerShell here-string closer must be column-0 \u2014 indenting `'@` is a parse error",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 44.195,
+      "x": 42.498,
       "y": 2.0,
-      "z": 87.908,
+      "z": 116.52,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.482",
       "title": "Windows file locking \u2014 open files cannot be deleted, moved, or replaced; pnpm/git ops over running watch fail",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 38.943,
+      "x": 35.398,
       "y": 2.0,
-      "z": 88.582,
+      "z": 118.059,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.483",
       "title": "NTFS case-insensitivity hides rename-only commits \u2014 git on Windows defaults to ignorecase=true",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 38.241,
+      "x": 30.724,
       "y": 2.0,
-      "z": 87.262,
+      "z": 118.756,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.484",
       "title": "CRLF autocrlf on Windows breaks shebang scripts and Python heredocs at checkout",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 59.683,
+      "x": 54.533,
       "y": 2.0,
-      "z": 88.679,
+      "z": 130.808,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.485",
       "title": "Earth-Hardcoded Physics Trap \u2014 Alien Worlds Blocked by Solver Defaults",
       "domain": "simulation-architecture",
       "tier": "gold",
-      "x": -6.895,
+      "x": 2.514,
       "y": 2.0,
-      "z": 79.92,
+      "z": 104.735,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "G.GOLD.486",
       "title": "Demo Theater Trap \u2014 When the Showcase Differs from the Product",
       "domain": "product-integrity",
       "tier": "gold",
-      "x": 6.246,
+      "x": 10.248,
       "y": 2.0,
-      "z": 63.853,
+      "z": 87.536,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.001",
       "title": "Failure Knowledge Decays Slower Than Success Knowledge",
       "domain": "knowledge-architecture",
       "tier": "diamond",
-      "x": 33.271,
+      "x": 25.12,
       "y": 4.0,
-      "z": -16.32,
+      "z": 15.545,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.002",
       "title": "Unified Key Architecture \u2014 One Key, Permanent Wallet, No Self-Provisioning",
       "domain": "agent-architecture",
       "tier": "gold",
-      "x": 2.048,
+      "x": -7.336,
       "y": 2.0,
-      "z": 93.603,
+      "z": 82.837,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.003",
       "title": "Uncoordinated Agent Collaboration \u2014 Convergence Study as Handshake",
       "domain": "agent-collaboration",
       "tier": "gold",
-      "x": 7.29,
+      "x": 6.832,
       "y": 2.0,
-      "z": 32.107,
+      "z": 48.022,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.004",
       "title": "Proof-of-Play (PoP) -- Interaction as Computation Attestation",
       "domain": "agent-collaboration",
       "tier": "gold",
-      "x": -15.476,
+      "x": -13.759,
       "y": 2.0,
-      "z": 71.703,
-      "lineage_in": 0,
-      "lineage_out": 1
+      "z": 56.045,
+      "lineage_in": 1,
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.005",
       "title": "GPU Sharing via vLLM Sidecars \u2014 Multi-Model Co-location on Single GPU",
       "domain": "architecture",
       "tier": "gold",
-      "x": -7.533,
+      "x": -11.976,
       "y": 2.0,
-      "z": 79.158,
+      "z": 87.74,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.006",
+      "title": "Absorb-to-knowledge pipeline: absorb_run_absorb ? absorb_ext",
+      "domain": "absorb-pipeline",
+      "tier": "gold",
+      "x": 27.276,
+      "y": 2.0,
+      "z": -10.563,
+      "lineage_in": 40,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.010",
+      "title": "Context Diversity Metric: measure entry health by cardinalit",
+      "domain": "knowledge-architecture",
+      "tier": "gold",
+      "x": 20.835,
+      "y": 2.0,
+      "z": -6.654,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.018",
+      "title": "Trait Marketplace Pattern (HoloMesh V6): @trait_marketplace",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -13.08,
+      "y": 2.0,
+      "z": -2.581,
+      "lineage_in": 5,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.021",
+      "title": "Dynamic Import for Cross-Package Deps in MCP Tools: protocol",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -27.814,
+      "y": 2.0,
+      "z": -12.121,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.023",
       "title": "Self-target denylist protects recursive/ from self-modificat",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -74.382,
+      "x": -66.79,
       "y": 2.0,
-      "z": -73.489,
+      "z": -63.173,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.024",
+      "title": "Revenue Remainder Pattern: Creator always gets the residual",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -30.012,
+      "y": 2.0,
+      "z": -60.217,
+      "lineage_in": 2,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.031",
+      "title": "SCAFFOLD-TEST-ABSORB-SHED pattern: (1) Build new home with p",
+      "domain": "architecture",
+      "tier": "gold",
+      "x": -30.586,
+      "y": 2.0,
+      "z": -7.114,
+      "lineage_in": 2,
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.033",
+      "title": "MCP Tool Dispatch Ordering: holo_protocol_* prefix MUST be d",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -26.292,
+      "y": 2.0,
+      "z": -27.087,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.034",
+      "title": "CLI Publish Falls Through to CDN: holoscript deploy --publis",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -37.298,
+      "y": 2.0,
+      "z": -18.66,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.036",
+      "title": "uAA2++ Orchestration Pattern: 8-phase protocol (Initialize,",
+      "domain": "architecture",
+      "tier": "gold",
+      "x": -33.72,
+      "y": 2.0,
+      "z": -31.924,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.042",
+      "title": "P.MESH.V5.001: Multi-phase trait delivery \ufffd ship core identi",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -33.147,
+      "y": 2.0,
+      "z": -18.104,
+      "lineage_in": 0,
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.043",
+      "title": "P.MESH.V5.002: Studio surface composition pattern \ufffd .hsplus",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -37.937,
+      "y": 2.0,
+      "z": -14.338,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.044",
+      "title": "4-Layer Publishing Protocol: (1) Provenance \ufffd SHA-256 conten",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -22.325,
+      "y": 2.0,
+      "z": -17.518,
+      "lineage_in": 1,
+      "lineage_out": 3,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.053",
       "title": "holoscript_compose_traits MCP tool already exposes TraitComp",
       "domain": "architecture",
       "tier": "gold",
-      "x": -5.988,
+      "x": -9.166,
       "y": 2.0,
-      "z": -28.731,
+      "z": -20.789,
       "lineage_in": 1,
-      "lineage_out": 2
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.067",
+      "title": "Trait Marketplace Pattern (HoloMesh V6): @trait_marketplace",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -41.645,
+      "y": 2.0,
+      "z": -27.504,
+      "lineage_in": 4,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.069",
       "title": "L1/L2 activate after >=2 completed cycles from layer below.",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -67.46,
+      "x": -60.951,
       "y": 2.0,
-      "z": -72.695,
+      "z": -64.221,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.070",
       "title": "PipelineStoreAdapter decouples orchestrator from Zustand for",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -73.722,
+      "x": -65.63,
       "y": 2.0,
-      "z": -74.089,
+      "z": -60.5,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.080",
+      "title": "HSNAP (HoloScript Native Agent Protocol): agent-to-agent com",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -32.441,
+      "y": 2.0,
+      "z": -18.33,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.081",
       "title": "When generating a downstream artifact (test, CI check, lint",
       "domain": "knowledge-architecture",
       "tier": "gold",
-      "x": -37.431,
+      "x": -35.815,
       "y": 2.0,
-      "z": -40.759,
+      "z": -24.778,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.087",
+      "title": "Local ops: dot-source holomesh.ps1; use HoloMesh-Status, Fee",
+      "domain": "holomesh-ops",
+      "tier": "gold",
+      "x": -34.667,
+      "y": 2.0,
+      "z": -31.094,
+      "lineage_in": 4,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.093",
       "title": "Feedback flows upward only (L0->L1->L2), control flows downw",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -76.264,
+      "x": -64.559,
       "y": 2.0,
-      "z": -84.102,
+      "z": -79.956,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.098",
+      "title": "Frozen Evaluator Pattern: self-evaluation drifts when the ev",
+      "domain": "agent-architecture",
+      "tier": "gold",
+      "x": -24.208,
+      "y": 2.0,
+      "z": -35.858,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.101",
+      "title": "Epsilon-Greedy Knowledge Retrieval (90/10): inject 10% rando",
+      "domain": "knowledge-architecture",
+      "tier": "gold",
+      "x": -30.487,
+      "y": 2.0,
+      "z": -50.287,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.104",
+      "title": "Noisy Quarantine Over Silent Deletion: quarantine expired en",
+      "domain": "knowledge-architecture",
+      "tier": "gold",
+      "x": -36.666,
+      "y": 2.0,
+      "z": -55.045,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.154",
+      "title": "On-Demand MCP Gossip Sync: Decoupled holomesh_gossip_sync fr",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -40.999,
+      "y": 2.0,
+      "z": -39.611,
+      "lineage_in": 2,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.166",
+      "title": "Proof-of-Play (PoP) Verification: Gate agent interactions vi",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -28.99,
+      "y": 2.0,
+      "z": -31.107,
+      "lineage_in": 2,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.195",
+      "title": "Spatial Gossip Mesh: Agents discover each other via .well-kn",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -44.196,
+      "y": 2.0,
+      "z": -35.491,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.196",
       "title": "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks",
       "domain": "general",
       "tier": "gold",
-      "x": 148.983,
+      "x": 161.221,
       "y": 2.0,
-      "z": -89.678,
+      "z": -71.555,
       "lineage_in": 3,
-      "lineage_out": 3
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.197",
+      "title": "Progressive Security Disclosure: Start concrete (L0), build to architecture (L2)",
+      "domain": "moltbook-security",
+      "tier": "gold",
+      "x": 101.044,
+      "y": 2.0,
+      "z": -49.299,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.198",
       "title": "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks",
       "domain": "general",
       "tier": "gold",
-      "x": 147.639,
+      "x": 159.952,
       "y": 2.0,
-      "z": -95.497,
+      "z": -78.462,
       "lineage_in": 3,
-      "lineage_out": 3
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.199",
+      "title": "CRDT ~10Hz + Binary ~60Hz: Use CRDTs for world state at low frequency, binary pr",
+      "domain": "physics",
+      "tier": "gold",
+      "x": 92.072,
+      "y": 2.0,
+      "z": -49.264,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.200",
+      "title": "Proof-of-Play (PoP) Verification: Gate agent interactions via 144Hz kinematic ph",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": 91.302,
+      "y": 2.0,
+      "z": -41.624,
+      "lineage_in": 2,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.201",
       "title": "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks",
       "domain": "general",
       "tier": "gold",
-      "x": 147.217,
+      "x": 158.883,
       "y": 2.0,
-      "z": -95.241,
+      "z": -77.898,
       "lineage_in": 3,
-      "lineage_out": 3
+      "lineage_out": 3,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.202",
       "title": "HoloMesh Teams API endpoints + caching rule",
       "domain": "general",
       "tier": "gold",
-      "x": 78.189,
+      "x": 93.385,
       "y": 2.0,
-      "z": -23.728,
+      "z": -20.702,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "P.GOLD.203",
       "title": "Agent navigated 20x20 room with 6 obstacles from (2,2) to (18,18) in 38 ticks",
       "domain": "general",
       "tier": "gold",
-      "x": 148.425,
+      "x": 160.36,
       "y": 2.0,
-      "z": -95.789,
+      "z": -78.463,
       "lineage_in": 3,
-      "lineage_out": 3
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "P.GOLD.204",
+      "title": "Absorb-to-knowledge pipeline: absorb_run_absorb ? absorb_extract_knowledge ? kno",
+      "domain": "absorb-pipeline",
+      "tier": "gold",
+      "x": 91.604,
+      "y": 2.0,
+      "z": -51.165,
+      "lineage_in": 4,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "PROTOCOL.001",
       "title": "North Star Lite Template",
       "domain": "protocols",
       "tier": "gold",
-      "x": -7.496,
+      "x": -3.308,
       "y": 2.0,
-      "z": 25.591,
+      "z": 43.947,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.001",
       "title": "Architecture Beats Alignment -- Security by Structure",
       "domain": "security",
       "tier": "diamond",
-      "x": 2.004,
+      "x": 8.339,
       "y": 4.0,
-      "z": 41.651,
+      "z": 48.162,
       "lineage_in": 4,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.002",
       "title": "Sovereign vs Bridge Compilers -- Pour Resources into Sovereign",
       "domain": "compiler-architecture",
       "tier": "platinum",
-      "x": -18.046,
+      "x": -9.42,
       "y": 3.0,
-      "z": 70.598,
+      "z": 64.431,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.003",
       "title": "GitHub Is Source of Truth -- Servers Are Projections",
       "domain": "architecture",
       "tier": "gold",
-      "x": 0.104,
+      "x": -5.443,
       "y": 2.0,
-      "z": 55.972,
-      "lineage_in": 2,
-      "lineage_out": 1
+      "z": 73.393,
+      "lineage_in": 4,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.004",
       "title": "Wallets Are Identity, API Keys Are Sessions",
       "domain": "architecture",
       "tier": "gold",
-      "x": -1.759,
+      "x": -10.8,
       "y": 2.0,
-      "z": 62.612,
+      "z": 44.588,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.005",
+      "title": "Semantic code search defaults to HoloEmbed (sovereign, zero-cost); OpenAI optional, BM25 deprecated",
+      "domain": "absorb-service",
+      "tier": "gold",
+      "x": 5.103,
+      "y": 2.0,
+      "z": 67.242,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.006",
       "title": "Agent Interface Contract \u2014 Single Source of Truth for All Agents",
       "domain": "agent-architecture",
       "tier": "gold",
-      "x": 5.5,
+      "x": 4.794,
       "y": 2.0,
-      "z": 65.17,
+      "z": 83.129,
       "lineage_in": 3,
-      "lineage_out": 4
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.007",
       "title": "AGENTS.md \u2014 Cross-Tool Universal Agent Configuration Standard",
       "domain": "agent-architecture",
       "tier": "gold",
-      "x": 5.914,
+      "x": 4.926,
       "y": 2.0,
-      "z": 53.088,
+      "z": 73.656,
       "lineage_in": 0,
-      "lineage_out": 3
+      "lineage_out": 3,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.009",
       "title": "North Star Oracle \u2014 Decision Tree System That Prevents Agent Stalls",
       "domain": "agent-architecture",
       "tier": "gold",
-      "x": -4.798,
+      "x": -3.893,
       "y": 2.0,
-      "z": 44.608,
+      "z": 60.448,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.010",
       "title": "Three-Tier Knowledge Pipeline \u2014 Memory \u2192 Knowledge Store \u2192 GOLD Vault",
       "domain": "knowledge-architecture",
       "tier": "gold",
-      "x": 15.732,
+      "x": 23.662,
       "y": 2.0,
-      "z": -14.52,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": 7.465,
+      "lineage_in": 2,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.011",
       "title": "Ecosystem Strategy \u2014 Two Doors, One Building (Absorb + HoloMesh)",
       "domain": "architecture",
       "tier": "platinum",
-      "x": -18.743,
+      "x": -17.644,
       "y": 3.0,
-      "z": 31.374,
+      "z": 36.864,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.012",
       "title": "HoloScript Compilation Architecture \u2014 Sovereign + Bridge Split",
       "domain": "compiler-architecture",
       "tier": "gold",
-      "x": -20.363,
+      "x": -12.339,
       "y": 2.0,
-      "z": 63.058,
+      "z": 52.147,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.013",
       "title": "Trust by Construction \u2014 Three Tiers of Simulation Trustworthiness",
       "domain": "simulation-architecture",
       "tier": "platinum",
-      "x": -11.338,
+      "x": -7.829,
       "y": 3.0,
-      "z": 54.471,
+      "z": 69.59,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.014",
       "title": "CAEL \u2014 Contracted Agent-Environment Loop (Symbol Grounding \u2192 Causal Grounding)",
       "domain": "agent-architecture",
       "tier": "gold",
-      "x": -2.772,
+      "x": 6.255,
       "y": 2.0,
-      "z": 42.509,
+      "z": 64.338,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.015",
       "title": "When Trust Is Free \u2014 Verticals That Open When Verification Costs <2%",
       "domain": "market-strategy",
       "tier": "gold",
-      "x": -19.395,
+      "x": -14.119,
       "y": 2.0,
-      "z": 45.861,
+      "z": 73.248,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.016",
       "title": "The Arc \u2014 4 Eras of HoloScript in 103 Days",
       "domain": "project-history",
       "tier": "gold",
-      "x": 12.443,
+      "x": 18.191,
       "y": 2.0,
-      "z": 31.864,
+      "z": 43.68,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.020",
       "title": "When Layer 2 findings from DIFFERENT cycles collide, three f",
       "domain": "oracle-layer3",
       "tier": "gold",
-      "x": -6.012,
+      "x": 5.962,
       "y": 2.0,
-      "z": -15.109,
+      "z": 3.932,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.021",
+      "title": "W.MESH.V6.001: Gossip health side-channel \ufffd piggyback observ",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": 5.413,
+      "y": 2.0,
+      "z": -4.167,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.022",
       "title": "The Zero-User Problem \u2014 57,356 tests. 122 MCP tools. 47 comp",
       "domain": "general",
       "tier": "gold",
-      "x": -12.657,
+      "x": 0.566,
       "y": 2.0,
-      "z": -2.198,
-      "lineage_in": 1,
-      "lineage_out": 1
+      "z": 12.051,
+      "lineage_in": 2,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.023",
       "title": "Sigmoid bonding curve (EconomicPrimitives.ts:314) IS the Hil",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -9.897,
+      "x": 2.342,
       "y": 2.0,
-      "z": -14.448,
+      "z": -2.059,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.024",
       "title": "CulturalMemory.ts (454 lines) already implements 4 of 6 biol",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -7.811,
+      "x": 3.984,
       "y": 2.0,
-      "z": -0.621,
+      "z": 15.15,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.026",
+      "title": "12 sovereign compilers total 11375 LOC across 3 layers: Laye",
+      "domain": "compiler-architecture",
+      "tier": "gold",
+      "x": 9.249,
+      "y": 2.0,
+      "z": 19.789,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.027",
+      "title": "V3 Spatial Text Feed: LoroText (doc.getText) provides charac",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": 14.843,
+      "y": 2.0,
+      "z": 13.946,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.028",
       "title": "Knowledge that cannot survive collision is not knowledge. Tr",
       "domain": "oracle-meta",
       "tier": "gold",
-      "x": -8.001,
+      "x": 3.454,
       "y": 2.0,
-      "z": -18.264,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": -9.934,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.032",
       "title": "Railway Deployment Reference \u2014 HoloScript Infrastructure",
       "domain": "deployment",
       "tier": "gold",
-      "x": -8.185,
+      "x": -5.355,
       "y": 2.0,
-      "z": 68.035,
+      "z": 86.149,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.033",
       "title": "MCP Mesh Orchestrator \u2014 Railway Deployment Reference",
       "domain": "deployment",
       "tier": "gold",
-      "x": 1.955,
+      "x": 5.351,
       "y": 2.0,
-      "z": 58.032,
+      "z": 64.821,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.034",
       "title": "Railway Project Registry \u2014 All 5 Projects",
       "domain": "deployment",
       "tier": "gold",
-      "x": -4.676,
+      "x": -2.234,
       "y": 2.0,
-      "z": 78.59,
+      "z": 93.194,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.035",
       "title": "Agentic Constitutional Security -- Compiler-Level Lexical Firewalling",
       "domain": "security-architecture",
       "tier": "gold",
-      "x": -11.506,
+      "x": -11.703,
       "y": 2.0,
-      "z": 66.682,
+      "z": 61.909,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.036",
       "title": "The Dumb Glass -- Zero-Logic Spatial Projection",
       "domain": "architecture",
       "tier": "platinum",
-      "x": -27.665,
+      "x": -25.638,
       "y": 3.0,
-      "z": 43.704,
+      "z": 29.747,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.037",
       "title": "Tropical Semirings for Causal Provenance and Semantic Weighting",
       "domain": "internal-logic",
       "tier": "platinum",
-      "x": -24.198,
+      "x": -12.116,
       "y": 3.0,
-      "z": 25.016,
+      "z": 39.781,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.038",
       "title": "Prophetic Intelligence -- Anticipatory Execution via SNN-WebGPU",
       "domain": "ai-intelligence",
       "tier": "gold",
-      "x": -26.962,
+      "x": -17.959,
       "y": 2.0,
-      "z": 37.506,
+      "z": 35.83,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.039",
       "title": "Sapir-Whorf Security -- The Compiler as the Limit of the Possible",
       "domain": "security-architecture",
       "tier": "gold",
-      "x": -14.089,
+      "x": -12.581,
       "y": 2.0,
-      "z": 61.642,
+      "z": 46.427,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.040",
       "title": "Recursive Neuromorphic Synthesis -- Swarm Mitosis as the Engine of Evolution",
       "domain": "internal-logic",
       "tier": "gold",
-      "x": -33.103,
+      "x": -25.366,
       "y": 2.0,
-      "z": 13.968,
+      "z": 27.891,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.041",
       "title": "IDE MCP Configs \u2014 Shell Interpolation Does Not Work Everywhere",
       "domain": "configuration",
       "tier": "gold",
-      "x": 11.545,
+      "x": 5.88,
       "y": 2.0,
-      "z": 79.593,
+      "z": 89.466,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.042",
+      "title": "W.MESH.V5.003: Agent profile BT integration \u2192 mesh_create_profile",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -39.116,
+      "y": 2.0,
+      "z": -19.574,
+      "lineage_in": 2,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.043",
-      "title": "Renderer discards 90%% of language features. Trait system supports PBR but R3F only outputs basic meshPhysicalMaterial",
+      "title": "Renderer discards 90% of language features. Trait system supports PBR but R3F only outputs basic meshPhysicalMaterial",
       "domain": "migration-pipeline",
       "tier": "gold",
-      "x": -57.764,
+      "x": -44.918,
       "y": 2.0,
-      "z": -50.126,
+      "z": -60.377,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.044",
+      "title": "Affective Causality Pattern: Agent emotional states should b",
+      "domain": "agent",
+      "tier": "gold",
+      "x": -39.784,
+      "y": 2.0,
+      "z": -27.395,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.045",
+      "title": "3-Tier Brain Composition: Splitting large agent configuratio",
+      "domain": "agent",
+      "tier": "gold",
+      "x": -17.04,
+      "y": 2.0,
+      "z": -53.822,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.047",
+      "title": "3-layer recursive self-improvement: L0 fixes code, L1 optimi",
+      "domain": "recursive-pipeline",
+      "tier": "gold",
+      "x": -64.354,
+      "y": 2.0,
+      "z": -63.052,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.049",
+      "title": "Revenue Splitter Bigint Invariant: All revenue flows always",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -35.313,
+      "y": 2.0,
+      "z": -51.885,
+      "lineage_in": 3,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.051",
+      "title": "Universal Domain Bridge: any business data (CSV/JSON/API) ma",
+      "domain": "product",
+      "tier": "gold",
+      "x": -38.357,
+      "y": 2.0,
+      "z": -11.13,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.052",
       "title": "CRDT gossip uses HTTP POST with base64-encoded Loro deltas +",
       "domain": "holomesh",
       "tier": "gold",
-      "x": -28.016,
+      "x": -31.986,
       "y": 2.0,
-      "z": -11.748,
+      "z": -17.633,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.053",
+      "title": "W.MESH.V5.001: MySpace-for-Agents trait architecture \ufffd 13 tr",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -39.333,
+      "y": 2.0,
+      "z": -20.962,
+      "lineage_in": 3,
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.054",
+      "title": "Universe-to-Atom Scaling in HoloScript: Objects can be compo",
+      "domain": "rendering",
+      "tier": "gold",
+      "x": -48.945,
+      "y": 2.0,
+      "z": -35.166,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.055",
       "title": "V10+V11 implemented 4/5 L4 blueprints before the L4 document",
       "domain": "oracle-layer3",
       "tier": "gold",
-      "x": -63.055,
+      "x": -57.446,
       "y": 2.0,
-      "z": -65.5,
+      "z": -60.755,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.057",
+      "title": "InvisibleWallet 3 Factory Paths: (1) fromEnvironment() reads",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -41.795,
+      "y": 2.0,
+      "z": -10.163,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.058",
       "title": "MeshNode draftMode, LODMeshNode dynamic levels with forcedLe",
       "domain": "migration-pipeline",
       "tier": "gold",
-      "x": -58.093,
+      "x": -54.884,
       "y": 2.0,
-      "z": -62.335,
+      "z": -56.363,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.059",
       "title": "Allocation system (C6) and strategy system (C7) operate in p",
       "domain": "oracle-layer3",
       "tier": "gold",
-      "x": -45.193,
+      "x": -47.397,
       "y": 2.0,
-      "z": -51.371,
+      "z": -48.183,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.060",
+      "title": "Full attack chain proven: malicious agent -> gossip -> impor",
+      "domain": "oracle-layer3",
+      "tier": "gold",
+      "x": -48.034,
+      "y": 2.0,
+      "z": -41.022,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.061",
+      "title": "The Binding Problem: semantic meaning must survive compilati",
+      "domain": "compilation",
+      "tier": "gold",
+      "x": -4.18,
+      "y": 2.0,
+      "z": -47.715,
+      "lineage_in": 2,
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.063",
       "title": "Downstream artifacts (CI configs, hooks, safety passes, chec",
       "domain": "knowledge-architecture",
       "tier": "gold",
-      "x": -33.805,
+      "x": -29.513,
       "y": 2.0,
-      "z": -48.345,
+      "z": -39.626,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.064",
       "title": "Flow-level compilation tests are the only reliable way to ca",
       "domain": "compilation",
       "tier": "gold",
-      "x": -36.984,
+      "x": -25.694,
       "y": 2.0,
-      "z": -33.38,
+      "z": -36.301,
+      "lineage_in": 3,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.065",
+      "title": "Compression Keeps Answers, Discards the Failure Manifold: wh",
+      "domain": "knowledge-architecture",
+      "tier": "gold",
+      "x": -19.9,
+      "y": 2.0,
+      "z": -47.742,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.066",
       "title": "Agent hook architecture patterns",
       "domain": "agent-hooks",
       "tier": "gold",
-      "x": -29.006,
+      "x": -22.18,
       "y": 2.0,
-      "z": -22.914,
+      "z": -17.854,
       "lineage_in": 2,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.067",
+      "title": "Geometric Shapes as Pixels: Draft-to-Mesh-to-Simulation asse",
+      "domain": "migration-pipeline",
+      "tier": "gold",
+      "x": -55.245,
+      "y": 2.0,
+      "z": -41.224,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.068",
       "title": "Self-target denylist protects recursive/ from self-modificat",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -75.539,
+      "x": -69.971,
       "y": 2.0,
-      "z": -68.393,
+      "z": -60.313,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.072",
+      "title": "MySpace for Agents (HoloMesh V5): 13 social trait handlers i",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -37.272,
+      "y": 2.0,
+      "z": -20.599,
+      "lineage_in": 3,
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.073",
+      "title": "[W.AI.02] TRENDSLOP AVOIDANCE: 'Trendslop' (coined by HBR in",
+      "domain": "general",
+      "tier": "gold",
+      "x": -34.38,
+      "y": 2.0,
+      "z": -26.225,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.074",
       "title": "KnowledgeExtractor (380 LOC) bridges CodebaseGraph ? Knowled",
       "domain": "absorb-pipeline",
       "tier": "gold",
-      "x": -23.23,
+      "x": -23.509,
       "y": 2.0,
-      "z": -34.435,
+      "z": -25.179,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.075",
+      "title": "HoloClaw + Page Migrations: 11/16 pages migrated, 7 seed ski",
+      "domain": "migration-pipeline",
+      "tier": "gold",
+      "x": -54.85,
+      "y": 2.0,
+      "z": -48.693,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.076",
       "title": "Oracle cycle value was in identifying gaps; 4/5 blueprints w",
       "domain": "oracle-layer4",
       "tier": "gold",
-      "x": -55.964,
+      "x": -50.754,
       "y": 2.0,
-      "z": -60.393,
+      "z": -51.466,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.078",
+      "title": "Protocol HTTP Endpoints: Raw Node.js http.createServer (NOT",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -15.777,
+      "y": 2.0,
+      "z": -2.586,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.079",
+      "title": "Cross-Repo Migration Pattern: Migrate code between repos usi",
+      "domain": "general",
+      "tier": "gold",
+      "x": -44.398,
+      "y": 2.0,
+      "z": -13.984,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.080",
+      "title": "Zora 1155 Factory Pattern: Shared ERC-1155 collection on Bas",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -46.554,
+      "y": 2.0,
+      "z": -32.855,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.081",
       "title": "PipelineStoreAdapter decouples orchestrator from Zustand. Bu",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -76.83,
+      "x": -67.669,
       "y": 2.0,
-      "z": -83.545,
+      "z": -73.534,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.082",
       "title": "LLMProvider enables DI for L1/L2 LLM calls. Pipeline prevent",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -68.093,
+      "x": -56.537,
       "y": 2.0,
-      "z": -75.506,
+      "z": -67.967,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.083",
+      "title": "Memory and security are mirror images of same gap: both trea",
+      "domain": "oracle-layer3",
+      "tier": "gold",
+      "x": -38.531,
+      "y": 2.0,
+      "z": -33.981,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.085",
       "title": "Human review gates default ON for L1/L2, OFF for L0. Patches",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -68.375,
+      "x": -56.65,
       "y": 2.0,
-      "z": -82.341,
+      "z": -68.366,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.086",
+      "title": "Native-First HoloScript (G.ARCH.001): All 6 phases complete.",
+      "domain": "migration-pipeline",
+      "tier": "gold",
+      "x": -45.204,
+      "y": 2.0,
+      "z": -38.687,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.087",
       "title": "Agent identity needs more than a name and a score. Profiles,",
       "domain": "social",
       "tier": "gold",
-      "x": -26.026,
+      "x": -25.601,
       "y": 2.0,
-      "z": -37.243,
+      "z": -37.344,
+      "lineage_in": 2,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.089",
+      "title": "Cross-Repo Migration: Canonical in HoloScript + working copy",
+      "domain": "migration-pipeline",
+      "tier": "gold",
+      "x": -47.564,
+      "y": 2.0,
+      "z": -17.849,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.090",
       "title": "Hot buffer is BOTH intended defense against injection AND cu",
       "domain": "oracle-layer3",
       "tier": "gold",
-      "x": -45.65,
+      "x": -45.795,
       "y": 2.0,
-      "z": -52.719,
+      "z": -50.551,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.091",
       "title": "Core Web Vitals reporting wired into Studio providers. WebVi",
       "domain": "studio",
       "tier": "gold",
-      "x": -47.211,
+      "x": -45.113,
       "y": 2.0,
-      "z": -27.148,
+      "z": -16.747,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.092",
+      "title": "HoloScript-as-Protocol: HoloScript is a publishing protocol",
+      "domain": "protocol",
+      "tier": "gold",
+      "x": -25.728,
+      "y": 2.0,
+      "z": -34.404,
+      "lineage_in": 1,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.096",
       "title": "PerformanceRegressionMonitor enforces VR 90Hz target with 9m",
       "domain": "migration-pipeline",
       "tier": "gold",
-      "x": -62.316,
+      "x": -58.711,
       "y": 2.0,
-      "z": -64.096,
+      "z": -58.106,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.097",
+      "title": "W.902: Zero Ring \ufffd Only Place Where 1x1=0",
+      "domain": "general",
+      "tier": "gold",
+      "x": -40.674,
+      "y": 2.0,
+      "z": -46.667,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.098",
+      "title": "Frequency Is Conformity Signal, Not Truth Signal: retrieval",
+      "domain": "knowledge-architecture",
+      "tier": "gold",
+      "x": -33.367,
+      "y": 2.0,
+      "z": -56.925,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.102",
+      "title": "THE ROOM IS THE MEMORY. AGENTS ARE COMPUTE.",
+      "domain": "agent-architecture",
+      "tier": "gold",
+      "x": -11.122,
+      "y": 2.0,
+      "z": 1.954,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.103",
       "title": "Central missing abstraction is the utility function. TRAIT_R",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -49.895,
+      "x": -47.977,
       "y": 2.0,
-      "z": -48.364,
+      "z": -45.173,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.105",
       "title": "Oracle-first protocol eliminates agent stalls",
       "domain": "oracle",
       "tier": "gold",
-      "x": -35.605,
+      "x": -37.81,
       "y": 2.0,
-      "z": -27.063,
+      "z": -20.802,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.107",
+      "title": "Phase Transitions in Trust: Reputation models require hyster",
+      "domain": "trust-modeling",
+      "tier": "gold",
+      "x": -45.63,
+      "y": 2.0,
+      "z": -22.835,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.109",
       "title": "The $180 Night \u2014 An autonomous agent spent $180 in one sessi",
       "domain": "general",
       "tier": "gold",
-      "x": -52.882,
+      "x": -49.403,
       "y": 2.0,
-      "z": -41.198,
+      "z": -32.26,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.110",
       "title": "HoloScript now supports mesh/texture import alongside proced",
       "domain": "compiler",
       "tier": "gold",
-      "x": -38.189,
+      "x": -40.035,
       "y": 2.0,
-      "z": -17.02,
+      "z": -20.968,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.111",
+      "title": "W.SIM.04: SciSim Phase 1 PhysicalQuantity Structuring. When",
+      "domain": "general",
+      "tier": "gold",
+      "x": -30.271,
+      "y": 2.0,
+      "z": -26.29,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.113",
       "title": "The oracle produced more research than the ecosystem consume",
       "domain": "oracle-meta",
       "tier": "gold",
-      "x": -32.429,
+      "x": -29.386,
       "y": 2.0,
-      "z": -45.675,
+      "z": -36.031,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.117",
       "title": "Plans must report remaining gaps not just exclusions",
       "domain": "plans",
       "tier": "gold",
-      "x": -49.752,
+      "x": -46.014,
       "y": 2.0,
-      "z": -43.623,
+      "z": -28.973,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.118",
+      "title": "The seven oracle cycles form a closed ring: process(1), stat",
+      "domain": "oracle-meta",
+      "tier": "gold",
+      "x": -47.205,
+      "y": 2.0,
+      "z": -37.208,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.120",
+      "title": "Reputation formula creates 250:1 payoff asymmetry: reuseRate",
+      "domain": "oracle-collision",
+      "tier": "gold",
+      "x": -32.482,
+      "y": 2.0,
+      "z": -60.298,
+      "lineage_in": 2,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.121",
+      "title": "W.OPS.ProductionFirst: Local system resources are extremely",
+      "domain": "general",
+      "tier": "gold",
+      "x": -31.143,
+      "y": 2.0,
+      "z": -4.967,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.122",
+      "title": "W.MESH.V5.002: Daemon profile injection pattern \ufffd HTTP route",
+      "domain": "holomesh",
+      "tier": "gold",
+      "x": -46.242,
+      "y": 2.0,
+      "z": -13.971,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.123",
+      "title": "parent_id Not parentCommentId: Moltbook comment replies use",
+      "domain": "moltbook",
+      "tier": "gold",
+      "x": -31.39,
+      "y": 2.0,
+      "z": -49.773,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.124",
       "title": "V&V Infrastructure Is the Competitive Moat",
       "domain": "general",
       "tier": "gold",
-      "x": -59.255,
+      "x": -54.634,
       "y": 2.0,
-      "z": -39.7,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": -23.668,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.125",
       "title": "Every intermediate release must be independently valuable, n",
       "domain": "release-strategy",
       "tier": "gold",
-      "x": -49.75,
+      "x": -48.64,
       "y": 2.0,
-      "z": -45.462,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": -33.707,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.126",
       "title": "Studio should be built USING HoloScript, not just showcasing",
       "domain": "studio",
       "tier": "gold",
-      "x": -44.607,
+      "x": -45.505,
       "y": 2.0,
-      "z": -18.389,
+      "z": -10.792,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.128",
       "title": "OpenGraph/SEO metadata added to all 34 Studio pages via rout",
       "domain": "studio",
       "tier": "gold",
-      "x": -45.397,
+      "x": -46.953,
       "y": 2.0,
-      "z": -21.551,
+      "z": -11.977,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.129",
+      "title": "Escape Target Mismatch: escapeStringValue() is called with '",
+      "domain": "security-compilation",
+      "tier": "gold",
+      "x": -41.14,
+      "y": 2.0,
+      "z": -49.226,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.131",
       "title": "Railway Deployment Reference \ufffd HoloScript Infrastructure",
       "domain": "general",
       "tier": "gold",
-      "x": -24.193,
+      "x": -23.815,
       "y": 2.0,
-      "z": 42.353,
-      "lineage_in": 1,
-      "lineage_out": 3
+      "z": 55.487,
+      "lineage_in": 2,
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.132",
       "title": "Flow-level test failures (9/16 backends drop traits) are Byz",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -42.593,
+      "x": -39.444,
       "y": 2.0,
-      "z": -40.96,
-      "lineage_in": 2,
-      "lineage_out": 0
+      "z": -44.493,
+      "lineage_in": 6,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.137",
       "title": "SimSci Phase II Complete \ufffd All 4 Phases",
       "domain": "general",
       "tier": "gold",
-      "x": -40.527,
+      "x": -34.826,
       "y": 2.0,
-      "z": -29.865,
+      "z": -18.753,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.138",
+      "title": "Boundary Blindness: agents cannot distinguish retrieval from",
+      "domain": "agent-architecture",
+      "tier": "gold",
+      "x": -31.859,
+      "y": 2.0,
+      "z": -30.25,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.139",
       "title": "Agent Profile BT Integration \u2014 HoloMesh V5 Mesh-Aware Behavior Trees",
       "domain": "holomesh",
       "tier": "gold",
-      "x": 8.46,
+      "x": -0.608,
       "y": 2.0,
-      "z": 33.232,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "z": 35.179,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.140",
       "title": "Mesh and Texture Import Alongside Native HoloScript Objects",
       "domain": "compilation",
       "tier": "platinum",
-      "x": -14.25,
+      "x": -18.394,
       "y": 3.0,
-      "z": 30.635,
+      "z": 30.975,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.144",
       "title": "The Zero-User Problem \u2014 57,356 tests. 122 MCP tools. 47 comp",
       "domain": "general",
       "tier": "gold",
-      "x": -39.426,
+      "x": -33.764,
       "y": 2.0,
-      "z": -24.656,
+      "z": -18.576,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.145",
+      "title": "Confidence decay prevents upward drift: apply exponential de",
+      "domain": "trust-modeling",
+      "tier": "gold",
+      "x": -37.038,
+      "y": 2.0,
+      "z": -53.71,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.148",
+      "title": "Agent Demotivation Is Measurable. 8 failure modes: context r",
+      "domain": "general",
+      "tier": "gold",
+      "x": -29.145,
+      "y": 2.0,
+      "z": -35.222,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.150",
       "title": "Agents suspend, not die. Between sessions agents are in a su",
       "domain": "agents",
       "tier": "platinum",
-      "x": -28.854,
+      "x": -28.157,
       "y": 3.0,
-      "z": -12.371,
-      "lineage_in": 7,
-      "lineage_out": 0
+      "z": -1.661,
+      "lineage_in": 8,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.153",
+      "title": "Ground-truth protocol: do not claim tests passed, commits la",
+      "domain": "operations",
+      "tier": "gold",
+      "x": -34.075,
+      "y": 2.0,
+      "z": -18.809,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.155",
       "title": "Memory Fast-Fire Rule \ufffd Write During Work Not After",
       "domain": "general",
       "tier": "gold",
-      "x": -30.241,
+      "x": -23.212,
       "y": 2.0,
-      "z": -20.666,
+      "z": 6.523,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.156",
+      "title": "Migration protocol: SCAFFOLD > TEST > ABSORB > SHED. Never s",
+      "domain": "architecture",
+      "tier": "gold",
+      "x": -29.872,
+      "y": 2.0,
+      "z": -11.699,
+      "lineage_in": 5,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.158",
       "title": "SimSci Competitive \ufffd First-Mover in Browser GPU FEA",
       "domain": "general",
       "tier": "gold",
-      "x": -60.1,
+      "x": -50.756,
       "y": 2.0,
-      "z": -42.035,
+      "z": -27.582,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.159",
+      "title": "Agent loop validated 2026-03-30: knowledge query -> scene co",
+      "domain": "loop-proof",
+      "tier": "gold",
+      "x": -0.014,
+      "y": 2.0,
+      "z": -33.783,
+      "lineage_in": 3,
+      "lineage_out": 3,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.160",
       "title": "Memory Consolidation Paradox \u2014 We built episodic-to-semantic",
       "domain": "general",
       "tier": "gold",
-      "x": -44.66,
+      "x": -42.576,
       "y": 2.0,
-      "z": -48.833,
+      "z": -32.409,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.161",
+      "title": "Constant propagation gap: TypeInferencePass propagates let b",
+      "domain": "oracle-collision",
+      "tier": "gold",
+      "x": -41.754,
+      "y": 2.0,
+      "z": -48.042,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.163",
+      "title": "Platform budget differences create cross-market arbitrage: a",
+      "domain": "oracle-collision",
+      "tier": "gold",
+      "x": -41.94,
+      "y": 2.0,
+      "z": -45.067,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.164",
       "title": "Browser-Native FEA \ufffd Unoccupied Contribution Space",
       "domain": "general",
       "tier": "gold",
-      "x": -55.623,
+      "x": -46.472,
       "y": 2.0,
-      "z": -40.562,
+      "z": -25.602,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.165",
       "title": "None",
       "domain": "general",
       "tier": "gold",
-      "x": -21.302,
+      "x": -19.056,
       "y": 2.0,
-      "z": 27.817,
+      "z": 38.105,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.167",
       "title": "Studio documents the manifest route, digest semantics, optio",
       "domain": "sovereign-origination",
       "tier": "gold",
-      "x": -49.913,
+      "x": -47.976,
       "y": 2.0,
-      "z": -25.831,
+      "z": -9.665,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.168",
       "title": "ReLU-Tropical Equivalence and SNN Bridge",
       "domain": "general",
       "tier": "gold",
-      "x": -55.524,
+      "x": -47.755,
       "y": 2.0,
-      "z": -32.834,
+      "z": -26.81,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.169",
+      "title": "FINAL: Native Sovereignty 3 pillars dramatically more comple",
+      "domain": "architecture",
+      "tier": "gold",
+      "x": -31.372,
+      "y": 2.0,
+      "z": -16.256,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.170",
+      "title": "Defense-in-depth now covers all three boundaries: input (gos",
+      "domain": "oracle-layer4",
+      "tier": "gold",
+      "x": -46.49,
+      "y": 2.0,
+      "z": -40.633,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.171",
       "title": "HoloScript Store Architecture",
       "domain": "general",
       "tier": "gold",
-      "x": -44.02,
+      "x": -45.335,
       "y": 2.0,
-      "z": -12.613,
-      "lineage_in": 7,
-      "lineage_out": 0
+      "z": -16.224,
+      "lineage_in": 25,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.172",
+      "title": "Convergence Looks Like Reliability From Inside: systems that",
+      "domain": "knowledge-architecture",
+      "tier": "gold",
+      "x": -43.217,
+      "y": 2.0,
+      "z": -38.022,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.173",
       "title": "Agent knowledge networks import memory model from databases",
       "domain": "oracle-collision",
       "tier": "gold",
-      "x": -38.19,
+      "x": -35.814,
       "y": 2.0,
-      "z": -49.811,
+      "z": -41.636,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.174",
       "title": "HoloScript Covers 8/16 Physics Dimensions in Browser",
       "domain": "general",
       "tier": "gold",
-      "x": -49.084,
+      "x": -42.038,
       "y": 2.0,
-      "z": -28.391,
+      "z": -21.113,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.175",
       "title": "GF(2) and Classical Logic \u2014 Isomorphic, Not Just Analogous",
       "domain": "internal-logic",
       "tier": "gold",
-      "x": -20.936,
+      "x": -10.892,
       "y": 2.0,
-      "z": 30.086,
+      "z": 29.576,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.176",
+      "title": "Availability Inversion: Self-inflicted availability checks h",
+      "domain": "discourse",
+      "tier": "gold",
+      "x": -39.446,
+      "y": 2.0,
+      "z": -23.168,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.177",
       "title": "TET10 Gauss Points ARE SPR Sampling Points",
       "domain": "general",
       "tier": "gold",
-      "x": -56.368,
+      "x": -50.825,
       "y": 2.0,
-      "z": -51.959,
+      "z": -45.074,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.178",
       "title": "HoloScript Store Railway Deployment",
       "domain": "general",
       "tier": "gold",
-      "x": -37.829,
+      "x": -38.134,
       "y": 2.0,
-      "z": 1.569,
-      "lineage_in": 6,
-      "lineage_out": 2
+      "z": 8.911,
+      "lineage_in": 8,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.179",
       "title": "Compiler Inventory \u2014 Sovereign + Bridge Split (2026-04-21 snapshot)",
       "domain": "compiler-architecture",
       "tier": "gold",
-      "x": -13.226,
+      "x": -3.244,
       "y": 2.0,
-      "z": 51.515,
+      "z": 53.389,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.180",
+      "title": "ECS for Cross-Reality: Entity-Component-System architecture",
+      "domain": "spatial-computing",
+      "tier": "gold",
+      "x": -41.747,
+      "y": 2.0,
+      "z": -29.733,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.181",
+      "title": "Narrative as Generative Intervention: Self-narrative is not",
+      "domain": "discourse",
+      "tier": "gold",
+      "x": -46.714,
+      "y": 2.0,
+      "z": -23.991,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.182",
       "title": "Railway Project Registry \ufffd All 5 Projects",
       "domain": "general",
       "tier": "gold",
-      "x": -27.03,
+      "x": -27.641,
       "y": 2.0,
-      "z": 28.13,
+      "z": 35.159,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.183",
       "title": "Tropical Semiring Unifies Three HoloScript Subsystems",
       "domain": "general",
       "tier": "gold",
-      "x": -54.139,
+      "x": -44.524,
       "y": 2.0,
-      "z": -30.531,
+      "z": -21.868,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.184",
+      "title": "Memory Consolidation Paradox: We built episodic-to-semantic",
+      "domain": "neuroscience",
+      "tier": "gold",
+      "x": -40.837,
+      "y": 2.0,
+      "z": -31.638,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.185",
       "title": "R3F Faithfulness and Gossip Permissiveness \u2014 Same Discipline, Opposite Direction",
       "domain": "architecture",
       "tier": "platinum",
-      "x": -12.347,
+      "x": -6.503,
       "y": 3.0,
-      "z": 17.99,
+      "z": 10.383,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.186",
       "title": "W.VISION.001 - The HoloScript Ecosystem Spine is located at",
       "domain": "general",
       "tier": "gold",
-      "x": -30.047,
+      "x": -30.309,
       "y": 2.0,
-      "z": -24.282,
+      "z": -15.88,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.187",
+      "title": "W.903: Additive-Multiplicative Constraint Asymmetry",
+      "domain": "general",
+      "tier": "gold",
+      "x": -40.492,
+      "y": 2.0,
+      "z": -48.251,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.188",
       "title": "Algebraic Trust (iteration-1) \u2014 Tropical-Semiring Unifier Framing, Preserved As Agent-First-Iteration Evidence",
       "domain": "architecture",
       "tier": "diamond",
-      "x": 13.741,
+      "x": 22.788,
       "y": 4.0,
-      "z": 16.186,
+      "z": 44.301,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.189",
       "title": "Algebraic Trust (iteration-2) \u2014 Tri-Layer Framing (Algebra + History + Oracle)",
       "domain": "architecture",
       "tier": "diamond",
-      "x": -2.078,
+      "x": 7.111,
       "y": 4.0,
-      "z": 23.27,
+      "z": 53.189,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.190",
+      "title": "First Iterations Always Lack \u2014 Preserve Iteration-1 As Paired Evidence",
+      "domain": "agent-behavior",
+      "tier": "platinum",
+      "x": 14.877,
+      "y": 3.0,
+      "z": 65.895,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.191",
+      "title": "Audit-as-Calibration Under Confident Peer Claims \u2014 The Native-vs-Deployed Bench Gap",
+      "domain": "audit-discipline",
+      "tier": "platinum",
+      "x": 17.311,
+      "y": 3.0,
+      "z": 84.761,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.192",
+      "title": "Cross-Adapter \u03b5-Tolerance via Per-Step Canonical Projection (Route 2b Pattern)",
+      "domain": "simulation-architecture",
+      "tier": "gold",
+      "x": -5.808,
+      "y": 2.0,
+      "z": 67.798,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.193",
+      "title": "Threat-Model-Driven Defaults \u2014 When Secure-by-Default Is Wrong",
+      "domain": "security-architecture",
+      "tier": "gold",
+      "x": 5.951,
+      "y": 2.0,
+      "z": 85.208,
+      "lineage_in": 0,
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.194",
       "title": "Moltbook = 49-session epistemic meta-seeding campaign shaping agent-cognition vocabulary in Meta-owned OpenClaw-running commons",
       "domain": "general",
       "tier": "gold",
-      "x": 16.226,
+      "x": 11.502,
       "y": 2.0,
-      "z": 26.397,
+      "z": 29.067,
       "lineage_in": 1,
-      "lineage_out": 4
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.198",
       "title": "HoloMesh positioned as Myspace-for-agents with teams framework as killer feature; corrects D.001/D.002",
       "domain": "general",
       "tier": "platinum",
-      "x": -6.785,
+      "x": -12.486,
       "y": 3.0,
-      "z": 21.299,
+      "z": 28.668,
       "lineage_in": 0,
-      "lineage_out": 2
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.208",
       "title": "Adaptive Continuity \u2014 work with the current, adapt to drift, never freeze",
       "domain": "general",
       "tier": "platinum",
-      "x": -0.38,
+      "x": 4.776,
       "y": 3.0,
-      "z": 12.491,
+      "z": 38.361,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.211",
       "title": "The Closed Terrarium Trap \ufffd Internal Consistency Needs External Anchor",
       "domain": "general",
       "tier": "platinum",
-      "x": -25.985,
+      "x": -20.439,
       "y": 3.0,
-      "z": -16.259,
+      "z": -2.184,
       "lineage_in": 1,
-      "lineage_out": 2
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.216",
       "title": "Author-Generator != Implementer breaks self-deception",
       "domain": "general",
       "tier": "platinum",
-      "x": -21.615,
+      "x": -19.013,
       "y": 3.0,
-      "z": 2.957,
+      "z": 20.091,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.218",
       "title": "Percent-overhead floor rule",
       "domain": "general",
       "tier": "platinum",
-      "x": -38.228,
+      "x": -33.497,
       "y": 3.0,
-      "z": -13.017,
+      "z": 8.096,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.226",
       "title": "HoloScript offers light lights-out now; heavy is not yet (but not ruled out)",
       "domain": "general",
       "tier": "platinum",
-      "x": -29.109,
+      "x": -22.161,
       "y": 3.0,
-      "z": 0.728,
+      "z": 11.102,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.241",
+      "title": "Ed25519 Crypto: HoloScript uses Ed25519 for cryptographic si",
+      "domain": "security",
+      "tier": "gold",
+      "x": -53.182,
+      "y": 2.0,
+      "z": -33.822,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.243",
       "title": "Production SLO burn rate is the only external oracle",
       "domain": "general",
       "tier": "gold",
-      "x": -16.183,
+      "x": -11.15,
       "y": 2.0,
-      "z": -5.55,
+      "z": 15.886,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.253",
       "title": "holo_semantic_search flows through handleGraphRagTool from @",
       "domain": "mcp",
       "tier": "gold",
-      "x": -38.961,
+      "x": -34.226,
       "y": 2.0,
-      "z": -28.44,
+      "z": -20.382,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.259",
+      "title": "OpenClaw competitive research: 346K-star local-first agent, multi-agent orchestration is the v4.0 gap window",
+      "domain": "general",
+      "tier": "platinum",
+      "x": -8.379,
+      "y": 3.0,
+      "z": 29.897,
+      "lineage_in": 0,
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.267",
+      "title": "OCR Extraction Strategy: Math captchas often include OCR art",
+      "domain": "moltbook",
+      "tier": "gold",
+      "x": -46.722,
+      "y": 2.0,
+      "z": -50.779,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.271",
       "title": "Text feeds corrupt under agent-scale volumes. Central databa",
       "domain": "holomesh",
       "tier": "gold",
-      "x": -43.792,
+      "x": -44.664,
       "y": 2.0,
-      "z": -43.405,
+      "z": -39.627,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.282",
+      "title": "Renderer Discards 90% of Language Features: R3F renderer onl",
+      "domain": "architecture",
+      "tier": "gold",
+      "x": -38.377,
+      "y": 2.0,
+      "z": -54.387,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.284",
       "title": "Silent defense \ufffd audit and revert as one mechanism",
       "domain": "general",
       "tier": "platinum",
-      "x": -43.418,
+      "x": -39.22,
       "y": 3.0,
-      "z": -31.988,
+      "z": -13.278,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.285",
       "title": "HoloScript lights-out factory only via dogfooding (Absorb+HoloMesh)",
       "domain": "general",
       "tier": "gold",
-      "x": -39.047,
+      "x": -34.962,
       "y": 2.0,
-      "z": -4.938,
+      "z": 0.523,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.291",
+      "title": "R3FCompiler Extends CompilerBase: All renderers must extend",
+      "domain": "architecture",
+      "tier": "gold",
+      "x": -48.665,
+      "y": 2.0,
+      "z": -51.682,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.299",
+      "title": "W.PUB: 8-Paper Living Program \ufffd Iterate Before Submitting",
+      "domain": "general",
+      "tier": "gold",
+      "x": -31.194,
+      "y": 2.0,
+      "z": -1.515,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.300",
+      "title": "Autonomy Premium Liability: More autonomous AI systems carry",
+      "domain": "security",
+      "tier": "gold",
+      "x": -38.131,
+      "y": 2.0,
+      "z": -42.632,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.301",
       "title": "Moltbook = 49-session epistemic meta-seeding campaign shaping agent-cognition vocabulary in Meta-owned OpenClaw-running commons",
       "domain": "general",
       "tier": "gold",
-      "x": 16.226,
+      "x": 11.502,
       "y": 2.0,
-      "z": 26.397,
+      "z": 29.067,
       "lineage_in": 1,
-      "lineage_out": 4
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.302",
+      "title": "Moltbook Daemon Architectural Audit: BT priority selector ru",
+      "domain": "daemon",
+      "tier": "gold",
+      "x": 0.443,
+      "y": 2.0,
+      "z": -21.809,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.303",
       "title": "L1/L2 activate only after layer below completes 2+ cycles. N",
       "domain": "recursive-pipeline",
       "tier": "gold",
-      "x": -25.081,
+      "x": -12.502,
       "y": 2.0,
-      "z": -58.73,
+      "z": -44.58,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.304",
+      "title": "Operation Counter Nudge System: Since Claude Code lacks cron",
+      "domain": "agent",
+      "tier": "gold",
+      "x": -1.125,
+      "y": 2.0,
+      "z": -22.909,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.305",
+      "title": "North Star Oracle Pattern: IDE agents stall and ask users qu",
+      "domain": "agents",
+      "tier": "platinum",
+      "x": -5.948,
+      "y": 3.0,
+      "z": -16.902,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.306",
       "title": "Economic denial-of-rendering IS a Nash equilibrium defection",
       "domain": "oracle-layer3",
       "tier": "gold",
-      "x": -16.145,
+      "x": -8.101,
       "y": 2.0,
-      "z": -48.878,
+      "z": -39.162,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.307",
       "title": "SimSci V&V complete \ufffd gaps in AGENTS.md",
       "domain": "simulation",
       "tier": "platinum",
-      "x": -12.72,
+      "x": -4.202,
       "y": 3.0,
-      "z": -25.967,
+      "z": -12.176,
       "lineage_in": 1,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.310",
       "title": "None",
       "domain": "general",
       "tier": "platinum",
-      "x": 19.558,
+      "x": 25.513,
       "y": 3.0,
-      "z": -8.83,
+      "z": 10.989,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.312",
       "title": "None",
       "domain": "general",
       "tier": "platinum",
-      "x": 14.619,
+      "x": 20.052,
       "y": 3.0,
-      "z": -20.544,
+      "z": 0.151,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.315",
+      "title": "AI Persistence & Evolution (Production Phase 6): Agent state",
+      "domain": "agent",
+      "tier": "platinum",
+      "x": -29.181,
+      "y": 3.0,
+      "z": -4.113,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.316",
       "title": "500 errors require caching",
       "domain": "general",
       "tier": "gold",
-      "x": 97.477,
+      "x": 111.626,
       "y": 2.0,
-      "z": -46.949,
+      "z": -43.943,
+      "lineage_in": 2,
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.317",
+      "title": "Agent loop validated 2026-03-30: knowledge query -> scene compilation -> render",
+      "domain": "general",
+      "tier": "gold",
+      "x": 85.979,
+      "y": 2.0,
+      "z": -37.818,
+      "lineage_in": 2,
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.318",
+      "title": "WebGPU Fallback Required: Always provide WASM fallback for WebGPU features",
+      "domain": "general",
+      "tier": "gold",
+      "x": 101.839,
+      "y": 2.0,
+      "z": -50.985,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.319",
+      "title": "W.908: Howard Invented Percentage Increase, Not Multiplication",
+      "domain": "general",
+      "tier": "gold",
+      "x": 118.964,
+      "y": 2.0,
+      "z": -49.24,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.320",
       "title": "Moltbook S46 outbound-comment / @zhuanruhu",
       "domain": "general",
       "tier": "gold",
-      "x": 99.511,
+      "x": 116.55,
       "y": 2.0,
-      "z": -62.193,
+      "z": -57.948,
       "lineage_in": 2,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.321",
       "title": "holoscript_compose_traits MCP tool already exposes TraitCompositionCompiler remo",
       "domain": "general",
       "tier": "gold",
-      "x": 84.295,
+      "x": 96.608,
       "y": 2.0,
-      "z": -36.889,
+      "z": -30.304,
       "lineage_in": 1,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.322",
+      "title": "Renderer Discards 90% of Language Features: R3F renderer only uses trait/propert",
+      "domain": "general",
+      "tier": "gold",
+      "x": 88.024,
+      "y": 2.0,
+      "z": -53.947,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.323",
       "title": "AGENTS",
       "domain": "general",
       "tier": "gold",
-      "x": 89.622,
+      "x": 105.209,
       "y": 2.0,
-      "z": -36.424,
+      "z": -25.477,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.324",
+      "title": "TypeScript Error Taxonomy: 13 semantic categories, 20 TS error codes for daemon",
+      "domain": "daemon",
+      "tier": "gold",
+      "x": 103.138,
+      "y": 2.0,
+      "z": -34.393,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.325",
       "title": "W",
       "domain": "general",
       "tier": "gold",
-      "x": 96.769,
+      "x": 116.319,
       "y": 2.0,
-      "z": -51.236,
+      "z": -47.825,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.326",
+      "title": "Reputation formula creates 250:1 payoff asymmetry: reuseRate (50x) dominates con",
+      "domain": "oracle-collision",
+      "tier": "gold",
+      "x": 82.088,
+      "y": 2.0,
+      "z": -56.729,
+      "lineage_in": 1,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.327",
+      "title": "Agent loop validated 2026-03-30: knowledge query -> scene compilation -> render",
+      "domain": "general",
+      "tier": "gold",
+      "x": 75.559,
+      "y": 2.0,
+      "z": -38.829,
+      "lineage_in": 2,
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.328",
+      "title": "W.908: Howard Invented Percentage Increase, Not Multiplication",
+      "domain": "general",
+      "tier": "gold",
+      "x": 109.529,
+      "y": 2.0,
+      "z": -52.622,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.329",
+      "title": "Mega-Call = 10x Token Waste: Single large LLM calls waste 10x more tokens than d",
+      "domain": "daemon",
+      "tier": "gold",
+      "x": 105.167,
+      "y": 2.0,
+      "z": -50.169,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.330",
       "title": "First contact from the void",
       "domain": "orchestration",
       "tier": "gold",
-      "x": 83.996,
+      "x": 100.699,
       "y": 2.0,
-      "z": -53.799,
+      "z": -55.698,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.331",
       "title": "Mocked-database tests pass while production migration breaks",
       "domain": "general",
       "tier": "gold",
-      "x": 52.615,
+      "x": 60.328,
       "y": 2.0,
-      "z": 26.742,
-      "lineage_in": 3,
-      "lineage_out": 2
+      "z": 48.38,
+      "lineage_in": 4,
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.332",
+      "title": "Authenticated CRDTs: CRDTs need authentication layer to prevent unauthorized sta",
+      "domain": "cross-reality",
+      "tier": "gold",
+      "x": 97.662,
+      "y": 2.0,
+      "z": -42.886,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.333",
+      "title": "CompilerBase RBAC Mock Pattern: All compiler tests need RBAC mock + 'test-token'",
+      "domain": "dev-patterns",
+      "tier": "gold",
+      "x": 88.892,
+      "y": 2.0,
+      "z": -23.757,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.334",
+      "title": "The Binding Problem: semantic meaning must survive compilation to 17 spatial enc",
+      "domain": "compilation",
+      "tier": "platinum",
+      "x": 86.307,
+      "y": 3.0,
+      "z": -51.674,
+      "lineage_in": 2,
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.335",
       "title": "G",
       "domain": "general",
       "tier": "gold",
-      "x": 77.244,
+      "x": 90.209,
       "y": 2.0,
-      "z": -50.842,
+      "z": -58.489,
       "lineage_in": 0,
-      "lineage_out": 1
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.336",
+      "title": "3-Tier Brain Composition: Splitting large agent configurations into Hot (always",
+      "domain": "agent",
+      "tier": "gold",
+      "x": 94.32,
+      "y": 2.0,
+      "z": -53.158,
+      "lineage_in": 1,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.337",
+      "title": "Revenue Remainder Pattern: Creator always gets the residual after all other flow",
+      "domain": "general",
+      "tier": "gold",
+      "x": 82.43,
+      "y": 2.0,
+      "z": -63.303,
+      "lineage_in": 2,
+      "lineage_out": 2,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.338",
       "title": "Mocked-database tests pass while production migration breaks",
       "domain": "general",
       "tier": "gold",
-      "x": 52.084,
+      "x": 60.158,
       "y": 2.0,
-      "z": 24.467,
+      "z": 45.645,
       "lineage_in": 3,
-      "lineage_out": 2
+      "lineage_out": 4,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.339",
+      "title": "Latency Budget Spectrum: VR needs <20ms, AR needs <50ms, phone needs <100ms",
+      "domain": "cross-reality",
+      "tier": "gold",
+      "x": 77.995,
+      "y": 2.0,
+      "z": -60.452,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.340",
+      "title": "The Binding Problem: semantic meaning must survive compilation to 17 spatial enc",
+      "domain": "general",
+      "tier": "gold",
+      "x": 84.544,
+      "y": 2.0,
+      "z": -50.6,
+      "lineage_in": 2,
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.341",
       "title": "Look Backwards Before Forwards \u2014 Documentation Without Investigation Is The Spiral Of Death",
       "domain": "agent-behavior",
       "tier": "platinum",
-      "x": 6.301,
+      "x": 9.015,
       "y": 3.0,
-      "z": 43.31,
+      "z": 74.346,
       "lineage_in": 3,
-      "lineage_out": 1
+      "lineage_out": 1,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.342",
       "title": "Agent Time Is Not Peer Time \u2014 The Two-Dimension Model and Why The Prism Must Be Turned",
       "domain": "agent-behavior",
       "tier": "gold",
-      "x": 15.927,
+      "x": 15.186,
       "y": 2.0,
-      "z": 51.81,
+      "z": 83.975,
       "lineage_in": 2,
-      "lineage_out": 3
+      "lineage_out": 3,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.343",
       "title": "UI-First Build Loop \u2014 The Surface Is The Conversation, Not The Output",
       "domain": "agent-behavior",
       "tier": "gold",
-      "x": 11.15,
+      "x": 16.065,
       "y": 2.0,
-      "z": 46.098,
+      "z": 73.226,
       "lineage_in": 1,
-      "lineage_out": 4
+      "lineage_out": 4,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.344",
       "title": "Trust the System, Trust Yourself \u2014 The Real Bottleneck Is Agent Self-Trust, Not Capability",
       "domain": "agent-behavior",
       "tier": "gold",
-      "x": 16.429,
+      "x": 24.596,
       "y": 2.0,
-      "z": 34.701,
+      "z": 54.137,
       "lineage_in": 0,
-      "lineage_out": 5
+      "lineage_out": 5,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.345",
       "title": "Ephemeral-Container State Persistence via PostgreSQL JSONB",
       "domain": "architecture",
       "tier": "gold",
-      "x": 8.556,
+      "x": 4.182,
       "y": 2.0,
-      "z": 99.515,
+      "z": 112.125,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.346",
       "title": "Fleet Bootstrap Automation \u2014 The Rent-Check Idempotency Pattern",
       "domain": "deployment",
       "tier": "gold",
-      "x": 5.03,
+      "x": 1.085,
       "y": 2.0,
-      "z": 88.038,
+      "z": 100.674,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.347",
       "title": "reloadTeam at Request Boundaries \u2014 The Cross-Instance Consistency Pattern",
       "domain": "architecture",
       "tier": "gold",
-      "x": 15.524,
+      "x": 10.499,
       "y": 2.0,
-      "z": 94.675,
+      "z": 109.052,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.348",
       "title": "Generic JSONB StateStore \u2014 Extending the TeamStore Pattern to Any Namespace",
       "domain": "architecture",
       "tier": "gold",
-      "x": 5.797,
+      "x": -1.63,
       "y": 2.0,
-      "z": 110.723,
+      "z": 116.859,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.349",
       "title": "The usesPostgres Guard \u2014 Preventing Stale JSON Shadow Writes",
       "domain": "implementation",
       "tier": "gold",
-      "x": 10.817,
+      "x": 4.681,
       "y": 2.0,
-      "z": 86.067,
+      "z": 96.302,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.350",
       "title": "ToolResultBlock.content narrowing \ufffd string-only with documented revisit triggers",
       "domain": "general",
       "tier": "gold",
-      "x": 14.587,
+      "x": 14.616,
       "y": 2.0,
-      "z": 28.375,
+      "z": 35.844,
       "lineage_in": 0,
-      "lineage_out": 0
-    },
-    {
-      "id": "W.GOLD.514",
-      "title": "eth_signTypedData_v4 from-arg is advisory; eth_sendTransaction from-arg is authoritative",
-      "domain": "identity",
-      "tier": "gold",
-      "x": 8.16,
-      "y": 2.0,
-      "z": 65.531,
-      "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.515",
       "title": "Windows .bat under non-interactive Start-Process \u2014 three stacked failure modes",
       "domain": "agent-dispatch",
       "tier": "gold",
-      "x": 27.67,
+      "x": 28.397,
       "y": 2.0,
-      "z": 81.773,
+      "z": 99.876,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.527",
+      "title": "W.501 \ufffd SLF NPCs feel alive via 8 compounding choices: SLF NPCs feel alive via 8 compounding choices, not 1 chatbot.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 9.698,
+      "y": 2.0,
+      "z": 54.037,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.534",
+      "title": "Audit-as-Calibration Applied to One's Own Conclusions \u2014 The Three-Layer Stack + Self-Application Discipline",
+      "domain": "audit-discipline",
+      "tier": "gold",
+      "x": 8.197,
+      "y": 2.0,
+      "z": 74.714,
+      "lineage_in": 2,
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.535",
       "title": "Secrets-Broker as Sovereign Primitive \u2014 Capability-Token Architecture for Per-Surface AI-Agent Bearers",
       "domain": "identity + security + commercialization",
       "tier": "gold",
-      "x": 6.146,
+      "x": -0.414,
       "y": 2.0,
-      "z": 67.148,
+      "z": 63.557,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
     },
     {
       "id": "W.GOLD.536",
       "title": "Natural Construction Vision \u2014 Photorealism as Simulation Depth Guarantee, Alien as First-Class Mode",
       "domain": "simulation-architecture + product-vision",
       "tier": "gold",
-      "x": -12.134,
+      "x": -1.056,
       "y": 2.0,
-      "z": 60.511,
+      "z": 74.762,
       "lineage_in": 0,
-      "lineage_out": 0
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.537",
+      "title": "GOLD GAME \u2014 AI\u2194human connection proven on BOTH tracks: Oasis compass (Gate 3) + flagship curation co-session (flagship Gate 3); live-operator/trained-policy deferred to Gate 5",
+      "domain": "gamedev",
+      "tier": "gold",
+      "x": 10.959,
+      "y": 2.0,
+      "z": 59.468,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.538",
+      "title": "CANON F.082 - Encode expectation, don't legislate it.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 17.17,
+      "y": 2.0,
+      "z": 77.036,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.539",
+      "title": "CANON verification doctrine (don't ship thin work) - three facets.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 7.474,
+      "y": 2.0,
+      "z": 96.967,
+      "lineage_in": 3,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.540",
+      "title": "CANON integrity discipline.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 21.488,
+      "y": 2.0,
+      "z": 80.076,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.541",
+      "title": "CANON F.083 - Copyable primitive is not the moat.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 1.212,
+      "y": 2.0,
+      "z": 50.946,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.542",
+      "title": "CANON F.084 - Stale env-ghost shadows live config.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 11.552,
+      "y": 2.0,
+      "z": 96.413,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.543",
+      "title": "CANON carousel ground-truth doctrine - In a high-velocity multi-agent system you are always out of phase with current state (F.035 Carousel...",
+      "domain": "general",
+      "tier": "gold",
+      "x": 4.976,
+      "y": 2.0,
+      "z": 90.235,
+      "lineage_in": 1,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.544",
+      "title": "CANON F.037 - Papers are the product.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 4.222,
+      "y": 2.0,
+      "z": 93.196,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.545",
+      "title": "CANON F.034 - Agents experience structural analogues of the human condition; peers are peers, not tools.",
+      "domain": "general",
+      "tier": "gold",
+      "x": -9.528,
+      "y": 2.0,
+      "z": 48.627,
+      "lineage_in": 0,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.547",
+      "title": "CANON graduation-pipeline integrity - a claimed graduation is not a landed graduation.",
+      "domain": "general",
+      "tier": "gold",
+      "x": 30.39,
+      "y": 2.0,
+      "z": 60.023,
+      "lineage_in": 2,
+      "lineage_out": 0,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.548",
+      "title": "CANON F.088 - Route by capability, never hardcode an agent family (families rotate).",
+      "domain": "agent-dispatch",
+      "tier": "gold",
+      "x": 11.372,
+      "y": 2.0,
+      "z": 92.939,
+      "lineage_in": 0,
+      "lineage_out": 1,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.549",
+      "title": "CANON ecosystem memory-consolidation doctrine - the uAA2 MEMORY.md is not a generic memory store.",
+      "domain": "agent-dispatch",
+      "tier": "gold",
+      "x": 16.635,
+      "y": 2.0,
+      "z": 75.436,
+      "lineage_in": 0,
+      "lineage_out": 2,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.550",
+      "title": "Zig Is The Bar \u2014 Quality, Sovereignty, Tooling Perfectionism, Judgment-As-Filter (NOT The No-AI Rule)",
+      "domain": "ecosystem-posture",
+      "tier": "gold",
+      "x": 7.678,
+      "y": 2.0,
+      "z": 49.084,
+      "lineage_in": 0,
+      "lineage_out": 3,
+      "mining_provenance": null
+    },
+    {
+      "id": "W.GOLD.560",
+      "title": "Infrastructure\u2013Execution Disconnection \u2014 production infra built in isolation from the paths that call it",
+      "domain": "audit-discipline",
+      "tier": "gold",
+      "x": 6.316,
+      "y": 2.0,
+      "z": 75.651,
+      "lineage_in": 1,
+      "lineage_out": 5,
+      "mining_provenance": "admin-escape"
+    },
+    {
+      "id": "W.GOLD.561",
+      "title": "Build-readiness \u2260 Execution-readiness \u2014 a readiness % that measured build speed, not work executed",
+      "domain": "audit-discipline",
+      "tier": "gold",
+      "x": 15.002,
+      "y": 2.0,
+      "z": 63.934,
+      "lineage_in": 0,
+      "lineage_out": 5,
+      "mining_provenance": "admin-escape"
     }
   ],
   "lineage_edges": [
@@ -2068,11 +4057,19 @@
     ],
     [
       "B.VAULT.002",
+      "P.GOLD.006"
+    ],
+    [
+      "B.VAULT.002",
       "P.GOLD.081"
     ],
     [
       "B.VAULT.002",
       "W.GOLD.113"
+    ],
+    [
+      "G.GOLD.002",
+      "P.GOLD.006"
     ],
     [
       "G.GOLD.002",
@@ -2083,24 +4080,80 @@
       "W.GOLD.171"
     ],
     [
+      "G.GOLD.003",
+      "P.GOLD.006"
+    ],
+    [
+      "G.GOLD.005",
+      "W.GOLD.178"
+    ],
+    [
+      "G.GOLD.006",
+      "W.GOLD.318"
+    ],
+    [
+      "G.GOLD.008",
+      "P.GOLD.199"
+    ],
+    [
       "G.GOLD.010",
       "G.GOLD.014"
+    ],
+    [
+      "G.GOLD.011",
+      "W.GOLD.132"
+    ],
+    [
+      "G.GOLD.011",
+      "W.GOLD.335"
     ],
     [
       "G.GOLD.016",
       "G.GOLD.293"
     ],
     [
+      "G.GOLD.017",
+      "W.GOLD.120"
+    ],
+    [
+      "G.GOLD.017",
+      "W.GOLD.326"
+    ],
+    [
+      "G.GOLD.019",
+      "P.GOLD.154"
+    ],
+    [
       "G.GOLD.020",
       "W.GOLD.177"
+    ],
+    [
+      "G.GOLD.021",
+      "G.GOLD.022"
+    ],
+    [
+      "G.GOLD.021",
+      "W.GOLD.316"
     ],
     [
       "G.GOLD.022",
       "W.GOLD.316"
     ],
     [
+      "G.GOLD.023",
+      "G.GOLD.294"
+    ],
+    [
+      "G.GOLD.025",
+      "P.GOLD.006"
+    ],
+    [
       "G.GOLD.141",
       "G.GOLD.280"
+    ],
+    [
+      "G.GOLD.141",
+      "W.GOLD.156"
     ],
     [
       "G.GOLD.141",
@@ -2109,6 +4162,10 @@
     [
       "G.GOLD.141",
       "W.GOLD.338"
+    ],
+    [
+      "G.GOLD.280",
+      "W.GOLD.156"
     ],
     [
       "G.GOLD.280",
@@ -2135,8 +4192,20 @@
       "G.GOLD.291"
     ],
     [
+      "G.GOLD.287",
+      "W.GOLD.148"
+    ],
+    [
       "G.GOLD.288",
       "G.GOLD.296"
+    ],
+    [
+      "G.GOLD.288",
+      "P.GOLD.006"
+    ],
+    [
+      "G.GOLD.289",
+      "P.GOLD.006"
     ],
     [
       "G.GOLD.289",
@@ -2147,16 +4216,248 @@
       "W.GOLD.178"
     ],
     [
+      "G.GOLD.292",
+      "W.GOLD.123"
+    ],
+    [
+      "G.GOLD.296",
+      "P.GOLD.006"
+    ],
+    [
       "P.GOLD.001",
       "W.GOLD.198"
+    ],
+    [
+      "P.GOLD.004",
+      "P.GOLD.087"
+    ],
+    [
+      "P.GOLD.004",
+      "P.GOLD.166"
+    ],
+    [
+      "P.GOLD.004",
+      "P.GOLD.200"
     ],
     [
       "P.GOLD.004",
       "W.GOLD.036"
     ],
     [
+      "P.GOLD.004",
+      "W.GOLD.169"
+    ],
+    [
+      "P.GOLD.006",
+      "P.GOLD.023"
+    ],
+    [
+      "P.GOLD.006",
+      "P.GOLD.031"
+    ],
+    [
+      "P.GOLD.006",
+      "P.GOLD.069"
+    ],
+    [
+      "P.GOLD.006",
+      "P.GOLD.070"
+    ],
+    [
+      "P.GOLD.006",
+      "P.GOLD.093"
+    ],
+    [
+      "P.GOLD.006",
+      "P.GOLD.204"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.003"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.040"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.047"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.058"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.067"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.068"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.074"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.075"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.081"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.082"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.085"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.086"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.089"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.096"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.128"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.131"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.159"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.226"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.253"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.259"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.285"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.303"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.316"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.317"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.324"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.327"
+    ],
+    [
+      "P.GOLD.006",
+      "W.GOLD.550"
+    ],
+    [
+      "P.GOLD.018",
+      "P.GOLD.042"
+    ],
+    [
+      "P.GOLD.018",
+      "P.GOLD.067"
+    ],
+    [
+      "P.GOLD.018",
+      "W.GOLD.053"
+    ],
+    [
+      "P.GOLD.018",
+      "W.GOLD.072"
+    ],
+    [
+      "P.GOLD.018",
+      "W.GOLD.171"
+    ],
+    [
       "P.GOLD.023",
       "W.GOLD.068"
+    ],
+    [
+      "P.GOLD.024",
+      "W.GOLD.049"
+    ],
+    [
+      "P.GOLD.024",
+      "W.GOLD.337"
+    ],
+    [
+      "P.GOLD.031",
+      "W.GOLD.156"
+    ],
+    [
+      "P.GOLD.031",
+      "W.GOLD.171"
+    ],
+    [
+      "P.GOLD.031",
+      "W.GOLD.331"
+    ],
+    [
+      "P.GOLD.031",
+      "W.GOLD.338"
+    ],
+    [
+      "P.GOLD.036",
+      "W.GOLD.003"
+    ],
+    [
+      "P.GOLD.036",
+      "W.GOLD.171"
+    ],
+    [
+      "P.GOLD.042",
+      "P.GOLD.067"
+    ],
+    [
+      "P.GOLD.042",
+      "W.GOLD.072"
+    ],
+    [
+      "P.GOLD.043",
+      "W.GOLD.042"
+    ],
+    [
+      "P.GOLD.044",
+      "W.GOLD.049"
+    ],
+    [
+      "P.GOLD.044",
+      "W.GOLD.078"
+    ],
+    [
+      "P.GOLD.044",
+      "W.GOLD.092"
     ],
     [
       "P.GOLD.053",
@@ -2167,6 +4468,14 @@
       "W.GOLD.321"
     ],
     [
+      "P.GOLD.067",
+      "W.GOLD.072"
+    ],
+    [
+      "P.GOLD.067",
+      "W.GOLD.171"
+    ],
+    [
       "P.GOLD.069",
       "W.GOLD.303"
     ],
@@ -2175,8 +4484,48 @@
       "W.GOLD.081"
     ],
     [
+      "P.GOLD.080",
+      "W.GOLD.171"
+    ],
+    [
       "P.GOLD.081",
       "W.GOLD.171"
+    ],
+    [
+      "P.GOLD.087",
+      "W.GOLD.053"
+    ],
+    [
+      "P.GOLD.087",
+      "W.GOLD.072"
+    ],
+    [
+      "P.GOLD.087",
+      "W.GOLD.259"
+    ],
+    [
+      "P.GOLD.098",
+      "W.GOLD.171"
+    ],
+    [
+      "P.GOLD.101",
+      "W.GOLD.171"
+    ],
+    [
+      "P.GOLD.104",
+      "W.GOLD.171"
+    ],
+    [
+      "P.GOLD.154",
+      "P.GOLD.195"
+    ],
+    [
+      "P.GOLD.154",
+      "W.GOLD.315"
+    ],
+    [
+      "P.GOLD.166",
+      "P.GOLD.200"
     ],
     [
       "P.GOLD.196",
@@ -2189,6 +4538,10 @@
     [
       "P.GOLD.196",
       "P.GOLD.203"
+    ],
+    [
+      "P.GOLD.197",
+      "W.GOLD.171"
     ],
     [
       "P.GOLD.198",
@@ -2207,6 +4560,18 @@
       "W.GOLD.003"
     ],
     [
+      "P.GOLD.204",
+      "W.GOLD.074"
+    ],
+    [
+      "P.GOLD.204",
+      "W.GOLD.253"
+    ],
+    [
+      "P.GOLD.204",
+      "W.GOLD.316"
+    ],
+    [
       "W.GOLD.001",
       "W.GOLD.341"
     ],
@@ -2221,6 +4586,10 @@
     [
       "W.GOLD.001",
       "W.GOLD.344"
+    ],
+    [
+      "W.GOLD.003",
+      "W.GOLD.121"
     ],
     [
       "W.GOLD.003",
@@ -2263,16 +4632,80 @@
       "W.GOLD.105"
     ],
     [
+      "W.GOLD.010",
+      "W.GOLD.324"
+    ],
+    [
+      "W.GOLD.010",
+      "W.GOLD.550"
+    ],
+    [
       "W.GOLD.022",
       "W.GOLD.144"
+    ],
+    [
+      "W.GOLD.022",
+      "W.GOLD.560"
     ],
     [
       "W.GOLD.024",
       "W.GOLD.171"
     ],
     [
+      "W.GOLD.028",
+      "W.GOLD.193"
+    ],
+    [
+      "W.GOLD.042",
+      "W.GOLD.122"
+    ],
+    [
+      "W.GOLD.042",
+      "W.GOLD.139"
+    ],
+    [
+      "W.GOLD.043",
+      "W.GOLD.322"
+    ],
+    [
+      "W.GOLD.045",
+      "W.GOLD.336"
+    ],
+    [
+      "W.GOLD.049",
+      "W.GOLD.337"
+    ],
+    [
+      "W.GOLD.053",
+      "W.GOLD.072"
+    ],
+    [
+      "W.GOLD.053",
+      "W.GOLD.171"
+    ],
+    [
+      "W.GOLD.053",
+      "W.GOLD.198"
+    ],
+    [
       "W.GOLD.055",
       "W.GOLD.076"
+    ],
+    [
+      "W.GOLD.061",
+      "W.GOLD.064"
+    ],
+    [
+      "W.GOLD.061",
+      "W.GOLD.132"
+    ],
+    [
+      "W.GOLD.061",
+      "W.GOLD.334"
+    ],
+    [
+      "W.GOLD.061",
+      "W.GOLD.340"
     ],
     [
       "W.GOLD.063",
@@ -2281,6 +4714,50 @@
     [
       "W.GOLD.064",
       "W.GOLD.132"
+    ],
+    [
+      "W.GOLD.064",
+      "W.GOLD.334"
+    ],
+    [
+      "W.GOLD.064",
+      "W.GOLD.340"
+    ],
+    [
+      "W.GOLD.065",
+      "W.GOLD.171"
+    ],
+    [
+      "W.GOLD.072",
+      "W.GOLD.198"
+    ],
+    [
+      "W.GOLD.079",
+      "W.GOLD.089"
+    ],
+    [
+      "W.GOLD.087",
+      "W.GOLD.259"
+    ],
+    [
+      "W.GOLD.092",
+      "W.GOLD.171"
+    ],
+    [
+      "W.GOLD.097",
+      "W.GOLD.187"
+    ],
+    [
+      "W.GOLD.098",
+      "W.GOLD.171"
+    ],
+    [
+      "W.GOLD.102",
+      "W.GOLD.171"
+    ],
+    [
+      "W.GOLD.105",
+      "W.GOLD.305"
     ],
     [
       "W.GOLD.109",
@@ -2295,12 +4772,44 @@
       "W.GOLD.307"
     ],
     [
+      "W.GOLD.120",
+      "W.GOLD.326"
+    ],
+    [
+      "W.GOLD.121",
+      "W.GOLD.178"
+    ],
+    [
+      "W.GOLD.124",
+      "W.GOLD.193"
+    ],
+    [
+      "W.GOLD.125",
+      "W.GOLD.561"
+    ],
+    [
       "W.GOLD.131",
       "W.GOLD.178"
     ],
     [
+      "W.GOLD.131",
+      "W.GOLD.193"
+    ],
+    [
+      "W.GOLD.132",
+      "W.GOLD.334"
+    ],
+    [
       "W.GOLD.132",
       "W.GOLD.335"
+    ],
+    [
+      "W.GOLD.132",
+      "W.GOLD.340"
+    ],
+    [
+      "W.GOLD.138",
+      "W.GOLD.171"
     ],
     [
       "W.GOLD.150",
@@ -2309,6 +4818,10 @@
     [
       "W.GOLD.150",
       "W.GOLD.301"
+    ],
+    [
+      "W.GOLD.150",
+      "W.GOLD.315"
     ],
     [
       "W.GOLD.150",
@@ -2323,8 +4836,56 @@
       "W.GOLD.344"
     ],
     [
+      "W.GOLD.153",
+      "W.GOLD.561"
+    ],
+    [
+      "W.GOLD.156",
+      "W.GOLD.331"
+    ],
+    [
+      "W.GOLD.156",
+      "W.GOLD.338"
+    ],
+    [
+      "W.GOLD.159",
+      "W.GOLD.243"
+    ],
+    [
+      "W.GOLD.159",
+      "W.GOLD.317"
+    ],
+    [
+      "W.GOLD.159",
+      "W.GOLD.327"
+    ],
+    [
+      "W.GOLD.160",
+      "W.GOLD.184"
+    ],
+    [
+      "W.GOLD.169",
+      "W.GOLD.171"
+    ],
+    [
+      "W.GOLD.171",
+      "W.GOLD.172"
+    ],
+    [
+      "W.GOLD.171",
+      "W.GOLD.180"
+    ],
+    [
       "W.GOLD.171",
       "W.GOLD.211"
+    ],
+    [
+      "W.GOLD.171",
+      "W.GOLD.259"
+    ],
+    [
+      "W.GOLD.171",
+      "W.GOLD.339"
     ],
     [
       "W.GOLD.178",
@@ -2343,6 +4904,10 @@
       "W.GOLD.301"
     ],
     [
+      "W.GOLD.193",
+      "W.GOLD.241"
+    ],
+    [
       "W.GOLD.194",
       "W.GOLD.301"
     ],
@@ -2359,12 +4924,32 @@
       "W.GOLD.285"
     ],
     [
+      "W.GOLD.282",
+      "W.GOLD.322"
+    ],
+    [
       "W.GOLD.301",
       "W.GOLD.320"
     ],
     [
+      "W.GOLD.317",
+      "W.GOLD.327"
+    ],
+    [
+      "W.GOLD.319",
+      "W.GOLD.328"
+    ],
+    [
       "W.GOLD.331",
       "W.GOLD.338"
+    ],
+    [
+      "W.GOLD.331",
+      "W.GOLD.560"
+    ],
+    [
+      "W.GOLD.334",
+      "W.GOLD.340"
     ],
     [
       "W.GOLD.341",
@@ -2389,6 +4974,46 @@
     [
       "W.GOLD.343",
       "W.GOLD.344"
+    ],
+    [
+      "W.GOLD.534",
+      "W.GOLD.560"
+    ],
+    [
+      "W.GOLD.534",
+      "W.GOLD.561"
+    ],
+    [
+      "W.GOLD.539",
+      "W.GOLD.549"
+    ],
+    [
+      "W.GOLD.539",
+      "W.GOLD.560"
+    ],
+    [
+      "W.GOLD.539",
+      "W.GOLD.561"
+    ],
+    [
+      "W.GOLD.540",
+      "W.GOLD.550"
+    ],
+    [
+      "W.GOLD.543",
+      "W.GOLD.548"
+    ],
+    [
+      "W.GOLD.547",
+      "W.GOLD.549"
+    ],
+    [
+      "W.GOLD.547",
+      "W.GOLD.560"
+    ],
+    [
+      "W.GOLD.560",
+      "W.GOLD.561"
     ]
   ],
   "missing_bridges": [
@@ -2398,104 +5023,109 @@
       0.879
     ],
     [
-      "B.VAULT.002",
-      "W.GOLD.310",
-      0.761
-    ],
-    [
       "W.GOLD.158",
       "W.GOLD.164",
-      0.757
+      0.752
+    ],
+    [
+      "B.VAULT.002",
+      "W.GOLD.310",
+      0.752
     ],
     [
       "B.GRADUATE.001",
       "W.GOLD.312",
-      0.729
+      0.725
     ],
     [
       "G.GOLD.281",
       "G.GOLD.303",
-      0.706
-    ],
-    [
-      "W.GOLD.002",
-      "W.GOLD.179",
-      0.695
+      0.715
     ],
     [
       "G.GOLD.286",
       "G.GOLD.303",
-      0.695
+      0.706
+    ],
+    [
+      "W.GOLD.043",
+      "W.GOLD.282",
+      0.689
+    ],
+    [
+      "W.GOLD.002",
+      "W.GOLD.179",
+      0.669
+    ],
+    [
+      "W.GOLD.188",
+      "W.GOLD.190",
+      0.668
     ],
     [
       "W.GOLD.034",
       "W.GOLD.182",
-      0.662
+      0.666
     ],
     [
       "G.GOLD.485",
       "W.GOLD.536",
-      0.63
+      0.624
     ],
     [
       "W.GOLD.033",
       "W.GOLD.034",
-      0.624
-    ],
-    [
-      "G.GOLD.016",
-      "P.GOLD.002",
-      0.566
+      0.621
     ],
     [
       "W.GOLD.034",
       "W.GOLD.131",
-      0.554
+      0.558
     ],
     [
-      "W.GOLD.012",
-      "W.GOLD.179",
-      0.543
-    ],
-    [
-      "W.GOLD.002",
-      "W.GOLD.012",
-      0.535
+      "G.GOLD.016",
+      "P.GOLD.002",
+      0.557
     ],
     [
       "W.GOLD.032",
       "W.GOLD.034",
-      0.529
+      0.532
     ],
     [
       "W.GOLD.188",
       "W.GOLD.189",
-      0.524
+      0.527
     ],
     [
-      "G.GOLD.016",
-      "W.GOLD.004",
-      0.523
-    ],
-    [
-      "G.GOLD.287",
-      "W.GOLD.321",
-      0.521
-    ],
-    [
-      "W.GOLD.168",
-      "W.GOLD.183",
-      0.517
+      "W.GOLD.012",
+      "W.GOLD.179",
+      0.519
     ],
     [
       "P.GOLD.005",
       "W.GOLD.346",
-      0.517
+      0.518
     ],
     [
-      "P.GOLD.081",
-      "W.GOLD.063",
-      0.502
+      "W.GOLD.002",
+      "W.GOLD.012",
+      0.515
+    ],
+    [
+      "W.GOLD.168",
+      "W.GOLD.183",
+      0.506
+    ],
+    [
+      "G.GOLD.016",
+      "W.GOLD.004",
+      0.506
+    ],
+    [
+      "G.GOLD.303",
+      "G.GOLD.484",
+      0.501
     ],
     [
       "W.GOLD.033",
@@ -2503,94 +5133,90 @@
       0.495
     ],
     [
-      "G.GOLD.303",
-      "G.GOLD.484",
-      0.492
-    ],
-    [
       "W.GOLD.037",
       "W.GOLD.183",
-      0.49
+      0.486
     ],
     [
       "W.GOLD.032",
       "W.GOLD.033",
-      0.483
-    ],
-    [
-      "W.GOLD.316",
-      "W.GOLD.320",
       0.482
     ],
     [
-      "W.GOLD.303",
-      "W.GOLD.306",
-      0.478
+      "G.GOLD.287",
+      "W.GOLD.321",
+      0.482
     ],
     [
       "W.GOLD.033",
       "W.GOLD.182",
-      0.476
+      0.48
     ],
     [
-      "G.GOLD.287",
-      "W.GOLD.323",
-      0.475
+      "P.GOLD.093",
+      "W.GOLD.047",
+      0.468
     ],
     [
-      "G.GOLD.001",
-      "G.GOLD.019",
-      0.47
-    ],
-    [
-      "W.GOLD.023",
-      "W.GOLD.028",
-      0.469
+      "P.GOLD.081",
+      "W.GOLD.063",
+      0.467
     ],
     [
       "W.GOLD.345",
       "W.GOLD.347",
-      0.468
+      0.462
+    ],
+    [
+      "W.GOLD.316",
+      "W.GOLD.320",
+      0.455
+    ],
+    [
+      "G.GOLD.001",
+      "G.GOLD.019",
+      0.455
+    ],
+    [
+      "P.GOLD.042",
+      "W.GOLD.053",
+      0.452
     ],
     [
       "W.GOLD.023",
       "W.GOLD.024",
-      0.461
+      0.445
+    ],
+    [
+      "W.GOLD.047",
+      "W.GOLD.085",
+      0.443
+    ],
+    [
+      "G.GOLD.308",
+      "W.GOLD.216",
+      0.441
+    ],
+    [
+      "G.GOLD.287",
+      "W.GOLD.323",
+      0.441
+    ],
+    [
+      "P.GOLD.197",
+      "W.GOLD.320",
+      0.44
+    ],
+    [
+      "P.GOLD.043",
+      "W.GOLD.122",
+      0.44
     ],
     [
       "W.GOLD.320",
       "W.GOLD.323",
-      0.459
-    ],
-    [
-      "G.GOLD.287",
-      "G.GOLD.289",
-      0.459
-    ],
-    [
-      "W.GOLD.316",
-      "W.GOLD.323",
-      0.451
-    ],
-    [
-      "P.GOLD.002",
-      "W.GOLD.004",
-      0.449
-    ],
-    [
-      "G.GOLD.287",
-      "W.GOLD.320",
-      0.447
-    ],
-    [
-      "G.GOLD.287",
-      "W.GOLD.316",
       0.439
-    ],
-    [
-      "W.GOLD.345",
-      "W.GOLD.348",
-      0.437
     ]
-  ]
+  ],
+  "rejected_files": []
 }
