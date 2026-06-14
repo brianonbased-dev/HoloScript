@@ -32,3 +32,6 @@
  */
 
 export * from './barrel';
+
+// Perceptual color science (non-Riemannian). Sovereign primitive; see ./color.
+export * from './color';
