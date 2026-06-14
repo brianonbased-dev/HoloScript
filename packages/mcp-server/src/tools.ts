@@ -28,6 +28,7 @@ import { validationTools } from './validation-tools';
 import { agentOrchestrationTools } from './agent-orchestration-tools';
 import { observabilityTools } from './observability-tools';
 import { pluginManagementTools } from './plugin-management-tools';
+import { holoshellDownloadRecoveryToolDefinitions } from './holoshell-download-recovery-tools';
 import { economyTools } from './economy-tools';
 import { developerTools } from './developer-tools';
 import { holomeshTools } from './holomesh/index';
@@ -742,6 +743,7 @@ export const tools: Tool[] = [
   ...agentOrchestrationTools,
   ...observabilityTools,
   ...pluginManagementTools,
+  ...holoshellDownloadRecoveryToolDefinitions,
   ...economyTools,
   ...developerTools,
   ...holomeshTools,

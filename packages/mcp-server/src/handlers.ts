@@ -789,6 +789,13 @@ export async function handleTool(
     return handleRigMatchSkeleton(args as unknown as Parameters<typeof handleRigMatchSkeleton>[0]);
   }
 
+  // HoloShell download-recovery tools (local shelf custody) — dispatch to the handler objects.
+  if (name.startsWith('holoshell_download_recovery_')) {
+    const { holoshellDownloadRecoveryTools } = await import('./holoshell-download-recovery-tools');
+    const tool = holoshellDownloadRecoveryTools.find((t) => t.name === name);
+    if (tool) return tool.handler(args);
+  }
+
   throw new Error(`Unknown tool: ${name}`);
 }
 

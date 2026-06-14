@@ -23,6 +23,7 @@ import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 const SHELF_DIR =
   process.env.HOLOSHELL_DOWNLOAD_SHELF ||
@@ -239,6 +240,97 @@ export const holoshellDownloadRecoveryTools = [
   holoshellDownloadRecoveryQuarantine,
   holoshellDownloadRecoveryForensicExport,
   holoshellDownloadRecoveryImportHandoff,
+];
+
+/**
+ * MCP Tool[] definitions (JSON Schema) for the public tool list in tools.ts.
+ * The handler objects above carry zod inputSchema for internal validation;
+ * these advertise the same surface to MCP clients (and the dispatch-health gate).
+ */
+export const holoshellDownloadRecoveryToolDefinitions: Tool[] = [
+  {
+    name: 'holoshell_download_recovery_list',
+    description:
+      'List interrupted, quarantined, pending_consent, or complete downloads from the local HoloShell shelf. Returns receipt envelopes with substrateMetadata for hardware custody proofs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        statusFilter: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['interrupted', 'quarantined', 'pending_consent', 'complete'],
+          },
+          description: 'Optional list of statuses to filter by.',
+        },
+      },
+    },
+  },
+  {
+    name: 'holoshell_download_recovery_resume',
+    description:
+      'Resume an interrupted download. Requires freshUserGesture. Produces ResumeReceipt + updates the shelf entry.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Download id to resume.' },
+        freshUserGesture: { type: 'boolean', description: 'Must be true — a fresh user gesture.' },
+        offset: { type: 'number', description: 'Optional byte offset to resume from.' },
+      },
+      required: ['id', 'freshUserGesture'],
+    },
+  },
+  {
+    name: 'holoshell_download_recovery_quarantine',
+    description:
+      'Quarantine a suspect download. Requires freshUserGesture. Writes QuarantineReceipt with reason.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Download id to quarantine.' },
+        freshUserGesture: { type: 'boolean', description: 'Must be true — a fresh user gesture.' },
+        reason: {
+          type: 'string',
+          enum: ['exec', 'mime_mismatch', 'size_anomaly', 'provider_revoke', 'manual'],
+          description: 'Quarantine reason.',
+        },
+      },
+      required: ['id', 'freshUserGesture', 'reason'],
+    },
+  },
+  {
+    name: 'holoshell_download_recovery_forensic_export',
+    description:
+      'Export a quarantined download (or any) for forensic replay. Produces a signed bundle path + hash.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Download id to export.' },
+        includeFullTrace: {
+          type: 'boolean',
+          description: 'Include the full trace in the bundle (default false).',
+        },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'holoshell_download_recovery_import_handoff',
+    description:
+      'Move a green/complete download to the main Import Shelf. Requires freshUserGesture. Produces ImportHandoffReceipt + witness.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Download id to hand off.' },
+        freshUserGesture: { type: 'boolean', description: 'Must be true — a fresh user gesture.' },
+        targetShardOrAssetId: {
+          type: 'string',
+          description: 'Optional target shard or asset id.',
+        },
+      },
+      required: ['id', 'freshUserGesture'],
+    },
+  },
 ];
 
 export default holoshellDownloadRecoveryTools;
