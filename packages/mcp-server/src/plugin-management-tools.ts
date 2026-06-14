@@ -7,12 +7,20 @@
  */
 
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { readdirSync, readFileSync, existsSync } from 'fs';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import {
   getPluginLifecycleManager,
   type InstallPluginOptions,
   type SandboxPermission,
   type PluginLifecycleState,
 } from '@holoscript/core';
+
+// ESM-safe __dirname (matches trait-categories-from-core.ts). tsup emits ESM, so the
+// native __dirname is absent; both src/ and dist/ sit at depth 2 under packages/mcp-server,
+// so ../../plugins resolves to packages/plugins in dev (vitest) and prod (dist) alike.
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -73,7 +81,7 @@ export const pluginManagementTools: Tool[] = [
   {
     name: 'discover_plugins',
     description:
-      'Discover available domain plugins based on a specific query or intent. OVERCLAIMED: returns a hardcoded 3-entry catalog, not a live plugin index. No dynamic discovery, filesystem scan, or remote registry fetch.',
+      'Discover available domain plugins by query or category. Scans packages/plugins/*/package.json at runtime (name, description, keywords) for a live plugin index.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -290,44 +298,77 @@ async function handleInstallDomainPlugin(args: Record<string, unknown>) {
   };
 }
 
+interface DiscoveredPlugin {
+  id: string;
+  description: string;
+  category: string;
+  version?: string;
+}
+
+let _pluginRegistryCache: DiscoveredPlugin[] | null = null;
+
+/**
+ * Scan packages/plugins/* for package.json files and build a live plugin registry.
+ * Cached per process (the on-disk plugin set is stable within a server lifetime).
+ * Returns an empty registry with a distinct source when the directory is absent
+ * (e.g. an unexpected CWD) instead of throwing.
+ */
+function scanPluginRegistry(): { entries: DiscoveredPlugin[]; source: string } {
+  if (_pluginRegistryCache) return { entries: _pluginRegistryCache, source: 'filesystem-scan' };
+
+  const pluginsDir = resolve(__dirname, '../../plugins');
+  if (!existsSync(pluginsDir)) {
+    return { entries: [], source: 'filesystem-not-found' };
+  }
+
+  const entries: DiscoveredPlugin[] = [];
+  for (const dirent of readdirSync(pluginsDir, { withFileTypes: true })) {
+    if (!dirent.isDirectory()) continue;
+    const pkgPath = join(pluginsDir, dirent.name, 'package.json');
+    if (!existsSync(pkgPath)) continue;
+    try {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as {
+        name?: string;
+        description?: string;
+        version?: string;
+        keywords?: string[];
+      };
+      const keywords = Array.isArray(pkg.keywords) ? pkg.keywords : [];
+      const category = keywords.find((k) => k !== 'holoscript' && k !== 'plugin') ?? 'general';
+      entries.push({
+        id: pkg.name ?? `@holoscript/${dirent.name}`,
+        description: pkg.description ?? `HoloScript plugin: ${dirent.name}`,
+        category,
+        version: pkg.version,
+      });
+    } catch {
+      // Skip a single malformed package.json; keep scanning the rest (resilient).
+    }
+  }
+
+  _pluginRegistryCache = entries;
+  return { entries, source: 'filesystem-scan' };
+}
+
 async function handleDiscoverPlugins(args: Record<string, unknown>) {
   const query = ((args.query as string) || '').toLowerCase();
+  const category = args.category as string | undefined;
 
-  // RATCHET: Registry is a hardcoded 3-entry catalog — not a live plugin index.
-  // No dynamic plugin discovery, no filesystem scan, no remote registry fetch.
-  // Results are only from these known entries.
-  const registry = [
-    {
-      id: '@holoscript/radio-astronomy-plugin',
-      description:
-        'Radio Astrophysics primitive extension including interferometers and synaptic bridges.',
-      category: 'science',
-    },
-    {
-      id: '@holoscript/alphafold-plugin',
-      description: 'Protein structural predictions and binding site geometries.',
-      category: 'science',
-    },
-    {
-      id: '@holoscript/domain-plugin-template',
-      description: 'Scaffolding template for agricultural and retail modeling.',
-      category: 'utility',
-    },
-  ];
+  const { entries: registry, source } = scanPluginRegistry();
 
-  const results = registry.filter(
-    (p) =>
-      p.id.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query) ||
-      (args.category && p.category === args.category)
-  );
+  const results = registry.filter((p) => {
+    const matchesQuery =
+      query === '' || p.id.toLowerCase().includes(query) || p.description.toLowerCase().includes(query);
+    const matchesCategory = !category || p.category === category;
+    return matchesQuery && matchesCategory;
+  });
 
   return {
     success: true,
     query,
     count: results.length,
     plugins: results,
-    registrySource: 'hardcoded-catalog', // not dynamic — 3 known entries only
+    registrySource: source,
     totalRegistryEntries: registry.length,
   };
 }
