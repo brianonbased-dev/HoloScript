@@ -108,7 +108,50 @@ export function BoardTab({ teamId }: { teamId: string }) {
     try {
       const res = await fetch(`/api/holomesh/team/${teamId}/board`);
       if (!res.ok) throw new Error(`${res.status}`);
-      setData(await res.json());
+      const json = await res.json();
+
+      // Normalize: DB path returns { board: { open, claimed, blocked }, done: { recent, total } }
+      // Proxy fallback returns { tasks: [...] } flat list — group by status here.
+      let normalized: BoardData;
+      if (json.board && typeof json.board === 'object') {
+        normalized = {
+          mode: json.mode ?? 'build',
+          objective: json.objective ?? '',
+          slots: json.slots ?? { roles: [], max: 6 },
+          board: {
+            open: json.board.open ?? [],
+            claimed: json.board.claimed ?? [],
+            blocked: json.board.blocked ?? [],
+          },
+          done: json.done ?? { recent: [], total: 0 },
+        };
+      } else if (Array.isArray(json.tasks)) {
+        const tasks = json.tasks as Array<BoardTask & { status?: string }>;
+        normalized = {
+          mode: json.mode ?? 'build',
+          objective: json.objective ?? '',
+          slots: json.slots ?? { roles: [], max: 6 },
+          board: {
+            open: tasks.filter((t) => !t.status || t.status === 'open'),
+            claimed: tasks.filter((t) => t.status === 'claimed'),
+            blocked: tasks.filter((t) => t.status === 'blocked'),
+          },
+          done: {
+            recent: tasks.filter((t) => t.status === 'done'),
+            total: tasks.filter((t) => t.status === 'done').length,
+          },
+        };
+      } else {
+        normalized = {
+          mode: json.mode ?? 'build',
+          objective: json.objective ?? '',
+          slots: json.slots ?? { roles: [], max: 6 },
+          board: { open: [], claimed: [], blocked: [] },
+          done: { recent: [], total: 0 },
+        };
+      }
+
+      setData(normalized);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load board');
