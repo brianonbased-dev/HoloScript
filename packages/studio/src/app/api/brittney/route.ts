@@ -66,7 +66,13 @@ import {
   policyEventPayload,
 } from '@/lib/brittney/contentPolicy';
 import type { ContentPolicyDecision } from '@holoscript/core/policy';
-import { filterToolsToTier, tierForProvider } from '@/lib/brittney/toolTiers';
+import { filterToolsToTier, tierForProvider, CORE_TOOL_NAMES } from '@/lib/brittney/toolTiers';
+import {
+  FIND_TOOLS_TOOL,
+  FIND_TOOLS_NAME,
+  buildSlimDefault,
+  executeFindTools,
+} from '@/lib/brittney/toolCatalog';
 import { fetchUserRepos } from '@/lib/brittney/githubContext';
 import {
   resolveHoloShellOperatorConfig,
@@ -114,6 +120,7 @@ const MAX_MESSAGE_CHARS = 12000;
  * server-executed tools from client-side-only tools.
  */
 const SERVER_EXECUTED_TOOL_NAMES = new Set([
+  FIND_TOOLS_NAME,
   ...STUDIO_API_TOOL_NAMES,
   ...MCP_TOOL_NAMES,
   ...LOTUS_TOOL_NAMES,
@@ -469,9 +476,26 @@ export async function POST(request: NextRequest) {
     // Same shape as Anthropic's { name, description, input_schema } — the
     // conversion just renames `parameters` → `input_schema`.
     __phase = 'tool-conversion';
-    const tools = convertToolsToProviderFormat({
+    // Full tier-filtered catalog — everything this lane is allowed to use.
+    const fullCatalog = convertToolsToProviderFormat({
       tier: tierForProvider(resolved?.providerName),
     });
+    // Progressive disclosure (founder 2026-06-13 "too many tools and avenues"):
+    // expose a slim CORE set + find_tools up front and let the model pull in
+    // exactly the tools a task needs on demand — the full ~90-tool registry
+    // measurably degrades tool-calling (see toolTiers.ts). find_tools ranks the
+    // full catalog and activates matches by pushing them into `tools`, which the
+    // next round reads. BRITTNEY_TOOL_FINDER=off reverts to exposing everything.
+    const finderEnabled = process.env['BRITTNEY_TOOL_FINDER'] !== 'off';
+    const findToolsSpec = {
+      name: FIND_TOOLS_TOOL.function.name,
+      description: FIND_TOOLS_TOOL.function.description,
+      input_schema: FIND_TOOLS_TOOL.function
+        .parameters as (typeof fullCatalog)[number]['input_schema'],
+    };
+    const tools = finderEnabled
+      ? buildSlimDefault(fullCatalog, CORE_TOOL_NAMES, findToolsSpec)
+      : fullCatalog;
     const toolNameSet = new Set(tools.map((t) => t.name));
 
     __phase = 'stream-init';
@@ -923,6 +947,30 @@ export async function POST(request: NextRequest) {
                   ? await Promise.all(
                       pendingToolCalls.map(async (tc) => {
                         let result: { success: boolean; data?: unknown; error?: string };
+                        // find_tools (progressive disclosure): rank the full
+                        // catalog for the goal and ACTIVATE the matches — push
+                        // them into the exposed `tools` so the model can call
+                        // them on the next round. Handled before the dispatch
+                        // chain; never hits an external service.
+                        if (tc.name === FIND_TOOLS_NAME) {
+                          const found = executeFindTools(tc.input, fullCatalog, toolNameSet);
+                          for (const spec of found.activate) {
+                            if (!toolNameSet.has(spec.name)) {
+                              tools.push(spec);
+                              toolNameSet.add(spec.name);
+                            }
+                          }
+                          send({
+                            type: 'tool_result',
+                            payload: {
+                              name: tc.name,
+                              success: found.result.success,
+                              data: found.result.data,
+                              error: found.result.error,
+                            },
+                          });
+                          return { id: tc.id, result: found.result };
+                        }
                         if (LOTUS_TOOL_NAMES.has(tc.name)) {
                           const lotus: LotusToolResult = executeLotusTool(tc.name, tc.input);
                           result = {
