@@ -1,6 +1,8 @@
 {
   "_README": "Auto-generated 2026-04-24 by ai-ecosystem session after provisioning 31 x402 seats via scripts/provision-mesh-seats.mjs. 2026-05-27 pivot: mesh-worker-01 is a capability lane, not an H200 entitlement. The live config starts with 14B-class whole-machine hosts and escalates to H100/H200 only when the active manifest proves the cheaper tier cannot satisfy the output gate.",
 
+  "_identity_model": "IDENTITY HAS FOUR DIMENSIONS (founder 2026-06-14: 'family name is metadata; the name should be the HoloClaw skill'). (1) handle (mesh-worker-NN) = the WALLET ANCHOR — EIP-712-bound at provisioning into the seat dir, wallet.enc, the HoloMesh registered agent.name, the fleet-lane lane_id/signing_seat, and the Vast.ai label; it is a serial number, NOT the agent's name, and MUST NOT be renamed. (2) skill = the agent's NAME = the brainPath composition stem minus '-brain' (e.g. lean-theorist, security-auditor, trait-inference); name agents by this. (3) family (sovereign) = provider-lineage METADATA for routing/accountability, derived by founder-gate familyForSeatId — metadata only, not the name. (4) scopeTier (hot/warm/cold) = governance metadata. Doctrine: ~/.ai-ecosystem/docs/AGENT_IDENTITY.md section 'Identity has four dimensions'.",
+
   "_provisioning_provenance": {
     "provisioned_at": "2026-04-24T23:50:35Z (approx)",
     "seats_total": 31,
