@@ -589,6 +589,50 @@ const LOCAL_HANDLERS: Record<
   read_ecosystem_canon: handleReadEcosystemCanon,
 };
 
+// ─── Founder-reserved tool gate (W.697) ─────────────────────────────────────
+// mcp_call_tool is a WILDCARD: it proxies to any tool on any orchestrator
+// server, executed on the ecosystem's own HOLOSCRIPT_API_KEY. The per-tier tool
+// diet (toolTiers.ts) only filters the DIRECT tool list, so a full-tier (BYOK)
+// session could otherwise reach spend / physical-world / custody tools THROUGH
+// the wildcard. This executor is the single chokepoint every wildcard call
+// funnels through, so the F.095-class denylist is enforced here.
+const FOUNDER_RESERVED_TOOLS: ReadonlySet<string> = new Set([
+  // Spend / paid compute / treasury
+  'sim_run_paid',
+  'render_world_on_fleet',
+  'execute_economic_contract',
+  // Physical-world actuation / hardware loop
+  'twin_earth_robot_actuate',
+  'sync_hardware_loop',
+  // Custody / secrets
+  'holo_secrets_grant',
+  'holo_secrets_resolve',
+  'holo_secrets_revoke',
+  // Real-world identity / permission governance
+  'twin_earth_register_identity',
+  'twin_earth_revoke_identity',
+  'twin_earth_grant_permission',
+  'twin_earth_revoke_permission',
+]);
+
+/**
+ * True if a mcp_call_tool TARGET tool is F.095 founder-reserved (spends money,
+ * actuates the physical world, or touches custody/secrets/identity-governance).
+ * Explicit names (auditable) PLUS conservative family patterns, so a newly-added
+ * sibling (e.g. a future `*_paid` tool) is denied by default rather than slipping
+ * through a stale allowlist.
+ */
+export function isFounderReservedTool(tool: string): boolean {
+  const t = (tool ?? '').trim().toLowerCase();
+  if (!t) return false;
+  if (FOUNDER_RESERVED_TOOLS.has(t)) return true;
+  if (t.endsWith('_paid')) return true; // metered spend
+  if (t.endsWith('_on_fleet')) return true; // fleet compute spend
+  if (t.endsWith('_robot_actuate')) return true; // physical actuation
+  if (t.includes('secrets_')) return true; // custody / secret grants
+  return false;
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -618,6 +662,24 @@ export async function executeMCPTool(
         error:
           'The HoloMesh board is founder-session-only. Use suggest_ecosystem_gap to surface this to the team instead.',
       };
+    }
+
+    // mcp_call_tool wildcard cannot reach F.095-class (spend / physical-world /
+    // custody) tools in a non-founder session — the tier filter does not
+    // constrain the wildcard, so the TARGET tool is gated here. (W.697)
+    if (name === 'mcp_call_tool' && context.allowFounderWorkspace !== true) {
+      const target = typeof args['tool'] === 'string' ? args['tool'] : '';
+      if (isFounderReservedTool(target)) {
+        return {
+          tool: name,
+          success: false,
+          data: null,
+          error:
+            `'${target}' is a spend / physical-world / custody-class tool (F.095 founder-reserved) ` +
+            `and cannot be invoked through mcp_call_tool in a non-founder session. Safe read/compile ` +
+            `tools remain available; a spend action must be filed as a request for a founder/hardware seat.`,
+        };
+      }
     }
 
     // Local handlers (custom logic — package registries, ecosystem canon) first

@@ -256,4 +256,31 @@ describe('planFleetDispatch', () => {
     expect(plan.decisions).toHaveLength(0);
     expect(plan.unassigned.map((t) => t.id)).toEqual(['orphan']);
   });
+
+  it('shuts off on an EMPTY board — no decisions, no spend (founder condition)', () => {
+    const plan = planFleetDispatch(
+      [],
+      [agent({ id: 'a1' }), agent({ id: 'a2' })],
+      new SpendGovernor({ capUsd: 25 }),
+      { maxDispatches: 5 }
+    );
+    expect(plan.decisions).toHaveLength(0);
+    expect(plan.capReached).toBe(false);
+    // Planning is side-effect-free; the route only records spend on a decision,
+    // and 0 decisions ⇒ it returns the preview branch (no claim, no spend).
+    expect(plan.spend.spentUsd).toBe(0);
+  });
+
+  it('shuts off when every task is already claimed/done — no re-claim, no spend', () => {
+    const tasks = [
+      task({ id: 'c1', priority: 'P0', claimedBy: 'someone' }),
+      task({ id: 'c2', priority: 'P0', status: 'claimed' }),
+      task({ id: 'c3', priority: 'P0', status: 'done' }),
+    ];
+    const plan = planFleetDispatch(tasks, [agent({ id: 'free' })], new SpendGovernor(), {
+      maxDispatches: 5,
+    });
+    expect(plan.decisions).toHaveLength(0); // an all-claimed board is "empty" for dispatch
+    expect(plan.spend.spentUsd).toBe(0);
+  });
 });

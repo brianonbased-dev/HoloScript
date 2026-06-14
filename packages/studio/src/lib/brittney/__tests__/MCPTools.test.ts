@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '../MCPTools';
-import { executeMCPTool, isMCPTool } from '../MCPToolExecutor';
+import { executeMCPTool, isMCPTool, isFounderReservedTool } from '../MCPToolExecutor';
 
 // ─── Tool definition tests ─────────────────────────────────────────────────
 
@@ -402,5 +402,96 @@ describe('executeMCPTool', () => {
     const result = await executeMCPTool('mcp_list_servers', {});
     expect(result.success).toBe(true);
     expect(result.data).toBe('OK');
+  });
+});
+
+// ─── mcp_call_tool founder-reserved wildcard gate (W.697) ───────────────────
+
+describe('isFounderReservedTool (W.697)', () => {
+  it('flags the named spend / physical-world / custody tools', () => {
+    expect(isFounderReservedTool('sim_run_paid')).toBe(true);
+    expect(isFounderReservedTool('render_world_on_fleet')).toBe(true);
+    expect(isFounderReservedTool('execute_economic_contract')).toBe(true);
+    expect(isFounderReservedTool('twin_earth_robot_actuate')).toBe(true);
+    expect(isFounderReservedTool('holo_secrets_grant')).toBe(true);
+    expect(isFounderReservedTool('twin_earth_grant_permission')).toBe(true);
+  });
+
+  it('flags unknown siblings via family patterns (deny-by-default)', () => {
+    expect(isFounderReservedTool('train_model_paid')).toBe(true); // *_paid
+    expect(isFounderReservedTool('compute_x_on_fleet')).toBe(true); // *_on_fleet
+    expect(isFounderReservedTool('arm_robot_actuate')).toBe(true); // *_robot_actuate
+    expect(isFounderReservedTool('holo_secrets_rotate')).toBe(true); // secrets_
+  });
+
+  it('does NOT flag safe read/compile tools', () => {
+    expect(isFounderReservedTool('parse_hs')).toBe(false);
+    expect(isFounderReservedTool('sim_quote')).toBe(false); // quote is read-only
+    expect(isFounderReservedTool('holo_list_traits')).toBe(false);
+    expect(isFounderReservedTool('compile_to_target')).toBe(false);
+    expect(isFounderReservedTool('')).toBe(false);
+  });
+});
+
+describe('mcp_call_tool wildcard gate (W.697)', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('refuses a spend-class target in a non-founder session — BEFORE any network', async () => {
+    const fetchSpy = vi.fn();
+    globalThis.fetch = fetchSpy;
+    const result = await executeMCPTool('mcp_call_tool', {
+      server: 'holoscript-tools',
+      tool: 'sim_run_paid',
+      args: { foo: 'bar' },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('founder-reserved');
+    expect(fetchSpy).not.toHaveBeenCalled(); // refused before the spend ever fires
+  });
+
+  it('refuses physical-world + custody targets for a non-founder session', async () => {
+    const fetchSpy = vi.fn();
+    globalThis.fetch = fetchSpy;
+    for (const tool of [
+      'twin_earth_robot_actuate',
+      'render_world_on_fleet',
+      'holo_secrets_resolve',
+    ]) {
+      const result = await executeMCPTool('mcp_call_tool', { server: 's', tool });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('founder-reserved');
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('allows a SAFE target for a non-founder session (gate does not block reads)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ result: 'ok' }),
+    });
+    const result = await executeMCPTool('mcp_call_tool', {
+      server: 'holoscript-tools',
+      tool: 'parse_hs',
+      args: { code: 'object "Box" {}' },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('allows a FOUNDER session to reach a reserved target (authorized spend path)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ result: 'ok' }),
+    });
+    const result = await executeMCPTool(
+      'mcp_call_tool',
+      { server: 'holoscript-tools', tool: 'sim_run_paid', args: {} },
+      { allowFounderWorkspace: true }
+    );
+    expect(result.error ?? '').not.toContain('founder-reserved');
   });
 });
