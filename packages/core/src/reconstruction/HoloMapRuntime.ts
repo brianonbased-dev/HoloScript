@@ -765,7 +765,14 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       });
     }
 
-    const microCfg = { seed: this.config.seed, modelHash: this.config.modelHash };
+    const microCfg = {
+      seed: this.config.seed,
+      modelHash: this.config.modelHash,
+      // Wire the loaded checkpoint through to the encoder. Previously weightBytes
+      // was fetched + verified in init() then never passed here, so the encoder
+      // always ran on PRNG weights even when a real checkpoint was provided.
+      weightBytes: this.weightBytes,
+    };
 
     // Run the full 8-kernel transformer pass once per tile.
     // Each tile call exercises:

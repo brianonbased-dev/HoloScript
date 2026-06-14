@@ -34,9 +34,18 @@ export interface HoloMapMicroFrame {
 export interface HoloMapMicroConfig {
   seed: number;
   modelHash: string;
+  /**
+   * Optional trained-checkpoint bytes in the `HMW1` format
+   * (see {@link serializeMicroWeights}). When present and valid, these weights
+   * are used INSTEAD of the deterministic PRNG-synthesized weights. When absent
+   * or malformed, the encoder falls back to PRNG weights (a malformed blob logs
+   * a warning rather than being silently discarded — that silent discard was the
+   * original loader↔encoder disconnect).
+   */
+  weightBytes?: Uint8Array | ArrayBuffer | null;
 }
 
-interface HoloMapMicroWeights {
+export interface HoloMapMicroWeights {
   proj: Float32Array;
   Wq: Float32Array;
   Wk: Float32Array;
@@ -77,7 +86,115 @@ function microWeightKey(config: HoloMapMicroConfig): string {
   return `${config.seed}\0${config.modelHash || ''}`;
 }
 
+// ── Checkpoint (de)serialization — `HMW1` format ─────────────────────────────
+// Header: 4-byte magic 'HMW1' + uint32 LE version, then the 9 weight tensors as
+// float32 LE in fixed order: proj, Wq, Wk, Wv, Wxyz, gamma1, beta1, gamma2, beta2.
+// A trainer/exporter writes this exact layout; the encoder reads it here.
+const MICRO_WEIGHT_MAGIC = [0x48, 0x4d, 0x57, 0x31] as const; // 'HMW1'
+const MICRO_WEIGHT_VERSION = 1;
+const MICRO_WEIGHT_FLOATS =
+  EMBED_DIM * PATCH_LEN + // proj
+  3 * EMBED_DIM * EMBED_DIM + // Wq, Wk, Wv
+  EMBED_DIM * 3 + // Wxyz
+  4 * EMBED_DIM; // gamma1, beta1, gamma2, beta2
+const MICRO_WEIGHT_BYTES = 8 + MICRO_WEIGHT_FLOATS * 4;
+
+function toUint8(bytes: Uint8Array | ArrayBuffer): Uint8Array {
+  return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+}
+
+/** FNV-1a hash of the blob — used only to key distinct checkpoints in the cache. */
+function fnv1a(bytes: Uint8Array): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < bytes.length; i += 1) {
+    h ^= bytes[i]!;
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
+}
+
+/** Serialize micro-weights to the canonical `HMW1` checkpoint blob. */
+export function serializeMicroWeights(w: HoloMapMicroWeights): Uint8Array {
+  const bytes = new Uint8Array(MICRO_WEIGHT_BYTES);
+  bytes.set(MICRO_WEIGHT_MAGIC, 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(4, MICRO_WEIGHT_VERSION, true);
+  let off = 8;
+  const put = (arr: Float32Array): void => {
+    for (let i = 0; i < arr.length; i += 1) {
+      view.setFloat32(off, arr[i]!, true);
+      off += 4;
+    }
+  };
+  put(w.proj);
+  put(w.Wq);
+  put(w.Wk);
+  put(w.Wv);
+  put(w.Wxyz);
+  put(w.gamma1);
+  put(w.beta1);
+  put(w.gamma2);
+  put(w.beta2);
+  return bytes;
+}
+
+/** Parse an `HMW1` checkpoint blob, or return null if it is not a valid one. */
+export function deserializeMicroWeights(
+  input: Uint8Array | ArrayBuffer
+): HoloMapMicroWeights | null {
+  const bytes = toUint8(input);
+  if (bytes.byteLength !== MICRO_WEIGHT_BYTES) return null;
+  for (let i = 0; i < 4; i += 1) {
+    if (bytes[i] !== MICRO_WEIGHT_MAGIC[i]) return null;
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (view.getUint32(4, true) !== MICRO_WEIGHT_VERSION) return null;
+  let off = 8;
+  const take = (count: number): Float32Array => {
+    const out = new Float32Array(count);
+    for (let i = 0; i < count; i += 1) {
+      out[i] = view.getFloat32(off, true);
+      off += 4;
+    }
+    return out;
+  };
+  return {
+    proj: take(EMBED_DIM * PATCH_LEN),
+    Wq: take(EMBED_DIM * EMBED_DIM),
+    Wk: take(EMBED_DIM * EMBED_DIM),
+    Wv: take(EMBED_DIM * EMBED_DIM),
+    Wxyz: take(EMBED_DIM * 3),
+    gamma1: take(EMBED_DIM),
+    beta1: take(EMBED_DIM),
+    gamma2: take(EMBED_DIM),
+    beta2: take(EMBED_DIM),
+  };
+}
+
 function getMicroWeights(config: HoloMapMicroConfig): HoloMapMicroWeights {
+  // Trained-checkpoint path: if weight bytes are supplied, deserialize and USE
+  // them (this is the loader↔encoder wiring that was previously missing — bytes
+  // were loaded by HoloMapRuntime and then discarded). Fall back to PRNG only if
+  // the blob is absent or malformed.
+  if (config.weightBytes) {
+    const wb = toUint8(config.weightBytes);
+    const ckptKey = `${microWeightKey(config)}\0ckpt:${wb.byteLength}:${fnv1a(wb)}`;
+    const cachedReal = weightCache.get(ckptKey);
+    if (cachedReal) return cachedReal;
+    const real = deserializeMicroWeights(wb);
+    if (real) {
+      weightCache.set(ckptKey, real);
+      return real;
+    }
+    // Loud, not silent: a checkpoint was provided but is not a valid HMW1 blob.
+    // The original bug discarded this without a trace, so the model ran on noise
+    // while reporting a loaded checkpoint.
+    console.warn(
+      `[holoMapMicroEncoder] weightBytes present (${wb.byteLength} B) but not a valid HMW1 checkpoint ` +
+        `(expected ${MICRO_WEIGHT_BYTES} B + magic) — falling back to PRNG-synthesized weights.`
+    );
+  }
+
   const key = microWeightKey(config);
   const cached = weightCache.get(key);
   if (cached) return cached;
