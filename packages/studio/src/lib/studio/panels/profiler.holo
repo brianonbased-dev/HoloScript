@@ -1,4 +1,84 @@
 @view({ id: "profiler", title: "Profiler", icon: "Activity", category: "debug", placement: "right-rail", scope: "project", gate: "expert", surfaceClass: "lab", defaultOpen: false, exclusiveWith: ["export","generator"], order: 3 })
 composition "profiler" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  @native_panel
+
+  object "Root" {
+    @layout { flex: "column", gap: "12px" }
+    @theme { className: "p-3 h-full overflow-y-auto" }
+    @hook { name: "useProfiler", import: "@/hooks/useProfiler", returns: "snap" }
+
+    object "StatGrid" {
+      @theme { className: "grid grid-cols-2 gap-2" }
+
+      object "FpsCard" {
+        @theme { className: "rounded-xl border border-studio-border bg-studio-surface p-2 text-center" }
+        object "FpsValue" {
+          @text { variant: "h2" }
+          @bind {
+            state: "snap"
+            path: "fps"
+            fallback: "0"
+            tiers: [
+              { gte: 55, className: "text-green-400" },
+              { gte: 30, className: "text-yellow-400" },
+              { className: "text-red-400" }
+            ]
+          }
+          @theme { className: "text-[15px] font-bold tabular-nums" }
+        }
+        object "FpsLabel" {
+          @text { variant: "caption", content: "FPS" }
+          @theme { className: "text-[9px] text-studio-muted" }
+        }
+      }
+
+      object "FrameCard" {
+        @theme { className: "rounded-xl border border-studio-border bg-studio-surface p-2 text-center" }
+        object "FrameValue" {
+          @text { variant: "h2" }
+          @bind { state: "snap", path: "frameMs", fallback: "0" }
+          @theme { className: "text-[15px] font-bold tabular-nums text-studio-text" }
+        }
+        object "FrameLabel" {
+          @text { variant: "caption", content: "Frame (ms)" }
+          @theme { className: "text-[9px] text-studio-muted" }
+        }
+      }
+
+      object "AvgCard" {
+        @theme { className: "rounded-xl border border-studio-border bg-studio-surface p-2 text-center" }
+        object "AvgValue" {
+          @text { variant: "h2" }
+          @bind { state: "snap", path: "avgFrameMs", fallback: "0" }
+          @theme { className: "text-[15px] font-bold tabular-nums text-studio-text" }
+        }
+        object "AvgLabel" {
+          @text { variant: "caption", content: "Avg (ms)" }
+          @theme { className: "text-[9px] text-studio-muted" }
+        }
+      }
+
+      object "P95Card" {
+        @theme { className: "rounded-xl border border-studio-border bg-studio-surface p-2 text-center" }
+        object "P95Value" {
+          @text { variant: "h2" }
+          @bind {
+            state: "snap"
+            path: "p95FrameMs"
+            fallback: "0"
+            tiers: [
+              { gt: 33, className: "text-red-400" },
+              { gt: 16.67, className: "text-yellow-400" },
+              { className: "text-green-400" }
+            ]
+          }
+          @theme { className: "text-[15px] font-bold tabular-nums" }
+        }
+        object "P95Label" {
+          @text { variant: "caption", content: "p95 (ms)" }
+          @theme { className: "text-[9px] text-studio-muted" }
+        }
+      }
+    }
+  }
 }
