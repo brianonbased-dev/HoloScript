@@ -14,12 +14,14 @@
  *
  * Usage: pnpm viewreg:build   |   pnpm viewreg:check  (--strict, CI gate)
  */
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
 import { join, extname, basename } from 'path';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
+import { Native2DCompiler } from '../../core/src/compiler/Native2DCompiler';
 
 const STUDIO_ROOT = join(import.meta.dirname || __dirname, '..');
 const PANELS_DIR = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'panels');
+const NATIVE_OUT_DIR = join(STUDIO_ROOT, 'src', 'components', 'panels', 'native');
 const OUT_PATH = join(STUDIO_ROOT, 'src', 'lib', 'studio', 'viewRegistry.generated.ts');
 const COMPONENTS_OUT_PATH = join(
   STUDIO_ROOT,
@@ -89,6 +91,23 @@ function extractSlot(ast: any): SlotMeta | null {
   return { component: slot.config.component, import: slot.config.import };
 }
 
+/** True when the panel has @native_panel trait — content compiled, not hand-wired React. */
+function hasNativeContent(ast: any): boolean {
+  return (ast.traits ?? []).some((t: any) => t.name === 'native_panel');
+}
+
+/** Compile a native panel composition to a @generated React component. Returns the component name. */
+function compileNativePanel(ast: any, id: string): string {
+  const capitalized = id.charAt(0).toUpperCase() + id.slice(1);
+  const compiler = new Native2DCompiler();
+  const code = compiler.generateReactComponent(capitalized, ast.objects ?? [], ast, {
+    format: 'react',
+  });
+  mkdirSync(NATIVE_OUT_DIR, { recursive: true });
+  writeFileSync(join(NATIVE_OUT_DIR, `${id}.native.tsx`), code, 'utf-8');
+  return `${capitalized}Component`;
+}
+
 /** Map the .holo @view source fields onto the StudioViewDefinition shape (order stripped). */
 function toDefinition(v: ViewMeta) {
   return {
@@ -132,8 +151,19 @@ function build(): void {
       }
       views.push(view);
       const slot = extractSlot(parsed.ast);
-      if (slot) slots[view.id] = slot;
-      console.log(`  ✓ ${f} → ${view.id} (${view.surfaceClass}, order ${view.order})`);
+      if (slot) {
+        slots[view.id] = slot;
+        console.log(`  ✓ ${f} → ${view.id} (${view.surfaceClass}, order ${view.order})`);
+      } else if (hasNativeContent(parsed.ast)) {
+        const componentName = compileNativePanel(parsed.ast, view.id);
+        slots[view.id] = {
+          component: componentName,
+          import: `@/components/panels/native/${view.id}.native`,
+        };
+        console.log(`  ✓ ${f} → ${view.id} (native compiled → ${componentName})`);
+      } else {
+        console.log(`  ✓ ${f} → ${view.id} (pending, order ${view.order})`);
+      }
     } catch (err) {
       errorCount++;
       console.error(`  ✗ ${err instanceof Error ? err.message : String(err)}`);

@@ -11,7 +11,8 @@
     "src\\app\\settings\\page.tsx",
     "src\\app\\start\\page.tsx",
     "src\\app\\build\\page.tsx",
-    "src\\app\\vibe\\page.tsx"
+    "src\\app\\vibe\\page.tsx",
+    "src\\app\\agent-ability\\page.tsx"
   ],
-  "lastBuild": "2026-06-11T06:04:06.857Z"
+  "lastBuild": "2026-06-14T05:51:14.296Z"
 }

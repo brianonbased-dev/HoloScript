@@ -291,7 +291,16 @@ export default ${safeName}Component;
     const content =
       traits.text?.content || traits.button?.content || traits.link?.content || traits.icon?.name;
     let safeContent = '';
-    if (content) {
+    // @bind: emit a reactive JSX expression reading a state variable path
+    if (traits.bind?.state) {
+      const pathParts = String(traits.bind.path || '').split('.').filter(Boolean);
+      const expr = pathParts.reduce(
+        (acc: string, key: string) => `${acc}?.${key}`,
+        String(traits.bind.state)
+      );
+      const fallback = JSON.stringify(traits.bind.fallback ?? '—');
+      safeContent = `{${expr} ?? ${fallback}}`;
+    } else if (content) {
       safeContent = `{\`${content.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`}`;
     }
 
@@ -314,7 +323,7 @@ export default ${safeName}Component;
   // HTML GENERATION
   // ============================================================================
 
-  private generateHTMLPage(name: string, objects: unknown[], composition: HoloComposition): string {
+  generateHTMLPage(name: string, objects: unknown[], composition: HoloComposition): string {
     const content = objects.map((obj) => this.generateHTMLNode(obj)).join('\n      ');
 
     // Resolve theme: dark by default; only use light when explicitly declared

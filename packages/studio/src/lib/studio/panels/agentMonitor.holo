@@ -1,4 +1,60 @@
 @view({ id: "agentMonitor", title: "Agent Monitor", icon: "Bot", category: "assistant", placement: "right-rail", scope: "workspace", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 45 })
 composition "agentMonitor" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  @native_panel
+
+  object "Root" {
+    @layout { flex: "column", gap: "12px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-xs" }
+    @fetch { endpoint: "/api/holomesh/agents/summary", into: "agents" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Agent Monitor" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+
+    object "ActiveCard" {
+      @layout { flex: "column", gap: "4px" }
+      @theme { className: "rounded-lg p-2 bg-emerald-500/10" }
+
+      object "ActiveLabel" {
+        @text { variant: "caption", content: "Active" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "ActiveValue" {
+        @text { variant: "h2" }
+        @bind { state: "agents", path: "active", fallback: "0" }
+        @theme { className: "text-lg font-bold text-emerald-400" }
+      }
+    }
+
+    object "IdleCard" {
+      @layout { flex: "column", gap: "4px" }
+      @theme { className: "rounded-lg p-2 bg-studio-panel/30" }
+
+      object "IdleLabel" {
+        @text { variant: "caption", content: "Idle" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "IdleValue" {
+        @text { variant: "h2" }
+        @bind { state: "agents", path: "idle", fallback: "0" }
+        @theme { className: "text-lg font-bold text-slate-400" }
+      }
+    }
+
+    object "BusyCard" {
+      @layout { flex: "column", gap: "4px" }
+      @theme { className: "rounded-lg p-2 bg-amber-500/10" }
+
+      object "BusyLabel" {
+        @text { variant: "caption", content: "Busy" }
+        @theme { className: "text-[10px] text-studio-muted" }
+      }
+      object "BusyValue" {
+        @text { variant: "h2" }
+        @bind { state: "agents", path: "busy", fallback: "0" }
+        @theme { className: "text-lg font-bold text-amber-400" }
+      }
+    }
+  }
 }

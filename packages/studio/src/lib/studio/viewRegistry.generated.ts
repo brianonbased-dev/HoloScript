@@ -1162,6 +1162,10 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
 
 /** Per-view React widget mounts declared via @slot in each panel .holo. */
 export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: string }> = {
+  "agentMonitor": {
+    "component": "AgentMonitorComponent",
+    "import": "@/components/panels/native/agentMonitor.native"
+  },
   "aiMaterial": {
     "component": "AIMaterialPanel",
     "import": "@/components/ai/AIMaterialPanel"
