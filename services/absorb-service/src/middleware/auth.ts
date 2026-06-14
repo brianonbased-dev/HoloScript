@@ -152,9 +152,34 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   if (authHeader) {
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
-    // Path 1: Service-to-service API key — no rate limit
+    // Path 1: Service-to-service API key — no rate limit.
+    // When the Studio proxy forwards a request it authenticates with the service
+    // key (ABSORB_API_KEY) AND passes the original user's GitHub token in
+    // X-User-Authorization.  Resolve that secondary token so user-scoped routes
+    // (projects, moltbook agents, credits) can return data for the actual caller
+    // instead of always seeing userUuid(req) === null.
     if (apiKey && token === apiKey) {
       authReq.authenticated = true;
+
+      const userAuthHeader = req.headers['x-user-authorization'] as string | undefined;
+      if (userAuthHeader) {
+        const userToken = userAuthHeader.startsWith('Bearer ')
+          ? userAuthHeader.slice(7)
+          : userAuthHeader;
+        try {
+          const identity = await resolveGitHubToken(userToken);
+          if (identity) {
+            authReq.userId = identity.userId;
+            authReq.githubUsername = identity.githubUsername;
+            authReq.isAdmin = identity.isAdmin;
+          }
+        } catch {
+          // Token resolution failure is non-fatal for service-key auth.
+          // The request proceeds without a userId — user-scoped routes return
+          // empty data, which is safer than a hard 500.
+        }
+      }
+
       return next();
     }
 

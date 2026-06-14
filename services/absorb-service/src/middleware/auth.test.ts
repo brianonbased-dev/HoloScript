@@ -251,8 +251,100 @@ describe('authMiddleware', () => {
 
     expect(next).toHaveBeenCalled();
     expect(req.authenticated).toBe(true);
-    // resolveGitHubToken should NOT have been called — API key matched first
+    // resolveGitHubToken should NOT have been called — API key matched first and no X-User-Authorization present
     expect(mockResolveGitHubToken).not.toHaveBeenCalled();
+  });
+
+  // ── Studio proxy / X-User-Authorization tests ─────────────────────────────
+
+  it('resolves X-User-Authorization when service key is present (Studio proxy path)', async () => {
+    process.env.ABSORB_API_KEY = 'svc-key';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-founder',
+      githubUsername: 'brianonbased-dev',
+      githubId: '99999',
+      isAdmin: true,
+    });
+
+    const req = createMockReq({
+      path: '/projects',
+      headers: {
+        authorization: 'Bearer svc-key',
+        'x-user-authorization': 'Bearer ghp_founder_token',
+      },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.authenticated).toBe(true);
+    expect(req.userId).toBe('uuid-founder');
+    expect(req.githubUsername).toBe('brianonbased-dev');
+    expect(req.isAdmin).toBe(true);
+    expect(mockResolveGitHubToken).toHaveBeenCalledWith('ghp_founder_token');
+  });
+
+  it('strips Bearer prefix from X-User-Authorization before resolving', async () => {
+    process.env.ABSORB_API_KEY = 'svc-key';
+    mockResolveGitHubToken.mockResolvedValue({
+      userId: 'uuid-user',
+      githubUsername: 'someuser',
+      githubId: '12345',
+      isAdmin: false,
+    });
+
+    const req = createMockReq({
+      path: '/projects',
+      headers: {
+        authorization: 'Bearer svc-key',
+        'x-user-authorization': 'ghp_raw_token', // no "Bearer " prefix
+      },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.userId).toBe('uuid-user');
+    expect(mockResolveGitHubToken).toHaveBeenCalledWith('ghp_raw_token');
+  });
+
+  it('proceeds without userId when X-User-Authorization token is invalid (non-fatal)', async () => {
+    process.env.ABSORB_API_KEY = 'svc-key';
+    mockResolveGitHubToken.mockResolvedValue(null); // invalid / expired token
+
+    const req = createMockReq({
+      path: '/projects',
+      headers: {
+        authorization: 'Bearer svc-key',
+        'x-user-authorization': 'Bearer ghp_expired',
+      },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+
+    // Request still succeeds — service key auth is valid even without user scope
+    expect(next).toHaveBeenCalled();
+    expect(req.authenticated).toBe(true);
+    expect(req.userId).toBeUndefined();
+  });
+
+  it('proceeds without userId when X-User-Authorization resolution throws (non-fatal)', async () => {
+    process.env.ABSORB_API_KEY = 'svc-key';
+    mockResolveGitHubToken.mockRejectedValue(new Error('GitHub API down'));
+
+    const req = createMockReq({
+      path: '/projects',
+      headers: {
+        authorization: 'Bearer svc-key',
+        'x-user-authorization': 'Bearer ghp_network_error',
+      },
+    });
+    const res = createMockRes();
+    await authMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.authenticated).toBe(true);
+    expect(req.userId).toBeUndefined();
   });
 
   // ── Per-user quota tests ───────────────────────────────────────────────────
