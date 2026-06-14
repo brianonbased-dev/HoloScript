@@ -19,6 +19,7 @@ import {
 } from '@holoscript/absorb-service/mcp';
 import { selfImproveTools } from './self-improve-tools';
 import { gltfImportTools } from './gltf-import-tools';
+import { generateMeshTools } from './generate-mesh-tools';
 import { editHoloTools } from './edit-holo-tools';
 import { wisdomGotchaTools } from './wisdom-gotcha-tools';
 import { receiptQueryTools } from './receipt-query-tools';
@@ -734,6 +735,7 @@ export const tools: Tool[] = [
   ...selfImproveTools,
   ...wisdomGotchaTools,
   ...gltfImportTools,
+  ...generateMeshTools,
   ...editHoloTools,
   ...absorbServiceTools,
   ...serviceContractTools,

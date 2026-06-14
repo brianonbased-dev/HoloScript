@@ -60,6 +60,7 @@ import { oracleMcpTools, handleOracleMcpTool } from './oracle-mcp-tools';
 import { selfImproveTools, handleSelfImproveTool } from './self-improve-tools';
 import { grpoTools, handleGrpoTool } from './grpo-tools';
 import { gltfImportTools, handleGltfTool } from './gltf-import-tools';
+import { generateMeshTools, handleGenerateMeshTool } from './generate-mesh-tools';
 import { holotestTools, handleHolotestTool } from './holotest-tools';
 import { wisdomGotchaTools, handleWisdomGotchaTool } from './wisdom-gotcha-tools';
 import { receiptQueryTools, handleReceiptQueryTool } from './receipt-query-tools';
@@ -385,6 +386,7 @@ registerCategory(graphRagTools, (name, args, _signingCtx) => handleGraphRagTool(
 registerCategory(selfImproveTools, (name, args, _signingCtx) => handleSelfImproveTool(name, args));
 registerCategory(grpoTools, (name, args, _signingCtx) => handleGrpoTool(name, args));
 registerCategory(gltfImportTools, (name, args, _signingCtx) => handleGltfTool(name, args));
+registerCategory(generateMeshTools, (name, args, _signingCtx) => handleGenerateMeshTool(name, args));
 registerCategory(wisdomGotchaTools, (name, args, _signingCtx) =>
   handleWisdomGotchaTool(name, args)
 );
