@@ -201,17 +201,17 @@ export const EXAMPLE_CATALOG: ExampleCatalogEntry[] = [
 
 /** Full-tree inventory of examples/, resolved at build time (no runtime fs). */
 export const EXAMPLE_INVENTORY: ExampleInventory = {
-  "total": 455,
+  "total": 458,
   "byFormat": {
-    "holo": 354,
+    "holo": 356,
     "hs": 47,
-    "hsplus": 54
+    "hsplus": 55
   },
   "byCategory": {
     "accessibility": 1,
-    "root": 40,
+    "root": 42,
     "affordances": 3,
-    "agents": 6,
+    "agents": 7,
     "ai-generation": 2,
     "ai-npcs": 1,
     "ar": 1,
