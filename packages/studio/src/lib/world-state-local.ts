@@ -11,6 +11,11 @@
  * networking-tools.ts) is proven separately; for a low-latency single-process
  * avatar loop the correct authority is local/dedicated, not the shared prod MCP.
  * Module singleton: every API route in this process shares the same Map.
+ *
+ * INTERIM (founder ruling 2026-06-14, task_1781469975856_vpqs): local authority is
+ * the right call for the sub-second loop, but this raw Map must become the CANONICAL
+ * push_portal_intent -> intentToDelta -> Loro path run LOCALLY (it reimplements weaker
+ * validation than the canonical scoped-intent surface). Retire this shim per that task.
  */
 
 export interface Vec3 {

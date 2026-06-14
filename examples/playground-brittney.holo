@@ -1,0 +1,89 @@
+/**
+ * Brittney Playground — embodied-agent testing room.
+ *
+ * A native HoloScript scene where Brittney (the flagship agent, D.094) is embodied
+ * as a tracked AgentAvatar and moves under her own native .hsplus brain
+ * (examples/agents/brittney-playground.hsplus, driven via the world-state loop). The
+ * Waypoint_* pads are her patrol path — read from THIS scene (single source of truth)
+ * by scripts/brittney-brain-driver.mjs, so moving a pad moves her route.
+ *
+ * Walkable: the shared @holoscript/xr-embodiment locomotion lets you walk the room
+ * (left stick) and watch her presence move. The body is a placeholder orb today; the
+ * AAA avatar (brittney-avatar.holo) swaps into the same AgentAvatar slot later.
+ */
+
+composition "Brittney Playground" {
+
+  environment {
+    skybox: "studio"
+    background_color: "#0a0a14"
+    ambient_light: 0.45
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  // ── Floor ────────────────────────────────────────────────────────────────
+  object "Floor" {
+    geometry: "plane"
+    position: [0, 0, -4]
+    scale: [16, 1, 16]
+    color: "#15151f"
+    material: { roughness: 0.92, metalness: 0.0 }
+  }
+
+  // ── Central focal pedestal (where a build-in-progress would sit) ──────────
+  object "Pedestal" {
+    geometry: "cylinder"
+    position: [0, 0.35, -4]
+    scale: [1.4, 0.7, 1.4]
+    color: "#23233a"
+    material: { roughness: 0.5, metalness: 0.3, emissive: "#3a2a66", emissiveIntensity: 0.15 }
+  }
+
+  // ── Patrol waypoints (Brittney's route — read by the brain driver) ────────
+  object "Waypoint_1" {
+    geometry: "cylinder"
+    position: [-3.5, 0.06, -1.5]
+    scale: [0.7, 0.06, 0.7]
+    color: "#22d3ee"
+    material: { emissive: "#22d3ee", emissiveIntensity: 0.5, roughness: 0.4 }
+  }
+  object "Waypoint_2" {
+    geometry: "cylinder"
+    position: [3.5, 0.06, -1.5]
+    scale: [0.7, 0.06, 0.7]
+    color: "#a855f7"
+    material: { emissive: "#a855f7", emissiveIntensity: 0.5, roughness: 0.4 }
+  }
+  object "Waypoint_3" {
+    geometry: "cylinder"
+    position: [3.5, 0.06, -6.5]
+    scale: [0.7, 0.06, 0.7]
+    color: "#33ff99"
+    material: { emissive: "#33ff99", emissiveIntensity: 0.5, roughness: 0.4 }
+  }
+  object "Waypoint_4" {
+    geometry: "cylinder"
+    position: [-3.5, 0.06, -6.5]
+    scale: [0.7, 0.06, 0.7]
+    color: "#ffcc33"
+    material: { emissive: "#ffcc33", emissiveIntensity: 0.5, roughness: 0.4 }
+  }
+
+  // ── Lighting ─────────────────────────────────────────────────────────────
+  directional_light "Key" {
+    color: "#ffffff"
+    intensity: 1.0
+    position: [4, 9, 4]
+    shadows: true
+  }
+  ambient_light "Fill" {
+    color: "#b8c4ff"
+    intensity: 0.45
+  }
+
+  post_processing {
+    bloom: { intensity: 0.3, threshold: 0.7, radius: 0.35 }
+    tone_mapping: "aces"
+  }
+}

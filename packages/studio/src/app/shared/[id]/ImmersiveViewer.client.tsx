@@ -34,6 +34,10 @@ interface ImmersiveViewerProps {
   sceneName?: string;
   /** Scene name — used as the share title when Publish runs. */
   name?: string;
+  /** Entity id to embody as a tracked AgentAvatar (its world-state drives a body in
+   *  the scene). Lets a native .holo page declare the embodied agent (e.g. Brittney)
+   *  without a URL param; falls back to ?agent= in the URL when unset. */
+  agentId?: string;
 }
 
 type ParsedObject = {
@@ -484,7 +488,7 @@ async function postQuestProof(
   );
 }
 
-export function ImmersiveViewer({ code, sceneName, name }: ImmersiveViewerProps) {
+export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -591,16 +595,21 @@ export function ImmersiveViewer({ code, sceneName, name }: ImmersiveViewerProps)
     camera.lookAt(0, 1, 0);
     cameraRef.current = camera;
 
-    const agentId =
-      typeof window !== 'undefined'
+    // Embodied agent: the `agentId` prop (native page declaration) wins; otherwise
+    // fall back to ?agent= in the URL (the warehouse path — unchanged).
+    const resolvedAgentId =
+      agentId ??
+      (typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('agent')
-        : null;
+        : null);
 
     // User locomotion (move + smooth-turn + teleport) and NPC embodiment, both
     // from the shared @holoscript/xr-embodiment package — no longer hardcoded here,
     // so every VR scene inherits the same mobility (F.118) and agent-avatar tracking.
     const loco = new XRLocomotionController({ renderer });
-    const tracker = agentId ? new AgentAvatarTracker({ scene, entityId: agentId }) : null;
+    const tracker = resolvedAgentId
+      ? new AgentAvatarTracker({ scene, entityId: resolvedAgentId })
+      : null;
 
     // setAnimationLoop is the correct loop for BOTH XR and non-XR (three.js drives
     // it via rAF when not presenting), so it is the single render driver — a second

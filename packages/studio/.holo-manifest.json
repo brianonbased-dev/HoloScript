@@ -13,7 +13,8 @@
     "src\\app\\build\\page.tsx",
     "src\\app\\vibe\\page.tsx",
     "src\\app\\agent-ability\\page.tsx",
-    "src\\app\\playground\\pipeline\\page.tsx"
+    "src\\app\\playground\\pipeline\\page.tsx",
+    "src\\app\\playground\\embodied\\page.tsx"
   ],
-  "lastBuild": "2026-06-14T18:53:20.302Z"
+  "lastBuild": "2026-06-14T20:42:39.570Z"
 }

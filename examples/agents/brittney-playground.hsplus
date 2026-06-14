@@ -1,0 +1,32 @@
+// Brittney — playground companion brain (native .hsplus agent definition).
+//
+// Per F.120, behavior + agent BRAINS live in .hsplus (the "how things REACT" layer);
+// per F.119, the agent's NAME is its .hsplus brain skill. This file is Brittney's
+// identity + behavior params. Her BODY is an entity-generic AgentAvatar (D.094 — a
+// placeholder orb today, the AAA avatar later); her PATH is the Waypoint_* pads in the
+// scene (examples/playground-brittney.holo); her params (entityId/dwell/speed/mood)
+// are read from HERE by scripts/brittney-brain-driver.mjs and pushed through the
+// world-state loop. Model is the flagship default — the most capable we have
+// (D.090/D.094) — referenced symbolically so it never pins a stale id.
+
+@ai_npc
+@llm_agent { model: "flagship", maxTokens: 8192 }
+
+composition "BrittneyPlayground" {
+  state {
+    entityId: "brittney"
+    role: "companion"
+    mood: "friendly"
+    speed: 1.1
+    dwellMs: 1600
+  }
+
+  @state_machine {
+    initial: "greeting"
+    states: {
+      greeting: { ready: -> "patrolling" }
+      patrolling: { visitor: -> "attending" }
+      attending: { done: -> "patrolling" }
+    }
+  }
+}
