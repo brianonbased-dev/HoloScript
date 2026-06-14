@@ -665,7 +665,19 @@ export async function handleTool(
     name === 'execute_workflow'
   ) {
     const { handleAgentOrchestrationTool } = await import('./agent-orchestration-tools');
-    return handleAgentOrchestrationTool(name, args);
+    // Wire a real tool executor so execute_workflow steps actually invoke MCP tools
+    // (previously every step returned a dry-run stub). Steps run with the caller's
+    // signing context; guard against execute_workflow re-entering itself.
+    const workflowToolExecutor = async (
+      toolName: string,
+      toolArgs: Record<string, unknown>
+    ): Promise<unknown> => {
+      if (toolName === 'execute_workflow') {
+        throw new Error('execute_workflow cannot be nested as a workflow step (recursion guard)');
+      }
+      return handleTool(toolName, toolArgs, effectiveSigningCtx);
+    };
+    return handleAgentOrchestrationTool(name, args, workflowToolExecutor);
   }
 
   // Observability tools (v5.6)

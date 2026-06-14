@@ -307,7 +307,9 @@ describe('Agent Orchestration MCP Tools', () => {
         steps: [{ id: 'a', skillId: 'test_skill', inputs: { x: 1 } }],
       })) as Record<string, unknown>;
 
-      expect(result.status).toBe('completed');
+      // No executor provided to handleAgentOrchestrationTool directly => dry-run status.
+      // (In production, handleTool now wires a real executor; see handlers.ts.)
+      expect(result.status).toBe('dry-run');
       const steps = result.steps as Array<Record<string, unknown>>;
       expect((steps[0].output as Record<string, unknown>).note).toContain('dry run');
     });
