@@ -1,4 +1,4 @@
 @page {
   route: "/learn"
-  redirect: "https://holoscript.net/academy/"
+  redirect: "/examples"
 }
