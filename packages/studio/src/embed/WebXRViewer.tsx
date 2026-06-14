@@ -45,8 +45,14 @@ import { detectPlatform } from '@/lib/platform-detect';
 export type XRSessionMode = 'immersive-vr' | 'immersive-ar' | 'inline';
 
 export interface WebXRViewerProps {
-  /** HoloScript source code (.hsplus or .holo) */
-  code: string;
+  /** HoloScript source code (.hsplus or .holo). Optional when `sceneName` is given. */
+  code?: string;
+  /** Native example to load by name from the examples library (via /api/examples/<name>),
+   *  so a compiler-generated .holo page can mount this canonical R3F+XR viewer with just
+   *  a scene id (`sceneName`, not `scene` — the latter is a reserved .holo keyword). */
+  sceneName?: string;
+  /** Entity id to embody as a tracked AgentAvatar; falls back to ?agent= in the URL. */
+  agentId?: string;
   /** Preferred XR mode — buttons shown based on device support */
   mode?: XRSessionMode;
   /** CSS className for the container */
@@ -534,17 +540,20 @@ function XRControls({
  * both from the shared @holoscript/xr-embodiment package (F.118: every VR scene
  * must let the user move). Lives inside <XR> so it has the Canvas/XR context.
  */
-function XREmbodimentRig() {
+function XREmbodimentRig({ agentId }: { agentId?: string | null }) {
   useXRLocomotion();
-  const agentId =
-    typeof window !== 'undefined'
+  const resolved =
+    agentId ??
+    (typeof window !== 'undefined'
       ? new URLSearchParams(window.location.search).get('agent')
-      : null;
-  return agentId ? <AgentAvatar entityId={agentId} /> : null;
+      : null);
+  return resolved ? <AgentAvatar entityId={resolved} /> : null;
 }
 
 export function WebXRViewer({
   code,
+  sceneName,
+  agentId,
   mode = 'immersive-vr',
   className,
   style,
@@ -562,7 +571,27 @@ export function WebXRViewer({
   showPlatformReceipt = true,
   onPlatformReceipt,
 }: WebXRViewerProps) {
-  const { r3fTree, errors } = useScenePipeline(code);
+  // Scene source: inline `code`, or fetched from the examples library by `sceneName`
+  // (so a compiler-generated .holo page can mount this canonical viewer with a scene id).
+  const [resolvedCode, setResolvedCode] = useState<string | null>(code ?? null);
+  useEffect(() => {
+    if (code != null) {
+      setResolvedCode(code);
+      return;
+    }
+    if (!sceneName) return;
+    let cancelled = false;
+    fetch(`/api/examples/${encodeURIComponent(sceneName)}`)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((t) => {
+        if (!cancelled) setResolvedCode(t);
+      })
+      .catch((err: unknown) => logger.warn('[WebXRViewer] scene load failed:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [code, sceneName]);
+  const { r3fTree, errors } = useScenePipeline(resolvedCode ?? '');
   const xrCaps = useXRCapabilities();
   const [xrActive, setXrActive] = useState(false);
   const [platformReceipt, setPlatformReceipt] = useState<AdaptivePlatformLayerReceipt | null>(null);
@@ -717,7 +746,7 @@ export function WebXRViewer({
             )}
           </Suspense>
 
-          <XREmbodimentRig />
+          <XREmbodimentRig agentId={agentId} />
 
           <OrbitControls
             makeDefault

@@ -26,11 +26,14 @@ const SLOT_IMPORTS = {
     component: 'PipelineWorkbench',
     importPath: '@/components/pipeline/PipelineWorkbench',
   },
-  // The WebXR immersive viewer — lets a native .holo page render a walkable scene
-  // by mounting it with a `scene` prop (the .holo scene loaded from examples/).
+  // The canonical R3F + @react-three/xr viewer — a native .holo page mounts it with a
+  // `sceneName` (loaded from examples/) and optional `agentId` (embodied AgentAvatar).
+  // Phase A (founder 2026-06-14 "consume the canonical pipeline"): this replaced the
+  // bespoke raw-three.js ImmersiveViewer so the live pages render through the canonical
+  // R3FCompiler → R3F renderer + shared xr-embodiment rig, not a hand-authored substitute.
   ImmersiveScene: {
-    component: 'ImmersiveViewer',
-    importPath: '@/app/shared/[id]/ImmersiveViewer.client',
+    component: 'WebXRViewer',
+    importPath: '@/embed/WebXRViewer',
   },
 } as const;
 

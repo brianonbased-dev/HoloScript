@@ -5,7 +5,7 @@ composition "AssetPipelineWarehouse" {
     @theme { className: "fixed inset-0 bg-[#07070f]" }
 
     object "ImmersiveScene" {
-      @slot { sceneName: "asset-pipeline-warehouse" }
+      @slot { sceneName: "asset-pipeline-warehouse", agentId: "pipeline-asset-1" }
     }
   }
 }
