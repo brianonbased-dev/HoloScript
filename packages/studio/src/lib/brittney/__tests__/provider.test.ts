@@ -174,18 +174,28 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     expect(result.model).toBe('qwen2.5-coder:1.5b');
   });
 
-  it('falls back to anthropic (BYOK) when fleet is cold', async () => {
+  it('does NOT fall back to a paid frontier API when fleet is cold (founder policy 2026-06-14)', async () => {
     process.env.BRITTNEY_PROVIDER = 'fleet';
     process.env.ANTHROPIC_API_KEY = 'sk-byok-fallback';
+    stubResolve({ status: 'cold', model: 'qwen2.5-coder:1.5b' });
+    // Sovereign-only: even with an Anthropic key present, a cold fleet surfaces a
+    // warming error — never a silent Anthropic bill.
+    await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
+  });
+
+  it('restores the frontier fallback when BRITTNEY_ALLOW_FRONTIER_FALLBACK=1', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    process.env.ANTHROPIC_API_KEY = 'sk-byok-fallback';
+    process.env.BRITTNEY_ALLOW_FRONTIER_FALLBACK = '1';
     stubResolve({ status: 'cold', model: 'qwen2.5-coder:1.5b' });
     const result = await resolveBrittneyProviderAsync();
     expect(result.providerName).toBe('anthropic');
   });
 
-  it('surfaces the cold error when fleet is cold and no fallback configured', async () => {
+  it('surfaces a warming error when fleet is cold and no sovereign fallback configured', async () => {
     process.env.BRITTNEY_PROVIDER = 'fleet';
     stubResolve({ status: 'cold' });
-    await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/cold/i);
+    await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
   });
 
   it('auto-detects fleet when BRITTNEY_FLEET_MODEL set and no explicit provider', async () => {

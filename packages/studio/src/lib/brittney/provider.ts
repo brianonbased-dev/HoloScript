@@ -261,9 +261,25 @@ async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
 }
 
 /**
- * Async provider resolution — prefers the sovereign serving fleet (dynamic-resolve),
- * gracefully falling back to the sync providers (cloud → ollama → anthropic-BYOK) when
- * the fleet is cold/unreachable, so scale-to-zero never breaks a request.
+ * A SOVEREIGN-only fallback for a cold fleet: cloud serving (BRITTNEY_SERVICE_URL) or
+ * local Ollama (OLLAMA_HOST), never a paid frontier API. Returns null when no sovereign
+ * endpoint is configured. (Founder 2026-06-14: a cold sovereign lane ≠ an Anthropic bill.)
+ */
+function resolveSovereignFallback(): ResolvedBrittneyProvider | null {
+  const cloudUrl = process.env.BRITTNEY_SERVICE_URL;
+  if (cloudUrl) return resolveCloud(cloudUrl);
+  const ollamaHost = process.env.OLLAMA_HOST || process.env.OLLAMA_BASE_URL;
+  if (ollamaHost) return resolveOllama(ollamaHost);
+  return null;
+}
+
+/**
+ * Async provider resolution — prefers the sovereign serving fleet (dynamic-resolve).
+ * When the fleet is cold/unreachable it falls back ONLY to a sovereign provider (cloud
+ * serving / local Ollama); it does NOT silently use a paid frontier API (founder policy
+ * 2026-06-14). With no sovereign fallback configured it throws SOVEREIGN_WARMING so the
+ * caller surfaces an honest "warming, retry" instead of billing Anthropic. Set
+ * BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 to restore the old BYOK-frontier cold fallback.
  *
  * Fleet is used when BRITTNEY_PROVIDER=fleet, or auto-detected when fleet env
  * (BRITTNEY_FLEET_MODEL / FLEET_INFERENCE_KEY) is present and no explicit provider is set.
@@ -280,14 +296,24 @@ export async function resolveBrittneyProviderAsync(
   if (fleetConfigured) {
     try {
       return await resolveFleet();
-    } catch (fleetErr) {
-      // Cold/unreachable fleet → fall back to a sync provider for THIS request. If none is
-      // configured, resolveBrittneyProvider() throws its own error — surface the fleet one.
-      try {
-        return await upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
-      } catch {
-        throw fleetErr;
+    } catch {
+      // Cold/unreachable fleet. The /serve/resolve call already bumped demand, so a
+      // serving box is warming. Founder policy 2026-06-14 ("im not recharging
+      // anthropic ... use the fleet"): a cold SOVEREIGN lane must NEVER silently
+      // fall back to a paid frontier API. Only a sovereign fallback (cloud serving
+      // or local Ollama) is allowed; otherwise surface an honest "warming, retry"
+      // so a cold start is a brief wait — not an Anthropic bill. The escape hatch
+      // BRITTNEY_ALLOW_FRONTIER_FALLBACK=1 restores the old BYOK-frontier behavior.
+      const sovereign = resolveSovereignFallback();
+      if (sovereign) return upgradeOllamaByDiscovery(sovereign);
+      if (process.env.BRITTNEY_ALLOW_FRONTIER_FALLBACK === '1') {
+        return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
       }
+      throw new Error(
+        'SOVEREIGN_WARMING: Brittney is warming up — the sovereign serving box was ' +
+          'scaled to zero and is spinning up now (your message bumped demand). Retry ' +
+          'in ~1 minute. Sovereign-only by founder policy.'
+      );
     }
   }
   return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
