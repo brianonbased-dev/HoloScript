@@ -27,6 +27,7 @@ import { KNOWLEDGE_DOMAINS } from '@holoscript/framework';
 import type { MeshKnowledgeEntry } from './types';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { HOLOMESH_DATA_DIR, atomicWriteJSON, readJSON } from './state';
 
@@ -36,9 +37,81 @@ const BRIDGE_DATA_DIR = path.join(HOLOMESH_DATA_DIR, 'consolidation');
 const LOG_PATH = path.join(BRIDGE_DATA_DIR, 'run-logs.json');
 const SNAPSHOT_PATH = path.join(BRIDGE_DATA_DIR, 'cold-store-snapshot.json');
 
+// GOLD-intake queue — relative to ~/.holoscript, NOT the HoloMesh data dir.
+// This file is the handoff boundary the ai-ecosystem GOLD pipeline consumes;
+// HoloScript never writes into D:/GOLD directly.
+const GOLD_INTAKE_DIR =
+  process.env.HOLOSCRIPT_GOLD_INTAKE_DIR ||
+  path.join(
+    process.env.HOLOSCRIPT_CACHE_DIR || path.join(os.homedir(), '.holoscript'),
+    'gold-intake'
+  );
+const GOLD_INTAKE_QUEUE = path.join(GOLD_INTAKE_DIR, 'queue.jsonl');
+
 function ensureDir(): void {
   if (!fs.existsSync(BRIDGE_DATA_DIR)) {
     fs.mkdirSync(BRIDGE_DATA_DIR, { recursive: true });
+  }
+}
+
+function ensureGoldIntakeDir(): void {
+  if (!fs.existsSync(GOLD_INTAKE_DIR)) {
+    fs.mkdirSync(GOLD_INTAKE_DIR, { recursive: true });
+  }
+}
+
+// ── GOLD-Intake Payload ──
+
+/**
+ * One JSON line per promoted entry, appended to
+ * ~/.holoscript/gold-intake/queue.jsonl. The ai-ecosystem GOLD pipeline
+ * (D:/GOLD) consumes this file — this queue is the handoff boundary.
+ */
+export interface GoldIntakePayload {
+  id: string;
+  domain: string;
+  content: string;
+  provenance: {
+    receiptId?: string;
+    authorDid: string;
+    corroborators: string[];
+    confidence?: number;
+    extractorVersion?: string;
+  };
+  sha256: string;
+  promotedAt: number;
+}
+
+/** Build and append GOLD-intake payloads for a batch of promoted ColdStoreEntries. */
+function appendGoldIntakePayloads(entries: ColdStoreEntry[]): void {
+  try {
+    ensureGoldIntakeDir();
+    const lines: string[] = [];
+    for (const entry of entries) {
+      const payload: GoldIntakePayload = {
+        id: entry.id,
+        // ColdStoreEntry carries its type, not its KnowledgeDomain (the domain is
+        // the engine's Map key, not a field). Consumers normalise the type string.
+        domain: entry.type,
+        content: entry.content,
+        provenance: {
+          receiptId: entry.memoryReceipt?.id,
+          authorDid: entry.authorDid,
+          corroborators: entry.memoryReceipt?.corroborators ?? [],
+          confidence: entry.memoryReceipt?.confidence,
+          extractorVersion: entry.memoryReceipt?.extractorVersion,
+        },
+        sha256: crypto.createHash('sha256').update(entry.content).digest('hex'),
+        promotedAt: Date.now(),
+      };
+      lines.push(JSON.stringify(payload));
+    }
+    if (lines.length > 0) {
+      fs.appendFileSync(GOLD_INTAKE_QUEUE, lines.join('\n') + '\n', 'utf-8');
+    }
+  } catch (err: unknown) {
+    // Best-effort — never surface into the consolidation cycle.
+    console.warn('[ConsolidationBridge] gold-intake append error (non-fatal):', err);
   }
 }
 
@@ -211,7 +284,11 @@ export class HoloMeshConsolidationBridge {
   private timer: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.engine = new ConsolidationEngine();
+    // Register the default graduation hook: every PROMOTE-phase cold-store entry
+    // is serialized to the GOLD-intake queue for the ai-ecosystem GOLD pipeline.
+    this.engine = new ConsolidationEngine({
+      graduationHook: (entries: ColdStoreEntry[]) => appendGoldIntakePayloads(entries),
+    });
     this.loadSnapshot();
     this.loadLogs();
   }

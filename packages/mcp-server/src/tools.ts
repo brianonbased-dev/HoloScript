@@ -58,6 +58,7 @@ import { secretsBrokerTools } from './secrets-broker-tools';
 import { holoTunnelTools } from './holo-tunnel-tools';
 import { simulationBillingTools } from './simulation-billing-tools';
 import { rigMatchSkeletonToolDefinition } from './tools/rig_match_skeleton';
+import { memoryTools } from './memory-tools';
 
 /**
  * All MCP tools for HoloScript
@@ -774,6 +775,8 @@ export const tools: Tool[] = [
   ...simulationBillingTools,
   // Skeleton interop (G4 — rig_match_skeleton)
   rigMatchSkeletonToolDefinition,
+  // Native memory substrate (Slice B1 — shared agent memory surface)
+  ...memoryTools,
 ];
 
 // Tool name type for type safety

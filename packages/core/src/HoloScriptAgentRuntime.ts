@@ -155,6 +155,7 @@ export class HoloScriptAgentRuntime {
   private rawEpisodes: EpisodicMemory[] = [];
   public semanticFacts: SemanticFact[] = [];
   private consolidationInterval: NodeJS.Timeout | null = null;
+  private consolidating = false;
 
   // JEPA action-planning loop (Phase 8)
   // Default latentDim=64, condDim=16 (action conditioning). Caller can swap
@@ -297,7 +298,7 @@ export class HoloScriptAgentRuntime {
 
     // Begin the idle memory consolidation loop
     if (!this.consolidationInterval) {
-      this.consolidationInterval = setInterval(() => this.consolidateMemory(), 30000); // 30s background cycle
+      this.consolidationInterval = setInterval(() => void this.consolidateMemory(), 30000); // 30s background cycle
     }
   }
 
@@ -326,17 +327,29 @@ export class HoloScriptAgentRuntime {
   /**
    * Internal idle tick leveraging the MemoryConsolidator subsystem to offload processing constraints.
    */
-  private consolidateMemory(): void {
-    if (this.isDestroyed || this.rawEpisodes.length < 5) return;
+  private async consolidateMemory(): Promise<void> {
+    if (this.isDestroyed || this.consolidating || this.rawEpisodes.length < 5) return;
 
-    const { newFacts, prunedEpisodes } = MemoryConsolidator.compressEpisodes(this.rawEpisodes);
-    if (newFacts.length > 0) {
-      this.semanticFacts.push(...newFacts);
-      this.rawEpisodes = this.rawEpisodes.filter((e) => !prunedEpisodes.includes(e.id));
+    // compressEpisodes is now async (sovereign-LLM narrative summarization with a
+    // rule-based fallback). The in-flight guard prevents an overlapping 30s tick
+    // from double-consolidating the same episodes if an LLM call runs long.
+    this.consolidating = true;
+    try {
+      const { newFacts, prunedEpisodes } = await MemoryConsolidator.compressEpisodes(this.rawEpisodes);
+      if (this.isDestroyed) return;
+      if (newFacts.length > 0) {
+        this.semanticFacts.push(...newFacts);
+        this.rawEpisodes = this.rawEpisodes.filter((e) => !prunedEpisodes.includes(e.id));
+      }
+
+      // Actively prevent Memory Degradation (G.USER.002) by pruning stale context
+      this.semanticFacts = MemoryConsolidator.pruneStaleFacts(this.semanticFacts);
+    } catch (err) {
+      // Background tick — never let a consolidation failure crash the runtime.
+      console.warn('[HoloScriptAgentRuntime] memory consolidation tick failed (non-fatal):', err);
+    } finally {
+      this.consolidating = false;
     }
-
-    // Actively prevent Memory Degradation (G.USER.002) by pruning stale context
-    this.semanticFacts = MemoryConsolidator.pruneStaleFacts(this.semanticFacts);
   }
 
   /**

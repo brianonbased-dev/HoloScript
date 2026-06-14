@@ -46,6 +46,7 @@ export type {
   QuarantinedMemoryEntry,
   RetainedMemoryEvidence,
   CrossDomainMatch,
+  ConsolidationEngineOptions,
 } from './knowledge/consolidation';
 
 // Knowledge consolidator (FW-0.5 â€” tiered sleep/wake, cross-domain, contradictions, provenance)

@@ -187,14 +187,27 @@ function getEntryExcitability(
  * Feed it entries via `ingest()`, run cycles via `runConsolidationCycle()`,
  * and read results via `getHotBuffer()` / `getColdStore()`.
  */
+export interface ConsolidationEngineOptions {
+  /**
+   * Optional hook called in the PROMOTE phase for every entry that crosses the
+   * promote threshold and is written to cold store. The hook receives a snapshot
+   * of the promoted entries for that cycle. Async hooks are awaited; errors are
+   * caught internally and never propagate into the consolidation cycle —
+   * existing behaviour is unchanged when the hook is absent.
+   */
+  graduationHook?: (entries: ColdStoreEntry[]) => void | Promise<void>;
+}
+
 export class ConsolidationEngine {
   private hotBuffers: Map<KnowledgeDomain, HotBufferEntry[]> = new Map();
   private coldStores: Map<KnowledgeDomain, Map<string, ColdStoreEntry>> = new Map();
   private quarantines: Map<KnowledgeDomain, QuarantinedMemoryEntry[]> = new Map();
   private lastConsolidation: Map<KnowledgeDomain, number> = new Map();
   private reconsolidationWindows: Map<string, ReconsolidationEvent> = new Map();
+  private readonly graduationHook?: (entries: ColdStoreEntry[]) => void | Promise<void>;
 
-  constructor() {
+  constructor(opts?: ConsolidationEngineOptions) {
+    this.graduationHook = opts?.graduationHook;
     for (const domain of KNOWLEDGE_DOMAINS) {
       this.hotBuffers.set(domain, []);
       this.coldStores.set(domain, new Map());
@@ -381,6 +394,7 @@ export class ConsolidationEngine {
     });
 
     // Phase 5: PROMOTE — move surviving entries from hot buffer to cold store
+    const promotedEntries: ColdStoreEntry[] = [];
     for (const entry of uniqueEntries) {
       const entryId = `${entry.type.charAt(0).toUpperCase()}.${domain.toUpperCase().slice(0, 3)}.${now}_${promoted}`;
       const excitability = defaultExcitability();
@@ -401,7 +415,27 @@ export class ConsolidationEngine {
         memoryReceipt: cloneMemoryReceipt(entry.memoryReceipt!),
       };
       coldStore.set(entryId, coldEntry);
+      promotedEntries.push(coldEntry);
       promoted++;
+    }
+
+    // Fire the graduation hook for newly promoted entries. Error-isolated for
+    // BOTH synchronous throws and async rejections — a failing hook must never
+    // break the consolidation cycle. Sync hooks run synchronously so callers
+    // (e.g. the GOLD-intake queue writer) complete within the cycle.
+    if (this.graduationHook && promotedEntries.length > 0) {
+      const hook = this.graduationHook;
+      const snapshot = promotedEntries.map((e) => ({ ...e }));
+      try {
+        const maybePromise = hook(snapshot);
+        if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
+          (maybePromise as Promise<void>).catch((err: unknown) => {
+            console.warn('[ConsolidationEngine] graduationHook error (non-fatal):', err);
+          });
+        }
+      } catch (err: unknown) {
+        console.warn('[ConsolidationEngine] graduationHook error (non-fatal):', err);
+      }
     }
 
     // Phase 6: PRUNE — engram competition if over capacity

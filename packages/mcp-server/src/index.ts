@@ -79,6 +79,7 @@ import {
   handleHologramContentTool,
 } from './hologram-content-tools';
 import { negotiationToolDefinitions, handleNegotiationTool } from './negotiation-mcp-tools';
+import { memoryTools, handleMemoryTool } from './memory-tools';
 import { handleBatchToolCall } from './tooling-discovery-tools';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
@@ -412,6 +413,7 @@ registerCategory(negotiationToolDefinitions, (name, args, _signingCtx) =>
 registerCategory(daemonLifecycleTools, (name, args, _signingCtx) =>
   handleDaemonLifecycleTool(name, args)
 );
+registerCategory(memoryTools, (name, args, _signingCtx) => handleMemoryTool(name, args));
 
 // 2. Core fallback (anything else exported in `tools.ts` array)
 for (const t of tools) {
