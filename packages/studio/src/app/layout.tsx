@@ -6,19 +6,19 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'HoloScript Studio',
   description:
-    'Point it at your data. Get a spatial experience on every device with HoloScript Studio and live MCP tools.',
+    'Build your own game or app with no coding — keep your data and own what you make. HoloScript Studio, with live MCP tools.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio'),
   openGraph: {
     title: 'HoloScript Studio',
     description:
-      'Point it at your data. Get a spatial experience on every device with HoloScript Studio.',
+      'Build your own game or app with no coding — keep your data and own what you make. HoloScript Studio.',
     siteName: 'HoloScript Studio',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'HoloScript Studio',
-    description: 'Point it at your data. Get a spatial experience on every device.',
+    description: 'Build your own game or app — no code, own your data, no lock-in.',
   },
 };
 

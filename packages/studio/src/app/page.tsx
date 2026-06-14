@@ -205,7 +205,7 @@ function PromptHero() {
           HoloScript Studio
         </h1>
         <p className="text-lg text-white/50">
-          Describe it. Build it. Compile to any platform.
+          Build your own game or app. No code. No data given away.
         </p>
       </div>
 
@@ -380,7 +380,7 @@ function CompileTargetStrip() {
   return (
     <section className="w-full max-w-4xl mx-auto">
       <h2 className="text-center text-white/40 text-xs font-medium mb-4 uppercase tracking-wider">
-        Compilation Targets
+        Runs anywhere — never locked in
       </h2>
       <div className="flex flex-wrap justify-center gap-2">
         {COMPILE_TARGETS.map((t) => (
