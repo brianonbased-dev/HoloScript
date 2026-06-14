@@ -1790,8 +1790,6 @@ const MESH_TYPES = new Set([
   'object',
   'avatar',
   'dna',
-  'gaussian_splat',
-  'splat',
   'nerf',
   'volumetric_video',
   // Procedural geometry types (hull/spline/membrane/blob/metaball)
@@ -3585,6 +3583,15 @@ export class R3FCompiler {
       type = 'Sparkles';
     } else if (geometryType === 'portal') {
       type = 'Portal';
+    } else if (
+      geometryType === 'gaussian_splat' ||
+      geometryType === 'splat' ||
+      props.gaussianSplat !== undefined
+    ) {
+      // Gaussian-splat nodes render via R3FNodeRenderer's dedicated `case 'splat'`
+      // (GaussianSplatViewer), not the generic mesh geometry path. Both the
+      // `geometry: gaussian_splat` declaration and the `@gaussian_splat` trait reach here.
+      type = 'splat';
     } else {
       type = 'mesh';
       props.hsType = geometryType;
@@ -4152,8 +4159,8 @@ export class R3FCompiler {
       system: 'System',
       component: 'Component',
       dna: 'DNA',
-      gaussian_splat: 'GaussianSplat',
-      splat: 'GaussianSplat',
+      gaussian_splat: 'splat',
+      splat: 'splat',
       nerf: 'NeRF',
       volumetric_video: 'VolumetricVideo',
       world: 'group',

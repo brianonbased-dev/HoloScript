@@ -332,4 +332,42 @@ describe('R3FCompiler', () => {
     expect(draftObj!.assetMaturity).toBe('draft');
     expect(normalObj!.assetMaturity).toBeUndefined();
   });
+
+  // =========== Gaussian splat node typing (regression: splat objects were mistyped as mesh) ===========
+
+  it('compiles a gaussian_splat geometry object to node.type "splat"', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'SplatScene',
+      objects: [
+        {
+          name: 'cloud',
+          properties: [{ key: 'geometry', value: 'gaussian_splat' }],
+          traits: [{ name: 'gaussian_splat', config: { src: 'https://example.com/scene.splat' } }],
+        },
+      ],
+    });
+    const splat = result.children!.find((c) => c.id === 'cloud');
+    expect(splat).toBeDefined();
+    expect(splat!.type).toBe('splat');
+    // regression guard: it must NOT fall through to a generic mesh anymore
+    expect(splat!.type).not.toBe('mesh');
+  });
+
+  it('compiles an @gaussian_splat trait object (default geometry) to node.type "splat"', () => {
+    const compiler = new R3FCompiler();
+    const result = compiler.compileComposition({
+      name: 'SplatScene',
+      objects: [
+        {
+          name: 'cloud2',
+          properties: [],
+          traits: [{ name: 'gaussian_splat', config: { src: '/s.splat' } }],
+        },
+      ],
+    });
+    const splat = result.children!.find((c) => c.id === 'cloud2');
+    expect(splat).toBeDefined();
+    expect(splat!.type).toBe('splat');
+  });
 });
