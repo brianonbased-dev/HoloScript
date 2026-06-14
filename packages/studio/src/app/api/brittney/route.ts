@@ -60,6 +60,7 @@ import { buildContextualPrompt } from '@/lib/brittney/systemPrompt';
 import { parseTextToolCall } from '@/lib/brittney/textToolCallRescue';
 import {
   createOutputScreener,
+  screenInputMessage,
   resolveBrittneyPolicyConfig,
   buildPolicyAuditEvent,
   policyEventType,
@@ -309,6 +310,27 @@ export async function POST(request: NextRequest) {
         },
         { type: 'done', payload: null },
       ]);
+    }
+
+    // CONTENT POLICY input screen (P.013): block illegal/hard-stop input before
+    // it reaches the model or accrues credit spend. Deterministic tiers only
+    // (sync, sub-ms). Soft `flag` decisions let the request proceed.
+    if (latestMsg?.role === 'user' && typeof latestMsg.content === 'string') {
+      const inputDecision = screenInputMessage(latestMsg.content);
+      if (!inputDecision.allowed) {
+        try {
+          console.warn(
+            '[content-policy][input]',
+            JSON.stringify({ action: inputDecision.action, category: inputDecision.category })
+          );
+        } catch {
+          // best-effort
+        }
+        return sseResponse([
+          { type: 'policy_blocked', payload: policyEventPayload(inputDecision) },
+          { type: 'done', payload: null },
+        ]);
+      }
     }
 
     // Convert client messages to LLMMessage[] (provider-agnostic).

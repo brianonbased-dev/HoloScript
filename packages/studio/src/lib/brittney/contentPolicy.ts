@@ -163,6 +163,18 @@ export function buildPolicyAuditEvent(
   });
 }
 
+/**
+ * Screen a user input message synchronously. Returns the decision; callers
+ * should block the request when `!decision.allowed`.
+ */
+export function screenInputMessage(
+  text: string,
+  config?: ContentPolicyConfig
+): ContentPolicyDecision {
+  const cfg = config ?? resolveBrittneyPolicyConfig();
+  return evaluateContentPolicySync({ text, surface: 'brittney', direction: 'input' }, cfg);
+}
+
 /** SSE event name for a decision: blocking decisions get a distinct event. */
 export function policyEventType(decision: ContentPolicyDecision): 'policy_blocked' | 'policy_decision' {
   return decision.allowed ? 'policy_decision' : 'policy_blocked';
