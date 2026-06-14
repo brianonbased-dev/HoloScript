@@ -280,3 +280,96 @@ describe('Native2DCompiler static-HTML styling', () => {
     expect(html).not.toContain('#050510');
   });
 });
+
+// ---------------------------------------------------------------------------
+// @bind value-tier (threshold-conditional) className — profiler readout
+// compiles natively (task_1781462589710_rzxt)
+// ---------------------------------------------------------------------------
+describe('Native2DCompiler @bind value-tier className', () => {
+  /** A profiler FPS readout: bound to state.snap.fps, styled green/amber/red. */
+  function makeProfilerReadout(): HoloComposition {
+    const fpsReadout = objectDecl('fps_readout', [
+      trait('text', { variant: 'caption' }),
+      trait('bind', {
+        state: 'snap',
+        path: 'fps',
+        fallback: '—',
+        tiers: [
+          { gte: 55, className: 'text-emerald-400' },
+          { gte: 30, className: 'text-amber-400' },
+          { className: 'text-red-400' },
+        ],
+      }),
+    ]);
+
+    return {
+      type: 'Composition',
+      name: 'ProfilerReadout',
+      objects: [fpsReadout],
+      templates: [],
+      spatialGroups: [],
+      lights: [],
+      imports: [],
+      timelines: [],
+      audio: [],
+      zones: [],
+      transitions: [],
+      conditionals: [],
+      iterators: [],
+      npcs: [],
+      quests: [],
+      abilities: [],
+      dialogues: [],
+      stateMachines: [],
+      achievements: [],
+      talentTrees: [],
+      shapes: [],
+      state: {
+        type: 'State',
+        properties: [{ type: 'StateProperty', key: 'snap', value: { fps: 0 } }],
+      },
+    };
+  }
+
+  it('emits a threshold-conditional className ternary cascade from bind tiers (react)', () => {
+    const react = new Native2DCompiler().compile(makeProfilerReadout(), '', undefined, {
+      format: 'react',
+    });
+    // High-to-low ternary cascade reading the bound numeric value.
+    expect(react).toContain('(snap?.fps ?? 0) >= 55 ? "text-emerald-400"');
+    expect(react).toContain('(snap?.fps ?? 0) >= 30 ? "text-amber-400"');
+    expect(react).toContain('"text-red-400"');
+    // Emitted as a JSX expression className (not a static string).
+    expect(react).toContain('className={`');
+  });
+
+  it('merges static variant classes with the value-tier cascade (react)', () => {
+    const react = new Native2DCompiler().compile(makeProfilerReadout(), '', undefined, {
+      format: 'react',
+    });
+    // @text(variant: caption) contributes `text-sm text-gray-500` statically,
+    // which must prefix the dynamic tier cascade inside the same className.
+    expect(react).toMatch(/className=\{`text-sm text-gray-500 \$\{.*text-red-400.*`\}/s);
+  });
+
+  it('still emits the bound value content alongside the tiered className (react)', () => {
+    const react = new Native2DCompiler().compile(makeProfilerReadout(), '', undefined, {
+      format: 'react',
+    });
+    // The reactive content expression and fallback are unchanged by tiers.
+    expect(react).toContain('{snap?.fps ?? "—"}');
+  });
+
+  it('falls back to a plain static className when bind has no tiers (react)', () => {
+    const noTiers = makeProfilerReadout();
+    // strip tiers from the bind trait
+    const bindTrait = noTiers.objects[0].traits.find((t) => t.name === 'bind');
+    if (bindTrait && bindTrait.config && typeof bindTrait.config === 'object') {
+      delete (bindTrait.config as Record<string, unknown>).tiers;
+    }
+    const react = new Native2DCompiler().compile(noTiers, '', undefined, { format: 'react' });
+    // Static caption classes appear as a plain string className, no JSX cascade.
+    expect(react).toContain('className="text-sm text-gray-500"');
+    expect(react).not.toContain('>= 55');
+  });
+});

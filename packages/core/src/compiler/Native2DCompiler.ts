@@ -239,6 +239,17 @@ export default ${safeName}Component;
       props += ` id="${traits.theme.id}"`;
     }
 
+    // @bind value-tier styling: a `tiers` array on the bind trait makes the
+    // element's className threshold-conditional on the bound numeric value.
+    // This is what lets a profiler readout (FPS → green/amber/red) compile
+    // natively instead of needing a hand-written .tsx ternary cascade.
+    // Each tier: { gte?: number, lt?: number, className: string }. Tiers are
+    // evaluated in source order, first match wins; a tier with neither `gte`
+    // nor `lt` is the unconditional default (place it last). The expression
+    // is emitted as a JSX `{...}` className so it re-evaluates on every render
+    // as the bound state changes.
+    const tierExpr = this.buildBindTierClassName(traits);
+
     const combinedStyles: Record<string, string> = { ...styles };
     if (traits.theme?.style) {
       traits.theme.style.split(';').forEach((rule: string) => {
@@ -254,7 +265,12 @@ export default ${safeName}Component;
     if (Object.keys(combinedStyles).length > 0) {
       props += ` style={${JSON.stringify(combinedStyles)}}`;
     }
-    if (classes.length > 0) {
+    if (tierExpr) {
+      // Merge any static classes with the value-tier cascade into one JSX
+      // template-literal className so it re-evaluates every render.
+      const staticPrefix = classes.length > 0 ? `${classes.join(' ')} ` : '';
+      props += ` className={\`${staticPrefix}\${${tierExpr}}\`}`;
+    } else if (classes.length > 0) {
       props += ` className="${classes.join(' ')}"`;
     }
     if (traits.theme?.attributes) {
@@ -805,6 +821,83 @@ export default ${safeName}Component;
   // ============================================================================
   // UTILITIES
   // ============================================================================
+
+  /**
+   * Build a JSX expression that resolves to a className string based on where
+   * the bound numeric value falls among a set of value tiers. Returns `null`
+   * when the bind trait carries no `tiers` array (so the caller falls back to
+   * the plain static className path).
+   *
+   * Given:
+   *   @bind(state: "snap", path: "fps", tiers: [
+   *     { gte: 55, className: "text-emerald-400" },
+   *     { gte: 30, className: "text-amber-400" },
+   *     {          className: "text-red-400" }   // default (no bound)
+   *   ])
+   *
+   * emits (with the bound value resolved to e.g. `snap?.fps`):
+   *   (snap?.fps ?? 0) >= 55 ? "text-emerald-400"
+   *     : (snap?.fps ?? 0) >= 30 ? "text-amber-400"
+   *     : "text-red-400"
+   *
+   * Each tier may specify `gte` (>=), `gt` (>), `lte` (<=), and/or `lt` (<).
+   * Conditions on one tier are AND-ed. A tier with no bounds is the
+   * unconditional fallback (its className is the trailing `:` branch). If no
+   * tier is unconditional, an empty-string fallback is appended so the
+   * expression is always total.
+   */
+  private buildBindTierClassName(traits: Record<string, any>): string | null {
+    const bind = traits.bind;
+    if (!bind || !Array.isArray(bind.tiers) || bind.tiers.length === 0) return null;
+
+    // Resolve the bound value reference exactly the same way the content
+    // expression does, then coerce to a number for comparison. `?? 0` keeps
+    // the cascade total even before the bound state has loaded.
+    const pathParts = String(bind.path || '').split('.').filter(Boolean);
+    const baseExpr = pathParts.reduce(
+      (acc: string, key: string) => `${acc}?.${key}`,
+      String(bind.state)
+    );
+    const valueRef = `(${baseExpr} ?? 0)`;
+
+    const tiers = bind.tiers as Array<Record<string, unknown>>;
+    const branches: Array<{ condition: string | null; className: string }> = [];
+
+    for (const tier of tiers) {
+      const className = typeof tier.className === 'string' ? tier.className : '';
+      const conditions: string[] = [];
+      if (typeof tier.gte === 'number') conditions.push(`${valueRef} >= ${tier.gte}`);
+      if (typeof tier.gt === 'number') conditions.push(`${valueRef} > ${tier.gt}`);
+      if (typeof tier.lte === 'number') conditions.push(`${valueRef} <= ${tier.lte}`);
+      if (typeof tier.lt === 'number') conditions.push(`${valueRef} < ${tier.lt}`);
+      branches.push({
+        condition: conditions.length > 0 ? conditions.join(' && ') : null,
+        className,
+      });
+    }
+
+    // Build the ternary cascade from the conditional branches, ending in the
+    // first unconditional branch (or an empty-string default for totality).
+    let fallback = '""';
+    const conditional: Array<{ condition: string; className: string }> = [];
+    for (const b of branches) {
+      if (b.condition === null) {
+        fallback = JSON.stringify(b.className);
+        break; // first default wins; later tiers are unreachable
+      }
+      conditional.push({ condition: b.condition, className: b.className });
+    }
+
+    if (conditional.length === 0) {
+      // Only a default tier was supplied — degenerate to a constant.
+      return fallback === '""' ? null : fallback;
+    }
+
+    return conditional.reduceRight(
+      (acc, b) => `${b.condition} ? ${JSON.stringify(b.className)} : ${acc}`,
+      fallback
+    );
+  }
 
   private extractTraits(obj: unknown): Record<string, any> {
     const map: Record<string, any> = {};
