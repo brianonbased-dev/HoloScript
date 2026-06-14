@@ -18,6 +18,12 @@ composition "CompileTargets" {
         @theme { className: "text-xl font-bold tracking-tight" }
       }
 
+      object "NavLinks" {
+        @theme { className: "hidden md:flex items-center gap-6" }
+        object "NavCompile" { @link { href: "/compile", content: "Compile" } @theme { className: "text-sm text-white transition" } }
+        object "NavEcosystem" { @link { href: "/ecosystem", content: "Ecosystem" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
+      }
+
       object "OpenStudioNav" {
         @link { href: "https://holoscript.studio", content: "Open Studio" }
         @theme { className: "text-sm font-medium px-4 py-2 rounded-full border border-white/20 hover:border-white/50 transition" }

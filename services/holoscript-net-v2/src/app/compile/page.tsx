@@ -22,6 +22,17 @@ function CompileTargetsComponent() {
       {`HoloScript`}
 
     </a>
+<div className="hidden md:flex items-center gap-6">
+
+      <a className="text-sm text-white transition" href="/compile">
+      {`Compile`}
+
+    </a>
+<a className="text-sm text-gray-300 hover:text-white transition" href="/ecosystem">
+      {`Ecosystem`}
+
+    </a>
+    </div>
 <a className="text-sm font-medium px-4 py-2 rounded-full border border-white/20 hover:border-white/50 transition" href="https://holoscript.studio">
       {`Open Studio`}
 

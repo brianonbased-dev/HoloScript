@@ -1,0 +1,75 @@
+composition "Ecosystem" {
+  @page { route: "/ecosystem" }
+  @metadata {
+    title: "HoloScript — the ecosystem"
+    description: "The live surfaces of HoloScript: Studio, the MCP tool server, Absorb code-knowledge, and the Store. One language, many front doors."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "relative z-10 min-h-screen flex flex-col" }
+
+    object "Blob" @slot(component: "LiquidBlobBackground", import: "@/components/LiquidBlobBackground") {}
+
+    object "Nav" {
+      @theme { tag: "nav", className: "relative z-10 flex items-center justify-between px-6 md:px-10 py-6" }
+      object "Brand" { @link { href: "/", content: "HoloScript" } @theme { className: "text-xl font-bold tracking-tight" } }
+      object "NavLinks" {
+        @theme { className: "hidden md:flex items-center gap-6" }
+        object "NavCompile" { @link { href: "/compile", content: "Compile" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
+        object "NavEcosystem" { @link { href: "/ecosystem", content: "Ecosystem" } @theme { className: "text-sm text-white transition" } }
+      }
+      object "OpenStudioNav" {
+        @link { href: "https://holoscript.studio", content: "Open Studio" }
+        @theme { className: "text-sm font-medium px-4 py-2 rounded-full border border-white/20 hover:border-white/50 transition" }
+      }
+    }
+
+    object "Hero" {
+      @theme { tag: "section", className: "relative z-10 px-6 md:px-10 pt-12 pb-10 text-center" }
+      object "Title" {
+        @text { content: "One language. Many front doors.", variant: "h1" }
+        @theme { className: "text-5xl font-bold tracking-tight max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent" }
+      }
+      object "Subtitle" {
+        @text { content: "The live surfaces of the HoloScript ecosystem — author, compile, query, and publish. Every one is running right now.", variant: "subtitle" }
+        @theme { className: "text-xl text-gray-300 max-w-2xl mx-auto pt-5" }
+      }
+    }
+
+    object "Grid" {
+      @theme { tag: "section", className: "relative z-10 px-6 md:px-10 pb-24 max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-4" }
+
+      object "CardStudio" {
+        @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15 hover:border-white/40 transition" }
+        object "CardStudioTitle" { @link { href: "https://holoscript.studio", content: "Studio →" } @theme { className: "text-lg font-semibold text-white" } }
+        object "CardStudioDesc" { @text { content: "Author spatial scenes in the browser — a visual editor with live HoloScript compile, plus CAD, game, and avatar modes." } @theme { className: "text-sm text-gray-400" } }
+      }
+
+      object "CardMcp" {
+        @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15 hover:border-white/40 transition" }
+        object "CardMcpTitle" { @link { href: "https://mcp.holoscript.net", content: "MCP server →" } @theme { className: "text-lg font-semibold text-white" } }
+        object "CardMcpDesc" { @text { content: "The Model Context Protocol server — AI agents compile, validate, and build HoloScript across hundreds of live tools." } @theme { className: "text-sm text-gray-400" } }
+      }
+
+      object "CardAbsorb" {
+        @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15 hover:border-white/40 transition" }
+        object "CardAbsorbTitle" { @link { href: "https://absorb.holoscript.net", content: "Absorb →" } @theme { className: "text-lg font-semibold text-white" } }
+        object "CardAbsorbDesc" { @text { content: "Code-knowledge synthesis — point it at a codebase and ask questions, get grounded answers without uploading the whole repo." } @theme { className: "text-sm text-gray-400" } }
+      }
+
+      object "CardStore" {
+        @theme { className: "flex flex-col gap-2 p-6 rounded-2xl border border-white/15 hover:border-white/40 transition" }
+        object "CardStoreTitle" { @link { href: "https://store.holoscript.net", content: "Store →" } @theme { className: "text-lg font-semibold text-white" } }
+        object "CardStoreDesc" { @text { content: "The HoloScript Store — the ecosystem marketplace for compositions, tools, and agent templates." } @theme { className: "text-sm text-gray-400" } }
+      }
+    }
+
+    object "Footer" {
+      @theme { tag: "footer", className: "relative z-10 px-6 md:px-10 py-8 text-center" }
+      object "BuiltWith" {
+        @text { content: "This page is a HoloScript composition, compiled to the web by HoloScript.", variant: "caption" }
+        @theme { className: "text-sm text-gray-500" }
+      }
+    }
+  }
+}
