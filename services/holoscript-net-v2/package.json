@@ -6,8 +6,9 @@
   "scripts": {
     "predev": "pnpm --filter @holoscript/core run build && pnpm run holo:build",
     "dev": "next dev --webpack --port 3300",
-    "holo:build": "tsx scripts/compile-holo-pages.ts",
+    "holo:build": "tsx scripts/compile-holo-pages.ts && tsx scripts/bake-lotus-scenes.ts",
     "holo:watch": "tsx scripts/compile-holo-pages.ts --watch",
+    "lotus:bake": "tsx scripts/bake-lotus-scenes.ts",
     "prebuild": "pnpm run holo:build",
     "build": "next build --webpack",
     "start": "next start --port 3300",

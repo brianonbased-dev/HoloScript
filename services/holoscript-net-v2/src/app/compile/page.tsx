@@ -32,6 +32,10 @@ function CompileTargetsComponent() {
       {`Ecosystem`}
 
     </a>
+<a className="text-sm text-gray-300 hover:text-white transition" href="/lotus">
+      {`Lotus`}
+
+    </a>
     </div>
 <a className="text-sm font-medium px-4 py-2 rounded-full border border-white/20 hover:border-white/50 transition" href="https://holoscript.studio">
       {`Open Studio`}

@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-14T05:26:46.364Z",
+  "scenes": [
+    {
+      "name": "pond",
+      "file": "lotus-pond.baked.json",
+      "kind": "pond"
+    },
+    {
+      "name": "seedable",
+      "file": "garden.seedable.baked.json",
+      "kind": "paper-flower"
+    },
+    {
+      "name": "refreshed",
+      "file": "garden.refreshed.baked.json",
+      "kind": "symbolic"
+    }
+  ]
+}

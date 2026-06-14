@@ -22,6 +22,7 @@ composition "HoloscriptNet" {
         @theme { className: "hidden md:flex items-center gap-6" }
         object "NavCompile" { @link { href: "/compile", content: "Compile" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
         object "NavEcosystem" { @link { href: "/ecosystem", content: "Ecosystem" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
+        object "NavLotus" { @link { href: "/lotus", content: "Lotus" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
       }
 
       object "OpenStudioNav" {
