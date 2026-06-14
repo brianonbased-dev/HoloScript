@@ -1,9 +1,9 @@
 {
-  "receiptId": "wmr-1779249963847-46bgbf",
-  "issuedAt": "2026-05-20T04:06:03.847Z",
-  "receiptHash": "wmr-sha-8532e97a159d0155346513fd7a06f60374495413c6114da83f388f199a918791",
+  "receiptId": "wmr-1781467317491-gh22z4",
+  "issuedAt": "2026-06-14T20:01:57.491Z",
+  "receiptHash": "wmr-sha-84f3e9c23e0b50360bc76b31c8bab84426cdc55e521bb8745282d81c5b53ac5c",
   "hashMode": "sha256",
-  "contractId": "geo-sha-e7f7cb74a685232bcee95600f0672693396ba678c3eb5a6210be0bf6ba41cd09-5n-8e",
+  "contractId": "geo-sha-d14d143fc40bfeb8c3b658afc011e0700f060f12bf38245eebd01bae0a37a2b9-5n-8e",
   "delta_error": 0,
   "confidence_bound": {
     "lo": 0,
@@ -22,8 +22,8 @@
   "solver_ground_truth": {
     "simTime": 0,
     "solverType": "structural",
-    "geometryHash": "geo-sha-e7f7cb74a685232bcee95600f0672693396ba678c3eb5a6210be0bf6ba41cd09-5n-8e",
-    "contractId": "geo-sha-e7f7cb74a685232bcee95600f0672693396ba678c3eb5a6210be0bf6ba41cd09-5n-8e",
+    "geometryHash": "geo-sha-d14d143fc40bfeb8c3b658afc011e0700f060f12bf38245eebd01bae0a37a2b9-5n-8e",
+    "contractId": "geo-sha-d14d143fc40bfeb8c3b658afc011e0700f060f12bf38245eebd01bae0a37a2b9-5n-8e",
     "fields": {}
   },
   "paper26_seed": {

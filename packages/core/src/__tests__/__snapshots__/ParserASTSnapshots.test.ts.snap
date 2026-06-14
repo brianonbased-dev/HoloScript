@@ -9031,11 +9031,17 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
     "body": [
       {
         "children": [],
-        "directives": [],
+        "directives": [
+          {
+            "config": {},
+            "name": "clickable",
+            "type": "trait",
+          },
+        ],
         "loc": {
           "end": {
-            "column": 10,
-            "line": 1,
+            "column": 2,
+            "line": 5,
           },
           "start": {
             "column": 1,
@@ -9044,32 +9050,6 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         },
         "migrations": [],
         "name": "ButtonTemplate",
-        "properties": {},
-        "traits": Map {},
-        "type": "template",
-        "version": undefined,
-      },
-      {
-        "children": [],
-        "directives": [
-          {
-            "config": {},
-            "name": "clickable",
-            "type": "trait",
-          },
-        ],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 2,
-            "line": 5,
-          },
-          "start": {
-            "column": 10,
-            "line": 1,
-          },
-        },
-        "name": undefined,
         "properties": {
           "geometry": "cube",
           "scale": [
@@ -9078,20 +9058,25 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
             0.1,
           ],
         },
-        "traits": Map {
-          "clickable" => {},
-        },
-        "type": "ButtonTemplate",
+        "traits": Map {},
+        "type": "template",
+        "version": undefined,
       },
     ],
     "children": [
       {
         "children": [],
-        "directives": [],
+        "directives": [
+          {
+            "config": {},
+            "name": "clickable",
+            "type": "trait",
+          },
+        ],
         "loc": {
           "end": {
-            "column": 10,
-            "line": 1,
+            "column": 2,
+            "line": 5,
           },
           "start": {
             "column": 1,
@@ -9100,32 +9085,6 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         },
         "migrations": [],
         "name": "ButtonTemplate",
-        "properties": {},
-        "traits": Map {},
-        "type": "template",
-        "version": undefined,
-      },
-      {
-        "children": [],
-        "directives": [
-          {
-            "config": {},
-            "name": "clickable",
-            "type": "trait",
-          },
-        ],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 2,
-            "line": 5,
-          },
-          "start": {
-            "column": 10,
-            "line": 1,
-          },
-        },
-        "name": undefined,
         "properties": {
           "geometry": "cube",
           "scale": [
@@ -9134,17 +9093,22 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
             0.1,
           ],
         },
-        "traits": Map {
-          "clickable" => {},
-        },
-        "type": "ButtonTemplate",
+        "traits": Map {},
+        "type": "template",
+        "version": undefined,
       },
     ],
     "compositions": [],
-    "directives": [],
+    "directives": [
+      {
+        "config": {},
+        "name": "clickable",
+        "type": "trait",
+      },
+    ],
     "hasControlFlow": false,
     "hasState": false,
-    "hasVRTraits": true,
+    "hasVRTraits": false,
     "id": "root",
     "imports": [],
     "loc": {
@@ -9161,120 +9125,14 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
     "npcs": [],
     "properties": {},
     "root": {
-      "body": [
+      "children": [],
+      "directives": [
         {
-          "children": [],
-          "directives": [],
-          "loc": {
-            "end": {
-              "column": 10,
-              "line": 1,
-            },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
-          },
-          "migrations": [],
-          "name": "ButtonTemplate",
-          "properties": {},
-          "traits": Map {},
-          "type": "template",
-          "version": undefined,
-        },
-        {
-          "children": [],
-          "directives": [
-            {
-              "config": {},
-              "name": "clickable",
-              "type": "trait",
-            },
-          ],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 2,
-              "line": 5,
-            },
-            "start": {
-              "column": 10,
-              "line": 1,
-            },
-          },
-          "name": undefined,
-          "properties": {
-            "geometry": "cube",
-            "scale": [
-              0.2,
-              0.05,
-              0.1,
-            ],
-          },
-          "traits": Map {
-            "clickable" => {},
-          },
-          "type": "ButtonTemplate",
+          "config": {},
+          "name": "clickable",
+          "type": "trait",
         },
       ],
-      "children": [
-        {
-          "children": [],
-          "directives": [],
-          "loc": {
-            "end": {
-              "column": 10,
-              "line": 1,
-            },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
-          },
-          "migrations": [],
-          "name": "ButtonTemplate",
-          "properties": {},
-          "traits": Map {},
-          "type": "template",
-          "version": undefined,
-        },
-        {
-          "children": [],
-          "directives": [
-            {
-              "config": {},
-              "name": "clickable",
-              "type": "trait",
-            },
-          ],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 2,
-              "line": 5,
-            },
-            "start": {
-              "column": 10,
-              "line": 1,
-            },
-          },
-          "name": undefined,
-          "properties": {
-            "geometry": "cube",
-            "scale": [
-              0.2,
-              0.05,
-              0.1,
-            ],
-          },
-          "traits": Map {
-            "clickable" => {},
-          },
-          "type": "ButtonTemplate",
-        },
-      ],
-      "directives": [],
-      "id": "root",
       "loc": {
         "end": {
           "column": 2,
@@ -9285,18 +9143,34 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
           "line": 1,
         },
       },
-      "properties": {},
+      "migrations": [],
+      "name": "ButtonTemplate",
+      "properties": {
+        "geometry": "cube",
+        "scale": [
+          0.2,
+          0.05,
+          0.1,
+        ],
+      },
       "traits": Map {},
-      "type": "fragment",
+      "type": "template",
+      "version": undefined,
     },
     "templates": [
       {
         "children": [],
-        "directives": [],
+        "directives": [
+          {
+            "config": {},
+            "name": "clickable",
+            "type": "trait",
+          },
+        ],
         "loc": {
           "end": {
-            "column": 10,
-            "line": 1,
+            "column": 2,
+            "line": 5,
           },
           "start": {
             "column": 1,
@@ -9305,7 +9179,14 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
         },
         "migrations": [],
         "name": "ButtonTemplate",
-        "properties": {},
+        "properties": {
+          "geometry": "cube",
+          "scale": [
+            0.2,
+            0.05,
+            0.1,
+          ],
+        },
         "traits": Map {},
         "type": "template",
         "version": undefined,
@@ -9317,31 +9198,16 @@ exports[`Parser AST Visual Regression > Template and Composition Inheritance > t
     "worlds": [],
   },
   "compiledExpressions": Map {},
-  "errors": [
-    {
-      "code": "HSP001",
-      "column": 10,
-      "context": "> 1 | template ButtonTemplate {
-              ^
-  2 |   geometry: "cube"
-  3 |   scale: [0.2, 0.05, 0.1 ]",
-      "endColumn": undefined,
-      "endLine": undefined,
-      "line": 1,
-      "message": "HSP001: Expected template name. Got IDENTIFIER "ButtonTemplate"",
-      "severity": "error",
-      "suggestion": "Did you mean 'template'?",
-    },
-  ],
+  "errors": [],
   "features": {
     "conditionals": false,
     "lifecycleHooks": false,
     "loops": false,
     "state": false,
-    "vrTraits": true,
+    "vrTraits": false,
   },
   "requiredCompanions": [],
-  "success": false,
+  "success": true,
   "warnings": [],
 }
 `;
