@@ -10,9 +10,55 @@
 
 import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
 import { type WorldDefinition } from '../../../core/src/hololand/WorldDefinitionSchema';
+import {
+  buildContentPolicyConfig,
+  evaluateContentPolicySync,
+  type ContentPolicyConfig,
+} from '@holoscript/core/policy';
 
 import { type StoredNPC } from '../hololand-mcp-tools';
 import { type StoredTwinEarthIdentity, type StoredSafetyEnvelope } from '../robot-ai-mcp-tools';
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CONTENT POLICY (P.013) — shared config + text screener
+// ═════════════════════════════════════════════════════════════════════════════
+
+// Family tier: strictest surface (HoloLand), covers all user-generated text
+// fields screened at admission time (NPC systemPrompt, zone name, etc.).
+const defaultAdmissionPolicyConfig: ContentPolicyConfig = buildContentPolicyConfig({
+  tier: 'family',
+  region: process.env.HOLOLAND_POLICY_REGION || 'GLOBAL',
+});
+
+/**
+ * Screen a free-text field through ContentPolicyGate (FAMILY tier).
+ * Returns a ConformanceFinding if the text is blocked, else null.
+ * Callers include the finding in their validators when non-null.
+ */
+export function validateContentAdmission(
+  text: string,
+  field: string,
+  ruleId: string,
+  config: ContentPolicyConfig = defaultAdmissionPolicyConfig
+): ConformanceFinding | null {
+  if (!text || text.trim().length === 0) return null;
+  const decision = evaluateContentPolicySync(
+    { text, surface: 'hololand-admission', direction: 'input' },
+    config
+  );
+  if (decision.allowed) return null;
+  console.warn(
+    '[content-policy][admission]',
+    JSON.stringify({ ruleId, field, action: decision.action, category: decision.category })
+  );
+  return {
+    ruleId,
+    severity: 'critical',
+    message: `Field '${field}' was blocked by the content-policy gate (${decision.category} — ${decision.action}).`,
+    field,
+    remediation: `Remove or rewrite the '${field}' value to comply with content policy.`,
+  };
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONFORMANCE RULES
@@ -537,6 +583,16 @@ export function validateZoneAdmission(zone: Zone): ConformanceFinding[] {
     });
   }
 
+  // GATE-001: screen creator-supplied text fields (P.013).
+  if (zone.name) {
+    const nameFinding = validateContentAdmission(zone.name, 'name', 'ZONE-CONTENT-001');
+    if (nameFinding) findings.push(nameFinding);
+  }
+  if (zone.biomeLabel) {
+    const labelFinding = validateContentAdmission(zone.biomeLabel, 'biomeLabel', 'ZONE-CONTENT-002');
+    if (labelFinding) findings.push(labelFinding);
+  }
+
   return findings;
 }
 
@@ -611,6 +667,16 @@ export function validateNPCAdmission(npc: StoredNPC): ConformanceFinding[] {
       field: 'dialogueTree',
       remediation: 'Provide a dialogueTree or systemPrompt for deterministic behavior.',
     });
+  }
+
+  // GATE-001: screen creator-supplied text fields through ContentPolicyGate (P.013).
+  if (npc.systemPrompt) {
+    const contentFinding = validateContentAdmission(npc.systemPrompt, 'systemPrompt', 'NPC-CONTENT-001');
+    if (contentFinding) findings.push(contentFinding);
+  }
+  if (npc.name) {
+    const nameFinding = validateContentAdmission(npc.name, 'name', 'NPC-CONTENT-002');
+    if (nameFinding) findings.push(nameFinding);
   }
 
   return findings;

@@ -2595,6 +2595,25 @@ async function handleHololandPublishZone(args: Record<string, unknown>): Promise
     stored.shardId = shardId;
   }
 
+  // CONTENT POLICY publish-zone screen (P.013): screen zone name before going live.
+  if (stored.zone.name) {
+    const zoneNameDecision = evaluateContentPolicySync(
+      { text: stored.zone.name, surface: 'hololand-publish', direction: 'input' },
+      hololandFamilyPolicyConfig
+    );
+    if (!zoneNameDecision.allowed) {
+      console.warn(
+        '[content-policy][publish-zone]',
+        JSON.stringify({ action: zoneNameDecision.action, category: zoneNameDecision.category, zoneId })
+      );
+      return {
+        error: 'Zone name blocked by content policy.',
+        action: zoneNameDecision.action,
+        category: zoneNameDecision.category,
+      };
+    }
+  }
+
   const runtime: StoredZoneRuntime = {
     status: 'published',
     tierGate: (args.tierGate as 'free' | 'premium' | 'ultra') ?? 'free',

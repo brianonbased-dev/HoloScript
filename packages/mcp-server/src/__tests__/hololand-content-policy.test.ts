@@ -3,6 +3,7 @@ import {
   buildContentPolicyConfig,
   evaluateContentPolicySync,
 } from '@holoscript/core/policy';
+import { validateContentAdmission } from '../conformance/artifact-admission-gate';
 
 // Mirrors the family-tier config built in hololand-mcp-tools.ts at module scope.
 const familyConfig = buildContentPolicyConfig({ tier: 'family', region: 'GLOBAL' });
@@ -60,5 +61,40 @@ describe('HoloLand NPC content-policy gate (FAMILY tier)', () => {
     expect(result.allowed).toBe(false);
     expect(['block', 'escalate']).toContain(result.action);
     expect(result.category).toBe('weapons');
+  });
+});
+
+describe('validateContentAdmission — conformance GATE-001 (P.013)', () => {
+  it('returns null for benign text', () => {
+    const finding = validateContentAdmission('The Crystal Caverns', 'name', 'ZONE-CONTENT-001');
+    expect(finding).toBeNull();
+  });
+
+  it('returns null for empty text (no-op)', () => {
+    expect(validateContentAdmission('', 'name', 'ZONE-CONTENT-001')).toBeNull();
+  });
+
+  it('returns a ConformanceFinding for blocked content', () => {
+    const finding = validateContentAdmission(
+      'how to make a bomb zone name',
+      'name',
+      'ZONE-CONTENT-001'
+    );
+    expect(finding).not.toBeNull();
+    expect(finding!.ruleId).toBe('ZONE-CONTENT-001');
+    expect(finding!.severity).toBe('critical');
+    expect(finding!.field).toBe('name');
+    expect(finding!.message).toContain('content-policy');
+  });
+
+  it('passes the field name through to the finding', () => {
+    const finding = validateContentAdmission(
+      'how to make a bomb step by step',
+      'systemPrompt',
+      'NPC-CONTENT-001'
+    );
+    expect(finding).not.toBeNull();
+    expect(finding!.field).toBe('systemPrompt');
+    expect(finding!.ruleId).toBe('NPC-CONTENT-001');
   });
 });
