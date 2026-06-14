@@ -59,18 +59,19 @@
             "command": "node .claude/hooks/validate-edit.mjs \"$FILE_PATH\""
           }
         ]
-      }
-    ],
-    "Stop": [
+      },
       {
-        "matcher": "",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'SESSION_END: Saving metrics and consolidating session backlog'"
+            "command": "node C:/Users/Josep/Documents/GitHub/HoloScript/.claude/hooks/local-wasm-smoke.mjs",
+            "timeout": 15,
+            "async": true
           }
         ]
       }
-    ]
+    ],
+    "Stop": []
   }
 }

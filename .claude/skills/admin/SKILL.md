@@ -298,6 +298,32 @@ The `@holoscript/mcp-server` exposes tools at `mcp.holoscript.net`. Check live c
 - Full list: `curl mcp.holoscript.net/health` → `tools` field for count, `POST /mcp` → `tools/list` for names
 - Categories: core language, graph understanding, IDE, Brittney AI, codebase intelligence, Graph RAG, self-improve, compiler, networking/temporal, browser control, orchestrator adapters
 
+### Tool Health Check
+
+**`get_tool_health`** — Before relying on any MCP tool, call this to verify wiring status:
+
+```bash
+# Probe all major tool categories
+get_tool_health
+
+# Probe specific tools
+get_tool_health(tools=["compile_holoscript", "holo_absorb_repo", "generate_world"])
+
+# Exclude stubs from output
+get_tool_health(includeStubs=false)
+```
+
+Returns per-tool status:
+- **`live`** — handler reachable + canary probe passed (production-ready)
+- **`scaffold`** — handler reachable but returns stub/empty payload (do not rely on it)
+- **`stub`** — handler not wired or unconditionally throws (not available)
+
+**When to call it:**
+- Before asserting a tool "works" in a new session
+- When a tool returns unexpected empty/null results
+- Before scoping work that depends on a specific MCP capability
+- Root cause of the W.122 fictional-route pattern — always call `get_tool_health` first when uncertain about a tool's backing implementation
+
 ### Codebase Intelligence (Cache-First)
 
 > **Always start with `holo_graph_status`. Cache is at `~/.holoscript/graph-cache.json` (24h TTL).**
