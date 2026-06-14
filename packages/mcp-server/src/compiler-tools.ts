@@ -80,10 +80,20 @@ export interface CompilationResult {
   previewHtml?: string;
   error?: string;
   warnings?: string[];
+  /**
+   * TOP-LEVEL signal (additive) that `output` is a DEGRADED reference substitute
+   * produced because the real compiler threw — NOT a true compile. `success` may
+   * still be `true` for non-empty fallbacks, so any consumer that relies on the
+   * output being a real compile MUST check `degraded` first. Mirrors the buried
+   * `metadata.usedFallback` but is unmissable at the top level.
+   */
+  degraded?: boolean;
   metadata: {
     compilationTimeMs: number;
     circuitBreakerState: CircuitState;
     usedFallback: boolean;
+    /** Mirror of top-level `degraded` for callers that read metadata. */
+    degraded?: boolean;
     outputSizeBytes?: number;
   };
 }
@@ -199,7 +209,12 @@ async function compileToTarget(
   composition: HoloComposition,
   target: ExportTarget,
   options: Partial<ExportOptions> = {}
-): Promise<{ output: string; usedFallback: boolean }> {
+): Promise<{
+  output: string;
+  usedFallback: boolean;
+  degraded: boolean;
+  warnings: string[];
+}> {
   const exportManager = getExportManager();
   // ExportManager.export(target, composition, options) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â target is first arg
   const result = await exportManager.export(
@@ -215,6 +230,8 @@ async function compileToTarget(
   return {
     output: result.output || '',
     usedFallback: result.usedFallback || false,
+    degraded: result.degraded || false,
+    warnings: result.warnings || [],
   };
 }
 
@@ -290,17 +307,27 @@ export async function handleCompileToTarget(
           )
         : undefined;
 
+    // Merge parse warnings with the compiler's degraded/fallback warnings so the
+    // "non-equivalent reference substitute" reason is visible at the top level,
+    // not buried only inside ExportManager.
+    const mergedWarnings = [
+      ...(parseResult.warnings?.map((w: any) => w.message) ?? []),
+      ...compileResult.warnings,
+    ];
+
     const result: CompilationResult = {
       success: true,
       jobId,
       target,
       output: compileResult.output,
       ...(previewHtml !== undefined && { previewHtml }),
-      warnings: parseResult.warnings?.map((w: any) => w.message),
+      warnings: mergedWarnings.length > 0 ? mergedWarnings : undefined,
+      degraded: compileResult.degraded,
       metadata: {
         compilationTimeMs,
         circuitBreakerState: circuitMetrics.state,
         usedFallback: compileResult.usedFallback,
+        degraded: compileResult.degraded,
         outputSizeBytes: compileResult.output.length,
       },
     };

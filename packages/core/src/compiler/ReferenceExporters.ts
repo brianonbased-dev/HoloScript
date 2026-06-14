@@ -481,12 +481,42 @@ class VisionOSReferenceExporter extends ReferenceExporter {
 // =============================================================================
 
 /**
- * USD (Pixar Universal Scene Description) Reference Exporter
+ * Sanitize an arbitrary name into a valid USD prim identifier.
+ * USD prim names must be C-style identifiers (alnum + underscore, not leading digit).
+ */
+function toUsdPrimName(name: string, index: number): string {
+  const cleaned = (name || '').replace(/[^A-Za-z0-9_]/g, '_');
+  if (!cleaned || /^[0-9]/.test(cleaned)) {
+    return `Prim_${index}`;
+  }
+  return cleaned;
+}
+
+/**
+ * USD (Pixar Universal Scene Description) Reference Exporter.
+ *
+ * Emits a `#usda` stage whose `Root` Xform contains one child Xform per
+ * composition object/spatial group. This is intentionally minimal (no meshes,
+ * materials, or transforms) but is NOT empty when the composition has geometry —
+ * an empty stage (zero child prims) is never a valid substitute for a real
+ * compile and is rejected fail-closed by the ExportManager (see
+ * `usdStageHasGeometry`). The shared `target` is parameterized so the same
+ * implementation backs both `usd` and `usdz`.
  */
 class USDReferenceExporter extends ReferenceExporter {
+  constructor(
+    private readonly usdTarget: ExportTarget = 'usd',
+    options: ExporterOptions = {}
+  ) {
+    super(options);
+  }
+
   export(composition: HoloComposition): ExportResult {
     const warnings: string[] = [];
     const name = this.getCompositionName(composition);
+
+    const objects = composition.objects ?? [];
+    const groups = composition.spatialGroups ?? [];
 
     const lines: string[] = [];
     lines.push('#usda 1.0');
@@ -496,18 +526,48 @@ class USDReferenceExporter extends ReferenceExporter {
     lines.push('');
     lines.push('def Xform "Root"');
     lines.push('{');
+
+    let childIndex = 0;
+    for (const obj of objects) {
+      const primName = toUsdPrimName(obj.name, childIndex++);
+      lines.push(`    def Xform "${primName}"`);
+      lines.push('    {');
+      lines.push('    }');
+    }
+    for (const group of groups) {
+      const primName = toUsdPrimName((group as { name?: string }).name ?? '', childIndex++);
+      lines.push(`    def Xform "${primName}"`);
+      lines.push('    {');
+      lines.push('    }');
+    }
+
     lines.push('}');
 
     warnings.push('Simplified USD export with minimal scene hierarchy');
 
     return {
-      target: 'usd',
+      target: this.usdTarget,
       output: lines.join('\n'),
       format: 'text',
       warnings,
       usedFallback: true,
     };
   }
+}
+
+/**
+ * Returns true if a `#usda` stage string contains at least one child geometry
+ * prim under Root. The reference USD exporter emits one `def Xform "<name>"`
+ * per object; the Root Xform itself is excluded. A stage with only the Root
+ * (zero children) is geometry-less and must NOT be shipped as a successful
+ * compile — callers fail closed on `false`.
+ */
+export function usdStageHasGeometry(output: string): boolean {
+  if (!output) return false;
+  // Count `def Xform "<name>"` occurrences, excluding the single Root Xform.
+  const matches = output.match(/def\s+\w+\s+"([^"]+)"/g) ?? [];
+  const nonRoot = matches.filter((m) => !/"Root"\s*$/.test(m));
+  return nonRoot.length > 0;
 }
 
 /**
@@ -643,8 +703,8 @@ export class ReferenceExporterRegistry {
     this.exporters.set('visionos', new VisionOSReferenceExporter());
 
     // Other Formats
-    this.exporters.set('usd', new USDReferenceExporter());
-    this.exporters.set('usdz', new USDReferenceExporter()); // Same as USD
+    this.exporters.set('usd', new USDReferenceExporter('usd'));
+    this.exporters.set('usdz', new USDReferenceExporter('usdz')); // Same impl, correct target tag
     this.exporters.set('dtdl', new DTDLReferenceExporter());
     this.exporters.set('wasm', new WASMReferenceExporter());
 

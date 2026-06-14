@@ -25,7 +25,7 @@ import {
   type CircuitBreakerConfig,
   type CircuitMetrics,
 } from './CircuitBreaker';
-import { ReferenceExporterRegistry } from './ReferenceExporters';
+import { ReferenceExporterRegistry, usdStageHasGeometry } from './ReferenceExporters';
 
 // Import all compilers
 import { URDFCompiler } from './URDFCompiler';
@@ -139,6 +139,15 @@ export interface ExportResult {
   output?: string;
   error?: Error;
   usedFallback: boolean;
+  /**
+   * TOP-LEVEL signal that the returned output is a degraded, non-equivalent
+   * reference substitute produced because the real compiler threw — NOT a true
+   * compile of the composition. Mirrors `usedFallback` but is the unmissable,
+   * caller-facing flag: any consumer that treats `success: true` as "this is the
+   * compiled artifact" MUST check `degraded` first. Additive/optional so existing
+   * consumers do not break. See `warnings` for the human-readable reason.
+   */
+  degraded?: boolean;
   circuitState: CircuitState;
   warnings: string[];
   metrics: CircuitMetrics;
@@ -716,14 +725,40 @@ export class ExportManager {
       };
     }
 
+    const fallbackOutput = typeof circuitResult.data === 'string' ? circuitResult.data : undefined;
+
+    // FAIL-CLOSED for USD/USDZ: a successful circuit-breaker fallback that
+    // produced a geometry-less stage is never a valid substitute. Demote to a
+    // failure instead of shipping a green empty scene.
+    if (circuitResult.success && circuitResult.usedFallback) {
+      const failClosedError = this.checkFallbackFailClosed(
+        target,
+        fallbackOutput ?? '',
+        circuitResult.error
+      );
+      if (failClosedError) {
+        if (options.throwOnError) throw failClosedError;
+        return this.buildFailClosedResult(target, failClosedError, startTime);
+      }
+    }
+
+    const baseWarnings = budgetResult?.warningMessages ?? [];
+    const warnings =
+      circuitResult.usedFallback && circuitResult.success
+        ? [this.buildDegradedWarning(target, circuitResult.error), ...baseWarnings]
+        : baseWarnings;
+
     const result: ExportResult = {
       target,
       success: circuitResult.success,
       output: circuitResult.data as string | undefined,
       error: circuitResult.error,
       usedFallback: circuitResult.usedFallback,
+      // TOP-LEVEL unmissable signal: a successful result that used the reference
+      // fallback is a non-equivalent degraded substitute, not a real compile.
+      degraded: circuitResult.usedFallback && circuitResult.success ? true : undefined,
       circuitState: circuitResult.state,
-      warnings: budgetResult?.warningMessages ?? [],
+      warnings,
       metrics: circuitResult.metrics,
       executionTime: Date.now() - startTime,
       memoryStats,
@@ -810,6 +845,14 @@ export class ExportManager {
       if (options.useFallback) {
         const refResult = this.referenceRegistry.export(target, composition);
         if (refResult) {
+          // FAIL-CLOSED for USD/USDZ: a geometry-less stage is never a valid
+          // substitute for a real compile. Refuse to ship a green empty scene.
+          const failClosedError = this.checkFallbackFailClosed(target, refResult.output, error);
+          if (failClosedError) {
+            if (options.throwOnError) throw failClosedError;
+            return this.buildFailClosedResult(target, failClosedError, startTime);
+          }
+
           this.emitEvent({
             type: 'export:fallback',
             target,
@@ -826,8 +869,15 @@ export class ExportManager {
             success: true,
             output: refResult.output,
             usedFallback: true,
+            // TOP-LEVEL unmissable signal: this output is a non-equivalent
+            // reference substitute, NOT a real compile of the composition.
+            degraded: true,
             circuitState: CircuitState.CLOSED,
-            warnings: [...refResult.warnings, ...(budgetResult?.warningMessages ?? [])],
+            warnings: [
+              this.buildDegradedWarning(target, error),
+              ...refResult.warnings,
+              ...(budgetResult?.warningMessages ?? []),
+            ],
             metrics: this.circuitRegistry.getBreaker(target).getMetrics(),
             executionTime: Date.now() - startTime,
             memoryStats,
@@ -838,6 +888,65 @@ export class ExportManager {
 
       throw error;
     }
+  }
+
+  /**
+   * Build the human-readable warning that accompanies a degraded (fallback)
+   * export, naming the compiler that failed and that the output is a
+   * non-equivalent reference substitute.
+   */
+  private buildDegradedWarning(target: ExportTarget, error: unknown): string {
+    const reason = error instanceof Error ? error.message : String(error);
+    return (
+      `DEGRADED: '${target}' compiler failed (${reason}); ` +
+      `output is a non-equivalent reference substitute, not a real compile.`
+    );
+  }
+
+  /**
+   * Fail-closed guard for reference-fallback output. For USD/USDZ specifically,
+   * a geometry-less stage (Root Xform with no child prims) is NEVER a valid
+   * substitute for a real compile — returns an Error to surface instead of a
+   * green empty scene. Returns null when the fallback output is acceptable.
+   */
+  private checkFallbackFailClosed(
+    target: ExportTarget,
+    output: string,
+    originalError: unknown
+  ): Error | null {
+    if (target === 'usd' || target === 'usdz') {
+      if (!usdStageHasGeometry(output)) {
+        const reason =
+          originalError instanceof Error ? originalError.message : String(originalError);
+        return new Error(
+          `${target.toUpperCase()} fallback produced an empty stage (zero geometry) ` +
+            `after the real compiler failed (${reason}). An empty USD stage is not a ` +
+            `valid substitute for a compile; failing closed instead of shipping a green empty scene.`
+        );
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Construct a non-throwing failed ExportResult for the fail-closed path.
+   */
+  private buildFailClosedResult(
+    target: ExportTarget,
+    error: Error,
+    startTime: number
+  ): ExportResult {
+    return {
+      target,
+      success: false,
+      error,
+      usedFallback: true,
+      degraded: true,
+      circuitState: CircuitState.CLOSED,
+      warnings: [error.message],
+      metrics: this.circuitRegistry.getBreaker(target).getMetrics(),
+      executionTime: Date.now() - startTime,
+    };
   }
 
   /**

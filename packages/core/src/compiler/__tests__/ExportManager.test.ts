@@ -254,6 +254,18 @@ vi.mock('../TSLCompiler', () => ({
     return { compile: vi.fn().mockResolvedValue('<compiled output>') };
   }),
 }));
+// USD / USDZ compilers — mocked so the USD/USDZ fail-closed tests can force a
+// compiler throw via mockImplementationOnce (default impl returns a valid stage).
+vi.mock('../USDPhysicsCompiler', () => ({
+  USDPhysicsCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('#usda 1.0\ndef Xform "Root" {}') };
+  }),
+}));
+vi.mock('../USDZExportCompiler', () => ({
+  USDZExportCompiler: vi.fn().mockImplementation(function () {
+    return { compile: vi.fn().mockResolvedValue('#usda 1.0\ndef Xform "Root" {}') };
+  }),
+}));
 
 // Mock CompilerStateMonitor — use `function` (not arrow) so `new` works
 vi.mock('../CompilerStateMonitor', () => ({
@@ -303,6 +315,14 @@ vi.mock('../ReferenceExporters', () => ({
       hasExporter: mockHasExporter,
     };
   }),
+  // Real-enough implementation: ExportManager imports this to decide the
+  // USD/USDZ fail-closed path. Mirrors the production logic (Root Xform excluded).
+  usdStageHasGeometry: (output: string): boolean => {
+    if (!output) return false;
+    const matches = output.match(/def\s+\w+\s+"([^"]+)"/g) ?? [];
+    const nonRoot = matches.filter((m: string) => !/"Root"\s*$/.test(m));
+    return nonRoot.length > 0;
+  },
 }));
 
 // =============================================================================
@@ -974,6 +994,174 @@ describe('ExportManager', () => {
         useCircuitBreaker: false,
       });
       expect(result).toBeDefined();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Degraded fallback surfacing + USD/USDZ fail-closed (no silent false-green)
+  // ---------------------------------------------------------------------------
+
+  describe('degraded fallback surfacing + USD/USDZ fail-closed', () => {
+    // Drain any once-queues left by earlier tests so the forced compiler-throw
+    // and reference-fallback stubs below are the only ones in play (clearAllMocks
+    // does not flush mockImplementationOnce / mockReturnValueOnce queues).
+    beforeEach(() => {
+      mockExecute.mockReset();
+      mockExecute.mockResolvedValue({
+        success: true,
+        data: '<compiled output>',
+        usedFallback: false,
+        state: CircuitState.CLOSED,
+        metrics: mockGetMetrics(),
+      });
+      mockRefExport.mockReset();
+      mockRefExport.mockReturnValue(null);
+    });
+
+    // ── (a) A forced-fallback compile surfaces degraded:true + a warning ──────
+
+    it('direct-export fallback surfaces degraded:true and a naming warning (not a silent success)', async () => {
+      const { URDFCompiler } = await import('../URDFCompiler');
+      (URDFCompiler as any).mockImplementationOnce(() => ({
+        compile: vi.fn().mockRejectedValue(new Error('Compiler crash')),
+      }));
+      mockRefExport.mockReturnValueOnce({
+        target: 'urdf',
+        output: '<robot name="x"><link name="base_link"/></robot>',
+        format: 'xml',
+        warnings: ['Simplified export'],
+        usedFallback: true,
+      });
+
+      const result = await manager.export('urdf', composition, {
+        useCircuitBreaker: false,
+        useFallback: true,
+      });
+
+      // success stays true for a non-empty fallback (additive, non-breaking)…
+      expect(result.success).toBe(true);
+      // …but degraded is now an UNMISSABLE top-level signal.
+      expect(result.degraded).toBe(true);
+      expect(result.usedFallback).toBe(true);
+      // and the warning names the failed compiler + that output is a substitute.
+      const joined = result.warnings.join('\n');
+      expect(joined).toContain('DEGRADED');
+      expect(joined).toContain('urdf');
+      expect(joined).toContain('reference substitute');
+    });
+
+    it('circuit-breaker fallback surfaces degraded:true and a warning', async () => {
+      mockExecute.mockResolvedValueOnce({
+        success: true,
+        data: '<fallback output non-empty>',
+        usedFallback: true,
+        state: CircuitState.OPEN,
+        metrics: mockGetMetrics(),
+      });
+
+      const result = await manager.export('urdf', composition);
+
+      expect(result.success).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.warnings.join('\n')).toContain('DEGRADED');
+    });
+
+    it('a clean (non-fallback) compile is NOT degraded', async () => {
+      const result = await manager.export('urdf', composition);
+      expect(result.success).toBe(true);
+      expect(result.usedFallback).toBe(false);
+      expect(result.degraded).toBeFalsy();
+    });
+
+    // ── (b) USD/USDZ empty-stage path fails closed (success:false / throws) ────
+
+    const EMPTY_USD = '#usda 1.0\n(\n    doc = "fallback"\n)\n\ndef Xform "Root"\n{\n}';
+    const USD_WITH_GEOMETRY =
+      '#usda 1.0\n(\n    doc = "fallback"\n)\n\ndef Xform "Root"\n{\n    def Xform "Cube"\n    {\n    }\n}';
+
+    it('USD empty-stage fallback fails closed (success:false), not a green empty scene', async () => {
+      const { USDPhysicsCompiler } = await import('../USDPhysicsCompiler');
+      (USDPhysicsCompiler as any).mockImplementationOnce(() => ({
+        compile: vi.fn().mockRejectedValue(new Error('USD compiler crash')),
+      }));
+      mockRefExport.mockReturnValueOnce({
+        target: 'usd',
+        output: EMPTY_USD,
+        format: 'text',
+        warnings: ['Simplified USD export'],
+        usedFallback: true,
+      });
+
+      const result = await manager.export('usd', composition, {
+        useCircuitBreaker: false,
+        useFallback: true,
+        throwOnError: false,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.usedFallback).toBe(true);
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toContain('empty stage');
+    });
+
+    it('USDZ empty-stage fallback throws when throwOnError is true', async () => {
+      const { USDZExportCompiler } = await import('../USDZExportCompiler');
+      (USDZExportCompiler as any).mockImplementationOnce(() => ({
+        compile: vi.fn().mockRejectedValue(new Error('USDZ compiler crash')),
+      }));
+      mockRefExport.mockReturnValueOnce({
+        target: 'usdz',
+        output: EMPTY_USD,
+        format: 'text',
+        warnings: [],
+        usedFallback: true,
+      });
+
+      await expect(
+        manager.export('usdz', composition, {
+          useCircuitBreaker: false,
+          useFallback: true,
+          throwOnError: true,
+        })
+      ).rejects.toThrow(/empty stage/);
+    });
+
+    it('USD fallback with geometry is allowed and marked degraded (not failed)', async () => {
+      const { USDPhysicsCompiler } = await import('../USDPhysicsCompiler');
+      (USDPhysicsCompiler as any).mockImplementationOnce(() => ({
+        compile: vi.fn().mockRejectedValue(new Error('USD compiler crash')),
+      }));
+      mockRefExport.mockReturnValueOnce({
+        target: 'usd',
+        output: USD_WITH_GEOMETRY,
+        format: 'text',
+        warnings: ['Simplified USD export'],
+        usedFallback: true,
+      });
+
+      const result = await manager.export('usd', composition, {
+        useCircuitBreaker: false,
+        useFallback: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.degraded).toBe(true);
+      expect(result.output).toContain('def Xform "Cube"');
+    });
+
+    it('circuit-breaker USD empty-stage fallback fails closed (success:false)', async () => {
+      mockExecute.mockResolvedValueOnce({
+        success: true,
+        data: EMPTY_USD,
+        usedFallback: true,
+        state: CircuitState.OPEN,
+        metrics: mockGetMetrics(),
+      });
+
+      const result = await manager.export('usd', composition);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.message).toContain('empty stage');
     });
   });
 });
