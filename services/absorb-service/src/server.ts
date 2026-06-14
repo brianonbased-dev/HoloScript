@@ -239,7 +239,12 @@ app.use('/api/absorb', absorbRouter);
 app.use('/api/credits', creditsRouter);
 app.use('/api/pipeline', pipelineRouter);
 app.use('/api/holodaemon', holodaemonRouter);
-app.use('/api/absorb/moltbook', moltbookRouter);
+// Flat mount (sibling convention) — the studio [...path] proxy forwards
+// studio `/api/absorb/moltbook` to `absorb/api/moltbook`, so the router must
+// live at /api/moltbook, NOT the double-nested /api/absorb/moltbook (which
+// 404'd every Absorb-tab agent-list call and is also shadowed by absorbRouter
+// on /api/absorb). task_1777164270247_5m8f.
+app.use('/api/moltbook', moltbookRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/emergent-spacetime', emergentSpacetimeRouter);
 
