@@ -6,7 +6,10 @@ import type { MetadataRoute } from 'next';
  * stable public pages are enumerated for crawlers.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://studio.holoscript.net';
+  // Canonical studio domain is holoscript.studio (NOT the legacy studio.holoscript.net
+  // subdomain) — keep this consistent with metadata.ts so studio surfaces live on .studio.
+  const base =
+    process.env.NEXT_PUBLIC_STUDIO_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://holoscript.studio';
   const now = new Date();
 
   return [

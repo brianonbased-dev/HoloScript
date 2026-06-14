@@ -119,6 +119,18 @@ const nextConfig = {
       // /operations is now a real page (the D.081 operate console: live
       // fleet/CI/Lotus/board telemetry), no longer an alias for /admin.
       // The /admin absorb dashboard stays at /admin.
+      // Canonical-domain cutover (founder 2026-06-14: "playground should live in
+      // .studio not .net"): the Studio — and every route it owns, incl. /playground —
+      // lives at holoscript.studio (W.713 clean front door), NOT the legacy
+      // studio.holoscript.net subdomain. Permanently redirect any access on the .net
+      // subdomain to the .studio canonical, preserving the path. Host-scoped, so the
+      // holoscript.net marketing apex/www are untouched.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'studio.holoscript.net' }],
+        destination: 'https://holoscript.studio/:path*',
+        permanent: true,
+      },
     ];
   },
   // NOTE: `typescript.ignoreBuildErrors` is set ABOVE (true, the dated TEMPORARY
