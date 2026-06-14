@@ -26,6 +26,11 @@ interface BrittneyPresenceHUDProps {
   speech?: string;
   onTest?: () => void;
   onFix?: () => void;
+  /**
+   * Embodied agent's display name. Defaults to 'Brittney' (the flagship default,
+   * D.094), but any BYOK agent driving this build shows under its own name.
+   */
+  agentName?: string;
 }
 
 export function BrittneyPresenceHUD({
@@ -33,6 +38,7 @@ export function BrittneyPresenceHUD({
   speech = "I'm here. Drop a scene in Vibe and I'll test it from inside.",
   onTest,
   onFix,
+  agentName = 'Brittney',
 }: BrittneyPresenceHUDProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -46,7 +52,7 @@ export function BrittneyPresenceHUD({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-white">Brittney</span>
+            <span className="text-xs font-semibold text-white">{agentName}</span>
             <span className={`h-1.5 w-1.5 rounded-full ${STATUS_COLOR[status]}`} />
             <span className="text-[10px] text-purple-300">{STATUS_LABEL[status]}</span>
           </div>

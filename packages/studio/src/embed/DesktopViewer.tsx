@@ -26,6 +26,7 @@
 import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text } from '@react-three/drei';
+import { AgentAvatars } from '@holoscript/xr-embodiment/react';
 import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
 import { WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
@@ -252,6 +253,14 @@ export interface DesktopViewerProps {
   onErrors?: (errors: Array<{ message: string }>) => void;
   showPlatformReceipt?: boolean;
   onPlatformReceipt?: (receipt: AdaptivePlatformLayerReceipt) => void;
+  /**
+   * Agent entity ids to embody inside the loaded user build. Each becomes an
+   * agent-generic AgentAvatar body (distinct colour per id) that tracks
+   * /api/world-state/<id> — so any agent driving /api/world-drive appears and
+   * moves in the user's scene. Entity-generic by design (D.094); the playground
+   * defaults this to ['brittney'] but any BYOK agent id works.
+   */
+  agents?: string[];
 }
 
 export function DesktopViewer({
@@ -267,6 +276,7 @@ export function DesktopViewer({
   onErrors,
   showPlatformReceipt = true,
   onPlatformReceipt,
+  agents,
 }: DesktopViewerProps) {
   const [errors, setErrors] = useState<Array<{ message: string }>>([]);
   const [receipt, setReceipt] = useState<AdaptivePlatformLayerReceipt | null>(null);
@@ -359,6 +369,12 @@ export function DesktopViewer({
           <Environment preset="night" />
 
           {sceneNodes}
+
+          {/* Agent-controlled characters embodied inside the user build. Each id
+              tracks /api/world-state/<id> and lerps toward whatever an agent
+              pushes via /api/world-drive — agents control characters in the
+              user's own scene (D.094: entity-generic, any agent id). */}
+          {agents && agents.length > 0 && <AgentAvatars ids={agents} />}
 
           {selectedObjectId && (
             <Text
