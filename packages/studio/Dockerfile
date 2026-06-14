@@ -195,6 +195,15 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/.next/standalone 
 COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/.next/static ./packages/studio/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/public ./packages/studio/public
 
+# Native scene library: pages like /playground/pipeline read .holo/.hs/.hsplus
+# scenes from examples/ at runtime via loadHoloExample. Next standalone tracing
+# only bundles deps IMPORTED by app code (the same reason drizzle/ and
+# db-migrate.cjs are copied explicitly below), so copy the library from the
+# full-repo `manifests` stage — the builder stage only carries packages/. Runtime
+# cwd is /app (CMD runs node packages/studio/server.js), so the loader's
+# process.cwd()=/app resolves /app/examples.
+COPY --from=manifests --chown=nextjs:nodejs /app/examples ./examples
+
 # Migrations + runner — copied alongside the standalone output so the runtime
 # can self-heal schema on cold start. The pre-CMD step runs
 # scripts/db-migrate.cjs, which is idempotent against drizzle's

@@ -22,7 +22,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { HoloCompositionParser } from '@holoscript/core';
+import { HoloCompositionParser, R3FCompiler, type R3FNode } from '@holoscript/core';
+import { XRLocomotionController, AgentAvatarTracker } from '@holoscript/xr-embodiment';
 
 interface ImmersiveViewerProps {
   code: string;
@@ -44,6 +45,7 @@ function extractObjects(source: string): {
   objects: ParsedObject[];
   parseOk: boolean;
   error?: string;
+  ast?: ReturnType<HoloCompositionParser['parse']>['ast'];
 } {
   try {
     const parser = new HoloCompositionParser();
@@ -89,7 +91,7 @@ function extractObjects(source: string): {
         traits: (o.traits ?? []).map((t) => String(t.name ?? 'unknown')),
       });
     }
-    return { objects: out, parseOk: true };
+    return { objects: out, parseOk: true, ast: result.ast };
   } catch (err) {
     return {
       objects: [],
@@ -125,11 +127,269 @@ function makeMesh(obj: ParsedObject): THREE.Mesh {
     default:
       geom = new THREE.SphereGeometry(sx / 2, 32, 32);
   }
-  const material = new THREE.MeshStandardMaterial({ color: obj.color, roughness: 0.5 });
+  const material = new THREE.MeshStandardMaterial({
+    color: obj.color,
+    roughness: 0.5,
+    // A floor must be visible from above AND below (the user spawns above it).
+    side: obj.type === 'plane' ? THREE.DoubleSide : THREE.FrontSide,
+  });
   const mesh = new THREE.Mesh(geom, material);
   mesh.position.set(obj.position[0], obj.position[1], obj.position[2]);
+  // A `plane` is a ground/floor. THREE.PlaneGeometry is born VERTICAL (lying in
+  // the XY plane, normal +z), so without this it stands up as a wall and occludes
+  // the whole scene behind it — the "I only see a purple cube" bug. Lay it flat
+  // into the XZ plane so it reads as a floor.
+  if (obj.type === 'plane') mesh.rotation.x = -Math.PI / 2;
   mesh.name = obj.name;
   return mesh;
+}
+
+// =============================================================================
+// Canonical .holo renderer — walks the resolved R3FCompiler tree into raw
+// three.js so the immersive viewer faithfully renders the native example
+// library (geometry, PBR material, lights, nesting), not just the minimal
+// type/color dialect. The hard resolution (templates, material presets, lights,
+// environment) is done by @holoscript/core's R3FCompiler; this only ports the
+// thin render switch (cf. r3f-renderer MeshNode) to raw three.js for WebXR.
+// =============================================================================
+
+const numProp = (v: unknown, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+
+/** Unit geometry for an hsType. Non-plane primitives are unit-sized (the builder
+ *  applies scale as a transform); a plane bakes its X/Z extent from explicit
+ *  width/height or args:[w,h], falling back to scale.x/scale.z (the builder lays
+ *  it flat and does not re-apply scale). */
+function geometryForHsType(
+  hsType: string,
+  scale: number[] | null,
+  props: Record<string, unknown> = {}
+): THREE.BufferGeometry {
+  const args = Array.isArray(props.args) ? (props.args as unknown[]) : null;
+  switch (hsType) {
+    case 'sphere':
+    case 'orb':
+      return new THREE.SphereGeometry(0.5, 32, 32);
+    case 'cube':
+    case 'box':
+      return new THREE.BoxGeometry(1, 1, 1);
+    case 'cylinder':
+      return new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+    case 'cone':
+      return new THREE.ConeGeometry(0.5, 1, numProp(props.radialSegments, 32));
+    case 'pyramid':
+      return new THREE.ConeGeometry(0.5, 1, 4);
+    case 'circle':
+    case 'disc':
+      return new THREE.CircleGeometry(0.5, 32);
+    case 'torus':
+      return new THREE.TorusGeometry(0.5, 0.15, 16, 32);
+    case 'ring':
+      return new THREE.RingGeometry(0.3, 0.5, 32);
+    case 'capsule':
+      return new THREE.CapsuleGeometry(0.3, 0.5, 4, 16);
+    case 'dodecahedron':
+      return new THREE.DodecahedronGeometry(0.5);
+    case 'icosahedron':
+      return new THREE.IcosahedronGeometry(0.5);
+    case 'octahedron':
+      return new THREE.OctahedronGeometry(0.5);
+    case 'tetrahedron':
+      return new THREE.TetrahedronGeometry(0.5);
+    case 'plane': {
+      // The compiler emits planes via explicit width/height or args:[w,h] with no
+      // scale (e.g. the [200,200] ground, the lotus water pond); other scenes (the
+      // warehouse floor) size via scale.x/scale.z. Honor all three so a compiler-
+      // authored ground isn't silently rendered 1×1.
+      const w = numProp(
+        props.width ?? (args ? args[0] : undefined) ?? (scale ? scale[0] : undefined),
+        1
+      );
+      const h = numProp(
+        props.height ?? (args ? args[1] : undefined) ?? (scale ? scale[2] : undefined),
+        1
+      );
+      return new THREE.PlaneGeometry(w, h);
+    }
+    default:
+      return new THREE.BoxGeometry(1, 1, 1);
+  }
+}
+
+/** MeshStandardMaterial from a compiled node's props (color + PBR materialProps). */
+function materialFromProps(props: Record<string, unknown>): THREE.MeshStandardMaterial {
+  const mp =
+    props.materialProps && typeof props.materialProps === 'object'
+      ? (props.materialProps as Record<string, unknown>)
+      : {};
+  // materialProps take precedence over flattened props (matches getMaterialProps).
+  const pick = (key: string): unknown => (mp[key] !== undefined ? mp[key] : props[key]);
+  const colorHex = (pick('color') as string) ?? '#8888cc';
+  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(colorHex), roughness: 0.5 });
+  const roughness = pick('roughness');
+  if (typeof roughness === 'number') mat.roughness = roughness;
+  const metalness = pick('metalness');
+  if (typeof metalness === 'number') mat.metalness = metalness;
+  const emissive = pick('emissive');
+  if (typeof emissive === 'string') mat.emissive = new THREE.Color(emissive);
+  const emissiveIntensity = pick('emissiveIntensity');
+  if (typeof emissiveIntensity === 'number') mat.emissiveIntensity = emissiveIntensity;
+  const opacity = pick('opacity');
+  if (typeof opacity === 'number' && opacity < 1) {
+    mat.opacity = opacity;
+    mat.transparent = true;
+  }
+  const wireframe = pick('wireframe');
+  if (typeof wireframe === 'boolean') mat.wireframe = wireframe;
+  return mat;
+}
+
+type BuildCtx = { lights: number; meshes: number };
+
+/**
+ * Walk a resolved R3FCompiler tree into a three.js Object3D. Mirrors r3f-renderer
+ * MeshNode: a mesh becomes a group hosting the transformed mesh, with child
+ * objects added as siblings so a parent's non-uniform scale never distorts them.
+ */
+function buildObject3D(node: R3FNode, ctx: BuildCtx): THREE.Object3D | null {
+  const p = (node.props ?? {}) as Record<string, unknown>;
+  const pos = Array.isArray(p.position) ? (p.position as number[]) : null;
+  const rot = Array.isArray(p.rotation) ? (p.rotation as number[]) : null;
+  const scl = Array.isArray(p.scale) ? (p.scale as number[]) : null;
+  const setPos = (o: THREE.Object3D) => {
+    if (pos) o.position.set(numProp(pos[0], 0), numProp(pos[1], 0), numProp(pos[2], 0));
+  };
+  const setRot = (o: THREE.Object3D) => {
+    if (rot) o.rotation.set(numProp(rot[0], 0), numProp(rot[1], 0), numProp(rot[2], 0));
+  };
+  const setScale = (o: THREE.Object3D) => {
+    if (scl) o.scale.set(numProp(scl[0], 1), numProp(scl[1], 1), numProp(scl[2], 1));
+  };
+
+  let container: THREE.Object3D;
+
+  switch (node.type) {
+    case 'mesh': {
+      const hsType = String(p.hsType ?? 'box');
+      const isPlane = hsType === 'plane';
+      const mesh = new THREE.Mesh(geometryForHsType(hsType, scl, p), materialFromProps(p));
+      mesh.name = node.id ?? hsType;
+      ctx.meshes++;
+      setPos(mesh);
+      if (isPlane) {
+        // Ground: PlaneGeometry is born vertical, so lay it flat. Dimensions are
+        // baked from scale.x/scale.z, so do NOT re-apply scale. Explicit rotation
+        // (if authored) overrides the flat default.
+        mesh.rotation.x = -Math.PI / 2;
+        if (rot) setRot(mesh);
+        (mesh.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+      } else {
+        setRot(mesh);
+        setScale(mesh);
+      }
+      const group = new THREE.Group();
+      group.add(mesh);
+      container = group;
+      break;
+    }
+    case 'directionalLight': {
+      const l = new THREE.DirectionalLight(
+        new THREE.Color((p.color as string) ?? '#ffffff'),
+        numProp(p.intensity, 1)
+      );
+      setPos(l);
+      ctx.lights++;
+      container = l;
+      break;
+    }
+    case 'ambientLight': {
+      const l = new THREE.AmbientLight(
+        new THREE.Color((p.color as string) ?? '#ffffff'),
+        numProp(p.intensity, 0.5)
+      );
+      ctx.lights++;
+      container = l;
+      break;
+    }
+    case 'pointLight': {
+      const l = new THREE.PointLight(
+        new THREE.Color((p.color as string) ?? '#ffffff'),
+        numProp(p.intensity, 1),
+        numProp(p.distance, 0),
+        numProp(p.decay, 2)
+      );
+      setPos(l);
+      ctx.lights++;
+      container = l;
+      break;
+    }
+    case 'hemisphereLight': {
+      const l = new THREE.HemisphereLight(
+        new THREE.Color((p.color as string) ?? '#ffffff'),
+        new THREE.Color((p.groundColor as string) ?? '#444444'),
+        numProp(p.intensity, 1)
+      );
+      ctx.lights++;
+      container = l;
+      break;
+    }
+    case 'spotLight': {
+      const l = new THREE.SpotLight(
+        new THREE.Color((p.color as string) ?? '#ffffff'),
+        numProp(p.intensity, 1),
+        numProp(p.distance, 0),
+        numProp(p.angle, Math.PI / 6),
+        numProp(p.penumbra, 0.1),
+        numProp(p.decay, 2)
+      );
+      setPos(l);
+      if (Array.isArray(p.target)) {
+        const t = p.target as number[];
+        l.target.position.set(numProp(t[0], 0), numProp(t[1], 0), numProp(t[2], 0));
+      }
+      // The spot's target must be in the scene graph to aim; wrap both in a group.
+      const g = new THREE.Group();
+      g.add(l);
+      g.add(l.target);
+      ctx.lights++;
+      container = g;
+      break;
+    }
+    case 'group':
+    default: {
+      // group, plus non-renderable nodes (Environment, EffectComposer, Text,
+      // Sparkles, gltfModel, Timeline) host children but draw nothing in v0.
+      const g = new THREE.Group();
+      setPos(g);
+      setRot(g);
+      setScale(g);
+      container = g;
+      break;
+    }
+  }
+
+  for (const child of node.children ?? []) {
+    const built = buildObject3D(child, ctx);
+    if (built) container.add(built);
+  }
+  return container;
+}
+
+/** True if any object in the parsed composition declares a `geometry` property —
+ *  the authoritative signal for the canonical .holo dialect (vs the simple
+ *  type:/color: dialect). Checked on the AST, not the raw source, so a
+ *  `geometry:` substring in a comment or string value can't misroute a simple
+ *  scene into the canonical path (which would render it blank). */
+function compositionHasGeometry(ast: unknown): boolean {
+  const objs = (ast as { objects?: unknown[] } | null | undefined)?.objects;
+  if (!Array.isArray(objs)) return false;
+  const stack = [...objs];
+  while (stack.length) {
+    const o = stack.pop() as { properties?: Array<{ key?: string }>; children?: unknown[] };
+    if (o?.properties?.some((pr) => pr?.key === 'geometry')) return true;
+    if (Array.isArray(o?.children)) stack.push(...o.children);
+  }
+  return false;
 }
 
 function isQuestBrowser(): boolean {
@@ -243,18 +503,47 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     if (!parsed.parseOk) return;
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-    renderer.setPixelRatio(typeof window !== 'undefined' ? window.devicePixelRatio : 1);
+    // Cap pixel ratio: the Quest Browser reports a high devicePixelRatio that,
+    // multiplied by the flat panel size, can blow past the GL renderbuffer limit
+    // and leave the canvas black. min(dpr, 2) keeps the buffer in-bounds.
+    renderer.setPixelRatio(Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 1, 2));
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
     renderer.xr.enabled = true;
     renderer.setClearColor(0x0a0a12, 1);
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
-    dir.position.set(5, 10, 5);
-    scene.add(dir);
-    for (const o of parsed.objects) scene.add(makeMesh(o));
+
+    // Canonical .holo (geometry:/material:, templates, lights, nesting) is rendered
+    // through @holoscript/core's real R3FCompiler so the immersive viewer faithfully
+    // shows the native example library. The minimal type/color dialect (and any
+    // compile failure) falls back to the simple makeMesh path — zero regression.
+    const ctx = { lights: 0, meshes: 0 };
+    let built = false;
+    if (parsed.ast && compositionHasGeometry(parsed.ast)) {
+      try {
+        const root = new R3FCompiler().compileComposition(parsed.ast);
+        const obj = buildObject3D(root, ctx);
+        // Only trust the canonical path if it actually produced meshes; otherwise
+        // (empty/misrouted compile) fall back to the simple renderer.
+        if (obj && ctx.meshes > 0) {
+          scene.add(obj);
+          built = true;
+        }
+      } catch (err) {
+        console.warn('[ImmersiveViewer] R3F compile failed; using simple renderer', err);
+      }
+    }
+    if (!built) {
+      for (const o of parsed.objects) scene.add(makeMesh(o));
+    }
+    // Light the scene only if the composition itself brought no lights.
+    if (ctx.lights === 0) {
+      scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+      const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+      dir.position.set(5, 10, 5);
+      scene.add(dir);
+    }
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
@@ -267,13 +556,25 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     camera.lookAt(0, 1, 0);
     cameraRef.current = camera;
 
-    let raf = 0;
-    const tick = () => {
+    const agentId =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('agent')
+        : null;
+
+    // User locomotion (move + smooth-turn + teleport) and NPC embodiment, both
+    // from the shared @holoscript/xr-embodiment package — no longer hardcoded here,
+    // so every VR scene inherits the same mobility (F.118) and agent-avatar tracking.
+    const loco = new XRLocomotionController({ renderer });
+    const tracker = agentId ? new AgentAvatarTracker({ scene, entityId: agentId }) : null;
+
+    // setAnimationLoop is the correct loop for BOTH XR and non-XR (three.js drives
+    // it via rAF when not presenting), so it is the single render driver — a second
+    // hand-rolled rAF loop would render the scene twice per frame.
+    renderer.setAnimationLoop((now?: number) => {
+      loco.update(typeof now === 'number' ? now : performance.now());
+      tracker?.update();
       renderer.render(scene, camera);
-      raf = requestAnimationFrame(tick);
-    };
-    renderer.setAnimationLoop(() => renderer.render(scene, camera)); // XR-aware loop
-    tick();
+    });
 
     const handleResize = () => {
       if (!canvas) return;
@@ -284,15 +585,30 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     window.addEventListener('resize', handleResize);
 
     return () => {
-      cancelAnimationFrame(raf);
       renderer.setAnimationLoop(null);
       window.removeEventListener('resize', handleResize);
+      loco.dispose();
+      tracker?.dispose();
+      // renderer.dispose() frees only the renderer's own GL resources, NOT
+      // scene-owned geometries/materials — traverse and dispose them to avoid a
+      // GPU leak each time the scene rebuilds.
+      scene.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        mesh.geometry?.dispose();
+        const mat = mesh.material;
+        if (Array.isArray(mat)) mat.forEach((m) => m?.dispose());
+        else (mat as THREE.Material | undefined)?.dispose();
+      });
       renderer.dispose();
       rendererRef.current = null;
       sceneRef.current = null;
       cameraRef.current = null;
     };
   }, [parsed]);
+
+  // Agent-avatar tracking now lives in the scene effect above (AgentAvatarTracker
+  // from @holoscript/xr-embodiment) — no separate effect needed.
 
   // Feature-detect immersive-vr.
   // Quest Browser returns false from isSessionSupported('immersive-vr') while
@@ -315,7 +631,10 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
     // Refine: if the browser explicitly reports no support, disable.
     xr.isSessionSupported('immersive-vr')
       .then((supported) => {
-        if (!supported) setXrSupported(false);
+        // Do NOT disable the button on a false result: Quest Browser reports
+        // immersive-vr unsupported in flat panel mode even though requestSession
+        // succeeds (see comment above). Stay optimistically enabled and let
+        // enterVR()'s requestSession error path surface any real failure.
         void postQuestProof(
           'WebXR immersive-vr support',
           supported ? 'OK' : 'WARN',
@@ -465,7 +784,9 @@ export function ImmersiveViewer({ code, name }: ImmersiveViewerProps) {
         emissiveIntensity: 0.4,
       })
     );
-    btn.position.set(0.5, 1.4, -0.8);
+    // Down and to the right — a reachable control, NOT a cube dead-center in the
+    // user's gaze (which read as "the scene" before the floor-occlusion fix).
+    btn.position.set(1.15, 1.0, -0.9);
     btn.userData.isPublishButton = true;
     scene.add(btn);
     publishButtonRef.current = btn;

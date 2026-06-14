@@ -26,6 +26,7 @@ import { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-three/drei';
 import { createXRStore, XR } from '@react-three/xr';
+import { useXRLocomotion, AgentAvatar } from '@holoscript/xr-embodiment/react';
 import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
 import { WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
@@ -527,6 +528,21 @@ function XRControls({
  *
  * Drop-in replacement for `<SceneViewer>` when XR is needed.
  */
+/**
+ * Embodiment rig for the R3F viewer: user locomotion (move + smooth-turn) for
+ * every VR session, plus an optional agent-NPC body when ?agent=<id> is present —
+ * both from the shared @holoscript/xr-embodiment package (F.118: every VR scene
+ * must let the user move). Lives inside <XR> so it has the Canvas/XR context.
+ */
+function XREmbodimentRig() {
+  useXRLocomotion();
+  const agentId =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('agent')
+      : null;
+  return agentId ? <AgentAvatar entityId={agentId} /> : null;
+}
+
 export function WebXRViewer({
   code,
   mode = 'immersive-vr',
@@ -700,6 +716,8 @@ export function WebXRViewer({
               </group>
             )}
           </Suspense>
+
+          <XREmbodimentRig />
 
           <OrbitControls
             makeDefault

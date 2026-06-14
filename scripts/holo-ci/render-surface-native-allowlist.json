@@ -139,6 +139,7 @@
     "packages/studio/src/app/pipeline/choreography/page.tsx",
     "packages/studio/src/app/playground/locomotion/page.tsx",
     "packages/studio/src/app/playground/page.tsx",
+    "packages/studio/src/app/playground/pipeline/page.tsx",
     "packages/studio/src/app/projects/layout.tsx",
     "packages/studio/src/app/projects/loading.tsx",
     "packages/studio/src/app/providers.tsx",

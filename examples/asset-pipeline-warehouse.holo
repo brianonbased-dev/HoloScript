@@ -1,0 +1,121 @@
+/**
+ * Asset Pipeline Warehouse
+ *
+ * The HoloScript asset-production pipeline rendered as a walkable manufacturing
+ * line. Each colour-coded station is one pipeline stage; an asset entity travels
+ * the conveyor through them (driven at runtime via the world-state loop), so the
+ * pipeline becomes a spatial, walkable thing in VR.
+ *
+ * Native HoloScript — authored in .holo, loaded by the immersive viewer. No
+ * inline scene strings. Stations laid out left -> right in front of the spawn
+ * point (camera near z=4 looking toward -z); the asset flows along z=-4.
+ *
+ * Stages: Generate -> Ingest -> Optimize -> Validate -> Provenance -> Publish.
+ */
+
+composition "Asset Pipeline Warehouse" {
+
+  environment {
+    skybox: "warehouse"
+    background_color: "#07070f"
+    ambient_light: 0.35
+    shadows: true
+    tone_mapping: "aces"
+  }
+
+  // ── Floor ────────────────────────────────────────────────────────────────
+  // A plane is a ground: the viewer lays planes flat into the XZ plane.
+  object "Floor" {
+    geometry: "plane"
+    position: [0, 0, -2]
+    scale: [22, 1, 20]
+    color: "#14141c"
+    material: { roughness: 0.95, metalness: 0.0 }
+  }
+
+  // ── Conveyor belt ──────────────────────────────────────────────────────────
+  object "Conveyor" {
+    geometry: "cube"
+    position: [0, 0.2, -4]
+    scale: [13.5, 0.2, 0.8]
+    color: "#3a3a44"
+    material: { roughness: 0.6, metalness: 0.35 }
+  }
+
+  // ── Pipeline stations (colour-coded by stage) ────────────────────────────
+  object "Station_Generate" {
+    geometry: "cube"
+    position: [-5, 0.85, -4]
+    scale: [1.4, 1.5, 1.4]
+    color: "#a855f7"
+    material: { roughness: 0.4, metalness: 0.2, emissive: "#3b0764", emissiveIntensity: 0.3 }
+  }
+  object "Station_Ingest" {
+    geometry: "cube"
+    position: [-3, 0.85, -4]
+    scale: [1.4, 1.5, 1.4]
+    color: "#3366ff"
+    material: { roughness: 0.4, metalness: 0.2, emissive: "#0a1a55", emissiveIntensity: 0.3 }
+  }
+  object "Station_Optimize" {
+    geometry: "cube"
+    position: [-1, 0.85, -4]
+    scale: [1.4, 1.5, 1.4]
+    color: "#22d3ee"
+    material: { roughness: 0.4, metalness: 0.2, emissive: "#075866", emissiveIntensity: 0.3 }
+  }
+  object "Station_Validate" {
+    geometry: "cube"
+    position: [1, 0.85, -4]
+    scale: [1.4, 1.5, 1.4]
+    color: "#33ff66"
+    material: { roughness: 0.4, metalness: 0.2, emissive: "#0a5522", emissiveIntensity: 0.3 }
+  }
+  object "Station_Provenance" {
+    geometry: "cube"
+    position: [3, 0.85, -4]
+    scale: [1.4, 1.5, 1.4]
+    color: "#ffcc00"
+    material: { roughness: 0.4, metalness: 0.3, emissive: "#553f00", emissiveIntensity: 0.3 }
+  }
+  object "Station_Publish" {
+    geometry: "cube"
+    position: [5, 0.85, -4]
+    scale: [1.4, 1.5, 1.4]
+    color: "#ffd700"
+    material: { roughness: 0.3, metalness: 0.55, emissive: "#5a4a00", emissiveIntensity: 0.4 }
+  }
+
+  // ── Warehouse pillars (frame the line) ────────────────────────────────────
+  object "Pillar_Left" {
+    geometry: "cylinder"
+    position: [-9, 2.4, -4]
+    scale: [0.6, 5.5, 0.6]
+    color: "#2a2a33"
+    material: { roughness: 0.8, metalness: 0.2 }
+  }
+  object "Pillar_Right" {
+    geometry: "cylinder"
+    position: [9, 2.4, -4]
+    scale: [0.6, 5.5, 0.6]
+    color: "#2a2a33"
+    material: { roughness: 0.8, metalness: 0.2 }
+  }
+
+  // ── Lighting ────────────────────────────────────────────────────────────
+  directional_light "KeyLight" {
+    color: "#ffffff"
+    intensity: 1.1
+    position: [5, 10, 5]
+    shadows: true
+  }
+  ambient_light "FillLight" {
+    color: "#c8d0ff"
+    intensity: 0.4
+  }
+
+  post_processing {
+    bloom: { intensity: 0.25, threshold: 0.75, radius: 0.3 }
+    tone_mapping: "aces"
+  }
+}

@@ -175,6 +175,14 @@ const nextConfig = {
   },
 
   outputFileTracingRoot: path.join(__dirname, '..', '..'),
+  // Pages load native scenes from the repo examples/ library at runtime via
+  // loadHoloExample (fs.readFileSync) — e.g. /playground/pipeline. Next.js does
+  // NOT trace fs.readFileSync paths, so without this the standalone build omits
+  // examples/ and the page hits its error fallback in production. Paths are
+  // relative to this config; outputFileTracingRoot (repo root) anchors the copy.
+  outputFileTracingIncludes: {
+    '/**': ['../../examples/**/*.holo', '../../examples/**/*.hs', '../../examples/**/*.hsplus'],
+  },
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx', 'holo'],
   serverExternalPackages: [
     'tree-sitter',

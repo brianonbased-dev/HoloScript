@@ -69,6 +69,7 @@
     "@holoscript/studio-plugin-sdk": "workspace:*",
     "@holoscript/uaal": "workspace:*",
     "@holoscript/ui": "workspace:*",
+    "@holoscript/xr-embodiment": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@lezer/highlight": "^1.2.3",
     "@monaco-editor/react": "^4.7.0",
