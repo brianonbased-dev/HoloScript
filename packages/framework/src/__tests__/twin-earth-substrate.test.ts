@@ -22,6 +22,7 @@ import {
   validateTwinEarthReceipt,
   validateModeTransitionReceipt,
   evaluateActuation,
+  DEFAULT_BLOCKED_ACTIONS,
   isSupportedTwinEarthRole,
   isSupportedParticipationMode,
   isSupportedTwinEarthKind,
@@ -511,15 +512,12 @@ describe('twin-earth-substrate contract', () => {
       expect(result.reason).toContain('not in the safety envelope allowedActions');
     });
 
-    it('allows actuation when allowedActions is empty (dangerous but explicit)', () => {
+    it('allows non-default-blocked actuation when allowedActions is empty (open whitelist)', () => {
+      // D.044 hardening: empty allowedActions = open whitelist for non-default-blocked actions.
+      // Default-blocked actions (actuator:command, robot:move etc.) still require explicit allow.
+      const dialogueGrant: PermissionGrant = { ...baseGrant, action: 'npc:dialogue' };
       const openEnvelope: SafetyEnvelope = { ...baseEnvelope, allowedActions: [] };
-      const result = evaluateActuation(
-        baseIdentity,
-        baseGrant,
-        openEnvelope,
-        'actuator:command',
-        'shard_1'
-      );
+      const result = evaluateActuation(baseIdentity, dialogueGrant, openEnvelope, 'npc:dialogue', 'shard_1');
       expect(result.allowed).toBe(true);
     });
 
@@ -558,6 +556,88 @@ describe('twin-earth-substrate contract', () => {
       );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('blocked_actions');
+    });
+
+    // ── D.044 axis-B hardening (task_1781341408570_k9lv) ─────────────────────
+    it('DEFAULT_BLOCKED_ACTIONS includes physical-world and governance actions', () => {
+      expect(DEFAULT_BLOCKED_ACTIONS).toContain('actuator:command');
+      expect(DEFAULT_BLOCKED_ACTIONS).toContain('robot:move');
+      expect(DEFAULT_BLOCKED_ACTIONS).toContain('robot:task:execute');
+      expect(DEFAULT_BLOCKED_ACTIONS).toContain('identity:revoke');
+      expect(DEFAULT_BLOCKED_ACTIONS).toContain('contract:ratify');
+    });
+
+    it('denies default-blocked action when not in allowedActions', () => {
+      const envelope: SafetyEnvelope = { ...baseEnvelope, allowedActions: [], blockedActions: [] };
+      const grant: PermissionGrant = { ...baseGrant, action: 'robot:move' };
+      const result = evaluateActuation(baseIdentity, grant, envelope, 'robot:move', 'shard_1');
+      expect(result.allowed).toBe(false);
+      expect(result.blockingRule).toBe('blocked_actions');
+      expect(result.reason).toContain('default-blocked');
+    });
+
+    it('permits a default-blocked action when explicitly in allowedActions', () => {
+      const envelope: SafetyEnvelope = {
+        ...baseEnvelope,
+        allowedActions: ['robot:move', 'actuator:command', 'sensor:read'],
+        blockedActions: [],
+      };
+      const grant: PermissionGrant = { ...baseGrant, action: 'robot:move' };
+      const result = evaluateActuation(baseIdentity, grant, envelope, 'robot:move', 'shard_1');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('denies actuation when envelope is stale (updatedAt + freshnessTtlMs exceeded)', () => {
+      const staleEnvelope: SafetyEnvelope = {
+        ...baseEnvelope,
+        updatedAt: new Date(Date.now() - 60_000).toISOString(), // 60s ago
+        freshnessTtlMs: 10_000,                                  // TTL = 10s
+      };
+      const result = evaluateActuation(baseIdentity, baseGrant, staleEnvelope, 'actuator:command', 'shard_1');
+      expect(result.allowed).toBe(false);
+      expect(result.blockingRule).toBe('stale_envelope');
+      expect(result.reason).toContain('stale');
+    });
+
+    it('permits actuation when envelope freshness is within TTL', () => {
+      const freshEnvelope: SafetyEnvelope = {
+        ...baseEnvelope,
+        updatedAt: new Date(Date.now() - 1_000).toISOString(), // 1s ago
+        freshnessTtlMs: 60_000,                                  // TTL = 60s
+      };
+      const result = evaluateActuation(baseIdentity, baseGrant, freshEnvelope, 'actuator:command', 'shard_1');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('denies actuation when humanApprovalRequired but no approval granted', () => {
+      const envelope: SafetyEnvelope = { ...baseEnvelope, humanApprovalRequired: true };
+      const result = evaluateActuation(baseIdentity, baseGrant, envelope, 'actuator:command', 'shard_1');
+      expect(result.allowed).toBe(false);
+      expect(result.blockingRule).toBe('human_approval_required');
+    });
+
+    it('denies actuation when human approval has expired', () => {
+      const envelope: SafetyEnvelope = {
+        ...baseEnvelope,
+        humanApprovalRequired: true,
+        humanApprovalGrantedAt: new Date(Date.now() - 90_000).toISOString(), // 90s ago
+        humanApprovalTtlMs: 30_000,                                           // TTL = 30s
+      };
+      const result = evaluateActuation(baseIdentity, baseGrant, envelope, 'actuator:command', 'shard_1');
+      expect(result.allowed).toBe(false);
+      expect(result.blockingRule).toBe('human_approval_required');
+      expect(result.reason).toContain('expired');
+    });
+
+    it('permits actuation when human approval is fresh', () => {
+      const envelope: SafetyEnvelope = {
+        ...baseEnvelope,
+        humanApprovalRequired: true,
+        humanApprovalGrantedAt: new Date(Date.now() - 1_000).toISOString(), // 1s ago
+        humanApprovalTtlMs: 60_000,                                          // TTL = 60s
+      };
+      const result = evaluateActuation(baseIdentity, baseGrant, envelope, 'actuator:command', 'shard_1');
+      expect(result.allowed).toBe(true);
     });
   });
 });

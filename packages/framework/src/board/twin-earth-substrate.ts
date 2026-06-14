@@ -137,6 +137,26 @@ export interface SafetyEnvelope {
   localOnly: boolean;
   /** Substrate-enforced — cannot be overridden by participant. */
   substrateEnforced: boolean;
+  // ── D.044 hardening fields ────────────────────────────────────────────────
+  /** ISO-8601 timestamp of the last envelope update. Used for freshness gating. */
+  updatedAt?: string;
+  /**
+   * Maximum envelope age (ms) before actuation is rejected.
+   * Default: 30 days (2_592_000_000ms). Set lower for high-risk surfaces.
+   */
+  freshnessTtlMs?: number;
+  /**
+   * If true, the envelope requires explicit human approval before high-risk
+   * actuation is permitted. Set for physical-world actions (D.044).
+   */
+  humanApprovalRequired?: boolean;
+  /** ISO-8601 timestamp of the most recent human approval for this envelope. */
+  humanApprovalGrantedAt?: string;
+  /**
+   * Maximum age of human approval (ms) before re-approval is required.
+   * Default: 24 hours (86_400_000ms).
+   */
+  humanApprovalTtlMs?: number;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -404,10 +424,25 @@ export interface ActuationResult {
     | 'not_allowed'
     | 'not_substrate_enforced'
     | 'expired_grant'
-    | 'revoked_grant';
+    | 'revoked_grant'
+    | 'stale_envelope'
+    | 'human_approval_required';
   /** Optional receipt if the evaluation itself was logged. */
   receipt?: TwinEarthReceipt;
 }
+
+/**
+ * Actions that are default-blocked (D.044): require explicit inclusion in
+ * `allowedActions` AND, for physical-world actions, human accountability.
+ * These are the highest-consequence, hardest-to-reverse action classes.
+ */
+export const DEFAULT_BLOCKED_ACTIONS: TwinEarthAction[] = [
+  'identity:revoke',     // permanent identity termination — requires founder auth
+  'contract:ratify',     // governance mutation — requires multi-party sign-off
+  'actuator:command',    // physical-world actuation — explicit allow + human accountability
+  'robot:move',          // physical movement — same
+  'robot:task:execute',  // physical task execution — same
+];
 
 /**
  * Evaluate whether a robot/AI actuation is permitted.
@@ -473,6 +508,51 @@ export function evaluateActuation(
       reason: `Action '${action}' is explicitly blocked by the safety envelope.`,
       blockingRule: 'blocked_actions',
     };
+  }
+
+  // 11b. Default-block check (D.044): high-risk actions are blocked unless
+  // they appear explicitly in the allowedActions whitelist.
+  const isExplicitlyAllowed = envelope.allowedActions.includes(action);
+  if (!isExplicitlyAllowed && DEFAULT_BLOCKED_ACTIONS.includes(action)) {
+    return {
+      allowed: false,
+      reason: `Action '${action}' is default-blocked (high-risk). Add it to allowedActions to permit.`,
+      blockingRule: 'blocked_actions',
+    };
+  }
+
+  // 11c. Freshness check (D.044): stale envelopes cannot authorize actuation.
+  if (envelope.updatedAt) {
+    const ttl = envelope.freshnessTtlMs ?? 30 * 24 * 60 * 60 * 1000; // 30 days default
+    const age = Date.now() - new Date(envelope.updatedAt).getTime();
+    if (age > ttl) {
+      return {
+        allowed: false,
+        reason: `Safety envelope is stale (age=${Math.round(age / 1000)}s, TTL=${Math.round(ttl / 1000)}s). Re-issue the envelope.`,
+        blockingRule: 'stale_envelope',
+      };
+    }
+  }
+
+  // 11d. Human accountability check (D.044): physical-world actions require
+  // a recent human approval when the envelope mandates it.
+  if (envelope.humanApprovalRequired) {
+    if (!envelope.humanApprovalGrantedAt) {
+      return {
+        allowed: false,
+        reason: 'Envelope requires human approval; none has been granted.',
+        blockingRule: 'human_approval_required',
+      };
+    }
+    const approvalTtl = envelope.humanApprovalTtlMs ?? 24 * 60 * 60 * 1000; // 24h default
+    const approvalAge = Date.now() - new Date(envelope.humanApprovalGrantedAt).getTime();
+    if (approvalAge > approvalTtl) {
+      return {
+        allowed: false,
+        reason: `Human approval expired (age=${Math.round(approvalAge / 1000)}s, TTL=${Math.round(approvalTtl / 1000)}s). Re-approve to proceed.`,
+        blockingRule: 'human_approval_required',
+      };
+    }
   }
 
   // 12. Grant validation
