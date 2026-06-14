@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
-import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { userUuid } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -85,7 +85,8 @@ router.get('/', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, desc } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const agents = await db
       .select()
@@ -118,7 +119,8 @@ router.get('/summary', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, sql } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const [summary] = await db
       .select({
@@ -151,7 +153,8 @@ router.post('/', async (req: Request, res: Response) => {
 
     const { moltbookAgents, absorbProjects } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     // Verify project ownership
     const [project] = await db
@@ -209,7 +212,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (body.agentName !== undefined) updates.agentName = body.agentName;
@@ -253,7 +257,8 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const result = await db
       .delete(moltbookAgents)
@@ -283,7 +288,8 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
 
     const creditsModule = await import('@holoscript/absorb-service/credits');
     const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
     // @ts-ignore - Automatic remediation for TS18046
     const creditCheck = await requireCredits(userId, 'semantic_dedup');
     
@@ -345,7 +351,8 @@ router.post('/:id/start', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const result = await db
       .update(moltbookAgents)
@@ -378,7 +385,8 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const result = await db
       .update(moltbookAgents)
@@ -411,7 +419,8 @@ router.post('/:id/trigger', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     // Verify ownership
     const [agent] = await db
@@ -456,7 +465,8 @@ router.get('/:id/status', async (req: Request, res: Response) => {
 
     const { moltbookAgents } = await import('../db/schema.js');
     const { eq, and } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     const [agent] = await db
       .select()
@@ -505,7 +515,8 @@ router.get('/:id/events', async (req: Request, res: Response) => {
 
     const { moltbookAgents, moltbookAgentEvents } = await import('../db/schema.js');
     const { eq, and, desc } = await import('drizzle-orm');
-    const userId = (req as AuthenticatedRequest).userId || 'anonymous';
+    const userId = userUuid(req);
+    if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
 
     // Verify agent ownership
     const [agent] = await db
