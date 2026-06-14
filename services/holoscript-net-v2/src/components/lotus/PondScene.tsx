@@ -16,7 +16,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { MeshReflectorMaterial } from '@react-three/drei';
 import type {
   BakedScene,
   BakedLotusInstance,
@@ -293,19 +292,16 @@ function LotusInstance({
 }
 
 /**
- * PondWater — a REAL water surface (not a flat lambert plane). Real-time planar
- * reflection (drei MeshReflectorMaterial) + animated normal-map ripples + a deep
- * teal tint and a glossy fresnel sheen, matching the dark reflective water in the
- * references. Replaces the stock reflective-plane fallback for the pond's water.
+ * PondWater — a glossy water surface that reflects the HDRI environment via a
+ * low-roughness, semi-metallic physical material (NOT drei MeshReflectorMaterial:
+ * its recursive planar-reflection render-target blacked out the whole pond under
+ * the EffectComposer, and was the heaviest GPU cost on Quest/mobile). This reads
+ * as dark reflective water — picking up the sky, rim light, and flowers from the
+ * environment map — with zero extra render passes. A gentle clearcoat adds the wet
+ * sheen; a subtle animated UV-less ripple via vertex y is intentionally omitted to
+ * keep it cheap and SSR/headset-safe.
  */
 function PondWater({ prim }: { prim: BakedPrimitive }) {
-  const matRef = useRef<{ normalMap?: THREE.Texture } & THREE.Material>(null);
-  // Two scrolling normal maps would need texture assets; instead animate a tiny
-  // procedural ripple by gently rocking the reflector's distortion over time.
-  const distortRef = useRef(0.18);
-  useFrame((state) => {
-    distortRef.current = 0.16 + Math.sin(state.clock.elapsedTime * 0.35) * 0.04;
-  });
   const w = prim.width ?? 60;
   const h = prim.height ?? 60;
   return (
@@ -315,20 +311,13 @@ function PondWater({ prim }: { prim: BakedPrimitive }) {
       receiveShadow
     >
       <planeGeometry args={[w, h, 1, 1]} />
-      <MeshReflectorMaterial
-        ref={matRef as never}
-        resolution={512}
-        mirror={0.55}
-        mixBlur={6}
-        mixStrength={1.4}
-        blur={[300, 80]}
-        depthScale={1.1}
-        minDepthThreshold={0.4}
-        maxDepthThreshold={1.2}
-        roughness={0.28}
-        metalness={0.32}
+      <meshPhysicalMaterial
         color={prim.color ?? '#0c2826'}
-        distortion={distortRef.current}
+        roughness={0.12}
+        metalness={0.55}
+        envMapIntensity={1.35}
+        clearcoat={1}
+        clearcoatRoughness={0.18}
       />
     </mesh>
   );
