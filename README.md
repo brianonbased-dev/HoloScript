@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="hero.svg" alt="HoloScript — one semantic source compiles to 40+ targets" width="100%">
+  <img src="hero.svg" alt="HoloScript — build your own games and apps, no code, your data stays yours" width="100%">
 </p>
 
 # HoloScript
 
-Describe what you want to build. HoloScript turns that description into files that can run, be inspected, and move to the platform you need.
+Build your own games and apps — no coding, no data handed to Big Tech, no lock-in. Describe what you want; HoloScript turns it into a real, running creation you own, and runs it anywhere you need.
 
-HoloScript is for teams building with AI agents, real apps, and more than one place to ship. You write `.holo`, `.hsplus`, or `.hs` files that describe screens, scenes, services, data, devices, and agent workflows. HoloScript can run those files directly while you iterate, then translate the same source when you need code for a browser, engine, robot, service, or deployment.
+Anyone can create — and developers, teams, and AI agents build on the same engine. You (or an agent) describe what you want in `.holo`, `.hsplus`, or `.hs` files — screens, scenes, services, data, devices, agent workflows. HoloScript runs those files directly while you iterate, then translates the same source when you need code for a browser, engine, robot, service, or deployment. Because it compiles to your choice of platform, your creation moves with you — no single vendor can lock it in.
 
 Think of it as three practical pieces:
 
@@ -82,7 +82,7 @@ HoloScript is not trying to replace every tool in your stack. It keeps the inten
 
 | If you are a...        | Describe this                                                          | Get this                                                                                                                                       |
 | ---------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Unity, Unreal, Godot, or React Three Fiber output from the same scene                                                                          |
+| Game / XR developer    | `composition "Dungeon" { object "Chest" @grabbable @physics { ... } }` | Your scene runs on Unity, Unreal, Godot, or React Three Fiber from one source you own — you pick the target, you're never locked to it          |
 | AI agent builder       | `agent "Brittney" { tool: generate_scene, tool: deploy_service, ... }` | MCP tools with typed inputs, permissions, and live inventory verified via `GET /health`                                                        |
 | Simulation engineer    | `simulation "WindTunnel" { solver: fea, mesh: tet10, boundary: ... }`  | TypeScript-accessible solvers with replay/provenance hooks; verify geometry, meshing, boundary conditions, and V&V depth before scientific use |
 | Founder / product team | `service "BillingAPI" { route: /invoice, method: POST, ... }`          | Node.js service scaffold with observability, metering, and rollback hooks                                                                      |
