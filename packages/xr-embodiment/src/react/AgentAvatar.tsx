@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactElement } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import type * as THREE from 'three';
 import { AgentAvatarTracker, type AgentAvatarOptions } from '../three/AgentAvatarTracker';
@@ -40,7 +40,7 @@ export function AgentAvatar(props: AgentAvatarProps): null {
 export function AgentAvatars({
   ids,
   ...rest
-}: { ids: string[] } & Omit<AgentAvatarProps, 'entityId'>): React.JSX.Element {
+}: { ids: string[] } & Omit<AgentAvatarProps, 'entityId'>): ReactElement {
   return (
     <>
       {ids.map((id) => (

@@ -5,7 +5,7 @@
  */
 
 export { useXRLocomotion } from './useXRLocomotion';
-export { AgentAvatar } from './AgentAvatar';
+export { AgentAvatar, AgentAvatars } from './AgentAvatar';
 export type { AgentAvatarProps } from './AgentAvatar';
 
 // Re-export the framework-light core so a React consumer can import everything
