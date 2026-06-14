@@ -16,9 +16,9 @@
  *
  * Reusable across any 2D-vector page; the agent-ability stat-web is its first consumer.
  *
- * The primitive/radar emitters + property accessors live in `./vector2d/emit` so the
- * PanelWidgetCompiler can reuse the exact same byte-stable vocabulary (factored 2026-06-14,
- * paper "Compile the Surface" E2 STEP 1; behaviour guarded by __tests__/Vector2DCompiler.test.ts).
+ * The primitive/radar emitters + property accessors live in `./vector2d/emit` as a shared,
+ * byte-stable vocabulary reusable by future 2D-vector / native-panel targets (factored 2026-06-14;
+ * behaviour guarded by __tests__/Vector2DCompiler.test.ts).
  */
 
 import type { HoloComposition, HoloObjectDecl } from '../parser/HoloCompositionTypes';

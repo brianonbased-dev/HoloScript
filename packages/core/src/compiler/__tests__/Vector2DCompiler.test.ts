@@ -6,12 +6,12 @@ import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 /**
  * Golden / regression test for Vector2DCompiler.
  *
- * Added 2026-06-14 as the missing byte-stability baseline (paper "Compile the Surface" E2,
- * research/2026-06-14_paper-native-frontend-aaa-compile.md). The compiler had ZERO tests, so
- * the planned shared-emit refactor (factoring the primitive/radar emitters into vector2d/emit.ts
- * for reuse by the new PanelWidgetCompiler) had nothing to verify byte-identical against. This
- * fixture exercises every emit path being moved: radar (rings/spokes/labels/facet/series) plus
- * the line/circle/text primitives plus esc()/f1(). The snapshot is the byte-identical guard.
+ * Added 2026-06-14 as the missing byte-stability baseline (paper "Compile the Surface",
+ * research/2026-06-14_paper-native-frontend-aaa-compile.md). The compiler had ZERO tests, so the
+ * shared-emit refactor (factoring the primitive/radar emitters into vector2d/emit.ts) had nothing
+ * to verify byte-identical against. This fixture exercises every emit path that was moved: radar
+ * (rings/spokes/labels/facet/series) plus the line/circle/text primitives plus esc()/f1(). The
+ * snapshot is the byte-identical guard.
  */
 
 const FIXTURE = `@page({ route: "/test-vec" })

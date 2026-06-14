@@ -1,10 +1,9 @@
 /**
  * vector2d/emit.ts — shared HoloScript → SVG/JSX emit vocabulary.
  *
- * Factored out of Vector2DCompiler (2026-06-14, paper "Compile the Surface" E2 STEP 1) so the
- * forthcoming PanelWidgetCompiler can REUSE the same byte-stable primitive/radar emitters and
- * property accessors instead of forking them (which would let the chart vocabulary drift between
- * the page target and the panel-widget target). Behaviour is byte-identical to the original
+ * Factored out of Vector2DCompiler (2026-06-14) as its shared, byte-stable emit vocabulary
+ * (primitive/radar emitters + property accessors) so any future 2D-vector or native-panel target
+ * can reuse it instead of forking the chart logic. Behaviour is byte-identical to the original
  * inline definitions — guarded by compiler/__tests__/Vector2DCompiler.test.ts (golden snapshot).
  *
  * Determinism contract: every helper here is pure and order-stable — coords rounded via f1,
