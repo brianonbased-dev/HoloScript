@@ -3,7 +3,7 @@
 # Builds from the pnpm workspace root to resolve workspace dependencies
 # Dependency chain: mcp-server → core + engine + llm-provider + absorb-service + cli, core → crdt + engine
 
-ARG PNPM_VERSION=8.12.0
+ARG PNPM_VERSION=9.15.9
 
 FROM node:20-alpine AS base
 ARG PNPM_VERSION

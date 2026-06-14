@@ -3,7 +3,7 @@
 # Must be built from workspace root: docker build -f services/holoscript-net/Dockerfile .
 # Dependency chain: holoscript-net → core + mcp-server + runtime + r3f-renderer
 
-ARG PNPM_VERSION=8.12.0
+ARG PNPM_VERSION=9.15.9
 
 FROM node:20-alpine AS base
 ARG PNPM_VERSION

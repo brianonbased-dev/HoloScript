@@ -2,7 +2,7 @@
 # Headless Unity/WebGPU/glTF compilation background worker and SOC2 compliant async processing.
 # Based on absorb-service Dockerfile configuration
 
-ARG PNPM_VERSION=8.12.0
+ARG PNPM_VERSION=9.15.9
 FROM node:20-alpine AS base
 ARG PNPM_VERSION
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate

@@ -1,4 +1,4 @@
-ARG PNPM_VERSION=8.12.0
+ARG PNPM_VERSION=9.15.9
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat dumb-init chromium
 RUN if [ -x /usr/bin/chromium-browser ] && [ ! -e /usr/bin/chromium ]; then ln -s /usr/bin/chromium-browser /usr/bin/chromium; fi
