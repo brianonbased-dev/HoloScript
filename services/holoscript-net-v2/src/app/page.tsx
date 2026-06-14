@@ -46,11 +46,11 @@ function HoloscriptNetComponent() {
 
       <img className="w-40 md:w-56 h-auto mx-auto drop-shadow-[0_0_45px_rgba(255,42,214,0.5)] select-none" src="/lotus.png" alt="Photorealistic pink lotus in full bloom" />
 <h1 className="text-5xl font-bold tracking-tight max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent">
-      {`Describe it once. Run it on every device.`}
+      {`Build your own games and apps. No code. Your data stays yours.`}
 
     </h1>
 <h4 className="text-xl text-gray-400 max-w-2xl mx-auto text-gray-300">
-      {`HoloScript turns a single description into a running experience across the web, mobile, XR, and AI agents — from one source of truth.`}
+      {`HoloScript lets anyone create games, apps, and worlds without writing code and without handing their data to Big Tech. You describe what you want; HoloScript builds it, you own it, and it runs anywhere — so no platform can lock you in.`}
 
     </h4>
 <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
@@ -60,7 +60,7 @@ function HoloscriptNetComponent() {
 
     </a>
 <a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="/compile">
-      {`See every target`}
+      {`Runs anywhere — no lock-in`}
 
     </a>
 <a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="https://github.com/brianonbased-dev/HoloScript">

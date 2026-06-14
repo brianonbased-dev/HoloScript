@@ -1,8 +1,8 @@
 composition "HoloscriptNet" {
   @page { route: "/" }
   @metadata {
-    title: "HoloScript — describe it once, run it on every device"
-    description: "One description compiles to web, mobile, XR, and agents. This site is built in HoloScript."
+    title: "HoloScript — build your own games and apps, no code, your data stays yours"
+    description: "Build your own games and apps with no coding — keep your data and own what you make, no Big-Tech lock-in. This site is built in HoloScript."
   }
 
   object "Page" {
@@ -40,12 +40,12 @@ composition "HoloscriptNet" {
       }
 
       object "Title" {
-        @text { content: "Describe it once. Run it on every device.", variant: "h1" }
+        @text { content: "Build your own games and apps. No code. Your data stays yours.", variant: "h1" }
         @theme { className: "max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent" }
       }
 
       object "Subtitle" {
-        @text { content: "HoloScript turns a single description into a running experience across the web, mobile, XR, and AI agents — from one source of truth.", variant: "subtitle" }
+        @text { content: "HoloScript lets anyone create games, apps, and worlds without writing code and without handing their data to Big Tech. You describe what you want; HoloScript builds it, you own it, and it runs anywhere — so no platform can lock you in.", variant: "subtitle" }
         @theme { className: "max-w-2xl mx-auto text-gray-300" }
       }
 
@@ -58,7 +58,7 @@ composition "HoloscriptNet" {
         }
 
         object "TargetsCta" {
-          @link { href: "/compile", content: "See every target" }
+          @link { href: "/compile", content: "Runs anywhere — no lock-in" }
           @theme { className: "px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" }
         }
 
