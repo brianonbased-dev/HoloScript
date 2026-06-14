@@ -121,7 +121,7 @@ export * from './lod';
 // DONE(A.011.01a): postfx — bloom, SSAO, DOF, tone mapping, color grading (in rendering)
 
 export * from './gpu/GaussianSplatExtractor';
-export * from './simulation/TetGenWasmMesher';
+export { TetGenWasmMesher } from './simulation/wasm/TetGenWasmMesher';
 export * from './runtime/HoloScriptPlusRuntime';
 export * from './runtime/InstancedRenderer';
 export * from './runtime/AssetStreamer';
