@@ -1,0 +1,150 @@
+composition "CompileTargets" {
+  @page { route: "/compile" }
+  @metadata {
+    title: "HoloScript — one description, every platform"
+    description: "A single HoloScript source compiles to game engines, the web, XR headsets, robotics, IoT, and AI agents. Each target is also a live MCP tool agents can call."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "relative z-10 min-h-screen flex flex-col" }
+
+    object "Blob" @slot(component: "LiquidBlobBackground", import: "@/components/LiquidBlobBackground") {}
+
+    object "Nav" {
+      @theme { tag: "nav", className: "relative z-10 flex items-center justify-between px-6 md:px-10 py-6" }
+
+      object "Brand" {
+        @link { href: "/", content: "HoloScript" }
+        @theme { className: "text-xl font-bold tracking-tight" }
+      }
+
+      object "OpenStudioNav" {
+        @link { href: "https://holoscript.studio", content: "Open Studio" }
+        @theme { className: "text-sm font-medium px-4 py-2 rounded-full border border-white/20 hover:border-white/50 transition" }
+      }
+    }
+
+    object "Hero" {
+      @theme { tag: "section", className: "relative z-10 px-6 md:px-10 pt-12 pb-10 text-center" }
+
+      object "Title" {
+        @text { content: "Describe it once. Compile it everywhere.", variant: "h1" }
+        @theme { className: "text-5xl font-bold tracking-tight max-w-4xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent" }
+      }
+
+      object "Subtitle" {
+        @text { content: "One HoloScript source compiles to game engines, the browser, XR headsets, robotics, IoT, and AI agents — from a single source of truth. Every target below is also a live MCP tool an agent can call.", variant: "subtitle" }
+        @theme { className: "text-xl text-gray-300 max-w-2xl mx-auto pt-5" }
+      }
+    }
+
+    object "Grid" {
+      @theme { tag: "section", className: "relative z-10 px-6 md:px-10 pb-20 max-w-5xl mx-auto w-full flex flex-col gap-10" }
+
+      object "CatGame" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatGameLabel" { @text { content: "Game engines", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatGameRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TUnity"  { @text { content: "Unity" }            @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TUnreal" { @text { content: "Unreal Engine 5" }  @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TGodot"  { @text { content: "Godot" }            @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+        }
+      }
+
+      object "CatWeb" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatWebLabel" { @text { content: "Web & browser", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatWebRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TR3F"      { @text { content: "React Three Fiber" } @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TBabylon"  { @text { content: "Babylon.js" }        @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TWebGPU"   { @text { content: "WebGPU" }            @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TWASM"     { @text { content: "WebAssembly" }       @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TPlay"     { @text { content: "PlayCanvas" }        @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TCanvas2D" { @text { content: "Canvas 2D — playable games" } @theme { className: "px-4 py-2 rounded-full border border-fuchsia-300/50 text-fuchsia-100 text-sm" } }
+        }
+      }
+
+      object "CatXR" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatXRLabel" { @text { content: "XR & spatial", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatXRRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TVision" { @text { content: "Apple Vision Pro" } @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TQuest"  { @text { content: "Meta Quest" }       @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TOpenXR" { @text { content: "OpenXR" }           @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TARKit"  { @text { content: "iOS ARKit" }        @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TVRChat" { @text { content: "VRChat" }           @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TGlasses"{ @text { content: "AI glasses" }       @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+        }
+      }
+
+      object "CatRobotics" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatRoboticsLabel" { @text { content: "Robotics & simulation", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatRoboticsRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TURDF" { @text { content: "URDF" }          @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TSDF"  { @text { content: "SDF / Gazebo" }  @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TUSD"  { @text { content: "USD Physics" }   @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TROS2" { @text { content: "ROS 2" }         @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+        }
+      }
+
+      object "CatInterchange" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatInterchangeLabel" { @text { content: "3D & interchange", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatInterchangeRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TGltf"  { @text { content: "glTF" }                 @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TUSDZ"  { @text { content: "USDZ — AR Quick Look" } @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "T3DGS"  { @text { content: "Gaussian Splatting" }   @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+        }
+      }
+
+      object "CatIndustry" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatIndustryLabel" { @text { content: "Industry & IoT", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatIndustryRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TCAD"  { @text { content: "CAD — printable STL" }        @theme { className: "px-4 py-2 rounded-full border border-fuchsia-300/50 text-fuchsia-100 text-sm" } }
+          object "TDTDL" { @text { content: "Azure Digital Twins (DTDL)" } @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+        }
+      }
+
+      object "CatAgents" {
+        @theme { className: "flex flex-col gap-3" }
+        object "CatAgentsLabel" { @text { content: "AI agents", variant: "h4" } @theme { className: "text-sm uppercase tracking-widest text-gray-400" } }
+        object "CatAgentsRow" {
+          @theme { className: "flex flex-wrap gap-3" }
+          object "TMCP" { @text { content: "MCP tool config" } @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+          object "TA2A" { @text { content: "A2A agent card" }  @theme { className: "px-4 py-2 rounded-full border border-white/20 text-sm" } }
+        }
+      }
+    }
+
+    object "Proof" {
+      @theme { tag: "section", className: "relative z-10 px-6 md:px-10 py-12 text-center max-w-3xl mx-auto flex flex-col items-center gap-4" }
+
+      object "ProofText" {
+        @text { content: "Every target is exposed as an MCP tool — AI agents compile HoloScript to all of them, live.", variant: "subtitle" }
+        @theme { className: "text-lg text-gray-300" }
+      }
+
+      object "ProofLink" {
+        @link { href: "https://mcp.holoscript.net", content: "Browse the MCP server →" }
+        @theme { className: "text-cyan-200 hover:text-white transition font-medium" }
+      }
+    }
+
+    object "Footer" {
+      @theme { tag: "footer", className: "relative z-10 px-6 md:px-10 py-8 text-center" }
+
+      object "BuiltWith" {
+        @text { content: "This page is a HoloScript composition, compiled to the web by HoloScript.", variant: "caption" }
+        @theme { className: "text-sm text-gray-500" }
+      }
+    }
+  }
+}

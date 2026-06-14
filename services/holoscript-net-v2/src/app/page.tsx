@@ -44,6 +44,10 @@ function HoloscriptNetComponent() {
       {`Open Studio`}
 
     </a>
+<a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="/compile">
+      {`See every target`}
+
+    </a>
 <a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="https://github.com/brianonbased-dev/HoloScript">
       {`Read the docs`}
 

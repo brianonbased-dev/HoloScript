@@ -50,6 +50,11 @@ composition "HoloscriptNet" {
           @theme { className: "px-7 py-3 rounded-full bg-white text-black font-semibold hover:bg-gray-200 transition" }
         }
 
+        object "TargetsCta" {
+          @link { href: "/compile", content: "See every target" }
+          @theme { className: "px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" }
+        }
+
         object "DocsCta" {
           @link { href: "https://github.com/brianonbased-dev/HoloScript", content: "Read the docs" }
           @theme { className: "px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" }
