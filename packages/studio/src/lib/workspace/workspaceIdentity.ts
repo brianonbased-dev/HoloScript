@@ -28,6 +28,10 @@ function founderIdentityValues(): Set<string> {
     'brianonbased-dev',
     'josep',
     'brianonbased@gmail.com',
+    // Founder's Google identity — GitHub login resolves to brianonbased-dev, but a
+    // Google login surfaces this email with no githubUsername, so it must be
+    // allowlisted directly or the founder is denied the operate surfaces.
+    'josephtaxwise@gmail.com',
     ...configured,
   ]);
 }

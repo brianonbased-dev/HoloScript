@@ -7,10 +7,11 @@
  * document URL is /gold-game/index.html. A route handler (not a page.tsx)
  * keeps the render surface HS-native per the render-surface freeze gate.
  */
-import type { NextRequest } from 'next/server';
-
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  return Response.redirect(new URL('/gold-game/index.html', request.nextUrl.origin), 307);
+export async function GET() {
+  // Relative Location resolves against the PUBLIC request URL (holoscript.studio /
+  // railway / localhost). `request.nextUrl.origin` returned the container's internal
+  // bind origin (https://0.0.0.0:8080), producing a dead redirect for real users.
+  return new Response(null, { status: 307, headers: { Location: '/gold-game/index.html' } });
 }
