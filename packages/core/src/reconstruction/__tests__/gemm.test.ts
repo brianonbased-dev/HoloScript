@@ -152,7 +152,11 @@ describe('GEMM — WebGPU', () => {
     const device = await adapter.requestDevice();
 
     const kernel = createGemmKernel(device);
-    await expect(kernel.run(new Float32Array(6), new Float32Array(6), 3, 3, 2)).rejects.toThrow(
+    // M=3, N=3, K=2 requires A.length=M*K=6, B.length=K*N=6.
+    // Pass A with only 5 elements (length mismatch) to trigger the GEMM guard.
+    // (The prior test used Float32Array(6) for both which is actually *valid* input —
+    // only detected as wrong once Dawn provides a real WebGPU adapter.)
+    await expect(kernel.run(new Float32Array(5), new Float32Array(6), 3, 3, 2)).rejects.toThrow(
       'GEMM'
     );
     device.destroy();

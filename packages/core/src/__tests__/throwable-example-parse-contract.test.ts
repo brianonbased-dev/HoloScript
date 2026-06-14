@@ -5,7 +5,7 @@ import * as path from 'path';
 
 const FILE_PATH = path.resolve(
   process.cwd(),
-  '../../examples/traits/throwable-breakable-stackable.holo'
+  'examples/traits/throwable-breakable-stackable.holo'
 );
 
 describe('throwable example parse contract', () => {

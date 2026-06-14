@@ -28,17 +28,18 @@ import {
 } from '@holoscript/framework';
 import type { PeerMetadata, GossipPacket } from '@holoscript/framework';
 
-// agent-protocol
+// agent-protocol (protocol contracts: enums, types)
+import { ProtocolPhase, PHASE_NAMES } from '@holoscript/agent-protocol';
+import type { PhaseResult, AgentIdentity, CycleResult } from '@holoscript/agent-protocol';
+
+// agent/service implementations live in framework (cycle-safe; agent-protocol is L1)
 import {
-  ProtocolPhase,
-  PHASE_NAMES,
   BaseAgent,
   BaseService,
   ServiceLifecycle,
   GoalSynthesizer,
   MicroPhaseDecomposer,
-} from '@holoscript/agent-protocol';
-import type { PhaseResult, AgentIdentity, CycleResult } from '@holoscript/agent-protocol';
+} from '@holoscript/framework';
 
 // uaal
 import { UAALVirtualMachine, UAALCompiler, UAALOpCode } from '@holoscript/uaal';

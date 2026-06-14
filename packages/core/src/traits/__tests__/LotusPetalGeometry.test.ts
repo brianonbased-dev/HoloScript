@@ -17,7 +17,8 @@ import {
 
 describe('buildLotusPetalGeometryData', () => {
   it('emits consistent vertex/index counts for the grid resolution', () => {
-    const g = buildLotusPetalGeometryData({ segmentsU: 8, segmentsV: 12 });
+    // thickness:0 tests the single-surface contract; shell extrusion doubles vertexCount
+    const g = buildLotusPetalGeometryData({ segmentsU: 8, segmentsV: 12, thickness: 0 });
     const cols = 9;
     const rows = 13;
     expect(g.vertexCount).toBe(cols * rows);
@@ -54,7 +55,8 @@ describe('buildLotusPetalGeometryData', () => {
   });
 
   it('positions stay within the declared width/length envelope', () => {
-    const g = buildLotusPetalGeometryData({ width: 1.1, length: 1.7 });
+    // thickness:0 tests the front surface only; back-surface offsets extend beyond envelope
+    const g = buildLotusPetalGeometryData({ width: 1.1, length: 1.7, thickness: 0 });
     for (let i = 0; i < g.vertexCount; i += 1) {
       const x = g.positions[i * 3];
       const y = g.positions[i * 3 + 1];
@@ -82,7 +84,8 @@ describe('buildLotusPetalGeometryData', () => {
   });
 
   it('emits unit-length, front-facing (+z) normals', () => {
-    const g = buildLotusPetalGeometryData({ segmentsU: 8, segmentsV: 8 });
+    // thickness:0 tests front-face normals only; shell back-face normals are intentionally flipped (-z)
+    const g = buildLotusPetalGeometryData({ segmentsU: 8, segmentsV: 8, thickness: 0 });
     for (let i = 0; i < g.vertexCount; i += 1) {
       const nx = g.normals[i * 3];
       const ny = g.normals[i * 3 + 1];
@@ -104,7 +107,8 @@ describe('buildLotusPetalGeometryData', () => {
   });
 
   it('winds triangles CCW so the front face points toward +z (the viewer)', () => {
-    const g = buildLotusPetalGeometryData({ segmentsU: 6, segmentsV: 6 });
+    // thickness:0 tests front-face winding only; shell back-faces use reversed (CW) winding by design
+    const g = buildLotusPetalGeometryData({ segmentsU: 6, segmentsV: 6, thickness: 0 });
     const p = (vi: number): [number, number, number] => [
       g.positions[vi * 3],
       g.positions[vi * 3 + 1],

@@ -81,20 +81,23 @@ describe('Cycle 146: Rope, Deformable & Fluid', () => {
   // -------------------------------------------------------------------------
 
   it('should simulate fluid particles under gravity', () => {
+    // Use a single isolated particle so there are no neighbour pressure/viscosity
+    // forces to compete with gravity (the physics sweep a7cb12a0a corrected particle
+    // mass to restDensity * h^3; a dense block now has pressure repulsion >> gravity).
     const fluid = new FluidSim({
-      smoothingRadius: 1.5,
-      boundaryMin: [-5, -5, -5],
-      boundaryMax: [5, 5, 5],
+      smoothingRadius: 0.5,
+      boundaryMin: [-10, -10, -10],
+      boundaryMax: [10, 10, 10],
     });
 
-    fluid.addBlock([-1, 2, -1], [1, 3, 1], 0.8);
+    fluid.addParticle([0, 3, 0]);
     const count = fluid.getParticleCount();
     expect(count).toBeGreaterThan(0);
 
     const initialY = fluid.getParticles()[0].position[1];
     for (let i = 0; i < 10; i++) fluid.update();
 
-    // Particles should have fallen
+    // Isolated particle should have fallen under gravity
     expect(fluid.getParticles()[0].position[1]).toBeLessThan(initialY);
   });
 

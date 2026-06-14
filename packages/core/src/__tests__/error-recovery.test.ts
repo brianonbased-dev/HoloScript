@@ -75,7 +75,10 @@ describe('Error Recovery', () => {
     expect(result.errors.length).toBeGreaterThan(1);
   });
 
-  it('should suggest quotes for unquoted strings', () => {
+  it('should produce errors for reserved keywords used as object names', () => {
+    // The parser now accepts bare identifiers as composition names (fix: 7f88feacf).
+    // `object orb` fails because `object` (reserved keyword) appears where a name
+    // is expected — the error message describes the token mismatch.
     const source = `
       composition Test {
         object orb {
@@ -88,6 +91,8 @@ describe('Error Recovery', () => {
     const result = parser.parse(source);
 
     expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.suggestion?.includes('quotes'))).toBe(true);
+    expect(result.errors.length).toBeGreaterThan(0);
+    // Parser emits a descriptive error about the OBJECT keyword in name position
+    expect(result.errors.some((e) => e.message.includes('object name'))).toBe(true);
   });
 });

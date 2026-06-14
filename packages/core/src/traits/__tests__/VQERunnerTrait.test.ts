@@ -104,7 +104,13 @@ describe('VQERunnerTrait', () => {
     });
   });
 
-  // GUARD2 — vqe:run → vqe:started + vqe:converged (stub path, no qm-bridge)
+  // GUARD2 — vqe:run → vqe:started + result event (stub or converged path)
+  // When qm-bridge is installed, the run goes to IBMQuantumBackend and emits
+  // 'vqe:converged' (tier='hardware'). When qm-bridge is absent or its backend
+  // module is not compiled, dispatchVQE returns tier='stub', which the trait
+  // handler routes to 'vqe:stub-result' instead of 'vqe:converged' to prevent
+  // stub results from being confused with real optimization output (ratchet commit).
+  // This guard accepts EITHER event so it tests the control flow, not the backend.
   describe('GUARD2: vqe:run triggers started and converged', () => {
     it('emits vqe:started immediately then vqe:converged asynchronously', async () => {
       const node = makeNode();
@@ -123,10 +129,16 @@ describe('VQERunnerTrait', () => {
 
       await flushAsync(500);
 
-      const converged = emitted.find((e) => e.type === 'vqe:converged');
+      // Accept either 'vqe:converged' (real hardware path) or 'vqe:stub-result'
+      // (stub path when qm-bridge backend is not compiled). Both prove the async
+      // completion flow ran and emitted a terminal event with a VQERunResult.
+      const converged =
+        emitted.find((e) => e.type === 'vqe:converged') ??
+        emitted.find((e) => e.type === 'vqe:stub-result');
       expect(converged).toBeDefined();
       const result = converged!.payload as VQERunResult;
-      expect(result.energy).toBeTypeOf('number');
+      // NaN is a valid JS 'number' typeof; real runs return finite energy
+      expect(typeof result.energy).toBe('number');
       expect(result.unit).toBe('Ha');
     });
   });

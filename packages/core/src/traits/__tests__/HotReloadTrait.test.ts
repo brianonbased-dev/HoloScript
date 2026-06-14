@@ -75,8 +75,13 @@ describe('@hot_reload Trait', () => {
   });
 
   it('emits warning for non-existent watch paths', () => {
+    // Use os.tmpdir() + a unique suffix so the path is guaranteed absent on all
+    // platforms. '/nonexistent/...' resolves to C:\nonexistent\... on Windows and
+    // that subtree accidentally exists on the CI machine (Windows-specific quirk).
+    const { tmpdir } = require('os');
+    const missingPath = `${tmpdir()}/hs-test-definitely-absent-${Date.now()}-zzz`;
     const watcher = new HotReloadWatcher({
-      watchPaths: ['/nonexistent/path/that/does/not/exist'],
+      watchPaths: [missingPath],
     });
 
     const warnings: string[] = [];

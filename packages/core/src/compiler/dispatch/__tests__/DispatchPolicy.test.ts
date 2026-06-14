@@ -54,58 +54,47 @@ describe('DispatchPolicy', () => {
   });
 
   it('routes Tier-1 Browser for grabbable when WebGPU present (fallback in Node)', async () => {
+    // Use a deterministic webGpuProbe that forces WebGPU absence so this test
+    // is independent of whether the Dawn binding is installed in the test runner.
+    // (commit a9f1b3d: Dawn binding installs navigator.gpu in Node 24, so
+    // patching navigator was insufficient — a direct probe override is required.)
     const policy = new DispatchPolicy({
       tier1BrowserEnabled: true,
+      webGpuProbe: () => false, // Force WebGPU absent → fallback to Tier-3
     });
     const decision = await policy.route({
       trait: 'grabbable',
       nodeId: 'test-node',
     });
-    // WebGPU not present in vitest Node env => fallback to Tier-3
+    // WebGPU forced absent => fallback to Tier-3
     expect(decision.tier).toBe(DispatchTier.TIER_3_CPU_DIRECT);
     expect(decision.metrics.fallbackReason).toContain('WebGPU');
   });
 
   it('routes Tier-1 WASM when WebGPU is absent and the fallback is enabled', async () => {
-    const runtime = globalThis as typeof globalThis & {
-      navigator?: Navigator & { gpu?: unknown };
-    };
-    const previousNavigator = runtime.navigator;
-    Object.defineProperty(runtime, 'navigator', {
-      configurable: true,
-      value: {},
+    // Use webGpuProbe to force WebGPU absence deterministically.
+    // navigator patching is insufficient when Dawn is installed (Dawn's
+    // ensureNodeWebGpuSync re-populates navigator.gpu on every call).
+    const policy = new DispatchPolicy({
+      tier1BrowserEnabled: true,
+      tier1WasmEnabled: true,
+      webGpuProbe: () => false, // Force WebGPU absent → WASM fallback path
+      tier1WasmRuntimeProbe: () => ({
+        available: true,
+        source: 'vitest-wasm',
+        moduleValidated: true,
+      }),
+    });
+    const decision = await policy.route({
+      trait: 'grabbable',
+      nodeId: 'wasm-ready',
     });
 
-    try {
-      const policy = new DispatchPolicy({
-        tier1BrowserEnabled: true,
-        tier1WasmEnabled: true,
-        tier1WasmRuntimeProbe: () => ({
-          available: true,
-          source: 'vitest-wasm',
-          moduleValidated: true,
-        }),
-      });
-      const decision = await policy.route({
-        trait: 'grabbable',
-        nodeId: 'wasm-ready',
-      });
-
-      expect(decision.tier).toBe(DispatchTier.TIER_1_WASM);
-      expect(decision.accepted).toBe(true);
-      expect(decision.metrics.wasmProbe?.source).toBe('vitest-wasm');
-      expect(decision.metrics.wasmEmulator?.source).toBe('compiler-wasm-snn-emulator');
-      expect(decision.metrics.wasmEmulator?.steps).toBeGreaterThan(0);
-    } finally {
-      if (previousNavigator) {
-        Object.defineProperty(runtime, 'navigator', {
-          configurable: true,
-          value: previousNavigator,
-        });
-      } else {
-        delete runtime.navigator;
-      }
-    }
+    expect(decision.tier).toBe(DispatchTier.TIER_1_WASM);
+    expect(decision.accepted).toBe(true);
+    expect(decision.metrics.wasmProbe?.source).toBe('vitest-wasm');
+    expect(decision.metrics.wasmEmulator?.source).toBe('compiler-wasm-snn-emulator');
+    expect(decision.metrics.wasmEmulator?.steps).toBeGreaterThan(0);
   });
 
   it('rejects Tier-1 WASM for traits outside the SNN hot path', async () => {
