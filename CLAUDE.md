@@ -34,6 +34,15 @@ On every session start, execute this sequence IN ORDER:
 
 ```text
 NEVER  → Default to React, Next.js, or conventional web patterns
+NEVER  → Hand-author a NEW .tsx render/UI surface (page, panel, viewer).
+         The rendered .tsx surface is FROZEN — only the grandfathered
+         entries in scripts/holo-ci/render-surface-native-allowlist.json
+         may be hand-written. New perceivable surfaces are authored as
+         .holo and @generated to .tsx by a compiler (R3F / Native2D /
+         immersive). Enforced LIVE by scripts/holo-ci/check-render-surface-native.mjs
+         (pre-commit Gate 5e + HOLOSCRIPT_GATES). Grandfathering grows the
+         pile the freeze exists to burn down — do not add to the allowlist.
+         (D.095/D.096/W.715; RULED 2026-06-05, render-surface-native gate.)
 NEVER  → Hand-write .hs/.hsplus/.holo without calling suggest_traits first
 NEVER  → git add -A  or  git add .  (Windows: creates nul device file — BREAKS REPO)
 NEVER  → Create UPPERCASE .md files in docs/ root (they go in docs/_archive/)
@@ -50,6 +59,9 @@ NEVER  → On the local desktop surface: pop terminal windows (Start-Process /
          Full contract: ~/.ai-ecosystem/docs/handbooks/claude-desktop-anti-patterns.md
 
 ALWAYS → Use .holo for cross-platform compositions
+ALWAYS → Author perceivable surfaces native-first: write .holo, compile to
+         .tsx with @generated provenance — never the reverse. Adding .tsx is
+         allowed ONLY for tooling/CLI/parser/adapter code (never render/UI).
 ALWAYS → Stage git files explicitly: git add path/to/file.ts
 ALWAYS → Run pnpm test before committing
 ALWAYS → Call validate_holoscript after generating any HoloScript code
@@ -237,6 +249,7 @@ Situation                                    → Use
 Simple object/scene, no interactivity        → .hs
 Object needs grab/physics/network/traits     → .hsplus
 AI-generated, cross-platform, declarative    → .holo
+Perceivable render/UI surface (page/panel/viewer) → .holo (→ @generated .tsx; NEVER hand-author .tsx)
 Tooling, CLI, parser, adapter code           → .ts (TypeScript)
 ```
 
