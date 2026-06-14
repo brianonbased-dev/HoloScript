@@ -11,6 +11,49 @@ export interface BakedGeometry {
   normals: number[];
   uv: number[];
   indices: number[];
+  /** Per-vertex vein phase — the custom attribute the petal shader's curl/vein
+   *  chunks read (`attribute float veinPhase`). Present once the baker emits it. */
+  veinPhase?: number[];
+}
+
+/** A custom GLSL chunk spliced into three's PBR pipeline at an `#include` point.
+ *  The strings are baked from @holoscript/core LOTUS_PETAL_SHADER_CHUNKS so the
+ *  runtime reproduces the real subsurface petal shader WITHOUT importing core. */
+export interface BakedShaderChunk {
+  stage: 'vertex' | 'fragment';
+  include: string;
+  code: string;
+}
+
+/** The compiled petal material spec, baked from core's `buildLotusPetalMaterialSpec`.
+ *  `physical` → MeshPhysicalMaterial props (transmission/thickness/sheen/ior …);
+ *  `chunks` + `uniforms` → the subsurface/venation/backlit GLSL injected via
+ *  onBeforeCompile; `textures` → deterministic procedural normal/roughness params. */
+export interface BakedPetalMaterial {
+  physical: {
+    color?: string;
+    roughness?: number;
+    metalness?: number;
+    transparent?: boolean;
+    transmission?: number;
+    thickness?: number;
+    ior?: number;
+    sheen?: number;
+    sheenColor?: string;
+    sheenRoughness?: number;
+    clearcoat?: number;
+    clearcoatRoughness?: number;
+    iridescence?: number;
+    specularIntensity?: number;
+  };
+  chunks: BakedShaderChunk[];
+  /** name → numeric scalar or [r,g,b] vec3 (the only uniform shapes the petal shader uses). */
+  uniforms: Record<string, number | number[]>;
+  /** Procedural detail-map generator params (regenerated client-side, pixel-identical). */
+  textures?: {
+    normal?: { size: number; seed: number; strength: number; pattern: string };
+    roughness?: { size: number; seed: number; base: number; variance: number };
+  };
 }
 
 export interface BakedPrimitive {
@@ -114,6 +157,10 @@ export interface BakedScene {
   source: string;
   generatedAt: string;
   petalGeometry?: BakedGeometry;
+  /** The real compiled subsurface petal material (shader chunks + uniforms + PBR
+   *  + procedural map params), baked from core. The viewer reproduces it at
+   *  runtime via onBeforeCompile on a MeshPhysicalMaterial — no core import. */
+  petalMaterial?: BakedPetalMaterial;
   lotuses?: BakedLotusInstance[];
   scaffold?: BakedPrimitive[];
   animatedGroups?: BakedAnimatedGroup[];

@@ -16,9 +16,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import type { BakedScene, BakedPaperPetal } from './bakedTypes';
+import type { BakedScene, BakedPaperPetal, BakedPetalMaterial } from './bakedTypes';
 import { bloomOpenness, bloomTint } from './bakedTypes';
 import { usePetalGeometry } from './primitives';
+import { buildPetalMaterial, buildPetalGeometry, type PetalShaderHandle } from './petalMaterial';
 
 const WILT_BROWN = new THREE.Color('#6b5a3a');
 
@@ -34,14 +35,30 @@ function petalMaterialColor(petal: BakedPaperPetal): THREE.Color {
 function Petal({
   petal,
   geometry,
+  petalSpec,
 }: {
   petal: BakedPaperPetal;
   geometry: THREE.BufferGeometry;
+  /** The real compiled subsurface spec (shared); per-petal color/dim layered on top. */
+  petalSpec?: BakedPetalMaterial | null;
 }) {
   const ref = useRef<THREE.Group>(null);
-  const material = useMemo(() => {
+  const handleRef = useRef<PetalShaderHandle | null>(null);
+
+  // Photoreal subsurface material when baked; honest per-petal color + wilt dim. Each
+  // wilted petal browns + dims (F.037) — the subsurface glow follows the health, so a
+  // healthy petal glows backlit while a wilted one stays dull. Falls back to the
+  // documented MeshStandardMaterial if no petal spec was baked.
+  const built = useMemo(() => {
     const c = petalMaterialColor(petal);
-    return new THREE.MeshStandardMaterial({
+    if (petalSpec) {
+      const wilted = petal.bloomHealth === 'wilted';
+      const dim = wilted ? 0.5 : petal.bloomHealth === 'sealed' ? 0.7 : 1;
+      const b = buildPetalMaterial(petalSpec, { baseColor: c, dim });
+      handleRef.current = b.handle;
+      return b;
+    }
+    const m = new THREE.MeshStandardMaterial({
       color: c,
       roughness: 0.45,
       metalness: 0,
@@ -49,9 +66,12 @@ function Petal({
       emissive: c.clone().multiplyScalar(petal.bloomHealth === 'wilted' ? 0.02 : 0.14),
       emissiveIntensity: petal.bloomHealth === 'wilted' ? 0.15 : 0.5,
     });
-  }, [petal]);
+    handleRef.current = null;
+    return { material: m, dispose: () => m.dispose() };
+  }, [petal, petalSpec]);
+  const material = built.material;
 
-  useEffect(() => () => material.dispose(), [material]);
+  useEffect(() => () => built.dispose(), [built]);
 
   // Openness from REAL bloom: wilted/sealed petals stay near-closed (droop), full
   // petals splay outward. A wilt also droops downward (negative tilt).
@@ -61,12 +81,22 @@ function Petal({
   const radius = petal.radius;
 
   // Gentle idle sway so the live flower breathes (no hand-authored clock — phase
-  // is just elapsed time, so it stays deterministic per-frame).
+  // is just elapsed time, so it stays deterministic per-frame). Also drives the
+  // subsurface shader's animation/bloom uniforms: a healthy petal glows backlit at
+  // full bloom; a wilted one keeps a low scatter gain (honest).
   useFrame((state) => {
     const g = ref.current;
-    if (!g) return;
-    const sway = Math.sin(state.clock.elapsedTime * 0.6 + petal.index) * 0.02;
-    g.rotation.x = tilt + sway;
+    if (g) {
+      const sway = Math.sin(state.clock.elapsedTime * 0.6 + petal.index) * 0.02;
+      g.rotation.x = tilt + sway;
+    }
+    const s = handleRef.current?.shader;
+    if (s) {
+      if (s.uniforms.uLotusTime) s.uniforms.uLotusTime.value = state.clock.elapsedTime;
+      if (s.uniforms.uPetalDevTime) s.uniforms.uPetalDevTime.value = open;
+      if (s.uniforms.uLotusGrowth) s.uniforms.uLotusGrowth.value = wilted ? 0.35 : open;
+      if (s.uniforms.uLotusBloom) s.uniforms.uLotusBloom.value = wilted ? 0.15 : open;
+    }
   });
 
   return (
@@ -108,7 +138,13 @@ function Petal({
 }
 
 export function PaperFlowerScene({ scene }: { scene: BakedScene }) {
-  const geometry = usePetalGeometry(scene.petalGeometry);
+  // Photoreal subsurface geometry (carries veinPhase) when the petal material was
+  // baked; stock geometry otherwise. The spec is shared across all 42 petals;
+  // per-petal color + honest dim are layered on per petal in <Petal>.
+  const petalSpec = scene.petalMaterial as BakedPetalMaterial | undefined;
+  const photoGeo = useMemo(() => buildPetalGeometry(scene.petalGeometry), [scene.petalGeometry]);
+  const stockGeo = usePetalGeometry(scene.petalGeometry);
+  const geometry = (petalSpec ? photoGeo : stockGeo) ?? stockGeo;
   const center = (scene.center ?? {}) as {
     seedPod?: string;
     seedPodRim?: string;
@@ -129,10 +165,16 @@ export function PaperFlowerScene({ scene }: { scene: BakedScene }) {
 
   return (
     <group position={[0, 0.6, 0]} scale={0.42}>
-      {/* Seed-pod center (the real receptacle palette). */}
+      {/* Seed-pod center (the real receptacle palette) — luminous yellow heart that
+          glows into the Bloom pass, matching the references. */}
       <mesh position={[0, 0, 0]} scale={[1, 0.7, 1]} castShadow>
         <sphereGeometry args={[0.6, 28, 20]} />
-        <meshStandardMaterial color={center.seedPod ?? '#f4d74a'} roughness={0.6} />
+        <meshStandardMaterial
+          color={center.seedPod ?? '#f4d74a'}
+          roughness={0.55}
+          emissive={center.seedPod ?? '#f4d74a'}
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {stamens.map((s, i) => (
         <group key={i} rotation={[0, s.a, 0]}>
@@ -146,14 +188,16 @@ export function PaperFlowerScene({ scene }: { scene: BakedScene }) {
               <meshStandardMaterial
                 color={center.stamenTip ?? '#fff4bd'}
                 emissive={center.stamenTip ?? '#fff4bd'}
-                emissiveIntensity={0.3}
+                emissiveIntensity={0.8}
               />
             </mesh>
           </group>
         </group>
       ))}
       {geometry &&
-        (scene.paperPetals ?? []).map((p) => <Petal key={p.index} petal={p} geometry={geometry} />)}
+        (scene.paperPetals ?? []).map((p) => (
+          <Petal key={p.index} petal={p} geometry={geometry} petalSpec={petalSpec} />
+        ))}
     </group>
   );
 }

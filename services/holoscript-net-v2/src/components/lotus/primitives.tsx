@@ -29,6 +29,11 @@ export function Primitive({ prim }: { prim: BakedPrimitive }) {
   const geometry = useMemo(() => renderGeometry(prim), [prim]);
   const emissiveIntensity =
     prim.emissiveIntensity !== undefined ? Math.min(prim.emissiveIntensity, 1.5) : 0;
+  const doubleSided =
+    prim.hsType === 'plane' || prim.hsType === 'circle' || prim.hsType === 'lilypad';
+  // Lily pads + leaves read as living tissue: a waxy clearcoat sheen + faint
+  // translucency so the rim catches the rim light, like the references.
+  const isFoliage = prim.hsType === 'lilypad' || prim.hsType === 'disc';
   return (
     <mesh
       position={prim.position}
@@ -38,14 +43,30 @@ export function Primitive({ prim }: { prim: BakedPrimitive }) {
       receiveShadow
     >
       {geometry}
-      <meshStandardMaterial
-        color={prim.color ?? '#888888'}
-        roughness={prim.roughness ?? 0.7}
-        metalness={prim.reflective ? 0.6 : prim.metalness ?? 0}
-        emissive={prim.emissive ?? '#000000'}
-        emissiveIntensity={emissiveIntensity}
-        side={prim.hsType === 'plane' || prim.hsType === 'circle' || prim.hsType === 'lilypad' ? THREE.DoubleSide : THREE.FrontSide}
-      />
+      {isFoliage ? (
+        <meshPhysicalMaterial
+          color={prim.color ?? '#2c5e3f'}
+          roughness={prim.roughness ?? 0.62}
+          metalness={0}
+          clearcoat={0.35}
+          clearcoatRoughness={0.6}
+          sheen={0.4}
+          sheenColor={'#9fd9a0'}
+          sheenRoughness={0.7}
+          emissive={prim.emissive ?? '#000000'}
+          emissiveIntensity={emissiveIntensity}
+          side={THREE.DoubleSide}
+        />
+      ) : (
+        <meshStandardMaterial
+          color={prim.color ?? '#888888'}
+          roughness={prim.roughness ?? 0.7}
+          metalness={prim.reflective ? 0.6 : prim.metalness ?? 0}
+          emissive={prim.emissive ?? '#000000'}
+          emissiveIntensity={emissiveIntensity}
+          side={doubleSided ? THREE.DoubleSide : THREE.FrontSide}
+        />
+      )}
     </mesh>
   );
 }

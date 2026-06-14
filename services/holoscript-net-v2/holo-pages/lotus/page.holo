@@ -1,0 +1,62 @@
+composition "LotusWorld" {
+  @page { route: "/lotus" }
+  @metadata {
+    title: "HoloScript — the living lotus world"
+    description: "Three lotus scenes compiled from .holo, walkable in WebXR, on desktop, and on touch. Each paper-bound petal blooms or wilts with its real research-program health."
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "relative z-10 min-h-screen flex flex-col" }
+
+    object "Blob" @slot(component: "LiquidBlobBackground", import: "@/components/LiquidBlobBackground") {}
+
+    object "Nav" {
+      @theme { tag: "nav", className: "relative z-10 flex items-center justify-between px-6 md:px-10 py-6" }
+
+      object "Brand" {
+        @link { href: "/", content: "HoloScript" }
+        @theme { className: "text-xl font-bold tracking-tight" }
+      }
+
+      object "NavLinks" {
+        @theme { className: "hidden md:flex items-center gap-6" }
+        object "NavCompile" { @link { href: "/compile", content: "Compile" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
+        object "NavEcosystem" { @link { href: "/ecosystem", content: "Ecosystem" } @theme { className: "text-sm text-gray-300 hover:text-white transition" } }
+        object "NavLotus" { @link { href: "/lotus", content: "Lotus" } @theme { className: "text-sm text-white transition" } }
+      }
+
+      object "OpenStudioNav" {
+        @link { href: "https://holoscript.studio", content: "Open Studio" }
+        @theme { className: "text-sm font-medium px-4 py-2 rounded-full border border-white/20 hover:border-white/50 transition" }
+      }
+    }
+
+    object "Hero" {
+      @theme { tag: "section", className: "relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-4 gap-3" }
+
+      object "Title" {
+        @text { content: "The living lotus", variant: "h1" }
+        @theme { className: "max-w-3xl mx-auto bg-gradient-to-r from-fuchsia-300 via-white to-cyan-200 bg-clip-text text-transparent" }
+      }
+
+      object "Subtitle" {
+        @text { content: "Three lotus scenes — all authored in .holo, compiled by HoloScript. Walk through them in your headset, on desktop, or by touch. The paper flower's petals open and wilt with the real health of the research program.", variant: "subtitle" }
+        @theme { className: "max-w-2xl mx-auto text-gray-300 text-sm md:text-base" }
+      }
+    }
+
+    object "WorldSection" {
+      @theme { tag: "section", className: "relative z-10 w-full max-w-6xl mx-auto px-3 md:px-6 pb-10" }
+      object "World" @slot(component: "LotusWorld", import: "@/components/lotus/LotusWorld") {}
+    }
+
+    object "Footer" {
+      @theme { tag: "footer", className: "relative z-10 px-6 md:px-10 py-8 text-center" }
+
+      object "BuiltWith" {
+        @text { content: "This world is HoloScript: three .holo scenes compiled by HoloScript's own parser, R3F compiler, and botanical-lotus trait. The bloom is a truthful instrument of the paper program — it never claims more than the papers earn.", variant: "caption" }
+        @theme { className: "text-gray-500 max-w-2xl mx-auto" }
+      }
+    }
+  }
+}

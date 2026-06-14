@@ -6,20 +6,27 @@
  * pond layout, palette, growth timeline are all REAL HoloScript-compiled data from
  * the baker; this component only draws it and plays the declared growth clock.
  *
- * The petal material is MeshStandardMaterial keyed to the REAL per-ring petal
- * colors — the documented fallback, since the custom petal shader
- * (buildCompiledMaterial / LOTUS_PETAL_SHADER_CHUNKS) lives in
- * @holoscript/r3f-renderer which is not in the runtime bundle. Structure is real.
+ * The petal material is now the REAL compiled subsurface shader: the baker
+ * serializes core's `buildLotusPetalMaterialSpec` (LOTUS_PETAL_SHADER_CHUNKS GLSL +
+ * uniforms + PBR + procedural-map params) into the scene JSON, and `petalMaterial.ts`
+ * reproduces it at runtime on a MeshPhysicalMaterial via onBeforeCompile — pure
+ * three.js, no @holoscript/core / r3f-renderer import (the Railway deploy contract).
+ * Falls back to the per-ring MeshStandardMaterial only for pre-shader baked JSON.
  */
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { MeshReflectorMaterial } from '@react-three/drei';
 import type {
   BakedScene,
   BakedLotusInstance,
   BakedAnimatedGroup,
+  BakedPetalMaterial,
+  BakedPrimitive,
 } from './bakedTypes';
 import { usePetalGeometry, Primitive } from './primitives';
+import { buildPetalMaterial, buildPetalGeometry, type PetalShaderHandle } from './petalMaterial';
+import { getTimelineValue as getTL } from './timelineRuntime';
 import {
   getTimelineValue,
   setTimelineValue,
@@ -134,9 +141,12 @@ function AnimatedGroup({ group }: { group: BakedAnimatedGroup }) {
 function LotusInstance({
   inst,
   geometry,
+  photoreal,
 }: {
   inst: BakedLotusInstance;
   geometry: THREE.BufferGeometry;
+  /** Shared photoreal subsurface material (real compiled shader), if baked. */
+  photoreal?: { material: THREE.MeshPhysicalMaterial } | null;
 }) {
   const bloomRef = useRef<THREE.Group>(null);
   const petalRefs = useRef<Array<THREE.Group | null>>([]);
@@ -224,7 +234,7 @@ function LotusInstance({
             >
               <mesh
                 geometry={geometry}
-                material={ringMaterials[p.ring] ?? ringMaterials[3]}
+                material={photoreal?.material ?? ringMaterials[p.ring] ?? ringMaterials[3]}
                 scale={RING_SCALE[p.ring] ?? 1}
                 castShadow
               />
@@ -233,23 +243,42 @@ function LotusInstance({
         ))}
         {center && (
           <group position={[0, 0.42, 0]}>
-            <mesh>
-              <cylinderGeometry args={[0.28, 0.17, 0.2, 32]} />
-              <meshStandardMaterial color={center.seedPod} roughness={0.6} />
+            {/* Luminous seed-pod receptacle — the bright yellow heart of the lotus.
+                Slight emissive so it reads as glowing into the Bloom pass. */}
+            <mesh castShadow>
+              <cylinderGeometry args={[0.28, 0.17, 0.2, 36]} />
+              <meshStandardMaterial
+                color={center.seedPod}
+                roughness={0.55}
+                emissive={center.seedPod}
+                emissiveIntensity={0.45}
+              />
+            </mesh>
+            {/* Flat top of the receptacle with the carpel dots reading slightly inset. */}
+            <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <circleGeometry args={[0.27, 36]} />
+              <meshStandardMaterial
+                color={center.seedPodRim ?? center.seedPod}
+                roughness={0.6}
+                emissive={center.seedPod}
+                emissiveIntensity={0.3}
+                side={THREE.DoubleSide}
+              />
             </mesh>
             {stamens.map((s, i) => (
               <group key={i} rotation={[0, s.azimuth, 0]}>
                 <group position={[0, -0.02, 0.2]} rotation={[-s.lean, 0, 0]}>
-                  <mesh position={[0, s.len / 2, 0]}>
+                  <mesh position={[0, s.len / 2, 0]} castShadow>
                     <cylinderGeometry args={[0.006, 0.009, s.len, 6]} />
                     <meshStandardMaterial color={center.stamen} roughness={0.5} />
                   </mesh>
+                  {/* Anthers — bright cream tips, emissive so the stamen ring glows. */}
                   <mesh position={[0, s.len + 0.01, 0]}>
-                    <sphereGeometry args={[0.016, 8, 8]} />
+                    <sphereGeometry args={[0.018, 8, 8]} />
                     <meshStandardMaterial
                       color={center.stamenTip}
                       emissive={center.stamenTip}
-                      emissiveIntensity={0.25}
+                      emissiveIntensity={0.85}
                       roughness={0.4}
                     />
                   </mesh>
@@ -263,20 +292,106 @@ function LotusInstance({
   );
 }
 
+/**
+ * PondWater — a REAL water surface (not a flat lambert plane). Real-time planar
+ * reflection (drei MeshReflectorMaterial) + animated normal-map ripples + a deep
+ * teal tint and a glossy fresnel sheen, matching the dark reflective water in the
+ * references. Replaces the stock reflective-plane fallback for the pond's water.
+ */
+function PondWater({ prim }: { prim: BakedPrimitive }) {
+  const matRef = useRef<{ normalMap?: THREE.Texture } & THREE.Material>(null);
+  // Two scrolling normal maps would need texture assets; instead animate a tiny
+  // procedural ripple by gently rocking the reflector's distortion over time.
+  const distortRef = useRef(0.18);
+  useFrame((state) => {
+    distortRef.current = 0.16 + Math.sin(state.clock.elapsedTime * 0.35) * 0.04;
+  });
+  const w = prim.width ?? 60;
+  const h = prim.height ?? 60;
+  return (
+    <mesh
+      position={prim.position ?? [0, 0, 0]}
+      rotation={prim.rotation ?? [-Math.PI / 2, 0, 0]}
+      receiveShadow
+    >
+      <planeGeometry args={[w, h, 1, 1]} />
+      <MeshReflectorMaterial
+        ref={matRef as never}
+        resolution={512}
+        mirror={0.55}
+        mixBlur={6}
+        mixStrength={1.4}
+        blur={[300, 80]}
+        depthScale={1.1}
+        minDepthThreshold={0.4}
+        maxDepthThreshold={1.2}
+        roughness={0.28}
+        metalness={0.32}
+        color={prim.color ?? '#0c2826'}
+        distortion={distortRef.current}
+      />
+    </mesh>
+  );
+}
+
+/** Drives the petal shader's animation/bloom uniforms (time + growth + bloom) into the
+ *  live compiled program each frame — the runtime half of the I.007 shader closure. */
+function PetalUniformDriver({ handle }: { handle: PetalShaderHandle }) {
+  useFrame((state) => {
+    const s = handle.shader;
+    if (!s) return;
+    const gFull = getTL('developmentalTime', 1);
+    if (s.uniforms.uLotusTime) s.uniforms.uLotusTime.value = state.clock.elapsedTime;
+    if (s.uniforms.uPetalDevTime) s.uniforms.uPetalDevTime.value = gFull;
+    if (s.uniforms.uLotusGrowth) s.uniforms.uLotusGrowth.value = smoothstep(0.18, 0.62, gFull);
+    if (s.uniforms.uLotusBloom) s.uniforms.uLotusBloom.value = smoothstep(0.34, 0.98, gFull);
+  });
+  return null;
+}
+
 export function PondScene({ scene }: { scene: BakedScene }) {
-  const geometry = usePetalGeometry(scene.petalGeometry);
+  // Photoreal subsurface petal: the REAL compiled material + a veinPhase-carrying
+  // geometry. Falls back to the stock geometry + ring-tint MeshStandardMaterial when
+  // the scene wasn't baked with the petal material (older baked JSON).
+  const photorealGeometry = useMemo(
+    () => buildPetalGeometry(scene.petalGeometry),
+    [scene.petalGeometry]
+  );
+  const stockGeometry = usePetalGeometry(scene.petalGeometry);
+  const built = useMemo(() => {
+    const spec = scene.petalMaterial as BakedPetalMaterial | undefined;
+    return spec ? buildPetalMaterial(spec) : null;
+  }, [scene.petalMaterial]);
+  useEffect(() => () => built?.dispose(), [built]);
+
+  const geometry = (built ? photorealGeometry : stockGeometry) ?? stockGeometry;
+
   return (
     <group>
       <TimelineDriver keys={scene.timeline} />
-      {(scene.scaffold ?? []).map((prim, i) => (
-        <Primitive key={`sc-${i}`} prim={prim} />
-      ))}
+      {built && <PetalUniformDriver handle={built.handle} />}
+      {(scene.scaffold ?? []).map((prim, i) => {
+        // The reflective water plane gets the real reflector material; everything
+        // else (pads, reeds, duckweed, leaves) draws as a stock primitive.
+        const isWater =
+          prim.reflective === true && (prim.hsType === 'plane' || prim.hsType === 'circle');
+        return isWater ? (
+          <PondWater key={`sc-${i}`} prim={prim} />
+        ) : (
+          <Primitive key={`sc-${i}`} prim={prim} />
+        );
+      })}
       {(scene.animatedGroups ?? []).map((g, i) => (
         <AnimatedGroup key={`ag-${i}`} group={g} />
       ))}
       {geometry &&
         (scene.lotuses ?? []).map((inst) => (
-          <LotusInstance key={inst.id} inst={inst} geometry={geometry} />
+          <LotusInstance
+            key={inst.id}
+            inst={inst}
+            geometry={geometry}
+            photoreal={built ? { material: built.material } : null}
+          />
         ))}
     </group>
   );

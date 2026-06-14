@@ -38,6 +38,9 @@ import {
   createBotanicalLotusRenderProfile,
   buildLotusPetalGeometryData,
   lotusPetalGeometryParamsFromProfile,
+  buildLotusPetalMaterialSpec,
+  type BotanicalLotusRenderProfile,
+  type LotusCompiledMaterialSpec,
 } from '../../../packages/core/src/traits/BotanicalLotusTrait';
 import { deriveLotusHealth, type PapersStatusDoc } from '../../../packages/core/src/traits/deriveLotusHealth';
 
@@ -52,6 +55,21 @@ interface BakedGeometry {
   normals: number[];
   uv: number[];
   indices: number[];
+  /** The custom `veinPhase` vertex attribute the petal curl/vein shader reads. */
+  veinPhase?: number[];
+}
+
+/** Baked subsurface petal material — the real compiled spec serialized JSON-safe.
+ *  Strings (GLSL chunks), scalars, and vec3 arrays only; reproduced at runtime via
+ *  onBeforeCompile on a MeshPhysicalMaterial (no @holoscript/core at runtime). */
+interface BakedPetalMaterial {
+  physical: Record<string, string | number | boolean>;
+  chunks: { stage: 'vertex' | 'fragment'; include: string; code: string }[];
+  uniforms: Record<string, number | number[]>;
+  textures?: {
+    normal?: { size: number; seed: number; strength: number; pattern: string };
+    roughness?: { size: number; seed: number; base: number; variance: number };
+  };
 }
 
 /** A leaf primitive the viewer draws with a stock geometry + MeshStandardMaterial. */
@@ -146,6 +164,8 @@ interface BakedScene {
   generatedAt: string;
   // shared petal mesh for lotus + paper flower (the real compiled petal geometry)
   petalGeometry?: BakedGeometry;
+  // the real compiled subsurface petal material (shader chunks + uniforms + PBR)
+  petalMaterial?: BakedPetalMaterial;
   // pond
   lotuses?: BakedLotusInstance[];
   scaffold?: BakedPrimitive[];
@@ -216,14 +236,71 @@ function bakeGeometry(g: {
   positions?: ArrayLike<number>;
   normals?: ArrayLike<number>;
   petalUv?: ArrayLike<number>;
+  veinPhase?: ArrayLike<number>;
   indices?: ArrayLike<number>;
 }): BakedGeometry {
   return {
     positions: toNumArr(g.positions),
     normals: toNumArr(g.normals),
     uv: toNumArr(g.petalUv),
+    veinPhase: toNumArr(g.veinPhase),
     indices: toNumArr(g.indices),
   };
+}
+
+/**
+ * Serialize the REAL compiled subsurface petal material from a render profile.
+ * `buildLotusPetalMaterialSpec` (core) emits the physical PBR props, the petal
+ * shader chunks (GLSL strings — the venation / profile-gradient / backlit
+ * subsurface scatter), and the per-color/SSS uniforms. We strip the uniforms'
+ * `{value}` wrapper to a plain name→value map (scalars + vec3 arrays only, which
+ * is all the petal shader uses) so it's compact JSON the viewer can apply via
+ * onBeforeCompile WITHOUT importing core. The procedural normal/roughness maps
+ * are baked as generator PARAMS (the deterministic noise is regenerated client-
+ * side, pixel-identical) rather than as multi-hundred-KB pixel arrays.
+ */
+function bakePetalMaterial(profile: BotanicalLotusRenderProfile): BakedPetalMaterial {
+  const spec: LotusCompiledMaterialSpec = buildLotusPetalMaterialSpec(profile);
+  const physical: Record<string, string | number | boolean> = {};
+  for (const [k, v] of Object.entries(spec.physical ?? {})) {
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') physical[k] = v;
+  }
+  const uniforms: Record<string, number | number[]> = {};
+  for (const [name, u] of Object.entries(spec.shaderChunks?.uniforms ?? {})) {
+    const val = (u as { value: unknown }).value;
+    if (typeof val === 'number') uniforms[name] = val;
+    else if (Array.isArray(val) && val.every((n) => typeof n === 'number')) {
+      uniforms[name] = val as number[];
+    }
+  }
+  const chunks = (spec.shaderChunks?.chunks ?? []).map((c) => ({
+    stage: c.stage,
+    include: c.include,
+    code: c.code,
+  }));
+  const baked: BakedPetalMaterial = { physical, chunks, uniforms };
+  const nm = spec.proceduralMaps?.normalMap;
+  const rm = spec.proceduralMaps?.roughnessMap;
+  if (nm || rm) {
+    baked.textures = {};
+    if (nm) {
+      baked.textures.normal = {
+        size: (nm.params?.size as number) ?? 256,
+        seed: (nm.params?.seed as number) ?? 0xdead,
+        strength: (nm.params?.strength as number) ?? 1.6,
+        pattern: (nm.params?.pattern as string) ?? 'petal_veins',
+      };
+    }
+    if (rm) {
+      baked.textures.roughness = {
+        size: (rm.params?.size as number) ?? 256,
+        seed: (rm.params?.seed as number) ?? 0xb007,
+        base: (rm.params?.base as number) ?? 0.6,
+        variance: (rm.params?.variance as number) ?? 0.3,
+      };
+    }
+  }
+  return baked;
 }
 
 // ── POND: lotus-pond.holo ─────────────────────────────────────────────────────
@@ -294,11 +371,15 @@ function bakePond(ast: unknown, name: string): BakedScene {
     source: 'public/scenes/lotus-pond.holo',
     generatedAt: new Date().toISOString(),
     petalGeometry,
+    petalMaterial: bakePetalMaterial(createBotanicalLotusRenderProfile()),
     lotuses,
     scaffold,
     animatedGroups,
     timeline,
-    camera: { position: [0, 3.02, 6.65], target: [0, 0.52, 0] },
+    // Hero framing: eye-level on the open bloom (the bloom sits near y≈2.4 on the
+    // risen stem), pulled in close enough that the flower fills the frame and the
+    // pond melts into DOF bokeh behind it — the reference composition.
+    camera: { position: [0, 2.7, 5.6], target: [0, 2.25, 0] },
   };
 }
 
@@ -371,6 +452,7 @@ function bakePaperFlower(
     source: 'public/scenes/garden.seedable.holo',
     generatedAt: new Date().toISOString(),
     petalGeometry,
+    petalMaterial: bakePetalMaterial(profile),
     paperPetals,
     center: {
       seedPod: scene.colors.seed_pod,
