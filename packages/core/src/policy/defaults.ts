@@ -75,6 +75,29 @@ export function jurisdictionBundle(region: string): JurisdictionContext {
     case 'GB':
     case 'UK':
       return { region: 'GB', aiActTier: 'limited', dsaApplies: false, minAge: 13, disclosureRequired: true };
+    // ── Asia-Pacific ──────────────────────────────────────────────────────────
+    case 'AU':
+      // Australian Privacy Act 1988 + Online Safety Act 2021; no DSA; minAge 13 (Online Safety Act default).
+      return { region: 'AU', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: false };
+    case 'JP':
+      // APPI 2022 — personal-data transparency obligation; no DSA equivalent.
+      return { region: 'JP', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: true };
+    case 'KR':
+      // PIPA — age 14 for processing without guardian consent; AI disclosure required.
+      return { region: 'KR', aiActTier: 'limited', dsaApplies: false, minAge: 14, disclosureRequired: true };
+    case 'SG':
+      // PDPA 2012 — no DSA; disclosure required for automated decision-making.
+      return { region: 'SG', aiActTier: 'minimal', dsaApplies: false, minAge: 13, disclosureRequired: true };
+    case 'IN':
+      // DPDP Act 2023 — parental consent required for under-18.
+      return { region: 'IN', aiActTier: 'minimal', dsaApplies: false, minAge: 18, disclosureRequired: false };
+    // ── Americas ──────────────────────────────────────────────────────────────
+    case 'CA':
+      // PIPEDA + Quebec Law 25 (GDPR-inspired); minAge 13.
+      return { region: 'CA', aiActTier: 'limited', dsaApplies: false, minAge: 13, disclosureRequired: true };
+    case 'BR':
+      // LGPD 2020 — closely aligned with GDPR; applies DSA-equivalent obligations.
+      return { region: 'BR', aiActTier: 'limited', dsaApplies: true, minAge: 13, disclosureRequired: true };
     case 'GLOBAL':
     default:
       // Strictest union: apply EU-grade obligations everywhere until a tighter

@@ -140,6 +140,52 @@ describe('evaluateContentPolicy cascade', () => {
     expect(b.dsaApplies).toBe(true);
     expect(b.minAge).toBe(16);
   });
+
+  // ── Additional jurisdiction bundles (task_1781341408570_6aks) ──────────────
+  test('AU: no DSA, minAge 13, no disclosure', () => {
+    const b = jurisdictionBundle('AU');
+    expect(b.region).toBe('AU');
+    expect(b.dsaApplies).toBe(false);
+    expect(b.minAge).toBe(13);
+    expect(b.disclosureRequired).toBe(false);
+  });
+
+  test('CA: disclosure required, minAge 13, no DSA', () => {
+    const b = jurisdictionBundle('CA');
+    expect(b.region).toBe('CA');
+    expect(b.disclosureRequired).toBe(true);
+    expect(b.dsaApplies).toBe(false);
+  });
+
+  test('BR: DSA applies (LGPD-grade), disclosure required', () => {
+    const b = jurisdictionBundle('BR');
+    expect(b.dsaApplies).toBe(true);
+    expect(b.disclosureRequired).toBe(true);
+  });
+
+  test('IN: minAge 18 (DPDP Act), no DSA', () => {
+    const b = jurisdictionBundle('IN');
+    expect(b.minAge).toBe(18);
+    expect(b.dsaApplies).toBe(false);
+  });
+
+  test('KR: minAge 14 (PIPA), disclosure required', () => {
+    const b = jurisdictionBundle('KR');
+    expect(b.minAge).toBe(14);
+    expect(b.disclosureRequired).toBe(true);
+  });
+
+  test('JP: disclosure required (APPI), no DSA', () => {
+    const b = jurisdictionBundle('JP');
+    expect(b.disclosureRequired).toBe(true);
+    expect(b.dsaApplies).toBe(false);
+  });
+
+  test('SG: disclosure required (PDPA), no DSA', () => {
+    const b = jurisdictionBundle('SG');
+    expect(b.disclosureRequired).toBe(true);
+    expect(b.dsaApplies).toBe(false);
+  });
 });
 
 // ── Sync fast-path ────────────────────────────────────────────────────────────
