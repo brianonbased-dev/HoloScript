@@ -33,12 +33,13 @@ import {
   LocalLLMAdapter,
   BrittneyCloudAdapter,
   OpenAICompatibleAdapter,
+  VastServerlessAdapter,
   pickLocalModel,
   OLLAMA_DEFAULT_BASE_URL,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
-export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud' | 'fleet';
+export type BrittneyProviderName = 'anthropic' | 'ollama' | 'cloud' | 'fleet' | 'serverless';
 
 /**
  * Per-user BYOK keys resolved server-side from the HoloKey vault (F.112). When present,
@@ -274,6 +275,29 @@ function resolveSovereignFallback(): ResolvedBrittneyProvider | null {
 }
 
 /**
+ * Sovereign serving via the Vast SERVERLESS PyWorker endpoint — the DURABLE
+ * foundation (founder 2026-06-14). Vast OWNS the autoscaling + a cold-worker pool
+ * (resume in seconds, $0 idle), so there's no fragile local autoscaler tick and no
+ * raw Docker cold-pull stall — the failure modes that made the raw /serve/resolve
+ * path unreliable. The adapter resolves the warm worker PER REQUEST via the
+ * route+envelope transport (it polls the cold pool awake), so construction is sync.
+ * Active only when FLEET_SERVERLESS_ENDPOINT + VAST_API_KEY are set; null otherwise.
+ */
+function resolveServerless(): ResolvedBrittneyProvider | null {
+  const endpointName = process.env.FLEET_SERVERLESS_ENDPOINT || process.env.VAST_QWEN_ENDPOINT_NAME;
+  const apiKey = process.env.VAST_API_KEY;
+  if (!endpointName || !apiKey) return null;
+  const model = process.env.BRITTNEY_FLEET_MODEL || process.env.VAST_QWEN_MODEL || FLEET_DEFAULT_MODEL;
+  const provider = new VastServerlessAdapter({ apiKey, endpointName, model });
+  return {
+    provider,
+    model,
+    maxTokens: Number(process.env.BRITTNEY_MAX_TOKENS) || 8192,
+    providerName: 'serverless',
+  };
+}
+
+/**
  * Async provider resolution — prefers the sovereign serving fleet (dynamic-resolve).
  * When the fleet is cold/unreachable it falls back ONLY to a sovereign provider (cloud
  * serving / local Ollama); it does NOT silently use a paid frontier API (founder policy
@@ -289,6 +313,16 @@ export async function resolveBrittneyProviderAsync(
   byok?: BrittneyByokKeys
 ): Promise<ResolvedBrittneyProvider> {
   const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
+
+  // Serverless serving — the DURABLE foundation (Vast-owned autoscaling + cold pool;
+  // no fragile local autoscaler tick, no raw cold-pull stall). Preferred over the raw
+  // /serve/resolve fleet path when FLEET_SERVERLESS_ENDPOINT + VAST_API_KEY are set.
+  // Only for sovereign/fleet intent — an explicit frontier provider opts out.
+  if (!explicit || explicit === 'fleet' || explicit === 'serverless') {
+    const serverless = resolveServerless();
+    if (serverless) return serverless;
+  }
+
   const fleetConfigured =
     explicit === 'fleet' ||
     (!explicit && Boolean(process.env.BRITTNEY_FLEET_MODEL || process.env.FLEET_INFERENCE_KEY));

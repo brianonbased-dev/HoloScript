@@ -153,6 +153,9 @@ export {
 } from './adapters/openai-compatible';
 export type { OpenAICompatibleAdapterConfig } from './adapters/openai-compatible';
 
+export { VastServerlessAdapter, VAST_SERVERLESS_CAPABILITIES } from './adapters/vast-serverless';
+export type { VastServerlessAdapterConfig } from './adapters/vast-serverless';
+
 export { XAIAdapter, XAI_MODELS, XAI_MODEL_CAPABILITIES, XAI_CAPABILITIES } from './adapters/xai';
 export type { XAIModel, XAIModelCapability } from './adapters/xai';
 
