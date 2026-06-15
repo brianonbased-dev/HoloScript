@@ -199,7 +199,7 @@ describe('NeuralStreamingService', () => {
     const mockIndicesBuf = {} as GPUBuffer;
 
     it('should not stream when not streaming', async () => {
-      service.attachSplatExtractor({} as any);
+      await service.attachSplatExtractor({} as any);
       await service.streamVisualTopology(mockSorter, mockCamera, mockCompressedBuf, mockIndicesBuf);
       expect(mockExtractFrame).not.toHaveBeenCalled();
     });
