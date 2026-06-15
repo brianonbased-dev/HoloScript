@@ -1,0 +1,27 @@
+{
+  "schema": "cael-gate-v1",
+  "gate": 47,
+  "track": "flagship",
+  "name": "Light the Vault — one verb taught by light, the whole vault reachable",
+  "timestamp": "2026-05-31T04:28:02.761Z",
+  "checks": {
+    "passed": 10,
+    "total": 10
+  },
+  "spread": {
+    "crystals": 186,
+    "seeds": 3,
+    "reachable": 186
+  },
+  "proves": {
+    "simplicity": "three verbs + a four-line HUD collapsed to ONE verb (light a crystal) and a single glow meter, zero instruction text",
+    "flow": "lighting a crystal wakes its nearest neighbours, so the frontier pulls the player outward -- the light teaches itself",
+    "complete": "the nearest-neighbour spread reaches every one of the 186 crystals from the seed -- the whole vault is lightable, none strandable-dark"
+  },
+  "realSeams": [
+    "knowledge-mountain-coords.json (186 real GOLD entries)",
+    "buildMountainMount placement",
+    "drive-build light-the-vault verb + spatial spread + glow meter"
+  ],
+  "status": "PASS"
+}
