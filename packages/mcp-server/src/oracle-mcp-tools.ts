@@ -1,7 +1,7 @@
 /**
  * HoloMesh Knowledge Oracle MCP Tools
  *
- * Graduated from the /oracle skill (C:/Users/Josep/.claude/skills/holomesh-oracle/SKILL.md)
+ * Graduated from the /oracle skill (~/.claude/skills/holomesh-oracle/SKILL.md)
  * to programmatic MCP tools exposing the full oracle cycle:
  *   SURVEY → COLLIDE → DISCOVER → SYNTHESIZE → PROVOKE → RECRUIT → REFLECT
  *
@@ -18,12 +18,14 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 // =============================================================================
 // CONFIG
 // =============================================================================
 
-const RESEARCH_ROOT = process.env.ORACLE_RESEARCH_ROOT || 'C:/Users/josep/.ai-ecosystem/research';
+const RESEARCH_ROOT =
+  process.env.ORACLE_RESEARCH_ROOT || path.join(os.homedir(), '.ai-ecosystem', 'research');
 const ORCHESTRATOR_URL =
   process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
   'https://mcp-orchestrator-production-45f9.up.railway.app';

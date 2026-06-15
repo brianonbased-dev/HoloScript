@@ -16,6 +16,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { resolveSecretWithLease, VaultLeaseError } from './holomesh/identity/vault-lease-registry';
 
 // ---------------------------------------------------------------------------
@@ -308,8 +309,7 @@ function readGoldIndex(): string | null {
 
 function readNorthStar(): string | null {
   const candidates = [
-    'C:/Users/josep/.ai-ecosystem/NORTH_STAR.md',
-    path.join(process.env.HOME || process.env.USERPROFILE || '', '.ai-ecosystem/NORTH_STAR.md'),
+    path.join(os.homedir(), '.ai-ecosystem', 'NORTH_STAR.md'),
   ];
   for (const c of candidates) {
     if (!c) continue;
@@ -321,8 +321,7 @@ function readNorthStar(): string | null {
 
 function readClaudeMd(): string | null {
   const candidates = [
-    'C:/Users/josep/.claude/CLAUDE.md',
-    path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude/CLAUDE.md'),
+    path.join(os.homedir(), '.claude', 'CLAUDE.md'),
   ];
   for (const c of candidates) {
     if (!c) continue;

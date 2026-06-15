@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import os from 'node:os';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -57,7 +58,9 @@ async function runAddTasks(seedPath: string): Promise<{
   stderr: string;
   exitCode: number | null;
 }> {
-  const script = 'C:/Users/josep/.ai-ecosystem/scripts/room-add-tasks.mjs';
+  const aiEcosystemRoot =
+    process.env.AI_ECOSYSTEM_ROOT || path.join(os.homedir(), '.ai-ecosystem');
+  const script = path.join(aiEcosystemRoot, 'scripts', 'room-add-tasks.mjs');
   return await new Promise((resolve) => {
     const child = spawn(process.execPath, [script, seedPath], {
       cwd: repoRoot(),
