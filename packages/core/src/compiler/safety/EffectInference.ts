@@ -132,6 +132,10 @@ export const TRAIT_EFFECTS: Record<string, VREffect[]> = {
   '@temporal_guard': ['state:read'],
   '@deadlock_free': ['resource:cpu'],
 
+  // Safety meta-decorators — pure (no effects); they annotate constraints, not behavior.
+  // @freshnessBound(ms) is enforced by FreshnessBoundChecker at compile time.
+  '@freshnessBound': [],
+
   // Auto-generated effect mappings
 
   // Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ NEW TRAIT_EFFECTS Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰

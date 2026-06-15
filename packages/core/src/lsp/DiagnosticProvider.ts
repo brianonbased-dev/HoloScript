@@ -97,6 +97,8 @@ const KNOWN_DIRECTIVES = new Set([
   'grabbable',
   'scrollable',
   'keyboard',
+  // Safety meta-decorators
+  'freshnessBound',
 ]);
 
 const unknownDirectiveRule: DiagnosticRule = {

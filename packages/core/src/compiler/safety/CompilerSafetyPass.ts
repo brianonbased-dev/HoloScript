@@ -31,6 +31,7 @@ import {
 } from './CapabilityTypes';
 import { buildSafetyReport, formatReport, generateCertificate, SafetyReport } from './SafetyReport';
 import { LinearTypeChecker, LinearCheckerConfig } from './LinearTypeChecker';
+import { checkFreshnessBounds, FreshnessASTNode } from './FreshnessBoundChecker';
 
 // =============================================================================
 // COMPILER SAFETY PASS
@@ -134,6 +135,19 @@ export function runSafetyPass(
   // ── Layer 6: Linear type checking ──
   const linearChecker = new LinearTypeChecker(config.linearCheckerConfig);
   const linearResult = linearChecker.checkModule(nodes);
+
+  // ── Layer 7: Freshness bound checking ──
+  // Nodes may carry `freshnessBoundMs` and `sensorMetadata` (FreshnessASTNode).
+  // When present, stale-sensor actuation is a compile error (safety-by-construction).
+  // Violations are folded into effectResult.violations so the existing verdict
+  // logic (totalErrors > 0 → 'unsafe') picks them up without schema changes.
+  const freshnessResult = checkFreshnessBounds(nodes as FreshnessASTNode[], moduleId);
+  if (freshnessResult.violations.length > 0) {
+    effectResult.violations.push(...freshnessResult.violations);
+    if (!freshnessResult.passed) {
+      effectResult.passed = false;
+    }
+  }
 
   // ── Layer 5: Safety report ──
   const danger = dangerLevel(effectResult.moduleEffects);
