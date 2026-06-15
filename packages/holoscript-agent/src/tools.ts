@@ -23,7 +23,7 @@
  */
 
 import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
-import { resolve, dirname, delimiter } from 'node:path';
+import { resolve, dirname, delimiter, isAbsolute, sep } from 'node:path';
 import { spawn } from 'node:child_process';
 import type { ToolSpec, ToolUseBlock, ToolResultBlock } from '@holoscript/llm-provider';
 
@@ -53,7 +53,7 @@ function parseRootsEnv(raw: string | undefined, fallback: string[]): string[] {
   const roots = raw
     .split(delimiter)
     .map((r) => r.trim())
-    .filter((r) => r.length > 0 && r.startsWith('/'));
+    .filter((r) => r.length > 0 && isAbsolute(r));
   return roots.length > 0 ? roots : fallback;
 }
 
@@ -195,11 +195,11 @@ export const MESH_TOOLS: ToolSpec[] = [
 function isUnderRoot(absPath: string, root: string): boolean {
   const resolved = resolve(absPath);
   const rootResolved = resolve(root);
-  return resolved === rootResolved || resolved.startsWith(rootResolved + '/');
+  return resolved === rootResolved || resolved.startsWith(rootResolved + sep);
 }
 
 function checkReadAllowed(path: string): string | null {
-  if (!path.startsWith('/')) return `path must be absolute, got "${path}"`;
+  if (!isAbsolute(path)) return `path must be absolute, got "${path}"`;
   for (const root of ALLOWED_READ_ROOTS) {
     if (isUnderRoot(path, root)) return null;
   }
@@ -207,7 +207,7 @@ function checkReadAllowed(path: string): string | null {
 }
 
 function checkWriteAllowed(path: string): string | null {
-  if (!path.startsWith('/')) return `path must be absolute, got "${path}"`;
+  if (!isAbsolute(path)) return `path must be absolute, got "${path}"`;
   for (const root of ALLOWED_WRITE_ROOTS) {
     if (isUnderRoot(path, root)) return null;
   }
