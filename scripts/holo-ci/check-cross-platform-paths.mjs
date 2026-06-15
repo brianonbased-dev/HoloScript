@@ -42,6 +42,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 
 function arg(name, fallback) {
   const i = process.argv.indexOf(name);
@@ -49,12 +50,18 @@ function arg(name, fallback) {
 }
 const ROOT = path.resolve(arg('--root', process.env.HOLO_ROOT || process.cwd()));
 const JSON_OUT = process.argv.includes('--json');
+// --changed <ref>: scan ONLY files changed vs <ref> (git diff). This is the translator's
+//   mode — it catches exactly what a cloud branch introduces, with no pre-existing-debt
+//   noise, so --strict is auto-enabled (the FP cost is bounded to a few changed files).
+// --include-scripts: also scan scripts/** in whole-repo mode (warn-class tooling).
+const CHANGED_REF = arg('--changed', null);
+const INCLUDE_SCRIPTS = process.argv.includes('--include-scripts');
 // R3/R4 (`startsWith('/')`) are inherently ambiguous — `/` is the correct separator for
 // URLs, import specifiers, USD prim paths, HTTP routes, and REPL commands, so a blunt
 // regex false-positives heavily. They run ONLY under --strict (e.g. the translator runs
 // --strict against a cloud branch's CHANGED files, where the FP cost is bounded). The
 // default gate is the high-precision hardcoded-machine-path check (R1/R2).
-const STRICT = process.argv.includes('--strict');
+const STRICT = process.argv.includes('--strict') || !!CHANGED_REF;
 
 if (!fs.existsSync(ROOT)) {
   console.error(`[cross-platform-paths] root not found: ${ROOT}`);
@@ -109,9 +116,35 @@ function walk(dir, out) {
   }
 }
 
+// --changed mode: only the files a branch added/modified vs <ref>.
+function changedFiles(ref) {
+  let out = '';
+  for (const spec of [`${ref}...HEAD`, `${ref}`]) {
+    try {
+      out = execSync(`git diff --name-only --diff-filter=d ${spec}`, {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      break;
+    } catch {
+      /* try next spec */
+    }
+  }
+  return out
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((rel) => path.join(ROOT, rel))
+    .filter((f) => CODE_EXT.has(path.extname(f)) && !isTestOrFixture(f) && fs.existsSync(f));
+}
+
 function collectFiles() {
+  if (CHANGED_REF) return changedFiles(CHANGED_REF);
   const files = [];
-  // packages/<pkg>/src/**
+  // DEFAULT scope = deploy-critical shipped code: packages/<pkg>/src/**. Hardcoded
+  // machine paths here break the Railway/Linux deploy. scripts/** is local tooling
+  // (often legitimately local) — opt in with --include-scripts (warn-class).
   const pkgRoot = path.join(ROOT, 'packages');
   if (fs.existsSync(pkgRoot)) {
     for (const e of fs.readdirSync(pkgRoot, { withFileTypes: true })) {
@@ -120,10 +153,10 @@ function collectFiles() {
       if (fs.existsSync(src)) walk(src, files);
     }
   }
-  // scripts/** (excluding this gate's own dir noise is fine — it self-documents patterns
-  // inside comments, which are stripped before matching)
-  const scriptsRoot = path.join(ROOT, 'scripts');
-  if (fs.existsSync(scriptsRoot)) walk(scriptsRoot, files);
+  if (INCLUDE_SCRIPTS) {
+    const scriptsRoot = path.join(ROOT, 'scripts');
+    if (fs.existsSync(scriptsRoot)) walk(scriptsRoot, files);
+  }
   return files;
 }
 
