@@ -60,6 +60,7 @@ export type {
   QmBackendCapabilities,
   VQEResult,
   QAOAResult,
+  QuantinuumQECResult,
 } from './QmSolver';
 
 export { QM_BACKEND_CAPABILITIES, requireCapability } from './QmSolver';
@@ -110,6 +111,14 @@ export type { IBMQuantumConfig } from './backends/ibm-quantum';
 export { PySCFBackend } from './backends/pyscf';
 export type { PySCFConfig } from './backends/pyscf';
 
+export { QuantinuumBackend } from './backends/quantinuum';
+export type { QuantinuumConfig, QecReceipt } from './backends/quantinuum';
+// Factory function mirroring createIBMQuantumBackend, for trait/runner consumers.
+export function createQuantinuumBackend(config: Record<string, unknown>) {
+  const { QuantinuumBackend } = require('./backends/quantinuum');
+  return new QuantinuumBackend(config);
+}
+
 // ── Factory ────────────────────────────────────────────────────────────────────
 
 import type { QmBackend, QmSolverConfig } from './QmSolver';
@@ -118,11 +127,13 @@ import type { QuantumEspressoConfig } from './backends/quantum-espresso';
 import type { TBLiteConfig } from './backends/tblite';
 import type { IBMQuantumConfig } from './backends/ibm-quantum';
 import type { PySCFConfig } from './backends/pyscf';
+import type { QuantinuumConfig } from './backends/quantinuum';
 import { Psi4Backend } from './backends/psi4';
 import { QuantumEspressoBackend } from './backends/quantum-espresso';
 import { TBLiteBackend } from './backends/tblite';
 import { IBMQuantumBackend } from './backends/ibm-quantum';
 import { PySCFBackend } from './backends/pyscf';
+import { QuantinuumBackend } from './backends/quantinuum';
 import type { QmSolver } from './QmSolver';
 
 /**
@@ -166,10 +177,12 @@ export function createQmSolver(config: QmSolverConfig): QmSolver {
       return new IBMQuantumBackend(config as IBMQuantumConfig);
     case 'pyscf':
       return new PySCFBackend(config as PySCFConfig);
+    case 'quantinuum':
+      return new QuantinuumBackend(config as QuantinuumConfig);
     default:
       throw new Error(
         `[qm-bridge] Unknown backend: '${config.backend}'. ` +
-          `Supported: psi4, quantum-espresso, tblite, ibm-quantum, pyscf`
+          `Supported: psi4, quantum-espresso, tblite, ibm-quantum, pyscf, quantinuum`
       );
   }
 }
@@ -190,6 +203,25 @@ export function createQmSolver(config: QmSolverConfig): QmSolver {
  */
 export function selectQmBackend(questionType: string): QmBackend {
   const q = questionType.toLowerCase();
+
+  // Logical-qubit / error-corrected questions route to Quantinuum.
+  // MUST come before the generic ibm-quantum check ("quantum hardware" would
+  // otherwise capture an error-corrected request).
+  if (
+    q.includes('quantinuum') ||
+    q.includes('logical qubit') ||
+    q.includes('error-corrected') ||
+    q.includes('error corrected') ||
+    q.includes('error correction') ||
+    q.includes('qec') ||
+    q.includes('carbon code') ||
+    q.includes('tesseract') ||
+    q.includes('h-series') ||
+    q.includes('fault-tolerant') ||
+    q.includes('fault tolerant')
+  ) {
+    return 'quantinuum';
+  }
 
   // Quantum circuit / VQE / QAOA questions
   if (
@@ -290,6 +322,9 @@ export function getDefaultQmConfig(backend: QmBackend, questionType?: string): Q
     }
     case 'ibm-quantum': {
       return { backend: 'ibm-quantum', method: 'vqe', basis: 'sto-3g' };
+    }
+    case 'quantinuum': {
+      return { backend: 'quantinuum', method: 'vqe', basis: 'sto-3g' };
     }
     case 'pyscf': {
       // PBC / materials questions default to PBE/sto-3g

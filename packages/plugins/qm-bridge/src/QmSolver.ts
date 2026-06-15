@@ -54,7 +54,13 @@ export type QmBasis =
   | 'minimal'; // For semi-empirical (TBLite)
 
 /** QM backend identifiers. */
-export type QmBackend = 'psi4' | 'quantum-espresso' | 'tblite' | 'ibm-quantum' | 'pyscf';
+export type QmBackend =
+  | 'psi4'
+  | 'quantum-espresso'
+  | 'tblite'
+  | 'ibm-quantum'
+  | 'pyscf'
+  | 'quantinuum';
 
 /** Molecular system representation. */
 export interface MoleculeSpec {
@@ -464,14 +470,56 @@ export interface VQEResult {
   numQubits: number;
   /** Circuit depth (number of gate layers). */
   circuitDepth: number;
-  /** Backend used: 'aer' (local simulator) or 'ibm-quantum' (real hardware). */
-  executionBackend: 'aer' | 'ibm-quantum';
-  /** IBM job ID (when executionBackend === 'ibm-quantum'). */
+  /**
+   * Backend used:
+   *   'aer'            — local Qiskit Aer simulator (IBM)
+   *   'ibm-quantum'    — real IBM Quantum hardware
+   *   'quantinuum-sim' — local classical surrogate of Quantinuum logical qubits
+   *   'quantinuum'     — real Quantinuum H-series hardware (logical/QEC)
+   */
+  executionBackend: 'aer' | 'ibm-quantum' | 'quantinuum-sim' | 'quantinuum';
+  /** Provider job ID (when run on real hardware). */
   jobId?: string;
   /** Wall time in seconds. */
   wallTimeSeconds: number;
   /** Solver config that produced this result. */
   solverConfig: QmSolverConfig;
+}
+
+/**
+ * Quantinuum logical-qubit (error-corrected) VQE result.
+ *
+ * Extends VQEResult with the QEC bookkeeping that distinguishes an
+ * error-corrected run from a bare NISQ one. The fields map 1:1 onto the
+ * `cael-quantum-v1.qec` receipt schema (ai-ecosystem
+ * research/2026-06-15_qec-receipt-schema-cael-quantum-v1-qec.md), so a logical
+ * run is provenance-honest by construction: it cannot quote a logical-vs-physical
+ * improvement without also disclosing the post-selection acceptance fraction.
+ */
+export interface QuantinuumQECResult extends VQEResult {
+  /** Number of LOGICAL (encoded) qubits the algorithm ran on. */
+  logicalQubits: number;
+  /** Number of PHYSICAL qubits consumed by the encoding. */
+  physicalQubits: number;
+  /** QEC code family, e.g. 'carbon', 'tesseract', 'steane', 'none'. */
+  codeFamily: string;
+  /** Code distance d (1 = unencoded). */
+  codeDistance: number;
+  /** Number of QEC rounds (>1 = mid-circuit correction). */
+  rounds: number;
+  /** Per-qubit physical (unencoded) error rate baseline. */
+  physicalErrorRate: number;
+  /** Logical error rate after correction. */
+  logicalErrorRate: number;
+  /**
+   * Post-selection disclosure — the honest-reporting moat.
+   * `used=true` with `acceptanceFraction < 1` means shots were discarded; a fair
+   * suppression figure must be scaled by acceptanceFraction.
+   */
+  postSelection: {
+    used: boolean;
+    acceptanceFraction: number;
+  };
 }
 
 /** QAOA result — quantum combinatorial optimization. */
@@ -487,8 +535,8 @@ export interface QAOAResult {
   /** Number of qubits. */
   numQubits: number;
   /** Backend used. */
-  executionBackend: 'aer' | 'ibm-quantum';
-  /** IBM job ID. */
+  executionBackend: 'aer' | 'ibm-quantum' | 'quantinuum-sim' | 'quantinuum';
+  /** Provider job ID. */
   jobId?: string;
   /** Wall time in seconds. */
   wallTimeSeconds: number;
@@ -576,6 +624,17 @@ export const QM_BACKEND_CAPABILITIES: Record<QmBackend, QmBackendCapabilities> =
     transitionStates: true, // TS optimisation via PySCF
     qmMm: false, // Stage 3
     maxAtoms: 200,
+  },
+  quantinuum: {
+    molecular: true, // logical-qubit VQE for small molecules
+    periodic: false,
+    semiEmpirical: false,
+    nmrGiao: false,
+    tdDft: false,
+    postHf: false,
+    transitionStates: false,
+    qmMm: false,
+    maxAtoms: 8, // logical qubits are scarce; small molecules on encoded qubits
   },
 };
 
