@@ -403,6 +403,7 @@
     "packages/studio/src/components/panels/ModelViewerPanel.tsx",
     "packages/studio/src/components/panels/MotivationStackPanel.tsx",
     "packages/studio/src/components/panels/MultiplayerPanel.tsx",
+    "packages/studio/src/components/panels/NativePanelMount.tsx",
     "packages/studio/src/components/panels/NetworkPanel.tsx",
     "packages/studio/src/components/panels/ParticlePanel.tsx",
     "packages/studio/src/components/panels/PathfindingPanel.tsx",

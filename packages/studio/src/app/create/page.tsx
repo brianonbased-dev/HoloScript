@@ -90,6 +90,7 @@ import {
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
 import { RightRailPanelHost } from '@/components/panels/RightRailPanelHost';
+import { NativePanelMount } from '@/components/panels/NativePanelMount';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
 import { UXCommandPalette, createStudioPublishingCommands } from '@/core-ui/UXCommandPalette';
@@ -1572,7 +1573,13 @@ export default function CreatePage() {
         open: agentMonitorOpen,
         width: 320,
         containerClassName: 'bg-slate-900 z-20',
-        content: <AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} />,
+        content: (
+          <NativePanelMount
+            id="agentMonitor"
+            onClose={() => setAgentMonitorOpen(false)}
+            fallback={<AgentMonitorPanel onClose={() => setAgentMonitorOpen(false)} />}
+          />
+        ),
       },
       // ── Part mode panels ────────────────────────────────────────────────
       {
