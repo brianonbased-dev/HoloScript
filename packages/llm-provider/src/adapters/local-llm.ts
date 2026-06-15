@@ -24,6 +24,8 @@ import type {
   LLMStreamChunk,
   TokenUsage,
   ToolSpec,
+  ToolUseBlock,
+  AssistantContentBlock,
 } from '../types';
 import { LLMProviderError, filterGenericTools, messageContentAsString } from '../types';
 
@@ -151,6 +153,14 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       top_p: request.topP ?? 1,
       stop: request.stop,
       stream: false,
+      // Tool-calling: previously complete() sent NO tools, so a local model
+      // wired into the headless AgentRunner could never tool-call (the artifact
+      // gate then failed every tick). The OpenAI-compatible /v1/chat/completions
+      // endpoint accepts the same {type:'function', function:{name,description,
+      // parameters}} shape mapToolsToOllama already produces.
+      ...(request.tools && request.tools.length > 0
+        ? { tools: this.mapToolsToOllama(filterGenericTools(request.tools)) }
+        : {}),
     });
 
     return await this.withRetry(async () => {
@@ -199,7 +209,16 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
       // Parse OpenAI-compatible response shape
       const data = raw as {
-        choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+        choices?: Array<{
+          message?: {
+            content?: string;
+            tool_calls?: Array<{
+              id?: string;
+              function?: { name?: string; arguments?: unknown };
+            }>;
+          };
+          finish_reason?: string;
+        }>;
         usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
         model?: string;
       };
@@ -207,11 +226,42 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       const choice = data.choices?.[0];
       const content = choice?.message?.content ?? '';
 
+      // Tool-calling: map OpenAI-format tool_calls into the unified
+      // toolUses/assistantBlocks shape AgentRunner branches on (finishReason
+      // 'tool_use'). Mirrors openai.ts parseChatToolCalls + the streamCompletion
+      // arguments-as-string handling. Without this, complete() dropped tool_calls.
+      const rawToolCalls = choice?.message?.tool_calls ?? [];
+      const toolUses: ToolUseBlock[] = [];
+      for (let i = 0; i < rawToolCalls.length; i += 1) {
+        const tc = rawToolCalls[i];
+        const fn = tc?.function;
+        if (!fn?.name) continue;
+        let input: Record<string, unknown> = {};
+        const rawArgs = fn.arguments;
+        if (typeof rawArgs === 'string') {
+          try {
+            input = JSON.parse(rawArgs) as Record<string, unknown>;
+          } catch {
+            input = {};
+          }
+        } else if (rawArgs && typeof rawArgs === 'object') {
+          input = rawArgs as Record<string, unknown>;
+        }
+        toolUses.push({ type: 'tool_use', id: tc?.id ?? `call_${i}`, name: fn.name, input });
+      }
+      const hadToolCalls = toolUses.length > 0;
+      const assistantBlocks: AssistantContentBlock[] = hadToolCalls
+        ? [...(content ? [{ type: 'text' as const, text: content }] : []), ...toolUses]
+        : [];
+
       return {
         content,
         model: data.model ?? model,
         provider: 'local-llm' as const,
-        finishReason: (choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop',
+        finishReason: hadToolCalls
+          ? 'tool_use'
+          : ((choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop'),
+        ...(hadToolCalls ? { toolUses, assistantBlocks } : {}),
         usage: {
           promptTokens: data.usage?.prompt_tokens ?? 0,
           completionTokens: data.usage?.completion_tokens ?? 0,
