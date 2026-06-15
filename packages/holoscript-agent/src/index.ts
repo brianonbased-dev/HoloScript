@@ -440,7 +440,7 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
     case 'local-llm':
       return createLocalLLMProvider({
         baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
-        model: identity.llmModel,
+        model: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL ?? identity.llmModel,
       });
     default:
       throw new Error(`Provider "${p}" not yet wired in CLI — add a case in buildProvider.`);
