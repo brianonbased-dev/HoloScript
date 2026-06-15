@@ -23,22 +23,49 @@
  */
 
 import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, delimiter } from 'node:path';
 import { spawn } from 'node:child_process';
 import type { ToolSpec, ToolUseBlock, ToolResultBlock } from '@holoscript/llm-provider';
 
 // ---------------------------------------------------------------------------
 // Sandbox roots — keep narrow. Add only when a task needs more.
+//
+// Env-overridable so the SAME runner serves both deployments:
+//   - Vast fleet instance: the /root/* defaults below (clone + scp layout).
+//   - Local node (laptop / Jetson): point at the local checkout + a local
+//     output dir via HOLOSCRIPT_AGENT_READ_ROOTS / _WRITE_ROOTS.
+// Format: OS-path-separator-delimited list (':' on POSIX, ';' on Windows) —
+// e.g. HOLOSCRIPT_AGENT_READ_ROOTS="/home/user/HoloScript:/home/user/agent-output".
+// Unset → fleet defaults (no behavior change on the existing workers).
 // ---------------------------------------------------------------------------
-const ALLOWED_READ_ROOTS = [
+const FLEET_READ_ROOTS = [
   '/root/msc-paper-22', // Paper 22 mechanization inputs (scp'd by deploy)
   '/root/holoscript-mesh', // Read-only repo view (clone path on instance)
   '/root/agent-output', // Read back what we wrote
 ];
 
-const ALLOWED_WRITE_ROOTS = [
+const FLEET_WRITE_ROOTS = [
   '/root/agent-output', // Single write sink — keeps deliverables in one place
 ];
+
+function parseRootsEnv(raw: string | undefined, fallback: string[]): string[] {
+  if (!raw) return fallback;
+  const roots = raw
+    .split(delimiter)
+    .map((r) => r.trim())
+    .filter((r) => r.length > 0 && r.startsWith('/'));
+  return roots.length > 0 ? roots : fallback;
+}
+
+const ALLOWED_READ_ROOTS = parseRootsEnv(
+  process.env.HOLOSCRIPT_AGENT_READ_ROOTS,
+  FLEET_READ_ROOTS,
+);
+
+const ALLOWED_WRITE_ROOTS = parseRootsEnv(
+  process.env.HOLOSCRIPT_AGENT_WRITE_ROOTS,
+  FLEET_WRITE_ROOTS,
+);
 
 // Command-prefix whitelist. Prefix-match is intentional — `lake build MSC`
 // matches `lake build`, `pnpm --filter @holoscript/core build` matches
@@ -104,9 +131,9 @@ export const MESH_TOOLS: ToolSpec[] = [
   {
     name: 'read_file',
     description:
-      'Read a file from the agent sandbox. Allowed roots: /root/msc-paper-22, ' +
-      '/root/holoscript-mesh, /root/agent-output. Returns the file content as text. ' +
-      "Use this to inspect inputs scp'd to the instance (e.g. MSC/Invariants.lean).",
+      `Read a file from the agent sandbox. Allowed roots: ${ALLOWED_READ_ROOTS.join(', ')}. ` +
+      'Returns the file content as text. Use this to inspect task inputs and the ' +
+      'read-only repo view.',
     input_schema: {
       type: 'object',
       properties: {
@@ -131,13 +158,14 @@ export const MESH_TOOLS: ToolSpec[] = [
   {
     name: 'write_file',
     description:
-      'Write a file to /root/agent-output/. This is the deliverable sink — anything ' +
-      'you want to emit as task output (a Lean proof, a markdown report, a JSON dataset) ' +
-      'goes here. Creates parent directories. Will refuse paths outside the write root.',
+      `Write a file to the deliverable sink (write roots: ${ALLOWED_WRITE_ROOTS.join(', ')}). ` +
+      'Anything you want to emit as task output (a Lean proof, a markdown report, a JSON ' +
+      'dataset, a .holo scene) goes here. Creates parent directories. Will refuse paths ' +
+      'outside the write root(s).',
     input_schema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: 'Absolute path under /root/agent-output/' },
+        path: { type: 'string', description: `Absolute path under a write root: ${ALLOWED_WRITE_ROOTS.join(', ')}` },
         content: { type: 'string', description: 'File content to write (UTF-8)' },
       },
       required: ['path', 'content'],
