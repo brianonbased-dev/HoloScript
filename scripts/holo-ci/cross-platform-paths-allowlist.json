@@ -1,0 +1,5 @@
+{
+  "_doc": "Documented exceptions to check-cross-platform-paths.mjs (W.726 gate). `files`: path substrings whose whole file is exempt (e.g. Windows-local-only tooling that never runs on the Linux fleet or deploys). `lines`: 'fileSubstr::codeSubstr' to exempt a single finding. Keep this list SMALL and justify each entry in a comment-style sibling key — every entry is portability debt the freeze exists to burn down.",
+  "files": [],
+  "lines": []
+}
