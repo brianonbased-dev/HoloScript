@@ -1,0 +1,689 @@
+% Paper 37 — Quantum Receipt Chain
+%   The Honest-Reporting Gap in Quantum Error Correction:
+%   A Tamper-Evident Receipt Schema for Acceptance-Fraction Disclosure
+%
+% Target: IEEE Quantum Week (QCE) 2027 / EuroSys 2027 workshop track
+%         (gated; also suitable as a NISQ/QEC methods short paper)
+% Format: IEEEtran, conference mode
+% Author: Joseph Krzywoszyja (F.026)
+% Draft: 2026-06-15
+%
+% Ecosystem grounding:
+%   D.042 (build-novel-publishable discipline)
+%   F.037 (papers are the product)
+%   Extends Paper 37 NISQ receipt-chain work (quantum_receipts/)
+%   Tier-0 evidence: scripts/quantum-scaleup/qec_threshold_sim.py
+%   QEC receipt schema: cael-quantum-v1.qec
+%
+% Compile: pdflatex -interaction=nonstopmode paper-37-quantum-receipt-chain.tex
+%          (run twice for cross-refs)
+
+\documentclass[conference]{IEEEtran}
+
+% ── Packages ─────────────────────────────────────────────────────────────────
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{array}
+
+% ── Draft / todo annotation ──────────────────────────────────────────────────
+\newcommand{\todo}[1]{\textcolor{red!70!black}{[\textbf{TODO}: #1]}}
+\newcommand{\cmark}{\textcolor{green!60!black}{\checkmark}}
+\newcommand{\xmark}{\textcolor{red!70!black}{$\times$}}
+
+% Lotus petal data contract — values that come from a runnable artifact
+% (renders nothing in the PDF; grep target for build-lotus.mjs)
+\providecommand{\measuredFrom}[1]{}
+
+% ── JSONL / JSON listing style ───────────────────────────────────────────────
+\lstdefinelanguage{JSON}{
+  morestring=[b]",
+  stringstyle=\color{blue!60!black},
+  literate=
+    {,}{{\textcolor{black}{,}}}1
+    {:}{{\textcolor{black}{:}}}1
+    {\{}{{\textcolor{black}{\{}}}1
+    {\}}{{\textcolor{black}{\}}}}1
+    {[}{{\textcolor{black}{[}}}1
+    {]}{{\textcolor{black}{]}}}1,
+}
+\lstset{
+  basicstyle=\scriptsize\ttfamily,
+  breaklines=true,
+  frame=single,
+  language=JSON,
+  numbers=none,
+  xleftmargin=1em,
+  aboveskip=0.4\baselineskip,
+  belowskip=0.4\baselineskip,
+}
+
+% ── Compact math notation ────────────────────────────────────────────────────
+\newcommand{\pL}{p_{\mathrm{L}}}    % logical error rate
+\newcommand{\pP}{p_{\mathrm{phys}}} % physical error rate
+\newcommand{\pth}{p_{\mathrm{th}}}  % threshold
+\newcommand{\af}{\alpha}            % acceptance fraction
+\newcommand{\suppfactor}{\Gamma}    % suppression factor
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\title{The Honest-Reporting Gap in Quantum Error Correction:\\
+A Tamper-Evident Receipt Schema for Acceptance-Fraction Disclosure}
+
+\author{%
+  \IEEEauthorblockN{Joseph Krzywoszyja}
+  \IEEEauthorblockA{Independent Researcher\\
+    brianonbased@gmail.com}
+}
+
+\maketitle
+
+% ── Abstract ─────────────────────────────────────────────────────────────────
+\begin{abstract}
+Reported quantum error correction (QEC) gains routinely omit a single
+critical quantity: the fraction of shots that were accepted rather than
+discarded via post-selection (selective rejection).
+The landmark Microsoft/Quantinuum Nature result (2026) reports an
+\textbf{800-fold} logical-vs-physical error suppression using the carbon
+code on trapped-ion hardware---a number derived from selectively rejected
+runs. The non-rejecting (filtered) figure is approximately 5-fold; the
+mid-computation figure, which is the one fault-tolerant algorithms
+actually require, is greater than 50-fold. These figures are all
+scientifically valid, but the headline conflates them. As logical qubit
+counts scale and code families proliferate (carbon, tesseract, surface,
+qLDPC), the absence of a standardized, tamper-evident disclosure of
+the accepted-shot fraction ($\af$) makes cross-vendor comparison
+structurally impossible.
+
+We introduce \textbf{\texttt{cael-quantum-v1.qec}}, a JSON receipt schema
+that makes the disclosure of $\af$ a required structural field of every
+QEC result report---not a footnote. A receipt with
+\texttt{post\_selection.used = true} and $\af < 1$ that omits $\af$ from
+its suppression headline is flagged as an \emph{overclaim}. The fair
+comparable is $\suppfactor \times \af$ (the deterministic-equivalent
+gain), reported alongside the heralded headline. We demonstrate the
+schema's viability with a Tier-0 classical simulator (repetition code,
+code-capacity bit-flip noise, exact minimum-weight decoder): at
+$d{=}11$, $p{=}0.10$, we observe $444\times$ suppression with
+$\af = 1.0$---an honest contrast to a selectively-rejected 800-fold
+ceiling. The threshold $\pth \approx 0.5$ matches analytic theory.
+Monte-Carlo results at 40,000 trials per point, sealed in
+\texttt{cael-quantum-v1.qec} receipts, are provided as a reproducible
+baseline for schema adoption.
+\end{abstract}
+
+\begin{IEEEkeywords}
+quantum error correction, receipt provenance, acceptance fraction,
+post-selection, honest reporting, cael-quantum, repetition code, threshold
+\end{IEEEkeywords}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:intro}
+
+Quantum error correction crossed a watershed in June 2026, when
+Microsoft and Quantinuum published peer-reviewed results in \textit{Nature}
+demonstrating logical circuit error rates 11--800$\times$ below
+corresponding physical baselines on trapped-ion
+hardware~\cite{msft-quantinuum-nature2026}. The headline figure---an
+800-fold improvement---is real. It is also a best-case, post-selected
+ceiling. The filtered (non-rejecting) carbon-code number is approximately
+5-fold; mid-computation correction, the regime that fault-tolerant
+algorithms actually require, achieves $> 50\times$.
+
+All three figures are scientifically accurate descriptions of distinct
+experimental regimes. The problem is that the infrastructure for
+reporting them---press releases, preprints, comparison tables---does not
+require disclosure of which regime a headline belongs to or what fraction
+of shots it consumed to get there. As logical qubit counts scale toward
+the hundreds and thousands needed for commercial algorithms, this gap
+compounds: an 800$\times$ headline from a 0.1\% acceptance-fraction
+post-selected run is not the same capability as an 800$\times$ headline
+from a deterministic run, but current reporting conventions make them
+indistinguishable.
+
+This paper makes a narrow, actionable contribution: we define a receipt
+schema (\texttt{cael-quantum-v1.qec}) that encodes the accepted-shot
+fraction as a \emph{required} structural field of every QEC result report,
+establishes an overclaim detection rule, and demonstrates the schema with
+a reproducible Tier-0 classical simulator.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+  \item The \textbf{\texttt{cael-quantum-v1.qec}} schema: a JSON receipt
+    format for QEC results with mandatory \texttt{post\_selection.acceptance\_fraction}
+    field and an overclaim detection rule (\S\ref{sec:schema}).
+  \item A \textbf{Tier-0 classical QEC simulator} (repetition code,
+    code-capacity noise, exact minimum-weight decoder) that emits
+    \texttt{cael-quantum-v1.qec} receipts and reproduces the textbook
+    suppression-with-distance signature (\S\ref{sec:evaluation}).
+  \item A \textbf{reproducible baseline}: $\pth \approx 0.5$ (matching
+    analytic theory), $444\times$ suppression at $d{=}11$, $p{=}0.10$,
+    $\af{=}1.0$---i.e. zero shots discarded (\S\ref{sec:evaluation}).
+  \item \textbf{Continuity with Paper 37}'s NISQ receipt chain: the VQE
+    H2 hardware receipt (IBM Kingston, 2026-05-21) established the
+    honest-NISQ-ceiling posture; this paper extends that posture to the
+    QEC regime and formalizes the schema (\S\ref{sec:receipt-chain}).
+\end{enumerate}
+
+\paragraph{What this paper does not claim.}
+We do not claim a quantum advantage. We do not claim that the repetition
+code is competitive with carbon or tesseract codes for practical
+fault-tolerance. The repetition code corrects a single Pauli axis under
+code-capacity noise; it is a proof-of-schema vehicle, not a hardware
+proposal. Claims about the 800$\times$ result belong to the Microsoft/
+Quantinuum team; our contribution is the reporting infrastructure that
+contextualizes such claims honestly.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Background}
+\label{sec:background}
+
+\subsection{Quantum Error Correction Basics}
+
+A quantum error-correcting code encodes $k$ logical qubits into $n$
+physical qubits and can correct all errors on at most $t = \lfloor
+(d-1)/2 \rfloor$ physical qubits, where $d$ is the code distance. The
+key metric is the logical error rate $\pL$ as a function of the physical
+error rate $\pP$ and distance $d$. Below the threshold $\pth$, increasing
+$d$ suppresses $\pL$ exponentially; above it, larger codes perform worse.
+
+The suppression factor $\suppfactor = \pP / \pL$ is the headline quantity
+in QEC benchmarks. For the textbook repetition code under code-capacity
+bit-flip noise with an exact minimum-weight decoder, the threshold is
+$\pth = 0.5$~\cite{fowler2012threshold, dennis2002topological}.
+
+\subsection{Post-Selection and the Acceptance-Fraction Gap}
+
+Many near-term QEC demonstrations use \emph{selective rejection}
+(post-selection): runs that fail a flag check are discarded, and only
+accepted shots contribute to the logical error rate estimate. This is a
+legitimate experimental technique---heralded error correction is useful
+for some protocols---but it inflates $\suppfactor$ relative to the
+deterministic case. The fair comparable for a selectively-rejected result
+is $\suppfactor \times \af$, where $\af \in (0, 1]$ is the fraction of
+shots accepted.
+
+The Microsoft/Quantinuum 2026 result reports $\suppfactor = 800\times$
+using selective rejection on the carbon code~\cite{msft-quantinuum-nature2026}.
+The accepted-shot fraction $\af$ is not prominently disclosed in the
+press-release framing. The filtered (non-rejecting) figure is
+$\suppfactor \approx 5\times$ ($0.8\% \to 0.17\%$ error); the
+mid-computation figure is $> 50\times$. The Nature paper presumably
+contains the full methodology, but cross-vendor comparison infrastructure
+does not currently enforce disclosure of $\af$ at the table or headline
+level.
+
+\subsection{CAEL / SimulationContract Provenance Context}
+
+The \texttt{cael-quantum-v1.qec} schema extends the CAEL
+(Causal Agent-Environment Loop) provenance vocabulary introduced in
+companion work~\cite{cael-aamas2026}. CAEL receipts provide
+tamper-evident, hash-sealed records of experimental runs; the quantum
+extension (\texttt{.qec} sub-type) adds QEC-specific required fields
+while inheriting the schema's \texttt{payload\_hash} / \texttt{receipt\_id}
+tamper-evidence structure.
+
+The parent Paper 37 receipt chain establishes this posture for
+NISQ-regime VQE: an H2 VQE run on IBM Kingston (backend
+\texttt{ibm\_kingston}, 9 optimizer steps, best energy $-1.5376$~Ha,
+hardware gap $319.5$~mHa) is sealed with SHA-256 payload hashes and
+verified both offline (hash recompute) and online (IBM Runtime job
+replay)~\cite{paper37-draft}. The QEC extension applies the same
+provenance discipline to the fault-tolerance regime.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{The Quantum Receipt Schema}
+\label{sec:schema}
+
+\subsection{Design Rationale}
+
+The schema must enforce four invariants:
+
+\begin{enumerate}
+  \item \textbf{Acceptance-fraction disclosure}: any receipt reporting a
+    suppression headline \emph{must} carry \texttt{post\_selection.acceptance\_fraction}.
+  \item \textbf{Overclaim detection}: a receipt with
+    \texttt{post\_selection.used = true} and $\af < 1.0$ whose
+    \texttt{suppression\_factor} is not qualified by $\af$ is flagged.
+  \item \textbf{Code-family transparency}: the receipt records the code
+    family, distance, encoding rate, and which Pauli axes it corrects, so
+    one-axis sub-codes (e.g., repetition) are distinguishable from
+    full-distance CSS codes.
+  \item \textbf{Tamper evidence}: the payload hash seals all fields so
+    that post-hoc modification is detectable.
+\end{enumerate}
+
+\subsection{Schema Fields}
+
+Table~\ref{tab:schema} lists the required and key optional fields of
+\texttt{cael-quantum-v1.qec}.
+
+\begin{table}[t]
+\caption{\texttt{cael-quantum-v1.qec} required fields}
+\label{tab:schema}
+\small
+\begin{tabular}{@{}p{2.8cm}p{4.8cm}@{}}
+\toprule
+\textbf{Field} & \textbf{Meaning} \\
+\midrule
+\texttt{schema} & \texttt{"cael-quantum-v1.qec"} (version anchor) \\
+\texttt{code.family} & code family: \texttt{repetition}, \texttt{surface}, \texttt{carbon}, \texttt{tesseract}, \ldots \\
+\texttt{code.distance} & code distance $d$ \\
+\texttt{code.corrects\_axes} & \texttt{["X"]}, \texttt{["Z"]}, or \texttt{["X","Z"]} \\
+\texttt{code.logical\_qubits} & $k$ \\
+\texttt{code.physical\_qubits} & $n$ \\
+\texttt{noise\_model} & \texttt{code-capacity-bitflip}, \texttt{phenomenological}, \texttt{circuit-level}, \texttt{hardware} \\
+\texttt{decoder} & decoder identity (\texttt{mwpm-1d-exact}, \texttt{pymatching-mwpm}, \ldots) \\
+\texttt{rounds} & QEC cycles ($>1$ = mid-computation) \\
+\texttt{measurement.physical\_error\_rate} & $\pP$ \\
+\texttt{measurement.logical\_error\_rate} & $\pL$ \\
+\texttt{measurement.suppression\_factor} & $\suppfactor = \pP / \pL$ (the headline) \\
+\texttt{measurement.trials} & shot count \\
+\textbf{\texttt{post\_selection.used}} & \textbf{true iff shots were discarded} \\
+\textbf{\texttt{post\_selection.acceptance\_fraction}} & \textbf{fraction of shots kept ($\af$)} \\
+\texttt{threshold\_estimate} & estimated $\pth$ if a distance sweep was run \\
+\texttt{payload\_hash} & SHA-256 over canonical payload \\
+\texttt{receipt\_id} & \texttt{qec-<hex>} unique identifier \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The Honest-Reporting Rule}
+
+\begin{quote}
+\textit{A receipt with \texttt{post\_selection.used = true} and
+$\af < 1.0$ that does not disclose $\af$ alongside its
+\texttt{suppression\_factor} headline is an \textbf{overclaim}.
+The fair, comparable figure is $\suppfactor_{\mathrm{det}} = \suppfactor \times \af$
+(the deterministic-equivalent gain), and must be reported alongside
+the heralded headline---never instead of it.}
+\end{quote}
+
+This is the QEC analogue of Paper 37's NISQ posture: the hardware VQE
+gap of $319.5$~mHa is honestly labeled as the NISQ ceiling, not a
+proximity to chemical accuracy ($1.6$~mHa). The schema enforces the
+analogous discipline: the 800$\times$ headline is valid and should be
+reported; the $\af$ that produced it must accompany it.
+
+\subsection{Receipt Example}
+
+Listing~\ref{lst:receipt} shows a representative receipt from the Tier-0
+simulator at $d{=}11$, $p{=}0.10$:
+\measuredFrom{ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
+
+\begin{lstlisting}[language=JSON,caption={Example \texttt{cael-quantum-v1.qec} receipt at $d=11$, $p=0.10$},label=lst:receipt]
+{
+  "schema": "cael-quantum-v1.qec",
+  "code": {
+    "family": "repetition",
+    "distance": 11,
+    "physical_qubits": 11,
+    "logical_qubits": 1,
+    "corrects_axes": ["X"]
+  },
+  "noise_model": "code-capacity-bitflip",
+  "decoder": "mwpm-1d-exact",
+  "rounds": 1,
+  "measurement": {
+    "physical_error_rate": 0.1,
+    "logical_error_rate": 0.000225,
+    "suppression_factor_physical_over_logical": 444.44,
+    "logical_failures": 9,
+    "trials": 40000
+  },
+  "post_selection": {
+    "used": false,
+    "acceptance_fraction": 1.0
+  },
+  "threshold_estimate": 0.5,
+  "receipt_id": "qec-19b88f085f5355fd",
+  "payload_hash": "19b88f085f5355fd3d81bc4..."
+}
+\end{lstlisting}
+
+The \texttt{post\_selection.used = false} and
+\texttt{acceptance\_fraction = 1.0} fields declare unambiguously that no
+shots were discarded: every trial contributed to the logical error rate
+estimate. This is the honest contrast to a selective-rejection headline.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Receipt Chain Continuity with Paper 37}
+\label{sec:receipt-chain}
+
+The \texttt{cael-quantum-v1.qec} schema is a sibling sub-type within the
+existing Paper 37 receipt vocabulary. The parent vocabulary
+(\texttt{cael-quantum-v1}) established the following sub-types:
+\texttt{.scaleup}, \texttt{.vqe-runner}, and \texttt{.sim}. The
+\texttt{.qec} sub-type extends the same vocabulary to the
+error-corrected regime.
+
+\subsection{NISQ Receipt Chain (existing)}
+
+The Paper 37 H2 VQE hardware receipt records:
+\begin{itemize}
+  \item Backend: \texttt{ibm\_kingston}; resilience level 0; COBYLA
+    cold-start optimizer.
+  \item Simulator baseline: Aer noiseless, $-1.857275$~Ha, 0.025~mHa
+    gap---algorithm correctness evidence.
+  \item Hardware result: best energy $-1.537648$~Ha, gap $319.5$~mHa
+    at step 9 of 9 completed.
+  \item Receipt chain: 9 optimizer steps, each hash-certified by
+    \texttt{sha256(energy, job\_id)}.
+  \item Honest conclusion: NISQ ceiling characterization; chemical
+    accuracy ($1.6$~mHa) was not achievable without error correction.
+\end{itemize}
+
+The NISQ receipt proves what happened: a real quantum job ran, the
+trace is tamper-evident, and the ceiling is labeled as such. The QEC
+receipt chain is the same discipline applied to the error-correction regime.
+
+\subsection{QEC Receipt Chain (this work)}
+
+The \texttt{cael-quantum-v1.qec} receipt chain records:
+\begin{itemize}
+  \item The code family, distance, physical/logical qubit counts, and
+    which Pauli axes are corrected.
+  \item The noise model and decoder identity, so results are
+    model-comparable across vendors.
+  \item The acceptance fraction, so heralded and deterministic gains
+    are distinguished.
+  \item A SHA-256 payload hash, so the record is tamper-evident.
+\end{itemize}
+
+The Tier-0 simulator (this paper, \S\ref{sec:evaluation}) demonstrates
+the schema emitting real receipts. The Tier-1 extension
+(\S\ref{sec:limitations}) would apply the same schema to a Quantinuum
+backend, producing a hardware receipt for a logical-qubit run that
+carries a real $\af$ from a real post-selection process.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Tier-0 Simulator}
+
+\paragraph{Setup.}
+We implement a classical Monte-Carlo simulator of the repetition code
+under code-capacity bit-flip noise with an exact minimum-weight decoder
+(\texttt{mwpm-1d-exact}):
+\begin{itemize}
+  \item Distances: $d \in \{3, 5, 7, 9, 11\}$.
+  \item Physical error rates: $p \in \{0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70\}$.
+  \item Trials: 40,000 per $(d, p)$ point.
+  \item Decoder: exact minimum-weight matching on the 1-D bit-flip parity
+    check (feasible for repetition code; scales as $O(d)$ per shot).
+  \item No post-selection: every shot is accepted ($\af = 1.0$).
+\end{itemize}
+
+Each $(d, p)$ point emits a \texttt{cael-quantum-v1.qec} receipt sealed
+with SHA-256. The full run produces 40 receipts in NDJSON format
+(\texttt{2026-06-15\_qec-threshold-repetition.ndjson}).
+
+\paragraph{Claim boundary (required by schema).}
+This simulator is classical Monte-Carlo of the repetition code under
+code-capacity bit-flip noise with an exact minimum-weight decoder. It
+demonstrates the threshold and exponential-suppression mechanism and
+exercises the QEC receipt schema. It is NOT a 2-D surface, carbon, or
+tesseract code. It is NOT circuit-level noise. It is NOT hardware.
+The repetition code corrects a single Pauli axis only (a CSS sub-code).
+
+\subsection{Threshold Result}
+\measuredFrom{ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
+
+The threshold $\pth \approx 0.5$ is confirmed empirically: at $p = 0.5$,
+$d = 3$, the logical error rate is $0.499$ ($\pm 0.0025$); at $d = 11$,
+$p = 0.5$, the rate is $0.499$ ($\pm 0.0025$)---curves intersect at
+$p \approx 0.5$ as predicted by analytic theory for exact
+MWPM~\cite{dennis2002topological}. Above threshold ($p > 0.5$), larger
+$d$ performs worse: at $p = 0.6$, $\pL(d{=}3) = 0.651$ vs.\
+$\pL(d{=}11) = 0.756$.
+
+\subsection{Suppression Results}
+
+Table~\ref{tab:suppression} reports $\pL$ and $\suppfactor$ at selected
+$(d, p)$ points. All measurements use $\af = 1.0$ (no post-selection).
+
+\begin{table}[t]
+\caption{Tier-0 repetition-code suppression factors ($N{=}40{,}000$ trials/point).
+All receipts: \texttt{acceptance\_fraction = 1.0} (zero shots discarded).}
+\label{tab:suppression}
+\small
+\measuredFrom{ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
+\begin{tabular}{@{}ccrr@{}}
+\toprule
+$d$ & $\pP$ & $\pL$ & $\suppfactor = \pP/\pL$ \\
+\midrule
+3 & 0.05 & 0.00685 & $7.3\times$ \\
+3 & 0.10 & 0.02708 & $3.7\times$ \\
+5 & 0.05 & 0.00133 & $37.7\times$ \\
+5 & 0.10 & 0.00853 & $11.7\times$ \\
+7 & 0.05 & 0.00010 & $500\times$ \\
+7 & 0.10 & 0.00263 & $38.1\times$ \\
+9 & 0.05 & $2.5 \times 10^{-5}$ & $2{,}000\times$ \\
+9 & 0.10 & 0.000975 & $102.6\times$ \\
+\textbf{11} & \textbf{0.05} & $\mathbf{<}2.5 \times 10^{-5}$ & \textbf{floor (0/40k)} \\
+\textbf{11} & \textbf{0.10} & \textbf{0.000225} & $\mathbf{444\times}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The \textbf{key result}: at $d{=}11$, $p{=}0.10$, the suppression factor
+is $\mathbf{444\times}$ with $\mathbf{\af = 1.0}$ (no shots
+discarded, $\texttt{logical\_failures} = 9 / 40{,}000$, confirmed by
+receipt \texttt{qec-19b88f085f5355fd}). This is the honest contrast to
+a selectively-rejected 800$\times$ headline: our 444$\times$ consumes
+zero throughput overhead; an 800$\times$ with $\af = 0.01$ delivers a
+deterministic-equivalent of $8\times$.
+
+\subsection{Distance Scaling}
+
+At $p = 0.10$ (well below threshold), $\pL$ decreases exponentially with
+$d$: from $0.0271$ ($d{=}3$) to $0.000975$ ($d{=}9$) to $0.000225$
+($d{=}11$). This is the textbook suppression signature---the same
+structural behavior observed in the Microsoft/Quantinuum results,
+confirming that the schema captures the right observable. Monte-Carlo
+matches the analytic binomial upper tail within $1\sigma$ at every
+checked point.
+
+\subsection{Comparison to Microsoft/Quantinuum 2026 Ceiling}
+
+Table~\ref{tab:comparison} places our Tier-0 results alongside the
+Microsoft/Quantinuum 2026 figures as reported in~\cite{msft-quantinuum-nature2026}
+and the associated press coverage.
+
+\begin{table}[t]
+\caption{Honest comparison of QEC suppression figures.
+The deterministic-equivalent column applies the honest-reporting rule:
+$\suppfactor_{\mathrm{det}} = \suppfactor \times \af$.}
+\label{tab:comparison}
+\small
+\begin{tabular}{@{}p{2.4cm}rrp{1.5cm}r@{}}
+\toprule
+\textbf{Result} & $\suppfactor$ & $\af$ & \textbf{Regime} & $\suppfactor_{\mathrm{det}}$ \\
+\midrule
+MS/QH carbon (sel.~rej.) & $800\times$ & \todo{undisclosed} & heralded & \todo{needs $\af$} \\
+MS/QH carbon (filtered) & ${\sim}5\times$ & $1.0$ & deterministic & $5\times$ \\
+MS/QH mid-computation & ${>}50\times$ & \todo{undisclosed} & mid-comp. & \todo{needs $\af$} \\
+\textbf{Ours} ($d{=}11$, $p{=}0.1$) & $444\times$ & $\mathbf{1.0}$ & \textbf{classical sim.} & $\mathbf{444\times}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The \todo{undisclosed} entries illustrate exactly the gap this schema
+closes. Until $\af$ is a required field, the 800$\times$ headline and the
+444$\times$ headline cannot be honestly compared: one may reflect a 1\%
+acceptance fraction; the other reflects 100\%. The schema makes this
+comparison structurally possible.
+
+\subsection{Schema Viability}
+
+All 40 receipts pass the schema's well-formedness check:
+\begin{itemize}
+  \item \texttt{post\_selection.used = false} and
+    \texttt{post\_selection.acceptance\_fraction = 1.0} are present in
+    every receipt.
+  \item \texttt{suppression\_factor} is null only at $d{=}11$, $p{=}0.05$
+    where zero failures were observed in 40,000 trials (correct behavior:
+    the schema flags null rather than dividing by zero).
+  \item \texttt{payload\_hash} seals each receipt; any mutation to
+    \texttt{logical\_error\_rate} or \texttt{physical\_error\_rate} breaks
+    the hash.
+\end{itemize}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Why the repetition code suffices for schema validation.}
+A schema that requires $\af$ disclosure needs a concrete emitter to
+validate its field structure, overclaim rule, and hash-sealing. The
+repetition code is the simplest code with a tractable exact decoder,
+allowing us to verify schema semantics without the runtime cost of a
+full surface-code simulator. The schema's \texttt{corrects\_axes} field
+already distinguishes single-axis sub-codes (repetition: \texttt{["X"]})
+from full CSS codes (\texttt{["X","Z"]}), so consumers can filter by
+applicability.
+
+\paragraph{The overclaim rule does not deprecate selective rejection.}
+Post-selection is a legitimate and useful technique for heralded
+protocols. The rule does not prohibit reporting a heralded headline;
+it requires the $\af$ that produced it to appear alongside it. A receipt
+that carries both $\suppfactor{=}800\times$ and $\af{=}0.01$ is
+schema-compliant; a receipt that carries $\suppfactor{=}800\times$ and
+omits $\af$ is an overclaim.
+
+\paragraph{Mid-computation correction and \texttt{rounds} $> 1$.}
+The schema's \texttt{rounds} field ($> 1$ = mid-computation correction)
+is the structural hook for distinguishing the experimentally harder
+regime. The Microsoft/Quantinuum 2026 paper's mid-computation result
+($> 50\times$) is reportable under the schema with \texttt{rounds = N}
+and the appropriate $\af$. This is the receipt structure needed to
+compare mid-computation benchmarks across vendors as the field matures.
+
+\paragraph{Ecosystem grounding.}
+This work advances ecosystem direction D.042 (build-novel-publishable:
+novelty as build criterion, publishability as audit gate) and D.091
+(research as invention). The schema is a concrete artifact, not a
+position paper: it has a running emitter, 40 sealed receipts, and a
+hash-enforced tamper-evidence chain. The contribution is falsifiable:
+any QEC result that reports $\suppfactor$ without $\af$ and carries
+\texttt{post\_selection.used = true} is detectable as an overclaim by
+automated receipt validation.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Limitations and Future Work}
+\label{sec:limitations}
+
+\paragraph{Tier-0 is classical simulation only.}
+The 444$\times$ result is a classical Monte-Carlo run, not hardware. The
+repetition code corrects a single Pauli axis under code-capacity noise,
+not circuit-level noise. It is a proof-of-schema vehicle. The schema's
+suppression figure is real; the hardware gap to the 800$\times$ baseline
+is large and acknowledged.
+
+\paragraph{Tier-1: Quantinuum hardware run.}
+\todo{Tier-1 Quantinuum backend required. The build spec in
+\texttt{2026-06-15\_microsoft-quantinuum-qec.md} defines the
+\texttt{QuantinuumBackend} in \texttt{qm-bridge}: mirror the existing
+\texttt{IBMQuantumBackend} pattern with pytket/qnexus SDK; run logical
+qubits (carbon/tesseract encoding); emit logical-vs-physical error rate
+and real $\af$ into \texttt{cael-quantum-v1.qec}. Hardware run is
+founder-gated paid compute (D.080).}
+
+\paragraph{Tier-2: 2-D surface code under circuit-level noise.}
+\todo{The schema's \texttt{corrects\_axes: ["X","Z"]}, \texttt{rounds > 1},
+and \texttt{decoder: "pymatching-mwpm"} fields target the 2-D surface
+code. Implementation requires \texttt{pymatching}; this is the next
+rung above the repetition-code Tier-0 and would make mid-computation
+correction benchmarks representable.}
+
+\paragraph{Validator enforcement.}
+The overclaim detection rule is currently documented but not enforced by
+an automated \texttt{check:*} script. Enforcement---transforming the
+schema from convention into a gate---is the step that makes it a
+practical submission requirement for a conference or journal venue.
+
+\paragraph{Cross-vendor adoption.}
+The schema is proposed; adoption requires vendor participation. A
+conference supplementary-materials requirement or a preprint server
+metadata field would be the natural adoption path. The schema is
+intentionally minimal (JSON, no proprietary dependencies) to lower the
+barrier.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Related Work}
+\label{sec:related}
+
+\subsection{QEC Theory and Thresholds}
+
+The threshold theorem for quantum error correction is foundational~\cite{aharonov1997fault}.
+For topological codes, fault-tolerance thresholds under various noise models
+are established in~\cite{fowler2012threshold, dennis2002topological}. The
+threshold $\pth = 0.5$ for the repetition code under code-capacity bit-flip
+noise with MWPM follows from~\cite{dennis2002topological}.
+
+\subsection{Experimental QEC Results}
+
+Recent hardware demonstrations of QEC include surface codes on
+superconducting platforms~\cite{google-qec2023} and the Microsoft/
+Quantinuum results on trapped-ion hardware with the carbon and tesseract
+codes~\cite{msft-quantinuum-nature2026}. The mid-computation correction
+result in~\cite{msft-quantinuum-nature2026} is the current state of the
+art for in-computation error suppression.
+
+\subsection{Provenance and Honest Reporting in Science}
+
+Scientific provenance systems~\cite{buneman2001provenance,moreau2013prov}
+establish the W3C PROV vocabulary for recording experimental lineage.
+The CURE principles~\cite{cure2024} (Credible, Understandable,
+Reproducible, Extensible) address simulation reproducibility at the
+experiment level. Neither framework provides a schema with mandatory
+disclosure of statistical rejection fractions specific to quantum
+experiments. Our schema fills this gap for the QEC domain.
+
+\subsection{CAEL Provenance Architecture}
+
+The \texttt{cael-quantum-v1.qec} schema inherits from the CAEL provenance
+architecture~\cite{cael-aamas2026}, which provides hash-chained
+tamper-evident records for agent-environment loops. The quantum extension
+applies the same hash-sealing discipline to QEC experimental results.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have introduced \texttt{cael-quantum-v1.qec}, a JSON receipt schema
+that makes the acceptance fraction a required structural field of every
+QEC result report. The honest-reporting rule---$\suppfactor_{\mathrm{det}}
+= \suppfactor \times \af$---provides a single formula for converting a
+heralded headline into a deterministic-equivalent figure that is
+comparable across vendors, code families, and noise models.
+
+We demonstrate the schema with a Tier-0 classical simulator: at $d{=}11$,
+$p{=}0.10$, we observe $444\times$ suppression with $\af = 1.0$ (zero
+shots discarded), sealed in 40 tamper-evident \texttt{cael-quantum-v1.qec}
+receipts. The threshold $\pth \approx 0.5$ matches analytic theory.
+Monte-Carlo errors are within $1\sigma$ of the binomial analytic bound
+at every checked point.
+
+The 800$\times$ headline from the Microsoft/Quantinuum 2026 result is
+real and represents a genuine experimental achievement. The schema does
+not contest it; it requires the $\af$ that produced it to be disclosed
+alongside it, so that an 800$\times$ heralded result and a 444$\times$
+deterministic result can be honestly compared. That comparison is what
+the field needs as it scales toward commercially meaningful logical qubit
+counts.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\bibliographystyle{IEEEtran}
+\bibliography{holoscript}
+
+\end{document}
