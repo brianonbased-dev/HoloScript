@@ -226,6 +226,30 @@ export class ErrorRecovery {
   private errors: ParseError[] = [];
 
   /**
+   * Optional injected union of known trait names (the SSOT shared with the LSP
+   * and linter, built via `buildKnownTraitSet`). When present it is used for
+   * unknown-trait suggestions in place of the built-in `VALID_TRAITS`
+   * (`VR_TRAITS`-derived) fallback. When absent, behavior is unchanged.
+   */
+  private readonly knownTraits?: ReadonlySet<string>;
+
+  /**
+   * @param knownTraits Optional injected union of known trait names. Absent →
+   *   exact current (`VR_TRAITS`-based) behavior is preserved.
+   */
+  constructor(knownTraits?: ReadonlySet<string>) {
+    this.knownTraits = knownTraits;
+  }
+
+  /**
+   * Trait-name candidates used for "did you mean" suggestions — the injected
+   * SSOT set when provided, otherwise the built-in `VALID_TRAITS` fallback.
+   */
+  private traitCandidates(): string[] {
+    return this.knownTraits ? [...this.knownTraits] : VALID_TRAITS;
+  }
+
+  /**
    * Create an enhanced error with suggestions
    */
   createError(
@@ -258,7 +282,7 @@ export class ErrorRecovery {
       case 'UNKNOWN_TRAIT':
         const traitMatch = message.match(/trait.*["'](\w+)["']/i);
         if (traitMatch) {
-          const similar = findSimilar(traitMatch[1], VALID_TRAITS);
+          const similar = findSimilar(traitMatch[1], this.traitCandidates());
           suggestions.push(
             ...similar.map((s) => ({
               description: `Did you mean '@${s}'?`,
@@ -528,12 +552,25 @@ function levenshteinDistance(a: string, b: string): number {
 
 /**
  * Enrich error with context-aware suggestions
+ *
+ * @param error      The parse error to enrich.
+ * @param source     The source text (used by pattern-based suggestions).
+ * @param knownTraits Optional injected union of known trait names (the SSOT
+ *   shared with the LSP and linter). When present it replaces the built-in
+ *   `VALID_TRAITS` (`VR_TRAITS`-derived) fallback for unknown-trait suggestions.
+ *   When absent, behavior is unchanged.
  */
-export function enrichErrorWithSuggestions(error: ParseError, source: string): ParseError {
+export function enrichErrorWithSuggestions(
+  error: ParseError,
+  source: string,
+  knownTraits?: ReadonlySet<string>
+): ParseError {
   // If error already has suggestions, preserve them
   if (error.suggestions && error.suggestions.length > 0) {
     return error;
   }
+
+  const traitCandidates = knownTraits ? [...knownTraits] : VALID_TRAITS;
 
   const suggestions: ErrorSuggestion[] = [];
 
@@ -542,7 +579,7 @@ export function enrichErrorWithSuggestions(error: ParseError, source: string): P
     case 'UNKNOWN_TRAIT':
       const traitMatch = error.message.match(/trait.*["'](\w+)["']/i);
       if (traitMatch) {
-        const similar = findSimilar(traitMatch[1], VALID_TRAITS);
+        const similar = findSimilar(traitMatch[1], traitCandidates);
         suggestions.push(
           ...similar.map((s) => ({
             description: `Did you mean '@${s}'?`,

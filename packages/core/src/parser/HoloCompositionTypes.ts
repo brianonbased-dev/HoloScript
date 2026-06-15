@@ -1178,6 +1178,19 @@ export interface HoloParserOptions {
   strict?: boolean;
   /** Source filename for error messages */
   filename?: string;
+  /**
+   * Injectable union of known trait names used to suppress false-positive
+   * unknown-trait warnings.
+   *
+   * When provided, `ErrorRecovery` uses this set (instead of the built-in
+   * `VR_TRAITS`-derived fallback) as the trait dictionary for unknown-trait
+   * suggestions. Build it with `buildKnownTraitSet()` from
+   * `traits/knownTraitSet` so the parser, LSP, and linter share one SSOT.
+   *
+   * Optional and non-breaking: when absent, behavior is exactly the current
+   * `VR_TRAITS`-based behavior.
+   */
+  knownTraits?: ReadonlySet<string>;
 }
 
 /**

@@ -6426,6 +6426,14 @@ export const ErrorRecovery: any;
 export const HOLOSCHEMA_KEYWORDS: string[];
 export const HOLOSCHEMA_GEOMETRIES: string[];
 export const HOLOSCHEMA_PROPERTIES: string[];
+
+// Known-trait union seam — SSOT for parser / LSP / linter trait vocabulary
+// (src/traits/knownTraitSet.ts, re-exported via barrel/trait-stdlib-interop).
+export declare function buildKnownTraitSet(
+  extras?: ReadonlyArray<string | readonly string[]>
+): Set<string>;
+export const NATIVE2D_TRAITS: readonly string[];
+export const CODE_GRAPH_TRAITS: readonly string[];
 `;
 
 const finalMainDTS =

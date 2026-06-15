@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   ErrorRecovery,
+  enrichErrorWithSuggestions,
   generateQuickFixes,
   HOLOSCHEMA_KEYWORDS,
   HOLOSCHEMA_TRAITS,
   HOLOSCHEMA_GEOMETRIES,
   type ParseError,
 } from '../ErrorRecovery';
+import { buildKnownTraitSet } from '../../traits/knownTraitSet';
+import { parseHolo } from '../HoloCompositionParser';
 
 describe('ErrorRecovery', () => {
   let recovery: ErrorRecovery;
@@ -38,6 +41,23 @@ describe('ErrorRecovery', () => {
       expect(error.suggestions).toBeDefined();
       expect(error.suggestions!.length).toBeGreaterThan(0);
       expect(error.suggestions!.some((s) => s.description.includes('grabbable'))).toBe(true);
+    });
+
+    it('should fall back to VR_TRAITS for UNKNOWN_TRAIT when no knownTraits injected (back-compat)', () => {
+      // 'graable' -> 'grabbable' must still resolve from the built-in VR_TRAITS
+      // base when ErrorRecovery is constructed with no injected set.
+      const fallback = new ErrorRecovery();
+      const error = fallback.createError('UNKNOWN_TRAIT', 'Unknown trait "graable"', 1, 1);
+      expect(error.suggestions!.some((s) => s.description.includes('grabbable'))).toBe(true);
+    });
+
+    it('should use the injected knownTraits set for UNKNOWN_TRAIT suggestions', () => {
+      // Inject a custom vocabulary that contains a near-miss of the typo so the
+      // suggestion comes from the injected set, not the VR_TRAITS fallback.
+      const injected = new ErrorRecovery(new Set(['fetch', 'fetchable', 'view']));
+      const error = injected.createError('UNKNOWN_TRAIT', 'Unknown trait "fetchabl"', 1, 1);
+      expect(error.suggestions).toBeDefined();
+      expect(error.suggestions!.some((s) => s.description.includes('fetchable'))).toBe(true);
     });
 
     it('should generate suggestions for UNKNOWN_GEOMETRY', () => {
@@ -216,6 +236,57 @@ describe('Schema constants', () => {
     expect(HOLOSCHEMA_GEOMETRIES).toContain('cube');
     expect(HOLOSCHEMA_GEOMETRIES).toContain('sphere');
     expect(HOLOSCHEMA_GEOMETRIES).toContain('cylinder');
+  });
+});
+
+// =============================================================================
+// INJECTABLE knownTraits UNION SEAM
+// =============================================================================
+
+describe('Injectable knownTraits union seam', () => {
+  it('enrichErrorWithSuggestions falls back to VR_TRAITS when no set injected', () => {
+    const error: ParseError = {
+      code: 'UNKNOWN_TRAIT',
+      message: 'Unknown trait "graable"',
+      line: 1,
+      column: 1,
+    };
+    const enriched = enrichErrorWithSuggestions(error, '@graable');
+    expect(enriched.suggestions!.some((s) => s.description.includes('grabbable'))).toBe(true);
+  });
+
+  it('enrichErrorWithSuggestions uses the injected knownTraits set', () => {
+    const error: ParseError = {
+      code: 'UNKNOWN_TRAIT',
+      message: 'Unknown trait "fetchabl"',
+      line: 1,
+      column: 1,
+    };
+    const enriched = enrichErrorWithSuggestions(
+      error,
+      '@fetchabl',
+      new Set(['fetch', 'fetchable'])
+    );
+    expect(enriched.suggestions!.some((s) => s.description.includes('fetchable'))).toBe(true);
+  });
+
+  it('HoloCompositionParser threads knownTraits into its ErrorRecovery', () => {
+    // Parsing a Native2D-style @fetch trait with a knownTraits set that contains
+    // it must NOT produce any unknown-trait warning (false-positive elimination).
+    const known = buildKnownTraitSet();
+    expect(known.has('fetch')).toBe(true);
+
+    const source = `composition "Panel" {\n  object "card" {\n    @fetch(endpoint: "/api/data")\n  }\n}`;
+    const result = parseHolo(source, { knownTraits: known });
+
+    const traitWarnings = (result.warnings ?? []).filter(
+      (w) => /unknown.*trait|trait.*unknown|@fetch/i.test(w.message)
+    );
+    expect(traitWarnings.length).toBe(0);
+    const traitErrors = (result.errors ?? []).filter((e) =>
+      /unknown.*trait/i.test(e.message)
+    );
+    expect(traitErrors.length).toBe(0);
   });
 });
 

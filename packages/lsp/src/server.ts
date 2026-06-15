@@ -54,6 +54,7 @@ import {
   getDefaultAIAdapter,
   useGemini,
   useOllama,
+  buildKnownTraitSet,
   type ASTProgram,
   type HSPlusASTNode as HSPlusNode,
   type HSPlusCompileResult,
@@ -231,58 +232,14 @@ const HOLOSCRIPT_KEYWORDS = [
   'execute',
 ];
 
-const HOLOSCRIPT_TRAITS = [
-  // Interaction traits
-  'grabbable',
-  'throwable',
-  'holdable',
-  'clickable',
-  'hoverable',
-  'draggable',
-  'pointable',
-  'scalable',
-  // Physics traits
-  'collidable',
-  'physics',
-  'rigid',
-  'kinematic',
-  'trigger',
-  'gravity',
-  // Visual traits
-  'glowing',
-  'emissive',
-  'transparent',
-  'reflective',
-  'animated',
-  'billboard',
-  // Networking traits
-  'networked',
-  'synced',
-  'persistent',
-  'owned',
-  'host_only',
-  // Behavior traits
-  'stackable',
-  'attachable',
-  'equippable',
-  'consumable',
-  'destructible',
-  // Spatial traits
-  'anchor',
-  'tracked',
-  'world_locked',
-  'hand_tracked',
-  'eye_tracked',
-  // Audio traits
-  'spatial_audio',
-  'ambient',
-  'voice_activated',
-  // State traits
-  'state',
-  'reactive',
-  'observable',
-  'computed',
-];
+// Known-trait union (SSOT) — shared with the parser and linter via
+// `buildKnownTraitSet()` from @holoscript/core. Built once at module load and
+// used for the semantic-token decorator highlight check below. Replaces the
+// former hand-maintained ~50-name HOLOSCRIPT_TRAITS array (which drifted from
+// the real ~1,500-trait registry and the Native2D / code-graph vocabularies).
+// Plugin-contributed trait names would be passed via buildKnownTraitSet([...])
+// extras — wired separately so core stays plugin-agnostic.
+const KNOWN_TRAITS: ReadonlySet<string> = buildKnownTraitSet();
 
 const GEOMETRY_TYPES = [
   'cube',
@@ -1160,7 +1117,7 @@ connection.onRequest(
       let traitMatch;
       while ((traitMatch = traitRegex.exec(effectiveLine)) !== null) {
         const traitName = traitMatch[1];
-        if (HOLOSCRIPT_TRAITS.includes(traitName)) {
+        if (KNOWN_TRAITS.has(traitName)) {
           builder.push(
             lineNum,
             traitMatch.index,

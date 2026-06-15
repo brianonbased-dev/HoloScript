@@ -114,6 +114,7 @@ import type {
 } from './HoloCompositionTypes';
 import { parsePipeline as parsePipelineSource } from './PipelineParser';
 import { TypoDetector } from './TypoDetector';
+import { ErrorRecovery } from './ErrorRecovery';
 
 // W1-T2: Token types, keywords, and lexer extracted to composition/ subdirectory.
 // Re-exported here for backward compatibility — all consumers still import from
@@ -150,6 +151,13 @@ export class HoloCompositionParser {
   private warnings: HoloParseWarning[] = [];
   private options: HoloParserOptions;
   private parseContext: string[] = []; // Track parsing context for better errors
+  /**
+   * Error-recovery / suggestion engine seeded with the injected `knownTraits`
+   * union (the SSOT shared with the LSP and linter). When `options.knownTraits`
+   * is absent this falls back to `ErrorRecovery`'s built-in `VR_TRAITS`-derived
+   * dictionary, so default behavior is unchanged.
+   */
+  private errorRecovery: ErrorRecovery;
 
   constructor(options: HoloParserOptions = {}) {
     this.options = {
@@ -158,6 +166,18 @@ export class HoloCompositionParser {
       strict: false,
       ...options,
     };
+    // Thread the injectable known-trait union into ErrorRecovery. Passing
+    // `undefined` preserves the exact prior (VR_TRAITS-based) behavior.
+    this.errorRecovery = new ErrorRecovery(this.options.knownTraits);
+  }
+
+  /**
+   * The error-recovery engine for this parser, seeded with the injected
+   * `knownTraits` union when one was supplied via parser options. Exposed so
+   * tooling (and tests) can verify the trait-vocabulary seam is wired through.
+   */
+  getErrorRecovery(): ErrorRecovery {
+    return this.errorRecovery;
   }
 
   /** Instance accessor for the static DOMAIN_TOKENS set — satisfies ExpressionParserApi. */
