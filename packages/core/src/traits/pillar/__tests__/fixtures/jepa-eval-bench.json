@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-14T23:27:55.961Z",
+  "generatedAt": "2026-06-15T22:44:50.012Z",
   "latentDim": 16,
   "sampleCount": 64,
   "note": "BASELINE (untrained deterministic-init predictor). Trained convergence curve is the follow-on.",
