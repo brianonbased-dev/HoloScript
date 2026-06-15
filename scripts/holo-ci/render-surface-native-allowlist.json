@@ -579,6 +579,7 @@
     "packages/studio/src/embed/StudioWidget.tsx",
     "packages/studio/src/embed/WebXRViewer.tsx",
     "packages/studio/src/hooks/usePluginHost.tsx",
+    "packages/studio/src/hooks/useRightRailDescriptors.tsx",
     "packages/studio/src/industry/avatar/AvatarComposer.tsx",
     "packages/studio/src/industry/avatar/AvatarExportPanel.tsx",
     "packages/studio/src/industry/avatar/AvatarPreview.tsx",

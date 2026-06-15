@@ -89,7 +89,8 @@ import {
 } from 'lucide-react';
 import type { GizmoMode, ArtMode, StudioMode } from '@/lib/stores';
 import { PanelSplitter } from '@holoscript/ui';
-import { RightRailPanelHost } from '@/components/panels/RightRailPanelHost';
+import { RightRailPanelHost, type RightRailPanelDescriptor } from '@/components/panels/RightRailPanelHost';
+import { useRightRailDescriptors, type RegistryPanelExtraProps } from '@/hooks/useRightRailDescriptors';
 import { NativePanelMount } from '@/components/panels/NativePanelMount';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
@@ -1334,30 +1335,24 @@ export default function CreatePage() {
     };
   }, [addToast, getCurrentEditorAst, runPaletteMcpTool]);
 
-  // ── Right-rail panel warehouse (all panels from original /create, default closed) ──
-  const rightRailDescriptors = useMemo(
-    () => [
-      {
-        id: 'history',
-        open: historyOpen,
-        width: 'resizable' as const,
-        errorLabel: 'History Panel',
-        content: <HistoryPanel onClose={() => setHistoryOpen(false)} />,
+  const registryExtraProps = useMemo(
+    (): RegistryPanelExtraProps => ({
+      parametricSliders: { onMeshResult: setPartMeshResult },
+      printabilityReport: { report: partMeshResult?.printability ?? null },
+      sandboxedPlugins: {
+        onOpenMarketplace: () => {
+          setSandboxedPluginsOpen(false);
+          setPluginsOpen(true);
+        },
       },
-      {
-        id: 'aiMaterial',
-        open: aiMaterialOpen,
-        width: 'resizable' as const,
-        errorLabel: 'AI Material Generator',
-        content: <AIMaterialPanel onClose={() => setAiMaterialOpen(false)} />,
-      },
-      {
-        id: 'share',
-        open: shareOpen,
-        width: 'resizable' as const,
-        errorLabel: 'Share Panel',
-        content: <SharePanel onClose={() => setShareOpen(false)} />,
-      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [partMeshResult]
+  );
+
+  // ── Right-rail panels not yet in VIEW_COMPONENTS ──
+  const manualRailDescriptors = useMemo(
+    (): RightRailPanelDescriptor[] => [
       {
         id: 'critique',
         open: critiqueOpen,
@@ -1382,31 +1377,11 @@ export default function CreatePage() {
         ),
       },
       {
-        id: 'repl',
-        open: replOpen,
-        width: 'resizable' as const,
-        errorLabel: 'REPL',
-        content: <REPLPanel onClose={() => setReplOpen(false)} />,
-      },
-      {
-        id: 'registry',
-        open: registryOpen,
-        width: 'resizable' as const,
-        errorLabel: 'Pack Registry',
-        content: <RegistryPanel onClose={() => setRegistryOpen(false)} />,
-      },
-      {
         id: 'remote',
         open: remoteOpen,
         width: 'resizable' as const,
         errorLabel: 'Mobile Remote',
         content: <QRRemotePanel onClose={() => setRemoteOpen(false)} />,
-      },
-      {
-        id: 'export',
-        open: exportOpen,
-        width: 'resizable' as const,
-        content: <ExportPanel onClose={() => setExportOpen(false)} />,
       },
       {
         id: 'generator',
@@ -1427,46 +1402,10 @@ export default function CreatePage() {
         content: <ProfilerPanel onClose={() => setProfilerOpen(false)} />,
       },
       {
-        id: 'multiplayer',
-        open: multiplayerOpen,
-        width: 'resizable' as const,
-        content: <MultiplayerPanel onClose={() => setMultiplayerOpen(false)} />,
-      },
-      {
         id: 'debugger',
         open: debuggerOpen,
         width: 'resizable' as const,
         content: <DebuggerPanel onClose={() => setDebuggerOpen(false)} />,
-      },
-      {
-        id: 'snapshots',
-        open: snapshotsOpen,
-        width: 'resizable' as const,
-        content: <SnapshotGallery onClose={() => setSnapshotsOpen(false)} />,
-      },
-      {
-        id: 'assetLib',
-        open: assetLibOpen,
-        width: 'resizable' as const,
-        content: <AssetLibraryPanel onClose={() => setAssetLibOpen(false)} />,
-      },
-      {
-        id: 'templateGallery',
-        open: templateGalleryOpen,
-        width: 'resizable' as const,
-        content: <TemplateGallery onClose={() => setTemplateGalleryOpen(false)} />,
-      },
-      {
-        id: 'audio',
-        open: audioOpen,
-        width: 'resizable' as const,
-        content: <AudioTraitPanel onClose={() => setAudioOpen(false)} />,
-      },
-      {
-        id: 'exportV2',
-        open: exportV2Open,
-        width: 'resizable' as const,
-        content: <ExportPipelinePanel onClose={() => setExportV2Open(false)} />,
       },
       {
         id: 'nodeGraph',
@@ -1486,25 +1425,6 @@ export default function CreatePage() {
           />
         ),
       },
-      {
-        id: 'keyframes',
-        open: keyframesOpen,
-        width: 'resizable' as const,
-        content: <KeyframeEditor onClose={() => setKeyframesOpen(false)} />,
-      },
-      {
-        id: 'particles',
-        open: particlesOpen,
-        width: 'resizable' as const,
-        content: <ParticlePanel onClose={() => setParticlesOpen(false)} />,
-      },
-      {
-        id: 'lod',
-        open: lodOpen,
-        width: 'resizable' as const,
-        content: <LodPanel onClose={() => setLodOpen(false)} />,
-      },
-      // Fixed-width right-rail panels
       {
         id: 'undoHistory',
         open: undoHistoryOpen,
@@ -1581,84 +1501,6 @@ export default function CreatePage() {
           />
         ),
       },
-      // ── Part mode panels ────────────────────────────────────────────────
-      {
-        id: 'parametricSliders',
-        open: parametricSlidersOpen,
-        width: 'resizable' as const,
-        errorLabel: 'Parametric Sliders',
-        content: (
-          <ParametricSlidersPanel
-            onClose={() => setParametricSlidersOpen(false)}
-            onMeshResult={(result) => setPartMeshResult(result)}
-          />
-        ),
-      },
-      {
-        id: 'printabilityReport',
-        open: printabilityReportOpen,
-        width: 288,
-        errorLabel: 'Printability Report',
-        content: (
-          <PrintabilityReportPanel
-            report={partMeshResult?.printability ?? null}
-            onClose={() => setprintabilityReportOpen(false)}
-          />
-        ),
-      },
-      // ── Sim mode panels ─────────────────────────────────────────────────
-      {
-        id: 'simParams',
-        open: simParamsOpen,
-        width: 'resizable' as const,
-        errorLabel: 'Sim Params',
-        content: (
-          <SimParamsPanel
-            onClose={() => setSimParamsOpen(false)}
-          />
-        ),
-      },
-      {
-        id: 'simRunReport',
-        open: simRunReportOpen,
-        width: 288,
-        errorLabel: 'Sim Run Report',
-        content: (
-          <SimRunReportPanel
-            onClose={() => setSimRunReportOpen(false)}
-          />
-        ),
-      },
-      // ── Game mode panels ────────────────────────────────────────────────
-      {
-        id: 'gameParams',
-        open: gameParamsOpen,
-        width: 'resizable' as const,
-        errorLabel: 'Game Params',
-        content: <GameParamsPanel onClose={() => setGameParamsOpen(false)} />,
-      },
-      {
-        id: 'gameGateLedger',
-        open: gameGateLedgerOpen,
-        width: 288,
-        errorLabel: 'Game Gate Ledger',
-        content: <GameGateLedgerPanel onClose={() => setGameGateLedgerOpen(false)} />,
-      },
-      // ── Avatar mode panels ──────────────────────────────────────────────
-      {
-        id: 'avatarParams',
-        open: avatarParamsOpen,
-        width: 'resizable' as const,
-        errorLabel: 'Avatar Params',
-        content: <AvatarParamsPanel onClose={() => setAvatarParamsOpen(false)} />,
-      },
-      {
-        id: 'avatarRigLedger',
-        open: avatarRigLedgerOpen,
-        width: 288,
-        errorLabel: 'Avatar Rig Ledger',
-        content: <AvatarRigLedgerPanel onClose={() => setAvatarRigLedgerOpen(false)} />,
-      },
       {
         id: 'inspector',
         open: inspectorOpen,
@@ -1666,29 +1508,6 @@ export default function CreatePage() {
         errorLabel: 'Node Inspector',
         content: <NodeInspectorPanel onClose={() => setInspectorOpen(false)} />,
       },
-      {
-        id: 'plugins',
-        open: pluginsOpen,
-        width: 320,
-        errorLabel: 'Plugin Marketplace',
-        content: <PluginMarketplacePanel onClose={() => setPluginsOpen(false)} />,
-      },
-      {
-        id: 'sandboxedPlugins',
-        open: sandboxedPluginsOpen,
-        width: 320,
-        errorLabel: 'Sandboxed Plugins',
-        content: (
-          <SandboxedPluginsPanel
-            onClose={() => setSandboxedPluginsOpen(false)}
-            onOpenMarketplace={() => {
-              setSandboxedPluginsOpen(false);
-              setPluginsOpen(true);
-            }}
-          />
-        ),
-      },
-      // ── FEA Simulation panel ────────────────────────────────────────────
       {
         id: 'simulation',
         open: simulationOpen,
@@ -1699,21 +1518,16 @@ export default function CreatePage() {
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      historyOpen, aiMaterialOpen, shareOpen, critiqueOpen, assetPackOpen,
-      versionsOpen, replOpen, registryOpen, remoteOpen, exportOpen, generatorOpen,
-      profilerOpen, multiplayerOpen, debuggerOpen, snapshotsOpen, assetLibOpen,
-      templateGalleryOpen, audioOpen, exportV2Open, nodeGraphOpen, keyframesOpen,
-      particlesOpen, lodOpen, undoHistoryOpen, outlinerOpen, materialOpen,
-      physicsOpen, snapshotDiffOpen, audioVisualizerOpen, multiTransformOpen,
-      environmentOpen, foundationDaoOpen, showGovernancePanel, showConformancePanel,
-      agentMonitorOpen, inspectorOpen, pluginsOpen, sandboxedPluginsOpen,
-      parametricSlidersOpen, printabilityReportOpen, partMeshResult,
-      simParamsOpen, simRunReportOpen, simulationOpen,
-      gameParamsOpen, gameGateLedgerOpen,
-      avatarParamsOpen, avatarRigLedgerOpen,
+      critiqueOpen, assetPackOpen, versionsOpen, remoteOpen, generatorOpen,
+      profilerOpen, debuggerOpen, nodeGraphOpen, undoHistoryOpen, outlinerOpen,
+      materialOpen, physicsOpen, snapshotDiffOpen, audioVisualizerOpen,
+      multiTransformOpen, environmentOpen, foundationDaoOpen, showGovernancePanel,
+      showConformancePanel, agentMonitorOpen, inspectorOpen, simulationOpen,
       handleGeneratedSceneCode,
     ]
   );
+
+  const rightRailDescriptors = useRightRailDescriptors(registryExtraProps, manualRailDescriptors);
 
   return (
     <div className="flex h-dvh min-h-0 flex-col overflow-hidden bg-studio-bg text-studio-text">
