@@ -12,6 +12,10 @@
  * this package's resolution scope, or the model file has not been provisioned
  * (scripts/provision-motion-model.mjs), those cases skip rather than fail —
  * but the pure-JS real-inference assertions always run.
+ *
+ * See onnx-node-ep-contract.test.ts for the mocked executionProviders contract
+ * tests — those live in a separate file so vi.mock() scoping doesn't interfere
+ * with the real-ORT parity test above.
  */
 
 import { describe, it, expect } from 'vitest';

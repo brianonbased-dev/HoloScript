@@ -307,9 +307,26 @@ export class OnnxNodeInferenceAdapter implements InferenceAdapter {
     // Lazy import so browser/edge bundles that never call this don't pull in
     // the native addon (mirrors depth-infer.ts).
     this.ort = await import('onnxruntime-node');
-    this.session = await this.ort.InferenceSession.create(path);
+    // Select execution providers: CUDA when explicitly requested via
+    // preferredProvider='cuda' OR the HOLOSCRIPT_CUDA_EP=1 env var.
+    // onnxruntime-node uses lowercase short names ('cuda', 'cpu') — NOT the
+    // C++/Python full strings ('CUDAExecutionProvider', etc.).
+    // CPU is always listed as the fallback so the session survives on machines
+    // where the CUDA EP shared library is absent (ORT drops unavailable EPs
+    // with a warning and uses the next one in the array).
+    const wantCuda =
+      this.preferredProvider === 'cuda' ||
+      (typeof process !== 'undefined' && process.env?.HOLOSCRIPT_CUDA_EP === '1');
+    const executionProviders = wantCuda ? ['cuda', 'cpu'] : ['cpu'];
+    this.session = await this.ort.InferenceSession.create(path, { executionProviders });
     this.resolvedPath = path;
     this.loaded = true;
+    // Honest one-line provider audit — the claim is no longer cosmetic.
+    const activeProviders: string[] =
+      (this.session as { executionProviders?: string[] }).executionProviders ?? executionProviders;
+    console.log(
+      `[OnnxNodeInferenceAdapter] loaded "${path}" — requested: [${executionProviders.join(', ')}], active: [${activeProviders.join(', ')}]`
+    );
   }
 
   async run(request: InferenceRequest): Promise<InferenceResponse> {
