@@ -28,6 +28,8 @@ import {
   type CognitiveVerb,
   type HoloCognitiveAction,
 } from '../traits/cognitive/CognitiveActions';
+import { isLocomotionReactionTrigger } from '../traits/locomotion/LocomotionActions';
+import type { ReactionCategory } from '../types/base';
 
 export type {
   ASTProgram,
@@ -1596,6 +1598,16 @@ export class HoloScriptPlusParser {
     }
 
     // =========================================================================
+    // Special handling for reaction blocks: react { on <trigger>(args) => body }
+    // Declarative reactions attached to an entity — the .hsplus mirror of the
+    // .hs on_* event blocks. Each entry becomes a 'reaction' child node carrying
+    // its routing category (see ReactionCategory).
+    // =========================================================================
+    if (type === 'react') {
+      return this.parseHsPlusReactBlock(startToken);
+    }
+
+    // =========================================================================
     // Special handling for pipeline DSL blocks (transform, filter, branch, validate)
     // Their bodies contain statement forms the generic property parser rejects:
     // mapping arrows (sku -> productId : multiply(100)), when-guards
@@ -1983,6 +1995,7 @@ export class HoloScriptPlusParser {
                 'page',
                 'include',
                 'brain',
+                'react',
               ];
 
               if (name === 'transition' && this.check('STRING')) {
@@ -3679,6 +3692,140 @@ export class HoloScriptPlusParser {
   }
 
   /**
+   * Map a reaction trigger to its routing bucket (mirrors the .hs parser's
+   * reactionCategory; the movement-trigger list comes from the locomotion SSOT).
+   */
+  private hsplusReactionCategory(trigger: string): ReactionCategory {
+    if (isLocomotionReactionTrigger(trigger)) return 'movement';
+    switch (trigger) {
+      case 'on_interact':
+      case 'on_grab':
+      case 'on_release':
+      case 'on_use':
+      case 'on_hover':
+        return 'interaction';
+      case 'on_collision':
+      case 'on_collide':
+      case 'on_proximity':
+        return 'collision';
+      case 'on_spawn':
+      case 'on_death':
+      case 'on_enter':
+      case 'on_exit':
+      case 'on_tick':
+        return 'lifecycle';
+      case 'on_combat':
+      case 'on_cast':
+        return 'combat';
+      case 'on_signal':
+      case 'on_input':
+        return 'signal';
+      default:
+        return 'custom';
+    }
+  }
+
+  /**
+   * Parse a declarative reaction block attached to an entity:
+   *   react {
+   *     on_grab(hand) => highlight()
+   *     on_proximity(player) => alert(player)
+   *     on_use => { open(); play_sound("creak") }
+   *   }
+   * A leading `on` word is optional (`on collide(...)` == `on_collide(...)`).
+   * Each entry becomes a `reaction` child node carrying trigger/params/body and
+   * an inferred ReactionCategory. Body is captured raw (an expression or block).
+   */
+  private parseHsPlusReactBlock(startToken: Token): HSPlusNode {
+    const startLoc = { line: startToken.line, column: startToken.column };
+    const reactions: HSPlusNode[] = [];
+
+    this.skipNewlines();
+    if (this.check('LBRACE')) {
+      this.advance(); // consume {
+      this.skipNewlines();
+
+      while (!this.check('RBRACE') && !this.check('EOF')) {
+        this.skipNewlines();
+        if (this.check('RBRACE') || this.check('EOF')) break;
+
+        // Optional leading `on` word: `on collide(...)` -> trigger 'on_collide'.
+        let triggerPrefix = '';
+        if (
+          this.check('IDENTIFIER') &&
+          this.current().value === 'on' &&
+          this.tokens[this.pos + 1]?.type === 'IDENTIFIER'
+        ) {
+          this.advance(); // consume 'on'
+          triggerPrefix = 'on_';
+        }
+
+        if (!this.check('IDENTIFIER')) {
+          this.advance(); // skip stray token, stay in sync
+          continue;
+        }
+        const trigger = triggerPrefix + this.advance().value;
+
+        // Optional parameter list
+        const params: string[] = [];
+        if (this.check('LPAREN')) {
+          this.advance();
+          while (!this.check('RPAREN') && !this.check('EOF')) {
+            if (this.check('IDENTIFIER')) params.push(this.advance().value);
+            else this.advance();
+            if (this.check('COMMA')) this.advance();
+          }
+          if (this.check('RPAREN')) this.advance();
+        }
+
+        // Optional `=>` arrow
+        if (this.check('ARROW')) this.advance();
+
+        // Body: a raw `{ block }` or an expression collected to end of line
+        let body = '';
+        if (this.check('LBRACE')) {
+          body = this.parseRawBlock();
+        } else {
+          const parts: string[] = [];
+          while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+            parts.push(this.advance().value);
+          }
+          body = parts.join(' ').trim();
+        }
+
+        reactions.push({
+          type: 'reaction',
+          name: trigger,
+          event: trigger,
+          body,
+          properties: {
+            trigger,
+            params,
+            category: this.hsplusReactionCategory(trigger),
+          },
+        } as unknown as HSPlusNode);
+
+        this.skipNewlines();
+      }
+
+      if (this.check('RBRACE')) this.advance();
+    }
+
+    return {
+      type: 'react-block',
+      name: 'react',
+      children: reactions,
+      properties: { count: reactions.length },
+      directives: [],
+      traits: new Map(),
+      loc: {
+        start: startLoc,
+        end: { line: this.current().line, column: this.current().column },
+      },
+    } as unknown as HSPlusNode;
+  }
+
+  /**
    * Parse block content: { key: value, ... }
    */
   private parseBlockContent(): Record<string, unknown> {
@@ -3921,6 +4068,7 @@ export class HoloScriptPlusParser {
       'timeline',
       'page',
       'include',
+      'react',
     ];
 
     while (!this.check('RBRACE') && !this.check('EOF')) {

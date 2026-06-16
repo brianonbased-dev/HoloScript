@@ -602,3 +602,66 @@ describe('HoloScriptPlusParser - Brain Declarations', () => {
     expect(chunkDir).toBeDefined();
   });
 });
+
+// =============================================================================
+// Behavioral layer — movements (@locomotion) & reactions (react block)
+// =============================================================================
+
+describe('HoloScriptPlusParser - Behavioral Layer', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('recognizes @locomotion as a typed trait (no unknown-directive warning)', () => {
+    const source = `object#player @locomotion(mode: "glide", speed: 3.5, snap_turn: 45, teleport: true) { position: [0, 0, 0] }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const unknownWarnings = (result.warnings || []).filter((w: any) =>
+      String(w.message || '').includes('Unknown')
+    );
+    expect(unknownWarnings).toHaveLength(0);
+
+    const node = result.ast.root;
+    expect(node.traits.has('locomotion')).toBe(true);
+    expect(node.traits.get('locomotion')?.mode).toBe('glide');
+    expect(node.traits.get('locomotion')?.speed).toBe(3.5);
+  });
+
+  it('parses a react block into categorized reaction children', () => {
+    const source = `object#door {
+      react {
+        on_grab(hand) => highlight()
+        on_proximity(player) => alert(player)
+        on_teleport => warp_fx()
+      }
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const reactBlock = result.ast.root.children?.find((c: any) => c.type === 'react-block') as any;
+    expect(reactBlock).toBeDefined();
+    expect(reactBlock.children.length).toBe(3);
+
+    const grab = reactBlock.children[0];
+    expect(grab.type).toBe('reaction');
+    expect(grab.name).toBe('on_grab');
+    expect(grab.properties.params).toEqual(['hand']);
+    expect(grab.properties.category).toBe('interaction');
+
+    expect(reactBlock.children[1].properties.category).toBe('collision');
+    expect(reactBlock.children[2].properties.category).toBe('movement');
+  });
+
+  it('supports a block body and an optional leading `on` word', () => {
+    const source = `object#chest {
+      react {
+        on collide(other) => { open(); play("creak") }
+      }
+    }`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const reactBlock = result.ast.root.children?.find((c: any) => c.type === 'react-block') as any;
+    expect(reactBlock.children[0].name).toBe('on_collide');
+    expect(reactBlock.children[0].properties.category).toBe('collision');
+    expect(String(reactBlock.children[0].body)).toContain('open');
+  });
+});
