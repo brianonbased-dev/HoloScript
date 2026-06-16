@@ -87,18 +87,33 @@
 
 ---
 
-## Cloud BotSwarm — distributed load/balance against a hosted Colyseus fleet endpoint (P2.11 cloud)
+## Cloud BotSwarm — distributed load/balance against a Colyseus endpoint (P2.11)
+
+> **STATUS: $0 LOCAL PATH SHIPPED + PROVEN LIVE 2026-06-16 (commit `6bb596c52`).** The
+> earlier "needs a hosted endpoint / crosses the vast.ai spend gate" framing was wrong
+> — the laptop + Jetson are $0 persistent compute. Investigating revealed the real
+> blocker: the emitted Colyseus server was never network-runnable (its `onMessage`
+> override clobbered colyseus's registration API; `createColyseusServer` never
+> listened). Both fixed. `runNetworkBots` (real colyseus.js WebSocket driver) +
+> `scripts/mmo/bot-swarm-local.mts` (local runner) shipped. **Proven live on the
+> laptop (colyseus 0.15.57): 16/16 bots held; 254/800 speedhacks + 784/800 spam-casts
+> rejected over a real socket.** Remaining is OPTIONAL cloud/multi-node scale-out (only
+> THAT touches spend) — moderate scale already runs free on the Jetson over LAN.
 
 **What might be valuable**: The in-process `BotSwarmCompiler` (shipped `d30fa24cb`) drives a bot swarm against the generated Room by calling its methods directly in one Node process. The cloud increment runs the swarm at real scale: deploy the ColyseusCompiler-emitted server to a reachable Colyseus endpoint, point N distributed WebSocket bot drivers at it, and merge the per-shard `BalanceReport`s into one fleet report. That turns the harness into true game-balance CI at MMO scale (spawn 500+ bots across nodes, assert server tick stays within the `@balance_test` envelope, replay damage/economy distributions) and produces the benchmark data the paper program needs (D.010 / I.007).
 
 **What's already built** (so the next agent starts from the right place): prerequisite (D), the report aggregator, shipped 2026-06-16 — `mergeBalanceReports(reports)` is now exported by the emitted harness (`packages/core/src/compiler/BotSwarmCompiler.ts`): counts sum, ticks max, `avgTickMs` tick-weighted. The GPU fleet substrate also exists: orchestrator `POST /gpu/workload` queue, the `buildWorldRenderWorkload()` dispatch pattern (`packages/mcp-server/src/world-render-tools.ts`) to copy for a `buildBotSwarmWorkload()`, and the `checkSpendAuthz` spend-gate framework.
 
-**What remains (the turn-key recipe)**:
-1. **A Colyseus-compatible fleet endpoint** — the PRIMARY missing piece. The current GPU job lifecycle is fire-and-done (`POST /gpu/workload` → worker → `POST /done`); a Colyseus run needs a PERSISTENT server (start `node server.js` from the emitted code, hold open WebSocket ports for the run window, tear down after). Needs a new bootstrap script under `scripts/mesh-deploy/` (analogous to the vLLM bootstrap, NOT reusable from it — that one serves LLM inference) plus a tsc/tsx step in the worker to compile the emitted TypeScript server.
-2. **A WebSocket bot driver** — the shipped `runBotSwarm()` calls Room methods in-process; it is NOT a network client. A distributed run needs a driver that connects over a real `colyseus.js` `Client`, issues the same legal+adversarial actions, and returns a `BalanceReport`. Then fan out N drivers and `mergeBalanceReports()` their outputs.
-3. **A `buildBotSwarmWorkload()` dispatcher** (~100 LOC, model on `buildWorldRenderWorkload`) + a `BalanceReport` collector.
+**DONE — the $0 local path (2026-06-16, `6bb596c52`)**:
+1. ~~Persistent endpoint~~ → `startColyseusServer(port)` runs the emitted authoritative server on the laptop or Jetson (a real `gameServer.listen`). The fire-and-done GPU job model was never needed for the local path; a long-lived Node process IS the endpoint.
+2. ~~WebSocket bot driver~~ → `runNetworkBots(opts)` connects over real `colyseus.js`, drives legal+adversarial load, and counts server-pushed `reconcile`/`cast_rejected` anti-cheat signals into a `BalanceReport`. `mergeBalanceReports` merges shards.
+3. Local runner `scripts/mmo/bot-swarm-local.mts` ties it together (compile → listen → swarm → report). Proven live (16 bots, real socket, 254+784 rejections).
 
-**Why not now**: items (1) and (2) are genuine infra, and a real (non-dry) fleet dispatch crosses the spend gate — `checkSpendAuthz` (`packages/mcp-server/src/holo-ci-tools.ts`) gates real vast.ai GPU execution; `sim_run_paid`'s fleet path is fail-loud and physics-solver-only (`thermal`/`structural`), not reusable for game-server sessions. Standing up a persistent hosted Colyseus endpoint on rented GPU is a founder-spend decision (Tier-1 boundary), so the build stops at the $0 prerequisites (aggregator shipped; in-process harness meaningful now that round-2 P0/P1 authority logic is real). Reopen when a hosted Colyseus endpoint is provisioned (founder-approved spend) or a free persistent-server target appears.
+**What remains (OPTIONAL, only this touches spend)**:
+- **Multi-node / cloud scale-out** — to exceed one box (500+ bots): run the server on one node and `runNetworkBots` from several (laptop + Jetson over LAN is still **$0**; only renting cloud GPUs via `buildBotSwarmWorkload()` + `checkSpendAuthz` crosses the spend gate). A `buildBotSwarmWorkload()` dispatcher (~100 LOC, model on `buildWorldRenderWorkload`) would queue distributed drivers onto `POST /gpu/workload` and collect+merge their reports.
+- **HoloCI gate** — wire the local runner into HoloCI as a balance-regression check (assert `assertBalance(report)` stays empty across releases).
+
+**Why the remainder waits**: only true cloud scale (rented GPU) is founder-spend (Tier-1); the local + LAN path is done and free. Reopen scale-out when 500+-bot numbers are actually needed for a paper benchmark (D.010 / I.007), or wire the HoloCI gate whenever balance-regression coverage is wanted.
 
 ---
 
