@@ -21,7 +21,13 @@ import type {
 } from '../types/AdvancedTypeSystem';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
-import { isCognitiveVerb, type CognitiveVerb, type HoloCognitiveAction } from '../traits/cognitive/CognitiveActions';
+import {
+  isCognitiveVerb,
+  isBrainKeyword,
+  nearestCognitiveVerb,
+  type CognitiveVerb,
+  type HoloCognitiveAction,
+} from '../traits/cognitive/CognitiveActions';
 
 export type {
   ASTProgram,
@@ -84,6 +90,21 @@ export interface HoloBrainDecl {
   patrolSpeed?: number | string;
   /** @waypoints [...] */
   waypoints?: unknown[];
+  /**
+   * Declarative GOAP goals — `@goal { name, desiredState, priority }`. Feed the
+   * (already-built, A*-planning) GoalOrientedTrait, which prior brains never used.
+   */
+  goals?: Array<{ name: string; desiredState?: Record<string, unknown>; priority?: number }>;
+  /**
+   * Declarative escalation conditions — `@escalation { on, action }`. Compile to
+   * LLMAgentTrait's EscalationCondition[] (auditable for regulated domains).
+   */
+  escalations?: Array<{ on: string; action: string }>;
+  /**
+   * Declarative provider preference — `@provider_policy { prefer, fallback, requires }`.
+   * A load-time hint the sovereign-first resolver reads (it does NOT duplicate the resolver).
+   */
+  providerPolicy?: { prefer?: string; fallback?: string; requires?: string };
   states: HoloBrainState[];
   traits: Record<string, unknown>;
 }
@@ -994,8 +1015,126 @@ export class HoloScriptPlusParser {
     // Parse root node
     const root = this.parseDocument();
 
+    // Desugar composite primitives (e.g. @safe_daemon → the 5 safety traits)
+    this.desugarSafeDaemon(root);
+
     // Build AST
     return this.buildResult(root);
+  }
+
+  /** Canonical safety-trait configs that `@safe_daemon` expands into. */
+  private static safeDaemonDefaults(): Record<string, Record<string, unknown>> {
+    return {
+      rate_limiter: { strategy: 'token_bucket', max_tokens: 20, refill_rate: 4, window_ms: 60000 },
+      circuit_breaker: {
+        failure_threshold: 5,
+        window_ms: 300000,
+        reset_timeout_ms: 600000,
+        success_threshold: 2,
+        failure_rate_threshold: 0,
+        min_requests: 5,
+      },
+      timeout_guard: { default_timeout_ms: 30000, fallback_action: 'abort' },
+      economy: {
+        initial_balance: 5,
+        default_spend_limit: 1,
+        spend_limit_period: 3600000,
+        max_transaction_history: 200,
+        escrow_enabled: false,
+      },
+      structured_logger: {
+        min_level: 'info',
+        max_entries: 500,
+        rotation_count: 100,
+        emit_events: true,
+        console_output: true,
+      },
+    };
+  }
+
+  /**
+   * Expand a `@safe_daemon { ... }` config into the five safety traits it
+   * stands for (@rate_limiter + @circuit_breaker + @timeout_guard + @economy +
+   * @structured_logger). Supports flat convenience overrides (budget / rate /
+   * timeout_ms / …) and nested per-trait overrides (economy: { ... }).
+   */
+  private expandSafeDaemon(config: unknown): Array<[string, Record<string, unknown>]> {
+    const c = config && typeof config === 'object' ? (config as Record<string, unknown>) : {};
+    const out = HoloScriptPlusParser.safeDaemonDefaults();
+
+    const num = (v: unknown): v is number => typeof v === 'number';
+    if (num(c.budget)) out.economy.initial_balance = c.budget;
+    if (num(c.spend_limit)) out.economy.default_spend_limit = c.spend_limit;
+    if (num(c.rate)) out.rate_limiter.refill_rate = c.rate;
+    if (num(c.max_tokens)) out.rate_limiter.max_tokens = c.max_tokens;
+    if (num(c.window_ms)) out.rate_limiter.window_ms = c.window_ms;
+    if (num(c.failure_threshold)) out.circuit_breaker.failure_threshold = c.failure_threshold;
+    if (num(c.reset_timeout_ms)) out.circuit_breaker.reset_timeout_ms = c.reset_timeout_ms;
+    if (num(c.timeout_ms)) out.timeout_guard.default_timeout_ms = c.timeout_ms;
+    if (typeof c.log_level === 'string') out.structured_logger.min_level = c.log_level;
+
+    // Nested per-trait deep overrides
+    for (const t of ['rate_limiter', 'circuit_breaker', 'timeout_guard', 'economy', 'structured_logger']) {
+      const override = c[t];
+      if (override && typeof override === 'object') Object.assign(out[t], override as Record<string, unknown>);
+    }
+    return Object.entries(out);
+  }
+
+  /**
+   * Walk the parsed AST and expand every `@safe_daemon` into its five safety
+   * traits, wherever traits are stored: a node's `traits` Map (composition /
+   * world / object), a brain's `traits` Record, and any `directives` array.
+   * Existing per-trait declarations are not overwritten.
+   */
+  private desugarSafeDaemon(root: HSPlusNode | null): void {
+    const seen = new Set<unknown>();
+    const visit = (node: unknown): void => {
+      if (!node || typeof node !== 'object' || seen.has(node)) return;
+      seen.add(node);
+      const n = node as Record<string, unknown>;
+
+      // traits Map (composition / world / object nodes)
+      if (n.traits instanceof Map && n.traits.has('safe_daemon')) {
+        const cfg = n.traits.get('safe_daemon');
+        n.traits.delete('safe_daemon');
+        for (const [name, c] of this.expandSafeDaemon(cfg)) {
+          if (!n.traits.has(name)) n.traits.set(name, c);
+        }
+        this.hasVRTraits = true;
+      }
+
+      // traits Record (brain declarations + brain states)
+      if (n.traits && !(n.traits instanceof Map) && typeof n.traits === 'object') {
+        const rec = n.traits as Record<string, unknown>;
+        if ('safe_daemon' in rec) {
+          const cfg = rec['safe_daemon'];
+          delete rec['safe_daemon'];
+          for (const [name, c] of this.expandSafeDaemon(cfg)) {
+            if (!(name in rec)) rec[name] = c;
+          }
+        }
+      }
+
+      // directives arrays (standard nodes carry trait directives here too)
+      if (Array.isArray(n.directives)) {
+        const dirs = n.directives as Array<Record<string, unknown>>;
+        const idx = dirs.findIndex((d) => d && d.type === 'trait' && d.name === 'safe_daemon');
+        if (idx >= 0) {
+          const cfg = dirs[idx].config;
+          const expanded = this.expandSafeDaemon(cfg).map(([name, c]) => ({ type: 'trait', name, config: c }));
+          const existing = new Set(dirs.map((d) => d.name));
+          dirs.splice(idx, 1, ...expanded.filter((e) => !existing.has(e.name)));
+        }
+      }
+
+      // Recurse into structural children
+      for (const key of ['children', 'body', 'states']) {
+        const child = n[key];
+        if (Array.isArray(child)) child.forEach(visit);
+      }
+    };
+    visit(root);
   }
 
   /**
@@ -1255,7 +1394,7 @@ export class HoloScriptPlusParser {
           } else if (this.check('IDENTIFIER') && this.current().value === 'execute') {
             const executeNode = this.parseHsExecuteStatement();
             topLevelNodes.push(executeNode);
-          } else if (this.check('IDENTIFIER') && this.current().value === 'brain') {
+          } else if (this.check('IDENTIFIER') && isBrainKeyword(this.current().value)) {
             const brainNode = this.parseBrainDeclaration();
             // Attach preceding directives
             (brainNode as unknown as { directives: HSPlusDirective[] }).directives = [
@@ -2901,6 +3040,39 @@ export class HoloScriptPlusParser {
         } else if (dirName === 'waypoints') {
           brain.waypoints = this.check('LBRACKET') ? (this.parseValue() as unknown[]) : [];
 
+        } else if (dirName === 'goal') {
+          // @goal { name, desiredState, priority } — declarative GOAP goal that
+          // feeds the (already-built, A*-planning) GoalOrientedTrait.
+          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          if (!brain.goals) brain.goals = [];
+          brain.goals.push({
+            name: typeof cfg.name === 'string' ? cfg.name : String(cfg.name ?? `goal_${brain.goals.length}`),
+            desiredState:
+              cfg.desiredState && typeof cfg.desiredState === 'object'
+                ? (cfg.desiredState as Record<string, unknown>)
+                : undefined,
+            priority: typeof cfg.priority === 'number' ? cfg.priority : undefined,
+          });
+
+        } else if (dirName === 'escalation') {
+          // @escalation { on, action } — compiles to LLMAgentTrait EscalationCondition[].
+          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          if (!brain.escalations) brain.escalations = [];
+          brain.escalations.push({
+            on: typeof cfg.on === 'string' ? cfg.on : String(cfg.on ?? ''),
+            action: typeof cfg.action === 'string' ? cfg.action : 'notify',
+          });
+
+        } else if (dirName === 'provider_policy') {
+          // @provider_policy { prefer, fallback, requires } — a load-time hint the
+          // sovereign-first resolver reads (it does NOT duplicate the resolver).
+          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          brain.providerPolicy = {
+            prefer: typeof cfg.prefer === 'string' ? cfg.prefer : undefined,
+            fallback: typeof cfg.fallback === 'string' ? cfg.fallback : undefined,
+            requires: typeof cfg.requires === 'string' ? cfg.requires : undefined,
+          };
+
         } else if (dirName === 'behavior_tree') {
           // @behavior_tree { ... } block inside the brain body
           const config = this.check('LBRACE') ? this.parseBlockContent() : {};
@@ -2989,6 +3161,21 @@ export class HoloScriptPlusParser {
                 }
                 brainState.actions.push(parts.join(' '));
               }
+
+            } else if (
+              this.check('IDENTIFIER') &&
+              this.tokens[this.pos + 1]?.type === 'LBRACE' &&
+              nearestCognitiveVerb(this.current().value)
+            ) {
+              // Near-miss of a cognitive verb followed by a config block (e.g.
+              // `recal { ... }`)? Surface it as a parse-time signal, then consume
+              // the block so braces stay balanced and parsing continues.
+              const typo = this.current().value;
+              const suggestion = nearestCognitiveVerb(typo);
+              this.warn(`Unknown cognitive verb '${typo}' — did you mean '${suggestion}'?`);
+              this.advance(); // consume the misspelled verb
+              this.parseBlockContent(); // consume + discard its config block (balanced)
+              brainState.actions.push(typo);
 
             } else if (this.check('IDENTIFIER')) {
               // Treat as free-form action string — collect to end of line

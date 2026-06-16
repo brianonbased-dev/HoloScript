@@ -49,6 +49,62 @@ export function isCognitiveVerb(value: string): value is CognitiveVerb {
   return (COGNITIVE_VERBS as readonly string[]).includes(value);
 }
 
+/** The `brain` keyword, as an SSOT constant (so the LSP/linter/parser share one definition). */
+export const BRAIN_KEYWORD = 'brain' as const;
+
+/** Is the identifier the `brain` keyword? */
+export function isBrainKeyword(value: string): boolean {
+  return value === BRAIN_KEYWORD;
+}
+
+/** Cognitive trait names a brain composition wires (the runtime side of the verbs). */
+export const AI_TRAIT_NAMES: readonly string[] = [
+  'llm_agent',
+  'ai_npc_brain',
+  'agent_memory',
+  'rag_knowledge',
+  'goal_oriented',
+  'perception',
+  'behavior_tree',
+] as const;
+
+/** Levenshtein edit distance (small strings — keyword typo detection). */
+function editDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[] = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = tmp;
+    }
+  }
+  return dp[n];
+}
+
+/**
+ * Returns the cognitive verb most similar to `value` within a small edit
+ * distance (a typo / near-miss), or undefined. An exact match returns undefined
+ * — that's a real verb handled elsewhere, not a typo.
+ */
+export function nearestCognitiveVerb(value: string): CognitiveVerb | undefined {
+  if (isCognitiveVerb(value)) return undefined;
+  let best: CognitiveVerb | undefined;
+  let bestDist = Infinity;
+  for (const verb of COGNITIVE_VERBS) {
+    const d = editDistance(value, verb);
+    if (d < bestDist) {
+      bestDist = d;
+      best = verb;
+    }
+  }
+  // Accept only close near-misses (≤2 edits, and the typo isn't trivially short).
+  return best && value.length >= 3 && bestDist <= 2 ? best : undefined;
+}
+
 /**
  * A typed cognitive operation authored inline in a brain state, e.g.
  *   state thinking {

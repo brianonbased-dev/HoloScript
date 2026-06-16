@@ -4,6 +4,8 @@ import {
   COGNITIVE_EVENT_MAP,
   COGNITIVE_COMPLETE_TO_VERB,
   isCognitiveVerb,
+  isBrainKeyword,
+  nearestCognitiveVerb,
   compileCognitiveDispatch,
   type HoloCognitiveAction,
 } from '../CognitiveActions';
@@ -34,6 +36,21 @@ describe('CognitiveActions — verb vocabulary', () => {
       const complete = COGNITIVE_EVENT_MAP[verb].complete;
       expect(COGNITIVE_COMPLETE_TO_VERB[complete]).toContain(verb);
     }
+  });
+
+  it('isBrainKeyword recognizes only `brain`', () => {
+    expect(isBrainKeyword('brain')).toBe(true);
+    expect(isBrainKeyword('brian')).toBe(false);
+    expect(isBrainKeyword('Brain')).toBe(false);
+  });
+
+  it('nearestCognitiveVerb catches near-miss typos but not exact verbs or far words', () => {
+    expect(nearestCognitiveVerb('recal')).toBe('recall'); // 1 edit
+    expect(nearestCognitiveVerb('llm_cal')).toBe('llm_call'); // 1 edit
+    expect(nearestCognitiveVerb('paln')).toBe('plan'); // transposition
+    expect(nearestCognitiveVerb('recall')).toBeUndefined(); // exact verb is not a typo
+    expect(nearestCognitiveVerb('patrol')).toBeUndefined(); // far from any verb
+    expect(nearestCognitiveVerb('go')).toBeUndefined(); // too short
   });
 });
 
