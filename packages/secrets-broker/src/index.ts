@@ -703,3 +703,9 @@ export {
   type NeedsKeyDispatchContext,
   type NeedsKeyTraitHandler,
 } from './needs-key-trait';
+export {
+  createHoloKeyVault,
+  PROD_KEK_CURRENT_ENV,
+  type HoloKeyVault,
+  type CreateHoloKeyVaultOpts,
+} from './vault-bootstrap';
