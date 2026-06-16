@@ -226,6 +226,11 @@
       "types": "./dist/traits/control-loop.d.ts",
       "import": "./dist/traits/control-loop.js",
       "require": "./dist/traits/control-loop.cjs"
+    },
+    "./traits/sensor-sampling": {
+      "types": "./dist/traits/sensor-sampling.d.ts",
+      "import": "./dist/traits/sensor-sampling.js",
+      "require": "./dist/traits/sensor-sampling.cjs"
     }
   },
   "bin": {

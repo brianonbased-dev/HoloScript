@@ -140,3 +140,26 @@ export type {
   ControlLoopConfig,
 } from '../traits/ControlLoopTrait';
 export { stepPid, stepMpc, controlLoopHandler } from '../traits/ControlLoopTrait';
+
+// SensorSamplingTrait — ring-buffer signal acquisition with noise models (H2)
+export type {
+  GaussianNoise,
+  UniformNoise,
+  QuantizedNoise,
+  NoNoise,
+  NoiseModel,
+  SensorChannelConfig,
+  SensorSamplingConfig,
+  SensorReading,
+  SensorWindowResult,
+  SensorRecordRequest,
+  SensorReadWindowRequest,
+} from '../traits/SensorSamplingTrait';
+export {
+  boxMuller,
+  applyNoise,
+  recordReading,
+  computeWindowStats,
+  SensorRingBuffer,
+  sensorSamplingHandler,
+} from '../traits/SensorSamplingTrait';

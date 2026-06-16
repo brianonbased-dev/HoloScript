@@ -147,6 +147,9 @@ export default defineConfig({
     // ControlLoopTrait — PID + linear MPC receding-horizon control (H2)
     'traits/control-loop': 'src/traits/ControlLoopTrait.ts',
 
+    // SensorSamplingTrait — ring-buffer signal acquisition with noise models (H2)
+    'traits/sensor-sampling': 'src/traits/SensorSamplingTrait.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

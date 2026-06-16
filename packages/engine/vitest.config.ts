@@ -129,6 +129,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/traits/ControlLoopTrait.ts'),
       },
       {
+        find: '@holoscript/core/traits/sensor-sampling',
+        replacement: resolve(__dirname, '../core/src/traits/SensorSamplingTrait.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },
