@@ -120,6 +120,8 @@ export interface HoloComposition extends HoloNode {
   worldChunks?: HoloWorldChunk[];
   /** World-layer phasing: same coords, different content gated by a quest predicate (P2.4) */
   worldLayers?: HoloWorldLayer[];
+  /** Instanced dungeon/raid content spun up per party with receipt-sealed completion (P2.6) */
+  dungeonInstances?: HoloDungeonInstance[];
   /** Named locomotion routes (patrol/path/orbit) declared at scene level */
   movementPaths?: HoloMovementPath[];
   /** Scene-level declarative reaction triggers (on_<trigger> -> action wiring) */
@@ -561,6 +563,43 @@ export interface HoloWorldLayer extends HoloNode {
   /** NPC names gated to this layer (references to npc declarations). */
   npcs: string[];
   /** Object names gated to this layer. */
+  objects: string[];
+  /** Raw key-value properties for extensibility. */
+  properties: Record<string, HoloValue>;
+}
+
+// =============================================================================
+// DUNGEON INSTANCING (P2.6) — per-party instanced content + completion receipt
+// =============================================================================
+
+/**
+ * A dungeon_instance block: instanced content (a dungeon/raid) spun up on demand,
+ * one live instance per party, capped at `maxInstances`. Completion emits a
+ * receipt sealed against the party + instance, and (optionally) sets a quest flag.
+ *
+ * Syntax:
+ *   dungeon_instance shadowfen_keep {
+ *     max_instances: 10
+ *     party_size: 5
+ *     reset_timer: 3600              // seconds an empty instance lingers before release
+ *     completion_quest: "shadowfen_cleared"   // compile-validated against declared quests
+ *     npcs: ["dungeon_boss", "shadow_acolyte"]
+ *   }
+ */
+export interface HoloDungeonInstance extends HoloNode {
+  type: 'DungeonInstance';
+  name: string;
+  /** Max concurrent live instances (pool cap). */
+  maxInstances: number;
+  /** Players per instance. */
+  partySize: number;
+  /** Seconds an empty instance lingers before release (0 = release immediately). */
+  resetTimer: number;
+  /** Quest id set on completion (compile-validated). Empty = no quest flag. */
+  completionQuest: string;
+  /** NPC names that populate the instance. */
+  npcs: string[];
+  /** Object names that populate the instance. */
   objects: string[];
   /** Raw key-value properties for extensibility. */
   properties: Record<string, HoloValue>;

@@ -281,6 +281,7 @@ export type TokenType =
   | 'MOVEMENT_PATH'
   | 'REACTION_TRIGGER'
   | 'WORLD_LAYER'
+  | 'DUNGEON_INSTANCE'
   | 'REAL_ESTATE'
   // Process pipeline directives (.hs format — v5)
   | 'CONNECT'
@@ -397,6 +398,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   movement_path: 'MOVEMENT_PATH',
   reaction_trigger: 'REACTION_TRIGGER',
   world_layer: 'WORLD_LAYER',
+  dungeon_instance: 'DUNGEON_INSTANCE',
   real_estate: 'REAL_ESTATE',
   // IoT / Digital Twin
   sensor: 'IOT_SENSOR',

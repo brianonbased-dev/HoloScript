@@ -110,6 +110,7 @@ import type {
   HoloLootEntry,
   HoloWorldChunk,
   HoloWorldLayer,
+  HoloDungeonInstance,
   HoloMovementPath,
   HoloReactionTrigger,
   HoloNormBlock,
@@ -279,6 +280,7 @@ export class HoloCompositionParser {
       lootTables: [],
       worldChunks: [],
       worldLayers: [],
+      dungeonInstances: [],
       movementPaths: [],
       reactionTriggers: [],
     };
@@ -435,6 +437,8 @@ export class HoloCompositionParser {
           composition.reactionTriggers!.push(this.parseReactionTrigger());
         } else if (this.check('WORLD_LAYER')) {
           composition.worldLayers!.push(this.parseWorldLayer());
+        } else if (this.check('DUNGEON_INSTANCE')) {
+          composition.dungeonInstances!.push(this.parseDungeonInstance());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -676,6 +680,7 @@ export class HoloCompositionParser {
       lootTables: [],
       worldChunks: [],
       worldLayers: [],
+      dungeonInstances: [],
       movementPaths: [],
       reactionTriggers: [],
     };
@@ -785,6 +790,8 @@ export class HoloCompositionParser {
           composition.reactionTriggers!.push(this.parseReactionTrigger());
         } else if (this.check('WORLD_LAYER')) {
           composition.worldLayers!.push(this.parseWorldLayer());
+        } else if (this.check('DUNGEON_INSTANCE')) {
+          composition.dungeonInstances!.push(this.parseDungeonInstance());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -5665,6 +5672,68 @@ export class HoloCompositionParser {
       type: 'WorldLayer',
       name,
       predicate: { type: 'PhasePredicate', kind: 'quest_flag', questId, mustBeCompleted },
+      npcs,
+      objects,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a dungeon_instance block (P2.6 — instanced content).
+   *
+   * Syntax:
+   *   dungeon_instance shadowfen_keep {
+   *     max_instances: 10
+   *     party_size: 5
+   *     reset_timer: 3600
+   *     completion_quest: "shadowfen_cleared"
+   *     npcs: ["dungeon_boss"]
+   *   }
+   */
+  private parseDungeonInstance(): HoloDungeonInstance {
+    const startLoc = this.currentLocation();
+    this.pushContext('dungeon-instance');
+    this.advance(); // consume 'dungeon_instance'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let maxInstances = 1;
+    let partySize = 1;
+    let resetTimer = 0;
+    let completionQuest = '';
+    let npcs: string[] = [];
+    let objects: string[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const val = this.parseValue();
+      if (key === 'max_instances') maxInstances = Number(val) || 1;
+      else if (key === 'party_size') partySize = Number(val) || 1;
+      else if (key === 'reset_timer') resetTimer = Number(val) || 0;
+      else if (key === 'completion_quest') completionQuest = String(val);
+      else if (key === 'npcs') npcs = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      else if (key === 'objects') objects = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      else properties[key] = val;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'DungeonInstance',
+      name,
+      maxInstances,
+      partySize,
+      resetTimer,
+      completionQuest,
       npcs,
       objects,
       properties,
