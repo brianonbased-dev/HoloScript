@@ -2055,6 +2055,28 @@ export class HoloScriptRuntime implements IParentRuntime {
   }
 
   /**
+   * Apply an orb's rotation (euler [x, y, z] in radians) to the scene and
+   * broadcast it — the rotation counterpart of setOrbPosition. Movement traits
+   * (LocomotionTrait snap-turn / look-direction, PatrolTrait look-ahead) emit
+   * `set_rotation`; this lands that output natively so turning is perceivable.
+   */
+  setOrbRotation(orbName: string, rotation: [number, number, number]): void {
+    const orb = this.context.variables.get(orbName);
+    if (orb && typeof orb === 'object' && (orb as Record<string, unknown>).__type === 'orb') {
+      (orb as Record<string, unknown>).rotation = rotation;
+
+      // Broadcast rotation update to visualizer
+      this.broadcast('orb_update', {
+        orb: {
+          id: orbName,
+          name: orbName,
+          rotation,
+        },
+      });
+    }
+  }
+
+  /**
    * Per-frame trait update — dispatches onUpdate on all active
    * orbs (W1-T4 slice 27: impl extracted to ./runtime/skills-directives).
    */
@@ -2065,6 +2087,7 @@ export class HoloScriptRuntime implements IParentRuntime {
       emit: (event, payload) => this.emit(event, payload),
       getCurrentScale: () => this.context.currentScale,
       setOrbPosition: (name, position) => this.setOrbPosition(name, position),
+      setOrbRotation: (name, rotation) => this.setOrbRotation(name, rotation),
       getState: () => this.getState(),
       setState: (updates) => this.context.state.update(updates),
     });

@@ -402,8 +402,21 @@ describe('updateTraits', () => {
     expect((last[1] as [number, number, number])[0]).toBeGreaterThan(0); // moved toward +x waypoint
   });
 
-  it('drops nothing: set_rotation output is persisted on the node', () => {
+  it('applies set_rotation via setOrbRotation when a setter is provided', () => {
     const ctx = makeUpdateCtx();
+    ctx.setOrbRotation = vi.fn();
+    const onUpdate = vi.fn((_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
+      context.emit('set_rotation', { rotation: [0, 1.57, 0] });
+    });
+    ctx.traitHandlers.set('locomotion' as never, { onUpdate } as never);
+    const orb = { __type: 'orb', name: 'turner', directives: [{ type: 'trait', name: 'locomotion', config: {} }] };
+    ctx.variables.set('turner', orb as never);
+    updateTraits(2451545.0, ctx);
+    expect(ctx.setOrbRotation).toHaveBeenCalledWith('turner', [0, 1.57, 0]);
+  });
+
+  it('falls back to persisting set_rotation on the node when no setter exists', () => {
+    const ctx = makeUpdateCtx(); // no setOrbRotation
     const onUpdate = vi.fn((_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
       context.emit('set_rotation', { rotation: [0, 1.57, 0] });
     });

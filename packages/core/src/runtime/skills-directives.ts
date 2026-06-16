@@ -180,6 +180,8 @@ export interface UpdateTraitsContext {
   emit: (event: string, payload?: unknown) => void | Promise<void>;
   getCurrentScale: () => number;
   setOrbPosition: (name: string, position: [number, number, number]) => void;
+  /** Optional scene rotation setter — applies a trait's `set_rotation` output. */
+  setOrbRotation?: (name: string, rotation: [number, number, number]) => void;
   getState: () => Record<string, HoloScriptValue>;
   setState: (updates: Record<string, HoloScriptValue>) => void;
 }
@@ -230,11 +232,18 @@ export function updateTraits(julianDate: number, ctx: UpdateTraitsContext): void
                   ctx.setOrbPosition(name, tuple);
                 }
               } else if (event === 'set_rotation') {
-                // No scene rotation setter yet — persist look/turn output on the
-                // node so readers/visualizers pick it up instead of dropping it.
+                // Apply look/turn output (snap-turn, look-direction) to the scene
+                // via setOrbRotation; fall back to persisting on the node when the
+                // host did not provide a rotation setter.
                 const rotPayload = payload as Record<string, unknown> | undefined;
                 if (rotPayload?.rotation) {
-                  (orb as Record<string, unknown>).rotation = rotPayload.rotation;
+                  const r = rotPayload.rotation as [number, number, number];
+                  const tuple: [number, number, number] = Array.isArray(r) ? r : [r[0], r[1], r[2]];
+                  if (ctx.setOrbRotation) {
+                    ctx.setOrbRotation(name, tuple);
+                  } else {
+                    (orb as Record<string, unknown>).rotation = tuple;
+                  }
                 }
               }
               return ctx.emit(event, payload);
