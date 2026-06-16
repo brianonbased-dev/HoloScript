@@ -19,6 +19,9 @@ import {
   type ValidationResult,
   type TraitInfoResult,
   type TraitTarget,
+  type MovementStatementNode,
+  type ActionDeclNode,
+  type GameEventBlockNode,
 } from '../wasm-api';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -518,5 +521,110 @@ describe('HoloScriptWasm trait-evaluation surface', () => {
       expect(result.unknownTraits).toEqual([]);
       expect(result.traitInfo).toEqual([]);
     });
+  });
+});
+
+// ── Behavioral construct node round-trip (mirror ast.rs serde tags) ──────
+
+describe('behavioral construct AST nodes', () => {
+  function parseFromMock(ast: Ast): Ast {
+    const mockWasm = createMockWasm({
+      parse: vi.fn().mockReturnValue(JSON.stringify(ast)),
+    });
+    return new HoloScriptWasm(mockWasm).parse('mock source');
+  }
+
+  it('round-trips a MovementStatement with a position destination', () => {
+    const MOVE_AST: Ast = {
+      type: 'Program',
+      body: [
+        {
+          type: 'MovementStatement',
+          target: 'player',
+          destination: [1, 0, 0],
+          duration: 2,
+          mode: 'glide',
+          easing: 'ease_in_out',
+        } as MovementStatementNode,
+      ],
+      directives: [],
+    };
+
+    const result = parseFromMock(MOVE_AST);
+    const node = result.body[0] as MovementStatementNode;
+    expect(node.type).toBe('MovementStatement');
+    expect(node.target).toBe('player');
+    expect(node.destination).toEqual([1, 0, 0]);
+    expect(node.duration).toBe(2);
+    expect(node.mode).toBe('glide');
+    expect(node.easing).toBe('ease_in_out');
+  });
+
+  it('round-trips a MovementStatement with an entity-id destination', () => {
+    const MOVE_AST: Ast = {
+      type: 'Program',
+      body: [
+        {
+          type: 'MovementStatement',
+          target: 'self',
+          destination: 'enemy',
+        } as MovementStatementNode,
+      ],
+      directives: [],
+    };
+
+    const result = parseFromMock(MOVE_AST);
+    const node = result.body[0] as MovementStatementNode;
+    expect(node.type).toBe('MovementStatement');
+    expect(node.target).toBe('self');
+    expect(node.destination).toBe('enemy');
+  });
+
+  it('round-trips an ActionDecl with clauses and flags', () => {
+    const ACTION_AST: Ast = {
+      type: 'Program',
+      body: [
+        {
+          type: 'ActionDecl',
+          name: 'open',
+          params: ['target'],
+          clauses: [{ kind: 'requires', body: 'dist < 2' }],
+          flags: ['server_side'],
+        } as ActionDeclNode,
+      ],
+      directives: [],
+    };
+
+    const result = parseFromMock(ACTION_AST);
+    const node = result.body[0] as ActionDeclNode;
+    expect(node.type).toBe('ActionDecl');
+    expect(node.name).toBe('open');
+    expect(node.params).toEqual(['target']);
+    expect(node.clauses).toHaveLength(1);
+    expect(node.clauses[0].kind).toBe('requires');
+    expect(node.clauses[0].body).toContain('dist');
+    expect(node.flags).toEqual(['server_side']);
+  });
+
+  it('round-trips a GameEventBlock with an inferred category', () => {
+    const EVENT_AST: Ast = {
+      type: 'Program',
+      body: [
+        {
+          type: 'GameEventBlock',
+          name: 'on_grab',
+          params: [],
+          body: 'drop ( )',
+          category: 'interaction',
+        } as GameEventBlockNode,
+      ],
+      directives: [],
+    };
+
+    const result = parseFromMock(EVENT_AST);
+    const node = result.body[0] as GameEventBlockNode;
+    expect(node.type).toBe('GameEventBlock');
+    expect(node.name).toBe('on_grab');
+    expect(node.category).toBe('interaction');
   });
 });

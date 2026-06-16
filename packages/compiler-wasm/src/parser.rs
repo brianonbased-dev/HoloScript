@@ -104,6 +104,9 @@ impl Parser {
             TokenType::Import => self.parse_import(),
             TokenType::Export => self.parse_export(),
             TokenType::Function => self.parse_function(),
+            TokenType::Move => self.parse_move_statement(),
+            TokenType::Action => self.parse_action_decl(),
+            TokenType::OnEvent => self.parse_game_event_block(),
             TokenType::Identifier => {
                 // Could be a generic object type (cube, sphere, etc.)
                 let name = self.peek().value.clone();
@@ -646,6 +649,282 @@ impl Parser {
         }))
     }
 
+    /// Parse a movement statement:
+    ///   move <target> to [x, y, z]
+    ///   move <target> to otherEntity
+    ///   move <target> to [..] over 2 via glide easing ease_in_out
+    ///
+    /// `target` is optional and defaults to `self`. Clause order after `to` is
+    /// free (`over` / `via` / `easing` may appear in any order). `to` / `over` /
+    /// `via` / `easing` lex as Identifier tokens, so they are matched by value.
+    fn parse_move_statement(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'move'
+
+        // Optional target preceding `to`; `move to [..]` implies self. The
+        // target name may tokenize as a keyword (e.g. `player`, `entity`), so
+        // accept any non-`to` Identifier/Keyword token here.
+        let mut target = "self".to_string();
+        if !self.check_value("to")
+            && matches!(
+                self.peek().token_type,
+                TokenType::Identifier | TokenType::Keyword
+            )
+        {
+            target = self.advance().value.clone();
+        }
+
+        // `to` is required (matched by value — it lexes as an Identifier).
+        if !self.check_value("to") {
+            return Err(self.error("Expected 'to' in move statement"));
+        }
+        self.advance(); // consume 'to'
+
+        // Destination: a [x, y, z] literal, or an entity id.
+        let destination = if self.check(TokenType::LBracket) {
+            MovementDestination::Position(self.parse_vec3()?)
+        } else {
+            MovementDestination::EntityId(self.expect_identifier()?)
+        };
+
+        let mut duration: Option<f64> = None;
+        let mut mode: Option<String> = None;
+        let mut easing: Option<String> = None;
+
+        // Free-order trailing clauses: over <n> | via <mode> | easing <ease>
+        let mut guard = 0;
+        while !self.is_at_end() && guard < 8 {
+            guard += 1;
+            if self.check_value("over") {
+                self.advance();
+                if self.check(TokenType::Number) {
+                    duration = Some(self.advance().value.parse().unwrap_or(0.0));
+                }
+            } else if self.check_value("via") {
+                self.advance();
+                mode = Some(self.expect_identifier()?);
+            } else if self.check_value("easing") {
+                self.advance();
+                easing = Some(self.expect_identifier()?);
+            } else {
+                break;
+            }
+        }
+
+        Ok(AstNode::MovementStatement(MovementStatementNode {
+            target,
+            destination,
+            duration,
+            mode,
+            easing,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a domain-neutral action declaration:
+    ///   action open(target) {
+    ///     @requires { distance < 2 }
+    ///     @cooldown 1s
+    ///     effect { state.open = true }
+    ///     @server_side
+    ///   }
+    ///
+    /// `@requires`/`@cost`/effect/etc. become clauses; bare `@`-flags
+    /// (`@server_side`) become flags.
+    fn parse_action_decl(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'action'
+
+        let name = self.expect_identifier()?;
+
+        // Parameter list: action open(target)
+        let mut params = Vec::new();
+        if self.check(TokenType::LParen) {
+            self.advance();
+            while !self.check(TokenType::RParen) && !self.is_at_end() {
+                params.push(self.expect_identifier()?);
+                if self.check(TokenType::Comma) {
+                    self.advance();
+                }
+            }
+            self.expect(TokenType::RParen)?;
+        }
+
+        let mut clauses = Vec::new();
+        let mut flags = Vec::new();
+
+        if self.check(TokenType::LBrace) {
+            self.advance();
+            while !self.check(TokenType::RBrace) && !self.is_at_end() {
+                // `@`-prefixed directive: `@` lexes as a Trait token whose value
+                // is `@<name>`. The name is the clause kind / flag.
+                if self.check(TokenType::Trait) {
+                    let dir_name = self
+                        .advance()
+                        .value
+                        .trim_start_matches('@')
+                        .to_string();
+                    if self.check(TokenType::LBrace) {
+                        // Predicate/effect block — capture raw body.
+                        let body = self.consume_braced_body_raw()?;
+                        clauses.push(ActionClause {
+                            kind: dir_name,
+                            body,
+                        });
+                    } else {
+                        // Scalar value (@cooldown 1s) to end-of-line, or bare flag.
+                        let mut raw = String::new();
+                        while !self.is_at_end() {
+                            let t = self.peek();
+                            if matches!(
+                                t.token_type,
+                                TokenType::Trait | TokenType::LBrace | TokenType::RBrace
+                            ) {
+                                break;
+                            }
+                            // Stop at a known keyword (start of next clause).
+                            if !matches!(
+                                t.token_type,
+                                TokenType::Identifier | TokenType::Number | TokenType::String
+                            ) {
+                                break;
+                            }
+                            raw.push_str(&self.advance().value);
+                        }
+                        if raw.trim().is_empty() {
+                            flags.push(dir_name);
+                        } else {
+                            clauses.push(ActionClause {
+                                kind: dir_name,
+                                body: raw.trim().to_string(),
+                            });
+                        }
+                    }
+                    continue;
+                }
+
+                // `effect { .. }` keyword-style clause: identifier followed by `{`.
+                if self.check(TokenType::Identifier) && self.peek_next_is(TokenType::LBrace) {
+                    let clause_name = self.advance().value.clone();
+                    let body = self.consume_braced_body_raw()?;
+                    clauses.push(ActionClause {
+                        kind: clause_name,
+                        body,
+                    });
+                    continue;
+                }
+
+                // Otherwise: skip/advance (plain properties are not retained on
+                // the WASM action node — the TS node keeps them, but the Rust
+                // parity surface mirrors only clauses + flags).
+                self.advance();
+            }
+            self.expect(TokenType::RBrace)?;
+        }
+
+        Ok(AstNode::ActionDecl(ActionDeclNode {
+            name,
+            params,
+            clauses,
+            flags,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a generalized reaction / event block:
+    ///   on_grab { drop() }
+    ///   on_cast(target) { ... }
+    fn parse_game_event_block(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        let name = self.advance().value.clone(); // consume on_* token
+
+        // Optional parameter list: on_cast(target)
+        let mut params = Vec::new();
+        if self.check(TokenType::LParen) {
+            self.advance();
+            while !self.check(TokenType::RParen) && !self.is_at_end() {
+                params.push(self.expect_identifier()?);
+                if self.check(TokenType::Comma) {
+                    self.advance();
+                }
+            }
+            self.expect(TokenType::RParen)?;
+        }
+
+        let body = if self.check(TokenType::LBrace) {
+            self.consume_braced_body_raw()?
+        } else {
+            String::new()
+        };
+
+        Ok(AstNode::GameEventBlock(GameEventBlockNode {
+            name: name.clone(),
+            params,
+            body,
+            category: Some(reaction_category(&name).to_string()),
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Peek-by-value: true when the current token's lexeme equals `v`.
+    fn check_value(&self, v: &str) -> bool {
+        !self.is_at_end() && self.peek().value == v
+    }
+
+    /// Parse a `[x, y, z]` literal, tolerating missing components as 0.
+    fn parse_vec3(&mut self) -> Result<[f64; 3], ParseError> {
+        let mut out: Vec<f64> = Vec::new();
+        self.expect(TokenType::LBracket)?;
+        while !self.check(TokenType::RBracket) && !self.is_at_end() {
+            if self.check(TokenType::Number) {
+                out.push(self.advance().value.parse().unwrap_or(0.0));
+            } else if self.check(TokenType::Minus) {
+                // Negative numeric literal: -<n>
+                self.advance();
+                if self.check(TokenType::Number) {
+                    out.push(-self.advance().value.parse::<f64>().unwrap_or(0.0));
+                }
+            } else {
+                self.advance();
+            }
+            if self.check(TokenType::Comma) {
+                self.advance();
+            }
+        }
+        self.expect(TokenType::RBracket)?;
+        Ok([
+            out.first().copied().unwrap_or(0.0),
+            out.get(1).copied().unwrap_or(0.0),
+            out.get(2).copied().unwrap_or(0.0),
+        ])
+    }
+
+    /// Consume a `{ ... }` block (the `{` is current) and return its raw inner
+    /// text — token lexemes joined by spaces, respecting nested braces.
+    fn consume_braced_body_raw(&mut self) -> Result<String, ParseError> {
+        self.expect(TokenType::LBrace)?;
+        let mut body = String::new();
+        let mut depth = 1;
+        while depth > 0 && !self.is_at_end() {
+            let t = self.peek().clone();
+            if t.token_type == TokenType::LBrace {
+                depth += 1;
+            } else if t.token_type == TokenType::RBrace {
+                depth -= 1;
+                if depth == 0 {
+                    self.advance();
+                    break;
+                }
+            }
+            if !body.is_empty() {
+                body.push(' ');
+            }
+            body.push_str(&t.value);
+            self.advance();
+        }
+        Ok(body.trim().to_string())
+    }
+
     fn parse_object_body(&mut self) -> Result<ObjectBody, ParseError> {
         let mut traits = Vec::new();
         let mut properties = Vec::new();
@@ -654,6 +933,12 @@ impl Parser {
         while !self.check(TokenType::RBrace) && !self.is_at_end() {
             if self.check(TokenType::Trait) {
                 traits.push(self.parse_trait()?);
+            } else if self.check(TokenType::Move) {
+                children.push(self.parse_move_statement()?);
+            } else if self.check(TokenType::Action) {
+                children.push(self.parse_action_decl()?);
+            } else if self.check(TokenType::OnEvent) {
+                children.push(self.parse_game_event_block()?);
             } else if self.is_child_object() {
                 children.push(self.parse_top_level()?);
             } else if self.check(TokenType::Identifier) {
@@ -1077,6 +1362,9 @@ impl Parser {
             TokenType::While => self.parse_while_statement(),
             TokenType::Return => self.parse_return_statement(),
             TokenType::Const | TokenType::Let | TokenType::Var => self.parse_variable_declaration(),
+            TokenType::Move => self.parse_move_statement(),
+            TokenType::Action => self.parse_action_decl(),
+            TokenType::OnEvent => self.parse_game_event_block(),
             _ => self.parse_expression_statement(),
         }
     }
@@ -1300,7 +1588,10 @@ impl Parser {
                 | TokenType::Template
                 | TokenType::Import
                 | TokenType::Export
-                | TokenType::Function => return,
+                | TokenType::Function
+                | TokenType::Move
+                | TokenType::Action
+                | TokenType::OnEvent => return,
                 _ => {
                     self.advance();
                 }
@@ -1332,6 +1623,24 @@ impl Parser {
                 offset: end_token.end,
             },
         }
+    }
+}
+
+/// Map a reaction trigger keyword to its routing bucket. Mirrors the TS
+/// `reactionCategory`, extended with the movement bucket for the locomotion
+/// triggers (on_move / on_walk / on_run / on_jump / on_land / on_strafe /
+/// on_teleport).
+pub fn reaction_category(trigger: &str) -> &'static str {
+    match trigger {
+        "on_interact" | "on_grab" | "on_release" | "on_use" | "on_hover" => "interaction",
+        "on_collision" | "on_proximity" => "collision",
+        "on_spawn" | "on_death" | "on_enter" | "on_exit" | "on_tick" => "lifecycle",
+        "on_combat" | "on_cast" => "combat",
+        "on_signal" | "on_input" => "signal",
+        "on_move" | "on_walk" | "on_run" | "on_jump" | "on_land" | "on_strafe" | "on_teleport" => {
+            "movement"
+        }
+        _ => "custom",
     }
 }
 
@@ -1466,5 +1775,130 @@ mod tests {
         } else {
             panic!("Expected TalentTree node");
         }
+    }
+
+    // ── Behavioral construct parity (move / action / on_*) ──────────────
+
+    #[test]
+    fn test_parse_move_to_position() {
+        let source = r#"move player to [1,0,0]"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        if let AstNode::MovementStatement(m) = &program.body[0] {
+            assert_eq!(m.target, "player");
+            match &m.destination {
+                MovementDestination::Position(p) => assert_eq!(*p, [1.0, 0.0, 0.0]),
+                other => panic!("Expected Position destination, got {:?}", other),
+            }
+        } else {
+            panic!("Expected MovementStatement node");
+        }
+    }
+
+    #[test]
+    fn test_parse_move_to_entity_with_clauses() {
+        let source = r#"move to enemy over 2 via glide"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        if let AstNode::MovementStatement(m) = &program.body[0] {
+            assert_eq!(m.target, "self");
+            assert_eq!(m.duration, Some(2.0));
+            assert_eq!(m.mode, Some("glide".to_string()));
+            match &m.destination {
+                MovementDestination::EntityId(e) => assert_eq!(e, "enemy"),
+                other => panic!("Expected EntityId destination, got {:?}", other),
+            }
+        } else {
+            panic!("Expected MovementStatement node");
+        }
+    }
+
+    #[test]
+    fn test_parse_action_decl() {
+        let source = r#"action open(target) { @requires { dist < 2 } }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        if let AstNode::ActionDecl(a) = &program.body[0] {
+            assert_eq!(a.name, "open");
+            assert_eq!(a.params, vec!["target".to_string()]);
+            assert_eq!(a.clauses.len(), 1);
+            assert_eq!(a.clauses[0].kind, "requires");
+            assert!(a.clauses[0].body.contains("dist"));
+        } else {
+            panic!("Expected ActionDecl node");
+        }
+    }
+
+    #[test]
+    fn test_parse_action_decl_flags() {
+        let source = r#"action attack { @server_side }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        if let AstNode::ActionDecl(a) = &program.body[0] {
+            assert_eq!(a.name, "attack");
+            assert!(a.clauses.is_empty());
+            assert_eq!(a.flags, vec!["server_side".to_string()]);
+        } else {
+            panic!("Expected ActionDecl node");
+        }
+    }
+
+    #[test]
+    fn test_parse_game_event_block_interaction() {
+        let source = r#"on_grab { drop() }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        if let AstNode::GameEventBlock(g) = &program.body[0] {
+            assert_eq!(g.name, "on_grab");
+            assert_eq!(g.category, Some("interaction".to_string()));
+        } else {
+            panic!("Expected GameEventBlock node");
+        }
+    }
+
+    #[test]
+    fn test_parse_game_event_block_movement() {
+        let source = r#"on_teleport { warp() }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        if let AstNode::GameEventBlock(g) = &program.body[0] {
+            assert_eq!(g.name, "on_teleport");
+            assert_eq!(g.category, Some("movement".to_string()));
+        } else {
+            panic!("Expected GameEventBlock node");
+        }
+    }
+
+    #[test]
+    fn test_reaction_category_mapping() {
+        assert_eq!(reaction_category("on_interact"), "interaction");
+        assert_eq!(reaction_category("on_collision"), "collision");
+        assert_eq!(reaction_category("on_spawn"), "lifecycle");
+        assert_eq!(reaction_category("on_cast"), "combat");
+        assert_eq!(reaction_category("on_signal"), "signal");
+        assert_eq!(reaction_category("on_walk"), "movement");
+        assert_eq!(reaction_category("on_unknown_xyz"), "custom");
     }
 }

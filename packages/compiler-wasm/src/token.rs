@@ -91,6 +91,11 @@ pub enum TokenType {
     Comment,
     BlockComment,
 
+    // Behavioral constructs
+    Move,
+    Action,
+    OnEvent,
+
     // Special
     Newline,
     Whitespace,
@@ -162,6 +167,14 @@ pub fn get_keyword(word: &str) -> Option<TokenType> {
         "state_machine" => Some(TokenType::StateMachine),
         "achievement" => Some(TokenType::Achievement),
         "talent_tree" => Some(TokenType::TalentTree),
+
+        // Behavioral constructs
+        "move" => Some(TokenType::Move),
+        "action" => Some(TokenType::Action),
+        "on_combat" | "on_death" | "on_spawn" | "on_cast" | "on_interact" | "on_collision"
+        | "on_proximity" | "on_grab" | "on_release" | "on_use" | "on_hover" | "on_enter"
+        | "on_exit" | "on_signal" | "on_input" | "on_tick" | "on_move" | "on_walk" | "on_run"
+        | "on_jump" | "on_land" | "on_strafe" | "on_teleport" => Some(TokenType::OnEvent),
 
         // Control flow
         "if" => Some(TokenType::If),

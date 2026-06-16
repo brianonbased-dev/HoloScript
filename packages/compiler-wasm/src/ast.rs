@@ -81,6 +81,11 @@ pub enum AstNode {
     // Event handlers
     EventHandler(EventHandlerNode),
 
+    // Behavioral constructs
+    MovementStatement(MovementStatementNode),
+    ActionDecl(ActionDeclNode),
+    GameEventBlock(GameEventBlockNode),
+
     // Comments
     Comment(CommentNode),
 }
@@ -488,6 +493,61 @@ pub struct WhileNode {
 pub struct EventHandlerNode {
     pub event: String,
     pub body: Vec<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Movement destination: a `[x, y, z]` position triple, or an entity id to
+/// follow/seek. Untagged so it serializes as a bare array-or-string, matching
+/// the TS `[number, number, number] | string` union.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MovementDestination {
+    Position([f64; 3]),
+    EntityId(String),
+}
+
+/// Movement statement: `move <target> to <dest> [over <n>] [via <mode>] [easing <ease>]`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MovementStatementNode {
+    pub target: String,
+    pub destination: MovementDestination,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub easing: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// A single declarative requirement/effect clause inside an `action` block.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionClause {
+    pub kind: String,
+    pub body: String,
+}
+
+/// Action declaration: `action <name>(params) { @requires {…} effect {…} … }`
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionDeclNode {
+    pub name: String,
+    pub params: Vec<String>,
+    pub clauses: Vec<ActionClause>,
+    pub flags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Generalized reaction / event block: `on_grab { … }`, `on_death { … }`, etc.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GameEventBlockNode {
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

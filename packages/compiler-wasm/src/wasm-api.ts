@@ -112,6 +112,49 @@ export interface IdentifierNode {
   loc?: Location;
 }
 
+// ── Behavioral construct nodes (mirror ast.rs serde tags) ─────────────
+
+/**
+ * Movement statement: `move <target> to <dest> [over <n>] [via <mode>] [easing <ease>]`.
+ * `destination` serializes as a bare `[x, y, z]` triple (position) or a string
+ * (entity id) — the Rust `MovementDestination` enum is `#[serde(untagged)]`.
+ */
+export interface MovementStatementNode {
+  type: 'MovementStatement';
+  target: string;
+  destination: [number, number, number] | string;
+  duration?: number;
+  mode?: string;
+  easing?: string;
+  loc?: Location;
+}
+
+/** A single requirement/effect clause inside an `action` block. */
+export interface ActionClause {
+  kind: string;
+  body: string;
+}
+
+/** Action declaration: `action <name>(params) { @requires {…} effect {…} … }`. */
+export interface ActionDeclNode {
+  type: 'ActionDecl';
+  name: string;
+  params: string[];
+  clauses: ActionClause[];
+  flags: string[];
+  loc?: Location;
+}
+
+/** Generalized reaction / event block: `on_grab { … }`, `on_death { … }`, etc. */
+export interface GameEventBlockNode {
+  type: 'GameEventBlock';
+  name: string;
+  params: string[];
+  body: string;
+  category?: string;
+  loc?: Location;
+}
+
 export type AstNode =
   | OrbNode
   | CompositionNode
@@ -124,6 +167,9 @@ export type AstNode =
   | BooleanLiteral
   | ArrayNode
   | IdentifierNode
+  | MovementStatementNode
+  | ActionDeclNode
+  | GameEventBlockNode
   | { type: string; [key: string]: unknown };
 
 export interface Ast {
