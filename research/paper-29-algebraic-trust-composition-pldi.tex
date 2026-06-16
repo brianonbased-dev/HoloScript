@@ -694,9 +694,12 @@ This is the four-way match from the Lean \texttt{execute} definition
 neither returning \texttt{allowed} when the sandbox denies nor returning
 \texttt{allowed} when the budget is exceeded is possible.
 
-\todo{Measurement: when the production test suite includes an integration test
-exercising the full compose-check path (including the four-way discriminant),
-cite the test here with commit hash.}
+The production test suite covers all four cases of the \texttt{execute}
+discriminant (\texttt{allowed}, \texttt{deniedSandbox}, \texttt{deniedBudget},
+\texttt{deniedBoth}) in
+\texttt{packages/mcp-server/src/\_\_tests\_\_/\allowbreak SandboxCostComposition.test.ts},
+introduced in commit \texttt{926fea018} and verified by 22 passing tests under
+\texttt{vitest} (suite: \emph{SandboxCostComposition --- execute classification}).
 
 % ══════════════════════════════════════════════════════════════════════════════
 \section{Axiom Audit}
@@ -761,18 +764,17 @@ kernel-only and this section can be updated accordingly.}
 
 \paragraph{Type-system composition.}
 The foundational theory of type-system composition---most clearly expressed
-in the work of Reynolds~\cite{wahbe1993efficient} on parametricity and of
-Cardelli on subtyping lattices---establishes that well-typed composition
-preserves semantic properties.
-\todo{cite: Reynolds 1983 ``Types, Abstraction, and Parametric Polymorphism'', Cardelli--Wegner 1985}
+in the work of Reynolds~\cite{reynolds1983types} on parametricity and of
+Cardelli and Wegner~\cite{cardelli1985understanding} on subtyping
+lattices---establishes that well-typed composition preserves semantic
+properties.
 The composition theorem in this paper instantiates this principle for a
 specific two-component policy algebra.
 
 \paragraph{Information-flow control.}
-Sabelfeld and Myers~\cite{holoscript2026} survey the information-flow control
-(IFC) literature, where the central challenge is composing security policies
-across multiple principals without leakage.
-\todo{cite: Sabelfeld--Myers 2003 ``Language-Based Information-Flow Security''}
+Sabelfeld and Myers~\cite{sabelfeld2003language} survey the information-flow
+control (IFC) literature, where the central challenge is composing security
+policies across multiple principals without leakage.
 IFC composition typically relies on non-interference, a property that our
 sandbox preservation theorem closely parallels: a denied capability is the
 analog of a secret that must not flow to a public output.  The budget
@@ -791,13 +793,14 @@ prove sandbox properties individually; \ATC{} proves that combining a sandbox
 with a cost guard does not weaken either.
 
 \paragraph{Mechanized security proofs in Lean/Coq.}
-\todo{cite: CompCert (Leroy 2009), CertiKOS (Gu et al. 2016), seL4 (Klein et al. 2009)}
 The practice of mechanizing security properties in proof assistants has
-produced significant results: CertiKOS~\cite{cao2022wasmsandbox} verified the
-composition of OS-level security policies; seL4 provided the first
-machine-checked proof of an OS kernel.  \ATC{} contributes a small but
-complete composition result in a newer proof assistant (Lean~4) aimed
-specifically at AI agent infrastructure.
+produced significant results: Leroy~\cite{leroy2009compcert} produced the
+first formally verified compiler (CompCert); Gu et al.~\cite{gu2016certikos}
+verified the composition of OS-level security policies in CertiKOS; Klein et
+al.~\cite{klein2009sel4} provided the first machine-checked proof of a complete
+OS kernel with seL4.  \ATC{} contributes a small but complete composition
+result in a newer proof assistant (Lean~4) aimed specifically at AI agent
+infrastructure.
 
 \paragraph{Semiring frameworks for policy.}
 Mohri~\cite{mohri2002semiring} established the theoretical foundations of
