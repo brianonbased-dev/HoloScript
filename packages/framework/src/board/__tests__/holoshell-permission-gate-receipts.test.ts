@@ -23,6 +23,8 @@ import {
   validatePermissionSubjectReceipt,
   validatePermissionVerificationReceipt,
   type HoloShellPermissionGateReceiptPack,
+  type PermissionGrantReceipt,
+  type PermissionSubjectReceipt,
 } from '../holoshell-permission-gate-receipts';
 
 const driveFileScope = {
@@ -186,7 +188,7 @@ describe('validateHoloShellPermissionGateReceiptPack', () => {
       hiddenAutomationUsed: true,
       rawCredentialCaptured: true,
     };
-    const errors = validatePermissionGrantReceipt(grant, validPack.request);
+    const errors = validatePermissionGrantReceipt(grant as unknown as PermissionGrantReceipt, validPack.request);
     expect(errors).toEqual(
       expect.arrayContaining([
         'PermissionGrantReceipt.hiddenAutomationUsed must be false.',
@@ -258,7 +260,7 @@ describe('validateHoloShellPermissionGateReceiptPack', () => {
       publicReceiptMayContainAbsolutePath: true,
       credentialExtrusionAllowed: true,
     };
-    const errors = validatePermissionSubjectReceipt(subject);
+    const errors = validatePermissionSubjectReceipt(subject as unknown as PermissionSubjectReceipt);
     expect(errors).toEqual(
       expect.arrayContaining([
         'PermissionSubjectReceipt.publicReceiptMayContainAbsolutePath must be false.',

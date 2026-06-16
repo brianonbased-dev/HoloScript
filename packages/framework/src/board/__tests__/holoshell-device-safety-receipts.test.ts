@@ -310,7 +310,7 @@ describe('DeviceInventoryReceipt validator', () => {
     const errors = validateDeviceInventoryReceipt({
       ...validInventoryReceipt,
       schemaVersion: 'holoscript-device-inventory-receipt/v99',
-    });
+    } as unknown as DeviceInventoryReceipt);
     expect(errors.some((e) => e.includes('schemaVersion'))).toBe(true);
   });
 

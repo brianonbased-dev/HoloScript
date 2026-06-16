@@ -304,7 +304,7 @@ describe('validateDownloadedFileProxy', () => {
   });
 
   it('rejects wrong schemaVersion', () => {
-    const proxy = { ...validFileProxy, schemaVersion: 'wrong-version' };
+    const proxy = { ...validFileProxy, schemaVersion: 'wrong-version' } as unknown as DownloadedFileProxy;
     const errors = validateDownloadedFileProxy(proxy);
     expect(errors.some((e) => e.includes('schemaVersion must be'))).toBe(true);
   });
