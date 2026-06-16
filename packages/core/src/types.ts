@@ -30,6 +30,10 @@ import type {
   GameSpawnNode,
   GameAuthorityNode,
   GameEventBlockNode,
+  ReactionCategory,
+  MovementStatementNode,
+  ActionDeclNode,
+  ActionClause,
 } from './types/base';
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
@@ -49,6 +53,11 @@ export type {
   GameSpawnNode,
   GameAuthorityNode,
   GameEventBlockNode,
+  // Domain-neutral behavioral AST nodes (actions / movements / reactions)
+  ReactionCategory,
+  MovementStatementNode,
+  ActionDeclNode,
+  ActionClause,
 };
 export type { Vector3, Transform };
 

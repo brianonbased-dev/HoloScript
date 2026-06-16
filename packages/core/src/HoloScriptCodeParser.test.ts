@@ -14,6 +14,8 @@ import type {
   GameSpawnNode,
   GameAuthorityNode,
   GameEventBlockNode,
+  MovementStatementNode,
+  ActionDeclNode,
 } from './types';
 
 describe('HoloScriptCodeParser', () => {
@@ -926,6 +928,130 @@ composition "Hololand Central" {
       const node = result.ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
       expect(node).toBeDefined();
       expect(node!.name).toBe('on_death');
+    });
+  });
+
+  // ===========================================================================
+  // Reactions — domain-neutral interaction & lifecycle triggers
+  // ===========================================================================
+  describe('reactions (behavioral grammar)', () => {
+    it('parses an interaction reaction with category', () => {
+      const code = `on_grab(hand) {
+  highlight: true
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('on_grab');
+      expect(node!.params).toEqual(['hand']);
+      expect(node!.category).toBe('interaction');
+    });
+
+    it('classifies collision and lifecycle triggers correctly', () => {
+      const collide = parser.parse('on_collision(other) { }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(collide.category).toBe('collision');
+
+      const proximity = parser.parse('on_proximity(player) { }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(proximity.category).toBe('collision');
+
+      const enter = parser.parse('on_enter { }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(enter.category).toBe('lifecycle');
+
+      const signal = parser.parse('on_signal(name) { }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(signal.category).toBe('signal');
+    });
+
+    it('keeps combat triggers back-compatible', () => {
+      const node = parser.parse('on_cast(target) { }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(node.category).toBe('combat');
+    });
+  });
+
+  // ===========================================================================
+  // Movements — first-class `move` statement
+  // ===========================================================================
+  describe('movements (behavioral grammar)', () => {
+    it('parses a positional move with duration, mode, and easing', () => {
+      const code = `move player to [10, 0, 5] over 2 via glide easing ease_in_out`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'movement') as MovementStatementNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.target).toBe('player');
+      expect(node!.destination).toEqual([10, 0, 5]);
+      expect(node!.duration).toBe(2);
+      expect(node!.mode).toBe('glide');
+      expect(node!.easing).toBe('ease_in_out');
+    });
+
+    it('parses a follow move toward an entity id', () => {
+      const code = `move guard to merchant via path`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'movement') as MovementStatementNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.destination).toBe('merchant');
+      expect(node!.mode).toBe('path');
+    });
+
+    it('defaults target to self when omitted', () => {
+      const code = `move to [0, 1, 0]`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'movement') as MovementStatementNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.target).toBe('self');
+      expect(node!.destination).toEqual([0, 1, 0]);
+    });
+  });
+
+  // ===========================================================================
+  // Actions — domain-neutral verb declaration (general form of `ability`)
+  // ===========================================================================
+  describe('actions (behavioral grammar)', () => {
+    it('parses an action with requires, cooldown, effect, animation, and flags', () => {
+      const code = `action open(target) {
+  @requires { distance < 2 }
+  @cooldown 1s
+  effect { state.open = true }
+  animation: door_swing
+  @server_side
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'action-decl') as ActionDeclNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('open');
+      expect(node!.params).toEqual(['target']);
+
+      const kinds = node!.clauses.map((c) => c.kind);
+      expect(kinds).toContain('requires');
+      expect(kinds).toContain('cooldown');
+      expect(kinds).toContain('effect');
+
+      const requires = node!.clauses.find((c) => c.kind === 'requires');
+      expect(requires!.body).toContain('distance');
+
+      expect(node!.flags).toContain('server_side');
+      expect(node!.properties.animation).toBe('door_swing');
+    });
+
+    it('parses a no-arg action', () => {
+      const code = `action jump() {
+  animation: leap
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'action-decl') as ActionDeclNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('jump');
+      expect(node!.params).toEqual([]);
     });
   });
 });

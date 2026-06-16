@@ -189,13 +189,86 @@ export interface GameAuthorityNode extends ASTNode {
 }
 
 /**
- * Top-level game event block: `on_combat`, `on_death`, `on_spawn`, `on_cast`.
- * Returns a structured node the downstream compiler maps to the target runtime's event system.
+ * Reaction category — lets a downstream compiler route a reaction block to the
+ * right runtime surface without hardcoding a domain vocabulary into core.
+ * - `interaction`: player/agent-driven (on_interact, on_grab, on_use, on_hover…)
+ * - `collision`:   physics contacts (on_collision, on_proximity)
+ * - `lifecycle`:   spawn/despawn/tick (on_spawn, on_death, on_enter, on_exit, on_tick)
+ * - `combat`:      MMO combat events (on_combat, on_cast) — kept for back-compat
+ * - `signal`:      generic named bus events (on_signal, on_input)
+ * - `custom`:      anything not in the known set
+ */
+export type ReactionCategory =
+  | 'interaction'
+  | 'collision'
+  | 'lifecycle'
+  | 'combat'
+  | 'signal'
+  | 'custom';
+
+/**
+ * Top-level reaction / event block: `on_combat`, `on_death`, `on_spawn`, `on_cast`,
+ * plus the domain-neutral interaction & lifecycle triggers (`on_interact`,
+ * `on_collision`, `on_proximity`, `on_grab`, `on_release`, `on_use`, `on_hover`,
+ * `on_enter`, `on_exit`, `on_signal`, `on_input`, `on_tick`).
+ * Returns a structured node the downstream compiler maps to the target runtime's
+ * event system. `category` is inferred from the trigger name.
  */
 export interface GameEventBlockNode extends ASTNode {
   type: 'game-event-block';
   name: string;
   params: string[];
   body: string;
+  /** Inferred routing bucket for the trigger (see ReactionCategory). */
+  category?: ReactionCategory;
+  properties: Record<string, unknown>;
+}
+
+/**
+ * `move <target> to <dest> [over <duration>] [via <mode>] [easing <ease>]`
+ * — a first-class movement statement. `dest` is either a `[x, y, z]` position
+ * literal or the id of another entity (follow/seek). `mode` selects the
+ * locomotion style the compiler emits (glide | teleport | walk | fly | path |
+ * orbit | snap). Serves the always-add-VR-locomotion requirement (F.118): VR
+ * targets get glide + snap-turn + teleport from a single declaration.
+ */
+export interface MovementStatementNode extends ASTNode {
+  type: 'movement';
+  /** Entity being moved (`self` when omitted). */
+  target: string;
+  /** Destination: a position triple, or an entity id to follow/seek. */
+  destination: [number, number, number] | string;
+  /** Seconds the movement takes; 0/undefined = instant. */
+  duration?: number;
+  /** Locomotion style: glide | teleport | walk | run | fly | swim | path | orbit | snap | follow. */
+  mode?: string;
+  /** Easing curve name (linear | ease_in | ease_out | ease_in_out | spring). */
+  easing?: string;
+  properties: Record<string, unknown>;
+}
+
+/** A single declarative requirement/effect line inside an `action` block. */
+export interface ActionClause {
+  /** Clause kind: requires | cost | cooldown | effect | animation | grants | emits. */
+  kind: string;
+  /** Raw clause body (expression or block contents). */
+  body: string;
+}
+
+/**
+ * `action <name>(params) { @requires {…} @cost {…} @cooldown <t> effect {…}
+ *  animation: <clip> }` — a domain-neutral verb an entity can perform. This is
+ * the general form the MMO `ability` is one specialization of: any interaction
+ * verb (open, craft, harvest, plant, cast, interact) with preconditions,
+ * resource cost, cooldown, effects, and an animation binding.
+ */
+export interface ActionDeclNode extends ASTNode {
+  type: 'action-decl';
+  name: string;
+  params: string[];
+  /** Parsed `@requires`/`@cost`/effect/etc. clauses. */
+  clauses: ActionClause[];
+  /** Authority/replication flags such as server_side / client_side / replicated. */
+  flags: string[];
   properties: Record<string, unknown>;
 }

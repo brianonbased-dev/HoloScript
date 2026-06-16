@@ -48,6 +48,10 @@ import type {
   ProceduralMemoryNode,
   // Game-logic AST node types
   GameAbilityNode,
+  MovementStatementNode,
+  ActionDeclNode,
+  ActionClause,
+  ReactionCategory,
   GameLootTableNode,
   GameSpawnNode,
   GameAuthorityNode,
@@ -370,6 +374,19 @@ export class HoloScriptCodeParser {
       'on_collision',
       'on_enter',
       'on_exit',
+      // Domain-neutral interaction / lifecycle reaction triggers
+      'on_grab',
+      'on_release',
+      'on_use',
+      'on_hover',
+      'on_proximity',
+      'on_signal',
+      'on_input',
+      'on_tick',
+      // Movement statement clause keywords (`move x to [..] over 2 via glide`)
+      'over',
+      'via',
+      'easing',
       'using',
       'memory',
       'semantic',
@@ -932,11 +949,31 @@ export class HoloScriptCodeParser {
           return this.parseSpawnRule();
         case 'authority':
           return this.parseAuthorityBlock();
+        // Reactions — domain-neutral event blocks. Combat triggers kept for
+        // back-compat; interaction & lifecycle triggers generalize the layer.
         case 'on_combat':
         case 'on_death':
         case 'on_spawn':
         case 'on_cast':
+        case 'on_interact':
+        case 'on_collision':
+        case 'on_proximity':
+        case 'on_grab':
+        case 'on_release':
+        case 'on_use':
+        case 'on_hover':
+        case 'on_enter':
+        case 'on_exit':
+        case 'on_signal':
+        case 'on_input':
+        case 'on_tick':
           return this.parseGameEventBlock();
+        // Movements — first-class movement statement (serves F.118 VR locomotion)
+        case 'move':
+          return this.parseMove();
+        // Actions — domain-neutral verb declaration (general form of `ability`)
+        case 'action':
+          return this.parseActionDecl();
         default:
           return this.parseExpressionStatement();
       }
@@ -2589,10 +2626,12 @@ export class HoloScriptCodeParser {
           continue;
         }
 
-        // Event sub-blocks: on_cast, on_hit, on_miss, on_combat, on_death, on_spawn
+        // Event sub-blocks: on_cast, on_hit, on_miss, on_combat, on_death, on_spawn.
+        // `on_hit`/`on_miss` are not reserved keywords, so accept identifier
+        // tokens that follow the on_* convention as well.
         if (
-          token?.type === 'keyword' &&
-          (token.value.startsWith('on_'))
+          (token?.type === 'keyword' || token?.type === 'identifier') &&
+          token.value.startsWith('on_')
         ) {
           const event = token.value;
           this.advance(); // consume event keyword
@@ -2881,10 +2920,258 @@ export class HoloScriptCodeParser {
       name: eventName,
       params,
       body: body.trim(),
+      category: this.reactionCategory(eventName),
       properties,
       position: [0, 0, 0],
     };
     return eventNode;
+  }
+
+  /** Map a trigger keyword to its routing bucket (see ReactionCategory). */
+  private reactionCategory(trigger: string): ReactionCategory {
+    switch (trigger) {
+      case 'on_interact':
+      case 'on_grab':
+      case 'on_release':
+      case 'on_use':
+      case 'on_hover':
+        return 'interaction';
+      case 'on_collision':
+      case 'on_proximity':
+        return 'collision';
+      case 'on_spawn':
+      case 'on_death':
+      case 'on_enter':
+      case 'on_exit':
+      case 'on_tick':
+        return 'lifecycle';
+      case 'on_combat':
+      case 'on_cast':
+        return 'combat';
+      case 'on_signal':
+      case 'on_input':
+        return 'signal';
+      default:
+        return 'custom';
+    }
+  }
+
+  /**
+   * Parse a movement statement:
+   *   move <target> to [x, y, z]            // move to a position
+   *   move <target> to otherEntity          // follow / seek an entity
+   *   move <target> to [..] over 2 via glide easing ease_in_out
+   *
+   * `target` is optional and defaults to `self`. Clause order after `to` is
+   * free (`over` / `via` / `easing` may appear in any order).
+   */
+  private parseMove(): ASTNode | null {
+    this.expect('keyword', 'move');
+
+    // Optional target preceding `to`; `move to [..]` implies self. The target
+    // name may tokenize as a keyword (e.g. `player`, `npc`, `entity`), so accept
+    // any non-`to` name token here.
+    let target = 'self';
+    if (!this.check('keyword', 'to')) {
+      const tt = this.currentToken();
+      if (tt && (tt.type === 'identifier' || tt.type === 'keyword')) {
+        target = tt.value;
+        this.advance();
+      }
+    }
+
+    // `to` is required.
+    if (!this.check('keyword', 'to')) {
+      this.errors.push(this.createError('HS001', "Expected 'to' in move statement", this.currentToken()));
+      return null;
+    }
+    this.advance(); // consume 'to'
+
+    // Destination: a [x, y, z] literal, or an entity id.
+    let destination: [number, number, number] | string;
+    if (this.check('punctuation', '[')) {
+      destination = this.parseVector3OrZero();
+    } else {
+      destination = this.expectIdentifier() || 'origin';
+    }
+
+    let duration: number | undefined;
+    let mode: string | undefined;
+    let easing: string | undefined;
+
+    // Free-order trailing clauses: over <n> | via <mode> | easing <ease>
+    let guard = 0;
+    while (this.position < this.tokens.length && guard++ < 8) {
+      if (this.check('keyword', 'over')) {
+        this.advance();
+        const n = this.currentToken();
+        if (n && n.type === 'number') {
+          duration = parseFloat(n.value);
+          this.advance();
+        }
+      } else if (this.check('keyword', 'via')) {
+        this.advance();
+        mode = this.expectIdentifier() || undefined;
+      } else if (this.check('keyword', 'easing')) {
+        this.advance();
+        easing = this.expectIdentifier() || undefined;
+      } else {
+        break;
+      }
+    }
+
+    const node: MovementStatementNode = {
+      type: 'movement',
+      target,
+      destination,
+      duration,
+      mode,
+      easing,
+      properties: {},
+      position: [0, 0, 0],
+    };
+    return node;
+  }
+
+  /** Parse a `[x, y, z]` literal, tolerating missing components as 0. */
+  private parseVector3OrZero(): [number, number, number] {
+    const out: number[] = [];
+    if (this.check('punctuation', '[')) {
+      this.advance();
+      while (!this.check('punctuation', ']') && this.position < this.tokens.length) {
+        const t = this.currentToken();
+        if (t && t.type === 'number') out.push(parseFloat(t.value));
+        this.advance();
+        if (this.check('punctuation', ',')) this.advance();
+      }
+      if (this.check('punctuation', ']')) this.advance();
+    }
+    return [out[0] ?? 0, out[1] ?? 0, out[2] ?? 0];
+  }
+
+  /**
+   * Parse a domain-neutral action declaration:
+   *   action open(target) {
+   *     @requires { distance < 2 }
+   *     @cooldown 1s
+   *     effect { state.open = true }
+   *     animation: door_swing
+   *     @server_side
+   *   }
+   *
+   * This is the general form of the MMO `ability`: any verb with preconditions,
+   * cost, cooldown, effects, and an animation binding. `@server_side` /
+   * `@client_side` / `@replicated` are collected as directive flags.
+   */
+  private parseActionDecl(): ASTNode | null {
+    this.expect('keyword', 'action');
+    const name = this.expectIdentifier();
+    if (!name) return null;
+
+    // Parameter list: action open(target)
+    const params: string[] = [];
+    if (this.check('punctuation', '(')) {
+      this.advance();
+      while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
+        const p = this.expectIdentifier();
+        if (p) params.push(p);
+        if (this.check('punctuation', ',')) this.advance();
+      }
+      this.expect('punctuation', ')');
+    }
+
+    const clauses: ActionClause[] = [];
+    const flags: string[] = [];
+    const properties: Record<string, HoloScriptValue> = {};
+
+    if (this.check('punctuation', '{')) {
+      this.advance();
+      while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        this.skipNewlines();
+        if (this.check('punctuation', '}')) break;
+
+        const t = this.currentToken();
+        if (!t) break;
+
+        // Directive flag or clause: @requires { .. } / @cost { .. } / @cooldown 1s / @server_side
+        if (t.value === '@') {
+          this.advance();
+          const dirName = this.expectIdentifier() || '';
+          if (this.check('punctuation', '{')) {
+            // Predicate/effect block — capture raw body (expressions, not an object).
+            clauses.push({ kind: dirName, body: this.consumeBracedBody() });
+          } else {
+            // Scalar value (@cooldown 1s) collected to end-of-line, or a bare flag.
+            let raw = '';
+            while (this.position < this.tokens.length) {
+              const n = this.currentToken();
+              if (!n || n.type === 'newline' || n.value === ';' || n.value === '{' || n.value === '}') break;
+              if (n.type === 'keyword' && this.keywordSet.has(n.value.toLowerCase())) break;
+              raw += n.value;
+              this.advance();
+            }
+            if (raw.trim()) {
+              clauses.push({ kind: dirName, body: raw.trim() });
+            } else {
+              flags.push(dirName);
+            }
+          }
+          continue;
+        }
+
+        // `effect { .. }` keyword-style clause
+        if (t.type === 'identifier' && this.tokens[this.position + 1]?.value === '{') {
+          const clauseName = t.value;
+          this.advance();
+          clauses.push({ kind: clauseName, body: this.consumeBracedBody() });
+          continue;
+        }
+
+        // Plain property: animation: door_swing
+        const prop = this.parseProperty();
+        if (prop) {
+          properties[prop.key] = prop.value;
+        } else {
+          this.advance();
+        }
+        this.skipNewlines();
+      }
+      this.expect('punctuation', '}');
+    }
+
+    const node: ActionDeclNode = {
+      type: 'action-decl',
+      name,
+      params,
+      clauses,
+      flags,
+      properties,
+      position: [0, 0, 0],
+    };
+    return node;
+  }
+
+  /** Consume a `{ ... }` block (assumes the `{` is current) and return its raw inner text. */
+  private consumeBracedBody(): string {
+    let body = '';
+    if (this.check('punctuation', '{')) {
+      this.advance();
+      let depth = 1;
+      while (depth > 0 && this.position < this.tokens.length) {
+        const t = this.currentToken()!;
+        if (t.value === '{') depth++;
+        else if (t.value === '}') {
+          depth--;
+          if (depth === 0) {
+            this.advance();
+            break;
+          }
+        }
+        body += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
+        this.advance();
+      }
+    }
+    return body.trim();
   }
 
   // ===========================================================================
