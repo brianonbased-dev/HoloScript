@@ -284,6 +284,8 @@ export type TokenType =
   | 'DUNGEON_INSTANCE'
   | 'WORLD_SHARD'
   | 'REAL_ESTATE'
+  // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
+  | 'HOLO_CONTRACT'
   // Process pipeline directives (.hs format — v5)
   | 'CONNECT'
   | 'EXECUTE'
@@ -561,6 +563,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   payment_gate: 'PAYMENT_GATE',
   subscription: 'SUBSCRIPTION',
   tip_jar: 'TIP_JAR',
+  // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
+  sim_contract: 'HOLO_CONTRACT',
   // v6 Universal domains (v5.4 — Domains Unified)
   service: 'SERVICE_BLOCK',
   endpoint: 'ENDPOINT_BLOCK',

@@ -20,6 +20,7 @@ import { isWebGpuEnvironmentPresent } from '../../reconstruction/webgpuGate';
 import type { ReconstructionManifest } from '../../reconstruction/HoloMapRuntime';
 import { assertHoloMapManifestContract } from '../../reconstruction/simulationContractBinding';
 import { ExpressionEvaluator } from '../../ReactiveState';
+import type { HoloContract } from '../../parser/HoloCompositionTypes';
 
 export enum DispatchTier {
   TIER_1_NEUROMORPHIC = 'tier-1-neuromorphic',
@@ -172,6 +173,12 @@ export interface DispatchableOperation {
   provenanceContext?: ProvenanceContext;
   /** Optional HoloMap-style manifest for simulation-contract checks */
   manifest?: ReconstructionManifest;
+  /**
+   * Optional declarative contract parsed from a `sim_contract {}` block.
+   * When present, the CPU verifier checks that at least one precondition or
+   * invariant is declared before allowing Tier-2 speculative execution.
+   */
+  contract?: HoloContract;
 }
 
 export interface DispatchMetrics {
@@ -558,6 +565,18 @@ export class DispatchPolicy {
       try {
         assertHoloMapManifestContract(op.manifest);
       } catch {
+        return false;
+      }
+    }
+
+    // 3. Declarative HoloContract block gate (sim_contract {} from .holo source).
+    // Full semantic evaluation is the simulationContractVerifier's job; here we
+    // enforce the structural invariant: a contract block must declare at least one
+    // precondition or invariant to be considered valid for Tier-2 gate passage.
+    if (op.contract) {
+      anyVerifierWired = true;
+      if (op.contract.preconditions.length === 0 && op.contract.invariants.length === 0) {
+        // Empty contract block is invalid — reject.
         return false;
       }
     }

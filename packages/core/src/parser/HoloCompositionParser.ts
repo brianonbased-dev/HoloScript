@@ -124,6 +124,8 @@ import type {
   HoloMetanormRules,
   HoloMetanormEscalation,
   PlatformConstraint,
+  HoloContract,
+  HoloContractClause,
 } from './HoloCompositionTypes';
 import { parsePipeline as parsePipelineSource } from './PipelineParser';
 import { TypoDetector } from './TypoDetector';
@@ -424,6 +426,9 @@ export class HoloCompositionParser {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
+          // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
+        } else if (this.check('HOLO_CONTRACT')) {
+          composition.contract = this.parseContractBlock();
           // MMO/AAA game constructs (v6.2)
         } else if (this.check('LOOT_TABLE')) {
           composition.lootTables!.push(this.parseLootTable());
@@ -780,6 +785,9 @@ export class HoloCompositionParser {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
+          // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
+        } else if (this.check('HOLO_CONTRACT')) {
+          composition.contract = this.parseContractBlock();
           // MMO/AAA game constructs (v6.2)
         } else if (this.check('LOOT_TABLE')) {
           composition.lootTables!.push(this.parseLootTable());
@@ -6390,6 +6398,143 @@ export class HoloCompositionParser {
       rules,
       escalation,
       eventHandlers: eventHandlers.length > 0 ? eventHandlers : undefined,
+    };
+  }
+
+  // ===========================================================================
+  // SIMULATION CONTRACT BLOCK (v6.3)
+  // ===========================================================================
+
+  /**
+   * Parse a `sim_contract { ... }` block.
+   *
+   * Syntax:
+   * ```
+   * sim_contract {
+   *   precondition "name" { expr }
+   *   precondition "name" "description" { expr }
+   *   invariant "name" { expr }
+   *   receipt { field: type, ... }
+   * }
+   * ```
+   */
+  private parseContractBlock(): HoloContract {
+    const startLoc = this.currentLocation();
+    this.pushContext('sim_contract');
+    this.advance(); // consume 'sim_contract' (HOLO_CONTRACT token)
+
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const preconditions: HoloContractClause[] = [];
+    const invariants: HoloContractClause[] = [];
+    const receipt: Record<string, string> = {};
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const tokenLower = this.current().value.toLowerCase();
+
+      if ((tokenLower === 'precondition' || tokenLower === 'invariant') && this.check('IDENTIFIER')) {
+        const clauseKind = tokenLower as 'precondition' | 'invariant';
+        this.advance(); // consume keyword
+
+        // Parse name (required string)
+        let clauseName = 'unnamed';
+        if (this.check('STRING')) {
+          clauseName = this.expectString();
+        } else if (this.check('IDENTIFIER')) {
+          clauseName = this.expectIdentifier();
+        }
+
+        // Optional description: second string before the block
+        let description: string | undefined;
+        if (this.check('STRING')) {
+          description = this.expectString();
+        }
+
+        // Expression body: { expr_string }
+        let expr = '';
+        if (this.check('LBRACE')) {
+          this.advance(); // consume {
+          const parts: string[] = [];
+          let depth = 1;
+          while (depth > 0 && !this.isAtEnd()) {
+            if (this.check('LBRACE')) depth++;
+            if (this.check('RBRACE')) {
+              depth--;
+              if (depth === 0) break;
+            }
+            parts.push(this.current().value);
+            this.advance();
+          }
+          this.expect('RBRACE');
+          expr = parts.join(' ').trim();
+        }
+
+        const clause: HoloContractClause = { name: clauseName, expr };
+        if (description !== undefined) clause.description = description;
+
+        if (clauseKind === 'precondition') {
+          preconditions.push(clause);
+        } else {
+          invariants.push(clause);
+        }
+      } else if (tokenLower === 'receipt' && this.check('IDENTIFIER')) {
+        this.advance(); // consume 'receipt'
+        if (this.check('LBRACE')) {
+          this.advance(); // consume {
+          this.skipNewlines();
+          while (!this.check('RBRACE') && !this.isAtEnd()) {
+            this.skipNewlines();
+            if (this.check('RBRACE')) break;
+
+            // field_name: type_name
+            let fieldName = '';
+            if (this.check('IDENTIFIER')) {
+              fieldName = this.expectIdentifier();
+            } else if (this.check('STRING')) {
+              fieldName = this.expectString();
+            } else {
+              this.advance();
+              continue;
+            }
+
+            let typeName = 'unknown';
+            if (this.check('COLON')) {
+              this.advance(); // consume :
+              if (this.check('IDENTIFIER')) {
+                typeName = this.expectIdentifier();
+              } else if (this.check('STRING')) {
+                typeName = this.expectString();
+              }
+            }
+
+            if (fieldName) receipt[fieldName] = typeName;
+
+            if (this.check('COMMA')) this.advance();
+            this.skipNewlines();
+          }
+          this.expect('RBRACE');
+        }
+      } else {
+        // Skip unrecognized tokens
+        this.advance();
+      }
+
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'contract',
+      preconditions,
+      invariants,
+      receipt,
     };
   }
 

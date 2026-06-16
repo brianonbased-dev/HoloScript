@@ -154,6 +154,8 @@ export interface HoloComposition extends HoloNode {
   // Norm lifecycle blocks (v4.5 — March 2026, CRSEC model)
   norms?: HoloNormBlock[];
   metanorms?: HoloMetanorm[];
+  /** SimulationContract block (v6.3) — preconditions → invariants → receipt */
+  contract?: HoloContract;
 }
 
 // =============================================================================
@@ -2307,4 +2309,53 @@ export interface HoloMetanormRules extends HoloNode {
 export interface HoloMetanormEscalation extends HoloNode {
   type: 'MetanormEscalation';
   properties: Record<string, HoloValue>;
+}
+
+// =============================================================================
+// SIMULATION CONTRACT BLOCK (v6.3 — NORTH_STAR thesis: simulation IS the proof)
+// preconditions → invariants → receipt
+// =============================================================================
+
+/**
+ * A single named clause in a contract block.
+ *
+ * Used for both preconditions (entry checks) and invariants (continuous checks).
+ */
+export interface HoloContractClause {
+  /** Unique clause name, e.g. "gravity_set" */
+  name: string;
+  /** Raw expression string — evaluated by the SimulationContract verifier. */
+  expr: string;
+  /** Optional human-readable description of what this clause checks. */
+  description?: string;
+}
+
+/**
+ * Declarative contract block for a `.holo` composition.
+ *
+ * Authors write preconditions (entry checks), invariants (continuous checks),
+ * and a receipt shape (what a successful execution produces). These feed the
+ * SimulationContract CPU verifier gate in DispatchPolicy.
+ *
+ * Syntax:
+ * ```
+ * sim_contract {
+ *   precondition "gravity_set" { gravity != null }
+ *   precondition "arena_bounded" "arena radius must be positive" { arena.radius > 0 }
+ *   invariant "energy_conserved" { total_energy <= initial_energy + 0.001 }
+ *   receipt { winner: string, final_score: number, elapsed_ms: number }
+ * }
+ * ```
+ */
+export interface HoloContract extends HoloNode {
+  type: 'contract';
+  /** Named entry conditions that must hold before the composition runs. */
+  preconditions: HoloContractClause[];
+  /** Named properties that must hold throughout execution. */
+  invariants: HoloContractClause[];
+  /**
+   * Shape of the receipt produced upon successful completion.
+   * Keys are field names; values are type annotations (string).
+   */
+  receipt: Record<string, string>;
 }

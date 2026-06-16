@@ -17,3 +17,4 @@ export { ParseCache, globalParseCache } from './ParseCache';
 export type { CachedNode, ParseCacheStats } from './ParseCache';
 
 export type { HoloParseResult, HoloParseError, HoloParserOptions } from './HoloCompositionTypes';
+export type { HoloContract, HoloContractClause } from './HoloCompositionTypes';
