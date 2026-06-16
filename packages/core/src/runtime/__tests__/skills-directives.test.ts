@@ -6,6 +6,7 @@ vi.mock('../logger.js', () => ({
 }));
 
 import { loadSkill, isAgent, applyDirectives, updateTraits } from '../skills-directives.js';
+import { locomotionHandler } from '../../traits/LocomotionTrait.js';
 import type {
   LoadSkillContext,
   ApplyDirectivesContext,
@@ -369,5 +370,47 @@ describe('updateTraits', () => {
     updateTraits(2451545.0, ctx);
     expect(onUpdatePhysics).toHaveBeenCalledTimes(2);
     expect(onUpdateGlow).toHaveBeenCalledTimes(1);
+  });
+
+  // ──────────────────────────────────────────────────────────────────
+  // Native movement: a @locomotion entity actually moves through the tick.
+  // Proves the behavioral layer is LIVE in the native runtime (no render
+  // compiler) — the set_position routing applies the trait's motion output.
+  // ──────────────────────────────────────────────────────────────────
+  it('moves a @locomotion entity via the native tick (set_position is applied)', () => {
+    const ctx = makeUpdateCtx();
+    ctx.traitHandlers.set('locomotion' as never, locomotionHandler as never);
+
+    const config = { mode: 'path', path_waypoints: [[10, 0, 0]], speed: 50 };
+    const orb = {
+      __type: 'orb',
+      name: 'walker',
+      position: [0, 0, 0],
+      directives: [{ type: 'trait', name: 'locomotion', config }],
+    };
+    ctx.variables.set('walker', orb as never);
+
+    // The runtime calls onAttach on bind (applyDirectives) — do the same to init state.
+    locomotionHandler.onAttach!(orb as never, config as never, { emit: () => {} } as never);
+
+    for (let i = 0; i < 3; i++) updateTraits(2451545.0, ctx);
+
+    expect(ctx.setOrbPosition).toHaveBeenCalled();
+    const calls = (ctx.setOrbPosition as ReturnType<typeof vi.fn>).mock.calls;
+    const last = calls[calls.length - 1];
+    expect(last[0]).toBe('walker');
+    expect((last[1] as [number, number, number])[0]).toBeGreaterThan(0); // moved toward +x waypoint
+  });
+
+  it('drops nothing: set_rotation output is persisted on the node', () => {
+    const ctx = makeUpdateCtx();
+    const onUpdate = vi.fn((_n: unknown, _c: unknown, context: { emit: (e: string, p: unknown) => void }) => {
+      context.emit('set_rotation', { rotation: [0, 1.57, 0] });
+    });
+    ctx.traitHandlers.set('locomotion' as never, { onUpdate } as never);
+    const orb = { __type: 'orb', name: 'turner', directives: [{ type: 'trait', name: 'locomotion', config: {} }] };
+    ctx.variables.set('turner', orb as never);
+    updateTraits(2451545.0, ctx);
+    expect((orb as Record<string, unknown>).rotation).toEqual([0, 1.57, 0]);
   });
 });

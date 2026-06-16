@@ -217,12 +217,24 @@ export function updateTraits(julianDate: number, ctx: UpdateTraitsContext): void
           (d.config as Record<string, unknown>) || {},
           {
             emit: (event: string, payload: unknown) => {
-              if (event === 'position_update') {
+              // Apply trait motion output to the scene. `position_update` is the
+              // legacy event; `set_position` is the trait-standard event emitted by
+              // LocomotionTrait / PatrolTrait / every movement trait. Previously
+              // `set_position` was forwarded but never applied, so native movement
+              // was silently dropped (native trait-parity gap, doctrine board #4).
+              if (event === 'position_update' || event === 'set_position') {
                 const posPayload = payload as Record<string, unknown> | undefined;
                 if (posPayload?.position) {
                   const p = posPayload.position as [number, number, number];
                   const tuple: [number, number, number] = Array.isArray(p) ? p : [p[0], p[1], p[2]];
                   ctx.setOrbPosition(name, tuple);
+                }
+              } else if (event === 'set_rotation') {
+                // No scene rotation setter yet — persist look/turn output on the
+                // node so readers/visualizers pick it up instead of dropping it.
+                const rotPayload = payload as Record<string, unknown> | undefined;
+                if (rotPayload?.rotation) {
+                  (orb as Record<string, unknown>).rotation = rotPayload.rotation;
                 }
               }
               return ctx.emit(event, payload);
