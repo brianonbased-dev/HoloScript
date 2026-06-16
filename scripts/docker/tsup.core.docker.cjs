@@ -47,6 +47,12 @@ module.exports = {
     // "Cannot find module .../dist/world/index.js" (surfaced by the persona dogfood
     // harness 2026-06-08; same Docker-entry-drift class as the entries above).
     'world/index': 'src/world/index.ts',
+    // Required by mcp-server/src/hololand-mcp-tools.ts at runtime through
+    // '@holoscript/core/policy' (ContentPolicyGate / GATE-001 content admission) —
+    // missing entry caused mcp-server crashloop (prod outage 2026-06-16; same
+    // Docker-entry-drift class as hololand/world above: d04a5f588 added the policy
+    // subpath to tsup.config.ts + package.json exports but not to this Docker config).
+    'policy/index': 'src/policy/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
