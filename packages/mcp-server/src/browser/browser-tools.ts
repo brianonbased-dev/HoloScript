@@ -7,6 +7,7 @@ import { z } from 'zod';
 import path from 'path';
 import { browserPool } from './BrowserPool.js';
 import type { ScreenshotOptions, BrowserExecuteResult } from './types.js';
+import { faraRun, FaraRunSchema } from './fara-dispatcher.js';
 
 /**
  * Schema for browser_launch tool
@@ -180,6 +181,36 @@ export async function browserScreenshot(args: z.infer<typeof BrowserScreenshotSc
 }
 
 /**
+ * Run Fara-7B visual computer-use agent in an existing browser session.
+ *
+ * Fara-7B (https://github.com/microsoft/fara) is a 7B-parameter, MIT-licensed,
+ * on-device computer-use agent. It observes the browser via screenshots and
+ * predicts mouse/keyboard actions to complete a natural-language goal.
+ * All screenshots stay on-device — pixel sovereignty guaranteed.
+ *
+ * Requires Ollama running locally with the Fara GGUF model:
+ *   ollama pull hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M
+ */
+export async function holoshellFaraStep(args: z.infer<typeof FaraRunSchema>) {
+  const receipt = await faraRun({
+    sessionId: args.sessionId,
+    goal: args.goal,
+    policy: {
+      allowedDomains: args.allowedDomains,
+      blockedDomains: args.blockedDomains,
+      maxSteps: args.maxSteps,
+      maxDurationMs: args.maxDurationMs,
+    },
+    faraConfig: {
+      endpoint: args.endpoint,
+      model: args.model,
+    },
+  });
+
+  return receipt;
+}
+
+/**
  * Export MCP tool definitions
  */
 export const browserTools = {
@@ -197,5 +228,13 @@ export const browserTools = {
     description: 'Take screenshot of HoloScript preview for visual validation',
     inputSchema: BrowserScreenshotSchema,
     handler: browserScreenshot,
+  },
+  holoshell_fara_step: {
+    description:
+      'Run Fara-7B visual computer-use agent to accomplish a browser goal. Fara observes the ' +
+      'live browser via screenshots and executes mouse/keyboard actions until done. ' +
+      'Pixel-sovereign: all processing stays on-device via local Ollama.',
+    inputSchema: FaraRunSchema,
+    handler: holoshellFaraStep,
   },
 };

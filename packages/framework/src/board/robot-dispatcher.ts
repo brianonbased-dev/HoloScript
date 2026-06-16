@@ -44,7 +44,7 @@ import type { ArtifactHashAlgorithm } from './board-types';
  * - `mqtt` — an MQTT actuator bus.
  * - `sim`  — a deterministic in-process simulator (reproducible, simulated:true).
  */
-export type DispatchBackend = 'stub' | 'ros2' | 'mqtt' | 'sim';
+export type DispatchBackend = 'stub' | 'ros2' | 'mqtt' | 'sim' | 'fara';
 
 /** A request to dispatch a single already-authorized command to a backend. */
 export interface DispatchRequest {

@@ -51,6 +51,9 @@ export interface BrowserAction {
   screenshotBeforeHash?: string;
   /** Hash of screenshot taken after the action. */
   screenshotAfterHash?: string;
+  /** Pixel [x, y] where a coordinate-predicting visual-AI agent (e.g. Fara-7B) targeted this action.
+   * Absent for selector-based automation; present for vision-model-driven actions. */
+  coordinateWitness?: [number, number];
   /** Wall-clock duration of the action in milliseconds. */
   durationMs?: number;
 }
