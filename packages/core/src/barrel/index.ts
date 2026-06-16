@@ -111,3 +111,6 @@ export * from '../care';
 
 // Conversation daemon primitives (D.052 Brittney field / user daemon model)
 export * from '../daemon';
+
+// PluginSolverContract — pre/inv/post clause discipline + receipt schema registry (H2 proof machinery)
+export * from '../plugin-solver-contract';

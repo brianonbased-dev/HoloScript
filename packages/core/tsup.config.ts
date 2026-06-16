@@ -135,6 +135,9 @@ export default defineConfig({
     // PluginKeywordRegistry — runtime-injectable .hs verb table (H2 language-extension seam)
     'keyword-registry/index': 'src/keyword-registry/index.ts',
 
+    // PluginSolverContract — declarative pre/inv/post clause discipline for plugin solvers (H2)
+    'plugin-solver-contract/index': 'src/plugin-solver-contract/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

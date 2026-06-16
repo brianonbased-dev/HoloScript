@@ -206,6 +206,11 @@
       "types": "./dist/keyword-registry/index.d.ts",
       "import": "./dist/keyword-registry/index.js",
       "require": "./dist/keyword-registry/index.cjs"
+    },
+    "./plugin-solver-contract": {
+      "types": "./dist/plugin-solver-contract/index.d.ts",
+      "import": "./dist/plugin-solver-contract/index.js",
+      "require": "./dist/plugin-solver-contract/index.cjs"
     }
   },
   "bin": {

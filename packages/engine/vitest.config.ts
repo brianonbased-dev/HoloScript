@@ -113,6 +113,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/keyword-registry/index.ts'),
       },
       {
+        find: '@holoscript/core/plugin-solver-contract',
+        replacement: resolve(__dirname, '../core/src/plugin-solver-contract/index.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },
