@@ -109,6 +109,14 @@ const BASH_PRODUCTIVE_PREFIXES = [
   'pnpm --filter',
   'pnpm vitest',
   'vitest run',
+  // Robotics / edge-node (Jetson) productive commands — without these, every
+  // ros2/colcon/tegrastats task fails the W.107 artifact gate and is abandoned
+  // as no-artifact. (jetson-orin-01 lane.)
+  'ros2 launch',
+  'ros2 topic pub',
+  'ros2 service call',
+  'colcon build',
+  'tegrastats',
 ];
 
 const BASH_WHITELIST = [...BASH_READ_ONLY_PREFIXES, ...BASH_PRODUCTIVE_PREFIXES];
