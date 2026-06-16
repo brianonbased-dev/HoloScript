@@ -24,6 +24,7 @@ import type {
   HologramProperties,
   TraitBehavior,
   GameAbilityNode,
+  DamageFormula,
   AbilityEventBlock,
   GameLootTableNode,
   LootTableEntry,
@@ -47,6 +48,7 @@ export type {
   TraitBehavior,
   // Game-logic AST nodes
   GameAbilityNode,
+  DamageFormula,
   AbilityEventBlock,
   GameLootTableNode,
   LootTableEntry,

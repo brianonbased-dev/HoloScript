@@ -48,6 +48,7 @@ import type {
   ProceduralMemoryNode,
   // Game-logic AST node types
   GameAbilityNode,
+  DamageFormula,
   MovementStatementNode,
   ActionDeclNode,
   ActionClause,
@@ -2631,6 +2632,7 @@ export class HoloScriptCodeParser {
     const properties: Record<string, HoloScriptValue> = {};
     const directives: HSPlusDirective[] = [];
     const eventBlocks: Array<{ event: string; params: string[]; body: string }> = [];
+    let damageFormula: DamageFormula | undefined;
 
     if (this.check('punctuation', '{')) {
       this.advance(); // {
@@ -2645,6 +2647,41 @@ export class HoloScriptCodeParser {
         if (token?.type === 'punctuation' && token.value === '@') {
           const dir = this.parseDirective();
           if (dir) directives.push(dir);
+          this.skipNewlines();
+          continue;
+        }
+
+        // damage_formula { base: N, scaling: expr, crit_multiplier: M, … } — P1.8
+        if (
+          (token?.type === 'keyword' || token?.type === 'identifier') &&
+          token.value === 'damage_formula'
+        ) {
+          damageFormula = this.parseDamageFormula();
+          this.skipNewlines();
+          continue;
+        }
+
+        // Other named sub-blocks that use `keyword_or_ident { ... }` form but
+        // are NOT damage_formula: consume them as raw body strings stored in
+        // properties so the compiler can inspect if needed (forward-compat).
+        const nextAfterIdent =
+          (token?.type === 'keyword' || token?.type === 'identifier') &&
+          this.tokens[this.position + 1]?.value === '{';
+        if (nextAfterIdent) {
+          const blockKey = token!.value;
+          this.advance(); // consume key
+          let raw = '';
+          if (this.check('punctuation', '{')) {
+            this.advance();
+            let depth = 1;
+            while (depth > 0 && this.position < this.tokens.length) {
+              const t = this.advance()!;
+              if (t.value === '{') depth++;
+              else if (t.value === '}') { depth--; if (depth === 0) break; }
+              raw += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
+            }
+          }
+          properties[blockKey] = raw.trim();
           this.skipNewlines();
           continue;
         }
@@ -2709,9 +2746,69 @@ export class HoloScriptCodeParser {
       properties,
       directives: directives.length > 0 ? directives : undefined,
       eventBlocks: eventBlocks.length > 0 ? eventBlocks : undefined,
+      damageFormula,
       position: [0, 0, 0],
     };
     return abilityNode;
+  }
+
+  /**
+   * Parse a `damage_formula { ... }` sub-block inside an ability declaration.
+   *
+   * Accepted fields (all optional; safe defaults apply):
+   *   base:            number  — flat pre-scaling damage (default 0)
+   *   scaling:         string  — expression emitted verbatim (default "0")
+   *   crit_multiplier: number  — damage multiplier on crit (default 1.5)
+   *   crit_chance:     string  — 0-1 expression (default "0.05")
+   *   resist_school:   string  — elemental school name (default "")
+   *
+   * Any other key-value pairs are collected into the `raw` bag for
+   * forward-compatibility and passed through to the compiler.
+   */
+  private parseDamageFormula(): DamageFormula {
+    this.advance(); // consume 'damage_formula'
+    const raw: Record<string, unknown> = {};
+
+    if (this.check('punctuation', '{')) {
+      this.advance(); // {
+      while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        this.skipNewlines();
+        if (this.check('punctuation', '}')) break;
+
+        const prop = this.parseProperty();
+        if (prop) {
+          raw[prop.key] = prop.value;
+        } else {
+          this.advance(); // skip unexpected token
+        }
+        this.skipNewlines();
+      }
+      this.expect('punctuation', '}');
+    }
+
+    // Coerce well-known fields; leave rest in raw for the compiler.
+    const coerceNum = (v: unknown, fallback: number): number => {
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      if (typeof v === 'string') {
+        const n = Number(v.trim());
+        if (Number.isFinite(n)) return n;
+      }
+      return fallback;
+    };
+    const coerceStr = (v: unknown, fallback: string): string => {
+      if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+      if (typeof v === 'number') return String(v);
+      return fallback;
+    };
+
+    return {
+      base: coerceNum(raw['base'], 0),
+      scaling: coerceStr(raw['scaling'], '0'),
+      critMultiplier: coerceNum(raw['crit_multiplier'] ?? raw['critMultiplier'], 1.5),
+      critChance: coerceStr(raw['crit_chance'] ?? raw['critChance'], '0.05'),
+      resistSchool: coerceStr(raw['resist_school'] ?? raw['resistSchool'], ''),
+      raw,
+    };
   }
 
   /**

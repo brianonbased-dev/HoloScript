@@ -139,6 +139,30 @@ export interface AbilityEventBlock {
 }
 
 /**
+ * Typed `damage_formula { ... }` block parsed from a `.hs` ability declaration.
+ *
+ * The compiler lowers this into a deterministic `rollDamage_<AbilityName>()`
+ * TypeScript function emitted alongside the Colyseus Room (P1.8).
+ *
+ * Fields:
+ * - `base`           — flat damage before scaling (default 0).
+ * - `scaling`        — free-form expression string (e.g. "0.85 * caster.spell_power").
+ *                      The compiler emits it verbatim inside the generated function body.
+ * - `critMultiplier` — damage multiplier on a critical hit (default 1.5).
+ * - `critChance`     — expression yielding a 0-1 probability (default "0.05").
+ * - `resistSchool`   — damage school for elemental resist lookup ("fire", "frost", etc.).
+ * - `raw`            — the original key→value bag for forward-compat / unknown fields.
+ */
+export interface DamageFormula {
+  base: number;
+  scaling: string;
+  critMultiplier: number;
+  critChance: string;
+  resistSchool: string;
+  raw: Record<string, unknown>;
+}
+
+/**
  * `ability <name> { ... }` — declares a combat or gameplay ability.
  * Compiles to CombatAbilityTrait handler entries; server-authoritative by default.
  */
@@ -147,6 +171,8 @@ export interface GameAbilityNode extends ASTNode {
   name: string;
   properties: Record<string, unknown>;
   eventBlocks?: AbilityEventBlock[];
+  /** Typed damage formula parsed from a `damage_formula { ... }` sub-block. */
+  damageFormula?: DamageFormula;
 }
 
 /**

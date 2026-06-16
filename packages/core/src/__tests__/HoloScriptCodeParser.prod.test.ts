@@ -213,3 +213,133 @@ describe('ObjectPool behaviour', () => {
     expect(stats.array.pooled).toBe(0);
   });
 });
+
+// ─── P1.8: damage_formula parsing ────────────────────────────────────────────
+
+describe('HoloScriptCodeParser — P1.8: damage_formula block parsing', () => {
+  /**
+   * Helper: parse .hs source and return the first game-ability node, or null.
+   */
+  function parseAbility(src: string) {
+    const result = parse(src);
+    if (!result.success) return null;
+    const node = result.ast.find((n: { type: string }) => n.type === 'game-ability');
+    return node ?? null;
+  }
+
+  it('parses a full damage_formula block with all supported fields', () => {
+    // NOTE: The property parser reads one value token per key.
+    // Multi-token arithmetic expressions are a round-3 (symbol-table) concern.
+    // Scaling is a single identifier or number at this stage.
+    const src = `
+      ability fireball {
+        @cooldown 6
+        damage_formula {
+          base: 50
+          scaling: casterSpellPower
+          crit_multiplier: 2.0
+          crit_chance: 0.15
+          resist_school: fire
+        }
+      }
+    `;
+    const node = parseAbility(src) as { damageFormula?: {
+      base: number; scaling: string; critMultiplier: number;
+      critChance: string; resistSchool: string;
+    } } | null;
+    expect(node).not.toBeNull();
+    const df = node?.damageFormula;
+    expect(df).toBeDefined();
+    expect(df?.base).toBe(50);
+    expect(df?.scaling).toBe('casterSpellPower');
+    expect(df?.critMultiplier).toBe(2.0);
+    expect(df?.critChance).toBe('0.15');
+    expect(df?.resistSchool).toBe('fire');
+  });
+
+  it('applies safe defaults when fields are absent from damage_formula', () => {
+    const src = `
+      ability soul_drain {
+        @cooldown 4
+        damage_formula {
+          base: 20
+        }
+      }
+    `;
+    const node = parseAbility(src) as { damageFormula?: {
+      base: number; scaling: string; critMultiplier: number;
+      critChance: string; resistSchool: string;
+    } } | null;
+    expect(node).not.toBeNull();
+    const df = node?.damageFormula;
+    expect(df).toBeDefined();
+    expect(df?.base).toBe(20);
+    expect(df?.scaling).toBe('0');         // default
+    expect(df?.critMultiplier).toBe(1.5);  // default
+    expect(df?.critChance).toBe('0.05');   // default
+    expect(df?.resistSchool).toBe('');     // default
+  });
+
+  it('leaves damageFormula undefined when no damage_formula block is present', () => {
+    const src = `
+      ability shield_bash {
+        @cooldown 2
+        @mana_cost 10
+      }
+    `;
+    const node = parseAbility(src) as { damageFormula?: unknown } | null;
+    expect(node).not.toBeNull();
+    expect(node?.damageFormula).toBeUndefined();
+  });
+
+  it('correctly parses crit_multiplier and crit_chance aliases', () => {
+    const src = `
+      ability twin_strike {
+        @cooldown 1
+        damage_formula {
+          base: 15
+          scaling: casterAttackPower
+          critMultiplier: 1.8
+          critChance: 0.2
+        }
+      }
+    `;
+    const node = parseAbility(src) as { damageFormula?: {
+      critMultiplier: number; critChance: string;
+    } } | null;
+    const df = node?.damageFormula;
+    expect(df?.critMultiplier).toBe(1.8);
+    expect(df?.critChance).toBe('0.2');
+  });
+
+  it('coerces string-typed base to number', () => {
+    const src = `
+      ability quake {
+        @cooldown 10
+        damage_formula {
+          base: "100"
+          scaling: 0
+        }
+      }
+    `;
+    const node = parseAbility(src) as { damageFormula?: { base: number } } | null;
+    expect(node?.damageFormula?.base).toBe(100);
+  });
+
+  it('ability with damage_formula still has correct type = game-ability', () => {
+    const src = `
+      ability smite {
+        @cooldown 3
+        damage_formula {
+          base: 25
+          scaling: casterSpellPower
+        }
+      }
+    `;
+    const result = parse(src);
+    expect(result.success).toBe(true);
+    const node = result.ast.find((n: { type: string }) => n.type === 'game-ability');
+    expect(node).toBeDefined();
+    expect(node.name).toBe('smite');
+  });
+});

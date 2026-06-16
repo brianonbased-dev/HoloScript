@@ -776,3 +776,160 @@ describe('ColyseusCompiler — P1.9: verbal_fingerprint + autonomous_agenda', ()
     expect(out.code).toContain('"guide seekers"');
   });
 });
+
+// ---------------------------------------------------------------------------
+// P1.8 — damage_formula lowering → rollDamage_<AbilityName>() emission
+// ---------------------------------------------------------------------------
+
+describe('ColyseusCompiler — P1.8: damage_formula lowering → rollDamage_*()', () => {
+  // NOTE: The .hs property parser reads one value token per key.
+  // Multi-token expressions (e.g. "0.85 * casterSpellPower") are not yet
+  // supported at the parse level — that is a round-3 symbol-table concern.
+  // Scaling values must therefore be single-token at this stage.
+  const abilityWithFormula = `
+    ability fireball {
+      @cooldown 6
+      @mana_cost 40
+      @range 30
+      @damage_type fire
+      damage_formula {
+        base: 50
+        scaling: casterSpellPower
+        crit_multiplier: 2.0
+        crit_chance: 0.15
+        resist_school: fire
+      }
+    }
+  `;
+
+  const abilityNoFormula = `
+    ability shield_bash {
+      @cooldown 2
+      @mana_cost 10
+      @damage_type physical
+    }
+  `;
+
+  async function compileWithAbilities(src: string): Promise<ReturnType<ColyseusCompiler['compile']>> {
+    const holoSrc = `
+      composition "BattleArena" {
+        import "./spells.hs"
+        npc "dummy" { hp: 100 }
+      }
+    `;
+    const readFile = async (abs: string): Promise<string> => {
+      if (abs.endsWith('spells.hs')) return src;
+      throw new Error(`not found: ${abs}`);
+    };
+    return new ColyseusCompiler().compileSource(holoSrc, '/w/battle.holo', token, {
+      readFile,
+      baseDir: '/w',
+    });
+  }
+
+  it('emits rollDamage_<AbilityName>() for abilities with a damage_formula block', async () => {
+    const result = await compileWithAbilities(abilityWithFormula);
+    expect(result.success).toBe(true);
+
+    // (a) compiler result carries the parsed formula
+    const fireball = result.abilities.find((a) => a.name === 'fireball');
+    expect(fireball?.damageFormula).not.toBeNull();
+    expect(fireball?.damageFormula?.base).toBe(50);
+    expect(fireball?.damageFormula?.critMultiplier).toBe(2.0);
+    expect(fireball?.damageFormula?.critChance).toBe('0.15');
+    expect(fireball?.damageFormula?.resistSchool).toBe('fire');
+
+    // (b) rollDamage_fireball() is emitted in the generated code
+    expect(result.code).toContain('protected rollDamage_fireball(');
+    expect(result.code).toContain('casterSpellPower: number,');
+    expect(result.code).toContain('casterAttackPower: number,');
+    expect(result.code).toContain('targetResist = 0,');
+
+    // (c) formula fields are reflected in the emitted body
+    expect(result.code).toContain('const base = 50;');
+    // scaling is emitted verbatim from the parsed string value
+    expect(result.code).toContain('const scaling = casterSpellPower;');
+    expect(result.code).toContain('const critChance = Math.max(0, Math.min(1, 0.15));');
+    expect(result.code).toContain('const isCrit = this.nextRandom() < critChance;');
+    expect(result.code).toContain('const critMult = isCrit ? 2 : 1;');
+    // resist_school=fire → 1-resist expression emitted
+    expect(result.code).toContain('(1 - Math.max(0, Math.min(1, targetResist)))');
+    expect(result.code).toContain('return Math.max(0, Math.round(raw));');
+  });
+
+  it('sets damageFormula: null for abilities without a damage_formula block', async () => {
+    const result = await compileWithAbilities(abilityNoFormula);
+    expect(result.success).toBe(true);
+    const shieldBash = result.abilities.find((a) => a.name === 'shield_bash');
+    expect(shieldBash).toBeDefined();
+    expect(shieldBash?.damageFormula).toBeNull();
+    // no rollDamage_ function emitted when formula is absent
+    expect(result.code).not.toContain('protected rollDamage_shield_bash(');
+  });
+
+  it('emits rollDamage_* only for abilities with formula; others get null in ABILITY_REGISTRY', async () => {
+    const result = await compileWithAbilities(`${abilityWithFormula}\n${abilityNoFormula}`);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('protected rollDamage_fireball(');
+    expect(result.code).not.toContain('protected rollDamage_shield_bash(');
+    // ABILITY_REGISTRY encodes damageFormula for fireball and null for shield_bash
+    expect(result.code).toContain('"damageFormula":');
+    expect(result.code).toContain('"resistSchool": "fire"');
+  });
+
+  it('emits resist=1 (no school attenuation) when resist_school is absent', async () => {
+    const noResistAbility = `
+      ability soul_drain {
+        @cooldown 8
+        damage_formula {
+          base: 30
+          scaling: casterSpellPower
+          crit_multiplier: 1.5
+          crit_chance: 0.05
+        }
+      }
+    `;
+    const result = await compileWithAbilities(noResistAbility);
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('protected rollDamage_soul_drain(');
+    // No resist_school → resist expression is literal `1`
+    expect(result.code).toContain('const resist = 1;');
+  });
+
+  it('generated rollDamage code is valid TypeScript (W.685)', async () => {
+    const ts = await import('typescript');
+    const result = await compileWithAbilities(abilityWithFormula);
+    expect(result.success).toBe(true);
+    const out = ts.transpileModule(result.code, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.ESNext,
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+      },
+      reportDiagnostics: true,
+    });
+    const errors = (out.diagnostics ?? [])
+      .filter((d) => d.category === ts.DiagnosticCategory.Error)
+      .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+    expect(errors).toEqual([]);
+  });
+
+  it('ability name with special chars is sanitized in function name', async () => {
+    const weirdName = `
+      ability "fire-bolt" {
+        @cooldown 1
+        damage_formula {
+          base: 10
+          scaling: 0
+          crit_multiplier: 1.5
+          crit_chance: 0.05
+        }
+      }
+    `;
+    const result = await compileWithAbilities(weirdName);
+    expect(result.success).toBe(true);
+    // hyphen sanitized to underscore
+    expect(result.code).toMatch(/protected rollDamage_fire_bolt\(/);
+  });
+});
