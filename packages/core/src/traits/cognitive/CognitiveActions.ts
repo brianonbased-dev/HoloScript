@@ -108,7 +108,7 @@ export function nearestCognitiveVerb(value: string): CognitiveVerb | undefined {
 /**
  * A typed cognitive operation authored inline in a brain state, e.g.
  *   state thinking {
- *     llm_call { prompt: "What should I do next?", model: "qwen2.5-coder:7b" }
+ *     llm_call { prompt: "What should I do next?", model: "qwen3.5:4b" }
  *     recall   { query: "prior plans", limit: 5 }
  *   }
  */

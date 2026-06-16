@@ -62,7 +62,7 @@ export interface SovereignResolveOptions {
   maxTokens?: number;
 }
 
-const FLEET_DEFAULT_MODEL = 'qwen2.5-coder:1.5b';
+const FLEET_DEFAULT_MODEL = 'qwen3.5:4b';
 const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool calls
 // via Ollama — it writes the call JSON as plain text (2026-06-10 zero-objects

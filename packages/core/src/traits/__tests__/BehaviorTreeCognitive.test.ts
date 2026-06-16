@@ -29,7 +29,7 @@ describe('BehaviorTreeTrait — cognitive nodes', () => {
       root: {
         type: 'cognitive' as const,
         verb: 'llm_call' as const,
-        config: { prompt: 'What should I do next?', model: 'qwen2.5-coder:7b' },
+        config: { prompt: 'What should I do next?', model: 'qwen3.5:4b' },
       },
       tick_rate: 100,
       restart_on_complete: false,

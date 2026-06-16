@@ -19,7 +19,7 @@
  * orchestrator /serve registry exactly like Brittney's resolveFleet (scale-to-zero
  * aware) — no bespoke URL, no localhost. Env (all optional, prod defaults):
  *   FLEET_INFERENCE_KEY        bearer for the serving box's OpenAI /v1 (needed to call it)
- *   BRITTNEY_FLEET_MODEL       served model (default qwen2.5-coder:1.5b)
+ *   BRITTNEY_FLEET_MODEL       served model (default qwen3.5:4b)
  *   MCP_ORCHESTRATOR_URL       /serve registry host (default prod orchestrator)
  *   HOLOSCRIPT_API_KEY         x-mcp-api-key for /serve/resolve
  *   HOLO_SELF_IMPROVE_LLM_URL  optional explicit /v1/chat/completions override (ops pin)
@@ -71,7 +71,7 @@ function buildLLMComplete(): LLMComplete {
     process.env['ORCHESTRATOR_URL'] ||
     'https://mcp-orchestrator-production-45f9.up.railway.app'
   ).replace(/\/+$/, '');
-  const model = process.env['BRITTNEY_FLEET_MODEL'] || 'qwen2.5-coder:1.5b';
+  const model = process.env['BRITTNEY_FLEET_MODEL'] || 'qwen3.5:4b';
   const bearer = process.env['FLEET_INFERENCE_KEY'] || process.env['SERVE_INFERENCE_KEY'] || '';
   const resolveKey =
     process.env['BRITTNEY_FLEET_RESOLVE_KEY'] || process.env['HOLOSCRIPT_API_KEY'] || '';

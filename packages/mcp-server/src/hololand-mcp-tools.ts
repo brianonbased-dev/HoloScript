@@ -983,7 +983,7 @@ export const hololandMcpTools: Tool[] = [
         modelId: {
           type: 'string',
           description:
-            'Model identifier for local/cloud routing. Examples: qwen2.5-coder:7b, gemma4:e4b, claude-haiku-4-5. Optional.',
+            'Model identifier for local/cloud routing. Examples: qwen3.5:4b, gemma4:e4b, claude-haiku-4-5. Optional.',
         },
         systemPrompt: {
           type: 'string',
@@ -3097,7 +3097,7 @@ async function handleHololandNPCBYOKStatus(): Promise<unknown> {
     localAvailable,
     localModels: localAvailable
       ? [
-          { model: 'qwen2.5-coder:7b', source: 'ollama', purpose: 'NPC dialogue / behavior' },
+          { model: 'qwen3.5:4b', source: 'ollama', purpose: 'NPC dialogue / behavior' },
           { model: 'gemma4:e4b', source: 'ollama', purpose: 'Edge NPC inference' },
         ]
       : [],

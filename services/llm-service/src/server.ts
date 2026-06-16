@@ -55,7 +55,7 @@ const fleetMetrics = new FleetMetrics();
 // BuildService still uses OllamaService for backward compat
 const ollama = new OllamaService(
   process.env.OLLAMA_URL || 'http://localhost:11434',
-  process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b'
+  process.env.OLLAMA_MODEL || 'qwen3.5:4b'
 );
 const buildService = new BuildService(storage, ollama);
 

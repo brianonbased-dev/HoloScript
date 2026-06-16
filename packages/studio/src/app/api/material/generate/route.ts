@@ -198,7 +198,7 @@ async function tryOllamaFallback(fullPrompt: string, model?: string): Promise<st
   try {
     const adapter = new LocalLLMAdapter({
       baseURL: ollamaUrl,
-      defaultModel: model || 'qwen2.5-coder:7b',
+      defaultModel: model || 'qwen3.5:4b',
       timeoutMs: 30_000,
     });
     const result = await adapter.complete({

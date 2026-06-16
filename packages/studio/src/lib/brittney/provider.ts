@@ -198,7 +198,7 @@ function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
 
 // ── fleet (sovereign serving, dynamic-resolve) ────────────────────────────────
 
-const FLEET_DEFAULT_MODEL = 'qwen2.5-coder:1.5b';
+const FLEET_DEFAULT_MODEL = 'qwen3.5:4b';
 const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 /**

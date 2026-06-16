@@ -413,7 +413,7 @@ export class OllamaAdapter implements AIAdapter {
 
   constructor(config: OllamaAdapterConfig = {}) {
     this.baseUrl = config.baseUrl || 'http://localhost:11434';
-    this.model = config.model || 'qwen2.5-coder:7b';
+    this.model = config.model || 'qwen3.5:4b';
   }
 
   async isReady(): Promise<boolean> {

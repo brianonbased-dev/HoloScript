@@ -309,7 +309,7 @@ async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
   try {
     const adapter = new LocalLLMAdapter({
       baseURL: ollamaUrl,
-      defaultModel: process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b',
+      defaultModel: process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'qwen3.5:4b',
       timeoutMs: 30_000,
     });
     const result = await adapter.complete({

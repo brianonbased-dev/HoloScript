@@ -108,7 +108,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     super({ ...config, apiKey: config.apiKey });
     this.vastKey = config.apiKey;
     this.endpointName = config.endpointName;
-    this.defaultHoloScriptModel = config.model ?? 'qwen2.5-coder:1.5b';
+    this.defaultHoloScriptModel = config.model ?? 'qwen3.5:4b';
     this.models = [this.defaultHoloScriptModel];
     this.cost = config.cost ?? (Number(process.env['VAST_SERVERLESS_COST']) || 100);
     this.maxWaitS = config.maxWaitS ?? (Number(process.env['VAST_SERVERLESS_MAX_WAIT_S']) || 540);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
-const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'qwen2.5-coder:7b';
+const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'qwen3.5:4b';
 
 /** POST /api/material/generate
  *  Body: { prompt: string; baseColor?: string; model?: string }

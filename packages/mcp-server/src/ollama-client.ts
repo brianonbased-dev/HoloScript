@@ -60,7 +60,7 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 // ── Ollama config (local fallback only) ──────────────────────────────────────
 const OLLAMA_URL = process.env.OLLAMA_URL || ''; // Ollama is optional — empty means disabled
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5-coder:7b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:4b';
 
 // ── Gemma 4 Hybrid Routing config ────────────────────────────────────────────
 const GEMMA_EDGE_MODEL = process.env.GEMMA_EDGE_MODEL || 'gemma4:e4b';

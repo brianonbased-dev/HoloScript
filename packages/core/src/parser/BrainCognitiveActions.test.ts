@@ -23,7 +23,7 @@ describe('HoloScriptPlusParser — cognitive brain actions', () => {
       brain PlannerAI : @behavior_tree {
         @personality helpful
         state thinking {
-          llm_call { prompt: "What should I do next?", model: "qwen2.5-coder:7b" }
+          llm_call { prompt: "What should I do next?", model: "qwen3.5:4b" }
           recall { query: "prior plans", limit: 5 }
           transition to acting @when { plan_ready }
         }
@@ -38,7 +38,7 @@ describe('HoloScriptPlusParser — cognitive brain actions', () => {
 
     expect(cog![0].kind).toBe('cognitive');
     expect(cog![0].config.prompt).toBe('What should I do next?');
-    expect(cog![0].config.model).toBe('qwen2.5-coder:7b');
+    expect(cog![0].config.model).toBe('qwen3.5:4b');
     expect(cog![1].config.query).toBe('prior plans');
     expect(cog![1].config.limit).toBe(5);
 
