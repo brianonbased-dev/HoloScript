@@ -87,7 +87,8 @@ export type ExportTarget =
   | 'scm' // Supply-chain manifest export (bridge)
   | 'nft-marketplace' // NFT marketplace metadata + asset bundle (bridge)
   | 'edge' // Edge device Python deployment bundle (Jetson, RPi, The Unit)
-  | 'bot-swarm'; // In-process MMO load/balance test harness (bridge — pairs with colyseus)
+  | 'bot-swarm' // In-process MMO load/balance test harness (bridge — pairs with colyseus)
+  | 'dungeon-instance'; // Per-party instanced-content pool + completion receipt (bridge)
 
 /**
  * Circuit configuration per target

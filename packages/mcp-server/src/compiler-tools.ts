@@ -781,6 +781,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'edge' });
     case 'compile_to_bot_swarm':
       return handleCompileToTarget({ ...args, target: 'bot-swarm' });
+    case 'compile_to_dungeon_instance':
+      return handleCompileToTarget({ ...args, target: 'dungeon-instance' });
 
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
@@ -1659,6 +1661,24 @@ export const compilerTools: Tool[] = [
             },
           },
         },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_dungeon_instance',
+    description:
+      'Compile dungeon_instance blocks into a server-authoritative instance pool (P2.6). Emits a ' +
+      'TypeScript module exporting DUNGEON_REGISTRY + a DungeonInstancePool class: per-party ' +
+      'instanced content (dungeon/raid) spun up on demand, capped at max_instances, released on a ' +
+      'reset timer. Completion emits a receipt sealed against the dungeon + instance + party. Each ' +
+      "dungeon's completion_quest is compile-validated against the composition's declared quests — " +
+      'an undeclared quest is a compile error (typed-predicate guarantee). RoomClass-agnostic.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript MMO composition (.holo) with dungeon_instance blocks' },
       },
       required: ['code'],
     },

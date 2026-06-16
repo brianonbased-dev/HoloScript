@@ -74,6 +74,7 @@ import { SCMCompiler } from './SCMCompiler';
 import { NFTMarketplaceCompiler } from './NFTMarketplaceCompiler';
 import { EdgeCompiler } from './EdgeCompiler';
 import { BotSwarmCompiler } from './BotSwarmCompiler';
+import { DungeonInstancePoolCompiler } from './DungeonInstancePoolCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -319,6 +320,8 @@ class CompilerFactory {
         return new EdgeCompiler(options);
       case 'bot-swarm':
         return new BotSwarmCompiler(options);
+      case 'dungeon-instance':
+        return new DungeonInstancePoolCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
