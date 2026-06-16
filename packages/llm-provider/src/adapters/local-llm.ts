@@ -237,8 +237,6 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     const body = JSON.stringify({
       model,
       stream: false,
-      // Thinking OFF: qwen3-class thinking routes tool-call output into the
-      // think channel — the visible reply arrives empty. Matches streamCompletion().
       ...this._thinkParam(model),
       messages: this._withNoThinkMessages(
         model,
@@ -249,13 +247,15 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         num_predict: request.maxTokens ?? 2048,
         ...(request.topP !== undefined ? { top_p: request.topP } : {}),
         ...(request.stop ? { stop: request.stop } : {}),
-        // KV-cache context cap. qwen3:4b at Ollama default ctx (4096) peaks
-        // ~7 GB on the Jetson's 8 GB shared RAM → OOM + SSH wedge (W.735).
-        // At 2048 → ~4 GB; at 1024 → ~3 GB. Override via HOLOSCRIPT_LLM_NUM_CTX.
-        // Unset → Ollama uses the model's baked-in default.
+        // KV-cache context cap (Jetson 8 GB shared RAM — W.735):
+        //   num_ctx=4096 → ~7 GB (OOM risk) | 3072 → ~5.5 GB (safe headless)
+        //   2048 → ~4 GB but too small: qwen3:4b thinking consumes ~1050+ tokens
+        //   on real tasks, leaving < 500 tokens for tool-call JSON → done_reason=length
+        //   → empty tool_calls → no artifact gate fails. 3072 is the safe minimum.
+        // Override via HOLOSCRIPT_LLM_NUM_CTX; unset → model's baked-in default.
         ...(process.env.HOLOSCRIPT_LLM_NUM_CTX
           ? { num_ctx: parseInt(process.env.HOLOSCRIPT_LLM_NUM_CTX, 10) }
-          : {}),
+          : { num_ctx: 3072 }),
         // Release model weights from RAM after each request. Ollama's default
         // keep_alive (5 min) holds 2.5 GB pinned between ticks — on an 8 GB
         // device sharing RAM with OS + monitor + agent this is fatal across
@@ -293,7 +293,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         data.done_reason,
         data.eval_count ?? 0,
         data.prompt_eval_count ?? 0,
-        /* openAiUsage */ undefined
+        /* openAiUsage */ undefined,
+        filteredTools
       );
     });
   }
@@ -348,7 +349,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         choice?.finish_reason,
         data.usage?.completion_tokens ?? 0,
         data.usage?.prompt_tokens ?? 0,
-        data.usage
+        data.usage,
+        filteredTools
       );
     });
   }
@@ -397,18 +399,24 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     raw: unknown,
     model: string,
     content: string,
-    rawToolCalls: Array<{ id?: string; function?: { name?: string; arguments?: unknown } }>,
+    rawToolCalls: Array<{ id?: string; function?: { name?: string; index?: number; arguments?: unknown } }>,
     responseModel: string | undefined,
     finishReasonStr: string | undefined,
     completionTokens: number,
     promptTokens: number,
-    openAiUsage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+    openAiUsage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number },
+    toolSpecs?: ToolSpec[]
   ): LLMCompletionResponse {
     const toolUses: ToolUseBlock[] = [];
     for (let i = 0; i < rawToolCalls.length; i += 1) {
       const tc = rawToolCalls[i];
       const fn = tc?.function;
-      if (!fn?.name) continue;
+      if (!fn) continue; // narrows fn to non-undefined for the rest of the loop body
+      // Ollama 0.30.8 + qwen3:4b returns function.name="" with function.index set.
+      // Resolve the name from the tool list by index when name is blank.
+      const toolName =
+        fn.name || (typeof fn.index === 'number' ? toolSpecs?.[fn.index]?.name : undefined);
+      if (!toolName) continue;
       let input: Record<string, unknown> = {};
       const rawArgs = fn.arguments;
       if (typeof rawArgs === 'string') {
@@ -416,7 +424,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       } else if (rawArgs && typeof rawArgs === 'object') {
         input = rawArgs as Record<string, unknown>;
       }
-      toolUses.push({ type: 'tool_use', id: tc?.id ?? `call_${i}`, name: fn.name, input });
+      toolUses.push({ type: 'tool_use', id: tc?.id ?? `call_${i}`, name: toolName, input });
     }
     const hadToolCalls = toolUses.length > 0;
     const assistantBlocks: AssistantContentBlock[] = hadToolCalls

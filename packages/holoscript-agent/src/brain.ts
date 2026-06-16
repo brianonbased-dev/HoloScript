@@ -5,8 +5,17 @@ export async function loadBrain(
   brainPath: string,
   scopeTier: 'cold' | 'warm' | 'hot' = 'warm'
 ): Promise<RuntimeBrainConfig> {
-  const systemPrompt = await readFile(brainPath, 'utf8');
-  const { domain, capabilityTags, requires, prefers, avoids } = extractIdentity(systemPrompt);
+  const raw = await readFile(brainPath, 'utf8');
+  const { domain, capabilityTags, requires, prefers, avoids } = extractIdentity(raw);
+  // For .hsplus brains: the file begins with a free-text instruction block
+  // (the actual system prompt for the LLM) followed by HoloScript structured
+  // sections (#version, #target, identity {}, state {}, etc.). Sending the
+  // full file bloats the context by ~1500+ tokens of metadata the LLM does
+  // not need and — on constrained-context local models (qwen3:4b, num_ctx=2048)
+  // — causes the CRITICAL tool-calling rules to be truncated before the model
+  // sees them, resulting in plain-text replies with no tool calls.
+  // Extract only the preamble: everything before the first HoloScript directive.
+  const systemPrompt = extractSystemPromptPreamble(raw);
   return {
     brainPath,
     systemPrompt,
@@ -17,6 +26,28 @@ export async function loadBrain(
     prefers,
     avoids,
   };
+}
+
+/**
+ * Extract the free-text instruction preamble from a .hsplus brain file.
+ * Stops at the first line that begins a HoloScript structured section:
+ * `#version`, `#target`, `#mode`, or a block keyword (`identity {`,
+ * `state {`, `computed {`, `traits [`, `capabilities {`, `directives {`,
+ * `behavior `). Falls back to the full file content for plain-text brains
+ * (no HoloScript sections detected).
+ */
+function extractSystemPromptPreamble(src: string): string {
+  const lines = src.split('\n');
+  const BLOCK_START = /^(#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
+  let cutLine = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (BLOCK_START.test(lines[i].trim())) {
+      cutLine = i;
+      break;
+    }
+  }
+  if (cutLine <= 0) return src; // no HoloScript sections — whole file is prompt
+  return lines.slice(0, cutLine).join('\n').trimEnd();
 }
 
 function extractIdentity(brain: string): {

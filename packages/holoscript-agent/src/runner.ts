@@ -173,6 +173,13 @@ export class AgentRunner {
         finalText = finalText || `[tool-loop hit ${MAX_TOOL_ITERS}-iter cap before final text]`;
         break;
       }
+      // Local-LLM brains (qwen3:4b on Jetson) generate 3000+ thinking tokens
+      // reasoning over a 5-tool menu — overflowing num_ctx output budget before
+      // a tool call can be emitted. Limit to write_file only for local-llm brains:
+      // it satisfies the artifact-grounding gate and keeps thinking under ~400 tokens.
+      const activeTools = brain.requires.includes('local-llm')
+        ? MESH_TOOLS.filter((t) => t.name === 'write_file')
+        : MESH_TOOLS;
       const resp = await provider.complete(
         {
           messages,
@@ -181,7 +188,7 @@ export class AgentRunner {
           // models ignore this ceiling and stop naturally earlier.
           maxTokens: 8192,
           temperature: 0.4,
-          tools: MESH_TOOLS,
+          tools: activeTools,
         },
         identity.llmModel
       );
