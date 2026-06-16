@@ -24,7 +24,8 @@ import { dirname, join } from 'node:path';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const EXAMPLES = join(SCRIPT_DIR, '..', '..', '..', 'examples');
-const DRIVE_URL = process.env.DRIVE_URL || 'http://localhost:3101/api/world-drive';
+const DRIVE_URL = process.env.DRIVE_URL || 'https://holoscript.studio/api/world-drive';
+const WORLD_STATE_TOKEN = process.env.WORLD_STATE_TOKEN || '';
 try {
   new URL(DRIVE_URL);
 } catch {
@@ -116,9 +117,11 @@ async function load() {
 
 async function place(entityId, x, z) {
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (WORLD_STATE_TOKEN) headers['x-world-state-token'] = WORLD_STATE_TOKEN;
     const r = await fetch(DRIVE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ entityId, position: { x: +x.toFixed(3), y: RIDE_Y, z: +z.toFixed(3) } }),
     });
     if (!r.ok) console.error(`[brittney] drive HTTP ${r.status}`);
