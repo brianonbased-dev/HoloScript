@@ -44,17 +44,21 @@ type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
 };
 
 // =============================================================================
-// Well-known local GGUF model identifiers
-// The server accepts any model name — these are common tested configs.
+// Well-known local GGUF model identifiers (llama.cpp / LM Studio tier)
+// The server accepts any model name — these are common tested configs. The
+// CANONICAL recommended catalog (incl. Ollama tags + cloud) is MODEL_LIBRARY in
+// model-policy.ts; refresh both together. Removed qwen2.5-7b-instruct (blacklisted
+// family — lies about tool-calling) 2026-06-16; refreshed to current open weights.
 // =============================================================================
 
 export const LOCAL_LLM_MODELS = [
+  'qwen3-4b-instruct-2507',
+  'mistral-small-4',
   'mistral-7b-instruct',
-  'mistral-7b-instruct-v0.3',
   'llama-3.1-8b-instruct',
   'llama-3.2-3b-instruct',
-  'phi-3.5-mini-instruct',
-  'qwen2.5-7b-instruct',
+  'granite-4.0-1b',
+  'phi-4-mini-instruct',
 ] as const;
 
 export type LocalLLMModel = (typeof LOCAL_LLM_MODELS)[number];

@@ -6,6 +6,9 @@ import {
   SAFE_LOCAL_FALLBACK,
   LANE_DEFAULTS,
   laneDefault,
+  MODEL_LIBRARY,
+  modelsForLane,
+  modelLibraryEntry,
   MODEL_BLACKLIST,
   isBlacklistedModel,
   resolveAllowedModel,
@@ -40,6 +43,42 @@ describe('model-policy SSOT', () => {
     // code_local IS the local default; reasoning IS the cloud default.
     expect(LANE_DEFAULTS.code_local).toBe(LOCAL_DEFAULT_MODEL);
     expect(LANE_DEFAULTS.reasoning).toBe(CLOUD_DEFAULT_MODEL);
+  });
+
+  describe('MODEL_LIBRARY', () => {
+    const validLanes = new Set(Object.keys(LANE_DEFAULTS));
+
+    it('every entry is non-blacklisted, non-empty, with valid lanes', () => {
+      expect(MODEL_LIBRARY.length).toBeGreaterThan(0);
+      for (const m of MODEL_LIBRARY) {
+        expect(m.id).toBeTruthy();
+        expect(isBlacklistedModel(m.id)).toBe(false);
+        expect(m.lanes.length).toBeGreaterThan(0);
+        for (const lane of m.lanes) expect(validLanes.has(lane)).toBe(true);
+        expect(['local', 'fleet', 'cloud']).toContain(m.tier);
+      }
+    });
+
+    it('every entry id is unique', () => {
+      const ids = MODEL_LIBRARY.map((m) => m.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('every LANE_DEFAULTS model is present in the library (defaults come from the catalog)', () => {
+      for (const lane of Object.keys(LANE_DEFAULTS) as ModelLane[]) {
+        expect(modelLibraryEntry(LANE_DEFAULTS[lane])).toBeDefined();
+      }
+    });
+
+    it('modelsForLane returns the catalog entries for each lane', () => {
+      for (const lane of Object.keys(LANE_DEFAULTS) as ModelLane[]) {
+        const forLane = modelsForLane(lane);
+        expect(forLane.length).toBeGreaterThan(0);
+        expect(forLane.every((m) => m.lanes.includes(lane))).toBe(true);
+        // the lane default is one of the lane's catalog entries
+        expect(forLane.map((m) => m.id)).toContain(LANE_DEFAULTS[lane]);
+      }
+    });
   });
 
   it('isBlacklistedModel matches qwen2.5 variants case-insensitively, not others', () => {

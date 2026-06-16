@@ -292,8 +292,8 @@ describe('createLocalLLMProvider()', () => {
   it('passes custom config through', () => {
     const provider = createLocalLLMProvider({
       baseURL: 'http://localhost:11434',
-      model: 'qwen2.5-7b-instruct',
+      model: 'qwen3-4b-instruct-2507',
     });
-    expect(provider.defaultHoloScriptModel).toBe('qwen2.5-7b-instruct');
+    expect(provider.defaultHoloScriptModel).toBe('qwen3-4b-instruct-2507');
   });
 });

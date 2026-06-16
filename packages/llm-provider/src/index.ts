@@ -192,11 +192,14 @@ export {
   SAFE_LOCAL_FALLBACK,
   LANE_DEFAULTS,
   laneDefault,
+  MODEL_LIBRARY,
+  modelsForLane,
+  modelLibraryEntry,
   MODEL_BLACKLIST,
   isBlacklistedModel,
   resolveAllowedModel,
 } from './model-policy';
-export type { ModelLane } from './model-policy';
+export type { ModelLane, ModelTier, ModelLibraryEntry } from './model-policy';
 
 // Local model discovery — picks the best behaviorally-verified tool-calling
 // model from whatever Ollama has installed, instead of a hardcoded tag
