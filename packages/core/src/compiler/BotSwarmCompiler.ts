@@ -14,10 +14,13 @@
  * (D.010 / I.007). It is ALSO the seed of game-balance CI — run the swarm in HoloCI
  * and assert the report stays within the `@balance_test` envelope.
  *
- * OUTPUT: a single TypeScript module exporting `runBotSwarm(RoomClass, opts)` +
- * `assertBalance(report)`. The harness takes the Room class by injection (works for
- * any generated server) and runs entirely in-process — no network, no fleet. A
- * future increment dispatches the same harness across the sim fleet (P2.11 cloud).
+ * OUTPUT: a single TypeScript module exporting `runBotSwarm(RoomClass, opts)`,
+ * `assertBalance(report)`, and `mergeBalanceReports(reports)`. The harness takes the
+ * Room class by injection (works for any generated server) and runs entirely
+ * in-process — no network, no fleet. `mergeBalanceReports` is the aggregation step
+ * a sharded/distributed run needs; the remaining cloud pieces (a hosted Colyseus
+ * endpoint + a WebSocket bot driver, which cross the fleet spend gate) are tracked
+ * as the "Cloud BotSwarm fleet endpoint" seed in docs/handbooks/idea-seeds.md.
  */
 
 import type { HoloComposition, HoloValue, HoloObjectTrait } from '../parser/HoloCompositionTypes.js';
@@ -176,6 +179,39 @@ export class BotSwarmCompiler extends CompilerBase {
       `    failures.push(\`finalPlayers \${report.finalPlayers} != bots \${report.bots}\`);`,
       `  }`,
       `  return failures;`,
+      `}`,
+      ``,
+      `/**`,
+      ` * Merge BalanceReports from N independent shards into one report — the`,
+      ` * aggregation step a DISTRIBUTED run needs (fork the harness across worker`,
+      ` * threads / child processes / fleet nodes with distinct seeds, then merge).`,
+      ` * Counts sum; ticks take the max (shards run concurrently); avgTickMs is`,
+      ` * tick-weighted across shards. This is prerequisite (D) of cloud bot-swarm —`,
+      ` * the remaining pieces (a hosted Colyseus endpoint + a WebSocket bot driver)`,
+      ` * are the fleet-endpoint seed in docs/handbooks/idea-seeds.md.`,
+      ` */`,
+      `export function mergeBalanceReports(reports: BalanceReport[]): BalanceReport {`,
+      `  const acc: BalanceReport = {`,
+      `    bots: 0, ticks: 0, moveAttempts: 0, moveRejects: 0,`,
+      `    castAttempts: 0, castRejects: 0, receipts: 0, avgTickMs: 0, finalPlayers: 0,`,
+      `  };`,
+      `  if (reports.length === 0) return acc;`,
+      `  let weightedTickMs = 0;`,
+      `  let totalTicks = 0;`,
+      `  for (const r of reports) {`,
+      `    acc.bots += r.bots;`,
+      `    acc.moveAttempts += r.moveAttempts;`,
+      `    acc.moveRejects += r.moveRejects;`,
+      `    acc.castAttempts += r.castAttempts;`,
+      `    acc.castRejects += r.castRejects;`,
+      `    acc.receipts += r.receipts;`,
+      `    acc.finalPlayers += r.finalPlayers;`,
+      `    acc.ticks = Math.max(acc.ticks, r.ticks);`,
+      `    weightedTickMs += r.avgTickMs * r.ticks;`,
+      `    totalTicks += r.ticks;`,
+      `  }`,
+      `  acc.avgTickMs = totalTicks > 0 ? weightedTickMs / totalTicks : 0;`,
+      `  return acc;`,
       `}`,
       ``,
     ].join('\n');

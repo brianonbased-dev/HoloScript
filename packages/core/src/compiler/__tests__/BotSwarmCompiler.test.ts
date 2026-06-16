@@ -182,3 +182,50 @@ describe('BotSwarmCompiler — load/balance against a real generated server (P2.
     expect(report.finalPlayers).toBe(8);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Distributed report aggregation — cloud bot-swarm prerequisite (D)
+// ---------------------------------------------------------------------------
+
+describe('BotSwarmCompiler — mergeBalanceReports (sharded/distributed aggregation)', () => {
+  async function harnessExports(): Promise<Record<string, unknown>> {
+    const ts = await import('typescript');
+    const js = ts.transpileModule(new BotSwarmCompiler().compile(world, token), {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.CommonJS,
+        experimentalDecorators: true,
+      },
+    }).outputText;
+    return evalModule(js);
+  }
+
+  it('emits mergeBalanceReports', () => {
+    expect(new BotSwarmCompiler().compile(world, token)).toContain(
+      'export function mergeBalanceReports'
+    );
+  });
+
+  it('merges shards: counts sum, ticks max, avgTickMs tick-weighted', async () => {
+    const mod = await harnessExports();
+    const merge = mod.mergeBalanceReports as (
+      rs: Array<Record<string, number>>
+    ) => Record<string, number>;
+    const a = { bots: 8, ticks: 100, moveAttempts: 800, moveRejects: 10, castAttempts: 800, castRejects: 5, receipts: 50, avgTickMs: 2, finalPlayers: 8 };
+    const b = { bots: 8, ticks: 100, moveAttempts: 800, moveRejects: 20, castAttempts: 800, castRejects: 5, receipts: 60, avgTickMs: 4, finalPlayers: 8 };
+    const m = merge([a, b]);
+    expect(m.bots).toBe(16);
+    expect(m.ticks).toBe(100);
+    expect(m.moveRejects).toBe(30);
+    expect(m.receipts).toBe(110);
+    expect(m.finalPlayers).toBe(16);
+    expect(m.avgTickMs).toBeCloseTo(3, 5); // (2*100 + 4*100) / 200
+  });
+
+  it('mergeBalanceReports([]) returns a zeroed report', async () => {
+    const mod = await harnessExports();
+    const merge = mod.mergeBalanceReports as (rs: unknown[]) => Record<string, number>;
+    expect(merge([]).bots).toBe(0);
+    expect(merge([]).avgTickMs).toBe(0);
+  });
+});

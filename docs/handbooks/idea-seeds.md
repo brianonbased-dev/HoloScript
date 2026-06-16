@@ -70,11 +70,35 @@
 
 ## `@server_only` ServerAuthorityBundleSplitter (P2.0 — cross-file authority split)
 
+> **STATUS: SHIPPED 2026-06-16 (commit `100b1838b`).** The cross-file symbol table
+> (`packages/core/src/compiler/authority/AuthoritySymbolGraph.ts`), the
+> `ServerAuthorityBundleSplitter` (`splitServerAuthority` → server bundle + client
+> SDK + static proof), the Colyseus authority manifest, and the cross-file
+> `ProvenanceBoundsChecker` upgrade (P2.12) all landed together. 34 tests green.
+> Kept here as the design record. **Next steps on top of it**: register
+> `mmo-server` / `mmo-client-sdk` as first-class SOVEREIGN compile targets (the
+> splitter is currently a library function, not an `ExportTarget`); surface the
+> proof via an MCP tool / a compile-time error in `CompilerSafetyPass` L9; emit a
+> typed client message/subscription SDK (not just the stripped schema).
+
 **What might be valuable**: The MMO round-2 compiler emits a single authoritative Colyseus server. The endgame of the single-source-netcode thesis (memo §4, PLDI '27 paper claim) is to compile ONE `.holo`/`.hs` source into TWO bundles — an authoritative `mmo-server` and a predicting `mmo-client-sdk` — with a **static proof that `@server_only` symbols are unreachable from client-bundle code**. That makes "the client cannot even see the loot-roll RNG / the boss-phase thresholds / the server validation logic" a compile-time guarantee, not a convention — the strongest form of the verifiable-anti-cheat-by-construction claim. The authority annotations (`@server_side`/`@client_side`/`@replicated`) already parse; this is the pass that consumes them to partition the symbol graph and bundle-split.
 
 **Why not now**: A sound server/client split requires a **cross-file symbol table + reachability analysis** that HoloScript's compiler does not have yet — `ImportResolver` produces per-file parse results, not a merged symbol graph with def/use edges. Round-2 shipped the structural pieces (authority annotations parsed, single-server emit, `ProvenanceBoundsChecker` single-file lint). The cross-file `@server_only`-unreachable-from-client proof is the same round-3-4 symbol-table investment the cross-file `ProvenanceBoundsChecker` needs (see that seed) — build the symbol table once, and both the bundle splitter and the cross-file provability checker land on top of it.
 
 ---
+
+## Cloud BotSwarm — distributed load/balance against a hosted Colyseus fleet endpoint (P2.11 cloud)
+
+**What might be valuable**: The in-process `BotSwarmCompiler` (shipped `d30fa24cb`) drives a bot swarm against the generated Room by calling its methods directly in one Node process. The cloud increment runs the swarm at real scale: deploy the ColyseusCompiler-emitted server to a reachable Colyseus endpoint, point N distributed WebSocket bot drivers at it, and merge the per-shard `BalanceReport`s into one fleet report. That turns the harness into true game-balance CI at MMO scale (spawn 500+ bots across nodes, assert server tick stays within the `@balance_test` envelope, replay damage/economy distributions) and produces the benchmark data the paper program needs (D.010 / I.007).
+
+**What's already built** (so the next agent starts from the right place): prerequisite (D), the report aggregator, shipped 2026-06-16 — `mergeBalanceReports(reports)` is now exported by the emitted harness (`packages/core/src/compiler/BotSwarmCompiler.ts`): counts sum, ticks max, `avgTickMs` tick-weighted. The GPU fleet substrate also exists: orchestrator `POST /gpu/workload` queue, the `buildWorldRenderWorkload()` dispatch pattern (`packages/mcp-server/src/world-render-tools.ts`) to copy for a `buildBotSwarmWorkload()`, and the `checkSpendAuthz` spend-gate framework.
+
+**What remains (the turn-key recipe)**:
+1. **A Colyseus-compatible fleet endpoint** — the PRIMARY missing piece. The current GPU job lifecycle is fire-and-done (`POST /gpu/workload` → worker → `POST /done`); a Colyseus run needs a PERSISTENT server (start `node server.js` from the emitted code, hold open WebSocket ports for the run window, tear down after). Needs a new bootstrap script under `scripts/mesh-deploy/` (analogous to the vLLM bootstrap, NOT reusable from it — that one serves LLM inference) plus a tsc/tsx step in the worker to compile the emitted TypeScript server.
+2. **A WebSocket bot driver** — the shipped `runBotSwarm()` calls Room methods in-process; it is NOT a network client. A distributed run needs a driver that connects over a real `colyseus.js` `Client`, issues the same legal+adversarial actions, and returns a `BalanceReport`. Then fan out N drivers and `mergeBalanceReports()` their outputs.
+3. **A `buildBotSwarmWorkload()` dispatcher** (~100 LOC, model on `buildWorldRenderWorkload`) + a `BalanceReport` collector.
+
+**Why not now**: items (1) and (2) are genuine infra, and a real (non-dry) fleet dispatch crosses the spend gate — `checkSpendAuthz` (`packages/mcp-server/src/holo-ci-tools.ts`) gates real vast.ai GPU execution; `sim_run_paid`'s fleet path is fail-loud and physics-solver-only (`thermal`/`structural`), not reusable for game-server sessions. Standing up a persistent hosted Colyseus endpoint on rented GPU is a founder-spend decision (Tier-1 boundary), so the build stops at the $0 prerequisites (aggregator shipped; in-process harness meaningful now that round-2 P0/P1 authority logic is real). Reopen when a hosted Colyseus endpoint is provisioned (founder-approved spend) or a free persistent-server target appears.
 
 ---
 
