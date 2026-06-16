@@ -286,7 +286,7 @@ describe('Domain Blocks and Specialized AST Nodes', () => {
       const h = createHash('sha256')
         .update(JSON.stringify(sortKeysDeep(ast)), 'utf8')
         .digest('hex');
-      expect(h).toBe('8dba678de447860bef6f8a2508b6ba6547648b30424424878b04069632a6842a');
+      expect(h).toBe('b8440efe280a9449c841d21a7d95ccbcca20cde59861c20d6f280ce2ea0d3515');
     });
   });
 });

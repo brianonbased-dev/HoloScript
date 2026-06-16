@@ -109,6 +109,7 @@ import type {
   HoloLootTable,
   HoloLootEntry,
   HoloWorldChunk,
+  HoloWorldLayer,
   HoloMovementPath,
   HoloReactionTrigger,
   HoloNormBlock,
@@ -277,6 +278,7 @@ export class HoloCompositionParser {
       triggers: [],
       lootTables: [],
       worldChunks: [],
+      worldLayers: [],
       movementPaths: [],
       reactionTriggers: [],
     };
@@ -431,6 +433,8 @@ export class HoloCompositionParser {
           composition.movementPaths!.push(this.parseMovementPath());
         } else if (this.check('REACTION_TRIGGER')) {
           composition.reactionTriggers!.push(this.parseReactionTrigger());
+        } else if (this.check('WORLD_LAYER')) {
+          composition.worldLayers!.push(this.parseWorldLayer());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -671,6 +675,7 @@ export class HoloCompositionParser {
       triggers: [],
       lootTables: [],
       worldChunks: [],
+      worldLayers: [],
       movementPaths: [],
       reactionTriggers: [],
     };
@@ -778,6 +783,8 @@ export class HoloCompositionParser {
           composition.movementPaths!.push(this.parseMovementPath());
         } else if (this.check('REACTION_TRIGGER')) {
           composition.reactionTriggers!.push(this.parseReactionTrigger());
+        } else if (this.check('WORLD_LAYER')) {
+          composition.worldLayers!.push(this.parseWorldLayer());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -5599,6 +5606,67 @@ export class HoloCompositionParser {
       npcRoster,
       spawnPoints,
       streaming,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a world_layer block (P2.4 — phasing).
+   *
+   * Syntax:
+   *   world_layer post_awakening {
+   *     requires_quest: "main_chapter_1"   // visible AFTER the quest is done
+   *     npcs: ["restored_keeper"]          // forbids_quest = visible BEFORE
+   *     objects: ["healed_shrine"]
+   *   }
+   */
+  private parseWorldLayer(): HoloWorldLayer {
+    const startLoc = this.currentLocation();
+    this.pushContext('world-layer');
+    this.advance(); // consume 'world_layer'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let questId = '';
+    let mustBeCompleted = true;
+    let npcs: string[] = [];
+    let objects: string[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const val = this.parseValue();
+      if (key === 'requires_quest') {
+        questId = String(val);
+        mustBeCompleted = true;
+      } else if (key === 'forbids_quest') {
+        questId = String(val);
+        mustBeCompleted = false;
+      } else if (key === 'npcs') {
+        npcs = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      } else if (key === 'objects') {
+        objects = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      } else {
+        properties[key] = val;
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'WorldLayer',
+      name,
+      predicate: { type: 'PhasePredicate', kind: 'quest_flag', questId, mustBeCompleted },
+      npcs,
+      objects,
       properties,
     };
   }

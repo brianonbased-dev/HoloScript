@@ -280,6 +280,7 @@ export type TokenType =
   | 'GAME_TRIGGER'
   | 'MOVEMENT_PATH'
   | 'REACTION_TRIGGER'
+  | 'WORLD_LAYER'
   | 'REAL_ESTATE'
   // Process pipeline directives (.hs format — v5)
   | 'CONNECT'
@@ -395,6 +396,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   game_trigger: 'GAME_TRIGGER',
   movement_path: 'MOVEMENT_PATH',
   reaction_trigger: 'REACTION_TRIGGER',
+  world_layer: 'WORLD_LAYER',
   real_estate: 'REAL_ESTATE',
   // IoT / Digital Twin
   sensor: 'IOT_SENSOR',

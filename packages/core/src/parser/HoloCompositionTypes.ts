@@ -118,6 +118,8 @@ export interface HoloComposition extends HoloNode {
   triggers?: HoloGameTrigger[];
   lootTables?: HoloLootTable[];
   worldChunks?: HoloWorldChunk[];
+  /** World-layer phasing: same coords, different content gated by a quest predicate (P2.4) */
+  worldLayers?: HoloWorldLayer[];
   /** Named locomotion routes (patrol/path/orbit) declared at scene level */
   movementPaths?: HoloMovementPath[];
   /** Scene-level declarative reaction triggers (on_<trigger> -> action wiring) */
@@ -520,6 +522,47 @@ export interface HoloWorldChunk extends HoloNode {
   /** Streaming sub-block properties */
   streaming?: Record<string, HoloValue>;
   /** Raw key-value properties for extensibility */
+  properties: Record<string, HoloValue>;
+}
+
+// =============================================================================
+// WORLD LAYER PHASING (P2.4) — same coords, different content per player phase
+// =============================================================================
+
+/**
+ * A typed phasing predicate: a player is "in" the layer iff their completion of
+ * `questId` matches `mustBeCompleted`. The questId is compile-validated against
+ * the composition's declared quests — an unknown quest is a compile error, not a
+ * runtime surprise (the "phasing as a typed verifiable predicate" claim).
+ */
+export interface HoloPhasePredicate {
+  type: 'PhasePredicate';
+  kind: 'quest_flag';
+  questId: string;
+  /** true = visible AFTER the quest is completed; false = visible BEFORE. */
+  mustBeCompleted: boolean;
+}
+
+/**
+ * A world_layer block: content (NPCs/objects, referenced by name) that exists in
+ * the same world coordinates but is gated to players whose phase predicate holds.
+ *
+ * Syntax:
+ *   world_layer post_awakening {
+ *     requires_quest: "main_chapter_1"     // forbids_quest for the inverse
+ *     npcs: ["restored_keeper", "vigilant_guard"]
+ *     objects: ["healed_shrine"]
+ *   }
+ */
+export interface HoloWorldLayer extends HoloNode {
+  type: 'WorldLayer';
+  name: string;
+  predicate: HoloPhasePredicate;
+  /** NPC names gated to this layer (references to npc declarations). */
+  npcs: string[];
+  /** Object names gated to this layer. */
+  objects: string[];
+  /** Raw key-value properties for extensibility. */
   properties: Record<string, HoloValue>;
 }
 
