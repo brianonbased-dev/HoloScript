@@ -1,5 +1,6 @@
 /**
- * HoloScript -> MCP Server Compiler (P0 skeleton + P1 trait-walk Tool[] emission)
+ * HoloScript -> MCP Server Compiler
+ * (P0 skeleton + P1 trait-walk Tool[] emission + P2 TypeScript module emission)
  *
  * The inverse of MCPConfigCompiler: where that compiler emits IDE *client*
  * connection config, this compiler emits an MCP *server* — making the agent
@@ -7,23 +8,27 @@
  * (one trait -> rendered object + A2A agent card + MCP tool surface).
  *
  * P0 (a03c6300a): dialect registration, ANS, skeleton manifest.
- * P1 (this commit): trait-walk that derives `Tool[]` + per-tool `inputSchema`
+ * P1 (edfdeaa18): trait-walk that derives `Tool[]` + per-tool `inputSchema`
  *   from trait declarations. For `@llm_agent` traits the existing
  *   `LLMTool.parameters` shape is reused (no new schema idiom invented).
  *   For all other traits, schema is inferred from config value types.
  *   Per-trait `required[]` is collected at the top-level JSON Schema position
  *   (NOT as per-property booleans — AJV-valid contract).
+ * P2 (this commit): `compileModule()` emits a self-contained `.mcp-server.ts`
+ *   TypeScript module — import-free, passes `tsc --noEmit --strict`, carries
+ *   `HoloMCPRuntimeAdapter` interface + `TOOL_DISPATCH` + `verifyContractWiring`
+ *   + honest `__holoMeta`. Handler dispatch wired by caller via `registerAdapter`.
  *
- * P2+: emitted .mcp-server.ts runtime module, contract wrapper, handler dispatch.
+ * P3+: contract wrapper, startup evaluator gate, enum drift fix.
  *
- * W.731 gate: P1 adds NO new @holoscript/core subpath imports (all relative).
- *   Any new subpath import introduced in P2+ must land in tsup.core.docker.cjs
+ * W.731 gate: P2 adds NO new @holoscript/core subpath imports (all relative).
+ *   Any new subpath import introduced in P3+ must land in tsup.core.docker.cjs
  *   in the same commit.
  *
  * Design + phased plan + the narrowed governance claim:
  *   ai-ecosystem research/2026-06-16_holoscript-mcp-compiler-design.md
  *
- * @version 0.2.0 (P1: trait-walk + Tool[] emission)
+ * @version 0.3.0 (P2: TypeScript module emission)
  * @module @holoscript/core/compiler/HoloMCPCompiler
  */
 
@@ -295,6 +300,62 @@ function deriveToolFromTrait(
 }
 
 // =============================================================================
+// CODEGEN HELPERS (P2 — TypeScript module emission)
+// =============================================================================
+
+/** Map a JSON Schema type string to its TypeScript equivalent. */
+function jsonSchemaTypeToTs(schemaType: string): string {
+  switch (schemaType) {
+    case 'string':  return 'string';
+    case 'number':  return 'number';
+    case 'boolean': return 'boolean';
+    case 'array':   return 'unknown[]';
+    case 'object':  return 'Record<string, unknown>';
+    case 'null':    return 'null';
+    default:        return 'unknown';
+  }
+}
+
+/**
+ * Derive a valid TypeScript interface name for a tool's parameter interface.
+ * e.g. "brittney__llm_agent" → "HoloParams_brittney__llm_agent"
+ */
+function paramInterfaceName(toolName: string): string {
+  return `HoloParams_${toolName}`;
+}
+
+/** Emit a TypeScript parameter interface for one tool's inputSchema. */
+function emitParamInterface(tool: HoloMCPTool): string {
+  const name = paramInterfaceName(tool.name);
+  const props = Object.entries(tool.inputSchema.properties);
+  if (props.length === 0) {
+    return `export interface ${name} { [key: string]: unknown }`;
+  }
+  const required = new Set(tool.inputSchema.required);
+  const lines = props.map(([key, prop]) => {
+    const optional = required.has(key) ? '' : '?';
+    return `  ${key}${optional}: ${jsonSchemaTypeToTs(prop.type)};`;
+  });
+  return `export interface ${name} {\n${lines.join('\n')}\n}`;
+}
+
+/** Emit the TOOLS array literal as a TypeScript const declaration. */
+function emitToolsArray(tools: HoloMCPTool[]): string {
+  const toolLiterals = tools.map((t) => {
+    const propsEntries = Object.entries(t.inputSchema.properties).map(([k, p]) => {
+      const enumPart = p.enum ? `, enum: ${JSON.stringify(p.enum)}` : '';
+      const itemsPart = p.items ? `, items: { type: '${p.items.type}' as const }` : '';
+      return `      ${k}: { type: '${p.type}' as const, description: ${JSON.stringify(p.description)}${enumPart}${itemsPart} }`;
+    });
+    const reqPart = t.inputSchema.required.length > 0
+      ? `\n      required: ${JSON.stringify(t.inputSchema.required)},`
+      : '\n      required: [],';
+    return `  {\n    name: ${JSON.stringify(t.name)},\n    description: ${JSON.stringify(t.description)},\n    inputSchema: {\n      type: 'object' as const,\n      properties: {\n${propsEntries.join(',\n')}\n      },${reqPart}\n    },\n  }`;
+  });
+  return `export const TOOLS: _HoloTool[] = [\n${toolLiterals.join(',\n')}\n];`;
+}
+
+// =============================================================================
 // COMPILER
 // =============================================================================
 
@@ -309,6 +370,33 @@ export class HoloMCPCompiler extends CompilerBase {
       serverName: options.serverName ?? '',
       serverVersion: options.serverVersion ?? '1.0.0',
     };
+  }
+
+  /** Walk all templates and objects in a composition, returning derived tools. */
+  private _walkTraits(composition: HoloComposition): HoloMCPTool[] {
+    const tools: HoloMCPTool[] = [];
+
+    // Templates first (primary reusable capability definitions)
+    if (composition.templates) {
+      for (const template of composition.templates as HoloTemplate[]) {
+        if (!template.traits) continue;
+        for (const trait of template.traits) {
+          tools.push(deriveToolFromTrait(trait, template.name, 'template'));
+        }
+      }
+    }
+
+    // Objects (instance capability overrides)
+    if (composition.objects) {
+      for (const obj of composition.objects as HoloObjectDecl[]) {
+        if (!obj.traits || obj.traits.length === 0) continue;
+        for (const trait of obj.traits) {
+          tools.push(deriveToolFromTrait(trait, obj.name, 'object'));
+        }
+      }
+    }
+
+    return tools;
   }
 
   /**
@@ -328,30 +416,7 @@ export class HoloMCPCompiler extends CompilerBase {
 
     const serverName = this.options.serverName || 'holoscript-mcp-server';
     const sourceObjectCount = composition.objects?.length ?? 0;
-
-    const tools: HoloMCPTool[] = [];
-
-    // ── Walk templates (primary reusable capability definitions) ──────────────
-    if (composition.templates) {
-      for (const template of composition.templates as HoloTemplate[]) {
-        if (!template.traits) continue;
-        for (const trait of template.traits) {
-          // HoloObjectTrait is the concrete shape; HoloTemplate.traits is typed
-          // as HoloObjectTrait[] in HoloCompositionTypes.ts.
-          tools.push(deriveToolFromTrait(trait, template.name, 'template'));
-        }
-      }
-    }
-
-    // ── Walk objects (instance capability overrides) ──────────────────────────
-    if (composition.objects) {
-      for (const obj of composition.objects as HoloObjectDecl[]) {
-        if (!obj.traits || obj.traits.length === 0) continue;
-        for (const trait of obj.traits) {
-          tools.push(deriveToolFromTrait(trait, obj.name, 'object'));
-        }
-      }
-    }
+    const tools = this._walkTraits(composition);
 
     const manifest: HoloMCPServerManifest = {
       _generated: 'HoloMCPCompiler',
@@ -371,5 +436,156 @@ export class HoloMCPCompiler extends CompilerBase {
     };
 
     return JSON.stringify(manifest, null, 2);
+  }
+
+  /**
+   * Compile a HoloComposition into a self-contained TypeScript module string.
+   *
+   * P2 output: emits a `.mcp-server.ts` file that:
+   * - Has NO external imports (passes `tsc --noEmit --strict` in any project)
+   * - Exports `TOOLS` (MCP-SDK-compatible tool definitions)
+   * - Exports `HoloMCPRuntimeAdapter` interface (one method per derived tool)
+   * - Exports `registerAdapter(adapter)` to wire handlers to the dispatch table
+   * - Exports `verifyContractWiring()` to assert all handlers are registered
+   * - Exports `handleToolCall(name, params)` for MCP tool call delegation
+   * - Exports `__holoMeta` with honest governance metadata
+   *
+   * The caller wires this module into their MCP server via `registerAdapter()`
+   * and delegates `CallToolRequest` to `handleToolCall()`.
+   *
+   * @param composition - Parsed HoloScript composition AST
+   * @param agentToken - Agent token for RBAC validation (JWT or UCAN)
+   * @param outputPath - Optional output path for scope validation
+   * @returns TypeScript source string (write to `<name>.mcp-server.ts`)
+   */
+  compileModule(composition: HoloComposition, agentToken: string, outputPath?: string): string {
+    this.validateCompilerAccess(agentToken, outputPath);
+
+    const serverName = this.options.serverName || 'holoscript-mcp-server';
+    const tools = this._walkTraits(composition);
+
+    // ── Inline type declarations (no external imports) ─────────────────────
+    const header = [
+      `// Generated by HoloMCPCompiler — do not hand-edit`,
+      `// Server: ${serverName} | Version: ${this.options.serverVersion} | Phase: P2`,
+      `// Governance: hashTier=fnv1a32, contractEnforcement=none (see design doc)`,
+      ``,
+      `/* eslint-disable */`,
+      ``,
+      `// ── Inline schema types (no external imports needed) ───────────────────────`,
+      ``,
+      `type _HoloJsonSchemaType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'null';`,
+      ``,
+      `interface _HoloSchemaProperty {`,
+      `  type: _HoloJsonSchemaType;`,
+      `  description: string;`,
+      `  enum?: string[];`,
+      `  items?: { type: _HoloJsonSchemaType };`,
+      `}`,
+      ``,
+      `interface _HoloInputSchema {`,
+      `  type: 'object';`,
+      `  properties: Record<string, _HoloSchemaProperty>;`,
+      `  required: string[];`,
+      `}`,
+      ``,
+      `interface _HoloTool {`,
+      `  name: string;`,
+      `  description: string;`,
+      `  inputSchema: _HoloInputSchema;`,
+      `}`,
+    ].join('\n');
+
+    // ── Tool definitions ───────────────────────────────────────────────────
+    const toolsSection = [
+      ``,
+      `// ── Tool definitions (derived from HoloScript trait walk) ──────────────────`,
+      ``,
+      emitToolsArray(tools),
+    ].join('\n');
+
+    // ── Parameter interfaces (one per tool) ────────────────────────────────
+    const paramInterfaces = tools.length > 0
+      ? [
+          ``,
+          `// ── Parameter interfaces (one per tool) ────────────────────────────────────`,
+          ``,
+          ...tools.map(emitParamInterface),
+        ].join('\n')
+      : '';
+
+    // ── Runtime adapter interface ──────────────────────────────────────────
+    const adapterMethods = tools.length > 0
+      ? tools.map((t) => `  ${t.name}(params: ${paramInterfaceName(t.name)}): Promise<unknown>;`)
+      : ['  // no tools derived from this composition'];
+
+    const adapterSection = [
+      ``,
+      `// ── Runtime adapter — implement one method per tool ────────────────────────`,
+      ``,
+      `export interface HoloMCPRuntimeAdapter {`,
+      ...adapterMethods,
+      `}`,
+    ].join('\n');
+
+    // ── Dispatch table + wiring ────────────────────────────────────────────
+    const dispatchEntries = tools.map((t) =>
+      `  _dispatch.set(${JSON.stringify(t.name)}, (p) => adapter.${t.name}(p as unknown as ${paramInterfaceName(t.name)}));`
+    );
+
+    const dispatchSection = [
+      ``,
+      `// ── Dispatch table ──────────────────────────────────────────────────────────`,
+      ``,
+      `const _dispatch = new Map<string, (params: Record<string, unknown>) => Promise<unknown>>();`,
+      ``,
+      `/** Wire your adapter implementation. Call once at server startup. */`,
+      `export function registerAdapter(adapter: HoloMCPRuntimeAdapter): void {`,
+      ...(dispatchEntries.length > 0 ? dispatchEntries : ['  // no tools to register']),
+      `}`,
+      ``,
+      `/**`,
+      ` * Assert every tool has a registered handler.`,
+      ` * Call at server startup before accepting requests to fail fast on gaps.`,
+      ` */`,
+      `export function verifyContractWiring(): void {`,
+      `  const tools: _HoloTool[] = TOOLS;`,
+      `  for (const tool of tools) {`,
+      `    if (!_dispatch.has(tool.name)) {`,
+      `      throw new Error(`,
+      `        \`HoloMCPCompiler: tool '\${tool.name}' has no registered handler. Call registerAdapter() first.\``,
+      `      );`,
+      `    }`,
+      `  }`,
+      `}`,
+      ``,
+      `/** Handle an MCP tool call — returns MCP-SDK-compatible content array. */`,
+      `export async function handleToolCall(`,
+      `  name: string,`,
+      `  params: Record<string, unknown>`,
+      `): Promise<{ content: Array<{ type: 'text'; text: string }> }> {`,
+      `  const handler = _dispatch.get(name);`,
+      `  if (!handler) {`,
+      `    throw new Error(\`HoloMCPCompiler: unknown tool '\${name}'\`);`,
+      `  }`,
+      `  const result = await handler(params);`,
+      `  return { content: [{ type: 'text', text: JSON.stringify(result) }] };`,
+      `}`,
+    ].join('\n');
+
+    // ── Governance metadata ────────────────────────────────────────────────
+    const metaSection = [
+      ``,
+      `// ── Governance metadata ─────────────────────────────────────────────────────`,
+      `// Honest per design doc audit (DomainSimulationReceipt.ts:5,134,183;`,
+      `// PluginSolverContract.ts:422,461). SHA-256 and evaluator gate land in P5.`,
+      ``,
+      `export const __holoMeta = {`,
+      `  hashTier: 'fnv1a32' as const,`,
+      `  contractEnforcement: 'none' as const,`,
+      `} as const;`,
+    ].join('\n');
+
+    return [header, toolsSection, paramInterfaces, adapterSection, dispatchSection, metaSection].join('\n');
   }
 }
