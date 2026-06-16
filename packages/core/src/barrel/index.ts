@@ -95,6 +95,7 @@ export * from '../trust';
 
 // Domain simulation receipts (F.058 receipt-is-the-moat pattern)
 export * from '../receipts/DomainSimulationReceipt';
+export * from '../receipts/hash-policy';
 
 // Care-field primitives (D.052 universal love doctrine)
 export * from '../care';
