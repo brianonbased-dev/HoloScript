@@ -502,7 +502,8 @@ describe('HoloMCPCompiler P2 — compileModule() TypeScript emission', () => {
     const code = emitModule();
     expect(code).toContain("export const __holoMeta");
     expect(code).toContain("hashTier: 'fnv1a32'");
-    expect(code).toContain("contractEnforcement: 'none'");
+    // P3: startup-gate is now enforced (wiring + _contractVerified flag)
+    expect(code).toContain("contractEnforcement: 'startup-gate'");
   });
 
   it('emitted TypeScript is import-free (no import statements)', () => {
@@ -558,5 +559,101 @@ describe('HoloMCPCompiler P2 — compileModule() TypeScript emission', () => {
       try { unlinkSync(tmpFile); } catch { /* ok if already gone */ }
     }
     // If execFileSync didn't throw, tsc passed with zero errors.
+  });
+});
+
+// ─── P3: startup evaluator gate ──────────────────────────────────────────────
+
+describe('HoloMCPCompiler P3 — startup evaluator gate', () => {
+  const compiler = new HoloMCPCompiler({ serverName: 'p3-server' });
+
+  function emitWith(overrides: Partial<Parameters<typeof makeEmptyComposition>[0]> = {}): string {
+    return compiler.compileModule(makeEmptyComposition(overrides), '');
+  }
+
+  it('emits _adapterRegistered and _contractVerified module-level flags', () => {
+    const code = emitWith();
+    expect(code).toContain('let _adapterRegistered = false;');
+    expect(code).toContain('let _contractVerified = false;');
+  });
+
+  it('registerAdapter sets _adapterRegistered, resets _contractVerified, clears dispatch', () => {
+    const code = emitWith({
+      objects: [makeObject('Bot', [makeTrait('sensor', { hz: 10 })])],
+    });
+    expect(code).toContain('_adapterRegistered = true;');
+    expect(code).toContain('_contractVerified = false;');
+    expect(code).toContain('_dispatch.clear();');
+  });
+
+  it('verifyContractWiring throws when registerAdapter was never called', () => {
+    const code = emitWith();
+    expect(code).toContain('registerAdapter() was not called');
+    expect(code).toContain('!_adapterRegistered');
+  });
+
+  it('verifyContractWiring sets _contractVerified = true on success', () => {
+    const code = emitWith();
+    expect(code).toContain('_contractVerified = true;');
+  });
+
+  it('handleToolCall throws when _contractVerified is false', () => {
+    const code = emitWith();
+    expect(code).toContain('!_contractVerified');
+    expect(code).toContain('verifyContractWiring() must be called at startup before handleToolCall()');
+  });
+
+  it('contractEnforcement is "startup-gate" (honest: gate is structurally enforced)', () => {
+    const code = emitWith();
+    expect(code).toContain("contractEnforcement: 'startup-gate'");
+  });
+
+  it('emitted TypeScript with P3 guards passes tsc --noEmit --strict (P3 gate)', () => {
+    const __dir = fileURLToPath(new URL('.', import.meta.url));
+    const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
+
+    const composition = makeEmptyComposition({
+      objects: [
+        makeObject('Arm', [makeTrait('urdf_robot', { scale: 1.0, segments: 3 })]),
+        makeObject('Brain', [
+          makeTrait('llm_agent', {
+            tools: [
+              {
+                name: 'plan',
+                description: 'Plan a motion trajectory',
+                parameters: {
+                  goal: { type: 'string', description: 'Target position', required: true },
+                  steps: { type: 'number', description: 'Max steps', required: false },
+                },
+              },
+            ],
+          }),
+        ]),
+      ],
+    });
+
+    const code = compiler.compileModule(composition, '');
+    const tmpFile = join(tmpdir(), `holo-mcp-p3-gate-${Date.now()}.ts`);
+    writeFileSync(tmpFile, code, 'utf8');
+
+    try {
+      execFileSync(
+        process.execPath,
+        [
+          tscBin,
+          '--noEmit',
+          '--strict',
+          '--target', 'ES2020',
+          '--lib', 'ES2020',
+          '--module', 'commonjs',
+          '--moduleResolution', 'node',
+          '--skipLibCheck',
+          tmpFile,
+        ],
+        { encoding: 'utf8' }
+      );
+    } finally {
+      try { unlinkSync(tmpFile); } catch { /* ok */ }
+    }
   });
 });

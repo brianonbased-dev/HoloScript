@@ -14,12 +14,19 @@
  *   For all other traits, schema is inferred from config value types.
  *   Per-trait `required[]` is collected at the top-level JSON Schema position
  *   (NOT as per-property booleans — AJV-valid contract).
- * P2 (this commit): `compileModule()` emits a self-contained `.mcp-server.ts`
+ * P2 (99f96c797): `compileModule()` emits a self-contained `.mcp-server.ts`
  *   TypeScript module — import-free, passes `tsc --noEmit --strict`, carries
  *   `HoloMCPRuntimeAdapter` interface + `TOOL_DISPATCH` + `verifyContractWiring`
  *   + honest `__holoMeta`. Handler dispatch wired by caller via `registerAdapter`.
+ * P3 (this commit): startup evaluator gate — the emitted module tracks
+ *   `_adapterRegistered` + `_contractVerified`; `verifyContractWiring()` throws
+ *   immediately on empty registry (registerAdapter never called); `handleToolCall()`
+ *   refuses requests until `verifyContractWiring()` has passed. This makes the
+ *   Trust-by-Construction claim structurally real: a hand-authored TS tool file
+ *   cannot provide this guarantee without per-file convention.
+ *   `contractEnforcement` updated from 'none' → 'startup-gate' (honest).
  *
- * P3+: contract wrapper, startup evaluator gate, enum drift fix.
+ * P4+: enum drift fix (DialectRegistry.list() → compile_holoscript enum).
  *
  * W.731 gate: P2 adds NO new @holoscript/core subpath imports (all relative).
  *   Any new subpath import introduced in P3+ must land in tsup.core.docker.cjs
@@ -535,20 +542,36 @@ export class HoloMCPCompiler extends CompilerBase {
 
     const dispatchSection = [
       ``,
-      `// ── Dispatch table ──────────────────────────────────────────────────────────`,
+      `// ── Dispatch table (P3: startup evaluator gate) ─────────────────────────────`,
       ``,
       `const _dispatch = new Map<string, (params: Record<string, unknown>) => Promise<unknown>>();`,
+      `let _adapterRegistered = false;`,
+      `let _contractVerified = false;`,
       ``,
-      `/** Wire your adapter implementation. Call once at server startup. */`,
+      `/**`,
+      ` * Wire your adapter implementation.`,
+      ` * Must be called before verifyContractWiring() at server startup.`,
+      ` * Re-calling resets the dispatch table and clears the verified flag.`,
+      ` */`,
       `export function registerAdapter(adapter: HoloMCPRuntimeAdapter): void {`,
+      `  _adapterRegistered = true;`,
+      `  _contractVerified = false;`,
+      `  _dispatch.clear();`,
       ...(dispatchEntries.length > 0 ? dispatchEntries : ['  // no tools to register']),
       `}`,
       ``,
       `/**`,
-      ` * Assert every tool has a registered handler.`,
-      ` * Call at server startup before accepting requests to fail fast on gaps.`,
+      ` * (P3 startup evaluator gate) Assert that registerAdapter() was called and`,
+      ` * every tool has a registered handler. Call once at server startup — throws`,
+      ` * immediately on any gap so wiring failures surface at boot, not on the`,
+      ` * first live request. handleToolCall() refuses requests until this passes.`,
       ` */`,
       `export function verifyContractWiring(): void {`,
+      `  if (!_adapterRegistered) {`,
+      `    throw new Error(`,
+      `      'HoloMCPCompiler: registerAdapter() was not called. Wire an adapter before verifyContractWiring().'`,
+      `    );`,
+      `  }`,
       `  const tools: _HoloTool[] = TOOLS;`,
       `  for (const tool of tools) {`,
       `    if (!_dispatch.has(tool.name)) {`,
@@ -557,6 +580,7 @@ export class HoloMCPCompiler extends CompilerBase {
       `      );`,
       `    }`,
       `  }`,
+      `  _contractVerified = true;`,
       `}`,
       ``,
       `/** Handle an MCP tool call — returns MCP-SDK-compatible content array. */`,
@@ -564,6 +588,11 @@ export class HoloMCPCompiler extends CompilerBase {
       `  name: string,`,
       `  params: Record<string, unknown>`,
       `): Promise<{ content: Array<{ type: 'text'; text: string }> }> {`,
+      `  if (!_contractVerified) {`,
+      `    throw new Error(`,
+      `      'HoloMCPCompiler: verifyContractWiring() must be called at startup before handleToolCall().'`,
+      `    );`,
+      `  }`,
       `  const handler = _dispatch.get(name);`,
       `  if (!handler) {`,
       `    throw new Error(\`HoloMCPCompiler: unknown tool '\${name}'\`);`,
@@ -578,11 +607,13 @@ export class HoloMCPCompiler extends CompilerBase {
       ``,
       `// ── Governance metadata ─────────────────────────────────────────────────────`,
       `// Honest per design doc audit (DomainSimulationReceipt.ts:5,134,183;`,
-      `// PluginSolverContract.ts:422,461). SHA-256 and evaluator gate land in P5.`,
+      `// PluginSolverContract.ts:422,461).`,
+      `// P3: contractEnforcement='startup-gate' (wiring + verified flag enforced).`,
+      `// SHA-256 hashTier upgrade lands in P5.`,
       ``,
       `export const __holoMeta = {`,
       `  hashTier: 'fnv1a32' as const,`,
-      `  contractEnforcement: 'none' as const,`,
+      `  contractEnforcement: 'startup-gate' as const,`,
       `} as const;`,
     ].join('\n');
 
