@@ -176,6 +176,8 @@ export * from './OrbitalTrait';
 export * from './PackageSigningTrait';
 export * from './PartnerSDKTrait';
 export * from './PatrolTrait';
+export * from './LocomotionTrait';
+export * from './locomotion';
 export * from './PerceptionTrait';
 export * from './PersistentAnchorTrait';
 export * from './PhotogrammetryTrait';

@@ -120,6 +120,7 @@ import { emotionHandler } from './EmotionTrait';
 import { dialogueHandler } from './DialogueTrait';
 import { factionHandler } from './FactionTrait';
 import { patrolHandler } from './PatrolTrait';
+import { locomotionHandler } from './LocomotionTrait';
 import { statHandler } from './StatTrait';
 import { luckHandler } from './LuckTrait';
 import { encounterHandler } from './EncounterTrait';
@@ -1696,6 +1697,7 @@ export class VRTraitRegistry {
     this.register(dialogueHandler as TraitHandler);
     this.register(factionHandler as TraitHandler);
     this.register(patrolHandler as TraitHandler);
+    this.register(locomotionHandler as TraitHandler);
 
     // HoloLand RPG Mechanics
     this.register(statHandler as TraitHandler);
@@ -2304,6 +2306,7 @@ export {
   dialogueHandler,
   factionHandler,
   patrolHandler,
+  locomotionHandler,
   // Phase 8: Advanced Spatial Audio
   gemResonanceHandler,
   ambisonicsHandler,
