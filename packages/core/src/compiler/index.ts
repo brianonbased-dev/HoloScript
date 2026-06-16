@@ -204,6 +204,51 @@ export {
 } from './platform/ModalitySelector';
 export type { ModalitySelection, ModalitySelectorOptions } from './platform/ModalitySelector';
 
+// Authority analysis — cross-file symbol table + server/client bundle split (P2.0)
+export {
+  AuthoritySymbolGraph,
+  createAuthoritySymbolGraph,
+  mostRestrictiveTier,
+} from './authority/AuthoritySymbolGraph';
+export type {
+  AuthorityTier,
+  AuthoritySymbolKind,
+  AuthoritySymbol,
+  AuthoritySymbolInput,
+  AuthorityViolation,
+  AuthorityPartition,
+} from './authority/AuthoritySymbolGraph';
+export {
+  buildColyseusAuthorityGraph,
+  buildColyseusCrossFileContext,
+  COLYSEUS_SCHEMA_FIELD_TIERS,
+  COLYSEUS_CONSTANT_TIERS,
+  COLYSEUS_EMIT_FILE,
+} from './authority/ColyseusAuthorityManifest';
+export type {
+  SchemaClassTiers,
+  ColyseusCrossFileContext,
+} from './authority/ColyseusAuthorityManifest';
+export { splitServerAuthority } from './authority/ServerAuthorityBundleSplitter';
+export type {
+  ServerAuthoritySplit,
+  AuthorityProof,
+} from './authority/ServerAuthorityBundleSplitter';
+
+// Provenance bounds — @provably_bounded proof obligations (single-file + cross-file)
+export {
+  ProvenanceBoundsChecker,
+  createProvenanceBoundsChecker,
+} from './ProvenanceBoundsChecker';
+export type {
+  ProvabilityReport,
+  ProofObligation,
+  ExploitClass,
+  ObligationStatus,
+  ProvenanceBoundsConfig,
+  CrossFileContext,
+} from './ProvenanceBoundsChecker';
+
 // USDZ pipeline
 export { USDZPipeline } from './USDZPipeline';
 export type { USDZPipelineOptions } from './USDZPipeline';

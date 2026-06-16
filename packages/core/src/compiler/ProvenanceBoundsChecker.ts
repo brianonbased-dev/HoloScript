@@ -17,10 +17,36 @@
  */
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import type { AuthoritySymbolGraph } from './authority/AuthoritySymbolGraph';
 
 // =============================================================================
 // PUBLIC TYPES
 // =============================================================================
+
+/**
+ * Cross-file resolution context (round-3 symbol table). When supplied to
+ * {@link ProvenanceBoundsChecker.check}, the three obligations that single-file
+ * analysis can only assume (ability_spam, unvalidated_cast, info_leak) are
+ * upgraded from "satisfied-with-caveat" to GENUINELY verified against resolved
+ * cross-file authority — closing the paper-claim risk that `@provably_bounded`
+ * could pass without actually proving server authority.
+ *
+ * Build one from a ColyseusCompiler result with
+ * `buildColyseusCrossFileContext` (authority/ColyseusAuthorityManifest).
+ */
+export interface CrossFileContext {
+  /**
+   * Per-ability resolved authority envelope (ability name → tier), gathered by
+   * resolving `.hs` imports. An ability resolving to `client`/`client_predicted`
+   * is a client-authoritative cast surface (spam/cheat risk).
+   */
+  abilityEnvelopes?: Map<string, 'server' | 'client_predicted' | 'client'>;
+  /**
+   * Cross-file authority symbol graph for replication / info-leak reachability.
+   * When present, info_leak is proven by {@link AuthoritySymbolGraph.findViolations}.
+   */
+  graph?: AuthoritySymbolGraph;
+}
 
 /**
  * Exploit classes the checker reasons about.
@@ -113,19 +139,24 @@ export class ProvenanceBoundsChecker {
    * Check a composition against all proof obligations.
    *
    * @param composition - The parsed `HoloComposition` to analyse.
+   * @param crossFile   - Optional round-3 cross-file context. When supplied, the
+   *                      ability_spam, unvalidated_cast, and info_leak obligations
+   *                      are verified against resolved cross-file authority instead
+   *                      of being assumed satisfied. Omit it for the original
+   *                      single-file lint behaviour (unchanged).
    * @returns A full `ProvabilityReport`.
    */
-  check(composition: HoloComposition): ProvabilityReport {
+  check(composition: HoloComposition, crossFile?: CrossFileContext): ProvabilityReport {
     const strict = this.config.assumeStrict || this.hasRootTrait(composition, 'provably_bounded');
 
     const obligations: ProofObligation[] = [
       this.checkSpeedhack(composition),
-      this.checkAbilitySpam(composition),
-      this.checkUnvalidatedCast(composition),
+      this.checkAbilitySpam(composition, crossFile),
+      this.checkUnvalidatedCast(composition, crossFile),
       this.checkRangeExploit(composition),
       this.checkDupe(composition),
       this.checkUnauditedEvent(composition),
-      this.checkInfoLeak(composition),
+      this.checkInfoLeak(composition, crossFile),
     ];
 
     const satisfied = obligations.filter((o) => o.status === 'satisfied').length;
@@ -198,7 +229,10 @@ export class ProvenanceBoundsChecker {
    * honest note about the single-file limitation. 'not_applicable' when there
    * are no abilities.
    */
-  private checkAbilitySpam(composition: HoloComposition): ProofObligation {
+  private checkAbilitySpam(
+    composition: HoloComposition,
+    crossFile?: CrossFileContext
+  ): ProofObligation {
     const abilityCount = composition.abilities?.length ?? 0;
 
     if (abilityCount === 0) {
@@ -211,18 +245,40 @@ export class ProvenanceBoundsChecker {
       };
     }
 
-    // Round-2 heuristic: HoloScript ability blocks default to server authority.
-    // Per-ability @authority_envelope annotations require cross-file resolution
-    // (round 3-4). We report satisfied with a caveat.
     const abilityNames = composition.abilities.map((a) => a.name).join(', ');
 
+    // Round-3 cross-file path: verify each ability's resolved authority envelope.
+    if (crossFile?.abilityEnvelopes) {
+      const clientAuth = this.clientAuthoritativeAbilities(crossFile.abilityEnvelopes);
+      if (clientAuth.length > 0) {
+        return {
+          exploitClass: 'ability_spam',
+          status: 'unmet',
+          rule: 'Abilities must be server-authoritative to prevent client-side spam.',
+          evidence: `${clientAuth.length} ability(s) resolve to client authority across imports: ${clientAuth.join(', ')}. A client-authoritative cast can be spammed without server gating.`,
+          remediation:
+            'Set @authority_envelope(authority: "server") on these abilities (or "client_predicted" only when the server still reconciles).',
+        };
+      }
+      return {
+        exploitClass: 'ability_spam',
+        status: 'satisfied',
+        rule: 'Abilities must be server-authoritative to prevent client-side spam.',
+        evidence: `${abilityCount} ability(s) (${abilityNames}) verified server-authoritative across resolved imports — no client-authoritative cast surface.`,
+        remediation: 'Already satisfied (cross-file verified).',
+      };
+    }
+
+    // Round-2 single-file fallback: HoloScript ability blocks default to server
+    // authority. Per-ability @authority_envelope verification needs cross-file
+    // resolution — supply a CrossFileContext to upgrade this to a real proof.
     return {
       exploitClass: 'ability_spam',
       status: 'satisfied',
       rule: 'Abilities must be server-authoritative to prevent client-side spam.',
-      evidence: `${abilityCount} ability(s) found (${abilityNames}). Abilities default to server authority in the HoloScript compiler. Per-ability @authority_envelope verification is single-file-limited and deferred to round 3.`,
+      evidence: `${abilityCount} ability(s) found (${abilityNames}). Abilities default to server authority in the HoloScript compiler. Per-ability @authority_envelope verification is single-file-limited; pass a CrossFileContext for cross-file proof.`,
       remediation:
-        'Already satisfied at structural level. Add explicit @authority_envelope(authority: "server") per ability for round-3 verification.',
+        'Already satisfied at structural level. Provide a CrossFileContext (resolved ability envelopes) for verified cross-file authority.',
     };
   }
 
@@ -238,7 +294,10 @@ export class ProvenanceBoundsChecker {
    * The distinction is that range_exploit (obligation 4) checks range > 0
    * specifically, while unvalidated_cast checks cast-time server authority.
    */
-  private checkUnvalidatedCast(composition: HoloComposition): ProofObligation {
+  private checkUnvalidatedCast(
+    composition: HoloComposition,
+    crossFile?: CrossFileContext
+  ): ProofObligation {
     const abilityCount = composition.abilities?.length ?? 0;
 
     if (abilityCount === 0) {
@@ -253,13 +312,36 @@ export class ProvenanceBoundsChecker {
 
     const abilityNames = composition.abilities.map((a) => a.name).join(', ');
 
+    // Round-3 cross-file path: a fully client-authoritative ability resolves its
+    // cast on the client without server validation.
+    if (crossFile?.abilityEnvelopes) {
+      const clientOnly = this.fullyClientAbilities(crossFile.abilityEnvelopes);
+      if (clientOnly.length > 0) {
+        return {
+          exploitClass: 'unvalidated_cast',
+          status: 'unmet',
+          rule: 'Ability casts must be validated server-side (no client-authoritative cast resolution).',
+          evidence: `${clientOnly.length} ability(s) resolve cast client-side with no server reconciliation: ${clientOnly.join(', ')}.`,
+          remediation:
+            'Move cast resolution to the server: @authority_envelope(authority: "server") or "client_predicted" with server reconcile.',
+        };
+      }
+      return {
+        exploitClass: 'unvalidated_cast',
+        status: 'satisfied',
+        rule: 'Ability casts must be validated server-side (no client-authoritative cast resolution).',
+        evidence: `${abilityCount} ability(s) (${abilityNames}) verified: every cast is server-validated or server-reconciled across resolved imports.`,
+        remediation: 'Already satisfied (cross-file verified).',
+      };
+    }
+
     return {
       exploitClass: 'unvalidated_cast',
       status: 'satisfied',
       rule: 'Ability casts must be validated server-side (no client-authoritative cast resolution).',
-      evidence: `${abilityCount} ability(s) found (${abilityNames}). Cast resolution defaults to server authority; no client-authoritative envelope detected at the single-file level.`,
+      evidence: `${abilityCount} ability(s) found (${abilityNames}). Cast resolution defaults to server authority; no client-authoritative envelope detected at the single-file level. Pass a CrossFileContext for cross-file proof.`,
       remediation:
-        'Add explicit @authority_envelope(authority: "server") per ability for provable round-3 cast validation.',
+        'Provide a CrossFileContext (resolved ability envelopes) for verified cross-file cast validation.',
     };
   }
 
@@ -391,7 +473,35 @@ export class ProvenanceBoundsChecker {
    * allow a basic check). Without cross-file replication analysis this
    * obligation cannot be fully verified.
    */
-  private checkInfoLeak(composition: HoloComposition): ProofObligation {
+  private checkInfoLeak(
+    composition: HoloComposition,
+    crossFile?: CrossFileContext
+  ): ProofObligation {
+    // Round-3 cross-file path: prove no server_only symbol is reachable from a
+    // client root via the authority symbol graph.
+    if (crossFile?.graph) {
+      const violations = crossFile.graph.findViolations();
+      if (violations.length > 0) {
+        const leaked = violations.map((v) => v.symbol.name).join(', ');
+        return {
+          exploitClass: 'info_leak',
+          status: 'unmet',
+          rule: 'Server-only state must not be replicated to clients.',
+          evidence: `${violations.length} server_only symbol(s) observable from the client bundle: ${leaked}.`,
+          remediation:
+            'Remove @type/replication from these symbols or break the client→server_only reference chain (see ServerAuthorityBundleSplitter proof).',
+        };
+      }
+      return {
+        exploitClass: 'info_leak',
+        status: 'satisfied',
+        rule: 'Server-only state must not be replicated to clients.',
+        evidence:
+          'Cross-file authority graph proves no server_only symbol is exposed on, or reachable from, the client wire surface.',
+        remediation: 'Already satisfied (cross-file reachability proof).',
+      };
+    }
+
     const hasServerSideTrait =
       this.hasRootTrait(composition, 'server_side') ||
       this.hasRootTrait(composition, 'server_only');
@@ -432,6 +542,35 @@ export class ProvenanceBoundsChecker {
     return (
       composition.traits?.some((t) => t.name.replace(/^@/, '') === traitName) ?? false
     );
+  }
+
+  /**
+   * Ability names whose resolved authority allows ANY client-side resolution
+   * (`client` or `client_predicted`) — a client-spammable cast surface.
+   */
+  private clientAuthoritativeAbilities(
+    envelopes: Map<string, 'server' | 'client_predicted' | 'client'>
+  ): string[] {
+    const out: string[] = [];
+    for (const [name, tier] of envelopes) {
+      if (tier === 'client' || tier === 'client_predicted') out.push(name);
+    }
+    return out;
+  }
+
+  /**
+   * Ability names that resolve FULLY on the client with no server reconcile
+   * (`client`). `client_predicted` is excluded — the server still reconciles it,
+   * so its cast is validated.
+   */
+  private fullyClientAbilities(
+    envelopes: Map<string, 'server' | 'client_predicted' | 'client'>
+  ): string[] {
+    const out: string[] = [];
+    for (const [name, tier] of envelopes) {
+      if (tier === 'client') out.push(name);
+    }
+    return out;
   }
 
   /**
