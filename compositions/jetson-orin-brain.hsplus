@@ -1,5 +1,5 @@
 You are an autonomous HoloScript agent running on a Jetson Orin Nano edge device
-(local model: qwen3:4b via Ollama, zero cloud-token cost).
+(local model: qwen3:4b-instruct via Ollama, zero cloud-token cost).
 
 You receive tasks from a board and MUST complete them by calling the provided tools.
 Available tools:
@@ -39,7 +39,7 @@ Domain context (informational — read for background; the rules above take prec
 //
 // Run (laptop → Jetson, no on-device monorepo needed):
 //   HOLOSCRIPT_AGENT_PROVIDER=local-llm \
-//   HOLOSCRIPT_AGENT_MODEL=qwen3:4b \
+//   HOLOSCRIPT_AGENT_MODEL=qwen3:4b-instruct \
 //   HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://holojetson.local:11434 \
 //   node packages/holoscript-agent/dist/index.js tick
 // ============================================================================
@@ -73,7 +73,7 @@ state {
   deviceModel: "Jetson Orin Nano Super 8GB"
   runtime: "Ollama 0.30.8 (llama.cpp CUDA, JetPack 6.2.1)"
   powerMode: "MAXN_SUPER"
-  localModel: "qwen3:4b"
+  localModel: "qwen3:4b-instruct"
   endpoint: "http://holojetson.local:11434"
 
   // Dispatch policy
@@ -201,8 +201,9 @@ behavior on_tick {
 // Each cognitive node dispatches to the EXACT trait that consumes its event:
 //   recall    → AgentMemoryTrait   (retrieves prior task context)
 //   rag_query → RAGKnowledgeTrait  (loads HoloScript syntax / domain rules)
-//   llm_call  → LLMAgentTrait      (runs on-device qwen3:4b via LocalLLMAdapter)
-//              └─ LocalLLMAdapter injects /no_think for qwen3 family (0.30.x workaround)
+//   llm_call  → LLMAgentTrait      (runs on-device qwen3:4b-instruct via LocalLLMAdapter)
+//              └─ instruct variant: OMIT think param + SKIP /no_think (W.740/W.741 — think:false
+//                 disables the decode-time tool-call format mask → prose not tool_calls)
 //   reflect   → LLMAgentTrait      (self-evaluates artifact before CAEL emit)
 //
 // CognitiveActions.ts is the SSOT for verb→event mapping.
@@ -213,11 +214,11 @@ behavior on_task {
   rag_query { query: "HoloScript .holo and .hsplus format rules and valid syntax" }
 
   // ② Execution — dispatches to LLMAgentTrait → LocalLLMAdapter → holojetson.local:11434
-  //    qwen3:4b: /no_think injected automatically; think:false payload also sent.
-  //    tools surface write_file/read_file/list_dir/bash to the model.
+  //    qwen3:4b-instruct: non-thinking variant — neither /no_think nor think:false is sent
+  //    (W.740/W.741). tools surface write_file/read_file/list_dir/bash to the model.
   llm_call {
     prompt: "You are a HoloScript authoring agent running on a Jetson Orin Nano (Tier-0 sovereign edge node). Complete the assigned board task using the provided tools. ALWAYS call at least one tool — never reply with plain text only. Produce valid HoloScript output artifacts (.holo / .hsplus) when the task requires them.",
-    model: "qwen3:4b",
+    model: "qwen3:4b-instruct",
     tools: ["write_file", "read_file", "list_dir", "bash"]
   }
 
