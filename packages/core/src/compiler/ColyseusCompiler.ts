@@ -56,6 +56,7 @@ import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   type GameAbilityNode,
+  type DamageFormula,
   getAbilityDirectives,
   type AbilityDirectives,
 } from '../types/base';
@@ -105,6 +106,8 @@ export interface ColyseusAbilityConfig {
   damageType: string;
   authorityEnvelope: AbilityDirectives['authorityEnvelope'];
   castTimeMs: number;
+  /** Typed damage formula (null when the ability has no damage_formula block). P1.8 */
+  damageFormula: DamageFormula | null;
 }
 
 export interface ColyseusLootEntry {
@@ -191,8 +194,19 @@ export interface ColyseusCompilationResult {
   aoiRadius: number;
   /** Lowered NPC brains (from imported .hsplus brain declarations) */
   brains: ColyseusBrainConfig[];
+  /** World-layer phasing configs (from composition.worldLayers) */
+  worldLayers: ColyseusWorldLayerConfig[];
   warnings: string[];
   errors: string[];
+}
+
+/** A lowered world_layer: content gated to players whose quest predicate holds (P2.4). */
+export interface ColyseusWorldLayerConfig {
+  name: string;
+  questId: string;
+  mustBeCompleted: boolean;
+  npcs: string[];
+  objects: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +294,7 @@ export class ColyseusCompiler extends CompilerBase {
   private lootTables: ColyseusLootTable[] = [];
   private aoiRadius = 0;
   private brains: ColyseusBrainConfig[] = [];
+  private worldLayers: ColyseusWorldLayerConfig[] = [];
 
   /** Imported .hs ability nodes (populated by compileSource before compile). */
   private importedAbilities: GameAbilityNode[] = [];
@@ -314,6 +329,7 @@ export class ColyseusCompiler extends CompilerBase {
     this.lootTables = [];
     this.aoiRadius = 0;
     this.brains = [];
+    this.worldLayers = [];
 
     if (!composition || composition.type !== 'Composition') {
       this.errors.push('Invalid composition tree');
@@ -340,6 +356,7 @@ export class ColyseusCompiler extends CompilerBase {
     this.lootTables = this.buildLootTables(composition);
     this.aoiRadius = this.resolveAoi(composition);
     this.brains = this.buildBrainRegistry();
+    this.worldLayers = this.buildWorldLayers(composition);
 
     // ── Logic event handlers ──────────────────────────────────────────────
     const logic = composition.logic ?? null;
@@ -743,6 +760,7 @@ export class ColyseusCompiler extends CompilerBase {
         damageType: ability.abilityType === 'passive' ? 'none' : 'physical',
         authorityEnvelope: 'server',
         castTimeMs: Math.round(this.numOr(stats.castTime, 0) * 1000),
+        damageFormula: null, // .holo abilities don't carry a damage_formula block
       });
     }
 
@@ -763,6 +781,7 @@ export class ColyseusCompiler extends CompilerBase {
         damageType: d.damageType,
         authorityEnvelope: d.authorityEnvelope,
         castTimeMs: d.castTimeMs,
+        damageFormula: node.damageFormula ?? null,
       });
     }
 
@@ -836,6 +855,50 @@ export class ColyseusCompiler extends CompilerBase {
       });
     }
     return out;
+  }
+
+  /**
+   * Lower composition.worldLayers → phasing configs (P2.4). Validates each layer's
+   * quest predicate against the composition's declared quests: an unknown quest_flag
+   * is a COMPILE ERROR (the "phasing as a typed verifiable predicate" guarantee),
+   * not a runtime surprise.
+   */
+  private buildWorldLayers(composition: HoloComposition): ColyseusWorldLayerConfig[] {
+    const layers = composition.worldLayers ?? [];
+    if (layers.length === 0) return [];
+    const declaredQuests = new Set((composition.quests ?? []).map((q) => q.name));
+    const out: ColyseusWorldLayerConfig[] = [];
+    for (const layer of layers) {
+      const questId = layer.predicate?.questId ?? '';
+      if (!questId) {
+        this.errors.push(`world_layer '${layer.name}' has no quest predicate (requires_quest/forbids_quest).`);
+        continue;
+      }
+      if (!declaredQuests.has(questId)) {
+        this.errors.push(
+          `world_layer '${layer.name}' references unknown quest "${questId}". ` +
+            `Declare a quest block with that name (typed phasing predicate — compile-validated).`
+        );
+        continue;
+      }
+      out.push({
+        name: layer.name,
+        questId,
+        mustBeCompleted: layer.predicate.mustBeCompleted,
+        npcs: Array.isArray(layer.npcs) ? layer.npcs.slice() : [],
+        objects: Array.isArray(layer.objects) ? layer.objects.slice() : [],
+      });
+    }
+    return out;
+  }
+
+  private worldLayerObject(): Record<string, Omit<ColyseusWorldLayerConfig, 'name'>> {
+    const obj: Record<string, Omit<ColyseusWorldLayerConfig, 'name'>> = {};
+    for (const l of this.worldLayers) {
+      const { name, ...rest } = l;
+      obj[name] = rest;
+    }
+    return obj;
   }
 
   /**
@@ -1082,6 +1145,10 @@ export class ColyseusCompiler extends CompilerBase {
       `export const ABILITY_REGISTRY: Record<string, {`,
       `  cooldownMs: number; gcdMs: number; manaCost: number; range: number;`,
       `  damageType: string; authorityEnvelope: string; castTimeMs: number;`,
+      `  damageFormula: {`,
+      `    base: number; scaling: string; critMultiplier: number;`,
+      `    critChance: string; resistSchool: string;`,
+      `  } | null;`,
       `}> = ${JSON.stringify(this.abilityRegistryObject(), null, 2)};`,
       ``
     );
@@ -1115,6 +1182,17 @@ export class ColyseusCompiler extends CompilerBase {
       `}> = ${JSON.stringify(this.brainRegistryObject(), null, 2)};`,
       ``
     );
+
+    // World-layer phasing registry (lowered + quest-validated from world_layer blocks)
+    if (this.worldLayers.length > 0) {
+      this.push(
+        `// ── World-layer phasing (player-phase gated content — typed predicate) ─`,
+        `export const PHASE_REGISTRY: Record<string, {`,
+        `  questId: string; mustBeCompleted: boolean; npcs: string[]; objects: string[];`,
+        `}> = ${JSON.stringify(this.worldLayerObject(), null, 2)};`,
+        ``
+      );
+    }
   }
 
   private lootTableObject(): Record<string, Omit<ColyseusLootTable, 'name'>> {
@@ -1163,6 +1241,8 @@ export class ColyseusCompiler extends CompilerBase {
       `  lastMoveTick = 0;`,
       `  gcdUntilTick = 0;`,
       `  cooldowns: Record<string, number> = {};`,
+      `  questFlags: Set<string> = new Set(); // P2.4: completed quest ids (server-only)`,
+      `  activePhases: Set<string> = new Set(); // P2.4: world-layers this player is in`,
       `}`,
       ``
     );
@@ -1341,6 +1421,12 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    player.x = 0; player.y = 0; player.z = 0;`);
     }
     this.push(`    this.state.players.set(client.sessionId, player);`);
+    if (this.worldLayers.length > 0) {
+      this.push(`    // P2.4: restore quest progress from join options, compute active phases`);
+      this.push(`    const restoredFlags = (options['questFlags'] as string[]) ?? [];`);
+      this.push(`    for (const q of restoredFlags) player.questFlags.add(q);`);
+      this.push(`    this.phaseEval(player);`);
+    }
     if (joinHandler) {
       this.push(`    this.handlePlayerJoin(client, player, options);`);
     }
@@ -1384,6 +1470,12 @@ export class ColyseusCompiler extends CompilerBase {
     if (this.abilities.length > 0) {
       this.push(`      case 'cast': {`);
       this.push(`        this.handleCast(client, player, message);`);
+      this.push(`        break;`);
+      this.push(`      }`);
+    }
+    if (this.worldLayers.length > 0) {
+      this.push(`      case 'quest_complete': {`);
+      this.push(`        this.handleQuestComplete(client, player, message);`);
       this.push(`        break;`);
       this.push(`      }`);
     }
@@ -1495,6 +1587,62 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(``);
     }
 
+    // ── rollDamage_<AbilityName> — per-ability authoritative damage resolver (P1.8) ──
+    // One function is emitted for each ability with a damage_formula block.
+    // Each function returns a final damage integer using the deterministic per-room
+    // PRNG (this.nextRandom()) so crit outcomes are server-authoritative and
+    // reproducible from the room's seeded xorshift32 state.
+    //
+    // Function signature:
+    //   rollDamage_<AbilityName>(
+    //     casterSpellPower: number,   // resolved from PlayerState at call site
+    //     casterAttackPower: number,
+    //     casterCritRating: number,
+    //     targetResist: number,       // 0-1 fraction; 0 = no resist
+    //   ): number
+    //
+    // The `scaling` and `critChance` fields are emitted verbatim; the caller is
+    // responsible for binding `casterSpellPower` / `casterAttackPower` etc. from
+    // the live PlayerState (the compiler does NOT resolve property paths — that is
+    // an intentional split to avoid coupling the emitted code to internal state
+    // field names before the symbol-table pass lands in round 3).
+    const abilitiesWithFormula = this.abilities.filter((a) => a.damageFormula !== null);
+    if (abilitiesWithFormula.length > 0) {
+      this.push(`  // ── Per-ability damage resolvers (P1.8) ─────────────────────────────`);
+      for (const ability of abilitiesWithFormula) {
+        const f = ability.damageFormula!;
+        const fnName = `rollDamage_${ability.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+        const resistExpr = f.resistSchool
+          ? `(1 - Math.max(0, Math.min(1, targetResist)))`
+          : `1`;
+        this.push(
+          `  /**`,
+          `   * Server-authoritative damage roll for ability '${ability.name}'.`,
+          `   * Formula: base=${f.base}, scaling=${f.scaling}, ` +
+            `critMultiplier=${f.critMultiplier}, critChance=${f.critChance}` +
+            (f.resistSchool ? `, resistSchool=${f.resistSchool}` : '') + `.`,
+          `   * Uses the room's seeded PRNG — outcome is deterministic given the same RNG state.`,
+          `   */`,
+          `  protected ${fnName}(`,
+          `    casterSpellPower: number,`,
+          `    casterAttackPower: number,`,
+          `    casterCritRating: number,`,
+          `    targetResist = 0,`,
+          `  ): number {`,
+          `    const base = ${f.base};`,
+          `    const scaling = ${f.scaling};`,
+          `    const critChance = Math.max(0, Math.min(1, ${f.critChance}));`,
+          `    const isCrit = this.nextRandom() < critChance;`,
+          `    const critMult = isCrit ? ${f.critMultiplier} : 1;`,
+          `    const resist = ${resistExpr};`,
+          `    const raw = (base + scaling) * critMult * resist;`,
+          `    return Math.max(0, Math.round(raw));`,
+          `  }`,
+          ``
+        );
+      }
+    }
+
     // ── Area-of-interest query helpers (P1.1) ─────────────────────────────
     this.push(`  // Entities within the AOI bubble of a player (interest management).`);
     this.push(`  protected playersInAOI(origin: PlayerState, radius = AOI_RADIUS): PlayerState[] {`);
@@ -1516,6 +1664,45 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`      if (dx * dx + dy * dy + dz * dz <= r2) out.push(n);`);
       this.push(`    });`);
       this.push(`    return out;`);
+      this.push(`  }`);
+      this.push(``);
+    }
+
+    // ── World-layer phasing (P2.4) — quest-gated content visibility ───────
+    if (this.worldLayers.length > 0) {
+      this.push(`  // Server-authoritative quest completion → recompute the player's active phases.`);
+      this.push(`  protected handleQuestComplete(client: Client, player: PlayerState, message: unknown): void {`);
+      this.push(`    const data = message as { questId?: string };`);
+      this.push(`    const questId = typeof data.questId === 'string' ? data.questId : '';`);
+      this.push(`    if (!questId || player.questFlags.has(questId)) return;`);
+      this.push(`    player.questFlags.add(questId);`);
+      this.push(`    this.phaseEval(player);`);
+      this.push(`    this.recordGameEvent({`);
+      this.push(`      kind: 'quest_complete', actorSessionId: client.sessionId, validated: true, reason: questId,`);
+      this.push(`    });`);
+      this.push(`    client.send('phase_update', { phases: Array.from(player.activePhases) });`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // Recompute which world-layers this player is in (typed quest predicate).`);
+      this.push(`  protected phaseEval(player: PlayerState): void {`);
+      this.push(`    player.activePhases = new Set();`);
+      this.push(`    for (const layerName of Object.keys(PHASE_REGISTRY)) {`);
+      this.push(`      const layer = PHASE_REGISTRY[layerName];`);
+      this.push(`      const done = player.questFlags.has(layer.questId);`);
+      this.push(`      if (done === layer.mustBeCompleted) player.activePhases.add(layerName);`);
+      this.push(`    }`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // Server-authoritative visibility: is this NPC visible in the player's phase?`);
+      this.push(`  // An NPC gated to a layer is visible only when the player is in that layer;`);
+      this.push(`  // ungated NPCs are always visible.`);
+      this.push(`  protected npcVisibleTo(player: PlayerState, npcId: string): boolean {`);
+      this.push(`    for (const layerName of Object.keys(PHASE_REGISTRY)) {`);
+      this.push(`      if (PHASE_REGISTRY[layerName].npcs.includes(npcId)) {`);
+      this.push(`        return player.activePhases.has(layerName);`);
+      this.push(`      }`);
+      this.push(`    }`);
+      this.push(`    return true;`);
       this.push(`  }`);
       this.push(``);
     }
@@ -1924,6 +2111,7 @@ export class ColyseusCompiler extends CompilerBase {
       lootTables: [...this.lootTables],
       aoiRadius: this.aoiRadius,
       brains: [...this.brains],
+      worldLayers: [...this.worldLayers],
       warnings: [...this.warnings],
       errors: [...this.errors],
     };
