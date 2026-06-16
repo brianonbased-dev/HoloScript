@@ -374,14 +374,297 @@ The `.hs` format **does NOT support**:
 
 - Interactivity (click handlers, VR grab)
 - Templates/reusability
-- State management
-- Event handlers
-- Complex logic
 
-For these features, use [`.hsplus`](./reference-hsplus-templates) or [`.holo`](./reference-holo-entity) formats.
+For templates, trait decorators, brain declarations, module imports, and hot-reload, use [`.hsplus`](./reference-hsplus-templates) or [`.holo`](./reference-holo-entity) formats.
+
+`.hs` **does** support functions, loops, conditionals, coroutines, agent process logic (`execute`, `yield`, `connect`), event handlers, and `emit` — see [Process Language](#process-language) below.
 
 ## Next Steps
 
 - [Templates & Decorators (`.hsplus`)](./reference-hsplus-templates)
+- [Process Language Reference (`.hs`)](./reference-hs-process)
 - [Cross-Format Comparison](./comparison-simple-scene)
 - [Examples Gallery](/examples/)
+
+---
+
+## Process Language
+
+`.hs` is not only a declarative format — it is the **process and sequential agent logic** layer of HoloScript. Objects can contain functions, coroutines, state blocks, and event handlers. Top-level `execute` and `connect` statements wire agents together and start loops running.
+
+The example below is drawn from `examples/agents/guard-patrol.hs`.
+
+### Executing Loops
+
+The `execute` statement runs a function or coroutine on an object. The `repeat forever` modifier keeps it running perpetually:
+
+```holoscript
+execute guard_captain.patrol() repeat forever
+```
+
+`execute` is `.hs`'s way of saying "run this process continuously." Without it, functions are defined but never started.
+
+### Coroutine Yield
+
+Inside a function, `yield` suspends execution and returns control to the engine for one frame. This is what makes `.hs` functions cooperative coroutines rather than blocking calls:
+
+```holoscript
+function patrol() {
+  while (state.time_at_waypoint < state.wait_duration) {
+    scan_area(15)
+    state.time_at_waypoint += delta_time
+    yield  // resume next frame
+  }
+}
+```
+
+Without `yield`, a `while` loop would block the entire engine until it finished.
+
+### Functions and Control Flow
+
+`.hs` functions are full procedural: `const`, `let`, `while`, `if/else`, `return`, and ternary expressions are all available. Functions live inside `object` blocks:
+
+```holoscript
+object "guard_captain" {
+  function investigate(target) {
+    const threat = assess_threat(target)
+
+    if (threat.level > 0.7) {
+      raise_alarm()
+      state.alert_level = 3
+    } else if (threat.level > 0.3) {
+      emit("guard_warning", { target: target, message: "Halt! Identify yourself." })
+      wait(3)
+    }
+
+    state.incidents_logged += 1
+  }
+}
+```
+
+State mutations use `state.<field>` references. Arithmetic operators (`+`, `-`, `*`, `/`, `%`) and comparisons (`>`, `<`, `==`, `!=`) work as expected.
+
+### State Blocks
+
+Objects declare their agent state in a `state` block. Fields are mutable by functions and event handlers throughout the object's lifetime:
+
+```holoscript
+object "guard_captain" {
+  state {
+    current_waypoint: 0
+    alert_level: 0        // 0=calm, 1=cautious, 2=alert, 3=combat
+    patrol_speed: 2.0
+    investigation_target: null
+    incidents_logged: 0
+  }
+}
+```
+
+### Agent Lifecycle Event Handlers
+
+Objects receive events from the engine via `on_<event>` handlers. These interrupt or extend the running coroutine when the engine detects a matching condition:
+
+```holoscript
+object "guard_captain" {
+  on_detect(entity) {
+    if (entity.tag == "intruder" && state.alert_level < 2) {
+      investigate(entity)
+    }
+  }
+
+  on_damage(amount) {
+    raise_alarm()
+    face_toward(damage_source)
+  }
+
+  on_shift_end() {
+    return_to_post()
+    emit("shift_change", { guard: "guard_captain", post: "waypoint_gate" })
+  }
+}
+```
+
+### Emit Events
+
+`emit` fires a named event into the scene's event bus. Other objects and systems can listen for it. An optional payload object is attached as the second argument:
+
+```holoscript
+emit("alarm_triggered")
+emit("guard_warning", { target: target, message: "Halt! Identify yourself." })
+emit("incident_logged", {
+  location: target,
+  threat_level: threat.level,
+  time: current_time(),
+  resolution: state.alert_level > 2 ? "alarm_raised" : "cleared"
+})
+```
+
+### Connect Wiring
+
+`connect` has two forms.
+
+**Arrow-connect** — directly wires one callable to another without tight coupling. The left side does not need to know how the right side works:
+
+```holoscript
+connect guard_captain.raise_alarm -> alarm_bell.activate
+```
+
+**Assignment-connect** — wires an emitted event to a state mutation:
+
+```holoscript
+connect alarm_bell.alarm_triggered -> guard_captain.state.alert_level = 3
+```
+
+The `->` form is `.hs`'s decoupled wiring primitive. Objects reference each other by name; the engine resolves the binding at runtime.
+
+### Built-In Agent Primitives
+
+These functions are available inside any `.hs` object without import:
+
+| Primitive | Purpose |
+|---|---|
+| `move_to(target, speed)` | Navigate to a target object or position |
+| `face_toward(target)` | Rotate to face a target |
+| `scan_area(radius)` | Detect entities within a radius; triggers `on_detect` |
+| `assess_threat(target)` | Returns `{ level: 0.0–1.0 }` |
+| `wait(seconds)` | Suspend execution for N seconds |
+| `find_nearest("tag")` | Find the closest object with the given tag |
+| `index_of(obj)` | Get the index of an object in an array |
+| `current_time()` | Current scene time |
+| `delta_time` | Time elapsed since the last frame |
+| `max(a, b)` | Numeric maximum |
+
+### Object Tagging
+
+Any object can carry a `tag` field, which makes it queryable by `find_nearest` and detectable by `scan_area`:
+
+```holoscript
+object "waypoint_gate" {
+  geometry: "cylinder"
+  color: "#ffaa00"
+  position: { x: 0, y: 0.1, z: -15 }
+  tag: "waypoint"
+}
+```
+
+`find_nearest("waypoint")` returns the closest object whose `tag` matches.
+
+### Scene-Level Blocks
+
+These blocks appear at the top level of a `.hs` file, outside any object. They configure global rendering and lighting.
+
+**Environment:**
+
+```holoscript
+environment {
+  skybox: "night"
+  ambient_light: 0.15
+  fog: { color: "#0a0a1e", density: 0.025 }
+}
+```
+
+**Lights:**
+
+```holoscript
+light "MoonLight" {
+  type: "directional"
+  color: "#8899cc"
+  intensity: 0.4
+  rotation: [-50, 20, 0]
+  cast_shadows: true
+}
+
+light "TorchGlow" {
+  type: "point"
+  color: "#ff8833"
+  intensity: 0.6
+  position: { x: 0, y: 3, z: -15 }
+  range: 10
+}
+```
+
+Light types: `directional`, `point`, `spot`, `area`, `ambient`.
+
+**Post-processing:**
+
+```holoscript
+post_processing {
+  bloom: {
+    enabled: true
+    intensity: 0.5
+    threshold: 0.6
+  }
+  tone_mapping: {
+    enabled: true
+    type: "aces"
+  }
+}
+```
+
+### Complete Process Example
+
+A minimal `.hs` agent that patrols between waypoints, detects intruders, and raises an alarm:
+
+```holoscript
+object "waypoint_a" {
+  geometry: "cylinder"
+  position: { x: 0, y: 0.1, z: -10 }
+  tag: "waypoint"
+}
+
+object "waypoint_b" {
+  geometry: "cylinder"
+  position: { x: 10, y: 0.1, z: 0 }
+  tag: "waypoint"
+}
+
+object "alarm_bell" {
+  geometry: "sphere"
+  color: "#ff0000"
+  position: { x: 0, y: 5, z: 0 }
+
+  state { active: false }
+
+  function activate() {
+    state.active = true
+    emit("alarm_triggered")
+  }
+}
+
+object "guard" {
+  geometry: "capsule"
+  position: { x: 0, y: 1, z: -10 }
+
+  state {
+    current_waypoint: 0
+    alert_level: 0
+    speed: 2.0
+  }
+
+  function patrol() {
+    const waypoints = ["waypoint_a", "waypoint_b"]
+    const target = waypoints[state.current_waypoint]
+
+    move_to(target, state.speed)
+    scan_area(12)
+    yield
+
+    state.current_waypoint = (state.current_waypoint + 1) % waypoints.length
+  }
+
+  on_detect(entity) {
+    if (entity.tag == "intruder") {
+      emit("guard_warning", { message: "Halt!" })
+      const threat = assess_threat(entity)
+      if (threat.level > 0.5) {
+        alarm_bell.activate()
+        state.alert_level = 3
+      }
+    }
+  }
+}
+
+connect guard.alarm_triggered -> alarm_bell.activate
+
+execute guard.patrol() repeat forever
+```

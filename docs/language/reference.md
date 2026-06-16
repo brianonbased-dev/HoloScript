@@ -4,53 +4,61 @@ Comprehensive syntax references for all three HoloScript formats.
 
 ## Overview
 
-HoloScript provides three file formats, each designed for different use cases:
+HoloScript provides three file formats, each occupying a distinct **role/layer** in the stack:
 
-- **`.hs`** - Basic syntax for simple scenes and prototyping
-- **`.hsplus`** - Extended syntax with state management, templates, and events
-- **`.holo`** - Advanced syntax for VR/AR with entity-trait architecture
+- **`.hs`** - Process / sequential agent logic (coroutines, graph wiring, sequential procedures)
+- **`.hsplus`** - Behavior / brains / reactivity (superset of `.hs` — templates, traits, state machines, brain declarations, AI cognitive verbs)
+- **`.holo`** - Universal IR / scene composition (the compilation unit consumed by ALL platform compilers — 2D web, VR, AR, native, and beyond)
+
+These are not a complexity ladder. They are layers. A full HoloScript system typically uses all three: `.hs` for process logic, `.hsplus` for brains and reusable behaviors, and `.holo` for the composed scene that gets compiled to a target platform.
 
 ## Quick Format Selection
 
 ### Use `.hs` when:
 
-- Learning HoloScript basics
-- Creating simple static scenes
-- Prototyping quickly
-- No interactivity needed
+- Writing sequential agent procedures (patrol loops, task pipelines, initialization sequences)
+- Wiring a process graph (`connect`, `yield`, `execute … repeat forever`)
+- Describing step-by-step logic that runs from top to bottom
 
 ### Use `.hsplus` when:
 
-- Need templates/reusability
-- State management required
-- Event-driven interactions
-- Building games/apps
-- Modular code organization
+- Defining reusable templates or module libraries (`@import` / `@export`)
+- Declaring AI brain behaviors (`brain Name : @behavior_tree`)
+- Writing cognitive agent skills (`llm_call`, `recall`, `rag_query`, `plan`, `reflect`)
+- Building reactive state machines, event-driven UI, or hot-reloadable components (`@version` / `@migrate`)
+- Composing traits, decorators, and pipeline DSL (`transform` / `filter` / `branch`)
 
 ### Use `.holo` when:
 
-- Advanced trait-based configuration
-- Complex spatial computing features
-- VR/AR/XR experiences
-- Fine-grained control over spatial primitives
+- Composing a scene for **any** platform target (not just VR/AR — also 2D web pages, native apps, robots)
+- Declaring objects, environment, lights, cameras, NPCs, quests
+- Authoring the compilation unit that a `compile_to_*` tool will consume
+- Building 2D web surfaces (`@page`, `@slot`, `@panel`, `@tailwind`)
 
 ## Format-Specific References
 
-### Basic Syntax (`.hs`)
+### Process Language (`.hs`)
 
 - [Basic Objects Reference](./reference-hs-basic) - Complete syntax guide for `.hs` format
+- [Process Language](./reference-hs-process) - `execute`, `yield`, `connect`, agent primitives
 
-### Extended Syntax (`.hsplus`)
+### Behavior & Brains (`.hsplus`)
 
-- [Templates & Decorators](./reference-hsplus-templates) - Template definitions, @decorators
+- [Templates & Decorators](./reference-hsplus-templates) - Template definitions, `@decorators`
 - [State & Actions](./reference-hsplus-state) - State management, actions, computed values
 - [Event Handlers](./reference-hsplus-events) - All event types and handlers
 - [Modules & Imports](./reference-hsplus-modules) - Module system and code organization
+- [Brain Declarations](./reference-hsplus-brain) - `brain Name : @behavior_tree` and brain wiring
+- [Cognitive Verbs](./reference-hsplus-cognitive) - `llm_call`, `recall`, `rag_query`, `plan`, `reflect`
+- [Pipeline DSL](./reference-hsplus-pipeline) - `transform` / `filter` / `branch` / `validate`
+- [Runtime System](./reference-hsplus-runtime) - `@safe_daemon`, `@version` / `@migrate`, StdlibPolicy
 
-### Advanced Compositions (`.holo`)
+### Scene Composition (`.holo`)
 
 - [Entity-Trait Pattern](./reference-holo-entity) - Entity declarations with traits
 - [Object-Template Pattern](./reference-holo-object) - Alternative `.holo` syntax
+- [Game Constructs](./reference-holo-game-constructs) - NPC / Quest / Ability / Achievement / TalentTree
+- [2D Web Pages](./reference-holo-web2d) - `@page`, `@slot`, `@panel`, `@tailwind`
 
 ## Cross-Format Comparisons
 
@@ -61,27 +69,32 @@ See the same functionality implemented in all three formats:
 
 ## Feature Matrix
 
-| Feature        | `.hs` | `.hsplus` | `.holo` (entity) | `.holo` (object) |
-| -------------- | ----- | --------- | ---------------- | ---------------- |
-| Basic objects  | ✓     | ✓         | ✓                | ✓                |
-| Templates      | ✗     | ✓         | ✗                | ✓                |
-| Decorators (@) | ✗     | ✓         | ✗                | ✓                |
-| State blocks   | ✗     | ✓         | ✗                | ✓                |
-| Actions        | ✗     | ✓         | ✗                | ✓                |
-| Event handlers | ✗     | ✓         | ✓                | ✓                |
-| Trait configs  | ✗     | ✗         | ✓                | ✗                |
-| Modules        | ✗     | ✓         | ✗                | ✗                |
-| Panels/UI      | ✗     | ✓         | ✓                | ✓                |
+| Feature | `.hs` | `.hsplus` | `.holo` |
+|---|---|---|---|
+| Basic objects | ✓ | ✓ | ✓ |
+| Templates | ✗ | ✓ | ✓ (object pattern) |
+| `@trait` decorators | ✗ | ✓ | ✓ (entity pattern) |
+| State blocks | ✓ (object-local) | ✓ | ✓ |
+| Actions/functions | ✓ | ✓ | ✓ |
+| Event handlers | ✓ | ✓ | ✓ |
+| Sequential process (`execute`, `yield`, `connect`) | ✓ | ✗ | ✗ |
+| Brain declarations (`brain Name : @type`) | ✗ | ✓ | ✗ |
+| Cognitive verbs (`llm_call`, `recall`, `plan`) | ✗ | ✓ (in brains) | ✗ |
+| Pipeline DSL (`transform`/`filter`/`branch`) | ✗ | ✓ | ✗ |
+| Platform compilation target | ✗ | ✗ | ✓ (all platforms) |
+| 2D web pages (`@page`, `@slot`, `@panel`) | ✗ | ✗ | ✓ |
+| Modules | ✗ | ✓ (`@import`/`@export`) | ✓ (`import`) |
+| Hot-reload (`@version`/`@migrate`) | ✗ | ✓ | ✗ |
 
 ## For AI Agents
 
 When generating HoloScript code:
 
-1. **Detect format** - Check file extension (`.hs`/`.hsplus`/`.holo`)
-2. **Use appropriate syntax** - Match the format's syntax patterns
-3. **Reference examples** - Use these references as templates
-4. **Validate** - Ensure generated code matches format rules
-5. **Prefer simplest** - Use `.hs` for simple, `.hsplus` for medium, `.holo` for advanced
+1. **Identify the layer** — determine which role the code needs to fill (process logic, brain/behavior, or scene composition), not just the file extension
+2. **Know the parser** — `.hs` and `.hsplus` are parsed by `HoloScriptPlusParser`; `.holo` is parsed by `HoloCompositionParser`. Mixing syntax across parsers will fail silently or produce wrong AST
+3. **Connect layers via imports** — `.holo` scenes can `import` `.hsplus` templates; `.hsplus` brains can reference `.hs` process graphs; keep the data flow explicit
+4. **Reference examples** — use these format references as syntax templates
+5. **Validate** — generated code should be passed to `validate_holoscript` (MCP tool) before use; `parse_holo` returns success even on semantically invalid input — always add a content gate
 
 ## Source Code
 
