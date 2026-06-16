@@ -68,6 +68,14 @@
 
 ---
 
+## `@server_only` ServerAuthorityBundleSplitter (P2.0 — cross-file authority split)
+
+**What might be valuable**: The MMO round-2 compiler emits a single authoritative Colyseus server. The endgame of the single-source-netcode thesis (memo §4, PLDI '27 paper claim) is to compile ONE `.holo`/`.hs` source into TWO bundles — an authoritative `mmo-server` and a predicting `mmo-client-sdk` — with a **static proof that `@server_only` symbols are unreachable from client-bundle code**. That makes "the client cannot even see the loot-roll RNG / the boss-phase thresholds / the server validation logic" a compile-time guarantee, not a convention — the strongest form of the verifiable-anti-cheat-by-construction claim. The authority annotations (`@server_side`/`@client_side`/`@replicated`) already parse; this is the pass that consumes them to partition the symbol graph and bundle-split.
+
+**Why not now**: A sound server/client split requires a **cross-file symbol table + reachability analysis** that HoloScript's compiler does not have yet — `ImportResolver` produces per-file parse results, not a merged symbol graph with def/use edges. Round-2 shipped the structural pieces (authority annotations parsed, single-server emit, `ProvenanceBoundsChecker` single-file lint). The cross-file `@server_only`-unreachable-from-client proof is the same round-3-4 symbol-table investment the cross-file `ProvenanceBoundsChecker` needs (see that seed) — build the symbol table once, and both the bundle splitter and the cross-file provability checker land on top of it.
+
+---
+
 ---
 
 ## `hs:perceives` Derived Spatial-Perception Edges in the Semantic Scene Graph
