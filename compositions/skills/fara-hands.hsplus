@@ -1,0 +1,105 @@
+// @fara_hands — Fara-7B visual computer-use brain trait
+//
+// Microsoft Fara-7B (github.com/microsoft/fara): 7B-parameter, MIT-licensed,
+// on-device computer-use agent. Observes the browser via screenshots and
+// predicts mouse/keyboard actions to complete natural-language goals.
+//
+// Pixel sovereign: all screenshots stay on-device via local Ollama.
+// Deploy: ollama pull hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M
+//
+// Use cases:
+//   - NPC "hands" tier: delegate GUI tasks from @ai_npc_brain or @caveman_drive
+//   - Twin Earth quest actuator: verifiable real-world action receipts
+//   - Agent-driven Studio editing: operate Studio UI without full API coverage
+//   - AR computer use: Quest 3 passthrough → Fara sees what the user sees
+
+@state {
+  goal: ""
+  status: "idle"
+  lastReceipt: null
+  memorized: []
+  history: []
+}
+
+composition FaraHandsAgent {
+  @fara_hands {
+    endpoint: "http://localhost:11434/api/chat"
+    model: "hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M"
+    maxSteps: 50
+    maxDurationMs: 300000
+    safety: strict
+    receiptPolicy: strict
+  }
+
+  state {
+    sessionId: ""
+    allowedDomains: []
+    blockedDomains: []
+  }
+
+  @state_machine {
+    initial: "idle"
+
+    state "idle" {
+      on_entry {
+        this.status = "idle"
+      }
+      transition "receive_goal" -> "acting" {
+        guard: goal != "" && sessionId != ""
+      }
+    }
+
+    state "acting" {
+      on_entry {
+        this.status = "acting"
+        this.lastReceipt = holoshell_fara_step({
+          sessionId: sessionId,
+          goal: goal,
+          allowedDomains: allowedDomains,
+          blockedDomains: blockedDomains
+        })
+        this.memorized = lastReceipt.memorized
+        this.history.push({ goal: goal, receipt: lastReceipt })
+      }
+      transition "success" -> "done" {
+        guard: lastReceipt.outcome == "success"
+      }
+      transition "blocked" -> "blocked" {
+        guard: lastReceipt.outcome == "blocked_by_policy"
+      }
+      transition "failed" -> "idle" {
+        guard: lastReceipt.outcome == "failure" || lastReceipt.outcome == "max_steps" || lastReceipt.outcome == "timeout"
+        action {
+          emit("fara_failed", { goal: goal, receipt: lastReceipt })
+          this.goal = ""
+        }
+      }
+    }
+
+    state "done" {
+      on_entry {
+        this.status = "done"
+        emit("fara_complete", {
+          goal: goal,
+          receipt: lastReceipt,
+          memorized: memorized,
+          steps: lastReceipt.actions.length
+        })
+        this.goal = ""
+      }
+      transition "reset" -> "idle" {}
+    }
+
+    state "blocked" {
+      on_entry {
+        this.status = "blocked"
+        emit("fara_blocked", { goal: goal, receipt: lastReceipt })
+      }
+      transition "reset" -> "idle" {
+        action {
+          this.goal = ""
+        }
+      }
+    }
+  }
+}
