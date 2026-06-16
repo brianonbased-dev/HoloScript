@@ -118,6 +118,10 @@ export interface HoloComposition extends HoloNode {
   triggers?: HoloGameTrigger[];
   lootTables?: HoloLootTable[];
   worldChunks?: HoloWorldChunk[];
+  /** Named locomotion routes (patrol/path/orbit) declared at scene level */
+  movementPaths?: HoloMovementPath[];
+  /** Scene-level declarative reaction triggers (on_<trigger> -> action wiring) */
+  reactionTriggers?: HoloReactionTrigger[];
   abilities: HoloAbility[];
   dialogues: HoloDialogue[];
   stateMachines: HoloStateMachine[];
@@ -361,6 +365,78 @@ export interface HoloGameTrigger extends HoloNode {
   onExit?: HoloEventHandler[];
   position?: HoloPosition;
   /** Raw key-value properties not mapped to typed fields */
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Named movement path — a scene-level locomotion route for patrol/path/orbit.
+ *
+ * Grammar:
+ * ```holoscript
+ * movement_path patrol_route {
+ *   mode: "patrol"          // patrol | follow | path | orbit
+ *   loop: true
+ *   speed: 2.5
+ *   waypoints: [[0,0,0], [10,0,0], [10,0,10], [0,0,10]]
+ *   easing: "linear"
+ * }
+ * ```
+ *
+ * The IR node is the scene-level declaration; the imperative `.hs` `move`
+ * statement (MovementStatementNode, types/base.ts) references it by name and the
+ * runtime LocomotionTrait drives it. Locomotion logic is NOT duplicated here.
+ */
+export interface HoloMovementPath extends HoloNode {
+  type: 'MovementPath';
+  name: string;
+  /** Locomotion mode: patrol | follow | path | orbit | snap */
+  mode?: string;
+  /** Whether the path loops when the end is reached */
+  loop?: boolean;
+  /** Movement speed in metres/second */
+  speed?: number;
+  /** Waypoint array — each element is [x, y, z] */
+  waypoints?: HoloValue;
+  /** Easing function name (linear | ease_in | ease_out | ease_in_out | spring) */
+  easing?: string;
+  /** Raw key-value properties for extensibility */
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Scene-level reaction trigger — declarative on_<trigger> -> action wiring.
+ *
+ * Grammar:
+ * ```holoscript
+ * reaction_trigger on_player_enter {
+ *   target: "player"
+ *   condition: "player.level >= 5"
+ *   on_activate { emit("zone_entered") }
+ *   on_deactivate { emit("zone_exited") }
+ *   cooldown: 2.0
+ * }
+ * ```
+ *
+ * The handler bodies are `HoloEventHandler`s (same shape used by GameTrigger's
+ * onEnter/onExit). Cognitive verbs inside a body (llm_call/recall/…) are resolved
+ * at compile time by BehaviorTreeTrait via CognitiveActions.ts — not re-parsed
+ * here. Maps to GameEventBlockNode.category (types/base.ts) for routing.
+ */
+export interface HoloReactionTrigger extends HoloNode {
+  type: 'ReactionTrigger';
+  /** Trigger event name, e.g. "on_player_enter", "on_collision", "on_proximity" */
+  name: string;
+  /** Entity type or id to react to (e.g. "player", "enemy", "@npc_guard") */
+  target?: string;
+  /** Optional guard expression — trigger only fires when truthy */
+  condition?: string;
+  /** Cooldown in seconds before this trigger can fire again */
+  cooldown?: number;
+  /** Handlers fired when the trigger activates */
+  onActivate?: HoloEventHandler[];
+  /** Handlers fired when the trigger deactivates (e.g. entity leaves radius) */
+  onDeactivate?: HoloEventHandler[];
+  /** Raw key-value properties for extensibility */
   properties: Record<string, HoloValue>;
 }
 

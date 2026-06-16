@@ -109,6 +109,8 @@ import type {
   HoloLootTable,
   HoloLootEntry,
   HoloWorldChunk,
+  HoloMovementPath,
+  HoloReactionTrigger,
   HoloNormBlock,
   HoloNormCreation,
   HoloNormRepresentation,
@@ -275,6 +277,8 @@ export class HoloCompositionParser {
       triggers: [],
       lootTables: [],
       worldChunks: [],
+      movementPaths: [],
+      reactionTriggers: [],
     };
 
     while (!this.isAtEnd()) {
@@ -423,6 +427,10 @@ export class HoloCompositionParser {
           composition.spawnPoints!.push(this.parseSpawnPoint());
         } else if (this.check('GAME_TRIGGER')) {
           composition.triggers!.push(this.parseGameTrigger());
+        } else if (this.check('MOVEMENT_PATH')) {
+          composition.movementPaths!.push(this.parseMovementPath());
+        } else if (this.check('REACTION_TRIGGER')) {
+          composition.reactionTriggers!.push(this.parseReactionTrigger());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -663,6 +671,8 @@ export class HoloCompositionParser {
       triggers: [],
       lootTables: [],
       worldChunks: [],
+      movementPaths: [],
+      reactionTriggers: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -764,6 +774,10 @@ export class HoloCompositionParser {
           composition.spawnPoints!.push(this.parseSpawnPoint());
         } else if (this.check('GAME_TRIGGER')) {
           composition.triggers!.push(this.parseGameTrigger());
+        } else if (this.check('MOVEMENT_PATH')) {
+          composition.movementPaths!.push(this.parseMovementPath());
+        } else if (this.check('REACTION_TRIGGER')) {
+          composition.reactionTriggers!.push(this.parseReactionTrigger());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -5733,6 +5747,134 @@ export class HoloCompositionParser {
       onEnter: onEnter.length > 0 ? onEnter : undefined,
       onExit: onExit.length > 0 ? onExit : undefined,
       position,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a scene-level movement path:
+   *   movement_path patrol_route { mode: "patrol" loop: true speed: 2.5
+   *     waypoints: [[0,0,0],[10,0,0]] easing: "linear" }
+   */
+  private parseMovementPath(): HoloMovementPath {
+    const startLoc = this.currentLocation();
+    this.pushContext('movement-path');
+    this.advance(); // consume 'movement_path'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let mode: string | undefined;
+    let loop: boolean | undefined;
+    let speed: number | undefined;
+    let waypoints: HoloValue | undefined;
+    let easing: string | undefined;
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const val = this.parseValue();
+      if (key === 'mode') mode = val as string;
+      else if (key === 'loop') loop = val as boolean;
+      else if (key === 'speed') speed = val as number;
+      else if (key === 'waypoints') waypoints = val;
+      else if (key === 'easing') easing = val as string;
+      else properties[key] = val;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'MovementPath',
+      name,
+      mode,
+      loop,
+      speed,
+      waypoints,
+      easing,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a scene-level reaction trigger:
+   *   reaction_trigger on_player_enter { target: "player" condition: "..."
+   *     on_activate { emit("zone_entered") } on_deactivate { ... } cooldown: 2 }
+   */
+  private parseReactionTrigger(): HoloReactionTrigger {
+    const startLoc = this.currentLocation();
+    this.pushContext('reaction-trigger');
+    this.advance(); // consume 'reaction_trigger'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let target: string | undefined;
+    let condition: string | undefined;
+    let cooldown: number | undefined;
+    const onActivate: HoloEventHandler[] = [];
+    const onDeactivate: HoloEventHandler[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      // Handler sub-blocks (mirror parseGameTrigger's on_enter/on_exit pattern)
+      if (this.check('IDENTIFIER') && this.current().value === 'on_activate') {
+        this.advance();
+        const params = this.check('LPAREN') ? this.parseParameterList() : [];
+        const body = this.check('LBRACE') ? (() => {
+          this.advance();
+          this.skipNewlines();
+          const stmts = this.parseStatementBlock();
+          this.expect('RBRACE');
+          return stmts;
+        })() : [];
+        onActivate.push({ type: 'EventHandler', event: 'on_activate', parameters: params, body });
+      } else if (this.check('IDENTIFIER') && this.current().value === 'on_deactivate') {
+        this.advance();
+        const params = this.check('LPAREN') ? this.parseParameterList() : [];
+        const body = this.check('LBRACE') ? (() => {
+          this.advance();
+          this.skipNewlines();
+          const stmts = this.parseStatementBlock();
+          this.expect('RBRACE');
+          return stmts;
+        })() : [];
+        onDeactivate.push({ type: 'EventHandler', event: 'on_deactivate', parameters: params, body });
+      } else {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        const val = this.parseValue();
+        if (key === 'target') target = val as string;
+        else if (key === 'condition') condition = val as string;
+        else if (key === 'cooldown') cooldown = val as number;
+        else properties[key] = val;
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'ReactionTrigger',
+      name,
+      target,
+      condition,
+      cooldown,
+      onActivate: onActivate.length > 0 ? onActivate : undefined,
+      onDeactivate: onDeactivate.length > 0 ? onDeactivate : undefined,
       properties,
     };
   }

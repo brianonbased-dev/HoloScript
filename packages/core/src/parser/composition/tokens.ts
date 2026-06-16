@@ -278,6 +278,8 @@ export type TokenType =
   | 'WORLD_CHUNK'
   | 'SPAWN_POINT'
   | 'GAME_TRIGGER'
+  | 'MOVEMENT_PATH'
+  | 'REACTION_TRIGGER'
   | 'REAL_ESTATE'
   // Process pipeline directives (.hs format — v5)
   | 'CONNECT'
@@ -391,6 +393,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   world_chunk: 'WORLD_CHUNK',
   spawn_point: 'SPAWN_POINT',
   game_trigger: 'GAME_TRIGGER',
+  movement_path: 'MOVEMENT_PATH',
+  reaction_trigger: 'REACTION_TRIGGER',
   real_estate: 'REAL_ESTATE',
   // IoT / Digital Twin
   sensor: 'IOT_SENSOR',

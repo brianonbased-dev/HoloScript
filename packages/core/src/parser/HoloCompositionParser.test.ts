@@ -732,4 +732,50 @@ describe('HoloCompositionParser', () => {
       expect((result.ast?.objects ?? []).map((o) => o.name)).toEqual(['Root']);
     });
   });
+
+  describe('Behavioral IR — movement paths & reaction triggers', () => {
+    it('parses a movement_path block', () => {
+      const source = `composition "World" {
+        movement_path patrol_route {
+          mode: "patrol"
+          loop: true
+          speed: 2.5
+          waypoints: [[0, 0, 0], [10, 0, 0], [10, 0, 10]]
+          easing: "linear"
+        }
+      }`;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const paths = result.ast?.movementPaths ?? [];
+      expect(paths.length).toBe(1);
+      expect(paths[0].type).toBe('MovementPath');
+      expect(paths[0].name).toBe('patrol_route');
+      expect(paths[0].mode).toBe('patrol');
+      expect(paths[0].loop).toBe(true);
+      expect(paths[0].speed).toBe(2.5);
+      expect(Array.isArray(paths[0].waypoints)).toBe(true);
+    });
+
+    it('parses a reaction_trigger block with activate/deactivate handlers', () => {
+      const source = `composition "World" {
+        reaction_trigger on_player_enter {
+          target: "player"
+          condition: "player.level >= 5"
+          cooldown: 2.0
+          on_activate { emit("zone_entered") }
+          on_deactivate { emit("zone_exited") }
+        }
+      }`;
+      const result = parseHolo(source);
+      expect(result.success).toBe(true);
+      const triggers = result.ast?.reactionTriggers ?? [];
+      expect(triggers.length).toBe(1);
+      expect(triggers[0].type).toBe('ReactionTrigger');
+      expect(triggers[0].name).toBe('on_player_enter');
+      expect(triggers[0].target).toBe('player');
+      expect(triggers[0].cooldown).toBe(2.0);
+      expect(triggers[0].onActivate?.length).toBe(1);
+      expect(triggers[0].onDeactivate?.length).toBe(1);
+    });
+  });
 });
