@@ -31,6 +31,13 @@
  *   .filter(not internal) + legacy targets`; `compile_holoscript` enum synced (was missing
  *   8 wired targets + had 'multi-layer' internal leak); `check:export-targets-sync` CI gate
  *   added to catch future enum drift at push time.
+ * P5 (this commit): `@param` annotation layer — in-language per-parameter schema declarations.
+ *   An `@param { key: { type, description, required, enum } }` meta-trait placed immediately
+ *   before a real trait provides `HoloParamAnnotation` overrides for any config key.
+ *   Annotations win over value-inference for type, description, required[], and enum.
+ *   Pure-annotation parameters (present in `@param` but not in config defaults) are also emitted.
+ *   `_schemaFidelity` gains `'annotated'` (previously only `'inferred'` | `'llm_tool'`).
+ *   No parser changes: `@param { ... }` is valid existing block-trait syntax.
  *
  * W.731 gate: P2 adds NO new @holoscript/core subpath imports (all relative).
  *   Any new subpath import introduced in P3+ must land in tsup.core.docker.cjs
@@ -39,7 +46,7 @@
  * Design + phased plan + the narrowed governance claim:
  *   ai-ecosystem research/2026-06-16_holoscript-mcp-compiler-design.md
  *
- * @version 0.3.0 (P2: TypeScript module emission)
+ * @version 0.5.0 (P5: @param annotation layer)
  * @module @holoscript/core/compiler/HoloMCPCompiler
  */
 
@@ -83,6 +90,22 @@ interface MCPInputSchema {
 }
 
 /**
+ * P5 — in-language schema annotation for one parameter.
+ * Emitted by `@param { key: { type, description, required, enum } }` meta-traits.
+ * Fields override value-inference in `deriveSchemaFromConfig`.
+ */
+export interface HoloParamAnnotation {
+  /** JSON Schema type string ('string' | 'number' | 'boolean' | 'array' | 'object'). */
+  type?: string;
+  /** Human-readable description surfaced in the MCP tool schema. */
+  description?: string;
+  /** Whether this parameter is required (populates top-level `required[]`). */
+  required?: boolean;
+  /** Enum constraint — restricts to a discrete set of string values. */
+  enum?: string[];
+}
+
+/**
  * A single emitted MCP Tool definition.
  * Shape matches MCP SDK Tool (name, description, inputSchema).
  */
@@ -96,8 +119,13 @@ export interface HoloMCPTool {
     sourceName: string;
     traitName: string;
   };
-  /** How faithfully the schema captures the trait config. */
-  _schemaFidelity: 'inferred' | 'llm_tool';
+  /**
+   * How faithfully the schema captures the trait config.
+   * - 'inferred'  — type derived from config value at parse time; no doc annotations.
+   * - 'llm_tool'  — schema from LLMTool.parameters (explicit types + descriptions).
+   * - 'annotated' — schema from adjacent @param meta-trait (P5+; lossless in-language SSOT).
+   */
+  _schemaFidelity: 'inferred' | 'llm_tool' | 'annotated';
 }
 
 /**
@@ -137,35 +165,94 @@ function inferTypeFromValue(value: HoloValue): string {
 }
 
 /**
- * Derive an MCP inputSchema from a trait's `config` Record<string, HoloValue>.
- * Type is inferred from the config value at parse time; description is the key name
- * (honest: we have no doc annotations yet — that lands in P5 @param layer).
- * No `required` entries for config-inferred schemas (we can't distinguish
- * "required with default" from "truly optional" without @param).
+ * Collect `@param` annotations from a trait list for the trait at `currentIndex`.
+ *
+ * Convention (P5): an `@param { key: { type, description, required, enum } }` meta-trait
+ * placed immediately before a real trait provides per-parameter schema overrides.
+ * The meta-trait has `name === 'param'` and a block config where each key is a
+ * parameter name and the value is a `HoloParamAnnotation`-shaped object.
+ * This function is no-op (returns {}) when no adjacent `@param` trait exists.
  */
-function deriveSchemaFromConfig(config: Record<string, HoloValue>): {
+function collectParamAnnotations(
+  traits: HoloObjectTrait[],
+  currentIndex: number,
+): Record<string, HoloParamAnnotation> {
+  if (currentIndex === 0) return {};
+  const prev = traits[currentIndex - 1];
+  if (prev.name !== 'param') return {};
+
+  const result: Record<string, HoloParamAnnotation> = {};
+  for (const [key, val] of Object.entries(prev.config)) {
+    if (typeof val !== 'object' || val === null || Array.isArray(val)) continue;
+    const ann = val as Record<string, HoloValue>;
+    const annotation: HoloParamAnnotation = {};
+    if (typeof ann['type'] === 'string') annotation.type = ann['type'];
+    if (typeof ann['description'] === 'string') annotation.description = ann['description'];
+    if (ann['required'] === true) annotation.required = true;
+    if (Array.isArray(ann['enum'])) {
+      annotation.enum = (ann['enum'] as HoloValue[]).filter(
+        (v): v is string => typeof v === 'string',
+      );
+    }
+    result[key] = annotation;
+  }
+  return result;
+}
+
+/**
+ * Derive an MCP inputSchema from a trait's `config` Record<string, HoloValue>.
+ *
+ * P1 behaviour (no params): type is inferred from the config value at parse time;
+ * description defaults to the key name; no `required[]` entries (cannot distinguish
+ * "required with default" from "truly optional" without annotation).
+ *
+ * P5 behaviour (params present): annotation fields override inference for any key
+ * that has a matching `HoloParamAnnotation`. Annotated params that are absent from
+ * the default `config` values are also emitted (pure-annotation parameters).
+ */
+function deriveSchemaFromConfig(
+  config: Record<string, HoloValue>,
+  params: Record<string, HoloParamAnnotation> = {},
+): {
   schema: MCPInputSchema;
-  fidelity: 'inferred';
+  fidelity: 'inferred' | 'annotated';
 } {
   const properties: Record<string, MCPSchemaProperty> = {};
   const required: string[] = [];
+  const hasAnnotations = Object.keys(params).length > 0;
 
+  // Config-derived properties (with optional annotation overrides)
   for (const [key, value] of Object.entries(config)) {
-    const type = inferTypeFromValue(value);
-    const prop: MCPSchemaProperty = {
-      type,
-      description: key,
-    };
+    const ann = params[key];
+    const type = ann?.type ?? inferTypeFromValue(value);
+    const description = ann?.description ?? key;
+    const prop: MCPSchemaProperty = { type, description };
     if (type === 'array') {
       prop.items = { type: 'string' }; // conservative default
     }
+    if (ann?.enum && ann.enum.length > 0) {
+      prop.enum = ann.enum;
+    }
     properties[key] = prop;
-    // config-inferred: no required entries (no annotation to distinguish required from optional)
+    if (ann?.required === true) {
+      required.push(key);
+    }
+  }
+
+  // Pure-annotation parameters (not in config defaults but declared via @param)
+  for (const [key, ann] of Object.entries(params)) {
+    if (key in config) continue; // already handled above
+    const type = ann.type ?? 'string';
+    const description = ann.description ?? key;
+    const prop: MCPSchemaProperty = { type, description };
+    if (ann.enum && ann.enum.length > 0) prop.enum = ann.enum;
+    properties[key] = prop;
+    if (ann.required === true) required.push(key);
   }
 
   return {
     schema: { type: 'object', properties, required },
-    fidelity: 'inferred',
+    fidelity: hasAnnotations ? 'annotated' : 'inferred',
   };
 }
 
@@ -267,31 +354,34 @@ function deriveSchemaFromLLMToolParams(tools: HoloValue[]): {
 
 /**
  * Derive one MCP Tool from a trait.
- * Strategy:
- *   - @llm_agent with tools[]: use LLMTool.parameters (richer schema)
- *   - all others: infer from config value types
+ * Strategy (priority order):
+ *   1. `@llm_agent` with tools[]: LLMTool.parameters schema (richest — explicit types + descriptions)
+ *   2. Adjacent `@param` annotations present: annotated schema (P5 — in-language SSOT)
+ *   3. Fallback: value-inference from config
  */
 function deriveToolFromTrait(
   trait: HoloObjectTrait,
   sourceName: string,
-  source: 'object' | 'template'
+  source: 'object' | 'template',
+  params: Record<string, HoloParamAnnotation> = {},
 ): HoloMCPTool {
   const traitName = trait.name;
   const isLLMAgent = traitName === 'llm_agent';
 
   let schema: MCPInputSchema;
-  let fidelity: 'inferred' | 'llm_tool';
+  let fidelity: 'inferred' | 'llm_tool' | 'annotated';
 
   if (isLLMAgent) {
     const toolsVal = trait.config['tools'];
     if (Array.isArray(toolsVal) && toolsVal.length > 0) {
+      // LLMTool.parameters is the richer source — @param annotations are redundant here.
       ({ schema, fidelity } = deriveSchemaFromLLMToolParams(toolsVal));
     } else {
-      // @llm_agent with no tools[] — fall back to config inference
-      ({ schema, fidelity } = deriveSchemaFromConfig(trait.config));
+      // @llm_agent with no tools[] — annotation or value-inference
+      ({ schema, fidelity } = deriveSchemaFromConfig(trait.config, params));
     }
   } else {
-    ({ schema, fidelity } = deriveSchemaFromConfig(trait.config));
+    ({ schema, fidelity } = deriveSchemaFromConfig(trait.config, params));
   }
 
   // Tool name: sanitize to valid identifier (snake_case)
@@ -383,7 +473,13 @@ export class HoloMCPCompiler extends CompilerBase {
     };
   }
 
-  /** Walk all templates and objects in a composition, returning derived tools. */
+  /**
+   * Walk all templates and objects in a composition, returning derived tools.
+   *
+   * P5: `@param` meta-traits (name === 'param') are skipped for tool emission but
+   * are consumed by the immediately-following real trait as schema annotations.
+   * Each `@param` block config maps parameter names to `HoloParamAnnotation` objects.
+   */
   private _walkTraits(composition: HoloComposition): HoloMCPTool[] {
     const tools: HoloMCPTool[] = [];
 
@@ -391,8 +487,12 @@ export class HoloMCPCompiler extends CompilerBase {
     if (composition.templates) {
       for (const template of composition.templates as HoloTemplate[]) {
         if (!template.traits) continue;
-        for (const trait of template.traits) {
-          tools.push(deriveToolFromTrait(trait, template.name, 'template'));
+        const traits = template.traits as HoloObjectTrait[];
+        for (let i = 0; i < traits.length; i++) {
+          const trait = traits[i];
+          if (trait.name === 'param') continue; // annotation-only, consumed by next trait
+          const params = collectParamAnnotations(traits, i);
+          tools.push(deriveToolFromTrait(trait, template.name, 'template', params));
         }
       }
     }
@@ -401,8 +501,12 @@ export class HoloMCPCompiler extends CompilerBase {
     if (composition.objects) {
       for (const obj of composition.objects as HoloObjectDecl[]) {
         if (!obj.traits || obj.traits.length === 0) continue;
-        for (const trait of obj.traits) {
-          tools.push(deriveToolFromTrait(trait, obj.name, 'object'));
+        const traits = obj.traits as HoloObjectTrait[];
+        for (let i = 0; i < traits.length; i++) {
+          const trait = traits[i];
+          if (trait.name === 'param') continue; // annotation-only, consumed by next trait
+          const params = collectParamAnnotations(traits, i);
+          tools.push(deriveToolFromTrait(trait, obj.name, 'object', params));
         }
       }
     }
@@ -431,7 +535,7 @@ export class HoloMCPCompiler extends CompilerBase {
 
     const manifest: HoloMCPServerManifest = {
       _generated: 'HoloMCPCompiler',
-      _phase: 'P1 — trait-walk Tool[] emission',
+      _phase: 'P5 — @param annotation layer',
       _configKind: 'mcp-server',
       // Honest: hash is fnv1a32 (DomainSimulationReceipt.ts:5,134,183);
       // contract enforcement is none until Phase 3 evaluator gate.
@@ -478,8 +582,8 @@ export class HoloMCPCompiler extends CompilerBase {
     // ── Inline type declarations (no external imports) ─────────────────────
     const header = [
       `// Generated by HoloMCPCompiler — do not hand-edit`,
-      `// Server: ${serverName} | Version: ${this.options.serverVersion} | Phase: P2`,
-      `// Governance: hashTier=fnv1a32, contractEnforcement=none (see design doc)`,
+      `// Server: ${serverName} | Version: ${this.options.serverVersion} | Phase: P5`,
+      `// Governance: hashTier=fnv1a32, contractEnforcement=startup-gate (see design doc)`,
       ``,
       `/* eslint-disable */`,
       ``,
