@@ -55,7 +55,7 @@ describe('resolveBrittneyProvider', () => {
     const result = resolveBrittneyProvider();
     expect(result.providerName).toBe('ollama');
     expect(result.provider.name).toBe('local-llm');
-    expect(result.model).toBe('qwen3.5:4b'); // OLLAMA_DEFAULT_MODEL (bumped from qwen2.5-coder in 445447abd)
+    expect(result.model).toBe('qwen3:4b-instruct-2507'); // LOCAL_DEFAULT_MODEL (SSOT; qwen3.5:4b had the Ollama plain-text-tool-call bug, W.512)
     expect(result.maxTokens).toBe(4096);
   });
 
@@ -171,7 +171,7 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     stubResolve({ status: 'warm', url: 'http://1.2.3.4:40188' });
     const result = await resolveBrittneyProviderAsync();
     expect(result.providerName).toBe('fleet');
-    expect(result.model).toBe('qwen3.5:4b');
+    expect(result.model).toBe('qwen3:4b-instruct-2507');
   });
 
   it('does NOT fall back to a paid frontier API when fleet is cold (founder policy 2026-06-14)', async () => {

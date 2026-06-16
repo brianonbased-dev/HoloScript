@@ -43,7 +43,7 @@ export function defaultModel(): string {
   // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool
   // calls via Ollama — it writes the JSON as text (benchmark 2026-06-10:
   // zero objects across F01-F04; founder caught the stale default).
-  return process.env.AIBRITTNEY_MODEL ?? 'qwen3.5:4b';
+  return process.env.AIBRITTNEY_MODEL ?? 'qwen3:4b-instruct-2507';
 }
 
 export function defaultOllamaHost(): string {

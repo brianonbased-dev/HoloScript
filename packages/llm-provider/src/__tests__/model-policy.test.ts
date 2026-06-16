@@ -4,9 +4,12 @@ import {
   FLEET_DEFAULT_MODEL,
   CLOUD_DEFAULT_MODEL,
   SAFE_LOCAL_FALLBACK,
+  LANE_DEFAULTS,
+  laneDefault,
   MODEL_BLACKLIST,
   isBlacklistedModel,
   resolveAllowedModel,
+  type ModelLane,
 } from '../model-policy';
 
 describe('model-policy SSOT', () => {
@@ -24,6 +27,19 @@ describe('model-policy SSOT', () => {
   it('the blacklist is non-empty and SAFE_LOCAL_FALLBACK escapes it', () => {
     expect(MODEL_BLACKLIST.length).toBeGreaterThan(0);
     expect(isBlacklistedModel(SAFE_LOCAL_FALLBACK)).toBe(false);
+  });
+
+  it('every per-lane default is non-blacklisted, non-empty, and reachable via laneDefault()', () => {
+    const lanes = Object.keys(LANE_DEFAULTS) as ModelLane[];
+    expect(lanes).toEqual(['code_local', 'code_served', 'operator', 'reasoning', 'vision', 'fleet_worker']);
+    for (const lane of lanes) {
+      expect(LANE_DEFAULTS[lane]).toBeTruthy();
+      expect(isBlacklistedModel(LANE_DEFAULTS[lane])).toBe(false);
+      expect(laneDefault(lane)).toBe(LANE_DEFAULTS[lane]);
+    }
+    // code_local IS the local default; reasoning IS the cloud default.
+    expect(LANE_DEFAULTS.code_local).toBe(LOCAL_DEFAULT_MODEL);
+    expect(LANE_DEFAULTS.reasoning).toBe(CLOUD_DEFAULT_MODEL);
   });
 
   it('isBlacklistedModel matches qwen2.5 variants case-insensitively, not others', () => {

@@ -190,10 +190,13 @@ export {
   FLEET_DEFAULT_MODEL,
   CLOUD_DEFAULT_MODEL,
   SAFE_LOCAL_FALLBACK,
+  LANE_DEFAULTS,
+  laneDefault,
   MODEL_BLACKLIST,
   isBlacklistedModel,
   resolveAllowedModel,
 } from './model-policy';
+export type { ModelLane } from './model-policy';
 
 // Local model discovery — picks the best behaviorally-verified tool-calling
 // model from whatever Ollama has installed, instead of a hardcoded tag

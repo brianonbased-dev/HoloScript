@@ -137,9 +137,10 @@ function defaultModelForProvider(provider: CLIOptions['provider']): string {
       // Canonical value = LOCAL_DEFAULT_MODEL in @holoscript/llm-provider's
       // model-policy SSOT; kept as a literal here because this CLI path
       // lazy-imports llm-provider (a static barrel import would force eager load).
-      // qwen3.5 over qwen2.5-coder: the older family can't emit native tool
-      // calls via Ollama (2026-06-10 zero-objects benchmark finding).
-      return 'qwen3.5:4b';
+      // qwen3:4b-instruct-2507 (proven Hermes tool-call path) over qwen3.5:4b
+      // (Ollama XML/Hermes parser mismatch → plain-text tool calls, W.512) and
+      // qwen2.5-coder (blacklisted). See model-policy SSOT.
+      return 'qwen3:4b-instruct-2507';
     case 'anthropic':
     default:
       return 'claude-sonnet-4-6';
