@@ -1,0 +1,9 @@
+{
+  "id": "wisdom-gotcha",
+  "version": "1.0.0",
+  "name": "Wisdom / Gotcha",
+  "description": "Wisdom capture and gotcha guard traits for surfacing hard-won lessons and preventing known failure modes.",
+  "traits": ["wisdom", "gotcha"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

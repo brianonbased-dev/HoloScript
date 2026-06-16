@@ -1,0 +1,9 @@
+{
+  "id": "culture-keyword",
+  "version": "1.0.0",
+  "name": "Culture / Keyword",
+  "description": "Locale-aware culture trait providing text direction, calendar system, and measurement system configuration.",
+  "traits": ["culture"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

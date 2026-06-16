@@ -1,0 +1,9 @@
+{
+  "id": "trait-audit",
+  "version": "1.0.0",
+  "name": "Trait Audit",
+  "description": "Interoperability badge trait for cross-plugin conformance auditing.",
+  "traits": ["interoperability_badge"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

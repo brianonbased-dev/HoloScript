@@ -1,0 +1,9 @@
+{
+  "id": "education-lms",
+  "version": "1.0.0",
+  "name": "Education / LMS",
+  "description": "Course, lesson, grade, enrollment, and quiz traits for learning management systems.",
+  "traits": ["course", "lesson", "grade", "enrollment", "quiz"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

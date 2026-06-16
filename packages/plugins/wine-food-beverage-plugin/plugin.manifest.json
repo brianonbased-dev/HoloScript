@@ -1,0 +1,9 @@
+{
+  "id": "wine-food-beverage",
+  "version": "1.0.0",
+  "name": "Wine / Food & Beverage",
+  "description": "Tasting profile scoring, food-wine pairing engine, and inventory aging traits for hospitality and F&B operations.",
+  "traits": ["tasting_profile", "pairing_engine", "inventory_aging"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

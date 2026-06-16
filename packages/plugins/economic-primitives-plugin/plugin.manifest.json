@@ -1,0 +1,9 @@
+{
+  "id": "economic-primitives",
+  "version": "1.0.0",
+  "name": "Economic Primitives",
+  "description": "Marketplace listing, royalty stream, agent-owned entity, and foundation DAO traits for on-chain economic models.",
+  "traits": ["marketplace_listing", "royalty_stream", "agent_owned_entity", "foundation_dao"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

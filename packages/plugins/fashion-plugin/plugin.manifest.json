@@ -1,0 +1,9 @@
+{
+  "id": "fashion",
+  "version": "1.0.0",
+  "name": "Fashion",
+  "description": "Garment configuration, fabric simulation, and runway choreography traits for fashion and apparel.",
+  "traits": ["garment", "fabric_simulation", "runway_choreography"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

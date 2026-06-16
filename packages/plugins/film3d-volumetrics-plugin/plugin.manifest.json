@@ -1,0 +1,9 @@
+{
+  "id": "film3d-volumetrics",
+  "version": "1.0.0",
+  "name": "Film 3D / Volumetrics",
+  "description": "Volumetric, Gaussian splat, NeRF, cinematic camera, and G-code slicer traits for 3D film and volumetric capture.",
+  "traits": ["volumetric", "gaussian_splat", "nerf", "cinematic_camera", "gcode_slicer"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

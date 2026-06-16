@@ -1,0 +1,9 @@
+{
+  "id": "insurance",
+  "version": "1.0.0",
+  "name": "Insurance",
+  "description": "Policy management, claims processing, risk assessment, underwriting, and actuarial math traits.",
+  "traits": ["policy", "claim", "risk_assessment", "underwriting", "actuarial_math"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}

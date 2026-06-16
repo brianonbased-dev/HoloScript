@@ -1,0 +1,9 @@
+{
+  "id": "robotics",
+  "version": "1.0.0",
+  "name": "Robotics",
+  "description": "ROS2 hardware-in-the-loop trait for bidirectional physical robot integration, plus URDF/USD codegen utilities.",
+  "traits": ["ros2_hardware_loop"],
+  "autoRegister": false,
+  "runtimeEntry": "./src/runtime.ts"
+}
