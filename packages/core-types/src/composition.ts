@@ -788,11 +788,34 @@ export interface HoloParseWarning {
 // NPC BEHAVIOR TREES (Brittney AI Feature)
 // =============================================================================
 
+/**
+ * Typed AI-agency attachment for a scene object (currently NPCs). Mirror of the
+ * canonical type in `@holoscript/core` (packages/core/src/parser/HoloCompositionTypes.ts).
+ */
+export interface AgentBrainAttachment extends HoloNode {
+  type: 'AgentBrainAttachment';
+  brainType: 'llm' | 'behavior-tree' | 'state-machine' | 'scripted' | 'hybrid' | 'remote';
+  autonomy?: 'reactive' | 'deliberative' | 'autonomous' | 'supervised';
+  brainRef?: string;
+  toolPermissions?: string[];
+  model?: {
+    provider?: 'anthropic' | 'openai' | 'local' | 'ollama' | 'custom';
+    name?: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
+  config?: Record<string, HoloValue>;
+}
+
 export interface HoloNPC extends HoloNode {
   type: 'NPC';
   name: string;
   npcType?: string;
   model?: string;
+  /** Spatial anchor — coerced object form {x,y,z} (the runtime value the parser stores). */
+  position?: { x: number; y: number; z: number };
+  /** First-class AI-agency attachment. */
+  brain?: AgentBrainAttachment;
   properties: HoloNPCProperty[];
   behaviors: HoloBehavior[];
   state?: HoloState;

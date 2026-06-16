@@ -531,6 +531,33 @@ class SceneGraphGenerator {
     if (npc.model) node['hs:model'] = npc.model;
     if (npc.dialogueTree) node['hs:dialogueTree'] = npc.dialogueTree;
 
+    // Spatial anchor — agent-perspective edge: where the agent IS located.
+    if (npc.position) {
+      node['hs:locatedAt'] = {
+        '@type': 'hs:Position',
+        'hs:x': npc.position.x,
+        'hs:y': npc.position.y,
+        'hs:z': npc.position.z,
+      };
+    }
+
+    // Agency marker — lets an analyzer answer "does this object have AI agency"
+    // (and what kind / what it may interact with) WITHOUT running the trait runtime.
+    if (npc.brain) {
+      const brain: Record<string, unknown> = {
+        '@type': 'hs:AgentBrain',
+        'hs:brainType': npc.brain.brainType,
+      };
+      if (npc.brain.autonomy) brain['hs:autonomy'] = npc.brain.autonomy;
+      if (npc.brain.brainRef) brain['hs:brainRef'] = npc.brain.brainRef;
+      if (npc.brain.toolPermissions?.length) brain['hs:canInteractWith'] = npc.brain.toolPermissions;
+      if (npc.brain.model) {
+        brain['hs:model'] = { 'hs:provider': npc.brain.model.provider, 'hs:name': npc.brain.model.name };
+      }
+      node['hs:brain'] = brain;
+      node['hs:hasAgency'] = true;
+    }
+
     if (npc.properties?.length > 0) {
       const props: Record<string, unknown> = {};
       for (const prop of npc.properties) {

@@ -63,6 +63,7 @@ import type {
   SourceRange,
   // Brittney AI Features
   HoloNPC,
+  AgentBrainAttachment,
   HoloBehavior,
   HoloBehaviorAction,
   HoloQuest,
@@ -3833,7 +3834,37 @@ export class HoloCompositionParser {
         if (key === 'type') npc.npcType = value as string;
         else if (key === 'model') npc.model = value as string;
         else if (key === 'dialogue_tree') npc.dialogueTree = value as string;
-        else npc.properties.push({ type: 'NPCProperty', key, value });
+        else if (key === 'position') {
+          // Accept [x, y, z] (coerced to {x,y,z}, mirroring spawn-point parsing) or {x,y,z}.
+          if (Array.isArray(value) && value.length >= 3) {
+            npc.position = { x: value[0] as number, y: value[1] as number, z: value[2] as number };
+          } else if (value && typeof value === 'object' && 'x' in (value as object)) {
+            const v = value as Record<string, number>;
+            npc.position = { x: v.x, y: v.y, z: v.z };
+          }
+        } else if (key === 'brain_ref') {
+          npc.brain = {
+            ...(npc.brain ?? { type: 'AgentBrainAttachment', brainType: 'llm' }),
+            type: 'AgentBrainAttachment',
+            brainType: npc.brain?.brainType ?? 'llm',
+            brainRef: value as string,
+          };
+        } else if (key === 'brain') {
+          // brain: { type: "llm", autonomy: "autonomous", ref: "...", tools: [...] }
+          const cfg = (value && typeof value === 'object' ? value : {}) as Record<string, HoloValue>;
+          npc.brain = {
+            type: 'AgentBrainAttachment',
+            brainType: (cfg.type as AgentBrainAttachment['brainType']) ?? 'llm',
+            autonomy: cfg.autonomy as AgentBrainAttachment['autonomy'] | undefined,
+            brainRef:
+              typeof cfg.ref === 'string' ? cfg.ref : typeof cfg.brainRef === 'string' ? cfg.brainRef : undefined,
+            toolPermissions: Array.isArray(cfg.tools) ? (cfg.tools as HoloValue[]).map(String) : undefined,
+            model:
+              cfg.model && typeof cfg.model === 'object'
+                ? (cfg.model as AgentBrainAttachment['model'])
+                : undefined,
+          };
+        } else npc.properties.push({ type: 'NPCProperty', key, value });
       }
       this.skipNewlines();
     }

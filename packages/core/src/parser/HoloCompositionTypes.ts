@@ -1026,11 +1026,43 @@ export interface HoloParseWarning {
 // NPC BEHAVIOR TREES (Brittney AI Feature)
 // =============================================================================
 
+/**
+ * Typed AI-agency attachment for a scene object (currently NPCs).
+ *
+ * Makes "this object has AI agency" a first-class IR node a compiler/analyzer
+ * can reason about WITHOUT running the trait runtime — brain kind, autonomy
+ * envelope, tool permissions, and model binding are all statically inspectable.
+ */
+export interface AgentBrainAttachment extends HoloNode {
+  type: 'AgentBrainAttachment';
+  /** Kind of agent brain driving this object. */
+  brainType: 'llm' | 'behavior-tree' | 'state-machine' | 'scripted' | 'hybrid' | 'remote';
+  /** How much independent action the agent is permitted. */
+  autonomy?: 'reactive' | 'deliberative' | 'autonomous' | 'supervised';
+  /** Reference to a brain/skill definition by id (e.g. a .hsplus brain skill). */
+  brainRef?: string;
+  /** Names of tools/abilities this brain is permitted to invoke. */
+  toolPermissions?: string[];
+  /** Model binding for llm/hybrid brains. Provider aligns with ModelProvider. */
+  model?: {
+    provider?: 'anthropic' | 'openai' | 'local' | 'ollama' | 'custom';
+    name?: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
+  /** Raw additional brain config not captured by typed fields. */
+  config?: Record<string, HoloValue>;
+}
+
 export interface HoloNPC extends HoloNode {
   type: 'NPC';
   name: string;
   npcType?: string;
   model?: string;
+  /** Spatial anchor for the agent (same canonical position type as objects). */
+  position?: HoloPosition;
+  /** First-class AI-agency attachment — replaces the opaque config bag for agency reasoning. */
+  brain?: AgentBrainAttachment;
   properties: HoloNPCProperty[];
   behaviors: HoloBehavior[];
   state?: HoloState;
