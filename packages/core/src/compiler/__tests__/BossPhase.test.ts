@@ -55,6 +55,7 @@ function evalServer(js: string): Record<string, unknown> {
       state: unknown;
       setState(s: unknown) { this.state = s; }
       setSimulationInterval() {}
+      onMessage() {}
       broadcast() {}
     },
     Client: class {},

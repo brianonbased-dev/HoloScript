@@ -1354,6 +1354,12 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`    this.setState(new GameRoomState());`);
     this.push(`    this.state.rngState = RNG_SEED;`);
     this.push(``);
+    this.push(`    // Route real network client messages to the authoritative dispatcher.`);
+    this.push(`    // (catch-all '*' handler — without this no socket message reaches the server.)`);
+    this.push(`    this.onMessage('*', (client: Client, type: string | number, message: unknown) => {`);
+    this.push(`      this.dispatchClientMessage(client, String(type), message);`);
+    this.push(`    });`);
+    this.push(``);
 
     if (npcs.length > 0) {
       this.push(`    // Seed NPC entities (typed composition.npcs ∪ trait-scan)`);
@@ -1453,8 +1459,12 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`  }`);
     this.push(``);
 
-    // ── onMessage — server-authoritative ──────────────────────────────────
-    this.push(`  onMessage(client: Client, type: string, message: unknown): void {`);
+    // ── dispatchClientMessage — server-authoritative message router ───────
+    // Real colyseus messages reach this via the onCreate '*' handler; the
+    // in-process load harness (BotSwarmCompiler) calls it directly. NOT named
+    // `onMessage` — that is colyseus's handler-registration API and overriding
+    // it would silence every network message.
+    this.push(`  dispatchClientMessage(client: Client, type: string, message: unknown): void {`);
     this.push(`    const player = this.state.players.get(client.sessionId);`);
     this.push(`    if (!player) return;`);
     this.push(``);
@@ -1931,10 +1941,24 @@ export class ColyseusCompiler extends CompilerBase {
       ``,
       `import { Server } from 'colyseus';`,
       ``,
+      `/** Registered room name — clients join with this key. */`,
+      `export const ROOM_NAME = ${this.jsString(roomKey)};`,
+      ``,
       `export function createColyseusServer(port = 2567): Server {`,
       `  const gameServer = new Server();`,
-      `  gameServer.define(${this.jsString(roomKey)}, ${roomClassName});`,
+      `  gameServer.define(ROOM_NAME, ${roomClassName});`,
       `  void port;`,
+      `  return gameServer;`,
+      `}`,
+      ``,
+      `/**`,
+      ` * Create AND start the authoritative server listening on \`port\` — the entry`,
+      ` * point for a real network run (local laptop / Jetson / fleet node).`,
+      ` */`,
+      `export async function startColyseusServer(port = 2567): Promise<Server> {`,
+      `  const gameServer = new Server();`,
+      `  gameServer.define(ROOM_NAME, ${roomClassName});`,
+      `  await gameServer.listen(port);`,
       `  return gameServer;`,
       `}`,
       ``

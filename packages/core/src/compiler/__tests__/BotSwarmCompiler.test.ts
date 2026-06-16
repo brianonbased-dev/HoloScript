@@ -93,6 +93,7 @@ function evalModule(js: string): Record<string, unknown> {
       state: unknown;
       setState(s: unknown) { this.state = s; }
       setSimulationInterval() {}
+      onMessage() {}
       broadcast() {}
     },
     Client: class {},
@@ -227,5 +228,76 @@ describe('BotSwarmCompiler — mergeBalanceReports (sharded/distributed aggregat
     const merge = mod.mergeBalanceReports as (rs: unknown[]) => Record<string, number>;
     expect(merge([]).bots).toBe(0);
     expect(merge([]).avgTickMs).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Network bot driver — drives a real WebSocket server ($0 local hardware path).
+// Proven live against colyseus 0.15 (scripts/mmo/bot-swarm-local.mts); here we
+// regression-test the driver logic colyseus-free with a stubbed colyseus.js.
+// ---------------------------------------------------------------------------
+
+describe('BotSwarmCompiler — runNetworkBots (network driver)', () => {
+  it('emits runNetworkBots + ROOM_NAME', () => {
+    const code = new BotSwarmCompiler().compile(world, token);
+    expect(code).toContain('export async function runNetworkBots');
+    expect(code).toContain('export const ROOM_NAME =');
+  });
+
+  it('drives N bots over a stubbed client and counts server-pushed rejections', async () => {
+    const ts = await import('typescript');
+    const harnessJs = ts.transpileModule(new BotSwarmCompiler().compile(world, token), {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.CommonJS,
+        experimentalDecorators: true,
+      },
+    }).outputText;
+
+    // Stub colyseus.js: each fake room fires 'reconcile' on a speedhack move and
+    // 'cast_rejected' on repeat casts — exactly what the real server pushes back.
+    let counter = 0;
+    const colyseusJsStub = {
+      Client: class {
+        constructor(_url: string) { void _url; }
+        async joinOrCreate(): Promise<unknown> {
+          const sid = 'net_' + counter++;
+          const player = { x: 0, y: 0, z: 0 };
+          const handlers: Record<string, () => void> = {};
+          let casts = 0;
+          return {
+            sessionId: sid,
+            state: { players: new Map([[sid, player]]) },
+            send: (type: string, msg: { x?: number }) => {
+              if (type === 'move' && (msg.x ?? 0) >= 1000) handlers['reconcile']?.();
+              if (type === 'cast') { casts++; if (casts > 1) handlers['cast_rejected']?.(); }
+            },
+            onMessage: (type: string, cb: () => void) => { handlers[type] = cb; },
+            leave: async () => undefined,
+          };
+        }
+      },
+    };
+
+    const require_ = (id: string): unknown => {
+      if (id === 'colyseus.js') return colyseusJsStub;
+      throw new Error('unexpected require: ' + id);
+    };
+    const moduleObj = { exports: {} as Record<string, unknown> };
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    new Function('exports', 'require', 'module', harnessJs)(moduleObj.exports, require_, moduleObj);
+
+    const runNetworkBots = moduleObj.exports.runNetworkBots as (
+      opts: Record<string, unknown>
+    ) => Promise<Record<string, number>>;
+    const report = await runNetworkBots({ bots: 6, ticks: 10, speedhackRatio: 1, tickMs: 1, seed: 3 });
+
+    expect(report.bots).toBe(6);
+    expect(report.finalPlayers).toBe(6);
+    expect(report.moveAttempts).toBe(60); // 6 bots × 10 ticks
+    expect(report.moveRejects).toBe(60); // speedhackRatio 1 → every move rejected
+    expect(report.castAttempts).toBe(60);
+    expect(report.castRejects).toBe(54); // first cast/bot lands, rest rejected: 6×(10−1)
+    expect(report.receipts).toBe(0); // server-side only — not client-observable
   });
 });

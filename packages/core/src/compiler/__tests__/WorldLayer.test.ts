@@ -45,7 +45,7 @@ function evalServer(js: string): Record<string, unknown> {
   const noop = () => () => undefined;
   const schemaStub = { Schema: class {}, type: noop, MapSchema: class extends Map {}, ArraySchema: class extends Array {} };
   const colyseusStub = {
-    Room: class { state: unknown; setState(s: unknown) { this.state = s; } setSimulationInterval() {} broadcast() {} },
+    Room: class { state: unknown; setState(s: unknown) { this.state = s; } setSimulationInterval() {} onMessage() {} broadcast() {} },
     Client: class {}, Server: class { define() {} listen() { return Promise.resolve(); } },
   };
   const require_ = (id: string): unknown => {
@@ -98,7 +98,7 @@ describe('WorldLayer phasing (P2.4) — runtime proof (W.685 deep)', () => {
     const RoomClass = mod[result.roomClassName] as new () => Record<string, unknown> & {
       onCreate: (o: unknown) => void;
       onJoin: (c: unknown, o: unknown) => void;
-      onMessage: (c: unknown, type: string, msg: unknown) => void;
+      dispatchClientMessage: (c: unknown, type: string, msg: unknown) => void;
       state: { players: Map<string, { questFlags: Set<string>; activePhases: Set<string> }> };
       npcVisibleTo: (p: unknown, npcId: string) => boolean;
     };
@@ -119,7 +119,7 @@ describe('WorldLayer phasing (P2.4) — runtime proof (W.685 deep)', () => {
     expect(room.npcVisibleTo(player, 'unrelated_merchant')).toBe(true); // ungated always visible
 
     // Complete the quest (server-authoritative).
-    room.onMessage(client, 'quest_complete', { questId: 'main_chapter_1' });
+    room.dispatchClientMessage(client, 'quest_complete', { questId: 'main_chapter_1' });
 
     // After the quest: phases flip.
     expect(player.questFlags.has('main_chapter_1')).toBe(true);

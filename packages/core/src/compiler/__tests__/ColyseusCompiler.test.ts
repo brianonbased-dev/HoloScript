@@ -471,6 +471,7 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
         state: unknown;
         setState(s: unknown) { this.state = s; }
         setSimulationInterval() { /* capture skipped — we drive ticks directly */ }
+        onMessage() {}
         broadcast() {}
       },
       Client: class {},
@@ -931,5 +932,21 @@ describe('ColyseusCompiler — P1.8: damage_formula lowering → rollDamage_*()'
     expect(result.success).toBe(true);
     // hyphen sanitized to underscore
     expect(result.code).toMatch(/protected rollDamage_fire_bolt\(/);
+  });
+});
+
+describe('ColyseusCompiler — emitted server is network-runnable', () => {
+  it('registers a real colyseus catch-all handler and a listening bootstrap', () => {
+    const result = new ColyseusCompiler().compile(comp({ name: 'FrontierMMO' }), token);
+    // Real network messages are routed via the onCreate '*' handler …
+    expect(result.code).toContain("this.onMessage('*'");
+    // … into the renamed dispatcher (NOT an onMessage override, which would
+    // clobber colyseus's registration API and silence every network message).
+    expect(result.code).toContain('dispatchClientMessage(client: Client');
+    expect(result.code).not.toMatch(/^\s*onMessage\(client: Client, type: string, message: unknown\)/m);
+    // A real listening entry point + the joinable room name.
+    expect(result.code).toContain('export async function startColyseusServer');
+    expect(result.code).toContain('await gameServer.listen(port)');
+    expect(result.code).toMatch(/export const ROOM_NAME = ['"]frontiermmo['"]/);
   });
 });
