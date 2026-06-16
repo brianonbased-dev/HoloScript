@@ -4,7 +4,12 @@
  * (qwen2.5-coder reports `tools` yet emits call JSON as text).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { pickLocalModel, __clearLocalModelPickerCache } from '../local-model-picker';
+import {
+  pickLocalModel,
+  __clearLocalModelPickerCache,
+  isBlacklistedModel,
+  SAFE_LOCAL_FALLBACK,
+} from '../local-model-picker';
 
 const BOX = 'http://box:11434';
 
@@ -119,6 +124,46 @@ describe('pickLocalModel', () => {
     });
     const c = await pickLocalModel(BOX);
     expect(c.model).toBe('fit:7b');
+  });
+
+  // ── Model blacklist (founder 2026-06-16: blacklist qwen2.5) ──────────────────
+
+  it('isBlacklistedModel matches every qwen2.5 variant, not other families', () => {
+    expect(isBlacklistedModel('qwen2.5-coder:7b')).toBe(true);
+    expect(isBlacklistedModel('qwen2.5:14b-instruct-q4_K_M')).toBe(true);
+    expect(isBlacklistedModel('Qwen2.5-Coder')).toBe(true); // case-insensitive
+    expect(isBlacklistedModel('qwen3.5:4b')).toBe(false);
+    expect(isBlacklistedModel('qwen3:4b')).toBe(false);
+    expect(isBlacklistedModel('llama3.1:8b')).toBe(false);
+    expect(isBlacklistedModel(undefined)).toBe(false);
+  });
+
+  it('a blacklisted model is dropped from discovery even if it ranks first and passes the probe', async () => {
+    stubOllama({
+      models: [
+        // Would rank FIRST (modern + bigger) and even passes the probe — but it is blacklisted.
+        { name: 'qwen2.5-coder:7b', paramsB: '7.6B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+        { name: 'honest:4b', paramsB: '4B', caps: ['completion', 'tools', 'thinking'], emitsToolCalls: true },
+      ],
+    });
+    const c = await pickLocalModel(BOX);
+    expect(c.model).toBe('honest:4b');
+    expect(c.candidates).not.toContain('qwen2.5-coder:7b');
+  });
+
+  it('a blacklisted explicit override is NOT honored — returns the safe fallback, no network', async () => {
+    const spy = stubOllama({ models: [] });
+    const c = await pickLocalModel(BOX, { override: 'qwen2.5-coder:7b' });
+    expect(c.model).toBe(SAFE_LOCAL_FALLBACK);
+    expect(c.source).toBe('fallback');
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('a blacklisted fallback is replaced with the safe default', async () => {
+    stubOllama({ models: [], tagsFails: true });
+    const c = await pickLocalModel(BOX, { fallback: 'qwen2.5-coder:1.5b' });
+    expect(c.model).toBe(SAFE_LOCAL_FALLBACK);
+    expect(c.source).toBe('fallback');
   });
 
   it('caches the choice per endpoint until cleared', async () => {

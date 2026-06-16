@@ -190,6 +190,9 @@ export {
   pickLocalModel,
   __clearLocalModelPickerCache,
   OLLAMA_DEFAULT_BASE_URL,
+  SAFE_LOCAL_FALLBACK,
+  MODEL_BLACKLIST,
+  isBlacklistedModel,
 } from './local-model-picker';
 export type { LocalModelChoice } from './local-model-picker';
 
