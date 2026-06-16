@@ -281,3 +281,22 @@ export function cognitiveActionsToBTNodes(
   }
   return out;
 }
+
+/**
+ * Materialize a brain state's cognitive actions into a behavior-tree root that the
+ * engine's `behaviorTreeHandler` executes — wrapping {@link cognitiveActionsToBTNodes}
+ * in a `sequence` so the verbs dispatch in authored order. This is the engine-side
+ * half of the Phase 2.1 wiring: the parsed `state { recall {…}; llm_call {…} }`
+ * surface becomes a runnable tree (the runtime attaches a `behavior_tree` trait with
+ * this root and ticks it → each verb reaches its real trait via
+ * {@link compileCognitiveDispatch}). Returns `undefined` when there are no cognitive
+ * actions (no behavior tree to run). Use as `{ ...root, tick_rate, restart_on_complete }`
+ * for the `behaviorTreeHandler` config.
+ */
+export function cognitiveActionsToBehaviorTree(
+  actions: readonly HoloCognitiveAction[] | undefined
+): { root: { type: 'sequence'; name: string; children: CognitiveBTNode[] } } | undefined {
+  const children = cognitiveActionsToBTNodes(actions);
+  if (children.length === 0) return undefined;
+  return { root: { type: 'sequence', name: 'brain_cognition', children } };
+}
