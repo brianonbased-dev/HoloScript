@@ -150,6 +150,9 @@ export default defineConfig({
     // SensorSamplingTrait — ring-buffer signal acquisition with noise models (H2)
     'traits/sensor-sampling': 'src/traits/SensorSamplingTrait.ts',
 
+    // TransactionTrait — x402 ledger: pay/transfer/stake/unstake/deposit (H2)
+    'traits/transaction': 'src/traits/TransactionTrait.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

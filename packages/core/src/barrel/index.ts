@@ -141,6 +141,27 @@ export type {
 } from '../traits/ControlLoopTrait';
 export { stepPid, stepMpc, controlLoopHandler } from '../traits/ControlLoopTrait';
 
+// TransactionTrait — x402 ledger: pay/transfer/stake/unstake/deposit (H2)
+export type {
+  TxReceipt,
+  LedgerEntry,
+  SpendLimits,
+  TransactionConfig,
+  PayRequest,
+  TransferRequest,
+  StakeRequest,
+  UnstakeRequest,
+  DepositRequest,
+  TxNodeState,
+} from '../traits/TransactionTrait';
+export {
+  debitBalance,
+  stakeBalance,
+  unstakeBalance,
+  depositBalance,
+  transactionHandler,
+} from '../traits/TransactionTrait';
+
 // SensorSamplingTrait — ring-buffer signal acquisition with noise models (H2)
 export type {
   GaussianNoise,

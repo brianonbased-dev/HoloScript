@@ -231,6 +231,11 @@
       "types": "./dist/traits/sensor-sampling.d.ts",
       "import": "./dist/traits/sensor-sampling.js",
       "require": "./dist/traits/sensor-sampling.cjs"
+    },
+    "./traits/transaction": {
+      "types": "./dist/traits/transaction.d.ts",
+      "import": "./dist/traits/transaction.js",
+      "require": "./dist/traits/transaction.cjs"
     }
   },
   "bin": {
