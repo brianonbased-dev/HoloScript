@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { applyMove, isValidEntityId } from '@/lib/world-state-local';
+import { applyMove, isValidEntityId } from '@/lib/world-state-loro';
 
 /**
  * POST /api/world-drive  { entityId, position:{x,y,z} }

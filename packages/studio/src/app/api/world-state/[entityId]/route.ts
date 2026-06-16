@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readEntity } from '@/lib/world-state-local';
+import { readEntity } from '@/lib/world-state-loro';
 
 /**
  * GET /api/world-state/[entityId]
@@ -9,9 +9,8 @@ import { readEntity } from '@/lib/world-state-local';
  * an entity via /api/world-drive; the headset reads its position here every ~1s.
  * Returns the entity fields ({transform:{position}, updatedAt}) or {_null:true}.
  *
- * Local in-process read (see lib/world-state-local.ts): the shared production
- * MCP proved too flaky for a live loop, and a single-process avatar loop's
- * correct authority is local anyway.
+ * Local in-process read (see lib/world-state-loro.ts): Loro CRDT-backed
+ * authority that persists across Next.js hot-reloads.
  */
 
 export const dynamic = 'force-dynamic';
