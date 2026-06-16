@@ -109,6 +109,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/plugin-manifest/index.ts'),
       },
       {
+        find: '@holoscript/core/keyword-registry',
+        replacement: resolve(__dirname, '../core/src/keyword-registry/index.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },

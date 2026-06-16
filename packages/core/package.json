@@ -201,6 +201,11 @@
       "types": "./dist/plugin-manifest/index.d.ts",
       "import": "./dist/plugin-manifest/index.js",
       "require": "./dist/plugin-manifest/index.cjs"
+    },
+    "./keyword-registry": {
+      "types": "./dist/keyword-registry/index.d.ts",
+      "import": "./dist/keyword-registry/index.js",
+      "require": "./dist/keyword-registry/index.cjs"
     }
   },
   "bin": {

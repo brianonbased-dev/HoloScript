@@ -132,6 +132,9 @@ export default defineConfig({
     // PluginManifest — declarative plugin descriptor (H1 proof machinery)
     'plugin-manifest/index': 'src/plugin-manifest/index.ts',
 
+    // PluginKeywordRegistry — runtime-injectable .hs verb table (H2 language-extension seam)
+    'keyword-registry/index': 'src/keyword-registry/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

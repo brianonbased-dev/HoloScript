@@ -103,6 +103,9 @@ export * from '../parameter-envelope';
 // PluginManifest — declarative plugin descriptor + combination primitive (H1 proof machinery)
 export * from '../plugin-manifest';
 
+// PluginKeywordRegistry — runtime-injectable .hs verb table (H2 language-extension seam)
+export * from '../keyword-registry';
+
 // Care-field primitives (D.052 universal love doctrine)
 export * from '../care';
 
