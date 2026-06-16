@@ -111,6 +111,7 @@ import type {
   HoloWorldChunk,
   HoloWorldLayer,
   HoloDungeonInstance,
+  HoloWorldShard,
   HoloMovementPath,
   HoloReactionTrigger,
   HoloNormBlock,
@@ -281,6 +282,7 @@ export class HoloCompositionParser {
       worldChunks: [],
       worldLayers: [],
       dungeonInstances: [],
+      worldShards: [],
       movementPaths: [],
       reactionTriggers: [],
     };
@@ -439,6 +441,8 @@ export class HoloCompositionParser {
           composition.worldLayers!.push(this.parseWorldLayer());
         } else if (this.check('DUNGEON_INSTANCE')) {
           composition.dungeonInstances!.push(this.parseDungeonInstance());
+        } else if (this.check('WORLD_SHARD')) {
+          composition.worldShards!.push(this.parseWorldShard());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -681,6 +685,7 @@ export class HoloCompositionParser {
       worldChunks: [],
       worldLayers: [],
       dungeonInstances: [],
+      worldShards: [],
       movementPaths: [],
       reactionTriggers: [],
     };
@@ -792,6 +797,8 @@ export class HoloCompositionParser {
           composition.worldLayers!.push(this.parseWorldLayer());
         } else if (this.check('DUNGEON_INSTANCE')) {
           composition.dungeonInstances!.push(this.parseDungeonInstance());
+        } else if (this.check('WORLD_SHARD')) {
+          composition.worldShards!.push(this.parseWorldShard());
         } else if (this.check('REAL_ESTATE')) {
           // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -5736,6 +5743,70 @@ export class HoloCompositionParser {
       completionQuest,
       npcs,
       objects,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a world_shard block (P2.5 — world sharding).
+   *
+   * Syntax:
+   *   world_shard north_province {
+   *     min: [-1000, 0, -1000]
+   *     max: [0, 256, 1000]
+   *     neighbors: ["south_province"]
+   *     max_players: 200
+   *     handoff: "seamless"
+   *   }
+   */
+  private parseWorldShard(): HoloWorldShard {
+    const startLoc = this.currentLocation();
+    this.pushContext('world-shard');
+    this.advance(); // consume 'world_shard'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let min: [number, number, number] = [0, 0, 0];
+    let max: [number, number, number] = [0, 0, 0];
+    let neighbors: string[] = [];
+    let maxPlayers = 100;
+    let handoff = 'seamless';
+
+    const toVec3 = (val: HoloValue): [number, number, number] => {
+      const a = (Array.isArray(val) ? val : [val]).map((v) => Number(v) || 0);
+      return [a[0] ?? 0, a[1] ?? 0, a[2] ?? 0];
+    };
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const val = this.parseValue();
+      if (key === 'min') min = toVec3(val);
+      else if (key === 'max') max = toVec3(val);
+      else if (key === 'neighbors') neighbors = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      else if (key === 'max_players') maxPlayers = Number(val) || 100;
+      else if (key === 'handoff') handoff = String(val);
+      else properties[key] = val;
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'WorldShard',
+      name,
+      min,
+      max,
+      neighbors,
+      maxPlayers,
+      handoff,
       properties,
     };
   }

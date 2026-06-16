@@ -122,6 +122,8 @@ export interface HoloComposition extends HoloNode {
   worldLayers?: HoloWorldLayer[];
   /** Instanced dungeon/raid content spun up per party with receipt-sealed completion (P2.6) */
   dungeonInstances?: HoloDungeonInstance[];
+  /** World sharding: AABB partitions of a single world across rooms, receipt-sealed handoff (P2.5) */
+  worldShards?: HoloWorldShard[];
   /** Named locomotion routes (patrol/path/orbit) declared at scene level */
   movementPaths?: HoloMovementPath[];
   /** Scene-level declarative reaction triggers (on_<trigger> -> action wiring) */
@@ -601,6 +603,42 @@ export interface HoloDungeonInstance extends HoloNode {
   npcs: string[];
   /** Object names that populate the instance. */
   objects: string[];
+  /** Raw key-value properties for extensibility. */
+  properties: Record<string, HoloValue>;
+}
+
+// =============================================================================
+// WORLD SHARDING (P2.5) — AABB partitions of one world across rooms + handoff
+// =============================================================================
+
+/**
+ * A world_shard block: an axis-aligned partition of a single world, hosted as its
+ * own room. A player crossing into a neighbor shard is handed off; the handoff is
+ * receipt-sealed and validated (the target must be a declared NEIGHBOR and the
+ * position must be inside its bounds — anti-teleport).
+ *
+ * Syntax:
+ *   world_shard north_province {
+ *     min: [-1000, 0, -1000]
+ *     max: [0, 256, 1000]
+ *     neighbors: ["south_province", "east_province"]
+ *     max_players: 200
+ *     handoff: "seamless"          // or "loading"
+ *   }
+ */
+export interface HoloWorldShard extends HoloNode {
+  type: 'WorldShard';
+  name: string;
+  /** AABB minimum corner [x, y, z]. */
+  min: [number, number, number];
+  /** AABB maximum corner [x, y, z]. */
+  max: [number, number, number];
+  /** Names of adjacent shards a player may be handed off to (compile-validated). */
+  neighbors: string[];
+  /** Max players hosted in this shard's room. */
+  maxPlayers: number;
+  /** Handoff style on a border crossing ('seamless' | 'loading'). */
+  handoff: string;
   /** Raw key-value properties for extensibility. */
   properties: Record<string, HoloValue>;
 }
