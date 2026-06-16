@@ -133,6 +133,22 @@ export interface ColyseusBrainState {
   actions: string[];
 }
 
+/** Verbal fingerprint baked from a @verbal_fingerprint trait in the .hsplus brain. */
+export interface ColyseusBrainVerbalFingerprint {
+  /** Target tone: formal, casual, archaic, cryptic, etc. */
+  tone: string;
+  /** Phrases the LLM must NOT emit (injected as a hard constraint into the system prompt). */
+  forbiddenPhrases: string[];
+  /** Phrases the LLM SHOULD include at least once (injected as a soft constraint). */
+  requiredPhrases: string[];
+}
+
+/** Autonomous agenda baked from a @autonomous_agenda trait in the .hsplus brain. */
+export interface ColyseusBrainAgenda {
+  /** High-level NPC goals injected into the system prompt as narrative motivation. */
+  goals: string[];
+}
+
 export interface ColyseusBrainConfig {
   name: string;
   brainType: 'behavior_tree' | 'decision_tree' | 'neural' | 'scripted';
@@ -145,6 +161,10 @@ export interface ColyseusBrainConfig {
   preferredAbility: string | null;
   initialState: string;
   states: ColyseusBrainState[];
+  /** P1.9: verbal style constraints from @verbal_fingerprint (null when not declared). */
+  verbalFingerprint: ColyseusBrainVerbalFingerprint | null;
+  /** P1.9: autonomous motivation from @autonomous_agenda (null when not declared). */
+  autonomousAgenda: ColyseusBrainAgenda | null;
 }
 
 export interface ColyseusCompilationResult {
@@ -783,6 +803,11 @@ export class ColyseusCompiler extends CompilerBase {
         provider === 'local' ||
         provider === 'ollama' ||
         Boolean((decl.traits ?? {})['local_llm_brain']);
+
+      // P1.9 — extract @verbal_fingerprint and @autonomous_agenda from generic trait bag.
+      const verbalFingerprint = this.extractVerbalFingerprint((decl.traits ?? {})['verbal_fingerprint']);
+      const autonomousAgenda = this.extractAutonomousAgenda((decl.traits ?? {})['autonomous_agenda']);
+
       out.push({
         name: decl.name,
         brainType: decl.brainType ?? 'behavior_tree',
@@ -794,6 +819,8 @@ export class ColyseusCompiler extends CompilerBase {
         preferredAbility: decl.preferredAbility?.name ?? null,
         initialState: states[0]?.name ?? 'idle',
         states,
+        verbalFingerprint,
+        autonomousAgenda,
       });
     }
     return out;
@@ -818,6 +845,43 @@ export class ColyseusCompiler extends CompilerBase {
       return null; // unknown symbol → no guard (single-file scope)
     }
     return Number.isFinite(value) ? { field: 'hp', op, value } : null;
+  }
+
+  /**
+   * P1.9 — Extract @verbal_fingerprint trait config from the generic brain trait bag.
+   *
+   * The .hsplus parser stores unknown directives as `brain.traits[dirName] = config`.
+   * `@verbal_fingerprint { tone: "archaic", forbidden_phrases: [...], required_phrases: [...] }`
+   * lands in `brain.traits['verbal_fingerprint']` as a plain object. We normalise it here.
+   */
+  private extractVerbalFingerprint(raw: unknown): ColyseusBrainVerbalFingerprint | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const cfg = raw as Record<string, unknown>;
+    const tone = typeof cfg['tone'] === 'string' ? cfg['tone'] : 'neutral';
+    const forbidden = Array.isArray(cfg['forbidden_phrases'])
+      ? (cfg['forbidden_phrases'] as unknown[]).filter((x): x is string => typeof x === 'string')
+      : [];
+    const required = Array.isArray(cfg['required_phrases'])
+      ? (cfg['required_phrases'] as unknown[]).filter((x): x is string => typeof x === 'string')
+      : [];
+    // Return null only when every field is empty/default (caller declared the trait but left it blank)
+    if (tone === 'neutral' && forbidden.length === 0 && required.length === 0) return null;
+    return { tone, forbiddenPhrases: forbidden, requiredPhrases: required };
+  }
+
+  /**
+   * P1.9 — Extract @autonomous_agenda trait config from the generic brain trait bag.
+   *
+   * `@autonomous_agenda { goals: ["find food", "avoid player"] }` lands in
+   * `brain.traits['autonomous_agenda']` as a plain object. We pull the goals array.
+   */
+  private extractAutonomousAgenda(raw: unknown): ColyseusBrainAgenda | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const cfg = raw as Record<string, unknown>;
+    const goals = Array.isArray(cfg['goals'])
+      ? (cfg['goals'] as unknown[]).filter((x): x is string => typeof x === 'string')
+      : [];
+    return goals.length > 0 ? { goals } : null;
   }
 
   private brainRegistryObject(): Record<string, Omit<ColyseusBrainConfig, 'name'>> {
@@ -1020,6 +1084,10 @@ export class ColyseusCompiler extends CompilerBase {
       `  states: Array<{ name: string; transitions: Array<{ to: string;`,
       `    guard: { field: 'hp'; op: '<' | '>' | '<=' | '>=' | '=='; value: number } | null }>;`,
       `    actions: string[] }>;`,
+      `  /** P1.9: verbal style constraints (null when @verbal_fingerprint not declared). */`,
+      `  verbalFingerprint: { tone: string; forbiddenPhrases: string[]; requiredPhrases: string[] } | null;`,
+      `  /** P1.9: autonomous motivation (null when @autonomous_agenda not declared). */`,
+      `  autonomousAgenda: { goals: string[] } | null;`,
       `}> = ${JSON.stringify(this.brainRegistryObject(), null, 2)};`,
       ``
     );
@@ -1506,12 +1574,29 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(``);
       this.push(`  // Local-LLM decision via the Jetson endpoint (env-resolved, never a literal IP).`);
       this.push(`  // No-op when JETSON_OLLAMA_URL is unset so the server runs cloud-free by default.`);
+      this.push(`  // P1.9: system prompt enriched with @verbal_fingerprint (tone, forbidden/required`);
+      this.push(`  // phrases) and @autonomous_agenda (daily goals) baked from the .hsplus brain decl.`);
       this.push(`  protected async decideLLM(npc: NpcState): Promise<void> {`);
       this.push(`    const base = process.env[JETSON_OLLAMA_ENV];`);
       this.push(`    if (!base) return;`);
       this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
       this.push(`    if (!brain) return;`);
       this.push(`    try {`);
+      this.push(`      // ── Build system prompt (P1.9: verbal fingerprint + autonomous agenda) ──`);
+      this.push(`      const basePart = \`You are \${brain.personality} NPC '\${npc.id}' (faction \${npc.faction}). State: \${npc.brainState}, hp \${npc.hp}/\${npc.maxHp}.\`;`);
+      this.push(`      const tonePart = brain.verbalFingerprint`);
+      this.push(`        ? \` Speak in a \${brain.verbalFingerprint.tone} tone.\``);
+      this.push(`        : '';`);
+      this.push(`      const forbidPart = brain.verbalFingerprint?.forbiddenPhrases.length`);
+      this.push(`        ? \` Never say: \${brain.verbalFingerprint.forbiddenPhrases.map((p) => \`"\${p}"\`).join(', ')}.\``);
+      this.push(`        : '';`);
+      this.push(`      const requirePart = brain.verbalFingerprint?.requiredPhrases.length`);
+      this.push(`        ? \` Include at least one of: \${brain.verbalFingerprint.requiredPhrases.map((p) => \`"\${p}"\`).join(', ')}.\``);
+      this.push(`        : '';`);
+      this.push(`      const goalPart = brain.autonomousAgenda?.goals.length`);
+      this.push(`        ? \` Your current goals: \${brain.autonomousAgenda.goals.join('; ')}.\``);
+      this.push(`        : '';`);
+      this.push(`      const systemContent = \`\${basePart}\${tonePart}\${forbidPart}\${requirePart}\${goalPart} Reply with ONE action verb.\`;`);
       this.push(`      const resp = await fetch(\`\${base}/api/chat\`, {`);
       this.push(`        method: 'POST',`);
       this.push(`        headers: { 'Content-Type': 'application/json' },`);
@@ -1519,7 +1604,7 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`          model: process.env.JETSON_MODEL ?? 'qwen3:4b',`);
       this.push(`          stream: false,`);
       this.push(`          messages: [`);
-      this.push(`            { role: 'system', content: \`You are \${brain.personality} NPC '\${npc.id}' (faction \${npc.faction}). State: \${npc.brainState}, hp \${npc.hp}/\${npc.maxHp}. Reply with ONE action verb.\` },`);
+      this.push(`            { role: 'system', content: systemContent },`);
       this.push(`            { role: 'user', content: 'What do you do?' },`);
       this.push(`          ],`);
       this.push(`        }),`);

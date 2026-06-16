@@ -641,3 +641,138 @@ describe('ColyseusCompiler — async import resolution (P0.0b / compileSource)',
     expect(result.warnings.some((w) => w.includes('missing.hs'))).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// P1.9 — @verbal_fingerprint + @autonomous_agenda wiring into decideLLM prompt
+// ---------------------------------------------------------------------------
+
+describe('ColyseusCompiler — P1.9: verbal_fingerprint + autonomous_agenda', () => {
+  const token = createTestCompilerToken();
+
+  it('bakes @verbal_fingerprint tone + forbidden/required phrases into BRAIN_REGISTRY', async () => {
+    const hsPlusSource = `
+      brain WiseKeeperBrain {
+        @behavior_tree
+        @personality "wise_mentor"
+        @verbal_fingerprint {
+          tone: "archaic"
+          forbidden_phrases: ["whatever", "like totally"]
+          required_phrases: ["Hearken", "verily"]
+        }
+        state idle { }
+      }
+    `;
+    const compiler = new ColyseusCompiler();
+    (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
+    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
+      .ingestBrains(hsPlusSource, 'keeper.hsplus', []);
+    const result = compiler.compile(
+      comp({ npcs: [npc('keeper_01', { hp: 100, brain: 'WiseKeeperBrain' })] }),
+      token
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.brains).toHaveLength(1);
+    const brain = result.brains[0]!;
+    expect(brain.verbalFingerprint).not.toBeNull();
+    expect(brain.verbalFingerprint?.tone).toBe('archaic');
+    expect(brain.verbalFingerprint?.forbiddenPhrases).toContain('whatever');
+    expect(brain.verbalFingerprint?.requiredPhrases).toContain('Hearken');
+
+    // Confirm BRAIN_REGISTRY in the emitted code carries the fingerprint
+    expect(result.code).toContain('"tone": "archaic"');
+    expect(result.code).toContain('"whatever"');
+    expect(result.code).toContain('"Hearken"');
+  });
+
+  it('bakes @autonomous_agenda goals into BRAIN_REGISTRY', async () => {
+    const hsPlusSource = `
+      brain HunterBrain {
+        @behavior_tree
+        @personality "predator"
+        @autonomous_agenda {
+          goals: ["hunt prey", "patrol territory", "avoid bright light"]
+        }
+        state idle { }
+      }
+    `;
+    const compiler = new ColyseusCompiler();
+    (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
+    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
+      .ingestBrains(hsPlusSource, 'hunter.hsplus', []);
+    const result = compiler.compile(
+      comp({ npcs: [npc('hunter_01', { hp: 80, brain: 'HunterBrain' })] }),
+      token
+    );
+
+    expect(result.success).toBe(true);
+    const brain = result.brains[0]!;
+    expect(brain.autonomousAgenda).not.toBeNull();
+    expect(brain.autonomousAgenda?.goals).toContain('hunt prey');
+    expect(brain.autonomousAgenda?.goals).toContain('avoid bright light');
+
+    // Goals appear in the emitted BRAIN_REGISTRY
+    expect(result.code).toContain('"hunt prey"');
+    expect(result.code).toContain('"patrol territory"');
+  });
+
+  it('emits null for both fields when neither trait is declared', async () => {
+    const hsPlusSource = `
+      brain SimpleBrain {
+        @behavior_tree
+        @personality "aggressive"
+        state idle { }
+      }
+    `;
+    const compiler = new ColyseusCompiler();
+    (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
+    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
+      .ingestBrains(hsPlusSource, 'simple.hsplus', []);
+    const result = compiler.compile(
+      comp({ npcs: [npc('grunt_01', { hp: 60, brain: 'SimpleBrain' })] }),
+      token
+    );
+
+    expect(result.success).toBe(true);
+    const brain = result.brains[0]!;
+    expect(brain.verbalFingerprint).toBeNull();
+    expect(brain.autonomousAgenda).toBeNull();
+  });
+
+  it('decideLLM system prompt includes tone, forbidden phrases, required phrases, and goals', async () => {
+    const result = comp({
+      npcs: [npc('sage_01', { hp: 100, brain: 'SageBrain' })],
+    });
+    const compiler = new ColyseusCompiler();
+    const hsPlusSource = `
+      brain SageBrain {
+        @behavior_tree
+        @personality "wise"
+        @verbal_fingerprint {
+          tone: "cryptic"
+          forbidden_phrases: ["easy", "simple"]
+          required_phrases: ["the path"]
+        }
+        @autonomous_agenda {
+          goals: ["guide seekers", "guard the sanctum"]
+        }
+        state idle { }
+      }
+    `;
+    (compiler as unknown as { importedBrainDecls: unknown[] }).importedBrainDecls = [];
+    await (compiler as unknown as { ingestBrains: (src: string, file: string, w: string[]) => Promise<void> })
+      .ingestBrains(hsPlusSource, 'sage.hsplus', []);
+    const out = compiler.compile(result, token);
+
+    expect(out.success).toBe(true);
+    // decideLLM should include the conditional prompt-building lines
+    expect(out.code).toContain('brain.verbalFingerprint');
+    expect(out.code).toContain('brain.autonomousAgenda');
+    expect(out.code).toContain('forbiddenPhrases');
+    expect(out.code).toContain('requiredPhrases');
+    expect(out.code).toContain('goals.join');
+    // The fingerprint data is present in the registry
+    expect(out.code).toContain('"tone": "cryptic"');
+    expect(out.code).toContain('"guide seekers"');
+  });
+});
