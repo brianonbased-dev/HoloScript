@@ -11,6 +11,28 @@ export interface RailwayConnectorCredentials {
   projectToken?: string;
 }
 
+/**
+ * Hard-secret pattern guard for `railway_variable_set` (F.106 bleed-stopper). A plaintext
+ * secret written to a Railway env value is readable by any holder of `RAILWAY_API_TOKEN` —
+ * the exact 5th/6th-leak surface. The connector refuses to inject a value matching a known
+ * credential shape unless the caller explicitly passes `allowSecret: true` (a conscious
+ * managed-var write). Returns the matched credential type, or null when not secret-shaped.
+ */
+const RAW_SECRET_PATTERNS: Array<[string, RegExp]> = [
+  ['GitHub PAT (fine)', /github_pat_[A-Za-z0-9_]{50,}/],
+  ['GitHub PAT (classic)', /ghp_[A-Za-z0-9]{36}/],
+  ['OpenAI/Anthropic key', /sk-(proj-|ant-api)?[A-Za-z0-9_-]{20,}/],
+  ['AWS access key', /AKIA[0-9A-Z]{16}/],
+  ['Private key block', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
+  ['npm token', /npm_[A-Za-z0-9]{20,}/],
+  ['Slack token', /xox[bpas]-[A-Za-z0-9-]{10,}/],
+  ['HoloMesh/HoloScript key', /(holomesh_sk_|hs_sk_)[A-Za-z0-9_-]{16,}/],
+];
+function looksLikeRawSecret(value: string): string | null {
+  for (const [type, re] of RAW_SECRET_PATTERNS) if (re.test(value)) return type;
+  return null;
+}
+
 export class RailwayConnector extends ServiceConnector {
   private apiKey: string | null = null;
   private readonly apiUrl = 'https://backboard.railway.app/graphql/v2';
@@ -89,7 +111,22 @@ export class RailwayConnector extends ServiceConnector {
         query = `mutation CreateDeployment($serviceId: String!, $environmentId: String!) { deploymentCreate(input: {serviceId: $serviceId, environmentId: $environmentId}) { id } }`;
         variables = { serviceId: args.serviceId, environmentId: args.environmentId };
         break;
-      case 'railway_variable_set':
+      case 'railway_variable_set': {
+        // F.106 bleed-stopper: refuse to inject a plaintext secret into Railway env.
+        // A secret-shaped value here is readable by any RAILWAY_API_TOKEN holder — the
+        // 5th/6th-leak surface. Non-secret config (URLs/flags) passes through unchanged.
+        const rawValue = String(args.value ?? '');
+        const secretType = looksLikeRawSecret(rawValue);
+        if (secretType && args.allowSecret !== true) {
+          throw new Error(
+            `railway_variable_set refuses to inject a plaintext secret (${secretType}) into ` +
+              `Railway env "${String(args.name)}": a plaintext value is readable by any holder of ` +
+              `RAILWAY_API_TOKEN — the F.106 5th/6th-leak surface. Prefer a project-level shared ` +
+              `variable referenced by name (\${{shared.${String(args.name)}}}), resolve it at ` +
+              `runtime via HoloKey (@needs_key / vault:), or pass allowSecret:true to acknowledge a ` +
+              `deliberate managed-var write. (HoloScript/CLAUDE.md BEHAVIORAL OVERRIDES; F.106.)`
+          );
+        }
         query = `mutation UpsertVariable($projectId: String!, $environmentId: String!, $serviceId: String!, $name: String!, $value: String!) { variableUpsert(input: {projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, name: $name, value: $value}) }`;
         variables = {
           projectId: args.projectId,
@@ -99,6 +136,7 @@ export class RailwayConnector extends ServiceConnector {
           value: args.value,
         };
         break;
+      }
       case 'railway_domain_add':
         query = `mutation AddDomain($serviceId: String!, $environmentId: String!, $domain: String!) { customDomainCreate(input: {serviceId: $serviceId, environmentId: $environmentId, domain: $domain}) { id } }`;
         variables = {
