@@ -86,6 +86,33 @@ Audit of parse-site vs runtime-execute-site for every edge/agent construct:
 - The declarative seams the compiler *should* read already exist and are ignored: `LocalInferenceTrait.ts`, `EdgeNodeTrait.ts` (`capabilityTags`/`avoidTags`/`escalateOnFailure`).
 - A JS edge deploy path exists and should stay JS: `packages/cli/src/edge.ts` (`packageForEdge`/`deployToDevice`/`otaUpdate`).
 
+## Substrate reality (verified audit reference, 2026-06-16)
+
+A whole-file substance audit + an adversarial re-verification pass established what the native agent can
+actually build on (vs the marketing surface). Load-bearing for this plan:
+
+- **The local-LLM cognitive path IS correctly wired** (a feared blocker — REFUTED on verification):
+  `llm_call` → `llm_prompt` → `LocalLLMTrait._chat` → HTTP to the Ollama endpoint
+  ([CognitiveActions.ts:135](packages/core/src/traits/cognitive/CognitiveActions.ts),
+  [LocalLLMTrait.ts:229](packages/core/src/traits/LocalLLMTrait.ts)). `LLMAgentTrait` emits `llm_request`
+  *outbound* (for an external host) — a different role, not a mismatch. So once the cognitive verbs reach
+  the executor, they reach the local model. **The event wiring is not the gap.**
+- **The one real cognitive gap is `cognitiveActions` write-only** — Phase 2.1(a) bridge (`8b08e74ec`) is
+  layer 1; layer 2 wires it into the BT the loop ticks.
+- **The wired cognitive path is the `BehaviorTree` `type:'cognitive'` node** — route the brain's verbs
+  through it; don't invent a path.
+- **~376 trait handlers are actually registered** ([VRTraitSystem.ts:1595-2103](packages/core/src/traits/VRTraitSystem.ts)),
+  out of ~3,082 vocabulary names (~12% wired). The brain may only compose the ~376 real handlers (dispatch
+  goes through VRTraitRegistry). Don't author against the full vocabulary.
+- **No autonomous loop in core** (`HeadlessRuntime.tick()` = stub; `HoloScriptRuntime` needs an external
+  tick) → the Jetson loop comes from the `AgentRunner` (confirms the corrected Phase 2.1 target above).
+
+Off-Jetson-path defects the audit surfaced (verified real, exact fixes available, NOT on this critical
+path → board tasks when the mesh recovers): LWWRegister self-comparison tiebreaker (mesh CRDT),
+AIDriverTrait wrong-class-under-`@ts-expect-error`, `events` trait unregistered, async-onAttach
+fire-and-forget (multi-call-site refactor), compiler-wasm README overclaim (docs-only). Refuted by
+verification (NOT defects): the `llm_request`/`llm_prompt` "mismatch" and the AdvancedLighting "stub".
+
 ## The build-out, in dependency order
 
 Each phase is independently shippable and ordered so nothing depends on a later phase.
