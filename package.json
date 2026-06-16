@@ -159,7 +159,8 @@
     "agents:deploy": "tsx scripts/build/deploy-multi-agents.ts",
     "render:competitor-gap-matrix": "node scripts/render-competitor-gap-matrix.mjs",
     "conjecture:runner": "tsx scripts/conjecture-runner.ts",
-    "conjecture:cost-cell": "tsx scripts/conjecture-cost-cell.ts"
+    "conjecture:cost-cell": "tsx scripts/conjecture-cost-cell.ts",
+    "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

@@ -42,12 +42,26 @@ import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 import { generateWebGPUBrowserTemplate } from './renderer';
-import { targetSovereignty } from '@holoscript/core/compiler';
+import { targetSovereignty, DialectRegistry, registerBuiltinDialects } from '@holoscript/core/compiler';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
 // triggers critical alerts at 91% utilization and causes OOM SIGTERMs.
 getExportManager({ useMemoryMonitoring: false });
+
+registerBuiltinDialects();
+
+// Dialects that are internal/meta and should not be surfaced as user-facing export targets.
+const _INTERNAL_DIALECT_NAMES = new Set([
+  'domain-block', 'multi-layer', 'incremental', 'mcp-config',
+  // Registered in DialectRegistry but not yet wired to a compiler-tools switch case:
+  'threejs', 'nextjs-api',
+]);
+
+// ExportManager targets not yet migrated to DialectRegistry -- surfaced via legacy path.
+const _LEGACY_EXPORT_TARGETS = [
+  'usd', 'usdz', '3dgs', 'canvas2d-game', 'code-editor',
+] as const;
 
 // =============================================================================
 // TYPES
@@ -554,33 +568,13 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
   categories: Record<string, ExportTarget[]>;
   sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'>;
 }> {
-  const targets: ExportTarget[] = [
-    'urdf',
-    'sdf',
-    'unity',
-    'unreal',
-    'godot',
-    'canvas2d-game',
-    'vrchat',
-    'openxr',
-    'android',
-    'android-xr',
-    'ios',
-    'visionos',
-    'ar',
-    'babylon',
-    'webgpu',
-    'r3f',
-    'wasm',
-    'playcanvas',
-    'usd',
-    'usdz',
-    'dtdl',
-    'vrr',
-    'multi-layer',
-    '3dgs',
-    'code-editor',
-  ] as unknown as ExportTarget[];
+  const dialectNames = DialectRegistry.names().filter(
+    (n) => !_INTERNAL_DIALECT_NAMES.has(n),
+  );
+  const legacyNames = Array.from(_LEGACY_EXPORT_TARGETS).filter(
+    (n) => !dialectNames.includes(n),
+  );
+  const targets = [...dialectNames, ...legacyNames] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
     'Game Engines': ['unity', 'unreal', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
@@ -595,8 +589,9 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     ] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', '3dgs'] as unknown as ExportTarget[],
-    Advanced: ['vrr', 'multi-layer'] as unknown as ExportTarget[],
+    Advanced: ['vrr'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
+    'AI/MCP': ['mcp-server'] as unknown as ExportTarget[],
   };
 
   const sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'> = {};
@@ -788,6 +783,9 @@ export async function handleCompilerTool(
 
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
+
+    case 'compile_to_mcp_server':
+      return handleCompileToTarget({ ...args, target: 'mcp-server' });
 
     // Modality Transliteration (Pillar 1)
     case 'holoscript_select_modality':
@@ -1039,7 +1037,15 @@ export const compilerTools: Tool[] = [
             'usdz',
             'dtdl',
             'vrr',
-            'multi-layer',
+            'mcp-server',
+            'state',
+            'a2a-agent-card',
+            'nir',
+            'native-2d',
+            'node-service',
+            '3dgs',
+            'canvas2d-game',
+            'code-editor',
           ],
           description: 'Target platform to compile to',
         },
@@ -1730,6 +1736,31 @@ export const compilerTools: Tool[] = [
           description:
             'Key-value map of env var values for literal injection (required for antigravity target). ' +
             'Example: {"HOLOSCRIPT_API_KEY": "USNo/..."}',
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_mcp_server',
+    description:
+      'Compile a HoloScript trait/brain composition into a standalone MCP server TypeScript module. ' +
+      'Walks the composition for llm_agent, goal_oriented, rag_knowledge, agent_memory, and tool traits ' +
+      'and emits: TOOLS[] definition, HoloMCPRuntimeAdapter interface, registerAdapter(), ' +
+      'verifyContractWiring(), handleToolCall(), and governance metadata. ' +
+      'The output is a self-contained .mcp-server.ts file — no external HoloScript imports at runtime. ' +
+      'Usage: define objects with @llm_agent or @tool traits, compile to get a ready-to-wire MCP module.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code with agent/tool traits' },
+        options: {
+          type: 'object',
+          properties: {
+            serverName: { type: 'string', description: 'MCP server name (default: holoscript-mcp)' },
+            serverVersion: { type: 'string', description: 'Server version string (default: 1.0.0)' },
+          },
         },
       },
       required: ['code'],
