@@ -176,7 +176,10 @@ export class AgentRunner {
       const resp = await provider.complete(
         {
           messages,
-          maxTokens: 4096,
+          // 8192 for local thinking models (qwen3:4b uses ~3800 tokens on thinking
+          // before the tool-call JSON; 4096 cuts off mid-generation). Frontier
+          // models ignore this ceiling and stop naturally earlier.
+          maxTokens: 8192,
           temperature: 0.4,
           tools: MESH_TOOLS,
         },
@@ -469,7 +472,7 @@ function buildTaskPrompt(task: BoardTask): string {
     'Description:',
     task.description ?? '(no description)',
     '',
-    'Produce the deliverable described in the task. Apply your brain composition rules — anti-patterns, decision loop, and scope tier all bind. Return the response as plain text suitable for posting to /room as a message on this task.',
+    'Produce the deliverable: call write_file (or bash with a build command) to create all required output files FIRST. Apply your brain composition rules — anti-patterns, decision loop, and scope tier all bind. After calling the tool(s), return a short plain-text summary of what you did for posting to /room.',
   ].join('\n');
 }
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { homedir } from 'node:os';
+import { homedir, hostname } from 'node:os';
 import { join } from 'node:path';
+import { createHash, createDecipheriv, randomBytes, type DecipherGCM } from 'node:crypto';
+import { Wallet } from 'ethers';
 import {
   createAnthropicProvider,
   createOpenAIProvider,
@@ -111,6 +113,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     apiBase: identity.meshApiBase,
     bearer: identity.x402Bearer,
     teamId: identity.teamId,
+    signer: buildRequestSigner(identity.handle),
   });
 
   const commitHook = buildCommitHook(identity, mesh);
@@ -170,6 +173,9 @@ function supervisorProviderFactory(): ProviderFactory {
         return createLocalLLMProvider({
           baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
           model: spec.model,
+          timeoutMs: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS
+            ? Number(process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS)
+            : 300000,
         });
       case 'sovereign':
         // Universal sovereign-first resolution (founder 2026-06-10): serving
@@ -441,6 +447,11 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
       return createLocalLLMProvider({
         baseURL: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL,
         model: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL ?? identity.llmModel,
+        // Edge devices (Jetson ~15 tok/s) need more than the 120s default.
+        // HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS overrides; default 300s.
+        timeoutMs: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS
+          ? Number(process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS)
+          : 300000,
       });
     default:
       throw new Error(`Provider "${p}" not yet wired in CLI — add a case in buildProvider.`);
@@ -469,6 +480,58 @@ function buildCommitHook(
       await mesh.markDone(task.id, `auto: ${task.title}`, out.commitHash);
     }
   };
+}
+
+// ── Request signing (EIP-191) for strict-mode endpoints like /team/:id/join ──────────────────
+
+function canonicalizeSigning(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value))
+    return `[${(value as unknown[]).map(canonicalizeSigning).join(',')}]`;
+  const obj = value as Record<string, unknown>;
+  return `{${Object.keys(obj)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canonicalizeSigning(obj[k])}`)
+    .join(',')}}`;
+}
+
+/**
+ * Try to load the seat wallet for the given handle and return a RequestSigner.
+ * Returns undefined if the wallet file doesn't exist (unsigned fallback).
+ */
+function buildRequestSigner(
+  handle: string
+): ((body: Record<string, unknown>) => Promise<Record<string, unknown>>) | undefined {
+  const seatsRoot =
+    process.env.HOLOSCRIPT_AGENT_SEATS_ROOT ?? join(homedir(), '.holoscript-agent', 'seats');
+  const fp = createHash('sha256').update(hostname() + homedir()).digest('hex').slice(0, 8);
+  const seatId = `holoscript-${handle}-${fp}-x402`;
+  const walletPath = join(seatsRoot, seatId, 'wallet.enc');
+  const masterKeyPath = join(seatsRoot, '.master-key');
+  if (!existsSync(walletPath) || !existsSync(masterKeyPath)) return undefined;
+  try {
+    const blob = JSON.parse(readFileSync(walletPath, 'utf8')) as {
+      address: string;
+      encrypted_privkey: { iv: string; ct: string; tag: string; alg?: string };
+    };
+    const masterKey = readFileSync(masterKeyPath);
+    const iv = Buffer.from(blob.encrypted_privkey.iv, 'base64');
+    const ct = Buffer.from(blob.encrypted_privkey.ct, 'base64');
+    const tag = Buffer.from(blob.encrypted_privkey.tag, 'base64');
+    const decipher = createDecipheriv(blob.encrypted_privkey.alg ?? 'aes-256-gcm', masterKey, iv) as DecipherGCM;
+    decipher.setAuthTag(tag);
+    const privateKey = Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+    const wallet = new Wallet(privateKey);
+    return async (body: Record<string, unknown>) => {
+      const nonce = randomBytes(16).toString('hex');
+      const timestamp = new Date().toISOString();
+      const payload = canonicalizeSigning({ body, nonce, timestamp });
+      const signature = await wallet.signMessage(payload);
+      return { body, signature, signer_address: blob.address, nonce, timestamp };
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 function scopeTierFromEnv(): 'cold' | 'warm' | 'hot' {

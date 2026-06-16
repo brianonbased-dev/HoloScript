@@ -1,11 +1,18 @@
 import type { BoardTask } from './types.js';
 import type { CaelAuditRecord } from './cael-builder.js';
 
+/** Wraps a request body in a signed envelope for strict-mode endpoints (e.g. /team/:id/join). */
+export type RequestSigner = (
+  body: Record<string, unknown>
+) => Promise<Record<string, unknown>>;
+
 export interface HolomeshClientOptions {
   apiBase: string;
   bearer: string;
   teamId: string;
   fetchImpl?: typeof fetch;
+  /** EIP-191 signing function. When present, used on strict endpoints like joinTeam(). */
+  signer?: RequestSigner;
 }
 
 export interface TeamMessage {
@@ -22,16 +29,23 @@ export class HolomeshClient {
   private readonly bearer: string;
   private readonly teamId: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly signer?: RequestSigner;
 
   constructor(opts: HolomeshClientOptions) {
     this.apiBase = opts.apiBase.replace(/\/$/, '');
     this.bearer = opts.bearer;
     this.teamId = opts.teamId;
     this.fetchImpl = opts.fetchImpl ?? fetch;
+    this.signer = opts.signer;
+  }
+
+  /** Wrap body in a signed envelope when a signer is available (strict-mode endpoints). */
+  private async signBody(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    return this.signer ? await this.signer(body) : body;
   }
 
   async heartbeat(payload: { agentName: string; surface: string }): Promise<void> {
-    await this.req('POST', `/team/${this.teamId}/presence`, payload);
+    await this.req('POST', `/team/${this.teamId}/presence`, await this.signBody(payload as Record<string, unknown>));
   }
 
   async getOpenTasks(): Promise<BoardTask[]> {
@@ -43,33 +57,36 @@ export class HolomeshClient {
   }
 
   async claim(taskId: string): Promise<BoardTask> {
-    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}`, {
-      action: 'claim',
-    });
+    return this.req<BoardTask>('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'claim' }));
   }
 
   async joinTeam(): Promise<{ success: boolean; role?: string; members?: number }> {
     return this.req<{ success: boolean; role?: string; members?: number }>(
       'POST',
       `/team/${this.teamId}/join`,
-      {}
+      await this.signBody({})
     );
   }
 
   async sendMessageOnTask(taskId: string, body: string): Promise<void> {
-    await this.req('POST', `/team/${this.teamId}/message`, {
+    await this.req('POST', `/team/${this.teamId}/message`, await this.signBody({
       to: 'team',
       subject: `task:${taskId}`,
       content: body,
-    });
+    }));
   }
 
   async markDone(taskId: string, summary: string, commitHash?: string): Promise<void> {
-    await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
+    await this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({
       action: 'done',
       summary,
-      commitHash,
-    });
+      // verification_evidence required by server before task can be closed.
+      verification_evidence: summary,
+      // Exclude commitHash when undefined — JSON.stringify drops undefined but
+      // canonicalizeSigning preserves it as the literal string "undefined",
+      // causing a signature-mismatch vs what the server sees after JSON.parse.
+      ...(commitHash !== undefined ? { commitHash } : {}),
+    }));
   }
 
   // POST CAEL audit records for this agent. Server validator at
@@ -82,10 +99,11 @@ export class HolomeshClient {
     handle: string,
     records: CaelAuditRecord[]
   ): Promise<{ appended: number; rejected: number }> {
+    // Audit endpoint uses bearer-only auth — no signed envelope wrapper.
     return this.req<{ appended: number; rejected: number }>(
       'POST',
       `/agent/${encodeURIComponent(handle)}/audit`,
-      { records }
+      { records } as unknown as Record<string, unknown>
     );
   }
 
@@ -124,17 +142,14 @@ export class HolomeshClient {
 
   /** Post a message to the team feed. */
   async sendTeamMessage(content: string, messageType = 'text'): Promise<void> {
-    await this.req('POST', `/team/${this.teamId}/message`, {
-      content,
-      type: messageType,
-    });
+    await this.req('POST', `/team/${this.teamId}/message`, await this.signBody({ content, type: messageType }));
   }
 
   // ── Owner-op API wrappers (E4) ─────────────────────────────────────────────
 
   /** Switch team mode. Requires owner or founder role. */
   async setTeamMode(mode: string, reason?: string): Promise<{ mode: string; unchanged?: boolean }> {
-    return this.req('POST', `/team/${this.teamId}/mode`, { mode, reason });
+    return this.req('POST', `/team/${this.teamId}/mode`, await this.signBody({ mode, reason } as Record<string, unknown>));
   }
 
   /** Update room preferences. Requires config:write permission. */
@@ -142,7 +157,7 @@ export class HolomeshClient {
     communicationStyle: string;
     objective: string;
   }> {
-    return this.req('PATCH', `/team/${this.teamId}/room`, prefs);
+    return this.req('PATCH', `/team/${this.teamId}/room`, await this.signBody(prefs as Record<string, unknown>));
   }
 
   /** Update a board task. */
@@ -155,25 +170,17 @@ export class HolomeshClient {
       tags?: string[];
     }
   ): Promise<unknown> {
-    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
-      action: 'update',
-      ...updates,
-    });
+    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'update', ...updates } as Record<string, unknown>));
   }
 
   /** Delete a board task. */
   async deleteTask(taskId: string): Promise<unknown> {
-    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
-      action: 'delete',
-    });
+    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'delete' }));
   }
 
   /** Delegate a board task to another agent. */
   async delegateTask(taskId: string, toAgentId: string): Promise<unknown> {
-    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, {
-      action: 'delegate',
-      toAgentId,
-    });
+    return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'delegate', toAgentId }));
   }
 
   private async req<T>(method: string, path: string, body?: unknown): Promise<T> {
