@@ -54,6 +54,8 @@ export const ANSCapabilityPath = {
   NIR_TO_WGSL: '/compile/neuromorphic/nir-to-wgsl',
   PIPELINE: '/compile/runtime/pipeline',
   HOLOB: '/compile/interchange/holob',
+  COMPILE_SVG: '/compile/web2d/svg',
+  EDGE: '/compile/edge/arm64',
 } as const;
 
 export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANSCapabilityPath];

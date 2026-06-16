@@ -143,6 +143,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   MCPConfigCompiler: 'domain-block',
   AgentInferenceCompiler: 'agent-inference',
   CodeEditorCompiler: 'code-editor',
+  SVGCompiler: 'svg',
 };
 
 /**

@@ -61,6 +61,18 @@ import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
 import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
 import { CodeEditorCompiler } from './CodeEditorCompiler';
+import { SVGCompiler } from './SVGCompiler';
+import { HolobCompiler } from './HolobCompiler';
+import { OpenAPICompiler } from './OpenAPICompiler';
+import { ONNXCompiler } from './ONNXCompiler';
+import { FlutterCompiler } from './FlutterCompiler';
+import { STLExportCompiler } from './STLExportCompiler';
+import { LensStudioCompiler } from './LensStudioCompiler';
+import { ColyseusCompiler } from './ColyseusCompiler';
+import { AIGlassesCompiler } from './AIGlassesCompiler';
+import { SCMCompiler } from './SCMCompiler';
+import { NFTMarketplaceCompiler } from './NFTMarketplaceCompiler';
+import { EdgeCompiler } from './EdgeCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -280,6 +292,30 @@ class CompilerFactory {
         return new Canvas2DGameCompiler(options);
       case 'code-editor':
         return new CodeEditorCompiler();
+      case 'svg':
+        return new SVGCompiler(options);
+      case 'holob':
+        return new HolobCompiler(options);
+      case 'openapi':
+        return new OpenAPICompiler(options);
+      case 'onnx':
+        return new ONNXCompiler(options);
+      case 'flutter':
+        return new FlutterCompiler(options);
+      case 'stl-export':
+        return new STLExportCompiler(options);
+      case 'lens-studio':
+        return new LensStudioCompiler(options);
+      case 'colyseus':
+        return new ColyseusCompiler(options);
+      case 'ai-glasses':
+        return new AIGlassesCompiler(options);
+      case 'scm':
+        return new SCMCompiler(options);
+      case 'nft-marketplace':
+        return new NFTMarketplaceCompiler(options);
+      case 'edge':
+        return new EdgeCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
