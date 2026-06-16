@@ -779,6 +779,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'openxr-spatial-entities' });
     case 'compile_to_edge':
       return handleCompileToTarget({ ...args, target: 'edge' });
+    case 'compile_to_bot_swarm':
+      return handleCompileToTarget({ ...args, target: 'bot-swarm' });
 
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
@@ -1623,6 +1625,37 @@ export const compilerTools: Tool[] = [
             serviceUser: {
               type: 'string',
               description: 'systemd service user (default: holoscript)',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_bot_swarm',
+    description:
+      'Compile an MMO composition to an in-process load + balance test harness for the ' +
+      'Colyseus server emitted by compile_to_colyseus. Emits a TypeScript module exporting ' +
+      'runBotSwarm(RoomClass, opts) — spawns a swarm of bot players against the real generated ' +
+      'Room and drives the authoritative action loop (legal moves, speedhack attempts, ability ' +
+      'spam), returning a BalanceReport (tick budget, anti-cheat rejections, receipts). Plus ' +
+      'assertBalance(report) gated by the @balance_test envelope. Runs entirely in-process — the ' +
+      'verification layer + game-balance CI seed for the authoritative server.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript MMO composition (.holo)' },
+        options: {
+          type: 'object',
+          description: 'BotSwarmCompiler options',
+          properties: {
+            bots: { type: 'number', description: 'Default bot count baked into the harness (default: 24)' },
+            ticks: { type: 'number', description: 'Default tick count (default: 100)' },
+            speedhackRatio: {
+              type: 'number',
+              description: 'Fraction of moves that attempt a speedhack teleport (default: 0.15)',
             },
           },
         },

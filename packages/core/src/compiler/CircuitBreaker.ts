@@ -86,7 +86,8 @@ export type ExportTarget =
   | 'ai-glasses' // AI glasses / smart glasses display (bridge)
   | 'scm' // Supply-chain manifest export (bridge)
   | 'nft-marketplace' // NFT marketplace metadata + asset bundle (bridge)
-  | 'edge'; // Edge device Python deployment bundle (Jetson, RPi, The Unit)
+  | 'edge' // Edge device Python deployment bundle (Jetson, RPi, The Unit)
+  | 'bot-swarm'; // In-process MMO load/balance test harness (bridge — pairs with colyseus)
 
 /**
  * Circuit configuration per target

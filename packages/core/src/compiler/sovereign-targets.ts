@@ -77,6 +77,7 @@ export const BRIDGE_TARGETS = [
   'scm', // Supply-chain manifest — consumed by SCM platforms
   'nft-marketplace', // NFT marketplace metadata + asset bundle — consumed by marketplace contracts
   'edge', // Edge device Python bundle — consumed by device-local Python/systemd runtime
+  'bot-swarm', // In-process MMO load/balance harness — consumed by a Node/vitest test runner
 ] as const satisfies readonly ExportTarget[];
 
 /**

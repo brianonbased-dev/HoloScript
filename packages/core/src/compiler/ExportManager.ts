@@ -73,6 +73,7 @@ import { AIGlassesCompiler } from './AIGlassesCompiler';
 import { SCMCompiler } from './SCMCompiler';
 import { NFTMarketplaceCompiler } from './NFTMarketplaceCompiler';
 import { EdgeCompiler } from './EdgeCompiler';
+import { BotSwarmCompiler } from './BotSwarmCompiler';
 import {
   CompilerStateMonitor,
   createCompilerStateMonitor,
@@ -316,6 +317,8 @@ class CompilerFactory {
         return new NFTMarketplaceCompiler(options);
       case 'edge':
         return new EdgeCompiler(options);
+      case 'bot-swarm':
+        return new BotSwarmCompiler(options);
       default:
         throw new Error(`Unknown export target: ${target}`);
     }
