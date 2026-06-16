@@ -117,3 +117,13 @@ export * from '../plugin-solver-contract';
 
 // ProofCompositionLaw — algebraic receipt composition across plugin solvers (Paper 29, H2)
 export * from '../proof-composition';
+
+// KinematicChainTrait — DH-parameter FK + damped Jacobian IK (H2)
+export type {
+  DHParameter,
+  KinematicChainConfig,
+  FKResult,
+  IKRequest,
+  IKResult,
+} from '../traits/KinematicChainTrait';
+export { dhTransform, solveFk, solveIk, kinematicChainHandler } from '../traits/KinematicChainTrait';

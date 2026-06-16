@@ -141,6 +141,9 @@ export default defineConfig({
     // ProofCompositionLaw — algebraic receipt composition (Paper 29, H2)
     'proof-composition/index': 'src/proof-composition/index.ts',
 
+    // KinematicChainTrait — DH-parameter FK + damped Jacobian IK (H2)
+    'traits/kinematic-chain': 'src/traits/KinematicChainTrait.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

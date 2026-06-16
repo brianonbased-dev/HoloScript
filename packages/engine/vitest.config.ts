@@ -121,6 +121,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/proof-composition/index.ts'),
       },
       {
+        find: '@holoscript/core/traits/kinematic-chain',
+        replacement: resolve(__dirname, '../core/src/traits/KinematicChainTrait.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },

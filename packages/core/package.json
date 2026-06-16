@@ -216,6 +216,11 @@
       "types": "./dist/proof-composition/index.d.ts",
       "import": "./dist/proof-composition/index.js",
       "require": "./dist/proof-composition/index.cjs"
+    },
+    "./traits/kinematic-chain": {
+      "types": "./dist/traits/kinematic-chain.d.ts",
+      "import": "./dist/traits/kinematic-chain.js",
+      "require": "./dist/traits/kinematic-chain.cjs"
     }
   },
   "bin": {
