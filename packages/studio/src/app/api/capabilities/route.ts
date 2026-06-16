@@ -157,7 +157,18 @@ const SOVEREIGN_FLEET: CapabilityEntry[] = [
     surface: 'orphaned-cli',
     gate: 'safe',
     triggerable: false,
-    note: 'HoloScript-native EXPLORE rung on OWNED metal — the $0 contrast to the spend-gated Vast cuQuantum entry above. @quantumCircuit → OpenQASM 3.0 → owned GPU (cupy state-vector), GPU≡CPU verified, cael-quantum-v1.jetson receipt. Proven on Jetson Orin (sm_87) AND laptop RTX 3060 (sm_86), 2026-06-16.',
+    note: 'HoloScript-native EXPLORE rung on OWNED metal — the $0 contrast to the spend-gated Vast cuQuantum entry above. @quantumCircuit → OpenQASM 3.0 → owned GPU. NATIVE cuStateVec apply_matrix verified on the laptop RTX 3060 (sm_86, cuQuantum 26.3.2 bindings layout) → gate_backend `cuquantum-custatevec`, GPU≡CPU to ≤1.1e-16, receipt cael-quantum-v1.laptop. Jetson Orin (sm_87) is DENSE-ONLY (cupy state-vector; BOTH Tegra cuQuantum GPU paths — cuStateVec apply + cuTensorNet contract — are broken on that build). 2026-06-16.',
+  },
+  {
+    id: 'sovereign-quantum-combine',
+    label: 'Sovereign quantum GPU-combine (cuTensorNet · $0)',
+    category: 'Fleet / Sovereign · Quantum',
+    backing:
+      'ai-ecosystem/scripts/quantum-scaleup/fleet_cutensornet_combine.py + combine-orchestrate.mjs (registry-driven coordinator)',
+    surface: 'orphaned-cli',
+    gate: 'safe',
+    triggerable: false,
+    note: 'Path-parallel amplitude batching: split a circuit’s amplitude space across cuTensorNet-capable owned nodes, contract slices independently, merge, cross-check vs dense. Proven $0 on the laptop (merged-vs-dense max_abs_diff ≤1.1e-16, receipt cael-quantum-v1.combine.orchestrated). Owned cuTensorNet pool = laptop only (the Jetson Tegra cuTensorNet path is broken); scales to true multi-node with zero code change when an x86 node gains the `cutensornet-combine` capability. 2026-06-16.',
   },
 ];
 
