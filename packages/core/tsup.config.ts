@@ -126,6 +126,9 @@ export default defineConfig({
     // Paper-0c CAEL primitives (subgrid-attestation; consumed by @holoscript/engine)
     'paper-0c-spike/index': 'src/paper-0c-spike/index.ts',
 
+    // ParameterEnvelope — valid-parameter domain for receipts (H1 proof machinery)
+    'parameter-envelope/index': 'src/parameter-envelope/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

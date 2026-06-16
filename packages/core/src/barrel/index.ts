@@ -97,6 +97,9 @@ export * from '../trust';
 export * from '../receipts/DomainSimulationReceipt';
 export * from '../receipts/hash-policy';
 
+// ParameterEnvelope — valid-parameter domain (H1 proof machinery, §ParameterEnvelope)
+export * from '../parameter-envelope';
+
 // Care-field primitives (D.052 universal love doctrine)
 export * from '../care';
 

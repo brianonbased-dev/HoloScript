@@ -101,6 +101,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
       },
       {
+        find: '@holoscript/core/parameter-envelope',
+        replacement: resolve(__dirname, '../core/src/parameter-envelope/index.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },

@@ -34,6 +34,11 @@ import {
   type SubgridParams,
 } from '@holoscript/core/paper-0c-spike';
 import { fnv1a32Hex } from '@holoscript/core/reconstruction';
+import type {
+  ParameterEnvelope,
+  EnvelopeCheckResult,
+} from '@holoscript/core/parameter-envelope';
+import { checkParameterEnvelope } from '@holoscript/core/parameter-envelope';
 
 export {
   hashCAELEntry,
@@ -44,6 +49,13 @@ export {
 } from './hashes';
 export type { HashMode } from './sha256';
 export type { SubgridAttestation, SubgridParams } from '@holoscript/core/paper-0c-spike';
+export type {
+  ParameterEnvelope,
+  ParameterEnvelopeRecord,
+  EnvelopeViolationAction,
+  EnvelopeViolation,
+  EnvelopeCheckResult,
+} from '@holoscript/core/parameter-envelope';
 
 // ── Scale Tag & Acceptance Envelopes ──────────────────────────────────────────
 
@@ -590,6 +602,13 @@ export interface SimulationProvenance {
    * is {@link ReceiptContinuation} + {@link verifyContinuation}.)
    */
   continuesFrom?: ContinuationLink;
+  /**
+   * Parameter-envelope check result (H1 proof machinery).
+   * Present iff `ContractConfig.parameterEnvelope` was declared at construction.
+   * `passed: false` → at least one error-severity violation (would have thrown).
+   * `redischarge: true` → the run is outside its proof space; re-proof required.
+   */
+  envelopeCheck?: EnvelopeCheckResult;
 }
 
 /**
@@ -1040,6 +1059,26 @@ export interface ContractConfig {
    *  See: `packages/core/src/paper-0c-spike/subgrid-attestation.ts`
    *  module header — "Why this exists" + "Integration hook". */
   subgridParams?: SubgridParams;
+
+  /**
+   * Valid-parameter domain for this simulation run (H1 proof machinery).
+   *
+   * Declares the space of parameter values for which the run's proof is valid.
+   * Checked at construction time: params in `ContractConfig` are checked against
+   * each `ParameterEnvelopeRecord` whose `param` key matches a top-level field.
+   *
+   * - `onViolation: 'warn'`        → violation recorded, run proceeds.
+   * - `onViolation: 'error'`       → construction throws `ContractViolation`.
+   * - `onViolation: 'redischarge'` → violation recorded; receipt carries
+   *                                  `envelopeCheck.redischarge: true` so the
+   *                                  caller knows the proof must be re-run.
+   *
+   * The full `EnvelopeCheckResult` is carried into the provenance output so
+   * the receipt witnesses which parameters were in/out of their envelopes.
+   *
+   * Absent → envelope checking is skipped (backward-compatible).
+   */
+  parameterEnvelope?: ParameterEnvelope;
 }
 
 // ── Subgrid attestation (sync engine-side helper) ────────────────────────────
@@ -1804,6 +1843,8 @@ export class ContractedSimulation {
   private clauseDefs: readonly ContractClause[] = [];
   /** Clause violations accumulated across precondition/invariant/postcondition evaluation. */
   private clauseViolations: ClauseViolation[] = [];
+  /** Result of envelope check at construction (null when no envelope was declared). */
+  private envelopeCheckResult: EnvelopeCheckResult | null = null;
   private startTime = 0;
   private logInteractions: boolean;
   /** Continuation link declared at construction (receipt chaining). */
@@ -2076,6 +2117,28 @@ export class ContractedSimulation {
           .map((v) => `${v.clauseId}: ${v.message}`)
           .join('; ');
         throw new Error(`[SimulationContract] Precondition violation(s): ${msgs}`);
+      }
+    }
+
+    // ParameterEnvelope check (opt-in). Validates config params against their
+    // declared valid-parameter domain. Error-verdict violations throw immediately
+    // (same semantics as precondition failures). Warn/redischarge violations are
+    // recorded and carried into provenance so the receipt witnesses out-of-envelope
+    // params without blocking the run.
+    if (contractConfig.parameterEnvelope && contractConfig.parameterEnvelope.length > 0) {
+      this.envelopeCheckResult = checkParameterEnvelope(
+        config as Record<string, unknown>,
+        contractConfig.parameterEnvelope
+      );
+      const errorViolations = this.envelopeCheckResult.violations.filter(
+        (v) => v.verdict === 'error'
+      );
+      if (errorViolations.length > 0) {
+        const msgs = errorViolations.map((v) => v.message).join('; ');
+        throw new Error(`[SimulationContract] ParameterEnvelope violation(s): ${msgs}`);
+      }
+      for (const v of this.envelopeCheckResult.violations) {
+        console.warn(`[SimulationContract][envelope] ${v.message} (verdict: ${v.verdict})`);
       }
     }
   }
@@ -2433,7 +2496,10 @@ export class ContractedSimulation {
       finalStats: this.solver.getStats(),
       contractViolations: this.violations.slice(),
       clauseViolations: this.clauseViolations.slice(),
-      verified: !this.hasErrors() && !this.hasClauseErrors(),
+      verified:
+        !this.hasErrors() &&
+        !this.hasClauseErrors() &&
+        this.envelopeCheckResult?.redischarge !== true,
       deterministic: true,
       platformVersion: '6.1.0',
       createdAt: new Date().toISOString(),
@@ -2444,6 +2510,7 @@ export class ContractedSimulation {
           }
         : {}),
       ...(this.continuesFrom !== undefined ? { continuesFrom: this.continuesFrom } : {}),
+      ...(this.envelopeCheckResult !== null ? { envelopeCheck: this.envelopeCheckResult } : {}),
     };
   }
 

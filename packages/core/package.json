@@ -191,6 +191,11 @@
       "types": "./dist/paper-0c-spike/index.d.ts",
       "import": "./dist/paper-0c-spike/index.js",
       "require": "./dist/paper-0c-spike/index.cjs"
+    },
+    "./parameter-envelope": {
+      "types": "./dist/parameter-envelope/index.d.ts",
+      "import": "./dist/parameter-envelope/index.js",
+      "require": "./dist/parameter-envelope/index.cjs"
     }
   },
   "bin": {
