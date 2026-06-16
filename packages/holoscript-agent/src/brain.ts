@@ -25,7 +25,35 @@ export async function loadBrain(
     requires,
     prefers,
     avoids,
+    reflect: extractReflect(raw),
   };
+}
+
+/**
+ * Extract the brain's `reflect` cognitive verb (W.736) if it declares one, e.g.
+ *   reflect { of: "the produced artifact", criteria: "valid HoloScript", escalate_on_fail: true }
+ * Returns the evaluation criteria + whether a failed self-evaluation escalates to
+ * the fleet (the `local_first` directive). Absent → undefined (no reflect gate).
+ * Uses sliceNamedBlock so both `reflect {` and `reflect: {` forms parse, mirroring
+ * identity. This is the one cognitive verb the lightweight runner can execute with
+ * just its LLM provider (no engine/trait runtime) — recall/rag_query/plan need
+ * trait-backed stores and run in the core/engine path, not here.
+ */
+function extractReflect(brain: string): { criteria: string; escalateOnFail: boolean } | undefined {
+  const block = sliceNamedBlock(brain, 'reflect');
+  if (block === undefined) return undefined;
+  const criteria =
+    scalarField(block, 'criteria') ??
+    scalarField(block, 'scorer') ??
+    scalarField(block, 'of') ??
+    'correctness, completeness, and valid HoloScript syntax';
+  const escRaw =
+    scalarField(block, 'escalate_on_fail') ??
+    scalarField(block, 'escalateOnFail') ??
+    scalarField(block, 'escalate');
+  // escRaw may be `true` or `true, nextField...` (unquoted scalar runs to the
+  // segment end) — take the first comma-delimited token before comparing.
+  return { criteria, escalateOnFail: (escRaw ?? '').split(',')[0].trim().toLowerCase() === 'true' };
 }
 
 /**

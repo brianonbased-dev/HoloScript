@@ -43,6 +43,16 @@ export interface RuntimeBrainConfig {
    * Empty array (default) = no exclusions.
    */
   avoids: string[];
+  /**
+   * Optional cognitive self-evaluation gate — the brain's `reflect` verb (W.736).
+   * When the brain declares a `reflect { criteria, escalate_on_fail }` block, the
+   * runner runs one self-evaluation pass over the produced artifact before
+   * accepting it. With `escalateOnFail: true` a failed self-evaluation escalates
+   * to the fleet (the `local_first` directive) instead of marking the task done;
+   * otherwise the verdict is advisory (logged + recorded, never blocks).
+   * Absent (default) = no reflect pass — existing brains are unaffected.
+   */
+  reflect?: { criteria: string; escalateOnFail: boolean };
 }
 
 export interface CostState {
@@ -77,6 +87,7 @@ export interface TickResult {
     | 'executed'
     | 'errored'
     | 'no-artifact'
+    | 'reflect-escalate'
     | 'messages-processed';
   taskId?: string;
   spentUsd: number;

@@ -189,3 +189,63 @@ composition "ColonFormRouting" {
     expect(brain.avoids).toEqual(['liveWebSearch', 'hostedShell']);
   });
 });
+
+// ─── Reflect cognitive gate (W.736) ──────────────────────────────────────────
+// A brain may declare a `reflect { criteria, escalate_on_fail }` verb; loadBrain
+// surfaces it so the runner can run a self-evaluation pass and (with
+// escalate_on_fail) escalate a failed artifact to the fleet instead of marking
+// it done. Absent → undefined (existing brains are unaffected).
+describe('loadBrain — reflect gate', () => {
+  let rdir: string;
+  beforeAll(() => {
+    rdir = mkdtempSync(join(tmpdir(), 'brain-reflect-'));
+  });
+  afterAll(() => {
+    rmSync(rdir, { recursive: true, force: true });
+  });
+
+  const withReflect = (reflectLine: string) =>
+    [
+      'You are an edge agent. Always call a tool.',
+      '',
+      '#version 6.0.0',
+      'identity { domain: "robotics-edge" capability_tags: ["jetson"] }',
+      'behavior on_task {',
+      `  ${reflectLine}`,
+      '}',
+      '',
+    ].join('\n');
+
+  it('parses a reflect block with escalate_on_fail: true', async () => {
+    const path = join(rdir, 'r1.hsplus');
+    writeFileSync(
+      path,
+      withReflect('reflect { of: "the artifact", criteria: "valid HoloScript", escalate_on_fail: true }'),
+      'utf8'
+    );
+    const brain = await loadBrain(path);
+    expect(brain.reflect).toBeDefined();
+    expect(brain.reflect?.criteria).toBe('valid HoloScript');
+    expect(brain.reflect?.escalateOnFail).toBe(true);
+  });
+
+  it('defaults escalateOnFail to false (advisory) when escalate_on_fail is absent', async () => {
+    const path = join(rdir, 'r2.hsplus');
+    writeFileSync(path, withReflect('reflect { criteria: "completeness" }'), 'utf8');
+    const brain = await loadBrain(path);
+    expect(brain.reflect?.criteria).toBe('completeness');
+    expect(brain.reflect?.escalateOnFail).toBe(false);
+  });
+
+  it('falls back to `of` when criteria is absent', async () => {
+    const path = join(rdir, 'r3.hsplus');
+    writeFileSync(path, withReflect('reflect { of: "the scene" }'), 'utf8');
+    expect((await loadBrain(path)).reflect?.criteria).toBe('the scene');
+  });
+
+  it('returns undefined when no reflect block is declared (existing brains unaffected)', async () => {
+    const path = join(rdir, 'r4.hsplus');
+    writeFileSync(path, 'You are an agent.\n\n#version 6.0.0\nidentity { domain: "x" }\n', 'utf8');
+    expect((await loadBrain(path)).reflect).toBeUndefined();
+  });
+});

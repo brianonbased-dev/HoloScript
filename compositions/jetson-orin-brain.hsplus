@@ -224,7 +224,7 @@ behavior on_task {
 
   // ③ Self-evaluation — catches malformed .holo before CAEL emit
   //    Failure here triggers escalation to fleet (local_first directive)
-  reflect { of: "the produced artifact", criteria: "correctness, completeness, valid HoloScript syntax" }
+  reflect { of: "the produced artifact", criteria: "correctness, completeness, valid HoloScript syntax", escalate_on_fail: true }
 
   action complete {
     set $tasksDone    = $tasksDone + 1

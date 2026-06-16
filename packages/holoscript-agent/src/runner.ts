@@ -291,6 +291,65 @@ export class AgentRunner {
       };
     }
 
+    // ── Reflect: cognitive self-evaluation gate (W.736) ──────────────────────
+    // If the brain declares a `reflect` verb, run ONE self-evaluation pass over
+    // the produced artifact before accepting it — the brain's local_first
+    // confidence gate. Uses the same provider (no engine/trait dependency) and
+    // mirrors the CognitiveActions reflect prompt shape. The verdict is acted on
+    // at the markDone gate below; its tokens fold into aggUsage so cost is honest.
+    let reflectVerdict: { pass: boolean; reason: string } | undefined;
+    if (brain.reflect) {
+      try {
+        const reflectResp = await provider.complete(
+          {
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a strict reviewer. Evaluate the work against the criteria; do not rewrite it.',
+              },
+              {
+                role: 'user',
+                content:
+                  `Reflect on the artifact produced for this task. Evaluate it for: ${brain.reflect.criteria}.\n\n` +
+                  `--- artifact / final response ---\n${finalText.slice(0, 4000)}\n--- end ---\n\n` +
+                  `Give a one-line reason, then end with exactly "VERDICT: PASS" or "VERDICT: FAIL".`,
+              },
+            ],
+            maxTokens: 512,
+            temperature: 0.1,
+          },
+          identity.llmModel
+        );
+        aggUsage = {
+          promptTokens: aggUsage.promptTokens + reflectResp.usage.promptTokens,
+          completionTokens: aggUsage.completionTokens + reflectResp.usage.completionTokens,
+          totalTokens: aggUsage.totalTokens + reflectResp.usage.totalTokens,
+        };
+        const verdictMatch = /VERDICT:\s*(PASS|FAIL)/i.exec(reflectResp.content);
+        // Unparseable verdict = PASS — reflect is a gate, not a tripwire; never
+        // block a real artifact on a parser miss (small local models phrase loosely).
+        const pass = verdictMatch ? verdictMatch[1].toUpperCase() === 'PASS' : true;
+        reflectVerdict = {
+          pass,
+          reason: reflectResp.content.replace(/VERDICT:\s*(PASS|FAIL)/i, '').trim().slice(0, 300),
+        };
+        log({
+          ev: 'reflect',
+          taskId: target.id,
+          pass,
+          escalateOnFail: brain.reflect.escalateOnFail,
+          reason: reflectVerdict.reason.slice(0, 120),
+        });
+      } catch (err) {
+        log({
+          ev: 'reflect-error',
+          taskId: target.id,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     const cost = costGuard.recordUsage(identity.llmModel, aggUsage);
     log({
       ev: 'executed',
@@ -355,6 +414,30 @@ export class AgentRunner {
       });
     } catch (err) {
       log({ ev: 'cael-post-error', message: err instanceof Error ? err.message : String(err) });
+    }
+
+    // Reflect escalation gate: a brain with `reflect { escalate_on_fail: true }`
+    // does NOT mark done on a failed self-evaluation — it escalates to the fleet
+    // (the local_first directive). Cost + CAEL are already recorded above (the work
+    // happened and the self-eval is a verifiable trace); only acceptance/markDone is
+    // withheld. Brains without reflect, or with an advisory reflect, fall through.
+    if (reflectVerdict && !reflectVerdict.pass && brain.reflect?.escalateOnFail) {
+      try {
+        await mesh.sendMessageOnTask(
+          target.id,
+          `[${identity.handle}] reflect gate FAILED — escalating to the fleet instead of marking done. Reason: ${reflectVerdict.reason}`
+        );
+      } catch {
+        /* best-effort escalation notice; the return value is the source of truth */
+      }
+      log({ ev: 'reflect-escalate', taskId: target.id, reason: reflectVerdict.reason.slice(0, 120) });
+      return {
+        action: 'reflect-escalate',
+        taskId: target.id,
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `reflect self-evaluation failed; escalated to fleet (reason: ${reflectVerdict.reason.slice(0, 120)})`,
+      };
     }
 
     if (this.opts.onTaskExecuted) {
