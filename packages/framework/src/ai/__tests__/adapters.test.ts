@@ -133,6 +133,8 @@ vi.mock('@holoscript/llm-provider', () => {
     XAIAdapter: MockXAIAdapter,
     GeminiAdapter: MockGeminiAdapter,
     LocalLLMAdapter: MockLocalLLMAdapter,
+    // Constants consumed by OllamaAdapter and LMStudioAdapter constructors.
+    LOCAL_DEFAULT_MODEL: 'qwen3:4b-instruct-2507',
   };
 });
 
