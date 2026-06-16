@@ -65,6 +65,7 @@ import type {
   HSPlusVersionDirective,
 } from './types/AdvancedTypeSystem';
 import { HoloScriptPersistenceParser } from './HoloScriptPersistenceParser';
+import { isLocomotionReactionTrigger } from './traits/locomotion/LocomotionActions';
 
 // =============================================================================
 // OBJECT POOL - Reduces GC pressure by reusing objects
@@ -387,6 +388,14 @@ export class HoloScriptCodeParser {
       'over',
       'via',
       'easing',
+      // Movement reaction triggers (routes to ReactionCategory 'movement')
+      'on_move',
+      'on_walk',
+      'on_run',
+      'on_jump',
+      'on_land',
+      'on_strafe',
+      'on_teleport',
       'using',
       'memory',
       'semantic',
@@ -967,6 +976,14 @@ export class HoloScriptCodeParser {
         case 'on_signal':
         case 'on_input':
         case 'on_tick':
+        // Movement reactions
+        case 'on_move':
+        case 'on_walk':
+        case 'on_run':
+        case 'on_jump':
+        case 'on_land':
+        case 'on_strafe':
+        case 'on_teleport':
           return this.parseGameEventBlock();
         // Movements — first-class movement statement (serves F.118 VR locomotion)
         case 'move':
@@ -2929,6 +2946,8 @@ export class HoloScriptCodeParser {
 
   /** Map a trigger keyword to its routing bucket (see ReactionCategory). */
   private reactionCategory(trigger: string): ReactionCategory {
+    // Movement triggers come from the locomotion SSOT so the list lives in one place.
+    if (isLocomotionReactionTrigger(trigger)) return 'movement';
     switch (trigger) {
       case 'on_interact':
       case 'on_grab':

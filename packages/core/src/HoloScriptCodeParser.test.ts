@@ -971,6 +971,18 @@ composition "Hololand Central" {
         .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
       expect(node.category).toBe('combat');
     });
+
+    it('classifies movement triggers via the locomotion SSOT', () => {
+      const move = parser.parse('on_move { footstep() }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(move.name).toBe('on_move');
+      expect(move.category).toBe('movement');
+
+      const teleport = parser.parse('on_teleport(dest) { }').ast
+        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
+      expect(teleport.category).toBe('movement');
+      expect(teleport.params).toEqual(['dest']);
+    });
   });
 
   // ===========================================================================

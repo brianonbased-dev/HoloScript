@@ -194,6 +194,7 @@ export interface GameAuthorityNode extends ASTNode {
  * - `interaction`: player/agent-driven (on_interact, on_grab, on_use, on_hover…)
  * - `collision`:   physics contacts (on_collision, on_proximity)
  * - `lifecycle`:   spawn/despawn/tick (on_spawn, on_death, on_enter, on_exit, on_tick)
+ * - `movement`:    locomotion events (on_move, on_walk, on_run, on_land, on_teleport…)
  * - `combat`:      MMO combat events (on_combat, on_cast) — kept for back-compat
  * - `signal`:      generic named bus events (on_signal, on_input)
  * - `custom`:      anything not in the known set
@@ -202,6 +203,7 @@ export type ReactionCategory =
   | 'interaction'
   | 'collision'
   | 'lifecycle'
+  | 'movement'
   | 'combat'
   | 'signal'
   | 'custom';
@@ -271,4 +273,146 @@ export interface ActionDeclNode extends ASTNode {
   /** Authority/replication flags such as server_side / client_side / replicated. */
   flags: string[];
   properties: Record<string, unknown>;
+}
+
+// ============================================================================
+// AbilityDirectives — typed, safely-coerced view of GameAbilityNode.properties
+// ============================================================================
+
+/**
+ * Typed combat-ability directives extracted from a `GameAbilityNode`'s
+ * untyped `properties` bag.  All fields are optional at the source level;
+ * `getAbilityDirectives` fills every field with a safe default so consumers
+ * never need to re-coerce or guard for `undefined`.
+ *
+ * Property alias map (any alias is accepted; first match wins):
+ * - `cooldownMs`    ← `cooldown` | `cooldown_ms` | `cooldownMs`
+ * - `manaCost`      ← `mana_cost` | `manaCost`
+ * - `gcdMs`         ← `gcd` | `gcd_ms` | `gcdMs`
+ * - `range`         ← `range`
+ * - `damageType`    ← `damage_type` | `damageType`
+ * - `authorityEnvelope` ← `authority` | `authority_envelope` | `authorityEnvelope`
+ * - `castTimeMs`    ← `cast_time` | `cast_time_ms` | `castTimeMs`
+ */
+export interface AbilityDirectives {
+  /** Cooldown before the ability may be used again, in milliseconds. Default 0. */
+  cooldownMs: number;
+  /** Mana (or equivalent resource) cost per use. Default 0. */
+  manaCost: number;
+  /** Global Cooldown duration in milliseconds; 0 means no GCD. Default 0. */
+  gcdMs: number;
+  /** Maximum effective range in world-units. Default 0 (unlimited / melee). */
+  range: number;
+  /** Damage archetype used by the combat resolver. Default 'physical'. */
+  damageType: string;
+  /**
+   * Which authority layer resolves this ability.
+   * - `'server'`           — fully server-authoritative (safe default).
+   * - `'client_predicted'` — client sends intent, server reconciles.
+   * - `'client'`           — client-resolved only (cosmetic / local feedback).
+   * Default 'server'.
+   */
+  authorityEnvelope: 'server' | 'client_predicted' | 'client';
+  /** Cast / channel time before the ability fires, in milliseconds. Default 0. */
+  castTimeMs: number;
+}
+
+// ---------------------------------------------------------------------------
+// Private coercion helpers (module-scoped, not exported)
+// ---------------------------------------------------------------------------
+
+/** Coerce an unknown property value to a number, or return `fallback`. */
+function coerceNumber(v: unknown, fallback: number): number {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string') {
+    const n = Number(v.trim());
+    if (Number.isFinite(n)) return n;
+  }
+  return fallback;
+}
+
+/**
+ * Coerce an unknown property value to a string, or return `fallback`.
+ * Strips a single layer of surrounding single- or double-quotes if present.
+ */
+function coerceString(v: unknown, fallback: string): string {
+  if (typeof v !== 'string' && typeof v !== 'number') return fallback;
+  let s = String(v).trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1);
+  }
+  return s.length > 0 ? s : fallback;
+}
+
+/** The exhaustive set of valid `authorityEnvelope` literal values. */
+const AUTHORITY_VALUES = new Set<AbilityDirectives['authorityEnvelope']>([
+  'server',
+  'client_predicted',
+  'client',
+]);
+
+// ---------------------------------------------------------------------------
+// Public accessor
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract typed, safely-coerced {@link AbilityDirectives} from a
+ * {@link GameAbilityNode}.  All fields carry a sensible default so callers
+ * in the combat pass can read `directives.cooldownMs` without re-coercing or
+ * guarding for `undefined`.
+ *
+ * @pure — reads `node.properties` but never mutates the node.
+ */
+export function getAbilityDirectives(node: GameAbilityNode): AbilityDirectives {
+  const p = node.properties;
+
+  // cooldownMs: cooldown | cooldown_ms | cooldownMs
+  const cooldownMs = coerceNumber(
+    p['cooldown'] ?? p['cooldown_ms'] ?? p['cooldownMs'],
+    0,
+  );
+
+  // manaCost: mana_cost | manaCost
+  const manaCost = coerceNumber(p['mana_cost'] ?? p['manaCost'], 0);
+
+  // gcdMs: gcd | gcd_ms | gcdMs
+  const gcdMs = coerceNumber(p['gcd'] ?? p['gcd_ms'] ?? p['gcdMs'], 0);
+
+  // range
+  const range = coerceNumber(p['range'], 0);
+
+  // damageType: damage_type | damageType
+  const damageType = coerceString(
+    p['damage_type'] ?? p['damageType'],
+    'physical',
+  );
+
+  // authorityEnvelope: authority | authority_envelope | authorityEnvelope
+  const rawAuthority = coerceString(
+    p['authority'] ?? p['authority_envelope'] ?? p['authorityEnvelope'],
+    'server',
+  );
+  const authorityEnvelope: AbilityDirectives['authorityEnvelope'] =
+    AUTHORITY_VALUES.has(rawAuthority as AbilityDirectives['authorityEnvelope'])
+      ? (rawAuthority as AbilityDirectives['authorityEnvelope'])
+      : 'server';
+
+  // castTimeMs: cast_time | cast_time_ms | castTimeMs
+  const castTimeMs = coerceNumber(
+    p['cast_time'] ?? p['cast_time_ms'] ?? p['castTimeMs'],
+    0,
+  );
+
+  return {
+    cooldownMs,
+    manaCost,
+    gcdMs,
+    range,
+    damageType,
+    authorityEnvelope,
+    castTimeMs,
+  };
 }
