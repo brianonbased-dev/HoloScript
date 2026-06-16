@@ -191,6 +191,24 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     return [{ role: 'system', content: '/no_think' }, ...messages];
   }
 
+  /**
+   * The Ollama `think` param for a turn. We send `think:false` ONLY for the
+   * qwen3 family — where Ollama ignores it anyway and `/no_think`
+   * (_withNoThinkMessages) is what actually suppresses thinking at the tokenizer.
+   * For OTHER thinking models (e.g. Gemma 4), `think:false` DISABLES the
+   * decode-time format/grammar mask: Ollama defers the mask until the
+   * end-of-thinking token, which never fires with thinking closed, so the model
+   * emits PROSE instead of structured tool calls (Ollama #15260, vLLM #39130,
+   * research/2026-06-16 W.513). For those we OMIT it and let the model default +
+   * the tool schema drive structured calls (thinking-on actually RAISES
+   * function-calling accuracy). HOLO_LLM_LOCAL_THINK=1 re-enables thinking.
+   */
+  private _thinkParam(model: string): { think?: false } {
+    if (process.env.HOLO_LLM_LOCAL_THINK === '1') return {};
+    if (!/qwen3/i.test(model)) return {};
+    return { think: false };
+  }
+
   private async completeNativeOllama(
     request: LLMCompletionRequest,
     model: string
@@ -203,7 +221,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       stream: false,
       // Thinking OFF: qwen3-class thinking routes tool-call output into the
       // think channel — the visible reply arrives empty. Matches streamCompletion().
-      ...(process.env.HOLO_LLM_LOCAL_THINK === '1' ? {} : { think: false }),
+      ...this._thinkParam(model),
       messages: this._withNoThinkMessages(
         model,
         request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) }))
@@ -280,7 +298,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       top_p: request.topP ?? 1,
       stop: request.stop,
       stream: false,
-      ...(process.env.HOLO_LLM_LOCAL_THINK === '1' ? {} : { think: false }),
+      ...this._thinkParam(model),
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 
@@ -484,7 +502,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       // wall clock thinking inside one round). Verified harmless on
       // non-thinking models (qwen2.5-coder). Opt back in with
       // HOLO_LLM_LOCAL_THINK=1 for reasoning-heavy non-tool workloads.
-      ...(process.env.HOLO_LLM_LOCAL_THINK === '1' ? {} : { think: false }),
+      ...this._thinkParam(model),
       options: {
         temperature: request.temperature ?? 0.4,
         num_predict: request.maxTokens ?? 2048,
