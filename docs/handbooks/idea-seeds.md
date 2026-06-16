@@ -60,6 +60,14 @@
 
 ---
 
+## AgentSeed Runtime Binding for Server NPC Brains (P1.5 full)
+
+**What might be valuable**: The MMO brain runtime (shipped 628e1b71f) emits structural `onBrainHydrate(npc)`/`onBrainMerge(npc)` lifecycle hooks on NPC spawn/despawn, but they are no-op stubs. Binding them to the real `AgentSeed` + `HoloScriptAgentRuntime.hydrate()` API (`packages/core/src/HoloScriptAgentRuntime.ts`) would give MMO NPCs **persistent, substrate-anchored memory**: an NPC hydrates its durable identity/episode memory from a seed on spawn (entering view distance) and merges new episodes back on despawn (leaving view distance) — the D.043 disposable-neural-map lifecycle running per-NPC at MMO scale. Combined with the LOD-gated LLM brain (P1.4), a Jetson-backed NPC could remember prior player interactions across sessions. Distinct from the "lifecycle-typed brain fields with Postgres emit" seed (that is the field-level `@durable/@ephemeral` type system; this is the runtime hydrate/merge binding).
+
+**Why not now**: `HoloScriptAgentRuntime`/`AgentSeed` is the heavyweight agent-identity substrate — wiring it into a lightweight generated Colyseus game-server is a real integration (serialization format for seed↔NpcState, where seeds persist, episode-merge conflict policy across concurrent shards, perf budget of hydrate on every view-distance crossing). The structural hooks exist now so the lifecycle is wired; the runtime binding is a round-3+ integration after the persistence topology (P2.8 / `@durable` Postgres emit) is settled.
+
+---
+
 ---
 
 ## `hs:perceives` Derived Spatial-Perception Edges in the Semantic Scene Graph
