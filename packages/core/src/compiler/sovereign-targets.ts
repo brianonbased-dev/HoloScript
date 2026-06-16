@@ -79,6 +79,7 @@ export const BRIDGE_TARGETS = [
   'edge', // Edge device Python bundle — consumed by device-local Python/systemd runtime
   'bot-swarm', // In-process MMO load/balance harness — consumed by a Node/vitest test runner
   'dungeon-instance', // Per-party instance pool + completion receipt — consumed by the game server
+  'world-shard', // World AABB shard router + handoff bootstrap — consumed by the multi-room game server
 ] as const satisfies readonly ExportTarget[];
 
 /**

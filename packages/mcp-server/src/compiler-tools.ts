@@ -783,6 +783,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'bot-swarm' });
     case 'compile_to_dungeon_instance':
       return handleCompileToTarget({ ...args, target: 'dungeon-instance' });
+    case 'compile_to_world_shard':
+      return handleCompileToTarget({ ...args, target: 'world-shard' });
 
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
@@ -1679,6 +1681,24 @@ export const compilerTools: Tool[] = [
       type: 'object',
       properties: {
         code: { type: 'string', description: 'HoloScript MMO composition (.holo) with dungeon_instance blocks' },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_world_shard',
+    description:
+      'Compile world_shard blocks into a server-authoritative shard router + multi-room bootstrap ' +
+      '(P2.5). A single world is partitioned into AABB shards, each hosted as its own Colyseus room. ' +
+      'Emits SHARD_REGISTRY + shardForPosition() + a ShardRouter class (route / requestHandoff / ' +
+      'createShardServers). Cross-shard handoff is RECEIPT-SEALED and validated — the target must be ' +
+      'a declared NEIGHBOR of the origin and the position inside its bounds (anti-teleport). Each ' +
+      "shard's neighbors are compile-validated against declared shards. Same-machine multi-room.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript MMO composition (.holo) with world_shard blocks' },
       },
       required: ['code'],
     },

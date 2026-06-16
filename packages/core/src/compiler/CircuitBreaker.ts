@@ -88,7 +88,8 @@ export type ExportTarget =
   | 'nft-marketplace' // NFT marketplace metadata + asset bundle (bridge)
   | 'edge' // Edge device Python deployment bundle (Jetson, RPi, The Unit)
   | 'bot-swarm' // In-process MMO load/balance test harness (bridge — pairs with colyseus)
-  | 'dungeon-instance'; // Per-party instanced-content pool + completion receipt (bridge)
+  | 'dungeon-instance' // Per-party instanced-content pool + completion receipt (bridge)
+  | 'world-shard'; // World AABB shard router + receipt-sealed handoff bootstrap (bridge)
 
 /**
  * Circuit configuration per target
