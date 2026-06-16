@@ -31,26 +31,25 @@ afterEach(() => {
 
 describe('LocalLLMAdapter.complete() — tool calling', () => {
   it('sends tools and parses tool_calls into toolUses + finishReason tool_use', async () => {
+    // Native Ollama /api/chat shape (the adapter routes :11434 to the native
+    // path; arguments is an OBJECT in native, a JSON string in OpenAI-compat).
     const body = {
-      choices: [
-        {
-          message: {
-            content: '',
-            tool_calls: [
-              {
-                id: 'call_0',
-                type: 'function',
-                function: {
-                  name: 'write_file',
-                  arguments: '{"path":"scene.holo","content":"composition X {}"}',
-                },
-              },
-            ],
+      message: {
+        role: 'assistant',
+        content: '',
+        tool_calls: [
+          {
+            function: {
+              name: 'write_file',
+              arguments: { path: 'scene.holo', content: 'composition X {}' },
+            },
           },
-          finish_reason: 'tool_calls',
-        },
-      ],
-      usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
+        ],
+      },
+      done: true,
+      done_reason: 'stop',
+      prompt_eval_count: 12,
+      eval_count: 8,
       model: 'qwen3.5:4b',
     };
     const fetchMock = mockFetch(body);
@@ -91,8 +90,11 @@ describe('LocalLLMAdapter.complete() — tool calling', () => {
 
   it('omits tools and behaves as before when none are given', async () => {
     const body = {
-      choices: [{ message: { content: 'hi' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+      message: { role: 'assistant', content: 'hi' },
+      done: true,
+      done_reason: 'stop',
+      prompt_eval_count: 1,
+      eval_count: 1,
       model: 'qwen3.5:4b',
     };
     const fetchMock = mockFetch(body);
