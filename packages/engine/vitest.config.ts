@@ -105,6 +105,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/parameter-envelope/index.ts'),
       },
       {
+        find: '@holoscript/core/plugin-manifest',
+        replacement: resolve(__dirname, '../core/src/plugin-manifest/index.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },

@@ -129,6 +129,9 @@ export default defineConfig({
     // ParameterEnvelope — valid-parameter domain for receipts (H1 proof machinery)
     'parameter-envelope/index': 'src/parameter-envelope/index.ts',
 
+    // PluginManifest — declarative plugin descriptor (H1 proof machinery)
+    'plugin-manifest/index': 'src/plugin-manifest/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

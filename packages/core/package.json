@@ -196,6 +196,11 @@
       "types": "./dist/parameter-envelope/index.d.ts",
       "import": "./dist/parameter-envelope/index.js",
       "require": "./dist/parameter-envelope/index.cjs"
+    },
+    "./plugin-manifest": {
+      "types": "./dist/plugin-manifest/index.d.ts",
+      "import": "./dist/plugin-manifest/index.js",
+      "require": "./dist/plugin-manifest/index.cjs"
     }
   },
   "bin": {

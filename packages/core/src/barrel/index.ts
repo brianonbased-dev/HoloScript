@@ -100,6 +100,9 @@ export * from '../receipts/hash-policy';
 // ParameterEnvelope — valid-parameter domain (H1 proof machinery, §ParameterEnvelope)
 export * from '../parameter-envelope';
 
+// PluginManifest — declarative plugin descriptor + combination primitive (H1 proof machinery)
+export * from '../plugin-manifest';
+
 // Care-field primitives (D.052 universal love doctrine)
 export * from '../care';
 
