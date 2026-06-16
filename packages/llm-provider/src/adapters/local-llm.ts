@@ -196,21 +196,21 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
   }
 
   /**
-   * The Ollama `think` param for a turn. We send `think:false` ONLY for the
-   * qwen3 family — where Ollama ignores it anyway and `/no_think`
-   * (_withNoThinkMessages) is what actually suppresses thinking at the tokenizer.
-   * For OTHER thinking models (e.g. Gemma 4), `think:false` DISABLES the
-   * decode-time format/grammar mask: Ollama defers the mask until the
-   * end-of-thinking token, which never fires with thinking closed, so the model
-   * emits PROSE instead of structured tool calls (Ollama #15260, vLLM #39130,
-   * research/2026-06-16 W.513). For those we OMIT it and let the model default +
-   * the tool schema drive structured calls (thinking-on actually RAISES
-   * function-calling accuracy). HOLO_LLM_LOCAL_THINK=1 re-enables thinking.
+   * Returns `{}` — we never send `think:false` in the Ollama payload.
+   *
+   * Confirmed 2026-06-16: `think:false` disables the decode-time grammar mask
+   * that enables structured JSON tool calls for BOTH qwen3 AND Gemma 4 families
+   * (same root cause as Ollama #15260 / vLLM #39130 — mask deferred until the
+   * end-of-thinking token which never fires when thinking is closed, so the model
+   * emits prose instead of tool_calls JSON). With thinking ON, Ollama 0.30.8
+   * correctly routes thinking to `message.thinking` (separate field) and leaves
+   * `message.content` clean — _stripThinkBlock() handles any edge-case bleed.
+   * Thinking is soft-suppressed via `/no_think` in the system prompt
+   * (_withNoThinkMessages), which reduces thinking tokens without breaking
+   * tool-call structured output.
    */
-  private _thinkParam(model: string): { think?: false } {
-    if (process.env.HOLO_LLM_LOCAL_THINK === '1') return {};
-    if (!/qwen3/i.test(model)) return {};
-    return { think: false };
+  private _thinkParam(_model: string): Record<string, never> {
+    return {};
   }
 
   /**

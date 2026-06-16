@@ -78,4 +78,12 @@
 
 ---
 
-*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work).*
+## Thinking-Budget Control for Local LLM Inference (`HOLO_LLM_LOCAL_THINK` / `think:false`)
+
+**What might be valuable**: Ollama's `think: false` API parameter is intended to suppress extended reasoning in thinking-class models (qwen3, Gemma 4, etc.) — trading answer quality for latency and token cost. On constrained hardware (Jetson Orin Nano, 8 GB shared RAM), a full thinking pass can generate 1,000–5,000 tokens of reasoning before the actual reply, adding 60–300 seconds to a single LLM call. A working `think: false` path — or a per-request `num_ctx`-bounded thinking budget — would halve Tier-0 inference latency without model replacement and is the clean solution to the Jetson timeout risk described in W.735.
+
+**Why not now**: Confirmed 2026-06-16 that Ollama 0.30.8's `think: false` disables the decode-time grammar mask that drives structured JSON tool calls (same root cause as Ollama #15260 / vLLM #39130). Setting `think: false` causes qwen3:4b to emit prose instead of `tool_calls` JSON — the agent loop cannot complete. The proper fix (Ollama upstream: separate the thinking-suppression path from the grammar mask so both can be set independently) is not yet in any released version. Workaround: `/no_think` in the system prompt reduces thinking tokens moderately without breaking tool calls. Revisit when Ollama ships a version where `think: false` + tool-schema do not conflict.
+
+---
+
+*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation).*
