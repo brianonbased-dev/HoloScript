@@ -1,7 +1,70 @@
-nul
+# Railway upload filter for `railway up` — token-driven CD (scripts/holo-ci/cd-railway.mjs).
+#
+# CRITICAL: `railway up` filters the UPLOADED build context by THIS file — NOT by
+# .gitignore and NOT by .dockerignore. If the multi-GB agent/bench dirs are not
+# excluded here, `railway up` uploads them and buildkit OOM-crashes (.scratch alone
+# is ~12GB; its absence here ballooned the context to 1.8GB+ and crashed buildkit —
+# see .dockerignore:11-15 / P.002). The GitHub App never hit this because it ships a
+# `git archive` (tracked files only).
+#
+# MUST NOT exclude paths a build needs: infrastructure/ holds the Dockerfiles
+# (e.g. infrastructure/Dockerfile.mcp-server referenced by railway.toml), scripts/
+# holds build scripts (scripts/docker/**), and package/service sources +
+# pnpm-lock.yaml + pnpm-workspace.yaml are all required. Keep the heavy-dir
+# exclusions below in sync with .dockerignore when those dirs change.
+
+# VCS / deps / build caches (regenerated inside the build)
 node_modules
 .git
-*.log
-dist
+.turbo
+.cache
 .next
 coverage
+dist
+
+# Multi-GB agent worktrees + bench/output — THE root cause of the buildkit OOM
+.scratch/
+.bench-logs/
+quantum_receipts/
+target/
+datasets/
+.ai-workspace/
+.ai-context-stream.jsonl
+
+# Logs / AI-ML artifacts / test reports (not needed in any build context)
+*.log
+*.jsonl
+training_audit.csv
+synthetic_*.txt
+audit-results/
+.performance-reports/
+.stryker-tmp/
+.stryker-cache/
+playwright-report/
+test-results/
+
+# Secrets — never upload
+.env
+.env.local
+.env.*.local
+.secrets/
+
+# Local daemon / IDE / OS state
+.holoscript/
+.holomesh/
+.gitnexus/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Misc temp / build artifacts
+*.tmp
+tmp/
+temp/
+*.vsix
+packages/video-tutorials/out/
+packages/video-tutorials/public/narration/
+packages/video-tutorials/public/captures/
+packages/tree-sitter-holoscript/build/
+packages/tauri-app/src-tauri/gen/
