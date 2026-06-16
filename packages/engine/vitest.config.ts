@@ -125,6 +125,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/traits/KinematicChainTrait.ts'),
       },
       {
+        find: '@holoscript/core/traits/control-loop',
+        replacement: resolve(__dirname, '../core/src/traits/ControlLoopTrait.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },

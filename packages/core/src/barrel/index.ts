@@ -127,3 +127,16 @@ export type {
   IKResult,
 } from '../traits/KinematicChainTrait';
 export { dhTransform, solveFk, solveIk, kinematicChainHandler } from '../traits/KinematicChainTrait';
+
+// ControlLoopTrait — PID + linear MPC receding-horizon control (H2)
+export type {
+  ControlOutput,
+  PIDParams,
+  PIDStepRequest,
+  PIDState,
+  MPCModel,
+  MPCParams,
+  MPCStepRequest,
+  ControlLoopConfig,
+} from '../traits/ControlLoopTrait';
+export { stepPid, stepMpc, controlLoopHandler } from '../traits/ControlLoopTrait';

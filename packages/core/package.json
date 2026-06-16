@@ -221,6 +221,11 @@
       "types": "./dist/traits/kinematic-chain.d.ts",
       "import": "./dist/traits/kinematic-chain.js",
       "require": "./dist/traits/kinematic-chain.cjs"
+    },
+    "./traits/control-loop": {
+      "types": "./dist/traits/control-loop.d.ts",
+      "import": "./dist/traits/control-loop.js",
+      "require": "./dist/traits/control-loop.cjs"
     }
   },
   "bin": {

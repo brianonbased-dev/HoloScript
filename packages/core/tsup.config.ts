@@ -144,6 +144,9 @@ export default defineConfig({
     // KinematicChainTrait — DH-parameter FK + damped Jacobian IK (H2)
     'traits/kinematic-chain': 'src/traits/KinematicChainTrait.ts',
 
+    // ControlLoopTrait — PID + linear MPC receding-horizon control (H2)
+    'traits/control-loop': 'src/traits/ControlLoopTrait.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },
