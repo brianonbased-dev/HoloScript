@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+// default model: see @holoscript/llm-provider model-policy SSOT (no dep here)
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'qwen3.5:4b';
 
 /** POST /api/material/generate

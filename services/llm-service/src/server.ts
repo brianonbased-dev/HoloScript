@@ -19,6 +19,7 @@
 
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService';
@@ -55,7 +56,7 @@ const fleetMetrics = new FleetMetrics();
 // BuildService still uses OllamaService for backward compat
 const ollama = new OllamaService(
   process.env.OLLAMA_URL || 'http://localhost:11434',
-  process.env.OLLAMA_MODEL || 'qwen3.5:4b'
+  process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL
 );
 const buildService = new BuildService(storage, ollama);
 

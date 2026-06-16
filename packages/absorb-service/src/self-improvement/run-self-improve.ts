@@ -30,6 +30,7 @@
  * @module self-improvement
  */
 
+import { FLEET_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import { SelfImproveCommand } from './SelfImproveCommand';
 import { FleetSelfImproveIO, type LLMComplete } from './FleetSelfImproveIO';
 
@@ -71,7 +72,7 @@ function buildLLMComplete(): LLMComplete {
     process.env['ORCHESTRATOR_URL'] ||
     'https://mcp-orchestrator-production-45f9.up.railway.app'
   ).replace(/\/+$/, '');
-  const model = process.env['BRITTNEY_FLEET_MODEL'] || 'qwen3.5:4b';
+  const model = process.env['BRITTNEY_FLEET_MODEL'] || FLEET_DEFAULT_MODEL;
   const bearer = process.env['FLEET_INFERENCE_KEY'] || process.env['SERVE_INFERENCE_KEY'] || '';
   const resolveKey =
     process.env['BRITTNEY_FLEET_RESOLVE_KEY'] || process.env['HOLOSCRIPT_API_KEY'] || '';

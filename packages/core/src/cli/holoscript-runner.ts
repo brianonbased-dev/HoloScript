@@ -134,6 +134,9 @@ function defaultModelForProvider(provider: CLIOptions['provider']): string {
     case 'openai':
       return 'gpt-4.1';
     case 'ollama':
+      // Canonical value = LOCAL_DEFAULT_MODEL in @holoscript/llm-provider's
+      // model-policy SSOT; kept as a literal here because this CLI path
+      // lazy-imports llm-provider (a static barrel import would force eager load).
       // qwen3.5 over qwen2.5-coder: the older family can't emit native tool
       // calls via Ollama (2026-06-10 zero-objects benchmark finding).
       return 'qwen3.5:4b';

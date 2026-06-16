@@ -42,6 +42,7 @@ import {
   filterGenericTools,
   messageContentAsString,
 } from '../types';
+import { FLEET_DEFAULT_MODEL } from '../model-policy';
 
 const ROUTE_URL = 'https://run.vast.ai/route/';
 
@@ -108,7 +109,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     super({ ...config, apiKey: config.apiKey });
     this.vastKey = config.apiKey;
     this.endpointName = config.endpointName;
-    this.defaultHoloScriptModel = config.model ?? 'qwen3.5:4b';
+    this.defaultHoloScriptModel = config.model ?? FLEET_DEFAULT_MODEL;
     this.models = [this.defaultHoloScriptModel];
     this.cost = config.cost ?? (Number(process.env['VAST_SERVERLESS_COST']) || 100);
     this.maxWaitS = config.maxWaitS ?? (Number(process.env['VAST_SERVERLESS_MAX_WAIT_S']) || 540);

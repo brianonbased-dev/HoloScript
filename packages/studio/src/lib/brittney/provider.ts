@@ -36,6 +36,8 @@ import {
   VastServerlessAdapter,
   pickLocalModel,
   OLLAMA_DEFAULT_BASE_URL,
+  FLEET_DEFAULT_MODEL,
+  LOCAL_DEFAULT_MODEL,
   type ILLMProvider,
 } from '@holoscript/llm-provider';
 
@@ -70,7 +72,7 @@ export interface ResolvedBrittneyProvider {
  * zero-objects fable5 benchmark cells). Matches BRITTNEY_SOVEREIGN_DEFAULT_MODEL
  * in SovereignGeneratorAdapter. Override with BRITTNEY_MODEL env var.
  */
-const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || 'qwen3.5:4b';
+const OLLAMA_DEFAULT_MODEL = process.env.BRITTNEY_MODEL || LOCAL_DEFAULT_MODEL;
 
 /**
  * Resolve Brittney's LLM provider from environment variables.
@@ -198,7 +200,6 @@ function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
 
 // ── fleet (sovereign serving, dynamic-resolve) ────────────────────────────────
 
-const FLEET_DEFAULT_MODEL = 'qwen3.5:4b';
 const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
 /**

@@ -46,6 +46,7 @@ import {
   HololandClient,
 } from '@holoscript/core/hololand';
 import { queryOllama, isOllamaAvailable, getActiveProvider } from './ollama-client.js';
+import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import {
   handleRobotAiMcpTool,
   clearRobotAiRegistries,
@@ -3097,7 +3098,7 @@ async function handleHololandNPCBYOKStatus(): Promise<unknown> {
     localAvailable,
     localModels: localAvailable
       ? [
-          { model: 'qwen3.5:4b', source: 'ollama', purpose: 'NPC dialogue / behavior' },
+          { model: LOCAL_DEFAULT_MODEL, source: 'ollama', purpose: 'NPC dialogue / behavior' },
           { model: 'gemma4:e4b', source: 'ollama', purpose: 'Edge NPC inference' },
         ]
       : [],

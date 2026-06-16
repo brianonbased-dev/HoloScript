@@ -24,6 +24,7 @@ import {
   XAIAdapter as LLMXAIAdapter,
   GeminiAdapter as LLMGeminiAdapter,
   LocalLLMAdapter as LLMOllamaAdapter,
+  LOCAL_DEFAULT_MODEL,
 } from '@holoscript/llm-provider';
 /** Shape of API error responses from AI providers. */
 interface APIErrorResponse {
@@ -413,7 +414,7 @@ export class OllamaAdapter implements AIAdapter {
 
   constructor(config: OllamaAdapterConfig = {}) {
     this.baseUrl = config.baseUrl || 'http://localhost:11434';
-    this.model = config.model || 'qwen3.5:4b';
+    this.model = config.model || LOCAL_DEFAULT_MODEL;
   }
 
   async isReady(): Promise<boolean> {

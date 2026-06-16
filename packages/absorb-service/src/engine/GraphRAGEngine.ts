@@ -13,6 +13,7 @@
  * @version 1.0.0
  */
 
+import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import type { ExternalSymbolDefinition, CallEdge } from './types';
 import type { CodebaseGraph, CallChain, CallChainOptions } from './CodebaseGraph';
 import type { EmbeddingIndex, SearchResult } from './EmbeddingIndex';
@@ -40,7 +41,7 @@ export interface GraphRAGOptions {
   file?: string;
   /** Ollama base URL for LLM queries (last-resort fallback, default: 'http://localhost:11434') */
   ollamaUrl?: string;
-  /** LLM model for answer generation (default: 'qwen3.5:4b' for Ollama fallback) */
+  /** LLM model for answer generation (default: LOCAL_DEFAULT_MODEL for Ollama fallback) */
   llmModel?: string;
   /**
    * LLM provider for answer generation.
@@ -138,7 +139,7 @@ export class GraphRAGEngine {
     this.graph = graph;
     this.index = index;
     this.ollamaUrl = options?.ollamaUrl ?? 'http://localhost:11434';
-    this.llmModel = options?.llmModel ?? 'qwen3.5:4b';
+    this.llmModel = options?.llmModel ?? LOCAL_DEFAULT_MODEL;
     this.llmProvider = options?.llmProvider;
   }
 

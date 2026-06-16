@@ -13,6 +13,7 @@ import {
   OpenAIAdapter,
   OpenRouterAdapter,
   LocalLLMAdapter,
+  LOCAL_DEFAULT_MODEL,
 } from '@holoscript/llm-provider';
 
 const MAX_REQUESTS_PER_MIN = 10;
@@ -309,7 +310,7 @@ async function tryOllamaFallback(fullPrompt: string): Promise<string | null> {
   try {
     const adapter = new LocalLLMAdapter({
       baseURL: ollamaUrl,
-      defaultModel: process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || 'qwen3.5:4b',
+      defaultModel: process.env.LOCAL_LLM_MODEL || process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL,
       timeoutMs: 30_000,
     });
     const result = await adapter.complete({

@@ -20,6 +20,8 @@
  * @see     research/2026-05-21_apl_wit_trait-evaluation_gap_report.md Gap #4
  */
 
+import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -104,7 +106,7 @@ const DEFAULT_LOCAL_ENDPOINT =
  * qwen2.5-coder:1.5b — upgrading the pool template is a separate task.
  * Override with BRITTNEY_MODEL env var to point at any pulled Ollama tag.
  */
-export const BRITTNEY_SOVEREIGN_DEFAULT_MODEL = 'qwen3.5:4b';
+export const BRITTNEY_SOVEREIGN_DEFAULT_MODEL = LOCAL_DEFAULT_MODEL;
 
 const DEFAULT_LOCAL_MODEL =
   (typeof process !== 'undefined' && process.env.BRITTNEY_MODEL) ||

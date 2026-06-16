@@ -30,6 +30,7 @@
 import {
   OpenAICompatibleAdapter,
   createLocalLLMProvider,
+  LOCAL_DEFAULT_MODEL,
   type LLMStreamChunk,
   type LLMMessage,
   type LLMCompletionRequest,
@@ -375,7 +376,7 @@ class OllamaLocalProvider implements InferenceProvider {
 
   constructor() {
     this.url = process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
-    this.model = process.env.OLLAMA_MODEL || 'qwen3.5:4b';
+    this.model = process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL;
   }
 
   async isAvailable(): Promise<boolean> {

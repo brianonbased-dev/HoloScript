@@ -311,6 +311,7 @@ connection.onInitialize(async (_params: InitializeParams): Promise<InitializeRes
   if (!aiInitialized && process.env.OLLAMA_URL) {
     try {
       const ollamaUrl = process.env.OLLAMA_URL;
+      // default model: see @holoscript/llm-provider model-policy SSOT (no dep here)
       const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3.5:4b';
       const ollamaAdapter = useOllama({ baseUrl: ollamaUrl, model: ollamaModel });
       if (await ollamaAdapter.isReady()) {

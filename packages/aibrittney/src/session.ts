@@ -37,6 +37,9 @@ When the user asks for HoloScript code (\`.hs\`, \`.hsplus\`, \`.holo\`), emit i
 For general coding questions, give a complete answer first, then a short rationale. Be concise.`;
 
 export function defaultModel(): string {
+  // Canonical value = LOCAL_DEFAULT_MODEL in @holoscript/llm-provider's
+  // model-policy SSOT; kept as a literal here to avoid pulling the llm-provider
+  // barrel into this lightweight session module.
   // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool
   // calls via Ollama — it writes the JSON as text (benchmark 2026-06-10:
   // zero objects across F01-F04; founder caught the stale default).
