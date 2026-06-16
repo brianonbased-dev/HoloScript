@@ -65,7 +65,10 @@ import type {
   HSPlusVersionDirective,
 } from './types/AdvancedTypeSystem';
 import { HoloScriptPersistenceParser } from './HoloScriptPersistenceParser';
-import { isLocomotionReactionTrigger } from './traits/locomotion/LocomotionActions';
+import {
+  isLocomotionReactionTrigger,
+  LOCOMOTION_REACTION_TRIGGERS,
+} from './traits/locomotion/LocomotionActions';
 
 // =============================================================================
 // OBJECT POOL - Reduces GC pressure by reusing objects
@@ -388,14 +391,10 @@ export class HoloScriptCodeParser {
       'over',
       'via',
       'easing',
-      // Movement reaction triggers (routes to ReactionCategory 'movement')
-      'on_move',
-      'on_walk',
-      'on_run',
-      'on_jump',
-      'on_land',
-      'on_strafe',
-      'on_teleport',
+      // Movement reaction triggers (routes to ReactionCategory 'movement').
+      // Sourced from the locomotion SSOT so the keyword set and reactionCategory()
+      // share exactly one list — never edit these names in two places.
+      ...LOCOMOTION_REACTION_TRIGGERS,
       'using',
       'memory',
       'semantic',

@@ -972,15 +972,29 @@ composition "Hololand Central" {
       expect(node.category).toBe('combat');
     });
 
-    it('classifies movement triggers via the locomotion SSOT', () => {
-      const move = parser.parse('on_move { footstep() }').ast
-        .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
-      expect(move.name).toBe('on_move');
-      expect(move.category).toBe('movement');
+    it('classifies every movement trigger via the locomotion SSOT', () => {
+      // The keyword set AND reactionCategory() both source this list from
+      // LOCOMOTION_REACTION_TRIGGERS — so every entry must register as a keyword
+      // (parse to a game-event-block) and classify as 'movement'.
+      const triggers = [
+        'on_move',
+        'on_walk',
+        'on_run',
+        'on_jump',
+        'on_land',
+        'on_strafe',
+        'on_teleport',
+      ];
+      for (const trigger of triggers) {
+        const node = parser.parse(`${trigger} { step() }`).ast
+          .find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
+        expect(node, `${trigger} should parse as a reaction block`).toBeDefined();
+        expect(node!.name).toBe(trigger);
+        expect(node!.category, `${trigger} should be movement`).toBe('movement');
+      }
 
       const teleport = parser.parse('on_teleport(dest) { }').ast
         .find((n) => n.type === 'game-event-block') as GameEventBlockNode;
-      expect(teleport.category).toBe('movement');
       expect(teleport.params).toEqual(['dest']);
     });
   });
