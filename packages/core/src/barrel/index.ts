@@ -114,3 +114,6 @@ export * from '../daemon';
 
 // PluginSolverContract — pre/inv/post clause discipline + receipt schema registry (H2 proof machinery)
 export * from '../plugin-solver-contract';
+
+// ProofCompositionLaw — algebraic receipt composition across plugin solvers (Paper 29, H2)
+export * from '../proof-composition';

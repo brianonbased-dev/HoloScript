@@ -138,6 +138,9 @@ export default defineConfig({
     // PluginSolverContract — declarative pre/inv/post clause discipline for plugin solvers (H2)
     'plugin-solver-contract/index': 'src/plugin-solver-contract/index.ts',
 
+    // ProofCompositionLaw — algebraic receipt composition (Paper 29, H2)
+    'proof-composition/index': 'src/proof-composition/index.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },

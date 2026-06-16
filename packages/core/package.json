@@ -211,6 +211,11 @@
       "types": "./dist/plugin-solver-contract/index.d.ts",
       "import": "./dist/plugin-solver-contract/index.js",
       "require": "./dist/plugin-solver-contract/index.cjs"
+    },
+    "./proof-composition": {
+      "types": "./dist/proof-composition/index.d.ts",
+      "import": "./dist/proof-composition/index.js",
+      "require": "./dist/proof-composition/index.cjs"
     }
   },
   "bin": {

@@ -117,6 +117,10 @@ export default defineConfig({
         replacement: resolve(__dirname, '../core/src/plugin-solver-contract/index.ts'),
       },
       {
+        find: '@holoscript/core/proof-composition',
+        replacement: resolve(__dirname, '../core/src/proof-composition/index.ts'),
+      },
+      {
         find: '@holoscript/core/coordinators',
         replacement: resolve(__dirname, '../core/src/coordinators/index.ts'),
       },
