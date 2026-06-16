@@ -32,6 +32,15 @@ import { LLMProviderError, filterGenericTools, messageContentAsString } from '..
 type LocalLLMAdapterConfig = Omit<LLMProviderConfig, 'apiKey'> & {
   apiKey?: string;
   model?: string;
+  /**
+   * Use Ollama's native /api/chat endpoint instead of /v1/chat/completions.
+   * Auto-detected when the base URL contains ':11434' (Ollama default port).
+   * Required for thinking models (qwen3, deepseek-r1, etc.) because the OpenAI
+   * compat layer drops tool_calls in responses that include thinking tokens.
+   * Verified 2026-06-16: /v1/chat/completions returns toolCalls=[] for qwen3:4b
+   * with tools; /api/chat returns tool_calls correctly.
+   */
+  nativeOllamaApi?: boolean;
 };
 
 // =============================================================================
@@ -111,6 +120,8 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
   readonly capabilities: Capabilities = LOCAL_LLM_CAPABILITIES;
 
   private readonly localBaseURL: string;
+  /** True → complete() uses /api/chat (native Ollama); false → /v1/chat/completions. */
+  private readonly useNativeOllamaApi: boolean;
 
   constructor(config: LocalLLMAdapterConfig = {}) {
     // BaseLLMAdapter requires apiKey — pass empty string for local servers
@@ -126,6 +137,9 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       .replace(/\/$/, '')
       .replace(/\/v1$/, '');
     this.defaultHoloScriptModel = config.model ?? 'mistral-7b-instruct';
+    // Auto-detect Ollama by default port (11434). Can be overridden explicitly.
+    this.useNativeOllamaApi =
+      config.nativeOllamaApi ?? this.localBaseURL.includes(':11434');
   }
 
   protected getDefaultModel(): string {
@@ -134,80 +148,132 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
   /**
    * Send a chat completion request to the local LLM server.
-   * Uses the OpenAI-compatible /v1/chat/completions endpoint.
+   *
+   * Two paths depending on `useNativeOllamaApi` (auto-detected from port 11434):
+   *
+   * Ollama native (/api/chat, stream:false) — used when useNativeOllamaApi=true.
+   *   Ollama's /v1/chat/completions OpenAI-compat shim silently drops tool_calls
+   *   for thinking models (qwen3, deepseek-r1) because thinking tokens precede
+   *   tool calls and the compat layer misroutes them. The native endpoint does not
+   *   have this bug. Verified 2026-06-16: /v1 → toolCalls=0, /api/chat → toolCalls=1.
+   *
+   * OpenAI-compat (/v1/chat/completions) — used for llama.cpp / LM Studio / vLLM.
    */
   async complete(
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): Promise<LLMCompletionResponse> {
-    const url = `${this.localBaseURL}/v1/chat/completions`;
+    return this.useNativeOllamaApi
+      ? this.completeNativeOllama(request, model)
+      : this.completeOpenAICompat(request, model);
+  }
+
+  /**
+   * Injects `/no_think` into the system prompt for qwen3-family models when
+   * thinking mode is off. Ollama ≤0.30.x silently ignores `think: false` and
+   * routes thinking tokens into the `content` field, bloating outputs and
+   * corrupting tool-call parsing. The `/no_think` directive works at the model
+   * tokenizer level, independent of Ollama version.
+   * Verified: Ollama 0.30.8 + qwen3:4b — `think:false` ignored, `/no_think` works.
+   */
+  private _withNoThinkMessages(
+    model: string,
+    messages: Array<{ role: string; content: string }>
+  ): Array<{ role: string; content: string }> {
+    if (process.env.HOLO_LLM_LOCAL_THINK === '1') return messages;
+    if (!/qwen3/i.test(model)) return messages;
+    const sysIdx = messages.findIndex((m) => m.role === 'system');
+    if (sysIdx >= 0) {
+      return messages.map((m, i) =>
+        i === sysIdx ? { ...m, content: `/no_think\n${m.content}` } : m
+      );
+    }
+    return [{ role: 'system', content: '/no_think' }, ...messages];
+  }
+
+  private async completeNativeOllama(
+    request: LLMCompletionRequest,
+    model: string
+  ): Promise<LLMCompletionResponse> {
+    const url = `${this.localBaseURL}/api/chat`;
+    const filteredTools = filterGenericTools(request.tools);
 
     const body = JSON.stringify({
       model,
-      messages: request.messages.map((m) => ({
-        role: m.role,
-        content: messageContentAsString(m.content),
-      })),
+      stream: false,
+      // Thinking OFF: qwen3-class thinking routes tool-call output into the
+      // think channel — the visible reply arrives empty. Matches streamCompletion().
+      ...(process.env.HOLO_LLM_LOCAL_THINK === '1' ? {} : { think: false }),
+      messages: this._withNoThinkMessages(
+        model,
+        request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) }))
+      ),
+      options: {
+        temperature: request.temperature ?? 0.4,
+        num_predict: request.maxTokens ?? 2048,
+        ...(request.topP !== undefined ? { top_p: request.topP } : {}),
+        ...(request.stop ? { stop: request.stop } : {}),
+      },
+      ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
+    });
+
+    return await this.withRetry(async () => {
+      const raw = await this.fetchJson(url, body);
+
+      // Parse Ollama native /api/chat (stream:false) response
+      const data = raw as {
+        message?: {
+          content?: string;
+          tool_calls?: Array<{
+            id?: string;
+            function?: { name?: string; arguments?: unknown };
+          }>;
+        };
+        done_reason?: string;
+        eval_count?: number;
+        prompt_eval_count?: number;
+        model?: string;
+      };
+
+      return this.buildResponse(
+        raw,
+        model,
+        data.message?.content ?? '',
+        data.message?.tool_calls ?? [],
+        data.model,
+        data.done_reason,
+        data.eval_count ?? 0,
+        data.prompt_eval_count ?? 0,
+        /* openAiUsage */ undefined
+      );
+    });
+  }
+
+  private async completeOpenAICompat(
+    request: LLMCompletionRequest,
+    model: string
+  ): Promise<LLMCompletionResponse> {
+    const url = `${this.localBaseURL}/v1/chat/completions`;
+    const filteredTools = filterGenericTools(request.tools);
+
+    const body = JSON.stringify({
+      model,
+      messages: this._withNoThinkMessages(
+        model,
+        request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) }))
+      ),
       max_tokens: request.maxTokens ?? 2048,
       temperature: request.temperature ?? 0.4,
       top_p: request.topP ?? 1,
       stop: request.stop,
       stream: false,
-      // Tool-calling: previously complete() sent NO tools, so a local model
-      // wired into the headless AgentRunner could never tool-call (the artifact
-      // gate then failed every tick). The OpenAI-compatible /v1/chat/completions
-      // endpoint accepts the same {type:'function', function:{name,description,
-      // parameters}} shape mapToolsToOllama already produces.
-      ...(request.tools && request.tools.length > 0
-        ? { tools: this.mapToolsToOllama(filterGenericTools(request.tools)) }
-        : {}),
+      ...(process.env.HOLO_LLM_LOCAL_THINK === '1' ? {} : { think: false }),
+      ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });
 
     return await this.withRetry(async () => {
-      let raw: unknown;
+      const raw = await this.fetchJson(url, body);
 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
-
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => '');
-          const isRetryable =
-            response.status === 429 || (response.status >= 500 && response.status < 600);
-          throw new LLMProviderError(
-            `Local LLM server returned ${response.status}: ${text}`,
-            'local-llm',
-            response.status,
-            isRetryable
-          );
-        }
-
-        raw = await response.json();
-      } catch (err) {
-        if (err instanceof LLMProviderError) throw err;
-
-        const msg = err instanceof Error ? err.message : String(err);
-        const isTimeout = msg.includes('aborted') || msg.includes('timeout');
-        const hint = isTimeout
-          ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
-          : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
-
-        // Local-server unreachable is a config issue, not a transient cloud
-        // hiccup — retrying won't fix a server that isn't running. Mark
-        // retryable=false so withRetry doesn't burn the budget on it.
-        throw new LLMProviderError(hint, 'local-llm', undefined, false);
-      }
-
-      // Parse OpenAI-compatible response shape
       const data = raw as {
         choices?: Array<{
           message?: {
@@ -224,52 +290,105 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       };
 
       const choice = data.choices?.[0];
-      const content = choice?.message?.content ?? '';
-
-      // Tool-calling: map OpenAI-format tool_calls into the unified
-      // toolUses/assistantBlocks shape AgentRunner branches on (finishReason
-      // 'tool_use'). Mirrors openai.ts parseChatToolCalls + the streamCompletion
-      // arguments-as-string handling. Without this, complete() dropped tool_calls.
-      const rawToolCalls = choice?.message?.tool_calls ?? [];
-      const toolUses: ToolUseBlock[] = [];
-      for (let i = 0; i < rawToolCalls.length; i += 1) {
-        const tc = rawToolCalls[i];
-        const fn = tc?.function;
-        if (!fn?.name) continue;
-        let input: Record<string, unknown> = {};
-        const rawArgs = fn.arguments;
-        if (typeof rawArgs === 'string') {
-          try {
-            input = JSON.parse(rawArgs) as Record<string, unknown>;
-          } catch {
-            input = {};
-          }
-        } else if (rawArgs && typeof rawArgs === 'object') {
-          input = rawArgs as Record<string, unknown>;
-        }
-        toolUses.push({ type: 'tool_use', id: tc?.id ?? `call_${i}`, name: fn.name, input });
-      }
-      const hadToolCalls = toolUses.length > 0;
-      const assistantBlocks: AssistantContentBlock[] = hadToolCalls
-        ? [...(content ? [{ type: 'text' as const, text: content }] : []), ...toolUses]
-        : [];
-
-      return {
-        content,
-        model: data.model ?? model,
-        provider: 'local-llm' as const,
-        finishReason: hadToolCalls
-          ? 'tool_use'
-          : ((choice?.finish_reason as LLMCompletionResponse['finishReason']) ?? 'stop'),
-        ...(hadToolCalls ? { toolUses, assistantBlocks } : {}),
-        usage: {
-          promptTokens: data.usage?.prompt_tokens ?? 0,
-          completionTokens: data.usage?.completion_tokens ?? 0,
-          totalTokens: data.usage?.total_tokens ?? 0,
-        },
+      return this.buildResponse(
         raw,
-      };
+        model,
+        choice?.message?.content ?? '',
+        choice?.message?.tool_calls ?? [],
+        data.model,
+        choice?.finish_reason,
+        data.usage?.completion_tokens ?? 0,
+        data.usage?.prompt_tokens ?? 0,
+        data.usage
+      );
     });
+  }
+
+  /** Shared fetch+error handling for both complete() paths. */
+  private async fetchJson(url: string, body: string): Promise<unknown> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        const isRetryable =
+          response.status === 429 || (response.status >= 500 && response.status < 600);
+        throw new LLMProviderError(
+          `Local LLM server returned ${response.status}: ${text}`,
+          'local-llm',
+          response.status,
+          isRetryable
+        );
+      }
+
+      return await response.json();
+    } catch (err) {
+      if (err instanceof LLMProviderError) throw err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isTimeout = msg.includes('aborted') || msg.includes('timeout');
+      const hint = isTimeout
+        ? `Request timed out. Is the local LLM server running at ${this.localBaseURL}?`
+        : `Cannot reach local LLM server at ${this.localBaseURL}. Start with: llama-server -m model.gguf  OR  ollama serve`;
+      throw new LLMProviderError(hint, 'local-llm', undefined, false);
+    }
+  }
+
+  /** Build a unified LLMCompletionResponse from either response format. */
+  private buildResponse(
+    raw: unknown,
+    model: string,
+    content: string,
+    rawToolCalls: Array<{ id?: string; function?: { name?: string; arguments?: unknown } }>,
+    responseModel: string | undefined,
+    finishReasonStr: string | undefined,
+    completionTokens: number,
+    promptTokens: number,
+    openAiUsage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
+  ): LLMCompletionResponse {
+    const toolUses: ToolUseBlock[] = [];
+    for (let i = 0; i < rawToolCalls.length; i += 1) {
+      const tc = rawToolCalls[i];
+      const fn = tc?.function;
+      if (!fn?.name) continue;
+      let input: Record<string, unknown> = {};
+      const rawArgs = fn.arguments;
+      if (typeof rawArgs === 'string') {
+        try { input = JSON.parse(rawArgs) as Record<string, unknown>; } catch { input = {}; }
+      } else if (rawArgs && typeof rawArgs === 'object') {
+        input = rawArgs as Record<string, unknown>;
+      }
+      toolUses.push({ type: 'tool_use', id: tc?.id ?? `call_${i}`, name: fn.name, input });
+    }
+    const hadToolCalls = toolUses.length > 0;
+    const assistantBlocks: AssistantContentBlock[] = hadToolCalls
+      ? [...(content ? [{ type: 'text' as const, text: content }] : []), ...toolUses]
+      : [];
+
+    const totalTokens = openAiUsage
+      ? (openAiUsage.total_tokens ?? promptTokens + completionTokens)
+      : promptTokens + completionTokens;
+
+    return {
+      content,
+      model: responseModel ?? model,
+      provider: 'local-llm' as const,
+      finishReason: hadToolCalls
+        ? 'tool_use'
+        : ((finishReasonStr as LLMCompletionResponse['finishReason']) ?? 'stop'),
+      ...(hadToolCalls ? { toolUses, assistantBlocks } : {}),
+      usage: { promptTokens, completionTokens, totalTokens },
+      raw,
+    };
   }
 
   // =============================================================================
@@ -339,10 +458,10 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
 
     const body = JSON.stringify({
       model,
-      messages: request.messages.map((m) => ({
-        role: m.role,
-        content: messageContentAsString(m.content),
-      })),
+      messages: this._withNoThinkMessages(
+        model,
+        request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) }))
+      ),
       stream: true,
       // Thinking OFF by default: qwen3.5-class thinking routes the ENTIRE
       // answer into the think channel on tool turns — the visible reply

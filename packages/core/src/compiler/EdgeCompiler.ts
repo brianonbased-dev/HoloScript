@@ -316,7 +316,21 @@ def run_task(prompt: str) -> str:
     return "[agent] max rounds reached"
 
 
+def _start_monitor():
+    """Start the health monitor HTTP server as a daemon thread."""
+    try:
+        import sys as _sys, os as _os
+        _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+        from monitor import main as _monitor_main
+        import threading as _threading
+        _threading.Thread(target=_monitor_main, daemon=True).start()
+        print(f"[${name}] monitor thread started on :9090")
+    except Exception as _e:
+        print(f"[${name}] monitor start failed (non-fatal): {_e}")
+
+
 def main():
+    _start_monitor()
     print(f"[${name}] HoloScript edge agent online — {OLLAMA_URL} model={MODEL}")
 ${hasEdgeNode ? `
     while True:
@@ -591,6 +605,9 @@ sudo mkdir -p "$REMOTE_PATH"
 sudo cp agent.py monitor.py ${hasROS2 ? 'ros2_bridge.py ' : ''}${hasJetsonGPU ? 'tensorrt_loader.py ' : ''}manifest.json "$REMOTE_PATH/"
 sudo chmod +x "$REMOTE_PATH/agent.py" "$REMOTE_PATH/monitor.py"
 
+# ── Create service user (idempotent) ─────────────────────────────────────
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$SERVICE_USER" 2>/dev/null || true
+
 # ── Install systemd service ───────────────────────────────────────────────
 echo "[setup] installing systemd service..."
 sudo cp holoscript_agent.service /etc/systemd/system/
@@ -625,8 +642,8 @@ WorkingDirectory=${remotePath}
 Environment=OLLAMA_URL=${ollamaUrl}
 Environment=HOLOSCRIPT_MODEL=${model}
 Environment=TICK_INTERVAL_S=10
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 ${remotePath}/agent.py
-ExecStartPost=/usr/bin/python3 ${remotePath}/monitor.py &
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

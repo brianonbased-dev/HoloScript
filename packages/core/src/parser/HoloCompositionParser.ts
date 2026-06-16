@@ -905,6 +905,15 @@ export class HoloCompositionParser {
             // identifier: value — property at composition level
             this.advance(); // consume :
             if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
+          } else if (this.check('LBRACKET')) {
+            // Brain-format string-array block: traits [ "name1", "name2" ]
+            // HoloCompositionParser handles @DecoratorName syntax; this form is
+            // emitted by .hsplus brain compositions and must be skipped here so
+            // the token stream stays valid. Trait extraction in compile scripts
+            // uses the extractBrainTraits() regex before parsing.
+            this.advance(); // consume [
+            while (!this.check('RBRACKET') && !this.isAtEnd()) this.advance();
+            if (this.check('RBRACKET')) this.advance(); // consume ]
           } else {
             // identifier [optional-name] [(params)] [{ block }]
             if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional quoted/bare name
