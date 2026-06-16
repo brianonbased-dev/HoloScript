@@ -133,4 +133,14 @@
 
 ---
 
-*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation).*
+---
+
+## Per-Soul Fine-Tuned Downloadable GGUF (Daimōn HoloTune Target)
+
+**What might be valuable**: The D.053 endpoint — a per-soul fine-tuned model the owner can download and run locally. Each daimōn would ship as a GGUF artifact keyed to one soul's accumulated ContextDelta corpus: the companion as a sovereign, transferable artifact rather than a tenant of fleet servers. Built via HoloTune on the per-soul trace corpus (owner-scoped ContextDeltas accrued through the emergence lifecycle). Base candidates are `granite4:1b` (smallest runnable tool-caller, CPU-viable) and `qwen3:4b-instruct` (proven Hermes parser, Jetson-comfortable). The per-soul GGUF realizes "capability without dependency" (U.002) at the model level — the guide follows the owner even if every server goes dark.
+
+**Why not now**: Three hard prerequisites are all unmet. (1) The emergence substrate needs to accrue a meaningful per-soul ContextDelta corpus — no corpus, no training signal. (2) HoloTune (D.086) must reach the per-soul fine-tune phase (currently producing team-level traces, not owner-scoped ones). (3) Per-soul GPU spend is gated on P.004 token-volume threshold — a financial and governance gate the founder must clear. Current posture: `daimon-brain.hsplus` runs on `qwen3:4b-instruct` as an honest placeholder; `holotune_status` flips to `"live"` when all three gates pass.
+
+---
+
+*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation); per-soul fine-tuned downloadable GGUF for daimōn (from daimon-brain.hsplus authoring).*
