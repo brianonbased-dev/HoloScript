@@ -182,6 +182,10 @@ export interface WrappedSolverResult<TResult> {
   clauseViolations: PluginClauseViolation[];
   /** Schema validation violations (empty when schemaValid !== false). */
   schemaViolations: SchemaViolation[];
+  /** Contract ID applied to this result (null when no contract). Provenance for ComposedReceipt. */
+  contractId: string | null;
+  /** Plugin that owns the contract (null when no contract). Provenance for ComposedReceipt. */
+  pluginId: string | null;
 }
 
 // ── PluginSolverContractRegistry ──────────────────────────────────────────────
@@ -439,6 +443,8 @@ export function wrapSolverInContract<
               schemaId: schemaId ?? null,
               clauseViolations,
               schemaViolations: [],
+              contractId: contractId ?? null,
+              pluginId: contract.pluginId,
             };
           }
         }
@@ -493,6 +499,8 @@ export function wrapSolverInContract<
       schemaId: schemaId ?? null,
       clauseViolations,
       schemaViolations,
+      contractId: contractId ?? null,
+      pluginId: contract?.pluginId ?? null,
     };
   };
 }
