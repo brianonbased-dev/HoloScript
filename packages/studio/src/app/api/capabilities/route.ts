@@ -129,6 +129,39 @@ const FLEET_CLI_OPS: CapabilityEntry[] = [
 ];
 
 /**
+ * (a2) OWNED-METAL — the sovereign fleet: hardware WE OWN, registered alongside the
+ *      Vast rental tier but distinct (persistent, full SSH/WSL access, $0 marginal
+ *      flat-watt). Backed by ai-ecosystem/config/sovereign-devices/*.json +
+ *      fleet-sovereign-registry.mjs. gate='safe' — the key contrast with the
+ *      spend-gated `quantum-scaleup-cuquantum` (Vast) above. LAN-reachable only
+ *      (Studio-local), so surfaced as grounded inventory, not a Railway trigger.
+ */
+const SOVEREIGN_FLEET: CapabilityEntry[] = [
+  {
+    id: 'sovereign-fleet-registry',
+    label: 'Sovereign owned-metal fleet (Jetson + laptop · $0)',
+    category: 'Fleet / Sovereign (owned metal)',
+    backing:
+      'ai-ecosystem/scripts/fleet-sovereign-registry.mjs + config/sovereign-devices/*.json',
+    surface: 'orphaned-cli',
+    gate: 'safe',
+    triggerable: false,
+    note: 'Owned silicon alongside the Vast fleet but distinct: persistent, full SSH/WSL access, $0 marginal (flat-watt). 2 devices — Jetson Orin (aarch64, 8 GB) + dev laptop RTX 3060 (x86, 6 GB), 14 GB total GPU — both live-probed online (2026-06-16). The non-Vast physical-instance tier; `--probe` for live status.',
+  },
+  {
+    id: 'sovereign-quantum-sim',
+    label: 'Sovereign quantum sim (Jetson + laptop GPU · $0)',
+    category: 'Fleet / Sovereign · Quantum',
+    backing:
+      'ai-ecosystem/scripts/quantum-scaleup/jetson_qasm_gpu_exec.py ← HoloScript/scripts/quantum/compile-holo-quantum.mts (@quantumCircuit → QuantumCircuitCompiler → QASM)',
+    surface: 'orphaned-cli',
+    gate: 'safe',
+    triggerable: false,
+    note: 'HoloScript-native EXPLORE rung on OWNED metal — the $0 contrast to the spend-gated Vast cuQuantum entry above. @quantumCircuit → OpenQASM 3.0 → owned GPU (cupy state-vector), GPU≡CPU verified, cael-quantum-v1.jetson receipt. Proven on Jetson Orin (sm_87) AND laptop RTX 3060 (sm_86), 2026-06-16.',
+  },
+];
+
+/**
  * (b) LIVE — already perceivable + wired in Studio, enriched below with real
  *     counts from the read-only orchestrator endpoints.
  */
@@ -271,7 +304,14 @@ const ADMIN_ONLY: CapabilityEntry[] = [
 ];
 
 function staticRegistry(): CapabilityEntry[] {
-  return [...LIVE_OPS, ...FLEET_CLI_OPS, ...ORPHANED_TOOLS, ...ORPHANED_ROUTES, ...ADMIN_ONLY];
+  return [
+    ...LIVE_OPS,
+    ...SOVEREIGN_FLEET,
+    ...FLEET_CLI_OPS,
+    ...ORPHANED_TOOLS,
+    ...ORPHANED_ROUTES,
+    ...ADMIN_ONLY,
+  ];
 }
 
 async function fetchOrchestrator<T>(path: string): Promise<T | null> {
