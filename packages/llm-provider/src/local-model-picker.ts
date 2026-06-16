@@ -16,6 +16,8 @@
  * and skips discovery entirely.
  */
 
+import { SAFE_LOCAL_FALLBACK, isBlacklistedModel } from './model-policy';
+
 /**
  * Canonical default endpoint for the LOCAL Ollama tier. Single source for the
  * one allowed localhost literal (founder-ruled 2026-06-10): the local tier is
@@ -25,29 +27,10 @@
  */
 export const OLLAMA_DEFAULT_BASE_URL = 'http://localhost:11434';
 
-/**
- * The non-blacklisted small sovereign default the picker falls back to when
- * discovery finds nothing usable (or when a caller's fallback/override is itself
- * blacklisted). Kept separate from the blacklist so the two never drift apart.
- */
-export const SAFE_LOCAL_FALLBACK = 'qwen3.5:4b';
-
-/**
- * Model families the ecosystem refuses to auto-select (founder blacklist
- * 2026-06-16). qwen2.5 (esp. qwen2.5-coder:7b) FALSELY reports `tools` support
- * in /api/show capabilities yet emits malformed / prose tool calls — it lies its
- * way past the capability check and silently degrades real agent turns. Matched
- * case-insensitively as a SUBSTRING so every tag and quant variant
- * (qwen2.5-coder:7b, qwen2.5:14b-instruct-q4_K_M, …) is covered.
- */
-export const MODEL_BLACKLIST: readonly string[] = ['qwen2.5', 'qwen2_5', 'qwen-2.5'];
-
-/** True when `name` matches a blacklisted model family (case-insensitive substring). */
-export function isBlacklistedModel(name: string | undefined | null): boolean {
-  if (!name) return false;
-  const n = name.toLowerCase();
-  return MODEL_BLACKLIST.some((b) => n.includes(b));
-}
+// The model blacklist + the safe local fallback are owned by the model-policy
+// SSOT (one place to change a default). Re-exported here so existing
+// `from './local-model-picker'` importers keep working.
+export { SAFE_LOCAL_FALLBACK, MODEL_BLACKLIST, isBlacklistedModel } from './model-policy';
 
 export interface LocalModelChoice {
   model: string;

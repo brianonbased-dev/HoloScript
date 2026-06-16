@@ -183,17 +183,22 @@ export type {
   SovereignResolveOptions,
 } from './sovereign-resolver';
 
-// Local model discovery — picks the best behaviorally-verified tool-calling
-// model from whatever Ollama has installed, instead of a hardcoded tag
-// (founder 2026-06-10: "don't we have a large variety available?").
+// Model policy — THE single source of truth for tier defaults + the blacklist
+// ("lock in our models": change a default here, not in 20 files).
 export {
-  pickLocalModel,
-  __clearLocalModelPickerCache,
-  OLLAMA_DEFAULT_BASE_URL,
+  LOCAL_DEFAULT_MODEL,
+  FLEET_DEFAULT_MODEL,
+  CLOUD_DEFAULT_MODEL,
   SAFE_LOCAL_FALLBACK,
   MODEL_BLACKLIST,
   isBlacklistedModel,
-} from './local-model-picker';
+  resolveAllowedModel,
+} from './model-policy';
+
+// Local model discovery — picks the best behaviorally-verified tool-calling
+// model from whatever Ollama has installed, instead of a hardcoded tag
+// (founder 2026-06-10: "don't we have a large variety available?").
+export { pickLocalModel, __clearLocalModelPickerCache, OLLAMA_DEFAULT_BASE_URL } from './local-model-picker';
 export type { LocalModelChoice } from './local-model-picker';
 
 // Quest Generator (Phase 2 Hololand Integration)

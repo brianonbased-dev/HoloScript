@@ -28,6 +28,7 @@
 
 import type { ILLMProvider } from './types';
 import { OLLAMA_DEFAULT_BASE_URL, pickLocalModel } from './local-model-picker';
+import { FLEET_DEFAULT_MODEL, LOCAL_DEFAULT_MODEL } from './model-policy';
 import { AnthropicAdapter } from './adapters/anthropic';
 import { OpenAIAdapter } from './adapters/openai';
 import { XAIAdapter } from './adapters/xai';
@@ -62,12 +63,12 @@ export interface SovereignResolveOptions {
   maxTokens?: number;
 }
 
-const FLEET_DEFAULT_MODEL = 'qwen3.5:4b';
+// FLEET_DEFAULT_MODEL + the local default come from the model-policy SSOT.
 const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool calls
 // via Ollama — it writes the call JSON as plain text (2026-06-10 zero-objects
 // benchmark finding; founder caught the stale default).
-const OLLAMA_DEFAULT_MODEL = 'qwen3.5:4b';
+const OLLAMA_DEFAULT_MODEL = LOCAL_DEFAULT_MODEL;
 
 function env(...names: string[]): string | undefined {
   for (const n of names) {
