@@ -273,6 +273,12 @@ export type TokenType =
   | 'WAYPOINTS'
   | 'CONSTRAINT'
   | 'TERRAIN'
+  // MMO/AAA game constructs (v6.2)
+  | 'LOOT_TABLE'
+  | 'WORLD_CHUNK'
+  | 'SPAWN_POINT'
+  | 'GAME_TRIGGER'
+  | 'REAL_ESTATE'
   // Process pipeline directives (.hs format — v5)
   | 'CONNECT'
   | 'EXECUTE'
@@ -380,6 +386,12 @@ export const KEYWORDS: Record<string, TokenType> = {
   waypoints: 'WAYPOINTS',
   constraint: 'CONSTRAINT',
   terrain: 'TERRAIN',
+  // MMO/AAA game constructs (v6.2)
+  loot_table: 'LOOT_TABLE',
+  world_chunk: 'WORLD_CHUNK',
+  spawn_point: 'SPAWN_POINT',
+  game_trigger: 'GAME_TRIGGER',
+  real_estate: 'REAL_ESTATE',
   // IoT / Digital Twin
   sensor: 'IOT_SENSOR',
   device: 'IOT_DEVICE',

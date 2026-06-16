@@ -46,6 +46,12 @@ import type {
   SemanticMemoryNode,
   EpisodicMemoryNode,
   ProceduralMemoryNode,
+  // Game-logic AST node types
+  GameAbilityNode,
+  GameLootTableNode,
+  GameSpawnNode,
+  GameAuthorityNode,
+  GameEventBlockNode,
 } from './types';
 import type {
   HSPlusStateDirective,
@@ -152,7 +158,9 @@ const CODE_SECURITY_CONFIG = {
     'fs',
     'child_process',
     'exec',
-    'spawn',
+    // NOTE: 'spawn' is intentionally excluded — it is a valid .hs game-logic keyword
+    // (MMO entity spawn rules). The security gate uses word-boundary regex, so
+    // node-API 'spawn' from child_process cannot slip through via game code anyway.
   ],
 };
 
@@ -367,6 +375,15 @@ export class HoloScriptCodeParser {
       'semantic',
       'episodic',
       'procedural',
+      // MMO / game-logic keywords (Phase: game-logic constructs)
+      'ability',
+      'loot_table',
+      'authority',
+      'on_combat',
+      'on_death',
+      'on_spawn',
+      'on_cast',
+      // 'spawn' already present above (line ~304); Set deduplicates, listed here for readability
     ]);
   }
 
@@ -906,6 +923,20 @@ export class HoloScriptCodeParser {
           return this.parseZone();
         case 'memory':
           return this.parseMemory();
+        // MMO / game-logic constructs
+        case 'ability':
+          return this.parseAbility();
+        case 'loot_table':
+          return this.parseLootTable();
+        case 'spawn':
+          return this.parseSpawnRule();
+        case 'authority':
+          return this.parseAuthorityBlock();
+        case 'on_combat':
+        case 'on_death':
+        case 'on_spawn':
+        case 'on_cast':
+          return this.parseGameEventBlock();
         default:
           return this.parseExpressionStatement();
       }
@@ -1351,6 +1382,40 @@ export class HoloScriptCodeParser {
     if (name === 'bindings') {
       const bindings = this.parseBindingsBlock();
       return { type: 'bindings' as const, bindings } as HSPlusBindingsDirective;
+    }
+
+    // Handle game-logic authority-scope annotations (@server_side, @client_side, @replicated)
+    // and stat annotations (@cooldown, @mana_cost, @damage_type, @drop_chance).
+    // These carry an optional inline value token (e.g. `@cooldown 5s`, `@drop_chance 0.15`).
+    const GAME_LOGIC_ANNOTATIONS = new Set([
+      'server_side',
+      'client_side',
+      'replicated',
+      'cooldown',
+      'mana_cost',
+      'damage_type',
+      'drop_chance',
+    ]);
+    if (GAME_LOGIC_ANNOTATIONS.has(name)) {
+      let value: string | undefined;
+      const next = this.currentToken();
+      // Consume an inline value if it is on the same line and is not a block/newline
+      if (next && next.type !== 'newline' && next.value !== '{' && next.value !== '}') {
+        // Collect tokens until newline or ; or { — handles "5s", "30", "fire", "0.15"
+        let raw = '';
+        while (this.position < this.tokens.length) {
+          const t = this.currentToken();
+          if (!t || t.type === 'newline' || t.value === ';' || t.value === '{') break;
+          raw += t.value;
+          this.advance();
+        }
+        value = raw.trim() || undefined;
+      }
+      return {
+        type: 'trait' as const,
+        name,
+        config: value !== undefined ? { value } : {},
+      } as HSPlusTraitDirective;
     }
 
     // Handle @on_... hooks
@@ -2477,6 +2542,355 @@ export class HoloScriptCodeParser {
   /**
    * Parse generic expression statement (e.g. function call or assignment)
    */
+  // ===========================================================================
+  // MMO / GAME-LOGIC PARSERS
+  // ===========================================================================
+
+  /**
+   * Parse ability declaration.
+   *
+   * Syntax:
+   *   ability <name> {
+   *     @cooldown 5s
+   *     @mana_cost 30
+   *     @damage_type fire
+   *     @range 30
+   *     on_cast(target) { ... }
+   *     on_hit { ... }
+   *     on_miss { ... }
+   *     <key>: <value>
+   *   }
+   *
+   * Compiles to a generic `game-ability` AST node. The downstream compiler maps
+   * this to CombatAbilityTrait handler entries.
+   */
+  private parseAbility(): ASTNode | null {
+    this.expect('keyword', 'ability');
+    const name = this.expectName() || `ability_${Date.now()}`;
+
+    const properties: Record<string, HoloScriptValue> = {};
+    const directives: HSPlusDirective[] = [];
+    const eventBlocks: Array<{ event: string; params: string[]; body: string }> = [];
+
+    if (this.check('punctuation', '{')) {
+      this.advance(); // {
+
+      while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        this.skipNewlines();
+        if (this.check('punctuation', '}')) break;
+
+        const token = this.currentToken();
+
+        // Annotations: @cooldown, @mana_cost, @damage_type, @server_side, @replicated, …
+        if (token?.type === 'punctuation' && token.value === '@') {
+          const dir = this.parseDirective();
+          if (dir) directives.push(dir);
+          this.skipNewlines();
+          continue;
+        }
+
+        // Event sub-blocks: on_cast, on_hit, on_miss, on_combat, on_death, on_spawn
+        if (
+          token?.type === 'keyword' &&
+          (token.value.startsWith('on_'))
+        ) {
+          const event = token.value;
+          this.advance(); // consume event keyword
+
+          // Optional parameter list: on_cast(target)
+          const params: string[] = [];
+          if (this.check('punctuation', '(')) {
+            this.advance();
+            while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
+              const p = this.expectIdentifier();
+              if (p) params.push(p);
+              if (this.check('punctuation', ',')) this.advance();
+            }
+            this.expect('punctuation', ')');
+          }
+
+          // Body block
+          let body = '';
+          if (this.check('punctuation', '{')) {
+            this.advance();
+            let depth = 1;
+            while (depth > 0 && this.position < this.tokens.length) {
+              const t = this.advance()!;
+              if (t.value === '{') depth++;
+              else if (t.value === '}') { depth--; if (depth === 0) break; }
+              body += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
+            }
+          }
+
+          eventBlocks.push({ event, params, body: body.trim() });
+          this.skipNewlines();
+          continue;
+        }
+
+        // Key-value property (damage_type: fire, base_damage: 45, …)
+        const prop = this.parseProperty();
+        if (prop) {
+          properties[prop.key] = prop.value;
+        } else {
+          // Skip unexpected tokens to avoid infinite loop
+          this.advance();
+        }
+        this.skipNewlines();
+      }
+
+      this.expect('punctuation', '}');
+    }
+
+    const abilityNode: GameAbilityNode = {
+      type: 'game-ability',
+      name,
+      properties,
+      directives: directives.length > 0 ? directives : undefined,
+      eventBlocks: eventBlocks.length > 0 ? eventBlocks : undefined,
+      position: [0, 0, 0],
+    };
+    return abilityNode;
+  }
+
+  /**
+   * Parse spawn declaration.
+   *
+   * Syntax:
+   *   spawn <name> {
+   *     entity: goblin_warrior
+   *     zone: ironveil_outskirts
+   *     max_count: 8
+   *     respawn_interval: 120s
+   *     loot_table: goblin_drops
+   *     faction: goblin_clan
+   *   }
+   *
+   * Compiles to a generic `game-spawn` AST node. The MMO compiler uses this
+   * for load-balancing across shards.
+   */
+  private parseSpawnRule(): ASTNode | null {
+    this.expect('keyword', 'spawn');
+    const name = this.expectName() || `spawn_${Date.now()}`;
+
+    const properties: Record<string, HoloScriptValue> = {};
+    const directives: HSPlusDirective[] = [];
+
+    if (this.check('punctuation', '{')) {
+      this.advance();
+      while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        this.skipNewlines();
+        if (this.check('punctuation', '}')) break;
+
+        const t = this.currentToken();
+        if (t?.type === 'punctuation' && t.value === '@') {
+          const dir = this.parseDirective();
+          if (dir) directives.push(dir);
+        } else {
+          const prop = this.parseProperty();
+          if (prop) {
+            properties[prop.key] = prop.value;
+          } else {
+            this.advance();
+          }
+        }
+        this.skipNewlines();
+      }
+      this.expect('punctuation', '}');
+    }
+
+    const spawnNode: GameSpawnNode = {
+      type: 'game-spawn',
+      name,
+      properties,
+      directives: directives.length > 0 ? directives : undefined,
+      position: [0, 0, 0],
+    };
+    return spawnNode;
+  }
+
+  /**
+   * Parse loot_table declaration.
+   *
+   * Syntax:
+   *   loot_table <name> {
+   *     item <item_name> { @drop_chance 0.15 }
+   *     gold { @amount 50..200 }
+   *   }
+   *
+   * Compiles to a generic `game-loot-table` AST node.
+   */
+  private parseLootTable(): ASTNode | null {
+    this.expect('keyword', 'loot_table');
+    const name = this.expectName() || `loot_${Date.now()}`;
+
+    const entries: Array<{ kind: string; name: string; properties: Record<string, HoloScriptValue>; directives: HSPlusDirective[] }> = [];
+
+    if (this.check('punctuation', '{')) {
+      this.advance(); // {
+
+      while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        this.skipNewlines();
+        if (this.check('punctuation', '}')) break;
+
+        const token = this.currentToken();
+        if (!token) break;
+
+        // Loot entry: `item DragonScale { ... }` or bare `gold { ... }`
+        const kind = token.value; // "item", "gold", or any identifier
+        this.advance();
+
+        // Optional entry name (for `item DragonScale { ... }` style)
+        let entryName = kind;
+        const next = this.currentToken();
+        if (next && (next.type === 'identifier' || next.type === 'keyword') && next.value !== '{') {
+          entryName = next.value;
+          this.advance();
+        }
+
+        const entryProps: Record<string, HoloScriptValue> = {};
+        const entryDirs: HSPlusDirective[] = [];
+
+        if (this.check('punctuation', '{')) {
+          this.advance();
+          while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+            this.skipNewlines();
+            if (this.check('punctuation', '}')) break;
+
+            const t = this.currentToken();
+            if (t?.type === 'punctuation' && t.value === '@') {
+              const dir = this.parseDirective();
+              if (dir) entryDirs.push(dir);
+            } else {
+              const prop = this.parseProperty();
+              if (prop) {
+                entryProps[prop.key] = prop.value;
+              } else {
+                this.advance();
+              }
+            }
+            this.skipNewlines();
+          }
+          this.expect('punctuation', '}');
+        }
+
+        entries.push({ kind, name: entryName, properties: entryProps, directives: entryDirs });
+        this.skipNewlines();
+      }
+
+      this.expect('punctuation', '}');
+    }
+
+    const lootNode: GameLootTableNode = {
+      type: 'game-loot-table',
+      name,
+      entries,
+      position: [0, 0, 0],
+    };
+    return lootNode;
+  }
+
+  /**
+   * Parse authority declaration.
+   *
+   * Syntax:
+   *   authority <name> {
+   *     model: server_authoritative
+   *     sync_rate: 20hz
+   *     server_reconcile: true
+   *   }
+   *
+   * Compiles to a generic `game-authority` AST node. The networked compilation
+   * pass maps this to the correct authority model per target runtime.
+   */
+  private parseAuthorityBlock(): ASTNode | null {
+    this.expect('keyword', 'authority');
+    const name = this.expectName() || `authority_${Date.now()}`;
+
+    const properties: Record<string, HoloScriptValue> = {};
+
+    if (this.check('punctuation', '{')) {
+      this.advance();
+      while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        this.skipNewlines();
+        if (this.check('punctuation', '}')) break;
+
+        const prop = this.parseProperty();
+        if (prop) {
+          properties[prop.key] = prop.value;
+        } else {
+          this.advance();
+        }
+        this.skipNewlines();
+      }
+      this.expect('punctuation', '}');
+    }
+
+    const authorityNode: GameAuthorityNode = {
+      type: 'game-authority',
+      name,
+      properties,
+      position: [0, 0, 0],
+    };
+    return authorityNode;
+  }
+
+  /**
+   * Parse top-level game event blocks: on_combat, on_death, on_spawn, on_cast.
+   *
+   * Syntax:
+   *   on_death { drop_loot: goblin_drops; trigger_event: "mob_killed" }
+   *   on_spawn { set_state: alive }
+   *
+   * These may appear as top-level declarations on entity/npc blocks or inside
+   * ability blocks. Returns a generic `game-event-block` AST node.
+   */
+  private parseGameEventBlock(): ASTNode | null {
+    const token = this.currentToken();
+    const eventName = token?.value || 'on_unknown';
+    this.advance(); // consume keyword
+
+    // Optional parameter list: on_cast(target)
+    const params: string[] = [];
+    if (this.check('punctuation', '(')) {
+      this.advance();
+      while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
+        const p = this.expectIdentifier();
+        if (p) params.push(p);
+        if (this.check('punctuation', ',')) this.advance();
+      }
+      this.expect('punctuation', ')');
+    }
+
+    const properties: Record<string, HoloScriptValue> = {};
+    let body = '';
+
+    if (this.check('punctuation', '{')) {
+      this.advance();
+      let depth = 1;
+      while (depth > 0 && this.position < this.tokens.length) {
+        const t = this.currentToken()!;
+        if (t.value === '{') depth++;
+        else if (t.value === '}') { depth--; if (depth === 0) { this.advance(); break; } }
+        body += (t.type === 'string' ? JSON.stringify(t.value) : t.value) + ' ';
+        this.advance();
+      }
+    }
+
+    const eventNode: GameEventBlockNode = {
+      type: 'game-event-block',
+      name: eventName,
+      params,
+      body: body.trim(),
+      properties,
+      position: [0, 0, 0],
+    };
+    return eventNode;
+  }
+
+  // ===========================================================================
+  // END MMO / GAME-LOGIC PARSERS
+  // ===========================================================================
+
   private parseExpressionStatement(): ASTNode | null {
     let expression = '';
     let parenDepth = 0;

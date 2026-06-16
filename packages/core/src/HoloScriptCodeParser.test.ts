@@ -8,6 +8,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { HoloScriptCodeParser, ParserPools } from './HoloScriptCodeParser';
 import type { ParseResult } from './HoloScriptCodeParser';
+import type {
+  GameAbilityNode,
+  GameLootTableNode,
+  GameSpawnNode,
+  GameAuthorityNode,
+  GameEventBlockNode,
+} from './types';
 
 describe('HoloScriptCodeParser', () => {
   let parser: HoloScriptCodeParser;
@@ -837,6 +844,88 @@ composition "Hololand Central" {
       const obj = comp.children.find((n: any) => n.type === 'orb');
       expect(obj.name).toBe('MainPortal');
       expect(obj.template).toBe('Portal');
+    });
+  });
+
+  // ===========================================================================
+  // MMO / Game-Logic Constructs
+  // ===========================================================================
+  describe('game-logic constructs', () => {
+    it('ability declaration parses without error', () => {
+      const code = `ability FireBlast {
+  @cooldown 5s
+  @mana_cost 30
+  @damage_type fire
+  base_damage: 45
+  range: 30
+  on_cast(target) {
+    apply_status: burning
+  }
+  on_hit {
+    trigger_event: "hit_vfx"
+  }
+  @server_side
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      const node = result.ast.find((n) => n.type === 'game-ability') as GameAbilityNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('FireBlast');
+    });
+
+    it('loot_table declaration parses without error', () => {
+      const code = `loot_table RareDrops {
+  item DragonScale {
+    @drop_chance 0.15
+  }
+  gold {
+    count: 100
+  }
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'game-loot-table') as GameLootTableNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('RareDrops');
+    });
+
+    it('spawn rule declaration parses without error', () => {
+      const code = `spawn goblin_patrol {
+  entity: goblin_warrior
+  max_count: 8
+  respawn_interval: 120
+  faction: goblin_clan
+  @server_side
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'game-spawn') as GameSpawnNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('goblin_patrol');
+    });
+
+    it('authority block parses without error', () => {
+      const code = `authority combat_resolution {
+  model: server_authoritative
+  sync_rate: 10
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'game-authority') as GameAuthorityNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('combat_resolution');
+    });
+
+    it('top-level on_death event block parses without error', () => {
+      const code = `on_death {
+  drop_loot: goblin_drops
+}`;
+      const result = parser.parse(code);
+      expect(result.success).toBe(true);
+      const node = result.ast.find((n) => n.type === 'game-event-block') as GameEventBlockNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.name).toBe('on_death');
     });
   });
 });

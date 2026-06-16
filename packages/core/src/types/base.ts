@@ -126,3 +126,76 @@ export interface ASTNode extends BaseASTNode {
     context?: ProvenanceContext; // Algebraic weight threading
   };
 }
+
+// ============================================================================
+// Game-Logic AST Nodes (MMO / game constructs for .hs game-logic files)
+// ============================================================================
+
+/** A single event sub-block inside an ability: on_cast, on_hit, on_miss, etc. */
+export interface AbilityEventBlock {
+  event: string;
+  params: string[];
+  body: string;
+}
+
+/**
+ * `ability <name> { ... }` — declares a combat or gameplay ability.
+ * Compiles to CombatAbilityTrait handler entries; server-authoritative by default.
+ */
+export interface GameAbilityNode extends ASTNode {
+  type: 'game-ability';
+  name: string;
+  properties: Record<string, unknown>;
+  eventBlocks?: AbilityEventBlock[];
+}
+
+/**
+ * A single entry inside a `loot_table` block.
+ */
+export interface LootTableEntry {
+  kind: string;
+  name: string;
+  properties: Record<string, unknown>;
+  directives: HSPlusDirective[];
+}
+
+/**
+ * `loot_table <name> { ... }` — declares a typed loot drop table.
+ */
+export interface GameLootTableNode extends ASTNode {
+  type: 'game-loot-table';
+  name: string;
+  entries: LootTableEntry[];
+}
+
+/**
+ * `spawn <name> { ... }` — server-authoritative entity spawn rule.
+ * Binds an entity type to a zone with respawn interval, max count, loot table, and faction.
+ */
+export interface GameSpawnNode extends ASTNode {
+  type: 'game-spawn';
+  name: string;
+  properties: Record<string, unknown>;
+}
+
+/**
+ * `authority <name> { ... }` — multiplayer authority declaration.
+ * Maps to the correct authority model per target runtime (Unreal / Unity / R3F).
+ */
+export interface GameAuthorityNode extends ASTNode {
+  type: 'game-authority';
+  name: string;
+  properties: Record<string, unknown>;
+}
+
+/**
+ * Top-level game event block: `on_combat`, `on_death`, `on_spawn`, `on_cast`.
+ * Returns a structured node the downstream compiler maps to the target runtime's event system.
+ */
+export interface GameEventBlockNode extends ASTNode {
+  type: 'game-event-block';
+  name: string;
+  params: string[];
+  body: string;
+  properties: Record<string, unknown>;
+}

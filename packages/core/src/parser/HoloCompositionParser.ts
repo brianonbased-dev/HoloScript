@@ -58,6 +58,7 @@ import type {
   HoloTransitionProperty,
   HoloConditionalBlock,
   HoloForEachBlock,
+  HoloPosition,
   SourceLocation,
   SourceRange,
   // Brittney AI Features
@@ -101,6 +102,12 @@ import type {
   HoloTerrainBlock,
   HoloDomainBlock,
   HoloDomainType,
+  // MMO/AAA game constructs (v6.2)
+  HoloSpawnPoint,
+  HoloGameTrigger,
+  HoloLootTable,
+  HoloLootEntry,
+  HoloWorldChunk,
   HoloNormBlock,
   HoloNormCreation,
   HoloNormRepresentation,
@@ -262,6 +269,11 @@ export class HoloCompositionParser {
       // v4.5 additions — CRSEC norm lifecycle
       norms: [],
       metanorms: [],
+      // v6.2 additions — MMO/AAA game constructs
+      spawnPoints: [],
+      triggers: [],
+      lootTables: [],
+      worldChunks: [],
     };
 
     while (!this.isAtEnd()) {
@@ -401,6 +413,18 @@ export class HoloCompositionParser {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
+          // MMO/AAA game constructs (v6.2)
+        } else if (this.check('LOOT_TABLE')) {
+          composition.lootTables!.push(this.parseLootTable());
+        } else if (this.check('WORLD_CHUNK')) {
+          composition.worldChunks!.push(this.parseWorldChunk());
+        } else if (this.check('SPAWN_POINT')) {
+          composition.spawnPoints!.push(this.parseSpawnPoint());
+        } else if (this.check('GAME_TRIGGER')) {
+          composition.triggers!.push(this.parseGameTrigger());
+        } else if (this.check('REAL_ESTATE')) {
+          // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
+          composition.domainBlocks!.push(this.parseDomainBlock());
           // Named scene blocks (v4.6 — scene keyword)
         } else if (this.check('SCENE')) {
           if (!composition.scenes) composition.scenes = [];
@@ -633,6 +657,11 @@ export class HoloCompositionParser {
       // v4.5 additions — CRSEC norm lifecycle
       norms: [],
       metanorms: [],
+      // v6.2 additions — MMO/AAA game constructs
+      spawnPoints: [],
+      triggers: [],
+      lootTables: [],
+      worldChunks: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -725,6 +754,18 @@ export class HoloCompositionParser {
           composition.norms!.push(this.parseNormBlock());
         } else if (this.check('METANORM')) {
           composition.metanorms!.push(this.parseMetanormBlock());
+          // MMO/AAA game constructs (v6.2)
+        } else if (this.check('LOOT_TABLE')) {
+          composition.lootTables!.push(this.parseLootTable());
+        } else if (this.check('WORLD_CHUNK')) {
+          composition.worldChunks!.push(this.parseWorldChunk());
+        } else if (this.check('SPAWN_POINT')) {
+          composition.spawnPoints!.push(this.parseSpawnPoint());
+        } else if (this.check('GAME_TRIGGER')) {
+          composition.triggers!.push(this.parseGameTrigger());
+        } else if (this.check('REAL_ESTATE')) {
+          // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
+          composition.domainBlocks!.push(this.parseDomainBlock());
           // Domain-specific blocks (v4)
         } else if (this.isDomainBlockToken()) {
           composition.domainBlocks!.push(this.parseDomainBlock());
@@ -5163,6 +5204,8 @@ export class HoloCompositionParser {
     'TIMEOUT_BLOCK',
     'FALLBACK_BLOCK',
     'BULKHEAD_BLOCK',
+    // MMO/AAA game constructs (v6.2) — real_estate only; others handled by dedicated parsers
+    'REAL_ESTATE',
   ]);
 
   /** Token → domain type mapping */
@@ -5293,11 +5336,365 @@ export class HoloCompositionParser {
     TIMEOUT_BLOCK: 'resilience',
     FALLBACK_BLOCK: 'resilience',
     BULKHEAD_BLOCK: 'resilience',
+    // MMO/AAA game constructs (v6.2)
+    REAL_ESTATE: 'custom',
   };
 
   /** Check if current token is a domain block token */
   private isDomainBlockToken(): boolean {
     return HoloCompositionParser.DOMAIN_TOKENS.has(this.current().type);
+  }
+
+  // ===========================================================================
+  // MMO/AAA GAME CONSTRUCTS (v6.2 — June 2026)
+  // ===========================================================================
+
+  /**
+   * Parse a loot_table block with weighted entry sub-blocks and optional
+   * guaranteed drop section.
+   *
+   * Syntax:
+   *   loot_table goblin_drops {
+   *     entry common_coin { item: "gold_coin" qty: "1..5" weight: 60 }
+   *     entry nothing     { weight: 10 }
+   *     guaranteed { item: "goblin_ear" qty: 1 }
+   *     multiplier_on_faction_hostile: "ironveil * 1.5"
+   *   }
+   */
+  private parseLootTable(): HoloLootTable {
+    const startLoc = this.currentLocation();
+    this.pushContext('loot-table');
+    this.advance(); // consume 'loot_table'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const entries: HoloLootEntry[] = [];
+    let guaranteed: Record<string, HoloValue> | undefined;
+    const properties: Record<string, HoloValue> = {};
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      // 'entry' sub-block
+      if (this.check('IDENTIFIER') && this.current().value === 'entry') {
+        this.advance(); // consume 'entry'
+        const entryId = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+        const entryProps: Record<string, HoloValue> = {};
+        let weight = 0;
+        let itemId: string | undefined;
+        let qty: string | number | undefined;
+        let rarity: HoloLootEntry['rarity'];
+        let condition: string | undefined;
+
+        if (this.check('LBRACE')) {
+          this.advance(); // consume {
+          this.skipNewlines();
+          while (!this.check('RBRACE') && !this.isAtEnd()) {
+            this.skipNewlines();
+            if (this.check('RBRACE')) break;
+            const key = this.expectIdentifier();
+            this.expect('COLON');
+            const val = this.parseValue();
+            if (key === 'item') itemId = val as string;
+            else if (key === 'weight') weight = val as number;
+            else if (key === 'qty') qty = val as string | number;
+            else if (key === 'rarity') rarity = val as HoloLootEntry['rarity'];
+            else if (key === 'condition') condition = val as string;
+            else entryProps[key] = val;
+            if (this.check('COMMA')) this.advance();
+            this.skipNewlines();
+          }
+          this.expect('RBRACE');
+        }
+
+        entries.push({
+          type: 'LootEntry',
+          id: entryId,
+          itemId,
+          weight,
+          qty,
+          rarity,
+          condition,
+          properties: entryProps,
+        });
+      } else if (this.check('IDENTIFIER') && this.current().value === 'guaranteed') {
+        // 'guaranteed' sub-block — items that always drop
+        this.advance(); // consume 'guaranteed'
+        if (this.check('LBRACE')) {
+          this.advance(); // consume {
+          this.skipNewlines();
+          guaranteed = {};
+          while (!this.check('RBRACE') && !this.isAtEnd()) {
+            this.skipNewlines();
+            if (this.check('RBRACE')) break;
+            const key = this.expectIdentifier();
+            this.expect('COLON');
+            guaranteed[key] = this.parseValue();
+            if (this.check('COMMA')) this.advance();
+            this.skipNewlines();
+          }
+          this.expect('RBRACE');
+        }
+      } else {
+        // top-level properties (multipliers, global modifiers)
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        properties[key] = this.parseValue();
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'LootTable',
+      name,
+      entries,
+      guaranteed,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a world_chunk block for open-world streaming.
+   *
+   * Syntax:
+   *   world_chunk dockside {
+   *     bounds: ((-200, 0, -200), (200, 100, 200))
+   *     priority: "high"
+   *     lod_distances: [50, 150, 400]
+   *     biome: "coastal_urban"
+   *     npc_roster: ["merchant_alva", "harbor_guard_01"]
+   *     streaming { load_radius: 300 unload_radius: 500 budget_kb: 32768 }
+   *   }
+   */
+  private parseWorldChunk(): HoloWorldChunk {
+    const startLoc = this.currentLocation();
+    this.pushContext('world-chunk');
+    this.advance(); // consume 'world_chunk'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let priority: string | number | undefined;
+    let biome: string | undefined;
+    let lodDistances: number[] | undefined;
+    let assetManifest: string[] | undefined;
+    let npcRoster: string[] | undefined;
+    let spawnPoints: HoloPosition[] | undefined;
+    let streaming: Record<string, HoloValue> | undefined;
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      // 'streaming' sub-block
+      if (this.check('IDENTIFIER') && this.current().value === 'streaming') {
+        this.advance(); // consume 'streaming'
+        if (this.check('LBRACE')) {
+          this.advance(); // consume {
+          this.skipNewlines();
+          streaming = {};
+          while (!this.check('RBRACE') && !this.isAtEnd()) {
+            this.skipNewlines();
+            if (this.check('RBRACE')) break;
+            const key = this.expectIdentifier();
+            this.expect('COLON');
+            streaming[key] = this.parseValue();
+            if (this.check('COMMA')) this.advance();
+            this.skipNewlines();
+          }
+          this.expect('RBRACE');
+        }
+      } else if (this.check('IDENTIFIER') && this.current().value === 'asset_manifest') {
+        this.advance(); // consume 'asset_manifest'
+        const val = this.parseValue();
+        assetManifest = (Array.isArray(val) ? val : [val]) as string[];
+      } else {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        const val = this.parseValue();
+        if (key === 'priority') priority = val as string | number;
+        else if (key === 'biome') biome = val as string;
+        else if (key === 'lod_distances') lodDistances = (Array.isArray(val) ? val : [val]) as number[];
+        else if (key === 'npc_roster') npcRoster = (Array.isArray(val) ? val : [val]) as string[];
+        else if (key === 'spawn_points') spawnPoints = val as unknown as HoloPosition[];
+        else properties[key] = val;
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'WorldChunk',
+      name,
+      priority,
+      biome,
+      lodDistances,
+      assetManifest,
+      npcRoster,
+      spawnPoints,
+      streaming,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a spawn_point block.
+   *
+   * Syntax:
+   *   spawn_point village_entry {
+   *     faction: "neutral"
+   *     max_count: 10
+   *     respawn_radius: 5
+   *     position: (10, 0, 10)
+   *   }
+   */
+  private parseSpawnPoint(): HoloSpawnPoint {
+    const startLoc = this.currentLocation();
+    this.pushContext('spawn-point');
+    this.advance(); // consume 'spawn_point'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let faction: string | undefined;
+    let maxCount: number | undefined;
+    let respawnRadius: number | undefined;
+    let position: HoloPosition | undefined;
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+      const key = this.expectIdentifier();
+      this.expect('COLON');
+      const val = this.parseValue();
+      if (key === 'faction') faction = val as string;
+      else if (key === 'max_count') maxCount = val as number;
+      else if (key === 'respawn_radius') respawnRadius = val as number;
+      else if (key === 'position') {
+        // Accept array or tuple: position: [x, y, z] or (x, y, z)
+        if (Array.isArray(val) && val.length >= 3) {
+          position = { x: val[0] as number, y: val[1] as number, z: val[2] as number };
+        }
+      } else {
+        properties[key] = val;
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'SpawnPoint',
+      name,
+      faction,
+      maxCount,
+      respawnRadius,
+      position,
+      properties,
+    };
+  }
+
+  /**
+   * Parse a trigger block for MMO interaction volumes.
+   *
+   * Syntax:
+   *   trigger dungeon_entrance {
+   *     radius: 3
+   *     faction_filter: ["alliance", "neutral"]
+   *     on_enter { emit("dungeon_enter") }
+   *     on_exit  { emit("dungeon_exit")  }
+   *   }
+   */
+  private parseGameTrigger(): HoloGameTrigger {
+    const startLoc = this.currentLocation();
+    this.pushContext('game-trigger');
+    this.advance(); // consume 'game_trigger'
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let radius = 1;
+    let factionFilter: string[] | undefined;
+    let position: HoloPosition | undefined;
+    const onEnter: HoloEventHandler[] = [];
+    const onExit: HoloEventHandler[] = [];
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      // Event handler sub-blocks
+      if (this.check('IDENTIFIER') && this.current().value === 'on_enter') {
+        this.advance(); // consume 'on_enter'
+        const params = this.check('LPAREN') ? this.parseParameterList() : [];
+        const body = this.check('LBRACE') ? (() => {
+          this.advance(); // consume {
+          this.skipNewlines();
+          const stmts = this.parseStatementBlock();
+          this.expect('RBRACE');
+          return stmts;
+        })() : [];
+        onEnter.push({ type: 'EventHandler', event: 'on_enter', parameters: params, body });
+      } else if (this.check('IDENTIFIER') && this.current().value === 'on_exit') {
+        this.advance(); // consume 'on_exit'
+        const params = this.check('LPAREN') ? this.parseParameterList() : [];
+        const body = this.check('LBRACE') ? (() => {
+          this.advance(); // consume {
+          this.skipNewlines();
+          const stmts = this.parseStatementBlock();
+          this.expect('RBRACE');
+          return stmts;
+        })() : [];
+        onExit.push({ type: 'EventHandler', event: 'on_exit', parameters: params, body });
+      } else {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        const val = this.parseValue();
+        if (key === 'radius') radius = val as number;
+        else if (key === 'faction_filter') factionFilter = (Array.isArray(val) ? val : [val]) as string[];
+        else if (key === 'position') {
+          if (Array.isArray(val) && val.length >= 3) {
+            position = { x: val[0] as number, y: val[1] as number, z: val[2] as number };
+          }
+        } else {
+          properties[key] = val;
+        }
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'GameTrigger',
+      name,
+      radius,
+      factionFilter,
+      onEnter: onEnter.length > 0 ? onEnter : undefined,
+      onExit: onExit.length > 0 ? onExit : undefined,
+      position,
+      properties,
+    };
   }
 
   // ===========================================================================

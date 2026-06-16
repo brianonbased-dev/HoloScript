@@ -23,6 +23,13 @@ import type {
   HologramShape,
   HologramProperties,
   TraitBehavior,
+  GameAbilityNode,
+  AbilityEventBlock,
+  GameLootTableNode,
+  LootTableEntry,
+  GameSpawnNode,
+  GameAuthorityNode,
+  GameEventBlockNode,
 } from './types/base';
 
 export type { HSPlusDirective, HSPlusAST, ASTProgram, HSPlusCompileResult, HSPlusNode };
@@ -34,6 +41,14 @@ export type {
   HologramShape,
   HologramProperties,
   TraitBehavior,
+  // Game-logic AST nodes
+  GameAbilityNode,
+  AbilityEventBlock,
+  GameLootTableNode,
+  LootTableEntry,
+  GameSpawnNode,
+  GameAuthorityNode,
+  GameEventBlockNode,
 };
 export type { Vector3, Transform };
 

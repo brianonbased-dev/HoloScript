@@ -598,3 +598,5 @@ export * from './SystemMonitorTrait';
 export * from './JetsonGPUTrait';
 export * from './TegraMonitorTrait';
 export * from './TensorRTInferenceTrait';
+// Resolve TS2308: SystemStats is from ECSWorldTrait only
+export type { SystemStats } from './ECSWorldTrait';

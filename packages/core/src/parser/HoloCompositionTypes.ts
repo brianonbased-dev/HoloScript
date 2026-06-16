@@ -113,6 +113,11 @@ export interface HoloComposition extends HoloNode {
   // Brittney AI Features
   npcs: HoloNPC[];
   quests: HoloQuest[];
+  // MMO/AAA Game Constructs (v6.2)
+  spawnPoints?: HoloSpawnPoint[];
+  triggers?: HoloGameTrigger[];
+  lootTables?: HoloLootTable[];
+  worldChunks?: HoloWorldChunk[];
   abilities: HoloAbility[];
   dialogues: HoloDialogue[];
   stateMachines: HoloStateMachine[];
@@ -299,6 +304,147 @@ export interface HoloZoneProperty extends HoloNode {
   type: 'ZoneProperty';
   key: string;
   value: HoloValue;
+}
+
+// =============================================================================
+// MMO/AAA GAME CONSTRUCTS (v6.2 — MMO extensions)
+// =============================================================================
+
+/**
+ * Spawn point for players or NPCs with optional faction filtering.
+ *
+ * Grammar:
+ * ```holoscript
+ * spawn_point village_entry {
+ *   faction: "neutral"
+ *   max_count: 10
+ *   respawn_radius: 5
+ *   position: (10, 0, 10)
+ * }
+ * ```
+ */
+export interface HoloSpawnPoint extends HoloNode {
+  type: 'SpawnPoint';
+  name: string;
+  /** faction tag (e.g. 'horde', 'alliance', 'neutral', custom string) */
+  faction?: string;
+  /** Maximum concurrent entities at this spawn point */
+  maxCount?: number;
+  /** Radius (metres) within which respawn positions are randomised */
+  respawnRadius?: number;
+  position?: HoloPosition;
+  /** Raw key-value properties not mapped to typed fields */
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Game trigger volume — fires enter/exit actions for nearby entities.
+ *
+ * Grammar:
+ * ```holoscript
+ * trigger dungeon_entrance {
+ *   radius: 3
+ *   faction_filter: ["alliance", "neutral"]
+ *   on_enter { emit("dungeon_enter") }
+ *   on_exit  { emit("dungeon_exit")  }
+ * }
+ * ```
+ */
+export interface HoloGameTrigger extends HoloNode {
+  type: 'GameTrigger';
+  name: string;
+  /** Detection sphere radius in metres */
+  radius: number;
+  /** Only fire for entities belonging to these factions (empty = all) */
+  factionFilter?: string[];
+  onEnter?: HoloEventHandler[];
+  onExit?: HoloEventHandler[];
+  position?: HoloPosition;
+  /** Raw key-value properties not mapped to typed fields */
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * Named loot table with weighted entries.
+ *
+ * Grammar:
+ * ```holoscript
+ * loot_table goblin_drops {
+ *   entry common_coin   { item: "gold_coin"     qty: "1..5"  weight: 60 }
+ *   entry iron_shard    { item: "iron_shard"    qty: "1..2"  weight: 25  rarity: "uncommon" }
+ *   entry rare_amulet   { item: "shadow_amulet" qty: "1"     weight: 5   rarity: "rare"     condition: "player_level >= 10" }
+ *   entry nothing       { weight: 10 }
+ *   guaranteed { item: "goblin_ear" qty: 1 }
+ *   multiplier_on_faction_hostile: "ironveil * 1.5"
+ * }
+ * ```
+ */
+export interface HoloLootEntry extends HoloNode {
+  type: 'LootEntry';
+  /** Entry identifier (bare name after 'entry') */
+  id: string;
+  /** Item reference id */
+  itemId?: string;
+  /** Relative drop weight (higher = more common) */
+  weight: number;
+  /** Quantity range, e.g. "1..5" or a number */
+  qty?: string | number;
+  /** Rarity tier */
+  rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  /** Optional condition expression string */
+  condition?: string;
+  /** Raw key-value properties for extensibility */
+  properties: Record<string, HoloValue>;
+}
+
+export interface HoloLootTable extends HoloNode {
+  type: 'LootTable';
+  name: string;
+  entries: HoloLootEntry[];
+  /** Items guaranteed to drop regardless of roll */
+  guaranteed?: Record<string, HoloValue>;
+  /** Raw key-value properties (multipliers, global modifiers) */
+  properties: Record<string, HoloValue>;
+}
+
+/**
+ * World chunk for large open-world streaming.
+ *
+ * Grammar:
+ * ```holoscript
+ * world_chunk dockside {
+ *   bounds: ((-200, 0, -200), (200, 100, 200))
+ *   priority: "high"
+ *   lod_distances: [50, 150, 400]
+ *   biome: "coastal_urban"
+ *   npc_roster: ["merchant_alva", "harbor_guard_01"]
+ *   streaming {
+ *     load_radius: 300
+ *     unload_radius: 500
+ *     budget_kb: 32768
+ *   }
+ * }
+ * ```
+ */
+export interface HoloWorldChunk extends HoloNode {
+  type: 'WorldChunk';
+  name: string;
+  /** Streaming priority hint ('high' | 'medium' | 'low' | number) */
+  priority?: string | number;
+  /** Biome identifier string */
+  biome?: string;
+  /** LOD switch distances in metres */
+  lodDistances?: number[];
+  /** Asset paths declared in the chunk manifest */
+  assetManifest?: string[];
+  /** NPC names present in this chunk (references to npc declarations) */
+  npcRoster?: string[];
+  /** Spawn point positions */
+  spawnPoints?: HoloPosition[];
+  /** Streaming sub-block properties */
+  streaming?: Record<string, HoloValue>;
+  /** Raw key-value properties for extensibility */
+  properties: Record<string, HoloValue>;
 }
 
 // =============================================================================

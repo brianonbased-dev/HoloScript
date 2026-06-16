@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { HoloScriptPlusParser } from './HoloScriptPlusParser';
+import type { HoloBrainDecl } from './HoloScriptPlusParser';
 
 describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
@@ -478,4 +479,126 @@ describe('HoloScriptPlusParser - Agent Behavior Examples', () => {
       expect(result.ast).toBeDefined();
     });
   }
+});
+
+// =============================================================================
+// Brain Declaration Tests
+// =============================================================================
+
+describe('HoloScriptPlusParser - Brain Declarations', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('parses a minimal brain declaration', () => {
+    const source = `brain GoblinAI : @behavior_tree {
+  @personality aggressive
+  @memory_persistence true
+  state idle {
+    transition to patrol @when { hp > 0.5 }
+  }
+  state combat {
+    transition to idle @when { hp < 0.1 }
+  }
+}`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    // The brain node is the root child
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.type).toBe('brain');
+    expect(brain.name).toBe('GoblinAI');
+    expect(brain.brainType).toBe('behavior_tree');
+    expect(brain.personality).toBe('aggressive');
+    expect(brain.memoryPersistence).toBe(true);
+    expect(brain.states).toHaveLength(2);
+    expect(brain.states[0].name).toBe('idle');
+    expect(brain.states[0].transitions[0].to).toBe('patrol');
+    expect(brain.states[1].name).toBe('combat');
+  });
+
+  it('parses @flee_threshold and @patrol_speed inside a brain', () => {
+    const source = `brain WolfPack : @behavior_tree {
+  @flee_threshold 0.15
+  @patrol_speed 3.5
+  @faction_alignment chaotic_neutral
+  state patrol {
+  }
+}`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.fleeThreshold).toBeCloseTo(0.15);
+    expect(brain.patrolSpeed).toBeCloseTo(3.5);
+    expect(brain.factionAlignment).toBe('chaotic_neutral');
+  });
+
+  it('parses @preferred_ability inside a brain', () => {
+    const source = `brain MageAI : @behavior_tree {
+  @preferred_ability "FireBlast" @when { mana > 30 }
+  state idle {
+  }
+}`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.preferredAbility?.name).toBe('FireBlast');
+    expect(brain.preferredAbility?.when).toBeDefined();
+  });
+
+  it('parses MMO trait directives on npc nodes', () => {
+    const source = `npc#merchant_alva {
+  @quest {
+    gives: [the_lost_shipment, alva_side_errand]
+    completes: [the_lost_shipment]
+    quest_marker: exclamation
+  }
+  @faction {
+    faction_id: ironveil_guard
+    hostile_factions: [goblin_clan]
+  }
+  @loot {
+    table: merchant_drops
+    instanced: true
+    drop_on: death
+  }
+}`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const node = result.ast.root;
+    const questDir = node.directives.find((d) => d.type === 'quest');
+    expect(questDir).toBeDefined();
+    const factionDir = node.directives.find((d) => d.type === 'faction');
+    expect(factionDir).toBeDefined();
+    const lootDir = node.directives.find((d) => d.type === 'loot');
+    expect(lootDir).toBeDefined();
+  });
+
+  it('parses @authority directive with model property', () => {
+    const source = `npc#village_elder {
+  @authority {
+    model: server_authoritative
+    sync_rate: 10hz
+    interpolation: true
+  }
+}`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const node = result.ast.root;
+    const authorityDir = node.directives.find((d) => d.type === 'authority');
+    expect(authorityDir).toBeDefined();
+  });
+
+  it('parses @world_chunk directive', () => {
+    const source = `object#warehouse_building {
+  @world_chunk {
+    chunk_id: dockside
+    streaming_priority: high
+    cull_when_inactive: true
+  }
+}`;
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const node = result.ast.root;
+    const chunkDir = node.directives.find((d) => d.type === 'world_chunk');
+    expect(chunkDir).toBeDefined();
+  });
 });

@@ -35,6 +35,51 @@ export type {
 };
 
 // =============================================================================
+// MMO BRAIN / TRAIT AST TYPES
+// =============================================================================
+
+/** A named brain state block inside a `brain` declaration. */
+export interface HoloBrainState {
+  name: string;
+  /** Transitions authored as `transition to <target> @when { ... }` */
+  transitions: Array<{ to: string; when?: string }>;
+  /** Free-form action strings collected from the state body */
+  actions: string[];
+  /** Trait annotations found inside this state */
+  traits: Record<string, unknown>;
+}
+
+/**
+ * Top-level `brain` declaration node.
+ *
+ * Syntax:
+ *   brain DragonAI : @behavior_tree {
+ *     @personality aggressive
+ *     @memory_persistence true
+ *     state idle { transition to patrol @when { hp > 0.5 } }
+ *     state combat { ... }
+ *   }
+ */
+export interface HoloBrainDecl {
+  type: 'brain';
+  name: string;
+  brainType: 'behavior_tree' | 'decision_tree' | 'neural' | 'scripted';
+  personality?: string;
+  factionAlignment?: string;
+  memoryPersistence?: boolean;
+  /** @preferred_ability "AbilityName" @when { ... } */
+  preferredAbility?: { name: string; when?: string };
+  /** @flee_threshold 0.15 — flee when HP fraction drops below this value */
+  fleeThreshold?: number;
+  /** @patrol_speed value */
+  patrolSpeed?: number | string;
+  /** @waypoints [...] */
+  waypoints?: unknown[];
+  states: HoloBrainState[];
+  traits: Record<string, unknown>;
+}
+
+// =============================================================================
 // TOKEN TYPES
 // =============================================================================
 
@@ -1201,6 +1246,14 @@ export class HoloScriptPlusParser {
           } else if (this.check('IDENTIFIER') && this.current().value === 'execute') {
             const executeNode = this.parseHsExecuteStatement();
             topLevelNodes.push(executeNode);
+          } else if (this.check('IDENTIFIER') && this.current().value === 'brain') {
+            const brainNode = this.parseBrainDeclaration();
+            // Attach preceding directives
+            (brainNode as unknown as { directives: HSPlusDirective[] }).directives = [
+              ...currentDirectives,
+              ...((brainNode as unknown as { directives?: HSPlusDirective[] }).directives || []),
+            ];
+            topLevelNodes.push(brainNode as unknown as HSPlusNode);
           } else {
             const node = this.parseNode();
             // Attach preceding directives to this node
@@ -1781,6 +1834,7 @@ export class HoloScriptPlusParser {
                 'on_exit',
                 'page',
                 'include',
+                'brain',
               ];
 
               if (name === 'transition' && this.check('STRING')) {
@@ -1998,6 +2052,159 @@ export class HoloScriptPlusParser {
       this.expect('RPAREN', 'Expected ) after version number');
       const body = this.check('LBRACE') ? this.parseCodeBlock() : '';
       return { type: 'migrate' as const, fromVersion, body } as HSPlusDirective;
+    }
+
+    // =========================================================================
+    // MMO Game Brain / Trait Directives
+    // These are explicitly handled BEFORE the VR_TRAITS check so they receive
+    // proper config block parsing and their specific `type` values. Several of
+    // these names (e.g. 'faction', 'behavior_tree') also appear in VR_TRAITS;
+    // the explicit handler here wins, which is intentional.
+    // =========================================================================
+
+    // @quest { gives: [...], advances: [...], completes: [...], ... }
+    if (name === 'quest') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'quest', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @faction { faction_id: ..., reputation: {...}, hostile_factions: [...], ... }
+    if (name === 'faction') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'faction', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @loot { table: ..., luck_modifier: ..., instanced: true, drop_on: ... }
+    if (name === 'loot') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'loot', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @ability { abilities: [...], damage_multiplier: ..., ... }
+    if (name === 'ability') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'ability', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @authority { model: server_authoritative | client_predictive | owner_controlled, ... }
+    if (name === 'authority') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'authority', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @wallet_gated { action: ..., currency: ..., amount: ..., ... }
+    if (name === 'wallet_gated') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'wallet_gated', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @world_chunk { chunk_id: ..., lod_distances: [...], streaming_priority: ..., ... }
+    if (name === 'world_chunk') {
+      const config = this.check('LBRACE') ? this.parseBlockContent() : this.check('LPAREN') ? this.parseTraitConfig() : {};
+      return { type: 'world_chunk', ...config } as unknown as HSPlusDirective;
+    }
+
+    // @personality aggressive | passive | neutral | cunning
+    // Accepts bare identifier OR string literal
+    if (name === 'personality') {
+      let value: string;
+      if (this.check('IDENTIFIER')) {
+        value = this.advance().value;
+      } else if (this.check('STRING')) {
+        value = this.advance().value;
+      } else {
+        value = 'neutral';
+      }
+      return { type: 'personality', value } as unknown as HSPlusDirective;
+    }
+
+    // @faction_alignment neutral_evil | lawful_good | chaotic_neutral | ...
+    if (name === 'faction_alignment') {
+      let value: string;
+      if (this.check('IDENTIFIER')) {
+        // May be compound: "neutral_evil" is a single identifier; "lawful good" could be two.
+        value = this.advance().value;
+        // Consume optional second word (e.g. "lawful good")
+        if (this.check('IDENTIFIER')) {
+          value += '_' + this.advance().value;
+        }
+      } else if (this.check('STRING')) {
+        value = this.advance().value;
+      } else {
+        value = 'true_neutral';
+      }
+      return { type: 'faction_alignment', value } as unknown as HSPlusDirective;
+    }
+
+    // @memory_persistence true | false
+    if (name === 'memory_persistence') {
+      let value = true;
+      if (this.check('BOOLEAN')) {
+        value = this.advance().value === 'true';
+      } else if (this.check('IDENTIFIER')) {
+        const raw = this.advance().value;
+        value = raw !== 'false';
+      }
+      return { type: 'memory_persistence', value } as unknown as HSPlusDirective;
+    }
+
+    // @preferred_ability "FireBlast" @when { mana > 30 }
+    // The optional @when block is consumed here as a raw guard string.
+    if (name === 'preferred_ability') {
+      let abilityName: string;
+      if (this.check('STRING')) {
+        abilityName = this.advance().value;
+      } else if (this.check('IDENTIFIER')) {
+        abilityName = this.advance().value;
+      } else {
+        abilityName = '';
+      }
+      let when: string | undefined;
+      // Peek for optional @when — peek ahead for AT + "when"
+      if (this.check('AT')) {
+        const saved = this.pos;
+        this.advance(); // consume @
+        if (this.check('IDENTIFIER') && this.current().value === 'when') {
+          this.advance(); // consume 'when'
+          if (this.check('LBRACE')) {
+            when = this.parseCodeBlock();
+          }
+        } else {
+          this.pos = saved; // not @when — restore
+        }
+      }
+      return { type: 'preferred_ability', ability: abilityName, when } as unknown as HSPlusDirective;
+    }
+
+    // @flee_threshold 0.15
+    if (name === 'flee_threshold') {
+      let value = 0.25;
+      if (this.check('NUMBER')) {
+        value = parseFloat(this.advance().value);
+      }
+      return { type: 'flee_threshold', value } as unknown as HSPlusDirective;
+    }
+
+    // @patrol_speed <number|identifier>
+    if (name === 'patrol_speed') {
+      let value: number | string = 1.0;
+      if (this.check('NUMBER')) {
+        value = parseFloat(this.advance().value);
+      } else if (this.check('IDENTIFIER')) {
+        value = this.advance().value;
+      }
+      return { type: 'patrol_speed', value } as unknown as HSPlusDirective;
+    }
+
+    // @waypoints [wp_a, wp_b, ...] or { ... }
+    if (name === 'waypoints') {
+      let points: unknown = [];
+      if (this.check('LBRACKET')) {
+        points = this.parseValue();
+      } else if (this.check('LBRACE')) {
+        points = this.parseBlockContent();
+      }
+      return { type: 'waypoints', points } as unknown as HSPlusDirective;
     }
 
     // =========================================================================
@@ -2560,6 +2767,240 @@ export class HoloScriptPlusParser {
     const value = this.expect('STRING', 'Expected string').value;
     this.expect('RPAREN', 'Expected )');
     return value;
+  }
+
+  // ===========================================================================
+  // Brain Declaration Parsing
+  // ===========================================================================
+
+  /**
+   * Parse a top-level `brain` declaration.
+   *
+   * Grammar:
+   *   brain <Name> [ : @<brainType> ] {
+   *     @personality <value>
+   *     @faction_alignment <value>
+   *     @memory_persistence true|false
+   *     @preferred_ability "<Name>" [ @when { <expr> } ]
+   *     @flee_threshold <number>
+   *     @patrol_speed <number|identifier>
+   *     @waypoints [...]
+   *     state <stateName> {
+   *       transition to <target> [ @when { <expr> } ]
+   *       <action statements ...>
+   *     }
+   *   }
+   */
+  private parseBrainDeclaration(): HoloBrainDecl {
+    this.advance(); // consume 'brain'
+
+    const name = this.check('IDENTIFIER') ? this.advance().value : 'unnamed_brain';
+
+    // Optional : @brainType  — e.g. `brain DragonAI : @behavior_tree`
+    let brainType: HoloBrainDecl['brainType'] = 'behavior_tree';
+    if (this.check('COLON')) {
+      this.advance(); // consume ':'
+      if (this.check('AT')) {
+        this.advance(); // consume '@'
+        if (this.check('IDENTIFIER')) {
+          const raw = this.advance().value;
+          if (
+            raw === 'behavior_tree' ||
+            raw === 'decision_tree' ||
+            raw === 'neural' ||
+            raw === 'scripted'
+          ) {
+            brainType = raw as HoloBrainDecl['brainType'];
+          }
+        }
+      }
+    }
+
+    const brain: HoloBrainDecl = {
+      type: 'brain',
+      name,
+      brainType,
+      states: [],
+      traits: {},
+    };
+
+    // Require opening brace
+    if (!this.check('LBRACE')) {
+      this.warn(`brain "${name}" missing body block { }`);
+      return brain;
+    }
+    this.advance(); // consume '{'
+    this.skipNewlines();
+
+    while (!this.check('RBRACE') && !this.check('EOF')) {
+      this.skipNewlines();
+      if (this.check('RBRACE') || this.check('EOF')) break;
+
+      // Trait annotations
+      if (this.check('AT')) {
+        this.advance(); // consume '@'
+        if (!this.check('IDENTIFIER')) {
+          this.warn('Expected directive name after @');
+          continue;
+        }
+        const dirName = this.advance().value;
+
+        if (dirName === 'personality') {
+          const val = this.check('IDENTIFIER') ? this.advance().value
+                    : this.check('STRING')     ? this.advance().value
+                    : 'neutral';
+          brain.personality = val;
+
+        } else if (dirName === 'faction_alignment') {
+          let val = this.check('IDENTIFIER') ? this.advance().value
+                  : this.check('STRING')     ? this.advance().value
+                  : 'true_neutral';
+          if (this.check('IDENTIFIER')) val += '_' + this.advance().value;
+          brain.factionAlignment = val;
+
+        } else if (dirName === 'memory_persistence') {
+          const raw = this.check('BOOLEAN')    ? this.advance().value
+                    : this.check('IDENTIFIER') ? this.advance().value
+                    : 'true';
+          brain.memoryPersistence = raw !== 'false';
+
+        } else if (dirName === 'preferred_ability') {
+          const abilityName = this.check('STRING')     ? this.advance().value
+                            : this.check('IDENTIFIER') ? this.advance().value
+                            : '';
+          let when: string | undefined;
+          if (this.check('AT')) {
+            const saved = this.pos;
+            this.advance();
+            if (this.check('IDENTIFIER') && this.current().value === 'when') {
+              this.advance();
+              if (this.check('LBRACE')) when = this.parseCodeBlock();
+            } else {
+              this.pos = saved;
+            }
+          }
+          brain.preferredAbility = { name: abilityName, when };
+
+        } else if (dirName === 'flee_threshold') {
+          brain.fleeThreshold = this.check('NUMBER') ? parseFloat(this.advance().value) : 0.25;
+
+        } else if (dirName === 'patrol_speed') {
+          brain.patrolSpeed = this.check('NUMBER')     ? parseFloat(this.advance().value)
+                            : this.check('IDENTIFIER') ? this.advance().value
+                            : 1.0;
+
+        } else if (dirName === 'waypoints') {
+          brain.waypoints = this.check('LBRACKET') ? (this.parseValue() as unknown[]) : [];
+
+        } else if (dirName === 'behavior_tree') {
+          // @behavior_tree { ... } block inside the brain body
+          const config = this.check('LBRACE') ? this.parseBlockContent() : {};
+          brain.traits['behavior_tree'] = config;
+
+        } else {
+          // Generic trait — parse optional block/parens config
+          const config: Record<string, unknown> =
+            this.check('LBRACE')  ? this.parseBlockContent()
+          : this.check('LPAREN') ? this.parseTraitConfig()
+          : {};
+          brain.traits[dirName] = config;
+        }
+        this.skipNewlines();
+        continue;
+      }
+
+      // state <name> { ... }
+      if (this.check('STATE') || (this.check('IDENTIFIER') && this.current().value === 'state')) {
+        this.advance(); // consume 'state'
+        const stateName = this.check('IDENTIFIER') ? this.advance().value : 'unnamed';
+        const brainState: HoloBrainState = {
+          name: stateName,
+          transitions: [],
+          actions: [],
+          traits: {},
+        };
+
+        if (this.check('LBRACE')) {
+          this.advance(); // consume '{'
+          this.skipNewlines();
+          while (!this.check('RBRACE') && !this.check('EOF')) {
+            this.skipNewlines();
+            if (this.check('RBRACE') || this.check('EOF')) break;
+
+            // transition to <target> [ @when { <expr> } ]
+            // Note: 'transition' is lexed as a TRANSITION keyword token, not IDENTIFIER.
+            if (this.check('TRANSITION') || (this.check('IDENTIFIER') && this.current().value === 'transition')) {
+              this.advance(); // consume 'transition'
+              let to = '';
+              // accept: "to <target>" or just "<target>"
+              if (this.check('IDENTIFIER') && this.current().value === 'to') {
+                this.advance(); // consume 'to'
+              }
+              if (this.check('IDENTIFIER')) to = this.advance().value;
+              else if (this.check('STRING')) to = this.advance().value;
+              let when: string | undefined;
+              if (this.check('AT')) {
+                const saved = this.pos;
+                this.advance();
+                if (this.check('IDENTIFIER') && this.current().value === 'when') {
+                  this.advance();
+                  if (this.check('LBRACE')) when = this.parseCodeBlock();
+                } else {
+                  this.pos = saved;
+                }
+              }
+              brainState.transitions.push({ to, when });
+
+            } else if (this.check('AT')) {
+              // Trait annotation inside a state
+              this.advance();
+              const innerDir = this.check('IDENTIFIER') ? this.advance().value : '';
+              const config: Record<string, unknown> =
+                this.check('LBRACE')  ? this.parseBlockContent()
+              : this.check('LPAREN') ? this.parseTraitConfig()
+              : {};
+              brainState.traits[innerDir] = config;
+
+            } else if (this.check('IDENTIFIER')) {
+              // Treat as free-form action string — collect to end of line
+              const parts: string[] = [this.advance().value];
+              while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+                parts.push(this.advance().value);
+              }
+              brainState.actions.push(parts.join(' '));
+
+            } else {
+              this.advance(); // skip unknown
+            }
+
+            this.skipNewlines();
+          }
+          this.expect('RBRACE', 'Expected } to close state block');
+        }
+        brain.states.push(brainState);
+        this.skipNewlines();
+        continue;
+      }
+
+      // Any other token at brain body level — collect as action / skip
+      if (this.check('IDENTIFIER')) {
+        const parts: string[] = [this.advance().value];
+        while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+          parts.push(this.advance().value);
+        }
+        // Store as a loose property on traits
+        brain.traits['_actions'] = [
+          ...((brain.traits['_actions'] as string[]) || []),
+          parts.join(' '),
+        ];
+      } else {
+        this.advance();
+      }
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE', 'Expected } to close brain declaration');
+    return brain;
   }
 
   /**
