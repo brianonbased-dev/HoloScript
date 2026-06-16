@@ -51,6 +51,7 @@ import type {
   HoloPosition,
   HoloImport,
 } from '../parser/HoloCompositionTypes.js';
+import type { HoloBrainDecl } from '../parser/HoloScriptPlusParser';
 import { CompilerBase, type CompilerToken } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
@@ -119,6 +120,33 @@ export interface ColyseusLootTable {
   guaranteed: Record<string, unknown>;
 }
 
+/** A compile-time guard parsed from a brain transition `@when { hp < 0.5 }`. */
+export interface ColyseusBrainGuard {
+  field: 'hp';
+  op: '<' | '>' | '<=' | '>=' | '==';
+  value: number;
+}
+
+export interface ColyseusBrainState {
+  name: string;
+  transitions: Array<{ to: string; guard: ColyseusBrainGuard | null }>;
+  actions: string[];
+}
+
+export interface ColyseusBrainConfig {
+  name: string;
+  brainType: 'behavior_tree' | 'decision_tree' | 'neural' | 'scripted';
+  /** True when this brain decides via a local LLM (Jetson) rather than pure FSM. */
+  isLLM: boolean;
+  personality: string;
+  factionAlignment: string;
+  fleeThreshold: number;
+  patrolSpeed: number;
+  preferredAbility: string | null;
+  initialState: string;
+  states: ColyseusBrainState[];
+}
+
 export interface ColyseusCompilationResult {
   success: boolean;
   /** The single generated TypeScript file content */
@@ -135,6 +163,8 @@ export interface ColyseusCompilationResult {
   lootTables: ColyseusLootTable[];
   /** Area-of-interest replication radius (world-units) */
   aoiRadius: number;
+  /** Lowered NPC brains (from imported .hsplus brain declarations) */
+  brains: ColyseusBrainConfig[];
   warnings: string[];
   errors: string[];
 }
@@ -195,6 +225,12 @@ const DEFAULT_MAX_MOVE_SPEED = 10;
 const MOVE_EPSILON = 0.001;
 /** Default area-of-interest replication radius (world-units) when no @aoi_bubble present. */
 const DEFAULT_AOI_RADIUS = 50;
+/**
+ * Minimum ticks between LLM calls per NPC (LOD-gated budget). Mirrors the
+ * CavemanDriveTrait 200-tick safety valve (P0.7): ≈1 LLM call/sec across a
+ * ~50-NPC fleet stays within a single Jetson qwen3:4b throughput budget.
+ */
+const LLM_BUDGET_TICKS = 200;
 
 // ---------------------------------------------------------------------------
 // Compiler
@@ -217,11 +253,14 @@ export class ColyseusCompiler extends CompilerBase {
   private abilities: ColyseusAbilityConfig[] = [];
   private lootTables: ColyseusLootTable[] = [];
   private aoiRadius = 0;
+  private brains: ColyseusBrainConfig[] = [];
 
   /** Imported .hs ability nodes (populated by compileSource before compile). */
   private importedAbilities: GameAbilityNode[] = [];
   /** Imported .hsplus brain skill names (populated by compileSource before compile). */
   private importedBrains: Set<string> = new Set();
+  /** Imported .hsplus brain declarations (structured — populated by compileSource). */
+  private importedBrainDecls: HoloBrainDecl[] = [];
 
   constructor(options: Partial<ColyseusCompilerOptions> = {}) {
     super();
@@ -248,6 +287,7 @@ export class ColyseusCompiler extends CompilerBase {
     this.abilities = [];
     this.lootTables = [];
     this.aoiRadius = 0;
+    this.brains = [];
 
     if (!composition || composition.type !== 'Composition') {
       this.errors.push('Invalid composition tree');
@@ -268,11 +308,12 @@ export class ColyseusCompiler extends CompilerBase {
     const movement = this.resolveMovementContract(composition);
     const maxPlayers = this.extractScalarTrait(composition, 'max_players', 'value', 100);
 
-    // ── World chunks + abilities + loot + AOI (typed + imported) ─────────
+    // ── World chunks + abilities + loot + AOI + brains (typed + imported) ─
     this.chunkManifest = this.buildChunkManifest(composition);
     this.abilities = this.buildAbilityRegistry(composition);
     this.lootTables = this.buildLootTables(composition);
     this.aoiRadius = this.resolveAoi(composition);
+    this.brains = this.buildBrainRegistry();
 
     // ── Logic event handlers ──────────────────────────────────────────────
     const logic = composition.logic ?? null;
@@ -327,6 +368,7 @@ export class ColyseusCompiler extends CompilerBase {
   ): Promise<ColyseusCompilationResult> {
     this.importedAbilities = [];
     this.importedBrains = new Set();
+    this.importedBrainDecls = [];
     // compile() resets this.warnings, so resolution-phase warnings are collected
     // locally and merged into the final result.
     const resolutionWarnings: string[] = [];
@@ -356,7 +398,7 @@ export class ColyseusCompiler extends CompilerBase {
         if (importSource.endsWith('.hs')) {
           await this.ingestHsAbilities(text, abs, resolutionWarnings);
         } else if (importSource.endsWith('.hsplus')) {
-          this.ingestBrainNames(text, importSource, resolutionWarnings);
+          await this.ingestBrains(text, importSource, resolutionWarnings);
         }
       } catch (err) {
         resolutionWarnings.push(
@@ -414,20 +456,54 @@ export class ColyseusCompiler extends CompilerBase {
     }
   }
 
-  private ingestBrainNames(text: string, file: string, warnings: string[]): void {
-    // Brain declarations: `brain <Name> { ... }`. Cheap surface scan — we only
-    // need the names so NPC `brain:` references resolve; full .hsplus lowering
-    // is a later increment.
-    const re = /\bbrain\s+([A-Za-z_][A-Za-z0-9_]*)/g;
-    let m: RegExpExecArray | null;
-    let found = 0;
-    while ((m = re.exec(text)) !== null) {
-      this.importedBrains.add(m[1]);
-      found++;
+  private async ingestBrains(text: string, file: string, warnings: string[]): Promise<void> {
+    // Parse the .hsplus into structured brain declarations (HoloBrainDecl) so the
+    // compiler can lower NPC brains into a real FSM tick + LLM decision path.
+    try {
+      const { HoloScriptPlusParser } = await import('../parser/HoloScriptPlusParser');
+      const parser = new HoloScriptPlusParser({ enableTypeScriptImports: false });
+      const result = parser.parse(text);
+      const decls = this.collectBrainDecls(result);
+      for (const decl of decls) {
+        this.importedBrains.add(decl.name);
+        this.importedBrainDecls.push(decl);
+      }
+      if (decls.length === 0) {
+        // Fall back to a name-only scan so NPC `brain:` refs still resolve.
+        const re = /\bbrain\s+([A-Za-z_][A-Za-z0-9_]*)/g;
+        let m: RegExpExecArray | null;
+        let found = 0;
+        while ((m = re.exec(text)) !== null) {
+          this.importedBrains.add(m[1]);
+          found++;
+        }
+        if (found === 0) warnings.push(`No brain declarations found in '${file}'.`);
+      }
+    } catch (err) {
+      warnings.push(
+        `Failed to parse .hsplus import '${file}': ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-    if (found === 0) {
-      warnings.push(`No brain declarations found in '${file}'.`);
-    }
+  }
+
+  /** Collect type:'brain' HoloBrainDecl nodes from an HSPlus parse result. */
+  private collectBrainDecls(result: unknown): HoloBrainDecl[] {
+    const out: HoloBrainDecl[] = [];
+    const seen = new Set<unknown>();
+    const visit = (node: unknown): void => {
+      if (!node || typeof node !== 'object' || seen.has(node)) return;
+      seen.add(node);
+      const rec = node as Record<string, unknown>;
+      if (rec.type === 'brain' && typeof rec.name === 'string') {
+        out.push(node as unknown as HoloBrainDecl);
+      }
+      for (const v of Object.values(rec)) {
+        if (Array.isArray(v)) v.forEach(visit);
+        else if (v && typeof v === 'object') visit(v);
+      }
+    };
+    visit((result as { ast?: unknown }).ast ?? result);
+    return out;
   }
 
   private defaultReader(): (path: string) => Promise<string> {
@@ -683,6 +759,77 @@ export class ColyseusCompiler extends CompilerBase {
   }
 
   /**
+   * Lower imported .hsplus brain declarations → server brain configs (P1.3/P1.4).
+   * A brain whose type is 'neural' (or whose provider policy prefers local) is an
+   * LLM brain (decides via the Jetson endpoint); otherwise it runs a pure-math FSM.
+   */
+  private buildBrainRegistry(): ColyseusBrainConfig[] {
+    const out: ColyseusBrainConfig[] = [];
+    const seen = new Set<string>();
+    for (const decl of this.importedBrainDecls) {
+      if (seen.has(decl.name)) continue;
+      seen.add(decl.name);
+      const states: ColyseusBrainState[] = (decl.states ?? []).map((s) => ({
+        name: s.name,
+        transitions: (s.transitions ?? []).map((t) => ({
+          to: t.to,
+          guard: this.parseBrainGuard(t.when, decl.fleeThreshold),
+        })),
+        actions: Array.isArray(s.actions) ? s.actions.slice() : [],
+      }));
+      const provider = decl.providerPolicy?.prefer ?? '';
+      const isLLM =
+        decl.brainType === 'neural' ||
+        provider === 'local' ||
+        provider === 'ollama' ||
+        Boolean((decl.traits ?? {})['local_llm_brain']);
+      out.push({
+        name: decl.name,
+        brainType: decl.brainType ?? 'behavior_tree',
+        isLLM,
+        personality: decl.personality ?? 'neutral',
+        factionAlignment: decl.factionAlignment ?? 'none',
+        fleeThreshold: typeof decl.fleeThreshold === 'number' ? decl.fleeThreshold : 0,
+        patrolSpeed: this.numOr(decl.patrolSpeed, 1),
+        preferredAbility: decl.preferredAbility?.name ?? null,
+        initialState: states[0]?.name ?? 'idle',
+        states,
+      });
+    }
+    return out;
+  }
+
+  /** Parse a transition `@when` string (e.g. "hp < 0.5") into a typed guard. */
+  private parseBrainGuard(
+    when: string | undefined,
+    fleeThreshold: number | undefined
+  ): ColyseusBrainGuard | null {
+    if (!when || typeof when !== 'string') return null;
+    const m = when.trim().match(/^hp\s*(<=|>=|<|>|==)\s*([A-Za-z_][\w]*|[\d.]+)\s*$/);
+    if (!m) return null;
+    const op = m[1] as ColyseusBrainGuard['op'];
+    const rhs = m[2];
+    let value: number;
+    if (/^[\d.]+$/.test(rhs)) {
+      value = parseFloat(rhs);
+    } else if (rhs === 'flee_threshold' || rhs === 'fleeThreshold') {
+      value = typeof fleeThreshold === 'number' ? fleeThreshold : 0;
+    } else {
+      return null; // unknown symbol → no guard (single-file scope)
+    }
+    return Number.isFinite(value) ? { field: 'hp', op, value } : null;
+  }
+
+  private brainRegistryObject(): Record<string, Omit<ColyseusBrainConfig, 'name'>> {
+    const obj: Record<string, Omit<ColyseusBrainConfig, 'name'>> = {};
+    for (const b of this.brains) {
+      const { name, ...rest } = b;
+      obj[name] = rest;
+    }
+    return obj;
+  }
+
+  /**
    * Fold `.hs` ability directives (`@cooldown 4`, `@range 30`, …) into a
    * properties map readable by {@link getAbilityDirectives}. Time-valued
    * directives are normalized to milliseconds (bare numbers = seconds).
@@ -860,6 +1007,22 @@ export class ColyseusCompiler extends CompilerBase {
       `}> = ${JSON.stringify(this.lootTableObject(), null, 2)};`,
       ``
     );
+
+    // NPC brain registry (lowered from .hsplus brain declarations)
+    this.push(
+      `// ── NPC brains (FSM + optional LOD-gated local-LLM decision) ────────`,
+      `export const LLM_BUDGET_TICKS = ${LLM_BUDGET_TICKS}; // min ticks between LLM calls per NPC`,
+      `export const JETSON_OLLAMA_ENV = 'JETSON_OLLAMA_URL'; // never hardcode the IP (W.733/F.106)`,
+      `export const BRAIN_REGISTRY: Record<string, {`,
+      `  brainType: string; isLLM: boolean; personality: string; factionAlignment: string;`,
+      `  fleeThreshold: number; patrolSpeed: number; preferredAbility: string | null;`,
+      `  initialState: string;`,
+      `  states: Array<{ name: string; transitions: Array<{ to: string;`,
+      `    guard: { field: 'hp'; op: '<' | '>' | '<=' | '>=' | '=='; value: number } | null }>;`,
+      `    actions: string[] }>;`,
+      `}> = ${JSON.stringify(this.brainRegistryObject(), null, 2)};`,
+      ``
+    );
   }
 
   private lootTableObject(): Record<string, Omit<ColyseusLootTable, 'name'>> {
@@ -923,9 +1086,14 @@ export class ColyseusCompiler extends CompilerBase {
         `  @type('number') y: number = 0;`,
         `  @type('number') z: number = 0;`,
         `  @type('number') hp: number = 100;`,
+        `  @type('number') maxHp: number = 100;`,
         `  @type('string') faction: string = 'none';`,
         `  @type('string') brainType: string = '';`,
+        `  @type('string') brainState: string = 'idle'; // current FSM state`,
         `  @type('boolean') isAlive: boolean = true;`,
+        `  // Server-only brain bookkeeping (not synced)`,
+        `  brainTick = 0;`,
+        `  lastLlmTick = -1e9;`,
         `}`,
         ``
       );
@@ -1026,8 +1194,10 @@ export class ColyseusCompiler extends CompilerBase {
         this.push(`    ${v}.y = ${npc.y};`);
         this.push(`    ${v}.z = ${npc.z};`);
         this.push(`    ${v}.hp = ${npc.hp};`);
+        this.push(`    ${v}.maxHp = ${npc.hp};`);
         this.push(`    ${v}.faction = ${this.jsString(npc.faction)};`);
         this.push(`    ${v}.brainType = ${this.jsString(npc.brainType)};`);
+        this.push(`    ${v}.brainState = (BRAIN_REGISTRY[${this.jsString(npc.brainType)}]?.initialState) ?? 'idle';`);
         this.push(`    this.state.npcs.set(${id}, ${v});`);
         this.push(`    this.initializeBrain(${v});`);
       }
@@ -1266,18 +1436,111 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`  }`);
     this.push(``);
 
-    // ── Brain hooks ───────────────────────────────────────────────────────
+    // ── Brain hooks — FSM tick + LOD-gated local-LLM decision (P1.3/P1.4) ──
     if (npcs.length > 0) {
-      this.push(`  // Brain lowering — NPC.brainType names a .hsplus brain skill.`);
+      this.push(`  // Brain lowering (P1.3) — runs the .hsplus brain FSM for this NPC.`);
       this.push(`  protected initializeBrain(npc: NpcState): void {`);
-      this.push(`    // Override to attach a behavior-tree / LOD-gated LLM brain runtime.`);
-      this.push(`    void npc;`);
+      this.push(`    this.onBrainHydrate(npc); // P1.5: load durable brain memory on spawn`);
       this.push(`  }`);
       this.push(``);
       this.push(`  protected tickNpcBrain(npc: NpcState): void {`);
-      this.push(`    // Override: BT tick + LOD-gated LLM call for npc.brainType.`);
-      this.push(`    void npc;`);
+      this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
+      this.push(`    if (!brain || !npc.isAlive) return;`);
+      this.push(`    npc.brainTick = (npc.brainTick + 1) >>> 0;`);
+      this.push(`    const hpFrac = npc.maxHp > 0 ? npc.hp / npc.maxHp : 0;`);
+      this.push(``);
+      this.push(`    // Universal flee reflex (pure-math, no LLM)`);
+      this.push(`    if (brain.fleeThreshold > 0 && hpFrac < brain.fleeThreshold) {`);
+      this.push(`      npc.brainState = 'flee';`);
+      this.push(`      this.applyBrainAction(npc, 'flee');`);
+      this.push(`      return;`);
+      this.push(`    }`);
+      this.push(``);
+      this.push(`    // FSM transition evaluation for the current state`);
+      this.push(`    const state = brain.states.find((s) => s.name === npc.brainState);`);
+      this.push(`    if (state) {`);
+      this.push(`      for (const tr of state.transitions) {`);
+      this.push(`        if (this.brainGuardPasses(tr.guard, hpFrac)) { npc.brainState = tr.to; break; }`);
+      this.push(`      }`);
+      this.push(`    }`);
+      this.push(``);
+      this.push(`    // LOD-gated, budget-gated local-LLM decision (P1.4) — only LLM brains,`);
+      this.push(`    // only near a player, only within the per-NPC call budget.`);
+      this.push(`    if (brain.isLLM && this.npcIsNearPlayer(npc) &&`);
+      this.push(`        npc.brainTick - npc.lastLlmTick >= LLM_BUDGET_TICKS) {`);
+      this.push(`      npc.lastLlmTick = npc.brainTick;`);
+      this.push(`      void this.decideLLM(npc); // async, fire-and-forget`);
+      this.push(`    } else {`);
+      this.push(`      // Pure-math fallback: run the current state's first action`);
+      this.push(`      const next = brain.states.find((s) => s.name === npc.brainState);`);
+      this.push(`      this.applyBrainAction(npc, next?.actions[0] ?? npc.brainState);`);
+      this.push(`    }`);
       this.push(`  }`);
+      this.push(``);
+      this.push(`  protected brainGuardPasses(`);
+      this.push(`    guard: { field: 'hp'; op: string; value: number } | null,`);
+      this.push(`    hpFrac: number,`);
+      this.push(`  ): boolean {`);
+      this.push(`    if (!guard) return true; // unconditional transition`);
+      this.push(`    const lhs = guard.field === 'hp' ? hpFrac : 0;`);
+      this.push(`    switch (guard.op) {`);
+      this.push(`      case '<': return lhs < guard.value;`);
+      this.push(`      case '>': return lhs > guard.value;`);
+      this.push(`      case '<=': return lhs <= guard.value;`);
+      this.push(`      case '>=': return lhs >= guard.value;`);
+      this.push(`      case '==': return lhs === guard.value;`);
+      this.push(`      default: return false;`);
+      this.push(`    }`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  protected npcIsNearPlayer(npc: NpcState): boolean {`);
+      this.push(`    const r2 = AOI_RADIUS * AOI_RADIUS;`);
+      this.push(`    let near = false;`);
+      this.push(`    this.state.players.forEach((p) => {`);
+      this.push(`      if (near) return;`);
+      this.push(`      const dx = p.x - npc.x, dy = p.y - npc.y, dz = p.z - npc.z;`);
+      this.push(`      if (dx * dx + dy * dy + dz * dz <= r2) near = true;`);
+      this.push(`    });`);
+      this.push(`    return near;`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // Local-LLM decision via the Jetson endpoint (env-resolved, never a literal IP).`);
+      this.push(`  // No-op when JETSON_OLLAMA_URL is unset so the server runs cloud-free by default.`);
+      this.push(`  protected async decideLLM(npc: NpcState): Promise<void> {`);
+      this.push(`    const base = process.env[JETSON_OLLAMA_ENV];`);
+      this.push(`    if (!base) return;`);
+      this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
+      this.push(`    if (!brain) return;`);
+      this.push(`    try {`);
+      this.push(`      const resp = await fetch(\`\${base}/api/chat\`, {`);
+      this.push(`        method: 'POST',`);
+      this.push(`        headers: { 'Content-Type': 'application/json' },`);
+      this.push(`        body: JSON.stringify({`);
+      this.push(`          model: process.env.JETSON_MODEL ?? 'qwen3:4b',`);
+      this.push(`          stream: false,`);
+      this.push(`          messages: [`);
+      this.push(`            { role: 'system', content: \`You are \${brain.personality} NPC '\${npc.id}' (faction \${npc.faction}). State: \${npc.brainState}, hp \${npc.hp}/\${npc.maxHp}. Reply with ONE action verb.\` },`);
+      this.push(`            { role: 'user', content: 'What do you do?' },`);
+      this.push(`          ],`);
+      this.push(`        }),`);
+      this.push(`      });`);
+      this.push(`      const data = (await resp.json()) as { message?: { content?: string } };`);
+      this.push(`      const verb = (data.message?.content ?? '').trim().split(/\\s+/)[0]?.toLowerCase();`);
+      this.push(`      if (verb) this.applyBrainAction(npc, verb);`);
+      this.push(`    } catch {`);
+      this.push(`      // Edge brain unreachable — fall back to FSM next tick.`);
+      this.push(`    }`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // Override to map a brain action/verb onto NPC movement/animation/ability.`);
+      this.push(`  protected applyBrainAction(npc: NpcState, action: string): void {`);
+      this.push(`    void npc; void action;`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // P1.5 lifecycle hooks — override to bind a disposable neural-map seed`);
+      this.push(`  // (hydrate durable memory on spawn, merge episodes back on despawn).`);
+      this.push(`  protected onBrainHydrate(npc: NpcState): void { void npc; }`);
+      this.push(`  protected onBrainMerge(npc: NpcState): void { void npc; }`);
       this.push(``);
     }
 
@@ -1534,6 +1797,7 @@ export class ColyseusCompiler extends CompilerBase {
       abilities: [...this.abilities],
       lootTables: [...this.lootTables],
       aoiRadius: this.aoiRadius,
+      brains: [...this.brains],
       warnings: [...this.warnings],
       errors: [...this.errors],
     };

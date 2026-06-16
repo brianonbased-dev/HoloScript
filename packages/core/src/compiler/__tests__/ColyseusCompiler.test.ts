@@ -350,6 +350,166 @@ describe('ColyseusCompiler — back-compat (legacy trait-scan still works)', () 
   });
 });
 
+describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
+  const brainSource = `
+    brain GoblinBrain : @behavior_tree {
+      @personality aggressive
+      @flee_threshold 0.2
+      state idle {
+        transition to combat @when { hp > 0.5 }
+      }
+      state combat {
+        transition to flee @when { hp < 0.2 }
+      }
+    }
+    brain SageBrain : @neural {
+      @personality wise
+      state idle { }
+    }
+  `;
+  const holoSource = `
+    composition "BrainWorld" {
+      import "./brains.hsplus"
+      npc "goblin_01" { hp: 50 faction: "ironveil" brain_ref: "GoblinBrain" }
+      npc "sage_01" { hp: 100 faction: "neutral" brain_ref: "SageBrain" }
+    }
+  `;
+  const readFile = async (abs: string): Promise<string> => {
+    if (abs.endsWith('brains.hsplus')) return brainSource;
+    throw new Error(`not found: ${abs}`);
+  };
+
+  it('lowers brain FSM into BRAIN_REGISTRY with parsed hp guards (P1.3)', async () => {
+    const result = await new ColyseusCompiler().compileSource(
+      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
+    );
+    expect(result.success).toBe(true);
+    expect(result.brains).toHaveLength(2);
+    const goblin = result.brains.find((b) => b.name === 'GoblinBrain');
+    expect(goblin?.fleeThreshold).toBe(0.2);
+    expect(goblin?.isLLM).toBe(false);
+    expect(goblin?.initialState).toBe('idle');
+    const idle = goblin?.states.find((s) => s.name === 'idle');
+    expect(idle?.transitions[0]).toEqual({ to: 'combat', guard: { field: 'hp', op: '>', value: 0.5 } });
+    const combat = goblin?.states.find((s) => s.name === 'combat');
+    expect(combat?.transitions[0]).toEqual({ to: 'flee', guard: { field: 'hp', op: '<', value: 0.2 } });
+    // generated tick logic
+    expect(result.code).toContain('export const BRAIN_REGISTRY');
+    expect(result.code).toContain('export const LLM_BUDGET_TICKS = 200;');
+    expect(result.code).toContain('protected tickNpcBrain(npc: NpcState)');
+    expect(result.code).toContain('if (brain.fleeThreshold > 0 && hpFrac < brain.fleeThreshold)');
+    expect(result.code).toContain('protected onBrainHydrate(npc: NpcState)');
+    expect(result.code).toContain('protected onBrainMerge(npc: NpcState)');
+  });
+
+  it('flags neural brains as LLM and gates LLM calls by LOD + budget (P1.4)', async () => {
+    const result = await new ColyseusCompiler().compileSource(
+      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
+    );
+    const sage = result.brains.find((b) => b.name === 'SageBrain');
+    expect(sage?.isLLM).toBe(true);
+    expect(result.code).toContain('brain.isLLM && this.npcIsNearPlayer(npc)');
+    expect(result.code).toContain('npc.brainTick - npc.lastLlmTick >= LLM_BUDGET_TICKS');
+    expect(result.code).toContain('void this.decideLLM(npc)');
+  });
+
+  it('resolves the Jetson endpoint via env var, never a hardcoded IP (W.733/F.106)', async () => {
+    const result = await new ColyseusCompiler().compileSource(
+      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
+    );
+    expect(result.code).toContain("export const JETSON_OLLAMA_ENV = 'JETSON_OLLAMA_URL';");
+    expect(result.code).toContain('const base = process.env[JETSON_OLLAMA_ENV];');
+    expect(result.code).toContain('if (!base) return;'); // cloud-free by default
+    // No literal private IPs leaked into the generated server
+    expect(result.code).not.toMatch(/\b192\.168\.\d{1,3}\.\d{1,3}\b/);
+    expect(result.code).not.toMatch(/\b10\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+  });
+
+  it('generated brain-world server is valid TypeScript (W.685)', async () => {
+    const ts = await import('typescript');
+    const result = await new ColyseusCompiler().compileSource(
+      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
+    );
+    const out = ts.transpileModule(result.code, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.ESNext,
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+      },
+      reportDiagnostics: true,
+    });
+    const errors = (out.diagnostics ?? [])
+      .filter((d) => d.category === ts.DiagnosticCategory.Error)
+      .map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n'));
+    expect(errors).toEqual([]);
+  });
+
+  it('generated FSM actually transitions and flees at runtime (W.685 deep)', async () => {
+    const ts = await import('typescript');
+    const result = await new ColyseusCompiler().compileSource(
+      holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
+    );
+    // Transpile to CommonJS and evaluate with stubbed Colyseus deps.
+    const js = ts.transpileModule(result.code, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.CommonJS,
+        experimentalDecorators: true,
+      },
+    }).outputText;
+
+    const noopDecorator = () => () => undefined;
+    const schemaStub = {
+      Schema: class {},
+      type: noopDecorator,
+      MapSchema: class extends Map {},
+      ArraySchema: class extends Array {},
+    };
+    const colyseusStub = {
+      Room: class {
+        state: unknown;
+        setState(s: unknown) { this.state = s; }
+        setSimulationInterval() { /* capture skipped — we drive ticks directly */ }
+        broadcast() {}
+      },
+      Client: class {},
+      Server: class { define() {} listen() { return Promise.resolve(); } },
+    };
+    const require_ = (id: string): unknown => {
+      if (id === '@colyseus/schema') return schemaStub;
+      if (id === 'colyseus') return colyseusStub;
+      throw new Error(`unexpected require: ${id}`);
+    };
+    const moduleObj = { exports: {} as Record<string, unknown> };
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    new Function('exports', 'require', 'module', js)(moduleObj.exports, require_, moduleObj);
+    const exports = moduleObj.exports;
+
+    const RoomClass = exports[result.roomClassName] as new () => Record<string, unknown> & {
+      onCreate: (o: unknown) => void;
+      state: { npcs: Map<string, Record<string, unknown>> };
+      tickNpcBrain: (npc: Record<string, unknown>) => void;
+    };
+    const room = new RoomClass();
+    room.onCreate({});
+
+    const goblin = room.state.npcs.get('goblin_01')!;
+    expect(goblin.brainState).toBe('idle');
+    expect(goblin.maxHp).toBe(50);
+
+    // hp 50/50 = 1.0 > 0.5 → idle transitions to combat
+    goblin.hp = 50;
+    room.tickNpcBrain(goblin);
+    expect(goblin.brainState).toBe('combat');
+
+    // drop hp below flee_threshold (0.2) → universal flee reflex fires
+    goblin.hp = 5; // 5/50 = 0.1 < 0.2
+    room.tickNpcBrain(goblin);
+    expect(goblin.brainState).toBe('flee');
+  });
+});
+
 describe('ColyseusCompiler — generated output is valid TypeScript (W.685)', () => {
   it('transpiles a fully-featured world without syntax errors', async () => {
     const ts = await import('typescript');
