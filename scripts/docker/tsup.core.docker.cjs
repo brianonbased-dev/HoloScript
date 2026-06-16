@@ -53,6 +53,20 @@ module.exports = {
     // Docker-entry-drift class as hololand/world above: d04a5f588 added the policy
     // subpath to tsup.config.ts + package.json exports but not to this Docker config).
     'policy/index': 'src/policy/index.ts',
+    // Required by engine's SimulationContract at runtime through
+    // '@holoscript/core/parameter-envelope' (checkParameterEnvelope value import) —
+    // missing entry crashlooped mcp-server with "Cannot find module
+    // .../dist/parameter-envelope/index.cjs" (prod outage 2026-06-16). Same
+    // Docker-entry-drift class as policy/world/hololand above: ParameterEnvelope
+    // (e67bdc0a1) was added to tsup.config.ts + package.json exports but not here.
+    'parameter-envelope/index': 'src/parameter-envelope/index.ts',
+    // Required by engine's TraitRuntimeIntegration at runtime through
+    // '@holoscript/core/coordinators' (AssetLoadCoordinator / SecurityEventBus /
+    // GenerativeJobMonitor / SessionPresenceCoordinator / NeuralForgeCoordinator /
+    // ObjectTrackingCoordinator value imports) — same drift class, latent in the
+    // engine boot barrel; caught preemptively in the 2026-06-16 outage sweep before
+    // it became the next crashloop after parameter-envelope.
+    'coordinators/index': 'src/coordinators/index.ts',
   },
   define: {
     __HOLOSCRIPT_VERSION__: JSON.stringify(pkg.version),
