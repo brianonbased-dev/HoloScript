@@ -260,6 +260,7 @@ compile_to_node_service
 compile_to_a2a_agent_card
 compile_to_state
 compile_to_3dgs
+compile_to_edge
 compile_to_mcp_config
 compile_to_qasm
 get_compilation_status

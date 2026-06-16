@@ -44,6 +44,7 @@ export const ANSDomain = {
   NEUROMORPHIC: 'neuromorphic',
   META: 'meta',
   MIXIN: 'mixin',
+  EDGE: 'edge',
 } as const;
 
 export type ANSDomainValue = (typeof ANSDomain)[keyof typeof ANSDomain];
@@ -103,6 +104,7 @@ export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, ANSRiskTierValue
   [ANSDomain.NEUROMORPHIC]: ANSRiskTier.HIGH,
   [ANSDomain.META]: ANSRiskTier.STANDARD,
   [ANSDomain.MIXIN]: ANSRiskTier.STANDARD,
+  [ANSDomain.EDGE]: ANSRiskTier.HIGH,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -188,7 +190,11 @@ export type CompilerName =
   // mixin
   | 'domain-block'
   // studio
-  | 'code-editor';
+  | 'code-editor'
+  // web2d
+  | 'svg'
+  // edge
+  | 'edge';
 
 // ---------------------------------------------------------------------------
 // ANS Capability Path Constants
@@ -280,9 +286,18 @@ export const ANSCapabilityPath = {
 
   // ── studio (meta domain) ─────────────────────────────────────────────
   CODE_EDITOR: '/compile/meta/code-editor',
+
+  // ── web2d ────────────────────────────────────────────────────────────
+  SVG: '/compile/web2d/svg',
+
+  // ── edge ─────────────────────────────────────────────────────────────
+  EDGE: '/compile/edge/edge',
 } as const;
 
 export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANSCapabilityPath];
+
+// web2d domain (sovereign 2D vector output — no third-party engine required)
+export const ANSDomainWeb2D = 'web2d' as const;
 
 // ---------------------------------------------------------------------------
 // Compiler-to-Domain Mapping
@@ -350,6 +365,10 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'domain-block': ANSDomain.MIXIN,
   // studio
   'code-editor': ANSDomain.META,
+  // web2d — sovereign 2D vector output; no third-party engine required
+  svg: ANSDomain.INTERCHANGE,
+  // edge — Ollama-capable edge device deployment bundle
+  edge: ANSDomain.EDGE,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -402,6 +421,8 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   'trait-composition': ANSCapabilityPath.TRAIT_COMPOSITION,
   'domain-block': ANSCapabilityPath.DOMAIN_BLOCK,
   'code-editor': ANSCapabilityPath.CODE_EDITOR,
+  svg: ANSCapabilityPath.SVG,
+  edge: ANSCapabilityPath.EDGE,
 } as const;
 
 // ---------------------------------------------------------------------------

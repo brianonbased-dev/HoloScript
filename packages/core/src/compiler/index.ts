@@ -234,6 +234,14 @@ export type {
 export { NodeServiceCompiler } from './NodeServiceCompiler';
 export type { NodeServiceCompilerOptions } from './NodeServiceCompiler';
 
+// SVG compiler (sovereign 2D vector output — no third-party engine required)
+export { SVGCompiler } from './SVGCompiler';
+export type { SVGCompilerOptions, SVGCompilationResult } from './SVGCompiler';
+
+// Edge compiler — generic Ollama-capable edge device deployment bundle (Jetson, RPi, The Unit)
+export { EdgeCompiler } from './EdgeCompiler';
+export type { EdgeCompilerOptions, EdgeBundle, EdgeBundleFile } from './EdgeCompiler';
+
 // MLIR-style dialect registry
 export { DialectRegistry, ensureDialectsBooted } from './DialectRegistry';
 export type {

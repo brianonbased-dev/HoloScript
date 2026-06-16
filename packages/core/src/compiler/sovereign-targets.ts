@@ -35,6 +35,8 @@ export const SOVEREIGN_TARGETS = [
   'tsl', // Trait Shader Language — our trait-to-shader codegen
   'vrr', // custom VR Rendering path (sovereign, not a vendor SDK)
   'wasm', // compiler-wasm Rust front-end → our own WASM artifact
+  'svg', // SVGCompiler → sovereign SVG vector output (no third-party renderer needed)
+  'holob', // HolobCompiler → HoloVM bytecode; executed by our own holo-vm runtime
 ] as const satisfies readonly ExportTarget[];
 
 /**
@@ -65,6 +67,16 @@ export const BRIDGE_TARGETS = [
   'openxr-spatial-entities',
   'phone-sleeve-vr',
   '3dgs',
+  'openapi', // OpenAPI 3.x spec — consumed by third-party API gateways/clients
+  'onnx', // ONNX model export — consumed by third-party ML runtimes (ONNX Runtime, TensorFlow, etc.)
+  'flutter', // Flutter/Dart widget tree — consumed by Flutter engine
+  'stl-export', // STL mesh — consumed by slicers / CAD tools / 3D printers
+  'lens-studio', // Snap Lens Studio AR effects — consumed by Snap runtime
+  'colyseus', // Colyseus multiplayer server scaffold — consumed by Colyseus server/client
+  'ai-glasses', // AI/smart-glasses display manifest — consumed by glasses firmware/SDK
+  'scm', // Supply-chain manifest — consumed by SCM platforms
+  'nft-marketplace', // NFT marketplace metadata + asset bundle — consumed by marketplace contracts
+  'edge', // Edge device Python bundle — consumed by device-local Python/systemd runtime
 ] as const satisfies readonly ExportTarget[];
 
 /**

@@ -590,3 +590,11 @@ export {
   cognitiveVMHandler,
   getCognitiveVMSnapshot,
 } from './pillar';
+
+// Edge device traits (generic + Jetson-specific)
+export * from './LocalInferenceTrait';
+export * from './EdgeNodeTrait';
+export * from './SystemMonitorTrait';
+export * from './JetsonGPUTrait';
+export * from './TegraMonitorTrait';
+export * from './TensorRTInferenceTrait';

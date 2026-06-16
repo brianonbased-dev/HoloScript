@@ -749,6 +749,37 @@ export async function handleCompilerTool(
     case 'compile_to_code_editor':
       return handleCompileToTarget({ ...args, target: 'code-editor' });
 
+    case 'compile_to_svg':
+      return handleCompileToTarget({ ...args, target: 'svg' });
+    case 'compile_to_holob':
+      return handleCompileToTarget({ ...args, target: 'holob' });
+    case 'compile_to_openapi':
+      return handleCompileToTarget({ ...args, target: 'openapi' });
+    case 'compile_to_onnx':
+      return handleCompileToTarget({ ...args, target: 'onnx' });
+    case 'compile_to_flutter':
+      return handleCompileToTarget({ ...args, target: 'flutter' });
+    case 'compile_to_stl_export':
+      return handleCompileToTarget({ ...args, target: 'stl-export' });
+    case 'compile_to_lens_studio':
+      return handleCompileToTarget({ ...args, target: 'lens-studio' });
+    case 'compile_to_colyseus':
+      return handleCompileToTarget({ ...args, target: 'colyseus' });
+    case 'compile_to_ai_glasses':
+      return handleCompileToTarget({ ...args, target: 'ai-glasses' });
+    case 'compile_to_scm':
+      return handleCompileToTarget({ ...args, target: 'scm' });
+    case 'compile_to_nft_marketplace':
+      return handleCompileToTarget({ ...args, target: 'nft-marketplace' });
+    case 'compile_to_tsl':
+      return handleCompileToTarget({ ...args, target: 'tsl' });
+    case 'compile_to_phone_sleeve_vr':
+      return handleCompileToTarget({ ...args, target: 'phone-sleeve-vr' });
+    case 'compile_to_openxr_spatial_entities':
+      return handleCompileToTarget({ ...args, target: 'openxr-spatial-entities' });
+    case 'compile_to_edge':
+      return handleCompileToTarget({ ...args, target: 'edge' });
+
     case 'compile_to_mcp_config':
       return handleCompileMCPConfig(args);
 
@@ -1556,6 +1587,51 @@ export const compilerTools: Tool[] = [
   },
 
   {
+    name: 'compile_to_edge',
+    description:
+      'Compile HoloScript to a Python deployment bundle for any Ollama-capable edge device ' +
+      '(Jetson Orin/Nano/NX, Raspberry Pi 5, The Unit, any Linux ARM64/x86 node). ' +
+      'Emits: agent.py (Ollama inference loop + tool dispatch), monitor.py (/health HTTP), ' +
+      'setup.sh (venv + pip install), holoscript_agent.service (systemd unit), manifest.json. ' +
+      'Trait-conditional extras: ros2_bridge.py (@ros2_actuation), tensorrt_loader.py (@tensorrt_inference). ' +
+      'Jetson-specific flags set by @jetson, @tegrastats traits (nvpmodel, jetson_clocks, tegrastats polling).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code (.hs/.hsplus/.holo)' },
+        options: {
+          type: 'object',
+          description: 'EdgeCompiler options',
+          properties: {
+            ollamaUrl: {
+              type: 'string',
+              description: 'Ollama base URL on the target device (default: http://localhost:11434)',
+            },
+            model: {
+              type: 'string',
+              description: 'Ollama model name (default: qwen3:4b)',
+            },
+            platform: {
+              type: 'string',
+              enum: ['linux-arm64', 'linux-x86_64'],
+              description: 'Target platform (default: linux-arm64)',
+            },
+            remotePath: {
+              type: 'string',
+              description: 'Deploy path on target device (default: /opt/holoscript)',
+            },
+            serviceUser: {
+              type: 'string',
+              description: 'systemd service user (default: holoscript)',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
     name: 'compile_to_mcp_config',
     description:
       'Compile .holo MCP server connection definitions to IDE-specific client config JSON. ' +
@@ -1610,6 +1686,295 @@ export const compilerTools: Tool[] = [
         },
       },
       required: ['source'],
+    },
+  },
+
+  // SVG vector graphics — SOVEREIGN TARGET
+  {
+    name: 'compile_to_svg',
+    description:
+      'Compile HoloScript to SVG vector graphics. SOVEREIGN TARGET — pure SVG output, no third-party engine. ' +
+      'Useful for diagrams, HoloMap exports, data visualization panels, and 2D schematic generation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            viewBox: { type: 'string', description: 'SVG viewBox attribute (e.g. "0 0 800 600").' },
+            includeGrid: { type: 'boolean', description: 'Overlay a grid guide in the output SVG.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // HoloBytecode — SOVEREIGN TARGET
+  {
+    name: 'compile_to_holob',
+    description:
+      'Compile HoloScript to HoloBytecode for the HoloVM native ECS executor. ' +
+      'SOVEREIGN TARGET — the bytecode runs directly on the HoloVM at 60-90Hz with no third-party engine dependency.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            optimizationLevel: { type: 'number', description: 'Bytecode optimization level (0 = none, 1 = basic, 2 = full).' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // OpenAPI 3.1 spec
+  {
+    name: 'compile_to_openapi',
+    description:
+      'Compile HoloScript node service definitions to OpenAPI 3.1 spec (JSON). ' +
+      'Bridge to REST API tooling, Swagger UI, client SDK generators.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            format: { type: 'string', enum: ['json', 'yaml'], description: 'Output format (default: json).' },
+            title: { type: 'string', description: 'API title for the OpenAPI info block.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // ONNX model descriptor
+  {
+    name: 'compile_to_onnx',
+    description:
+      'Compile HoloScript brain compositions to ONNX model descriptor JSON. ' +
+      'Bridge to ONNX Runtime, fleet inference, and Brittney training pipelines.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            opsetVersion: { type: 'number', description: 'ONNX opset version (default: 17).' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Flutter/Dart widget code
+  {
+    name: 'compile_to_flutter',
+    description:
+      'Compile HoloScript to Flutter/Dart widget code. ' +
+      "Bridge to Flutter's iOS/Android/desktop/web runtime.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            packageName: { type: 'string', description: 'Dart package name for the generated widget.' },
+            stateful: { type: 'boolean', description: 'Emit a StatefulWidget instead of StatelessWidget.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // STL export for 3D printing
+  {
+    name: 'compile_to_stl_export',
+    description:
+      'Compile HoloScript to STL (Standard Tessellation Language) ASCII format for 3D printing. ' +
+      'Bridge to physical-world fabrication — digital twin → physical twin.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            scale: { type: 'number', description: 'Uniform scale factor applied to all geometry (default: 1.0).' },
+            mergeObjects: { type: 'boolean', description: 'Merge all objects into a single STL solid.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Snapchat Lens Studio AR
+  {
+    name: 'compile_to_lens_studio',
+    description:
+      "Compile HoloScript to Snapchat Lens Studio AR lens format. Bridge to Snapchat's AR distribution platform (700M+ users).",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            apiVersion: { type: 'string', description: 'Lens Studio API version string (e.g. "5.0").' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Colyseus multiplayer server
+  {
+    name: 'compile_to_colyseus',
+    description:
+      'Compile HoloScript to Colyseus multiplayer game server room code (TypeScript). ' +
+      'Bridge to authoritative MMO/multiplayer backend. Key for AAA game compilation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            roomName: { type: 'string', description: 'Colyseus room class name.' },
+            tickRate: { type: 'number', description: 'Server tick rate in Hz (default: 20).' },
+            maxClients: { type: 'number', description: 'Maximum concurrent clients per room instance.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Android XR AI Glasses
+  {
+    name: 'compile_to_ai_glasses',
+    description:
+      'Compile HoloScript to Android XR AI Glasses (Kotlin Compose Glimmer) for Samsung Galaxy XR, Warby Parker, Gentle Monster. ' +
+      'Bridge to transparent HUD overlay displays.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            fovDegrees: { type: 'number', description: 'Horizontal field-of-view in degrees for the target glasses display.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Structural Causal Model DAG
+  {
+    name: 'compile_to_scm',
+    description:
+      'Compile HoloScript to Structural Causal Model DAG JSON for ML causal inference. ' +
+      'Bridge to do-calculus, intervention analysis, and causal ML pipelines.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            modelName: { type: 'string', description: 'Name for the root causal model node.' },
+            privacyMask: { type: 'boolean', description: 'Mask variable names in the output DAG.' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Solidity ERC-1155 NFT marketplace
+  {
+    name: 'compile_to_nft_marketplace',
+    description:
+      'Compile HoloScript to Solidity ERC-1155 smart contracts with lazy minting, ERC-2981 royalties, and multi-chain deployment scripts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            chain: { type: 'string', description: 'Target chain identifier (e.g. "ethereum", "polygon", "base").' },
+            royaltyBps: { type: 'number', description: 'ERC-2981 royalty in basis points (e.g. 500 = 5%).' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Trait Shader Language — SOVEREIGN
+  {
+    name: 'compile_to_tsl',
+    description:
+      'Compile HoloScript to Trait Shader Language (TSL) — SOVEREIGN — native trait-to-shader codegen running on HoloScript\'s WebGPU path.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: { type: 'object', properties: {} },
+      },
+      required: ['code'],
+    },
+  },
+
+  // Phone Sleeve VR stereoscopic WebXR
+  {
+    name: 'compile_to_phone_sleeve_vr',
+    description:
+      'Compile HoloScript to Phone Sleeve VR stereoscopic WebXR format (smartphone-as-headset). ' +
+      'Bridge to VR experiences on any phone with a sleeve/Cardboard mount.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: {
+          type: 'object',
+          properties: {
+            eyeSeparation: { type: 'number', description: 'Inter-ocular distance in meters (default: 0.064).' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  // OpenXR Spatial Entity persistence
+  {
+    name: 'compile_to_openxr_spatial_entities',
+    description:
+      'Compile HoloScript to OpenXR Spatial Entity persistence format using XR_FB_spatial_entity_storage extension. ' +
+      'Bridge to persistent AR anchors on Quest 3 and OpenXR runtimes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript source code.' },
+        options: { type: 'object', properties: {} },
+      },
+      required: ['code'],
     },
   },
 
