@@ -8,6 +8,7 @@ import type {
   HoloSpawnPoint,
   HoloWorldChunk,
   HoloAbility,
+  HoloLootTable,
   HoloObjectTrait,
 } from '../../parser/HoloCompositionTypes';
 
@@ -249,6 +250,84 @@ describe('ColyseusCompiler — ability registry (P0.1 consumption)', () => {
   });
 });
 
+describe('ColyseusCompiler — server-authoritative ability cast (P1.0/P1.7)', () => {
+  const ability: HoloAbility = {
+    type: 'Ability',
+    name: 'fireball',
+    abilityType: 'spell',
+    stats: { type: 'AbilityStats', cooldown: 6, manaCost: 40, range: 30, castTime: 1.5 },
+    effects: { type: 'AbilityEffects' },
+  } as unknown as HoloAbility;
+
+  it('emits handleCast gating GCD, cooldown, mana, and range against ABILITY_REGISTRY', () => {
+    const result = new ColyseusCompiler().compile(comp({ abilities: [ability] }), token);
+    expect(result.code).toContain('protected handleCast(client: Client, player: PlayerState');
+    expect(result.code).toContain('const cfg = ABILITY_REGISTRY[abilityId];');
+    expect(result.code).toContain("if (this.state.tickCount < player.gcdUntilTick) { reject('gcd_active'); return; }");
+    expect(result.code).toContain("if (this.state.tickCount - last < cdTicks) { reject('on_cooldown'); return; }");
+    expect(result.code).toContain("if (player.mana < cfg.manaCost) { reject('insufficient_mana'); return; }");
+    expect(result.code).toContain("reject('out_of_range')");
+    // cast wired into onMessage + receipted both ways
+    expect(result.code).toContain("case 'cast': {");
+    expect(result.code).toContain("kind: 'ability_cast'");
+    expect(result.code).toContain('player.gcdUntilTick = this.state.tickCount + Math.ceil');
+    // mana is a synced field
+    expect(result.code).toContain("@type('number') mana: number = 100;");
+  });
+
+  it('omits the cast handler when no abilities exist', () => {
+    const result = new ColyseusCompiler().compile(comp({}), token);
+    expect(result.code).not.toContain('protected handleCast');
+    expect(result.code).not.toContain("case 'cast'");
+  });
+});
+
+describe('ColyseusCompiler — server-authoritative loot (P1.6)', () => {
+  it('lowers loot_table → LOOT_TABLES + deterministic rollLoot()', () => {
+    const table: HoloLootTable = {
+      type: 'LootTable',
+      name: 'goblin_drops',
+      entries: [
+        { type: 'LootEntry', id: 'coin', itemId: 'gold_coin', weight: 60, qty: '1..5', properties: {} },
+        { type: 'LootEntry', id: 'shard', itemId: 'iron_shard', weight: 25, rarity: 'uncommon', properties: {} },
+        { type: 'LootEntry', id: 'nothing', weight: 15, properties: {} },
+      ],
+      guaranteed: { goblin_ear: 1 },
+      properties: {},
+    } as unknown as HoloLootTable;
+    const result = new ColyseusCompiler().compile(comp({ lootTables: [table] }), token);
+    expect(result.code).toContain('export const LOOT_TABLES');
+    expect(result.code).toContain('protected rollLoot(tableName: string)');
+    expect(result.code).toContain('this.nextRandom() * total');
+    expect(result.lootTables).toHaveLength(1);
+    expect(result.lootTables[0].name).toBe('goblin_drops');
+    const entries = result.lootTables[0].entries;
+    expect(entries.find((e) => e.itemId === 'gold_coin')?.weight).toBe(60);
+    // weight-only "nothing" entry has empty itemId → rollLoot drops nothing
+    expect(entries.find((e) => e.itemId === '')?.weight).toBe(15);
+    expect(result.code).toContain('"goblin_ear": 1');
+  });
+});
+
+describe('ColyseusCompiler — area-of-interest (P1.1)', () => {
+  it('emits AOI_RADIUS + interest-query helpers', () => {
+    const result = new ColyseusCompiler().compile(
+      comp({ npcs: [npc('g1', { hp: 10 })], traits: [trait('aoi_bubble', { radius: 80 })] }),
+      token
+    );
+    expect(result.code).toContain('export const AOI_RADIUS = 80;');
+    expect(result.aoiRadius).toBe(80);
+    expect(result.code).toContain('protected playersInAOI(origin: PlayerState');
+    expect(result.code).toContain('protected npcsInAOI(origin: PlayerState');
+  });
+
+  it('defaults AOI_RADIUS to 50 with no @aoi_bubble', () => {
+    const result = new ColyseusCompiler().compile(comp({}), token);
+    expect(result.code).toContain('export const AOI_RADIUS = 50;');
+    expect(result.aoiRadius).toBe(50);
+  });
+});
+
 describe('ColyseusCompiler — back-compat (legacy trait-scan still works)', () => {
   it('still extracts @npc / @spawn_point traited objects', () => {
     const compiler = new ColyseusCompiler();
@@ -268,6 +347,69 @@ describe('ColyseusCompiler — back-compat (legacy trait-scan still works)', () 
     expect(result.success).toBe(true);
     expect(result.code).toContain("npc_old_style_npc.id = 'old_style_npc'");
     expect(result.code).toContain('npc_old_style_npc.hp = 200');
+  });
+});
+
+describe('ColyseusCompiler — generated output is valid TypeScript (W.685)', () => {
+  it('transpiles a fully-featured world without syntax errors', async () => {
+    const ts = await import('typescript');
+    const ability: HoloAbility = {
+      type: 'Ability',
+      name: 'fireball',
+      abilityType: 'spell',
+      stats: { type: 'AbilityStats', cooldown: 6, manaCost: 40, range: 30 },
+      effects: { type: 'AbilityEffects' },
+    } as unknown as HoloAbility;
+    const table: HoloLootTable = {
+      type: 'LootTable',
+      name: 'goblin_drops',
+      entries: [
+        { type: 'LootEntry', id: 'coin', itemId: 'gold_coin', weight: 60, qty: 3, properties: {} },
+        { type: 'LootEntry', id: 'nothing', weight: 15, properties: {} },
+      ],
+      guaranteed: { goblin_ear: 1 },
+      properties: {},
+    } as unknown as HoloLootTable;
+    const chunk: HoloWorldChunk = {
+      type: 'WorldChunk',
+      name: 'dockside',
+      priority: 'high',
+      lodDistances: [50, 150],
+      properties: {},
+    } as unknown as HoloWorldChunk;
+
+    const result = new ColyseusCompiler().compile(
+      comp({
+        name: 'FrontierMMO',
+        npcs: [npc('goblin_01', { x: 5, y: 0, z: 5, hp: 50, faction: 'ironveil', brain: 'goblin_brain' })],
+        spawnPoints: [spawn('camp', 0, 0, 0, 'alliance')],
+        abilities: [ability],
+        lootTables: [table],
+        worldChunks: [chunk],
+        traits: [trait('movement_contract', { max_speed: 8 }), trait('aoi_bubble', { radius: 60 })],
+      }),
+      token
+    );
+    expect(result.success).toBe(true);
+
+    const out = ts.transpileModule(result.code, {
+      compilerOptions: {
+        target: ts.ScriptTarget.ES2020,
+        module: ts.ModuleKind.ESNext,
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+        isolatedModules: false,
+      },
+      reportDiagnostics: true,
+    });
+    const syntaxErrors = (out.diagnostics ?? []).filter(
+      (d) => d.category === ts.DiagnosticCategory.Error
+    );
+    const messages = syntaxErrors.map((d) =>
+      ts.flattenDiagnosticMessageText(d.messageText, '\n')
+    );
+    expect(messages).toEqual([]);
+    expect(out.outputText.length).toBeGreaterThan(0);
   });
 });
 

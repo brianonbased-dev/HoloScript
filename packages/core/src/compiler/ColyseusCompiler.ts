@@ -106,6 +106,19 @@ export interface ColyseusAbilityConfig {
   castTimeMs: number;
 }
 
+export interface ColyseusLootEntry {
+  itemId: string;
+  weight: number;
+  qty: string | number;
+  rarity: string;
+}
+
+export interface ColyseusLootTable {
+  name: string;
+  entries: ColyseusLootEntry[];
+  guaranteed: Record<string, unknown>;
+}
+
 export interface ColyseusCompilationResult {
   success: boolean;
   /** The single generated TypeScript file content */
@@ -118,6 +131,10 @@ export interface ColyseusCompilationResult {
   chunkManifest: ColyseusChunkManifestEntry[];
   /** Server-side ability configs (from typed + imported .hs abilities) */
   abilities: ColyseusAbilityConfig[];
+  /** Server-authoritative loot tables (from composition.lootTables) */
+  lootTables: ColyseusLootTable[];
+  /** Area-of-interest replication radius (world-units) */
+  aoiRadius: number;
   warnings: string[];
   errors: string[];
 }
@@ -176,6 +193,8 @@ interface TickModel {
 const DEFAULT_MAX_MOVE_SPEED = 10;
 /** Floating-point slack for movement distance comparison. */
 const MOVE_EPSILON = 0.001;
+/** Default area-of-interest replication radius (world-units) when no @aoi_bubble present. */
+const DEFAULT_AOI_RADIUS = 50;
 
 // ---------------------------------------------------------------------------
 // Compiler
@@ -196,6 +215,8 @@ export class ColyseusCompiler extends CompilerBase {
   private schemaClasses: string[] = [];
   private chunkManifest: ColyseusChunkManifestEntry[] = [];
   private abilities: ColyseusAbilityConfig[] = [];
+  private lootTables: ColyseusLootTable[] = [];
+  private aoiRadius = 0;
 
   /** Imported .hs ability nodes (populated by compileSource before compile). */
   private importedAbilities: GameAbilityNode[] = [];
@@ -225,6 +246,8 @@ export class ColyseusCompiler extends CompilerBase {
     this.schemaClasses = [];
     this.chunkManifest = [];
     this.abilities = [];
+    this.lootTables = [];
+    this.aoiRadius = 0;
 
     if (!composition || composition.type !== 'Composition') {
       this.errors.push('Invalid composition tree');
@@ -245,9 +268,11 @@ export class ColyseusCompiler extends CompilerBase {
     const movement = this.resolveMovementContract(composition);
     const maxPlayers = this.extractScalarTrait(composition, 'max_players', 'value', 100);
 
-    // ── World chunks + abilities (typed + imported) ──────────────────────
+    // ── World chunks + abilities + loot + AOI (typed + imported) ─────────
     this.chunkManifest = this.buildChunkManifest(composition);
     this.abilities = this.buildAbilityRegistry(composition);
+    this.lootTables = this.buildLootTables(composition);
+    this.aoiRadius = this.resolveAoi(composition);
 
     // ── Logic event handlers ──────────────────────────────────────────────
     const logic = composition.logic ?? null;
@@ -544,6 +569,16 @@ export class ColyseusCompiler extends CompilerBase {
     return { maxSpeed: maxSpeed && maxSpeed > 0 ? maxSpeed : DEFAULT_MAX_MOVE_SPEED };
   }
 
+  /** Area-of-interest replication radius from @aoi_bubble (world-units). */
+  private resolveAoi(composition: HoloComposition): number {
+    const r = this.readRootTraitNumber(
+      composition,
+      ['aoi_bubble', 'aoi', 'interest'],
+      ['radius', 'range', 'distance']
+    );
+    return r && r > 0 ? r : DEFAULT_AOI_RADIUS;
+  }
+
   /** Read a numeric config value from a root-level trait (@trait(key: value)). */
   private readRootTraitNumber(
     composition: HoloComposition,
@@ -630,6 +665,21 @@ export class ColyseusCompiler extends CompilerBase {
     }
 
     return out;
+  }
+
+  /** Lower composition.lootTables → server-rollable weighted tables. */
+  private buildLootTables(composition: HoloComposition): ColyseusLootTable[] {
+    return (composition.lootTables ?? []).map((table) => ({
+      name: table.name,
+      entries: (table.entries ?? []).map((e) => ({
+        // Empty itemId = a "nothing" entry (weight-only) — rollLoot drops nothing.
+        itemId: e.itemId ?? '',
+        weight: typeof e.weight === 'number' && e.weight > 0 ? e.weight : 1,
+        qty: e.qty ?? 1,
+        rarity: e.rarity ?? 'common',
+      })),
+      guaranteed: (table.guaranteed as Record<string, unknown>) ?? {},
+    }));
   }
 
   /**
@@ -779,6 +829,7 @@ export class ColyseusCompiler extends CompilerBase {
       `export const RNG_SEED = ${tickModel.rngSeed}; // deterministic per-room PRNG seed`,
       `export const MAX_MOVE_SPEED = ${movement.maxSpeed}; // world-units/sec (anti-speedhack ceiling)`,
       `export const MOVE_EPSILON = ${MOVE_EPSILON};`,
+      `export const AOI_RADIUS = ${this.aoiRadius}; // area-of-interest replication radius`,
       `export const GAME_EVENT_RECEIPT_SCHEMA = '${MMO_EVENT_RECEIPT_SCHEMA}';`,
       ``
     );
@@ -799,6 +850,25 @@ export class ColyseusCompiler extends CompilerBase {
       `}> = ${JSON.stringify(this.abilityRegistryObject(), null, 2)};`,
       ``
     );
+
+    // Server-authoritative loot tables (lowered from loot_table blocks)
+    this.push(
+      `// ── Loot tables (server-rolled via deterministic PRNG — dupe-proof) ──`,
+      `export const LOOT_TABLES: Record<string, {`,
+      `  entries: Array<{ itemId: string; weight: number; qty: string | number; rarity: string }>;`,
+      `  guaranteed: Record<string, unknown>;`,
+      `}> = ${JSON.stringify(this.lootTableObject(), null, 2)};`,
+      ``
+    );
+  }
+
+  private lootTableObject(): Record<string, Omit<ColyseusLootTable, 'name'>> {
+    const obj: Record<string, Omit<ColyseusLootTable, 'name'>> = {};
+    for (const t of this.lootTables) {
+      const { name, ...rest } = t;
+      obj[name] = rest;
+    }
+    return obj;
   }
 
   private abilityRegistryObject(): Record<string, Omit<ColyseusAbilityConfig, 'name'>> {
@@ -831,10 +901,13 @@ export class ColyseusCompiler extends CompilerBase {
       `  @type('number') y: number = 0;`,
       `  @type('number') z: number = 0;`,
       `  @type('number') hp: number = 100;`,
+      `  @type('number') mana: number = 100;`,
       `  @type('string') faction: string = 'none';`,
       `  @type('boolean') isReady: boolean = false;`,
-      `  // Server-only (not synced): last authoritative move tick for speed validation`,
+      `  // Server-only (not synced): movement + ability authority bookkeeping`,
       `  lastMoveTick = 0;`,
+      `  gcdUntilTick = 0;`,
+      `  cooldowns: Record<string, number> = {};`,
       `}`,
       ``
     );
@@ -1045,6 +1118,12 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`        this.broadcast('chat', { from: client.sessionId, text: message }, { except: client });`);
     this.push(`        break;`);
     this.push(`      }`);
+    if (this.abilities.length > 0) {
+      this.push(`      case 'cast': {`);
+      this.push(`        this.handleCast(client, player, message);`);
+      this.push(`        break;`);
+      this.push(`      }`);
+    }
     if (actionHandler) {
       this.push(`      case 'action': {`);
       this.push(`        this.handlePlayerAction(client, player, message);`);
@@ -1082,6 +1161,101 @@ export class ColyseusCompiler extends CompilerBase {
     this.push(`    player.lastMoveTick = this.state.tickCount;`);
     this.push(`  }`);
     this.push(``);
+
+    // ── handleCast — server-authoritative ability validation (P1.0/P1.7) ──
+    if (this.abilities.length > 0) {
+      this.push(`  // Server-authoritative ability cast: validates GCD, cooldown, range, mana`);
+      this.push(`  // against ABILITY_REGISTRY before applying. Every outcome is receipted.`);
+      this.push(`  protected handleCast(client: Client, player: PlayerState, message: unknown): void {`);
+      this.push(`    const data = message as { ability?: string; target?: string };`);
+      this.push(`    const abilityId = typeof data.ability === 'string' ? data.ability : '';`);
+      this.push(`    const cfg = ABILITY_REGISTRY[abilityId];`);
+      this.push(`    const reject = (reason: string): void => {`);
+      this.push(`      this.recordGameEvent({`);
+      this.push(`        kind: 'ability_cast', actorSessionId: client.sessionId,`);
+      this.push(`        targetSessionId: data.target, abilityId, validated: false, reason,`);
+      this.push(`      });`);
+      this.push(`      client.send('cast_rejected', { ability: abilityId, reason });`);
+      this.push(`    };`);
+      this.push(`    if (!cfg) { reject('unknown_ability'); return; }`);
+      this.push(`    // Global cooldown gate`);
+      this.push(`    if (this.state.tickCount < player.gcdUntilTick) { reject('gcd_active'); return; }`);
+      this.push(`    // Per-ability cooldown gate`);
+      this.push(`    const last = player.cooldowns[abilityId] ?? -1e9;`);
+      this.push(`    const cdTicks = (cfg.cooldownMs / 1000) * TICK_RATE;`);
+      this.push(`    if (this.state.tickCount - last < cdTicks) { reject('on_cooldown'); return; }`);
+      this.push(`    // Mana gate`);
+      this.push(`    if (player.mana < cfg.manaCost) { reject('insufficient_mana'); return; }`);
+      this.push(`    // Range gate (against a named target player)`);
+      this.push(`    if (cfg.range > 0 && data.target) {`);
+      this.push(`      const tgt = this.state.players.get(data.target);`);
+      this.push(`      if (tgt) {`);
+      this.push(`        const dx = tgt.x - player.x, dy = tgt.y - player.y, dz = tgt.z - player.z;`);
+      this.push(`        if (Math.sqrt(dx * dx + dy * dy + dz * dz) > cfg.range + MOVE_EPSILON) {`);
+      this.push(`          reject('out_of_range'); return;`);
+      this.push(`        }`);
+      this.push(`      }`);
+      this.push(`    }`);
+      this.push(`    // Accept: spend resources, set cooldowns, receipt, broadcast`);
+      this.push(`    player.mana -= cfg.manaCost;`);
+      this.push(`    player.cooldowns[abilityId] = this.state.tickCount;`);
+      this.push(`    player.gcdUntilTick = this.state.tickCount + Math.ceil((cfg.gcdMs / 1000) * TICK_RATE);`);
+      this.push(`    this.recordGameEvent({`);
+      this.push(`      kind: 'ability_cast', actorSessionId: client.sessionId,`);
+      this.push(`      targetSessionId: data.target, abilityId, validated: true,`);
+      this.push(`    });`);
+      this.push(`    this.broadcast('cast', { caster: client.sessionId, ability: abilityId, target: data.target ?? null });`);
+      this.push(`  }`);
+      this.push(``);
+    }
+
+    // ── rollLoot — server-authoritative deterministic loot (P1.6) ─────────
+    if (this.lootTables.length > 0) {
+      this.push(`  // Server-rolled loot using the deterministic per-room PRNG (dupe-proof).`);
+      this.push(`  protected rollLoot(tableName: string): Array<{ item: string; qty: string | number }> {`);
+      this.push(`    const table = LOOT_TABLES[tableName];`);
+      this.push(`    if (!table) return [];`);
+      this.push(`    const drops: Array<{ item: string; qty: string | number }> = [];`);
+      this.push(`    for (const [item, qty] of Object.entries(table.guaranteed)) {`);
+      this.push(`      drops.push({ item, qty: qty as string | number });`);
+      this.push(`    }`);
+      this.push(`    const total = table.entries.reduce((s, e) => s + e.weight, 0);`);
+      this.push(`    if (total > 0 && table.entries.length > 0) {`);
+      this.push(`      let r = this.nextRandom() * total;`);
+      this.push(`      for (const e of table.entries) {`);
+      this.push(`        r -= e.weight;`);
+      this.push(`        if (r <= 0) { if (e.itemId) drops.push({ item: e.itemId, qty: e.qty }); break; }`);
+      this.push(`      }`);
+      this.push(`    }`);
+      this.push(`    return drops;`);
+      this.push(`  }`);
+      this.push(``);
+    }
+
+    // ── Area-of-interest query helpers (P1.1) ─────────────────────────────
+    this.push(`  // Entities within the AOI bubble of a player (interest management).`);
+    this.push(`  protected playersInAOI(origin: PlayerState, radius = AOI_RADIUS): PlayerState[] {`);
+    this.push(`    const out: PlayerState[] = [];`);
+    this.push(`    const r2 = radius * radius;`);
+    this.push(`    this.state.players.forEach((p) => {`);
+    this.push(`      const dx = p.x - origin.x, dy = p.y - origin.y, dz = p.z - origin.z;`);
+    this.push(`      if (dx * dx + dy * dy + dz * dz <= r2) out.push(p);`);
+    this.push(`    });`);
+    this.push(`    return out;`);
+    this.push(`  }`);
+    this.push(``);
+    if (npcs.length > 0) {
+      this.push(`  protected npcsInAOI(origin: PlayerState, radius = AOI_RADIUS): NpcState[] {`);
+      this.push(`    const out: NpcState[] = [];`);
+      this.push(`    const r2 = radius * radius;`);
+      this.push(`    this.state.npcs.forEach((n) => {`);
+      this.push(`      const dx = n.x - origin.x, dy = n.y - origin.y, dz = n.z - origin.z;`);
+      this.push(`      if (dx * dx + dy * dy + dz * dz <= r2) out.push(n);`);
+      this.push(`    });`);
+      this.push(`    return out;`);
+      this.push(`  }`);
+      this.push(``);
+    }
 
     // ── onTick — drives NPC brains ────────────────────────────────────────
     this.push(`  // Authoritative simulation step — advances NPC brains.`);
@@ -1358,6 +1532,8 @@ export class ColyseusCompiler extends CompilerBase {
       schemaClasses: [...this.schemaClasses],
       chunkManifest: [...this.chunkManifest],
       abilities: [...this.abilities],
+      lootTables: [...this.lootTables],
+      aoiRadius: this.aoiRadius,
       warnings: [...this.warnings],
       errors: [...this.errors],
     };
