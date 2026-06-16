@@ -52,19 +52,23 @@ describe('EdgeCompiler', () => {
     expect(paths).toContain('holoscript_agent.service');
   });
 
-  it('adds ros2_bridge.py when ros2_actuation trait is present', () => {
+  it('adds a colcon ROS2 bridge package when ros2_actuation trait is present', () => {
+    // Peer b2d3a1af0 replaced standalone ros2_bridge.py with a colcon
+    // ament_python package (ros2_ws/src/<pkg>_bridge/.../bridge.py).
     const result = compiler.compile(minimalComposition('ros-agent', ['ros2_actuation']), token);
     const bundle = JSON.parse(result);
-    const paths = bundle.files.map((f: { path: string }) => f.path);
-    expect(paths).toContain('ros2_bridge.py');
+    const paths: string[] = bundle.files.map((f: { path: string }) => f.path);
+    expect(paths.some((p) => p.endsWith('/bridge.py'))).toBe(true);
+    expect(paths.some((p) => p.endsWith('/package.xml'))).toBe(true);
     expect(bundle.config.hasROS2).toBe(true);
   });
 
-  it('does NOT add ros2_bridge.py without ros2 trait', () => {
+  it('does NOT add a ROS2 bridge without ros2 trait', () => {
     const result = compiler.compile(minimalComposition('plain-agent'), token);
     const bundle = JSON.parse(result);
-    const paths = bundle.files.map((f: { path: string }) => f.path);
-    expect(paths).not.toContain('ros2_bridge.py');
+    const paths: string[] = bundle.files.map((f: { path: string }) => f.path);
+    expect(paths.some((p) => p.endsWith('/bridge.py'))).toBe(false);
+    expect(paths.some((p) => p.endsWith('/package.xml'))).toBe(false);
     expect(bundle.config.hasROS2).toBe(false);
   });
 
