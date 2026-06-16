@@ -32,6 +32,7 @@ import {
 import { buildSafetyReport, formatReport, generateCertificate, SafetyReport } from './SafetyReport';
 import { LinearTypeChecker, LinearCheckerConfig } from './LinearTypeChecker';
 import { checkFreshnessBounds, FreshnessASTNode } from './FreshnessBoundChecker';
+import { checkDimensions, DimensionalASTNode } from './DimensionalTypeSystem';
 
 // =============================================================================
 // COMPILER SAFETY PASS
@@ -53,6 +54,11 @@ export interface SafetyPassConfig {
   linearCheckerConfig?: LinearCheckerConfig;
   /** Whether to generate a certificate on success */
   generateCertificate?: boolean;
+  /**
+   * AST nodes carrying dimensional annotations for Layer 8 dimensional type checking.
+   * If absent, dimensional checking is skipped (no violations added).
+   */
+  dimensionalNodes?: DimensionalASTNode[];
   /**
    * V11 (L4 Blueprint 4): Per-node trait config overrides from composition AST.
    * Maps node names to their trait configs, enabling ResourceBudgetAnalyzer to
@@ -149,6 +155,12 @@ export function runSafetyPass(
     }
   }
 
+  // ── Layer 8: Dimensional type checking ──
+  const dimensionalResult =
+    config.dimensionalNodes && config.dimensionalNodes.length > 0
+      ? checkDimensions(config.dimensionalNodes)
+      : undefined;
+
   // ── Layer 5: Safety report ──
   const danger = dangerLevel(effectResult.moduleEffects);
   const report = buildSafetyReport(
@@ -157,7 +169,8 @@ export function runSafetyPass(
     budgetResult,
     capResult,
     danger,
-    linearResult
+    linearResult,
+    dimensionalResult
   );
 
   const cert = config.generateCertificate !== false ? generateCertificate(report) : null;
@@ -261,3 +274,22 @@ export type {
   LinearViolation,
   LinearCheckResult,
 } from '../../types/linear';
+export {
+  checkDimensions,
+  parseUnit,
+  dimEqual,
+  dimMul,
+  dimDiv,
+  dimPow,
+  dimToString,
+  DIM_DIMENSIONLESS,
+  UNIT_REGISTRY,
+  SOLVER_FIELD_DIMENSIONS,
+} from './DimensionalTypeSystem';
+export type {
+  DimVector,
+  DimensionalASTNode,
+  DimensionalOperation,
+  DimensionalViolation,
+  DimensionalCheckResult,
+} from './DimensionalTypeSystem';

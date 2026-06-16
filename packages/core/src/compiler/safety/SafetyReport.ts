@@ -19,6 +19,7 @@ import type { LinearViolation, LinearCheckResult } from '../../types/linear';
 import type { ModuleEffectCheckResult } from './EffectChecker';
 import type { BudgetAnalysisResult, BudgetDiagnostic } from './ResourceBudgetAnalyzer';
 import type { CapabilityCheckResult, CapabilityRequirement } from './CapabilityTypes';
+import type { DimensionalCheckResult, DimensionalViolation, DimVector } from './DimensionalTypeSystem';
 
 // =============================================================================
 // SAFETY REPORT
@@ -76,6 +77,13 @@ export interface SafetyReport {
     trackedResources: number;
   };
 
+  /** Layer 8: Dimensional type analysis */
+  dimensional: {
+    passed: boolean;
+    violations: DimensionalViolation[];
+    inferredFieldDimensions: Record<string, DimVector>;
+  };
+
   /** Summary statistics */
   summary: {
     totalViolations: number;
@@ -100,23 +108,27 @@ export function buildSafetyReport(
   budgetResult: BudgetAnalysisResult,
   capabilityResult: CapabilityCheckResult,
   dangerScore: number,
-  linearResult?: LinearCheckResult
+  linearResult?: LinearCheckResult,
+  dimensionalResult?: DimensionalCheckResult
 ): SafetyReport {
   const effectViolations = effectResult.violations;
   const budgetDiagnostics = budgetResult.diagnostics;
   const capMissing = capabilityResult.missing;
   const linearViolations = linearResult?.violations || [];
+  const dimViolations = dimensionalResult?.violations || [];
 
   const totalErrors =
     effectViolations.filter((v) => v.severity === 'error').length +
     budgetDiagnostics.filter((d) => d.severity === 'error').length +
     capMissing.length +
-    linearViolations.filter((v) => v.severity === 'error').length;
+    linearViolations.filter((v) => v.severity === 'error').length +
+    dimViolations.filter((v) => v.severity === 'error').length;
 
   const totalWarnings =
     effectViolations.filter((v) => v.severity === 'warning').length +
     budgetDiagnostics.filter((d) => d.severity === 'warning').length +
-    linearViolations.filter((v) => v.severity === 'warning').length;
+    linearViolations.filter((v) => v.severity === 'warning').length +
+    dimViolations.filter((v) => v.severity === 'warning').length;
 
   const totalInfos =
     effectViolations.filter((v) => v.severity === 'info').length +
@@ -172,6 +184,11 @@ export function buildSafetyReport(
       passed: linearResult ? linearResult.passed : true,
       violations: linearViolations,
       trackedResources: linearResult ? linearResult.trackedResources.size : 0,
+    },
+    dimensional: {
+      passed: dimensionalResult ? dimensionalResult.passed : true,
+      violations: dimViolations,
+      inferredFieldDimensions: dimensionalResult?.inferredFieldDimensions ?? {},
     },
     summary: {
       totalViolations: totalErrors + totalWarnings + totalInfos,
@@ -247,6 +264,15 @@ export function formatReport(report: SafetyReport): string {
   }
   for (const v of report.linear.violations.filter((v) => v.severity === 'warning')) {
     lines.push(`  ⚠ ${v.message}`);
+  }
+
+  // Dimensional types
+  lines.push(`Dimensional Types: ${report.dimensional.passed ? '✓' : '✗'}`);
+  for (const v of report.dimensional.violations.filter((v) => v.severity === 'error')) {
+    lines.push(`  ✗ [${v.code}] ${v.message}`);
+  }
+  for (const v of report.dimensional.violations.filter((v) => v.severity === 'warning')) {
+    lines.push(`  ⚠ [${v.code}] ${v.message}`);
   }
 
   lines.push('');
