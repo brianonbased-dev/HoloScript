@@ -599,11 +599,19 @@ and real $\af$ into \texttt{cael-quantum-v1.qec}. Hardware run is
 founder-gated paid compute (D.080).}
 
 \paragraph{Tier-2: 2-D surface code under circuit-level noise.}
-\todo{The schema's \texttt{corrects\_axes: ["X","Z"]}, \texttt{rounds > 1},
-and \texttt{decoder: "pymatching-mwpm"} fields target the 2-D surface
-code. Implementation requires \texttt{pymatching}; this is the next
-rung above the repetition-code Tier-0 and would make mid-computation
-correction benchmarks representable.}
+Tier-2 has been demonstrated.  A rotated planar surface code at distances
+$d \in \{3,5,7\}$ with circuit-level noise ($p_{\mathrm{data}}$ per qubit per
+round, $p_{\mathrm{meas}} = p_{\mathrm{data}}$, $N_{\mathrm{rounds}}=3$) was
+decoded by true MWPM via \texttt{pymatching}~2.4.0.  The measured threshold
+is $p_c \approx 1.08\%$ (sanity band $[0.3\%,\,2\%]$, known reference $\sim
+1\%$~\cite{fowler2012surface}), clearing the schema's sanity gate.  The
+\texttt{corrects\_axes: ["X","Z"]}, \texttt{rounds: 3}, and \texttt{decoder:
+"pymatching-mwpm"} fields were populated from this run; the full receipt is
+at \texttt{scripts/exp5-stabilizer-fleet/surface/receipts/\allowbreak
+2026-06-15\_exp5real\_surfacecode\_mwpm.json} (sha256:
+\texttt{c9ef4533...}).  Caveats: $p_{\mathrm{meas}} = p_{\mathrm{data}}$
+simplifies real gate errors; $N_{\mathrm{rounds}} = d$ is the formal
+requirement; both are noted in the receipt's \texttt{honestCaveats} field.
 
 \paragraph{Validator enforcement.}
 The overclaim detection rule is currently documented but not enforced by
