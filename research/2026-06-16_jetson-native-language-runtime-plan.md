@@ -4,7 +4,7 @@ research_phase: base
 status: active
 last_verified: 2026-06-16
 canonical_for: jetson-native-language-runtime-plan
-supersedes: ../../.ai-ecosystem/research/2026-06-16_native-holoscript-agent-infinity-loop.md (corrects its assumption that the native runner executes brain behaviors — it does not)
+supersedes: ../../.ai-ecosystem/research/2026-06-16_native-holoscript-agent-infinity-loop.md (corrects its assumption that the AgentRunner loop executes brain behaviors — it does not; note two cognition executors DO exist in core but are not driven by that loop — see the verified Correction in the Appendix)
 ---
 
 # Jetson Native-Language Runtime — Build-Out Plan
@@ -58,11 +58,25 @@ Audit of parse-site vs runtime-execute-site for every edge/agent construct:
 | `@goal {name,desiredState,priority}` | HoloScriptPlusParser.ts:3056 | **nothing** (tests only) | **YES** |
 | brain `behavior on_task`/`on_tick`/`on_start` | **does not parse as a brain behavior at all** — `loadBrain` truncates the prompt at the `behavior ` token ([brain.ts:41](packages/holoscript-agent/src/brain.ts)) | **nothing** — the TS `AgentRunner` reads identity only + runs a hardcoded `MESH_TOOLS` loop ([runner.ts:59](packages/holoscript-agent/src/runner.ts)) | **YES** |
 
-> **No runtime executes a brain's authored behaviors/cognitive verbs end-to-end.** The native
-> `holoscript-runner` daemon runs its *own* hardcoded code-improvement BT; the TS `AgentRunner`
-> reads identity and runs a hardcoded tool loop. The jetson brain's `behavior on_task { recall →
-> rag_query → llm_call → reflect }` is, today, **decoration** — nothing parses or runs it. This is
-> the W.712 declarative-shell pattern, generalized across the whole edge/agent language.
+> **No *autonomous* runtime executes a brain's authored behaviors end-to-end — though TWO cognition
+> executors exist and are reached by other paths.** (Corrected 2026-06-16 after the adversarial
+> verification pass below — the original "no executor exists" was an overclaim; the file
+> `HoloScriptAgentRuntime.ts` was missed.) The two real executors: **(1)** `HoloScriptAgentRuntime`
+> ([HoloScriptAgentRuntime.ts](packages/core/src/HoloScriptAgentRuntime.ts) — `think()`→`emit('agent_think')`
+> + JEPA `plan()` + `MemoryConsolidator` + `AgentSeed`/`durable()`/`losable()` continuity) is a genuine
+> cognition executor, but is only *instantiated* (preallocation pool, [HoloScriptRuntime.ts:420](packages/core/src/HoloScriptRuntime.ts))
+> and *reactively* invoked from the `.hs` orb interpreter ([orb-executor.ts:296](packages/core/src/runtime/orb-executor.ts))
+> — `drivenByAutonomousLoop: false`. **(2)** Cognitive trait verbs dispatch for real
+> ([BehaviorTreeTrait.ts:441](packages/core/src/traits/BehaviorTreeTrait.ts)) but **only** from a
+> hand-authored `@behavior_tree{root:{type:'cognitive'}}` node — the `state{ llm_call {} }` →
+> `brainState.cognitiveActions` surface ([HoloScriptPlusParser.ts:3166](packages/core/src/parser/HoloScriptPlusParser.ts))
+> is never fed into it. The only autonomous loop, `AgentRunner.runForever()`
+> ([runner.ts:392](packages/holoscript-agent/src/runner.ts)), references **neither** (zero
+> `HoloScriptAgentRuntime` refs in the whole `holoscript-agent` package) and runs a hardcoded
+> `MESH_TOOLS` loop. So the jetson brain's `behavior on_task { … }` is still **decoration today** —
+> but the fix is *wiring two existing executors into the loop*, not building one from scratch. The
+> W.712 declarative-shell pattern holds specifically for `brainState.cognitiveActions`, `@escalation`,
+> `@goal`, and `behavior on_task` (all confirmed: no runtime consumer).
 
 ### C. The device layer is codegen, not a package (pypi)
 
@@ -124,6 +138,53 @@ Author the jetson brain's autonomous loop as real `behavior`/`state` constructs 
 - **Clean-room npm install unverified** — `workspace:` → registry rewrite is inferred from matching published versions, not observed (W.669).
 - **Box fragility** — heavy ops OOM the 8GB box (W.735); keep runtime light, Ollama owns the RAM.
 - **Phase-2 is real language work** — parser + runtime, peer-hot surfaces (HoloScriptPlusParser, engine); land in small verified layers (W.729).
+
+## Appendix — Phase 2.1 implementation spec (grounded this session)
+
+> **Corrected target (2026-06-16, verified by the adversarial `reconcile-agent-runtime` pass).**
+> The "missing link" step 2 below leans toward the `StateMachineInterpreter` — superseded. The
+> verified recommendation: **System B (`BehaviorTreeTrait.tickCognitive` + the cognitive trait
+> verbs) is the cognitive *execution surface*** (`LLMAgentTrait` already takes a `tools` field →
+> `LocalLLMAdapter`→qwen3:4b-instruct slots in; `GoalOrientedTrait` emits a *serialisable* resumable
+> plan), and **System A (`HoloScriptAgentRuntime`'s `AgentSeed`/`durable()`/`losable()`) is the
+> cross-substrate *continuity anchor*** (no System-B equivalent). The two real Phase-2.1 tasks:
+> **(a)** bridge `brainState.cognitiveActions` → the BT `cognitive`-node executor (disconnected
+> today); **(b)** make `AgentRunner.runForever` tick that BT instead of its hardcoded `MESH_TOOLS`
+> loop. Convergence: retire `think()` as the LLM entry point (→ BT `llm_call{prompt,tools}` nodes);
+> demote `JEPAPredictor` to the existing offline `trainJepaOffline()` side-channel; wire
+> `AgentSeed.resumeStepId` into the BT tick; keep `MemoryConsolidator`'s 30s tick as the
+> episode→fact graduation path written back through `durable()`.
+
+Goal: make a brain `state { llm_call {…}; recall {…} }` actually execute. The dispatch already
+works; the materialization does not exist. Pinned to code:
+
+- **Parse side (done):** `HoloScriptPlusParser.ts:3158-3167` → `brainState.cognitiveActions:
+  [{kind:'cognitive', verb, config}]`. Confirmed: consumed by NO runtime (only the parser + its test).
+- **Execute side (done, but unreachable):** `BehaviorTreeTrait.tickCognitive` (`:429-470`) takes a
+  `BTNode` of `type:'cognitive'` (shape at `:25-54`: `{type:'cognitive', verb, config, await?, result_key?}`)
+  and calls `compileCognitiveDispatch` (`CognitiveActions.ts:170`) → emits the real trait event. Works,
+  unit-tested (`BehaviorTreeCognitive.test.ts`) — but only for a **hand-authored** `@behavior_tree`
+  cognitive node.
+- **The missing link (to build):**
+  1. **Bridge (pure, S):** `cognitiveActionsToBTNodes(brainState.cognitiveActions): BTNode[]` — map each
+     `{kind:'cognitive',verb,config}` → `{type:'cognitive',verb,config, await?:config.await, result_key?:config.result_key|result|into}`.
+     SSOT alongside `compileCognitiveDispatch` in `CognitiveActions.ts` (export `BTNode`'s cognitive subset
+     as a type — it's currently `interface BTNode` internal to `BehaviorTreeTrait.ts:25`, so either export
+     it or define a structural `CognitiveBTNode`). **Land WITH its caller — not standalone (no dead code).**
+  2. **Materialize brain states → an executor (M, the real work, overlaps Phase 2.4):** brains with plain
+     `state{}` blocks are materialized into NEITHER a `behavior_tree` trait nor a `StateMachineNode` today.
+     The `StateMachineInterpreter` (engine, wired at `HoloScriptRuntime.ts:506-516` with an `onEntry`/`onExit`
+     hook executor + guard evaluator) is the natural target: materialize each brain `state` → a
+     `StateMachineNode` whose `onEntry` runs the state's `cognitiveActions` (via the bridge → emit the
+     dispatch events) and whose `transitions` map to the parsed `@when` guards. **Decision needed (2.4):**
+     state-machine-interpreter path vs synthesize a `behavior_tree` config.root sequence per state. The SM
+     path reuses more existing wiring (guards + onEntry already delegated to the interpreter).
+  3. **Caller for the executor:** whichever runtime owns the brain loop (per 2.4 — recommend folding the
+     `holoscript-agent` AgentRunner's signed board client in as runtime actions the materialized states call,
+     so ONE executor runs the brain end-to-end instead of the current two hardcoded loops).
+- **Why not landed this session:** peer-hot files (parser + engine), codebase graph (MCP) was down so
+  blast-radius couldn't be graph-verified, and a correct executor materialization is a multi-layer change
+  best done in small verified layers (W.729) — not a rushed end-of-long-turn edit. Spec'd to de-risk it.
 
 ## Anchors
 - npm runtime: `@holoscript/holoscript-agent` (`package.json` `private:true` — flip), bin `holoscript`→`packages/core/bin/holoscript.cjs`, `holoscript-runner.ts` (`runScript`:963, `daemonScript`:1795, focus rotation:1986)
