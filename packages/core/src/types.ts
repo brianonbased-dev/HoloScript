@@ -1458,7 +1458,7 @@ export interface UIElementState {
   enabled: boolean;
 }
 
-export type { TraitContext, TraitHandler } from './traits/TraitTypes';
+export type { TraitContext, TraitEvent, TraitHandler } from './traits/TraitTypes';
 export type {
   HoloObjectDecl,
   HoloTemplate,

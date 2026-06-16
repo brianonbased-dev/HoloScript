@@ -5,12 +5,21 @@ vi.mock('../logger.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-import { loadSkill, isAgent, applyDirectives, updateTraits } from '../skills-directives.js';
+import {
+  loadSkill,
+  isAgent,
+  applyDirectives,
+  updateTraits,
+  detachTraits,
+  dispatchTraitEvent,
+} from '../skills-directives.js';
 import { locomotionHandler } from '../../traits/LocomotionTrait.js';
 import type {
   LoadSkillContext,
   ApplyDirectivesContext,
   UpdateTraitsContext,
+  DetachTraitsContext,
+  DispatchTraitEventContext,
 } from '../skills-directives.js';
 
 // ──────────────────────────────────────────────────────────────────
@@ -425,5 +434,169 @@ describe('updateTraits', () => {
     ctx.variables.set('turner', orb as never);
     updateTraits(2451545.0, ctx);
     expect((orb as Record<string, unknown>).rotation).toEqual([0, 1.57, 0]);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────
+// detachTraits
+// ──────────────────────────────────────────────────────────────────
+
+function makeDetachCtx(): DetachTraitsContext {
+  return {
+    traitHandlers: new Map(),
+    emit: vi.fn(),
+    getCurrentScale: vi.fn().mockReturnValue(1),
+    getState: vi.fn().mockReturnValue({}),
+    setState: vi.fn(),
+  };
+}
+
+describe('detachTraits', () => {
+  it('is a no-op when directives is absent', () => {
+    const ctx = makeDetachCtx();
+    const onDetach = vi.fn();
+    ctx.traitHandlers.set('physics' as never, { onDetach } as never);
+    expect(() => detachTraits({ type: 'orb' } as never, ctx)).not.toThrow();
+    expect(onDetach).not.toHaveBeenCalled();
+  });
+
+  it('calls handler.onDetach for each trait directive', () => {
+    const ctx = makeDetachCtx();
+    const onDetach = vi.fn();
+    ctx.traitHandlers.set('physics' as never, { onDetach } as never);
+    const node = {
+      type: 'orb',
+      directives: [{ type: 'trait', name: 'physics', config: { mass: 1 } }],
+    };
+    detachTraits(node as never, ctx);
+    expect(onDetach).toHaveBeenCalledTimes(1);
+    const [, passedConfig] = onDetach.mock.calls[0];
+    expect(passedConfig).toEqual({ mass: 1 });
+  });
+
+  it('skips traits whose handler has no onDetach', () => {
+    const ctx = makeDetachCtx();
+    ctx.traitHandlers.set('glow' as never, { onUpdate: vi.fn() } as never);
+    const node = {
+      type: 'orb',
+      directives: [{ type: 'trait', name: 'glow' }],
+    };
+    expect(() => detachTraits(node as never, ctx)).not.toThrow();
+  });
+
+  it('skips non-trait directives', () => {
+    const ctx = makeDetachCtx();
+    const onDetach = vi.fn();
+    ctx.traitHandlers.set('state-trait' as never, { onDetach } as never);
+    const node = {
+      type: 'orb',
+      directives: [{ type: 'state', body: { x: 1 } }],
+    };
+    detachTraits(node as never, ctx);
+    expect(onDetach).not.toHaveBeenCalled();
+  });
+
+  it('calls onDetach for every trait when multiple are present', () => {
+    const ctx = makeDetachCtx();
+    const onDetachA = vi.fn();
+    const onDetachB = vi.fn();
+    ctx.traitHandlers.set('a' as never, { onDetach: onDetachA } as never);
+    ctx.traitHandlers.set('b' as never, { onDetach: onDetachB } as never);
+    const node = {
+      type: 'orb',
+      directives: [
+        { type: 'trait', name: 'a' },
+        { type: 'trait', name: 'b' },
+      ],
+    };
+    detachTraits(node as never, ctx);
+    expect(onDetachA).toHaveBeenCalledTimes(1);
+    expect(onDetachB).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────
+// dispatchTraitEvent
+// ──────────────────────────────────────────────────────────────────
+
+function makeDispatchCtx(): DispatchTraitEventContext {
+  return {
+    variables: new Map(),
+    traitHandlers: new Map(),
+    emit: vi.fn(),
+    getCurrentScale: vi.fn().mockReturnValue(1),
+    getState: vi.fn().mockReturnValue({}),
+    setState: vi.fn(),
+  };
+}
+
+describe('dispatchTraitEvent', () => {
+  it('calls handler.onEvent for every trait on every orb when no target given', () => {
+    const ctx = makeDispatchCtx();
+    const onEvent = vi.fn();
+    ctx.traitHandlers.set('interact' as never, { onEvent } as never);
+    ctx.variables.set('a', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
+    ctx.variables.set('b', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
+    dispatchTraitEvent({ type: 'grab_start' }, ctx);
+    expect(onEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it('limits dispatch to the named orb when targetOrbName is provided', () => {
+    const ctx = makeDispatchCtx();
+    const onEvent = vi.fn();
+    ctx.traitHandlers.set('interact' as never, { onEvent } as never);
+    ctx.variables.set('a', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
+    ctx.variables.set('b', { __type: 'orb', directives: [{ type: 'trait', name: 'interact' }] } as never);
+    dispatchTraitEvent({ type: 'grab_start' }, ctx, 'a');
+    expect(onEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the TraitEvent to the handler', () => {
+    const ctx = makeDispatchCtx();
+    const onEvent = vi.fn();
+    ctx.traitHandlers.set('touch' as never, { onEvent } as never);
+    ctx.variables.set('x', { __type: 'orb', directives: [{ type: 'trait', name: 'touch' }] } as never);
+    const event = { type: 'collision', payload: { force: 9.8 } };
+    dispatchTraitEvent(event, ctx);
+    const passedEvent = onEvent.mock.calls[0][3];
+    expect(passedEvent).toBe(event);
+  });
+
+  it('skips non-orb variables', () => {
+    const ctx = makeDispatchCtx();
+    const onEvent = vi.fn();
+    ctx.traitHandlers.set('touch' as never, { onEvent } as never);
+    ctx.variables.set('counter', 42 as never);
+    dispatchTraitEvent({ type: 'tick' }, ctx);
+    expect(onEvent).not.toHaveBeenCalled();
+  });
+
+  it('skips traits whose handler has no onEvent', () => {
+    const ctx = makeDispatchCtx();
+    ctx.traitHandlers.set('glow' as never, { onUpdate: vi.fn() } as never);
+    ctx.variables.set('x', { __type: 'orb', directives: [{ type: 'trait', name: 'glow' }] } as never);
+    expect(() => dispatchTraitEvent({ type: 'tick' }, ctx)).not.toThrow();
+  });
+
+  it('continues dispatching to other handlers when one throws', () => {
+    const ctx = makeDispatchCtx();
+    const bad = vi.fn().mockImplementation(() => { throw new Error('boom'); });
+    const good = vi.fn();
+    ctx.traitHandlers.set('bad' as never, { onEvent: bad } as never);
+    ctx.traitHandlers.set('good' as never, { onEvent: good } as never);
+    ctx.variables.set('x', {
+      __type: 'orb',
+      directives: [
+        { type: 'trait', name: 'bad' },
+        { type: 'trait', name: 'good' },
+      ],
+    } as never);
+    expect(() => dispatchTraitEvent({ type: 'tick' }, ctx)).not.toThrow();
+    expect(good).toHaveBeenCalledTimes(1);
+  });
+
+  it('is a no-op when there are no orbs', () => {
+    const ctx = makeDispatchCtx();
+    expect(() => dispatchTraitEvent({ type: 'tick' }, ctx)).not.toThrow();
   });
 });

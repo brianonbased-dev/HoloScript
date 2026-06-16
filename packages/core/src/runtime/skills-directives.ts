@@ -34,6 +34,7 @@ import type {
   ProceduralSkill,
   ReactiveState,
   TraitContext,
+  TraitEvent,
   TraitHandler,
   VRTraitName,
 } from '../types';
@@ -262,4 +263,104 @@ export function updateTraits(julianDate: number, ctx: UpdateTraitsContext): void
 
   // Reference unused import so tree-shaking preserves type compat.
   void (0 as unknown as HologramShape);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// detachTraits
+// ──────────────────────────────────────────────────────────────────
+
+/** Context for detachTraits — mirrors ApplyDirectivesContext minus expression eval. */
+export interface DetachTraitsContext {
+  traitHandlers: Map<VRTraitName, TraitHandler<Record<string, unknown>>>;
+  emit: (event: string, payload?: unknown) => void;
+  getCurrentScale: () => number;
+  getState: () => Record<string, HoloScriptValue>;
+  setState: (updates: Record<string, HoloScriptValue>) => void;
+}
+
+/**
+ * Invoke `handler.onDetach` for every trait directive on `node`.
+ * Call when an orb is being destroyed or a trait is explicitly removed.
+ * No-op if `node.directives` is absent or no directive has a handler with `onDetach`.
+ */
+export function detachTraits(node: ASTNode, ctx: DetachTraitsContext): void {
+  if (!node.directives) return;
+
+  for (const d of node.directives) {
+    if (d.type !== 'trait') continue;
+    const handler = ctx.traitHandlers.get(d.name as VRTraitName);
+    if (!handler?.onDetach) continue;
+
+    handler.onDetach(
+      node as unknown as HSPlusNode,
+      (d as unknown as { config?: Record<string, unknown> }).config || {},
+      {
+        emit: (event: string, payload: unknown) => ctx.emit(event, payload),
+        getScaleMultiplier: () => ctx.getCurrentScale() || 1,
+        getState: () => ctx.getState(),
+        setState: (updates: Record<string, HoloScriptValue>) => ctx.setState(updates),
+      } as unknown as TraitContext,
+    );
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// dispatchTraitEvent
+// ──────────────────────────────────────────────────────────────────
+
+/** Context for event dispatch — shares the variables map with updateTraits. */
+export interface DispatchTraitEventContext {
+  variables: Map<string, HoloScriptValue>;
+  traitHandlers: Map<VRTraitName, TraitHandler<Record<string, unknown>>>;
+  emit: (event: string, payload?: unknown) => void;
+  getCurrentScale: () => number;
+  getState: () => Record<string, HoloScriptValue>;
+  setState: (updates: Record<string, HoloScriptValue>) => void;
+}
+
+/**
+ * Route a `TraitEvent` to every trait handler that implements `onEvent`.
+ *
+ * When `targetOrbName` is provided, only the named orb receives the event.
+ * When omitted, the event is broadcast to all orbs in `ctx.variables` — useful
+ * for scene-wide signals (e.g. `game_start`, `scene_reset`, physics contacts).
+ *
+ * The function is synchronous and non-throwing: a handler that throws is caught
+ * and logged, so one bad handler cannot silence subsequent handlers.
+ */
+export function dispatchTraitEvent(
+  traitEvent: TraitEvent,
+  ctx: DispatchTraitEventContext,
+  targetOrbName?: string,
+): void {
+  for (const [name, value] of ctx.variables.entries()) {
+    if (targetOrbName !== undefined && name !== targetOrbName) continue;
+    if (!value || typeof value !== 'object') continue;
+    const orb = value as Record<string, unknown>;
+    if (orb.__type !== 'orb' || !orb.directives) continue;
+
+    for (const d of orb.directives as Array<Record<string, unknown>>) {
+      if (d.type !== 'trait') continue;
+      const handler = ctx.traitHandlers.get(d.name as VRTraitName);
+      if (!handler?.onEvent) continue;
+
+      try {
+        handler.onEvent(
+          orb as unknown as HSPlusNode,
+          (d.config as Record<string, unknown>) || {},
+          {
+            emit: (event: string, payload: unknown) => ctx.emit(event, payload),
+            getScaleMultiplier: () => ctx.getCurrentScale() || 1,
+            getState: () => ctx.getState(),
+            setState: (updates: Record<string, HoloScriptValue>) => ctx.setState(updates),
+          } as unknown as TraitContext,
+          traitEvent,
+        );
+      } catch (err) {
+        logger.warn(
+          `[dispatchTraitEvent] handler "${d.name as string}" on orb "${name}" threw: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
 }
