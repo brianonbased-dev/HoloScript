@@ -213,6 +213,20 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
     return { think: false };
   }
 
+  /**
+   * Ollama 0.30.x (qwen3): strips the <think> opener but leaves the thinking
+   * body + </think> closing tag inside message.content. Strip everything up to
+   * and including </think> so the returned content is the model's actual reply.
+   * When future Ollama separates thinking into message.thinking, content will
+   * arrive clean and this is a no-op.
+   */
+  private _stripThinkBlock(content: string): string {
+    const closeTag = '</think>';
+    const idx = content.indexOf(closeTag);
+    if (idx === -1) return content;
+    return content.slice(idx + closeTag.length).trimStart();
+  }
+
   private async completeNativeOllama(
     request: LLMCompletionRequest,
     model: string
@@ -273,7 +287,7 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
       return this.buildResponse(
         raw,
         model,
-        data.message?.content ?? '',
+        this._stripThinkBlock(data.message?.content ?? ''),
         data.message?.tool_calls ?? [],
         data.model,
         data.done_reason,
