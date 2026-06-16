@@ -45,6 +45,20 @@ NEVER  → Hand-author a NEW .tsx render/UI surface (page, panel, viewer).
          (D.095/D.096/W.715; RULED 2026-06-05, render-surface-native gate.)
 NEVER  → Hand-write .hs/.hsplus/.holo without calling suggest_traits first
 NEVER  → git add -A  or  git add .  (Windows: creates nul device file — BREAKS REPO)
+NEVER  → Put a secret LITERAL on a NON-git surface. Reading a token from .env and
+         placing it anywhere outside .env is a leak the git secret-scanners CANNOT
+         see (the recurring 5th/6th leak lived here). Three vectors:
+         (a) Railway: NEVER paste a token into registryCredentials or a raw env
+             value — reference a Railway MANAGED/SEALED variable by NAME. A plaintext
+             token there is readable by any holder of RAILWAY_API_TOKEN.
+         (b) Shell: NEVER inline a token literal in a command (it's echoed to the
+             transcript) — read it at runtime: TOKEN=$(grep '^X=' .env | cut -d= -f2).
+         (c) Capture: NEVER write raw error output (curl -v, Railway/Docker/CLI
+             errors, auth URLs) to a log/research/board file without scrubbing token
+             patterns first (W.721 — CLIs leak keys in error URLs).
+         Detect after-the-fact: node ~/.ai-ecosystem/scripts/railway-secret-audit.mjs
+         (the git scanners are structurally blind to all three). (F.106, 6th
+         occurrence root-caused 2026-06-16: prevention is a doctrine rule, not a tool.)
 NEVER  → Create UPPERCASE .md files in docs/ root (they go in docs/_archive/)
 NEVER  → Add doc pages without updating docs/.vitepress/config.ts sidebar
 NEVER  → Raw curl against /api/holomesh/team/* /knowledge /message /presence
