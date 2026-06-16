@@ -184,3 +184,11 @@ export {
   SensorRingBuffer,
   sensorSamplingHandler,
 } from '../traits/SensorSamplingTrait';
+
+// StagedMatter — provenance-preserving spatial consolidation (D.059, H2)
+export type {
+  DerivationEdge,
+  MatterManifest,
+  MatterUnit,
+} from '../matter/StagedMatter';
+export { consolidate, createMatterUnit } from '../matter/StagedMatter';

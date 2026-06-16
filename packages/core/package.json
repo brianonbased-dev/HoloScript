@@ -236,6 +236,11 @@
       "types": "./dist/traits/transaction.d.ts",
       "import": "./dist/traits/transaction.js",
       "require": "./dist/traits/transaction.cjs"
+    },
+    "./matter": {
+      "types": "./dist/matter/index.d.ts",
+      "import": "./dist/matter/index.js",
+      "require": "./dist/matter/index.cjs"
     }
   },
   "bin": {

@@ -153,6 +153,9 @@ export default defineConfig({
     // TransactionTrait — x402 ledger: pay/transfer/stake/unstake/deposit (H2)
     'traits/transaction': 'src/traits/TransactionTrait.ts',
 
+    // StagedMatter — provenance-preserving spatial consolidation (D.059, H2)
+    'matter/index': 'src/matter/StagedMatter.ts',
+
     // Shared compiler utilities (used by @holoscript/compiler-utils)
     'compiler/domain-block-utils': 'src/compiler/DomainBlockCompilerMixin.ts',
   },
