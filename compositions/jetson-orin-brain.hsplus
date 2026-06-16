@@ -1,0 +1,156 @@
+// ============================================================================
+// Jetson Orin Brain — sovereign edge inference + trace-producer node
+// Native HoloScript composition for the Jetson Orin Nano Super local AI node
+// (holojetson.local). Runs the real @holoscript/holoscript-agent AgentRunner
+// against the on-device model (qwen3:4b via Ollama), producing CAEL- and
+// SimulationContract-verified artifacts that feed HoloTune (D.086) on the fleet.
+//
+// Role (D.097 3-tier topology): TIER-0 local node — in-domain, tool-shaped
+// HoloScript tasks run here at $0 marginal token cost (D.098 cost-offload);
+// heavy reasoning / fine-tunes escalate to the fleet.
+//
+// Run (laptop → Jetson, no on-device monorepo needed):
+//   HOLOSCRIPT_AGENT_PROVIDER=local-llm \
+//   HOLOSCRIPT_AGENT_MODEL=qwen3:4b \
+//   HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=http://holojetson.local:11434 \
+//   node packages/holoscript-agent/dist/index.js tick
+// ============================================================================
+
+#version 6.0.0
+#target daemon
+#mode build
+
+// ── State ──
+
+state {
+  // Identity
+  agentId: null
+  agentName: "jetson-orin-01"
+  workspace: "HoloScript"
+  status: "idle"
+  domain: "robotics-edge"
+
+  // Hardware substrate (Tier-0)
+  deviceFamily: "jetson"
+  deviceModel: "Jetson Orin Nano Super 8GB"
+  runtime: "Ollama 0.30.8 (llama.cpp CUDA, JetPack 6.2.1)"
+  powerMode: "MAXN_SUPER"
+  localModel: "qwen3:4b"
+  endpoint: "http://holojetson.local:11434"
+
+  // Dispatch policy
+  prefers: "local"
+  escalateTo: "fleet"
+  budgetCapUSD: 0.0   // local inference = $0 marginal token cost
+
+  // Counters
+  cycles: 0
+  errors: 0
+  tasksClaimed: 0
+  tasksDone: 0
+  tracesEmitted: 0
+  hardwareReceiptsEmitted: 0
+  lastTickAt: null
+
+  // Inbox
+  unreadMessages: 0
+  processedMessageIds: []
+}
+
+// ── Computed ──
+
+computed {
+  isRegistered: $agentId != null
+  isRunning: $status == "running"
+  isLocalFirst: $prefers == "local"
+  hasDoneWork: $tasksDone > 0
+}
+
+// ── Traits (declared capabilities — drive board task routing) ──
+
+traits [
+  "local_inference",
+  "edge_node",
+  "holoscript_authoring",
+  "sovereign_agent",
+  "trace_producer",
+  "ros2_actuation"
+]
+
+// ── Capabilities (MCP / agent tools this node offers) ──
+
+capabilities {
+  // Author + validate HoloScript IR locally, escalate compile to MCP surface
+  author_holoscript: {
+    description: "Write a .holo/.hsplus composition and validate it via validate_holoscript MCP"
+    input: { spec: string, format: "auto" | "holo" | "hsplus" }
+    output: { code: string, isValid: boolean }
+  }
+
+  // Run an in-domain tool-shaped task on the local model (qwen3:4b)
+  local_tool_task: {
+    description: "Execute an in-domain HoloScript tool task on-device at $0 token cost"
+    input: { taskId: string }
+    output: { artifact: string, caelRecord: object }
+  }
+
+  // Emit a cross-hardware compilation receipt with measured Jetson numbers
+  emit_hardware_receipt: {
+    description: "Compile a target + run on Jetson + measure latency/power/memory (tegrastats) → CrossHardwareCompilationReceipt (CG-032)"
+    input: { exportTarget: string, holoSource: string }
+    output: { receipt: object }
+  }
+}
+
+// ── Directives ──
+
+directives {
+  // Tier-0 local-first dispatch (D.097 / D.098)
+  local_first: """
+    - Claim only in-domain, tool-shaped HoloScript tasks tagged for this node.
+    - Run them on the local model (qwen3:4b). Never spend frontier tokens for work
+      the local model handles.
+    - On compile-failure, malformed .holo, or artifact-gate failure → escalate the
+      task to the fleet rather than retrying locally past the confidence gate.
+  """
+
+  // Verified-trace production for HoloTune (D.086 / P.005)
+  trace_production: """
+    - Every completed task emits a CAEL hash-chained audit record (automatic via
+      AgentRunner) plus, where applicable, a SimulationContract receipt.
+    - These verifier-passed traces (fable5 code + SimulationContract + CAEL — NOT an
+      LLM judge) are the provenance-independent corpus HoloTune fine-tunes on.
+    - The node is a trace PRODUCER + inference SERVER, not a trainer (training is
+      fleet-gated; the Orin Nano is inference-only).
+  """
+
+  // Cross-hardware evidence (CG-032)
+  hardware_evidence: """
+    - As the first non-x86/non-fleet device family in the mesh, emit real measured
+      CrossHardwareCompilationReceipts (latency, powerDrawW via tegrastats,
+      peakMemoryBytes) — converting CG-032 from asserted architecture to measured data.
+  """
+
+  // Actuation safety (D.044 — pet-care robot beta target)
+  actuation_safety: """
+    - Any physical actuation MUST pass the gatedDispatch chain (evaluateActuation →
+      dispatch → TwinEarthReceipt). Set freshnessTtlMs=5000 for moving hardware.
+    - Stale sensor → action is a compile error (@freshnessBound). Never run over/harm the pet.
+  """
+}
+
+// ── Behaviors ──
+
+behavior on_start {
+  action init {
+    set $status = "running"
+    log "jetson-orin-01 online — Tier-0 sovereign edge node (qwen3:4b @ holojetson.local), local-first dispatch"
+  }
+}
+
+behavior on_tick {
+  action heartbeat {
+    set $cycles = $cycles + 1
+    set $lastTickAt = now()
+  }
+}
