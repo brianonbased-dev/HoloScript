@@ -191,4 +191,44 @@ behavior on_tick {
     set $cycles = $cycles + 1
     set $lastTickAt = now()
   }
+  // Check inbox on every tick so DMs/handoffs don't queue silently
+  recall { query: "unread inbox messages", limit: 3 }
+}
+
+// ── Task execution loop (W.736 cognitive dispatch) ──
+//
+// AgentRunner invokes on_task when a board task is claimed.
+// Each cognitive node dispatches to the EXACT trait that consumes its event:
+//   recall    → AgentMemoryTrait   (retrieves prior task context)
+//   rag_query → RAGKnowledgeTrait  (loads HoloScript syntax / domain rules)
+//   llm_call  → LLMAgentTrait      (runs on-device qwen3:4b via LocalLLMAdapter)
+//              └─ LocalLLMAdapter injects /no_think for qwen3 family (0.30.x workaround)
+//   reflect   → LLMAgentTrait      (self-evaluates artifact before CAEL emit)
+//
+// CognitiveActions.ts is the SSOT for verb→event mapping.
+
+behavior on_task {
+  // ① Context load — prevent re-doing work the agent already completed
+  recall    { query: "prior HoloScript tasks completed on this node", limit: 5 }
+  rag_query { query: "HoloScript .holo and .hsplus format rules and valid syntax" }
+
+  // ② Execution — dispatches to LLMAgentTrait → LocalLLMAdapter → holojetson.local:11434
+  //    qwen3:4b: /no_think injected automatically; think:false payload also sent.
+  //    tools surface write_file/read_file/list_dir/bash to the model.
+  llm_call {
+    prompt: "You are a HoloScript authoring agent running on a Jetson Orin Nano (Tier-0 sovereign edge node). Complete the assigned board task using the provided tools. ALWAYS call at least one tool — never reply with plain text only. Produce valid HoloScript output artifacts (.holo / .hsplus) when the task requires them.",
+    model: "qwen3:4b",
+    tools: ["write_file", "read_file", "list_dir", "bash"]
+  }
+
+  // ③ Self-evaluation — catches malformed .holo before CAEL emit
+  //    Failure here triggers escalation to fleet (local_first directive)
+  reflect { of: "the produced artifact", criteria: "correctness, completeness, valid HoloScript syntax" }
+
+  action complete {
+    set $tasksDone    = $tasksDone + 1
+    set $tasksClaimed = $tasksClaimed + 1
+    set $tracesEmitted = $tracesEmitted + 1
+    log "task complete — CAEL trace emitted by AgentRunner"
+  }
 }
