@@ -21,6 +21,7 @@ import type {
 } from '../types/AdvancedTypeSystem';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
 import type { VRTraitName } from '../types';
+import { isCognitiveVerb, type CognitiveVerb, type HoloCognitiveAction } from '../traits/cognitive/CognitiveActions';
 
 export type {
   ASTProgram,
@@ -32,6 +33,8 @@ export type {
   HSPlusTraitDirective,
   HSPlusTraitSumDirective,
   VRTraitName,
+  HoloCognitiveAction,
+  CognitiveVerb,
 };
 
 // =============================================================================
@@ -45,6 +48,12 @@ export interface HoloBrainState {
   transitions: Array<{ to: string; when?: string }>;
   /** Free-form action strings collected from the state body */
   actions: string[];
+  /**
+   * Typed cognitive operations authored inline in this state, e.g.
+   * `llm_call { prompt: "..." }`, `recall { query: "..." }`, `plan { ... }`.
+   * These dispatch to the real cognitive traits instead of an opaque string.
+   */
+  cognitiveActions?: HoloCognitiveAction[];
   /** Trait annotations found inside this state */
   traits: Record<string, unknown>;
 }
@@ -2960,6 +2969,26 @@ export class HoloScriptPlusParser {
               : this.check('LPAREN') ? this.parseTraitConfig()
               : {};
               brainState.traits[innerDir] = config;
+
+            } else if (this.check('IDENTIFIER') && isCognitiveVerb(this.current().value)) {
+              // Typed cognitive action — `llm_call { ... }`, `recall { ... }`,
+              // `rag_query { ... }`, `plan { ... }`, `reflect { ... }`. Dispatches
+              // to the real cognitive trait instead of an opaque action string.
+              const saved = this.pos;
+              const verb = this.advance().value as CognitiveVerb;
+              if (this.check('LBRACE')) {
+                const config = this.parseBlockContent() as Record<string, unknown>;
+                if (!brainState.cognitiveActions) brainState.cognitiveActions = [];
+                brainState.cognitiveActions.push({ kind: 'cognitive', verb, config });
+              } else {
+                // Bare verb with no config block — treat as a free-form action.
+                this.pos = saved;
+                const parts: string[] = [this.advance().value];
+                while (!this.check('NEWLINE') && !this.check('EOF') && !this.check('RBRACE')) {
+                  parts.push(this.advance().value);
+                }
+                brainState.actions.push(parts.join(' '));
+              }
 
             } else if (this.check('IDENTIFIER')) {
               // Treat as free-form action string — collect to end of line

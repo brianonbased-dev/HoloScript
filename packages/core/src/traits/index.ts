@@ -591,6 +591,9 @@ export {
   getCognitiveVMSnapshot,
 } from './pillar';
 
+// First-class cognitive action primitives (llm_call / recall / rag_query / plan / reflect)
+export * from './cognitive/CognitiveActions';
+
 // Edge device traits (generic + Jetson-specific)
 export * from './LocalInferenceTrait';
 export * from './EdgeNodeTrait';

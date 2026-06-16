@@ -9,6 +9,12 @@
 
 import type { TraitHandler, TraitContext } from './TraitTypes';
 import type { HSPlusNode } from '../types/HoloScriptPlus';
+import {
+  isCognitiveVerb,
+  compileCognitiveDispatch,
+  COGNITIVE_COMPLETE_TO_VERB,
+  type CognitiveVerb,
+} from './cognitive/CognitiveActions';
 
 // =============================================================================
 // TYPES
@@ -25,6 +31,7 @@ interface BTNode {
     | 'repeater'
     | 'condition'
     | 'action'
+    | 'cognitive'
     | 'wait';
   name?: string;
   children?: BTNode[];
@@ -35,6 +42,11 @@ interface BTNode {
   // For actions
   action?: string; // Action name to execute
   params?: Record<string, unknown>;
+  // For cognitive nodes — dispatch to a real cognitive trait (LLM/memory/RAG/planner)
+  verb?: CognitiveVerb;
+  config?: Record<string, unknown>; // Cognitive op config (prompt/query/state/...)
+  await?: boolean; // If true, block (running) until the trait's completion event
+  result_key?: string; // Blackboard key to receive the completion payload
   // For wait
   duration?: number; // Seconds to wait
   // For parallel
@@ -51,12 +63,20 @@ interface BTNodeState {
   pendingActionId?: string;
 }
 
+interface PendingCognitive {
+  requestId: string;
+  verb: CognitiveVerb;
+  resultKey?: string;
+}
+
 interface BTState {
   status: BTStatus;
   tickAccumulator: number;
   blackboard: Record<string, unknown>;
   nodeStates: Map<BTNode, BTNodeState>;
   actionResults: Map<string, BTStatus>;
+  /** Cognitive ops dispatched with `await: true`, awaiting their trait completion event. */
+  pendingCognitive: PendingCognitive[];
   isRunning: boolean;
   debug: { lastTick: number; nodesVisited: number };
 }
@@ -70,6 +90,18 @@ function normalizeActionResult(result: unknown): BTStatus | null {
 
 function createActionRequestId(actionName: string): string {
   return `bt:${actionName}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Resolve an awaiting cognitive op, marking its BT node success/failure. */
+function resolveCognitive(
+  state: BTState,
+  requestId: string,
+  status: BTStatus,
+  _result?: unknown
+): void {
+  state.actionResults.set(requestId, status);
+  const idx = state.pendingCognitive.findIndex((p) => p.requestId === requestId);
+  if (idx >= 0) state.pendingCognitive.splice(idx, 1);
 }
 
 interface BTConfig {
@@ -122,6 +154,8 @@ function tickNode(
       return tickCondition(node, state, context, owner);
     case 'action':
       return tickAction(node, nodeState, state, context, owner, delta);
+    case 'cognitive':
+      return tickCognitive(node, nodeState, state, context, owner);
     case 'wait':
       return tickWait(node, nodeState, delta);
     default:
@@ -383,6 +417,58 @@ function tickAction(
   return pending;
 }
 
+/**
+ * Cognitive node — dispatches a first-class cognitive operation (llm_call /
+ * recall / rag_query / plan / reflect) to the real cognitive trait by emitting
+ * the exact event that trait consumes. By default it is fire-and-forget
+ * (returns `success` once dispatched); the brain's state machine reacts to the
+ * result via `@when` guards on blackboard values, matching the existing model.
+ * With `await: true` it returns `running` until the trait's completion event
+ * arrives (or an explicit `cognitive:result` with the matching requestId).
+ */
+function tickCognitive(
+  node: BTNode,
+  nodeState: BTNodeState,
+  state: BTState,
+  context: TraitContext,
+  owner: unknown
+): BTStatus {
+  const verb = node.verb;
+  if (!verb || !isCognitiveVerb(verb)) return 'failure';
+
+  if (!nodeState.pendingActionId) {
+    const requestId = createActionRequestId(`cognitive:${verb}`);
+    const { event, payload } = compileCognitiveDispatch(
+      { kind: 'cognitive', verb, config: node.config ?? node.params ?? {} },
+      requestId,
+      owner
+    );
+
+    // Emit the real trait event (actuates LLMAgentTrait / AgentMemoryTrait / etc.)
+    context.emit?.(event, payload);
+    // Also emit a uniform cognitive:request signal for observers/telemetry.
+    context.emit?.('cognitive:request', { owner, verb, requestId, config: node.config ?? node.params ?? {} });
+
+    if (!node.await) {
+      // Fire-and-forget: the operation is dispatched; the tree proceeds.
+      return 'success';
+    }
+
+    nodeState.pendingActionId = requestId;
+    state.pendingCognitive.push({ requestId, verb, resultKey: node.result_key });
+    return 'running';
+  }
+
+  // Awaiting the trait completion event (resolved in onEvent).
+  const pending = state.actionResults.get(nodeState.pendingActionId);
+  if (!pending || pending === 'running') {
+    return 'running';
+  }
+  state.actionResults.delete(nodeState.pendingActionId);
+  nodeState.pendingActionId = undefined;
+  return pending;
+}
+
 function tickWait(node: BTNode, nodeState: BTNodeState, delta: number): BTStatus {
   nodeState.waitTimer += delta;
   const duration = node.duration ?? 1;
@@ -416,6 +502,7 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
       blackboard: { ...config.blackboard },
       nodeStates: new Map(),
       actionResults: new Map(),
+      pendingCognitive: [],
       isRunning: true,
       debug: { lastTick: 0, nodesVisited: 0 },
     };
@@ -483,12 +570,29 @@ export const behaviorTreeHandler: TraitHandler<BTConfig> = {
           state.actionResults.set(requestId, status);
         }
       }
+    } else if (event.type === 'cognitive:result') {
+      // Explicit resolution carrying the originating requestId.
+      const requestId = typeof event.requestId === 'string' ? event.requestId : undefined;
+      if (requestId) {
+        resolveCognitive(state, requestId, normalizeActionResult(event.status ?? event.success) ?? 'success', event.result);
+      }
+    } else if (COGNITIVE_COMPLETE_TO_VERB[event.type]) {
+      // A real trait completion event (llm_message / memory_recalled / etc.).
+      // Resolve the oldest awaiting cognitive op of a matching verb.
+      const verbs = COGNITIVE_COMPLETE_TO_VERB[event.type];
+      const idx = state.pendingCognitive.findIndex((p) => verbs.includes(p.verb));
+      if (idx >= 0) {
+        const pending = state.pendingCognitive.splice(idx, 1)[0];
+        resolveCognitive(state, pending.requestId, 'success', event);
+        if (pending.resultKey) state.blackboard[pending.resultKey] = event;
+      }
     } else if (event.type === 'bt_pause') {
       state.isRunning = false;
     } else if (event.type === 'bt_resume') {
       state.isRunning = true;
     } else if (event.type === 'bt_reset') {
       state.nodeStates.clear();
+      state.pendingCognitive.length = 0;
       state.status = 'running';
       state.isRunning = true;
     }
