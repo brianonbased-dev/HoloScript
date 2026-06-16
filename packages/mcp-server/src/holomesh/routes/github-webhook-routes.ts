@@ -149,9 +149,19 @@ export async function handleGithubWebhookRoutes(
   const pusher = String(body.pusher?.name || 'unknown');
   const commitMsg = (body.head_commit?.message || '').split('\n')[0].slice(0, 72);
 
-  // Only dispatch for pushes to the default branch
-  if (ref !== 'refs/heads/main' && ref !== 'refs/heads/master') {
-    json(res, 200, { ok: true, skipped: true, reason: `ref "${ref}" is not main/master` });
+  // Dispatch for pushes to the default branch AND to cloud-agent branches (claude/*, codex/*).
+  // Cloud sessions are push-gated off main (F.114), so their work lands on these branches and
+  // was previously NEVER validated (W.725) — the founder's Windows-only seat was the only thing
+  // that detected + cross-platform-validated them by hand. Validating on push closes that gap
+  // (the cross-platform-paths gate + type-check + lockfile catch the bugs that stranded them).
+  const isDefaultBranch = ref === 'refs/heads/main' || ref === 'refs/heads/master';
+  const isCloudBranch = /^refs\/heads\/(claude|codex)\//.test(ref);
+  if (!isDefaultBranch && !isCloudBranch) {
+    json(res, 200, {
+      ok: true,
+      skipped: true,
+      reason: `ref "${ref}" is not main/master or a cloud-agent branch (claude/*, codex/*)`,
+    });
     return true;
   }
 
