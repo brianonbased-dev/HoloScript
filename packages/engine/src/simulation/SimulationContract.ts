@@ -554,7 +554,9 @@ export interface SimulationProvenance {
   finalStats: Record<string, unknown>;
   /** Contract violations found at construction time, including CAEL reason codes when available. */
   contractViolations?: ContractViolation[];
-  /** True when no error-severity contract violations were found. */
+  /** Semantic-clause violations (precondition/invariant/postcondition) — the proof witness. */
+  clauseViolations?: ClauseViolation[];
+  /** True when no error-severity structural OR clause violations were found. */
   verified?: boolean;
   /** Whether the simulation is deterministically reproducible */
   deterministic: boolean;
@@ -784,6 +786,108 @@ export interface ContractViolation {
   code?: string;
 }
 
+// ============================================================================
+// CONTRACT CLAUSES — the language stating WHAT a run must prove (H1 keystone).
+//
+// Today a green receipt proves a run HAPPENED, not that it was RIGHT. A clause
+// is a TYPED, FALSIFIABLE assertion over the solver's fields and the frozen
+// config, evaluated at a lifecycle moment and CARRIED INTO the receipt as the
+// proof witness:
+//   - precondition  — gates construction (a violation throws before any step).
+//   - invariant     — runs inside step()/asyncStep() at a declared cadence.
+//   - postcondition — runs at getProvenance() (finalization).
+//
+// A clause that always returns true is fake proof — the deepest poison this
+// machinery exists to prevent — so every evaluator is checked at construction
+// by guardClauseFalsifiability() and SHOULD ship with a known-fail test case.
+// Clauses are OPT-IN: a contract with no clauses behaves exactly as before.
+// ============================================================================
+
+export type ClauseKind = 'precondition' | 'invariant' | 'postcondition';
+
+/** The read-only surface a clause evaluator may observe — solver fields + config + time. */
+export interface ClauseContext {
+  /** Named field snapshot via the solver (same surface computeStateDigest reads). */
+  getField(name: string): FieldData | null;
+  /** The frozen contract config. */
+  config: Readonly<Record<string, unknown>>;
+  /** Current simulation time in seconds. */
+  simTime: number;
+  /** Fixed sub-steps elapsed at evaluation time. */
+  stepCount: number;
+}
+
+/** A clause evaluator returns true when the clause HOLDS, false when VIOLATED. */
+export type ClauseEvaluator = (ctx: ClauseContext) => boolean;
+
+export interface ContractClause {
+  /** Stable identifier — appears in violation messages and the receipt witness. */
+  id: string;
+  kind: ClauseKind;
+  /** What this clause asserts (the evaluator's semantics must match this). */
+  description: string;
+  /** Typed evaluator over ClauseContext. Must read at least one ctx field (guard-enforced). */
+  evaluate: ClauseEvaluator;
+  /** For invariants: evaluate every N fixed sub-steps (default 1). Ignored otherwise. */
+  cadence?: number;
+  /** Violation severity. 'error' (default) blocks verified=true; 'warning' does not. */
+  severity?: 'error' | 'warning';
+}
+
+export interface ClauseViolation {
+  clauseId: string;
+  kind: ClauseKind;
+  /** Mirrors ContractViolation.rule (= clauseId) for uniform downstream handling. */
+  rule: string;
+  message: string;
+  severity: 'error' | 'warning';
+  simTime?: number;
+  stepCount?: number;
+  /** CAEL reason code, e.g. CAEL-CLAUSE-001. */
+  code?: string;
+}
+
+/** The clause proof witness carried into the simulation receipt. */
+export interface ClauseWitness {
+  clauses: Array<{ id: string; kind: ClauseKind; description: string }>;
+  violations: ClauseViolation[];
+  /** True iff zero error-severity clause violations occurred. */
+  verified: boolean;
+}
+
+/**
+ * Falsifiability guard — rejects clause evaluators that are structurally
+ * always-true (fake proof). Runs at construction, before any clause is accepted.
+ *
+ * Two static checks over the evaluator source (`.toString()`):
+ *   1. Bare literal — `(ctx) => true` / `() => 1` — the most common fake.
+ *   2. No-context read — the evaluator references none of ctx.getField /
+ *      ctx.config / ctx.simTime / ctx.stepCount, so it cannot depend on (and
+ *      therefore cannot be falsified by) simulation state.
+ *
+ * Limitation: only catches syntactically obvious always-true evaluators
+ * (a determined author can write `ctx => { ctx.getField('x'); return true; }`).
+ * The behavioral layer of the guard is the test suite: every production clause
+ * SHOULD ship a known-fail case proving a real violation flips verified=false.
+ */
+export function guardClauseFalsifiability(clause: ContractClause): void {
+  const src = clause.evaluate.toString();
+  if (/=>\s*(true|false|1|0)\s*;?\s*}?\s*$/.test(src.replace(/\s+/g, ' ').trim())) {
+    throw new Error(
+      `[SimulationContract] Clause "${clause.id}" is trivially constant ` +
+        `(evaluator returns a bare boolean/number literal). Every clause must express a ` +
+        `genuine constraint over solver fields or config — fake proof is refused.`
+    );
+  }
+  if (!/ctx\.(getField|config|simTime|stepCount)/.test(src)) {
+    throw new Error(
+      `[SimulationContract] Clause "${clause.id}" reads nothing from ClauseContext ` +
+        `(ctx.getField / ctx.config / ctx.simTime / ctx.stepCount). An evaluator that ` +
+        `ignores simulation state is always-true or always-false — neither is a real proof.`
+    );
+  }
+}
+
 export interface ContractConfig {
   /** Fixed timestep in seconds (default: auto from solver CFL) */
   fixedDt?: number;
@@ -804,6 +908,14 @@ export interface ContractConfig {
   logInteractions?: boolean;
   /** Solver type label */
   solverType?: string;
+  /**
+   * Semantic contract clauses — typed preconditions/invariants/postconditions
+   * over solver fields + config. Opt-in: absent → behavior unchanged. Each
+   * evaluator is checked for fake-proof at construction (guardClauseFalsifiability).
+   * Preconditions gate construction; invariants run during step() at their
+   * cadence; postconditions run at getProvenance(). Carried into the receipt.
+   */
+  clauses?: ContractClause[];
   /**
    * Continuation link (receipt chaining): declare that this run continues from a
    * prior run, seeding from that run's final state. Recorded into
@@ -1688,6 +1800,10 @@ export class ContractedSimulation {
   private config: Record<string, unknown>;
   private solverType: string;
   private violations: ContractViolation[] = [];
+  /** Frozen clause definitions accepted at construction (after the falsifiability guard). */
+  private clauseDefs: readonly ContractClause[] = [];
+  /** Clause violations accumulated across precondition/invariant/postcondition evaluation. */
+  private clauseViolations: ClauseViolation[] = [];
   private startTime = 0;
   private logInteractions: boolean;
   /** Continuation link declared at construction (receipt chaining). */
@@ -1946,6 +2062,22 @@ export class ContractedSimulation {
     const dt = contractConfig.fixedDt ?? 0.001;
     this.stepper = new DeterministicStepper(dt, contractConfig.maxAccumulator);
     this.startTime = performance.now();
+
+    // Semantic clauses (opt-in). Guard each evaluator against fake-proof, freeze
+    // the set, then evaluate preconditions immediately — an error-severity
+    // precondition violation is fatal, exactly like a geometry-integrity failure.
+    if (contractConfig.clauses && contractConfig.clauses.length > 0) {
+      for (const clause of contractConfig.clauses) guardClauseFalsifiability(clause);
+      this.clauseDefs = Object.freeze([...contractConfig.clauses]);
+      this.evaluateClauses('precondition');
+      if (this.hasClauseErrors()) {
+        const msgs = this.clauseViolations
+          .filter((v) => v.severity === 'error' && v.kind === 'precondition')
+          .map((v) => `${v.clauseId}: ${v.message}`)
+          .join('; ');
+        throw new Error(`[SimulationContract] Precondition violation(s): ${msgs}`);
+      }
+    }
   }
 
   /** Advance the simulation by wall-clock delta using fixed timestep.
@@ -1962,6 +2094,7 @@ export class ContractedSimulation {
       // with a different wallDelta but the same inner-dt sequence must
       // produce the same digest sequence.
       this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
+      this.runInvariantClauses();
     });
     return subStepsTaken;
   }
@@ -2002,6 +2135,7 @@ export class ContractedSimulation {
 
       // CPU-side Route 2b digest (unchanged from synchronous step)
       this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
+      this.runInvariantClauses();
     });
 
     return subStepsTaken;
@@ -2149,11 +2283,137 @@ export class ContractedSimulation {
     return this.violations.some((v) => v.severity === 'error');
   }
 
+  /** Whether any error-severity clause violations have been accumulated. */
+  private hasClauseErrors(): boolean {
+    return this.clauseViolations.some((v) => v.severity === 'error');
+  }
+
+  /**
+   * Build a ClauseContext snapshot from the current solver + stepper state.
+   * The context is read-only from the clause's perspective — it delegates
+   * field reads to the solver and exposes the frozen contract config.
+   */
+  private buildClauseContext(): ClauseContext {
+    const solver = this.solver;
+    const config = this.config;
+    const simTime = this.stepper.getSimTime();
+    const stepCount = this.stepper.getStepCount();
+    return {
+      getField: (name: string): FieldData | null => solver.getField(name),
+      config: config as Readonly<Record<string, unknown>>,
+      simTime,
+      stepCount,
+    };
+  }
+
+  /**
+   * Evaluate all clauses of a given kind, recording violations.
+   * Called for 'precondition' at construction and 'postcondition' at finalization.
+   * Invariant evaluation is handled separately by `runInvariantClauses()`.
+   */
+  private evaluateClauses(kind: ClauseKind): void {
+    const ctx = this.buildClauseContext();
+    for (const clause of this.clauseDefs) {
+      if (clause.kind !== kind) continue;
+      let holds: boolean;
+      try {
+        holds = clause.evaluate(ctx);
+      } catch (err) {
+        // Treat an evaluator error as a violation so the simulation cannot
+        // silently proceed with an unevaluated clause.
+        this.clauseViolations.push({
+          clauseId: clause.id,
+          kind,
+          rule: clause.id,
+          message: `Evaluator threw: ${err instanceof Error ? err.message : String(err)}`,
+          severity: clause.severity ?? 'error',
+          simTime: ctx.simTime,
+          stepCount: ctx.stepCount,
+          code: 'CAEL-CLAUSE-EVAL-ERROR',
+        });
+        continue;
+      }
+      if (!holds) {
+        this.clauseViolations.push({
+          clauseId: clause.id,
+          kind,
+          rule: clause.id,
+          message: `${kind} "${clause.id}" violated: ${clause.description}`,
+          severity: clause.severity ?? 'error',
+          simTime: ctx.simTime,
+          stepCount: ctx.stepCount,
+          code: `CAEL-CLAUSE-${kind.toUpperCase().slice(0, 3)}-001`,
+        });
+      }
+    }
+  }
+
+  /**
+   * Run invariant clauses for the current sub-step.
+   * Each invariant declares an optional `cadence` (evaluate every N steps).
+   * Cadence defaults to 1 (evaluate on every sub-step).
+   */
+  private runInvariantClauses(): void {
+    if (this.clauseDefs.length === 0) return;
+    const ctx = this.buildClauseContext();
+    const currentStep = ctx.stepCount;
+    for (const clause of this.clauseDefs) {
+      if (clause.kind !== 'invariant') continue;
+      const cadence = clause.cadence ?? 1;
+      // The stepper calls the step callback BEFORE incrementing stepCount,
+      // so `currentStep` is 0 on the first sub-step, 1 on the second, etc.
+      // (1-indexed sub-step number = currentStep + 1). Evaluate when the
+      // 1-indexed step number is a multiple of cadence: i.e. (currentStep + 1) % cadence === 0.
+      if ((currentStep + 1) % cadence !== 0) continue;
+      let holds: boolean;
+      try {
+        holds = clause.evaluate(ctx);
+      } catch (err) {
+        this.clauseViolations.push({
+          clauseId: clause.id,
+          kind: 'invariant',
+          rule: clause.id,
+          message: `Invariant evaluator threw at step ${currentStep + 1}: ${err instanceof Error ? err.message : String(err)}`,
+          severity: clause.severity ?? 'error',
+          simTime: ctx.simTime,
+          stepCount: currentStep,
+          code: 'CAEL-CLAUSE-EVAL-ERROR',
+        });
+        continue;
+      }
+      if (!holds) {
+        this.clauseViolations.push({
+          clauseId: clause.id,
+          kind: 'invariant',
+          rule: clause.id,
+          message: `Invariant "${clause.id}" violated at step ${currentStep + 1} (t=${ctx.simTime.toExponential(4)}s): ${clause.description}`,
+          severity: clause.severity ?? 'error',
+          simTime: ctx.simTime,
+          stepCount: currentStep + 1,
+          code: 'CAEL-CLAUSE-INV-001',
+        });
+      }
+    }
+  }
+
+  /**
+   * Evaluate postcondition clauses exactly once at finalization.
+   * Guards against double-evaluation on repeated `getProvenance()` calls.
+   */
+  private postconditionsEvaluated = false;
+  private evaluatePostconditionsOnce(): void {
+    if (this.postconditionsEvaluated || this.clauseDefs.length === 0) return;
+    this.postconditionsEvaluated = true;
+    this.evaluateClauses('postcondition');
+  }
+
   /**
    * Generate the full provenance record for this simulation.
    * This is what makes it scientifically citable.
    */
   getProvenance(): SimulationProvenance {
+    // Postconditions run once, at finalization, before the witness is read.
+    this.evaluatePostconditionsOnce();
     return {
       runId: this.runId,
       geometryHash: this.geometryHash,
@@ -2172,7 +2432,8 @@ export class ContractedSimulation {
       interactions: this.interactions,
       finalStats: this.solver.getStats(),
       contractViolations: this.violations.slice(),
-      verified: !this.hasErrors(),
+      clauseViolations: this.clauseViolations.slice(),
+      verified: !this.hasErrors() && !this.hasClauseErrors(),
       deterministic: true,
       platformVersion: '6.1.0',
       createdAt: new Date().toISOString(),

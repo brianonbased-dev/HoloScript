@@ -11,7 +11,9 @@ import {
   DeterministicStepper,
   ContractedSimulation,
   computeAdapterFingerprint,
+  guardClauseFalsifiability,
   type AdapterInfo,
+  type ContractClause,
   acceptsCrossScale,
   coarsestCommonScale,
   verifyContinuationChain,
@@ -1709,5 +1711,291 @@ describe('Receipt Chaining', () => {
     const replay = second.createReplay();
     expect(replay.continuesFrom).toBeDefined();
     expect(replay.continuesFrom?.fromRunId).toBe(first.getRunId());
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// Contract Clauses — semantic proof witnesses (H1 keystone)
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('Contract Clauses', () => {
+  // Minimal solver whose getField returns a controllable scalar.
+  function clauseSolver(fieldVal = 1.0): SimSolver & { fieldVal: number } {
+    return {
+      mode: 'transient',
+      fieldNames: ['pressure'],
+      fieldVal,
+      step() {},
+      solve() {},
+      getField(): FieldData | null {
+        return new Float32Array([this.fieldVal]);
+      },
+      getStats() {
+        return {};
+      },
+      dispose() {},
+    };
+  }
+
+  // ── guardClauseFalsifiability ────────────────────────────────────────
+
+  describe('guardClauseFalsifiability', () => {
+    it('accepts a genuine evaluator that reads simTime', () => {
+      const clause: ContractClause = {
+        id: 'c1',
+        kind: 'precondition',
+        description: 'simTime must be zero at start',
+        evaluate: (ctx) => ctx.simTime === 0,
+      };
+      expect(() => guardClauseFalsifiability(clause)).not.toThrow();
+    });
+
+    it('accepts a genuine evaluator that reads a field', () => {
+      const clause: ContractClause = {
+        id: 'c2',
+        kind: 'postcondition',
+        description: 'pressure must be positive',
+        evaluate: (ctx) => {
+          const f = ctx.getField('pressure');
+          return f !== null && (f as Float32Array)[0] > 0;
+        },
+      };
+      expect(() => guardClauseFalsifiability(clause)).not.toThrow();
+    });
+
+    it('rejects a bare-literal evaluator (always-true fake)', () => {
+      const clause: ContractClause = {
+        id: 'fake',
+        kind: 'invariant',
+        description: 'fake proof',
+        evaluate: (_ctx) => true,
+      };
+      expect(() => guardClauseFalsifiability(clause)).toThrow(/trivially constant/);
+    });
+
+    it('rejects an evaluator that reads nothing from ctx', () => {
+      let x = 0;
+      const clause: ContractClause = {
+        id: 'blind',
+        kind: 'invariant',
+        description: 'does not read ctx',
+        evaluate: (_ctx) => ++x > 0,
+      };
+      expect(() => guardClauseFalsifiability(clause)).toThrow(/reads nothing from ClauseContext/);
+    });
+  });
+
+  // ── Precondition ────────────────────────────────────────────────────
+
+  describe('precondition', () => {
+    it('a passing precondition does not block construction', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'pre-pass',
+        kind: 'precondition',
+        description: 'pressure field must exist',
+        evaluate: (ctx) => ctx.getField('pressure') !== null,
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      expect(
+        () => new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] })
+      ).not.toThrow();
+    });
+
+    it('a failing error-severity precondition throws at construction', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'pre-fail',
+        kind: 'precondition',
+        description: 'stepCount must be -1 (impossible — proves the clause fires)',
+        evaluate: (ctx) => ctx.stepCount < 0,
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      expect(
+        () => new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] })
+      ).toThrow(/Precondition violation/);
+    });
+
+    it('a failing warning-severity precondition does not throw but is recorded', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'pre-warn',
+        kind: 'precondition',
+        description: 'stepCount must be -1 (warning — allows construction)',
+        evaluate: (ctx) => ctx.stepCount < 0,
+        severity: 'warning',
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      const prov = sim.getProvenance();
+      expect(prov.clauseViolations).toBeDefined();
+      expect(prov.clauseViolations!.length).toBe(1);
+      expect(prov.clauseViolations![0].kind).toBe('precondition');
+      expect(prov.clauseViolations![0].severity).toBe('warning');
+      // warning does not flip verified to false
+      expect(prov.verified).toBe(true);
+    });
+  });
+
+  // ── Invariant ───────────────────────────────────────────────────────
+
+  describe('invariant', () => {
+    it('a passing invariant accumulates no violations', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'inv-pass',
+        kind: 'invariant',
+        description: 'pressure field always exists',
+        evaluate: (ctx) => ctx.getField('pressure') !== null,
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      sim.step(0.05); // 5 sub-steps
+      const prov = sim.getProvenance();
+      expect(prov.clauseViolations!.length).toBe(0);
+      expect(prov.verified).toBe(true);
+    });
+
+    it('a failing invariant records a violation and sets verified=false', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'inv-fail',
+        kind: 'invariant',
+        description: 'stepCount must always be negative (impossible — proves violation fires)',
+        evaluate: (ctx) => ctx.stepCount < 0,
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      sim.step(0.05);
+      const prov = sim.getProvenance();
+      expect(prov.clauseViolations!.length).toBeGreaterThan(0);
+      expect(prov.clauseViolations!.every((v) => v.kind === 'invariant')).toBe(true);
+      expect(prov.verified).toBe(false);
+    });
+
+    it('cadence=3 evaluates every 3rd sub-step (not every step)', () => {
+      const solver = clauseSolver(1.0);
+      let callCount = 0;
+      const clause: ContractClause = {
+        id: 'inv-cadence',
+        kind: 'invariant',
+        description: 'counts evaluations to verify cadence',
+        cadence: 3,
+        evaluate: (ctx) => {
+          callCount++;
+          return ctx.simTime >= 0;
+        },
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      // 10 sub-steps (1-indexed: 1..10): cadence=3 fires at steps 3, 6, 9 → 3 times.
+      // Use 0.10 not 0.09: floating-point accumulation of 0.09 yields only 8 sub-steps
+      // (0.09 - 8*0.01 ≈ 1e-17 < 0.01). 0.10 / 0.01 = 10 exactly.
+      // Note: stepper calls the callback BEFORE incrementing stepCount, so the
+      // 1-indexed sub-step number = getStepCount() + 1 inside the callback.
+      sim.step(0.1);
+      expect(callCount).toBe(3);
+    });
+  });
+
+  // ── Postcondition ────────────────────────────────────────────────────
+
+  describe('postcondition', () => {
+    it('a passing postcondition keeps verified=true', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'post-pass',
+        kind: 'postcondition',
+        description: 'simTime must be positive after any run',
+        evaluate: (ctx) => ctx.simTime > 0,
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      sim.step(0.05);
+      const prov = sim.getProvenance();
+      expect(prov.clauseViolations!.length).toBe(0);
+      expect(prov.verified).toBe(true);
+    });
+
+    it('a failing postcondition records a violation and sets verified=false', () => {
+      const solver = clauseSolver(1.0);
+      const clause: ContractClause = {
+        id: 'post-fail',
+        kind: 'postcondition',
+        description: 'simTime must be negative (impossible — proves postcondition fires)',
+        evaluate: (ctx) => ctx.simTime < 0,
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      sim.step(0.05);
+      const prov = sim.getProvenance();
+      expect(prov.clauseViolations!.length).toBe(1);
+      expect(prov.clauseViolations![0].kind).toBe('postcondition');
+      expect(prov.verified).toBe(false);
+    });
+
+    it('getProvenance() called twice does not double-evaluate postconditions', () => {
+      const solver = clauseSolver(1.0);
+      let evaluations = 0;
+      const clause: ContractClause = {
+        id: 'post-once',
+        kind: 'postcondition',
+        description: 'counts evaluations to verify once-only',
+        evaluate: (ctx) => {
+          evaluations++;
+          return ctx.simTime >= 0;
+        },
+      };
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01, clauses: [clause] });
+      sim.step(0.05);
+      sim.getProvenance();
+      sim.getProvenance();
+      expect(evaluations).toBe(1);
+    });
+  });
+
+  // ── No-clause backward compatibility ─────────────────────────────────
+
+  describe('backward compatibility (no clauses)', () => {
+    it('clauseViolations is an empty array when no clauses are configured', () => {
+      const solver = clauseSolver(1.0);
+      const geo = {
+        vertices: new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]),
+        elements: new Uint32Array([0, 1, 2, 3]),
+      };
+      const sim = new ContractedSimulation(solver, geo, { fixedDt: 0.01 });
+      sim.step(0.05);
+      const prov = sim.getProvenance();
+      expect(prov.clauseViolations).toEqual([]);
+      expect(prov.verified).toBe(true);
+    });
   });
 });
