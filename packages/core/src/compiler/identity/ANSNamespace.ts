@@ -1,7 +1,7 @@
 /**
  * HoloScript Agent Namespace Schema (ANS)
  *
- * Defines capability namespace constants for all 31 HoloScript compilers.
+ * Defines capability namespace constants for all HoloScript compilers.
  * Each compiler maps to an ANS capability path using the pattern:
  *
  *   /compile/DOMAIN/TARGET
@@ -25,9 +25,6 @@
 // Domain Definitions
 // ---------------------------------------------------------------------------
 
-/**
- * All 13 HoloScript compiler domains plus 2 meta/utility domains.
- */
 export const ANSDomain = {
   GAMEDEV: 'gamedev',
   SOCIAL_VR: 'social-vr',
@@ -45,6 +42,7 @@ export const ANSDomain = {
   META: 'meta',
   MIXIN: 'mixin',
   EDGE: 'edge',
+  WEB2D: 'web2d',
 } as const;
 
 export type ANSDomainValue = (typeof ANSDomain)[keyof typeof ANSDomain];
@@ -87,6 +85,8 @@ export type ANSRiskTierValue = (typeof ANSRiskTier)[keyof typeof ANSRiskTier];
  * - neuromorphic: HIGH — compiles to neuromorphic hardware (Loihi 2, SpiNNaker 2, SynSense)
  * - meta: STANDARD — meta-compilation (incremental, multi-layer, state, traits)
  * - mixin: STANDARD — shared compilation utilities
+ * - edge: HIGH — executes on physical edge hardware with network/device access (Jetson, IoT nodes)
+ * - web2d: STANDARD — generates sovereign 2D vector output (SVG), no device or network access
  */
 export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, ANSRiskTierValue>> = {
   [ANSDomain.GAMEDEV]: ANSRiskTier.STANDARD,
@@ -105,6 +105,7 @@ export const DOMAIN_RISK_TIERS: Readonly<Record<ANSDomainValue, ANSRiskTierValue
   [ANSDomain.META]: ANSRiskTier.STANDARD,
   [ANSDomain.MIXIN]: ANSRiskTier.STANDARD,
   [ANSDomain.EDGE]: ANSRiskTier.HIGH,
+  [ANSDomain.WEB2D]: ANSRiskTier.STANDARD,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -296,9 +297,6 @@ export const ANSCapabilityPath = {
 
 export type ANSCapabilityPathValue = (typeof ANSCapabilityPath)[keyof typeof ANSCapabilityPath];
 
-// web2d domain (sovereign 2D vector output — no third-party engine required)
-export const ANSDomainWeb2D = 'web2d' as const;
-
 // ---------------------------------------------------------------------------
 // Compiler-to-Domain Mapping
 // ---------------------------------------------------------------------------
@@ -366,7 +364,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   // studio
   'code-editor': ANSDomain.META,
   // web2d — sovereign 2D vector output; no third-party engine required
-  svg: ANSDomain.INTERCHANGE,
+  svg: ANSDomain.WEB2D,
   // edge — Ollama-capable edge device deployment bundle
   edge: ANSDomain.EDGE,
 } as const;
