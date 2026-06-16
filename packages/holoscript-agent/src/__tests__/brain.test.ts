@@ -54,11 +54,31 @@ describe('loadBrain', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('captures the full file as the system prompt (LLM is the brain parser)', async () => {
-    const path = join(dir, 'mini.hsplus');
-    writeFileSync(path, MINI_BRAIN, 'utf8');
+  it('extracts the free-text preamble (before the first HoloScript section) as the system prompt', async () => {
+    // W.741: loadBrain no longer sends the whole file. extractSystemPromptPreamble
+    // cuts at the first HoloScript directive (#version / identity { / …) so a
+    // constrained local model (qwen3:4b, small num_ctx) isn't fed ~1500 tokens of
+    // structured metadata that truncate the CRITICAL tool-calling rules before the
+    // model sees them. Real .hsplus brains put the instruction text first, then the
+    // structured sections. (Was previously "captures the full file" — stale post-W.741.)
+    const PREAMBLE_BRAIN = [
+      'You are a security auditor running on a HoloMesh seat.',
+      'ALWAYS call at least one tool; never reply with plain text only.',
+      '',
+      '#version 6.0.0',
+      'identity {',
+      '  domain: "security"',
+      '  capability_tags: ["threat-model"]',
+      '}',
+      '',
+    ].join('\n');
+    const path = join(dir, 'preamble.hsplus');
+    writeFileSync(path, PREAMBLE_BRAIN, 'utf8');
     const brain = await loadBrain(path);
-    expect(brain.systemPrompt).toBe(MINI_BRAIN);
+    expect(brain.systemPrompt).toBe(
+      'You are a security auditor running on a HoloMesh seat.\n' +
+        'ALWAYS call at least one tool; never reply with plain text only.'
+    );
     expect(brain.brainPath).toBe(path);
   });
 

@@ -453,6 +453,12 @@ async function buildProvider(identity: AgentIdentity): Promise<ILLMProvider> {
           ? Number(process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS)
           : 300000,
       });
+    case 'sovereign':
+      // Match the supervisor (D.089 sovereign-first): serving fleet → cloud →
+      // local Ollama → BYOK frontier keys. identity.llmModel (when set) overrides.
+      return (
+        await resolveSovereignProviderAsync(identity.llmModel ? { model: identity.llmModel } : {})
+      ).provider;
     default:
       throw new Error(`Provider "${p}" not yet wired in CLI — add a case in buildProvider.`);
   }
@@ -585,8 +591,8 @@ USAGE
 
 REQUIRED ENV
   HOLOSCRIPT_AGENT_HANDLE            agent handle (e.g. "security-auditor")
-  HOLOSCRIPT_AGENT_PROVIDER          anthropic | openai | gemini | local-llm | mock
-  HOLOSCRIPT_AGENT_MODEL             model id (e.g. "claude-opus-4-7")
+  HOLOSCRIPT_AGENT_PROVIDER          anthropic | openai | gemini | xai | openrouter | local-llm | sovereign | mock
+  HOLOSCRIPT_AGENT_MODEL             model id (e.g. "claude-opus-4-8")
   HOLOSCRIPT_AGENT_BRAIN             path to .hsplus brain composition
   HOLOSCRIPT_AGENT_WALLET            0x… wallet address
   HOLOSCRIPT_AGENT_X402_BEARER       per-surface mesh bearer (W.087 vertex B)
@@ -605,6 +611,8 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_WORKING_DIR       git repo to commit into (default process.cwd())
   HOLOSCRIPT_AGENT_COMMIT_SCOPE      commit subject scope (default "agent(<handle>)")
   HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL  local-llm provider base URL (default http://localhost:8080)
+  HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL     local-llm model id (e.g. "qwen3:4b-instruct"); overrides HOLOSCRIPT_AGENT_MODEL for the local provider
+  HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS  local-llm request timeout in ms (default 300000 — edge devices like Jetson need >120s)
 `);
 }
 
