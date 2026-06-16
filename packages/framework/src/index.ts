@@ -1032,6 +1032,18 @@ export {
   appendFollowUpCommit,
 } from './board';
 
+// Robot Dispatcher — production-wiring point + receipt gate for actuation
+export {
+  type DispatchBackend,
+  type DispatchRequest,
+  type DispatchResult,
+  type RobotDispatcher,
+  type GatedDispatchParams,
+  type GatedDispatchResult,
+  StubRobotDispatcher,
+  gatedDispatch,
+} from './board';
+
 // Receipt Capability Registry (task_1779157196014_yx3r)
 export {
   type ReceiptCapabilityEntry,

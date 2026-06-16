@@ -5,14 +5,22 @@
  * robot actuation, AI invocation, receipt capture, dispatcher, registry clear.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   handleRobotAiMcpTool,
   clearRobotAiRegistries,
   robotAiMcpTools,
   twinEarthIdentityRegistry,
   twinEarthReceiptRegistry,
+  setRobotDispatcher,
+  getRobotDispatcher,
 } from '../robot-ai-mcp-tools';
+import {
+  StubRobotDispatcher,
+  type RobotDispatcher,
+  type DispatchRequest,
+  type DispatchResult,
+} from '@holoscript/framework';
 
 // evaluateActuation is imported by the SUT; vitest auto-mocks @holoscript/framework
 // if a __mocks__ exists, otherwise we let it run its real (lightweight) logic.
@@ -650,6 +658,8 @@ describe('robot-ai-mcp-tools', () => {
       await handleRobotAiMcpTool('twin_earth_create_safety_envelope', {
         agentId: 'act-bot',
         envelopeId: 'act-env',
+        // D.044: robot:move is default-blocked unless explicitly allowlisted.
+        allowedActions: ['robot:move'],
       });
       await handleRobotAiMcpTool('twin_earth_grant_permission', {
         granteeId: 'act-bot',
@@ -665,8 +675,92 @@ describe('robot-ai-mcp-tools', () => {
       expect(result.success).toBe(true);
       expect(result.command).toBe('move');
       expect(result.simulated).toBe(true);
+      expect(result.dispatchedTo).toBe('stub');
       expect(result.receiptId).toMatch(/^act_\d+_[a-z0-9]+$/);
       expect(twinEarthReceiptRegistry.size).toBeGreaterThanOrEqual(1);
+    });
+
+    describe('RobotDispatcher injection (production seam)', () => {
+      afterEach(() => {
+        // Always restore the honest default after a dispatcher swap.
+        setRobotDispatcher(new StubRobotDispatcher());
+      });
+
+      it('flows a real (non-stub) backend through to the receipt + response', async () => {
+        class FakeRos2Dispatcher implements RobotDispatcher {
+          readonly backend = 'ros2' as const;
+          async dispatch(req: DispatchRequest): Promise<DispatchResult> {
+            return {
+              dispatched: true,
+              dispatchedTo: 'ros2',
+              simulated: false,
+              detail: `ros2 ${req.command}`,
+            };
+          }
+        }
+        setRobotDispatcher(new FakeRos2Dispatcher());
+        expect(getRobotDispatcher().backend).toBe('ros2');
+
+        await registerIdentity({ agentId: 'ros2-bot' });
+        await registerIdentity({ agentId: 'granter' });
+        await handleRobotAiMcpTool('twin_earth_create_safety_envelope', {
+          agentId: 'ros2-bot',
+          envelopeId: 'ros2-env',
+          // D.044: robot:move is default-blocked unless explicitly allowlisted.
+          allowedActions: ['robot:move'],
+        });
+        await handleRobotAiMcpTool('twin_earth_grant_permission', {
+          granteeId: 'ros2-bot',
+          granterId: 'granter',
+          action: 'robot:move',
+          scope: '*',
+        });
+
+        const result = (await handleRobotAiMcpTool('twin_earth_robot_actuate', {
+          agentId: 'ros2-bot',
+          command: 'move',
+        })) as Record<string, unknown>;
+
+        expect(result.success).toBe(true);
+        // Non-stub backend reports its own dispatchedTo + simulated=false.
+        expect(result.dispatchedTo).toBe('ros2');
+        expect(result.simulated).toBe(false);
+      });
+
+      it('emits NO receipt when the safety verdict denies, even with a willing backend', async () => {
+        class WillingDispatcher implements RobotDispatcher {
+          readonly backend = 'ros2' as const;
+          dispatch = vi.fn(
+            async (): Promise<DispatchResult> => ({
+              dispatched: true,
+              dispatchedTo: 'ros2',
+              simulated: false,
+            })
+          );
+        }
+        const willing = new WillingDispatcher();
+        setRobotDispatcher(willing);
+
+        // Robot with an envelope but NO permission grant → evaluateActuation denies.
+        await registerIdentity({ agentId: 'deny-bot' });
+        await handleRobotAiMcpTool('twin_earth_create_safety_envelope', {
+          agentId: 'deny-bot',
+          envelopeId: 'deny-env',
+        });
+
+        const before = twinEarthReceiptRegistry.size;
+        const result = (await handleRobotAiMcpTool('twin_earth_robot_actuate', {
+          agentId: 'deny-bot',
+          command: 'move',
+        })) as Record<string, unknown>;
+
+        expect(result.success).toBeUndefined();
+        expect(result.error).toBeDefined();
+        // Structural guarantee: the dispatcher is never reached on a denied verdict,
+        // and no success receipt is written.
+        expect(willing.dispatch).not.toHaveBeenCalled();
+        expect(twinEarthReceiptRegistry.size).toBe(before);
+      });
     });
   });
 

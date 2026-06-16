@@ -15,7 +15,10 @@ import {
   type TwinEarthIdentity,
   type PermissionGrant,
   type SafetyEnvelope,
-  evaluateActuation,
+  type RobotDispatcher,
+  type DispatchRequest,
+  gatedDispatch,
+  StubRobotDispatcher,
 } from '@holoscript/framework';
 
 // =============================================================================
@@ -90,6 +93,26 @@ export const twinEarthReceiptRegistry = new Map<string, StoredTwinEarthReceipt>(
 
 function genId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+// =============================================================================
+// ROBOT DISPATCHER WIRING (production seam)
+// =============================================================================
+//
+// The default dispatcher is the HONEST stub (no hardware; simulated:true,
+// dispatchedTo:'stub'). Production deployments inject a real RobotDispatcher
+// (e.g. ROS2/MQTT-backed) via `setRobotDispatcher` and the safety-gated receipt
+// path in handleTwinEarthRobotActuate flows the real backend through unchanged.
+let activeRobotDispatcher: RobotDispatcher = new StubRobotDispatcher();
+
+/** Inject the robot dispatcher backend. Pass StubRobotDispatcher to reset. */
+export function setRobotDispatcher(dispatcher: RobotDispatcher): void {
+  activeRobotDispatcher = dispatcher;
+}
+
+/** Current robot dispatcher backend (defaults to the honest stub). */
+export function getRobotDispatcher(): RobotDispatcher {
+  return activeRobotDispatcher;
 }
 
 /** Clear all in-memory registries ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â used by tests for isolation. */
@@ -940,7 +963,10 @@ async function handleTwinEarthListPermissions(args: Record<string, unknown>): Pr
   return { success: true, total, limit, offset, grants: items };
 }
 
-async function handleTwinEarthRobotActuate(args: Record<string, unknown>): Promise<unknown> {
+async function handleTwinEarthRobotActuate(
+  args: Record<string, unknown>,
+  dispatcher: RobotDispatcher = activeRobotDispatcher
+): Promise<unknown> {
   const agentId = args.agentId as string;
   const command = args.command as string;
   const parameters = (args.parameters as Record<string, unknown>) ?? {};
@@ -1022,59 +1048,88 @@ async function handleTwinEarthRobotActuate(args: Record<string, unknown>): Promi
       }
     : ({} as unknown as PermissionGrant);
 
-  // Canonical substrate gating
-  const result = evaluateActuation(
+  // Canonical safety-gated dispatch (RobotDispatcher production seam).
+  //
+  // gatedDispatch enforces the order BY CONSTRUCTION: evaluateActuation() runs
+  // first; only on an allowed verdict is the dispatcher called; only on a
+  // successful dispatch is a success receipt produced. A denied verdict yields
+  // NO dispatch and NO receipt. The default dispatcher is the honest stub
+  // (dispatchedTo:'stub', simulated:true); a real ROS2/MQTT backend injected via
+  // setRobotDispatcher flows through this same path with dispatchedTo:'ros2' etc.
+  const dispatchRequest: DispatchRequest = {
+    agentId,
+    command,
+    parameters,
+    envelopeId: storedEnvelope.id,
+  };
+
+  const gated = await gatedDispatch({
     identity,
     grant,
     envelope,
-    action as PermissionGrant['action'],
-    scope
-  );
+    action: action as PermissionGrant['action'],
+    scope,
+    request: dispatchRequest,
+    dispatcher,
+    genReceiptId: () => genId('act'),
+    hash: simpleHash,
+    hashAlgorithm: 'sha256',
+    substrateVersion: '1.0.0',
+  });
 
-  if (!result.allowed) {
+  // Safety verdict denied — preserve the original denial response shape exactly.
+  if (gated.ok === false && gated.stage === 'safety') {
     return {
-      error: result.reason,
+      error: gated.reason,
       rejectedByEnvelope:
-        result.blockingRule !== undefined &&
-        result.blockingRule !== 'expired_grant' &&
-        result.blockingRule !== 'revoked_grant',
+        gated.blockingRule !== undefined &&
+        gated.blockingRule !== 'expired_grant' &&
+        gated.blockingRule !== 'revoked_grant',
       permissionDenied:
-        result.blockingRule === 'expired_grant' ||
-        result.blockingRule === 'revoked_grant' ||
-        result.reason.includes('Grant'),
+        gated.blockingRule === 'expired_grant' ||
+        gated.blockingRule === 'revoked_grant' ||
+        gated.reason.includes('Grant'),
     };
   }
 
-  // RATCHET (THIN): Actuation is canary-verified (identity, safety-envelope, permission gates
-  // are REAL), but physical dispatch is simulated (no ROS/MQTT/hardware bridge).
-  // Callers MUST check dispatchedTo === 'stub' before treating receipt as real actuation.
-  // Production deployment: wire to RobotDispatcher interface, return dispatchedTo: 'ros2' or similar.
-  const receiptId = genId('act');
-  const receipt: StoredTwinEarthReceipt = {
-    id: receiptId,
-    kind: 'action',
-    actorId: agentId,
-    action,
-    scope,
-    timestamp: new Date().toISOString(),
-    status: 'success',
-    hash: await simpleHash(`act:${agentId}:${command}:${Date.now()}`),
-    envelopeId: storedEnvelope.id,
-    payloadHash: parameters ? await simpleHash(JSON.stringify(parameters)) : undefined,
-  };
+  // Allowed but the backend failed to dispatch — no success receipt was emitted.
+  if (gated.ok === false) {
+    return {
+      error: gated.reason,
+      dispatchedTo: gated.dispatch.dispatchedTo,
+      dispatchFailed: true,
+    };
+  }
 
-  twinEarthReceiptRegistry.set(receiptId, receipt);
+  // Allowed AND dispatched — persist the gate's success receipt to the registry.
+  const { receipt, dispatch } = gated;
+  const stored: StoredTwinEarthReceipt = {
+    id: receipt.id,
+    kind: 'action',
+    actorId: receipt.actorId,
+    action: receipt.action,
+    scope: receipt.scope,
+    timestamp: receipt.timestamp,
+    status: 'success',
+    hash: receipt.hash,
+    envelopeId: receipt.envelopeId,
+    ...(receipt.payloadHash ? { payloadHash: receipt.payloadHash } : {}),
+  };
+  twinEarthReceiptRegistry.set(receipt.id, stored);
 
   return {
     success: true,
     agentId,
     command,
-    receiptId,
+    receiptId: receipt.id,
     envelopeId: storedEnvelope.id,
     status: 'success',
-    simulated: true,
-    dispatchedTo: 'stub', // RATCHET: no real ROS/MQTT/hardware bridge; robot runtime not wired
-    note: 'Actuation was simulated (canary). In production this dispatches to the robot runtime.',
+    simulated: dispatch.simulated,
+    dispatchedTo: dispatch.dispatchedTo, // 'stub' by default; real backend reports its own
+    note:
+      dispatch.dispatchedTo === 'stub'
+        ? 'Actuation was simulated (canary). In production this dispatches to the robot runtime.'
+        : `Actuation dispatched to '${dispatch.dispatchedTo}' backend.`,
   };
 }
 

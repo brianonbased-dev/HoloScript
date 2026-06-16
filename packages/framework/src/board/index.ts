@@ -756,6 +756,18 @@ export {
 } from './twin-earth-substrate';
 
 export {
+  // Robot Dispatcher — production-wiring point + receipt gate for actuation
+  type DispatchBackend,
+  type DispatchRequest,
+  type DispatchResult,
+  type RobotDispatcher,
+  type GatedDispatchParams,
+  type GatedDispatchResult,
+  StubRobotDispatcher,
+  gatedDispatch,
+} from './robot-dispatcher';
+
+export {
   // Frontier Shard 0 primitives (task_1778186605462_2mlp)
   SKILL_RARITIES,
   ITEM_CATEGORIES,
