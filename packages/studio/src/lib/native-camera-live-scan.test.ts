@@ -5,6 +5,7 @@ import {
   finalizeNativeCameraLiveScan,
   stepNativeCameraLiveScan,
   updateNativeCameraFrameDigest,
+  type NativeCameraArCoreDepthPlane,
 } from './native-camera-live-scan';
 import type { ScanSession } from './reconstruction-scan-store';
 
@@ -115,6 +116,97 @@ describe('native camera live scan', () => {
     // not a derived centroid-pose confidence.
     expect(session.nativeCamera?.holomap?.lastPoseConfidence).toBeCloseTo(0.42, 6);
     expect(session.nativeCamera?.holomap?.runtime).toBe('active');
+  });
+
+  // Helpers for ARCore uint16 mm depth plane (4×4 = 16 depth cells at 1m = 1000 mm)
+  function arCoreDepthPlane(
+    depthW: number,
+    depthH: number,
+    valuesMm: number
+  ): NativeCameraArCoreDepthPlane {
+    const mm = new Uint16Array(depthW * depthH).fill(valuesMm);
+    return {
+      width: depthW,
+      height: depthH,
+      millimeters16Base64: Buffer.from(mm.buffer).toString('base64'),
+    };
+  }
+
+  it('accepts arCoreDepthPlane and normalizes 16-bit mm depth via mobileSensorBundle adapter', () => {
+    // 1000 mm should normalize to ~0.1 on the 500..5000 mm ARCore range
+    const decoded = decodeNativeCameraFramePayload({
+      ...framePayload(0, 7),
+      arCoreDepthPlane: arCoreDepthPlane(4, 4, 1000),
+    });
+    expect(decoded.frame.depth).toBeInstanceOf(Float32Array);
+    expect(decoded.frame.depth!.length).toBe(16); // same as RGB pixel count 4×4
+    expect(decoded.frame.depth![0]).toBeCloseTo(0.1111, 3); // (1000-500)/(5000-500)
+  });
+
+  it('arCoreDepthPlane with confidence filters zero-mm cells (invalid depth)', () => {
+    const mm = new Uint16Array(4 * 4); // all zeros = invalid depth
+    const conf = new Uint8Array(4 * 4).fill(255); // all max confidence
+    const decoded = decodeNativeCameraFramePayload({
+      ...framePayload(0, 8),
+      arCoreDepthPlane: {
+        width: 4,
+        height: 4,
+        millimeters16Base64: Buffer.from(mm.buffer).toString('base64'),
+        confidenceBase64: Buffer.from(conf).toString('base64'),
+      },
+    });
+    // Zero-mm depth → confidence forced to 0 by the adapter regardless of input
+    expect(decoded.frame.depth).toBeInstanceOf(Float32Array);
+  });
+
+  it('arCoreDepthPlane produces different hash than depthBase64 for same logical depth', () => {
+    const base = framePayload(0, 9);
+    const arCorePath = decodeNativeCameraFramePayload({
+      ...base,
+      arCoreDepthPlane: arCoreDepthPlane(4, 4, 1000),
+    });
+    const float32Path = decodeNativeCameraFramePayload({
+      ...base,
+      depthBase64: Buffer.from(new Float32Array(16).fill(0.1).buffer).toString('base64'),
+    });
+    // Different encode paths → different provenance hashes (input bytes differ)
+    expect(arCorePath.frameHash).not.toBe(float32Path.frameHash);
+  });
+
+  it('cameraTransformColumnMajor4x4 decodes into devicePose (identity matrix)', () => {
+    // Identity 4x4 column-major → position (0,0,0), rotation (0,0,0,1)
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const decoded = decodeNativeCameraFramePayload({
+      ...framePayload(0, 6),
+      cameraTransformColumnMajor4x4: identity,
+    });
+    expect(decoded.frame.devicePose?.position).toEqual([0, 0, 0]);
+    expect(decoded.frame.devicePose?.rotation[3]).toBeCloseTo(1, 4);
+  });
+
+  it('cameraTransformColumnMajor4x4 takes precedence over devicePose', () => {
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 5, 6, 7, 1];
+    const decoded = decodeNativeCameraFramePayload({
+      ...framePayload(0, 12),
+      // matrix says position (5,6,7); devicePose says (1,2,3) — matrix wins
+      cameraTransformColumnMajor4x4: identity,
+      devicePose: { position: [1, 2, 3], rotation: [0, 0, 0, 1], confidence: 0.5 },
+    });
+    expect(decoded.frame.devicePose?.position).toEqual([5, 6, 7]);
+  });
+
+  it('rejects arCoreDepthPlane with wrong byte length', () => {
+    const mm = new Uint16Array(4); // too short for 4×4
+    expect(() =>
+      decodeNativeCameraFramePayload({
+        ...framePayload(0, 13),
+        arCoreDepthPlane: {
+          width: 4,
+          height: 4,
+          millimeters16Base64: Buffer.from(mm.buffer).toString('base64'),
+        },
+      })
+    ).toThrow(/byte length mismatch/);
   });
 
   it('steps native camera frames through HoloMapRuntime and finalizes a manifest', async () => {

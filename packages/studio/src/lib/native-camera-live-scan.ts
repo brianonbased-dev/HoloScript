@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 import {
+  arCoreDepthFrameToMobileSensorFrame,
+  cameraPoseFromColumnMajorTransform,
   computeHoloMapReplayFingerprint,
   createHoloMapRuntime,
   type CameraPose,
@@ -9,6 +11,30 @@ import {
 } from '@holoscript/core/reconstruction';
 import type { ScanKind, ScanSession } from './reconstruction-scan-store';
 import { scanSessionModelHash } from './scan-session-manifest';
+
+/**
+ * Raw ARCore depth plane sent by the native Android caller.
+ * Carries uint16 millimeter values from Frame.acquireDepthImage16Bits()
+ * and optional uint8 confidence from Frame.acquireRawDepthConfidenceImage().
+ * Processed by the mobileSensorBundle adapter (arCoreDepthFrameToMobileSensorFrame)
+ * which handles depth-to-RGB resampling and millimeter → unit normalization.
+ */
+export interface NativeCameraArCoreDepthPlane {
+  /** Width of the depth map (may differ from RGB — ARCore typically 64×48). */
+  width: number;
+  /** Height of the depth map. */
+  height: number;
+  /**
+   * Row-major uint16 LE millimeter values from acquireDepthImage16Bits().
+   * Byte length must be width*height*2.
+   */
+  millimeters16Base64: string;
+  /**
+   * Row-major uint8 confidence values from acquireRawDepthConfidenceImage().
+   * Byte length must be width*height. Optional.
+   */
+  confidenceBase64?: string;
+}
 
 export interface NativeCameraFramePayload {
   index?: unknown;
@@ -22,13 +48,28 @@ export interface NativeCameraFramePayload {
    * `sceneDepth.depthMap`, ARCore depth). Little-endian Float32, row-major,
    * length width*height (so byte length = width*height*4), values 0=near..1=far.
    * When present the reconstructor uses it for point Z over the monocular estimate.
+   * For ARCore native callers, prefer arCoreDepthPlane (raw uint16 mm) which feeds
+   * through the mobileSensorBundle adapter for proper normalization and resampling.
    */
   depthBase64?: unknown;
+  /**
+   * Native ARCore depth plane (raw 16-bit mm values + optional confidence).
+   * When present, takes precedence over depthBase64 and is processed via
+   * arCoreDepthFrameToMobileSensorFrame from the mobileSensorBundle adapter.
+   * Enables the Android depthprobe APK to send raw sensor data without pre-normalizing.
+   */
+  arCoreDepthPlane?: unknown;
   /**
    * Optional MEASURED device pose (ARKit/ARCore tracking): 6-DoF camera pose.
    * When present it drives the trajectory instead of the scan-derived pose.
    */
   devicePose?: unknown;
+  /**
+   * Optional ARCore/ARKit camera transform from Frame.getPose(), column-major 4×4.
+   * When present, takes precedence over devicePose and is decoded via
+   * cameraPoseFromColumnMajorTransform from the mobileSensorBundle adapter.
+   */
+  cameraTransformColumnMajor4x4?: unknown;
 }
 
 export interface DecodedNativeCameraFrame {
@@ -96,6 +137,76 @@ export function nativeCameraVideoHash(
   ])}`;
 }
 
+function decodeArCoreDepthPlane(
+  raw: unknown,
+  rgbWidth: number,
+  rgbHeight: number,
+  stride: 3 | 4,
+  rgbBytes: Uint8Array,
+  index: number,
+  timestampMs: number
+): { depth: Float32Array; depthBytes: Buffer; devicePose?: CameraPose } | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (
+    typeof raw !== 'object' ||
+    typeof (raw as Record<string, unknown>).millimeters16Base64 !== 'string' ||
+    typeof (raw as Record<string, unknown>).width !== 'number' ||
+    typeof (raw as Record<string, unknown>).height !== 'number'
+  ) {
+    throw new Error('nativeFrame.arCoreDepthPlane must be an object with width, height, millimeters16Base64');
+  }
+  const plane = raw as NativeCameraArCoreDepthPlane;
+  const dw = plane.width;
+  const dh = plane.height;
+  if (!Number.isInteger(dw) || dw <= 0 || !Number.isInteger(dh) || dh <= 0) {
+    throw new Error('arCoreDepthPlane.width/height must be positive integers');
+  }
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(plane.millimeters16Base64)) {
+    throw new Error('arCoreDepthPlane.millimeters16Base64 must be standard base64');
+  }
+  const mmBytes = Buffer.from(plane.millimeters16Base64, 'base64');
+  const expectedMmBytes = dw * dh * 2;
+  if (mmBytes.byteLength !== expectedMmBytes) {
+    throw new Error(
+      `arCoreDepthPlane.millimeters16Base64 byte length mismatch: got ${mmBytes.byteLength}, expected ${expectedMmBytes} (width*height*2 for uint16)`
+    );
+  }
+  // Copy into aligned ArrayBuffer for safe Uint16Array view
+  const mmAligned = new ArrayBuffer(expectedMmBytes);
+  new Uint8Array(mmAligned).set(mmBytes);
+  const millimeters = new Uint16Array(mmAligned);
+
+  let confidenceValues: Uint8Array | undefined;
+  if (plane.confidenceBase64) {
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(plane.confidenceBase64)) {
+      throw new Error('arCoreDepthPlane.confidenceBase64 must be standard base64');
+    }
+    const confBytes = Buffer.from(plane.confidenceBase64, 'base64');
+    if (confBytes.byteLength !== dw * dh) {
+      throw new Error(
+        `arCoreDepthPlane.confidenceBase64 byte length mismatch: got ${confBytes.byteLength}, expected ${dw * dh}`
+      );
+    }
+    confidenceValues = new Uint8Array(confBytes);
+  }
+
+  // Feed through mobileSensorBundle adapter
+  const bundleFrame = arCoreDepthFrameToMobileSensorFrame({
+    index,
+    timestampMs,
+    width: rgbWidth,
+    height: rgbHeight,
+    stride,
+    rgb: rgbBytes,
+    depthImage16Bits: { width: dw, height: dh, millimeters },
+    ...(confidenceValues ? { rawDepthConfidenceImage: { width: dw, height: dh, values: confidenceValues } } : {}),
+  });
+
+  const depth = new Float32Array(bundleFrame.sceneDepth!.values as Float32Array);
+  const depthBytes = Buffer.from(depth.buffer);
+  return { depth, depthBytes };
+}
+
 function decodeMeasuredDepth(
   raw: unknown,
   width: number,
@@ -120,6 +231,19 @@ function decodeMeasuredDepth(
   const aligned = new ArrayBuffer(expected);
   new Uint8Array(aligned).set(bytes);
   return { depth: new Float32Array(aligned), bytes };
+}
+
+function decodeCameraTransform(raw: unknown): CameraPose | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!Array.isArray(raw) || raw.length !== 16) {
+    throw new Error('nativeFrame.cameraTransformColumnMajor4x4 must be a 16-element array');
+  }
+  const nums = raw.map((v, i) => {
+    if (typeof v !== 'number' || !Number.isFinite(v))
+      throw new Error(`cameraTransformColumnMajor4x4[${i}] must be finite`);
+    return v;
+  });
+  return cameraPoseFromColumnMajorTransform(nums);
 }
 
 function decodeDevicePose(raw: unknown): CameraPose | undefined {
@@ -180,14 +304,29 @@ export function decodeNativeCameraFramePayload(
       `nativeFrame byte length mismatch: got ${rgb.byteLength}, expected ${expectedBytes}`
     );
   }
+  const rgbArray = new Uint8Array(rgb.buffer, rgb.byteOffset, rgb.byteLength);
 
-  const measuredDepth = decodeMeasuredDepth(payload.depthBase64, width, height);
-  const devicePose = decodeDevicePose(payload.devicePose);
+  // Pose: cameraTransformColumnMajor4x4 (matrix) wins over devicePose (pre-decoded)
+  const devicePose =
+    decodeCameraTransform(payload.cameraTransformColumnMajor4x4) ??
+    decodeDevicePose(payload.devicePose);
+
+  // Depth: arCoreDepthPlane (uint16 mm → adapter) wins over depthBase64 (Float32 normalized)
+  const arCoreDepth = decodeArCoreDepthPlane(
+    payload.arCoreDepthPlane,
+    width,
+    height,
+    stride,
+    rgbArray,
+    index,
+    timestampMs
+  );
+  const measuredDepth = arCoreDepth ?? decodeMeasuredDepth(payload.depthBase64, width, height);
 
   const frame: ReconstructionFrame = {
     index,
     timestampMs,
-    rgb: new Uint8Array(rgb.buffer, rgb.byteOffset, rgb.byteLength),
+    rgb: rgbArray,
     width,
     height,
     stride,
@@ -197,11 +336,16 @@ export function decodeNativeCameraFramePayload(
   // Provenance: fold measured depth + pose into the frame hash so a tampered
   // sensor reading changes the sequence digest / replay identity (same guarantee
   // gate-33's negative control relies on for RGB).
+  const depthBytes = arCoreDepth
+    ? arCoreDepth.depthBytes
+    : measuredDepth
+      ? (measuredDepth as { depth: Float32Array; bytes: Buffer }).bytes
+      : undefined;
   const frameHash = sha256Hex([
     'holoscript-native-camera-frame-v1',
     `${frame.index}:${frame.timestampMs}:${frame.width}x${frame.height}x${frame.stride}`,
     frame.rgb,
-    ...(measuredDepth ? ['depth', measuredDepth.bytes] : []),
+    ...(depthBytes ? ['depth', depthBytes] : []),
     ...(devicePose
       ? [
           'pose',
