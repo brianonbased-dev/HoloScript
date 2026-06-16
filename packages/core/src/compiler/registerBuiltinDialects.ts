@@ -386,6 +386,19 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.json'],
     },
     {
+      name: 'mcp-server',
+      domain: 'ai',
+      description:
+        'Compiles a trait/brain composition into an MCP server manifest (P0 skeleton; trait-walk Tool[] emission + handler dispatch land in P1)',
+      supportedTraits: ['llm_agent', 'goal_oriented', 'rag_knowledge', 'agent_memory', 'tool'],
+      riskTier: 'high',
+      factory: (opts) => {
+        const { HoloMCPCompiler } = require('./HoloMCPCompiler');
+        return new HoloMCPCompiler(opts);
+      },
+      outputExtensions: ['.mcp-server.json'],
+    },
+    {
       name: 'nir',
       domain: 'neuromorphic',
       description: 'Compiles to Neuromorphic Intermediate Representation',
