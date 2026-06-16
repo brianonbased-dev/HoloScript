@@ -186,6 +186,13 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
   ): Array<{ role: string; content: string }> {
     if (process.env.HOLO_LLM_LOCAL_THINK === '1') return messages;
     if (!/qwen3/i.test(model)) return messages;
+    // W.513 / open-weight lane eval (2026-06-16): NON-thinking variants
+    // (instruct / coder / 2507) must NOT get /no_think — they have no thinking
+    // mode to suppress, and suppressing thinking HURTS function-calling
+    // ("thinking-enabled raises FC accuracy"). Verified: qwen3:4b-instruct WITHOUT
+    // /no_think (+ no think param) = 100% write+toolcall on the Jetson AND laptop.
+    // Only the thinking qwen3 variants (e.g. qwen3:4b plain) keep the soft-suppress.
+    if (/instruct|coder|2507/i.test(model)) return messages;
     const sysIdx = messages.findIndex((m) => m.role === 'system');
     if (sysIdx >= 0) {
       return messages.map((m, i) =>
