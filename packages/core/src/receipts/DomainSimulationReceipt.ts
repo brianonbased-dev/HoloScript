@@ -30,6 +30,25 @@ export interface DomainSimulationReceiptInput {
   };
   resultSummary: { [key: string]: DomainReceiptJson };
   acceptance: DomainSimulationReceiptAcceptance;
+  /**
+   * ContractClause proof witness — carries pre/inv/post evaluations as part of
+   * the receipt so verifiers can audit which semantic contracts were checked.
+   * Absent for receipts produced without clause-bearing ContractedSimulations.
+   */
+  clauseWitness?: {
+    clauses: Array<{ id: string; kind: 'precondition' | 'invariant' | 'postcondition'; description: string }>;
+    violations: Array<{
+      clauseId: string;
+      kind: 'precondition' | 'invariant' | 'postcondition';
+      rule: string;
+      message: string;
+      severity: 'error' | 'warning';
+      simTime?: number;
+      stepCount?: number;
+      code?: string;
+    }>;
+    verified: boolean;
+  };
   cael?: {
     version?: 'cael.v1';
     event?: string;
@@ -61,6 +80,8 @@ export interface DomainSimulationReceipt {
     solverType: string;
   };
   acceptance: DomainSimulationReceiptAcceptance;
+  /** ContractClause proof witness — see DomainSimulationReceiptInput.clauseWitness. */
+  clauseWitness?: DomainSimulationReceiptInput['clauseWitness'];
   artifacts?: Array<{
     kind: string;
     path?: string;
@@ -103,6 +124,7 @@ export function buildDomainSimulationReceipt(
       solverType: input.cael?.solverType ?? `${input.plugin}.${input.solverConfig.solverType}`,
     },
     acceptance: input.acceptance,
+    ...(input.clauseWitness !== undefined ? { clauseWitness: input.clauseWitness } : {}),
     ...(input.artifacts !== undefined ? { artifacts: input.artifacts } : {}),
   };
 
