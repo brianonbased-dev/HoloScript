@@ -227,3 +227,57 @@ export function compileCognitiveDispatch(
     }
   }
 }
+
+/**
+ * A behavior-tree node that dispatches a cognitive verb. This is a STRUCTURAL
+ * match for the `'cognitive'` case of BehaviorTreeTrait's internal `BTNode`
+ * (`{ type:'cognitive', verb, config, await?, result_key? }`) — defined here, not
+ * imported, so the cognitive module stays free of a runtime-trait dependency.
+ */
+export interface CognitiveBTNode {
+  type: 'cognitive';
+  verb: CognitiveVerb;
+  config: Record<string, unknown>;
+  /** Block (BT returns `running`) until the trait completion event resolves. */
+  await?: boolean;
+  /** Blackboard key to receive the completion payload. */
+  result_key?: string;
+  /** Optional display name. */
+  name?: string;
+}
+
+/**
+ * Bridge a brain state's parsed cognitive actions into executable cognitive
+ * behavior-tree nodes — the missing link (Phase 2.1) between the PARSE side and
+ * the EXECUTE side of the cognitive language surface:
+ *
+ *   PARSE   `state { llm_call {…}; recall {…} }`
+ *           → `brainState.cognitiveActions: HoloCognitiveAction[]`
+ *             (HoloScriptPlusParser populates this; today it reaches no runtime)
+ *   BRIDGE  this function → `CognitiveBTNode[]`
+ *   EXECUTE `BehaviorTreeTrait.tickCognitive` ticks each node and calls
+ *           {@link compileCognitiveDispatch}, emitting the real trait event.
+ *
+ * `await` and `result_key` are lifted from each action's config when present
+ * (`config.await: boolean`; `config.result_key | result | into: string`) so the
+ * authored block controls blocking + where the completion payload lands — exactly
+ * the fields `tickCognitive` reads. Non-cognitive / malformed entries are skipped
+ * (the parser only ever emits `{kind:'cognitive', …}` here, but the guard keeps
+ * the bridge total).
+ */
+export function cognitiveActionsToBTNodes(
+  actions: readonly HoloCognitiveAction[] | undefined
+): CognitiveBTNode[] {
+  if (!actions || actions.length === 0) return [];
+  const out: CognitiveBTNode[] = [];
+  for (const a of actions) {
+    if (!a || a.kind !== 'cognitive' || !isCognitiveVerb(a.verb)) continue;
+    const config = a.config ?? {};
+    const node: CognitiveBTNode = { type: 'cognitive', verb: a.verb, config };
+    if (config.await === true) node.await = true;
+    const rk = config.result_key ?? config.result ?? config.into;
+    if (typeof rk === 'string') node.result_key = rk;
+    out.push(node);
+  }
+  return out;
+}
