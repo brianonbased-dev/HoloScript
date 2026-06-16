@@ -26,7 +26,11 @@
  *   cannot provide this guarantee without per-file convention.
  *   `contractEnforcement` updated from 'none' → 'startup-gate' (honest).
  *
- * P4+: enum drift fix (DialectRegistry.list() → compile_holoscript enum).
+ * P4 (1b387deb5): `compile_to_mcp_server` registered as live MCP tool in compiler-tools.ts;
+ *   `handleListExportTargets` replaced hardcoded 25-entry list with `DialectRegistry.names()
+ *   .filter(not internal) + legacy targets`; `compile_holoscript` enum synced (was missing
+ *   8 wired targets + had 'multi-layer' internal leak); `check:export-targets-sync` CI gate
+ *   added to catch future enum drift at push time.
  *
  * W.731 gate: P2 adds NO new @holoscript/core subpath imports (all relative).
  *   Any new subpath import introduced in P3+ must land in tsup.core.docker.cjs
