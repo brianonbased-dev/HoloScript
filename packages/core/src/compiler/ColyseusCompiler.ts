@@ -120,9 +120,13 @@ export interface ColyseusLootTable {
   guaranteed: Record<string, unknown>;
 }
 
-/** A compile-time guard parsed from a brain transition `@when { hp < 0.5 }`. */
+/**
+ * A compile-time guard parsed from a brain transition `@when { hp < 0.5 }`.
+ * `hp` = HP fraction (hp/maxHp). `timer` = seconds since the current phase/state
+ * was entered (drives boss enrage timers — P2.1).
+ */
 export interface ColyseusBrainGuard {
-  field: 'hp';
+  field: 'hp' | 'timer';
   op: '<' | '>' | '<=' | '>=' | '==';
   value: number;
 }
@@ -161,6 +165,8 @@ export interface ColyseusBrainConfig {
   preferredAbility: string | null;
   initialState: string;
   states: ColyseusBrainState[];
+  /** P2.1: true when the brain has @boss — phase transitions emit a receipt + broadcast. */
+  isBoss: boolean;
   /** P1.9: verbal style constraints from @verbal_fingerprint (null when not declared). */
   verbalFingerprint: ColyseusBrainVerbalFingerprint | null;
   /** P1.9: autonomous motivation from @autonomous_agenda (null when not declared). */
@@ -808,6 +814,11 @@ export class ColyseusCompiler extends CompilerBase {
       const verbalFingerprint = this.extractVerbalFingerprint((decl.traits ?? {})['verbal_fingerprint']);
       const autonomousAgenda = this.extractAutonomousAgenda((decl.traits ?? {})['autonomous_agenda']);
 
+      // P2.1 — @boss marks a multi-phase encounter: state changes emit a
+      // boss_phase_transition receipt + broadcast (regular NPC FSM churn does not).
+      const t = decl.traits ?? {};
+      const isBoss = Boolean(t['boss'] || t['boss_fight'] || t['boss_phases'] || t['raid_boss']);
+
       out.push({
         name: decl.name,
         brainType: decl.brainType ?? 'behavior_tree',
@@ -819,6 +830,7 @@ export class ColyseusCompiler extends CompilerBase {
         preferredAbility: decl.preferredAbility?.name ?? null,
         initialState: states[0]?.name ?? 'idle',
         states,
+        isBoss,
         verbalFingerprint,
         autonomousAgenda,
       });
@@ -826,25 +838,37 @@ export class ColyseusCompiler extends CompilerBase {
     return out;
   }
 
-  /** Parse a transition `@when` string (e.g. "hp < 0.5") into a typed guard. */
+  /**
+   * Parse a transition `@when` string into a typed guard.
+   *   hp guards:    "hp < 0.5", "hp_ratio <= 0.2", "hp < flee_threshold"  → field 'hp' (fraction)
+   *   timer guards: "timer > 60", "time >= 30", "phase_time > 45"          → field 'timer' (seconds)
+   * Timer = seconds since the current phase/state was entered (boss enrage — P2.1).
+   */
   private parseBrainGuard(
     when: string | undefined,
     fleeThreshold: number | undefined
   ): ColyseusBrainGuard | null {
     if (!when || typeof when !== 'string') return null;
-    const m = when.trim().match(/^hp\s*(<=|>=|<|>|==)\s*([A-Za-z_][\w]*|[\d.]+)\s*$/);
+    const m = when.trim().match(/^([A-Za-z_][\w]*)\s*(<=|>=|<|>|==)\s*([A-Za-z_][\w]*|[\d.]+)\s*$/);
     if (!m) return null;
-    const op = m[1] as ColyseusBrainGuard['op'];
-    const rhs = m[2];
+    const lhs = m[1];
+    const op = m[2] as ColyseusBrainGuard['op'];
+    const rhs = m[3];
+
+    let field: ColyseusBrainGuard['field'];
+    if (lhs === 'hp' || lhs === 'hp_ratio' || lhs === 'health') field = 'hp';
+    else if (lhs === 'timer' || lhs === 'time' || lhs === 'phase_time' || lhs === 'enrage') field = 'timer';
+    else return null; // unknown LHS field (single-file scope)
+
     let value: number;
     if (/^[\d.]+$/.test(rhs)) {
       value = parseFloat(rhs);
-    } else if (rhs === 'flee_threshold' || rhs === 'fleeThreshold') {
+    } else if (field === 'hp' && (rhs === 'flee_threshold' || rhs === 'fleeThreshold')) {
       value = typeof fleeThreshold === 'number' ? fleeThreshold : 0;
     } else {
-      return null; // unknown symbol → no guard (single-file scope)
+      return null; // unknown RHS symbol
     }
-    return Number.isFinite(value) ? { field: 'hp', op, value } : null;
+    return Number.isFinite(value) ? { field, op, value } : null;
   }
 
   /**
@@ -1078,11 +1102,11 @@ export class ColyseusCompiler extends CompilerBase {
       `export const LLM_BUDGET_TICKS = ${LLM_BUDGET_TICKS}; // min ticks between LLM calls per NPC`,
       `export const JETSON_OLLAMA_ENV = 'JETSON_OLLAMA_URL'; // never hardcode the IP (W.733/F.106)`,
       `export const BRAIN_REGISTRY: Record<string, {`,
-      `  brainType: string; isLLM: boolean; personality: string; factionAlignment: string;`,
+      `  brainType: string; isLLM: boolean; isBoss: boolean; personality: string; factionAlignment: string;`,
       `  fleeThreshold: number; patrolSpeed: number; preferredAbility: string | null;`,
       `  initialState: string;`,
       `  states: Array<{ name: string; transitions: Array<{ to: string;`,
-      `    guard: { field: 'hp'; op: '<' | '>' | '<=' | '>=' | '=='; value: number } | null }>;`,
+      `    guard: { field: 'hp' | 'timer'; op: '<' | '>' | '<=' | '>=' | '=='; value: number } | null }>;`,
       `    actions: string[] }>;`,
       `  /** P1.9: verbal style constraints (null when @verbal_fingerprint not declared). */`,
       `  verbalFingerprint: { tone: string; forbiddenPhrases: string[]; requiredPhrases: string[] } | null;`,
@@ -1157,11 +1181,12 @@ export class ColyseusCompiler extends CompilerBase {
         `  @type('number') maxHp: number = 100;`,
         `  @type('string') faction: string = 'none';`,
         `  @type('string') brainType: string = '';`,
-        `  @type('string') brainState: string = 'idle'; // current FSM state`,
+        `  @type('string') brainState: string = 'idle'; // current FSM state / boss phase`,
         `  @type('boolean') isAlive: boolean = true;`,
         `  // Server-only brain bookkeeping (not synced)`,
         `  brainTick = 0;`,
         `  lastLlmTick = -1e9;`,
+        `  ticksSincePhaseEntry = 0; // P2.1: drives boss enrage timers`,
         `}`,
         ``
       );
@@ -1515,22 +1540,37 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
       this.push(`    if (!brain || !npc.isAlive) return;`);
       this.push(`    npc.brainTick = (npc.brainTick + 1) >>> 0;`);
+      this.push(`    npc.ticksSincePhaseEntry = (npc.ticksSincePhaseEntry + 1) >>> 0;`);
       this.push(`    const hpFrac = npc.maxHp > 0 ? npc.hp / npc.maxHp : 0;`);
+      this.push(`    const timerSec = npc.ticksSincePhaseEntry / TICK_RATE;`);
+      this.push(`    const prevState = npc.brainState;`);
       this.push(``);
-      this.push(`    // Universal flee reflex (pure-math, no LLM)`);
+      this.push(`    // Universal flee reflex (pure-math, no LLM) — else evaluate phase/state transitions`);
       this.push(`    if (brain.fleeThreshold > 0 && hpFrac < brain.fleeThreshold) {`);
       this.push(`      npc.brainState = 'flee';`);
-      this.push(`      this.applyBrainAction(npc, 'flee');`);
-      this.push(`      return;`);
-      this.push(`    }`);
-      this.push(``);
-      this.push(`    // FSM transition evaluation for the current state`);
-      this.push(`    const state = brain.states.find((s) => s.name === npc.brainState);`);
-      this.push(`    if (state) {`);
-      this.push(`      for (const tr of state.transitions) {`);
-      this.push(`        if (this.brainGuardPasses(tr.guard, hpFrac)) { npc.brainState = tr.to; break; }`);
+      this.push(`    } else {`);
+      this.push(`      const state = brain.states.find((s) => s.name === npc.brainState);`);
+      this.push(`      if (state) {`);
+      this.push(`        for (const tr of state.transitions) {`);
+      this.push(`          if (this.brainGuardPasses(tr.guard, hpFrac, timerSec)) { npc.brainState = tr.to; break; }`);
+      this.push(`        }`);
       this.push(`      }`);
       this.push(`    }`);
+      this.push(``);
+      this.push(`    // P2.1 — phase/state transition: reset the phase timer; for bosses, the`);
+      this.push(`    // transition is an authoritative, auditable event (receipt + client broadcast).`);
+      this.push(`    if (npc.brainState !== prevState) {`);
+      this.push(`      npc.ticksSincePhaseEntry = 0;`);
+      this.push(`      if (brain.isBoss) {`);
+      this.push(`        this.recordGameEvent({`);
+      this.push(`          kind: 'boss_phase_transition', actorSessionId: npc.id,`);
+      this.push(`          validated: true, reason: \`\${prevState}->\${npc.brainState}\`,`);
+      this.push(`        });`);
+      this.push(`        this.broadcast('boss_phase', { boss: npc.id, phase: npc.brainState, from: prevState });`);
+      this.push(`      }`);
+      this.push(`    }`);
+      this.push(``);
+      this.push(`    if (npc.brainState === 'flee') { this.applyBrainAction(npc, 'flee'); return; }`);
       this.push(``);
       this.push(`    // LOD-gated, budget-gated local-LLM decision (P1.4) — only LLM brains,`);
       this.push(`    // only near a player, only within the per-NPC call budget.`);
@@ -1546,11 +1586,12 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`  }`);
       this.push(``);
       this.push(`  protected brainGuardPasses(`);
-      this.push(`    guard: { field: 'hp'; op: string; value: number } | null,`);
+      this.push(`    guard: { field: 'hp' | 'timer'; op: string; value: number } | null,`);
       this.push(`    hpFrac: number,`);
+      this.push(`    timerSec: number,`);
       this.push(`  ): boolean {`);
       this.push(`    if (!guard) return true; // unconditional transition`);
-      this.push(`    const lhs = guard.field === 'hp' ? hpFrac : 0;`);
+      this.push(`    const lhs = guard.field === 'hp' ? hpFrac : timerSec;`);
       this.push(`    switch (guard.op) {`);
       this.push(`      case '<': return lhs < guard.value;`);
       this.push(`      case '>': return lhs > guard.value;`);
