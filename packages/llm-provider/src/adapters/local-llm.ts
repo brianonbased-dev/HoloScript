@@ -213,6 +213,19 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         num_predict: request.maxTokens ?? 2048,
         ...(request.topP !== undefined ? { top_p: request.topP } : {}),
         ...(request.stop ? { stop: request.stop } : {}),
+        // KV-cache context cap. qwen3:4b at Ollama default ctx (4096) peaks
+        // ~7 GB on the Jetson's 8 GB shared RAM → OOM + SSH wedge (W.735).
+        // At 2048 → ~4 GB; at 1024 → ~3 GB. Override via HOLOSCRIPT_LLM_NUM_CTX.
+        // Unset → Ollama uses the model's baked-in default.
+        ...(process.env.HOLOSCRIPT_LLM_NUM_CTX
+          ? { num_ctx: parseInt(process.env.HOLOSCRIPT_LLM_NUM_CTX, 10) }
+          : {}),
+        // Release model weights from RAM after each request. Ollama's default
+        // keep_alive (5 min) holds 2.5 GB pinned between ticks — on an 8 GB
+        // device sharing RAM with OS + monitor + agent this is fatal across
+        // consecutive heavy requests. Set HOLOSCRIPT_LLM_KEEP_ALIVE=5m to
+        // restore caching on devices with enough headroom.
+        keep_alive: process.env.HOLOSCRIPT_LLM_KEEP_ALIVE ?? 0,
       },
       ...(filteredTools.length > 0 ? { tools: this.mapToolsToOllama(filteredTools) } : {}),
     });

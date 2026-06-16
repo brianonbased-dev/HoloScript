@@ -209,6 +209,9 @@ export class AgentRunner {
           } else if (u.name === 'bash') {
             const cmd = String((u.input as Record<string, unknown>)?.cmd ?? '');
             if (isProductiveBashCommand(cmd)) productiveCallCount++;
+          } else if (u.name === 'emit_hardware_receipt') {
+            // Hardware receipt emission always produces a file artifact.
+            productiveCallCount++;
           }
         }
         // Append the assistant turn (text + tool_use blocks) so the model
