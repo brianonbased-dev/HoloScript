@@ -323,16 +323,6 @@ export type {
   DispatchTierDefaultRecommendation,
 } from './dispatch/DispatchPolicyBenchmark';
 
-// Matterpak importer — bridge ingest from Matterport capture bundles (OBJ + XYZ + E57)
-// Source: research/2026-05-10_3d-real-estate-virtual-tour.md (Path A)
-export { MatterpakCompiler, createMatterpakCompiler } from './MatterpakCompiler';
-export type {
-  MatterpakCompilerOptions,
-  MatterpakCompileResult,
-  MatterpakBundle,
-  PointCloud,
-} from './MatterpakCompiler';
-
 // Spatial Partition Pass — compile-time octree-of-GaussianAnchors (WIRE-1)
 // Bridges core/compiler output to engine's OctreeLODSystem and SplatChunkStore (WIRE-3)
 export { SpatialPartitionPass, spatialPartition } from './SpatialPartitionPass';
@@ -355,15 +345,6 @@ export type {
   GaussianSplattingExtendedResult,
 } from './GaussianSplattingCompiler';
 
-// HoloGram MLS compiler — 2D listing photos → depth-estimated 3D gallery
-// Source: research/2026-05-10_3d-real-estate-virtual-tour.md (Path C)
-export { HoloGramMLSCompiler, createHoloGramMLSCompiler } from './HoloGramMLSCompiler';
-export type {
-  HoloGramMLSCompilerOptions,
-  HoloGramMLSCompileResult,
-  HoloGramMLSBundle,
-  MLSPhoto,
-} from './HoloGramMLSCompiler';
 
 // APL WIT / trait-evaluation surface — unified bridge for WASM worlds
 export {
