@@ -10,6 +10,7 @@ import {
   teamMessageStore,
   teamPresenceStore,
   persistTeamStore,
+  persistTeamDurable,
   persistAgentStore,
   challengeStore,
   reloadTeam,
@@ -960,7 +961,11 @@ export async function handleTeamRoutes(
       surfaceTag: joinSurfaceTag,
       type: joinType,
     });
-    persistTeamStore();
+    // W.128 fix: AWAIT the durable write before responding 200, so a fast
+    // follow-up request (e.g. AgentRunner heartbeat → /presence right after a
+    // join) that reloadTeam()s from Postgres sees this membership instead of
+    // racing the old fire-and-forget write-through and 403'ing "Not a member".
+    await persistTeamDurable(teamId);
 
     // Broadcast join to the team room. Signing attribution flows through:
     // signer is the seat-wallet address when the request was signed, null
@@ -1146,12 +1151,12 @@ export async function handleTeamRoutes(
 
     if (action === 'set_role') {
       team.members[targetIndex].role = role as TeamRole;
-      persistTeamStore();
+      await persistTeamDurable(teamId); // W.128/W.734: await durable write before 200
       json(res, 200, { success: true, new_role: role });
       return true;
     } else if (action === 'remove') {
       team.members.splice(targetIndex, 1);
-      persistTeamStore();
+      await persistTeamDurable(teamId); // W.128/W.734: await durable write so the removal can't be reverted by a stale replica write-through
       json(res, 200, { success: true, removed: agent_id, members: team.members.length });
       return true;
     }

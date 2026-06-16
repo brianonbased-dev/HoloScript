@@ -596,6 +596,29 @@ export function persistTeamStore(): void {
   });
 }
 
+/**
+ * Durably persist a single team and AWAIT the write (W.128 fix, 2026-06-16).
+ *
+ * `persistTeamStore()` routes through `teamStore.set()`, whose Postgres
+ * write-through is FIRE-AND-FORGET (team-store.ts:190). Membership mutations
+ * (join / set_role / remove) returned 200 *before* the row committed, so a
+ * fast follow-up request that `reloadTeam()`s (e.g. the AgentRunner heartbeat
+ * → /presence immediately after a join) read stale Postgres and 403'd
+ * "Not a member" — the seat appeared to never join (W.128 / Pattern Gamma).
+ *
+ * Membership handlers must AWAIT this instead of calling the fire-and-forget
+ * `persistTeamStore()`, so the row is durable before the response. On the
+ * in-memory backend (single-instance dev) there is no race, so we fall back to
+ * the synchronous file write.
+ */
+export async function persistTeamDurable(teamId: string): Promise<void> {
+  if (teamStore.usesPostgres) {
+    await teamStore.persist(teamId);
+  } else {
+    persistTeamStore();
+  }
+}
+
 export function persistAgentStore(): void {
   atomicWriteJSON(AGENT_STORE_PATH, {
     version: 1,
