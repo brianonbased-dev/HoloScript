@@ -187,7 +187,7 @@ describe('CavemanDriveTrait', () => {
 
   it('shouldCallLLM returns false by default on first tick', () => {
     const t = new CavemanDriveTrait();
-    // Only triggers at high drives or after 20 ticks
+    // Only triggers at high drives or after 200 ticks (MMO-budget safety valve)
     // default drives all < 0.8
     expect(t.shouldCallLLM()).toBe(false);
   });
@@ -220,5 +220,51 @@ describe('CavemanDriveTrait', () => {
   it('mapVerbToClip static delegate works', () => {
     const r = CavemanDriveTrait.mapVerbToClip('attack');
     expect(r.clipName).toBe('Attack');
+  });
+
+  // P0.7 — MMO-scale LLM budget tuning (research/2026-06-15_mmo-next-round-advancement.md §5)
+
+  it('safety valve fires at 200 ticks, not 20', () => {
+    const t = new CavemanDriveTrait();
+    // Tick 200 times with low drives so no drive-threshold trigger fires.
+    // deltaTime small enough that drives don't cross 0.8.
+    for (let i = 0; i < 200; i++) {
+      t.updateDrives(0.01, {});
+    }
+    // After 200 ticks with lastLLMCallTick=0, tickCount-lastLLMCallTick = 200 > 200? No — > 200 means 201+.
+    // At exactly 200 ticks the condition (200 > 200) is false; at 201 it fires.
+    expect(t.shouldCallLLM()).toBe(false); // 200 ticks: NOT yet over the valve
+
+    t.updateDrives(0.01, {}); // tick 201
+    expect(t.shouldCallLLM()).toBe(true);  // 201 > 200 → safety valve fires
+  });
+
+  it('aiLod far always returns false from shouldCallLLM', () => {
+    const t = new CavemanDriveTrait();
+    t.setAiLod('far');
+
+    // Drive all values to maximum — normally forces a call
+    for (let i = 0; i < 500; i++) {
+      t.updateDrives(1, { threat: true, novelty: true });
+    }
+    // Even with maxed drives and 500 elapsed ticks, 'far' tier blocks all LLM calls
+    expect(t.shouldCallLLM()).toBe(false);
+  });
+
+  it('aiLod near (default) allows LLM calls when drives are high', () => {
+    const t = new CavemanDriveTrait();
+    // Default is 'near' — high drives should trigger
+    t.updateDrives(100, {});
+    expect(t.shouldCallLLM()).toBe(true);
+  });
+
+  it('setAiLod transitions far→near re-enables LLM calls', () => {
+    const t = new CavemanDriveTrait();
+    t.setAiLod('far');
+    t.updateDrives(100, {}); // drive hunger to ~1.0
+    expect(t.shouldCallLLM()).toBe(false); // blocked by far
+
+    t.setAiLod('near');
+    expect(t.shouldCallLLM()).toBe(true);  // now high drives fire
   });
 });

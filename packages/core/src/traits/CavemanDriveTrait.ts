@@ -22,6 +22,19 @@ import {
   type CavemanVerb,
 } from './CavemanActionAnimationBridge';
 
+/**
+ * AI-LOD tier for this NPC. Controls whether LLM calls are allowed at all.
+ *
+ * - 'near' (default) — full LLM reasoning; ticks contribute to safety-valve budget.
+ * - 'mid'            — same as 'near' for now; reserved for future reduced-frequency logic.
+ * - 'far'            — LLM is disabled unconditionally. shouldCallLLM() always returns false.
+ *                      Use for NPCs beyond the player's attention radius to stay within
+ *                      the Jetson-scale ~1 call/sec budget across a 50-NPC fleet.
+ *
+ * Set via `setAiLod()` or pass `aiLod` in the constructor config. Default: 'near'.
+ */
+export type AiLodTier = 'near' | 'mid' | 'far';
+
 export interface CavemanDriveState {
   hunger: number; // 0..1 — rises on time, falls on eat
   thirst: number; // 0..1 — rises on time, falls on drink
@@ -30,6 +43,8 @@ export interface CavemanDriveState {
   curiosity: number; // 0..1 — rises with novelty, falls on inspect
   attentionTarget: string | null;
   lastLLMCallTick: number;
+  /** AI-LOD tier: 'far' disables LLM calls entirely (see AiLodTier). Default: 'near'. */
+  aiLod: AiLodTier;
 }
 
 export class CavemanDriveTrait implements Trait {
@@ -47,6 +62,7 @@ export class CavemanDriveTrait implements Trait {
     curiosity: 0.4,
     attentionTarget: null,
     lastLLMCallTick: 0,
+    aiLod: 'near',
   };
 
   private tickCount = 0;
@@ -90,11 +106,37 @@ export class CavemanDriveTrait implements Trait {
   shouldCallLLM(): boolean {
     const s = this.state;
 
+    // LOD gate: far-tier NPCs never call the LLM. This is the primary MMO-scale
+    // budget lever — a future LOD system sets 'far' on NPCs outside the player's
+    // attention radius so only near/mid NPCs consume Jetson inference capacity.
+    if (s.aiLod === 'far') return false;
+
     if (s.hunger >= 0.8 || s.thirst >= 0.8 || s.fear >= 0.8 || s.fatigue >= 0.9) return true;
     if (s.attentionTarget && s.attentionTarget !== this.state.attentionTarget) return true;
-    if (this.tickCount - s.lastLLMCallTick > 20) return true; // safety valve
+
+    // Safety valve: force an LLM call after 200 ticks of silence (~50s at ~250ms/tick).
+    // Budget math: 200 ticks × 250ms = 50s between forced calls per NPC.
+    // At 50 near-tier NPCs, worst-case forced rate = 50 / 50s = 1 call/sec —
+    // within the Jetson Orin qwen3:4b throughput (~0.5–1 call/sec).
+    // The OLD valve was 20 ticks (~5s/NPC → ~10 calls/sec for 50 NPCs = 10–20× over budget).
+    if (this.tickCount - s.lastLLMCallTick > 200) return true;
 
     return false;
+  }
+
+  /**
+   * Set the AI-LOD tier for this NPC.
+   *
+   * Call this from a spatial LOD / streaming system when the NPC moves in or out
+   * of the player's attention radius:
+   *
+   *   npc.getTrait('caveman_drive')?.setAiLod('far');   // outside radius → no LLM
+   *   npc.getTrait('caveman_drive')?.setAiLod('near');  // inside radius  → full LLM
+   *
+   * 'far' takes effect immediately on the next shouldCallLLM() check.
+   */
+  setAiLod(tier: AiLodTier): void {
+    this.state.aiLod = tier;
   }
 
   perceive(nearbyEntities: any[]) {

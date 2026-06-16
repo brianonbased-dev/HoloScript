@@ -1,0 +1,341 @@
+import { describe, it, expect } from 'vitest';
+import { ColyseusCompiler } from '../ColyseusCompiler';
+import { createTestCompilerToken } from '../CompilerBase';
+import { MMO_EVENT_RECEIPT_SCHEMA } from '../../trust/GameEventReceipt';
+import type {
+  HoloComposition,
+  HoloNPC,
+  HoloSpawnPoint,
+  HoloWorldChunk,
+  HoloAbility,
+  HoloObjectTrait,
+} from '../../parser/HoloCompositionTypes';
+
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
+
+function comp(partial: Partial<HoloComposition>): HoloComposition {
+  return {
+    type: 'Composition',
+    name: 'TestWorld',
+    templates: [],
+    objects: [],
+    spatialGroups: [],
+    lights: [],
+    imports: [],
+    timelines: [],
+    audio: [],
+    zones: [],
+    transitions: [],
+    conditionals: [],
+    iterators: [],
+    npcs: [],
+    quests: [],
+    abilities: [],
+    dialogues: [],
+    stateMachines: [],
+    achievements: [],
+    talentTrees: [],
+    shapes: [],
+    ...partial,
+  } as unknown as HoloComposition;
+}
+
+function npc(name: string, props: Record<string, unknown>): HoloNPC {
+  return {
+    type: 'NPC',
+    name,
+    npcType: (props.npcType as string) ?? 'npc',
+    properties: Object.entries(props)
+      .filter(([k]) => k !== 'npcType')
+      .map(([key, value]) => ({ type: 'NPCProperty', key, value })),
+    behaviors: [],
+  } as unknown as HoloNPC;
+}
+
+function spawn(name: string, x: number, y: number, z: number, faction = 'none'): HoloSpawnPoint {
+  return {
+    type: 'SpawnPoint',
+    name,
+    faction,
+    maxCount: 4,
+    position: { type: 'Position', x, y, z } as never,
+    properties: {},
+  } as unknown as HoloSpawnPoint;
+}
+
+function trait(name: string, config: Record<string, unknown>): HoloObjectTrait {
+  return { type: 'ObjectTrait', name, config, args: [] } as unknown as HoloObjectTrait;
+}
+
+const token = createTestCompilerToken();
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('ColyseusCompiler — typed MMO field consumption (P0.0)', () => {
+  it('emits NpcState entities from typed composition.npcs (not just trait-scan)', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(
+      comp({
+        npcs: [
+          npc('goblin_01', { x: 10, y: 0, z: 5, hp: 50, faction: 'ironveil', brain: 'goblin_brain' }),
+          npc('boss_drake', { x: 0, y: 0, z: 0, hp: 5000, faction: 'wyrm', npcType: 'boss' }),
+        ],
+      }),
+      token
+    );
+    expect(result.success).toBe(true);
+    expect(result.code).toContain('class NpcState extends Schema');
+    // both NPCs seeded
+    expect(result.code).toContain("npc_goblin_01.id = 'goblin_01'");
+    expect(result.code).toContain('npc_goblin_01.hp = 50');
+    expect(result.code).toContain("npc_goblin_01.faction = 'ironveil'");
+    expect(result.code).toContain("npc_boss_drake.type = 'boss'");
+    expect(result.code).toContain('npc_boss_drake.hp = 5000');
+  });
+
+  it('lowers NPC brain reference → NpcState.brainType + initializeBrain() (P0.6)', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(
+      comp({ npcs: [npc('goblin_01', { brain: 'goblin_brain' })] }),
+      token
+    );
+    expect(result.code).toContain("@type('string') brainType: string = ''");
+    expect(result.code).toContain("npc_goblin_01.brainType = 'goblin_brain'");
+    expect(result.code).toContain('this.initializeBrain(npc_goblin_01)');
+    expect(result.code).toContain('protected initializeBrain(npc: NpcState)');
+    expect(result.code).toContain('protected tickNpcBrain(npc: NpcState)');
+  });
+
+  it('emits SpawnPointState from typed composition.spawnPoints', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(
+      comp({ spawnPoints: [spawn('alliance_camp', 100, 0, -50, 'alliance')] }),
+      token
+    );
+    expect(result.code).toContain('class SpawnPointState extends Schema');
+    expect(result.code).toContain("spawn_alliance_camp.id = 'alliance_camp'");
+    expect(result.code).toContain('spawn_alliance_camp.x = 100');
+    expect(result.code).toContain("spawn_alliance_camp.faction = 'alliance'");
+  });
+});
+
+describe('ColyseusCompiler — server-authoritative movement validation (P0.3)', () => {
+  it('replaces blind client-position trust with a max-speed check', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({}), token);
+    // No more unconditional assignment of client position
+    expect(result.code).not.toContain('if (typeof data.x === \'number\') player.x = data.x;');
+    // Real validation present
+    expect(result.code).toContain('protected handleMove(client: Client, player: PlayerState');
+    expect(result.code).toContain('const maxDist = MAX_MOVE_SPEED * (elapsedTicks / TICK_RATE)');
+    expect(result.code).toContain('if (dist <= maxDist)');
+    expect(result.code).toContain("client.send('reconcile'");
+    expect(result.code).toContain('player.lastMoveTick = this.state.tickCount');
+  });
+
+  it('reads max_speed from a @movement_contract trait', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(
+      comp({ traits: [trait('movement_contract', { max_speed: 8 })] }),
+      token
+    );
+    expect(result.code).toContain('export const MAX_MOVE_SPEED = 8;');
+  });
+
+  it('defaults max_speed to 10 when no movement contract present', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({}), token);
+    expect(result.code).toContain('export const MAX_MOVE_SPEED = 10;');
+  });
+
+  it('emits a movement_reject receipt on rejected moves', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({}), token);
+    expect(result.code).toContain("kind: 'movement_reject'");
+    expect(result.code).toContain('validated: false');
+    expect(result.code).toContain('this.recordGameEvent(');
+  });
+});
+
+describe('ColyseusCompiler — canonical receipts (P0.4)', () => {
+  it('stamps the canonical MMO event receipt schema', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({}), token);
+    expect(MMO_EVENT_RECEIPT_SCHEMA).toBe('holoscript.mmo-event-receipt.v1');
+    expect(result.code).toContain(`export const GAME_EVENT_RECEIPT_SCHEMA = '${MMO_EVENT_RECEIPT_SCHEMA}';`);
+    expect(result.code).toContain('protected recordGameEvent(ev: {');
+    expect(result.code).toContain("status: ev.validated ? 'success' : 'denied'");
+    expect(result.code).toContain('protected onGameEventReceipt(receipt: Record<string, unknown>)');
+  });
+});
+
+describe('ColyseusCompiler — world chunk manifest (P0.5)', () => {
+  it('lowers composition.worldChunks → CHUNK_MANIFEST export', () => {
+    const chunk: HoloWorldChunk = {
+      type: 'WorldChunk',
+      name: 'dockside',
+      priority: 'high',
+      biome: 'coastal_urban',
+      lodDistances: [50, 150, 400],
+      npcRoster: ['merchant_alva'],
+      streaming: { load_radius: 300, unload_radius: 500 },
+      properties: {},
+    } as unknown as HoloWorldChunk;
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({ worldChunks: [chunk] }), token);
+    expect(result.code).toContain('export const CHUNK_MANIFEST =');
+    expect(result.chunkManifest).toHaveLength(1);
+    expect(result.chunkManifest[0]).toMatchObject({
+      name: 'dockside',
+      priority: 'high',
+      biome: 'coastal_urban',
+      lodDistances: [50, 150, 400],
+      npcRoster: ['merchant_alva'],
+    });
+    expect(result.code).toContain('"name": "dockside"');
+  });
+});
+
+describe('ColyseusCompiler — tick model (P0.2)', () => {
+  it('emits a canonical tick rate + deterministic RNG seed', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({ name: 'FrontierMMO' }), token);
+    expect(result.code).toContain('export const TICK_RATE = 20;');
+    expect(result.code).toMatch(/export const RNG_SEED = \d+;/);
+    expect(result.code).toContain('this.state.tickCount = (this.state.tickCount + 1) >>> 0;');
+    expect(result.code).toContain('protected nextRandom(): number');
+  });
+
+  it('RNG seed is deterministic for the same world name', () => {
+    const a = new ColyseusCompiler().compile(comp({ name: 'Frontier' }), token).code;
+    const b = new ColyseusCompiler().compile(comp({ name: 'Frontier' }), token).code;
+    const c = new ColyseusCompiler().compile(comp({ name: 'Different' }), token).code;
+    const seed = (s: string) => s.match(/RNG_SEED = (\d+);/)?.[1];
+    expect(seed(a)).toBe(seed(b));
+    expect(seed(a)).not.toBe(seed(c));
+  });
+
+  it('reads tick_rate from a @tick_rate trait', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({ traits: [trait('tick_rate', { hz: 30 })] }), token);
+    expect(result.code).toContain('export const TICK_RATE = 30;');
+  });
+});
+
+describe('ColyseusCompiler — ability registry (P0.1 consumption)', () => {
+  it('lowers typed composition.abilities → ABILITY_REGISTRY', () => {
+    const ability: HoloAbility = {
+      type: 'Ability',
+      name: 'fireball',
+      abilityType: 'spell',
+      stats: { type: 'AbilityStats', cooldown: 6, manaCost: 40, range: 30, castTime: 1.5 },
+      effects: { type: 'AbilityEffects' },
+    } as unknown as HoloAbility;
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(comp({ abilities: [ability] }), token);
+    expect(result.code).toContain('export const ABILITY_REGISTRY');
+    expect(result.abilities).toHaveLength(1);
+    expect(result.abilities[0]).toMatchObject({
+      name: 'fireball',
+      cooldownMs: 6000,
+      manaCost: 40,
+      range: 30,
+      castTimeMs: 1500,
+    });
+  });
+});
+
+describe('ColyseusCompiler — back-compat (legacy trait-scan still works)', () => {
+  it('still extracts @npc / @spawn_point traited objects', () => {
+    const compiler = new ColyseusCompiler();
+    const result = compiler.compile(
+      comp({
+        objects: [
+          {
+            type: 'Object',
+            name: 'old_style_npc',
+            traits: [{ type: 'ObjectTrait', name: 'npc', config: {}, args: [] }],
+            properties: [{ type: 'Property', key: 'hp', value: 200 }],
+          } as never,
+        ],
+      }),
+      token
+    );
+    expect(result.success).toBe(true);
+    expect(result.code).toContain("npc_old_style_npc.id = 'old_style_npc'");
+    expect(result.code).toContain('npc_old_style_npc.hp = 200');
+  });
+});
+
+describe('ColyseusCompiler — async import resolution (P0.0b / compileSource)', () => {
+  it('resolves .hs ability imports and .hsplus brain imports', async () => {
+    const holoSource = `
+      composition "RaidWorld" {
+        import "./abilities.hs"
+        import "./goblin.hsplus"
+        npc "goblin_01" {
+          hp: 50
+          faction: "ironveil"
+          brain_ref: "GoblinBrain"
+        }
+      }
+    `;
+    const files: Record<string, string> = {
+      'abilities.hs': `
+        ability shadow_bolt {
+          @cooldown 4
+          @mana_cost 25
+          @range 20
+        }
+      `,
+      'goblin.hsplus': `
+        brain GoblinBrain {
+          @behavior_tree
+        }
+      `,
+    };
+    const readFile = async (abs: string): Promise<string> => {
+      const key = Object.keys(files).find((f) => abs.endsWith(f));
+      if (!key) throw new Error(`not found: ${abs}`);
+      return files[key];
+    };
+
+    const compiler = new ColyseusCompiler();
+    const result = await compiler.compileSource(holoSource, '/world/raid.holo', token, {
+      readFile,
+      baseDir: '/world',
+    });
+
+    expect(result.success).toBe(true);
+    // Imported .hs ability surfaced into the registry
+    const abilityNames = result.abilities.map((a) => a.name);
+    expect(abilityNames).toContain('shadow_bolt');
+    const sb = result.abilities.find((a) => a.name === 'shadow_bolt');
+    expect(sb?.cooldownMs).toBe(4000);
+    expect(sb?.manaCost).toBe(25);
+    expect(sb?.range).toBe(20);
+    // Brain reference resolved against imported brain (no missing-brain warning)
+    expect(result.warnings.join(' ')).not.toContain("not found in imported");
+  });
+
+  it('warns (does not throw) when an import cannot be read', async () => {
+    const holoSource = `
+      composition "BrokenWorld" {
+        import "./missing.hs"
+        npc "dummy" { hp: 10 }
+      }
+    `;
+    const compiler = new ColyseusCompiler();
+    const result = await compiler.compileSource(holoSource, '/world/broken.holo', token, {
+      readFile: async () => {
+        throw new Error('ENOENT');
+      },
+    });
+    expect(result.success).toBe(true);
+    expect(result.warnings.some((w) => w.includes('missing.hs'))).toBe(true);
+  });
+});

@@ -1449,6 +1449,13 @@ export class HoloScriptCodeParser {
       'mana_cost',
       'damage_type',
       'drop_chance',
+      // Ability-stat annotations carrying an inline value (e.g. `@range 30`,
+      // `@gcd 1.5s`, `@cast_time 2s`, `@authority server`).
+      'range',
+      'gcd',
+      'cast_time',
+      'authority',
+      'authority_envelope',
     ]);
     if (GAME_LOGIC_ANNOTATIONS.has(name)) {
       let value: string | undefined;
