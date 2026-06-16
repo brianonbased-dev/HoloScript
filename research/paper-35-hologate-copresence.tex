@@ -180,11 +180,11 @@ We identify three missing primitives:
 policy contracts (scope enforcement), the Loro CRDT library (conflict-free
 state), WebRTC (delta transport), and a world-state SHA-256 receipt chain.
 The A2A agent-card handshake protocol draws on the agent identity layer
-described in~\cite{paper29algebraictrust} \todo{confirm cite key};
+described in~\cite{paper29algebraictrust};
 the CRDT state model is compatible with the spatial CRDT architecture
-of~\cite{paper32crdtspatial} \todo{confirm cite key}; the pillar-slice
+of~\cite{paper32crdtspatial}; the pillar-slice
 token compression of HoloGate intent tokens relates
-to~\cite{paper26latenttoken} \todo{confirm cite key}.
+to~\cite{paper26latenttoken}.
 
 \paragraph{Contributions.}
 \begin{enumerate}
@@ -215,24 +215,24 @@ world scripts, Roblox Luau, Horizon Worlds APIs). All admit by identity only;
 none provide capability-scoped negotiation at threshold.}
 
 \subsection{CRDT-Based Shared State}
-The Yjs~\cite{yjs2022} \todo{add bib} and Automerge~\cite{automerge2019}
-\todo{add bib} libraries provide CRDT-based shared editing for documents.
-Loro~\cite{loro2024} \todo{add bib} extends this model with a tree container
+The Yjs~\cite{yjs2024} and Automerge~\cite{automerge2024}
+libraries provide CRDT-based shared editing for documents.
+Loro~\cite{loro2024} extends this model with a tree container
 suited to hierarchical spatial state.  \hg{} uses Loro as its state substrate
 without modification (\S\ref{sec:arch}).
 
 \subsection{Agent Authorization Models}
-The A2A agent card protocol~\cite{a2agooglespec2025} \todo{add bib} defines a
+The A2A agent card protocol~\cite{a2agooglespec2025} defines a
 bearer-token handshake for agent-to-agent task delegation.  \hg{} extends this
 at the spatial portal layer: the handshake is not merely bearer-to-bearer but
 scope-bid to scope-grant.
 
 \subsection{Audit and Provenance}
 Hash-chain provenance for agent-environment loops is formalized in
-CAEL~\cite{cael2026} \todo{confirm cite key}, which applies the chain to
+CAEL~\cite{cael2026}, which applies the chain to
 physics simulation steps.  \hg{} applies an analogous chain to world-state
 mutations at co-presence boundaries.  The scope-based trust model builds on the
-algebraic trust lattice of~\cite{paper29algebraictrust} \todo{confirm cite key}.
+algebraic trust lattice of~\cite{paper29algebraictrust}.
 
 % ── §3 System Architecture ───────────────────────────────────────────────────
 \section{System Architecture}
@@ -453,7 +453,7 @@ world policies silently.  The current model trusts the portal policy to
 evaluate bids correctly but does not enforce cryptographic binding between
 the card and the bid.  Future work: extend A2A cards with hardware-attested
 signatures (compatible with the EIP-712 anchor layer described
-in~\cite{eip712anchor2026} \todo{confirm cite key}).
+in~\cite{eip712anchor2026}).
 
 \paragraph{Receipt chain forgery.}
 SHA-256 is collision-resistant but not authenticated: a malicious participant

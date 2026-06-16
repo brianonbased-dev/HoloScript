@@ -2989,3 +2989,67 @@
                central IFC property; cited in Paper 29 Related Work (information-flow
                control paragraph) alongside the sandbox preservation theorem analogy.},
 }
+
+%% ── Paper 35 cross-citations (added 2026-06-16) ─────────────────────────────
+
+@misc{paper29algebraictrust,
+  author       = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title        = {{Algebraic Trust Composition}: A {Lean} Mechanization of
+                  Sandbox $\oplus$ Cost-Guard Invariant Preservation for
+                  Verified {MCP} Tool Execution},
+  year         = {2026},
+  howpublished = {Submission to ACM SIGPLAN PLDI 2028},
+  note         = {Paper 29 in the HoloScript paper program; source:
+                  \texttt{research/paper-29-algebraic-trust-composition-pldi.tex}.
+                  Introduces the algebraic trust lattice and A2A agent identity
+                  layer; cited by Paper 35 for the agent identity/handshake model.},
+}
+
+@misc{paper26latenttoken,
+  author       = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title        = {{Pillar-Slice Framework}: Latent Token Compression for
+                  Physics-Grounded Multi-Agent Coordination},
+  year         = {2026},
+  howpublished = {Submission to ICLR 2027},
+  note         = {Paper 26 in the HoloScript paper program; source:
+                  \texttt{research/paper-26-main.tex}.
+                  Introduces the pillar-slice latent token compression architecture;
+                  cited by Paper 35 for the relationship to HoloGate intent token compression.},
+}
+
+@misc{paper32crdtspatial,
+  author       = {Krzywoszyja, Joseph and {HoloScript Core team}},
+  title        = {{Pillar-Slice}: A Tropical Geometry Framework for
+                  Domain-Grounded Agent Coordination},
+  year         = {2026},
+  howpublished = {Submission to NeurIPS 2027 (main track --- systems/representations)},
+  note         = {Paper 32 in the HoloScript paper program; source:
+                  \texttt{research/paper-32-pillar-slice-neurips.tex}.
+                  Full systems paper for the pillar-slice architecture including
+                  the uAAL runtime and multi-agent CRDT-compatible coordination layer;
+                  cited by Paper 35 for its spatial state architecture.},
+}
+
+@misc{a2agooglespec2025,
+  author       = {{Google LLC}},
+  title        = {{Agent-to-Agent (A2A) Protocol}: An Open Standard for
+                  Agent Interoperability},
+  year         = {2025},
+  howpublished = {\url{https://google.github.io/A2A/}},
+  note         = {Specification for the A2A open protocol; defines agent card
+                  bearer-token handshake for task delegation between heterogeneous
+                  agents. HoloGate (Paper 35) extends this protocol to spatial
+                  portal thresholds with scope-bid to scope-grant semantics.},
+}
+
+@misc{eip712anchor2026,
+  author       = {{Ethereum Foundation}},
+  title        = {{EIP-712}: Typed Structured Data Hashing and Signing},
+  year         = {2017},
+  howpublished = {\url{https://eips.ethereum.org/EIPS/eip-712}},
+  note         = {Ethereum Improvement Proposal 712; defines a standard for
+                  hashing and signing typed structured data for use in smart
+                  contracts and off-chain signature schemes. Paper 35 cites
+                  this as the on-chain anchor model for hardware-attested
+                  agent card signatures at spatial portal thresholds.},
+}
