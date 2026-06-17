@@ -174,6 +174,12 @@ export interface ColyseusBrainConfig {
   verbalFingerprint: ColyseusBrainVerbalFingerprint | null;
   /** P1.9: autonomous motivation from @autonomous_agenda (null when not declared). */
   autonomousAgenda: ColyseusBrainAgenda | null;
+  /** @waypoints [...] from brain decl — [x, y, z] tuples; empty when not declared. */
+  waypoints: [number, number, number][];
+  /** @provider_policy { fallback } — secondary LLM endpoint env-var key (optional). */
+  providerFallback: string | null;
+  /** @provider_policy { requires } — capability string the provider must support (e.g. "tool_calls"). */
+  providerRequires: string | null;
 }
 
 export interface ColyseusCompilationResult {
@@ -838,6 +844,12 @@ export class ColyseusCompiler extends CompilerBase {
       const t = decl.traits ?? {};
       const isBoss = Boolean(t['boss'] || t['boss_fight'] || t['boss_phases'] || t['raid_boss']);
 
+      // Extract @waypoints — each element should be a [x,y,z] numeric triple.
+      const rawWaypoints: unknown[] = Array.isArray(decl.waypoints) ? decl.waypoints : [];
+      const waypoints: [number, number, number][] = rawWaypoints
+        .filter((wp): wp is number[] => Array.isArray(wp) && wp.length >= 3 && wp.every((v) => typeof v === 'number'))
+        .map((wp) => [wp[0], wp[1], wp[2]]);
+
       out.push({
         name: decl.name,
         brainType: decl.brainType ?? 'behavior_tree',
@@ -852,6 +864,9 @@ export class ColyseusCompiler extends CompilerBase {
         isBoss,
         verbalFingerprint,
         autonomousAgenda,
+        waypoints,
+        providerFallback: decl.providerPolicy?.fallback ?? null,
+        providerRequires: decl.providerPolicy?.requires ?? null,
       });
     }
     return out;
@@ -1179,6 +1194,12 @@ export class ColyseusCompiler extends CompilerBase {
       `  verbalFingerprint: { tone: string; forbiddenPhrases: string[]; requiredPhrases: string[] } | null;`,
       `  /** P1.9: autonomous motivation (null when @autonomous_agenda not declared). */`,
       `  autonomousAgenda: { goals: string[] } | null;`,
+      `  /** Patrol waypoints from @waypoints in the brain decl — [x,y,z] tuples. */`,
+      `  waypoints: [number, number, number][];`,
+      `  /** @provider_policy fallback env-var key (null when not declared). */`,
+      `  providerFallback: string | null;`,
+      `  /** @provider_policy requires capability string (null when not declared). */`,
+      `  providerRequires: string | null;`,
       `}> = ${JSON.stringify(this.brainRegistryObject(), null, 2)};`,
       ``
     );
@@ -1267,6 +1288,8 @@ export class ColyseusCompiler extends CompilerBase {
         `  brainTick = 0;`,
         `  lastLlmTick = -1e9;`,
         `  ticksSincePhaseEntry = 0; // P2.1: drives boss enrage timers`,
+        `  patrolIndex = 0;          // current waypoint index for patrol action`,
+        `  patrolWaypoints: Array<[number, number, number]> = []; // set by applyBrainAction('patrol')`,
         `}`,
         ``
       );
@@ -1730,6 +1753,9 @@ export class ColyseusCompiler extends CompilerBase {
     if (npcs.length > 0) {
       this.push(`  // Brain lowering (P1.3) — runs the .hsplus brain FSM for this NPC.`);
       this.push(`  protected initializeBrain(npc: NpcState): void {`);
+      this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
+      this.push(`    // Copy @waypoints from brain registry to NPC instance for patrol action.`);
+      this.push(`    if (brain?.waypoints.length) npc.patrolWaypoints = brain.waypoints.slice();`);
       this.push(`    this.onBrainHydrate(npc); // P1.5: load durable brain memory on spawn`);
       this.push(`  }`);
       this.push(``);
@@ -1742,10 +1768,33 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    const timerSec = npc.ticksSincePhaseEntry / TICK_RATE;`);
       this.push(`    const prevState = npc.brainState;`);
       this.push(``);
-      this.push(`    // Universal flee reflex (pure-math, no LLM) — else evaluate phase/state transitions`);
+      this.push(`    // Universal flee reflex overrides all brain types when HP falls below threshold.`);
       this.push(`    if (brain.fleeThreshold > 0 && hpFrac < brain.fleeThreshold) {`);
       this.push(`      npc.brainState = 'flee';`);
+      this.push(`    } else if (brain.brainType === 'decision_tree') {`);
+      this.push(`      // Decision tree: evaluate all states top-down in declared priority order;`);
+      this.push(`      // enter the FIRST state whose entry guard passes (re-evaluated every tick).`);
+      this.push(`      // State[0] = highest priority, last state = unconditional default.`);
+      this.push(`      // The entry guard is the first outgoing transition's guard.`);
+      this.push(`      for (const s of brain.states) {`);
+      this.push(`        const entryGuard = s.transitions[0]?.guard ?? null;`);
+      this.push(`        if (this.brainGuardPasses(entryGuard, hpFrac, timerSec)) {`);
+      this.push(`          npc.brainState = s.name;`);
+      this.push(`          break;`);
+      this.push(`        }`);
+      this.push(`      }`);
+      this.push(`    } else if (brain.brainType === 'scripted') {`);
+      this.push(`      // Scripted: advance states in declared sequence when the current state's`);
+      this.push(`      // timer guard (first transition) passes. Linear, not loop-back.`);
+      this.push(`      const idx = brain.states.findIndex((s) => s.name === npc.brainState);`);
+      this.push(`      if (idx >= 0 && idx < brain.states.length - 1) {`);
+      this.push(`        const guard = brain.states[idx].transitions[0]?.guard ?? null;`);
+      this.push(`        if (this.brainGuardPasses(guard, hpFrac, timerSec)) {`);
+      this.push(`          npc.brainState = brain.states[idx + 1].name;`);
+      this.push(`        }`);
+      this.push(`      }`);
       this.push(`    } else {`);
+      this.push(`      // behavior_tree / neural / default: FSM — evaluate current state's outgoing transitions.`);
       this.push(`      const state = brain.states.find((s) => s.name === npc.brainState);`);
       this.push(`      if (state) {`);
       this.push(`        for (const tr of state.transitions) {`);
@@ -1769,14 +1818,14 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(``);
       this.push(`    if (npc.brainState === 'flee') { this.applyBrainAction(npc, 'flee'); return; }`);
       this.push(``);
-      this.push(`    // LOD-gated, budget-gated local-LLM decision (P1.4) — only LLM brains,`);
+      this.push(`    // LOD-gated, budget-gated local-LLM decision (P1.4) — only LLM / neural brains,`);
       this.push(`    // only near a player, only within the per-NPC call budget.`);
       this.push(`    if (brain.isLLM && this.npcIsNearPlayer(npc) &&`);
       this.push(`        npc.brainTick - npc.lastLlmTick >= LLM_BUDGET_TICKS) {`);
       this.push(`      npc.lastLlmTick = npc.brainTick;`);
       this.push(`      void this.decideLLM(npc); // async, fire-and-forget`);
       this.push(`    } else {`);
-      this.push(`      // Pure-math fallback: run the current state's first action`);
+      this.push(`      // Pure-math: run the current state's first declared action`);
       this.push(`      const next = brain.states.find((s) => s.name === npc.brainState);`);
       this.push(`      this.applyBrainAction(npc, next?.actions[0] ?? npc.brainState);`);
       this.push(`    }`);
@@ -1814,11 +1863,14 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`  // No-op when JETSON_OLLAMA_URL is unset so the server runs cloud-free by default.`);
       this.push(`  // P1.9: system prompt enriched with @verbal_fingerprint (tone, forbidden/required`);
       this.push(`  // phrases) and @autonomous_agenda (daily goals) baked from the .hsplus brain decl.`);
+      this.push(`  // @provider_policy { fallback } is tried when the primary endpoint is unavailable.`);
       this.push(`  protected async decideLLM(npc: NpcState): Promise<void> {`);
-      this.push(`    const base = process.env[JETSON_OLLAMA_ENV];`);
-      this.push(`    if (!base) return;`);
       this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
       this.push(`    if (!brain) return;`);
+      this.push(`    // Resolve endpoint: primary env-var, then @provider_policy fallback, then give up.`);
+      this.push(`    const base = process.env[JETSON_OLLAMA_ENV]`);
+      this.push(`      ?? (brain.providerFallback ? process.env[brain.providerFallback] ?? null : null);`);
+      this.push(`    if (!base) return;`);
       this.push(`    try {`);
       this.push(`      // ── Build system prompt (P1.9: verbal fingerprint + autonomous agenda) ──`);
       this.push(`      const basePart = \`You are \${brain.personality} NPC '\${npc.id}' (faction \${npc.faction}). State: \${npc.brainState}, hp \${npc.hp}/\${npc.maxHp}.\`;`);
@@ -1855,9 +1907,126 @@ export class ColyseusCompiler extends CompilerBase {
       this.push(`    }`);
       this.push(`  }`);
       this.push(``);
-      this.push(`  // Override to map a brain action/verb onto NPC movement/animation/ability.`);
+      this.push(`  // Default brain action dispatch — covers the most common verbs from .hsplus state actions.`);
+      this.push(`  // Override applyBrainAction (or onUnknownBrainAction for custom verbs) in your room subclass.`);
       this.push(`  protected applyBrainAction(npc: NpcState, action: string): void {`);
+      this.push(`    const brain = BRAIN_REGISTRY[npc.brainType];`);
+      this.push(`    const verb = action.toLowerCase().replace(/[-_ ]/g, '');`);
+      this.push(`    switch (verb) {`);
+      this.push(`      case 'idle':`);
+      this.push(`      case 'wait':`);
+      this.push(`      case 'stand':`);
+      this.push(`        break; // intentional no-op — NPC holds position`);
+      this.push(``);
+      this.push(`      case 'patrol':`);
+      this.push(`      case 'wander': {`);
+      this.push(`        // Advance along npc.patrolWaypoints at brain.patrolSpeed (units/tick).`);
+      this.push(`        // Populate npc.patrolWaypoints in your initializeBrain() override.`);
+      this.push(`        if (!brain || npc.patrolWaypoints.length === 0) break;`);
+      this.push(`        const wp = npc.patrolWaypoints[npc.patrolIndex % npc.patrolWaypoints.length];`);
+      this.push(`        const pdx = wp[0] - npc.x, pdy = wp[1] - npc.y, pdz = wp[2] - npc.z;`);
+      this.push(`        const pd = Math.sqrt(pdx * pdx + pdy * pdy + pdz * pdz);`);
+      this.push(`        const spd = brain.patrolSpeed;`);
+      this.push(`        if (pd <= spd) {`);
+      this.push(`          npc.x = wp[0]; npc.y = wp[1]; npc.z = wp[2];`);
+      this.push(`          npc.patrolIndex = (npc.patrolIndex + 1) % npc.patrolWaypoints.length;`);
+      this.push(`        } else {`);
+      this.push(`          npc.x += (pdx / pd) * spd;`);
+      this.push(`          npc.y += (pdy / pd) * spd;`);
+      this.push(`          npc.z += (pdz / pd) * spd;`);
+      this.push(`        }`);
+      this.push(`        break;`);
+      this.push(`      }`);
+      this.push(``);
+      this.push(`      case 'flee':`);
+      this.push(`      case 'run':`);
+      this.push(`      case 'escape': {`);
+      this.push(`        // Move away from nearest player at patrolSpeed.`);
+      this.push(`        const target = this.findNearestPlayer(npc);`);
+      this.push(`        if (!target) break;`);
+      this.push(`        const fdx = npc.x - target.x, fdy = npc.y - target.y, fdz = npc.z - target.z;`);
+      this.push(`        const fd = Math.sqrt(fdx * fdx + fdy * fdy + fdz * fdz) || 1;`);
+      this.push(`        const fspd = brain?.patrolSpeed ?? 1;`);
+      this.push(`        npc.x += (fdx / fd) * fspd;`);
+      this.push(`        npc.y += (fdy / fd) * fspd;`);
+      this.push(`        npc.z += (fdz / fd) * fspd;`);
+      this.push(`        break;`);
+      this.push(`      }`);
+      this.push(``);
+      this.push(`      case 'attack':`);
+      this.push(`      case 'fight':`);
+      this.push(`      case 'combat':`);
+      this.push(`      case 'chase':`);
+      this.push(`      case 'pursue': {`);
+      this.push(`        // Move toward nearest player; deal melee damage when in range.`);
+      this.push(`        const target = this.findNearestPlayer(npc);`);
+      this.push(`        if (!target) break;`);
+      this.push(`        const adx = target.x - npc.x, ady = target.y - npc.y, adz = target.z - npc.z;`);
+      this.push(`        const ad = Math.sqrt(adx * adx + ady * ady + adz * adz);`);
+      this.push(`        const aspd = brain?.patrolSpeed ?? 1;`);
+      this.push(`        const MELEE = 2; // world-units; override for your scale`);
+      this.push(`        if (ad <= MELEE && (verb === 'attack' || verb === 'fight' || verb === 'combat')) {`);
+      this.push(`          const dmg = 10;`);
+      this.push(`          target.hp = Math.max(0, target.hp - dmg);`);
+      this.push(`          this.recordGameEvent({`);
+      this.push(`            kind: 'npc_melee', actorSessionId: npc.id,`);
+      this.push(`            targetSessionId: target.id, amount: dmg, validated: true,`);
+      this.push(`          });`);
+      this.push(`          if (target.hp <= 0) {`);
+      this.push(`            this.recordGameEvent({ kind: 'player_killed', actorSessionId: npc.id,`);
+      this.push(`              targetSessionId: target.id, validated: true });`);
+      this.push(`          }`);
+      this.push(`        } else if (ad > aspd) {`);
+      this.push(`          npc.x += (adx / ad) * aspd;`);
+      this.push(`          npc.y += (ady / ad) * aspd;`);
+      this.push(`          npc.z += (adz / ad) * aspd;`);
+      this.push(`        } else {`);
+      this.push(`          npc.x = target.x; npc.y = target.y; npc.z = target.z;`);
+      this.push(`        }`);
+      this.push(`        break;`);
+      this.push(`      }`);
+      this.push(``);
+      this.push(`      case 'castability':`);
+      this.push(`      case 'ability':`);
+      this.push(`      case 'skill':`);
+      this.push(`      case 'cast': {`);
+      this.push(`        // Fire preferredAbility at nearest player via game event receipt.`);
+      this.push(`        const target = this.findNearestPlayer(npc);`);
+      this.push(`        if (!target || !brain?.preferredAbility) break;`);
+      this.push(`        this.recordGameEvent({`);
+      this.push(`          kind: 'npc_ability', actorSessionId: npc.id,`);
+      this.push(`          targetSessionId: target.id, abilityId: brain.preferredAbility,`);
+      this.push(`          amount: 0, validated: true,`);
+      this.push(`        });`);
+      this.push(`        break;`);
+      this.push(`      }`);
+      this.push(``);
+      this.push(`      case 'die':`);
+      this.push(`      case 'death':`);
+      this.push(`        npc.isAlive = false;`);
+      this.push(`        this.recordGameEvent({ kind: 'npc_killed', actorSessionId: npc.id, validated: true });`);
+      this.push(`        break;`);
+      this.push(``);
+      this.push(`      default:`);
+      this.push(`        this.onUnknownBrainAction(npc, action);`);
+      this.push(`    }`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // Override to handle domain-specific action verbs not covered by the defaults above.`);
+      this.push(`  protected onUnknownBrainAction(npc: NpcState, action: string): void {`);
       this.push(`    void npc; void action;`);
+      this.push(`  }`);
+      this.push(``);
+      this.push(`  // Returns the nearest player to an NPC, or null if the room is empty.`);
+      this.push(`  protected findNearestPlayer(npc: NpcState): PlayerState | null {`);
+      this.push(`    let nearest: PlayerState | null = null;`);
+      this.push(`    let minD2 = Infinity;`);
+      this.push(`    this.state.players.forEach((p) => {`);
+      this.push(`      const dx = p.x - npc.x, dy = p.y - npc.y, dz = p.z - npc.z;`);
+      this.push(`      const d2 = dx * dx + dy * dy + dz * dz;`);
+      this.push(`      if (d2 < minD2) { minD2 = d2; nearest = p; }`);
+      this.push(`    });`);
+      this.push(`    return nearest;`);
       this.push(`  }`);
       this.push(``);
       this.push(`  // P1.5 lifecycle hooks — override to bind a disposable neural-map seed`);

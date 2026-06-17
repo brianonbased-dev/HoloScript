@@ -418,7 +418,8 @@ describe('ColyseusCompiler — NPC brain runtime (P1.3/P1.4/P1.5)', () => {
       holoSource, '/w/brain.holo', token, { readFile, baseDir: '/w' }
     );
     expect(result.code).toContain("export const JETSON_OLLAMA_ENV = 'JETSON_OLLAMA_URL';");
-    expect(result.code).toContain('const base = process.env[JETSON_OLLAMA_ENV];');
+    // Primary endpoint resolved via env-var; @provider_policy fallback is a second env-var key, never a literal IP.
+    expect(result.code).toContain('process.env[JETSON_OLLAMA_ENV]');
     expect(result.code).toContain('if (!base) return;'); // cloud-free by default
     // No literal private IPs leaked into the generated server
     expect(result.code).not.toMatch(/\b192\.168\.\d{1,3}\.\d{1,3}\b/);
