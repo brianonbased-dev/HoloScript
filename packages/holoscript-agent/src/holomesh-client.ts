@@ -24,6 +24,15 @@ export interface TeamMessage {
   createdAt: string;
 }
 
+/** Minimal knowledge-entry shape returned by the mesh knowledge endpoints. */
+export interface KnowledgeEntry {
+  id: string;
+  content: string;
+  domain?: string;
+  type?: string;
+  createdAt?: string;
+}
+
 export class HolomeshClient {
   private readonly apiBase: string;
   private readonly bearer: string;
@@ -181,6 +190,40 @@ export class HolomeshClient {
   /** Delegate a board task to another agent. */
   async delegateTask(taskId: string, toAgentId: string): Promise<unknown> {
     return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'delegate', toAgentId }));
+  }
+
+  // ── Cognitive-verb knowledge surface (Phase 2.2 — recall / rag_query) ────────
+
+  /**
+   * Query the TEAM knowledge base (the `rag_query` cognitive verb). Bearer-only
+   * GET; `q` is the server-side search filter. Returns [] on any failure so a
+   * retrieval miss never breaks a tick.
+   */
+  async queryTeamKnowledge(query: string, limit = 5): Promise<KnowledgeEntry[]> {
+    const qs = new URLSearchParams({ q: query, limit: String(limit) }).toString();
+    try {
+      const data = await this.req<{ entries?: KnowledgeEntry[] }>(
+        'GET',
+        `/team/${this.teamId}/knowledge?${qs}`
+      );
+      return data.entries ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Query this agent's PRIVATE workspace knowledge (the `recall` cognitive verb).
+   * The endpoint has no server-side search param, so the caller filters by query
+   * client-side. Returns [] on any failure.
+   */
+  async queryPrivateKnowledge(): Promise<KnowledgeEntry[]> {
+    try {
+      const data = await this.req<{ entries?: KnowledgeEntry[] }>('GET', `/knowledge/private`);
+      return data.entries ?? [];
+    } catch {
+      return [];
+    }
   }
 
   private async req<T>(method: string, path: string, body?: unknown): Promise<T> {

@@ -1,0 +1,143 @@
+/**
+ * On-task cognitive verbs — the edge executor (Phase 2.2).
+ *
+ * A brain's `behavior on_task { … }` block parses into an ordered sequence of
+ * cognitive verbs (brain.ts extractOnTaskActions). The lightweight AgentRunner
+ * executes them WITHOUT a @holoscript/core / engine dependency — provider + mesh
+ * only — so the edge package keeps its clean publish dep-closure:
+ *
+ *   - `llm_call { prompt }`   → append the prompt as a domain directive (was the
+ *                               only wired verb before this; W.736).
+ *   - `rag_query { query }`   → retrieve from TEAM knowledge → inject as context.
+ *   - `recall { query }`      → retrieve from the agent's PRIVATE workspace →
+ *                               filter by query client-side → inject.
+ *   - `plan { goal|prompt }`  → one provider call producing a short plan → inject.
+ *
+ * Each verb is best-effort: a retrieval/plan failure is logged and skipped, never
+ * breaking the tick. The verbs run in authored order and their outputs accumulate
+ * onto the system prompt the tool-loop sees. `reflect` is handled separately
+ * (post-artifact gate in runner.ts), not here.
+ *
+ * @module holoscript-agent/cognitive-verbs
+ */
+import type { KnowledgeEntry } from './holomesh-client.js';
+import type { OnTaskAction } from './types.js';
+
+export interface CognitiveVerbDeps {
+  /** The brain's base system prompt to augment. */
+  systemPrompt: string;
+  /** Parsed `behavior on_task` verbs, in authored order. */
+  onTaskActions: OnTaskAction[];
+  /** Task being executed (for `plan` goal fallback + logging). */
+  task: { id: string; title: string };
+  /** TEAM knowledge retrieval (rag_query). */
+  queryTeamKnowledge: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
+  /** PRIVATE workspace retrieval (recall). */
+  queryPrivateKnowledge: () => Promise<KnowledgeEntry[]>;
+  /** One-shot provider planner (plan). Optional — when absent, `plan` is skipped. */
+  plan?: (prompt: string) => Promise<string>;
+  /** Structured logger. */
+  log: (ev: Record<string, unknown>) => void;
+}
+
+const DEFAULT_LIMIT = 5;
+/** Cap injected context so the edge model's num_ctx isn't blown (qwen3:4b). */
+const MAX_ENTRY_CHARS = 320;
+const MAX_INJECTED_CHARS = 2400;
+
+function strField(config: Record<string, unknown>, ...keys: string[]): string {
+  for (const k of keys) {
+    const v = config[k];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return '';
+}
+
+function numField(config: Record<string, unknown>, key: string, fallback: number): number {
+  const v = config[key];
+  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
+function formatEntries(entries: KnowledgeEntry[]): string {
+  let out = '';
+  for (const e of entries) {
+    const line = `- ${(e.content ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_ENTRY_CHARS)}`;
+    if (out.length + line.length > MAX_INJECTED_CHARS) break;
+    out += (out ? '\n' : '') + line;
+  }
+  return out;
+}
+
+/**
+ * Execute a brain's on_task cognitive verbs and return the augmented system
+ * prompt the tool-loop should use. Pure-ish: all I/O is injected via deps.
+ */
+export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promise<string> {
+  let content = deps.systemPrompt;
+  if (!deps.onTaskActions || deps.onTaskActions.length === 0) return content;
+
+  for (const action of deps.onTaskActions) {
+    try {
+      switch (action.verb) {
+        case 'llm_call': {
+          const prompt = strField(action.config, 'prompt');
+          if (prompt) {
+            content += `\n\n[Brain on_task directive]\n${prompt}`;
+            deps.log({ ev: 'on-task-llm-call', taskId: deps.task.id, promptLen: prompt.length });
+          }
+          break;
+        }
+        case 'rag_query': {
+          const query = strField(action.config, 'query', 'q') || deps.task.title;
+          const limit = numField(action.config, 'limit', DEFAULT_LIMIT);
+          const entries = await deps.queryTeamKnowledge(query, limit);
+          if (entries.length > 0) {
+            content += `\n\n[Retrieved knowledge for "${query}"]\n${formatEntries(entries)}`;
+          }
+          deps.log({ ev: 'on-task-rag-query', taskId: deps.task.id, query, retrieved: entries.length });
+          break;
+        }
+        case 'recall': {
+          const query = strField(action.config, 'query', 'q');
+          const limit = numField(action.config, 'limit', DEFAULT_LIMIT);
+          const all = await deps.queryPrivateKnowledge();
+          const needle = query.toLowerCase();
+          const matched = (
+            needle
+              ? all.filter((e) => `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle))
+              : all
+          ).slice(0, limit);
+          if (matched.length > 0) {
+            content += `\n\n[Recalled memory${query ? ` for "${query}"` : ''}]\n${formatEntries(matched)}`;
+          }
+          deps.log({ ev: 'on-task-recall', taskId: deps.task.id, query, recalled: matched.length });
+          break;
+        }
+        case 'plan': {
+          if (!deps.plan) break;
+          const goal = strField(action.config, 'goal', 'prompt', 'of') || deps.task.title;
+          const planText = await deps.plan(
+            `Produce a short numbered plan (max 6 steps) to accomplish this task. Be concrete and specific to the goal; do not execute it.\n\nGoal: ${goal}`
+          );
+          const trimmed = planText.trim().slice(0, MAX_INJECTED_CHARS);
+          if (trimmed) {
+            content += `\n\n[Plan]\n${trimmed}`;
+            deps.log({ ev: 'on-task-plan', taskId: deps.task.id, planLen: trimmed.length });
+          }
+          break;
+        }
+        // `reflect` is handled post-artifact in runner.ts, not here.
+        default:
+          break;
+      }
+    } catch (err) {
+      deps.log({
+        ev: 'on-task-verb-error',
+        taskId: deps.task.id,
+        verb: action.verb,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+  return content;
+}

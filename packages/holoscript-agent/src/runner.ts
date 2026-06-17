@@ -5,6 +5,7 @@ import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
 import { MESH_TOOLS, runTool, isProductiveBashCommand } from './tools.js';
+import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import type {
   AgentIdentity,
@@ -134,8 +135,29 @@ export class AgentRunner {
     // checks, no inspection of inputs scp'd to the instance. With it,
     // lean-theorist can actually `cat MSC/Invariants.lean`, `lake build`,
     // and `write_file /root/agent-output/Invariants.lean` per its brain rules.
+    // ── On-task cognition (Phase 2.2 — cognitive-verbs.ts) ───────────────────
+    // Execute the brain's authored `behavior on_task` verbs (llm_call / rag_query
+    // / recall / plan) and accumulate their outputs onto the system prompt before
+    // the tool loop. Provider + mesh only (no engine/@holoscript/core dep) so the
+    // edge package keeps its clean publish closure. `reflect` runs post-artifact.
+    const systemContent = await augmentWithOnTaskCognition({
+      systemPrompt: brain.systemPrompt,
+      onTaskActions: brain.onTaskActions ?? [],
+      task: { id: target.id, title: target.title },
+      queryTeamKnowledge: (q, limit) => mesh.queryTeamKnowledge(q, limit),
+      queryPrivateKnowledge: () => mesh.queryPrivateKnowledge(),
+      plan: async (prompt) => {
+        const resp = await provider.complete(
+          { messages: [{ role: 'user', content: prompt }], maxTokens: 512, temperature: 0.3 },
+          identity.llmModel
+        );
+        return resp.content;
+      },
+      log,
+    });
+
     const messages: LLMMessage[] = [
-      { role: 'system', content: brain.systemPrompt },
+      { role: 'system', content: systemContent },
       { role: 'user', content: buildTaskPrompt(target) },
     ];
     let aggUsage: TokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
