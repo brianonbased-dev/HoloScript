@@ -130,6 +130,17 @@ import {
   SpatialVoiceTrait,
   HeadTrackedAudioTrait,
 } from '../traits/SpatialAudioTraits';
+import {
+  PlaneDetectionTrait,
+  MeshDetectionTrait,
+  PersistentAnchorTrait,
+  SharedAnchorTrait,
+  GeospatialTrait,
+  LightEstimationTrait,
+  OcclusionTrait,
+  CoLocatedTrait,
+  ShareplayTrait,
+} from '../traits/XRSensingTraits';
 import { InputManager } from '../input/InputManager';
 import {
   hasXR,
@@ -1094,6 +1105,17 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(AudioPortalTrait);
     this.traitSystem.register(SpatialVoiceTrait);
     this.traitSystem.register(HeadTrackedAudioTrait);
+
+    // Tier-3 AR/XR sensing traits (research/2026-06-15_trait-parity-and-tsx-deprecation.md §4.2 Tier 3)
+    this.traitSystem.register(PlaneDetectionTrait);
+    this.traitSystem.register(MeshDetectionTrait);
+    this.traitSystem.register(PersistentAnchorTrait);
+    this.traitSystem.register(SharedAnchorTrait);
+    this.traitSystem.register(GeospatialTrait);
+    this.traitSystem.register(LightEstimationTrait);
+    this.traitSystem.register(OcclusionTrait);
+    this.traitSystem.register(CoLocatedTrait);
+    this.traitSystem.register(ShareplayTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
