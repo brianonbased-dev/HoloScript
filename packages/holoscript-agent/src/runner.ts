@@ -1,4 +1,5 @@
 import type { ILLMProvider, LLMMessage, TokenUsage } from '@holoscript/llm-provider';
+import { embedAcrossFleet, cosineSimilarity } from '@holoscript/llm-provider';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
@@ -153,6 +154,11 @@ export class AgentRunner {
         );
         return resp.content;
       },
+      // Semantic `recall` over the private workspace via the fleet nomic (W.753).
+      // brainPath from HOLO_LLM_FLEET_BRAIN; if unset/unreachable embedAcrossFleet
+      // returns null and cognitive-verbs falls back to the substring filter.
+      embed: (text) => embedAcrossFleet(text, { brainPath: process.env.HOLO_LLM_FLEET_BRAIN }),
+      similarity: cosineSimilarity,
       log,
     });
 

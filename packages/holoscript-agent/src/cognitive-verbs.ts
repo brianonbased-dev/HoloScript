@@ -36,6 +36,15 @@ export interface CognitiveVerbDeps {
   queryPrivateKnowledge: () => Promise<KnowledgeEntry[]>;
   /** One-shot provider planner (plan). Optional — when absent, `plan` is skipped. */
   plan?: (prompt: string) => Promise<string>;
+  /**
+   * Embed text for SEMANTIC `recall` (the fleet nomic model). Optional — when absent
+   * OR it returns null (no fleet/registry reachable), `recall` falls back to the
+   * substring filter. Pairs with `similarity`. (W.753: recall should rank via the
+   * semantic stack, not keyword-match the private workspace.)
+   */
+  embed?: (text: string) => Promise<number[] | null>;
+  /** Cosine similarity for ranking recalled entries (required alongside `embed`). */
+  similarity?: (a: number[], b: number[]) => number;
   /** Structured logger. */
   log: (ev: Record<string, unknown>) => void;
 }
@@ -44,6 +53,8 @@ const DEFAULT_LIMIT = 5;
 /** Cap injected context so the edge model's num_ctx isn't blown (qwen3:4b). */
 const MAX_ENTRY_CHARS = 320;
 const MAX_INJECTED_CHARS = 2400;
+/** Cap entries embedded per recall so a large private store can't stall a tick. */
+const MAX_RECALL_EMBED = 40;
 
 function strField(config: Record<string, unknown>, ...keys: string[]): string {
   for (const k of keys) {
@@ -101,16 +112,38 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
           const query = strField(action.config, 'query', 'q');
           const limit = numField(action.config, 'limit', DEFAULT_LIMIT);
           const all = await deps.queryPrivateKnowledge();
-          const needle = query.toLowerCase();
-          const matched = (
-            needle
-              ? all.filter((e) => `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle))
-              : all
-          ).slice(0, limit);
+          let matched: KnowledgeEntry[] | null = null;
+          let mode = 'substring';
+          // SEMANTIC recall (W.753): rank the private workspace by embedding-cosine
+          // when an embed route resolves. Best-effort — any miss (no embed dep, fleet
+          // unreachable, null vectors) drops to the substring filter below; never breaks the tick.
+          if (deps.embed && deps.similarity && query && all.length > 0) {
+            const qv = await deps.embed(query);
+            if (qv) {
+              const scored: Array<{ e: KnowledgeEntry; score: number }> = [];
+              for (const e of all.slice(0, MAX_RECALL_EMBED)) {
+                const ev = await deps.embed(e.content ?? '');
+                if (ev) scored.push({ e, score: deps.similarity(qv, ev) });
+              }
+              if (scored.length > 0) {
+                scored.sort((a, b) => b.score - a.score);
+                matched = scored.slice(0, limit).map((s) => s.e);
+                mode = 'semantic';
+              }
+            }
+          }
+          if (!matched) {
+            const needle = query.toLowerCase();
+            matched = (
+              needle
+                ? all.filter((e) => `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle))
+                : all
+            ).slice(0, limit);
+          }
           if (matched.length > 0) {
             content += `\n\n[Recalled memory${query ? ` for "${query}"` : ''}]\n${formatEntries(matched)}`;
           }
-          deps.log({ ev: 'on-task-recall', taskId: deps.task.id, query, recalled: matched.length });
+          deps.log({ ev: 'on-task-recall', taskId: deps.task.id, query, recalled: matched.length, mode });
           break;
         }
         case 'plan': {
