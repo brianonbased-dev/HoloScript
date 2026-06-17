@@ -87,10 +87,16 @@ traits [
   "trace_producer"
 ]
 
-// ── The fleet: two owned GPU nodes that answer as one ──
-// Nodes are named by sovereign-devices registry HANDLE — never by raw address. The runtime
-// resolves each handle to its LAN-absolute Ollama endpoint from the registry, then discovers
-// (/api/tags + /api/ps) and routes (node, model).
+// ── The fleet: the always-on Jetson is the SOLE LLM node ──
+// (founder 2026-06-17: "since we are not serving instances on the laptop GPU we don't need
+// models or Ollama on it.") The laptop's GPU value is its UNIQUE lanes — WebGPU dev (the only
+// WebGPU-capable owned box; the Jetson is headless CUDA-only) + cuQuantum/cuTensorNet — which run
+// on CUDA/WSL2, NOT Ollama. So LLM/embeddings/computer-use serving is 100% the Jetson; the laptop
+// stays the daily-driver + specialized-compute + surface host with no Ollama footprint. The
+// laptop can be re-added as an overflow node later (re-install models + restore the node block +
+// its registry local-llm endpoint) — the router already supports primary/overflow (see tests).
+// Nodes are named by sovereign-devices registry HANDLE — never by raw address; the runtime
+// resolves the handle to its LAN-absolute Ollama endpoint, discovers (/api/tags + /api/ps), routes.
 
 @model_fleet {
   jetson {
@@ -99,15 +105,7 @@ traits [
     vramGb: 8
     alwaysOn: true
     models: ["qwen3:4b-instruct", "qwen3:4b", "nomic-embed-text:latest", "hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M"]
-    role: "edge brain — tool-calls (qwen3:4b-instruct) + embeddings (nomic-embed-text) + computer-use/GUI (Fara-7B), always-on $0"
-  }
-  laptop {
-    node: "laptop-rtx3060"
-    gpu: "NVIDIA GeForce RTX 3060 Laptop (6GB, sm_86)"
-    vramGb: 6
-    alwaysOn: false
-    models: ["qwen3:4b-instruct", "gemma4:e2b", "qwen3.5:4b", "nomic-embed-text:latest"]
-    role: "second GPU — overflow + parallel capacity + embeddings (nomic-embed-text)"
+    role: "the sovereign brain — tool-calls (qwen3:4b-instruct) + embeddings (nomic-embed-text) + computer-use/GUI grounding (Fara-7B), always-on $0"
   }
 
   endpoints: "resolved by handle from config/sovereign-devices/<handle>.json (LAN-absolute, never hardcoded)"
@@ -117,8 +115,8 @@ traits [
   primary_max_load_gb: "6"
   blacklist: ["qwen2.5"]
   discover: "per node: GET <registry-endpoint>/api/tags (installed) + /api/ps (warm + VRAM load)"
-  route: "pick (node, model): the PRIMARY (jetson-orin) carries the main inference load and wins until its VRAM passes primary_max_load_gb; then the laptop GPU comes in 'on top' (overflow), chosen warm-first then least-loaded. The always-on Jetson is the default brain; the laptop is opt-in extra capacity, not the daily-driver's burden."
-  escalate: "both local GPUs saturated AND task exceeds them → escalateTo fleet (Vast, scale-to-zero)"
+  route: "single LLM node: every request lands on the always-on Jetson ($0). One model fits the 8GB at a time (each evicts the prior), so DON'T run concurrent models here — that's what a re-added overflow node would be for. The laptop GPU is NOT an LLM node (no Ollama); its GPU serves WebGPU + cuQuantum only."
+  escalate: "Jetson saturated AND task exceeds it → escalateTo fleet (Vast, scale-to-zero, paid). The laptop is NOT the overflow path while it has no Ollama."
 }
 
 // Per-model hint the sovereign-first resolver reads (the fleet's default model).
