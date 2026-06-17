@@ -1,9 +1,10 @@
 {
   "id": "forensics",
   "version": "2.0.2",
-  "name": "HoloScript domain",
+  "name": "Forensics",
   "description": "HoloScript domain plugin for forensics workflows: evidence chain, scene reconstruction, and chain-of-custody traits.",
-  "traits": [],
-  "autoRegister": false,
-  "coreVersion": ">=8.0.0"
+  "traits": ["evidence_chain", "scene_reconstruction", "chain_of_custody"],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
 }

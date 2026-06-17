@@ -1,9 +1,10 @@
 {
   "id": "threat-intelligence",
   "version": "2.0.2",
-  "name": "HoloScript domain",
+  "name": "Threat Intelligence",
   "description": "HoloScript domain plugin for cybersecurity threat intelligence workflows.",
-  "traits": [],
-  "autoRegister": false,
-  "coreVersion": ">=8.0.0"
+  "traits": ["threat_feed", "ioc_matching", "siem_integration", "attack_graph"],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
 }

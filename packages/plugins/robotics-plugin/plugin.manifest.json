@@ -1,9 +1,9 @@
 {
   "id": "robotics-plugin",
   "version": "2.0.2",
-  "name": "HoloScript",
+  "name": "Robotics",
   "description": "HoloScript plugin for robotics: compile-time USD/URDF codegen + runtime ROS2/Gazebo integration. VR robot programming and digital twins.",
-  "traits": [],
+  "traits": ["ros2_hardware_loop"],
   "autoRegister": true,
   "coreVersion": ">=8.0.0",
   "runtimeEntry": "./src/runtime.ts"
