@@ -207,6 +207,29 @@ export type { ModelLane, ModelTier, ModelLibraryEntry } from './model-policy';
 export { pickLocalModel, __clearLocalModelPickerCache, OLLAMA_DEFAULT_BASE_URL } from './local-model-picker';
 export type { LocalModelChoice } from './local-model-picker';
 
+// Local multi-GPU fleet routing — the runtime consumer of the native
+// `@model_fleet` brain (compositions/model-fleet.hsplus). Routes one request
+// across the owned-metal GPU nodes (Jetson + laptop RTX 3060) least-loaded +
+// warm-preferred, endpoints resolved by sovereign-devices registry handle. The
+// single-endpoint picker above is its degenerate one-node case.
+export {
+  parseFleetSpec,
+  loadFleetSpec,
+  resolveNodeEndpoint,
+  discoverNode,
+  pickFleetModel,
+  resolveLocalFleet,
+} from './fleet-router';
+export type {
+  FleetNode,
+  FleetSpec,
+  NodeDiscovery,
+  FleetCandidate,
+  FleetRoute,
+  FleetRouteOptions,
+  FetchLike,
+} from './fleet-router';
+
 // Quest Generator (Phase 2 Hololand Integration)
 export { QuestGenerator } from './QuestGenerator';
 export type { QuestNarrativeRequest, QuestNarrativeResponse } from './QuestGenerator';
