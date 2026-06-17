@@ -486,6 +486,23 @@ export class AgentRunner {
       });
     }
 
+    // Continuity write-loop: persist this task's outcome to the agent's PRIVATE
+    // knowledge so a future `recall` verb has real memory to draw on. This closes
+    // the W.752 loop-gap — the edge `recall` verb read /knowledge/private but it
+    // was always empty because nothing ever wrote to it. Now markDone feeds it.
+    // Best-effort (writePrivateKnowledge swallows its own errors); the task is
+    // already done, so a write miss is logged and ignored.
+    if (finalText.trim()) {
+      const fact =
+        `Task "${target.title}" (${target.id}) completed. ` +
+        `Outcome: ${finalText.trim().slice(0, 600)}` +
+        (lastCommitHash ? ` [commit ${lastCommitHash}]` : '');
+      const wrote = await mesh.writePrivateKnowledge([
+        { content: fact, type: 'task-outcome', tags: ['task-outcome', identity.handle] },
+      ]);
+      log({ ev: wrote ? 'knowledge-write' : 'knowledge-write-skip', taskId: target.id });
+    }
+
     return {
       action: 'executed',
       taskId: target.id,

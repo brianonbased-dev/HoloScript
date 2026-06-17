@@ -123,6 +123,10 @@ function mockMesh(opts: {
     markDone: vi.fn(async () => undefined),
     postAuditRecords: vi.fn(async () => ({ appended: 0, rejected: 0 })),
     whoAmI: vi.fn(async () => ({ agentId: 'agent_test', surface: 'mock' })),
+    // Cognitive-verb knowledge surface (Phase 2.2) + the recall write-loop.
+    queryTeamKnowledge: vi.fn(async () => []),
+    queryPrivateKnowledge: vi.fn(async () => []),
+    writePrivateKnowledge: vi.fn(async () => true),
   };
 }
 
@@ -204,6 +208,12 @@ describe('AgentRunner.tick', () => {
     expect(mesh.sendMessageOnTask).toHaveBeenCalledTimes(1);
     expect(mesh.messages[0].taskId).toBe('t-G10');
     expect(mesh.messages[0].body).toContain('response from mock');
+    // Recall write-loop (W.752): a completed task persists its outcome to the
+    // agent's private knowledge so a future `recall` verb has memory to draw on.
+    expect(mesh.writePrivateKnowledge).toHaveBeenCalledTimes(1);
+    const writtenFact = (mesh.writePrivateKnowledge as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+    expect(writtenFact.content).toContain('t-G10');
+    expect(writtenFact.type).toBe('task-outcome');
   });
 
   // W.107 artifact-grounding gate (added 2026-04-26 after the mesh-worker-02

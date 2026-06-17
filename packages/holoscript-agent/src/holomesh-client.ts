@@ -226,6 +226,27 @@ export class HolomeshClient {
     }
   }
 
+  /**
+   * Persist facts to this agent's PRIVATE workspace — the WRITE side of `recall`
+   * (POST /knowledge/private). The server stamps id / workspaceId (`private:<wallet>`)
+   * / author / timestamps; the caller supplies `content` (+ optional type/tags/title).
+   * This is what gives `recall` something to recall: without it the private store
+   * stays empty and every `recall` returns [] (the W.752 loop-gap). Best-effort —
+   * returns false on any failure so a write miss never breaks a tick (the task is
+   * already done by the time this runs).
+   */
+  async writePrivateKnowledge(
+    entries: Array<{ content: string; type?: string; tags?: string[]; title?: string }>
+  ): Promise<boolean> {
+    if (!entries.length) return false;
+    try {
+      await this.req('POST', `/knowledge/private`, { entries });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private async req<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${this.apiBase}${path}`;
     // HoloMesh REST auth: server (packages/mcp-server/src/holomesh/auth-utils.ts

@@ -107,4 +107,35 @@ describe('HolomeshClient', () => {
     });
     await expect(client.getOpenTasks()).rejects.toThrow(/403/);
   });
+
+  it('writePrivateKnowledge POSTs {entries} to /knowledge/private and returns true (the recall write-loop)', async () => {
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl: typeof fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return new Response(JSON.stringify({ success: true }), { status: 201 });
+    }) as unknown as typeof fetch;
+    const client = new HolomeshClient({ apiBase: 'https://x/api/holomesh', bearer: 'b', teamId: 't', fetchImpl });
+
+    const ok = await client.writePrivateKnowledge([{ content: 'Task X done. Outcome: Y', type: 'task-outcome' }]);
+    expect(ok).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].init.method).toBe('POST');
+    expect(calls[0].url).toContain('/knowledge/private');
+    expect(JSON.parse(calls[0].init.body as string).entries[0].content).toContain('Outcome: Y');
+    expect((calls[0].init.headers as Record<string, string>)['Authorization']).toBe('Bearer b');
+  });
+
+  it('writePrivateKnowledge returns false (never throws) on a failed write — a write miss must not break the tick', async () => {
+    const fetchImpl: typeof fetch = (async () =>
+      new Response('server error', { status: 500 })) as unknown as typeof fetch;
+    const client = new HolomeshClient({ apiBase: 'https://x', bearer: 'b', teamId: 't', fetchImpl });
+    await expect(client.writePrivateKnowledge([{ content: 'x' }])).resolves.toBe(false);
+  });
+
+  it('writePrivateKnowledge returns false and makes no request for an empty batch', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 })) as unknown as typeof fetch;
+    const client = new HolomeshClient({ apiBase: 'https://x', bearer: 'b', teamId: 't', fetchImpl });
+    await expect(client.writePrivateKnowledge([])).resolves.toBe(false);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
 });

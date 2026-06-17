@@ -88,6 +88,11 @@ function mockMesh(tasks: BoardTask[]) {
     }),
     postAuditRecords: vi.fn(async () => ({ appended: 1, rejected: 0 })),
     whoAmI: vi.fn(async () => ({ agentId: 'agent_test', surface: 'mock' })),
+    // Cognitive-verb knowledge surface + the recall write-loop (the runner calls
+    // writePrivateKnowledge after markDone to feed future `recall`).
+    queryTeamKnowledge: vi.fn(async () => []),
+    queryPrivateKnowledge: vi.fn(async () => []),
+    writePrivateKnowledge: vi.fn(async () => true),
   };
 }
 
