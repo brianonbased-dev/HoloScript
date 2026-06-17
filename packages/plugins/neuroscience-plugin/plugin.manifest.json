@@ -1,0 +1,19 @@
+{
+  "id": "neuroscience",
+  "version": "2.0.2",
+  "name": "HoloScript domain",
+  "description": "HoloScript domain plugin for neuroscience",
+  "traits": [
+    "brain_region",
+    "connectivity_metrics",
+    "connectome",
+    "eeg_band_power",
+    "eeg_stream",
+    "hh_neuron_solver",
+    "lif_neuron",
+    "wilson_cowan_solver"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

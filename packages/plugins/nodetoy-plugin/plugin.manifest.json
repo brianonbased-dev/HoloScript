@@ -1,0 +1,14 @@
+{
+  "id": "nodetoy-plugin",
+  "version": "1.0.1",
+  "name": "NodeToy shader-graph bridge",
+  "description": "NodeToy shader-graph bridge — compiles NodeToy node graphs to GLSL/WGSL @shader traits via @holoscript/core compiler.",
+  "traits": [
+    "fragment",
+    "out",
+    "shader",
+    "vertex"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "hr-workforce",
+  "version": "2.0.2",
+  "name": "Hr Workforce",
+  "description": "",
+  "traits": [
+    "attrition_risk",
+    "employee",
+    "headcount_plan",
+    "merit_budget",
+    "onboarding",
+    "pay_equity",
+    "payroll",
+    "performance_review",
+    "workforce_forecast"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

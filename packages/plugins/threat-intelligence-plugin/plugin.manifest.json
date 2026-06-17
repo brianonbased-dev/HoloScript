@@ -1,0 +1,9 @@
+{
+  "id": "threat-intelligence",
+  "version": "2.0.2",
+  "name": "HoloScript domain",
+  "description": "HoloScript domain plugin for cybersecurity threat intelligence workflows.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

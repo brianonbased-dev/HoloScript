@@ -1,0 +1,17 @@
+{
+  "id": "banking-finance",
+  "version": "2.0.2",
+  "name": "Banking Finance",
+  "description": "",
+  "traits": [
+    "account",
+    "fixed_income_solver",
+    "kyc",
+    "portfolio",
+    "risk_model",
+    "transaction"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

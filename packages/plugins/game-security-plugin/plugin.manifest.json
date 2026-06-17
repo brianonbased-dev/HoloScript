@@ -1,0 +1,9 @@
+{
+  "id": "game-security-plugin",
+  "version": "0.1.2",
+  "name": "HoloScript game-security",
+  "description": "HoloScript game-security plugin for authoritative action validation, replay evidence, and AI-watchdog quarantine decisions.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

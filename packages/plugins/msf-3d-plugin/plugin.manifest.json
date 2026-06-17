@@ -1,0 +1,11 @@
+{
+  "id": "msf-3d-plugin",
+  "version": "0.0.1",
+  "name": "MSF 3D asset interop stub",
+  "description": "MSF 3D asset interop stub — semantic-annotated 3D asset import into .holo traits.",
+  "traits": [
+    "semantic_3d"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

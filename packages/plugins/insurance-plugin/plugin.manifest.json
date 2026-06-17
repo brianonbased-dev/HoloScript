@@ -1,9 +1,16 @@
 {
   "id": "insurance",
-  "version": "1.0.0",
+  "version": "2.0.2",
   "name": "Insurance",
-  "description": "Policy management, claims processing, risk assessment, underwriting, and actuarial math traits.",
-  "traits": ["policy", "claim", "risk_assessment", "underwriting", "actuarial_math"],
-  "autoRegister": false,
+  "description": "",
+  "traits": [
+    "actuarial_math",
+    "claim",
+    "policy",
+    "risk_assessment",
+    "underwriting"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
   "runtimeEntry": "./src/runtime.ts"
 }

@@ -1,0 +1,9 @@
+{
+  "id": "openusd-plugin",
+  "version": "0.0.1",
+  "name": "Openusd",
+  "description": "OpenUSD interop baseline with USDA export, semantic receipts, and conformance round-trip checks.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

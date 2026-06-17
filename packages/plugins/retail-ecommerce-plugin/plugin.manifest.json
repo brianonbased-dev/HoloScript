@@ -1,0 +1,23 @@
+{
+  "id": "retail-ecommerce",
+  "version": "2.0.2",
+  "name": "HoloScript domain",
+  "description": "HoloScript domain plugin for retail-ecommerce",
+  "traits": [
+    "abc_classification",
+    "cart",
+    "checkout",
+    "clv",
+    "conversion_funnel",
+    "eoq",
+    "inventory_metrics",
+    "markdown",
+    "price_optimization",
+    "product_catalog",
+    "return",
+    "shipping_rate"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

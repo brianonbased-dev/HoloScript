@@ -1,0 +1,11 @@
+{
+  "id": "mixamo-plugin",
+  "version": "0.0.1",
+  "name": "Mixamo animation-library bridge stub",
+  "description": "Mixamo animation-library bridge stub — maps Mixamo animation clip metadata to @anim_clip .holo traits (read-only per no-public-upload-API).",
+  "traits": [
+    "anim_clip"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

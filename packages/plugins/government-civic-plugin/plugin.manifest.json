@@ -1,0 +1,17 @@
+{
+  "id": "government-civic",
+  "version": "2.0.2",
+  "name": "HoloScript domain",
+  "description": "HoloScript domain plugin for government and civic services — permits, public meetings, service requests, voting records, and ADA/FOIA compliance.",
+  "traits": [
+    "civic_compliance",
+    "civic_decision",
+    "permit",
+    "public_meeting",
+    "service_request",
+    "voting_record"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

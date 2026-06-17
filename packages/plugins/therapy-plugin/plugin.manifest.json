@@ -1,14 +1,10 @@
 {
-  "id": "education-lms",
+  "id": "therapy",
   "version": "2.0.2",
   "name": "HoloScript domain",
-  "description": "HoloScript domain plugin for education-lms",
+  "description": "HoloScript domain plugin for therapy and mental health workflows.",
   "traits": [
-    "course",
-    "enrollment",
-    "grade",
-    "lesson",
-    "quiz"
+    "phq9_screen"
   ],
   "autoRegister": true,
   "coreVersion": ">=8.0.0",

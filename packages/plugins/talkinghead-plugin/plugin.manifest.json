@@ -1,0 +1,13 @@
+{
+  "id": "talkinghead-plugin",
+  "version": "0.0.1",
+  "name": "TalkingHead WebXR bridge stub",
+  "description": "TalkingHead WebXR bridge stub — maps viseme-driven facial animation to @lipsync .holo traits.",
+  "traits": [
+    "fricative",
+    "lipsync",
+    "sibilant"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

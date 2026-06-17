@@ -1,0 +1,9 @@
+{
+  "id": "urdformer-plugin",
+  "version": "0.0.1",
+  "name": "Urdformer",
+  "description": "URDFormer bridge stub. Imports URDF robot descriptions into .holo composition traits. Targets the Universal-IR coverage matrix robotics column.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

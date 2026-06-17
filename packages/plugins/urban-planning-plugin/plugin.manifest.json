@@ -1,9 +1,16 @@
 {
   "id": "urban-planning",
-  "version": "1.0.0",
+  "version": "2.0.2",
   "name": "Urban Planning",
-  "description": "Zoning, traffic flow, population density, geospatial climate, and BPR traffic solver traits for urban simulation.",
-  "traits": ["zoning", "traffic_flow", "population_density", "geospatial_climate", "bpr_traffic_solver"],
-  "autoRegister": false,
+  "description": "",
+  "traits": [
+    "bpr_traffic_solver",
+    "geospatial_climate",
+    "population_density",
+    "traffic_flow",
+    "zoning"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
   "runtimeEntry": "./src/runtime.ts"
 }

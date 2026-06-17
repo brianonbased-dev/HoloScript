@@ -1,0 +1,9 @@
+{
+  "id": "forensics",
+  "version": "2.0.2",
+  "name": "HoloScript domain",
+  "description": "HoloScript domain plugin for forensics workflows: evidence chain, scene reconstruction, and chain-of-custody traits.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

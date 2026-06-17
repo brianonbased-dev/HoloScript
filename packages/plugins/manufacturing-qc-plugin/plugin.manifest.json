@@ -1,10 +1,14 @@
 {
-  "id": "trait-audit",
+  "id": "manufacturing-qc",
   "version": "2.0.2",
-  "name": "Trait Audit",
+  "name": "Manufacturing Qc",
   "description": "",
   "traits": [
-    "interoperability_badge"
+    "bom",
+    "defect_tracking",
+    "production_line",
+    "quality_gate",
+    "spc"
   ],
   "autoRegister": true,
   "coreVersion": ">=8.0.0",

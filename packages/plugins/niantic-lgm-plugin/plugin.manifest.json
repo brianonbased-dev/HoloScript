@@ -1,0 +1,12 @@
+{
+  "id": "niantic-lgm-plugin",
+  "version": "0.0.1",
+  "name": "Niantic Lgm",
+  "description": "Niantic Lightship / LGM geospatial bridge stub. Maps geospatial anchors + VPS responses to @geospatial .holo traits.",
+  "traits": [
+    "anchor",
+    "geospatial"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

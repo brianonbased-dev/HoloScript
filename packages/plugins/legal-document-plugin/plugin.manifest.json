@@ -1,0 +1,18 @@
+{
+  "id": "legal-document",
+  "version": "2.0.2",
+  "name": "Legal Document",
+  "description": "",
+  "traits": [
+    "audit_trail",
+    "case_management",
+    "contract_draft",
+    "e_signature",
+    "legal_analysis",
+    "programmable_law",
+    "signature_block"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

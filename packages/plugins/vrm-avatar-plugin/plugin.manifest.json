@@ -1,0 +1,12 @@
+{
+  "id": "vrm-avatar-plugin",
+  "version": "0.0.1",
+  "name": "VRM 1.0 avatar interop stub",
+  "description": "VRM 1.0 avatar interop stub — maps VRM expression/humanoid bones to @avatar .holo traits.",
+  "traits": [
+    "avatar_rig",
+    "expression"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

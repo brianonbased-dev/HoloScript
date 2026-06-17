@@ -1,0 +1,19 @@
+{
+  "id": "travel-hospitality",
+  "version": "2.0.2",
+  "name": "Travel Hospitality",
+  "description": "",
+  "traits": [
+    "demand_forecast",
+    "emsr_yield",
+    "group_displacement",
+    "itinerary",
+    "overbooking",
+    "rate_management",
+    "reservation",
+    "revpar"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

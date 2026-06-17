@@ -1,10 +1,13 @@
 {
-  "id": "trait-audit",
+  "id": "civil-engineering",
   "version": "2.0.2",
-  "name": "Trait Audit",
+  "name": "Civil Engineering",
   "description": "",
   "traits": [
-    "interoperability_badge"
+    "dsm_frame_2d",
+    "load_bearing",
+    "material_fatigue",
+    "structural_analysis"
   ],
   "autoRegister": true,
   "coreVersion": ">=8.0.0",

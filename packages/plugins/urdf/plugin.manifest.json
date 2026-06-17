@@ -1,0 +1,9 @@
+{
+  "id": "urdf-plugin",
+  "version": "0.0.1",
+  "name": "Urdf",
+  "description": "Bidirectional URDF <-> HoloScript IR adapter stub. Converts robot URDF XML descriptions into HoloScript composition IR and back.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

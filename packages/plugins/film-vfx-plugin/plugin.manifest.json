@@ -1,0 +1,18 @@
+{
+  "id": "film-vfx",
+  "version": "2.0.2",
+  "name": "Film/VFX domain",
+  "description": "Film/VFX domain plugin for HoloScript — shot lists, color grading, DMX lighting, director AI, and virtual production",
+  "traits": [
+    "cinematography_exposure",
+    "color_grade",
+    "director_ai",
+    "dmx_lighting",
+    "shot_list",
+    "text_to_universe",
+    "virtual_production"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

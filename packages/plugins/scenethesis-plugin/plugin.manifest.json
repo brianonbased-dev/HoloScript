@@ -1,0 +1,13 @@
+{
+  "id": "scenethesis-plugin",
+  "version": "0.0.1",
+  "name": "Scenethesis",
+  "description": "Scenethesis scene-synthesis bridge stub. Maps Scenethesis scene graph outputs to .holo composition primitives. Targets Universal-IR matrix world-synthesis column.",
+  "traits": [
+    "constraint",
+    "region",
+    "spatial"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

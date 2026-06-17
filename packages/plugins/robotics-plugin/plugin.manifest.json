@@ -1,9 +1,10 @@
 {
-  "id": "robotics",
-  "version": "1.0.0",
-  "name": "Robotics",
-  "description": "ROS2 hardware-in-the-loop trait for bidirectional physical robot integration, plus URDF/USD codegen utilities.",
-  "traits": ["ros2_hardware_loop"],
-  "autoRegister": false,
+  "id": "robotics-plugin",
+  "version": "2.0.2",
+  "name": "HoloScript",
+  "description": "HoloScript plugin for robotics: compile-time USD/URDF codegen + runtime ROS2/Gazebo integration. VR robot programming and digital twins.",
+  "traits": [],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
   "runtimeEntry": "./src/runtime.ts"
 }

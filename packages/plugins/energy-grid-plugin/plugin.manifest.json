@@ -1,0 +1,16 @@
+{
+  "id": "energy-grid-plugin",
+  "version": "0.1.1",
+  "name": "Energy-grid simulation",
+  "description": "Energy-grid simulation plugin with DC power flow, solar, battery degradation, DER QUBO hooks, and CAEL-ready receipts.",
+  "traits": [
+    "battery_degradation",
+    "der_qubo",
+    "grid_topology",
+    "power_flow",
+    "solar_irradiance"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

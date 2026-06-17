@@ -1,0 +1,11 @@
+{
+  "id": "marble-genie3-plugin",
+  "version": "0.0.1",
+  "name": "Marble / Genie3 world-model bridge stub",
+  "description": "Marble / Genie3 world-model bridge stub — imports latent world-model outputs into .holo composition traits.",
+  "traits": [
+    "world_frame"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

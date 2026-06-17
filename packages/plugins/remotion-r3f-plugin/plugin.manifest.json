@@ -1,0 +1,12 @@
+{
+  "id": "remotion-r3f-plugin",
+  "version": "0.0.1",
+  "name": "Remotion + react-three-fiber live-capture bridge stub",
+  "description": "Remotion + react-three-fiber live-capture bridge stub — binds Remotion compositions + R3F capture to .holo cinematic traits.",
+  "traits": [
+    "cinematic",
+    "timeline"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

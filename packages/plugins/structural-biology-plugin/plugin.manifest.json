@@ -1,0 +1,18 @@
+{
+  "id": "structural-biology-plugin",
+  "version": "0.2.0",
+  "name": "Structural-biology domain",
+  "description": "Structural-biology domain plugin: protein/ligand/chain + docking (AutoDock-GPU/Vina/GNINA) + ADMET prediction (RDKit/ADMETlab/local-ML). Bridge from AlphaFold structure to binding affinity and drug-likeness.",
+  "traits": [
+    "admet_prediction",
+    "admet_result",
+    "auto_dock",
+    "binding_affinity",
+    "foldable",
+    "helix",
+    "residue_anchor",
+    "sheet"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

@@ -1,10 +1,15 @@
 {
-  "id": "trait-audit",
+  "id": "geolocation-gis",
   "version": "2.0.2",
-  "name": "Trait Audit",
+  "name": "Geolocation Gis",
   "description": "",
   "traits": [
-    "interoperability_badge"
+    "geocode",
+    "geofence",
+    "map_view",
+    "poi",
+    "route",
+    "vincenty_geodesy"
   ],
   "autoRegister": true,
   "coreVersion": ">=8.0.0",

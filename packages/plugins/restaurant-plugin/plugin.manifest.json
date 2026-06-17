@@ -1,9 +1,15 @@
 {
   "id": "restaurant",
-  "version": "1.0.0",
+  "version": "2.0.2",
   "name": "Restaurant",
-  "description": "Menu management, order tracking, kitchen display, and table management traits for restaurant operations.",
-  "traits": ["menu", "order", "kitchen_display", "table_management"],
-  "autoRegister": false,
+  "description": "",
+  "traits": [
+    "kitchen_display",
+    "menu",
+    "order",
+    "table_management"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
   "runtimeEntry": "./src/runtime.ts"
 }

@@ -1,0 +1,9 @@
+{
+  "id": "holoscript-web-preview",
+  "version": "0.1.0",
+  "name": "Web-based 3D preview",
+  "description": "Web-based 3D preview for HoloScript-compiled USD robot files",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

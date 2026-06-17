@@ -1,0 +1,21 @@
+{
+  "id": "fitness-wellness",
+  "version": "2.0.2",
+  "name": "Fitness Wellness",
+  "description": "",
+  "traits": [
+    "body_composition",
+    "calorie_burn",
+    "exercise_library",
+    "hr_zones",
+    "one_rep_max",
+    "progress_tracker",
+    "rep_counter",
+    "training_load_acwr",
+    "vo2max",
+    "workout"
+  ],
+  "autoRegister": true,
+  "coreVersion": ">=8.0.0",
+  "runtimeEntry": "./src/runtime.ts"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "emergency-response",
+  "version": "2.0.2",
+  "name": "HoloScript domain",
+  "description": "HoloScript domain plugin for emergency response: triage, evacuation zones, resource dispatch, and incident command traits for VR/AR simulation.",
+  "traits": [],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}

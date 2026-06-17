@@ -1,0 +1,11 @@
+{
+  "id": "assimp-plugin",
+  "version": "0.1.0",
+  "name": "Assimp scene-tree → .holo trait bridge",
+  "description": "Assimp scene-tree → .holo trait bridge: maps a parsed Assimp scene (aiNode/aiMesh tree) to @mesh_node traits. Binary FBX/OBJ parsing is future work.",
+  "traits": [
+    "mesh_node"
+  ],
+  "autoRegister": false,
+  "coreVersion": ">=8.0.0"
+}
