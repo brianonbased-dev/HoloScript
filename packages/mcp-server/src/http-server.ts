@@ -28,6 +28,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
+import { resolveServiceSecret } from './holokey-resolver';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { _handleSingleToolLogic } from './index';
@@ -1032,13 +1033,15 @@ const httpServer = http.createServer(async (req, res) => {
       string,
       { configured: boolean; creditStatus?: string; error?: string }
     > = {};
-    // Anthropic probe
-    if (process.env.ANTHROPIC_API_KEY) {
+    // Anthropic probe — key resolved from the HoloKey vault if present, else process.env
+    // (Phase 2 first cutover; fallback-safe — identical behavior until the key is in the vault).
+    const anthropicKey = await resolveServiceSecret('ANTHROPIC_API_KEY');
+    if (anthropicKey) {
       try {
         const probe = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'x-api-key': anthropicKey,
             'anthropic-version': '2023-06-01',
             'Content-Type': 'application/json',
           },
