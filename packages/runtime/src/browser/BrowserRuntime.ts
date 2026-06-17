@@ -104,6 +104,23 @@ import {
   WorldStateTrait,
   SharedWorldTrait,
 } from '../traits/DataSyncTraits';
+import {
+  FollowTrait,
+  OrbitTrait,
+  CrowdSimTrait,
+  ChainTrait,
+  AiCompanionTrait,
+  AiNpcBrainTrait,
+  LlmAgentTrait,
+  GpuParticleTrait,
+  GpuPhysicsTrait,
+  DeformableTerrainTrait,
+  SoftBodyProTrait,
+  ComputeTrait,
+  ObjectTrackingTrait,
+  SensorTrait,
+  DigitalTwinTrait,
+} from '../traits/BehavioralTraits';
 import { InputManager } from '../input/InputManager';
 import {
   hasXR,
@@ -1036,6 +1053,29 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(DataBindingTrait);
     this.traitSystem.register(WorldStateTrait);
     this.traitSystem.register(SharedWorldTrait);
+
+    // Tier-1 behavioral traits (research/2026-06-15_trait-parity-and-tsx-deprecation.md §4.2)
+    // Movement / spatial
+    this.traitSystem.register(FollowTrait);
+    this.traitSystem.register(OrbitTrait);
+    this.traitSystem.register(CrowdSimTrait);
+    this.traitSystem.register(ChainTrait);
+    // AI / agent stubs (visual feedback + event dispatch; server-authoritative inference)
+    this.traitSystem.register(AiCompanionTrait);
+    this.traitSystem.register(AiNpcBrainTrait);
+    this.traitSystem.register(LlmAgentTrait);
+    // GPU paths with CPU fallback
+    this.traitSystem.register(GpuParticleTrait);
+    this.traitSystem.register(GpuPhysicsTrait);
+    // Advanced physics
+    this.traitSystem.register(DeformableTerrainTrait);
+    this.traitSystem.register(SoftBodyProTrait);
+    // WebGPU compute stub
+    this.traitSystem.register(ComputeTrait);
+    // AR / IoT / digital twin annotations
+    this.traitSystem.register(ObjectTrackingTrait);
+    this.traitSystem.register(SensorTrait);
+    this.traitSystem.register(DigitalTwinTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
