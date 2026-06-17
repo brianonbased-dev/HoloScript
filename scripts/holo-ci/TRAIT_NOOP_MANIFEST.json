@@ -10,7 +10,6 @@
     "ai_upscaling":      "AI upscaling — GPU-compute trait, no BrowserRuntime handler",
     "ai_vision":         "alias for vision — same as vision, no BrowserRuntime handler",
     "ambisonics":        "ambisonic audio — spatialised audio trait, BrowserRuntime omitted",
-    "anti_grief":        "anti-grief moderation — server-side gate, no client handler",
     "attach":            "attachment relationship — resolved at compile time, no runtime handler",
     "audio_occlusion":   "audio occlusion — XR audio, no BrowserRuntime handler",
     "audio_portal":      "audio portal — XR audio, no BrowserRuntime handler",
@@ -22,7 +21,6 @@
     "compute":           "GPU compute shader — WebGPU path, no BrowserRuntime handler",
     "controlnet":        "ControlNet diffusion — GPU-compute trait, no BrowserRuntime handler",
     "crowd_sim":         "crowd simulation — server-side or specialised, no BrowserRuntime handler",
-    "data_binding":      "IoT data binding — digital twin data feed, no BrowserRuntime handler",
     "deformable_terrain":"deformable terrain — specialised physics, no BrowserRuntime handler",
     "diffusion_realtime":"realtime diffusion — GPU-compute trait, no BrowserRuntime handler",
     "digital_twin":      "digital twin metadata — IoT pairing annotation, no runtime effect",
@@ -44,7 +42,6 @@
     "magnifiable":       "magnification accessibility — UI concern, no runtime handler",
     "material":          "material preset — set as R3F materialProps prop at compile time",
     "mesh_detection":    "AR mesh detection — ARCore/ARKit feature, no BrowserRuntime handler",
-    "moderation":        "content moderation — server-side gate, no client handler",
     "moldable":          "moldable surface — set as R3F prop, no trait handler",
     "nerf":              "NeRF renderer — rendered via specialised component, no trait handler",
     "neural_forge":      "neural forge — GPU-compute trait, no BrowserRuntime handler",
@@ -61,7 +58,6 @@
     "sensor":            "IoT sensor binding — digital twin data feed, no BrowserRuntime handler",
     "shadow":            "shadow casting — set as R3F castShadow prop, no trait handler",
     "shared_anchor":     "shared AR anchor — ARCore/ARKit feature, no BrowserRuntime handler",
-    "shared_world":      "shared world multiplayer — server-side feature, no BrowserRuntime handler",
     "shareplay":         "SharePlay — visionOS feature, no BrowserRuntime handler",
     "skeleton":          "skeleton/rig binding — resolved at compile time, no runtime handler",
     "soft_body_pro":     "advanced soft body — specialised physics, no BrowserRuntime handler",
@@ -70,12 +66,10 @@
     "spatial_voice":     "spatial voice — set as R3F prop, no standalone trait handler",
     "stretchable":       "stretchable surface — set as R3F prop, no trait handler",
     "string":            "string type artifact — parser artefact, should not appear in traits",
-    "token_gated":       "token-gated access — server-side gate, no client handler",
     "vector_db":         "vector DB binding — server-side retrieval, no BrowserRuntime handler",
     "vision":            "AI vision — server-side inference, no BrowserRuntime handler",
     "volumetric_clouds": "volumetric clouds VFX — post-processing, no BrowserRuntime handler",
     "volumetric_video":  "volumetric video — rendered via specialised component, no trait handler",
-    "web_surface":       "embedded web surface — set as R3F prop, no trait handler",
-    "world_state":       "world state metadata — server-side feature, no client handler"
+    "web_surface":       "embedded web surface — set as R3F prop, no trait handler"
   }
 }

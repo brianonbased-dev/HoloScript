@@ -94,6 +94,16 @@ import {
   HighContrastTrait,
   MotionReducedTrait,
 } from '../traits/AccessibilityTraits';
+import {
+  ModerationTrait,
+  AntiGriefTrait,
+  TokenGatedTrait,
+} from '../traits/ContentSafetyTraits';
+import {
+  DataBindingTrait,
+  WorldStateTrait,
+  SharedWorldTrait,
+} from '../traits/DataSyncTraits';
 import { InputManager } from '../input/InputManager';
 import {
   hasXR,
@@ -1016,6 +1026,16 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(AltTextTrait);
     this.traitSystem.register(HighContrastTrait);
     this.traitSystem.register(MotionReducedTrait);
+
+    // Content safety traits
+    this.traitSystem.register(ModerationTrait);
+    this.traitSystem.register(AntiGriefTrait);
+    this.traitSystem.register(TokenGatedTrait);
+
+    // Data sync traits
+    this.traitSystem.register(DataBindingTrait);
+    this.traitSystem.register(WorldStateTrait);
+    this.traitSystem.register(SharedWorldTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
