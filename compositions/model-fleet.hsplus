@@ -12,7 +12,7 @@ Yours (the fleet's): both GPUs answer as one. Never single-node-bottleneck what 
 // ============================================================================
 // Local Model Fleet — native HoloScript composition (D.097 dispatch / F.112 local-first).
 // Makes the two OWNED GPUs work together as one local inference field:
-//   - jetson-orin   (Jetson Orin Nano Super, iGPU sm_87, 8GB unified) — always-on edge.
+//   - jetson-orin   (Jetson Orin Nano Super, iGPU sm_87, 8GB unified) — always-on edge + embeddings.
 //   - laptop-rtx3060 (RTX 3060 Laptop, sm_86, 6GB) — second GPU, overflow + embeddings.
 //
 // NODE ADDRESSES ARE NOT IN THIS FILE (founder ruling 2026-06-16). Endpoints are resolved
@@ -98,8 +98,8 @@ traits [
     gpu: "Jetson Orin Nano Super 8GB (iGPU, sm_87)"
     vramGb: 8
     alwaysOn: true
-    models: ["qwen3:4b-instruct", "qwen3:4b", "hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M"]
-    role: "edge brain — tool-calls (qwen3:4b-instruct) + computer-use/GUI (Fara-7B), always-on $0"
+    models: ["qwen3:4b-instruct", "qwen3:4b", "nomic-embed-text:latest", "hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M"]
+    role: "edge brain — tool-calls (qwen3:4b-instruct) + embeddings (nomic-embed-text) + computer-use/GUI (Fara-7B), always-on $0"
   }
   laptop {
     node: "laptop-rtx3060"
@@ -140,7 +140,8 @@ directives {
   model_per_task: """
     - Tool-calls / coordination → qwen3:4b-instruct (Hermes parser; OMIT the think param — W.513).
     - Computer-use / GUI grounding → Fara-7B (Jetson).
-    - Embeddings → nomic-embed-text (laptop).
+    - Embeddings → nomic-embed-text (always-on Jetson; laptop is overflow). Semantic recall /
+      rag_query / HoloEmbed-style retrieval route here at $0.
     - Code → a non-blacklisted coder (qwen3.5:4b). NEVER route tool-call work to qwen2.5* — it
       emits prose instead of tool_calls (W.738).
   """
