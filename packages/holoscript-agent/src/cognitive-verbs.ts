@@ -30,8 +30,15 @@ export interface CognitiveVerbDeps {
   onTaskActions: OnTaskAction[];
   /** Task being executed (for `plan` goal fallback + logging). */
   task: { id: string; title: string };
-  /** TEAM knowledge retrieval (rag_query). */
+  /** TEAM knowledge retrieval (rag_query, keyword/semantic). */
   queryTeamKnowledge: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
+  /**
+   * Codebase GraphRAG semantic search (rag_query Phase 2.3, W.753).
+   * Optional — when absent OR it returns [] (graph not loaded), rag_query falls
+   * back to team-knowledge search. Wires the in-process HoloEmbed index via the
+   * bearer-gated mesh route POST /api/holomesh/codebase/search.
+   */
+  queryCodebase?: (query: string, topK: number) => Promise<Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>>;
   /** PRIVATE workspace retrieval (recall). */
   queryPrivateKnowledge: () => Promise<KnowledgeEntry[]>;
   /** One-shot provider planner (plan). Optional — when absent, `plan` is skipped. */
@@ -101,11 +108,36 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
         case 'rag_query': {
           const query = strField(action.config, 'query', 'q') || deps.task.title;
           const limit = numField(action.config, 'limit', DEFAULT_LIMIT);
-          const entries = await deps.queryTeamKnowledge(query, limit);
-          if (entries.length > 0) {
-            content += `\n\n[Retrieved knowledge for "${query}"]\n${formatEntries(entries)}`;
+          // Phase 2.3 (W.753): try codebase GraphRAG (in-process HoloEmbed via the mesh bearer
+          // route) first — returns ranked symbols (name/file/score). Falls back to team-knowledge
+          // search when the graph isn't loaded or the dep isn't wired.
+          let mode = 'team-knowledge';
+          let injected = '';
+          if (deps.queryCodebase) {
+            const symbols = await deps.queryCodebase(query, limit);
+            if (symbols.length > 0) {
+              mode = 'codebase-graphrag';
+              const lines = symbols
+                .slice(0, limit)
+                .map(
+                  (s) =>
+                    `- ${s.name} (${s.type}) ${s.file}${s.line != null ? `:${s.line}` : ''}` +
+                    (s.signature ? ` — ${s.signature.slice(0, 80)}` : '') +
+                    ` [score:${s.score.toFixed(2)}]`
+                )
+                .join('\n');
+              injected = `\n\n[Codebase search for "${query}"]\n${lines}`;
+            }
           }
-          deps.log({ ev: 'on-task-rag-query', taskId: deps.task.id, query, retrieved: entries.length });
+          if (!injected) {
+            // Fallback: team knowledge store (already semantic via HoloEmbed ranking, bb28ecc25).
+            const entries = await deps.queryTeamKnowledge(query, limit);
+            if (entries.length > 0) {
+              injected = `\n\n[Retrieved knowledge for "${query}"]\n${formatEntries(entries)}`;
+            }
+          }
+          if (injected) content += injected;
+          deps.log({ ev: 'on-task-rag-query', taskId: deps.task.id, query, mode, retrieved: injected ? limit : 0 });
           break;
         }
         case 'recall': {

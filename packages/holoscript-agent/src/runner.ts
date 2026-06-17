@@ -154,6 +154,10 @@ export class AgentRunner {
       task: { id: target.id, title: target.title },
       queryTeamKnowledge: (q, limit) => mesh.queryTeamKnowledge(q, limit),
       queryPrivateKnowledge: () => mesh.queryPrivateKnowledge(),
+      // Phase 2.3 (W.753): codebase GraphRAG via the bearer-gated mesh route.
+      // Best-effort: returns [] when the in-process graph isn't loaded → cognitive-verbs
+      // falls back to team-knowledge search. No prod impact when graph is cold.
+      queryCodebase: (q, topK) => mesh.queryCodebase(q, topK),
       plan: async (prompt) => {
         const resp = await provider.complete(
           { messages: [{ role: 'user', content: prompt }], maxTokens: 512, temperature: 0.3 },

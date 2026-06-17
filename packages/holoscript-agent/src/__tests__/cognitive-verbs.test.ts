@@ -47,7 +47,7 @@ describe('augmentWithOnTaskCognition', () => {
     expect(out).toContain('frobnicator');
   });
 
-  it('rag_query falls back to the task title when no query given, and logs retrieved count', async () => {
+  it('rag_query falls back to the task title when no query given, and logs mode + retrieved', async () => {
     const d = deps({
       onTaskActions: [{ verb: 'rag_query', config: {} }],
       queryTeamKnowledge: vi.fn(async (): Promise<KnowledgeEntry[]> => []),
@@ -55,8 +55,61 @@ describe('augmentWithOnTaskCognition', () => {
     await augmentWithOnTaskCognition(d);
     expect(d.queryTeamKnowledge).toHaveBeenCalledWith('Build the widget', 5);
     expect(d.log).toHaveBeenCalledWith(
-      expect.objectContaining({ ev: 'on-task-rag-query', retrieved: 0 })
+      expect.objectContaining({ ev: 'on-task-rag-query', mode: 'team-knowledge', retrieved: 0 })
     );
+  });
+
+  it('rag_query uses codebase GraphRAG when queryCodebase is wired and returns results', async () => {
+    const queryCodebase = vi.fn(async () => [
+      { name: 'WidgetFactory.create', type: 'function', file: 'src/widget.ts', line: 42, score: 0.92, signature: 'create(opts: WidgetOpts): Widget' },
+    ]);
+    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => []);
+    const d = deps({
+      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget factory', limit: 3 } }],
+      queryCodebase,
+      queryTeamKnowledge,
+    });
+    const out = await augmentWithOnTaskCognition(d);
+    // Codebase path wins → symbol names injected, team knowledge NOT called
+    expect(queryCodebase).toHaveBeenCalledWith('widget factory', 3);
+    expect(queryTeamKnowledge).not.toHaveBeenCalled();
+    expect(out).toContain('[Codebase search for "widget factory"]');
+    expect(out).toContain('WidgetFactory.create');
+    expect(out).toContain('src/widget.ts');
+    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-rag-query', mode: 'codebase-graphrag' }));
+  });
+
+  it('rag_query falls back to team knowledge when queryCodebase returns empty (graph not loaded)', async () => {
+    const queryCodebase = vi.fn(async () => []); // graph cold → empty
+    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'k2', content: 'widget docs from team store' },
+    ]);
+    const d = deps({
+      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
+      queryCodebase,
+      queryTeamKnowledge,
+    });
+    const out = await augmentWithOnTaskCognition(d);
+    expect(queryCodebase).toHaveBeenCalledWith('widget', 3);
+    expect(queryTeamKnowledge).toHaveBeenCalledWith('widget', 3);
+    expect(out).toContain('[Retrieved knowledge for "widget"]');
+    expect(out).toContain('widget docs from team store');
+    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-rag-query', mode: 'team-knowledge' }));
+  });
+
+  it('rag_query uses team knowledge when queryCodebase dep is absent', async () => {
+    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+      { id: 'k3', content: 'team-only knowledge' },
+    ]);
+    // No queryCodebase dep → should call queryTeamKnowledge as before
+    const d = deps({
+      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
+      queryTeamKnowledge,
+    });
+    const out = await augmentWithOnTaskCognition(d);
+    expect(queryTeamKnowledge).toHaveBeenCalledWith('widget', 3);
+    expect(out).toContain('team-only knowledge');
+    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-rag-query', mode: 'team-knowledge' }));
   });
 
   it('recall pulls private knowledge and filters by query client-side', async () => {

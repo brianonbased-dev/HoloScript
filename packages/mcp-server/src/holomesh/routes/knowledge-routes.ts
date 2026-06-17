@@ -2053,5 +2053,61 @@ export async function handleKnowledgeRoutes(
     return true;
   }
 
+  // POST /api/holomesh/codebase/search — bearer-gated in-process GraphRAG semantic search
+  // Used by edge agents (holoscript-agent rag_query cognitive verb, Phase 2.3 W.753) so they
+  // can reach the real semantic stack (HoloEmbed) without a direct Absorb service dep or
+  // a remote-auth bridge. The mesh server holds the in-process EmbeddingIndex (populated by
+  // holo_absorb_repo); edge passes its mesh bearer, server calls isGraphRAGReady() and
+  // handleGraphRagTool('holo_semantic_search', ...) in-process, returns ranked symbols.
+  if (pathname === '/api/holomesh/codebase/search' && method === 'POST') {
+    const caller = resolveRequestingAgent(req);
+    if (!caller.authenticated) {
+      json(res, 401, { error: 'Authentication required' });
+      return true;
+    }
+
+    const body: any = await parseJsonBody(req);
+    const query = typeof body.query === 'string' ? body.query.trim() : '';
+    if (!query) {
+      json(res, 400, { error: 'query is required (string)' });
+      return true;
+    }
+    const topK = typeof body.topK === 'number' ? Math.max(1, Math.min(20, body.topK)) : 8;
+    const language = typeof body.language === 'string' ? body.language : undefined;
+    const type = typeof body.type === 'string' ? body.type : undefined;
+
+    let graphReady = false;
+    let handleGraphRagTool: ((name: string, args: Record<string, unknown>) => Promise<unknown>) | undefined;
+    try {
+      const absorbMcp = await import('@holoscript/absorb-service/mcp');
+      graphReady = absorbMcp.isGraphRAGReady();
+      handleGraphRagTool = absorbMcp.handleGraphRagTool;
+    } catch {
+      // absorb-service not available in this build
+    }
+
+    if (!graphReady || !handleGraphRagTool) {
+      json(res, 503, {
+        error: 'codebase-graph-not-ready',
+        hint: 'The in-process GraphRAG index is not loaded. Run holo_absorb_repo on the prod checkout first, or use GET /team/:id/knowledge?q= for semantic knowledge-store search (already wired to HoloEmbed ranking).',
+      });
+      return true;
+    }
+
+    try {
+      const args: Record<string, unknown> = { query, topK };
+      if (language) args.language = language;
+      if (type) args.type = type;
+      const result = await handleGraphRagTool('holo_semantic_search', args);
+      json(res, 200, { success: true, result });
+    } catch (err: unknown) {
+      json(res, 500, {
+        error: 'semantic-search-failed',
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+    return true;
+  }
+
   return false;
 }

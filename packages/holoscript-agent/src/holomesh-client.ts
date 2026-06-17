@@ -235,6 +235,33 @@ export class HolomeshClient {
    * returns false on any failure so a write miss never breaks a tick (the task is
    * already done by the time this runs).
    */
+  /**
+   * Query the server-side in-process codebase GraphRAG index via the mesh bearer-gated
+   * route (POST /api/holomesh/codebase/search). Called by the `rag_query` cognitive verb
+   * (Phase 2.3 W.753) so edge agents can reach HoloEmbed semantic search without a direct
+   * Absorb-service dep. Returns [] (not an error) when the graph isn't loaded yet — the
+   * caller falls back to team-knowledge search.
+   *
+   * @param query  Natural-language search string.
+   * @param topK   Max results to return (1–20, server-capped).
+   */
+  async queryCodebase(query: string, topK = 8): Promise<Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>> {
+    try {
+      const data = await this.req<{
+        success?: boolean;
+        result?: {
+          results?: Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>;
+          error?: string;
+        };
+        error?: string;
+      }>('POST', `/codebase/search`, { query, topK });
+      if (data.error || data.result?.error) return [];
+      return data.result?.results ?? [];
+    } catch {
+      return [];
+    }
+  }
+
   async writePrivateKnowledge(
     entries: Array<{ content: string; type?: string; tags?: string[]; title?: string }>
   ): Promise<boolean> {
