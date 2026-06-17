@@ -18,6 +18,7 @@
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { parseHolo, HoloScriptPlusParser } from '@holoscript/core';
+import { createProviderManager } from '@holoscript/llm-provider';
 
 // ── Inline spatial math (mirrors packages/test/src/spatial/) ──────────────
 
@@ -160,11 +161,55 @@ interface AgentFeedback {
 }
 
 interface HolotestResult {
-  tool_name: 'execute_holotest';
+  tool_name: 'execute_holotest' | 'execute_eval';
   status: 'passed' | 'failed' | 'error';
   summary: string;
   tests: TestReport[];
   agent_feedback?: AgentFeedback;
+  /** Present when llm_judge mode was used */
+  judge_result?: JudgeResult;
+  /** Present when regression_suite mode was used */
+  regression_diff?: RegressionDiff;
+}
+
+// ── LLM Judge types ────────────────────────────────────────────────────────
+
+interface LLMJudgeConfig {
+  /** Judge model — any provider-qualified model string, e.g. "claude-3-5-sonnet-20241022" */
+  model?: string;
+  /** Free-text rubric the judge evaluates against */
+  rubric: string;
+  /** Named scoring dimensions, e.g. ["correctness", "completeness", "conciseness"] */
+  scoring_dimensions?: string[];
+}
+
+interface RegressionSuiteConfig {
+  /** The reference output to compare the current output against */
+  reference_output: string;
+  /** Optional trace ID for provenance (stored in result for audit trail) */
+  reference_trace_id?: string;
+}
+
+interface JudgeScore {
+  dimension: string;
+  score: number; // 0-10
+  rationale: string;
+}
+
+interface JudgeResult {
+  verdict: 'PASS' | 'FAIL' | 'DEGRADED';
+  overall_score: number; // 0-10
+  rubric: string;
+  scores: JudgeScore[];
+  summary: string;
+  provider?: string;
+}
+
+interface RegressionDiff {
+  reference_trace_id?: string;
+  verdict: 'NO_REGRESSION' | 'REGRESSION' | 'IMPROVEMENT';
+  score_delta: number; // current - reference
+  summary: string;
 }
 
 interface TestReport {
@@ -313,8 +358,99 @@ export const holotestTools: Tool[] = [
             'When true (default when no assertions specified), automatically checks all object pairs ' +
             'for unintended intersections and reports clipping issues.',
         },
+        output: {
+          type: 'string',
+          description:
+            'Agent or model output text to evaluate with an LLM judge. ' +
+            'Required when llm_judge is specified. Not used for spatial assertions.',
+        },
+        llm_judge: {
+          type: 'object',
+          description:
+            'When provided, runs the output through an LLM-as-judge evaluation instead of (or in addition to) ' +
+            'spatial assertions. The judge scores the output against the rubric and returns a structured verdict. ' +
+            'Closes CG-086 (LangSmith / Mastra eval gap).',
+          properties: {
+            model: {
+              type: 'string',
+              description:
+                'Judge model to use (e.g. "claude-3-5-sonnet-20241022"). ' +
+                'Defaults to the highest-priority registered provider.',
+            },
+            rubric: {
+              type: 'string',
+              description: 'Free-text rubric the judge evaluates the output against.',
+            },
+            scoring_dimensions: {
+              type: 'array',
+              items: { type: 'string' },
+              description:
+                'Named dimensions to score (e.g. ["correctness", "completeness"]). ' +
+                'Defaults to ["correctness", "completeness", "conciseness"].',
+            },
+          },
+          required: ['rubric'],
+        },
+        regression_suite: {
+          type: 'object',
+          description:
+            'When provided together with llm_judge, compares the current judge score against ' +
+            'a reference output to detect regressions or improvements.',
+          properties: {
+            reference_output: {
+              type: 'string',
+              description: 'The reference (baseline) output to compare against.',
+            },
+            reference_trace_id: {
+              type: 'string',
+              description: 'Optional trace ID for the reference run (stored for audit trail).',
+            },
+          },
+          required: ['reference_output'],
+        },
       },
       required: ['code'],
+    },
+  },
+  {
+    name: 'execute_eval',
+    description:
+      'Run an LLM-as-judge evaluation against a provided output and rubric, with optional ' +
+      'regression comparison against a reference output. Returns scored dimensions and a verdict. ' +
+      'Equivalent to LangSmith / Mastra Evals evaluate() — closes CG-086. ' +
+      'Does not require HoloScript scene code; accepts any text output.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        output: {
+          type: 'string',
+          description: 'The agent or model output text to evaluate.',
+        },
+        rubric: {
+          type: 'string',
+          description: 'Free-text rubric describing what a good output looks like.',
+        },
+        scoring_dimensions: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Named dimensions to score independently (e.g. ["correctness", "completeness"]). ' +
+            'Defaults to ["correctness", "completeness", "conciseness"].',
+        },
+        model: {
+          type: 'string',
+          description: 'Judge model override (e.g. "claude-3-5-sonnet-20241022").',
+        },
+        reference_output: {
+          type: 'string',
+          description: 'Optional baseline output for regression comparison.',
+        },
+        reference_trace_id: {
+          type: 'string',
+          description: 'Optional trace ID for the reference run (stored for audit).',
+        },
+      },
+      required: ['output', 'rubric'],
     },
   },
 ];
@@ -325,8 +461,9 @@ export async function handleHolotestTool(
   name: string,
   args: Record<string, unknown>
 ): Promise<HolotestResult | null> {
-  if (name !== 'execute_holotest') return null;
-  return runExecuteHolotest(args);
+  if (name === 'execute_holotest') return runExecuteHolotest(args);
+  if (name === 'execute_eval') return runExecuteEval(args);
+  return null;
 }
 
 // ── Execution Engine ───────────────────────────────────────────────────────
@@ -346,6 +483,47 @@ async function runExecuteHolotest(args: Record<string, unknown>): Promise<Holote
   const format = (args.format as string | undefined) ?? 'auto';
   const assertions = (args.assertions as Assertion[] | undefined) ?? [];
   const autoCheck = args.auto_check_intersections !== false;
+
+  // LLM-judge mode: when llm_judge is provided, route to the judge engine
+  // (may also run spatial assertions if code has entities)
+  const judgeConfig = args.llm_judge as LLMJudgeConfig | undefined;
+  const regressionConfig = args.regression_suite as RegressionSuiteConfig | undefined;
+
+  if (judgeConfig) {
+    const output = (args.output as string | undefined) ?? code;
+    const judgeResult = await runLLMJudge(output, judgeConfig);
+    const regressionDiff = regressionConfig
+      ? await runRegressionComparison(output, judgeConfig, regressionConfig)
+      : undefined;
+
+    const passed = judgeResult.verdict === 'PASS';
+    const status: HolotestResult['status'] = judgeResult.verdict === 'FAIL' ? 'failed' : 'passed';
+    return {
+      tool_name: 'execute_holotest',
+      status,
+      summary: `LLM judge: ${judgeResult.verdict} (score ${judgeResult.overall_score.toFixed(1)}/10) — ${judgeResult.summary}`,
+      tests: [
+        {
+          name: '[llm_judge] rubric evaluation',
+          status: passed ? 'passed' : 'failed',
+          duration_ms: 0,
+          ...(passed
+            ? {}
+            : {
+                error: {
+                  error_type: 'ValueViolation',
+                  semantic_message: judgeResult.summary,
+                  spatial_hint: `Lowest score: ${judgeResult.scores.reduce((a, b) => (a.score < b.score ? a : b), judgeResult.scores[0] ?? { dimension: '?', score: 0, rationale: '' }).dimension}`,
+                  fix_suggestion: 'Revise output to better satisfy the rubric.',
+                  affected_lines: [],
+                },
+              }),
+        },
+      ],
+      judge_result: judgeResult,
+      regression_diff: regressionDiff,
+    };
+  }
 
   // 1. Parse & extract entities
   let entities: SpatialEntity[];
@@ -663,4 +841,205 @@ function extractArrayProp(body: string, key: string): [number, number, number] |
   const m = re.exec(body);
   if (!m) return null;
   return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+}
+
+// ── LLM Judge engine ───────────────────────────────────────────────────────
+
+const DEFAULT_JUDGE_DIMENSIONS = ['correctness', 'completeness', 'conciseness'];
+const JUDGE_PASS_THRESHOLD = 6.0; // out of 10
+
+/**
+ * Build the system prompt for the LLM judge.
+ * Output MUST be valid JSON conforming to the JudgeResult schema.
+ */
+function buildJudgePrompt(rubric: string, dimensions: string[]): string {
+  const dimList = dimensions.map((d) => `"${d}"`).join(', ');
+  return (
+    'You are a strict, unbiased LLM-as-judge evaluator. ' +
+    'Score the provided output against the rubric below. ' +
+    'Return ONLY valid JSON — no markdown, no prose outside the JSON.\n\n' +
+    `Rubric:\n${rubric}\n\n` +
+    `Score each dimension independently on a 0–10 integer scale: ${dimList}.\n` +
+    '0 = completely wrong/missing, 5 = partially correct, 10 = perfect.\n\n' +
+    'Output schema:\n' +
+    '{\n' +
+    '  "verdict": "PASS" | "FAIL" | "DEGRADED",\n' +
+    '  "overall_score": <number 0-10, average of dimension scores>,\n' +
+    '  "scores": [{ "dimension": "<name>", "score": <0-10>, "rationale": "<1-2 sentences>" }],\n' +
+    '  "summary": "<one sentence verdict rationale>"\n' +
+    '}\n\n' +
+    `PASS if overall_score >= ${JUDGE_PASS_THRESHOLD}, DEGRADED if 4–${JUDGE_PASS_THRESHOLD - 0.1}, FAIL if < 4.`
+  );
+}
+
+function parseJudgeOutput(
+  raw: string,
+  dimensions: string[],
+  provider?: string
+): JudgeResult {
+  let jsonText = raw.trim();
+  // Strip markdown fences if present
+  const fenced = jsonText.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+  if (fenced) jsonText = fenced[1].trim();
+
+  try {
+    const parsed = JSON.parse(jsonText) as {
+      verdict?: string;
+      overall_score?: number;
+      scores?: Array<{ dimension?: string; score?: number; rationale?: string }>;
+      summary?: string;
+    };
+
+    const scores: JudgeScore[] = (parsed.scores ?? []).map((s) => ({
+      dimension: typeof s.dimension === 'string' ? s.dimension : '?',
+      score: typeof s.score === 'number' ? Math.max(0, Math.min(10, s.score)) : 0,
+      rationale: typeof s.rationale === 'string' ? s.rationale : '',
+    }));
+
+    // Fill any missing dimensions with 0
+    for (const dim of dimensions) {
+      if (!scores.some((s) => s.dimension === dim)) {
+        scores.push({ dimension: dim, score: 0, rationale: 'Not scored by judge.' });
+      }
+    }
+
+    const overall =
+      typeof parsed.overall_score === 'number'
+        ? Math.max(0, Math.min(10, parsed.overall_score))
+        : scores.reduce((sum, s) => sum + s.score, 0) / Math.max(scores.length, 1);
+
+    const verdict =
+      parsed.verdict === 'PASS' || parsed.verdict === 'FAIL' || parsed.verdict === 'DEGRADED'
+        ? (parsed.verdict as JudgeResult['verdict'])
+        : overall >= JUDGE_PASS_THRESHOLD
+          ? 'PASS'
+          : overall >= 4
+            ? 'DEGRADED'
+            : 'FAIL';
+
+    return {
+      verdict,
+      overall_score: Math.round(overall * 10) / 10,
+      rubric: '', // filled by caller
+      scores,
+      summary: typeof parsed.summary === 'string' ? parsed.summary : 'No summary.',
+      provider,
+    };
+  } catch {
+    // Fallback: judge response unparseable
+    return {
+      verdict: 'FAIL',
+      overall_score: 0,
+      rubric: '',
+      scores: dimensions.map((d) => ({ dimension: d, score: 0, rationale: 'Judge response unparseable.' })),
+      summary: 'LLM judge returned non-JSON output — treated as FAIL.',
+      provider,
+    };
+  }
+}
+
+async function runLLMJudge(output: string, config: LLMJudgeConfig): Promise<JudgeResult> {
+  const dimensions = config.scoring_dimensions ?? DEFAULT_JUDGE_DIMENSIONS;
+  const systemPrompt = buildJudgePrompt(config.rubric, dimensions);
+  const userMessage = `Output to evaluate:\n\n${output}`;
+
+  try {
+    const manager = createProviderManager();
+    const providers = manager.getRegisteredProviders();
+    const providerOrder = providers;
+
+    for (const providerName of providerOrder) {
+      const provider = manager.getProvider(providerName);
+      if (!provider) continue;
+      try {
+        const result = await provider.complete({
+          messages: [
+            { role: 'system' as const, content: systemPrompt },
+            { role: 'user' as const, content: userMessage },
+          ],
+          maxTokens: 512,
+          temperature: 0,
+        });
+        const judgeResult = parseJudgeOutput(result.content, dimensions, providerName);
+        judgeResult.rubric = config.rubric;
+        return judgeResult;
+      } catch {
+        // try next provider
+      }
+    }
+  } catch {
+    // provider manager unavailable
+  }
+
+  // All providers failed
+  return {
+    verdict: 'FAIL',
+    overall_score: 0,
+    rubric: config.rubric,
+    scores: dimensions.map((d) => ({ dimension: d, score: 0, rationale: 'No LLM provider available.' })),
+    summary: 'No LLM provider available to run judge.',
+    provider: undefined,
+  };
+}
+
+async function runRegressionComparison(
+  currentOutput: string,
+  judgeConfig: LLMJudgeConfig,
+  regressionConfig: RegressionSuiteConfig
+): Promise<RegressionDiff> {
+  // Score both outputs with the same rubric and return a delta
+  const [currentResult, referenceResult] = await Promise.all([
+    runLLMJudge(currentOutput, judgeConfig),
+    runLLMJudge(regressionConfig.reference_output, judgeConfig),
+  ]);
+
+  const delta = currentResult.overall_score - referenceResult.overall_score;
+  const verdict: RegressionDiff['verdict'] =
+    delta > 0.5 ? 'IMPROVEMENT' : delta < -0.5 ? 'REGRESSION' : 'NO_REGRESSION';
+
+  return {
+    reference_trace_id: regressionConfig.reference_trace_id,
+    verdict,
+    score_delta: Math.round(delta * 10) / 10,
+    summary:
+      `Current score ${currentResult.overall_score.toFixed(1)} vs reference ${referenceResult.overall_score.toFixed(1)} ` +
+      `(Δ${delta >= 0 ? '+' : ''}${delta.toFixed(1)}) — ${verdict}.`,
+  };
+}
+
+/** Standalone execute_eval: judges any text output, no scene code required */
+async function runExecuteEval(args: Record<string, unknown>): Promise<HolotestResult> {
+  const output = args.output as string;
+  const rubric = args.rubric as string;
+  const dimensions = (args.scoring_dimensions as string[] | undefined) ?? DEFAULT_JUDGE_DIMENSIONS;
+  const model = args.model as string | undefined;
+  const referenceOutput = args.reference_output as string | undefined;
+  const referenceTraceId = args.reference_trace_id as string | undefined;
+
+  const judgeConfig: LLMJudgeConfig = { rubric, scoring_dimensions: dimensions, model };
+  const judgeResult = await runLLMJudge(output, judgeConfig);
+
+  const regressionDiff =
+    referenceOutput != null
+      ? await runRegressionComparison(output, judgeConfig, {
+          reference_output: referenceOutput,
+          reference_trace_id: referenceTraceId,
+        })
+      : undefined;
+
+  const passed = judgeResult.verdict === 'PASS';
+  return {
+    tool_name: 'execute_eval',
+    status: passed ? 'passed' : 'failed',
+    summary: `execute_eval: ${judgeResult.verdict} (score ${judgeResult.overall_score.toFixed(1)}/10) — ${judgeResult.summary}`,
+    tests: [
+      {
+        name: '[execute_eval] rubric evaluation',
+        status: passed ? 'passed' : 'failed',
+        duration_ms: 0,
+      },
+    ],
+    judge_result: judgeResult,
+    regression_diff: regressionDiff,
+  };
 }

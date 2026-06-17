@@ -167,8 +167,9 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // === Monitoring ===
   get_telemetry_metrics: ['tools:read'],
 
-  // === HoloTest ===
+  // === HoloTest / Eval ===
   execute_holotest: ['tools:admin'],
+  execute_eval: ['tools:admin'],
 
   // === Wisdom/Gotcha ===
   holo_query_wisdom: ['tools:read'],
@@ -292,6 +293,7 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   holo_self_diagnose: 'critical',
   holo_validate_quality: 'critical',
   execute_holotest: 'critical',
+  execute_eval: 'critical',
   generate_hololand_training: 'critical',
   holo_add_wisdom: 'critical',
   holo_add_gotcha: 'critical',

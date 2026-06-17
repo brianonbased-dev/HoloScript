@@ -276,6 +276,7 @@ load_temporal_snapshot
 rewind_world_state
 get_telemetry_metrics
 execute_holotest
+execute_eval
 holo_generate_refactor_plan
 holo_scaffold_code
 compile_trait_composition

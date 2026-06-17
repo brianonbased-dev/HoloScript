@@ -232,3 +232,97 @@ describe('execute_holotest — result structure', () => {
     expect(Array.isArray(failedTest.error!.affected_lines)).toBe(true);
   });
 });
+
+// ── CG-086: LLM judge + execute_eval (no provider → graceful FAIL) ──────────
+// These tests do NOT require a live LLM. They verify the structural contract
+// of the llm_judge branch: schema wiring, result shape, fallback behavior.
+
+describe('holotestTools — execute_eval registration (CG-086)', () => {
+  it('exports execute_eval tool definition', () => {
+    const tool = holotestTools.find((t) => t.name === 'execute_eval');
+    expect(tool).toBeDefined();
+    expect(tool!.description).toContain('LLM-as-judge');
+  });
+
+  it('execute_eval requires output and rubric in inputSchema', () => {
+    const tool = holotestTools.find((t) => t.name === 'execute_eval')!;
+    const required = (tool.inputSchema as { required?: string[] }).required ?? [];
+    expect(required).toContain('output');
+    expect(required).toContain('rubric');
+  });
+
+  it('execute_holotest schema includes llm_judge and regression_suite options', () => {
+    const tool = holotestTools.find((t) => t.name === 'execute_holotest')!;
+    const props = (tool.inputSchema as { properties?: Record<string, unknown> }).properties ?? {};
+    expect(props['llm_judge']).toBeDefined();
+    expect(props['regression_suite']).toBeDefined();
+    expect(props['output']).toBeDefined();
+  });
+});
+
+describe('handleHolotestTool — execute_eval dispatch (CG-086)', () => {
+  it('returns a HolotestResult with tool_name=execute_eval', async () => {
+    const result = await handleHolotestTool('execute_eval', {
+      output: 'The bridge collapsed due to resonant frequency.',
+      rubric: 'The explanation must be physically accurate and cite the resonance mechanism.',
+    });
+    expect(result).not.toBeNull();
+    expect(result!.tool_name).toBe('execute_eval');
+    expect(['passed', 'failed', 'error']).toContain(result!.status);
+  });
+
+  it('returns judge_result with required fields even when no provider is available', async () => {
+    const result = await handleHolotestTool('execute_eval', {
+      output: 'Some output text.',
+      rubric: 'Must be correct.',
+    });
+    expect(result!.judge_result).toBeDefined();
+    const jr = result!.judge_result!;
+    expect(typeof jr.overall_score).toBe('number');
+    expect(jr.overall_score).toBeGreaterThanOrEqual(0);
+    expect(jr.overall_score).toBeLessThanOrEqual(10);
+    expect(['PASS', 'FAIL', 'DEGRADED']).toContain(jr.verdict);
+    expect(Array.isArray(jr.scores)).toBe(true);
+    expect(typeof jr.summary).toBe('string');
+    expect(typeof jr.rubric).toBe('string');
+  });
+
+  it('returns regression_diff when reference_output is provided', async () => {
+    const result = await handleHolotestTool('execute_eval', {
+      output: 'Current answer.',
+      rubric: 'Must be accurate.',
+      reference_output: 'Baseline answer.',
+      reference_trace_id: 'trace-abc123',
+    });
+    expect(result!.regression_diff).toBeDefined();
+    const rd = result!.regression_diff!;
+    expect(['NO_REGRESSION', 'REGRESSION', 'IMPROVEMENT']).toContain(rd.verdict);
+    expect(typeof rd.score_delta).toBe('number');
+    expect(rd.reference_trace_id).toBe('trace-abc123');
+  });
+
+  it('execute_holotest with llm_judge routes to judge branch', async () => {
+    const result = await handleHolotestTool('execute_holotest', {
+      code: 'world TestScene {}',
+      output: 'The scene is valid.',
+      llm_judge: {
+        rubric: 'The output must confirm scene validity.',
+        scoring_dimensions: ['correctness'],
+      },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.judge_result).toBeDefined();
+    expect(result!.judge_result!.scores.some((s) => s.dimension === 'correctness')).toBe(true);
+  });
+
+  it('scores default to three dimensions when scoring_dimensions is omitted', async () => {
+    const result = await handleHolotestTool('execute_eval', {
+      output: 'Some text.',
+      rubric: 'Be accurate.',
+    });
+    const dims = result!.judge_result!.scores.map((s) => s.dimension);
+    expect(dims).toContain('correctness');
+    expect(dims).toContain('completeness');
+    expect(dims).toContain('conciseness');
+  });
+});

@@ -347,8 +347,9 @@ const DOWNSTREAM_TOOLS = new Set([
   'absorb_render',
   'absorb_run_pipeline',
 
-  // HoloTest (spawns test runner)
+  // HoloTest / Eval (spawns test runner / calls LLM judge)
   'execute_holotest',
+  'execute_eval',
 
   // Training data (generates large output)
   'generate_hololand_training',

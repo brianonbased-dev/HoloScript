@@ -478,6 +478,7 @@ export function suggestToolsForGoal(
           q.includes('stub')) &&
         (tool.name === 'get_tool_health' ||
           tool.name === 'execute_holotest' ||
+          tool.name === 'execute_eval' ||
           tool.name === 'holo_run_tests_targeted' ||
           tool.name === 'holo_run_related_tests' ||
           tool.name === 'holoscript_code_health' ||
@@ -535,6 +536,7 @@ export function suggestToolsForGoal(
         'holoscript_code_health',
         'discover_agents',
         'execute_holotest',
+        'execute_eval',
       ],
       reason:
         'Audit MCP, REST, A2A, and CLI surfaces: tool wiring health, manifest discovery, API docs, circuit breakers, health checks, and canary tests.',
