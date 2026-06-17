@@ -20,7 +20,11 @@ export function loadIdentity(env: NodeJS.ProcessEnv = process.env): AgentIdentit
       `HOLOSCRIPT_AGENT_PROVIDER=${provider} not in [${[...VALID_PROVIDERS].join(', ')}]`
     );
   }
-  const x402Bearer = required(env, 'HOLOSCRIPT_AGENT_X402_BEARER');
+  // Bearer is OPTIONAL: when absent, the runner resolves it from the HoloKey
+  // broker by proving wallet ownership (bearer-broker.ts) — the edge holds only
+  // its wallet, not a plaintext bearer in .env. cmdRun fails clearly if neither
+  // an env bearer nor a resolvable seat wallet is available.
+  const x402Bearer = (env.HOLOSCRIPT_AGENT_X402_BEARER ?? '').trim();
   const wallet = required(env, 'HOLOSCRIPT_AGENT_WALLET');
   if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
     throw new Error(`HOLOSCRIPT_AGENT_WALLET is not a 0x-prefixed 40-hex address: ${wallet}`);
@@ -60,7 +64,7 @@ export function identityForLog(id: AgentIdentity): Record<string, string | numbe
     handle: id.handle,
     surface: id.surface,
     wallet: `${id.wallet.slice(0, 6)}…${id.wallet.slice(-4)}`,
-    bearer: `${id.x402Bearer.slice(0, 6)}…`,
+    bearer: id.x402Bearer ? `${id.x402Bearer.slice(0, 6)}…` : '(broker-resolved)',
     provider: id.llmProvider,
     model: id.llmModel,
     brain: id.brainPath,

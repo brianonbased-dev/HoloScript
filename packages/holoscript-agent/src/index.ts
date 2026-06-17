@@ -19,6 +19,7 @@ import { loadBrain } from './brain.js';
 import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
 import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import { HolomeshClient } from './holomesh-client.js';
+import { resolveBearerViaBroker } from './bearer-broker.js';
 import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
 import { runAblation, renderAblationMarkdown } from './ablation.js';
@@ -109,11 +110,36 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     dailyBudgetUsd: identity.budgetUsdPerDay,
     pricer: defaultPricerForProvider(effectiveIdentity.llmProvider),
   });
+  // Load the seat wallet ONCE: it both signs strict-mode requests AND (when no
+  // explicit bearer is set) proves ownership to the HoloKey broker to fetch the
+  // mesh bearer — so the edge holds only its wallet, not a plaintext bearer.
+  const seat = loadSeatWallet(identity.handle);
+  let bearer = identity.x402Bearer;
+  if (!bearer) {
+    if (!seat) {
+      throw new Error(
+        'No HOLOSCRIPT_AGENT_X402_BEARER set and no seat wallet found to resolve it from the ' +
+          'HoloKey broker. Provide a bearer, or point at the seat wallet via ' +
+          'HOLOSCRIPT_AGENT_SEATS_ROOT + HOLOSCRIPT_AGENT_SEAT_ID (+ HOLOSCRIPT_AGENT_SEAT_MASTER_KEY).'
+      );
+    }
+    bearer = await resolveBearerViaBroker({
+      privateKey: seat.wallet.privateKey,
+      meshApiBase: identity.meshApiBase,
+    });
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        ev: 'bearer-resolved-via-broker',
+        wallet: `${seat.address.slice(0, 6)}…${seat.address.slice(-4)}`,
+      })
+    );
+  }
   const mesh = new HolomeshClient({
     apiBase: identity.meshApiBase,
-    bearer: identity.x402Bearer,
+    bearer,
     teamId: identity.teamId,
-    signer: buildRequestSigner(identity.handle),
+    signer: buildRequestSigner(seat),
   });
 
   const commitHook = buildCommitHook(identity, mesh);
@@ -419,10 +445,19 @@ async function cmdAblate(rest: string[]): Promise<void> {
 
 async function cmdWhoami(): Promise<void> {
   const identity = loadIdentity();
+  const seat = loadSeatWallet(identity.handle);
+  let bearer = identity.x402Bearer;
+  if (!bearer && seat) {
+    bearer = await resolveBearerViaBroker({
+      privateKey: seat.wallet.privateKey,
+      meshApiBase: identity.meshApiBase,
+    });
+  }
   const mesh = new HolomeshClient({
     apiBase: identity.meshApiBase,
-    bearer: identity.x402Bearer,
+    bearer,
     teamId: identity.teamId,
+    signer: buildRequestSigner(seat),
   });
   const me = await mesh.whoAmI();
   console.log(JSON.stringify({ identity: identityForLog(identity), me }, null, 2));
@@ -501,19 +536,30 @@ function canonicalizeSigning(value: unknown): string {
     .join(',')}}`;
 }
 
+interface SeatWallet {
+  wallet: Wallet;
+  address: string;
+}
+
 /**
- * Try to load the seat wallet for the given handle and return a RequestSigner.
- * Returns undefined if the wallet file doesn't exist (unsigned fallback).
+ * Load + decrypt the seat wallet for the given handle. This is the agent's ROOT
+ * credential (F.119): it both signs strict-mode requests (/join etc.) AND proves
+ * ownership to the HoloKey broker to fetch the mesh bearer (bearer-broker.ts), so
+ * the bearer never has to live in plaintext .env.
+ *
+ * `HOLOSCRIPT_AGENT_SEAT_ID` overrides the computed seat-dir name — needed when a
+ * seat was provisioned under a non-default layout (e.g. the sovereign x402 seats at
+ * `~/.ai-ecosystem/seats/sovereign-<surface>-<fp>-default-x402`). `HOLOSCRIPT_AGENT_SEAT_MASTER_KEY`
+ * overrides the master-key path. Returns undefined when the files are absent.
  */
-function buildRequestSigner(
-  handle: string
-): ((body: Record<string, unknown>) => Promise<Record<string, unknown>>) | undefined {
+function loadSeatWallet(handle: string): SeatWallet | undefined {
   const seatsRoot =
     process.env.HOLOSCRIPT_AGENT_SEATS_ROOT ?? join(homedir(), '.holoscript-agent', 'seats');
   const fp = createHash('sha256').update(hostname() + homedir()).digest('hex').slice(0, 8);
-  const seatId = `holoscript-${handle}-${fp}-x402`;
+  const seatId = process.env.HOLOSCRIPT_AGENT_SEAT_ID ?? `holoscript-${handle}-${fp}-x402`;
   const walletPath = join(seatsRoot, seatId, 'wallet.enc');
-  const masterKeyPath = join(seatsRoot, '.master-key');
+  const masterKeyPath =
+    process.env.HOLOSCRIPT_AGENT_SEAT_MASTER_KEY ?? join(seatsRoot, '.master-key');
   if (!existsSync(walletPath) || !existsSync(masterKeyPath)) return undefined;
   try {
     const blob = JSON.parse(readFileSync(walletPath, 'utf8')) as {
@@ -524,20 +570,34 @@ function buildRequestSigner(
     const iv = Buffer.from(blob.encrypted_privkey.iv, 'base64');
     const ct = Buffer.from(blob.encrypted_privkey.ct, 'base64');
     const tag = Buffer.from(blob.encrypted_privkey.tag, 'base64');
-    const decipher = createDecipheriv(blob.encrypted_privkey.alg ?? 'aes-256-gcm', masterKey, iv) as DecipherGCM;
+    const decipher = createDecipheriv(
+      blob.encrypted_privkey.alg ?? 'aes-256-gcm',
+      masterKey,
+      iv
+    ) as DecipherGCM;
     decipher.setAuthTag(tag);
     const privateKey = Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
-    const wallet = new Wallet(privateKey);
-    return async (body: Record<string, unknown>) => {
-      const nonce = randomBytes(16).toString('hex');
-      const timestamp = new Date().toISOString();
-      const payload = canonicalizeSigning({ body, nonce, timestamp });
-      const signature = await wallet.signMessage(payload);
-      return { body, signature, signer_address: blob.address, nonce, timestamp };
-    };
+    return { wallet: new Wallet(privateKey), address: blob.address };
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Build an EIP-191 RequestSigner from an already-loaded seat wallet (signs
+ * strict-mode endpoints like /team/:id/join). Returns undefined when no seat.
+ */
+function buildRequestSigner(
+  seat: SeatWallet | undefined
+): ((body: Record<string, unknown>) => Promise<Record<string, unknown>>) | undefined {
+  if (!seat) return undefined;
+  return async (body: Record<string, unknown>) => {
+    const nonce = randomBytes(16).toString('hex');
+    const timestamp = new Date().toISOString();
+    const payload = canonicalizeSigning({ body, nonce, timestamp });
+    const signature = await seat.wallet.signMessage(payload);
+    return { body, signature, signer_address: seat.address, nonce, timestamp };
+  };
 }
 
 function scopeTierFromEnv(): 'cold' | 'warm' | 'hot' {
@@ -595,11 +655,17 @@ REQUIRED ENV
   HOLOSCRIPT_AGENT_MODEL             model id (e.g. "claude-opus-4-8")
   HOLOSCRIPT_AGENT_BRAIN             path to .hsplus brain composition
   HOLOSCRIPT_AGENT_WALLET            0x… wallet address
-  HOLOSCRIPT_AGENT_X402_BEARER       per-surface mesh bearer (W.087 vertex B)
   HOLOMESH_TEAM_ID                   target team id
   ANTHROPIC_API_KEY | OPENAI_API_KEY | GEMINI_API_KEY  per provider
 
 OPTIONAL ENV
+  HOLOSCRIPT_AGENT_X402_BEARER       per-surface mesh bearer. OPTIONAL: when absent, the runner
+                                     resolves it from the HoloKey broker by proving wallet
+                                     ownership (POST /key/challenge → sign → /key/recover), so the
+                                     bearer is never stored in plaintext .env. Requires a seat wallet.
+  HOLOSCRIPT_AGENT_SEAT_ID           override the computed seat-dir name (e.g. a sovereign x402 seat
+                                     "sovereign-<surface>-<fp>-default-x402"); pairs with SEATS_ROOT
+  HOLOSCRIPT_AGENT_SEAT_MASTER_KEY   override the master-key path used to decrypt the seat wallet.enc
   HOLOSCRIPT_AGENT_BUDGET_USD_DAY    default 5
   HOLOSCRIPT_AGENT_SCOPE_TIER        cold | warm | hot (default warm)
   HOLOSCRIPT_AGENT_TICK_MS           daemon tick interval, default 60000
