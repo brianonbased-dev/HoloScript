@@ -53,6 +53,22 @@ export interface RuntimeBrainConfig {
    * Absent (default) = no reflect pass — existing brains are unaffected.
    */
   reflect?: { criteria: string; escalateOnFail: boolean };
+  /**
+   * Parsed `behavior on_task { … }` cognitive verb sequence (Phase 2.1).
+   * Extracted by brain.ts from the brain's authored behavior block; consumed by
+   * the runner to augment the task execution loop with domain-specific context.
+   * Currently wired verbs: `llm_call` (prompt → system context injection).
+   * Future verbs (`recall`, `rag_query`, `plan`) require trait-backed stores
+   * and are logged as declared but deferred to Phase 2.2.
+   * Absent (default) = hardcoded MESH_TOOLS loop only — backward-compatible.
+   */
+  onTaskActions?: OnTaskAction[];
+}
+
+/** A single cognitive verb call parsed from `behavior on_task { … }`. */
+export interface OnTaskAction {
+  verb: 'recall' | 'rag_query' | 'llm_call' | 'plan' | 'reflect';
+  config: Record<string, unknown>;
 }
 
 export interface CostState {

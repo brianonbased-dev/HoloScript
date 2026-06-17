@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import type { RuntimeBrainConfig } from './types.js';
+import type { OnTaskAction, RuntimeBrainConfig } from './types.js';
 
 export async function loadBrain(
   brainPath: string,
@@ -26,6 +26,7 @@ export async function loadBrain(
     prefers,
     avoids,
     reflect: extractReflect(raw),
+    onTaskActions: extractOnTaskActions(raw),
   };
 }
 
@@ -101,6 +102,80 @@ function extractIdentity(brain: string): {
   const prefers = listField(identityBlock, 'prefers') ?? [];
   const avoids = listField(identityBlock, 'avoids') ?? [];
   return { domain, capabilityTags, requires, prefers, avoids };
+}
+
+/**
+ * Parse the `behavior on_task { … }` block into an ordered sequence of
+ * cognitive verb calls (Phase 2.1). Each verb's config is extracted with a
+ * lightweight regex KV parser — no full parser dependency. Only verbs whose
+ * keys match known cognitive verbs are included; unknown keywords are skipped.
+ *
+ * Currently wired in AgentRunner: `llm_call` (prompt augmentation) and
+ * `reflect` (extracted separately by extractReflect via sliceNamedBlock).
+ * Future verbs (`recall`, `rag_query`, `plan`) are parsed so they appear in
+ * the returned sequence but are logged-and-deferred by the runner until
+ * Phase 2.2 (trait-backed stores, see idea-seeds.md).
+ */
+function extractOnTaskActions(brain: string): OnTaskAction[] {
+  // `sliceNamedBlock` with 'on_task' matches `on_task {` inside `behavior on_task {`
+  const block = sliceNamedBlock(brain, 'on_task');
+  if (!block) return [];
+
+  const VERBS: OnTaskAction['verb'][] = ['recall', 'rag_query', 'llm_call', 'plan', 'reflect'];
+  const entries: Array<OnTaskAction & { _pos: number }> = [];
+
+  for (const verb of VERBS) {
+    const re = new RegExp(`\\b${verb}\\s*\\{`, 'g');
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(block)) !== null) {
+      const start = m.index + m[0].length;
+      let depth = 1;
+      let end = -1;
+      for (let i = start; i < block.length; i++) {
+        if (block[i] === '{') depth++;
+        else if (block[i] === '}') {
+          depth--;
+          if (depth === 0) {
+            end = i;
+            break;
+          }
+        }
+      }
+      if (end < 0) continue;
+      entries.push({ verb, config: parseKVBlock(block.slice(start, end)), _pos: m.index });
+    }
+  }
+
+  // Sort by authored position so verbs execute in the order the brain declared them.
+  return entries.sort((a, b) => a._pos - b._pos).map(({ _pos: _ignored, ...rest }) => rest);
+}
+
+/** Lightweight key-value extractor for cognitive verb config blocks. */
+function parseKVBlock(block: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  // String: key: "value"
+  const strRe = /\b(\w+)\s*:\s*"([^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = strRe.exec(block)) !== null) out[m[1]] = m[2];
+  // Array: key: ["a", "b"] — must run before bool/num to claim the array form of limit etc.
+  const arrRe = /\b(\w+)\s*:\s*\[([^\]]*)\]/g;
+  while ((m = arrRe.exec(block)) !== null) {
+    out[m[1]] = m[2]
+      .split(',')
+      .map((s) => s.trim().replace(/^["']|["']$/g, ''))
+      .filter((s) => s.length > 0);
+  }
+  // Boolean: key: true | false (only when not already set by string/array)
+  const boolRe = /\b(\w+)\s*:\s*(true|false)\b/g;
+  while ((m = boolRe.exec(block)) !== null) {
+    if (!(m[1] in out)) out[m[1]] = m[2] === 'true';
+  }
+  // Number: key: 123 or key: -0.5 (only when not already set)
+  const numRe = /\b(\w+)\s*:\s*(-?\d+(?:\.\d+)?)\b/g;
+  while ((m = numRe.exec(block)) !== null) {
+    if (!(m[1] in out)) out[m[1]] = parseFloat(m[2]);
+  }
+  return out;
 }
 
 function sliceNamedBlock(src: string, name: string): string | undefined {
