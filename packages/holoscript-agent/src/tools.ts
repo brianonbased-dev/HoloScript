@@ -234,6 +234,61 @@ export const MESH_TOOLS: ToolSpec[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Active-tool resolution (F.126 #1 — author behavior as DATA the runtime consumes)
+// ---------------------------------------------------------------------------
+/**
+ * Assemble the tool set the model sees from the brain's OWN DECLARATION — the
+ * `behavior on_task { llm_call { tools: [...] } }` array — instead of a hardcoded
+ * list. This is principle #1 of the native doctrine (F.126): the runtime consumes
+ * the brain's authored capability set, so "add a tool" becomes "declare it in the
+ * brain," not "edit this TypeScript." Fixes the dead-data bug where every brain's
+ * declared tools were ignored and local-llm brains were amputated to write_file-only.
+ *
+ *  - Declared names are resolved against the available specs; an unknown name is
+ *    dropped (the runner logs it) so a typo can't crash the loop.
+ *  - A brain that declares NO tools falls back to the prior safe default
+ *    (write_file-only for small local-llm models — the artifact-grounding floor;
+ *    full menu otherwise) so this is backward-compatible.
+ *  - W.710 progressive disclosure: a small local model can overflow its num_ctx
+ *    output budget reasoning over a big menu before it emits a tool call, so a
+ *    declared set larger than the budget is SLIM-trimmed (write_file kept first)
+ *    for local-llm brains. Budget via HOLOSCRIPT_AGENT_TOOL_BUDGET (default 6).
+ */
+export function resolveActiveTools(
+  brain: { requires: string[]; onTaskActions?: Array<{ verb: string; config?: Record<string, unknown> }> },
+  opts: { all?: ToolSpec[]; isLocal?: boolean; budget?: number } = {}
+): { tools: ToolSpec[]; declared: string[]; dropped: string[] } {
+  const all = opts.all ?? MESH_TOOLS;
+  const isLocal = opts.isLocal ?? brain.requires.includes('local-llm');
+  const budget = opts.budget ?? (Number(process.env.HOLOSCRIPT_AGENT_TOOL_BUDGET) || 6);
+
+  const declaredRaw = brain.onTaskActions?.find((a) => a.verb === 'llm_call')?.config?.tools;
+  const declared = Array.isArray(declaredRaw)
+    ? declaredRaw.filter((n): n is string => typeof n === 'string')
+    : [];
+
+  if (declared.length === 0) {
+    // No declaration → prior safe default (backward-compatible).
+    const fallback = isLocal ? all.filter((t) => t.name === 'write_file') : all;
+    return { tools: fallback, declared: [], dropped: [] };
+  }
+
+  const dropped = declared.filter((n) => !all.some((t) => t.name === n));
+  let resolved = declared
+    .map((n) => all.find((t) => t.name === n))
+    .filter((t): t is ToolSpec => Boolean(t));
+  if (resolved.length === 0) resolved = all.filter((t) => t.name === 'write_file'); // never hand the model an empty toolset
+
+  // num_ctx guard for small models: trim a large declared set, keeping write_file (grounding) first.
+  if (isLocal && resolved.length > budget) {
+    const wf = resolved.filter((t) => t.name === 'write_file');
+    const rest = resolved.filter((t) => t.name !== 'write_file');
+    resolved = [...wf, ...rest].slice(0, budget);
+  }
+  return { tools: resolved, declared, dropped };
+}
+
+// ---------------------------------------------------------------------------
 // Path-sandbox helpers
 // ---------------------------------------------------------------------------
 function isUnderRoot(absPath: string, root: string): boolean {

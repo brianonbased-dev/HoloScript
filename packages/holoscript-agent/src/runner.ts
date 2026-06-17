@@ -4,7 +4,7 @@ import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
-import { MESH_TOOLS, runTool, isProductiveBashCommand } from './tools.js';
+import { resolveActiveTools, runTool, isProductiveBashCommand } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import type {
@@ -188,6 +188,19 @@ export class AgentRunner {
     // Last git commit SHA emitted during the tool-loop; forwarded to markDone
     // so the board task records a verifiable commit reference.
     let lastCommitHash: string | undefined;
+    // F.126 #1 — the model's tools come from the BRAIN'S DECLARATION (the on_task
+    // `llm_call { tools: [...] }` array), not a hardcoded list. resolveActiveTools
+    // resolves the declared names against MESH_TOOLS, falls back safely when a brain
+    // declares none, and SLIM-trims an oversized set for small local models (W.710
+    // num_ctx guard). "Add a tool" is now "declare it in the brain," not edit this file.
+    const { tools: activeTools, declared: declaredTools, dropped: droppedTools } = resolveActiveTools(brain);
+    log({
+      ev: 'active-tools',
+      taskId: target.id,
+      tools: activeTools.map((t) => t.name),
+      declared: declaredTools,
+      ...(droppedTools.length ? { droppedUnknown: droppedTools } : {}),
+    });
     while (true) {
       iters++;
       if (iters > MAX_TOOL_ITERS) {
@@ -195,13 +208,6 @@ export class AgentRunner {
         finalText = finalText || `[tool-loop hit ${MAX_TOOL_ITERS}-iter cap before final text]`;
         break;
       }
-      // Local-LLM brains (qwen3:4b on Jetson) generate 3000+ thinking tokens
-      // reasoning over a 5-tool menu — overflowing num_ctx output budget before
-      // a tool call can be emitted. Limit to write_file only for local-llm brains:
-      // it satisfies the artifact-grounding gate and keeps thinking under ~400 tokens.
-      const activeTools = brain.requires.includes('local-llm')
-        ? MESH_TOOLS.filter((t) => t.name === 'write_file')
-        : MESH_TOOLS;
       const resp = await provider.complete(
         {
           messages,
