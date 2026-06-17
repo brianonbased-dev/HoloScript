@@ -5,7 +5,7 @@ import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
 import type { AuditLog } from './audit-log.js';
 import { buildCaelRecord } from './cael-builder.js';
-import { resolveActiveTools, runTool, isProductiveBashCommand } from './tools.js';
+import { resolveActiveTools, runTool, summarizeToolProductivity } from './tools.js';
 import { augmentWithOnTaskCognition } from './cognitive-verbs.js';
 import { DelegatedAuthorityHandler } from './delegated-authority.js';
 import type {
@@ -32,6 +32,13 @@ export interface AgentRunnerOptions {
   auditLog?: AuditLog;
   /** Optional delegated-authority handler for governance message processing (E4). */
   messageHandler?: DelegatedAuthorityHandler;
+  /**
+   * Optional hardware-receipt signer (index.ts wires the seat wallet). When
+   * present, emit_hardware_receipt seals its content hash with a wallet signature
+   * so the hardware-provenance artifact is verifiable, not plain JSON. Absent →
+   * the receipt is content-hashed but self-reports `signed:false` (honest).
+   */
+  signReceipt?: (canonical: string) => Promise<{ alg: string; signer: string; signature: string }>;
 }
 
 export class AgentRunner {
@@ -240,21 +247,12 @@ export class AgentRunner {
           iter: iters,
           tools: resp.toolUses.map((t) => t.name),
         });
-        // Track tool names for the artifact-grounding gate.
-        for (const u of resp.toolUses) {
-          toolsCalled.add(u.name);
-          // Productive-call accounting (W.107.b tighter gate).
-          if (u.name === 'write_file') {
-            const content = String((u.input as Record<string, unknown>)?.content ?? '');
-            if (content.length > 0) productiveCallCount++;
-          } else if (u.name === 'bash') {
-            const cmd = String((u.input as Record<string, unknown>)?.cmd ?? '');
-            if (isProductiveBashCommand(cmd)) productiveCallCount++;
-          } else if (u.name === 'emit_hardware_receipt') {
-            // Hardware receipt emission always produces a file artifact.
-            productiveCallCount++;
-          }
-        }
+        // Artifact-grounding accounting (W.107.b) via the shared classifier in
+        // tools.ts — the SAME function the ablation harness measures, so the gate
+        // and its evaluation can never drift (single source of truth).
+        const productivity = summarizeToolProductivity(resp.toolUses);
+        for (const n of productivity.names) toolsCalled.add(n);
+        productiveCallCount += productivity.productiveCount;
         // Append the assistant turn (text + tool_use blocks) so the model
         // sees its own request when we send tool_result back.
         messages.push({
@@ -262,7 +260,9 @@ export class AgentRunner {
           content: (resp.assistantBlocks ?? []) as never,
         });
         // Run each tool and collect results.
-        const toolResults = await Promise.all(resp.toolUses.map((u) => runTool(u)));
+        const toolResults = await Promise.all(
+          resp.toolUses.map((u) => runTool(u, { signReceipt: this.opts.signReceipt }))
+        );
         // Extract the latest git commit SHA from bash stdout so markDone can
         // record a verifiable reference on the board task. Pattern matches both
         // `git commit -m` output ('[branch abc1234]') and `git rev-parse HEAD`.

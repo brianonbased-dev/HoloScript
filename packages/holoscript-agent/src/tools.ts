@@ -25,6 +25,7 @@
 import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
 import { resolve, dirname, delimiter, isAbsolute, sep } from 'node:path';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import type { ToolSpec, ToolUseBlock, ToolResultBlock } from '@holoscript/llm-provider';
 
 // ---------------------------------------------------------------------------
@@ -130,6 +131,50 @@ export function isProductiveBashCommand(cmd: string): boolean {
   const trimmed = String(cmd ?? '').trim();
   if (!trimmed) return false;
   return BASH_PRODUCTIVE_PREFIXES.some((prefix) => trimmed.startsWith(prefix.trim()));
+}
+
+/**
+ * True iff a single tool_use is a *productive* (artifact-producing) call for the
+ * W.107.b artifact-grounding gate:
+ *   - write_file with non-empty content,
+ *   - bash with a productive prefix (isProductiveBashCommand),
+ *   - emit_hardware_receipt (always writes a receipt file).
+ * read_file / list_dir and read-only / trivial bash are NOT productive.
+ *
+ * This is the SINGLE SOURCE OF TRUTH the runner's gate (runner.ts) and the
+ * artifact-gate ablation harness both consume — so the measured gate can never
+ * drift from the shipped gate (the ablation measures the real thing, not a copy).
+ */
+export function isProductiveToolUse(use: ToolUseBlock): boolean {
+  const input = (use.input ?? {}) as Record<string, unknown>;
+  switch (use.name) {
+    case 'write_file':
+      return String(input.content ?? '').length > 0;
+    case 'bash':
+      return isProductiveBashCommand(String(input.cmd ?? ''));
+    case 'emit_hardware_receipt':
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Accumulate the productive-call count + the tool names seen across one model
+ * turn's tool_use blocks. The runner adds `names` to its toolsCalled set and
+ * `productiveCount` to its gate counter.
+ */
+export function summarizeToolProductivity(uses: readonly ToolUseBlock[]): {
+  productiveCount: number;
+  names: string[];
+} {
+  let productiveCount = 0;
+  const names: string[] = [];
+  for (const u of uses) {
+    names.push(u.name);
+    if (isProductiveToolUse(u)) productiveCount++;
+  }
+  return { productiveCount, names };
 }
 
 // ---------------------------------------------------------------------------
@@ -329,7 +374,17 @@ function checkBashAllowed(cmd: string): string | null {
 // ---------------------------------------------------------------------------
 // Tool implementations
 // ---------------------------------------------------------------------------
-export async function runTool(use: ToolUseBlock): Promise<ToolResultBlock> {
+/** Optional capabilities the caller (runner) can inject into a tool run. */
+export interface RunToolOptions {
+  /**
+   * Sign a hardware receipt's canonical body. Injected by index.ts from the seat
+   * wallet (ethers EIP-191). Absent → the receipt is content-hashed but unsigned
+   * and self-reports `signed:false`, so it can never overclaim.
+   */
+  signReceipt?: (canonical: string) => Promise<{ alg: string; signer: string; signature: string }>;
+}
+
+export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Promise<ToolResultBlock> {
   try {
     if (use.name === 'read_file') {
       const path = use.input.path as string;
@@ -437,16 +492,37 @@ export async function runTool(use: ToolUseBlock): Promise<ToolResultBlock> {
         },
       };
 
+      // Integrity seal (F.123 — a tamper-evident, not plain-JSON, receipt):
+      // a deterministic SHA-256 content hash over the canonical body (keyless
+      // content-addressing) plus an OPTIONAL wallet signature when a signer is
+      // injected (index.ts wires the seat wallet). `signed` self-reports honestly
+      // so an unsigned receipt can never masquerade as signed.
+      const canonical = JSON.stringify(receipt);
+      const contentHash = createHash('sha256').update(canonical).digest('hex');
+      let signature: { alg: string; signer: string; signature: string } | null = null;
+      if (opts.signReceipt) {
+        try {
+          signature = await opts.signReceipt(canonical);
+        } catch {
+          signature = null; // best-effort: an unsigned receipt is honest, not fatal
+        }
+      }
+      const sealed = {
+        ...receipt,
+        integrity: { alg: 'sha256', contentHash, signed: Boolean(signature), signature },
+      };
+
       // Slug timestamp: "2026-06-16T07-35-01-000Z"
       const ts = capturedAt.replace(/[:.]/g, '-');
       const outPath = resolve(ALLOWED_WRITE_ROOTS[0], `hardware-receipt-${ts}.json`);
       const denied = checkWriteAllowed(outPath);
       if (denied) return errResult(use.id, `Cannot write receipt: ${denied}`);
       await mkdir(dirname(outPath), { recursive: true });
-      await writeFile(outPath, JSON.stringify(receipt, null, 2), 'utf8');
+      await writeFile(outPath, JSON.stringify(sealed, null, 2), 'utf8');
       return okResult(
         use.id,
-        `Hardware receipt written to ${outPath} — ${measurements.length} measurements, accelerator=${accelerator ?? 'none'}`
+        `Hardware receipt written to ${outPath} — ${measurements.length} measurements, ` +
+          `contentHash=${contentHash.slice(0, 12)}…, signed=${Boolean(signature)}, accelerator=${accelerator ?? 'none'}`
       );
     }
 

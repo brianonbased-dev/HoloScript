@@ -145,6 +145,21 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   const commitHook = buildCommitHook(identity, mesh);
   const auditLog = buildAuditLog();
 
+  // Wallet-signed hardware receipts (F.123 — make the provenance artifact
+  // verifiable, not plain JSON). With a seat wallet present, sign the receipt's
+  // canonical body (EIP-191 personal_sign); otherwise receipts are content-hashed
+  // but self-report `signed:false`.
+  const signReceipt = seat
+    ? async (canonical: string) => {
+        const wallet = new Wallet(seat.wallet.privateKey);
+        return {
+          alg: 'eip191-personal-sign',
+          signer: wallet.address,
+          signature: await wallet.signMessage(canonical),
+        };
+      }
+    : undefined;
+
   const runner = new AgentRunner({
     identity,
     brain,
@@ -154,6 +169,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     logger: (ev) => console.log(JSON.stringify({ ts: new Date().toISOString(), ...ev })),
     onTaskExecuted: commitHook,
     auditLog,
+    signReceipt,
   });
 
   console.log(
