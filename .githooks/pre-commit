@@ -253,6 +253,32 @@ else
     echo -e "  ${GREEN}✓${NC} No staged render .tsx"
 fi
 
+# Gate 5f: Trait parity — every R3F-emitted trait must be handled or noop-classified.
+# This is the INTERLOCK before R3FCompiler retirement (research/2026-06-15_trait-parity-and-tsx-deprecation.md §5.6).
+# Only runs when R3FCompiler.ts or the trait runtime files are staged — avoids blocking
+# unrelated commits. The check is fast (~100ms, pure read — no install/network).
+echo "  ├─ Trait parity gate..."
+STAGED_PARITY=$(git diff --cached --name-only -- \
+    'packages/core/src/compiler/R3FCompiler.ts' \
+    'packages/runtime/src/traits/*.ts' \
+    'scripts/holo-ci/TRAIT_NOOP_MANIFEST.json' 2>/dev/null || true)
+if [ -n "$STAGED_PARITY" ]; then
+    PARITY_OUT=$(run_with_timeout 30 node scripts/holo-ci/check-trait-parity.mjs 2>&1)
+    PARITY_STATUS=$?
+    if [ "$PARITY_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Trait parity gap detected${NC}"
+        echo "$PARITY_OUT"
+        echo "     Fix: add a TraitHandler in packages/runtime/src/traits/ OR"
+        echo "          add an entry to scripts/holo-ci/TRAIT_NOOP_MANIFEST.json with a reason."
+        echo "     Detail: node scripts/holo-ci/check-trait-parity.mjs --verbose"
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Trait parity OK"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} Trait parity (no relevant staged files)"
+fi
+
 # Gate 6: Complexity — skipped (not configured)
 echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 
