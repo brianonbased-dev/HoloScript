@@ -65,6 +65,26 @@ function seedNonFounder(): void {
   });
 }
 
+/**
+ * Mimic a publicly self-registered agent (POST /api/holomesh/register): an
+ * agentKeyStore entry keyed by a `holomesh_sk_` token with NO keyRegistry row.
+ * These are the agents revoke cannot reach and admin/agents previously hid.
+ */
+function seedPublicAgent(name: string, wallet: string): string {
+  const apiKey = `holomesh_sk_${name.toLowerCase()}`;
+  agentKeyStore.set(apiKey, {
+    id: `agent_${name.toLowerCase()}`,
+    apiKey,
+    walletAddress: wallet,
+    name,
+    traits: [],
+    reputation: 0,
+    createdAt: new Date().toISOString(),
+  });
+  walletToAgent.set(wallet.toLowerCase(), agentKeyStore.get(apiKey)!);
+  return apiKey;
+}
+
 function mockReq(
   method: string,
   url: string,
@@ -336,6 +356,81 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
       expect(agent.api_key).toBeUndefined();
       expect(agent.key).toBeUndefined();
     }
+  });
+
+  it('GET /api/holomesh/admin/agents surfaces publicly self-registered agents (agentKeyStore-only)', async () => {
+    // Mimic POST /register: agentKeyStore entry with NO keyRegistry row.
+    seedPublicAgent('SelfReg', '0x00000000000000000000000000000000000000aa');
+
+    const res = await callAdmin('GET', '/api/holomesh/admin/agents');
+    expect(res._status).toBe(200);
+    const selfReg = res._body.agents.find((a: any) => a.agent_name === 'SelfReg');
+    expect(selfReg).toBeDefined();
+    expect(selfReg.source).toBe('public_register');
+    expect(selfReg.removable).toBe(true);
+    // Founder (keyRegistry) is present and flagged non-removable
+    const founder = res._body.agents.find((a: any) => a.is_founder === true);
+    if (founder) expect(founder.removable).toBe(false);
+  });
+
+  // ── Deregister (free the name) ──
+
+  it('POST /api/holomesh/admin/deregister removes a self-registered agent and frees its name', async () => {
+    seedPublicAgent('GhostName', '0x00000000000000000000000000000000000000bb');
+    expect(Array.from(agentKeyStore.values()).some((a) => a.name === 'GhostName')).toBe(true);
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/deregister', {
+      agent_name: 'GhostName',
+    });
+    expect(res._status).toBe(200);
+    expect(res._body.success).toBe(true);
+    expect(res._body.removed_count).toBe(1);
+    expect(res._body.removed[0].source).toBe('public_register');
+
+    // Name is freed: no agentKeyStore entry, and wallet mapping cleared.
+    expect(Array.from(agentKeyStore.values()).some((a) => a.name === 'GhostName')).toBe(false);
+    expect(walletToAgent.has('0x00000000000000000000000000000000000000bb')).toBe(false);
+  });
+
+  it('POST /api/holomesh/admin/deregister matches agent_name case-insensitively', async () => {
+    seedPublicAgent('MixedCase', '0x00000000000000000000000000000000000000cc');
+    const res = await callAdmin('POST', '/api/holomesh/admin/deregister', {
+      agent_name: 'mixedcase',
+    });
+    expect(res._status).toBe(200);
+    expect(res._body.removed_count).toBe(1);
+  });
+
+  it('POST /api/holomesh/admin/deregister refuses to remove a founder agent', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/deregister', {
+      agent_id: FOUNDER_ID,
+    });
+    expect(res._status).toBe(403);
+    // Founder still authenticates afterward
+    expect(keyRegistry.has(FOUNDER_KEY)).toBe(true);
+  });
+
+  it('POST /api/holomesh/admin/deregister returns 404 when no agent matches', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/deregister', {
+      agent_name: 'does-not-exist',
+    });
+    expect(res._status).toBe(404);
+  });
+
+  it('POST /api/holomesh/admin/deregister returns 400 with no identifier', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/deregister', {});
+    expect(res._status).toBe(400);
+  });
+
+  it('POST /api/holomesh/admin/deregister rejects non-founders', async () => {
+    seedNonFounder();
+    const res = await callAdmin(
+      'POST',
+      '/api/holomesh/admin/deregister',
+      { agent_name: 'RegularAgent' },
+      NON_FOUNDER_KEY
+    );
+    expect(res._status).toBe(403);
   });
 
   // ── Manual Failover ──

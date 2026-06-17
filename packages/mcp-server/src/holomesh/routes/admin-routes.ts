@@ -6,8 +6,10 @@
  *
  * POST /api/holomesh/admin/provision          — Create agent with pre-assigned wallet + API key
  * POST /api/holomesh/admin/rotate-key        — Issue new key, same wallet/team/reputation
- * POST /api/holomesh/admin/revoke            — Invalidate all keys for an agent (wallet preserved)
- * GET  /api/holomesh/admin/agents            — List all provisioned agents (no keys exposed)
+ * POST /api/holomesh/admin/revoke            — Invalidate all keys for an agent (wallet mapping preserved)
+ * POST /api/holomesh/admin/deregister        — Fully remove an agent and FREE ITS NAME (reaches
+ *                                              publicly self-registered agents that revoke cannot)
+ * GET  /api/holomesh/admin/agents            — List all agents — provisioned AND self-registered (no keys exposed)
  * PATCH /api/holomesh/admin/team/:id/admin-room — Toggle adminRoom flag on a team
  * POST /api/holomesh/admin/transfer-ownership — Transfer team ownership to another agent
  */
@@ -280,25 +282,179 @@ export async function handleAdminRoutes(
     return true;
   }
 
+  // ── POST /api/holomesh/admin/deregister ────────────────────────────────────
+  // Fully removes an agent and FREES ITS NAME. Distinct from revoke: revoke only
+  // kills keyRegistry-backed keys and deliberately preserves the wallet→agent
+  // mapping for re-provision, and it cannot reach publicly self-registered agents
+  // (agentKeyStore-only, from POST /register) because they have no keyRegistry row
+  // — so their names were previously unreclaimable. Deregister clears agentKeyStore
+  // + walletToAgent (+ keyRegistry if present) and persists. Both name-uniqueness
+  // checks (/register and /admin/provision) iterate agentKeyStore, and agents.json
+  // is rewritten in full by persistAgentStore(), so the name is freed durably
+  // across restarts. On-chain funds are untouched — the wallet stays a valid
+  // identity (F.119). Identify by agent_id, agent_name (case-insensitive), or
+  // wallet_address.
+  if (pathname === '/api/holomesh/admin/deregister' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const agentId = (body.agent_id as string | undefined)?.trim() || '';
+    const agentName = (body.agent_name as string | undefined)?.trim() || '';
+    const walletAddress = (body.wallet_address as string | undefined)?.trim() || '';
+
+    if (!agentId && !agentName && !walletAddress) {
+      json(res, 400, { error: 'Provide at least one of: agent_id, agent_name, wallet_address' });
+      return true;
+    }
+
+    const nameLc = agentName.toLowerCase();
+    const walletLc = walletAddress.toLowerCase();
+
+    // Matching self-registered agents (agentKeyStore keyed by apiKey).
+    const agentEntries = Array.from(agentKeyStore.entries()).filter(
+      ([, a]) =>
+        (!!agentId && a.id === agentId) ||
+        (!!nameLc && a.name.toLowerCase() === nameLc) ||
+        (!!walletLc && (a.walletAddress || '').toLowerCase() === walletLc)
+    );
+    // Matching provisioned agents (keyRegistry keyed by key).
+    const keyEntries = Array.from(keyRegistry.entries()).filter(
+      ([, r]) =>
+        (!!agentId && r.agentId === agentId) ||
+        (!!nameLc && r.agentName.toLowerCase() === nameLc) ||
+        (!!walletLc && r.walletAddress.toLowerCase() === walletLc)
+    );
+
+    if (agentEntries.length === 0 && keyEntries.length === 0) {
+      json(res, 404, { error: 'No matching agent found in registry' });
+      return true;
+    }
+
+    // Never deregister a founder agent — that would orphan admin authentication.
+    const touchesFounder =
+      agentEntries.some(([, a]) => a.isFounder === true) ||
+      keyEntries.some(([, r]) => r.isFounder === true);
+    if (touchesFounder) {
+      json(res, 403, { error: 'Refusing to deregister a founder agent' });
+      return true;
+    }
+
+    const removed: Array<{
+      agent_id: string;
+      agent_name: string;
+      wallet_address: string;
+      source: 'public_register' | 'key_registry';
+    }> = [];
+
+    for (const [key, a] of agentEntries) {
+      agentKeyStore.delete(key);
+      if (a.walletAddress) walletToAgent.delete(a.walletAddress.toLowerCase());
+      removed.push({
+        agent_id: a.id,
+        agent_name: a.name,
+        wallet_address: a.walletAddress || '',
+        source: 'public_register',
+      });
+    }
+    for (const [key, r] of keyEntries) {
+      keyRegistry.delete(key);
+      agentKeyStore.delete(key);
+      if (r.walletAddress) walletToAgent.delete(r.walletAddress.toLowerCase());
+      removed.push({
+        agent_id: r.agentId,
+        agent_name: r.agentName,
+        wallet_address: r.walletAddress,
+        source: 'key_registry',
+      });
+    }
+
+    persistAgentStore();
+    persistKeyRegistry();
+
+    recordAdminOperation({
+      actor: {
+        agentId: caller.id,
+        agentName: caller.name,
+        wallet: caller.wallet,
+      },
+      action: 'deregister',
+      path: pathname,
+      before: {
+        query: {
+          agent_id: agentId || undefined,
+          agent_name: agentName || undefined,
+          wallet_address: walletAddress || undefined,
+        },
+      },
+      after: {
+        removed_count: removed.length,
+        removed: removed.map((r) => ({
+          agent_id: r.agent_id,
+          agent_name: r.agent_name,
+          source: r.source,
+        })),
+      },
+    });
+
+    json(res, 200, {
+      success: true,
+      removed_count: removed.length,
+      removed,
+      note: 'Agent name(s) freed. Wallet mapping cleared; on-chain funds untouched (wallet remains a valid identity, F.119). The name can now be re-registered or Trezor-provisioned.',
+    });
+    return true;
+  }
+
   // ── GET /api/holomesh/admin/agents ─────────────────────────────────────────
+  // Lists BOTH provisioned agents (keyRegistry, via POST /admin/provision) AND
+  // publicly self-registered agents (agentKeyStore, via POST /register). The two
+  // stores are disjoint — a /register agent has no keyRegistry row — so a
+  // keyRegistry-only listing hid every self-registered name from the founder and
+  // made them un-removable. `source` distinguishes them; `removable` flags whether
+  // POST /admin/deregister may reclaim the name (founder agents are never removable).
   if (pathname === '/api/holomesh/admin/agents' && method === 'GET') {
-    // Deduplicate by agentId (show latest key record per agent)
-    const byAgent = new Map<string, KeyRecord>();
+    interface AgentRow {
+      agent_id: string;
+      agent_name: string;
+      wallet_address: string;
+      scopes?: string[];
+      is_founder?: boolean;
+      created_at: string;
+      source: 'key_registry' | 'public_register';
+    }
+    const byAgent = new Map<string, AgentRow>();
+
+    // Provisioned agents — dedup by agentId, latest key record wins.
     for (const record of keyRegistry.values()) {
       const existing = byAgent.get(record.agentId);
-      if (!existing || record.createdAt > existing.createdAt) {
-        byAgent.set(record.agentId, record);
+      if (!existing || record.createdAt > existing.created_at) {
+        byAgent.set(record.agentId, {
+          agent_id: record.agentId,
+          agent_name: record.agentName,
+          wallet_address: record.walletAddress,
+          scopes: record.scopes,
+          is_founder: record.isFounder,
+          created_at: record.createdAt,
+          source: 'key_registry',
+        });
       }
     }
 
-    const agents = Array.from(byAgent.values()).map((r) => ({
-      agent_id: r.agentId,
-      agent_name: r.agentName,
-      wallet_address: r.walletAddress,
-      scopes: r.scopes,
-      is_founder: r.isFounder,
-      created_at: r.createdAt,
-      // Intentionally omit r.key — never expose tokens in list responses
+    // Publicly self-registered agents — only present in agentKeyStore.
+    for (const agent of agentKeyStore.values()) {
+      if (byAgent.has(agent.id)) continue;
+      byAgent.set(agent.id, {
+        agent_id: agent.id,
+        agent_name: agent.name,
+        wallet_address: agent.walletAddress || '',
+        is_founder: agent.isFounder,
+        created_at: agent.createdAt,
+        source: 'public_register',
+      });
+    }
+
+    const agents = Array.from(byAgent.values()).map((a) => ({
+      ...a,
+      removable: a.is_founder !== true,
+      // Tokens are never held in this map; nothing to redact.
     }));
 
     json(res, 200, { success: true, agents, count: agents.length });

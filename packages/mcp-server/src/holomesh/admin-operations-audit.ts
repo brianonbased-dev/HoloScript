@@ -14,6 +14,7 @@ export type AdminOperationAction =
   | 'key_rotation'
   | 'provision'
   | 'revoke'
+  | 'deregister'
   | 'manual_failover'
   | 'scaling_override'
   | 'team_admin_room_toggle'
