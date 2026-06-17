@@ -39,6 +39,16 @@ export interface EdgeCompilerOptions {
   remotePath?: string;
   /** systemd service user (default: root) */
   serviceUser?: string;
+  /**
+   * Edge runtime the generated unit runs:
+   *   'python'      → standalone Python agent.py (thin Ollama loop) — DEFAULT (back-compat).
+   *   'agentrunner' → the canonical TS AgentRunner (`index.js run`) with the full gate
+   *                   stack (artifact-grounding W.107.b, reflect self-eval, CAEL hash-chain,
+   *                   content-hashed/signed hardware receipts, native on_task cognitive
+   *                   verbs). Use for sovereign nodes (jetson-orin) that must not regress
+   *                   those gates onto the thinner Python agent.
+   */
+  runtime?: 'python' | 'agentrunner';
 }
 
 export interface EdgeBundleFile {
@@ -64,6 +74,8 @@ export interface EdgeBundle {
     hasROS2: boolean;
     /** Isaac ROS 2 (NVIDIA acceleration layer — NITROS transport, CuVSLAM, etc.) */
     hasIsaacROS2: boolean;
+    /** Which edge runtime the generated systemd unit runs. */
+    runtime: 'python' | 'agentrunner';
   };
   deployInstructions: string;
 }
@@ -89,6 +101,7 @@ export class EdgeCompiler extends CompilerBase {
       platform: options.platform ?? 'linux-arm64',
       remotePath: options.remotePath ?? '/opt/holoscript',
       serviceUser: options.serviceUser ?? 'root',
+      runtime: options.runtime ?? 'python',
     };
   }
 
@@ -148,13 +161,24 @@ export class EdgeCompiler extends CompilerBase {
       'nova_carter', 'novacarter', 'isaac_manipulator', 'isaacmanipulator'
     );
 
-    const files: EdgeBundleFile[] = [
-      { path: 'agent.py', content: this.genAgent(name, ollamaUrl, model, hasEdgeNode, hasTensorRT), executable: true },
-      { path: 'monitor.py', content: this.genMonitor(name, hasJetsonGPU, hasTegraMonitor), executable: true },
-      { path: 'setup.sh', content: this.genSetup(name, model, remotePath, platform, serviceUser, hasJetsonGPU, hasROS2, hasIsaacROS2), executable: true },
-      { path: 'holoscript_agent.service', content: this.genSystemd(name, ollamaUrl, model, remotePath, serviceUser, hasROS2), executable: false },
-      { path: 'manifest.json', content: JSON.stringify({ name, target: 'edge', platform, ollamaUrl, model, generatedBy: 'EdgeCompiler', hasIsaacROS2 }, null, 2), executable: false },
-    ];
+    const isAgentRunner = this.opts.runtime === 'agentrunner';
+    const files: EdgeBundleFile[] = isAgentRunner
+      ? [
+          // Canonical TS AgentRunner runtime — the gate stack (artifact-grounding,
+          // reflect), CAEL hash-chain, content-hashed/signed hardware receipts, and
+          // native on_task cognitive-verb consumption all ship in `index.js run`.
+          // No agent.py: the TS package is the runtime, not a generated Python loop.
+          { path: 'holoscript_agent.service', content: this.genAgentRunnerSystemd(name, ollamaUrl, model, remotePath, serviceUser), executable: false },
+          { path: 'setup.sh', content: this.genAgentRunnerSetup(name, model, remotePath, serviceUser, hasJetsonGPU), executable: true },
+          { path: 'manifest.json', content: JSON.stringify({ name, target: 'edge', platform, runtime: 'agentrunner', ollamaUrl, model, generatedBy: 'EdgeCompiler', hasIsaacROS2 }, null, 2), executable: false },
+        ]
+      : [
+          { path: 'agent.py', content: this.genAgent(name, ollamaUrl, model, hasEdgeNode, hasTensorRT), executable: true },
+          { path: 'monitor.py', content: this.genMonitor(name, hasJetsonGPU, hasTegraMonitor), executable: true },
+          { path: 'setup.sh', content: this.genSetup(name, model, remotePath, platform, serviceUser, hasJetsonGPU, hasROS2, hasIsaacROS2), executable: true },
+          { path: 'holoscript_agent.service', content: this.genSystemd(name, ollamaUrl, model, remotePath, serviceUser, hasROS2), executable: false },
+          { path: 'manifest.json', content: JSON.stringify({ name, target: 'edge', platform, runtime: 'python', ollamaUrl, model, generatedBy: 'EdgeCompiler', hasIsaacROS2 }, null, 2), executable: false },
+        ];
 
     if (hasROS2) {
       // Colcon-buildable ament_python package — replaces standalone ros2_bridge.py.
@@ -172,7 +196,9 @@ export class EdgeCompiler extends CompilerBase {
       files.push({ path: `ros2_ws/src/${pkgName}/${pkgName}/isaac_bridge.py`, content: this.genIsaacBridge(name, pkgName), executable: true });
     }
 
-    if (hasTensorRT) {
+    if (hasTensorRT && !isAgentRunner) {
+      // tensorrt_loader.py is imported by the Python agent.py — irrelevant under the
+      // TS AgentRunner runtime (which loads its model via Ollama/the provider layer).
       files.push({ path: 'tensorrt_loader.py', content: this.genTensorRTLoader(model), executable: false });
     }
 
@@ -192,6 +218,7 @@ export class EdgeCompiler extends CompilerBase {
         hasTensorRT,
         hasROS2,
         hasIsaacROS2,
+        runtime: this.opts.runtime,
       },
       deployInstructions: this.genDeployInstructions(name, ollamaUrl, remotePath, platform, hasROS2),
     };
@@ -1040,6 +1067,113 @@ SyslogIdentifier=${safeName}
 
 [Install]
 WantedBy=multi-user.target
+`;
+  }
+
+  /**
+   * systemd unit that runs the CANONICAL TS AgentRunner (`@holoscript/holoscript-agent`
+   * `index.js run` = runForever) — NOT the standalone Python agent.py. This is the
+   * runtime that carries the full gate stack: artifact-grounding (W.107.b), reflect
+   * self-eval, the CAEL hash-chain, content-hashed/signed hardware receipts, and native
+   * on_task cognitive-verb consumption. Restart=always + `systemctl enable` => survives
+   * crash AND reboot. The seat MASTER KEY is the only secret and lives in a 0600
+   * EnvironmentFile referenced by path, never inlined (F.106). The bearer is resolved at
+   * boot from the seat wallet via the HoloKey broker (no plaintext bearer needed).
+   */
+  private genAgentRunnerSystemd(
+    name: string,
+    ollamaUrl: string,
+    model: string,
+    remotePath: string,
+    serviceUser: string,
+  ): string {
+    const safeName = name.replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+    return `[Unit]
+Description=HoloScript Agent (AgentRunner) — ${name}
+Documentation=https://holoscript.net/docs/edge
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${serviceUser}
+WorkingDirectory=${remotePath}
+Environment=HOLOSCRIPT_AGENT_PROVIDER=local-llm
+Environment=HOLOSCRIPT_AGENT_MODEL=${model}
+Environment=HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL=${ollamaUrl}
+Environment=HOLOSCRIPT_AGENT_HANDLE=${safeName}
+Environment=HOLOSCRIPT_AGENT_TICK_MS=60000
+Environment=HOLOSCRIPT_AGENT_SEATS_ROOT=${remotePath}/seats
+Environment=HOLOSCRIPT_AGENT_SEAT_ID=${safeName}
+Environment=NODE_NO_WARNINGS=1
+# Secret seat master key (+ any HOLOMESH_* overrides) — 0600, by path, never inlined (F.106):
+EnvironmentFile=-/etc/holoscript/${safeName}.env
+ExecStart=/usr/bin/node ${remotePath}/packages/holoscript-agent/dist/index.js run
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=${safeName}
+
+[Install]
+WantedBy=multi-user.target
+`;
+  }
+
+  /**
+   * Setup for the AgentRunner runtime: ensure Ollama + model, ensure node, verify the
+   * synced @holoscript/holoscript-agent dist is present, then install + enable the unit.
+   * Never writes the seat secret (F.106) — it only reminds the operator to place it.
+   */
+  private genAgentRunnerSetup(
+    name: string,
+    model: string,
+    remotePath: string,
+    serviceUser: string,
+    hasJetsonGPU: boolean,
+  ): string {
+    const safeName = name.replace(/[^a-z0-9_-]/gi, '-').toLowerCase();
+    const jetsonSection = hasJetsonGPU
+      ? `
+# ── Jetson: MAXN power mode ───────────────────────────────────────────────
+command -v nvpmodel &>/dev/null && sudo nvpmodel -m 0 || true
+command -v jetson_clocks &>/dev/null && sudo jetson_clocks || true
+`
+      : '';
+    return `#!/usr/bin/env bash
+# HoloScript Edge Setup (AgentRunner runtime) — ${name}
+# Installs the canonical TS AgentRunner (full gates: artifact-grounding, reflect, CAEL,
+# content-hashed/signed hardware receipts, native cognitive verbs) as a boot-persistent unit.
+set -e
+
+REMOTE_PATH="${remotePath}"
+SERVICE_USER="${serviceUser}"
+MODEL="${model}"
+SECRET_ENV="/etc/holoscript/${safeName}.env"
+
+command -v ollama &>/dev/null || { echo "[setup] Ollama not found. Install: curl -fsSL https://ollama.com/install.sh | sh"; exit 1; }
+command -v node   &>/dev/null || { echo "[setup] node not found — install Node >= 20 first"; exit 1; }
+
+echo "[setup] pulling $MODEL..."
+ollama pull "$MODEL"
+${jetsonSection}
+# The canonical AgentRunner dist must be synced under $REMOTE_PATH.
+if [ ! -f "$REMOTE_PATH/packages/holoscript-agent/dist/index.js" ]; then
+  echo "[setup] WARNING: $REMOTE_PATH/packages/holoscript-agent/dist/index.js missing —"
+  echo "        sync the dist (or 'npm i -g @holoscript/holoscript-agent' and adjust ExecStart)."
+fi
+
+if [ ! -f "$SECRET_ENV" ]; then
+  echo "[setup] WARNING: $SECRET_ENV not found. Create it (0600) with at least:"
+  echo "          HOLOSCRIPT_AGENT_SEAT_MASTER_KEY=<seat master key>"
+  echo "        The agent errors loudly at boot until the seat is resolvable (honest)."
+fi
+
+echo "[setup] installing systemd service..."
+sudo cp holoscript_agent.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now holoscript_agent.service
+echo "[setup] done. Status: systemctl status holoscript_agent | Logs: journalctl -u holoscript_agent -f"
 `;
   }
 

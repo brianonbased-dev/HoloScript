@@ -124,4 +124,39 @@ describe('EdgeCompiler', () => {
     const agentFile = bundle.files.find((f: { path: string }) => f.path === 'agent.py');
     expect(agentFile?.content).toContain('192.168.0.119:11434');
   });
+
+  // ── Native AgentRunner runtime (the deploy artifact is @generated, not hand-written) ──
+
+  it('default runtime is python (agent.py present, config.runtime=python)', () => {
+    const result = compiler.compile(minimalComposition('py-default'), token);
+    const bundle = JSON.parse(result);
+    expect(bundle.config.runtime).toBe('python');
+    const paths = bundle.files.map((f: { path: string }) => f.path);
+    expect(paths).toContain('agent.py');
+  });
+
+  it('agentrunner runtime generates a node AgentRunner unit, not the python agent', () => {
+    const ar = new EdgeCompiler({
+      ollamaUrl: 'http://127.0.0.1:11434',
+      model: 'qwen3:4b-instruct',
+      runtime: 'agentrunner',
+    });
+    const result = ar.compile(
+      minimalComposition('jetson-orin-01', ['local_inference', 'edge_node', 'sovereign_agent']),
+      token,
+    );
+    const bundle = JSON.parse(result);
+    expect(bundle.config.runtime).toBe('agentrunner');
+    const paths: string[] = bundle.files.map((f: { path: string }) => f.path);
+    // TS AgentRunner IS the runtime — no generated Python agent loop.
+    expect(paths).toContain('holoscript_agent.service');
+    expect(paths).not.toContain('agent.py');
+    const svc = bundle.files.find((f: { path: string }) => f.path === 'holoscript_agent.service');
+    expect(svc?.content).toContain('index.js run'); // runForever (canonical AgentRunner)
+    expect(svc?.content).toContain('Restart=always'); // survives reboot
+    expect(svc?.content).toContain('EnvironmentFile'); // secret by path, not inlined (F.106)
+    expect(svc?.content).not.toContain('python3'); // gate stack preserved, no thin Python loop
+    const manifest = bundle.files.find((f: { path: string }) => f.path === 'manifest.json');
+    expect(manifest?.content).toContain('"runtime": "agentrunner"');
+  });
 });
