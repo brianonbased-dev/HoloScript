@@ -1,12 +1,39 @@
 # @holoscript/wasm
 
-High-performance HoloScript parser compiled to WebAssembly.
+High-performance **subset** parser for the `.hs` object-graph dialect of
+HoloScript, compiled to WebAssembly.
+
+> **Scope**: this parser covers the structural `.hs` surface — compositions,
+> worlds, orbs, entities, templates, groups, environments, logic blocks, NPCs,
+> quests, abilities, dialogues, state machines, achievement / talent-tree nodes,
+> imports/exports, functions, `move` / `action` statements, and `on_*` event
+> blocks. It does **not** cover:
+>
+> - `.hsplus` constructs: `brain` declarations, cognitive actions
+>   (`@llm_call`, `@recall`, `@rag_query`, `@plan`, `@reflect`), pipelines,
+>   `hs_connect`/`hs_execute`, `@safe_daemon`, `@goal`, `@escalation`,
+>   `@provider_policy`, React blocks.
+> - `HoloCompositionParser` constructs: spatial groups, lights, audio, camera,
+>   timelines, themes, scenes, spawn groups, waypoints, constraints, terrain,
+>   loot tables, world chunks, game triggers, movement paths, reaction triggers,
+>   world layers, dungeon instances, world shards, domain blocks, norm / metanorm
+>   / contract / topic / channel blocks, connection statements, shape
+>   declarations, platform constraints.
+> - `HoloScriptCodeParser` features: TypeScript companion code, expression
+>   interpolation, incremental parsing.
+>
+> For full-grammar parsing use `HoloScriptPlusParser` (TS) or
+> `HoloCompositionParser` (TS) — the `WasmParserBridge` falls back to
+> `HoloScriptPlusParser` automatically when WASM is unavailable.
 
 ## Features
 
-- **Browser-native** - runs directly in the browser without server
-- **Small footprint** - <500KB gzipped
-- **Full HoloScript support** - all language features including Brittney AI constructs
+- **Browser-native** — runs directly in the browser without a server
+- **Small footprint** — <500 KB gzipped
+- **`.hs` object-graph dialect** — compositions, worlds, orbs, entities,
+  templates, groups, environments, logic, NPCs, quests, abilities, dialogues,
+  state machines, achievements, talent trees, imports, exports, functions,
+  `move`, `action`, `on_*` event blocks
 
 ## Installation
 

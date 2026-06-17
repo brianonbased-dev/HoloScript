@@ -1,4 +1,15 @@
-//! Parser for HoloScript source code.
+//! Subset parser for the `.hs` object-graph dialect of HoloScript.
+//!
+//! Covers: `composition`, `world`, `orb`, `entity`, `object`, `template`,
+//! `group`, `environment`, `logic`, `npc`, `quest`, `ability`, `dialogue`,
+//! `state_machine`, `achievement`, `talent_tree`, `import`, `export`,
+//! `function`, `move`, `action`, `on_*` event blocks, and the standard
+//! expression grammar.
+//!
+//! Does NOT cover `.hsplus` constructs (`brain`, cognitive actions, pipelines,
+//! `@safe_daemon`, etc.) or the extended `HoloCompositionParser` surface
+//! (spatial groups, lights, audio, camera, timelines, terrain, norms, etc.).
+//! See `lib.rs` for the full scope note.
 
 use crate::ast::*;
 use crate::lexer::Lexer;

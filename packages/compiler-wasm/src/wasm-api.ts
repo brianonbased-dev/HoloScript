@@ -1,6 +1,17 @@
 /**
  * TypeScript API types and wrapper for the HoloScript WASM compiler.
  *
+ * **Scope**: this module wraps the `.hs` *subset* parser (see `lib.rs` for the
+ * full scope note).  It covers `composition`, `world`, `orb`, `entity`,
+ * `template`, `group`, `environment`, `logic`, `npc`, `quest`, `ability`,
+ * `dialogue`, `state_machine`, `achievement`, `talent_tree`, `import`, `export`,
+ * `function`, `move`, `action`, and `on_*` event blocks.
+ *
+ * For full-grammar parsing use `HoloScriptPlusParser` (TS, covers `.hsplus`
+ * brain/pipeline/cognitive constructs) or `HoloCompositionParser` (TS, covers
+ * the spatial/game/normative composition surface).  `WasmParserBridge` falls
+ * back to `HoloScriptPlusParser` automatically when WASM is unavailable.
+ *
  * Mirrors the Rust wasm_bindgen exports from lib.rs:
  *   - parse(source) -> JSON AST string
  *   - parse_pretty(source) -> pretty-printed JSON AST string

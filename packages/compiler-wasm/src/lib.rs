@@ -1,12 +1,36 @@
-//! HoloScript WASM Compiler
+//! HoloScript WASM Compiler — `.hs` subset parser
 //!
-//! High-performance HoloScript parser and type checker compiled to WebAssembly.
+//! High-performance parser for the **structural `.hs` dialect** of HoloScript,
+//! compiled to WebAssembly.  This is a *subset* parser — it covers the
+//! object-graph surface but not the full HoloScript grammar:
+//!
+//! **Supported**: `composition`, `world`, `orb`, `entity`, `object`, `template`,
+//! `group`, `environment`, `logic`, `npc`, `quest`, `ability`, `dialogue`,
+//! `state_machine`, `achievement`, `talent_tree`, `import`, `export`, `function`,
+//! `move`, `action`, `on_*` event blocks, and the standard expression grammar
+//! (binary ops, call expressions, member access, arrays, object literals).
+//!
+//! **Not supported** (use `HoloScriptPlusParser` / `HoloCompositionParser` in TS):
+//! - `.hsplus` constructs: `brain` declarations, cognitive actions (`@llm_call`,
+//!   `@recall`, `@rag_query`, `@plan`, `@reflect`), pipelines, `hs_connect`,
+//!   `hs_execute`, `@safe_daemon`, `@goal`, `@escalation`, `@provider_policy`,
+//!   React blocks.
+//! - `HoloCompositionParser` constructs: spatial groups, lights, audio, camera,
+//!   timelines, themes, scenes, spawn groups, waypoints, constraints, terrain,
+//!   loot tables, world chunks, game triggers, movement paths, reaction triggers,
+//!   world layers, dungeon instances, world shards, domain blocks, norm / metanorm
+//!   / contract / topic / channel blocks, connection statements, shape declarations,
+//!   platform constraints.
+//! - `HoloScriptCodeParser` features: TypeScript companion code, expression
+//!   interpolation, incremental parsing.
 //!
 //! On the canonical fixtures (research/2026-04-19_todo-r2-wasm-bench-results.md),
 //! the WASM parser is currently SLOWER than the JS parser due to
 //! JS↔linear-memory string marshalling overhead. Native Rust (no
 //! WASM boundary) is ~1.3-1.4x faster than JS. Use WASM only when
-//! the V8 JIT is not available (mobile WebViews, edge workers).
+//! the V8 JIT is not available (mobile WebViews, edge workers, sandboxed
+//! runtimes). The `WasmParserBridge` falls back to `HoloScriptPlusParser`
+//! (full-grammar TS parser) automatically when WASM is unavailable.
 
 mod ast;
 mod lexer;
