@@ -1,7 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "infrastructure/Dockerfile.absorb-service"
-watchPatterns = ["services/absorb-service/**", "packages/core/**", "packages/absorb-service/**"]
+watchPatterns = ["services/absorb-service/**", "packages/core/**", "packages/absorb-service/**", "packages/secrets-broker/**"]
 
 [deploy]
 startCommand = "sh /app/services/absorb-service/scripts/docker-entrypoint.sh"
