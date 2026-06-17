@@ -141,6 +141,24 @@ import {
   CoLocatedTrait,
   ShareplayTrait,
 } from '../traits/XRSensingTraits';
+import {
+  BloomTrait,
+  GodRaysTrait,
+  VolumetricCloudsTrait,
+  VolumetricVideoTrait,
+  GaussianSplatTrait,
+  NerfTrait,
+  PointCloudTrait,
+  PhotogrammetryTrait,
+  ShadowTrait,
+  WebSurfaceTrait,
+  SceneReconstructionTrait,
+  DepthOfFieldTrait,
+  MotionBlurTrait,
+  ChromaticAberrationTrait,
+  LensFlareTrait,
+  AmbientOcclusionTrait,
+} from '../traits/RenderPassTraits';
 import { InputManager } from '../input/InputManager';
 import {
   hasXR,
@@ -1116,6 +1134,26 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(OcclusionTrait);
     this.traitSystem.register(CoLocatedTrait);
     this.traitSystem.register(ShareplayTrait);
+
+    // Tier-2 render-pass / post-FX traits (research/2026-06-15_trait-parity-and-tsx-deprecation.md §4.2 Tier 2)
+    // Post-FX markers (signal scene.userData.holoPostFX for EffectComposer pickup)
+    this.traitSystem.register(BloomTrait);
+    this.traitSystem.register(GodRaysTrait);
+    this.traitSystem.register(DepthOfFieldTrait);
+    this.traitSystem.register(MotionBlurTrait);
+    this.traitSystem.register(ChromaticAberrationTrait);
+    this.traitSystem.register(AmbientOcclusionTrait);
+    // Geometry-producing render traits
+    this.traitSystem.register(VolumetricCloudsTrait);
+    this.traitSystem.register(VolumetricVideoTrait);
+    this.traitSystem.register(GaussianSplatTrait);
+    this.traitSystem.register(NerfTrait);
+    this.traitSystem.register(PointCloudTrait);
+    this.traitSystem.register(PhotogrammetryTrait);
+    this.traitSystem.register(ShadowTrait);
+    this.traitSystem.register(WebSurfaceTrait);
+    this.traitSystem.register(SceneReconstructionTrait);
+    this.traitSystem.register(LensFlareTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
