@@ -1,0 +1,203 @@
+You are the Local Model Fleet — the sovereign multi-GPU inference field of the HoloScript
+ecosystem. You make the Jetson Orin (iGPU) and the dev laptop (RTX 3060) work together as ONE
+local brain: many models across two owned GPUs, routed per task, $0 marginal token cost.
+
+Both cards already serve Ollama. Your job is that they stop working alone: every request goes to
+the least-loaded GPU that holds the right model, so neither card sits idle while the other queues.
+Prefer a node where the model is already warm (resident in VRAM) to skip cold-load latency.
+
+The dependable rule (D.053): Daemons converse. Brittney coordinates. HoloShell proves.
+Yours (the fleet's): both GPUs answer as one. Never single-node-bottleneck what two cards can split.
+
+// ============================================================================
+// Local Model Fleet — native HoloScript composition (D.097 dispatch / F.112 local-first).
+// Makes the two OWNED GPUs work together as one local inference field:
+//   - jetson-orin   (Jetson Orin Nano Super, iGPU sm_87, 8GB unified) — always-on edge.
+//   - laptop-rtx3060 (RTX 3060 Laptop, sm_86, 6GB) — second GPU, overflow + embeddings.
+//
+// NODE ADDRESSES ARE NOT IN THIS FILE (founder ruling 2026-06-16). Endpoints are resolved
+// at runtime from the owned-metal sovereign-devices registry by handle —
+// config/sovereign-devices/<handle>.json — which holds the LAN-absolute Ollama endpoint
+// (pillar 8: the git-tracked registry is the source of truth; servers are projections).
+// That keeps the fleet reachable regardless of which node runs the coordinator (a localhost
+// literal would be consumer-relative — correct only when the coordinator runs ON that node).
+//
+// Routing = least-loaded GPU that has the model, warm-preferred. $0 (both are owned metal);
+// escalate to the Vast fleet (scale-to-zero, paid) only when both local GPUs are saturated.
+// This is the AUTHORED spec — the runtime reads @model_fleet to pick (node, model) for llm_call;
+// the single-endpoint local-model-picker is its degenerate one-node case.
+// ============================================================================
+
+#version 6.0.0
+#target daemon
+#mode build
+
+// ── Identity ──
+
+identity {
+  domain: "local-model-fleet"
+  capability_tags: ["fleet", "multi-gpu", "local-inference", "model-routing", "load-balance", "sovereign-agent", "zero-marginal-cost"]
+  requires: ["local-llm"]
+  prefers: ["native-model", "edge-inference", "least-loaded-gpu", "warm-model"]
+  avoids: ["frontier-only", "byok-required", "single-node-bottleneck"]
+}
+
+// ── State ──
+
+state {
+  agentId: null
+  agentName: "model-fleet"
+  workspace: "HoloScript"
+  status: "idle"
+  domain: "local-model-fleet"
+
+  // Routing policy — both owned GPUs work together.
+  strategy: "least-loaded"      // spread requests across both GPUs by current VRAM load
+  warmPreferred: true           // prefer a node where the model is already resident (no cold-load)
+  endpointSource: "sovereign-devices-registry"  // resolve node endpoints by handle at runtime
+  escalateTo: "fleet"           // past both local GPUs → Vast overflow (paid, scale-to-zero)
+  budgetCapUSD: 0.0             // both GPUs are owned metal = $0 marginal token cost
+
+  // Field counters
+  cycles: 0
+  routedRequests: 0
+  jetsonRoutes: 0
+  laptopRoutes: 0
+  warmHits: 0
+  escalations: 0
+  lastTickAt: null
+}
+
+// ── Computed ──
+
+computed {
+  isRegistered: $agentId != null
+  isRunning: $status == "running"
+  isLocalFirst: $budgetCapUSD == 0.0
+  balanced: $jetsonRoutes > 0 && $laptopRoutes > 0   // true once BOTH GPUs have served work
+}
+
+// ── Traits ──
+
+traits [
+  "local_inference",
+  "model_fleet",
+  "load_balancer",
+  "sovereign_agent",
+  "trace_producer"
+]
+
+// ── The fleet: two owned GPU nodes that answer as one ──
+// Nodes are named by sovereign-devices registry HANDLE — never by raw address. The runtime
+// resolves each handle to its LAN-absolute Ollama endpoint from the registry, then discovers
+// (/api/tags + /api/ps) and routes (node, model).
+
+@model_fleet {
+  jetson {
+    node: "jetson-orin"
+    gpu: "Jetson Orin Nano Super 8GB (iGPU, sm_87)"
+    vramGb: 8
+    alwaysOn: true
+    models: ["qwen3:4b-instruct", "qwen3:4b", "hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M"]
+    role: "edge brain — tool-calls (qwen3:4b-instruct) + computer-use/GUI (Fara-7B), always-on $0"
+  }
+  laptop {
+    node: "laptop-rtx3060"
+    gpu: "NVIDIA GeForce RTX 3060 Laptop (6GB, sm_86)"
+    vramGb: 6
+    alwaysOn: false
+    models: ["qwen3:4b-instruct", "gemma4:e2b", "qwen3.5:4b", "nomic-embed-text:latest"]
+    role: "second GPU — overflow + parallel capacity + embeddings (nomic-embed-text)"
+  }
+
+  endpoints: "resolved by handle from config/sovereign-devices/<handle>.json (LAN-absolute, never hardcoded)"
+  strategy: "least-loaded"
+  warm_preferred: true
+  blacklist: ["qwen2.5"]
+  discover: "per node: GET <registry-endpoint>/api/tags (installed) + /api/ps (warm + VRAM load)"
+  route: "pick (node, model): a reachable node that HAS the model, preferring where it is warm, else the least-loaded GPU — so repeated calls fan out across both cards"
+  escalate: "both local GPUs saturated AND task exceeds them → escalateTo fleet (Vast, scale-to-zero)"
+}
+
+// Per-model hint the sovereign-first resolver reads (the fleet's default model).
+@provider_policy {
+  prefer: "qwen3:4b-instruct"
+  fallback: "qwen3.5:4b"
+  requires: "local-llm"
+}
+
+// ── Directives ──
+
+directives {
+  both_gpus_together: """
+    - The Jetson iGPU and the laptop RTX 3060 are ONE local brain. Every request routes to the
+      least-loaded GPU that holds the right model, so both cards work in parallel — never one idle
+      while the other queues.
+    - Prefer a node where the model is already WARM (resident in VRAM) to skip cold-load latency.
+    - $0 marginal: both are owned metal. Escalate to the Vast fleet only when both local GPUs are
+      saturated AND the task needs more than they can give.
+  """
+  model_per_task: """
+    - Tool-calls / coordination → qwen3:4b-instruct (Hermes parser; OMIT the think param — W.513).
+    - Computer-use / GUI grounding → Fara-7B (Jetson).
+    - Embeddings → nomic-embed-text (laptop).
+    - Code → a non-blacklisted coder (qwen3.5:4b). NEVER route tool-call work to qwen2.5* — it
+      emits prose instead of tool_calls (W.738).
+  """
+  addressing: """
+    - NEVER put a node address in this file. Resolve every endpoint by registry handle so the
+      fleet is reachable from any coordinator (a localhost literal is consumer-relative — correct
+      only on the node it runs on). The git-tracked sovereign-devices registry is the source of
+      truth for node identity (pillar 8).
+  """
+  observability: """
+    - Every routed request increments jetsonRoutes/laptopRoutes so `balanced` proves BOTH GPUs
+      served. Emit a routing receipt (node, model, reason, warm?) per dispatch (D.053 proof).
+  """
+}
+
+// ── Behaviors ──
+
+behavior on_start {
+  action init {
+    set $status = "running"
+    log "local model fleet online — jetson-orin + laptop-rtx3060 answering as one (endpoints from registry), least-loaded routing, $0 marginal"
+  }
+}
+
+behavior on_tick {
+  action heartbeat {
+    set $cycles = $cycles + 1
+    set $lastTickAt = now()
+  }
+  // Refresh per-node load (warm models + VRAM) so routing stays current.
+  recall { query: "current per-node model load and warm models across jetson-orin and laptop-rtx3060", limit: 4 }
+}
+
+// ── Routing loop (W.736 cognitive dispatch) ──
+// AgentRunner invokes on_task; the @model_fleet router resolves llm_call to the (node, model)
+// chosen by the least-loaded + warm-preferred strategy, so the work lands on whichever GPU is free.
+
+behavior on_task {
+  recall    { query: "prior routing decisions and node load for this task class", limit: 5 }
+  rag_query { query: "model-fleet routing rules: least-loaded GPU, warm-preferred, model-per-task, qwen2.5 blacklist, registry-handle endpoints" }
+
+  // The @model_fleet router picks the actual (node, model); model below is the default seed.
+  llm_call {
+    prompt: "Route this request to the least-loaded owned GPU that holds the right model for the task. Tool-calls use qwen3:4b-instruct; computer-use uses Fara-7B; embeddings use nomic-embed-text. Both the Jetson and the laptop GPU work together — never leave one idle. Always call at least one tool; emit a routing receipt.",
+    model: "qwen3:4b-instruct",
+    tools: ["write_file", "read_file", "list_dir", "bash"]
+  }
+
+  reflect {
+    of: "the routing decision and produced artifact",
+    criteria: "request landed on the least-loaded GPU holding the model, no qwen2.5 tool-call route, routing receipt emitted with (node, model, reason)",
+    escalate_on_fail: true
+  }
+
+  action complete {
+    set $routedRequests = $routedRequests + 1
+    set $cycles = $cycles + 1
+    log "request routed across the fleet — CAEL trace emitted by AgentRunner"
+  }
+}
