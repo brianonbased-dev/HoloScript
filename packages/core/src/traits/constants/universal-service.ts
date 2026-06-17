@@ -1,7 +1,13 @@
 /**
  * v6 Universal Service & Backend Trait Constants
  *
- * 215+ trait name constants for the universal semantic platform extension.
+ * COMPILER-TARGET ONLY — these names are NOT included in the VR_TRAITS runtime
+ * registry.  They parse-validate only when explicitly referenced by a compiler
+ * (NodeServiceCompiler, PipelineNodeCompiler) that can dispatch on them.
+ * Do NOT spread UNIVERSAL_V6_TRAITS into VR_TRAITS until each name has a
+ * registered handler in VRTraitSystem.  (task_1781645099364_8ue5)
+ *
+ * 236 trait name constants for the universal semantic platform extension.
  * These traits enable HoloScript to describe backend services, data layers,
  * networking, pipelines, observability, and deployment infrastructure.
  *

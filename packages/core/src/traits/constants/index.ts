@@ -113,7 +113,10 @@ import { CONCURRENCY_TRAITS } from './concurrency';
 import { HOLOGRAM_MEDIA_TRAITS } from './hologram-media';
 import { GAPS_PHYSICS_TRAITS } from './gaps-physics';
 import { GLOBAL_ILLUMINATION_TRAITS } from './global-illumination';
-import { UNIVERSAL_V6_TRAITS } from './universal-service';
+// UNIVERSAL_V6_TRAITS is NOT imported here for the VR_TRAITS spread (de-advertised
+// from the runtime registry — see NOTE below).  It is re-exported for compiler use
+// via the `export { UNIVERSAL_V6_TRAITS, ... } from './universal-service'` block at
+// the bottom of this file.
 import { SIMULATION_DOMAIN_TRAITS } from './simulation-domains';
 import { CONNECTOR_INTEGRATION_TRAITS } from './connector-integration';
 import { HOLOMAP_RECONSTRUCTION_TRAITS } from './holomap-reconstruction';
@@ -388,8 +391,15 @@ export const VR_TRAITS = [
   // Global Illumination & Advanced Lighting
   ...GLOBAL_ILLUMINATION_TRAITS,
 
-  // v6 Universal Semantic Platform (35 traits)
-  ...UNIVERSAL_V6_TRAITS,
+  // NOTE: UNIVERSAL_V6_TRAITS (~236 names) is intentionally NOT spread here.
+  // These are compiler-target declarations consumed by NodeServiceCompiler and
+  // PipelineNodeCompiler, not runtime VR trait handlers.  Including them in
+  // VR_TRAITS caused 236 names to parse-validate as legitimate runtime traits
+  // while having ZERO handler registrations in VRTraitSystem — silent no-ops.
+  // Only service/endpoint/http→NodeServiceCompiler and stream→PipelineNodeCompiler
+  // are actually wired.  Use UniversalV6TraitName (from ./universal-service) for
+  // compiler-side type-checking; do not add these to VR_TRAITS until each name
+  // has a registered handler in VRTraitSystem.  (task_1781645099364_8ue5)
 
   // GPU Geometry & Instancing (32 traits — Phase R4)
   ...INSTANCING_GEOMETRY_TRAITS,
@@ -738,7 +748,8 @@ export { PHONE_SLEEVE_VR_TRAITS, type PhoneSleeveVRTraitName } from './mobile/ph
 // Geo-Anchored Holograms (12 traits)
 export { GEO_ANCHOR_TRAITS, type GeoAnchorTraitName } from './mobile/geo-anchor';
 
-// v6 Universal Semantic Platform (35 traits)
+// v6 Universal Semantic Platform — COMPILER-TARGET ONLY (not in VR_TRAITS runtime registry)
+// Use UniversalV6TraitName for compiler-side type-checking only.  (task_1781645099364_8ue5)
 export {
   UNIVERSAL_V6_TRAITS,
   UNIVERSAL_SERVICE_TRAITS,
