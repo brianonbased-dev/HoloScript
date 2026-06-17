@@ -1,4 +1,5 @@
 import type { ChatMessage } from './session.js';
+import { resolveNumCtx } from './ollama-chat.js';
 
 export interface StreamChunk {
   type: 'token' | 'done' | 'error';
@@ -28,7 +29,7 @@ export async function* streamChatFromOllama(
     response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({ model, messages, stream: true, options: { num_ctx: resolveNumCtx() } }),
       signal,
     });
   } catch (err) {

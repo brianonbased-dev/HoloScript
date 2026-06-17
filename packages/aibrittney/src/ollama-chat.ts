@@ -7,6 +7,18 @@ import { extractTextToolCalls } from './tool-call-fallback.js';
  * still handled separately in ollama-stream.ts for the final user-facing turn.
  */
 
+/**
+ * Context window for agentic Ollama turns. Default 16384 — comfortably fits the
+ * observed ~8.5K-token agentic payload (system prompt + shellContext + tool
+ * schemas) plus tool-result growth across iterations, while staying within
+ * qwen3:4b's window and the Jetson's 8GB (KV @16K ≈ ~1.5 GiB). Override with
+ * AIBRITTNEY_NUM_CTX for smaller/larger nodes.
+ */
+export function resolveNumCtx(): number {
+  const n = Number(process.env.AIBRITTNEY_NUM_CTX);
+  return Number.isFinite(n) && n > 0 ? n : 16384;
+}
+
 export interface ToolCall {
   id?: string;
   function: { name: string; arguments: Record<string, unknown> | string };
@@ -57,6 +69,12 @@ export async function chatOnceFromOllama(opts: OllamaChatOptions): Promise<ChatR
         model: opts.model,
         messages: opts.messages,
         stream: false,
+        // Declare the context window the agentic payload needs. Newer Ollama
+        // (Jetson v0.30.8) defaults n_ctx to 4096 and HARD-REJECTS (HTTP 400
+        // exceed_context_size_error) when the system prompt + shellContext + tool
+        // schemas exceed it (~8.5K tokens observed). Older Ollama auto-extended,
+        // hiding this. Set num_ctx so the request fits on any node. Env-overridable.
+        options: { num_ctx: resolveNumCtx() },
         ...(opts.tools && opts.tools.length > 0 ? { tools: opts.tools } : {}),
       }),
       signal: opts.signal,

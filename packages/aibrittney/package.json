@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/aibrittney",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "AIBrittney — interactive CLI agent for HoloScript, backed by local Ollama models. Display brand: 'AI'Brittney with AI rendered as a math-style superscript exponent.",
   "type": "module",
