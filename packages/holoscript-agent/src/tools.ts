@@ -16,6 +16,9 @@
  *     grep, find, wc, head, tail, git status/log/diff/show, pnpm --filter,
  *     vitest run --no-coverage). Hard 60s wall timeout, 1MB stdout cap. Refuses
  *     anything else (rm, curl, ssh, sudo, eval, etc.).
+ *   - http_request: HTTPS GET only, 30s timeout, 200KB cap. Private IP ranges
+ *     (RFC-1918/loopback/link-local) are blocked to prevent SSRF against the
+ *     host network. Read-only — does not count as a productive tool call.
  *
  * The sandbox is best-effort host isolation — these instances are dedicated
  * to a single mesh-worker identity, so we trade some flexibility for a clear
@@ -242,6 +245,24 @@ export const MESH_TOOLS: ToolSpec[] = [
     },
   },
   {
+    name: 'http_request',
+    description:
+      'HTTPS GET a public URL and return the response body as text. ' +
+      'HTTPS only — http:// and private IPs (RFC-1918, loopback, link-local) are blocked. ' +
+      '200KB cap, 30s timeout. Read-only: does not satisfy the write_file artifact gate.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'https:// URL to fetch' },
+        headers: {
+          type: 'object',
+          description: 'Optional request headers (e.g. {"Accept": "application/json"})',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
     name: 'emit_hardware_receipt',
     description:
       'Emit a portable hardware receipt (PortableHardwareReceiptMetadata v1) capturing ' +
@@ -331,6 +352,29 @@ export function resolveActiveTools(
     resolved = [...wf, ...rest].slice(0, budget);
   }
   return { tools: resolved, declared, dropped };
+}
+
+// ---------------------------------------------------------------------------
+// SSRF guard — block private/loopback/link-local hosts (RFC-1918 + RFC-5735)
+// ---------------------------------------------------------------------------
+const PRIVATE_IP_RE =
+  /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|::1$|fc[0-9a-f]{2}:|fd[0-9a-f]{2}:)/i;
+
+function checkHttpAllowed(rawUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return `invalid URL: "${rawUrl}"`;
+  }
+  if (parsed.protocol !== 'https:') {
+    return `only https:// is allowed, got "${parsed.protocol}"`;
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'localhost' || PRIVATE_IP_RE.test(host)) {
+    return `host "${host}" is a private/loopback address — blocked to prevent SSRF`;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -428,6 +472,37 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       return result.code === 0
         ? okResult(use.id, result.stdout)
         : errResult(use.id, `exit=${result.code}\n${result.stderr || result.stdout}`);
+    }
+
+    if (use.name === 'http_request') {
+      const rawUrl = String(use.input.url ?? '');
+      const denied = checkHttpAllowed(rawUrl);
+      if (denied) return errResult(use.id, denied);
+      const userHeaders = (use.input.headers ?? {}) as Record<string, string>;
+      const RESPONSE_CAP = 200_000;
+      const TIMEOUT_MS = 30_000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const res = await fetch(rawUrl, {
+          method: 'GET',
+          headers: { 'user-agent': 'holoscript-agent/1.0', ...userHeaders },
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        const buf = await res.arrayBuffer();
+        const text = new TextDecoder('utf-8', { fatal: false }).decode(buf);
+        const truncated =
+          text.length > RESPONSE_CAP
+            ? text.slice(0, RESPONSE_CAP) + `\n…[truncated, full body is ${text.length} chars]`
+            : text;
+        if (!res.ok) return errResult(use.id, `HTTP ${res.status} ${res.statusText}\n${truncated}`);
+        return okResult(use.id, truncated);
+      } catch (err) {
+        clearTimeout(timer);
+        const msg = err instanceof Error ? err.message : String(err);
+        return errResult(use.id, msg.includes('abort') ? `request timed out after ${TIMEOUT_MS}ms` : msg);
+      }
     }
 
     if (use.name === 'emit_hardware_receipt') {
