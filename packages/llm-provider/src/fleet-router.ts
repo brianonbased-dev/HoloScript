@@ -51,6 +51,16 @@ export interface FleetSpec {
   warmPreferred: boolean;
   /** Spec-level blacklist (merged with the model-policy blacklist). */
   blacklist: string[];
+  /**
+   * Primary node handle — the node that should carry the MAIN inference load.
+   * The router prefers it over all others UNTIL its VRAM load crosses
+   * `primaryMaxLoadBytes`, then spills to the next-freest node (the overflow
+   * GPUs "on top"). Unset → pure strategy ranking. (founder 2026-06-17:
+   * "the jetson handles the main inference and the laptop provides GPU on top".)
+   */
+  primary?: string;
+  /** VRAM-resident bytes above which the primary is "saturated" → spill. Default 6 GB. */
+  primaryMaxLoadBytes?: number;
 }
 
 /** Live per-node inventory + load. */
@@ -177,11 +187,17 @@ export function parseFleetSpec(brainSrc: string): FleetSpec | null {
     subRe.lastIndex = sub.end; // skip past nested braces we already consumed
   }
 
+  const primaryMaxLoadGb = scalarString(topLevel, 'primary_max_load_gb');
   return {
     nodes,
     strategy: scalarString(topLevel, 'strategy') ?? 'least-loaded',
     warmPreferred: scalarBool(topLevel, 'warm_preferred') ?? true,
     blacklist: listField(topLevel, 'blacklist') ?? [],
+    primary: scalarString(topLevel, 'primary'),
+    primaryMaxLoadBytes:
+      primaryMaxLoadGb && Number.isFinite(Number(primaryMaxLoadGb))
+        ? Number(primaryMaxLoadGb) * 1_000_000_000
+        : undefined,
   };
 }
 
@@ -375,14 +391,30 @@ export async function pickFleetModel(
     }));
   }
 
-  // Rank: warm first (when warm-preferred), then least-loaded GPU.
+  // The primary node carries the main load: it wins over everything UNTIL its
+  // VRAM load crosses the saturation line, then the overflow GPUs compete by load
+  // ("the jetson handles the main inference and the laptop provides GPU on top").
+  const primaryMaxLoad = spec.primaryMaxLoadBytes ?? 6_000_000_000;
+  const isPreferredPrimary = (c: FleetCandidate): boolean =>
+    !!spec.primary && c.handle === spec.primary && c.loadScore < primaryMaxLoad;
+
+  // Rank: unsaturated primary first, then warm (when warm-preferred), then least-loaded GPU.
   candidates.sort((a, b) => {
+    const ap = isPreferredPrimary(a);
+    const bp = isPreferredPrimary(b);
+    if (ap !== bp) return ap ? -1 : 1;
     if (spec.warmPreferred && a.warm !== b.warm) return a.warm ? -1 : 1;
     return a.loadScore - b.loadScore;
   });
 
   const chosen = candidates[0];
-  const reason = `${spec.warmPreferred && chosen.warm ? 'warm' : 'least-loaded'} · ${chosen.handle} · load=${chosen.loadScore}${
+  const tier = isPreferredPrimary(chosen)
+    ? 'primary'
+    : spec.warmPreferred && chosen.warm
+      ? 'warm'
+      : 'least-loaded';
+  const spilled = spec.primary && chosen.handle !== spec.primary ? ' (primary saturated → overflow)' : '';
+  const reason = `${tier} · ${chosen.handle} · load=${chosen.loadScore}${spilled}${
     requested && chosen.model !== requested ? ` (requested ${requested} not installed; using ${chosen.model})` : ''
   }`;
   return { ...chosen, reason, candidates };

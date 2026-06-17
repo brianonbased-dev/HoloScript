@@ -234,6 +234,60 @@ function fakeFetchWithEmbed(
   };
 }
 
+// Brain with the Jetson declared PRIMARY (founder: jetson = main inference, laptop = on top).
+const PRIMARY_BRAIN = BRAIN_SRC.replace('  warm_preferred: true', '  warm_preferred: true\n  primary: "jetson-orin"\n  primary_max_load_gb: "6"');
+const PRIMARY_SPEC: FleetSpec = parseFleetSpec(PRIMARY_BRAIN)!;
+
+describe('primary-node preference (jetson main, laptop overflow)', () => {
+  test('parses primary + primary_max_load_gb', () => {
+    expect(PRIMARY_SPEC.primary).toBe('jetson-orin');
+    expect(PRIMARY_SPEC.primaryMaxLoadBytes).toBe(6_000_000_000);
+  });
+
+  test('routes to the PRIMARY (jetson) even when the laptop is equally idle', async () => {
+    const fetchImpl = fakeFetch({
+      'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // idle
+      'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // idle
+    });
+    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    expect(route!.handle).toBe('jetson-orin');
+    expect(route!.reason).toContain('primary');
+  });
+
+  test('routes to the PRIMARY even when the laptop has the model WARM (primary beats warm)', async () => {
+    const fetchImpl = fakeFetch({
+      'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // cold but primary
+      'http://192.168.0.23:11434': {
+        tags: ['qwen3:4b-instruct'],
+        ps: [{ name: 'qwen3:4b-instruct', vram: 3_000_000_000 }], // warm overflow
+      },
+    });
+    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    expect(route!.handle).toBe('jetson-orin'); // unsaturated primary wins over a warm overflow
+  });
+
+  test('SPILLS to the laptop when the primary is saturated (VRAM past the line)', async () => {
+    const fetchImpl = fakeFetch({
+      'http://holojetson.local:11434': {
+        tags: ['qwen3:4b-instruct'],
+        ps: [{ name: 'big:14b', vram: 7_000_000_000 }], // 7GB resident > 6GB line → saturated
+      },
+      'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // free overflow
+    });
+    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    expect(route!.handle).toBe('laptop-rtx3060');
+    expect(route!.reason).toContain('overflow');
+  });
+
+  test('falls back to the laptop when the primary is unreachable', async () => {
+    const fetchImpl = fakeFetch({
+      'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // only the laptop answers
+    });
+    const route = await pickFleetModel(PRIMARY_SPEC, { model: 'qwen3:4b-instruct', resolveEndpoint, fetchImpl });
+    expect(route!.handle).toBe('laptop-rtx3060');
+  });
+});
+
 describe('embedAcrossFleet', () => {
   test('routes the embed to the node that has nomic-embed-text and returns the vector', async () => {
     const fetchImpl = fakeFetchWithEmbed(
