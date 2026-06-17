@@ -121,6 +121,15 @@ import {
   SensorTrait,
   DigitalTwinTrait,
 } from '../traits/BehavioralTraits';
+import {
+  PositionalTrait,
+  AmbisonicsTrait,
+  HRTFTrait,
+  AudioOcclusionTrait,
+  AudioPortalTrait,
+  SpatialVoiceTrait,
+  HeadTrackedAudioTrait,
+} from '../traits/SpatialAudioTraits';
 import { InputManager } from '../input/InputManager';
 import {
   hasXR,
@@ -1076,6 +1085,15 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(ObjectTrackingTrait);
     this.traitSystem.register(SensorTrait);
     this.traitSystem.register(DigitalTwinTrait);
+
+    // Tier-4 spatial-audio traits (research/2026-06-15_trait-parity-and-tsx-deprecation.md §4.2 Tier 4)
+    this.traitSystem.register(PositionalTrait);
+    this.traitSystem.register(AmbisonicsTrait);
+    this.traitSystem.register(HRTFTrait);
+    this.traitSystem.register(AudioOcclusionTrait);
+    this.traitSystem.register(AudioPortalTrait);
+    this.traitSystem.register(SpatialVoiceTrait);
+    this.traitSystem.register(HeadTrackedAudioTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
