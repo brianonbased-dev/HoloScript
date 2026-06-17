@@ -709,3 +709,8 @@ export {
   type HoloKeyVault,
   type CreateHoloKeyVaultOpts,
 } from './vault-bootstrap';
+export {
+  createServiceSecretResolver,
+  type ServiceSecretResolver,
+  type ServiceSecretResolverOpts,
+} from './service-secret-resolver';
