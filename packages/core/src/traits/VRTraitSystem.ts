@@ -365,6 +365,7 @@ import { timeTravelDebugHandler } from './TimeTravelDebugTrait';
 import { spatialProfilerHandler } from './SpatialProfilerTrait';
 import { cinematicSeqHandler } from './CinematicSeqTrait';
 import { aiCameraHandler } from './AiCameraTrait';
+import { physicalCameraHandler } from './PhysicalCameraInputTrait';
 
 // FFI / OS handlers
 import { ffiHandler } from './FfiTrait';
@@ -1983,6 +1984,7 @@ export class VRTraitRegistry {
     this.register(spatialProfilerHandler as TraitHandler);
     this.register(cinematicSeqHandler as TraitHandler);
     this.register(aiCameraHandler as TraitHandler);
+    this.register(physicalCameraHandler as TraitHandler);
 
     // FFI / OS
     this.register(ffiHandler as TraitHandler);
@@ -2521,6 +2523,7 @@ export { astarHandler, navmeshSolverHandler, optimizationHandler };
 
 // Debug / Cinematic exports
 export { timeTravelDebugHandler, spatialProfilerHandler, cinematicSeqHandler, aiCameraHandler };
+export { physicalCameraHandler } from './PhysicalCameraInputTrait';
 
 // FFI / OS exports
 export { ffiHandler, nativeCallHandler, wasmBridgeHandler, sysIoHandler };
