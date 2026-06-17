@@ -30,6 +30,14 @@
 
 ---
 
+## Trait-Backed Cognitive Verb Dispatch in AgentRunner (Phase 2.2 — `recall`/`rag_query`/`plan`)
+
+**What might be valuable**: Fleet agents that author `recall { query: "…" }`, `rag_query { query: "…" }`, and `plan { goal: "…" }` in their `behavior on_task {}` block would have those verbs dispatched to real trait-backed stores — `AgentMemoryTrait` (per-agent episodic memory), `RAGKnowledgeTrait` (the HoloMesh knowledge graph), and `GoalOrientedTrait` (GOAP A*-planner) — before the main `llm_call` loop fires. The effect: agents load prior task context, HoloScript syntax rules, and a structured plan into the LLM's context window, replacing the current hardcoded single-prompt approach. This closes the last "declarative shell" gap (W.712) for the three memory/planning verbs, making `behavior on_task` fully executable end-to-end. The event wiring already exists: `CognitiveActions.ts` has the verb→event map; `BehaviorTreeTrait.tickCognitive` can dispatch each verb; `LocalLLMTrait._chat` is the execution endpoint. The missing piece is an `AgentRunner`-compatible execution context that carries an event bus + the relevant trait instances without pulling in the full engine runtime.
+
+**Why not now**: The two existing cognitive executors (`HoloScriptAgentRuntime` and `BehaviorTreeTrait.tickCognitive`) are engine-coupled — they require a full `VRTraitSystem` event bus, a `HoloScriptRuntime` tick, and registered trait instances. The `holoscript-agent` runner is intentionally lightweight (no engine dep), so adding engine traits creates a dependency inversion. The clean fix (Phase 2.4, per `research/2026-06-16_jetson-native-language-runtime-plan.md`) is to converge on ONE brain executor: fold the runner's signed board client + cost-guard into callable runtime actions the brain's BT can invoke, then let the engine BT drive the loop. Until that convergence, `recall`/`rag_query`/`plan` are parsed, logged, and deferred. `llm_call.prompt` and `reflect` ARE wired in Phase 2.1 (this session).
+
+---
+
 ## `@durable/@ephemeral/@session` Brain Fields with Postgres SQL Emission
 
 **What might be valuable**: Field-level lifecycle annotations on `.hsplus` brain blocks that the compiler maps to: `@durable` → Postgres/Supabase column (survives shard restart), `@ephemeral` → in-memory only (discarded on view-distance exit), `@session` → merged back to durable via episode-delta on map-exit. The compiler statically verifies that `@ephemeral` fields are never referenced in `@durable` migration blocks — a class of NPC runtime NPE bugs made impossible at compile time. This is the first language-level expression of D.043's disposable-neural-map design. Combined with `MigrationManager` chain wiring, this gives zero-boilerplate schema evolution for NPC state. A publishable type-system result: "Lifecycle-Typed NPC State for MMO-Scale Neural Characters."
@@ -143,4 +151,27 @@
 
 ---
 
-*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation); per-soul fine-tuned downloadable GGUF for daimōn (from daimon-brain.hsplus authoring).*
+## Edge `recall` Write-Loop + Phase 2.3 Brain Directives (`@provider_policy` / `@escalation` / `@goal`)
+
+**What might be valuable**: Two follow-ons to the Phase 2.2 edge cognitive-verb wiring (shipped
+`@holoscript/holoscript-agent@2.0.4`, HoloScript `d27ea730e` — `recall`/`rag_query`/`plan` now execute
+provider+mesh-only on the AgentRunner). (1) **Close the `recall` loop**: on `markDone`, `POST
+/api/holomesh/knowledge/private` a short fact about the completed task, so the NEXT tick's `recall`
+retrieves it. Today `recall` returns 0 because nothing ever WRITES the agent's private workspace —
+closing this makes `recall` meaningful and gives the edge agent lightweight cross-tick continuity (the
+edge-native version of the System-A `AgentSeed`/`durable()` continuity anchor from the Jetson plan).
+(2) **Phase 2.3 brain directives**: wire `@provider_policy {prefer,fallback}` into the runtime LLM
+router (local-first → escalate-to-fleet, read from the brain instead of `model-policy.ts` hardcodes),
+`@escalation {on,action}` into a runtime action on task-failure, and `@goal {name,desiredState,priority}`
+into the goal feed — all currently PARSE but execute nowhere (W.744 declarative-shell; plan §Phase 2.3).
+
+**Why not now**: Phase 2.2 (the verbs EXECUTING) was the higher-leverage layer and is a complete,
+shipped, proven unit — a good checkpoint. The write-loop is a small, clean next increment but is its own
+build+test+publish cycle; Phase 2.3 (`@provider_policy`/`@escalation`/`@goal`) is larger and partly
+overlaps the core/engine router, so it needs a decision on edge-native vs core routing (the same
+dep-closure constraint that shaped Phase 2.2). Sequence: write-loop first (smallest, completes `recall`),
+then 2.3. Plan: `research/2026-06-16_jetson-native-language-runtime-plan.md`.
+
+---
+
+*Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation); per-soul fine-tuned downloadable GGUF for daimōn (from daimon-brain.hsplus authoring); edge recall write-loop + Phase 2.3 brain directives (from Phase 2.2 cognitive-verb wiring).*
