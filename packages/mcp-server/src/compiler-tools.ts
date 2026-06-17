@@ -579,17 +579,11 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
   const categories: Record<string, ExportTarget[]> = {
     'Game Engines': ['unity', 'unreal', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
     'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
-    'Mobile AR': ['android', 'android-xr', 'ios', 'visionos', 'ar'] as unknown as ExportTarget[],
-    'Web Platforms': [
-      'babylon',
-      'webgpu',
-      'r3f',
-      'wasm',
-      'playcanvas',
-    ] as unknown as ExportTarget[],
+    'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
+    // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
+    'Web Platforms': ['webgpu', 'wasm'] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', '3dgs'] as unknown as ExportTarget[],
-    Advanced: ['vrr'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
     'AI/MCP': ['mcp-server'] as unknown as ExportTarget[],
   };
@@ -693,18 +687,14 @@ export async function handleCompilerTool(
     }
     case 'compile_to_webgpu':
       return handleCompileToTarget({ ...args, target: 'webgpu' });
-    case 'compile_to_r3f':
-      return handleCompileToTarget({ ...args, target: 'r3f' });
+    // compile_to_r3f — retired (apex-poison, 2026-06-17)
     case 'compile_to_godot':
       return handleCompileToTarget({ ...args, target: 'godot' });
     case 'compile_to_visionos':
       return handleCompileToTarget({ ...args, target: 'visionos' });
     case 'compile_to_openxr':
       return handleCompileToTarget({ ...args, target: 'openxr' });
-    case 'compile_to_babylon':
-      return handleCompileToTarget({ ...args, target: 'babylon' });
-    case 'compile_to_playcanvas':
-      return handleCompileToTarget({ ...args, target: 'playcanvas' });
+    // compile_to_babylon, compile_to_playcanvas — retired (apex-poison, 2026-06-17)
     case 'compile_to_vrchat':
       return handleCompileToTarget({ ...args, target: 'vrchat' });
     case 'compile_to_android':
@@ -713,8 +703,7 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'android-xr' });
     case 'compile_to_ios':
       return handleCompileToTarget({ ...args, target: 'ios' });
-    case 'compile_to_ar':
-      return handleCompileToTarget({ ...args, target: 'ar' });
+    // compile_to_ar — retired (apex-poison, 2026-06-17)
     case 'compile_to_wasm':
       return handleCompileToTarget({ ...args, target: 'wasm' });
     case 'compile_to_usd':
@@ -723,14 +712,12 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'usdz' });
     case 'compile_to_dtdl':
       return handleCompileToTarget({ ...args, target: 'dtdl' });
-    case 'compile_to_vrr':
-      return handleCompileToTarget({ ...args, target: 'vrr' });
+    // compile_to_vrr — retired (apex-poison, 2026-06-17)
     case 'compile_to_multi_layer':
       return handleCompileToTarget({ ...args, target: 'multi-layer' });
     case 'compile_to_nir':
       return handleCompileToTarget({ ...args, target: 'nir' });
-    case 'compile_to_native_2d':
-      return handleCompileToTarget({ ...args, target: 'native-2d' });
+    // compile_to_native_2d — retired (apex-poison, 2026-06-17)
     case 'compile_to_canvas2d_game':
       return handleCompileToTarget({ ...args, target: 'canvas2d-game' });
     case 'compile_to_node_service':
@@ -768,8 +755,7 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'nft-marketplace' });
     case 'compile_to_tsl':
       return handleCompileToTarget({ ...args, target: 'tsl' });
-    case 'compile_to_phone_sleeve_vr':
-      return handleCompileToTarget({ ...args, target: 'phone-sleeve-vr' });
+    // compile_to_phone_sleeve_vr — retired (apex-poison, 2026-06-17)
     case 'compile_to_openxr_spatial_entities':
       return handleCompileToTarget({ ...args, target: 'openxr-spatial-entities' });
     case 'compile_to_edge':
@@ -1027,21 +1013,21 @@ export const compilerTools: Tool[] = [
             'android-xr',
             'ios',
             'visionos',
-            'ar',
-            'babylon',
+            // 'ar' — retired apex-poison 2026-06-17
+            // 'babylon' — retired apex-poison 2026-06-17
             'webgpu',
-            'r3f',
+            // 'r3f' — retired apex-poison 2026-06-17
             'wasm',
-            'playcanvas',
+            // 'playcanvas' — retired apex-poison 2026-06-17
             'usd',
             'usdz',
             'dtdl',
-            'vrr',
+            // 'vrr' — retired apex-poison 2026-06-17
             'mcp-server',
             'state',
             'a2a-agent-card',
             'nir',
-            'native-2d',
+            // 'native-2d' — retired apex-poison 2026-06-17
             'node-service',
             '3dgs',
             'canvas2d-game',
@@ -1157,29 +1143,9 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
-  {
-    name: 'compile_to_r3f',
-    description: 'Compile HoloScript to React Three Fiber (R3F) JSX components',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: {
-          type: 'object',
-          properties: {
-            typescript: { type: 'boolean', description: 'Generate TypeScript (default: true)' },
-            environmentPreset: {
-              type: 'string',
-              description: 'Environment preset (sunset, dawn, night, etc.)',
-            },
-          },
-        },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_r3f — retired (apex-poison, 2026-06-17)
 
-  // === Additional compile_to_* targets (all 24 dialects exposed) ===
+  // === Additional compile_to_* targets ===
   {
     name: 'compile_to_godot',
     description: 'Compile HoloScript to Godot Engine GDScript with scene (.tscn) generation',
@@ -1216,30 +1182,7 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
-  {
-    name: 'compile_to_babylon',
-    description: 'Compile HoloScript to Babylon.js engine code',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
-      },
-      required: ['code'],
-    },
-  },
-  {
-    name: 'compile_to_playcanvas',
-    description: 'Compile HoloScript to PlayCanvas engine scripts',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_babylon, compile_to_playcanvas — retired (apex-poison, 2026-06-17)
   {
     name: 'compile_to_vrchat',
     description:
@@ -1305,18 +1248,7 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
-  {
-    name: 'compile_to_ar',
-    description: 'Compile HoloScript to generic AR TypeScript code',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_ar — retired (apex-poison, 2026-06-17)
   {
     name: 'compile_to_wasm',
     description: 'Compile HoloScript to WebAssembly module',
@@ -1366,18 +1298,7 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
-  {
-    name: 'compile_to_vrr',
-    description: 'Compile HoloScript to VRR reality-mirror JavaScript output',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_vrr — retired (apex-poison, 2026-06-17)
   {
     name: 'compile_to_multi_layer',
     description: 'Compile HoloScript to a multi-layer VR / VRR / AR bundle',
@@ -1440,18 +1361,7 @@ export const compilerTools: Tool[] = [
       required: ['code'],
     },
   },
-  {
-    name: 'compile_to_native_2d',
-    description: 'Compile HoloScript to Native 2D HTML/React components (non-3D output)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript composition code' },
-        options: { type: 'object' },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_native_2d — retired (apex-poison, 2026-06-17)
   {
     name: 'compile_to_code_editor',
     description:
@@ -1601,12 +1511,15 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_edge',
     description:
-      'Compile HoloScript to a Python deployment bundle for any Ollama-capable edge device ' +
+      'Compile HoloScript to a self-contained deployment bundle for any Ollama-capable edge device ' +
       '(Jetson Orin/Nano/NX, Raspberry Pi 5, The Unit, any Linux ARM64/x86 node). ' +
-      'Emits: agent.py (Ollama inference loop + tool dispatch), monitor.py (/health HTTP), ' +
-      'setup.sh (venv + pip install), holoscript_agent.service (systemd unit), manifest.json. ' +
-      'Trait-conditional extras: ros2_bridge.py (@ros2_actuation), tensorrt_loader.py (@tensorrt_inference). ' +
-      'Jetson-specific flags set by @jetson, @tegrastats traits (nvpmodel, jetson_clocks, tegrastats polling).',
+      'DEFAULT runtime "agentrunner": emits holoscript_agent.service (systemd unit running the ' +
+      'canonical TS AgentRunner — full gate stack: artifact-grounding, reflect, CAEL chain, ' +
+      'content-hashed/signed hardware receipts, native cognitive verbs), setup.sh, manifest.json. ' +
+      'LEGACY runtime "python" (deprecated, gate-less): emits agent.py (Ollama loop), monitor.py, ' +
+      'setup.sh, holoscript_agent.service, manifest.json. ' +
+      'Trait-conditional: ros2 colcon bridge (@ros2_actuation); tensorrt_loader.py (python only). ' +
+      'Jetson flags set by @jetson, @tegrastats traits.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1635,6 +1548,13 @@ export const compilerTools: Tool[] = [
             serviceUser: {
               type: 'string',
               description: 'systemd service user (default: holoscript)',
+            },
+            runtime: {
+              type: 'string',
+              enum: ['agentrunner', 'python'],
+              description:
+                'Edge runtime the unit runs. "agentrunner" (DEFAULT) = canonical TS AgentRunner ' +
+                '(full gate stack). "python" = deprecated, gate-less standalone agent.',
             },
           },
         },
@@ -2045,26 +1965,7 @@ export const compilerTools: Tool[] = [
     },
   },
 
-  // Phone Sleeve VR stereoscopic WebXR
-  {
-    name: 'compile_to_phone_sleeve_vr',
-    description:
-      'Compile HoloScript to Phone Sleeve VR stereoscopic WebXR format (smartphone-as-headset). ' +
-      'Bridge to VR experiences on any phone with a sleeve/Cardboard mount.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        code: { type: 'string', description: 'HoloScript source code.' },
-        options: {
-          type: 'object',
-          properties: {
-            eyeSeparation: { type: 'number', description: 'Inter-ocular distance in meters (default: 0.064).' },
-          },
-        },
-      },
-      required: ['code'],
-    },
-  },
+  // compile_to_phone_sleeve_vr — retired (apex-poison, 2026-06-17)
 
   // OpenXR Spatial Entity persistence
   {
@@ -2128,16 +2029,12 @@ export const compilerTools: Tool[] = [
             'android-xr',
             'ios',
             'visionos',
-            'ar',
-            'babylon',
+            // 'ar', 'babylon', 'r3f', 'playcanvas', 'vrr' — retired apex-poison 2026-06-17
             'webgpu',
-            'r3f',
             'wasm',
-            'playcanvas',
             'usd',
             'usdz',
             'dtdl',
-            'vrr',
             'multi-layer',
             '3dgs',
           ],

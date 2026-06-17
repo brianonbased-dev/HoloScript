@@ -78,6 +78,8 @@ export interface EdgeBundle {
     runtime: 'python' | 'agentrunner';
   };
   deployInstructions: string;
+  /** Set when a deprecated runtime mode was used (e.g. the legacy gate-less 'python'). */
+  deprecation?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -101,7 +103,9 @@ export class EdgeCompiler extends CompilerBase {
       platform: options.platform ?? 'linux-arm64',
       remotePath: options.remotePath ?? '/opt/holoscript',
       serviceUser: options.serviceUser ?? 'root',
-      runtime: options.runtime ?? 'python',
+      // DEFAULT = the canonical TS AgentRunner (full gate stack). 'python' is the
+      // deprecated gate-less legacy agent (retirement tracked; see /executioner).
+      runtime: options.runtime ?? 'agentrunner',
     };
   }
 
@@ -221,6 +225,14 @@ export class EdgeCompiler extends CompilerBase {
         runtime: this.opts.runtime,
       },
       deployInstructions: this.genDeployInstructions(name, ollamaUrl, remotePath, platform, hasROS2),
+      ...(isAgentRunner
+        ? {}
+        : {
+            deprecation:
+              "The 'python' edge runtime is a GATE-LESS legacy agent (no artifact-grounding, " +
+              'reflect, CAEL hash-chain, or signed hardware receipts). Prefer runtime:"agentrunner" ' +
+              '(the canonical TS AgentRunner). Scheduled for retirement.',
+          }),
     };
 
     return JSON.stringify(bundle, null, 2);
