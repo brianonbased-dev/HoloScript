@@ -1102,11 +1102,14 @@ const httpServer = http.createServer(async (req, res) => {
     } else {
       providers.anthropic = { configured: false };
     }
-    // Other providers (config status only)
-    providers.openrouter = { configured: Boolean(process.env.OPENROUTER_API_KEY) };
-    providers.openai = { configured: Boolean(process.env.OPENAI_API_KEY) };
+    // Other providers (config status only) — keys resolved from the HoloKey vault if present,
+    // else process.env (Phase 2 rollout; fallback-safe — identical until the key is in the vault).
+    providers.openrouter = { configured: Boolean(await resolveServiceSecret('OPENROUTER_API_KEY')) };
+    providers.openai = { configured: Boolean(await resolveServiceSecret('OPENAI_API_KEY')) };
     providers.gemini = {
-      configured: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY),
+      configured: Boolean(
+        (await resolveServiceSecret('GEMINI_API_KEY')) || process.env.GOOGLE_AI_API_KEY
+      ),
     };
     providers.ollama = { configured: Boolean(process.env.HOLOSCRIPT_LOCAL_LLM_URL) };
 

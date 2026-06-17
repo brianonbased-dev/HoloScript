@@ -26,6 +26,7 @@ import {
   type ILLMProvider,
   type LLMCompletionRequest,
 } from '@holoscript/llm-provider';
+import { resolveServiceSecret } from './holokey-resolver';
 
 type LLMProviderName = 'hybrid-gemma' | 'openrouter' | 'anthropic' | 'openai' | 'ollama';
 
@@ -91,39 +92,42 @@ let _openaiAdapter: OpenAIAdapter | null = null;
 let _openrouterAdapter: OpenRouterAdapter | null = null;
 let _ollamaAdapter: LocalLLMAdapter | null = null;
 
-function getAnthropicAdapter(): AnthropicAdapter | null {
-  if (!ANTHROPIC_API_KEY) return null;
-  if (!_anthropicAdapter) {
-    _anthropicAdapter = new AnthropicAdapter({
-      apiKey: ANTHROPIC_API_KEY,
-      defaultModel: ANTHROPIC_MODEL,
-      timeoutMs: LLM_TIMEOUT,
-    });
-  }
+// Adapter key resolution (Phase 2): prefer the HoloKey vault value, else the module-level
+// env const. Resolved ONCE at adapter construction and cached with the adapter — no per-call
+// DB hit on the hot path. Fully fallback-safe: vault off / key not in vault → the env const.
+async function getAnthropicAdapter(): Promise<AnthropicAdapter | null> {
+  if (_anthropicAdapter) return _anthropicAdapter;
+  const apiKey = (await resolveServiceSecret('ANTHROPIC_API_KEY')) || ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  _anthropicAdapter = new AnthropicAdapter({
+    apiKey,
+    defaultModel: ANTHROPIC_MODEL,
+    timeoutMs: LLM_TIMEOUT,
+  });
   return _anthropicAdapter;
 }
 
-function getOpenAIAdapter(): OpenAIAdapter | null {
-  if (!OPENAI_API_KEY) return null;
-  if (!_openaiAdapter) {
-    _openaiAdapter = new OpenAIAdapter({
-      apiKey: OPENAI_API_KEY,
-      defaultModel: OPENAI_MODEL,
-      timeoutMs: LLM_TIMEOUT,
-    });
-  }
+async function getOpenAIAdapter(): Promise<OpenAIAdapter | null> {
+  if (_openaiAdapter) return _openaiAdapter;
+  const apiKey = (await resolveServiceSecret('OPENAI_API_KEY')) || OPENAI_API_KEY;
+  if (!apiKey) return null;
+  _openaiAdapter = new OpenAIAdapter({
+    apiKey,
+    defaultModel: OPENAI_MODEL,
+    timeoutMs: LLM_TIMEOUT,
+  });
   return _openaiAdapter;
 }
 
-function getOpenRouterAdapter(): OpenRouterAdapter | null {
-  if (!OPENROUTER_API_KEY) return null;
-  if (!_openrouterAdapter) {
-    _openrouterAdapter = new OpenRouterAdapter({
-      apiKey: OPENROUTER_API_KEY,
-      defaultModel: OPENROUTER_MODEL,
-      timeoutMs: LLM_TIMEOUT,
-    });
-  }
+async function getOpenRouterAdapter(): Promise<OpenRouterAdapter | null> {
+  if (_openrouterAdapter) return _openrouterAdapter;
+  const apiKey = (await resolveServiceSecret('OPENROUTER_API_KEY')) || OPENROUTER_API_KEY;
+  if (!apiKey) return null;
+  _openrouterAdapter = new OpenRouterAdapter({
+    apiKey,
+    defaultModel: OPENROUTER_MODEL,
+    timeoutMs: LLM_TIMEOUT,
+  });
   return _openrouterAdapter;
 }
 
@@ -149,7 +153,7 @@ async function queryOpenRouterProvider(
   system: string,
   modelOverride?: string
 ): Promise<string | null> {
-  const adapter = getOpenRouterAdapter();
+  const adapter = await getOpenRouterAdapter();
   if (!adapter) return null;
   try {
     const result = await adapter.complete({
@@ -167,7 +171,7 @@ async function queryOpenRouterProvider(
 }
 
 async function queryAnthropicProvider(prompt: string, system: string): Promise<string | null> {
-  const adapter = getAnthropicAdapter();
+  const adapter = await getAnthropicAdapter();
   if (!adapter) return null;
   try {
     const result = await adapter.complete({
@@ -184,7 +188,7 @@ async function queryAnthropicProvider(prompt: string, system: string): Promise<s
 }
 
 async function queryOpenAIProvider(prompt: string, system: string): Promise<string | null> {
-  const adapter = getOpenAIAdapter();
+  const adapter = await getOpenAIAdapter();
   if (!adapter) return null;
   try {
     const result = await adapter.complete({
