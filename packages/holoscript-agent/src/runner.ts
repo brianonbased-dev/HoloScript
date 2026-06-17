@@ -265,7 +265,12 @@ export class AgentRunner {
         });
         // Run each tool and collect results.
         const toolResults = await Promise.all(
-          resp.toolUses.map((u) => runTool(u, { signReceipt: this.opts.signReceipt }))
+          resp.toolUses.map((u) =>
+            runTool(u, {
+              signReceipt: this.opts.signReceipt,
+              addTask: (tasks) => mesh.addTasks(tasks),
+            })
+          )
         );
         // Extract the latest git commit SHA from bash stdout so markDone can
         // record a verifiable reference on the board task. Pattern matches both

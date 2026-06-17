@@ -157,6 +157,8 @@ export function isProductiveToolUse(use: ToolUseBlock): boolean {
       return isProductiveBashCommand(String(input.cmd ?? ''));
     case 'emit_hardware_receipt':
       return true;
+    case 'str_replace':
+      return true;
     default:
       return false;
   }
@@ -297,6 +299,47 @@ export const MESH_TOOLS: ToolSpec[] = [
       required: ['device_kind', 'runtime_name', 'runtime_version', 'host_os'],
     },
   },
+  {
+    name: 'str_replace',
+    description:
+      'Surgical in-place edit of a file: find an exact string and replace it. ' +
+      'The old string must appear exactly once in the file — if it appears zero or more than once ' +
+      'the tool returns an error with the actual count, letting you refine the search string. ' +
+      'Only files under the write root(s) can be edited. ' +
+      'Counts as a productive tool call (equivalent to write_file).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: `Absolute path under a write root: ${ALLOWED_WRITE_ROOTS.join(', ')}` },
+        old: { type: 'string', description: 'Exact string to find (must occur exactly once)' },
+        new: { type: 'string', description: 'Replacement string' },
+      },
+      required: ['path', 'old', 'new'],
+    },
+  },
+  {
+    name: 'delegate_task',
+    description:
+      'Post a new task to the team board so another agent can claim and execute it. ' +
+      'Use this to spawn sub-work the current agent cannot or should not do itself ' +
+      '(e.g. a vision task for jetson-orin-fara, a cloud compute task for the fleet). ' +
+      'The task appears on the shared board and is claimed by the first agent with matching capability tags.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Task title (max 200 chars)' },
+        description: { type: 'string', description: 'Detailed task description (max 2000 chars)' },
+        priority: { type: 'number', description: 'Priority 1-10 (1 = critical, default 5)' },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Capability tags for routing to the right agent, e.g. ["vision","edge"]',
+        },
+        source: { type: 'string', description: 'Where this subtask came from (e.g. parent task id)' },
+      },
+      required: ['title'],
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -426,6 +469,11 @@ export interface RunToolOptions {
    * and self-reports `signed:false`, so it can never overclaim.
    */
   signReceipt?: (canonical: string) => Promise<{ alg: string; signer: string; signature: string }>;
+  /**
+   * Post new tasks to the team board. Injected by runner.ts from mesh.addTasks().
+   * Absent → delegate_task returns an error explaining the capability is unavailable.
+   */
+  addTask?: (tasks: Array<{ title: string; description?: string; priority?: number; source?: string; tags?: string[] }>) => Promise<{ added: number }>;
 }
 
 export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Promise<ToolResultBlock> {
@@ -599,6 +647,37 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
         `Hardware receipt written to ${outPath} — ${measurements.length} measurements, ` +
           `contentHash=${contentHash.slice(0, 12)}…, signed=${Boolean(signature)}, accelerator=${accelerator ?? 'none'}`
       );
+    }
+
+    if (use.name === 'str_replace') {
+      const path = use.input.path as string;
+      const oldStr = use.input.old as string;
+      const newStr = use.input.new as string;
+      const denied = checkWriteAllowed(path);
+      if (denied) return errResult(use.id, denied);
+      const text = await readFile(path, 'utf8');
+      // Count occurrences to guarantee exactly-one semantics.
+      const count = text.split(oldStr).length - 1;
+      if (count === 0) return errResult(use.id, `str_replace: "old" string not found in ${path} — 0 occurrences`);
+      if (count > 1) return errResult(use.id, `str_replace: "old" string is ambiguous in ${path} — ${count} occurrences; add more surrounding context`);
+      const updated = text.replace(oldStr, newStr);
+      await writeFile(path, updated, 'utf8');
+      const s = await stat(path);
+      return okResult(use.id, `str_replace: replaced 1 occurrence in ${path} (${s.size} bytes)`);
+    }
+
+    if (use.name === 'delegate_task') {
+      if (!opts.addTask) {
+        return errResult(use.id, 'delegate_task: capability not available (no addTask callback injected — board posting requires a mesh connection)');
+      }
+      const title = String(use.input.title ?? '').trim();
+      if (!title) return errResult(use.id, 'delegate_task: title is required');
+      const description = use.input.description != null ? String(use.input.description) : undefined;
+      const priority = use.input.priority != null ? Number(use.input.priority) : undefined;
+      const source = use.input.source != null ? String(use.input.source) : undefined;
+      const tags = Array.isArray(use.input.tags) ? (use.input.tags as unknown[]).map(String) : undefined;
+      const result = await opts.addTask([{ title, description, priority, source, tags }]);
+      return okResult(use.id, `delegate_task: posted "${title}" to board — ${result.added} task(s) added`);
     }
 
     return errResult(use.id, `unknown tool: ${use.name}`);

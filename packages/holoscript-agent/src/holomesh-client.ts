@@ -192,6 +192,14 @@ export class HolomeshClient {
     return this.req('PATCH', `/team/${this.teamId}/board/${taskId}`, await this.signBody({ action: 'delegate', toAgentId }));
   }
 
+  /** Add new tasks to the board (used by the delegate_task tool to spawn sub-work). */
+  async addTasks(
+    tasks: Array<{ title: string; description?: string; priority?: number; source?: string; role?: string; tags?: string[] }>
+  ): Promise<{ added: number }> {
+    const result = await this.req<{ added?: number }>('POST', `/team/${this.teamId}/board`, await this.signBody({ tasks } as Record<string, unknown>));
+    return { added: result.added ?? tasks.length };
+  }
+
   // ── Cognitive-verb knowledge surface (Phase 2.2 — recall / rag_query) ────────
 
   /**
