@@ -72,6 +72,30 @@ const DEFAULT_AGENTS: AgentSlot[] = [
     lastActionAt: null,
     icon: 'O',
   },
+  {
+    // name MUST equal the mesh handle (lower-case match at enrichment time) so the
+    // live HoloMesh roster binds to this slot. Sovereign seat, funded x402 wallet.
+    name: 'brittney-plus',
+    role: 'Sovereign Engineer',
+    description:
+      'Large sovereign cognitive engine — the brain edge Brittney escalates to. Full-surface engineering + orchestration.',
+    status: 'offline',
+    currentTask: null,
+    lastAction: null,
+    lastActionAt: null,
+    icon: 'B+',
+  },
+  {
+    name: 'holoclaw',
+    role: 'Fleet Compute',
+    description:
+      'Heavy-compute fleet worker — world render, solvers, and repair jobs on GPU.',
+    status: 'offline',
+    currentTask: null,
+    lastAction: null,
+    lastActionAt: null,
+    icon: 'HC',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -94,6 +118,8 @@ const AGENT_COLORS: Record<string, string> = {
   Daemon: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   Absorb: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   Oracle: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  'brittney-plus': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  holoclaw: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
 };
 
 // ---------------------------------------------------------------------------
