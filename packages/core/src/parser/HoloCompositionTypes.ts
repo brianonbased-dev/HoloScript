@@ -156,6 +156,12 @@ export interface HoloComposition extends HoloNode {
   metanorms?: HoloMetanorm[];
   /** SimulationContract block (v6.3) — preconditions → invariants → receipt */
   contract?: HoloContract;
+  /** Named pub/sub topic declarations (v6.4) */
+  topics?: HoloTopic[];
+  /** Typed directional channels between nodes (v6.4) */
+  channels?: HoloChannel[];
+  /** Declarative natural-language graph connections (v6.4) */
+  connections?: HoloConnection[];
 }
 
 // =============================================================================
@@ -2358,4 +2364,71 @@ export interface HoloContract extends HoloNode {
    * Keys are field names; values are type annotations (string).
    */
   receipt: Record<string, string>;
+}
+
+// =============================================================================
+// PUB/SUB MESSAGING PRIMITIVES (v6.4)
+// =============================================================================
+
+/**
+ * Named pub/sub topic declaration.
+ *
+ * ```holoscript
+ * topic InventoryUpdate {
+ *   type: "InventoryDelta"
+ *   broadcast: true
+ * }
+ * ```
+ */
+export interface HoloTopic extends HoloNode {
+  type: 'Topic';
+  name: string;
+  /** Payload type annotation (string label, not validated by parser). */
+  dataType?: string;
+  /** When true, all subscribers receive every message (fan-out). */
+  broadcast?: boolean;
+  /** Additional key-value metadata. */
+  metadata?: Record<string, HoloValue>;
+}
+
+/**
+ * Typed directional channel connecting two named nodes.
+ *
+ * ```holoscript
+ * channel PlayerUpdates {
+ *   from: PlayerState
+ *   to: HUD
+ *   capacity: 64
+ * }
+ * ```
+ */
+export interface HoloChannel extends HoloNode {
+  type: 'Channel';
+  name: string;
+  /** Source node name. */
+  from?: string;
+  /** Destination node name. */
+  to?: string;
+  /** Maximum buffered messages (0 = unbounded). */
+  capacity?: number;
+  /** Additional key-value metadata. */
+  metadata?: Record<string, HoloValue>;
+}
+
+/**
+ * Declarative natural-language graph connection.
+ *
+ * ```holoscript
+ * connect PlayerState to HUD
+ * connect PlayerState to HUD as "updates"
+ * ```
+ */
+export interface HoloConnection extends HoloNode {
+  type: 'Connection';
+  /** Source node identifier. */
+  from: string;
+  /** Destination node identifier. */
+  to: string;
+  /** Optional edge-type label (the string after `as`). */
+  edgeType?: string;
 }

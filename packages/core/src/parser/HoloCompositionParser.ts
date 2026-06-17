@@ -126,6 +126,9 @@ import type {
   PlatformConstraint,
   HoloContract,
   HoloContractClause,
+  HoloTopic,
+  HoloChannel,
+  HoloConnection,
 } from './HoloCompositionTypes';
 import { parsePipeline as parsePipelineSource } from './PipelineParser';
 import { TypoDetector } from './TypoDetector';
@@ -429,6 +432,16 @@ export class HoloCompositionParser {
           // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
         } else if (this.check('HOLO_CONTRACT')) {
           composition.contract = this.parseContractBlock();
+          // Pub/sub messaging primitives (v6.4)
+        } else if (this.check('HOLO_TOPIC')) {
+          if (!composition.topics) composition.topics = [];
+          composition.topics.push(this.parseTopicBlock());
+        } else if (this.check('HOLO_CHANNEL')) {
+          if (!composition.channels) composition.channels = [];
+          composition.channels.push(this.parseChannelBlock());
+        } else if (this.check('CONNECT')) {
+          if (!composition.connections) composition.connections = [];
+          composition.connections.push(this.parseConnectionStmt());
           // MMO/AAA game constructs (v6.2)
         } else if (this.check('LOOT_TABLE')) {
           composition.lootTables!.push(this.parseLootTable());
@@ -788,6 +801,16 @@ export class HoloCompositionParser {
           // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
         } else if (this.check('HOLO_CONTRACT')) {
           composition.contract = this.parseContractBlock();
+          // Pub/sub messaging primitives (v6.4)
+        } else if (this.check('HOLO_TOPIC')) {
+          if (!composition.topics) composition.topics = [];
+          composition.topics.push(this.parseTopicBlock());
+        } else if (this.check('HOLO_CHANNEL')) {
+          if (!composition.channels) composition.channels = [];
+          composition.channels.push(this.parseChannelBlock());
+        } else if (this.check('CONNECT')) {
+          if (!composition.connections) composition.connections = [];
+          composition.connections.push(this.parseConnectionStmt());
           // MMO/AAA game constructs (v6.2)
         } else if (this.check('LOOT_TABLE')) {
           composition.lootTables!.push(this.parseLootTable());
@@ -6536,6 +6559,137 @@ export class HoloCompositionParser {
       invariants,
       receipt,
     };
+  }
+
+  // ── Pub/sub messaging primitives (v6.4) ───────────────────────────────────
+
+  /** Parse `topic Name { type: "T" broadcast: true }` */
+  private parseTopicBlock(): HoloTopic {
+    const startLoc = this.currentLocation();
+    this.advance(); // consume HOLO_TOPIC
+
+    const name = this.check('IDENTIFIER') ? this.expectIdentifier() : 'unnamed';
+    const metadata: Record<string, HoloValue> = {};
+    let dataType: string | undefined;
+    let broadcast: boolean | undefined;
+
+    if (this.check('LBRACE')) {
+      this.advance();
+      this.skipNewlines();
+      while (!this.check('RBRACE') && !this.isAtEnd()) {
+        this.skipNewlines();
+        if (this.check('RBRACE') || this.check('NEWLINE')) { if (!this.check('RBRACE')) this.advance(); continue; }
+        // Accept any token as a property key (keywords like 'type' may not be IDENTIFIER)
+        const key = this.current().value;
+        this.advance();
+        if (this.check('COLON')) this.advance();
+        if (key === 'type' || key === 'dataType') {
+          dataType = this.check('STRING') ? this.expectString()
+            : this.check('IDENTIFIER') ? this.expectIdentifier() : (this.advance(), undefined);
+        } else if (key === 'broadcast') {
+          broadcast = this.current().value === 'true';
+          this.advance();
+        } else if (this.check('LBRACE') || this.check('STRING') || this.check('NUMBER') ||
+                   this.check('IDENTIFIER') || this.check('LBRACKET')) {
+          metadata[key] = this.parseValue();
+        }
+        if (this.check('COMMA')) this.advance();
+        this.skipNewlines();
+      }
+      this.expect('RBRACE');
+    }
+
+    const topic: HoloTopic = {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'Topic',
+      name,
+    };
+    if (dataType !== undefined) topic.dataType = dataType;
+    if (broadcast !== undefined) topic.broadcast = broadcast;
+    if (Object.keys(metadata).length > 0) topic.metadata = metadata;
+    return topic;
+  }
+
+  /** Parse `channel Name { from: A to: B capacity: N }` */
+  private parseChannelBlock(): HoloChannel {
+    const startLoc = this.currentLocation();
+    this.advance(); // consume HOLO_CHANNEL
+
+    const name = this.check('IDENTIFIER') ? this.expectIdentifier() : 'unnamed';
+    const metadata: Record<string, HoloValue> = {};
+    let from: string | undefined;
+    let to: string | undefined;
+    let capacity: number | undefined;
+
+    if (this.check('LBRACE')) {
+      this.advance();
+      this.skipNewlines();
+      while (!this.check('RBRACE') && !this.isAtEnd()) {
+        this.skipNewlines();
+        if (this.check('RBRACE') || this.check('NEWLINE')) { if (!this.check('RBRACE')) this.advance(); continue; }
+        // Accept any token as a property key (keywords like 'from'/'to' may not be IDENTIFIER)
+        const key = this.current().value;
+        this.advance();
+        if (this.check('COLON')) this.advance();
+        if (key === 'from') {
+          from = this.check('STRING') ? this.expectString()
+            : this.check('IDENTIFIER') ? this.expectIdentifier() : undefined;
+        } else if (key === 'to') {
+          to = this.check('STRING') ? this.expectString()
+            : this.check('IDENTIFIER') ? this.expectIdentifier() : undefined;
+        } else if (key === 'capacity') {
+          capacity = this.check('NUMBER') ? Number(this.current().value) : undefined;
+          if (capacity !== undefined) this.advance();
+        } else if (this.check('LBRACE') || this.check('STRING') || this.check('NUMBER') ||
+                   this.check('IDENTIFIER') || this.check('LBRACKET')) {
+          metadata[key] = this.parseValue();
+        }
+        if (this.check('COMMA')) this.advance();
+        this.skipNewlines();
+      }
+      this.expect('RBRACE');
+    }
+
+    const ch: HoloChannel = {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'Channel',
+      name,
+    };
+    if (from !== undefined) ch.from = from;
+    if (to !== undefined) ch.to = to;
+    if (capacity !== undefined) ch.capacity = capacity;
+    if (Object.keys(metadata).length > 0) ch.metadata = metadata;
+    return ch;
+  }
+
+  /** Parse `connect Identifier to Identifier [as "edgeType"]` */
+  private parseConnectionStmt(): HoloConnection {
+    const startLoc = this.currentLocation();
+    this.advance(); // consume CONNECT
+
+    const from = this.check('IDENTIFIER') ? this.expectIdentifier() : '';
+
+    // consume optional 'to' keyword (parsed as IDENTIFIER with value "to")
+    if (this.check('IDENTIFIER') && this.current().value === 'to') this.advance();
+
+    const to = this.check('IDENTIFIER') ? this.expectIdentifier() : '';
+
+    let edgeType: string | undefined;
+    // consume optional `as "type"`
+    if (this.check('IDENTIFIER') && this.current().value === 'as') {
+      this.advance();
+      if (this.check('STRING')) edgeType = this.expectString();
+      else if (this.check('IDENTIFIER')) edgeType = this.expectIdentifier();
+    }
+
+    const conn: HoloConnection = {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'Connection',
+      from,
+      to,
+    };
+    if (edgeType !== undefined) conn.edgeType = edgeType;
+    return conn;
   }
 
   /**

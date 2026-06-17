@@ -286,6 +286,9 @@ export type TokenType =
   | 'REAL_ESTATE'
   // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
   | 'HOLO_CONTRACT'
+  // Pub/sub messaging primitives (v6.4)
+  | 'HOLO_TOPIC'
+  | 'HOLO_CHANNEL'
   // Process pipeline directives (.hs format — v5)
   | 'CONNECT'
   | 'EXECUTE'
@@ -565,6 +568,9 @@ export const KEYWORDS: Record<string, TokenType> = {
   tip_jar: 'TIP_JAR',
   // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
   sim_contract: 'HOLO_CONTRACT',
+  // Pub/sub messaging primitives (v6.4)
+  topic: 'HOLO_TOPIC',
+  channel: 'HOLO_CHANNEL',
   // v6 Universal domains (v5.4 — Domains Unified)
   service: 'SERVICE_BLOCK',
   endpoint: 'ENDPOINT_BLOCK',
