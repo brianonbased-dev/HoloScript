@@ -10,6 +10,8 @@ import { describe, expect, test } from 'vitest';
 import {
   parseFleetSpec,
   pickFleetModel,
+  embedAcrossFleet,
+  cosineSimilarity,
   type FleetSpec,
   type FetchLike,
 } from '../fleet-router';
@@ -174,5 +176,151 @@ describe('pickFleetModel routing', () => {
     const fetchImpl = fakeFetch({ 'http://holojetson.local:11434': { tags: ['qwen3:4b'], ps: [] } });
     const route = await pickFleetModel(SPEC, { resolveEndpoint: onlyJetson, fetchImpl });
     expect(route!.handle).toBe('jetson-orin');
+  });
+
+  // Regression: a model pulled by bare name (`ollama pull nomic-embed-text`) is
+  // reported by /api/tags as `nomic-embed-text:latest`. A bare request MUST still
+  // match it (this was live: embed routing fell back to a chat model and returned null).
+  test('a bare requested model matches a `:latest`-tagged install (and echoes the bare name)', async () => {
+    const fetchImpl = fakeFetch({
+      'http://holojetson.local:11434': { tags: ['nomic-embed-text:latest', 'qwen3:4b-instruct'], ps: [] },
+    });
+    const route = await pickFleetModel(SPEC, { model: 'nomic-embed-text', resolveEndpoint, fetchImpl });
+    expect(route!.handle).toBe('jetson-orin');
+    expect(route!.model).toBe('nomic-embed-text'); // echoes the caller's form; Ollama resolves :latest
+    expect(route!.reason).not.toContain('not installed');
+  });
+
+  test('warm-preference still works through `:latest` normalization', async () => {
+    const fetchImpl = fakeFetch({
+      'http://holojetson.local:11434': { tags: ['nomic-embed-text:latest'], ps: [] }, // installed, cold
+      'http://192.168.0.23:11434': {
+        tags: ['nomic-embed-text:latest'],
+        ps: [{ name: 'nomic-embed-text:latest', vram: 300_000_000 }], // warm here
+      },
+    });
+    const route = await pickFleetModel(SPEC, { model: 'nomic-embed-text', resolveEndpoint, fetchImpl });
+    expect(route!.handle).toBe('laptop-rtx3060'); // warm beats cold despite the :latest tag
+    expect(route!.warm).toBe(true);
+  });
+});
+
+/**
+ * Build an injected fetch that, beyond /api/tags and /api/ps, answers Ollama's
+ * `POST /api/embed`. `embed` maps baseURL → the vector that node returns (or a
+ * sentinel to force a non-ok response / the legacy single-vector shape).
+ */
+function fakeFetchWithEmbed(
+  nodes: Record<string, { tags: string[]; ps?: Array<{ name: string; vram: number }> }>,
+  embed: Record<string, { ok?: boolean; embeddings?: number[][]; embedding?: number[] }>
+): FetchLike {
+  return async (url: string, init?: { method?: string; body?: string }) => {
+    if (url.endsWith('/api/embed')) {
+      const base = url.replace(/\/api\/embed$/, '');
+      const e = embed[base];
+      if (!e || e.ok === false) return { ok: false, json: async () => ({}) };
+      return { ok: true, json: async () => ({ embeddings: e.embeddings, embedding: e.embedding }) };
+    }
+    const base = url.replace(/\/api\/(tags|ps)$/, '');
+    const node = nodes[base];
+    if (!node) throw new Error('ECONNREFUSED');
+    if (url.endsWith('/api/tags')) {
+      return { ok: true, json: async () => ({ models: node.tags.map((name) => ({ name })) }) };
+    }
+    return {
+      ok: true,
+      json: async () => ({ models: (node.ps ?? []).map((p) => ({ name: p.name, size_vram: p.vram })) }),
+    };
+  };
+}
+
+describe('embedAcrossFleet', () => {
+  test('routes the embed to the node that has nomic-embed-text and returns the vector', async () => {
+    const fetchImpl = fakeFetchWithEmbed(
+      {
+        'http://holojetson.local:11434': { tags: ['nomic-embed-text', 'qwen3:4b-instruct'], ps: [] },
+        'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] }, // no embed model here
+      },
+      { 'http://holojetson.local:11434': { embeddings: [[0.1, 0.2, 0.3]] } }
+    );
+    const vec = await embedAcrossFleet('how do HoloScript traits compose?', {
+      spec: SPEC,
+      resolveEndpoint,
+      fetchImpl,
+    });
+    expect(vec).toEqual([0.1, 0.2, 0.3]);
+  });
+
+  test('routes through a `:latest`-tagged nomic install (the live Jetson shape)', async () => {
+    const fetchImpl = fakeFetchWithEmbed(
+      { 'http://holojetson.local:11434': { tags: ['nomic-embed-text:latest', 'qwen3:4b-instruct'], ps: [] } },
+      { 'http://holojetson.local:11434': { embeddings: [[0.4, 0.5, 0.6]] } }
+    );
+    const vec = await embedAcrossFleet('how do HoloScript traits compose?', {
+      spec: SPEC,
+      resolveEndpoint,
+      fetchImpl,
+    });
+    expect(vec).toEqual([0.4, 0.5, 0.6]);
+  });
+
+  test('accepts the legacy single-vector {embedding} response shape', async () => {
+    const fetchImpl = fakeFetchWithEmbed(
+      { 'http://holojetson.local:11434': { tags: ['nomic-embed-text'], ps: [] } },
+      { 'http://holojetson.local:11434': { embedding: [1, 0, 0] } }
+    );
+    const vec = await embedAcrossFleet('x', { spec: SPEC, resolveEndpoint, fetchImpl });
+    expect(vec).toEqual([1, 0, 0]);
+  });
+
+  test('returns null when no node has the embed model installed (best-effort)', async () => {
+    const fetchImpl = fakeFetchWithEmbed(
+      {
+        'http://holojetson.local:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
+        'http://192.168.0.23:11434': { tags: ['qwen3:4b-instruct'], ps: [] },
+      },
+      {}
+    );
+    // pickFleetModel falls back to a chat model → picked.model !== nomic → null.
+    const vec = await embedAcrossFleet('x', { spec: SPEC, resolveEndpoint, fetchImpl });
+    expect(vec).toBeNull();
+  });
+
+  test('returns null when /api/embed responds non-ok (node down mid-embed)', async () => {
+    const fetchImpl = fakeFetchWithEmbed(
+      { 'http://holojetson.local:11434': { tags: ['nomic-embed-text'], ps: [] } },
+      { 'http://holojetson.local:11434': { ok: false } }
+    );
+    const vec = await embedAcrossFleet('x', { spec: SPEC, resolveEndpoint, fetchImpl });
+    expect(vec).toBeNull();
+  });
+
+  test('returns null when no fleet spec is available (no brain → no embed route)', async () => {
+    const vec = await embedAcrossFleet('x', { resolveEndpoint, fetchImpl: fakeFetch({}) });
+    expect(vec).toBeNull();
+  });
+});
+
+describe('cosineSimilarity', () => {
+  test('identical vectors → 1', () => {
+    expect(cosineSimilarity([1, 2, 3], [1, 2, 3])).toBeCloseTo(1, 10);
+  });
+  test('orthogonal vectors → 0', () => {
+    expect(cosineSimilarity([1, 0], [0, 1])).toBe(0);
+  });
+  test('opposite vectors → -1', () => {
+    expect(cosineSimilarity([1, 1], [-1, -1])).toBeCloseTo(-1, 10);
+  });
+  test('length mismatch → 0 (no throw)', () => {
+    expect(cosineSimilarity([1, 2, 3], [1, 2])).toBe(0);
+  });
+  test('zero vector → 0 (no NaN from divide-by-zero)', () => {
+    expect(cosineSimilarity([0, 0, 0], [1, 2, 3])).toBe(0);
+  });
+  test('ranks a closer vector above a farther one', () => {
+    const q = [1, 0.5, 0];
+    const near = cosineSimilarity(q, [1, 0.4, 0]);
+    const far = cosineSimilarity(q, [0, 0, 1]);
+    expect(near).toBeGreaterThan(far);
   });
 });

@@ -83,7 +83,7 @@ export interface FleetRoute extends FleetCandidate {
 /** Minimal `fetch` shape so tests can inject a fake without a real network. */
 export type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string>; signal?: AbortSignal }
+  init?: { method?: string; headers?: Record<string, string>; signal?: AbortSignal; body?: string }
 ) => Promise<{ ok: boolean; json(): Promise<unknown> }>;
 
 export interface FleetRouteOptions {
@@ -297,6 +297,21 @@ export async function discoverNode(
  * Returns null only when NO fleet node is reachable (caller falls back to the
  * single-endpoint local picker / configured provider).
  */
+/**
+ * Ollama stores a model pulled by bare name (`ollama pull nomic-embed-text`) as
+ * `nomic-embed-text:latest` and reports that suffixed tag in `/api/tags`, yet it
+ * accepts the bare name in `/api/embed` and `/api/chat`. So a request for the bare
+ * name must match the `:latest` tag, or any bare-pulled model (the common case)
+ * silently fails to route. Normalize a trailing `:latest` away for comparison.
+ */
+function normalizeModelTag(name: string): string {
+  return name.endsWith(':latest') ? name.slice(0, -':latest'.length) : name;
+}
+/** True if two Ollama model names refer to the same model (`:latest`-tolerant). */
+function sameModel(a: string, b: string): boolean {
+  return a === b || normalizeModelTag(a) === normalizeModelTag(b);
+}
+
 export async function pickFleetModel(
   spec: FleetSpec,
   opts: FleetRouteOptions = {}
@@ -328,7 +343,11 @@ export async function pickFleetModel(
   // Choose the target model: the requested one if any reachable node has it;
   // else the first declared model that is actually installed somewhere; else the
   // best-installed model on the least-loaded node (so the fleet always answers).
-  const installedSomewhere = (model: string): boolean => discovered.some((d) => d.installed.includes(model));
+  // `:latest`-tolerant so a bare-pulled model (reported as `name:latest`) still matches.
+  const installedSomewhere = (model: string): boolean =>
+    discovered.some((d) => d.installed.some((inst) => sameModel(inst, model)));
+  const warmSomewhere = (warm: Set<string>, model: string): boolean =>
+    [...warm].some((w) => sameModel(w, model));
 
   let targetModel: string | undefined;
   if (requested && installedSomewhere(requested)) {
@@ -342,8 +361,8 @@ export async function pickFleetModel(
   if (targetModel) {
     const model = targetModel;
     candidates = discovered
-      .filter((d) => d.installed.includes(model))
-      .map((d) => ({ handle: d.handle, baseURL: d.baseURL, model, warm: d.warm.has(model), loadScore: d.loadScore }));
+      .filter((d) => d.installed.some((inst) => sameModel(inst, model)))
+      .map((d) => ({ handle: d.handle, baseURL: d.baseURL, model, warm: warmSomewhere(d.warm, model), loadScore: d.loadScore }));
   } else {
     // No shared/declared model installed anywhere → each node offers its own
     // first installed model. Routing then just picks the freest GPU.
@@ -384,4 +403,56 @@ export async function resolveLocalFleet(
   const route = await pickFleetModel(spec, opts);
   if (!route) return null;
   return { baseURL: route.baseURL, model: route.model, route };
+}
+
+// ── Embeddings (the fleet routes embed requests too, not just chat) ─────────────
+
+/**
+ * Embed `text` via the fleet's embedding model, routed to whichever OWNED node has
+ * it installed (default `nomic-embed-text` → the Jetson model store). Reuses the
+ * same registry-handle endpoint resolution + live `/api/tags` discovery as chat
+ * routing, then calls Ollama `POST /api/embed`. Returns the vector, or `null` on
+ * ANY miss (no fleet / node down / model absent / bad response) so callers treat
+ * embeddings as best-effort (a retrieval miss never breaks the turn). $0 — owned metal.
+ */
+export async function embedAcrossFleet(
+  text: string,
+  opts: FleetRouteOptions & { brainPath?: string; spec?: FleetSpec; embedModel?: string } = {}
+): Promise<number[] | null> {
+  const embedModel = opts.embedModel ?? 'nomic-embed-text';
+  // Route to a node that actually has the embed model (pickFleetModel re-discovers
+  // installed models via /api/tags, so the embed model need not be declared in the
+  // @model_fleet brain — it just has to be installed somewhere reachable).
+  const picked = await resolveLocalFleet({ ...opts, model: embedModel });
+  if (!picked || picked.model !== embedModel) return null; // embed model not reachable on the fleet
+  const fetchImpl = opts.fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
+  try {
+    const r = await fetchImpl(`${picked.baseURL.replace(/\/$/, '')}/api/embed`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: embedModel, input: text }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 15000),
+    });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { embeddings?: number[][]; embedding?: number[] };
+    const vec = j.embeddings?.[0] ?? j.embedding;
+    return Array.isArray(vec) && vec.length > 0 ? vec : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Cosine similarity of two equal-length vectors. Returns 0 on mismatch / zero-norm. */
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length || a.length === 0) return 0;
+  let dot = 0;
+  let na = 0;
+  let nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  const denom = Math.sqrt(na) * Math.sqrt(nb);
+  return denom === 0 ? 0 : dot / denom;
 }

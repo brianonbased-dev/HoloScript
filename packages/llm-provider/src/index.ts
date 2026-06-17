@@ -219,6 +219,8 @@ export {
   discoverNode,
   pickFleetModel,
   resolveLocalFleet,
+  embedAcrossFleet,
+  cosineSimilarity,
 } from './fleet-router';
 export type {
   FleetNode,
