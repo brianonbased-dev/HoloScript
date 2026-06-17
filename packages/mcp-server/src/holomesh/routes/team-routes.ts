@@ -1596,14 +1596,23 @@ export async function handleTeamRoutes(
     let entries = mergeTeamKnowledgeWithOrchestrator(fromOrch, team.knowledge);
     if (typeFilter) entries = entries.filter((e) => e.type === typeFilter);
     if (q) {
-      const needle = q.toLowerCase();
-      entries = entries.filter((e) =>
-        `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle)
-      );
+      // `q` present → a RELEVANCE query. mergeTeamKnowledgeWithOrchestrator leads
+      // with `fromOrch`, which the orchestrator already ranked by relevance
+      // (HoloEmbed embedding search — the canonical semantic surface). Previously
+      // this handler then (a) substring-filtered, dropping semantically-relevant
+      // entries that don't literally contain the query word, AND (b) re-sorted by
+      // createdAt, discarding the relevance ranking entirely — both defeat semantic
+      // recall. The edge cognitive verb `rag_query` hits this exact route, so the
+      // filter+recency-sort was turning embedding search into keyword-then-newest.
+      // Trust the orchestrator's ranked order; just cap to `limit`.
+      entries = entries.slice(0, limit);
+    } else {
+      // No query → browse. Newest-first is correct here (the GOLD graduation
+      // staging pipeline depends on recency order, 2026-05-26).
+      entries = entries
+        .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+        .slice(0, limit);
     }
-    entries = entries
-      .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
-      .slice(0, limit);
     json(res, 200, { success: true, workspace_id: workspaceId, entries, count: entries.length });
     return true;
   }
