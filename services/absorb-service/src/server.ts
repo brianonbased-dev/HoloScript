@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { SERVICE_VERSION } from './version.js';
+import { hydrateServiceSecrets } from './boot-secrets.js';
 import { ensureMoltbookSchema } from './db/ensureMoltbookSchema.js';
 import { getDb, closeDb } from './db/client.js';
 import { authMiddleware } from './middleware/auth.js';
@@ -281,6 +282,14 @@ import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
 
 async function start(): Promise<void> {
   requireConfig([...REQUIRED_VARS.ABSORB_SERVICE], 'absorb-service');
+  // HoloKey Phase 2: hydrate LLM/config secrets from the shared vault before any provider is built.
+  // Fail-safe — never throws; keys absent from the vault are left as their process.env values.
+  await hydrateServiceSecrets([
+    'ANTHROPIC_API_KEY',
+    'OPENAI_API_KEY',
+    'OPENROUTER_API_KEY',
+    'XAI_API_KEY',
+  ]);
   await ensureMoltbookSchema();
   await backgroundHealthProbe();
   startBackgroundHealthProbes();

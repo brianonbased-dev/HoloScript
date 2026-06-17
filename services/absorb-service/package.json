@@ -22,6 +22,7 @@
     "@holoscript/absorb-service": "workspace:*",
     "@holoscript/config": "workspace:*",
     "@holoscript/core": "workspace:*",
+    "@holoscript/secrets-broker": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",
     "csv-stringify": "^6.7.0",

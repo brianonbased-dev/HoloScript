@@ -3883,6 +3883,9 @@ importers:
       '@holoscript/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@holoscript/secrets-broker':
+        specifier: workspace:^
+        version: link:../../packages/secrets-broker
       '@modelcontextprotocol/sdk':
         specifier: ^1.27.1
         version: 1.29.0(zod@4.4.3)
