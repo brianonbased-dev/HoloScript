@@ -113,9 +113,11 @@ traits [
   endpoints: "resolved by handle from config/sovereign-devices/<handle>.json (LAN-absolute, never hardcoded)"
   strategy: "least-loaded"
   warm_preferred: true
+  primary: "jetson-orin"
+  primary_max_load_gb: "6"
   blacklist: ["qwen2.5"]
   discover: "per node: GET <registry-endpoint>/api/tags (installed) + /api/ps (warm + VRAM load)"
-  route: "pick (node, model): a reachable node that HAS the model, preferring where it is warm, else the least-loaded GPU — so repeated calls fan out across both cards"
+  route: "pick (node, model): the PRIMARY (jetson-orin) carries the main inference load and wins until its VRAM passes primary_max_load_gb; then the laptop GPU comes in 'on top' (overflow), chosen warm-first then least-loaded. The always-on Jetson is the default brain; the laptop is opt-in extra capacity, not the daily-driver's burden."
   escalate: "both local GPUs saturated AND task exceeds them → escalateTo fleet (Vast, scale-to-zero)"
 }
 
