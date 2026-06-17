@@ -160,7 +160,9 @@
     "render:competitor-gap-matrix": "node scripts/render-competitor-gap-matrix.mjs",
     "conjecture:runner": "tsx scripts/conjecture-runner.ts",
     "conjecture:cost-cell": "tsx scripts/conjecture-cost-cell.ts",
-    "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs"
+    "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs",
+    "check:trait-parity": "node scripts/holo-ci/check-trait-parity.mjs",
+    "check:trait-parity:verbose": "node scripts/holo-ci/check-trait-parity.mjs --verbose"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

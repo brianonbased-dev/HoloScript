@@ -30,6 +30,14 @@
 
 ---
 
+## Promote Noop Traits to Full BrowserRuntime Handlers (trait parity graduation)
+
+**What might be valuable**: 78 traits are currently classified as no-op in `TRAIT_NOOP_MANIFEST.json` because they have no `TraitSystem.register()` handler in BrowserRuntime. Many of these (e.g. `chain`, `crowd_sim`, `soft_body_pro`, `gaussian_splat`, `ambisonics`, `hrtf`, `bloom`, `orbit`, `follow`, `data_binding`, `sensor`) represent real runtime behaviors that could run in the browser given handler implementations. Graduating them one-by-one converts the manifest from a classification list into a shrink-toward-zero ratchet — the same pattern used for the render-surface allowlist. Each graduation is also evidence that R3FCompiler output is provably load-bearing on that trait, informing which compiler branches can safely retire vs. which must be preserved in a native compiler.
+
+**Why not now**: BrowserRuntime is the Three.js runtime, not the canonical forward-looking runtime (that is the native `.holo` path via HoloScript's own engine). Adding handlers here grows the legacy surface rather than burning it down. The interlock is the parity gate itself: once it is green (all 101 traits classified), the R3FCompiler retirement sequencing can begin — and the correct action for each noop trait is to decide whether it needs a native handler or whether its semantics are subsumed by the new compiler target. The graduation work should happen in the context of that retirement plan (research/2026-06-15_trait-parity-and-tsx-deprecation.md), not as isolated BrowserRuntime additions.
+
+---
+
 ## Trait-Backed Cognitive Verb Dispatch in AgentRunner (Phase 2.2 — `recall`/`rag_query`/`plan`)
 
 **What might be valuable**: Fleet agents that author `recall { query: "…" }`, `rag_query { query: "…" }`, and `plan { goal: "…" }` in their `behavior on_task {}` block would have those verbs dispatched to real trait-backed stores — `AgentMemoryTrait` (per-agent episodic memory), `RAGKnowledgeTrait` (the HoloMesh knowledge graph), and `GoalOrientedTrait` (GOAP A*-planner) — before the main `llm_call` loop fires. The effect: agents load prior task context, HoloScript syntax rules, and a structured plan into the LLM's context window, replacing the current hardcoded single-prompt approach. This closes the last "declarative shell" gap (W.712) for the three memory/planning verbs, making `behavior on_task` fully executable end-to-end. The event wiring already exists: `CognitiveActions.ts` has the verb→event map; `BehaviorTreeTrait.tickCognitive` can dispatch each verb; `LocalLLMTrait._chat` is the execution endpoint. The missing piece is an `AgentRunner`-compatible execution context that carries an event bus + the relevant trait instances without pulling in the full engine runtime.
