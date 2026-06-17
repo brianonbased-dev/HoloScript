@@ -1,44 +1,46 @@
 /**
- * mcp-server HoloKey resolver — Phase 2, the first consumer cutover.
+ * mcp-server HoloKey resolver + one-shot env→vault migration — Phase 2.
  *
  * Resolves a service config secret from the HoloKey vault (the prod Postgres + the shared
  * `HOLOKEY_PROD_KEK_*` KEK) if it's there, else from `process.env`. A consumer swaps
- * `process.env.ANTHROPIC_API_KEY` for `await resolveServiceSecret('ANTHROPIC_API_KEY')`
- * and behavior is IDENTICAL until that key is put in the vault — then it transparently
- * resolves from the vault. No boot coupling: the pool + resolver are built lazily on first
- * call (never at import/boot).
+ * `process.env.ANTHROPIC_API_KEY` for `await resolveServiceSecret('ANTHROPIC_API_KEY')` and
+ * behavior is IDENTICAL until that key is put in the vault — then it transparently resolves
+ * from the vault. No boot coupling: the pool + vault are built lazily on first call.
  *
- * Fail-safe by construction (premortem requirements):
- *   - The pg pool init AND the `SECRET_STORE_DDL` apply each have their OWN try/catch — a
- *     DB/perms/schema failure NEVER throws into a caller; resolves just fall back to env.
- *   - `createServiceSecretResolver` emits ONE explicit affirmation log on first resolve
- *     (`[holokey] vault ON … backend=postgres kek=production` or `vault OFF …`) so a
- *     silently-off vault is observable in the service logs.
+ * `migrateEnvKeys` is the "set once" step run INSIDE the service: it copies named secrets from
+ * `process.env` into the vault (owner-scoped, idempotent), so the value reads from the service's
+ * own env and never transits a wire as plaintext beyond the encrypted store.
  *
- * Owner identity: `HOLOKEY_OWNER` (default `infra`) — the service resolves its own config.
+ * Fail-safe by construction (premortem): the pg pool init and the `SECRET_STORE_DDL` apply each
+ * have their OWN try/catch — a DB/perms/schema failure NEVER throws into a caller; resolves fall
+ * back to env. `createServiceSecretResolver` logs ONE affirmation line (vault ON/OFF) on first use.
  *
  * @module mcp-server/holokey-resolver
  */
 import { Pool } from 'pg';
 import {
+  createHoloKeyVault,
   createServiceSecretResolver,
   SECRET_STORE_DDL,
+  type HoloKeyVault,
   type ServiceSecretResolver,
 } from '@holoscript/secrets-broker';
 
-let cached: ServiceSecretResolver | null = null;
+const OWNER = process.env.HOLOKEY_OWNER || 'infra';
 
-function build(): ServiceSecretResolver {
-  if (cached) return cached;
+let built = false;
+let vault: HoloKeyVault | null = null;
+let resolver: ServiceSecretResolver | null = null;
+
+function ensure(): void {
+  if (built) return;
+  built = true;
 
   let query: ((sql: string, params: readonly unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>) | undefined;
   const dbUrl = process.env.DATABASE_URL;
   if (dbUrl) {
     try {
       const pool = new Pool({ connectionString: dbUrl, max: 2 });
-      // Best-effort schema apply. Until it completes, resolves fall back to process.env
-      // (a missing table makes the store's get() throw, which the resolver catches). The
-      // apply is in its OWN catch — a DDL/perms failure NEVER bricks a caller (premortem).
       void pool.query(SECRET_STORE_DDL).catch((e: unknown) => {
         // eslint-disable-next-line no-console
         console.warn(
@@ -54,12 +56,8 @@ function build(): ServiceSecretResolver {
     }
   }
 
-  cached = createServiceSecretResolver({
-    env: process.env,
-    query,
-    owner: process.env.HOLOKEY_OWNER || 'infra',
-  });
-  return cached;
+  vault = createHoloKeyVault({ env: process.env, query });
+  resolver = createServiceSecretResolver({ vault, env: process.env, owner: OWNER });
 }
 
 /**
@@ -67,5 +65,40 @@ function build(): ServiceSecretResolver {
  * owner, decrypted at use-time), else `process.env[name]`. Never throws; fully fallback-safe.
  */
 export function resolveServiceSecret(name: string): Promise<string | undefined> {
-  return build().resolve(name);
+  ensure();
+  return resolver!.resolve(name);
+}
+
+/**
+ * One-shot migration: copy the named secrets from `process.env` INTO the vault (owner=OWNER),
+ * idempotent (skips ones already stored). Returns NAMES only — never a value.
+ */
+export async function migrateEnvKeys(
+  names: readonly string[]
+): Promise<{ vaultOff: boolean; owner: string; migrated: string[]; skipped: string[] }> {
+  ensure();
+  const migrated: string[] = [];
+  const skipped: string[] = [];
+  if (!vault) return { vaultOff: true, owner: OWNER, migrated, skipped };
+  for (const name of names) {
+    const value = process.env[name];
+    if (!value) {
+      skipped.push(`${name}:no-env`);
+      continue;
+    }
+    try {
+      // Already in the vault for this owner? skip (idempotent).
+      await vault.resolver.resolve({ authenticatedOwnerId: OWNER, ref: `vault:${name}` });
+      skipped.push(`${name}:exists`);
+    } catch {
+      // Not present (or unreadable) → store it.
+      try {
+        await vault.store.put({ ownerId: OWNER, name, value });
+        migrated.push(name);
+      } catch {
+        skipped.push(`${name}:err`);
+      }
+    }
+  }
+  return { vaultOff: false, owner: OWNER, migrated, skipped };
 }

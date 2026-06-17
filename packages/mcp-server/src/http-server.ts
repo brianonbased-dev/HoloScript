@@ -28,7 +28,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
-import { resolveServiceSecret } from './holokey-resolver';
+import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { _handleSingleToolLogic } from './index';
@@ -1023,6 +1023,30 @@ const httpServer = http.createServer(async (req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
     }
+    return;
+  }
+
+  // HoloKey: migrate named env secrets INTO the vault (owner-scoped, idempotent). Founder-
+  // auth-guarded; names-only response. The Phase 2 "set once" step, run inside the service so
+  // each value reads from its own env and never transits a wire as plaintext (the encrypted
+  // store is the only place it lands). Safe to call repeatedly — already-stored keys are skipped.
+  if (url === '/api/holokey/migrate-env' && req.method === 'POST') {
+    const provided =
+      (req.headers['x-mcp-api-key'] as string | undefined) ??
+      (req.headers['authorization'] as string | undefined)?.replace(/^Bearer\s+/i, '');
+    if (!HOLOSCRIPT_API_KEY || provided !== HOLOSCRIPT_API_KEY) {
+      res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: 'unauthorized' }));
+      return;
+    }
+    const result = await migrateEnvKeys([
+      'ANTHROPIC_API_KEY',
+      'OPENAI_API_KEY',
+      'OPENROUTER_API_KEY',
+      'HOLOSCRIPT_API_KEY',
+    ]);
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(result));
     return;
   }
 
