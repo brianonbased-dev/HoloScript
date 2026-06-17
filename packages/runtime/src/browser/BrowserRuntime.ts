@@ -88,6 +88,12 @@ import {
   PortalTrait,
   MirrorTrait,
 } from '../traits/AdvancedTraits';
+import {
+  AccessibleTrait,
+  AltTextTrait,
+  HighContrastTrait,
+  MotionReducedTrait,
+} from '../traits/AccessibilityTraits';
 import { InputManager } from '../input/InputManager';
 import {
   hasXR,
@@ -1004,6 +1010,12 @@ class BrowserRuntime implements HoloScriptRuntime {
     this.traitSystem.register(LuckTrait);
     this.traitSystem.register(EncounterTrait);
     this.traitSystem.register(DropTableTrait);
+
+    // Accessibility traits
+    this.traitSystem.register(AccessibleTrait);
+    this.traitSystem.register(AltTextTrait);
+    this.traitSystem.register(HighContrastTrait);
+    this.traitSystem.register(MotionReducedTrait);
 
     // Input
     this.inputManager = new InputManager(this.scene, this.camera, this.renderer.domElement);
