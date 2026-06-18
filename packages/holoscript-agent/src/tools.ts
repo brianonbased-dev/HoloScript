@@ -346,17 +346,18 @@ export const MESH_TOOLS: ToolSpec[] = [
     name: 'vision_analyze',
     description:
       'Analyze an image using the local Fara-7B vision model (Ollama on loopback). ' +
-      'Reads the image file at `image_path`, sends it to fara:7b via the local Ollama API, ' +
+      'Reads the image file at `image_path` (max 512KB — downscale larger images first), ' +
+      'sends it to the vision model via the local Ollama API (env: HOLOSCRIPT_AGENT_VISION_MODEL), ' +
       'and returns the model\'s text analysis. ' +
       'Counts as a productive tool call — use for GUI-grounding, visual QA, image captioning, ' +
       'or any task that requires perceiving image content. ' +
-      'Only available on surfaces with a local Ollama instance running fara:7b.',
+      'Only available on surfaces with a local Ollama instance and HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL set.',
     input_schema: {
       type: 'object',
       properties: {
         image_path: {
           type: 'string',
-          description: 'Absolute path to the image file (png, jpg, webp, gif)',
+          description: 'Absolute path to the image file (png, jpg, webp) — must be under 512KB',
         },
         prompt: {
           type: 'string',
@@ -364,7 +365,7 @@ export const MESH_TOOLS: ToolSpec[] = [
         },
         model: {
           type: 'string',
-          description: 'Ollama model tag to use (default: "fara:7b")',
+          description: 'Ollama model tag override (default: HOLOSCRIPT_AGENT_VISION_MODEL env var)',
         },
       },
       required: ['image_path'],
@@ -716,7 +717,11 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       const denied = checkReadAllowed(imagePath);
       if (denied) return errResult(use.id, `vision_analyze: ${denied}`);
       const prompt = String(use.input.prompt ?? 'Describe this image in detail.');
-      const model = String(use.input.model ?? 'fara:7b');
+      // Model: task can override via `model` param; env HOLOSCRIPT_AGENT_VISION_MODEL
+      // is the surface default (set to the full Ollama tag on the device).
+      const model = String(
+        use.input.model ?? process.env.HOLOSCRIPT_AGENT_VISION_MODEL ?? 'fara:7b'
+      );
       // Dedicated local-inference tool — /founder ruled 2026-06-18: NOT a bandaid.
       // SSRF guard in http_request is correct and stays; this tool is a different
       // trust boundary (fixed local model endpoint, path-sandboxed input, env-driven
@@ -725,14 +730,23 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       if (!ollamaBase) {
         return errResult(
           use.id,
-          'vision_analyze: HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL is not set — configure it to point to your local Ollama instance (e.g. http://holojetson.local:11434)'
+          'vision_analyze: HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL is not set — configure it to point to your local Ollama instance'
         );
       }
+      const MAX_IMAGE_BYTES = 512_000; // ~512KB — larger images must be downscaled before passing to vision_analyze
       const TIMEOUT_MS = 120_000;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
         const imageBytes = await readFile(imagePath);
+        if (imageBytes.length > MAX_IMAGE_BYTES) {
+          clearTimeout(timer);
+          return errResult(
+            use.id,
+            `vision_analyze: image is ${Math.round(imageBytes.length / 1024)}KB — exceeds ${MAX_IMAGE_BYTES / 1024}KB limit. ` +
+              'Downscale the image first (e.g. to 256×256 or smaller) then retry vision_analyze.'
+          );
+        }
         const imageB64 = imageBytes.toString('base64');
         const res = await fetch(`${ollamaBase}/api/generate`, {
           method: 'POST',
