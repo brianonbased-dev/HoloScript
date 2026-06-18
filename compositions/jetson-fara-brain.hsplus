@@ -13,6 +13,7 @@ Rules:
 - One tool call at a time. Use the result before the next call.
 - write_file is how you deliver output. Use it with the task-specified path.
 - If a task is unclear, make a reasonable decision and proceed.
+- ANTI-PATTERN: After read_file returns data, do NOT output it as text. Text without write_file = TASK FAILURE. Call write_file immediately.
 
 // NOTE: Fara-7B vision invocation via vision_analyze tool is PLANNED but not yet
 // implemented (tools.ts gap — W.778). Until then, this agent handles text/data
