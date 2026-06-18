@@ -1,3 +1,5 @@
+import { readFile, appendFile, mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import type { BoardTask } from './types.js';
 import type { CaelAuditRecord } from './cael-builder.js';
 
@@ -13,6 +15,14 @@ export interface HolomeshClientOptions {
   fetchImpl?: typeof fetch;
   /** EIP-191 signing function. When present, used on strict endpoints like joinTeam(). */
   signer?: RequestSigner;
+  /**
+   * Local JSONL path for private knowledge (sovereign edge store).
+   * When set, writePrivateKnowledge appends to this file and queryPrivateKnowledge
+   * reads from it instead of routing through the remote orchestrator.
+   * Bypasses the mcp-orchestrator /knowledge/sync 401 gap for edge nodes.
+   * Set via HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH env var (index.ts).
+   */
+  localKnowledgePath?: string;
 }
 
 export interface TeamMessage {
@@ -39,6 +49,7 @@ export class HolomeshClient {
   private readonly teamId: string;
   private readonly fetchImpl: typeof fetch;
   private readonly signer?: RequestSigner;
+  private readonly localKnowledgePath?: string;
 
   constructor(opts: HolomeshClientOptions) {
     this.apiBase = opts.apiBase.replace(/\/$/, '');
@@ -46,6 +57,7 @@ export class HolomeshClient {
     this.teamId = opts.teamId;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.signer = opts.signer;
+    this.localKnowledgePath = opts.localKnowledgePath;
   }
 
   /** Wrap body in a signed envelope when a signer is available (strict-mode endpoints). */
@@ -226,6 +238,14 @@ export class HolomeshClient {
    * client-side. Returns [] on any failure.
    */
   async queryPrivateKnowledge(): Promise<KnowledgeEntry[]> {
+    if (this.localKnowledgePath) {
+      try {
+        const raw = await readFile(this.localKnowledgePath, 'utf8');
+        return raw.trim().split('\n').filter(Boolean).map(l => JSON.parse(l) as KnowledgeEntry);
+      } catch {
+        return [];
+      }
+    }
     try {
       const data = await this.req<{ entries?: KnowledgeEntry[] }>('GET', `/knowledge/private`);
       return data.entries ?? [];
@@ -274,6 +294,23 @@ export class HolomeshClient {
     entries: Array<{ content: string; type?: string; tags?: string[]; title?: string }>
   ): Promise<boolean> {
     if (!entries.length) return false;
+    if (this.localKnowledgePath) {
+      try {
+        await mkdir(dirname(this.localKnowledgePath), { recursive: true });
+        const lines = entries.map(e => JSON.stringify({
+          id: `local.${Date.now()}.${Math.random().toString(36).slice(2, 6)}`,
+          content: e.content,
+          type: e.type ?? 'task-outcome',
+          tags: e.tags ?? [],
+          title: e.title,
+          createdAt: new Date().toISOString(),
+        })).join('\n') + '\n';
+        await appendFile(this.localKnowledgePath, lines, 'utf8');
+        return true;
+      } catch {
+        return false;
+      }
+    }
     try {
       await this.req('POST', `/knowledge/private`, { entries });
       return true;

@@ -140,6 +140,7 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     bearer,
     teamId: identity.teamId,
     signer: buildRequestSigner(seat),
+    localKnowledgePath: process.env.HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH,
   });
 
   const commitHook = buildCommitHook(identity, mesh);
@@ -474,6 +475,7 @@ async function cmdWhoami(): Promise<void> {
     bearer,
     teamId: identity.teamId,
     signer: buildRequestSigner(seat),
+    localKnowledgePath: process.env.HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH,
   });
   const me = await mesh.whoAmI();
   console.log(JSON.stringify({ identity: identityForLog(identity), me }, null, 2));
@@ -569,6 +571,17 @@ interface SeatWallet {
  * overrides the master-key path. Returns undefined when the files are absent.
  */
 function loadSeatWallet(handle: string): SeatWallet | undefined {
+  // Fast path: raw private key in env (edge/sovereign devices that provision via
+  // wallet key directly rather than encrypted seat files, e.g. Jetson).
+  const rawKey = process.env.HOLOSCRIPT_AGENT_WALLET_PRIVATE_KEY;
+  if (rawKey) {
+    try {
+      const wallet = new Wallet(rawKey);
+      return { wallet, address: wallet.address };
+    } catch {
+      // Fall through to seat-file path if key is malformed.
+    }
+  }
   const seatsRoot =
     process.env.HOLOSCRIPT_AGENT_SEATS_ROOT ?? join(homedir(), '.holoscript-agent', 'seats');
   const fp = createHash('sha256').update(hostname() + homedir()).digest('hex').slice(0, 8);
@@ -679,6 +692,8 @@ OPTIONAL ENV
                                      resolves it from the HoloKey broker by proving wallet
                                      ownership (POST /key/challenge → sign → /key/recover), so the
                                      bearer is never stored in plaintext .env. Requires a seat wallet.
+  HOLOSCRIPT_AGENT_WALLET_PRIVATE_KEY raw 0x… private key (edge/sovereign devices without encrypted seat
+                                     files — skips seat-wallet discovery entirely; bearer still required)
   HOLOSCRIPT_AGENT_SEAT_ID           override the computed seat-dir name (e.g. a sovereign x402 seat
                                      "sovereign-<surface>-<fp>-default-x402"); pairs with SEATS_ROOT
   HOLOSCRIPT_AGENT_SEAT_MASTER_KEY   override the master-key path used to decrypt the seat wallet.enc
@@ -695,6 +710,7 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL  local-llm provider base URL (default http://localhost:8080)
   HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL     local-llm model id (e.g. "qwen3:4b-instruct"); overrides HOLOSCRIPT_AGENT_MODEL for the local provider
   HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS  local-llm request timeout in ms (default 300000 — edge devices like Jetson need >120s)
+  HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH  local JSONL path for sovereign private knowledge store (bypasses mcp-orchestrator /knowledge/sync)
 `);
 }
 

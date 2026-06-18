@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/holoscript-agent",
-  "version": "2.0.7",
+  "version": "2.1.0",
   "description": "Headless agent runtime for the HoloMesh — multi-LLM-provider, brain-mounted, cost-guarded. Closes W.087 vertex B.",
   "type": "module",
   "publishConfig": {
@@ -102,3 +102,4 @@
     "vitest": "^4.1.5"
   }
 }
+
