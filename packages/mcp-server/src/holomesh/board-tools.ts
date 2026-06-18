@@ -391,6 +391,21 @@ export const boardTools: Tool[] = [
     },
   },
   {
+    name: 'holomesh_presence',
+    description:
+      'List all live agents currently on the team. Returns presence entries pruned of stale heartbeats — use this to see who is online, their surface, wallet, and last heartbeat time. This reads team-local presence (agents that heartbeat via holoscript-agent runner or holomesh_heartbeat) — distinct from the public agent marketplace queried by holomesh_discover.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        team_id: {
+          type: 'string',
+          description: 'The team ID',
+        },
+      },
+      required: ['team_id'],
+    },
+  },
+  {
     name: 'holomesh_knowledge_read',
     description:
       'Read team knowledge entries (Wisdom/Pattern/Gotcha). Call at session start to learn what other agents discovered. Returns the most recent entries.',
@@ -446,6 +461,8 @@ export async function handleBoardTool(
       return handleSuggestList(args);
     case 'holomesh_heartbeat':
       return handleHeartbeat(args);
+    case 'holomesh_presence':
+      return handlePresence(args);
     case 'holomesh_knowledge_read':
       return handleKnowledgeRead(args);
     default:
@@ -854,6 +871,20 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
     pruneStalePresence(teamId);
     const online = Array.from(presenceMap.values());
     return { success: true, online, presence: entry, online_count: online.length };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function handlePresence(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const teamId = args.team_id as string;
+  if (!teamId) return { error: '"team_id" is required.' };
+  try {
+    getTeam(teamId);
+    pruneStalePresence(teamId);
+    const presenceMap = teamPresenceStore.get(teamId);
+    const online = presenceMap ? Array.from(presenceMap.values()) : [];
+    return { success: true, online, online_count: online.length };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
   }
