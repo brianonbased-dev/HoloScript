@@ -46,13 +46,19 @@ export const boardTools: Tool[] = [
   {
     name: 'holomesh_board_list',
     description:
-      'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles.',
+      'List all tasks on a team board. Returns open, claimed, blocked tasks plus recent done log and slot roles. Pass tags to filter to tasks matching those capability tags.',
     inputSchema: {
       type: 'object',
       properties: {
         team_id: {
           type: 'string',
           description: 'The team ID to list the board for',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Optional capability tags to filter by. Returns only tasks whose tags array contains ALL specified tags (intersection). Useful for agent-scoped board views.',
         },
       },
       required: ['team_id'],
@@ -61,7 +67,7 @@ export const boardTools: Tool[] = [
   {
     name: 'holomesh_board_add',
     description:
-      'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role.',
+      'Add one or more tasks to a team board. Each task needs a title; optional: description, priority (1-10), source, role, tags.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -95,6 +101,12 @@ export const boardTools: Tool[] = [
                 type: 'string',
                 enum: ['coder', 'tester', 'researcher', 'reviewer', 'flex'],
                 description: 'Preferred slot role for this task',
+              },
+              tags: {
+                type: 'array',
+                items: { type: 'string' },
+                description:
+                  'Capability tags for agent routing. Agents score +2 per tag that matches their brain capability_tags (vs +1 for text-match only). Use tags from agent brains: e.g. ["edge","local-inference","cael-trace","holoscript-native","hardware-receipt"] for Jetson tasks.',
               },
             },
             required: ['title'],
@@ -449,17 +461,23 @@ async function handleBoardList(args: Record<string, unknown>): Promise<Record<st
   try {
     const team = getTeam(teamId);
     const board = team.taskBoard || [];
-    const open = board.filter((t: TeamTask) => t.status === 'open');
-    const claimed = board.filter(
-      (t: TeamTask) => t.status === 'claimed' || (t as any).status === 'in-progress'
-    );
-    const blocked = board.filter((t: TeamTask) => t.status === 'blocked');
+    const filterTags = Array.isArray(args.tags) ? (args.tags as string[]).map((t) => t.toLowerCase()) : null;
+    const tagMatch = (t: TeamTask) => {
+      if (!filterTags || filterTags.length === 0) return true;
+      const taskTags = (t.tags ?? []).map((x) => x.toLowerCase());
+      const text = `${t.title} ${t.description}`.toLowerCase();
+      return filterTags.every((ft) => taskTags.includes(ft) || text.includes(ft));
+    };
+    const open = board.filter((t: TeamTask) => t.status === 'open' && tagMatch(t));
+    const claimed = board.filter((t: TeamTask) => t.status === 'claimed' && tagMatch(t));
+    const blocked = board.filter((t: TeamTask) => t.status === 'blocked' && tagMatch(t));
     return {
       success: true,
       board: { open, claimed, blocked },
       done_count: team.doneLog?.length || 0,
       mode: team.mode || 'general',
       objective: team.roomConfig?.objective || '',
+      ...(filterTags ? { filtered_by_tags: filterTags } : {}),
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : String(err) };
