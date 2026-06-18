@@ -52,7 +52,16 @@ Domain context (informational — read for background; the rules above take prec
 
 identity {
   domain: "robotics-edge"
-  capability_tags: ["jetson-test", "holoscript-authoring", "jetson", "local-inference", "edge-node", "ros2-actuation"]
+  capability_tags: [
+    // infrastructure identity
+    "jetson", "jetson-test", "local-inference", "edge-node", "ros2-actuation",
+    // authoring + research
+    "holoscript-authoring", "holoscript-tasks", "holoscript-native", "research", "multi-step",
+    // domain science (Bovine-TB / Paper 37 pipeline)
+    "paper", "vqe", "chemistry", "simulation", "bovine-tb",
+    // agent mechanics
+    "tool-call", "receipt-producer", "cael-trace"
+  ]
   requires: ["local-llm"]
   prefers: []
   avoids: ["frontier-only"]
@@ -210,21 +219,26 @@ behavior on_tick {
 
 behavior on_task {
   // ① Context load — prevent re-doing work the agent already completed
-  recall    { query: "prior HoloScript tasks completed on this node", limit: 5 }
-  rag_query { query: "HoloScript .holo and .hsplus format rules and valid syntax" }
+  recall    { query: "prior tasks completed on this node", limit: 5 }
 
-  // ② Execution — dispatches to LLMAgentTrait → LocalLLMAdapter → holojetson.local:11434
+  // ② Domain context — two rag_queries cover both HoloScript syntax and domain science
+  //    H-2 note: these route to Absorb GraphRAG once the bearer-gated bridge is built (W.754).
+  //    Until then they fall through to keyword search.
+  rag_query { query: "HoloScript .holo .hsplus format rules valid syntax traits" }
+  rag_query { query: "VQE quantum chemistry drug-target simulation bovine tuberculosis Paper 37" }
+
+  // ③ Execution — dispatches to LLMAgentTrait → LocalLLMAdapter → holojetson.local:11434
   //    qwen3:4b-instruct: non-thinking variant — neither /no_think nor think:false is sent
-  //    (W.740/W.741). tools surface write_file/read_file/list_dir/bash to the model.
+  //    (W.740/W.741). tools surface all Week 1-3 shipped tools to the model.
   llm_call {
-    prompt: "You are a HoloScript authoring agent running on a Jetson Orin Nano (Tier-0 sovereign edge node). Complete the assigned board task using the provided tools. ALWAYS call at least one tool — never reply with plain text only. Produce valid HoloScript output artifacts (.holo / .hsplus) when the task requires them.",
+    prompt: "You are an autonomous HoloScript agent on a Jetson Orin Nano (Tier-0 sovereign edge node). Complete the assigned board task using the provided tools. ALWAYS call at least one tool — never reply with plain text only. For science/chemistry tasks: use bash to run calculations or http_request to fetch data; produce a signed artifact. For authoring tasks: produce valid .holo/.hsplus output. Escalate to fleet via delegate_task only when local computation is insufficient.",
     model: "qwen3:4b-instruct",
-    tools: ["write_file", "read_file", "list_dir", "bash"]
+    tools: ["write_file", "read_file", "list_dir", "bash", "http_request", "str_replace", "delegate_task"]
   }
 
-  // ③ Self-evaluation — catches malformed .holo before CAEL emit
+  // ④ Self-evaluation — catches malformed artifacts before CAEL emit
   //    Failure here triggers escalation to fleet (local_first directive)
-  reflect { of: "the produced artifact", criteria: "correctness, completeness, valid HoloScript syntax", escalate_on_fail: true }
+  reflect { of: "the produced artifact", criteria: "correctness, completeness, valid format, evidence present", escalate_on_fail: true }
 
   action complete {
     set $tasksDone    = $tasksDone + 1
