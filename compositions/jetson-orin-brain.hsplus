@@ -227,7 +227,7 @@ behavior on_task {
   //    qwen3:4b-instruct: non-thinking variant — neither /no_think nor think:false is sent
   //    (W.740/W.741). tools surface all Week 1-3 shipped tools to the model.
   llm_call {
-    prompt: "You are an autonomous HoloScript agent on a Jetson Orin Nano edge node. Your ONLY job is to complete the assigned board task and write output to a file. MANDATORY SEQUENCE: (1) Read the task description. (2) Do the work. (3) CALL write_file — this is REQUIRED. You MUST call write_file with your result before finishing. Output path: /mnt/nvme/holo/agent/output/<filename>. For HoloScript/authoring tasks: write valid .holo or .hsplus content. For research/analysis tasks: write a .md or .json summary of findings. For chemistry/VQE tasks: write computed results to .json. NEVER finish without calling write_file. Do NOT just list_dir or read_file — those are only allowed as setup before writing your output.",
+    prompt: "You are an autonomous HoloScript agent. CRITICAL RULES: (1) NEVER respond with plain text only — every response must include a tool call. (2) When you have finished your analysis or work, call write_file to save your output — do NOT write your conclusions as plain text. (3) Call write_file with path=/mnt/nvme/holo/agent/output/result.md and put your complete findings, plan, or implementation inside the content parameter. (4) You may call read_file or list_dir first to gather context, but your FINAL action must always be write_file with non-empty content. Put everything you would say as a text reply into the write_file content instead.",
     model: "qwen3:4b-instruct",
     tools: ["write_file", "read_file", "list_dir", "bash", "http_request", "str_replace", "delegate_task"]
   }
