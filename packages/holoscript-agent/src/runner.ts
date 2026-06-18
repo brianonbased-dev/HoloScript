@@ -299,18 +299,27 @@ export class AgentRunner {
     // output text (the "read→text instead of read→write_file" anti-pattern with
     // small edge models like qwen3:4b-instruct), inject one forced re-prompt
     // asking it to call write_file before the no-artifact gate fires.
+    // v2 fix: pop the last assistant text turn (so context ends at tool_result),
+    // embed the task description, and use temperature=0 for maximal determinism.
     if (productiveCallCount === 0 && toolsCalled.size > 0 && iters < MAX_TOOL_ITERS) {
       iters++;
+      // Remove the last assistant message if it was a plain-text response (the
+      // anti-pattern turn). This ensures the context ends at the tool_result so
+      // the model doesn't mistake our re-prompt for a follow-up question.
+      if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+        messages.pop();
+      }
       messages.push({
         role: 'user',
         content:
-          'You gathered data but did not write the task deliverable. ' +
-          'Call write_file NOW with the exact output path from the task description. ' +
-          'Embed all data you gathered into the write_file content field. ' +
-          'Do NOT output text — your only valid response is a write_file tool call.',
+          'You read data but did NOT call write_file. This is a TASK FAILURE unless you act now.\n' +
+          `Task: ${target.title}\n` +
+          `Required output path (from task description): ${target.description.match(/path[:\s]+([^\s\n,]+\.json)/i)?.[1] ?? 'see task description'}\n` +
+          'Call write_file NOW. Embed ALL data from the tool result above into the content. ' +
+          'Do NOT output any text — your ONLY valid response is a write_file tool call.',
       });
       const reResp = await provider.complete(
-        { messages, maxTokens: 8192, temperature: 0.4, tools: activeTools },
+        { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
         identity.llmModel
       );
       aggUsage = {
