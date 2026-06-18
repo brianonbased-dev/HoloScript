@@ -343,6 +343,53 @@ export class AgentRunner {
       finalText = reResp.content;
       lastResponse = reResp;
     }
+    // Vision-write gate: vision_analyze was called (inference ran) but no write_file
+    // followed — the model has the caption in context but didn't store it. Inject one
+    // more targeted re-prompt asking specifically for write_file with the caption.
+    const WRITE_NAMES = new Set(['write_file', 'str_replace']);
+    if (
+      toolsCalled.has('vision_analyze') &&
+      ![...toolsCalled].some((n) => WRITE_NAMES.has(n)) &&
+      iters < MAX_TOOL_ITERS
+    ) {
+      iters++;
+      if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+        messages.pop();
+      }
+      messages.push({
+        role: 'user',
+        content:
+          'vision_analyze returned a caption but you did NOT call write_file.\n' +
+          `Task: ${target.title}\n` +
+          `Output path: ${target.description.match(/path[:\s]+([^\s\n,]+\.json)/i)?.[1] ?? 'see task description'}\n` +
+          'Call write_file NOW. Put the caption from vision_analyze into the JSON content field. ' +
+          'Do NOT output text — your ONLY valid response is a write_file tool call.',
+      });
+      const vwResp = await provider.complete(
+        { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
+        identity.llmModel
+      );
+      aggUsage = {
+        promptTokens: aggUsage.promptTokens + vwResp.usage.promptTokens,
+        completionTokens: aggUsage.completionTokens + vwResp.usage.completionTokens,
+        totalTokens: aggUsage.totalTokens + vwResp.usage.totalTokens,
+      };
+      if (vwResp.finishReason === 'tool_use' && vwResp.toolUses && vwResp.toolUses.length > 0) {
+        log({ ev: 'vision-write-call', taskId: target.id, iter: iters, tools: vwResp.toolUses.map((t) => t.name) });
+        const vwProd = summarizeToolProductivity(vwResp.toolUses);
+        for (const n of vwProd.names) toolsCalled.add(n);
+        productiveCallCount += vwProd.productiveCount;
+        messages.push({ role: 'assistant', content: (vwResp.assistantBlocks ?? []) as never });
+        const vwResults = await Promise.all(
+          vwResp.toolUses.map((u) =>
+            runTool(u, { signReceipt: this.opts.signReceipt, addTask: (tasks) => mesh.addTasks(tasks) })
+          )
+        );
+        messages.push({ role: 'user', content: vwResults as never });
+      }
+      finalText = vwResp.content;
+      lastResponse = vwResp;
+    }
     const durationMs = Date.now() - start;
 
     // Artifact-grounding gate (W.107 — fleet event-firing rate is not a productivity
