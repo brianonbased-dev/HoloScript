@@ -53,13 +53,9 @@ Domain context (informational — read for background; the rules above take prec
 identity {
   domain: "robotics-edge"
   capability_tags: [
-    // infrastructure identity
     "jetson", "jetson-test", "local-inference", "edge-node", "ros2-actuation",
-    // authoring + research
     "holoscript-authoring", "holoscript-tasks", "holoscript-native", "research", "multi-step",
-    // domain science (Bovine-TB / Paper 37 pipeline)
     "paper", "vqe", "chemistry", "simulation", "bovine-tb",
-    // agent mechanics
     "tool-call", "receipt-producer", "cael-trace"
   ]
   requires: ["local-llm"]
