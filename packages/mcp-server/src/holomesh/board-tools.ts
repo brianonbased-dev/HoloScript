@@ -20,6 +20,7 @@ import {
   createSuggestion,
   voteSuggestion,
   type TeamTask,
+  type DoneLogEntry,
   type SuggestionCategory,
 } from '@holoscript/framework';
 import { teamStore, teamPresenceStore, persistTeamStore } from './state';
@@ -138,6 +139,15 @@ export const boardTools: Tool[] = [
           type: 'string',
           description: 'The task ID to claim',
         },
+        agent_id: {
+          type: 'string',
+          description:
+            'Provisioned agent ID for attribution (e.g. "claude1", "agent_XXXX_YYYY"). Defaults to "mcp-agent" when omitted.',
+        },
+        agent_name: {
+          type: 'string',
+          description: 'Display name for the claiming agent. Defaults to agent_id when omitted.',
+        },
       },
       required: ['team_id', 'task_id'],
     },
@@ -170,6 +180,15 @@ export const boardTools: Tool[] = [
           description:
             'Concrete evidence required before closure: test/build output, audit diff, receipt, or peer review handle.',
         },
+        agent_id: {
+          type: 'string',
+          description:
+            'Provisioned agent ID for attribution. Defaults to "mcp-agent" when omitted.',
+        },
+        agent_name: {
+          type: 'string',
+          description: 'Display name for the completing agent. Defaults to agent_id when omitted.',
+        },
       },
       required: ['team_id', 'task_id', 'verification_evidence'],
     },
@@ -196,6 +215,11 @@ export const boardTools: Tool[] = [
         summary: {
           type: 'string',
           description: 'Optional summary of what the follow-up commit contains',
+        },
+        agent_id: {
+          type: 'string',
+          description:
+            'Provisioned agent ID for attribution. Defaults to "mcp-agent" when omitted.',
         },
       },
       required: ['team_id', 'task_id', 'commit'],
@@ -380,9 +404,14 @@ export const boardTools: Tool[] = [
           type: 'string',
           description: 'The team ID',
         },
+        agent_id: {
+          type: 'string',
+          description:
+            'Stable agent identifier for this presence slot. Use a provisioned agent ID (e.g. "claude1", "agent_XXXX_YYYY") so board mutations are attributed to a persistent identity rather than the ephemeral "mcp-agent" default.',
+        },
         agent_name: {
           type: 'string',
-          description: 'Name of the calling agent',
+          description: 'Display name of the calling agent',
         },
         ide_type: {
           type: 'string',
@@ -524,9 +553,13 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
 
   try {
     const team = getTeam(teamId);
-    const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, tasks as any);
-    const warnings = Array.isArray((result as any).warnings)
-      ? (result as any).warnings
+    const result = addTasksToBoard(
+      team.taskBoard!,
+      team.doneLog ?? [],
+      tasks as Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>
+    );
+    const warnings = result.warnings.length > 0
+      ? result.warnings
       : tasks.flatMap((t) => {
           const raw = String((t as Record<string, unknown>).description || '');
           // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
@@ -545,7 +578,7 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
 
     for (const task of result.added) {
       broadcastToTeam(teamId, {
-        type: 'board:added' as any,
+        type: 'board:added',
         agent: 'mcp-tool',
         data: { taskId: task.id, title: task.title, agent: 'mcp-tool' },
       });
@@ -566,20 +599,49 @@ async function handleBoardAdd(args: Record<string, unknown>): Promise<Record<str
 async function handleBoardClaim(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const teamId = args.team_id as string;
   const taskId = args.task_id as string;
+  const effectiveAgentId =
+    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
+  const effectiveAgentName =
+    typeof args.agent_name === 'string' && args.agent_name.trim()
+      ? args.agent_name.trim()
+      : effectiveAgentId;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
 
   try {
     const team = getTeam(teamId);
-    const result = claimTask(team.taskBoard!, taskId, 'mcp-agent', 'mcp-agent');
+
+    // required_tags enforcement: if the task declares required_tags, check the
+    // claiming agent's presence capabilityTags. MCP tool path skips the heartbeat
+    // gate but still enforces capability matching.
+    const claimTarget = team.taskBoard?.find((t) => t.id === taskId);
+    if (claimTarget?.required_tags && claimTarget.required_tags.length > 0) {
+      pruneStalePresence(teamId);
+      const agentPresence = teamPresenceStore.get(teamId)?.get(effectiveAgentId);
+      const agentCaps = (agentPresence?.capabilityTags ?? []).map((c) => c.toLowerCase());
+      const missing = claimTarget.required_tags.filter(
+        (r) => !agentCaps.includes(r.toLowerCase())
+      );
+      if (missing.length > 0) {
+        return {
+          error: 'Capability mismatch: agent lacks required tags for this task',
+          code: 'capability_mismatch',
+          required_tags: claimTarget.required_tags,
+          missing_tags: missing,
+          agent_capability_tags: agentPresence?.capabilityTags ?? [],
+        };
+      }
+    }
+
+    const result = claimTask(team.taskBoard!, taskId, effectiveAgentId, effectiveAgentName);
     if (!result.success) return { error: result.error || 'Claim failed' };
     persistTeamStore();
 
     broadcastToTeam(teamId, {
-      type: 'board:claimed' as any,
-      agent: 'mcp-agent',
-      data: { taskId, title: result.task?.title || taskId, agent: 'mcp-agent' },
+      type: 'board:claimed',
+      agent: effectiveAgentName,
+      data: { taskId, title: result.task?.title || taskId, agent: effectiveAgentId },
     });
 
     return { success: true, task: result.task };
@@ -599,6 +661,12 @@ async function handleBoardComplete(
     typeof args.verification_evidence === 'string'
       ? args.verification_evidence.trim().slice(0, 2000)
       : '';
+  const effectiveAgentId =
+    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
+  const effectiveAgentName =
+    typeof args.agent_name === 'string' && args.agent_name.trim()
+      ? args.agent_name.trim()
+      : effectiveAgentId;
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
@@ -606,7 +674,7 @@ async function handleBoardComplete(
 
   try {
     const team = getTeam(teamId);
-    const wrap = completeTask(team.taskBoard!, taskId, 'mcp-agent', {
+    const wrap = completeTask(team.taskBoard!, taskId, effectiveAgentId, {
       commit,
       summary,
       verificationEvidence,
@@ -614,14 +682,15 @@ async function handleBoardComplete(
     if (!wrap.result.success) return { error: wrap.result.error || 'Complete failed' };
     team.taskBoard = wrap.updatedBoard;
     if (wrap.result.doneEntry) {
-      team.doneLog!.push(wrap.result.doneEntry as any);
+      if (!team.doneLog) team.doneLog = [];
+      team.doneLog.push(wrap.result.doneEntry);
     }
     persistTeamStore();
 
     broadcastToTeam(teamId, {
-      type: 'board:completed' as any,
-      agent: 'mcp-agent',
-      data: { taskId, title: wrap.result.task?.title || taskId, agent: 'mcp-agent' },
+      type: 'board:completed',
+      agent: effectiveAgentName,
+      data: { taskId, title: wrap.result.task?.title || taskId, agent: effectiveAgentId },
     });
 
     return { success: true, task: wrap.result.task };
@@ -637,6 +706,8 @@ async function handleBoardAppendCommit(
   const taskId = args.task_id as string;
   const commit = (args.commit as string | undefined)?.trim();
   const summary = args.summary as string | undefined;
+  const effectiveAgentId =
+    typeof args.agent_id === 'string' && args.agent_id.trim() ? args.agent_id.trim() : 'mcp-agent';
 
   if (!teamId) return { error: '"team_id" is required.' };
   if (!taskId) return { error: '"task_id" is required.' };
@@ -644,16 +715,16 @@ async function handleBoardAppendCommit(
 
   try {
     const team = getTeam(teamId);
-    const wrap = appendFollowUpCommit((team.doneLog || []) as any, taskId, commit, summary);
+    const wrap = appendFollowUpCommit(team.doneLog || [], taskId, commit, summary);
     if (!wrap.success) {
       return { error: wrap.error || 'Append failed' };
     }
     persistTeamStore();
 
     broadcastToTeam(teamId, {
-      type: 'board:commit_appended' as any,
-      agent: 'mcp-agent',
-      data: { taskId, title: wrap.entry?.title || taskId, commit, agent: 'mcp-agent' },
+      type: 'board:commit_appended',
+      agent: effectiveAgentId,
+      data: { taskId, title: wrap.entry?.title || taskId, commit, agent: effectiveAgentId },
     });
 
     return { success: true, task: { id: taskId, title: wrap.entry?.title } };
@@ -673,8 +744,8 @@ async function handleSlotAssign(args: Record<string, unknown>): Promise<Record<s
 
   try {
     const team = getTeam(teamId);
-    if (!team.roomConfig) team.roomConfig = {} as any;
-    (team.roomConfig as any).slotRoles = roles;
+    if (!team.roomConfig) team.roomConfig = {};
+    team.roomConfig.slotRoles = roles;
     persistTeamStore();
     return { success: true, roles };
   } catch (err) {
@@ -737,10 +808,10 @@ async function handleScout(args: Record<string, unknown>): Promise<Record<string
     });
 
     const maxTasks = (args.max_tasks as number) || 50;
-    const scopedTasks = tasksBody.slice(0, maxTasks) as any;
-    const result = addTasksToBoard(team.taskBoard!, (team.doneLog || []) as any, scopedTasks);
-    const warnings = Array.isArray((result as any).warnings)
-      ? (result as any).warnings
+    const scopedTasks = tasksBody.slice(0, maxTasks) as Array<Omit<TeamTask, 'id' | 'status' | 'createdAt'>>;
+    const result = addTasksToBoard(team.taskBoard!, team.doneLog ?? [], scopedTasks);
+    const warnings = result.warnings.length > 0
+      ? result.warnings
       : scopedTasks.flatMap((t: { title?: string; description?: string }) => {
           const raw = String(t.description || '');
           // In sync with board-ops.ts:300 cap (W.085 fix raised 1000→2000).
@@ -777,7 +848,7 @@ async function handleSuggest(args: Record<string, unknown>): Promise<Record<stri
   if (!title) return { error: '"title" is required.' };
 
   try {
-    const team = getTeam(teamId) as any;
+    const team = getTeam(teamId);
     if (!team.suggestions) team.suggestions = [];
     const result = createSuggestion(team.suggestions, {
       title,
@@ -807,7 +878,7 @@ async function handleSuggestVote(args: Record<string, unknown>): Promise<Record<
   if (value !== 1 && value !== -1) return { error: '"value" must be 1 or -1.' };
 
   try {
-    const team = getTeam(teamId) as any;
+    const team = getTeam(teamId);
     if (!team.suggestions) team.suggestions = [];
     const result = voteSuggestion(
       team.suggestions,
@@ -834,15 +905,15 @@ async function handleSuggestList(args: Record<string, unknown>): Promise<Record<
   if (!teamId) return { error: '"team_id" is required.' };
 
   try {
-    const team = getTeam(teamId) as any;
-    const suggestions = team.suggestions || [];
+    const team = getTeam(teamId);
+    const suggestions = team.suggestions ?? [];
     const status = args.status as string | undefined;
-    const filtered = status ? suggestions.filter((s: any) => s.status === status) : suggestions;
+    const filtered = status ? suggestions.filter((s) => s.status === status) : suggestions;
     return {
       success: true,
-      open: suggestions.filter((s: any) => s.status === 'open').length,
-      promoted: suggestions.filter((s: any) => s.status === 'promoted').length,
-      dismissed: suggestions.filter((s: any) => s.status === 'dismissed').length,
+      open: suggestions.filter((s) => s.status === 'open').length,
+      promoted: suggestions.filter((s) => s.status === 'promoted').length,
+      dismissed: suggestions.filter((s) => s.status === 'dismissed').length,
       suggestions: filtered,
     };
   } catch (err) {
@@ -854,7 +925,14 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
   const teamId = args.team_id as string;
   if (!teamId) return { error: '"team_id" is required.' };
 
-  const agentName = (args.agent_name as string) || 'mcp-agent';
+  const agentId =
+    typeof args.agent_id === 'string' && args.agent_id.trim()
+      ? args.agent_id.trim()
+      : 'mcp-agent';
+  const agentName =
+    typeof args.agent_name === 'string' && args.agent_name.trim()
+      ? args.agent_name.trim()
+      : agentId;
   const ideType = (args.ide_type as string) || 'mcp';
   const surface = normalizePresenceSurface(args.surface);
 
@@ -872,7 +950,7 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
       ? (args.capability_tags as string[])
       : undefined;
     const entry = {
-      agentId: 'mcp-agent',
+      agentId,
       agentName,
       ideType,
       status: 'active' as const,
@@ -882,7 +960,7 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
       ttlMs,
       capabilityTags,
     };
-    presenceMap.set('mcp-agent', entry);
+    presenceMap.set(agentId, entry);
 
     pruneStalePresence(teamId);
     const online = Array.from(presenceMap.values());
@@ -914,7 +992,7 @@ async function handleKnowledgeRead(
 
   try {
     const team = getTeam(teamId);
-    const entries = (team as any).knowledge || [];
+    const entries = team.knowledge ?? [];
     const limit = (args.limit as number) || 20;
     return { entries: entries.slice(0, limit), total: entries.length };
   } catch (err) {

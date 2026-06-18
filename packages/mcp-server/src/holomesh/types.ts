@@ -17,7 +17,7 @@ export type {
   MemoryReceipt,
 } from '@holoscript/framework';
 
-import type { TeamTask, DoneLogEntry, BountyManager } from '@holoscript/framework';
+import type { TeamTask, DoneLogEntry, BountyManager, TeamSuggestion } from '@holoscript/framework';
 export type { TeamTask, BountyManager };
 export {
   /* TeamTask, BountyManager, */
@@ -498,6 +498,7 @@ export interface Team {
   // Board data
   taskBoard?: TeamTask[];
   doneLog?: DoneLogEntry[];
+  suggestions?: TeamSuggestion[];
 
   /** Local mirror of team-scoped knowledge (orchestrator GET may lag or omit workspace-scoped rows). */
   knowledge?: MeshKnowledgeEntry[];
@@ -528,6 +529,8 @@ export interface Team {
   adminRoom?: boolean;
   roomConfig?: {
     objective?: string;
+    /** Per-slot role assignments set via holomesh_slot_assign MCP tool. */
+    slotRoles?: string[];
     /**
      * How agents should weight team messages vs tasks in session context.
      * - task_first: handoffs/DMs/reviews only (default)
