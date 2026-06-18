@@ -159,6 +159,8 @@ export function isProductiveToolUse(use: ToolUseBlock): boolean {
       return true;
     case 'str_replace':
       return true;
+    case 'vision_analyze':
+      return true;
     default:
       return false;
   }
@@ -338,6 +340,34 @@ export const MESH_TOOLS: ToolSpec[] = [
         source: { type: 'string', description: 'Where this subtask came from (e.g. parent task id)' },
       },
       required: ['title'],
+    },
+  },
+  {
+    name: 'vision_analyze',
+    description:
+      'Analyze an image using the local Fara-7B vision model (Ollama on loopback). ' +
+      'Reads the image file at `image_path`, sends it to fara:7b via the local Ollama API, ' +
+      'and returns the model\'s text analysis. ' +
+      'Counts as a productive tool call — use for GUI-grounding, visual QA, image captioning, ' +
+      'or any task that requires perceiving image content. ' +
+      'Only available on surfaces with a local Ollama instance running fara:7b.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        image_path: {
+          type: 'string',
+          description: 'Absolute path to the image file (png, jpg, webp, gif)',
+        },
+        prompt: {
+          type: 'string',
+          description: 'Instruction for the vision model (default: "Describe this image in detail.")',
+        },
+        model: {
+          type: 'string',
+          description: 'Ollama model tag to use (default: "fara:7b")',
+        },
+      },
+      required: ['image_path'],
     },
   },
 ];
@@ -678,6 +708,54 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       const tags = Array.isArray(use.input.tags) ? (use.input.tags as unknown[]).map(String) : undefined;
       const result = await opts.addTask([{ title, description, priority, source, tags }]);
       return okResult(use.id, `delegate_task: posted "${title}" to board — ${result.added} task(s) added`);
+    }
+
+    if (use.name === 'vision_analyze') {
+      const imagePath = String(use.input.image_path ?? '').trim();
+      if (!imagePath) return errResult(use.id, 'vision_analyze: image_path is required');
+      const denied = checkReadAllowed(imagePath);
+      if (denied) return errResult(use.id, `vision_analyze: ${denied}`);
+      const prompt = String(use.input.prompt ?? 'Describe this image in detail.');
+      const model = String(use.input.model ?? 'fara:7b');
+      // Dedicated local-inference tool — /founder ruled 2026-06-18: NOT a bandaid.
+      // SSRF guard in http_request is correct and stays; this tool is a different
+      // trust boundary (fixed local model endpoint, path-sandboxed input, env-driven
+      // URL — no user-controlled URL). D.098 + vision pillar #6.
+      const ollamaBase = process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL;
+      if (!ollamaBase) {
+        return errResult(
+          use.id,
+          'vision_analyze: HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL is not set — configure it to point to your local Ollama instance (e.g. http://holojetson.local:11434)'
+        );
+      }
+      const TIMEOUT_MS = 120_000;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const imageBytes = await readFile(imagePath);
+        const imageB64 = imageBytes.toString('base64');
+        const res = await fetch(`${ollamaBase}/api/generate`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ model, prompt, images: [imageB64], stream: false }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (!res.ok) {
+          const text = await res.text();
+          return errResult(use.id, `vision_analyze: Ollama HTTP ${res.status}: ${text.slice(0, 500)}`);
+        }
+        const json = (await res.json()) as { response?: string; error?: string };
+        if (json.error) return errResult(use.id, `vision_analyze: model error — ${json.error}`);
+        return okResult(use.id, json.response ?? '');
+      } catch (err) {
+        clearTimeout(timer);
+        const msg = err instanceof Error ? err.message : String(err);
+        return errResult(
+          use.id,
+          msg.includes('abort') ? `vision_analyze: timed out after ${TIMEOUT_MS}ms` : `vision_analyze: ${msg}`
+        );
+      }
     }
 
     return errResult(use.id, `unknown tool: ${use.name}`);
