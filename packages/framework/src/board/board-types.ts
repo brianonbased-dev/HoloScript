@@ -459,6 +459,8 @@ export interface TeamTask {
   onComplete?: TaskAction[];
   /** Tags for filtering and categorization */
   tags?: string[];
+  /** Capability tags that a claiming agent MUST have in their heartbeat presence. Enforced server-side on claim. */
+  required_tags?: string[];
   /** Files, traces, screenshots, benchmark logs, patches, or render/test outputs produced for this task. */
   artifacts?: ArtifactReceipt[];
   /** Declarative runtime expectations for this task. */

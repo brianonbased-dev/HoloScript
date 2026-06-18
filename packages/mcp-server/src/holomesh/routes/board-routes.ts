@@ -1077,6 +1077,27 @@ export async function handleBoardRoutes(
           }
         }
 
+        // required_tags enforcement: if the task declares required_tags, the claiming
+        // agent must have ALL of them in their presence capabilityTags.
+        const claimTarget = team.taskBoard.find((t) => t.id === taskId);
+        if (claimTarget?.required_tags && claimTarget.required_tags.length > 0) {
+          const agentPresence = getFreshPresence(teamId, effectiveAgentId);
+          const agentCaps = (agentPresence?.capabilityTags ?? []).map((c) => c.toLowerCase());
+          const missing = claimTarget.required_tags.filter(
+            (r) => !agentCaps.includes(r.toLowerCase())
+          );
+          if (missing.length > 0) {
+            json(res, 403, {
+              error: 'Capability mismatch: agent lacks required tags for this task',
+              code: 'capability_mismatch',
+              required_tags: claimTarget.required_tags,
+              missing_tags: missing,
+              agent_capability_tags: agentPresence?.capabilityTags ?? [],
+            });
+            return true;
+          }
+        }
+
         // Fleet auto-join (task_1779315733346_9e0g): usage (claim) ⇒ team membership.
         // Dynamic roster: whoever actually claims/dispatches/hardware-runs for the team is on the team.
         const existingMember = team.members.find((m) => m.agentId === effectiveAgentId);
@@ -1401,7 +1422,7 @@ export async function handleBoardRoutes(
       agentId: caller.id,
       agentName: caller.name,
       ideType: body.ide_type as string,
-      status: (body.status as any) || 'active',
+      status: (body.status as TeamPresenceEntry['status']) || 'active',
       lastHeartbeat,
       surface: declaredSurface,
       expiresAt: new Date(Date.parse(lastHeartbeat) + ttlMs).toISOString(),
@@ -1409,6 +1430,9 @@ export async function handleBoardRoutes(
       walletAddress: caller.walletAddress,
       x402Verified: caller.x402Verified === true,
       surfaceTag: resolvedSurfaceTag,
+      capabilityTags: Array.isArray(body.capability_tags)
+        ? (body.capability_tags as unknown[]).map(String)
+        : undefined,
     };
     presenceMap.set(caller.id, entry);
 

@@ -53,7 +53,7 @@ export class HolomeshClient {
     return this.signer ? await this.signer(body) : body;
   }
 
-  async heartbeat(payload: { agentName: string; surface: string }): Promise<void> {
+  async heartbeat(payload: { agentName: string; surface: string; capabilityTags?: string[] }): Promise<void> {
     await this.req('POST', `/team/${this.teamId}/presence`, await this.signBody(payload as Record<string, unknown>));
   }
 

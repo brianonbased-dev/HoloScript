@@ -108,6 +108,12 @@ export const boardTools: Tool[] = [
                 description:
                   'Capability tags for agent routing. Agents score +2 per tag that matches their brain capability_tags (vs +1 for text-match only). Use tags from agent brains: e.g. ["edge","local-inference","cael-trace","holoscript-native","hardware-receipt"] for Jetson tasks.',
               },
+              required_tags: {
+                type: 'array',
+                items: { type: 'string' },
+                description:
+                  'Hard capability gate: ONLY agents whose heartbeat presence includes ALL of these tags can claim this task. The claim endpoint returns 403 capability_mismatch for agents missing any tag. Use for tasks that must run on specific hardware (e.g. ["edge","local-inference"] for Jetson-only tasks).',
+              },
             },
             required: ['title'],
           },
@@ -385,6 +391,12 @@ export const boardTools: Tool[] = [
         surface: {
           type: 'string',
           description: 'Optional device surface for aliveness policy (mobile uses a shorter TTL)',
+        },
+        capability_tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Capability tags this agent supports (e.g. ["edge","local-inference"]). Stored in presence and enforced against task required_tags on claim.',
         },
       },
       required: ['team_id'],
@@ -856,6 +868,9 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
 
     const lastHeartbeat = new Date().toISOString();
     const ttlMs = getPresenceTtlMs({ surface });
+    const capabilityTags = Array.isArray(args.capability_tags)
+      ? (args.capability_tags as string[])
+      : undefined;
     const entry = {
       agentId: 'mcp-agent',
       agentName,
@@ -865,6 +880,7 @@ async function handleHeartbeat(args: Record<string, unknown>): Promise<Record<st
       surface,
       expiresAt: new Date(Date.parse(lastHeartbeat) + ttlMs).toISOString(),
       ttlMs,
+      capabilityTags,
     };
     presenceMap.set('mcp-agent', entry);
 

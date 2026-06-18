@@ -669,6 +669,8 @@ export interface TeamPresenceEntry {
    * ("vscode"), surfaceTag is the specific agent surface running in it.
    */
   surfaceTag?: string;
+  /** Capability tags declared by the agent on heartbeat. Used for server-side required_tags enforcement on board task claims. */
+  capabilityTags?: string[];
 }
 
 export interface TeamMessage {

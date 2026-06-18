@@ -572,10 +572,11 @@ export class AgentRunner {
    *    inspection (SSH/log) is the recovery path at that point.
    */
   private async heartbeatWithAutoRejoin(): Promise<void> {
-    const { identity, mesh, logger } = this.opts;
+    const { identity, brain, mesh, logger } = this.opts;
     const log = logger ?? (() => undefined);
+    const capabilityTags = brain.capabilityTags.length > 0 ? brain.capabilityTags : undefined;
     try {
-      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface });
+      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface, capabilityTags });
     } catch (err) {
       if (!this.isNotAMemberError(err) || this.joinedThisProcess) {
         throw err;
@@ -596,7 +597,7 @@ export class AgentRunner {
       // Retry the heartbeat exactly once. If it still fails (including with
       // another 403), the new error propagates — joinedThisProcess is now
       // true so we won't retry-loop on the next tick.
-      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface });
+      await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface, capabilityTags });
       log({ ev: 'auto-rejoin-heartbeat-recovered' });
     }
   }
