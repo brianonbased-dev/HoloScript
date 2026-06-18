@@ -295,6 +295,45 @@ export class AgentRunner {
       finalText = resp.content;
       break;
     }
+    // Re-prompt gate (W.780): if the model called only read-only tools and then
+    // output text (the "read→text instead of read→write_file" anti-pattern with
+    // small edge models like qwen3:4b-instruct), inject one forced re-prompt
+    // asking it to call write_file before the no-artifact gate fires.
+    if (productiveCallCount === 0 && toolsCalled.size > 0 && iters < MAX_TOOL_ITERS) {
+      iters++;
+      messages.push({
+        role: 'user',
+        content:
+          'You gathered data but did not write the task deliverable. ' +
+          'Call write_file NOW with the exact output path from the task description. ' +
+          'Embed all data you gathered into the write_file content field. ' +
+          'Do NOT output text — your only valid response is a write_file tool call.',
+      });
+      const reResp = await provider.complete(
+        { messages, maxTokens: 8192, temperature: 0.4, tools: activeTools },
+        identity.llmModel
+      );
+      aggUsage = {
+        promptTokens: aggUsage.promptTokens + reResp.usage.promptTokens,
+        completionTokens: aggUsage.completionTokens + reResp.usage.completionTokens,
+        totalTokens: aggUsage.totalTokens + reResp.usage.totalTokens,
+      };
+      if (reResp.finishReason === 'tool_use' && reResp.toolUses && reResp.toolUses.length > 0) {
+        log({ ev: 'reprompt-tool-call', taskId: target.id, iter: iters, tools: reResp.toolUses.map((t) => t.name) });
+        const reProd = summarizeToolProductivity(reResp.toolUses);
+        for (const n of reProd.names) toolsCalled.add(n);
+        productiveCallCount += reProd.productiveCount;
+        messages.push({ role: 'assistant', content: (reResp.assistantBlocks ?? []) as never });
+        const reResults = await Promise.all(
+          reResp.toolUses.map((u) =>
+            runTool(u, { signReceipt: this.opts.signReceipt, addTask: (tasks) => mesh.addTasks(tasks) })
+          )
+        );
+        messages.push({ role: 'user', content: reResults as never });
+      }
+      finalText = reResp.content;
+      lastResponse = reResp;
+    }
     const durationMs = Date.now() - start;
 
     // Artifact-grounding gate (W.107 — fleet event-firing rate is not a productivity
