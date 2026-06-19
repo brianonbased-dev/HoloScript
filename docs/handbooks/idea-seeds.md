@@ -6,6 +6,14 @@
 
 ---
 
+## Resurrect Apex-Poison Compilers as Fire-and-Forget Export Targets
+
+**What might be valuable**: R3FCompiler, BabylonCompiler, PlayCanvasCompiler, ThreeJSCompiler, ARCompiler, VRRCompiler, Native2DCompiler, PhoneSleeveVRCompiler, and FlatSemanticCompiler were retired from the DialectRegistry and MCP surface (2026-06-17) because they duplicate the native runtime and constitute apex-poison substrate for agents. However, a one-way fire-and-forget export path (an author writes `.holo`, compiles once to `.tsx`/`.ts`/`.html`, and never debugs the output) could serve specific handoff scenarios: embed a HoloScript scene on a legacy web page, export a Babylon.js snapshot for a partner, or ship a WebXR demo without the full HoloScript runtime. If agents are structurally prevented from reading or editing the generated output (enforced by CI), the poison axis disappears.
+
+**Why not now**: The native runtime + trait-parity backlog must close first — once `.holo` scenes run natively in the browser without any compilation to `.tsx`, the only legitimate use case for re-admitting these compilers is the fire-and-forget one-off export. That requires (a) the `@generated DO NOT EDIT` enforcement gate to be airtight for these targets, (b) agents to have no tooling path that returns the generated code into the editing loop, and (c) a clear product need that the native renderer cannot satisfy. None of these preconditions are met yet. Re-admission should be re-evaluated after the BrowserRuntime noop graduation work (see seed "Promote Noop Traits") is complete.
+
+---
+
 ## SpacetimeDB Single-Source Compile Target (`@spacetimedb_module`)
 
 **What might be valuable**: One `.holo`/`.hs` source compiling to a SpacetimeDB Rust WASM module (server reducers + table definitions) + TypeScript client subscription SDK simultaneously with the Colyseus/mmo-server targets. SpacetimeDB is the closest industry analogue to HoloScript's single-source authority-split vision — all game state lives in a distributed relational DB, reducers are transactional triggers, and persistence is zero-configuration. The `@reducer` annotation already proposed in `.hs` maps cleanly to SpacetimeDB's reducer model; the `@replicated` fields map to SpacetimeDB table columns. A true multi-backend emit (Colyseus + SpacetimeDB + sovereign mmo-server from one source) would be a uniquely strong PLDI/OOPSLA paper contribution.
@@ -19,6 +27,14 @@
 **What might be valuable**: The `world_shard` language primitive with `shard_edges` and `handoff_type: seamless` declares cross-shard player migration as a first-class `.holo` concept — including TrustReceipt-sealed handoff envelopes and anti-cheat position sanity checks on the `on_shard_transfer` event block. At production scale this enables EVE-style single-world MMOs partitioned across many Colyseus processes with tamper-evident, auditable player migration. The receipt-sealed handoff is a novel publishable claim (AAMAS '27 multi-agent trust track).
 
 **Why not now**: Cross-host handoff requires runtime infrastructure that does not yet exist: an external session broker, a Redis-backed presence layer for in-flight message replay, and a cross-process WebSocket redirect protocol. The compiler can emit `ShardRegistry JSON` and `on_shard_transfer` TypeScript today, but the handoff will silently drop the player without the broker service. Round 2 scope: same-machine multi-room only (Colyseus relay). Cross-host is round 4+, after the `mmo-server` sovereign target and a deployed multi-room presence layer exist.
+
+---
+
+## Codebase GraphRAG Pre-Search in `rag_query` (`queryCodebase` cognitive verb)
+
+**What might be valuable**: Before the agent's main tool loop, the `rag_query` cognitive verb could pre-search the HoloScript codebase graph (HoloEmbed index via `POST /api/holomesh/codebase/search`) and inject relevant symbol definitions, call sites, and file locations into the system prompt. For desktop/cloud coding agents working on HoloScript source, this gives the agent a symbol-level map of the code before it starts calling `read_file`. The dep (`queryCodebase`) is already wired in `HolomeshClient` and was previously the second stage of `rag_query`.
+
+**Why not now**: On the Jetson edge agent (the active target), the HoloEmbed graph is never loaded — `queryCodebase` returns `[]` on every call, making it dead weight per tick. The new grep + Absorb two-stage design (W.754) is tighter for the edge case. Revive `queryCodebase` as a third stage (after grep and Absorb) when a desktop/cloud agent variant with a warm HoloEmbed graph becomes the primary target. The method and dep slot are preserved; just unwire from the `rag_query` chain in `cognitive-verbs.ts`.
 
 ---
 

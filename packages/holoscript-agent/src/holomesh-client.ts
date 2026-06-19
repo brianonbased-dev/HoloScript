@@ -291,6 +291,34 @@ export class HolomeshClient {
   }
 
   /**
+   * Grep the local knowledge JSONL for exact keyword matches (fast, direct path search).
+   * Uses HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH (same file as queryPrivateKnowledge).
+   * Returns [] when the env var is unset or the file is missing — no-op by default.
+   */
+  async queryGrep(query: string, limit = 5): Promise<KnowledgeEntry[]> {
+    const localPath = process.env.HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH;
+    if (!localPath || !query.trim()) return [];
+    try {
+      const raw = await readFile(localPath, 'utf-8');
+      const needle = query.toLowerCase();
+      const matched: KnowledgeEntry[] = [];
+      for (const line of raw.split('\n')) {
+        if (!line.trim()) continue;
+        try {
+          const e = JSON.parse(line) as KnowledgeEntry;
+          if (`${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle)) {
+            matched.push(e);
+            if (matched.length >= limit) break;
+          }
+        } catch { /* skip malformed line */ }
+      }
+      return matched;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Query the Absorb GraphRAG service directly (W.754 — direct Absorb auth bridge).
    * Requires three env vars on the agent node:
    *   HOLOSCRIPT_AGENT_ABSORB_BASE_URL   e.g. https://absorb.holoscript.net

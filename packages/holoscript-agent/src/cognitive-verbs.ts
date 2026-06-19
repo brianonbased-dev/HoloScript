@@ -30,20 +30,21 @@ export interface CognitiveVerbDeps {
   onTaskActions: OnTaskAction[];
   /** Task being executed (for `plan` goal fallback + logging). */
   task: { id: string; title: string };
-  /** TEAM knowledge retrieval (rag_query, keyword/semantic). */
-  queryTeamKnowledge: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
   /**
-   * Direct Absorb GraphRAG query (rag_query W.754 — "edge→Absorb auth bridge").
-   * Optional — no-op (returns []) when HOLOSCRIPT_AGENT_ABSORB_* env vars are absent.
-   * When configured, tried FIRST before codebase-graphrag and team-knowledge.
+   * Grep the local knowledge JSONL for exact keyword/path matches (fast, direct).
+   * Optional — no-op when HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH is unset.
+   * Runs as stage 1 of rag_query; results injected before Absorb semantic results.
+   */
+  queryGrep?: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
+  /**
+   * Direct Absorb GraphRAG query (rag_query W.754 — semantic search).
+   * Optional — no-op when HOLOSCRIPT_AGENT_ABSORB_* env vars are absent.
+   * Runs as stage 2 of rag_query alongside grep (both inject if they return results).
    */
   queryAbsorb?: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
-  /**
-   * Codebase GraphRAG semantic search (rag_query Phase 2.3, W.753).
-   * Optional — when absent OR it returns [] (graph not loaded), rag_query falls
-   * back to team-knowledge search. Wires the in-process HoloEmbed index via the
-   * bearer-gated mesh route POST /api/holomesh/codebase/search.
-   */
+  /** @deprecated No longer called in rag_query — replaced by grep + Absorb. */
+  queryTeamKnowledge?: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
+  /** @deprecated No longer called in rag_query — replaced by grep + Absorb. */
   queryCodebase?: (query: string, topK: number) => Promise<Array<{ name: string; file: string; line?: number; type: string; score: number; signature?: string | null }>>;
   /** PRIVATE workspace retrieval (recall). */
   queryPrivateKnowledge: () => Promise<KnowledgeEntry[]>;
@@ -114,42 +115,24 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
         case 'rag_query': {
           const query = strField(action.config, 'query', 'q') || deps.task.title;
           const limit = numField(action.config, 'limit', DEFAULT_LIMIT);
-          let mode = 'team-knowledge';
-          let injected = '';
-          // W.754: direct Absorb GraphRAG — tried first when env is configured.
+          const sources: string[] = [];
+          // Stage 1: grep/direct path search — fast exact keyword match against local JSONL.
+          if (deps.queryGrep) {
+            const hits = await deps.queryGrep(query, limit);
+            if (hits.length > 0) {
+              content += `\n\n[Grep results for "${query}"]\n${formatEntries(hits)}`;
+              sources.push('grep');
+            }
+          }
+          // Stage 2: Absorb GraphRAG — semantic enrichment (W.754).
           if (deps.queryAbsorb) {
             const absorb = await deps.queryAbsorb(query, limit);
             if (absorb.length > 0) {
-              mode = 'absorb-graphrag';
-              injected = `\n\n[Absorb knowledge for "${query}"]\n${formatEntries(absorb)}`;
+              content += `\n\n[Absorb knowledge for "${query}"]\n${formatEntries(absorb)}`;
+              sources.push('absorb-graphrag');
             }
           }
-          // Phase 2.3 (W.753): codebase GraphRAG via in-process HoloEmbed mesh route.
-          if (!injected && deps.queryCodebase) {
-            const symbols = await deps.queryCodebase(query, limit);
-            if (symbols.length > 0) {
-              mode = 'codebase-graphrag';
-              const lines = symbols
-                .slice(0, limit)
-                .map(
-                  (s) =>
-                    `- ${s.name} (${s.type}) ${s.file}${s.line != null ? `:${s.line}` : ''}` +
-                    (s.signature ? ` — ${s.signature.slice(0, 80)}` : '') +
-                    ` [score:${s.score.toFixed(2)}]`
-                )
-                .join('\n');
-              injected = `\n\n[Codebase search for "${query}"]\n${lines}`;
-            }
-          }
-          if (!injected) {
-            // Fallback: team knowledge store (semantic via HoloEmbed ranking, bb28ecc25).
-            const entries = await deps.queryTeamKnowledge(query, limit);
-            if (entries.length > 0) {
-              injected = `\n\n[Retrieved knowledge for "${query}"]\n${formatEntries(entries)}`;
-            }
-          }
-          if (injected) content += injected;
-          deps.log({ ev: 'on-task-rag-query', taskId: deps.task.id, query, mode, retrieved: injected ? limit : 0 });
+          deps.log({ ev: 'on-task-rag-query', taskId: deps.task.id, query, sources, retrieved: sources.length > 0 ? limit : 0 });
           break;
         }
         case 'recall': {

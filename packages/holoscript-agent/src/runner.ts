@@ -152,14 +152,11 @@ export class AgentRunner {
       systemPrompt: brain.systemPrompt,
       onTaskActions: brain.onTaskActions ?? [],
       task: { id: target.id, title: target.title },
-      queryTeamKnowledge: (q, limit) => mesh.queryTeamKnowledge(q, limit),
       queryPrivateKnowledge: () => mesh.queryPrivateKnowledge(),
-      // W.754: direct Absorb GraphRAG — no-op (returns []) when env vars absent.
+      // Stage 1: grep exact keyword match against local JSONL (no-op when path unset).
+      queryGrep: (q, limit) => mesh.queryGrep(q, limit),
+      // Stage 2: Absorb GraphRAG semantic search (W.754 — no-op when env vars absent).
       queryAbsorb: (q, limit) => mesh.queryAbsorb(q, limit),
-      // Phase 2.3 (W.753): codebase GraphRAG via the bearer-gated mesh route.
-      // Best-effort: returns [] when the in-process graph isn't loaded → cognitive-verbs
-      // falls back to team-knowledge search. No prod impact when graph is cold.
-      queryCodebase: (q, topK) => mesh.queryCodebase(q, topK),
       plan: async (prompt) => {
         const resp = await provider.complete(
           { messages: [{ role: 'user', content: prompt }], maxTokens: 512, temperature: 0.3 },
