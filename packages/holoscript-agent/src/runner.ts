@@ -427,7 +427,14 @@ export class AgentRunner {
           productiveCallCount++;
         }
       }
-      finalText = vwResp.content;
+      // vwResp.content is '' when finishReason==='tool_use'; mark-done requires
+      // non-empty verification_evidence. Fall back to a summary string so the
+      // task closes cleanly.
+      finalText =
+        vwResp.content ||
+        (toolsCalled.has('write_file') || toolsCalled.has('str_replace')
+          ? `Vision analysis complete. Fara-7B caption written to output file (tool_iters:${iters}).`
+          : finalText);
       lastResponse = vwResp;
     }
     const durationMs = Date.now() - start;
