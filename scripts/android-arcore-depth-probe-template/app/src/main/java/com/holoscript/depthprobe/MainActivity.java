@@ -3,6 +3,7 @@ package com.holoscript.depthprobe;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.media.Image;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
@@ -10,14 +11,23 @@ import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.google.ar.core.ArCoreApk;
 import com.google.ar.core.Camera;
 import com.google.ar.core.CameraIntrinsics;
 import com.google.ar.core.Config;
+import com.google.ar.core.Coordinates2d;
 import com.google.ar.core.Frame;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 import com.google.ar.core.exceptions.UnavailableException;
@@ -29,48 +39,109 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+/**
+ * HoloMap ARCore room-sweep probe.
+ *
+ * A real on-device capture interface: live camera viewfinder + status overlay
+ * (depth coverage, frames captured, elapsed) + a Finish button. Captures MANY
+ * coverage-gated, posed depth+color frames across a slow sweep so the host can
+ * merge them (via each frame's camera pose) into a dense room reconstruction.
+ */
 public final class MainActivity extends Activity implements GLSurfaceView.Renderer {
     private static final String TAG = "HoloMapDepthProbe";
     private static final int CAMERA_PERMISSION_REQUEST = 1001;
-    // Full native depth resolution (ARCore DEPTH16 is ~160x90 on the S23) — no longer
-    // throwing away ~4.7x of the depth map by downsampling to 64x48.
     private static final int SAMPLE_WIDTH = 160;
     private static final int SAMPLE_HEIGHT = 90;
-    private static final int MAX_FRAME_ATTEMPTS = 900;
-    private static final long MAX_CAPTURE_MS = 45000L;
-    // ROOT-CAUSE FIX: ARCore depth-from-motion (the S23 has no ToF sensor) returns an
-    // empty/all-zero depth image until parallax converges. The old probe wrote its
-    // receipt on the FIRST available depth frame (~1s in) — always empty. Gate on real
-    // coverage so we only capture a converged frame.
     private static final float MIN_DEPTH_COVERAGE = 0.12f;
+    private static final int TARGET_FRAMES = 40;
+    private static final float MIN_MOVE_M = 0.04f;          // spatial spacing between kept frames
+    private static final long MIN_CAPTURE_INTERVAL_MS = 350L;
+    private static final long MAX_CAPTURE_MS = 150000L;      // run much longer — up to 2.5 min
 
+    // UI
     private GLSurfaceView surfaceView;
+    private TextView hintText;
+    private TextView statusText;
+    private ProgressBar progress;
+
+    // ARCore
     private Session session;
     private boolean installRequested;
     private int cameraTextureId = -1;
-    private int frameAttempts;
+    private final BackgroundRenderer background = new BackgroundRenderer();
+
+    // capture state
     private long startedAtMs;
-    private float bestDepthCoverage = 0f;
-    private String lastDepthError = "not-started";
+    private long lastCaptureMs;
+    private int frameAttempts;
+    private float[] lastPose;
+    private JSONObject intrinsicsJson;
+    private int sampleColorFormat;
+    private final JSONArray frames = new JSONArray();
+    private volatile boolean finishRequested;
     private final AtomicBoolean wroteReceipt = new AtomicBoolean(false);
+    private String lastError = "starting";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        FrameLayout root = new FrameLayout(this);
+
         surfaceView = new GLSurfaceView(this);
         surfaceView.setEGLContextClientVersion(2);
         surfaceView.setPreserveEGLContextOnPause(true);
         surfaceView.setRenderer(this);
         surfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
-        setContentView(surfaceView);
+        root.addView(surfaceView, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.VERTICAL);
+        top.setBackgroundColor(0xBB0A0E16);
+        top.setPadding(40, 64, 40, 32);
+        hintText = new TextView(this);
+        hintText.setTextColor(Color.WHITE);
+        hintText.setTextSize(22);
+        hintText.setText("Slowly sweep the room — keep moving");
+        statusText = new TextView(this);
+        statusText.setTextColor(0xFF8EE6C0);
+        statusText.setTextSize(16);
+        statusText.setText("Starting ARCore…");
+        progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setMax(TARGET_FRAMES);
+        progress.setProgress(0);
+        top.addView(hintText);
+        top.addView(statusText);
+        top.addView(progress, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        FrameLayout.LayoutParams topLp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        topLp.gravity = Gravity.TOP;
+        root.addView(top, topLp);
+
+        Button finishBtn = new Button(this);
+        finishBtn.setText("FINISH & SAVE");
+        finishBtn.setTextSize(18);
+        finishBtn.setPadding(48, 24, 48, 24);
+        finishBtn.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { finishRequested = true; }
+        });
+        FrameLayout.LayoutParams btnLp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        btnLp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        btnLp.bottomMargin = 96;
+        root.addView(finishBtn, btnLp);
+
+        setContentView(root);
         startedAtMs = SystemClock.elapsedRealtime();
     }
 
@@ -94,10 +165,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
 
     @Override
     protected void onDestroy() {
-        if (session != null) {
-            session.close();
-            session = null;
-        }
+        if (session != null) { session.close(); session = null; }
         super.onDestroy();
     }
 
@@ -123,7 +191,6 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
                 installRequested = true;
                 return;
             }
-
             session = new Session(this);
             Config config = new Config(session);
             if (!session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
@@ -150,147 +217,158 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
         GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        background.init(cameraTextureId);
         if (session != null) session.setCameraTextureName(cameraTextureId);
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         GLES20.glViewport(0, 0, width, height);
+        if (session != null) {
+            int rotation = getWindowManager().getDefaultDisplay().getRotation();
+            session.setDisplayGeometry(rotation, width, height);
+        }
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        GLES20.glClearColor(0f, 0f, 0f, 1f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         if (session == null || cameraTextureId <= 0 || wroteReceipt.get()) return;
         frameAttempts++;
         try {
             session.setCameraTextureName(cameraTextureId);
             Frame frame = session.update();
-            captureFrame(frame);
+            background.draw(frame);           // live viewfinder
+            handleFrame(frame);
         } catch (CameraNotAvailableException e) {
             writeBlockedReceipt("camera-not-available:" + safe(e.getMessage()));
         } catch (Throwable t) {
-            lastDepthError = safe(t.getClass().getSimpleName() + ":" + t.getMessage());
-        }
-
-        long elapsed = SystemClock.elapsedRealtime() - startedAtMs;
-        if (!wroteReceipt.get() && (frameAttempts >= MAX_FRAME_ATTEMPTS || elapsed >= MAX_CAPTURE_MS)) {
-            writeBlockedReceipt("depth-frame-timeout:last=" + lastDepthError
-                + ":bestCoverage=" + String.format(Locale.US, "%.3f", bestDepthCoverage));
+            lastError = safe(t.getClass().getSimpleName() + ":" + t.getMessage());
         }
     }
 
-    private void captureFrame(Frame frame) throws Exception {
+    private void handleFrame(Frame frame) throws Exception {
+        long now = SystemClock.elapsedRealtime();
+        long elapsed = now - startedAtMs;
+        Camera cam = frame.getCamera();
+        if (cam.getTrackingState() != TrackingState.TRACKING) {
+            setStatus("Move slowly to start tracking…", elapsed);
+            maybeFinish(now, false);
+            return;
+        }
+
         Image depthImage = null;
         Image cameraImage = null;
-        Image confidenceImage = null;
         try {
             try {
                 depthImage = frame.acquireDepthImage16Bits();
             } catch (NotYetAvailableException e) {
-                lastDepthError = "depth-not-yet-available";
+                setStatus("Resolving depth — keep moving", elapsed);
+                maybeFinish(now, false);
                 return;
             }
 
-            // Coverage gate — keep capturing until ARCore depth-from-motion has resolved
-            // real geometry. Without this we capture the first (empty) frame and quit.
             float coverage = depthCoverage(depthImage);
-            bestDepthCoverage = Math.max(bestDepthCoverage, coverage);
-            long elapsedMs = SystemClock.elapsedRealtime() - startedAtMs;
-            boolean timedOut = elapsedMs >= MAX_CAPTURE_MS || frameAttempts >= MAX_FRAME_ATTEMPTS;
-            if (coverage < MIN_DEPTH_COVERAGE && !timedOut) {
-                lastDepthError = "depth-converging:coverage=" + String.format(Locale.US, "%.3f", coverage);
-                return; // keep moving the phone — depth still resolving
-            }
-
-            try {
-                cameraImage = frame.acquireCameraImage();
-            } catch (NotYetAvailableException e) {
-                lastDepthError = "camera-image-not-yet-available";
+            if (coverage < MIN_DEPTH_COVERAGE) {
+                setStatus(String.format(Locale.US, "Depth converging… %d%%", (int) (coverage * 100)), elapsed);
+                maybeFinish(now, false);
                 return;
             }
 
-            try {
-                confidenceImage = frame.acquireRawDepthConfidenceImage();
-            } catch (Throwable ignored) {
-                confidenceImage = null;
-            }
+            float[] pose = new float[16];
+            cam.getPose().toMatrix(pose, 0);
+            boolean moved = lastPose == null || translation(pose, lastPose) >= MIN_MOVE_M;
+            boolean spaced = now - lastCaptureMs >= MIN_CAPTURE_INTERVAL_MS;
 
-            JSONObject receipt = buildPassReceipt(frame, depthImage, cameraImage, confidenceImage);
-            writeReceipt(receipt);
+            if (moved && spaced && frames.length() < TARGET_FRAMES) {
+                try {
+                    cameraImage = frame.acquireCameraImage();
+                } catch (NotYetAvailableException e) {
+                    maybeFinish(now, false);
+                    return;
+                }
+                appendFrame(frame, cam, depthImage, cameraImage, pose, coverage);
+                lastPose = pose;
+                lastCaptureMs = now;
+            }
+            int n = frames.length();
+            setStatus(String.format(Locale.US, "Captured %d / %d frames — sweep wider", n, TARGET_FRAMES), elapsed);
+            runOnUiThread(new Runnable() { @Override public void run() { progress.setProgress(n); } });
+            maybeFinish(now, false);
         } finally {
-            if (confidenceImage != null) confidenceImage.close();
             if (cameraImage != null) cameraImage.close();
             if (depthImage != null) depthImage.close();
         }
     }
 
-    private JSONObject buildPassReceipt(Frame frame, Image depthImage, Image cameraImage, Image confidenceImage)
-        throws Exception {
-        Camera camera = frame.getCamera();
-        CameraIntrinsics intrinsics = camera.getImageIntrinsics();
-        int[] imageDimensions = intrinsics.getImageDimensions();
-        float[] focalLength = intrinsics.getFocalLength();
-        float[] principalPoint = intrinsics.getPrincipalPoint();
-        float[] poseMatrix = new float[16];
-        Pose pose = camera.getPose();
-        pose.toMatrix(poseMatrix, 0);
-
-        int[] rgb = sampleCameraColorAsRgb(cameraImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
-        int[] depth = sampleDepthMillimeters(depthImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
-        int[] confidence = confidenceImage == null
-            ? null
-            : sampleConfidence(confidenceImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
-
-        JSONObject receipt = new JSONObject();
-        receipt.put("schemaVersion", "holomap-android-arcore-depth-frame/v1");
-        receipt.put("status", "pass");
-        receipt.put("deviceModel", android.os.Build.MODEL);
-        receipt.put("manufacturer", android.os.Build.MANUFACTURER);
-        receipt.put("androidRelease", android.os.Build.VERSION.RELEASE);
-        receipt.put("androidSdk", android.os.Build.VERSION.SDK_INT);
-        receipt.put("arcorePackage", "com.google.ar.core");
-        receipt.put("frameAttempts", frameAttempts);
-        receipt.put("depthCoverage", Double.parseDouble(String.format(Locale.US, "%.4f", bestDepthCoverage)));
-        receipt.put("timestampNs", frame.getTimestamp());
-        receipt.put("sample", new JSONObject()
-            .put("width", SAMPLE_WIDTH)
-            .put("height", SAMPLE_HEIGHT)
-            .put("stride", 3)
-            .put("colorSpace", "rgb-yuv420-converted")
-            .put("rgb", toJsonArray(rgb))
-            .put("depthMillimeters", toJsonArray(depth))
-            .put("rawDepthConfidence", confidence == null ? JSONObject.NULL : toJsonArray(confidence)));
-        receipt.put("cameraImage", new JSONObject()
-            .put("width", cameraImage.getWidth())
-            .put("height", cameraImage.getHeight())
-            .put("format", cameraImage.getFormat()));
-        receipt.put("depthImage16Bits", new JSONObject()
-            .put("width", depthImage.getWidth())
-            .put("height", depthImage.getHeight())
-            .put("format", depthImage.getFormat())
-            .put("planePixelStride", depthImage.getPlanes()[0].getPixelStride())
-            .put("planeRowStride", depthImage.getPlanes()[0].getRowStride()));
-        receipt.put("intrinsics", new JSONObject()
-            .put("imageWidth", imageDimensions[0])
-            .put("imageHeight", imageDimensions[1])
-            .put("fx", focalLength[0])
-            .put("fy", focalLength[1])
-            .put("cx", principalPoint[0])
-            .put("cy", principalPoint[1])
-            .put("source", "arcore-camera-image-intrinsics"));
-        receipt.put("cameraTransformColumnMajor4x4", toJsonArray(poseMatrix));
-        receipt.put("hashes", new JSONObject()
-            .put("sampleRgbSha256", sha256(rgb))
-            .put("sampleDepthSha256", sha256(depth)));
-        receipt.put("honestScope", "Native ARCore Session captured a coverage-gated converged "
-            + "depth frame plus a full-color YUV->RGB camera image; sample is "
-            + SAMPLE_WIDTH + "x" + SAMPLE_HEIGHT + " for ADB transport.");
-        return receipt;
+    private void maybeFinish(long now, boolean force) {
+        if (wroteReceipt.get()) return;
+        boolean done = force || finishRequested
+            || frames.length() >= TARGET_FRAMES
+            || (now - startedAtMs >= MAX_CAPTURE_MS);
+        if (!done) return;
+        if (frames.length() > 0) {
+            writeSweepReceipt();
+        } else if (now - startedAtMs >= MAX_CAPTURE_MS || finishRequested) {
+            writeBlockedReceipt("no-converged-frames:last=" + lastError);
+        }
     }
 
-    // Full-color sampler: YUV_420_888 -> RGB (BT.601). The old probe only read the Y
-    // (luma) plane and produced grayscale; real color needs the U/V chroma planes.
+    private void appendFrame(Frame frame, Camera cam, Image depthImage, Image cameraImage, float[] pose, float coverage)
+        throws Exception {
+        if (intrinsicsJson == null) {
+            CameraIntrinsics in = cam.getImageIntrinsics();
+            int[] dim = in.getImageDimensions();
+            float[] f = in.getFocalLength();
+            float[] pp = in.getPrincipalPoint();
+            intrinsicsJson = new JSONObject()
+                .put("imageWidth", dim[0]).put("imageHeight", dim[1])
+                .put("fx", f[0]).put("fy", f[1]).put("cx", pp[0]).put("cy", pp[1])
+                .put("source", "arcore-camera-image-intrinsics");
+            sampleColorFormat = cameraImage.getFormat();
+        }
+        int[] rgb = sampleCameraColorAsRgb(cameraImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
+        int[] depth = sampleDepthMillimeters(depthImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
+        JSONObject f = new JSONObject()
+            .put("index", frames.length())
+            .put("timestampNs", frame.getTimestamp())
+            .put("depthCoverage", round4(coverage))
+            .put("cameraTransformColumnMajor4x4", toJsonArray(pose))
+            .put("rgb", toJsonArray(rgb))
+            .put("depthMillimeters", toJsonArray(depth));
+        frames.put(f);
+    }
+
+    private void writeSweepReceipt() {
+        try {
+            JSONObject receipt = new JSONObject();
+            receipt.put("schemaVersion", "holomap-android-arcore-depth-sweep/v1");
+            receipt.put("status", "pass");
+            receipt.put("deviceModel", android.os.Build.MODEL);
+            receipt.put("manufacturer", android.os.Build.MANUFACTURER);
+            receipt.put("androidRelease", android.os.Build.VERSION.RELEASE);
+            receipt.put("androidSdk", android.os.Build.VERSION.SDK_INT);
+            receipt.put("frameAttempts", frameAttempts);
+            receipt.put("frameCount", frames.length());
+            receipt.put("durationMs", SystemClock.elapsedRealtime() - startedAtMs);
+            receipt.put("sample", new JSONObject()
+                .put("width", SAMPLE_WIDTH).put("height", SAMPLE_HEIGHT)
+                .put("stride", 3).put("colorSpace", "rgb-yuv420-converted")
+                .put("cameraImageFormat", sampleColorFormat));
+            receipt.put("intrinsics", intrinsicsJson);
+            receipt.put("frames", frames);
+            receipt.put("honestScope", "Native ARCore room sweep: " + frames.length()
+                + " coverage-gated, motion-spaced, posed depth+color frames for host-side"
+                + " pose-merged reconstruction.");
+            writeReceipt(receipt, "sweep pass");
+        } catch (Exception e) {
+            Log.e(TAG, "writeSweepReceipt failed", e);
+        }
+    }
+
+    // ---- sampling helpers ----
+
     private int[] sampleCameraColorAsRgb(Image image, int outWidth, int outHeight) {
         Image.Plane[] planes = image.getPlanes();
         ByteBuffer yBuf = planes[0].getBuffer().duplicate();
@@ -310,38 +388,13 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
                 int uu = uBuf.get(uvY * uRow + uvX * uPix) & 0xFF;
                 int vv = vBuf.get(uvY * vRow + uvX * vPix) & 0xFF;
                 float yf = yy, uf = uu - 128f, vf = vv - 128f;
-                int r = clamp8((int) (yf + 1.402f * vf));
-                int g = clamp8((int) (yf - 0.344136f * uf - 0.714136f * vf));
-                int b = clamp8((int) (yf + 1.772f * uf));
                 int dst = (oy * outWidth + ox) * 3;
-                rgb[dst] = r;
-                rgb[dst + 1] = g;
-                rgb[dst + 2] = b;
+                rgb[dst] = clamp8((int) (yf + 1.402f * vf));
+                rgb[dst + 1] = clamp8((int) (yf - 0.344136f * uf - 0.714136f * vf));
+                rgb[dst + 2] = clamp8((int) (yf + 1.772f * uf));
             }
         }
         return rgb;
-    }
-
-    private static int clamp8(int v) {
-        return v < 0 ? 0 : (v > 255 ? 255 : v);
-    }
-
-    // Fraction of depth pixels with a non-zero (resolved) range.
-    private float depthCoverage(Image depthImage) {
-        Image.Plane plane = depthImage.getPlanes()[0];
-        ByteBuffer buffer = plane.getBuffer().duplicate().order(ByteOrder.LITTLE_ENDIAN);
-        int rowStride = plane.getRowStride();
-        int pixelStride = plane.getPixelStride();
-        int w = depthImage.getWidth(), h = depthImage.getHeight();
-        if (w == 0 || h == 0) return 0f;
-        int nonzero = 0;
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int d = buffer.getShort(y * rowStride + x * pixelStride) & 0xFFFF;
-                if (d > 0) nonzero++;
-            }
-        }
-        return (float) nonzero / (w * h);
     }
 
     private int[] sampleDepthMillimeters(Image image, int outWidth, int outHeight) {
@@ -354,79 +407,161 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
             int srcY = Math.min(image.getHeight() - 1, (int) (((y + 0.5f) * image.getHeight()) / outHeight));
             for (int x = 0; x < outWidth; x++) {
                 int srcX = Math.min(image.getWidth() - 1, (int) (((x + 0.5f) * image.getWidth()) / outWidth));
-                int offset = srcY * rowStride + srcX * pixelStride;
-                depth[y * outWidth + x] = buffer.getShort(offset) & 0xFFFF;
+                depth[y * outWidth + x] = buffer.getShort(srcY * rowStride + srcX * pixelStride) & 0xFFFF;
             }
         }
         return depth;
     }
 
-    private int[] sampleConfidence(Image image, int outWidth, int outHeight) {
-        Image.Plane plane = image.getPlanes()[0];
-        ByteBuffer buffer = plane.getBuffer().duplicate();
-        int rowStride = plane.getRowStride();
-        int pixelStride = plane.getPixelStride();
-        int[] confidence = new int[outWidth * outHeight];
-        for (int y = 0; y < outHeight; y++) {
-            int srcY = Math.min(image.getHeight() - 1, (int) (((y + 0.5f) * image.getHeight()) / outHeight));
-            for (int x = 0; x < outWidth; x++) {
-                int srcX = Math.min(image.getWidth() - 1, (int) (((x + 0.5f) * image.getWidth()) / outWidth));
-                int offset = srcY * rowStride + srcX * pixelStride;
-                confidence[y * outWidth + x] = buffer.get(offset) & 0xFF;
+    private float depthCoverage(Image depthImage) {
+        Image.Plane plane = depthImage.getPlanes()[0];
+        ByteBuffer buffer = plane.getBuffer().duplicate().order(ByteOrder.LITTLE_ENDIAN);
+        int rowStride = plane.getRowStride(), pixelStride = plane.getPixelStride();
+        int w = depthImage.getWidth(), h = depthImage.getHeight();
+        if (w == 0 || h == 0) return 0f;
+        int nonzero = 0;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if ((buffer.getShort(y * rowStride + x * pixelStride) & 0xFFFF) > 0) nonzero++;
             }
         }
-        return confidence;
+        return (float) nonzero / (w * h);
     }
+
+    private static float translation(float[] a, float[] b) {
+        float dx = a[12] - b[12], dy = a[13] - b[13], dz = a[14] - b[14];
+        return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    private static int clamp8(int v) { return v < 0 ? 0 : (v > 255 ? 255 : v); }
+    private static double round4(float v) { return Double.parseDouble(String.format(Locale.US, "%.4f", v)); }
 
     private JSONArray toJsonArray(int[] values) {
-        JSONArray array = new JSONArray();
-        for (int value : values) array.put(value);
-        return array;
+        JSONArray a = new JSONArray();
+        for (int v : values) a.put(v);
+        return a;
     }
-
     private JSONArray toJsonArray(float[] values) throws Exception {
-        JSONArray array = new JSONArray();
-        for (float value : values) array.put(Double.parseDouble(String.format(Locale.US, "%.7f", value)));
-        return array;
+        JSONArray a = new JSONArray();
+        for (float v : values) a.put(Double.parseDouble(String.format(Locale.US, "%.7f", v)));
+        return a;
     }
 
-    private String sha256(int[] values) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        ByteBuffer buffer = ByteBuffer.allocate(values.length * 4).order(ByteOrder.LITTLE_ENDIAN);
-        for (int value : values) buffer.putInt(value);
-        byte[] hash = digest.digest(buffer.array());
-        StringBuilder out = new StringBuilder("sha256:");
-        for (byte b : hash) out.append(String.format(Locale.US, "%02x", b));
-        return out.toString();
+    private void setStatus(final String s, final long elapsedMs) {
+        final String line = s + "   ·   " + (elapsedMs / 1000) + "s";
+        runOnUiThread(new Runnable() { @Override public void run() { if (statusText != null) statusText.setText(line); } });
     }
 
     private void writeBlockedReceipt(String reason) {
         try {
             JSONObject receipt = new JSONObject();
-            receipt.put("schemaVersion", "holomap-android-arcore-depth-frame/v1");
+            receipt.put("schemaVersion", "holomap-android-arcore-depth-sweep/v1");
             receipt.put("status", "blocked");
             receipt.put("blockedReason", reason);
             receipt.put("frameAttempts", frameAttempts);
+            receipt.put("frameCount", frames.length());
             receipt.put("deviceModel", android.os.Build.MODEL);
-            receipt.put("honestScope", "Native ARCore depth-frame proof did not acquire a converged depth frame.");
-            writeReceipt(receipt);
+            receipt.put("honestScope", "Native ARCore room sweep did not capture any converged frames.");
+            writeReceipt(receipt, "blocked:" + reason);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to write blocked receipt", e);
+            Log.e(TAG, "writeBlockedReceipt failed", e);
         }
     }
 
-    private void writeReceipt(JSONObject receipt) throws Exception {
+    private void writeReceipt(JSONObject receipt, String label) throws Exception {
         if (!wroteReceipt.compareAndSet(false, true)) return;
         File out = new File(getFilesDir(), "holomap-arcore-depth-frame.json");
         try (FileOutputStream stream = new FileOutputStream(out)) {
-            stream.write(receipt.toString(2).getBytes(StandardCharsets.UTF_8));
+            stream.write(receipt.toString().getBytes(StandardCharsets.UTF_8));
             stream.write('\n');
         }
-        Log.i(TAG, "HOLOMAP_DEPTH_PROBE_RESULT=" + receipt.getString("status") + " path=" + out.getAbsolutePath());
-        runOnUiThread(this::finish);
+        Log.i(TAG, "HOLOMAP_DEPTH_PROBE_RESULT=" + receipt.getString("status") + " (" + label + ") path=" + out.getAbsolutePath());
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                if (hintText != null) hintText.setText("Saved — " + frames.length() + " frames. You can close this.");
+                finish();
+            }
+        });
     }
 
     private String safe(String text) {
         return text == null ? "" : text.replace('\n', ' ').replace('\r', ' ');
+    }
+
+    // ---- camera background (live viewfinder) ----
+
+    private static final class BackgroundRenderer {
+        private static final float[] NDC_QUAD = { -1f, -1f, +1f, -1f, -1f, +1f, +1f, +1f };
+        private FloatBuffer ndcBuffer;
+        private FloatBuffer texBuffer;
+        private int program;
+        private int aPosition;
+        private int aTexCoord;
+        private int uTexture;
+        private int textureId;
+        private boolean texInit;
+
+        void init(int texId) {
+            this.textureId = texId;
+            ndcBuffer = floatBuffer(NDC_QUAD);
+            texBuffer = floatBuffer(new float[8]);
+            String vs = "attribute vec4 a_Position;\nattribute vec2 a_TexCoord;\nvarying vec2 v_TexCoord;\n"
+                + "void main(){ gl_Position = a_Position; v_TexCoord = a_TexCoord; }";
+            String fs = "#extension GL_OES_EGL_image_external : require\nprecision mediump float;\n"
+                + "varying vec2 v_TexCoord;\nuniform samplerExternalOES u_Texture;\n"
+                + "void main(){ gl_FragColor = texture2D(u_Texture, v_TexCoord); }";
+            int v = compile(GLES20.GL_VERTEX_SHADER, vs);
+            int f = compile(GLES20.GL_FRAGMENT_SHADER, fs);
+            program = GLES20.glCreateProgram();
+            GLES20.glAttachShader(program, v);
+            GLES20.glAttachShader(program, f);
+            GLES20.glLinkProgram(program);
+            aPosition = GLES20.glGetAttribLocation(program, "a_Position");
+            aTexCoord = GLES20.glGetAttribLocation(program, "a_TexCoord");
+            uTexture = GLES20.glGetUniformLocation(program, "u_Texture");
+        }
+
+        void draw(Frame frame) {
+            if (frame.hasDisplayGeometryChanged() || !texInit) {
+                frame.transformCoordinates2d(
+                    Coordinates2d.OPENGL_NORMALIZED_DEVICE_COORDINATES, ndcBuffer,
+                    Coordinates2d.TEXTURE_NORMALIZED, texBuffer);
+                texInit = true;
+            }
+            if (program == 0) return;
+            GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+            GLES20.glDepthMask(false);
+            GLES20.glUseProgram(program);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
+            GLES20.glUniform1i(uTexture, 0);
+            ndcBuffer.position(0);
+            texBuffer.position(0);
+            GLES20.glVertexAttribPointer(aPosition, 2, GLES20.GL_FLOAT, false, 0, ndcBuffer);
+            GLES20.glVertexAttribPointer(aTexCoord, 2, GLES20.GL_FLOAT, false, 0, texBuffer);
+            GLES20.glEnableVertexAttribArray(aPosition);
+            GLES20.glEnableVertexAttribArray(aTexCoord);
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            GLES20.glDisableVertexAttribArray(aPosition);
+            GLES20.glDisableVertexAttribArray(aTexCoord);
+            GLES20.glDepthMask(true);
+            GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+        }
+
+        private static int compile(int type, String src) {
+            int s = GLES20.glCreateShader(type);
+            GLES20.glShaderSource(s, src);
+            GLES20.glCompileShader(s);
+            return s;
+        }
+
+        private static FloatBuffer floatBuffer(float[] data) {
+            ByteBuffer bb = ByteBuffer.allocateDirect(data.length * 4);
+            bb.order(ByteOrder.nativeOrder());
+            FloatBuffer fb = bb.asFloatBuffer();
+            fb.put(data);
+            fb.position(0);
+            return fb;
+        }
     }
 }
