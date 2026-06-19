@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 // gate enforces a byte match. 'reference' = still hand-authored (golden), not yet emitted.
 export const GOLDEN_MANIFEST = [
   { path: 'android/app/src/main/res/values/generated.xml', status: 'emitted' },
-  { path: 'android/app/src/main/java/net/holoscript/qrscanner/QrDecoder.kt', status: 'reference' },
+  { path: 'android/app/src/main/java/net/holoscript/qrscanner/QrDecoder.kt', status: 'emitted' },
   { path: 'android/app/src/main/AndroidManifest.xml', status: 'reference' },
   { path: 'android/app/build.gradle.kts', status: 'reference' },
   { path: 'android/build.gradle.kts', status: 'reference' },
@@ -62,9 +62,54 @@ function emitGeneratedXml(cfg) {
 `;
 }
 
+// Static Kotlin file (no spec-driven config) — emitted verbatim; the golden gate enforces it
+// byte-matches the reference. First Kotlin file flipped reference→emitted (smallest first).
+function emitQrDecoderKt() {
+  return `package net.holoscript.qrscanner
+
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.ChecksumException
+import com.google.zxing.DecodeHintType
+import com.google.zxing.FormatException
+import com.google.zxing.NotFoundException
+import com.google.zxing.PlanarYUVLuminanceSource
+import com.google.zxing.common.HybridBinarizer
+import com.google.zxing.qrcode.QRCodeReader
+
+/**
+ * ZXing QR decode from a Y (luminance) plane. Pure-Java, GMS-free (Quest has no Play Services).
+ *
+ * No dedupe/throttle here — the controller owns scan cadence and cooldown. [tryHarder] is off for
+ * the cheap idle "sense" pass and on for the full-resolution read once a QR is sensed.
+ */
+class QrDecoder {
+    private val reader = QRCodeReader()
+
+    fun decode(yPlane: ByteArray, width: Int, height: Int, tryHarder: Boolean): String? {
+        val source = PlanarYUVLuminanceSource(yPlane, width, height, 0, 0, width, height, false)
+        val bitmap = BinaryBitmap(HybridBinarizer(source))
+        val hints: Map<DecodeHintType, Any> =
+            if (tryHarder) mapOf(DecodeHintType.TRY_HARDER to true) else emptyMap()
+        return try {
+            reader.decode(bitmap, hints).text
+        } catch (e: NotFoundException) {
+            null
+        } catch (e: ChecksumException) {
+            null
+        } catch (e: FormatException) {
+            null
+        } finally {
+            reader.reset()
+        }
+    }
+}
+`;
+}
+
 // path → emit function, for every file currently marked 'emitted'.
 const EMITTERS = {
   'android/app/src/main/res/values/generated.xml': emitGeneratedXml,
+  'android/app/src/main/java/net/holoscript/qrscanner/QrDecoder.kt': emitQrDecoderKt,
 };
 
 /** Returns { relpath: content } for every currently-EMITTED file, derived from the spec. */
