@@ -54,6 +54,7 @@ export const BRIDGE_TARGETS = [
   'openxr',
   'android',
   'android-xr',
+  'quest', // Meta Quest (Horizon OS / Meta Spatial SDK) — emits a native Kotlin app to Meta's runtime
   'ios',
   'visionos',
   'ar',

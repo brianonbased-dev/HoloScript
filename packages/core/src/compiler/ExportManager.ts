@@ -35,20 +35,15 @@ import { UnrealCompiler } from './UnrealCompiler';
 import { GodotCompiler } from './GodotCompiler';
 import { Canvas2DGameCompiler } from './Canvas2DGameCompilerTarget';
 import { WebGPUCompiler } from './WebGPUCompiler';
-import { R3FCompiler } from './R3FCompiler';
-import { BabylonCompiler } from './BabylonCompiler';
 import { OpenXRCompiler } from './OpenXRCompiler';
 import { VRChatCompiler } from './VRChatCompiler';
 import { IOSCompiler } from './IOSCompiler';
 import { AndroidCompiler } from './AndroidCompiler';
 import { AndroidXRCompiler } from './AndroidXRCompiler';
+import { QuestCompiler } from './QuestCompiler';
 import { VisionOSCompiler } from './VisionOSCompiler';
 import { WASMCompiler } from './WASMCompiler';
 import { DTDLCompiler } from './DTDLCompiler';
-import { PlayCanvasCompiler } from './PlayCanvasCompiler';
-import { VRRCompiler } from './VRRCompiler';
-import { ARCompiler } from './ARCompiler';
-import { MultiLayerCompiler } from './MultiLayerCompiler';
 import { IncrementalCompiler } from './IncrementalCompiler';
 import { StateCompiler } from './StateCompiler';
 import { TraitCompositionCompiler } from './TraitCompositionCompiler';
@@ -56,7 +51,6 @@ import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
-import { PhoneSleeveVRCompiler } from './PhoneSleeveVRCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
 import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
@@ -235,10 +229,6 @@ class CompilerFactory {
         return new GodotCompiler(options);
       case 'webgpu':
         return new WebGPUCompiler(options);
-      case 'r3f':
-        return new R3FCompiler(options);
-      case 'babylon':
-        return new BabylonCompiler(options);
       case 'openxr':
         return new OpenXRCompiler(options);
       case 'vrchat':
@@ -249,22 +239,14 @@ class CompilerFactory {
         return new AndroidCompiler(options);
       case 'android-xr':
         return new AndroidXRCompiler(options);
+      case 'quest':
+        return new QuestCompiler(options);
       case 'visionos':
         return new VisionOSCompiler(options);
       case 'wasm':
         return new WASMCompiler(options);
       case 'dtdl':
         return new DTDLCompiler(options);
-      case 'playcanvas':
-        return new PlayCanvasCompiler(options);
-      case 'vrr':
-        return new VRRCompiler(options as unknown as ConstructorParameters<typeof VRRCompiler>[0]);
-      case 'ar':
-        return new ARCompiler(options as unknown as ConstructorParameters<typeof ARCompiler>[0]);
-      case 'multi-layer':
-        return new MultiLayerCompiler(
-          options as unknown as ConstructorParameters<typeof MultiLayerCompiler>[0]
-        );
       case 'incremental':
         return new IncrementalCompiler(
           options as unknown as ConstructorParameters<typeof IncrementalCompiler>[0]
@@ -283,8 +265,6 @@ class CompilerFactory {
         return new NIRCompiler(options);
       case 'openxr-spatial-entities':
         return new OpenXRSpatialEntitiesCompiler(options);
-      case 'phone-sleeve-vr':
-        return new PhoneSleeveVRCompiler(options);
       case 'usd':
         return new USDPhysicsCompiler(options);
       case 'usdz':
@@ -350,17 +330,15 @@ const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, Gaussian
   vrchat: ['quest3', 'desktop_vr'],
   openxr: ['quest3', 'desktop_vr'],
   'openxr-spatial-entities': ['quest3', 'desktop_vr'],
-  vrr: ['quest3', 'desktop_vr'],
 
   // Mobile VR
   'android-xr': ['quest3'],
-  'phone-sleeve-vr': ['mobile_ar' as GaussianPlatform],
+
+  // Meta Quest (Horizon OS / Meta Spatial SDK) — distinct runtime from Google android-xr
+  quest: ['quest3'],
 
   // Desktop/Browser rendering
   webgpu: ['webgpu'],
-  babylon: ['webgpu', 'desktop_vr'],
-  r3f: ['webgpu'],
-  playcanvas: ['webgpu'],
   wasm: ['webgpu'],
 
   // Native VR/AR platforms
@@ -369,8 +347,7 @@ const EXPORT_TARGET_TO_GAUSSIAN_PLATFORMS: Partial<Record<ExportTarget, Gaussian
   unreal: ['quest3', 'desktop_vr'],
   godot: ['quest3', 'desktop_vr'],
 
-  // Mobile AR
-  ar: ['mobile_ar'],
+  // Mobile AR (native)
   android: ['mobile_ar'],
   ios: ['mobile_ar', 'visionos'],
 };
@@ -701,8 +678,8 @@ export class ExportManager {
         this.memoryMonitor.setIncrementalCompiler(compiler);
       }
 
-      // R3FCompiler has compileComposition() for HoloComposition input.
-      // Its compile() method expects HSPlusAST. Other compilers use compile() directly.
+      // Some compilers expose compileComposition() for HoloComposition input
+      // instead of compile() which expects HSPlusAST.
       const asRecord = compiler as Record<string, unknown>;
       if (typeof asRecord['compileComposition'] === 'function') {
         const compileFn = asRecord['compileComposition'] as (

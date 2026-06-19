@@ -89,7 +89,8 @@ export type ExportTarget =
   | 'edge' // Edge device Python deployment bundle (Jetson, RPi, The Unit)
   | 'bot-swarm' // In-process MMO load/balance test harness (bridge — pairs with colyseus)
   | 'dungeon-instance' // Per-party instanced-content pool + completion receipt (bridge)
-  | 'world-shard'; // World AABB shard router + receipt-sealed handoff bootstrap (bridge)
+  | 'world-shard' // World AABB shard router + receipt-sealed handoff bootstrap (bridge)
+  | 'quest'; // Meta Quest (Horizon OS / Meta Spatial SDK) — distinct from Google android-xr
 
 /**
  * Circuit configuration per target
