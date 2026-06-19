@@ -1,4 +1,4 @@
-import type { ILLMProvider, LLMMessage, TokenUsage } from '@holoscript/llm-provider';
+import type { ILLMProvider, LLMMessage, TokenUsage, ToolUseBlock } from '@holoscript/llm-provider';
 import { embedAcrossFleet, cosineSimilarity } from '@holoscript/llm-provider';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
@@ -205,6 +205,7 @@ export class AgentRunner {
     // Last git commit SHA emitted during the tool-loop; forwarded to markDone
     // so the board task records a verifiable commit reference.
     let lastCommitHash: string | undefined;
+    let lastVisionCaption: string | undefined;
     // F.126 #1 — the model's tools come from the BRAIN'S DECLARATION (the on_task
     // `llm_call { tools: [...] }` array), not a hardcoded list. resolveActiveTools
     // resolves the declared names against MESH_TOOLS, falls back safely when a brain
@@ -283,6 +284,10 @@ export class AgentRunner {
               const shaMatch = tr.content.match(/\b([0-9a-f]{7,40})\b/);
               if (shaMatch) lastCommitHash = shaMatch[1];
             }
+          }
+          if (tu.name === 'vision_analyze') {
+            const tr = toolResults[ti];
+            if (tr && !tr.is_error) lastVisionCaption = tr.content;
           }
         }
         messages.push({
@@ -386,6 +391,41 @@ export class AgentRunner {
           )
         );
         messages.push({ role: 'user', content: vwResults as never });
+      } else if (lastVisionCaption && ![...toolsCalled].some((n) => WRITE_NAMES.has(n))) {
+        // Auto-commit (W.780/W.781): qwen3:4b cannot chain vision_analyze → write_file even
+        // with two targeted re-prompts. Write the Fara-7B caption directly from the runner
+        // rather than leaving the task with a CAEL record but no file artifact.
+        const outPath =
+          target.description.match(/path[:\s]+([^\s\n,]+\.json)/i)?.[1] ??
+          target.description.match(/(\/[/\w./-]+\.json)/i)?.[1] ??
+          `/mnt/nvme/holo/agent/shared/vision-${target.id}.json`;
+        const syntheticWrite: ToolUseBlock = {
+          type: 'tool_use',
+          id: 'auto-vision-write',
+          name: 'write_file',
+          input: {
+            path: outPath,
+            content: JSON.stringify(
+              {
+                caption: lastVisionCaption,
+                task: target.title,
+                source: 'vision_analyze',
+                model: process.env.HOLOSCRIPT_AGENT_VISION_MODEL ?? 'fara:7b',
+              },
+              null,
+              2,
+            ),
+          },
+        };
+        const writeResult = await runTool(syntheticWrite, {
+          signReceipt: this.opts.signReceipt,
+          addTask: (tasks) => mesh.addTasks(tasks),
+        });
+        log({ ev: 'vision-auto-write', taskId: target.id, path: outPath, ok: !writeResult.is_error });
+        if (!writeResult.is_error) {
+          toolsCalled.add('write_file');
+          productiveCallCount++;
+        }
       }
       finalText = vwResp.content;
       lastResponse = vwResp;
