@@ -12,18 +12,18 @@ import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
-import java.nio.ByteBuffer
 
 /**
- * Opens the Quest forward passthrough RGB camera via the standard Android Camera2 API
- * (Meta's "Passthrough Camera API" exposes the headset cameras as logical Camera2 devices),
- * streams YUV_420_888 frames, extracts the Y plane, and feeds [QrDecoder].
+ * Opens the Quest forward passthrough RGB camera via Camera2 and looks for QR codes.
  *
- * Forward camera selection uses Meta's vendor CameraCharacteristics:
- *   com.meta.extra_metadata.camera_source == [cameraSource] (0 = passthrough RGB)
- *   com.meta.extra_metadata.position      == [cameraPosition] (0 = left/forward)
+ * Power profile: when idle it attempts a decode at most every [IDLE_INTERVAL_MS] on a
+ * 1/[IDLE_DOWNSCALE]-resolution frame with try-harder OFF (cheap "sensing"). The instant a QR is
+ * sensed it ramps up to a full-resolution, try-harder read for an accurate value, then reports it.
+ * Scanning can be paused (e.g. while the user decides in a popup) via [pauseScanning].
  *
- * Requires Quest 3 / 3S on Horizon OS v76+. Permission must be granted before [start].
+ * Forward camera is selected via Meta's vendor characteristics
+ * (com.meta.extra_metadata.camera_source==[cameraSource], position==[cameraPosition]).
+ * Requires Quest 3 / 3S on Horizon OS v76+; permission must be granted before [start].
  */
 class PassthroughCameraController(
     private val context: Context,
@@ -31,7 +31,7 @@ class PassthroughCameraController(
     private val height: Int,
     private val cameraSource: Int,
     private val cameraPosition: Int,
-    dedupeWindowMs: Long,
+    private val cooldownMs: Long,
     private val onDecoded: (String) -> Unit,
     private val onError: (String) -> Unit,
 ) {
@@ -39,17 +39,30 @@ class PassthroughCameraController(
         private const val TAG = "PassthroughCamera"
         private const val KEY_CAMERA_SOURCE = "com.meta.extra_metadata.camera_source"
         private const val KEY_CAMERA_POSITION = "com.meta.extra_metadata.position"
+        private const val IDLE_INTERVAL_MS = 200L
+        private const val IDLE_DOWNSCALE = 2
     }
 
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-    private val decoder = QrDecoder(dedupeWindowMs)
+    private val decoder = QrDecoder()
 
     private var thread: HandlerThread? = null
     private var handler: Handler? = null
     private var device: CameraDevice? = null
     private var session: CameraCaptureSession? = null
     private var reader: ImageReader? = null
-    private var busy = false
+
+    @Volatile private var paused = false
+    private var lastDecodeAttemptMs = 0L
+    private var lastReported: String? = null
+    private var lastReportedMs = 0L
+    private var attempts = 0
+
+    /** Stop processing frames (camera keeps running) — e.g. while a result popup is shown. */
+    fun pauseScanning() { paused = true }
+
+    /** Resume idle sensing. */
+    fun resumeScanning() { paused = false; lastDecodeAttemptMs = 0 }
 
     fun start() {
         thread = HandlerThread("qr-camera").also { it.start() }
@@ -59,6 +72,7 @@ class PassthroughCameraController(
             onError("No passthrough camera found. Requires Quest 3 / 3S on Horizon OS v76+.")
             return
         }
+        Log.i(TAG, "opening camera id=$cameraId ${width}x$height (idle: 1/$IDLE_DOWNSCALE res every ${IDLE_INTERVAL_MS}ms)")
         openCamera(cameraId)
     }
 
@@ -74,8 +88,6 @@ class PassthroughCameraController(
             }
         }
         if (sourceMatch != null) return sourceMatch
-
-        // Vendor keys absent (older OS / emulator): fall back to first back-facing camera.
         for (id in cameraManager.cameraIdList) {
             val ch = cameraManager.getCameraCharacteristics(id)
             if (ch.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
@@ -88,7 +100,7 @@ class PassthroughCameraController(
     private fun readVendorByte(ch: CameraCharacteristics, name: String): Byte? = try {
         ch.get(CameraCharacteristics.Key(name, Byte::class.javaObjectType))
     } catch (e: IllegalArgumentException) {
-        null // vendor key not present on this device
+        null
     }
 
     @Suppress("MissingPermission") // permission verified by MainActivity before start()
@@ -139,48 +151,81 @@ class PassthroughCameraController(
         )
     }
 
-    private fun onFrame(reader: ImageReader) {
-        val image: Image = reader.acquireLatestImage() ?: return
-        // Drop frames while a decode is in flight — QR scanning doesn't need every frame.
-        if (busy) { image.close(); return }
-        busy = true
+    private fun onFrame(imageReader: ImageReader) {
+        val image: Image = imageReader.acquireLatestImage() ?: return
         try {
-            val y = packYPlane(image)
-            val text = decoder.decode(y, image.width, image.height)
-            if (text != null) onDecoded(text)
+            if (paused) return
+            val now = System.currentTimeMillis()
+            if (now - lastDecodeAttemptMs < IDLE_INTERVAL_MS) return
+            lastDecodeAttemptMs = now
+            attempts++
+
+            // Cheap idle sense: quarter-resolution, no try-harder.
+            val (yS, wS, hS) = packYPlaneScaled(image, IDLE_DOWNSCALE)
+            val sensed = decoder.decode(yS, wS, hS, tryHarder = false)
+            if (sensed == null) {
+                if (attempts % 50 == 0) Log.i(TAG, "idle sensing… attempts=$attempts")
+                return
+            }
+
+            // Sensed a QR — ramp up to a full-resolution, thorough read for an accurate value.
+            val yF = packYPlane(image)
+            val precise = decoder.decode(yF, image.width, image.height, tryHarder = true) ?: sensed
+
+            if (precise == lastReported && now - lastReportedMs < cooldownMs) return
+            lastReported = precise
+            lastReportedMs = now
+            Log.i(TAG, "QR sensed+read (attempt $attempts): $precise")
+            onDecoded(precise)
         } catch (e: Exception) {
             Log.w(TAG, "frame decode failed", e)
         } finally {
             image.close()
-            busy = false
         }
     }
 
-    /** Copy the Y plane into a tightly-packed width*height array, stripping rowStride padding. */
+    /** Full-resolution, tightly-packed Y plane (rowStride padding removed). */
     private fun packYPlane(image: Image): ByteArray {
         val plane = image.planes[0]
-        val buffer: ByteBuffer = plane.buffer
+        val buffer = plane.buffer
         val rowStride = plane.rowStride
         val w = image.width
         val h = image.height
         val out = ByteArray(w * h)
-        if (rowStride == w) {
-            buffer.get(out, 0, w * h)
-        } else {
-            val row = ByteArray(rowStride)
-            var pos = 0
-            for (r in 0 until h) {
-                buffer.position(r * rowStride)
-                val toRead = minOf(rowStride, buffer.remaining())
-                buffer.get(row, 0, toRead)
-                System.arraycopy(row, 0, out, pos, w)
-                pos += w
-            }
+        val rowBuf = ByteArray(rowStride)
+        var pos = 0
+        for (r in 0 until h) {
+            buffer.position(r * rowStride)
+            val toRead = minOf(rowStride, buffer.remaining())
+            buffer.get(rowBuf, 0, toRead)
+            System.arraycopy(rowBuf, 0, out, pos, w)
+            pos += w
         }
         return out
     }
 
+    /** Subsampled Y plane (every [step]th pixel/row) — cheap luminance for idle sensing. */
+    private fun packYPlaneScaled(image: Image, step: Int): Triple<ByteArray, Int, Int> {
+        val plane = image.planes[0]
+        val buffer = plane.buffer
+        val rowStride = plane.rowStride
+        val ow = image.width / step
+        val oh = image.height / step
+        val out = ByteArray(ow * oh)
+        val rowBuf = ByteArray(rowStride)
+        var idx = 0
+        for (r in 0 until oh) {
+            buffer.position(r * step * rowStride)
+            val toRead = minOf(rowStride, buffer.remaining())
+            buffer.get(rowBuf, 0, toRead)
+            var sc = 0
+            for (c in 0 until ow) { out[idx++] = rowBuf[sc]; sc += step }
+        }
+        return Triple(out, ow, oh)
+    }
+
     fun stop() {
+        paused = true
         try { session?.stopRepeating() } catch (_: Exception) {}
         session?.close(); session = null
         device?.close(); device = null

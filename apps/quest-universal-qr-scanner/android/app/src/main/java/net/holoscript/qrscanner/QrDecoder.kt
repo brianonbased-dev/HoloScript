@@ -10,29 +10,20 @@ import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
 
 /**
- * Decodes QR codes from a Camera2 YUV_420_888 Y (luminance) plane using ZXing core.
- * Pure-Java, GMS-free — Quest/Horizon OS has no Google Play Services.
+ * ZXing QR decode from a Y (luminance) plane. Pure-Java, GMS-free (Quest has no Play Services).
  *
- * Dedupes repeated payloads within [dedupeWindowMs] so one physical QR doesn't fire every frame.
+ * No dedupe/throttle here — the controller owns scan cadence and cooldown. [tryHarder] is off for
+ * the cheap idle "sense" pass and on for the full-resolution read once a QR is sensed.
  */
-class QrDecoder(private val dedupeWindowMs: Long) {
-
+class QrDecoder {
     private val reader = QRCodeReader()
-    private val hints = mapOf<DecodeHintType, Any>(DecodeHintType.TRY_HARDER to true)
 
-    private var lastText: String? = null
-    private var lastTimeMs: Long = 0L
-
-    /**
-     * @param yPlane tightly-packed luminance bytes (length == width*height, no row padding)
-     * @return decoded text, or null if no QR found / a duplicate inside the dedupe window
-     */
-    fun decode(yPlane: ByteArray, width: Int, height: Int): String? {
-        val source = PlanarYUVLuminanceSource(
-            yPlane, width, height, 0, 0, width, height, false
-        )
+    fun decode(yPlane: ByteArray, width: Int, height: Int, tryHarder: Boolean): String? {
+        val source = PlanarYUVLuminanceSource(yPlane, width, height, 0, 0, width, height, false)
         val bitmap = BinaryBitmap(HybridBinarizer(source))
-        val text: String? = try {
+        val hints: Map<DecodeHintType, Any> =
+            if (tryHarder) mapOf(DecodeHintType.TRY_HARDER to true) else emptyMap()
+        return try {
             reader.decode(bitmap, hints).text
         } catch (e: NotFoundException) {
             null
@@ -43,12 +34,5 @@ class QrDecoder(private val dedupeWindowMs: Long) {
         } finally {
             reader.reset()
         }
-        if (text.isNullOrEmpty()) return null
-
-        val now = System.currentTimeMillis()
-        if (text == lastText && now - lastTimeMs < dedupeWindowMs) return null
-        lastText = text
-        lastTimeMs = now
-        return text
     }
 }

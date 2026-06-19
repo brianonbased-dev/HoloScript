@@ -1,29 +1,30 @@
 package net.holoscript.qrscanner
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 
 /**
- * Universal QR Scanner — 2D panel app for Meta Quest 3 / 3S.
+ * Universal QR Scanner — minimal 2D panel for Meta Quest 3 / 3S.
  *
- * Flow: request HEADSET_CAMERA -> stream passthrough frames -> decode QR ->
- *       open URLs in the Quest Browser via the "Web Task" scheme (ovrweb://webtask?uri=...).
- *
- * Spec-driven values (resolution, camera selection, dedupe window, webtask scheme) come from
- * the @generated res/values/generated.xml, whose source of truth is ../../scanner.holo.
+ * The panel stays small and unobtrusive (a 2D app needs a foreground window to keep camera
+ * access — Android blocks background camera). When the passthrough camera senses a QR, a popup
+ * asks whether to open it; nothing auto-navigates. Scanning pauses while the popup is shown.
  */
 class MainActivity : ComponentActivity() {
 
     private val cameraPermission = "horizonos.permission.HEADSET_CAMERA"
+    private val tag = "QrScanner"
 
     private lateinit var statusView: TextView
-    private lateinit var resultView: TextView
     private var controller: PassthroughCameraController? = null
+    private var dialog: AlertDialog? = null
 
     private val requestCamera =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -35,8 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         statusView = findViewById(R.id.status)
-        resultView = findViewById(R.id.result)
-        status("Point at a QR code…")
+        status("Scanning for QR codes…")
     }
 
     override fun onStart() {
@@ -46,6 +46,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        dialog?.dismiss()
+        dialog = null
         controller?.stop()
         controller = null
     }
@@ -55,27 +57,39 @@ class MainActivity : ComponentActivity() {
 
     private fun startScanner() {
         if (controller != null) return
-        status("Scanning… point at a QR code")
+        status("Scanning for QR codes…")
         controller = PassthroughCameraController(
             context = this,
             width = resources.getInteger(R.integer.frame_width),
             height = resources.getInteger(R.integer.frame_height),
             cameraSource = resources.getInteger(R.integer.camera_source),
             cameraPosition = resources.getInteger(R.integer.camera_position),
-            dedupeWindowMs = resources.getInteger(R.integer.dedupe_window_ms).toLong(),
+            cooldownMs = resources.getInteger(R.integer.dedupe_window_ms).toLong(),
             onDecoded = { text -> runOnUiThread { onDecoded(text) } },
             onError = { msg -> runOnUiThread { status(msg) } },
         ).also { it.start() }
     }
 
+    /** A QR was sensed — raise a popup; do not navigate automatically. */
     private fun onDecoded(text: String) {
-        resultView.text = text
-        if (isUrl(text)) {
-            status("Opening: $text")
-            openInQuestBrowser(text)
+        Log.i(tag, "decoded: $text")
+        if (dialog?.isShowing == true) return        // a popup is already up
+        controller?.pauseScanning()                  // stop scanning while the user decides
+        val isLink = isUrl(text)
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (isLink) "QR code found" else "Scanned")
+            .setMessage(text)
+            .setOnDismissListener { controller?.resumeScanning() }
+        if (isLink) {
+            builder.setPositiveButton("Open") { _, _ ->
+                Log.i(tag, "user opened: $text")
+                openInQuestBrowser(text)
+            }
+            builder.setNegativeButton("Dismiss") { d, _ -> d.dismiss() }
         } else {
-            status("Scanned (not a link):")
+            builder.setNegativeButton("OK") { d, _ -> d.dismiss() }
         }
+        dialog = builder.show()
     }
 
     /** Quest "Web Task" scheme — the documented way to open a URL in the Quest Browser. */
@@ -84,7 +98,6 @@ class MainActivity : ComponentActivity() {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webtask)))
         } catch (e: Exception) {
-            // Fallback to a plain view intent if the Web Task scheme is unavailable.
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             } catch (e2: Exception) {
