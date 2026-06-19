@@ -40,10 +40,17 @@ import javax.microedition.khronos.opengles.GL10;
 public final class MainActivity extends Activity implements GLSurfaceView.Renderer {
     private static final String TAG = "HoloMapDepthProbe";
     private static final int CAMERA_PERMISSION_REQUEST = 1001;
-    private static final int SAMPLE_WIDTH = 64;
-    private static final int SAMPLE_HEIGHT = 48;
-    private static final int MAX_FRAME_ATTEMPTS = 600;
-    private static final long MAX_CAPTURE_MS = 30000L;
+    // Full native depth resolution (ARCore DEPTH16 is ~160x90 on the S23) — no longer
+    // throwing away ~4.7x of the depth map by downsampling to 64x48.
+    private static final int SAMPLE_WIDTH = 160;
+    private static final int SAMPLE_HEIGHT = 90;
+    private static final int MAX_FRAME_ATTEMPTS = 900;
+    private static final long MAX_CAPTURE_MS = 45000L;
+    // ROOT-CAUSE FIX: ARCore depth-from-motion (the S23 has no ToF sensor) returns an
+    // empty/all-zero depth image until parallax converges. The old probe wrote its
+    // receipt on the FIRST available depth frame (~1s in) — always empty. Gate on real
+    // coverage so we only capture a converged frame.
+    private static final float MIN_DEPTH_COVERAGE = 0.12f;
 
     private GLSurfaceView surfaceView;
     private Session session;
@@ -51,6 +58,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
     private int cameraTextureId = -1;
     private int frameAttempts;
     private long startedAtMs;
+    private float bestDepthCoverage = 0f;
     private String lastDepthError = "not-started";
     private final AtomicBoolean wroteReceipt = new AtomicBoolean(false);
 
@@ -167,7 +175,8 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
 
         long elapsed = SystemClock.elapsedRealtime() - startedAtMs;
         if (!wroteReceipt.get() && (frameAttempts >= MAX_FRAME_ATTEMPTS || elapsed >= MAX_CAPTURE_MS)) {
-            writeBlockedReceipt("depth-frame-timeout:last=" + lastDepthError);
+            writeBlockedReceipt("depth-frame-timeout:last=" + lastDepthError
+                + ":bestCoverage=" + String.format(Locale.US, "%.3f", bestDepthCoverage));
         }
     }
 
@@ -181,6 +190,17 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
             } catch (NotYetAvailableException e) {
                 lastDepthError = "depth-not-yet-available";
                 return;
+            }
+
+            // Coverage gate — keep capturing until ARCore depth-from-motion has resolved
+            // real geometry. Without this we capture the first (empty) frame and quit.
+            float coverage = depthCoverage(depthImage);
+            bestDepthCoverage = Math.max(bestDepthCoverage, coverage);
+            long elapsedMs = SystemClock.elapsedRealtime() - startedAtMs;
+            boolean timedOut = elapsedMs >= MAX_CAPTURE_MS || frameAttempts >= MAX_FRAME_ATTEMPTS;
+            if (coverage < MIN_DEPTH_COVERAGE && !timedOut) {
+                lastDepthError = "depth-converging:coverage=" + String.format(Locale.US, "%.3f", coverage);
+                return; // keep moving the phone — depth still resolving
             }
 
             try {
@@ -216,7 +236,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
         Pose pose = camera.getPose();
         pose.toMatrix(poseMatrix, 0);
 
-        int[] rgb = sampleCameraLumaAsRgb(cameraImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
+        int[] rgb = sampleCameraColorAsRgb(cameraImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
         int[] depth = sampleDepthMillimeters(depthImage, SAMPLE_WIDTH, SAMPLE_HEIGHT);
         int[] confidence = confidenceImage == null
             ? null
@@ -231,11 +251,13 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
         receipt.put("androidSdk", android.os.Build.VERSION.SDK_INT);
         receipt.put("arcorePackage", "com.google.ar.core");
         receipt.put("frameAttempts", frameAttempts);
+        receipt.put("depthCoverage", Double.parseDouble(String.format(Locale.US, "%.4f", bestDepthCoverage)));
         receipt.put("timestampNs", frame.getTimestamp());
         receipt.put("sample", new JSONObject()
             .put("width", SAMPLE_WIDTH)
             .put("height", SAMPLE_HEIGHT)
             .put("stride", 3)
+            .put("colorSpace", "rgb-yuv420-converted")
             .put("rgb", toJsonArray(rgb))
             .put("depthMillimeters", toJsonArray(depth))
             .put("rawDepthConfidence", confidence == null ? JSONObject.NULL : toJsonArray(confidence)));
@@ -261,29 +283,65 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
         receipt.put("hashes", new JSONObject()
             .put("sampleRgbSha256", sha256(rgb))
             .put("sampleDepthSha256", sha256(depth)));
-        receipt.put("honestScope", "Native ARCore Session acquired Frame.acquireDepthImage16Bits() and a camera image on device; sample is downsampled for ADB transport.");
+        receipt.put("honestScope", "Native ARCore Session captured a coverage-gated converged "
+            + "depth frame plus a full-color YUV->RGB camera image; sample is "
+            + SAMPLE_WIDTH + "x" + SAMPLE_HEIGHT + " for ADB transport.");
         return receipt;
     }
 
-    private int[] sampleCameraLumaAsRgb(Image image, int outWidth, int outHeight) {
-        Image.Plane plane = image.getPlanes()[0];
-        ByteBuffer buffer = plane.getBuffer().duplicate();
-        int rowStride = plane.getRowStride();
-        int pixelStride = plane.getPixelStride();
+    // Full-color sampler: YUV_420_888 -> RGB (BT.601). The old probe only read the Y
+    // (luma) plane and produced grayscale; real color needs the U/V chroma planes.
+    private int[] sampleCameraColorAsRgb(Image image, int outWidth, int outHeight) {
+        Image.Plane[] planes = image.getPlanes();
+        ByteBuffer yBuf = planes[0].getBuffer().duplicate();
+        ByteBuffer uBuf = planes[1].getBuffer().duplicate();
+        ByteBuffer vBuf = planes[2].getBuffer().duplicate();
+        int yRow = planes[0].getRowStride(), yPix = planes[0].getPixelStride();
+        int uRow = planes[1].getRowStride(), uPix = planes[1].getPixelStride();
+        int vRow = planes[2].getRowStride(), vPix = planes[2].getPixelStride();
+        int w = image.getWidth(), h = image.getHeight();
         int[] rgb = new int[outWidth * outHeight * 3];
-        for (int y = 0; y < outHeight; y++) {
-            int srcY = Math.min(image.getHeight() - 1, (int) (((y + 0.5f) * image.getHeight()) / outHeight));
-            for (int x = 0; x < outWidth; x++) {
-                int srcX = Math.min(image.getWidth() - 1, (int) (((x + 0.5f) * image.getWidth()) / outWidth));
-                int offset = srcY * rowStride + srcX * pixelStride;
-                int luma = buffer.get(offset) & 0xFF;
-                int dst = (y * outWidth + x) * 3;
-                rgb[dst] = luma;
-                rgb[dst + 1] = luma;
-                rgb[dst + 2] = luma;
+        for (int oy = 0; oy < outHeight; oy++) {
+            int sy = Math.min(h - 1, (int) (((oy + 0.5f) * h) / outHeight));
+            for (int ox = 0; ox < outWidth; ox++) {
+                int sx = Math.min(w - 1, (int) (((ox + 0.5f) * w) / outWidth));
+                int yy = yBuf.get(sy * yRow + sx * yPix) & 0xFF;
+                int uvX = sx / 2, uvY = sy / 2;
+                int uu = uBuf.get(uvY * uRow + uvX * uPix) & 0xFF;
+                int vv = vBuf.get(uvY * vRow + uvX * vPix) & 0xFF;
+                float yf = yy, uf = uu - 128f, vf = vv - 128f;
+                int r = clamp8((int) (yf + 1.402f * vf));
+                int g = clamp8((int) (yf - 0.344136f * uf - 0.714136f * vf));
+                int b = clamp8((int) (yf + 1.772f * uf));
+                int dst = (oy * outWidth + ox) * 3;
+                rgb[dst] = r;
+                rgb[dst + 1] = g;
+                rgb[dst + 2] = b;
             }
         }
         return rgb;
+    }
+
+    private static int clamp8(int v) {
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
+    }
+
+    // Fraction of depth pixels with a non-zero (resolved) range.
+    private float depthCoverage(Image depthImage) {
+        Image.Plane plane = depthImage.getPlanes()[0];
+        ByteBuffer buffer = plane.getBuffer().duplicate().order(ByteOrder.LITTLE_ENDIAN);
+        int rowStride = plane.getRowStride();
+        int pixelStride = plane.getPixelStride();
+        int w = depthImage.getWidth(), h = depthImage.getHeight();
+        if (w == 0 || h == 0) return 0f;
+        int nonzero = 0;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int d = buffer.getShort(y * rowStride + x * pixelStride) & 0xFFFF;
+                if (d > 0) nonzero++;
+            }
+        }
+        return (float) nonzero / (w * h);
     }
 
     private int[] sampleDepthMillimeters(Image image, int outWidth, int outHeight) {
@@ -350,7 +408,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
             receipt.put("blockedReason", reason);
             receipt.put("frameAttempts", frameAttempts);
             receipt.put("deviceModel", android.os.Build.MODEL);
-            receipt.put("honestScope", "Native ARCore depth-frame proof did not acquire a depth frame.");
+            receipt.put("honestScope", "Native ARCore depth-frame proof did not acquire a converged depth frame.");
             writeReceipt(receipt);
         } catch (Exception e) {
             Log.e(TAG, "Failed to write blocked receipt", e);
