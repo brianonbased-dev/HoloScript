@@ -719,6 +719,13 @@ export class AgentRunner {
     try {
       await mesh.heartbeat({ agentName: identity.handle, surface: identity.surface, capabilityTags });
     } catch (err) {
+      // Presence signing failures are non-fatal: the bearer token is the primary
+      // identity proof for task claim/execute; presence signing is secondary.
+      // Log a warning so the misconfiguration is visible, but let the tick proceed.
+      if (this.isUnsignedPresenceError(err)) {
+        log({ ev: 'heartbeat-unsigned-warn', message: err instanceof Error ? err.message : String(err) });
+        return;
+      }
       if (!this.isNotAMemberError(err) || this.joinedThisProcess) {
         throw err;
       }
@@ -754,6 +761,11 @@ export class AgentRunner {
   private isNotAMemberError(err: unknown): boolean {
     const msg = err instanceof Error ? err.message : String(err);
     return / 403:/.test(msg) && /Not a member/i.test(msg);
+  }
+
+  private isUnsignedPresenceError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err);
+    return / 403:/.test(msg) && /unsigned/i.test(msg);
   }
 }
 
