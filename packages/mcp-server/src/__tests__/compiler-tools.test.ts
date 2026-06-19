@@ -28,12 +28,11 @@ describe('compiler tools', () => {
       targets?: string[];
     };
     const toolNames = new Set(compilerTools.map((tool) => tool.name));
-    const targetToolName = (target: string): string => {
-      if (target === 'android-xr') return 'compile_to_android_xr';
-      if (target === 'multi-layer') return 'compile_to_multi_layer';
-      if (target === '3dgs') return 'compile_to_3dgs';
-      return `compile_to_${target}`;
-    };
+    // Convenience tools normalise hyphenated target ids to underscores
+    // (android-xr → compile_to_android_xr, a2a-agent-card → compile_to_a2a_agent_card, …).
+    // Non-hyphenated ids (quest, 3dgs, webgpu) pass through unchanged.
+    const targetToolName = (target: string): string =>
+      `compile_to_${target.replace(/-/g, '_')}`;
 
     expect(Array.isArray(result.targets)).toBe(true);
     const missing = result.targets

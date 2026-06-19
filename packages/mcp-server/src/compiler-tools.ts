@@ -701,6 +701,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'android' });
     case 'compile_to_android_xr':
       return handleCompileToTarget({ ...args, target: 'android-xr' });
+    case 'compile_to_quest':
+      return handleCompileToTarget({ ...args, target: 'quest' });
     case 'compile_to_ios':
       return handleCompileToTarget({ ...args, target: 'ios' });
     // compile_to_ar — retired (apex-poison, 2026-06-17)
@@ -1227,6 +1229,22 @@ export const compilerTools: Tool[] = [
   {
     name: 'compile_to_android_xr',
     description: 'Compile HoloScript to Android XR Kotlin code for Android headsets',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_quest',
+    description:
+      'Compile HoloScript to a complete native Meta Quest 3/3S app project (Horizon OS): Camera2 ' +
+      'passthrough camera, ZXing QR decode, the ovrweb://webtask Quest Browser intent, and a ' +
+      'signed-APK Gradle project. Distinct from compile_to_android_xr (which targets Google ' +
+      'Android XR / Jetpack XR). Returns the full file set for the app project.',
     inputSchema: {
       type: 'object',
       properties: {
