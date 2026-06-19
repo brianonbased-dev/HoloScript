@@ -33,6 +33,12 @@ export interface CognitiveVerbDeps {
   /** TEAM knowledge retrieval (rag_query, keyword/semantic). */
   queryTeamKnowledge: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
   /**
+   * Direct Absorb GraphRAG query (rag_query W.754 — "edge→Absorb auth bridge").
+   * Optional — no-op (returns []) when HOLOSCRIPT_AGENT_ABSORB_* env vars are absent.
+   * When configured, tried FIRST before codebase-graphrag and team-knowledge.
+   */
+  queryAbsorb?: (query: string, limit: number) => Promise<KnowledgeEntry[]>;
+  /**
    * Codebase GraphRAG semantic search (rag_query Phase 2.3, W.753).
    * Optional — when absent OR it returns [] (graph not loaded), rag_query falls
    * back to team-knowledge search. Wires the in-process HoloEmbed index via the
@@ -108,12 +114,18 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
         case 'rag_query': {
           const query = strField(action.config, 'query', 'q') || deps.task.title;
           const limit = numField(action.config, 'limit', DEFAULT_LIMIT);
-          // Phase 2.3 (W.753): try codebase GraphRAG (in-process HoloEmbed via the mesh bearer
-          // route) first — returns ranked symbols (name/file/score). Falls back to team-knowledge
-          // search when the graph isn't loaded or the dep isn't wired.
           let mode = 'team-knowledge';
           let injected = '';
-          if (deps.queryCodebase) {
+          // W.754: direct Absorb GraphRAG — tried first when env is configured.
+          if (deps.queryAbsorb) {
+            const absorb = await deps.queryAbsorb(query, limit);
+            if (absorb.length > 0) {
+              mode = 'absorb-graphrag';
+              injected = `\n\n[Absorb knowledge for "${query}"]\n${formatEntries(absorb)}`;
+            }
+          }
+          // Phase 2.3 (W.753): codebase GraphRAG via in-process HoloEmbed mesh route.
+          if (!injected && deps.queryCodebase) {
             const symbols = await deps.queryCodebase(query, limit);
             if (symbols.length > 0) {
               mode = 'codebase-graphrag';
@@ -130,7 +142,7 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             }
           }
           if (!injected) {
-            // Fallback: team knowledge store (already semantic via HoloEmbed ranking, bb28ecc25).
+            // Fallback: team knowledge store (semantic via HoloEmbed ranking, bb28ecc25).
             const entries = await deps.queryTeamKnowledge(query, limit);
             if (entries.length > 0) {
               injected = `\n\n[Retrieved knowledge for "${query}"]\n${formatEntries(entries)}`;

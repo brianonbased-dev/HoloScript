@@ -290,6 +290,43 @@ export class HolomeshClient {
     }
   }
 
+  /**
+   * Query the Absorb GraphRAG service directly (W.754 — direct Absorb auth bridge).
+   * Requires three env vars on the agent node:
+   *   HOLOSCRIPT_AGENT_ABSORB_BASE_URL   e.g. https://absorb.holoscript.net
+   *   HOLOSCRIPT_AGENT_ABSORB_GRAPH_ID   UUID of the target knowledge graph
+   *   HOLOSCRIPT_AGENT_ABSORB_API_KEY    bearer key for the Absorb service
+   * Returns [] when any env var is absent — makes the bridge a no-op until configured.
+   * Results are mapped to KnowledgeEntry so cognitive-verbs.ts can inject them like
+   * any other knowledge source.
+   */
+  async queryAbsorb(query: string, limit = 5): Promise<KnowledgeEntry[]> {
+    const base = process.env.HOLOSCRIPT_AGENT_ABSORB_BASE_URL?.replace(/\/$/, '');
+    const graphId = process.env.HOLOSCRIPT_AGENT_ABSORB_GRAPH_ID;
+    const apiKey = process.env.HOLOSCRIPT_AGENT_ABSORB_API_KEY;
+    if (!base || !graphId || !apiKey) return [];
+    try {
+      const res = await this.fetchImpl(`${base}/api/absorb/query`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ graphId, query, maxResults: limit }),
+      });
+      if (!res.ok) return [];
+      const json = (await res.json()) as {
+        results?: Array<{ symbol: string; type: string; file: string; score: number; documentation?: string }>;
+      };
+      return (json.results ?? [])
+        .filter((r) => r.documentation)
+        .map((r) => ({
+          id: `absorb:${r.file}:${r.symbol}`,
+          content: `${r.symbol} (${r.type}) in ${r.file}: ${r.documentation ?? ''}`,
+          domain: 'absorb',
+        }));
+    } catch {
+      return [];
+    }
+  }
+
   async writePrivateKnowledge(
     entries: Array<{ content: string; type?: string; tags?: string[]; title?: string }>
   ): Promise<boolean> {

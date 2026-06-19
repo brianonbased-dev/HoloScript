@@ -154,6 +154,8 @@ export class AgentRunner {
       task: { id: target.id, title: target.title },
       queryTeamKnowledge: (q, limit) => mesh.queryTeamKnowledge(q, limit),
       queryPrivateKnowledge: () => mesh.queryPrivateKnowledge(),
+      // W.754: direct Absorb GraphRAG — no-op (returns []) when env vars absent.
+      queryAbsorb: (q, limit) => mesh.queryAbsorb(q, limit),
       // Phase 2.3 (W.753): codebase GraphRAG via the bearer-gated mesh route.
       // Best-effort: returns [] when the in-process graph isn't loaded → cognitive-verbs
       // falls back to team-knowledge search. No prod impact when graph is cold.
