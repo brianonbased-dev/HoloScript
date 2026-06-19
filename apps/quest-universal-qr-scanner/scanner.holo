@@ -1,0 +1,65 @@
+# Universal QR Scanner — Meta Quest 3 / 3S (Horizon Store)
+# HoloScript source of truth (.holo IR). The Android project under ./android is @generated
+# from THIS file by ./generate.mjs. Edit here, regenerate — never hand-edit generated Kotlin.
+#
+# Native-authoring doctrine (F.126): behavior is DATA the generator consumes, not imperative
+# control flow. The scan handler EMITS an action; it does not call a method directly.
+
+app UniversalQrScanner {
+  meta {
+    display_name: "Universal QR Scanner"
+    package: "net.holoscript.qrscanner"
+    version: "1.0.0"
+    # Quest 3 / 3S only; Camera2 passthrough path is documented HzOS v76+.
+    target_devices: ["quest3", "quest3s"]
+    min_horizon_os: 76
+    surface: panel          # 2D windowed app — NOT an immersive VR scene.
+    capability_tags: ["passthrough-camera", "qr-decode", "browser-launch"]
+  }
+
+  # --- Capability: passthrough camera frame source -------------------------------
+  # Declares the hardware sensor as data. The generator maps this to a Camera2 session
+  # that selects the forward passthrough RGB camera via Meta's vendor characteristics.
+  source passthrough_camera {
+    trait: "@passthrough_camera"
+    permission: "horizonos.permission.HEADSET_CAMERA"   # narrowest scope, runtime-requested
+    select: { camera_source: 0, position: 0 }           # 0 = passthrough RGB, 0 = left/forward
+    format: "YUV_420_888"
+    resolution: { width: 1280, height: 960 }
+    plane: "luminance"                                  # decode from Y plane (no RGB convert)
+  }
+
+  # --- Capability: QR decode ------------------------------------------------------
+  decoder qr {
+    trait: "@qr_decode"
+    library: "zxing-core"        # com.google.zxing:core — GMS-free (Quest has no Play Services)
+    formats: ["QR_CODE"]
+    dedupe_window_ms: 2500       # ignore repeats of the same payload within the window
+    consumes: passthrough_camera
+  }
+
+  # --- Behavior: on a successful decode, EMIT an open-url action ------------------
+  # Handler-as-data: the body declares an emission, not a direct call. The generator
+  # wires `emit open_url` to the Quest Web Task intent (ovrweb://webtask?uri=...).
+  on_scan(result) {
+    when: result.is_url            # only act on http/https payloads
+    emit open_url { url: result.text }
+    else: emit show_text { text: result.text }   # non-URL payloads shown for copy
+  }
+
+  # --- Action sinks (data declarations the generator binds to platform intents) ---
+  action open_url {
+    kind: "quest_web_task"         # -> Intent(ACTION_VIEW, "ovrweb://webtask?uri=<encoded>")
+  }
+  action show_text {
+    kind: "panel_text"             # -> render decoded text in the 2D panel for manual copy
+  }
+
+  # --- Panel UI (declarative) -----------------------------------------------------
+  panel ui {
+    title: "Universal QR Scanner"
+    status_line: true              # "Point at a QR code…" / "Opening <url>…"
+    last_result: true              # show the most recent decode
+    privacy_note: "Frames are decoded on-device. Nothing is stored or sent."
+  }
+}

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Universal QR Scanner — Meta Quest 3 / 3S (Horizon Store)
+  Source of truth: ../../scanner.holo  (regenerate config via generate.mjs)
+  2D panel utility app: intentionally NO com.oculus.intent.category.VR.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Passthrough camera — narrowest scope (passthrough only, not avatar cams).
+         Runtime permission: also requested at runtime in MainActivity. -->
+    <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
+
+    <!-- Camera2 hardware; Quest 3/3S only. Do NOT require VR headtracking (2D app). -->
+    <uses-feature android:name="android.hardware.camera2.any" android:required="true" />
+    <uses-feature android:name="android.hardware.vr.headtracking" android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.UniversalQrScanner">
+
+        <!-- Store visibility: Quest 3 / 3S only -->
+        <meta-data android:name="com.oculus.supportedDevices" android:value="quest3|quest3s" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|uiMode"
+            android:theme="@style/Theme.UniversalQrScanner">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,56 @@
+name: Quest QR Scanner — build APK
+
+# Cloud build path for the Universal QR Scanner (no local Android toolchain needed).
+# Produces an unsigned release APK; signs it when the keystore secrets are present.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'apps/quest-universal-qr-scanner/**'
+      - '.github/workflows/quest-qr-scanner-build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Regenerate spec-driven resources
+        working-directory: apps/quest-universal-qr-scanner
+        run: node generate.mjs
+
+      - name: Build release APK
+        working-directory: apps/quest-universal-qr-scanner/android
+        run: gradle assembleRelease --no-daemon
+
+      - name: Sign APK
+        id: sign
+        if: env.HAS_KEYSTORE == 'true'
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: apps/quest-universal-qr-scanner/android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '34.0.0'
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: universal-qr-scanner-apk
+          path: |
+            apps/quest-universal-qr-scanner/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

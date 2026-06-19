@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- @generated from scanner.holo by generate.mjs — DO NOT EDIT. Run: node generate.mjs -->
+<resources>
+    <string name="app_name">Universal QR Scanner</string>
+    <string name="privacy_note">Frames are decoded on-device. Nothing is stored or sent.</string>
+    <string name="webtask_scheme">ovrweb://webtask?uri=</string>
+    <integer name="dedupe_window_ms">2500</integer>
+    <integer name="frame_width">1280</integer>
+    <integer name="frame_height">960</integer>
+    <integer name="camera_source">0</integer>
+    <integer name="camera_position">0</integer>
+</resources>
