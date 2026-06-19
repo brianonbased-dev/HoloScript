@@ -345,6 +345,12 @@ export class AgentRunner {
         messages.push({ role: 'user', content: reResults as never });
       }
       finalText = reResp.content;
+      // Reprompt fired and model called a write tool — content is '' (finishReason=tool_use).
+      // Without this fallback, markDone sends verification_evidence:"" which the server
+      // rejects with verification_evidence_required (W.786 fix).
+      if (!finalText && (toolsCalled.has('write_file') || toolsCalled.has('str_replace'))) {
+        finalText = `Task completed via tool calls. Artifact written (tool_iters:${iters}).`;
+      }
       lastResponse = reResp;
     }
     // Vision-write gate: vision_analyze was called (inference ran) but no write_file

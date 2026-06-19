@@ -300,13 +300,22 @@ export class HolomeshClient {
     if (!localPath || !query.trim()) return [];
     try {
       const raw = await readFile(localPath, 'utf-8');
+      // Split query into tokens so a task title like "[jetson][bovine-tb] rag_query smoke test"
+      // matches entries containing any meaningful token ("bovine-tb", "vqe", "paper", etc.).
+      // Any token ≥3 chars triggers a match (OR semantics).
+      const tokens = query
+        .toLowerCase()
+        .split(/[\s\[\]().,;:/]+/)
+        .filter((t) => t.length >= 3);
       const needle = query.toLowerCase();
       const matched: KnowledgeEntry[] = [];
       for (const line of raw.split('\n')) {
         if (!line.trim()) continue;
         try {
           const e = JSON.parse(line) as KnowledgeEntry;
-          if (`${e.id ?? ''} ${e.content ?? ''}`.toLowerCase().includes(needle)) {
+          const text = `${e.id ?? ''} ${e.content ?? ''}`.toLowerCase();
+          const hit = tokens.length > 0 ? tokens.some((t) => text.includes(t)) : text.includes(needle);
+          if (hit) {
             matched.push(e);
             if (matched.length >= limit) break;
           }
