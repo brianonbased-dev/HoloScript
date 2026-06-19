@@ -17,11 +17,11 @@ export const GOLDEN_MANIFEST = [
   { path: 'android/app/src/main/java/net/holoscript/qrscanner/QrDecoder.kt', status: 'emitted' },
   { path: 'android/app/src/main/AndroidManifest.xml', status: 'reference' },
   { path: 'android/app/build.gradle.kts', status: 'reference' },
-  { path: 'android/build.gradle.kts', status: 'reference' },
-  { path: 'android/settings.gradle.kts', status: 'reference' },
-  { path: 'android/app/src/main/res/values/themes.xml', status: 'reference' },
-  { path: 'android/app/src/main/res/layout/activity_main.xml', status: 'reference' },
-  { path: 'android/app/src/main/res/drawable/ic_launcher.xml', status: 'reference' },
+  { path: 'android/build.gradle.kts', status: 'emitted' },
+  { path: 'android/settings.gradle.kts', status: 'emitted' },
+  { path: 'android/app/src/main/res/values/themes.xml', status: 'emitted' },
+  { path: 'android/app/src/main/res/layout/activity_main.xml', status: 'emitted' },
+  { path: 'android/app/src/main/res/drawable/ic_launcher.xml', status: 'emitted' },
   { path: 'android/app/src/main/java/net/holoscript/qrscanner/MainActivity.kt', status: 'reference' },
   { path: 'android/app/src/main/java/net/holoscript/qrscanner/PassthroughCameraController.kt', status: 'reference' },
 ];
@@ -106,10 +106,100 @@ class QrDecoder {
 `;
 }
 
+function emitSettingsGradle() {
+  return `pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "UniversalQrScanner"
+include(":app")
+`;
+}
+
+function emitRootBuildGradle() {
+  return `// Root build file — Universal QR Scanner (Meta Quest 3 / 3S)
+plugins {
+    id("com.android.application") version "8.5.2" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+}
+`;
+}
+
+function emitThemesXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.UniversalQrScanner" parent="android:Theme.DeviceDefault.NoActionBar" />
+</resources>
+`;
+}
+
+function emitIcLauncherXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#101418" android:pathData="M0,0h108v108h-108z" />
+    <!-- QR finder squares + a few modules -->
+    <path android:fillColor="#9FE2BF" android:pathData="M18,18h28v28h-28z M26,26h12v12h-12z" android:fillType="evenOdd" />
+    <path android:fillColor="#9FE2BF" android:pathData="M62,18h28v28h-28z M70,26h12v12h-12z" android:fillType="evenOdd" />
+    <path android:fillColor="#9FE2BF" android:pathData="M18,62h28v28h-28z M26,70h12v12h-12z" android:fillType="evenOdd" />
+    <path android:fillColor="#FFFFFF" android:pathData="M62,62h8v8h-8z M78,62h8v8h-8z M70,70h8v8h-8z M62,78h8v8h-8z M78,78h8v8h-8z" />
+</vector>
+`;
+}
+
+function emitActivityMainXml() {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="36dp"
+    android:background="#101418">
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#9FE2BF"
+        android:textSize="20sp"
+        android:gravity="center" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/privacy_note"
+        android:textColor="#5A6470"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:paddingTop="24dp" />
+</LinearLayout>
+`;
+}
+
 // path → emit function, for every file currently marked 'emitted'.
 const EMITTERS = {
   'android/app/src/main/res/values/generated.xml': emitGeneratedXml,
   'android/app/src/main/java/net/holoscript/qrscanner/QrDecoder.kt': emitQrDecoderKt,
+  'android/build.gradle.kts': emitRootBuildGradle,
+  'android/settings.gradle.kts': emitSettingsGradle,
+  'android/app/src/main/res/values/themes.xml': emitThemesXml,
+  'android/app/src/main/res/layout/activity_main.xml': emitActivityMainXml,
+  'android/app/src/main/res/drawable/ic_launcher.xml': emitIcLauncherXml,
 };
 
 /** Returns { relpath: content } for every currently-EMITTED file, derived from the spec. */
