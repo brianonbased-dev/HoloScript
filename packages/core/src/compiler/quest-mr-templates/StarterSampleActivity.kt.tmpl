@@ -28,6 +28,7 @@ import com.meta.spatial.toolkit.PanelStyleOptions
 import com.meta.spatial.toolkit.QuadShapeOptions
 import com.meta.spatial.toolkit.Transform
 import com.meta.spatial.toolkit.UIPanelSettings
+import com.meta.spatial.vr.LocomotionSystem
 import com.meta.spatial.vr.VRFeature
 
 class StarterSampleActivity : AppSystemActivity() {
@@ -185,15 +186,30 @@ class StarterSampleActivity : AppSystemActivity() {
     if (sceneReady) {
       worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
       scene.enablePassthrough(false)
+      // You're now IN the world — turn on thumbstick locomotion (left-stick glide, right-stick
+      // snap-turn) so you can walk around it. Stand at the world origin facing the scene.
+      enableLocomotion(true)
+      scene.setViewOrigin(0f, 0f, 0f, 0f)
     }
     controller?.resumeScanning() // keep scanning inside the world
+  }
+
+  private fun enableLocomotion(on: Boolean) {
+    try {
+      systemManager.findSystem<LocomotionSystem>().enableLocomotion(on)
+    } catch (e: Exception) {
+      Log.w(tag, "locomotion toggle failed: ${e.message}")
+    }
   }
 
   // Leave the world: tear down the 3D world and restore passthrough scanning.
   private fun leaveWorld() {
     Log.i(tag, "leaving world")
     worldRenderer.leave()
-    if (sceneReady) scene.enablePassthrough(true)
+    if (sceneReady) {
+      enableLocomotion(false) // back to seated passthrough scanning — no movement
+      scene.enablePassthrough(true)
+    }
     ScannerState.leaveWorld()
     controller?.resumeScanning()
   }
