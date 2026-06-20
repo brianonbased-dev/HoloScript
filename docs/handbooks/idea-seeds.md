@@ -199,3 +199,27 @@ then 2.3. Plan: `research/2026-06-16_jetson-native-language-runtime-plan.md`.
 ---
 
 *Last updated: 2026-06-15 from MMO round-2 research memo (`research/2026-06-15_mmo-next-round-advancement.md`). Seeds added: SpacetimeDB target, cross-host shard handoff, cross-file ProvenanceBoundsChecker, lifecycle-typed brain fields with Postgres emit, UGC/player-authored .holo content, fleet-sim balance CI. 2026-06-16: hs:perceives derived spatial-perception edges (from .holo agent-anchoring work); thinking-budget control for local LLMs (from Jetson qwen3 investigation); per-soul fine-tuned downloadable GGUF for daimōn (from daimon-brain.hsplus authoring); edge recall write-loop + Phase 2.3 brain directives (from Phase 2.2 cognitive-verb wiring).*
+
+---
+
+## Deploy-Safe Apex-Poison Retirement (studio still depends on R3FCompiler)
+
+**What might be valuable**: Completing the parked "apex-poison retirement" — removing the unused web/VR
+bridge compilers (Babylon, ThreeJS, PlayCanvas, VRR, AR, MultiLayer) from the `@holoscript/core` public
+barrel, MCP tool surface, ANS namespace, dialect registry, and tool-scopes. The refactor is ~95% done in
+the working tree: source files retained (de-promote, not delete), MATERIAL_PRESETS/ENVIRONMENT_PRESETS
+extracted into `scene-presets.ts`, R3FNode/SceneIRNode into `scene-ir-types.ts`, the `check-trait-parity`
+retirement interlock green (101 traits), 231 compiler tests green, core+mcp-server builds green. Shrinks
+the promoted compiler surface to the sovereign/maintained set.
+
+**Why not now**: It is DEPLOY-UNSAFE as the peer left it (W.789). `R3FCompiler` was included in the
+retirement, but **studio (a deployed Next.js service) imports `R3FCompiler` from the `@holoscript/core`
+barrel in 3 files** — `app/shared/[id]/ImmersiveViewer.client.tsx`, `hooks/useCompiler.ts`,
+`hooks/useScenePipeline.ts` — as its active scene renderer. Dropping `R3FCompiler` from the barrel makes
+the studio build fail (verified: `R3FCompiler` is `undefined` in the rebuilt dist barrel), which bricks
+the studio deploy from the shared monorepo build. Two deploy-safe paths, pick one: (a) **retire all-but-R3F**
+— keep `R3FCompiler` exported from the barrel since studio uses it, retire only the genuinely-dead five
+(they have no real cross-package consumers; the video-tutorials hits are string literals in code examples);
+or (b) **migrate studio off R3F** onto the sovereign WebGPU renderer first, then retire R3F too. (a) is the
+small, immediate win; (b) is the strategic end state. The build-breaking MATERIAL_PRESETS duplicate is
+already fixed (1-line, owned by MaterialTrait) in the parked WIP.
