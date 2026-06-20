@@ -132,12 +132,23 @@ fn vs_main(
   let splatIndex = sortedIndices[instanceIndex];
   let splat = splats[splatIndex];
 
-  // Unpack compressed data
+  // Unpack compressed data. packedCov2D_* hold the CONIC (inverse cov2D) and _pad the
+  // bounding radius, both computed f32-accurate in the compress pass — NOT recomputed
+  // from f16 cov here (that cancels catastrophically for rotated thin splats -> streaks).
   let color = unpackRGBA8(splat.packedColor);
-  let cov00 = unpackF16Low(splat.packedCov2D_01);
-  let cov01 = unpackF16High(splat.packedCov2D_01);
-  let cov11 = unpackF16Low(splat.packedCov2D_2_opacity);
+  let conic = vec3<f32>(
+    unpackF16Low(splat.packedCov2D_01),
+    unpackF16High(splat.packedCov2D_01),
+    unpackF16Low(splat.packedCov2D_2_opacity),
+  );
   let opacity = unpackF16High(splat.packedCov2D_2_opacity);
+  // Bounding radius (px) from the conic eigenvalues: cov major axis = 1 / (min conic
+  // eigenvalue). Computed from the conic (no f16-cov cancellation), not from _pad.
+  let cmid = 0.5 * (conic.x + conic.z);
+  let cdet = conic.x * conic.z - conic.y * conic.y;
+  let cdisc = sqrt(max(cmid * cmid - cdet, 0.0));
+  let minConicEig = max(cmid - cdisc, 1e-9);
+  let maxRadius = min(ceil(3.0 / sqrt(minConicEig)), 512.0);
 
   // Project center to screen space
   let clipPos = uniforms.viewProjection * vec4<f32>(splat.pos, 1.0);
@@ -148,23 +159,6 @@ fn vs_main(
     (ndcPos.x * 0.5 + 0.5) * uniforms.screenWidth,
     (ndcPos.y * -0.5 + 0.5) * uniforms.screenHeight,
   );
-
-  // Compute inverse covariance (conic) for Gaussian evaluation in fragment shader
-  // For 2x2 symmetric matrix [[a, b], [b, c]]:
-  //   det = a*c - b*b
-  //   inv = [[c, -b], [-b, a]] / det
-  let det = cov00 * cov11 - cov01 * cov01;
-  let detSafe = max(det, 1e-6);
-  let conic = vec3<f32>(cov11 / detSafe, -cov01 / detSafe, cov00 / detSafe);
-
-  // Compute eigenvalues for quad sizing (ellipse bounding box)
-  let mid = 0.5 * (cov00 + cov11);
-  let discriminant = max(mid * mid - det, 0.0);
-  let lambda1 = mid + sqrt(discriminant);
-  let lambda2 = mid - sqrt(discriminant);
-
-  // 3-sigma bounding radius in pixels
-  let maxRadius = ceil(3.0 * sqrt(max(lambda1, 0.0)));
 
   // Quad vertex positions (billboard)
   let quadUV = vec2<f32>(

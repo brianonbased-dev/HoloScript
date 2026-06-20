@@ -315,57 +315,38 @@ fn scatter(
     }
   }
 
-  // Two-phase local ranking:
-  // Phase 1: Count elements per digit in this block
+  // STABLE within-block ranking. LSD radix REQUIRES each pass to be stable, or the
+  // multi-pass sort silently produces a WRONG order (not just arbitrary ties). The
+  // previous atomicAdd ranking was non-deterministic in thread-execution order ->
+  // unstable -> corrupted depth sort -> wrong compositing order. Here a single
+  // thread assigns each element its rank within its digit in INPUT order.
+  // Reuse sharedVals as block-linear digits, sharedKeys as the per-element ranks.
   for (var i = 0u; i < ELEMENTS_PER_THREAD; i++) {
-    let idx = blockStart + tid * ELEMENTS_PER_THREAD + i;
-    if (idx < uniforms.totalCount) {
-      atomicAdd(&sharedLocalHist[myDigits[i]], 1u);
+    sharedVals[tid * ELEMENTS_PER_THREAD + i] = myDigits[i];
+  }
+  workgroupBarrier();
+
+  if (tid == 0u) {
+    for (var d = 0u; d < RADIX_SIZE; d++) {
+      sharedHist[d] = 0u;
+    }
+    for (var p = 0u; p < BLOCK_SIZE; p++) {
+      if (blockStart + p < uniforms.totalCount) {
+        let d = sharedVals[p];
+        sharedKeys[p] = sharedHist[d];   // stable rank = count of same-digit before p
+        sharedHist[d] = sharedHist[d] + 1u;
+      }
     }
   }
-
   workgroupBarrier();
 
-  // Phase 2: Each thread needs its rank within its digit bucket.
-  // We use a serialized approach per-digit that's safe across all browsers.
-  // Load histogram into non-atomic shared for prefix computation.
-  let digitCount = atomicLoad(&sharedLocalHist[tid]);
-  sharedHist[tid] = digitCount;
-
-  workgroupBarrier();
-
-  // Compute exclusive prefix sum of digit counts (local to this block)
-  // This gives the starting offset within the block for each digit
-  var blockDigitOffset = 0u;
-  for (var d = 0u; d < tid; d++) {
-    blockDigitOffset += sharedHist[d];
-  }
-
-  // Store the block-local prefix for digit tid
-  sharedKeys[tid] = blockDigitOffset;
-
-  workgroupBarrier();
-
-  // Reset shared histogram for per-element ranking
-  atomicStore(&sharedLocalHist[tid], 0u);
-
-  workgroupBarrier();
-
-  // Each thread scatters its elements
+  // Each thread scatters its elements to the globally-correct, stable destination.
   for (var i = 0u; i < ELEMENTS_PER_THREAD; i++) {
     let idx = blockStart + tid * ELEMENTS_PER_THREAD + i;
     if (idx < uniforms.totalCount) {
       let digit = myDigits[i];
-
-      // Get rank within this digit in this block (atomically increment)
-      let localRank = atomicAdd(&sharedLocalHist[digit], 1u);
-
-      // Compute global destination:
-      // globalPrefixes[digit] + blockHistograms[blockIdx * 256 + digit] + localRank
-      let globalOffset = globalPrefixes[digit];
-      let blockOffset = blockHistograms[blockIdx * RADIX_SIZE + digit];
-      let dst = globalOffset + blockOffset + localRank;
-
+      let localRank = sharedKeys[tid * ELEMENTS_PER_THREAD + i];
+      let dst = globalPrefixes[digit] + blockHistograms[blockIdx * RADIX_SIZE + digit] + localRank;
       if (dst < uniforms.totalCount) {
         keysOut[dst] = myKeys[i];
         valuesOut[dst] = myVals[i];

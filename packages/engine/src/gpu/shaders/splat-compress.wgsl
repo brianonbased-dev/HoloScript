@@ -358,14 +358,27 @@ fn compressAndKey(
     min(covDil.z, COV_MAX),
   );
 
-  // Pack compressed splat
+  // Compute the conic (inverse cov2D) and bounding radius in FULL f32 HERE, then pack
+  // the CONIC (not cov2D). det = cov00*cov11 - cov01^2 is a small difference of large
+  // terms; recomputing it from f16-packed cov in the vertex shader suffers catastrophic
+  // cancellation for rotated thin (grazing-angle) splats -> garbage conic -> streaks.
+  // The conic values are well-scaled, so packing them to f16 preserves the shape.
+  let det = covSafe.x * covSafe.z - covSafe.y * covSafe.y;
+  let detS = max(det, 1e-9);
+  let conic = vec3<f32>(covSafe.z / detS, -covSafe.y / detS, covSafe.x / detS);
+  let mid = 0.5 * (covSafe.x + covSafe.z);
+  let disc = max(mid * mid - det, 0.0);
+  let lambda1 = mid + sqrt(disc);
+  let radius = ceil(3.0 * sqrt(max(lambda1, 0.0)));
+
+  // Pack compressed splat. packedCov2D_* now hold the CONIC; _pad holds the radius.
   var compressed: SplatCompressed;
   compressed.pos = raw.pos;
   compressed.packedColor = packRGBA8(raw.color);
-  compressed.packedCov2D_01 = packF16x2(covSafe.x, covSafe.y);
-  compressed.packedCov2D_2_opacity = packF16x2(covSafe.z, opacityAA);
+  compressed.packedCov2D_01 = packF16x2(conic.x, conic.y);
+  compressed.packedCov2D_2_opacity = packF16x2(conic.z, opacityAA);
   compressed.depth = depth;
-  compressed._pad = 0u;
+  compressed._pad = bitcast<u32>(radius);
 
   // Write compressed data
   splatsOut[idx] = compressed;
