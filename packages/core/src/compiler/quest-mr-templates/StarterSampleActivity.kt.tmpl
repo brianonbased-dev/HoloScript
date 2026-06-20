@@ -36,6 +36,8 @@ class StarterSampleActivity : AppSystemActivity() {
   private val tag = "QrScanner"
   private var controller: PassthroughCameraController? = null
   private var panelEntity: Entity? = null
+  private var worldEntity: Entity? = null // themed backdrop while immersed in a world (null = passthrough scanning)
+  private var smoothPose: Pose? = null // last head-locked panel pose, eased toward the head each tick
   private var sceneReady = false
 
   override fun registerFeatures(): List<SpatialFeature> =
@@ -46,6 +48,8 @@ class StarterSampleActivity : AppSystemActivity() {
     ScannerState.onOpen = { url -> openInQuestBrowser(url) }
     ScannerState.onStart = { maybeStartScanner() }
     ScannerState.onDismiss = { controller?.resumeScanning() } // resume scanning after a result clears
+    ScannerState.onEnterWorld = { link -> enterWorld(link) } // scan a world QR → immerse
+    ScannerState.onLeaveWorld = { leaveWorld() } // in-world "Leave world" → back to passthrough scanning
     ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
     if (!hasCameraPermission()) {
       requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
@@ -56,7 +60,8 @@ class StarterSampleActivity : AppSystemActivity() {
   // loop never gets stuck after Open/Dismiss. If the controller survived but was paused, resume it.
   override fun onResume() {
     super.onResume()
-    if (ScannerState.screen == Screen.SCANNING && hasCameraPermission()) {
+    if ((ScannerState.screen == Screen.SCANNING || ScannerState.screen == Screen.IN_WORLD) &&
+        hasCameraPermission()) {
       if (controller == null) maybeStartScanner() else controller?.resumeScanning()
     }
   }
@@ -85,11 +90,29 @@ class StarterSampleActivity : AppSystemActivity() {
 
   // Head-locked HUD: each frame, place the panel FOLLOW_DISTANCE m in front of the head, facing the
   // user (Spatial SDK is left-handed, +Z = forward). The panel moves with your gaze — never stationary.
+  // Position is EASED toward the head (lerp) so the HUD trails gently instead of rigidly snapping;
+  // facing snaps to the head so text stays square to the eyes.
   override fun onSceneTick() {
     super.onSceneTick()
     val p = panelEntity ?: return
     if (!sceneReady) return
-    p.setComponents(Transform(scene.getViewerPose().times(Pose(Vector3(0f, 0f, FOLLOW_DISTANCE)))))
+    val target = scene.getViewerPose().times(Pose(Vector3(0f, 0f, FOLLOW_DISTANCE)))
+    val cur = smoothPose
+    val next =
+        if (cur == null) {
+          target
+        } else {
+          val a = HEAD_LOCK_SMOOTHING
+          val t =
+              Vector3(
+                  cur.t.x + (target.t.x - cur.t.x) * a,
+                  cur.t.y + (target.t.y - cur.t.y) * a,
+                  cur.t.z + (target.t.z - cur.t.z) * a,
+              )
+          Pose(t, target.q)
+        }
+    smoothPose = next
+    p.setComponents(Transform(next))
   }
 
   private fun maybeStartScanner() {
@@ -111,15 +134,61 @@ class StarterSampleActivity : AppSystemActivity() {
   private fun onDecoded(text: String) {
     Log.i(tag, "decoded: $text")
     controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
-    if (isUrl(text)) {
-      ScannerState.pendingUrl = text
-      ScannerState.lastResult = null
-      ScannerState.status = "QR found — open it?"
-    } else {
-      ScannerState.pendingUrl = null
-      ScannerState.lastResult = text
-      ScannerState.status = "Scanned (not a link):"
+    when {
+      WorldPortal.isWorldLink(text) -> {
+        // A HoloScript world link. Auto-immerse, or offer an "Enter world" card.
+        if (WorldPortal.autoImmerse) {
+          enterWorld(text)
+        } else {
+          ScannerState.pendingWorld = text
+          ScannerState.pendingUrl = null
+          ScannerState.lastResult = null
+          ScannerState.status = "World found — enter it?"
+        }
+      }
+      isUrl(text) -> {
+        ScannerState.pendingUrl = text
+        ScannerState.lastResult = null
+        ScannerState.status = "QR found — open it?"
+      }
+      else -> {
+        ScannerState.pendingUrl = null
+        ScannerState.lastResult = text
+        ScannerState.status = "Scanned (not a link):"
+      }
     }
+  }
+
+  // Immerse into a HoloScript world: drop passthrough (the real room vanishes — you are "in" the
+  // world) and float a themed backdrop. The passthrough camera keeps decoding (the Camera2 feed is
+  // the physical cameras, independent of what is rendered), so real QRs still scan inside the world —
+  // scanning another world link hops worlds.
+  private fun enterWorld(link: String) {
+    Log.i(tag, "entering world: $link")
+    ScannerState.enterWorld(WorldPortal.worldName(link))
+    if (sceneReady) {
+      scene.enablePassthrough(false)
+      if (worldEntity == null) {
+        worldEntity =
+            Entity.create(
+                listOf(
+                    Panel(R.id.worldPanel),
+                    Transform(Pose(Vector3(0f, WORLD_BACKDROP_Y, WORLD_BACKDROP_Z))),
+                )
+            )
+      }
+    }
+    controller?.resumeScanning() // keep scanning inside the world
+  }
+
+  // Leave the world: remove the backdrop and restore passthrough scanning.
+  private fun leaveWorld() {
+    Log.i(tag, "leaving world")
+    worldEntity?.destroy()
+    worldEntity = null
+    if (sceneReady) scene.enablePassthrough(true)
+    ScannerState.leaveWorld()
+    controller?.resumeScanning()
   }
 
   /** Quest "Web Task" scheme — the documented way to open a URL in the Quest Browser. */
@@ -168,6 +237,7 @@ class StarterSampleActivity : AppSystemActivity() {
 
   override fun registerPanels(): List<PanelRegistration> =
       listOf(
+          // Head-locked HUD panel (welcome / tutorial / result card / in-world pill).
           ComposeViewPanelRegistration(
               R.id.panel,
               composeViewCreator = { _, ctx ->
@@ -180,11 +250,30 @@ class StarterSampleActivity : AppSystemActivity() {
                     display = DpPerMeterDisplayOptions(),
                 )
               },
+          ),
+          // World backdrop — large, world-fixed; shown only while immersed in a world.
+          ComposeViewPanelRegistration(
+              R.id.worldPanel,
+              composeViewCreator = { _, ctx ->
+                ComposeView(ctx).apply { setContent { WorldBackdrop() } }
+              },
+              settingsCreator = {
+                UIPanelSettings(
+                    shape = QuadShapeOptions(width = WORLD_QUAD_W, height = WORLD_QUAD_H),
+                    style = PanelStyleOptions(themeResourceId = R.style.PanelAppThemeTransparent),
+                    display = DpPerMeterDisplayOptions(),
+                )
+              },
           )
       )
 
   companion object {
     private const val REQUEST_CAMERA = 101
     private const val FOLLOW_DISTANCE = {{FOLLOW_DISTANCE}}f
+    private const val HEAD_LOCK_SMOOTHING = 0.2f // 0..1 per tick; lower = smoother trail
+    private const val WORLD_QUAD_W = 3.6f // world backdrop quad, meters
+    private const val WORLD_QUAD_H = 2.2f
+    private const val WORLD_BACKDROP_Y = 1.3f // eye height, meters
+    private const val WORLD_BACKDROP_Z = 3.2f // in front of the start view (+Z forward)
   }
 }

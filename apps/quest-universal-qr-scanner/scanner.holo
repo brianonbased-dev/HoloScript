@@ -58,6 +58,18 @@ composition "UniversalQrScanner" {
     }
   }
 
+  // Scan a QR → enter a HoloScript world — trait: WorldPortalTrait.
+  object "portal" {
+    @world_portal {
+      link_patterns: ["holoscript://world/", "https://holoscript.studio/w/", "https://hololand.holoscript.studio/"]
+      auto_immerse: true                   // a world QR immerses you automatically (no extra tap)
+      keep_scanning: true                  // the camera keeps reading inside the world — scan/hop worlds
+      entering_label: "Entered"
+      leave_action: "Leave world"
+      demo_world_url: "holoscript://world/hololand"
+    }
+  }
+
   // Welcome / how-to-use screen — trait: OnboardingTrait.
   object "welcome" {
     @onboarding {
@@ -66,7 +78,8 @@ composition "UniversalQrScanner" {
       how_to_use: [
         { context: "At your computer", icon: "monitor", text: "Look at a QR on your screen — the scanner reads it straight through passthrough." },
         { context: "On the go", icon: "world", text: "Out in the world? Just look at any QR — posters, products, signs, menus." },
-        { context: "From a phone", icon: "phone", text: "Show a QR on another phone or screen and look at it." }
+        { context: "From a phone", icon: "phone", text: "Show a QR on another phone or screen and look at it." },
+        { context: "Into a world", icon: "portal", text: "Scan a HoloScript world QR to step inside it — then keep scanning to hop worlds." }
       ]
       aim_tip: "Center the QR in your view, about an arm's length away, and hold steady for a moment."
       start_action: "Start scanning"
@@ -82,7 +95,8 @@ composition "UniversalQrScanner" {
       steps: [
         "Look at any QR code in your space — no buttons, it reads automatically.",
         "When it reads, a card appears with the link.",
-        "Tap Open to launch it in the Quest browser."
+        "Tap Open to launch it in the Quest browser.",
+        "Scan a HoloScript world QR to step inside it — your room fades and you're in the world, still scanning."
       ]
       result_preview: { label: "QR found", sample: "https://holoscript.studio", open_action: "Open in browser" }
       start_action: "Start scanning"

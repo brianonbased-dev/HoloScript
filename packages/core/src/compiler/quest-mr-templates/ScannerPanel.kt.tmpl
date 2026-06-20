@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -70,6 +71,7 @@ enum class Screen {
   WELCOME,
   TUTORIAL,
   SCANNING,
+  IN_WORLD,
 }
 
 data class HowTo(val context: String, val text: String)
@@ -94,21 +96,50 @@ object ScannerState {
   var status by mutableStateOf("Point at a QR code…")
   var lastResult by mutableStateOf<String?>(null)
   var pendingUrl by mutableStateOf<String?>(null)
+  var pendingWorld by mutableStateOf<String?>(null) // world link awaiting "Enter world" (auto_immerse=false)
+  var worldName by mutableStateOf<String?>(null) // current immersed world (null = passthrough scanning)
+  var justEnteredWorld by mutableStateOf(false) // transient: show "Entered <world>" briefly
   var onOpen: ((String) -> Unit)? = null
   var onStart: (() -> Unit)? = null
   var onDismiss: (() -> Unit)? = null // resume scanning after a result card is cleared
+  var onEnterWorld: ((String) -> Unit)? = null // immerse into the scanned world
+  var onLeaveWorld: (() -> Unit)? = null // return to passthrough scanning
   var mockQr by mutableStateOf<ImageBitmap?>(null)
 
   // Content comes from ScannerContent.kt — @generated from scanner.holo by the quest compiler.
-  // Edit copy in scanner.holo (onboarding/tutorial), recompile — never here.
+  // Edit copy in scanner.holo (onboarding/tutorial/world_portal), recompile — never here.
   val title = ScannerContent.title
   val tagline = ScannerContent.tagline
   val howTo = ScannerContent.howTo
   val aimTip = ScannerContent.aimTip
   val demoUrl = ScannerContent.demoUrl
+  val leaveAction = ScannerContent.leaveAction
+  val enteringLabel = ScannerContent.enteringLabel
+  val demoWorldUrl = ScannerContent.demoWorldUrl
+
+  /** Enter an immersed world (called by the activity after it drops passthrough + shows the backdrop). */
+  fun enterWorld(name: String) {
+    pendingWorld = null
+    pendingUrl = null
+    lastResult = null
+    worldName = name
+    justEnteredWorld = true
+    screen = Screen.IN_WORLD
+  }
+
+  /** Return to passthrough scanning. */
+  fun leaveWorld() {
+    worldName = null
+    pendingWorld = null
+    pendingUrl = null
+    lastResult = null
+    screen = Screen.SCANNING
+    status = "Point at a QR code…"
+  }
 
   fun reset() {
     pendingUrl = null
+    pendingWorld = null
     lastResult = null
     status = "Point at a QR code…"
   }
@@ -121,10 +152,20 @@ fun ScannerPanel() {
       Screen.WELCOME -> PanelSurface { WelcomeScreen() }
       Screen.TUTORIAL -> PanelSurface { TutorialScreen() }
       Screen.SCANNING ->
-          // Ambient: while scanning, render NOTHING (clear passthrough). A read pops the result card
-          // on the head-locked panel; dismissing it returns to the clear view.
+          // Ambient: while scanning, render NOTHING (clear passthrough). A read pops a card on the
+          // head-locked panel; dismissing it returns to the clear view. A world link → EnterWorldCard.
+          if (ScannerState.pendingWorld != null) {
+            PanelSurface { EnterWorldCard() }
+          } else if (ScannerState.pendingUrl != null || ScannerState.lastResult != null) {
+            PanelSurface { ResultCard() }
+          }
+      Screen.IN_WORLD ->
+          // Immersed in a world. A real QR read pops the result card; otherwise a minimal HUD pill
+          // (world name + Leave). The passthrough camera keeps decoding — scan QRs inside the world.
           if (ScannerState.pendingUrl != null || ScannerState.lastResult != null) {
             PanelSurface { ResultCard() }
+          } else {
+            InWorldHud()
           }
     }
   }
@@ -288,6 +329,126 @@ private fun startScanning() {
   ScannerState.reset()
   ScannerState.screen = Screen.SCANNING
   ScannerState.onStart?.invoke()
+}
+
+/** "Enter world" card — shown when a world link is read and auto_immerse is off. */
+@Composable
+private fun EnterWorldCard() {
+  val link = ScannerState.pendingWorld ?: return
+  Box(
+      modifier = Modifier.size(88.dp).clip(CircleShape).background(ScanAccent),
+      contentAlignment = Alignment.Center,
+  ) {
+    Text(text = "🌐", fontSize = 44.sp)
+  }
+  Spacer(Modifier.size(14.dp))
+  Heading("Enter world")
+  Spacer(Modifier.size(8.dp))
+  Body(WorldPortal.worldName(link))
+  Spacer(Modifier.size(20.dp))
+  Row {
+    Button(
+        onClick = { ScannerState.onEnterWorld?.invoke(link) }
+    ) {
+      Text("Enter world")
+    }
+    Spacer(Modifier.size(14.dp))
+    Button(
+        onClick = {
+          ScannerState.reset()
+          ScannerState.onDismiss?.invoke()
+        }
+    ) {
+      Text("Dismiss")
+    }
+  }
+}
+
+/** Minimal head-locked HUD shown while immersed in a world: world name + a "Leave world" control. */
+@Composable
+private fun InWorldHud() {
+  val name = ScannerState.worldName ?: "World"
+  LaunchedEffect(name) {
+    ScannerState.justEnteredWorld = true
+    delay(1800)
+    ScannerState.justEnteredWorld = false
+  }
+  Column(
+      modifier = Modifier.fillMaxSize().padding(26.dp),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.Top,
+  ) {
+    Row(
+        modifier =
+            Modifier.clip(RoundedCornerShape(30.dp))
+                .background(Color(0xCC0B1220))
+                .padding(horizontal = 22.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(text = "🌐", fontSize = 22.sp)
+      Spacer(Modifier.size(12.dp))
+      Column {
+        Text(
+            text = if (ScannerState.justEnteredWorld) "${ScannerState.enteringLabel} $name" else name,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+        )
+        Text(text = "Scanning — look at any QR", fontSize = 12.sp, color = Color(0xFF9CA3AF))
+      }
+      Spacer(Modifier.size(18.dp))
+      Button(onClick = { ScannerState.onLeaveWorld?.invoke() }) { Text(ScannerState.leaveAction) }
+    }
+  }
+}
+
+private val WorldPalette =
+    listOf(
+        Color(0xFF0EA5E9),
+        Color(0xFF8B5CF6),
+        Color(0xFF10B981),
+        Color(0xFFF59E0B),
+        Color(0xFFEF4444),
+        Color(0xFFEC4899),
+    )
+
+private fun worldColor(name: String): Color = WorldPalette[kotlin.math.abs(name.hashCode()) % WorldPalette.size]
+
+/** World backdrop panel (large, world-fixed) — a themed environment so immersion reads as "a place".
+ *  Public: referenced cross-file by StarterSampleActivity.registerPanels (like ScannerPanel). */
+@Composable
+fun WorldBackdrop() {
+  val name = ScannerState.worldName ?: "World"
+  val accent = worldColor(name)
+  Box(
+      modifier =
+          Modifier.fillMaxSize()
+              .background(
+                  brush = Brush.verticalGradient(listOf(accent.copy(alpha = 0.6f), Color(0xFF05070D)))
+              ),
+      contentAlignment = Alignment.Center,
+  ) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Text(text = "🌐", fontSize = 76.sp)
+      Spacer(Modifier.size(16.dp))
+      Text(
+          text = name,
+          fontSize = 44.sp,
+          fontWeight = FontWeight.Bold,
+          color = Color.White,
+          textAlign = TextAlign.Center,
+      )
+      Spacer(Modifier.size(8.dp))
+      Text(text = "HoloScript world", fontSize = 18.sp, color = Color.White.copy(alpha = 0.7f))
+      Spacer(Modifier.size(22.dp))
+      Text(
+          text = "Look at any QR to keep scanning — or hop to another world.",
+          fontSize = 15.sp,
+          color = Color.White.copy(alpha = 0.6f),
+          textAlign = TextAlign.Center,
+      )
+    }
+  }
 }
 
 @Composable

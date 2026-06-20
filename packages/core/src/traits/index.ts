@@ -5,6 +5,7 @@ export * from './QrDecodeTrait';
 export * from './SpatialPanelTrait';
 export * from './OnboardingTrait';
 export * from './TutorialTrait';
+export * from './WorldPortalTrait';
 export { advancedClothHandler } from './AdvancedClothTrait';
 export * from './AdvancedLightingTrait';
 export * from './AdvancedPBRTrait';

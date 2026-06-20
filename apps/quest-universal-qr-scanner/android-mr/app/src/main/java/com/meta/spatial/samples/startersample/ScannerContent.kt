@@ -15,11 +15,17 @@ object ScannerContent {
   const val tutorialHeading = "How it works"
   const val demoUrl = "https://holoscript.studio"
 
+  // world_portal copy (scan a QR → enter a HoloScript world).
+  const val leaveAction = "Leave world"
+  const val enteringLabel = "Entered"
+  const val demoWorldUrl = "holoscript://world/hololand"
+
   val howTo: List<HowTo> =
       listOf(
           HowTo("At your computer", "Look at a QR on your screen — the scanner reads it straight through passthrough."),
           HowTo("On the go", "Out in the world? Just look at any QR — posters, products, signs, menus."),
           HowTo("From a phone", "Show a QR on another phone or screen and look at it."),
+          HowTo("Into a world", "Scan a HoloScript world QR to step inside it — then keep scanning to hop worlds."),
       )
 
   val tutorialSteps: List<String> =
@@ -27,6 +33,7 @@ object ScannerContent {
           "Look at any QR code in your space — no buttons, it reads automatically.",
           "When it reads, a card appears with the link.",
           "Tap Open to launch it in the Quest browser.",
+          "Scan a HoloScript world QR to step inside it — your room fades and you're in the world, still scanning.",
       )
 
   // Spatial-panel placement (meters; Spatial SDK is left-handed, +Z = forward).

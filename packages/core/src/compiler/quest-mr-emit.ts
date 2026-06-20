@@ -65,6 +65,13 @@ export interface QuestMrFeatures {
   demoUrl: string;
   mockQrDp: number;
   steps: string[];
+  // world_portal — scan a QR → enter a HoloScript world (immerse), keep scanning inside it.
+  worldLinkPatterns: string[];
+  autoImmerse: boolean;
+  keepScanningInWorld: boolean;
+  enteringLabel: string;
+  leaveAction: string;
+  demoWorldUrl: string;
 }
 
 function defaults(): QuestMrFeatures {
@@ -102,6 +109,16 @@ function defaults(): QuestMrFeatures {
     demoUrl: 'https://holoscript.studio',
     mockQrDp: 180,
     steps: [],
+    worldLinkPatterns: [
+      'holoscript://world/',
+      'https://holoscript.studio/w/',
+      'https://hololand.holoscript.studio/',
+    ],
+    autoImmerse: true,
+    keepScanningInWorld: true,
+    enteringLabel: 'Entered',
+    leaveAction: 'Leave world',
+    demoWorldUrl: 'holoscript://world/hololand',
   };
 }
 
@@ -177,6 +194,18 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.mockQrDp = vnum(vobj(c.mock_qr).display_dp, f.mockQrDp);
           f.steps = varr(c.steps).map((s) => (typeof s === 'string' ? s : ''));
           break;
+        case 'world_portal': {
+          const pats = varr(c.link_patterns)
+            .map((p) => (typeof p === 'string' ? p : ''))
+            .filter((p) => p.length > 0);
+          if (pats.length > 0) f.worldLinkPatterns = pats;
+          f.autoImmerse = vbool(c.auto_immerse, f.autoImmerse);
+          f.keepScanningInWorld = vbool(c.keep_scanning, f.keepScanningInWorld);
+          f.enteringLabel = vstr(c.entering_label, f.enteringLabel);
+          f.leaveAction = vstr(c.leave_action, f.leaveAction);
+          f.demoWorldUrl = vstr(c.demo_world_url, f.demoWorldUrl);
+          break;
+        }
       }
     }
   }
@@ -192,6 +221,7 @@ const DECODER_REL = `${SRC_DIR}/QrDecoder.kt`;
 const CONTROLLER_REL = `${SRC_DIR}/PassthroughCameraController.kt`;
 const PANEL_REL = `${SRC_DIR}/ScannerPanel.kt`;
 const ACTIVITY_REL = `${SRC_DIR}/StarterSampleActivity.kt`;
+const WORLDPORTAL_REL = `${SRC_DIR}/WorldPortal.kt`;
 
 const kstr = (s: string): string =>
   '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$') + '"';
@@ -225,6 +255,8 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     PANEL_QUAD_W: f.panelQuadW,
     PANEL_QUAD_H: f.panelQuadH,
     FOLLOW_DISTANCE: f.followDistance,
+    LINK_PATTERNS: 'listOf(' + f.worldLinkPatterns.map((p) => kstr(p)).join(', ') + ')',
+    AUTO_IMMERSE: String(f.autoImmerse),
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole
@@ -253,6 +285,11 @@ object ScannerContent {
   const val tutorialAction = ${kstr(f.tutorialAction)}
   const val tutorialHeading = ${kstr(f.tutorialHeading)}
   const val demoUrl = ${kstr(f.demoUrl)}
+
+  // world_portal copy (scan a QR → enter a HoloScript world).
+  const val leaveAction = ${kstr(f.leaveAction)}
+  const val enteringLabel = ${kstr(f.enteringLabel)}
+  const val demoWorldUrl = ${kstr(f.demoWorldUrl)}
 
   val howTo: List<HowTo> =
       listOf(
@@ -289,6 +326,8 @@ export const emitScannerPanelKt = (f: QuestMrFeatures): string =>
   applyTokens('ScannerPanel.kt.tmpl', f);
 export const emitStarterSampleActivityKt = (f: QuestMrFeatures): string =>
   applyTokens('StarterSampleActivity.kt.tmpl', f);
+export const emitWorldPortalKt = (f: QuestMrFeatures): string =>
+  applyTokens('WorldPortal.kt.tmpl', f);
 
 /** All emitted MR files, keyed by android-mr-relative path. */
 export function emitQuestMrFiles(composition?: HoloComposition): Record<string, string> {
@@ -300,5 +339,6 @@ export function emitQuestMrFiles(composition?: HoloComposition): Record<string, 
     [CONTROLLER_REL]: emitPassthroughControllerKt(f),
     [PANEL_REL]: emitScannerPanelKt(f),
     [ACTIVITY_REL]: emitStarterSampleActivityKt(f),
+    [WORLDPORTAL_REL]: emitWorldPortalKt(f),
   };
 }
