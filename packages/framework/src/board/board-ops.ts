@@ -730,6 +730,16 @@ export function addTasksToBoard(
     if (t.createdBy) task.createdBy = t.createdBy;
     if (t.unblocks?.length) task.unblocks = [...t.unblocks];
     if (t.tags?.length) task.tags = [...t.tags];
+    // required_tags is the SERVER-ENFORCED claim filter (board-routes.ts:1083 /
+    // board-tools.ts:619): a claiming agent must have ALL of these in their
+    // presence capabilityTags or the claim is rejected 403 capability_mismatch.
+    // Previously dropped here — the REST POST /board path silently stripped it
+    // so tasks meant for an edge/Jetson daemon could be claimed by any cloud
+    // agent. Preserve it so the whitelist matches the MCP holomesh_board_add
+    // path (board-tools.ts:949) which already threaded capability_tags.
+    if ((t as { required_tags?: string[] }).required_tags?.length) {
+      task.required_tags = [...(t as { required_tags?: string[] }).required_tags!];
+    }
     if (t.artifacts?.length) task.artifacts = t.artifacts.map(cloneArtifactReceipt);
     if (t.environment) task.environment = cloneTaskEnvironmentProfile(t.environment);
     if (t.environmentReceipt) {

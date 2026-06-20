@@ -134,6 +134,7 @@ describe('addTasksToBoard', () => {
           dependsOn: [rootId],
           unblocks: ['task_future'],
           tags: ['chain:test'],
+          required_tags: ['edge', 'local-inference'],
           metadata: { step: 2 },
           onComplete: [{ type: 'notify', label: 'x' }],
         },
@@ -144,6 +145,9 @@ describe('addTasksToBoard', () => {
     expect(added[0].dependsOn).toEqual([rootId]);
     expect(added[0].unblocks).toEqual(['task_future']);
     expect(added[0].tags).toEqual(['chain:test']);
+    // required_tags is the server-enforced claim filter; it must survive the
+    // whitelist or edge-only tasks become claimable by any cloud agent.
+    expect(added[0].required_tags).toEqual(['edge', 'local-inference']);
     expect(added[0].metadata).toEqual({ step: 2 });
     expect(added[0].onComplete).toEqual([{ type: 'notify', label: 'x' }]);
   });
