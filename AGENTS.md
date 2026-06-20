@@ -101,13 +101,17 @@ services/
 
 ## Code Conventions
 
+**Native-first — read this before the hygiene rules below.** These conventions govern **platform-tooling code only** (the CLI, parser, compilers, adapters, and tests written in TypeScript). They are NOT how you author HoloScript *content or behavior*. A trait, a render surface, an agent brain, or a compile target is authored as **declarative data a tool consumes** — not hand-written imperative TypeScript — and its correctness is **enforced by a structural gate, never asserted** (the two principles: behavior-as-data; gate-enforced/derived correctness). Authoring those the pretrained TS/React way produces code that passes a generic lint but is structurally wrong here: invisible to the compiler, unverifiable by provenance, or uncompilable to non-TS targets. Use the File Format table above (`.hs`/`.hsplus`/`.holo` vs `.ts`/`.tsx`) to decide what you're writing, and **before authoring any HoloScript content read** [`docs/handbooks/holoscript-native-authoring-vs-pretrained.md`](docs/handbooks/holoscript-native-authoring-vs-pretrained.md) — the surface→authoring map is the table at its top. The rules below are the floor for tooling, not the shape of HoloScript.
+
+TypeScript-tooling hygiene (platform/tooling code only):
+
 - **TypeScript strict mode**: `strict: true`, target ES2020, ESNext modules, bundler resolution
 - **No `any`**: Use `unknown`. This is enforced.
 - **Test framework**: vitest (never Jest)
 - **Build tool**: tsup
 - **Package manager**: pnpm with workspaces
 - **Node version**: >= 18.0.0
-- **JSX**: Files containing JSX MUST use `.tsx` extension
+- **JSX**: hand-written `.tsx` is permitted for **tooling/CLI/parser/adapter code ONLY** — and there it MUST use the `.tsx` extension. **Perceivable render/UI surfaces are NEVER hand-written `.tsx`**: author them as `.holo` and let a compiler `@generate` the `.tsx` (enforced LIVE by `scripts/holo-ci/check-render-surface-native.mjs` — a non-generated `.tsx` under a render root is `SURFACE-GREW`, exit 1, commit blocked, in both pre-commit and HoloCI).
 - **Types**: `dist/index.d.ts` is hand-crafted by `scripts/generate-types.mjs` (not tsc). New exports require updating BOTH `src/index.ts` AND the `mainDTS` template in `generate-types.mjs`.
 
 ## Compilers
@@ -148,11 +152,13 @@ Categories span far beyond spatial:
 
 Adding a new trait:
 
-1. Define constant in `packages/core/src/traits/constants/`
-2. Add visual preset in `packages/core/src/traits/visual/presets/`
-3. Register in the category index
-4. Add R3F handler if it has rendering (`R3FCompiler.ts`)
-5. Add tests
+0. **First run `/stub-audit`** — many trait *names* already exist with a correct seam but a placeholder body (Pattern B stub). The native move is to wire+build the existing name, not author a parallel duplicate that leaves the original advertised-but-dead.
+1. **Author the runtime behavior native** — the trait's public seam is a plain `TraitHandler<TConfig>` object literal (`onAttach`/`onUpdate`/`onEvent`/`onDetach`), NOT a class with methods. Per-instance state lives on `node.__<name>State` (created in `onAttach`, deleted in `onDetach`) — never class fields/module vars, or every node sharing the handler shares state. Traits never call each other: emit an event via `context.emit(...)`. Multi-phase behavior is the `@state_machine` decorator, not `if/else` in `onUpdate`. Behavioral traits are authored in `.hsplus`. (Full shape + `file:line` evidence: [`docs/handbooks/holoscript-native-authoring-vs-pretrained.md`](docs/handbooks/holoscript-native-authoring-vs-pretrained.md) § Traits.)
+2. Define constant in `packages/core/src/traits/constants/`
+3. Add visual preset in `packages/core/src/traits/visual/presets/`
+4. Register in the category index
+5. Add R3F handler if it has rendering (`R3FCompiler.ts`)
+6. Add tests
 
 ## MCP Server
 

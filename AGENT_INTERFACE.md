@@ -167,9 +167,11 @@ _See `NORTH_STAR.md` §5 for full thresholds and remediation paths. Anchor produ
 
 ## Coding Standards
 
+**Native-first — these are tooling rules, not the shape of HoloScript.** The bullets below apply to **platform-tooling code** (CLI, parser, compilers, adapters, tests in TS). HoloScript *content/behavior* — traits, render surfaces, agent brains, compile targets — is authored as **declarative data a tool consumes** (handler-object not class, `context.emit()` not method-call, `@state_machine` not `if/else`, `.holo` IR not hand-`.tsx`) and its correctness is **gate-enforced/derived, never asserted**. See the File Format Routing table above and read `docs/handbooks/holoscript-native-authoring-vs-pretrained.md` before authoring HoloScript content. The pretrained TS/React reflex compiles but is structurally wrong here.
+
 - Strict TypeScript. No `any` (use `unknown`).
 - `dist/index.d.ts` hand-crafted via `generate-types.mjs` — not `tsc`.
-- JSX files need `.tsx` extension.
+- Render surfaces are `.holo` (`@generated` to `.tsx`), never hand-`.tsx` — enforced by `scripts/holo-ci/check-render-surface-native.mjs` (`SURFACE-GREW` blocks commit). Hand-`.tsx` is for tooling/CLI/parser/adapter only, and there it needs the `.tsx` extension.
 - Never commit secrets. Use `.env`.
 - `vi.mock()` needs `vi.hoisted()`, `function(){}` for constructors.
 - CompilerBase RBAC: all tests need mock + `'test-token'`.
