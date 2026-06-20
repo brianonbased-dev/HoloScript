@@ -155,6 +155,32 @@ export class AndroidXRCompiler extends CompilerBase {
     };
   }
 
+  /**
+   * Compile to a path-keyed map of reference-relative files (Android project layout).
+   *
+   * The Quest golden-diff gate iterates a `Record<path, content>`; AndroidXRCompiler's
+   * native return is named fields (AndroidXRCompileResult), so this adapter maps those
+   * fields onto the on-disk Android project layout. That lets the SAME byte-diff gate +
+   * committed-reference-app pattern (QuestCompiler) apply to Android XR. Keys are
+   * POSIX-relative to the app project root (the dir holding settings.gradle.kts).
+   */
+  public compileToFiles(composition: HoloComposition, agentToken = ''): Record<string, string> {
+    const r = this.compile(composition, agentToken);
+    const pkgPath = this.options.packageName.replace(/\./g, '/');
+    const javaRel = `app/src/main/java/${pkgPath}`;
+    const files: Record<string, string> = {
+      [`${javaRel}/${this.options.activityName}.kt`]: r.activityFile,
+      [`${javaRel}/XRSceneState.kt`]: r.stateFile,
+      [`${javaRel}/XRNodeFactory.kt`]: r.nodeFactoryFile,
+      'app/src/main/AndroidManifest.xml': r.manifestFile,
+      'app/build.gradle.kts': r.buildGradle,
+    };
+    if (r.glimmerComponentsFile) {
+      files[`${javaRel}/GlimmerComponents.kt`] = r.glimmerComponentsFile;
+    }
+    return files;
+  }
+
   public emit(line: string): void {
     this.lines.push(this.options.indent.repeat(this.indentLevel) + line);
   }

@@ -1,0 +1,32 @@
+// Android XR reference scene — golden reference for compile_to_android_xr (Jetpack XR / headset).
+//
+// HoloScript-native composition compiled by AndroidXRCompiler through the REAL HoloCompositionParser.
+// The Kotlin + gradle under android-xr/ is @generated output, golden-diff gated
+// (scripts/holo-ci/check-android-xr-emit-matches-reference.mts). Edit HERE, then re-run
+// generate-native.mts — never hand-edit the generated Kotlin (mirrors the Quest scanner.holo pattern).
+
+composition "AndroidXrReference" {
+  environment {
+    surface: "immersive_xr"
+    runtime: "jetpack_xr"
+    passthrough: true
+    reference_space: "local_floor"
+    package: "net.holoscript.androidxr"
+  }
+
+  // A spatial cube the user can reach with hand tracking.
+  object "anchor_cube" {
+    @hand_tracking
+    geometry: "cube"
+    position: [0.0, 1.0, -1.5]
+    scale: 0.2
+  }
+
+  // A sphere anchored to a detected plane.
+  object "target_sphere" {
+    @plane_detection
+    geometry: "sphere"
+    position: [0.4, 1.2, -1.5]
+    scale: 0.1
+  }
+}
