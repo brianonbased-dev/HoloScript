@@ -38,7 +38,9 @@ export interface GaussianTrainConfig {
   init: string;
   /** Training iterations (mirrors GaussianBakingConfig.trainingIterations; default 30000). */
   iterations: number;
-  /** Target gaussian count after densification (mirrors targetGaussianCount; default 500000). */
+  /** Target gaussian count after densification (mirrors targetGaussianCount; default 500000).
+   *  NOTE: NOT consumed by the sovereign runner yet — it is fixed-cardinality (no densification).
+   *  This field is the shared vocabulary for the remote backend / future densification work. */
   targetGaussians: number;
   /** Learning rate — positions (mirrors GaussianBakingConfig.positionLR; default 0.00016). */
   positionLR: number;
@@ -50,7 +52,8 @@ export interface GaussianTrainConfig {
   opacityLR: number;
   /** Learning rate — colors (default 0.0025). */
   colorLR: number;
-  /** Densification interval in iterations (0 = off; mirrors densificationInterval; default 100). */
+  /** Densification interval in iterations (0 = off; mirrors densificationInterval; default 100).
+   *  NOTE: NOT consumed by the sovereign runner yet (fixed-cardinality) — shared vocabulary only. */
   densifyInterval: number;
   /** 2D low-pass dilation in px (Mip-Splatting eps2d, matches the renderer; default 0.3). */
   dilation: number;

@@ -52,7 +52,6 @@ describe('GaussianTrainRunner — sovereign job execution', () => {
         iterations: 250,
         learningRates: { position: 0.02, scale: 0.004, rotation: 0.01, opacity: 0.01, color: 0.01 },
         dilation: 0.3,
-        densifyInterval: 0,
       },
     };
 

@@ -382,6 +382,16 @@ export type {
   GaussianSplattingExtendedResult,
 } from './GaussianSplattingCompiler';
 
+// Gaussian training compiler — compile_to_gaussian_train (SOVEREIGN: native GaussianTrainer3D, $0)
+export {
+  GaussianTrainCompiler,
+  createGaussianTrainCompiler,
+  GaussianTrainConfigError,
+  SOVEREIGN_TRAIN_EXECUTOR,
+  REMOTE_TRAIN_EXECUTOR,
+} from './GaussianTrainCompiler';
+export type { GaussianTrainJob, GaussianTrainCompilerOptions } from './GaussianTrainCompiler';
+
 
 // APL WIT / trait-evaluation surface — unified bridge for WASM worlds
 export {

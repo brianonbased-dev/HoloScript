@@ -20,6 +20,11 @@
  *
  * Stage 1 = GaussianTrainer2D (alpha-blend autodiff). Stage 2 = this (projection chain).
  * Stage 3 = WGSL port of the hot path onto the forward GaussianSplatSorter.
+ *
+ * LIMITATION (per the 2026-06-20 /critic review): color is flat per-gaussian RGB — there is NO
+ * spherical-harmonics / view-dependent appearance. Color passes through each view unchanged, so this
+ * cannot fit specular / view-dependent effects that real 3DGS uses SH (degree 3) for. A multi-view
+ * fit against targets rendered by this same forward pass cannot expose this; real captures will.
  */
 
 import { type Gaussian2D, type Gaussian2DGrad } from './GaussianTrainer2D';

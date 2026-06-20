@@ -17,6 +17,15 @@
 // PARITY: splat-train-backward.parity.ts mirrors this math exactly (incl. the fixed-point round-trip)
 // and is tested against backward2D. The CPU reference iterates ALL N gaussians per pixel; MAX_HITS
 // bounds the per-pixel local hit list — scenes with deeper per-pixel overlap need the tiled follow-up.
+//
+// VALIDATION STATUS (be honest — per the 2026-06-20 /critic review): this kernel has NEVER been
+// compiled by a real WGSL compiler (naga/tint) or dispatched on a GPU. Nothing in the codebase
+// creates a compute pipeline for it yet. It is validated ONLY by: (a) the CPU parity twin matching
+// backward2D numerically, and (b) a STRUCTURAL regex that this file contains the load-bearing ops —
+// which is NOT execution validation. Real-GPU risks not covered by a JS twin: the array<atomic<i32>>
+// layout, the large per-thread private hit arrays (register/spill), workgroup occupancy, and the
+// fixed-point i32 overflow flagged above. Before trusting this on hardware: run it through naga/tint
+// and dispatch once on a real adapter (the Jetson, W.733) comparing the grad buffer to backward2D.
 
 // 16-bit fractional; MUST match the parity twin. The global scale trades precision vs i32 overflow:
 // accumulated |grad|*SCALE must stay < 2^31. Safe for bounded scenes; very large images / deep

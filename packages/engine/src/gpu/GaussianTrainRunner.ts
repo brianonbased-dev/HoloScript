@@ -3,10 +3,24 @@
  *
  * Runs a `GaussianTrainJob` (emitted by @holoscript/core GaussianTrainCompiler) on our own
  * gradient-checked autodiff path — GaussianTrainer3D (3D->2D projection) + GaussianTrainer2D
- * (alpha-blend backward) + Adam — over a set of posed views. This is the native, $0 replacement
- * for the remote api.rendernetwork.com training stage (GaussianSplatBakingPipeline).
+ * (alpha-blend backward) + Adam — over a set of posed views.
  *
- * The pipeline this closes: capture -> reconstruct -> TRAIN (here, natively) -> render -> twin.
+ * HONEST SCOPE (what this is and is NOT — per the 2026-06-20 /critic review):
+ *  - It IS a correct, finite-difference-verified differentiable 3DGS optimizer (the math is real).
+ *  - FIXED-CARDINALITY: there is NO densification/pruning. The Gaussian count is exactly `initial.N`
+ *    for the whole run. The job's `targetGaussians`/`densifyInterval` are NOT consumed here (they are
+ *    the remote-backend / future-densification vocabulary) — so they are deliberately absent from the
+ *    consumed `GaussianTrainJobSpec` below rather than declared-but-ignored.
+ *  - DIFFUSE COLOR ONLY: flat per-gaussian RGB, no spherical harmonics — cannot fit view-dependent
+ *    specular appearance. (A multi-view fit against targets rendered by this same forward pass cannot
+ *    reveal this gap; real photometric captures will.)
+ *  - CPU COST: O(views * iters * pixels * N) with NO tile binning or frustum culling (every gaussian
+ *    is tested at every pixel). Tractable to ~hundreds of gaussians at thumbnail resolution; real
+ *    scale (1e5-1e6 gaussians, HD, 30k iters) needs the WGSL kernel (splat-train-backward.wgsl —
+ *    drafted, NOT yet dispatched on a GPU) plus tiling. This runner does NOT call that kernel.
+ *  - This optimizes a SCENE FROM POSED VIEWS; it is not a full gsplat replacement until capture
+ *    ingestion (PLY/point-cloud init + image decode) and the above are built. No real capture has
+ *    been trained yet (blocked on source data — see GaussianTrainDataset.ts).
  */
 
 import { forward2D, backward2D } from './GaussianTrainer2D';
@@ -27,8 +41,12 @@ export interface GaussianTrainJobSpec {
       opacity: number;
       color: number;
     };
+    /** Renderer-matched 2D low-pass (Mip-Splatting eps2d). NOTE: forward3D applies a fixed 0.3px
+     *  internally; a value other than 0.3 here is NOT yet honoured (threading it through forward3D
+     *  is a follow-up). Present so the consumed spec records the assumed value. */
     dilation: number;
-    densifyInterval?: number;
+    // NOTE: `densifyInterval`/`targetGaussians` from the full GaussianTrainJob are intentionally
+    // NOT here — this runner is fixed-cardinality and does not consume them (see the header).
   };
 }
 
