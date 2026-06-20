@@ -1,20 +1,17 @@
 /**
- * @fileoverview Multi-Layer Compiler
- * @module @holoscript/core/compiler
+ * @fileoverview Multi-Layer Compiler (RETIRED)
  *
- * PURPOSE:
- * Orchestrates the compilation of a single .holo composition into multiple target
- * outputs (VR, VRR, AR) based on trait awareness and layer targets.
+ * MultiLayerCompiler was retired 2026-06-17 along with the apex-poison web compilers
+ * it depended on (BabylonCompiler, VRRCompiler, ARCompiler). The 'multi-layer' export
+ * target is no longer dispatched from ExportManager.
  *
- * RATCHET: The VR slice passes the FULL un-filtered composition to BabylonCompiler.
- * AR and VRR slices use their own compilers but do not strip foreign-trait nodes
- * before passing them. Per-layer AST filtering is not yet implemented.
+ * Preserved as a type-stub so legacy imports compile without hard errors during
+ * the transition window. Remove after all callers have been updated.
+ *
+ * Idea seed: see docs/handbooks/idea-seeds.md
+ * "Resurrect Apex-Poison Compilers as Fire-and-Forget Export Targets"
  */
 
-import type { HoloComposition } from '../parser/HoloCompositionTypes.js';
-import { VRRCompiler, type VRRCompilationResult } from './VRRCompiler.js';
-import { ARCompiler, type ARCompilationResult } from './ARCompiler.js';
-import { BabylonCompiler } from './BabylonCompiler.js'; // Assuming standard VR target
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 
@@ -26,13 +23,14 @@ export interface MultiLayerCompilerOptions {
 
 export interface MultiLayerCompilationResult {
   vr?: string;
-  vrr?: VRRCompilationResult;
-  ar?: ARCompilationResult;
+  vrr?: Record<string, unknown>;
+  ar?: Record<string, unknown>;
   success: boolean;
   warnings: string[];
   errors: string[];
 }
 
+/** @deprecated Retired 2026-06-17 — apex-poison compiler dependencies removed. */
 export class MultiLayerCompiler extends CompilerBase {
   protected readonly compilerName = 'MultiLayerCompiler';
 
@@ -40,66 +38,20 @@ export class MultiLayerCompiler extends CompilerBase {
     return ANSCapabilityPath.MULTI_LAYER;
   }
 
-  private options: MultiLayerCompilerOptions;
-
-  constructor(options: MultiLayerCompilerOptions) {
+  constructor(_options: MultiLayerCompilerOptions) {
     super();
-    this.options = options;
   }
 
   compile(
-    composition: HoloComposition,
-    agentToken: string,
-    outputPath?: string
-  ): MultiLayerCompilationResult {
-    this.validateCompilerAccess(agentToken, outputPath);
-    const result: MultiLayerCompilationResult = {
-      success: true,
-      warnings: [],
-      errors: [],
-    };
-
-    if (this.options.targets.includes('ar')) {
-      const arCompiler = new ARCompiler({
-        target: 'webxr',
-        minify: this.options.minify,
-        source_maps: this.options.source_maps,
-        features: { hit_test: true, image_tracking: true },
-      });
-      const arResult = arCompiler.compile(composition, agentToken);
-      result.ar = arResult;
-      if (!arResult.success) result.success = false;
-    }
-
-    if (this.options.targets.includes('vrr')) {
-      const vrrCompiler = new VRRCompiler({
-        target: 'threejs',
-        minify: this.options.minify,
-        source_maps: this.options.source_maps,
-        performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
-        api_integrations: {}, // Configured upstream based on @reality_mirror traits
-      });
-      const vrrResult = vrrCompiler.compile(composition, agentToken);
-      result.vrr = vrrResult;
-      if (!vrrResult.success) result.success = false;
-    }
-
-    if (this.options.targets.includes('vr')) {
-      const vrCompiler = new BabylonCompiler({});
-      // The BabylonCompiler handles standard VR.
-      // RATCHET: No AST pre-filter for VR layer — AR/VRR-only nodes leak into Babylon output.
-      // filterCompositionForPlatform(composition, 'vr') should be called before compile.
-      try {
-        const vrResult = vrCompiler.compile(composition, agentToken);
-        result.vr = vrResult;
-      } catch (err: unknown) {
-        result.success = false;
-        result.errors.push(
-          `VR Compilation Error: ${err instanceof Error ? err.message : String(err)}`
-        );
-      }
-    }
-
-    return result;
+    _composition: unknown,
+    _agentToken: string,
+    _outputPath?: string
+  ): never {
+    throw new Error(
+      'MultiLayerCompiler has been retired. Its dependencies (BabylonCompiler, VRRCompiler, ARCompiler) ' +
+      'were apex-poison web compilers removed in 2026-06-17. ' +
+      'Use the native BrowserRuntime path for VR/AR delivery. ' +
+      'See docs/handbooks/idea-seeds.md for the planned fire-and-forget export revival.'
+    );
   }
 }

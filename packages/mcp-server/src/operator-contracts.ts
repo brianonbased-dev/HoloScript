@@ -235,27 +235,27 @@ compile_to_unity
 compile_to_unreal
 compile_to_urdf
 compile_to_webgpu
-compile_to_r3f
+# compile_to_r3f — retired apex-poison 2026-06-17
 compile_to_godot
 compile_to_visionos
 compile_to_openxr
-compile_to_babylon
-compile_to_playcanvas
+# compile_to_babylon — retired apex-poison 2026-06-17
+# compile_to_playcanvas — retired apex-poison 2026-06-17
 compile_to_vrchat
 compile_to_android
 compile_to_android_xr
 compile_to_ios
-compile_to_ar
+# compile_to_ar — retired apex-poison 2026-06-17
 compile_to_wasm
 compile_to_usd
 compile_to_usdz
 compile_to_sdf
-compile_to_vrr
+# compile_to_vrr — retired apex-poison 2026-06-17
 compile_to_multi_layer
 compile_to_ros2_deploy
 compile_to_dtdl
 compile_to_nir
-compile_to_native_2d
+# compile_to_native_2d — retired apex-poison 2026-06-17
 compile_to_node_service
 compile_to_a2a_agent_card
 compile_to_state

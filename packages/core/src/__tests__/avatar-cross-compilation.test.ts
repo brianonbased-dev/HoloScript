@@ -2,20 +2,15 @@
  * Avatar Cross-Compilation Tests
  *
  * Tests that avatar compositions with skeleton, morph, IK, and embodiment traits
- * can be compiled through Unity (C#), Unreal (C++/Blueprint), and R3F (WebXR) targets.
+ * can be compiled through Unity (C#) and Unreal (C++) targets.
  *
- * These tests verify:
- * - Unity: C# MonoBehaviour output with proper component setup
- * - Unreal: C++ header/source with UE5 actor structure
- * - R3F: React Three Fiber JSX nodes with trait metadata
- *
- * @directive Cross-compilation validation for avatar pipeline
+ * R3F (WebXR) suite removed 2026-06-17 — R3FCompiler retired (apex-poison).
+ * Native BrowserRuntime path supersedes it.
  */
 
 import { describe, it, expect, vi } from 'vitest';
 import { UnityCompiler } from '../compiler/UnityCompiler';
 import { UnrealCompiler } from '../compiler/UnrealCompiler';
-import { R3FCompiler } from '../compiler/R3FCompiler';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -319,94 +314,11 @@ describe('Avatar Cross-Compilation - Unreal (C++)', () => {
 });
 
 // =============================================================================
-// R3F (React Three Fiber / WebXR) Cross-Compilation
-// =============================================================================
-
-describe('Avatar Cross-Compilation - R3F (WebXR)', () => {
-  it('should compile avatar to R3F nodes', () => {
-    const avatarObj = createAvatarObject('WebAvatar', [
-      AVATAR_TRAITS.skeleton,
-      AVATAR_TRAITS.morph,
-    ]);
-    const composition = createComposition('WebAvatarScene', {
-      objects: [avatarObj],
-    });
-
-    const compiler = new R3FCompiler();
-    const result = compiler.compileComposition(composition);
-
-    expect(result).toBeDefined();
-    // R3F compileComposition returns a root R3FNode with children
-    expect(result.type).toBe('group');
-    expect(result.id).toBe('WebAvatarScene');
-    expect(result.children).toBeDefined();
-    expect(result.children!.length).toBeGreaterThan(0);
-
-    // Find the avatar node in children
-    const avatarNode = result.children!.find((n: any) => n.id === 'WebAvatar');
-    expect(avatarNode).toBeDefined();
-  });
-
-  it('should include trait metadata in R3F nodes', () => {
-    const avatarObj = createAvatarObject('TraitAvatar', [
-      AVATAR_TRAITS.skeleton,
-      AVATAR_TRAITS.morph,
-      AVATAR_TRAITS.avatar_embodiment,
-    ]);
-    const composition = createComposition('TraitScene', {
-      objects: [avatarObj],
-    });
-
-    const compiler = new R3FCompiler();
-    const result = compiler.compileComposition(composition);
-
-    expect(result).toBeDefined();
-    expect(result.children).toBeDefined();
-
-    const avatarNode = result.children!.find((n: any) => n.id === 'TraitAvatar');
-    expect(avatarNode).toBeDefined();
-
-    // R3F compiler merges trait configs into the node's props,
-    // and also applies TraitCompositor visual rules to materialProps.
-    // Verify trait-derived data is present in props.
-    expect(avatarNode?.props).toBeDefined();
-    // The TraitCompositor applies visual presets from traits, which
-    // results in materialProps being populated with composed values.
-    // At minimum, the compiled node should have trait-related properties.
-    expect(Object.keys(avatarNode?.props || {}).length).toBeGreaterThan(0);
-  });
-
-  it('should compile avatar scene with lights for R3F', () => {
-    const avatarObj = createAvatarObject('LitWebAvatar', [AVATAR_TRAITS.skeleton]);
-    const keyLight: HoloLight = {
-      type: 'Light',
-      name: 'WebKeyLight',
-      lightType: 'directional',
-      color: '#ffffff',
-      intensity: 1.0,
-    } as any;
-
-    const composition = createComposition('LitWebScene', {
-      objects: [avatarObj],
-      lights: [keyLight],
-    });
-
-    const compiler = new R3FCompiler();
-    const result = compiler.compileComposition(composition);
-
-    expect(result).toBeDefined();
-    expect(result.children).toBeDefined();
-    // Should have children for both the avatar and the light
-    expect(result.children!.length).toBeGreaterThanOrEqual(2);
-  });
-});
-
-// =============================================================================
-// Cross-Platform Consistency
+// Cross-Platform Consistency (Unity + Unreal only — R3F retired 2026-06-17)
 // =============================================================================
 
 describe('Avatar Cross-Compilation - Platform Consistency', () => {
-  it('should compile the same composition across all three platforms', () => {
+  it('should compile the same composition across native platforms', () => {
     const avatarObj = createAvatarObject(
       'CrossPlatformAvatar',
       [AVATAR_TRAITS.skeleton, AVATAR_TRAITS.morph],
@@ -430,33 +342,18 @@ describe('Avatar Cross-Compilation - Platform Consistency', () => {
     expect(unrealResult.headerFile.length).toBeGreaterThan(0);
     expect(unrealResult.sourceFile.length).toBeGreaterThan(0);
 
-    // R3F/WebXR
-    const r3fCompiler = new R3FCompiler();
-    const r3fResult = r3fCompiler.compileComposition(composition);
-    expect(r3fResult).toBeDefined();
-    expect(r3fResult.children).toBeDefined();
-
-    // All outputs should reference the avatar object
     expect(unityResult).toContain('CrossPlatformAvatar');
     expect(unrealResult.sourceFile).toContain('CrossPlatformAvatar');
-    const r3fNode = r3fResult.children!.find((n: any) => n.id === 'CrossPlatformAvatar');
-    expect(r3fNode).toBeDefined();
   });
 
-  it('should compile empty composition without errors on all platforms', () => {
+  it('should compile empty composition without errors on native platforms', () => {
     const composition = createComposition('EmptyScene');
 
-    // Unity
     const unityResult = new UnityCompiler().compile(composition);
     expect(unityResult).toBeDefined();
 
-    // Unreal
     const unrealResult = new UnrealCompiler().compile(composition);
     expect(unrealResult.headerFile).toBeDefined();
     expect(unrealResult.sourceFile).toBeDefined();
-
-    // R3F
-    const r3fResult = new R3FCompiler().compileComposition(composition);
-    expect(r3fResult).toBeDefined();
   });
 });

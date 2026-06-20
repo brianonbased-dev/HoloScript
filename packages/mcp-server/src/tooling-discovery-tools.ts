@@ -575,7 +575,7 @@ export function suggestToolsForGoal(
 const REPRESENTATIVE_TOOLS: Record<string, string[]> = {
   parsing: ['parse_hs', 'parse_holo', 'parse_hs', 'parse_pipeline'],
   validation: ['validate_holoscript'],
-  compiler: ['compile_holoscript', 'compile_to_r3f'],
+  compiler: ['compile_holoscript', 'compile_to_webgpu'],
   'graph/codebase': ['holo_graph_status'],
   'ai-assistant': ['hs_ai_explain_error'],
   ide: ['hs_diagnostics'],

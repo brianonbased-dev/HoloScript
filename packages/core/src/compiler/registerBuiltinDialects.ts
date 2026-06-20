@@ -101,89 +101,6 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.gd', '.tscn'],
     },
 
-    // ── Web 3D ────────────────────────────────────────────────────────────
-    {
-      name: 'r3f',
-      domain: 'web3d',
-      description: 'Compiles to React Three Fiber JSX components',
-      supportedTraits: [
-        'physics',
-        'collidable',
-        'grabbable',
-        'audio',
-        'spatial_audio',
-        'animation',
-        'particles',
-        'material',
-        'ui',
-        'behavior_tree',
-        'lod',
-        'vr_only',
-        'ar_only',
-      ],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { R3FCompiler } = require('./R3FCompiler');
-        return new R3FCompiler(opts);
-      },
-      outputExtensions: ['.tsx', '.jsx'],
-    },
-    {
-      name: 'babylon',
-      domain: 'web3d',
-      description: 'Compiles to Babylon.js scene code',
-      supportedTraits: [
-        'physics',
-        'collidable',
-        'audio',
-        'animation',
-        'particles',
-        'material',
-        'behavior_tree',
-      ],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { BabylonCompiler } = require('./BabylonCompiler');
-        return new BabylonCompiler(opts);
-      },
-      outputExtensions: ['.ts', '.js'],
-    },
-    {
-      name: 'playcanvas',
-      domain: 'web3d',
-      description: 'Compiles to PlayCanvas engine scripts',
-      supportedTraits: ['physics', 'collidable', 'audio', 'animation', 'material'],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { PlayCanvasCompiler } = require('./PlayCanvasCompiler');
-        return new PlayCanvasCompiler(opts);
-      },
-      outputExtensions: ['.js'],
-    },
-    {
-      name: 'threejs',
-      domain: 'web3d',
-      description:
-        'Compiles to vanilla Three.js TypeScript (bypasses R3F for bundle-critical deployments)',
-      supportedTraits: [
-        'physics',
-        'collidable',
-        'grabbable',
-        'hoverable',
-        'audio',
-        'animation',
-        'particles',
-        'material',
-        'shadow',
-      ],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { ThreeJSCompiler } = require('./ThreeJSCompiler');
-        return new ThreeJSCompiler(opts);
-      },
-      outputExtensions: ['.ts'],
-    },
-
     // ── VR/XR ─────────────────────────────────────────────────────────────
     {
       name: 'openxr',
@@ -282,18 +199,6 @@ export function registerBuiltinDialects(): void {
         return new AndroidCompiler(opts);
       },
       outputExtensions: ['.kt'],
-    },
-    {
-      name: 'ar',
-      domain: 'mobile',
-      description: 'Compiles to generic AR platform code',
-      supportedTraits: ['physics', 'ar_anchor', 'spatial_anchor', 'collidable', 'material'],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { ARCompiler } = require('./ARCompiler');
-        return new ARCompiler(opts);
-      },
-      outputExtensions: ['.ts'],
     },
 
     // ── Low-level ─────────────────────────────────────────────────────────
@@ -409,30 +314,6 @@ export function registerBuiltinDialects(): void {
         return new NIRCompiler(opts);
       },
       outputExtensions: ['.json'],
-    },
-    {
-      name: 'vrr',
-      domain: 'xr',
-      description: 'Compiles with Variable Rate Rendering optimizations',
-      supportedTraits: ['physics', 'material', 'lod', 'rendering'],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { VRRCompiler } = require('./VRRCompiler');
-        return new VRRCompiler(opts);
-      },
-      outputExtensions: ['.ts'],
-    },
-    {
-      name: 'native-2d',
-      domain: 'web3d',
-      description: 'Compiles to native 2D HTML/CSS/Canvas applications',
-      supportedTraits: ['layout', 'style', 'animation', 'interaction'],
-      riskTier: 'standard',
-      factory: (opts) => {
-        const { Native2DCompiler } = require('./Native2DCompiler');
-        return new Native2DCompiler(opts);
-      },
-      outputExtensions: ['.tsx', '.html'],
     },
 
     // ── Next.js API Routes ────────────────────────────────────────────────

@@ -23,7 +23,7 @@ import type {
   HoloComposition,
   SourceLocation,
 } from '../parser/HoloCompositionTypes';
-import { MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../compiler/R3FCompiler';
+import { MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../compiler/scene-presets';
 import { CompletionProvider } from './CompletionProvider';
 import type { CompletionItem } from './CompletionProvider';
 import { DiagnosticProvider } from './DiagnosticProvider';

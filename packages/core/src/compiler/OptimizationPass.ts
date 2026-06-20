@@ -17,7 +17,13 @@
  * @version 1.0.0
  */
 
-import type { R3FNode } from './R3FCompiler';
+/** Minimal node shape used by the optimization analysis pass. */
+interface R3FNode {
+  type: string;
+  id?: string;
+  props: Record<string, unknown>;
+  children?: R3FNode[];
+}
 
 // =============================================================================
 // TYPES

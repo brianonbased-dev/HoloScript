@@ -283,8 +283,16 @@ export type {
   InputAPI,
 } from './types';
 
-// HoloScript R3F Compiler (NEW)
-export { R3FCompiler, type R3FNode, ENVIRONMENT_PRESETS } from './compiler/R3FCompiler';
+// Scene preset constants. MATERIAL_PRESETS is barrel-owned by MaterialTrait (below); the old R3F
+// re-export line only ever surfaced ENVIRONMENT_PRESETS (now sourced from the extracted scene-presets).
+export { ENVIRONMENT_PRESETS } from './compiler/scene-presets';
+// R3FCompiler is RETAINED as an internal library compiler. It is de-promoted as a *public compile
+// target* (no compile_to_r3f tool, no 'r3f' in the dialect/ANS/target registry — see the apex-poison
+// retirement), but it remains studio's active scene renderer, imported FROM THIS BARREL in
+// studio/src/app/shared/[id]/ImmersiveViewer.client.tsx, hooks/useCompiler.ts, hooks/useScenePipeline.ts.
+// Dropping it from the barrel breaks the studio build/deploy. Keep the class + node type exported here
+// (the only barrel source for both; ENVIRONMENT_PRESETS stays from scene-presets above — no duplicate).
+export { R3FCompiler, type R3FNode } from './compiler/R3FCompiler';
 export type { HolomapPointCloudPayload } from './compiler/HolomapExportPayload';
 
 // Provenance / semiring algebra
@@ -344,8 +352,7 @@ export { VisionOSCompiler, type VisionOSCompilerOptions } from './compiler/Visio
 
 // HoloScript New Platform Compilers (NEW - Phase 14)
 export { WebGPUCompiler, type WebGPUCompilerOptions } from './compiler/WebGPUCompiler';
-export { BabylonCompiler, type BabylonCompilerOptions } from './compiler/BabylonCompiler';
-export { ThreeJSCompiler, type ThreeJSCompilerOptions } from './compiler/ThreeJSCompiler';
+// BabylonCompiler, ThreeJSCompiler — retired 2026-06-17 (apex-poison; see idea-seeds.md)
 export {
   AndroidXRCompiler,
   type AndroidXRCompilerOptions,
@@ -372,21 +379,8 @@ export {
   type AnchorComponent,
   type GeospatialExtension,
 } from './compiler/OpenXRSpatialEntitiesCompiler';
-export {
-  VRRCompiler,
-  type VRRCompilerOptions,
-  type VRRCompilationResult,
-} from './compiler/VRRCompiler';
-export {
-  ARCompiler,
-  type ARCompilerOptions,
-  type ARCompilationResult,
-} from './compiler/ARCompiler';
-export {
-  MultiLayerCompiler,
-  type MultiLayerCompilerOptions,
-  type MultiLayerCompilationResult,
-} from './compiler/MultiLayerCompiler';
+// VRRCompiler, ARCompiler — retired 2026-06-17 (apex-poison; see idea-seeds.md)
+// MultiLayerCompiler — retired 2026-06-17 (depended on BabylonCompiler/VRRCompiler/ARCompiler)
 
 // HoloScript TSL Compiler (Trait Shader Language — trait-to-shader code generation)
 export {

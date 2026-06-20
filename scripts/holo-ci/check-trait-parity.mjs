@@ -1,31 +1,29 @@
 #!/usr/bin/env node
 /**
- * check-trait-parity.mjs — CI gate: every trait emitted by R3FCompiler must have
- * a registered BrowserRuntime handler OR an explicit no-op classification in
- * TRAIT_NOOP_MANIFEST.json.
+ * check-trait-parity.mjs — CI gate: every HoloScript trait must have
+ * a registered BrowserRuntime handler OR an explicit no-op classification
+ * in TRAIT_NOOP_MANIFEST.json.
  *
  * WHY THIS GATE EXISTS (research/2026-06-15_trait-parity-and-tsx-deprecation.md §5.6):
- *   R3FCompiler emits trait names via a large if/else-if chain (name === '...' branches).
- *   BrowserRuntime.TraitSystem.register() separately lists the live native handlers.
- *   The two lists have drifted: traits compiled into scene graphs are silently ignored
- *   at runtime when no handler exists. This gate is the INTERLOCK before R3FCompiler
- *   retirement — if every R3F-emitted trait is either handled or explicitly classified
- *   as a no-op, the compiler output is provably safe to retire.
+ *   BrowserRuntime.TraitSystem.register() lists the live native handlers.
+ *   TRAIT_NOOP_MANIFEST.json classifies traits that have no client-side handler by design
+ *   (AR/XR hardware, GPU-compute, server-side features, compile-time markers, etc.).
+ *   The gate ensures every known HoloScript trait falls in one of these two buckets.
  *
  * THREE BUCKETS:
- *   1. HANDLED  — trait name appears in a TraitSystem.register({name:'...'}) call
- *                 in packages/runtime/src/traits/*.ts files.
- *   2. NOOP     — trait name is listed in TRAIT_NOOP_MANIFEST.json. These have
- *                 no runtime effect by design (AR/XR hardware, GPU-compute,
- *                 server-side features, props set directly on R3F nodes, etc.).
- *   3. UNCOVERED — R3F emits it, but it's in neither bucket → FAIL.
+ *   1. HANDLED  — trait name appears in a `  name: '...'` property in
+ *                 packages/runtime/src/traits/*.ts (TraitHandler objects).
+ *   2. NOOP     — trait name is in scripts/holo-ci/TRAIT_NOOP_MANIFEST.json.
+ *   3. UNCOVERED — in TRAIT_REGISTRY.json but in neither bucket → CI FAIL.
  *
  * SOURCES:
- *   - R3F-emitted traits: `name === '...'` patterns in R3FCompiler.ts.
- *     Also picks up `d.name === '...'` (directive handling at the bottom of the file).
- *   - Registered handlers: `name: '...'` properties in packages/runtime/src/traits/*.ts.
- *     The property must be a standalone object property line, not a variable or arg.
- *   - No-op classifications: TRAIT_NOOP_MANIFEST.json (sibling to this script).
+ *   - Trait registry:       scripts/holo-ci/TRAIT_REGISTRY.json (canonical list)
+ *   - Registered handlers:  packages/runtime/src/traits/*.ts  (name: '...' properties)
+ *   - No-op classifications: scripts/holo-ci/TRAIT_NOOP_MANIFEST.json
+ *
+ * ADDING TRAITS:
+ *   When adding a new trait to HoloScript, also add it to TRAIT_REGISTRY.json
+ *   AND either implement a TraitHandler or add it to TRAIT_NOOP_MANIFEST.json.
  *
  * USAGE:
  *   node scripts/holo-ci/check-trait-parity.mjs            # check, exit 1 on gap
@@ -33,7 +31,7 @@
  *   node scripts/holo-ci/check-trait-parity.mjs --root <dir>
  *
  * EXIT CODES:
- *   0 — all R3F-emitted traits are handled or classified as no-op
+ *   0 — all traits in the registry are handled or classified as no-op
  *   1 — at least one trait is in neither bucket (uncovered → CI failure)
  *   2 — usage / configuration error (missing source files)
  */
@@ -51,12 +49,12 @@ const VERBOSE = process.argv.includes('--verbose');
 const ROOT = resolve(arg('--root', process.env.HOLO_ROOT ?? process.cwd()));
 
 // ── Source paths ──────────────────────────────────────────────────────────────
-const R3F_COMPILER = join(ROOT, 'packages/core/src/compiler/R3FCompiler.ts');
+const REGISTRY_PATH = join(ROOT, 'scripts/holo-ci/TRAIT_REGISTRY.json');
 const RUNTIME_TRAITS_DIR = join(ROOT, 'packages/runtime/src/traits');
 const MANIFEST_PATH = join(ROOT, 'scripts/holo-ci/TRAIT_NOOP_MANIFEST.json');
 
 for (const [label, p] of [
-  ['R3FCompiler.ts', R3F_COMPILER],
+  ['TRAIT_REGISTRY.json', REGISTRY_PATH],
   ['runtime/traits/', RUNTIME_TRAITS_DIR],
   ['TRAIT_NOOP_MANIFEST.json', MANIFEST_PATH],
 ]) {
@@ -67,15 +65,9 @@ for (const [label, p] of [
   }
 }
 
-// ── Step 1: Extract R3F-emitted trait names ───────────────────────────────────
-// Matches both `name === 'foo'` and `d.name === 'foo'` patterns.
-// The `|| 'ai_vision'` branch (name === 'vision' || name === 'ai_vision') is
-// handled by capturing both names separately from the regex.
-const r3fSrc = readFileSync(R3F_COMPILER, 'utf8');
-const r3fEmitted = new Set();
-for (const m of r3fSrc.matchAll(/\bname\s*===\s*'([^']+)'/g)) {
-  r3fEmitted.add(m[1]);
-}
+// ── Step 1: Load trait registry ───────────────────────────────────────────────
+const registry = JSON.parse(readFileSync(REGISTRY_PATH, 'utf8'));
+const knownTraits = new Set(registry.traits ?? []);
 
 // ── Step 2: Extract registered handler names ──────────────────────────────────
 // Walks packages/runtime/src/traits/*.ts and finds `  name: 'foo',` lines —
@@ -112,7 +104,7 @@ const handled = [];
 const noop = [];
 const uncovered = [];
 
-for (const trait of [...r3fEmitted].sort()) {
+for (const trait of [...knownTraits].sort()) {
   if (handlerNames.has(trait)) {
     handled.push(trait);
   } else if (noopNames.has(trait)) {
@@ -123,17 +115,17 @@ for (const trait of [...r3fEmitted].sort()) {
 }
 
 // ── Step 5: Reconciliation warnings ──────────────────────────────────────────
-// Stale no-op entries (listed in manifest but R3FCompiler no longer emits them).
-const staleNoop = [...noopNames].filter(n => !r3fEmitted.has(n)).sort();
-// Promoted entries (now have a handler but still listed as no-op).
+// Stale no-op entries (in manifest but not in registry).
+const staleNoop = [...noopNames].filter(n => !knownTraits.has(n)).sort();
+// Promoted entries (have a handler but still listed as no-op).
 const promotedNoop = noop.filter(n => handlerNames.has(n)).sort();
 
 // ── Step 6: Output ────────────────────────────────────────────────────────────
-const total = r3fEmitted.size;
+const total = knownTraits.size;
 const ok = handled.length + noop.length;
 
 if (VERBOSE || uncovered.length > 0) {
-  console.log(`\n[trait-parity] R3FCompiler emits ${total} distinct trait names`);
+  console.log(`\n[trait-parity] Registry contains ${total} distinct trait names`);
   console.log(`  HANDLED  (BrowserRuntime handler registered): ${handled.length}`);
   console.log(`  NOOP     (classified in manifest):            ${noop.length}`);
   console.log(`  UNCOVERED (CI failure if any):                ${uncovered.length}`);
@@ -153,7 +145,7 @@ if (uncovered.length > 0) {
     console.log(`  ✗ ${t}`);
   }
   console.log(`
-[trait-parity] ${uncovered.length} trait(s) emitted by R3FCompiler are in neither bucket.
+[trait-parity] ${uncovered.length} trait(s) in the registry are in neither bucket.
 FIX: for each uncovered trait, do ONE of:
   A) Add a TraitHandler to packages/runtime/src/traits/ with name: '${uncovered[0]}'
      and register it via this.traitSystem.register() in BrowserRuntime.ts.
@@ -163,7 +155,7 @@ FIX: for each uncovered trait, do ONE of:
 
 if (staleNoop.length > 0) {
   console.log(`[trait-parity] WARNING: ${staleNoop.length} manifest entry/entries are stale`);
-  console.log('  (listed in TRAIT_NOOP_MANIFEST.json but R3FCompiler no longer emits them)');
+  console.log('  (listed in TRAIT_NOOP_MANIFEST.json but not in TRAIT_REGISTRY.json)');
   console.log('  Stale:', staleNoop.join(', '));
   console.log('  ACTION: remove them from the manifest so it stays accurate.\n');
 }
@@ -176,7 +168,7 @@ if (promotedNoop.length > 0) {
 
 if (uncovered.length === 0) {
   if (!VERBOSE) {
-    console.log(`[trait-parity] ✓ all ${total} R3F-emitted traits covered (${handled.length} handled + ${noop.length} noop)`);
+    console.log(`[trait-parity] ✓ all ${total} traits covered (${handled.length} handled + ${noop.length} noop)`);
   } else {
     console.log('\n[trait-parity] ✓ PASS — all traits covered');
   }

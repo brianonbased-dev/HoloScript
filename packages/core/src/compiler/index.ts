@@ -35,9 +35,9 @@ export type {
   DocumentationGeneratorOptions,
 } from './CompilerDocumentationGenerator';
 
-// R3F (React Three Fiber)
-export { R3FCompiler, ENVIRONMENT_PRESETS } from './R3FCompiler';
-export type { R3FNode, AssetMaturity } from './R3FCompiler';
+// Scene IR types — stable interface for renderer and Studio consumers.
+// R3FCompiler and the other apex-poison web compilers have been retired (parity gate green 2026-06-17).
+export type { R3FNode, SceneIRNode, AssetMaturity } from './scene-ir-types';
 export type { HolomapPointCloudPayload } from './HolomapExportPayload';
 
 // Engine-specific compilers
@@ -45,17 +45,14 @@ export { UnityCompiler } from './UnityCompiler';
 export type { UnityCompilerOptions } from './UnityCompiler';
 export { GodotCompiler } from './GodotCompiler';
 export type { GodotCompilerOptions } from './GodotCompiler';
-export { BabylonCompiler } from './BabylonCompiler';
-export type { BabylonCompilerOptions } from './BabylonCompiler';
-export { PlayCanvasCompiler } from './PlayCanvasCompiler';
+// BabylonCompiler, PlayCanvasCompiler — retired (apex-poison, 2026-06-17)
 
 // VR/AR/XR compilers
-export { ARCompiler } from './ARCompiler';
+// ARCompiler — retired (apex-poison, 2026-06-17)
 export { OpenXRCompiler } from './OpenXRCompiler';
 export type { OpenXRCompilerOptions } from './OpenXRCompiler';
 export { VRChatCompiler } from './VRChatCompiler';
-export { VRRCompiler } from './VRRCompiler';
-export type { VRRCompilerOptions } from './VRRCompiler';
+// VRRCompiler — retired (apex-poison, 2026-06-17)
 
 // Platform compilers
 export { VisionOSCompiler } from './VisionOSCompiler';
@@ -259,8 +256,7 @@ export type { QASMOutput, QuantumAtom } from './QuantumCircuitCompiler';
 
 // Compiler bridge
 export { CompilerBridge } from './CompilerBridge';
-export { Native2DCompiler } from './Native2DCompiler';
-export type { Native2DCompilerOptions } from './Native2DCompiler';
+// Native2DCompiler — retired (apex-poison, 2026-06-17)
 export { Vector2DCompiler } from './Vector2DCompiler';
 export type { Vector2DCompileOptions, Vector2DCompileResult } from './Vector2DCompiler';
 export { SCMCompiler } from './SCMCompiler';
@@ -318,12 +314,8 @@ export type {
   PipelinePythonCompilerOptions,
 } from './PipelineNodeCompiler';
 
-// FlatSemanticCompiler — V6 @semantic_entity / @2d_canvas → R3F output.
-// Merged from @holoscript/semantic-2d (2026-04-29) — 0 consumers + the
-// file header already self-identified as living under
-// @holoscript/core/compiler. Companion: traits/v6/Semantic2DTraits.ts.
-export { FlatSemanticCompiler } from './FlatSemanticCompiler';
-export type { FlatSemanticCompilerOptions } from './FlatSemanticCompiler';
+// FlatSemanticCompiler — retired (apex-poison, 2026-06-17).
+// Was: V6 @semantic_entity / @2d_canvas → R3F output. Native renderer replaces this path.
 
 // DispatchPolicy — NN-Primary, CPU-Backup HoloScript Inversion
 // Source: research/2026-05-09_nn-primary-cpu-backup-holoscript-EVOLVED.md

@@ -31,7 +31,7 @@ import type {
 } from '../parser/HoloCompositionTypes';
 
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
-import { MATERIAL_PRESETS } from './R3FCompiler';
+import { MATERIAL_PRESETS } from './scene-presets';
 import type { R3FMaterialProps } from '../traits/visual/types';
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';

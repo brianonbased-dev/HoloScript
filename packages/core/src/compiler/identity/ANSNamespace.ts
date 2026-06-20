@@ -141,11 +141,10 @@ export type CompilerName =
   | 'canvas2d-game'
   // social-vr
   | 'vrchat'
-  // xr
+  // xr (ar retired as apex-poison 2026-06-17)
   | 'openxr'
   | 'openxr-spatial-entities'
   | 'visionos'
-  | 'ar'
   | 'android-xr'
   | 'ai-glasses'
   | 'quilt'
@@ -153,12 +152,8 @@ export type CompilerName =
   // mobile
   | 'android'
   | 'ios'
-  // web3d
-  | 'babylon'
+  // web3d (babylon, r3f, playcanvas, threejs retired as apex-poison 2026-06-17)
   | 'webgpu'
-  | 'r3f'
-  | 'playcanvas'
-  | 'threejs'
   // runtime
   | 'wasm'
   | 'node-service'
@@ -176,9 +171,8 @@ export type CompilerName =
   | 'dtdl'
   // web3
   | 'nft-marketplace'
-  // ai
+  // ai (vrr retired as apex-poison 2026-06-17)
   | 'scm'
-  | 'vrr'
   | 'a2a-agent-card'
   | 'agent-inference'
   | 'mcp-config'
@@ -230,7 +224,7 @@ export const ANSCapabilityPath = {
   OPENXR: '/compile/xr/openxr',
   OPENXR_SPATIAL_ENTITIES: '/compile/xr/openxr-spatial-entities',
   VISIONOS: '/compile/xr/visionos',
-  AR: '/compile/xr/ar',
+  // AR: retired as apex-poison 2026-06-17
   ANDROID_XR: '/compile/xr/android-xr',
   AI_GLASSES: '/compile/xr/ai-glasses',
   QUILT: '/compile/xr/quilt',
@@ -240,12 +234,8 @@ export const ANSCapabilityPath = {
   ANDROID: '/compile/mobile/android',
   IOS: '/compile/mobile/ios',
 
-  // ── web3d ────────────────────────────────────────────────────────────
-  BABYLON: '/compile/web3d/babylon',
+  // ── web3d (babylon, r3f, playcanvas, threejs retired as apex-poison 2026-06-17) ──
   WEBGPU: '/compile/web3d/webgpu',
-  R3F: '/compile/web3d/r3f',
-  PLAYCANVAS: '/compile/web3d/playcanvas',
-  THREEJS: '/compile/web3d/threejs',
   // ── runtime ──────────────────────────────────────────────────────────
   WASM: '/compile/runtime/wasm',
   NODE_SERVICE: '/compile/runtime/node-service',
@@ -269,9 +259,8 @@ export const ANSCapabilityPath = {
   // ── web3 ─────────────────────────────────────────────────────────────
   NFT_MARKETPLACE: '/compile/web3/nft-marketplace',
 
-  // ── ai ───────────────────────────────────────────────────────────────
+  // ── ai (vrr retired as apex-poison 2026-06-17) ───────────────────────
   SCM: '/compile/ai/scm',
-  VRR: '/compile/ai/vrr',
   A2A_AGENT_CARD: '/compile/ai/a2a-agent-card',
   AGENT_INFERENCE: '/compile/ai/agent-inference',
   MCP_CONFIG: '/compile/ai/mcp-config',
@@ -316,11 +305,10 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'canvas2d-game': ANSDomain.GAMEDEV,
   // social-vr
   vrchat: ANSDomain.SOCIAL_VR,
-  // xr
+  // xr (ar retired as apex-poison 2026-06-17)
   openxr: ANSDomain.XR,
   'openxr-spatial-entities': ANSDomain.XR,
   visionos: ANSDomain.XR,
-  ar: ANSDomain.XR,
   'android-xr': ANSDomain.XR,
   'ai-glasses': ANSDomain.XR,
   quilt: ANSDomain.XR,
@@ -328,12 +316,8 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   // mobile
   android: ANSDomain.MOBILE,
   ios: ANSDomain.MOBILE,
-  // web3d
-  babylon: ANSDomain.WEB3D,
+  // web3d (babylon, r3f, playcanvas, threejs retired as apex-poison 2026-06-17)
   webgpu: ANSDomain.WEB3D,
-  r3f: ANSDomain.WEB3D,
-  playcanvas: ANSDomain.WEB3D,
-  threejs: ANSDomain.WEB3D,
   // runtime
   wasm: ANSDomain.RUNTIME,
   'node-service': ANSDomain.RUNTIME,
@@ -351,9 +335,8 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   dtdl: ANSDomain.IOT,
   // web3
   'nft-marketplace': ANSDomain.WEB3,
-  // ai
+  // ai (vrr retired as apex-poison 2026-06-17)
   scm: ANSDomain.AI,
-  vrr: ANSDomain.AI,
   'a2a-agent-card': ANSDomain.AI,
   'agent-inference': ANSDomain.AI,
   'mcp-config': ANSDomain.AI,
@@ -391,18 +374,15 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   openxr: ANSCapabilityPath.OPENXR,
   'openxr-spatial-entities': ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES,
   visionos: ANSCapabilityPath.VISIONOS,
-  ar: ANSCapabilityPath.AR,
+  // ar: retired as apex-poison 2026-06-17
   'android-xr': ANSCapabilityPath.ANDROID_XR,
   'ai-glasses': ANSCapabilityPath.AI_GLASSES,
   quilt: ANSCapabilityPath.QUILT,
   'mv-hevc': ANSCapabilityPath.MV_HEVC,
   android: ANSCapabilityPath.ANDROID,
   ios: ANSCapabilityPath.IOS,
-  babylon: ANSCapabilityPath.BABYLON,
+  // babylon, r3f, playcanvas, threejs: retired as apex-poison 2026-06-17
   webgpu: ANSCapabilityPath.WEBGPU,
-  r3f: ANSCapabilityPath.R3F,
-  playcanvas: ANSCapabilityPath.PLAYCANVAS,
-  threejs: ANSCapabilityPath.THREEJS,
   wasm: ANSCapabilityPath.WASM,
   'node-service': ANSCapabilityPath.NODE_SERVICE,
   'nextjs-api': ANSCapabilityPath.NEXTJS_API,
@@ -415,7 +395,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   dtdl: ANSCapabilityPath.DTDL,
   'nft-marketplace': ANSCapabilityPath.NFT_MARKETPLACE,
   scm: ANSCapabilityPath.SCM,
-  vrr: ANSCapabilityPath.VRR,
+  // vrr: retired as apex-poison 2026-06-17
   'a2a-agent-card': ANSCapabilityPath.A2A_AGENT_CARD,
   'agent-inference': ANSCapabilityPath.AGENT_INFERENCE,
   'mcp-config': ANSCapabilityPath.MCP_CONFIG,
@@ -436,7 +416,9 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
 // ---------------------------------------------------------------------------
 
 /**
- * Array of all 31 compiler names, useful for iteration and validation.
+ * Array of all active compiler names, useful for iteration and validation.
+ * Count: verify via `find *Compiler.ts` — do not hardcode (see NUMBERS.md).
+ * Note: r3f, babylon, playcanvas, threejs, ar, vrr retired as apex-poison 2026-06-17.
  */
 export const ALL_COMPILER_NAMES: readonly CompilerName[] = Object.keys(
   COMPILER_DOMAIN_MAP

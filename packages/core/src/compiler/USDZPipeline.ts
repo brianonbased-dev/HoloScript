@@ -58,7 +58,7 @@ import {
   compileInputBlock,
   inputToUSDA,
 } from './DomainBlockCompilerMixin';
-import { MATERIAL_PRESETS } from './R3FCompiler';
+import { MATERIAL_PRESETS } from './scene-presets';
 
 function presetString(p: Record<string, unknown>, k: string): string | undefined {
   const v = p[k];

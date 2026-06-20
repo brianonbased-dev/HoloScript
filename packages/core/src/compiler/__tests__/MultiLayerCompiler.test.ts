@@ -10,10 +10,13 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   };
 });
 
-describe('MultiLayerCompiler', () => {
+// MultiLayerCompiler was retired 2026-06-17 along with its apex-poison dependencies
+// (BabylonCompiler, VRRCompiler, ARCompiler). compile() now throws a clear retirement error
+// directing callers to the native BrowserRuntime path. This test pins that retirement contract.
+describe('MultiLayerCompiler (retired 2026-06-17)', () => {
   const parser = new HoloCompositionParser();
 
-  test('should generate compilation results for multiple requested targets', () => {
+  test('compile() throws a clear retirement error', () => {
     const input = `
       composition "HybridWorld" {
         spatial_group "downtown" {
@@ -31,19 +34,6 @@ describe('MultiLayerCompiler', () => {
       source_maps: false,
     });
 
-    const result = compiler.compile(parseResult.ast!, 'test-token');
-
-    expect(result.success).toBe(true);
-    expect(result.vrr).toBeDefined();
-    expect(result.ar).toBeDefined();
-    expect(result.vr).toBeUndefined();
-
-    // Verify VRR compilation occurred
-    expect(result.vrr?.target).toBe('threejs');
-    expect(result.vrr?.code).toContain('const vrr = new VRRRuntime');
-
-    // Verify AR compilation occurred
-    expect(result.ar?.target).toBe('webxr');
-    expect(result.ar?.code).toContain('const arRuntime = new ARRuntime');
+    expect(() => compiler.compile(parseResult.ast!, 'test-token')).toThrowError(/retired/i);
   });
 });

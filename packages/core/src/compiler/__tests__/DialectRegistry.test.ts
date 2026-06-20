@@ -8,8 +8,8 @@ describe('DialectRegistry', () => {
   });
 
   describe('boot', () => {
-    it('registers 24+ dialects', () => {
-      expect(DialectRegistry.size).toBeGreaterThanOrEqual(24);
+    it('registers 20+ dialects (apex-poison web/VR compilers retired 2026-06-17)', () => {
+      expect(DialectRegistry.size).toBeGreaterThanOrEqual(20);
     });
 
     it('is idempotent — double registration does not throw', () => {
@@ -26,12 +26,9 @@ describe('DialectRegistry', () => {
       expect(names).toContain('godot');
     });
 
-    it('returns web3d compilers: r3f, babylon, playcanvas', () => {
+    it('web3d compilers (r3f, babylon, playcanvas) retired 2026-06-17 — domain is empty', () => {
       const web3d = DialectRegistry.listByDomain('web3d');
-      const names = web3d.map((d) => d.name);
-      expect(names).toContain('r3f');
-      expect(names).toContain('babylon');
-      expect(names).toContain('playcanvas');
+      expect(web3d).toHaveLength(0);
     });
 
     it('returns xr compilers: openxr, visionos, android-xr, vrr', () => {
@@ -42,12 +39,12 @@ describe('DialectRegistry', () => {
       expect(names).toContain('android-xr');
     });
 
-    it('returns mobile compilers: ios, android, ar', () => {
+    it('returns mobile compilers: ios, android (ar retired 2026-06-17)', () => {
       const mobile = DialectRegistry.listByDomain('mobile');
       const names = mobile.map((d) => d.name);
       expect(names).toContain('ios');
       expect(names).toContain('android');
-      expect(names).toContain('ar');
+      expect(names).not.toContain('ar');
     });
 
     it('returns robotics compilers: urdf, sdf', () => {
@@ -73,12 +70,11 @@ describe('DialectRegistry', () => {
   describe('findByTrait()', () => {
     it('finds multiple backends for physics', () => {
       const dialects = DialectRegistry.findByTrait('physics');
-      expect(dialects.length).toBeGreaterThanOrEqual(5);
+      expect(dialects.length).toBeGreaterThanOrEqual(3);
       const names = dialects.map((d) => d.name);
       expect(names).toContain('unity');
       expect(names).toContain('unreal');
       expect(names).toContain('godot');
-      expect(names).toContain('r3f');
     });
 
     it('finds service backends for endpoint trait', () => {
@@ -123,7 +119,7 @@ describe('DialectRegistry', () => {
 
   describe('has()', () => {
     it('returns true for registered dialect', () => {
-      expect(DialectRegistry.has('r3f')).toBe(true);
+      expect(DialectRegistry.has('unity')).toBe(true);
     });
 
     it('returns false for unregistered dialect', () => {
@@ -134,9 +130,9 @@ describe('DialectRegistry', () => {
   describe('names()', () => {
     it('returns array of all dialect names', () => {
       const names = DialectRegistry.names();
-      expect(names.length).toBeGreaterThanOrEqual(24);
+      expect(names.length).toBeGreaterThanOrEqual(20);
       expect(names).toContain('unity');
-      expect(names).toContain('r3f');
+      expect(names).toContain('webgpu');
       expect(names).toContain('node-service');
     });
   });
@@ -144,7 +140,6 @@ describe('DialectRegistry', () => {
   describe('ANS paths', () => {
     it('generates correct ANS paths', () => {
       expect(DialectRegistry.get('unity')!.ansPath).toBe('/compile/gamedev/unity');
-      expect(DialectRegistry.get('r3f')!.ansPath).toBe('/compile/web3d/r3f');
       expect(DialectRegistry.get('node-service')!.ansPath).toBe('/compile/service/node-service');
       expect(DialectRegistry.get('urdf')!.ansPath).toBe('/compile/robotics/urdf');
     });
@@ -154,11 +149,6 @@ describe('DialectRegistry', () => {
     it('unity outputs .cs files', () => {
       const info = DialectRegistry.get('unity');
       expect(info!.outputExtensions).toContain('.cs');
-    });
-
-    it('r3f outputs .tsx files', () => {
-      const info = DialectRegistry.get('r3f');
-      expect(info!.outputExtensions).toContain('.tsx');
     });
 
     it('node-service outputs .ts files', () => {

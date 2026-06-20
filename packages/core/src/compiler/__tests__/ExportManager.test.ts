@@ -164,16 +164,7 @@ vi.mock('../WebGPUCompiler', () => ({
     return { compile: vi.fn().mockResolvedValue('<compiled output>') };
   }),
 }));
-vi.mock('../R3FCompiler', () => ({
-  R3FCompiler: vi.fn().mockImplementation(function () {
-    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
-  }),
-}));
-vi.mock('../BabylonCompiler', () => ({
-  BabylonCompiler: vi.fn().mockImplementation(function () {
-    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
-  }),
-}));
+// R3FCompiler, BabylonCompiler — retired 2026-06-17 (apex-poison)
 vi.mock('../OpenXRCompiler', () => ({
   OpenXRCompiler: vi.fn().mockImplementation(function () {
     return { compile: vi.fn().mockResolvedValue('<compiled output>') };
@@ -214,26 +205,7 @@ vi.mock('../DTDLCompiler', () => ({
     return { compile: vi.fn().mockResolvedValue('<compiled output>') };
   }),
 }));
-vi.mock('../PlayCanvasCompiler', () => ({
-  PlayCanvasCompiler: vi.fn().mockImplementation(function () {
-    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
-  }),
-}));
-vi.mock('../VRRCompiler', () => ({
-  VRRCompiler: vi.fn().mockImplementation(function () {
-    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
-  }),
-}));
-vi.mock('../ARCompiler', () => ({
-  ARCompiler: vi.fn().mockImplementation(function () {
-    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
-  }),
-}));
-vi.mock('../MultiLayerCompiler', () => ({
-  MultiLayerCompiler: vi.fn().mockImplementation(function () {
-    return { compile: vi.fn().mockResolvedValue('<compiled output>') };
-  }),
-}));
+// PlayCanvasCompiler, VRRCompiler, ARCompiler, MultiLayerCompiler — retired 2026-06-17 (apex-poison)
 vi.mock('../IncrementalCompiler', () => ({
   IncrementalCompiler: vi.fn().mockImplementation(function () {
     return { compile: vi.fn().mockResolvedValue('<compiled output>') };
@@ -430,9 +402,8 @@ describe('ExportManager', () => {
     it('should include web targets', () => {
       const targets = manager.getSupportedTargets();
       expect(targets).toContain('webgpu');
-      expect(targets).toContain('r3f');
-      expect(targets).toContain('babylon');
       expect(targets).toContain('wasm');
+      // r3f, babylon — retired 2026-06-17 (apex-poison)
     });
 
     it('should include XR/mobile targets', () => {
@@ -443,12 +414,12 @@ describe('ExportManager', () => {
       expect(targets).toContain('android');
       expect(targets).toContain('android-xr');
       expect(targets).toContain('visionos');
-      expect(targets).toContain('ar');
+      // ar — retired 2026-06-17 (apex-poison)
     });
 
     it('should include advanced compilation targets', () => {
       const targets = manager.getSupportedTargets();
-      expect(targets).toContain('multi-layer');
+      // multi-layer — retired 2026-06-17 (depended on apex-poison compilers)
       expect(targets).toContain('incremental');
       expect(targets).toContain('state');
       expect(targets).toContain('trait-composition');
