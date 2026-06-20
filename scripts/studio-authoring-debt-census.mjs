@@ -1,0 +1,266 @@
+#!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const DEFAULT_STUDIO_ROOT = 'packages/studio';
+const DEFAULT_PAPER_PATH = 'research/2026-06-14_paper-native-frontend-aaa-compile.md';
+const START_MARKER = '<!-- authoring-debt-census:start -->';
+const END_MARKER = '<!-- authoring-debt-census:end -->';
+
+function toPosix(filePath) {
+  return filePath.replace(/\\/g, '/');
+}
+
+function percent(numerator, denominator) {
+  if (denominator === 0) return '0.0%';
+  return `${((numerator / denominator) * 100).toFixed(1)}%`;
+}
+
+function renderMarkdownTable(headers, rows, alignments) {
+  const widths = headers.map((header, index) =>
+    Math.max(
+      header.length,
+      ...rows.map((row) => row[index].length),
+      alignments[index] === 'right' ? 4 : 3
+    )
+  );
+
+  const renderCell = (value, index) =>
+    alignments[index] === 'right' ? value.padStart(widths[index]) : value.padEnd(widths[index]);
+  const separatorCell = (index) => {
+    if (alignments[index] === 'right') {
+      return `${'-'.repeat(Math.max(3, widths[index] - 1))}:`;
+    }
+    return '-'.repeat(widths[index]);
+  };
+
+  return [
+    `| ${headers.map(renderCell).join(' | ')} |`,
+    `| ${headers.map((_, index) => separatorCell(index)).join(' | ')} |`,
+    ...rows.map((row) => `| ${row.map(renderCell).join(' | ')} |`),
+  ].join('\n');
+}
+
+function isGeneratedTsx(content) {
+  return content.slice(0, 1024).includes('@generated');
+}
+
+export function isMetadataShellHoloContent(content) {
+  const hasPendingSlot = /@slot\b.*(?:mount\s+pending|pending)/i.test(content);
+  if (!hasPendingSlot) return false;
+
+  const meaningfulLines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return meaningfulLines.every((line) => {
+    if (line.startsWith('@view(')) return true;
+    if (/^composition\s+["'][^"']+["']\s*\{\s*$/.test(line)) return true;
+    if (line === '}') return true;
+    if (line.startsWith('//') && /@slot\b.*(?:mount\s+pending|pending)/i.test(line)) {
+      return true;
+    }
+    return false;
+  });
+}
+
+export function studioSubtree(repoRelativePath, studioRoot = DEFAULT_STUDIO_ROOT) {
+  const rel = toPosix(path.posix.relative(studioRoot, toPosix(repoRelativePath)));
+  const parts = rel.split('/').filter(Boolean);
+  if (parts.length === 0) return '.';
+  if (parts.length === 1) return '.';
+  if (parts[0] === 'src' && parts.length > 1) return `src/${parts[1]}`;
+  return parts[0];
+}
+
+function emptyRow(label) {
+  return {
+    label,
+    authoredTsx: 0,
+    generatedTsx: 0,
+    holo: 0,
+    metadataShellHolo: 0,
+  };
+}
+
+export function summarizeStudioFiles(files, readText, studioRoot = DEFAULT_STUDIO_ROOT) {
+  const bySubtree = new Map();
+  const totals = emptyRow('Total');
+
+  for (const filePath of files.map(toPosix)) {
+    if (!filePath.startsWith(`${studioRoot}/`)) continue;
+    if (!filePath.endsWith('.tsx') && !filePath.endsWith('.holo')) continue;
+
+    const subtree = studioSubtree(filePath, studioRoot);
+    const row = bySubtree.get(subtree) ?? emptyRow(subtree);
+    bySubtree.set(subtree, row);
+
+    if (filePath.endsWith('.tsx')) {
+      const content = readText(filePath);
+      if (isGeneratedTsx(content)) {
+        row.generatedTsx += 1;
+        totals.generatedTsx += 1;
+      } else {
+        row.authoredTsx += 1;
+        totals.authoredTsx += 1;
+      }
+      continue;
+    }
+
+    row.holo += 1;
+    totals.holo += 1;
+    if (isMetadataShellHoloContent(readText(filePath))) {
+      row.metadataShellHolo += 1;
+      totals.metadataShellHolo += 1;
+    }
+  }
+
+  const rows = [...bySubtree.values()]
+    .filter((row) => row.authoredTsx + row.generatedTsx + row.holo > 0)
+    .sort(
+      (a, b) => b.authoredTsx + b.generatedTsx + b.holo - (a.authoredTsx + a.generatedTsx + a.holo)
+    );
+
+  return { rows, totals };
+}
+
+export function formatMarkdownTable(summary) {
+  const total = summary.totals;
+  const rows = [
+    ...summary.rows.map((row) => [
+      `\`${row.label}\``,
+      String(row.authoredTsx),
+      String(row.generatedTsx),
+      String(row.holo),
+      String(row.metadataShellHolo),
+      percent(row.metadataShellHolo, row.holo),
+    ]),
+    [
+      '**Total**',
+      `**${total.authoredTsx}**`,
+      `**${total.generatedTsx}**`,
+      `**${total.holo}**`,
+      `**${total.metadataShellHolo}**`,
+      `**${percent(total.metadataShellHolo, total.holo)}**`,
+    ],
+  ];
+  const table = renderMarkdownTable(
+    [
+      'Studio subtree',
+      'Authored .tsx',
+      'Generated .tsx',
+      '.holo',
+      'Metadata-shell .holo',
+      'Shell ratio',
+    ],
+    rows,
+    ['left', 'right', 'right', 'right', 'right', 'right']
+  );
+
+  const lines = [START_MARKER, '', table];
+  lines.push('');
+  lines.push(
+    '_Generated by `node scripts/studio-authoring-debt-census.mjs --write` from tracked `packages/studio` source files._'
+  );
+  lines.push('');
+  lines.push(END_MARKER);
+  return lines.join('\n');
+}
+
+export function replaceCensusBlock(existingMarkdown, censusMarkdown) {
+  const start = existingMarkdown.indexOf(START_MARKER);
+  const end = existingMarkdown.indexOf(END_MARKER);
+  if (start !== -1 && end !== -1 && end > start) {
+    return `${existingMarkdown.slice(0, start)}${censusMarkdown}${existingMarkdown.slice(end + END_MARKER.length)}`;
+  }
+
+  const section = `\n\n## 1. Authoring-Debt Baseline\n\n${censusMarkdown}\n`;
+  if (existingMarkdown.trim().length === 0) {
+    return `# Native Frontend AAA Compile Paper\n${section}`;
+  }
+  return `${existingMarkdown.trimEnd()}${section}`;
+}
+
+function gitLsFiles(repoRoot, studioRoot) {
+  const stdout = execFileSync('git', ['ls-files', studioRoot], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  });
+  return stdout.split(/\r?\n/).filter(Boolean).map(toPosix);
+}
+
+function parseArgs(argv) {
+  const opts = {
+    json: false,
+    write: false,
+    paperPath: DEFAULT_PAPER_PATH,
+    repoRoot: process.cwd(),
+    studioRoot: DEFAULT_STUDIO_ROOT,
+  };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === '--json') opts.json = true;
+    else if (arg === '--write') opts.write = true;
+    else if (arg === '--paper') {
+      opts.paperPath = argv[i + 1] ?? opts.paperPath;
+      i += 1;
+    } else if (arg === '--studio-root') {
+      opts.studioRoot = toPosix(argv[i + 1] ?? opts.studioRoot);
+      i += 1;
+    } else if (arg === '--repo-root') {
+      opts.repoRoot = argv[i + 1] ?? opts.repoRoot;
+      i += 1;
+    } else if (arg === '--help' || arg === '-h') {
+      console.log(
+        `Usage: node scripts/studio-authoring-debt-census.mjs [--json] [--write] [--paper path]`
+      );
+      process.exit(0);
+    } else {
+      throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+
+  return opts;
+}
+
+export function runCensus(opts) {
+  const repoRoot = path.resolve(opts.repoRoot);
+  const files = gitLsFiles(repoRoot, opts.studioRoot);
+  const readText = (repoRelativePath) => {
+    const absPath = path.join(repoRoot, ...toPosix(repoRelativePath).split('/'));
+    return readFileSync(absPath, 'utf8');
+  };
+  const summary = summarizeStudioFiles(files, readText, opts.studioRoot);
+  const markdown = formatMarkdownTable(summary);
+
+  if (opts.write) {
+    const paperAbsPath = path.join(repoRoot, ...toPosix(opts.paperPath).split('/'));
+    const current = existsSync(paperAbsPath) ? readFileSync(paperAbsPath, 'utf8') : '';
+    writeFileSync(paperAbsPath, replaceCensusBlock(current, markdown), 'utf8');
+  }
+
+  return { summary, markdown };
+}
+
+const isCli = process.argv[1]
+  ? import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+  : false;
+
+if (isCli) {
+  try {
+    const opts = parseArgs(process.argv.slice(2));
+    const result = runCensus(opts);
+    if (opts.json) {
+      console.log(JSON.stringify(result.summary, null, 2));
+    } else {
+      console.log(result.markdown);
+    }
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+}
