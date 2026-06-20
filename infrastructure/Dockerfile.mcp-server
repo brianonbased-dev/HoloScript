@@ -53,6 +53,8 @@ COPY packages/mcp-server/ packages/mcp-server/
 COPY packages/platform/ packages/platform/
 COPY packages/marketplace-api/ packages/marketplace-api/
 COPY packages/mesh/ packages/mesh/
+COPY packages/holo-vm/ packages/holo-vm/
+COPY packages/security-sandbox/ packages/security-sandbox/
 
 
 # Build in dependency order
@@ -71,6 +73,11 @@ RUN cd packages/llm-provider && pnpm exec tsup --no-dts
 RUN cd packages/secrets-broker && pnpm exec tsup --no-dts
 # platform/mesh/engine/framework are inlined into core's Docker bundle — no separate build needed
 RUN cd packages/absorb-service && pnpm exec tsup --no-dts
+# security-sandbox + its holo-vm dep: the solve_logic MCP tool dynamically imports
+# @holoscript/security-sandbox at runtime, so both dists must exist in the deployed image
+# (else "Cannot find package .../security-sandbox/dist/index.js"). holo-vm only needs core.
+RUN cd packages/holo-vm && pnpm exec tsup --no-dts
+RUN cd packages/security-sandbox && pnpm exec tsup --no-dts
 RUN cd packages/mcp-server && pnpm exec tsup
 
 
@@ -135,6 +142,8 @@ COPY --from=builder /app/packages/secrets-broker/dist packages/secrets-broker/di
 COPY --from=builder /app/packages/platform/dist packages/platform/dist
 COPY --from=builder /app/packages/mesh/dist packages/mesh/dist
 COPY --from=builder /app/packages/absorb-service/dist packages/absorb-service/dist
+COPY --from=builder /app/packages/holo-vm/dist packages/holo-vm/dist
+COPY --from=builder /app/packages/security-sandbox/dist packages/security-sandbox/dist
 COPY --from=builder /app/packages/mcp-server/dist packages/mcp-server/dist
 COPY packages/mcp-server/migrations/ packages/mcp-server/migrations/
 COPY packages/mcp-server/scripts/docker-entrypoint.sh packages/mcp-server/scripts/docker-entrypoint.sh
