@@ -160,6 +160,23 @@ export interface ContractedSandboxData {
 }
 
 /**
+ * Result of executeVerifiedLogic — a computed value plus a verifiable CAEL receipt.
+ * `verified` is DERIVED from the hash chain (verify.valid), never asserted (F.126).
+ */
+export interface VerifiedLogicData {
+  /** The .hs logic function's return value (the computed result). */
+  result: unknown;
+  /** DERIVED: true iff the CAEL hash chain over input -> result verifies intact. */
+  verified: boolean;
+  cael: {
+    traceId: string;
+    traceHash: string;
+    traceJSONL: string;
+    verify: { valid: boolean; brokenAt?: number; reason?: string };
+  };
+}
+
+/**
  * Security audit log entry
  */
 export interface SecurityAuditLog {
@@ -785,6 +802,138 @@ export class HoloScriptSandbox {
         },
       };
     }
+  }
+
+  /**
+   * Execute a .hs LOGIC function (pure business logic) in the isolated VM and emit a
+   * verifiable CAEL receipt — the native "run logic + PROVE the result" surface.
+   *
+   * Unlike executeHoloScript (which validates .holo compositions via parseHoloStrict),
+   * this validates .hs logic with the HoloScript(Plus) parser, injects the .hs runtime
+   * math builtins (abs/max/min) into the isolate, calls `functionName(...args)`, and
+   * records a hash-chained CAEL trace (input -> result). The returned `verified` is
+   * DERIVED from verifyLocalHashChain over that trace — never asserted (F.126). Tamper
+   * with the code, the args, or the recorded result and the chain breaks (verified=false).
+   *
+   * @param code         .hs logic source (one or more top-level `function` declarations)
+   * @param functionName the function to invoke
+   * @param args         positional arguments (spread into the call), e.g. [a, b]
+   */
+  public async executeVerifiedLogic(
+    code: string,
+    functionName: string,
+    args: unknown[],
+    options: { source?: 'ai-generated' | 'user' | 'trusted'; timeout?: number } = {}
+  ): Promise<SandboxResult<VerifiedLogicData>> {
+    const startTime = Date.now();
+    const source = options.source ?? 'trusted';
+    const codeHash = this.hashCode(code);
+
+    // 1. Capability check (security) — same blocklist + proto-escape scan as the .holo path.
+    if (!this.ablation.disableCapabilityCheck) {
+      const structuralError = this.preValidateStructure(code);
+      if (structuralError) {
+        return this.verifiedLogicFailure('validation', structuralError, source, startTime, codeHash);
+      }
+      for (const blocked of HoloScriptSandbox.GLOBALS_BLOCKLIST) {
+        if (new RegExp(`\\b${blocked}\\b`).test(code)) {
+          return this.verifiedLogicFailure(
+            'validation',
+            `${blocked} is blocked in the HoloScript security sandbox (SEC-01)`,
+            source,
+            startTime,
+            codeHash
+          );
+        }
+      }
+    }
+
+    // 2. Parse-validate the .hs logic with the HoloScript(Plus) parser (handles .hs and
+    //    .hsplus) — NOT parseHoloStrict, which is the .holo composition parser.
+    const parsed = this.parser.parse(code);
+    if (!parsed.success || (parsed.errors?.length ?? 0) > 0) {
+      const msg = parsed.errors?.[0]?.message ?? 'invalid .hs logic';
+      return this.verifiedLogicFailure('validation', msg, source, startTime, codeHash);
+    }
+    this.log({ source, action: 'validate', success: true, codeHash });
+
+    // 3. Execute in an isolated node:vm context with the .hs math-builtin shim, recording
+    //    input -> result over a CAEL hash chain (reusing the .holo contract recorder).
+    const recorder = new LocalCAELRecorder(
+      createDefaultSandboxSolver(),
+      { kind: 'hs-logic', functionName },
+      'hs-logic'
+    );
+    recorder.logInteraction('logic.input', { codeHash, functionName, args: canonicalize(args) });
+
+    try {
+      const sandboxContext: Record<string, unknown> = {
+        // The .hs logic layer's bare runtime builtins (abs/max/min) — the same shim the
+        // oracle twin-test injects. No host globals beyond these + any caller sandbox.
+        abs: Math.abs,
+        max: Math.max,
+        min: Math.min,
+        ...this.options.sandbox,
+      };
+      const context = nodeVm.createContext(sandboxContext);
+      const argsLiteral = JSON.stringify(args);
+      const script = new nodeVm.Script(`${code}\n;(${functionName})(...${argsLiteral});`);
+      const runOpts = this.ablation.disableResourceLimit
+        ? {}
+        : { timeout: options.timeout ?? this.options.timeout };
+      const result = script.runInContext(context, runOpts) as unknown;
+
+      recorder.logInteraction('logic.result', { result: canonicalize(result) });
+      recorder.finalize();
+      const traceJSONL = recorder.toJSONL();
+      const entries = parseLocalTrace(traceJSONL);
+      const last = entries[entries.length - 1];
+      const verify = verifyLocalHashChain(entries);
+      const traceId = `cael:${last?.runId ?? 'unknown'}:${last?.index ?? entries.length - 1}`;
+
+      this.log({ source, action: 'execute', success: true, codeHash });
+      return {
+        success: true,
+        data: {
+          result,
+          verified: verify.valid, // DERIVED from the hash chain, not asserted
+          cael: {
+            traceId,
+            traceHash: last?.hash ?? 'cael-nohash',
+            traceJSONL,
+            verify,
+          },
+        },
+        metadata: { executionTime: Date.now() - startTime, validated: true, source },
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log({
+        source,
+        action: 'reject',
+        success: false,
+        reason: `Execution failed: ${message}`,
+        codeHash,
+      });
+      return this.verifiedLogicFailure('runtime', message, source, startTime, codeHash);
+    }
+  }
+
+  private verifiedLogicFailure(
+    type: 'validation' | 'runtime' | 'timeout' | 'memory' | 'syntax',
+    message: string,
+    source: 'ai-generated' | 'user' | 'trusted',
+    startTime: number,
+    codeHash: string
+  ): SandboxResult<VerifiedLogicData> {
+    if (type === 'validation') {
+      this.log({ source, action: 'reject', success: false, reason: `Validation failed: ${message}`, codeHash });
+    }
+    return {
+      success: false,
+      error: { type, message },
+      metadata: { executionTime: Date.now() - startTime, validated: type !== 'validation', source },
+    };
   }
 
   /**
