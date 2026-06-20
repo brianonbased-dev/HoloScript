@@ -260,7 +260,8 @@ fi
 echo "  ├─ Quest emit golden-diff..."
 STAGED_QUEST=$(git diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
-    'scripts/holo-ci/check-quest-emit-matches-reference.mjs' 2>/dev/null || true)
+    'scripts/holo-ci/check-quest-emit-matches-reference.mjs' \
+    'scripts/holo-ci/check-quest-mr-emit-matches-reference.mjs' 2>/dev/null || true)
 if [ -n "$STAGED_QUEST" ]; then
     QUEST_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-quest-emit-matches-reference.mjs 2>&1)
     QUEST_STATUS=$?
@@ -272,6 +273,18 @@ if [ -n "$STAGED_QUEST" ]; then
         FAILED=1
     else
         echo -e "  ${GREEN}✓${NC} Quest emit matches reference (no drift)"
+    fi
+    # immersive_mr path: ScannerContent.kt must byte-match android-mr (edit scanner.holo, not Kotlin).
+    QUEST_MR_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-quest-mr-emit-matches-reference.mjs 2>&1)
+    QUEST_MR_STATUS=$?
+    if [ "$QUEST_MR_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Quest MR emit drifted from the reference app${NC}"
+        echo "$QUEST_MR_OUT"
+        echo "     Fix: edit apps/quest-universal-qr-scanner/scanner.holo (not the generated Kotlin)"
+        echo "          and re-run quest-emit-mr.mjs, or update the reference intentionally."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Quest MR emit matches reference (no drift)"
     fi
 fi
 

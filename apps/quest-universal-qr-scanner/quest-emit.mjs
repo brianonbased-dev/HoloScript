@@ -441,10 +441,12 @@ import android.util.Log
 /**
  * Opens the Quest forward passthrough RGB camera via Camera2 and looks for QR codes.
  *
- * Power profile: when idle it attempts a decode at most every [IDLE_INTERVAL_MS] on a
- * 1/[IDLE_DOWNSCALE]-resolution frame with try-harder OFF (cheap "sensing"). The instant a QR is
- * sensed it ramps up to a full-resolution, try-harder read for an accurate value, then reports it.
- * Scanning can be paused (e.g. while the user decides in a popup) via [pauseScanning].
+ * Power profile: the battery win is the THROTTLE — at most one decode attempt every
+ * [IDLE_INTERVAL_MS] (~5 fps, not the full camera frame rate). The idle "sense" pass runs at FULL
+ * resolution with try-harder OFF; quarter-res sensing was too coarse to detect a QR on a monitor at
+ * normal distance (~2 px per module → undecodable). The instant a QR is sensed it ramps up to a
+ * full-resolution, try-harder read for an accurate value, then reports it. Scanning can be paused
+ * (e.g. while the user decides in a popup) via [pauseScanning].
  *
  * Forward camera is selected via Meta's vendor characteristics
  * (com.meta.extra_metadata.camera_source==[cameraSource], position==[cameraPosition]).
@@ -465,7 +467,7 @@ class PassthroughCameraController(
         private const val KEY_CAMERA_SOURCE = "com.meta.extra_metadata.camera_source"
         private const val KEY_CAMERA_POSITION = "com.meta.extra_metadata.position"
         private const val IDLE_INTERVAL_MS = 200L
-        private const val IDLE_DOWNSCALE = 2
+        private const val IDLE_DOWNSCALE = 1
     }
 
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager

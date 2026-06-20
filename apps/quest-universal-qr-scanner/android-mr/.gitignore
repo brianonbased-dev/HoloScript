@@ -1,0 +1,14 @@
+# Secrets — NEVER commit (F.106)
+keystore.properties
+*.keystore
+*.jks
+local.properties
+
+# Build output
+/.gradle/
+/.kotlin/
+/build/
+/app/build/
+/captures/
+*.apk
+*.aab

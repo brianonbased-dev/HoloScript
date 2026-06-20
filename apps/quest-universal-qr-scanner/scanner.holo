@@ -1,65 +1,119 @@
 # Universal QR Scanner — Meta Quest 3 / 3S (Horizon Store)
-# HoloScript source of truth (.holo IR). The Android project under ./android is @generated
-# from THIS file by ./generate.mjs. Edit here, regenerate — never hand-edit generated Kotlin.
+# HoloScript source of truth (.holo IR). The native app under ./android is @generated from THIS
+# file by `compile_to_quest`. Edit HERE, recompile — never hand-edit generated Kotlin.
 #
-# Native-authoring doctrine (F.126): behavior is DATA the generator consumes, not imperative
-# control flow. The scan handler EMITS an action; it does not call a method directly.
+# Native-authoring doctrine (F.126): behavior is DATA the compiler consumes, not imperative control
+# flow. Going from a flat 2D panel to an immersive mixed-reality app is a SURFACE change in the spec
+# (surface: panel -> immersive_mr, runtime: meta_spatial_sdk) — not a Kotlin rewrite. The compiler
+# maps `surface` to its backend: `panel` -> Camera2 + Android views; `immersive_mr` -> Meta Spatial
+# SDK (passthrough + spatial panels). The scan/decode/open-url BEHAVIOR below is unchanged either way.
 
 app UniversalQrScanner {
   meta {
     display_name: "Universal QR Scanner"
     package: "net.holoscript.qrscanner"
     version: "1.0.0"
-    # Quest 3 / 3S only; Camera2 passthrough path is documented HzOS v76+.
     target_devices: ["quest3", "quest3s"]
     min_horizon_os: 76
-    surface: panel          # 2D windowed app — NOT an immersive VR scene.
-    capability_tags: ["passthrough-camera", "qr-decode", "browser-launch"]
+    surface: immersive_mr          # was: panel — full passthrough mixed reality, not a flat window
+    runtime: meta_spatial_sdk      # native MR backend the compiler emits to
+    capability_tags: ["passthrough-camera", "qr-decode", "spatial-ui", "mixed-reality"]
   }
 
-  # --- Capability: passthrough camera frame source -------------------------------
-  # Declares the hardware sensor as data. The generator maps this to a Camera2 session
-  # that selects the forward passthrough RGB camera via Meta's vendor characteristics.
+  # --- Mixed reality: render the user's real room (passthrough), not a VR skybox ----
+  passthrough {
+    enabled: true
+    reference_space: local_floor   # recenters to the floor; spatial UI is room-anchored
+  }
+
+  # --- Capability: passthrough camera frame source (UNCHANGED from the 2D build) -----
+  # The QR frames still come from the Camera2 passthrough sensor; only the UI surface changed.
   source passthrough_camera {
     trait: "@passthrough_camera"
-    permission: "horizonos.permission.HEADSET_CAMERA"   # narrowest scope, runtime-requested
-    select: { camera_source: 0, position: 0 }           # 0 = passthrough RGB, 0 = left/forward
+    permission: "horizonos.permission.HEADSET_CAMERA"
+    select: { camera_source: 0, position: 0 }   # forward passthrough RGB (verified id on-device)
     format: "YUV_420_888"
     resolution: { width: 1280, height: 960 }
-    plane: "luminance"                                  # decode from Y plane (no RGB convert)
+    plane: "luminance"
+    sense_downscale: 1             # full-res idle sense (quarter-res couldn't resolve a real QR)
   }
 
-  # --- Capability: QR decode ------------------------------------------------------
+  # --- Capability: QR decode (UNCHANGED) ------------------------------------------
   decoder qr {
     trait: "@qr_decode"
-    library: "zxing-core"        # com.google.zxing:core — GMS-free (Quest has no Play Services)
+    library: "zxing-core"          # GMS-free; Quest has no Play Services
     formats: ["QR_CODE"]
-    dedupe_window_ms: 2500       # ignore repeats of the same payload within the window
+    dedupe_window_ms: 2500
     consumes: passthrough_camera
   }
 
-  # --- Behavior: on a successful decode, EMIT an open-url action ------------------
-  # Handler-as-data: the body declares an emission, not a direct call. The generator
-  # wires `emit open_url` to the Quest Web Task intent (ovrweb://webtask?uri=...).
-  on_scan(result) {
-    when: result.is_url            # only act on http/https payloads
-    emit open_url { url: result.text }
-    else: emit show_text { text: result.text }   # non-URL payloads shown for copy
-  }
-
-  # --- Action sinks (data declarations the generator binds to platform intents) ---
-  action open_url {
-    kind: "quest_web_task"         # -> Intent(ACTION_VIEW, "ovrweb://webtask?uri=<encoded>")
-  }
-  action show_text {
-    kind: "panel_text"             # -> render decoded text in the 2D panel for manual copy
-  }
-
-  # --- Panel UI (declarative) -----------------------------------------------------
-  panel ui {
+  # --- Spatial UI: a panel placed in 3D space (was a flat 2D `panel ui`) -----------
+  # The compiler emits this as a Spatial SDK Compose panel entity placed via Transform.
+  spatial_panel scanner {
+    trait: "@spatial_panel"
+    place: { x: 0.0, y: 1.3, z: 1.5 }    # 1.5 m in FRONT, eye height. Spatial SDK is left-handed,
+                                          # +Z = forward — negative z renders the panel BEHIND the user.
+    size:  { width: 1.0, height: 0.66 }  # meters
+    billboard: soft                       # gently faces the user as they move
     title: "Universal QR Scanner"
-    status_line: true              # "Point at a QR code…" / "Opening <url>…"
-    last_result: true              # show the most recent decode
-    privacy_note: "Frames are decoded on-device. Nothing is stored or sent."
+    status_line: true                     # "Point at a QR code…" / "Opening <url>…"
+    reticle: true                         # aim target so you can SEE where the camera looks
   }
+
+  # --- Onboarding: a welcome + how-to-use screen shown BEFORE scanning starts ------
+  # The screen, the contexts, and the copy are DATA the compiler renders (F.126) — not
+  # hand-written UI. Teaches the user how to aim in each scenario (the real scan blocker).
+  onboarding welcome {
+    trait: "@onboarding"
+    title: "Universal QR Scanner"
+    tagline: "Read any QR code — right in mixed reality"
+    how_to_use [
+      { context: "At your computer", icon: "monitor",
+        text: "Look at a QR on your screen — the scanner reads it straight through passthrough." }
+      { context: "On the go", icon: "world",
+        text: "Out in the world? Just look at any QR — posters, products, signs, menus." }
+      { context: "From a phone", icon: "phone",
+        text: "Show a QR on another phone or screen and look at it." }
+    ]
+    aim_tip: "Center the QR in your view, about an arm's length away, and hold steady for a moment."
+    start_action: "Start scanning"
+    tutorial_action: "See how it works"
+  }
+
+  # --- Tutorial: a guided demo with a MOCK QR so the user sees the flow before real scanning ----
+  # The mock QR is generated on-device (ZXing) for `demo_url`; the result preview shows what a
+  # successful scan looks like. Data the compiler renders (F.126), not hand-built UI.
+  tutorial how_it_works {
+    trait: "@tutorial"
+    heading: "How it works"
+    mock_qr: { demo_url: "https://holoscript.studio", caption: "A QR code looks like this" }
+    steps [
+      "Look at any QR code in your space — no buttons, it reads automatically."
+      "When it reads, a card appears with the link."
+      "Tap Open to launch it in the Quest browser."
+    ]
+    result_preview: { label: "QR found", sample: "https://holoscript.studio", open_action: "Open in browser" }
+    start_action: "Start scanning"
+  }
+
+  # --- Ambient mode: after Start the panel HIDES so the user keeps working; it reappears only -----
+  # when a QR is read (the result card), then hides again on dismiss/open. (Founder: "invisible
+  # after download + popup".) Declared as panel behavior the compiler wires to VisibilityState.
+  ambient_scan {
+    hide_panel_on_start: true
+    reappear_on: decode
+    rehide_on: [dismiss, open]
+  }
+
+  # --- Behavior: on a successful decode, EMIT an open-url action (UNCHANGED) -------
+  # Handler-as-data (F.126): the body declares emissions, not direct calls.
+  on_scan(result) {
+    when: result.is_url
+    emit open_url { url: result.text }
+    else: emit show_text { text: result.text }
+  }
+
+  # --- Action sinks (data the compiler binds to platform intents) -----------------
+  action open_url  { kind: "quest_web_task" }   # -> ovrweb://webtask?uri=<encoded>
+  action show_text { kind: "spatial_card" }     # -> a 3D result card anchored in space
 }

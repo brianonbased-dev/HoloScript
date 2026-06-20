@@ -1,4 +1,4 @@
-package net.holoscript.qrscanner
+package com.meta.spatial.samples.startersample
 
 import android.content.Context
 import android.graphics.ImageFormat
@@ -84,6 +84,10 @@ class PassthroughCameraController(
             val ch = cameraManager.getCameraCharacteristics(id)
             val source = readVendorByte(ch, KEY_CAMERA_SOURCE)
             val position = readVendorByte(ch, KEY_CAMERA_POSITION)
+            val facing = ch.get(CameraCharacteristics.LENS_FACING)
+            val sizes = ch.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                ?.getOutputSizes(ImageFormat.YUV_420_888)?.joinToString(",") { "${it.width}x${it.height}" }
+            Log.i(TAG, "DEBUG camera id=$id source=$source position=$position facing=$facing yuvSizes=[$sizes]")
             if (source != null && source.toInt() == cameraSource) {
                 if (sourceMatch == null) sourceMatch = id
                 if (position != null && position.toInt() == cameraPosition) return id
@@ -161,6 +165,20 @@ class PassthroughCameraController(
             if (now - lastDecodeAttemptMs < IDLE_INTERVAL_MS) return
             lastDecodeAttemptMs = now
             attempts++
+
+            if (attempts == 1 || attempts == 30) {
+                try {
+                    val y = packYPlane(image)
+                    val f = java.io.File(
+                        context.getExternalFilesDir(null),
+                        "frame_${attempts}_${image.width}x${image.height}.gray"
+                    )
+                    f.writeBytes(y)
+                    Log.i(TAG, "DEBUG saved Y-plane attempt=$attempts ${image.width}x${image.height} -> ${f.absolutePath}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "DEBUG frame save failed", e)
+                }
+            }
 
             // Cheap idle sense: quarter-resolution, no try-harder.
             val (yS, wS, hS) = packYPlaneScaled(image, IDLE_DOWNSCALE)
