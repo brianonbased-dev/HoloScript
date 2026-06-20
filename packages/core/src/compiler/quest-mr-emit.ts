@@ -41,6 +41,7 @@ export interface QuestMrFeatures {
   panelQuadH: number;
   reticleFraction: number;
   viewfinderHeightDp: number;
+  followDistance: number;
   permission: string;
   cameraSource: number;
   cameraPosition: number;
@@ -77,6 +78,7 @@ function defaults(): QuestMrFeatures {
     panelQuadH: 1.2,
     reticleFraction: 0.62,
     viewfinderHeightDp: 360,
+    followDistance: 1.2,
     permission: 'horizonos.permission.HEADSET_CAMERA',
     cameraSource: 0,
     cameraPosition: 0,
@@ -155,6 +157,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.appName = vstr(c.title, f.appName);
           f.reticleFraction = vnum(c.reticle_fraction, f.reticleFraction);
           f.viewfinderHeightDp = vnum(vobj(c.viewfinder).height_dp, f.viewfinderHeightDp);
+          f.followDistance = vnum(c.follow_distance, f.followDistance);
           break;
         }
         case 'onboarding':
@@ -221,6 +224,7 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     RETICLE_FRACTION: f.reticleFraction,
     PANEL_QUAD_W: f.panelQuadW,
     PANEL_QUAD_H: f.panelQuadH,
+    FOLLOW_DISTANCE: f.followDistance,
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole

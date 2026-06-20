@@ -22,7 +22,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,7 +55,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -99,7 +97,6 @@ object ScannerState {
   var onOpen: ((String) -> Unit)? = null
   var onStart: (() -> Unit)? = null
   var mockQr by mutableStateOf<ImageBitmap?>(null)
-  var preview by mutableStateOf<ImageBitmap?>(null) // live camera viewfinder frame
 
   // Content comes from ScannerContent.kt — @generated from scanner.holo by the quest compiler.
   // Edit copy in scanner.holo (onboarding/tutorial), recompile — never here.
@@ -123,10 +120,10 @@ fun ScannerPanel() {
       Screen.WELCOME -> PanelSurface { WelcomeScreen() }
       Screen.TUTORIAL -> PanelSurface { TutorialScreen() }
       Screen.SCANNING ->
+          // Ambient: while scanning, render NOTHING (clear passthrough). A read pops the result card
+          // on the head-locked panel; dismissing it returns to the clear view.
           if (ScannerState.pendingUrl != null || ScannerState.lastResult != null) {
             PanelSurface { ResultCard() }
-          } else {
-            ScanningPill()
           }
     }
   }
@@ -268,53 +265,6 @@ private fun ResultCard() {
     Body(ScannerState.lastResult ?: "")
     Spacer(Modifier.size(20.dp))
     Button(onClick = { ScannerState.reset() }) { Text("Dismiss") }
-  }
-}
-
-/**
- * Live viewfinder — shows EXACTLY what the scan camera sees (the forward passthrough camera points
- * higher than the eyes, so blind aiming fails). A reticle marks the target; the user lines the QR up
- * inside it. A "Menu" pill returns to the welcome screen.
- */
-@Composable
-private fun ScanningPill() {
-  Column(
-      modifier = Modifier.fillMaxSize().padding(20.dp),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.Top,
-  ) {
-    Body("Point the camera at a QR — line it up in the box", secondary = true)
-    Spacer(Modifier.size(12.dp))
-    Box(
-        modifier =
-            Modifier.fillMaxWidth()
-                .height({{VIEWFINDER_HEIGHT_DP}}.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color.Black),
-        contentAlignment = Alignment.Center,
-    ) {
-      val frame = ScannerState.preview
-      if (frame != null) {
-        Image(
-            bitmap = frame,
-            contentDescription = "Live camera view",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
-      } else {
-        Body("Starting camera…", secondary = true)
-      }
-      // Aiming reticle over the live feed (spec: spatial_panel.reticle).
-      Box(
-          modifier =
-              Modifier.fillMaxSize({{RETICLE_FRACTION}}f)
-                  .border(width = 3.dp, color = ScanAccent, shape = RoundedCornerShape(16.dp))
-      )
-    }
-    Spacer(Modifier.size(8.dp))
-    Body(ScannerState.status, secondary = true)
-    Spacer(Modifier.size(14.dp))
-    Button(onClick = { ScannerState.screen = Screen.WELCOME }) { Text("Menu") }
   }
 }
 

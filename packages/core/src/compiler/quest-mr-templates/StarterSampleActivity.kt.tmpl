@@ -12,7 +12,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.ComposeView
 import com.meta.spatial.compose.ComposeFeature
 import com.meta.spatial.compose.ComposeViewPanelRegistration
@@ -36,6 +35,7 @@ class StarterSampleActivity : AppSystemActivity() {
   private val cameraPermission = "horizonos.permission.HEADSET_CAMERA"
   private val tag = "QrScanner"
   private var controller: PassthroughCameraController? = null
+  private var panelEntity: Entity? = null
   private var sceneReady = false
 
   override fun registerFeatures(): List<SpatialFeature> =
@@ -60,7 +60,7 @@ class StarterSampleActivity : AppSystemActivity() {
 
     // Panel placement comes from scanner.holo's spatial_panel.place via @generated ScannerContent.
     // (Spatial SDK is left-handed, +Z = forward — negative z renders the panel behind the user.)
-    Entity.create(
+    panelEntity = Entity.create(
         listOf(
             Panel(R.id.panel),
             Transform(Pose(Vector3(ScannerContent.panelX, ScannerContent.panelY, ScannerContent.panelZ))),
@@ -69,6 +69,15 @@ class StarterSampleActivity : AppSystemActivity() {
 
     sceneReady = true
     // Camera starts when the user taps "Start scanning" on the welcome screen (ScannerState.onStart).
+  }
+
+  // Head-locked HUD: each frame, place the panel FOLLOW_DISTANCE m in front of the head, facing the
+  // user (Spatial SDK is left-handed, +Z = forward). The panel moves with your gaze — never stationary.
+  override fun onSceneTick() {
+    super.onSceneTick()
+    val p = panelEntity ?: return
+    if (!sceneReady) return
+    p.setComponents(Transform(scene.getViewerPose().times(Pose(Vector3(0f, 0f, FOLLOW_DISTANCE)))))
   }
 
   private fun maybeStartScanner() {
@@ -83,7 +92,6 @@ class StarterSampleActivity : AppSystemActivity() {
                 context = this,
                 onDecoded = { text -> runOnUiThread { onDecoded(text) } },
                 onError = { msg -> runOnUiThread { ScannerState.status = msg } },
-                onPreview = { bmp -> runOnUiThread { ScannerState.preview = bmp.asImageBitmap() } },
             )
             .also { it.start() }
   }
@@ -164,5 +172,6 @@ class StarterSampleActivity : AppSystemActivity() {
 
   companion object {
     private const val REQUEST_CAMERA = 101
+    private const val FOLLOW_DISTANCE = {{FOLLOW_DISTANCE}}f
   }
 }

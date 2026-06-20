@@ -26,27 +26,19 @@ export interface SpatialPanelSize {
   height: number;
 }
 
-export interface SpatialPanelViewfinder {
-  height_dp: number;
-}
-
 export interface SpatialPanelConfig {
-  /** Panel placement in meters (left-handed, +Z forward — positive z is in front of the user). */
+  /** Initial placement in meters (left-handed, +Z forward); head-lock overrides it at runtime. */
   place: SpatialPanelPlace;
   /** Panel quad size in meters. */
   size: SpatialPanelSize;
-  /** Billboarding behavior ('soft' gently faces the user). */
-  billboard: string;
   /** Panel title. */
   title: string;
-  /** Show a status line. */
-  status_line: boolean;
-  /** Show an aiming reticle over the live viewfinder. */
-  reticle: boolean;
-  /** Reticle box size as a fraction of the viewfinder. */
-  reticle_fraction: number;
-  /** Live camera viewfinder shown on the panel. */
-  viewfinder: SpatialPanelViewfinder;
+  /** HUD follows the head pose (not world-fixed) — moves with the user's gaze. */
+  follow_head: boolean;
+  /** Distance in meters in front of the head when head-locked. */
+  follow_distance: number;
+  /** Ambient: nothing is shown while scanning; a result card appears only on a successful read. */
+  ambient: boolean;
 }
 
 // =============================================================================
@@ -59,12 +51,10 @@ export const spatialPanelHandler: TraitHandler<SpatialPanelConfig> = {
   defaultConfig: {
     place: { x: 0.0, y: 1.3, z: 1.5 },
     size: { width: 1.2, height: 1.2 },
-    billboard: 'soft',
     title: 'Universal QR Scanner',
-    status_line: true,
-    reticle: true,
-    reticle_fraction: 0.62,
-    viewfinder: { height_dp: 360 },
+    follow_head: true,
+    follow_distance: 1.2,
+    ambient: true,
   },
 
   onAttach(node, _config, context) {
