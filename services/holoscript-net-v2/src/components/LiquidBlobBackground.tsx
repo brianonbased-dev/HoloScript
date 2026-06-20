@@ -1,28 +1,57 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import React from 'react';
 
-// Pink "liquid blob" page background.
+const R3FLiquidBlobBackground = dynamic(() => import('./R3FLiquidBlobBackground'), {
+  ssr: false,
+  loading: () => null,
+});
+
+// Pink "liquid blob" page background with a client-only R3F liquid layer.
 //
-// This is the @slot island mounted by the .holo composition (a 3D/animated
-// background can't be authored in 2D Native traits, so it's a React island —
-// exactly what @slot is for). It's a pure-CSS animated glow: several large,
-// heavily-blurred magenta/fuchsia radial blobs that drift and breathe, over the
-// near-black base. No WebGL — so it renders reliably on every device/browser,
-// including SSR/static prerender, with no canvas-sizing or GPU dependency.
-//
-// A richer R3F MeshDistortMaterial "liquid" version is tracked as a Gate-2
-// enhancement (the @react-three/fiber Canvas does not render in this fixed,
-// statically-prerendered Next 16 context — its scene never commits).
+// This is the @slot island mounted by the .holo composition. The CSS glow stays
+// as the no-WebGL/reduced-motion fallback while the R3F layer supplies the richer
+// MeshDistortMaterial liquid mesh when the browser can mount WebGL.
 export function LiquidBlobBackground() {
+  const [webglReady, setWebglReady] = React.useState(false);
+
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      <div className="lb-blob lb-blob-a" />
-      <div className="lb-blob lb-blob-b" />
-      <div className="lb-blob lb-blob-c" />
+    <div
+      className="fixed inset-0 z-0 overflow-hidden pointer-events-none"
+      aria-hidden="true"
+      data-webgl-ready={webglReady ? 'true' : 'false'}
+    >
+      <div className="lb-fallback">
+        <div className="lb-blob lb-blob-a" />
+        <div className="lb-blob lb-blob-b" />
+        <div className="lb-blob lb-blob-c" />
+      </div>
+      <div className="r3f-liquid-blob">
+        <R3FLiquidBlobBackground onReady={() => setWebglReady(true)} />
+      </div>
       {/* Readability scrim so foreground text stays legible over the glow */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/30 via-[#050505]/45 to-[#050505]/70" />
       <style>{`
+        .lb-fallback,
+        .r3f-liquid-blob {
+          position: absolute;
+          inset: 0;
+        }
+        .lb-fallback {
+          opacity: 1;
+          transition: opacity 600ms ease;
+        }
+        .r3f-liquid-blob {
+          opacity: 0;
+          transition: opacity 900ms ease;
+        }
+        [data-webgl-ready="true"] .lb-fallback {
+          opacity: 0.42;
+        }
+        [data-webgl-ready="true"] .r3f-liquid-blob {
+          opacity: 0.95;
+        }
         .lb-blob {
           position: absolute;
           border-radius: 9999px;
@@ -64,6 +93,8 @@ export function LiquidBlobBackground() {
         }
         @media (prefers-reduced-motion: reduce) {
           .lb-blob { animation: none; }
+          .r3f-liquid-blob { display: none; }
+          [data-webgl-ready="true"] .lb-fallback { opacity: 1; }
         }
       `}</style>
     </div>
