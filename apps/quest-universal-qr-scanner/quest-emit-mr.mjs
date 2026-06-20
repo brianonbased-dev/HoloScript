@@ -14,10 +14,14 @@ import { readFileSync } from 'node:fs';
 
 const PKG = 'com.meta.spatial.samples.startersample';
 const GENERATED_REL = `app/src/main/java/${PKG.replace(/\./g, '/')}/ScannerContent.kt`;
+const STRINGS_REL = 'app/src/main/res/values/strings.xml';
 
 // path → status. 'emitted' = the emitter produces it and the gate enforces a byte match against the
 // reference; everything else in android-mr is the compiler-backend template (proven, not yet emitted).
-export const MR_GOLDEN_MANIFEST = [{ path: GENERATED_REL, status: 'emitted' }];
+export const MR_GOLDEN_MANIFEST = [
+  { path: GENERATED_REL, status: 'emitted' },
+  { path: STRINGS_REL, status: 'emitted' }, // app launcher label + panel strings, from the spec
+];
 
 /** Parse the immersive_mr scanner.holo into the structured content the emitter injects. */
 export function parseMrSpec(specText) {
@@ -123,8 +127,31 @@ ${stepLines}
 `;
 }
 
+// Android-resource string escaping: XML metachars + the literal apostrophe (which Android requires
+// escaped in an unquoted <string> value).
+const xesc = (s) =>
+  String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, "\\'");
+
+/** Emit strings.xml — the launcher label (app_name) comes from scanner.holo's meta.display_name. */
+export function emitStringsXml(cfg) {
+  return `<?xml version="1.0" encoding="utf-8" ?>
+<!-- @generated from scanner.holo by quest-emit-mr.mjs — edit display_name in the spec, not here. -->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="app_name">${xesc(cfg.appName)}</string>
+</resources>
+`;
+}
+
 /** Returns { relpath: content } for every currently-EMITTED MR file. */
 export function emitMrFiles(specPath) {
   const cfg = parseMrSpec(readFileSync(specPath, 'utf8'));
-  return { [GENERATED_REL]: emitScannerContentKt(cfg) };
+  return {
+    [GENERATED_REL]: emitScannerContentKt(cfg),
+    [STRINGS_REL]: emitStringsXml(cfg),
+  };
 }
