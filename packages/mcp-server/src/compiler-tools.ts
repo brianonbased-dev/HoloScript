@@ -730,6 +730,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'state' });
     case 'compile_to_3dgs':
       return handleCompileToTarget({ ...args, target: '3dgs' });
+    case 'compile_to_gaussian_train':
+      return handleCompileToTarget({ ...args, target: 'gaussian-train' });
     case 'compile_to_code_editor':
       return handleCompileToTarget({ ...args, target: 'code-editor' });
 
@@ -1518,6 +1520,34 @@ export const compilerTools: Tool[] = [
             shDegree: {
               type: 'number',
               description: 'Maximum spherical-harmonics degree 0-3 (default: 0)',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_gaussian_train',
+    description:
+      'Compile a @gaussian_train trait into a SOVEREIGN 3D Gaussian Splat training job. ' +
+      'The sovereign backend (default) runs the native differentiable trainer (GaussianTrainer3D + ' +
+      'GaussianTrainer2D + Adam, gradient-checked) on our own GPU/CPU path — $0, no third-party ' +
+      'runtime, no RENDER tokens (vs the legacy remote backend → api.rendernetwork.com). Emits a ' +
+      'JSON GaussianTrainJob (executor + dataset refs + hyperparameters). Invalid configs throw at ' +
+      'compile time. Distinct from compile_to_3dgs, which is a KHR_gaussian_splatting glTF BRIDGE.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code carrying a @gaussian_train trait' },
+        options: {
+          type: 'object',
+          properties: {
+            defaultBackend: {
+              type: 'string',
+              enum: ['sovereign', 'remote'],
+              description: 'Backend when the trait omits it (default: sovereign — the native trainer)',
             },
           },
         },

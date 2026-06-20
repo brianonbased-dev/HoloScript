@@ -54,6 +54,7 @@ import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
 import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
+import { GaussianTrainCompiler } from './GaussianTrainCompiler';
 import { CodeEditorCompiler } from './CodeEditorCompiler';
 import { SVGCompiler } from './SVGCompiler';
 import { HolobCompiler } from './HolobCompiler';
@@ -271,6 +272,8 @@ class CompilerFactory {
         return new USDZExportCompiler(options);
       case '3dgs':
         return new GaussianSplattingCompiler(options);
+      case 'gaussian-train':
+        return new GaussianTrainCompiler(options);
       case 'canvas2d-game':
         return new Canvas2DGameCompiler(options);
       case 'code-editor':

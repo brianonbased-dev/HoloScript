@@ -37,6 +37,7 @@ export const SOVEREIGN_TARGETS = [
   'wasm', // compiler-wasm Rust front-end → our own WASM artifact
   'svg', // SVGCompiler → sovereign SVG vector output (no third-party renderer needed)
   'holob', // HolobCompiler → HoloVM bytecode; executed by our own holo-vm runtime
+  'gaussian-train', // GaussianTrainCompiler → native 3DGS training job run by GaussianTrainer3D (our own autodiff path, $0)
 ] as const satisfies readonly ExportTarget[];
 
 /**
