@@ -16,16 +16,16 @@ import com.meta.spatial.toolkit.Transform
 /*
  * @generated from worlds/hololand.holo by the quest compiler (compile_to_quest, world scene).
  * DO NOT EDIT — change the world in worlds/hololand.holo and recompile.
- * The world is authored in HoloScript and compiled to Meta Spatial SDK entities (geometry → mesh,
- * color → Material, position/rotation/scale → Transform).
+ * Authored in HoloScript, compiled to Meta Spatial SDK entities (geometry -> mesh, color -> Material,
+ * position/rotation/scale -> Transform, behavior -> a per-frame WorldAnimated the WorldRenderer ticks).
  */
 object World_hololand {
   const val displayName = "Holo Land"
 
-  fun build(): MutableList<Entity> {
-    val e = mutableListOf<Entity>()
+  fun build(): WorldBuild {
+    val w = WorldBuild()
     // skybox surround (environment.backgroundColor) — occludes passthrough.
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://skybox"), hittable = MeshCollision.NoCollision),
@@ -35,29 +35,29 @@ object World_hololand {
         )
     )
     // object "Ground" (plane)
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-22.0f, -0.05f, -22.0f), Vector3(22.0f, 0.05f, 22.0f)),
-                Material().apply { baseColor = Color4(0.0549f, 0.1412f, 0.2588f, 1.0f); unlit = true },
+                Material().apply { baseColor = Color4(0.0549f, 0.1412f, 0.2588f, 1.0f) },
                 Transform(Pose(Vector3(0.0f, 0.0f, 0.0f))),
             )
         )
     )
     // object "Monument" (box)
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.65f, -1.7f, -0.65f), Vector3(0.65f, 1.7f, 0.65f)),
-                Material().apply { baseColor = Color4(0.1137f, 0.3059f, 0.8471f, 1.0f); unlit = true },
+                Material().apply { baseColor = Color4(0.1137f, 0.3059f, 0.8471f, 1.0f) },
                 Transform(Pose(Vector3(0.0f, 1.7f, 6.0f))),
             )
         )
     )
-    // object "MonumentOrb" (sphere)
-    e.add(
+    // object "MonumentOrb" (sphere, behavior: float)
+    val o2 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -66,53 +66,86 @@ object World_hololand {
                 Transform(Pose(Vector3(0.0f, 3.9f, 6.0f))),
             )
         )
+    w.entities.add(o2)
+    w.animated.add(
+        WorldAnimated(
+            o2,
+            "float",
+            Vector3(0.0f, 3.9f, 6.0f),
+            1.0f,
+            0.25f,
+            2.0f,
+            Vector3(0.0f, 3.9f, 6.0f),
+        )
+    )
+    // object "Guardian" (sphere, behavior: orbit)
+    val o3 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("mesh://sphere")),
+                Sphere(0.3f),
+                Material().apply { baseColor = Color4(0.6471f, 0.9529f, 0.9882f, 1.0f); unlit = true },
+                Transform(Pose(Vector3(4.0f, 2.6f, 6.0f))),
+            )
+        )
+    w.entities.add(o3)
+    w.animated.add(
+        WorldAnimated(
+            o3,
+            "orbit",
+            Vector3(4.0f, 2.6f, 6.0f),
+            0.5f,
+            0.2f,
+            4.5f,
+            Vector3(0.0f, 2.6f, 6.0f),
+        )
     )
     // object "PillarNW" (box)
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.1f, -0.35f), Vector3(0.35f, 1.1f, 0.35f)),
-                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f); unlit = true },
+                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f) },
                 Transform(Pose(Vector3(-5.0f, 1.1f, -5.0f))),
             )
         )
     )
     // object "PillarNE" (box)
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.1f, -0.35f), Vector3(0.35f, 1.1f, 0.35f)),
-                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f); unlit = true },
+                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f) },
                 Transform(Pose(Vector3(5.0f, 1.1f, -5.0f))),
             )
         )
     )
     // object "PillarW" (box)
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.4f, -0.35f), Vector3(0.35f, 1.4f, 0.35f)),
-                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f); unlit = true },
+                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f) },
                 Transform(Pose(Vector3(-6.5f, 1.4f, 1.5f))),
             )
         )
     )
     // object "PillarE" (box)
-    e.add(
+    w.entities.add(
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.4f, -0.35f), Vector3(0.35f, 1.4f, 0.35f)),
-                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f); unlit = true },
+                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f) },
                 Transform(Pose(Vector3(6.5f, 1.4f, 1.5f))),
             )
         )
     )
-    // object "OrbTeal" (sphere)
-    e.add(
+    // object "OrbTeal" (sphere, behavior: bob)
+    val o8 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -121,9 +154,20 @@ object World_hololand {
                 Transform(Pose(Vector3(-3.4f, 1.6f, 3.2f))),
             )
         )
+    w.entities.add(o8)
+    w.animated.add(
+        WorldAnimated(
+            o8,
+            "bob",
+            Vector3(-3.4f, 1.6f, 3.2f),
+            1.5f,
+            0.25f,
+            2.0f,
+            Vector3(-3.4f, 1.6f, 3.2f),
+        )
     )
-    // object "OrbPink" (sphere)
-    e.add(
+    // object "OrbPink" (sphere, behavior: float)
+    val o9 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -132,9 +176,20 @@ object World_hololand {
                 Transform(Pose(Vector3(3.4f, 1.9f, 3.2f))),
             )
         )
+    w.entities.add(o9)
+    w.animated.add(
+        WorldAnimated(
+            o9,
+            "float",
+            Vector3(3.4f, 1.9f, 3.2f),
+            1.2f,
+            0.3f,
+            2.0f,
+            Vector3(3.4f, 1.9f, 3.2f),
+        )
     )
-    // object "OrbAmber" (sphere)
-    e.add(
+    // object "OrbAmber" (sphere, behavior: bob)
+    val o10 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -143,7 +198,18 @@ object World_hololand {
                 Transform(Pose(Vector3(0.0f, 2.4f, -4.5f))),
             )
         )
+    w.entities.add(o10)
+    w.animated.add(
+        WorldAnimated(
+            o10,
+            "bob",
+            Vector3(0.0f, 2.4f, -4.5f),
+            1.8f,
+            0.2f,
+            2.0f,
+            Vector3(0.0f, 2.4f, -4.5f),
+        )
     )
-    return e
+    return w
   }
 }

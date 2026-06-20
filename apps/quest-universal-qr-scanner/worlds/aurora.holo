@@ -47,17 +47,41 @@ composition "AuroraFields" {
     position: [-3, 2.6, 2.5]
     scale: [0.8, 0.8, 0.8]
     color: "#22d3ee"
+    glow: true
+    motion: "float"
+    speed: 1.1
+    amplitude: 0.35
   }
   object "OrbMint" {
     geometry: "sphere"
     position: [3, 3.1, 2.5]
     scale: [0.7, 0.7, 0.7]
     color: "#5eead4"
+    glow: true
+    motion: "bob"
+    speed: 1.4
+    amplitude: 0.3
   }
   object "OrbRose" {
     geometry: "sphere"
     position: [0, 1.8, -4]
     scale: [1.0, 1.0, 1.0]
     color: "#fb7185"
+    glow: true
+    motion: "float"
+    speed: 0.9
+    amplitude: 0.4
+  }
+  // A guardian wisp orbiting the spires.
+  object "Wisp" {
+    geometry: "sphere"
+    position: [4, 3.4, 6]
+    scale: [0.5, 0.5, 0.5]
+    color: "#e9d5ff"
+    glow: true
+    motion: "orbit"
+    orbit_center: [0, 3.4, 6]
+    radius: 5.5
+    speed: 0.5
   }
 }

@@ -1,0 +1,61 @@
+// Shangri-La — a HoloScript world authored for frontier quality + simulation. Reached by scanning
+// holoscript://world/shangri-la in the Universal QR Scanner.
+//
+// Authored natively in HoloScript's scene vocabulary; compiled to Meta Spatial SDK by the `quest`
+// target. Beyond static geometry this world is ALIVE: objects carry behavior traits (orbit / bob /
+// float / spin / sway) that the WorldRenderer simulates each frame — a guardian orbits the temple,
+// lanterns bob, prayer wheels spin, spirit-orbs drift. Solid masses are lit (sun + ambient shading);
+// `glow: true` masses read as emissive. `model: "x.glb"` slots accept real AAA assets (drop a glb in
+// android-mr/app/src/main/assets/models/ and reference it) — primitives are the placeholder layer.
+
+composition "ShangriLa" {
+  environment {
+    backgroundColor: "#0c2a33"   // serene twilight-teal sky
+    ambient_light: 0.6
+  }
+
+  // ── Terraced ground ──────────────────────────────────────────────────────
+  object "GroundBase" { geometry: "plane" position: [0, 0, 0]    scale: [70, 70, 1] color: "#12313a" }
+  object "Terrace1"   { geometry: "box"   position: [0, 0.15, 10] scale: [26, 0.3, 26] color: "#163b40" }
+  object "Terrace2"   { geometry: "box"   position: [0, 0.4, 12]  scale: [16, 0.4, 16] color: "#1b454a" }
+
+  // ── Central temple (stacked, lit stone + gold) ──────────────────────────
+  object "TempleBase"  { geometry: "box" position: [0, 1.0, 13]  scale: [6.5, 1.2, 6.5] color: "#5b4a39" }
+  object "TempleBody"  { geometry: "box" position: [0, 2.8, 13]  scale: [4.4, 2.6, 4.4] color: "#7a6048" }
+  object "TempleRoof"  { geometry: "box" position: [0, 4.4, 13]  scale: [5.6, 0.6, 5.6] color: "#b5863f" }
+  object "TempleTier2" { geometry: "box" position: [0, 5.2, 13]  scale: [3.4, 0.5, 3.4] color: "#c2933f" }
+  object "TempleSpire" { geometry: "box" position: [0, 6.2, 13]  scale: [0.5, 1.6, 0.5] color: "#e7c25d" glow: true }
+  object "TempleOrb"   { geometry: "sphere" position: [0, 7.4, 13] scale: [1.0, 1.0, 1.0] color: "#ffe39a" glow: true motion: "float" speed: 1.1 amplitude: 0.25 }
+
+  // ── Gate pillars flanking the approach ──────────────────────────────────
+  object "GateL"     { geometry: "box" position: [-4.5, 1.6, 4] scale: [0.8, 3.2, 0.8] color: "#6b5640" }
+  object "GateR"     { geometry: "box" position: [4.5, 1.6, 4]  scale: [0.8, 3.2, 0.8] color: "#6b5640" }
+  object "GateLTop"  { geometry: "sphere" position: [-4.5, 3.5, 4] scale: [0.7, 0.7, 0.7] color: "#ffcf7a" glow: true }
+  object "GateRTop"  { geometry: "sphere" position: [4.5, 3.5, 4]  scale: [0.7, 0.7, 0.7] color: "#ffcf7a" glow: true }
+  object "PillarNW"  { geometry: "box" position: [-7, 1.8, 13] scale: [0.7, 3.6, 0.7] color: "#5f4c39" }
+  object "PillarNE"  { geometry: "box" position: [7, 1.8, 13]  scale: [0.7, 3.6, 0.7] color: "#5f4c39" }
+
+  // ── Orbiting guardian (character action) ────────────────────────────────
+  object "Guardian" { geometry: "sphere" position: [6, 3.2, 13] scale: [0.8, 0.8, 0.8] color: "#7fe7ff" glow: true motion: "orbit" orbit_center: [0, 3.2, 13] radius: 6.5 speed: 0.45 }
+
+  // ── Spinning prayer wheels along the path ───────────────────────────────
+  object "WheelL1" { geometry: "cylinder" position: [-3, 1.3, 7] scale: [0.9, 1.2, 0.9] color: "#a8732e" motion: "spin" speed: 55 }
+  object "WheelR1" { geometry: "cylinder" position: [3, 1.3, 7]  scale: [0.9, 1.2, 0.9] color: "#a8732e" motion: "spin" speed: 55 }
+  object "WheelL2" { geometry: "cylinder" position: [-3, 1.3, 10] scale: [0.9, 1.2, 0.9] color: "#b07c33" motion: "spin" speed: 48 }
+  object "WheelR2" { geometry: "cylinder" position: [3, 1.3, 10]  scale: [0.9, 1.2, 0.9] color: "#b07c33" motion: "spin" speed: 48 }
+
+  // ── Floating lanterns (bob + glow) ──────────────────────────────────────
+  object "LanternA" { geometry: "box" position: [-2.2, 2.6, 6] scale: [0.4, 0.5, 0.4] color: "#ff9d5c" glow: true motion: "bob" speed: 1.6 amplitude: 0.22 }
+  object "LanternB" { geometry: "box" position: [2.2, 3.0, 6.5] scale: [0.4, 0.5, 0.4] color: "#ffb06b" glow: true motion: "bob" speed: 1.3 amplitude: 0.28 }
+  object "LanternC" { geometry: "box" position: [-1.4, 3.4, 9] scale: [0.35, 0.45, 0.35] color: "#ffc27d" glow: true motion: "bob" speed: 1.9 amplitude: 0.2 }
+  object "LanternD" { geometry: "box" position: [1.6, 2.9, 9.5] scale: [0.35, 0.45, 0.35] color: "#ff9d5c" glow: true motion: "bob" speed: 1.5 amplitude: 0.26 }
+
+  // ── Drifting spirit orbs (float) ────────────────────────────────────────
+  object "SpiritA" { geometry: "sphere" position: [-5, 2.4, 9] scale: [0.45, 0.45, 0.45] color: "#9affd0" glow: true motion: "float" speed: 1.2 amplitude: 0.35 }
+  object "SpiritB" { geometry: "sphere" position: [5, 2.8, 10] scale: [0.4, 0.4, 0.4] color: "#7fe7ff" glow: true motion: "float" speed: 1.0 amplitude: 0.4 }
+  object "SpiritC" { geometry: "sphere" position: [0, 3.2, 4] scale: [0.5, 0.5, 0.5] color: "#c9b3ff" glow: true motion: "float" speed: 0.9 amplitude: 0.3 }
+
+  // ── Waterfall ribbons behind the temple (sway) ──────────────────────────
+  object "FallL" { geometry: "box" position: [-2.5, 4.5, 18] scale: [0.5, 6.0, 0.2] color: "#6fd0e8" glow: true motion: "sway" speed: 1.4 amplitude: 6 }
+  object "FallR" { geometry: "box" position: [2.5, 4.5, 18]  scale: [0.5, 6.0, 0.2] color: "#6fd0e8" glow: true motion: "sway" speed: 1.2 amplitude: 7 }
+}

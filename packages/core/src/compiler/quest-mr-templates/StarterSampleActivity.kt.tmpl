@@ -70,6 +70,16 @@ class StarterSampleActivity : AppSystemActivity() {
     super.onSceneReady()
     scene.setReferenceSpace(ReferenceSpace.LOCAL_FLOOR)
 
+    // Lighting for compiled worlds: a warm directional sun + soft ambient. Lit Materials shade with
+    // depth; unlit "glow" Materials read as emissive. No IBL cubemap asset needed. (Harmless during
+    // passthrough scanning — there is no 3D content then.)
+    scene.setLightingEnvironment(
+        Vector3(0.42f, 0.45f, 0.55f),
+        Vector3(2.6f, 2.45f, 2.1f),
+        -Vector3(1.0f, 2.6f, -1.4f),
+        0.0f,
+    )
+
     // Mixed reality: the user sees their real room (passthrough); the spatial panel floats in front.
     scene.enablePassthrough(true)
 
@@ -113,6 +123,9 @@ class StarterSampleActivity : AppSystemActivity() {
         }
     smoothPose = next
     p.setComponents(Transform(next))
+
+    // Simulate the world (spin / orbit / bob / float / sway) while immersed.
+    worldRenderer.tick()
   }
 
   private fun maybeStartScanner() {
