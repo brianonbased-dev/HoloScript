@@ -52,7 +52,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -402,54 +401,6 @@ private fun InWorldHud() {
   }
 }
 
-private val WorldPalette =
-    listOf(
-        Color(0xFF0EA5E9),
-        Color(0xFF8B5CF6),
-        Color(0xFF10B981),
-        Color(0xFFF59E0B),
-        Color(0xFFEF4444),
-        Color(0xFFEC4899),
-    )
-
-private fun worldColor(name: String): Color = WorldPalette[kotlin.math.abs(name.hashCode()) % WorldPalette.size]
-
-/** World backdrop panel (large, world-fixed) — a themed environment so immersion reads as "a place".
- *  Public: referenced cross-file by StarterSampleActivity.registerPanels (like ScannerPanel). */
-@Composable
-fun WorldBackdrop() {
-  val name = ScannerState.worldName ?: "World"
-  val accent = worldColor(name)
-  Box(
-      modifier =
-          Modifier.fillMaxSize()
-              .background(
-                  brush = Brush.verticalGradient(listOf(accent.copy(alpha = 0.6f), Color(0xFF05070D)))
-              ),
-      contentAlignment = Alignment.Center,
-  ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-      Text(text = "🌐", fontSize = 76.sp)
-      Spacer(Modifier.size(16.dp))
-      Text(
-          text = name,
-          fontSize = 44.sp,
-          fontWeight = FontWeight.Bold,
-          color = Color.White,
-          textAlign = TextAlign.Center,
-      )
-      Spacer(Modifier.size(8.dp))
-      Text(text = "HoloScript world", fontSize = 18.sp, color = Color.White.copy(alpha = 0.7f))
-      Spacer(Modifier.size(22.dp))
-      Text(
-          text = "Look at any QR to keep scanning — or hop to another world.",
-          fontSize = 15.sp,
-          color = Color.White.copy(alpha = 0.6f),
-          textAlign = TextAlign.Center,
-      )
-    }
-  }
-}
 
 @Composable
 private fun Heading(text: String) {

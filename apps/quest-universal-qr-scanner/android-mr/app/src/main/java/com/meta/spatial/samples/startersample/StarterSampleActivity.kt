@@ -36,7 +36,7 @@ class StarterSampleActivity : AppSystemActivity() {
   private val tag = "QrScanner"
   private var controller: PassthroughCameraController? = null
   private var panelEntity: Entity? = null
-  private var worldEntity: Entity? = null // themed backdrop while immersed in a world (null = passthrough scanning)
+  private val worldRenderer = WorldRenderer() // builds/tears down the themed 3D world while immersed
   private var smoothPose: Pose? = null // last head-locked panel pose, eased toward the head each tick
   private var sceneReady = false
 
@@ -165,27 +165,19 @@ class StarterSampleActivity : AppSystemActivity() {
   // scanning another world link hops worlds.
   private fun enterWorld(link: String) {
     Log.i(tag, "entering world: $link")
-    ScannerState.enterWorld(WorldPortal.worldName(link))
+    val name = WorldPortal.worldName(link)
+    ScannerState.enterWorld(name)
     if (sceneReady) {
+      worldRenderer.enter(name) // build the themed 3D world (skybox occludes passthrough)
       scene.enablePassthrough(false)
-      if (worldEntity == null) {
-        worldEntity =
-            Entity.create(
-                listOf(
-                    Panel(R.id.worldPanel),
-                    Transform(Pose(Vector3(0f, WORLD_BACKDROP_Y, WORLD_BACKDROP_Z))),
-                )
-            )
-      }
     }
     controller?.resumeScanning() // keep scanning inside the world
   }
 
-  // Leave the world: remove the backdrop and restore passthrough scanning.
+  // Leave the world: tear down the 3D world and restore passthrough scanning.
   private fun leaveWorld() {
     Log.i(tag, "leaving world")
-    worldEntity?.destroy()
-    worldEntity = null
+    worldRenderer.leave()
     if (sceneReady) scene.enablePassthrough(true)
     ScannerState.leaveWorld()
     controller?.resumeScanning()
@@ -237,7 +229,8 @@ class StarterSampleActivity : AppSystemActivity() {
 
   override fun registerPanels(): List<PanelRegistration> =
       listOf(
-          // Head-locked HUD panel (welcome / tutorial / result card / in-world pill).
+          // Head-locked HUD panel (welcome / tutorial / result card / in-world pill). The world itself
+          // is real 3D geometry built by WorldRenderer — not a panel.
           ComposeViewPanelRegistration(
               R.id.panel,
               composeViewCreator = { _, ctx ->
@@ -250,20 +243,6 @@ class StarterSampleActivity : AppSystemActivity() {
                     display = DpPerMeterDisplayOptions(),
                 )
               },
-          ),
-          // World backdrop — large, world-fixed; shown only while immersed in a world.
-          ComposeViewPanelRegistration(
-              R.id.worldPanel,
-              composeViewCreator = { _, ctx ->
-                ComposeView(ctx).apply { setContent { WorldBackdrop() } }
-              },
-              settingsCreator = {
-                UIPanelSettings(
-                    shape = QuadShapeOptions(width = WORLD_QUAD_W, height = WORLD_QUAD_H),
-                    style = PanelStyleOptions(themeResourceId = R.style.PanelAppThemeTransparent),
-                    display = DpPerMeterDisplayOptions(),
-                )
-              },
           )
       )
 
@@ -271,9 +250,5 @@ class StarterSampleActivity : AppSystemActivity() {
     private const val REQUEST_CAMERA = 101
     private const val FOLLOW_DISTANCE = 1.2f
     private const val HEAD_LOCK_SMOOTHING = 0.2f // 0..1 per tick; lower = smoother trail
-    private const val WORLD_QUAD_W = 3.6f // world backdrop quad, meters
-    private const val WORLD_QUAD_H = 2.2f
-    private const val WORLD_BACKDROP_Y = 1.3f // eye height, meters
-    private const val WORLD_BACKDROP_Z = 3.2f // in front of the start view (+Z forward)
   }
 }

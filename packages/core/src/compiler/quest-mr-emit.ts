@@ -222,6 +222,7 @@ const CONTROLLER_REL = `${SRC_DIR}/PassthroughCameraController.kt`;
 const PANEL_REL = `${SRC_DIR}/ScannerPanel.kt`;
 const ACTIVITY_REL = `${SRC_DIR}/StarterSampleActivity.kt`;
 const WORLDPORTAL_REL = `${SRC_DIR}/WorldPortal.kt`;
+const WORLDRENDERER_REL = `${SRC_DIR}/WorldRenderer.kt`;
 
 const kstr = (s: string): string =>
   '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$') + '"';
@@ -328,6 +329,8 @@ export const emitStarterSampleActivityKt = (f: QuestMrFeatures): string =>
   applyTokens('StarterSampleActivity.kt.tmpl', f);
 export const emitWorldPortalKt = (f: QuestMrFeatures): string =>
   applyTokens('WorldPortal.kt.tmpl', f);
+export const emitWorldRendererKt = (f: QuestMrFeatures): string =>
+  applyTokens('WorldRenderer.kt.tmpl', f);
 
 /** All emitted MR files, keyed by android-mr-relative path. */
 export function emitQuestMrFiles(composition?: HoloComposition): Record<string, string> {
@@ -340,5 +343,6 @@ export function emitQuestMrFiles(composition?: HoloComposition): Record<string, 
     [PANEL_REL]: emitScannerPanelKt(f),
     [ACTIVITY_REL]: emitStarterSampleActivityKt(f),
     [WORLDPORTAL_REL]: emitWorldPortalKt(f),
+    [WORLDRENDERER_REL]: emitWorldRendererKt(f),
   };
 }

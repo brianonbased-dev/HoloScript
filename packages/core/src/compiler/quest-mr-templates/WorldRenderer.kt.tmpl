@@ -1,0 +1,133 @@
+/*
+ * @generated from scanner.holo by the quest compiler (compile_to_quest, surface: immersive_mr).
+ * DO NOT EDIT — change the app in scanner.holo and recompile.
+ *
+ * Builds a simple themed 3D world from a world NAME and tears it down: a colored skybox surround, a
+ * ground slab, and a ring of landmark primitives (spheres + pillars). Everything is procedural —
+ * color theme, landmark count, sizes and placement are derived from the name's hash, so each world
+ * looks distinct with NO bundled assets. Meshes use the Spatial SDK built-in geometry
+ * (mesh://skybox, mesh://sphere, mesh://box) with unlit flat-color Materials (always visible, no IBL
+ * cubemap needed). A skybox entity occludes passthrough — that, plus enablePassthrough(false) in the
+ * activity, is what makes "entering a world" replace the real room.
+ */
+package {{PKG}}
+
+import android.net.Uri
+import com.meta.spatial.core.Color4
+import com.meta.spatial.core.Entity
+import com.meta.spatial.core.Pose
+import com.meta.spatial.core.Vector3
+import com.meta.spatial.toolkit.Box
+import com.meta.spatial.toolkit.Material
+import com.meta.spatial.toolkit.Mesh
+import com.meta.spatial.toolkit.MeshCollision
+import com.meta.spatial.toolkit.Sphere
+import com.meta.spatial.toolkit.Transform
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
+
+class WorldRenderer {
+  private val entities = mutableListOf<Entity>()
+
+  /** Build the themed world for [worldName]. Idempotent — clears any previous world first. */
+  fun enter(worldName: String) {
+    leave()
+    val seed = abs(worldName.hashCode())
+    val accent = PALETTE[seed % PALETTE.size]
+    val accent2 = PALETTE[(seed / 7 + 3) % PALETTE.size]
+
+    // Skybox surround (deep themed tint) — occludes passthrough so the real room disappears.
+    entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("mesh://skybox"), hittable = MeshCollision.NoCollision),
+                Material().apply {
+                  baseColor = accent.scaled(0.22f)
+                  unlit = true
+                },
+                Transform(Pose(Vector3(0f, 0f, 0f))),
+            )
+        )
+    )
+
+    // Ground slab.
+    entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("mesh://box")),
+                Box(Vector3(-25f, -0.1f, -25f), Vector3(25f, 0f, 25f)),
+                Material().apply {
+                  baseColor = accent.scaled(0.4f)
+                  unlit = true
+                },
+                Transform(Pose(Vector3(0f, 0f, 0f))),
+            )
+        )
+    )
+
+    // Landmark ring — alternating floating spheres and ground pillars, around the user.
+    val count = 6 + seed % 4
+    for (i in 0 until count) {
+      val ang = (i.toFloat() / count) * 6.2831855f + (seed % 360) * 0.0174533f
+      val radius = 3.5f + (i % 3) * 1.4f
+      val x = cos(ang) * radius
+      val z = sin(ang) * radius
+      val color = if (i % 2 == 0) accent else accent2
+      if (i % 2 == 0) {
+        val rad = 0.5f + ((seed shr (i % 12)) % 5) * 0.13f
+        entities.add(
+            Entity.create(
+                listOf(
+                    Mesh(Uri.parse("mesh://sphere")),
+                    Sphere(rad),
+                    Material().apply {
+                      baseColor = color
+                      unlit = true
+                    },
+                    Transform(Pose(Vector3(x, 1.0f + (i % 3) * 0.6f, z))),
+                )
+            )
+        )
+      } else {
+        val h = 1.6f + ((seed shr (i % 12)) % 6) * 0.45f
+        entities.add(
+            Entity.create(
+                listOf(
+                    Mesh(Uri.parse("mesh://box")),
+                    Box(Vector3(-0.4f, 0f, -0.4f), Vector3(0.4f, h, 0.4f)),
+                    Material().apply {
+                      baseColor = color.scaled(0.85f)
+                      unlit = true
+                    },
+                    Transform(Pose(Vector3(x, 0f, z))),
+                )
+            )
+        )
+      }
+    }
+  }
+
+  /** Remove all world entities (restores passthrough once the skybox is gone). */
+  fun leave() {
+    entities.forEach { it.destroy() }
+    entities.clear()
+  }
+
+  val isActive: Boolean
+    get() = entities.isNotEmpty()
+
+  companion object {
+    private val PALETTE =
+        listOf(
+            Color4(0.05f, 0.65f, 0.91f, 1f),
+            Color4(0.55f, 0.36f, 0.96f, 1f),
+            Color4(0.06f, 0.73f, 0.51f, 1f),
+            Color4(0.96f, 0.62f, 0.07f, 1f),
+            Color4(0.94f, 0.27f, 0.27f, 1f),
+            Color4(0.93f, 0.28f, 0.60f, 1f),
+        )
+  }
+}
+
+private fun Color4.scaled(f: Float): Color4 = Color4(red * f, green * f, blue * f, 1f)
