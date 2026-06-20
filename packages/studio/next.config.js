@@ -197,6 +197,14 @@ const nextConfig = {
   },
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx', 'holo'],
   serverExternalPackages: [
+    // loro-crdt is a wasm-bindgen package. Webpack resolves its `module` field to the
+    // `bundler/` target, which `import`s loro_wasm_bg.wasm; with asyncWebAssembly the wasm is
+    // emitted as a server chunk asset that goes MISSING during `next build` "collect page data"
+    // → `ENOENT .next/server/chunks/loro_wasm_bg.wasm` for /api/world-state/[entityId] and
+    // /api/world-drive (bricked every studio deploy, 2026-06-20). Externalizing makes Next require
+    // the CommonJS `nodejs/` target at runtime, which loads the wasm via fs.readFileSync(__dirname)
+    // from node_modules where it sits beside the JS (and outputFileTracing copies it standalone).
+    'loro-crdt',
     'tree-sitter',
     'tree-sitter-javascript',
     'tree-sitter-typescript',
