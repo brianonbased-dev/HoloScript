@@ -1,4 +1,4 @@
-package com.meta.spatial.samples.startersample
+package {{PKG}}
 
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
@@ -31,8 +31,8 @@ class QrDecoder {
     fun decode(yPlane: ByteArray, width: Int, height: Int): String? {
         decodeRegion(yPlane, width, height, 0, 0, width, height)?.let { return it }
         // Center-crop fallback for a small/centered code.
-        val cw = minOf(640, width)
-        val ch = minOf(480, height)
+        val cw = minOf({{CENTER_CROP_W}}, width)
+        val ch = minOf({{CENTER_CROP_H}}, height)
         val left = (width - cw) / 2
         val top = (height - ch) / 2
         return decodeRegion(yPlane, width, height, left, top, cw, ch)

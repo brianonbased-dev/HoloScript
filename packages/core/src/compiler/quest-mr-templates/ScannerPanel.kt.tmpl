@@ -10,7 +10,7 @@
  *  - SCANNING shows only a small "Scanning… / Menu" pill (the rest transparent) so the user keeps
  *    working; a real read pops a full RESULT card, then it returns to the pill.
  */
-package com.meta.spatial.samples.startersample
+package {{PKG}}
 
 import android.graphics.Bitmap
 import androidx.compose.animation.core.LinearEasing
@@ -78,7 +78,7 @@ data class HowTo(val context: String, val text: String)
 
 private val ScanAccent = Color(0xFF34D399)
 private val SuccessGreen = Color(0xFF22C55E)
-private const val QR_DP = 180
+private const val QR_DP = {{MOCK_QR_DP}}
 
 fun qrImageBitmap(text: String, sizePx: Int): ImageBitmap {
   val bits = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, sizePx, sizePx)
@@ -288,7 +288,7 @@ private fun ScanningPill() {
     Box(
         modifier =
             Modifier.fillMaxWidth()
-                .height(360.dp)
+                .height({{VIEWFINDER_HEIGHT_DP}}.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .background(Color.Black),
         contentAlignment = Alignment.Center,
@@ -307,7 +307,7 @@ private fun ScanningPill() {
       // Aiming reticle over the live feed (spec: spatial_panel.reticle).
       Box(
           modifier =
-              Modifier.fillMaxSize(0.62f)
+              Modifier.fillMaxSize({{RETICLE_FRACTION}}f)
                   .border(width = 3.dp, color = ScanAccent, shape = RoundedCornerShape(16.dp))
       )
     }

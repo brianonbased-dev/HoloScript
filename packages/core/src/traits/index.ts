@@ -1,5 +1,10 @@
 export * from './ABTestTrait';
 export * from './AccessibleTrait';
+export * from './PassthroughCameraTrait';
+export * from './QrDecodeTrait';
+export * from './SpatialPanelTrait';
+export * from './OnboardingTrait';
+export * from './TutorialTrait';
 export { advancedClothHandler } from './AdvancedClothTrait';
 export * from './AdvancedLightingTrait';
 export * from './AdvancedPBRTrait';

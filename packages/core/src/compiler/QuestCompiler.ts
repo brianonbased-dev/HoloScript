@@ -23,6 +23,7 @@
  */
 import { CompilerBase } from './CompilerBase';
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
+import { isImmersiveMr, emitQuestMrFiles } from './quest-mr-emit';
 
 export interface QuestCompilerOptions {
   packageName?: string;
@@ -78,6 +79,11 @@ export class QuestCompiler extends CompilerBase {
     outputPath?: string
   ): Record<string, string> {
     this.validateCompilerAccess(agentToken, outputPath);
+    // surface: immersive_mr → native Meta Spatial SDK app (trait-dispatch over the parsed composition).
+    if (isImmersiveMr(composition)) {
+      return emitQuestMrFiles(composition);
+    }
+    // Default: the 2D Camera2 panel app (11 files; empty composition → scanner defaults).
     const cfg = this.resolveConfig(composition);
     return {
       'android/app/src/main/res/values/generated.xml': this.emitGeneratedXml(cfg),

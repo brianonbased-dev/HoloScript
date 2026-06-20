@@ -1,4 +1,4 @@
-package net.holoscript.qrscanner
+package {{PKG}}
 
 import android.content.Context
 import android.graphics.ImageFormat
@@ -12,35 +12,35 @@ import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
+import android.util.Size
 
-/**
- * Opens the Quest forward passthrough RGB camera via Camera2 and looks for QR codes.
+/*
+ * @generated from scanner.holo by the quest compiler (compile_to_quest, surface: immersive_mr).
+ * DO NOT EDIT — change behavior in scanner.holo (passthrough_camera / decoder) and recompile.
  *
- * Power profile: when idle it attempts a decode at most every [IDLE_INTERVAL_MS] on a
- * 1/[IDLE_DOWNSCALE]-resolution frame with try-harder OFF (cheap "sensing"). The instant a QR is
- * sensed it ramps up to a full-resolution, try-harder read for an accurate value, then reports it.
- * Scanning can be paused (e.g. while the user decides in a popup) via [pauseScanning].
- *
- * Forward camera is selected via Meta's vendor characteristics
- * (com.meta.extra_metadata.camera_source==[cameraSource], position==[cameraPosition]).
- * Requires Quest 3 / 3S on Horizon OS v76+; permission must be granted before [start].
+ * Opens the Quest forward passthrough RGB camera via Camera2 and looks for QR codes. Captures at the
+ * sensor's LARGEST advertised YUV size (more pixels per QR module = decodable; a hardcoded low res
+ * left a monitor QR ~5 px/module, below the decode floor). Each tick is ONE robust try-harder read,
+ * throttled to ~{{DECODE_INTERVAL_MS}} ms. Forward camera is selected via Meta's vendor characteristics
+ * (camera_source=={{CAMERA_SOURCE}}, position=={{CAMERA_POSITION}}). Quest 3 / 3S, Horizon OS v76+.
  */
 class PassthroughCameraController(
     private val context: Context,
-    private val width: Int,
-    private val height: Int,
-    private val cameraSource: Int,
-    private val cameraPosition: Int,
-    private val cooldownMs: Long,
     private val onDecoded: (String) -> Unit,
     private val onError: (String) -> Unit,
+    private val onPreview: ((android.graphics.Bitmap) -> Unit)? = null,
 ) {
     companion object {
         private const val TAG = "PassthroughCamera"
         private const val KEY_CAMERA_SOURCE = "com.meta.extra_metadata.camera_source"
         private const val KEY_CAMERA_POSITION = "com.meta.extra_metadata.position"
-        private const val IDLE_INTERVAL_MS = 200L
-        private const val IDLE_DOWNSCALE = 2
+        private const val CAMERA_SOURCE = {{CAMERA_SOURCE}}
+        private const val CAMERA_POSITION = {{CAMERA_POSITION}}
+        private const val DECODE_INTERVAL_MS = {{DECODE_INTERVAL_MS}}L
+        private const val COOLDOWN_MS = {{DEDUPE_MS}}L
+        private const val PREVIEW_DOWNSCALE = {{PREVIEW_DOWNSCALE}}
+        private const val FALLBACK_W = {{CAP_WIDTH}}
+        private const val FALLBACK_H = {{CAP_HEIGHT}}
     }
 
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -57,11 +57,13 @@ class PassthroughCameraController(
     private var lastReported: String? = null
     private var lastReportedMs = 0L
     private var attempts = 0
+    private var capW = FALLBACK_W
+    private var capH = FALLBACK_H
 
     /** Stop processing frames (camera keeps running) — e.g. while a result popup is shown. */
     fun pauseScanning() { paused = true }
 
-    /** Resume idle sensing. */
+    /** Resume sensing. */
     fun resumeScanning() { paused = false; lastDecodeAttemptMs = 0 }
 
     fun start() {
@@ -72,8 +74,22 @@ class PassthroughCameraController(
             onError("No passthrough camera found. Requires Quest 3 / 3S on Horizon OS v76+.")
             return
         }
-        Log.i(TAG, "opening camera id=$cameraId ${width}x$height (idle: 1/$IDLE_DOWNSCALE res every ${IDLE_INTERVAL_MS}ms)")
+        pickLargestYuvSize(cameraId)?.let { capW = it.width; capH = it.height }
+        Log.i(TAG, "opening camera id=$cameraId capture=${capW}x$capH (max sensor res; read every ${DECODE_INTERVAL_MS}ms)")
         openCamera(cameraId)
+    }
+
+    /** The sensor's largest YUV_420_888 output — more pixels per QR module = decodable. */
+    private fun pickLargestYuvSize(cameraId: String): Size? {
+        return try {
+            val ch = cameraManager.getCameraCharacteristics(cameraId)
+            val sizes = ch.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                ?.getOutputSizes(ImageFormat.YUV_420_888) ?: return null
+            Log.i(TAG, "camera $cameraId YUV sizes: " + sizes.joinToString(",") { "${it.width}x${it.height}" })
+            sizes.maxByOrNull { it.width.toLong() * it.height }
+        } catch (e: Exception) {
+            Log.w(TAG, "size query failed, using ${FALLBACK_W}x$FALLBACK_H", e); null
+        }
     }
 
     private fun selectPassthroughCameraId(): String? {
@@ -82,9 +98,9 @@ class PassthroughCameraController(
             val ch = cameraManager.getCameraCharacteristics(id)
             val source = readVendorByte(ch, KEY_CAMERA_SOURCE)
             val position = readVendorByte(ch, KEY_CAMERA_POSITION)
-            if (source != null && source.toInt() == cameraSource) {
+            if (source != null && source.toInt() == CAMERA_SOURCE) {
                 if (sourceMatch == null) sourceMatch = id
-                if (position != null && position.toInt() == cameraPosition) return id
+                if (position != null && position.toInt() == CAMERA_POSITION) return id
             }
         }
         if (sourceMatch != null) return sourceMatch
@@ -103,9 +119,9 @@ class PassthroughCameraController(
         null
     }
 
-    @Suppress("MissingPermission") // permission verified by MainActivity before start()
+    @Suppress("MissingPermission") // permission verified by the activity before start()
     private fun openCamera(cameraId: String) {
-        reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 2).apply {
+        reader = ImageReader.newInstance(capW, capH, ImageFormat.YUV_420_888, 2).apply {
             setOnImageAvailableListener({ r -> onFrame(r) }, handler)
         }
         cameraManager.openCamera(cameraId, object : CameraDevice.StateCallback() {
@@ -132,10 +148,8 @@ class PassthroughCameraController(
                     session = s
                     val req = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
                         addTarget(surface)
-                        set(
-                            CaptureRequest.CONTROL_AF_MODE,
-                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
-                        )
+                        // Passthrough camera is fixed-focus; continuous AF can stall frames. Off.
+                        set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF)
                     }
                     try {
                         s.setRepeatingRequest(req.build(), null, handler)
@@ -156,27 +170,38 @@ class PassthroughCameraController(
         try {
             if (paused) return
             val now = System.currentTimeMillis()
-            if (now - lastDecodeAttemptMs < IDLE_INTERVAL_MS) return
+            if (now - lastDecodeAttemptMs < DECODE_INTERVAL_MS) return
             lastDecodeAttemptMs = now
             attempts++
 
-            // Cheap idle sense: quarter-resolution, no try-harder.
-            val (yS, wS, hS) = packYPlaneScaled(image, IDLE_DOWNSCALE)
-            val sensed = decoder.decode(yS, wS, hS, tryHarder = false)
-            if (sensed == null) {
-                if (attempts % 50 == 0) Log.i(TAG, "idle sensing… attempts=$attempts")
+            val y = packYPlane(image)
+
+            // DEBUG: roll the exact luminance frame fed to ZXing to disk for offline inspection.
+            if (attempts == 1 || attempts % 10 == 0) {
+                try {
+                    java.io.File(
+                        context.getExternalFilesDir(null),
+                        "frame_latest_${image.width}x${image.height}.gray"
+                    ).writeBytes(y)
+                } catch (_: Exception) {}
+            }
+
+            // Live viewfinder: downscaled grayscale of exactly what the camera sees, so the user can aim.
+            onPreview?.let { cb ->
+                try { cb(buildPreview(y, image.width, image.height, PREVIEW_DOWNSCALE)) } catch (_: Exception) {}
+            }
+
+            val decoded = decoder.decode(y, image.width, image.height)
+            if (decoded == null) {
+                if (attempts % 25 == 0) Log.i(TAG, "no QR yet (attempt $attempts, ${image.width}x${image.height})")
                 return
             }
 
-            // Sensed a QR — ramp up to a full-resolution, thorough read for an accurate value.
-            val yF = packYPlane(image)
-            val precise = decoder.decode(yF, image.width, image.height, tryHarder = true) ?: sensed
-
-            if (precise == lastReported && now - lastReportedMs < cooldownMs) return
-            lastReported = precise
+            if (decoded == lastReported && now - lastReportedMs < COOLDOWN_MS) return
+            lastReported = decoded
             lastReportedMs = now
-            Log.i(TAG, "QR sensed+read (attempt $attempts): $precise")
-            onDecoded(precise)
+            Log.i(TAG, "QR read (attempt $attempts): $decoded")
+            onDecoded(decoded)
         } catch (e: Exception) {
             Log.w(TAG, "frame decode failed", e)
         } finally {
@@ -204,24 +229,20 @@ class PassthroughCameraController(
         return out
     }
 
-    /** Subsampled Y plane (every [step]th pixel/row) — cheap luminance for idle sensing. */
-    private fun packYPlaneScaled(image: Image, step: Int): Triple<ByteArray, Int, Int> {
-        val plane = image.planes[0]
-        val buffer = plane.buffer
-        val rowStride = plane.rowStride
-        val ow = image.width / step
-        val oh = image.height / step
-        val out = ByteArray(ow * oh)
-        val rowBuf = ByteArray(rowStride)
+    /** Build a small grayscale ARGB bitmap from the packed Y plane for the on-panel viewfinder. */
+    private fun buildPreview(y: ByteArray, w: Int, h: Int, step: Int): android.graphics.Bitmap {
+        val pw = w / step
+        val ph = h / step
+        val pixels = IntArray(pw * ph)
         var idx = 0
-        for (r in 0 until oh) {
-            buffer.position(r * step * rowStride)
-            val toRead = minOf(rowStride, buffer.remaining())
-            buffer.get(rowBuf, 0, toRead)
-            var sc = 0
-            for (c in 0 until ow) { out[idx++] = rowBuf[sc]; sc += step }
+        for (r in 0 until ph) {
+            val srcRow = r * step * w
+            for (c in 0 until pw) {
+                val v = y[srcRow + c * step].toInt() and 0xFF
+                pixels[idx++] = (0xFF shl 24) or (v shl 16) or (v shl 8) or v
+            }
         }
-        return Triple(out, ow, oh)
+        return android.graphics.Bitmap.createBitmap(pixels, pw, ph, android.graphics.Bitmap.Config.ARGB_8888)
     }
 
     fun stop() {

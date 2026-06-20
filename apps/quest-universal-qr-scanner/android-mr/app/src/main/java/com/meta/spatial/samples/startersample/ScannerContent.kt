@@ -1,9 +1,9 @@
 package com.meta.spatial.samples.startersample
 
 /*
- * @generated from scanner.holo by quest-emit-mr.mjs (compile_to_quest, surface: immersive_mr).
- * DO NOT EDIT — change the app by editing scanner.holo's meta / onboarding / tutorial / spatial_panel
- * blocks and recompiling. The Compose UI in ScannerPanel.kt renders THIS data.
+ * @generated from scanner.holo by the quest compiler (compile_to_quest, surface: immersive_mr).
+ * DO NOT EDIT — change the app by editing scanner.holo's onboarding / tutorial / spatial_panel
+ * traits and recompiling. The Compose UI in ScannerPanel.kt renders THIS data.
  */
 object ScannerContent {
   const val appName = "Universal QR Scanner"

@@ -146,6 +146,7 @@ export type CompilerName =
   | 'openxr-spatial-entities'
   | 'visionos'
   | 'android-xr'
+  | 'quest'
   | 'ai-glasses'
   | 'quilt'
   | 'mv-hevc'
@@ -226,6 +227,7 @@ export const ANSCapabilityPath = {
   VISIONOS: '/compile/xr/visionos',
   // AR: retired as apex-poison 2026-06-17
   ANDROID_XR: '/compile/xr/android-xr',
+  QUEST: '/compile/xr/quest',
   AI_GLASSES: '/compile/xr/ai-glasses',
   QUILT: '/compile/xr/quilt',
   MV_HEVC: '/compile/xr/mv-hevc',
@@ -310,6 +312,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   'openxr-spatial-entities': ANSDomain.XR,
   visionos: ANSDomain.XR,
   'android-xr': ANSDomain.XR,
+  quest: ANSDomain.XR,
   'ai-glasses': ANSDomain.XR,
   quilt: ANSDomain.XR,
   'mv-hevc': ANSDomain.XR,
@@ -376,6 +379,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   visionos: ANSCapabilityPath.VISIONOS,
   // ar: retired as apex-poison 2026-06-17
   'android-xr': ANSCapabilityPath.ANDROID_XR,
+  quest: ANSCapabilityPath.QUEST,
   'ai-glasses': ANSCapabilityPath.AI_GLASSES,
   quilt: ANSCapabilityPath.QUILT,
   'mv-hevc': ANSCapabilityPath.MV_HEVC,

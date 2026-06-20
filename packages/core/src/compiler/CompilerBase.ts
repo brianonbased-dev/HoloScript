@@ -108,6 +108,7 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   OpenXRSpatialEntitiesCompiler: 'openxr-spatial-entities',
   VisionOSCompiler: 'visionos',
   AndroidXRCompiler: 'android-xr',
+  QuestCompiler: 'quest',
   AIGlassesCompiler: 'ai-glasses',
   AndroidCompiler: 'android',
   IOSCompiler: 'ios',

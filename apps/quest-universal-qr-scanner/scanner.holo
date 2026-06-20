@@ -1,119 +1,93 @@
-# Universal QR Scanner — Meta Quest 3 / 3S (Horizon Store)
-# HoloScript source of truth (.holo IR). The native app under ./android is @generated from THIS
-# file by `compile_to_quest`. Edit HERE, recompile — never hand-edit generated Kotlin.
-#
-# Native-authoring doctrine (F.126): behavior is DATA the compiler consumes, not imperative control
-# flow. Going from a flat 2D panel to an immersive mixed-reality app is a SURFACE change in the spec
-# (surface: panel -> immersive_mr, runtime: meta_spatial_sdk) — not a Kotlin rewrite. The compiler
-# maps `surface` to its backend: `panel` -> Camera2 + Android views; `immersive_mr` -> Meta Spatial
-# SDK (passthrough + spatial panels). The scan/decode/open-url BEHAVIOR below is unchanged either way.
+// Universal QR Scanner — Meta Quest 3 / 3S (Horizon Store)
+//
+// HoloScript-native composition. The native compile target `quest` (surface: immersive_mr) compiles
+// THIS file through the REAL HoloCompositionParser + trait dispatch — no regex scraper, no
+// hand-written Kotlin. Every capability below is a REAL registered trait
+// (packages/core/src/traits/{PassthroughCamera,QrDecode,SpatialPanel,Onboarding,Tutorial}Trait.ts);
+// the QuestCompiler walks composition.objects[].traits[] and emits the native Meta Spatial SDK app.
+// Edit HERE, recompile — the Kotlin under android-mr/ is @generated output.
 
-app UniversalQrScanner {
-  meta {
-    display_name: "Universal QR Scanner"
-    package: "net.holoscript.qrscanner"
-    version: "1.0.0"
+composition "UniversalQrScanner" {
+  environment {
+    surface: "immersive_mr"          // Meta Spatial SDK passthrough mixed reality
+    runtime: "meta_spatial_sdk"
+    passthrough: true
+    reference_space: "local_floor"
     target_devices: ["quest3", "quest3s"]
     min_horizon_os: 76
-    surface: immersive_mr          # was: panel — full passthrough mixed reality, not a flat window
-    runtime: meta_spatial_sdk      # native MR backend the compiler emits to
-    capability_tags: ["passthrough-camera", "qr-decode", "spatial-ui", "mixed-reality"]
+    package: "net.holoscript.qrscanner"
   }
 
-  # --- Mixed reality: render the user's real room (passthrough), not a VR skybox ----
-  passthrough {
-    enabled: true
-    reference_space: local_floor   # recenters to the floor; spatial UI is room-anchored
+  // Passthrough camera frame source — trait: PassthroughCameraTrait.
+  object "camera_sensor" {
+    @passthrough_camera {
+      permission: "horizonos.permission.HEADSET_CAMERA"
+      camera_source: 0
+      camera_position: 0
+      capture: "max"
+      frame_width: 1280
+      frame_height: 960
+      format: "YUV_420_888"
+      plane: "luminance"
+      preview_downscale: 4
+    }
   }
 
-  # --- Capability: passthrough camera frame source (UNCHANGED from the 2D build) -----
-  # The QR frames still come from the Camera2 passthrough sensor; only the UI surface changed.
-  source passthrough_camera {
-    trait: "@passthrough_camera"
-    permission: "horizonos.permission.HEADSET_CAMERA"
-    select: { camera_source: 0, position: 0 }   # forward passthrough RGB (verified id on-device)
-    format: "YUV_420_888"
-    resolution: { width: 1280, height: 960 }
-    plane: "luminance"
-    sense_downscale: 1             # full-res idle sense (quarter-res couldn't resolve a real QR)
+  // QR decode — trait: QrDecodeTrait.
+  object "qr_engine" {
+    @qr_decode {
+      library: "zxing-core"
+      formats: ["QR_CODE"]
+      try_harder: true
+      also_inverted: true
+      center_crop: { width: 640, height: 480 }
+      decode_interval_ms: 200
+      dedupe_window_ms: 2500
+    }
   }
 
-  # --- Capability: QR decode (UNCHANGED) ------------------------------------------
-  decoder qr {
-    trait: "@qr_decode"
-    library: "zxing-core"          # GMS-free; Quest has no Play Services
-    formats: ["QR_CODE"]
-    dedupe_window_ms: 2500
-    consumes: passthrough_camera
+  // Spatial panel (Compose, placed in 3D) — trait: SpatialPanelTrait.
+  object "scanner_panel" {
+    @spatial_panel {
+      place: { x: 0.0, y: 1.3, z: 1.5 }
+      size: { width: 1.2, height: 1.2 }
+      billboard: "soft"
+      title: "Universal QR Scanner"
+      status_line: true
+      reticle: true
+      reticle_fraction: 0.62
+      viewfinder: { height_dp: 360 }
+    }
   }
 
-  # --- Spatial UI: a panel placed in 3D space (was a flat 2D `panel ui`) -----------
-  # The compiler emits this as a Spatial SDK Compose panel entity placed via Transform.
-  spatial_panel scanner {
-    trait: "@spatial_panel"
-    place: { x: 0.0, y: 1.3, z: 1.5 }    # 1.5 m in FRONT, eye height. Spatial SDK is left-handed,
-                                          # +Z = forward — negative z renders the panel BEHIND the user.
-    size:  { width: 1.0, height: 0.66 }  # meters
-    billboard: soft                       # gently faces the user as they move
-    title: "Universal QR Scanner"
-    status_line: true                     # "Point at a QR code…" / "Opening <url>…"
-    reticle: true                         # aim target so you can SEE where the camera looks
+  // Welcome / how-to-use screen — trait: OnboardingTrait.
+  object "welcome" {
+    @onboarding {
+      title: "Universal QR Scanner"
+      tagline: "Read any QR code — right in mixed reality"
+      how_to_use: [
+        { context: "At your computer", icon: "monitor", text: "Look at a QR on your screen — the scanner reads it straight through passthrough." },
+        { context: "On the go", icon: "world", text: "Out in the world? Just look at any QR — posters, products, signs, menus." },
+        { context: "From a phone", icon: "phone", text: "Show a QR on another phone or screen and look at it." }
+      ]
+      aim_tip: "Center the QR in your view, about an arm's length away, and hold steady for a moment."
+      start_action: "Start scanning"
+      tutorial_action: "See how it works"
+    }
   }
 
-  # --- Onboarding: a welcome + how-to-use screen shown BEFORE scanning starts ------
-  # The screen, the contexts, and the copy are DATA the compiler renders (F.126) — not
-  # hand-written UI. Teaches the user how to aim in each scenario (the real scan blocker).
-  onboarding welcome {
-    trait: "@onboarding"
-    title: "Universal QR Scanner"
-    tagline: "Read any QR code — right in mixed reality"
-    how_to_use [
-      { context: "At your computer", icon: "monitor",
-        text: "Look at a QR on your screen — the scanner reads it straight through passthrough." }
-      { context: "On the go", icon: "world",
-        text: "Out in the world? Just look at any QR — posters, products, signs, menus." }
-      { context: "From a phone", icon: "phone",
-        text: "Show a QR on another phone or screen and look at it." }
-    ]
-    aim_tip: "Center the QR in your view, about an arm's length away, and hold steady for a moment."
-    start_action: "Start scanning"
-    tutorial_action: "See how it works"
+  // Guided tutorial with an on-device mock QR — trait: TutorialTrait.
+  object "how_it_works" {
+    @tutorial {
+      heading: "How it works"
+      mock_qr: { demo_url: "https://holoscript.studio", caption: "A QR code looks like this", display_dp: 180 }
+      steps: [
+        "Look at any QR code in your space — no buttons, it reads automatically.",
+        "When it reads, a card appears with the link.",
+        "Tap Open to launch it in the Quest browser."
+      ]
+      result_preview: { label: "QR found", sample: "https://holoscript.studio", open_action: "Open in browser" }
+      start_action: "Start scanning"
+    }
   }
-
-  # --- Tutorial: a guided demo with a MOCK QR so the user sees the flow before real scanning ----
-  # The mock QR is generated on-device (ZXing) for `demo_url`; the result preview shows what a
-  # successful scan looks like. Data the compiler renders (F.126), not hand-built UI.
-  tutorial how_it_works {
-    trait: "@tutorial"
-    heading: "How it works"
-    mock_qr: { demo_url: "https://holoscript.studio", caption: "A QR code looks like this" }
-    steps [
-      "Look at any QR code in your space — no buttons, it reads automatically."
-      "When it reads, a card appears with the link."
-      "Tap Open to launch it in the Quest browser."
-    ]
-    result_preview: { label: "QR found", sample: "https://holoscript.studio", open_action: "Open in browser" }
-    start_action: "Start scanning"
-  }
-
-  # --- Ambient mode: after Start the panel HIDES so the user keeps working; it reappears only -----
-  # when a QR is read (the result card), then hides again on dismiss/open. (Founder: "invisible
-  # after download + popup".) Declared as panel behavior the compiler wires to VisibilityState.
-  ambient_scan {
-    hide_panel_on_start: true
-    reappear_on: decode
-    rehide_on: [dismiss, open]
-  }
-
-  # --- Behavior: on a successful decode, EMIT an open-url action (UNCHANGED) -------
-  # Handler-as-data (F.126): the body declares emissions, not direct calls.
-  on_scan(result) {
-    when: result.is_url
-    emit open_url { url: result.text }
-    else: emit show_text { text: result.text }
-  }
-
-  # --- Action sinks (data the compiler binds to platform intents) -----------------
-  action open_url  { kind: "quest_web_task" }   # -> ovrweb://webtask?uri=<encoded>
-  action show_text { kind: "spatial_card" }     # -> a 3D result card anchored in space
 }

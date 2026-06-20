@@ -253,35 +253,26 @@ else
     echo -e "  ${GREEN}✓${NC} No staged render .tsx"
 fi
 
-# Gate 5e: Quest emit golden-diff — compile_to_quest output must byte-match the reference app
-# (apps/quest-universal-qr-scanner). Prevents the Quest emitter silently drifting from the
-# maintained Universal QR Scanner (pre-mortem keystone). Only runs when the scanner app or the
-# emitter/gate scripts are staged. Fast (~100ms, pure read).
-echo "  ├─ Quest emit golden-diff..."
+# Gate 5e: Quest MR emit golden-diff — the in-core QuestCompiler (surface: immersive_mr) must
+# byte-match the reference app (apps/quest-universal-qr-scanner/android-mr). Parses scanner.holo via
+# the real HoloCompositionParser + trait-dispatch (NO regex). Enforces "edit the spec, not the
+# generated Kotlin". Only runs when the scanner app or the gate is staged. (2D panel emit is guarded
+# by the vitest golden test QuestCompiler.golden.test.ts, run in `pnpm test`.)
+echo "  ├─ Quest MR emit golden-diff..."
 STAGED_QUEST=$(git diff --cached --name-only -- \
     'apps/quest-universal-qr-scanner/**' \
-    'scripts/holo-ci/check-quest-emit-matches-reference.mjs' \
-    'scripts/holo-ci/check-quest-mr-emit-matches-reference.mjs' 2>/dev/null || true)
+    'packages/core/src/compiler/quest-mr-emit.ts' \
+    'packages/core/src/compiler/quest-mr-templates/**' \
+    'scripts/holo-ci/check-quest-mr-emit-matches-reference.mts' 2>/dev/null || true)
 if [ -n "$STAGED_QUEST" ]; then
-    QUEST_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-quest-emit-matches-reference.mjs 2>&1)
-    QUEST_STATUS=$?
-    if [ "$QUEST_STATUS" -ne 0 ]; then
-        echo -e "  ${RED}❌ Quest emit drifted from the reference app${NC}"
-        echo "$QUEST_OUT"
-        echo "     Fix: update apps/quest-universal-qr-scanner/quest-emit.mjs so its output"
-        echo "          byte-matches the reference, or update the reference intentionally."
-        FAILED=1
-    else
-        echo -e "  ${GREEN}✓${NC} Quest emit matches reference (no drift)"
-    fi
-    # immersive_mr path: ScannerContent.kt must byte-match android-mr (edit scanner.holo, not Kotlin).
-    QUEST_MR_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-quest-mr-emit-matches-reference.mjs 2>&1)
+    QUEST_MR_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts 2>&1)
     QUEST_MR_STATUS=$?
     if [ "$QUEST_MR_STATUS" -ne 0 ]; then
         echo -e "  ${RED}❌ Quest MR emit drifted from the reference app${NC}"
         echo "$QUEST_MR_OUT"
-        echo "     Fix: edit apps/quest-universal-qr-scanner/scanner.holo (not the generated Kotlin)"
-        echo "          and re-run quest-emit-mr.mjs, or update the reference intentionally."
+        echo "     Fix: edit apps/quest-universal-qr-scanner/scanner.holo (not the generated Kotlin),"
+        echo "          re-run 'npx tsx apps/quest-universal-qr-scanner/generate-native.mts',"
+        echo "          or update a quest-mr-template intentionally."
         FAILED=1
     else
         echo -e "  ${GREEN}✓${NC} Quest MR emit matches reference (no drift)"

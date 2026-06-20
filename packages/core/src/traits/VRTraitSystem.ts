@@ -83,6 +83,11 @@ import { faceTrackingHandler } from './FaceTrackingTrait';
 import { webcamGazeHandler } from './WebcamGazeTrait';
 import { spatialAccessoryHandler } from './SpatialAccessoryTrait';
 import { accessibleHandler } from './AccessibleTrait';
+import { passthroughCameraHandler } from './PassthroughCameraTrait';
+import { qrDecodeHandler } from './QrDecodeTrait';
+import { spatialPanelHandler } from './SpatialPanelTrait';
+import { onboardingHandler } from './OnboardingTrait';
+import { tutorialHandler } from './TutorialTrait';
 import { altTextHandler } from './AltTextTrait';
 import { spatialAudioCueHandler } from './SpatialAudioCueTrait';
 import { gemResonanceHandler } from './GemResonanceTrait';
@@ -2102,6 +2107,12 @@ export class VRTraitRegistry {
     this.register(voiceInputHandler as TraitHandler);
     this.register(voiceOutputHandler as TraitHandler);
     this.register(voronoiFractureHandler as TraitHandler);
+    // Quest immersive-MR (compile_to_quest, surface: immersive_mr) capability traits.
+    this.register(passthroughCameraHandler as TraitHandler);
+    this.register(qrDecodeHandler as TraitHandler);
+    this.register(spatialPanelHandler as TraitHandler);
+    this.register(onboardingHandler as TraitHandler);
+    this.register(tutorialHandler as TraitHandler);
   }
 
   register<T>(handler: TraitHandler<T>): void {

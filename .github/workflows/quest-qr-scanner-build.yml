@@ -1,7 +1,10 @@
 name: Quest QR Scanner — build APK
 
-# Cloud build path for the Universal QR Scanner (no local Android toolchain needed).
-# Produces an unsigned release APK; signs it when the keystore secrets are present.
+# Cloud build path for the Universal QR Scanner immersive-MR app (no local Android toolchain needed).
+# Builds the committed @generated app under android-mr/ — every .kt there is generated from
+# scanner.holo by the in-core QuestCompiler (surface: immersive_mr); the pre-commit golden gate
+# (check-quest-mr-emit-matches-reference.mts) guards that android-mr stays in sync with the spec.
+# Produces a debug APK; the signed release + store submit is the founder-gated Phase 3.
 on:
   workflow_dispatch:
   push:
@@ -12,8 +15,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,31 +27,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Regenerate spec-driven resources
-        working-directory: apps/quest-universal-qr-scanner
-        run: node generate.mjs
-
-      - name: Build release APK
-        working-directory: apps/quest-universal-qr-scanner/android
-        run: gradle assembleRelease --no-daemon
-
-      - name: Sign APK
-        id: sign
-        if: env.HAS_KEYSTORE == 'true'
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: apps/quest-universal-qr-scanner/android/app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        env:
-          BUILD_TOOLS_VERSION: '34.0.0'
+      - name: Build debug APK (immersive-MR, Meta Spatial SDK)
+        working-directory: apps/quest-universal-qr-scanner/android-mr
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: universal-qr-scanner-apk
           path: |
-            apps/quest-universal-qr-scanner/android/app/build/outputs/apk/release/*.apk
+            apps/quest-universal-qr-scanner/android-mr/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
