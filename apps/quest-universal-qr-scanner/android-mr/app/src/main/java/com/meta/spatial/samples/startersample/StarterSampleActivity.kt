@@ -45,9 +45,19 @@ class StarterSampleActivity : AppSystemActivity() {
     super.onCreate(savedInstanceState)
     ScannerState.onOpen = { url -> openInQuestBrowser(url) }
     ScannerState.onStart = { maybeStartScanner() }
+    ScannerState.onDismiss = { controller?.resumeScanning() } // resume scanning after a result clears
     ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
     if (!hasCameraPermission()) {
       requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
+    }
+  }
+
+  // Returning from the Quest browser (or any background) releases the camera; re-arm scanning so the
+  // loop never gets stuck after Open/Dismiss. If the controller survived but was paused, resume it.
+  override fun onResume() {
+    super.onResume()
+    if (ScannerState.screen == Screen.SCANNING && hasCameraPermission()) {
+      if (controller == null) maybeStartScanner() else controller?.resumeScanning()
     }
   }
 
@@ -60,12 +70,14 @@ class StarterSampleActivity : AppSystemActivity() {
 
     // Panel placement comes from scanner.holo's spatial_panel.place via @generated ScannerContent.
     // (Spatial SDK is left-handed, +Z = forward — negative z renders the panel behind the user.)
-    panelEntity = Entity.create(
-        listOf(
-            Panel(R.id.panel),
-            Transform(Pose(Vector3(ScannerContent.panelX, ScannerContent.panelY, ScannerContent.panelZ))),
-        )
-    )
+    if (panelEntity == null) {
+      panelEntity = Entity.create(
+          listOf(
+              Panel(R.id.panel),
+              Transform(Pose(Vector3(ScannerContent.panelX, ScannerContent.panelY, ScannerContent.panelZ))),
+          )
+      )
+    }
 
     sceneReady = true
     // Camera starts when the user taps "Start scanning" on the welcome screen (ScannerState.onStart).
@@ -98,6 +110,7 @@ class StarterSampleActivity : AppSystemActivity() {
 
   private fun onDecoded(text: String) {
     Log.i(tag, "decoded: $text")
+    controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
     if (isUrl(text)) {
       ScannerState.pendingUrl = text
       ScannerState.lastResult = null

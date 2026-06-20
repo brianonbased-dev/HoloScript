@@ -96,6 +96,7 @@ object ScannerState {
   var pendingUrl by mutableStateOf<String?>(null)
   var onOpen: ((String) -> Unit)? = null
   var onStart: (() -> Unit)? = null
+  var onDismiss: (() -> Unit)? = null // resume scanning after a result card is cleared
   var mockQr by mutableStateOf<ImageBitmap?>(null)
 
   // Content comes from ScannerContent.kt — @generated from scanner.holo by the quest compiler.
@@ -254,17 +255,32 @@ private fun ResultCard() {
           onClick = {
             ScannerState.onOpen?.invoke(url)
             ScannerState.reset()
+            ScannerState.onDismiss?.invoke()
           }
       ) {
         Text("Open in browser")
       }
       Spacer(Modifier.size(14.dp))
-      Button(onClick = { ScannerState.reset() }) { Text("Dismiss") }
+      Button(
+          onClick = {
+            ScannerState.reset()
+            ScannerState.onDismiss?.invoke()
+          }
+      ) {
+        Text("Dismiss")
+      }
     }
   } else {
     Body(ScannerState.lastResult ?: "")
     Spacer(Modifier.size(20.dp))
-    Button(onClick = { ScannerState.reset() }) { Text("Dismiss") }
+    Button(
+        onClick = {
+          ScannerState.reset()
+          ScannerState.onDismiss?.invoke()
+        }
+    ) {
+      Text("Dismiss")
+    }
   }
 }
 
