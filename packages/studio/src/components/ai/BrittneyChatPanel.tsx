@@ -56,6 +56,13 @@ import {
   type BrittneyDaemonJobContext,
   type BrittneyGitContext,
 } from '@/lib/brittney/workspaceContext';
+import {
+  appendTextSegment,
+  appendToolResultSegment,
+  buildChatSegments,
+  updateToolResultSegment,
+  type BrittneyChatSegment,
+} from './brittneyChatSegments';
 
 // ─── Markdown + LaTeX message rendering ─────────────────────────────────────────
 // Inlined here (not a separate file) to stay within the render-surface native
@@ -107,6 +114,7 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  segments?: BrittneyChatSegment[];
   toolResults?: ToolResult[];
   isStreaming?: boolean;
 }
@@ -133,8 +141,7 @@ function toolCallsToToolResults(toolCalls: unknown[]): ToolResult[] {
       typeof e.result === 'object' && e.result !== null
         ? (e.result as Record<string, unknown>)
         : undefined;
-    const tool =
-      typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
+    const tool = typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
     const success =
       typeof result?.success === 'boolean'
         ? result.success
@@ -344,7 +351,9 @@ function ConversationSwitcher({
       >
         <MessagesSquare className="h-3 w-3 shrink-0" />
         <span className="truncate">{label}</span>
-        <ChevronDown className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-lg border border-studio-border bg-studio-panel shadow-xl">
@@ -361,7 +370,9 @@ function ConversationSwitcher({
           </button>
           <div className="max-h-56 overflow-y-auto">
             {conversations.length === 0 && (
-              <p className="px-2.5 py-2 text-[10px] text-studio-muted">No saved conversations yet.</p>
+              <p className="px-2.5 py-2 text-[10px] text-studio-muted">
+                No saved conversations yet.
+              </p>
             )}
             {conversations.map((c) => (
               <div
@@ -539,13 +550,13 @@ export function BrittneyChatPanel() {
         ...savedHistory.map((m, i) => {
           // Persisted tool traces (write-through qq65) rebuild the tool
           // badges best-effort; absent/malformed traces render text-only.
-          const toolResults = Array.isArray(m.toolCalls)
-            ? toolCallsToToolResults(m.toolCalls)
-            : [];
+          const toolResults = Array.isArray(m.toolCalls) ? toolCallsToToolResults(m.toolCalls) : [];
+          const segments = buildChatSegments(m.content, toolResults);
           return {
             id: `h-${i}`,
             role: m.role === 'user' ? 'user' : ('assistant' as ChatMessage['role']),
             text: m.content,
+            ...(segments.length > 0 ? { segments } : {}),
             ...(toolResults.length > 0 ? { toolResults } : {}),
           };
         }),
@@ -801,7 +812,14 @@ export function BrittneyChatPanel() {
     const assistantMsgId = (Date.now() + 1).toString();
     setChatMessages((m) => [
       ...m,
-      { id: assistantMsgId, role: 'assistant', text: '', isStreaming: true, toolResults: [] },
+      {
+        id: assistantMsgId,
+        role: 'assistant',
+        text: '',
+        segments: [],
+        isStreaming: true,
+        toolResults: [],
+      },
     ]);
 
     let accumulatedText = '';
@@ -837,9 +855,18 @@ export function BrittneyChatPanel() {
         } else if (event.type === 'persisted') {
           // Informational per-row ack — nothing to do client-side.
         } else if (event.type === 'text') {
-          accumulatedText += event.payload as string;
+          const textDelta = event.payload as string;
+          accumulatedText += textDelta;
           setChatMessages((m) =>
-            m.map((msg) => (msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg))
+            m.map((msg) =>
+              msg.id === assistantMsgId
+                ? {
+                    ...msg,
+                    text: accumulatedText,
+                    segments: appendTextSegment(msg.segments, textDelta),
+                  }
+                : msg
+            )
           );
         } else if (event.type === 'tool_call') {
           const tc = event.payload as ToolCallPayload;
@@ -869,7 +896,13 @@ export function BrittneyChatPanel() {
             toolResults.push(result);
             setChatMessages((m) =>
               m.map((msg) =>
-                msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      toolResults: [...toolResults],
+                      segments: appendToolResultSegment(msg.segments, result),
+                    }
+                  : msg
               )
             );
           }
@@ -894,15 +927,22 @@ export function BrittneyChatPanel() {
           toolResults.push(result);
           setChatMessages((m) =>
             m.map((msg) =>
-              msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+              msg.id === assistantMsgId
+                ? {
+                    ...msg,
+                    toolResults: [...toolResults],
+                    segments: appendToolResultSegment(msg.segments, result),
+                  }
+                : msg
             )
           );
         } else if (event.type === 'error') {
           accumulatedText = `Sorry, I hit an error: ${event.payload}`;
+          const segments = buildChatSegments(accumulatedText, toolResults);
           setChatMessages((m) =>
             m.map((msg) =>
               msg.id === assistantMsgId
-                ? { ...msg, text: accumulatedText, isStreaming: false }
+                ? { ...msg, text: accumulatedText, segments, isStreaming: false }
                 : msg
             )
           );
@@ -920,13 +960,28 @@ export function BrittneyChatPanel() {
       }
     } catch (err) {
       accumulatedText = `Connection error — is Ollama running? (${String(err)})`;
+      const segments = buildChatSegments(accumulatedText, toolResults);
+      setChatMessages((m) =>
+        m.map((msg) =>
+          msg.id === assistantMsgId ? { ...msg, text: accumulatedText, segments } : msg
+        )
+      );
     }
 
     // Finalize message
     setChatMessages((m) =>
       m.map((msg) =>
         msg.id === assistantMsgId
-          ? { ...msg, text: accumulatedText, isStreaming: false, toolResults }
+          ? {
+              ...msg,
+              text: accumulatedText,
+              segments:
+                msg.segments && msg.segments.length > 0
+                  ? msg.segments
+                  : buildChatSegments(accumulatedText, toolResults),
+              isStreaming: false,
+              toolResults,
+            }
           : msg
       )
     );
@@ -1029,6 +1084,11 @@ export function BrittneyChatPanel() {
                 toolResults: msg.toolResults?.map((result, index) =>
                   index === resultIndex ? nextResult : result
                 ),
+                segments: updateToolResultSegment(
+                  msg.segments ?? buildChatSegments(msg.text, msg.toolResults),
+                  resultIndex,
+                  () => nextResult
+                ),
               }
             : msg
         )
@@ -1059,6 +1119,20 @@ export function BrittneyChatPanel() {
                       diff: undefined,
                     }
                   : result
+              ),
+              segments: updateToolResultSegment(
+                msg.segments ?? buildChatSegments(msg.text, msg.toolResults),
+                resultIndex,
+                (result) =>
+                  result.requiresConfirmation
+                    ? {
+                        ...result,
+                        message: `Declined: ${result.diff?.summary ?? result.message}`,
+                        requiresConfirmation: false,
+                        pendingAction: undefined,
+                        diff: undefined,
+                      }
+                    : result
               ),
             }
           : msg
@@ -1138,40 +1212,63 @@ export function BrittneyChatPanel() {
             key={msg.id}
             className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
-            {/* Tool-call signals — collapsed group, rendered ABOVE the response so a
-                flood of rapid badges doesn't push the text down / yank scroll (founder
-                feedback). Confirm/decline still routes through the same handlers. */}
-            {msg.toolResults && msg.toolResults.length > 0 && (
-              <ToolResultsGroup
-                results={msg.toolResults}
-                isStreaming={msg.isStreaming}
-                onConfirm={(i) => handleConfirmToolResult(msg.id, i)}
-                onDecline={(i) => handleDeclineToolResult(msg.id, i)}
-              />
-            )}
-            <div
-              className={`max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-studio-accent text-white'
-                  : 'bg-studio-surface text-studio-text border border-studio-border/50'
-              }`}
-            >
-              {msg.text ? (
-                msg.role === 'user' ? (
-                  msg.text
-                ) : (
-                  <MarkdownMessage text={msg.text} />
-                )
-              ) : msg.isStreaming ? (
-                <span className="flex items-center gap-1.5 text-studio-muted">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  thinking…
-                </span>
-              ) : null}
-              {msg.isStreaming && msg.text && (
-                <span className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-studio-accent/70" />
-              )}
-            </div>
+            {(() => {
+              if (msg.role === 'user') {
+                return (
+                  <div className="max-w-[88%] rounded-xl bg-studio-accent px-3 py-2 text-xs leading-relaxed text-white">
+                    {msg.text}
+                  </div>
+                );
+              }
+
+              const segments = msg.segments ?? buildChatSegments(msg.text, msg.toolResults);
+              const lastTextSegmentIndex = segments.reduce(
+                (last, segment, index) => (segment.kind === 'text' ? index : last),
+                -1
+              );
+              let toolOffset = 0;
+
+              if (segments.length === 0) {
+                return (
+                  <div className="max-w-[88%] rounded-xl border border-studio-border/50 bg-studio-surface px-3 py-2 text-xs leading-relaxed text-studio-text">
+                    {msg.isStreaming ? (
+                      <span className="flex items-center gap-1.5 text-studio-muted">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        thinking…
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              }
+
+              return segments.map((segment, segmentIndex) => {
+                if (segment.kind === 'toolResults') {
+                  const resultOffset = toolOffset;
+                  toolOffset += segment.results.length;
+                  return (
+                    <ToolResultsGroup
+                      key={segment.id}
+                      results={segment.results}
+                      isStreaming={msg.isStreaming}
+                      onConfirm={(i) => handleConfirmToolResult(msg.id, resultOffset + i)}
+                      onDecline={(i) => handleDeclineToolResult(msg.id, resultOffset + i)}
+                    />
+                  );
+                }
+
+                return (
+                  <div
+                    key={segment.id}
+                    className="max-w-[88%] rounded-xl border border-studio-border/50 bg-studio-surface px-3 py-2 text-xs leading-relaxed text-studio-text"
+                  >
+                    <MarkdownMessage text={segment.text} />
+                    {msg.isStreaming && segmentIndex === lastTextSegmentIndex && (
+                      <span className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-studio-accent/70" />
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         ))}
 

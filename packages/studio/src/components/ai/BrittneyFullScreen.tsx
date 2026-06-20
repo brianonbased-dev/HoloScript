@@ -18,6 +18,13 @@ import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
 import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { SuggestionCards } from './SuggestionCards';
+import {
+  appendTextSegment,
+  appendToolResultSegment,
+  buildChatSegments,
+  updateToolResultSegment,
+  type BrittneyChatSegment,
+} from './brittneyChatSegments';
 
 const FirstLaunchTutorial = dynamic(
   () =>
@@ -49,6 +56,7 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  segments?: BrittneyChatSegment[];
   toolResults?: ToolResult[];
   isStreaming?: boolean;
 }
@@ -69,8 +77,7 @@ function toolCallsToToolResults(toolCalls: unknown[]): ToolResult[] {
       typeof e.result === 'object' && e.result !== null
         ? (e.result as Record<string, unknown>)
         : undefined;
-    const tool =
-      typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
+    const tool = typeof e.name === 'string' ? e.name : typeof e.tool === 'string' ? e.tool : 'tool';
     const success =
       typeof result?.success === 'boolean'
         ? result.success
@@ -281,13 +288,13 @@ export function BrittneyFullScreen() {
         ...savedHistory.map((m, i) => {
           // Persisted tool traces (write-through qq65) rebuild the tool
           // badges best-effort; absent/malformed traces render text-only.
-          const toolResults = Array.isArray(m.toolCalls)
-            ? toolCallsToToolResults(m.toolCalls)
-            : [];
+          const toolResults = Array.isArray(m.toolCalls) ? toolCallsToToolResults(m.toolCalls) : [];
+          const segments = buildChatSegments(m.content, toolResults);
           return {
             id: `h-${i}`,
             role: m.role === 'user' ? ('user' as const) : ('assistant' as const),
             text: m.content,
+            ...(segments.length > 0 ? { segments } : {}),
             ...(toolResults.length > 0 ? { toolResults } : {}),
           };
         }),
@@ -363,7 +370,14 @@ export function BrittneyFullScreen() {
       const assistantMsgId = (Date.now() + 1).toString();
       setMessages((m) => [
         ...m,
-        { id: assistantMsgId, role: 'assistant', text: '', isStreaming: true, toolResults: [] },
+        {
+          id: assistantMsgId,
+          role: 'assistant',
+          text: '',
+          segments: [],
+          isStreaming: true,
+          toolResults: [],
+        },
       ]);
 
       let accumulatedText = '';
@@ -398,9 +412,18 @@ export function BrittneyFullScreen() {
           } else if (event.type === 'persisted') {
             // Informational per-row ack — nothing to do client-side.
           } else if (event.type === 'text') {
-            accumulatedText += event.payload as string;
+            const textDelta = event.payload as string;
+            accumulatedText += textDelta;
             setMessages((m) =>
-              m.map((msg) => (msg.id === assistantMsgId ? { ...msg, text: accumulatedText } : msg))
+              m.map((msg) =>
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      text: accumulatedText,
+                      segments: appendTextSegment(msg.segments, textDelta),
+                    }
+                  : msg
+              )
             );
           } else if (event.type === 'tool_call') {
             const tc = event.payload as ToolCallPayload;
@@ -414,7 +437,13 @@ export function BrittneyFullScreen() {
               toolResults.push(result);
               setMessages((m) =>
                 m.map((msg) =>
-                  msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        toolResults: [...toolResults],
+                        segments: appendToolResultSegment(msg.segments, result),
+                      }
+                    : msg
                 )
               );
             }
@@ -423,22 +452,30 @@ export function BrittneyFullScreen() {
             // real outcome (this surface previously dropped these events).
             const trp = event.payload as ToolResultPayload;
             setProgressLabel(null);
-            toolResults.push({
+            const result: ToolResult = {
               tool: trp.name,
               success: trp.success,
               message: trp.error ? trp.error : `${trp.name} ok`,
-            });
+            };
+            toolResults.push(result);
             setMessages((m) =>
               m.map((msg) =>
-                msg.id === assistantMsgId ? { ...msg, toolResults: [...toolResults] } : msg
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      toolResults: [...toolResults],
+                      segments: appendToolResultSegment(msg.segments, result),
+                    }
+                  : msg
               )
             );
           } else if (event.type === 'error') {
             accumulatedText = `Sorry, I hit an error: ${event.payload}`;
+            const segments = buildChatSegments(accumulatedText, toolResults);
             setMessages((m) =>
               m.map((msg) =>
                 msg.id === assistantMsgId
-                  ? { ...msg, text: accumulatedText, isStreaming: false }
+                  ? { ...msg, text: accumulatedText, segments, isStreaming: false }
                   : msg
               )
             );
@@ -448,12 +485,27 @@ export function BrittneyFullScreen() {
         }
       } catch (err) {
         accumulatedText = `Connection error -- is the backend running? (${String(err)})`;
+        const segments = buildChatSegments(accumulatedText, toolResults);
+        setMessages((m) =>
+          m.map((msg) =>
+            msg.id === assistantMsgId ? { ...msg, text: accumulatedText, segments } : msg
+          )
+        );
       }
 
       setMessages((m) =>
         m.map((msg) =>
           msg.id === assistantMsgId
-            ? { ...msg, text: accumulatedText, isStreaming: false, toolResults }
+            ? {
+                ...msg,
+                text: accumulatedText,
+                segments:
+                  msg.segments && msg.segments.length > 0
+                    ? msg.segments
+                    : buildChatSegments(accumulatedText, toolResults),
+                isStreaming: false,
+                toolResults,
+              }
             : msg
         )
       );
@@ -529,6 +581,11 @@ export function BrittneyFullScreen() {
                 toolResults: msg.toolResults?.map((result, index) =>
                   index === resultIndex ? nextResult : result
                 ),
+                segments: updateToolResultSegment(
+                  msg.segments ?? buildChatSegments(msg.text, msg.toolResults),
+                  resultIndex,
+                  () => nextResult
+                ),
               }
             : msg
         )
@@ -553,6 +610,20 @@ export function BrittneyFullScreen() {
                       diff: undefined,
                     }
                   : result
+              ),
+              segments: updateToolResultSegment(
+                msg.segments ?? buildChatSegments(msg.text, msg.toolResults),
+                resultIndex,
+                (result) =>
+                  result.requiresConfirmation
+                    ? {
+                        ...result,
+                        message: `Declined: ${result.diff?.summary ?? result.message}`,
+                        requiresConfirmation: false,
+                        pendingAction: undefined,
+                        diff: undefined,
+                      }
+                    : result
               ),
             }
           : msg
@@ -683,44 +754,75 @@ export function BrittneyFullScreen() {
                       </div>
                     )}
                     <div className="flex flex-col gap-1.5">
-                      <div
-                        className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                          msg.role === 'user'
-                            ? 'bg-studio-accent text-white rounded-br-md'
-                            : 'bg-white/[0.04] text-white/85 border border-white/[0.06] rounded-bl-md'
-                        }`}
-                      >
-                        {msg.text ||
-                          (msg.isStreaming ? (
-                            <span className="flex items-center gap-2 text-white/40">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Thinking...
-                            </span>
-                          ) : null)}
-                        {msg.isStreaming && msg.text && <StreamingCursor />}
-                      </div>
+                      {(() => {
+                        if (msg.role === 'user') {
+                          return (
+                            <div className="rounded-2xl rounded-br-md bg-studio-accent px-4 py-3 text-sm leading-relaxed text-white">
+                              {msg.text}
+                            </div>
+                          );
+                        }
 
-                      {/* Tool results inline */}
-                      {msg.toolResults && msg.toolResults.length > 0 && (
-                        <div className="space-y-1.5 pl-1">
-                          {msg.toolResults.map((r, i) => (
-                            <ToolBadge
-                              key={i}
-                              result={r}
-                              onConfirm={
-                                msg.isStreaming
-                                  ? undefined
-                                  : () => handleConfirmToolResult(msg.id, i)
-                              }
-                              onDecline={
-                                msg.isStreaming
-                                  ? undefined
-                                  : () => handleDeclineToolResult(msg.id, i)
-                              }
-                            />
-                          ))}
-                        </div>
-                      )}
+                        const segments =
+                          msg.segments ?? buildChatSegments(msg.text, msg.toolResults);
+                        const lastTextSegmentIndex = segments.reduce(
+                          (last, segment, index) => (segment.kind === 'text' ? index : last),
+                          -1
+                        );
+                        let toolOffset = 0;
+
+                        if (segments.length === 0) {
+                          return (
+                            <div className="rounded-2xl rounded-bl-md border border-white/[0.06] bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white/85">
+                              {msg.isStreaming ? (
+                                <span className="flex items-center gap-2 text-white/40">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Thinking...
+                                </span>
+                              ) : null}
+                            </div>
+                          );
+                        }
+
+                        return segments.map((segment, segmentIndex) => {
+                          if (segment.kind === 'toolResults') {
+                            const resultOffset = toolOffset;
+                            toolOffset += segment.results.length;
+                            return (
+                              <div key={segment.id} className="space-y-1.5 pl-1">
+                                {segment.results.map((r, i) => (
+                                  <ToolBadge
+                                    key={`${segment.id}-${i}`}
+                                    result={r}
+                                    onConfirm={
+                                      msg.isStreaming
+                                        ? undefined
+                                        : () => handleConfirmToolResult(msg.id, resultOffset + i)
+                                    }
+                                    onDecline={
+                                      msg.isStreaming
+                                        ? undefined
+                                        : () => handleDeclineToolResult(msg.id, resultOffset + i)
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={segment.id}
+                              className="rounded-2xl rounded-bl-md border border-white/[0.06] bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white/85"
+                            >
+                              {segment.text}
+                              {msg.isStreaming && segmentIndex === lastTextSegmentIndex && (
+                                <StreamingCursor />
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 </div>
