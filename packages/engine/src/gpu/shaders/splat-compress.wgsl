@@ -344,11 +344,13 @@ fn compressAndKey(
   // by the low-pass, so without the opacity compensation they over-contribute as
   // full-strength STREAKS. The compensation makes a fattened thin splat fainter,
   // so overlapping grazing-angle splats blend into a smooth surface (matches gsplat).
-  let detRaw = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
+  // 0.3px low-pass dilation (matches gsplat eps2d). gsplat's DEFAULT is "classic"
+  // mode = dilation WITHOUT opacity compensation; the splat was trained that way, so
+  // its gaussians are tuned to sum to opaque at FULL opacity. Applying the antialiased
+  // opacity compensation here would make every surface semi-transparent -> background
+  // shows through -> streaks. So keep full opacity.
   let covDil = vec3<f32>(cov2D.x + 0.3, cov2D.y, cov2D.z + 0.3);
-  let detDil = covDil.x * covDil.z - covDil.y * covDil.y;
-  let aaComp = sqrt(clamp(max(detRaw, 0.0) / max(detDil, 1e-9), 0.0, 1.0));
-  let opacityAA = raw.color.a * aaComp;
+  let opacityAA = raw.color.a;
 
   // Clamp covariance to the f16-safe range (near-camera splats project huge).
   let COV_MAX = 16384.0;
