@@ -26,6 +26,10 @@ export interface DispatchableTrainJob {
     iterations: number;
     learningRates: { position: number; scale: number; rotation: number; opacity: number; color: number };
     dilation: number;
+    /** Densify every N iters (0/absent = off). Maps to the runner's densification.interval. */
+    densifyInterval?: number;
+    /** Gaussian-count cap. Maps to the runner's densification.maxGaussians. */
+    targetGaussians?: number;
   };
 }
 
@@ -47,12 +51,27 @@ export function dispatchGaussianTrainJob(
         `route remote jobs to GaussianSplatBakingPipeline (api.rendernetwork.com), not the native runner.`,
     );
   }
+  const hp = job.hyperparams;
   const spec: GaussianTrainJobSpec = {
-    hyperparams: {
-      iterations: job.hyperparams.iterations,
-      learningRates: job.hyperparams.learningRates,
-      dilation: job.hyperparams.dilation,
-    },
+    hyperparams: { iterations: hp.iterations, learningRates: hp.learningRates, dilation: hp.dilation },
   };
+  // densifyInterval > 0 turns on adaptive density control (3DGS Algorithm 1). The authoring surface
+  // exposes only interval + cap; the dispatcher supplies the remaining tuning as HEURISTIC defaults —
+  // gradThreshold / scaleThreshold are screen-space/scene-scale dependent, so a real capture may need
+  // them tuned (a future explicit densification config in the trait). This is what makes the
+  // `densifyInterval`/`targetGaussians` knobs LIVE (they were dead before densification existed).
+  if (hp.densifyInterval && hp.densifyInterval > 0) {
+    const it = hp.iterations;
+    spec.densification = {
+      interval: hp.densifyInterval,
+      fromIter: Math.max(1, Math.floor(it * 0.07)),
+      untilIter: Math.floor(it * 0.8),
+      gradThreshold: 0.04,
+      opacityPrune: 0.05,
+      scaleThreshold: 0.2,
+      maxGaussians: hp.targetGaussians && hp.targetGaussians > 0 ? hp.targetGaussians : 1_000_000,
+      seed: 1,
+    };
+  }
   return runGaussianTrainJob(spec, initial, views);
 }

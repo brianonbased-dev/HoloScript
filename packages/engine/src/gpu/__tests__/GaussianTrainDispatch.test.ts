@@ -72,4 +72,25 @@ describe('dispatchGaussianTrainJob — compiler↔runner seam', () => {
     const views: TrainView[] = [{ cam, W: 8, H: 8, target: new Float64Array(8 * 8 * 3) }];
     expect(() => dispatchGaussianTrainJob(remote, makeScene(1, 4), views)).toThrow(/not sovereign/);
   });
+
+  it('densifyInterval > 0 in the job engages adaptive density control through the dispatcher', () => {
+    const W = 40, H = 30, fx = 55;
+    const truth = makeScene(99, 150); // detailed target a sparse init can't represent
+    const views: TrainView[] = [-0.3, 0.3].map((a) => {
+      const cam = cameraFromViewMatrix(viewMatrix(a), fx, fx);
+      return { cam, W, H, target: forward2D(forward3D(truth, cam, W, H).g2, W, H).img };
+    });
+    const job: DispatchableTrainJob = {
+      backend: 'sovereign',
+      hyperparams: {
+        iterations: 200,
+        learningRates: { position: 0.02, scale: 0.004, rotation: 0.01, opacity: 0.01, color: 0.01 },
+        dilation: 0.3,
+        densifyInterval: 20, // the previously-dead knob, now live through the dispatcher
+        targetGaussians: 400,
+      },
+    };
+    const result = dispatchGaussianTrainJob(job, makeScene(3, 20), views);
+    expect(result.finalCount).toBeGreaterThan(20); // density control grew the set via the seam
+  });
 });

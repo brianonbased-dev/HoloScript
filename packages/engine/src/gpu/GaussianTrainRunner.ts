@@ -25,6 +25,7 @@
 
 import { forward2D, backward2D } from './GaussianTrainer2D';
 import { forward3D, backward3D, type Gaussian3D, type SplatCamera } from './GaussianTrainer3D';
+import { densifyAndPrune, seededRng } from './GaussianDensify';
 
 /**
  * Structural subset of @holoscript/core `GaussianTrainJob` that the runner consumes. Kept local
@@ -45,8 +46,28 @@ export interface GaussianTrainJobSpec {
      *  internally; a value other than 0.3 here is NOT yet honoured (threading it through forward3D
      *  is a follow-up). Present so the consumed spec records the assumed value. */
     dilation: number;
-    // NOTE: `densifyInterval`/`targetGaussians` from the full GaussianTrainJob are intentionally
-    // NOT here — this runner is fixed-cardinality and does not consume them (see the header).
+  };
+  /** Adaptive density control (3DGS Algorithm 1). When ABSENT, the runner is fixed-cardinality
+   *  (the original behaviour). When present, gaussians clone/split/prune across the warmup window. */
+  densification?: {
+    /** Densify every `interval` iterations. */
+    interval: number;
+    /** Start densifying at this iteration (warmup). */
+    fromIter: number;
+    /** Stop densifying after this iteration. */
+    untilIter: number;
+    /** Avg 2D-mean gradient (px) above which a gaussian is densified. */
+    gradThreshold: number;
+    /** Prune gaussians with opacity below this. */
+    opacityPrune: number;
+    /** Clone if max world scale <= this, else split. */
+    scaleThreshold: number;
+    /** Split shrink factor (paper φ = 1.6). */
+    splitFactor?: number;
+    /** Hard cap on gaussian count. */
+    maxGaussians: number;
+    /** Deterministic RNG seed (default 1). */
+    seed?: number;
   };
 }
 
@@ -66,6 +87,8 @@ export interface TrainResult {
   iterations: number;
   /** L2 loss sampled each iteration (summed over views). */
   lossHistory: number[];
+  /** Final gaussian count (differs from initial.N iff densification ran). */
+  finalCount: number;
 }
 
 const PARAMS = ['x', 'y', 'z', 'sx', 'sy', 'sz', 'qr', 'qx', 'qy', 'qz', 'op', 'r', 'gr', 'bl'] as const;
@@ -97,21 +120,26 @@ function zeros(n: number): Float64Array {
  */
 export function runGaussianTrainJob(job: GaussianTrainJobSpec, initial: Gaussian3D, views: TrainView[]): TrainResult {
   if (views.length === 0) throw new Error('runGaussianTrainJob: no training views provided');
-  const g = initial;
-  const N = g.N;
+  let g = initial;
   const iters = Math.max(1, Math.floor(job.hyperparams.iterations));
   const lr = lrFor(job);
+  const dc = job.densification;
+  const rng = seededRng(dc?.seed ?? 1);
 
-  // Adam state per parameter.
-  const m: Record<string, Float64Array> = {}, v: Record<string, Float64Array> = {};
-  for (const p of PARAMS) { m[p] = zeros(N); v[p] = zeros(N); }
+  // Adam state per parameter (rebuilt when densification changes the count).
+  let m: Record<string, Float64Array> = {}, vAdam: Record<string, Float64Array> = {};
+  for (const p of PARAMS) { m[p] = zeros(g.N); vAdam[p] = zeros(g.N); }
   const b1 = 0.9, b2 = 0.999, eps = 1e-8;
+
+  // Per-gaussian screen-space (2D mean) gradient accumulator over the current densify interval.
+  let gradAccum2d = zeros(g.N);
+  let accumCount = 0;
 
   const lossHistory: number[] = [];
   let initialLoss = 0, loss = 0;
 
   for (let it = 0; it < iters; it++) {
-    // Accumulate gradients across all views.
+    const N = g.N; // re-read each iter — densification changes it
     const G: Record<string, Float64Array> = {};
     for (const p of PARAMS) G[p] = zeros(N);
     loss = 0;
@@ -124,26 +152,51 @@ export function runGaussianTrainJob(job: GaussianTrainJobSpec, initial: Gaussian
       const dG2 = backward2D(g2, view.W, view.H, dL);
       const grad = backward3D(g, view.cam, view.W, view.H, I, dG2);
       for (const p of PARAMS) { const gp = grad[p]; const acc = G[p]; for (let i = 0; i < N; i++) acc[i] += gp[i]; }
+      if (dc) for (let i = 0; i < N; i++) gradAccum2d[i] += Math.hypot(dG2.posx[i], dG2.posy[i]); // screen-space grad
     }
+    if (dc) accumCount += views.length;
     if (it === 0) initialLoss = loss;
     lossHistory.push(loss);
 
     // Adam step with per-group learning rates.
     const t = it + 1;
     for (const p of PARAMS) {
-      const gp = G[p], mp = m[p], vp = v[p], buf = g[p], step = lr[p];
+      const gp = G[p], mp = m[p], vp = vAdam[p], buf = g[p], step = lr[p];
       for (let i = 0; i < N; i++) {
         const gr = gp[i];
         mp[i] = b1 * mp[i] + (1 - b1) * gr;
         vp[i] = b2 * vp[i] + (1 - b2) * gr * gr;
         buf[i] -= step * (mp[i] / (1 - b1 ** t)) / (Math.sqrt(vp[i] / (1 - b2 ** t)) + eps);
-        // Keep parameters in valid ranges (matches the trainer's tests).
         if (p === 'op') buf[i] = Math.max(0.02, Math.min(0.999, buf[i]));
         else if (p === 'sx' || p === 'sy' || p === 'sz') buf[i] = Math.max(0.02, buf[i]);
         else if (p === 'r' || p === 'gr' || p === 'bl') buf[i] = Math.max(0, Math.min(1, buf[i]));
       }
     }
+
+    // Adaptive density control on the interval (within the warmup window).
+    if (dc && it >= dc.fromIter && it <= dc.untilIter && (it + 1) % dc.interval === 0 && accumCount > 0) {
+      const avgGrad2d = new Float64Array(g.N);
+      for (let i = 0; i < g.N; i++) avgGrad2d[i] = gradAccum2d[i] / accumCount;
+      const { gaussians, origin } = densifyAndPrune(
+        g,
+        { avgGrad2d },
+        {
+          gradThreshold: dc.gradThreshold, opacityPrune: dc.opacityPrune,
+          scaleThreshold: dc.scaleThreshold, splitFactor: dc.splitFactor, maxGaussians: dc.maxGaussians,
+        },
+        rng,
+      );
+      // Rebuild Adam state: survivors carry their moments (origin >= 0), new gaussians start at zero.
+      const nm: Record<string, Float64Array> = {}, nv: Record<string, Float64Array> = {};
+      for (const p of PARAMS) {
+        const a = zeros(gaussians.N), b = zeros(gaussians.N);
+        for (let j = 0; j < gaussians.N; j++) { const o = origin[j]; if (o >= 0) { a[j] = m[p][o]; b[j] = vAdam[p][o]; } }
+        nm[p] = a; nv[p] = b;
+      }
+      g = gaussians; m = nm; vAdam = nv;
+      gradAccum2d = zeros(g.N); accumCount = 0;
+    }
   }
 
-  return { gaussians: g, initialLoss, finalLoss: loss, iterations: iters, lossHistory };
+  return { gaussians: g, initialLoss, finalLoss: loss, iterations: iters, lossHistory, finalCount: g.N };
 }

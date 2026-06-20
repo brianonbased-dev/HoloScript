@@ -39,8 +39,8 @@ export interface GaussianTrainConfig {
   /** Training iterations (mirrors GaussianBakingConfig.trainingIterations; default 30000). */
   iterations: number;
   /** Target gaussian count after densification (mirrors targetGaussianCount; default 500000).
-   *  NOTE: NOT consumed by the sovereign runner yet — it is fixed-cardinality (no densification).
-   *  This field is the shared vocabulary for the remote backend / future densification work. */
+   *  LIVE: when `densifyInterval > 0`, GaussianTrainDispatch routes this to the runner's
+   *  densification.maxGaussians (the cap on adaptive density control). */
   targetGaussians: number;
   /** Learning rate — positions (mirrors GaussianBakingConfig.positionLR; default 0.00016). */
   positionLR: number;
@@ -53,7 +53,8 @@ export interface GaussianTrainConfig {
   /** Learning rate — colors (default 0.0025). */
   colorLR: number;
   /** Densification interval in iterations (0 = off; mirrors densificationInterval; default 100).
-   *  NOTE: NOT consumed by the sovereign runner yet (fixed-cardinality) — shared vocabulary only. */
+   *  LIVE: > 0 turns on adaptive density control (3DGS Algorithm 1) via GaussianTrainDispatch →
+   *  GaussianTrainRunner; the dispatcher supplies heuristic grad/scale thresholds. */
   densifyInterval: number;
   /** 2D low-pass dilation in px (Mip-Splatting eps2d, matches the renderer; default 0.3). */
   dilation: number;
