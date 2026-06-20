@@ -244,3 +244,25 @@ so it's blocked until the peer commits their sibling traits. The compile target 
 registration (GaussianTrainCompiler reads `@gaussian_train` by name from the parsed composition), so this is
 purely discoverability polish, not a functional gap. Do it in one small commit once `git status` shows the
 Quest/onboarding sibling files tracked.
+
+---
+
+## Train the real S23 KitchenTwin natively (blocked on source capture data)
+
+**What might be valuable**: Producing an actual `KitchenTwin` from the real S23 capture entirely on the
+sovereign native trainer — no Python gsplat, no remote api.rendernetwork.com, $0. The full native stack is
+now in place: the gradient-checked autodiff core (GaussianTrainer2D/3D), the `compile_to_gaussian_train`
+language surface, and the posed-view dataset adapter (`GaussianTrainDataset.cameraFromViewMatrix` +
+`viewsFromFrames`) that turns capture poses (the cam.json view-matrix format) into `TrainView[]` and feeds
+`runGaussianTrainJob`. The multi-view training path is proven (3-viewpoint synthetic fit, 391× loss
+collapse). This is the visible payoff the whole trainer arc was built for.
+
+**Why not now**: BLOCKED ON DATA. Only the already-trained `scene.ply` + a single render `cam.json` are on
+disk (`C:/tmp/splat-harness/`) — there are NO source photos, NO `transforms.json`, NO per-image multi-view
+poses. You cannot train a twin from views without the source capture. Training renders-of-the-splat against
+itself would be circular and dishonest, so it was not attempted. To unblock: drop the capture (the frame
+images + their poses, ideally in cam.json / nerfstudio-`transforms.json` form) somewhere local; the adapter
+consumes it directly. Secondary constraint: the JS/CPU trainer is too slow for a full real-scale scene
+(~313k gaussians × many views) — train a downsampled/subset proof on CPU first (`cameraScaled` exists for
+exactly this), and finish Stage 3 (WGSL backward, started in `splat-train-backward.wgsl`) for fast on-device
+training on the Jetson/fleet.
