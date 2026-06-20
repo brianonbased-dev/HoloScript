@@ -639,7 +639,12 @@ export async function handleTool(
   }
 
   // Simulation tools with CAEL trace metadata
-  if (name === 'solve_structural' || name === 'solve_thermal' || name === 'verify_cael_trace') {
+  if (
+    name === 'solve_structural' ||
+    name === 'solve_thermal' ||
+    name === 'verify_cael_trace' ||
+    name === 'solve_logic'
+  ) {
     const { handleSimulationTool } = await import('./simulation-tools');
     return handleSimulationTool(name, args);
   }

@@ -675,6 +675,33 @@ export const simulationTools: Tool[] = [
       },
     },
   },
+  {
+    name: 'solve_logic',
+    description:
+      'Execute a HoloScript .hs LOGIC function (a pure computation/algorithm oracle) in a hardened isolate and return its result plus a CAEL receipt proving the computation. Input: the .hs source, the function name, and positional args. The verifyUrl RE-RUNS the logic to confirm the result (re-runnable proof, not just tamper detection). Use for verifiable math/algorithm oracles (gcd, gradient descent, dijkstra, etc.).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript .hs logic source — one or more top-level `function` declarations.',
+        },
+        functionName: {
+          type: 'string',
+          description: 'The function to invoke from the source.',
+        },
+        args: {
+          type: 'array',
+          description: 'Positional arguments spread into the call, e.g. [48, 36].',
+        },
+        timeout: {
+          type: 'number',
+          description: 'Optional execution timeout in milliseconds (default 5000).',
+        },
+      },
+      required: ['code', 'functionName'],
+    },
+  },
 ];
 
 export async function handleSimulationTool(
@@ -683,6 +710,10 @@ export async function handleSimulationTool(
 ): Promise<unknown | null> {
   if (name === 'verify_cael_trace') {
     return verifyTrace(args);
+  }
+
+  if (name === 'solve_logic') {
+    return solveLogic(args);
   }
 
   if (name !== 'solve_structural' && name !== 'solve_thermal') {
@@ -771,6 +802,51 @@ export async function handleSimulationTool(
   }
 }
 
+async function solveLogic(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const code = typeof args.code === 'string' ? args.code : '';
+  const functionName = typeof args.functionName === 'string' ? args.functionName : '';
+  const logicArgs = Array.isArray(args.args) ? args.args : [];
+  const timeout = typeof args.timeout === 'number' ? args.timeout : undefined;
+  if (!code || !functionName) {
+    return { success: false, error: 'code and functionName are required for solve_logic' };
+  }
+
+  // Safe execution through the canonical sandbox: .hs parse-validation + capability gate
+  // (blocklist + proto-escape) + hardened node:vm isolate. Used purely as the executor.
+  const { HoloScriptSandbox } = await import('@holoscript/security-sandbox');
+  const exec = await new HoloScriptSandbox().executeVerifiedLogic(code, functionName, logicArgs, {
+    timeout,
+  });
+  if (!exec.success || !exec.data) {
+    return { success: false, error: exec.error?.message ?? 'logic execution failed' };
+  }
+  const result = exec.data.result;
+
+  // Record a native CAEL trace (the format verify_cael_trace replays) embedding the inputs,
+  // so the verifyUrl can re-run the logic and confirm the result (re-runnable proof).
+  const recorder = new LocalTraceRecorder(
+    'hs-logic',
+    { code, functionName, args: logicArgs },
+    fnv1a(`${functionName}:${code}`)
+  );
+  recorder.finalize({ result, sandboxVerified: exec.data.verified });
+  const traceJSONL = recorder.toJSONL();
+  const trace = parseTrace(traceJSONL);
+  const last = trace[trace.length - 1];
+  const traceId = `cael:${last?.runId ?? 'unknown'}:${last?.hash ?? 'nohash'}`;
+  traceRegistry.set(traceId, traceJSONL);
+
+  return {
+    success: true,
+    result,
+    verified: exec.data.verified,
+    caelTraceId: traceId,
+    traceHash: last?.hash ?? null,
+    traceJSONL,
+    verifyUrl: `https://mcp.holoscript.net/verify-cael?traceId=${encodeURIComponent(traceId)}`,
+  };
+}
+
 async function verifyTrace(args: Record<string, unknown>): Promise<Record<string, unknown>> {
   const traceId = typeof args.traceId === 'string' ? args.traceId : null;
   const traceJSONLFromArgs = typeof args.traceJSONL === 'string' ? args.traceJSONL : null;
@@ -828,6 +904,41 @@ async function verifyTrace(args: Record<string, unknown>): Promise<Record<string
           totalSimTime += dt;
         }
       }
+    } else if (solverType === 'hs-logic') {
+      // Re-runnable proof for .hs logic: re-execute the recorded function with the recorded
+      // args in the hardened isolate and confirm it reproduces the recorded result. This is
+      // deterministic replay (stronger than hash-chain tamper detection alone).
+      const cfg = (init?.payload?.config ?? {}) as {
+        code?: unknown;
+        functionName?: unknown;
+        args?: unknown;
+      };
+      const code = typeof cfg.code === 'string' ? cfg.code : '';
+      const functionName = typeof cfg.functionName === 'string' ? cfg.functionName : '';
+      const logicArgs = Array.isArray(cfg.args) ? cfg.args : [];
+      if (!code || !functionName) {
+        throw new Error('hs-logic trace is missing code/functionName for replay');
+      }
+      const recordedResult = trace[trace.length - 1]?.payload?.result;
+      const { HoloScriptSandbox } = await import('@holoscript/security-sandbox');
+      const replay = await new HoloScriptSandbox().executeVerifiedLogic(
+        code,
+        functionName,
+        logicArgs
+      );
+      const replayResult = replay.success ? replay.data?.result : undefined;
+      const replayValid =
+        replay.success &&
+        JSON.stringify(canonical(replayResult)) === JSON.stringify(canonical(recordedResult));
+      return {
+        success: replayValid,
+        hashChainValid: true,
+        replayValid,
+        solverType,
+        recordedResult,
+        replayResult,
+        interactions: trace.filter((e) => e.event === 'interaction').length,
+      };
     } else {
       throw new Error(`Unsupported solverType for replay verification: ${solverType}`);
     }
