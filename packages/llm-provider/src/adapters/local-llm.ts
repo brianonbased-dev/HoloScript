@@ -254,18 +254,18 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         num_predict: request.maxTokens ?? 2048,
         ...(request.topP !== undefined ? { top_p: request.topP } : {}),
         ...(request.stop ? { stop: request.stop } : {}),
-        // KV-cache context cap (Jetson 8 GB shared RAM — W.786):
-        //   Injected knowledge (recall + rag_query) can push prompts past 4K tokens;
-        //   3072 is too small and causes tick-errors. 8192 is the safe default:
-        //   qwen3:4b KV ≈ 90KB/token × 8192 ≈ 0.7 GB; model weights ≈ 2.5 GB;
-        //   total ≈ 3.2 GB — well inside Jetson 8 GB shared RAM (W.786 root-cause).
+        // KV-cache context window (Jetson 8 GB unified RAM — W.786/W.790):
+        //   qwen3:4b-instruct: weights ≈ 2.5 GB (4-bit) + KV ≈ 90 KB/tok.
+        //   16384 ctx → ~1.5 GB KV → ~4 GB total — proven live (lghg: 12,670 tok).
+        //   32768 ctx → ~3 GB KV → ~5.5 GB total — safe headroom for longer tasks.
+        //   Old default 3072 caused tick-errors once knowledge injection added ~1K tok.
         // Override via HOLOSCRIPT_LLM_NUM_CTX or HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX.
         ...((): { num_ctx: number } => {
           const raw =
             process.env.HOLOSCRIPT_LLM_NUM_CTX ??
             process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
           const n = raw ? parseInt(raw, 10) : NaN;
-          return { num_ctx: Number.isFinite(n) && n > 0 ? n : 8192 };
+          return { num_ctx: Number.isFinite(n) && n > 0 ? n : 16384 };
         })(),
         // Release model weights from RAM after each request. Ollama's default
         // keep_alive (5 min) holds 2.5 GB pinned between ticks — on an 8 GB
