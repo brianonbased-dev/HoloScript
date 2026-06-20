@@ -210,6 +210,8 @@ fn computeCov2D(
   viewMatrix: mat4x4<f32>,
   focalX: f32,
   focalY: f32,
+  tanFovX: f32,
+  tanFovY: f32,
 ) -> vec3<f32> {
   // Transform position to camera space
   let camPos = viewMatrix * vec4<f32>(pos, 1.0);
@@ -218,9 +220,9 @@ fn computeCov2D(
   // Avoid division by zero
   let tzSafe = select(tz, 0.001, abs(tz) < 0.001);
 
-  // Jacobian of perspective projection
-  let tanFovX = 1.0 / focalX;
-  let tanFovY = 1.0 / focalY;
+  // Frustum clamp at 1.3x the field-of-view half-angle. tanFovX/Y are the true
+  // tan(fov/2) (= 0.5*screen / focal_px), passed in — NOT 1/focal_px, which would
+  // collapse the clamp and shear off-axis splats.
   let limX = 1.3 * tanFovX;
   let limY = 1.3 * tanFovY;
 
@@ -252,12 +254,11 @@ fn computeCov2D(
     R[2] * scale.z,
   );
 
-  // 3D covariance: Sigma = M * M^T
-  let Sigma = mat3x3<f32>(
-    vec3<f32>(dot(M[0], M[0]), dot(M[0], M[1]), dot(M[0], M[2])),
-    vec3<f32>(dot(M[1], M[0]), dot(M[1], M[1]), dot(M[1], M[2])),
-    vec3<f32>(dot(M[2], M[0]), dot(M[2], M[1]), dot(M[2], M[2])),
-  );
+  // 3D covariance: Sigma = M * M^T = R*S^2*R^T (encodes rotation + scale).
+  // NOTE: WGSL mat3x3 is COLUMN-major, so M[i] is the i-th COLUMN. The old manual
+  // form built dot(M[i],M[j]) = (M^T*M)[i][j] = S^2 (diagonal) — it silently
+  // discarded all rotation, projecting every Gaussian axis-aligned -> streaks.
+  let Sigma = M * transpose(M);
 
   // View rotation (upper-left 3x3)
   let V = mat3x3<f32>(
@@ -275,10 +276,10 @@ fn computeCov2D(
   let cov01 = J00 * J11 * T[0][1] + J00 * J12 * T[0][2] + J02 * J11 * T[1][2] + J02 * J12 * T[2][2];
   let cov11 = J11 * J11 * T[1][1] + 2.0 * J11 * J12 * T[1][2] + J12 * J12 * T[2][2];
 
-  // Add low-pass filter to avoid aliasing (minimum 0.3px Gaussian)
-  let covFiltered = vec3<f32>(cov00 + 0.3, cov01, cov11 + 0.3);
-
-  return covFiltered;
+  // Return RAW (un-dilated) covariance. The 0.3px low-pass + the matching opacity
+  // compensation (Mip-Splatting antialiasing) are applied by the caller, which has
+  // the opacity in hand.
+  return vec3<f32>(cov00, cov01, cov11);
 }
 
 // =============================================================================
@@ -315,15 +316,18 @@ fn compressAndKey(
   // (They'll be sorted to the end with max depth key)
   var depthKey: u32;
   if (depth < 0.01) {
-    depthKey = 0xFFFFFFFFu; // Behind camera -> max depth -> sorted last
+    depthKey = 0u; // Behind camera -> sorted FIRST -> overdrawn by visible splats
   } else {
-    // Quantize depth to 32-bit uint for radix sort
-    // Use bit-cast of float: IEEE 754 floats sort correctly as uint when positive
-    // (which camera-space depth always is for visible splats)
-    depthKey = bitcast<u32>(depth);
+    // Back-to-front: premultiplied "over" blending needs farthest drawn first.
+    // Radix sorts ascending; inverting the (positive-float) depth bits makes the
+    // largest depth produce the smallest key, so far splats lead.
+    depthKey = ~bitcast<u32>(depth);
   }
 
-  // Compute 2D covariance (compressed ellipse axes)
+  // Compute 2D covariance (compressed ellipse axes).
+  // True tan(fov/2) = 0.5 * screen_dim / focal_px (focal is in pixels).
+  let tanFovX = 0.5 * uniforms.screenWidth / uniforms.focalX;
+  let tanFovY = 0.5 * uniforms.screenHeight / uniforms.focalY;
   let cov2D = computeCov2D(
     raw.pos,
     raw.scale,
@@ -331,14 +335,35 @@ fn compressAndKey(
     uniforms.viewMatrix,
     uniforms.focalX,
     uniforms.focalY,
+    tanFovX,
+    tanFovY,
+  );
+
+  // Mip-Splatting antialiasing: dilate the 2D covariance by a 0.3px low-pass AND
+  // scale opacity by sqrt(det_raw/det_dilated). Thin / edge-on splats get fattened
+  // by the low-pass, so without the opacity compensation they over-contribute as
+  // full-strength STREAKS. The compensation makes a fattened thin splat fainter,
+  // so overlapping grazing-angle splats blend into a smooth surface (matches gsplat).
+  let detRaw = cov2D.x * cov2D.z - cov2D.y * cov2D.y;
+  let covDil = vec3<f32>(cov2D.x + 0.3, cov2D.y, cov2D.z + 0.3);
+  let detDil = covDil.x * covDil.z - covDil.y * covDil.y;
+  let aaComp = sqrt(clamp(max(detRaw, 0.0) / max(detDil, 1e-9), 0.0, 1.0));
+  let opacityAA = raw.color.a * aaComp;
+
+  // Clamp covariance to the f16-safe range (near-camera splats project huge).
+  let COV_MAX = 16384.0;
+  let covSafe = vec3<f32>(
+    min(covDil.x, COV_MAX),
+    clamp(covDil.y, -COV_MAX, COV_MAX),
+    min(covDil.z, COV_MAX),
   );
 
   // Pack compressed splat
   var compressed: SplatCompressed;
   compressed.pos = raw.pos;
   compressed.packedColor = packRGBA8(raw.color);
-  compressed.packedCov2D_01 = packF16x2(cov2D.x, cov2D.y);
-  compressed.packedCov2D_2_opacity = packF16x2(cov2D.z, raw.color.a);
+  compressed.packedCov2D_01 = packF16x2(covSafe.x, covSafe.y);
+  compressed.packedCov2D_2_opacity = packF16x2(covSafe.z, opacityAA);
   compressed.depth = depth;
   compressed._pad = 0u;
 

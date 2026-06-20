@@ -125,6 +125,11 @@ export class GaussianSplatSorter {
   private blellochScanPipeline: GPUComputePipeline | null = null;
   private globalPrefixPipeline: GPUComputePipeline | null = null;
   private scatterPipeline: GPUComputePipeline | null = null;
+  // Shared explicit layout for all 4 radix-sort passes. The passes bind the full
+  // 7-buffer set; `layout: 'auto'` would derive a *sparse* per-pass layout (only the
+  // bindings each entry point uses) and then reject the extra entries. One explicit
+  // layout makes the dense bind groups valid across every pass.
+  private sortBindGroupLayout: GPUBindGroupLayout | null = null;
 
   // Render pipeline
   private renderPipeline: GPURenderPipeline | null = null;
@@ -250,10 +255,31 @@ export class GaussianSplatSorter {
       },
     });
 
+    // Shared layout for all radix-sort passes (see field doc). bindings:
+    // 0 uniform, 1 keysIn(ro), 2 keysOut, 3 valuesIn(ro), 4 valuesOut,
+    // 5 blockHistograms, 6 globalPrefixes — matching radix-sort.wgsl.
+    const sortBindGroupLayout = this.device.createBindGroupLayout({
+      label: 'radix-sort-bind-group-layout',
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+        { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+        { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+        { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+        { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+        { binding: 6, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+      ],
+    });
+    this.sortBindGroupLayout = sortBindGroupLayout;
+    const sortPipelineLayout = this.device.createPipelineLayout({
+      label: 'radix-sort-pipeline-layout',
+      bindGroupLayouts: [sortBindGroupLayout],
+    });
+
     // Histogram pipeline
     this.histogramPipeline = this.device.createComputePipeline({
       label: 'radix-histogram-pipeline',
-      layout: 'auto',
+      layout: sortPipelineLayout,
       compute: {
         module: this.sortShaderModule,
         entryPoint: 'buildHistogram',
@@ -263,7 +289,7 @@ export class GaussianSplatSorter {
     // Blelloch scan pipeline
     this.blellochScanPipeline = this.device.createComputePipeline({
       label: 'blelloch-scan-pipeline',
-      layout: 'auto',
+      layout: sortPipelineLayout,
       compute: {
         module: this.sortShaderModule,
         entryPoint: 'blellochScan',
@@ -273,7 +299,7 @@ export class GaussianSplatSorter {
     // Global prefix sum pipeline
     this.globalPrefixPipeline = this.device.createComputePipeline({
       label: 'global-prefix-pipeline',
-      layout: 'auto',
+      layout: sortPipelineLayout,
       compute: {
         module: this.sortShaderModule,
         entryPoint: 'globalPrefixScan',
@@ -283,7 +309,7 @@ export class GaussianSplatSorter {
     // Scatter pipeline
     this.scatterPipeline = this.device.createComputePipeline({
       label: 'radix-scatter-pipeline',
-      layout: 'auto',
+      layout: sortPipelineLayout,
       compute: {
         module: this.sortShaderModule,
         entryPoint: 'scatter',
@@ -420,14 +446,16 @@ export class GaussianSplatSorter {
   /**
    * Upload raw splat data to the GPU.
    *
-   * Expected layout per splat (64 bytes):
-   *   position: vec3<f32>  (12 bytes)
-   *   scale:    vec3<f32>  (12 bytes)
-   *   rotation: vec4<f32>  (16 bytes) - quaternion (w, x, y, z)
-   *   color:    vec4<f32>  (16 bytes) - RGBA [0..1]
-   *   padding:             (8 bytes)
+   * Layout per splat = WGSL `SplatRaw` std-layout (64 bytes). vec3 has 16-byte
+   * alignment, so each vec3 is followed by 4 bytes of implicit padding — the
+   * fields are NOT tightly packed:
+   *   position: vec3<f32>  bytes  0..11   (+4 pad)
+   *   scale:    vec3<f32>  bytes 16..27   (+4 pad)  - LINEAR scale (exp of log-scale)
+   *   rotation: vec4<f32>  bytes 32..47   - quaternion (w, x, y, z)
+   *   color:    vec4<f32>  bytes 48..63   - RGBA [0..1], a = opacity
+   * As float32 indices per splat: pos@0, scale@4, rot@8, color@12.
    *
-   * @param data Raw splat data as Float32Array
+   * @param data Raw splat data as Float32Array (16 floats / 64 bytes per splat)
    * @param count Number of splats (not bytes)
    */
   uploadSplatData(data: Float32Array, count: number): void {
@@ -443,6 +471,19 @@ export class GaussianSplatSorter {
     this.blockCount = Math.ceil(
       count / (this.options.workgroupSize * this.options.elementsPerThread)
     );
+
+    // The single-workgroup Blelloch scan (blellochScan) has one shared-memory slot
+    // per block, capped at workgroupSize. Above that the radix sort silently drops
+    // blocks -> incorrect ordering. Cull/LOD below this until the multi-tile scan
+    // lands (tracked: Splat Phase 1a). Warn rather than render a wrong sort silently.
+    const sortLimit =
+      this.options.workgroupSize * this.options.workgroupSize * this.options.elementsPerThread;
+    if (this.blockCount > this.options.workgroupSize) {
+      console.warn(
+        `[GaussianSplatSorter] ${count} splats exceeds the radix-sort limit ` +
+          `(${sortLimit}); ordering will be incorrect. Cull/LOD below ${sortLimit}.`
+      );
+    }
 
     this.device.queue.writeBuffer(
       this.rawSplatBuffer,
@@ -561,7 +602,7 @@ export class GaussianSplatSorter {
     // --- Histogram Pass ---
     const histBindGroup = this.device.createBindGroup({
       label: `histogram-bind-group-pass-${bitOffset}`,
-      layout: this.histogramPipeline!.getBindGroupLayout(0),
+      layout: this.sortBindGroupLayout!,
       entries: [
         { binding: 0, resource: { buffer: this.sortUniformBuffer! } },
         { binding: 1, resource: { buffer: keysIn } },
@@ -582,7 +623,7 @@ export class GaussianSplatSorter {
     // --- Blelloch Scan Pass (per-digit across blocks) ---
     const scanBindGroup = this.device.createBindGroup({
       label: `blelloch-scan-bind-group-pass-${bitOffset}`,
-      layout: this.blellochScanPipeline!.getBindGroupLayout(0),
+      layout: this.sortBindGroupLayout!,
       entries: [
         { binding: 0, resource: { buffer: this.sortUniformBuffer! } },
         { binding: 1, resource: { buffer: keysIn } },
@@ -603,7 +644,7 @@ export class GaussianSplatSorter {
     // --- Global Prefix Scan Pass ---
     const globalPrefixBindGroup = this.device.createBindGroup({
       label: `global-prefix-bind-group-pass-${bitOffset}`,
-      layout: this.globalPrefixPipeline!.getBindGroupLayout(0),
+      layout: this.sortBindGroupLayout!,
       entries: [
         { binding: 0, resource: { buffer: this.sortUniformBuffer! } },
         { binding: 1, resource: { buffer: keysIn } },
@@ -624,7 +665,7 @@ export class GaussianSplatSorter {
     // --- Scatter Pass ---
     const scatterBindGroup = this.device.createBindGroup({
       label: `scatter-bind-group-pass-${bitOffset}`,
-      layout: this.scatterPipeline!.getBindGroupLayout(0),
+      layout: this.sortBindGroupLayout!,
       entries: [
         { binding: 0, resource: { buffer: this.sortUniformBuffer! } },
         { binding: 1, resource: { buffer: keysIn } },
