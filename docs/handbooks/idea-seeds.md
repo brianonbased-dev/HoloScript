@@ -223,3 +223,24 @@ the studio deploy from the shared monorepo build. Two deploy-safe paths, pick on
 or (b) **migrate studio off R3F** onto the sovereign WebGPU renderer first, then retire R3F too. (a) is the
 small, immediate win; (b) is the strategic end state. The build-breaking MATERIAL_PRESETS duplicate is
 already fixed (1-line, owned by MaterialTrait) in the parked WIP.
+
+---
+
+## @gaussian_train runtime TraitHandler registration (deferred from wkz0)
+
+**What might be valuable**: Promoting `@gaussian_train` from a compile-only trait to a fully-registered
+runtime VR trait — adding `'gaussian_train'` to `VRTraitName` (`traits/constants/volumetric-webgpu.ts`) and
+registering a `gaussianTrainHandler` in `VRTraitSystem.ts`. This makes the trait discoverable via
+`list_traits`/`suggest_traits`, surfaces it in the runtime trait registry alongside `@gaussian_splat`, and
+gives it a (no-op) runtime lifecycle so it isn't a silent unregistered name. The trait config surface +
+`compile_to_gaussian_train` target already shipped (commit 408d3ce81); this is the registry half.
+
+**Why not now**: `VRTraitSystem.ts` currently carries **peer in-flight untracked sibling imports**
+(`PassthroughCameraTrait`, `QrDecodeTrait`, `SpatialPanelTrait`, `OnboardingTrait`, `TutorialTrait` — the
+Quest scanner / onboarding work). The untracked-sibling pre-commit gate (correctly) blocks committing
+`VRTraitSystem.ts` because its imports reference files not yet in git — committing it would ship broken
+references and brick the monorepo build (F.102-super). Registering the handler requires editing that file,
+so it's blocked until the peer commits their sibling traits. The compile target works WITHOUT the runtime
+registration (GaussianTrainCompiler reads `@gaussian_train` by name from the parsed composition), so this is
+purely discoverability polish, not a functional gap. Do it in one small commit once `git status` shows the
+Quest/onboarding sibling files tracked.
