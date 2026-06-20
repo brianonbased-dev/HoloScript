@@ -30,10 +30,21 @@ import kotlin.math.sin
 class WorldRenderer {
   private val entities = mutableListOf<Entity>()
 
-  /** Build the themed world for [worldName]. Idempotent — clears any previous world first. */
-  fun enter(worldName: String) {
+  /** Enter the world [worldId]: a real HoloScript world compiled to Meta (worlds/<id>.holo → the
+   *  Worlds registry) if one is bundled, else a themed procedural fallback. Idempotent. */
+  fun enter(worldId: String) {
     leave()
-    val seed = abs(worldName.hashCode())
+    val built = Worlds.build(worldId)
+    if (built != null) {
+      entities.addAll(built) // compiled from worlds/<id>.holo by the quest target
+      return
+    }
+    buildProcedural(worldId)
+  }
+
+  /** Fallback world for an id with no bundled HoloScript composition — themed by the id's hash. */
+  private fun buildProcedural(seedName: String) {
+    val seed = abs(seedName.hashCode())
     val accent = PALETTE[seed % PALETTE.size]
     val accent2 = PALETTE[(seed / 7 + 3) % PALETTE.size]
 

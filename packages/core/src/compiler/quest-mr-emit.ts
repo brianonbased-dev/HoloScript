@@ -213,7 +213,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
 }
 
 // ── Emit ─────────────────────────────────────────────────────────────────────
-const PKG = 'com.meta.spatial.samples.startersample';
+export const PKG = 'com.meta.spatial.samples.startersample';
 const SRC_DIR = `app/src/main/java/${PKG.replace(/\./g, '/')}`;
 const GEN_REL = `${SRC_DIR}/ScannerContent.kt`;
 const STRINGS_REL = 'app/src/main/res/values/strings.xml';

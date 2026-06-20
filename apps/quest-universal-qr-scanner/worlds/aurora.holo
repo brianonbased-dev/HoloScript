@@ -1,0 +1,63 @@
+// Aurora Fields — a second HoloScript world (proves the world→Meta pipeline generalizes across
+// compositions). Authored natively; compiled to Meta Spatial SDK by the `quest` target. Reached by
+// scanning holoscript://world/aurora-fields (worldId "aurora-fields" → registry key "aurora").
+
+composition "AuroraFields" {
+  environment {
+    backgroundColor: "#160a2e"   // deep violet skybox
+    ambient_light: 0.55
+  }
+
+  object "Ground" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [44, 44, 1]
+    color: "#241046"
+  }
+
+  // Tall aurora spires of alternating height.
+  object "SpireA" {
+    geometry: "box"
+    position: [-4, 2.2, 5]
+    scale: [0.5, 4.4, 0.5]
+    color: "#a855f7"
+  }
+  object "SpireB" {
+    geometry: "box"
+    position: [-1.4, 3.0, 6.5]
+    scale: [0.5, 6.0, 0.5]
+    color: "#c084fc"
+  }
+  object "SpireC" {
+    geometry: "box"
+    position: [1.4, 2.6, 6.5]
+    scale: [0.5, 5.2, 0.5]
+    color: "#e879f9"
+  }
+  object "SpireD" {
+    geometry: "box"
+    position: [4, 2.0, 5]
+    scale: [0.5, 4.0, 0.5]
+    color: "#a855f7"
+  }
+
+  // Drifting light-orbs.
+  object "OrbCyan" {
+    geometry: "sphere"
+    position: [-3, 2.6, 2.5]
+    scale: [0.8, 0.8, 0.8]
+    color: "#22d3ee"
+  }
+  object "OrbMint" {
+    geometry: "sphere"
+    position: [3, 3.1, 2.5]
+    scale: [0.7, 0.7, 0.7]
+    color: "#5eead4"
+  }
+  object "OrbRose" {
+    geometry: "sphere"
+    position: [0, 1.8, -4]
+    scale: [1.0, 1.0, 1.0]
+    color: "#fb7185"
+  }
+}

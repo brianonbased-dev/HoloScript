@@ -165,10 +165,12 @@ class StarterSampleActivity : AppSystemActivity() {
   // scanning another world link hops worlds.
   private fun enterWorld(link: String) {
     Log.i(tag, "entering world: $link")
-    val name = WorldPortal.worldName(link)
+    val worldId = WorldPortal.worldId(link)
+    // Prefer the compiled HoloScript world's own name; fall back to the name parsed from the link.
+    val name = Worlds.displayName(worldId) ?: WorldPortal.worldName(link)
     ScannerState.enterWorld(name)
     if (sceneReady) {
-      worldRenderer.enter(name) // build the themed 3D world (skybox occludes passthrough)
+      worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
       scene.enablePassthrough(false)
     }
     controller?.resumeScanning() // keep scanning inside the world

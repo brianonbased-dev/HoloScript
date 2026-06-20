@@ -9,25 +9,50 @@
 // CRLF is normalised so git autocrlf can't cause false drift.
 //
 //   npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HoloCompositionParser } from '../../packages/core/src/parser/HoloCompositionParser';
 import { QuestCompiler } from '../../packages/core/src/compiler/QuestCompiler';
+import {
+  emitWorldSceneKt,
+  emitWorldsRegistryKt,
+} from '../../packages/core/src/compiler/quest-world-emit';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'quest-universal-qr-scanner');
 const specPath = join(appDir, 'scanner.holo');
 const refDir = join(appDir, 'android-mr');
+const srcRel = 'app/src/main/java/com/meta/spatial/samples/startersample';
 
 const norm = (s: string) => s.replace(/\r\n/g, '\n');
 
-const parsed = new HoloCompositionParser().parse(readFileSync(specPath, 'utf8'));
-if (!parsed.success || !parsed.ast) {
-  console.error('✗ scanner.holo failed to parse:', parsed.errors);
-  process.exit(1);
+function parseOrDie(file: string, label: string) {
+  const r = new HoloCompositionParser().parse(readFileSync(file, 'utf8'));
+  if (!r.success || !r.ast) {
+    console.error(`✗ ${label} failed to parse:`, r.errors);
+    process.exit(1);
+  }
+  return r.ast;
 }
-const emitted = new QuestCompiler().compile(parsed.ast, '');
+
+const emitted: Record<string, string> = new QuestCompiler().compile(parseOrDie(specPath, 'scanner.holo'), '');
+
+// HoloScript worlds (worlds/*.holo → Meta Spatial SDK scene Kotlin) — same drift invariant.
+const worldsDir = join(appDir, 'worlds');
+if (existsSync(worldsDir)) {
+  const worldFiles = readdirSync(worldsDir).filter((f) => f.endsWith('.holo')).sort();
+  const worldIds: string[] = [];
+  for (const wf of worldFiles) {
+    const id = basename(wf, '.holo');
+    worldIds.push(id);
+    emitted[`${srcRel}/World_${id.replace(/[^a-zA-Z0-9]+/g, '_')}.kt`] = emitWorldSceneKt(
+      parseOrDie(join(worldsDir, wf), wf),
+      id
+    );
+  }
+  emitted[`${srcRel}/WorldsRegistry.kt`] = emitWorldsRegistryKt(worldIds);
+}
 
 let failures = 0;
 const paths = Object.keys(emitted);
