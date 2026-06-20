@@ -254,15 +254,19 @@ export class LocalLLMAdapter extends BaseLLMAdapter {
         num_predict: request.maxTokens ?? 2048,
         ...(request.topP !== undefined ? { top_p: request.topP } : {}),
         ...(request.stop ? { stop: request.stop } : {}),
-        // KV-cache context cap (Jetson 8 GB shared RAM — W.735):
-        //   num_ctx=4096 → ~7 GB (OOM risk) | 3072 → ~5.5 GB (safe headless)
-        //   2048 → ~4 GB but too small: qwen3:4b thinking consumes ~1050+ tokens
-        //   on real tasks, leaving < 500 tokens for tool-call JSON → done_reason=length
-        //   → empty tool_calls → no artifact gate fails. 3072 is the safe minimum.
-        // Override via HOLOSCRIPT_LLM_NUM_CTX; unset → model's baked-in default.
-        ...(process.env.HOLOSCRIPT_LLM_NUM_CTX
-          ? { num_ctx: parseInt(process.env.HOLOSCRIPT_LLM_NUM_CTX, 10) }
-          : { num_ctx: 3072 }),
+        // KV-cache context cap (Jetson 8 GB shared RAM — W.786):
+        //   Injected knowledge (recall + rag_query) can push prompts past 4K tokens;
+        //   3072 is too small and causes tick-errors. 8192 is the safe default:
+        //   qwen3:4b KV ≈ 90KB/token × 8192 ≈ 0.7 GB; model weights ≈ 2.5 GB;
+        //   total ≈ 3.2 GB — well inside Jetson 8 GB shared RAM (W.786 root-cause).
+        // Override via HOLOSCRIPT_LLM_NUM_CTX or HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX.
+        ...((): { num_ctx: number } => {
+          const raw =
+            process.env.HOLOSCRIPT_LLM_NUM_CTX ??
+            process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+          const n = raw ? parseInt(raw, 10) : NaN;
+          return { num_ctx: Number.isFinite(n) && n > 0 ? n : 8192 };
+        })(),
         // Release model weights from RAM after each request. Ollama's default
         // keep_alive (5 min) holds 2.5 GB pinned between ticks — on an 8 GB
         // device sharing RAM with OS + monitor + agent this is fatal across
