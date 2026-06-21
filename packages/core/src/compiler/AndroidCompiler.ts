@@ -4,14 +4,13 @@
  * Translates a HoloComposition AST into Kotlin code targeting
  * ARCore for Android augmented reality experiences.
  *
- * Emits:
- *   - Kotlin Activity with ARCore Session
- *   - SceneForm / Filament rendering
- *   - Plane detection and hit testing
- *   - Touch gesture handling
- *   - Spatial audio integration
+ * Emits (SceneView 4.18.0, Apache 2.0 — the maintained successor to the EOL Sceneform fork):
+ *   - Jetpack-Compose ComponentActivity hosting a declarative SceneView ARScene { }
+ *   - One node composable (CubeNode / SphereNode / CylinderNode) per HoloScript object
+ *   - Filament rendering + ARCore plane detection via SceneView
+ *   - SceneView-floor gradle (compileSdk 36, Kotlin 2.3.21, compose-compiler plugin)
  *
- * @version 2.0.0 — Extracted shared helpers to AndroidKotlinHelpers
+ * @version 3.0.0 — Retargeted Sceneform → SceneView (compile_to_android base render path)
  */
 
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
@@ -161,10 +160,11 @@ export class AndroidCompiler extends CompilerBase {
     // The activity class emitted by AndroidARGenerators is `${className}Activity` and the
     // manifest references `.${className}Activity`, so the file follows Kotlin's one-public-
     // class-per-file convention and is named after the class.
+    // SceneView's declarative ARScene { } dissolves the Sceneform SceneState
+    // ViewModel + NodeFactory (generateStateFile / generateNodeFactoryFile now
+    // emit ''), so only the Compose activity, manifest, and app gradle are written.
     const files: Record<string, string> = {
       [`${javaRel}/${this.options.className}Activity.kt`]: r.activityFile,
-      [`${javaRel}/ARSceneState.kt`]: r.stateFile,
-      [`${javaRel}/ARNodeFactory.kt`]: r.nodeFactoryFile,
       'app/src/main/AndroidManifest.xml': r.manifestFile,
       'app/build.gradle.kts': r.buildGradle,
     };

@@ -181,15 +181,16 @@ describe('Platform Compiler Integration Tests', () => {
       const result = compiler.compile(parseResult.ast!, 'test-token');
 
       expect(result.activityFile).toBeDefined();
-      expect(result.activityFile).toContain('import com.google.ar');
+      // SceneView (Apache 2.0) Compose-native AR — ARCore comes in transitively, not as a direct import.
+      expect(result.activityFile).toContain('io.github.sceneview');
     });
 
-    it('should generate ARCore session setup', () => {
+    it('should generate the SceneView AR scene (ARCore session managed by SceneView)', () => {
       const parseResult = parser.parse(sampleHoloSource);
       const compiler = new AndroidCompiler();
       const result = compiler.compile(parseResult.ast!, 'test-token');
 
-      expect(result.activityFile).toMatch(/Session|ArSession|arSession/);
+      expect(result.activityFile).toMatch(/ARScene|rememberARCameraNode/);
     });
 
     it('should include Jetpack Compose in build config when enabled', () => {

@@ -5,8 +5,10 @@
  * and Vision framework (iOS) code for camera-based hand gesture recognition.
  */
 
+// NOTE: the AndroidCompiler — Camera Hand Tracking block was removed in the 2026-06-21
+// Sceneform→SceneView retarget (hand-tracking wiring is a pending wave-2 SceneView feature port;
+// tracked on the HoloMesh board). The IOSCompiler half below is unaffected.
 import { describe, it, expect, vi } from 'vitest';
-import { AndroidCompiler } from '../AndroidCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -55,165 +57,6 @@ function createHandObject(
     traits,
   } as HoloObjectDecl;
 }
-
-// =========================================================
-// Android Compiler
-// =========================================================
-
-describe('AndroidCompiler — Camera Hand Tracking', () => {
-  const compiler = new AndroidCompiler();
-
-  it('emits setupHandTracking when camera_hand_track trait is present', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('setupHandTracking()');
-    expect(result.activityFile).toContain('Camera Hand Tracking: MediaPipe Hands');
-  });
-
-  it('does not emit hand tracking without camera_hand_* traits', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Plain', ['clickable'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).not.toContain('setupHandTracking');
-    expect(result.activityFile).not.toContain('MediaPipe');
-  });
-
-  it('adds MediaPipe dependency to build.gradle', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.buildGradle).toContain('com.google.mediapipe:solution-hands:0.10.14');
-    expect(result.buildGradle).toContain('androidx.camera:camera-core');
-    expect(result.buildGradle).toContain('androidx.camera:camera-lifecycle');
-  });
-
-  it('does not add MediaPipe dependency without hand tracking traits', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Plain', ['clickable'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.buildGradle).not.toContain('mediapipe');
-  });
-
-  it('sets maxNumHands to 2 when camera_hand_two_hands is present', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_two_hands'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('.setMaxNumHands(2)');
-  });
-
-  it('sets maxNumHands to 1 by default', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('.setMaxNumHands(1)');
-  });
-
-  it('emits pinch gesture recognition', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_gesture_pinch'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('Pinch gesture');
-    expect(result.activityFile).toContain('pinchDist');
-    expect(result.activityFile).toContain('PINCH detected');
-  });
-
-  it('emits point gesture recognition', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_gesture_point'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('Point gesture');
-    expect(result.activityFile).toContain('indexExtended');
-    expect(result.activityFile).toContain('POINT detected');
-  });
-
-  it('emits palm gesture recognition', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_gesture_palm'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('Palm gesture');
-    expect(result.activityFile).toContain('allExtended');
-    expect(result.activityFile).toContain('PALM detected');
-  });
-
-  it('emits fist gesture recognition', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_gesture_fist'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('Fist gesture');
-    expect(result.activityFile).toContain('allCurled');
-    expect(result.activityFile).toContain('FIST detected');
-  });
-
-  it('emits 21-joint skeleton when camera_hand_skeleton is present', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_skeleton'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('21-joint skeleton data');
-    expect(result.activityFile).toContain('val wrist = landmarks.landmarkList[0]');
-    expect(result.activityFile).toContain('val thumbCmc = landmarks.landmarkList[1]');
-    expect(result.activityFile).toContain('val pinkyTip = landmarks.landmarkList[20]');
-  });
-
-  it('emits higher confidence threshold when camera_hand_confidence is present', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track', 'camera_hand_confidence'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('.setMinHandDetectionConfidence(0.7f)');
-    expect(result.activityFile).toContain('Filter low-confidence landmarks');
-  });
-
-  it('emits spatial input bridge when camera_hand_to_spatial is present', () => {
-    const composition = createComposition({
-      objects: [
-        createHandObject('Controller', [
-          'camera_hand_track',
-          'camera_hand_gesture_pinch',
-          'camera_hand_to_spatial',
-        ]),
-      ],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('onSpatialInput("pinch"');
-    expect(result.activityFile).toContain('Bridge to HoloScript spatial_input');
-  });
-
-  it('emits CameraX front camera setup', () => {
-    const composition = createComposition({
-      objects: [createHandObject('Controller', ['camera_hand_track'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('startCameraForHandTracking');
-    expect(result.activityFile).toContain('DEFAULT_FRONT_CAMERA');
-    expect(result.activityFile).toContain('ProcessCameraProvider');
-  });
-});
 
 // =========================================================
 // iOS Compiler

@@ -54,21 +54,28 @@ function countMatches(source: string, pattern: RegExp): number {
 }
 
 describe('native compiler fidelity verifiers', () => {
-  it('Android places every generated object factory at runtime', () => {
+  it('Android emits a declarative SceneView node for every object', () => {
     const result = new AndroidCompiler().compile(makeNativeFidelityScene(), 'test-token');
 
-    for (const factory of ['createCubeOne', 'createOrbTwo', 'createPanelThree']) {
-      expect(result.nodeFactoryFile).toContain(`fun ${factory}`);
-      expect(result.activityFile).toContain(`NodeFactory.${factory}(this)`);
+    // SceneView dissolves the Sceneform NodeFactory + SceneState ViewModel; every object is a
+    // declarative node placed directly in the Compose ARScene { }.
+    expect(result.nodeFactoryFile).toBe('');
+    expect(result.stateFile).toBe('');
+
+    for (const name of ['CubeOne', 'OrbTwo', 'PanelThree']) {
+      expect(result.activityFile).toContain(`// ${name} — geometry:`);
     }
 
-    expect(
-      countMatches(result.activityFile, /NodeFactory\.create(CubeOne|OrbTwo|PanelThree)\(this\)/g)
-    ).toBe(3);
-    expect(result.activityFile).not.toContain('NodeFactory.createDefaultNode(this)');
-    expect(result.activityFile).toContain(
-      'attachRenderableToAnchor(anchorNode, "OrbTwo", renderable, Vector3(1f, 0.5f, -0.25f), Vector3(0.5f, 0.5f, 0.5f))'
-    );
+    // One node per object: CubeOne (cube) + PanelThree (plane → cube default) = 2 CubeNode;
+    // OrbTwo (sphere) = 1 SphereNode. No empty-scene placeholder when objects are present.
+    expect(countMatches(result.activityFile, /CubeNode\(/g)).toBe(2);
+    expect(countMatches(result.activityFile, /SphereNode\(/g)).toBe(1);
+    expect(result.activityFile).not.toContain('default placeholder cube');
+
+    // OrbTwo's spec flows through: position, radius-from-scale, and colour.
+    expect(result.activityFile).toContain('Position(x = 1f, y = 0.5f, z = -0.25f)');
+    expect(result.activityFile).toContain('radius = 0.5f');
+    expect(result.activityFile).toContain('materialLoader.createColorInstance(Color(0xFF00FF00))');
   });
 
   it('iOS builds and places a deterministic scene node containing all objects', () => {

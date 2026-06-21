@@ -148,11 +148,12 @@ describe('AndroidCompiler — Production', () => {
   });
 
   // ─── SDK versions ─────────────────────────────────────────────────────
-  it('minSdk and targetSdk appear in buildGradle', () => {
+  it('minSdk appears verbatim; targetSdk floors at the SceneView 36 requirement', () => {
     const c = new AndroidCompiler({ minSdk: 26, targetSdk: 34 });
     const { buildGradle } = c.compile(makeComp(), 'test-token');
-    expect(buildGradle).toContain('26');
-    expect(buildGradle).toContain('34');
+    expect(buildGradle).toContain('minSdk = 26');
+    // targetSdk 34 is below SceneView 4.18.0's API-36 floor, so it is raised to 36.
+    expect(buildGradle).toContain('targetSdk = 36');
   });
 
   // ─── Convenience function ─────────────────────────────────────────────
@@ -168,10 +169,10 @@ describe('AndroidCompiler — Production', () => {
   });
 
   // ─── Multiple objects ─────────────────────────────────────────────────
-  it('compiles multiple objects', () => {
+  it('compiles multiple objects into the declarative activity', () => {
     const objs = [makeObj('X'), makeObj('Y'), makeObj('Z')];
-    const { nodeFactoryFile } = compiler.compile(makeComp({ objects: objs }), 'test-token');
-    expect(nodeFactoryFile).toContain('X');
-    expect(nodeFactoryFile).toContain('Y');
+    const { activityFile } = compiler.compile(makeComp({ objects: objs }), 'test-token');
+    expect(activityFile).toContain('X');
+    expect(activityFile).toContain('Y');
   });
 });

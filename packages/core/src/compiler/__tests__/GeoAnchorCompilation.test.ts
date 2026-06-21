@@ -5,8 +5,10 @@
  * ARKit (iOS) code for GPS-pinned persistent holographic scenes.
  */
 
+// NOTE: the AndroidCompiler — Geo-Anchor block was removed in the 2026-06-21 Sceneform→SceneView
+// retarget (geo-anchor wiring is a pending wave-2 SceneView feature port; tracked on the HoloMesh
+// board). The IOSCompiler half below is unaffected.
 import { describe, it, expect } from 'vitest';
-import { AndroidCompiler } from '../AndroidCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -47,75 +49,6 @@ function createGeoObject(
     traits,
   } as HoloObjectDecl;
 }
-
-describe('AndroidCompiler — Geo-Anchor', () => {
-  const compiler = new AndroidCompiler();
-
-  it('emits geo-anchor setup when geo_anchor trait is present', () => {
-    const composition = createComposition({
-      objects: [
-        createGeoObject('Landmark', [
-          { name: 'geo_anchor', config: { latitude: 37.7749, longitude: -122.4194 } },
-        ]),
-      ],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('setupGeoAnchors');
-    expect(result.activityFile).toContain('createGeoAnchor');
-    expect(result.activityFile).toContain('37.7749');
-    expect(result.activityFile).toContain('-122.4194');
-  });
-
-  it('adds location permissions to manifest when geo traits present', () => {
-    const composition = createComposition({
-      objects: [createGeoObject('Pin', ['geo_anchor'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.manifestFile).toContain('ACCESS_FINE_LOCATION');
-    expect(result.manifestFile).toContain('ACCESS_COARSE_LOCATION');
-  });
-
-  it('does not add location permissions without geo traits', () => {
-    const composition = createComposition({
-      objects: [createGeoObject('Plain', ['clickable'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.manifestFile).not.toContain('ACCESS_FINE_LOCATION');
-  });
-
-  it('emits cloud anchor save/restore when geo_persist is present', () => {
-    const composition = createComposition({
-      objects: [createGeoObject('Persistent', ['geo_anchor', 'geo_persist'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('restoreGeoAnchors');
-    expect(result.activityFile).toContain('saveGeoAnchorToCloud');
-    expect(result.activityFile).toContain('hostCloudAnchorAsync');
-  });
-
-  it('emits Geospatial API config when geo_arcore_geospatial trait present', () => {
-    const composition = createComposition({
-      objects: [createGeoObject('VPSObject', ['geo_anchor', 'geo_arcore_geospatial'])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).toContain('GeospatialMode.ENABLED');
-  });
-
-  it('does not emit geo code for compositions without geo traits', () => {
-    const composition = createComposition({
-      objects: [createGeoObject('NormalCube', [])],
-    });
-    const result = compiler.compile(composition);
-
-    expect(result.activityFile).not.toContain('setupGeoAnchors');
-    expect(result.activityFile).not.toContain('createGeoAnchor');
-  });
-});
 
 describe('IOSCompiler — Geo-Anchor', () => {
   const compiler = new IOSCompiler();

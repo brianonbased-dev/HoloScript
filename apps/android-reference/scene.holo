@@ -2,10 +2,16 @@
 //
 // HoloScript-native composition compiled by AndroidCompiler through the REAL HoloCompositionParser.
 // The Kotlin + gradle under android/ is @generated output, golden-diff gated
-// (scripts/holo-ci/check-android-emit-matches-reference.mts). Edit HERE, then re-run
+// (scripts/holo-ci/check-android-emit-matches-reference.mts) and build-verified against a real
+// toolchain (scripts/holo-ci/check-android-build-verify.mts). Edit HERE, then re-run
 // generate-native.mts — never hand-edit the generated Kotlin (mirrors the Android-XR scene.holo
 // pattern). Distinct from compile_to_android_xr (Jetpack XR / headset): this is the phone-AR
 // ARCore target.
+//
+// Target: SceneView 4.18.0 (io.github.sceneview, Apache 2.0) — the maintained successor to the
+// EOL Sceneform fork. The base render path (declarative ARScene { } nodes) is what this scene
+// exercises; feature traits (geo-anchor, depth scan, hand tracking, …) are a separate wave-2
+// SceneView port, so this reference declares only base geometry/position/scale/color.
 
 composition "AndroidReference" {
   environment {
@@ -15,19 +21,19 @@ composition "AndroidReference" {
     package: "net.holoscript.android"
   }
 
-  // A cube placed on a detected plane via hit-testing.
+  // A cube floating 1m in front of the camera.
   object "anchor_cube" {
-    @plane_detection
     geometry: "cube"
     position: [0.0, 0.0, -1.0]
     scale: 0.2
+    color: "#4488FF"
   }
 
-  // A sphere the user can reach with hand tracking.
+  // A smaller sphere offset to the right.
   object "target_sphere" {
-    @hand_tracking
     geometry: "sphere"
     position: [0.3, 0.0, -1.0]
     scale: 0.1
+    color: "#FF8844"
   }
 }

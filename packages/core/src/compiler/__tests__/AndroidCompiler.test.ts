@@ -61,7 +61,7 @@ describe('AndroidCompiler', () => {
 
   // =========== State file ===========
 
-  it('generates state file with state properties', () => {
+  it('dissolves the state file under the declarative SceneView model', () => {
     const comp = makeComposition({
       state: {
         properties: [
@@ -71,20 +71,21 @@ describe('AndroidCompiler', () => {
       },
     });
     const result = compiler.compile(comp, 'test-token');
-    expect(result.stateFile).toContain('score');
-    expect(result.stateFile).toContain('active');
+    // SceneView keeps state in the composable tree — no separate SceneState ViewModel.
+    expect(result.stateFile).toBe('');
   });
 
-  // =========== Objects → node factory ===========
+  // =========== Objects → declarative nodes ===========
 
-  it('generates node factory for objects', () => {
+  it('emits a declarative node per object in the activity', () => {
     const comp = makeComposition({
       objects: [
         { name: 'cube', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
       ] as any,
     });
     const result = compiler.compile(comp, 'test-token');
-    expect(result.nodeFactoryFile).toContain('NodeFactory');
+    expect(result.activityFile).toContain('CubeNode');
+    expect(result.nodeFactoryFile).toBe('');
   });
 
   // =========== Manifest ===========
@@ -109,7 +110,7 @@ describe('AndroidCompiler', () => {
 
   // =========== Multiple objects ===========
 
-  it('compiles multiple objects to factory methods', () => {
+  it('compiles multiple objects to declarative nodes', () => {
     const comp = makeComposition({
       objects: [
         { name: 'obj_a', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
@@ -117,20 +118,20 @@ describe('AndroidCompiler', () => {
       ] as any,
     });
     const result = compiler.compile(comp, 'test-token');
-    expect(result.nodeFactoryFile).toContain('NodeFactory');
-    expect(result.nodeFactoryFile).toContain('Renderable');
+    expect(result.activityFile).toContain('CubeNode');
+    expect(result.activityFile).toContain('SphereNode');
   });
 
-  // =========== Name sanitization ===========
+  // =========== Object names in output ===========
 
-  it('sanitizes object names in Kotlin output', () => {
+  it('includes object names in the generated activity', () => {
     const comp = makeComposition({
       objects: [
         { name: 'my_obj', properties: [{ key: 'geometry', value: 'box' }], traits: [] },
       ] as any,
     });
     const result = compiler.compile(comp, 'test-token');
-    expect(result.nodeFactoryFile).toContain('createDefaultNode');
+    expect(result.activityFile).toContain('my_obj');
   });
 
   // =========== Convenience export ===========

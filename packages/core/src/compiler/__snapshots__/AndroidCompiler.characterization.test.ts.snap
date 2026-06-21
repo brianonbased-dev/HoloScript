@@ -1,24 +1,24 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A1] empty composition locks baseline > A1-empty 1`] = `"25da8dfd08bf3186"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A1] empty composition locks baseline > A1-empty 1`] = `"e1699343ec7b3c52"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A2] composition with single object locks codegen > A2-singleObject 1`] = `"1bec1e0177aeee90"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A2] composition with single object locks codegen > A2-singleObject 1`] = `"342de8bc58cae5c2"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A3] composition with multiple objects locks codegen > A3-multiObject 1`] = `"8c756a74249bbc4c"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A3] composition with multiple objects locks codegen > A3-multiObject 1`] = `"a76d6abd41628f06"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A4] manifestFile isolated lock > A4-manifestIsolated 1`] = `"86c002d7f17cf091"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A4] manifestFile isolated lock > A4-manifestIsolated 1`] = `"a1bdc306bd6d6a7d"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A5] buildGradle isolated lock > A5-buildGradleIsolated 1`] = `"045d67cb7cba2c53"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Core codegen (activity/state/nodeFactory/manifest/buildGradle) > [A5] buildGradle isolated lock > A5-buildGradleIsolated 1`] = `"10ea38cfe11ecdf0"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A6] npu_* trait triggers npuSceneSetup > A6-npu 1`] = `"ad8c1351a20f6476"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A6] npu_* trait triggers npuSceneSetup > A6-npu 1`] = `"f58ebe7ba098eb15"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A7] haptic_* trait triggers hapticSetup > A7-haptic 1`] = `"c3310324bba92495"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A7] haptic_* trait triggers hapticSetup > A7-haptic 1`] = `"5655254c00eb0b1f"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A8] nearby_* trait triggers nearbySetup > A8-nearby 1`] = `"64bad4f31fe1a5c3"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A8] nearby_* trait triggers nearbySetup > A8-nearby 1`] = `"19ed281bc0e8c037"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A9] foldable_* trait triggers foldableSetup > A9-foldable 1`] = `"cd0fe9a75a6837e2"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A9] foldable_* trait triggers foldableSetup > A9-foldable 1`] = `"cf52d6c9248625f5"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A10] lens_* trait triggers lensSetup > A10-lens 1`] = `"6748d943b0108a5b"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidCompiler — Per-trait resource emission > [A10] lens_* trait triggers lensSetup > A10-lens 1`] = `"112c9f0317482281"`;
 
 exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Core codegen (XR glasses target) > [A11] XR empty composition locks baseline > A11-xrEmpty 1`] = `"8a080a2387945df8"`;
 
@@ -30,4 +30,4 @@ exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > Androi
 
 exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > AndroidXRCompiler — Trait map (via XR compiler) + Glimmer composables > [A15] XR composition with trait exercises AndroidXRTraitMap dispatch > A15-xrTraitMap 1`] = `"7d91d95f95c08fd5"`;
 
-exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > Cross-compiler composite > [A16] same composition compiled to both targets — diff-lock across trio > A16-crossCompositeDiffLock 1`] = `"ef6724e314df56b1"`;
+exports[`Android trio characterization (W4-T3 pre-split lock for W1-T3) > Cross-compiler composite > [A16] same composition compiled to both targets — diff-lock across trio > A16-crossCompositeDiffLock 1`] = `"9a88de21bb6f109e"`;

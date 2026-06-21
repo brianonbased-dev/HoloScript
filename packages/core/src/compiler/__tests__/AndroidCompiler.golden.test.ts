@@ -8,12 +8,13 @@
  * the emitter cannot silently drift (the pre-commit hook bypasses for agent/automation envs; this
  * test runs in `pnpm test`, so CI still catches drift). Line endings are normalised (CRLF→LF).
  *
- * NOTE: the reference is the CURRENT emitter output. It does NOT yet `gradle assembleDebug` clean —
- * the legacy Android (ARCore/Sceneform) codegen still emits Kotlin/gradle that need correctness fixes
- * (see apps/android-reference/README.md + research/2026-06-20_android-xr-build-verify-gate.md). This
- * gate LOCKS the output so those fixes are drift-controlled (W.783: gate BEFORE fixing emit). When the
- * reference changes intentionally, update the emitter so output matches again — never edit one side to
- * match a drifted other.
+ * The reference is the CURRENT emitter output and it `gradle assembleDebug` builds GREEN: the
+ * compile_to_android target was retargeted off the EOL Sceneform fork onto SceneView 4.18.0
+ * (Apache 2.0, Compose-native ARScene). Proven end-to-end — golden-diff (this gate) + real gradle
+ * build (scripts/holo-ci/check-android-build-verify.mts) + a live ARCore session on a Galaxy S23.
+ * When the reference changes intentionally, edit apps/android-reference/scene.holo and re-run
+ * apps/android-reference/generate-native.mts so the emitter output matches again — never edit one
+ * side to match a drifted other.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';

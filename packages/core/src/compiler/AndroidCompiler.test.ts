@@ -127,12 +127,21 @@ describe('AndroidCompiler', () => {
       expect(result.buildGradle).toContain('24');
     });
 
-    it('should use custom target SDK version', () => {
-      const customCompiler = new AndroidCompiler({ targetSdk: 35 });
+    it('should use custom target SDK version (above the SceneView 36 floor)', () => {
+      const customCompiler = new AndroidCompiler({ targetSdk: 37 });
       const composition = createComposition();
       const result = customCompiler.compile(composition);
 
-      expect(result.buildGradle).toContain('35');
+      expect(result.buildGradle).toContain('37');
+    });
+
+    it('floors compile/target SDK at 36 (SceneView 4.18.0 requires API 36)', () => {
+      const customCompiler = new AndroidCompiler({ targetSdk: 34 });
+      const composition = createComposition();
+      const result = customCompiler.compile(composition);
+
+      expect(result.buildGradle).toContain('compileSdk = 36');
+      expect(result.buildGradle).toContain('targetSdk = 36');
     });
   });
 
@@ -150,7 +159,9 @@ describe('AndroidCompiler', () => {
       });
       const result = compiler.compile(composition);
 
-      expect(result.nodeFactoryFile).toContain('TestCube');
+      // SceneView emits one declarative node per object inside the Compose ARScene { }.
+      expect(result.activityFile).toContain('TestCube');
+      expect(result.activityFile).toContain('CubeNode');
     });
 
     it('should compile objects with colors', () => {
@@ -166,7 +177,9 @@ describe('AndroidCompiler', () => {
       });
       const result = compiler.compile(composition);
 
-      expect(result.nodeFactoryFile).toContain('ColoredSphere');
+      expect(result.activityFile).toContain('ColoredSphere');
+      expect(result.activityFile).toContain('SphereNode');
+      expect(result.activityFile).toContain('Color(0xFF00FF00)');
     });
 
     it('should compile interactive objects', () => {
@@ -201,20 +214,21 @@ describe('AndroidCompiler', () => {
     });
   });
 
-  describe('Sceneform Support', () => {
-    it('should use Sceneform by default', () => {
+  describe('SceneView Support', () => {
+    it('uses SceneView (Apache 2.0), not the EOL Sceneform fork', () => {
       const composition = createComposition();
       const result = compiler.compile(composition);
 
-      expect(result.buildGradle).toContain('sceneform');
+      expect(result.buildGradle).toContain('io.github.sceneview:arsceneview');
+      expect(result.buildGradle).not.toContain('sceneform');
     });
 
-    it('should support Filament when enabled', () => {
-      const customCompiler = new AndroidCompiler({ useFilament: true, useSceneform: false });
+    it('emits a Compose ARScene activity (Filament renderer via SceneView)', () => {
       const composition = createComposition();
-      const result = customCompiler.compile(composition);
+      const result = compiler.compile(composition);
 
-      expect(result.buildGradle).toBeDefined();
+      expect(result.activityFile).toContain('ARScene');
+      expect(result.activityFile).toContain('ComponentActivity');
     });
   });
 
@@ -252,11 +266,12 @@ describe('AndroidCompiler', () => {
       expect(result.buildGradle).toContain('dependencies');
     });
 
-    it('should include ARCore dependency', () => {
+    it('includes the SceneView dependency (pulls ARCore + Filament transitively)', () => {
       const composition = createComposition();
       const result = compiler.compile(composition);
 
-      expect(result.buildGradle).toContain('com.google.ar:core');
+      // ARCore is no longer a direct dep — SceneView's arsceneview AAR brings it in.
+      expect(result.buildGradle).toContain('io.github.sceneview:arsceneview');
     });
   });
 
@@ -279,7 +294,7 @@ describe('AndroidCompiler', () => {
   });
 
   describe('State Management', () => {
-    it('should generate state file', () => {
+    it('dissolves the Sceneform ViewModel — SceneView keeps state in the composable tree', () => {
       const composition = createComposition({
         objects: [
           createObject('StatefulObject', {
@@ -292,8 +307,10 @@ describe('AndroidCompiler', () => {
       });
       const result = compiler.compile(composition);
 
-      expect(result.stateFile).toBeDefined();
-      expect(result.stateFile.length).toBeGreaterThan(0);
+      // No separate SceneState ViewModel file under the declarative ARScene model.
+      expect(result.stateFile).toBe('');
+      expect(result.nodeFactoryFile).toBe('');
+      expect(result.activityFile).toContain('ARScene');
     });
   });
 
@@ -301,13 +318,15 @@ describe('AndroidCompiler', () => {
     it('AndroidCompiler fingerprint for empty Wave1 gate composition', () => {
       const composition = createComposition({ name: 'Wave1SplitCharacterization' });
       const out = compiler.compile(composition);
-      // Re-locked 2026-06-21: build.gradle.kts Groovy→Kotlin DSL + compose-compiler plugin id +
-      // manifest package= removal (AGP 8) + real Sceneform coordinate
-      // (com.gorisse.thomas.sceneform:sceneform:1.23.0). The build now resolves deps and reaches
-      // Kotlin compile; the Sceneform-API codegen (R.layout/R.id, ModelRenderable, Vector3 op) is the
-      // documented next gate (apps/android-reference/README.md). Prior lock: c8cc38f9f.
+      // Re-locked 2026-06-21: FULL Sceneform→SceneView retarget. activityFile is now a Compose
+      // ComponentActivity hosting a declarative ARScene { }; stateFile + nodeFactoryFile are ''
+      // (the ViewModel/NodeFactory dissolve under the declarative model); manifest gains
+      // xmlns:tools + tools:replace; build.gradle.kts emits io.github.sceneview:arsceneview:4.18.0,
+      // compileSdk 36, the compose-compiler plugin + compilerOptions DSL. Proven GREEN end-to-end:
+      // golden-diff + real gradlew assembleDebug + live ARCore session on a Galaxy S23. Prior
+      // (Sceneform) lock: 85ff47fd.
       expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
-        '85ff47fd8fe982a0e8eb39c4b4b22eeb5fd8a167c8f31d6bad61606d54038456'
+        'ba9aa76b5a7c0e510e9cdea7c4fbcfd6d7465c22f09459cbfd2224fa9d1583df'
       );
     });
   });

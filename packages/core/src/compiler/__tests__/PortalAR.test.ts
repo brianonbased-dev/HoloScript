@@ -5,8 +5,10 @@
  * when portal_* traits are present in a HoloComposition.
  */
 
+// NOTE: the Portal AR — AndroidCompiler block was removed in the 2026-06-21 Sceneform→SceneView
+// retarget (portal-AR wiring is a pending wave-2 SceneView feature port; tracked on the HoloMesh
+// board). The IOSCompiler half below is unaffected.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AndroidCompiler } from '../AndroidCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -46,130 +48,6 @@ function createPortalObject(name: string, traitNames: string[]): HoloObjectDecl 
     traits: traitNames.map((t) => ({ name: t, config: {} })),
   } as unknown as HoloObjectDecl;
 }
-
-describe('Portal AR — AndroidCompiler', () => {
-  let compiler: AndroidCompiler;
-
-  beforeEach(() => {
-    compiler = new AndroidCompiler();
-  });
-
-  it('should not emit portal code when no portal traits present', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Cube', [])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).not.toContain('setupPortalAR');
-    expect(result.activityFile).not.toContain('Portal AR');
-  });
-
-  it('should emit setupPortalAR when portal_mode trait present', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_mode'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('setupPortalAR()');
-    expect(result.activityFile).toContain('Portal AR');
-    expect(result.activityFile).toContain('HolographicRenderer');
-  });
-
-  it('should configure ARCore depth mode', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_mode'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('Config.DepthMode.AUTOMATIC');
-    expect(result.activityFile).toContain('Config.LightEstimationMode.ENVIRONMENTAL_HDR');
-  });
-
-  it('should emit depth occlusion code for portal_occlusion', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_occlusion'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('acquireDepthImage16Bits');
-    expect(result.activityFile).toContain('updateDepthOcclusion');
-  });
-
-  it('should emit parallax correction for portal_parallax', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_parallax'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('applyParallaxCorrection');
-    expect(result.activityFile).toContain('cameraPose');
-  });
-
-  it('should emit depth fade for portal_depth_fade', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_depth_fade'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('enableDepthFade');
-    expect(result.activityFile).toContain('nearPlane');
-    expect(result.activityFile).toContain('farPlane');
-  });
-
-  it('should emit world mesh code for portal_world_mesh', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_world_mesh'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('reconstructMesh');
-    expect(result.activityFile).toContain('updateMeshOcclusion');
-  });
-
-  it('should emit peek through via tilt for portal_peek_through', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_peek_through'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('SensorManager');
-    expect(result.activityFile).toContain('portalTiltThreshold');
-    expect(result.activityFile).toContain('setPortalVisibility');
-  });
-
-  it('should emit boundary setup for portal_boundary', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_boundary'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('PortalBoundary');
-    expect(result.activityFile).toContain('Shape.CIRCLE');
-  });
-
-  it('should emit lighting match for portal_lighting_match', () => {
-    const composition = createComposition({
-      objects: [createPortalObject('Scene', ['portal_lighting_match'])],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('lightEstimate');
-    expect(result.activityFile).toContain('updateLighting');
-    expect(result.activityFile).toContain('getColorCorrection');
-  });
-
-  it('should handle multiple portal traits together', () => {
-    const composition = createComposition({
-      objects: [
-        createPortalObject('Scene', [
-          'portal_mode',
-          'portal_occlusion',
-          'portal_parallax',
-          'portal_depth_fade',
-          'portal_lighting_match',
-          'portal_boundary',
-        ]),
-      ],
-    });
-    const result = compiler.compile(composition);
-    expect(result.activityFile).toContain('setupPortalAR');
-    expect(result.activityFile).toContain('updateDepthOcclusion');
-    expect(result.activityFile).toContain('applyParallaxCorrection');
-    expect(result.activityFile).toContain('enableDepthFade');
-    expect(result.activityFile).toContain('updateLighting');
-    expect(result.activityFile).toContain('PortalBoundary');
-  });
-});
 
 describe('Portal AR — IOSCompiler', () => {
   let compiler: IOSCompiler;

@@ -1,36 +1,160 @@
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
 import type { AndroidCompiler } from './AndroidCompiler';
-import {
-  hasGeoTraits,
-  emitGeoAnchorSetup,
-  hasGeospatialVPSTraits,
-  emitGeospatialVPSSetup,
-  hasDepthScanTraits,
-  emitDepthScanSetup,
-  hasPortalARTraits,
-  emitPortalARSetup,
-  hasHandTrackingTraits,
-  emitHandTrackingSetup,
-  hasAuthoringTraits,
-  emitAuthoringInlineSetup,
-} from './AndroidFeatureGenerators';
+import { toKotlinColor } from './AndroidKotlinHelpers';
+import { hasGeoTraits, hasGeospatialVPSTraits } from './AndroidFeatureGenerators';
 
+// =============================================================================
+// compile_to_android — SceneView (Apache 2.0) Compose-native AR target.
+//
+// Retargeted OFF the EOL Sceneform fork (com.gorisse.thomas.sceneform, archived)
+// ONTO SceneView 4.18.0 (io.github.sceneview, Apache 2.0, actively maintained).
+// The proven-green device reference lives at apps/android-reference/ (built with
+// the local ad-hoc toolchain and run on a Galaxy S23 — live ARCore session +
+// Filament renderer). These generators reproduce that reference: regenerate via
+// apps/android-reference/generate-native.mts, gated by
+// scripts/holo-ci/check-android-emit-matches-reference.mts (byte-diff) and
+// scripts/holo-ci/check-android-build-verify.mts (real gradle build).
+//
+// SceneView's declarative `ARScene { }` model means there is NO ArFragment, NO
+// R.layout, NO imperative NodeFactory and NO SceneState ViewModel — nodes are
+// composables (CubeNode / SphereNode / CylinderNode) placed inside the scene
+// lambda. generateStateFile / generateNodeFactoryFile therefore emit nothing.
+//
+// Wave 1 (this code) is the BASE render path. The feature-trait emitters
+// (geo-anchor, geospatial VPS, depth scan, portal AR, hand tracking, authoring,
+// haptic, …) in AndroidFeatureGenerators / AndroidPeripheralGenerators remain
+// Sceneform-coupled and are a separate wave-2 SceneView port; the base activity
+// no longer wires them. The manifest still emits geo location permissions when a
+// geo trait is present (permission strings are SDK-agnostic).
+// =============================================================================
+
+type Geometry = 'cube' | 'sphere' | 'cylinder';
+
+/** Render a number as a Kotlin Float literal (e.g. 0.2 → "0.2f", -1 → "-1f"). */
 function toKotlinFloatLiteral(value: unknown, fallback: number): string {
   const numeric = typeof value === 'number' ? value : Number(value);
   const resolved = Number.isFinite(numeric) ? numeric : fallback;
   return `${resolved}f`;
 }
 
-function toKotlinVector3(value: HoloValue | undefined, fallback: [number, number, number]): string {
-  const components =
-    Array.isArray(value) && value.length >= 3
-      ? [value[0], value[1], value[2]]
-      : typeof value === 'number'
-        ? [value, value, value]
-        : fallback;
-  return `Vector3(${components
-    .map((component, index) => toKotlinFloatLiteral(component, fallback[index]))
-    .join(', ')})`;
+/** Classify an object's mesh/geometry into a SceneView node kind (default cube). */
+function geometryOf(compiler: AndroidCompiler, obj: HoloObjectDecl): Geometry {
+  const raw =
+    compiler.findObjProp(obj, 'geometry') ??
+    compiler.findObjProp(obj, 'mesh') ??
+    compiler.findObjProp(obj, 'type') ??
+    'cube';
+  const g = String(raw).toLowerCase();
+  if (g === 'sphere') return 'sphere';
+  if (g === 'cylinder') return 'cylinder';
+  // box / cube / anything unrecognised → cube (the safe renderable default).
+  return 'cube';
+}
+
+const NAMED_COMPOSE_COLORS: Record<string, string> = {
+  red: 'Color(0xFFFF0000)',
+  green: 'Color(0xFF00FF00)',
+  blue: 'Color(0xFF2196F3)',
+  white: 'Color(0xFFFFFFFF)',
+  black: 'Color(0xFF000000)',
+  yellow: 'Color(0xFFFFEB3B)',
+  cyan: 'Color(0xFF00BCD4)',
+  magenta: 'Color(0xFFE91E63)',
+  orange: 'Color(0xFFFF9800)',
+};
+
+/** Neutral default when an object declares no color. */
+const DEFAULT_COMPOSE_COLOR = 'Color(0xFF4488FF)';
+
+/**
+ * Convert a HoloValue colour to a Jetpack-Compose `Color(0x........)` literal for
+ * SceneView's `materialLoader.createColorInstance(...)`.
+ */
+function toComposeColor(value: HoloValue | undefined): string {
+  if (typeof value === 'string') {
+    if (value.startsWith('#')) return toKotlinColor(value);
+    return NAMED_COMPOSE_COLORS[value.toLowerCase()] ?? DEFAULT_COMPOSE_COLOR;
+  }
+  if (Array.isArray(value) && value.length >= 3) {
+    const nums = value as number[];
+    const [r, g, b, a = 1] = nums;
+    const ch = (n: number) =>
+      Math.max(0, Math.min(255, Math.round(n * 255)))
+        .toString(16)
+        .padStart(2, '0')
+        .toUpperCase();
+    return `Color(0x${ch(a)}${ch(r)}${ch(g)}${ch(b)})`;
+  }
+  return DEFAULT_COMPOSE_COLOR;
+}
+
+/** `Position(x = …f, y = …f, z = …f)` from a [x,y,z] position prop. */
+function toPosition(value: HoloValue | undefined): string {
+  const c = Array.isArray(value) && value.length >= 3 ? (value as number[]) : [0, 0, 0];
+  return `Position(x = ${toKotlinFloatLiteral(c[0], 0)}, y = ${toKotlinFloatLiteral(
+    c[1],
+    0
+  )}, z = ${toKotlinFloatLiteral(c[2], 0)})`;
+}
+
+/** First scalar component of a scale prop (number or vector). */
+function scaleScalar(value: HoloValue | undefined, fallback: number): number {
+  if (typeof value === 'number') return value;
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'number') {
+    return value[0] as number;
+  }
+  return fallback;
+}
+
+/** Cube `size = Size(…)` from a scalar or [x,y,z] scale (Size(v) is uniform). */
+function toCubeSize(value: HoloValue | undefined): string {
+  if (Array.isArray(value) && value.length >= 3) {
+    const n = value as number[];
+    return `Size(${toKotlinFloatLiteral(n[0], 0.1)}, ${toKotlinFloatLiteral(
+      n[1],
+      0.1
+    )}, ${toKotlinFloatLiteral(n[2], 0.1)})`;
+  }
+  return `Size(${toKotlinFloatLiteral(scaleScalar(value, 0.1), 0.1)})`;
+}
+
+/** Emit one SceneView node composable for a HoloScript object inside ARScene { }. */
+function emitObjectNode(compiler: AndroidCompiler, obj: HoloObjectDecl): void {
+  const geom = geometryOf(compiler, obj);
+  const colorExpr = toComposeColor(compiler.findObjProp(obj, 'color'));
+  const position = toPosition(compiler.findObjProp(obj, 'position'));
+  const scale = compiler.findObjProp(obj, 'scale');
+  // Escape the name even inside a // comment: an unescaped newline or quote-sequence in a
+  // hostile object name would otherwise break out of the comment (CWE-94, FlowLevel hardening).
+  const safeName = compiler.escapeStringValue(obj.name as string, 'Kotlin');
+
+  compiler.emit(`// ${safeName} — geometry: ${geom}`);
+  if (geom === 'sphere') {
+    compiler.emit('SphereNode(');
+    compiler.indentLevel++;
+    compiler.emit(`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)},`);
+    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
+    compiler.emit(`position = ${position},`);
+    compiler.indentLevel--;
+    compiler.emit(')');
+  } else if (geom === 'cylinder') {
+    compiler.emit('CylinderNode(');
+    compiler.indentLevel++;
+    compiler.emit(`radius = ${toKotlinFloatLiteral(scaleScalar(scale, 0.05), 0.05)},`);
+    compiler.emit(`length = ${toKotlinFloatLiteral(scaleScalar(scale, 0.1) * 2, 0.2)},`);
+    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
+    compiler.emit(`position = ${position},`);
+    compiler.indentLevel--;
+    compiler.emit(')');
+  } else {
+    compiler.emit('CubeNode(');
+    compiler.indentLevel++;
+    compiler.emit(`size = ${toCubeSize(scale)},`);
+    compiler.emit(`materialInstance = materialLoader.createColorInstance(${colorExpr}),`);
+    compiler.emit(`position = ${position},`);
+    compiler.indentLevel--;
+    compiler.emit(')');
+  }
 }
 
 export function generateActivityFile(
@@ -42,516 +166,109 @@ export function generateActivityFile(
 
   const pkg = compiler.options.packageName;
   const cls = compiler.options.className;
+  const objects = composition.objects ?? [];
+
+  // Which node kinds appear → conditional imports (empty scene → a default cube).
+  const geoms = new Set<Geometry>(objects.map((o) => geometryOf(compiler, o)));
+  if (objects.length === 0) geoms.add('cube');
 
   compiler.emit('// Auto-generated by HoloScript AndroidCompiler');
   compiler.emit(
     `// Source: composition "${compiler.escapeStringValue(composition.name as string, 'Kotlin')}"`
   );
-  compiler.emit('// Do not edit manually — regenerate from .holo source');
+  compiler.emit('// Do not edit manually — regenerate from .holo (apps/android-reference/generate-native.mts)');
+  compiler.emit('//');
+  compiler.emit('// SceneView (Apache 2.0) Compose-native AR. Declarative ARScene { } with one node per');
+  compiler.emit('// HoloScript object — no ArFragment, no R.layout, no NodeFactory/ViewModel.');
   compiler.emit('');
   compiler.emit(`package ${pkg}`);
   compiler.emit('');
   compiler.emit('import android.os.Bundle');
-  compiler.emit('import android.view.MotionEvent');
-  compiler.emit('import android.view.View');
-  compiler.emit('import android.widget.Toast');
-  compiler.emit('import androidx.appcompat.app.AppCompatActivity');
-  compiler.emit('import androidx.lifecycle.ViewModelProvider');
-  compiler.emit('import com.google.ar.core.*');
-  compiler.emit('import com.google.ar.core.exceptions.*');
-  compiler.emit('import com.google.ar.sceneform.*');
-  compiler.emit('import com.google.ar.sceneform.math.Vector3');
-  compiler.emit('import com.google.ar.sceneform.rendering.*');
-  compiler.emit('import com.google.ar.sceneform.ux.*');
-  compiler.emit('import java.util.concurrent.CompletableFuture');
+  compiler.emit('import androidx.activity.ComponentActivity');
+  compiler.emit('import androidx.activity.compose.setContent');
+  compiler.emit('import androidx.compose.foundation.layout.fillMaxSize');
+  compiler.emit('import androidx.compose.ui.Modifier');
+  compiler.emit('import androidx.compose.ui.graphics.Color');
+  compiler.emit('import io.github.sceneview.ar.ARScene');
+  compiler.emit('import io.github.sceneview.ar.rememberARCameraNode');
+  compiler.emit('import io.github.sceneview.math.Position');
+  if (geoms.has('cube')) compiler.emit('import io.github.sceneview.math.Size');
+  if (geoms.has('cube')) compiler.emit('import io.github.sceneview.node.CubeNode');
+  if (geoms.has('cylinder')) compiler.emit('import io.github.sceneview.node.CylinderNode');
+  if (geoms.has('sphere')) compiler.emit('import io.github.sceneview.node.SphereNode');
+  compiler.emit('import io.github.sceneview.rememberEngine');
+  compiler.emit('import io.github.sceneview.rememberMaterialLoader');
   compiler.emit('');
 
-  compiler.emit(`class ${cls}Activity : AppCompatActivity() {`);
+  compiler.emit(`class ${cls}Activity : ComponentActivity() {`);
   compiler.indentLevel++;
-
-  // Properties
-  compiler.emit('private lateinit var arFragment: ArFragment');
-  compiler.emit('private lateinit var sceneState: SceneState');
-  compiler.emit('private val placedNodes = mutableMapOf<String, TransformableNode>()');
-  compiler.emit('');
-
-  // onCreate
   compiler.emit('override fun onCreate(savedInstanceState: Bundle?) {');
   compiler.indentLevel++;
   compiler.emit('super.onCreate(savedInstanceState)');
-  compiler.emit(`setContentView(R.layout.activity_ar_scene)`);
-  compiler.emit('');
-  compiler.emit('sceneState = ViewModelProvider(this)[SceneState::class.java]');
-  compiler.emit(
-    'arFragment = supportFragmentManager.findFragmentById(R.id.ar_fragment) as ArFragment'
-  );
-  compiler.emit('');
-  compiler.emit('setupARSession()');
-  compiler.emit('setupTapListener()');
-  compiler.emit('setupUI()');
-  // Geo-anchor: initialize location services and geo anchors
-  if (hasGeoTraits(composition)) {
-    compiler.emit('setupGeoAnchors()');
-  }
-  // ARCore Geospatial API: VPS-based street-level anchoring
-  if (hasGeospatialVPSTraits(composition)) {
-    compiler.emit('setupGeospatialVPS()');
-  }
-  // Depth Scanner: ARCore depth, ToF, stereo
-  if (hasDepthScanTraits(composition)) {
-    compiler.emit('setupDepthScanner()');
-  }
-  // Portal AR: full-scene holographic layer behind reality
-  if (hasPortalARTraits(composition)) {
-    compiler.emit('setupPortalAR()');
-  }
-  // Camera Hand Tracking: MediaPipe Hands gesture recognition
-  if (hasHandTrackingTraits(composition)) {
-    compiler.emit('setupHandTracking()');
-  }
-  // Spatial Authoring: gyro placement, pinch-scale, swipe browse, voice, shake undo
-  if (hasAuthoringTraits(composition)) {
-    compiler.emit('setupSpatialAuthoring()');
-  }
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Setup AR Session
-  compiler.emit('private fun setupARSession() {');
+  compiler.emit('setContent {');
   compiler.indentLevel++;
-  compiler.emit('arFragment.arSceneView.scene.addOnUpdateListener { frameTime ->');
-  compiler.indentLevel++;
-  compiler.emit('val frame = arFragment.arSceneView.arFrame ?: return@addOnUpdateListener');
+  compiler.emit('val engine = rememberEngine()');
+  compiler.emit('val materialLoader = rememberMaterialLoader(engine)');
+  compiler.emit('val cameraNode = rememberARCameraNode(engine)');
   compiler.emit('');
-  compiler.emit('// Track planes');
-  compiler.emit('for (plane in frame.getUpdatedTrackables(Plane::class.java)) {');
+  compiler.emit('ARScene(');
   compiler.indentLevel++;
-  compiler.emit('if (plane.trackingState == TrackingState.TRACKING) {');
-  compiler.indentLevel++;
-  compiler.emit('sceneState.onPlaneDetected(plane)');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Setup tap listener
-  compiler.emit('private fun setupTapListener() {');
-  compiler.indentLevel++;
-  compiler.emit('arFragment.setOnTapArPlaneListener { hitResult, plane, motionEvent ->');
-  compiler.indentLevel++;
-  compiler.emit(
-    'if (plane.type != Plane.Type.HORIZONTAL_UPWARD_FACING) return@setOnTapArPlaneListener'
-  );
-  compiler.emit('');
-  compiler.emit('placeObject(hitResult)');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Place object
-  compiler.emit('private fun placeObject(hitResult: HitResult) {');
-  compiler.indentLevel++;
-  compiler.emit('val anchor = hitResult.createAnchor()');
-  compiler.emit('val anchorNode = AnchorNode(anchor)');
-  compiler.emit('anchorNode.setParent(arFragment.arSceneView.scene)');
-  compiler.emit('');
-
-  if (composition.objects?.length) {
-    compiler.emit('// Create one renderable node per HoloScript object');
-    for (const obj of composition.objects) {
-      const methodName = `create${compiler.sanitizeName(obj.name)}`;
-      const objectName = compiler.escapeStringValue(obj.name as string, 'Kotlin');
-      const position = toKotlinVector3(compiler.findObjProp(obj, 'position'), [0, 0, 0]);
-      const scale = toKotlinVector3(compiler.findObjProp(obj, 'scale'), [1, 1, 1]);
-      compiler.emit(`NodeFactory.${methodName}(this) { renderable ->`);
-      compiler.indentLevel++;
-      compiler.emit(
-        `attachRenderableToAnchor(anchorNode, "${objectName}", renderable, ${position}, ${scale})`
-      );
-      compiler.indentLevel--;
-      compiler.emit('}');
-    }
-  } else {
-    compiler.emit('// Create fallback node for empty scenes');
-    compiler.emit('NodeFactory.createDefaultNode(this) { renderable ->');
-    compiler.indentLevel++;
-    compiler.emit(
-      'attachRenderableToAnchor(anchorNode, "default", renderable, Vector3(0f, 0f, 0f), Vector3(1f, 1f, 1f))'
-    );
-    compiler.indentLevel--;
-    compiler.emit('}');
-  }
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  compiler.emit('private fun attachRenderableToAnchor(');
-  compiler.indentLevel++;
-  compiler.emit('anchorNode: AnchorNode,');
-  compiler.emit('objectName: String,');
-  compiler.emit('renderable: Renderable,');
-  compiler.emit('localPosition: Vector3,');
-  compiler.emit('localScale: Vector3');
+  compiler.emit('modifier = Modifier.fillMaxSize(),');
+  compiler.emit('engine = engine,');
+  compiler.emit('cameraNode = cameraNode,');
+  compiler.emit('materialLoader = materialLoader,');
+  compiler.emit('planeRenderer = true,');
   compiler.indentLevel--;
   compiler.emit(') {');
   compiler.indentLevel++;
-  compiler.emit('val transformableNode = TransformableNode(arFragment.transformationSystem)');
-  compiler.emit('transformableNode.setParent(anchorNode)');
-  compiler.emit('transformableNode.renderable = renderable');
-  compiler.emit('transformableNode.localPosition = localPosition');
-  compiler.emit('transformableNode.localScale = localScale');
-  compiler.emit('transformableNode.select()');
-  compiler.emit('');
-  compiler.emit('val id = "$objectName-${java.util.UUID.randomUUID()}"');
-  compiler.emit('placedNodes[id] = transformableNode');
-  compiler.emit('');
-  compiler.emit('// Setup interaction');
-  compiler.emit('transformableNode.setOnTapListener { _, _ ->');
-  compiler.indentLevel++;
-  compiler.emit('sceneState.onNodeTapped(id)');
-  compiler.emit('animateNodeTap(transformableNode)');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-  compiler.emit('android.util.Log.d("HoloScript", "Placed object: $objectName as $id")');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Animate tap
-  compiler.emit('private fun animateNodeTap(node: TransformableNode) {');
-  compiler.indentLevel++;
-  compiler.emit('val originalScale = node.localScale');
-  compiler.emit(
-    'val scaledUp = Vector3(originalScale[0] * 1.2f, originalScale[1] * 1.2f, originalScale[2] * 1.2f)'
-  );
-  compiler.emit('');
-  compiler.emit('android.animation.ObjectAnimator.ofObject(');
-  compiler.indentLevel++;
-  compiler.emit('node, "localScale",');
-  compiler.emit('com.google.ar.sceneform.math.Vector3Evaluator(),');
-  compiler.emit('originalScale, scaledUp, originalScale');
-  compiler.indentLevel--;
-  compiler.emit(').apply {');
-  compiler.indentLevel++;
-  compiler.emit('duration = 200');
-  compiler.emit('start()');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Setup UI
-  compiler.emit('private fun setupUI() {');
-  compiler.indentLevel++;
-  compiler.emit('findViewById<View>(R.id.reset_button)?.setOnClickListener {');
-  compiler.indentLevel++;
-  compiler.emit('resetScene()');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Reset scene
-  compiler.emit('private fun resetScene() {');
-  compiler.indentLevel++;
-  compiler.emit('for (node in placedNodes.values) {');
-  compiler.indentLevel++;
-  compiler.emit('node.anchor?.detach()');
-  compiler.emit('node.setParent(null)');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('placedNodes.clear()');
-  compiler.emit('');
-  compiler.emit('sceneState.reset()');
-  compiler.emit('Toast.makeText(this, "Scene reset", Toast.LENGTH_SHORT).show()');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Lifecycle
-  compiler.emit('override fun onResume() {');
-  compiler.indentLevel++;
-  compiler.emit('super.onResume()');
-  compiler.emit('checkARCoreAvailability()');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  compiler.emit('private fun checkARCoreAvailability() {');
-  compiler.indentLevel++;
-  compiler.emit('val availability = ArCoreApk.getInstance().checkAvailability(this)');
-  compiler.emit('if (availability.isTransient) {');
-  compiler.indentLevel++;
-  compiler.emit('android.os.Handler(mainLooper).postDelayed({ checkARCoreAvailability() }, 200)');
-  compiler.emit('return');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('if (!availability.isSupported) {');
-  compiler.indentLevel++;
-  compiler.emit(
-    'Toast.makeText(this, "ARCore is not supported on this device", Toast.LENGTH_LONG).show()'
-  );
-  compiler.emit('finish()');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-
-  // Geo-anchor methods (emitted inside Activity class body)
-  if (hasGeoTraits(composition)) {
-    emitGeoAnchorSetup(compiler, composition);
-  }
-
-  // ARCore Geospatial API methods (emitted inside Activity class body)
-  if (hasGeospatialVPSTraits(composition)) {
-    emitGeospatialVPSSetup(compiler, composition);
-  }
-
-  // Depth Scanner methods (emitted inside Activity class body)
-  if (hasDepthScanTraits(composition)) {
-    emitDepthScanSetup(compiler, composition);
-  }
-
-  // Portal AR methods (emitted inside Activity class body)
-  if (hasPortalARTraits(composition)) {
-    emitPortalARSetup(compiler, composition);
-  }
-
-  // Camera Hand Tracking methods (emitted inside Activity class body)
-  if (hasHandTrackingTraits(composition)) {
-    emitHandTrackingSetup(compiler, composition);
-  }
-
-  // Spatial Authoring methods (emitted inside Activity class body)
-  if (hasAuthoringTraits(composition)) {
-    emitAuthoringInlineSetup(compiler, composition);
-  }
-
-  compiler.indentLevel--;
-  compiler.emit('}');
-
-  return compiler.lines.join('\n');
-}
-
-export function generateStateFile(compiler: AndroidCompiler, composition: HoloComposition): string {
-  compiler.lines = [];
-  compiler.indentLevel = 0;
-
-  const pkg = compiler.options.packageName;
-
-  compiler.emit('// Auto-generated by HoloScript AndroidCompiler');
-  compiler.emit(`// State: ${compiler.escapeStringValue(composition.name as string, 'Kotlin')}`);
-  compiler.emit('');
-  compiler.emit(`package ${pkg}`);
-  compiler.emit('');
-  compiler.emit('import androidx.lifecycle.ViewModel');
-  compiler.emit('import androidx.lifecycle.MutableLiveData');
-  compiler.emit('import androidx.lifecycle.LiveData');
-  compiler.emit('import com.google.ar.core.Plane');
-  compiler.emit('');
-
-  compiler.emit('class SceneState : ViewModel() {');
-  compiler.indentLevel++;
-
-  // State properties from composition
-  if (composition.state) {
-    compiler.emit('// === State Properties ===');
-    for (const prop of composition.state.properties) {
-      const kotlinType = compiler.toKotlinType(prop.value);
-      const kotlinValue = compiler.toKotlinValue(prop.value);
-      compiler.emit(
-        `private val _${compiler.escapeStringValue(prop.key as string, 'Kotlin')} = MutableLiveData(${kotlinValue})`
-      );
-      compiler.emit(
-        `val ${compiler.escapeStringValue(prop.key as string, 'Kotlin')}: LiveData<${kotlinType}> get() = _${compiler.escapeStringValue(prop.key as string, 'Kotlin')}`
-      );
-      compiler.emit('');
-    }
-  }
-
-  // Detected planes
-  compiler.emit('// === AR State ===');
-  compiler.emit('private val _detectedPlanes = MutableLiveData<List<Plane>>(emptyList())');
-  compiler.emit('val detectedPlanes: LiveData<List<Plane>> get() = _detectedPlanes');
-  compiler.emit('');
-
-  compiler.emit('private val _tappedNodes = MutableLiveData<String?>()');
-  compiler.emit('val tappedNodes: LiveData<String?> get() = _tappedNodes');
-  compiler.emit('');
-
-  // Plane detection callback
-  compiler.emit('fun onPlaneDetected(plane: Plane) {');
-  compiler.indentLevel++;
-  compiler.emit('val current = _detectedPlanes.value.orEmpty().toMutableList()');
-  compiler.emit('if (!current.contains(plane)) {');
-  compiler.indentLevel++;
-  compiler.emit('current.add(plane)');
-  compiler.emit('_detectedPlanes.value = current');
-  compiler.emit('android.util.Log.d("HoloScript", "Plane detected: ${plane.type}")');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Node tapped callback
-  compiler.emit('fun onNodeTapped(nodeId: String) {');
-  compiler.indentLevel++;
-  compiler.emit('_tappedNodes.value = nodeId');
-  compiler.emit('android.util.Log.d("HoloScript", "Node tapped: $nodeId")');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
-
-  // Reset
-  compiler.emit('fun reset() {');
-  compiler.indentLevel++;
-  compiler.emit('_detectedPlanes.value = emptyList()');
-  compiler.emit('_tappedNodes.value = null');
-  if (composition.state) {
-    for (const prop of composition.state.properties) {
-      const kotlinValue = compiler.toKotlinValue(prop.value);
-      compiler.emit(
-        `_${compiler.escapeStringValue(prop.key as string, 'Kotlin')}.value = ${kotlinValue}`
-      );
-    }
-  }
-  compiler.emit('android.util.Log.d("HoloScript", "State reset")');
-  compiler.indentLevel--;
-  compiler.emit('}');
-
-  // Actions
-  if (composition.logic?.actions) {
-    compiler.emit('');
-    compiler.emit('// === Actions ===');
-    for (const action of composition.logic.actions) {
-      compileAction(compiler, action);
-    }
-  }
-
-  compiler.indentLevel--;
-  compiler.emit('}');
-
-  return compiler.lines.join('\n');
-}
-
-export function generateNodeFactoryFile(
-  compiler: AndroidCompiler,
-  composition: HoloComposition
-): string {
-  compiler.lines = [];
-  compiler.indentLevel = 0;
-
-  const pkg = compiler.options.packageName;
-
-  compiler.emit('// Auto-generated by HoloScript AndroidCompiler');
-  compiler.emit(
-    `// Node Factory: ${compiler.escapeStringValue(composition.name as string, 'Kotlin')}`
-  );
-  compiler.emit('');
-  compiler.emit(`package ${pkg}`);
-  compiler.emit('');
-  compiler.emit('import android.content.Context');
-  compiler.emit('import com.google.ar.sceneform.math.Vector3');
-  compiler.emit('import com.google.ar.sceneform.rendering.*');
-  compiler.emit('import com.google.android.filament.utils.Float3');
-  compiler.emit('');
-
-  compiler.emit('object NodeFactory {');
-  compiler.indentLevel++;
-
-  // Default node
-  compiler.emit('fun createDefaultNode(context: Context, callback: (Renderable) -> Unit) {');
-  compiler.indentLevel++;
-  if (composition.objects?.length) {
-    const firstObj = composition.objects[0];
-    const color = compiler.findObjProp(firstObj, 'color');
-    compiler.emit('MaterialFactory.makeOpaqueWithColor(');
-    compiler.indentLevel++;
-    compiler.emit('context,');
-    compiler.emit(`Color(${compiler.toAndroidColor(color)})`);
-    compiler.indentLevel--;
-    compiler.emit(').thenAccept { material ->');
-    compiler.indentLevel++;
-
-    const meshType =
-      compiler.findObjProp(firstObj, 'mesh') || compiler.findObjProp(firstObj, 'type') || 'cube';
-    const geometry = compiler.getSceneformGeometry(meshType as string);
-    compiler.emit(`${geometry}.thenAccept { renderable ->`);
-    compiler.indentLevel++;
-    compiler.emit('renderable.material = material');
-    compiler.emit('callback(renderable)');
-    compiler.indentLevel--;
-    compiler.emit('}');
-    compiler.indentLevel--;
-    compiler.emit('}');
+  if (objects.length) {
+    objects.forEach((obj, i) => {
+      if (i > 0) compiler.emit('');
+      emitObjectNode(compiler, obj);
+    });
   } else {
-    compiler.emit(
-      'MaterialFactory.makeOpaqueWithColor(context, Color(android.graphics.Color.BLUE))'
-    );
-    compiler.emit('    .thenCompose { material ->');
-    compiler.emit(
-      '        ShapeFactory.makeCube(Vector3(0.1f, 0.1f, 0.1f), Vector3.zero(), material)'
-    );
-    compiler.emit('    }');
-    compiler.emit('    .thenAccept { renderable -> callback(renderable) }');
+    compiler.emit('// No objects in composition — default placeholder cube at 1m.');
+    compiler.emit('CubeNode(');
+    compiler.indentLevel++;
+    compiler.emit('size = Size(0.1f),');
+    compiler.emit(`materialInstance = materialLoader.createColorInstance(${DEFAULT_COMPOSE_COLOR}),`);
+    compiler.emit('position = Position(x = 0f, y = 0f, z = -1f),');
+    compiler.indentLevel--;
+    compiler.emit(')');
   }
   compiler.indentLevel--;
   compiler.emit('}');
-  compiler.emit('');
-
-  // Object factory methods
-  for (const obj of composition.objects || []) {
-    compileObjectFactory(compiler, obj);
-  }
-
-  compiler.indentLevel--;
+  compiler.indentLevel--; // setContent
+  compiler.emit('}');
+  compiler.indentLevel--; // onCreate
+  compiler.emit('}');
+  compiler.indentLevel--; // class
   compiler.emit('}');
 
-  return compiler.lines.join('\n');
+  return compiler.lines.join('\n') + '\n';
 }
 
-export function compileObjectFactory(compiler: AndroidCompiler, obj: HoloObjectDecl): void {
-  const methodName = `create${compiler.sanitizeName(obj.name)}`;
+/**
+ * SceneView's declarative `ARScene { }` keeps node state in the composable tree,
+ * so the Sceneform `SceneState : ViewModel` is dissolved. Emit nothing.
+ */
+export function generateStateFile(
+  _compiler: AndroidCompiler,
+  _composition: HoloComposition
+): string {
+  return '';
+}
 
-  compiler.emit(`fun ${methodName}(context: Context, callback: (Renderable) -> Unit) {`);
-  compiler.indentLevel++;
-
-  const color = compiler.findObjProp(obj, 'color');
-  const meshType = compiler.findObjProp(obj, 'mesh') || compiler.findObjProp(obj, 'type') || 'cube';
-
-  compiler.emit('MaterialFactory.makeOpaqueWithColor(');
-  compiler.indentLevel++;
-  compiler.emit('context,');
-  compiler.emit(`Color(${compiler.toAndroidColor(color)})`);
-  compiler.indentLevel--;
-  compiler.emit(').thenAccept { material ->');
-  compiler.indentLevel++;
-
-  const geometry = compiler.getSceneformGeometry(meshType as string);
-  compiler.emit(`${geometry}.thenAccept { renderable ->`);
-  compiler.indentLevel++;
-  compiler.emit('renderable.material = material');
-  compiler.emit('callback(renderable)');
-  compiler.indentLevel--;
-  compiler.emit('}');
-
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
+/**
+ * SceneView builds nodes declaratively (CubeNode / SphereNode / …) inside the
+ * scene lambda, so the Sceneform `NodeFactory` (MaterialFactory/ShapeFactory
+ * futures) is dissolved. Emit nothing.
+ */
+export function generateNodeFactoryFile(
+  _compiler: AndroidCompiler,
+  _composition: HoloComposition
+): string {
+  return '';
 }
 
 export function generateManifestFile(
@@ -578,7 +295,8 @@ export function generateManifestFile(
 
   return `<?xml version="1.0" encoding="utf-8"?>
 <!-- Auto-generated by HoloScript AndroidCompiler -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- AR Required -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -591,10 +309,12 @@ export function generateManifestFile(
         android:allowBackup="true"
         android:label="${compiler.escapeStringValue(composition.name as string, 'XML')}"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar">
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
-        <!-- ARCore metadata -->
-        <meta-data android:name="com.google.ar.core" android:value="required" />${geospatialApiKeyMeta}
+        <!-- ARCore metadata. SceneView's arsceneview AAR declares com.google.ar.core as
+             "optional"; this app requires AR, so override the merged value. -->
+        <meta-data android:name="com.google.ar.core" android:value="required"
+            tools:replace="android:value" />${geospatialApiKeyMeta}
 
         <activity
             android:name=".${cls}Activity"
@@ -614,58 +334,34 @@ export function generateBuildGradle(
   compiler: AndroidCompiler,
   composition: HoloComposition
 ): string {
-  const hasGeospatialVPS = hasGeospatialVPSTraits(composition);
-  const hasDepthScan = hasDepthScanTraits(composition);
-  const hasHandTracking = hasHandTrackingTraits(composition);
-
-  const geospatialDeps = hasGeospatialVPS
-    ? `
-    // ARCore Geospatial API (included in com.google.ar:core >= 1.31.0)
-    // Location services for VPS
-    implementation("com.google.android.gms:play-services-location:21.1.0")`
-    : '';
-
-  const depthScanDeps = hasDepthScan
-    ? `
-    // ARCore Depth API (M.010.02b)
-    implementation("com.google.ar:core:1.40.0")`
-    : '';
-
-  const handTrackingDeps = hasHandTracking
-    ? `
-    // MediaPipe Hands — camera-based hand tracking (M.010.04)
-    implementation("com.google.mediapipe:solution-hands:0.10.14")
-    // CameraX for front camera feed
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")`
-    : '';
-
-  const hasAuthoring = hasAuthoringTraits(composition);
-  const authoringDeps = hasAuthoring
-    ? `
-    // Spatial Authoring — speech recognition (M.010.08)
-    implementation("androidx.recyclerview:recyclerview:1.3.2")`
-    : '';
+  const pkg = compiler.options.packageName;
+  const minSdk = compiler.options.minSdk;
+  // SceneView 4.18.0 pulls androidx.core 1.18.0, which refuses to compile below API 36, so 36 is
+  // the floor for both compile and target SDK. A higher requested targetSdk flows through.
+  const sdk = Math.max(36, compiler.options.targetSdk);
 
   return `// Auto-generated by HoloScript AndroidCompiler
 // Source: ${compiler.escapeStringValue(composition.name as string, 'Kotlin')}
+//
+// SceneView (Apache 2.0) Compose-native AR target — replaces the EOL Sceneform fork.
+// compileSdk/targetSdk floor at 36: SceneView 4.18.0 pulls androidx.core 1.18.0, which refuses
+// to compile below API 36 and requires Android Gradle Plugin 8.9.1+ and Kotlin 2.3.21 (both
+// declared in the hand-maintained root build.gradle.kts scaffold).
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")${
-      compiler.options.useJetpackCompose ? `\n    id("org.jetbrains.kotlin.plugin.compose")` : ''
-    }
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
-    namespace = "${compiler.options.packageName}"
-    compileSdk = ${compiler.options.targetSdk}
+    namespace = "${pkg}"
+    compileSdk = ${sdk}
 
     defaultConfig {
-        applicationId = "${compiler.options.packageName}"
-        minSdk = ${compiler.options.minSdk}
-        targetSdk = ${compiler.options.targetSdk}
+        applicationId = "${pkg}"
+        minSdk = ${minSdk}
+        targetSdk = ${sdk}
         versionCode = 1
         versionName = "1.0"
     }
@@ -682,51 +378,31 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
-        viewBinding = true
-        compose = ${compiler.options.useJetpackCompose}
+        compose = true
+    }
+}
+
+// Kotlin 2.3 removed the kotlinOptions { jvmTarget = "17" } DSL (now a hard error);
+// the JVM target moves to the top-level compilerOptions DSL.
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.activity:activity-compose:1.9.3")
 
-    // ARCore (>= 1.31.0 includes Geospatial API)
-    implementation("com.google.ar:core:1.41.0")
-
-    // Sceneform (Thomas Gorisse maintained fork; real coordinate verified on Maven Central + JitPack)
-    implementation("com.gorisse.thomas.sceneform:sceneform:1.23.0")${geospatialDeps}${depthScanDeps}${handTrackingDeps}${authoringDeps}
-
-    // Optional: Jetpack Compose
-    ${
-      compiler.options.useJetpackCompose
-        ? `implementation(platform("androidx.compose:compose-bom:2024.01.00"))
+    // Jetpack Compose (BOM matches SceneView 4.18.0's compose surface)
+    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
     implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.8.2")`
-        : '// Compose disabled'
-    }
-}`;
-}
 
-export function compileAction(compiler: AndroidCompiler, action: { name: string }): void {
-  const rawName = compiler.sanitizeName(action.name);
-  const name = rawName.charAt(0).toLowerCase() + rawName.slice(1);
-  compiler.emit(`fun ${name}() {`);
-  compiler.indentLevel++;
-  compiler.emit(
-    `android.util.Log.d("HoloScript", "Action: ${compiler.escapeStringValue(action.name as string, 'Kotlin')}")`
-  );
-  compiler.emit('// Action implementation');
-  compiler.indentLevel--;
-  compiler.emit('}');
-  compiler.emit('');
+    // SceneView (Apache 2.0) — Compose-native AR; pulls io.github.sceneview:sceneview + ARCore 1.54.0
+    // transitively. Replaces the EOL Sceneform fork. No ArFragment / no R.layout (Compose-native).
+    implementation("io.github.sceneview:arsceneview:4.18.0")
+}`;
 }
