@@ -6,7 +6,7 @@ export default defineConfig({
     alias: [
       {
         find: '@holoscript/core/runtime',
-        replacement: path.resolve(__dirname, '../core/src/HoloScriptRuntime.ts'),
+        replacement: path.resolve(__dirname, '../core/src/runtime.ts'),
       },
       {
         find: '@holoscript/core/reconstruction',

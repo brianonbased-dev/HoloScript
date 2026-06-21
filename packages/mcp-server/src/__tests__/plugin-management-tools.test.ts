@@ -1,5 +1,20 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
+import {
+  getBuiltinDomainPluginRuntime,
+  resetBuiltinDomainPluginRuntimeForTests,
+} from '../domain-plugin-runtime';
 import { handlePluginManagementTool } from '../plugin-management-tools';
+
+function registeredTraitNames(): string[] {
+  const runtime = getBuiltinDomainPluginRuntime() as unknown as {
+    traitHandlers: Map<string, unknown>;
+  };
+  return Array.from(runtime.traitHandlers.keys());
+}
+
+beforeEach(() => {
+  resetBuiltinDomainPluginRuntimeForTests();
+});
 
 /**
  * discover_plugins was a hardcoded 3-entry catalog (RATCHET: OVERCLAIMED). It now
@@ -42,10 +57,78 @@ describe('discover_plugins (filesystem scan)', () => {
     const all = (await handlePluginManagementTool('discover_plugins', { query: '' })) as {
       totalRegistryEntries: number;
     };
-    const narrowed = (await handlePluginManagementTool('discover_plugins', { query: 'plugin' })) as {
+    const narrowed = (await handlePluginManagementTool('discover_plugins', {
+      query: 'plugin',
+    })) as {
       count: number;
     };
     // every scanned id contains 'plugin'? not guaranteed, but the narrowed set must be <= total
     expect(narrowed.count).toBeLessThanOrEqual(all.totalRegistryEntries);
+  });
+});
+
+describe('install_domain_plugin', () => {
+  it('registers energy-grid handlers into the MCP HoloScriptRuntime boot path', async () => {
+    const res = (await handlePluginManagementTool('install_domain_plugin', {
+      plugin_name: 'energy-grid',
+    })) as {
+      success: boolean;
+      pluginId: string;
+      state: string;
+      registeredTraits: string[];
+      runtime: string;
+    };
+
+    expect(res).toMatchObject({
+      success: true,
+      pluginId: 'energy-grid',
+      state: 'enabled',
+      runtime: 'HoloScriptRuntime',
+      registeredTraits: ['power_flow'],
+    });
+    expect(registeredTraitNames()).toContain('power_flow');
+  });
+
+  it('accepts package aliases for the three wired domain plugins', async () => {
+    await handlePluginManagementTool('install_domain_plugin', {
+      plugin_name: '@holoscript/plugin-fitness-wellness',
+    });
+    await handlePluginManagementTool('install_domain_plugin', {
+      plugin_name: '@holoscript/plugin-travel-hospitality',
+    });
+
+    expect(registeredTraitNames()).toEqual(expect.arrayContaining(['one_rep_max', 'revpar']));
+  });
+
+  it('is idempotent for repeated installs', async () => {
+    await handlePluginManagementTool('install_domain_plugin', {
+      plugin_name: 'fitness-wellness',
+    });
+    const second = (await handlePluginManagementTool('install_domain_plugin', {
+      plugin_name: 'fitness-wellness',
+    })) as { success: boolean; state: string; alreadyInstalled: boolean };
+
+    expect(second).toMatchObject({
+      success: true,
+      state: 'already_enabled',
+      alreadyInstalled: true,
+    });
+    expect(registeredTraitNames().filter((name) => name === 'one_rep_max')).toHaveLength(1);
+  });
+
+  it('rejects unsupported domain plugins with the supported list', async () => {
+    const res = (await handlePluginManagementTool('install_domain_plugin', {
+      plugin_name: 'unknown-domain',
+    })) as { success: boolean; supportedPlugins: string[]; error: string };
+
+    expect(res.success).toBe(false);
+    expect(res.error).toContain('Unsupported domain plugin');
+    expect(res.supportedPlugins).toEqual(
+      expect.arrayContaining([
+        '@holoscript/energy-grid-plugin',
+        '@holoscript/plugin-fitness-wellness',
+        '@holoscript/plugin-travel-hospitality',
+      ])
+    );
   });
 });

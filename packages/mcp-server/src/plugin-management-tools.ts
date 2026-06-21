@@ -16,6 +16,7 @@ import {
   type SandboxPermission,
   type PluginLifecycleState,
 } from '@holoscript/core';
+import { installBuiltinDomainPlugin, listBuiltinDomainPluginNames } from './domain-plugin-runtime';
 
 // ESM-safe __dirname (matches trait-categories-from-core.ts). tsup emits ESM, so the
 // native __dirname is absent; both src/ and dist/ sit at depth 2 under packages/mcp-server,
@@ -66,7 +67,7 @@ export const pluginManagementTools: Tool[] = [
   {
     name: 'install_domain_plugin',
     description:
-      'STUB: Install a pre-packaged domain plugin by package name. Not yet implemented — returns failure. Use install_plugin for runtime-loaded plugins.',
+      'Install a built-in domain plugin by package name or alias and register its trait handlers in the MCP HoloScript runtime.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -288,14 +289,17 @@ async function handleManagePlugin(args: Record<string, unknown>) {
 
 async function handleInstallDomainPlugin(args: Record<string, unknown>) {
   const pluginName = args.plugin_name as string;
-  // OVERCLAIMED ratchet fix: no actual plugin loading or registration happens.
-  // The previous message claimed success with schema-mapper registration that never occurred.
-  return {
-    success: false,
-    pluginId: pluginName,
-    state: 'not_installed',
-    message: `STUB: Domain plugin ${pluginName} installation is not yet implemented. No plugin loading, schema-mapper registration, or lifecycle manager call occurs. Use install_plugin for runtime-loaded plugins, or install domain plugins manually via package manager.`,
-  };
+  if (!pluginName || typeof pluginName !== 'string') {
+    return {
+      success: false,
+      pluginId: pluginName,
+      state: 'not_installed',
+      supportedPlugins: listBuiltinDomainPluginNames(),
+      error: 'plugin_name is required.',
+    };
+  }
+
+  return installBuiltinDomainPlugin(pluginName);
 }
 
 interface DiscoveredPlugin {
@@ -358,7 +362,9 @@ async function handleDiscoverPlugins(args: Record<string, unknown>) {
 
   const results = registry.filter((p) => {
     const matchesQuery =
-      query === '' || p.id.toLowerCase().includes(query) || p.description.toLowerCase().includes(query);
+      query === '' ||
+      p.id.toLowerCase().includes(query) ||
+      p.description.toLowerCase().includes(query);
     const matchesCategory = !category || p.category === category;
     return matchesQuery && matchesCategory;
   });
