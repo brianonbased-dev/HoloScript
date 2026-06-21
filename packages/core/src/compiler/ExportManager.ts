@@ -32,6 +32,7 @@ import { URDFCompiler } from './URDFCompiler';
 import { SDFCompiler } from './SDFCompiler';
 import { UnityCompiler } from './UnityCompiler';
 import { UnrealCompiler } from './UnrealCompiler';
+import { PCGGraphCompiler } from './PCGGraphCompiler';
 import { GodotCompiler } from './GodotCompiler';
 import { Canvas2DGameCompiler } from './Canvas2DGameCompilerTarget';
 import { WebGPUCompiler } from './WebGPUCompiler';
@@ -226,6 +227,8 @@ class CompilerFactory {
         return new UnityCompiler(options);
       case 'unreal':
         return new UnrealCompiler(options);
+      case 'pcg-graph':
+        return new PCGGraphCompiler(options);
       case 'godot':
         return new GodotCompiler(options);
       case 'webgpu':
@@ -616,6 +619,7 @@ export class ExportManager {
       'sdf',
       'unity',
       'unreal',
+      'pcg-graph',
       'godot',
       'vrchat',
       'openxr',

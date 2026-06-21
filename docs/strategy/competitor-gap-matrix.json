@@ -1,7 +1,7 @@
 {
   "$schema": "holoscript.competitor-gap-matrix.v1",
-  "generatedAt": "2026-05-18T00:00:00Z",
-  "nextReviewBy": "2026-06-18",
+  "generatedAt": "2026-06-21T02:25:00Z",
+  "nextReviewBy": "2026-07-21",
   "nmosLegend": {
     "bars": [
       "massive-scale",
@@ -98,6 +98,29 @@
             "packages/core/src/compiler/UnrealCompiler.ts"
           ],
           "boardTaskId": "task_1779252073335_096i"
+        },
+        {
+          "id": "CG-071",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "shipped",
+          "title": "Declarative PCG spatial-operator node graph",
+          "competitorAdvantage": "Unreal PCG provides a mature graph workflow for procedural density filtering, masking, scatter, projection, and terrain-aware placement directly inside the Unreal toolchain.",
+          "holoscriptState": "HoloScript now parses a .holo pcg_graph arrow block into typed spatial-operator nodes, compiles procedural blocks to Unreal PCG XML through PCGGraphCompiler, exposes compile_to_pcg_graph through MCP, and emits a GPU evaluation plan alongside the graph artifact.",
+          "neededResponse": "Keep Unreal PCG as a bridge target while making HoloScript the agent-native procedural IR above it: extend operator coverage, round-trip PCG XML fixtures, and promote GPU-evaluable spatial operators in Studio.",
+          "evidence": [
+            "packages/core/src/parser/HoloCompositionParser.ts -- pcg_graph arrow-block parser",
+            "packages/core/src/compiler/PCGGraphCompiler.ts -- typed PCG graph IR, Unreal XML emitter, GPU plan",
+            "packages/mcp-server/src/compiler-tools.ts -- compile_to_pcg_graph MCP tool",
+            "packages/core/src/compiler/__tests__/PCGGraphCompiler.test.ts -- parser, compiler, and ExportManager coverage"
+          ],
+          "sources": [
+            "packages/core/src/parser/HoloCompositionParser.ts",
+            "packages/core/src/compiler/PCGGraphCompiler.ts",
+            "packages/mcp-server/src/compiler-tools.ts",
+            "packages/core/src/compiler/__tests__/PCGGraphCompiler.test.ts"
+          ],
+          "boardTaskId": "task_1781381663856_z64g"
         }
       ]
     },

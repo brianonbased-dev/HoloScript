@@ -79,6 +79,26 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.cpp', '.h'],
     },
     {
+      name: 'pcg-graph',
+      domain: 'gamedev',
+      description: 'Compiles procedural blocks to Unreal PCG XML graph assets',
+      supportedTraits: [
+        'procedural',
+        'pcg_graph',
+        'density_filter',
+        'slope_mask',
+        'scatter',
+        'snap_to_terrain',
+        'gpu',
+      ],
+      riskTier: 'standard',
+      factory: (opts) => {
+        const { PCGGraphCompiler } = require('./PCGGraphCompiler');
+        return new PCGGraphCompiler(opts);
+      },
+      outputExtensions: ['.pcg.xml', '.graph.json', '.gpu-plan.md'],
+    },
+    {
       name: 'godot',
       domain: 'gamedev',
       description: 'Compiles to Godot GDScript nodes',

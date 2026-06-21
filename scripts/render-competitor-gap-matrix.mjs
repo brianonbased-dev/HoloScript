@@ -82,7 +82,7 @@ for (const vertical of data.verticals) {
   }
 }
 
-fs.writeFileSync(outputPath, md, 'utf-8');
+fs.writeFileSync(outputPath, md.replace(/\n{2,}$/, '\n'), 'utf-8');
 console.log(
   `Rendered ${outputPath} (${data.verticals.length} verticals, ${data.verticals.reduce((n, v) => n + v.gaps.length, 0)} gaps)`
 );

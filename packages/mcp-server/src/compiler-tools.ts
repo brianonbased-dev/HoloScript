@@ -577,7 +577,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
   const targets = [...dialectNames, ...legacyNames] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
-    'Game Engines': ['unity', 'unreal', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
+    'Game Engines': ['unity', 'unreal', 'pcg-graph', 'godot', 'canvas2d-game'] as unknown as ExportTarget[],
     'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
     // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
@@ -643,6 +643,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'unity' });
     case 'compile_to_unreal':
       return handleCompileToTarget({ ...args, target: 'unreal' });
+    case 'compile_to_pcg_graph':
+      return handleCompileToTarget({ ...args, target: 'pcg-graph' });
     case 'compile_to_urdf':
       return handleCompileToTarget({ ...args, target: 'urdf' });
     case 'compile_to_sdf':
@@ -1010,6 +1012,7 @@ export const compilerTools: Tool[] = [
             'sdf',
             'unity',
             'unreal',
+            'pcg-graph',
             'godot',
             'vrchat',
             'openxr',
@@ -1093,6 +1096,28 @@ export const compilerTools: Tool[] = [
               description: 'Generate Blueprint classes (default: true)',
             },
             targetVersion: { type: 'string', description: 'Unreal Engine version (default: 5.3)' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_pcg_graph',
+    description:
+      'Compile HoloScript procedural domain blocks to an Unreal PCG XML graph with typed spatial-operator ports and a GPU evaluation plan.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code with procedural blocks' },
+        options: {
+          type: 'object',
+          properties: {
+            gpuEvaluation: {
+              type: 'boolean',
+              description: 'Enable GPU spatial-operator evaluation hints',
+            },
+            seed: { type: 'number', description: 'Deterministic scatter seed override' },
           },
         },
       },
@@ -2070,6 +2095,7 @@ export const compilerTools: Tool[] = [
             'sdf',
             'unity',
             'unreal',
+            'pcg-graph',
             'godot',
             'vrchat',
             'openxr',

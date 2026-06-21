@@ -193,6 +193,7 @@ export type TokenType =
   | 'WEATHER'
   | 'ATMOSPHERE'
   | 'PROCEDURAL'
+  | 'PCG_GRAPH'
   | 'SCATTER'
   | 'LOD_BLOCK'
   | 'RENDER'
@@ -523,6 +524,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   climate: 'WEATHER',
   simulation: 'SIMULATION',
   procedural: 'PROCEDURAL',
+  pcg_graph: 'PCG_GRAPH',
   generate: 'PROCEDURAL',
   scatter: 'SCATTER',
   distribute: 'SCATTER',

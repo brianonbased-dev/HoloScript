@@ -401,6 +401,10 @@ export class HoloScriptCodeParser {
       'semantic',
       'episodic',
       'procedural',
+      'pcg_graph',
+      'density_filter',
+      'slope_mask',
+      'snap_to_terrain',
       // MMO / game-logic keywords (Phase: game-logic constructs)
       'ability',
       'loot_table',

@@ -50,6 +50,7 @@ export const BRIDGE_TARGETS = [
   'sdf',
   'unity',
   'unreal',
+  'pcg-graph', // Unreal PCG graph XML consumed by Unreal PCG
   'godot',
   'vrchat',
   'openxr',

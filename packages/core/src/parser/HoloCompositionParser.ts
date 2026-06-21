@@ -5240,6 +5240,7 @@ export class HoloCompositionParser {
     'WEATHER',
     'ATMOSPHERE',
     'PROCEDURAL',
+    'PCG_GRAPH',
     'SCATTER',
     'LOD_BLOCK',
     'RENDER',
@@ -5372,6 +5373,7 @@ export class HoloCompositionParser {
     WEATHER: 'weather',
     ATMOSPHERE: 'weather',
     PROCEDURAL: 'procedural',
+    PCG_GRAPH: 'procedural',
     SCATTER: 'procedural',
     LOD_BLOCK: 'rendering',
     RENDER: 'rendering',
@@ -6751,6 +6753,10 @@ export class HoloCompositionParser {
       return this.parsePipelineDomainBlock(name, traits);
     }
 
+    if (token.type === 'PCG_GRAPH') {
+      return this.parsePCGGraphDomainBlock(startLoc, name, traits, keyword, domain);
+    }
+
     // Parse body { properties... }
     this.expect('LBRACE');
     this.skipNewlines();
@@ -6827,6 +6833,120 @@ export class HoloCompositionParser {
       children: children.length > 0 ? children : undefined,
       eventHandlers: eventHandlers.length > 0 ? eventHandlers : undefined,
     };
+  }
+
+  private parsePCGGraphDomainBlock(
+    startLoc: SourceLocation,
+    name: string,
+    traits: string[],
+    keyword: string,
+    domain: HoloDomainType
+  ): HoloDomainBlock {
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const nodes: HoloValue[] = [];
+    const properties: Record<string, HoloValue> = {
+      nodes,
+    };
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const token = this.current();
+      const next = this.peek(1);
+
+      if (next?.type === 'COLON' && (token.type === 'IDENTIFIER' || token.type === 'PCG_GRAPH')) {
+        const key = token.value;
+        this.advance();
+        this.expect('COLON');
+        properties[key] = this.parseValue();
+      } else {
+        const kind = token.value;
+        this.advance();
+
+        const nodeProperties: Record<string, HoloValue> = {};
+        if (this.check('LPAREN')) {
+          this.parsePCGNodeArgs(kind, nodeProperties);
+        }
+
+        nodes.push({
+          kind,
+          properties: nodeProperties,
+        });
+      }
+
+      this.skipNewlines();
+      if (this.check('ARROW')) {
+        this.advance();
+      } else if (this.check('MINUS') && this.peek(1).type === 'GREATER') {
+        this.advance();
+        this.advance();
+      }
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'DomainBlock',
+      domain,
+      keyword,
+      name,
+      traits,
+      properties,
+    };
+  }
+
+  private parsePCGNodeArgs(kind: string, properties: Record<string, HoloValue>): void {
+    this.expect('LPAREN');
+    const args: HoloValue[] = [];
+
+    while (!this.check('RPAREN') && !this.isAtEnd()) {
+      if (this.check('COMMA')) {
+        this.advance();
+        continue;
+      }
+
+      if (this.check('IDENTIFIER') && this.peek(1).type === 'COLON') {
+        const key = this.expectIdentifier();
+        this.expect('COLON');
+        properties[key] = this.parseValue();
+      } else {
+        args.push(this.parsePCGArgumentValue());
+      }
+
+      if (this.check('COMMA')) this.advance();
+    }
+
+    this.expect('RPAREN');
+
+    if (kind === 'scatter') {
+      if (args[0] !== undefined) properties['source_mesh'] = args[0];
+      if (args[1] !== undefined) properties['count'] = args[1];
+    } else if (args.length > 0) {
+      properties['args'] = args;
+    }
+  }
+
+  private parsePCGArgumentValue(): HoloValue {
+    if (
+      this.check('STRING') ||
+      this.check('NUMBER') ||
+      this.check('BOOLEAN') ||
+      this.check('NULL') ||
+      this.check('LBRACKET')
+    ) {
+      return this.parseValue();
+    }
+
+    const value = this.current().value;
+    this.advance();
+    return value;
   }
 
   /**

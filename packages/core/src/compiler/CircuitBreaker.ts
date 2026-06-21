@@ -45,6 +45,7 @@ export type ExportTarget =
   | 'sdf' // Gazebo simulation
   | 'unity' // Unity Engine
   | 'unreal' // Unreal Engine
+  | 'pcg-graph' // Unreal PCG graph asset XML
   | 'godot' // Godot Engine
   | 'vrchat' // VRChat SDK
   | 'openxr' // OpenXR runtime

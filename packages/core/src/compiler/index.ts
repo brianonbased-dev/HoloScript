@@ -299,6 +299,25 @@ export type {
 // Dialect boot (registers all compilers as dialects)
 export { registerBuiltinDialects } from './registerBuiltinDialects';
 
+// Unreal PCG graph compiler
+export {
+  PCGGraphCompiler,
+  compilePCGGraphFromBlocks,
+  compileToPCGGraph,
+  pcgGraphToUnrealXml,
+  PCG_GRAPH_SCHEMA,
+} from './PCGGraphCompiler';
+export type {
+  PCGGraphCompileOptions,
+  PCGGraphCompileResult,
+  PCGGraphEdge,
+  PCGGraphIR,
+  PCGGraphNode,
+  PCGGraphNodeKind,
+  PCGGraphPort,
+  PCGPortType,
+} from './PCGGraphCompiler';
+
 // Pipeline compiler (.hs pipeline -> Node.js index.mjs)
 export {
   compilePipelineSource,
