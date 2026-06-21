@@ -5,7 +5,9 @@ import {
   type ReconstructionFrame,
 } from '../HoloMapRuntime';
 import { resetHoloMapTelemetryForTests } from '../holoMapTelemetry';
+import { classifyTrustTier } from '../holoMapReplayVerification';
 import { assertHoloMapManifestContract } from '../simulationContractBinding';
+import type { HoloMapAnchorRequest } from '../holoMapAnchoredManifest';
 
 const previousHoloMapLog = process.env.HOLOMAP_LOG;
 const previousHoloMapLogSteps = process.env.HOLOMAP_LOG_STEPS;
@@ -68,6 +70,49 @@ describe('HoloMapRuntime vertical slice', () => {
 
     const replay = runtime.replayHash();
     expect(replay).toBe(manifest.replayHash);
+
+    await runtime.dispose();
+  });
+
+  it('finalizes with OTS/Base provenance when an anchor provider is configured', async () => {
+    let anchorRequest: HoloMapAnchorRequest | undefined;
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 7,
+      modelHash: 'anchored-test-model',
+      videoHash: 'fixture-anchor-provider',
+      provenanceAnchorProvider: {
+        async anchorManifest(request) {
+          anchorRequest = request;
+          return {
+            anchorHash: request.manifestDigest,
+            opentimestampsProof: `https://ots.example.com/${request.replayHash}.ots`,
+            baseCalldataTx: `https://basescan.org/tx/0x${request.replayFingerprint}`,
+          };
+        },
+      },
+    });
+
+    const frame: ReconstructionFrame = {
+      index: 0,
+      timestampMs: 0,
+      rgb: new Uint8Array([96, 128, 192, 255]),
+      width: 1,
+      height: 1,
+      stride: 4,
+    };
+
+    await runtime.step(frame);
+    const manifest = await runtime.finalize();
+
+    expect(anchorRequest?.manifestDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(anchorRequest?.manifest.provenance.anchorHash).toBeUndefined();
+    expect(manifest.provenance.anchorHash).toBe(anchorRequest?.manifestDigest);
+    expect(manifest.provenance.opentimestampsProof).toContain('.ots');
+    expect(manifest.provenance.baseCalldataTx).toContain('basescan.org/tx/');
+    expect(classifyTrustTier(manifest)).toBe('fully-anchored');
+    assertHoloMapManifestContract(manifest);
 
     await runtime.dispose();
   });

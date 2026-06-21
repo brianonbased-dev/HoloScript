@@ -24,6 +24,11 @@ import { getVersionString } from '../version';
 import { createHoloMapRunId, logHoloMapEvent } from './holoMapTelemetry';
 import { isWebGpuEnvironmentPresent } from './webgpuGate';
 import { loadHoloMapWeightBlob } from './holoMapWeightLoader';
+import {
+  anchorReconstructionManifest,
+  selfAttestReconstructionManifest,
+  type HoloMapProvenanceAnchorProvider,
+} from './holoMapAnchoredManifest';
 
 // =============================================================================
 // INPUT / OUTPUT TYPES
@@ -141,6 +146,11 @@ export interface HoloMapConfig {
    * Tried before cache and network. Receives `weightCid`, returns bytes or undefined.
    */
   localResolver?: (weightCid: string) => Promise<ArrayBuffer | undefined>;
+  /**
+   * Optional provenance anchor provider. When set, finalize() asks it to anchor the
+   * canonical manifest digest through OTS/Base and falls back to self-attestation.
+   */
+  provenanceAnchorProvider?: HoloMapProvenanceAnchorProvider;
 }
 
 export const HOLOMAP_DEFAULTS: HoloMapConfig = {
@@ -1053,7 +1063,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       sessionDurationMs: Math.round(performance.now() - this.sessionStartMs),
     });
 
-    return {
+    const manifest: ReconstructionManifest = {
       version: '1.0.0',
       worldId: `holomap-${this.replayKey}`,
       displayName: 'HoloMap Reconstruction',
@@ -1077,6 +1087,15 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       },
       weightStrategy: this.config.weightStrategy ?? 'distill',
     };
+
+    try {
+      return await anchorReconstructionManifest(manifest, this.config.provenanceAnchorProvider);
+    } catch (error) {
+      logHoloMapEvent(this.runId, 'anchor_failed', {
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      return selfAttestReconstructionManifest(manifest);
+    }
   }
 
   replayHash(): string {
