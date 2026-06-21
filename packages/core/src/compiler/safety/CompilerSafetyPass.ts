@@ -263,6 +263,18 @@ export type {
   CapabilityRequirement,
   CapabilityCheckResult,
 } from './CapabilityTypes';
+export {
+  assertAuthorityEffects,
+  checkAuthorityEffects,
+  collectAuthorityEffectNodes,
+  CompileTimeAuthorityEffectError,
+  REQUIRED_SANDBOX_AUTHORITY_EFFECT,
+  SANDBOX_AUTHORITY_TRAIT,
+} from './AuthorityEffectEnforcer';
+export type {
+  AuthorityEffectCheckOptions,
+  AuthorityEffectCheckResult,
+} from './AuthorityEffectEnforcer';
 export { buildSafetyReport, generateCertificate, formatReport } from './SafetyReport';
 export type { SafetyReport, SafetyVerdict } from './SafetyReport';
 export { LinearTypeChecker, BUILTIN_RESOURCES, TRAIT_RESOURCE_MAP } from './LinearTypeChecker';

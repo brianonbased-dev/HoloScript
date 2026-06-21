@@ -210,7 +210,20 @@ export type { GeometryData, BlobDef } from './ProceduralGeometry';
 
 // Safety subsystem
 export { runSafetyPass, quickSafetyCheck } from './safety/CompilerSafetyPass';
-export type { SafetyPassResult, SafetyPassConfig } from './safety/CompilerSafetyPass';
+export {
+  assertAuthorityEffects,
+  checkAuthorityEffects,
+  collectAuthorityEffectNodes,
+  CompileTimeAuthorityEffectError,
+  REQUIRED_SANDBOX_AUTHORITY_EFFECT,
+  SANDBOX_AUTHORITY_TRAIT,
+} from './safety/CompilerSafetyPass';
+export type {
+  AuthorityEffectCheckOptions,
+  AuthorityEffectCheckResult,
+  SafetyPassResult,
+  SafetyPassConfig,
+} from './safety/CompilerSafetyPass';
 export type { SafetyReport, SafetyVerdict } from './safety/SafetyReport';
 export type { LinearCheckerConfig } from './safety/LinearTypeChecker';
 export type { InferredEffects } from './safety/EffectInference';
@@ -258,10 +271,7 @@ export type {
 } from './authority/ServerAuthorityBundleSplitter';
 
 // Provenance bounds — @provably_bounded proof obligations (single-file + cross-file)
-export {
-  ProvenanceBoundsChecker,
-  createProvenanceBoundsChecker,
-} from './ProvenanceBoundsChecker';
+export { ProvenanceBoundsChecker, createProvenanceBoundsChecker } from './ProvenanceBoundsChecker';
 export type {
   ProvabilityReport,
   ProofObligation,
@@ -453,7 +463,6 @@ export {
   REMOTE_TRAIN_EXECUTOR,
 } from './GaussianTrainCompiler';
 export type { GaussianTrainJob, GaussianTrainCompilerOptions } from './GaussianTrainCompiler';
-
 
 // APL WIT / trait-evaluation surface — unified bridge for WASM worlds
 export {

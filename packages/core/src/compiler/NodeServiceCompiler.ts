@@ -51,6 +51,7 @@ import type {
   HoloStatement,
   HoloExpression,
 } from '../parser/HoloCompositionTypes';
+import { assertAuthorityEffects } from './safety/AuthorityEffectEnforcer';
 import { DialectRegistry } from './DialectRegistry';
 import {
   KNOWN_CONNECTORS,
@@ -147,6 +148,7 @@ export class NodeServiceCompiler extends CompilerBase {
     outputPath?: string
   ): Record<string, string> {
     this.validateCompilerAccess(agentToken, outputPath);
+    assertAuthorityEffects(composition, { moduleId: composition.name || this.compilerName });
 
     // Reset state
     this.services = [];

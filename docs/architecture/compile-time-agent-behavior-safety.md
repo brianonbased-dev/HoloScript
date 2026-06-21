@@ -51,3 +51,18 @@ Runtime validators should move into compile-time layers as follows:
 7. Emit a safety certificate that summarizes verified effects, tokens, resources, zones, and residual runtime checks.
 
 The first tracer only covers step 2 and step 3 for `authority:world`. The next useful expansion is to require a capability token for the same unsafe sandbox pattern, which turns the effect declaration from "this node may do world-authority work" into "this node is authorized to do it."
+
+## Compiler Path Integration
+
+The first tracer is also wired into `NodeServiceCompiler` through
+`assertAuthorityEffects()`. That adapter consumes `HoloComposition` objects
+instead of parser `ASTNode` values, but it uses the same `authority:world`
+obligation and the same unsafe sandbox pattern:
+`allow_native_modules: true` plus `permissions.filesystem: "all"`.
+
+This gives two receipts for the same rule:
+
+- `HoloScriptTypeChecker` rejects source-level unsafe sandbox declarations with
+  `HSP030`.
+- `NodeServiceCompiler` rejects already-hydrated compositions before service
+  extraction or artifact emission.
