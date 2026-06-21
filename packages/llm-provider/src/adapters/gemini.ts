@@ -3,7 +3,7 @@
  *
  * Implements the unified ILLMProvider interface for Google Gemini's API.
  * Uses fetch-based HTTP requests (no SDK dependency) for maximum compatibility.
- * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, and legacy Gemini models.
+ * Supports Gemini 3.5 Flash, Gemini 3 Flash Preview, and legacy Gemini 1.5 models.
  *
  * Function calling uses the standard generateContent API (not the Interactions/
  * Live API). Tool calls appear as `functionCall` parts in the response
@@ -46,11 +46,11 @@ import {
 // gemini-3.1-flash-image-preview and gemini-3-pro-image-preview are NOT
 // included — they shut down June 25 2026 per the Interactions API breaking
 // changes notice (ai.google.dev/gemini-api/docs/interactions-breaking-changes-may-2026).
+// gemini-2.0-flash and gemini-2.0-flash-lite are NOT included; Google lists
+// them as shut down June 1 2026 in Gemini API pricing/docs (A-020, 2026-06-21).
 export const GEMINI_MODELS = [
   'gemini-3.5-flash',
   'gemini-3-flash-preview',
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
   'gemini-1.5-pro',
   'gemini-1.5-flash',
   'gemini-1.5-flash-8b',

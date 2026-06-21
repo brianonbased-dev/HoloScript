@@ -1,6 +1,6 @@
 /**
  * Tests for the Gemini adapter — function calling, response parsing,
- * and model-list guard for deprecated image-preview models.
+ * and model-list guards for shut-down/deprecated models.
  *
  * Covers the A-020 migration (2026-06-08): Interactions API `outputs` removed,
  * new `steps[]` schema documented in adapter header; standard generateContent
@@ -27,9 +27,15 @@ describe('GEMINI_MODELS', () => {
     expect(modelList).not.toContain('gemini-3-pro-image-preview');
   });
 
+  it('does NOT include Gemini 2.0 Flash models shut down June 1 2026', () => {
+    const modelList = GEMINI_MODELS as readonly string[];
+    expect(modelList).not.toContain('gemini-2.0-flash');
+    expect(modelList).not.toContain('gemini-2.0-flash-lite');
+  });
+
   it('contains the expected current models', () => {
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
-    expect(GEMINI_MODELS).toContain('gemini-2.0-flash');
+    expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-1.5-pro');
   });
 });
@@ -144,7 +150,7 @@ describe('parseGeminiResponse — plain text', () => {
       ],
     };
 
-    const result = parseGeminiResponse(response, 'gemini-2.0-flash');
+    const result = parseGeminiResponse(response, 'gemini-3.5-flash');
     expect(result.content).toBe('Hello, world!');
     expect(result.assistantBlocks).toHaveLength(2);
   });
