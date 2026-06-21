@@ -1,0 +1,49 @@
+{
+  "routine_id": "trig_012VRZzHoo268yWEnwaa14Ep",
+  "routine_name": "A-009 Example freshness + artist stress-test",
+  "fired_at": "2026-06-21T07:42:19Z",
+  "gaps": [
+    {
+      "title": "Parser: .holo postfx blocks fail in 64 examples",
+      "description": "A-009 full parser sweep: 484 example files tested, 285 pass, 199 fail. Largest cluster: 64 .holo examples fail with `Expected COLON, got LBRACE`, usually under domain-postfx or nested block grammar. Examples include accessibility/wcag-compliant-scene.holo, getting-started/hello-world.holo, weather/*, xr/*, native-assets/*, procedural/*.",
+      "priority": "high",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "parser-gap", "holo"],
+      "dedup_key": "a009-2026-06-21-full-parser-drift-postfx-lbrace"
+    },
+    {
+      "title": "Parser: comma grammar fails in 27 examples",
+      "description": "A-009 full parser sweep: 27 examples fail with `Expected identifier, got COMMA`. Affected families include agents/* pipeline scenes, presets/*, quickstart/*, traits/*, webgpu-compute/*, and samples/physics-integration-demo.holo. This appears to be a broad grammar mismatch between current example style and parser object/property list handling.",
+      "priority": "medium",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "parser-gap"],
+      "dedup_key": "a009-2026-06-21-full-parser-drift-comma"
+    },
+    {
+      "title": "Parser: CAMERA object keyword fails in 13 examples",
+      "description": "A-009 full parser sweep: 13 examples fail with `Expected string or identifier for object name, got CAMERA`. Affected families include affordances/*, emotion/*, narrative/*, persistence/*, rendering/03-post-processing-stack.holo, and language-reference/comparison-01-simple-scene.holo. Current parser does not accept the camera object shorthand used by these examples.",
+      "priority": "medium",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "parser-gap", "camera"],
+      "dedup_key": "a009-2026-06-21-full-parser-drift-camera-keyword"
+    },
+    {
+      "title": "Parser: dotted property syntax fails in 13 examples",
+      "description": "A-009 full parser sweep: 13 examples fail with `Expected identifier, got DOT`. Affected examples include domain-starters/architecture, dataviz, education, input, music, navigation, procedural, rendering, plus stress-tests/murmuration-market and three-format-showcase/smart-gallery.holo. This expands the prior DOT parser-gap signal beyond .hs into .holo example grammar.",
+      "priority": "medium",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "parser-gap"],
+      "dedup_key": "a009-2026-06-21-full-parser-drift-dot"
+    },
+    {
+      "title": "Parser: semicolon scene syntax fails in 12 examples",
+      "description": "A-009 full parser sweep: 12 examples fail with `Expected identifier, got SEMICOLON`. Affected examples include autonomous-ecosystems/04-cultural-ecosystem.holo and novel-use-cases/01, 03, 04, 06-13 .holo scenes. These examples use aspirational or legacy semicolon scene syntax not accepted by the current HoloCompositionParser.",
+      "priority": "medium",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "parser-gap"],
+      "dedup_key": "a009-2026-06-21-full-parser-drift-semicolon"
+    },
+    {
+      "title": "Parser: long-tail example grammar failures remain",
+      "description": "A-009 full parser sweep leaves 70 additional failures outside the top clusters. Recurring signatures include `Expected LBRACE, got COLON`, `Expected RBRACKET, got LBRACE`, `Expected identifier, got AT`, HOLO_TOPIC/HOLO_CHANNEL token rejections, HASH material blocks, unsupported platform empty-list validation, and service/domain-contract QUESTION syntax. Evidence log: .scratch/2026-06-21-a009/phase1-final.log.",
+      "priority": "low",
+      "tags": ["auto-filed-by-A-009", "example-driven", "compiler-bug", "parser-gap", "long-tail"],
+      "dedup_key": "a009-2026-06-21-full-parser-drift-long-tail"
+    }
+  ]
+}

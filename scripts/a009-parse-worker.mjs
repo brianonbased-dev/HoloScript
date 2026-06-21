@@ -14,12 +14,30 @@ const require = createRequire(import.meta.url);
 const core = require(join(ROOT, 'packages/core/dist/parser.cjs'));
 const { parseHolo, parse, HoloScriptPlusParser } = core;
 
-const files = readFileSync('/dev/stdin', 'utf8').trim().split('\n').filter(Boolean);
+function normalizeInputPath(filepath) {
+  if (process.platform === 'win32') {
+    const msys = filepath.match(/^\/([a-zA-Z])\/(.*)$/);
+    if (msys) {
+      return `${msys[1].toUpperCase()}:/${msys[2]}`;
+    }
+    const wsl = filepath.match(/^\/mnt\/([a-zA-Z])\/(.*)$/);
+    if (wsl) {
+      return `${wsl[1].toUpperCase()}:/${wsl[2]}`;
+    }
+  }
+  return filepath;
+}
+
+const listArgIndex = process.argv.indexOf('--list');
+const input = listArgIndex >= 0
+  ? readFileSync(normalizeInputPath(process.argv[listArgIndex + 1]), 'utf8')
+  : readFileSync(0, 'utf8');
+const files = input.trim().split(/\r\n|\n|\r/).map((line) => line.trim()).filter(Boolean);
 
 for (const filepath of files) {
   const ext = filepath.split('.').pop();
   try {
-    const code = readFileSync(filepath, 'utf8');
+    const code = readFileSync(normalizeInputPath(filepath), 'utf8');
     let result;
     if (ext === 'holo') result = parseHolo(code);
     else if (ext === 'hsplus') {
