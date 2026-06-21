@@ -19,12 +19,14 @@
  *  computer_use_error    { node, browserId, error }
  */
 
+import type { HSPlusNode } from './TraitTypes';
+
 /** Minimal trait context */
 interface TraitCtx {
   emit(event: string, data: Record<string, unknown>): void;
 }
 /** Node with dynamic computer use state */
-type ComputerUseNode = Record<string, unknown> & { __computerUseState?: ComputerUseState };
+type ComputerUseNode = HSPlusNode & { __computerUseState?: ComputerUseState };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

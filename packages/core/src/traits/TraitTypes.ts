@@ -16,7 +16,7 @@ export type { VRTraitName, VRHand, ThrowVelocity, CollisionEvent, Vector3, HSPlu
 export interface TraitHandler<TConfig = unknown> {
   name: VRTraitName;
   defaultConfig?: TConfig;
-  onAttach?: (node: HSPlusNode, config: TConfig, context: TraitContext) => void;
+  onAttach?: (node: HSPlusNode, config: TConfig, context: TraitContext) => void | Promise<void>;
   onDetach?: (node: HSPlusNode, config: TConfig, context: TraitContext) => void;
   onUpdate?: (node: HSPlusNode, config: TConfig, context: TraitContext, delta: number) => void;
   onEvent?: (node: HSPlusNode, config: TConfig, context: TraitContext, event: TraitEvent) => void;

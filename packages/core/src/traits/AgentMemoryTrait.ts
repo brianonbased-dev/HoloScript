@@ -21,6 +21,8 @@
  * @Sprint HoloScript v4.0 — OpenClaw Competitor
  */
 
+import type { HSPlusNode } from './TraitTypes';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Minimal trait context */
@@ -28,7 +30,7 @@ interface TraitCtx {
   emit(event: string, data: Record<string, unknown>): void;
 }
 /** Node with dynamic agent memory state */
-type MemoryNode = Record<string, unknown> & { __agentMemoryState?: AgentMemoryState };
+type MemoryNode = HSPlusNode & { __agentMemoryState?: AgentMemoryState };
 
 export interface Memory {
   id: string;

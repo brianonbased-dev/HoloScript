@@ -1588,12 +1588,20 @@ function createVfxParticleHandler(name: string): TraitHandler<Record<string, unk
     name: name as VRTraitName,
     defaultConfig,
     onAttach(node, config, context) {
-      gpuParticle.onAttach?.(node, { ...defaultConfig, ...config }, context);
+      return gpuParticle.onAttach?.(node, { ...defaultConfig, ...config }, context);
     },
   };
 }
 
 const vfxParticleHandlers = Object.keys(VFX_PARTICLE_PRESETS).map(createVfxParticleHandler);
+
+function isPromiseLike(value: unknown): value is PromiseLike<void> {
+  return (
+    (typeof value === 'object' || typeof value === 'function') &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === 'function'
+  );
+}
 
 // =============================================================================
 // TRAIT REGISTRY
@@ -1605,6 +1613,7 @@ const vfxParticleHandlers = Object.keys(VFX_PARTICLE_PRESETS).map(createVfxParti
 
 export class VRTraitRegistry {
   private handlers: Map<VRTraitName, TraitHandler> = new Map();
+  private pendingAttach: WeakMap<HSPlusNode, Map<VRTraitName, Promise<void>>> = new WeakMap();
 
   constructor() {
     // Register all built-in handlers
@@ -2015,7 +2024,7 @@ export class VRTraitRegistry {
 
     // ── Phase A: Previously unregistered handlers ──
     this.register(agentDiscoveryHandler as TraitHandler);
-    this.register(agentMemoryHandler as unknown as TraitHandler);
+    this.register(agentMemoryHandler as TraitHandler);
     this.register(agentPortalHandler as TraitHandler);
     this.register(aiInpaintingHandler as TraitHandler);
     this.register(ainpcBrainHandler as TraitHandler);
@@ -2023,7 +2032,7 @@ export class VRTraitRegistry {
     this.register(analyticsHandler as TraitHandler);
     this.register(biofeedbackHandler as TraitHandler);
     this.register(blackboardHandler as TraitHandler);
-    this.register(computerUseHandler as unknown as TraitHandler);
+    this.register(computerUseHandler as TraitHandler);
     this.register(consentGateHandler as TraitHandler);
     this.register(controlNetHandler as TraitHandler);
     this.register(diffusionRealtimeHandler as TraitHandler);
@@ -2032,9 +2041,9 @@ export class VRTraitRegistry {
     this.register(handMeshAIHandler as TraitHandler);
     this.register(hitlHandler as TraitHandler);
     this.register(interactiveGraphHandler as TraitHandler);
-    this.register(localLLMHandler as unknown as TraitHandler);
+    this.register(localLLMHandler as TraitHandler);
     this.register(marketplaceIntegrationHandler as TraitHandler);
-    this.register(messagingHandler as unknown as TraitHandler);
+    this.register(messagingHandler as TraitHandler);
     this.register(mqttSinkHandler as TraitHandler);
     this.register(mqttSourceHandler as TraitHandler);
     this.register(multiAgentHandler as TraitHandler);
@@ -2054,7 +2063,7 @@ export class VRTraitRegistry {
     this.register(reputationLedgerHandler as TraitHandler);
     this.register(sceneReconstructionHandler as TraitHandler);
     this.register(sharePlayHandler as TraitHandler);
-    this.register(skillRegistryHandler as unknown as TraitHandler);
+    this.register(skillRegistryHandler as TraitHandler);
     this.register(spatialNavigationHandler as TraitHandler);
     this.register(spatialPersonaHandler as TraitHandler);
     this.register(stableDiffusionHandler as TraitHandler);
@@ -2152,12 +2161,41 @@ export class VRTraitRegistry {
     return this.handlers.size;
   }
 
+  private setPendingAttach(
+    node: HSPlusNode,
+    traitName: VRTraitName,
+    pending: Promise<void>
+  ): void {
+    let byTrait = this.pendingAttach.get(node);
+    if (!byTrait) {
+      byTrait = new Map();
+      this.pendingAttach.set(node, byTrait);
+    }
+    byTrait.set(traitName, pending);
+  }
+
+  private getPendingAttach(node: HSPlusNode, traitName: VRTraitName): Promise<void> | undefined {
+    return this.pendingAttach.get(node)?.get(traitName);
+  }
+
+  private clearPendingAttach(
+    node: HSPlusNode,
+    traitName: VRTraitName,
+    pending?: Promise<void>
+  ): void {
+    const byTrait = this.pendingAttach.get(node);
+    if (!byTrait) return;
+    if (pending && byTrait.get(traitName) !== pending) return;
+    byTrait.delete(traitName);
+    if (byTrait.size === 0) this.pendingAttach.delete(node);
+  }
+
   attachTrait(
     node: HSPlusNode,
     traitName: VRTraitName,
     config: Record<string, unknown>,
     context: TraitContext
-  ): void {
+  ): void | Promise<void> {
     const handler = this.handlers.get(traitName);
     if (!handler) return;
 
@@ -2168,13 +2206,28 @@ export class VRTraitRegistry {
     node.traits!.set(traitName, mergedConfig);
 
     if (handler.onAttach) {
-      handler.onAttach(node, mergedConfig, context);
+      const result = handler.onAttach(node, mergedConfig, context);
+      if (isPromiseLike(result)) {
+        let pending!: Promise<void>;
+        pending = Promise.resolve(result).finally(() =>
+          this.clearPendingAttach(node, traitName, pending)
+        );
+        pending.catch(() => undefined);
+        this.setPendingAttach(node, traitName, pending);
+        return pending;
+      }
     }
   }
 
   detachTrait(node: HSPlusNode, traitName: VRTraitName, context: TraitContext): void {
     const handler = this.handlers.get(traitName);
     if (!handler) return;
+
+    const pending = this.getPendingAttach(node, traitName);
+    if (pending) {
+      void pending.finally(() => this.detachTrait(node, traitName, context)).catch(() => undefined);
+      return;
+    }
 
     const config = node.traits?.get(traitName);
     if (config && handler.onDetach) {
@@ -2194,7 +2247,7 @@ export class VRTraitRegistry {
     if (!handler || !handler.onUpdate) return;
 
     const config = node.traits?.get(traitName);
-    if (config) {
+    if (config && !this.getPendingAttach(node, traitName)) {
       handler.onUpdate(node, config, context, delta);
     }
   }
@@ -2209,7 +2262,7 @@ export class VRTraitRegistry {
     if (!handler || !handler.onEvent) return;
 
     const config = node.traits?.get(traitName);
-    if (config) {
+    if (config && !this.getPendingAttach(node, traitName)) {
       handler.onEvent(node, config, context, event);
     }
   }

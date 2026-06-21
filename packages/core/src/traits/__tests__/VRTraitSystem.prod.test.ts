@@ -238,6 +238,81 @@ describe('VRTraitSystem — Production', () => {
         })
       );
     });
+
+    it('gates update and event dispatch until async onAttach resolves', async () => {
+      const reg = new VRTraitRegistry();
+      const onUpdate = vi.fn();
+      const onEvent = vi.fn();
+      let resolveAttach!: () => void;
+
+      reg.register({
+        name: 'async_attach',
+        defaultConfig: {},
+        onAttach: vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveAttach = resolve;
+            })
+        ),
+        onUpdate,
+        onEvent,
+      });
+
+      const node = makeNode();
+      const ctx = makeContext();
+      const attached = reg.attachTrait(node, 'async_attach', {}, ctx);
+
+      reg.updateTrait(node, 'async_attach', ctx, 0.016);
+      reg.handleEvent(node, 'async_attach', ctx, { type: 'ready_check' } as TraitEvent);
+
+      expect(attached).toBeInstanceOf(Promise);
+      expect(onUpdate).not.toHaveBeenCalled();
+      expect(onEvent).not.toHaveBeenCalled();
+
+      resolveAttach();
+      await attached;
+
+      reg.updateTrait(node, 'async_attach', ctx, 0.016);
+      reg.handleEvent(node, 'async_attach', ctx, { type: 'ready_check' } as TraitEvent);
+
+      expect(onUpdate).toHaveBeenCalledWith(node, {}, ctx, 0.016);
+      expect(onEvent).toHaveBeenCalledWith(node, {}, ctx, { type: 'ready_check' });
+    });
+
+    it('keeps dispatch gated when a superseded async onAttach resolves first', async () => {
+      const reg = new VRTraitRegistry();
+      const onUpdate = vi.fn();
+      const resolveAttach: Array<() => void> = [];
+
+      reg.register({
+        name: 'async_attach_superseded',
+        defaultConfig: {},
+        onAttach: vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              resolveAttach.push(resolve);
+            })
+        ),
+        onUpdate,
+      });
+
+      const node = makeNode();
+      const ctx = makeContext();
+      const firstAttach = reg.attachTrait(node, 'async_attach_superseded', { version: 1 }, ctx);
+      const secondAttach = reg.attachTrait(node, 'async_attach_superseded', { version: 2 }, ctx);
+
+      resolveAttach[0]();
+      await firstAttach;
+
+      reg.updateTrait(node, 'async_attach_superseded', ctx, 0.016);
+      expect(onUpdate).not.toHaveBeenCalled();
+
+      resolveAttach[1]();
+      await secondAttach;
+
+      reg.updateTrait(node, 'async_attach_superseded', ctx, 0.016);
+      expect(onUpdate).toHaveBeenCalledWith(node, { version: 2 }, ctx, 0.016);
+    });
   });
 
   // ======== UPDATE ========
