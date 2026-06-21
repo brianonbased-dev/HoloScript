@@ -43,6 +43,7 @@ interface CliConfig {
   trainRatio: number;
   seed: number;
   out: string;
+  generatedAt: string;
 }
 
 interface SourceReceipt {
@@ -76,6 +77,7 @@ interface EvalResult {
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, '..');
 const DEFAULT_OUT = 'research/paper-32-artifacts/grpo-accuracy-delta-20260621.json';
+const DEFAULT_GENERATED_AT = '2026-06-21T06:44:47.395Z';
 const PILLARS: Pillar[] = [
   PHYSICS_CONSERVATION_PILLAR,
   RENDERING_LOD_PILLAR,
@@ -108,7 +110,7 @@ async function main(): Promise<void> {
 
   const unsignedArtifact = {
     schema: 'holoscript.paper32.grpo_accuracy_delta.v1',
-    generatedAt: new Date().toISOString(),
+    generatedAt: cfg.generatedAt,
     paper: {
       id: 'P32-PILLAR-SLICE',
       title: 'Pillar-Slice Framework',
@@ -225,6 +227,7 @@ function parseArgs(): CliConfig {
     trainRatio: clampNumber(get('train-ratio', '0.7'), 0.5, 0.9, 0.7),
     seed: clampInt(get('seed', '32026'), 1, Number.MAX_SAFE_INTEGER, 32026),
     out: get('out', DEFAULT_OUT),
+    generatedAt: get('generated-at', DEFAULT_GENERATED_AT),
   };
 }
 
