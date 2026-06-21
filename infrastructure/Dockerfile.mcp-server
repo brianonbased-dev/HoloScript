@@ -55,6 +55,17 @@ COPY packages/marketplace-api/ packages/marketplace-api/
 COPY packages/mesh/ packages/mesh/
 COPY packages/holo-vm/ packages/holo-vm/
 COPY packages/security-sandbox/ packages/security-sandbox/
+# Domain plugins bundled into mcp-server at build time: domain-plugin-runtime.ts
+# (b4c992b3a "wire domain plugin trait boot") imports
+# `../../plugins/<x>-plugin/src/runtime` RELATIVELY, so esbuild/tsup must see the
+# plugin SOURCE in the builder context or the bundle fails to resolve and the whole
+# mcp-server build dies (Docker-entry-drift class — same as hololand/world/policy).
+# Their only non-relative deps are @holoscript/core (external) +
+# @holoscript/engine/simulation (already copied above), so source-copy is sufficient;
+# tsup bundles them — no runtime-stage COPY needed.
+COPY packages/plugins/energy-grid-plugin/ packages/plugins/energy-grid-plugin/
+COPY packages/plugins/fitness-wellness-plugin/ packages/plugins/fitness-wellness-plugin/
+COPY packages/plugins/travel-hospitality-plugin/ packages/plugins/travel-hospitality-plugin/
 
 
 # Build in dependency order
