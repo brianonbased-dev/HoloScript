@@ -5,14 +5,28 @@ import {
   applyLaneRouting,
   detectLane,
   type ChatRequest,
+  type InferenceProvider,
+  type StreamEvent,
 } from '../InferenceRouter';
 
-const FLEET_ENV_KEYS = [
-  'FLEET_PROVIDER_URL',
+const ROUTE_URL = 'https://run.vast.ai/route/';
+
+const ENV_KEYS = [
+  'VAST_API_KEY',
+  'FLEET_PROVIDER_ENDPOINT',
   'FLEET_MODEL',
-  'FLEET_REGISTRY_URL',
-  'FLEET_REGISTRY_KEY',
-  'FLEET_INFERENCE_KEY',
+  'VAST_QWEN_ENDPOINT_NAME',
+  'VAST_QWEN_MODEL',
+  'VAST_SERVERLESS_COST',
+  'VAST_SERVERLESS_MAX_WAIT_S',
+  'VAST_SERVERLESS_POLL_INTERVAL_MS',
+  'BRITTNEY_PROVIDER',
+  'FIREWORKS_API_KEY',
+  'FIREWORKS_MODEL',
+  'TOGETHER_API_KEY',
+  'TOGETHER_MODEL',
+  'OLLAMA_URL',
+  'OLLAMA_MODEL',
   'BRITTNEY_LANE_OPERATOR_MODEL',
   'BRITTNEY_LANE_CODE_MODEL',
   'BRITTNEY_LANE_VISION_MODEL',
@@ -21,14 +35,14 @@ const FLEET_ENV_KEYS = [
 const savedEnv: Record<string, string | undefined> = {};
 
 beforeEach(() => {
-  for (const key of FLEET_ENV_KEYS) {
+  for (const key of ENV_KEYS) {
     savedEnv[key] = process.env[key];
     delete process.env[key];
   }
 });
 
 afterEach(() => {
-  for (const key of FLEET_ENV_KEYS) {
+  for (const key of ENV_KEYS) {
     if (savedEnv[key] === undefined) {
       delete process.env[key];
     } else {
@@ -39,10 +53,28 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+function sseResponse(lines: string[]): Response {
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const line of lines) controller.enqueue(encoder.encode(line));
+        controller.close();
+      },
+    }),
+    { status: 200, headers: { 'content-type': 'text/event-stream' } },
+  );
+}
+
 describe('FleetProvider', () => {
-  it('is dormant by default: isAvailable() is false when FLEET_PROVIDER_URL is unset', async () => {
-    // Critical safety invariant — the kill-switch. No env var => no fleet traffic,
-    // and crucially NO network call is made at all.
+  it('is dormant by default: isAvailable() is false when VAST_API_KEY is unset', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -52,178 +84,84 @@ describe('FleetProvider', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('fails closed: isAvailable() is false when the fleet health check rejects (preemption)', async () => {
-    process.env.FLEET_PROVIDER_URL = 'http://fleet.invalid:9000';
-    // Simulate a dead/preempted endpoint — fetch rejects.
+  it('route-probes once with cost 100 and returns false while the serverless pool wakes', async () => {
+    process.env.VAST_API_KEY = 'vast-key';
+    process.env.FLEET_PROVIDER_ENDPOINT = 'holoscript-qwen-coder';
+    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.reject(new Error('ECONNREFUSED'))),
-    );
-
-    const provider = new FleetProvider();
-    await expect(provider.isAvailable()).resolves.toBe(false);
-  });
-
-  it('fails closed: isAvailable() is false when health and /v1/models both return non-200', async () => {
-    process.env.FLEET_PROVIDER_URL = 'http://fleet.invalid:9000';
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => Promise.resolve({ ok: false, status: 503 } as Response)),
-    );
-
-    const provider = new FleetProvider();
-    await expect(provider.isAvailable()).resolves.toBe(false);
-  });
-
-  it('is available when FLEET_PROVIDER_URL is set and /health returns 200', async () => {
-    process.env.FLEET_PROVIDER_URL = 'http://fleet.local:9000';
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => Promise.resolve({ ok: true, status: 200 } as Response)),
-    );
-
-    const provider = new FleetProvider();
-    await expect(provider.isAvailable()).resolves.toBe(true);
-  });
-});
-
-describe('FleetProvider — dynamic registry (scale-to-zero serving)', () => {
-  it('resolves a WARM endpoint from the registry, then health-checks it', async () => {
-    process.env.FLEET_REGISTRY_URL = 'http://orchestrator.local';
-    process.env.FLEET_REGISTRY_KEY = 'test-key';
-    process.env.FLEET_MODEL = 'Qwen/Qwen2.5-Coder-7B-Instruct';
-    const calls: string[] = [];
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string) => {
-        calls.push(url);
-        if (url.includes('/serve/resolve')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ status: 'warm', url: 'http://1.2.3.4:41234' }),
-          } as Response);
-        }
-        // data-plane health check on the resolved box
-        return Promise.resolve({ ok: true, status: 200 } as Response);
-      }),
-    );
-
-    const provider = new FleetProvider();
-    await expect(provider.isAvailable()).resolves.toBe(true);
-    // resolve was called (which bumps demand) AND the data-plane URL was health-checked.
-    expect(calls.some((c) => c.includes('/serve/resolve?model=Qwen'))).toBe(true);
-    expect(calls.some((c) => c.startsWith('http://1.2.3.4:41234'))).toBe(true);
-  });
-
-  it('fails closed when the model is COLD — but still records demand (the wake signal)', async () => {
-    process.env.FLEET_REGISTRY_URL = 'http://orchestrator.local';
-    process.env.FLEET_REGISTRY_KEY = 'test-key';
-    const calls: string[] = [];
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string) => {
-        calls.push(url);
-        // registry reports cold; no warm box yet
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ status: 'cold' }),
-        } as Response);
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({
+          url,
+          body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {},
+        });
+        return jsonResponse({ status: { ready: 0, total: 1 }, request_idx: 0 });
       }),
     );
 
     const provider = new FleetProvider();
     await expect(provider.isAvailable()).resolves.toBe(false);
-    // The resolve (demand bump) still fired — that's what wakes the autoscaler —
-    // and NO data-plane health check was attempted (there's no box to check).
     expect(calls).toHaveLength(1);
-    expect(calls[0]).toContain('/serve/resolve');
+    expect(calls[0].url).toBe(ROUTE_URL);
+    expect(calls[0].body).toMatchObject({
+      endpoint: 'holoscript-qwen-coder',
+      api_key: 'vast-key',
+      cost: 100,
+      request_idx: 0,
+      replay_timeout: 60,
+    });
   });
 
-  it('sends the shared serving key as a Bearer token on inference (closes the open-endpoint hole)', async () => {
-    process.env.FLEET_PROVIDER_URL = 'http://box:8000';
-    process.env.FLEET_INFERENCE_KEY = 'shared-serving-key';
-    let authHeader: string | undefined;
+  it('is available when the Vast route returns a ready worker URL', async () => {
+    process.env.VAST_API_KEY = 'vast-key';
     vi.stubGlobal(
       'fetch',
-      vi.fn((url: string, init?: RequestInit) => {
-        if (url.includes('/v1/chat/completions')) {
-          authHeader = (init?.headers as Record<string, string>)?.Authorization;
-          // minimal valid SSE body so parseOpenAIStream completes
-          return Promise.resolve({
-            ok: true,
-            body: new ReadableStream({
-              start(c) {
-                c.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-                c.close();
-              },
-            }),
-          } as Response);
-        }
-        return Promise.resolve({ ok: true, status: 200 } as Response);
-      }),
-    );
-
-    const provider = new FleetProvider();
-    // drain the stream
-    for await (const _ of provider.stream({ messages: [{ role: 'user', content: 'hi' }] })) {
-      /* consume */
-    }
-    expect(authHeader).toBe('Bearer shared-serving-key');
-  });
-
-  it('omits Authorization when no serving key is set (dev / unauthenticated box)', async () => {
-    process.env.FLEET_PROVIDER_URL = 'http://box:8000';
-    let sawAuth = true;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string, init?: RequestInit) => {
-        if (url.includes('/v1/chat/completions')) {
-          sawAuth = 'Authorization' in ((init?.headers as Record<string, string>) ?? {});
-          return Promise.resolve({
-            ok: true,
-            body: new ReadableStream({
-              start(c) {
-                c.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-                c.close();
-              },
-            }),
-          } as Response);
-        }
-        return Promise.resolve({ ok: true, status: 200 } as Response);
-      }),
-    );
-
-    const provider = new FleetProvider();
-    for await (const _ of provider.stream({ messages: [{ role: 'user', content: 'hi' }] })) {
-      /* consume */
-    }
-    expect(sawAuth).toBe(false);
-  });
-
-  it('static FLEET_PROVIDER_URL wins over the registry (manual pin, no resolve call)', async () => {
-    process.env.FLEET_PROVIDER_URL = 'http://pinned.box:8000';
-    process.env.FLEET_REGISTRY_URL = 'http://orchestrator.local';
-    const calls: string[] = [];
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string) => {
-        calls.push(url);
-        return Promise.resolve({ ok: true, status: 200 } as Response);
-      }),
+      vi.fn(async () => jsonResponse({ url: 'http://worker.test:8000', signature: 'sig123' })),
     );
 
     const provider = new FleetProvider();
     await expect(provider.isAvailable()).resolves.toBe(true);
-    // No registry round-trip — the pin short-circuits resolveUrl().
-    expect(calls.every((c) => !c.includes('/serve/resolve'))).toBe(true);
-    expect(calls.some((c) => c.startsWith('http://pinned.box:8000'))).toBe(true);
+  });
+
+  it('streams through the Vast worker envelope when a worker is ready', async () => {
+    process.env.VAST_API_KEY = 'vast-key';
+    process.env.FLEET_MODEL = 'qwen3-coder:30b';
+    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({
+          url,
+          body: init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {},
+        });
+        if (url === ROUTE_URL) {
+          return jsonResponse({ url: 'http://worker.test:8000', signature: 'sig123', request_idx: 0 });
+        }
+        return sseResponse([
+          'data: {"choices":[{"delta":{"content":"fleet ok"}}],"model":"qwen3-coder:30b"}\n',
+          'data: [DONE]\n',
+        ]);
+      }),
+    );
+
+    const provider = new FleetProvider();
+    const events: StreamEvent[] = [];
+    for await (const event of provider.stream({ messages: [{ role: 'user', content: 'hi' }] })) {
+      events.push(event);
+    }
+
+    expect(calls[0].url).toBe(ROUTE_URL);
+    expect(calls[1].url).toBe('http://worker.test:8000/v1/chat/completions');
+    expect(calls[1].body.auth_data).toMatchObject({ signature: 'sig123' });
+    expect(calls[1].body.session_id).toBeNull();
+    expect(calls[1].body.payload).toMatchObject({ model: 'qwen3-coder:30b', stream: true });
+    expect(events).toContainEqual({ type: 'text', payload: 'fleet ok' });
+    expect(events[events.length - 1]).toEqual({ type: 'done', payload: null });
   });
 });
 
 describe('InferenceRouter provider chain', () => {
   it('registers fleet in the overflow position: Fireworks -> Fleet -> Together -> Ollama', async () => {
-    // Force every provider unavailable so getStatus() reports the static chain
-    // without making real network calls.
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.reject(new Error('offline'))),
@@ -234,7 +172,6 @@ describe('InferenceRouter provider chain', () => {
     const standardOrder = status.filter((s) => s.tier === 'standard').map((s) => s.provider);
 
     expect(standardOrder).toEqual(['fireworks', 'fleet', 'together', 'ollama']);
-    // Fleet sits AFTER the default (fireworks), BEFORE the serverless fallback (together).
     expect(standardOrder.indexOf('fleet')).toBe(standardOrder.indexOf('fireworks') + 1);
     expect(standardOrder.indexOf('fleet')).toBeLessThan(standardOrder.indexOf('together'));
   });
@@ -243,9 +180,46 @@ describe('InferenceRouter provider chain', () => {
     const router = new InferenceRouter();
     expect(router.getPreferredProvider()).toBe('fireworks');
   });
+
+  it('falls through to Together after a cold Vast probe wakes the fleet pool', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    const router = new InferenceRouter();
+    const attempts: string[] = [];
+    const coldFleet: InferenceProvider = {
+      name: 'fleet',
+      async isAvailable() {
+        attempts.push('fleet');
+        return false;
+      },
+      async *stream() {
+        throw new Error('cold fleet should not stream');
+      },
+    };
+    const together: InferenceProvider = {
+      name: 'together',
+      async isAvailable() {
+        attempts.push('together');
+        return true;
+      },
+      async *stream() {
+        yield { type: 'text', payload: 'together fallback' };
+        yield { type: 'done', payload: null };
+      },
+    };
+    (router as unknown as { providers: InferenceProvider[] }).providers = [coldFleet, together];
+
+    const events: StreamEvent[] = [];
+    for await (const event of router.chat({ messages: [{ role: 'user', content: 'hi' }] })) {
+      events.push(event);
+    }
+
+    expect(attempts).toEqual(['fleet', 'fleet', 'together']);
+    expect(events).toContainEqual({ type: 'text', payload: 'together fallback' });
+    expect(events[events.length - 1]).toEqual({ type: 'done', payload: null });
+  });
 });
 
-describe('Lane routing — task-type modulation', () => {
+describe('Lane routing - task-type modulation', () => {
   const user = (content: string): ChatRequest['messages'] => [{ role: 'user', content }];
   const aTool = {
     type: 'function' as const,
@@ -315,8 +289,6 @@ describe('Lane routing — task-type modulation', () => {
     });
 
     it('does NOT promote tier from heuristic detection (cost safety)', () => {
-      // Detected (not explicit) vision lane must not silently move the request
-      // onto the more expensive pro tier.
       const { request, lane } = applyLaneRouting({
         messages: user('here is a screenshot of my scene'),
       });

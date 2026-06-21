@@ -8,6 +8,7 @@ export default defineConfig({
     'adapters/anthropic': 'src/adapters/anthropic.ts',
     'adapters/gemini': 'src/adapters/gemini.ts',
     'adapters/openrouter': 'src/adapters/openrouter.ts',
+    'adapters/vast-serverless': 'src/adapters/vast-serverless.ts',
     'adapters/xai': 'src/adapters/xai.ts',
   },
   format: ['esm', 'cjs'],

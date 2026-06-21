@@ -4,15 +4,12 @@
  * one policy for HoloClaw, the fleet supervisor, and Brittney.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  resolveSovereignProvider,
-  resolveSovereignProviderAsync,
-} from '../sovereign-resolver';
+import { resolveSovereignProvider, resolveSovereignProviderAsync } from '../sovereign-resolver';
 import { __clearLocalModelPickerCache } from '../local-model-picker';
 import { BrittneyCloudAdapter } from '../adapters/brittney-cloud';
 import { LocalLLMAdapter } from '../adapters/local-llm';
 import { AnthropicAdapter } from '../adapters/anthropic';
-import { OpenAICompatibleAdapter } from '../adapters/openai-compatible';
+import { VastServerlessAdapter } from '../adapters/vast-serverless';
 
 const ENV_KEYS = [
   'HOLO_LLM_PROVIDER',
@@ -23,8 +20,7 @@ const ENV_KEYS = [
   'HOLO_LLM_TIER',
   'HOLO_LLM_LANE',
   'HOLO_LLM_FLEET_MODEL',
-  'HOLO_LLM_FLEET_ORCH_URL',
-  'HOLO_LLM_FLEET_RESOLVE_KEY',
+  'FLEET_PROVIDER_ENDPOINT',
   'BRITTNEY_PROVIDER',
   'BRITTNEY_SERVICE_URL',
   'BRITTNEY_API_KEY',
@@ -33,8 +29,12 @@ const ENV_KEYS = [
   'BRITTNEY_TIER',
   'BRITTNEY_LANE',
   'BRITTNEY_FLEET_MODEL',
-  'BRITTNEY_FLEET_ORCH_URL',
-  'BRITTNEY_FLEET_RESOLVE_KEY',
+  'FLEET_MODEL',
+  'VAST_QWEN_ENDPOINT_NAME',
+  'VAST_QWEN_MODEL',
+  'VAST_SERVERLESS_COST',
+  'VAST_SERVERLESS_MAX_WAIT_S',
+  'VAST_SERVERLESS_POLL_INTERVAL_MS',
   'OLLAMA_HOST',
   'OLLAMA_BASE_URL',
   'OLLAMA_URL',
@@ -42,10 +42,7 @@ const ENV_KEYS = [
   'XAI_API_KEY',
   'OPENAI_API_KEY',
   'OPENAI_BASE_URL',
-  'FLEET_INFERENCE_KEY',
-  'SERVE_INFERENCE_KEY',
-  'MCP_ORCHESTRATOR_URL',
-  'HOLOSCRIPT_API_KEY',
+  'VAST_API_KEY',
 ];
 
 beforeEach(() => {
@@ -146,39 +143,48 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
   });
 });
 
-describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
-  it('resolves the fleet when the orchestrator reports a warm box', async () => {
-    vi.stubEnv('HOLO_LLM_FLEET_MODEL', 'qwen2.5-coder:1.5b');
-    vi.stubEnv('FLEET_INFERENCE_KEY', 'fk-test');
+describe('resolveSovereignProviderAsync (Vast serverless fleet)', () => {
+  it('resolves the fleet when the Vast route reports a ready worker', async () => {
+    vi.stubEnv('HOLO_LLM_FLEET_MODEL', 'qwen3-coder:30b');
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ status: 'warm', url: 'http://1.2.3.4:18000' }),
+        status: 200,
+        json: async () => ({ url: 'http://worker.test:8000', signature: 'sig123' }),
       }))
     );
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('fleet');
-    expect(r.provider).toBeInstanceOf(OpenAICompatibleAdapter);
-    expect(r.model).toBe('qwen2.5-coder:1.5b');
+    expect(r.provider).toBeInstanceOf(VastServerlessAdapter);
+    expect(r.model).toBe('qwen3-coder:30b');
   });
 
   it('falls back to the sync chain when the fleet is cold', async () => {
-    vi.stubEnv('FLEET_INFERENCE_KEY', 'fk-test');
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: true, json: async () => ({ status: 'cold' }) }))
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: { ready: 0, total: 1 } }),
+      }))
     );
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('anthropic');
   });
 
   it('surfaces the fleet cold error when no fallback is configured', async () => {
-    vi.stubEnv('FLEET_INFERENCE_KEY', 'fk-test');
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: false, json: async () => ({}) }))
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ status: { ready: 0, total: 1 } }),
+      }))
     );
     await expect(resolveSovereignProviderAsync()).rejects.toThrow(/cold/i);
   });
@@ -189,10 +195,10 @@ describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
     vi.stubGlobal('fetch', fetchSpy);
     const r = await resolveSovereignProviderAsync();
     expect(r.providerName).toBe('ollama');
-    // Local-model DISCOVERY may probe the ollama box, but the fleet registry
-    // must never be consulted without fleet env.
+    // Local-model DISCOVERY may probe the ollama box, but the Vast route must
+    // never be consulted without fleet env.
     const fleetCalls = fetchSpy.mock.calls.filter((c) =>
-      String(c[0]).includes('/serve/resolve')
+      String(c[0]).includes('run.vast.ai/route')
     );
     expect(fleetCalls.length).toBe(0);
   });
@@ -220,7 +226,9 @@ describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
             ok: true,
             json: async () => ({
               capabilities:
-                model === 'fresh:4b' ? ['completion', 'tools', 'thinking'] : ['completion', 'tools'],
+                model === 'fresh:4b'
+                  ? ['completion', 'tools', 'thinking']
+                  : ['completion', 'tools'],
             }),
           };
         }
@@ -238,8 +246,7 @@ describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
                             {
                               function: {
                                 name: 'create_object',
-                                arguments:
-                                  '{"name":"orb-probe","radius":2,"position":[1,2,3]}',
+                                arguments: '{"name":"orb-probe","radius":2,"position":[1,2,3]}',
                               },
                             },
                           ],
@@ -269,7 +276,7 @@ describe('resolveSovereignProviderAsync (fleet dynamic-resolve)', () => {
   });
 
   it('explicit non-fleet provider bypasses fleet even with fleet env present', async () => {
-    vi.stubEnv('FLEET_INFERENCE_KEY', 'fk-test');
+    vi.stubEnv('VAST_API_KEY', 'vast-key');
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test');
     vi.stubEnv('HOLO_LLM_PROVIDER', 'anthropic');
     const fetchSpy = vi.fn();

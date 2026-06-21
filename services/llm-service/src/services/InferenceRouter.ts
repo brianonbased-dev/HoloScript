@@ -17,9 +17,9 @@
  *
  * ── Dogfooding @holoscript/llm-provider ──────────────────────────────────────
  * The stream-parsing primitives are NO LONGER hand-rolled here. The hosted
- * OpenAI-compatible providers (Fireworks, Kimi, Together, Fleet) delegate to the
- * package's `OpenAICompatibleAdapter`, and the Ollama provider delegates to the
- * package's `LocalLLMAdapter`. Both speak the package's `LLMStreamChunk`
+ * OpenAI-compatible providers (Fireworks, Kimi, Together) delegate to the
+ * package's `OpenAICompatibleAdapter`, Fleet delegates to `VastServerlessAdapter`,
+ * and the Ollama provider delegates to the package's `LocalLLMAdapter`. All speak the package's `LLMStreamChunk`
  * discriminated union internally; the public stream of THIS module stays the
  * legacy `StreamEvent {type,payload}` wire contract via a shim
  * (`streamChunksToStreamEvents`). server.ts and the package's
@@ -29,6 +29,8 @@
 
 import {
   OpenAICompatibleAdapter,
+  VastServerlessAdapter,
+  FLEET_DEFAULT_MODEL,
   createLocalLLMProvider,
   LOCAL_DEFAULT_MODEL,
   type LLMStreamChunk,
@@ -400,114 +402,71 @@ class OllamaLocalProvider implements InferenceProvider {
 }
 
 // ============================================================================
-// Fleet Provider (self-hosted vast.ai serving tier — OpenAI-compatible)
+// Fleet Provider (Vast serverless sovereign serving)
 //
-// Self-hosted serving behind the scale-to-zero autoscaler (P.004/P.005). Two
-// operating modes:
-//   - DYNAMIC (FLEET_REGISTRY_URL set): the box IP changes every cold start, so
-//     the URL is resolved per-request from the orchestrator serving registry
-//     (GET /serve/resolve?model=). That call ALSO records demand — which is what
-//     wakes the autoscaler. A cold model => isAvailable() false => router fails
-//     closed to the managed provider while the autoscaler warms a box for the
-//     next request. Once warm, resolve returns the live url and the box serves.
-//   - STATIC (FLEET_PROVIDER_URL set): a manually-pinned box (no registry).
-// DORMANT by default: neither env set => isAvailable() false, router unaffected.
-// Either mode fails CLOSED on a preempted/dead endpoint. Set BRITTNEY_PROVIDER=
-// fleet to PREFER the cheap self-hosted box when warm (the P.005 cost win).
+// Vast serverless is not plain OpenAI-at-a-URL. The route call wakes/resolves
+// a worker, then the worker call carries Vast's auth_data envelope around the
+// OpenAI-compatible payload. `isAvailable()` performs a single route probe:
+// ready worker => fleet available; cold/not-ready status => demand recorded and
+// the router falls through to the managed providers for this request.
 // ============================================================================
+
+function positiveEnvNumber(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function nonNegativeEnvNumber(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
 
 export class FleetProvider implements InferenceProvider {
   name = 'fleet';
-  private staticUrl: string;
-  private registryUrl: string;
-  private registryKey: string;
+  private apiKey: string;
+  private endpointName: string;
   private model: string;
-  // Last resolved data-plane URL (direct router->vLLM). Set by isAvailable()
-  // before each stream(); the router always calls isAvailable() first.
-  private url = '';
-
-  // Shared serving key — sent as a Bearer token to the vLLM box, which the
-  // autoscaler launched with --api-key <same key> so the public endpoint isn't
-  // an open LLM. Empty => no Authorization header (unauthenticated box / dev).
-  private inferenceKey: string;
+  private cost: number;
+  private maxWaitS: number;
+  private pollIntervalMs: number;
 
   constructor() {
-    this.staticUrl = process.env.FLEET_PROVIDER_URL || '';
-    this.registryUrl = (process.env.FLEET_REGISTRY_URL || '').replace(/\/$/, '');
-    this.registryKey = process.env.FLEET_REGISTRY_KEY || process.env.HOLOSCRIPT_API_KEY || '';
-    this.inferenceKey = process.env.FLEET_INFERENCE_KEY || '';
-    this.model = process.env.FLEET_MODEL || 'Qwen/Qwen2.5-Coder-7B-Instruct';
+    this.apiKey = process.env.VAST_API_KEY || '';
+    this.endpointName =
+      process.env.FLEET_PROVIDER_ENDPOINT || process.env.VAST_QWEN_ENDPOINT_NAME || 'holoscript-qwen-coder';
+    this.model = process.env.FLEET_MODEL || process.env.VAST_QWEN_MODEL || FLEET_DEFAULT_MODEL;
+    this.cost = positiveEnvNumber('VAST_SERVERLESS_COST', 100);
+    this.maxWaitS = nonNegativeEnvNumber('VAST_SERVERLESS_MAX_WAIT_S', 540);
+    this.pollIntervalMs = positiveEnvNumber('VAST_SERVERLESS_POLL_INTERVAL_MS', 10_000);
   }
 
-  // Resolve the data-plane URL: a static pin wins; otherwise ask the registry
-  // for a warm endpoint (which also bumps demand → wakes the autoscaler).
-  // Returns '' when dormant or cold (caller fails closed).
-  private async resolveUrl(): Promise<string> {
-    if (this.staticUrl) return this.staticUrl;
-    if (!this.registryUrl) return ''; // dormant
-    try {
-      const res = await fetch(
-        `${this.registryUrl}/serve/resolve?model=${encodeURIComponent(this.model)}`,
-        { headers: { 'x-mcp-api-key': this.registryKey }, signal: AbortSignal.timeout(4000) },
-      );
-      if (!res.ok) return '';
-      const body = (await res.json()) as { status?: string; url?: string };
-      return body.status === 'warm' && body.url ? body.url : '';
-    } catch {
-      return '';
-    }
+  private createAdapter(maxWaitS = this.maxWaitS): VastServerlessAdapter {
+    return new VastServerlessAdapter({
+      apiKey: this.apiKey,
+      endpointName: this.endpointName,
+      model: this.model,
+      cost: this.cost,
+      maxWaitS,
+      pollIntervalMs: this.pollIntervalMs,
+    });
   }
 
   async isAvailable(): Promise<boolean> {
-    // Resolve (static pin or registry). Cold/dormant → fail closed; demand was
-    // already recorded by resolveUrl() so the autoscaler can warm a box.
-    const url = await this.resolveUrl();
-    if (!url) {
-      this.url = '';
-      return false;
-    }
-    // Fast health check — a preempted/dead node fails closed here so the router
-    // falls through to the serverless provider. (The autoscaler health-checks
-    // before registering, but a box can die between ticks.)
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000);
-      try {
-        const res = await fetch(`${url}/health`, { signal: controller.signal });
-        if (!res.ok) {
-          // Some OpenAI-compatible servers (e.g. vLLM) expose /v1/models, not /health.
-          const models = await fetch(`${url}/v1/models`, { signal: controller.signal });
-          if (!models.ok) return false;
-        }
-        this.url = url;
-        return true;
-      } finally {
-        clearTimeout(timeout);
-      }
-    } catch {
-      return false;
-    }
+    if (!this.apiKey) return false;
+    const health = await this.createAdapter(0).healthCheck();
+    return health.ok;
   }
 
   async *stream(request: ChatRequest): AsyncGenerator<StreamEvent> {
-    // The router calls isAvailable() first (which sets this.url); resolve
-    // defensively if called directly so we never POST to a relative URL.
-    if (!this.url) this.url = await this.resolveUrl();
-    if (!this.url) {
-      yield { type: 'error', payload: 'Fleet error: no warm endpoint (cold/dormant)' };
+    if (!this.apiKey) {
+      yield { type: 'error', payload: 'Fleet error: VAST_API_KEY is not configured' };
       yield { type: 'done', payload: null };
       return;
     }
 
-    // Delegate ONLY the stream to the package adapter, pointed at the resolved
-    // data-plane url. vLLM serves at ${url}/v1/chat/completions, so the adapter
-    // baseURL is `${this.url}/v1`. The shared serving key (if any) rides as the
-    // adapter's Bearer apiKey — the same gate the old hand-rolled path used.
-    const adapter = new OpenAICompatibleAdapter({
-      baseURL: `${this.url}/v1`,
-      apiKey: this.inferenceKey,
-      model: this.model,
-    });
+    const adapter = this.createAdapter();
     const model = request.model || this.model;
     yield* streamViaAdapter('Fleet', () =>
       adapter.streamCompletion(toCompletionRequest(request, 2048), model),

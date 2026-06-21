@@ -93,8 +93,7 @@ interface RouteResponse {
 }
 
 export class VastServerlessAdapter extends BaseLLMAdapter {
-  // Reuse the OpenAI-compatible wire slot so exhaustive LLMProviderName switches stay closed.
-  readonly name = 'openrouter' as const;
+  readonly name = 'fleet' as const;
   readonly models: readonly string[];
   readonly defaultHoloScriptModel: string;
   readonly capabilities: Capabilities = VAST_SERVERLESS_CAPABILITIES;
@@ -141,7 +140,11 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
    * until a worker `url` is READY, returning that url + the FULL route body
    * (the signature the PyWorker validates as `auth_data`).
    */
-  private async resolveWorker(): Promise<{ url: string; authData: unknown }> {
+  private async resolveWorker(
+    options: { maxWaitS?: number; pollIntervalMs?: number } = {}
+  ): Promise<{ url: string; authData: unknown }> {
+    const maxWaitS = options.maxWaitS ?? this.maxWaitS;
+    const pollIntervalMs = options.pollIntervalMs ?? this.pollIntervalMs;
     const t0 = Date.now();
     let requestIdx = 0;
     for (;;) {
@@ -160,15 +163,20 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        throw new LLMProviderError(`vast serverless route unreachable: ${msg}`, 'openrouter', undefined, true);
+        throw new LLMProviderError(
+          `vast serverless route unreachable: ${msg}`,
+          this.name,
+          undefined,
+          true
+        );
       }
-      if (resp.status === 401 || resp.status === 403) throw new LLMAuthenticationError('openrouter');
-      if (resp.status === 429) throw new LLMRateLimitError('openrouter');
+      if (resp.status === 401 || resp.status === 403) throw new LLMAuthenticationError(this.name);
+      if (resp.status === 429) throw new LLMRateLimitError(this.name);
       if (!resp.ok) {
         const text = await resp.text().catch(() => '');
         throw new LLMProviderError(
           `vast serverless route HTTP ${resp.status}: ${text.slice(0, 200)}`,
-          'openrouter',
+          this.name,
           resp.status,
           resp.status >= 500
         );
@@ -176,15 +184,17 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
       const route = (await resp.json()) as RouteResponse;
       requestIdx = route.request_idx ?? requestIdx;
       if (route.url) return { url: route.url.replace(/\/$/, ''), authData: route };
-      if ((Date.now() - t0) / 1000 > this.maxWaitS) {
+      if (maxWaitS <= 0 || (Date.now() - t0) / 1000 >= maxWaitS) {
+        const latestStatus =
+          route.status === undefined ? 'no status' : JSON.stringify(route.status).slice(0, 200);
         throw new LLMProviderError(
-          `vast serverless: no worker became READY within ${this.maxWaitS}s`,
-          'openrouter',
+          `vast serverless: no worker became READY within ${maxWaitS}s; latest route status: ${latestStatus}`,
+          this.name,
           undefined,
           true
         );
       }
-      await new Promise((r) => setTimeout(r, this.pollIntervalMs));
+      await new Promise((r) => setTimeout(r, pollIntervalMs));
     }
   }
 
@@ -200,7 +210,10 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     const tools = filterGenericTools(request.tools);
     return {
       model,
-      messages: request.messages.map((m) => ({ role: m.role, content: messageContentAsString(m.content) })),
+      messages: request.messages.map((m) => ({
+        role: m.role,
+        content: messageContentAsString(m.content),
+      })),
       max_tokens: request.maxTokens ?? 2048,
       temperature: request.temperature ?? 0.7,
       top_p: request.topP ?? 1,
@@ -223,13 +236,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      if (response.status === 401 || response.status === 403) throw new LLMAuthenticationError('openrouter');
-      if (response.status === 429) throw new LLMRateLimitError('openrouter');
+      if (response.status === 401 || response.status === 403)
+        throw new LLMAuthenticationError(this.name);
+      if (response.status === 429) throw new LLMRateLimitError(this.name);
       if (!response.ok) {
         const text = await response.text().catch(() => '');
         throw new LLMProviderError(
           `vast serverless completion HTTP ${response.status}: ${text.slice(0, 200)}`,
-          'openrouter',
+          this.name,
           response.status,
           response.status >= 500
         );
@@ -239,7 +253,12 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
       clearTimeout(timeoutId);
       if (err instanceof LLMProviderError) throw err;
       const msg = err instanceof Error ? err.message : String(err);
-      throw new LLMProviderError(`vast serverless worker unreachable: ${msg}`, 'openrouter', undefined, true);
+      throw new LLMProviderError(
+        `vast serverless worker unreachable: ${msg}`,
+        this.name,
+        undefined,
+        true
+      );
     }
   }
 
@@ -264,16 +283,23 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
         .map((tc, i) => {
           let input: Record<string, unknown> = {};
           try {
-            input = tc.function?.arguments ? (JSON.parse(tc.function.arguments) as Record<string, unknown>) : {};
+            input = tc.function?.arguments
+              ? (JSON.parse(tc.function.arguments) as Record<string, unknown>)
+              : {};
           } catch {
             input = {};
           }
-          return { type: 'tool_use' as const, id: tc.id ?? `call_${i}`, name: tc.function!.name!, input };
+          return {
+            type: 'tool_use' as const,
+            id: tc.id ?? `call_${i}`,
+            name: tc.function!.name!,
+            input,
+          };
         });
       return {
         content,
         model: data.model ?? model,
-        provider: 'openrouter',
+        provider: this.name,
         finishReason: this.mapFinishReason(choice?.finish_reason, toolUses.length > 0),
         usage: {
           promptTokens: data.usage?.prompt_tokens ?? 0,
@@ -357,7 +383,8 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
                 (chunk.usage.prompt_tokens ?? 0) + (chunk.usage.completion_tokens ?? 0),
             };
           }
-          if (choice?.finish_reason) finishReason = this.mapFinishReason(choice.finish_reason, hadToolCalls);
+          if (choice?.finish_reason)
+            finishReason = this.mapFinishReason(choice.finish_reason, hadToolCalls);
           if (!delta) continue;
           if (delta.content) yield { type: 'text_delta', text: delta.content };
           if (delta.tool_calls?.length) {
@@ -366,14 +393,22 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
                 if (pendingToolCall) yield* flushPending(pendingToolCall);
                 hadToolCalls = true;
                 const id = tc.id ?? `call_${toolCallIndex++}`;
-                pendingToolCall = { id, name: tc.function.name, argsBuf: tc.function.arguments ?? '' };
+                pendingToolCall = {
+                  id,
+                  name: tc.function.name,
+                  argsBuf: tc.function.arguments ?? '',
+                };
                 yield { type: 'tool_use_start', id, name: tc.function.name };
                 if (tc.function.arguments) {
                   yield { type: 'tool_use_input_delta', id, partialJson: tc.function.arguments };
                 }
               } else if (pendingToolCall && tc.function?.arguments) {
                 pendingToolCall.argsBuf += tc.function.arguments;
-                yield { type: 'tool_use_input_delta', id: pendingToolCall.id, partialJson: tc.function.arguments };
+                yield {
+                  type: 'tool_use_input_delta',
+                  id: pendingToolCall.id,
+                  partialJson: tc.function.arguments,
+                };
               }
             }
           }
@@ -392,7 +427,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
 
     yield { type: 'message_stop', finishReason, usage, model: finalModel };
     if (streamErrored) {
-      throw new LLMProviderError('Stream error during vast serverless completion', 'openrouter');
+      throw new LLMProviderError('Stream error during vast serverless completion', this.name);
     }
   }
 
@@ -404,7 +439,11 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
       return { ok: true, latencyMs: Date.now() - start };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return { ok: false, latencyMs: Date.now() - start, error: `vast serverless endpoint unreachable: ${message}` };
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        error: `vast serverless endpoint unreachable: ${message}`,
+      };
     }
   }
 }

@@ -9,8 +9,8 @@
  * the policy (studio's lib/brittney/provider.ts) should converge here.
  *
  * Auto-detect priority (no explicit provider):
- *   1. fleet  — sovereign serving fleet (P.008), dynamic-resolved per request
- *               from the orchestrator's /serve/resolve registry (async only)
+ *   1. fleet  — Vast serverless sovereign serving fleet (P.008), route-probed
+ *               per request so cold pools can fall back while they wake
  *   2. cloud  — pinned sovereign serving endpoint (BrittneyCloudAdapter)
  *   3. ollama — sovereign local model (on-device / same-box)
  *   4. anthropic / xai / openai — BYOK frontier fallback, in that order
@@ -21,8 +21,9 @@
  *   HOLO_LLM_MODEL | BRITTNEY_MODEL               model override
  *   HOLO_LLM_MAX_TOKENS | BRITTNEY_MAX_TOKENS     max-token override
  *   OLLAMA_HOST | OLLAMA_BASE_URL | OLLAMA_URL    local endpoint
+ *   FLEET_PROVIDER_ENDPOINT | VAST_QWEN_ENDPOINT_NAME  Vast endpoint
  *   HOLO_LLM_FLEET_MODEL | BRITTNEY_FLEET_MODEL   fleet model
- *   FLEET_INFERENCE_KEY | SERVE_INFERENCE_KEY     fleet bearer
+ *   VAST_API_KEY                                  Vast route + worker bearer
  *   ANTHROPIC_API_KEY / XAI_API_KEY / OPENAI_API_KEY  BYOK fallbacks
  */
 
@@ -34,15 +35,9 @@ import { OpenAIAdapter } from './adapters/openai';
 import { XAIAdapter } from './adapters/xai';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
-import { OpenAICompatibleAdapter } from './adapters/openai-compatible';
+import { VastServerlessAdapter } from './adapters/vast-serverless';
 
-export type SovereignProviderName =
-  | 'fleet'
-  | 'cloud'
-  | 'ollama'
-  | 'anthropic'
-  | 'xai'
-  | 'openai';
+export type SovereignProviderName = 'fleet' | 'cloud' | 'ollama' | 'anthropic' | 'xai' | 'openai';
 
 export interface ResolvedSovereignProvider {
   provider: ILLMProvider;
@@ -64,7 +59,6 @@ export interface SovereignResolveOptions {
 }
 
 // FLEET_DEFAULT_MODEL + the local default come from the model-policy SSOT.
-const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool calls
 // via Ollama — it writes the call JSON as plain text (2026-06-10 zero-objects
 // benchmark finding; founder caught the stale default).
@@ -121,7 +115,7 @@ export function resolveSovereignProvider(
       return resolveOpenai(opts);
     case 'fleet':
       throw new Error(
-        'provider=fleet requires async resolution (dynamic /serve/resolve) — ' +
+        'provider=fleet requires async resolution (Vast serverless route probe) — ' +
           'call resolveSovereignProviderAsync().'
       );
     default:
@@ -141,7 +135,7 @@ export function resolveSovereignProvider(
   throw new Error(
     'No LLM provider configured. The ecosystem runs sovereign by default — set ' +
       'HOLO_LLM_SERVICE_URL (sovereign serving endpoint), OLLAMA_HOST (local model), ' +
-      'or fleet env (HOLO_LLM_FLEET_MODEL + FLEET_INFERENCE_KEY, async resolution). ' +
+      'or fleet env (VAST_API_KEY + optional FLEET_PROVIDER_ENDPOINT, async resolution). ' +
       'For a BYOK frontier fallback set ANTHROPIC_API_KEY, XAI_API_KEY, or OPENAI_API_KEY.'
   );
 }
@@ -158,8 +152,11 @@ export async function resolveSovereignProviderAsync(
   const explicit = (opts.explicit || env('HOLO_LLM_PROVIDER', 'BRITTNEY_PROVIDER'))?.toLowerCase();
   const fleetConfigured =
     explicit === 'fleet' ||
-    ((explicit === undefined || explicit === '' || explicit === 'auto' || explicit === 'sovereign') &&
-      Boolean(env('HOLO_LLM_FLEET_MODEL', 'BRITTNEY_FLEET_MODEL', 'FLEET_INFERENCE_KEY')));
+    ((explicit === undefined ||
+      explicit === '' ||
+      explicit === 'auto' ||
+      explicit === 'sovereign') &&
+      Boolean(env('VAST_API_KEY')));
 
   if (fleetConfigured) {
     try {
@@ -291,48 +288,47 @@ function resolveOpenai(opts: SovereignResolveOptions): ResolvedSovereignProvider
 }
 
 /**
- * Sovereign serving fleet (P.008) — the MOST native backend. The serving
- * box's IP:port is ephemeral across scale-to-zero, so the current warm URL is
- * resolved from the orchestrator's /serve/resolve registry per call (the GET
- * also bumps demand → the autoscaler keeps/warms a box). Cold → throw; the
- * async resolver falls back to the sync chain for this request.
+ * Sovereign serving fleet (P.008): Vast serverless route/envelope transport.
+ * A one-shot route probe records demand and only selects fleet when a worker is
+ * already ready; cold pools fall back for this request while they wake.
  */
+function optionalPositiveNumberEnv(name: string): number | undefined {
+  const raw = env(name);
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 async function resolveFleet(opts: SovereignResolveOptions): Promise<ResolvedSovereignProvider> {
-  const orch = (
-    env('HOLO_LLM_FLEET_ORCH_URL', 'BRITTNEY_FLEET_ORCH_URL', 'MCP_ORCHESTRATOR_URL') ||
-    FLEET_DEFAULT_ORCH
-  ).replace(/\/$/, '');
+  const apiKey = env('VAST_API_KEY');
+  if (!apiKey) throw new Error('provider=fleet requires VAST_API_KEY.');
+  const endpointName =
+    env('FLEET_PROVIDER_ENDPOINT', 'VAST_QWEN_ENDPOINT_NAME') || 'holoscript-qwen-coder';
   const model =
-    env('HOLO_LLM_FLEET_MODEL', 'BRITTNEY_FLEET_MODEL') || modelOverride(opts) || FLEET_DEFAULT_MODEL;
-  const bearer = env('FLEET_INFERENCE_KEY', 'SERVE_INFERENCE_KEY');
-  const resolveKey =
-    env('HOLO_LLM_FLEET_RESOLVE_KEY', 'BRITTNEY_FLEET_RESOLVE_KEY', 'HOLOSCRIPT_API_KEY') || '';
+    env('HOLO_LLM_FLEET_MODEL', 'BRITTNEY_FLEET_MODEL', 'FLEET_MODEL', 'VAST_QWEN_MODEL') ||
+    modelOverride(opts) ||
+    FLEET_DEFAULT_MODEL;
+  const cost = optionalPositiveNumberEnv('VAST_SERVERLESS_COST');
+  const pollIntervalMs = optionalPositiveNumberEnv('VAST_SERVERLESS_POLL_INTERVAL_MS');
+  const baseConfig = {
+    apiKey,
+    endpointName,
+    model,
+    ...(cost ? { cost } : {}),
+    ...(pollIntervalMs ? { pollIntervalMs } : {}),
+  };
 
-  let warmUrl: string | undefined;
-  try {
-    const r = await fetch(`${orch}/serve/resolve?model=${encodeURIComponent(model)}`, {
-      headers: resolveKey ? { 'x-mcp-api-key': resolveKey } : {},
-    });
-    if (r.ok) {
-      const body = (await r.json()) as { status?: string; url?: string };
-      if (body.status === 'warm' && body.url) warmUrl = body.url;
-    }
-  } catch {
-    // network error → treated as cold (fall back) below
-  }
-
-  if (!warmUrl) {
+  const probe = await new VastServerlessAdapter({ ...baseConfig, maxWaitS: 0 }).healthCheck();
+  if (!probe.ok) {
     throw new Error(
-      `Sovereign fleet endpoint is cold for model "${model}". The resolve bumped demand; ` +
-        `the serving autoscaler will warm a box shortly. Falling back to a configured ` +
-        `provider for this request.`
+      `Sovereign Vast serverless fleet endpoint "${endpointName}" is cold for model "${model}". ` +
+        `The route probe bumped demand; falling back to a configured provider for this request.`
     );
   }
 
-  const provider = new OpenAICompatibleAdapter({
-    baseURL: `${warmUrl.replace(/\/$/, '')}/v1`,
-    apiKey: bearer,
-    model,
+  const maxWaitS = optionalPositiveNumberEnv('VAST_SERVERLESS_MAX_WAIT_S');
+  const provider = new VastServerlessAdapter({
+    ...baseConfig,
+    ...(maxWaitS ? { maxWaitS } : {}),
   });
   return {
     provider,

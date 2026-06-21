@@ -616,6 +616,7 @@ export type LLMProviderName =
   | 'mock'
   | 'bitnet'
   | 'local-llm'
+  | 'fleet'
   | 'openrouter'
   | 'xai'
   | 'brittney-cloud'
@@ -902,6 +903,7 @@ export interface LLMProviderRegistry {
   gemini?: ILLMProvider;
   bitnet?: ILLMProvider;
   'local-llm'?: ILLMProvider;
+  fleet?: ILLMProvider;
   openrouter?: ILLMProvider;
   xai?: ILLMProvider;
   'brittney-cloud'?: ILLMProvider;

@@ -166,12 +166,14 @@ export class LLMProviderManager {
     }
 
     // Sovereign-first default priority (founder 2026-06-10, F.112 ecosystem-wide):
-    // the ecosystem's own serving comes before any frontier API. local-llm
+    // the ecosystem's own serving comes before any frontier API. fleet
+    // (owned Vast serverless GPU serving) comes before local-llm
     // (on-box model — the most sovereign) → brittney-cloud (our serving) →
     // bitnet (local CPU) → then BYOK frontier keys (anthropic → openai →
     // openrouter → gemini → xai) → mock last. OpenRouter still ranks above
     // Gemini within the frontier tier (it routes to Gemini + 200 others).
     const priority: LLMProviderName[] = [
+      'fleet',
       'local-llm',
       'brittney-cloud',
       'bitnet',

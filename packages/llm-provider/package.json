@@ -37,6 +37,11 @@
       "import": "./dist/adapters/openrouter.js",
       "require": "./dist/adapters/openrouter.cjs"
     },
+    "./adapters/vast-serverless": {
+      "types": "./dist/adapters/vast-serverless.d.ts",
+      "import": "./dist/adapters/vast-serverless.js",
+      "require": "./dist/adapters/vast-serverless.cjs"
+    },
     "./adapters/xai": {
       "types": "./dist/adapters/xai.d.ts",
       "import": "./dist/adapters/xai.js",

@@ -167,7 +167,11 @@ export {
   BRITTNEY_CLOUD_MODELS,
   BRITTNEY_CLOUD_CAPABILITIES,
 } from './adapters/brittney-cloud';
-export type { BrittneyCloudModel, BrittneyCloudProviderConfig, BrittneyCloudLane } from './adapters/brittney-cloud';
+export type {
+  BrittneyCloudModel,
+  BrittneyCloudProviderConfig,
+  BrittneyCloudLane,
+} from './adapters/brittney-cloud';
 
 // Provider manager
 export { LLMProviderManager } from './provider-manager';
@@ -176,10 +180,7 @@ export type { ProviderManagerConfig } from './provider-manager';
 // Universal sovereign-first provider resolution (founder 2026-06-10):
 // one policy for HoloClaw, the fleet, and Brittney — sovereign serving
 // (fleet/cloud/ollama) by default, BYOK frontier keys as fallback (F.112).
-export {
-  resolveSovereignProvider,
-  resolveSovereignProviderAsync,
-} from './sovereign-resolver';
+export { resolveSovereignProvider, resolveSovereignProviderAsync } from './sovereign-resolver';
 export type {
   ResolvedSovereignProvider,
   SovereignProviderName,
@@ -207,7 +208,11 @@ export type { ModelLane, ModelTier, ModelLibraryEntry } from './model-policy';
 // Local model discovery — picks the best behaviorally-verified tool-calling
 // model from whatever Ollama has installed, instead of a hardcoded tag
 // (founder 2026-06-10: "don't we have a large variety available?").
-export { pickLocalModel, __clearLocalModelPickerCache, OLLAMA_DEFAULT_BASE_URL } from './local-model-picker';
+export {
+  pickLocalModel,
+  __clearLocalModelPickerCache,
+  OLLAMA_DEFAULT_BASE_URL,
+} from './local-model-picker';
 export type { LocalModelChoice } from './local-model-picker';
 
 // Local multi-GPU fleet routing — the runtime consumer of the native
@@ -279,6 +284,7 @@ import { BitNetAdapter } from './adapters/bitnet';
 import { LocalLLMAdapter } from './adapters/local-llm';
 import { OpenRouterAdapter } from './adapters/openrouter';
 import { OpenAICompatibleAdapter } from './adapters/openai-compatible';
+import { VastServerlessAdapter } from './adapters/vast-serverless';
 import { XAIAdapter } from './adapters/xai';
 import { BrittneyCloudAdapter } from './adapters/brittney-cloud';
 import { LLMProviderManager } from './provider-manager';
@@ -502,6 +508,7 @@ export function createProviderManager(): LLMProviderManager {
     gemini?: GeminiAdapter;
     bitnet?: BitNetAdapter;
     'local-llm'?: LocalLLMAdapter;
+    fleet?: VastServerlessAdapter;
     openrouter?: OpenRouterAdapter;
     xai?: XAIAdapter;
     'brittney-cloud'?: BrittneyCloudAdapter;
@@ -521,6 +528,31 @@ export function createProviderManager(): LLMProviderManager {
   if (geminiKey) providers.gemini = new GeminiAdapter({ apiKey: geminiKey });
   if (openrouterKey) providers.openrouter = new OpenRouterAdapter({ apiKey: openrouterKey });
   if (xaiKey) providers.xai = new XAIAdapter({ apiKey: xaiKey });
+
+  // Fleet: Vast serverless transport. Route calls wake the cold pool with a
+  // cost signal (default 100), then worker calls carry Vast's auth_data envelope.
+  const vastKey = typeof process !== 'undefined' ? process.env.VAST_API_KEY : '';
+  if (vastKey) {
+    const endpointName =
+      (typeof process !== 'undefined'
+        ? (process.env.FLEET_PROVIDER_ENDPOINT ?? process.env.VAST_QWEN_ENDPOINT_NAME)
+        : undefined) ?? 'holoscript-qwen-coder';
+    const fleetModel =
+      typeof process !== 'undefined'
+        ? (process.env.FLEET_MODEL ?? process.env.VAST_QWEN_MODEL)
+        : undefined;
+    const cost = Number(typeof process !== 'undefined' ? process.env.VAST_SERVERLESS_COST : NaN);
+    const maxWaitS = Number(
+      typeof process !== 'undefined' ? process.env.VAST_SERVERLESS_MAX_WAIT_S : NaN
+    );
+    providers.fleet = new VastServerlessAdapter({
+      apiKey: vastKey,
+      endpointName,
+      ...(fleetModel ? { model: fleetModel } : {}),
+      ...(Number.isFinite(cost) && cost > 0 ? { cost } : {}),
+      ...(Number.isFinite(maxWaitS) && maxWaitS >= 0 ? { maxWaitS } : {}),
+    });
+  }
 
   // Brittney Cloud: registered when BRITTNEY_SERVICE_URL is explicitly set.
   const brittneyCloudUrl =
@@ -571,7 +603,7 @@ export function createProviderManager(): LLMProviderManager {
 
   if (Object.keys(providers).length === 0) {
     throw new Error(
-      'No LLM providers available. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, XAI_API_KEY, BRITTNEY_SERVICE_URL, or start a local server.'
+      'No LLM providers available. Set VAST_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY, XAI_API_KEY, BRITTNEY_SERVICE_URL, or start a local server.'
     );
   }
 
