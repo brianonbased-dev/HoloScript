@@ -1,16 +1,15 @@
 /**
  * End-to-End Export Target Tests
  *
- * Comprehensive end-to-end tests for all 19 HoloScript export targets.
+ * Comprehensive end-to-end tests for live HoloScript export targets.
  * Each test verifies that a canonical HoloComposition compiles to valid output
  * that contains the required structural elements for its target platform.
  *
  * Covered targets:
- *   XR/VR: Unity, Unreal, Godot, Babylon.js, OpenXR, WebGPU, VRChat, Android, Android XR
+ *   XR/VR: Unity, Unreal, Godot, OpenXR, WebGPU, VRChat, Android, Android XR
  *   Robotics: URDF, SDF
  *   3D Interchange: glTF (pipeline), WASM
- *   Web: R3F (React Three Fiber)
- *   Misc: PlayCanvas, iOS, DTDL (IoT), VisionOS
+ *   Misc: iOS, DTDL (IoT), VisionOS
  *
  * @version 1.0.0
  */
@@ -21,7 +20,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnityCompiler } from '../UnityCompiler';
 import { UnrealCompiler, type UnrealCompileResult } from '../UnrealCompiler';
 import { GodotCompiler } from '../GodotCompiler';
-import { BabylonCompiler } from '../BabylonCompiler';
 import { OpenXRCompiler } from '../OpenXRCompiler';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import { VRChatCompiler, type VRChatCompileResult } from '../VRChatCompiler';
@@ -30,7 +28,6 @@ import { AndroidXRCompiler, type AndroidXRCompileResult } from '../AndroidXRComp
 import { URDFCompiler } from '../URDFCompiler';
 import { SDFCompiler } from '../SDFCompiler';
 import { WASMCompiler } from '../WASMCompiler';
-import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import { IOSCompiler, type IOSCompileResult } from '../IOSCompiler';
 import { DTDLCompiler } from '../DTDLCompiler';
 import { VisionOSCompiler } from '../VisionOSCompiler';
@@ -331,44 +328,6 @@ describe('E2E Export: Godot (GDScript)', () => {
   it('uses Node3D for 3D scene root', () => {
     const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
     expect(output).toMatch(/extends\s+Node3D/);
-  });
-});
-
-// =============================================================================
-// Babylon.js Export (JavaScript)
-// =============================================================================
-
-describe('E2E Export: Babylon.js (JavaScript)', () => {
-  let compiler: BabylonCompiler;
-
-  beforeEach(() => {
-    compiler = new BabylonCompiler();
-  });
-
-  it('compiles simple cube to valid Babylon.js code', () => {
-    const composition = createSimpleCubeComposition();
-    const output = compiler.compile(composition, 'test-token');
-
-    // Must be JavaScript
-    expect(output).toBeTruthy();
-    expect(typeof output).toBe('string');
-  });
-
-  it('includes BABYLON namespace references', () => {
-    const composition = createSimpleCubeComposition();
-    const output = compiler.compile(composition, 'test-token');
-    // Check for Babylon.js patterns
-    expect(output).toMatch(/babylon|BABYLON|engine|scene/i);
-  });
-
-  it('compiles empty composition without errors', () => {
-    const output = compiler.compile(createEmptyComposition(), 'test-token');
-    expect(output).toBeTruthy();
-  });
-
-  it('compiles physics demo', () => {
-    const output = compiler.compile(createPhysicsDemoComposition(), 'test-token');
-    expect(output).toBeTruthy();
   });
 });
 
@@ -734,41 +693,6 @@ describe('E2E Export: WebAssembly (WASM)', () => {
 });
 
 // =============================================================================
-// PlayCanvas Export (JavaScript)
-// =============================================================================
-
-describe('E2E Export: PlayCanvas', () => {
-  let compiler: PlayCanvasCompiler;
-
-  beforeEach(() => {
-    compiler = new PlayCanvasCompiler();
-  });
-
-  it('compiles simple cube to valid PlayCanvas output', () => {
-    const composition = createSimpleCubeComposition();
-    const output = compiler.compile(composition, 'test-token');
-
-    expect(output).toBeTruthy();
-    expect(typeof output).toBe('string');
-  });
-
-  it('includes PlayCanvas API references', () => {
-    const output = compiler.compile(createSimpleCubeComposition(), 'test-token');
-    expect(output).toMatch(/PlayCanvas|pc\.|Application|Entity/i);
-  });
-
-  it('compiles empty composition without errors', () => {
-    const output = compiler.compile(createEmptyComposition(), 'test-token');
-    expect(output).toBeTruthy();
-  });
-
-  it('compiles physics demo', () => {
-    const output = compiler.compile(createPhysicsDemoComposition(), 'test-token');
-    expect(output).toBeTruthy();
-  });
-});
-
-// =============================================================================
 // iOS Export (Swift + multiple files)
 // =============================================================================
 
@@ -888,12 +812,10 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     const stringCompilers: Array<{ name: string; compile: (c: HoloComposition) => string }> = [
       { name: 'Unity', compile: (c) => new UnityCompiler().compile(c, 'test-token') },
       { name: 'Godot', compile: (c) => new GodotCompiler().compile(c, 'test-token') },
-      { name: 'Babylon', compile: (c) => new BabylonCompiler().compile(c, 'test-token') },
       { name: 'OpenXR', compile: (c) => new OpenXRCompiler().compile(c, 'test-token') },
       { name: 'WebGPU', compile: (c) => new WebGPUCompiler().compile(c, 'test-token') },
       { name: 'URDF', compile: (c) => new URDFCompiler().compile(c, 'test-token') },
       { name: 'SDF', compile: (c) => new SDFCompiler().compile(c, 'test-token') },
-      { name: 'PlayCanvas', compile: (c) => new PlayCanvasCompiler().compile(c, 'test-token') },
       { name: 'DTDL', compile: (c) => new DTDLCompiler().compile(c, 'test-token') },
       { name: 'VisionOS', compile: (c) => new VisionOSCompiler().compile(c, 'test-token') },
     ];
@@ -960,18 +882,16 @@ describe('E2E Cross-Target: Consistency Guarantees', () => {
     ).toContain('UniqueSceneName123');
   });
 
-  it('all 16 compilers handle empty composition without throwing', () => {
+  it('all live compilers handle empty composition without throwing', () => {
     const empty = createEmptyComposition();
 
     // String-output compilers
     expect(() => new UnityCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new GodotCompiler().compile(empty, 'test-token')).not.toThrow();
-    expect(() => new BabylonCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new OpenXRCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new WebGPUCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new URDFCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new SDFCompiler().compile(empty, 'test-token')).not.toThrow();
-    expect(() => new PlayCanvasCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new DTDLCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new VisionOSCompiler().compile(empty, 'test-token')).not.toThrow();
     expect(() => new AndroidXRCompiler().compile(empty, 'test-token')).not.toThrow();

@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { R3FCompiler, HoloCompositionParser, HoloScriptPlusParser } from '@holoscript/core';
+import { SceneIRCompiler as R3FCompiler, HoloCompositionParser, HoloScriptPlusParser } from '@holoscript/core';
 import {
   compileHoloToR3F,
   compileHsplusToR3F,
@@ -50,7 +50,7 @@ composition "SimpleScene" {
     expect(result.r3fTree).not.toBeNull();
   });
 
-  it('R3FCompiler instance can be created', () => {
+  it('SceneIRCompiler instance can be created', () => {
     const compiler = new R3FCompiler();
     expect(compiler).toBeDefined();
   });
@@ -367,7 +367,7 @@ describe('Scenario: R3F Compilation — Backlog', () => {
     const source = `composition "CrossTest" {
   object "Cube" { geometry: "cube"; position: [0, 1, 0] }
 }`;
-    const { HoloCompositionParser: P, R3FCompiler: C } = await import('@holoscript/core');
+    const { HoloCompositionParser: P, SceneIRCompiler: C } = await import('@holoscript/core');
     const parser = new P();
     const ast = parser.parse(source);
     expect(ast).toBeDefined();
@@ -410,9 +410,9 @@ composition "PlatformFilter" {
     // Check if WASM target exists in the compile target enum/list
     const hasWasm = 'WASMCompiler' in core || 'compileTargets' in core || 'CompileTarget' in core;
     // The compiler infrastructure exists — actual WASM output is a build step
-    expect(core.R3FCompiler).toBeDefined();
+    expect(core.SceneIRCompiler).toBeDefined();
     // At minimum, the R3F compiler proves the multi-target architecture works
-    expect(typeof core.R3FCompiler).toBe('function');
+    expect(typeof core.SceneIRCompiler).toBe('function');
   });
 
   it('USD export target: HoloCompositionParser produces geometry attributes usable for .usda', () => {

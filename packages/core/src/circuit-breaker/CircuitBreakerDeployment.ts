@@ -35,16 +35,11 @@ export type ExportTarget =
   | 'android-xr'
   | 'ios'
   | 'visionos'
-  | 'ar'
-  | 'babylon'
   | 'webgpu'
-  | 'r3f'
   | 'wasm'
-  | 'playcanvas'
   | 'usd'
   | 'usdz'
   | 'dtdl'
-  | 'vrr'
   | 'multi-layer'
   | 'incremental'
   | 'state'
@@ -52,8 +47,7 @@ export type ExportTarget =
   | 'tsl'
   | 'a2a-agent-card'
   | 'nir'
-  | 'openxr-spatial-entities'
-  | 'phone-sleeve-vr';
+  | 'openxr-spatial-entities';
 
 /**
  * Deployment environment.
@@ -505,13 +499,12 @@ const DEGRADABLE_TARGETS: ExportTarget[] = [
   'a2a-agent-card',
   'nir',
   'openxr-spatial-entities',
-  'vrr',
   'multi-layer',
   'dtdl',
 ];
 
 /** Targets that are never disabled (core rendering pipeline) */
-const ESSENTIAL_TARGETS: ExportTarget[] = ['r3f', 'webgpu', 'babylon', 'wasm'];
+const ESSENTIAL_TARGETS: ExportTarget[] = ['webgpu', 'wasm'];
 
 export const DEFAULT_DEGRADATION_CONFIG: DegradationConfig = {
   levels: [
@@ -552,18 +545,13 @@ export const DEFAULT_DEGRADATION_CONFIG: DegradationConfig = {
     {
       name: 'emergency',
       severity: 3,
-      disabledTargets: DEGRADABLE_TARGETS.concat([
-        'unity',
-        'unreal',
-        'godot',
-        'playcanvas',
-      ] as ExportTarget[]),
+      disabledTargets: DEGRADABLE_TARGETS.concat(['unity', 'unreal', 'godot'] as ExportTarget[]),
       enableCaching: true,
       cacheTtlMs: 24 * 60 * 60 * 1000,
       serveStale: true,
       maxConcurrentCompilations: 2,
       rateLimitRps: 5,
-      clientMessage: 'System in emergency mode. Only web rendering targets available.',
+      clientMessage: 'System in emergency mode. Only native web runtime targets available.',
     },
   ],
   thresholds: {
@@ -663,7 +651,7 @@ export const DEFAULT_ALERT_RULES: AlertRule[] = [
   {
     name: 'CircuitBreakerOpen',
     severity: 'critical',
-    condition: 'holoscript_cb_circuit_state{target=~"r3f|webgpu|babylon"} == 1',
+    condition: 'holoscript_cb_circuit_state{target=~"webgpu|wasm"} == 1',
     forDurationMs: 60 * 1000,
     messageTemplate:
       'Circuit breaker OPEN for critical target {{ $labels.target }} in {{ $labels.environment }}',

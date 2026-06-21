@@ -1,13 +1,13 @@
 /**
  * CircuitBreakerBenchmarks.ts
  *
- * Benchmark suite for the HoloScript circuit breaker across 25+ compiler targets.
+ * Benchmark suite for the HoloScript circuit breaker across compiler targets.
  * Measures compilation time, memory usage, throughput, and detects regressions.
  *
  * Targets benchmarked (aligned with compiler/CircuitBreaker.ts ExportTarget):
  *   urdf, sdf, unity, unreal, godot, vrchat, openxr, android, android-xr,
- *   ios, visionos, ar, babylon, webgpu, r3f, wasm, playcanvas, usd, usdz,
- *   dtdl, vrr, multi-layer, incremental, state, trait-composition, tsl,
+ *   ios, visionos, webgpu, wasm, usd, usdz,
+ *   dtdl, multi-layer, incremental, state, trait-composition, tsl,
  *   a2a-agent-card, nir, openxr-spatial-entities
  *
  * @module benchmarks
@@ -48,16 +48,11 @@ export type ExportTarget =
   | 'android-xr'
   | 'ios'
   | 'visionos'
-  | 'ar'
-  | 'babylon'
   | 'webgpu'
-  | 'r3f'
   | 'wasm'
-  | 'playcanvas'
   | 'usd'
   | 'usdz'
   | 'dtdl'
-  | 'vrr'
   | 'multi-layer'
   | 'incremental'
   | 'state'
@@ -65,8 +60,7 @@ export type ExportTarget =
   | 'tsl'
   | 'a2a-agent-card'
   | 'nir'
-  | 'openxr-spatial-entities'
-  | 'phone-sleeve-vr';
+  | 'openxr-spatial-entities';
 
 /** All export targets as a constant array */
 export const ALL_EXPORT_TARGETS: ExportTarget[] = [
@@ -81,16 +75,11 @@ export const ALL_EXPORT_TARGETS: ExportTarget[] = [
   'android-xr',
   'ios',
   'visionos',
-  'ar',
-  'babylon',
   'webgpu',
-  'r3f',
   'wasm',
-  'playcanvas',
   'usd',
   'usdz',
   'dtdl',
-  'vrr',
   'multi-layer',
   'incremental',
   'state',
@@ -99,7 +88,6 @@ export const ALL_EXPORT_TARGETS: ExportTarget[] = [
   'a2a-agent-card',
   'nir',
   'openxr-spatial-entities',
-  'phone-sleeve-vr',
 ];
 
 /**
@@ -369,27 +357,22 @@ function simulateCompilation(
 ): { timeMs: number; outputSizeBytes: number; success: boolean } {
   // Base cost per target (ms) - models relative complexity
   const baseCosts: Record<string, number> = {
-    r3f: 12,
-    babylon: 15,
     webgpu: 25,
     wasm: 40,
     unity: 35,
     unreal: 45,
     godot: 20,
-    playcanvas: 18,
     openxr: 30,
     visionos: 38,
     android: 22,
     'android-xr': 28,
     ios: 25,
-    ar: 20,
     vrchat: 32,
     urdf: 18,
     sdf: 16,
     usd: 28,
     usdz: 30,
     dtdl: 14,
-    vrr: 22,
     tsl: 20,
     'multi-layer': 35,
     incremental: 8,

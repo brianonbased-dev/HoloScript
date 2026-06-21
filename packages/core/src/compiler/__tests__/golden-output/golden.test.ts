@@ -1,6 +1,6 @@
 /**
  * Golden-output snapshot regression tests for the 5 priority compiler targets:
- *   UnityCompiler, WebGPUCompiler, BabylonCompiler, URDFCompiler,
+ *   UnityCompiler, WebGPUCompiler, URDFCompiler,
  *   SDFCompiler, WASMCompiler
  *
  * HOW THIS WORKS
@@ -20,7 +20,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { UnityCompiler } from '../../UnityCompiler';
 import { WebGPUCompiler } from '../../WebGPUCompiler';
-import { BabylonCompiler } from '../../BabylonCompiler';
 import { URDFCompiler } from '../../URDFCompiler';
 import SDFCompiler from '../../SDFCompiler';
 import { WASMCompiler } from '../../WASMCompiler';
@@ -150,16 +149,6 @@ describe('Compiler golden-output regression', () => {
     expect(typeof output).toBe('string');
     expect(output).toMatchSnapshot();
   });
-
-  // ── Babylon ────────────────────────────────────────────────────────────────
-  it('Babylon: canonical scene → Babylon.js', () => {
-    const compiler = new BabylonCompiler();
-    const output = compiler.compile(CANONICAL, TOKEN);
-    expect(typeof output).toBe('string');
-    expect(output).toMatchSnapshot();
-  });
-
-  // ── URDF ───────────────────────────────────────────────────────────────────
   it('URDF: canonical scene → URDF XML', () => {
     const compiler = new URDFCompiler();
     const output = compiler.compile(CANONICAL, TOKEN);

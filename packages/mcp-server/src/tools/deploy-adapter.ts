@@ -162,10 +162,7 @@ deployRouter.get('/targets', (_req: Request, res: Response) => {
       { name: 'unity', language: 'C#', category: 'game-engine' },
       { name: 'unreal', language: 'C++', category: 'game-engine' },
       { name: 'godot', language: 'GDScript', category: 'game-engine' },
-      { name: 'babylon', language: 'JavaScript', category: 'web-3d' },
-      { name: 'three-js', language: 'JavaScript', category: 'web-3d' },
       { name: 'webgpu', language: 'WebGPU', category: 'web-gpu' },
-      { name: 'r3f', language: 'React/TSX', category: 'web-react' },
       { name: 'ios', language: 'Swift', category: 'mobile' },
       { name: 'android', language: 'Kotlin', category: 'mobile' },
       { name: 'android-xr', language: 'Kotlin', category: 'mobile-ar' },
@@ -259,20 +256,6 @@ function buildManifest(target: string, code: string, options?: DeployRequest['op
 2. Import generated scene: import scene from './scene'
 3. Render: canvas.getContext('webgpu')
 4. Use with any WebGPU framework (Babylon, Three.js, custom)
-      `.trim(),
-    }),
-
-    r3f: () => ({
-      format: 'React/TSX',
-      version: '18.0+',
-      entryPoint: 'Scene.tsx',
-      dependencies: ['react', 'react-three-fiber', '@react-three/drei', 'three'],
-      buildScript: 'npm install && npm run dev',
-      instructions: `
-1. Install deps: npm install react-three-fiber three
-2. Import component: import Scene from './Scene'
-3. Use in React: <Scene />
-4. Customize materials, lighting, interactions
       `.trim(),
     }),
 

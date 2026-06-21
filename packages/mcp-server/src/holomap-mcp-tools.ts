@@ -63,7 +63,7 @@ export const holoMapToolDefinitions: Tool[] = [
   {
     name: 'holo_reconstruct_export',
     description:
-      'Finalize the session, return the v1.0 ReconstructionManifest, compile a bounds/anchor .holo stub via ExportManager (r3f, unity, godot, usd, unreal, webgpu, vrr, …), and include pointCloudPly (ASCII PLY xyz+rgb) plus trajectoryJson when steps were aggregated.',
+      'Finalize the session, return the v1.0 ReconstructionManifest, compile a bounds/anchor .holo stub via ExportManager (unity, godot, usd, unreal, webgpu, wasm, 3dgs, …), and include pointCloudPly (ASCII PLY xyz+rgb) plus trajectoryJson when steps were aggregated.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -71,7 +71,7 @@ export const holoMapToolDefinitions: Tool[] = [
         target: {
           type: 'string',
           description:
-            'ExportTarget id or alias (r3f, unity, godot, usd / usd-physics, unreal, webgpu, vrr, …)',
+            'ExportTarget id or alias (unity, godot, usd / usd-physics, unreal, webgpu, wasm, 3dgs, …)',
         },
       },
       required: ['sessionId', 'target'],

@@ -35,16 +35,11 @@ export type ExportTarget =
   | 'android-xr'
   | 'ios'
   | 'visionos'
-  | 'ar'
-  | 'babylon'
   | 'webgpu'
-  | 'r3f'
   | 'wasm'
-  | 'playcanvas'
   | 'usd'
   | 'usdz'
   | 'dtdl'
-  | 'vrr'
   | 'multi-layer'
   | 'incremental'
   | 'state'
@@ -52,8 +47,7 @@ export type ExportTarget =
   | 'tsl'
   | 'a2a-agent-card'
   | 'nir'
-  | 'openxr-spatial-entities'
-  | 'phone-sleeve-vr';
+  | 'openxr-spatial-entities';
 
 /**
  * Threshold configuration for CI/CD quality gates.
@@ -275,7 +269,7 @@ export const DEFAULT_THRESHOLDS: ThresholdConfig = {
 };
 
 /** Critical targets that have stricter thresholds */
-const CRITICAL_TARGETS: ExportTarget[] = ['r3f', 'webgpu', 'unity', 'unreal', 'openxr', 'visionos'];
+const CRITICAL_TARGETS: ExportTarget[] = ['webgpu', 'unity', 'unreal', 'openxr', 'visionos'];
 
 export const DEFAULT_CRITICAL_TARGET_OVERRIDES: TargetThresholdOverrides[] = CRITICAL_TARGETS.map(
   (target) => ({

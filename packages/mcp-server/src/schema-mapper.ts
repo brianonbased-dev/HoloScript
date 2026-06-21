@@ -383,7 +383,7 @@ export function mapSchemaToTraits(schema: DataSchema): SchemaMappingResult {
     mappings,
     globalTraits,
     holoSource,
-    recommendedTargets: ['r3f', 'native-2d', 'openxr'],
+    recommendedTargets: ['webgpu', 'openxr', 'canvas2d-game'],
     stats,
   };
 }

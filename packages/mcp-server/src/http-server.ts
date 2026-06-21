@@ -2689,7 +2689,7 @@ const httpServer = http.createServer(async (req, res) => {
         res.end(
           JSON.stringify({
             error:
-              'Missing required field: target (string). Available: unity, unreal, godot, r3f, babylon, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, ar, playcanvas, nir, node-service, a2a-agent-card, native-2d, state, vrr, phone-sleeve-vr',
+              'Missing required field: target (string). Available: unity, unreal, godot, urdf, sdf, dtdl, webgpu, wasm, openxr, visionos, vrchat, ios, android, android-xr, nir, node-service, a2a-agent-card, state',
           })
         );
         return;

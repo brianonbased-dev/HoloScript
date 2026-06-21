@@ -1,8 +1,8 @@
 /**
  * Paper 10 / Paper 12 — per-target compile-time provenance overhead (Phase 1–2 harness).
  *
- * - **Phase 1:** WebGPU, VRChat, Babylon, Unity, Godot, USD Physics, Unreal, glTF.
- * - **Phase 2:** PlayCanvas, Android XR, VRR (plus Phase 1). Append here as more backends
+ * - **Phase 1:** WebGPU, VRChat, Unity, Godot, USD Physics, Unreal, glTF.
+ * - **Phase 2:** Android XR (plus Phase 1). Append here as more backends
  *   gain `provenanceHash` or a small adapter for non-`CompilerBase.compile` pipelines.
  * - **Code targets** use a large multi-object `.holo` grid (see `BENCH_OBJECT_COUNT`).
  * - **glTF** uses a smaller grid (`BENCH_GLTF_OBJECT_COUNT`) — full `GLTFPipeline` is
@@ -19,15 +19,12 @@ import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import { VRChatCompiler } from '../VRChatCompiler';
-import { BabylonCompiler } from '../BabylonCompiler';
 import { UnityCompiler } from '../UnityCompiler';
 import { GodotCompiler } from '../GodotCompiler';
 import { USDPhysicsCompiler } from '../USDPhysicsCompiler';
 import { UnrealCompiler } from '../UnrealCompiler';
 import { GLTFPipeline } from '../GLTFPipeline';
-import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
-import { VRRCompiler } from '../VRRCompiler';
 // Phase 3 — noise-floor targets (W.067)
 import { SCMCompiler } from '../SCMCompiler';
 import { DTDLCompiler } from '../DTDLCompiler';
@@ -39,9 +36,7 @@ import { NIRCompiler } from '../NIRCompiler';
 import { NIRToWGSLCompiler } from '../NIRToWGSLCompiler';
 import { TSLCompiler } from '../TSLCompiler';
 import { NFTMarketplaceCompiler } from '../NFTMarketplaceCompiler';
-import { PhoneSleeveVRCompiler } from '../PhoneSleeveVRCompiler';
 import { NodeServiceCompiler } from '../NodeServiceCompiler';
-import { Native2DCompiler } from '../Native2DCompiler';
 import { A2AAgentCardCompiler } from '../A2AAgentCardCompiler';
 import { AIGlassesCompiler } from '../AIGlassesCompiler';
 import { SDFCompiler } from '../SDFCompiler';
@@ -106,15 +101,6 @@ function objectLines(i: number, indent: string): string[] {
 }
 
 const AGENT_TOKEN = 'paper-targets-overhead-bench';
-
-/** Minimal VRR options — bench scene has no VRR traits; compiler still emits a valid bundle. */
-const VRR_BENCH_OPTS = {
-  target: 'threejs' as const,
-  minify: false,
-  source_maps: false,
-  api_integrations: {},
-  performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
-};
 
 function sha256Hex(s: string): string {
   return createHash('sha256').update(s).digest('hex');
@@ -187,17 +173,6 @@ describe('Paper 10/12 — paper-targets-overhead-bench', () => {
         },
       },
       {
-        id: 'babylon',
-        category: 'game-engine',
-        provHash: provHashMain,
-        compileBase: () => new BabylonCompiler({}).compile(astMain, AGENT_TOKEN),
-        compileProv: () =>
-          new BabylonCompiler({ provenanceHash: provHashMain }).compile(astMain, AGENT_TOKEN),
-        assertProvOutput: (out, h) => {
-          expect(String(out)).toContain(`// Provenance Hash: ${h}`);
-        },
-      },
-      {
         id: 'unity',
         category: 'game-engine',
         provHash: provHashMain,
@@ -256,25 +231,6 @@ describe('Paper 10/12 — paper-targets-overhead-bench', () => {
         },
       },
       {
-        id: 'playcanvas',
-        category: 'game-engine',
-        provHash: provHashMain,
-        compileBase: () =>
-          new PlayCanvasCompiler({ enablePhysics: false, enableXR: false }).compile(
-            astMain,
-            AGENT_TOKEN
-          ),
-        compileProv: () =>
-          new PlayCanvasCompiler({
-            enablePhysics: false,
-            enableXR: false,
-            provenanceHash: provHashMain,
-          }).compile(astMain, AGENT_TOKEN),
-        assertProvOutput: (out, h) => {
-          expect(String(out)).toContain(`// Provenance Hash: ${h}`);
-        },
-      },
-      {
         id: 'android-xr',
         category: 'game-engine',
         provHash: provHashMain,
@@ -293,20 +249,6 @@ describe('Paper 10/12 — paper-targets-overhead-bench', () => {
           expect(String((out as { activityFile: string }).activityFile)).toContain(
             `// Provenance Hash: ${h}`
           );
-        },
-      },
-      {
-        id: 'vrr',
-        category: 'game-engine',
-        provHash: provHashMain,
-        compileBase: () => new VRRCompiler(VRR_BENCH_OPTS).compile(astMain, AGENT_TOKEN),
-        compileProv: () =>
-          new VRRCompiler({ ...VRR_BENCH_OPTS, provenanceHash: provHashMain }).compile(
-            astMain,
-            AGENT_TOKEN
-          ),
-        assertProvOutput: (out, h) => {
-          expect(String((out as { code: string }).code)).toContain(`// Provenance Hash: ${h}`);
         },
       },
       {
@@ -414,7 +356,6 @@ describe('Paper 10/12 — paper-targets-overhead-bench', () => {
         id: 'node-service',
         baseCall: () => new NodeServiceCompiler().compile(astMain, AGENT_TOKEN),
       },
-      { id: 'native-2d', baseCall: () => new Native2DCompiler().compile(astMain, AGENT_TOKEN) },
       {
         id: 'a2a-agent-card',
         baseCall: () => new A2AAgentCardCompiler().compile(astMain, AGENT_TOKEN),

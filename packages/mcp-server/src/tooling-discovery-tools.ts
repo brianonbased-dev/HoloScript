@@ -348,7 +348,7 @@ function inferExamples(name: string): Array<{ args: Record<string, unknown> }> {
     return [{ args: { code: 'composition "S" { object "C" { geometry: "cube" } }' } }];
   if (name === 'compile_holoscript')
     return [
-      { args: { code: 'composition "S" { object "C" { geometry: "cube" } }', target: 'r3f' } },
+      { args: { code: 'composition "S" { object "C" { geometry: "cube" } }', target: 'webgpu' } },
     ];
   return [];
 }
@@ -600,9 +600,8 @@ const CANARY_ARGS: Record<string, Record<string, unknown>> = {
   validate_holoscript: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
   compile_holoscript: {
     code: 'composition "S" { object "C" { geometry: "cube" } }',
-    target: 'r3f',
+    target: 'webgpu',
   },
-  compile_to_r3f: { code: 'composition "S" { object "C" { geometry: "cube" } }' },
   holo_graph_status: {},
   hs_ai_explain_error: { code: 'object Cube { geometry: "cube" }', errors: [] },
   hs_diagnostics: { code: 'object Cube { geometry: "cube" }' },

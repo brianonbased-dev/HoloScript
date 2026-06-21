@@ -12,7 +12,7 @@ import {
 } from './tool-ops-metrics.js';
 
 const REGION_IDS = ['us-west', 'eu-west', 'ap-east'] as const;
-const CIRCUIT_BREAKER_SAMPLE: ExportTarget[] = ['r3f', 'unity', 'webgpu'];
+const CIRCUIT_BREAKER_SAMPLE: ExportTarget[] = ['webgpu', 'unity', 'wasm'];
 
 export type OpsOverallStatus = 'healthy' | 'degraded' | 'critical';
 

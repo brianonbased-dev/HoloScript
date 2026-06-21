@@ -9,10 +9,6 @@ import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 import { Buffer } from 'node:buffer';
 
 const TARGET_ALIASES: Record<string, ExportTarget> = {
-  r3f: 'r3f',
-  'react-three-fiber': 'r3f',
-  three: 'r3f',
-  threejs: 'r3f',
   unity: 'unity',
   godot: 'godot',
   usd: 'usd',
@@ -21,8 +17,6 @@ const TARGET_ALIASES: Record<string, ExportTarget> = {
   unreal: 'unreal',
   'unreal-engine': 'unreal',
   webgpu: 'webgpu',
-  vrr: 'vrr',
-  babylon: 'babylon',
   wasm: 'wasm',
   urdf: 'urdf',
   sdf: 'sdf',
@@ -47,7 +41,7 @@ export function normalizeReconstructExportTarget(raw: string): ExportTarget {
   if (supported.includes(key as ExportTarget)) return key as ExportTarget;
 
   throw new Error(
-    `holo_reconstruct_export: unsupported target "${raw}". Common: r3f, unity, godot, usd, unreal, webgpu, vrr.`
+    `holo_reconstruct_export: unsupported target "${raw}". Common: unity, godot, usd, unreal, webgpu, wasm, 3dgs.`
   );
 }
 
@@ -88,7 +82,7 @@ composition "HoloMapExport_${id}_f${m.frameCount}_p${m.pointCount}" {
 `.trim();
 }
 
-/** Binary-packed cloud for r3f / Unity exporters (same cap as PLY aggregation). */
+/** Binary-packed cloud for Unity/WebGPU exporters (same cap as PLY aggregation). */
 export function holomapPayloadFromAggregatedPoints(
   positions: number[],
   colors: number[]
