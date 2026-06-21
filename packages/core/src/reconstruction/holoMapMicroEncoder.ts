@@ -58,6 +58,7 @@ export interface HoloMapMicroWeights {
 }
 
 const weightCache = new Map<string, HoloMapMicroWeights>();
+const weightBlobKeyCache = new WeakMap<object, string>();
 
 function hashConfigSeed(config: HoloMapMicroConfig): number {
   let h = config.seed >>> 0;
@@ -111,6 +112,15 @@ function fnv1a(bytes: Uint8Array): string {
     h = Math.imul(h, 0x01000193);
   }
   return (h >>> 0).toString(16);
+}
+
+function cachedWeightBlobKey(input: Uint8Array | ArrayBuffer): { bytes: Uint8Array; key: string } {
+  const bytes = toUint8(input);
+  const cached = weightBlobKeyCache.get(input);
+  if (cached) return { bytes, key: cached };
+  const key = `${bytes.byteLength}:${fnv1a(bytes)}`;
+  weightBlobKeyCache.set(input, key);
+  return { bytes, key };
 }
 
 /** Serialize micro-weights to the canonical `HMW1` checkpoint blob. */
@@ -177,8 +187,8 @@ function getMicroWeights(config: HoloMapMicroConfig): HoloMapMicroWeights {
   // were loaded by HoloMapRuntime and then discarded). Fall back to PRNG only if
   // the blob is absent or malformed.
   if (config.weightBytes) {
-    const wb = toUint8(config.weightBytes);
-    const ckptKey = `${microWeightKey(config)}\0ckpt:${wb.byteLength}:${fnv1a(wb)}`;
+    const { bytes: wb, key: blobKey } = cachedWeightBlobKey(config.weightBytes);
+    const ckptKey = `${microWeightKey(config)}\0ckpt:${blobKey}`;
     const cachedReal = weightCache.get(ckptKey);
     if (cachedReal) return cachedReal;
     const real = deserializeMicroWeights(wb);

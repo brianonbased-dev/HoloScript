@@ -12,6 +12,7 @@ type HoloMapEvent =
   | 'micro_encoder_fallback'
   | 'finalize'
   | 'dispose'
+  | 'anchor_failed'
   | 'error';
 
 interface PendingStepSummary {

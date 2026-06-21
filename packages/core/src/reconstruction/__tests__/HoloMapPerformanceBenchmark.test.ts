@@ -21,6 +21,7 @@ import {
   type ReconstructionFrame,
   type ReconstructionManifest,
 } from '../HoloMapRuntime';
+import { serializeMicroWeights, type HoloMapMicroWeights } from '../holoMapMicroEncoder';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,40 @@ interface PerfDashboard {
   };
 }
 
+const EMBED = 32;
+const PATCH = 14 * 14 * 3;
+
+function ramp(n: number, base: number): Float32Array {
+  const a = new Float32Array(n);
+  for (let i = 0; i < n; i += 1) a[i] = base + i * 1e-4;
+  return a;
+}
+
+function makeBenchmarkWeights(): HoloMapMicroWeights {
+  return {
+    proj: ramp(EMBED * PATCH, 0.011),
+    Wq: ramp(EMBED * EMBED, 0.021),
+    Wk: ramp(EMBED * EMBED, 0.031),
+    Wv: ramp(EMBED * EMBED, 0.041),
+    Wxyz: ramp(EMBED * 3, 0.051),
+    gamma1: ramp(EMBED, 1.0),
+    beta1: ramp(EMBED, 0.11),
+    gamma2: ramp(EMBED, 1.0),
+    beta2: ramp(EMBED, 0.21),
+  };
+}
+
+const BENCHMARK_WEIGHT_BYTES = serializeMicroWeights(makeBenchmarkWeights());
+const BENCHMARK_WEIGHT_CID = createHash('sha256').update(BENCHMARK_WEIGHT_BYTES).digest('hex');
+const BENCHMARK_WEIGHT_BUFFER = BENCHMARK_WEIGHT_BYTES.buffer.slice(
+  BENCHMARK_WEIGHT_BYTES.byteOffset,
+  BENCHMARK_WEIGHT_BYTES.byteOffset + BENCHMARK_WEIGHT_BYTES.byteLength
+) as ArrayBuffer;
+
+async function resolveBenchmarkWeights(weightCid: string): Promise<ArrayBuffer | undefined> {
+  return weightCid === BENCHMARK_WEIGHT_CID ? BENCHMARK_WEIGHT_BUFFER.slice(0) : undefined;
+}
+
 function summarizeLatency(
   latencies: StepLatency[]
 ): Omit<
@@ -162,6 +197,9 @@ async function runBenchmark(frameCount: number): Promise<BenchResult> {
     seed: 42,
     modelHash: 'perf-model-v1',
     videoHash: 'perf-video-fixture',
+    weightCid: BENCHMARK_WEIGHT_CID,
+    weightUrl: 'https://example.invalid/holomap-perf-weights.hmw1',
+    localResolver: resolveBenchmarkWeights,
     targetFPS: 10000, // disable throttling for pure latency measurement
     maxSequenceLength: 20_000, // well above max test count
     allowCpuFallback: true,
@@ -210,6 +248,9 @@ async function runDeterminismVerification(
       seed: 42,
       modelHash: 'det-model-v1',
       videoHash: 'det-video-fixture',
+      weightCid: BENCHMARK_WEIGHT_CID,
+      weightUrl: 'https://example.invalid/holomap-perf-weights.hmw1',
+      localResolver: resolveBenchmarkWeights,
       targetFPS: 10000,
       maxSequenceLength: 20_000,
       allowCpuFallback: true,

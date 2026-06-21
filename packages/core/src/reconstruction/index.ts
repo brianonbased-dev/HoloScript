@@ -26,7 +26,10 @@ export {
   tryCreateHoloMapEncoderDevice,
   createHoloMapMicroEncoder,
   frameToMicroImage,
+  serializeMicroWeights,
+  deserializeMicroWeights,
   type HoloMapMicroEncoder,
   type HoloMapMicroFrame,
   type HoloMapMicroConfig,
+  type HoloMapMicroWeights,
 } from './holoMapMicroEncoder';
