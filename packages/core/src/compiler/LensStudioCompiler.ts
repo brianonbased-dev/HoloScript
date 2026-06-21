@@ -4,7 +4,8 @@
  * A BRIDGE export target that emits Lens Studio JavaScript + JSON descriptor
  * for Snapchat AR lenses (Lens Studio API 5.0).
  *
- * Output format: JSON string containing { lensManifest, sceneScript, assetManifest }
+ * Output format: JSON string containing
+ * { lensManifest, sceneScript, assetManifest, droppedStatementCount, droppedStatements }
  *
  * Compilation rules:
  * - HoloObjectDecl type 'mesh'/'box'/'sphere' → SceneObject with MeshVisual component
@@ -80,7 +81,7 @@ export interface LensStudioCompilerOptions {
  */
 export interface LensStudioCompileResult {
   /**
-   * JSON string containing { lensManifest, sceneScript, assetManifest }.
+   * JSON string containing Lens Studio import data plus drop metadata.
    * Write to `lens-output.json` and import via Lens Studio File menu.
    */
   output: string;
@@ -93,6 +94,26 @@ export interface LensStudioCompileResult {
 
   /** Parsed asset manifest (convenience accessor) */
   assetManifest: AssetEntry[];
+
+  /** Number of handler/action body statements that could not be transpiled. */
+  droppedStatementCount: number;
+
+  /** Structured records for dropped handler/action body statements. */
+  droppedStatements: LensStudioDroppedStatement[];
+}
+
+export type LensStudioDroppedStatementContext =
+  | 'logic-handler'
+  | 'logic-action'
+  | 'composition-event';
+
+export interface LensStudioDroppedStatement {
+  index: number;
+  type: string;
+  name?: string;
+  context: LensStudioDroppedStatementContext;
+  owner: string;
+  reason: string;
 }
 
 export interface LensManifest {
@@ -126,6 +147,9 @@ export class LensStudioCompiler extends CompilerBase {
   /** Track which objects have been referenced as // @input annotations */
   private inputAnnotations: string[] = [];
 
+  /** Handler/action body statements the bridge cannot transpile yet. */
+  private droppedStatements: LensStudioDroppedStatement[] = [];
+
   constructor(options: LensStudioCompilerOptions = {}) {
     super();
     this.opts = {
@@ -152,6 +176,7 @@ export class LensStudioCompiler extends CompilerBase {
     this.lines = [];
     this.assets = [];
     this.inputAnnotations = [];
+    this.droppedStatements = [];
 
     const lensName = this.opts.lensName || (composition.name as string) || 'HoloLens';
     const lensId = this.opts.lensId || this.deriveId(lensName);
@@ -165,14 +190,28 @@ export class LensStudioCompiler extends CompilerBase {
 
     const sceneScript = this.buildSceneScript(composition, lensName);
     const assetManifest = [...this.assets];
+    const droppedStatements = [...this.droppedStatements];
+    const droppedStatementCount = droppedStatements.length;
 
-    const output = JSON.stringify({ lensManifest, sceneScript, assetManifest }, null, 2);
+    const output = JSON.stringify(
+      {
+        lensManifest,
+        sceneScript,
+        assetManifest,
+        droppedStatementCount,
+        droppedStatements,
+      },
+      null,
+      2
+    );
 
     return {
       output,
       lensManifest,
       sceneScript,
       assetManifest,
+      droppedStatementCount,
+      droppedStatements,
     };
   }
 
@@ -242,7 +281,9 @@ export class LensStudioCompiler extends CompilerBase {
     const pad = this.pad(depth);
 
     this.emit(`${pad}// Object: "${this.escape(obj.name as string)}" (type: ${objType})`);
-    this.emit(`${pad}var ${varName} = scene.createSceneObject("${this.escape(obj.name as string)}");`);
+    this.emit(
+      `${pad}var ${varName} = scene.createSceneObject("${this.escape(obj.name as string)}");`
+    );
 
     // Parent assignment
     if (parentVar) {
@@ -267,7 +308,9 @@ export class LensStudioCompiler extends CompilerBase {
         break;
       default:
         // Generic scene object — add a MeshVisual as a fallback
-        this.emit(`${pad}var ${varName}Visual = ${varName}.createComponent("Component.MeshVisual");`);
+        this.emit(
+          `${pad}var ${varName}Visual = ${varName}.createComponent("Component.MeshVisual");`
+        );
     }
 
     // Apply traits
@@ -297,7 +340,9 @@ export class LensStudioCompiler extends CompilerBase {
     const opacity = this.findProp(obj, 'opacity');
 
     this.emit(`${pad}var ${varName}Mesh = ${varName}.createComponent("Component.MeshVisual");`);
-    this.emit(`${pad}${varName}Mesh.mainMaterial = script.createMaterial("Materials/FlatMaterial");`);
+    this.emit(
+      `${pad}${varName}Mesh.mainMaterial = script.createMaterial("Materials/FlatMaterial");`
+    );
 
     if (color) {
       const lsColor = this.toVec4Color(color as string);
@@ -344,7 +389,9 @@ export class LensStudioCompiler extends CompilerBase {
     if (src) {
       const assetName = `${varName}_texture`;
       this.emit(`${pad}// @input Asset.Texture ${assetName}`);
-      this.emit(`${pad}if (script.${assetName}) { ${varName}Image.mainMaterial.mainPass.baseTex = script.${assetName}; }`);
+      this.emit(
+        `${pad}if (script.${assetName}) { ${varName}Image.mainMaterial.mainPass.baseTex = script.${assetName}; }`
+      );
       this.registerAsset(String(src), 'texture');
     }
 
@@ -380,7 +427,9 @@ export class LensStudioCompiler extends CompilerBase {
       case 'face_track': {
         // Attach HeadBinding — positions the scene object relative to a detected face
         this.emit(`${pad}// Trait @face_track → HeadBinding (attaches to face)`);
-        this.emit(`${pad}var ${varName}HeadBind = ${varName}.createComponent("Component.HeadBinding");`);
+        this.emit(
+          `${pad}var ${varName}HeadBind = ${varName}.createComponent("Component.HeadBinding");`
+        );
         const bindMode = (config['mode'] as string | undefined) ?? 'AttachToFace';
         this.emit(`${pad}${varName}HeadBind.bindingType = HeadBinding.BindingType.${bindMode};`);
         break;
@@ -390,7 +439,9 @@ export class LensStudioCompiler extends CompilerBase {
         // Attach HandTracking component
         const hand = (config['hand'] as string | undefined) ?? 'right';
         this.emit(`${pad}// Trait @hand_track → HandTracking (${hand} hand)`);
-        this.emit(`${pad}var ${varName}HandTrack = ${varName}.createComponent("Component.HandTracking");`);
+        this.emit(
+          `${pad}var ${varName}HandTrack = ${varName}.createComponent("Component.HandTracking");`
+        );
         const lsHand = hand === 'left' ? 'HandType.Left' : 'HandType.Right';
         this.emit(`${pad}${varName}HandTrack.handType = HandTracking.${lsHand};`);
         break;
@@ -399,7 +450,9 @@ export class LensStudioCompiler extends CompilerBase {
       case 'world_anchor': {
         // Attach WorldObjectController for world-locked AR placement
         this.emit(`${pad}// Trait @world_anchor → WorldObjectController`);
-        this.emit(`${pad}var ${varName}WorldCtrl = ${varName}.createComponent("Component.WorldObjectController");`);
+        this.emit(
+          `${pad}var ${varName}WorldCtrl = ${varName}.createComponent("Component.WorldObjectController");`
+        );
         const enableSurface = config['surface'] !== false;
         this.emit(`${pad}${varName}WorldCtrl.enableSurface = ${enableSurface};`);
         break;
@@ -407,23 +460,31 @@ export class LensStudioCompiler extends CompilerBase {
 
       case 'color': {
         // Set baseColor on existing material — find the component name heuristically
-        const colorVal = (config['value'] as string | undefined) ?? (trait.args?.[0] as string | undefined) ?? '#ffffff';
+        const colorVal =
+          (config['value'] as string | undefined) ??
+          (trait.args?.[0] as string | undefined) ??
+          '#ffffff';
         this.emit(`${pad}// Trait @color → baseColor on material`);
         this.emit(`${pad}if (${varName}.getComponent("Component.MeshVisual")) {`);
-        this.emit(`${pad}${this.opts.indent}${varName}.getComponent("Component.MeshVisual").mainMaterial.mainPass.baseColor = ${this.toVec4Color(colorVal)};`);
+        this.emit(
+          `${pad}${this.opts.indent}${varName}.getComponent("Component.MeshVisual").mainMaterial.mainPass.baseColor = ${this.toVec4Color(colorVal)};`
+        );
         this.emit(`${pad}}`);
         break;
       }
 
       case 'opacity': {
-        const alphaVal = config['value'] !== undefined
-          ? Number(config['value'])
-          : trait.args?.[0] !== undefined
-            ? Number(trait.args[0])
-            : 1.0;
+        const alphaVal =
+          config['value'] !== undefined
+            ? Number(config['value'])
+            : trait.args?.[0] !== undefined
+              ? Number(trait.args[0])
+              : 1.0;
         this.emit(`${pad}// Trait @opacity → alpha`);
         this.emit(`${pad}if (${varName}.getComponent("Component.MeshVisual")) {`);
-        this.emit(`${pad}${this.opts.indent}${varName}.getComponent("Component.MeshVisual").mainMaterial.mainPass.alpha = ${alphaVal};`);
+        this.emit(
+          `${pad}${this.opts.indent}${varName}.getComponent("Component.MeshVisual").mainMaterial.mainPass.alpha = ${alphaVal};`
+        );
         this.emit(`${pad}}`);
         break;
       }
@@ -462,7 +523,9 @@ export class LensStudioCompiler extends CompilerBase {
       const rx = obj.rotation?.x ?? rotArr?.[0] ?? 0;
       const ry = obj.rotation?.y ?? rotArr?.[1] ?? 0;
       const rz = obj.rotation?.z ?? rotArr?.[2] ?? 0;
-      this.emit(`${pad}${varName}.getTransform().setWorldRotation(quat.fromEulerAngles(${rx}, ${ry}, ${rz}));`);
+      this.emit(
+        `${pad}${varName}.getTransform().setWorldRotation(quat.fromEulerAngles(${rx}, ${ry}, ${rz}));`
+      );
     }
 
     if (hasScale || scaleArr) {
@@ -482,12 +545,16 @@ export class LensStudioCompiler extends CompilerBase {
     const pad = this.pad(depth);
 
     this.emit(`${pad}// SpatialGroup: "${this.escape(group.name as string)}"`);
-    this.emit(`${pad}var ${varName} = scene.createSceneObject("${this.escape(group.name as string)}");`);
+    this.emit(
+      `${pad}var ${varName} = scene.createSceneObject("${this.escape(group.name as string)}");`
+    );
 
     // Position from group properties
     const posArr = this.findGroupPropArray(group, 'position');
     if (posArr) {
-      this.emit(`${pad}${varName}.getTransform().setWorldPosition(new vec3(${posArr[0]}, ${posArr[1]}, ${posArr[2]}));`);
+      this.emit(
+        `${pad}${varName}.getTransform().setWorldPosition(new vec3(${posArr[0]}, ${posArr[1]}, ${posArr[2]}));`
+      );
     }
 
     // Child objects parented to the group SceneObject
@@ -512,9 +579,13 @@ export class LensStudioCompiler extends CompilerBase {
     const varName = this.toVarName(lensName + '_overlay');
 
     this.emit(`${pad}// Default: full-face overlay (no AR tracking traits found in composition)`);
-    this.emit(`${pad}var ${varName} = scene.createSceneObject("${this.escape(lensName)}_overlay");`);
+    this.emit(
+      `${pad}var ${varName} = scene.createSceneObject("${this.escape(lensName)}_overlay");`
+    );
     this.emit(`${pad}${varName}.getTransform().setWorldPosition(new vec3(0, 0, -50));`);
-    this.emit(`${pad}var ${varName}HeadBind = ${varName}.createComponent("Component.HeadBinding");`);
+    this.emit(
+      `${pad}var ${varName}HeadBind = ${varName}.createComponent("Component.HeadBinding");`
+    );
     this.emit(`${pad}${varName}HeadBind.bindingType = HeadBinding.BindingType.AttachToFace;`);
     this.emit('');
   }
@@ -523,10 +594,7 @@ export class LensStudioCompiler extends CompilerBase {
   // Logic / event handlers
   // ---------------------------------------------------------------------------
 
-  private emitLogicHandlers(
-    handlers: HoloEventHandler[],
-    actions: HoloAction[]
-  ): void {
+  private emitLogicHandlers(handlers: HoloEventHandler[], actions: HoloAction[]): void {
     if (handlers.length === 0 && actions.length === 0) return;
 
     this.emit('// ----- Logic Event Callbacks -----');
@@ -539,9 +607,9 @@ export class LensStudioCompiler extends CompilerBase {
       this.emit(`${cbName}Event.bind(function (eventData) {`);
       this.emit(`${this.opts.indent}// HoloScript handler: ${handler.event}`);
 
-      // Emit body statements as best-effort comments / stubs
+      // Emit body statements as explicit drop banners until transpilation exists.
       for (const stmt of handler.body ?? []) {
-        this.emitStatementStub(stmt, 1);
+        this.emitStatementStub(stmt, 1, 'logic-handler', handler.event);
       }
 
       this.emit('});');
@@ -557,7 +625,7 @@ export class LensStudioCompiler extends CompilerBase {
       this.emit(`${this.opts.indent}// HoloScript action: ${action.name}`);
 
       for (const stmt of action.body ?? []) {
-        this.emitStatementStub(stmt, 1);
+        this.emitStatementStub(stmt, 1, 'logic-action', action.name);
       }
 
       this.emit('}');
@@ -579,7 +647,7 @@ export class LensStudioCompiler extends CompilerBase {
       this.emit(`${this.opts.indent}// HoloScript event: ${handler.event}`);
 
       for (const stmt of handler.body ?? []) {
-        this.emitStatementStub(stmt, 1);
+        this.emitStatementStub(stmt, 1, 'composition-event', handler.event);
       }
 
       this.emit('});');
@@ -588,20 +656,43 @@ export class LensStudioCompiler extends CompilerBase {
   }
 
   /**
-   * Emit a placeholder comment for a HoloScript statement node.
+   * Emit an explicit drop banner for a HoloScript statement node.
    * Full statement transpilation is out of scope for this bridge target —
-   * complex logic should be hand-authored in Lens Studio.
+   * Complex logic should be hand-authored in Lens Studio until translated.
    */
-  private emitStatementStub(stmt: unknown, depth: number): void {
+  private emitStatementStub(
+    stmt: unknown,
+    depth: number,
+    context: LensStudioDroppedStatementContext,
+    owner: string
+  ): void {
     const pad = this.pad(depth);
+    const { type, name } = this.describeStatement(stmt);
+    const dropped: LensStudioDroppedStatement = {
+      index: this.droppedStatements.length + 1,
+      type,
+      ...(name ? { name } : {}),
+      context,
+      owner,
+      reason:
+        'LensStudioCompiler does not transpile HoloScript handler/action body statements yet.',
+    };
+    this.droppedStatements.push(dropped);
+    const label = `${type}${name ? ': ' + name : ''}`;
+    this.emit(`${pad}// DROPPED_STATEMENT ${dropped.index}: ${context}:${owner} -> ${label}`);
+    this.emit(`${pad}// Reason: ${dropped.reason}`);
+  }
+
+  private describeStatement(stmt: unknown): { type: string; name?: string } {
     if (stmt && typeof stmt === 'object') {
       const s = stmt as Record<string, unknown>;
-      const type = s['type'] as string | undefined;
-      const name = (s['name'] ?? s['target'] ?? '') as string;
-      this.emit(`${pad}// [${type ?? 'statement'}${name ? ': ' + name : ''}]`);
-    } else {
-      this.emit(`${pad}// [statement]`);
+      const rawType = s['type'];
+      const rawName = s['name'] ?? s['target'];
+      const type = typeof rawType === 'string' && rawType.length > 0 ? rawType : 'statement';
+      const name = typeof rawName === 'string' && rawName.length > 0 ? rawName : undefined;
+      return name ? { type, name } : { type };
     }
+    return { type: 'statement' };
   }
 
   // ---------------------------------------------------------------------------
@@ -764,9 +855,7 @@ export class LensStudioCompiler extends CompilerBase {
 
   /** Convert an arbitrary name to a safe JavaScript variable identifier. */
   private toVarName(name: string): string {
-    return name
-      .replace(/[^a-zA-Z0-9_$]/g, '_')
-      .replace(/^([0-9])/, '_$1');
+    return name.replace(/[^a-zA-Z0-9_$]/g, '_').replace(/^([0-9])/, '_$1');
   }
 
   /** Escape a string for JavaScript string literal embedding. */
