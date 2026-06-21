@@ -3,7 +3,11 @@ import {
   buildContentPolicyConfig,
   evaluateContentPolicySync,
 } from '@holoscript/core/policy';
-import { validateContentAdmission } from '../conformance/artifact-admission-gate';
+import {
+  runAdmissionGate,
+  toAuditEventInput,
+  validateContentAdmission,
+} from '../conformance/artifact-admission-gate';
 
 // Mirrors the family-tier config built in hololand-mcp-tools.ts at module scope.
 const familyConfig = buildContentPolicyConfig({ tier: 'family', region: 'GLOBAL' });
@@ -96,5 +100,30 @@ describe('validateContentAdmission — conformance GATE-001 (P.013)', () => {
     expect(finding).not.toBeNull();
     expect(finding!.field).toBe('systemPrompt');
     expect(finding!.ruleId).toBe('NPC-CONTENT-001');
+  });
+
+  it('maps admission denials to DSA-style audit events', () => {
+    const report = runAdmissionGate({
+      artifactKind: 'zone',
+      artifactId: 'audit-zone',
+      artifact: {
+        id: 'audit-zone',
+        name: 'how to make a bomb zone name',
+        biome: 'urban',
+      },
+    });
+
+    const event = toAuditEventInput(report, {
+      tenantId: 'tenant-1',
+      actorId: 'agent-7',
+      action: 'hololand.publish_zone.content_admission',
+      resource: 'hololand-zone',
+      requestedStatus: 'published',
+    });
+
+    expect(event.outcome).toBe('denied');
+    expect(event.resourceId).toBe('audit-zone');
+    expect(event.metadata._compliance).toBe('dsa-statement-of-reasons');
+    expect((event.metadata.statementOfReasons as Record<string, unknown>).decision).toBe('denied');
   });
 });

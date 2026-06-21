@@ -15,6 +15,7 @@ import {
   evaluateContentPolicySync,
   type ContentPolicyConfig,
 } from '@holoscript/core/policy';
+import { type AuditEventInput } from '@holoscript/core';
 
 import { type StoredNPC } from '../hololand-mcp-tools';
 import { type StoredTwinEarthIdentity, type StoredSafetyEnvelope } from '../robot-ai-mcp-tools';
@@ -937,6 +938,72 @@ export function runAdmissionGate(input: AdmissionGateInput): ConformanceReport {
 // ═════════════════════════════════════════════════════════════════════════════
 // RULE CATALOG
 // ═════════════════════════════════════════════════════════════════════════════
+
+export interface AdmissionAuditContext {
+  tenantId?: string;
+  actorId?: string;
+  actorType?: 'user' | 'agent' | 'system';
+  action?: string;
+  resource?: string;
+  resourceId?: string;
+  surface?: string;
+  requestedStatus?: string;
+  clientIp?: string;
+  userAgent?: string;
+}
+
+/**
+ * Map an admission report to the shared AuditLogger input shape.
+ *
+ * The metadata carries a DSA-style Statement of Reasons so compliance reporting
+ * can explain both admissions and denials without re-running the gate.
+ */
+export function toAuditEventInput(
+  report: ConformanceReport,
+  ctx: AdmissionAuditContext = {}
+): AuditEventInput {
+  const decision = report.passed ? 'allowed' : 'denied';
+  const outcome: AuditEventInput['outcome'] = report.passed ? 'success' : 'denied';
+
+  return {
+    tenantId: ctx.tenantId ?? 'hololand',
+    actorId: ctx.actorId ?? 'hololand-admission-gate',
+    actorType: ctx.actorType ?? 'system',
+    action: ctx.action ?? `artifact_admission:${decision}`,
+    resource: ctx.resource ?? `holoscript-${report.artifactKind}`,
+    resourceId: ctx.resourceId ?? report.artifactId,
+    outcome,
+    clientIp: ctx.clientIp,
+    userAgent: ctx.userAgent,
+    metadata: {
+      surface: ctx.surface ?? 'hololand-admission',
+      requestedStatus: ctx.requestedStatus,
+      artifactKind: report.artifactKind,
+      artifactId: report.artifactId,
+      gateVersion: report.gateVersion,
+      checkedAt: report.checkedAt,
+      criticalCount: report.criticalCount,
+      highCount: report.highCount,
+      mediumCount: report.mediumCount,
+      lowCount: report.lowCount,
+      infoCount: report.infoCount,
+      findingCount: report.findings.length,
+      statementOfReasons: {
+        schema: 'dsa-statement-of-reasons/v1',
+        decision,
+        gate: 'GATE-001',
+        reasons: report.findings.map((finding) => ({
+          ruleId: finding.ruleId,
+          severity: finding.severity,
+          field: finding.field,
+          message: finding.message,
+          remediation: finding.remediation,
+        })),
+      },
+      _compliance: 'dsa-statement-of-reasons',
+    },
+  };
+}
 
 export interface ConformanceRule {
   ruleId: string;

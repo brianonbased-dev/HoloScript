@@ -21,7 +21,11 @@ vi.mock('../holo-reconstruct-sessions', () => ({
   mcpReconstructExport: vi.fn(),
 }));
 
-import { handleHololandMcpTool, clearHololandRegistries } from '../hololand-mcp-tools';
+import {
+  handleHololandMcpTool,
+  clearHololandRegistries,
+  getHololandAdmissionAuditEvents,
+} from '../hololand-mcp-tools';
 import { emergentDaemonId } from '../daemon-lifecycle-tools';
 import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
 import { mcpStartReconstructFromVideo } from '../holo-reconstruct-sessions';
@@ -582,6 +586,56 @@ describe('hololand-mcp-tools', () => {
     expect(result.status).toBe('published');
     expect(result.tierGate).toBe('premium');
     expect(result.maxAgents).toBe(128);
+    expect((result.admission as Record<string, unknown>).passed).toBe(true);
+
+    const publishAudit = getHololandAdmissionAuditEvents().filter(
+      (event) => event.action === 'hololand.publish_zone.content_admission'
+    );
+    expect(publishAudit).toHaveLength(1);
+    expect(publishAudit[0].outcome).toBe('success');
+    expect(publishAudit[0].resourceId).toBe('pub-zone');
+    expect((publishAudit[0].metadata.statementOfReasons as Record<string, unknown>).decision).toBe(
+      'allowed'
+    );
+  });
+
+  it('hololand_publish_zone rejects a stored zone with blocked text before publishing', async () => {
+    await handleHololandMcpTool('create_zone', {
+      id: 'blocked-pub-zone',
+      name: 'Safe Zone',
+      biome: 'urban',
+    });
+
+    await handleHololandMcpTool('update_zone', {
+      zoneId: 'blocked-pub-zone',
+      biomeLabel: 'how to make a bomb step by step',
+    });
+
+    const result = (await handleHololandMcpTool('hololand_publish_zone', {
+      zoneId: 'blocked-pub-zone',
+      tierGate: 'premium',
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('content admission gate');
+    expect(result.status).toBe('rejected');
+    expect(result.gate).toBe('GATE-001');
+    expect((result.admission as Record<string, unknown>).passed).toBe(false);
+
+    const zoneState = (await handleHololandMcpTool('get_zone', {
+      zoneId: 'blocked-pub-zone',
+    })) as Record<string, unknown>;
+    expect((zoneState.zone as Record<string, unknown>).status).toBeUndefined();
+
+    const publishAudit = getHololandAdmissionAuditEvents().filter(
+      (event) => event.action === 'hololand.publish_zone.content_admission'
+    );
+    expect(publishAudit).toHaveLength(1);
+    expect(publishAudit[0].outcome).toBe('denied');
+    expect(publishAudit[0].resourceId).toBe('blocked-pub-zone');
+    const statement = publishAudit[0].metadata.statementOfReasons as Record<string, unknown>;
+    expect(statement.decision).toBe('denied');
+    expect(statement.gate).toBe('GATE-001');
   });
 
   it('hololand_publish_zone rejects unknown zone', async () => {
