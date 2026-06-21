@@ -26,8 +26,7 @@ describe('ReferenceExporterRegistry', () => {
       'unreal',
       'godot',
       'webgpu',
-      'r3f',
-      'babylon',
+      'code-editor',
       'openxr',
       'vrchat',
       'ios',
@@ -51,6 +50,13 @@ describe('ReferenceExporterRegistry', () => {
 
   it('hasExporter returns false for unknown target', () => {
     expect(registry.hasExporter('fake' as any)).toBe(false);
+  });
+
+  it('does not expose retired apex-poison web exporters', () => {
+    for (const target of ['r3f', 'babylon', 'playcanvas']) {
+      expect(registry.hasExporter(target as any)).toBe(false);
+      expect(registry.export(target as any, makeComposition())).toBeNull();
+    }
   });
 
   // ─── URDF Exporter ────────────────────────────────────────────────
@@ -127,30 +133,6 @@ describe('ReferenceExporterRegistry', () => {
       expect(result!.output).toContain('navigator.gpu');
       expect(result!.output).toContain('requestAdapter');
       expect(result!.output).toContain('GPUScene');
-      expect(result!.format).toBe('typescript');
-    });
-  });
-
-  // ─── R3F Exporter ─────────────────────────────────────────────────
-
-  describe('R3F exporter', () => {
-    it('generates React component with Canvas', () => {
-      const result = registry.export('r3f' as any, makeComposition('WebScene'));
-      expect(result!.output).toContain('@react-three/fiber');
-      expect(result!.output).toContain('Canvas');
-      expect(result!.output).toContain('ambientLight');
-      expect(result!.format).toBe('typescript');
-    });
-  });
-
-  // ─── Babylon Exporter ─────────────────────────────────────────────
-
-  describe('Babylon exporter', () => {
-    it('generates Babylon.js setup', () => {
-      const result = registry.export('babylon' as any, makeComposition('BabScene'));
-      expect(result!.output).toContain('@babylonjs/core');
-      expect(result!.output).toContain('Engine');
-      expect(result!.output).toContain('BabScene');
       expect(result!.format).toBe('typescript');
     });
   });
@@ -255,7 +237,7 @@ describe('ReferenceExporterRegistry', () => {
 
   describe('common export properties', () => {
     it('all exports set usedFallback to true', () => {
-      const targets = ['urdf', 'sdf', 'unity', 'godot', 'r3f', 'babylon', 'dtdl', 'wasm'];
+      const targets = ['urdf', 'sdf', 'unity', 'godot', 'webgpu', 'code-editor', 'dtdl', 'wasm'];
       for (const target of targets) {
         const result = registry.export(target as any, makeComposition());
         expect(result!.usedFallback).toBe(true);
@@ -263,7 +245,7 @@ describe('ReferenceExporterRegistry', () => {
     });
 
     it('all exports include at least one warning', () => {
-      const targets = ['urdf', 'unity', 'godot', 'webgpu', 'r3f', 'dtdl', 'wasm'];
+      const targets = ['urdf', 'unity', 'godot', 'webgpu', 'dtdl', 'wasm'];
       for (const target of targets) {
         const result = registry.export(target as any, makeComposition());
         expect(result!.warnings.length).toBeGreaterThan(0);

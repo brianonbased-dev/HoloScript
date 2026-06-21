@@ -78,8 +78,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('ANSCapabilityPath constants', () => {
-    it('should define exactly 46 capability paths', () => {
-      expect(Object.keys(ANSCapabilityPath)).toHaveLength(46);
+    it('should define exactly 41 capability paths', () => {
+      expect(Object.keys(ANSCapabilityPath)).toHaveLength(41);
     });
 
     it('should follow /compile/DOMAIN/TARGET pattern', () => {
@@ -100,10 +100,15 @@ describe('ANSNamespace', () => {
 
     it('should have correct xr paths', () => {
       expect(ANSCapabilityPath.OPENXR).toBe('/compile/xr/openxr');
+      expect(ANSCapabilityPath.OPENXR_SPATIAL_ENTITIES).toBe(
+        '/compile/xr/openxr-spatial-entities'
+      );
       expect(ANSCapabilityPath.VISIONOS).toBe('/compile/xr/visionos');
-      expect(ANSCapabilityPath.AR).toBe('/compile/xr/ar');
       expect(ANSCapabilityPath.ANDROID_XR).toBe('/compile/xr/android-xr');
+      expect(ANSCapabilityPath.QUEST).toBe('/compile/xr/quest');
       expect(ANSCapabilityPath.AI_GLASSES).toBe('/compile/xr/ai-glasses');
+      expect(ANSCapabilityPath.QUILT).toBe('/compile/xr/quilt');
+      expect(ANSCapabilityPath.MV_HEVC).toBe('/compile/xr/mv-hevc');
     });
 
     it('should have correct mobile paths', () => {
@@ -112,10 +117,7 @@ describe('ANSNamespace', () => {
     });
 
     it('should have correct web3d paths', () => {
-      expect(ANSCapabilityPath.BABYLON).toBe('/compile/web3d/babylon');
       expect(ANSCapabilityPath.WEBGPU).toBe('/compile/web3d/webgpu');
-      expect(ANSCapabilityPath.R3F).toBe('/compile/web3d/r3f');
-      expect(ANSCapabilityPath.PLAYCANVAS).toBe('/compile/web3d/playcanvas');
     });
 
     it('should have correct runtime paths', () => {
@@ -146,8 +148,10 @@ describe('ANSNamespace', () => {
 
     it('should have correct ai paths', () => {
       expect(ANSCapabilityPath.SCM).toBe('/compile/ai/scm');
-      expect(ANSCapabilityPath.VRR).toBe('/compile/ai/vrr');
       expect(ANSCapabilityPath.A2A_AGENT_CARD).toBe('/compile/ai/a2a-agent-card');
+      expect(ANSCapabilityPath.AGENT_INFERENCE).toBe('/compile/ai/agent-inference');
+      expect(ANSCapabilityPath.MCP_CONFIG).toBe('/compile/ai/mcp-config');
+      expect(ANSCapabilityPath.MCP_SERVER).toBe('/compile/ai/mcp-server');
     });
 
     it('should have correct neuromorphic paths', () => {
@@ -159,6 +163,7 @@ describe('ANSNamespace', () => {
       expect(ANSCapabilityPath.INCREMENTAL).toBe('/compile/meta/incremental');
       expect(ANSCapabilityPath.STATE).toBe('/compile/meta/state');
       expect(ANSCapabilityPath.TRAIT_COMPOSITION).toBe('/compile/meta/trait-composition');
+      expect(ANSCapabilityPath.CODE_EDITOR).toBe('/compile/meta/code-editor');
     });
 
     it('should have correct mixin paths', () => {
@@ -240,8 +245,8 @@ describe('ANSNamespace', () => {
   // -----------------------------------------------------------------------
 
   describe('COMPILER_DOMAIN_MAP', () => {
-    it('should map exactly 46 compilers', () => {
-      expect(Object.keys(COMPILER_DOMAIN_MAP)).toHaveLength(46);
+    it('should map exactly 41 compilers', () => {
+      expect(Object.keys(COMPILER_DOMAIN_MAP)).toHaveLength(41);
     });
 
     it('should map every compiler to a valid domain', () => {
@@ -252,8 +257,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('COMPILER_ANS_MAP', () => {
-    it('should map exactly 46 compilers to paths', () => {
-      expect(Object.keys(COMPILER_ANS_MAP)).toHaveLength(46);
+    it('should map exactly 41 compilers to paths', () => {
+      expect(Object.keys(COMPILER_ANS_MAP)).toHaveLength(41);
     });
 
     it('should be consistent with COMPILER_DOMAIN_MAP', () => {
@@ -266,8 +271,8 @@ describe('ANSNamespace', () => {
   });
 
   describe('ALL_COMPILER_NAMES', () => {
-    it('should contain exactly 46 names', () => {
-      expect(ALL_COMPILER_NAMES).toHaveLength(46);
+    it('should contain exactly 41 names', () => {
+      expect(ALL_COMPILER_NAMES).toHaveLength(41);
     });
 
     it('should contain all expected compiler names', () => {
@@ -278,33 +283,41 @@ describe('ANSNamespace', () => {
         'canvas2d-game',
         'vrchat',
         'openxr',
+        'openxr-spatial-entities',
         'visionos',
-        'ar',
         'android-xr',
+        'quest',
         'ai-glasses',
+        'quilt',
+        'mv-hevc',
         'android',
         'ios',
-        'babylon',
         'webgpu',
-        'r3f',
-        'playcanvas',
         'wasm',
+        'node-service',
+        'nextjs-api',
         'tsl',
         'urdf',
         'sdf',
         'usd',
         'gltf',
+        '3dgs',
         'dtdl',
         'nft-marketplace',
         'scm',
-        'vrr',
         'a2a-agent-card',
+        'agent-inference',
+        'mcp-config',
+        'mcp-server',
         'nir',
         'multi-layer',
         'incremental',
         'state',
         'trait-composition',
         'domain-block',
+        'code-editor',
+        'svg',
+        'edge',
       ];
       for (const name of expectedNames) {
         expect(ALL_COMPILER_NAMES).toContain(name);
@@ -341,10 +354,15 @@ describe('ANSNamespace', () => {
 
     it('should return correct path for xr compilers', () => {
       expect(getNamespaceForCompiler('openxr')).toBe('/compile/xr/openxr');
+      expect(getNamespaceForCompiler('openxr-spatial-entities')).toBe(
+        '/compile/xr/openxr-spatial-entities'
+      );
       expect(getNamespaceForCompiler('visionos')).toBe('/compile/xr/visionos');
-      expect(getNamespaceForCompiler('ar')).toBe('/compile/xr/ar');
       expect(getNamespaceForCompiler('android-xr')).toBe('/compile/xr/android-xr');
+      expect(getNamespaceForCompiler('quest')).toBe('/compile/xr/quest');
       expect(getNamespaceForCompiler('ai-glasses')).toBe('/compile/xr/ai-glasses');
+      expect(getNamespaceForCompiler('quilt')).toBe('/compile/xr/quilt');
+      expect(getNamespaceForCompiler('mv-hevc')).toBe('/compile/xr/mv-hevc');
     });
 
     it('should return correct path for robotics compilers', () => {
@@ -354,8 +372,10 @@ describe('ANSNamespace', () => {
 
     it('should return correct path for ai compilers', () => {
       expect(getNamespaceForCompiler('scm')).toBe('/compile/ai/scm');
-      expect(getNamespaceForCompiler('vrr')).toBe('/compile/ai/vrr');
       expect(getNamespaceForCompiler('a2a-agent-card')).toBe('/compile/ai/a2a-agent-card');
+      expect(getNamespaceForCompiler('agent-inference')).toBe('/compile/ai/agent-inference');
+      expect(getNamespaceForCompiler('mcp-config')).toBe('/compile/ai/mcp-config');
+      expect(getNamespaceForCompiler('mcp-server')).toBe('/compile/ai/mcp-server');
     });
 
     it('should return correct path for meta compilers', () => {
@@ -363,6 +383,7 @@ describe('ANSNamespace', () => {
       expect(getNamespaceForCompiler('incremental')).toBe('/compile/meta/incremental');
       expect(getNamespaceForCompiler('state')).toBe('/compile/meta/state');
       expect(getNamespaceForCompiler('trait-composition')).toBe('/compile/meta/trait-composition');
+      expect(getNamespaceForCompiler('code-editor')).toBe('/compile/meta/code-editor');
     });
 
     it('should return correct path for every compiler', () => {
@@ -386,10 +407,13 @@ describe('ANSNamespace', () => {
 
     it('should return xr for XR compilers', () => {
       expect(getDomainForCompiler('openxr')).toBe('xr');
+      expect(getDomainForCompiler('openxr-spatial-entities')).toBe('xr');
       expect(getDomainForCompiler('visionos')).toBe('xr');
-      expect(getDomainForCompiler('ar')).toBe('xr');
       expect(getDomainForCompiler('android-xr')).toBe('xr');
+      expect(getDomainForCompiler('quest')).toBe('xr');
       expect(getDomainForCompiler('ai-glasses')).toBe('xr');
+      expect(getDomainForCompiler('quilt')).toBe('xr');
+      expect(getDomainForCompiler('mv-hevc')).toBe('xr');
     });
 
     it('should return mobile for mobile compilers', () => {
@@ -398,10 +422,7 @@ describe('ANSNamespace', () => {
     });
 
     it('should return web3d for web 3D compilers', () => {
-      expect(getDomainForCompiler('babylon')).toBe('web3d');
       expect(getDomainForCompiler('webgpu')).toBe('web3d');
-      expect(getDomainForCompiler('r3f')).toBe('web3d');
-      expect(getDomainForCompiler('playcanvas')).toBe('web3d');
     });
 
     it('should return correct domain for every compiler', () => {
@@ -481,8 +502,8 @@ describe('ANSNamespace', () => {
       expect(compilers).toContain('openxr');
       expect(compilers).toContain('openxr-spatial-entities');
       expect(compilers).toContain('visionos');
-      expect(compilers).toContain('ar');
       expect(compilers).toContain('android-xr');
+      expect(compilers).toContain('quest');
       expect(compilers).toContain('ai-glasses');
       expect(compilers).toContain('quilt');
       expect(compilers).toContain('mv-hevc');
@@ -495,13 +516,10 @@ describe('ANSNamespace', () => {
       expect(compilers).toContain('ios');
     });
 
-    it('should return 5 compilers for web3d', () => {
+    it('should return 1 compiler for web3d', () => {
       const compilers = getAllCompilersInDomain('web3d');
-      expect(compilers).toHaveLength(5);
-      expect(compilers).toContain('babylon');
+      expect(compilers).toHaveLength(1);
       expect(compilers).toContain('webgpu');
-      expect(compilers).toContain('r3f');
-      expect(compilers).toContain('playcanvas');
     });
 
     it('should return 3 compilers for runtime', () => {
@@ -539,12 +557,12 @@ describe('ANSNamespace', () => {
       expect(getAllCompilersInDomain('web3')).toEqual(['nft-marketplace']);
     });
 
-    it('should return 6 compilers for ai', () => {
+    it('should return 5 compilers for ai', () => {
       const compilers = getAllCompilersInDomain('ai');
-      expect(compilers).toHaveLength(6);
+      expect(compilers).toHaveLength(5);
       expect(compilers).toContain('scm');
-      expect(compilers).toContain('vrr');
       expect(compilers).toContain('a2a-agent-card');
+      expect(compilers).toContain('agent-inference');
       expect(compilers).toContain('mcp-config');
       expect(compilers).toContain('mcp-server');
     });
@@ -567,22 +585,22 @@ describe('ANSNamespace', () => {
       expect(getAllCompilersInDomain('mixin')).toEqual(['domain-block']);
     });
 
-    it('total across all domains should equal 46', () => {
+    it('total across all domains should equal 41', () => {
       let total = 0;
       for (const domain of ALL_DOMAINS) {
         total += getAllCompilersInDomain(domain).length;
       }
-      expect(total).toBe(46);
+      expect(total).toBe(41);
     });
   });
 
   describe('getAllCompilersWithRiskTier()', () => {
     it('should return compilers for STANDARD tier', () => {
       const compilers = getAllCompilersWithRiskTier('STANDARD');
-      // gamedev(4) + web3d(5) + shader(1) + interchange(3) + meta(5) + mixin(1) + web2d(1) = 20
-      expect(compilers).toHaveLength(20);
+      // gamedev(4) + web3d(1) + shader(1) + interchange(3) + meta(5) + mixin(1) + web2d(1) = 16
+      expect(compilers).toHaveLength(16);
       expect(compilers).toContain('unity');
-      expect(compilers).toContain('babylon');
+      expect(compilers).toContain('webgpu');
       expect(compilers).toContain('tsl');
       expect(compilers).toContain('gltf');
       expect(compilers).toContain('multi-layer');
@@ -592,8 +610,8 @@ describe('ANSNamespace', () => {
 
     it('should return compilers for HIGH tier', () => {
       const compilers = getAllCompilersWithRiskTier('HIGH');
-      // social-vr(1) + xr(8) + mobile(2) + runtime(3) + iot(1) + ai(6) + neuromorphic(1) + edge(1) = 23
-      expect(compilers).toHaveLength(23);
+      // social-vr(1) + xr(8) + mobile(2) + runtime(3) + iot(1) + ai(5) + neuromorphic(1) + edge(1) = 22
+      expect(compilers).toHaveLength(22);
       expect(compilers).toContain('vrchat');
       expect(compilers).toContain('openxr');
       expect(compilers).toContain('android');
@@ -602,6 +620,7 @@ describe('ANSNamespace', () => {
       expect(compilers).toContain('nextjs-api');
       expect(compilers).toContain('dtdl');
       expect(compilers).toContain('scm');
+      expect(compilers).toContain('agent-inference');
       expect(compilers).toContain('quilt');
       expect(compilers).toContain('mv-hevc');
     });
@@ -615,11 +634,11 @@ describe('ANSNamespace', () => {
       expect(compilers).toContain('nft-marketplace');
     });
 
-    it('total across all tiers should equal 46', () => {
+    it('total across all tiers should equal 41', () => {
       const standard = getAllCompilersWithRiskTier('STANDARD').length;
       const high = getAllCompilersWithRiskTier('HIGH').length;
       const critical = getAllCompilersWithRiskTier('CRITICAL').length;
-      expect(standard + high + critical).toBe(46);
+      expect(standard + high + critical).toBe(41);
     });
   });
 
@@ -787,7 +806,7 @@ describe('ANSNamespace', () => {
   describe('getANSSummary()', () => {
     it('should return correct total counts', () => {
       const summary = getANSSummary();
-      expect(summary.totalCompilers).toBe(46);
+      expect(summary.totalCompilers).toBe(41);
       expect(summary.totalDomains).toBe(17);
     });
 
@@ -800,22 +819,23 @@ describe('ANSNamespace', () => {
       const summary = getANSSummary();
       expect(summary.compilersByDomain['gamedev']).toBe(4);
       expect(summary.compilersByDomain['xr']).toBe(8);
-      expect(summary.compilersByDomain['web3d']).toBe(5);
+      expect(summary.compilersByDomain['web3d']).toBe(1);
+      expect(summary.compilersByDomain['ai']).toBe(5);
       expect(summary.compilersByDomain['meta']).toBe(5);
       expect(summary.compilersByDomain['neuromorphic']).toBe(1);
     });
 
-    it('should sum domain compiler counts to 46', () => {
+    it('should sum domain compiler counts to 41', () => {
       const summary = getANSSummary();
       const total = Object.values(summary.compilersByDomain).reduce((a, b) => a + b, 0);
-      expect(total).toBe(46);
+      expect(total).toBe(41);
     });
 
     it('should have all 3 risk tiers in compilersByRiskTier', () => {
       const summary = getANSSummary();
       expect(Object.keys(summary.compilersByRiskTier)).toHaveLength(3);
-      expect(summary.compilersByRiskTier['STANDARD']).toBe(20); // gamedev(4)+web3d(5)+shader(1)+interchange(3)+meta(5)+mixin(1)+web2d(1)
-      expect(summary.compilersByRiskTier['HIGH']).toBe(23);     // social-vr(1)+xr(8)+mobile(2)+runtime(3)+iot(1)+ai(6)+neuromorphic(1)+edge(1)
+      expect(summary.compilersByRiskTier['STANDARD']).toBe(16); // gamedev(4)+web3d(1)+shader(1)+interchange(3)+meta(5)+mixin(1)+web2d(1)
+      expect(summary.compilersByRiskTier['HIGH']).toBe(22);     // social-vr(1)+xr(8)+mobile(2)+runtime(3)+iot(1)+ai(5)+neuromorphic(1)+edge(1)
       expect(summary.compilersByRiskTier['CRITICAL']).toBe(3);  // robotics(2)+web3(1)
     });
 
