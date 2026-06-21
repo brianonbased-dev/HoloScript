@@ -10,6 +10,7 @@
 
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
 import type { HoloMapScanRenderAsset } from './holomap-scan-render';
+import type { CaptureClaim } from './holonews-formalizer';
 import { Redis } from '@upstash/redis';
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -65,6 +66,8 @@ export interface ScanSession {
   nativeCamera?: NativeCameraScanEvidence;
   manifest?: ReconstructionManifest;
   renderAsset?: HoloMapScanRenderAsset;
+  /** HoloNews Phase A Formalizer result — set when status reaches 'done'. */
+  holonewsClaim?: CaptureClaim;
 }
 
 const SESSION_KEY = (t: string) => `holoscript:scan-session:${t}`;

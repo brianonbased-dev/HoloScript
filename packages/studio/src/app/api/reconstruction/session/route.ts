@@ -13,6 +13,7 @@ import {
 } from '@/lib/native-camera-live-scan';
 import { resolveReachableStudioOrigin } from '@/lib/reachable-origin';
 import { buildScanCompletionManifest } from '@/lib/scan-session-manifest';
+import { formalizerDischarge } from '@/lib/holonews-formalizer';
 import {
   clientIpFromRequest,
   getScanSessionStore,
@@ -260,6 +261,12 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       videoHash: session.videoHash ?? videoHash,
       scanKind,
     });
+
+    // T-NEWS-CAPTURE-CLAIM Phase A: route the completed session through the
+    // Formalizer. Measured-sensor scans (LiDAR/ARCore depth + ARKit pose) earn
+    // a CAEL-discharged `proven` label; sensorless scans get `captured · unverified`.
+    // Never throws — abstains on any failure (safe direction from A.1).
+    session.holonewsClaim = await formalizerDischarge(session);
   }
 
   await store.set(token, session);
