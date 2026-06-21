@@ -6,7 +6,7 @@ This script formally verifies physical constraints when running the “Run XR”
 
 - Meta Quest 3 / Vision Pro mapped to the local network or physical tether.
 - Chrome/Safari with WebXR Device API enabled.
-- `.env` configured with `GIST_MANIFEST_REQUIRE_X402=0` (unless actively testing economy rejection).
+- `.env` configured with `GIST_MANIFEST_X402_TIER=off` (unless actively testing economy rejection).
 
 ## Test Sequence
 
@@ -40,7 +40,7 @@ This script formally verifies physical constraints when running the “Run XR”
 
 - A `200 Success` toast displays.
 - The `.holoscript/gist-publication.manifest.json` correctly populates with the sampled `xr_metrics` (e.g. `{"hitTestCount": 42, "occlusionProofAcquired": true}`).
-- _Note: If testing with `GIST_MANIFEST_REQUIRE_X402=true`, expect `402 Payment Required` and a UX prompt to the Foundation DAO flow._
+- _Note: If testing with `GIST_MANIFEST_X402_TIER=required` or `strict`, expect `402 Payment Required` and a UX prompt to the Foundation DAO flow._
 
 ### Edge Cases to Validate
 

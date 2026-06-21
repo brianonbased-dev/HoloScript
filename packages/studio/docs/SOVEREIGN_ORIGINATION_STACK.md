@@ -37,7 +37,7 @@ Two concepts coexist on purpose:
 - The optional matrix is a **structured fingerprint** derived from Loro state (see `computeTropicalSemiringDigest` in `packages/crdt-spatial/src/legalDocumentCrdt.ts`). It is **not** a claim that every CRDT merge operation has been mapped into a full **min-plus / max-plus semiring** over the operation stream with audited homomorphism to your legal audit trail.
 - **External language:** Present **v0 SHA + optional matrix** as **evidentiary layers**; reserve phrases like “irrefutable algebraic proof of state intersection” for a future spec where merge hooks, operation algebras, and tests are explicitly defined.
 
-**Publication API:** `packages/studio/docs/walkthrough.md` — `POST /api/publication/gist-manifest`, optional **x402** tier (`GIST_MANIFEST_REQUIRE_X402`), **`xr_metrics`** for Film3D-style device evidence.
+**Publication API:** `packages/studio/docs/walkthrough.md` — `POST /api/publication/gist-manifest`, optional **x402** tier (`GIST_MANIFEST_X402_TIER=off|required|strict`), **`xr_metrics`** for Film3D-style device evidence.
 
 ---
 

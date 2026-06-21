@@ -351,7 +351,7 @@ export function NodeGraphPanel({ onClose, onExecutionResult }: NodeGraphPanelPro
                 href="/marketplace/x402"
                 className="inline-block text-[10px] text-blue-400 hover:text-blue-300 underline"
               >
-                Procure an x402 Receipt to satisfy GIST_MANIFEST_REQUIRE_X402 →
+                Procure an x402 Receipt to satisfy GIST_MANIFEST_X402_TIER →
               </a>
             )}
           </div>

@@ -31,7 +31,9 @@ JSON with `ok`, `manifest`, `suggestedPath` (`.holoscript/gist-publication.manif
 
 ## x402 policy (deployment tier)
 
-When the server sets **`GIST_MANIFEST_REQUIRE_X402=1`** or **`true`**, the route returns **HTTP 402** unless `x402Receipt` is a non-empty object. Use this for environments where an economic receipt is mandatory before emitting a manifest.
+When the server sets **`GIST_MANIFEST_X402_TIER=required`**, the route returns **HTTP 402** unless `x402Receipt` is a non-empty object. Use **`GIST_MANIFEST_X402_TIER=strict`** when the receipt must also include non-empty `payment_id` and `network` fields. Use **`GIST_MANIFEST_X402_TIER=off`** for environments where manifest emission should not require an economic receipt.
+
+Legacy deployments may still set `GIST_MANIFEST_REQUIRE_X402=1` or `true`; the route maps that to the `required` tier for compatibility and emits a deprecation warning.
 
 ## Film3D / WebXR in the embed viewer
 
