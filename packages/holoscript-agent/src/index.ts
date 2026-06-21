@@ -711,6 +711,10 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_LOCAL_LLM_MODEL     local-llm model id (e.g. "qwen3:4b-instruct"); overrides HOLOSCRIPT_AGENT_MODEL for the local provider
   HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS  local-llm request timeout in ms (default 300000 — edge devices like Jetson need >120s)
   HOLOSCRIPT_AGENT_LOCAL_KNOWLEDGE_PATH  local JSONL path for sovereign private knowledge store (bypasses mcp-orchestrator /knowledge/sync)
+  HOLOSCRIPT_AGENT_PEER_REGISTRY     peer registry for ask_peer/council capability→node resolution: inline JSON or a file path,
+                                     e.g. '[{"handle":"laptop","baseUrl":"http://192.168.0.23:11434","model":"qwen3:4b-instruct","capabilities":["hardware"]}]'
+  HOLOSCRIPT_AGENT_PEER_BASE_URL     single fallback peer endpoint for ask_peer/council when the registry has no match (else self-consult)
+  HOLOSCRIPT_AGENT_PEER_MODEL        model id to request on the peer node (default: the agent's own model)
 `);
 }
 

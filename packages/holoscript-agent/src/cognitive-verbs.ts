@@ -63,7 +63,7 @@ export interface CognitiveVerbDeps {
    */
   askPeer?: (
     question: string,
-    opts: { capability?: string; peer?: string; lens?: string }
+    opts: { capability?: string; peer?: string; lens?: string; seat?: number }
   ) => Promise<{ answer: string; peer: string } | null>;
   /**
    * Resolve the knowledge corpus the grounding gate checks peer citations against
@@ -276,7 +276,9 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
           const collected: Array<{ peer: string; answer: string }> = [];
           for (let i = 0; i < seats; i++) {
             const lens = LENSES[i % LENSES.length];
-            const r = await deps.askPeer(question, { capability: capability || undefined, lens });
+            // seat → registry round-robin, so N seats spread across the peers that
+            // offer the capability (genuinely different nodes when >1 is registered).
+            const r = await deps.askPeer(question, { capability: capability || undefined, lens, seat: i });
             if (r && r.answer.trim()) collected.push({ peer: `${r.peer}/${lens}`, answer: r.answer });
           }
           if (collected.length === 0) {
