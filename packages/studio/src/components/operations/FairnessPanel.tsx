@@ -103,6 +103,8 @@ interface SweepResponse {
   };
 }
 
+type RagRisk = 'green' | 'amber' | 'red';
+
 // ── Scenario options (curated examiner cohorts — the route runs the real sweep) ──
 
 const SCENARIOS: { id: 'disparate-impact' | 'fair'; label: string; blurb: string }[] = [
@@ -179,6 +181,24 @@ function gradeBadge(grade: DeterminismGrade): { label: string; cls: string; note
         note: 'only the distribution-level verdict is stable — pair with the robustness band',
       };
   }
+}
+
+function ragRisk(
+  metrics: FairnessMetrics,
+  robustness?: SweepResponse['robustness']
+): { label: string; tone: string; risk: RagRisk } {
+  const worstCase = robustness?.band?.worstCase;
+  if (robustness?.verdict === 'ROBUSTLY-UNFAIR' || metrics.adverseImpactRatio < 0.72) {
+    return { label: 'RED', tone: 'text-rose-400', risk: 'red' };
+  }
+  if (
+    robustness?.verdict === 'INDETERMINATE-FAIRNESS' ||
+    (worstCase !== undefined && worstCase < 0.8) ||
+    metrics.adverseImpactRatio < 0.8
+  ) {
+    return { label: 'AMBER', tone: 'text-amber-300', risk: 'amber' };
+  }
+  return { label: 'GREEN', tone: 'text-emerald-400', risk: 'green' };
 }
 
 // ── Panel ─────────────────────────────────────────────────────────────────────
@@ -260,6 +280,7 @@ export function FairnessPanel() {
   const robustness = data?.robustness;
   const grade = receipt ? gradeBadge(receipt.replayDeterminism) : null;
   const passDecision = data?.decision === 'PASS';
+  const rag = metrics ? ragRisk(metrics, robustness) : null;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -346,7 +367,8 @@ export function FairnessPanel() {
           accent={passDecision ? 'text-emerald-400' : 'text-rose-400'}
         >
           {/* Disparity metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-4">
+            {rag && <Stat label="RAG risk" value={rag.label} tone={rag.tone} />}
             <Stat
               label="adverse-impact ratio"
               value={metrics.adverseImpactRatio}
@@ -385,9 +407,7 @@ export function FairnessPanel() {
                 <span className="text-[10px] uppercase tracking-wider text-studio-muted">
                   re-execution grade
                 </span>
-                <span
-                  className={`px-1.5 py-0.5 text-[9px] font-mono rounded border ${grade.cls}`}
-                >
+                <span className={`px-1.5 py-0.5 text-[9px] font-mono rounded border ${grade.cls}`}>
                   {grade.label}
                 </span>
                 {receipt.replayTolerance > 0 && (
@@ -410,7 +430,8 @@ export function FairnessPanel() {
             <HashRow label="weight strategy" value={receipt.weightStrategy} />
           </div>
           <div className="text-[9px] text-studio-muted">
-            issued {receipt.issuedAt} · model {receipt.modelId} · seed {receipt.seed} · {data?.runReport.wallMs.toFixed(1)}ms
+            issued {receipt.issuedAt} · model {receipt.modelId} · seed {receipt.seed} ·{' '}
+            {data?.runReport.wallMs.toFixed(1)}ms
           </div>
 
           {/* explain_fairness_receipt (optional MCP enrichment) */}

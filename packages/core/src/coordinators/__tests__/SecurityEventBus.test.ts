@@ -40,7 +40,7 @@ describe('SecurityEventBus — Pattern E remediation for security cluster', () =
   });
 
   it('subscribes to the full security event vocabulary on construction', () => {
-    // 17 RBAC + 15 SSO + 13 Quota + 12 Tenant + 9 AuditLog + 7 ForgetPolicy = 73
+    // Security, fairness, and audit event vocabulary.
     expect(source.subscriberCount).toBe(bus.subscribedEventCount);
     expect(bus.subscribedEventCount).toBeGreaterThanOrEqual(70);
   });
@@ -285,6 +285,31 @@ describe('SecurityEventBus — Pattern E remediation for security cluster', () =
       const noLog = new SecurityEventBus(src, 0);
       src.fire('audit_log', { action: 'op-1', actor: 'sys' });
       expect(noLog.getAuditLog()).toEqual([]);
+    });
+
+    it('fairness drift events enter the audit domain and rolling audit buffer', () => {
+      const seen: SecurityEventEnvelope[] = [];
+      bus.subscribe((e) => seen.push(e));
+
+      source.fire('fairness_drift_event', {
+        action: 'fairness_monitor.drift',
+        actor: 'loan-model-v4',
+        outcome: 'error',
+        adverseImpactRatio: 0.62,
+        threshold: 0.8,
+      });
+
+      expect(seen).toHaveLength(1);
+      expect(seen[0].domain).toBe('audit');
+      expect(seen[0].event).toBe('fairness_drift_event');
+      expect(bus.getAuditLog()).toEqual([
+        expect.objectContaining({
+          event: 'fairness_drift_event',
+          action: 'fairness_monitor.drift',
+          actor: 'loan-model-v4',
+          outcome: 'error',
+        }),
+      ]);
     });
   });
 

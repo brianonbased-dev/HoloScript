@@ -213,6 +213,8 @@ const SECURITY_EVENTS = [
   'audit_stats_result',
   'audit_export_result',
   'audit_error',
+  // --- Fairness governance ---
+  'fairness_drift_event',
   // --- ForgetPolicy ---
   'forget_policy_attached',
   'forget_policy_detached',
@@ -273,6 +275,7 @@ export class SecurityEventBus {
     if (event.startsWith('quota_')) return 'quota';
     if (event.startsWith('tenant_') || event.startsWith('cross_tenant_')) return 'tenant';
     if (event.startsWith('audit_')) return 'audit';
+    if (event === 'fairness_drift_event') return 'audit';
     if (event.startsWith('forget_')) return 'forget';
     return 'unknown';
   }

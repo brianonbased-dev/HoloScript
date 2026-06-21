@@ -330,6 +330,7 @@ import { autocompleteHandler } from './AutocompleteTrait';
 import { gdprHandler } from './GdprTrait';
 import { dataRetentionHandler } from './DataRetentionTrait';
 import { consentManagementHandler } from './ConsentManagementTrait';
+import { fairnessMonitorHandler } from './FairnessMonitorTrait';
 
 // File Storage handlers
 import { s3UploadHandler } from './S3UploadTrait';
@@ -1943,6 +1944,7 @@ export class VRTraitRegistry {
     this.register(gdprHandler as TraitHandler);
     this.register(dataRetentionHandler as TraitHandler);
     this.register(consentManagementHandler as TraitHandler);
+    this.register(fairnessMonitorHandler as TraitHandler);
 
     // File Storage
     this.register(s3UploadHandler as TraitHandler);
@@ -2517,7 +2519,7 @@ export { webhookOutHandler, pagerdutyHandler, slackAlertHandler };
 export { fullTextSearchHandler, facetedSearchHandler, autocompleteHandler };
 
 // Compliance / Governance exports
-export { gdprHandler, dataRetentionHandler, consentManagementHandler };
+export { gdprHandler, dataRetentionHandler, consentManagementHandler, fairnessMonitorHandler };
 
 // File Storage exports
 export { s3UploadHandler, fileSystemHandler, blobStoreHandler };
