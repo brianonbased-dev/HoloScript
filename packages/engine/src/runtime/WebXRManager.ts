@@ -11,6 +11,13 @@
 // IWebGPUContext lives in engine itself — importing from `@holoscript/core`
 // fails because core's hand-crafted d.ts doesn't re-export engine internals.
 import type { IWebGPUContext } from '../rendering/webgpu/WebGPUTypes';
+import {
+  collectWebXRFrameEvidence,
+  type WebXRFrameEvidence,
+  type WebXRFrameLike,
+  type WebXRHitTestSourceLike,
+  type WebXRSpaceLike,
+} from '../vr/WebXRFrameEvidence';
 
 // Polyfill types for WebXR + WebGPU
 // These are often missing from standard @types/webxr
@@ -36,6 +43,7 @@ export interface XRSession {
   addEventListener(type: string, listener: (event: unknown) => void): void;
   removeEventListener(type: string, listener: (event: unknown) => void): void;
   requestReferenceSpace(type: string): Promise<XRReferenceSpace>;
+  requestHitTestSource?(options: { space: XRSpace }): Promise<WebXRHitTestSourceLike | undefined>;
   requestAnimationFrame?(callback: (time: number, frame: XRFrame) => void): number;
   updateRenderState(state: Record<string, unknown>): Promise<void>;
   end(): Promise<void>;
@@ -49,7 +57,14 @@ export interface XRSpace {}
 export interface XRFrame {
   session: XRSession;
   getViewerPose(referenceSpace: XRReferenceSpace): XRViewerPose | undefined;
+  getPose?(space: XRSpace, baseSpace: XRReferenceSpace): WebXRPoseLike | null | undefined;
+  getHitTestResults?(source: WebXRHitTestSourceLike): WebXRHitTestResultLike[];
+  trackedAnchors?: Iterable<WebXRAnchorLike>;
 }
+
+type WebXRPoseLike = import('../vr/WebXRFrameEvidence').WebXRPoseLike;
+type WebXRHitTestResultLike = import('../vr/WebXRFrameEvidence').WebXRHitTestResultLike;
+type WebXRAnchorLike = import('../vr/WebXRFrameEvidence').WebXRAnchorLike;
 
 export interface XRViewerPose {
   views: XRView[];
@@ -99,9 +114,17 @@ export interface WebXRConfig {
   features?: string[]; // e.g. ['local-floor', 'hand-tracking']
 }
 
+export type WebXRFrameCallback = (
+  time: number,
+  frame: XRFrame,
+  evidence: WebXRFrameEvidence
+) => void;
+
 export class WebXRManager {
   private session: XRSession | null = null;
   private referenceSpace: XRReferenceSpace | null = null;
+  private viewerReferenceSpace: XRReferenceSpace | null = null;
+  private hitTestSource: WebXRHitTestSourceLike | null = null;
   private glBinding: XRWebGPUBindingLike | null = null;
   private projectionLayer: XRProjectionLayerLike | null = null;
   private context: IWebGPUContext;
@@ -162,7 +185,13 @@ export class WebXRManager {
 
     const sessionInit = {
       requiredFeatures: ['local-floor'],
-      optionalFeatures: ['hand-tracking', 'layers', ...(config.features || [])],
+      optionalFeatures: uniqueFeatures([
+        'hand-tracking',
+        'layers',
+        'hit-test',
+        'anchors',
+        ...(config.features || []),
+      ]),
     };
 
     try {
@@ -193,6 +222,7 @@ export class WebXRManager {
 
       // Get Reference Space
       this.referenceSpace = await this.session!.requestReferenceSpace('local-floor');
+      await this.initializeHitTestSource();
 
       // Create Projection Layer
       if (this.glBinding) {
@@ -215,13 +245,14 @@ export class WebXRManager {
   /**
    * Set a callback to be invoked each XR frame.
    */
-  setAnimationLoop(callback: ((time: number, frame: XRFrame) => void) | null): void {
+  setAnimationLoop(callback: WebXRFrameCallback | null): void {
     this.animationLoopCallback = callback;
     // In a real implementation, this would hook into the XR session's requestAnimationFrame
     if (this.session && callback) {
       const loop = (time: number, frame: XRFrame) => {
         if (this.animationLoopCallback) {
-          this.animationLoopCallback(time, frame);
+          const evidence = this.collectFrameEvidence(time, frame);
+          this.animationLoopCallback(time, frame, evidence);
           this.session?.requestAnimationFrame?.(loop);
         }
       };
@@ -229,7 +260,19 @@ export class WebXRManager {
     }
   }
 
-  private animationLoopCallback: ((time: number, frame: XRFrame) => void) | null = null;
+  private animationLoopCallback: WebXRFrameCallback | null = null;
+
+  /**
+   * Collect passive WebXR hit-test and anchor evidence for XRFrameData fields.
+   */
+  collectFrameEvidence(time: number, frame: XRFrame): WebXRFrameEvidence {
+    return collectWebXRFrameEvidence({
+      time,
+      frame: frame as unknown as WebXRFrameLike,
+      referenceSpace: this.referenceSpace as unknown as WebXRSpaceLike | null,
+      hitTestSource: this.hitTestSource,
+    });
+  }
 
   /**
    * End the current session
@@ -274,8 +317,11 @@ export class WebXRManager {
   // ==========================================================================
 
   private handleSessionEnd = () => {
+    this.hitTestSource?.cancel?.();
     this.session = null;
     this.referenceSpace = null;
+    this.viewerReferenceSpace = null;
+    this.hitTestSource = null;
     this.glBinding = null;
     this.projectionLayer = null;
     this.onSessionEnd?.();
@@ -284,4 +330,23 @@ export class WebXRManager {
   private handleInputSourcesChange = (event: XRInputSourceChangeEvent) => {
     this.onInputSourcesChange?.(event.added, event.removed);
   };
+
+  private async initializeHitTestSource(): Promise<void> {
+    if (!this.session?.requestHitTestSource) return;
+
+    try {
+      this.viewerReferenceSpace = await this.session.requestReferenceSpace('viewer');
+      this.hitTestSource =
+        (await this.session.requestHitTestSource({
+          space: this.viewerReferenceSpace,
+        })) ?? null;
+    } catch {
+      this.viewerReferenceSpace = null;
+      this.hitTestSource = null;
+    }
+  }
+}
+
+function uniqueFeatures(features: string[]): string[] {
+  return Array.from(new Set(features));
 }

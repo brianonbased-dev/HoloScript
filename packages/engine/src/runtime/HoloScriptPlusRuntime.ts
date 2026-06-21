@@ -37,6 +37,7 @@ import { HoloStatement } from '@holoscript/core';
 import { NetworkPredictor, type NetworkState } from './NetworkPredictor';
 import { MovementPredictor } from './MovementPredictor';
 import { WebXRManager } from './WebXRManager';
+import type { WebXRFrameEvidence } from '../vr/WebXRFrameEvidence';
 import { PhysicsWorldImpl } from '../physics/PhysicsWorldImpl';
 import { IVector3, IPhysicsWorld, IRaycastHit } from '../physics/PhysicsTypes';
 import { VRPhysicsBridge } from '../physics/VRPhysicsBridge';
@@ -143,6 +144,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     hands: { left: VRHand | null; right: VRHand | null };
     headset: { position: Vector3; rotation: Vector3 };
     controllers: { left: unknown; right: unknown };
+    hitTests: WebXRFrameEvidence['hitTests'];
+    geospatialAnchors: WebXRFrameEvidence['geospatialAnchors'];
   } = {
     hands: {
       left: null,
@@ -156,6 +159,8 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
       left: null,
       right: null,
     },
+    hitTests: [],
+    geospatialAnchors: [],
   };
 
   // WebXR Manager
@@ -429,10 +434,13 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
   /**
    * Main XR Loop - called by WebXRManager
    */
-  private xrLoop(time: number, frame: XRFrame): void {
+  private xrLoop(time: number, frame: XRFrame, evidence?: WebXRFrameEvidence): void {
     const now = performance.now();
     const delta = (now - this.lastUpdateTime) / 1000;
     this.lastUpdateTime = now;
+
+    this.vrContext.hitTests = evidence?.hitTests ?? [];
+    this.vrContext.geospatialAnchors = evidence?.geospatialAnchors ?? [];
 
     // Update VR Input State from Frame
     this.updateVRInput(frame);

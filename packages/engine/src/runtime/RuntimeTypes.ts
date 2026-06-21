@@ -110,7 +110,7 @@ export interface WebXRManagerLike {
   endSession(): Promise<void>;
   getBinding(): unknown;
   getProjectionLayer(): unknown;
-  setAnimationLoop(callback: (time: number, frame: unknown) => void): void;
+  setAnimationLoop(callback: (time: number, frame: unknown, evidence?: unknown) => void): void;
   getReferenceSpace(): unknown;
 }
 
@@ -287,6 +287,8 @@ export interface LegacyRuntimeContext {
     hands: { left: VRHand | null; right: VRHand | null };
     headset: { position: Vector3; rotation: Vector3 };
     controllers: { left: unknown; right: unknown };
+    hitTests?: unknown[];
+    geospatialAnchors?: unknown[];
   };
 }
 
