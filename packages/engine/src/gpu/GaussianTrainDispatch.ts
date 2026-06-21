@@ -17,6 +17,7 @@
  */
 
 import { runGaussianTrainJob, type GaussianTrainJobSpec, type TrainResult, type TrainView } from './GaussianTrainRunner';
+import { GaussianWebGPUTrainer, runGaussianTrainJobGPU } from './GaussianWebGPUTrainer';
 import { type Gaussian3D } from './GaussianTrainer3D';
 
 /** Structural subset of @holoscript/core `GaussianTrainJob` that the dispatcher routes. */
@@ -74,4 +75,52 @@ export function dispatchGaussianTrainJob(
     };
   }
   return runGaussianTrainJob(spec, initial, views);
+}
+
+/**
+ * GPU-accelerated variant. Same routing rules as `dispatchGaussianTrainJob` — sovereign only,
+ * remote rejected — but dispatches the O(N×pixels) forward+backward rasterization to WGSL kernels.
+ *
+ * @param device A WebGPU device obtained from `navigator.gpu.requestAdapter()`.
+ * @param bg     Background colour for rendering (default [0,0,0]).
+ * @param onProgress Called each iteration with (iterIndex, loss).
+ */
+export async function dispatchGaussianTrainJobGPU(
+  job: DispatchableTrainJob,
+  initial: Gaussian3D,
+  views: TrainView[],
+  device: GPUDevice,
+  bg: readonly [number, number, number] = [0, 0, 0],
+  onProgress?: (iter: number, loss: number) => void,
+): Promise<TrainResult> {
+  if (job.backend !== 'sovereign') {
+    throw new Error(
+      `dispatchGaussianTrainJobGPU: backend '${job.backend}' is not sovereign — ` +
+        `route remote jobs to GaussianSplatBakingPipeline (api.rendernetwork.com), not the native runner.`,
+    );
+  }
+  const hp = job.hyperparams;
+  const spec: GaussianTrainJobSpec = {
+    hyperparams: { iterations: hp.iterations, learningRates: hp.learningRates, dilation: hp.dilation },
+  };
+  if (hp.densifyInterval && hp.densifyInterval > 0) {
+    const it = hp.iterations;
+    spec.densification = {
+      interval: hp.densifyInterval,
+      fromIter: Math.max(1, Math.floor(it * 0.07)),
+      untilIter: Math.floor(it * 0.8),
+      gradThreshold: 0.04,
+      opacityPrune: 0.05,
+      scaleThreshold: 0.2,
+      maxGaussians: hp.targetGaussians && hp.targetGaussians > 0 ? hp.targetGaussians : 1_000_000,
+      seed: 1,
+    };
+  }
+  const trainer = new GaussianWebGPUTrainer(device);
+  await trainer.init();
+  try {
+    return await runGaussianTrainJobGPU(trainer, spec, initial, views, bg, onProgress);
+  } finally {
+    trainer.destroy();
+  }
 }
