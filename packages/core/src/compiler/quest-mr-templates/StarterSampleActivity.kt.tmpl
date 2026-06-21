@@ -18,9 +18,13 @@ import com.meta.spatial.compose.ComposeViewPanelRegistration
 import com.meta.spatial.core.Entity
 import com.meta.spatial.core.Pose
 import com.meta.spatial.core.SpatialFeature
+import com.meta.spatial.core.Query
 import com.meta.spatial.core.Vector3
+import com.meta.spatial.runtime.ButtonBits
 import com.meta.spatial.runtime.ReferenceSpace
 import com.meta.spatial.toolkit.AppSystemActivity
+import com.meta.spatial.toolkit.Controller
+import com.meta.spatial.toolkit.ControllerType
 import com.meta.spatial.toolkit.DpPerMeterDisplayOptions
 import com.meta.spatial.toolkit.Panel
 import com.meta.spatial.toolkit.PanelRegistration
@@ -40,6 +44,16 @@ class StarterSampleActivity : AppSystemActivity() {
   private val worldRenderer = WorldRenderer() // builds/tears down the themed 3D world while immersed
   private var smoothPose: Pose? = null // last head-locked panel pose, eased toward the head each tick
   private var sceneReady = false
+
+  // Custom continuous MMO locomotion: the player rig's accumulated world position + heading, integrated
+  // each tick from the thumbstick DIRECTION bits on the Controller component (ButtonBits) — the SDK's
+  // own input path (LocomotionSystem.isLeftRightButtonPressed) — and applied via scene.setViewOrigin.
+  // This REPLACES the SDK's teleport locomotion in worlds with free continuous roam (F.118 MMO
+  // mobility). The public stick is digital 4-way (no analog magnitude), which is classic MMO movement.
+  private var playerX = 0f
+  private var playerZ = 0f
+  private var playerYaw = 0f // degrees; the rig heading (right stick turns it)
+  private var lastLocoNanos = 0L
 
   override fun registerFeatures(): List<SpatialFeature> =
       mutableListOf<SpatialFeature>(VRFeature(this), ComposeFeature())
@@ -102,8 +116,7 @@ class StarterSampleActivity : AppSystemActivity() {
     // stick turn, via the Spatial SDK LocomotionSystem) must be ON. The scanner HUD — MR passthrough
     // in your real room, not a world — is the only surface where locomotion is intentionally off.
     if (ScannerState.screen == Screen.IN_WORLD) {
-      enableLocomotion(true)
-      scene.setViewOrigin(0f, 0f, 0f, 0f)
+      startLocomotion()
     }
     // Camera starts when the user taps "Start scanning" on the welcome screen (ScannerState.onStart).
   }
@@ -114,8 +127,9 @@ class StarterSampleActivity : AppSystemActivity() {
   // facing snaps to the head so text stays square to the eyes.
   override fun onSceneTick() {
     super.onSceneTick()
-    val p = panelEntity ?: return
     if (!sceneReady) return
+    if (ScannerState.screen == Screen.IN_WORLD) updateLocomotion() // MMO free-roam while immersed
+    val p = panelEntity ?: return
     val target = scene.getViewerPose().times(Pose(Vector3(0f, 0f, FOLLOW_DISTANCE)))
     val cur = smoothPose
     val next =
@@ -195,10 +209,9 @@ class StarterSampleActivity : AppSystemActivity() {
     if (sceneReady) {
       worldRenderer.enter(worldId) // compiled HoloScript world (worlds/<id>.holo) or themed fallback
       scene.enablePassthrough(false)
-      // You're now IN the world — turn on thumbstick locomotion (left-stick glide, right-stick
-      // snap-turn) so you can walk around it. Stand at the world origin facing the scene.
-      enableLocomotion(true)
-      scene.setViewOrigin(0f, 0f, 0f, 0f)
+      // You're now IN the world — start custom continuous MMO locomotion (left stick = move/strafe,
+      // right stick = turn), free continuous roam. Spawn at the world origin facing the scene.
+      startLocomotion()
     }
     controller?.resumeScanning() // keep scanning inside the world
   }
@@ -209,6 +222,56 @@ class StarterSampleActivity : AppSystemActivity() {
     } catch (e: Exception) {
       Log.w(tag, "locomotion toggle failed: ${e.message}")
     }
+  }
+
+  // Begin custom continuous locomotion for a world: reset the rig to the origin, prime the tick clock,
+  // and turn the SDK's teleport LocomotionSystem OFF so the two don't fight over the view origin.
+  private fun startLocomotion() {
+    playerX = 0f
+    playerZ = 0f
+    playerYaw = 0f
+    lastLocoNanos = 0L
+    enableLocomotion(false) // SDK teleport OFF — custom continuous locomotion drives the rig instead
+    scene.setViewOrigin(0f, 0f, 0f, 0f)
+  }
+
+  // Per-tick MMO locomotion: OR the thumbstick direction bits across every Controller, integrate
+  // heading (right stick) + position (left stick, rig-relative) by dt, and apply via setViewOrigin.
+  // Direction signs are tunable on-device (handedness of the yaw/forward convention).
+  private fun updateLocomotion() {
+    val now = System.nanoTime()
+    if (lastLocoNanos == 0L) {
+      lastLocoNanos = now
+      return
+    }
+    val dt = (now - lastLocoNanos).coerceAtMost(100_000_000L) / 1_000_000_000f
+    lastLocoNanos = now
+
+    val bb = ButtonBits // Kotlin object singleton (reference directly; .INSTANCE is the Java view)
+    var fwd = 0f
+    var strafe = 0f
+    var turn = 0f
+    Query.where { has(Controller.id) }.forEach<Controller> { _, c ->
+      if (c.type != ControllerType.CONTROLLER) return@forEach
+      if (c.isDown(bb.ButtonThumbLU)) fwd += 1f
+      if (c.isDown(bb.ButtonThumbLD)) fwd -= 1f
+      if (c.isDown(bb.ButtonThumbLR)) strafe += 1f
+      if (c.isDown(bb.ButtonThumbLL)) strafe -= 1f
+      if (c.isDown(bb.ButtonThumbRR)) turn += 1f
+      if (c.isDown(bb.ButtonThumbRL)) turn -= 1f
+    }
+    if (fwd == 0f && strafe == 0f && turn == 0f) return
+
+    val moveSpeed = 2.6f // m/s — brisk MMO walk
+    val turnSpeed = 90f // deg/s smooth turn
+    playerYaw += turn * turnSpeed * dt
+    val yaw = Math.toRadians(playerYaw.toDouble())
+    val sin = kotlin.math.sin(yaw).toFloat()
+    val cos = kotlin.math.cos(yaw).toFloat()
+    // Spatial SDK is left-handed, +Z = forward. Move along the rig facing; strafe along the rig right.
+    playerX += (fwd * sin + strafe * cos) * moveSpeed * dt
+    playerZ += (fwd * cos - strafe * sin) * moveSpeed * dt
+    scene.setViewOrigin(playerX, 0f, playerZ, playerYaw)
   }
 
   // Leave the world: tear down the 3D world and restore passthrough scanning.
