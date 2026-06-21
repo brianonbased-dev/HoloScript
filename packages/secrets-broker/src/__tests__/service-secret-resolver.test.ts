@@ -8,7 +8,9 @@ import {
   resolveServiceIdentity,
 } from '../service-identity';
 
-function devKekEnv(extra: Record<string, string | undefined> = {}): Record<string, string | undefined> {
+function devKekEnv(
+  extra: Record<string, string | undefined> = {}
+): Record<string, string | undefined> {
   const id = 'k1';
   return { [KEK_CURRENT_ENV]: id, [kekEnvVar(id)]: generateKekBase64(), ...extra };
 }
@@ -50,10 +52,15 @@ describe('createServiceSecretResolver — Phase 1: resolve from vault, else proc
     expect(await r.resolve('NOPE')).toBeUndefined();
   });
 
-  it('owner-isolation: cannot read another owner\'s secret — falls back to env (never leaks)', async () => {
+  it("owner-isolation: cannot read another owner's secret — falls back to env (never leaks)", async () => {
     const vault = createHoloKeyVault({ env: devKekEnv() })!;
     await vault.store.put({ ownerId: 'other-service', name: 'K', value: 'other-secret' });
-    const r = createServiceSecretResolver({ vault, owner: 'infra', env: { K: 'env-k' }, log: silent });
+    const r = createServiceSecretResolver({
+      vault,
+      owner: 'infra',
+      env: { K: 'env-k' },
+      log: silent,
+    });
     expect(await r.resolve('K')).toBe('env-k');
   });
 
@@ -97,9 +104,7 @@ describe('createServiceSecretResolver — Phase 1: resolve from vault, else proc
     });
     expect(r.identity().ownerId).toBe(owner);
     expect(await r.resolve('infra://OPENAI_API_KEY')).toBe('sk-infra-vault');
-    expect(await r.resolve('infra://mcp-server/ANTHROPIC_API_KEY')).toBe(
-      'sk-infra-anthropic-env'
-    );
+    expect(await r.resolve('infra://mcp-server/ANTHROPIC_API_KEY')).toBe('sk-infra-anthropic-env');
   });
 
   it('normalizes operational refs without widening non-infra workspace refs', () => {

@@ -80,9 +80,7 @@ function identity(ownerId: string, source: ServiceIdentitySource, label: string)
  * Resolve the current service/fleet owner identity from explicit config or
  * operational runtime facts, ordered from strongest stable identity to weakest.
  */
-export function resolveServiceIdentity(
-  opts: ResolveServiceIdentityOpts = {}
-): ServiceIdentity {
+export function resolveServiceIdentity(opts: ResolveServiceIdentityOpts = {}): ServiceIdentity {
   const env = opts.env ?? process.env;
   const explicit = opts.owner?.trim() || env.HOLOKEY_OWNER?.trim();
   if (explicit) return identity(explicit, 'explicit', explicit);
@@ -115,7 +113,11 @@ export function resolveServiceIdentity(
     );
   }
 
-  const x402Bearer = firstSet(env, ['HOLOMESH_X402_BEARER', 'X402_BEARER', 'HOLOMESH_API_KEY_X402']);
+  const x402Bearer = firstSet(env, [
+    'HOLOMESH_X402_BEARER',
+    'X402_BEARER',
+    'HOLOMESH_API_KEY_X402',
+  ]);
   if (x402Bearer) {
     const fp = bearerFingerprint(x402Bearer);
     return identity(ownerUri('x402', fp), 'x402-bearer', `x402 bearer sha256:${fp}`);

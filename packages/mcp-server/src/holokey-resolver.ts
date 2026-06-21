@@ -37,7 +37,12 @@ function ensure(): void {
   if (built) return;
   built = true;
 
-  let query: ((sql: string, params: readonly unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }>) | undefined;
+  let query:
+    | ((
+        sql: string,
+        params: readonly unknown[]
+      ) => Promise<{ rows: Array<Record<string, unknown>> }>)
+    | undefined;
   const dbUrl = process.env.DATABASE_URL;
   if (dbUrl) {
     try {
