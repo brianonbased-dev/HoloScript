@@ -508,12 +508,119 @@ import type {
   TraitInstanceDelegate,
 } from './TraitTypes';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isBehaviorNode(value: unknown): value is BehaviorNode {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    (value.type === 'sequence' ||
+      value.type === 'selector' ||
+      value.type === 'parallel' ||
+      value.type === 'action' ||
+      value.type === 'condition')
+  );
+}
+
+function maybeResolveBehaviorRoot(config: unknown): BehaviorNode | null {
+  if (isBehaviorNode(config)) return config;
+  if (isRecord(config) && isBehaviorNode(config.behaviorTree)) return config.behaviorTree;
+  return null;
+}
+
+function resolveBehaviorRoot(config: unknown): BehaviorNode {
+  const resolved = maybeResolveBehaviorRoot(config);
+  if (resolved) return resolved;
+
+  const npcId =
+    isRecord(config) && typeof config.npcId === 'string' ? config.npcId : 'anonymous_npc';
+  return {
+    id: `a_i_driver:${npcId}:idle`,
+    type: 'sequence',
+    children: [],
+    metadata: { generatedBy: 'a_i_driver_handler' },
+  };
+}
+
+function vector3From(value: unknown, fallback: [number, number, number]): [number, number, number] {
+  if (
+    Array.isArray(value) &&
+    value.length >= 3 &&
+    typeof value[0] === 'number' &&
+    typeof value[1] === 'number' &&
+    typeof value[2] === 'number'
+  ) {
+    return [value[0], value[1], value[2]];
+  }
+  return fallback;
+}
+
+function stringArrayFrom(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function behaviorStateFrom(value: unknown): BehaviorState {
+  switch (value) {
+    case 'idle':
+    case 'moving':
+    case 'acting':
+    case 'talking':
+    case 'reacting':
+      return value;
+    default:
+      return 'idle';
+  }
+}
+
+function stateRecordFrom(ctx: TraitContext): Record<string, unknown> {
+  try {
+    const state = ctx.getState();
+    return isRecord(state) ? state : {};
+  } catch {
+    return {};
+  }
+}
+
+function contextFromTraitRuntime(
+  node: HSPlusNode,
+  config: unknown,
+  ctx: TraitContext
+): NPCContext {
+  const runtimeState = stateRecordFrom(ctx);
+  const configRecord = isRecord(config) ? config : {};
+  const memory = runtimeState.memory instanceof Map ? runtimeState.memory : new Map<string, unknown>();
+  const npcId =
+    (typeof configRecord.npcId === 'string' && configRecord.npcId) ||
+    node.id ||
+    node.name ||
+    'anonymous_npc';
+
+  return {
+    npcId,
+    position: vector3From(runtimeState.position ?? node.position, [0, 0, 0]),
+    rotation: vector3From(runtimeState.rotation ?? node.rotation, [0, 0, 0]),
+    targetId: typeof runtimeState.targetId === 'string' ? runtimeState.targetId : undefined,
+    targetPosition: vector3From(runtimeState.targetPosition, [0, 0, 0]),
+    memory,
+    state: behaviorStateFrom(runtimeState.state),
+    energy: typeof runtimeState.energy === 'number' ? runtimeState.energy : 1,
+    mood: typeof runtimeState.mood === 'number' ? runtimeState.mood : 0,
+    perception: {
+      nearbyEntities: stringArrayFrom(runtimeState.nearbyEntities),
+      visibleEntities: stringArrayFrom(runtimeState.visibleEntities),
+      hearableVoice:
+        typeof runtimeState.hearableVoice === 'string' ? runtimeState.hearableVoice : undefined,
+    },
+  };
+}
+
 export const aIDriverHandler = {
   name: 'a_i_driver',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new BehaviorTreeRunner(config);
+    const instance = new BehaviorTreeRunner(resolveBehaviorRoot(config));
     node.__a_i_driver_instance = instance;
     ctx.emit('a_i_driver_attached', { node, config });
   },
@@ -528,18 +635,31 @@ export const aIDriverHandler = {
     delete node.__a_i_driver_instance;
   },
   onEvent(node: HSPlusNode, _config: unknown, ctx: TraitContext, event: TraitEvent): void {
-    const instance = node.__a_i_driver_instance as TraitInstanceDelegate;
+    const instance = node.__a_i_driver_instance;
     if (!instance) return;
-    if (typeof instance.onEvent === 'function') instance.onEvent(event);
-    else if (typeof instance.emit === 'function' && event.type) instance.emit(event);
+    const delegate = instance as TraitInstanceDelegate;
+    if (typeof delegate.onEvent === 'function') delegate.onEvent(event);
+    else if (typeof delegate.emit === 'function' && event.type) delegate.emit(event);
     if (event.type === 'a_i_driver_configure' && event.payload) {
-      Object.assign(instance, event.payload);
+      const behaviorRoot = maybeResolveBehaviorRoot(event.payload);
+      if (behaviorRoot) {
+        node.__a_i_driver_instance = new BehaviorTreeRunner(behaviorRoot);
+      } else if (isRecord(event.payload)) {
+        Object.assign(instance, event.payload);
+      }
       ctx.emit('a_i_driver_configured', { node });
     }
   },
   onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
-    const instance = node.__a_i_driver_instance as TraitInstanceDelegate;
+    const instance = node.__a_i_driver_instance;
     if (!instance) return;
-    if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+    if (instance instanceof BehaviorTreeRunner) {
+      void instance.tick(contextFromTraitRuntime(node, _config, ctx)).catch((error: unknown) => {
+        ctx.emit('a_i_driver_error', { node, error });
+      });
+      return;
+    }
+    const delegate = instance as TraitInstanceDelegate;
+    if (typeof delegate.onUpdate === 'function') delegate.onUpdate(node, ctx, dt);
   },
 } as const satisfies TraitHandler;

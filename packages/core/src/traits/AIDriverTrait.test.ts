@@ -574,6 +574,37 @@ describe('AIDriverTrait', () => {
         aIDriverHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
       }).not.toThrow();
     });
+
+    it('should attach the configured behaviorTree as the runner root', async () => {
+      const action = vi.fn().mockResolvedValue(true);
+      const tree: BehaviorNode = {
+        id: 'root',
+        type: 'sequence',
+        children: [{ id: 'configured_action', type: 'action', action }],
+      };
+      const config: AIDriverConfig = {
+        npcId: 'npc1',
+        decisionMode: 'reactive',
+        behaviorTree: tree,
+      };
+      const context: NPCContext = {
+        npcId: 'npc1',
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        memory: new Map(),
+        state: 'idle',
+        energy: 1,
+        mood: 0,
+        perception: { nearbyEntities: [], visibleEntities: [] },
+      };
+
+      aIDriverHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
+      const instance = (mockNode as any).__a_i_driver_instance as BehaviorTreeRunner;
+
+      await instance.tick(context);
+
+      expect(action).toHaveBeenCalledWith(context);
+    });
   });
 
   describe('lifecycle: onDetach', () => {
@@ -645,6 +676,26 @@ describe('AIDriverTrait', () => {
           );
         }).not.toThrow();
       }
+    });
+
+    it('should tick attached BehaviorTreeRunner instances', async () => {
+      const action = vi.fn().mockResolvedValue(true);
+      const tree: BehaviorNode = {
+        id: 'root',
+        type: 'action',
+        action,
+      };
+      const config: AIDriverConfig = {
+        npcId: 'npc1',
+        decisionMode: 'reactive',
+        behaviorTree: tree,
+      };
+
+      aIDriverHandler.onAttach?.(mockNode as HSPlusNode, config, mockContext as TraitContext);
+      aIDriverHandler.onUpdate?.(mockNode as HSPlusNode, config, mockContext as TraitContext, 0.016);
+      await Promise.resolve();
+
+      expect(action).toHaveBeenCalledWith(expect.objectContaining({ npcId: 'npc1' }));
     });
   });
 
