@@ -21,20 +21,23 @@ describe('resolveActiveTools — the model sees the BRAIN-DECLARED tools (F.126 
     // The brain's on_task llm_call declaration is the source of truth.
     expect(declared).toEqual([
       'write_file',
+      'mcp_call',
       'read_file',
-      'list_dir',
       'bash',
-      'http_request',
       'str_replace',
+      'list_dir',
       'delegate_task',
+      'http_request',
     ]);
     expect(dropped).toEqual([]);
-    // All declared real specs reach the model -- NOT just write_file.
+    // All declared real specs reach the model -- NOT just write_file. mcp_call is the
+    // bridge to the core MCP tool surface (compile/validate/generate/solve), Axis-1.
     expect(tools.map((t) => t.name).sort()).toEqual([
       'bash',
       'delegate_task',
       'http_request',
       'list_dir',
+      'mcp_call',
       'read_file',
       'str_replace',
       'write_file',

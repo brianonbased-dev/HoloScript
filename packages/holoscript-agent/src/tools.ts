@@ -137,6 +137,31 @@ export function isProductiveBashCommand(cmd: string): boolean {
 }
 
 /**
+ * Core MCP tools that PRODUCE/VALIDATE an artifact (vs read-only query/get/list).
+ * An `mcp_call` to one of these counts toward the W.107 artifact gate; an mcp_call to
+ * a read tool (holo_query_codebase / get_* / list_*) does not — otherwise an agent
+ * could "satisfy" the gate just by querying.
+ */
+const PRODUCTIVE_MCP_PREFIXES = [
+  'compile_',
+  'generate_',
+  'solve_',
+  'validate_',
+  'create_',
+  'conformance_',
+  'holoscript_compile',
+  'holo_write',
+  'holo_edit',
+];
+
+/** True iff an mcp_call to `tool` produces/validates a real artifact (W.107 gate). */
+export function isProductiveMcpTool(tool: string): boolean {
+  const t = String(tool ?? '').trim().toLowerCase();
+  if (!t) return false;
+  return PRODUCTIVE_MCP_PREFIXES.some((p) => t.startsWith(p));
+}
+
+/**
  * True iff a single tool_use is a *productive* (artifact-producing) call for the
  * W.107.b artifact-grounding gate:
  *   - write_file with non-empty content,
@@ -161,6 +186,10 @@ export function isProductiveToolUse(use: ToolUseBlock): boolean {
       return true;
     case 'vision_analyze':
       return true;
+    case 'mcp_call':
+      // Productive only when the invoked MCP tool produces/validates an artifact
+      // (compile/generate/solve/validate/…), not a read-only query.
+      return isProductiveMcpTool(String(input.tool ?? ''));
     default:
       return false;
   }
@@ -343,6 +372,31 @@ export const MESH_TOOLS: ToolSpec[] = [
     },
   },
   {
+    name: 'mcp_call',
+    description:
+      'Invoke a HoloScript MCP tool on the server — the LANGUAGE surface — and get its result. ' +
+      'Use this to COMPILE, VALIDATE, GENERATE, SOLVE, or QUERY on-device instead of escalating ' +
+      'to the fleet: e.g. validate_holoscript, parse_hs, compile_holoscript, compile_to_quest, ' +
+      'generate_scene, generate_object, solve_logic, solve_structural, solve_thermal, ' +
+      'holo_query_codebase, list_traits. `tool` is the MCP tool name; `args` is that tool\'s own ' +
+      'argument object. Example: {tool:"validate_holoscript", args:{code:"#version 6.0.0\\nscene \\"S\\" {}"}}. ' +
+      'Returns the tool\'s result as text (or an error message — never throws).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tool: {
+          type: 'string',
+          description: 'MCP tool name, e.g. "validate_holoscript", "compile_to_quest", "solve_logic"',
+        },
+        args: {
+          type: 'object',
+          description: "Arguments object for that tool (the tool's own input schema)",
+        },
+      },
+      required: ['tool'],
+    },
+  },
+  {
     name: 'vision_analyze',
     description:
       'Analyze an image using the local Fara-7B vision model (Ollama on loopback). ' +
@@ -505,6 +559,13 @@ export interface RunToolOptions {
    * Absent → delegate_task returns an error explaining the capability is unavailable.
    */
   addTask?: (tasks: Array<{ title: string; description?: string; priority?: number; source?: string; tags?: string[] }>) => Promise<{ added: number }>;
+  /**
+   * Invoke a core MCP tool (compile/validate/generate/solve/query). Injected by
+   * runner.ts from mesh.invokeTool() — POSTs JSON-RPC to the server /mcp endpoint
+   * with the agent bearer. Absent → mcp_call returns an error explaining the
+   * capability is unavailable (needs a mesh connection).
+   */
+  invokeMcpTool?: (tool: string, args: Record<string, unknown>) => Promise<{ ok: boolean; text: string }>;
 }
 
 export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Promise<ToolResultBlock> {
@@ -709,6 +770,17 @@ export async function runTool(use: ToolUseBlock, opts: RunToolOptions = {}): Pro
       const tags = Array.isArray(use.input.tags) ? (use.input.tags as unknown[]).map(String) : undefined;
       const result = await opts.addTask([{ title, description, priority, source, tags }]);
       return okResult(use.id, `delegate_task: posted "${title}" to board — ${result.added} task(s) added`);
+    }
+
+    if (use.name === 'mcp_call') {
+      if (!opts.invokeMcpTool) {
+        return errResult(use.id, 'mcp_call: capability not available (no MCP invoke callback injected — requires a mesh connection)');
+      }
+      const tool = String(use.input.tool ?? '').trim();
+      if (!tool) return errResult(use.id, 'mcp_call: tool is required');
+      const args = (use.input.args ?? {}) as Record<string, unknown>;
+      const { ok, text } = await opts.invokeMcpTool(tool, args);
+      return ok ? okResult(use.id, text) : errResult(use.id, text);
     }
 
     if (use.name === 'vision_analyze') {

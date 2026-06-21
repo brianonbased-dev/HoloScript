@@ -212,6 +212,41 @@ export class HolomeshClient {
     return { added: result.added ?? tasks.length };
   }
 
+  /**
+   * Invoke a core HoloScript MCP tool (compile_holoscript, validate_holoscript,
+   * parse_hs, generate_*, solve_*, holo_query_codebase, …) via the server's JSON-RPC
+   * `/mcp` endpoint, authenticated with this agent's bearer. This is what lets the
+   * autonomous edge AgentRunner ACT on the LANGUAGE surface (D.100 Axis-1) — compile,
+   * validate, generate, solve on-device at the confidence gate instead of escalating
+   * every IR task to the fleet — rather than being limited to its 9 local sandbox
+   * tools. The `/mcp` endpoint lives at the server ROOT, not under /api/holomesh, so
+   * the root is derived from apiBase. Never throws: a tool/auth/network failure
+   * returns { ok:false, text } so one bad call can't break a tick.
+   */
+  async invokeTool(tool: string, args: Record<string, unknown> = {}): Promise<{ ok: boolean; text: string }> {
+    const root = this.apiBase.replace(/\/api\/holomesh\/?$/, '');
+    try {
+      const res = await this.fetchImpl(`${root}/mcp`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${this.bearer}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: tool, arguments: args } }),
+      });
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        return { ok: false, text: `mcp_call ${tool} HTTP ${res.status}: ${t.slice(0, 300)}` };
+      }
+      const j = (await res.json()) as {
+        result?: { content?: Array<{ text?: string }> };
+        error?: { message?: string };
+      };
+      if (j.error) return { ok: false, text: `mcp_call ${tool} error: ${j.error.message ?? 'unknown'}` };
+      const text = (j.result?.content ?? []).map((c) => c.text ?? '').join('\n');
+      return { ok: true, text };
+    } catch (err) {
+      return { ok: false, text: `mcp_call ${tool} failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+
   // ── Cognitive-verb knowledge surface (Phase 2.2 — recall / rag_query) ────────
 
   /**

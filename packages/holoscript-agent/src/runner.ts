@@ -350,6 +350,9 @@ export class AgentRunner {
             runTool(u, {
               signReceipt: this.opts.signReceipt,
               addTask: (tasks) => mesh.addTasks(tasks),
+              // mcp_call → core MCP tool surface (compile/validate/generate/solve/query),
+              // so the edge agent can ACT on the language, not just its local sandbox (Axis-1).
+              invokeMcpTool: (tool, args) => mesh.invokeTool(tool, args),
             })
           )
         );
