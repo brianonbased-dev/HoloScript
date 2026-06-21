@@ -5,12 +5,14 @@
  * xAI provides an OpenAI-compatible chat completions API at
  * https://api.x.ai/v1.
  *
- * Models: grok-4-0709, grok-4-fast-reasoning, grok-4-fast-non-reasoning,
- *         grok-4.3, grok-build-0.1.
- * Default model for HoloScript generation: grok-4-0709.
+ * Models: grok-4.3, grok-build-0.1, grok-4.20-0309-reasoning,
+ *         grok-4.20-0309-non-reasoning, grok-4.20-multi-agent-0309.
+ * Default model for HoloScript generation: grok-4.3.
  *
- * Model metadata last verified 2026-06-08 per A-020 refresh.
- * Sources: docs.x.ai/developers/models/grok-4-0709, x.ai/news/grok-4-fast
+ * Model metadata last verified 2026-06-21 via credentialed
+ * /v1/models and /v1/language-models discovery.
+ * Sources: docs.x.ai/developers/models,
+ * docs.x.ai/developers/rest-api-reference/inference/models
  *
  * @version 1.1.0
  */
@@ -30,15 +32,14 @@ import {
   messageContentAsString,
 } from '../types';
 
-// Available xAI models for HoloScript generation
-// Last updated 2026-06-08 per A-020 refresh
-// Sources: docs.x.ai/developers/models/grok-4-0709, x.ai/news/grok-4-fast
+// Available xAI language models for HoloScript generation.
+// Last updated 2026-06-21 from credentialed /v1/language-models discovery.
 export const XAI_MODELS = [
-  'grok-4-0709',
-  'grok-4-fast-reasoning',
-  'grok-4-fast-non-reasoning',
   'grok-4.3',
   'grok-build-0.1',
+  'grok-4.20-0309-reasoning',
+  'grok-4.20-0309-non-reasoning',
+  'grok-4.20-multi-agent-0309',
 ] as const;
 
 export type XAIModel = (typeof XAI_MODELS)[number];
@@ -50,14 +51,12 @@ export interface XAIModelCapability {
    * 0 means "not published" — treat the context window as the upper bound.
    */
   maxOutput: number;
+  /** Long-context price threshold from /v1/language-models; 0 = none published. */
+  longContextThreshold: number;
   costPerMillion: {
     input: number;
-    /**
-     * inputAbove128K applies to grok-4-0709 only — xAI charges higher input
-     * rates for tokens beyond the 128K boundary in that model.
-     * 0 means "same rate / not applicable for this model".
-     */
-    inputAbove128K: number;
+    /** Input price above longContextThreshold; 0 means same rate / not applicable. */
+    inputLongContext: number;
     cachedInput: number;
     output: number;
   };
@@ -66,70 +65,75 @@ export interface XAIModelCapability {
 }
 
 export const XAI_MODEL_CAPABILITIES = {
-  // Grok 4 flagship — 256K context, tiered pricing above 128K
-  // Source: docs.x.ai/developers/models/grok-4-0709 (verified 2026-06-08)
-  'grok-4-0709': {
-    contextWindow: 256_000,
-    maxOutput: 0, // not published by xAI as of 2026-06-08
-    costPerMillion: {
-      input: 3.0,
-      inputAbove128K: 6.0, // xAI higher-context tier above 128K tokens
-      cachedInput: 0.75,
-      output: 15.0,
-    },
-    status: 'active',
-    lastVerified: '2026-06-08',
-  },
-  // Grok 4 Fast — 2M context, two reasoning variants
-  // Source: x.ai/news/grok-4-fast (verified 2026-06-08)
-  'grok-4-fast-reasoning': {
-    contextWindow: 2_000_000,
-    maxOutput: 0, // not published by xAI as of 2026-06-08
-    costPerMillion: {
-      input: 0, // pricing not published as of 2026-06-08
-      inputAbove128K: 0,
-      cachedInput: 0,
-      output: 0,
-    },
-    status: 'active',
-    lastVerified: '2026-06-08',
-  },
-  'grok-4-fast-non-reasoning': {
-    contextWindow: 2_000_000,
-    maxOutput: 0, // not published by xAI as of 2026-06-08
-    costPerMillion: {
-      input: 0, // pricing not published as of 2026-06-08
-      inputAbove128K: 0,
-      cachedInput: 0,
-      output: 0,
-    },
-    status: 'active',
-    lastVerified: '2026-06-08',
-  },
-  // Legacy / existing models kept for backwards compatibility
+  // Current default chat model. Source: docs.x.ai/developers/models
+  // plus credentialed /v1/language-models (verified 2026-06-21).
   'grok-4.3': {
     contextWindow: 1_000_000,
-    maxOutput: 1_000_000,
+    maxOutput: 0, // not published by xAI as of 2026-06-21
+    longContextThreshold: 200_000,
     costPerMillion: {
       input: 1.25,
-      inputAbove128K: 0,
+      inputLongContext: 2.5,
       cachedInput: 0.2,
       output: 2.5,
     },
     status: 'active',
-    lastVerified: '2026-05-25',
+    lastVerified: '2026-06-21',
   },
+  // Coding model; aliases include grok-code-fast-1.
   'grok-build-0.1': {
     contextWindow: 256_000,
-    maxOutput: 256_000,
+    maxOutput: 0, // not published by xAI as of 2026-06-21
+    longContextThreshold: 200_000,
     costPerMillion: {
       input: 1.0,
-      inputAbove128K: 0,
+      inputLongContext: 2.0,
       cachedInput: 0.2,
       output: 2.0,
     },
     status: 'active',
-    lastVerified: '2026-05-25',
+    lastVerified: '2026-06-21',
+  },
+  // API-visible Grok 4.20 family. Public docs conflict on 1M vs 2M context;
+  // use the conservative 1M until model-specific API output exposes a window.
+  'grok-4.20-0309-reasoning': {
+    contextWindow: 1_000_000,
+    maxOutput: 0,
+    longContextThreshold: 200_000,
+    costPerMillion: {
+      input: 1.25,
+      inputLongContext: 2.5,
+      cachedInput: 0.2,
+      output: 2.5,
+    },
+    status: 'active',
+    lastVerified: '2026-06-21',
+  },
+  'grok-4.20-0309-non-reasoning': {
+    contextWindow: 1_000_000,
+    maxOutput: 0,
+    longContextThreshold: 200_000,
+    costPerMillion: {
+      input: 1.25,
+      inputLongContext: 2.5,
+      cachedInput: 0.2,
+      output: 2.5,
+    },
+    status: 'active',
+    lastVerified: '2026-06-21',
+  },
+  'grok-4.20-multi-agent-0309': {
+    contextWindow: 1_000_000,
+    maxOutput: 0,
+    longContextThreshold: 200_000,
+    costPerMillion: {
+      input: 1.25,
+      inputLongContext: 2.5,
+      cachedInput: 0.2,
+      output: 2.5,
+    },
+    status: 'active',
+    lastVerified: '2026-06-21',
   },
 } as const satisfies Record<XAIModel, XAIModelCapability>;
 
@@ -153,26 +157,27 @@ export const XAI_MODEL_CAPABILITIES = {
  * xAI (Grok). Live Search (real-time web + X-platform) is Grok's unique
  * differentiator vs Anthropic/OpenAI/Gemini for social and news signal.
  *
- * Model metadata verified against official xAI docs on 2026-06-08 (A-020):
- * - grok-4-0709: flagship Grok 4, 256K context, $3/$15 per MTok with
- *   higher-context pricing above 128K, $0.75/M cached.
- * - grok-4-fast-reasoning / grok-4-fast-non-reasoning: 2M context,
- *   pricing not yet published.
- * - grok-4.3 / grok-build-0.1: retained for backwards compatibility.
+ * Model metadata verified against official xAI docs and credentialed
+ * /v1/models + /v1/language-models discovery on 2026-06-21 (A-020):
+ * - grok-4.3: current default chat model, 1M context, $1.25/$2.50 per MTok.
+ * - grok-build-0.1: coding model, 256K context, $1.00/$2.00 per MTok.
+ * - grok-4.20-* family: API-visible language models, routed only when
+ *   explicitly selected until public context-window docs stop conflicting.
+ * - grok-4-0709 and grok-4-fast-* are absent from credentialed discovery.
  * xAI's API is OpenAI-compatible at the wire level, so streaming + tools are
  * confirmed. All Grok 4 variants support text/image input, function calling,
  * structured outputs, cached-token pricing, and reasoning.
  *
- * XAI_CAPABILITIES reflects grok-4-0709 (the new default model) per A-020.
+ * XAI_CAPABILITIES reflects grok-4.3 (the current default model) per A-020.
  * Exported as a constant so the capability-aware router can read it
  * without instantiating the adapter: single source of truth per W.GOLD.006.
  */
 export const XAI_CAPABILITIES: Capabilities = {
-  contextWindow: XAI_MODEL_CAPABILITIES['grok-4-0709'].contextWindow,
-  maxOutput: XAI_MODEL_CAPABILITIES['grok-4-0709'].maxOutput,
+  contextWindow: XAI_MODEL_CAPABILITIES['grok-4.3'].contextWindow,
+  maxOutput: XAI_MODEL_CAPABILITIES['grok-4.3'].maxOutput,
   costPerMillion: {
-    input: XAI_MODEL_CAPABILITIES['grok-4-0709'].costPerMillion.input,
-    output: XAI_MODEL_CAPABILITIES['grok-4-0709'].costPerMillion.output,
+    input: XAI_MODEL_CAPABILITIES['grok-4.3'].costPerMillion.input,
+    output: XAI_MODEL_CAPABILITIES['grok-4.3'].costPerMillion.output,
   },
 
   streaming: true,
@@ -196,11 +201,11 @@ export class XAIAdapter extends BaseLLMAdapter {
 
   constructor(config: XAIProviderConfig) {
     super(config);
-    this.defaultHoloScriptModel = config.defaultModel ?? 'grok-4-0709';
+    this.defaultHoloScriptModel = config.defaultModel ?? 'grok-4.3';
   }
 
   protected getDefaultModel(): string {
-    return 'grok-4-0709';
+    return 'grok-4.3';
   }
 
   async complete(

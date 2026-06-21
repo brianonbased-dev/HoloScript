@@ -482,28 +482,31 @@ describe('Local and meta-provider capabilities', () => {
   it('declares xAI Live Search and OpenAI-compatible tool support', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
     expect(adapter.capabilities).toBe(XAI_CAPABILITIES);
-    // Model list updated 2026-06-08 per A-020: added grok-4-0709 and grok-4-fast variants
+    // Model list reconciled 2026-06-21 with credentialed xAI discovery.
     expect(adapter.models).toEqual([
-      'grok-4-0709',
-      'grok-4-fast-reasoning',
-      'grok-4-fast-non-reasoning',
       'grok-4.3',
       'grok-build-0.1',
+      'grok-4.20-0309-reasoning',
+      'grok-4.20-0309-non-reasoning',
+      'grok-4.20-multi-agent-0309',
     ]);
     for (const model of XAI_MODELS) {
       expect(model).not.toMatch(/^grok-[23]/);
       expect(XAI_MODEL_CAPABILITIES[model].contextWindow).toBeGreaterThan(0);
       // maxOutput is 0 for models where xAI has not published a hard cap.
       expect(XAI_MODEL_CAPABILITIES[model].maxOutput).toBeGreaterThanOrEqual(0);
-      // grok-4-fast-* pricing is not yet published; only assert non-negative.
+      expect(XAI_MODEL_CAPABILITIES[model].longContextThreshold).toBeGreaterThanOrEqual(0);
       expect(XAI_MODEL_CAPABILITIES[model].costPerMillion.input).toBeGreaterThanOrEqual(0);
       expect(XAI_MODEL_CAPABILITIES[model].costPerMillion.output).toBeGreaterThanOrEqual(0);
     }
-    // XAI_CAPABILITIES reflects grok-4-0709 (default as of A-020 2026-06-08)
+    expect(adapter.models).not.toContain('grok-4-0709');
+    expect(adapter.models).not.toContain('grok-4-fast-reasoning');
+    expect(adapter.models).not.toContain('grok-4-fast-non-reasoning');
+    // XAI_CAPABILITIES reflects grok-4.3 (default as of A-020 2026-06-21)
     expect(adapter.capabilities).toMatchObject({
-      contextWindow: 256_000,
+      contextWindow: 1_000_000,
       maxOutput: 0,
-      costPerMillion: { input: 3.0, output: 15.0 },
+      costPerMillion: { input: 1.25, output: 2.5 },
       streaming: true,
       tools: true,
       vision: true,

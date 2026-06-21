@@ -87,7 +87,9 @@ describe('resolveSovereignProvider (sync, sovereign-first auto-detect)', () => {
 
   it('falls through anthropic -> xai -> openai by key presence', () => {
     vi.stubEnv('XAI_API_KEY', 'xk-test');
-    expect(resolveSovereignProvider().providerName).toBe('xai');
+    const xai = resolveSovereignProvider();
+    expect(xai.providerName).toBe('xai');
+    expect(xai.model).toBe('grok-4.3');
     vi.stubEnv('XAI_API_KEY', '');
     vi.stubEnv('OPENAI_API_KEY', 'ok-test');
     expect(resolveSovereignProvider().providerName).toBe('openai');

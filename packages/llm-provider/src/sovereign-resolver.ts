@@ -269,7 +269,7 @@ function resolveXai(opts: SovereignResolveOptions): ResolvedSovereignProvider {
   const provider = new XAIAdapter({ apiKey });
   return {
     provider,
-    model: modelOverride(opts) || 'grok-3',
+    model: modelOverride(opts) || 'grok-4.3',
     maxTokens: maxTokensOverride(opts) || 8192,
     providerName: 'xai',
   };

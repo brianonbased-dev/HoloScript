@@ -118,17 +118,21 @@ describe('XAIAdapter', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
     expect(adapter.models).toContain('grok-4.3');
     expect(adapter.models).toContain('grok-build-0.1');
+    expect(adapter.models).toContain('grok-4.20-0309-reasoning');
+    expect(adapter.models).toContain('grok-4.20-0309-non-reasoning');
+    expect(adapter.models).toContain('grok-4.20-multi-agent-0309');
   });
 
   it('XAI_MODELS constant is populated', () => {
     expect(XAI_MODELS.length).toBeGreaterThan(0);
     expect(XAI_MODELS).toContain('grok-4.3');
     expect(XAI_MODELS).toContain('grok-build-0.1');
+    expect(XAI_MODELS).toContain('grok-4.20-0309-reasoning');
   });
 
-  it('uses grok-4-0709 as default HoloScript model', () => {
+  it('uses grok-4.3 as default HoloScript model', () => {
     const adapter = new XAIAdapter({ apiKey: 'test-key' });
-    expect(adapter.defaultHoloScriptModel).toBe('grok-4-0709');
+    expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
   });
 
   it('respects custom defaultModel in config', () => {
@@ -144,31 +148,51 @@ describe('XAIAdapter', () => {
     expect(XAI_MODELS).not.toContain('grok-3-mini');
     expect(XAI_MODELS).not.toContain('grok-2');
     expect(XAI_MODELS).not.toContain('grok-2-mini');
+    expect(XAI_MODELS).not.toContain('grok-4-0709');
+    expect(XAI_MODELS).not.toContain('grok-4-fast-reasoning');
+    expect(XAI_MODELS).not.toContain('grok-4-fast-non-reasoning');
     expect(XAI_MODELS.every((model) => !/^grok-[23]/.test(model))).toBe(true);
   });
 
   it('declares non-zero model windows and current per-model pricing', () => {
     expect(XAI_MODEL_CAPABILITIES['grok-4.3']).toMatchObject({
       contextWindow: 1_000_000,
-      maxOutput: 1_000_000,
+      maxOutput: 0,
+      longContextThreshold: 200_000,
       costPerMillion: {
         input: 1.25,
+        inputLongContext: 2.5,
         cachedInput: 0.2,
         output: 2.5,
       },
       status: 'active',
-      lastVerified: '2026-05-25',
+      lastVerified: '2026-06-21',
     });
     expect(XAI_MODEL_CAPABILITIES['grok-build-0.1']).toMatchObject({
       contextWindow: 256_000,
-      maxOutput: 256_000,
+      maxOutput: 0,
+      longContextThreshold: 200_000,
       costPerMillion: {
         input: 1.0,
+        inputLongContext: 2.0,
         cachedInput: 0.2,
         output: 2.0,
       },
       status: 'active',
-      lastVerified: '2026-05-25',
+      lastVerified: '2026-06-21',
+    });
+    expect(XAI_MODEL_CAPABILITIES['grok-4.20-0309-reasoning']).toMatchObject({
+      contextWindow: 1_000_000,
+      maxOutput: 0,
+      longContextThreshold: 200_000,
+      costPerMillion: {
+        input: 1.25,
+        inputLongContext: 2.5,
+        cachedInput: 0.2,
+        output: 2.5,
+      },
+      status: 'active',
+      lastVerified: '2026-06-21',
     });
     for (const model of XAI_MODELS) {
       expect(XAI_MODEL_CAPABILITIES[model].contextWindow).toBeGreaterThan(0);
@@ -258,7 +282,7 @@ describe('createXAIProvider', () => {
     try {
       const adapter = createXAIProvider();
       expect(adapter.name).toBe('xai');
-      expect(adapter.defaultHoloScriptModel).toBe('grok-4-0709');
+      expect(adapter.defaultHoloScriptModel).toBe('grok-4.3');
     } finally {
       process.env.XAI_API_KEY = originalEnv;
     }
