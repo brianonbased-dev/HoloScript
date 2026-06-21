@@ -637,6 +637,24 @@ describe('HoloCompositionParser', () => {
     });
   });
 
+  describe('Domain Blocks', () => {
+    it('parses colonless post_processing effect blocks', () => {
+      const result = parseHolo(`composition "PostFX" {
+        post_processing {
+          bloom { intensity: 0.3, threshold: 0.9 }
+          tone_mapping { mode: "aces", exposure: 1.1 }
+        }
+      }`);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+
+      const block = result.ast?.domainBlocks?.find((candidate) => candidate.keyword === 'post_processing');
+      expect(block?.properties.bloom).toEqual({ intensity: 0.3, threshold: 0.9 });
+      expect(block?.properties.tone_mapping).toEqual({ mode: 'aces', exposure: 1.1 });
+    });
+  });
+
   describe('Error Handling', () => {
     it('reports missing closing brace', () => {
       const source = `

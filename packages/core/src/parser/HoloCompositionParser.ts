@@ -6899,6 +6899,11 @@ export class HoloCompositionParser {
           properties[key] = value;
         }
       }
+      // Nested domain property block: post_processing { bloom { intensity: 0.3 } }
+      else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
+        const key = this.advance().value;
+        properties[key] = this.parseBlockTraitConfig();
+      }
       // Regular property
       else {
         const key = this.expectIdentifier();
