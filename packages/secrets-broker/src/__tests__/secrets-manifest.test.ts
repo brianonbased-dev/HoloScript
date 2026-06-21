@@ -35,6 +35,14 @@ describe('secrets-manifest compile (one spec → many backends)', () => {
     expect(out).toContain('@needs_key');
   });
 
+  it('infra-namespace: service/fleet refs without human workspace refs or values', () => {
+    const out = compileSecretsManifest(m, 'infra-namespace');
+    expect(out).toContain('infra://OPENAI_API_KEY');
+    expect(out).toContain('service owner');
+    expect(out).not.toContain('secret://workspace');
+    expect(out).not.toMatch(/OPENAI_API_KEY=\S/);
+  });
+
   it('throws on a non-UPPER_SNAKE name', () => {
     expect(() =>
       compileSecretsManifest({ app: 'x', secrets: [{ name: 'lower' }] }, 'env-template')

@@ -5,7 +5,8 @@
  * `HOLOKEY_PROD_KEK_*` KEK) if it's there, else from `process.env`. A consumer swaps
  * `process.env.ANTHROPIC_API_KEY` for `await resolveServiceSecret('ANTHROPIC_API_KEY')` and
  * behavior is IDENTICAL until that key is put in the vault — then it transparently resolves
- * from the vault. No boot coupling: the pool + vault are built lazily on first call.
+ * from the vault. `infra://ANTHROPIC_API_KEY` is also accepted for operational refs. No boot
+ * coupling: the pool + vault are built lazily on first call.
  *
  * `migrateEnvKeys` is the "set once" step run INSIDE the service: it copies named secrets from
  * `process.env` into the vault (owner-scoped, idempotent), so the value reads from the service's
@@ -23,14 +24,14 @@ import {
   createServiceSecretResolver,
   SECRET_STORE_DDL,
   type HoloKeyVault,
+  type ServiceIdentity,
   type ServiceSecretResolver,
 } from '@holoscript/secrets-broker';
-
-const OWNER = process.env.HOLOKEY_OWNER || 'infra';
 
 let built = false;
 let vault: HoloKeyVault | null = null;
 let resolver: ServiceSecretResolver | null = null;
+let serviceIdentity: ServiceIdentity | null = null;
 
 function ensure(): void {
   if (built) return;
@@ -57,7 +58,8 @@ function ensure(): void {
   }
 
   vault = createHoloKeyVault({ env: process.env, query });
-  resolver = createServiceSecretResolver({ vault, env: process.env, owner: OWNER });
+  resolver = createServiceSecretResolver({ vault, env: process.env });
+  serviceIdentity = resolver.identity();
 }
 
 /**
@@ -70,8 +72,8 @@ export function resolveServiceSecret(name: string): Promise<string | undefined> 
 }
 
 /**
- * One-shot migration: copy the named secrets from `process.env` INTO the vault (owner=OWNER),
- * idempotent (skips ones already stored). Returns NAMES only — never a value.
+ * One-shot migration: copy the named secrets from `process.env` INTO the vault under the
+ * derived service owner, idempotent (skips ones already stored). Returns NAMES only — never a value.
  */
 export async function migrateEnvKeys(
   names: readonly string[]
@@ -79,7 +81,8 @@ export async function migrateEnvKeys(
   ensure();
   const migrated: string[] = [];
   const skipped: string[] = [];
-  if (!vault) return { vaultOff: true, owner: OWNER, migrated, skipped };
+  const owner = serviceIdentity?.ownerId ?? 'infra';
+  if (!vault) return { vaultOff: true, owner, migrated, skipped };
   for (const name of names) {
     const value = process.env[name];
     if (!value) {
@@ -88,17 +91,17 @@ export async function migrateEnvKeys(
     }
     try {
       // Already in the vault for this owner? skip (idempotent).
-      await vault.resolver.resolve({ authenticatedOwnerId: OWNER, ref: `vault:${name}` });
+      await vault.resolver.resolve({ authenticatedOwnerId: owner, ref: `vault:${name}` });
       skipped.push(`${name}:exists`);
     } catch {
       // Not present (or unreadable) → store it.
       try {
-        await vault.store.put({ ownerId: OWNER, name, value });
+        await vault.store.put({ ownerId: owner, name, value });
         migrated.push(name);
       } catch {
         skipped.push(`${name}:err`);
       }
     }
   }
-  return { vaultOff: false, owner: OWNER, migrated, skipped };
+  return { vaultOff: false, owner, migrated, skipped };
 }

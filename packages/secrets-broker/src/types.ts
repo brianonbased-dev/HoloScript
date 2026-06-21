@@ -15,8 +15,8 @@
  * @module secrets-broker/types
  */
 
-/** A canonical reference to a secret. Format: `<surface>:<key>`.
- *  Surface may be `env`, `x402`, `custodial`, `gold`, `vault`.
+/** A canonical reference to a secret. Format: `<surface>:<key>` or URI-style infra refs.
+ *  Surface may be `env`, `x402`, `custodial`, `gold`, `vault`, or `infra`.
  *  The string is the audit-safe label — NEVER the value. */
 export type SecretRef = string;
 

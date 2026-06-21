@@ -714,3 +714,12 @@ export {
   type ServiceSecretResolver,
   type ServiceSecretResolverOpts,
 } from './service-secret-resolver';
+export {
+  resolveServiceIdentity,
+  normalizeServiceSecretRef,
+  infraSecretRef,
+  type ServiceIdentity,
+  type ServiceIdentitySource,
+  type ResolveServiceIdentityOpts,
+  type NormalizedServiceSecretRef,
+} from './service-identity';

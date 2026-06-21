@@ -34,7 +34,11 @@ export interface SecretsManifest {
 }
 
 /** Supported compile targets — mirrors `BrokerManifest.storage`. */
-export type SecretsCompileTarget = 'env-template' | 'github-actions' | 'holokey-vault';
+export type SecretsCompileTarget =
+  | 'env-template'
+  | 'github-actions'
+  | 'holokey-vault'
+  | 'infra-namespace';
 
 /** Thrown when a manifest is malformed (e.g. a non-env-var-style name). */
 export class SecretsManifestError extends Error {
@@ -114,6 +118,22 @@ function emitHoloKeyVault(m: SecretsManifest): string {
   return lines.join('\n') + '\n';
 }
 
+function emitInfraNamespace(m: SecretsManifest): string {
+  const lines = [
+    `# ${m.app} — HoloKey infra namespace refs`,
+    '#',
+    '# Use from a Railway service, Jetson, or fleet worker after service identity is present.',
+    '# The resolver binds the value to the service owner and maps infra://<NAME> to vault:<NAME>.',
+    '# No human workspace secret:// ref or plaintext value is required.',
+    '',
+  ];
+  for (const s of m.secrets) {
+    const tag = isRequired(s) ? 'required' : 'optional';
+    lines.push(`infra://${s.name}${s.description ? `   # ${s.description}` : ''} (${tag})`);
+  }
+  return lines.join('\n') + '\n';
+}
+
 /**
  * Compile a {@link SecretsManifest} to a backend artifact. Pure; emits text only and never
  * includes secret values (the manifest has none).
@@ -130,6 +150,8 @@ export function compileSecretsManifest(
       return emitGithubActions(manifest);
     case 'holokey-vault':
       return emitHoloKeyVault(manifest);
+    case 'infra-namespace':
+      return emitInfraNamespace(manifest);
     default: {
       // Exhaustiveness guard.
       const never: never = target;
