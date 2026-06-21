@@ -121,7 +121,14 @@ export {
 export { TetGenWasmMesher } from './wasm/TetGenWasmMesher';
 
 // Manufacturing — SDF CSG → watertight mesh → 3D-print pre-flight (CAD lane)
-export { marchingCubes, type MarchingCubesOptions } from './manufacturing/MarchingCubes';
+export {
+  marchingCubes,
+  decideManufacturingBackend,
+  estimateMarchingCubesTolerance,
+  type ManufacturingBackendDecision,
+  type MarchingCubesOptions,
+  type MarchingCubesToleranceEstimate,
+} from './manufacturing/MarchingCubes';
 export {
   analyzePrintability,
   type PrintabilityOptions,

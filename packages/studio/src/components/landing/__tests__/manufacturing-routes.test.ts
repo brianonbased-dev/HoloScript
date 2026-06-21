@@ -20,16 +20,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mocks = vi.hoisted(() => {
   // Synthetic mesh data
   const positions = new Float64Array([
-    -1, -1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,
-    -1, -1,  1,  1, -1,  1,  1,  1,  1, -1,  1,  1,
+    -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1,
   ]);
   const triangles = new Uint32Array([
-    0, 1, 2,  0, 2, 3,
-    4, 6, 5,  4, 7, 6,
-    0, 4, 5,  0, 5, 1,
-    1, 5, 6,  1, 6, 2,
-    2, 6, 7,  2, 7, 3,
-    3, 7, 4,  3, 4, 0,
+    0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3, 7,
+    4, 3, 4, 0,
   ]);
 
   const printability = {
@@ -46,6 +41,14 @@ const mocks = vi.hoisted(() => {
     recommendation: 'printable' as const,
   };
 
+  const precision = {
+    cellSize: [0.05, 0.05, 0.05] as [number, number, number],
+    maxCellSize: 0.05,
+    cellDiagonal: 0.08660254037844387,
+    conservativeSurfaceError: 0.08660254037844387,
+    units: 'same-as-bounds' as const,
+  };
+
   // Minimal binary STL: 80-byte header + 4-byte triangle count (0) = 84 bytes
   const STL_HEADER = 'HoloScript STLExporter test';
   const stlBuffer = new ArrayBuffer(84);
@@ -58,10 +61,12 @@ const mocks = vi.hoisted(() => {
     positions,
     triangles,
     printability,
+    precision,
     stlBuffer,
     STL_HEADER,
     marchingCubes: vi.fn(() => ({ vertices: positions, triangles })),
     analyzePrintability: vi.fn(() => printability),
+    estimateMarchingCubesTolerance: vi.fn(() => precision),
     exportSTLBinary: vi.fn(() => stlBuffer),
   };
 });
@@ -72,6 +77,7 @@ vi.mock('@holoscript/engine', () => ({
   Simulation: {
     marchingCubes: mocks.marchingCubes,
     analyzePrintability: mocks.analyzePrintability,
+    estimateMarchingCubesTolerance: mocks.estimateMarchingCubesTolerance,
     exportSTLBinary: mocks.exportSTLBinary,
   },
 }));
@@ -104,21 +110,24 @@ describe('POST /api/manufacturing/mesh', () => {
   beforeEach(() => {
     mocks.marchingCubes.mockClear();
     mocks.analyzePrintability.mockClear();
+    mocks.estimateMarchingCubesTolerance.mockClear();
     mocks.marchingCubes.mockReturnValue({
       vertices: mocks.positions,
       triangles: mocks.triangles,
     });
     mocks.analyzePrintability.mockReturnValue(mocks.printability);
+    mocks.estimateMarchingCubesTolerance.mockReturnValue(mocks.precision);
   });
 
   it('returns positions, indices, and printability for a sphere SDF', async () => {
     const req = makeRequest({ sdf: SPHERE_SDF }) as Parameters<typeof meshPOST>[0];
     const res = await meshPOST(req);
     expect(res.status).toBe(200);
-    const body = await res.json() as {
+    const body = (await res.json()) as {
       positions: number[];
       indices: number[];
       printability: { recommendation: string; watertight: boolean };
+      precision: { conservativeSurfaceError: number; units: string };
     };
     expect(Array.isArray(body.positions)).toBe(true);
     expect(body.positions.length).toBe(mocks.positions.length);
@@ -126,6 +135,12 @@ describe('POST /api/manufacturing/mesh', () => {
     expect(body.indices.length).toBe(mocks.triangles.length);
     expect(body.printability.recommendation).toBe('printable');
     expect(body.printability.watertight).toBe(true);
+    expect(body.precision.conservativeSurfaceError).toBe(mocks.precision.conservativeSurfaceError);
+    expect(body.precision.units).toBe('same-as-bounds');
+    expect(mocks.estimateMarchingCubesTolerance).toHaveBeenCalledWith({
+      resolution: [40, 40, 40],
+      bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+    });
   });
 
   it('clamps oversized resolution to 64 per axis (does not reject)', async () => {
@@ -138,7 +153,7 @@ describe('POST /api/manufacturing/mesh', () => {
     expect(mocks.marchingCubes).toHaveBeenCalledOnce();
     const callArgs = mocks.marchingCubes.mock.calls[0] as [
       unknown,
-      { resolution: [number, number, number] }
+      { resolution: [number, number, number] },
     ];
     const usedRes = callArgs[1].resolution;
     expect(usedRes[0]).toBe(64);
@@ -153,7 +168,7 @@ describe('POST /api/manufacturing/mesh', () => {
     }) as Parameters<typeof meshPOST>[0];
     const res = await meshPOST(req);
     expect(res.status).toBe(400);
-    const body = await res.json() as { error: string };
+    const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/resolution/i);
   });
 
@@ -161,7 +176,7 @@ describe('POST /api/manufacturing/mesh', () => {
     const req = makeRequest({ resolution: [10, 10, 10] }) as Parameters<typeof meshPOST>[0];
     const res = await meshPOST(req);
     expect(res.status).toBe(400);
-    const body = await res.json() as { error: string };
+    const body = (await res.json()) as { error: string };
     expect(body.error).toMatch(/sdf/i);
   });
 
@@ -213,10 +228,9 @@ describe('POST /api/manufacturing/stl', () => {
   });
 
   it('returns 400 when sdf is missing', async () => {
-    const req = makeRequest(
-      {},
-      'http://localhost/api/manufacturing/stl'
-    ) as Parameters<typeof stlPOST>[0];
+    const req = makeRequest({}, 'http://localhost/api/manufacturing/stl') as Parameters<
+      typeof stlPOST
+    >[0];
     const res = await stlPOST(req);
     expect(res.status).toBe(400);
   });

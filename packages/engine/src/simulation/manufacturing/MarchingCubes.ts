@@ -77,11 +77,7 @@
  */
 
 import type { SurfaceMesh } from '../AutoMesher';
-import {
-  type SDFNode,
-  type SDFDistanceField,
-  sampleSDFDistanceField,
-} from '../SDFPointEvaluator';
+import { type SDFNode, type SDFDistanceField, sampleSDFDistanceField } from '../SDFPointEvaluator';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -95,38 +91,25 @@ const AREA_EPS_SQ = 1e-24;
 //
 // Each entry is a 12-bit bitmask; bit i is set when the iso-surface crosses edge i.
 const EDGE_TABLE: ReadonlyArray<number> = [
-  0x000, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
-  0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
-  0x190, 0x099, 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
-  0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
-  0x230, 0x339, 0x033, 0x13a, 0x636, 0x73f, 0x435, 0x53c,
-  0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
-  0x3a0, 0x2a9, 0x1a3, 0x0aa, 0x7a6, 0x6af, 0x5a5, 0x4ac,
-  0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
-  0x460, 0x569, 0x663, 0x76a, 0x066, 0x16f, 0x265, 0x36c,
-  0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60,
-  0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0x0ff, 0x3f5, 0x2fc,
-  0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0,
-  0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x055, 0x15c,
-  0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
-  0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0x0cc,
-  0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0,
-  0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc,
-  0x0cc, 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0,
-  0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c,
-  0x15c, 0x055, 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650,
-  0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
-  0x2fc, 0x3f5, 0x0ff, 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0,
-  0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c,
-  0x36c, 0x265, 0x16f, 0x066, 0x76a, 0x663, 0x569, 0x460,
-  0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac,
-  0x4ac, 0x5a5, 0x6af, 0x7a6, 0x0aa, 0x1a3, 0x2a9, 0x3a0,
-  0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c,
-  0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x033, 0x339, 0x230,
-  0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c,
-  0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x099, 0x190,
-  0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
-  0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x000,
+  0x000, 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c, 0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03,
+  0xe09, 0xf00, 0x190, 0x099, 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c, 0x99c, 0x895, 0xb9f, 0xa96,
+  0xd9a, 0xc93, 0xf99, 0xe90, 0x230, 0x339, 0x033, 0x13a, 0x636, 0x73f, 0x435, 0x53c, 0xa3c, 0xb35,
+  0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30, 0x3a0, 0x2a9, 0x1a3, 0x0aa, 0x7a6, 0x6af, 0x5a5, 0x4ac,
+  0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0, 0x460, 0x569, 0x663, 0x76a, 0x066, 0x16f,
+  0x265, 0x36c, 0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60, 0x5f0, 0x4f9, 0x7f3, 0x6fa,
+  0x1f6, 0x0ff, 0x3f5, 0x2fc, 0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0, 0x650, 0x759,
+  0x453, 0x55a, 0x256, 0x35f, 0x055, 0x15c, 0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
+  0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0x0cc, 0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3,
+  0x9c9, 0x8c0, 0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc, 0x0cc, 0x1c5, 0x2cf, 0x3c6,
+  0x4ca, 0x5c3, 0x6c9, 0x7c0, 0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c, 0x15c, 0x055,
+  0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650, 0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
+  0x2fc, 0x3f5, 0x0ff, 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0, 0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f,
+  0xd65, 0xc6c, 0x36c, 0x265, 0x16f, 0x066, 0x76a, 0x663, 0x569, 0x460, 0xca0, 0xda9, 0xea3, 0xfaa,
+  0x8a6, 0x9af, 0xaa5, 0xbac, 0x4ac, 0x5a5, 0x6af, 0x7a6, 0x0aa, 0x1a3, 0x2a9, 0x3a0, 0xd30, 0xc39,
+  0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c, 0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x033, 0x339, 0x230,
+  0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c, 0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393,
+  0x099, 0x190, 0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c, 0x70c, 0x605, 0x50f, 0x406,
+  0x30a, 0x203, 0x109, 0x000,
 ];
 
 // ── Paul Bourke triangle table — 256 rows (public domain) ────────────────────
@@ -396,9 +379,18 @@ const TRI_TABLE: ReadonlyArray<ReadonlyArray<number>> = [
 //
 // Each entry [a, b] gives the two corner indices connected by that edge.
 const EDGE_VERTICES: ReadonlyArray<readonly [number, number]> = [
-  [0, 1], [1, 2], [2, 3], [3, 0], // bottom face (z=0)
-  [4, 5], [5, 6], [6, 7], [7, 4], // top face (z=1)
-  [0, 4], [1, 5], [2, 6], [3, 7], // vertical edges
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 0], // bottom face (z=0)
+  [4, 5],
+  [5, 6],
+  [6, 7],
+  [7, 4], // top face (z=1)
+  [0, 4],
+  [1, 5],
+  [2, 6],
+  [3, 7], // vertical edges
 ];
 
 // ── Corner offsets [dx, dy, dz] for the 8 voxel corners ──────────────────────
@@ -510,7 +502,123 @@ export interface MarchingCubesOptions {
   scaleFactor?: number;
 }
 
+export interface MarchingCubesToleranceEstimate {
+  /** Cell spacing between adjacent SDF samples, after scaleFactor. */
+  cellSize: [number, number, number];
+  /** Largest axis-aligned cell spacing. */
+  maxCellSize: number;
+  /** 3D cell diagonal. */
+  cellDiagonal: number;
+  /** Pessimistic surface-location envelope for tolerance gates. */
+  conservativeSurfaceError: number;
+  /** The estimate uses the same unit system as bounds and mesh output. */
+  units: 'same-as-bounds';
+}
+
+export interface ManufacturingBackendDecision {
+  /** The backend this request should use for the requested tolerance. */
+  backend: 'sovereign-sdf-marching-cubes' | 'openscad-wasm';
+  /** True only when the mesh tolerance gate is tighter than this SDF sampling can prove. */
+  bridgeRequired: boolean;
+  /** Requested mechanical tolerance in the same units as bounds/output, if supplied. */
+  requestedTolerance: number | null;
+  /** Conservative mesh tolerance estimate used for the decision. */
+  tolerance: MarchingCubesToleranceEstimate;
+  /** Human-readable reason suitable for receipts and API clients. */
+  reason: string;
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────────
+
+/**
+ * Estimate the meshing tolerance envelope implied by marching-cubes sampling.
+ *
+ * The estimate is deliberately conservative: it reports the full scaled cell
+ * diagonal as the surface-location error gate. If a mechanical tolerance is
+ * tighter than this value, the caller should increase resolution, shrink the
+ * bounds around the part, or route to an exact CAD backend.
+ */
+export function estimateMarchingCubesTolerance(
+  opts: Pick<MarchingCubesOptions, 'bounds' | 'resolution' | 'scaleFactor'> = {}
+): MarchingCubesToleranceEstimate {
+  const bMin: readonly [number, number, number] = opts.bounds?.min ?? [-1, -1, -1];
+  const bMax: readonly [number, number, number] = opts.bounds?.max ?? [1, 1, 1];
+  const res: readonly [number, number, number] = opts.resolution ?? [32, 32, 32];
+  const scale = Math.abs(opts.scaleFactor ?? 1.0);
+
+  const nx = res[0],
+    ny = res[1],
+    nz = res[2];
+  if (nx < 2 || ny < 2 || nz < 2) {
+    throw new Error('estimateMarchingCubesTolerance: resolution must be >= 2 on every axis');
+  }
+
+  const cellSize: [number, number, number] = [
+    Math.abs((bMax[0] - bMin[0]) / (nx - 1)) * scale,
+    Math.abs((bMax[1] - bMin[1]) / (ny - 1)) * scale,
+    Math.abs((bMax[2] - bMin[2]) / (nz - 1)) * scale,
+  ];
+  const maxCellSize = Math.max(...cellSize);
+  const cellDiagonal = Math.hypot(cellSize[0], cellSize[1], cellSize[2]);
+
+  return {
+    cellSize,
+    maxCellSize,
+    cellDiagonal,
+    conservativeSurfaceError: cellDiagonal,
+    units: 'same-as-bounds',
+  };
+}
+
+/**
+ * Decide whether the sovereign SDF → Marching Cubes path is precise enough for
+ * a requested mechanical tolerance, or whether an exact CAD backend should be
+ * used instead. This intentionally does not claim an OpenSCAD bridge exists; it
+ * only marks when such a bridge would be required by the tolerance gate.
+ */
+export function decideManufacturingBackend(
+  opts: Pick<MarchingCubesOptions, 'bounds' | 'resolution' | 'scaleFactor'> & {
+    requestedTolerance?: number | null;
+  } = {}
+): ManufacturingBackendDecision {
+  const tolerance = estimateMarchingCubesTolerance(opts);
+  const requestedTolerance = opts.requestedTolerance ?? null;
+
+  if (requestedTolerance === null) {
+    return {
+      backend: 'sovereign-sdf-marching-cubes',
+      bridgeRequired: false,
+      requestedTolerance,
+      tolerance,
+      reason:
+        'No mechanical tolerance was supplied; use the sovereign SDF kernel and expose its conservative mesh envelope.',
+    };
+  }
+
+  if (!Number.isFinite(requestedTolerance) || requestedTolerance <= 0) {
+    throw new Error('decideManufacturingBackend: requestedTolerance must be a positive finite number');
+  }
+
+  if (tolerance.conservativeSurfaceError <= requestedTolerance) {
+    return {
+      backend: 'sovereign-sdf-marching-cubes',
+      bridgeRequired: false,
+      requestedTolerance,
+      tolerance,
+      reason:
+        'Sovereign SDF sampling envelope is within the requested mechanical tolerance; no OpenSCAD-WASM bridge is required.',
+    };
+  }
+
+  return {
+    backend: 'openscad-wasm',
+    bridgeRequired: true,
+    requestedTolerance,
+    tolerance,
+    reason:
+      'Requested mechanical tolerance is tighter than the conservative SDF sampling envelope; route to an exact CAD backend such as OpenSCAD-WASM before manufacturing.',
+  };
+}
 
 /**
  * Convert an SDF into a watertight triangle mesh using the standard 256-case
@@ -534,7 +642,9 @@ export function marchingCubes(
   const closeBoundary: boolean = opts.closeBoundary !== false;
   const scale: number = opts.scaleFactor ?? 1.0;
 
-  const nx = res[0], ny = res[1], nz = res[2];
+  const nx = res[0],
+    ny = res[1],
+    nz = res[2];
   if (nx < 2 || ny < 2 || nz < 2) {
     throw new Error('marchingCubes: resolution must be >= 2 on every axis');
   }
@@ -567,21 +677,27 @@ export function marchingCubes(
       const idx = ix + nx * (iy + ny * iz);
       if (dist[idx]! < iso) dist[idx] = iso + BOUNDARY_EPS;
     };
-    for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++) {
-      clamp(ix, iy, 0); clamp(ix, iy, nz - 1);
-    }
-    for (let iz = 1; iz < nz - 1; iz++) for (let ix = 0; ix < nx; ix++) {
-      clamp(ix, 0, iz); clamp(ix, ny - 1, iz);
-    }
-    for (let iz = 1; iz < nz - 1; iz++) for (let iy = 1; iy < ny - 1; iy++) {
-      clamp(0, iy, iz); clamp(nx - 1, iy, iz);
-    }
+    for (let iy = 0; iy < ny; iy++)
+      for (let ix = 0; ix < nx; ix++) {
+        clamp(ix, iy, 0);
+        clamp(ix, iy, nz - 1);
+      }
+    for (let iz = 1; iz < nz - 1; iz++)
+      for (let ix = 0; ix < nx; ix++) {
+        clamp(ix, 0, iz);
+        clamp(ix, ny - 1, iz);
+      }
+    for (let iz = 1; iz < nz - 1; iz++)
+      for (let iy = 1; iy < ny - 1; iy++) {
+        clamp(0, iy, iz);
+        clamp(nx - 1, iy, iz);
+      }
   }
 
   // ── Output accumulation ──────────────────────────────────────────────────
   // Use plain number arrays; pack into typed arrays at the end.
-  const vBuf: number[] = [];  // flat xyz: length = 3 * vertexCount
-  const iBuf: number[] = [];  // flat triangle vertex indices
+  const vBuf: number[] = []; // flat xyz: length = 3 * vertexCount
+  const iBuf: number[] = []; // flat triangle vertex indices
 
   // Vertex cache keyed by a canonical global grid-edge identifier.
   //
@@ -598,17 +714,20 @@ export function marchingCubes(
   for (let iz = 0; iz < nz - 1; iz++) {
     for (let iy = 0; iy < ny - 1; iy++) {
       for (let ix = 0; ix < nx - 1; ix++) {
-
         // Sample corner distances and world positions.
         let cubeIndex = 0;
-        const cd: [number,number,number,number,number,number,number,number] =
-          [0,0,0,0,0,0,0,0];
-        const cx: [number,number,number,number,number,number,number,number] =
-          [0,0,0,0,0,0,0,0];
-        const cy_: [number,number,number,number,number,number,number,number] =
-          [0,0,0,0,0,0,0,0];
-        const cz_: [number,number,number,number,number,number,number,number] =
-          [0,0,0,0,0,0,0,0];
+        const cd: [number, number, number, number, number, number, number, number] = [
+          0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        const cx: [number, number, number, number, number, number, number, number] = [
+          0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        const cy_: [number, number, number, number, number, number, number, number] = [
+          0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        const cz_: [number, number, number, number, number, number, number, number] = [
+          0, 0, 0, 0, 0, 0, 0, 0,
+        ];
 
         for (let c = 0; c < 8; c++) {
           const off = CORNER_OFFSETS[c]!;
@@ -620,7 +739,7 @@ export function marchingCubes(
           cx[c] = bMin[0] + gx * sx;
           cy_[c] = bMin[1] + gy * sy;
           cz_[c] = bMin[2] + gz * sz;
-          if (d < iso) cubeIndex |= (1 << c);
+          if (d < iso) cubeIndex |= 1 << c;
         }
 
         const edgeMask = EDGE_TABLE[cubeIndex]!;
@@ -628,9 +747,20 @@ export function marchingCubes(
 
         // Compute / retrieve the interpolated vertex on each active edge.
         // ev[e] = vertex index in vBuf, or -1 if edge e is not active.
-        const ev: [number,number,number,number,number,number,number,number,
-                   number,number,number,number] =
-          [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1];
+        const ev: [
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+          number,
+        ] = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
 
         for (let e = 0; e < 12; e++) {
           if (!(edgeMask & (1 << e))) continue;

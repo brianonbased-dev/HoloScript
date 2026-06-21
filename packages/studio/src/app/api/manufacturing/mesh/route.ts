@@ -12,6 +12,7 @@
  *       min: [x,y,z]        — world-space AABB min, default [-1,-1,-1]
  *       max: [x,y,z]        — world-space AABB max, default [1,1,1]
  *     }
+ *     mechanicalTolerance?: number — optional positive tolerance in bounds/output units
  *   }
  *
  * Response 200 (JSON):
@@ -19,6 +20,8 @@
  *     positions: number[]         — flat xyz vertex array (length = 3 * vertexCount)
  *     indices: number[]           — flat triangle index array (length = 3 * triangleCount)
  *     printability: PrintabilityReport
+ *     precision: MarchingCubesToleranceEstimate
+ *     backendDecision: ManufacturingBackendDecision
  *   }
  *
  * Response 400:
@@ -30,10 +33,7 @@ import type { Simulation as SimulationNS } from '@holoscript/engine';
 
 // marchingCubes accepts SDFNode | SDFDistanceField; the field variant carries
 // `distances`, so excluding it leaves the plain SDF tree type this route accepts.
-type SDFNode = Exclude<
-  Parameters<typeof SimulationNS.marchingCubes>[0],
-  { distances: unknown }
->;
+type SDFNode = Exclude<Parameters<typeof SimulationNS.marchingCubes>[0], { distances: unknown }>;
 
 /**
  * Load the REAL engine at runtime, bypassing webpack entirely.
@@ -47,9 +47,9 @@ type SDFNode = Exclude<
  * server-side here; the client receives plain JSON.
  */
 async function loadSimulation(): Promise<typeof SimulationNS> {
-  const engine = (await import(
-    /* webpackIgnore: true */ '@holoscript/engine'
-  )) as { Simulation: typeof SimulationNS };
+  const engine = (await import(/* webpackIgnore: true */ '@holoscript/engine')) as {
+    Simulation: typeof SimulationNS;
+  };
   return engine.Simulation;
 }
 
@@ -82,8 +82,7 @@ function isResolution(v: unknown): v is [number, number, number] {
   if (!isVec3(v)) return false;
   const [a, b, c] = v as [number, number, number];
   return (
-    Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c) &&
-    a >= 2 && b >= 2 && c >= 2
+    Number.isInteger(a) && Number.isInteger(b) && Number.isInteger(c) && a >= 2 && b >= 2 && c >= 2
   );
 }
 
@@ -124,8 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!isResolution(raw['resolution'])) {
       return NextResponse.json(
         {
-          error:
-            '`resolution` must be an array of 3 integers each >= 2',
+          error: '`resolution` must be an array of 3 integers each >= 2',
         },
         { status: 400 }
       );
@@ -164,18 +162,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  let mechanicalTolerance: number | null = null;
+  if (raw['mechanicalTolerance'] !== undefined) {
+    if (!isFiniteNumber(raw['mechanicalTolerance']) || raw['mechanicalTolerance'] <= 0) {
+      return NextResponse.json(
+        { error: '`mechanicalTolerance` must be a positive finite number' },
+        { status: 400 }
+      );
+    }
+    mechanicalTolerance = raw['mechanicalTolerance'];
+  }
+
   // Run marching cubes + printability analysis
   try {
     const Simulation = await loadSimulation();
     const mesh = Simulation.marchingCubes(sdf, { resolution, bounds });
 
     const printability = Simulation.analyzePrintability(mesh, { sdf });
+    const precision = Simulation.estimateMarchingCubesTolerance({ resolution, bounds });
+    const backendDecision = Simulation.decideManufacturingBackend({
+      resolution,
+      bounds,
+      requestedTolerance: mechanicalTolerance,
+    });
 
     // Convert typed arrays to plain number arrays for JSON serialization
     const positions = Array.from(mesh.vertices) as number[];
     const indices = Array.from(mesh.triangles) as number[];
 
-    return NextResponse.json({ positions, indices, printability });
+    return NextResponse.json({ positions, indices, printability, precision, backendDecision });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: `Meshing failed: ${message}` }, { status: 400 });

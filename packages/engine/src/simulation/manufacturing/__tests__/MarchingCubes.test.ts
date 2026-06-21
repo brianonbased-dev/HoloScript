@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { marchingCubes } from '../MarchingCubes';
+import { estimateMarchingCubesTolerance, marchingCubes } from '../MarchingCubes';
 import type { SDFNode } from '../../SDFPointEvaluator';
 import { sampleSDFDistanceField } from '../../SDFPointEvaluator';
 
@@ -30,9 +30,15 @@ function signedVolume(vertices: Float64Array, triangles: Uint32Array): number {
     const i0 = triangles[t]! * 3;
     const i1 = triangles[t + 1]! * 3;
     const i2 = triangles[t + 2]! * 3;
-    const x0 = vertices[i0]!; const y0 = vertices[i0 + 1]!; const z0 = vertices[i0 + 2]!;
-    const x1 = vertices[i1]!; const y1 = vertices[i1 + 1]!; const z1 = vertices[i1 + 2]!;
-    const x2 = vertices[i2]!; const y2 = vertices[i2 + 1]!; const z2 = vertices[i2 + 2]!;
+    const x0 = vertices[i0]!;
+    const y0 = vertices[i0 + 1]!;
+    const z0 = vertices[i0 + 2]!;
+    const x1 = vertices[i1]!;
+    const y1 = vertices[i1 + 1]!;
+    const z1 = vertices[i1 + 2]!;
+    const x2 = vertices[i2]!;
+    const y2 = vertices[i2 + 1]!;
+    const z2 = vertices[i2 + 2]!;
     // v0 · (v1 × v2)
     const cx = y1 * z2 - z1 * y2;
     const cy = z1 * x2 - x1 * z2;
@@ -120,7 +126,7 @@ describe('MarchingCubes — sphere r=1 at 48³', () => {
   const RES = 48;
   const BOUNDS = { min: [-1.5, -1.5, -1.5] as const, max: [1.5, 1.5, 1.5] as const };
   const ANALYTIC_VOLUME = (4 / 3) * Math.PI * RADIUS ** 3; // ≈ 4.189
-  const ANALYTIC_AREA   = 4 * Math.PI * RADIUS ** 2;        // ≈ 12.566
+  const ANALYTIC_AREA = 4 * Math.PI * RADIUS ** 2; // ≈ 12.566
 
   let vertices: Float64Array;
   let triangles: Uint32Array;
@@ -180,7 +186,7 @@ describe('MarchingCubes — resolution convergence (sphere)', () => {
     });
 
     const errCoarse = Math.abs(signedVolume(coarse.vertices, coarse.triangles) - ANALYTIC_VOLUME);
-    const errFine   = Math.abs(signedVolume(fine.vertices,   fine.triangles)   - ANALYTIC_VOLUME);
+    const errFine = Math.abs(signedVolume(fine.vertices, fine.triangles) - ANALYTIC_VOLUME);
 
     expect(errFine).toBeLessThan(errCoarse);
   });
@@ -193,9 +199,9 @@ describe('MarchingCubes — CSG box minus cylinder', () => {
   // Cylinder extends from y=-1 to y=+1 fully through the box.
   // Analytic: V_box − V_cyl = 8 − π * 0.5² * 2 = 8 − π/2 ≈ 6.429
   const BOX_HALF = 1;
-  const CYL_HEIGHT = 1;   // half-height param
+  const CYL_HEIGHT = 1; // half-height param
   const CYL_RADIUS = 0.5;
-  const BOX_VOL = (BOX_HALF * 2) ** 3;  // 8
+  const BOX_VOL = (BOX_HALF * 2) ** 3; // 8
   const CYL_VOL = Math.PI * CYL_RADIUS ** 2 * (CYL_HEIGHT * 2); // π * 0.25 * 2 = π/2
   const ANALYTIC_VOLUME = BOX_VOL - CYL_VOL;
 
@@ -239,15 +245,19 @@ describe('MarchingCubes — pre-sampled SDFDistanceField input', () => {
     const BOUNDS = { min: [-1.5, -1.5, -1.5] as const, max: [1.5, 1.5, 1.5] as const };
     const RES = [24, 24, 24] as const;
 
-    const field = sampleSDFDistanceField(node, { min: BOUNDS.min, max: BOUNDS.max, resolution: RES });
+    const field = sampleSDFDistanceField(node, {
+      min: BOUNDS.min,
+      max: BOUNDS.max,
+      resolution: RES,
+    });
 
-    const meshFromNode  = marchingCubes(node,  { bounds: BOUNDS, resolution: RES });
+    const meshFromNode = marchingCubes(node, { bounds: BOUNDS, resolution: RES });
     const meshFromField = marchingCubes(field, { bounds: BOUNDS, resolution: RES });
 
     expect(meshFromField.vertices.length).toBe(meshFromNode.vertices.length);
     expect(meshFromField.triangles.length).toBe(meshFromNode.triangles.length);
 
-    const volNode  = signedVolume(meshFromNode.vertices,  meshFromNode.triangles);
+    const volNode = signedVolume(meshFromNode.vertices, meshFromNode.triangles);
     const volField = signedVolume(meshFromField.vertices, meshFromField.triangles);
     expect(Math.abs(volNode - volField)).toBeLessThan(1e-6);
   });
@@ -261,15 +271,39 @@ describe('MarchingCubes — scaleFactor option', () => {
     const RES = [24, 24, 24] as const;
 
     const unscaled = marchingCubes(sphereNode(RADIUS), { bounds: BOUNDS, resolution: RES });
-    const scaled   = marchingCubes(sphereNode(RADIUS), { bounds: BOUNDS, resolution: RES, scaleFactor: SCALE });
+    const scaled = marchingCubes(sphereNode(RADIUS), {
+      bounds: BOUNDS,
+      resolution: RES,
+      scaleFactor: SCALE,
+    });
 
     expect(scaled.triangles.length).toBe(unscaled.triangles.length);
 
     // Scaled volume should be SCALE³ × unscaled volume.
     const volU = signedVolume(unscaled.vertices, unscaled.triangles);
-    const volS = signedVolume(scaled.vertices,   scaled.triangles);
+    const volS = signedVolume(scaled.vertices, scaled.triangles);
     const ratio = volS / volU;
     expect(Math.abs(ratio - SCALE ** 3)).toBeLessThan(0.01 * SCALE ** 3);
+  });
+});
+
+describe('MarchingCubes tolerance estimate', () => {
+  it('reports a conservative scaled sampling envelope', () => {
+    const estimate = estimateMarchingCubesTolerance({
+      bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+      resolution: [5, 9, 17],
+      scaleFactor: 2,
+    });
+
+    expect(estimate.cellSize).toEqual([1, 0.5, 0.25]);
+    expect(estimate.maxCellSize).toBe(1);
+    expect(estimate.cellDiagonal).toBeCloseTo(Math.hypot(1, 0.5, 0.25), 12);
+    expect(estimate.conservativeSurfaceError).toBe(estimate.cellDiagonal);
+    expect(estimate.units).toBe('same-as-bounds');
+  });
+
+  it('rejects invalid resolution the same way marchingCubes does', () => {
+    expect(() => estimateMarchingCubesTolerance({ resolution: [1, 32, 32] })).toThrow();
   });
 });
 
@@ -279,7 +313,11 @@ describe('MarchingCubes — closeBoundary option', () => {
     const node = sphereNode(2);
     const BOUNDS = { min: [-1.5, -1.5, -1.5] as const, max: [1.5, 1.5, 1.5] as const };
 
-    const closed = marchingCubes(node, { bounds: BOUNDS, resolution: [20, 20, 20], closeBoundary: true });
+    const closed = marchingCubes(node, {
+      bounds: BOUNDS,
+      resolution: [20, 20, 20],
+      closeBoundary: true,
+    });
     expect(closed.triangles.length).toBeGreaterThan(0);
     const { ok } = edgeManifoldCheck(closed.triangles);
     expect(ok).toBe(true);
