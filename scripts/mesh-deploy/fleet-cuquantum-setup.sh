@@ -49,37 +49,89 @@ python3 -m pip install -q "cupy-${SUFFIX/cu/cuda}x" 2>/dev/null || python3 -m pi
 # CUDA runtime libs. On a full CUDA toolkit image these are already on the system path. If not
 # (e.g. a slim image, or CUDA-13 where the nvidia-*-cu13 pip wheels are unbuildable stubs), fetch
 # the matching libs from NVIDIA's redist tarballs (sudo-free) and add them to the loader path.
-CUDA13_LIBS="$HOME/.cuda${CUDA_MAJOR}-libs"; mkdir -p "$CUDA13_LIBS"
-if ! python3 -c "from qiskit_aer import AerSimulator" >/dev/null 2>&1; then
+CUDA_LIBS="$HOME/.cuda${CUDA_MAJOR}-libs"; mkdir -p "$CUDA_LIBS"
+NVDIRS="$(python3 - <<'PY' 2>/dev/null || true
+import glob
+import os
+import site
+
+roots = []
+for getter in (getattr(site, "getsitepackages", None), getattr(site, "getusersitepackages", None)):
+    if not getter:
+        continue
+    try:
+        value = getter()
+        roots.extend(value if isinstance(value, list) else [value])
+    except Exception:
+        pass
+dirs = {
+    path
+    for root in roots
+    for path in glob.glob(os.path.join(root, "nvidia", "*", "lib"))
+}
+print(os.pathsep.join(sorted(dirs)))
+PY
+)"
+CHECK_LD="$CUDA_LIBS${NVDIRS:+:$NVDIRS}:${LD_LIBRARY_PATH:-}"
+if ! LD_LIBRARY_PATH="$CHECK_LD" python3 -c "from qiskit_aer import AerSimulator" >/dev/null 2>&1; then
   echo "$LOG aer import failed -> fetching CUDA-$CUDA_MAJOR runtime libs from redist ..."
-  python3 - "$CUDA13_LIBS" "$CUDA_MAJOR" <<'PY' || echo "$LOG WARN redist lib fetch failed"
-import json,os,subprocess,sys,urllib.request,glob
+  python3 - "$CUDA_LIBS" "$CUDA_MAJOR" <<'PY' || echo "$LOG WARN redist lib fetch failed"
+import json, pathlib, subprocess, sys, urllib.request
+
 libdir,major=sys.argv[1],sys.argv[2]
+pathlib.Path(libdir).mkdir(parents=True, exist_ok=True)
 base="https://developer.download.nvidia.com/compute/cuda/redist/"
 man=None
+last=None
 for v in (f"{major}.1.0",f"{major}.0.1",f"{major}.0.0"):
-    try: urllib.request.urlretrieve(base+f"redistrib_{v}.json","/tmp/_r.json"); man=v; break
-    except Exception: pass
-if not man: print("  no manifest"); sys.exit(0)
+    try:
+        urllib.request.urlretrieve(base+f"redistrib_{v}.json","/tmp/_r.json")
+        man=v
+        break
+    except Exception as exc:
+        last=exc
+if not man:
+    print("  no manifest", last)
+    sys.exit(1)
+print(f"  manifest redistrib_{man}.json")
 d=json.load(open("/tmp/_r.json"))
+copied=0
 for c in ("libcublas","libcusolver","libcusparse","libnvjitlink","cuda_nvrtc","cuda_cudart","libcufft","libcurand"):
     rel=d.get(c,{}).get("linux-x86_64",{}).get("relative_path")
-    if not rel: continue
-    t="/tmp/"+os.path.basename(rel)
-    if not os.path.exists(t): urllib.request.urlretrieve(base+rel,t)
-    subprocess.run(["tar","-xf",t,"-C","/tmp"],check=True)
-    for so in glob.glob(t.replace("-archive.tar.xz","-archive")+"/lib/*.so*"): subprocess.run(["cp","-a",so,libdir+"/"])
-    print("  +",c)
+    if not rel:
+        print("  WARN missing", c)
+        continue
+    t=pathlib.Path("/tmp")/pathlib.Path(rel).name
+    if not t.exists() or t.stat().st_size == 0:
+        urllib.request.urlretrieve(base+rel,str(t))
+    subprocess.run(["tar","-xf",str(t),"-C","/tmp"],check=True)
+    root=pathlib.Path(str(t).replace("-archive.tar.xz","-archive"))
+    libs=[p for p in root.rglob("*.so*")]
+    for so in libs:
+        subprocess.run(["cp","-a",str(so),libdir+"/"],check=True)
+    copied += len(libs)
+    print(f"  + {c} ({len(libs)} libs)")
+if major == "13" and not (pathlib.Path(libdir)/"libcublas.so.13").exists():
+    print("  missing required libcublas.so.13 after redist fetch")
+    sys.exit(1)
+if copied == 0:
+    print("  no runtime libraries copied")
+    sys.exit(1)
 PY
 fi
-export LD_LIBRARY_PATH="$CUDA13_LIBS:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$CUDA_LIBS${NVDIRS:+:$NVDIRS}:${LD_LIBRARY_PATH:-}"
+echo "$LOG CUDA runtime library path: $CUDA_LIBS${NVDIRS:+:$NVDIRS}"
 # PERSIST for subsequent job processes. The worker supervisor runs each job via `bash -lc`
 # (a login shell that sources /etc/profile.d), so without this a separate smoke/job process
 # can't find libcublas.so.13 even though the setup process could (verified failure 2026-05-22).
-if [ -n "$CUDA13_LIBS" ] && [ -d "$CUDA13_LIBS" ]; then
-  { echo "export LD_LIBRARY_PATH=\"$CUDA13_LIBS:\${LD_LIBRARY_PATH:-}\"" \
+if [ -n "$CUDA_LIBS" ] && [ -d "$CUDA_LIBS" ]; then
+  { echo "export LD_LIBRARY_PATH=\"$CUDA_LIBS${NVDIRS:+:$NVDIRS}:\${LD_LIBRARY_PATH:-}\"" \
       > /etc/profile.d/cuquantum-libs.sh; } 2>/dev/null \
     || echo "$LOG WARN: could not write /etc/profile.d/cuquantum-libs.sh (jobs must set LD_LIBRARY_PATH themselves)"
+fi
+if [ "$CUDA_MAJOR" = "13" ] && [ ! -e "$CUDA_LIBS/libcublas.so.13" ]; then
+  echo "$LOG WARN: libcublas.so.13 still absent after setup; matching files:"
+  find "$CUDA_LIBS" -maxdepth 1 -name 'libcublas*' -print 2>/dev/null || true
 fi
 
 # --- emit resolved versions for the receipt (KEY=VALUE, easy to capture) ---
