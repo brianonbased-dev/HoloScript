@@ -14,10 +14,10 @@ import type { TraitHandler } from './TraitTypes';
 // TYPES
 // =============================================================================
 
-type PlaneMode = 'horizontal' | 'vertical' | 'all';
-type PlaneClassification = 'floor' | 'wall' | 'ceiling' | 'table' | 'door' | 'window' | 'unknown';
+export type PlaneMode = 'horizontal' | 'vertical' | 'all';
+export type PlaneClassification = 'floor' | 'wall' | 'ceiling' | 'table' | 'door' | 'window' | 'unknown';
 
-interface DetectedPlane {
+export interface DetectedPlane {
   id: string;
   classification: PlaneClassification;
   center: Vector3;
