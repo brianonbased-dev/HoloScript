@@ -70,6 +70,7 @@ import { eyeTrackedHandler } from './EyeTrackedTrait';
 import { planeDetectionHandler } from './PlaneDetectionTrait';
 import { meshDetectionHandler } from './MeshDetectionTrait';
 import { roomMeshHandler } from './RoomMeshTrait';
+import { autoRigHandler, generatedMeshHandler } from './AutoRigTrait';
 import { aiUpscalingHandler, neuralUpscalingHandler } from './AiUpscalingTrait';
 import { anchorHandler } from './AnchorTrait';
 import { persistentAnchorHandler } from './PersistentAnchorTrait';
@@ -1618,6 +1619,8 @@ export class VRTraitRegistry {
     this.register(snappableHandler);
     this.register(breakableHandler);
     this.register(skeletonHandler);
+    this.register(generatedMeshHandler as TraitHandler);
+    this.register(autoRigHandler as TraitHandler);
     this.register(bodyHandler);
     this.register(proactiveHandler);
     this.register(eventTraitHandler as TraitHandler);

@@ -139,6 +139,27 @@
     "conflicts": [],
     "source": "holoscript"
   },
+  "auto_rig": {
+    "id": "auto_rig",
+    "namespace": "@holoscript/core",
+    "category": "animation",
+    "properties": [
+      "rig",
+      "pose",
+      "sourceMesh",
+      "topology"
+    ],
+    "compileHints": [
+      "binds native skeleton metadata for generated meshes",
+      "emits animation-compatible topology contract"
+    ],
+    "composable": [
+      "generated_mesh",
+      "skeleton"
+    ],
+    "conflicts": [],
+    "source": "holoscript"
+  },
   "alert": {
     "id": "alert",
     "namespace": "@holoscript/core",
@@ -1058,6 +1079,28 @@
     "properties": [],
     "compileHints": [],
     "composable": [],
+    "conflicts": [],
+    "source": "holoscript"
+  },
+  "generated_mesh": {
+    "id": "generated_mesh",
+    "namespace": "@holoscript/core",
+    "category": "asset",
+    "properties": [
+      "model",
+      "provider",
+      "description",
+      "format",
+      "topology"
+    ],
+    "compileHints": [
+      "captures text-to-3d provider provenance",
+      "composes with auto_rig for native skeleton binding"
+    ],
+    "composable": [
+      "auto_rig",
+      "skeleton"
+    ],
     "conflicts": [],
     "source": "holoscript"
   },

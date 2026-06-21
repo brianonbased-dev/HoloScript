@@ -555,7 +555,7 @@ export const textTo3DTools: Tool[] = [
     name: 'generate_3d_object',
     description:
       'Generate a 3D object from a text description using AI (Meshy/Tripo). ' +
-      'Returns a .holo file with the model reference and auto-suggested traits. ' +
+      'Returns a .holo file with the model reference, auto-suggested traits, and optional native auto-rigging. ' +
       'Requires MESHY_API_KEY or TRIPO_API_KEY environment variable.',
     inputSchema: {
       type: 'object',
@@ -578,6 +578,17 @@ export const textTo3DTools: Tool[] = [
         objectName: {
           type: 'string',
           description: 'Optional custom name for the generated object.',
+        },
+        rig: {
+          type: 'string',
+          enum: ['humanoid', 'custom'],
+          description:
+            'Optional native HoloScript auto-rig pipeline. humanoid emits @generated_mesh + @auto_rig + bound @skeleton metadata; custom emits a compact envelope skeleton.',
+        },
+        pose: {
+          type: 'string',
+          enum: ['t-pose', 'a-pose'],
+          description: 'Bind pose for native auto-rigging. Defaults to t-pose when rig is provided.',
         },
       },
       required: ['description'],

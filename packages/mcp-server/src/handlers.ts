@@ -12,6 +12,10 @@ import {
   parseHoloStrict,
   parsePipeline,
   VR_TRAITS,
+  createNativeAutoRigPlan,
+  type AutoRigPose,
+  type AutoRigRigType,
+  type NativeAutoRigPlan,
 } from '@holoscript/core';
 
 import {
@@ -1806,15 +1810,173 @@ function analyzeAST(parsed: unknown, code: string) {
 
 // === TEXT-TO-3D HANDLER ===
 
+interface NativeAutoRigEnrichmentInput {
+  holoCode: string;
+  description: string;
+  provider: string;
+  modelFilePath: string;
+  objectName?: string;
+  traits?: string[];
+  rig: AutoRigRigType;
+  pose: AutoRigPose;
+}
+
+interface NativeAutoRigEnrichment {
+  holoCode: string;
+  traits: string[];
+  autoRig: NativeAutoRigPlan;
+  generatedMesh: {
+    model: string;
+    provider: string;
+    description: string;
+    topology: string;
+  };
+  skeleton: {
+    rig: AutoRigRigType;
+    pose: AutoRigPose;
+    boneCount: number;
+    standard: string;
+  };
+}
+
+function normalizeGenerate3DObjectRig(value: unknown): AutoRigRigType | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (value === 'humanoid' || value === 'custom') return value;
+  throw new Error('rig must be one of: humanoid, custom');
+}
+
+function normalizeGenerate3DObjectPose(value: unknown): AutoRigPose {
+  if (value === undefined || value === null || value === '') return 't-pose';
+  if (value === 't-pose' || value === 'a-pose') return value;
+  throw new Error('pose must be one of: t-pose, a-pose');
+}
+
+function basenameFromPath(filePath: string): string {
+  return filePath.split(/[\\/]/).filter(Boolean).pop() || 'generated.glb';
+}
+
+function escapeRegexLiteral(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeHoloString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function quoteHolo(value: string): string {
+  return `"${escapeHoloString(value)}"`;
+}
+
+function sanitizeGeneratedObjectName(description: string): string {
+  return (
+    description
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 40) || 'generated_object'
+  );
+}
+
+function extractFirstHoloObjectName(holoCode: string): string | undefined {
+  return holoCode.match(/object\s+"([^"]+)"/)?.[1];
+}
+
+function mergeGeneratedObjectTraits(traits: string[] | undefined): string[] {
+  return Array.from(new Set([...(traits ?? []), 'generated_mesh', 'auto_rig', 'skeleton']));
+}
+
+function injectNativeAutoRigAnnotations(
+  holoCode: string,
+  objectName: string,
+  modelFile: string,
+  provider: string,
+  plan: NativeAutoRigPlan
+): string {
+  const annotations = [
+    `@generated_mesh(model: ${quoteHolo(modelFile)}, provider: ${quoteHolo(provider)}, topology: ${quoteHolo(plan.topology)})`,
+    `@auto_rig(rig: ${quoteHolo(plan.rig)}, pose: ${quoteHolo(plan.pose)}, source: ${quoteHolo(plan.source)})`,
+    `@skeleton(rig: ${quoteHolo(plan.rig)}, pose: ${quoteHolo(plan.pose)}, bone_count: ${plan.boneCount}, standard: ${quoteHolo(plan.animationCompatibility.standard)})`,
+  ];
+  const missingAnnotations = annotations.filter((annotation) => {
+    const name = annotation.slice(0, annotation.indexOf('('));
+    return !holoCode.includes(name);
+  });
+
+  if (missingAnnotations.length === 0) return holoCode;
+
+  const objectPattern = new RegExp(`(object\\s+"${escapeRegexLiteral(objectName)}"[^\\{]*)(\\{)`);
+  if (objectPattern.test(holoCode)) {
+    return holoCode.replace(objectPattern, `$1 ${missingAnnotations.join(' ')} $2`);
+  }
+
+  return `composition "${escapeHoloString(objectName)}" {
+  object "${escapeHoloString(objectName)}" ${missingAnnotations.join(' ')} {
+    model: "${escapeHoloString(modelFile)}"
+  }
+}
+`;
+}
+
+export function applyNativeAutoRigToGeneratedObject(
+  input: NativeAutoRigEnrichmentInput
+): NativeAutoRigEnrichment {
+  const objectName =
+    input.objectName ??
+    extractFirstHoloObjectName(input.holoCode) ??
+    sanitizeGeneratedObjectName(input.description);
+  const modelFile = basenameFromPath(input.modelFilePath);
+  const autoRig = createNativeAutoRigPlan({
+    rig: input.rig,
+    pose: input.pose,
+    sourceMesh: input.modelFilePath,
+    objectName,
+    provider: input.provider,
+    topology: 'animation-compatible',
+  });
+
+  return {
+    holoCode: injectNativeAutoRigAnnotations(
+      input.holoCode,
+      objectName,
+      modelFile,
+      input.provider,
+      autoRig
+    ),
+    traits: mergeGeneratedObjectTraits(input.traits),
+    autoRig,
+    generatedMesh: {
+      model: modelFile,
+      provider: input.provider,
+      description: input.description,
+      topology: autoRig.topology,
+    },
+    skeleton: {
+      rig: autoRig.rig,
+      pose: autoRig.pose,
+      boneCount: autoRig.boneCount,
+      standard: autoRig.animationCompatibility.standard,
+    },
+  };
+}
+
 async function handleGenerate3DObject(args: Record<string, unknown>) {
   const description = args.description as string;
   const providerName = (args.provider as string) || 'meshy';
   type TextTo3DStyle = 'realistic' | 'cartoon' | 'low-poly' | 'pbr';
   const style = ((args.style as string) || 'pbr') as TextTo3DStyle;
   const objectName = args.objectName as string | undefined;
+  let rig: AutoRigRigType | undefined;
+  let pose: AutoRigPose;
 
   if (!description) {
     return { success: false, error: 'description is required' };
+  }
+
+  try {
+    rig = normalizeGenerate3DObjectRig(args.rig);
+    pose = normalizeGenerate3DObjectPose(args.pose);
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 
   try {
@@ -1836,15 +1998,30 @@ async function handleGenerate3DObject(args: Record<string, unknown>) {
       style,
       objectName,
     });
+    const autoRigEnrichment = rig
+      ? applyNativeAutoRigToGeneratedObject({
+          holoCode: result.holoCode,
+          description,
+          provider: result.metadata.provider,
+          modelFilePath: result.modelFilePath,
+          objectName,
+          traits: result.traits,
+          rig,
+          pose,
+        })
+      : undefined;
 
     return {
       success: true,
-      holoCode: result.holoCode,
+      holoCode: autoRigEnrichment?.holoCode ?? result.holoCode,
       holoFilePath: result.holoFilePath,
       modelFilePath: result.modelFilePath,
-      traits: result.traits,
+      traits: autoRigEnrichment?.traits ?? result.traits,
       provider: result.metadata.provider,
       generationTimeMs: result.metadata.generationTimeMs,
+      generatedMesh: autoRigEnrichment?.generatedMesh,
+      autoRig: autoRigEnrichment?.autoRig,
+      skeleton: autoRigEnrichment?.skeleton,
     };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);

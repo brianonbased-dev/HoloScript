@@ -90,6 +90,20 @@ export type {
   TraitInstanceDelegate,
 } from '../traits/TraitTypes';
 
+export {
+  autoRigHandler,
+  createNativeAutoRigPlan,
+  generatedMeshHandler,
+} from '../traits/AutoRigTrait';
+export type {
+  AutoRigConfig,
+  AutoRigPose,
+  AutoRigRigType,
+  AutoRigTopology,
+  GeneratedMeshConfig,
+  NativeAutoRigPlan,
+} from '../traits/AutoRigTrait';
+
 // Trust primitives (ADR-2026-05-14)
 export * from '../trust';
 

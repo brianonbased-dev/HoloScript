@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import * as generators from '../generators';
-import { handleTool } from '../handlers';
+import { applyNativeAutoRigToGeneratedObject, handleTool } from '../handlers';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
 
 const mockSigningCtx: SigningContext = {
@@ -43,5 +43,29 @@ describe('handlers AI generation path', () => {
     expect(result.source).toBe('ai');
     expect(result.provider).toBe('bitnet');
     expect(result.stats.lines).toBeGreaterThan(0);
+  });
+
+  it('adds native auto-rig annotations and skeleton metadata to generated 3D objects', () => {
+    const enriched = applyNativeAutoRigToGeneratedObject({
+      holoCode: `composition "Hero" {
+  object "Hero" @glowing {
+    model: "hero.glb"
+  }
+}`,
+      description: 'a stylized adventurer',
+      provider: 'meshy',
+      modelFilePath: 'C:\\tmp\\hero.glb',
+      traits: ['glowing'],
+      rig: 'humanoid',
+      pose: 'a-pose',
+    });
+
+    expect(enriched.holoCode).toContain('@generated_mesh(model: "hero.glb"');
+    expect(enriched.holoCode).toContain('@auto_rig(rig: "humanoid", pose: "a-pose"');
+    expect(enriched.holoCode).toContain('@skeleton(rig: "humanoid", pose: "a-pose"');
+    expect(enriched.traits).toEqual(['glowing', 'generated_mesh', 'auto_rig', 'skeleton']);
+    expect(enriched.generatedMesh.topology).toBe('animation-compatible');
+    expect(enriched.skeleton.standard).toBe('HoloScriptHumanoid21');
+    expect(enriched.autoRig.humanoidMap?.rightFoot).toBe('right_foot');
   });
 });

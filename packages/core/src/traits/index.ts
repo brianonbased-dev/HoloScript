@@ -264,6 +264,7 @@ export * from './SharedAnchorTrait';
 export * from './SharedWorldTrait';
 export * from './SharePlayTrait';
 export * from './SkeletonTrait';
+export * from './AutoRigTrait';
 export * from './SkillRegistryTrait';
 export * from './SimulationSolverFactory';
 export * from './SlidableTrait';
