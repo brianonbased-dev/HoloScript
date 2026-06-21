@@ -76,6 +76,7 @@ const str = (v: HoloValue | undefined, d: string): string => (typeof v === 'stri
 // ── resolved world object ────────────────────────────────────────────────────
 interface WorldObj {
   name: string;
+  agentId: string; // `agent:` — this object embodies a HoloScript agent (its mind carries via memory)
   shape: string;
   model: string;
   pos: Vec3;
@@ -93,6 +94,7 @@ interface WorldObj {
 
 function collectObject(obj: HoloObjectDecl): WorldObj {
   let shape = 'box';
+  let agentId = '';
   let model = '';
   let pos: Vec3 = [0, 0, 0];
   let rot: Vec3 = [0, 0, 0];
@@ -112,6 +114,14 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
       case 'mesh':
       case 'type':
         if (typeof p.value === 'string') shape = p.value;
+        break;
+      case 'agent':
+      case 'agent_id':
+      case 'embodies':
+        // This object is the in-world embodiment of a HoloScript agent. The body is authored here
+        // (model/geometry); the MIND (wallet-keyed identity + memory) carries from the compute node
+        // (Jetson/laptop) — the memory-carry binding consumes this in the agent-embodiment slice.
+        agentId = str(p.value, agentId);
         break;
       case 'model':
       case 'src':
@@ -164,6 +174,7 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
   }
   return {
     name: obj.name,
+    agentId,
     shape,
     model,
     pos,
@@ -255,8 +266,9 @@ export function emitWorldSceneKt(composition: HoloComposition, worldId: string):
       const comps = meshComponentsKt(o).concat(transformKt(o));
       const compBlock = comps.map((c) => `                ${c},`).join('\n');
       const animated = BEHAVIORS.has(o.behavior);
+      const agentTag = o.agentId ? ` @agent ${o.agentId}` : '';
       if (!animated) {
-        return `    // object "${o.name}" (${o.model || o.shape})
+        return `    // object "${o.name}" (${o.model || o.shape})${agentTag}
     w.entities.add(
         Entity.create(
             listOf(
@@ -266,7 +278,7 @@ ${compBlock}
     )`;
       }
       const v = `o${i}`;
-      return `    // object "${o.name}" (${o.model || o.shape}, behavior: ${o.behavior})
+      return `    // object "${o.name}" (${o.model || o.shape}, behavior: ${o.behavior})${agentTag}
     val ${v} =
         Entity.create(
             listOf(

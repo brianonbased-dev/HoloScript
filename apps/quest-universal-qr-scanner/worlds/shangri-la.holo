@@ -33,6 +33,12 @@ composition "ShangriLa" {
   // by hand. Regenerate: npx tsx gen-landmark-from-holosdf.mts.
   object "HoloSpire" { model: "holo_spire.glb" position: [0, 0.9, 7] motion: "bob" speed: 0.5 amplitude: 0.08 }
 
+  // ── Agent embodiment (the mind carries from the compute node) ─────────────
+  // Brittney runs on the Jetson (wallet-keyed identity + memory). The `agent:` key marks this object
+  // her body in the world — the same agent, embodied in the headset. The memory-carry slice binds her
+  // private:<wallet> memory to this presence so she arrives with her mind, not just a body.
+  object "Brittney" { agent: "brittney" geometry: "sphere" position: [-1.8, 1.4, 6] scale: [0.5, 0.5, 0.5] color: "#ffd39a" glow: true motion: "float" speed: 1.0 amplitude: 0.25 }
+
   // ── Orbiting guardian (character action) ─────────────────────────────────
   object "Guardian" { geometry: "sphere" position: [6, 3.4, 13] scale: [0.7, 0.7, 0.7] color: "#7fe7ff" glow: true motion: "orbit" orbit_center: [0, 3.4, 13] radius: 6.5 speed: 0.45 }
 
