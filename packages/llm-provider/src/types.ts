@@ -1013,6 +1013,8 @@ export interface Capabilities {
   videoInput?: boolean;
   audioInput?: boolean;
   audioOutput?: boolean;
+  /** Streaming TTS/audio chunks; distinct from normal text-token streaming. */
+  streamingSpeechGeneration?: boolean;
   imageGeneration?: boolean;
   /** Sora-class video generation. Anthropic = false; OpenAI Sora deprecated 2026-09-24. */
   videoGeneration?: boolean;

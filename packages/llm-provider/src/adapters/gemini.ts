@@ -50,6 +50,7 @@ import {
 // them as shut down June 1 2026 in Gemini API pricing/docs (A-020, 2026-06-21).
 export const GEMINI_MODELS = [
   'gemini-3.5-flash',
+  'gemini-3.1-flash-tts-preview',
   'gemini-3-flash-preview',
   'gemini-1.5-pro',
   'gemini-1.5-flash',
@@ -156,6 +157,7 @@ export const GEMINI_CAPABILITIES: Capabilities = {
   videoInput: true, // native video input — Gemini's differentiator
   audioInput: true, // native audio input
   audioOutput: true,
+  streamingSpeechGeneration: true, // TTS audio chunks via streamGenerateContent / Interactions stream:true
   imageGeneration: true, // Imagen
   videoGeneration: true, // Veo (Sora is deprecated; Veo is GA)
 

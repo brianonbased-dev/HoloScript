@@ -9,7 +9,9 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  GEMINI_CAPABILITIES,
   GEMINI_MODELS,
+  GeminiAdapter,
   geminiToolsFromToolSpecs,
   mapGeminiFinishReason,
   parseGeminiResponse,
@@ -35,8 +37,27 @@ describe('GEMINI_MODELS', () => {
 
   it('contains the expected current models', () => {
     expect(GEMINI_MODELS).toContain('gemini-3.5-flash');
+    expect(GEMINI_MODELS).toContain('gemini-3.1-flash-tts-preview');
     expect(GEMINI_MODELS).toContain('gemini-3-flash-preview');
     expect(GEMINI_MODELS).toContain('gemini-1.5-pro');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Capability manifest
+// ---------------------------------------------------------------------------
+
+describe('GEMINI_CAPABILITIES', () => {
+  it('exposes streaming speech generation as audio output, not generic text streaming only', () => {
+    expect(GEMINI_CAPABILITIES.streaming).toBe(true);
+    expect(GEMINI_CAPABILITIES.audioOutput).toBe(true);
+    expect(GEMINI_CAPABILITIES.streamingSpeechGeneration).toBe(true);
+  });
+
+  it('maps the streaming speech flag through adapter instances', () => {
+    const adapter = new GeminiAdapter({ apiKey: 'test-key' });
+    expect(adapter.capabilities.streamingSpeechGeneration).toBe(true);
+    expect(adapter.capabilities.audioOutput).toBe(true);
   });
 });
 
