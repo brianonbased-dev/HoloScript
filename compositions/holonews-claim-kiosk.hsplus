@@ -1,0 +1,278 @@
+/**
+ * HoloNews — S-NEWS-1 Claim Kiosk Zone
+ *
+ * Phase 0 embodied experience: the Hyatt Regency walkway collapse (1981)
+ * as the first in-zone proof-display kiosk.  A journalist NPC presents
+ * the claim; readers can walk up, read the CAEL verdict, drag the load
+ * slider, and re-run the structural proof themselves.
+ *
+ * CLAIM: "The walkway collapsed because the fourth-floor box-beam connection
+ * changed from a single continuous rod to two separate rods during construction,
+ * doubling the load on the upper hanger rod and exceeding its yield strength."
+ *
+ * NOT-PROVEN WALL (proof-adjacency invariant — G.910.01):
+ * "This proof covers the load-transfer calculation only.  The design-change
+ * authorisation chain, contractor communications, and regulatory-approval
+ * sequence are documented in the NIST report but are not modelled here."
+ *
+ * Compile targets: r3f (default), unity, godot, quest, openxr
+ * T-NEWS-CI gate: scripts/__tests__/holonews-proof-adjacency.test.mjs
+ *
+ * @version 1.0.0
+ * @format .hsplus
+ * @see research/2026-06-16_holonews-hololand-surface-and-router-spec.md B.4/B.5
+ * @see G.910.01 — proof-adjacency wall invariant
+ */
+
+#version 6.0.0
+#target r3f
+
+composition "HoloNewsKioskZone" {
+
+  // ── Zone identity ──────────────────────────────────────────────────────
+
+  state {
+    zoneName: "HoloNews: Walkway Proof Zone"
+    claimId: "s-news-1"
+    claimText: "The walkway collapsed because the fourth-floor box-beam connection changed from a single continuous rod to two separate rods during construction, doubling the load on the upper hanger rod and exceeding its yield strength."
+    notProvenWall: "This proof covers the load-transfer calculation only. The design-change authorisation chain, contractor communications, and regulatory-approval sequence are documented in the NIST report but are not modelled here."
+    verifyUrl: "https://mcp.holoscript.net/verify-cael?traceId=s-news-1-hyatt-walkway"
+    traceId: "s-news-1-hyatt-walkway"
+
+    // What-if envelope — the structural parameter space
+    hangerRodDiameter: 31.75       // mm; nominal value from NIST report
+    hangerRodDiameterMin: 20.0
+    hangerRodDiameterMax: 50.0
+    occupantLoad: 63.5             // kN/m; ~35 people on the fourth-floor walkway
+    occupantLoadMin: 10.0
+    occupantLoadMax: 150.0
+    yieldStrength: 250.0           // MPa; ASTM A36 steel
+  }
+
+  // ── Zone environment ───────────────────────────────────────────────────
+
+  environment "sky" {
+    @atmosphere {
+      model: bruneton_precomputed
+      sun_direction: [0.3, 0.6, 0.4]
+      turbidity: 3.0
+      exposure: 0.9
+    }
+  }
+
+  environment "lighting" {
+    @global_illumination {
+      method: ssgi
+      samples: 8
+      intensity: 0.7
+    }
+  }
+
+  // ── Structural reference model ─────────────────────────────────────────
+
+  object "WalkwayModel" {
+    position: [0, 0, -6]
+    @mesh { primitive: box, size: [8, 0.3, 2] }
+    @material {
+      name: "structural_steel"
+      base_color: "#707580"
+      roughness: 0.4
+      metalness: 0.9
+    }
+    @label { text: "Fourth-Floor Walkway (reference geometry)", offset: [0, 0.5, 0] }
+  }
+
+  object "HangerRodSingle" {
+    position: [0, 2, -6]
+    @mesh { primitive: cylinder, radius: 0.016, height: 3 }
+    @material { base_color: "#aaaacc", metalness: 0.95, roughness: 0.2 }
+    @label { text: "Original: single continuous rod", offset: [0.3, 0, 0] }
+    @animated {
+      trigger: "envelope:rod_config"
+      property: "visible"
+      value_map: { single: true, double: false }
+    }
+  }
+
+  object "HangerRodDoubleUpper" {
+    position: [0, 2.5, -6]
+    @mesh { primitive: cylinder, radius: 0.016, height: 2 }
+    @material { base_color: "#cc4444", metalness: 0.95, roughness: 0.2 }
+    @label { text: "As-built: upper rod (doubled load)", offset: [0.3, 0, 0] }
+    @animated {
+      trigger: "envelope:rod_config"
+      property: "visible"
+      value_map: { single: false, double: true }
+    }
+  }
+
+  // ── The claim kiosk ────────────────────────────────────────────────────
+
+  object "ClaimKiosk" {
+    position: [0, 0, 2]
+
+    // Spatial shape — an upright illuminated panel
+    @mesh { primitive: box, size: [2.4, 3.2, 0.12] }
+    @material {
+      base_color: "#0a1628"
+      emissive: "#1a3a6a"
+      emissiveIntensity: 0.6
+      roughness: 0.8
+    }
+    @glowing { color: "#4488ff", intensity: 0.4, radius: 1.5 }
+    @interactive
+    @collidable
+
+    // The @claim_kiosk trait binds the CAEL receipt to this object and
+    // enforces the proof-adjacency wall invariant (G.910.01).
+    @claim_kiosk {
+      canRenderWall: true
+      label: "S-NEWS-1: Hyatt Walkway Collapse"
+      showEnvelope: true
+      loudAuditFailures: true
+    }
+
+    // The receipt is bound at zone-load time via a kiosk:receipt_bind event.
+    // The receipt data (verifyUrl, traceId, claimText, notProvenWall, envelope)
+    // comes from state above; the zone loader fires the bind event after
+    // calling verify_cael_trace to get hashChainValid + replayValid.
+    @on_load {
+      event: "kiosk:receipt_bind"
+      payload: {
+        receipt: {
+          receiptId: "receipt_s-news-1"
+          traceId: $state.traceId
+          verifyUrl: $state.verifyUrl
+          claimText: $state.claimText
+          notProvenWall: $state.notProvenWall
+          envelope: {
+            params: [
+              {
+                name: "hangerRodDiameter"
+                label: "Hanger rod diameter"
+                unit: "mm"
+                min: $state.hangerRodDiameterMin
+                max: $state.hangerRodDiameterMax
+                default: $state.hangerRodDiameter
+                precision: 1
+              }
+              {
+                name: "occupantLoad"
+                label: "Walkway live load"
+                unit: "kN/m"
+                min: $state.occupantLoadMin
+                max: $state.occupantLoadMax
+                default: $state.occupantLoad
+                precision: 1
+              }
+            ]
+            boundaryDescription: "When rod stress exceeds yield strength (250 MPa at A36 steel), the box-beam connection fails in tension. The upper rod bears twice the design load after the as-built configuration change."
+          }
+        }
+      }
+    }
+
+    // What-if controls — rendered as floating sliders beside the kiosk.
+    // These fire kiosk:envelope_update events that the trait handler validates
+    // against the envelope bounds before emitting kiosk:envelope_changed.
+    @slider_control {
+      target: "ClaimKiosk"
+      param: "hangerRodDiameter"
+      label: "Rod diameter (mm)"
+      range: [$state.hangerRodDiameterMin, $state.hangerRodDiameterMax]
+      default: $state.hangerRodDiameter
+      position: [1.5, 1.0, 2]
+      event: "kiosk:envelope_update"
+    }
+
+    @slider_control {
+      target: "ClaimKiosk"
+      param: "occupantLoad"
+      label: "Live load (kN/m)"
+      range: [$state.occupantLoadMin, $state.occupantLoadMax]
+      default: $state.occupantLoad
+      position: [1.5, 0.0, 2]
+      event: "kiosk:envelope_update"
+    }
+
+    // Re-run button — fires kiosk:rerun_request.  The trait handler emits
+    // kiosk:rerun_initiated with the verifyUrl + current envelope overrides.
+    @button {
+      label: "Re-run this proof"
+      position: [0, -1.2, 0.07]
+      event: "kiosk:rerun_request"
+      style: { color: "#2266cc", emissive: "#4488ff" }
+    }
+  }
+
+  // Proof-adjacency wall — rendered as a separate panel BESIDE the badge,
+  // NOT below it, at the same font size.  This is the architectural
+  // expression of G.910.01: the wall is inseparable from the badge.
+  object "ProofAdjacencyWall" {
+    position: [1.6, 0, 2]
+    @mesh { primitive: box, size: [2.0, 2.4, 0.08] }
+    @material {
+      base_color: "#1a0808"
+      emissive: "#3a1010"
+      emissiveIntensity: 0.3
+    }
+    @label {
+      text: "NOT PROVEN BY THIS KIOSK"
+      style: { color: "#ff6644", fontSize: 0.12, fontWeight: "bold" }
+      offset: [0, 0.9, 0.05]
+    }
+    @text_panel {
+      content: $state.notProvenWall
+      style: { color: "#ffccaa", fontSize: 0.10 }
+      position: [0, 0.2, 0.05]
+      wrapWidth: 1.8
+    }
+  }
+
+  // ── Journalist NPC ─────────────────────────────────────────────────────
+  // Role: lorekeeper (guide presenting the claim + answering questions).
+  // The NPC MUST respect the proof-adjacency wall: it may describe what
+  // is proven AND what is not, but must never let the proven spine authorise
+  // the labeled-perceptual aspects.
+
+  object "JournalistNPC" {
+    position: [-2, 0, 1]
+    @npc {
+      role: "lorekeeper"
+      behavior: "friendly"
+      name: "Vera"
+      systemPrompt: "You are Vera, a structural engineering journalist in a HoloLand zone. You present the Hyatt Regency walkway collapse claim. CRITICAL RULE: When asked about what is proven, describe only the load-transfer calculation and rod-stress outcome. When asked about design approval, communications, or contractor decisions, explicitly say those are documented in the NIST report but are NOT part of the proven model here — and point to the NOT PROVEN wall beside you. Never conflate the proven mechanical calculation with the documented-but-not-modelled human decisions. Always offer the visitor the chance to re-run the proof themselves using the kiosk."
+      dialogueTree: "holonews/s-news-1-journalist-dialogue.json"
+      modelProvider: "cloud"
+    }
+    @mesh { primitive: capsule, radius: 0.3, height: 1.8 }
+    @material { base_color: "#334455", roughness: 0.8 }
+    @label { text: "Vera — Structural Journalism", offset: [0, 1.1, 0] }
+    @glowing { color: "#4488aa", intensity: 0.2, radius: 1.0 }
+  }
+
+  // ── Zone portal ────────────────────────────────────────────────────────
+
+  object "ExitPortal" {
+    position: [0, 0, 6]
+    @room_portal {
+      portal_type: "archway"
+      destination: "holomesh://plaza"
+      label: "Return to HoloMesh"
+      animation: "swirl"
+      color: "#4466aa"
+    }
+    @grabbable
+  }
+
+  // ── Ambient ────────────────────────────────────────────────────────────
+
+  object "ZoneAmbience" {
+    @background_music {
+      track: "ambient-evidence-01"
+      volume: 0.2
+      loop: true
+      spatial: false
+    }
+  }
+}
