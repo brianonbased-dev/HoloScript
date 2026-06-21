@@ -170,15 +170,26 @@ function buildWatchdogVerdict(serve: ServeStatus | null, nowMs: number): Watchdo
 interface BoardTask {
   id: string;
   title: string;
+  description?: string | null;
   status?: string;
+  priority?: number;
+  tags?: string[] | null;
   claimedByName?: string | null;
   claimedBy?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  completedAt?: string | null;
+  timestamp?: string | null;
+  summary?: string | null;
+  verificationEvidence?: string | null;
+  verification_evidence?: string | null;
 }
 
 interface BoardState {
   open: BoardTask[];
   claimed: BoardTask[];
   blocked: BoardTask[];
+  doneRecent: BoardTask[];
   doneTotal: number;
 }
 
@@ -336,6 +347,117 @@ function timeUntil(iso?: string): string {
   return `in ${Math.round(s / 3600)}h`;
 }
 
+type ServiceHealthState = 'degraded' | 'ok' | 'unknown';
+
+interface ServiceHealthStatus {
+  state: ServiceHealthState;
+  latest?: BoardTask;
+  activeCount: number;
+  degradedServices: string[];
+  details: string[];
+  updatedAt?: string;
+  source: 'active-board' | 'done-log' | 'board';
+}
+
+interface ServiceHealthRouteData {
+  ok: boolean;
+  status?: ServiceHealthStatus;
+  error?: string;
+}
+
+function serviceHealthText(task: BoardTask): string {
+  return [
+    task.title,
+    task.description,
+    task.summary,
+    task.verificationEvidence,
+    task.verification_evidence,
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function isServiceHealthTask(task: BoardTask): boolean {
+  const title = task.title.toLowerCase();
+  const text = serviceHealthText(task).toLowerCase();
+  const tags = Array.isArray(task.tags) ? task.tags.map((tag) => String(tag).toLowerCase()) : [];
+  return (
+    title.includes('[service-health]') ||
+    title.includes('service health sweep') ||
+    text.includes('[service-health]') ||
+    tags.includes('service-health') ||
+    tags.includes('automation:a-047-service-health-sweep')
+  );
+}
+
+function taskTime(task?: BoardTask): string | undefined {
+  return (
+    task?.updatedAt ??
+    task?.completedAt ??
+    task?.timestamp ??
+    task?.createdAt ??
+    undefined
+  );
+}
+
+function parseDegradedServices(task?: BoardTask): string[] {
+  if (!task) return [];
+  const text = serviceHealthText(task);
+  const degradedLine = text.match(/Degraded services:\s*([^\n]+)/i)?.[1]?.trim();
+  if (degradedLine && !/^none$/i.test(degradedLine)) {
+    return degradedLine.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+  const rows = [...text.matchAll(/^([^:\n]+):\s*live=.*?ok=no\s*$/gim)]
+    .map((match) => match[1]?.trim())
+    .filter(Boolean);
+  return [...new Set(rows)];
+}
+
+function buildServiceHealthStatus(board: BoardState | null): ServiceHealthStatus | null {
+  if (!board) return null;
+  const active = [...board.blocked, ...board.claimed, ...board.open]
+    .filter(isServiceHealthTask)
+    .sort((a, b) => new Date(taskTime(b) ?? 0).getTime() - new Date(taskTime(a) ?? 0).getTime());
+  const recent = board.doneRecent
+    .filter(isServiceHealthTask)
+    .sort((a, b) => new Date(taskTime(b) ?? 0).getTime() - new Date(taskTime(a) ?? 0).getTime());
+  const latest = active[0] ?? recent[0];
+  const degradedServices = parseDegradedServices(latest);
+  const details = latest ? serviceHealthText(latest).split(/\r?\n/).filter((line) => /live=|deploy=/.test(line)) : [];
+
+  if (active.length > 0) {
+    return {
+      state: 'degraded',
+      latest,
+      activeCount: active.length,
+      degradedServices,
+      details,
+      updatedAt: taskTime(latest),
+      source: 'active-board',
+    };
+  }
+
+  if (latest) {
+    return {
+      state: degradedServices.length ? 'degraded' : 'ok',
+      latest,
+      activeCount: 0,
+      degradedServices,
+      details,
+      updatedAt: taskTime(latest),
+      source: 'done-log',
+    };
+  }
+
+  return {
+    state: 'unknown',
+    activeCount: 0,
+    degradedServices: [],
+    details: [],
+    source: 'board',
+  };
+}
+
 function Card({
   title,
   accent,
@@ -397,6 +519,7 @@ export default function OperationsPage() {
   const [serve, setServe] = useState<ServeStatus | null>(null);
   const [board, setBoard] = useState<BoardState | null>(null);
   const [fleet, setFleet] = useState<FleetHealth | null>(null);
+  const [serviceHealthLive, setServiceHealthLive] = useState<ServiceHealthStatus | null>(null);
   const [stabilizer, setStabilizer] = useState<StabilizerTelemetry | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lastTick, setLastTick] = useState<string>('');
@@ -448,6 +571,7 @@ export default function OperationsPage() {
           open: j.board.open ?? [],
           claimed: j.board.claimed ?? [],
           blocked: j.board.blocked ?? [],
+          doneRecent: j.done?.recent ?? [],
           doneTotal: j.done?.total ?? 0,
         });
       } else if (Array.isArray(j.tasks)) {
@@ -456,6 +580,7 @@ export default function OperationsPage() {
           open: by('open'),
           claimed: by('claimed'),
           blocked: by('blocked'),
+          doneRecent: by('done'),
           doneTotal: j.done_count ?? 0,
         });
       }
@@ -476,6 +601,20 @@ export default function OperationsPage() {
       });
     } catch (e: unknown) {
       errs.fleet = e instanceof Error ? e.message : 'failed';
+    }
+
+    // Service health status from live HoloMesh board (bypasses the board DB cache).
+    try {
+      const r = await fetch(`/api/operations/service-health?teamId=${encodeURIComponent(teamId)}`, {
+        cache: 'no-store',
+      });
+      if (!r.ok) throw new Error(`service-health ${r.status}`);
+      const j = (await r.json()) as ServiceHealthRouteData;
+      if (!j.ok) throw new Error(j.error || 'service-health failed');
+      setServiceHealthLive(j.status ?? null);
+    } catch (e: unknown) {
+      setServiceHealthLive(null);
+      errs.serviceHealth = e instanceof Error ? e.message : 'failed';
     }
 
     // Stabilizer-Fleet decoder telemetry (EXP-5-real; corpus-replay)
@@ -597,6 +736,16 @@ export default function OperationsPage() {
   // Consolidated watchdog verdict — all three conditions + healthy/alarm/observe,
   // mirroring scripts/serving-fleet-watchdog.mjs over the already-fetched serve data.
   const watchdog = buildWatchdogVerdict(serve, now);
+  const serviceBoardFallback = buildServiceHealthStatus(board);
+  const serviceBoardStatus = serviceHealthLive ?? serviceBoardFallback;
+  const serviceHealthAccent =
+    errors.serviceHealth && !serviceBoardStatus
+      ? 'text-red-400'
+      : serviceBoardStatus?.state === 'degraded'
+      ? 'text-amber-300'
+      : serviceBoardStatus?.state === 'ok'
+        ? 'text-emerald-400'
+        : 'text-studio-text';
 
   // Founder-gate (brick-2): the operate console exposes fleet/CI/Lotus/board
   // internals and is the host for spend-triggering actions. Hide it from
@@ -683,6 +832,99 @@ export default function OperationsPage() {
       {activeTab === 'infra' && (
       <div className="flex-1 overflow-y-auto p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <Card title="Service Health" accent={serviceHealthAccent}>
+            {serviceBoardStatus ? (
+              (() => {
+                const stateLabel =
+                  serviceBoardStatus.state === 'degraded'
+                    ? 'DEGRADED'
+                    : serviceBoardStatus.state === 'ok'
+                      ? 'ALL CLEAR'
+                      : 'NO SIGNAL';
+                const stateTone =
+                  serviceBoardStatus.state === 'degraded'
+                    ? 'bg-amber-500/20 text-amber-200'
+                    : serviceBoardStatus.state === 'ok'
+                      ? 'bg-emerald-500/20 text-emerald-200'
+                      : 'bg-studio-border text-studio-muted';
+                const detailRows = serviceBoardStatus.details.slice(0, 8);
+                return (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-end gap-6">
+                      <div className="flex min-w-[180px] flex-col">
+                        <span className={`w-fit rounded px-2 py-0.5 text-[11px] font-mono font-semibold ${stateTone}`}>
+                          {stateLabel}
+                        </span>
+                        <span className="mt-1 text-[10px] uppercase text-studio-muted">
+                          {serviceBoardStatus.updatedAt ? timeAgo(serviceBoardStatus.updatedAt) : 'awaiting sweep'}
+                        </span>
+                      </div>
+                      <Stat
+                        label="attention"
+                        value={serviceBoardStatus.degradedServices.length}
+                        tone={serviceBoardStatus.state === 'degraded' ? 'text-amber-300' : 'text-emerald-400'}
+                      />
+                      <Stat label="active tasks" value={serviceBoardStatus.activeCount} />
+                      <Stat label="source" value={serviceBoardStatus.source} tone="text-studio-muted" />
+                    </div>
+
+                    {serviceBoardStatus.degradedServices.length > 0 && (
+                      <div className="text-[11px] text-amber-300/90">
+                        Needs attention: {serviceBoardStatus.degradedServices.join(', ')}
+                      </div>
+                    )}
+
+                    {detailRows.length > 0 ? (
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                        {detailRows.map((line) => {
+                          const name = line.split(':', 1)[0] || line;
+                          const degraded = /ok=no/i.test(line);
+                          const chipTone = degraded
+                            ? 'border-amber-500/40 bg-amber-500/10 text-amber-100'
+                            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100';
+                          return (
+                            <div key={line} className={`min-w-0 rounded border px-2 py-1.5 ${chipTone}`}>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="truncate text-[11px] font-semibold">{name}</span>
+                                <span className="shrink-0 rounded bg-black/20 px-1.5 py-0.5 text-[9px] font-mono">
+                                  {degraded ? 'ATTN' : 'OK'}
+                                </span>
+                              </div>
+                              <div className="mt-1 truncate text-[9px] font-mono text-studio-muted">
+                                {line.replace(`${name}: `, '')}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {serviceBoardStatus.details.length > detailRows.length && (
+                          <div className="rounded border border-studio-border/60 bg-studio-panel/20 px-2 py-1.5 text-[10px] text-studio-muted">
+                            +{serviceBoardStatus.details.length - detailRows.length} more rows
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-studio-muted">
+                        {serviceBoardStatus.state === 'unknown'
+                          ? 'Awaiting A-047 board status.'
+                          : 'No degraded service rows in the latest board status.'}
+                      </div>
+                    )}
+
+                    <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                      Source: HoloMesh board task {serviceBoardStatus.latest?.id ?? '(pending)'} from A-047
+                      service-health sweep.
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className={errors.serviceHealth ? 'text-xs text-red-400' : 'text-xs text-studio-muted'}>
+                {errors.serviceHealth ? `Error: ${errors.serviceHealth}` : 'Loading board status.'}
+              </div>
+            )}
+          </Card>
+        </div>
         {/* FLEET WATCHDOG VERDICT — consolidated healthy/alarm/cold-idle verdict
             across all 3 watchdog conditions (D.081 / F.099). The peer Sovereign-
             Serving card shows only dark_under_demand; this shows the full verdict
