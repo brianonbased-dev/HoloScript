@@ -115,14 +115,17 @@ export type { OpenAIModel } from './adapters/openai';
 export {
   AnthropicAdapter,
   ANTHROPIC_MODELS,
+  ANTHROPIC_MODEL_METADATA,
   ANTHROPIC_CAPABILITIES,
   ANTHROPIC_ADVISOR_BETA,
   ANTHROPIC_FILES_BETA,
   buildThinkingAndOutputForAnthropic,
   collectAnthropicBetaHeaders,
+  getAnthropicModelMetadata,
   hasAnthropicFileContent,
+  isAnthropicDefaultRoutingEligible,
 } from './adapters/anthropic';
-export type { AnthropicModel } from './adapters/anthropic';
+export type { AnthropicModel, AnthropicModelMetadata } from './adapters/anthropic';
 
 export { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from './adapters/gemini';
 export type { GeminiModel } from './adapters/gemini';

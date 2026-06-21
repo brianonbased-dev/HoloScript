@@ -13,7 +13,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { extractTraits } from '../base-adapter';
 import { MockAdapter, MOCK_CAPABILITIES } from '../adapters/mock';
 import { OpenAIAdapter, OPENAI_MODELS, OPENAI_CAPABILITIES } from '../adapters/openai';
-import { AnthropicAdapter, ANTHROPIC_MODELS, ANTHROPIC_CAPABILITIES } from '../adapters/anthropic';
+import {
+  AnthropicAdapter,
+  ANTHROPIC_MODELS,
+  ANTHROPIC_MODEL_METADATA,
+  ANTHROPIC_CAPABILITIES,
+  getAnthropicModelMetadata,
+  isAnthropicDefaultRoutingEligible,
+} from '../adapters/anthropic';
 import { GeminiAdapter, GEMINI_MODELS, GEMINI_CAPABILITIES } from '../adapters/gemini';
 import { BitNetAdapter, BITNET_CAPABILITIES } from '../adapters/bitnet';
 import { LocalLLMAdapter, LOCAL_LLM_CAPABILITIES } from '../adapters/local-llm';
@@ -282,6 +289,37 @@ describe('AnthropicAdapter (metadata)', () => {
   it('ANTHROPIC_MODELS constant is populated', () => {
     expect(ANTHROPIC_MODELS.length).toBeGreaterThan(0);
     expect(ANTHROPIC_MODELS).toContain('claude-opus-4-6');
+  });
+
+  it('keeps Fable/Mythos opt-in with routing metadata guards', () => {
+    const modelList = ANTHROPIC_MODELS as readonly string[];
+    expect(modelList).not.toContain('claude-fable-5');
+    expect(modelList).not.toContain('claude-mythos-5');
+
+    expect(ANTHROPIC_MODEL_METADATA['claude-fable-5']).toMatchObject({
+      status: 'ga',
+      defaultRoutingEligible: false,
+      dataRetentionRequired: true,
+      zdrEligible: false,
+      alwaysAdaptiveThinking: true,
+      supportsSamplingParams: false,
+      supportsFallbacks: true,
+      supportsRefusalCategories: true,
+    });
+    expect(getAnthropicModelMetadata('claude-fable-5')?.refusalCategories).toContain(
+      'reasoning_extraction'
+    );
+
+    expect(getAnthropicModelMetadata('claude-mythos-5')).toMatchObject({
+      status: 'limited',
+      defaultRoutingEligible: false,
+      approvedAccessRequired: true,
+      alwaysAdaptiveThinking: true,
+      supportsSamplingParams: false,
+    });
+    expect(isAnthropicDefaultRoutingEligible('claude-fable-5')).toBe(false);
+    expect(isAnthropicDefaultRoutingEligible('claude-mythos-5')).toBe(false);
+    expect(isAnthropicDefaultRoutingEligible('claude-opus-4-8')).toBe(true);
   });
 
   it('uses claude-opus-4-8 as default HoloScript model', () => {

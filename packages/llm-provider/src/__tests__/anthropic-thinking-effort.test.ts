@@ -52,6 +52,24 @@ describe('buildThinkingAndOutputForAnthropic (pure)', () => {
     const o = buildThinkingAndOutputForAnthropic('claude-sonnet-4-6', r);
     expect(o.output_config?.effort).toBe('high');
   });
+
+  it('forces Fable 5 back to adaptive thinking when disabled is requested', () => {
+    const r: LLMCompletionRequest = {
+      messages: [],
+      thinking: { type: 'disabled' },
+    };
+    const o = buildThinkingAndOutputForAnthropic('claude-fable-5', r);
+    expect(o.thinking).toEqual({ type: 'adaptive', display: 'omitted' });
+    expect(o.output_config).toBeUndefined();
+  });
+
+  it('defaults always-adaptive Fable/Mythos display to omitted', () => {
+    const fable = buildThinkingAndOutputForAnthropic('claude-fable-5', { messages: [] });
+    const mythos = buildThinkingAndOutputForAnthropic('claude-mythos-5', { messages: [] });
+
+    expect(fable.thinking).toEqual({ type: 'adaptive', display: 'omitted' });
+    expect(mythos.thinking).toEqual({ type: 'adaptive', display: 'omitted' });
+  });
 });
 
 describe('AnthropicAdapter messages.stream thinking + output_config', () => {

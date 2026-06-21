@@ -198,20 +198,127 @@ export const ANTHROPIC_MODELS = [
 
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number];
 
+export interface AnthropicModelMetadata {
+  id: string;
+  status: 'active' | 'ga' | 'limited' | 'legacy';
+  contextWindow: number;
+  maxOutput: number;
+  defaultRoutingEligible: boolean;
+  dataRetentionRequired?: boolean;
+  zdrEligible?: boolean;
+  approvedAccessRequired?: boolean;
+  alwaysAdaptiveThinking: boolean;
+  supportsSamplingParams: boolean;
+  tokenizerFamily: 'claude-4' | 'claude-opus-4-7-compatible' | 'claude-fable-5-compatible';
+  supportsFallbacks?: boolean;
+  fallbackBeta?: string;
+  supportsRefusalCategories?: boolean;
+  refusalCategories?: readonly string[];
+  routingNotes: readonly string[];
+}
+
+function modelMetadata(
+  id: string,
+  overrides: Partial<AnthropicModelMetadata> = {}
+): AnthropicModelMetadata {
+  return {
+    id,
+    status: 'active',
+    contextWindow: 1_000_000,
+    maxOutput: 128_000,
+    defaultRoutingEligible: true,
+    dataRetentionRequired: false,
+    zdrEligible: true,
+    approvedAccessRequired: false,
+    alwaysAdaptiveThinking: false,
+    supportsSamplingParams: true,
+    tokenizerFamily: 'claude-4',
+    supportsFallbacks: false,
+    supportsRefusalCategories: false,
+    routingNotes: [],
+    ...overrides,
+  };
+}
+
+export const ANTHROPIC_MODEL_METADATA = {
+  'claude-fable-5': modelMetadata('claude-fable-5', {
+    status: 'ga',
+    defaultRoutingEligible: false,
+    dataRetentionRequired: true,
+    zdrEligible: false,
+    alwaysAdaptiveThinking: true,
+    supportsSamplingParams: false,
+    tokenizerFamily: 'claude-fable-5-compatible',
+    supportsFallbacks: true,
+    fallbackBeta: 'fallbacks',
+    supportsRefusalCategories: true,
+    refusalCategories: ['reasoning_extraction'],
+    routingNotes: [
+      'Opt-in only until HoloDoor confirms 30-day data retention is acceptable.',
+      'Zero-data-retention workloads must not route here.',
+      'thinking.disabled is not supported; adaptive thinking is always on.',
+    ],
+  }),
+  'claude-mythos-5': modelMetadata('claude-mythos-5', {
+    status: 'limited',
+    defaultRoutingEligible: false,
+    approvedAccessRequired: true,
+    zdrEligible: false,
+    alwaysAdaptiveThinking: true,
+    supportsSamplingParams: false,
+    tokenizerFamily: 'claude-fable-5-compatible',
+    supportsRefusalCategories: true,
+    routingNotes: [
+      'Limited Project Glasswing / defensive cybersecurity availability.',
+      'Do not route normal workloads without explicit approved access.',
+      'thinking.disabled is not supported; adaptive thinking is always on.',
+    ],
+  }),
+  'claude-opus-4-8': modelMetadata('claude-opus-4-8', {
+    supportsSamplingParams: false,
+    tokenizerFamily: 'claude-opus-4-7-compatible',
+    supportsRefusalCategories: true,
+  }),
+  'claude-opus-4-7': modelMetadata('claude-opus-4-7', {
+    supportsSamplingParams: false,
+    tokenizerFamily: 'claude-opus-4-7-compatible',
+  }),
+  'claude-sonnet-4-6': modelMetadata('claude-sonnet-4-6'),
+  'claude-haiku-4-5': modelMetadata('claude-haiku-4-5', {
+    contextWindow: 200_000,
+    maxOutput: 64_000,
+  }),
+  'claude-opus-4-6': modelMetadata('claude-opus-4-6', { status: 'legacy' }),
+  'claude-opus-4-5': modelMetadata('claude-opus-4-5', { status: 'legacy' }),
+  'claude-sonnet-4-5': modelMetadata('claude-sonnet-4-5', { status: 'legacy' }),
+} as const satisfies Record<string, AnthropicModelMetadata>;
+
+export function getAnthropicModelMetadata(model: string): AnthropicModelMetadata | undefined {
+  return ANTHROPIC_MODEL_METADATA[model as keyof typeof ANTHROPIC_MODEL_METADATA];
+}
+
+export function isAnthropicDefaultRoutingEligible(model: string): boolean {
+  return getAnthropicModelMetadata(model)?.defaultRoutingEligible === true;
+}
+
 // Models where sampling params (temperature, top_p, top_k) and budget_tokens
 // are REMOVED — sending them returns 400. Adaptive thinking is required.
 // Keep this set in sync with the skill's model documentation.
 const SAMPLING_PARAMS_UNSUPPORTED: ReadonlySet<string> = new Set([
+  'claude-fable-5',
+  'claude-mythos-5',
   'claude-opus-4-8',
   'claude-opus-4-7',
 ]);
 
 function supportsSamplingParams(model: string): boolean {
-  return !SAMPLING_PARAMS_UNSUPPORTED.has(model);
+  return getAnthropicModelMetadata(model)?.supportsSamplingParams ?? !SAMPLING_PARAMS_UNSUPPORTED.has(model);
 }
 
 /** Opus 4.6/4.7 and Sonnet 4.5/4.6 — default adaptive + summarized unless caller disables. */
 const ADAPTIVE_THINKING_DEFAULT_MODELS: ReadonlySet<string> = new Set([
+  'claude-fable-5',
+  'claude-mythos-5',
   'claude-opus-4-8',
   'claude-opus-4-7',
   'claude-opus-4-6',
@@ -235,7 +342,17 @@ export function buildThinkingAndOutputForAnthropic(
   model: string,
   request: LLMCompletionRequest
 ): { thinking?: Record<string, unknown>; output_config?: { effort: AnthropicEffortLevel } } {
+  const metadata = getAnthropicModelMetadata(model);
+  const alwaysAdaptiveThinking = metadata?.alwaysAdaptiveThinking === true;
   if (request.thinking?.type === 'disabled') {
+    if (alwaysAdaptiveThinking) {
+      return {
+        thinking: {
+          type: 'adaptive',
+          display: request.thinkingDisplay ?? 'omitted',
+        },
+      };
+    }
     return { thinking: { type: 'disabled' } };
   }
 
@@ -244,11 +361,13 @@ export function buildThinkingAndOutputForAnthropic(
     thinking = { ...request.thinking } as Record<string, unknown>;
     if (request.thinkingDisplay !== undefined) {
       thinking.display = request.thinkingDisplay;
+    } else if (alwaysAdaptiveThinking && thinking.display === undefined) {
+      thinking.display = 'omitted';
     }
   } else if (ADAPTIVE_THINKING_DEFAULT_MODELS.has(model)) {
     thinking = {
       type: 'adaptive',
-      display: request.thinkingDisplay ?? 'summarized',
+      display: request.thinkingDisplay ?? (alwaysAdaptiveThinking ? 'omitted' : 'summarized'),
     };
   }
 
