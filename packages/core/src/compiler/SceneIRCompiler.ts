@@ -2450,8 +2450,8 @@ export class SceneIRCompiler {
     props.__petalGeometry = buildLotusPetalGeometryData(
       lotusPetalGeometryParamsFromProfile(profile)
     );
-    // Full bloom: per-petal placements on the golden-angle spiral (8/13/21 rings),
-    // so the whole lotus — not one petal — assembles from the compiled profile.
+    // Full bloom: per-petal placements from the live phyllotaxis layout,
+    // so the whole lotus — not one petal — assembles from compiled trait data.
     props.__petalPlacements = buildLotusFlowerPlacements(profile);
     // Pond scene descriptor: the flower sits atop a stem rising from water, with
     // lily pads + raised leaves. Colours come from the profile and the full LAYOUT

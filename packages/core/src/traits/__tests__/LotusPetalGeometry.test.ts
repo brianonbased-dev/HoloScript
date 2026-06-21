@@ -9,10 +9,11 @@ import { describe, it, expect } from 'vitest';
 import {
   buildLotusPetalGeometryData,
   lotusPetalGeometryParamsFromProfile,
+  buildLotusPhyllotaxisPetalLayout,
   buildLotusFlowerPlacements,
   createBotanicalLotusRenderProfile,
   DEFAULT_LOTUS_PETAL_GEOMETRY_PARAMS,
-  LOTUS_GOLDEN_ANGLE_DEG,
+  simulateLotusPhyllotaxis,
 } from '../BotanicalLotusTrait';
 
 describe('buildLotusPetalGeometryData', () => {
@@ -172,12 +173,14 @@ describe('buildLotusFlowerPlacements', () => {
     expect(placements.length).toBe(42);
   });
 
-  it('lays petals on a continuous golden-angle spiral', () => {
+  it('lays petals from the live phyllotaxis meristem, not index*goldenAngle', () => {
     const placements = buildLotusFlowerPlacements();
-    const golden = (LOTUS_GOLDEN_ANGLE_DEG * Math.PI) / 180;
-    for (let i = 1; i < placements.length; i += 1) {
-      expect(placements[i].azimuth - placements[i - 1].azimuth).toBeCloseTo(golden, 5);
-    }
+    const phyllotaxis = simulateLotusPhyllotaxis({ count: placements.length + 60, seed: 0xdead });
+    const grown = phyllotaxis.primordia.slice(60).reverse();
+
+    expect(placements.map((p) => p.azimuth)).toEqual(grown.map((p) => p.theta));
+    expect(placements[0].phyllotaxisIndex).toBe(grown[0]!.index);
+    expect(placements[5].emergentDivergenceDeg).toBeCloseTo(phyllotaxis.emergentDivergenceDeg, 10);
   });
 
   it('tilts inner rings more upright than outer rings (the cup)', () => {
@@ -194,5 +197,16 @@ describe('buildLotusFlowerPlacements', () => {
     const a = buildLotusFlowerPlacements();
     const b = buildLotusFlowerPlacements();
     expect(a).toEqual(b);
+  });
+
+  it('derives ring radii from grown primordium radius while preserving cup order', () => {
+    const placements = buildLotusPhyllotaxisPetalLayout();
+    const inner = placements.filter((p) => p.ring === 1);
+    const outer = placements.filter((p) => p.ring === 3);
+
+    expect(inner).toHaveLength(8);
+    expect(outer).toHaveLength(21);
+    expect(inner[0]!.primordiumRadius).toBeLessThan(outer[outer.length - 1]!.primordiumRadius!);
+    expect(inner[0]!.radius).toBeLessThan(outer[outer.length - 1]!.radius);
   });
 });

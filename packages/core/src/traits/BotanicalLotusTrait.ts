@@ -832,7 +832,7 @@ export interface LotusScenePetal {
   index: number;
   ring: 1 | 2 | 3;
   ringIndex: number;
-  /** Golden-angle spiral placement (radians) = index * golden_angle. */
+  /** Emergent phyllotactic placement angle (radians). */
   angle: number;
   radius: number;
   length: number;
@@ -927,8 +927,6 @@ export function buildLotusSceneFromComposition(
   const ringProfile = new Map<1 | 2 | 3, BotanicalLotusRenderPetalRing>();
   profile.petal_rings.forEach((r, i) => ringProfile.set((i + 1) as 1 | 2 | 3, r));
   const lastRing = profile.petal_rings[profile.petal_rings.length - 1];
-  const goldenAngle = (LOTUS_GOLDEN_ANGLE_DEG * Math.PI) / 180;
-
   const petalObjs = objects.filter((o) => LOTUS_PETAL_NAME_RE.test(String(o.name ?? '')));
   const ringCounters: Record<1 | 2 | 3, number> = { 1: 0, 2: 0, 3: 0 };
 
@@ -939,18 +937,15 @@ export function buildLotusSceneFromComposition(
   // before it locks, so we grow `warmup` extra primordia and keep the DEVELOPED tail —
   // every rendered petal then sits on the locked golden-angle spiral.
   const seedNum = Number(options.seed ?? LOTUS_GENESIS_SEED_PLACEHOLDER) >>> 0;
-  // Warmup grows the spiral well past the establishment transient so the kept petals
-  // sit in the fully-locked golden-angle region (residual settling decays by ~60 primordia).
-  const PHYLLOTAXIS_WARMUP = 60;
-  const phyllotaxis = simulateLotusPhyllotaxis({
-    count: petalObjs.length + PHYLLOTAXIS_WARMUP,
+  const grownLayout = buildLotusPhyllotaxisPetalLayout(profile, {
+    count: petalObjs.length,
     seed: seedNum,
   });
-  const grownAngles = phyllotaxis.primordia.slice(PHYLLOTAXIS_WARMUP).map((p) => p.theta);
 
   const petals: LotusScenePetal[] = petalObjs.map((obj, index) => {
+    const grown = grownLayout[index];
     const match = LOTUS_PETAL_NAME_RE.exec(String(obj.name));
-    const ring = Number(match?.[1] ?? 3) as 1 | 2 | 3;
+    const ring = (grown?.ring ?? Number(match?.[1] ?? 3)) as 1 | 2 | 3;
     const ringIndex = ringCounters[ring]++;
     const glow = lotusObjectTraitConfig(obj, 'glowing') ?? {};
     const intensity = typeof glow.intensity === 'number' ? glow.intensity : 0.1;
@@ -963,8 +958,8 @@ export function buildLotusSceneFromComposition(
       index,
       ring,
       ringIndex,
-      angle: grownAngles[index] ?? index * goldenAngle,
-      radius: base.radius * scale.radius,
+      angle: grown?.azimuth ?? 0,
+      radius: grown?.radius ?? base.radius * scale.radius,
       length: base.length * scale.length,
       width: base.width * scale.width,
       cup: base.cup,
@@ -980,9 +975,10 @@ export function buildLotusSceneFromComposition(
   const rings: LotusSceneRing[] = ([1, 2, 3] as const).map((ring) => {
     const base = ringProfile.get(ring) ?? lastRing;
     const scale = LOTUS_RING_SCALING[ring];
+    const count = petals.filter((p) => p.ring === ring).length || base.count;
     return {
       ring,
-      count: base.count,
+      count,
       radius: base.radius * scale.radius,
       length: base.length * scale.length,
       width: base.width * scale.width,
@@ -1821,15 +1817,15 @@ export function lotusPetalGeometryParamsFromProfile(
 // =============================================================================
 // FLOWER ASSEMBLY — phyllotaxis petal placements (the full bloom from .holo)
 // =============================================================================
-// One petal mesh, placed `count` times per ring on the golden-angle spiral, tilted
+// One petal mesh, repeated over a live phyllotaxis meristem tail and tilted
 // outward into a cup — the whole lotus bloom compiled from the profile's ring data
-// (inner/mid/outer counts + radii + pitch). Emits per-petal transform PARAMS
+// (inner/mid/outer form + live angles/radii). Emits per-petal transform PARAMS
 // (azimuth/tilt/radius/lift), three-free; the renderer nests two groups per petal
 // (rotate by azimuth around Y, then tilt around X, then offset the base outward) so
 // the orientation is unambiguous (no Euler-order guessing). Deterministic.
 
 export interface LotusPetalPlacement {
-  /** Golden-angle azimuth around the flower's vertical axis (radians). */
+  /** Emergent phyllotactic azimuth around the flower's vertical axis (radians). */
   azimuth: number;
   /** Lean of the petal from vertical, outward into the cup (radians). */
   tilt: number;
@@ -1839,6 +1835,16 @@ export interface LotusPetalPlacement {
   lift: number;
   /** Which ring (1=inner … 3=outer) this petal belongs to. */
   ring: number;
+  /** Index inside its generated ring. */
+  ringIndex?: number;
+  /** Meristem primordium index used to derive this placement. */
+  phyllotaxisIndex?: number;
+  /** Emergent radial distance of the primordium after growth. */
+  primordiumRadius?: number;
+  /** Batch-level emergent divergence reported by the live phyllotaxis routine. */
+  emergentDivergenceDeg?: number;
+  /** Batch-level circular divergence spread reported by the live phyllotaxis routine. */
+  divergenceSpreadDeg?: number;
 }
 
 export interface BuildLotusFlowerOptions {
@@ -1846,44 +1852,137 @@ export interface BuildLotusFlowerOptions {
   radiusScale?: number;
   /** Vertical spacing between rings (inner higher). Default 0.12. */
   ringLift?: number;
+  /** Optional seed forwarded to the phyllotaxis routine. */
+  seed?: number | string;
+  /** Developed primordia discarded before layout. Default 60. */
+  phyllotaxisWarmup?: number;
+  /** Optional petal count override; defaults to the render profile's count. */
+  count?: number;
 }
 
-/**
- * Build the full lotus bloom as a set of per-petal placements from the render
- * profile's rings (continuous golden-angle spiral across all rings). Each ring's
- * `count` petals are tilted outward by `(90° − pitch_degrees)` so inner rings stand
- * upright and outer rings splay — the lotus cup. Pure + deterministic.
- */
-export function buildLotusFlowerPlacements(
+const LOTUS_PHYLLOTAXIS_LAYOUT_WARMUP = 60;
+
+function lotusSeedNumber(seed: number | string | undefined): number {
+  if (typeof seed === 'number' && Number.isFinite(seed)) return seed >>> 0;
+  if (typeof seed === 'string') {
+    const parsed = Number(seed);
+    if (Number.isFinite(parsed)) return parsed >>> 0;
+  }
+  return Number(LOTUS_GENESIS_SEED_PLACEHOLDER) >>> 0;
+}
+
+function lotusProfileRing(
+  profile: BotanicalLotusRenderProfile,
+  ring: 1 | 2 | 3
+): BotanicalLotusRenderPetalRing {
+  return profile.petal_rings[ring - 1] ?? profile.petal_rings[profile.petal_rings.length - 1]!;
+}
+
+function lotusPlacementRadius(
+  profile: BotanicalLotusRenderProfile,
+  ring: 1 | 2 | 3,
+  radiusScale: number
+): number {
+  const base = lotusProfileRing(profile, ring);
+  const scale = LOTUS_RING_SCALING[ring] ?? LOTUS_RING_SCALING[3];
+  return base.radius * scale.radius * radiusScale;
+}
+
+function lotusScaledRingQuotas(
+  profile: BotanicalLotusRenderProfile,
+  count: number
+): Record<1 | 2 | 3, number> {
+  const source = ([1, 2, 3] as const).map((ring) =>
+    Math.max(0, lotusProfileRing(profile, ring).count)
+  );
+  const total = source.reduce((sum, n) => sum + n, 0);
+  if (total <= 0) {
+    const third = Math.floor(count / 3);
+    return { 1: third, 2: third, 3: count - third * 2 };
+  }
+
+  const raw = source.map((n) => (n / total) * count);
+  const quotas = raw.map(Math.floor);
+  let remaining = count - quotas.reduce((sum, n) => sum + n, 0);
+  const order = raw
+    .map((n, index) => ({ index, fraction: n - Math.floor(n) }))
+    .sort((a, b) => b.fraction - a.fraction);
+  for (let i = 0; remaining > 0; i += 1) {
+    quotas[order[i % order.length]!.index]! += 1;
+    remaining -= 1;
+  }
+  return { 1: quotas[0] ?? 0, 2: quotas[1] ?? 0, 3: quotas[2] ?? 0 };
+}
+
+function lotusRingForLayoutIndex(index: number, quotas: Record<1 | 2 | 3, number>): 1 | 2 | 3 {
+  if (index < quotas[1]) return 1;
+  if (index < quotas[1] + quotas[2]) return 2;
+  return 3;
+}
+
+export function buildLotusPhyllotaxisPetalLayout(
   profile: BotanicalLotusRenderProfile = createBotanicalLotusRenderProfile(),
   options: BuildLotusFlowerOptions = {}
 ): LotusPetalPlacement[] {
   const radiusScale = options.radiusScale ?? 0.5;
   const ringLift = options.ringLift ?? 0.12;
-  const goldenAngle = (LOTUS_GOLDEN_ANGLE_DEG * Math.PI) / 180;
-  const placements: LotusPetalPlacement[] = [];
-  let globalIndex = 0;
-
-  profile.petal_rings.forEach((ring, idx) => {
-    const ringNum = (idx + 1) as 1 | 2 | 3;
-    const scale = LOTUS_RING_SCALING[ringNum] ?? LOTUS_RING_SCALING[3];
-    const radius = ring.radius * scale.radius * radiusScale;
-    const tilt = ((90 - ring.pitch_degrees) * Math.PI) / 180;
-    // Inner rings sit higher (so the bloom cups); ringNum 1 highest.
-    const lift = (profile.petal_rings.length - ringNum) * ringLift;
-    for (let i = 0; i < ring.count; i += 1) {
-      placements.push({
-        azimuth: globalIndex * goldenAngle,
-        tilt,
-        radius,
-        lift,
-        ring: ringNum,
-      });
-      globalIndex += 1;
-    }
+  const count = Math.max(
+    1,
+    Math.floor(options.count ?? profile.petal_rings.reduce((sum, ring) => sum + ring.count, 0))
+  );
+  const warmup = Math.max(
+    0,
+    Math.floor(options.phyllotaxisWarmup ?? LOTUS_PHYLLOTAXIS_LAYOUT_WARMUP)
+  );
+  const phyllotaxis = simulateLotusPhyllotaxis({
+    count: count + warmup,
+    seed: lotusSeedNumber(options.seed),
   });
+  const primordia = phyllotaxis.primordia.slice(warmup).reverse().slice(0, count);
+  const minR = Math.min(...primordia.map((p) => p.r));
+  const maxR = Math.max(...primordia.map((p) => p.r));
+  const rSpan = Math.max(1e-9, maxR - minR);
+  const innerRadius = lotusPlacementRadius(profile, 1, radiusScale);
+  const outerRadius = lotusPlacementRadius(profile, 3, radiusScale);
+  const quotas = lotusScaledRingQuotas(profile, primordia.length);
+  const ringCounters: Record<1 | 2 | 3, number> = { 1: 0, 2: 0, 3: 0 };
 
-  return placements;
+  return primordia.map((p, index) => {
+    const ring = lotusRingForLayoutIndex(index, quotas);
+    const base = lotusProfileRing(profile, ring);
+    const scale = LOTUS_RING_SCALING[ring] ?? LOTUS_RING_SCALING[3];
+    const radialT = (p.r - minR) / rSpan;
+    const liveRadius = innerRadius + radialT * (outerRadius - innerRadius);
+    const profileRadius = base.radius * scale.radius * radiusScale;
+    const tilt = ((90 - base.pitch_degrees) * Math.PI) / 180;
+    const lift = (profile.petal_rings.length - ring) * ringLift;
+    const ringIndex = ringCounters[ring]++;
+
+    return {
+      azimuth: ((p.theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2),
+      tilt,
+      radius: liveRadius * 0.7 + profileRadius * 0.3,
+      lift,
+      ring,
+      ringIndex,
+      phyllotaxisIndex: p.index,
+      primordiumRadius: p.r,
+      emergentDivergenceDeg: phyllotaxis.emergentDivergenceDeg,
+      divergenceSpreadDeg: phyllotaxis.divergenceSpreadDeg,
+    };
+  });
+}
+
+/**
+ * Build the full lotus bloom as per-petal placements from live phyllotaxis
+ * primordia. The profile supplies tissue proportions and cup pitch; the meristem
+ * supplies count, azimuth, ring order, and base-radius progression. Pure + deterministic.
+ */
+export function buildLotusFlowerPlacements(
+  profile: BotanicalLotusRenderProfile = createBotanicalLotusRenderProfile(),
+  options: BuildLotusFlowerOptions = {}
+): LotusPetalPlacement[] {
+  return buildLotusPhyllotaxisPetalLayout(profile, options);
 }
 
 // =============================================================================
