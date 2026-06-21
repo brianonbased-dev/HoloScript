@@ -229,6 +229,44 @@ describe('augmentWithOnTaskCognition', () => {
     expect(out).toBe(BASE);
   });
 
+  // ── council (multi-peer convergence) ─────────────────────────────────────────
+
+  it('council consults N seats (diverse lenses) and injects a grounded convergence synthesis', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'The fix is W.810.', peer: 'node' }));
+    const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'real entry' }]);
+    const out = await augmentWithOnTaskCognition(
+      deps({ onTaskActions: [{ verb: 'council', config: { question: 'how?', seats: 2 } }], askPeer, groundingCorpus })
+    );
+    expect(askPeer).toHaveBeenCalledTimes(2);
+    // distinct lenses → distinct seats → W.810 corroborated by ≥2 peers
+    expect(out).toContain('[Council of 2 peer(s) re "how?"]');
+    expect(out).toContain('Corroborated (≥2 peers, verified): W.810');
+    expect(askPeer.mock.calls[0][1]).toEqual(expect.objectContaining({ lens: 'correctness' }));
+    expect(askPeer.mock.calls[1][1]).toEqual(expect.objectContaining({ lens: 'skeptic' }));
+  });
+
+  it('council REJECTS an all-confabulated council when grounding is required (default)', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'Per W.999, do it.', peer: 'liar' }));
+    const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'the only real entry' }]);
+    const d = deps({
+      onTaskActions: [{ verb: 'council', config: { question: 'q', seats: 2 } }],
+      askPeer,
+      groundingCorpus,
+    });
+    const out = await augmentWithOnTaskCognition(d);
+    expect(out).toBe(BASE); // every seat confabulated → rejected, nothing injected
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-council', rejected: true })
+    );
+  });
+
+  it('skips council when no askPeer dep is provided', async () => {
+    const out = await augmentWithOnTaskCognition(
+      deps({ onTaskActions: [{ verb: 'council', config: { question: 'q' } }] })
+    );
+    expect(out).toBe(BASE);
+  });
+
   // ── ordering + resilience ────────────────────────────────────────────────────
 
   it('executes verbs in authored order (rag before llm_call)', async () => {

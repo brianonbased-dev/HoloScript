@@ -1,5 +1,5 @@
 import type { ILLMProvider, LLMMessage, TokenUsage, ToolUseBlock } from '@holoscript/llm-provider';
-import { embedAcrossFleet, cosineSimilarity } from '@holoscript/llm-provider';
+import { embedAcrossFleet, cosineSimilarity, createLocalLLMProvider } from '@holoscript/llm-provider';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
 import { pickClaimableTask } from './holomesh-client.js';
@@ -20,6 +20,15 @@ import type {
 // in the version_vector_fingerprint of every emitted record so consumers
 // can partition the corpus by runtime version.
 const RUNTIME_VERSION = '1.0.0';
+
+/** Parse a base URL's host for an honest peer label; falls back to the raw string. */
+function safeHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
 
 export interface AgentRunnerOptions {
   identity: AgentIdentity;
@@ -148,6 +157,25 @@ export class AgentRunner {
     // / recall / plan) and accumulate their outputs onto the system prompt before
     // the tool loop. Provider + mesh only (no engine/@holoscript/core dep) so the
     // edge package keeps its clean publish closure. `reflect` runs post-artifact.
+    //
+    // Peer provider for `ask_peer` / `council`: when HOLOSCRIPT_AGENT_PEER_BASE_URL
+    // points at a DIFFERENT sovereign node (e.g. the Jetson agent pointing at the
+    // laptop, or a fleet node), peer consultations route there — genuine
+    // agent-to-agent reasoning across the fleet (D.100 keystone). Unset → the agent
+    // self-consults wearing a peer persona; the CITE-by-ID grounding gate makes the
+    // answer trustworthy regardless of which node answered.
+    const peerBaseUrl = process.env.HOLOSCRIPT_AGENT_PEER_BASE_URL;
+    const peerModel = process.env.HOLOSCRIPT_AGENT_PEER_MODEL || identity.llmModel;
+    const peerProvider = peerBaseUrl
+      ? createLocalLLMProvider({
+          baseURL: peerBaseUrl,
+          model: peerModel,
+          timeoutMs: process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS
+            ? Number(process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_TIMEOUT_MS)
+            : 300000,
+        })
+      : provider;
+    const peerLabel = peerBaseUrl ? safeHost(peerBaseUrl) : peerModel;
     const systemContent = await augmentWithOnTaskCognition({
       systemPrompt: brain.systemPrompt,
       onTaskActions: brain.onTaskActions ?? [],
@@ -164,25 +192,24 @@ export class AgentRunner {
         );
         return resp.content;
       },
-      // `ask_peer` — agent-to-agent questioning, the reasoning substrate (D.100
-      // keystone). Routes to a designated peer model (HOLOSCRIPT_AGENT_PEER_MODEL)
-      // when set, else the agent's own model wearing a peer-consultation persona.
-      // The CITE-by-ID grounding gate (citation-grounding.ts) is what makes the
-      // answer trustworthy — a confabulating peer is caught regardless of which
-      // model answered. The peer is told to cite only by REAL knowledge ID.
+      // `ask_peer` / `council` — agent-to-agent questioning, the reasoning substrate
+      // (D.100 keystone). Routes to peerProvider (a different sovereign node when
+      // HOLOSCRIPT_AGENT_PEER_BASE_URL is set, else self-consult). `lens` gives a
+      // council seat its angle (correctness/skeptic/…). The CITE-by-ID grounding gate
+      // (citation-grounding.ts) makes the answer trustworthy regardless of who answered.
       askPeer: async (question, opts) => {
-        const peerModel = process.env.HOLOSCRIPT_AGENT_PEER_MODEL || identity.llmModel;
         const sys =
           (opts.capability
             ? `You are a peer agent consulted for your ${opts.capability} expertise. `
             : 'You are a peer agent being consulted by another agent. ') +
+          (opts.lens ? `Take the ${opts.lens} lens. ` : '') +
           'Answer concisely and concretely. When you cite supporting knowledge, cite ONLY by its real ID ' +
           '(e.g. W.123, F.045, D.101); NEVER invent an ID — an unsupported claim is better than a fabricated citation.';
-        const resp = await provider.complete(
+        const resp = await peerProvider.complete(
           { messages: [{ role: 'system', content: sys }, { role: 'user', content: question }], maxTokens: 512, temperature: 0.3 },
           peerModel
         );
-        return { answer: resp.content, peer: opts.peer || peerModel };
+        return { answer: resp.content, peer: opts.peer || peerLabel };
       },
       // Knowledge corpus the grounding gate resolves peer citations against — the
       // agent's private workspace (real entry IDs + content). Empty → fail-closed.

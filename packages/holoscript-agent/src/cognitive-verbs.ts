@@ -23,6 +23,7 @@
 import type { KnowledgeEntry } from './holomesh-client.js';
 import type { OnTaskAction } from './types.js';
 import { groundCitations, annotateGrounding, type GroundingEntry } from './citation-grounding.js';
+import { convergeCouncil, renderCouncil } from './council.js';
 
 export interface CognitiveVerbDeps {
   /** The brain's base system prompt to augment. */
@@ -62,7 +63,7 @@ export interface CognitiveVerbDeps {
    */
   askPeer?: (
     question: string,
-    opts: { capability?: string; peer?: string }
+    opts: { capability?: string; peer?: string; lens?: string }
   ) => Promise<{ answer: string; peer: string } | null>;
   /**
    * Resolve the knowledge corpus the grounding gate checks peer citations against
@@ -256,6 +257,61 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             answered: true,
             citationsGrounded: grounding.grounded.length,
             citationsConfabulated: grounding.confabulated.length,
+          });
+          break;
+        }
+        case 'council': {
+          if (!deps.askPeer) break;
+          const question =
+            strField(action.config, 'question', 'q', 'ask', 'of') || deps.task.title;
+          const capability = strField(action.config, 'capability', 'cap');
+          const seats = Math.max(2, Math.min(5, numField(action.config, 'seats', 3)));
+          const requireGrounding =
+            action.config.require_grounding !== false &&
+            action.config.requireGrounding !== false;
+          // Diverse lenses make N seats genuinely question from different angles
+          // (the adversarial-verify pattern) even on a single node; with a real peer
+          // endpoint each seat is also a different sovereign node.
+          const LENSES = ['correctness', 'skeptic', 'completeness', 'feasibility', 'risk'];
+          const collected: Array<{ peer: string; answer: string }> = [];
+          for (let i = 0; i < seats; i++) {
+            const lens = LENSES[i % LENSES.length];
+            const r = await deps.askPeer(question, { capability: capability || undefined, lens });
+            if (r && r.answer.trim()) collected.push({ peer: `${r.peer}/${lens}`, answer: r.answer });
+          }
+          if (collected.length === 0) {
+            deps.log({ ev: 'on-task-council', taskId: deps.task.id, question, seats: 0 });
+            break;
+          }
+          const corpus = deps.groundingCorpus ? await deps.groundingCorpus() : [];
+          const conv = convergeCouncil(collected, corpus);
+          // GATE: grounding required, nothing verified by ANY seat, yet citations were
+          // made → the whole council confabulated. Reject (do not inject).
+          if (
+            requireGrounding &&
+            conv.corroborated.length === 0 &&
+            conv.singleSource.length === 0 &&
+            conv.confabulated.length > 0
+          ) {
+            deps.log({
+              ev: 'on-task-council',
+              taskId: deps.task.id,
+              question,
+              seats: collected.length,
+              rejected: true,
+              confabulated: conv.confabulated.length,
+            });
+            break;
+          }
+          content += '\n\n' + renderCouncil(question, conv).slice(0, MAX_INJECTED_CHARS * 2);
+          deps.log({
+            ev: 'on-task-council',
+            taskId: deps.task.id,
+            question,
+            seats: collected.length,
+            corroborated: conv.corroborated.length,
+            singleSource: conv.singleSource.length,
+            confabulated: conv.confabulated.length,
           });
           break;
         }
