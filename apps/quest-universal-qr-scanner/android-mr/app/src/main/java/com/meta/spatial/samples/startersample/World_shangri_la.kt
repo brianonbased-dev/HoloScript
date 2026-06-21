@@ -141,8 +141,28 @@ object World_shangri_la {
             Vector3(3.4f, 0.45f, 9.5f),
         )
     )
-    // object "Guardian" (sphere, behavior: orbit)
+    // object "HoloSpire" (holo_spire.glb, behavior: bob)
     val o9 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/holo_spire.glb")),
+                Transform(Pose(Vector3(0.0f, 0.9f, 7.0f))),
+            )
+        )
+    w.entities.add(o9)
+    w.animated.add(
+        WorldAnimated(
+            o9,
+            "bob",
+            Vector3(0.0f, 0.9f, 7.0f),
+            0.5f,
+            0.08f,
+            2.0f,
+            Vector3(0.0f, 0.9f, 7.0f),
+        )
+    )
+    // object "Guardian" (sphere, behavior: orbit)
+    val o10 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -151,10 +171,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(6.0f, 3.4f, 13.0f))),
             )
         )
-    w.entities.add(o9)
+    w.entities.add(o10)
     w.animated.add(
         WorldAnimated(
-            o9,
+            o10,
             "orbit",
             Vector3(6.0f, 3.4f, 13.0f),
             0.45f,
@@ -164,7 +184,7 @@ object World_shangri_la {
         )
     )
     // object "LanternA" (box, behavior: bob)
-    val o10 =
+    val o11 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
@@ -173,10 +193,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-2.4f, 2.6f, 6.0f))),
             )
         )
-    w.entities.add(o10)
+    w.entities.add(o11)
     w.animated.add(
         WorldAnimated(
-            o10,
+            o11,
             "bob",
             Vector3(-2.4f, 2.6f, 6.0f),
             1.6f,
@@ -186,7 +206,7 @@ object World_shangri_la {
         )
     )
     // object "LanternB" (box, behavior: bob)
-    val o11 =
+    val o12 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
@@ -195,10 +215,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(2.4f, 3.0f, 6.5f))),
             )
         )
-    w.entities.add(o11)
+    w.entities.add(o12)
     w.animated.add(
         WorldAnimated(
-            o11,
+            o12,
             "bob",
             Vector3(2.4f, 3.0f, 6.5f),
             1.3f,
@@ -208,7 +228,7 @@ object World_shangri_la {
         )
     )
     // object "LanternC" (box, behavior: bob)
-    val o12 =
+    val o13 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
@@ -217,10 +237,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-1.4f, 3.4f, 9.5f))),
             )
         )
-    w.entities.add(o12)
+    w.entities.add(o13)
     w.animated.add(
         WorldAnimated(
-            o12,
+            o13,
             "bob",
             Vector3(-1.4f, 3.4f, 9.5f),
             1.9f,
@@ -230,7 +250,7 @@ object World_shangri_la {
         )
     )
     // object "SpiritA" (sphere, behavior: float)
-    val o13 =
+    val o14 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -239,10 +259,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-5.0f, 2.4f, 9.0f))),
             )
         )
-    w.entities.add(o13)
+    w.entities.add(o14)
     w.animated.add(
         WorldAnimated(
-            o13,
+            o14,
             "float",
             Vector3(-5.0f, 2.4f, 9.0f),
             1.2f,
@@ -252,7 +272,7 @@ object World_shangri_la {
         )
     )
     // object "SpiritB" (sphere, behavior: float)
-    val o14 =
+    val o15 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -261,10 +281,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(5.0f, 2.8f, 10.0f))),
             )
         )
-    w.entities.add(o14)
+    w.entities.add(o15)
     w.animated.add(
         WorldAnimated(
-            o14,
+            o15,
             "float",
             Vector3(5.0f, 2.8f, 10.0f),
             1.0f,
@@ -274,7 +294,7 @@ object World_shangri_la {
         )
     )
     // object "SpiritC" (sphere, behavior: float)
-    val o15 =
+    val o16 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -283,10 +303,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(0.0f, 3.0f, 4.0f))),
             )
         )
-    w.entities.add(o15)
+    w.entities.add(o16)
     w.animated.add(
         WorldAnimated(
-            o15,
+            o16,
             "float",
             Vector3(0.0f, 3.0f, 4.0f),
             0.9f,
