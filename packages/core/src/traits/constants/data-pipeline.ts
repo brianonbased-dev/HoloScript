@@ -8,6 +8,7 @@ export const DATA_PIPELINE_TRAITS = [
   'data_transform', // Data transformation / mapping
   'schema_migrate', // Schema migration versioning
   'data_quality', // Data quality validation rules
+  'language_adapter', // Data-driven Absorb language adapter declaration
 ] as const;
 
 export type DataPipelineTraitName = (typeof DATA_PIPELINE_TRAITS)[number];

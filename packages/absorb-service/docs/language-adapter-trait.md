@@ -47,9 +47,10 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
    the **one universal node/edge schema** (Symbol / File / Call / Import / Definition / Reference).
    The hand-written `TypeScriptAdapter` etc. stay until a trait reproduces their extraction at
    parity — migrate per-language, never big-bang on a live service.
-2. **Registry generation from traits** — `language-registry.json` becomes generated from the
-   set of `@language_adapter` declarations (today it is hand-authored; the drift gate already
-   guards it). The gate's contract is unchanged: registry ⊇ adapters ⊆ grammars.
+2. **Registry generation from traits** — `language-registry.json` is generated from
+   `language-adapters/*.holo` plus adapter/code metadata by
+   `pnpm --filter @holoscript/absorb-service generate:language-registry`. The drift gate
+   now checks both the generated output and the adapter/grammar/type contracts.
 3. **Grammar fetch-at-absorb** — resolve/install the pinned `grammar` package on first use
    (the WASM tree-sitter build, `@holoscript/wasm`, sidesteps the native-addon-in-worker-thread
    gotcha — see gap C5).
@@ -62,13 +63,15 @@ This is the `map_data` / `map_csv` universal-bridge pattern (data → `.holo` �
 | ---- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | ✅ 1 | `language-registry.json` + drift gate (metadata is data)                                     | additive, shipped (`33c4d75ab`)                          |
 | ✅ 2 | `TreeSitterTraitAdapter` + `RUBY_TRAIT` — **Ruby added as data, zero bespoke code**          | additive, shipped (`bd0f4f993`); 4/4 deterministic tests |
-| 3    | Generate `language-registry.json` from the trait set                                         | guarded by the existing drift gate                       |
+| ✅ 3 | Generate `language-registry.json` from the trait set                                         | additive, guarded by the existing drift gate             |
 | 4    | Port one _existing_ language (Go is smallest) to a trait; keep the class until parity proven | reversible, parity-gated                                 |
 | 5    | Land the 6 stranded `declared` languages as traits, no core PR each                          | the payoff                                               |
 
 The win landed at step 2 (`bd0f4f993`): Ruby is ingested via the `RUBY_TRAIT` config object +
-the generic `TreeSitterTraitAdapter` — **no `RubyAdapter` class exists**. The four hand-written
-extractors (TS/Python/Rust/Go) are untouched. Note: the current trait form is a node-type→kind
-rule table (runnable through the existing `walkTree` machinery); the richer tree-sitter
-S-expression `extractors` form above needs the `Language` object plumbed to adapters (a follow-up,
+the generic `TreeSitterTraitAdapter` — **no `RubyAdapter` class exists**. Step 3 makes the
+registry itself generated from `.holo` declarations, so registry drift is caught before a new
+language becomes another hand-maintained side table. The four hand-written extractors
+(TS/Python/Rust/Go) are untouched. Note: the current trait form is a node-type→kind rule table
+(runnable through the existing `walkTree` machinery); the richer tree-sitter S-expression
+`extractors` form above needs the `Language` object plumbed to adapters (a follow-up,
 gap C5-adjacent).

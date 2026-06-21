@@ -4,14 +4,12 @@
  * Central registry for all language adapters. Maps file extensions
  * to the appropriate adapter for symbol extraction.
  *
- * DATA SSOT: ./language-registry.json declares every language (id, status,
- * grammar, extensions) and is the contract enforced by the drift gate
- * `scripts/check-language-registry.mjs` — every adapter registered below MUST
- * appear there as implemented/native, and every implemented grammar MUST be an
- * installed dep. The 6 "declared" languages (java/cpp/csharp/php/swift/kotlin)
- * are build targets with no adapter yet; the @language_adapter .holo trait is
- * the native end-state where extractor queries become data too
- * (sug_1780711395408_m35r).
+ * DATA SSOT: ./language-registry.json is generated from SupportedLanguage,
+ * registered adapters, adapter metadata, and language-adapters/*.holo
+ * @language_adapter declarations. The drift gate
+ * `scripts/check-language-registry.mjs` enforces the generated artifact: every
+ * adapter registered below MUST appear there as implemented/native, and every
+ * implemented grammar MUST be an installed dep.
  */
 
 import type { LanguageAdapter, SupportedLanguage } from '../types';

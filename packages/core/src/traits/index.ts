@@ -131,6 +131,7 @@ export * from './JEPAObjective';
 export * from './JEPAPredictor';
 export { jointHandler } from './JointTrait';
 export * from './LayerAwareTrait';
+export * from './LanguageAdapterTrait';
 export * from './LightEstimationTrait';
 export * from './LightingTrait';
 export * from './LipSyncTrait';

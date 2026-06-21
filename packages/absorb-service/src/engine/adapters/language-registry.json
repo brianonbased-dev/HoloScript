@@ -1,11 +1,17 @@
 {
-  "version": 1,
-  "description": "Language ingestion registry — the DATA source of truth for which languages Absorb can parse, the grammar each needs, and the extractor that implements it. NORTH_STAR rule #4: languages are data, not hardcoded core vocabulary. This file is the contract the drift gate enforces (scripts/check-language-registry.mjs): every registered adapter MUST appear here as implemented/native, and every implemented grammar MUST be an installed dep. The @language_adapter .holo trait is the native end-state where the extractor queries themselves become data (see research/2026-06-05_brittney-capability-gaps.md §C, sug_1780711395408_m35r).",
+  "version": 2,
+  "generatedFrom": [
+    "src/engine/types.ts#SupportedLanguage",
+    "src/engine/adapters/index.ts",
+    "src/engine/adapters/*Adapter.ts",
+    "language-adapters/*.holo"
+  ],
+  "description": "Generated language ingestion registry for Absorb. Edit SupportedLanguage, adapter registrations, or @language_adapter .holo declarations, then run scripts/check-language-registry.mjs --write.",
   "statuses": {
-    "implemented": "Has a tree-sitter adapter class wired in adapters/index.ts; grammar is an installed dep.",
-    "native": "Parsed via @holoscript/core (no tree-sitter); the HoloScript-native path.",
-    "declared": "Present in the SupportedLanguage type but NO adapter exists yet — a build target. Adding one today still needs a core class; the @language_adapter trait removes that friction.",
-    "fallback": "Plaintext path — BM25/embeddings over raw text, no structural extraction."
+    "implemented": "Has a registered adapter; tree-sitter grammars must be installed package deps.",
+    "native": "Parsed by the HoloScript-native adapter rather than tree-sitter.",
+    "declared": "Present in SupportedLanguage but no adapter is registered yet.",
+    "fallback": "Plain text path for unrecognized extensions."
   },
   "languages": [
     {
@@ -13,101 +19,148 @@
       "status": "implemented",
       "adapter": "TypeScriptAdapter",
       "grammarPackage": "tree-sitter-typescript",
-      "extensions": [".ts", ".tsx", ".mts", ".cts"],
-      "notes": "Shares the TypeScriptAdapter class with javascript."
+      "extensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts"
+      ],
+      "notes": "Generated from TypeScriptAdapter.ts."
     },
     {
       "id": "javascript",
       "status": "implemented",
       "adapter": "TypeScriptAdapter",
       "grammarPackage": "tree-sitter-javascript",
-      "extensions": [".js", ".jsx", ".mjs", ".cjs"],
-      "notes": "Served by TypeScriptAdapter (extensions overlap declared on the TS adapter)."
+      "extensions": [
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs"
+      ],
+      "notes": "Generated from TypeScriptAdapter.ts shared JavaScript support."
     },
     {
       "id": "python",
       "status": "implemented",
       "adapter": "PythonAdapter",
       "grammarPackage": "tree-sitter-python",
-      "extensions": [".py", ".pyi"]
+      "extensions": [
+        ".py",
+        ".pyi"
+      ],
+      "notes": "Generated from PythonAdapter.ts."
     },
     {
       "id": "rust",
       "status": "implemented",
       "adapter": "RustAdapter",
       "grammarPackage": "tree-sitter-rust",
-      "extensions": [".rs"]
+      "extensions": [
+        ".rs"
+      ],
+      "notes": "Generated from RustAdapter.ts."
     },
     {
       "id": "go",
       "status": "implemented",
       "adapter": "GoAdapter",
       "grammarPackage": "tree-sitter-go",
-      "extensions": [".go"]
-    },
-    {
-      "id": "ruby",
-      "status": "implemented",
-      "adapter": "TreeSitterTraitAdapter",
-      "grammarPackage": "tree-sitter-ruby",
-      "extensions": [".rb", ".rake", ".gemspec"],
-      "notes": "Added as DATA — no bespoke RubyAdapter class. TreeSitterTraitAdapter(RUBY_TRAIT) from language-traits.ts. First proof of the @language_adapter step-2 migration path."
-    },
-    {
-      "id": "holoscript",
-      "status": "native",
-      "adapter": "HoloAdapter",
-      "grammarPackage": "@holoscript/core",
-      "extensions": [".holo", ".hsplus", ".hs"],
-      "notes": "Native parse via @holoscript/core parseHoloPartial(); regex-import fallback if the optional peer is absent."
+      "extensions": [
+        ".go"
+      ],
+      "notes": "Generated from GoAdapter.ts."
     },
     {
       "id": "java",
       "status": "declared",
       "adapter": null,
       "grammarPackage": "tree-sitter-java",
-      "extensions": [".java"],
-      "notes": "Build target — in SupportedLanguage type, no adapter yet."
+      "extensions": [
+        ".java"
+      ],
+      "notes": "Generated build target from SupportedLanguage."
     },
     {
       "id": "cpp",
       "status": "declared",
       "adapter": null,
       "grammarPackage": "tree-sitter-cpp",
-      "extensions": [".cpp", ".cc", ".cxx", ".hpp", ".h"],
-      "notes": "Build target."
+      "extensions": [
+        ".cpp",
+        ".cc",
+        ".cxx",
+        ".hpp",
+        ".h"
+      ],
+      "notes": "Generated build target from SupportedLanguage."
     },
     {
       "id": "csharp",
       "status": "declared",
       "adapter": null,
       "grammarPackage": "tree-sitter-c-sharp",
-      "extensions": [".cs"],
-      "notes": "Build target."
+      "extensions": [
+        ".cs"
+      ],
+      "notes": "Generated build target from SupportedLanguage."
     },
     {
       "id": "php",
       "status": "declared",
       "adapter": null,
       "grammarPackage": "tree-sitter-php",
-      "extensions": [".php"],
-      "notes": "Build target."
+      "extensions": [
+        ".php"
+      ],
+      "notes": "Generated build target from SupportedLanguage."
     },
     {
       "id": "swift",
       "status": "declared",
       "adapter": null,
       "grammarPackage": "tree-sitter-swift",
-      "extensions": [".swift"],
-      "notes": "Build target."
+      "extensions": [
+        ".swift"
+      ],
+      "notes": "Generated build target from SupportedLanguage."
     },
     {
       "id": "kotlin",
       "status": "declared",
       "adapter": null,
       "grammarPackage": "tree-sitter-kotlin",
-      "extensions": [".kt", ".kts"],
-      "notes": "Build target."
+      "extensions": [
+        ".kt",
+        ".kts"
+      ],
+      "notes": "Generated build target from SupportedLanguage."
+    },
+    {
+      "id": "ruby",
+      "status": "implemented",
+      "adapter": "TreeSitterTraitAdapter",
+      "grammarPackage": "tree-sitter-ruby",
+      "extensions": [
+        ".rb",
+        ".rake",
+        ".gemspec"
+      ],
+      "declaration": "packages/absorb-service/language-adapters/ruby.holo",
+      "extractorRules": 6,
+      "notes": "Generated from @language_adapter .holo data."
+    },
+    {
+      "id": "holoscript",
+      "status": "native",
+      "adapter": "HoloAdapter",
+      "grammarPackage": "@holoscript/core",
+      "extensions": [
+        ".holo",
+        ".hsplus",
+        ".hs"
+      ],
+      "notes": "Generated from HoloAdapter.ts."
     },
     {
       "id": "plaintext",
@@ -115,7 +168,7 @@
       "adapter": null,
       "grammarPackage": null,
       "extensions": [],
-      "notes": "Default text path for any unrecognized extension — BM25/embeddings only, no structural graph."
+      "notes": "Generated fallback for raw text ingestion."
     }
   ]
 }

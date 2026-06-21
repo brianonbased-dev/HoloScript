@@ -106,6 +106,38 @@ describe('Trait Config Block Parsing', () => {
     });
   });
 
+  it('should parse root language adapter declarations with nested extractor rules', () => {
+    const source = `
+      @language_adapter {
+        language: "ruby"
+        grammarPackage: "tree-sitter-ruby"
+        extensions: [".rb", ".rake", ".gemspec"]
+        symbols: [
+          { nodeType: "module", kind: "module", nameField: "name", container: true },
+          { nodeType: "class", kind: "class", nameField: "name", container: true }
+        ]
+        imports: [
+          { callNodeType: "call", methodField: "method", methodNames: ["require", "load"] }
+        ]
+      }
+    `;
+    const parser = new HoloCompositionParser();
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+
+    const trait = result.ast!.traits![0];
+    expect(trait.name).toBe('language_adapter');
+    expect(trait.config.language).toBe('ruby');
+    expect(trait.config.extensions).toEqual(['.rb', '.rake', '.gemspec']);
+    expect(trait.config.symbols).toEqual([
+      { nodeType: 'module', kind: 'module', nameField: 'name', container: true },
+      { nodeType: 'class', kind: 'class', nameField: 'name', container: true },
+    ]);
+    expect(trait.config.imports).toEqual([
+      { callNodeType: 'call', methodField: 'method', methodNames: ['require', 'load'] },
+    ]);
+  });
+
   it('should parse parenthesized trait configs identically', () => {
     const source = `
       composition "test" {

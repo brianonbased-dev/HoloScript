@@ -19,6 +19,7 @@ describe('buildKnownTraitSet', () => {
     expect(set.has('hook')).toBe(true);
     expect(set.has('view')).toBe(true);
     expect(set.has('reused_in')).toBe(true);
+    expect(set.has('language_adapter')).toBe(true);
   });
 
   it('includes the full VR_TRAITS base (back-compat)', () => {

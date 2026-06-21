@@ -1,0 +1,22 @@
+@language_adapter {
+  id: "ruby"
+  language: "ruby"
+  grammarPackage: "tree-sitter-ruby"
+  extensions: [".rb", ".rake", ".gemspec"]
+  symbols: [
+    { nodeType: "module", kind: "module", nameField: "name", container: true },
+    { nodeType: "class", kind: "class", nameField: "name", container: true },
+    { nodeType: "method", kind: "method", nameField: "name" },
+    { nodeType: "singleton_method", kind: "method", nameField: "name" }
+  ]
+  imports: [
+    {
+      callNodeType: "call",
+      methodField: "method",
+      methodNames: ["require", "require_relative", "load", "autoload"]
+    }
+  ]
+  calls: [
+    { callNodeType: "call", methodField: "method", receiverField: "receiver" }
+  ]
+}
