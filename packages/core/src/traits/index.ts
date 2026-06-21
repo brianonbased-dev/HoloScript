@@ -332,6 +332,7 @@ export * from './WalletTrait';
 export * from './WalkableTrait';
 export * from './WalkableNavmeshBuilder';
 export * from './WindTrait';
+export * from './WorldFoundationModelTrait';
 export * from './WorldGeneratorTrait';
 export * from './WoTThingTrait';
 export * from './ZeroKnowledgeProofTrait';

@@ -777,6 +777,77 @@ export interface NativeWorldGenerationResult {
   };
 }
 
+export type WorldPromptInputType = 'text' | 'image' | 'video';
+
+export interface WorldPromptInput {
+  type: WorldPromptInputType;
+  text?: string;
+  url?: string;
+  data?: string;
+  mimeType?: string;
+  label?: string;
+}
+
+export interface VideoReconstructionSummary {
+  sessionId: string;
+  replayFingerprint?: string;
+  framesIngested?: number;
+  ingestMode?: string;
+  captureProfile?: string;
+  videoBytes?: number;
+}
+
+export interface WorldSemanticNode {
+  id: string;
+  name: string;
+  kind: 'terrain' | 'landmark' | 'video_reconstruction' | 'agent_start';
+  geometry: 'plane' | 'box' | 'capsule' | 'mesh';
+  position: [number, number, number];
+  scale: [number, number, number];
+  material: string;
+}
+
+export interface WorldColliderMesh {
+  id: string;
+  nodeId: string;
+  shape: 'box' | 'mesh';
+  position: [number, number, number];
+  size: [number, number, number];
+  source: 'semantic_node' | 'video_reconstruction' | 'navmesh';
+}
+
+export interface WorldFoundationModelProvenance {
+  schema: 'cael.world_foundation_model.v1';
+  synthesisId: string;
+  provider: string;
+  model: string;
+  generatedAt: string;
+  promptHash: string;
+  inputModalities: WorldPromptInputType[];
+  semanticNodeCount: number;
+  colliderCount: number;
+  videoReconstructionSessionId?: string;
+  replayFingerprint?: string;
+  sourceAssetUrls: string[];
+  receiptHash: string;
+}
+
+export interface WorldPromptGenerationOptions extends NativeWorldGenerationOptions {
+  inputs?: WorldPromptInput[];
+  videoReconstruction?: VideoReconstructionSummary;
+  provider?: string;
+  model?: string;
+  generatedAt?: string;
+}
+
+export interface WorldPromptGenerationResult extends NativeWorldGenerationResult {
+  inputModalities: WorldPromptInputType[];
+  semanticNodes: WorldSemanticNode[];
+  colliderMeshes: WorldColliderMesh[];
+  provenance: WorldFoundationModelProvenance;
+  videoReconstruction?: VideoReconstructionSummary;
+}
+
 /**
  * Generate a sovereign 3D world using the native Sovereign3DAdapter (Brittney v43+)
  * when the 3D backend is deployed, or the proven Brittney text-LLM path when it is not.
@@ -947,6 +1018,368 @@ where appropriate. Return only valid HoloScript code with a composition root.`;
     source: 'heuristic',
     metrics: { generationMs: Date.now() - startMs },
   };
+}
+
+/**
+ * Unified multimodal world generation pipeline.
+ *
+ * Accepts text, image, and video inputs as one request, routes text/images through
+ * the existing native generator, attaches video reconstruction evidence when
+ * supplied by the MCP handler, and returns a physics-bearing .holo scene graph
+ * with semantic objects, inline colliders, and CAEL provenance.
+ */
+export async function generateWorldFromPrompt(
+  prompt: string,
+  options: WorldPromptGenerationOptions = {}
+): Promise<WorldPromptGenerationResult> {
+  const inputs = normalizeWorldPromptInputs(prompt, options.inputs);
+  const modalities = [...new Set(inputs.map((input) => input.type))] as WorldPromptInputType[];
+  const imageSources = inputs
+    .filter((input) => input.type === 'image')
+    .map((input) => input.data ?? input.url)
+    .filter((source): source is string => typeof source === 'string' && source.trim().length > 0);
+  const foundationPrompt = composeWorldFoundationPrompt(prompt, inputs, options.videoReconstruction);
+
+  const nativeResult = await generateWorldNative(foundationPrompt, {
+    format: options.format,
+    quality: options.quality,
+    input_image: options.input_image ?? imageSources[0],
+    input_images: options.input_images ?? (imageSources.length > 1 ? imageSources : undefined),
+    navEnabled: options.navEnabled ?? true,
+    interactiveMode: options.interactiveMode ?? true,
+    seed: options.seed,
+  });
+
+  const semanticNodes = deriveWorldSemanticNodes(prompt, options.videoReconstruction);
+  const colliderMeshes = deriveWorldColliderMeshes(semanticNodes, options.videoReconstruction);
+  const provenance = buildWorldFoundationModelProvenance({
+    prompt,
+    inputs,
+    nativeResult,
+    semanticNodes,
+    colliderMeshes,
+    videoReconstruction: options.videoReconstruction,
+    provider: options.provider,
+    model: options.model,
+    generatedAt: options.generatedAt,
+  });
+
+  const holoCode = attachWorldFoundationSceneGraph(nativeResult.holoCode, {
+    provenance,
+    semanticNodes,
+    colliderMeshes,
+  });
+
+  return {
+    ...nativeResult,
+    holoCode,
+    inputModalities: modalities,
+    semanticNodes,
+    colliderMeshes,
+    provenance,
+    ...(options.videoReconstruction ? { videoReconstruction: options.videoReconstruction } : {}),
+  };
+}
+
+function normalizeWorldPromptInputs(
+  prompt: string,
+  inputs: readonly WorldPromptInput[] | undefined
+): WorldPromptInput[] {
+  const normalized: WorldPromptInput[] = [];
+  if (prompt.trim()) {
+    normalized.push({ type: 'text', text: prompt.trim(), label: 'prompt' });
+  }
+  for (const input of inputs ?? []) {
+    if (!input || !['text', 'image', 'video'].includes(input.type)) continue;
+    if (input.type === 'text' && !input.text?.trim()) continue;
+    if (input.type !== 'text' && !input.url?.trim() && !input.data?.trim()) continue;
+    normalized.push({
+      ...input,
+      text: input.text?.trim(),
+      url: input.url?.trim(),
+      data: input.data?.trim(),
+      label: input.label?.trim(),
+    });
+  }
+  return normalized;
+}
+
+function composeWorldFoundationPrompt(
+  prompt: string,
+  inputs: readonly WorldPromptInput[],
+  reconstruction?: VideoReconstructionSummary
+): string {
+  const modalityList = [...new Set(inputs.map((input) => input.type))].join(', ') || 'text';
+  const videoLine = reconstruction
+    ? ` Video reconstruction session ${reconstruction.sessionId} replay ${reconstruction.replayFingerprint ?? 'unavailable'} is available as geometric evidence.`
+    : '';
+  return [
+    prompt || 'Generate a navigable HoloScript world.',
+    `Inputs: ${modalityList}.`,
+    'Emit a semantic scene graph with material traits, physics traits, and collider geometry suitable for compile_to_sdf and compile_to_urdf.',
+    videoLine,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function deriveWorldSemanticNodes(
+  prompt: string,
+  reconstruction?: VideoReconstructionSummary
+): WorldSemanticNode[] {
+  const landmarkName = deriveLandmarkName(prompt);
+  const nodes: WorldSemanticNode[] = [
+    {
+      id: 'terrain_surface',
+      name: 'TerrainSurface',
+      kind: 'terrain',
+      geometry: 'plane',
+      position: [0, 0, 0],
+      scale: [48, 1, 48],
+      material: 'generated_walkable_surface',
+    },
+    {
+      id: 'primary_landmark',
+      name: landmarkName,
+      kind: 'landmark',
+      geometry: 'box',
+      position: [0, 1.5, -6],
+      scale: [4, 3, 4],
+      material: 'semantic_world_landmark',
+    },
+    {
+      id: 'agent_start',
+      name: 'AgentStart',
+      kind: 'agent_start',
+      geometry: 'capsule',
+      position: [0, 1.7, 4],
+      scale: [0.4, 1.7, 0.4],
+      material: 'spawn_anchor',
+    },
+  ];
+
+  if (reconstruction) {
+    nodes.push({
+      id: 'video_reconstruction_bounds',
+      name: 'VideoReconstructionBounds',
+      kind: 'video_reconstruction',
+      geometry: 'mesh',
+      position: [0, 1, 0],
+      scale: [10, 2, 10],
+      material: 'holomap_video_geometry',
+    });
+  }
+
+  return nodes;
+}
+
+function deriveWorldColliderMeshes(
+  nodes: readonly WorldSemanticNode[],
+  reconstruction?: VideoReconstructionSummary
+): WorldColliderMesh[] {
+  const colliders: WorldColliderMesh[] = nodes
+    .filter((node) => node.kind !== 'agent_start')
+    .map((node) => ({
+      id: `${node.id}_collider`,
+      nodeId: node.id,
+      shape: node.geometry === 'mesh' ? ('mesh' as const) : ('box' as const),
+      position: node.position,
+      size: node.scale,
+      source:
+        node.kind === 'video_reconstruction'
+          ? ('video_reconstruction' as const)
+          : ('semantic_node' as const),
+    }));
+
+  if (reconstruction) {
+    colliders.push({
+      id: 'holomap_navmesh_collider',
+      nodeId: 'video_reconstruction_bounds',
+      shape: 'mesh',
+      position: [0, 0.05, 0],
+      size: [10, 0.1, 10],
+      source: 'navmesh',
+    });
+  }
+
+  return colliders;
+}
+
+function buildWorldFoundationModelProvenance(input: {
+  prompt: string;
+  inputs: readonly WorldPromptInput[];
+  nativeResult: NativeWorldGenerationResult;
+  semanticNodes: readonly WorldSemanticNode[];
+  colliderMeshes: readonly WorldColliderMesh[];
+  videoReconstruction?: VideoReconstructionSummary;
+  provider?: string;
+  model?: string;
+  generatedAt?: string;
+}): WorldFoundationModelProvenance {
+  const inputModalities = [
+    ...new Set(input.inputs.map((worldInput) => worldInput.type)),
+  ] as WorldPromptInputType[];
+  const sourceAssetUrls = input.inputs
+    .map((worldInput) => worldInput.url)
+    .filter((url): url is string => typeof url === 'string' && url.length > 0);
+  if (input.nativeResult.assetUrl) sourceAssetUrls.push(input.nativeResult.assetUrl);
+  if (input.nativeResult.navmeshUrl) sourceAssetUrls.push(input.nativeResult.navmeshUrl);
+
+  const generatedAt = input.generatedAt ?? new Date(0).toISOString();
+  const synthesisId =
+    input.nativeResult.generationId ??
+    `wfm_${stableHash(
+      JSON.stringify({
+        prompt: input.prompt,
+        modalities: inputModalities,
+        replay: input.videoReconstruction?.replayFingerprint,
+      })
+    )}`;
+
+  const unsigned = {
+    schema: 'cael.world_foundation_model.v1',
+    synthesisId,
+    provider: input.provider ?? input.nativeResult.source,
+    model: input.model ?? defaultWorldFoundationModel(input.nativeResult.source),
+    generatedAt,
+    promptHash: stableHash(input.prompt),
+    inputModalities,
+    semanticNodeCount: input.semanticNodes.length,
+    colliderCount: input.colliderMeshes.length,
+    videoReconstructionSessionId: input.videoReconstruction?.sessionId,
+    replayFingerprint: input.videoReconstruction?.replayFingerprint,
+    sourceAssetUrls,
+  };
+
+  return {
+    ...unsigned,
+    receiptHash: stableHash(JSON.stringify(unsigned)),
+  };
+}
+
+function attachWorldFoundationSceneGraph(
+  holoCode: string,
+  input: {
+    provenance: WorldFoundationModelProvenance;
+    semanticNodes: readonly WorldSemanticNode[];
+    colliderMeshes: readonly WorldColliderMesh[];
+  }
+): string {
+  const blocks = [
+    renderWorldFoundationProvenanceObject(input.provenance),
+    ...input.semanticNodes.map(renderSemanticNodeObject),
+    ...input.colliderMeshes.map(renderColliderObject),
+  ];
+  const trimmed = holoCode.trim();
+  const rootClose = trimmed.lastIndexOf('}');
+  if (rootClose < 0) {
+    return `composition "GeneratedWorld" {\n${blocks.join('\n\n')}\n}`;
+  }
+  return `${trimmed.slice(0, rootClose).trimEnd()}\n\n${blocks.join('\n\n')}\n${trimmed.slice(rootClose)}`;
+}
+
+function renderWorldFoundationProvenanceObject(provenance: WorldFoundationModelProvenance): string {
+  const lines = [
+    '  object "WorldFoundationProvenance" {',
+    '    @world_foundation_model {',
+    `      schema: "${provenance.schema}"`,
+    `      synthesis_id: "${escapeHoloString(provenance.synthesisId)}"`,
+    `      provider: "${escapeHoloString(provenance.provider)}"`,
+    `      model: "${escapeHoloString(provenance.model)}"`,
+    `      generated_at: "${escapeHoloString(provenance.generatedAt)}"`,
+    `      prompt_hash: "${provenance.promptHash}"`,
+    `      input_modalities: ${renderStringList(provenance.inputModalities)}`,
+    `      semantic_node_count: ${provenance.semanticNodeCount}`,
+    `      collider_count: ${provenance.colliderCount}`,
+    `      source_asset_urls: ${renderStringList(provenance.sourceAssetUrls)}`,
+    `      receipt_hash: "${provenance.receiptHash}"`,
+  ];
+  if (provenance.videoReconstructionSessionId) {
+    lines.push(
+      `      video_reconstruction_session_id: "${escapeHoloString(provenance.videoReconstructionSessionId)}"`
+    );
+  }
+  if (provenance.replayFingerprint) {
+    lines.push(`      replay_fingerprint: "${escapeHoloString(provenance.replayFingerprint)}"`);
+  }
+  lines.push('    }');
+  lines.push('  }');
+  return lines.join('\n');
+}
+
+function renderSemanticNodeObject(node: WorldSemanticNode): string {
+  return `  object "${node.name}" {
+    geometry: "${node.geometry}"
+    position: ${formatVec(node.position)}
+    scale: ${formatVec(node.scale)}
+    @semantic_node {
+      node_id: "${node.id}"
+      kind: "${node.kind}"
+      material: "${node.material}"
+    }
+    @material { preset: "${node.material}" }
+    @physics { mass: ${node.kind === 'terrain' ? 0 : 1} }
+    @collidable
+  }`;
+}
+
+function renderColliderObject(collider: WorldColliderMesh): string {
+  return `  object "${toPascalCase(collider.id)}" {
+    geometry: "box"
+    position: ${formatVec(collider.position)}
+    scale: ${formatVec(collider.size)}
+    @collider {
+      shape: "${collider.shape}"
+      source_node: "${collider.nodeId}"
+      source: "${collider.source}"
+      size: ${formatVec(collider.size)}
+    }
+    @physics { mass: 0 }
+    @collidable
+  }`;
+}
+
+function defaultWorldFoundationModel(source: NativeWorldGenerationResult['source']): string {
+  if (source === 'sovereign-3d') return 'sovereign-3d-world-foundation';
+  if (source === 'text-llm') return 'text-to-world-semantic-synthesis';
+  return 'heuristic-world-foundation-fallback';
+}
+
+function deriveLandmarkName(prompt: string): string {
+  const words = prompt
+    .split(/[^a-zA-Z0-9]+/)
+    .filter((word) => word.length > 2 && !/^(the|and|with|from|into|for|that|this)$/i.test(word));
+  return `${toPascalCase(words.slice(0, 3).join('_') || 'Primary')}Landmark`;
+}
+
+function toPascalCase(value: string): string {
+  const out = value
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join('');
+  return out || 'GeneratedObject';
+}
+
+function formatVec(v: readonly number[]): string {
+  return `[${v.map((n) => Number(n.toFixed(6))).join(', ')}]`;
+}
+
+function renderStringList(values: readonly string[]): string {
+  return `[${values.map((value) => `"${escapeHoloString(value)}"`).join(', ')}]`;
+}
+
+function escapeHoloString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, ' ');
+}
+
+function stableHash(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36).padStart(7, '0');
 }
 
 /**

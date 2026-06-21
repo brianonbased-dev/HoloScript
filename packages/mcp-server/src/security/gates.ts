@@ -358,6 +358,7 @@ const DOWNSTREAM_TOOLS = new Set([
   'generate_3d_object',
 
   // World generation (sovereign-3d pipeline — external inference)
+  'generate_world_from_prompt',
   'generate_world',
 
   // Networking (external connections)

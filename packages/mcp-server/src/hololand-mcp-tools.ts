@@ -292,6 +292,65 @@ export const hololandMcpTools: Tool[] = [
   // World Generation (consolidated ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â merges world_generate + generate_world)
   // ---------------------------------------------------------------------------
   {
+    name: 'generate_world_from_prompt',
+    description:
+      'Generate a physics-bearing .holo scene graph from unified text, image, and video inputs. Returns semantic nodes, inline collider meshes, a world_foundation_model CAEL provenance receipt, and optional HoloMap video reconstruction evidence.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'Text prompt or instruction for the generated world.',
+        },
+        inputs: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['text', 'image', 'video'] },
+              text: { type: 'string' },
+              url: { type: 'string' },
+              data: { type: 'string' },
+              mimeType: { type: 'string' },
+              label: { type: 'string' },
+            },
+            required: ['type'],
+          },
+          description: 'Optional typed multimodal inputs. Use url or data for image/video.',
+        },
+        imageUrl: { type: 'string', description: 'Convenience image URL input.' },
+        imageBase64: { type: 'string', description: 'Convenience base64 image input.' },
+        videoUrl: { type: 'string', description: 'Convenience video URL input.' },
+        reconstructVideo: {
+          type: 'boolean',
+          description:
+            'When true, opens a holo_reconstruct_from_video session before world synthesis. Default true when videoUrl is present.',
+        },
+        reconstructionConfig: {
+          type: 'object',
+          description: 'Optional HoloMap config passed to holo_reconstruct_from_video.',
+        },
+        format: {
+          type: 'string',
+          enum: ['3dgs', 'mesh', 'both', 'neural_field'],
+          description: 'Preferred generated asset format. Default: mesh.',
+        },
+        quality: {
+          type: 'string',
+          enum: ['low', 'medium', 'high', 'ultra'],
+          description: 'Generation quality tier. Default: high.',
+        },
+        navEnabled: { type: 'boolean', description: 'Generate navigable geometry. Default true.' },
+        interactiveMode: {
+          type: 'boolean',
+          description: 'Emit physics/collision interactive mode. Default true.',
+        },
+        seed: { type: 'number', description: 'Optional deterministic seed.' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'generate_world',
     description:
       'Generate a persistent, navigable 3D world using the native HoloScript sovereign-3d engine (Brittney v43+). ' +
@@ -1757,6 +1816,8 @@ async function _dispatchHololandTool(
 ): Promise<unknown> {
   switch (name) {
     // World
+    case 'generate_world_from_prompt':
+      return handleGenerateWorldFromPrompt(args);
     case 'generate_world':
       return handleGenerateWorld(args);
     case 'create_world':
@@ -1920,6 +1981,147 @@ async function _dispatchHololandTool(
 // =============================================================================
 // WORLD HANDLERS
 // =============================================================================
+
+function isPlainRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null && !Array.isArray(x);
+}
+
+function collectWorldPromptInputs(args: Record<string, unknown>): Array<{
+  type: 'text' | 'image' | 'video';
+  text?: string;
+  url?: string;
+  data?: string;
+  mimeType?: string;
+  label?: string;
+}> {
+  const inputs: Array<{
+    type: 'text' | 'image' | 'video';
+    text?: string;
+    url?: string;
+    data?: string;
+    mimeType?: string;
+    label?: string;
+  }> = [];
+
+  const rawInputs = Array.isArray(args.inputs) ? args.inputs : [];
+  for (const input of rawInputs) {
+    if (!isPlainRecord(input)) continue;
+    const type = input.type;
+    if (type !== 'text' && type !== 'image' && type !== 'video') continue;
+    inputs.push({
+      type,
+      ...(typeof input.text === 'string' ? { text: input.text } : {}),
+      ...(typeof input.url === 'string' ? { url: input.url } : {}),
+      ...(typeof input.data === 'string' ? { data: input.data } : {}),
+      ...(typeof input.mimeType === 'string' ? { mimeType: input.mimeType } : {}),
+      ...(typeof input.label === 'string' ? { label: input.label } : {}),
+    });
+  }
+
+  for (const [key, type, field] of [
+    ['imageUrl', 'image', 'url'],
+    ['imageBase64', 'image', 'data'],
+    ['videoUrl', 'video', 'url'],
+  ] as const) {
+    const value = args[key];
+    if (typeof value === 'string' && value.trim()) {
+      inputs.push({ type, [field]: value.trim(), label: key });
+    }
+  }
+
+  return inputs;
+}
+
+function resolveWorldPrompt(args: Record<string, unknown>, inputs: readonly { text?: string }[]): string {
+  if (typeof args.prompt === 'string' && args.prompt.trim()) return args.prompt.trim();
+  const textInput = inputs.find((input) => input.text?.trim());
+  return textInput?.text?.trim() ?? '';
+}
+
+async function maybeOpenVideoReconstruction(
+  args: Record<string, unknown>,
+  inputs: readonly { type: string; url?: string }[]
+): Promise<
+  | {
+      sessionId: string;
+      replayFingerprint?: string;
+      framesIngested?: number;
+      ingestMode?: string;
+      captureProfile?: string;
+      videoBytes?: number;
+    }
+  | undefined
+> {
+  if (isPlainRecord(args.videoReconstruction) && typeof args.videoReconstruction.sessionId === 'string') {
+    return {
+      sessionId: args.videoReconstruction.sessionId,
+      ...(typeof args.videoReconstruction.replayFingerprint === 'string'
+        ? { replayFingerprint: args.videoReconstruction.replayFingerprint }
+        : {}),
+    };
+  }
+
+  const videoUrl = inputs.find((input) => input.type === 'video' && input.url)?.url;
+  if (!videoUrl || args.reconstructVideo === false) return undefined;
+
+  const { handleHoloMapTool } = await import('./holomap-mcp-tools');
+  const config = isPlainRecord(args.reconstructionConfig)
+    ? { ingestVideo: false, ...args.reconstructionConfig }
+    : { ingestVideo: false };
+  const result = (await handleHoloMapTool('holo_reconstruct_from_video', {
+    videoUrl,
+    config,
+  })) as Record<string, unknown>;
+
+  if (typeof result.sessionId !== 'string') return undefined;
+  return {
+    sessionId: result.sessionId,
+    ...(typeof result.replayFingerprint === 'string'
+      ? { replayFingerprint: result.replayFingerprint }
+      : {}),
+    ...(typeof result.framesIngested === 'number' ? { framesIngested: result.framesIngested } : {}),
+    ...(typeof result.ingestMode === 'string' ? { ingestMode: result.ingestMode } : {}),
+    ...(typeof result.captureProfile === 'string' ? { captureProfile: result.captureProfile } : {}),
+    ...(typeof result.videoBytes === 'number' ? { videoBytes: result.videoBytes } : {}),
+  };
+}
+
+async function handleGenerateWorldFromPrompt(args: Record<string, unknown>): Promise<unknown> {
+  const inputs = collectWorldPromptInputs(args);
+  const prompt = resolveWorldPrompt(args, inputs);
+  if (!prompt && inputs.length === 0) {
+    return { error: 'prompt or at least one multimodal input is required' };
+  }
+
+  const videoReconstruction = await maybeOpenVideoReconstruction(args, inputs);
+  const { generateWorldFromPrompt } = await import('./generators');
+  const result = await generateWorldFromPrompt(prompt || 'Generate a navigable world.', {
+    inputs,
+    videoReconstruction,
+    format: (args.format as 'mesh' | '3dgs' | 'both' | 'neural_field' | undefined) ?? 'mesh',
+    quality: (args.quality as 'low' | 'medium' | 'high' | 'ultra' | undefined) ?? 'high',
+    navEnabled: args.navEnabled === undefined ? true : Boolean(args.navEnabled),
+    interactiveMode: args.interactiveMode === undefined ? true : Boolean(args.interactiveMode),
+    seed: typeof args.seed === 'number' ? args.seed : undefined,
+  });
+
+  return {
+    success: true,
+    source: result.source,
+    format: result.format,
+    inputModalities: result.inputModalities,
+    semanticNodes: result.semanticNodes,
+    colliderMeshes: result.colliderMeshes,
+    provenance: result.provenance,
+    ...(result.videoReconstruction ? { videoReconstruction: result.videoReconstruction } : {}),
+    ...(result.generationId ? { generationId: result.generationId } : {}),
+    ...(result.assetUrl ? { assetUrl: result.assetUrl } : {}),
+    ...(result.navmeshUrl ? { navmeshUrl: result.navmeshUrl } : {}),
+    ...(result.pointCloudUrl ? { pointCloudUrl: result.pointCloudUrl } : {}),
+    metrics: result.metrics,
+    holoCode: result.holoCode,
+  };
+}
 
 async function handleGenerateWorld(args: Record<string, unknown>): Promise<unknown> {
   const { generateWorldNative } = await import('./generators');

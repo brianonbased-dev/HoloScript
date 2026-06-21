@@ -65,6 +65,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   workflow_memory_subscribe: ['tools:read'],
 
   // === HoloLand MCP tools (world CRUD + MMO + Twin Earth) ===
+  generate_world_from_prompt: ['tools:write'],
   generate_world: ['tools:write'],
   create_world: ['tools:write'],
   get_world: ['tools:read'],

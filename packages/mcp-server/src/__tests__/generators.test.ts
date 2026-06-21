@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { suggestTraits, generateObject, generateScene, generateWorldNative } from '../generators';
+import {
+  suggestTraits,
+  generateObject,
+  generateScene,
+  generateWorldNative,
+  generateWorldFromPrompt,
+} from '../generators';
 
 vi.mock('@holoscript/llm-provider', () => ({
   createProviderManager: vi.fn(() => ({
@@ -417,5 +423,35 @@ describe('generateWorldNative', () => {
     expect(result.holoCode).toBeDefined();
     expect(typeof result.holoCode).toBe('string');
     expect(result.holoCode.length).toBeGreaterThan(10);
+  });
+});
+
+describe('generateWorldFromPrompt', () => {
+  it('emits multimodal provenance, semantic nodes, and inline colliders', async () => {
+    const result = await generateWorldFromPrompt('a warehouse robot training arena', {
+      inputs: [
+        { type: 'image', url: 'file:///scan.png' },
+        { type: 'video', url: 'file:///scan.mp4' },
+      ],
+      videoReconstruction: {
+        sessionId: 'sess-video',
+        replayFingerprint: 'fp-video',
+        framesIngested: 0,
+        ingestMode: 'none',
+        captureProfile: 'room',
+      },
+      generatedAt: '2026-06-21T00:00:00Z',
+      interactiveMode: true,
+      navEnabled: true,
+    });
+
+    expect(result.inputModalities).toEqual(['text', 'image', 'video']);
+    expect(result.provenance.schema).toBe('cael.world_foundation_model.v1');
+    expect(result.provenance.videoReconstructionSessionId).toBe('sess-video');
+    expect(result.semanticNodes.some((node) => node.kind === 'video_reconstruction')).toBe(true);
+    expect(result.colliderMeshes.length).toBeGreaterThanOrEqual(3);
+    expect(result.holoCode).toContain('@world_foundation_model');
+    expect(result.holoCode).toContain('@collider');
+    expect(result.holoCode).toContain('VideoReconstructionBounds');
   });
 });

@@ -282,6 +282,7 @@ holo_scaffold_code
 compile_trait_composition
 sync_hardware_loop
 execute_economic_contract
+generate_world_from_prompt
 generate_world
 create_world
 get_world

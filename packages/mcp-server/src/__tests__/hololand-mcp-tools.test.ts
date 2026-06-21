@@ -5,14 +5,31 @@
  * place CRUD, location quest CRUD.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+vi.mock('../holo-reconstruct-sessions', () => ({
+  mcpStartReconstructFromVideo: vi.fn(async (videoUrl: string) => ({
+    sessionId: 'sess-world-video',
+    replayFingerprint: `fp:${videoUrl}`,
+    framesIngested: 0,
+    ingestMode: 'none',
+    captureProfile: 'room',
+    videoBytes: 0,
+  })),
+  mcpReconstructStep: vi.fn(),
+  mcpReconstructAnchor: vi.fn(),
+  mcpReconstructExport: vi.fn(),
+}));
+
 import { handleHololandMcpTool, clearHololandRegistries } from '../hololand-mcp-tools';
 import { emergentDaemonId } from '../daemon-lifecycle-tools';
 import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
+import { mcpStartReconstructFromVideo } from '../holo-reconstruct-sessions';
 
 describe('hololand-mcp-tools', () => {
   beforeEach(() => {
     clearHololandRegistries();
+    vi.clearAllMocks();
   });
 
   // ---------------------------------------------------------------------------
@@ -27,6 +44,28 @@ describe('hololand-mcp-tools', () => {
   it('generate_world rejects empty prompt', async () => {
     const result = await handleHololandMcpTool('generate_world', { prompt: '   ' });
     expect(result).toMatchObject({ error: expect.stringContaining('prompt is required') });
+  });
+
+  it('generate_world_from_prompt accepts video and returns physics-bearing provenance', async () => {
+    const result = (await handleHololandMcpTool('generate_world_from_prompt', {
+      prompt: 'turn the loading-dock scan into a robot training world',
+      imageUrl: 'file:///dock.png',
+      videoUrl: 'file:///dock.mp4',
+      seed: 11,
+    })) as Record<string, unknown>;
+
+    expect(result.success).toBe(true);
+    expect(result.inputModalities).toEqual(['text', 'image', 'video']);
+    expect(result.provenance).toMatchObject({
+      schema: 'cael.world_foundation_model.v1',
+      videoReconstructionSessionId: 'sess-world-video',
+    });
+    expect(result.videoReconstruction).toMatchObject({ sessionId: 'sess-world-video' });
+    expect(result.holoCode).toEqual(expect.stringContaining('@world_foundation_model'));
+    expect(result.holoCode).toEqual(expect.stringContaining('@collider'));
+    expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenCalledWith('file:///dock.mp4', {
+      ingestVideo: false,
+    });
   });
 
   // ---------------------------------------------------------------------------

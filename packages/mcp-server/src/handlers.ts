@@ -530,6 +530,7 @@ export async function handleTool(
 
   // HoloLand MCP tools (world CRUD + MMO + Twin Earth)
   if (
+    name === 'generate_world_from_prompt' ||
     name === 'generate_world' ||
     name === 'create_world' ||
     name === 'get_world' ||

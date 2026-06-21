@@ -259,6 +259,7 @@ export const DEFAULT_BENIGN_POLICY: SandboxPolicy = {
 /** Tools that can touch sensitive state (HoloLand, robot/AI, payments, player-impacting) */
 export const SENSITIVE_TOOL_PATTERNS = [
   // HoloLand world CRUD
+  /^generate_world_from_prompt$/,
   /^generate_world$/,
   /^create_world$/,
   /^update_world$/,
@@ -308,6 +309,7 @@ export const SENSITIVE_TOOL_PATTERNS = [
   /^compile_to_/,
   /^generate_object$/,
   /^generate_scene$/,
+  /^generate_world_from_prompt$/,
   /^generate_semantic_ui$/,
   /^generate_3d_object$/,
   /^edit_holo$/,
