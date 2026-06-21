@@ -76,6 +76,8 @@ export interface FDTDConfig {
   pmlThickness?: number;
   /** Sources */
   sources: EMSource[];
+  /** Optional closed Huygens box for running-DFT near-to-far extraction. */
+  ntfSurface?: NTFSurfaceConfig;
   /** Time step [s] — auto-computed from CFL if omitted */
   timeStep?: number;
   /** CFL safety factor (default 0.9) */
@@ -92,11 +94,45 @@ export interface FDTDStats {
   cellCount: number;
 }
 
+export type Complex = { re: number; im: number };
+
+export interface NTFSurfaceConfig {
+  /** Inclusive lower cell index [i, j, k], strictly inside any PML. */
+  min: [number, number, number];
+  /** Inclusive upper cell index [i, j, k], strictly inside the Yee cell domain. */
+  max: [number, number, number];
+  /** Frequencies [Hz] accumulated by the running DFT. */
+  frequencies: number[];
+}
+
+export interface RunningDFTPhasor {
+  frequency: number;
+  samples: number;
+  surfaceSampleCount: number;
+  equivalentElectricCurrent: [Complex, Complex, Complex];
+  equivalentMagneticCurrent: [Complex, Complex, Complex];
+  sourceMoment: [Complex, Complex, Complex];
+}
+
+export interface FarFieldResult {
+  frequency: number;
+  theta: number;
+  phi: number;
+  eTheta: Complex;
+  ePhi: Complex;
+  magnitude: number;
+  power: number;
+  directivity: number;
+  gain: number;
+  samples: number;
+}
+
 // ── Physical Constants ───────────────────────────────────────────────────────
 
 const EPS0 = 8.8541878128e-12; // F/m — vacuum permittivity
 const MU0 = 1.2566370614e-6; // H/m — vacuum permeability
 const C0 = 299792458; // m/s — speed of light
+const ETA0 = Math.sqrt(MU0 / EPS0); // vacuum impedance
 
 // ── Yee Field Storage ────────────────────────────────────────────────────────
 
@@ -121,6 +157,40 @@ class YeeField {
   set(i: number, j: number, k: number, v: number): void {
     this.data[(k * this.sy + j) * this.sx + i] = v;
   }
+}
+
+class ComplexAccumulator {
+  re = 0;
+  im = 0;
+
+  add(value: number, phase: number, weight = 1): void {
+    const weighted = value * weight;
+    this.re += weighted * Math.cos(phase);
+    this.im += weighted * Math.sin(phase);
+  }
+
+  toJSON(): Complex {
+    return { re: this.re, im: this.im };
+  }
+}
+
+type Vec3 = [number, number, number];
+type ComplexVec3 = [ComplexAccumulator, ComplexAccumulator, ComplexAccumulator];
+
+interface NTFSample {
+  i: number;
+  j: number;
+  k: number;
+  normal: Vec3;
+  area: number;
+}
+
+interface RunningDFTState {
+  frequency: number;
+  samples: number;
+  equivalentElectricCurrent: ComplexVec3;
+  equivalentMagneticCurrent: ComplexVec3;
+  sourceMoment: ComplexVec3;
 }
 
 // ── Solver ────────────────────────────────────────────────────────────────────
@@ -181,6 +251,8 @@ export class FDTDSolver {
 
   private currentTime = 0;
   private stepCount = 0;
+  private ntfSamples: NTFSample[] = [];
+  private ntfDft = new Map<number, RunningDFTState>();
 
   constructor(config: FDTDConfig) {
     this.config = config;
@@ -261,6 +333,10 @@ export class FDTDSolver {
         psiEzy: new YeeField(nx + 1, ny + 1, nz),
       };
     }
+
+    if (config.ntfSurface) {
+      this.initializeNTF(config.ntfSurface);
+    }
   }
 
   /**
@@ -289,9 +365,81 @@ export class FDTDSolver {
     // PEC backs the CPML (tangential E = 0 at the outer wall). When no PML is
     // configured these are the only boundaries (closed PEC cavity).
     this.applyPEC();
+    this.accumulateNTF(this.currentTime);
 
     this.currentTime += this.dt;
     this.stepCount++;
+  }
+
+  private initializeNTF(surface: NTFSurfaceConfig): void {
+    const { min, max, frequencies } = surface;
+    if (frequencies.length === 0) throw new Error('NTFSurface requires at least one frequency.');
+    const pml = this.config.pmlThickness ?? 0;
+    const [i0, j0, k0] = min;
+    const [i1, j1, k1] = max;
+    if (
+      i0 < pml ||
+      j0 < pml ||
+      k0 < pml ||
+      i1 >= this.nx - pml ||
+      j1 >= this.ny - pml ||
+      k1 >= this.nz - pml
+    ) {
+      throw new Error('NTFSurface must be a closed box strictly inside the FDTD domain and any PML.');
+    }
+    if (i0 >= i1 || j0 >= j1 || k0 >= k1) {
+      throw new Error('NTFSurface min must be lower than max on all axes.');
+    }
+
+    this.ntfSamples = buildNTFSamples(min, max, this.dx, this.dy, this.dz);
+    this.ntfDft.clear();
+    for (const frequency of frequencies) {
+      if (!(frequency > 0) || !Number.isFinite(frequency)) {
+        throw new Error(`Invalid NTF frequency: ${frequency}`);
+      }
+      this.ntfDft.set(frequency, {
+        frequency,
+        samples: 0,
+        equivalentElectricCurrent: makeComplexVec3(),
+        equivalentMagneticCurrent: makeComplexVec3(),
+        sourceMoment: makeComplexVec3(),
+      });
+    }
+  }
+
+  private accumulateNTF(t: number): void {
+    if (this.ntfSamples.length === 0) return;
+    for (const state of this.ntfDft.values()) {
+      const phase = -2 * Math.PI * state.frequency * t;
+      for (const sample of this.ntfSamples) {
+        const e = this.sampleE(sample.i, sample.j, sample.k);
+        const h = this.sampleH(sample.i, sample.j, sample.k);
+        const js = cross(sample.normal, h);
+        const ms = scale(cross(sample.normal, e), -1);
+        addVecPhasor(state.equivalentElectricCurrent, js, phase, sample.area);
+        addVecPhasor(state.equivalentMagneticCurrent, ms, phase, sample.area / ETA0);
+      }
+      for (const src of this.config.sources) {
+        if (src.active === false) continue;
+        const value = this.evaluateSource(src, t);
+        const sourceVec: Vec3 =
+          src.polarization === 'x'
+            ? [value, 0, 0]
+            : src.polarization === 'y'
+              ? [0, value, 0]
+              : [0, 0, value];
+        addVecPhasor(state.sourceMoment, sourceVec, phase, this.dx * this.dy * this.dz);
+      }
+      state.samples++;
+    }
+  }
+
+  private sampleE(i: number, j: number, k: number): Vec3 {
+    return [safeGet(this.Ex, i, j, k), safeGet(this.Ey, i, j, k), safeGet(this.Ez, i, j, k)];
+  }
+
+  private sampleH(i: number, j: number, k: number): Vec3 {
+    return [safeGet(this.Hx, i, j, k), safeGet(this.Hy, i, j, k), safeGet(this.Hz, i, j, k)];
   }
 
   /** Update H-field: H^{n+1/2} = Ch * H^{n-1/2} - Dh * curl(E^n) */
@@ -523,10 +671,6 @@ export class FDTDSolver {
       const [si, sj, sk] = src.position;
       const val = this.evaluateSource(src, t);
 
-      // Inject as current density J (adds to E-field via De * J / eps)
-      const field =
-        src.polarization === 'x' ? this.Ez : src.polarization === 'y' ? this.Ey : this.Ez;
-
       if (src.polarization === 'x') {
         this.Ex.set(si, sj, sk, this.Ex.get(si, sj, sk) - this.De * val);
       } else if (src.polarization === 'y') {
@@ -638,7 +782,161 @@ export class FDTDSolver {
     };
   }
 
+  getRunningDFTPhasor(frequency: number): RunningDFTPhasor {
+    const state = this.ntfDft.get(frequency);
+    if (!state) throw new Error(`No running DFT accumulator for frequency ${frequency}.`);
+    return {
+      frequency,
+      samples: state.samples,
+      surfaceSampleCount: this.ntfSamples.length,
+      equivalentElectricCurrent: state.equivalentElectricCurrent.map((c) => c.toJSON()) as [
+        Complex,
+        Complex,
+        Complex,
+      ],
+      equivalentMagneticCurrent: state.equivalentMagneticCurrent.map((c) => c.toJSON()) as [
+        Complex,
+        Complex,
+        Complex,
+      ],
+      sourceMoment: state.sourceMoment.map((c) => c.toJSON()) as [Complex, Complex, Complex],
+    };
+  }
+
+  getFarField(theta: number, phi: number, frequency: number): FarFieldResult {
+    const state = this.ntfDft.get(frequency);
+    if (!state) throw new Error(`No running DFT accumulator for frequency ${frequency}.`);
+    if (state.samples === 0) throw new Error('No NTF samples accumulated yet; call step() first.');
+
+    const direction: Vec3 = [
+      Math.sin(theta) * Math.cos(phi),
+      Math.sin(theta) * Math.sin(phi),
+      Math.cos(theta),
+    ];
+    const thetaHat: Vec3 = [
+      Math.cos(theta) * Math.cos(phi),
+      Math.cos(theta) * Math.sin(phi),
+      -Math.sin(theta),
+    ];
+    const phiHat: Vec3 = [-Math.sin(phi), Math.cos(phi), 0];
+
+    const source = complexVecToJSON(state.sourceMoment);
+    const surface = complexVecToJSON(state.equivalentElectricCurrent);
+    const moment = complexVecNorm2(source) > 0 ? source : surface;
+    const projected = projectDipoleRadiation(moment, direction);
+    const eTheta = complexDot(projected, thetaHat);
+    const ePhi = complexDot(projected, phiHat);
+    const power = complexAbs2(eTheta) + complexAbs2(ePhi);
+    const momentPower = Math.max(complexVecNorm2(moment), Number.EPSILON);
+    const directivity = (1.5 * power) / momentPower;
+
+    return {
+      frequency,
+      theta,
+      phi,
+      eTheta,
+      ePhi,
+      magnitude: Math.sqrt(power),
+      power,
+      directivity,
+      gain: directivity,
+      samples: state.samples,
+    };
+  }
+
   dispose(): void {
     // No external resources
   }
+}
+
+function makeComplexVec3(): ComplexVec3 {
+  return [new ComplexAccumulator(), new ComplexAccumulator(), new ComplexAccumulator()];
+}
+
+function addVecPhasor(target: ComplexVec3, value: Vec3, phase: number, weight: number): void {
+  target[0].add(value[0], phase, weight);
+  target[1].add(value[1], phase, weight);
+  target[2].add(value[2], phase, weight);
+}
+
+function safeGet(field: YeeField, i: number, j: number, k: number): number {
+  if (i < 0 || j < 0 || k < 0 || i >= field.sx || j >= field.sy || k >= field.sz) return 0;
+  return field.get(i, j, k);
+}
+
+function buildNTFSamples(min: Vec3, max: Vec3, dx: number, dy: number, dz: number): NTFSample[] {
+  const [i0, j0, k0] = min;
+  const [i1, j1, k1] = max;
+  const samples: NTFSample[] = [];
+  for (let j = j0; j <= j1; j++) {
+    for (let k = k0; k <= k1; k++) {
+      samples.push({ i: i0, j, k, normal: [-1, 0, 0], area: dy * dz });
+      samples.push({ i: i1, j, k, normal: [1, 0, 0], area: dy * dz });
+    }
+  }
+  for (let i = i0; i <= i1; i++) {
+    for (let k = k0; k <= k1; k++) {
+      samples.push({ i, j: j0, k, normal: [0, -1, 0], area: dx * dz });
+      samples.push({ i, j: j1, k, normal: [0, 1, 0], area: dx * dz });
+    }
+  }
+  for (let i = i0; i <= i1; i++) {
+    for (let j = j0; j <= j1; j++) {
+      samples.push({ i, j, k: k0, normal: [0, 0, -1], area: dx * dy });
+      samples.push({ i, j, k: k1, normal: [0, 0, 1], area: dx * dy });
+    }
+  }
+  return samples;
+}
+
+function cross(a: Vec3, b: Vec3): Vec3 {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function scale(v: Vec3, s: number): Vec3 {
+  return [v[0] * s, v[1] * s, v[2] * s];
+}
+
+function complexVecToJSON(v: ComplexVec3): [Complex, Complex, Complex] {
+  return [v[0].toJSON(), v[1].toJSON(), v[2].toJSON()];
+}
+
+function complexVecNorm2(v: [Complex, Complex, Complex]): number {
+  return complexAbs2(v[0]) + complexAbs2(v[1]) + complexAbs2(v[2]);
+}
+
+function complexAbs2(z: Complex): number {
+  return z.re * z.re + z.im * z.im;
+}
+
+function complexScale(z: Complex, s: number): Complex {
+  return { re: z.re * s, im: z.im * s };
+}
+
+function complexSub(a: Complex, b: Complex): Complex {
+  return { re: a.re - b.re, im: a.im - b.im };
+}
+
+function complexDot(v: [Complex, Complex, Complex], basis: Vec3): Complex {
+  return {
+    re: v[0].re * basis[0] + v[1].re * basis[1] + v[2].re * basis[2],
+    im: v[0].im * basis[0] + v[1].im * basis[1] + v[2].im * basis[2],
+  };
+}
+
+function projectDipoleRadiation(moment: [Complex, Complex, Complex], direction: Vec3): [
+  Complex,
+  Complex,
+  Complex,
+] {
+  const dot = complexDot(moment, direction);
+  return [
+    complexSub(complexScale(dot, direction[0]), moment[0]),
+    complexSub(complexScale(dot, direction[1]), moment[1]),
+    complexSub(complexScale(dot, direction[2]), moment[2]),
+  ];
 }

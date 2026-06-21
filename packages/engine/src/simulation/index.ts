@@ -67,7 +67,16 @@ export {
   type AcousticBC,
   type AcousticStats,
 } from './AcousticSolver';
-export { FDTDSolver, type FDTDConfig, type EMSource, type FDTDStats } from './FDTDSolver';
+export {
+  FDTDSolver,
+  type Complex,
+  type EMSource,
+  type FarFieldResult,
+  type FDTDConfig,
+  type FDTDStats,
+  type NTFSurfaceConfig,
+  type RunningDFTPhasor,
+} from './FDTDSolver';
 export {
   NavierStokesSolver,
   type NavierStokesConfig,
