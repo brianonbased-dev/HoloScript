@@ -2421,6 +2421,94 @@ export class GLTFPipeline extends CompilerBase {
   }
 
   /**
+   * Build a GLB binary directly from a raw triangle mesh (e.g. a marching-cubes SurfaceMesh from
+   * `Simulation.marchingCubes`). This is the bridge that makes sovereign SDF/CSG geometry loadable
+   * by the Meta Spatial SDK (which loads only glb/gltf — STL is not loadable). Reuses the pipeline's
+   * real accessor + GLB-container machinery; normals are computed if not supplied.
+   *
+   * @param positions flat xyz vertex array
+   * @param indices   flat triangle index array
+   */
+  public addSurfaceMesh(
+    positions: Float32Array,
+    indices: Uint32Array,
+    opts: {
+      normals?: Float32Array;
+      baseColor?: [number, number, number, number];
+      metallic?: number;
+      roughness?: number;
+      name?: string;
+    } = {}
+  ): Uint8Array {
+    // Fresh GLB state (the buffer is a shared static; reset offsets + collections).
+    this.bufferByteLength = 0;
+    this.accessors = [];
+    this.bufferViews = [];
+    this.meshes = [];
+    this.materials = [];
+    this.nodes = [];
+    this.scenes = [];
+
+    const name = opts.name ?? 'surface';
+    const normals = opts.normals ?? GLTFPipeline.computeVertexNormals(positions, indices);
+    const posAcc = this.createAccessor(positions, 'VEC3', true); // computeBounds → POSITION min/max
+    const normAcc = this.createAccessor(normals, 'VEC3');
+    const idxAcc = this.createAccessor(indices, 'SCALAR');
+
+    this.materials.push({
+      name: `${name}_mat`,
+      pbrMetallicRoughness: {
+        baseColorFactor: opts.baseColor ?? [0.8, 0.8, 0.82, 1],
+        metallicFactor: opts.metallic ?? 0.0,
+        roughnessFactor: opts.roughness ?? 0.85,
+      },
+    } as unknown as GLTFMaterial);
+
+    this.meshes.push({
+      name,
+      primitives: [
+        { attributes: { POSITION: posAcc, NORMAL: normAcc }, indices: idxAcc, material: 0 },
+      ],
+    } as unknown as GLTFMesh);
+    this.nodes.push({ name, mesh: 0 } as unknown as GLTFNode);
+    this.scenes.push({ name, nodes: [0] });
+
+    const gltf = this.buildDocument(
+      { name, objects: [], spatialGroups: [] } as unknown as HoloComposition,
+      this.bufferByteLength
+    );
+    const buffer = this.bufferData.subarray(0, this.bufferByteLength);
+    return this.createGLB(gltf, buffer);
+  }
+
+  /** Per-vertex normals (averaged face normals) for an indexed triangle mesh. */
+  private static computeVertexNormals(positions: Float32Array, indices: Uint32Array): Float32Array {
+    const n = new Float32Array(positions.length);
+    for (let i = 0; i < indices.length; i += 3) {
+      const a = indices[i] * 3,
+        b = indices[i + 1] * 3,
+        c = indices[i + 2] * 3;
+      const e1x = positions[b] - positions[a],
+        e1y = positions[b + 1] - positions[a + 1],
+        e1z = positions[b + 2] - positions[a + 2];
+      const e2x = positions[c] - positions[a],
+        e2y = positions[c + 1] - positions[a + 1],
+        e2z = positions[c + 2] - positions[a + 2];
+      const nx = e1y * e2z - e1z * e2y,
+        ny = e1z * e2x - e1x * e2z,
+        nz = e1x * e2y - e1y * e2x;
+      n[a] += nx; n[a + 1] += ny; n[a + 2] += nz;
+      n[b] += nx; n[b + 1] += ny; n[b + 2] += nz;
+      n[c] += nx; n[c + 1] += ny; n[c + 2] += nz;
+    }
+    for (let i = 0; i < n.length; i += 3) {
+      const len = Math.hypot(n[i], n[i + 1], n[i + 2]) || 1;
+      n[i] /= len; n[i + 1] /= len; n[i + 2] /= len;
+    }
+    return n;
+  }
+
+  /**
    * Build the glTF JSON document
    */
   private buildDocument(composition: HoloComposition, bufferLength: number): object {
