@@ -28,16 +28,14 @@ import type { SimSolver, FieldData } from './SimSolver';
 import { isGpuBackedSolver } from './SimSolver';
 import { type HashMode, HASH_MODE_DEFAULT, sha256Bytes } from './sha256';
 import { computeStateDigest, hashGeometry, hashGpuOutput } from './hashes';
+import { gridConvergenceIndex } from './verification/ConvergenceAnalysis';
 import {
   canonicalizeSubgridParams,
   type SubgridAttestation,
   type SubgridParams,
 } from '@holoscript/core/paper-0c-spike';
 import { fnv1a32Hex } from '@holoscript/core/reconstruction';
-import type {
-  ParameterEnvelope,
-  EnvelopeCheckResult,
-} from '@holoscript/core/parameter-envelope';
+import type { ParameterEnvelope, EnvelopeCheckResult } from '@holoscript/core/parameter-envelope';
 import { checkParameterEnvelope } from '@holoscript/core/parameter-envelope';
 
 export {
@@ -566,6 +564,8 @@ export interface SimulationProvenance {
   finalStats: Record<string, unknown>;
   /** Contract violations found at construction time, including CAEL reason codes when available. */
   contractViolations?: ContractViolation[];
+  /** Runtime V&V criteria measurements and violations from the scale envelope. */
+  vvReport?: VVReport;
   /** Semantic-clause violations (precondition/invariant/postcondition) — the proof witness. */
   clauseViolations?: ClauseViolation[];
   /** True when no error-severity structural OR clause violations were found. */
@@ -803,6 +803,30 @@ export interface ContractViolation {
   severity: 'error' | 'warning';
   /** CAEL reason code for traceability (e.g. CAEL-PHYS-001) */
   code?: string;
+}
+
+export type VVCriterion = 'energy_drift' | 'grid_convergence_index' | string;
+
+export interface VVMeasurement {
+  criterion: VVCriterion;
+  measured: number;
+  threshold: number;
+  passed: boolean;
+  source: 'solver-stats' | 'computed';
+  simTime: number;
+  stepCount: number;
+}
+
+export interface VVReport {
+  measurements: VVMeasurement[];
+  violations: ContractViolation[];
+  verified: boolean;
+}
+
+export interface ContractSolveResult {
+  provenance: SimulationProvenance;
+  vvReport: VVReport;
+  stateDigests: readonly string[];
 }
 
 // ============================================================================
@@ -1743,6 +1767,54 @@ export function validateUnits(config: Record<string, unknown>): ContractViolatio
   return violations;
 }
 
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function readEnergy(stats: Record<string, unknown>): number | undefined {
+  return (
+    finiteNumber(stats.totalEnergy) ??
+    finiteNumber(stats.energy) ??
+    finiteNumber(stats.total_energy) ??
+    finiteNumber(stats.hamiltonian)
+  );
+}
+
+function readDirectGci(stats: Record<string, unknown>): number | undefined {
+  return (
+    finiteNumber(stats.gci) ??
+    finiteNumber(stats.gridConvergenceIndex) ??
+    finiteNumber(stats.grid_convergence_index)
+  );
+}
+
+function readComputedGci(stats: Record<string, unknown>): number | undefined {
+  const source =
+    typeof stats.gciInputs === 'object' && stats.gciInputs !== null
+      ? (stats.gciInputs as Record<string, unknown>)
+      : stats;
+  const fCoarse =
+    finiteNumber(source.fCoarse) ?? finiteNumber(source.coarseValue) ?? finiteNumber(source.coarse);
+  const fFine =
+    finiteNumber(source.fFine) ?? finiteNumber(source.fineValue) ?? finiteNumber(source.fine);
+  const r =
+    finiteNumber(source.r) ??
+    finiteNumber(source.refinementRatio) ??
+    finiteNumber(source.refinement_ratio);
+  const p =
+    finiteNumber(source.p) ??
+    finiteNumber(source.observedOrder) ??
+    finiteNumber(source.observed_order);
+  const safetyFactor = finiteNumber(source.safetyFactor) ?? finiteNumber(source.safety_factor);
+
+  if (fCoarse === undefined || fFine === undefined || r === undefined || p === undefined) {
+    return undefined;
+  }
+
+  const gci = gridConvergenceIndex(fCoarse, fFine, r, p, safetyFactor);
+  return Number.isFinite(gci) ? gci : undefined;
+}
+
 // ── Deterministic Stepper ────────────────────────────────────────────────────
 
 /**
@@ -1845,6 +1917,9 @@ export class ContractedSimulation {
   private clauseViolations: ClauseViolation[] = [];
   /** Result of envelope check at construction (null when no envelope was declared). */
   private envelopeCheckResult: EnvelopeCheckResult | null = null;
+  private previousEnergy: number | undefined;
+  private vvMeasurements: VVMeasurement[] = [];
+  private vvViolations: ContractViolation[] = [];
   private startTime = 0;
   private logInteractions: boolean;
   /** Continuation link declared at construction (receipt chaining). */
@@ -2143,6 +2218,95 @@ export class ContractedSimulation {
     }
   }
 
+  private recordVVMeasurement(
+    criterion: VVCriterion,
+    measured: number,
+    threshold: number,
+    source: VVMeasurement['source'],
+    stepCount: number,
+    simTime: number
+  ): void {
+    const passed = measured <= threshold;
+    this.vvMeasurements.push({
+      criterion,
+      measured,
+      threshold,
+      passed,
+      source,
+      stepCount,
+      simTime,
+    });
+
+    if (passed) return;
+
+    const code =
+      criterion === 'energy_drift'
+        ? 'CAEL-VV-ENERGY-DRIFT'
+        : criterion === 'grid_convergence_index'
+          ? 'CAEL-VV-GCI'
+          : 'CAEL-VV-CRITERION';
+    const violation: ContractViolation = {
+      rule: 'vv-criteria',
+      code,
+      message:
+        `V&V criterion ${criterion} measured ${measured.toExponential(4)} ` +
+        `above threshold ${threshold.toExponential(4)} at step ${stepCount}.`,
+      severity: 'error',
+    };
+    this.vvViolations.push(violation);
+    this.violations.push(violation);
+  }
+
+  private evaluateVVCriteria(stepCount: number, simTime: number): void {
+    const stats = this.solver.getStats();
+    const energyThreshold = finiteNumber(this.scaleEnvelope.vvCriteria.energy_drift);
+    const currentEnergy = energyThreshold === undefined ? undefined : readEnergy(stats);
+
+    if (energyThreshold !== undefined && currentEnergy !== undefined) {
+      if (this.previousEnergy !== undefined) {
+        const denominator = Math.max(Math.abs(currentEnergy), 1e-30);
+        const drift = Math.abs(currentEnergy - this.previousEnergy) / denominator;
+        this.recordVVMeasurement(
+          'energy_drift',
+          drift,
+          energyThreshold,
+          'computed',
+          stepCount,
+          simTime
+        );
+      }
+      this.previousEnergy = currentEnergy;
+    }
+
+    const gciThreshold = finiteNumber(this.scaleEnvelope.vvCriteria.grid_convergence_index);
+    if (gciThreshold === undefined) return;
+
+    const directGci = readDirectGci(stats);
+    if (directGci !== undefined) {
+      this.recordVVMeasurement(
+        'grid_convergence_index',
+        directGci,
+        gciThreshold,
+        'solver-stats',
+        stepCount,
+        simTime
+      );
+      return;
+    }
+
+    const computedGci = readComputedGci(stats);
+    if (computedGci !== undefined) {
+      this.recordVVMeasurement(
+        'grid_convergence_index',
+        computedGci,
+        gciThreshold,
+        'computed',
+        stepCount,
+        simTime
+      );
+    }
+  }
+
   /** Advance the simulation by wall-clock delta using fixed timestep.
    *  Enforces Guarantee 1 (geometry integrity) before each step.
    *  Captures per-step state digest for Property 4 Route 2b (cross-adapter
@@ -2151,6 +2315,7 @@ export class ContractedSimulation {
     this.enforceGeometryIntegrity();
     const subStepsTaken = this.stepper.advance(wallDelta, (dt) => {
       this.solver.step(dt);
+      this.evaluateVVCriteria(this.stepper.getStepCount() + 1, this.stepper.getSimTime() + dt);
       // Route 2b: canonicalize state AFTER each solver sub-step so the
       // digest sequence reflects inner fixed-timestep granularity, not
       // wall-clock delta granularity. This matters for replay — a replay
@@ -2187,6 +2352,7 @@ export class ContractedSimulation {
 
     const subStepsTaken = await this.stepper.advanceAsync(wallDelta, async (dt) => {
       await this.solver.step(dt);
+      this.evaluateVVCriteria(this.stepper.getStepCount() + 1, this.stepper.getSimTime() + dt);
 
       // GPU output digest (paper-4 §5.2)
       if (gpuBacked) {
@@ -2237,13 +2403,19 @@ export class ContractedSimulation {
    *  See: ai-ecosystem research/2026-04-20_property-4-route-2-proof-outline.md
    *  (Limitation #3, "Route 2d sketch" — now implemented).
    */
-  async solve(): Promise<void> {
+  async solve(): Promise<ContractSolveResult> {
     this.enforceGeometryIntegrity();
     await this.solver.solve();
+    this.evaluateVVCriteria(this.stepper.getStepCount(), this.stepper.getSimTime());
     // Route 2d: single terminal canonicalization on the converged
     // state. Fail-closed on NaN/Infinity (inherits guard from
     // computeStateDigest).
     this.stateDigests.push(computeStateDigest(this.solver, this.hashMode));
+    return {
+      provenance: this.getProvenance(),
+      vvReport: this.getVVReport(),
+      stateDigests: this.getStateDigests(),
+    };
   }
 
   /**
@@ -2339,6 +2511,18 @@ export class ContractedSimulation {
   /** Get all contract violations found during construction. */
   getViolations(): ContractViolation[] {
     return this.violations;
+  }
+
+  getVVViolations(): ContractViolation[] {
+    return this.vvViolations.slice();
+  }
+
+  getVVReport(): VVReport {
+    return {
+      measurements: this.vvMeasurements.map((measurement) => ({ ...measurement })),
+      violations: this.vvViolations.slice(),
+      verified: this.vvViolations.every((v) => v.severity !== 'error'),
+    };
   }
 
   /** Whether the contract has any errors (not just warnings). */
@@ -2495,6 +2679,7 @@ export class ContractedSimulation {
       interactions: this.interactions,
       finalStats: this.solver.getStats(),
       contractViolations: this.violations.slice(),
+      vvReport: this.getVVReport(),
       clauseViolations: this.clauseViolations.slice(),
       verified:
         !this.hasErrors() &&

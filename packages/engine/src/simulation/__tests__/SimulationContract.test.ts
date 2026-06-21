@@ -341,6 +341,130 @@ describe('ContractedSimulation', () => {
     expect(prov.config.material).toBeDefined();
   });
 
+  it('records vv energy-drift violations during step()', () => {
+    let steps = 0;
+    let energy = 100;
+    const solver: SimSolver & { time: number } = {
+      mode: 'transient',
+      fieldNames: ['temperature'],
+      time: 0,
+      step(dt: number) {
+        steps += 1;
+        this.time += dt;
+        energy = steps === 1 ? 100 : 120;
+      },
+      solve() {},
+      getField(): FieldData | null {
+        return new Float32Array([this.time]);
+      },
+      getStats() {
+        return { currentTime: this.time, totalEnergy: energy };
+      },
+      dispose() {},
+    };
+    const contracted = new ContractedSimulation(
+      solver,
+      {},
+      {
+        fixedDt: 0.01,
+        scaleEnvelope: {
+          ...DEFAULT_SCALE_ENVELOPES.continuum,
+          vvCriteria: { energy_drift: 0.01 },
+        },
+      }
+    );
+
+    contracted.step(0.02);
+
+    const report = contracted.getVVReport();
+    expect(report.measurements.some((m) => m.criterion === 'energy_drift' && !m.passed)).toBe(true);
+    expect(contracted.getVVViolations().some((v) => v.code === 'CAEL-VV-ENERGY-DRIFT')).toBe(true);
+    expect(contracted.hasErrors()).toBe(true);
+    expect(contracted.getProvenance().vvReport?.verified).toBe(false);
+  });
+
+  it('records vv energy-drift violations during asyncStep()', async () => {
+    let steps = 0;
+    let energy = 10;
+    const solver: SimSolver & { time: number } = {
+      mode: 'transient',
+      fieldNames: ['temperature'],
+      time: 0,
+      async step(dt: number) {
+        steps += 1;
+        this.time += dt;
+        energy = steps === 1 ? 10 : 11;
+      },
+      solve() {},
+      getField(): FieldData | null {
+        return new Float32Array([this.time]);
+      },
+      getStats() {
+        return { currentTime: this.time, totalEnergy: energy };
+      },
+      dispose() {},
+    };
+    const contracted = new ContractedSimulation(
+      solver,
+      {},
+      {
+        fixedDt: 0.01,
+        scaleEnvelope: {
+          ...DEFAULT_SCALE_ENVELOPES.continuum,
+          vvCriteria: { energy_drift: 0.01 },
+        },
+      }
+    );
+
+    await contracted.asyncStep(0.02);
+
+    expect(contracted.getVVViolations().some((v) => v.code === 'CAEL-VV-ENERGY-DRIFT')).toBe(true);
+    expect(contracted.getVVReport().verified).toBe(false);
+  });
+
+  it('computes GCI from solver stats and records vv report', () => {
+    const solver: SimSolver & { time: number } = {
+      mode: 'transient',
+      fieldNames: ['temperature'],
+      time: 0,
+      step(dt: number) {
+        this.time += dt;
+      },
+      solve() {},
+      getField(): FieldData | null {
+        return new Float32Array([this.time]);
+      },
+      getStats() {
+        return {
+          currentTime: this.time,
+          gciInputs: { fCoarse: 1.04, fFine: 1.01, r: 2, p: 2 },
+        };
+      },
+      dispose() {},
+    };
+    const contracted = new ContractedSimulation(
+      solver,
+      {},
+      {
+        fixedDt: 0.01,
+        scaleEnvelope: {
+          ...DEFAULT_SCALE_ENVELOPES.continuum,
+          vvCriteria: { grid_convergence_index: 0.005 },
+        },
+      }
+    );
+
+    contracted.step(0.01);
+
+    const measurement = contracted
+      .getVVReport()
+      .measurements.find((m) => m.criterion === 'grid_convergence_index');
+    expect(measurement?.source).toBe('computed');
+    expect(measurement?.measured).toBeGreaterThan(0.01);
+    expect(measurement?.passed).toBe(false);
+    expect(contracted.getVVViolations().some((v) => v.code === 'CAEL-VV-GCI')).toBe(true);
+  });
+
   it('creates replay record', () => {
     const contracted = new ContractedSimulation(mockSolver(), {}, { fixedDt: 0.01 });
     contracted.step(0.05);
