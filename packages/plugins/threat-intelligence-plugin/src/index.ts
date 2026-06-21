@@ -25,14 +25,13 @@ import { threatFeedHandler } from './traits/ThreatFeedTrait';
 import { iocMatchingHandler } from './traits/IOCMatchingTrait';
 import { siemIntegrationHandler } from './traits/SIEMIntegrationTrait';
 import { attackGraphHandler } from './traits/AttackGraphTrait';
-import type { TraitHandler } from './traits/types';
 
-export const THREAT_INTELLIGENCE_TRAITS: TraitHandler<unknown>[] = [
+export const THREAT_INTELLIGENCE_TRAITS = [
   threatFeedHandler,
   iocMatchingHandler,
   siemIntegrationHandler,
   attackGraphHandler,
-];
+] as const;
 
 export function registerThreatIntelligencePlugin(runtime: TraitRegistrarTarget): void {
   registerPluginTraits(runtime, 'threat-intelligence', THREAT_INTELLIGENCE_TRAITS);
