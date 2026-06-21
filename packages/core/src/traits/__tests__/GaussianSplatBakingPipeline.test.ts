@@ -27,6 +27,10 @@ import {
   type BakingJobState,
   type BakingStage,
   type CostEstimate,
+  type SovereignTrainingOptions,
+  type SovereignGaussian3D,
+  type SovereignTrainView,
+  type SovereignTrainResult,
 } from '../GaussianSplatBakingPipeline';
 
 // =============================================================================
@@ -795,5 +799,212 @@ describe('BakingPipelineError', () => {
 
     expect(retryable.retryable).toBe(true);
     expect(nonRetryable.retryable).toBe(false);
+  });
+});
+
+// =============================================================================
+// SOVEREIGN TRAINING TESTS
+// =============================================================================
+
+/** Build a minimal SovereignGaussian3D with N gaussians (all zeros). */
+function makeGaussian3D(N: number): SovereignGaussian3D {
+  const z = () => new Float64Array(N);
+  return { N, x: z(), y: z(), z: z(), sx: z(), sy: z(), sz: z(), qr: z(), qx: z(), qy: z(), qz: z(), op: z(), r: z(), gr: z(), bl: z() };
+}
+
+/** Build a single trivial training view (1×1 black target). */
+function makeView(): SovereignTrainView {
+  return {
+    cam: { fx: 1, fy: 1, cx: 0, cy: 0, viewMatrix: new Float64Array(16) },
+    W: 1,
+    H: 1,
+    target: new Float64Array(3), // black
+  };
+}
+
+/** Minimal SovereignTrainResult. */
+function makeTrainResult(N = 8): SovereignTrainResult {
+  return {
+    gaussians: makeGaussian3D(N),
+    initialLoss: 1.0,
+    finalLoss: 0.1,
+    iterations: 10,
+    lossHistory: [1.0, 0.5, 0.1],
+    finalCount: N,
+  };
+}
+
+describe('GaussianBakingPipeline — Sovereign Training', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+  });
+
+  it('hasSovereignTraining() returns false without options', () => {
+    const pipeline = new GaussianBakingPipeline('key');
+    expect(pipeline.hasSovereignTraining()).toBe(false);
+  });
+
+  it('hasSovereignTraining() returns true with sovereign options', () => {
+    const mockTrainer = vi.fn();
+    const pipeline = new GaussianBakingPipeline(
+      'key',
+      {},
+      undefined,
+      {
+        gpuDevice: {} as GPUDevice,
+        initial: makeGaussian3D(4),
+        views: [makeView()],
+        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+      },
+    );
+    expect(pipeline.hasSovereignTraining()).toBe(true);
+  });
+
+  it('estimateCost() zeros training breakdown when sovereign', () => {
+    const mockTrainer = vi.fn();
+    const pipeline = new GaussianBakingPipeline(
+      'key',
+      DEFAULT_TEST_CONFIG,
+      undefined,
+      {
+        gpuDevice: {} as GPUDevice,
+        initial: makeGaussian3D(4),
+        views: [makeView()],
+        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+      },
+    );
+    const estimate = pipeline.estimateCost();
+
+    // Training is local — Render Network cost should be zero for that stage.
+    expect(estimate.breakdown.training).toBe(0);
+    // Baking and compression are still remote.
+    expect(estimate.breakdown.baking).toBeGreaterThan(0);
+    // Total should be less than without sovereign.
+    const remote = new GaussianBakingPipeline('key', DEFAULT_TEST_CONFIG);
+    const remoteCost = remote.estimateCost();
+    expect(estimate.totalRENDER).toBeLessThan(remoteCost.totalRENDER);
+  });
+
+  it('execute() calls trainer with sovereign job spec derived from config', async () => {
+    const trainResult = makeTrainResult(8);
+
+    // The trainer resolves immediately; we block the remote bake from completing
+    // by making fetch return a complete response so the tracker fires once.
+    const mockTrainer = vi.fn().mockResolvedValue(trainResult);
+
+    // The remote bake job responds with immediate completion so the tracker resolves.
+    mockFetch.mockResolvedValue(
+      createMockResponse({
+        job_id: 'rndr_bake_only',
+        stage: 'complete',
+        outputs: [],
+        actual_cost: 0,
+      }),
+    );
+
+    const pipeline = new GaussianBakingPipeline(
+      'key',
+      { ...DEFAULT_TEST_CONFIG, trainingIterations: 500 },
+      undefined,
+      {
+        gpuDevice: {} as GPUDevice,
+        initial: makeGaussian3D(8),
+        views: [makeView()],
+        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+      },
+    );
+
+    // Use fake timers so the 5s poll fires immediately.
+    vi.useFakeTimers();
+    const execPromise = pipeline.execute();
+    // Advance past the first poll interval.
+    await vi.advanceTimersByTimeAsync(6_000);
+    vi.useRealTimers();
+    await execPromise;
+
+    // Verify trainer was called with sovereign backend and correct iterations.
+    expect(mockTrainer).toHaveBeenCalledOnce();
+    const [jobArg] = mockTrainer.mock.calls[0];
+    expect(jobArg.backend).toBe('sovereign');
+    expect(jobArg.hyperparams.iterations).toBe(500);
+
+    // Verify that the remote bake call used captureFormat: 'ply' (skipping remote training).
+    const fetchPayload = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(fetchPayload.config.capture_format).toBe('ply');
+  });
+
+  it('execute() wraps trainer failure as BakingPipelineError(SOVEREIGN_TRAIN_FAILED)', async () => {
+    const mockTrainer = vi.fn().mockRejectedValue(new Error('OOM on device'));
+
+    const pipeline = new GaussianBakingPipeline(
+      'key',
+      DEFAULT_TEST_CONFIG,
+      undefined,
+      {
+        gpuDevice: {} as GPUDevice,
+        initial: makeGaussian3D(4),
+        views: [makeView()],
+        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+      },
+    );
+
+    await expect(pipeline.execute()).rejects.toMatchObject({
+      code: 'SOVEREIGN_TRAIN_FAILED',
+      stage: 'training',
+      retryable: true,
+    });
+  });
+
+  it('execute() without sovereign options falls through to remote path', async () => {
+    mockFetch.mockResolvedValue(
+      createMockResponse({ job_id: 'rndr_remote', stage: 'complete', outputs: [], actual_cost: 0 }),
+    );
+
+    const pipeline = new GaussianBakingPipeline('key', DEFAULT_TEST_CONFIG);
+
+    vi.useFakeTimers();
+    const execPromise = pipeline.execute();
+    await vi.advanceTimersByTimeAsync(6_000);
+    vi.useRealTimers();
+    await execPromise;
+
+    // Remote path uses the configured captureFormat (images), not ply.
+    const fetchPayload = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(fetchPayload.config.capture_format).toBe('images');
+  });
+
+  it('sovereignOpts.bg and onProgress are forwarded to trainer', async () => {
+    const trainResult = makeTrainResult(4);
+    const mockTrainer = vi.fn().mockResolvedValue(trainResult);
+    const mockProgress = vi.fn();
+    const bg: [number, number, number] = [0.1, 0.2, 0.3];
+
+    mockFetch.mockResolvedValue(
+      createMockResponse({ job_id: 'rndr_bake', stage: 'complete', outputs: [], actual_cost: 0 }),
+    );
+
+    const pipeline = new GaussianBakingPipeline(
+      'key',
+      DEFAULT_TEST_CONFIG,
+      undefined,
+      {
+        gpuDevice: {} as GPUDevice,
+        initial: makeGaussian3D(4),
+        views: [makeView()],
+        trainer: mockTrainer as unknown as SovereignTrainingOptions['trainer'],
+        bg,
+        onProgress: mockProgress,
+      },
+    );
+
+    vi.useFakeTimers();
+    const execPromise = pipeline.execute();
+    await vi.advanceTimersByTimeAsync(6_000);
+    vi.useRealTimers();
+    await execPromise;
+
+    const [, , , , bgArg, progressArg] = mockTrainer.mock.calls[0];
+    expect(bgArg).toBe(bg);
+    expect(progressArg).toBe(mockProgress);
   });
 });
