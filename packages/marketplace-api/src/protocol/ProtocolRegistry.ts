@@ -29,8 +29,6 @@ import {
   // @ts-expect-error resolveImportChain is exported at runtime but missing from hand-crafted dist/index.d.ts
   resolveImportChain,
   ethToWei,
-  // @ts-expect-error weiToEth is exported at runtime but missing from hand-crafted dist/index.d.ts
-  weiToEth,
 } from '@holoscript/core';
 
 // Runtime exports that are missing from the hand-crafted dist/index.d.ts — declare locally.
@@ -39,7 +37,14 @@ declare function resolveImportChain(
   fetchRecord: (hash: string) => Promise<{ importHashes?: string[]; author?: string } | null>,
   maxDepth?: number
 ): Promise<ImportChainNode[]>;
-declare function weiToEth(wei: bigint | string): string;
+
+function weiToEth(wei: bigint | string): string {
+  const value = typeof wei === 'bigint' ? wei : BigInt(wei);
+  const str = value.toString().padStart(19, '0');
+  const whole = str.slice(0, str.length - 18) || '0';
+  const fraction = str.slice(str.length - 18).replace(/0+$/, '') || '0';
+  return `${whole}.${fraction}`;
+}
 
 // These types are in @holoscript/core source barrel but not yet re-exported
 // from the hand-crafted dist/index.d.ts. Define them locally to unblock TS.

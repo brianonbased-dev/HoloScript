@@ -48,6 +48,41 @@ export type { VerificationLevel } from './VerificationService.js';
 export { createMarketplaceRoutes } from './routes.js';
 export { createApp, startServer } from './server.js';
 export type { ServerConfig } from './server.js';
+export { createHololandRoutes } from './hololandRoutes.js';
+export type {
+  HololandPaymentService,
+  HololandRoutesOptions,
+  QuestGenerationService,
+  StoryWeaverService,
+} from './hololandRoutes.js';
+export {
+  FileVrrTwinStore,
+  InMemoryVrrTwinStore,
+  McpProtocolPublisher,
+  PostgresVrrTwinStore,
+  VRRTwinService,
+  VrrProtocolPublishError,
+  VrrTwinInputError,
+  buildVrrTwinHoloScript,
+  createDefaultVrrTwinStore,
+  defaultVrrTwinStorePath,
+  parseCreateVrrTwinInput,
+} from './VRRTwinService.js';
+export type {
+  CreateVrrTwinInput,
+  CreateVrrTwinResult,
+  ProtocolPublishInput,
+  ProtocolPublisher,
+  VrrCaptureBinding,
+  VrrGeoAnchor,
+  VrrGeoAnchorSafetyEnvelope,
+  VrrGeoLocation,
+  VrrProtocolLicense,
+  VrrProtocolPublishReceipt,
+  VrrTwinQuery,
+  VrrTwinRecord,
+  VrrTwinStore,
+} from './VRRTwinService.js';
 
 // ─── Plugin Package Specification ────────────────────────────────────────────
 export type {
