@@ -19,6 +19,7 @@
 set -uo pipefail
 LOG="[cuquantum-fleet]"
 PIN="${CUQUANTUM_PIN:-}"   # empty = latest; set for reproducible fleet generation
+AER_GPU_PIN="${QISKIT_AER_GPU_PIN:-0.15.1}"
 
 # --- detect CUDA major from the driver banner ---
 CUDA_FULL="$(nvidia-smi 2>/dev/null | sed -n 's/.*CUDA Version: \([0-9.]*\).*/\1/p' | head -1)"
@@ -27,13 +28,52 @@ if [ -z "${CUDA_MAJOR:-}" ]; then
   echo "$LOG FATAL: no NVIDIA driver / CUDA detected; this worker cannot host the GPU sim tier."
   exit 2
 fi
-# CUDA 13 drivers run cuda12 wheels (back-compat); prefer the exact major, fall back to 12.
-case "$CUDA_MAJOR" in
+
+# Prefer the container CUDA runtime over the host driver banner. Vast workers often run
+# CUDA-12.4 containers on CUDA-13 hosts; qiskit-aer-gpu 0.15.1 is a CUDA-12 wheel, so
+# following the host banner installs cu13 stubs and then looks for libcublas.so.13.
+CUDA_RUNTIME_FULL="$(python3 - <<'PY' 2>/dev/null || true
+import json
+import pathlib
+import re
+
+try:
+    import torch
+    if getattr(torch.version, "cuda", None):
+        print(torch.version.cuda)
+        raise SystemExit
+except Exception:
+    pass
+
+for candidate in ("/usr/local/cuda/version.json", "/usr/local/cuda/version.txt"):
+    path = pathlib.Path(candidate)
+    if not path.exists():
+        continue
+    text = path.read_text(encoding="utf-8", errors="replace")
+    try:
+        data = json.loads(text)
+        version = data.get("cuda", {}).get("version") or data.get("version")
+        if version:
+            print(version)
+            raise SystemExit
+    except Exception:
+        pass
+    match = re.search(r"(\d+\.\d+)", text)
+    if match:
+        print(match.group(1))
+        raise SystemExit
+PY
+)"
+CUDA_WHEEL_MAJOR="${CUDA_RUNTIME_FULL%%.*}"
+[ -n "${CUDA_WHEEL_MAJOR:-}" ] || CUDA_WHEEL_MAJOR="$CUDA_MAJOR"
+
+case "$CUDA_WHEEL_MAJOR" in
   13) SUFFIX="cu13" ;;
   12) SUFFIX="cu12" ;;
-  *)  echo "$LOG WARN: unexpected CUDA major $CUDA_MAJOR; defaulting to cu12"; SUFFIX="cu12" ;;
+  *)  echo "$LOG WARN: unexpected CUDA runtime major $CUDA_WHEEL_MAJOR; defaulting to cu12"; SUFFIX="cu12" ;;
 esac
-echo "$LOG host CUDA=$CUDA_FULL -> wheel suffix=$SUFFIX  pin=${PIN:-latest}"
+CUDA_LIB_MAJOR="${SUFFIX#cu}"
+echo "$LOG host CUDA=$CUDA_FULL container CUDA=${CUDA_RUNTIME_FULL:-unknown} -> wheel suffix=$SUFFIX  cuquantum pin=${PIN:-latest} aer-gpu pin=$AER_GPU_PIN"
 
 PINSPEC=""; [ -n "$PIN" ] && PINSPEC="==$PIN"
 
@@ -42,14 +82,14 @@ python3 -m pip install --upgrade pip wheel >/dev/null 2>&1
 # qiskit < 2 (qiskit 2.x removed convert_to_target). Pin qiskit 1.4.x or the GPU import fails.
 echo "$LOG installing qiskit 1.4 + qiskit-aer-gpu + cuquantum-python-$SUFFIX + cupy-$SUFFIX ..."
 python3 -m pip install -q "qiskit==1.4.4" || echo "$LOG WARN qiskit pin failed"
-python3 -m pip install -q "qiskit-aer-gpu" || echo "$LOG WARN qiskit-aer-gpu failed"
+python3 -m pip install -q "qiskit-aer-gpu==$AER_GPU_PIN" || echo "$LOG WARN qiskit-aer-gpu==$AER_GPU_PIN failed"
 python3 -m pip install -q "cuquantum-python-${SUFFIX}${PINSPEC}" || echo "$LOG WARN cuquantum-python-${SUFFIX} failed"
 python3 -m pip install -q "cupy-${SUFFIX/cu/cuda}x" 2>/dev/null || python3 -m pip install -q "cupy-${SUFFIX}" || echo "$LOG WARN cupy failed"
 
 # CUDA runtime libs. On a full CUDA toolkit image these are already on the system path. If not
 # (e.g. a slim image, or CUDA-13 where the nvidia-*-cu13 pip wheels are unbuildable stubs), fetch
 # the matching libs from NVIDIA's redist tarballs (sudo-free) and add them to the loader path.
-CUDA_LIBS="$HOME/.cuda${CUDA_MAJOR}-libs"; mkdir -p "$CUDA_LIBS"
+CUDA_LIBS="$HOME/.cuda${CUDA_LIB_MAJOR}-libs"; mkdir -p "$CUDA_LIBS"
 NVDIRS="$(python3 - <<'PY' 2>/dev/null || true
 import glob
 import os
@@ -74,8 +114,8 @@ PY
 )"
 CHECK_LD="$CUDA_LIBS${NVDIRS:+:$NVDIRS}:${LD_LIBRARY_PATH:-}"
 if ! LD_LIBRARY_PATH="$CHECK_LD" python3 -c "from qiskit_aer import AerSimulator" >/dev/null 2>&1; then
-  echo "$LOG aer import failed -> fetching CUDA-$CUDA_MAJOR runtime libs from redist ..."
-  python3 - "$CUDA_LIBS" "$CUDA_MAJOR" <<'PY' || echo "$LOG WARN redist lib fetch failed"
+  echo "$LOG aer import failed -> fetching CUDA-$CUDA_LIB_MAJOR runtime libs from redist ..."
+  python3 - "$CUDA_LIBS" "$CUDA_LIB_MAJOR" <<'PY' || echo "$LOG WARN redist lib fetch failed"
 import json, pathlib, subprocess, sys, urllib.request
 
 libdir,major=sys.argv[1],sys.argv[2]
@@ -129,7 +169,7 @@ if [ -n "$CUDA_LIBS" ] && [ -d "$CUDA_LIBS" ]; then
       > /etc/profile.d/cuquantum-libs.sh; } 2>/dev/null \
     || echo "$LOG WARN: could not write /etc/profile.d/cuquantum-libs.sh (jobs must set LD_LIBRARY_PATH themselves)"
 fi
-if [ "$CUDA_MAJOR" = "13" ] && [ ! -e "$CUDA_LIBS/libcublas.so.13" ]; then
+if [ "$CUDA_LIB_MAJOR" = "13" ] && [ ! -e "$CUDA_LIBS/libcublas.so.13" ]; then
   echo "$LOG WARN: libcublas.so.13 still absent after setup; matching files:"
   find "$CUDA_LIBS" -maxdepth 1 -name 'libcublas*' -print 2>/dev/null || true
 fi
