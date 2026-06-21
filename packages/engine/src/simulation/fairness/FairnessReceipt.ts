@@ -22,6 +22,7 @@
  */
 
 import { hashBytes, HASH_MODE_DEFAULT, type HashMode } from '../sha256';
+import type { JurisdictionAuditSummary } from './JurisdictionConfig';
 
 // ── Canonical content hashing ─────────────────────────────────────────────────────────────────
 
@@ -141,6 +142,8 @@ export interface FairnessReceipt {
   replayTolerance: number;
   /** Versioned regulator crosswalk (data — overridable per engagement). */
   regulatoryMapping: Record<string, string>;
+  /** Optional jurisdiction-specific test bundle and disclosure metadata. */
+  jurisdiction?: JurisdictionAuditSummary;
   hashMode: HashMode;
   issuedAt: string;
   /** Content hash over the whole receipt body (computed with this field omitted). */
@@ -163,6 +166,7 @@ export interface EmitFairnessReceiptParams {
   /** Replay tolerance for non-exact grades (default 0). */
   replayTolerance?: number;
   regulatoryMapping?: Record<string, string>;
+  jurisdiction?: JurisdictionAuditSummary;
   issuedAt: string;
   hashMode?: HashMode;
 }
@@ -195,6 +199,7 @@ export function emitFairnessReceipt(p: EmitFairnessReceiptParams): FairnessRecei
     replayDeterminism: p.replayDeterminism ?? 'exact',
     replayTolerance: p.replayTolerance ?? 0,
     regulatoryMapping: p.regulatoryMapping ?? DEFAULT_FAIRNESS_CROSSWALK,
+    ...(p.jurisdiction ? { jurisdiction: p.jurisdiction } : {}),
     hashMode: mode,
     issuedAt: p.issuedAt,
   };

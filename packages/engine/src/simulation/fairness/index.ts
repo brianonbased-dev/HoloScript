@@ -26,6 +26,24 @@ export {
 } from './FairnessSweep';
 
 export {
+  FAIRNESS_JURISDICTIONS,
+  FAIRNESS_STATISTICAL_TESTS,
+  JURISDICTION_CONFIGS,
+  compileBiasAuditReport,
+  evaluateJurisdictionTests,
+  isFairnessJurisdiction,
+  resolveJurisdictionConfig,
+  type BiasAuditReportInput,
+  type BiasAuditReportOutput,
+  type FairnessJurisdiction,
+  type FairnessStatisticalTest,
+  type JurisdictionAuditSummary,
+  type JurisdictionConfig,
+  type JurisdictionDecisionRecord,
+  type JurisdictionTestResult,
+} from './JurisdictionConfig';
+
+export {
   emitFairnessReceipt,
   emitRobustnessReceipt,
   computeReplayFingerprint,

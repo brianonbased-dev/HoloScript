@@ -34,8 +34,10 @@ describe('fairness MCP tools', () => {
   it('registers both tools with required schemas', () => {
     expect(isFairnessToolName('fairness_sweep')).toBe(true);
     expect(isFairnessToolName('explain_fairness_receipt')).toBe(true);
+    expect(isFairnessToolName('compile_to_bias_audit_report')).toBe(true);
     expect(isFairnessToolName('not_a_tool')).toBe(false);
     expect(fairnessTools.map((t) => t.name).sort()).toEqual([
+      'compile_to_bias_audit_report',
       'explain_fairness_receipt',
       'fairness_sweep',
     ]);
@@ -61,6 +63,33 @@ describe('fairness MCP tools', () => {
     })) as { integrity: boolean; explanation: string };
     expect(explain.integrity).toBe(true);
     expect(explain.explanation).toContain('4/5ths');
+  });
+
+  it('runs jurisdictional sweep and compiles a bias audit report', async () => {
+    const res = (await handleFairnessTool('fairness_sweep', {
+      cohort: makeCohort(7),
+      model: biased,
+      jurisdiction: 'NYC_LL144',
+      seed: 1,
+    })) as {
+      receipt: {
+        kind: string;
+        jurisdiction?: { jurisdictionId: string; requiredTests: string[] };
+      };
+    };
+
+    expect(res.receipt.jurisdiction?.jurisdictionId).toBe('NYC_LL144');
+    expect(res.receipt.jurisdiction?.requiredTests).toContain('chi_squared');
+
+    const report = (await handleFairnessTool('compile_to_bias_audit_report', {
+      receipt: res.receipt,
+      generatedAt: '2026-06-21T00:00:00Z',
+      issuer: 'mcp-test',
+    })) as { target: string; content: string; jurisdictionId: string };
+
+    expect(report.target).toBe('bias_audit_report');
+    expect(report.jurisdictionId).toBe('NYC_LL144');
+    expect(report.content).toContain('NYC Local Law 144 annual AEDT bias audit public summary');
   });
 
   it('explain_fairness_receipt detects a tampered receipt', async () => {

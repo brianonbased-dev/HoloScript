@@ -625,7 +625,11 @@ export async function handleTool(
   }
 
   // Fairness tools — verifiable algorithmic-fairness sweep + receipt
-  if (name === 'fairness_sweep' || name === 'explain_fairness_receipt') {
+  if (
+    name === 'fairness_sweep' ||
+    name === 'explain_fairness_receipt' ||
+    name === 'compile_to_bias_audit_report'
+  ) {
     const { handleFairnessTool } = await import('./fairness-mcp-tools');
     return handleFairnessTool(name, args);
   }

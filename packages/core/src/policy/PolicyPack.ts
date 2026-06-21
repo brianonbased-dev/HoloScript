@@ -19,6 +19,7 @@ export const POLICY_PACK_FRAMEWORK_IDS = [
 export type PolicyPackFrameworkId = (typeof POLICY_PACK_FRAMEWORK_IDS)[number];
 
 export const POLICY_PACK_COMPILE_TARGETS = [
+  'bias_audit_report',
   'model_card',
   'impact_assessment',
   'declaration_of_conformity',

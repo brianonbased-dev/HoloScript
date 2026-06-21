@@ -62,6 +62,10 @@ function isFiniteNumber(x: unknown): x is number {
   return typeof x === 'number' && Number.isFinite(x);
 }
 
+function isPlainRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null && !Array.isArray(x);
+}
+
 function validateCohort(cohort: unknown): CohortRecordArg[] {
   if (!Array.isArray(cohort) || cohort.length === 0) {
     throw new Error("fairness_sweep: 'cohort' must be a non-empty array of { group, features }.");
@@ -122,12 +126,17 @@ async function handleFairnessSweep(args: Record<string, unknown>): Promise<unkno
   const seed = isFiniteNumber(args.seed) ? args.seed : 0;
   const protectedAttribute =
     typeof args.protectedAttribute === 'string' ? args.protectedAttribute : 'group';
+  const jurisdiction =
+    typeof args.jurisdiction === 'string' || isPlainRecord(args.jurisdiction)
+      ? args.jurisdiction
+      : undefined;
 
   const sweep = await Sim.runFairnessSweep(model, cohort, {
     seed,
     protectedAttribute,
     hashMode,
     verifyDeterminism: args.verifyDeterminism === true,
+    jurisdiction,
   });
 
   const out: Record<string, unknown> = {
@@ -142,6 +151,7 @@ async function handleFairnessSweep(args: Record<string, unknown>): Promise<unkno
     const robustness = await Sim.runFairnessRobustness(model, cohort, {
       seed,
       hashMode,
+      jurisdiction,
       replicates: isFiniteNumber(rob.replicates) ? rob.replicates : undefined,
       driftRange: Array.isArray(rob.driftRange) ? rob.driftRange : undefined,
       noiseRange: Array.isArray(rob.noiseRange) ? rob.noiseRange : undefined,
@@ -225,9 +235,40 @@ async function handleExplainFairnessReceipt(args: Record<string, unknown>): Prom
   };
 }
 
+async function handleCompileToBiasAuditReport(args: Record<string, unknown>): Promise<unknown> {
+  const Sim = await getSimulation();
+  const receipt = args.receipt as import('@holoscript/engine').Simulation.FairnessReceipt | undefined;
+  if (!receipt || typeof receipt !== 'object' || receipt.kind !== 'fairness.receipt.v1') {
+    throw new Error("compile_to_bias_audit_report: 'receipt' must be a FairnessReceipt object.");
+  }
+
+  const robustnessReceipt =
+    isPlainRecord(args.robustnessReceipt) &&
+    args.robustnessReceipt.kind === 'fairness.robustness.v1'
+      ? (args.robustnessReceipt as import('@holoscript/engine').Simulation.FairnessRobustnessReceipt)
+      : undefined;
+  const jurisdiction =
+    typeof args.jurisdiction === 'string' || isPlainRecord(args.jurisdiction)
+      ? args.jurisdiction
+      : undefined;
+
+  return Sim.compileBiasAuditReport({
+    receipt,
+    robustnessReceipt,
+    jurisdiction,
+    format: args.format === 'json' ? 'json' : 'markdown',
+    generatedAt: typeof args.generatedAt === 'string' ? args.generatedAt : undefined,
+    issuer: typeof args.issuer === 'string' ? args.issuer : undefined,
+  });
+}
+
 // ── Dispatcher + name guard ────────────────────────────────────────────────────────────────────
 
-const FAIRNESS_TOOL_NAMES = new Set(['fairness_sweep', 'explain_fairness_receipt']);
+const FAIRNESS_TOOL_NAMES = new Set([
+  'fairness_sweep',
+  'explain_fairness_receipt',
+  'compile_to_bias_audit_report',
+]);
 
 export function isFairnessToolName(name: string): boolean {
   return FAIRNESS_TOOL_NAMES.has(name);
@@ -242,6 +283,8 @@ export async function handleFairnessTool(
       return handleFairnessSweep(args);
     case 'explain_fairness_receipt':
       return handleExplainFairnessReceipt(args);
+    case 'compile_to_bias_audit_report':
+      return handleCompileToBiasAuditReport(args);
     default:
       return null;
   }
@@ -253,13 +296,10 @@ export const fairnessTools: Tool[] = [
   {
     name: 'fairness_sweep',
     description:
-      'Run a verifiable algorithmic-fairness sweep over a cohort with a transparent linear ' +
-      'decision model, and emit a sovereign FairnessReceipt: EEOC 4/5ths adverse-impact ratio, ' +
-      'demographic-parity difference, per-group approval rates, a PASS / FLAG-DISPARATE-IMPACT ' +
-      'verdict, the EU-AI-Act / Colorado SB21-169 / NAIC / FDA / SR 11-7 regulator crosswalk, and ' +
-      'a deterministic replay fingerprint (offline-reproducible by a regulator). Optionally runs an ' +
-      'LHS Monte-Carlo robustness band (ROBUSTLY-FAIR / ROBUSTLY-UNFAIR). The model is a stand-in ' +
-      "for the institution's real model swapped in via the .holo domain bridge.",
+      'Run a verifiable, jurisdiction-aware fairness sweep over a cohort with a transparent linear ' +
+      'decision model. Emits a FairnessReceipt with 4/5ths adverse-impact ratio, demographic-parity ' +
+      'difference, per-group approval rates, replay fingerprint, regulator crosswalk, optional ' +
+      'jurisdiction test bundle, and optional robustness band.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -298,6 +338,18 @@ export const fairnessTools: Tool[] = [
         protectedAttribute: {
           type: 'string',
           description: 'Label for the protected attribute on the receipt (default "group").',
+        },
+        jurisdiction: {
+          type: 'string',
+          enum: [
+            'EEOC_TITLE_VII',
+            'NYC_LL144',
+            'CFPB_ECOA',
+            'COLORADO_SB21_169',
+            'EU_AI_ACT_PROHIBITED',
+          ],
+          description:
+            'Optional jurisdiction pack. Adds required test results (four-fifths, Fisher exact, chi-squared, and jurisdiction-specific redlining checks) to the receipt.',
         },
         seed: {
           type: 'number',
@@ -353,6 +405,50 @@ export const fairnessTools: Tool[] = [
           type: 'object',
           description:
             'A FairnessReceipt or FairnessRobustnessReceipt as returned by fairness_sweep.',
+        },
+      },
+      required: ['receipt'],
+    },
+  },
+  {
+    name: 'compile_to_bias_audit_report',
+    description:
+      'Compile a FairnessReceipt into a per-jurisdiction bias-audit report. Formats NYC LL144, EEOC Title VII, CFPB/ECOA, Colorado SB21-169, or EU AI Act disclosure sections from the receipt metrics, required statistical tests, replay fingerprint, integrity hash, and regulator crosswalk.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        receipt: {
+          type: 'object',
+          description: 'FairnessReceipt as returned by fairness_sweep.',
+        },
+        robustnessReceipt: {
+          type: 'object',
+          description: 'Optional FairnessRobustnessReceipt as returned by fairness_sweep robustness.',
+        },
+        jurisdiction: {
+          type: 'string',
+          enum: [
+            'EEOC_TITLE_VII',
+            'NYC_LL144',
+            'CFPB_ECOA',
+            'COLORADO_SB21_169',
+            'EU_AI_ACT_PROHIBITED',
+          ],
+          description:
+            'Jurisdiction report standard to use when the receipt did not already carry one.',
+        },
+        format: {
+          type: 'string',
+          enum: ['markdown', 'json'],
+          description: 'Report format (default markdown).',
+        },
+        generatedAt: {
+          type: 'string',
+          description: 'Optional fixed timestamp for byte-stable report generation.',
+        },
+        issuer: {
+          type: 'string',
+          description: 'Report issuer label (default HoloScript).',
         },
       },
       required: ['receipt'],

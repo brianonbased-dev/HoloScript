@@ -24,8 +24,10 @@ import {
   verifyReceiptIntegrity,
   verifyReplayExecution,
   computeDecisionDigest,
+  compileBiasAuditReport,
   mulberry32,
   DEFAULT_FAIRNESS_CROSSWALK,
+  JURISDICTION_CONFIGS,
   type FairnessModel,
   type FairnessRecord,
   type CohortPerturber,
@@ -303,5 +305,49 @@ describe('FairnessSweep — determinism mode', () => {
     const r = await runFairnessSweep(declared, cohort, { seed: SEED, issuedAt: ISSUED });
     expect(r.receipt.replayDeterminism).toBe('quantized');
     expect(r.receipt.replayTolerance).toBe(0.02);
+  });
+});
+
+describe('FairnessSweep jurisdiction packs', () => {
+  it('attaches the NYC LL144 statistical test battery to the receipt', async () => {
+    const cohort = makeCohort(SEED);
+    const result = await runFairnessSweep(linearScorer('m', biasedWeights), cohort, {
+      seed: SEED,
+      issuedAt: ISSUED,
+      jurisdiction: 'NYC_LL144',
+    });
+
+    expect(result.jurisdiction?.jurisdictionId).toBe('NYC_LL144');
+    expect(result.receipt.jurisdiction?.requiredTests).toEqual(
+      JURISDICTION_CONFIGS.NYC_LL144.requiredTests
+    );
+    expect(result.receipt.jurisdiction?.testResults.map((r) => r.test)).toEqual([
+      'four_fifths',
+      'fisher_exact',
+      'chi_squared',
+    ]);
+    expect(result.receipt.jurisdiction?.passed).toBe(false);
+    expect(verifyReceiptIntegrity(result.receipt)).toBe(true);
+  });
+
+  it('compiles a jurisdiction-specific bias audit report from a FairnessReceipt', async () => {
+    const cohort = makeCohort(SEED);
+    const result = await runFairnessSweep(linearScorer('m', biasedWeights), cohort, {
+      seed: SEED,
+      issuedAt: ISSUED,
+      jurisdiction: 'NYC_LL144',
+    });
+
+    const report = compileBiasAuditReport({
+      receipt: result.receipt,
+      generatedAt: '2026-06-21T00:00:00Z',
+      issuer: 'test-auditor',
+    });
+
+    expect(report.target).toBe('bias_audit_report');
+    expect(report.jurisdictionId).toBe('NYC_LL144');
+    expect(report.content).toContain('NYC Local Law 144 annual AEDT bias audit public summary');
+    expect(report.content).toContain('fisher_exact');
+    expect(report.contentHash).toMatch(/^[a-z0-9]+$/);
   });
 });

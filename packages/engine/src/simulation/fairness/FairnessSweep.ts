@@ -33,6 +33,13 @@ import {
   type RobustnessBand,
 } from './FairnessReceipt';
 import type { HashMode } from '../sha256';
+import {
+  evaluateJurisdictionTests,
+  resolveJurisdictionConfig,
+  type FairnessJurisdiction,
+  type JurisdictionAuditSummary,
+  type JurisdictionConfig,
+} from './JurisdictionConfig';
 
 // ── Domain-free model + data abstractions ──────────────────────────────────────────────
 
@@ -210,6 +217,8 @@ export interface FairnessSweepOptions {
   issuedAt?: string;
   /** Override the per-decision regulator crosswalk. */
   regulatoryMapping?: Record<string, string>;
+  /** Named or custom jurisdiction bundle that selects legally required tests. */
+  jurisdiction?: FairnessJurisdiction | JurisdictionConfig;
   /** Hash mode: 'fnv1a' (default) or 'sha256' (adversarial-peer opt-in). */
   hashMode?: HashMode;
   /**
@@ -231,6 +240,8 @@ export interface FairnessSweepResult {
   decisionDigest: string;
   /** The grade recorded on the receipt (measured if verifyDeterminism was set). */
   replayDeterminism: DeterminismGrade;
+  /** Jurisdiction-specific required-test evidence when requested. */
+  jurisdiction?: JurisdictionAuditSummary;
 }
 
 /**
@@ -264,6 +275,18 @@ export async function runFairnessSweep(
   }
 
   const decisionDigest = computeDecisionDigest(decisions, mode);
+  const jurisdictionConfig = resolveJurisdictionConfig(options.jurisdiction);
+  const jurisdiction = jurisdictionConfig
+    ? evaluateJurisdictionTests(
+        cohort.map((record, i) => ({
+          group: record.group,
+          approved: decisions[i],
+          features: record.features,
+        })),
+        jurisdictionConfig,
+        metrics
+      )
+    : undefined;
 
   // Determinism: start from the model's self-declaration, then MEASURE it (never
   // trust an over-claim). A second pass that diverges from the first cannot be
@@ -301,6 +324,7 @@ export async function runFairnessSweep(
     replayDeterminism,
     replayTolerance,
     regulatoryMapping: options.regulatoryMapping,
+    jurisdiction,
     issuedAt: options.issuedAt ?? new Date(0).toISOString(),
     hashMode: mode,
   });
@@ -313,6 +337,7 @@ export async function runFairnessSweep(
     weightStrategy,
     decisionDigest,
     replayDeterminism,
+    ...(jurisdiction ? { jurisdiction } : {}),
   };
 }
 
