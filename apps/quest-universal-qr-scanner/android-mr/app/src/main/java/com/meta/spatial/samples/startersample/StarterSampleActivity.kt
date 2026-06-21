@@ -263,14 +263,29 @@ class StarterSampleActivity : AppSystemActivity() {
     if (fwd == 0f && strafe == 0f && turn == 0f) return
 
     val moveSpeed = 2.6f // m/s — brisk MMO walk
-    val turnSpeed = 90f // deg/s smooth turn
-    playerYaw += turn * turnSpeed * dt
-    val yaw = Math.toRadians(playerYaw.toDouble())
-    val sin = kotlin.math.sin(yaw).toFloat()
-    val cos = kotlin.math.cos(yaw).toFloat()
-    // Spatial SDK is left-handed, +Z = forward. Move along the rig facing; strafe along the rig right.
-    playerX += (fwd * sin + strafe * cos) * moveSpeed * dt
-    playerZ += (fwd * cos - strafe * sin) * moveSpeed * dt
+    val turnSpeed = 90f // deg/s smooth comfort turn (right stick), on top of physical/room turning
+    if (turn != 0f) playerYaw += turn * turnSpeed * dt
+
+    if (fwd != 0f || strafe != 0f) {
+      // HEAD-RELATIVE movement: walk where you LOOK, not along a fixed rig yaw. (Rig-relative makes a
+      // physical head-turn send you the wrong way.) The head's gaze-forward in world space = a point
+      // 1 m in front of the head minus the head position, flattened to the ground — the same
+      // getViewerPose().times(...) pattern the head-locked HUD uses. getViewerPose already includes the
+      // rig yaw set below, so movement stays consistent after a stick turn.
+      val head = scene.getViewerPose()
+      val ahead = head.times(Pose(Vector3(0f, 0f, 1f)))
+      var fx = ahead.t.x - head.t.x
+      var fz = ahead.t.z - head.t.z
+      val len = kotlin.math.sqrt(fx * fx + fz * fz)
+      if (len > 1e-4f) {
+        fx /= len
+        fz /= len
+        val rx = -fz // ground-right = gaze-forward rotated 90°
+        val rz = fx
+        playerX += (fwd * fx + strafe * rx) * moveSpeed * dt
+        playerZ += (fwd * fz + strafe * rz) * moveSpeed * dt
+      }
+    }
     scene.setViewOrigin(playerX, 0f, playerZ, playerYaw)
   }
 
