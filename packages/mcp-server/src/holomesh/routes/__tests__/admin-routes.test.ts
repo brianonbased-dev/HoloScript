@@ -208,6 +208,30 @@ describe('Admin Routes — scope provisioning (D.100 Axis-1, /founder-ruled 2026
     });
     expect(res._status).toBe(400);
   });
+
+  it('update-scopes BRIDGES a public-register agent (agentKeyStore-only, no keyRegistry row) into keyRegistry with scopes — preserving its existing token + wallet', async () => {
+    const wallet = '0x00000000000000000000000000000000000000aa';
+    const apiKey = seedPublicAgent('edgepublic', wallet);
+    // precondition: the live edge agent has NO keyRegistry row (the gap)
+    expect(keyRegistry.get(apiKey)).toBeUndefined();
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/update-scopes', {
+      wallet_address: wallet,
+      scopes: ['holomesh', 'mcp', 'tools:read', 'tools:write'],
+    });
+    expect(res._status).toBe(200);
+    expect(res._body.bridged_from_public).toBe(true);
+    expect(res._body.scopes).toContain('tools:write');
+
+    // a keyRegistry row now exists UNDER THE EXISTING TOKEN, with the granted scopes,
+    // so resolveRequestingAgent (keyRegistry-first) will return them on the next call
+    const rec = keyRegistry.get(apiKey);
+    expect(rec).toBeDefined();
+    expect(rec?.walletAddress.toLowerCase()).toBe(wallet.toLowerCase());
+    expect(rec?.agentId).toBe('agent_edgepublic'); // identity preserved
+    expect(rec?.isFounder).toBe(false); // never escalated
+    expect(rec?.scopes).toContain('tools:read');
+  });
 });
 
 describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {

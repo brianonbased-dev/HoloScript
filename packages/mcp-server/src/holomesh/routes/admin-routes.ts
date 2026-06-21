@@ -264,14 +264,45 @@ export async function handleAdminRoutes(
       json(res, 400, { error: 'agent_id or wallet_address is required' });
       return true;
     }
+    // Public-register agents (the live edge agents — e.g. jetson-orin-01) live in
+    // agentKeyStore with NO keyRegistry row and NO scopes field, so they resolve via
+    // the legacy path with zero scopes and can't reach ANY scoped tool. BRIDGE such an
+    // agent into the key registry keyed by its EXISTING token: it gains scoped tool
+    // access without a new key/identity (resolveRequestingAgent checks keyRegistry
+    // first). Wallet / agentId / name preserved (G.GOLD.016); never escalated to founder.
+    let bridgedFromPublic = false;
     if (!existingRecord) {
-      json(res, 404, { error: 'Agent not found in key registry. Use agent_id or wallet_address.' });
+      const legacy = Array.from(agentKeyStore.values()).find((a) =>
+        agentId
+          ? a.id === agentId
+          : a.walletAddress?.toLowerCase() === (walletAddress as string).toLowerCase()
+      );
+      if (legacy?.apiKey) {
+        existingRecord = {
+          key: legacy.apiKey,
+          walletAddress: legacy.walletAddress ?? '',
+          agentId: legacy.id,
+          agentName: legacy.name,
+          scopes: [],
+          createdAt: legacy.createdAt ?? new Date().toISOString(),
+          rotationCount: 0,
+          lastRotatedAt: null,
+          isFounder: false,
+        };
+        bridgedFromPublic = true;
+      }
+    }
+    if (!existingRecord) {
+      json(res, 404, {
+        error: 'Agent not found in key registry or agent store. Use agent_id or wallet_address.',
+      });
       return true;
     }
 
     const before = [...(existingRecord.scopes ?? [])];
     // In-place mutation: ONLY scopes change — key, walletAddress, agentId, createdAt
     // are untouched (the same record object stays in the registry under the same key).
+    // For a bridged public-register agent this CREATES the keyRegistry row under its token.
     existingRecord.scopes = scopes as string[];
     keyRegistry.set(existingRecord.key, existingRecord);
     persistKeyRegistry();
@@ -280,7 +311,7 @@ export async function handleAdminRoutes(
       actor: { agentId: caller.id, agentName: caller.name, wallet: caller.wallet },
       action: 'update_scopes',
       path: pathname,
-      before: { agent_id: existingRecord.agentId, scopes: before },
+      before: { agent_id: existingRecord.agentId, scopes: before, bridged_from_public: bridgedFromPublic },
       after: { agent_id: existingRecord.agentId, scopes: existingRecord.scopes },
     });
 
@@ -289,6 +320,7 @@ export async function handleAdminRoutes(
       agent_id: existingRecord.agentId,
       wallet_address: existingRecord.walletAddress,
       scopes: existingRecord.scopes,
+      bridged_from_public: bridgedFromPublic,
     });
     return true;
   }
