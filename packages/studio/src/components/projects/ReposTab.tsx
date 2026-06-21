@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
+  AlertTriangle,
   Bot,
   Check,
   ChevronRight,
@@ -49,7 +50,7 @@ import {
   ResearchLaneArtifacts,
 } from '@/components/research/ResearchLanePrompt';
 import { useDaemonJobs } from '@/hooks/useDaemonJobs';
-import type { DaemonJob, DaemonProfile } from '@/hooks/useDaemonJobs';
+import type { DaemonJob, DaemonProfile, DaemonProjectDNA } from '@/hooks/useDaemonJobs';
 import { HOLO_DAEMON_MISSIONS } from '@/lib/daemon/agentProfiles';
 import type { DaemonMissionProfile } from '@/lib/daemon/types';
 import type { PaperUnlockState, PublishWorthinessSummary } from '@/lib/stores/workspaceStore';
@@ -72,6 +73,14 @@ interface WorkspaceSummary {
   metadata: Record<string, unknown>;
   publishWorthiness?: PublishWorthinessSummary | null;
   paperUnlockState?: PaperUnlockState | null;
+  lastAbsorbedAt: string | null;
+  absorbJobs?: Array<{
+    id: string;
+    status: string;
+    depth: string;
+    updatedAt: string;
+    error?: string | null;
+  }>;
 }
 
 interface WorkspaceImportResponse {
@@ -188,6 +197,21 @@ interface RepoRef {
   repo: string;
 }
 
+interface WorkspaceGitSnapshot {
+  status: 'clean' | 'dirty' | 'unknown' | 'error';
+  branch: string | null;
+  changedFiles: number | null;
+  checkedAt: string;
+  error?: string;
+}
+
+interface BulkWorkspaceProgress {
+  kind: 'agent' | 'absorb';
+  done: number;
+  total: number;
+  current: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -270,8 +294,23 @@ function formatTime(value: string | null | undefined): string {
   });
 }
 
+function ageInHours(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return (Date.now() - date.getTime()) / (1000 * 60 * 60);
+}
+
 function statusTone(status: string | null | undefined): string {
-  if (status === 'ready' || status === 'complete' || status === 'completed') {
+  if (
+    status === 'ready' ||
+    status === 'complete' ||
+    status === 'completed' ||
+    status === 'clean' ||
+    status === 'fresh' ||
+    status === 'passing' ||
+    status === 'idle'
+  ) {
     return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300';
   }
   if (
@@ -282,7 +321,10 @@ function statusTone(status: string | null | undefined): string {
   ) {
     return 'border-blue-500/30 bg-blue-500/10 text-blue-300';
   }
-  if (status === 'failed' || status === 'error') {
+  if (status === 'dirty' || status === 'stale' || status === 'unknown') {
+    return 'border-amber-500/30 bg-amber-500/10 text-amber-300';
+  }
+  if (status === 'failed' || status === 'error' || status === 'failing') {
     return 'border-rose-500/30 bg-rose-500/10 text-rose-300';
   }
   return 'border-slate-700 bg-slate-800 text-slate-300';
@@ -313,6 +355,8 @@ function readWorkspaceFromProject(project: AbsorbProject): WorkspaceSummary {
     metadata,
     publishWorthiness: readPublishWorthiness(metadata.publishWorthiness),
     paperUnlockState: readPaperUnlockState(metadata.paperUnlockState),
+    lastAbsorbedAt: project.lastAbsorbedAt ?? null,
+    absorbJobs: project.absorbJobs ?? [],
   };
 }
 
@@ -339,6 +383,8 @@ function mergeWorkspaces(diskPayload: unknown, absorbPayload: unknown): Workspac
       metadata: {},
       publishWorthiness: null,
       paperUnlockState: readPaperUnlockState(item.paperUnlockState),
+      lastAbsorbedAt: null,
+      absorbJobs: [],
     });
   }
 
@@ -359,6 +405,8 @@ function mergeWorkspaces(diskPayload: unknown, absorbPayload: unknown): Workspac
       fileCount: fromProject.fileCount ?? existing?.fileCount ?? null,
       publishWorthiness: fromProject.publishWorthiness ?? existing?.publishWorthiness ?? null,
       paperUnlockState: existing?.paperUnlockState ?? fromProject.paperUnlockState ?? null,
+      lastAbsorbedAt: fromProject.lastAbsorbedAt ?? existing?.lastAbsorbedAt ?? null,
+      absorbJobs: fromProject.absorbJobs ?? existing?.absorbJobs ?? [],
       metadata: {
         ...(existing?.metadata ?? {}),
         ...fromProject.metadata,
@@ -371,6 +419,91 @@ function mergeWorkspaces(diskPayload: unknown, absorbPayload: unknown): Workspac
   );
 }
 
+function workspaceLastAbsorbedAt(workspace: WorkspaceSummary): string | null {
+  return (
+    workspace.lastAbsorbedAt ??
+    stringField(workspace.metadata.lastAbsorbedAt) ??
+    stringField(workspace.metadata.last_absorbed_at)
+  );
+}
+
+function workspaceAbsorbStatus(workspace: WorkspaceSummary): string {
+  const activeJob = workspace.absorbJobs?.find((job) =>
+    ['queued', 'running', 'scanning', 'absorbing'].includes(job.status)
+  );
+  if (activeJob) return activeJob.status;
+  if (workspace.status === 'scanning' || workspace.status === 'absorbing') return workspace.status;
+  const age = ageInHours(workspaceLastAbsorbedAt(workspace));
+  if (age === null) return 'stale';
+  return age <= 24 ? 'fresh' : 'stale';
+}
+
+function isWorkspaceAbsorbStale(workspace: WorkspaceSummary): boolean {
+  const status = workspaceAbsorbStatus(workspace);
+  return status === 'stale' || status === 'failed' || status === 'error';
+}
+
+function workspaceBuildStatus(workspace: WorkspaceSummary): string {
+  const metadata = workspace.metadata;
+  const nested = isRecord(metadata.lastBuild) ? metadata.lastBuild.status : null;
+  const raw =
+    stringField(metadata.buildHealth) ??
+    stringField(metadata.buildStatus) ??
+    stringField(metadata.lastBuildStatus) ??
+    stringField(nested);
+  if (!raw) return 'unknown';
+  const normalized = raw.toLowerCase();
+  if (['ok', 'pass', 'passed', 'passing', 'success', 'succeeded', 'green'].includes(normalized)) {
+    return 'passing';
+  }
+  if (['fail', 'failed', 'failing', 'error', 'red'].includes(normalized)) return 'failing';
+  return normalized;
+}
+
+function workspaceLatestJob(workspace: WorkspaceSummary, jobs: DaemonJob[]): DaemonJob | null {
+  return (
+    jobs.find((job) => job.projectId === workspace.id || job.projectPath === workspace.localPath) ??
+    null
+  );
+}
+
+function workspaceAgentStatus(workspace: WorkspaceSummary, jobs: DaemonJob[]): string {
+  const job = workspaceLatestJob(workspace, jobs);
+  if (!job) return 'idle';
+  if (job.status === 'running' || job.status === 'queued') return job.status;
+  return job.status;
+}
+
+function buildProjectDna(
+  workspace: WorkspaceSummary,
+  profile: DaemonProfile,
+  mission: (typeof HOLO_DAEMON_MISSIONS)[number]
+): DaemonProjectDNA {
+  return {
+    kind: 'unknown',
+    confidence: 0.65,
+    detectedStack: [
+      workspace.fileCount ? `${workspace.fileCount} files` : 'imported repo',
+      workspace.branch ? `branch ${workspace.branch}` : 'git workspace',
+      `daemon:${mission.id}`,
+    ],
+    recommendedProfile: profile,
+    notes: [
+      `Workbench assigned ${workspace.name} to HoloDaemon mission ${mission.id}.`,
+      mission.description,
+      `Workspace path: ${workspace.localPath}`,
+    ],
+    daemonAgent: {
+      missionProfile: mission.id,
+      agentName: mission.name,
+      skills: mission.defaultSkills,
+      authorityRefs: mission.authorityRefs,
+      schedules: mission.schedules,
+      rawSecretAccess: false,
+    },
+  };
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function StatusPill({ status }: { status: string | null | undefined }) {
@@ -378,9 +511,14 @@ function StatusPill({ status }: { status: string | null | undefined }) {
     <span
       className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${statusTone(status)}`}
     >
-      {status === 'failed' || status === 'error' ? (
+      {status === 'failed' || status === 'error' || status === 'failing' ? (
         <XCircle className="h-3 w-3" />
-      ) : status === 'running' || status === 'queued' || status === 'scanning' ? (
+      ) : status === 'dirty' || status === 'stale' || status === 'unknown' ? (
+        <AlertTriangle className="h-3 w-3" />
+      ) : status === 'running' ||
+        status === 'queued' ||
+        status === 'scanning' ||
+        status === 'absorbing' ? (
         <Activity className="h-3 w-3" />
       ) : (
         <Check className="h-3 w-3" />
@@ -459,6 +597,14 @@ export function ReposTab() {
     current: string;
   } | null>(null);
   const [bulkErrors, setBulkErrors] = useState<string[]>([]);
+  const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<Set<string>>(new Set());
+  const [workspaceGitSnapshots, setWorkspaceGitSnapshots] = useState<
+    Record<string, WorkspaceGitSnapshot>
+  >({});
+  const [workspaceBulkProgress, setWorkspaceBulkProgress] = useState<BulkWorkspaceProgress | null>(
+    null
+  );
+  const [workspaceBulkErrors, setWorkspaceBulkErrors] = useState<string[]>([]);
 
   const [gitStatus, setGitStatus] = useState<GitStatusResponse | null>(null);
   const [branches, setBranches] = useState<GitBranchesResponse | null>(null);
@@ -513,6 +659,15 @@ export function ReposTab() {
       HOLO_DAEMON_MISSIONS[0],
     [daemonMissionProfile]
   );
+  const selectedWorkspaces = useMemo(
+    () => workspaces.filter((workspace) => selectedWorkspaceIds.has(workspace.id)),
+    [selectedWorkspaceIds, workspaces]
+  );
+  const actionWorkspaces = useMemo(() => {
+    if (selectedWorkspaces.length > 0) return selectedWorkspaces;
+    return activeWorkspace ? [activeWorkspace] : [];
+  }, [activeWorkspace, selectedWorkspaces]);
+  const staleWorkspaces = useMemo(() => workspaces.filter(isWorkspaceAbsorbStale), [workspaces]);
   const workspaceJobs = useMemo(() => {
     if (!activeWorkspace) return [];
     return jobs.filter(
@@ -525,6 +680,10 @@ export function ReposTab() {
   );
   const branchName = gitStatus?.branch ?? branches?.current ?? activeWorkspace?.branch ?? 'main';
   const canDirectShip = access?.canDirectShip === true;
+  const bulkBusy = workspaceBulkProgress !== null;
+  const assignmentTargetCount = actionWorkspaces.length;
+  const selectedWorkspaceLabel =
+    selectedWorkspaceIds.size > 0 ? `${selectedWorkspaceIds.size} selected` : 'active workspace';
 
   const refreshJobs = useCallback(async () => {
     try {
@@ -534,6 +693,46 @@ export function ReposTab() {
       setJobs([]);
     }
   }, [listJobs]);
+
+  const refreshWorkspaceOverview = useCallback(async () => {
+    if (workspaces.length === 0) {
+      setWorkspaceGitSnapshots({});
+      return;
+    }
+    const snapshots: Record<string, WorkspaceGitSnapshot> = {};
+    for (const workspace of workspaces) {
+      if (!workspace.localPath) {
+        snapshots[workspace.id] = {
+          status: 'unknown',
+          branch: workspace.branch,
+          changedFiles: null,
+          checkedAt: new Date().toISOString(),
+        };
+        continue;
+      }
+      try {
+        const encodedPath = encodeURIComponent(workspace.localPath);
+        const statusPayload = await fetchJson<GitStatusResponse>(
+          `/api/git/status?workspacePath=${encodedPath}`
+        );
+        snapshots[workspace.id] = {
+          status: statusPayload.clean ? 'clean' : 'dirty',
+          branch: statusPayload.branch,
+          changedFiles: statusPayload.files.length,
+          checkedAt: new Date().toISOString(),
+        };
+      } catch (err) {
+        snapshots[workspace.id] = {
+          status: 'error',
+          branch: workspace.branch,
+          changedFiles: null,
+          checkedAt: new Date().toISOString(),
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    }
+    setWorkspaceGitSnapshots(snapshots);
+  }, [workspaces]);
 
   const loadWorkspaces = useCallback(async () => {
     setLoadingWorkspaces(true);
@@ -651,6 +850,18 @@ export function ReposTab() {
   }, [activeWorkspace, refreshJobs]);
 
   useEffect(() => {
+    setSelectedWorkspaceIds((current) => {
+      const valid = new Set(workspaces.map((workspace) => workspace.id));
+      const next = new Set(Array.from(current).filter((id) => valid.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [workspaces]);
+
+  useEffect(() => {
+    void refreshWorkspaceOverview();
+  }, [refreshWorkspaceOverview]);
+
+  useEffect(() => {
     const stored =
       window.localStorage.getItem('holomesh_active_team_id') ??
       window.localStorage.getItem('workspace_workbench_team_id') ??
@@ -713,6 +924,8 @@ export function ReposTab() {
       fileCount: created.fileCount ?? null,
       updatedAt: created.createdAt ?? new Date().toISOString(),
       metadata: {},
+      lastAbsorbedAt: null,
+      absorbJobs: [],
     };
     setWorkspaces((current) => [workspace, ...current.filter((item) => item.id !== workspace.id)]);
     return workspace;
@@ -746,6 +959,21 @@ export function ReposTab() {
       else next.add(url);
       return next;
     });
+  }
+
+  function toggleWorkspaceSelection(id: string) {
+    setSelectedWorkspaceIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllWorkspaceSelection() {
+    setSelectedWorkspaceIds((current) =>
+      current.size === workspaces.length ? new Set() : new Set(workspaces.map((item) => item.id))
+    );
   }
 
   async function handleBulkImport() {
@@ -879,43 +1107,97 @@ export function ReposTab() {
     });
   }
 
-  async function handleLaunchAgent() {
-    if (!activeWorkspace) return;
+  async function handleLaunchAgents() {
+    const targets = actionWorkspaces;
+    if (targets.length === 0 || bulkBusy) return;
     setWorkspaceAction(null);
+    setWorkspaceBulkErrors([]);
+    const errors: string[] = [];
+    let firstJobId: string | null = null;
     try {
-      const job = await createJob({
-        projectId: activeWorkspace.id,
-        projectPath: activeWorkspace.localPath,
-        profile: daemonProfile,
-        projectDna: {
-          kind: 'unknown',
-          confidence: 0.65,
-          detectedStack: [
-            activeWorkspace.fileCount ? `${activeWorkspace.fileCount} files` : 'imported repo',
-            activeWorkspace.branch ? `branch ${activeWorkspace.branch}` : 'git workspace',
-            `daemon:${selectedDaemonMission.id}`,
-          ],
-          recommendedProfile: daemonProfile,
-          notes: [
-            `Workbench assigned ${activeWorkspace.name} to HoloDaemon mission ${selectedDaemonMission.id}.`,
-            selectedDaemonMission.description,
-            `Workspace path: ${activeWorkspace.localPath}`,
-          ],
-          daemonAgent: {
-            missionProfile: selectedDaemonMission.id,
-            agentName: selectedDaemonMission.name,
-            skills: selectedDaemonMission.defaultSkills,
-            authorityRefs: selectedDaemonMission.authorityRefs,
-            schedules: selectedDaemonMission.schedules,
-            rawSecretAccess: false,
-          },
-        },
-      });
-      setSelectedJobId(job.id);
+      for (let i = 0; i < targets.length; i += 1) {
+        const workspace = targets[i];
+        setWorkspaceBulkProgress({
+          kind: 'agent',
+          done: i,
+          total: targets.length,
+          current: workspace.name,
+        });
+        try {
+          const job = await createJob({
+            projectId: workspace.id,
+            projectPath: workspace.localPath,
+            profile: daemonProfile,
+            projectDna: buildProjectDna(workspace, daemonProfile, selectedDaemonMission),
+          });
+          firstJobId = firstJobId ?? job.id;
+        } catch (err) {
+          errors.push(`${workspace.name}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+      if (firstJobId) setSelectedJobId(firstJobId);
       setActiveTab('agent');
       await refreshJobs();
+      if (errors.length > 0) {
+        setWorkspaceBulkErrors(errors);
+        setWorkspaceAction(
+          `Assigned ${targets.length - errors.length}/${targets.length} workspaces.`
+        );
+      } else {
+        setWorkspaceAction(
+          `Assigned ${targets.length} workspace${targets.length === 1 ? '' : 's'}.`
+        );
+      }
     } catch (err) {
       setWorkspaceAction(err instanceof Error ? err.message : String(err));
+    } finally {
+      setWorkspaceBulkProgress(null);
+    }
+  }
+
+  async function handleScanStaleWorkspaces() {
+    if (staleWorkspaces.length === 0 || bulkBusy) return;
+    setWorkspaceAction(null);
+    setWorkspaceBulkErrors([]);
+    const errors: string[] = [];
+    try {
+      for (let i = 0; i < staleWorkspaces.length; i += 1) {
+        const workspace = staleWorkspaces[i];
+        setWorkspaceBulkProgress({
+          kind: 'absorb',
+          done: i,
+          total: staleWorkspaces.length,
+          current: workspace.name,
+        });
+        try {
+          await fetchJson('/api/daemon/absorb', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              projectId: workspace.id,
+              projectPath: workspace.localPath,
+              depth: 'medium',
+              tier: 'medium',
+            }),
+          });
+        } catch (err) {
+          errors.push(`${workspace.name}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+      await loadWorkspaces();
+      await refreshWorkspaceOverview();
+      if (errors.length > 0) {
+        setWorkspaceBulkErrors(errors);
+        setWorkspaceAction(
+          `Scan-all-stale completed ${staleWorkspaces.length - errors.length}/${staleWorkspaces.length} workspaces.`
+        );
+      } else {
+        setWorkspaceAction(
+          `Scan-all-stale queued ${staleWorkspaces.length} workspace${staleWorkspaces.length === 1 ? '' : 's'}.`
+        );
+      }
+    } finally {
+      setWorkspaceBulkProgress(null);
     }
   }
 
@@ -964,12 +1246,22 @@ export function ReposTab() {
               Refresh
             </IconButton>
             <IconButton
+              icon={Activity}
+              onClick={() => void handleScanStaleWorkspaces()}
+              disabled={staleWorkspaces.length === 0 || bulkBusy}
+              title="Run absorb for every stale workspace"
+            >
+              {`Scan stale (${staleWorkspaces.length})`}
+            </IconButton>
+            <IconButton
               icon={Play}
-              onClick={() => void handleLaunchAgent()}
-              disabled={!activeWorkspace || creating}
+              onClick={() => void handleLaunchAgents()}
+              disabled={assignmentTargetCount === 0 || creating || bulkBusy}
               variant="primary"
             >
-              Assign Agent
+              {selectedWorkspaceIds.size > 0
+                ? `Assign ${selectedWorkspaceIds.size}`
+                : 'Assign Agent'}
             </IconButton>
           </div>
         </div>
@@ -1134,6 +1426,110 @@ export function ReposTab() {
               )}
             </section>
 
+            <section className="border-b border-slate-800 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                  <Activity className="h-4 w-4 text-emerald-300" />
+                  Projects Overview
+                </div>
+                {workspaces.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={toggleAllWorkspaceSelection}
+                    className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-300 transition hover:border-slate-500"
+                  >
+                    {selectedWorkspaceIds.size === workspaces.length ? 'Clear' : 'Select all'}
+                  </button>
+                )}
+              </div>
+              <div className="grid gap-2">
+                {workspaces.slice(0, 8).map((workspace) => {
+                  const snapshot = workspaceGitSnapshots[workspace.id];
+                  const selected = selectedWorkspaceIds.has(workspace.id);
+                  const agentStatus = workspaceAgentStatus(workspace, jobs);
+                  const absorbStatus = workspaceAbsorbStatus(workspace);
+                  const buildStatus = workspaceBuildStatus(workspace);
+                  return (
+                    <div
+                      key={`overview:${workspace.id}`}
+                      className={`rounded-lg border p-2 transition ${
+                        activeWorkspaceId === workspace.id
+                          ? 'border-emerald-500/40 bg-emerald-500/10'
+                          : 'border-slate-800 bg-slate-900/60'
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleWorkspaceSelection(workspace.id)}
+                          aria-label={`Select ${workspace.name}`}
+                          className="h-3.5 w-3.5 accent-emerald-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setActiveWorkspaceId(workspace.id)}
+                          className="min-w-0 flex-1 truncate text-left text-xs font-medium text-slate-100 hover:text-emerald-200"
+                        >
+                          {workspace.name}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <StatusPill status={snapshot?.status ?? 'unknown'} />
+                        <StatusPill status={absorbStatus} />
+                        <StatusPill status={agentStatus} />
+                        <StatusPill status={buildStatus} />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-500">
+                        <span className="truncate">
+                          {snapshot?.branch ?? workspace.branch ?? 'branch unknown'}
+                        </span>
+                        <span>
+                          {snapshot?.changedFiles === null || snapshot?.changedFiles === undefined
+                            ? '--'
+                            : `${snapshot.changedFiles} changed`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {workspaces.length > 8 && (
+                  <p className="text-[10px] text-slate-500">
+                    Showing 8 of {workspaces.length}; use the workspace list below for the rest.
+                  </p>
+                )}
+                {workspaces.length === 0 && (
+                  <p className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-4 text-center text-xs text-slate-500">
+                    No projects to summarize yet.
+                  </p>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                <span>{selectedWorkspaceLabel}</span>
+                {workspaceBulkProgress && (
+                  <span className="inline-flex items-center gap-1 text-blue-300">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {workspaceBulkProgress.kind === 'agent' ? 'Assigning' : 'Scanning'}{' '}
+                    {workspaceBulkProgress.done + 1}/{workspaceBulkProgress.total}
+                  </span>
+                )}
+              </div>
+              {workspaceBulkProgress && (
+                <p className="mt-1 truncate text-[10px] text-slate-500">
+                  {workspaceBulkProgress.current}
+                </p>
+              )}
+              {workspaceBulkErrors.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {workspaceBulkErrors.map((message) => (
+                    <p key={message} className="text-[10px] text-rose-300">
+                      {message}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </section>
+
             <section className="min-h-0 flex-1 overflow-y-auto p-3">
               <div className="mb-2 flex items-center justify-between px-1">
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -1198,9 +1594,7 @@ export function ReposTab() {
                       {activeWorkspace?.name ?? 'No workspace selected'}
                     </h3>
                     <StatusPill status={gitStatus?.clean ? 'ready' : activeWorkspace?.status} />
-                    {workspaceLoading && (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-300" />
-                    )}
+                    {workspaceLoading && <Loader2 className="h-4 w-4 animate-spin text-blue-300" />}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
                     <span className="inline-flex items-center gap-1">
@@ -1247,9 +1641,7 @@ export function ReposTab() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              {!activeWorkspace && (
-                <EmptyState>Select or import a workspace to begin.</EmptyState>
-              )}
+              {!activeWorkspace && <EmptyState>Select or import a workspace to begin.</EmptyState>}
 
               {activeWorkspace && (
                 <div className="mb-4 space-y-3">
@@ -1525,11 +1917,13 @@ export function ReposTab() {
                     </div>
                     <IconButton
                       icon={Play}
-                      onClick={() => void handleLaunchAgent()}
-                      disabled={creating}
+                      onClick={() => void handleLaunchAgents()}
+                      disabled={assignmentTargetCount === 0 || creating || bulkBusy}
                       variant="primary"
                     >
-                      Start Job
+                      {selectedWorkspaceIds.size > 0
+                        ? `Start ${selectedWorkspaceIds.size}`
+                        : 'Start Job'}
                     </IconButton>
                   </div>
 
@@ -1813,9 +2207,7 @@ export function ReposTab() {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-400">Current</span>
-                    <span className="truncate font-medium text-slate-100">
-                      {gitStatus.branch}
-                    </span>
+                    <span className="truncate font-medium text-slate-100">{gitStatus.branch}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
@@ -1861,9 +2253,7 @@ export function ReposTab() {
                     className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 text-left transition hover:border-slate-600"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-xs font-medium text-slate-200">
-                        {job.id}
-                      </span>
+                      <span className="truncate text-xs font-medium text-slate-200">{job.id}</span>
                       <StatusPill status={job.status} />
                     </div>
                     <p className="mt-1 truncate text-xs text-slate-500">
