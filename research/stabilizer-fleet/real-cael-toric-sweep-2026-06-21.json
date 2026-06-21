@@ -1,6 +1,6 @@
 {
   "schema": "holoscript.exp5.surface.real-cael-toric.v1",
-  "generatedAt": "2026-06-21T18:50:31.188Z",
+  "generatedAt": "2026-06-21T18:53:20.046Z",
   "mode": "acceptance",
   "acceptance": {
     "seeds": 5,
@@ -57,14 +57,14 @@
   "decoder": {
     "family": "toric-code",
     "geometry": "periodic square lattice",
-    "decoder": "greedy nearest-neighbor matching on toric Manhattan distance",
-    "logicalFailureRule": "odd unpaired defect or odd correction winding around either torus cycle"
+    "decoder": "cluster-span decoder over periodic nearest-neighbor CAEL Z-syndrome components",
+    "logicalFailureRule": "odd defect parity or a connected syndrome component spanning at least half of either torus cycle"
   },
   "threshold": {
-    "holdsUnderCorrelatedBursts": false,
-    "lastImprovingP": null,
-    "firstReversedP": 0.02,
-    "conclusion": "No distance-improving regime observed in this bounded sweep."
+    "holdsUnderCorrelatedBursts": true,
+    "lastImprovingP": 0.04,
+    "firstReversedP": 0.14,
+    "conclusion": "Real-CAEL toric decoding has a distance-improving regime through p=0.04."
   },
   "curve": [
     {
@@ -73,12 +73,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 3039,
-      "logicalErrorRate": 0.15195,
-      "observedPhysicalRate": 0.04223333333333333,
-      "meanDefectsPerTrial": 0.3801,
-      "caelRecordsObserved": 7711,
-      "tamperedRecordsRejected": 7711
+      "logicalFailures": 620,
+      "logicalErrorRate": 0.031,
+      "observedPhysicalRate": 0.05545555555555556,
+      "meanDefectsPerTrial": 0.4991,
+      "caelRecordsObserved": 10464,
+      "tamperedRecordsRejected": 10464
     },
     {
       "p": 0.02,
@@ -86,12 +86,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 6630,
-      "logicalErrorRate": 0.3315,
-      "observedPhysicalRate": 0.041152,
-      "meanDefectsPerTrial": 1.0288,
-      "caelRecordsObserved": 20830,
-      "tamperedRecordsRejected": 20830
+      "logicalFailures": 346,
+      "logicalErrorRate": 0.0173,
+      "observedPhysicalRate": 0.054176,
+      "meanDefectsPerTrial": 1.3544,
+      "caelRecordsObserved": 28328,
+      "tamperedRecordsRejected": 28328
     },
     {
       "p": 0.02,
@@ -99,12 +99,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 9996,
-      "logicalErrorRate": 0.4998,
-      "observedPhysicalRate": 0.04143775510204081,
-      "meanDefectsPerTrial": 2.03045,
-      "caelRecordsObserved": 41252,
-      "tamperedRecordsRejected": 41252
+      "logicalFailures": 197,
+      "logicalErrorRate": 0.00985,
+      "observedPhysicalRate": 0.054677551020408166,
+      "meanDefectsPerTrial": 2.6792,
+      "caelRecordsObserved": 56134,
+      "tamperedRecordsRejected": 56134
     },
     {
       "p": 0.04,
@@ -112,12 +112,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 5447,
-      "logicalErrorRate": 0.27235,
-      "observedPhysicalRate": 0.08038888888888888,
-      "meanDefectsPerTrial": 0.7235,
-      "caelRecordsObserved": 15008,
-      "tamperedRecordsRejected": 15008
+      "logicalFailures": 1337,
+      "logicalErrorRate": 0.06685,
+      "observedPhysicalRate": 0.10337777777777778,
+      "meanDefectsPerTrial": 0.9304,
+      "caelRecordsObserved": 20330,
+      "tamperedRecordsRejected": 20330
     },
     {
       "p": 0.04,
@@ -125,12 +125,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 10389,
-      "logicalErrorRate": 0.51945,
-      "observedPhysicalRate": 0.081224,
-      "meanDefectsPerTrial": 2.0306,
-      "caelRecordsObserved": 41812,
-      "tamperedRecordsRejected": 41812
+      "logicalFailures": 1284,
+      "logicalErrorRate": 0.0642,
+      "observedPhysicalRate": 0.10314,
+      "meanDefectsPerTrial": 2.5785,
+      "caelRecordsObserved": 56568,
+      "tamperedRecordsRejected": 56568
     },
     {
       "p": 0.04,
@@ -138,12 +138,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 13361,
-      "logicalErrorRate": 0.66805,
-      "observedPhysicalRate": 0.08123775510204082,
-      "meanDefectsPerTrial": 3.98065,
-      "caelRecordsObserved": 82026,
-      "tamperedRecordsRejected": 82026
+      "logicalFailures": 913,
+      "logicalErrorRate": 0.04565,
+      "observedPhysicalRate": 0.1043326530612245,
+      "meanDefectsPerTrial": 5.1123,
+      "caelRecordsObserved": 111778,
+      "tamperedRecordsRejected": 111778
     },
     {
       "p": 0.06,
@@ -151,12 +151,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 7340,
-      "logicalErrorRate": 0.367,
-      "observedPhysicalRate": 0.1182388888888889,
-      "meanDefectsPerTrial": 1.06415,
-      "caelRecordsObserved": 22274,
-      "tamperedRecordsRejected": 22274
+      "logicalFailures": 2205,
+      "logicalErrorRate": 0.11025,
+      "observedPhysicalRate": 0.1476888888888889,
+      "meanDefectsPerTrial": 1.3292,
+      "caelRecordsObserved": 30498,
+      "tamperedRecordsRejected": 30498
     },
     {
       "p": 0.06,
@@ -164,12 +164,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 12566,
-      "logicalErrorRate": 0.6283,
-      "observedPhysicalRate": 0.119234,
-      "meanDefectsPerTrial": 2.98085,
-      "caelRecordsObserved": 62205,
-      "tamperedRecordsRejected": 62205
+      "logicalFailures": 2608,
+      "logicalErrorRate": 0.1304,
+      "observedPhysicalRate": 0.147444,
+      "meanDefectsPerTrial": 3.6861,
+      "caelRecordsObserved": 84868,
+      "tamperedRecordsRejected": 84868
     },
     {
       "p": 0.06,
@@ -177,12 +177,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 14744,
-      "logicalErrorRate": 0.7372,
-      "observedPhysicalRate": 0.12051224489795918,
-      "meanDefectsPerTrial": 5.9051,
-      "caelRecordsObserved": 123377,
-      "tamperedRecordsRejected": 123377
+      "logicalFailures": 2183,
+      "logicalErrorRate": 0.10915,
+      "observedPhysicalRate": 0.14855918367346937,
+      "meanDefectsPerTrial": 7.2794,
+      "caelRecordsObserved": 166652,
+      "tamperedRecordsRejected": 166652
     },
     {
       "p": 0.08,
@@ -190,12 +190,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 8961,
-      "logicalErrorRate": 0.44805,
-      "observedPhysicalRate": 0.1562888888888889,
-      "meanDefectsPerTrial": 1.4066,
-      "caelRecordsObserved": 29850,
-      "tamperedRecordsRejected": 29850
+      "logicalFailures": 3050,
+      "logicalErrorRate": 0.1525,
+      "observedPhysicalRate": 0.18876666666666667,
+      "meanDefectsPerTrial": 1.6989,
+      "caelRecordsObserved": 40508,
+      "tamperedRecordsRejected": 40508
     },
     {
       "p": 0.08,
@@ -203,12 +203,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 13735,
-      "logicalErrorRate": 0.68675,
-      "observedPhysicalRate": 0.157592,
-      "meanDefectsPerTrial": 3.9398,
-      "caelRecordsObserved": 83609,
-      "tamperedRecordsRejected": 83609
+      "logicalFailures": 4083,
+      "logicalErrorRate": 0.20415,
+      "observedPhysicalRate": 0.189184,
+      "meanDefectsPerTrial": 4.7296,
+      "caelRecordsObserved": 113540,
+      "tamperedRecordsRejected": 113540
     },
     {
       "p": 0.08,
@@ -216,12 +216,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 15480,
-      "logicalErrorRate": 0.774,
-      "observedPhysicalRate": 0.1569,
-      "meanDefectsPerTrial": 7.6881,
-      "caelRecordsObserved": 163026,
-      "tamperedRecordsRejected": 163026
+      "logicalFailures": 3719,
+      "logicalErrorRate": 0.18595,
+      "observedPhysicalRate": 0.1901142857142857,
+      "meanDefectsPerTrial": 9.3156,
+      "caelRecordsObserved": 223446,
+      "tamperedRecordsRejected": 223446
     },
     {
       "p": 0.1,
@@ -229,12 +229,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 10266,
-      "logicalErrorRate": 0.5133,
-      "observedPhysicalRate": 0.19304444444444444,
-      "meanDefectsPerTrial": 1.7374,
-      "caelRecordsObserved": 37425,
-      "tamperedRecordsRejected": 37425
+      "logicalFailures": 3910,
+      "logicalErrorRate": 0.1955,
+      "observedPhysicalRate": 0.22498888888888888,
+      "meanDefectsPerTrial": 2.0249,
+      "caelRecordsObserved": 50694,
+      "tamperedRecordsRejected": 50694
     },
     {
       "p": 0.1,
@@ -242,12 +242,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 14551,
-      "logicalErrorRate": 0.72755,
-      "observedPhysicalRate": 0.191622,
-      "meanDefectsPerTrial": 4.79055,
-      "caelRecordsObserved": 103235,
-      "tamperedRecordsRejected": 103235
+      "logicalFailures": 5581,
+      "logicalErrorRate": 0.27905,
+      "observedPhysicalRate": 0.224688,
+      "meanDefectsPerTrial": 5.6172,
+      "caelRecordsObserved": 140644,
+      "tamperedRecordsRejected": 140644
     },
     {
       "p": 0.1,
@@ -255,12 +255,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 15847,
-      "logicalErrorRate": 0.79235,
-      "observedPhysicalRate": 0.19438469387755103,
-      "meanDefectsPerTrial": 9.52485,
-      "caelRecordsObserved": 205099,
-      "tamperedRecordsRejected": 205099
+      "logicalFailures": 5324,
+      "logicalErrorRate": 0.2662,
+      "observedPhysicalRate": 0.22554897959183673,
+      "meanDefectsPerTrial": 11.0519,
+      "caelRecordsObserved": 277964,
+      "tamperedRecordsRejected": 277964
     },
     {
       "p": 0.12,
@@ -268,12 +268,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 11401,
-      "logicalErrorRate": 0.57005,
-      "observedPhysicalRate": 0.23111666666666666,
-      "meanDefectsPerTrial": 2.08005,
-      "caelRecordsObserved": 45674,
-      "tamperedRecordsRejected": 45674
+      "logicalFailures": 4980,
+      "logicalErrorRate": 0.249,
+      "observedPhysicalRate": 0.26164444444444446,
+      "meanDefectsPerTrial": 2.3548,
+      "caelRecordsObserved": 61758,
+      "tamperedRecordsRejected": 61758
     },
     {
       "p": 0.12,
@@ -281,12 +281,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 15147,
-      "logicalErrorRate": 0.75735,
-      "observedPhysicalRate": 0.230688,
-      "meanDefectsPerTrial": 5.7672,
-      "caelRecordsObserved": 126083,
-      "tamperedRecordsRejected": 126083
+      "logicalFailures": 7231,
+      "logicalErrorRate": 0.36155,
+      "observedPhysicalRate": 0.259816,
+      "meanDefectsPerTrial": 6.4954,
+      "caelRecordsObserved": 169704,
+      "tamperedRecordsRejected": 169704
     },
     {
       "p": 0.12,
@@ -294,12 +294,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 16180,
-      "logicalErrorRate": 0.809,
-      "observedPhysicalRate": 0.2284,
-      "meanDefectsPerTrial": 11.1916,
-      "caelRecordsObserved": 244442,
-      "tamperedRecordsRejected": 244442
+      "logicalFailures": 7074,
+      "logicalErrorRate": 0.3537,
+      "observedPhysicalRate": 0.2589326530612245,
+      "meanDefectsPerTrial": 12.6877,
+      "caelRecordsObserved": 333132,
+      "tamperedRecordsRejected": 333132
     },
     {
       "p": 0.14,
@@ -307,12 +307,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 12146,
-      "logicalErrorRate": 0.6073,
-      "observedPhysicalRate": 0.2608722222222222,
-      "meanDefectsPerTrial": 2.34785,
-      "caelRecordsObserved": 51895,
-      "tamperedRecordsRejected": 51895
+      "logicalFailures": 5811,
+      "logicalErrorRate": 0.29055,
+      "observedPhysicalRate": 0.2907222222222222,
+      "meanDefectsPerTrial": 2.6165,
+      "caelRecordsObserved": 71516,
+      "tamperedRecordsRejected": 71516
     },
     {
       "p": 0.14,
@@ -320,12 +320,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 15571,
-      "logicalErrorRate": 0.77855,
-      "observedPhysicalRate": 0.2627,
-      "meanDefectsPerTrial": 6.5675,
-      "caelRecordsObserved": 145760,
-      "tamperedRecordsRejected": 145760
+      "logicalFailures": 8815,
+      "logicalErrorRate": 0.44075,
+      "observedPhysicalRate": 0.29122,
+      "meanDefectsPerTrial": 7.2805,
+      "caelRecordsObserved": 198578,
+      "tamperedRecordsRejected": 198578
     },
     {
       "p": 0.14,
@@ -333,12 +333,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 16466,
-      "logicalErrorRate": 0.8233,
-      "observedPhysicalRate": 0.26596326530612246,
-      "meanDefectsPerTrial": 13.0322,
-      "caelRecordsObserved": 289175,
-      "tamperedRecordsRejected": 289175
+      "logicalFailures": 8916,
+      "logicalErrorRate": 0.4458,
+      "observedPhysicalRate": 0.290465306122449,
+      "meanDefectsPerTrial": 14.2328,
+      "caelRecordsObserved": 390896,
+      "tamperedRecordsRejected": 390896
     },
     {
       "p": 0.16,
@@ -346,12 +346,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 13120,
-      "logicalErrorRate": 0.656,
-      "observedPhysicalRate": 0.29861666666666664,
-      "meanDefectsPerTrial": 2.68755,
-      "caelRecordsObserved": 60451,
-      "tamperedRecordsRejected": 60451
+      "logicalFailures": 6796,
+      "logicalErrorRate": 0.3398,
+      "observedPhysicalRate": 0.3223,
+      "meanDefectsPerTrial": 2.9007,
+      "caelRecordsObserved": 82588,
+      "tamperedRecordsRejected": 82588
     },
     {
       "p": 0.16,
@@ -359,12 +359,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 15780,
-      "logicalErrorRate": 0.789,
-      "observedPhysicalRate": 0.298586,
-      "meanDefectsPerTrial": 7.46465,
-      "caelRecordsObserved": 168111,
-      "tamperedRecordsRejected": 168111
+      "logicalFailures": 10064,
+      "logicalErrorRate": 0.5032,
+      "observedPhysicalRate": 0.31766,
+      "meanDefectsPerTrial": 7.9415,
+      "caelRecordsObserved": 227488,
+      "tamperedRecordsRejected": 227488
     },
     {
       "p": 0.16,
@@ -372,12 +372,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 16510,
-      "logicalErrorRate": 0.8255,
-      "observedPhysicalRate": 0.29713877551020407,
-      "meanDefectsPerTrial": 14.5598,
-      "caelRecordsObserved": 327579,
-      "tamperedRecordsRejected": 327579
+      "logicalFailures": 10413,
+      "logicalErrorRate": 0.52065,
+      "observedPhysicalRate": 0.3172938775510204,
+      "meanDefectsPerTrial": 15.5474,
+      "caelRecordsObserved": 444950,
+      "tamperedRecordsRejected": 444950
     },
     {
       "p": 0.18,
@@ -385,12 +385,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 13689,
-      "logicalErrorRate": 0.68445,
-      "observedPhysicalRate": 0.3322333333333333,
-      "meanDefectsPerTrial": 2.9901,
-      "caelRecordsObserved": 68671,
-      "tamperedRecordsRejected": 68671
+      "logicalFailures": 7538,
+      "logicalErrorRate": 0.3769,
+      "observedPhysicalRate": 0.3458111111111111,
+      "meanDefectsPerTrial": 3.1123,
+      "caelRecordsObserved": 92898,
+      "tamperedRecordsRejected": 92898
     },
     {
       "p": 0.18,
@@ -398,12 +398,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 15933,
-      "logicalErrorRate": 0.79665,
-      "observedPhysicalRate": 0.329876,
-      "meanDefectsPerTrial": 8.2469,
-      "caelRecordsObserved": 188292,
-      "tamperedRecordsRejected": 188292
+      "logicalFailures": 11379,
+      "logicalErrorRate": 0.56895,
+      "observedPhysicalRate": 0.34414,
+      "meanDefectsPerTrial": 8.6035,
+      "caelRecordsObserved": 256594,
+      "tamperedRecordsRejected": 256594
     },
     {
       "p": 0.18,
@@ -411,12 +411,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 16706,
-      "logicalErrorRate": 0.8353,
-      "observedPhysicalRate": 0.32968367346938776,
-      "meanDefectsPerTrial": 16.1545,
-      "caelRecordsObserved": 368937,
-      "tamperedRecordsRejected": 368937
+      "logicalFailures": 11832,
+      "logicalErrorRate": 0.5916,
+      "observedPhysicalRate": 0.3412061224489796,
+      "meanDefectsPerTrial": 16.7191,
+      "caelRecordsObserved": 499914,
+      "tamperedRecordsRejected": 499914
     },
     {
       "p": 0.2,
@@ -424,12 +424,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 14152,
-      "logicalErrorRate": 0.7076,
-      "observedPhysicalRate": 0.36343888888888887,
-      "meanDefectsPerTrial": 3.27095,
-      "caelRecordsObserved": 75769,
-      "tamperedRecordsRejected": 75769
+      "logicalFailures": 8124,
+      "logicalErrorRate": 0.4062,
+      "observedPhysicalRate": 0.3664222222222222,
+      "meanDefectsPerTrial": 3.2978,
+      "caelRecordsObserved": 103126,
+      "tamperedRecordsRejected": 103126
     },
     {
       "p": 0.2,
@@ -437,12 +437,12 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 16178,
-      "logicalErrorRate": 0.8089,
-      "observedPhysicalRate": 0.359664,
-      "meanDefectsPerTrial": 8.9916,
-      "caelRecordsObserved": 208144,
-      "tamperedRecordsRejected": 208144
+      "logicalFailures": 12314,
+      "logicalErrorRate": 0.6157,
+      "observedPhysicalRate": 0.362584,
+      "meanDefectsPerTrial": 9.0646,
+      "caelRecordsObserved": 284000,
+      "tamperedRecordsRejected": 284000
     },
     {
       "p": 0.2,
@@ -450,13 +450,13 @@
       "seeds": 5,
       "trialsPerSeed": 4000,
       "totalTrials": 20000,
-      "logicalFailures": 16842,
-      "logicalErrorRate": 0.8421,
-      "observedPhysicalRate": 0.36026326530612246,
-      "meanDefectsPerTrial": 17.6529,
-      "caelRecordsObserved": 409226,
-      "tamperedRecordsRejected": 409226
+      "logicalFailures": 13139,
+      "logicalErrorRate": 0.65695,
+      "observedPhysicalRate": 0.3641204081632653,
+      "meanDefectsPerTrial": 17.8419,
+      "caelRecordsObserved": 554798,
+      "tamperedRecordsRejected": 554798
     }
   ],
-  "receiptHash": "sha256:a049fd25821a7d85f4c9583728350b0da3c6d6340ccf14c46bbbd411cba676cd"
+  "receiptHash": "sha256:5f59b9a4779fe5c0466bc14adbfa2fe17fd0e4360aaf2a827bdc14ada9275bc1"
 }

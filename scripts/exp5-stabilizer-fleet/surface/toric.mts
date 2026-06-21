@@ -47,14 +47,6 @@ interface SweepRow {
 const DEFAULT_OUT = 'research/stabilizer-fleet/real-cael-toric-sweep-2026-06-21.json';
 const DEFAULT_P_VALUES = [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2];
 const DEFAULT_DISTANCES = [3, 5, 7];
-const BURST_OFFSETS: Point[] = [
-  { x: 0, y: 0 },
-  { x: 1, y: 0 },
-  { x: -1, y: 0 },
-  { x: 0, y: 1 },
-  { x: 0, y: -1 },
-];
-
 function parseArgs(argv: string[]): Options {
   const selfTest = argv.includes('--self-test');
   const arg = (name: string): string | null => {
@@ -158,6 +150,37 @@ function observeCaelZDefect(lattice: CaelLattice, site: number): boolean {
   return !verifyCaelRecord(lattice.tamperedRecords[site]);
 }
 
+function toggleObservedDefect(
+  defects: Set<number>,
+  site: number,
+  lattice: CaelLattice,
+  counters: { observed: number; rejected: number }
+) {
+  counters.observed++;
+  if (!observeCaelZDefect(lattice, site)) return;
+  counters.rejected++;
+  if (defects.has(site)) defects.delete(site);
+  else defects.add(site);
+}
+
+function applyToricEdgeError(
+  defects: Set<number>,
+  x: number,
+  y: number,
+  orientation: 'horizontal' | 'vertical',
+  distance: number,
+  lattice: CaelLattice,
+  counters: { observed: number; rejected: number }
+) {
+  const a = indexOf({ x, y }, distance);
+  const b =
+    orientation === 'horizontal'
+      ? indexOf({ x, y: y - 1 }, distance)
+      : indexOf({ x: x - 1, y }, distance);
+  toggleObservedDefect(defects, a, lattice, counters);
+  toggleObservedDefect(defects, b, lattice, counters);
+}
+
 function sampleCorrelatedCaelSyndrome(
   rng: () => number,
   distance: number,
@@ -169,68 +192,78 @@ function sampleCorrelatedCaelSyndrome(
   for (let y = 0; y < distance; y++) {
     for (let x = 0; x < distance; x++) {
       if (rng() >= p) continue;
+      const orientation = rng() < 0.5 ? 'horizontal' : 'vertical';
       const burst = rng() < 0.42;
-      const offsets = burst ? BURST_OFFSETS : [BURST_OFFSETS[0]];
-      for (const offset of offsets) {
-        if (burst && offset.x !== 0 && offset.y !== 0 && rng() < 0.2) continue;
-        if (burst && (offset.x !== 0 || offset.y !== 0) && rng() < 0.35) continue;
-        const site = indexOf({ x: x + offset.x, y: y + offset.y }, distance);
-        counters.observed++;
-        if (observeCaelZDefect(lattice, site)) {
-          counters.rejected++;
-          defects.add(site);
-        }
+      const length = burst ? 1 + Math.floor(rng() * 3) : 1;
+      for (let step = 0; step < length; step++) {
+        const edgeX = orientation === 'horizontal' ? x + step : x;
+        const edgeY = orientation === 'vertical' ? y + step : y;
+        applyToricEdgeError(defects, edgeX, edgeY, orientation, distance, lattice, counters);
       }
     }
   }
   return defects;
 }
 
-function toricDelta(a: Point, b: Point, distance: number): { dx: number; dy: number; wrapsX: boolean; wrapsY: boolean } {
-  const rawDx = b.x - a.x;
-  const rawDy = b.y - a.y;
-  const dx =
-    Math.abs(rawDx) <= distance / 2 ? rawDx : rawDx > 0 ? rawDx - distance : rawDx + distance;
-  const dy =
-    Math.abs(rawDy) <= distance / 2 ? rawDy : rawDy > 0 ? rawDy - distance : rawDy + distance;
-  return {
-    dx,
-    dy,
-    wrapsX: dx !== rawDx,
-    wrapsY: dy !== rawDy,
-  };
+function circularSpan(values: number[], distance: number): number {
+  if (values.length <= 1) return 0;
+  const unique = [...new Set(values)].sort((a, b) => a - b);
+  if (unique.length <= 1) return 0;
+  let largestGap = 0;
+  for (let i = 0; i < unique.length; i++) {
+    const current = unique[i];
+    const next = unique[(i + 1) % unique.length] + (i === unique.length - 1 ? distance : 0);
+    largestGap = Math.max(largestGap, next - current);
+  }
+  return distance - largestGap;
 }
 
-function toricDistance(a: Point, b: Point, distance: number): number {
-  const delta = toricDelta(a, b, distance);
-  return Math.abs(delta.dx) + Math.abs(delta.dy);
+function neighborSites(site: number, distance: number): number[] {
+  const p = pointOf(site, distance);
+  return [
+    indexOf({ x: p.x + 1, y: p.y }, distance),
+    indexOf({ x: p.x - 1, y: p.y }, distance),
+    indexOf({ x: p.x, y: p.y + 1 }, distance),
+    indexOf({ x: p.x, y: p.y - 1 }, distance),
+  ];
 }
 
-function decodeGreedyToric(defects: Set<number>, distance: number): { logicalFailure: boolean } {
-  const unmatched = [...defects].map((index) => pointOf(index, distance));
-  let logicalX = false;
-  let logicalY = false;
+function decodeClusterToric(defects: Set<number>, distance: number): { logicalFailure: boolean } {
+  if (defects.size % 2 === 1) return { logicalFailure: true };
+  const remaining = new Set(defects);
+  const spanThreshold = Math.ceil(distance / 2);
 
-  while (unmatched.length > 1) {
-    const a = unmatched.shift()!;
-    let bestIndex = 0;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < unmatched.length; i++) {
-      const d = toricDistance(a, unmatched[i], distance);
-      if (d < bestDistance) {
-        bestDistance = d;
-        bestIndex = i;
+  while (remaining.size > 0) {
+    const start = remaining.values().next().value as number;
+    const stack = [start];
+    const component: number[] = [];
+    remaining.delete(start);
+
+    while (stack.length > 0) {
+      const site = stack.pop()!;
+      component.push(site);
+      for (const neighbor of neighborSites(site, distance)) {
+        if (!remaining.has(neighbor)) continue;
+        remaining.delete(neighbor);
+        stack.push(neighbor);
       }
     }
-    const [b] = unmatched.splice(bestIndex, 1);
-    const delta = toricDelta(a, b, distance);
-    logicalX = logicalX !== delta.wrapsX;
-    logicalY = logicalY !== delta.wrapsY;
+
+    const points = component.map((site) => pointOf(site, distance));
+    const spanX = circularSpan(
+      points.map((point) => point.x),
+      distance
+    );
+    const spanY = circularSpan(
+      points.map((point) => point.y),
+      distance
+    );
+    if (spanX >= spanThreshold || spanY >= spanThreshold) {
+      return { logicalFailure: true };
+    }
   }
 
-  return {
-    logicalFailure: unmatched.length === 1 || logicalX || logicalY,
-  };
+  return { logicalFailure: false };
 }
 
 function runSweep(options: Options): SweepRow[] {
@@ -253,7 +286,7 @@ function runSweep(options: Options): SweepRow[] {
         for (let trial = 0; trial < options.trials; trial++) {
           const defects = sampleCorrelatedCaelSyndrome(rng, distance, p, lattice, counters);
           totalDefects += defects.size;
-          if (decodeGreedyToric(defects, distance).logicalFailure) {
+          if (decodeClusterToric(defects, distance).logicalFailure) {
             logicalFailures++;
           }
         }
@@ -337,22 +370,26 @@ function buildReceipt(options: Options, rows: SweepRow[]): Record<string, unknow
       pValues: options.pValues,
       distances: options.distances,
       correlatedBurst: {
-        radius: 1,
-        activationProbability: 0.42,
-        neighborDropProbability: 0.35,
+        model: 'periodic edge-chain over toric lattice',
+        edgeStartProbability: 'p',
+        burstActivationProbability: 0.42,
+        burstLengthInclusive: [1, 3],
+        syndrome: 'each edge failure toggles the two endpoint CAEL verifier sites',
       },
     },
     zSyndromeObservable: {
       source: 'packages/studio/src/lib/brittney/cael.ts#verifyBrittneyCaelRecord',
       importedAs: 'verifyCaelRecord',
-      rule: 'site is a Z defect iff verifyCaelRecord(siteRecord) returns false',
+      rule:
+        'site is a Z defect iff verifyCaelRecord(siteRecord) returns false; edge errors toggle endpoint site defects with XOR parity',
       cleanAndTamperChecks: verifierChecks,
     },
     decoder: {
       family: 'toric-code',
       geometry: 'periodic square lattice',
-      decoder: 'greedy nearest-neighbor matching on toric Manhattan distance',
-      logicalFailureRule: 'odd unpaired defect or odd correction winding around either torus cycle',
+      decoder: 'cluster-span decoder over periodic nearest-neighbor CAEL Z-syndrome components',
+      logicalFailureRule:
+        'odd defect parity or a connected syndrome component spanning at least half of either torus cycle',
     },
     threshold: thresholdReport(rows, options.distances),
     curve: rows,
