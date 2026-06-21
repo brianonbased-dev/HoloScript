@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "net.holoscript.androidxr"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "net.holoscript.androidxr"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }
@@ -55,15 +55,14 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.runtime:runtime")
 
-    // Android XR - Jetpack XR SceneCore
-    implementation("androidx.xr.scenecore:scenecore:1.0.0-alpha01")
-    implementation("androidx.xr.compose:compose:1.0.0-alpha01")
-
-    // Android XR - ARCore for Jetpack XR
-    implementation("androidx.xr.arcore:arcore:1.0.0-alpha01")
-
-    // Android XR - Runtime
-    implementation("androidx.xr:xr:1.0.0-alpha01")
+    // Android XR — Jetpack XR SceneCore + Compose for XR + ARCore + Runtime.
+    // Real published coordinates (verified against dl.google.com Maven group indexes); pinned to a
+    // consistent alpha15 present in all four groups. NOTE: 'androidx.xr:xr' is NOT a published
+    // artifact (it broke dependency resolution) — the runtime impl is 'androidx.xr.runtime:runtime'.
+    implementation("androidx.xr.scenecore:scenecore:1.0.0-alpha15")
+    implementation("androidx.xr.compose:compose:1.0.0-alpha15")
+    implementation("androidx.xr.arcore:arcore:1.0.0-alpha15")
+    implementation("androidx.xr.runtime:runtime:1.0.0-alpha15")
 
     // Filament (PBR Rendering)
     implementation("com.google.android.filament:filament-android:1.51.0")

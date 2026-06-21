@@ -117,7 +117,8 @@ export class AndroidXRCompiler extends CompilerBase {
       arCameraHardwareRequired: options.arCameraHardwareRequired ?? false,
       indent: options.indent || '    ',
       minSdk: options.minSdk || 30,
-      targetSdk: options.targetSdk || 35,
+      // alpha15 Jetpack XR libs (compose/scenecore) require compileSdk 36 + AGP 8.9.1 (AAR metadata gate).
+      targetSdk: options.targetSdk || 36,
       formFactor: options.formFactor || 'headset',
       provenanceHash: options.provenanceHash ?? '',
     };

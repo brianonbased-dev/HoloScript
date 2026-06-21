@@ -601,8 +601,10 @@ describe('AndroidXRCompiler', () => {
     it('AndroidXRCompiler fingerprint for empty Wave1 gate composition', () => {
       const comp = minimalComposition({ name: 'Wave1SplitCharacterization' });
       const out = compiler.compile(comp, 'test-token');
+      // Updated 2026-06-20: real alpha15 XR coordinates + compileSdk 36 + manifest package= removal
+      // (build-verify gate progress, task_1781992603676_l7g7) intentionally changed the emitted output.
       expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
-        'f99185f18b140f085d1cdf82ec0af8063cfbbfc89ab86a58353b13ddb4e91252'
+        '97f97d24672d1fca33da198db95f1106aa0c0deef1817609100fe084373bd0d1'
       );
     });
   });

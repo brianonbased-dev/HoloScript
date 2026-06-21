@@ -36,35 +36,41 @@ drift-controlled.
 
 ## Build status — HARNESS GREEN, CODEGEN RED (the next gate)
 
-The gradle build harness is real and works end-to-end. With the local toolchain
-(JDK 17 `C:\tools\jdk-17.0.19+10`, Gradle 8.9, Android SDK `C:\Android` + platform 35):
+The gradle build harness is real and works end-to-end. Build via the committed wrapper, with the
+local toolchain (JDK 17 `C:\tools\jdk-17.0.19+10`, Android SDK `C:\Android` + **platform 36**;
+the wrapper downloads gradle 8.11.1):
 
 ```bash
 cd apps/android-xr-reference/android-xr
 JAVA_HOME=/c/tools/jdk-17.0.19+10 ANDROID_HOME=/c/Android \
-  /c/tools/gradle-8.9/bin/gradle assembleDebug --no-daemon --console=plain
+  ./gradlew assembleDebug --no-daemon --console=plain
 ```
 
-resolves AGP 8.5.2, Kotlin 2.0.20, the Compose compiler plugin, Compose BOM, Filament, and
-ARCore, then **fails at `:app:checkDebugAarMetadata`**:
+**Status (2026-06-20): dependencies + toolchain FIXED; the build now reaches Kotlin compilation.**
+It resolves the real `androidx.xr.{scenecore,compose,arcore,runtime}:1.0.0-alpha15` coordinates
+(verified against Google Maven; the old `androidx.xr:xr` was a non-existent artifact), passes
+`:app:checkDebugAarMetadata` (compileSdk 36 / AGP 8.9.1 / gradle 8.11.1, all required by the alpha15
+libs), and **fails at `:app:compileDebugKotlin`** with **41 errors** — the emitted Kotlin targets a
+wrong/speculative SceneCore API.
 
-```
-> Could not find androidx.xr:xr:1.0.0-alpha01.
-```
+### Remaining gate: SceneCore alpha15 API rewrite (the emitter, `AndroidXRGenerators.ts`)
 
-i.e. the build infra is sound; the **AndroidXR codegen emits non-buildable output**. Known
-codegen defects to fix before a green APK (the next gate):
+~8 distinct API concepts are wrong (do NOT hand-edit the generated `.kt` — fix the emitter, then
+re-run `generate-native.mts`). Each MUST be verified against the real alpha15 API, not guessed:
 
-1. **Placeholder Maven coordinates** — `androidx.xr.scenecore:scenecore:1.0.0-alpha01`,
-   `androidx.xr.compose:compose:1.0.0-alpha01`, `androidx.xr.arcore:arcore:1.0.0-alpha01`,
-   `androidx.xr:xr:1.0.0-alpha01` are not published. Replace with the real Android XR SDK
-   coordinates/versions (`AndroidXRGenerators.ts` `generateBuildGradle`).
-2. **`Pose(Float3(...))` type mismatch** — `androidx.xr.runtime.math.Pose` takes `Vector3`, not
-   filament `Float3`; the same file mixes both. (`AndroidXRGenerators.ts` node factory + scene.)
-3. **Mixed ARCore APIs** — `com.google.ar.core.Config` used as a Jetpack XR `scene.configure`.
-4. **`package=` in `AndroidManifest.xml`** — removed in AGP 8 (namespace lives in build.gradle).
-5. **Geometry is a dead comment** (`// Geometry: BoxShape` even for a sphere) — never attached
-   to the entity.
+1. **`Session` type/location** (8 errs) — emitted `androidx.xr.scenecore.Session`; in alpha15 the
+   session lives elsewhere (`androidx.xr.runtime.Session` family). Verify the real type + factory.
+2. **`session.scene` model** (12 errs) — the scene/entity-parent access (`scene`, `activitySpace`,
+   `createEntity`) does not match alpha15. Verify the real scene + entity-creation API.
+3. **`Quaternion.identity()`** (7 errs) — should be the `Quaternion.Identity` property, not a call.
+4. **`Pose(Float3(...))`** (3 errs) — `Pose` takes `androidx.xr.runtime.math.Vector3`, not filament
+   `Float3` (node factory + scene + `toKotlinFloat3` usage).
+5. **Mixed classic-ARCore `Config`** — `planeFindingMode`/`lightEstimationMode`/`depthMode`/
+   `updateMode` are `com.google.ar.core.Config`; Jetpack XR uses a different session config. Remove/replace.
+6. **`HandNode`** — does not exist; remove the speculative hand-input scaffold.
+7. **`GltfModel.create` is a `suspend fun`** — must be called from a coroutine.
+8. **Geometry is a dead comment** (`// Geometry: BoxShape` even for a sphere) — never attached.
 
-Until those are fixed, do NOT add a `gradle assembleDebug` CI workflow (it would be red). The
-golden-diff gate + vitest twin are the live gates today.
+Until the build is green, do NOT add a `gradle assembleDebug` CI workflow (it would be red). The
+golden-diff gate + vitest twin are the live gates today. The full error log: capture with the build
+command above. Board task: `task_1781992603676_l7g7`.
