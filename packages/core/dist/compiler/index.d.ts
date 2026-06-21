@@ -81,6 +81,92 @@ export class SceneIRCompiler extends CompilerBase {
   compileComposition(composition: any): R3FNode;
 }
 
+export type PerceptualColorPassSource = 'palette' | 'gradient' | 'color_map';
+export interface PerceptualGradientStop { t: number; color: string; }
+export interface PerceptualColorPassOptions {
+  steps?: number;
+  dampening?: number;
+  arcSteps?: number;
+  targetDeltaE?: number;
+  neutralAxis?: boolean;
+}
+export interface PerceptualColorPassInput {
+  palette?: readonly string[];
+  gradient?: readonly (string | PerceptualGradientStop)[];
+  colorMap?: string | readonly (string | PerceptualGradientStop)[];
+  steps?: number;
+  dampening?: number;
+  arcSteps?: number;
+  targetDeltaE?: number;
+  neutralAxis?: boolean;
+  scientific?: boolean;
+}
+export interface PerceptualPaletteResult {
+  colors: string[];
+  pairwiseDeltaE: number[];
+  minDeltaE: number;
+  maxDeltaE: number;
+  meanDeltaE: number;
+  nearestNeutral?: string[];
+}
+export interface PerceptualGradientResult {
+  stops: PerceptualGradientStop[];
+  colors: string[];
+  deltaE: number[];
+  minDeltaE: number;
+  maxDeltaE: number;
+  meanDeltaE: number;
+}
+export interface PerceptualColorMapResult extends PerceptualGradientResult { name: string; }
+export interface PerceptualColorPassResult {
+  algorithm: 'perceptual_lerp_delta_e2000';
+  source: PerceptualColorPassSource;
+  scientific: boolean;
+  targetDeltaE: number;
+  dampening: number;
+  palette?: PerceptualPaletteResult;
+  gradient?: PerceptualGradientResult;
+  colorMap?: PerceptualColorMapResult;
+  warnings: string[];
+}
+export interface PerceptualColorAnalysis {
+  color: string;
+  lightness: number;
+  chroma: number;
+  hue: number;
+  nearestNeutral: string;
+}
+export interface PerceptualColorCompilerMetadata {
+  mapName: string;
+  colors: string[];
+  stops: PerceptualGradientStop[];
+  minDeltaE: number;
+  maxDeltaE: number;
+  meanDeltaE: number;
+  warnings: string[];
+  pass: PerceptualColorPassResult;
+}
+export const SCIENTIFIC_COLOR_MAPS: Record<string, readonly string[]>;
+export function normalizeHexColor(color: string): string;
+export function hexToSrgb(color: string): readonly [number, number, number];
+export function srgbToHex(rgb: readonly [number, number, number]): string;
+export function buildPerceptualGradient(
+  stops: readonly (string | PerceptualGradientStop)[],
+  options?: PerceptualColorPassOptions
+): PerceptualGradientResult;
+export function buildPerceptualPalette(
+  colors: readonly string[],
+  options?: PerceptualColorPassOptions
+): PerceptualPaletteResult;
+export function analyzePerceptualColor(color: string): {
+  color: string;
+  lightness: number;
+  chroma: number;
+  hue: number;
+  nearestNeutral: string;
+};
+export function applyPerceptualColorPass(input: PerceptualColorPassInput): PerceptualColorPassResult;
+
 export declare const ENVIRONMENT_PRESETS: Record<string, any>;
 
 export class UnityCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }

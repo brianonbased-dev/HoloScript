@@ -12,6 +12,8 @@ import {
   materialToUSD,
   materialToGLTF,
   physicsToURDF,
+  compileSimulationBlock,
+  simulationToR3F,
   compileDomainBlocks,
 } from '../DomainBlockCompilerMixin';
 
@@ -272,6 +274,34 @@ describe('physicsToURDF', () => {
 });
 
 // ── Domain block router ─────────────────────────────────────────────────
+
+describe('compileSimulationBlock perceptual color overlays', () => {
+  it('attaches perceptual color metadata to scalar field overlays', () => {
+    const sim = compileSimulationBlock(
+      mockBlock({
+        keyword: 'simulation',
+        domain: 'simulation',
+        traits: ['thermal_simulation'],
+        children: [
+          {
+            type: 'DomainBlock',
+            keyword: 'scalar_field_overlay',
+            traits: ['scalar_field_overlay'],
+            properties: {
+              colormap: 'cividis',
+              steps: 4,
+              source: 'temperature',
+            },
+          },
+        ],
+      })
+    );
+
+    expect(sim.overlays[0].perceptualColorPass?.mapName).toBe('cividis');
+    expect(sim.overlays[0].perceptualColorPass?.colors).toHaveLength(4);
+    expect(simulationToR3F(sim)).toContain('PerceptualColorPass');
+  });
+});
 
 describe('compileDomainBlocks', () => {
   it('routes blocks to handler', () => {

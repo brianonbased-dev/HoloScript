@@ -14,6 +14,12 @@ import type { Vector3 } from '../types';
 import type { HoloDomainBlock, HoloDomainType, HoloValue } from '../parser/HoloCompositionTypes';
 import { escapeStringValue, type EscapeTarget } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from './identity/ANSNamespace';
+import {
+  applyPerceptualColorPass,
+  type PerceptualColorPassInput,
+  type PerceptualColorPassResult,
+  type PerceptualGradientStop,
+} from './PerceptualColorPass';
 
 /**
  * Escape a string for safe interpolation into a specific target language.
@@ -3597,7 +3603,158 @@ export function iotToUSDA(iot: CompiledIoT): string {
 // DataViz Domain Compilation
 // =============================================================================
 
-export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
+export interface PerceptualColorCompilerMetadata {
+  mapName: string;
+  colors: string[];
+  stops: PerceptualGradientStop[];
+  minDeltaE: number;
+  maxDeltaE: number;
+  meanDeltaE: number;
+  warnings: string[];
+  pass: PerceptualColorPassResult;
+}
+
+export type CompiledPerceptualDataViz = CompiledDataViz & {
+  colorMap?: string;
+  perceptualColorPass?: PerceptualColorCompilerMetadata;
+};
+
+function stringProperty(props: Record<string, unknown>, keys: readonly string[]): string | undefined {
+  for (const key of keys) {
+    const value = props[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function numberProperty(props: Record<string, unknown>, keys: readonly string[]): number | undefined {
+  for (const key of keys) {
+    const value = props[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return undefined;
+}
+
+function booleanProperty(props: Record<string, unknown>, keys: readonly string[]): boolean | undefined {
+  for (const key of keys) {
+    const value = props[key];
+    if (typeof value === 'boolean') return value;
+  }
+  return undefined;
+}
+
+function stringArrayProperty(props: Record<string, unknown>, keys: readonly string[]): string[] | undefined {
+  for (const key of keys) {
+    const value = props[key];
+    if (Array.isArray(value) && value.every((entry) => typeof entry === 'string')) {
+      return [...value];
+    }
+  }
+  return undefined;
+}
+
+function gradientStopsProperty(
+  props: Record<string, unknown>,
+  keys: readonly string[]
+): PerceptualGradientStop[] | undefined {
+  for (const key of keys) {
+    const value = props[key];
+    if (!Array.isArray(value)) continue;
+    const stops: PerceptualGradientStop[] = [];
+    for (const entry of value) {
+      if (
+        entry &&
+        typeof entry === 'object' &&
+        typeof (entry as Record<string, unknown>).t === 'number' &&
+        typeof (entry as Record<string, unknown>).color === 'string'
+      ) {
+        const stop = entry as { t: number; color: string };
+        stops.push({ t: stop.t, color: stop.color });
+      }
+    }
+    if (stops.length > 0) return stops;
+  }
+  return undefined;
+}
+
+function sampledStopsFromColors(colors: readonly string[]): PerceptualGradientStop[] {
+  if (colors.length === 0) return [];
+  if (colors.length === 1) return [{ t: 0, color: colors[0] }];
+  return colors.map((color, index) => ({
+    t: index / (colors.length - 1),
+    color,
+  }));
+}
+
+function buildPerceptualColorMetadata(
+  props: Record<string, unknown>,
+  traits: readonly string[],
+  fallbackColorMap = 'viridis'
+): PerceptualColorCompilerMetadata | undefined {
+  const colorMap = stringProperty(props, ['color_map', 'colormap', 'colorMap']);
+  const palette = stringArrayProperty(props, ['palette', 'colors']);
+  const gradient =
+    gradientStopsProperty(props, ['gradient', 'color_gradient', 'colorGradient']) ??
+    stringArrayProperty(props, ['gradient', 'color_gradient', 'colorGradient']);
+  const enabled =
+    traits.includes('perceptual_color') ||
+    booleanProperty(props, ['perceptual_color', 'perceptualColor', 'scientific']) === true ||
+    colorMap !== undefined ||
+    palette !== undefined ||
+    gradient !== undefined;
+
+  if (!enabled) return undefined;
+
+  const input: PerceptualColorPassInput = {
+    colorMap: colorMap ?? (palette || gradient ? undefined : fallbackColorMap),
+    palette,
+    gradient,
+    steps: numberProperty(props, ['steps', 'color_steps', 'colorSteps']),
+    dampening: numberProperty(props, ['dampening', 'perceptual_dampening', 'perceptualDampening']),
+    targetDeltaE: numberProperty(props, ['target_delta_e', 'targetDeltaE']),
+    neutralAxis: booleanProperty(props, ['neutral_axis', 'neutralAxis']),
+    scientific: true,
+  };
+
+  const pass = applyPerceptualColorPass(input);
+  const source = pass.colorMap ?? pass.gradient ?? pass.palette;
+  const colors = source?.colors ?? [];
+  const stops =
+    pass.colorMap?.stops ??
+    pass.gradient?.stops ??
+    sampledStopsFromColors(colors);
+
+  return {
+    mapName: pass.colorMap?.name ?? colorMap ?? (palette ? 'palette' : gradient ? 'gradient' : fallbackColorMap),
+    colors,
+    stops,
+    minDeltaE: source?.minDeltaE ?? 0,
+    maxDeltaE: source?.maxDeltaE ?? 0,
+    meanDeltaE: source?.meanDeltaE ?? 0,
+    warnings: pass.warnings,
+    pass,
+  };
+}
+
+function perceptualColorRampFloat32(metadata: PerceptualColorCompilerMetadata): string {
+  return metadata.colors
+    .map((color) => {
+      const [r, g, b] = hexToRGBTuple(color);
+      return `${r}, ${g}, ${b}, 1.0`;
+    })
+    .join(', ');
+}
+
+function perceptualColorRampLinearColors(metadata: PerceptualColorCompilerMetadata): string {
+  return metadata.colors
+    .map((color) => {
+      const [r, g, b] = hexToRGBTuple(color);
+      return `FLinearColor(${r}f, ${g}f, ${b}f, 1.0f)`;
+    })
+    .join(', ');
+}
+
+export function compileDataVizBlock(block: HoloDomainBlock): CompiledPerceptualDataViz {
   const props = block.properties || {};
   let axes: CompiledDataViz['axes'];
   if (props.x_axis || props.y_axis || props.z_axis) {
@@ -3610,6 +3767,9 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
   if (props.width != null || props.height != null) {
     dimensions = { width: (props.width as number) ?? 400, height: (props.height as number) ?? 300 };
   }
+  const traits = block.traits || [];
+  const colorMap = stringProperty(props, ['color_map', 'colormap', 'colorMap']);
+  const perceptualColorPass = buildPerceptualColorMetadata(props, traits, colorMap ?? 'viridis');
   return {
     name: block.name || 'unnamed',
     keyword: block.keyword,
@@ -3619,12 +3779,15 @@ export function compileDataVizBlock(block: HoloDomainBlock): CompiledDataViz {
     aggregation: props.aggregation as string | undefined,
     refreshInterval: props.refresh_interval as number | undefined,
     dimensions,
-    traits: block.traits || [],
+    colorMap: colorMap ?? perceptualColorPass?.mapName,
+    perceptualColorPass,
+    traits,
     properties: props,
   };
 }
 
 export function datavizToR3F(dv: CompiledDataViz): string {
+  const perceptual = (dv as CompiledPerceptualDataViz).perceptualColorPass;
   const safeName = dv.name.replace(/[^a-zA-Z0-9_]/g, '_');
   const lines: string[] = [];
   lines.push(`// DataViz: ${dv.name} (${dv.keyword})`);
@@ -3638,11 +3801,16 @@ export function datavizToR3F(dv: CompiledDataViz): string {
   if (dv.refreshInterval) lines.push(`  refreshInterval: ${dv.refreshInterval},`);
   if (dv.dimensions)
     lines.push(`  dimensions: { width: ${dv.dimensions.width}, height: ${dv.dimensions.height} },`);
+  if ((dv as CompiledPerceptualDataViz).colorMap)
+    lines.push(`  colorMap: ${JSON.stringify((dv as CompiledPerceptualDataViz).colorMap)},`);
+  if (perceptual)
+    lines.push(`  perceptualColorPass: ${JSON.stringify(perceptual)},`);
   lines.push('};');
   return lines.join('\n');
 }
 
 export function datavizToUnity(dv: CompiledDataViz): string {
+  const perceptual = (dv as CompiledPerceptualDataViz).perceptualColorPass;
   const safeName = dv.name.replace(/[^a-zA-Z0-9_]/g, '_');
   const lines: string[] = [];
   lines.push(`// DataViz: ${dv.name}`);
@@ -3656,7 +3824,58 @@ export function datavizToUnity(dv: CompiledDataViz): string {
     lines.push(`    public float width = ${dv.dimensions.width}f;`);
     lines.push(`    public float height = ${dv.dimensions.height}f;`);
   }
+  if ((dv as CompiledPerceptualDataViz).colorMap)
+    lines.push(`    public string colorMap = "${esc((dv as CompiledPerceptualDataViz).colorMap!, 'CSharp')}";`);
+  if (perceptual) {
+    lines.push(
+      `    public string[] perceptualColorRamp = new string[] { ${perceptual.colors.map((color) => `"${color}"`).join(', ')} };`
+    );
+    lines.push(`    public float perceptualMinDeltaE = ${perceptual.minDeltaE.toFixed(3)}f;`);
+    lines.push(`    public float perceptualMeanDeltaE = ${perceptual.meanDeltaE.toFixed(3)}f;`);
+  }
   lines.push('}');
+  return lines.join('\n');
+}
+
+export function datavizToUnreal(dv: CompiledDataViz, varPrefix: string): string {
+  const perceptual = (dv as CompiledPerceptualDataViz).perceptualColorPass;
+  const lines: string[] = [];
+  lines.push(`// DataViz: ${dv.name}`);
+  lines.push(`FString ${varPrefix}DataVizType = TEXT("${esc(dv.keyword, 'CSharp')}");`);
+  if (dv.chartType) lines.push(`FString ${varPrefix}ChartType = TEXT("${esc(dv.chartType, 'CSharp')}");`);
+  if (dv.dataSource) lines.push(`FString ${varPrefix}DataSource = TEXT("${esc(dv.dataSource, 'CSharp')}");`);
+  if (perceptual) {
+    lines.push(`// PerceptualColorPass: ${perceptual.mapName}, ${perceptual.colors.length} stops`);
+    lines.push(`TArray<FLinearColor> ${varPrefix}PerceptualColorRamp = { ${perceptualColorRampLinearColors(perceptual)} };`);
+    lines.push(`float ${varPrefix}PerceptualMinDeltaE = ${perceptual.minDeltaE.toFixed(3)}f;`);
+  }
+  return lines.join('\n');
+}
+
+export function datavizToWebGPU(dv: CompiledDataViz, varPrefix: string): string {
+  const perceptual = (dv as CompiledPerceptualDataViz).perceptualColorPass;
+  const lines: string[] = [];
+  lines.push(`// DataViz: ${dv.name}`);
+  lines.push(`const ${varPrefix}DataVizConfig = ${JSON.stringify({
+    name: dv.name,
+    type: dv.keyword,
+    chartType: dv.chartType,
+    dataSource: dv.dataSource,
+    axes: dv.axes,
+    aggregation: dv.aggregation,
+    refreshInterval: dv.refreshInterval,
+    dimensions: dv.dimensions,
+    colorMap: (dv as CompiledPerceptualDataViz).colorMap,
+  })};`);
+  if (perceptual) {
+    lines.push(`const ${varPrefix}PerceptualColorRamp = new Float32Array([${perceptualColorRampFloat32(perceptual)}]);`);
+    lines.push(`const ${varPrefix}PerceptualColorStats = ${JSON.stringify({
+      minDeltaE: perceptual.minDeltaE,
+      maxDeltaE: perceptual.maxDeltaE,
+      meanDeltaE: perceptual.meanDeltaE,
+      warnings: perceptual.warnings,
+    })};`);
+  }
   return lines.join('\n');
 }
 
@@ -4669,6 +4888,7 @@ export interface CompiledSimulation {
     opacity: number;
     visible: boolean;
     label: string;
+    perceptualColorPass?: PerceptualColorCompilerMetadata;
   }>;
 }
 
@@ -4744,13 +4964,19 @@ export function compileSimulationBlock(block: HoloDomainBlock): CompiledSimulati
     const c = child as unknown as HoloDomainBlock;
     if (c.traits?.includes('scalar_field_overlay') || c.keyword === 'scalar_field_overlay') {
       const p = c.properties || {};
+      const colormap = (p.colormap as string) ?? 'turbo';
       overlays.push({
         source: (p.source as string) ?? '',
-        colormap: (p.colormap as string) ?? 'turbo',
+        colormap,
         range: (p.range as [number, number]) ?? [0, 1],
         opacity: (p.opacity as number) ?? 0.7,
         visible: (p.visible as boolean) ?? true,
         label: (p.label as string) ?? '',
+        perceptualColorPass: buildPerceptualColorMetadata(
+          { ...p, colormap },
+          c.traits || [],
+          colormap
+        ),
       });
     }
   }
@@ -4799,10 +5025,17 @@ export function simulationToR3F(sim: CompiledSimulation): string {
   const { visualLines, userDataExpr } = simulationEnvironmentToR3FChunks(sim.environment);
 
   const overlayJSX = sim.overlays
-    .map(
-      (o) =>
-        `<ScalarFieldOverlay colormap="${o.colormap}" range={[${o.range.join(', ')}]} opacity={${o.opacity}} visible={${o.visible}} label="${o.label}" />`
-    )
+    .map((o) => {
+      const perceptualComment = o.perceptualColorPass
+        ? `{/* PerceptualColorPass ${JSON.stringify({
+            mapName: o.perceptualColorPass.mapName,
+            colors: o.perceptualColorPass.colors,
+            minDeltaE: o.perceptualColorPass.minDeltaE,
+            meanDeltaE: o.perceptualColorPass.meanDeltaE,
+          })} */}\n        `
+        : '';
+      return `${perceptualComment}<ScalarFieldOverlay colormap="${o.colormap}" range={[${o.range.join(', ')}]} opacity={${o.opacity}} visible={${o.visible}} label="${o.label}" />`;
+    })
     .join('\n        ');
 
   const envVisual = visualLines.length > 0 ? `${visualLines.join('\n      ')}\n      ` : '';

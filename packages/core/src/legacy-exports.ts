@@ -67,6 +67,24 @@ export {
   type GeometryData,
   type BlobDef,
 } from './compiler/ProceduralGeometry';
+export {
+  SCIENTIFIC_COLOR_MAPS,
+  analyzePerceptualColor,
+  applyPerceptualColorPass,
+  buildPerceptualGradient,
+  buildPerceptualPalette,
+  hexToSrgb,
+  normalizeHexColor,
+  srgbToHex,
+  type PerceptualColorMapResult,
+  type PerceptualColorPassInput,
+  type PerceptualColorPassOptions,
+  type PerceptualColorPassResult,
+  type PerceptualColorPassSource,
+  type PerceptualGradientResult,
+  type PerceptualGradientStop,
+  type PerceptualPaletteResult,
+} from './compiler/PerceptualColorPass';
 
 // Parser
 export { HoloScriptParser } from './HoloScriptParser';
@@ -761,6 +779,8 @@ export {
   compileDataVizBlock,
   datavizToR3F,
   datavizToUnity,
+  datavizToUnreal,
+  datavizToWebGPU,
   datavizToGodot,
   datavizToVRChat,
   datavizToUSDA,
@@ -818,6 +838,8 @@ export {
   type CompiledRigidbody,
   type CompiledForceField,
   type CompiledJoint,
+  type PerceptualColorCompilerMetadata,
+  type CompiledPerceptualDataViz,
   type DomainCompileFn,
 } from './compiler/DomainBlockCompilerMixin';
 
@@ -868,6 +890,7 @@ export {
   hapticCueHandler,
   magnifiableHandler,
   highContrastHandler,
+  perceptualColorHandler,
   motionReducedHandler,
   subtitleHandler,
   screenReaderHandler,
@@ -1419,6 +1442,7 @@ export type {
   HapticCueTrait,
   MagnifiableTrait,
   HighContrastTrait,
+  PerceptualColorTrait,
   MotionReducedTrait,
   SubtitleTrait,
   ScreenReaderTrait,

@@ -620,6 +620,19 @@ export interface HighContrastTrait extends BaseTrait {
   enabled?: boolean;
 }
 
+export interface PerceptualColorTrait extends BaseTrait {
+  mode?: 'auto' | 'palette' | 'gradient' | 'color_map';
+  palette?: string[];
+  gradient?: Array<{ t: number; color: string }>;
+  color_map?: string;
+  steps?: number;
+  dampening?: number;
+  target_delta_e?: number;
+  neutral_axis?: boolean;
+  scientific?: boolean;
+  emit_analysis?: boolean;
+}
+
 export interface MotionReducedTrait extends BaseTrait {
   enabled?: boolean;
 }

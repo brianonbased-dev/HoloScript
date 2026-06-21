@@ -98,6 +98,7 @@ import { sonificationHandler } from './SonificationTrait';
 import { hapticCueHandler } from './HapticCueTrait';
 import { magnifiableHandler } from './MagnifiableTrait';
 import { highContrastHandler } from './HighContrastTrait';
+import { perceptualColorHandler } from './PerceptualColorTrait';
 import { motionReducedHandler } from './MotionReducedTrait';
 import { subtitleHandler } from './SubtitleTrait';
 import { screenReaderHandler } from './ScreenReaderTrait';
@@ -1670,6 +1671,7 @@ export class VRTraitRegistry {
     this.register(hapticCueHandler as TraitHandler);
     this.register(magnifiableHandler as TraitHandler);
     this.register(highContrastHandler as TraitHandler);
+    this.register(perceptualColorHandler as TraitHandler);
     this.register(motionReducedHandler as TraitHandler);
     this.register(subtitleHandler as TraitHandler);
     this.register(screenReaderHandler as TraitHandler);
@@ -2354,6 +2356,7 @@ export {
   hapticCueHandler,
   magnifiableHandler,
   highContrastHandler,
+  perceptualColorHandler,
   motionReducedHandler,
   subtitleHandler,
   screenReaderHandler,

@@ -45,6 +45,7 @@ export { AUDIO_VISUALS } from './presets/audio.visual';
 export { COOKING_FOOD_VISUALS } from './presets/cooking-food.visual';
 export { CORE_VR_INTERACTION_VISUALS } from './presets/core-vr-interaction.visual';
 export { DATA_VISUALIZATION_VISUALS } from './presets/data-visualization.visual';
+export { PERCEPTUAL_COLOR_VISUALS } from './presets/perceptual-color.visual';
 export { EDUCATION_LEARNING_VISUALS } from './presets/education-learning.visual';
 export { ENVIRONMENT_INPUT_VISUALS } from './presets/environment-input.visual';
 export { GAME_MECHANICS_VISUALS } from './presets/game-mechanics.visual';
@@ -121,6 +122,7 @@ import { AUDIO_VISUALS } from './presets/audio.visual';
 import { COOKING_FOOD_VISUALS } from './presets/cooking-food.visual';
 import { CORE_VR_INTERACTION_VISUALS } from './presets/core-vr-interaction.visual';
 import { DATA_VISUALIZATION_VISUALS } from './presets/data-visualization.visual';
+import { PERCEPTUAL_COLOR_VISUALS } from './presets/perceptual-color.visual';
 import { EDUCATION_LEARNING_VISUALS } from './presets/education-learning.visual';
 import { ENVIRONMENT_INPUT_VISUALS } from './presets/environment-input.visual';
 import { GAME_MECHANICS_VISUALS } from './presets/game-mechanics.visual';
@@ -195,6 +197,7 @@ const ALL_PRESETS = [
   COOKING_FOOD_VISUALS,
   CORE_VR_INTERACTION_VISUALS,
   DATA_VISUALIZATION_VISUALS,
+  PERCEPTUAL_COLOR_VISUALS,
   EDUCATION_LEARNING_VISUALS,
   ENVIRONMENT_INPUT_VISUALS,
   GAME_MECHANICS_VISUALS,

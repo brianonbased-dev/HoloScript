@@ -35,12 +35,14 @@ import {
   compilePostProcessingBlock,
   compileAudioSourceBlock,
   compileWeatherBlock,
+  compileDataVizBlock,
   materialToUnreal,
   physicsToUnreal,
   particlesToUnreal,
   postProcessingToUnreal,
   audioSourceToUnreal,
   weatherToUnreal,
+  datavizToUnreal,
 } from './DomainBlockCompilerMixin';
 
 import {
@@ -867,6 +869,10 @@ export class UnrealCompiler extends CompilerBase {
         weather: (block) => {
           const weather = compileWeatherBlock(block);
           return weatherToUnreal(weather);
+        },
+        dataviz: (block) => {
+          const dv = compileDataVizBlock(block);
+          return datavizToUnreal(dv, `DB${blockIdx++}`);
         },
       },
       (block) =>

@@ -1134,6 +1134,7 @@ export type {
   HapticCueTrait,
   MagnifiableTrait,
   HighContrastTrait,
+  PerceptualColorTrait,
   MotionReducedTrait,
   SubtitleTrait,
   ScreenReaderTrait,

@@ -16,6 +16,8 @@ import {
   compileDataVizBlock,
   datavizToR3F,
   datavizToUnity,
+  datavizToUnreal,
+  datavizToWebGPU,
   datavizToGodot,
   datavizToVRChat,
   datavizToUSDA,
@@ -294,6 +296,33 @@ describe('DataViz Domain', () => {
     const code = datavizToUnity(compileDataVizBlock(chartBlock));
     expect(code).toContain('class SalesChartDataViz : MonoBehaviour');
     expect(code).toContain('chartType = "bar"');
+  });
+
+  it('routes dataviz color maps through the perceptual color pass', () => {
+    const block = makeBlock('dataviz', 'chart', 'ScienceRamp', {
+      chart_type: 'heatmap',
+      colormap: 'plasma',
+      steps: 4,
+      target_delta_e: 6,
+    });
+    const ir = compileDataVizBlock(block);
+
+    expect(ir.colorMap).toBe('plasma');
+    expect(ir.perceptualColorPass?.colors).toHaveLength(4);
+    expect(ir.perceptualColorPass?.minDeltaE).toBeGreaterThan(0);
+    expect(datavizToR3F(ir)).toContain('perceptualColorPass');
+    expect(datavizToUnity(ir)).toContain('perceptualColorRamp');
+  });
+
+  it('emits perceptual ramps for Unreal and WebGPU dataviz exports', () => {
+    const block = makeBlock('dataviz', 'chart', 'GpuRamp', {
+      colormap: 'viridis',
+      steps: 3,
+    });
+    const ir = compileDataVizBlock(block);
+
+    expect(datavizToUnreal(ir, 'DB0')).toContain('DB0PerceptualColorRamp');
+    expect(datavizToWebGPU(ir, 'db0')).toContain('db0PerceptualColorRamp');
   });
 
   it('datavizToGodot generates GDScript', () => {

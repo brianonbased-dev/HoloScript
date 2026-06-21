@@ -41,6 +41,26 @@ export type { R3FNode, SceneIRNode, AssetMaturity } from './scene-ir-types';
 export { SceneIRCompiler } from './SceneIRCompiler';
 export type { SceneIRCompilerOptions, QualityTier } from './SceneIRCompiler';
 export type { HolomapPointCloudPayload } from './HolomapExportPayload';
+export {
+  SCIENTIFIC_COLOR_MAPS,
+  analyzePerceptualColor,
+  applyPerceptualColorPass,
+  buildPerceptualGradient,
+  buildPerceptualPalette,
+  hexToSrgb,
+  normalizeHexColor,
+  srgbToHex,
+} from './PerceptualColorPass';
+export type {
+  PerceptualColorMapResult,
+  PerceptualColorPassInput,
+  PerceptualColorPassOptions,
+  PerceptualColorPassResult,
+  PerceptualColorPassSource,
+  PerceptualGradientResult,
+  PerceptualGradientStop,
+  PerceptualPaletteResult,
+} from './PerceptualColorPass';
 
 // Engine-specific compilers
 export { UnityCompiler } from './UnityCompiler';

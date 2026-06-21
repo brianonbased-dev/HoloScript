@@ -47,4 +47,5 @@ export const DATA_VISUALIZATION_TRAITS = [
   'model_viewer',
   'pdf_viewer',
   'web_view',
+  'perceptual_color',
 ] as const;

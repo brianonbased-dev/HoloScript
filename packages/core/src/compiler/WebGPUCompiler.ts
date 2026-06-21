@@ -29,7 +29,9 @@ import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core
 import {
   compileDomainBlocks,
   compileMaterialBlock,
+  compileDataVizBlock,
   materialToWebGPU,
+  datavizToWebGPU,
 } from './DomainBlockCompilerMixin';
 
 function isGpuParticleTraitName(name: unknown): name is string {
@@ -124,6 +126,10 @@ export class WebGPUCompiler extends CompilerBase {
         material: (block) => {
           const mat = compileMaterialBlock(block);
           return materialToWebGPU(mat, `db${blockIdx++}`);
+        },
+        dataviz: (block) => {
+          const dv = compileDataVizBlock(block);
+          return datavizToWebGPU(dv, `db${blockIdx++}`);
         },
       },
       (block) =>
