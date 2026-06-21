@@ -474,6 +474,13 @@ export default ${safeName}Component;
       .text-gray-400 { color: #9ca3af; }
       .text-gray-500 { color: #6b7280; }
       .text-gray-600 { color: #4b5563; }
+      .text-green-400 { color: #4ade80; }
+      .text-yellow-400 { color: #facc15; }
+      .text-red-400 { color: #f87171; }
+      .text-studio-text { color: #f8fafc; }
+      .text-studio-muted { color: #94a3b8; }
+      .text-\\[15px\\] { font-size: 15px; line-height: 1.2; }
+      .text-\\[9px\\] { font-size: 9px; line-height: 1.2; }
       /* --- Backgrounds --- */
       .bg-white { background-color: #fff; }
       .bg-gray-800 { background-color: #1f2937; }
@@ -483,6 +490,7 @@ export default ${safeName}Component;
       .bg-blue-700 { background-color: #1d4ed8; }
       .bg-indigo-600 { background-color: #4f46e5; }
       .bg-indigo-500 { background-color: #6366f1; }
+      .bg-studio-surface { background-color: #0f172a; }
       /* --- Hover states --- */
       .hover\\:bg-blue-700:hover { background-color: #1d4ed8; }
       .hover\\:bg-gray-800:hover { background-color: #1f2937; }
@@ -499,6 +507,8 @@ export default ${safeName}Component;
       .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
       .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
       .py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+      .p-2 { padding: 0.5rem; }
+      .p-3 { padding: 0.75rem; }
       .p-4 { padding: 1rem; }
       .p-6 { padding: 1.5rem; }
       .p-8 { padding: 2rem; }
@@ -520,6 +530,7 @@ export default ${safeName}Component;
       .border-gray-600 { border-color: #4b5563; }
       .border-gray-700 { border-color: #374151; }
       .border-gray-800 { border-color: #1f2937; }
+      .border-studio-border { border-color: #334155; }
       .rounded { border-radius: 0.25rem; }
       .rounded-lg { border-radius: 0.5rem; }
       .rounded-xl { border-radius: 0.75rem; }
@@ -544,6 +555,7 @@ export default ${safeName}Component;
       .flex-wrap { flex-wrap: wrap; }
       .flex-1 { flex: 1 1 0%; }
       .w-full { width: 100%; }
+      .h-full { height: 100%; }
       .w-auto { width: auto; }
       .max-w-sm { max-width: 24rem; }
       .max-w-md { max-width: 28rem; }
@@ -561,6 +573,8 @@ export default ${safeName}Component;
       .text-right { text-align: right; }
       .relative { position: relative; }
       .absolute { position: absolute; }
+      .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tabular-nums { font-variant-numeric: tabular-nums; }
       /* --- Interaction --- */
       .cursor-pointer { cursor: pointer; }
       .select-none { user-select: none; }
@@ -576,6 +590,7 @@ export default ${safeName}Component;
       /* --- Overflow --- */
       .overflow-hidden { overflow: hidden; }
       .overflow-auto { overflow: auto; }
+      .overflow-y-auto { overflow-y: auto; }
       /* --- Custom HoloScript trait animations --- */
       .glow-btn:hover { box-shadow: 0 0 15px rgba(255,255,255,0.5); }
       .lift-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
@@ -620,6 +635,64 @@ export default ${safeName}Component;
           }).catch(function (e) { console.error('[holo-fetch]', url, e); });
         }
         function boot() { document.querySelectorAll('[data-holo-fetch]').forEach(render); }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+      })();
+    </script>
+    <script>
+      /* HoloScript Native2D bind runtime. Applies @bind text and threshold tiers
+         to static HTML without React hydration. Tests and host shells can call
+         window.__holoApplyNativeBindings({ snap: { fps: 60 } }). */
+      (function () {
+        function getPath(o, p) { return p.split('.').filter(Boolean).reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+        function formatValue(el, value) {
+          var hasPrecision = el.hasAttribute('data-holo-bind-precision');
+          var hasPrefix = el.hasAttribute('data-holo-bind-prefix');
+          var hasSuffix = el.hasAttribute('data-holo-bind-suffix');
+          if (value == null) value = (hasPrecision || hasPrefix || hasSuffix) ? 0 : (el.getAttribute('data-holo-bind-fallback') || '');
+          var text;
+          if (hasPrecision) {
+            var precision = Number(el.getAttribute('data-holo-bind-precision') || '0');
+            var numeric = Number(value);
+            text = (Number.isFinite(numeric) ? numeric : 0).toFixed(precision);
+          } else {
+            text = String(value);
+          }
+          return (el.getAttribute('data-holo-bind-prefix') || '') + text + (el.getAttribute('data-holo-bind-suffix') || '');
+        }
+        function tierClass(el, value) {
+          var raw = el.getAttribute('data-holo-bind-tiers');
+          if (!raw) return '';
+          var tiers;
+          try { tiers = JSON.parse(raw); } catch (_) { return ''; }
+          var numeric = Number(value == null ? 0 : value);
+          if (!Number.isFinite(numeric)) numeric = 0;
+          for (var i = 0; i < tiers.length; i++) {
+            var t = tiers[i] || {};
+            var bounded = false;
+            var ok = true;
+            if (typeof t.gte === 'number') { bounded = true; ok = ok && numeric >= t.gte; }
+            if (typeof t.gt === 'number') { bounded = true; ok = ok && numeric > t.gt; }
+            if (typeof t.lte === 'number') { bounded = true; ok = ok && numeric <= t.lte; }
+            if (typeof t.lt === 'number') { bounded = true; ok = ok && numeric < t.lt; }
+            if (!bounded || ok) return t.className || '';
+          }
+          return '';
+        }
+        function applyBinding(el, data) {
+          var state = el.getAttribute('data-holo-bind-state') || '';
+          var path = el.getAttribute('data-holo-bind-path') || '';
+          var value = getPath(data || {}, state + (path ? '.' + path : ''));
+          el.textContent = formatValue(el, value);
+          var base = el.getAttribute('data-holo-static-class') || '';
+          var tier = tierClass(el, value);
+          el.className = [base, tier].filter(Boolean).join(' ');
+        }
+        function applyAll(data) {
+          document.querySelectorAll('[data-holo-bind-state]').forEach(function (el) { applyBinding(el, data || {}); });
+        }
+        window.__holoApplyNativeBindings = applyAll;
+        window.addEventListener('holo:native-bind', function (event) { applyAll((event && event.detail) || {}); });
+        function boot() { applyAll(window.__holoNativeState || {}); }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
       })();
     </script>
@@ -815,9 +888,11 @@ export default ${safeName}Component;
       props += ` style="${styleStr}"`;
     }
 
+    const staticClassName = classes.join(' ');
     if (classes.length > 0) {
-      props += ` class="${classes.join(' ')}"`;
+      props += ` class="${this.escapeHtmlAttr(staticClassName)}"`;
     }
+    props += this.buildHTMLBindAttributes(traits, staticClassName);
     if (traits.theme?.attributes) {
       try {
         const parsedAttrs = readJson(traits.theme.attributes) as Record<string, string>;
@@ -861,8 +936,9 @@ export default ${safeName}Component;
       )
       .join('\n');
 
-    const content =
-      traits.text?.content || traits.button?.content || traits.link?.content || traits.icon?.name;
+    const content = traits.bind
+      ? this.buildHTMLBindFallbackContent(traits.bind)
+      : traits.text?.content || traits.button?.content || traits.link?.content || traits.icon?.name;
 
     if (tag === 'img' || tag === 'input') {
       return `<${tag}${props}>`;
@@ -909,10 +985,10 @@ export default ${safeName}Component;
     // Resolve the bound value reference exactly the same way the content
     // expression does, then coerce to a number for comparison. `?? 0` keeps
     // the cascade total even before the bound state has loaded.
-    const pathParts = String(bind.path || '').split('.').filter(Boolean);
-    const baseExpr = pathParts.reduce(
-      (acc: string, key: string) => `${acc}?.${key}`,
-      String(bind.state)
+    const baseExpr = this.buildStatePathExpr(
+      String(bind.state),
+      String(bind.path || ''),
+      '@bind tiers'
     );
     const valueRef = `(${baseExpr} ?? 0)`;
 
@@ -953,6 +1029,96 @@ export default ${safeName}Component;
       (acc, b) => `${b.condition} ? ${JSON.stringify(b.className)} : ${acc}`,
       fallback
     );
+  }
+
+  private buildHTMLBindAttributes(traits: Record<string, any>, staticClassName: string): string {
+    const bind = traits.bind;
+    if (!bind?.state) return '';
+
+    const state = this.assertSafeDotPath(String(bind.state), '@bind state');
+    const path = String(bind.path || '');
+    if (path) this.assertSafeDotPath(path, '@bind path');
+
+    const attrs: string[] = [
+      ` data-holo-bind-state="${this.escapeHtmlAttr(state)}"`,
+      ` data-holo-bind-fallback="${this.escapeHtmlAttr(this.bindFallbackForHTML(bind))}"`,
+    ];
+    if (path) attrs.push(` data-holo-bind-path="${this.escapeHtmlAttr(path)}"`);
+    if (staticClassName)
+      attrs.push(` data-holo-static-class="${this.escapeHtmlAttr(staticClassName)}"`);
+    if (typeof bind.precision === 'number') {
+      if (!Number.isInteger(bind.precision)) {
+        throw new Error(
+          `Native2DCompiler @bind: precision must be an integer, got ${JSON.stringify(bind.precision)}`
+        );
+      }
+      attrs.push(` data-holo-bind-precision="${bind.precision}"`);
+    }
+    if (bind.prefix !== undefined) {
+      const prefix = this.assertSafeTemplateLiteral(String(bind.prefix), '@bind prefix');
+      attrs.push(` data-holo-bind-prefix="${this.escapeHtmlAttr(prefix)}"`);
+    }
+    if (bind.suffix !== undefined) {
+      const suffix = this.assertSafeTemplateLiteral(String(bind.suffix), '@bind suffix');
+      attrs.push(` data-holo-bind-suffix="${this.escapeHtmlAttr(suffix)}"`);
+    }
+    if (Array.isArray(bind.tiers) && bind.tiers.length > 0) {
+      attrs.push(
+        ` data-holo-bind-tiers="${this.escapeHtmlAttr(JSON.stringify(this.buildHTMLBindTiers(bind)))}"`
+      );
+    }
+    return attrs.join('');
+  }
+
+  private buildHTMLBindFallbackContent(bind: Record<string, any>): string {
+    let value = this.bindFallbackForHTML(bind);
+    if (typeof bind.precision === 'number') {
+      const numeric = Number(value);
+      value = (Number.isFinite(numeric) ? numeric : 0).toFixed(bind.precision);
+    }
+    const prefix =
+      bind.prefix !== undefined
+        ? this.assertSafeTemplateLiteral(String(bind.prefix), '@bind prefix')
+        : '';
+    const suffix =
+      bind.suffix !== undefined
+        ? this.assertSafeTemplateLiteral(String(bind.suffix), '@bind suffix')
+        : '';
+    return this.escapeHtmlText(`${prefix}${value}${suffix}`);
+  }
+
+  private bindFallbackForHTML(bind: Record<string, any>): string {
+    const hasFormatting =
+      typeof bind.precision === 'number' || bind.prefix !== undefined || bind.suffix !== undefined;
+    return String(bind.fallback ?? (hasFormatting ? 0 : ''));
+  }
+
+  private buildHTMLBindTiers(bind: Record<string, any>): Array<Record<string, string | number>> {
+    return (bind.tiers as Array<Record<string, unknown>>).map((tier) => {
+      const out: Record<string, string | number> = {
+        className:
+          typeof tier.className === 'string'
+            ? this.assertSafeTemplateLiteral(tier.className, '@bind tier className')
+            : '',
+      };
+      if (typeof tier.gte === 'number') out.gte = tier.gte;
+      if (typeof tier.gt === 'number') out.gt = tier.gt;
+      if (typeof tier.lte === 'number') out.lte = tier.lte;
+      if (typeof tier.lt === 'number') out.lt = tier.lt;
+      return out;
+    });
+  }
+
+  private escapeHtmlAttr(value: string): string {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  private escapeHtmlText(value: string): string {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   // --------------------------------------------------------------------------
