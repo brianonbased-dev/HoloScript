@@ -1,0 +1,106 @@
+// Bovine-TB Grand Challenge Phase B
+// Cow physiology state machine for the deterministic RK4 simulation receipt.
+// Research benchmark only; not clinical or veterinary guidance.
+
+composition "BovineTBPhaseBCowPhysiology" {
+  metadata {
+    benchmark: "Bovine-TB Grand Challenge Phase B"
+    branch: "Paper 37 W.727 VQE chain"
+    task_id: "task_1781757203428_t4ti"
+    simulation_only_not_clinical: true
+    receipt_schema: "cael.bovine-tb.phase-b.cow-physiology/v1"
+    runner: "scripts/bovine-tb-phase-b-physiology-sim.mjs"
+  }
+
+  environment {
+    ar_mode: false
+    background_color: "#101820"
+    ambient_light: 0.25
+  }
+
+  object "CowPhysiologyTwin" @simulation @cael_receipt {
+    species: "bos-taurus"
+    model_scope: "immune-blood-chemistry-time-series"
+    solver: "fixed-step-rk4"
+    timestep_days: 0.25
+    horizon_days: 120
+
+    state {
+      infection_status: "challenged"
+      m_bovis_load: 0.36
+      macrophage_index: 0.2
+      t_cell_index: 0.07
+      wbc_k_per_ul: 8.05
+      ifn_gamma: 0.04
+      il10: 0.03
+      antibody_titer_index: 0.02
+      tuberculin_mm: 0
+    }
+
+    metadata {
+      phase_a_candidate: "INH-InhA baseline inhibitor candidate"
+      binding_kcal_mol: -5.1
+      candidate_receipt: "/mnt/nvme/holo/agent/shared/vt3-bovine-tb-receipt.json"
+    }
+  }
+
+  object "ImmuneBloodChemistryODE" {
+    model: "macrophage-tcell-blood-panel"
+    markers: ["m_bovis_load", "macrophage_index", "t_cell_index", "wbc_k_per_ul", "ifn_gamma", "il10", "antibody_titer_index"]
+    diagnostics: ["tuberculin_72h_mm", "peak_ifn_gamma", "peak_il10", "wbc_range"]
+
+    state {
+      finite_nonnegative_series: true
+      candidate_suppresses_load_below_peak: true
+      immune_response_observed: true
+      blood_panel_dynamic: true
+      tuberculin_timeline_observed: true
+    }
+  }
+
+  object "CAELReceiptBinding" @receipt_bound {
+    schema: "cael.bovine-tb.phase-b.cow-physiology/v1"
+    signing_algorithm: "Ed25519"
+    hash_algorithm: "sha256"
+    verifier: "node scripts/bovine-tb-phase-b-physiology-sim.mjs verify --receipt <receipt.json>"
+
+    state {
+      receipt_written: false
+      receipt_hash: ""
+      signature_verified: false
+    }
+  }
+
+  state_machine "CowPhysiologyPhaseB" {
+    initial: "phase_a_candidate_ready"
+
+    state "phase_a_candidate_ready" {
+      description: "Phase A inhibitor candidate is present with binding-energy provenance."
+      on_candidate_bound: transition("immune_baseline")
+    }
+
+    state "immune_baseline" {
+      description: "Baseline cow physiology vector is initialized."
+      on_exposure_challenge: transition("granuloma_response")
+    }
+
+    state "granuloma_response" {
+      description: "Macrophage and T-cell indices respond to M. bovis load."
+      on_t_cell_primed: transition("blood_panel_tracking")
+    }
+
+    state "blood_panel_tracking" {
+      description: "WBC, IFN-gamma, IL-10, and antibody trajectories are sampled daily."
+      on_tuberculin_challenge: transition("skin_test_window")
+    }
+
+    state "skin_test_window" {
+      description: "Tuberculin response is sampled at the 72-hour readout window."
+      on_receipt_sealed: transition("cael_receipt_signed")
+    }
+
+    state "cael_receipt_signed" {
+      description: "Hash-chain receipt is sealed and Ed25519 signature verification passes."
+    }
+  }
+}
