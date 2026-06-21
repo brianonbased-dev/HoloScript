@@ -19,6 +19,7 @@ export type ClaimGraphNodeKind =
 
 export type ClaimProofStatus =
   | 'proven'
+  | 'labeled'
   | 'perceptual'
   | 'captured'
   | 'unverified'
@@ -133,6 +134,71 @@ export interface SolverMapResolution {
   matches: VerifiedSolverMatch[];
 }
 
+export type VerifiedClaimProofSurface = 'verify_cael_trace' | 'simulation_contract';
+
+export interface ClaimDischargeReceipt {
+  id?: string;
+  surface: VerifiedClaimProofSurface;
+  traceId?: string;
+  traceHash?: string;
+  verifyUrl?: string;
+  contractId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ClaimProverInput {
+  claim: ClaimGraphNode;
+  solver: ClaimGraphNode;
+  match: VerifiedSolverMatch;
+  budgetMs: number;
+  signal: AbortSignal;
+}
+
+export interface ClaimProverDischarge {
+  discharged: boolean;
+  receipt?: ClaimDischargeReceipt;
+  reason?: string;
+}
+
+export type ClaimProver = (
+  input: ClaimProverInput
+) => ClaimProverDischarge | Promise<ClaimProverDischarge>;
+
+export type ClaimRouterStatus = 'proven' | 'labeled';
+
+export type ClaimRouterReason =
+  | 'discharged'
+  | 'no_solver_maps'
+  | 'prover_timeout'
+  | 'prover_rejected'
+  | 'prover_failed';
+
+export interface ClaimRouterAttempt {
+  solverNodeId: string;
+  explicitGraphFit: boolean;
+  status: ClaimRouterStatus;
+  reason: ClaimRouterReason;
+  elapsedMs: number;
+  receipt?: ClaimDischargeReceipt;
+  error?: string;
+}
+
+export interface ClaimRouterOptions {
+  prover: ClaimProver;
+  budgetMs?: number;
+  mutateGraph?: boolean;
+}
+
+export interface ClaimRouterResult {
+  claimNodeId: string;
+  status: ClaimRouterStatus;
+  abstain: boolean;
+  reason: ClaimRouterReason;
+  solverMap: SolverMapResolution;
+  attempts: ClaimRouterAttempt[];
+  receiptNodeId?: string;
+}
+
 export interface ClaimableGap {
   regionId: string;
   regionLabel?: string;
@@ -150,6 +216,7 @@ const DEFAULT_PLATFORM_SHARE = 0.1;
 const DEFAULT_DEPENDENCY_SHARE = 0.1;
 const DEFAULT_PLATFORM_RECIPIENT = 'platform';
 const DEFAULT_MAX_DEPTH = 16;
+const DEFAULT_PROVER_BUDGET_MS = 5_000;
 
 function amountOf(grossAmount: number | undefined, share: number): number | undefined {
   return grossAmount === undefined ? undefined : grossAmount * share;
@@ -165,6 +232,50 @@ function includesAll(haystack: Set<string>, needles: string[]): boolean {
 
 function edgeMatches(edge: ClaimGraphEdge, kinds: ReadonlySet<ClaimGraphEdgeKind>): boolean {
   return kinds.has(edge.kind);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isDischargedReceipt(
+  receipt: ClaimDischargeReceipt | undefined
+): receipt is ClaimDischargeReceipt {
+  if (!receipt) return false;
+  if (receipt.surface !== 'verify_cael_trace' && receipt.surface !== 'simulation_contract') {
+    return false;
+  }
+  return Boolean(receipt.traceId || receipt.traceHash || receipt.verifyUrl || receipt.contractId);
+}
+
+async function runWithinBudget<T>(
+  work: Promise<T>,
+  budgetMs: number,
+  controller: AbortController
+): Promise<{ timedOut: false; value: T; elapsedMs: number } | { timedOut: true; elapsedMs: number }> {
+  const started = Date.now();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  const timed = new Promise<{ timedOut: true; elapsedMs: number }>((resolve) => {
+    timeout = setTimeout(() => {
+      controller.abort();
+      resolve({ timedOut: true, elapsedMs: Date.now() - started });
+    }, Math.max(0, budgetMs));
+  });
+
+  try {
+    const value = await Promise.race([
+      work.then((resolved) => ({
+        timedOut: false as const,
+        value: resolved,
+        elapsedMs: Date.now() - started,
+      })),
+      timed,
+    ]);
+    return value;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 export class ClaimNetworkGraph {
@@ -405,6 +516,129 @@ export class ClaimNetworkGraph {
     };
   }
 
+  async routeClaimThroughProver(
+    claimNodeId: string,
+    options: ClaimRouterOptions
+  ): Promise<ClaimRouterResult> {
+    const claim = this.requireNode(claimNodeId);
+    if (claim.kind !== 'claim') {
+      throw new Error(`Claim prover router must start at a claim node: ${claimNodeId}`);
+    }
+    const budgetMs = options.budgetMs ?? DEFAULT_PROVER_BUDGET_MS;
+    const mutateGraph = options.mutateGraph !== false;
+    const solverMap = this.resolveVerifiedSolversForClaim(claimNodeId);
+
+    if (solverMap.abstain) {
+      if (mutateGraph) this.setClaimProofStatus(claimNodeId, 'labeled');
+      return {
+        claimNodeId,
+        status: 'labeled',
+        abstain: true,
+        reason: 'no_solver_maps',
+        solverMap,
+        attempts: [],
+      };
+    }
+
+    const attempts: ClaimRouterAttempt[] = [];
+    for (const match of solverMap.matches) {
+      const solver = this.requireNode(match.solverNodeId);
+      const controller = new AbortController();
+      let discharge: ClaimProverDischarge;
+      let elapsedMs = 0;
+
+      try {
+        const result = await runWithinBudget(
+          Promise.resolve(
+            options.prover({
+              claim: { ...claim },
+              solver: { ...solver },
+              match,
+              budgetMs,
+              signal: controller.signal,
+            })
+          ),
+          budgetMs,
+          controller
+        );
+        elapsedMs = result.elapsedMs;
+
+        if (result.timedOut) {
+          attempts.push({
+            solverNodeId: match.solverNodeId,
+            explicitGraphFit: match.explicitGraphFit,
+            status: 'labeled',
+            reason: 'prover_timeout',
+            elapsedMs,
+          });
+          continue;
+        }
+
+        discharge = result.value;
+      } catch (error) {
+        attempts.push({
+          solverNodeId: match.solverNodeId,
+          explicitGraphFit: match.explicitGraphFit,
+          status: 'labeled',
+          reason: 'prover_failed',
+          elapsedMs,
+          error: errorMessage(error),
+        });
+        continue;
+      }
+
+      if (!discharge.discharged || !isDischargedReceipt(discharge.receipt)) {
+        attempts.push({
+          solverNodeId: match.solverNodeId,
+          explicitGraphFit: match.explicitGraphFit,
+          status: 'labeled',
+          reason: 'prover_rejected',
+          elapsedMs,
+          ...(discharge.receipt ? { receipt: discharge.receipt } : {}),
+          ...(discharge.reason ? { error: discharge.reason } : {}),
+        });
+        continue;
+      }
+
+      const receiptNodeId = this.recordDischargedReceipt(claimNodeId, match, discharge.receipt, {
+        mutateGraph,
+      });
+      attempts.push({
+        solverNodeId: match.solverNodeId,
+        explicitGraphFit: match.explicitGraphFit,
+        status: 'proven',
+        reason: 'discharged',
+        elapsedMs,
+        receipt: discharge.receipt,
+      });
+      return {
+        claimNodeId,
+        status: 'proven',
+        abstain: false,
+        reason: 'discharged',
+        solverMap,
+        attempts,
+        receiptNodeId,
+      };
+    }
+
+    if (mutateGraph) this.setClaimProofStatus(claimNodeId, 'labeled');
+    const reason = attempts.some((attempt) => attempt.reason === 'prover_timeout')
+      ? 'prover_timeout'
+      : attempts.some((attempt) => attempt.reason === 'prover_failed')
+        ? 'prover_failed'
+        : 'prover_rejected';
+
+    return {
+      claimNodeId,
+      status: 'labeled',
+      abstain: true,
+      reason,
+      solverMap,
+      attempts,
+    };
+  }
+
   findClaimableUnprovenRegions(): ClaimableGap[] {
     const claimsByRegion = new Map<string, string[]>();
 
@@ -543,5 +777,57 @@ export class ClaimNetworkGraph {
     });
 
     return !hasReceipt;
+  }
+
+  private setClaimProofStatus(claimNodeId: string, proofStatus: ClaimProofStatus): void {
+    const claim = this.requireNode(claimNodeId);
+    this.nodes.set(claimNodeId, { ...claim, proofStatus });
+  }
+
+  private recordDischargedReceipt(
+    claimNodeId: string,
+    match: VerifiedSolverMatch,
+    receipt: ClaimDischargeReceipt,
+    options: { mutateGraph: boolean }
+  ): string {
+    const receiptNodeId =
+      receipt.id ??
+      `receipt:${claimNodeId.replace(/[^a-zA-Z0-9:_-]/g, '_')}:${match.solverNodeId.replace(
+        /[^a-zA-Z0-9:_-]/g,
+        '_'
+      )}`;
+
+    if (!options.mutateGraph) return receiptNodeId;
+
+    this.setClaimProofStatus(claimNodeId, 'proven');
+    this.addNode({
+      id: receiptNodeId,
+      kind: 'cael_receipt',
+      verified: true,
+      metadata: {
+        ...receipt.metadata,
+        proofSurface: receipt.surface,
+        traceId: receipt.traceId,
+        traceHash: receipt.traceHash,
+        verifyUrl: receipt.verifyUrl,
+        contractId: receipt.contractId,
+        solverNodeId: match.solverNodeId,
+        claimNodeId,
+      },
+    });
+    this.addEdge({
+      from: claimNodeId,
+      to: receiptNodeId,
+      kind: 'discharged-by',
+      metadata: {
+        solverNodeId: match.solverNodeId,
+        proofSurface: receipt.surface,
+        traceId: receipt.traceId,
+        traceHash: receipt.traceHash,
+        verifyUrl: receipt.verifyUrl,
+        contractId: receipt.contractId,
+      },
+    });
+    return receiptNodeId;
   }
 }

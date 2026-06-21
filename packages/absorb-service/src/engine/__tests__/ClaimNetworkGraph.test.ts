@@ -190,6 +190,137 @@ describe('ClaimNetworkGraph solver-map resolution', () => {
   });
 });
 
+describe('ClaimNetworkGraph prover-or-abstain router', () => {
+  it('mints proven only when a verified solver discharges a CAEL receipt', async () => {
+    const graph = addCommonClaimNetworkNodes(new ClaimNetworkGraph());
+
+    const result = await graph.routeClaimThroughProver('claim:flood-height', {
+      budgetMs: 100,
+      prover: async ({ match }) => ({
+        discharged: true,
+        receipt: {
+          id: 'receipt:flood-height',
+          surface: 'verify_cael_trace',
+          traceId: 'cael:run-1:hash-1',
+          traceHash: 'cael-hash-1',
+          verifyUrl: 'https://mcp.holoscript.net/verify-cael?traceId=cael%3Arun-1%3Ahash-1',
+          contractId: match.solverNodeId,
+        },
+      }),
+    });
+
+    expect(result).toMatchObject({
+      claimNodeId: 'claim:flood-height',
+      status: 'proven',
+      abstain: false,
+      reason: 'discharged',
+      receiptNodeId: 'receipt:flood-height',
+    });
+    expect(result.attempts).toHaveLength(1);
+    expect(result.attempts[0]).toMatchObject({
+      solverNodeId: 'solver:hydraulics',
+      status: 'proven',
+      reason: 'discharged',
+    });
+    expect(graph.getNode('claim:flood-height')?.proofStatus).toBe('proven');
+    expect(graph.getNode('receipt:flood-height')).toMatchObject({
+      kind: 'cael_receipt',
+      verified: true,
+    });
+    expect(graph.getEdges({ from: 'claim:flood-height', kind: 'discharged-by' })).toHaveLength(1);
+  });
+
+  it('abstains and labels when the verified solver map has no match', async () => {
+    const graph = addCommonClaimNetworkNodes(new ClaimNetworkGraph()).addNode({
+      id: 'claim:thin-flood',
+      kind: 'claim',
+      claimKind: 'flood-height',
+      evidenceKinds: ['depth-mm'],
+    });
+    let proverCalls = 0;
+
+    const result = await graph.routeClaimThroughProver('claim:thin-flood', {
+      prover: () => {
+        proverCalls++;
+        return { discharged: true };
+      },
+    });
+
+    expect(proverCalls).toBe(0);
+    expect(result).toMatchObject({
+      claimNodeId: 'claim:thin-flood',
+      status: 'labeled',
+      abstain: true,
+      reason: 'no_solver_maps',
+      attempts: [],
+    });
+    expect(graph.getNode('claim:thin-flood')?.proofStatus).toBe('labeled');
+  });
+
+  it('rejects fake success that lacks a verified SimulationContract or CAEL receipt', async () => {
+    const graph = addCommonClaimNetworkNodes(new ClaimNetworkGraph());
+
+    const result = await graph.routeClaimThroughProver('claim:flood-height', {
+      budgetMs: 100,
+      prover: () => ({
+        discharged: true,
+        reason: 'stub cognitive verifier claimed success without a trace',
+      }),
+    });
+
+    expect(result).toMatchObject({
+      claimNodeId: 'claim:flood-height',
+      status: 'labeled',
+      abstain: true,
+      reason: 'prover_rejected',
+    });
+    expect(result.attempts[0]).toMatchObject({
+      solverNodeId: 'solver:hydraulics',
+      status: 'labeled',
+      reason: 'prover_rejected',
+      error: 'stub cognitive verifier claimed success without a trace',
+    });
+    expect(graph.getNode('claim:flood-height')?.proofStatus).toBe('labeled');
+    expect(graph.getEdges({ from: 'claim:flood-height', kind: 'discharged-by' })).toHaveLength(0);
+  });
+
+  it('times out to labeled instead of promoting a late proof', async () => {
+    const graph = addCommonClaimNetworkNodes(new ClaimNetworkGraph());
+
+    const result = await graph.routeClaimThroughProver('claim:flood-height', {
+      budgetMs: 1,
+      prover: () =>
+        new Promise((resolve) => {
+          setTimeout(
+            () =>
+              resolve({
+                discharged: true,
+                receipt: {
+                  surface: 'verify_cael_trace',
+                  traceHash: 'late-hash',
+                },
+              }),
+            25
+          );
+        }),
+    });
+
+    expect(result).toMatchObject({
+      claimNodeId: 'claim:flood-height',
+      status: 'labeled',
+      abstain: true,
+      reason: 'prover_timeout',
+    });
+    expect(result.attempts[0]).toMatchObject({
+      solverNodeId: 'solver:hydraulics',
+      status: 'labeled',
+      reason: 'prover_timeout',
+    });
+    expect(graph.getNode('claim:flood-height')?.proofStatus).toBe('labeled');
+    expect(graph.getEdges({ from: 'claim:flood-height', kind: 'discharged-by' })).toHaveLength(0);
+  });
+});
+
 describe('ClaimNetworkGraph gap mapping', () => {
   it('groups claimable-but-unproven claims by region and excludes discharged claims', () => {
     const graph = addCommonClaimNetworkNodes(new ClaimNetworkGraph())
