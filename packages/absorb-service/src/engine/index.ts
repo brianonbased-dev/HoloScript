@@ -55,6 +55,26 @@ export type { HoloParseTree } from './adapters/HoloAdapter';
 export { CodebaseScanner } from './CodebaseScanner';
 export { CodebaseGraph } from './CodebaseGraph';
 export type { CodebaseGraphStats, SymbolQuery, CallChain, CallChainOptions } from './CodebaseGraph';
+export { ClaimNetworkGraph } from './ClaimNetworkGraph';
+export type {
+  ClaimGraphNodeKind,
+  ClaimProofStatus,
+  ClaimGraphEdgeKind,
+  ClaimGraphNode,
+  ClaimGraphEdge,
+  ClaimGraphEdgeInput,
+  ClaimGraphPath,
+  DependencyChainEntry,
+  RevenueCascadeLine,
+  RevenueCascade,
+  RevenueCascadeOptions,
+  ProofAdjacencyFrame,
+  ProofAdjacencyQuery,
+  VerifiedSolverMatch,
+  SolverMapResolution,
+  ClaimableGap,
+  ClaimNetworkGraphSnapshot,
+} from './ClaimNetworkGraph';
 export { CommunityDetector } from './CommunityDetector';
 
 // Worker Pool (Phase 9: Parallel scanning support)
