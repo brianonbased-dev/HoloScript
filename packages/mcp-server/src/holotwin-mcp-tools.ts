@@ -12,8 +12,10 @@
  * - holo_holotwin_status: Get twin sync status
  */
 
+import { createHash } from 'node:crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { QuiltCompiler, type QuiltConfig } from '@holoscript/engine/hologram';
+import { parseHolo } from '@holoscript/core';
+import { BrowserQuiltRenderer, QuiltCompiler, type QuiltConfig } from '@holoscript/engine/hologram';
 
 // =============================================================================
 // TYPES
@@ -40,8 +42,32 @@ interface HoloTwinSession {
   holoCode: string;
   quiltHash?: string;
   quiltUrl?: string;
+  quiltBytes?: number;
+  quiltPngBase64?: string;
+  stream?: HoloTwinStreamState;
   lastSyncTime: number;
   isConnected: boolean;
+}
+
+interface HoloTwinStreamState {
+  isStreaming: boolean;
+  startedAt: number;
+  recompileIntervalMs: number;
+  autoStop: boolean;
+  ticks: number;
+  lastFrameHash?: string;
+  lastError?: string;
+  timer?: ReturnType<typeof setInterval>;
+  stopTimer?: ReturnType<typeof setTimeout>;
+}
+
+type QuiltComposition = Parameters<QuiltCompiler['compileQuilt']>[0];
+
+interface QuiltReceipt {
+  pngBase64: string;
+  sha256: string;
+  bytes: number;
+  renderConfig: QuiltConfig;
 }
 
 // =============================================================================
@@ -355,43 +381,40 @@ export async function handleHoloTwinTool(
         ...(quiltConfigOverride || {}),
       };
 
-      // Compile quilt
       const compiler = new QuiltCompiler();
-      // Note: In production, parse holoCode to composition object
-      // For now, return config and placeholder code
-      const result = {
-        config: quiltConfig,
-        tiles: generateQuiltTiles(quiltConfig),
-        metadata: {
-          quiltAspect: quiltConfig.resolution[0] / quiltConfig.resolution[1],
-          tileWidth: quiltConfig.resolution[0] / quiltConfig.columns,
-          tileHeight: quiltConfig.resolution[1] / quiltConfig.rows,
-          numViews: quiltConfig.views,
-        },
-        rendererCode: generateQuiltRendererCode(quiltConfig),
-      };
+      const composition = parseHoloTwinComposition(holoCode);
+      const result = compiler.compileQuilt(composition, quiltConfig);
+      const receipt = await renderQuiltReceipt(composition, quiltConfig, session);
 
-      const quiltHash = `quilt_${sessionId}_${Date.now()}`;
-      const quiltUrl = `https://studio.holoscript.net/hologram/${quiltHash}`;
+      const quiltHash = `sha256:${receipt.sha256}`;
+      const quiltUrl = `data:image/png;base64,${receipt.pngBase64}`;
 
       session.quiltHash = quiltHash;
       session.quiltUrl = quiltUrl;
+      session.quiltBytes = receipt.bytes;
+      session.quiltPngBase64 = receipt.pngBase64;
+      session.lastSyncTime = Date.now();
 
       return {
         ok: true,
         sessionId,
         device,
-        quilt: result,
+        quilt: {
+          ...result,
+          receipt,
+        },
         hash: quiltHash,
         url: quiltUrl,
-        stub: true, // quilt is simulated, not uploaded to Looking Glass
+        stub: false,
       };
     }
 
     case 'holo_holotwin_stream': {
       const sessionId = typeof args.sessionId === 'string' ? args.sessionId.trim() : '';
       const recompileIntervalMs =
-        typeof args.recompileIntervalMs === 'number' ? args.recompileIntervalMs : 1000;
+        typeof args.recompileIntervalMs === 'number' && Number.isFinite(args.recompileIntervalMs)
+          ? Math.max(100, Math.floor(args.recompileIntervalMs))
+          : 1000;
       const autoStop = typeof args.autoStop === 'boolean' ? args.autoStop : false;
 
       const session = sessions.get(sessionId);
@@ -399,14 +422,37 @@ export async function handleHoloTwinTool(
         throw new Error(`holotwin: session ${sessionId} not found`);
       }
 
-      // In production, this would start a real streaming loop
-      // For now, return streaming configuration
+      stopHoloTwinStream(session);
+      const stream: HoloTwinStreamState = {
+        isStreaming: true,
+        startedAt: Date.now(),
+        recompileIntervalMs,
+        autoStop,
+        ticks: 0,
+      };
+      session.stream = stream;
+
+      await runStreamTick(session);
+      stream.timer = setInterval(() => {
+        void runStreamTick(session);
+      }, recompileIntervalMs);
+      unrefTimer(stream.timer);
+
+      if (autoStop) {
+        stream.stopTimer = setTimeout(() => {
+          stopHoloTwinStream(session);
+        }, recompileIntervalMs);
+        unrefTimer(stream.stopTimer);
+      }
+
       return {
         ok: true,
         sessionId,
         streaming: true,
         recompileIntervalMs,
         autoStop,
+        ticks: stream.ticks,
+        lastFrameHash: stream.lastFrameHash,
         message: `Streaming started. Recompiling every ${recompileIntervalMs}ms.`,
       };
     }
@@ -429,6 +475,11 @@ export async function handleHoloTwinTool(
         mappingsCount: session.mappings.length,
         quiltHash: session.quiltHash,
         quiltUrl: session.quiltUrl,
+        quiltBytes: session.quiltBytes,
+        streaming: session.stream?.isStreaming ?? false,
+        streamTicks: session.stream?.ticks ?? 0,
+        streamLastFrameHash: session.stream?.lastFrameHash,
+        streamLastError: session.stream?.lastError,
         lastSyncTime: session.lastSyncTime,
       };
     }
@@ -442,6 +493,7 @@ export async function handleHoloTwinTool(
       }
 
       session.isConnected = false;
+      stopHoloTwinStream(session);
       sessions.delete(sessionId);
 
       return {
@@ -475,43 +527,141 @@ export async function handleHoloTwinTool(
 // HELPERS
 // =============================================================================
 
-function generateQuiltTiles(config: QuiltConfig) {
-  const tiles = [];
-  for (let row = 0; row < config.rows; row++) {
-    for (let col = 0; col < config.columns; col++) {
-      const index = row * config.columns + col;
-      const cameraOffset = (col / (config.columns - 1) - 0.5) * config.baseline;
-      const viewShear = cameraOffset / config.focusDistance;
-      tiles.push({ index, row, column: col, cameraOffset, viewShear });
-    }
+function parseHoloTwinComposition(holoCode: string): QuiltComposition {
+  const result = parseHolo(holoCode, { tolerant: false });
+  if (!result.success || !result.ast) {
+    const reason = result.errors?.[0]?.message ?? 'unknown parse failure';
+    throw new Error(`holotwin: holoCode parse failed: ${reason}`);
   }
-  return tiles;
+  return result.ast as QuiltComposition;
 }
 
-function generateQuiltRendererCode(config: QuiltConfig): string {
-  return `// Quilt Renderer for Looking Glass ${config.device}
-import { useFrame } from '@react-three/fiber';
-import { OrthographicCamera } from '@react-three/drei';
-
-const tileWidth = ${config.resolution[0]} / ${config.columns};
-const tileHeight = ${config.resolution[1]} / ${config.rows};
-
-export function QuiltViewer({ quiltUrl }) {
-  const quiltRef = useRef();
-
-  useFrame(({ clock }) => {
-    // Interactive view scrubbing based on mouse/touch position
-    const t = clock.getElapsedTime();
-    // ... view interpolation logic
+async function renderQuiltReceipt(
+  composition: QuiltComposition,
+  quiltConfig: QuiltConfig,
+  session: HoloTwinSession
+): Promise<QuiltReceipt> {
+  const renderConfig = makeReceiptRenderConfig(quiltConfig);
+  const fixture = makeTelemetryFixture(session);
+  const renderer = new BrowserQuiltRenderer({
+    path: 'cpu',
+    composition,
+    overrides: renderConfig,
+    imageDecoder: async () => fixture.source,
   });
 
-  return (
-    <mesh ref={quiltRef}>
-      <planeGeometry args={[${config.resolution[0] / 1000}, ${config.resolution[1] / 1000}]} />
-      <meshBasicMaterial map={textureLoader.load(quiltUrl)} />
-    </mesh>
-  );
-}`;
+  const pngBytes = await renderer.render({
+    depthMap: fixture.depthMap,
+    normalMap: fixture.normalMap,
+    width: fixture.width,
+    height: fixture.height,
+    frames: 1,
+    media: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+    sourceKind: 'image',
+  });
+
+  const sha256 = createHash('sha256').update(pngBytes).digest('hex');
+  return {
+    pngBase64: Buffer.from(pngBytes).toString('base64'),
+    sha256,
+    bytes: pngBytes.byteLength,
+    renderConfig,
+  };
+}
+
+function makeReceiptRenderConfig(config: QuiltConfig): QuiltConfig {
+  const views = Math.max(1, Math.min(config.views, 6));
+  const columns = Math.min(3, views);
+  const rows = Math.ceil(views / columns);
+  return {
+    ...config,
+    views,
+    columns,
+    rows,
+    resolution: [columns * 64, rows * 64],
+  };
+}
+
+function makeTelemetryFixture(session: HoloTwinSession): {
+  width: number;
+  height: number;
+  source: { data: Uint8ClampedArray; width: number; height: number };
+  depthMap: Float32Array;
+  normalMap: Float32Array;
+} {
+  const width = 32;
+  const height = 32;
+  const source = new Uint8ClampedArray(width * height * 4);
+  const depthMap = new Float32Array(width * height);
+  const normalMap = new Float32Array(width * height * 3);
+  const mappingBias = Math.max(1, session.mappings.length);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const pixel = i * 4;
+      const nx = x / (width - 1);
+      const ny = y / (height - 1);
+      source[pixel] = Math.round(40 + nx * 180);
+      source[pixel + 1] = Math.round(60 + ny * 120);
+      source[pixel + 2] = Math.round(80 + ((mappingBias * 31) % 120));
+      source[pixel + 3] = 255;
+      depthMap[i] = Math.min(1, Math.max(0, Math.hypot(nx - 0.5, ny - 0.5) * 1.4));
+      normalMap[i * 3] = 0;
+      normalMap[i * 3 + 1] = 0;
+      normalMap[i * 3 + 2] = 1;
+    }
+  }
+
+  return {
+    width,
+    height,
+    source: { data: source, width, height },
+    depthMap,
+    normalMap,
+  };
+}
+
+async function runStreamTick(session: HoloTwinSession): Promise<void> {
+  const stream = session.stream;
+  if (!stream?.isStreaming) return;
+
+  try {
+    const holoCode =
+      session.holoCode.trim() || generateHoloTwinExample(session.device, true).holoCode;
+    const composition = parseHoloTwinComposition(holoCode);
+    const baseConfig = LOOKING_GLASS_PRESETS[session.device];
+    const compiler = new QuiltCompiler();
+    compiler.compileQuilt(composition, baseConfig);
+    const receipt = await renderQuiltReceipt(composition, baseConfig, session);
+
+    stream.ticks += 1;
+    stream.lastFrameHash = `sha256:${receipt.sha256}`;
+    stream.lastError = undefined;
+    session.quiltHash = stream.lastFrameHash;
+    session.quiltUrl = `data:image/png;base64,${receipt.pngBase64}`;
+    session.quiltBytes = receipt.bytes;
+    session.quiltPngBase64 = receipt.pngBase64;
+    session.lastSyncTime = Date.now();
+  } catch (error) {
+    stream.lastError = error instanceof Error ? error.message : String(error);
+  }
+}
+
+function stopHoloTwinStream(session: HoloTwinSession): void {
+  const stream = session.stream;
+  if (!stream) return;
+  if (stream.timer) clearInterval(stream.timer);
+  if (stream.stopTimer) clearTimeout(stream.stopTimer);
+  stream.isStreaming = false;
+  stream.timer = undefined;
+  stream.stopTimer = undefined;
+}
+
+function unrefTimer(timer: ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>): void {
+  if (typeof timer === 'object' && timer !== null && 'unref' in timer) {
+    (timer as { unref(): void }).unref();
+  }
 }
 
 function generateHoloTwinExample(device: LookingGlassDevice, includeSimulation: boolean) {

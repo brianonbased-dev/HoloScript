@@ -3,20 +3,12 @@
  * Disconnect from IoT sensor and stop session
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { disconnectHoloTwin } from '../_runtime';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId } = body;
-
-    if (!sessionId) {
-      return NextResponse.json({ ok: false, error: 'sessionId is required' }, { status: 400 });
-    }
-
-    // In production:
-    // 1. Close MQTT/HTTP connection
-    // 2. Clean up stream session
-    // 3. Release resources
+    const { sessionId } = disconnectHoloTwin(body.sessionId);
 
     return NextResponse.json({
       ok: true,

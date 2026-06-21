@@ -25,6 +25,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/compiler/index.ts'),
       },
       {
+        find: /^@holoscript\/engine\/hologram$/,
+        replacement: path.resolve(__dirname, '../engine/src/hologram/index.ts'),
+      },
+      {
         find: /^@holoscript\/framework$/,
         replacement: path.resolve(__dirname, '../framework/src/index.ts'),
       },
