@@ -67,7 +67,11 @@ import {
   policyEventPayload,
 } from '@/lib/brittney/contentPolicy';
 import type { ContentPolicyDecision } from '@holoscript/core/policy';
-import { filterToolsToTier, tierForProvider, CORE_TOOL_NAMES } from '@/lib/brittney/toolTiers';
+import {
+  coreToolNamesForPrompt,
+  filterToolsToTier,
+  tierForProvider,
+} from '@/lib/brittney/toolTiers';
 import {
   FIND_TOOLS_TOOL,
   FIND_TOOLS_NAME,
@@ -144,7 +148,7 @@ function convertToolsToProviderFormat(
   // `tier` is the tool diet (task_1781123525299_4uhh): small sovereign models
   // measurably stop tool-calling under the full ~90-definition registry
   // (fable5 run 20260610T203030: 0/10, zero executions, model claimed it had
-  // no tool access) — tier 'core' trims to the 14 high-signal tools.
+  // no tool access) — tier 'core' trims the catalog that find_tools can expose.
   const { includeAuthoring = true, tier = 'full' } = opts;
   const allDefs = filterToolsToTier(
     [
@@ -498,17 +502,20 @@ export async function POST(request: NextRequest) {
     // Same shape as Anthropic's { name, description, input_schema } — the
     // conversion just renames `parameters` → `input_schema`.
     __phase = 'tool-conversion';
-    // Full tier-filtered catalog — everything this lane is allowed to use.
+    // Full catalog — everything find_tools can retrieve. When the finder is
+    // explicitly disabled, fall back to the provider tier so experiments can
+    // still force the historical core/full lane with BRITTNEY_TOOL_TIER.
+    const toolTier = tierForProvider(resolved?.providerName);
+    const finderEnabled = process.env['BRITTNEY_TOOL_FINDER'] !== 'off';
     const fullCatalog = convertToolsToProviderFormat({
-      tier: tierForProvider(resolved?.providerName),
+      tier: finderEnabled ? 'full' : toolTier,
     });
     // Progressive disclosure (founder 2026-06-13 "too many tools and avenues"):
     // expose a slim CORE set + find_tools up front and let the model pull in
     // exactly the tools a task needs on demand — the full ~90-tool registry
     // measurably degrades tool-calling (see toolTiers.ts). find_tools ranks the
     // full catalog and activates matches by pushing them into `tools`, which the
-    // next round reads. BRITTNEY_TOOL_FINDER=off reverts to exposing everything.
-    const finderEnabled = process.env['BRITTNEY_TOOL_FINDER'] !== 'off';
+    // next round reads. BRITTNEY_TOOL_FINDER=off reverts to the tiered catalog.
     const findToolsSpec = {
       name: FIND_TOOLS_TOOL.function.name,
       description: FIND_TOOLS_TOOL.function.description,
@@ -516,7 +523,7 @@ export async function POST(request: NextRequest) {
         .parameters as (typeof fullCatalog)[number]['input_schema'],
     };
     const tools = finderEnabled
-      ? buildSlimDefault(fullCatalog, CORE_TOOL_NAMES, findToolsSpec)
+      ? buildSlimDefault(fullCatalog, coreToolNamesForPrompt(latestMsg?.content), findToolsSpec)
       : fullCatalog;
     const toolNameSet = new Set(tools.map((t) => t.name));
 
@@ -565,7 +572,11 @@ export async function POST(request: NextRequest) {
           if (persist.userSeq !== null) {
             send({
               type: 'persisted',
-              payload: { conversationId: persist.conversationId, role: 'user', seq: persist.userSeq },
+              payload: {
+                conversationId: persist.conversationId,
+                role: 'user',
+                seq: persist.userSeq,
+              },
             });
           }
         }
@@ -603,7 +614,12 @@ export async function POST(request: NextRequest) {
               try {
                 send({
                   type: 'persisted',
-                  payload: { conversationId: persist.conversationId, role: 'assistant', seq, partial },
+                  payload: {
+                    conversationId: persist.conversationId,
+                    role: 'assistant',
+                    seq,
+                    partial,
+                  },
                 });
               } catch {
                 // Client already gone (abort) — the row is durable, which is the point.
@@ -646,7 +662,9 @@ export async function POST(request: NextRequest) {
             // structurally; wiring the sink is a tracked follow-up.
             console.warn(
               '[content-policy]',
-              JSON.stringify(buildPolicyAuditEvent(decision, { tenantId: auth.user.id, resourceId: sessionId }))
+              JSON.stringify(
+                buildPolicyAuditEvent(decision, { tenantId: auth.user.id, resourceId: sessionId })
+              )
             );
           } catch {
             // Audit is best-effort; never break the stream.
@@ -750,7 +768,8 @@ export async function POST(request: NextRequest) {
             const hasApplyCode = tools.some(
               (t) =>
                 ('name' in t && t.name === 'apply_code') ||
-                ('function' in t && (t as { function: { name: string } }).function.name === 'apply_code')
+                ('function' in t &&
+                  (t as { function: { name: string } }).function.name === 'apply_code')
             );
 
             const request: LLMCompletionRequest = {
@@ -1038,12 +1057,7 @@ export async function POST(request: NextRequest) {
                           const input = WORKSPACE_FS_TOOL_NAMES.has(tc.name)
                             ? { ...tc.input, workspacePath: workspaceFsPath }
                             : tc.input;
-                          result = await executeStudioTool(
-                            tc.name,
-                            input,
-                            baseUrl,
-                            forwardHeaders
-                          );
+                          result = await executeStudioTool(tc.name, input, baseUrl, forwardHeaders);
                         }
                         send({
                           type: 'tool_result',
@@ -1250,7 +1264,11 @@ function boundPersistedToolCalls(calls: PersistedToolCall[]): PersistedToolCall[
       try {
         const json = JSON.stringify(call.input);
         if (typeof json === 'string' && json.length > MAX_PERSISTED_TOOL_RESULT_CHARS) {
-          entry = { ...call, input: json.slice(0, MAX_PERSISTED_TOOL_RESULT_CHARS), inputClipped: true };
+          entry = {
+            ...call,
+            input: json.slice(0, MAX_PERSISTED_TOOL_RESULT_CHARS),
+            inputClipped: true,
+          };
         }
       } catch {
         entry = { ...call, input: '(unserializable input)', inputClipped: true };

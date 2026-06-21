@@ -11,19 +11,23 @@
  *
  * Tiers:
  *   full — every registered tool (frontier BYOK backends: anthropic/xai/openai)
- *   core — the 12 scene verbs + the 2 ecosystem channels (sovereign backends:
- *          ollama / fleet / cloud, which serve <=8B models today)
+ *   core — the bounded catalog available to small-model retrieval/fallback.
+ * The default exposed surface is stricter: a mode-scoped list of <=11 direct
+ * tools plus the find_tools retriever that the route appends separately.
  * BRITTNEY_TOOL_TIER=full|core overrides for experiments (and the fable5
  * before/after comparison this change must be validated with).
  */
 
 export type ToolTier = 'full' | 'core';
+export type ToolDietMode = 'scene' | 'workspace' | 'ecosystem' | 'data';
+
+export const TOOL_DIET_MAX_DEFAULT_TOOLS = 12;
+const FIND_TOOLS_SLOT_COUNT = 1;
+export const TOOL_DIET_DIRECT_TOOL_BUDGET = TOOL_DIET_MAX_DEFAULT_TOOLS - FIND_TOOLS_SLOT_COUNT;
 
 /**
- * The diet: scene CRUD + traits + code + the two ecosystem channels + the
- * workspace agency verbs (founder 2026-06-10: build / write code / move
- * files must work on sovereign backends too — still ~19 tools, far under
- * the ~90-definition registry that drowned the 4B picker).
+ * Default scene diet: high-signal scene CRUD, trait edits, and apply_code.
+ * The route appends find_tools separately, so this list must stay <= 11.
  */
 export const CORE_TOOL_NAMES: readonly string[] = [
   'create_object',
@@ -31,21 +35,95 @@ export const CORE_TOOL_NAMES: readonly string[] = [
   'move_object',
   'rotate_object',
   'scale_object',
-  'rename_object',
-  'duplicate_object',
   'list_objects',
   'get_object',
   'add_trait',
   'set_trait_property',
   'apply_code',
-  'board_add_task',
-  'suggest_ecosystem_gap',
-  'workspace_list_files',
-  'workspace_read_file',
-  'workspace_write_file',
-  'workspace_move_file',
-  'workspace_build',
+  'holo_suggest_traits',
 ];
+
+const MODE_TOOL_NAMES: Record<ToolDietMode, readonly string[]> = {
+  scene: CORE_TOOL_NAMES,
+  workspace: [
+    'workspace_list_files',
+    'workspace_read_file',
+    'workspace_write_file',
+    'workspace_move_file',
+    'workspace_build',
+    'workspace_git_status',
+    'workspace_git_commit',
+    'read_file',
+    'search_code',
+    'absorb_query_graph',
+    'suggest_ecosystem_gap',
+  ],
+  ecosystem: [
+    'board_add_task',
+    'board_list_tasks',
+    'suggest_ecosystem_gap',
+    'knowledge_query',
+    'read_ecosystem_canon',
+    'list_packages',
+    'get_capabilities',
+    'mcp_discover_tools',
+    'mcp_list_servers',
+    'holomesh_team_board',
+  ],
+  data: [
+    'map_csv',
+    'map_data',
+    'select_modality',
+    'list_targets',
+    'convert_format',
+    'holo_compile',
+    'holo_generate_scene',
+    'holo_suggest_traits',
+    'get_capabilities',
+    'suggest_ecosystem_gap',
+    'mcp_discover_tools',
+  ],
+};
+
+const RETRIEVABLE_SCENE_EXTRAS = [
+  'remove_trait',
+  'compose_traits',
+  'rename_object',
+  'duplicate_object',
+  'holo_list_traits',
+  'holo_explain_trait',
+] as const;
+
+export const CORE_RETRIEVABLE_TOOL_NAMES: readonly string[] = [
+  ...new Set([...Object.values(MODE_TOOL_NAMES).flat(), ...RETRIEVABLE_SCENE_EXTRAS]),
+];
+
+export function toolDietModeForPrompt(prompt: string | undefined): ToolDietMode {
+  const text = prompt ?? '';
+  if (
+    /\b(csv|tabular|schema|sensor|data|mapping|map\s+\w+\s+data|modality|format|compile target|target list)\b/i.test(
+      text
+    )
+  ) {
+    return 'data';
+  }
+  if (/\b(board|task|todo|ticket|issue|room|holomesh|team queue|file this)\b/i.test(text)) {
+    return 'ecosystem';
+  }
+  if (
+    /\b(workspace|repo|repository|file|files|codebase|pull request|branch)\b/i.test(text) ||
+    /\b(workspace|repo|repository)\s+(build|test|lint)\b/i.test(text) ||
+    /\b(fix|edit|commit)\s+(the\s+)?(repo|repository|file|code|workspace)\b/i.test(text)
+  ) {
+    return 'workspace';
+  }
+  return 'scene';
+}
+
+export function coreToolNamesForPrompt(prompt: string | undefined): readonly string[] {
+  const mode = toolDietModeForPrompt(prompt);
+  return MODE_TOOL_NAMES[mode].slice(0, TOOL_DIET_DIRECT_TOOL_BUDGET);
+}
 
 export function tierForProvider(providerName: string | undefined): ToolTier {
   const override = process.env.BRITTNEY_TOOL_TIER;
@@ -65,6 +143,6 @@ export function filterToolsToTier<T extends { function: { name: string } }>(
   tier: ToolTier
 ): T[] {
   if (tier === 'full') return defs;
-  const keep = new Set(CORE_TOOL_NAMES);
+  const keep = new Set(CORE_RETRIEVABLE_TOOL_NAMES);
   return defs.filter((d) => keep.has(d.function.name));
 }

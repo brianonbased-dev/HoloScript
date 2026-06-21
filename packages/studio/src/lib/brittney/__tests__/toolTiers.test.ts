@@ -1,32 +1,69 @@
 /** Tool-diet tests (task_1781123525299_4uhh). */
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { CORE_TOOL_NAMES, tierForProvider, filterToolsToTier } from '../toolTiers';
+import {
+  CORE_RETRIEVABLE_TOOL_NAMES,
+  CORE_TOOL_NAMES,
+  TOOL_DIET_DIRECT_TOOL_BUDGET,
+  TOOL_DIET_MAX_DEFAULT_TOOLS,
+  coreToolNamesForPrompt,
+  filterToolsToTier,
+  tierForProvider,
+  toolDietModeForPrompt,
+} from '../toolTiers';
 import { BRITTNEY_TOOLS } from '../BrittneyTools';
 import { MCP_TOOLS } from '../MCPTools';
 import { STUDIO_API_TOOLS } from '../StudioAPITools';
+import { FIND_TOOLS_NAME } from '../toolCatalog';
 
 afterEach(() => vi.unstubAllEnvs());
 
 describe('tool tiers', () => {
-  // Was <=14; raised to <=20 for the workspace agency verbs (founder
-  // 2026-06-10: build / write code / move files must work on sovereign
-  // backends too). Still an order of magnitude under the ~90-definition
-  // registry that drowned the 4B picker in run 20260610T203030.
-  it('core stays small enough for 4-8B pickers (<=20 names)', () => {
-    expect(CORE_TOOL_NAMES.length).toBeLessThanOrEqual(20);
+  it('scene core plus find_tools stays within the 12-tool small-model budget', () => {
+    expect(CORE_TOOL_NAMES.length).toBeLessThanOrEqual(TOOL_DIET_DIRECT_TOOL_BUDGET);
+    expect(CORE_TOOL_NAMES.length + 1).toBeLessThanOrEqual(TOOL_DIET_MAX_DEFAULT_TOOLS);
     expect(CORE_TOOL_NAMES).toContain('create_object');
     expect(CORE_TOOL_NAMES).toContain('apply_code');
-    expect(CORE_TOOL_NAMES).toContain('board_add_task');
-    expect(CORE_TOOL_NAMES).toContain('workspace_write_file');
-    expect(CORE_TOOL_NAMES).toContain('workspace_build');
   });
 
-  it('every core name resolves to a REAL registered tool definition', () => {
+  it('every core-retrievable name resolves to a real registered tool definition', () => {
     const registered = new Set(
       [...BRITTNEY_TOOLS, ...MCP_TOOLS, ...STUDIO_API_TOOLS].map((t) => t.function.name)
     );
-    for (const name of CORE_TOOL_NAMES) {
-      expect(registered.has(name), `core tool ${name} is not registered`).toBe(true);
+    for (const name of CORE_RETRIEVABLE_TOOL_NAMES) {
+      expect(registered.has(name), `core-retrievable tool ${name} is not registered`).toBe(true);
+    }
+  });
+
+  it('mode-scopes the direct default tools for the latest prompt', () => {
+    const scene = coreToolNamesForPrompt('Build a small park with benches and trees');
+    expect(toolDietModeForPrompt('Build a small park with benches and trees')).toBe('scene');
+    expect(scene).toContain('create_object');
+    expect(scene).toContain('apply_code');
+    expect(scene).not.toContain('board_add_task');
+
+    const board = coreToolNamesForPrompt('Add a task to the team board');
+    expect(toolDietModeForPrompt('Add a task to the team board')).toBe('ecosystem');
+    expect(board).toContain('board_add_task');
+    expect(board).toContain('suggest_ecosystem_gap');
+    expect(board).not.toContain('create_object');
+
+    const workspace = coreToolNamesForPrompt('Fix the repo code and run the workspace build');
+    expect(toolDietModeForPrompt('Fix the repo code and run the workspace build')).toBe(
+      'workspace'
+    );
+    expect(workspace).toContain('workspace_write_file');
+    expect(workspace).toContain('workspace_build');
+    expect(workspace).toContain('absorb_query_graph');
+
+    const data = coreToolNamesForPrompt('Map this CSV of sensor readings into a live scene');
+    expect(toolDietModeForPrompt('Map this CSV of sensor readings into a live scene')).toBe('data');
+    expect(data).toContain('map_csv');
+    expect(data).toContain('map_data');
+    expect(data).toContain('select_modality');
+
+    for (const names of [scene, board, workspace, data]) {
+      expect(names.length).toBeLessThanOrEqual(TOOL_DIET_DIRECT_TOOL_BUDGET);
+      expect([...names, FIND_TOOLS_NAME].length).toBeLessThanOrEqual(TOOL_DIET_MAX_DEFAULT_TOOLS);
     }
   });
 
@@ -46,11 +83,14 @@ describe('tool tiers', () => {
     expect(tierForProvider('anthropic')).toBe('core');
   });
 
-  it('filterToolsToTier keeps only core names in core tier and everything in full', () => {
-    const defs = [...BRITTNEY_TOOLS, ...MCP_TOOLS];
+  it('filterToolsToTier keeps only the bounded retrievable set in core tier', () => {
+    const defs = [...BRITTNEY_TOOLS, ...MCP_TOOLS, ...STUDIO_API_TOOLS];
     const core = filterToolsToTier(defs, 'core');
-    expect(core.length).toBeLessThanOrEqual(CORE_TOOL_NAMES.length);
-    expect(core.every((d) => CORE_TOOL_NAMES.includes(d.function.name))).toBe(true);
+    expect(core.length).toBeLessThanOrEqual(CORE_RETRIEVABLE_TOOL_NAMES.length);
+    expect(core.every((d) => CORE_RETRIEVABLE_TOOL_NAMES.includes(d.function.name))).toBe(true);
+    expect(core.map((d) => d.function.name)).toContain('board_add_task');
+    expect(core.map((d) => d.function.name)).toContain('workspace_write_file');
+    expect(core.map((d) => d.function.name)).toContain('map_csv');
     expect(filterToolsToTier(defs, 'full').length).toBe(defs.length);
   });
 });
