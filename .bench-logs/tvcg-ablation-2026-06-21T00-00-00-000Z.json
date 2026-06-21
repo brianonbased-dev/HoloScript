@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-06-21T07:03:30.116Z",
+  "schema": "tvcg.contract-ablation.v1",
+  "harness": "packages/engine/src/simulation/__tests__/tvcg-contract-ablation.test.ts",
+  "method": {
+    "samples": 40,
+    "iterationsPerSample": 50,
+    "stepsPerRun": 10,
+    "fixedDt": 0.016666666666666666,
+    "warmupSamples": 4,
+    "timing": "median/p99 of per-step wall time; row contributions use paired full-vs-disabled samples with alternating order"
+  },
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "24.15.0",
+    "vitest": "4.1.8"
+  },
+  "workload": {
+    "mesh": {
+      "nodeCount": 160,
+      "elementCount": 40,
+      "dof": 480,
+      "geometryHash": "geo-c6eb3f49-160n-160e"
+    },
+    "note": "TET4-shaped transient probe isolates contract-shell overhead from the structural PCG solver loop."
+  },
+  "baselineBare": {
+    "medianMsPerStep": 0.0031930000000000972,
+    "p99MsPerStep": 0.004794599999999946,
+    "opsPerSecond": 313185.0923895927
+  },
+  "fullContract": {
+    "medianMsPerStep": 0.05198580000000015,
+    "p99MsPerStep": 0.10816400000000022,
+    "opsPerSecond": 19236.022144508635,
+    "overheadVsBareMsPerStep": 0.04879280000000005,
+    "overheadVsBarePct": 1528.1177575946936
+  },
+  "rows": [
+    {
+      "guarantee": "geometry-integrity",
+      "label": "Geometry integrity",
+      "medianMsPerStep": 0.0068267999999998205,
+      "p99MsPerStep": 0.019514400000000022,
+      "opsPerSecond": 146481.5140329329,
+      "pairedFullMsPerStep": 0.050867900000000195,
+      "disabledMsPerStep": 0.0068267999999998205,
+      "contributionMsPerStep": 0.044110200000000085,
+      "contributionP99MsPerStep": 0.08472839999999995,
+      "contributionPctOfFull": 86.71519760005802,
+      "contributionPctOfContractOverhead": 90.40309225951377,
+      "behavioralConsequence": "Mesh/render divergence and malformed connectivity are no longer rejected."
+    },
+    {
+      "guarantee": "unit-validation",
+      "label": "Unit validation",
+      "medianMsPerStep": 0.07838689999999951,
+      "p99MsPerStep": 0.09576360000000023,
+      "opsPerSecond": 12757.23367042205,
+      "pairedFullMsPerStep": 0.07781070000000045,
+      "disabledMsPerStep": 0.07838689999999951,
+      "contributionMsPerStep": 0.00020129999999972392,
+      "contributionP99MsPerStep": 0.018292200000001695,
+      "contributionPctOfFull": 0.25870477967647476,
+      "contributionPctOfContractOverhead": 0.41256086963593747,
+      "behavioralConsequence": "Out-of-range physical quantities can pass as raw numbers."
+    },
+    {
+      "guarantee": "deterministic-stepping",
+      "label": "Deterministic stepping",
+      "medianMsPerStep": 0.06573090000000138,
+      "p99MsPerStep": 0.08027179999999862,
+      "opsPerSecond": 15213.544923315807,
+      "pairedFullMsPerStep": 0.07038040000000091,
+      "disabledMsPerStep": 0.06573090000000138,
+      "contributionMsPerStep": 0.00451399999999922,
+      "contributionP99MsPerStep": 0.029582399999999322,
+      "contributionPctOfFull": 6.41371745542674,
+      "contributionPctOfContractOverhead": 9.251364955483627,
+      "behavioralConsequence": "Frame-rate-dependent stepping can change replayed state trajectories."
+    },
+    {
+      "guarantee": "interaction-provenance",
+      "label": "Interaction provenance",
+      "medianMsPerStep": 0.06835589999999865,
+      "p99MsPerStep": 0.09899399999999878,
+      "opsPerSecond": 14629.315099355283,
+      "pairedFullMsPerStep": 0.0722445000000007,
+      "disabledMsPerStep": 0.06835589999999865,
+      "contributionMsPerStep": -0.0007103999999999375,
+      "contributionP99MsPerStep": 0.023431000000000493,
+      "contributionPctOfFull": -0.9833274505324705,
+      "contributionPctOfContractOverhead": -1.455952517584432,
+      "behavioralConsequence": "User actions that changed solver state disappear from the receipt."
+    },
+    {
+      "guarantee": "auto-provenance",
+      "label": "Auto-provenance",
+      "medianMsPerStep": 0.07145960000000015,
+      "p99MsPerStep": 0.0895010000000002,
+      "opsPerSecond": 13993.92104069989,
+      "pairedFullMsPerStep": 0.0698205999999991,
+      "disabledMsPerStep": 0.07145960000000015,
+      "contributionMsPerStep": -0.0001359000000011254,
+      "contributionP99MsPerStep": 0.034499399999996974,
+      "contributionPctOfFull": -0.19464169600537257,
+      "contributionPctOfContractOverhead": -0.2785247003679339,
+      "behavioralConsequence": "The run no longer emits a config/result/timing evidence record."
+    },
+    {
+      "guarantee": "exact-replay",
+      "label": "Exact replay",
+      "medianMsPerStep": 0.057717199999999136,
+      "p99MsPerStep": 0.08427820000000065,
+      "opsPerSecond": 17325.857803220097,
+      "pairedFullMsPerStep": 0.06233840000000054,
+      "disabledMsPerStep": 0.057717199999999136,
+      "contributionMsPerStep": 0.0071398999999983045,
+      "contributionP99MsPerStep": 0.021799799999993423,
+      "contributionPctOfFull": 11.453454050790912,
+      "contributionPctOfContractOverhead": 14.633101605151369,
+      "behavioralConsequence": "A reviewer cannot reconstruct the run from a replay envelope."
+    }
+  ],
+  "artifactSha256": "1c18ea10b167a01c05e8f639834bc3168e0fb6dfb282356e7978a2d19e3be669"
+}
