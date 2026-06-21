@@ -20,17 +20,17 @@ describe('sovereign-targets registry', () => {
     expect(new Set(all).size).toBe(all.length); // no target in two buckets
   });
 
-  it('classifies the canonical sovereign render targets', () => {
-    // The founder-named native render/runtime surface must stay sovereign.
-    for (const t of ['webgpu', 'native-2d', 'canvas2d-game', 'nir'] as const) {
+  it('classifies the canonical sovereign compile targets', () => {
+    // native-2d is now tracked as an engine, not an ExportTarget.
+    for (const t of ['webgpu', 'canvas2d-game', 'nir', 'gaussian-train', 'svg', 'holob'] as const) {
       expect(isSovereignTarget(t)).toBe(true);
       expect(isBridgeTarget(t)).toBe(false);
       expect(targetSovereignty(t)).toBe('sovereign');
     }
   });
 
-  it('keeps third-party engines classified as bridges (not sovereign)', () => {
-    for (const t of ['unity', 'unreal', 'godot', 'babylon', 'r3f'] as const) {
+  it('keeps third-party engine/runtime targets classified as bridges (not sovereign)', () => {
+    for (const t of ['unity', 'unreal', 'godot', 'vrchat', 'quest'] as const) {
       expect(isBridgeTarget(t)).toBe(true);
       expect(isSovereignTarget(t)).toBe(false);
       expect(targetSovereignty(t)).toBe('bridge');
