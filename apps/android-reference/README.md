@@ -37,54 +37,46 @@ Hand-editing a generated `.kt` (instead of `scene.holo`) makes the gate go red. 
 W.783 doctrine: **gate the emitter BEFORE fixing its output**, so codegen-correctness work is
 drift-controlled.
 
-## Build status — HARNESS GREEN, CODEGEN RED (the next gate)
+## Build status — DEPS + GRADLE GREEN; Kotlin/Sceneform codegen is the remaining gate
 
-The gradle build harness is real and works end-to-end up to project configuration. With the local
-toolchain (JDK 17 `C:\tools\jdk-17.0.19+10`, Gradle 8.9, Android SDK `C:\Android` + platform 34):
+With the local toolchain (JDK 17 `C:\tools\jdk-17.0.19+10`, the committed gradle wrapper, Android SDK
+`C:\Android` + platform 34):
 
 ```bash
 cd apps/android-reference/android
-JAVA_HOME=/c/tools/jdk-17.0.19+10 ANDROID_HOME=/c/Android \
-  /c/tools/gradle-8.9/bin/gradle assembleDebug --no-daemon --console=plain
+JAVA_HOME=/c/tools/jdk-17.0.19+10 ANDROID_HOME=/c/Android ./gradlew assembleDebug --no-daemon
 ```
 
-resolves AGP 8.5.2, Kotlin 2.0.20, forks the build daemon, and reaches `> Configure project :app`,
-then **fails compiling `app/build.gradle.kts`**:
+**Status (2026-06-21): the 4 gradle/dependency blockers are FIXED; the build now resolves all
+dependencies and reaches `:app:compileDebugKotlin`.** Fixed in `AndroidARGenerators.ts`:
 
-```
-e: .../app/build.gradle.kts:5:8: Unexpected tokens (use ';' to separate expressions on the same line)
-e: .../app/build.gradle.kts:5:5: Function invocation 'id(...)' expected
-e: .../app/build.gradle.kts:5:5: No value passed for parameter 'id'
-...
-BUILD FAILED in 36s
-```
+1. ✅ **Groovy→Kotlin DSL** — `generateBuildGradle` now emits valid Kotlin DSL (`id("...")`,
+   `namespace = "..."`, `isMinifyEnabled = false`, `implementation("...")`, …).
+2. ✅ **Compose-compiler plugin** — `id("org.jetbrains.kotlin.plugin.compose")` is now emitted when
+   `useJetpackCompose` (the root scaffold supplies the version). The Activity does author Compose.
+3. ✅ **`package=` removed** from `AndroidManifest.xml` (AGP 8; namespace lives in build.gradle).
+4. ✅ **Real Sceneform coordinate** — `com.gorisse.thomas.sceneform:sceneform:1.23.0` (verified on
+   Maven Central + JitPack); the old `com.gorisse.thomas:sceneform:1.22.0` did not exist.
 
-i.e. the build infra is sound; the **AndroidCompiler codegen emits non-buildable output**. Known
-codegen defects to fix before a green APK (the next gate — all in `AndroidARGenerators.ts`
-`generateBuildGradle`/`generateManifestFile`, never in the generated files):
+### Remaining gate: Sceneform Kotlin-API codegen (19 errors, ARNodeFactory.kt + GeneratedARSceneActivity.kt)
 
-1. **Groovy DSL emitted into a `.kts` (Kotlin DSL) file** — `generateBuildGradle` emits
-   `id 'com.android.application'` / `namespace 'net.holoscript.android'` / `implementation '...'`
-   (single quotes, no `id(...)` call, no `version`). That is Groovy, but `compileToFiles` keys the
-   output `app/build.gradle.kts`. Fix EITHER: (a) emit Kotlin DSL — `id("com.android.application")`,
-   `namespace = "..."`, `implementation("...")`, `proguardFiles(getDefaultProguardFile("..."), "...")`,
-   `JavaVersion.VERSION_17`, `jvmTarget = "17"` — OR (b) key the output `app/build.gradle` (Groovy)
-   and adjust the scaffold/settings accordingly. The reference scaffold (root `build.gradle.kts` +
-   `settings.gradle.kts`) is already Kotlin DSL, so emitting Kotlin DSL is the cleaner fix.
-2. **`buildFeatures { compose true }` without the compose-compiler plugin** — on Kotlin 2.x, Compose
-   requires the `org.jetbrains.kotlin.plugin.compose` plugin in the module `plugins {}` block. The
-   emitter sets `compose true` but never declares the plugin (the root scaffold declares it
-   `apply false`, so the emitter only needs to add the plugin id). Alternatively, drop `compose true`
-   for the ARCore reference, which does not author any Compose UI.
-3. **`package=` attribute in `AndroidManifest.xml`** (line 4) — removed in AGP 8; the application id /
-   namespace now lives in `build.gradle` only. `generateManifestFile` must drop the `package="..."`
-   attribute from the `<manifest>` element.
-4. **Sceneform is deprecated** — `com.gorisse.thomas:sceneform:1.22.0` is a community-maintained fork
-   (resolvable only via JitPack, which the scaffold `settings.gradle.kts` now adds). Prefer Filament
-   (`AndroidCompilerOptions.useFilament`) for a future-proof reference; Sceneform is end-of-life.
+~5 distinct issues in the emitted Kotlin (fix the emitter, not the generated files):
+- **Missing `R.layout` / `R.id`** — the Activity references `R.layout.*` + `R.id.ar_fragment` but the
+  emitter never emits the `res/layout/*.xml` resource (the ArFragment layout). Emit it.
+- **`ModelRenderable` API** — `.thenAccept{}` (CompletableFuture) + `.material` don't resolve against
+  Sceneform 1.23.0's surface. Verify the real `ModelRenderable.builder()` API.
+- **`Vector3 *` operator** — `com.google.ar.sceneform.math.Vector3` has no Kotlin `times`/`*`
+  operator; use `Vector3.multiply()` / `.scaled()`.
+- **`anchor`** — unresolved reference.
 
-Until those are fixed, do NOT add a `gradle assembleDebug` CI workflow (it would be red). The
-golden-diff gate + vitest twin are the live gates today.
+> ⚠️ **Sceneform is end-of-life.** Google deprecated Sceneform in 2020; the Gorisse maintained fork
+> (1.23.0) is itself archived. Grinding the emitter to produce correct Sceneform Kotlin is polishing
+> a dead SDK. The strategic question (W.GOLD.002 — pour into sovereign, not bridge) is whether
+> `compile_to_android` should instead retarget a current renderer (SceneView / Filament directly, or
+> Jetpack XR) rather than complete the Sceneform path. Founder call.
+
+Until the Kotlin codegen is green, do NOT add a `gradle assembleDebug` CI workflow (it would be red).
+The golden-diff gate + `check-android-build-verify.mts` (skip-graceful) are the live gates.
 
 ## Context
 

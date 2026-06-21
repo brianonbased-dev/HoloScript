@@ -301,11 +301,13 @@ describe('AndroidCompiler', () => {
     it('AndroidCompiler fingerprint for empty Wave1 gate composition', () => {
       const composition = createComposition({ name: 'Wave1SplitCharacterization' });
       const out = compiler.compile(composition);
-      // Re-locked after the verified-correct native-scene-fidelity fix (c8cc38f9f:
-      // ARCore multi-object placement calls each object factory + attaches each
-      // renderable with object-local transform). NativeCompilerFidelity.test.ts passes.
+      // Re-locked 2026-06-21: build.gradle.kts Groovy→Kotlin DSL + compose-compiler plugin id +
+      // manifest package= removal (AGP 8) + real Sceneform coordinate
+      // (com.gorisse.thomas.sceneform:sceneform:1.23.0). The build now resolves deps and reaches
+      // Kotlin compile; the Sceneform-API codegen (R.layout/R.id, ModelRenderable, Vector3 op) is the
+      // documented next gate (apps/android-reference/README.md). Prior lock: c8cc38f9f.
       expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
-        'd8d6c761c9d83f706a05ee5ebc3fc4406986c5e1d70ce787b8f34074ba2c507f'
+        '85ff47fd8fe982a0e8eb39c4b4b22eeb5fd8a167c8f31d6bad61606d54038456'
       );
     });
   });
