@@ -33,6 +33,7 @@ import {
   getUAALAgentSnapshot,
   type UAALAgentConfig,
 } from '../uAALComposedAgent';
+import { resolve as resolveBrainCoord } from '../BrainCoordMapper';
 import type { HSPlusNode, TraitContext } from '../../TraitTypes';
 import type { PillarDomain } from '../../pillar/SemanticCollaborationContract';
 
@@ -133,6 +134,26 @@ describe('uAALComposedAgent', () => {
     tick(DEFAULT_CONFIG.inner_frequency!, node, DEFAULT_CONFIG, ctx);
     const trainingEvt = events.find((e) => e.name === 'emitter:training_slice');
     expect(trainingEvt).toBeDefined();
+    const trainingSlice = (trainingEvt!.payload as {
+      slice: {
+        slice: { pillar_domain: string };
+        brain_coord: {
+          mni_x: number;
+          mni_y: number;
+          mni_z: number;
+          cortical_depth: number;
+          brodmann_area?: number;
+        };
+      };
+    }).slice;
+    const expectedCoord = resolveBrainCoord(trainingSlice.slice.pillar_domain);
+    expect(trainingSlice.brain_coord).toMatchObject({
+      mni_x: expectedCoord.mni_x,
+      mni_y: expectedCoord.mni_y,
+      mni_z: expectedCoord.mni_z,
+      cortical_depth: expectedCoord.cortical_depth,
+      brodmann_area: expectedCoord.brodmann_area,
+    });
   });
 
   // ── 6. emitter:diversity_stats emitted ─────────────────────────────────────

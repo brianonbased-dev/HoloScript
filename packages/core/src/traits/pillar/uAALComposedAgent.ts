@@ -63,6 +63,7 @@ import { cognitiveVMHandler, getCognitiveVMSnapshot } from './CognitiveVMTrait';
 import { pillarJepaHandler } from './PillarJEPA';
 import { sliceEmitterHandler } from './SliceEmitter';
 import { createLatentIntegrityLayer } from './LatentIntegrityLayer';
+import { resolve as resolveBrainCoord } from './BrainCoordMapper';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
@@ -198,42 +199,8 @@ function buildEmitterConfig(cfg: UAALAgentConfig): SliceEmitterConfig {
 // Brain coordinate derivation
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Map a PillarDomain to an MNI152 brain coordinate.
- *
- * Left hemisphere (MNI x > +10):  analytical, sequential (physics, compiler, language)
- * Right hemisphere (MNI x < −10): spatial, holistic (rendering, agent, temporal)
- * Bilateral (|x| ≤ 10):           crossmodal (coordination, economics, safety)
- */
 function domainToBrainCoord(domain: PillarDomain | string): BrainCoord {
-  // Left-hemisphere domains (analytical, sequential)
-  const leftDomains: Set<string> = new Set([
-    'physics',
-    'compiler',
-    'language',
-    'accuracy_speed',
-    'solver',
-  ]);
-  // Right-hemisphere domains (spatial, holistic)
-  const rightDomains: Set<string> = new Set([
-    'rendering',
-    'agent',
-    'trait',
-    'safety_exploration',
-    'storage',
-    'init',
-  ]);
-
-  if (leftDomains.has(domain)) {
-    // Left dorsolateral prefrontal cortex — sequential/analytical processing
-    return { mni_x: 45, mni_y: 15, mni_z: 30, cortical_depth: 4, brodmann_area: 9 };
-  }
-  if (rightDomains.has(domain)) {
-    // Right parietal / spatial processing
-    return { mni_x: -45, mni_y: -30, mni_z: 40, cortical_depth: 3, brodmann_area: 40 };
-  }
-  // Bilateral: medial prefrontal / anterior cingulate
-  return { mni_x: 0, mni_y: 25, mni_z: 30, cortical_depth: 2, brodmann_area: 32 };
+  return resolveBrainCoord(domain);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

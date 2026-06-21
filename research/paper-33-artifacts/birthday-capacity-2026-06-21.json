@@ -1,0 +1,415 @@
+{
+  "artifact_body_sha256": "97a7fe07ab8b7a3fee26631ae01cc8bdf131bd6cfe39f51cc30203b7e6678185",
+  "brain_coord_mapper": {
+    "domains": [
+      {
+        "brodmann_area": 7,
+        "cortical_depth": 4,
+        "domain": "physics",
+        "mni_x": 30,
+        "mni_y": -50,
+        "mni_z": 60,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 46,
+        "cortical_depth": 5,
+        "domain": "compiler",
+        "mni_x": 44,
+        "mni_y": 36,
+        "mni_z": 20,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 22,
+        "cortical_depth": 3,
+        "domain": "language",
+        "mni_x": -52,
+        "mni_y": -32,
+        "mni_z": 8,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 19,
+        "cortical_depth": 3,
+        "domain": "rendering",
+        "mni_x": -45,
+        "mni_y": -68,
+        "mni_z": 5,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 39,
+        "cortical_depth": 4,
+        "domain": "agent",
+        "mni_x": -54,
+        "mni_y": -56,
+        "mni_z": 22,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 11,
+        "cortical_depth": 2,
+        "domain": "economics",
+        "mni_x": -20,
+        "mni_y": 32,
+        "mni_z": -10,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 6,
+        "cortical_depth": 5,
+        "domain": "trait",
+        "mni_x": 4,
+        "mni_y": -4,
+        "mni_z": 54,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 32,
+        "cortical_depth": 2,
+        "domain": "coordination",
+        "mni_x": 0,
+        "mni_y": 25,
+        "mni_z": 30,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": null,
+        "cortical_depth": 4,
+        "domain": "storage",
+        "mni_x": 28,
+        "mni_y": -22,
+        "mni_z": -14,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": 40,
+        "cortical_depth": 4,
+        "domain": "solver",
+        "mni_x": 28,
+        "mni_y": -58,
+        "mni_z": 46,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 6,
+        "cortical_depth": 5,
+        "domain": "accuracy_speed",
+        "mni_x": 4,
+        "mni_y": 14,
+        "mni_z": 52,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 11,
+        "cortical_depth": 2,
+        "domain": "safety_exploration",
+        "mni_x": -4,
+        "mni_y": 44,
+        "mni_z": -14,
+        "surface_type": "gyrus"
+      },
+      {
+        "brodmann_area": 24,
+        "cortical_depth": 3,
+        "domain": "truth_approval",
+        "mni_x": 0,
+        "mni_y": 20,
+        "mni_z": 30,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": null,
+        "cortical_depth": 4,
+        "domain": "init",
+        "mni_x": 8,
+        "mni_y": -12,
+        "mni_z": 4,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": null,
+        "cortical_depth": 5,
+        "domain": "steady_state",
+        "mni_x": 14,
+        "mni_y": 12,
+        "mni_z": 6,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": 13,
+        "cortical_depth": 4,
+        "domain": "edge_case",
+        "mni_x": 38,
+        "mni_y": 2,
+        "mni_z": 10,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": null,
+        "cortical_depth": 6,
+        "domain": "shutdown",
+        "mni_x": 0,
+        "mni_y": -28,
+        "mni_z": -8,
+        "surface_type": "sulcus"
+      },
+      {
+        "brodmann_area": 8,
+        "cortical_depth": 4,
+        "domain": "d040",
+        "mni_x": 0,
+        "mni_y": -4,
+        "mni_z": 40,
+        "surface_type": "gyrus"
+      }
+    ],
+    "invalid_seed_entries": [],
+    "seed_entry_count": 18,
+    "source_path": "packages/core/src/traits/pillar/BrainCoordMapper.ts"
+  },
+  "coordinate_draw_rows": [
+    {
+      "analytic_collision_probability": 0.000088231949,
+      "draws": 10,
+      "monte_carlo": {
+        "collision_probability": 0.0002,
+        "collisions": 2,
+        "standard_error": 0.000141407213,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.000588071732,
+      "draws": 25,
+      "monte_carlo": {
+        "collision_probability": 0.0007,
+        "collisions": 7,
+        "standard_error": 0.000264482514,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.002399155913,
+      "draws": 50,
+      "monte_carlo": {
+        "collision_probability": 0.0029,
+        "collisions": 29,
+        "standard_error": 0.000537735065,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.00542666361,
+      "draws": 75,
+      "monte_carlo": {
+        "collision_probability": 0.0054,
+        "collisions": 54,
+        "standard_error": 0.00073286015,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.00965955746,
+      "draws": 100,
+      "monte_carlo": {
+        "collision_probability": 0.0074,
+        "collisions": 74,
+        "standard_error": 0.000857043756,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.009853741861,
+      "draws": 101,
+      "monte_carlo": {
+        "collision_probability": 0.0085,
+        "collisions": 85,
+        "standard_error": 0.000918027777,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.010049829649,
+      "draws": 102,
+      "monte_carlo": {
+        "collision_probability": 0.0101,
+        "collisions": 101,
+        "standard_error": 0.000999899495,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.021675540778,
+      "draws": 150,
+      "monte_carlo": {
+        "collision_probability": 0.0216,
+        "collisions": 216,
+        "standard_error": 0.001453734501,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.059213796302,
+      "draws": 250,
+      "monte_carlo": {
+        "collision_probability": 0.0578,
+        "collisions": 578,
+        "standard_error": 0.002333648645,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.21705101591,
+      "draws": 500,
+      "monte_carlo": {
+        "collision_probability": 0.2168,
+        "collisions": 2168,
+        "standard_error": 0.004120652376,
+        "trials": 10000
+      }
+    },
+    {
+      "analytic_collision_probability": 0.624708495908,
+      "draws": 1000,
+      "monte_carlo": {
+        "collision_probability": 0.6347,
+        "collisions": 6347,
+        "standard_error": 0.004815141846,
+        "trials": 10000
+      }
+    }
+  ],
+  "full_simulation_slice_rows": [
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 0.624708495908,
+      "equivalent_draws": 1000,
+      "simulations": 1
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 0.980252735384,
+      "equivalent_draws": 2000,
+      "simulations": 2
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 0.999999999979,
+      "equivalent_draws": 5000,
+      "simulations": 5
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 1,
+      "equivalent_draws": 10000,
+      "simulations": 10
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 1,
+      "equivalent_draws": 25000,
+      "simulations": 25
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 1,
+      "equivalent_draws": 50000,
+      "simulations": 50
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 1,
+      "equivalent_draws": 100000,
+      "simulations": 100
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 1,
+      "equivalent_draws": 250000,
+      "simulations": 250
+    },
+    {
+      "addresses_per_simulation": 1000,
+      "analytic_collision_probability": 1,
+      "equivalent_draws": 500000,
+      "simulations": 500
+    }
+  ],
+  "harness": {
+    "generated_at": "2026-06-21T06:44:35.941Z",
+    "monte_carlo_trials_per_coordinate_row": 10000,
+    "name": "paper-33-birthday-capacity-harness",
+    "script": "scripts/paper-33-birthday-capacity-harness.ts",
+    "seed": 1592590387
+  },
+  "mni152_capacity_model": {
+    "address_space": 510000,
+    "birthday_bound_thresholds": {
+      "collision_probability_at_500_unique_draws": 0.21705101591,
+      "first_unique_draw_count_above_1pct": 102,
+      "max_unique_draw_count_at_or_below_1pct": 101
+    },
+    "cortical_depth_layers": 6,
+    "gray_matter_voxels_1mm": 85000,
+    "source_formula": "85000 1mm gray-matter voxels * 6 cortical depth layers"
+  },
+  "paper_claim_check": {
+    "claim": "At ~1000 unique slices per 15-day physics simulation, 510000 addresses support ~500 full simulations before collision risk exceeds 1%.",
+    "conclusion": "The implemented BrainCoordMapper is present and valid, but the ~500 simulations before 1% collision-risk statement is not supported by the ordinary birthday bound for a 510000-slot global address space.",
+    "if_1000_addresses_per_simulation_collision_probability": 1,
+    "if_one_address_per_simulation_collision_probability": 0.21705101591,
+    "stated_addresses_per_simulation": 1000,
+    "stated_simulations": 500,
+    "supported_under_plain_birthday_bound": false,
+    "threshold": 0.01
+  },
+  "simulation_namespace_rows": [
+    {
+      "analytic_collision_probability": 0,
+      "equivalent_draws": 1,
+      "simulations": 1
+    },
+    {
+      "analytic_collision_probability": 0.000001960784,
+      "equivalent_draws": 2,
+      "simulations": 2
+    },
+    {
+      "analytic_collision_probability": 0.000019607709,
+      "equivalent_draws": 5,
+      "simulations": 5
+    },
+    {
+      "analytic_collision_probability": 0.000088231949,
+      "equivalent_draws": 10,
+      "simulations": 10
+    },
+    {
+      "analytic_collision_probability": 0.000588071732,
+      "equivalent_draws": 25,
+      "simulations": 25
+    },
+    {
+      "analytic_collision_probability": 0.002399155913,
+      "equivalent_draws": 50,
+      "simulations": 50
+    },
+    {
+      "analytic_collision_probability": 0.00965955746,
+      "equivalent_draws": 100,
+      "simulations": 100
+    },
+    {
+      "analytic_collision_probability": 0.059213796302,
+      "equivalent_draws": 250,
+      "simulations": 250
+    },
+    {
+      "analytic_collision_probability": 0.21705101591,
+      "equivalent_draws": 500,
+      "simulations": 500
+    }
+  ]
+}
