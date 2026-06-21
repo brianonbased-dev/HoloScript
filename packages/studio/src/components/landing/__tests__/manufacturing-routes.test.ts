@@ -49,6 +49,14 @@ const mocks = vi.hoisted(() => {
     units: 'same-as-bounds' as const,
   };
 
+  const backendDecision = {
+    backend: 'sovereign-sdf-marching-cubes' as const,
+    bridgeRequired: false,
+    requestedTolerance: null,
+    tolerance: precision,
+    reason: 'No mechanical tolerance was supplied.',
+  };
+
   // Minimal binary STL: 80-byte header + 4-byte triangle count (0) = 84 bytes
   const STL_HEADER = 'HoloScript STLExporter test';
   const stlBuffer = new ArrayBuffer(84);
@@ -62,11 +70,13 @@ const mocks = vi.hoisted(() => {
     triangles,
     printability,
     precision,
+    backendDecision,
     stlBuffer,
     STL_HEADER,
     marchingCubes: vi.fn(() => ({ vertices: positions, triangles })),
     analyzePrintability: vi.fn(() => printability),
     estimateMarchingCubesTolerance: vi.fn(() => precision),
+    decideManufacturingBackend: vi.fn(() => backendDecision),
     exportSTLBinary: vi.fn(() => stlBuffer),
   };
 });
@@ -78,6 +88,7 @@ vi.mock('@holoscript/engine', () => ({
     marchingCubes: mocks.marchingCubes,
     analyzePrintability: mocks.analyzePrintability,
     estimateMarchingCubesTolerance: mocks.estimateMarchingCubesTolerance,
+    decideManufacturingBackend: mocks.decideManufacturingBackend,
     exportSTLBinary: mocks.exportSTLBinary,
   },
 }));
@@ -111,12 +122,14 @@ describe('POST /api/manufacturing/mesh', () => {
     mocks.marchingCubes.mockClear();
     mocks.analyzePrintability.mockClear();
     mocks.estimateMarchingCubesTolerance.mockClear();
+    mocks.decideManufacturingBackend.mockClear();
     mocks.marchingCubes.mockReturnValue({
       vertices: mocks.positions,
       triangles: mocks.triangles,
     });
     mocks.analyzePrintability.mockReturnValue(mocks.printability);
     mocks.estimateMarchingCubesTolerance.mockReturnValue(mocks.precision);
+    mocks.decideManufacturingBackend.mockReturnValue(mocks.backendDecision);
   });
 
   it('returns positions, indices, and printability for a sphere SDF', async () => {
@@ -128,6 +141,7 @@ describe('POST /api/manufacturing/mesh', () => {
       indices: number[];
       printability: { recommendation: string; watertight: boolean };
       precision: { conservativeSurfaceError: number; units: string };
+      backendDecision: { backend: string; bridgeRequired: boolean };
     };
     expect(Array.isArray(body.positions)).toBe(true);
     expect(body.positions.length).toBe(mocks.positions.length);
@@ -137,9 +151,30 @@ describe('POST /api/manufacturing/mesh', () => {
     expect(body.printability.watertight).toBe(true);
     expect(body.precision.conservativeSurfaceError).toBe(mocks.precision.conservativeSurfaceError);
     expect(body.precision.units).toBe('same-as-bounds');
+    expect(body.backendDecision.backend).toBe('sovereign-sdf-marching-cubes');
+    expect(body.backendDecision.bridgeRequired).toBe(false);
     expect(mocks.estimateMarchingCubesTolerance).toHaveBeenCalledWith({
       resolution: [40, 40, 40],
       bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+    });
+    expect(mocks.decideManufacturingBackend).toHaveBeenCalledWith({
+      resolution: [40, 40, 40],
+      bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+      requestedTolerance: null,
+    });
+  });
+
+  it('passes mechanicalTolerance to the backend decision gate', async () => {
+    const req = makeRequest({
+      sdf: SPHERE_SDF,
+      mechanicalTolerance: 0.1,
+    }) as Parameters<typeof meshPOST>[0];
+    const res = await meshPOST(req);
+    expect(res.status).toBe(200);
+    expect(mocks.decideManufacturingBackend).toHaveBeenCalledWith({
+      resolution: [40, 40, 40],
+      bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+      requestedTolerance: 0.1,
     });
   });
 
@@ -193,6 +228,17 @@ describe('POST /api/manufacturing/mesh', () => {
     }) as Parameters<typeof meshPOST>[0];
     const res = await meshPOST(req);
     expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when mechanicalTolerance is not positive', async () => {
+    const req = makeRequest({
+      sdf: SPHERE_SDF,
+      mechanicalTolerance: 0,
+    }) as Parameters<typeof meshPOST>[0];
+    const res = await meshPOST(req);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/mechanicalTolerance/i);
   });
 });
 

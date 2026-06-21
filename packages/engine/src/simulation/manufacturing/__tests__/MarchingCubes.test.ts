@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { estimateMarchingCubesTolerance, marchingCubes } from '../MarchingCubes';
+import { decideManufacturingBackend, estimateMarchingCubesTolerance, marchingCubes } from '../MarchingCubes';
 import type { SDFNode } from '../../SDFPointEvaluator';
 import { sampleSDFDistanceField } from '../../SDFPointEvaluator';
 
@@ -304,6 +304,48 @@ describe('MarchingCubes tolerance estimate', () => {
 
   it('rejects invalid resolution the same way marchingCubes does', () => {
     expect(() => estimateMarchingCubesTolerance({ resolution: [1, 32, 32] })).toThrow();
+  });
+});
+
+describe('Manufacturing backend decision', () => {
+  const opts = {
+    bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+    resolution: [41, 41, 41],
+  } as const;
+
+  it('uses the sovereign SDF path when no mechanical tolerance is supplied', () => {
+    const decision = decideManufacturingBackend(opts);
+
+    expect(decision.backend).toBe('sovereign-sdf-marching-cubes');
+    expect(decision.bridgeRequired).toBe(false);
+    expect(decision.requestedTolerance).toBeNull();
+    expect(decision.tolerance.conservativeSurfaceError).toBeCloseTo(Math.hypot(0.05, 0.05, 0.05), 12);
+  });
+
+  it('keeps the sovereign SDF path when the conservative envelope is within tolerance', () => {
+    const decision = decideManufacturingBackend({
+      ...opts,
+      requestedTolerance: 0.1,
+    });
+
+    expect(decision.backend).toBe('sovereign-sdf-marching-cubes');
+    expect(decision.bridgeRequired).toBe(false);
+    expect(decision.reason).toMatch(/no OpenSCAD-WASM bridge is required/i);
+  });
+
+  it('requires OpenSCAD-WASM when tolerance is tighter than the SDF envelope', () => {
+    const decision = decideManufacturingBackend({
+      ...opts,
+      requestedTolerance: 0.01,
+    });
+
+    expect(decision.backend).toBe('openscad-wasm');
+    expect(decision.bridgeRequired).toBe(true);
+    expect(decision.reason).toMatch(/exact CAD backend/i);
+  });
+
+  it('rejects invalid requested tolerances', () => {
+    expect(() => decideManufacturingBackend({ ...opts, requestedTolerance: 0 })).toThrow();
   });
 });
 

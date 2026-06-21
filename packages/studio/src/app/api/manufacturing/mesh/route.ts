@@ -163,14 +163,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   let mechanicalTolerance: number | null = null;
-  if (raw['mechanicalTolerance'] !== undefined) {
-    if (!isFiniteNumber(raw['mechanicalTolerance']) || raw['mechanicalTolerance'] <= 0) {
+  const rawMechanicalTolerance = raw['mechanicalTolerance'];
+  if (rawMechanicalTolerance !== undefined) {
+    if (!isFiniteNumber(rawMechanicalTolerance) || rawMechanicalTolerance <= 0) {
       return NextResponse.json(
         { error: '`mechanicalTolerance` must be a positive finite number' },
         { status: 400 }
       );
     }
-    mechanicalTolerance = raw['mechanicalTolerance'];
+    mechanicalTolerance = rawMechanicalTolerance;
   }
 
   // Run marching cubes + printability analysis
