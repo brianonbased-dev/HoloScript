@@ -97,9 +97,56 @@ export interface PerceptualDistanceOptions {
   dampening?: number;
   steps?: number;
 }
+export type LabMetricTensor = readonly [
+  readonly [number, number, number],
+  readonly [number, number, number],
+  readonly [number, number, number],
+];
+export interface DeltaE2000MetricTensorOptions {
+  epsilon?: number;
+  regularization?: number;
+}
+export interface DeltaE2000GeodesicOptions extends DeltaE2000MetricTensorOptions {
+  segments?: number;
+  iterations?: number;
+  stepSize?: number;
+  gradientStep?: number;
+  maxCoordinateStep?: number;
+  clampLab?: boolean;
+}
+export interface DeltaE2000GeodesicResult {
+  path: Lab[];
+  length: number;
+  straightLength: number;
+  energy: number;
+  iterations: number;
+}
+export interface LanlGrayAchromaticAggregate {
+  Ls: number;
+  Lt1: number;
+  Lt2: number;
+  count: number;
+  choseT2: number;
+}
+export interface LanlGrayChoiceModelOptions {
+  dampening?: number;
+  noise?: number;
+}
+export interface LanlGrayFitOptions {
+  dampeningCandidates?: readonly number[];
+  noiseCandidates?: readonly number[];
+}
+export interface LanlGrayFitResult {
+  dampening: number;
+  noise: number;
+  negativeLogLikelihood: number;
+  meanAccuracy: number;
+  rows: number;
+}
 
 export const DAMPENING_OFF: number;
 export const DEFAULT_DAMPENING: number;
+export const DEFAULT_LANL_GRAY_NOISE: number;
 
 export function srgbToLinearChannel(c: number): number;
 export function linearToSrgbChannel(c: number): number;
@@ -114,12 +161,31 @@ export function labToSrgb(lab: Lab): SRGB;
 export function deltaE2000(lab1: Lab, lab2: Lab): number;
 export function dampen(x: number, tau?: number): number;
 export function arcLengthDeltaE2000(A: Lab, B: Lab, steps?: number): number;
+export function metricTensorDeltaE2000(center: Lab, options?: DeltaE2000MetricTensorOptions): LabMetricTensor;
+export function labMetricQuadraticForm(vector: readonly [number, number, number], metric: LabMetricTensor): number;
+export function metricTensorArcLengthDeltaE2000(A: Lab, B: Lab, steps?: number, options?: DeltaE2000MetricTensorOptions): number;
+export function solveDeltaE2000Geodesic(A: Lab, B: Lab, options?: DeltaE2000GeodesicOptions): DeltaE2000GeodesicResult;
+export function lanlGrayChoiceProbability(row: Pick<LanlGrayAchromaticAggregate, 'Ls' | 'Lt1' | 'Lt2'>, options?: LanlGrayChoiceModelOptions): number;
+export function lanlGrayNegativeLogLikelihood(rows: readonly LanlGrayAchromaticAggregate[], options?: LanlGrayChoiceModelOptions): number;
+export function lanlGrayMeanAccuracy(rows: readonly LanlGrayAchromaticAggregate[], options?: LanlGrayChoiceModelOptions): number;
+export function fitLanlGrayAchromaticModel(rows: readonly LanlGrayAchromaticAggregate[], options?: LanlGrayFitOptions): LanlGrayFitResult;
 export function perceptualDistance(a: SRGB, b: SRGB, options?: PerceptualDistanceOptions): number;
 export function nearestNeutral(c: SRGB): SRGB;
 export function lightness(c: SRGB): number;
 export function chroma(c: SRGB): number;
 export function hue(c: SRGB): number;
 export function perceptualLerp(a: SRGB, b: SRGB, t: number): SRGB;
+export const LANL_GRAY_ACHROMATIC_SOURCE: {
+  readonly repo: string;
+  readonly dataUrl: string;
+  readonly path: string;
+  readonly sha: string;
+  readonly columns: readonly string[];
+  readonly license: string;
+  readonly deposited: string;
+  readonly note: string;
+};
+export const LANL_GRAY_ACHROMATIC_AGGREGATES: readonly LanlGrayAchromaticAggregate[];
 
 export type PerceptualColorPassSource = 'palette' | 'gradient' | 'color_map';
 export type PerceptualColorMode = 'auto' | 'palette' | 'gradient' | 'color_map';

@@ -7,14 +7,25 @@ import {
   deltaE2000,
   perceptualDistance,
   arcLengthDeltaE2000,
+  metricTensorDeltaE2000,
+  metricTensorArcLengthDeltaE2000,
+  labMetricQuadraticForm,
+  solveDeltaE2000Geodesic,
   dampen,
   nearestNeutral,
   lightness,
   chroma,
   hue,
   perceptualLerp,
+  lanlGrayChoiceProbability,
+  lanlGrayNegativeLogLikelihood,
+  fitLanlGrayAchromaticModel,
   DAMPENING_OFF,
 } from '../perceptualColor';
+import {
+  LANL_GRAY_ACHROMATIC_AGGREGATES,
+  LANL_GRAY_ACHROMATIC_SOURCE,
+} from '../reference/lanlGrayAchromatic';
 
 const close = (x: number, y: number, eps = 1e-6) => Math.abs(x - y) <= eps;
 
@@ -155,6 +166,99 @@ describe('Non-Riemannian perceptual distance E = f(g)', () => {
     expect(dampen(0)).toBeCloseTo(0, 12);
     // τ → ∞ ⇒ identity
     expect(dampen(42, DAMPENING_OFF)).toBeCloseTo(42, 12);
+  });
+});
+
+describe('DeltaE2000 metric tensor + geodesic relaxation (Pant/Farup D-fit)', () => {
+  it('derives a symmetric positive local metric tensor', () => {
+    const metric = metricTensorDeltaE2000({ L: 50, a: 12, b: -8 });
+    expect(metric[0][1]).toBeCloseTo(metric[1][0], 12);
+    expect(metric[0][2]).toBeCloseTo(metric[2][0], 12);
+    expect(metric[1][2]).toBeCloseTo(metric[2][1], 12);
+
+    for (const vector of [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+      [0.5, -0.25, 0.75],
+    ] as const) {
+      expect(labMetricQuadraticForm(vector, metric)).toBeGreaterThan(0);
+    }
+  });
+
+  it('matches sampled DeltaE2000 arc length on a neutral-axis straight path', () => {
+    const A: Lab = { L: 20, a: 0, b: 0 };
+    const B: Lab = { L: 80, a: 0, b: 0 };
+    const sampled = arcLengthDeltaE2000(A, B, 96);
+    const tensor = metricTensorArcLengthDeltaE2000(A, B, 96);
+    expect(tensor).toBeCloseTo(sampled, 1);
+  });
+
+  it('keeps gray endpoints on the neutral axis while solving a geodesic path', () => {
+    const A: Lab = { L: 20, a: 0, b: 0 };
+    const B: Lab = { L: 80, a: 0, b: 0 };
+    const result = solveDeltaE2000Geodesic(A, B, {
+      segments: 8,
+      iterations: 20,
+      stepSize: 0.01,
+    });
+
+    expect(result.path).toHaveLength(9);
+    expect(result.length).toBeLessThanOrEqual(result.straightLength + 1e-8);
+    for (const point of result.path) {
+      expect(point.a).toBeCloseTo(0, 8);
+      expect(point.b).toBeCloseTo(0, 8);
+    }
+  });
+});
+
+describe('LANL achromatic gray-axis reference fit', () => {
+  it('records the upstream LANL data identity and compact aggregate schema', () => {
+    expect(LANL_GRAY_ACHROMATIC_SOURCE.path).toBe(
+      'Gray_Experiment/data/gray_complete_data_release.csv',
+    );
+    expect(LANL_GRAY_ACHROMATIC_SOURCE.sha).toBe(
+      '37fe92222edd4e081ed142ce3d7ca7ed40b6e4dc',
+    );
+    expect(LANL_GRAY_ACHROMATIC_AGGREGATES).toHaveLength(42);
+    expect(LANL_GRAY_ACHROMATIC_AGGREGATES[0]).toMatchObject({
+      Ls: 30,
+      Lt1: 15,
+      Lt2: 35,
+      count: 287,
+      choseT2: 37,
+    });
+  });
+
+  it('mirrors the LANL pnorm(m2 - m1) response semantics', () => {
+    const closerT2 = { Ls: 30, Lt1: 15, Lt2: 35, count: 287, choseT2: 37 };
+    const fartherT2 = { Ls: 30, Lt1: 25, Lt2: 45, count: 249, choseT2: 166 };
+    expect(lanlGrayChoiceProbability(closerT2, { dampening: 15, noise: 10 })).toBeLessThan(
+      0.5,
+    );
+    expect(lanlGrayChoiceProbability(fartherT2, { dampening: 15, noise: 10 })).toBeGreaterThan(
+      0.5,
+    );
+  });
+
+  it('fits finite non-Riemannian dampening better than the additive baseline', () => {
+    const fit = fitLanlGrayAchromaticModel(LANL_GRAY_ACHROMATIC_AGGREGATES, {
+      dampeningCandidates: [15, 30, DAMPENING_OFF],
+      noiseCandidates: [10, 20],
+    });
+    const additive = fitLanlGrayAchromaticModel(LANL_GRAY_ACHROMATIC_AGGREGATES, {
+      dampeningCandidates: [DAMPENING_OFF],
+      noiseCandidates: [10, 20],
+    });
+
+    expect(fit.dampening).toBe(15);
+    expect(fit.noise).toBe(10);
+    expect(fit.negativeLogLikelihood).toBeLessThan(additive.negativeLogLikelihood);
+    expect(fit.meanAccuracy).toBeGreaterThan(0.9);
+    expect(lanlGrayNegativeLogLikelihood(LANL_GRAY_ACHROMATIC_AGGREGATES, fit)).toBeCloseTo(
+      fit.negativeLogLikelihood,
+      8,
+    );
   });
 });
 

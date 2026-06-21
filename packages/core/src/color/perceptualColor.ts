@@ -30,16 +30,16 @@
  *
  * APPROXIMATED (clearly flagged — replace when the LANL group publishes the explicit form):
  *   - The GLOBAL non-Riemannian distance E = f(g): no closed-form non-Riemannian / Finsler
- *     line element exists in the literature as of 2026-06. We model g as the arc length of
- *     the LOCAL ΔE2000 metric along the straight CIELAB segment (an additive geodesic-length
- *     approximation; the true geodesic needs a relaxation solver on the ΔE2000 metric tensor
- *     of Raj Pant & Farup 2012 — see TODO), and f as a configurable concave dampening
- *     function. The default f satisfies f'(0)=1 (so E ≈ ΔE2000 for small differences, matching
- *     the local metric) and is strictly subadditive (so large steps show diminishing returns,
- *     matching PNAS 2022). The exact f from the LANL achromatic fit (power-law / Hermite spline,
- *     data at github.com/lanl/color) is a TODO.
- *   - perceptualLerp interpolates along the straight CIELAB segment (already far better than
- *     RGB lerp); true non-Riemannian geodesic interpolation is a TODO (same solver as above).
+ *     line element exists in the literature as of 2026-06. We model g either as the straight
+ *     CIELAB arc length or via solveDeltaE2000Geodesic(), a discrete relaxation solver over
+ *     the finite-difference ΔE2000 metric tensor in the spirit of Raj Pant & Farup 2012.
+ *     The default f satisfies f'(0)=1 (so E ≈ ΔE2000 for small differences, matching the local
+ *     metric) and is strictly subadditive (so large steps show diminishing returns, matching
+ *     PNAS 2022). The LANL gray-axis helper fits this dampening on a compact official aggregate
+ *     fixture; it is not the full LANL spline/power-law parameter release.
+ *   - perceptualLerp still interpolates along the straight CIELAB segment (already far better
+ *     than RGB lerp); callers that need the curved local-metric path can use
+ *     solveDeltaE2000Geodesic().
  *
  * This is the D1 spike. The @perceptual_color trait (D2) and the compiler color pass (D3)
  * are gated on D1 validation per research/2026-06-14_schrodinger-color-theory-AUTONOMIZE.md.
@@ -76,6 +76,81 @@ export interface PerceptualDistanceOptions {
   steps?: number;
 }
 
+/** Local DeltaE2000 Riemannian metric tensor in CIELAB coordinates. */
+export type LabMetricTensor = readonly [
+  readonly [number, number, number],
+  readonly [number, number, number],
+  readonly [number, number, number],
+];
+
+export interface DeltaE2000MetricTensorOptions {
+  /** Finite-difference step in CIELAB units. Default 1e-3. */
+  epsilon?: number;
+  /** Small diagonal stabilizer for numerical degeneracies. Default 1e-12. */
+  regularization?: number;
+}
+
+export interface DeltaE2000GeodesicOptions extends DeltaE2000MetricTensorOptions {
+  /** Number of piecewise-linear segments in the relaxed path. Default 12. */
+  segments?: number;
+  /** Gradient-relaxation passes over the interior points. Default 40. */
+  iterations?: number;
+  /** Gradient descent scale for each coordinate update. Default 0.02. */
+  stepSize?: number;
+  /** Finite-difference step for the path-energy gradient. Default 0.05. */
+  gradientStep?: number;
+  /** Per-iteration coordinate clamp, in CIELAB units. Default 0.35. */
+  maxCoordinateStep?: number;
+  /** Clamp relaxed Lab points to display-oriented bounds. Default true. */
+  clampLab?: boolean;
+}
+
+export interface DeltaE2000GeodesicResult {
+  /** Endpoints plus relaxed interior CIELAB points. */
+  path: Lab[];
+  /** Metric-tensor length of the relaxed path. */
+  length: number;
+  /** Metric-tensor length of the straight CIELAB segment. */
+  straightLength: number;
+  /** Discrete energy minimized by the relaxation solver. */
+  energy: number;
+  /** Number of relaxation iterations attempted. */
+  iterations: number;
+}
+
+export interface LanlGrayAchromaticAggregate {
+  /** Standard achromatic L* value. */
+  Ls: number;
+  /** First comparison achromatic L* value. */
+  Lt1: number;
+  /** Second comparison achromatic L* value. */
+  Lt2: number;
+  /** Number of official LANL responses aggregated for this triad. */
+  count: number;
+  /** Number of responses where the participant chose test 2 as more different. */
+  choseT2: number;
+}
+
+export interface LanlGrayChoiceModelOptions {
+  /** Dampening scale used by f(d). Use DAMPENING_OFF for the additive baseline. */
+  dampening?: number;
+  /** Gaussian decision noise, matching the LANL R script's pnorm scale. */
+  noise?: number;
+}
+
+export interface LanlGrayFitOptions {
+  dampeningCandidates?: readonly number[];
+  noiseCandidates?: readonly number[];
+}
+
+export interface LanlGrayFitResult {
+  dampening: number;
+  noise: number;
+  negativeLogLikelihood: number;
+  meanAccuracy: number;
+  rows: number;
+}
+
 /**
  * Pass as `dampening` to disable the non-Riemannian correction and recover the additive
  * (Riemannian) baseline. Equivalent to f = identity.
@@ -84,6 +159,9 @@ export const DAMPENING_OFF = Number.POSITIVE_INFINITY;
 
 /** Default dampening scale τ (CIELAB ΔE units). Placeholder pending the LANL fit. */
 export const DEFAULT_DAMPENING = 30;
+
+/** Default decision-noise scale for compact LANL achromatic response fits. */
+export const DEFAULT_LANL_GRAY_NOISE = 10;
 
 // ---------------------------------------------------------------------------
 // sRGB ⇄ linear ⇄ XYZ ⇄ CIELAB (D65). All standard, exact.
@@ -283,8 +361,9 @@ export function dampen(x: number, tau: number = DEFAULT_DAMPENING): number {
  * input g to the dampening f. For nearly-equal colors this ≈ ΔE2000(A,B).
  *
  * APPROXIMATION: the true geodesic minimises this length over curved paths in the
- * ΔE2000 metric (needs a relaxation solver, Bujack et al. TVCG 2023); the straight
- * CIELAB segment is a defensible upper-bound starting point. See module honesty ledger.
+ * ΔE2000 metric; solveDeltaE2000Geodesic() provides a discrete relaxation solver when
+ * callers need that curved local-metric path. The straight CIELAB segment remains a
+ * cheap upper-bound starting point.
  */
 export function arcLengthDeltaE2000(A: Lab, B: Lab, steps = 24): number {
   const n = Math.max(1, Math.floor(steps));
@@ -301,6 +380,362 @@ export function arcLengthDeltaE2000(A: Lab, B: Lab, steps = 24): number {
     prev = cur;
   }
   return total;
+}
+
+const LAB_COORDINATES = ['L', 'a', 'b'] as const;
+
+function offsetLab(c: Lab, offsets: readonly [number, number, number]): Lab {
+  return { L: c.L + offsets[0], a: c.a + offsets[1], b: c.b + offsets[2] };
+}
+
+function squaredDeltaAtOffset(center: Lab, offsets: readonly [number, number, number]): number {
+  const d = deltaE2000(center, offsetLab(center, offsets));
+  return d * d;
+}
+
+function clampLabPoint(c: Lab): Lab {
+  return {
+    L: Math.min(100, Math.max(0, c.L)),
+    a: Math.min(200, Math.max(-200, c.a)),
+    b: Math.min(200, Math.max(-200, c.b)),
+  };
+}
+
+function interpolateLab(A: Lab, B: Lab, t: number): Lab {
+  return {
+    L: A.L + (B.L - A.L) * t,
+    a: A.a + (B.a - A.a) * t,
+    b: A.b + (B.b - A.b) * t,
+  };
+}
+
+function labDelta(A: Lab, B: Lab): [number, number, number] {
+  return [B.L - A.L, B.a - A.a, B.b - A.b];
+}
+
+/**
+ * Numerically derives the local DeltaE2000 metric tensor at a CIELAB point.
+ *
+ * Pant & Farup (2012) derive Riemannian metric tensors from color-difference line
+ * elements. DeltaE2000 is not algebraically pleasant, so this computes the same
+ * local quadratic form by finite-difference polarization of DeltaE2000^2.
+ */
+export function metricTensorDeltaE2000(
+  center: Lab,
+  options: DeltaE2000MetricTensorOptions = {},
+): LabMetricTensor {
+  const epsilon = Math.max(Math.abs(options.epsilon ?? 1e-3), 1e-9);
+  const regularization = Math.max(0, options.regularization ?? 1e-12);
+  const epsilonSq = epsilon * epsilon;
+  const metric: [
+    [number, number, number],
+    [number, number, number],
+    [number, number, number],
+  ] = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    const plus: [number, number, number] = [0, 0, 0];
+    const minus: [number, number, number] = [0, 0, 0];
+    plus[i] = epsilon;
+    minus[i] = -epsilon;
+    metric[i][i] =
+      (squaredDeltaAtOffset(center, plus) + squaredDeltaAtOffset(center, minus)) /
+        (2 * epsilonSq) +
+      regularization;
+  }
+
+  for (let i = 0; i < 3; i++) {
+    for (let j = i + 1; j < 3; j++) {
+      const pp: [number, number, number] = [0, 0, 0];
+      const pm: [number, number, number] = [0, 0, 0];
+      const mp: [number, number, number] = [0, 0, 0];
+      const mm: [number, number, number] = [0, 0, 0];
+      pp[i] = epsilon;
+      pp[j] = epsilon;
+      pm[i] = epsilon;
+      pm[j] = -epsilon;
+      mp[i] = -epsilon;
+      mp[j] = epsilon;
+      mm[i] = -epsilon;
+      mm[j] = -epsilon;
+      const gij =
+        (squaredDeltaAtOffset(center, pp) +
+          squaredDeltaAtOffset(center, mm) -
+          squaredDeltaAtOffset(center, pm) -
+          squaredDeltaAtOffset(center, mp)) /
+        (8 * epsilonSq);
+      metric[i][j] = gij;
+      metric[j][i] = gij;
+    }
+  }
+
+  return metric;
+}
+
+/** Evaluates v^T G v for a Lab-coordinate vector and metric tensor. */
+export function labMetricQuadraticForm(
+  vector: readonly [number, number, number],
+  metric: LabMetricTensor,
+): number {
+  let total = 0;
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) total += vector[i] * metric[i][j] * vector[j];
+  }
+  return total;
+}
+
+/**
+ * Arc length of the straight CIELAB segment, evaluated through the finite-difference
+ * DeltaE2000 metric tensor instead of pairwise DeltaE2000 samples.
+ */
+export function metricTensorArcLengthDeltaE2000(
+  A: Lab,
+  B: Lab,
+  steps = 24,
+  options: DeltaE2000MetricTensorOptions = {},
+): number {
+  const n = Math.max(1, Math.floor(steps));
+  let total = 0;
+  let prev = A;
+  for (let i = 1; i <= n; i++) {
+    const cur = interpolateLab(A, B, i / n);
+    const mid = interpolateLab(prev, cur, 0.5);
+    const metric = metricTensorDeltaE2000(mid, options);
+    total += Math.sqrt(Math.max(0, labMetricQuadraticForm(labDelta(prev, cur), metric)));
+    prev = cur;
+  }
+  return total;
+}
+
+function metricSegmentEnergy(
+  A: Lab,
+  B: Lab,
+  options: DeltaE2000MetricTensorOptions = {},
+): number {
+  const mid = interpolateLab(A, B, 0.5);
+  const metric = metricTensorDeltaE2000(mid, options);
+  return Math.max(0, labMetricQuadraticForm(labDelta(A, B), metric));
+}
+
+function metricPathEnergy(path: readonly Lab[], options: DeltaE2000MetricTensorOptions): number {
+  let total = 0;
+  for (let i = 1; i < path.length; i++) total += metricSegmentEnergy(path[i - 1], path[i], options);
+  return total;
+}
+
+function metricPathLength(path: readonly Lab[], options: DeltaE2000MetricTensorOptions): number {
+  let total = 0;
+  for (let i = 1; i < path.length; i++) {
+    total += Math.sqrt(metricSegmentEnergy(path[i - 1], path[i], options));
+  }
+  return total;
+}
+
+function withCoordinate(c: Lab, coordinate: (typeof LAB_COORDINATES)[number], value: number): Lab {
+  return coordinate === 'L'
+    ? { ...c, L: value }
+    : coordinate === 'a'
+      ? { ...c, a: value }
+      : { ...c, b: value };
+}
+
+function perturbPathCoordinate(
+  path: readonly Lab[],
+  index: number,
+  coordinate: (typeof LAB_COORDINATES)[number],
+  delta: number,
+  clamp: boolean,
+): Lab[] {
+  const next = path.slice();
+  const point = path[index];
+  const value = coordinate === 'L' ? point.L : coordinate === 'a' ? point.a : point.b;
+  const moved = withCoordinate(point, coordinate, value + delta);
+  next[index] = clamp ? clampLabPoint(moved) : moved;
+  return next;
+}
+
+/**
+ * Discrete geodesic relaxation for the local DeltaE2000 metric tensor.
+ *
+ * This is a practical numerical solver, not a closed-form geodesic equation solver:
+ * it minimizes the sampled path energy over interior Lab points using finite-difference
+ * gradients while keeping endpoints fixed. That makes the D-fit path explicit and
+ * testable without inventing unpublished LANL parameters.
+ */
+export function solveDeltaE2000Geodesic(
+  A: Lab,
+  B: Lab,
+  options: DeltaE2000GeodesicOptions = {},
+): DeltaE2000GeodesicResult {
+  const segments = Math.max(1, Math.floor(options.segments ?? 12));
+  const iterations = Math.max(0, Math.floor(options.iterations ?? 40));
+  const stepSize = Math.max(0, options.stepSize ?? 0.02);
+  const gradientStep = Math.max(1e-6, options.gradientStep ?? 0.05);
+  const maxCoordinateStep = Math.max(0, options.maxCoordinateStep ?? 0.35);
+  const clamp = options.clampLab ?? true;
+  const metricOptions: DeltaE2000MetricTensorOptions = {
+    epsilon: options.epsilon,
+    regularization: options.regularization,
+  };
+  const path: Lab[] = [];
+  for (let i = 0; i <= segments; i++) path.push(interpolateLab(A, B, i / segments));
+
+  for (let iteration = 0; iteration < iterations; iteration++) {
+    let accepted = 0;
+    for (let i = 1; i < path.length - 1; i++) {
+      const before = metricPathEnergy(path, metricOptions);
+      let candidatePoint = path[i];
+
+      for (const coordinate of LAB_COORDINATES) {
+        const plus = perturbPathCoordinate(path, i, coordinate, gradientStep, clamp);
+        const minus = perturbPathCoordinate(path, i, coordinate, -gradientStep, clamp);
+        const gradient =
+          (metricPathEnergy(plus, metricOptions) - metricPathEnergy(minus, metricOptions)) /
+          (2 * gradientStep);
+        const rawMove = -stepSize * gradient;
+        const move = Math.min(maxCoordinateStep, Math.max(-maxCoordinateStep, rawMove));
+        const value =
+          coordinate === 'L'
+            ? candidatePoint.L
+            : coordinate === 'a'
+              ? candidatePoint.a
+              : candidatePoint.b;
+        candidatePoint = withCoordinate(candidatePoint, coordinate, value + move);
+        if (clamp) candidatePoint = clampLabPoint(candidatePoint);
+      }
+
+      const candidate = path.slice();
+      candidate[i] = candidatePoint;
+      if (metricPathEnergy(candidate, metricOptions) <= before + 1e-12) {
+        path[i] = candidatePoint;
+        accepted++;
+      }
+    }
+    if (accepted === 0) break;
+  }
+
+  return {
+    path,
+    length: metricPathLength(path, metricOptions),
+    straightLength: metricTensorArcLengthDeltaE2000(A, B, segments, metricOptions),
+    energy: metricPathEnergy(path, metricOptions),
+    iterations,
+  };
+}
+
+function erfApprox(x: number): number {
+  const sign = x < 0 ? -1 : 1;
+  const absX = Math.abs(x);
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+  const t = 1 / (1 + p * absX);
+  const y =
+    1 -
+    (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX));
+  return sign * y;
+}
+
+function normalCdf(x: number): number {
+  return 0.5 * (1 + erfApprox(x / Math.SQRT2));
+}
+
+function clampProbability(p: number): number {
+  return Math.min(1 - 1e-12, Math.max(1e-12, p));
+}
+
+/**
+ * Probability that a LANL gray-axis triad response chooses test 2 as more different.
+ * Mirrors the LANL R analysis: pnorm(m2 - m1), with m1/m2 transformed differences.
+ */
+export function lanlGrayChoiceProbability(
+  row: Pick<LanlGrayAchromaticAggregate, 'Ls' | 'Lt1' | 'Lt2'>,
+  options: LanlGrayChoiceModelOptions = {},
+): number {
+  const dampening = options.dampening ?? DEFAULT_DAMPENING;
+  const noise = Math.max(1e-9, Math.abs(options.noise ?? DEFAULT_LANL_GRAY_NOISE));
+  const d1 = Math.abs(row.Ls - row.Lt1);
+  const d2 = Math.abs(row.Ls - row.Lt2);
+  return clampProbability(normalCdf((dampen(d2, dampening) - dampen(d1, dampening)) / noise));
+}
+
+export function lanlGrayNegativeLogLikelihood(
+  rows: readonly LanlGrayAchromaticAggregate[],
+  options: LanlGrayChoiceModelOptions = {},
+): number {
+  let total = 0;
+  for (const row of rows) {
+    if (row.count <= 0) continue;
+    const choseT2 = Math.min(row.count, Math.max(0, row.choseT2));
+    const p = lanlGrayChoiceProbability(row, options);
+    total -= choseT2 * Math.log(p) + (row.count - choseT2) * Math.log(1 - p);
+  }
+  return total;
+}
+
+export function lanlGrayMeanAccuracy(
+  rows: readonly LanlGrayAchromaticAggregate[],
+  options: LanlGrayChoiceModelOptions = {},
+): number {
+  let weightedAccuracy = 0;
+  let totalCount = 0;
+  for (const row of rows) {
+    if (row.count <= 0) continue;
+    const predictedT2 = lanlGrayChoiceProbability(row, options) * row.count;
+    weightedAccuracy += row.count * (1 - Math.abs(row.choseT2 - predictedT2) / row.count);
+    totalCount += row.count;
+  }
+  return totalCount > 0 ? weightedAccuracy / totalCount : 0;
+}
+
+/** Grid-search fit for the compact LANL achromatic gray-axis aggregate fixture. */
+export function fitLanlGrayAchromaticModel(
+  rows: readonly LanlGrayAchromaticAggregate[],
+  options: LanlGrayFitOptions = {},
+): LanlGrayFitResult {
+  if (rows.length === 0) {
+    throw new Error('fitLanlGrayAchromaticModel requires at least one aggregate row');
+  }
+
+  const dampeningCandidates = options.dampeningCandidates ?? [
+    10,
+    15,
+    20,
+    30,
+    45,
+    60,
+    90,
+    DAMPENING_OFF,
+  ];
+  const noiseCandidates = options.noiseCandidates ?? [4, 6, 8, 10, 12, 15, 20];
+  let best: LanlGrayFitResult | undefined;
+
+  for (const dampening of dampeningCandidates) {
+    for (const noise of noiseCandidates) {
+      const negativeLogLikelihood = lanlGrayNegativeLogLikelihood(rows, { dampening, noise });
+      if (!best || negativeLogLikelihood < best.negativeLogLikelihood) {
+        best = {
+          dampening,
+          noise,
+          negativeLogLikelihood,
+          meanAccuracy: lanlGrayMeanAccuracy(rows, { dampening, noise }),
+          rows: rows.length,
+        };
+      }
+    }
+  }
+
+  if (!best) {
+    throw new Error('fitLanlGrayAchromaticModel requires at least one dampening and noise candidate');
+  }
+  return best;
 }
 
 /**

@@ -3,3 +3,4 @@
  * See ./perceptualColor for the full honesty ledger (exact vs. approximated).
  */
 export * from './perceptualColor';
+export * from './reference/lanlGrayAchromatic';
