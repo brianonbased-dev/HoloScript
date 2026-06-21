@@ -1,0 +1,163 @@
+{
+  "generatedAt": "2026-06-21T06:28:06.972Z",
+  "fetchedAt": "2026-06-21T06:28:06.074Z",
+  "source": {
+    "apiBase": "https://mcp.holoscript.net/api/holomesh",
+    "teamId": "team_1777834718247_unr35n",
+    "endpoint": "/team/team_1777834718247_unr35n/board/done",
+    "reportedDoneCount": 2841,
+    "fetchedEntries": 2841,
+    "pageLimit": 1000
+  },
+  "split": {
+    "strategy": "chronological-70-30",
+    "trainRatio": 0.7,
+    "splitIndex": 1988,
+    "trainEntries": 1988,
+    "testEntries": 853,
+    "trainStart": "2026-05-05T00:10:22.235Z",
+    "trainEnd": "2026-05-26T23:51:02.912Z",
+    "testStart": "2026-05-26T23:57:47.501Z",
+    "testEnd": "2026-06-21T06:25:34.433Z"
+  },
+  "model": {
+    "target": "same-task-type inter-completion seconds",
+    "taskTypePredictor": "mean inter-completion seconds per broad title-derived task type",
+    "baseline": "global mean inter-completion seconds from the training split",
+    "globalMeanSec": 5708.47,
+    "typeModels": {
+      "paper": {
+        "n": 135,
+        "meanSec": 13997.411
+      },
+      "other": {
+        "n": 1061,
+        "meanSec": 1781.984
+      },
+      "security": {
+        "n": 140,
+        "meanSec": 13501.834
+      },
+      "holoscript": {
+        "n": 502,
+        "meanSec": 3732.898
+      },
+      "studio": {
+        "n": 81,
+        "meanSec": 22205.425
+      },
+      "idea-seed": {
+        "n": 45,
+        "meanSec": 35862.389
+      },
+      "recursive-mas": {
+        "n": 4,
+        "meanSec": 52826.936
+      },
+      "psf": {
+        "n": 8,
+        "meanSec": 2262.109
+      },
+      "program-wide": {
+        "n": 3,
+        "meanSec": 36900.721
+      }
+    },
+    "classifierRules": [
+      "title containing RecursiveMAS -> recursive-mas",
+      "title containing paper marker or Paper <number> -> paper",
+      "title containing program-wide -> program-wide",
+      "title containing PSF -> psf",
+      "title containing security/signing/audit/vault -> security",
+      "title containing idea-seed/platform/language/vrr -> idea-seed",
+      "title containing studio/sidebar/ui/panel -> studio",
+      "title containing holo/holoscript/holomesh/hololand -> holoscript",
+      "otherwise -> other"
+    ]
+  },
+  "totals": {
+    "completions": 2841,
+    "trainObservations": 1979,
+    "testObservations": 853,
+    "boundaryTestObservations": 8,
+    "taskTypesTrain": 9,
+    "taskTypesTest": 8
+  },
+  "metrics": {
+    "maeTypeAwareSec": 17559.325,
+    "maeGlobalMeanSec": 19251.416,
+    "improvementPct": 8.789,
+    "supportsFortyPctClaim": false
+  },
+  "perType": {
+    "other": {
+      "testN": 494,
+      "trainN": 1061,
+      "maeTypeAwareSec": 4791.478,
+      "maeGlobalMeanSec": 7770.127,
+      "improvementPct": 38.335,
+      "meanActualSec": 4419.483
+    },
+    "holoscript": {
+      "testN": 211,
+      "trainN": 502,
+      "maeTypeAwareSec": 10589.654,
+      "maeGlobalMeanSec": 11641.359,
+      "improvementPct": 9.034,
+      "meanActualSec": 10347.232
+    },
+    "paper": {
+      "testN": 52,
+      "trainN": 135,
+      "maeTypeAwareSec": 46938.164,
+      "maeGlobalMeanSec": 43324.677,
+      "improvementPct": -8.34,
+      "meanActualSec": 42185.801
+    },
+    "studio": {
+      "testN": 47,
+      "trainN": 81,
+      "maeTypeAwareSec": 49282.712,
+      "maeGlobalMeanSec": 44131.505,
+      "improvementPct": -11.672,
+      "meanActualSec": 46084.509
+    },
+    "security": {
+      "testN": 40,
+      "trainN": 140,
+      "maeTypeAwareSec": 51415.655,
+      "maeGlobalMeanSec": 51670.347,
+      "improvementPct": 0.493,
+      "meanActualSec": 54601.594
+    },
+    "idea-seed": {
+      "testN": 6,
+      "trainN": 45,
+      "maeTypeAwareSec": 354953.367,
+      "maeGlobalMeanSec": 365004.674,
+      "improvementPct": 2.754,
+      "meanActualSec": 367558.68
+    },
+    "program-wide": {
+      "testN": 2,
+      "trainN": 3,
+      "maeTypeAwareSec": 294486.376,
+      "maeGlobalMeanSec": 325678.627,
+      "improvementPct": 9.578,
+      "meanActualSec": 331387.097
+    },
+    "recursive-mas": {
+      "testN": 1,
+      "trainN": 4,
+      "maeTypeAwareSec": 844306.172,
+      "maeGlobalMeanSec": 891424.638,
+      "improvementPct": 5.286,
+      "meanActualSec": 897133.108
+    }
+  },
+  "caveats": [
+    "Done-log entries provide completion timestamps, not claimedAt timestamps; target is inter-completion cadence, not exact open-to-done latency.",
+    "The first held-out observation for each task type may use the final training-set event as its previous same-type timestamp, matching chronological forecasting at the split boundary.",
+    "Task type is title-derived and intentionally broad to match the seed paper classifier."
+  ]
+}
