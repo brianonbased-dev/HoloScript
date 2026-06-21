@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
+import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import {
   SYSTEM_PROMPT_FRESH,
   SYSTEM_PROMPT_EDIT_SUFFIX,
@@ -44,8 +45,8 @@ export const maxDuration = 30;
 const MAX_UTTERANCE_CHARS = 4000;
 const MAX_REQUESTS_PER_MIN = 15;
 
-function makeClient(): Anthropic | null {
-  const key = process.env.ANTHROPIC_API_KEY;
+async function makeClient(): Promise<Anthropic | null> {
+  const key = await resolveStudioServiceSecret('ANTHROPIC_API_KEY');
   if (!key) return null;
   return new Anthropic({ apiKey: key });
 }
@@ -112,7 +113,7 @@ export async function POST(
     return gate.error as unknown as NextResponse<VoiceToHoloError>;
   }
 
-  const client = makeClient();
+  const client = await makeClient();
   if (!client) {
     return NextResponse.json(
       { error: { kind: 'llm-request-failed', message: 'ANTHROPIC_API_KEY not set on server' } },

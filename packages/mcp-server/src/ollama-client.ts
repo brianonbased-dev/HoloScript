@@ -47,17 +47,14 @@ function detectProvider(): LLMProviderName {
 const LLM_PROVIDER: LLMProviderName = detectProvider();
 
 // ── OpenRouter config ───────────────────────────────────────────────────────
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-haiku-4.5';
 
 // ── Anthropic config ─────────────────────────────────────────────────────────
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 // Use the alias (auto-resolves to latest pinned build) not the date-suffixed ID.
 // Haiku is the right default here — this is a fallback path for cheap/fast calls.
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 
 // ── OpenAI config ────────────────────────────────────────────────────────────
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 // ── Ollama config (local fallback only) ──────────────────────────────────────
@@ -97,7 +94,7 @@ let _ollamaAdapter: LocalLLMAdapter | null = null;
 // DB hit on the hot path. Fully fallback-safe: vault off / key not in vault → the env const.
 async function getAnthropicAdapter(): Promise<AnthropicAdapter | null> {
   if (_anthropicAdapter) return _anthropicAdapter;
-  const apiKey = (await resolveServiceSecret('ANTHROPIC_API_KEY')) || ANTHROPIC_API_KEY;
+  const apiKey = await resolveServiceSecret('ANTHROPIC_API_KEY');
   if (!apiKey) return null;
   _anthropicAdapter = new AnthropicAdapter({
     apiKey,
@@ -109,7 +106,7 @@ async function getAnthropicAdapter(): Promise<AnthropicAdapter | null> {
 
 async function getOpenAIAdapter(): Promise<OpenAIAdapter | null> {
   if (_openaiAdapter) return _openaiAdapter;
-  const apiKey = (await resolveServiceSecret('OPENAI_API_KEY')) || OPENAI_API_KEY;
+  const apiKey = await resolveServiceSecret('OPENAI_API_KEY');
   if (!apiKey) return null;
   _openaiAdapter = new OpenAIAdapter({
     apiKey,
@@ -121,7 +118,7 @@ async function getOpenAIAdapter(): Promise<OpenAIAdapter | null> {
 
 async function getOpenRouterAdapter(): Promise<OpenRouterAdapter | null> {
   if (_openrouterAdapter) return _openrouterAdapter;
-  const apiKey = (await resolveServiceSecret('OPENROUTER_API_KEY')) || OPENROUTER_API_KEY;
+  const apiKey = await resolveServiceSecret('OPENROUTER_API_KEY');
   if (!apiKey) return null;
   _openrouterAdapter = new OpenRouterAdapter({
     apiKey,
@@ -316,11 +313,11 @@ export async function isOllamaAvailable(): Promise<boolean> {
   try {
     switch (LLM_PROVIDER) {
       case 'openrouter':
-        return !!OPENROUTER_API_KEY;
+        return Boolean(await resolveServiceSecret('OPENROUTER_API_KEY'));
       case 'anthropic':
-        return !!ANTHROPIC_API_KEY;
+        return Boolean(await resolveServiceSecret('ANTHROPIC_API_KEY'));
       case 'openai':
-        return !!OPENAI_API_KEY;
+        return Boolean(await resolveServiceSecret('OPENAI_API_KEY'));
       case 'ollama':
       default:
         // Use the adapter's healthCheck for Ollama (pings /health or /v1/models)

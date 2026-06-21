@@ -28,6 +28,7 @@ import {
   normalizeServiceSecretRef,
   resolveServiceIdentity,
   type ServiceIdentity,
+  type NormalizedServiceSecretRef,
 } from './service-identity';
 
 type Env = Record<string, string | undefined>;
@@ -65,6 +66,36 @@ export interface ServiceSecretResolver {
   identity(): ServiceIdentity;
 }
 
+function isOperationalSecretRef(value: string | undefined): value is string {
+  const trimmed = value?.trim();
+  return Boolean(trimmed && (trimmed.startsWith('vault:') || trimmed.startsWith('infra://')));
+}
+
+async function resolveVaultValue(args: {
+  vault: HoloKeyVault;
+  serviceIdentity: ServiceIdentity;
+  normalized: NormalizedServiceSecretRef;
+}): Promise<string | undefined> {
+  try {
+    const { value } = await args.vault.resolver.resolve({
+      authenticatedOwnerId: args.serviceIdentity.ownerId,
+      ref: args.normalized.ref,
+      purpose: 'service-config',
+    });
+    return value;
+  } catch {
+    return undefined;
+  }
+}
+
+function tryNormalizeServiceSecretRef(input: string): NormalizedServiceSecretRef | null {
+  try {
+    return normalizeServiceSecretRef(input);
+  } catch {
+    return null;
+  }
+}
+
 export function createServiceSecretResolver(
   opts: ServiceSecretResolverOpts = {}
 ): ServiceSecretResolver {
@@ -96,21 +127,25 @@ export function createServiceSecretResolver(
 
   return {
     async resolve(nameOrRef: string): Promise<string | undefined> {
-      const { ref, envName } = normalizeServiceSecretRef(nameOrRef);
+      const normalized = normalizeServiceSecretRef(nameOrRef);
       const v = ensureVault();
       if (v) {
         try {
-          const { value } = await v.resolver.resolve({
-            authenticatedOwnerId: serviceIdentity.ownerId,
-            ref,
-            purpose: 'service-config',
-          });
-          return value;
+          const value = await resolveVaultValue({ vault: v, serviceIdentity, normalized });
+          if (value !== undefined) return value;
         } catch {
           // not-in-vault / denied / decrypt error → fall back to env (the migration bridge).
         }
       }
-      return env[envName];
+      const fallback = env[normalized.envName];
+      if (isOperationalSecretRef(fallback)) {
+        const fallbackRef = tryNormalizeServiceSecretRef(fallback);
+        if (v && fallbackRef) {
+          return resolveVaultValue({ vault: v, serviceIdentity, normalized: fallbackRef });
+        }
+        return undefined;
+      }
+      return fallback;
     },
     vaultEnabled(): boolean {
       return ensureVault() !== null;

@@ -6,6 +6,7 @@ import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { stripMarkdownFences } from '@/lib/brittney/holoValidator';
 import { validateGeneratedHoloOutput } from '@/lib/brittney/generatedOutputGate';
 import { requireAuth } from '@/lib/api-auth';
+import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../_lib/cors';
 import { readJsonBody } from '../_lib/body-size';
 import {
@@ -227,9 +228,11 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   // on 429/5xx + Retry-After honoring.
   const providers: Array<{ name: string; call: () => Promise<string | null> }> = [];
 
-  const openrouterKey = process.env.OPENROUTER_API_KEY || '';
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
-  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const [openrouterKey, anthropicKey, openaiKey] = await Promise.all([
+    resolveStudioServiceSecret('OPENROUTER_API_KEY'),
+    resolveStudioServiceSecret('ANTHROPIC_API_KEY'),
+    resolveStudioServiceSecret('OPENAI_API_KEY'),
+  ]);
 
   if (openrouterKey) {
     const adapter = new OpenRouterAdapter({ apiKey: openrouterKey });

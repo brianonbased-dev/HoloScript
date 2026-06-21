@@ -3,15 +3,22 @@ export const maxDuration = 300;
 import { NextResponse } from 'next/server';
 import { getDb } from '../../../db/client';
 import { holomeshBoardTasks } from '../../../db/schema';
+import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { sql } from 'drizzle-orm';
 
 /**
  * Cloud-first AI detection. Ollama is an optional local fallback — never required.
  */
-function detectAIProvider(): { provider: string; connected: boolean } {
-  if (process.env.OPENROUTER_API_KEY) return { provider: 'openrouter', connected: true };
-  if (process.env.ANTHROPIC_API_KEY) return { provider: 'anthropic', connected: true };
-  if (process.env.OPENAI_API_KEY) return { provider: 'openai', connected: true };
+async function detectAIProvider(): Promise<{ provider: string; connected: boolean }> {
+  if (await resolveStudioServiceSecret('OPENROUTER_API_KEY')) {
+    return { provider: 'openrouter', connected: true };
+  }
+  if (await resolveStudioServiceSecret('ANTHROPIC_API_KEY')) {
+    return { provider: 'anthropic', connected: true };
+  }
+  if (await resolveStudioServiceSecret('OPENAI_API_KEY')) {
+    return { provider: 'openai', connected: true };
+  }
   if (process.env.OLLAMA_URL) return { provider: 'ollama', connected: true };
   return { provider: 'none', connected: false };
 }
@@ -69,7 +76,7 @@ export async function GET() {
   }
 
   // Detect AI provider (cloud-first, Ollama optional fallback)
-  const ai = detectAIProvider();
+  const ai = await detectAIProvider();
 
   const degraded = taskBoard.degraded;
 

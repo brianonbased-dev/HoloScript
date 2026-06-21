@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
+import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../_lib/cors';
 import {
   AnthropicAdapter,
@@ -46,12 +47,14 @@ type Provider = {
   call: (prefix: string, suffix: string, maxTokens: number) => Promise<string | null>;
 };
 
-function getProviders(): Provider[] {
+async function getProviders(): Promise<Provider[]> {
   const providers: Provider[] = [];
 
-  const openrouterKey = process.env.OPENROUTER_API_KEY || '';
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
-  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const [openrouterKey, anthropicKey, openaiKey] = await Promise.all([
+    resolveStudioServiceSecret('OPENROUTER_API_KEY'),
+    resolveStudioServiceSecret('ANTHROPIC_API_KEY'),
+    resolveStudioServiceSecret('OPENAI_API_KEY'),
+  ]);
 
   if (openrouterKey) {
     const adapter = new OpenRouterAdapter({ apiKey: openrouterKey });
@@ -165,7 +168,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ completion: '' });
   }
 
-  const providers = getProviders();
+  const providers = await getProviders();
 
   for (const provider of providers) {
     try {

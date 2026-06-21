@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rate-limiter';
 import { checkCredits, deductCredits } from '@/lib/creditGate';
 import { requireAuth } from '@/lib/api-auth';
+import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { corsHeaders } from '../../_lib/cors';
 import {
   AnthropicAdapter,
@@ -130,9 +131,11 @@ async function tryCloudProviders(systemPrompt: string, prompt: string): Promise<
   // B1a: migrated from inline fetch() to @holoscript/llm-provider adapters
   // which inherit withRetry from BaseLLMAdapter — exponential backoff
   // on 429/5xx + Retry-After honoring.
-  const openrouterKey = process.env.OPENROUTER_API_KEY || '';
-  const anthropicKey = process.env.ANTHROPIC_API_KEY || '';
-  const openaiKey = process.env.OPENAI_API_KEY || '';
+  const [openrouterKey, anthropicKey, openaiKey] = await Promise.all([
+    resolveStudioServiceSecret('OPENROUTER_API_KEY'),
+    resolveStudioServiceSecret('ANTHROPIC_API_KEY'),
+    resolveStudioServiceSecret('OPENAI_API_KEY'),
+  ]);
 
   // OpenRouter
   if (openrouterKey) {

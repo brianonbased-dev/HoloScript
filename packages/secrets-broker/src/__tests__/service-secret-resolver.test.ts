@@ -47,6 +47,27 @@ describe('createServiceSecretResolver — Phase 1: resolve from vault, else proc
     expect(r.vaultEnabled()).toBe(false);
   });
 
+  it('env value may be a vault ref: resolves it instead of returning the ref literal', async () => {
+    const vault = createHoloKeyVault({ env: devKekEnv() })!;
+    await vault.store.put({ ownerId: 'infra', name: 'OPENAI_API_KEY', value: 'sk-ref-vault' });
+    const r = createServiceSecretResolver({
+      vault,
+      owner: 'infra',
+      env: { STUDIO_OPENAI_KEY: 'vault:OPENAI_API_KEY' },
+      log: silent,
+    });
+    expect(await r.resolve('STUDIO_OPENAI_KEY')).toBe('sk-ref-vault');
+  });
+
+  it('vault ref env fallback is not handed to callers when the vault is off', async () => {
+    const r = createServiceSecretResolver({
+      vault: null,
+      env: { OPENAI_API_KEY: 'vault:OPENAI_API_KEY' },
+      log: silent,
+    });
+    expect(await r.resolve('OPENAI_API_KEY')).toBeUndefined();
+  });
+
   it('missing everywhere: undefined', async () => {
     const r = createServiceSecretResolver({ vault: null, env: {}, log: silent });
     expect(await r.resolve('NOPE')).toBeUndefined();

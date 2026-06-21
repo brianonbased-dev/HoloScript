@@ -46,6 +46,7 @@ import {
   HololandClient,
 } from '@holoscript/core/hololand';
 import { queryOllama, isOllamaAvailable, getActiveProvider } from './ollama-client.js';
+import { resolveServiceSecret } from './holokey-resolver';
 import { LOCAL_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import {
   handleRobotAiMcpTool,
@@ -3441,6 +3442,11 @@ async function handleHololandNPCGenerateDialogue(args: Record<string, unknown>):
 async function handleHololandNPCBYOKStatus(): Promise<unknown> {
   const localAvailable = await isOllamaAvailable();
   const activeProvider = getActiveProvider();
+  const [openrouterKey, anthropicKey, openaiKey] = await Promise.all([
+    resolveServiceSecret('OPENROUTER_API_KEY'),
+    resolveServiceSecret('ANTHROPIC_API_KEY'),
+    resolveServiceSecret('OPENAI_API_KEY'),
+  ]);
 
   return {
     success: true,
@@ -3453,12 +3459,12 @@ async function handleHololandNPCBYOKStatus(): Promise<unknown> {
         ]
       : [],
     cloudProviders: {
-      openrouter: !!process.env.OPENROUTER_API_KEY,
-      anthropic: !!process.env.ANTHROPIC_API_KEY,
-      openai: !!process.env.OPENAI_API_KEY,
+      openrouter: Boolean(openrouterKey),
+      anthropic: Boolean(anthropicKey),
+      openai: Boolean(openaiKey),
     },
     sovereignMode: true,
-    note: 'BYOK status reflects current process env. Ollama availability is runtime-probed.',
+    note: 'BYOK status reflects HoloKey service-secret resolution. Ollama availability is runtime-probed.',
   };
 }
 
