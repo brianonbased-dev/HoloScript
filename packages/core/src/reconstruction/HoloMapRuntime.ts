@@ -29,6 +29,7 @@ import {
   selfAttestReconstructionManifest,
   type HoloMapProvenanceAnchorProvider,
 } from './holoMapAnchoredManifest';
+import { createPagedKVCache, type PagedKVCache } from './PagedKVCache';
 
 // =============================================================================
 // INPUT / OUTPUT TYPES
@@ -110,6 +111,14 @@ export interface ReconstructionStep {
   frame: ReconstructionFrame;
   pose: CameraPose;
   points: PointCloudChunk;
+  /** Paged-KV streaming attention cache receipt for the retained latent window. */
+  streamingKV?: {
+    layer: number;
+    kLen: number;
+    cachedPages: number;
+    lookupChecksum: number;
+    memory: { device: number; host: number };
+  };
   /** Snapshot of trajectory memory at this step (for replay) */
   trajectory: TrajectoryMemoryState;
   /** Snapshot of anchor context at this step (for replay) */
@@ -292,6 +301,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private microEncoder: HoloMapMicroEncoder | null = null;
   /** Loaded weight blob (optional; GPU upload wiring follows R3+). */
   private weightBytes: ArrayBuffer | null = null;
+  private streamingKVCache: PagedKVCache | null = null;
+  private streamingKVNextToken = 0;
 
   // ── Sprint-3 performance / determinism state ──
   /** Running bounding box (updated incrementally per step). */
@@ -784,6 +795,20 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
 
     this.encoderDevice = await tryCreateHoloMapEncoderDevice();
     this.microEncoder = this.encoderDevice ? createHoloMapMicroEncoder(this.encoderDevice) : null;
+    const streamingTokens = Math.max(
+      1,
+      this.config.maxSequenceLength * (this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N) ** 2
+    );
+    const streamingPageSize = Math.max(1, Math.min(64, this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N));
+    this.streamingKVCache = createPagedKVCache({
+      pageSize: streamingPageSize,
+      maxResidentPages: Math.max(1, Math.min(256, Math.ceil(streamingTokens / streamingPageSize))),
+      hiddenDim: 3,
+      numHeads: 1,
+      numLayers: 1,
+      device: this.encoderDevice,
+    });
+    this.streamingKVNextToken = 0;
 
     this.initialized = true;
     logHoloMapEvent(this.runId, 'init', {
@@ -927,6 +952,43 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     }
   }
 
+  private async updateStreamingKVCache(
+    encodedTiles: readonly EncodedTileSample[]
+  ): Promise<ReconstructionStep['streamingKV']> {
+    if (!this.streamingKVCache || encodedTiles.length === 0) return undefined;
+
+    const keys = new Float32Array(encodedTiles.length * 3);
+    const values = new Float32Array(encodedTiles.length * 3);
+    for (let i = 0; i < encodedTiles.length; i += 1) {
+      const sample = encodedTiles[i]!;
+      keys.set(sample.latent, i * 3);
+      values[i * 3] = sample.rawDepthSignal;
+      values[i * 3 + 1] = sample.texture;
+      values[i * 3 + 2] = sample.luminance;
+    }
+
+    const firstToken = this.streamingKVNextToken;
+    await this.streamingKVCache.append(0, keys, values, firstToken);
+    this.streamingKVNextToken += encodedTiles.length;
+
+    const retainedTokenCapacity =
+      this.streamingKVCache.config.pageSize * this.streamingKVCache.config.maxResidentPages;
+    const kLen = Math.min(this.streamingKVNextToken, 128, retainedTokenCapacity);
+    const lookupStart = this.streamingKVNextToken - kLen;
+    const lookup = await this.streamingKVCache.lookup(0, lookupStart, kLen);
+    let checksum = 0;
+    for (let i = 0; i < lookup.keys.length; i += 1) checksum += lookup.keys[i] ?? 0;
+    for (let i = 0; i < lookup.values.length; i += 1) checksum += lookup.values[i] ?? 0;
+
+    return {
+      layer: 0,
+      kLen,
+      cachedPages: this.streamingKVCache.residentPagesForLayer(0).length,
+      lookupChecksum: checksum,
+      memory: this.streamingKVCache.memoryUsage(),
+    };
+  }
+
   async step(frame: ReconstructionFrame): Promise<ReconstructionStep | null> {
     if (!this.initialized) {
       throw new Error('HoloMapRuntime not initialized. Call init(config) before step(frame).');
@@ -1059,6 +1121,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
           : undefined,
       });
     }
+    const streamingKV = await this.updateStreamingKVCache(encodedTiles);
 
     const depthAlignment = HoloMapRuntimeImpl.fitShiftScaleDepth(encodedTiles);
     const loopDescriptor = HoloMapRuntimeImpl.buildLoopClosureDescriptor(encodedTiles);
@@ -1305,6 +1368,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         colors,
         confidence,
       },
+      ...(streamingKV ? { streamingKV } : {}),
       trajectory: {
         keyframes: trajectoryKeyframes,
         estimatedDriftMeters: this.cumulativeDriftMeters,
@@ -1423,6 +1487,9 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.steps.length = 0;
     this.microEncoder = null;
     this.encoderDevice = null;
+    await this.streamingKVCache?.dispose();
+    this.streamingKVCache = null;
+    this.streamingKVNextToken = 0;
     this.weightBytes = null;
     this.totalPointCount = 0;
     this.cumulativeDriftMeters = 0;

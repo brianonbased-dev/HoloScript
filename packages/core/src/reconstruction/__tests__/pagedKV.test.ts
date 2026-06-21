@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { createPagedKVCache } from '../PagedKVCache';
 import { createPagedKVAppendKernel, createPagedKVLookupKernel } from '../pagedKVKernels';
 import { isWebGpuEnvironmentPresent } from '../webgpuGate';
 
@@ -152,6 +153,81 @@ describe('PagedKV — CPU reference', () => {
     expect(out[1]).toBeCloseTo(5);
     expect(out[2]).toBeCloseTo(6);
     expect(out[3]).toBeCloseTo(7);
+  });
+});
+
+describe('PagedKVCache factory', () => {
+  it('createPagedKVCache appends and retrieves K/V vectors without WebGPU', async () => {
+    const cache = createPagedKVCache({
+      pageSize: 2,
+      maxResidentPages: 4,
+      hiddenDim: 3,
+      numHeads: 1,
+      numLayers: 1,
+    });
+
+    const keys = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const values = new Float32Array([9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    const refs = await cache.append(0, keys, values);
+
+    expect(refs.map((ref) => ref.firstToken)).toEqual([0, 2]);
+    expect(cache.residentPagesForLayer(0)).toHaveLength(2);
+
+    const lookup = await cache.lookup(0, 0, 3);
+    expect(Array.from(lookup.keys)).toEqual(Array.from(keys));
+    expect(Array.from(lookup.values)).toEqual(Array.from(values));
+    expect(cache.memoryUsage().device).toBe(2 * 2 * 3 * 4 * 2);
+
+    await cache.dispose();
+  });
+
+  it('evicts least-recent resident pages to host and restores them on lookup', async () => {
+    const cache = createPagedKVCache({
+      pageSize: 1,
+      maxResidentPages: 1,
+      hiddenDim: 2,
+      numHeads: 1,
+      numLayers: 1,
+    });
+
+    await cache.append(0, new Float32Array([1, 2]));
+    await cache.append(0, new Float32Array([3, 4]));
+
+    let memory = cache.memoryUsage();
+    expect(memory.device).toBe(1 * 1 * 2 * 4 * 2);
+    expect(memory.host).toBe(1 * 1 * 2 * 4 * 2);
+    expect(cache.residentPagesForLayer(0).map((ref) => ref.firstToken)).toEqual([1]);
+
+    const lookup = await cache.lookup(0, 0, 1);
+    expect(Array.from(lookup.keys)).toEqual([1, 2]);
+    expect(Array.from(lookup.values)).toEqual([1, 2]);
+    expect(cache.residentPagesForLayer(0).map((ref) => ref.firstToken)).toEqual([0]);
+    memory = cache.memoryUsage();
+    expect(memory.device).toBe(1 * 1 * 2 * 4 * 2);
+    expect(memory.host).toBe(1 * 1 * 2 * 4 * 2);
+
+    await cache.dispose();
+  });
+
+  it('rejects single operations wider than the resident page window', async () => {
+    const cache = createPagedKVCache({
+      pageSize: 1,
+      maxResidentPages: 1,
+      hiddenDim: 2,
+      numHeads: 1,
+      numLayers: 1,
+    });
+
+    await expect(cache.append(0, new Float32Array([1, 2, 3, 4]))).rejects.toThrow(
+      /append touches 2 pages/
+    );
+
+    await cache.append(0, new Float32Array([1, 2]));
+    await cache.append(0, new Float32Array([3, 4]));
+
+    await expect(cache.lookup(0, 0, 2)).rejects.toThrow(/lookup needs 2 pages/);
+
+    await cache.dispose();
   });
 });
 

@@ -359,6 +359,54 @@ describe('HoloMapRuntime — 8-kernel integration on 32×32 fixture', () => {
     await runtime.dispose();
   });
 
+  it('streams per-tile latent history through paged KV when kLen exceeds one', async () => {
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 23,
+      modelHash: 'integration-streaming-paged-kv',
+      targetFPS: 10000,
+      maxSequenceLength: 4,
+      tileGrid: 2,
+    });
+
+    const first = await runtime.step(buildGradientFrame(0));
+    const second = await runtime.step(buildGradientFrame(1));
+
+    expect(first.streamingKV?.kLen).toBe(4);
+    expect(second.streamingKV?.kLen).toBe(8);
+    expect(second.streamingKV?.cachedPages).toBeGreaterThanOrEqual(4);
+    expect(second.streamingKV?.memory.device).toBeGreaterThan(0);
+    expect(Number.isFinite(second.streamingKV?.lookupChecksum)).toBe(true);
+
+    await runtime.dispose();
+  });
+
+  it('caps paged-KV lookup to the retained resident window after frame eviction', async () => {
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 29,
+      modelHash: 'integration-streaming-paged-kv-window',
+      targetFPS: 10000,
+      maxSequenceLength: 1,
+      tileGrid: 2,
+    });
+
+    const first = await runtime.step(buildGradientFrame(0));
+    const second = await runtime.step(buildGradientFrame(1));
+    const third = await runtime.step(buildGradientFrame(2));
+
+    expect(first.streamingKV?.kLen).toBe(4);
+    expect(second.streamingKV?.kLen).toBe(4);
+    expect(third.streamingKV?.kLen).toBe(4);
+    expect(third.streamingKV?.cachedPages).toBeLessThanOrEqual(2);
+    expect(third.streamingKV?.memory.device).toBe(2 * 2 * 3 * 4 * 2);
+    expect(Number.isFinite(third.streamingKV?.lookupChecksum)).toBe(true);
+
+    await runtime.dispose();
+  });
+
   it('finalize() rolls up cloud across multiple steps', async () => {
     const runtime = createHoloMapRuntime();
     await runtime.init({
