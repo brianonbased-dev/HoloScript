@@ -1,0 +1,74 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-06-21T01:58:22.256Z",
+  "path": "webgpu-browser",
+  "paper": "trust-by-construction-paper",
+  "section": "5.1 (SAXPY — y = alpha*x + y on 10K-element vector)",
+  "harness": "scripts/webgpu-capture/capture-bench.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 Windows local Chrome (RTX 3060 Laptop GPU)",
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "env"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "saxpy",
+    "wgsl_path": "packages/engine/src/gpu/shaders/cg_kernels.wgsl",
+    "wgsl_sha256": "f602e1dc97dc7ba92737302a4da12d4233ffac02ec8ef7c71d4818a4fe367e6a",
+    "workgroup_size": [
+      256,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      40,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "f891e17d4d38beb25274a7e506a04f5d02f0767f",
+  "results": [
+    {
+      "op": "saxpy",
+      "scale": "dispatch 40x1x1 workgroups @ 256x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3500,
+      "p95_us": 4699.999988079071,
+      "min_us": 1099.9999940395355,
+      "max_us": 6900.0000059604645,
+      "gpu_median_us": 7.168,
+      "gpu_p95_us": 7.168,
+      "gpu_min_us": 5.12,
+      "gpu_max_us": 11.264
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}

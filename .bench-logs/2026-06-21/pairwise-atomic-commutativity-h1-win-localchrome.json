@@ -1,0 +1,606 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-06-21T01:58:42.333Z",
+  "path": "webgpu-browser",
+  "paper": "methodology",
+  "section": "pairwise-atomic-commutativity (W.GOLD.554 verifier)",
+  "harness": "scripts/webgpu-capture/verify-atomic-commutativity.mjs",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 Windows local Chrome (RTX 3060 Laptop GPU)",
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "env"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "pairwise_atomic_probe",
+    "wgsl_path": "scripts/webgpu-capture/verify-atomic-commutativity.mjs (inline)",
+    "wgsl_sha256": "2e00f81b77b357d99758c5389fc7375a018f45ea5aac19d736aaaeefaf1769e1",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      2,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "f891e17d4d38beb25274a7e506a04f5d02f0767f",
+  "results": [
+    {
+      "op": "pairwise_atomic_probe",
+      "scale": "6 ops × 6 pairs (symmetric) = 21 probes",
+      "n": 6,
+      "trials": 50,
+      "median_us": 0,
+      "p95_us": 0,
+      "min_us": 0,
+      "max_us": 0
+    }
+  ],
+  "pairwise_matrix": {
+    "add×add": {
+      "op_a": "add",
+      "op_b": "add",
+      "operand_a": 7,
+      "operand_b": 13,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "uniq_finals_list": [
+        20
+      ],
+      "wgsl_sha256": "eecd942478d1f29659bbd252d1e58de78d85496f08695c4aff301795a1e6db66"
+    },
+    "add×xor": {
+      "op_a": "add",
+      "op_b": "xor",
+      "operand_a": 7,
+      "operand_b": 90,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 2,
+      "unique_final_values": 2,
+      "commutative_observed": false,
+      "finals_first_8": [
+        97,
+        97,
+        97,
+        97,
+        97,
+        97,
+        93,
+        93
+      ],
+      "uniq_finals_list": [
+        97,
+        93
+      ],
+      "wgsl_sha256": "9c2671e35bb1e44698ba5f569719fad2974daa1fe4d5c1d0443151712be9d67c"
+    },
+    "add×min": {
+      "op_a": "add",
+      "op_b": "min",
+      "operand_a": 7,
+      "operand_b": 9,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ],
+      "uniq_finals_list": [
+        7
+      ],
+      "wgsl_sha256": "3d827b8f5f0aba2148873b30549024ae9fbcea9ca4004c64ce2fd021b3a4f93b"
+    },
+    "add×max": {
+      "op_a": "add",
+      "op_b": "max",
+      "operand_a": 7,
+      "operand_b": 20,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 2,
+      "unique_final_values": 2,
+      "commutative_observed": false,
+      "finals_first_8": [
+        20,
+        20,
+        27,
+        27,
+        27,
+        27,
+        27,
+        27
+      ],
+      "uniq_finals_list": [
+        20,
+        27
+      ],
+      "wgsl_sha256": "f8f2ab025287bddbba4339db8f9af4511f7575a65056b1573225729b5872be5c"
+    },
+    "add×and": {
+      "op_a": "add",
+      "op_b": "and",
+      "operand_a": 7,
+      "operand_b": 15,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7,
+        7
+      ],
+      "uniq_finals_list": [
+        7
+      ],
+      "wgsl_sha256": "461de203f36ec423e2ab89f66648535582c1fc21b6cd366ccfce8f2663fc3c0e"
+    },
+    "add×or": {
+      "op_a": "add",
+      "op_b": "or",
+      "operand_a": 7,
+      "operand_b": 16,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23,
+        23
+      ],
+      "uniq_finals_list": [
+        23
+      ],
+      "wgsl_sha256": "1a91a369e184ac44962805e9ea97e906235f51b9d92e8b0fade21953b1bc2534"
+    },
+    "xor×xor": {
+      "op_a": "xor",
+      "op_b": "xor",
+      "operand_a": 165,
+      "operand_b": 90,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        255,
+        255,
+        255,
+        255,
+        255,
+        255,
+        255,
+        255
+      ],
+      "uniq_finals_list": [
+        255
+      ],
+      "wgsl_sha256": "ecafc30024300978f54ff30d3af9f7e030aaf136ab579098bc62424d1867b7fe"
+    },
+    "xor×min": {
+      "op_a": "xor",
+      "op_b": "min",
+      "operand_a": 165,
+      "operand_b": 9,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 2,
+      "unique_final_values": 2,
+      "commutative_observed": false,
+      "finals_first_8": [
+        165,
+        165,
+        165,
+        165,
+        9,
+        9,
+        165,
+        165
+      ],
+      "uniq_finals_list": [
+        165,
+        9
+      ],
+      "wgsl_sha256": "7cbf806c120af80e0ef8239c9603e05b560cc911c0805ba5a1c537884d2f4b52"
+    },
+    "xor×max": {
+      "op_a": "xor",
+      "op_b": "max",
+      "operand_a": 165,
+      "operand_b": 20,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 2,
+      "unique_final_values": 2,
+      "commutative_observed": false,
+      "finals_first_8": [
+        177,
+        165,
+        165,
+        177,
+        177,
+        177,
+        177,
+        177
+      ],
+      "uniq_finals_list": [
+        177,
+        165
+      ],
+      "wgsl_sha256": "07fed9dcff1f66b4f63693dcc27f2b4547563c3240849709fa77d56d0dd95e1f"
+    },
+    "xor×and": {
+      "op_a": "xor",
+      "op_b": "and",
+      "operand_a": 165,
+      "operand_b": 15,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 2,
+      "unique_final_values": 2,
+      "commutative_observed": false,
+      "finals_first_8": [
+        165,
+        165,
+        165,
+        165,
+        165,
+        165,
+        5,
+        5
+      ],
+      "uniq_finals_list": [
+        165,
+        5
+      ],
+      "wgsl_sha256": "c8c35b37eca5a2fb87eafd521ae68954fada1b1c82458b936efffacbd463b89d"
+    },
+    "xor×or": {
+      "op_a": "xor",
+      "op_b": "or",
+      "operand_a": 165,
+      "operand_b": 16,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        181,
+        181,
+        181,
+        181,
+        181,
+        181,
+        181,
+        181
+      ],
+      "uniq_finals_list": [
+        181
+      ],
+      "wgsl_sha256": "289d660af0d7b1654d6da72b8a5127d0ecc0ade02e217d41d30ba0a2fdf5205b"
+    },
+    "min×min": {
+      "op_a": "min",
+      "op_b": "min",
+      "operand_a": 12,
+      "operand_b": 9,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "uniq_finals_list": [
+        0
+      ],
+      "wgsl_sha256": "9b74a1d51661543afcfa6a8611a829d8e13af980b938100bee233b8ae450cb6d"
+    },
+    "min×max": {
+      "op_a": "min",
+      "op_b": "max",
+      "operand_a": 12,
+      "operand_b": 20,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12
+      ],
+      "uniq_finals_list": [
+        12
+      ],
+      "wgsl_sha256": "9afada76951aebda5103e9e5a144db09613baa2ef60cc527413c647a30b155ca"
+    },
+    "min×and": {
+      "op_a": "min",
+      "op_b": "and",
+      "operand_a": 12,
+      "operand_b": 15,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "uniq_finals_list": [
+        0
+      ],
+      "wgsl_sha256": "85d2d70601ebce9bbafcf33b64a52d769d78fc1cbe453055bae7a5b5f80c5a46"
+    },
+    "min×or": {
+      "op_a": "min",
+      "op_b": "or",
+      "operand_a": 12,
+      "operand_b": 16,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12,
+        12
+      ],
+      "uniq_finals_list": [
+        12
+      ],
+      "wgsl_sha256": "c01e265292c1cf5892a844c4f31edbeb1551e3bffe0aa50b45b817a8912f3f8f"
+    },
+    "max×max": {
+      "op_a": "max",
+      "op_b": "max",
+      "operand_a": 11,
+      "operand_b": 20,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "uniq_finals_list": [
+        20
+      ],
+      "wgsl_sha256": "ef7c66ac591cb164e8d19112021945e0488f1e39198e8f490ec9d817106c9474"
+    },
+    "max×and": {
+      "op_a": "max",
+      "op_b": "and",
+      "operand_a": 11,
+      "operand_b": 15,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        11,
+        11,
+        11,
+        11,
+        11,
+        11,
+        11,
+        11
+      ],
+      "uniq_finals_list": [
+        11
+      ],
+      "wgsl_sha256": "c400a27caa5e0eb7e165609c839fbfbf6caac4a221561b3d5ac7f2f1f56cd138"
+    },
+    "max×or": {
+      "op_a": "max",
+      "op_b": "or",
+      "operand_a": 11,
+      "operand_b": 16,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16
+      ],
+      "uniq_finals_list": [
+        16
+      ],
+      "wgsl_sha256": "13ccd15f670e6bca22919fb2864dcde9786cd85df0b7144f1eac9056080ff640"
+    },
+    "and×and": {
+      "op_a": "and",
+      "op_b": "and",
+      "operand_a": 255,
+      "operand_b": 15,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "uniq_finals_list": [
+        0
+      ],
+      "wgsl_sha256": "6cdee3ad2a32471cd67c1998762980f3ed3b66e01816c415a1ec959a5ac6abe6"
+    },
+    "and×or": {
+      "op_a": "and",
+      "op_b": "or",
+      "operand_a": 255,
+      "operand_b": 16,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16
+      ],
+      "uniq_finals_list": [
+        16
+      ],
+      "wgsl_sha256": "9fd0bd6c25ae83e9703f6f0fc32b173911ad20239b8fc2ad5a08fb5526e64f0e"
+    },
+    "or×or": {
+      "op_a": "or",
+      "op_b": "or",
+      "operand_a": 1,
+      "operand_b": 16,
+      "compiled": true,
+      "trials": 50,
+      "unique_digest_count": 1,
+      "unique_final_values": 1,
+      "commutative_observed": true,
+      "finals_first_8": [
+        17,
+        17,
+        17,
+        17,
+        17,
+        17,
+        17,
+        17
+      ],
+      "uniq_finals_list": [
+        17
+      ],
+      "wgsl_sha256": "681528874a2e657e78c5317bae1551b565b42ba7e402eef98129ce0ffec58683"
+    }
+  },
+  "notes": [
+    "Verifies the W.GOLD.554 finding (mixed atomicXor + atomicAdd on overlapping slots breaks bit-identical replay) generalizes.",
+    "Pair (a,b) NON-COMMUTATIVE  → mixing a and b on the same atomic slot will break same-adapter bit-identical replay claims.",
+    "Pair (a,b) COMMUTATIVE      → at this operand pair, 50 trials yielded a single final value. Necessary but not sufficient for general commutativity (different operands may falsify).",
+    "Workgroup-level interleaving probe; intra-workgroup races are NOT exercised (only thread 0 of each WG touches the slot).",
+    "commutative_observed === true means under THIS hardware/ICD, 50 trials produced one final value. It is a falsification tool, not a proof of commutativity."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}

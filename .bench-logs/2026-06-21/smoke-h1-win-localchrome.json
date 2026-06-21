@@ -1,0 +1,74 @@
+{
+  "receipt_version": "v2",
+  "captured_at": "2026-06-21T01:58:19.270Z",
+  "path": "webgpu-browser",
+  "paper": "webgpu-capture-smoke",
+  "section": null,
+  "harness": "scripts/webgpu-capture/capture-bench.mjs (smoke)",
+  "hardware": {
+    "tier": "H1",
+    "label": "H1 Windows local Chrome (RTX 3060 Laptop GPU)",
+    "gpu": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "cpuCount": 16,
+    "ramGb": 31.7,
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "node": "v24.15.0",
+    "tierConfidence": "env"
+  },
+  "adapter_info": {
+    "vendor": "",
+    "architecture": "",
+    "device": "",
+    "description": ""
+  },
+  "browser": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "headless": true,
+    "launchArgs": [
+      "--enable-unsafe-webgpu",
+      "--ignore-gpu-blocklist",
+      "--no-sandbox"
+    ]
+  },
+  "kernel": {
+    "name": "main",
+    "wgsl_path": "scripts/webgpu-capture/smoke.wgsl",
+    "wgsl_sha256": "5497113cd46a8d3644e73dd90ca0a1f096f3e004d549d64cc73fbe2c3653c4e5",
+    "workgroup_size": [
+      64,
+      1,
+      1
+    ],
+    "dispatch_size": [
+      16,
+      1,
+      1
+    ]
+  },
+  "protocol_commit": "f891e17d4d38beb25274a7e506a04f5d02f0767f",
+  "results": [
+    {
+      "op": "main",
+      "scale": "dispatch 16x1x1 workgroups @ 64x1x1",
+      "n": 200,
+      "trials": 200,
+      "median_us": 3300.0000044703484,
+      "p95_us": 4500,
+      "min_us": 2399.9999910593033,
+      "max_us": 9899.999991059303,
+      "gpu_median_us": 6.144,
+      "gpu_p95_us": 6.144,
+      "gpu_min_us": 5.12,
+      "gpu_max_us": 11.264
+    }
+  ],
+  "notes": [
+    "Wall-clock fields (median_us, p95_us, …) include queue submit + onSubmittedWorkDone awaiter; kernel-only GPU fields (gpu_median_us, …) come from the timestamp-query feature and exclude submit/queue overhead."
+  ],
+  "ots_proof_path": null,
+  "anchor_chain": null
+}
