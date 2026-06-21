@@ -129,7 +129,8 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
       );
     }
 
-    case 'splat': {
+    case 'splat':
+    case 'GaussianSplat': {
       const src = resolveGaussianSplatSrc(node);
       if (!src) {
         const { batchableDraftMeshes, rest } = partitionR3FChildren(node.children);
