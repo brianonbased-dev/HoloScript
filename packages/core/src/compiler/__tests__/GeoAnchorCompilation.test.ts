@@ -5,12 +5,33 @@
  * ARKit (iOS) code for GPS-pinned persistent holographic scenes.
  */
 
-// NOTE: the AndroidCompiler — Geo-Anchor block was removed in the 2026-06-21 Sceneform→SceneView
-// retarget (geo-anchor wiring is a pending wave-2 SceneView feature port; tracked on the HoloMesh
-// board). The IOSCompiler half below is unaffected.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { AndroidCompiler } from '../AndroidCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
+const SCENEFORM_TOKENS = [
+  'arFragment',
+  'ArFragment',
+  'TransformableNode',
+  'NodeFactory',
+  'com.google.ar.sceneform',
+];
+
+function expectNoSceneform(code: string | undefined): void {
+  expect(code).toBeDefined();
+  for (const token of SCENEFORM_TOKENS) {
+    expect(code!).not.toContain(token);
+  }
+}
 
 function createComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -49,6 +70,55 @@ function createGeoObject(
     traits,
   } as HoloObjectDecl;
 }
+
+describe('AndroidCompiler - Geo-Anchor', () => {
+  const compiler = new AndroidCompiler();
+
+  it('emits SceneView-native geo-anchor sidecar when geo_anchor is present', () => {
+    const composition = createComposition({
+      objects: [
+        createGeoObject('Landmark', [
+          { name: 'geo_anchor', config: { latitude: 34.0522, longitude: -118.2437 } },
+          { name: 'geo_altitude', config: { meters: 12 } },
+          { name: 'geo_compass_heading', config: { degrees: 45 } },
+          'geo_persist',
+        ]),
+      ],
+    });
+    const result = compiler.compile(composition, 'test-token');
+
+    expect(result.geoAnchorSetup).toContain('SceneViewGeoAnchor');
+    expect(result.geoAnchorSetup).toContain('setupGeoAnchors');
+    expect(result.geoAnchorSetup).toContain('configureSessionForGeospatial');
+    expect(result.geoAnchorSetup).toContain('createGeoAnchor');
+    expect(result.geoAnchorSetup).toContain('34.0522');
+    expect(result.geoAnchorSetup).toContain('-118.2437');
+    expect(result.geoAnchorSetup).toContain('12');
+    expect(result.geoAnchorSetup).toContain('45f');
+    expect(result.geoAnchorSetup).toContain('saveGeoAnchorToCloud');
+    expect(result.geoAnchorSetup).toContain('restoreGeoAnchors');
+    expect(result.manifestFile).toContain('ACCESS_FINE_LOCATION');
+    expect(result.buildGradle).toContain('play-services-location');
+    expectNoSceneform(result.geoAnchorSetup);
+  });
+
+  it('writes GeoAnchorSetup.kt in compileToFiles', () => {
+    const composition = createComposition({
+      objects: [createGeoObject('Pin', ['geo_anchor'])],
+    });
+    const files = compiler.compileToFiles(composition, 'test-token');
+    expect(files).toHaveProperty('app/src/main/java/com/holoscript/generated/GeoAnchorSetup.kt');
+  });
+
+  it('does not emit geo-anchor sidecar without geo traits', () => {
+    const composition = createComposition({
+      objects: [createGeoObject('Plain', [])],
+    });
+    const result = compiler.compile(composition, 'test-token');
+    expect(result.geoAnchorSetup).toBeUndefined();
+    expect(result.buildGradle).not.toContain('play-services-location');
+  });
+});
 
 describe('IOSCompiler — Geo-Anchor', () => {
   const compiler = new IOSCompiler();

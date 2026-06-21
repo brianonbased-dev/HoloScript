@@ -5,12 +5,33 @@
  * when portal_* traits are present in a HoloComposition.
  */
 
-// NOTE: the Portal AR — AndroidCompiler block was removed in the 2026-06-21 Sceneform→SceneView
-// retarget (portal-AR wiring is a pending wave-2 SceneView feature port; tracked on the HoloMesh
-// board). The IOSCompiler half below is unaffected.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { AndroidCompiler } from '../AndroidCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
+
+vi.mock('../identity/AgentRBAC', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
+  };
+});
+
+const SCENEFORM_TOKENS = [
+  'arFragment',
+  'ArFragment',
+  'TransformableNode',
+  'NodeFactory',
+  'com.google.ar.sceneform',
+];
+
+function expectNoSceneform(code: string | undefined): void {
+  expect(code).toBeDefined();
+  for (const token of SCENEFORM_TOKENS) {
+    expect(code!).not.toContain(token);
+  }
+}
 
 // Helper to create a minimal composition
 function createComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
@@ -48,6 +69,75 @@ function createPortalObject(name: string, traitNames: string[]): HoloObjectDecl 
     traits: traitNames.map((t) => ({ name: t, config: {} })),
   } as unknown as HoloObjectDecl;
 }
+
+describe('Portal AR - AndroidCompiler', () => {
+  let compiler: AndroidCompiler;
+
+  beforeEach(() => {
+    compiler = new AndroidCompiler();
+  });
+
+  it('emits SceneView portal sidecar when portal_mode is present', () => {
+    const composition = createComposition({
+      objects: [createPortalObject('Scene', ['portal_mode'])],
+    });
+    const result = compiler.compile(composition, 'test-token');
+
+    expect(result.portalARSetup).toContain('PortalARManager');
+    expect(result.portalARSetup).toContain('setupPortalAR');
+    expect(result.portalARSetup).toContain('configurePortalSession');
+    expect(result.portalARSetup).toContain('Config.DepthMode.AUTOMATIC');
+    expect(result.portalARSetup).toContain('Config.LightEstimationMode.ENVIRONMENTAL_HDR');
+    expect(result.activityFile).not.toContain('setupPortalAR');
+    expectNoSceneform(result.portalARSetup);
+  });
+
+  it('emits portal occlusion, parallax, boundary, mesh, and lighting helpers', () => {
+    const composition = createComposition({
+      objects: [
+        createPortalObject('Scene', [
+          'portal_occlusion',
+          'portal_parallax',
+          'portal_depth_fade',
+          'portal_world_mesh',
+          'portal_mesh_occlusion',
+          'portal_peek_through',
+          'portal_boundary',
+          'portal_lighting_match',
+        ]),
+      ],
+    });
+    const result = compiler.compile(composition, 'test-token');
+
+    expect(result.portalARSetup).toContain('updateDepthOcclusion');
+    expect(result.portalARSetup).toContain('applyParallaxCorrection');
+    expect(result.portalARSetup).toContain('enableDepthFade');
+    expect(result.portalARSetup).toContain('reconstructMesh');
+    expect(result.portalARSetup).toContain('updateMeshOcclusion');
+    expect(result.portalARSetup).toContain('portalTiltThreshold');
+    expect(result.portalARSetup).toContain('setPortalVisibility');
+    expect(result.portalARSetup).toContain('PortalBoundary');
+    expect(result.portalARSetup).toContain('Shape.CIRCLE');
+    expect(result.portalARSetup).toContain('updateLighting');
+    expectNoSceneform(result.portalARSetup);
+  });
+
+  it('writes PortalARSetup.kt in compileToFiles', () => {
+    const composition = createComposition({
+      objects: [createPortalObject('Scene', ['portal_mode'])],
+    });
+    const files = compiler.compileToFiles(composition, 'test-token');
+    expect(files).toHaveProperty('app/src/main/java/com/holoscript/generated/PortalARSetup.kt');
+  });
+
+  it('does not emit portal sidecar without portal traits', () => {
+    const composition = createComposition({
+      objects: [createPortalObject('Cube', [])],
+    });
+    const result = compiler.compile(composition, 'test-token');
+    expect(result.portalARSetup).toBeUndefined();
+  });
+});
 
 describe('Portal AR — IOSCompiler', () => {
   let compiler: IOSCompiler;

@@ -32,6 +32,18 @@ import {
   emitAuthoringSetup,
 } from './AndroidFeatureGenerators';
 import {
+  hasGeoAnchorTraits,
+  emitGeoAnchorSetup,
+  hasGeospatialVPSTraits,
+  emitGeospatialVPSSetup,
+  hasDepthScanTraits,
+  emitDepthScanSetup,
+  hasPortalARTraits,
+  emitPortalARSetup,
+  hasHandTrackingTraits,
+  emitHandTrackingSetup,
+} from './AndroidSceneViewFeatureGenerators';
+import {
   hasHapticTraits,
   emitHapticSetup,
   hasNearbyTraits,
@@ -105,6 +117,26 @@ export class AndroidCompiler extends CompilerBase {
       buildGradle: generateBuildGradle(this, composition),
     };
 
+    if (hasGeoAnchorTraits(composition)) {
+      result.geoAnchorSetup = emitGeoAnchorSetup(this, composition);
+    }
+
+    if (hasGeospatialVPSTraits(composition)) {
+      result.geospatialVPSSetup = emitGeospatialVPSSetup(this, composition);
+    }
+
+    if (hasDepthScanTraits(composition)) {
+      result.depthScanSetup = emitDepthScanSetup(this, composition);
+    }
+
+    if (hasPortalARTraits(composition)) {
+      result.portalARSetup = emitPortalARSetup(this, composition);
+    }
+
+    if (hasHandTrackingTraits(composition)) {
+      result.handTrackingSetup = emitHandTrackingSetup(this, composition);
+    }
+
     if (hasNPUSceneTraits(composition)) {
       result.npuSceneSetup = emitNPUSceneSetup(this, composition);
     }
@@ -170,6 +202,11 @@ export class AndroidCompiler extends CompilerBase {
     };
     // Optional feature setups → stable per-field Kotlin filenames (only when present).
     const featureFiles: Record<string, string> = {
+      geoAnchorSetup: 'GeoAnchorSetup.kt',
+      geospatialVPSSetup: 'GeospatialVPSSetup.kt',
+      depthScanSetup: 'DepthScanSetup.kt',
+      portalARSetup: 'PortalARSetup.kt',
+      handTrackingSetup: 'HandTrackingSetup.kt',
       npuSceneSetup: 'NPUSceneSetup.kt',
       authoringSetup: 'AuthoringSetup.kt',
       hapticSetup: 'HapticSetup.kt',

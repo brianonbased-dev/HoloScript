@@ -5,10 +5,8 @@
  * and Vision framework (iOS) code for camera-based hand gesture recognition.
  */
 
-// NOTE: the AndroidCompiler — Camera Hand Tracking block was removed in the 2026-06-21
-// Sceneform→SceneView retarget (hand-tracking wiring is a pending wave-2 SceneView feature port;
-// tracked on the HoloMesh board). The IOSCompiler half below is unaffected.
 import { describe, it, expect, vi } from 'vitest';
+import { AndroidCompiler } from '../AndroidCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import type { HoloComposition, HoloObjectDecl } from '../../parser/HoloCompositionTypes';
 
@@ -19,6 +17,21 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
     getRBAC: () => ({ checkAccess: () => ({ allowed: true }) }),
   };
 });
+
+const SCENEFORM_TOKENS = [
+  'arFragment',
+  'ArFragment',
+  'TransformableNode',
+  'NodeFactory',
+  'com.google.ar.sceneform',
+];
+
+function expectNoSceneform(code: string | undefined): void {
+  expect(code).toBeDefined();
+  for (const token of SCENEFORM_TOKENS) {
+    expect(code!).not.toContain(token);
+  }
+}
 
 function createComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return {
@@ -57,6 +70,74 @@ function createHandObject(
     traits,
   } as HoloObjectDecl;
 }
+
+// =========================================================
+// Android Compiler
+// =========================================================
+
+describe('AndroidCompiler - Camera Hand Tracking', () => {
+  const compiler = new AndroidCompiler();
+
+  it('emits SceneView hand-tracking sidecar when camera_hand_track is present', () => {
+    const composition = createComposition({
+      objects: [createHandObject('Controller', ['camera_hand_track'])],
+    });
+    const result = compiler.compile(composition, 'test-token');
+
+    expect(result.handTrackingSetup).toContain('HandTrackingManager');
+    expect(result.handTrackingSetup).toContain('MediaPipe Hands');
+    expect(result.handTrackingSetup).toContain('HandLandmarker');
+    expect(result.handTrackingSetup).toContain('setupHandTracking');
+    expect(result.handTrackingSetup).toContain('maxNumHands = 1');
+    expect(result.activityFile).not.toContain('setupHandTracking');
+    expect(result.buildGradle).toContain('androidx.camera:camera-core');
+    expect(result.buildGradle).toContain('com.google.mediapipe:tasks-vision');
+    expectNoSceneform(result.handTrackingSetup);
+  });
+
+  it('emits two-hand skeleton, gesture, and spatial-input helpers', () => {
+    const composition = createComposition({
+      objects: [
+        createHandObject('Controller', [
+          'camera_hand_track',
+          'camera_hand_two_hands',
+          'camera_hand_skeleton',
+          'camera_hand_gesture_pinch',
+          'camera_hand_gesture_point',
+          'camera_hand_to_spatial',
+        ]),
+      ],
+    });
+    const result = compiler.compile(composition, 'test-token');
+
+    expect(result.handTrackingSetup).toContain('maxNumHands = 2');
+    expect(result.handTrackingSetup).toContain('21-joint skeleton');
+    expect(result.handTrackingSetup).toContain('classifyPinchGesture');
+    expect(result.handTrackingSetup).toContain('Pinch gesture');
+    expect(result.handTrackingSetup).toContain('pinchDist');
+    expect(result.handTrackingSetup).toContain('classifyPointGesture');
+    expect(result.handTrackingSetup).toContain('POINT detected');
+    expect(result.handTrackingSetup).toContain('emitSpatialInput');
+    expectNoSceneform(result.handTrackingSetup);
+  });
+
+  it('writes HandTrackingSetup.kt in compileToFiles', () => {
+    const composition = createComposition({
+      objects: [createHandObject('Controller', ['camera_hand_track'])],
+    });
+    const files = compiler.compileToFiles(composition, 'test-token');
+    expect(files).toHaveProperty('app/src/main/java/com/holoscript/generated/HandTrackingSetup.kt');
+  });
+
+  it('does not emit hand-tracking sidecar without camera_hand traits', () => {
+    const composition = createComposition({
+      objects: [createHandObject('Plain', ['clickable'])],
+    });
+    const result = compiler.compile(composition, 'test-token');
+    expect(result.handTrackingSetup).toBeUndefined();
+    expect(result.buildGradle).not.toContain('com.google.mediapipe:tasks-vision');
+  });
+});
 
 // =========================================================
 // iOS Compiler
