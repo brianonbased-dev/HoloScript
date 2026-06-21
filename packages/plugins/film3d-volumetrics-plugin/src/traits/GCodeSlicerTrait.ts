@@ -27,6 +27,9 @@ export interface GCodeSlicerConfig extends GCodeSemanticParams {
   layerHeightMm: number;
   infillPercent: number;
   printSpeedMmS: number;
+  enableSupports: boolean;
+  supportOverhangAngleDeg: number;
+  supportInsetMm: number;
   /** Optional default output path for generated .gcode files. */
   outputGCodePath?: string;
 }
@@ -48,6 +51,14 @@ export interface TraversalLayerPlan {
   layerZMm: number;
   /** Tool-center polyline in mm (XY with implicit Z = layerZMm). */
   pointsMm: [number, number, number][];
+  role?: 'adhesion' | 'model' | 'support';
+  contourIndex?: number;
+}
+
+export interface PlanarSliceContour {
+  layerZMm: number;
+  pointsMm: [number, number, number][];
+  closed: boolean;
 }
 
 export interface GCodeSlicerState {
@@ -89,6 +100,9 @@ const defaultConfig: GCodeSlicerConfig = {
   adhesionLayerHeightMm: 0.25,
   adhesionBrimMm: 2,
   printSpeedMmS: 50,
+  enableSupports: true,
+  supportOverhangAngleDeg: 45,
+  supportInsetMm: 1.2,
 };
 
 function bbox2D(vertices: [number, number, number][]): {
@@ -111,6 +125,149 @@ function bbox2D(vertices: [number, number, number][]): {
     return { minX: 0, maxX: 10, minY: 0, maxY: 10 };
   }
   return { minX, maxX, minY, maxY };
+}
+
+interface BBox2D {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+interface BBox3D extends BBox2D {
+  minZ: number;
+  maxZ: number;
+}
+
+type Point3 = [number, number, number];
+type Segment = [Point3, Point3];
+type Triangle = [Point3, Point3, Point3];
+
+function bbox3D(vertices: [number, number, number][]): BBox3D {
+  const xy = bbox2D(vertices);
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const [, , z] of vertices) {
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  if (!Number.isFinite(minZ)) return { ...xy, minZ: 0, maxZ: 0 };
+  return { ...xy, minZ, maxZ };
+}
+
+function bboxFromPoints(points: [number, number, number][]): BBox2D {
+  return bbox2D(points);
+}
+
+function rectPointsFromBox(box: BBox2D, z: number, inset = 0): [number, number, number][] {
+  const minX = box.minX + inset;
+  const maxX = box.maxX - inset;
+  const minY = box.minY + inset;
+  const maxY = box.maxY - inset;
+  if (maxX <= minX || maxY <= minY) {
+    return [
+      [box.minX, box.minY, z],
+      [box.maxX, box.minY, z],
+      [box.maxX, box.maxY, z],
+      [box.minX, box.maxY, z],
+      [box.minX, box.minY, z],
+    ];
+  }
+  return [
+    [minX, minY, z],
+    [maxX, minY, z],
+    [maxX, maxY, z],
+    [minX, maxY, z],
+    [minX, minY, z],
+  ];
+}
+
+function indexedTriangles(mesh: MeshSliceInput): Triangle[] {
+  const triangles: Triangle[] = [];
+  if (mesh.indices?.length) {
+    for (let i = 0; i + 2 < mesh.indices.length; i += 3) {
+      const a = mesh.verticesMm[mesh.indices[i]!];
+      const b = mesh.verticesMm[mesh.indices[i + 1]!];
+      const c = mesh.verticesMm[mesh.indices[i + 2]!];
+      if (a && b && c) triangles.push([a, b, c]);
+    }
+    return triangles;
+  }
+  for (let i = 0; i + 2 < mesh.verticesMm.length; i += 3) {
+    triangles.push([mesh.verticesMm[i]!, mesh.verticesMm[i + 1]!, mesh.verticesMm[i + 2]!]);
+  }
+  return triangles;
+}
+
+function pointKey(point: [number, number, number]): string {
+  return `${point[0].toFixed(3)},${point[1].toFixed(3)},${point[2].toFixed(3)}`;
+}
+
+function uniquePoints(points: [number, number, number][]): [number, number, number][] {
+  const out: [number, number, number][] = [];
+  const seen = new Set<string>();
+  for (const point of points) {
+    const key = pointKey(point);
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(point);
+    }
+  }
+  return out;
+}
+
+function intersectTriangleAtZ(
+  triangle: Triangle,
+  z: number
+): Segment | null {
+  const points: [number, number, number][] = [];
+  for (const [a, b] of [
+    [triangle[0], triangle[1]],
+    [triangle[1], triangle[2]],
+    [triangle[2], triangle[0]],
+  ] as Array<[[number, number, number], [number, number, number]]>) {
+    const dz = b[2] - a[2];
+    if (Math.abs(dz) < 1e-9) continue;
+    const t = (z - a[2]) / dz;
+    if (t < -1e-9 || t > 1 + 1e-9) continue;
+    points.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, z]);
+  }
+  const unique = uniquePoints(points);
+  return unique.length >= 2 ? [unique[0]!, unique[1]!] : null;
+}
+
+function chainSegmentsToContours(segments: Segment[], z: number): PlanarSliceContour[] {
+  const unused = [...segments];
+  const contours: PlanarSliceContour[] = [];
+  while (unused.length > 0) {
+    const seed = unused.shift()!;
+    const points: [number, number, number][] = [seed[0], seed[1]];
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (let i = unused.length - 1; i >= 0; i -= 1) {
+        const [a, b] = unused[i]!;
+        const firstKey = pointKey(points[0]!);
+        const lastKey = pointKey(points[points.length - 1]!);
+        if (pointKey(a) === lastKey) {
+          points.push(b);
+        } else if (pointKey(b) === lastKey) {
+          points.push(a);
+        } else if (pointKey(a) === firstKey) {
+          points.unshift(b);
+        } else if (pointKey(b) === firstKey) {
+          points.unshift(a);
+        } else {
+          continue;
+        }
+        unused.splice(i, 1);
+        grew = true;
+      }
+    }
+    const closed = points.length > 2 && pointKey(points[0]!) === pointKey(points[points.length - 1]!);
+    contours.push({ layerZMm: z, pointsMm: closed ? points : [...points, points[0]!], closed });
+  }
+  return contours.filter((contour) => contour.pointsMm.length >= 3);
 }
 
 /** Bed adhesion layer Z offsets and per-layer nozzle targets. */
@@ -198,31 +355,111 @@ export function buildSemanticGCodePreamble(c: GCodeSlicerConfig, mesh?: MeshSlic
   return lines.join('\n');
 }
 
+export function buildPlanarSliceContoursFromMesh(
+  mesh: MeshSliceInput,
+  layerZMm: number
+): PlanarSliceContour[] {
+  const segments: Segment[] = [];
+  for (const triangle of indexedTriangles(mesh)) {
+    const segment = intersectTriangleAtZ(triangle, layerZMm);
+    if (segment) segments.push(segment);
+  }
+  return chainSegmentsToContours(segments, layerZMm);
+}
+
+function overhangAllowanceMm(c: GCodeSlicerConfig): number {
+  const radians = (Math.max(1, Math.min(89, c.supportOverhangAngleDeg)) * Math.PI) / 180;
+  return Math.max(c.layerHeightMm, c.layerHeightMm / Math.tan(radians));
+}
+
+function isBoxSupported(box: BBox2D, lowerBoxes: BBox2D[], allowanceMm: number): boolean {
+  return lowerBoxes.some(
+    (lower) =>
+      box.minX >= lower.minX - allowanceMm &&
+      box.maxX <= lower.maxX + allowanceMm &&
+      box.minY >= lower.minY - allowanceMm &&
+      box.maxY <= lower.maxY + allowanceMm
+  );
+}
+
 export function buildTraversalStackFromMesh(
   c: GCodeSlicerConfig,
   mesh: MeshSliceInput
 ): TraversalLayerPlan[] {
   if (!mesh.verticesMm.length) return [];
   const plans: TraversalLayerPlan[] = [];
+  const meshBounds = bbox3D(mesh.verticesMm);
   const adhesion = buildAdhesionLayerPlan(c);
   for (const layer of adhesion) {
     plans.push({
       layerZMm: layer.zMm,
       pointsMm: buildInsetPerimeterTraversal(mesh.verticesMm, layer.zMm, c.adhesionBrimMm),
+      role: 'adhesion',
     });
   }
-  let z = adhesion.length ? adhesion[adhesion.length - 1]!.zMm : 0;
-  const topZ = z + c.layerHeightMm * 4;
-  while (z < topZ - 1e-6) {
-    z += c.layerHeightMm;
-    plans.push({
-      layerZMm: z,
-      pointsMm: buildInsetPerimeterTraversal(
-        mesh.verticesMm,
-        z,
-        c.adhesionBrimMm + c.layerHeightMm * 2
-      ),
+  const triangleCount = indexedTriangles(mesh).length;
+  const firstModelZ = Math.max(
+    meshBounds.minZ + c.layerHeightMm,
+    (adhesion.length ? adhesion[adhesion.length - 1]!.zMm : 0) + c.layerHeightMm
+  );
+  const topZ = Math.max(firstModelZ, meshBounds.maxZ);
+  const allowance = overhangAllowanceMm(c);
+  let previousModelBoxes: BBox2D[] = [];
+  let contourIndex = 0;
+
+  for (let z = firstModelZ; z <= topZ + 1e-6; z += c.layerHeightMm) {
+    const contours =
+      triangleCount > 0
+        ? buildPlanarSliceContoursFromMesh(mesh, z)
+        : [
+            {
+              layerZMm: z,
+              pointsMm: buildInsetPerimeterTraversal(
+                mesh.verticesMm,
+                z,
+                c.adhesionBrimMm + c.layerHeightMm * 2
+              ),
+              closed: true,
+            },
+          ];
+    const modelContours = contours.length
+      ? contours
+      : [
+          {
+            layerZMm: z,
+            pointsMm: buildInsetPerimeterTraversal(
+              mesh.verticesMm,
+              z,
+              c.adhesionBrimMm + c.layerHeightMm * 2
+            ),
+            closed: true,
+          },
+        ];
+    const currentBoxes = modelContours.map((contour) => bboxFromPoints(contour.pointsMm));
+
+    if (c.enableSupports && previousModelBoxes.length > 0) {
+      currentBoxes.forEach((box, index) => {
+        if (!isBoxSupported(box, previousModelBoxes, allowance)) {
+          plans.push({
+            layerZMm: z,
+            pointsMm: rectPointsFromBox(box, z, c.supportInsetMm),
+            role: 'support',
+            contourIndex: index,
+          });
+        }
+      });
+    }
+
+    modelContours.forEach((contour) => {
+      plans.push({
+        layerZMm: z,
+        pointsMm: contour.pointsMm,
+        role: 'model',
+        contourIndex,
+      });
+      contourIndex += 1;
     });
+    previousModelBoxes = currentBoxes;
   }
   return plans;
 }
@@ -421,19 +658,22 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
         s.estimatedPrintTimeMs =
           (volumeEstimate / Math.max(0.01, c.printSpeedMmS * c.layerHeightMm)) * 1000;
 
-        const outputPath = outputPathFromEvent(e);
+        const outputPath = outputPathFromEvent(e, c, ctx);
         const preamble = s.gcodePreamble ?? buildSemanticGCodePreamble(c, s.mesh);
-        const traversal = s.traversal ?? [];
+        const traversal =
+          s.traversal ?? (s.mesh?.verticesMm.length ? buildTraversalStackFromMesh(c, s.mesh) : []);
         const gcode = serializeTraversalStackToGCode(c, traversal, preamble);
 
-        void writeGCodeFile(outputPath, gcode)
+        s.progressPercent = 75;
+        void writeGCodeFile(outputPath, gcode, ctx)
           .then(() => {
             s.isSlicing = false;
             s.progressPercent = 100;
             s.outputGCodePath = outputPath;
             ctx.emit?.('gcode_slicer:completed', {
               path: s.outputGCodePath,
-              bytes: gcode.length,
+              lineCount: gcode.trimEnd().split('\n').length,
+              gcodeBytes: byteLength(gcode),
               estimatedTimeMs: s.estimatedPrintTimeMs,
               preamble,
               adhesionPlan: s.adhesionPlan,
@@ -442,8 +682,9 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
           })
           .catch((err: unknown) => {
             s.isSlicing = false;
+            s.progressPercent = 0;
             const message = err instanceof Error ? err.message : String(err);
-            ctx.emit?.('gcode_slicer:error', { path: outputPath, error: message });
+            ctx.emit?.('gcode_slicer:failed', { path: outputPath, error: message });
           });
       }
     },
