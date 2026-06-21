@@ -752,6 +752,33 @@ function buildSourceTreeProbes() {
     )
   );
 
+  // 25. Trait-handler tautology canary: echo-mutant survivor scan
+  probes.push(
+    runProbe(
+      'trait-test-tautology-canary',
+      `
+        const { spawn } = require('child_process');
+        const child = spawn(process.execPath, [
+          'scripts/holo-ci/check-trait-test-tautologies.mjs'
+        ], {
+          cwd: '${REPO_ROOT.replace(/\\/g, '\\\\')}',
+          timeout: 60000,
+          env: { ...process.env, NODE_NO_WARNINGS: '1' },
+        });
+        let out = '';
+        let err = '';
+        child.stdout.on('data', d => out += d);
+        child.stderr.on('data', d => err += d);
+        child.on('error', e => done(false, null, null, e.message));
+        child.on('close', code => {
+          const ok = code === 0 && out.includes('PASS');
+          done(ok, null, out.slice(0, 500), ok ? null : (err || out || 'trait test tautology canary failed'));
+        });
+      `,
+      60000
+    )
+  );
+
   return probes;
 }
 
