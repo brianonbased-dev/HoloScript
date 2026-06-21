@@ -236,6 +236,63 @@ export async function handleAdminRoutes(
     return true;
   }
 
+  // ── POST /api/holomesh/admin/update-scopes ─────────────────────────────────
+  // In-place scope update: change an existing agent key's scopes WITHOUT rotating
+  // the key or touching the wallet / agentId / createdAt (G.GOLD.016 — never clobber
+  // identity). This is how a sovereign edge agent is granted the safe tool set
+  // (tools:read + tools:write + tools:codebase) so its mcp_call reaches the language
+  // surface, without the disruption of re-provisioning a new key. Founder-authed
+  // (guard at the top of this handler). /founder-ruled agent-decidable 2026-06-21.
+  if (pathname === '/api/holomesh/admin/update-scopes' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const agentId = body.agent_id as string | undefined;
+    const walletAddress = body.wallet_address as string | undefined;
+    const scopes = body.scopes;
+    if (!Array.isArray(scopes) || !scopes.every((s) => typeof s === 'string')) {
+      json(res, 400, { error: 'scopes (string[]) is required' });
+      return true;
+    }
+
+    let existingRecord: KeyRecord | undefined;
+    if (agentId) {
+      existingRecord = Array.from(keyRegistry.values()).find((r) => r.agentId === agentId);
+    } else if (walletAddress) {
+      existingRecord = Array.from(keyRegistry.values()).find(
+        (r) => r.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+      );
+    } else {
+      json(res, 400, { error: 'agent_id or wallet_address is required' });
+      return true;
+    }
+    if (!existingRecord) {
+      json(res, 404, { error: 'Agent not found in key registry. Use agent_id or wallet_address.' });
+      return true;
+    }
+
+    const before = [...(existingRecord.scopes ?? [])];
+    // In-place mutation: ONLY scopes change — key, walletAddress, agentId, createdAt
+    // are untouched (the same record object stays in the registry under the same key).
+    existingRecord.scopes = scopes as string[];
+    keyRegistry.set(existingRecord.key, existingRecord);
+    persistKeyRegistry();
+
+    recordAdminOperation({
+      actor: { agentId: caller.id, agentName: caller.name, wallet: caller.wallet },
+      action: 'update_scopes',
+      path: pathname,
+      before: { agent_id: existingRecord.agentId, scopes: before },
+      after: { agent_id: existingRecord.agentId, scopes: existingRecord.scopes },
+    });
+
+    json(res, 200, {
+      success: true,
+      agent_id: existingRecord.agentId,
+      wallet_address: existingRecord.walletAddress,
+      scopes: existingRecord.scopes,
+    });
+    return true;
+  }
+
   // ── POST /api/holomesh/admin/revoke ────────────────────────────────────────
   if (pathname === '/api/holomesh/admin/revoke' && method === 'POST') {
     const body = await parseJsonBody(req);

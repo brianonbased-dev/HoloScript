@@ -156,6 +156,60 @@ beforeEach(() => {
   seedFounder();
 });
 
+describe('Admin Routes — scope provisioning (D.100 Axis-1, /founder-ruled 2026-06-21)', () => {
+  it('provision default scope floor now includes tools:read', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/provision', { name: 'FloorBot' });
+    expect(res._status).toBe(201);
+    expect(res._body.scopes).toEqual(expect.arrayContaining(['holomesh', 'mcp', 'tools:read']));
+  });
+
+  it('update-scopes mutates an existing key IN PLACE, preserving key/wallet/agentId (G.GOLD.016)', async () => {
+    const prov = await callAdmin('POST', '/api/holomesh/admin/provision', { name: 'EdgeBot' });
+    const { agent_id: agentId, api_key: apiKey, wallet_address: wallet } = prov._body;
+
+    const res = await callAdmin('POST', '/api/holomesh/admin/update-scopes', {
+      agent_id: agentId,
+      scopes: ['holomesh', 'mcp', 'tools:read', 'tools:write', 'tools:codebase'],
+    });
+    expect(res._status).toBe(200);
+    expect(res._body.scopes).toEqual(['holomesh', 'mcp', 'tools:read', 'tools:write', 'tools:codebase']);
+
+    const record = Array.from(keyRegistry.values()).find((r) => r.agentId === agentId);
+    expect(record?.key).toBe(apiKey); // NOT rotated
+    expect(record?.walletAddress).toBe(wallet); // wallet untouched
+    expect(record?.agentId).toBe(agentId); // identity untouched
+    expect(record?.scopes).toContain('tools:write');
+  });
+
+  it('update-scopes rejects a non-founder caller (403)', async () => {
+    seedNonFounder();
+    const res = await callAdmin(
+      'POST',
+      '/api/holomesh/admin/update-scopes',
+      { agent_id: NON_FOUNDER_ID, scopes: ['tools:write'] },
+      NON_FOUNDER_KEY
+    );
+    expect(res._status).toBe(403);
+  });
+
+  it('update-scopes 404 for an unknown agent', async () => {
+    const res = await callAdmin('POST', '/api/holomesh/admin/update-scopes', {
+      agent_id: 'does-not-exist',
+      scopes: ['tools:read'],
+    });
+    expect(res._status).toBe(404);
+  });
+
+  it('update-scopes 400 when scopes is not a string array', async () => {
+    const prov = await callAdmin('POST', '/api/holomesh/admin/provision', { name: 'BadScopeBot' });
+    const res = await callAdmin('POST', '/api/holomesh/admin/update-scopes', {
+      agent_id: prov._body.agent_id,
+      scopes: 'tools:read',
+    });
+    expect(res._status).toBe(400);
+  });
+});
+
 describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
   // ── Provision ──
 
