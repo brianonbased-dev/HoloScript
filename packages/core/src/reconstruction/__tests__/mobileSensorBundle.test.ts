@@ -245,6 +245,10 @@ describe('HoloMap Android ARCore Depth adapter', () => {
     expect(frame.sceneDepth?.values[2]).toBeCloseTo(0.5, 6);
     expect(frame.sceneDepth?.values[8]).toBeCloseTo(1, 6);
     expect(frame.sceneDepth?.values[10]).toBeCloseTo(1, 6);
+    expect(frame.sceneDepthMeters?.values[0]).toBeCloseTo(0.5, 6);
+    expect(frame.sceneDepthMeters?.values[2]).toBeCloseTo(2.75, 6);
+    expect(frame.sceneDepthMeters?.values[8]).toBe(0);
+    expect(frame.sceneDepthMeters?.values[10]).toBeCloseTo(5, 6);
     expect(frame.sceneDepthConfidence?.values[0]).toBeCloseTo(1, 6);
     expect(frame.sceneDepthConfidence?.values[2]).toBeCloseTo(128 / 255, 6);
     expect(frame.sceneDepthConfidence?.values[8]).toBe(0);
@@ -302,8 +306,9 @@ describe('HoloMap Android ARCore Depth adapter', () => {
     expect(replay.steps).toHaveLength(2);
     expect(replay.steps[0]!.pose.position).toEqual([2, 0, 0]);
     expect(replay.steps[1]!.pose.position).toEqual([2.25, 0, 0]);
-    for (const z of zValues(replay.steps[0]!.points.positions)) expect(z).toBeCloseTo(0.17, 5);
-    for (const z of zValues(replay.steps[1]!.points.positions)) expect(z).toBeCloseTo(-0.17, 5);
+    for (const z of zValues(replay.steps[0]!.points.positions)) expect(z).toBeCloseTo(-0.5, 5);
+    for (const z of zValues(replay.steps[1]!.points.positions)) expect(z).toBeCloseTo(-5, 5);
+    expect(replay.steps[0]!.depthAlignment).toMatchObject({ kind: 'shift-scale' });
   });
 
   it('fails closed for malformed ARCore planes and invalidates zero-depth cells', () => {

@@ -4,6 +4,7 @@ import {
   createHoloMapRuntime,
   HOLOMAP_DEFAULTS,
   type CameraPose,
+  type HoloMapCameraIntrinsics,
   type ReconstructionFrame,
 } from '../HoloMapRuntime';
 
@@ -54,6 +55,31 @@ function zValues(positions: Float32Array): number[] {
   for (let i = 2; i < positions.length; i += 3) z.push(positions[i]!);
   return z;
 }
+
+function bounds(positions: Float32Array): {
+  min: [number, number, number];
+  max: [number, number, number];
+} {
+  const min: [number, number, number] = [Infinity, Infinity, Infinity];
+  const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < positions.length; i += 3) {
+    for (let axis = 0; axis < 3; axis += 1) {
+      const v = positions[i + axis]!;
+      if (v < min[axis]!) min[axis] = v;
+      if (v > max[axis]!) max[axis] = v;
+    }
+  }
+  return { min, max };
+}
+
+const METRIC_INTRINSICS: HoloMapCameraIntrinsics = {
+  width: W,
+  height: H,
+  fx: 1,
+  fy: 1,
+  cx: W / 2,
+  cy: H / 2,
+};
 
 describe('HoloMap mobile-sensor depth/pose ingest', () => {
   it('uses MEASURED depth for point Z (near=+0.17, far=-0.17), not the estimate', async () => {
@@ -131,5 +157,69 @@ describe('HoloMap mobile-sensor depth/pose ingest', () => {
 
     await a.dispose();
     await b.dispose();
+  });
+
+  it('projects metric ARCore depth through camera intrinsics into metre-scale points', async () => {
+    const rt = await newRuntime();
+    const step = await rt.step(
+      frame({
+        depthMeters: new Float32Array(W * H).fill(2),
+        cameraIntrinsics: METRIC_INTRINSICS,
+      })
+    );
+    const box = bounds(step!.points.positions);
+
+    expect(step!.depthAlignment).toMatchObject({
+      kind: 'shift-scale',
+      sampleCount: 16,
+      shift: 2,
+    });
+    expect(box.max[0] - box.min[0]).toBeCloseTo(6, 5);
+    expect(box.max[1] - box.min[1]).toBeCloseTo(6, 5);
+    for (const z of zValues(step!.points.positions)) expect(z).toBeCloseTo(-2, 5);
+
+    await rt.dispose();
+  });
+
+  it('loop-closes an inflated ARCore revisit before bounds can inherit pose drift', async () => {
+    const rt = createHoloMapRuntime();
+    await rt.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 7,
+      modelHash: 'sensor-test-inflated-arcore-loop',
+      targetFPS: 100000,
+      tileGrid: 2,
+    });
+    const depthMeters = new Float32Array(W * H).fill(2);
+    const first = frame(
+      {
+        depthMeters,
+        cameraIntrinsics: METRIC_INTRINSICS,
+        devicePose: { position: [0, 0, 0], rotation: [0, 0, 0, 1], confidence: 1 },
+      },
+      0
+    );
+    const inflatedRevisit = {
+      ...frame(
+        {
+          depthMeters,
+          cameraIntrinsics: METRIC_INTRINSICS,
+          devicePose: { position: [14, 0, 0], rotation: [0, 0, 0, 1], confidence: 1 },
+        },
+        4
+      ),
+      rgb: first.rgb,
+    };
+
+    await rt.step(first);
+    const second = await rt.step(inflatedRevisit);
+    const manifest = await rt.finalize();
+
+    expect(second!.trajectory.lastLoopClosureFrame).toBe(4);
+    expect(second!.pose.position[0]).toBeCloseTo(0, 6);
+    expect(manifest.bounds.max[0] - manifest.bounds.min[0]).toBeCloseTo(4, 5);
+    expect(manifest.bounds.max[0] - manifest.bounds.min[0]).toBeLessThan(5);
+
+    await rt.dispose();
   });
 });

@@ -54,12 +54,20 @@ export interface ReconstructionFrame {
    */
   depth?: Float32Array;
   /**
+   * Optional metric depth in metres, row-major, length width*height. This is the
+   * ARCore/ARKit path for scale-bearing reconstruction; `depth` remains the
+   * legacy normalized 0..1 signal.
+   */
+  depthMeters?: Float32Array;
+  /**
    * Optional MEASURED per-pixel depth confidence (row-major, length width*height,
    * normalized 0..1) from a real device sensor. When present, sampled depth
    * confidence gates the emitted point confidence so bad sensor cells remain
    * visible in replay instead of being silently trusted.
    */
   depthConfidence?: Float32Array;
+  /** Camera intrinsics for metric depth projection. Pixel units, same image domain as the depth map. */
+  cameraIntrinsics?: HoloMapCameraIntrinsics;
   /**
    * Optional MEASURED device pose (6-DoF) from platform tracking — ARKit
    * `frame.camera.transform`, ARCore pose, etc. When present it is used as the
@@ -67,6 +75,15 @@ export interface ReconstructionFrame {
    * the scan-derived centroid pose. Absent → derived pose (E4).
    */
   devicePose?: CameraPose;
+}
+
+export interface HoloMapCameraIntrinsics {
+  width: number;
+  height: number;
+  fx: number;
+  fy: number;
+  cx: number;
+  cy: number;
 }
 
 export interface CameraPose {
@@ -97,6 +114,16 @@ export interface ReconstructionStep {
   trajectory: TrajectoryMemoryState;
   /** Snapshot of anchor context at this step (for replay) */
   anchor: AnchorContextState;
+  /** Closed-form per-frame depth fit used when metric sensor depth is present. */
+  depthAlignment?: DepthAlignmentFit;
+}
+
+export interface DepthAlignmentFit {
+  kind: 'shift-scale';
+  sampleCount: number;
+  scale: number;
+  shift: number;
+  rmseMeters: number;
 }
 
 // =============================================================================
@@ -238,6 +265,18 @@ interface HoloMapTileSample {
   texture: number;
 }
 
+interface EncodedTileSample extends HoloMapTileSample {
+  latent: [number, number, number];
+  rawDepthSignal: number;
+  metricDepthMeters?: number;
+}
+
+interface LoopClosureCandidate {
+  frameIndex: number;
+  position: [number, number, number];
+  descriptor: Float32Array;
+}
+
 interface RetainedReconstructionStep {
   frameIndex: number;
   points: Pick<PointCloudChunk, 'positions' | 'confidence'>;
@@ -285,8 +324,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   /** Frame index of the last detected loop closure (−1 if none). */
   private lastLoopClosureFrameIdx = -1;
   /** Compact camera-pose history for loop-closure (revisit) detection. */
-  private readonly poseHistory: Array<{ frameIndex: number; position: [number, number, number] }> =
-    [];
+  private readonly poseHistory: LoopClosureCandidate[] = [];
   /** Compact trajectory snapshot emitted with every accepted step. */
   private readonly trajectoryKeyframes: TrajectoryKeyframe[] = [];
   private static readonly LOOP_CLOSURE_MIN_GAP = 3;
@@ -297,6 +335,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
    *  the monocular estimate's spread (±~0.17), so sensor and estimate paths
    *  produce geometry in the same coordinate scale. */
   private static readonly DEPTH_Z_SCALE = 0.34;
+  private static readonly LOOP_CLOSURE_DESCRIPTOR_DISTANCE = 0.015;
 
   /**
    * Nearest-neighbour sample of a row-major depth map at a normalized UV.
@@ -313,6 +352,180 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const py = Math.min(height - 1, Math.max(0, Math.round(uv[1] * (height - 1))));
     const v = depth[py * width + px];
     return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5;
+  }
+
+  private static sampleMetricDepthNearestUv(
+    depthMeters: Float32Array,
+    width: number,
+    height: number,
+    uv: [number, number]
+  ): number | undefined {
+    const px = Math.min(width - 1, Math.max(0, Math.round(uv[0] * (width - 1))));
+    const py = Math.min(height - 1, Math.max(0, Math.round(uv[1] * (height - 1))));
+    const v = depthMeters[py * width + px];
+    return Number.isFinite(v) && v > 0 ? v : undefined;
+  }
+
+  private static hasUsableIntrinsics(
+    intrinsics: HoloMapCameraIntrinsics | undefined
+  ): intrinsics is HoloMapCameraIntrinsics {
+    return (
+      !!intrinsics &&
+      Number.isFinite(intrinsics.width) &&
+      Number.isFinite(intrinsics.height) &&
+      Number.isFinite(intrinsics.fx) &&
+      Number.isFinite(intrinsics.fy) &&
+      Number.isFinite(intrinsics.cx) &&
+      Number.isFinite(intrinsics.cy) &&
+      intrinsics.width > 0 &&
+      intrinsics.height > 0 &&
+      intrinsics.fx > 0 &&
+      intrinsics.fy > 0
+    );
+  }
+
+  private static normalizeQuaternion(
+    q: [number, number, number, number]
+  ): [number, number, number, number] {
+    const len = Math.hypot(q[0], q[1], q[2], q[3]);
+    if (len <= 1e-12) return [0, 0, 0, 1];
+    return [q[0] / len, q[1] / len, q[2] / len, q[3] / len];
+  }
+
+  private static rotateByQuaternion(
+    v: [number, number, number],
+    q: [number, number, number, number]
+  ): [number, number, number] {
+    const [x, y, z, w] = HoloMapRuntimeImpl.normalizeQuaternion(q);
+    const [vx, vy, vz] = v;
+    const tx = 2 * (y * vz - z * vy);
+    const ty = 2 * (z * vx - x * vz);
+    const tz = 2 * (x * vy - y * vx);
+    return [
+      vx + w * tx + (y * tz - z * ty),
+      vy + w * ty + (z * tx - x * tz),
+      vz + w * tz + (x * ty - y * tx),
+    ];
+  }
+
+  private static projectMetricDepthToWorld(
+    uv: [number, number],
+    depthMeters: number,
+    intrinsics: HoloMapCameraIntrinsics,
+    pose?: CameraPose
+  ): [number, number, number] {
+    const pixelX = uv[0] * intrinsics.width;
+    const pixelY = uv[1] * intrinsics.height;
+    const local: [number, number, number] = [
+      ((pixelX - intrinsics.cx) * depthMeters) / intrinsics.fx,
+      ((intrinsics.cy - pixelY) * depthMeters) / intrinsics.fy,
+      -depthMeters,
+    ];
+    if (!pose) return local;
+    const rotated = HoloMapRuntimeImpl.rotateByQuaternion(local, pose.rotation);
+    return [
+      pose.position[0] + rotated[0],
+      pose.position[1] + rotated[1],
+      pose.position[2] + rotated[2],
+    ];
+  }
+
+  private static fitShiftScaleDepth(
+    samples: readonly EncodedTileSample[]
+  ): DepthAlignmentFit | undefined {
+    const paired = samples
+      .filter((sample) => sample.metricDepthMeters !== undefined)
+      .map((sample) => ({
+        x: sample.rawDepthSignal,
+        y: sample.metricDepthMeters!,
+      }));
+    if (paired.length === 0) return undefined;
+
+    let meanX = 0;
+    let meanY = 0;
+    for (const sample of paired) {
+      meanX += sample.x;
+      meanY += sample.y;
+    }
+    meanX /= paired.length;
+    meanY /= paired.length;
+
+    let varianceX = 0;
+    let covariance = 0;
+    for (const sample of paired) {
+      const dx = sample.x - meanX;
+      varianceX += dx * dx;
+      covariance += dx * (sample.y - meanY);
+    }
+
+    const scale = varianceX > 1e-12 ? covariance / varianceX : 0;
+    const shift = meanY - scale * meanX;
+    let squared = 0;
+    for (const sample of paired) {
+      const err = scale * sample.x + shift - sample.y;
+      squared += err * err;
+    }
+
+    return {
+      kind: 'shift-scale',
+      sampleCount: paired.length,
+      scale,
+      shift,
+      rmseMeters: Math.sqrt(squared / paired.length),
+    };
+  }
+
+  private static alignedDepthMeters(
+    sample: EncodedTileSample,
+    fit: DepthAlignmentFit | undefined
+  ): number | undefined {
+    if (fit) {
+      const aligned = fit.scale * sample.rawDepthSignal + fit.shift;
+      if (Number.isFinite(aligned) && aligned > 0) return aligned;
+    }
+    return sample.metricDepthMeters;
+  }
+
+  private static buildLoopClosureDescriptor(samples: readonly EncodedTileSample[]): Float32Array {
+    if (samples.length === 0) return new Float32Array([0, 0, 0, 0, 0, 0]);
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let luma = 0;
+    let texture = 0;
+    let depth = 0;
+    let depthCount = 0;
+    for (const sample of samples) {
+      r += sample.meanColor[0] / 255;
+      g += sample.meanColor[1] / 255;
+      b += sample.meanColor[2] / 255;
+      luma += sample.luminance;
+      texture += sample.texture;
+      if (sample.metricDepthMeters !== undefined) {
+        depth += Math.min(1, sample.metricDepthMeters / 10);
+        depthCount += 1;
+      }
+    }
+    const inv = 1 / samples.length;
+    return new Float32Array([
+      r * inv,
+      g * inv,
+      b * inv,
+      luma * inv,
+      texture * inv,
+      depthCount > 0 ? depth / depthCount : 0,
+    ]);
+  }
+
+  private static descriptorDistance(a: Float32Array, b: Float32Array): number {
+    const n = Math.min(a.length, b.length);
+    if (n === 0) return Number.POSITIVE_INFINITY;
+    let squared = 0;
+    for (let i = 0; i < n; i += 1) {
+      const d = (a[i] ?? 0) - (b[i] ?? 0);
+      squared += d * d;
+    }
+    return Math.sqrt(squared / n);
   }
   /** Last accepted capture timestamp (ms) for deterministic FPS throttling. */
   private lastAcceptedFrameTimestampMs: number | null = null;
@@ -734,6 +947,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         `HoloMapRuntime.step invalid measured depth length: got ${frame.depth.length}, expected ${frame.width * frame.height} (w=${frame.width}, h=${frame.height})`
       );
     }
+    if (frame.depthMeters && frame.depthMeters.length !== frame.width * frame.height) {
+      throw new Error(
+        `HoloMapRuntime.step invalid metric depth length: got ${frame.depthMeters.length}, expected ${frame.width * frame.height} (w=${frame.width}, h=${frame.height})`
+      );
+    }
     if (frame.depthConfidence && frame.depthConfidence.length !== frame.width * frame.height) {
       throw new Error(
         `HoloMapRuntime.step invalid measured depth confidence length: got ${frame.depthConfidence.length}, expected ${frame.width * frame.height} (w=${frame.width}, h=${frame.height})`
@@ -815,6 +1033,64 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const colors = new Uint8Array(numPoints * 3);
     const confidence = new Float32Array(numPoints);
     const aspect = frame.width / Math.max(1, frame.height);
+    const metricIntrinsics = HoloMapRuntimeImpl.hasUsableIntrinsics(frame.cameraIntrinsics)
+      ? frame.cameraIntrinsics
+      : undefined;
+    const encodedTiles: EncodedTileSample[] = [];
+
+    for (let t = 0; t < numPoints; t += 1) {
+      const sample = tiles[t]!;
+      const xyz = await this.encodeTile(sample.tile, microCfg);
+      const latentX = xyz[0] ?? 0;
+      const latentY = xyz[1] ?? 0;
+      const latentZ = xyz[2] ?? 0;
+      const depthHint = (sample.luminance - 0.5) * 0.34 + sample.texture * 0.24;
+      encodedTiles.push({
+        ...sample,
+        latent: [latentX, latentY, latentZ],
+        rawDepthSignal: depthHint + latentZ * 0.12,
+        metricDepthMeters: frame.depthMeters
+          ? HoloMapRuntimeImpl.sampleMetricDepthNearestUv(
+              frame.depthMeters,
+              frame.width,
+              frame.height,
+              sample.centerUv
+            )
+          : undefined,
+      });
+    }
+
+    const depthAlignment = HoloMapRuntimeImpl.fitShiftScaleDepth(encodedTiles);
+    const loopDescriptor = HoloMapRuntimeImpl.buildLoopClosureDescriptor(encodedTiles);
+    const rawDevicePose: CameraPose | undefined = frame.devicePose
+      ? {
+          position: [...frame.devicePose.position],
+          rotation: [...frame.devicePose.rotation],
+          confidence: frame.devicePose.confidence,
+        }
+      : undefined;
+    let loopCorrectedPose: CameraPose | undefined;
+    if (frame.depthMeters && metricIntrinsics) {
+      for (const kf of this.poseHistory) {
+        if (frame.index - kf.frameIndex < HoloMapRuntimeImpl.LOOP_CLOSURE_MIN_GAP) continue;
+        const descriptorDistance = HoloMapRuntimeImpl.descriptorDistance(
+          loopDescriptor,
+          kf.descriptor
+        );
+        if (descriptorDistance <= HoloMapRuntimeImpl.LOOP_CLOSURE_DESCRIPTOR_DISTANCE) {
+          this.lastLoopClosureFrameIdx = frame.index;
+          if (rawDevicePose) {
+            loopCorrectedPose = {
+              ...rawDevicePose,
+              position: [...kf.position],
+              confidence: Math.min(1, Math.max(rawDevicePose.confidence, 0.9)),
+            };
+          }
+          break;
+        }
+      }
+    }
+    const metricProjectionPose = loopCorrectedPose ?? rawDevicePose;
 
     let centroidX = 0;
     let centroidY = 0;
@@ -822,21 +1098,30 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     let confidenceSum = 0;
 
     for (let t = 0; t < numPoints; t += 1) {
-      const { tile, meanColor, centerUv, luminance, texture } = tiles[t]!;
-      const xyz = await this.encodeTile(tile, microCfg);
-
-      const latentX = xyz[0] ?? 0;
-      const latentY = xyz[1] ?? 0;
-      const latentZ = xyz[2] ?? 0;
+      const { meanColor, centerUv, texture, latent, rawDepthSignal } = encodedTiles[t]!;
+      const [latentX, latentY, latentZ] = latent;
       const planeX = (centerUv[0] - 0.5) * 2 * aspect;
       const planeY = (0.5 - centerUv[1]) * 2;
-      const px = planeX + latentX * 0.08;
-      const py = planeY + latentY * 0.08;
+      let px = planeX + latentX * 0.08;
+      let py = planeY + latentY * 0.08;
       // MEASURED depth (sensor) takes precedence over the monocular estimate.
       // Device depth is authoritative — map normalized [0=near,1=far] to the same
       // Z range as the estimate (±~0.17) so downstream geometry is consistent.
       let pz: number;
-      if (frame.depth) {
+      const metricDepth = HoloMapRuntimeImpl.alignedDepthMeters(encodedTiles[t]!, depthAlignment);
+      if (metricDepth !== undefined && metricIntrinsics) {
+        const worldPoint = HoloMapRuntimeImpl.projectMetricDepthToWorld(
+          centerUv,
+          metricDepth,
+          metricIntrinsics,
+          metricProjectionPose
+        );
+        px = worldPoint[0];
+        py = worldPoint[1];
+        pz = worldPoint[2];
+      } else if (metricDepth !== undefined) {
+        pz = -metricDepth;
+      } else if (frame.depth) {
         const measured = HoloMapRuntimeImpl.sampleDepthNearestUv(
           frame.depth,
           frame.width,
@@ -845,8 +1130,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         );
         pz = (0.5 - measured) * HoloMapRuntimeImpl.DEPTH_Z_SCALE;
       } else {
-        const depthHint = (luminance - 0.5) * 0.34 + texture * 0.24;
-        pz = depthHint + latentZ * 0.12;
+        pz = rawDepthSignal;
       }
 
       positions[t * 3] = px;
@@ -894,11 +1178,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     // derived pose (E4 + peer principal-axis rotation).
     const derivedPosition: [number, number, number] = [poseX, poseY, poseZ];
     const poseConfidence = Math.max(0, Math.min(1, meanConfidence));
-    const cameraPose: CameraPose = frame.devicePose
+    const cameraPose: CameraPose = metricProjectionPose
       ? {
-          position: [...frame.devicePose.position],
-          rotation: [...frame.devicePose.rotation],
-          confidence: frame.devicePose.confidence,
+          position: [...metricProjectionPose.position],
+          rotation: [...metricProjectionPose.rotation],
+          confidence: metricProjectionPose.confidence,
         }
       : {
           position: derivedPosition,
@@ -951,17 +1235,23 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.prevCameraPose = cameraPose;
 
     // ── Loop closure: revisit of a prior keyframe position ──────────────────
-    for (const kf of this.poseHistory) {
-      if (frame.index - kf.frameIndex < HoloMapRuntimeImpl.LOOP_CLOSURE_MIN_GAP) continue;
-      const dx = curPose[0] - kf.position[0];
-      const dy = curPose[1] - kf.position[1];
-      const dz = curPose[2] - kf.position[2];
-      if (Math.sqrt(dx * dx + dy * dy + dz * dz) < HoloMapRuntimeImpl.LOOP_CLOSURE_RADIUS) {
-        this.lastLoopClosureFrameIdx = frame.index;
-        break;
+    if (this.lastLoopClosureFrameIdx !== frame.index) {
+      for (const kf of this.poseHistory) {
+        if (frame.index - kf.frameIndex < HoloMapRuntimeImpl.LOOP_CLOSURE_MIN_GAP) continue;
+        const dx = curPose[0] - kf.position[0];
+        const dy = curPose[1] - kf.position[1];
+        const dz = curPose[2] - kf.position[2];
+        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < HoloMapRuntimeImpl.LOOP_CLOSURE_RADIUS) {
+          this.lastLoopClosureFrameIdx = frame.index;
+          break;
+        }
       }
     }
-    this.poseHistory.push({ frameIndex: frame.index, position: curPose });
+    this.poseHistory.push({
+      frameIndex: frame.index,
+      position: curPose,
+      descriptor: loopDescriptor,
+    });
     if (this.poseHistory.length > HoloMapRuntimeImpl.POSE_HISTORY_CAP) this.poseHistory.shift();
 
     // ── Scan-derived anchor ─────────────────────────────────────────────────
@@ -1031,6 +1321,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         anchorDescriptor,
         revision: frame.index + 1,
       },
+      ...(depthAlignment ? { depthAlignment } : {}),
     };
 
     this.steps.push({

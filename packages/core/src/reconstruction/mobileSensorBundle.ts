@@ -52,6 +52,13 @@ export interface MobileSensorDepthPlane {
   values: ArrayLike<number>;
 }
 
+export interface MobileSensorMetricDepthPlane {
+  width: number;
+  height: number;
+  /** Metric depth values in metres, resampled to the RGB frame. */
+  values: ArrayLike<number>;
+}
+
 export interface MobileSensorConfidencePlane {
   width: number;
   height: number;
@@ -79,6 +86,7 @@ export interface MobileSensorBundleFrame {
   stride: 3 | 4;
   rgb: ArrayLike<number>;
   sceneDepth?: MobileSensorDepthPlane;
+  sceneDepthMeters?: MobileSensorMetricDepthPlane;
   sceneDepthConfidence?: MobileSensorConfidencePlane;
   /** ARKit/ARCore camera transform, column-major 4x4. */
   cameraTransformColumnMajor4x4?: ArrayLike<number>;
@@ -312,6 +320,7 @@ export function arCoreDepthFrameToMobileSensorFrame(
 
   const pixelCount = frame.width * frame.height;
   const normalizedDepth = new Float32Array(pixelCount);
+  const metricDepthMeters = new Float32Array(pixelCount);
   const normalizedConfidence = new Float32Array(pixelCount);
   for (let y = 0; y < frame.height; y += 1) {
     for (let x = 0; x < frame.width; x += 1) {
@@ -326,6 +335,9 @@ export function arCoreDepthFrameToMobileSensorFrame(
       );
       const depthMillimeters = Number(depth.millimeters[srcIndex]);
       normalizedDepth[dstIndex] = arCoreDepthMillimetersToUnit(depthMillimeters, range);
+      metricDepthMeters[dstIndex] = arCoreDepthCellIsTrusted(depthMillimeters, range)
+        ? depthMillimeters / 1000
+        : 0;
       const sensorConfidence = frame.rawDepthConfidenceImage
         ? clampUnit(Number(frame.rawDepthConfidenceImage.values[srcIndex]) / 255)
         : 1;
@@ -346,6 +358,11 @@ export function arCoreDepthFrameToMobileSensorFrame(
       width: frame.width,
       height: frame.height,
       values: normalizedDepth,
+    },
+    sceneDepthMeters: {
+      width: frame.width,
+      height: frame.height,
+      values: metricDepthMeters,
     },
     sceneDepthConfidence: {
       width: frame.width,
@@ -468,6 +485,16 @@ export function validateMobileSensorBundle(bundle: MobileSensorBundle): string[]
       if (!finiteArray(frame.sceneDepth.values, pixelCount))
         errors.push(`${prefix}.sceneDepth values invalid`);
     }
+    if (frame.sceneDepthMeters) {
+      if (
+        frame.sceneDepthMeters.width !== frame.width ||
+        frame.sceneDepthMeters.height !== frame.height
+      ) {
+        errors.push(`${prefix}.sceneDepthMeters dimensions must match frame`);
+      }
+      if (!finiteArray(frame.sceneDepthMeters.values, pixelCount))
+        errors.push(`${prefix}.sceneDepthMeters values invalid`);
+    }
     if (frame.sceneDepthConfidence) {
       if (
         frame.sceneDepthConfidence.width !== frame.width ||
@@ -504,9 +531,20 @@ export function mobileSensorBundleToFrames(bundle: MobileSensorBundle): Reconstr
     depth: frame.sceneDepth
       ? toFloat32UnitArray(frame.sceneDepth.values, `frame[${frame.index}].sceneDepth`)
       : undefined,
+    depthMeters: frame.sceneDepthMeters
+      ? new Float32Array(Array.from(frame.sceneDepthMeters.values, Number))
+      : undefined,
     depthConfidence: frame.sceneDepthConfidence
       ? confidenceToUnitArray(frame.sceneDepthConfidence)
       : undefined,
+    cameraIntrinsics: {
+      width: bundle.capture.intrinsics.width,
+      height: bundle.capture.intrinsics.height,
+      fx: bundle.capture.intrinsics.fx,
+      fy: bundle.capture.intrinsics.fy,
+      cx: bundle.capture.intrinsics.cx,
+      cy: bundle.capture.intrinsics.cy,
+    },
     devicePose: frame.cameraTransformColumnMajor4x4
       ? cameraPoseFromColumnMajorTransform(
           frame.cameraTransformColumnMajor4x4,
