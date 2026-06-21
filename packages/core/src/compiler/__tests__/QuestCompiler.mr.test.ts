@@ -83,9 +83,10 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     expect(content).toContain('const val panelY = 1.3f');
     // tutorial.mock_qr.demo_url
     expect(content).toContain('https://holoscript.studio');
-    // onboarding.tagline + 3 how_to_use rows (array-of-objects parsed)
+    // onboarding.tagline + 4 how_to_use rows (array-of-objects parsed; the 4th, "Into a world",
+    // was added with the world_portal feature — assertion kept in sync with scanner.holo)
     expect(content).toContain('Read any QR code');
-    expect((content.match(/HowTo\(/g) ?? []).length).toBe(3);
+    expect((content.match(/HowTo\(/g) ?? []).length).toBe(4);
     // tutorial.steps (3 strings)
     expect((content.match(/Look at any QR code|When it reads|Tap Open/g) ?? []).length).toBe(3);
   });

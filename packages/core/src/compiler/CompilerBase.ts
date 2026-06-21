@@ -477,9 +477,12 @@ export abstract class CompilerBase implements ICompiler {
    * a `Record<string, string>`, so any target that implements this can be
    * gate-enforced and build-verified without bespoke per-target plumbing.
    *
-   * The default wraps the single-string `compile()` output under one default
-   * path. Multi-file targets (e.g. Android, AndroidXR, Quest) override this to
-   * emit a full project layout. Auth is delegated to `compile()`, which each
+   * The default handles two shapes: a single `string` (wrapped under
+   * `defaultOutputFileName()`) and a string-valued object map (passed through).
+   * A `compile()` result with no string output (binary/typed objects, e.g.
+   * GLTFExportResult) THROWS rather than emit `"[object Object]"` garbage — those
+   * targets must override. Multi-file targets (Android, AndroidXR) already override
+   * to emit a full project layout. Auth is delegated to `compile()`, which each
    * subclass already gates; this method does not re-validate.
    *
    * @param composition - HoloScript AST
@@ -499,7 +502,14 @@ export abstract class CompilerBase implements ICompiler {
       }
       if (Object.keys(out).length > 0) return out;
     }
-    return { [this.defaultOutputFileName()]: String(result) };
+    // Fail loud: a compile() result with no string output (e.g. GLTFExportResult — binary/object
+    // fields only) cannot be represented as a source-file map by the default. Emitting
+    // String(result) would feed "[object Object]" to the byte-diff gate and build-verify runner —
+    // silent garbage. Such targets MUST override compileToFiles().
+    throw new Error(
+      `${this.constructor.name}.compileToFiles(): compile() produced no string output ` +
+        `(binary/object result); this target must override compileToFiles() to emit a path-keyed source map.`
+    );
   }
 
   /**
