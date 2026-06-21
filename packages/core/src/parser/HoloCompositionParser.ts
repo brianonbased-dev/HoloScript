@@ -3093,8 +3093,8 @@ export class HoloCompositionParser {
       this.error(`Expected trait name after '@', got ${this.current().type}`);
       return null;
     }
-    if (this.match('IDENTIFIER')) {
-      return this.previous().value;
+    if (this.isBarewordPathToken()) {
+      return this.parseBarewordPathValue();
     }
     if (this.match('LBRACKET')) {
       return this.parseArrayValue();
@@ -3103,20 +3103,34 @@ export class HoloCompositionParser {
       return this.parseObjectValue();
     }
 
-    // A reserved keyword used as a bareword VALUE (e.g. table, dashboard, chart): the lexer maps
-    // these to keyword tokens, but isPropertyName already accepts them as property KEYS — mirror
-    // that for values (an unquoted bareword value is a string anyway). Strictly more permissive:
-    // this only runs where parseValue would otherwise error, so it cannot regress a passing parse.
-    if (
-      HoloCompositionParser.DOMAIN_TOKENS.has(this.current().type) ||
-      this.isKeywordAsIdentifierType(this.current().type)
-    ) {
-      return this.advance().value;
-    }
 
     this.error(`Expected value, got ${this.current().type}`);
     this.advance(); // CRITICAL: Advance to prevent infinite loop
     return null;
+  }
+
+  private isBarewordPathToken(): boolean {
+    const type = this.current().type;
+    return (
+      type === 'IDENTIFIER' ||
+      type === 'STATE' ||
+      HoloCompositionParser.DOMAIN_TOKENS.has(type) ||
+      this.isKeywordAsIdentifierType(type)
+    );
+  }
+
+  private parseBarewordPathValue(): string {
+    let value = this.advance().value;
+
+    while (this.match('DOT')) {
+      if (!this.isBarewordPathToken()) {
+        this.error(`Expected identifier after '.', got ${this.current().type}`);
+        break;
+      }
+      value += `.${this.advance().value}`;
+    }
+
+    return value;
   }
 
   private parseBindValue(): HoloBindValue {

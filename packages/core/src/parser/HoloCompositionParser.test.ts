@@ -199,6 +199,26 @@ describe('HoloCompositionParser', () => {
       ]);
     });
 
+    it('parses dotted bareword property values', () => {
+      const source = `
+        composition "Dotted Values" {
+          object "Panel" {
+            target: AppState.selectedItem
+            metric: Camera.motion_blur.time_ms
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.objects[0].properties).toEqual([
+        { type: 'ObjectProperty', key: 'target', value: 'AppState.selectedItem' },
+        { type: 'ObjectProperty', key: 'metric', value: 'Camera.motion_blur.time_ms' },
+      ]);
+    });
+
     it('parses object with using clause', () => {
       const source = `
         composition "Test" {
