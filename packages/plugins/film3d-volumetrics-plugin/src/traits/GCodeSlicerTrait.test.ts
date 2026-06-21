@@ -3,10 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildPlanarSliceContoursFromMesh,
   buildSemanticGCodePreamble,
+  buildTraversalStackFromMesh,
   createGCodeSlicerHandler,
   serializeTraversalStackToGCode,
   type GCodeSlicerConfig,
+  type MeshSliceInput,
 } from './GCodeSlicerTrait';
 import type { TraitContext } from './types';
 
@@ -20,6 +23,9 @@ const baseConfig: GCodeSlicerConfig = {
   adhesionLayerHeightMm: 0.25,
   adhesionBrimMm: 1,
   printSpeedMmS: 50,
+  enableSupports: true,
+  supportOverhangAngleDeg: 45,
+  supportInsetMm: 0.5,
 };
 
 const tempDirs: string[] = [];
@@ -39,12 +45,76 @@ async function makeTempDir(): Promise<string> {
   return dir;
 }
 
+function boxMesh(size: number, height: number, offset = 0): MeshSliceInput {
+  const min = offset;
+  const max = offset + size;
+  return {
+    verticesMm: [
+      [min, min, 0],
+      [max, min, 0],
+      [max, max, 0],
+      [min, max, 0],
+      [min, min, height],
+      [max, min, height],
+      [max, max, height],
+      [min, max, height],
+    ],
+    indices: [
+      0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3,
+      7, 4, 3, 4, 0,
+    ],
+  };
+}
+
+function overhangFrustumMesh(): MeshSliceInput {
+  return {
+    verticesMm: [
+      [0, 0, 0],
+      [10, 0, 0],
+      [10, 10, 0],
+      [0, 10, 0],
+      [-10, -10, 3],
+      [20, -10, 3],
+      [20, 20, 3],
+      [-10, 20, 3],
+    ],
+    indices: [
+      0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6, 0, 4, 5, 0, 5, 1, 1, 5, 6, 1, 6, 2, 2, 6, 7, 2, 7, 3, 3,
+      7, 4, 3, 4, 0,
+    ],
+  };
+}
+
 afterEach(async () => {
   vi.restoreAllMocks();
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { force: true, recursive: true })));
 });
 
 describe('film3d GCodeSlicerTrait', () => {
+  it('builds closed planar slice contours from indexed mesh triangles', () => {
+    const contours = buildPlanarSliceContoursFromMesh(boxMesh(10, 10), 5);
+    const points = contours.flatMap((contour) => contour.pointsMm);
+    const xs = points.map((point) => point[0]);
+    const ys = points.map((point) => point[1]);
+
+    expect(contours.length).toBe(1);
+    expect(contours[0]!.closed).toBe(true);
+    expect(Math.min(...xs)).toBeCloseTo(0);
+    expect(Math.max(...xs)).toBeCloseTo(10);
+    expect(Math.min(...ys)).toBeCloseTo(0);
+    expect(Math.max(...ys)).toBeCloseTo(10);
+  });
+
+  it('adds support traversal when upper contours exceed the previous footprint', () => {
+    const plans = buildTraversalStackFromMesh(
+      { ...baseConfig, adhesionLayerCount: 0, layerHeightMm: 1, supportInsetMm: 0 },
+      overhangFrustumMesh()
+    );
+
+    expect(plans.some((plan) => plan.role === 'model')).toBe(true);
+    expect(plans.some((plan) => plan.role === 'support')).toBe(true);
+  });
+
   it('serializes traversal layers into G0/G1 toolpath moves with shutdown G-code', () => {
     const preamble = buildSemanticGCodePreamble(baseConfig);
     const gcode = serializeTraversalStackToGCode(

@@ -216,10 +216,7 @@ function uniquePoints(points: [number, number, number][]): [number, number, numb
   return out;
 }
 
-function intersectTriangleAtZ(
-  triangle: Triangle,
-  z: number
-): Segment | null {
+function intersectTriangleAtZ(triangle: Triangle, z: number): Segment | null {
   const points: [number, number, number][] = [];
   for (const [a, b] of [
     [triangle[0], triangle[1]],
@@ -264,7 +261,8 @@ function chainSegmentsToContours(segments: Segment[], z: number): PlanarSliceCon
         grew = true;
       }
     }
-    const closed = points.length > 2 && pointKey(points[0]!) === pointKey(points[points.length - 1]!);
+    const closed =
+      points.length > 2 && pointKey(points[0]!) === pointKey(points[points.length - 1]!);
     contours.push({ layerZMm: z, pointsMm: closed ? points : [...points, points[0]!], closed });
   }
   return contours.filter((contour) => contour.pointsMm.length >= 3);
@@ -522,7 +520,9 @@ export function serializeTraversalStackToGCode(
     if (points.length === 0) continue;
     const first = points[0]!;
     lines.push(
-      `; layer ${layerIndex} Z=${formatMm(layer.layerZMm)} points=${points.length}`,
+      `; layer ${layerIndex} role=${layer.role ?? 'model'} Z=${formatMm(
+        layer.layerZMm
+      )} points=${points.length}`,
       `G0 Z${formatMm(layer.layerZMm)} F${travelFeedRate}`,
       `G0 X${formatMm(first[0])} Y${formatMm(first[1])} F${travelFeedRate}`
     );
