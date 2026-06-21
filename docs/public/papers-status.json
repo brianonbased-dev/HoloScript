@@ -1550,8 +1550,8 @@
       "target": "**IEEE TVCG — 🟢 UNDER REVIEW** (submitted 2026-05-17)",
       "basename": "trust-by-construction-paper.tex",
       "githubUrl": "https://github.com/brianonbased-dev/ai-ecosystem/blob/main/research/trust-by-construction-paper.tex",
-      "loc": 1801,
-      "sha256Prefix": "c9929e00",
+      "loc": 1865,
+      "sha256Prefix": "82eb7a2b",
       "retired": false,
       "pillars": {
         "novelty": {
@@ -1567,8 +1567,8 @@
           "evidence": "no demo heading found"
         },
         "ablation": {
-          "token": "❌",
-          "evidence": "no ablation signal found"
+          "token": "✅",
+          "evidence": "Table tab:ablation-tvcg backed by .bench-logs/tvcg-ablation-2026-06-21T00-00-00-000Z.json"
         },
         "userStudy": {
           "token": "❌",
