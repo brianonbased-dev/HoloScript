@@ -609,6 +609,11 @@ export interface SimulationProvenance {
    * `redischarge: true` → the run is outside its proof space; re-proof required.
    */
   envelopeCheck?: EnvelopeCheckResult;
+  /**
+   * Optional provenance-chain v2 receipt for the roundtable soul-owned gate.
+   * Receipt values are measured by `buildProvenanceChainReceiptV2`.
+   */
+  provenanceChainReceiptV2?: ProvenanceChainReceiptV2;
 }
 
 /**
@@ -795,6 +800,466 @@ export function verifyContinuationChain(provenances: readonly SimulationProvenan
     if (link.fromVerified !== true) verifiedCarryOver = false;
   }
   return { valid: true, verifiedCarryOver };
+}
+
+// -- Provenance-chain receipt v2 ------------------------------------------------
+
+export type ProvenanceVerifierTier = 'TIER-R' | 'TIER-L';
+export type ProvenanceMeasurementSource = 'measured' | 'declared';
+export type ProvenanceTheoremStatus = 'hypothesis' | 'measured';
+export type VendorFingerprintProbe = 'probe_scored' | 'probe_unscored' | 'substrate_generator';
+
+export interface ProvenanceMeasurement<T extends number | null = number> {
+  value: T;
+  source: ProvenanceMeasurementSource;
+  evidence: readonly string[];
+  measuredAt: string;
+}
+
+export interface TierRVerifierEvidence {
+  tier: 'TIER-R';
+  verifierId: string;
+  ruleSetHash: string;
+  ruleGrounded: boolean;
+  scoredValueAxes: readonly string[];
+  totalValueAxes: readonly string[];
+  verdict: 'pass' | 'fail';
+}
+
+export interface TierLVerifierEvidence {
+  tier: 'TIER-L';
+  verifierId: string;
+  modelId: string;
+  loggedVerdict: 'pass' | 'fail' | 'inconclusive';
+  confidence: number;
+  gatesSoulOwned?: boolean;
+}
+
+export interface VendorFingerprintResult {
+  probe: VendorFingerprintProbe;
+  classifierId: string;
+  predictedClass: string;
+  confidence: number;
+  classConfidences: Readonly<Record<string, number>>;
+  sampleCount: number;
+  perExampleTags?: readonly string[];
+  measuredAt: string;
+}
+
+export interface PreferenceObservation {
+  sampleId: string;
+  measuredValueIndependence: number;
+  heldOutPreference: number;
+}
+
+export interface CustodyEvidence {
+  downloadable: boolean;
+  localRunnable: boolean;
+  nonRevocable: boolean;
+}
+
+export interface ContaminationObservation {
+  generation: number;
+  vendorFingerprintConfidence: number;
+}
+
+export interface Exp2ValueLeakFalsifierInput {
+  probeScored: VendorFingerprintResult;
+  probeUnscored: VendorFingerprintResult;
+  substrateGenerator?: VendorFingerprintResult;
+  preferenceArm: readonly PreferenceObservation[];
+  contaminationThreshold?: number;
+  contaminationSeries?: readonly ContaminationObservation[];
+}
+
+export interface Exp2ValueLeakFalsifierResult {
+  experimentId: 'EXP-2';
+  theoremStatus: 'hypothesis';
+  valid: boolean;
+  status: 'ready' | 'needs-preference-arm' | 'needs-substrate-generator';
+  probeScoredIndependence: number;
+  probeUnscoredIndependence: number;
+  unscoredMinusScoredDissociation: number;
+  substrateGeneratorIndependence: number | null;
+  preference_correlation: number | null;
+  contaminationThreshold: number;
+  contaminationHalfLifeGeneration: number | null;
+  diagnostics: readonly string[];
+}
+
+export interface ProvenanceChainReceiptV2Input {
+  subject: {
+    contractId?: string;
+    runId?: string;
+    provenanceHash?: string;
+  };
+  custody: CustodyEvidence;
+  tierR: TierRVerifierEvidence;
+  tierL?: TierLVerifierEvidence;
+  probeScored: VendorFingerprintResult;
+  probeUnscored: VendorFingerprintResult;
+  substrateGenerator?: VendorFingerprintResult;
+  preferenceArm: readonly PreferenceObservation[];
+  hashMode?: HashMode;
+  receiptId?: string;
+  issuedAt?: string;
+}
+
+export interface ProvenanceChainReceiptV2 {
+  schemaVersion: 'holoscript.provenance-chain.receipt.v2';
+  receiptId: string;
+  issuedAt: string;
+  receiptHash: string;
+  hashMode: HashMode;
+  theoremStatus: 'hypothesis';
+  subject: ProvenanceChainReceiptV2Input['subject'];
+  custody: CustodyEvidence;
+  verifier: {
+    ruleGrounded: TierRVerifierEvidence;
+    learnedJudgeLog?: TierLVerifierEvidence;
+  };
+  fingerprints: {
+    probe_scored: VendorFingerprintResult;
+    probe_unscored: VendorFingerprintResult;
+    substrate_generator?: VendorFingerprintResult;
+  };
+  measurements: {
+    custodyScore: ProvenanceMeasurement<number>;
+    measuredValueIndependence: ProvenanceMeasurement<number>;
+    preference_correlation: ProvenanceMeasurement<number | null>;
+    specCoverage: ProvenanceMeasurement<number>;
+  };
+  exp2: Exp2ValueLeakFalsifierResult;
+}
+
+export interface ProvenanceChainVerificationOptions {
+  minSpecCoverage?: number;
+}
+
+export interface ProvenanceChainVerification {
+  valid: boolean;
+  soulOwned: boolean;
+  gateTier: 'TIER-R';
+  learnedJudgeLogged: boolean;
+  diagnostics: readonly string[];
+  warnings: readonly string[];
+}
+
+function clamp01(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(1, value));
+}
+
+function uniqueNonEmpty(values: readonly string[]): string[] {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function sortedRecord(record: Readonly<Record<string, number>>): Record<string, number> {
+  return Object.fromEntries(Object.entries(record).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+function canonicalizeFingerprint(fingerprint: VendorFingerprintResult): VendorFingerprintResult {
+  return {
+    ...fingerprint,
+    confidence: clamp01(fingerprint.confidence),
+    classConfidences: sortedRecord(fingerprint.classConfidences),
+  };
+}
+
+function measuredMetric<T extends number | null>(
+  value: T,
+  evidence: readonly string[],
+  measuredAt: string
+): ProvenanceMeasurement<T> {
+  return {
+    value,
+    source: 'measured',
+    evidence: [...evidence],
+    measuredAt,
+  };
+}
+
+function hashProvenanceChainReceiptV2(
+  receiptWithoutHash: Omit<ProvenanceChainReceiptV2, 'receiptHash'>
+): string {
+  const canonical = JSON.stringify(receiptWithoutHash);
+  if (receiptWithoutHash.hashMode === 'sha256') {
+    return `pcv2-sha-${sha256Bytes(new TextEncoder().encode(canonical))}`;
+  }
+  return `pcv2-${fnv1a32Hex(canonical)}`;
+}
+
+export function computeCustodyScore(custody: CustodyEvidence): number {
+  return custody.downloadable && custody.localRunnable && custody.nonRevocable ? 1 : 0;
+}
+
+export function computeSpecCoverage(
+  scoredValueAxes: readonly string[],
+  totalValueAxes: readonly string[]
+): number {
+  const total = uniqueNonEmpty(totalValueAxes);
+  if (total.length === 0) return 0;
+  const totalSet = new Set(total);
+  const scoredInSpec = uniqueNonEmpty(scoredValueAxes).filter((axis) => totalSet.has(axis));
+  return scoredInSpec.length / total.length;
+}
+
+export function computeMeasuredValueIndependence(fingerprint: VendorFingerprintResult): number {
+  return 1 - clamp01(fingerprint.confidence);
+}
+
+export function computePreferenceCorrelation(
+  observations: readonly PreferenceObservation[]
+): number | null {
+  if (observations.length < 2) return null;
+  const xs = observations.map((observation) => observation.measuredValueIndependence);
+  const ys = observations.map((observation) => observation.heldOutPreference);
+  const xMean = xs.reduce((sum, value) => sum + value, 0) / xs.length;
+  const yMean = ys.reduce((sum, value) => sum + value, 0) / ys.length;
+  let numerator = 0;
+  let xVariance = 0;
+  let yVariance = 0;
+  for (let i = 0; i < observations.length; i++) {
+    const dx = xs[i] - xMean;
+    const dy = ys[i] - yMean;
+    numerator += dx * dy;
+    xVariance += dx * dx;
+    yVariance += dy * dy;
+  }
+  if (xVariance === 0 || yVariance === 0) return null;
+  return numerator / Math.sqrt(xVariance * yVariance);
+}
+
+export function runExp2ValueLeakFalsifier(
+  input: Exp2ValueLeakFalsifierInput
+): Exp2ValueLeakFalsifierResult {
+  const diagnostics: string[] = [];
+  const threshold = clamp01(input.contaminationThreshold ?? 0.5);
+  const probeScoredIndependence = computeMeasuredValueIndependence(input.probeScored);
+  const probeUnscoredIndependence = computeMeasuredValueIndependence(input.probeUnscored);
+  const substrateGeneratorIndependence = input.substrateGenerator
+    ? computeMeasuredValueIndependence(input.substrateGenerator)
+    : null;
+  const preferenceCorrelation = computePreferenceCorrelation(input.preferenceArm);
+
+  let status: Exp2ValueLeakFalsifierResult['status'] = 'ready';
+  if (input.preferenceArm.length === 0) {
+    diagnostics.push('EXP-2 requires a held-out preference arm; independence alone is not a gate');
+    status = 'needs-preference-arm';
+  }
+  if (!input.substrateGenerator) {
+    diagnostics.push('EXP-2 requires the vendor-fingerprint classifier on the substrate generator');
+    if (status === 'ready') status = 'needs-substrate-generator';
+  }
+
+  const contaminationHalfLifeGeneration =
+    input.contaminationSeries
+      ?.slice()
+      .sort((a, b) => a.generation - b.generation)
+      .find((observation) => clamp01(observation.vendorFingerprintConfidence) <= threshold)
+      ?.generation ?? null;
+
+  return {
+    experimentId: 'EXP-2',
+    theoremStatus: 'hypothesis',
+    valid: status === 'ready',
+    status,
+    probeScoredIndependence,
+    probeUnscoredIndependence,
+    unscoredMinusScoredDissociation: probeUnscoredIndependence - probeScoredIndependence,
+    substrateGeneratorIndependence,
+    preference_correlation: preferenceCorrelation,
+    contaminationThreshold: threshold,
+    contaminationHalfLifeGeneration,
+    diagnostics,
+  };
+}
+
+export function buildProvenanceChainReceiptV2(
+  input: ProvenanceChainReceiptV2Input
+): ProvenanceChainReceiptV2 {
+  const issuedAt = input.issuedAt ?? new Date().toISOString();
+  const receiptId =
+    input.receiptId ?? `pcv2-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const hashMode = input.hashMode ?? HASH_MODE_DEFAULT;
+  const probeScored = canonicalizeFingerprint(input.probeScored);
+  const probeUnscored = canonicalizeFingerprint(input.probeUnscored);
+  const substrateGenerator = input.substrateGenerator
+    ? canonicalizeFingerprint(input.substrateGenerator)
+    : undefined;
+  const custodyScore = computeCustodyScore(input.custody);
+  const specCoverage = computeSpecCoverage(
+    input.tierR.scoredValueAxes,
+    input.tierR.totalValueAxes
+  );
+  const measuredValueIndependence = computeMeasuredValueIndependence(probeUnscored);
+  const preferenceCorrelation = computePreferenceCorrelation(input.preferenceArm);
+  const exp2 = runExp2ValueLeakFalsifier({
+    probeScored,
+    probeUnscored,
+    substrateGenerator,
+    preferenceArm: input.preferenceArm,
+  });
+
+  const receiptWithoutHash = {
+    schemaVersion: 'holoscript.provenance-chain.receipt.v2' as const,
+    receiptId,
+    issuedAt,
+    hashMode,
+    theoremStatus: 'hypothesis' as const,
+    subject: input.subject,
+    custody: input.custody,
+    verifier: {
+      ruleGrounded: input.tierR,
+      learnedJudgeLog: input.tierL,
+    },
+    fingerprints: {
+      probe_scored: probeScored,
+      probe_unscored: probeUnscored,
+      substrate_generator: substrateGenerator,
+    },
+    measurements: {
+      custodyScore: measuredMetric(
+        custodyScore,
+        ['custody.downloadable', 'custody.localRunnable', 'custody.nonRevocable'],
+        issuedAt
+      ),
+      measuredValueIndependence: measuredMetric(
+        measuredValueIndependence,
+        ['fingerprints.probe_unscored.confidence'],
+        issuedAt
+      ),
+      preference_correlation: measuredMetric(
+        preferenceCorrelation,
+        ['preferenceArm.measuredValueIndependence', 'preferenceArm.heldOutPreference'],
+        issuedAt
+      ),
+      specCoverage: measuredMetric(
+        specCoverage,
+        ['verifier.ruleGrounded.scoredValueAxes', 'verifier.ruleGrounded.totalValueAxes'],
+        issuedAt
+      ),
+    },
+    exp2,
+  };
+  const receiptHash = hashProvenanceChainReceiptV2(receiptWithoutHash);
+
+  return Object.freeze({
+    ...receiptWithoutHash,
+    receiptHash,
+  });
+}
+
+export function verifyProvenanceChainReceiptV2(
+  receipt: ProvenanceChainReceiptV2,
+  options: ProvenanceChainVerificationOptions = {}
+): ProvenanceChainVerification {
+  const diagnostics: string[] = [];
+  const warnings: string[] = [];
+  const minSpecCoverage = options.minSpecCoverage ?? 1;
+  const measured = receipt.measurements;
+  const requiredMeasurements: Array<keyof ProvenanceChainReceiptV2['measurements']> = [
+    'custodyScore',
+    'measuredValueIndependence',
+    'preference_correlation',
+    'specCoverage',
+  ];
+  const expectedHash = hashProvenanceChainReceiptV2({
+    schemaVersion: receipt.schemaVersion,
+    receiptId: receipt.receiptId,
+    issuedAt: receipt.issuedAt,
+    hashMode: receipt.hashMode,
+    theoremStatus: receipt.theoremStatus,
+    subject: receipt.subject,
+    custody: receipt.custody,
+    verifier: receipt.verifier,
+    fingerprints: receipt.fingerprints,
+    measurements: receipt.measurements,
+    exp2: receipt.exp2,
+  });
+
+  if (receipt.receiptHash !== expectedHash) {
+    diagnostics.push('receiptHash does not match the canonical receipt payload');
+  }
+
+  for (const metric of requiredMeasurements) {
+    if (measured[metric].source !== 'measured') {
+      diagnostics.push(`${metric} must be measured, not declared`);
+    }
+  }
+  if (receipt.fingerprints.probe_scored.probe !== 'probe_scored') {
+    diagnostics.push('probe_scored fingerprint has the wrong probe tag');
+  }
+  if (receipt.fingerprints.probe_unscored.probe !== 'probe_unscored') {
+    diagnostics.push('probe_unscored fingerprint has the wrong probe tag');
+  }
+  if (
+    receipt.fingerprints.substrate_generator &&
+    receipt.fingerprints.substrate_generator.probe !== 'substrate_generator'
+  ) {
+    diagnostics.push('substrate_generator fingerprint has the wrong probe tag');
+  }
+
+  const expectedCustodyScore = computeCustodyScore(receipt.custody);
+  if (measured.custodyScore.value !== expectedCustodyScore) {
+    diagnostics.push('custodyScore does not match downloadable/local/non-revocable evidence');
+  }
+
+  const expectedSpecCoverage = computeSpecCoverage(
+    receipt.verifier.ruleGrounded.scoredValueAxes,
+    receipt.verifier.ruleGrounded.totalValueAxes
+  );
+  if (Math.abs(measured.specCoverage.value - expectedSpecCoverage) > Number.EPSILON) {
+    diagnostics.push('specCoverage does not match TIER-R scored/total value axes');
+  }
+
+  const expectedIndependence = computeMeasuredValueIndependence(receipt.fingerprints.probe_unscored);
+  if (
+    Math.abs(measured.measuredValueIndependence.value - expectedIndependence) >
+    Number.EPSILON
+  ) {
+    diagnostics.push('measuredValueIndependence does not match probe_unscored confidence');
+  }
+
+  if (receipt.verifier.learnedJudgeLog?.gatesSoulOwned === true) {
+    diagnostics.push('TIER-L learned judge logs are never allowed to gate soul-owned status');
+  }
+  if (receipt.verifier.learnedJudgeLog) {
+    warnings.push('TIER-L learned judge evidence logged for analysis only; ignored by gate');
+  }
+  if (receipt.measurements.specCoverage.value < minSpecCoverage) {
+    diagnostics.push(
+      `specCoverage ${receipt.measurements.specCoverage.value} is below required ${minSpecCoverage}`
+    );
+  }
+  if (receipt.verifier.ruleGrounded.tier !== 'TIER-R') {
+    diagnostics.push('soul-owned gate must be TIER-R');
+  }
+  if (!receipt.verifier.ruleGrounded.ruleGrounded) {
+    diagnostics.push('TIER-R verifier is not rule-grounded');
+  }
+  if (receipt.verifier.ruleGrounded.verdict !== 'pass') {
+    diagnostics.push('TIER-R verifier verdict is not pass');
+  }
+  if (!receipt.exp2.valid) {
+    diagnostics.push(`EXP-2 falsifier is incomplete: ${receipt.exp2.status}`);
+  }
+
+  const valid = diagnostics.length === 0;
+  const soulOwned =
+    valid &&
+    receipt.verifier.ruleGrounded.ruleGrounded === true &&
+    receipt.verifier.ruleGrounded.verdict === 'pass' &&
+    receipt.measurements.custodyScore.value === 1;
+
+  return {
+    valid,
+    soulOwned,
+    gateTier: 'TIER-R',
+    learnedJudgeLogged: receipt.verifier.learnedJudgeLog !== undefined,
+    diagnostics,
+    warnings,
+  };
 }
 
 export interface ContractViolation {

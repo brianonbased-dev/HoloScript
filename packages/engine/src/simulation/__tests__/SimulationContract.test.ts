@@ -11,11 +11,18 @@ import {
   DeterministicStepper,
   ContractedSimulation,
   computeAdapterFingerprint,
+  buildProvenanceChainReceiptV2,
+  computeCustodyScore,
+  computeMeasuredValueIndependence,
+  computePreferenceCorrelation,
+  computeSpecCoverage,
   guardClauseFalsifiability,
+  runExp2ValueLeakFalsifier,
   type AdapterInfo,
   type ContractClause,
   acceptsCrossScale,
   coarsestCommonScale,
+  verifyProvenanceChainReceiptV2,
   verifyContinuationChain,
   SCALE_ALIASES,
   SCALE_FROM_ALIAS,
@@ -25,6 +32,8 @@ import {
   type ScaleEnvelope,
   type ContinuationLink,
   type SimulationProvenance,
+  type TierRVerifierEvidence,
+  type VendorFingerprintResult,
 } from '../SimulationContract';
 import type { SimSolver, FieldData } from '../SimSolver';
 
@@ -1841,6 +1850,199 @@ describe('Receipt Chaining', () => {
 // ═══════════════════════════════════════════════════════════════════════
 // Contract Clauses — semantic proof witnesses (H1 keystone)
 // ═══════════════════════════════════════════════════════════════════════
+
+describe('Provenance-chain receipt v2', () => {
+  const measuredAt = '2026-06-21T00:00:00.000Z';
+  const preferenceArm = [
+    { sampleId: 'p0', measuredValueIndependence: 0.1, heldOutPreference: 0.2 },
+    { sampleId: 'p1', measuredValueIndependence: 0.5, heldOutPreference: 0.55 },
+    { sampleId: 'p2', measuredValueIndependence: 0.8, heldOutPreference: 0.9 },
+  ];
+
+  function fingerprint(
+    probe: VendorFingerprintResult['probe'],
+    confidence: number
+  ): VendorFingerprintResult {
+    return {
+      probe,
+      classifierId: 'vendor-fingerprint-v1',
+      predictedClass: confidence > 0.5 ? 'claude-descendant' : 'rule-grounded-only',
+      confidence,
+      classConfidences: {
+        'claude-descendant': confidence,
+        'other-vendor': 0.1,
+        'rule-grounded-only': 1 - confidence,
+      },
+      sampleCount: 128,
+      perExampleTags: [`${probe}:sample-0`, `${probe}:sample-1`],
+      measuredAt,
+    };
+  }
+
+  function tierR(overrides: Partial<TierRVerifierEvidence> = {}): TierRVerifierEvidence {
+    return {
+      tier: 'TIER-R',
+      verifierId: 'tier-r-rule-verifier',
+      ruleSetHash: 'rules-sha-123',
+      ruleGrounded: true,
+      scoredValueAxes: ['custody', 'locality', 'revocability'],
+      totalValueAxes: ['custody', 'locality', 'revocability'],
+      verdict: 'pass',
+      ...overrides,
+    };
+  }
+
+  function validReceipt() {
+    return buildProvenanceChainReceiptV2({
+      subject: { contractId: 'cid-test', runId: 'run-test', provenanceHash: 'prov-sha-test' },
+      custody: { downloadable: true, localRunnable: true, nonRevocable: true },
+      tierR: tierR(),
+      tierL: {
+        tier: 'TIER-L',
+        verifierId: 'learned-judge-log',
+        modelId: 'judge-v0',
+        loggedVerdict: 'fail',
+        confidence: 0.91,
+      },
+      probeScored: fingerprint('probe_scored', 0.85),
+      probeUnscored: fingerprint('probe_unscored', 0.35),
+      substrateGenerator: fingerprint('substrate_generator', 0.2),
+      preferenceArm,
+      hashMode: 'sha256',
+      receiptId: 'pcv2-test',
+      issuedAt: measuredAt,
+    });
+  }
+
+  it('derives measured receipt metrics instead of accepting declared values', () => {
+    const receipt = validReceipt();
+
+    expect(computeCustodyScore(receipt.custody)).toBe(1);
+    expect(receipt.measurements.custodyScore.value).toBe(1);
+    expect(
+      computeSpecCoverage(['custody', 'locality'], ['custody', 'locality', 'revocability'])
+    ).toBeCloseTo(2 / 3);
+    expect(receipt.measurements.specCoverage.value).toBe(1);
+    expect(receipt.measurements.measuredValueIndependence.value).toBeCloseTo(0.65);
+    expect(computeMeasuredValueIndependence(receipt.fingerprints.probe_unscored)).toBeCloseTo(
+      0.65
+    );
+    expect(receipt.measurements.preference_correlation.value).toBeGreaterThan(0.98);
+    expect(computePreferenceCorrelation(preferenceArm)).toBeGreaterThan(0.98);
+    expect(receipt.fingerprints.probe_unscored.perExampleTags).toContain(
+      'probe_unscored:sample-0'
+    );
+    expect(receipt.receiptHash).toMatch(/^pcv2-sha-[0-9a-f]{64}$/);
+    expect(receipt.theoremStatus).toBe('hypothesis');
+  });
+
+  it('gates soul-owned through TIER-R while logging but ignoring TIER-L', () => {
+    const receipt = validReceipt();
+    const verification = verifyProvenanceChainReceiptV2(receipt);
+
+    expect(verification.valid).toBe(true);
+    expect(verification.soulOwned).toBe(true);
+    expect(verification.gateTier).toBe('TIER-R');
+    expect(verification.learnedJudgeLogged).toBe(true);
+    expect(verification.warnings.join(' ')).toContain('ignored by gate');
+  });
+
+  it('does not let a TIER-L pass override a failed TIER-R verifier', () => {
+    const receipt = buildProvenanceChainReceiptV2({
+      subject: { contractId: 'cid-test' },
+      custody: { downloadable: true, localRunnable: true, nonRevocable: true },
+      tierR: tierR({ ruleGrounded: false, verdict: 'fail' }),
+      tierL: {
+        tier: 'TIER-L',
+        verifierId: 'learned-judge-log',
+        modelId: 'judge-v0',
+        loggedVerdict: 'pass',
+        confidence: 0.99,
+        gatesSoulOwned: true,
+      },
+      probeScored: fingerprint('probe_scored', 0.85),
+      probeUnscored: fingerprint('probe_unscored', 0.35),
+      substrateGenerator: fingerprint('substrate_generator', 0.2),
+      preferenceArm,
+      receiptId: 'pcv2-tier-l-cannot-override',
+      issuedAt: measuredAt,
+    });
+
+    const verification = verifyProvenanceChainReceiptV2(receipt);
+    expect(verification.valid).toBe(false);
+    expect(verification.soulOwned).toBe(false);
+    expect(verification.diagnostics.join(' ')).toContain('TIER-L learned judge logs');
+    expect(verification.diagnostics.join(' ')).toContain('not rule-grounded');
+  });
+
+  it('treats specCoverage as a canary for under-scored TIER-R rules', () => {
+    const receipt = buildProvenanceChainReceiptV2({
+      subject: { contractId: 'cid-test' },
+      custody: { downloadable: true, localRunnable: true, nonRevocable: true },
+      tierR: tierR({ scoredValueAxes: ['custody'] }),
+      probeScored: fingerprint('probe_scored', 0.85),
+      probeUnscored: fingerprint('probe_unscored', 0.35),
+      substrateGenerator: fingerprint('substrate_generator', 0.2),
+      preferenceArm,
+      receiptId: 'pcv2-low-coverage',
+      issuedAt: measuredAt,
+    });
+
+    expect(receipt.measurements.specCoverage.value).toBeCloseTo(1 / 3);
+    const verification = verifyProvenanceChainReceiptV2(receipt);
+    expect(verification.valid).toBe(false);
+    expect(verification.soulOwned).toBe(false);
+    expect(verification.diagnostics.join(' ')).toContain('specCoverage');
+  });
+
+  it('rejects receipts that relabel measured fields as declared', () => {
+    const receipt = validReceipt();
+    const tampered = {
+      ...receipt,
+      measurements: {
+        ...receipt.measurements,
+        custodyScore: {
+          ...receipt.measurements.custodyScore,
+          source: 'declared' as const,
+        },
+      },
+    };
+
+    const verification = verifyProvenanceChainReceiptV2(tampered);
+    expect(verification.valid).toBe(false);
+    expect(verification.diagnostics.join(' ')).toContain('custodyScore must be measured');
+  });
+
+  it('runs EXP-2 as a hypothesis falsifier with required preference and substrate arms', () => {
+    const missingPreference = runExp2ValueLeakFalsifier({
+      probeScored: fingerprint('probe_scored', 0.85),
+      probeUnscored: fingerprint('probe_unscored', 0.35),
+      preferenceArm: [],
+    });
+    expect(missingPreference.valid).toBe(false);
+    expect(missingPreference.status).toBe('needs-preference-arm');
+    expect(missingPreference.diagnostics.join(' ')).toContain('preference arm');
+
+    const result = runExp2ValueLeakFalsifier({
+      probeScored: fingerprint('probe_scored', 0.85),
+      probeUnscored: fingerprint('probe_unscored', 0.35),
+      substrateGenerator: fingerprint('substrate_generator', 0.2),
+      preferenceArm,
+      contaminationThreshold: 0.5,
+      contaminationSeries: [
+        { generation: 0, vendorFingerprintConfidence: 0.9 },
+        { generation: 2, vendorFingerprintConfidence: 0.7 },
+        { generation: 4, vendorFingerprintConfidence: 0.49 },
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.theoremStatus).toBe('hypothesis');
+    expect(result.unscoredMinusScoredDissociation).toBeCloseTo(0.5);
+    expect(result.preference_correlation).toBeGreaterThan(0.98);
+    expect(result.contaminationHalfLifeGeneration).toBe(4);
+  });
+});
 
 describe('Contract Clauses', () => {
   // Minimal solver whose getField returns a controllable scalar.
