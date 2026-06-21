@@ -6,7 +6,7 @@ import { OrbitControls, Grid, Stars, Environment, Text, Sparkles } from '@react-
 import {
   HoloScriptPlusParser,
   HoloCompositionParser,
-  R3FCompiler,
+  SceneIRCompiler,
   MATERIAL_PRESETS,
 } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
@@ -334,7 +334,7 @@ function usePipeline(code: string) {
   return useMemo(() => {
     if (!code.trim()) return { r3fTree: null, errors: [] as Array<{ message: string }> };
     try {
-      const compiler = new R3FCompiler();
+      const compiler = new SceneIRCompiler();
       const trimmed = code.trimStart();
       if (trimmed.startsWith('composition')) {
         const parser = new HoloCompositionParser();

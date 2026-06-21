@@ -13,7 +13,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { ASTNode } from '../types';
-import { R3FCompiler, type R3FNode } from './R3FCompiler';
+import { SceneIRCompiler as R3FCompiler, type R3FNode } from './SceneIRCompiler';
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 
 function findWithCompiledMaterial(node: R3FNode | undefined): R3FNode | undefined {

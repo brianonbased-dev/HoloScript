@@ -89,14 +89,14 @@ const EMBODIMENT_TO_TARGET: Record<
   CompileTimeEmbodiment,
   { primary: ExportTarget; fallback: ExportTarget | null }
 > = {
-  FullAvatar: { primary: 'openxr', fallback: 'r3f' },
-  FloatingAgent: { primary: 'visionos', fallback: 'r3f' },
-  UI2D: { primary: 'native-2d', fallback: 'r3f' },
-  VoiceOnly: { primary: 'native-2d', fallback: null },
-  UIMinimal: { primary: 'native-2d', fallback: null },
-  VoiceHUD: { primary: 'native-2d', fallback: null },
-  Haptic: { primary: 'native-2d', fallback: null },
-  GlassOverlay: { primary: 'android-xr', fallback: 'native-2d' },
+  FullAvatar: { primary: 'openxr', fallback: 'webgpu' },
+  FloatingAgent: { primary: 'visionos', fallback: 'webgpu' },
+  UI2D: { primary: 'webgpu', fallback: null },
+  VoiceOnly: { primary: 'webgpu', fallback: null },
+  UIMinimal: { primary: 'webgpu', fallback: null },
+  VoiceHUD: { primary: 'webgpu', fallback: null },
+  Haptic: { primary: 'webgpu', fallback: null },
+  GlassOverlay: { primary: 'android-xr', fallback: 'webgpu' },
 };
 
 /**
@@ -110,17 +110,17 @@ const PLATFORM_TARGET_OVERRIDES: Partial<Record<PlatformTarget, ExportTarget>> =
   'android-xr': 'android-xr',
   'visionos-ar': 'visionos',
   'android-xr-ar': 'android-xr',
-  webxr: 'r3f',
-  ios: 'native-2d',
-  android: 'native-2d',
-  windows: 'r3f',
-  macos: 'r3f',
-  linux: 'r3f',
-  web: 'r3f',
-  'android-auto': 'native-2d',
-  carplay: 'native-2d',
-  watchos: 'native-2d',
-  wearos: 'native-2d',
+  webxr: 'webgpu',
+  ios: 'ios',
+  android: 'android',
+  windows: 'webgpu',
+  macos: 'webgpu',
+  linux: 'webgpu',
+  web: 'webgpu',
+  'android-auto': 'android',
+  carplay: 'ios',
+  watchos: 'ios',
+  wearos: 'android',
 };
 
 // =============================================================================

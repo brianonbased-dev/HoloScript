@@ -3,7 +3,7 @@
  * useCompiler — Hook for multi-target HoloScript compilation
  */
 import { useState, useCallback } from 'react';
-import { UnityCompiler, GodotCompiler, R3FCompiler, VRChatCompiler } from '@holoscript/core';
+import { UnityCompiler, GodotCompiler, VRChatCompiler } from '@holoscript/core';
 
 const ALL_TARGETS = [
   { id: 'unity', name: 'Unity', icon: '🎮', ext: '.cs' },
@@ -11,9 +11,6 @@ const ALL_TARGETS = [
   { id: 'godot', name: 'Godot', icon: '🤖', ext: '.gd' },
   { id: 'visionos', name: 'VisionOS', icon: '🥽', ext: '.swift' },
   { id: 'vrchat', name: 'VRChat', icon: '🌐', ext: '.cs' },
-  { id: 'babylon', name: 'Babylon', icon: '🏛️', ext: '.ts' },
-  { id: 'playcanvas', name: 'PlayCanvas', icon: '🎲', ext: '.js' },
-  { id: 'r3f', name: 'R3F', icon: '⚛️', ext: '.tsx' },
   { id: 'wasm', name: 'WASM', icon: '⚙️', ext: '.wasm' },
   { id: 'webgpu', name: 'WebGPU', icon: '🖥️', ext: '.wgsl' },
   { id: 'urdf', name: 'URDF', icon: '🤖', ext: '.urdf' },
@@ -83,7 +80,6 @@ const COMPILER_MAP: Record<string, any> = {};
 try {
   COMPILER_MAP['unity'] = new UnityCompiler();
   COMPILER_MAP['godot'] = new GodotCompiler();
-  COMPILER_MAP['r3f'] = new R3FCompiler();
   COMPILER_MAP['vrchat'] = new VRChatCompiler();
 } catch (_) {
   /* compilers may not be available in all environments */
@@ -113,7 +109,7 @@ export interface UseCompilerReturn {
 
 export function useCompiler(): UseCompilerReturn {
   const [selectedTargets, setSelectedTargets] = useState<Set<string>>(
-    new Set(['unity', 'godot', 'babylon'])
+    new Set(['unity', 'godot', 'vrchat'])
   );
   const [results, setResults] = useState<CompileResult[]>([]);
   const [isCompiling, setIsCompiling] = useState(false);

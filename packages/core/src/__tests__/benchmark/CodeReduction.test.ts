@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { HoloScriptPlusParser } from '../../parser/HoloScriptPlusParser';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
-import { R3FCompiler } from '../../compiler/R3FCompiler';
+import { SceneIRCompiler as R3FCompiler } from '../../compiler/SceneIRCompiler';
 import { VisionOSCompiler } from '../../compiler/VisionOSCompiler';
 import { USDZPipeline } from '../../compiler/USDZPipeline';
 import { performanceTracker } from '../../performance/PerformanceTracker';

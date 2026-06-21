@@ -825,14 +825,23 @@ export class HoloScriptCompiler {
   compile(ast: any, target: string): any;
 }
 
-export class R3FCompiler {
+export interface SceneIRCompilerOptions {
+  qualityTier?: 'low' | 'med' | 'high' | 'ultra';
+  defaultLighting?: boolean;
+  holomapPointCloud?: any;
+  platformTarget?: any;
+}
+
+export class SceneIRCompiler {
+  constructor(options?: SceneIRCompilerOptions);
   compile(ast: any): any;
+  compileComposition(composition: any): R3FNode;
   [key: string]: any;
 }
 
 export interface CompilationResult {
   success: boolean;
-  r3fCode?: string;
+  sceneIR?: unknown;
   error?: string;
   metadata?: {
     zones: number;
@@ -849,16 +858,6 @@ export class CompilerBridge {
 }
 
 export function getCompilerBridge(): CompilerBridge;
-
-export interface Native2DCompilerOptions {
-  format?: 'html' | 'react';
-  minify?: boolean;
-}
-
-export class Native2DCompiler {
-  constructor(options?: Native2DCompilerOptions);
-  compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
-}
 
 export interface TraitCompositionDecl {
   name: string;
@@ -3284,13 +3283,9 @@ export class OpenXRCompiler { constructor(options?: any); [key: string]: any; }
 export class AndroidCompiler { constructor(options?: any); [key: string]: any; }
 export class AndroidXRCompiler { constructor(options?: any); [key: string]: any; }
 export class IOSCompiler { constructor(options?: any); [key: string]: any; }
-export class ARCompiler { constructor(options?: any); [key: string]: any; }
-export class BabylonCompiler { constructor(options?: any); [key: string]: any; }
 export class WebGPUCompiler { constructor(options?: any); [key: string]: any; }
 export class WASMCompiler { constructor(options?: any); [key: string]: any; }
-export class PlayCanvasCompiler { constructor(options?: any); [key: string]: any; }
 export class DTDLCompiler { constructor(options?: any); [key: string]: any; }
-export class VRRCompiler { constructor(options?: any); [key: string]: any; }
 export class MultiLayerCompiler { constructor(options?: any); [key: string]: any; }
 
 export declare const VR_TRAITS: any;
@@ -3299,7 +3294,7 @@ export class CircuitBreakerRegistry { [key: string]: any; }
 export class CircuitState { [key: string]: any; }
 export class ExportManager { [key: string]: any; }
 export declare function getExportManager(options?: Partial<ExportOptions>): any;
-export type ExportTarget = 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat' | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'ar' | 'babylon' | 'webgpu' | 'r3f' | 'wasm' | 'playcanvas' | 'usd' | 'usdz' | 'dtdl' | 'vrr' | 'multi-layer' | 'incremental' | 'state' | 'trait-composition' | 'tsl' | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities' | 'phone-sleeve-vr' | 'native-2d' | 'context' | '3dgs';
+export type ExportTarget = 'urdf' | 'sdf' | 'unity' | 'unreal' | 'godot' | 'vrchat' | 'openxr' | 'android' | 'android-xr' | 'ios' | 'visionos' | 'webgpu' | 'wasm' | 'usd' | 'usdz' | 'dtdl' | 'multi-layer' | 'incremental' | 'state' | 'trait-composition' | 'tsl' | 'a2a-agent-card' | 'nir' | 'openxr-spatial-entities' | 'context' | '3dgs';
 export class ExportOptions { [key: string]: any; }
 export declare function selectModality(platform: any, options?: any): any;
 export declare function selectModalityForAll(options?: any): Map<any, any>;
@@ -5269,16 +5264,11 @@ export type ExportTarget =
   | 'android-xr'
   | 'ios'
   | 'visionos'
-  | 'ar'
-  | 'babylon'
   | 'webgpu'
-  | 'r3f'
   | 'wasm'
-  | 'playcanvas'
   | 'usd'
   | 'usdz'
   | 'dtdl'
-  | 'vrr'
   | 'multi-layer'
   | 'incremental'
   | 'state'
@@ -5287,8 +5277,6 @@ export type ExportTarget =
   | 'a2a-agent-card'
   | 'nir'
   | 'openxr-spatial-entities'
-  | 'phone-sleeve-vr'
-  | 'native-2d'
   | 'context'
   | '3dgs';
 
@@ -5298,17 +5286,23 @@ export interface HolomapPointCloudPayload {
   pointCount: number;
 }
 
-export class R3FCompiler extends CompilerBase {
+export interface SceneIRCompilerOptions {
+  qualityTier?: 'low' | 'med' | 'high' | 'ultra';
+  defaultLighting?: boolean;
+  holomapPointCloud?: HolomapPointCloudPayload;
+  platformTarget?: any;
+}
+
+export class SceneIRCompiler extends CompilerBase {
+  constructor(options?: SceneIRCompilerOptions);
   compile(ast: any, token: CompilerToken): R3FNode[];
+  compileComposition(composition: any): R3FNode;
 }
 
 export declare const ENVIRONMENT_PRESETS: Record<string, any>;
 
 export class UnityCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class GodotCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
-export class BabylonCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
-export class PlayCanvasCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
-export class ARCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class OpenXRCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class VRChatCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class VisionOSCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
@@ -5679,32 +5673,10 @@ export function runCompilerWasmSnnEmulator(
   runtime: Tier1WasmRuntimeProbeResult
 ): Tier1WasmEmulatorResult;
 
-// Additional compilers (GaussianSplatting, VRR, FlatSemantic) for compiler subpath consumers
+// Additional live compilers for compiler subpath consumers
 export class GaussianSplattingCompiler extends CompilerBase {
   constructor(options?: { format?: 'gltf' | 'glb'; [key: string]: any });
   compile(ast: any, token?: any, ...args: any[]): any;
-  [key: string]: any;
-}
-export class VRRCompiler extends CompilerBase {
-  constructor(options?: any);
-  compile(composition: any, agentToken?: any, outputPath?: string): any;
-  [key: string]: any;
-}
-export class FlatSemanticCompiler extends CompilerBase {
-  constructor(options?: any);
-  compile(ast: any, ...args: any[]): any;
-  [key: string]: any;
-}
-// Native2DCompiler — .holo composition → hydration-free HTML / React (I.017).
-// Consumed via @holoscript/core/compiler by the studio Founder Console native
-// route (packages/studio/src/app/quest-proof/native/route.ts, N1/N2 lane).
-export interface Native2DCompilerOptions {
-  format?: 'html' | 'react';
-  minify?: boolean;
-}
-export class Native2DCompiler extends CompilerBase {
-  constructor(options?: Native2DCompilerOptions);
-  compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
   [key: string]: any;
 }
 
@@ -5727,30 +5699,6 @@ export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
 export function compilePipelineSourceToNode(source: string, options?: any): any;
-`;
-
-const r3fDTS = `export interface R3FNode {
-  type: string;
-  id?: string;
-  props: Record<string, unknown>;
-  children?: R3FNode[];
-  traits?: Map<string, Record<string, unknown>>;
-  directives?: unknown[];
-  assetMaturity?: 'draft' | 'mesh' | 'final';
-  [key: string]: any;
-}
-
-export class R3FCompiler {
-  constructor(options?: any);
-  compile(ast: any): R3FNode | R3FNode[];
-  compileComposition(composition: any): R3FNode;
-  [key: string]: any;
-}
-
-export declare const ENVIRONMENT_PRESETS: Record<string, any>;
-export declare const MATERIAL_PRESETS: Record<string, Record<string, unknown>>;
-export declare const QUALITY_TIER_SCALES: Record<string, number>;
-export declare const UI_COMPONENT_PRESETS: Record<string, unknown>;
 `;
 
 const contextDTS = `export type ContextSurface = 'claude' | 'codex' | 'cursor' | 'copilot' | 'gemini' | 'any';
@@ -6411,7 +6359,6 @@ export function parseHoloPartial(source: string, options?: any): any;
 export function compileToWASM(ast: any, options?: any): any;
 
 // Compilers re-exported to main barrel for dynamic import callers
-export class FlatSemanticCompiler { constructor(options?: any); compile(ast: any, ...args: any[]): any; [key: string]: any; }
 export class SCMCompiler { constructor(options?: any); compile(ast: any, token?: any): any; [key: string]: any; }
 export class GaussianSplattingCompiler { constructor(options?: { format?: 'gltf' | 'glb'; [key: string]: any }); compile(ast: any, token?: any, ...args: any[]): any; [key: string]: any; }
 
@@ -7486,9 +7433,9 @@ try {
     fs.mkdirSync(compilerDir, { recursive: true });
   }
   // @holoscript/core/compiler/nodetoy — tsup emits the .js but dts:false, so the
-  // ./compiler/* types glob found no nodetoy.d.ts → TS7016 broke @holoscript/nodetoy-plugin's
-  // build (the last full-monorepo build blocker post-8.0.0 merge). Hand-authored like
-  // r3f.d.ts; faithful to src/compiler/NodeToyMapping.ts (shader-dependent fields kept
+  // ./compiler/* types glob found no nodetoy.d.ts -> TS7016 broke @holoscript/nodetoy-plugin's
+  // build (the last full-monorepo build blocker post-8.0.0 merge). Faithful to
+  // src/compiler/NodeToyMapping.ts (shader-dependent fields kept
   // loose to stay self-contained — consumers type-check on the graph shape).
   const nodetoyDTS = `// @holoscript/core/compiler/nodetoy — NodeToy shader-graph → HoloScript @shader mapping
 export interface NodeToyPort {
@@ -7561,7 +7508,6 @@ declare const _default: unknown;
 export default _default;
 `;
   fs.writeFileSync(path.join(compilerDir, 'nodetoy.d.ts'), nodetoyDTS, 'utf8');
-  fs.writeFileSync(path.join(compilerDir, 'r3f.d.ts'), r3fDTS, 'utf8');
   fs.writeFileSync(path.join(compilerDir, 'context.d.ts'), contextDTS, 'utf8');
   fs.writeFileSync(
     path.join(compilerDir, 'llm-provider-capabilities.d.ts'),
@@ -7569,7 +7515,6 @@ export default _default;
     'utf8'
   );
   console.log('✓ Created compiler/nodetoy.d.ts');
-  console.log('✓ Created compiler/r3f.d.ts');
   console.log('✓ Created compiler/context.d.ts');
   console.log('✓ Created compiler/llm-provider-capabilities.d.ts');
 } catch (err) {

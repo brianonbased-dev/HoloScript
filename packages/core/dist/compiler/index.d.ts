@@ -46,16 +46,11 @@ export type ExportTarget =
   | 'android-xr'
   | 'ios'
   | 'visionos'
-  | 'ar'
-  | 'babylon'
   | 'webgpu'
-  | 'r3f'
   | 'wasm'
-  | 'playcanvas'
   | 'usd'
   | 'usdz'
   | 'dtdl'
-  | 'vrr'
   | 'multi-layer'
   | 'incremental'
   | 'state'
@@ -64,8 +59,6 @@ export type ExportTarget =
   | 'a2a-agent-card'
   | 'nir'
   | 'openxr-spatial-entities'
-  | 'phone-sleeve-vr'
-  | 'native-2d'
   | 'context'
   | '3dgs';
 
@@ -75,17 +68,23 @@ export interface HolomapPointCloudPayload {
   pointCount: number;
 }
 
-export class R3FCompiler extends CompilerBase {
+export interface SceneIRCompilerOptions {
+  qualityTier?: 'low' | 'med' | 'high' | 'ultra';
+  defaultLighting?: boolean;
+  holomapPointCloud?: HolomapPointCloudPayload;
+  platformTarget?: any;
+}
+
+export class SceneIRCompiler extends CompilerBase {
+  constructor(options?: SceneIRCompilerOptions);
   compile(ast: any, token: CompilerToken): R3FNode[];
+  compileComposition(composition: any): R3FNode;
 }
 
 export declare const ENVIRONMENT_PRESETS: Record<string, any>;
 
 export class UnityCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class GodotCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
-export class BabylonCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
-export class PlayCanvasCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
-export class ARCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class OpenXRCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class VRChatCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
 export class VisionOSCompiler extends CompilerBase { constructor(options?: any); compile(ast: any, token: CompilerToken): any; }
@@ -456,32 +455,10 @@ export function runCompilerWasmSnnEmulator(
   runtime: Tier1WasmRuntimeProbeResult
 ): Tier1WasmEmulatorResult;
 
-// Additional compilers (GaussianSplatting, VRR, FlatSemantic) for compiler subpath consumers
+// Additional live compilers for compiler subpath consumers
 export class GaussianSplattingCompiler extends CompilerBase {
   constructor(options?: { format?: 'gltf' | 'glb'; [key: string]: any });
   compile(ast: any, token?: any, ...args: any[]): any;
-  [key: string]: any;
-}
-export class VRRCompiler extends CompilerBase {
-  constructor(options?: any);
-  compile(composition: any, agentToken?: any, outputPath?: string): any;
-  [key: string]: any;
-}
-export class FlatSemanticCompiler extends CompilerBase {
-  constructor(options?: any);
-  compile(ast: any, ...args: any[]): any;
-  [key: string]: any;
-}
-// Native2DCompiler — .holo composition → hydration-free HTML / React (I.017).
-// Consumed via @holoscript/core/compiler by the studio Founder Console native
-// route (packages/studio/src/app/quest-proof/native/route.ts, N1/N2 lane).
-export interface Native2DCompilerOptions {
-  format?: 'html' | 'react';
-  minify?: boolean;
-}
-export class Native2DCompiler extends CompilerBase {
-  constructor(options?: Native2DCompilerOptions);
-  compile(ast: any, agentToken: string, outputPath?: string, options?: Native2DCompilerOptions): string | any;
   [key: string]: any;
 }
 

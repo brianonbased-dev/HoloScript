@@ -7,7 +7,7 @@
  * traits, options, and default lighting injection.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../R3FCompiler';
+import { SceneIRCompiler as R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../SceneIRCompiler';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
   const actual = await importOriginal();

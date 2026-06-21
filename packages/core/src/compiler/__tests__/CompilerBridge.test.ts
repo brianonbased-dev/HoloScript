@@ -5,7 +5,7 @@ import type { CompilationResult } from '../CompilerBridge';
 // ============================================================================
 // We test the synchronous getMetrics(), singleton management, and compile/
 // validate error paths. The async compile()/validate() methods require mocking
-// the dynamic import('../index') since the real tokenizer/parser/R3FCompiler
+// the dynamic import('../index') since the real tokenizer/parser/SceneIRCompiler
 // would pull the full core bundle. We mock at the module level.
 // ============================================================================
 
@@ -22,8 +22,8 @@ vi.mock('../../parser/HoloScriptPlusParser', () => ({
   },
 }));
 
-vi.mock('../R3FCompiler', () => ({
-  R3FCompiler: class {
+vi.mock('../SceneIRCompiler', () => ({
+  SceneIRCompiler: class {
     compile() {
       return mockCompile();
     }
@@ -129,7 +129,7 @@ describe('CompilerBridge', () => {
       const result: CompilationResult = await bridge.compile('orb "hello" { color: red }');
 
       expect(result.success).toBe(true);
-      expect(result.r3fCode).toBe('<R3FScene />');
+      expect(result.sceneIR).toBe('<R3FScene />');
       expect(result.metadata).toBeDefined();
       expect(result.metadata!.zones).toBe(2);
       expect(result.metadata!.entities).toBe(3);

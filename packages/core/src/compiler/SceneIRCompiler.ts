@@ -50,7 +50,7 @@ export type { AssetMaturity } from '../traits/DraftTrait';
 // The pool is used (acquire at compileNode, compileComposition, compileLight)
 // but 20K × ~80 bytes = ~1.6MB pre-allocated upfront was wasteful.
 // Nodes are created on first acquire() and recycled via release().
-const r3fNodePool = new ASTNodePool<R3FNode>(
+const sceneIRNodePool = new ASTNodePool<R3FNode>(
   () => ({ type: '', props: {} }),
   (node) => {
     node.type = '';
@@ -1882,16 +1882,16 @@ export const UI_COMPONENT_PRESETS: Record<
 };
 
 /**
- * R3FCompiler
+ * SceneIRCompiler
  *
- * Translates HoloScript AST into R3F node trees for React Three Fiber rendering.
+ * Translates HoloScript AST into the native scene-IR tree consumed by Studio and runtime renderers.
  * Handles both HSPlusAST (from HoloScriptPlusParser) and HoloComposition AST
  * (from HoloCompositionParser/.holo files).
  */
 /** Quality tier controls particle counts, shader complexity, and LOD. */
 export type QualityTier = 'low' | 'med' | 'high' | 'ultra';
 
-export interface R3FCompilerOptions {
+export interface SceneIRCompilerOptions {
   /** Quality tier (default: 'high') */
   qualityTier?: QualityTier;
   /** Inject default ambient + directional light (default: true) */
@@ -1900,6 +1900,8 @@ export interface R3FCompilerOptions {
   holomapPointCloud?: HolomapPointCloudPayload;
   /** Target platform for @platform() conditional compilation (Adaptive Platform Layers). */
   platformTarget?: CompilePlatformTarget | string;
+  /** Diagnostic name for compatibility wrappers. */
+  compilerName?: string;
 }
 
 /** Scale factors per quality tier for runtime tuning. */
@@ -1943,7 +1945,7 @@ export const QUALITY_TIER_SCALES: Record<
   },
 };
 
-export class R3FCompiler {
+export class SceneIRCompiler {
   // ─── Options & Quality Tier ────────────────────────────────────────────
 
   public readonly qualityTier: QualityTier;
@@ -1951,8 +1953,10 @@ export class R3FCompiler {
   private readonly _defaultLighting: boolean;
   private readonly _holomapPointCloud?: HolomapPointCloudPayload;
   private readonly _platformTarget?: CompilePlatformTarget;
+  private readonly compilerName: string;
 
-  constructor(options: R3FCompilerOptions = {}) {
+  constructor(options: SceneIRCompilerOptions = {}) {
+    this.compilerName = options.compilerName ?? 'SceneIRCompiler';
     this.qualityTier = options.qualityTier ?? 'high';
     this.tierScales = QUALITY_TIER_SCALES[this.qualityTier];
     this._defaultLighting = options.defaultLighting ?? true;
@@ -1967,7 +1971,6 @@ export class R3FCompiler {
 
   // ─── RBAC Enforcement ─────────────────────────────────────────────────
 
-  private readonly compilerName = 'R3FCompiler';
   private rbac = getRBAC();
 
   /**
@@ -2416,7 +2419,7 @@ export class R3FCompiler {
   }
 
   private createNode(type: string, props: Record<string, unknown> = {}, id?: string): R3FNode {
-    const node = r3fNodePool.acquire();
+    const node = sceneIRNodePool.acquire();
     node.type = type;
     node.id = id;
     node.props = props;
@@ -2607,7 +2610,7 @@ export class R3FCompiler {
     const rawProps = (node as unknown as CompositionChild).properties || {};
     const type = this.mapType(node.type, rawProps);
 
-    const r3fNode = r3fNodePool.acquire();
+    const r3fNode = sceneIRNodePool.acquire();
     r3fNode.type = type;
     const rawId =
       ((node as unknown as CompositionChild).id as string) ||
@@ -2668,7 +2671,7 @@ export class R3FCompiler {
       composition = platformMixin.filterForPlatform(composition, this._platformTarget);
     }
 
-    const root = r3fNodePool.acquire();
+    const root = sceneIRNodePool.acquire();
     root.type = 'group';
     root.id = composition.name ? escapeStringValue(composition.name as string, 'JSX') : undefined;
     root.props = {};
@@ -2870,7 +2873,7 @@ export class R3FCompiler {
       props.castShadow = true;
     }
 
-    const r3fNode = r3fNodePool.acquire();
+    const r3fNode = sceneIRNodePool.acquire();
     r3fNode.type = type;
     r3fNode.id = light.name ? escapeStringValue(light.name as string, 'JSX') : undefined;
     r3fNode.props = props;

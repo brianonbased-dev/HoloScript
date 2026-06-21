@@ -53,17 +53,12 @@ export type ExportTarget =
   | 'android-xr' // Android XR (dedicated)
   | 'ios' // iOS ARKit
   | 'visionos' // Apple Vision Pro
-  | 'ar' // Generic AR
-  | 'babylon' // Babylon.js
   | 'webgpu' // WebGPU API
-  | 'r3f' // React Three Fiber
   | 'wasm' // WebAssembly
-  | 'playcanvas' // PlayCanvas engine
   | 'usd' // Pixar USD
   | 'usdz' // USDZ (iOS AR)
   | 'fmu' // FMI 3.0 Functional Mock-up Unit source bundle
   | 'dtdl' // Azure Digital Twins
-  | 'vrr' // VR Rendering (custom)
   | 'multi-layer' // Multi-layer compositions
   | 'incremental' // Incremental compilation
   | 'state' // State machine compilation
@@ -72,8 +67,6 @@ export type ExportTarget =
   | 'a2a-agent-card' // A2A Protocol Agent Card manifests
   | 'nir' // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
   | 'openxr-spatial-entities' // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
-  | 'phone-sleeve-vr' // Phone Sleeve VR (smartphone-as-headset stereoscopic WebXR)
-  | 'native-2d' // Native 2D UI for mobile/desktop fallback
   | 'canvas2d-game' // Native 2D canvas GAME (trait-driven, self-contained offline HTML)
   | '3dgs' // Gaussian Splatting (KHR_gaussian_splatting glTF extension)
   | '3dtiles' // 3D Tiles 1.1 Gaussian splat spatial index

@@ -13,7 +13,6 @@
 
 import type { HoloComposition } from '../parser/HoloCompositionTypes';
 import type { ExportTarget } from './CircuitBreaker';
-import { Native2DCompiler } from './Native2DCompiler';
 import { CodeEditorCompiler } from './CodeEditorCompiler';
 
 // =============================================================================
@@ -267,67 +266,7 @@ class WebGPUReferenceExporter extends ReferenceExporter {
 /**
  * React Three Fiber Reference Exporter
  */
-class R3FReferenceExporter extends ReferenceExporter {
-  export(composition: HoloComposition): ExportResult {
-    const warnings: string[] = [];
-    const name = this.getCompositionName(composition);
-
-    const lines: string[] = [];
-    lines.push('// HoloScript React Three Fiber Reference Export (Fallback Mode)');
-    lines.push('import { Canvas } from "@react-three/fiber";');
-    lines.push('');
-    lines.push(`export function ${name.replace(/[^a-zA-Z0-9]/g, '_')}Scene() {`);
-    lines.push('  return (');
-    lines.push('    <Canvas>');
-    lines.push('      <ambientLight intensity={0.5} />');
-    lines.push('      <pointLight position={[10, 10, 10]} />');
-    lines.push('      {/* Add scene objects here */}');
-    lines.push('    </Canvas>');
-    lines.push('  );');
-    lines.push('}');
-
-    warnings.push('Simplified R3F export - manual scene component implementation required');
-
-    return {
-      target: 'r3f',
-      output: lines.join('\n'),
-      format: 'typescript',
-      warnings,
-      usedFallback: true,
-    };
-  }
-}
-
-/**
- * Babylon.js Reference Exporter
- */
-class BabylonReferenceExporter extends ReferenceExporter {
-  export(composition: HoloComposition): ExportResult {
-    const warnings: string[] = [];
-    const name = this.getCompositionName(composition);
-
-    const lines: string[] = [];
-    lines.push('// HoloScript Babylon.js Reference Export (Fallback Mode)');
-    lines.push('import { Engine, Scene } from "@babylonjs/core";');
-    lines.push('');
-    lines.push('const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;');
-    lines.push('const engine = new Engine(canvas);');
-    lines.push('const scene = new Scene(engine);');
-    lines.push(`scene.name = "${name}";`);
-    lines.push('// Add lights, cameras, and meshes here');
-    lines.push('engine.runRenderLoop(() => scene.render());');
-
-    warnings.push('Simplified Babylon.js export - manual scene setup required');
-
-    return {
-      target: 'babylon',
-      output: lines.join('\n'),
-      format: 'typescript',
-      warnings,
-      usedFallback: true,
-    };
-  }
-}
+// React Three Fiber and Babylon.js fallback exporters retired with apex-poison web targets.
 
 // =============================================================================
 // VR PLATFORM REFERENCE EXPORTERS
@@ -650,20 +589,7 @@ class CodeEditorReferenceExporter extends ReferenceExporter {
  * HTML target (format label 'text' — ExportResult.format has no 'html'; .output is
  * the HTML string consumers read).
  */
-class Native2DReferenceExporter extends ReferenceExporter {
-  export(composition: HoloComposition): ExportResult {
-    const output = new Native2DCompiler().compile(composition, '', undefined, {
-      format: 'html',
-    }) as string;
-    return {
-      target: 'native-2d',
-      output,
-      format: 'text',
-      warnings: [],
-      usedFallback: true,
-    };
-  }
-}
+// Native2DCompiler remains an internal UI generator, but the native-2d export target is retired.
 
 // =============================================================================
 // REGISTRY
@@ -687,9 +613,6 @@ export class ReferenceExporterRegistry {
 
     // Web Platforms
     this.exporters.set('webgpu', new WebGPUReferenceExporter());
-    this.exporters.set('r3f', new R3FReferenceExporter());
-    this.exporters.set('babylon', new BabylonReferenceExporter());
-    this.exporters.set('native-2d', new Native2DReferenceExporter());
     this.exporters.set('code-editor', new CodeEditorReferenceExporter());
 
     // VR Platforms
@@ -708,7 +631,7 @@ export class ReferenceExporterRegistry {
     this.exporters.set('dtdl', new DTDLReferenceExporter());
     this.exporters.set('wasm', new WASMReferenceExporter());
 
-    // Note: Some targets (playcanvas, ar, vrr, multi-layer, incremental, state, trait-composition)
+    // Note: Some targets (multi-layer, incremental, state, trait-composition)
     // use generic fallbacks until specific implementations are needed
   }
 

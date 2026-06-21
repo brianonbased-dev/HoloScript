@@ -115,7 +115,7 @@ const DEFAULT_MANIFEST: PluginManifest[] = [
   {
     name: 'holoscript-plugin-webgpu',
     version: '0.1.0',
-    targets: ['webgpu-wgsl', 'react-three-fiber', 'playcanvas'],
+    targets: ['webgpu-wgsl'],
     wasmUrl: 'plugins/holoscript-plugin-webgpu.component.wasm',
     sizeKB: 220,
   },

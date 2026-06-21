@@ -162,6 +162,7 @@
     "render:competitor-gap-matrix": "node scripts/render-competitor-gap-matrix.mjs",
     "conjecture:runner": "tsx scripts/conjecture-runner.ts",
     "conjecture:cost-cell": "tsx scripts/conjecture-cost-cell.ts",
+    "check:apex-poison-retired": "node scripts/holo-ci/check-apex-poison-retired.mjs",
     "check:export-targets-sync": "node scripts/holo-ci/check-export-targets-sync.mjs",
     "check:trait-test-tautologies": "node scripts/holo-ci/check-trait-test-tautologies.mjs",
     "check:trait-parity": "node scripts/holo-ci/check-trait-parity.mjs",

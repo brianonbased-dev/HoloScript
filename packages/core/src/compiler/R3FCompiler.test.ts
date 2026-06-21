@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { HoloComposition, HoloWorld } from '../parser/HoloCompositionTypes';
-import { R3FCompiler, type R3FNode } from './R3FCompiler';
+import { SceneIRCompiler as R3FCompiler, type R3FNode } from './SceneIRCompiler';
 
 function minimalComposition(overrides: Partial<HoloComposition>): HoloComposition {
   return {

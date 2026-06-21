@@ -22,7 +22,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { HoloCompositionParser, R3FCompiler, type R3FNode } from '@holoscript/core';
+import { HoloCompositionParser, SceneIRCompiler, type R3FNode } from '@holoscript/core';
 import { XRLocomotionController, AgentAvatarTracker } from '@holoscript/xr-embodiment';
 
 interface ImmersiveViewerProps {
@@ -554,14 +554,14 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
     const scene = new THREE.Scene();
 
     // Canonical .holo (geometry:/material:, templates, lights, nesting) is rendered
-    // through @holoscript/core's real R3FCompiler so the immersive viewer faithfully
+    // through @holoscript/core's real SceneIRCompiler so the immersive viewer faithfully
     // shows the native example library. The minimal type/color dialect (and any
     // compile failure) falls back to the simple makeMesh path — zero regression.
     const ctx = { lights: 0, meshes: 0 };
     let built = false;
     if (parsed.ast && compositionHasGeometry(parsed.ast)) {
       try {
-        const root = new R3FCompiler().compileComposition(parsed.ast);
+        const root = new SceneIRCompiler().compileComposition(parsed.ast);
         const obj = buildObject3D(root, ctx);
         // Only trust the canonical path if it actually produced meshes; otherwise
         // (empty/misrouted compile) fall back to the simple renderer.

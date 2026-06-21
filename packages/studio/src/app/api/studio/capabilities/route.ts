@@ -28,14 +28,10 @@ export async function GET() {
       compilation: {
         description: 'Compile HoloScript to web, XR, asset, robotics, and engine targets',
         targets: [
-          'three',
-          'r3f',
           'gltf',
           'usd',
           'vrm',
           'vrchat',
-          'aframe',
-          'babylon',
           'unity',
           'unreal',
           'godot',

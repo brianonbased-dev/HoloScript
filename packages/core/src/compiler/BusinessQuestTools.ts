@@ -255,8 +255,55 @@ export function buildVRRCompositionFromDraft(draft: BusinessVRRDraft): HoloCompo
   return composition;
 }
 
+interface BusinessVRRTraitSummary {
+  twinNodes: number;
+  weatherNodes: number;
+  eventNodes: number;
+  inventoryNodes: number;
+  questNodes: number;
+  layerShiftNodes: number;
+  paywallNodes: number;
+  geoAnchorNodes: number;
+}
+
+function summarizeBusinessVRRComposition(composition: HoloComposition): BusinessVRRTraitSummary {
+  const summary: BusinessVRRTraitSummary = {
+    twinNodes: 0,
+    weatherNodes: 0,
+    eventNodes: 0,
+    inventoryNodes: 0,
+    questNodes: 0,
+    layerShiftNodes: 0,
+    paywallNodes: 0,
+    geoAnchorNodes: 0,
+  };
+
+  const visit = (object: HoloObjectDecl) => {
+    const traits = Array.isArray(object.traits) ? object.traits : [];
+    for (const trait of traits) {
+      const name = String(trait.name || '').replace(/^@/, '');
+      if (name === 'vrr_twin') summary.twinNodes += 1;
+      else if (name === 'weather_sync') summary.weatherNodes += 1;
+      else if (name === 'event_sync') summary.eventNodes += 1;
+      else if (name === 'inventory_sync') summary.inventoryNodes += 1;
+      else if (name === 'quest_hub') summary.questNodes += 1;
+      else if (name === 'layer_shift') summary.layerShiftNodes += 1;
+      else if (name === 'x402_paywall') summary.paywallNodes += 1;
+      else if (name === 'geo_anchor') summary.geoAnchorNodes += 1;
+    }
+
+    const children = (object as HoloObjectDecl & { children?: HoloObjectDecl[] }).children;
+    if (Array.isArray(children)) {
+      for (const child of children) visit(child);
+    }
+  };
+
+  for (const object of composition.objects ?? []) visit(object);
+  return summary;
+}
+
 /**
- * Structural validation (Zod) plus optional VRRCompiler parse for trait wiring checks.
+ * Structural validation (Zod) plus optional local trait summary for wiring checks.
  */
 export function validateBusinessVRRDraft(
   draft: unknown,
@@ -276,44 +323,24 @@ export function validateBusinessVRRDraft(
   }
 
   if (options?.parseWithVrrCompiler) {
-    return import('./VRRCompiler')
-      .then(({ VRRCompiler }) => {
-        const composition = buildVRRCompositionFromDraft(parsed.data);
-        const compiler = new VRRCompiler({
-          target: 'threejs',
-          minify: false,
-          source_maps: false,
-          api_integrations: {},
-          performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
-        });
-        const data = compiler.parseVRRComposition(composition);
-        if (data.questNodes.length === 0) {
-          issues.push({
-            path: 'businesses',
-            message: 'VRR parse found no @quest_hub nodes — check draft.quests',
-            severity: 'warning',
-          });
-        }
-        if (data.twinNodes.length === 0) {
-          issues.push({
-            path: 'twin',
-            message: 'VRR parse found no @vrr_twin nodes',
-            severity: 'warning',
-          });
-        }
-        return { ok: issues.every((i) => i.severity !== 'error'), issues };
-      })
-      .catch((err: unknown) => {
-        issues.push({
-          path: '',
-          message: err instanceof Error ? err.message : String(err),
-          severity: 'error',
-        });
-        return { ok: false, issues };
+    const data = summarizeBusinessVRRComposition(buildVRRCompositionFromDraft(parsed.data));
+    if (data.questNodes === 0) {
+      issues.push({
+        path: 'businesses',
+        message: 'Trait summary found no @quest_hub nodes - check draft.quests',
+        severity: 'warning',
       });
+    }
+    if (data.twinNodes === 0) {
+      issues.push({
+        path: 'twin',
+        message: 'Trait summary found no @vrr_twin nodes',
+        severity: 'warning',
+      });
+    }
   }
 
-  return Promise.resolve({ ok: true, issues });
+  return Promise.resolve({ ok: issues.every((i) => i.severity !== 'error'), issues });
 }
 
 /**
@@ -362,7 +389,7 @@ export const BUSINESS_QUEST_TOOLS: MCPToolDefinition[] = [
         },
         runVrrParse: {
           type: 'boolean',
-          description: 'If true, run VRRCompiler.parseVRRComposition and return trait counts',
+          description: 'If true, return local trait wiring counts',
           default: false,
         },
         agentToken: {
@@ -375,14 +402,14 @@ export const BUSINESS_QUEST_TOOLS: MCPToolDefinition[] = [
   },
   {
     name: 'holoscript_business_quest_validate_vrr_draft',
-    description: 'Validate a BusinessVRRDraft (Zod). Optionally run VRRCompiler parse smoke check.',
+    description: 'Validate a BusinessVRRDraft (Zod). Optionally run local trait wiring checks.',
     inputSchema: {
       type: 'object',
       properties: {
         draft: { type: 'object', description: 'Candidate BusinessVRRDraft JSON' },
         parseWithVrrCompiler: {
           type: 'boolean',
-          description: 'When true, dynamically loads VRRCompiler for wiring verification',
+          description: 'When true, runs local trait wiring verification',
           default: false,
         },
       },
@@ -451,25 +478,7 @@ async function handleScaffold(args: Record<string, unknown>): Promise<MCPToolCal
 
   let vrrSummary: Record<string, number> | undefined;
   if (runParse) {
-    const { VRRCompiler } = await import('./VRRCompiler');
-    const compiler = new VRRCompiler({
-      target: 'threejs',
-      minify: false,
-      source_maps: false,
-      api_integrations: {},
-      performance: { target_fps: 60, max_players: 1000, lazy_loading: true },
-    });
-    const data = compiler.parseVRRComposition(composition);
-    vrrSummary = {
-      twinNodes: data.twinNodes.length,
-      weatherNodes: data.weatherNodes.length,
-      eventNodes: data.eventNodes.length,
-      inventoryNodes: data.inventoryNodes.length,
-      questNodes: data.questNodes.length,
-      layerShiftNodes: data.layerShiftNodes.length,
-      paywallNodes: data.paywallNodes.length,
-      geoAnchorNodes: data.geoAnchorNodes.length,
-    };
+    vrrSummary = summarizeBusinessVRRComposition(composition);
   }
 
   const payload = {

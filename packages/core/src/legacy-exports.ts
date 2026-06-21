@@ -283,16 +283,12 @@ export type {
   InputAPI,
 } from './types';
 
-// Scene preset constants. MATERIAL_PRESETS is barrel-owned by MaterialTrait (below); the old R3F
-// re-export line only ever surfaced ENVIRONMENT_PRESETS (now sourced from the extracted scene-presets).
+// Scene preset constants. MATERIAL_PRESETS is barrel-owned by MaterialTrait (below);
+// ENVIRONMENT_PRESETS is now sourced from the extracted scene-presets module.
 export { ENVIRONMENT_PRESETS } from './compiler/scene-presets';
-// R3FCompiler is RETAINED as an internal library compiler. It is de-promoted as a *public compile
-// target* (no compile_to_r3f tool, no 'r3f' in the dialect/ANS/target registry — see the apex-poison
-// retirement), but it remains studio's active scene renderer, imported FROM THIS BARREL in
-// studio/src/app/shared/[id]/ImmersiveViewer.client.tsx, hooks/useCompiler.ts, hooks/useScenePipeline.ts.
-// Dropping it from the barrel breaks the studio build/deploy. Keep the class + node type exported here
-// (the only barrel source for both; ENVIRONMENT_PRESETS stays from scene-presets above — no duplicate).
-export { R3FCompiler, type R3FNode } from './compiler/R3FCompiler';
+// SceneIRCompiler is retained as the internal scene-tree generator for Studio and
+// renderer consumers. The public r3f compile target and R3FCompiler class are retired.
+export { SceneIRCompiler, type R3FNode } from './compiler/SceneIRCompiler';
 export type { HolomapPointCloudPayload } from './compiler/HolomapExportPayload';
 
 // Provenance / semiring algebra

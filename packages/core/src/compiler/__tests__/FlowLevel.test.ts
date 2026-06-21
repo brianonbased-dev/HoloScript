@@ -1,7 +1,7 @@
 /**
  * Flow-Level Compilation Test
  *
- * Traces a SINGLE trait (@grabbable) through ALL 16 HoloComposition-based
+ * Traces a SINGLE trait (@grabbable) through live HoloComposition-based
  * backends in one test. This catches the category of bugs where individual
  * backend tests pass but cross-backend invariants break — e.g., a trait
  * compiles to Unity but silently drops in Godot.
@@ -18,7 +18,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { UnityCompiler } from '../UnityCompiler';
 import { UnrealCompiler } from '../UnrealCompiler';
 import { GodotCompiler } from '../GodotCompiler';
-import { BabylonCompiler } from '../BabylonCompiler';
 import { OpenXRCompiler } from '../OpenXRCompiler';
 import { WebGPUCompiler } from '../WebGPUCompiler';
 import { VRChatCompiler } from '../VRChatCompiler';
@@ -27,7 +26,6 @@ import { AndroidXRCompiler } from '../AndroidXRCompiler';
 import { URDFCompiler } from '../URDFCompiler';
 import { SDFCompiler } from '../SDFCompiler';
 import { WASMCompiler } from '../WASMCompiler';
-import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import { IOSCompiler } from '../IOSCompiler';
 import { DTDLCompiler } from '../DTDLCompiler';
 import { VisionOSCompiler } from '../VisionOSCompiler';
@@ -136,11 +134,6 @@ const BACKENDS: BackendEntry[] = [
     traitIndicators: ['rigidbody3d'], // Godot emits RigidBody3D.new() for grabbable
   },
   {
-    name: 'Babylon',
-    factory: () => new BabylonCompiler(),
-    traitIndicators: ['actionmanager', 'picktrigger'], // Babylon emits ActionManager/OnPickTrigger
-  },
-  {
     name: 'OpenXR',
     factory: () => new OpenXRCompiler(),
     traitIndicators: ['grabbable', 'grab'],
@@ -180,11 +173,6 @@ const BACKENDS: BackendEntry[] = [
   {
     name: 'WASM',
     factory: () => new WASMCompiler(),
-    traitIndicators: ['cube'],
-  },
-  {
-    name: 'PlayCanvas',
-    factory: () => new PlayCanvasCompiler(),
     traitIndicators: ['cube'],
   },
   {

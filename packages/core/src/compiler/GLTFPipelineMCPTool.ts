@@ -432,10 +432,10 @@ async function handleOptimize(args: Record<string, unknown>): Promise<MCPToolCal
 async function handleMaterialList(args: Record<string, unknown>): Promise<MCPToolCallResponse> {
   const filter = (args.filter as string) ?? '';
 
-  // Import MATERIAL_PRESETS from R3FCompiler
+  // Import shared material presets without loading the retired scene compiler path.
   let presets: Record<string, unknown> = {};
   try {
-    const { MATERIAL_PRESETS } = await import('./R3FCompiler');
+    const { MATERIAL_PRESETS } = await import('./scene-presets');
     presets = MATERIAL_PRESETS as unknown as Record<string, unknown>;
   } catch {
     // Fallback: provide a basic list

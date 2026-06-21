@@ -2,8 +2,8 @@
  * CompilerBridge
  *
  * Convenience wrapper that lazily loads @holoscript/core tokenizer, parser,
- * and R3F compiler at runtime. Provides a simple compile() / validate() API
- * for consumers that want to compile HoloScript to React Three Fiber without
+ * and scene-IR compiler at runtime. Provides a simple compile() / validate() API
+ * for consumers that want to compile HoloScript to the native scene tree without
  * managing module initialization themselves.
  *
  * @module CompilerBridge
@@ -11,7 +11,7 @@
 
 export interface CompilationResult {
   success: boolean;
-  r3fCode?: string;
+  sceneIR?: unknown;
   error?: string;
   metadata?: {
     zones: number;
@@ -30,7 +30,7 @@ export class CompilerBridge {
         errors: Array<{ message: string }>;
       };
     };
-    R3FCompiler: new (options: Record<string, unknown>) => { compile(ast: unknown[]): string };
+    SceneIRCompiler: new (options: Record<string, unknown>) => { compile(ast: unknown[]): unknown };
   } | null = null;
   private initialized = false;
 
@@ -44,17 +44,17 @@ export class CompilerBridge {
       // Direct imports to avoid circular dependency through index.ts barrel
       const [parserModule, compilerModule] = await Promise.all([
         import('../parser/HoloScriptPlusParser'),
-        import('./R3FCompiler'),
+        import('./SceneIRCompiler'),
       ]);
       this.modules = {
         Parser: (parserModule as Record<string, unknown>)
           .HoloScriptPlusParser as typeof this.modules extends null
           ? never
           : NonNullable<typeof this.modules>['Parser'],
-        R3FCompiler: (compilerModule as Record<string, unknown>)
-          .R3FCompiler as typeof this.modules extends null
+        SceneIRCompiler: (compilerModule as Record<string, unknown>)
+          .SceneIRCompiler as typeof this.modules extends null
           ? never
-          : NonNullable<typeof this.modules>['R3FCompiler'],
+          : NonNullable<typeof this.modules>['SceneIRCompiler'],
       };
       this.initialized = true;
     } catch (error: unknown) {
@@ -65,7 +65,7 @@ export class CompilerBridge {
   }
 
   /**
-   * Compile HoloScript code to React Three Fiber components
+   * Compile HoloScript code to the native scene-IR tree.
    */
   async compile(holoScript: string): Promise<CompilationResult> {
     const startTime = performance.now();
@@ -93,18 +93,17 @@ export class CompilerBridge {
         return { success: false, error: 'Failed to parse HoloScript' };
       }
 
-      // Compile to R3F
-      const compiler = new this.modules!.R3FCompiler({
-        target: 'r3f',
+      const compiler = new this.modules!.SceneIRCompiler({
+        target: 'scene-ir',
         optimize: true,
         sourceMaps: false,
       });
-      const r3fCode = compiler.compile(ast);
+      const sceneIR = compiler.compile(ast);
       const duration = performance.now() - startTime;
 
       return {
         success: true,
-        r3fCode,
+        sceneIR,
         metadata: {
           zones: ast.length,
           entities: ast.reduce((sum, zone) => sum + (zone.entities?.length || 0), 0),

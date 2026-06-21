@@ -64,13 +64,10 @@ import { GodotCompiler } from '../GodotCompiler';
 import { VRChatCompiler } from '../VRChatCompiler';
 import { OpenXRCompiler } from '../OpenXRCompiler';
 import { VisionOSCompiler } from '../VisionOSCompiler';
-import { ARCompiler } from '../ARCompiler';
 import { AndroidCompiler } from '../AndroidCompiler';
 import { AndroidXRCompiler } from '../AndroidXRCompiler';
 import { IOSCompiler } from '../IOSCompiler';
-import { BabylonCompiler } from '../BabylonCompiler';
 import { WebGPUCompiler } from '../WebGPUCompiler';
-import { PlayCanvasCompiler } from '../PlayCanvasCompiler';
 import { WASMCompiler } from '../WASMCompiler';
 import { TSLCompiler } from '../TSLCompiler';
 import { URDFCompiler } from '../URDFCompiler';
@@ -80,7 +77,6 @@ import { GLTFPipeline } from '../GLTFPipeline';
 import { DTDLCompiler } from '../DTDLCompiler';
 import { NFTMarketplaceCompiler } from '../NFTMarketplaceCompiler';
 import { SCMCompiler } from '../SCMCompiler';
-import { VRRCompiler } from '../VRRCompiler';
 import { A2AAgentCardCompiler } from '../A2AAgentCardCompiler';
 import { MultiLayerCompiler } from '../MultiLayerCompiler';
 
@@ -137,11 +133,6 @@ const COMPILER_TEST_CASES: CompilerTestCase[] = [
     expectedPath: ANSCapabilityPath.VISIONOS,
   },
   {
-    name: 'ARCompiler',
-    factory: () => new ARCompiler(),
-    expectedPath: ANSCapabilityPath.AR,
-  },
-  {
     name: 'AndroidXRCompiler',
     factory: () => new AndroidXRCompiler(),
     expectedPath: ANSCapabilityPath.ANDROID_XR,
@@ -161,19 +152,9 @@ const COMPILER_TEST_CASES: CompilerTestCase[] = [
 
   // ── web3d ───────────────────────────────────────────────────────────────
   {
-    name: 'BabylonCompiler',
-    factory: () => new BabylonCompiler(),
-    expectedPath: ANSCapabilityPath.BABYLON,
-  },
-  {
     name: 'WebGPUCompiler',
     factory: () => new WebGPUCompiler(),
     expectedPath: ANSCapabilityPath.WEBGPU,
-  },
-  {
-    name: 'PlayCanvasCompiler',
-    factory: () => new PlayCanvasCompiler(),
-    expectedPath: ANSCapabilityPath.PLAYCANVAS,
   },
 
   // ── runtime ─────────────────────────────────────────────────────────────
@@ -235,16 +216,6 @@ const COMPILER_TEST_CASES: CompilerTestCase[] = [
     expectedPath: ANSCapabilityPath.SCM,
   },
   {
-    name: 'VRRCompiler',
-    factory: () =>
-      new VRRCompiler({
-        renderEngine: 'threejs',
-        adaptationLevel: 'full',
-        enableRealTimeFeeds: false,
-      }),
-    expectedPath: ANSCapabilityPath.VRR,
-  },
-  {
     name: 'A2AAgentCardCompiler',
     factory: () => new A2AAgentCardCompiler(),
     expectedPath: ANSCapabilityPath.A2A_AGENT_CARD,
@@ -282,11 +253,10 @@ describe('P5 Compiler Fleet ANS Migration', () => {
   });
 
   describe('Coverage validation', () => {
-    it('tests cover all 25 CompilerBase subclasses', () => {
-      // 25 CompilerBase subclasses + 1 DomainBlockCompilerMixin (standalone) = 26 total
-      // (R3FCompiler, IncrementalCompiler, StateCompiler, TraitCompositionCompiler
-      //  do not extend CompilerBase and are handled separately)
-      expect(COMPILER_TEST_CASES.length).toBe(25);
+    it('tests cover all 21 live CompilerBase subclasses', () => {
+      // 21 live CompilerBase subclasses + 1 DomainBlockCompilerMixin (standalone).
+      // Retired apex-poison compilers are covered by the package-surface retirement canary.
+      expect(COMPILER_TEST_CASES.length).toBe(21);
     });
 
     it('every tested compiler returns a valid /compile/* ANS path', () => {

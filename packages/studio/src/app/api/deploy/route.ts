@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { code, projectId, name = 'Untitled', target = 'r3f' } = body;
+  const { code, projectId, name = 'Untitled', target = 'webgpu' } = body;
   if (!code) {
     return NextResponse.json({ error: 'code is required' }, { status: 400 });
   }

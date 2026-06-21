@@ -109,19 +109,15 @@ const HOLO_EXAMPLE = `composition "Dashboard" {
 }`;
 
 const TARGET_OUTPUTS: Record<string, { label: string; snippet: string }> = {
-  r3f: {
-    label: 'React Three Fiber',
-    snippet: `export function StatusPanel() {
-  return (
-    <RigidBody mass={1}>
-      <mesh position={[0, 1.5, 0]}>
-        <planeGeometry args={[1.6, 0.9]} />
-        <meshStandardMaterial />
-      </mesh>
-      <GaugeOverlay value={99.7} unit="%" />
-    </RigidBody>
-  );
-}`,
+  webgpu: {
+    label: 'WebGPU',
+    snippet: `const panel = runtime.createPanel({
+  id: "StatusPanel",
+  position: [0, 1.5, 0],
+  size: [1.6, 0.9],
+  traits: ["grabbable", "physics", "gauge", "realtime"]
+});
+runtime.render(panel);`,
   },
   unity: {
     label: 'Unity C#',
@@ -328,8 +324,8 @@ function RecentProjects() {
 // ── Code demo ─────────────────────────────────────────────────────────────────
 
 function CodeDemo() {
-  const [target, setTarget] = useState<string>('r3f');
-  const output = TARGET_OUTPUTS[target] ?? TARGET_OUTPUTS['r3f']!;
+  const [target, setTarget] = useState<string>('webgpu');
+  const output = TARGET_OUTPUTS[target] ?? TARGET_OUTPUTS['webgpu']!;
 
   return (
     <section className="w-full max-w-4xl mx-auto">

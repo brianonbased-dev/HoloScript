@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { OptimizationPass } from '../../compiler/OptimizationPass';
-import type { R3FNode } from '../../compiler/R3FCompiler';
+import type { R3FNode } from '../SceneIRCompiler';
 
 // Helper: build minimal R3FNode tree
 function node(type: string, props: Record<string, any> = {}, children: R3FNode[] = []): R3FNode {

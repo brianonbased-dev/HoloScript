@@ -89,8 +89,6 @@ export type PlatformTarget =
   | 'visionos-swift'
   | 'android-arcore'
   | 'webgpu-wgsl'
-  | 'react-three-fiber'
-  | 'playcanvas'
   | 'urdf'
   | 'sdf'
   | 'usd';
@@ -582,42 +580,36 @@ export class CompilerBridge {
 
       // Map compile target to existing TS compilers
       switch (target) {
-        case 'threejs':
         case 'json-ast': {
-          const R3FCompiler = core.R3FCompiler as
+          const SceneIRCompiler = core.SceneIRCompiler as
             | (new () => {
                 compile(ast: unknown): unknown;
                 compileComposition(ast: unknown): unknown;
               })
             | undefined;
-          if (!R3FCompiler)
+          if (!SceneIRCompiler)
             return {
               type: 'error',
-              diagnostics: [{ severity: 'error', message: 'R3FCompiler not available' }],
+              diagnostics: [{ severity: 'error', message: 'SceneIRCompiler not available' }],
             };
-          const compiler = new R3FCompiler();
+          const compiler = new SceneIRCompiler();
           const result = isComposition ? compiler.compileComposition(ast) : compiler.compile(ast);
           return {
             type: 'text',
             data: typeof result === 'string' ? result : JSON.stringify(result),
           };
         }
-        case 'babylonjs': {
-          const BabylonCompiler = core.BabylonCompiler as
-            | (new () => { compile(ast: unknown): unknown })
-            | undefined;
-          if (!BabylonCompiler)
-            return {
-              type: 'error',
-              diagnostics: [{ severity: 'error', message: 'BabylonCompiler not available' }],
-            };
-          const compiler = new BabylonCompiler();
-          const result = compiler.compile(ast);
+        case 'threejs':
+        case 'babylonjs':
           return {
-            type: 'text',
-            data: typeof result === 'string' ? result : JSON.stringify(result),
+            type: 'error',
+            diagnostics: [
+              {
+                severity: 'error',
+                message: `Target '${target}' retired with apex-poison web compilers; use json-ast or an active export target.`,
+              },
+            ],
           };
-        }
         default:
           return {
             type: 'error',

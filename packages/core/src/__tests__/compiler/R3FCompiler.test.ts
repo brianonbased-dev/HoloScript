@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../../compiler/R3FCompiler';
+import { SceneIRCompiler as R3FCompiler, MATERIAL_PRESETS, ENVIRONMENT_PRESETS } from '../../compiler/SceneIRCompiler';
 import { HoloScriptPlusParser } from '../../parser/HoloScriptPlusParser';
 
 describe('R3FCompiler', () => {

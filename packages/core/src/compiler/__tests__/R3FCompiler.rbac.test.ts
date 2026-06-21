@@ -11,7 +11,7 @@
  * - Backwards compatibility (no token = no enforcement)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { R3FCompiler } from '../R3FCompiler';
+import { SceneIRCompiler as R3FCompiler } from '../SceneIRCompiler';
 import { UnauthorizedCompilerAccessError } from '../CompilerBase';
 import { ResourceType, type AccessDecision } from '@holoscript/platform';
 
@@ -125,7 +125,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
       } catch (e) {
         const err = e as UnauthorizedCompilerAccessError;
         expect(err.operation).toBe('AST access');
-        expect(err.compilerName).toBe('R3FCompiler');
+        expect(err.compilerName).toBe('SceneIRCompiler');
         expect(err.decision).toBe(denied);
         expect(err.message).toContain('AST read not permitted');
       }
@@ -148,7 +148,7 @@ describe('R3FCompiler RBAC Enforcement', () => {
       } catch (e) {
         const err = e as UnauthorizedCompilerAccessError;
         expect(err.operation).toBe('code generation');
-        expect(err.compilerName).toBe('R3FCompiler');
+        expect(err.compilerName).toBe('SceneIRCompiler');
         expect(err.message).toContain('Code generation forbidden');
       }
     });
@@ -268,15 +268,15 @@ describe('R3FCompiler RBAC Enforcement', () => {
   // Error message formatting
   // ===================================================================
   describe('Error message formatting', () => {
-    it('includes R3FCompiler name in error messages', () => {
+    it('includes SceneIRCompiler name in error messages', () => {
       mockCheckAccess.mockReturnValue(makeDeniedDecision());
 
       try {
         compiler.compile(minimalAST(), FAKE_TOKEN);
       } catch (e) {
         const err = e as UnauthorizedCompilerAccessError;
-        expect(err.message).toContain('[R3FCompiler]');
-        expect(err.compilerName).toBe('R3FCompiler');
+        expect(err.message).toContain('[SceneIRCompiler]');
+        expect(err.compilerName).toBe('SceneIRCompiler');
       }
     });
 

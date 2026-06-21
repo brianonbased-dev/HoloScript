@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { HoloScriptPlusParser, HoloCompositionParser, R3FCompiler } from '@holoscript/core';
+import { HoloScriptPlusParser, HoloCompositionParser, SceneIRCompiler } from '@holoscript/core';
 import type { PipelineResult, R3FNode } from '@/types';
 
 type ScenePipelineFormatHint = 'auto' | 'holo' | 'hsplus';
@@ -29,7 +29,7 @@ function applyDraftMaturity(node: R3FNode): void {
 }
 
 /**
- * Parses HoloScript source code and compiles it to an R3FNode tree for rendering.
+ * Parses HoloScript source code and compiles it to a scene-IR tree for rendering.
  * Detects format (.holo composition vs .hsplus) automatically.
  */
 export function useScenePipeline(code: string, options: ScenePipelineOptions = {}): PipelineResult {
@@ -39,7 +39,7 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
     }
 
     try {
-      const compiler = new R3FCompiler();
+      const compiler = new SceneIRCompiler();
       const trimmed = code.trimStart();
       const formatHint = options.formatHint ?? 'auto';
       const useCompositionParser =

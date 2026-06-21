@@ -30,10 +30,8 @@ import type { ExportTarget } from './CircuitBreaker';
 export const SOVEREIGN_TARGETS = [
   'webgpu', // WebGPUCompiler → WGSL compute+render shaders on our own WebGPU device (WebGPURenderer)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
-  'native-2d', // Native2DCompiler → flat DOM/Tailwind/React UI; no 3D/third-party runtime
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
   'tsl', // Trait Shader Language — our trait-to-shader codegen
-  'vrr', // custom VR Rendering path (sovereign, not a vendor SDK)
   'wasm', // compiler-wasm Rust front-end → our own WASM artifact
   'svg', // SVGCompiler → sovereign SVG vector output (no third-party renderer needed)
   'holob', // HolobCompiler → HoloVM bytecode; executed by our own holo-vm runtime
@@ -59,17 +57,12 @@ export const BRIDGE_TARGETS = [
   'quest', // Meta Quest (Horizon OS / Meta Spatial SDK) — emits a native Kotlin app to Meta's runtime
   'ios',
   'visionos',
-  'ar',
-  'babylon',
-  'r3f',
-  'playcanvas',
   'usd',
   'usdz',
   'fmu',
   'dtdl',
   'a2a-agent-card',
   'openxr-spatial-entities',
-  'phone-sleeve-vr',
   '3dgs',
   '3dtiles',
   'openapi', // OpenAPI 3.x spec — consumed by third-party API gateways/clients

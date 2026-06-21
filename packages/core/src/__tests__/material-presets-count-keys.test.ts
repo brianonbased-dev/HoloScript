@@ -22,9 +22,9 @@ import {
   MATERIAL_PRESETS,
   ENVIRONMENT_PRESETS,
   UI_COMPONENT_PRESETS,
-  R3FCompiler,
+  SceneIRCompiler as R3FCompiler,
   type R3FNode,
-} from '../compiler/R3FCompiler.js';
+} from '../compiler/SceneIRCompiler.js';
 
 // ============================================================================
 // Feature 1A: MATERIAL_PRESETS -- count and key names

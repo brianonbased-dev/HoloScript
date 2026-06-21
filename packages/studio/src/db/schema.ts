@@ -205,7 +205,7 @@ export const deployments = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     url: text('url'),
     status: varchar('status', { length: 16 }).default('pending').notNull(),
-    target: varchar('target', { length: 32 }).default('r3f').notNull(),
+    target: varchar('target', { length: 32 }).default('webgpu').notNull(),
     metadata: jsonb('metadata').default({}),
     createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),

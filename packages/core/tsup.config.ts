@@ -28,19 +28,13 @@ export default defineConfig({
 
     // Compiler targets (dynamically loaded on-demand)
     // VR/AR/XR Compilers
-    'compiler/vrr': 'src/compiler/VRRCompiler.ts',
-    'compiler/ar': 'src/compiler/ARCompiler.ts',
-    'compiler/multi-layer': 'src/compiler/MultiLayerCompiler.ts',
     'compiler/openxr': 'src/compiler/OpenXRCompiler.ts',
     'compiler/vrchat': 'src/compiler/VRChatCompiler.ts',
 
     // Engine-Specific Compilers
-    'compiler/babylon': 'src/compiler/BabylonCompiler.ts',
     'compiler/unity': 'src/compiler/UnityCompiler.ts',
     'compiler/unreal': 'src/compiler/UnrealCompiler.ts',
     'compiler/godot': 'src/compiler/GodotCompiler.ts',
-    'compiler/r3f': 'src/compiler/R3FCompiler.ts',
-    'compiler/playcanvas': 'src/compiler/PlayCanvasCompiler.ts',
 
     // Platform-Specific Compilers
     'compiler/android': 'src/compiler/AndroidCompiler.ts',

@@ -38,6 +38,8 @@ export type {
 // Scene IR types — stable interface for renderer and Studio consumers.
 // R3FCompiler and the other apex-poison web compilers have been retired (parity gate green 2026-06-17).
 export type { R3FNode, SceneIRNode, AssetMaturity } from './scene-ir-types';
+export { SceneIRCompiler } from './SceneIRCompiler';
+export type { SceneIRCompilerOptions, QualityTier } from './SceneIRCompiler';
 export type { HolomapPointCloudPayload } from './HolomapExportPayload';
 
 // Engine-specific compilers
