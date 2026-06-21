@@ -35,6 +35,7 @@ import { readJson } from '../errors/safeJsonParse';
  */
 
 export type LLMBackend = 'ollama' | 'lmstudio' | 'llamacpp' | 'openai' | 'executorch' | 'bitnet';
+export type NativeLLMBackend = Extract<LLMBackend, 'executorch' | 'bitnet'>;
 
 export interface LLMMessage {
   role: 'system' | 'user' | 'assistant';
@@ -58,6 +59,117 @@ export interface LocalLLMConfig {
   speculative?: SpeculativeConfig;
   /** P.XR.07: Maximum KV cache size in MB (for GS budget integration) */
   max_kv_cache_mb: number;
+}
+
+export interface LocalLLMNativeChatRequest {
+  backend: NativeLLMBackend;
+  model: string;
+  messages: LLMMessage[];
+  temperature: number;
+  maxTokens: number;
+  stream: boolean;
+  contextLength: number;
+  signal: AbortSignal;
+}
+
+export interface LocalLLMNativeChatResult {
+  text: string;
+  model?: string;
+  tokens?: number;
+}
+
+export interface LocalLLMNativeTokenChunk {
+  token?: string;
+  text?: string;
+  done?: boolean;
+  tokens?: number;
+}
+
+export type LocalLLMNativeChatResponse =
+  | Promise<LocalLLMNativeChatResult>
+  | AsyncIterable<string | LocalLLMNativeTokenChunk>;
+
+export interface LocalLLMNativeBridge {
+  listModels(config: LocalLLMConfig, options: { signal: AbortSignal }): Promise<unknown[]>;
+  chat(request: LocalLLMNativeChatRequest): LocalLLMNativeChatResponse;
+}
+
+const registeredNativeBridges = new Map<NativeLLMBackend, LocalLLMNativeBridge>();
+const GLOBAL_NATIVE_BRIDGES = '__holoscriptLocalLLMNativeBridges';
+
+type LocalLLMGlobal = typeof globalThis & {
+  [GLOBAL_NATIVE_BRIDGES]?: Partial<Record<NativeLLMBackend, LocalLLMNativeBridge>>;
+};
+
+export function isNativeLLMBackend(backend: LLMBackend): backend is NativeLLMBackend {
+  return backend === 'executorch' || backend === 'bitnet';
+}
+
+export function registerLocalLLMNativeBridge(
+  backend: NativeLLMBackend,
+  bridge: LocalLLMNativeBridge
+): () => void {
+  registeredNativeBridges.set(backend, bridge);
+  return () => {
+    if (registeredNativeBridges.get(backend) === bridge) {
+      registeredNativeBridges.delete(backend);
+    }
+  };
+}
+
+export function clearLocalLLMNativeBridges(): void {
+  registeredNativeBridges.clear();
+  delete (globalThis as LocalLLMGlobal)[GLOBAL_NATIVE_BRIDGES];
+}
+
+function getNativeBridge(backend: NativeLLMBackend): LocalLLMNativeBridge | undefined {
+  return (
+    registeredNativeBridges.get(backend) ??
+    (globalThis as LocalLLMGlobal)[GLOBAL_NATIVE_BRIDGES]?.[backend]
+  );
+}
+
+function requireNativeBridge(backend: NativeLLMBackend): LocalLLMNativeBridge {
+  const bridge = getNativeBridge(backend);
+  if (!bridge) {
+    throw new Error(
+      `${backend} backend requires a registered native LocalLLM bridge ` +
+        '(ExecuTorch/QNN, BitNet runtime, or host IPC). Refusing HTTP fallback.'
+    );
+  }
+  return bridge;
+}
+
+function normalizeModelList(data: unknown): string[] {
+  const rows = Array.isArray(data)
+    ? data
+    : typeof data === 'object' && data !== null && 'models' in data
+      ? (data as { models?: unknown[] }).models
+      : typeof data === 'object' && data !== null && 'data' in data
+        ? (data as { data?: unknown[] }).data
+        : [];
+  return (rows ?? [])
+    .map((m: unknown) =>
+      typeof m === 'string'
+        ? m
+        : typeof m === 'object' && m !== null
+          ? ((m as { name?: unknown; model?: unknown; id?: unknown }).name ??
+            (m as { model?: unknown }).model ??
+            (m as { id?: unknown }).id)
+          : undefined
+    )
+    .filter((m): m is string => typeof m === 'string' && m.length > 0);
+}
+
+function isAsyncIterable<T>(value: unknown): value is AsyncIterable<T> {
+  return typeof value === 'object' && value !== null && Symbol.asyncIterator in value;
+}
+
+function throwIfAborted(signal: AbortSignal): void {
+  if (!signal.aborted) return;
+  const err = new Error('Aborted');
+  err.name = 'AbortError';
+  throw err;
 }
 
 /**
@@ -119,12 +231,20 @@ function estimateKVCacheMB(tokenCount: number, contextLength: number): number {
 }
 
 function chatEndpoint(config: LocalLLMConfig): string {
+  if (isNativeLLMBackend(config.backend)) {
+    throw new Error(`${config.backend} backend uses native bridge chat, not HTTP endpoints`);
+  }
   return config.backend === 'ollama'
     ? `${config.base_url}/api/chat`
     : `${config.base_url}/v1/chat/completions`;
 }
 
 function modelsEndpoint(config: LocalLLMConfig): string {
+  if (isNativeLLMBackend(config.backend)) {
+    throw new Error(
+      `${config.backend} backend uses native bridge model listing, not HTTP endpoints`
+    );
+  }
   return config.backend === 'ollama'
     ? `${config.base_url}/api/tags`
     : `${config.base_url}/v1/models`;
@@ -171,14 +291,18 @@ export const localLLMHandler = {
     node.__localLLMState = state;
 
     try {
-      const res = await fetch(modelsEndpoint(config), { signal: AbortSignal.timeout(5000) });
-      const data = await res.json();
-      const models: string[] = data.models
-        ? // @ts-expect-error
-          data.models.map((m: unknown) => m.name ?? m.model)
-        : // @ts-expect-error
-          (data.data ?? []).map((m: unknown) => m.id);
-      state.availableModels = models.filter(Boolean);
+      let models: string[];
+      if (isNativeLLMBackend(config.backend)) {
+        const bridge = requireNativeBridge(config.backend);
+        models = normalizeModelList(
+          await bridge.listModels(config, { signal: AbortSignal.timeout(5000) })
+        );
+      } else {
+        const res = await fetch(modelsEndpoint(config), { signal: AbortSignal.timeout(5000) });
+        const data = await res.json();
+        models = normalizeModelList(data);
+      }
+      state.availableModels = models;
       state.activeModel = config.model;
       state.isReady = true;
       ctx.emit('llm_model_loaded', {
@@ -187,7 +311,7 @@ export const localLLMHandler = {
         backend: config.backend,
         availableModels: models,
       });
-    } catch {
+    } catch (err) {
       if (config.fallback_to_remote && config.fallback_api_key) {
         state.usingFallback = true;
         state.activeModel = config.fallback_model;
@@ -199,10 +323,13 @@ export const localLLMHandler = {
           fallback: true,
         });
       } else {
+        const message = err instanceof Error ? err.message : String(err);
         ctx.emit('llm_error', {
           node,
           requestId: null,
-          error: `Cannot connect to ${config.backend} at ${config.base_url}`,
+          error: isNativeLLMBackend(config.backend)
+            ? message
+            : `Cannot connect to ${config.backend} at ${config.base_url}`,
         });
       }
     }
@@ -290,6 +417,11 @@ export const localLLMHandler = {
     messages: LLMMessage[],
     ac: AbortController
   ): Promise<void> {
+    if (isNativeLLMBackend(config.backend)) {
+      await this._execNative(s, node, config, ctx, requestId, messages, ac);
+      return;
+    }
+
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (s.usingFallback) headers['Authorization'] = `Bearer ${config.fallback_api_key}`;
     const t0 = Date.now();
@@ -395,6 +527,83 @@ export const localLLMHandler = {
       model: config.model,
       duration_ms: Date.now() - t0,
       tokens: tokenCount,
+    });
+  },
+
+  async _execNative(
+    s: LocalLLMState,
+    node: HSPlusNode,
+    config: LocalLLMConfig,
+    ctx: TraitContext,
+    requestId: string,
+    messages: LLMMessage[],
+    ac: AbortController
+  ): Promise<void> {
+    const backend = config.backend as NativeLLMBackend;
+    const bridge = requireNativeBridge(backend);
+    const t0 = Date.now();
+    const response = bridge.chat({
+      backend,
+      model: config.model,
+      messages: config.system_prompt
+        ? [{ role: 'system', content: config.system_prompt }, ...messages]
+        : messages,
+      temperature: config.temperature,
+      maxTokens: config.max_tokens,
+      stream: config.stream,
+      contextLength: config.context_length,
+      signal: ac.signal,
+    });
+
+    let accumulated = '';
+    let tokenCount = 0;
+
+    if (isAsyncIterable<string | LocalLLMNativeTokenChunk>(response)) {
+      for await (const chunk of response) {
+        throwIfAborted(ac.signal);
+        const token =
+          typeof chunk === 'string' ? chunk : chunk.done ? '' : (chunk.token ?? chunk.text ?? '');
+        const reportedTokens = typeof chunk === 'object' ? chunk.tokens : undefined;
+        if (reportedTokens !== undefined) {
+          const addedTokens = Math.max(0, reportedTokens - tokenCount);
+          tokenCount = Math.max(tokenCount, reportedTokens);
+          s.totalTokens += addedTokens;
+        }
+        if (!token) continue;
+        accumulated += token;
+        if (reportedTokens === undefined) {
+          tokenCount += 1;
+          s.totalTokens += 1;
+        }
+        if (config.stream) {
+          ctx.emit('llm_token', { node, requestId, token, accumulated });
+        }
+      }
+    } else {
+      throwIfAborted(ac.signal);
+      const result = await response;
+      accumulated = result.text;
+      tokenCount = result.tokens ?? accumulated.split(/\s+/).filter(Boolean).length;
+      s.totalTokens += tokenCount;
+    }
+
+    s.kvCacheSizeMB = estimateKVCacheMB(s.totalTokens, config.context_length);
+    if (s.kvCacheSizeMB > config.max_kv_cache_mb) {
+      ctx.emit('llm_memory_pressure', {
+        node,
+        kvCacheSizeMB: s.kvCacheSizeMB,
+        limitMB: config.max_kv_cache_mb,
+      });
+    }
+    s.activeRequests.delete(requestId);
+    ctx.emit('llm_complete', {
+      node,
+      requestId,
+      text: accumulated,
+      model: config.model,
+      duration_ms: Date.now() - t0,
+      tokens: tokenCount,
+      backend,
     });
   },
 

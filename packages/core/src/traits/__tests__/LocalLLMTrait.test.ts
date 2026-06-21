@@ -14,7 +14,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readJson } from '../../errors/safeJsonParse';
-import { localLLMHandler } from '../LocalLLMTrait';
+import {
+  clearLocalLLMNativeBridges,
+  localLLMHandler,
+  registerLocalLLMNativeBridge,
+} from '../LocalLLMTrait';
 import type { LocalLLMConfig } from '../LocalLLMTrait';
 
 function makeCtx() {
@@ -39,6 +43,7 @@ const BASE_CONFIG: LocalLLMConfig = {
   fallback_to_remote: false,
   fallback_model: 'gpt-4o-mini',
   fallback_api_key: '',
+  max_kv_cache_mb: 512,
 };
 
 const MODELS_RESPONSE = {
@@ -51,6 +56,10 @@ const CHAT_RESPONSE = {
   json: async () => ({ message: { content: 'Hello, spatial world!' }, eval_count: 42 }),
   body: null,
 };
+
+afterEach(() => {
+  clearLocalLLMNativeBridges();
+});
 
 /** Attach using a mocked models endpoint, then restore the spy. */
 async function attach(extra: Partial<LocalLLMConfig> = {}) {
@@ -312,6 +321,101 @@ describe('LocalLLMTrait - backend variants', () => {
     );
     const loaded = ctx.of('llm_model_loaded')[0]?.payload as any;
     expect(loaded?.backend).toBe('llamacpp');
+    fetchSpy.mockRestore();
+  });
+
+  it.each(['executorch', 'bitnet'] as const)(
+    'refuses %s without a registered native bridge and never falls through to HTTP',
+    async (backend) => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const node = {} as any;
+      const ctx = makeCtx();
+
+      await localLLMHandler.onAttach(node, { ...BASE_CONFIG, backend, base_url: '' }, ctx);
+
+      const error = ctx.of('llm_error')[0]?.payload as any;
+      expect(error?.error).toContain(
+        `${backend} backend requires a registered native LocalLLM bridge`
+      );
+      expect(fetchSpy).not.toHaveBeenCalled();
+      fetchSpy.mockRestore();
+    }
+  );
+
+  it('uses a registered executorch native bridge for model listing and chat', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const bridge = {
+      listModels: vi.fn(async () => [{ name: 'llama3.2-1b-qnn' }]),
+      chat: vi.fn(async () => ({ text: 'native qnn response', tokens: 3 })),
+    };
+    registerLocalLLMNativeBridge('executorch', bridge);
+
+    const node = {} as any;
+    const ctx = makeCtx();
+    const config: LocalLLMConfig = {
+      ...BASE_CONFIG,
+      backend: 'executorch',
+      base_url: '',
+      model: 'llama3.2-1b-qnn',
+      stream: false,
+    };
+
+    await localLLMHandler.onAttach(node, config, ctx);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(node.__localLLMState.availableModels).toEqual(['llama3.2-1b-qnn']);
+    ctx.events.length = 0;
+
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'describe the stage', requestId: 'native1' },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const complete = ctx.of('llm_complete')[0]?.payload as any;
+    expect(bridge.chat).toHaveBeenCalled();
+    expect(complete?.text).toBe('native qnn response');
+    expect(complete?.backend).toBe('executorch');
+    expect(complete?.tokens).toBe(3);
+    fetchSpy.mockRestore();
+  });
+
+  it('streams bitnet native bridge chunks through llm_token events', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const bridge = {
+      listModels: vi.fn(async () => ['bitnet-2b-1.58']),
+      chat: vi.fn(async function* () {
+        yield { token: 'bit', tokens: 1 };
+        yield { token: 'net', tokens: 2 };
+        yield { done: true, tokens: 2 };
+      }),
+    };
+    registerLocalLLMNativeBridge('bitnet', bridge);
+
+    const node = {} as any;
+    const ctx = makeCtx();
+    const config: LocalLLMConfig = {
+      ...BASE_CONFIG,
+      backend: 'bitnet',
+      base_url: '',
+      model: 'bitnet-2b-1.58',
+      stream: true,
+    };
+
+    await localLLMHandler.onAttach(node, config, ctx);
+    ctx.events.length = 0;
+    localLLMHandler.onEvent(node, config, ctx, {
+      type: 'llm_prompt',
+      payload: { prompt: 'low power', requestId: 'bitnet1' },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(ctx.of('llm_token').map((e: any) => e.payload.token)).toEqual(['bit', 'net']);
+    const complete = ctx.of('llm_complete')[0]?.payload as any;
+    expect(complete?.text).toBe('bitnet');
+    expect(complete?.backend).toBe('bitnet');
+    expect(complete?.tokens).toBe(2);
+    expect(node.__localLLMState.totalTokens).toBe(2);
     fetchSpy.mockRestore();
   });
 });
