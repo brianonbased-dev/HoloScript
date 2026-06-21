@@ -60,6 +60,7 @@ export type {
 
 // Import all trait handlers here at the top
 import { toEuler as quaternionToEuler } from '../math/Quaternion';
+import { eventTraitHandler } from '../events/EventTrait';
 import { bounceHandler } from './BounceTrait';
 import { elasticityHandler } from './ElasticityTrait';
 import { compileElasticityTraitContext, applyElasticCollisionResponse } from './elasticityCore';
@@ -1618,6 +1619,7 @@ export class VRTraitRegistry {
     this.register(skeletonHandler);
     this.register(bodyHandler);
     this.register(proactiveHandler);
+    this.register(eventTraitHandler as TraitHandler);
 
     // Register VR accessibility traits
     this.register(seatedHandler as TraitHandler);
@@ -2260,6 +2262,7 @@ export {
   nerfHandler,
   volumetricVideoHandler,
   proactiveHandler,
+  eventTraitHandler,
   seatedHandler,
   hapticHandler,
   eyeTrackedHandler,

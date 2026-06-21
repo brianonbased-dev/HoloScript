@@ -8,7 +8,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { vrTraitRegistry, VRTraitRegistry } from '../VRTraitSystem';
-import type { TraitHandler, TraitContext, TraitEvent } from '../TraitTypes';
+import { EventBus, setSharedEventBus } from '../../events/EventBus';
+import type { TraitHandler, TraitContext, TraitEvent, VRTraitName } from '../TraitTypes';
 
 // =============================================================================
 // HELPERS
@@ -45,6 +46,10 @@ function makeContext(overrides: any = {}): any {
 // =============================================================================
 
 describe('VRTraitSystem — Production', () => {
+  beforeEach(() => {
+    setSharedEventBus(new EventBus());
+  });
+
   // ======== SINGLETON ========
 
   describe('singleton registry', () => {
@@ -91,6 +96,53 @@ describe('VRTraitSystem — Production', () => {
       expect(sparks?.defaultConfig).toMatchObject({ effect: 'sparks', blend_mode: 'additive' });
       expect(smoke?.defaultConfig).toMatchObject({ effect: 'smoke', blend_mode: 'alpha' });
       expect(fire?.defaultConfig).toMatchObject({ effect: 'fire', blend_mode: 'additive' });
+    });
+
+    it('registers event wiring so lifecycle attaches use the shared EventBus', () => {
+      const bus = new EventBus();
+      setSharedEventBus(bus);
+      const eventTraitName = 'events' as VRTraitName;
+      const handler = vrTraitRegistry.getHandler(eventTraitName);
+      const node = makeNode('event-node');
+
+      expect(handler).toBeDefined();
+      expect(handler?.name).toBe('events');
+
+      vrTraitRegistry.attachTrait(
+        node,
+        eventTraitName,
+        {
+          listen: { 'telemetry:update': 'lastTelemetry' },
+          emitOnAttach: 'node:attached',
+          emitOnDetach: 'node:detached',
+        },
+        makeContext()
+      );
+
+      expect(bus.getHistory()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event: 'node:attached',
+            data: { nodeId: 'event-node', type: 'attach' },
+          }),
+        ])
+      );
+
+      bus.emit('telemetry:update', { value: 7 });
+      expect(node.properties.lastTelemetry).toEqual({ value: 7 });
+
+      vrTraitRegistry.detachTrait(node, eventTraitName, makeContext());
+      bus.emit('telemetry:update', { value: 9 });
+
+      expect(node.properties.lastTelemetry).toEqual({ value: 7 });
+      expect(bus.getHistory()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event: 'node:detached',
+            data: { nodeId: 'event-node', type: 'detach' },
+          }),
+        ])
+      );
     });
 
     it('returns undefined for unknown handler', () => {
