@@ -11,7 +11,8 @@
 # counterpart that only needs Python + the orchestrator API.
 #
 # Worker contract (mcp-orchestrator src/routes/gpuRoutes.ts), all role=agent:
-#   GET  /gpu/next?seat=<seat>     -> 200 {id, command, tier, ...}  or  204 (empty)
+#   GET  /gpu/next?seat=<seat>&lane=gpu -> 200 {id, command, tier, ...}  or  204 (empty)
+#   POST /gpu/seats/:id/heartbeat  -> prove the seat poller is alive while idle
 #   POST /gpu/job/:id/heartbeat    -> keep-alive while running
 #   POST /gpu/job/:id/done         -> {artifact_path?, artifact_sha256?, error?, paper_id?}
 #                                      error=null => success; error set => failure
@@ -34,9 +35,11 @@ set -uo pipefail
 ORCH="${ORCHESTRATOR_URL:-https://mcp-orchestrator-production-45f9.up.railway.app}"
 : "${HOLOSCRIPT_API_KEY:?HOLOSCRIPT_API_KEY required (agent role) — pass via env, never hardcode}"
 SEAT="${GPU_SEAT:-vast-$(hostname 2>/dev/null || echo node)-$$}"
+LANE="${GPU_LANE:-gpu}"
 REPO_DIR="${REPO_DIR:-$HOME/.ai-ecosystem}"
 POLL_INTERVAL="${POLL_INTERVAL:-15}"
 IDLE_EXIT_AFTER="${IDLE_EXIT_AFTER:-0}"   # seconds of empty queue before self-exit (0 = never)
+SEAT_REJECT_MAX="${SEAT_REJECT_MAX:-6}"    # consecutive seat_rejected polls before self-exit
 LOG="[gpu-worker:$SEAT]"
 
 # Resolve script directory for relative paths to sibling scripts (e.g. fleet-cuquantum-setup.sh)
@@ -86,13 +89,16 @@ else
 fi
 
 # 2. poll loop ----------------------------------------------------------------------------
-echo "$LOG polling $ORCH/gpu/next (seat=$SEAT, every ${POLL_INTERVAL}s)"
+echo "$LOG polling $ORCH/gpu/next (seat=$SEAT lane=$LANE, every ${POLL_INTERVAL}s)"
 idle=0
+seat_rejects=0
 while true; do
-  resp="$(api GET "/gpu/next?seat=$SEAT")"
+  api POST "/gpu/seats/$SEAT/heartbeat" '{}' >/dev/null 2>&1 || true
+  resp="$(api GET "/gpu/next?seat=$SEAT&lane=$LANE")"
   code="$(printf '%s' "$resp" | tail -1)"
   body="$(printf '%s' "$resp" | sed '$d')"
   if [ "$code" = "204" ]; then
+    seat_rejects=0
     idle=$((idle + POLL_INTERVAL))
     if [ "$IDLE_EXIT_AFTER" -gt 0 ] && [ "$idle" -ge "$IDLE_EXIT_AFTER" ]; then
       echo "$LOG idle ${idle}s >= IDLE_EXIT_AFTER; exiting (worker can be torn down)"; exit 0
@@ -100,8 +106,20 @@ while true; do
     sleep "$POLL_INTERVAL"; continue
   fi
   if [ "$code" != "200" ]; then
-    echo "$LOG poll HTTP $code: $body"; sleep "$POLL_INTERVAL"; continue
+    if printf '%s' "$body" | grep -q 'seat_rejected'; then
+      seat_rejects=$((seat_rejects + 1))
+      echo "$LOG poll HTTP $code seat_rejected ($seat_rejects/$SEAT_REJECT_MAX): $body"
+      if [ "$seat_rejects" -ge "$SEAT_REJECT_MAX" ]; then
+        echo "$LOG FATAL: seat rejected $seat_rejects consecutive times; exiting for autoscaler replacement"
+        exit 3
+      fi
+    else
+      seat_rejects=0
+      echo "$LOG poll HTTP $code: $body"
+    fi
+    sleep "$POLL_INTERVAL"; continue
   fi
+  seat_rejects=0
   idle=0
   jid="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("id",""))')"
   cmd="$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("command",""))')"
@@ -109,7 +127,11 @@ while true; do
   echo "$LOG claimed $jid: $cmd"
 
   # heartbeat in background while the job runs
-  ( while true; do api POST "/gpu/job/$jid/heartbeat" '{}' >/dev/null 2>&1 || true; sleep 20; done ) &
+  ( while true; do
+      api POST "/gpu/job/$jid/heartbeat" '{}' >/dev/null 2>&1 || true
+      api POST "/gpu/seats/$SEAT/heartbeat" '{}' >/dev/null 2>&1 || true
+      sleep 20
+    done ) &
   hb=$!
 
   out_log="/tmp/job-$jid.log"
