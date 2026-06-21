@@ -12,7 +12,7 @@
  *
  * Scope rationale (B+partial-A consensus, 2026-06-13):
  *   - compiler-wasm: wired here (~571ms cold, zero GPU)
- *   - snn-webgpu:    NOT wired (Playwright + headed browser = wrong surface)
+ *   - snn-webgpu:    use packages/snn-webgpu/scripts/probe-webgpu-headless.mjs
  *   - sync_hardware_loop: retired from CLAUDE.md doctrine (phantom, never wired)
  */
 

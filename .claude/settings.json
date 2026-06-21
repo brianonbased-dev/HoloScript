@@ -70,6 +70,18 @@
             "async": true
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/Documents/GitHub/HoloScript/packages/snn-webgpu/scripts/probe-webgpu-headless.mjs",
+            "timeout": 5,
+            "async": true,
+            "windowsHide": true
+          }
+        ]
       }
     ],
     "Stop": []
