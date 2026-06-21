@@ -33,6 +33,8 @@ import { loadConstraintsFromConfig } from './traits/constraintConfig';
 import { ExhaustivenessChecker, UnionType } from './types/AdvancedTypeSystem';
 import { TypeAliasRegistry } from './types/TypeAliasRegistry';
 import type { TypeAliasDeclaration } from './types';
+import { extractAuthorityEffectNodes } from './compiler/safety/AuthorityEffectBridge';
+import { createEffectChecker } from './compiler/safety/EffectChecker';
 
 // Type system types
 export type HoloScriptType =
@@ -376,6 +378,7 @@ export class HoloScriptTypeChecker {
 
     // Second pass: validate types
     this.checkBlock(ast);
+    this.validateAuthorityEffects(ast);
 
     return {
       valid: this.diagnostics.filter((d) => d.severity === 'error').length === 0,
@@ -1267,6 +1270,33 @@ export class HoloScriptTypeChecker {
           );
         }
       }
+    }
+  }
+
+  private validateAuthorityEffects(ast: ASTNode[]): void {
+    const effectNodes = extractAuthorityEffectNodes(ast);
+    if (effectNodes.length === 0) {
+      return;
+    }
+
+    const checker = createEffectChecker({
+      ignoredCategories: ['io'],
+      unusedDeclaredSeverity: 'info',
+    });
+    const result = checker.checkModule(effectNodes);
+
+    for (const violation of result.violations) {
+      this.diagnostics.push({
+        severity: violation.severity,
+        message: `Compile-time Authority effect violation: ${violation.message}`,
+        line: violation.source.line ?? 0,
+        column: violation.source.column ?? 0,
+        code: 'HSP030',
+        suggestions: [
+          'Declare @authority { effects: ["authority:world"] } on the same node.',
+          'Or remove allow_native_modules=true / permissions.filesystem="all" from @sandbox_execution.',
+        ],
+      });
     }
   }
 

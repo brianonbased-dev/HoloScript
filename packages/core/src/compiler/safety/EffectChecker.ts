@@ -66,6 +66,8 @@ export interface EffectASTNode {
   calls?: string[]; // Built-in function calls made by this node
   children?: EffectASTNode[];
   declaredEffects?: VREffect[]; // Explicit effect annotation (if present)
+  inferredEffects?: VREffect[]; // Effects inferred by config-aware AST adapters
+  effectSources?: Partial<Record<VREffect, string[]>>;
   line?: number;
   column?: number;
   file?: string;
@@ -128,6 +130,7 @@ export class EffectChecker {
     // 1. Infer effects from traits and function calls
     const traitEffects = inferFromTraits(node.traits || []);
     const builtinEffects = inferFromBuiltins(node.calls || []);
+    const adapterEffects = this.inferFromAdapter(node);
 
     // 2. Recurse into children and compose their effects
     const childEffects: InferredEffects[] = [];
@@ -143,7 +146,7 @@ export class EffectChecker {
     }
 
     // 3. Compose all effects into the inferred row
-    const combined = composeEffects(traitEffects, builtinEffects, ...childEffects);
+    const combined = composeEffects(traitEffects, builtinEffects, adapterEffects, ...childEffects);
 
     // 4. Filter out ignored categories
     let inferred = combined.row;
@@ -252,6 +255,21 @@ export class EffectChecker {
     }
 
     return violations;
+  }
+
+  private inferFromAdapter(node: EffectASTNode): InferredEffects {
+    const effects = node.inferredEffects || [];
+    const sources = new Map<VREffect, string[]>();
+
+    for (const effect of effects) {
+      sources.set(effect, node.effectSources?.[effect] || ['config-aware AST inference']);
+    }
+
+    return {
+      row: new EffectRow(effects),
+      sources,
+      warnings: [],
+    };
   }
 }
 
