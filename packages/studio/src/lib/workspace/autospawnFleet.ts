@@ -1,4 +1,5 @@
 import type { AgentGenesisPlan } from './agentGenesis';
+import { registerNeedsKeyTrait, type SecretResolver } from '@holoscript/secrets-broker';
 
 /**
  * Fleet Autospawn — the wired path for multi-agent autospawn (D.053 gap #4).
@@ -32,6 +33,15 @@ export interface FleetAgentRegistration {
 
 export type FleetAgentRegistrar = (agent: FleetAgentRegistration) => Promise<void>;
 
+interface NeedsKeyTraitRegistrar {
+  registerTrait(name: string, handler: unknown): void;
+}
+
+export interface FleetNeedsKeyRuntimeBinding {
+  registrar: NeedsKeyTraitRegistrar;
+  resolver: SecretResolver;
+}
+
 export interface AutospawnedAgentRecord {
   agentId: string;
   missionProfile: string;
@@ -53,6 +63,8 @@ export interface AutospawnGenesisFleetInput {
   workspaceId: string;
   repoUrl?: string;
   register: FleetAgentRegistrar;
+  /** Optional runtime boot hook for fleet seats that execute HoloScript traits. */
+  needsKeyRuntime?: FleetNeedsKeyRuntimeBinding;
   /** Missions handled outside the fleet path. Default: the companion face. */
   excludeMissions?: string[];
 }
@@ -67,6 +79,14 @@ export async function autospawnGenesisFleet(
   input: AutospawnGenesisFleetInput
 ): Promise<FleetAutospawnResult> {
   const excluded = new Set(input.excludeMissions ?? ['companion']);
+  const needsKeyOwnerId = input.ownerId.trim() || null;
+
+  if (input.needsKeyRuntime) {
+    registerNeedsKeyTrait(input.needsKeyRuntime.registrar, {
+      resolver: input.needsKeyRuntime.resolver,
+      authenticatedOwnerId: needsKeyOwnerId,
+    });
+  }
 
   const targets = input.plan.agents
     .filter((agent) => agent.autospawn && !excluded.has(agent.missionProfile))
@@ -88,6 +108,11 @@ export async function autospawnGenesisFleet(
         authorityRefs: agent.daemonAgent.authorityRefs,
         schedules: agent.daemonAgent.schedules,
         autospawn: true,
+        needsKeyTrait: {
+          name: 'needs_key',
+          ownerId: needsKeyOwnerId,
+          source: 'fleet-seat-initialization',
+        },
       },
     });
     spawned.push({

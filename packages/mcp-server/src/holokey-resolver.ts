@@ -20,18 +20,43 @@
  */
 import { Pool } from 'pg';
 import {
+  AuthRequiredError,
   createHoloKeyVault,
   createServiceSecretResolver,
+  registerNeedsKeyTrait,
   SECRET_STORE_DDL,
+  SecretNotFoundError,
   type HoloKeyVault,
+  type SecretResolver,
   type ServiceIdentity,
   type ServiceSecretResolver,
 } from '@holoscript/secrets-broker';
+import type { SigningContext } from './holomesh/identity/signing-middleware';
 
 let built = false;
 let vault: HoloKeyVault | null = null;
 let resolver: ServiceSecretResolver | null = null;
 let serviceIdentity: ServiceIdentity | null = null;
+
+interface NeedsKeyTraitRegistrar {
+  registerTrait(name: string, handler: unknown): void;
+}
+
+export interface McpNeedsKeyRegistrationResult {
+  registered: true;
+  ownerId: string | null;
+  authenticated: boolean;
+  vaultConfigured: boolean;
+}
+
+const unavailableSecretResolver: SecretResolver = {
+  async resolve(input) {
+    if (!input.authenticatedOwnerId) {
+      throw new AuthRequiredError(input.ref);
+    }
+    throw new SecretNotFoundError(input.ref);
+  },
+};
 
 function ensure(): void {
   if (built) return;
@@ -74,6 +99,43 @@ function ensure(): void {
 export function resolveServiceSecret(name: string): Promise<string | undefined> {
   ensure();
   return resolver!.resolve(name);
+}
+
+export function ownerIdFromSigningContext(signingCtx: SigningContext | null | undefined) {
+  if (!signingCtx?.signingValid || !signingCtx.signer) return null;
+  return signingCtx.signer;
+}
+
+/**
+ * Bind HoloKey's `@needs_key` trait for an MCP request-scoped runtime.
+ *
+ * The owner is derived from the verified SigningContext signer. When HoloKey is
+ * not provisioned on the service, the trait is still registered against a
+ * value-free resolver that denies every request instead of letting the trait
+ * silently disappear.
+ */
+export function registerNeedsKeyTraitForMcpRequest(
+  registrar: NeedsKeyTraitRegistrar,
+  input: {
+    signingCtx?: SigningContext | null;
+    resolver?: SecretResolver | null;
+  } = {}
+): McpNeedsKeyRegistrationResult {
+  ensure();
+  const ownerId = ownerIdFromSigningContext(input.signingCtx);
+  const secretResolver = input.resolver ?? vault?.resolver ?? unavailableSecretResolver;
+
+  registerNeedsKeyTrait(registrar, {
+    resolver: secretResolver,
+    authenticatedOwnerId: ownerId,
+  });
+
+  return {
+    registered: true,
+    ownerId,
+    authenticated: ownerId !== null,
+    vaultConfigured: Boolean(input.resolver ?? vault?.resolver),
+  };
 }
 
 /**

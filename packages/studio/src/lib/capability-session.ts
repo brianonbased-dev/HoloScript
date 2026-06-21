@@ -3,8 +3,10 @@ import type { NextRequest, NextResponse } from 'next/server';
 import {
   type CapabilityToken,
   mintCapabilityToken,
+  registerNeedsKeyTrait,
   storeCapabilityToken,
   DEFAULT_TRUST_BY_SURFACE,
+  type SecretResolver,
   type SurfaceKind,
 } from '@holoscript/secrets-broker';
 
@@ -16,6 +18,23 @@ const AES_GCM_IV_BYTES = 12;
 const cryptoImpl = globalThis.crypto ?? webcrypto;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+
+interface NeedsKeyTraitRegistrar {
+  registerTrait(name: string, handler: unknown): void;
+}
+
+export interface StudioNeedsKeySession {
+  sub?: string | null;
+  user?: {
+    id?: string | null;
+  } | null;
+}
+
+export interface StudioNeedsKeyRegistrationResult {
+  registered: true;
+  ownerId: string | null;
+  authenticated: boolean;
+}
 
 function getTokenSecret(): string | undefined {
   return process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim() || undefined;
@@ -133,6 +152,39 @@ export function mintCapabilityTokenForGitHubUser(input: {
     trust,
     ttlSeconds: input.ttlSeconds ?? 15 * 60,
   });
+}
+
+export function resolveStudioNeedsKeyOwnerId(session: StudioNeedsKeySession | null | undefined) {
+  const userId = session?.user?.id?.trim();
+  if (userId) return userId;
+  const subject = session?.sub?.trim();
+  return subject || null;
+}
+
+/**
+ * Bind HoloKey's `@needs_key` trait during server-side Studio session boot.
+ *
+ * The owner comes only from the verified NextAuth session shape, never from
+ * request input. A missing owner still registers the trait, but the broker's
+ * resolver receives `authenticatedOwnerId:null` and fails closed.
+ */
+export function registerNeedsKeyTraitForStudioSession(
+  registrar: NeedsKeyTraitRegistrar,
+  input: {
+    session: StudioNeedsKeySession | null | undefined;
+    resolver: SecretResolver;
+  }
+): StudioNeedsKeyRegistrationResult {
+  const ownerId = resolveStudioNeedsKeyOwnerId(input.session);
+  registerNeedsKeyTrait(registrar, {
+    resolver: input.resolver,
+    authenticatedOwnerId: ownerId,
+  });
+  return {
+    registered: true,
+    ownerId,
+    authenticated: ownerId !== null,
+  };
 }
 
 /**

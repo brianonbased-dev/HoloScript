@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { SecretResolver } from '@holoscript/secrets-broker';
 
 import { buildAgentGenesisPlan } from '../agentGenesis';
 import { autospawnGenesisFleet, type FleetAgentRegistration } from '../autospawnFleet';
@@ -92,5 +93,70 @@ describe('autospawnGenesisFleet', () => {
 
     expect(result.spawned.map((a) => a.missionProfile)).not.toContain('holoheal');
     expect(result.excluded).toEqual(expect.arrayContaining(['companion', 'holoheal']));
+  });
+
+  it('binds @needs_key to the fleet owner when a runtime registrar is supplied', async () => {
+    const resolver: SecretResolver = {
+      async resolve(input) {
+        return { value: `fleet-secret-for-${input.authenticatedOwnerId ?? '<none>'}` };
+      },
+    };
+    const registeredTraits: Array<{ name: string; handler: unknown }> = [];
+    const registeredAgents: FleetAgentRegistration[] = [];
+
+    await autospawnGenesisFleet({
+      plan: buildAgentGenesisPlan({ workspaceId: 'ws_keys' }),
+      ownerId: 'agent_soul_keys',
+      workspaceId: 'ws_keys',
+      register: async (agent) => {
+        registeredAgents.push(agent);
+      },
+      needsKeyRuntime: {
+        resolver,
+        registrar: {
+          registerTrait(name, handler) {
+            registeredTraits.push({ name, handler });
+          },
+        },
+      },
+    });
+
+    expect(registeredTraits.map((t) => t.name)).toEqual(['needs_key']);
+    expect(
+      registeredAgents.every(
+        (agent) =>
+          (agent.metadata.needsKeyTrait as { ownerId?: string; source?: string } | undefined)
+            ?.ownerId === 'agent_soul_keys'
+      )
+    ).toBe(true);
+
+    const handler = registeredTraits[0]!.handler as {
+      onAttach(
+        node: { id: string; __resolvedSecrets?: Record<string, string> },
+        config: { ref: 'vault:FLEET_KEY' },
+        context: { emit(event: string, payload?: unknown): void }
+      ): Promise<void>;
+    };
+    const node: { id: string; __resolvedSecrets?: Record<string, string> } = {
+      id: 'fleet-seat',
+    };
+    const events: Array<{ event: string; payload?: unknown }> = [];
+
+    await handler.onAttach(
+      node,
+      { ref: 'vault:FLEET_KEY' },
+      {
+        emit(event, payload) {
+          events.push({ event, payload });
+        },
+      }
+    );
+
+    expect(node.__resolvedSecrets?.['vault:FLEET_KEY']).toBe('fleet-secret-for-agent_soul_keys');
+    expect(events.find((e) => e.event === 'needs_key_ready')?.payload).toMatchObject({
+      nodeId: 'fleet-seat',
+      ref: 'vault:FLEET_KEY',
+    });
+    expect(JSON.stringify(events)).not.toContain('fleet-secret-for-agent_soul_keys');
   });
 });

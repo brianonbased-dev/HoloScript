@@ -8,8 +8,11 @@ import {
   setCapabilityTokenCookie,
   clearCapabilityTokenCookie,
   mintCapabilityTokenForGitHubUser,
+  registerNeedsKeyTraitForStudioSession,
+  resolveStudioNeedsKeyOwnerId,
   CAPABILITY_TOKEN_COOKIE,
 } from '../capability-session';
+import type { SecretResolver } from '@holoscript/secrets-broker';
 
 describe('capability-session', () => {
   const envSnapshot = { ...process.env };
@@ -125,6 +128,67 @@ describe('capability-session', () => {
       const issuedAt = new Date(token.issuedAt).getTime();
       const expiresAt = new Date(token.expiresAt).getTime();
       expect(expiresAt - issuedAt).toBe(300 * 1000);
+    });
+  });
+
+  describe('registerNeedsKeyTraitForStudioSession', () => {
+    function resolver(): SecretResolver {
+      return {
+        async resolve(input) {
+          return { value: `value-for-${input.authenticatedOwnerId ?? '<none>'}` };
+        },
+      };
+    }
+
+    it('uses the verified session user id as the @needs_key owner', async () => {
+      const registered: Array<{ name: string; handler: unknown }> = [];
+      const result = registerNeedsKeyTraitForStudioSession(
+        { registerTrait: (name, handler) => registered.push({ name, handler }) },
+        { session: { user: { id: 'user-123' }, sub: 'jwt-sub' }, resolver: resolver() }
+      );
+
+      expect(result).toEqual({ registered: true, ownerId: 'user-123', authenticated: true });
+      expect(registered[0]?.name).toBe('needs_key');
+
+      const handler = registered[0]!.handler as {
+        onAttach(
+          node: { id: string; __resolvedSecrets?: Record<string, string> },
+          config: { ref: 'vault:OPENAI_API_KEY' },
+          context: { emit(event: string, payload?: unknown): void }
+        ): Promise<void>;
+      };
+      const events: Array<{ event: string; payload?: unknown }> = [];
+      const node: { id: string; __resolvedSecrets?: Record<string, string> } = { id: 'n' };
+
+      await handler.onAttach(
+        node,
+        { ref: 'vault:OPENAI_API_KEY' },
+        {
+          emit(event, payload) {
+            events.push({ event, payload });
+          },
+        }
+      );
+
+      expect(node.__resolvedSecrets?.['vault:OPENAI_API_KEY']).toBe('value-for-user-123');
+      expect(events.find((e) => e.event === 'needs_key_ready')?.payload).toMatchObject({
+        ref: 'vault:OPENAI_API_KEY',
+      });
+      expect(JSON.stringify(events)).not.toContain('value-for-user-123');
+    });
+
+    it('falls back to session.sub, otherwise registers fail-closed with null owner', () => {
+      expect(resolveStudioNeedsKeyOwnerId({ sub: 'subject-456', user: null })).toBe('subject-456');
+      expect(resolveStudioNeedsKeyOwnerId({ user: { id: '   ' }, sub: '   ' })).toBeNull();
+
+      const registered: string[] = [];
+      const result = registerNeedsKeyTraitForStudioSession(
+        { registerTrait: (name) => registered.push(name) },
+        { session: null, resolver: resolver() }
+      );
+
+      expect(result).toEqual({ registered: true, ownerId: null, authenticated: false });
+      expect(registered).toEqual(['needs_key']);
     });
   });
 });
