@@ -65,6 +65,7 @@ export const BRIDGE_TARGETS = [
   'playcanvas',
   'usd',
   'usdz',
+  'fmu',
   'dtdl',
   'a2a-agent-card',
   'openxr-spatial-entities',

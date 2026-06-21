@@ -61,6 +61,7 @@ export type ExportTarget =
   | 'playcanvas' // PlayCanvas engine
   | 'usd' // Pixar USD
   | 'usdz' // USDZ (iOS AR)
+  | 'fmu' // FMI 3.0 Functional Mock-up Unit source bundle
   | 'dtdl' // Azure Digital Twins
   | 'vrr' // VR Rendering (custom)
   | 'multi-layer' // Multi-layer compositions

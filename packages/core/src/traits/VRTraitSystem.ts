@@ -140,6 +140,7 @@ import { audioPortalHandler } from './AudioPortalTrait';
 import { audioMaterialHandler } from './AudioMaterialTrait';
 import { headTrackedAudioHandler } from './HeadTrackedAudioTrait';
 import { usdHandler } from './USDTrait';
+import { fmuHandler } from './FMUTrait';
 import { gltfHandler } from './GLTFTrait';
 import { fbxHandler } from './FBXTrait';
 import { materialXHandler } from './MaterialXTrait';
@@ -1726,6 +1727,7 @@ export class VRTraitRegistry {
 
     // Phase 9: OpenUSD & Interoperability
     this.register(usdHandler as TraitHandler);
+    this.register(fmuHandler as TraitHandler);
     this.register(gltfHandler as TraitHandler);
     this.register(fbxHandler as TraitHandler);
     this.register(materialXHandler as TraitHandler);
@@ -2336,6 +2338,7 @@ export {
   headTrackedAudioHandler,
   // Phase 9: OpenUSD & Interoperability
   usdHandler,
+  fmuHandler,
   gltfHandler,
   fbxHandler,
   materialXHandler,

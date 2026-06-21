@@ -79,6 +79,16 @@ export type { SDFCompilerOptions } from './SDFCompiler';
 export { DTDLCompiler } from './DTDLCompiler';
 export { URDFCompiler, createURDFCompiler } from './URDFCompiler';
 export { USDPhysicsCompiler } from './USDPhysicsCompiler';
+export { FMUCompiler, absorbFMU, compileToFMU } from './FMUCompiler';
+export type {
+  AbsorbFMUInput,
+  AbsorbFMUResult,
+  FMUCompileResult,
+  FMUCompilerOptions,
+  FMUManifest,
+  FMUMode,
+  FMUPort,
+} from './FMUCompiler';
 export { StateCompiler } from './StateCompiler';
 export { TraitCompositionCompiler } from './TraitCompositionCompiler';
 export { IncrementalCompiler, createIncrementalCompiler } from './IncrementalCompiler';

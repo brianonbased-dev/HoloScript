@@ -42,7 +42,7 @@ import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 import { generateWebGPUBrowserTemplate } from './renderer';
-import { targetSovereignty, DialectRegistry, registerBuiltinDialects } from '@holoscript/core/compiler';
+import { targetSovereignty, DialectRegistry, registerBuiltinDialects, absorbFMU } from '@holoscript/core/compiler';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
@@ -60,7 +60,7 @@ const _INTERNAL_DIALECT_NAMES = new Set([
 
 // ExportManager targets not yet migrated to DialectRegistry -- surfaced via legacy path.
 const _LEGACY_EXPORT_TARGETS = [
-  'usd', 'usdz', '3dgs', 'canvas2d-game', 'code-editor',
+  'usd', 'usdz', 'fmu', '3dgs', 'canvas2d-game', 'code-editor',
 ] as const;
 
 // =============================================================================
@@ -583,7 +583,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
     'Web Platforms': ['webgpu', 'wasm'] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
-    '3D Formats': ['usd', 'usdz', '3dgs'] as unknown as ExportTarget[],
+    '3D Formats': ['usd', 'usdz', 'fmu', '3dgs'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
     'AI/MCP': ['mcp-server'] as unknown as ExportTarget[],
   };
@@ -714,6 +714,10 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'usd' });
     case 'compile_to_usdz':
       return handleCompileToTarget({ ...args, target: 'usdz' });
+    case 'compile_to_fmu':
+      return handleCompileToTarget({ ...args, target: 'fmu' });
+    case 'absorb_fmu':
+      return absorbFMU(args as Parameters<typeof absorbFMU>[0]);
     case 'compile_to_dtdl':
       return handleCompileToTarget({ ...args, target: 'dtdl' });
     // compile_to_vrr — retired (apex-poison, 2026-06-17)
@@ -1028,6 +1032,7 @@ export const compilerTools: Tool[] = [
             // 'playcanvas' — retired apex-poison 2026-06-17
             'usd',
             'usdz',
+            'fmu',
             'dtdl',
             // 'vrr' — retired apex-poison 2026-06-17
             'mcp-server',
@@ -1379,6 +1384,44 @@ export const compilerTools: Tool[] = [
         },
       },
       required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_fmu',
+    description:
+      'Compile HoloScript to an FMI 3.0 FMU source bundle with CoSimulation/ModelExchange declarations and CAEL coupling provenance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code' },
+        options: {
+          type: 'object',
+          properties: {
+            mode: {
+              type: 'string',
+              enum: ['co-simulation', 'model-exchange', 'both'],
+              description: 'FMU mode to emit (default: both)',
+            },
+            modelIdentifier: { type: 'string', description: 'Optional FMI modelIdentifier' },
+            includeSourceBundle: { type: 'boolean' },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'absorb_fmu',
+    description:
+      'Import FMI 3.0 modelDescription.xml or a HoloScript FMU manifest into a composable @fmu wrapper composition',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        modelDescriptionXml: { type: 'string', description: 'Raw FMI modelDescription.xml' },
+        manifest: { type: 'object', description: 'Optional HoloScript FMU manifest' },
+        source: { type: 'string', description: 'FMU file/source URI' },
+        name: { type: 'string', description: 'Optional wrapper object name' },
+      },
     },
   },
   {
@@ -2108,6 +2151,7 @@ export const compilerTools: Tool[] = [
             'wasm',
             'usd',
             'usdz',
+            'fmu',
             'dtdl',
             'multi-layer',
             '3dgs',

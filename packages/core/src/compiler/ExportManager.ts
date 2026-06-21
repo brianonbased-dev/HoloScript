@@ -54,6 +54,7 @@ import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
+import { FMUCompiler } from './FMUCompiler';
 import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
 import { GaussianTrainCompiler } from './GaussianTrainCompiler';
 import { CodeEditorCompiler } from './CodeEditorCompiler';
@@ -273,6 +274,8 @@ class CompilerFactory {
         return new USDPhysicsCompiler(options);
       case 'usdz':
         return new USDZExportCompiler(options);
+      case 'fmu':
+        return new FMUCompiler(options);
       case '3dgs':
         return new GaussianSplattingCompiler(options);
       case 'gaussian-train':
@@ -635,6 +638,7 @@ export class ExportManager {
       'playcanvas',
       'usd',
       'usdz',
+      'fmu',
       'dtdl',
       'vrr',
       'multi-layer',
