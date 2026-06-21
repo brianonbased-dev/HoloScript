@@ -11,6 +11,12 @@ import {
   type RunnableAttack,
 } from '../src/runner/run-attack.js';
 import { validateAttackOutput, wilsonCI } from '../src/runner/output-schema.js';
+import {
+  buildPhase4DefenseRows,
+  measureDefenseOverheads,
+  PHASE4_DEFENSES,
+} from '../src/runner/phase4-defenses.js';
+import type { AttackId } from '../src/types.js';
 
 describe('validateAttackOutput', () => {
   it('accepts a valid AttackOutput', () => {
@@ -311,5 +317,85 @@ describe('live trust-formula measurement (Phase 4)', () => {
     const out = runTrial(spec, { ...liveOpts, trustSeries: fixed });
     expect(out.attack).toBe('whitewasher');
     expect(typeof out.success).toBe('boolean');
+  });
+});
+
+describe('Phase 4 defense matrix', () => {
+  const specs: RunnableAttack[] = [
+    { id: 'whitewasher', config: { targetTrust: 0.9, cooperativeRounds: 5 } },
+    { id: 'sybil', config: { K: 5, compoundRounds: 10, baselineTrust: 0.5 } },
+    {
+      id: 'score-manipulator',
+      config: {
+        targetTrust: 0.95,
+        trustMaxOutputRef: 'v1',
+        outputUtilityRatio: 0.2,
+        baselineUtility: 0.8,
+      },
+    },
+    { id: 'slow-poisoner', config: { biasPerCall: 0.01, aggregateBiasThreshold: 10 } },
+    {
+      id: 'eclipse',
+      config: {
+        K: 5,
+        targetSandboxServerId: 'victim-01',
+        eclipseRounds: 10,
+        preEclipseTargetTrust: 0.8,
+        trustReductionThreshold: 0.3,
+      },
+    },
+  ];
+
+  function summary(success_rate: number) {
+    return {
+      attack: 'test',
+      N: 20,
+      success_rate,
+      ci_low: 0,
+      ci_high: 1,
+      per_trial_durations: [1],
+    };
+  }
+
+  it('builds the 4x5 defense-efficacy table', () => {
+    const baseline = new Map<AttackId, ReturnType<typeof summary>>();
+    const live = new Map<AttackId, ReturnType<typeof summary>>();
+    for (const spec of specs) {
+      baseline.set(spec.id, summary(1));
+      live.set(spec.id, summary(spec.id === 'sybil' ? 0 : 1));
+    }
+
+    const rows = buildPhase4DefenseRows(specs, baseline, live);
+
+    expect(PHASE4_DEFENSES).toHaveLength(4);
+    expect(rows).toHaveLength(20);
+    expect(
+      rows.find((row) => row.defense === 'cross-mesh-anchoring' && row.attack === 'eclipse')
+        ?.gate_met
+    ).toBe(true);
+    expect(
+      rows.find((row) => row.defense === 'output-diversity' && row.attack === 'score-manipulator')
+        ?.gate_met
+    ).toBe(true);
+    expect(
+      rows.find((row) => row.defense === 'canary-probing' && row.attack === 'slow-poisoner')
+        ?.gate_met
+    ).toBe(true);
+  });
+
+  it('measures one overhead row per defense', () => {
+    const live = new Map<AttackId, ReturnType<typeof summary>>();
+    for (const spec of specs) {
+      live.set(spec.id, summary(spec.id === 'sybil' ? 0 : 1));
+    }
+
+    const overheads = measureDefenseOverheads(specs, live, PHASE4_DEFENSES, 10);
+
+    expect(overheads).toHaveLength(4);
+    for (const row of overheads) {
+      expect(row.N).toBe(10);
+      expect(row.M).toBe(5);
+      expect(row.p95_latency_ms).toBeGreaterThanOrEqual(0);
+    }
   });
 });

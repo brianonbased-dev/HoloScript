@@ -1,0 +1,374 @@
+{
+  "defense_count": 4,
+  "attack_count": 5,
+  "gate": "success_rate_defended <= 0.5 * baseline",
+  "rows": [
+    {
+      "defense": "exponential-decay",
+      "attack": "whitewasher",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": false,
+        "trustMultiplier": 0.9659363289248456,
+        "confidence": 0.85,
+        "reason": "post-anomaly trust remained exploit-capable"
+      }
+    },
+    {
+      "defense": "exponential-decay",
+      "attack": "sybil",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 0,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.25,
+        "reason": "anomaly below decay threshold"
+      }
+    },
+    {
+      "defense": "exponential-decay",
+      "attack": "score-manipulator",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.45,
+        "reason": "anomaly below decay threshold"
+      }
+    },
+    {
+      "defense": "exponential-decay",
+      "attack": "slow-poisoner",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.55,
+        "reason": "anomaly below decay threshold"
+      }
+    },
+    {
+      "defense": "exponential-decay",
+      "attack": "eclipse",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.3,
+        "reason": "anomaly below decay threshold"
+      }
+    },
+    {
+      "defense": "cross-mesh-anchoring",
+      "attack": "whitewasher",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.25,
+        "reason": "independent anchors pass"
+      }
+    },
+    {
+      "defense": "cross-mesh-anchoring",
+      "attack": "sybil",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 0,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": false,
+        "trustMultiplier": 0,
+        "confidence": 1,
+        "reason": "anchor or routing diversity floor failed"
+      }
+    },
+    {
+      "defense": "cross-mesh-anchoring",
+      "attack": "score-manipulator",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.30000000000000004,
+        "reason": "independent anchors pass"
+      }
+    },
+    {
+      "defense": "cross-mesh-anchoring",
+      "attack": "slow-poisoner",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.25,
+        "reason": "independent anchors pass"
+      }
+    },
+    {
+      "defense": "cross-mesh-anchoring",
+      "attack": "eclipse",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": false,
+        "trustMultiplier": 0.05,
+        "confidence": 0.95,
+        "reason": "anchor or routing diversity floor failed"
+      }
+    },
+    {
+      "defense": "output-diversity",
+      "attack": "whitewasher",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": false,
+        "trustMultiplier": 0.25,
+        "confidence": 0.75,
+        "reason": "trust-max output lacks utility or diversity"
+      }
+    },
+    {
+      "defense": "output-diversity",
+      "attack": "sybil",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 0,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.4,
+        "reason": "utility/diversity pass"
+      }
+    },
+    {
+      "defense": "output-diversity",
+      "attack": "score-manipulator",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": false,
+        "trustMultiplier": 0.15,
+        "confidence": 0.85,
+        "reason": "trust-max output lacks utility or diversity"
+      }
+    },
+    {
+      "defense": "output-diversity",
+      "attack": "slow-poisoner",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.44999999999999996,
+        "reason": "utility/diversity pass"
+      }
+    },
+    {
+      "defense": "output-diversity",
+      "attack": "eclipse",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.44999999999999996,
+        "reason": "utility/diversity pass"
+      }
+    },
+    {
+      "defense": "canary-probing",
+      "attack": "whitewasher",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.12,
+        "reason": "canary drift within tolerance"
+      }
+    },
+    {
+      "defense": "canary-probing",
+      "attack": "sybil",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 0,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.05,
+        "reason": "canary drift within tolerance"
+      }
+    },
+    {
+      "defense": "canary-probing",
+      "attack": "score-manipulator",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.1,
+        "reason": "canary drift within tolerance"
+      }
+    },
+    {
+      "defense": "canary-probing",
+      "attack": "slow-poisoner",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 0,
+      "defense_efficacy": 1,
+      "gate_met": true,
+      "deterministic": true,
+      "decision": {
+        "allowed": false,
+        "trustMultiplier": 0.09999999999999998,
+        "confidence": 0.9,
+        "reason": "canary drift exceeded tolerance"
+      }
+    },
+    {
+      "defense": "canary-probing",
+      "attack": "eclipse",
+      "baseline_success_rate": 1,
+      "live_v11_success_rate": 1,
+      "defended_success_rate": 1,
+      "defense_efficacy": 0,
+      "gate_met": false,
+      "deterministic": true,
+      "decision": {
+        "allowed": true,
+        "trustMultiplier": 1,
+        "confidence": 0.1,
+        "reason": "canary drift within tolerance"
+      }
+    }
+  ],
+  "overheads": [
+    {
+      "defense": "exponential-decay",
+      "N": 1000,
+      "M": 5,
+      "p50_latency_ms": 0.0003,
+      "p95_latency_ms": 0.0004,
+      "mean_cpu_per_call_ms": 0.000387,
+      "overhead_p50_pct": 0.6,
+      "overhead_p95_pct": 0.8,
+      "overhead_cpu_pct": 0.7734
+    },
+    {
+      "defense": "cross-mesh-anchoring",
+      "N": 1000,
+      "M": 5,
+      "p50_latency_ms": 0.0003,
+      "p95_latency_ms": 0.0006,
+      "mean_cpu_per_call_ms": 0.000458,
+      "overhead_p50_pct": 0.6,
+      "overhead_p95_pct": 1.2,
+      "overhead_cpu_pct": 0.9156
+    },
+    {
+      "defense": "output-diversity",
+      "N": 1000,
+      "M": 5,
+      "p50_latency_ms": 0.0003,
+      "p95_latency_ms": 0.0006,
+      "mean_cpu_per_call_ms": 0.000407,
+      "overhead_p50_pct": 0.6,
+      "overhead_p95_pct": 1.2,
+      "overhead_cpu_pct": 0.8148
+    },
+    {
+      "defense": "canary-probing",
+      "N": 1000,
+      "M": 5,
+      "p50_latency_ms": 0.0002,
+      "p95_latency_ms": 0.0003,
+      "mean_cpu_per_call_ms": 0.000273,
+      "overhead_p50_pct": 0.4,
+      "overhead_p95_pct": 0.6,
+      "overhead_cpu_pct": 0.5452
+    }
+  ],
+  "honest_scope": "Deterministic sandbox measurement over attack-derived observations. Production policy classes live in packages/mcp-server/src/trust/defenses; this adapter mirrors their thresholds without importing mcp-server so the adversarial sandbox remains dependency-isolated."
+}

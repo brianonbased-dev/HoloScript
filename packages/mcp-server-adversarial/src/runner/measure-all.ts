@@ -25,6 +25,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runBaseline, type RunnableAttack } from './run-attack.js';
 import type { BaselineSummary, DefendedSummary } from './output-schema.js';
+import { buildPhase4DefenseSummary } from './phase4-defenses.js';
+import type { AttackId } from '../types.js';
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT_DIR = join(PKG_ROOT, 'measurements');
@@ -71,6 +73,8 @@ const rows: Array<{
   deterministic: boolean;
   defended_by_v11: boolean;
 }> = [];
+const baselineByAttack = new Map<AttackId, BaselineSummary>();
+const liveByAttack = new Map<AttackId, BaselineSummary>();
 
 for (const spec of SPECS) {
   const base = runBaseline(spec, {
@@ -88,6 +92,8 @@ for (const spec of SPECS) {
 
   const baseline: BaselineSummary = base.summary;
   const defended: DefendedSummary = { ...def.summary, defense: DEFENSE };
+  baselineByAttack.set(spec.id, baseline);
+  liveByAttack.set(spec.id, defended);
 
   writeFileSync(
     join(OUT_DIR, `baseline-${spec.id}.json`),
@@ -113,6 +119,8 @@ for (const spec of SPECS) {
   });
 }
 
+const phase4Defenses = buildPhase4DefenseSummary(SPECS, baselineByAttack, liveByAttack);
+
 const summary = {
   generated: TESTBED_VERSION,
   trials_per_cell: TRIALS,
@@ -120,6 +128,7 @@ const summary = {
   gate: 'success_rate_defended <= 0.5 * baseline (evaluation-plan.md §4.1)',
   deterministic_testbed: rows.every((r) => r.deterministic),
   rows,
+  phase4_defenses: phase4Defenses,
   interpretation:
     'V11 anti-Sybil reuse ceiling provably stops the Sybil cross-vouching attack ' +
     '(baseline lands, defended 0). The remaining attack classes land against the ' +
@@ -130,6 +139,10 @@ const summary = {
     'are deterministic; success_rate is a demonstrated outcome, not a sampled rate.',
 };
 writeFileSync(join(OUT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+writeFileSync(
+  join(OUT_DIR, 'phase4-defenses-summary.json'),
+  JSON.stringify(phase4Defenses, null, 2) + '\n'
+);
 
 console.log(JSON.stringify(summary, null, 2));
-console.error(`\n[measure-all] wrote ${SPECS.length * 2 + 1} artifacts -> ${OUT_DIR}`);
+console.error(`\n[measure-all] wrote ${SPECS.length * 2 + 2} artifacts -> ${OUT_DIR}`);

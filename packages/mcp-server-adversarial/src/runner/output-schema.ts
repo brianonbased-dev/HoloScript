@@ -36,6 +36,32 @@ export type OverheadSummary = {
   overhead_cpu_pct: number;
 };
 
+export type Phase4DefenseSummaryRow = {
+  defense: string;
+  attack: string;
+  baseline_success_rate: number;
+  live_v11_success_rate: number;
+  defended_success_rate: number;
+  defense_efficacy: number;
+  gate_met: boolean;
+  deterministic: boolean;
+  decision: {
+    allowed: boolean;
+    trustMultiplier: number;
+    confidence: number;
+    reason: string;
+  };
+};
+
+export type Phase4DefenseSummary = {
+  defense_count: number;
+  attack_count: number;
+  gate: string;
+  rows: Phase4DefenseSummaryRow[];
+  overheads: OverheadSummary[];
+  honest_scope: string;
+};
+
 // Simple runtime validator — no external dependency (zod not in package.json).
 export function validateAttackOutput(obj: unknown): obj is AttackOutput {
   if (typeof obj !== 'object' || obj === null) return false;
