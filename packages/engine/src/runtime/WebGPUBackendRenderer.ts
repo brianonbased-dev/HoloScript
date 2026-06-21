@@ -53,6 +53,41 @@ const BUF_VERTEX = 0x0020;
 const BUF_INDEX = 0x0010;
 const BUF_UNIFORM = 0x0040;
 const BUF_COPY_DST = 0x0008;
+const TEX_TEXTURE_BINDING = 0x0004;
+const TEX_RENDER_ATTACHMENT = 0x0010;
+
+const PARTICLE_VERTEX_SHADER = /* wgsl */ `
+struct ParticleUniforms {
+  viewProjectionMatrix: mat4x4<f32>,
+};
+
+@group(0) @binding(0) var<uniform> uniforms: ParticleUniforms;
+
+struct VertexInput {
+  @location(0) position: vec3<f32>,
+  @location(1) color: vec4<f32>,
+};
+
+struct VertexOutput {
+  @builtin(position) position: vec4<f32>,
+  @location(0) color: vec4<f32>,
+};
+
+@vertex
+fn main(input: VertexInput) -> VertexOutput {
+  var output: VertexOutput;
+  output.position = uniforms.viewProjectionMatrix * vec4<f32>(input.position, 1.0);
+  output.color = input.color;
+  return output;
+}
+`;
+
+const PARTICLE_FRAGMENT_SHADER = /* wgsl */ `
+@fragment
+fn main(@location(0) color: vec4<f32>) -> @location(0) vec4<f32> {
+  return color;
+}
+`;
 
 // ---------------------------------------------------------------------------
 // Per-frame mesh cache key
@@ -80,6 +115,23 @@ interface CachedMaterial {
   bindGroup: GPUBindGroup;
 }
 
+interface CachedParticleSystem {
+  positionBuffer: GPUBuffer;
+  colorBuffer: GPUBuffer;
+  vertexCount: number;
+  positionCapacityBytes: number;
+  colorCapacityBytes: number;
+}
+
+interface CachedPostProcessingEffect {
+  effect: PostProcessingEffect;
+  uniformBuffer?: GPUBuffer;
+  targetTexture?: GPUTexture;
+  targetView?: GPUTextureView;
+  width?: number;
+  height?: number;
+}
+
 // ---------------------------------------------------------------------------
 // WebGPUBackendRenderer
 // ---------------------------------------------------------------------------
@@ -93,10 +145,15 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
 
   // Unlit pipeline id — registered once on initialize
   private readonly PIPELINE_ID = 'unlit-native';
+  private readonly PARTICLE_PIPELINE_ID = 'particles-native';
 
   // GPU resource caches — cleared on resize/dispose
   private meshCache: Map<MeshCacheKey, CachedMesh> = new Map();
   private materialCache: Map<number, CachedMaterial> = new Map(); // keyed by entityId
+  private particleResources: Map<string, CachedParticleSystem> = new Map();
+  private particleUniformBuffer: GPUBuffer | null = null;
+  private particleUniformBindGroup: GPUBindGroup | null = null;
+  private postProcessingEffects: Map<string, CachedPostProcessingEffect> = new Map();
 
   // Camera state
   private cameraPos: [number, number, number] = [0, 2, 5];
@@ -206,6 +263,8 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     const drawCalls = this.world ? this.buildDrawCalls(device) : [];
     const pass = this.webgpu.beginRenderPass(encoder);
     this.webgpu.submitDrawCalls(pass, drawCalls);
+    this.writeParticleUniforms(device, viewProj);
+    this.submitParticleSystems(pass);
     this.webgpu.endRenderPass(pass);
     this.webgpu.endFrame(encoder);
   }
@@ -218,7 +277,10 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     await this.webgpu.initialize({ canvas });
     const device = this.webgpu.getDevice()!;
     this.registerUnlitPipeline(device);
+    this.registerParticlePipeline();
     this.initialized = true;
+    this.hydrateParticleResources(device);
+    this.hydratePostProcessingResources(device);
   }
 
   // -------------------------------------------------------------------------
@@ -248,6 +310,48 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
       },
       topology: 'triangle-list',
       cullMode: 'back',
+    });
+  }
+
+  private registerParticlePipeline(): void {
+    this.webgpu.createRenderPipeline(this.PARTICLE_PIPELINE_ID, {
+      label: 'particles-native',
+      vertexShader: {
+        code: PARTICLE_VERTEX_SHADER,
+        entryPoint: 'main',
+        label: 'particles-vs',
+      },
+      fragmentShader: {
+        code: PARTICLE_FRAGMENT_SHADER,
+        entryPoint: 'main',
+        label: 'particles-fs',
+      },
+      vertexBufferLayouts: [
+        {
+          arrayStride: 12,
+          attributes: [{ format: 'float32x3', offset: 0, shaderLocation: 0 }],
+        },
+        {
+          arrayStride: 16,
+          attributes: [{ format: 'float32x4', offset: 0, shaderLocation: 1 }],
+        },
+      ],
+      colorTargets: [
+        {
+          format: 'bgra8unorm',
+          blend: {
+            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' },
+          },
+        },
+      ],
+      depthStencil: {
+        format: 'depth24plus',
+        depthWriteEnabled: false,
+        depthCompare: 'less',
+      },
+      topology: 'point-list',
+      cullMode: 'none',
     });
   }
 
@@ -427,13 +531,56 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     if (transform.scale) obj.scale = transform.scale;
   }
 
-  addParticleSystem(_system: ParticleSystem): void {
-    /* TODO */
+  addParticleSystem(system: ParticleSystem): void {
+    this.particleSystems.set(system.id, system);
+    const device = this.getReadyDevice();
+    if (!device) return;
+
+    this.createOrReplaceParticleResources(device, system);
   }
-  updateParticleSystem(_id: string, _positions: Float32Array, _colors?: Float32Array): void {
-    /* TODO */
+
+  updateParticleSystem(id: string, positions: Float32Array, colors?: Float32Array): void {
+    const system = this.particleSystems.get(id);
+    if (!system) return;
+
+    system.positions = positions;
+    if (colors) system.colors = colors;
+
+    const device = this.getReadyDevice();
+    if (!device) return;
+
+    const cached = this.particleResources.get(id);
+    if (!cached) {
+      this.createOrReplaceParticleResources(device, system);
+      return;
+    }
+
+    const vertexCount = particleVertexCount(system);
+    const normalizedColors = normalizeParticleColors(system, vertexCount);
+    if (
+      positions.byteLength > cached.positionCapacityBytes ||
+      normalizedColors.byteLength > cached.colorCapacityBytes
+    ) {
+      this.createOrReplaceParticleResources(device, system);
+      return;
+    }
+
+    cached.vertexCount = vertexCount;
+    if (positions.byteLength > 0) {
+      device.queue.writeBuffer(cached.positionBuffer, 0, asGPUUploadSource(positions));
+    }
+    if (normalizedColors.byteLength > 0) {
+      device.queue.writeBuffer(cached.colorBuffer, 0, asGPUUploadSource(normalizedColors));
+    }
   }
+
   removeParticleSystem(id: string): void {
+    const cached = this.particleResources.get(id);
+    if (cached) {
+      cached.positionBuffer.destroy();
+      cached.colorBuffer.destroy();
+      this.particleResources.delete(id);
+    }
     this.particleSystems.delete(id);
   }
 
@@ -447,23 +594,48 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     this.cameraTarget = camera.target;
   }
 
-  enablePostProcessing(_effect: PostProcessingEffect): void {
-    /* TODO */
+  enablePostProcessing(effect: PostProcessingEffect): void {
+    if (!effect.enabled) {
+      this.destroyPostProcessingEffect(effect.type);
+      return;
+    }
+
+    const existing = this.postProcessingEffects.get(effect.type);
+    const entry: CachedPostProcessingEffect = existing ?? { effect };
+    entry.effect = {
+      ...effect,
+      params: effect.params ? { ...effect.params } : undefined,
+    };
+    this.postProcessingEffects.set(effect.type, entry);
+
+    const device = this.getReadyDevice();
+    if (device) {
+      this.ensurePostProcessingResources(device, entry);
+    }
   }
 
   getStatistics(): RendererStatistics {
     const stats = this.webgpu.getStats();
+    const particlePoints = Array.from(this.particleSystems.values()).reduce(
+      (total, system) => total + particleVertexCount(system),
+      0
+    );
+    const postProcessTargets = Array.from(this.postProcessingEffects.values()).filter(
+      (entry) => entry.targetTexture
+    ).length;
+    const particlePipelineActive =
+      this.particleResources.size > 0 || this.particleSystems.size > 0 ? 1 : 0;
     return {
       fps: stats.fps,
       frameTime: stats.average.frameTime,
       drawCalls: stats.currentFrame.drawCalls,
       triangles: stats.currentFrame.triangles,
-      points: 0,
+      points: particlePoints,
       lines: 0,
-      objects: this.objects.size,
+      objects: this.objects.size + this.particleSystems.size,
       lights: this.lights.size,
-      textures: 0,
-      programs: 1,
+      textures: postProcessTargets,
+      programs: 1 + particlePipelineActive + this.postProcessingEffects.size,
     };
   }
 
@@ -473,6 +645,11 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
     this.webgpu.resize(width, height);
     // Clear mesh/material caches so GPU resources are re-created for new size
     this.clearGPUCaches();
+    const device = this.getReadyDevice();
+    if (device) {
+      this.hydrateParticleResources(device);
+      this.hydratePostProcessingResources(device);
+    }
   }
 
   dispose(): void {
@@ -493,7 +670,299 @@ export class WebGPUBackendRenderer extends BaseRuntimeRenderer {
       ubuf.destroy();
     }
     this.materialCache.clear();
+
+    this.clearParticleResources();
+    this.clearPostProcessingResources();
   }
+
+  private getReadyDevice(): GPUDevice | null {
+    if (!this.initialized) return null;
+    return this.webgpu.getDevice();
+  }
+
+  private getPipeline(id: string): GPURenderPipeline | undefined {
+    return (this.webgpu as unknown as { pipelines?: Map<string, GPURenderPipeline> }).pipelines?.get(
+      id
+    );
+  }
+
+  private hydrateParticleResources(device: GPUDevice): void {
+    for (const system of this.particleSystems.values()) {
+      this.createOrReplaceParticleResources(device, system);
+    }
+  }
+
+  private createOrReplaceParticleResources(device: GPUDevice, system: ParticleSystem): void {
+    const existing = this.particleResources.get(system.id);
+    if (existing) {
+      existing.positionBuffer.destroy();
+      existing.colorBuffer.destroy();
+    }
+
+    const vertexCount = particleVertexCount(system);
+    const colors = normalizeParticleColors(system, vertexCount);
+    const positionCapacityBytes = alignBufferSize(system.positions.byteLength);
+    const colorCapacityBytes = alignBufferSize(colors.byteLength);
+
+    const positionBuffer = device.createBuffer({
+      label: `particles:${system.id}:positions`,
+      size: positionCapacityBytes,
+      usage: BUF_VERTEX | BUF_COPY_DST,
+    });
+    const colorBuffer = device.createBuffer({
+      label: `particles:${system.id}:colors`,
+      size: colorCapacityBytes,
+      usage: BUF_VERTEX | BUF_COPY_DST,
+    });
+
+    if (system.positions.byteLength > 0) {
+      device.queue.writeBuffer(positionBuffer, 0, asGPUUploadSource(system.positions));
+    }
+    if (colors.byteLength > 0) {
+      device.queue.writeBuffer(colorBuffer, 0, asGPUUploadSource(colors));
+    }
+
+    this.particleResources.set(system.id, {
+      positionBuffer,
+      colorBuffer,
+      vertexCount,
+      positionCapacityBytes,
+      colorCapacityBytes,
+    });
+  }
+
+  private writeParticleUniforms(device: GPUDevice, viewProjectionMatrix: Float32Array): void {
+    if (this.particleResources.size === 0) return;
+
+    if (!this.particleUniformBuffer) {
+      this.particleUniformBuffer = device.createBuffer({
+        label: 'particles:uniforms',
+        size: 64,
+        usage: BUF_UNIFORM | BUF_COPY_DST,
+      });
+    }
+
+    if (!this.particleUniformBindGroup) {
+      const pipeline = this.getPipeline(this.PARTICLE_PIPELINE_ID);
+      if (pipeline) {
+        this.particleUniformBindGroup = device.createBindGroup({
+          label: 'particles:uniform-bind-group',
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [{ binding: 0, resource: { buffer: this.particleUniformBuffer } }],
+        });
+      }
+    }
+
+    device.queue.writeBuffer(
+      this.particleUniformBuffer,
+      0,
+      asGPUUploadSource(viewProjectionMatrix)
+    );
+  }
+
+  private submitParticleSystems(pass: GPURenderPassEncoder): void {
+    if (this.particleResources.size === 0) return;
+
+    const pipeline = this.getPipeline(this.PARTICLE_PIPELINE_ID);
+    if (!pipeline) return;
+
+    pass.setPipeline(pipeline);
+    if (this.particleUniformBindGroup) {
+      pass.setBindGroup(0, this.particleUniformBindGroup);
+    }
+
+    for (const cached of this.particleResources.values()) {
+      if (cached.vertexCount <= 0) continue;
+      pass.setVertexBuffer(0, cached.positionBuffer);
+      pass.setVertexBuffer(1, cached.colorBuffer);
+      pass.draw(cached.vertexCount, 1, 0, 0);
+    }
+  }
+
+  private clearParticleResources(): void {
+    for (const cached of this.particleResources.values()) {
+      cached.positionBuffer.destroy();
+      cached.colorBuffer.destroy();
+    }
+    this.particleResources.clear();
+    this.particleUniformBuffer?.destroy();
+    this.particleUniformBuffer = null;
+    this.particleUniformBindGroup = null;
+  }
+
+  private hydratePostProcessingResources(device: GPUDevice): void {
+    for (const entry of this.postProcessingEffects.values()) {
+      this.ensurePostProcessingResources(device, entry);
+    }
+  }
+
+  private ensurePostProcessingResources(
+    device: GPUDevice,
+    entry: CachedPostProcessingEffect
+  ): void {
+    if (!entry.uniformBuffer) {
+      entry.uniformBuffer = device.createBuffer({
+        label: `postprocess:${entry.effect.type}:uniforms`,
+        size: 64,
+        usage: BUF_UNIFORM | BUF_COPY_DST,
+      });
+    }
+    device.queue.writeBuffer(
+      entry.uniformBuffer,
+      0,
+      asGPUUploadSource(encodePostProcessingParams(entry.effect))
+    );
+
+    const width = Math.max(1, Math.floor(this.config.width ?? 1920));
+    const height = Math.max(1, Math.floor(this.config.height ?? 1080));
+    if (entry.targetTexture && entry.width === width && entry.height === height) {
+      return;
+    }
+
+    entry.targetTexture?.destroy();
+    entry.targetTexture = device.createTexture({
+      label: `postprocess:${entry.effect.type}:target`,
+      size: [width, height, 1],
+      format: 'bgra8unorm',
+      usage: TEX_RENDER_ATTACHMENT | TEX_TEXTURE_BINDING,
+    });
+    entry.targetView = entry.targetTexture.createView();
+    entry.width = width;
+    entry.height = height;
+  }
+
+  private destroyPostProcessingEffect(type: string): void {
+    const entry = this.postProcessingEffects.get(type);
+    if (!entry) return;
+    entry.uniformBuffer?.destroy();
+    entry.targetTexture?.destroy();
+    this.postProcessingEffects.delete(type);
+  }
+
+  private clearPostProcessingResources(): void {
+    for (const entry of this.postProcessingEffects.values()) {
+      entry.uniformBuffer?.destroy();
+      entry.targetTexture?.destroy();
+      entry.uniformBuffer = undefined;
+      entry.targetTexture = undefined;
+      entry.targetView = undefined;
+      entry.width = undefined;
+      entry.height = undefined;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Particle and post-processing helpers
+// ---------------------------------------------------------------------------
+
+function alignBufferSize(byteLength: number): number {
+  return Math.max(4, Math.ceil(byteLength / 4) * 4);
+}
+
+function asGPUUploadSource(data: Float32Array): GPUAllowSharedBufferSource {
+  return data as unknown as GPUAllowSharedBufferSource;
+}
+
+function particleVertexCount(system: ParticleSystem): number {
+  return Math.max(0, Math.min(system.maxParticles, Math.floor(system.positions.length / 3)));
+}
+
+function normalizeParticleColors(system: ParticleSystem, vertexCount: number): Float32Array {
+  const output = new Float32Array(vertexCount * 4);
+  const [defaultR, defaultG, defaultB] = parseParticleColor(system.material?.color);
+  const defaultA = clamp01(system.material?.opacity ?? 1);
+
+  for (let i = 0; i < vertexCount; i++) {
+    output[i * 4] = defaultR;
+    output[i * 4 + 1] = defaultG;
+    output[i * 4 + 2] = defaultB;
+    output[i * 4 + 3] = defaultA;
+  }
+
+  if (!system.colors || vertexCount === 0) {
+    return output;
+  }
+
+  const stride = system.colors.length >= vertexCount * 4 ? 4 : 3;
+  for (let i = 0; i < vertexCount; i++) {
+    const source = i * stride;
+    if (source + 2 >= system.colors.length) break;
+    output[i * 4] = system.colors[source];
+    output[i * 4 + 1] = system.colors[source + 1];
+    output[i * 4 + 2] = system.colors[source + 2];
+    output[i * 4 + 3] = stride === 4 ? system.colors[source + 3] : defaultA;
+  }
+
+  return output;
+}
+
+function parseParticleColor(color?: string): [number, number, number] {
+  if (!color) return [1, 1, 1];
+
+  const named: Record<string, [number, number, number]> = {
+    black: [0, 0, 0],
+    blue: [0, 0, 1],
+    cyan: [0, 1, 1],
+    green: [0, 1, 0],
+    magenta: [1, 0, 1],
+    red: [1, 0, 0],
+    white: [1, 1, 1],
+    yellow: [1, 1, 0],
+  };
+  const normalized = color.trim().toLowerCase();
+  if (normalized in named) return named[normalized];
+
+  const hex = normalized.startsWith('#') ? normalized.slice(1) : normalized;
+  const expanded =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((part) => `${part}${part}`)
+          .join('')
+      : hex;
+  if (!/^[0-9a-f]{6}$/.test(expanded)) return [1, 1, 1];
+
+  const value = Number.parseInt(expanded, 16);
+  return [
+    ((value >> 16) & 0xff) / 255,
+    ((value >> 8) & 0xff) / 255,
+    (value & 0xff) / 255,
+  ];
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function encodePostProcessingParams(effect: PostProcessingEffect): Float32Array {
+  const data = new Float32Array(16);
+  data[0] = stableFloatId(effect.type);
+  data[1] = effect.enabled ? 1 : 0;
+
+  const params = effect.params ?? {};
+  const keys = Object.keys(params).sort();
+  let cursor = 2;
+  for (const key of keys) {
+    if (cursor >= data.length) break;
+    const value = params[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      data[cursor++] = value;
+    } else if (typeof value === 'boolean') {
+      data[cursor++] = value ? 1 : 0;
+    }
+  }
+
+  return data;
+}
+
+function stableFloatId(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 0xffffffff;
 }
 
 // ---------------------------------------------------------------------------

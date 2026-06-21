@@ -74,12 +74,29 @@ function stubPipeline(): GPURenderPipeline {
   } as unknown as GPURenderPipeline;
 }
 
+/** Minimal GPUTexture stub for post-processing resource tests. */
+function stubTexture(): GPUTexture {
+  return {
+    createView: vi.fn(() => ({ label: 'texture-view' })),
+    destroy: vi.fn(),
+    label: '',
+    width: 1,
+    height: 1,
+    depthOrArrayLayers: 1,
+    mipLevelCount: 1,
+    sampleCount: 1,
+    dimension: '2d',
+    format: 'bgra8unorm',
+    usage: 0,
+  } as unknown as GPUTexture;
+}
+
 /** Minimal GPUDevice stub. Enough to exercise buildDrawCalls. */
 function stubDevice(): GPUDevice {
-  const buf = stubBuffer();
   return {
-    createBuffer: vi.fn(() => buf),
+    createBuffer: vi.fn(() => stubBuffer()),
     createBindGroup: vi.fn(() => ({ label: 'bg' })),
+    createTexture: vi.fn(() => stubTexture()),
     queue: {
       writeBuffer: vi.fn(),
       submit: vi.fn(),
@@ -150,6 +167,10 @@ describe('WebGPUBackendRenderer — ECSWorld→IDrawCall connector (stubbed GPU)
     const webgpu = (renderer as unknown as { webgpu: unknown }).webgpu as Record<string, unknown>;
     webgpu['context'] = { device };
     (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set('unlit-native', stubPipeline());
+    (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set(
+      'particles-native',
+      stubPipeline()
+    );
     (renderer as unknown as { initialized: boolean }).initialized = true;
 
     renderer.attachWorld(world);
@@ -280,3 +301,154 @@ interface IDrawCallLike {
   material: { pipelineId: string; transparent: boolean };
   modelMatrix: Float32Array;
 }
+
+interface ParticleResourceLike {
+  positionBuffer: GPUBuffer;
+  colorBuffer: GPUBuffer;
+  vertexCount: number;
+}
+
+interface PostProcessResourceLike {
+  uniformBuffer?: GPUBuffer;
+  targetTexture?: GPUTexture;
+  width?: number;
+  height?: number;
+}
+
+describe('WebGPUBackendRenderer native particles and post-processing (stubbed GPU)', () => {
+  let renderer: WebGPUBackendRenderer;
+  let device: GPUDevice;
+
+  beforeEach(() => {
+    renderer = new WebGPUBackendRenderer({ width: 320, height: 180 });
+    device = stubDevice();
+
+    const webgpu = (renderer as unknown as { webgpu: unknown }).webgpu as Record<string, unknown>;
+    webgpu['context'] = { device };
+    (webgpu['pipelines'] as Map<string, GPURenderPipeline>).set(
+      'particles-native',
+      stubPipeline()
+    );
+    (renderer as unknown as { initialized: boolean }).initialized = true;
+  });
+
+  it('allocates GPU buffers when adding a particle system', () => {
+    renderer.addParticleSystem({
+      id: 'sparks',
+      maxParticles: 2,
+      positions: new Float32Array([0, 0, 0, 1, 1, 1]),
+      colors: new Float32Array([1, 0, 0, 0, 1, 0]),
+    });
+
+    const resources = (
+      renderer as unknown as { particleResources: Map<string, ParticleResourceLike> }
+    ).particleResources;
+
+    expect(resources.get('sparks')?.vertexCount).toBe(2);
+    expect(device.createBuffer).toHaveBeenCalledTimes(2);
+    expect(device.queue.writeBuffer).toHaveBeenCalledTimes(2);
+    expect(renderer.getStatistics().points).toBe(2);
+    expect(renderer.getStatistics().objects).toBe(1);
+  });
+
+  it('updates particle buffers in-place when capacity is unchanged', () => {
+    renderer.addParticleSystem({
+      id: 'sparks',
+      maxParticles: 3,
+      positions: new Float32Array([0, 0, 0, 1, 1, 1, 2, 2, 2]),
+      colors: new Float32Array([1, 1, 1, 1, 1, 1, 1, 1, 1]),
+    });
+
+    vi.mocked(device.createBuffer).mockClear();
+    vi.mocked(device.queue.writeBuffer).mockClear();
+
+    renderer.updateParticleSystem(
+      'sparks',
+      new Float32Array([3, 3, 3, 4, 4, 4, 5, 5, 5]),
+      new Float32Array([1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1])
+    );
+
+    const resources = (
+      renderer as unknown as { particleResources: Map<string, ParticleResourceLike> }
+    ).particleResources;
+
+    expect(resources.get('sparks')?.vertexCount).toBe(3);
+    expect(device.createBuffer).not.toHaveBeenCalled();
+    expect(device.queue.writeBuffer).toHaveBeenCalledTimes(2);
+  });
+
+  it('destroys particle buffers when removing a particle system', () => {
+    renderer.addParticleSystem({
+      id: 'sparks',
+      maxParticles: 1,
+      positions: new Float32Array([0, 0, 0]),
+    });
+
+    const resources = (
+      renderer as unknown as { particleResources: Map<string, ParticleResourceLike> }
+    ).particleResources;
+    const cached = resources.get('sparks')!;
+
+    renderer.removeParticleSystem('sparks');
+
+    expect(cached.positionBuffer.destroy).toHaveBeenCalled();
+    expect(cached.colorBuffer.destroy).toHaveBeenCalled();
+    expect(resources.has('sparks')).toBe(false);
+    expect(renderer.getStatistics().points).toBe(0);
+  });
+
+  it('submits native particle draw calls through the particle pipeline', () => {
+    renderer.addParticleSystem({
+      id: 'sparks',
+      maxParticles: 2,
+      positions: new Float32Array([0, 0, 0, 1, 1, 1]),
+    });
+
+    const internals = renderer as unknown as {
+      writeParticleUniforms(d: GPUDevice, viewProjectionMatrix: Float32Array): void;
+      submitParticleSystems(pass: GPURenderPassEncoder): void;
+    };
+    internals.writeParticleUniforms(device, new Float32Array(16));
+
+    const pass = {
+      setPipeline: vi.fn(),
+      setBindGroup: vi.fn(),
+      setVertexBuffer: vi.fn(),
+      draw: vi.fn(),
+    };
+
+    internals.submitParticleSystems(pass as unknown as GPURenderPassEncoder);
+
+    expect(pass.setPipeline).toHaveBeenCalled();
+    expect(pass.setBindGroup).toHaveBeenCalledWith(0, expect.anything());
+    expect(pass.setVertexBuffer).toHaveBeenCalledWith(0, expect.anything());
+    expect(pass.setVertexBuffer).toHaveBeenCalledWith(1, expect.anything());
+    expect(pass.draw).toHaveBeenCalledWith(2, 1, 0, 0);
+  });
+
+  it('creates and removes native post-processing GPU resources', () => {
+    renderer.enablePostProcessing({
+      type: 'bloom',
+      enabled: true,
+      params: { strength: 1.25, threshold: 0.8 },
+    });
+
+    const effects = (
+      renderer as unknown as { postProcessingEffects: Map<string, PostProcessResourceLike> }
+    ).postProcessingEffects;
+    const effect = effects.get('bloom')!;
+
+    expect(effect.uniformBuffer).toBeDefined();
+    expect(effect.targetTexture).toBeDefined();
+    expect(effect.width).toBe(320);
+    expect(effect.height).toBe(180);
+    expect(device.createTexture).toHaveBeenCalledTimes(1);
+    expect(renderer.getStatistics().textures).toBe(1);
+
+    renderer.enablePostProcessing({ type: 'bloom', enabled: false });
+
+    expect(effect.uniformBuffer?.destroy).toHaveBeenCalled();
+    expect(effect.targetTexture?.destroy).toHaveBeenCalled();
+    expect(effects.has('bloom')).toBe(false);
+  });
+});
