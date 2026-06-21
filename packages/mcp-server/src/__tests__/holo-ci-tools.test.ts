@@ -21,6 +21,9 @@ describe('holo-ci-tools', () => {
     expect(contexts).toEqual(workload.jobs.map((j) => `holo-ci/${j.id as string}`));
     // frozen-lockfile must always be present (deploy-bricking gate)
     expect(workload.jobs.some((j) => j.id === 'frozen-lockfile')).toBe(true);
+    // doctrine-slots must stay in lockstep with the canonical HoloCI catalog so
+    // "hook registered but never fired" cannot be hidden by MCP dispatch.
+    expect(workload.jobs.some((j) => j.id === 'doctrine-slots')).toBe(true);
     // cold-consume is the W.667 BLOCKING release gate — it MUST stay in lockstep
     // with the canonical scripts/holo-ci/gates.mjs so a dispatch via this tool can
     // never silently skip the fence that caught non-installable @holoscript/core.

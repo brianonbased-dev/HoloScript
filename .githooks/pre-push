@@ -35,6 +35,16 @@ if [ -f scripts/validate-dockerfile-build.mjs ]; then
   fi
 fi
 
+# --- Gate: doctrine-slot falsifier (local breadcrumb must prove hooks fired) ---
+if [ -f scripts/check-doctrine-slots.mjs ]; then
+  if ! node scripts/check-doctrine-slots.mjs; then
+    echo -e "${RED}[pre-push] BLOCKED: doctrine slot is missing -- a registered local hook never fired.${NC}"
+    echo -e "${YELLOW}  Trigger the relevant local hook or fix its workload breadcrumb path, then re-push.${NC}"
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+fi
+
 # Collect the files changed across every ref being pushed. The pre-push protocol
 # feeds lines "<local_ref> <local_sha> <remote_ref> <remote_sha>" on stdin.
 changed=''
