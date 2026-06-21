@@ -1,0 +1,284 @@
+{
+  "schema": "format-stress-pose-physics-v1",
+  "segmentId": "00_scene_loaded",
+  "mode": "world-model-event-replay",
+  "complete": true,
+  "owningSurface": "CLI screenshot and HoloLand visual debugger",
+  "sceneObjectCount": 63,
+  "sceneSnapshotSource": "hs-headless-json",
+  "runtimeScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "status": "instantiated"
+  },
+  "sceneObjectAnchors": [
+    {
+      "id": "Floor",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          -90,
+          0,
+          0
+        ],
+        "scale": [
+          9,
+          5,
+          1
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    },
+    {
+      "id": "ThrowerTorso",
+      "type": "object",
+      "template": "AgentBody",
+      "transform": {
+        "position": [
+          -2.2,
+          1.1,
+          0
+        ],
+        "rotation": null,
+        "scale": [
+          0.32,
+          0.82,
+          0.28
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "CatcherTorso",
+      "type": "object",
+      "template": "AgentBody",
+      "transform": {
+        "position": [
+          2.2,
+          1.1,
+          0
+        ],
+        "rotation": null,
+        "scale": [
+          0.32,
+          0.82,
+          0.28
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "ThrowerHand",
+      "type": "object",
+      "template": "Hand",
+      "transform": {
+        "position": [
+          -1.72,
+          1.32,
+          0.08
+        ],
+        "rotation": null,
+        "scale": [
+          0.11,
+          0.11,
+          0.11
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "CatcherHand",
+      "type": "object",
+      "template": "Hand",
+      "transform": {
+        "position": [
+          1.74,
+          1.28,
+          0.08
+        ],
+        "rotation": null,
+        "scale": [
+          0.11,
+          0.11,
+          0.11
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "SharedTool",
+      "type": "object",
+      "template": "ToolProp",
+      "transform": {
+        "position": [
+          -1.48,
+          1.32,
+          0.08
+        ],
+        "rotation": [
+          0,
+          0,
+          88
+        ],
+        "scale": [
+          0.14,
+          0.44,
+          0.14
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": 0.65
+      }
+    },
+    {
+      "id": "HandoffArc",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          0,
+          1.72,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          84
+        ],
+        "scale": [
+          0.018,
+          3.35,
+          0.018
+        ]
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "ReceiptPanel",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          0,
+          2.55,
+          -1.4
+        ],
+        "rotation": null,
+        "scale": [
+          3.6,
+          0.52,
+          0.05
+        ]
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    }
+  ],
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "two-agent-handoff-catch-v1",
+    "sceneHash": "fnv1a-3975b949",
+    "eventLogHash": "fnv1a-671a7579",
+    "trajectoryId": "fnv1a-c0550c85",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "worldModelEvents": [
+    {
+      "stepIndex": 0,
+      "timestampMs": 0,
+      "type": "scene_loaded",
+      "payload": {
+        "throwerId": "thrower",
+        "catcherId": "catcher",
+        "toolId": "shared-tool",
+        "ownerId": "thrower"
+      }
+    }
+  ],
+  "bodies": {
+    "avatar": {
+      "position": [
+        -3,
+        1.1,
+        0
+      ],
+      "facing": "rock-target-line"
+    },
+    "rightHand": {
+      "position": [
+        -2.55,
+        1.2,
+        0.18
+      ],
+      "contact": null
+    },
+    "rock": {
+      "position": [
+        -1.2,
+        0.35,
+        0
+      ],
+      "attachedToHand": false,
+      "released": false
+    },
+    "target": {
+      "position": [
+        3.5,
+        1,
+        0
+      ],
+      "impacted": false
+    }
+  },
+  "physics": {
+    "massKg": 1.8,
+    "releaseVelocityMps": null,
+    "arcSamples": [],
+    "solver": "world-model-humanoid-rock-throw-v1"
+  },
+  "notes": [
+    "World-model replay emitted semantic events for this segment.",
+    "Visual stills are still kinematic; this receipt upgrades event provenance, not pixel physics.",
+    "Next ratchet: drive rendered segment state directly from this replay event stream."
+  ]
+}

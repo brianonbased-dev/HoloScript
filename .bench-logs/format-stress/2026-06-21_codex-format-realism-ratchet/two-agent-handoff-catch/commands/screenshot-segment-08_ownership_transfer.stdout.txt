@@ -1,0 +1,8 @@
+
+[36mCapturing screenshot of C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-06-21_codex-format-realism-ratchet\two-agent-handoff-catch\segment-scenes\08_ownership_transfer.holo...[0m
+
+[32m✓ Screenshot saved to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-06-21_codex-format-realism-ratchet\two-agent-handoff-catch\stills\08_ownership_transfer.png[0m
+  Size: 1280x720
+  Format: png
+  File size: 22.8 KB
+  Total time: 1716ms

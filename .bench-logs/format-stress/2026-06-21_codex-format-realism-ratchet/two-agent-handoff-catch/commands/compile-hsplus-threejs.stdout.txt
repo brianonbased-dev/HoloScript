@@ -1,0 +1,5 @@
+[2m[DEBUG] Starting code generation for target: threejs...[0m
+[2m[DEBUG] Code generation complete. Length: 4272[0m
+[32m✓ Written to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-06-21_codex-format-realism-ratchet\two-agent-handoff-catch\compiled\hsplus-threejs[0m
+
+[32m✓ Compilation successful![0m

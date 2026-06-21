@@ -1,0 +1,448 @@
+[
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "00_scene_loaded",
+    "title": "Scene Loaded",
+    "index": 0,
+    "atMs": 0,
+    "still": "stills/00_scene_loaded.png",
+    "stillMode": "captured-scene-loaded",
+    "eventLog": "events/00_scene_loaded.json",
+    "posePhysicsJson": "pose-physics/00_scene_loaded.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 0,
+        "timestampMs": 0,
+        "type": "scene_loaded",
+        "payload": {
+          "throwerId": "thrower",
+          "catcherId": "catcher",
+          "toolId": "shared-tool",
+          "ownerId": "thrower"
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "01_agents_aligned",
+    "title": "Agents Aligned",
+    "index": 1,
+    "atMs": 250,
+    "still": "stills/01_agents_aligned.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/01_agents_aligned.json",
+    "posePhysicsJson": "pose-physics/01_agents_aligned.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 1,
+        "timestampMs": 100,
+        "type": "agents_aligned",
+        "payload": {
+          "throwerHandId": "thrower-hand",
+          "catcherHandId": "catcher-hand",
+          "toolId": "shared-tool",
+          "facing": true
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "02_release_detach",
+    "title": "Release Detach",
+    "index": 2,
+    "atMs": 500,
+    "still": "stills/02_release_detach.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/02_release_detach.json",
+    "posePhysicsJson": "pose-physics/02_release_detach.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 2,
+        "timestampMs": 200,
+        "type": "release_constraint_detached",
+        "payload": {
+          "toolId": "shared-tool",
+          "fromHandId": "thrower-hand",
+          "previousOwnerId": "thrower",
+          "ownerId": null,
+          "releasePosition": {
+            "x": -1.48,
+            "y": 1.32,
+            "z": 0.08
+          },
+          "releaseVelocity": {
+            "x": 4.4,
+            "y": 1.5,
+            "z": 0
+          }
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "03_ballistic_arc_early",
+    "title": "Ballistic Arc Early",
+    "index": 3,
+    "atMs": 750,
+    "still": "stills/03_ballistic_arc_early.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/03_ballistic_arc_early.json",
+    "posePhysicsJson": "pose-physics/03_ballistic_arc_early.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.18,
+          "toolPosition": {
+            "x": -0.688,
+            "y": 1.431078,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.36,
+          "toolPosition": {
+            "x": 0.10400000000000009,
+            "y": 1.224312,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.54,
+          "toolPosition": {
+            "x": 0.8960000000000004,
+            "y": 0.6997019999999996,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "04_ballistic_arc_mid",
+    "title": "Ballistic Arc Mid",
+    "index": 4,
+    "atMs": 1000,
+    "still": "stills/04_ballistic_arc_mid.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/04_ballistic_arc_mid.json",
+    "posePhysicsJson": "pose-physics/04_ballistic_arc_mid.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.18,
+          "toolPosition": {
+            "x": -0.688,
+            "y": 1.431078,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.36,
+          "toolPosition": {
+            "x": 0.10400000000000009,
+            "y": 1.224312,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.54,
+          "toolPosition": {
+            "x": 0.8960000000000004,
+            "y": 0.6997019999999996,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "05_ballistic_arc_late",
+    "title": "Ballistic Arc Late",
+    "index": 5,
+    "atMs": 1250,
+    "still": "stills/05_ballistic_arc_late.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/05_ballistic_arc_late.json",
+    "posePhysicsJson": "pose-physics/05_ballistic_arc_late.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 3,
+        "timestampMs": 300,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.18,
+          "toolPosition": {
+            "x": -0.688,
+            "y": 1.431078,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      },
+      {
+        "stepIndex": 4,
+        "timestampMs": 400,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.36,
+          "toolPosition": {
+            "x": 0.10400000000000009,
+            "y": 1.224312,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      },
+      {
+        "stepIndex": 5,
+        "timestampMs": 500,
+        "type": "ballistic_sample",
+        "payload": {
+          "toolId": "shared-tool",
+          "timeSeconds": 0.54,
+          "toolPosition": {
+            "x": 0.8960000000000004,
+            "y": 0.6997019999999996,
+            "z": 0.08
+          },
+          "gravity": -9.81,
+          "ownerId": null
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "06_catch_volume",
+    "title": "Catch Volume Entered",
+    "index": 6,
+    "atMs": 1500,
+    "still": "stills/06_catch_volume.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/06_catch_volume.json",
+    "posePhysicsJson": "pose-physics/06_catch_volume.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 6,
+        "timestampMs": 600,
+        "type": "catch_volume_entered",
+        "payload": {
+          "toolId": "shared-tool",
+          "catchVolumeId": "catch-volume",
+          "toolPosition": {
+            "x": 1.74,
+            "y": 1.28,
+            "z": 0.08
+          },
+          "clearanceM": 0.04
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "07_catch_constraint",
+    "title": "Catch Constraint Attached",
+    "index": 7,
+    "atMs": 1750,
+    "still": "stills/07_catch_constraint.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/07_catch_constraint.json",
+    "posePhysicsJson": "pose-physics/07_catch_constraint.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "catch_constraint_attached",
+        "payload": {
+          "toolId": "shared-tool",
+          "handId": "catcher-hand",
+          "constraint": "hand-tool-fixed",
+          "ownerId": "catcher"
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "08_ownership_transfer",
+    "title": "Ownership Transfer",
+    "index": 8,
+    "atMs": 2000,
+    "still": "stills/08_ownership_transfer.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/08_ownership_transfer.json",
+    "posePhysicsJson": "pose-physics/08_ownership_transfer.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 8,
+        "timestampMs": 800,
+        "type": "ownership_transferred",
+        "payload": {
+          "objectId": "shared-tool",
+          "from": "thrower",
+          "to": "catcher",
+          "transferMode": "release-flight-catch"
+        }
+      }
+    ]
+  },
+  {
+    "schema": "format-stress-segment-replay-input-v1",
+    "segmentId": "09_receipt_panel",
+    "title": "Receipt Panel",
+    "index": 9,
+    "atMs": 2250,
+    "still": "stills/09_receipt_panel.png",
+    "stillMode": "live-segment-screenshot",
+    "eventLog": "events/09_receipt_panel.json",
+    "posePhysicsJson": "pose-physics/09_receipt_panel.json",
+    "runtimeScene": {
+      "schema": "format-stress-headless-scene-snapshot-v1",
+      "source": "hs-headless-json",
+      "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+      "objectCount": 63,
+      "templateCount": 15,
+      "status": "instantiated"
+    },
+    "worldModelEvents": [
+      {
+        "stepIndex": 9,
+        "timestampMs": 900,
+        "type": "receipt_emitted",
+        "payload": {
+          "objectId": "shared-tool",
+          "ownerId": "catcher",
+          "releaseConfirmed": true,
+          "catchConfirmed": true,
+          "provenancePanel": true
+        }
+      }
+    ]
+  }
+]

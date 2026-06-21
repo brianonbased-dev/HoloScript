@@ -1,0 +1,8 @@
+{
+  "schema": "holomesh-board-task-seed-v1",
+  "source": "format-realism-gauntlet",
+  "title": "[format-stress] Implement dynamic evidence for 00_scene_loaded",
+  "priority": 2,
+  "owningSurface": "CLI screenshot and HoloLand visual debugger",
+  "description": "Segment: Scene Loaded (00_scene_loaded)\nObserved: Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.\nReceipt: 00_scene_loaded\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+}

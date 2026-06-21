@@ -1,0 +1,193 @@
+{
+  "schema": "format-stress-segment-event-log-v1",
+  "segmentId": "07_catch_constraint",
+  "source": "format-stress-segmented-capture",
+  "runtimeScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "status": "instantiated"
+  },
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "two-agent-handoff-catch-v1",
+    "sceneHash": "fnv1a-3975b949",
+    "eventLogHash": "fnv1a-671a7579",
+    "trajectoryId": "fnv1a-c0550c85",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "events": [
+    {
+      "type": "segment_requested",
+      "segment": "07_catch_constraint",
+      "atMs": 1750
+    },
+    {
+      "type": "runtime_scene_snapshot_loaded",
+      "segment": "07_catch_constraint",
+      "atMs": 1750,
+      "objectCount": 63,
+      "source": "hs-headless-json"
+    },
+    {
+      "type": "live_segment_screenshot_emitted",
+      "segment": "07_catch_constraint",
+      "atMs": 1751,
+      "still": "stills/07_catch_constraint.png",
+      "stillMode": "live-segment-screenshot"
+    },
+    {
+      "type": "evidence_receipt_emitted",
+      "segment": "07_catch_constraint",
+      "atMs": 1752
+    },
+    {
+      "type": "world_model_event_replayed",
+      "segment": "07_catch_constraint",
+      "atMs": 1753,
+      "worldModelEvent": {
+        "stepIndex": 7,
+        "timestampMs": 700,
+        "type": "catch_constraint_attached",
+        "payload": {
+          "toolId": "shared-tool",
+          "handId": "catcher-hand",
+          "constraint": "hand-tool-fixed",
+          "ownerId": "catcher"
+        }
+      }
+    }
+  ],
+  "commandEvidence": [
+    {
+      "id": "parse-holo",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/parse-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/parse-holo.stderr.txt"
+    },
+    {
+      "id": "parse-hsplus",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/parse-hsplus.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/parse-hsplus.stderr.txt"
+    },
+    {
+      "id": "parse-hs",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/parse-hs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/parse-hs.stderr.txt"
+    },
+    {
+      "id": "compile-holo-threejs",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/compile-holo-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/compile-holo-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hsplus-threejs",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/compile-hsplus-threejs.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/compile-hsplus-threejs.stderr.txt"
+    },
+    {
+      "id": "compile-hs-node",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/compile-hs-node.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/compile-hs-node.stderr.txt"
+    },
+    {
+      "id": "headless-holo",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/headless-holo.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/headless-holo.stderr.txt"
+    },
+    {
+      "id": "screenshot-base",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-base.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-base.stderr.txt"
+    },
+    {
+      "id": "world-model-two-agent-handoff-catch",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/world-model-two-agent-handoff-catch.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/world-model-two-agent-handoff-catch.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-01_agents_aligned",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-01_agents_aligned.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-01_agents_aligned.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-02_release_detach",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-02_release_detach.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-02_release_detach.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-03_ballistic_arc_early",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-03_ballistic_arc_early.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-03_ballistic_arc_early.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-04_ballistic_arc_mid",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-04_ballistic_arc_mid.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-04_ballistic_arc_mid.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-05_ballistic_arc_late",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-05_ballistic_arc_late.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-05_ballistic_arc_late.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-06_catch_volume",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-06_catch_volume.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-06_catch_volume.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-07_catch_constraint",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-07_catch_constraint.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-07_catch_constraint.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-08_ownership_transfer",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-08_ownership_transfer.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-08_ownership_transfer.stderr.txt"
+    },
+    {
+      "id": "screenshot-segment-09_receipt_panel",
+      "success": true,
+      "skipped": false,
+      "stdout": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-09_receipt_panel.stdout.txt",
+      "stderr": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch/commands/screenshot-segment-09_receipt_panel.stderr.txt"
+    }
+  ]
+}

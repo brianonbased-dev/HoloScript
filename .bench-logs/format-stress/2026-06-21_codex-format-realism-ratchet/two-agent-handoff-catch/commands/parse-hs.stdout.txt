@@ -1,0 +1,4 @@
+
+[36mValidating C:\Users\josep\Documents\GitHub\HoloScript\experiments\format-realism-gauntlet\two-agent-handoff-catch.hs...[0m
+
+[32m✓ Validation successful![0m

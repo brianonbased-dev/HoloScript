@@ -1,0 +1,2 @@
+
+[32m✓ Pipeline compiled to Node.js module: C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-06-21_codex-format-realism-ratchet\two-agent-handoff-catch\compiled\hs-node.mjs[0m

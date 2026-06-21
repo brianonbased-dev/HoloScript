@@ -1,0 +1,8 @@
+
+[36mCapturing screenshot of C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-06-21_codex-format-realism-ratchet\two-agent-handoff-catch\segment-scenes\09_receipt_panel.holo...[0m
+
+[32m✓ Screenshot saved to C:\Users\josep\Documents\GitHub\HoloScript\.bench-logs\format-stress\2026-06-21_codex-format-realism-ratchet\two-agent-handoff-catch\stills\09_receipt_panel.png[0m
+  Size: 1280x720
+  Format: png
+  File size: 21.0 KB
+  Total time: 1793ms

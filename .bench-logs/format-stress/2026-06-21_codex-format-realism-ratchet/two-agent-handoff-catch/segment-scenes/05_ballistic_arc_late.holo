@@ -1,0 +1,124 @@
+composition "Live Segment 05_ballistic_arc_late Ballistic Arc Late" {
+  environment {
+    backgroundColor: "#0b0f14"
+    ambient_light: 0.45
+    shadows: true
+  }
+
+  object "LiveSegmentFloor" {
+    geometry: "cube"
+    color: "#202733"
+    position: [0, -0.08, -2]
+    scale: [8.5, 0.06, 4.2]
+    label: "live segment 6 of 10"
+  }
+
+  object "AvatarTorso" {
+    geometry: "capsule"
+    color: "#7aa2f7"
+    position: [-2.2, 1.1, -2]
+    scale: [0.72, 1.25, 0.72]
+    rotation: [0, 0, -10]
+    label: "animated avatar pose"
+  }
+
+  object "AvatarHead" {
+    geometry: "sphere"
+    color: "#d8e2ff"
+    position: [-2.2, 1.88, -2]
+    scale: [0.42, 0.42, 0.42]
+  }
+
+  object "LeftLeg" {
+    geometry: "capsule"
+    color: "#5c7aea"
+    position: [-2.42, 0.48, -2]
+    scale: [0.36, 0.88, 0.36]
+    rotation: [0, 0, 0]
+  }
+
+  object "RightLeg" {
+    geometry: "capsule"
+    color: "#5c7aea"
+    position: [-1.98, 0.48, -2]
+    scale: [0.36, 0.88, 0.36]
+    rotation: [0, 0, 0]
+  }
+
+  object "RightHand" {
+    geometry: "sphere"
+    color: "#9ece6a"
+    position: [-1.72, 1.32, -2]
+    scale: [0.26, 0.26, 0.26]
+    label: "right hand"
+  }
+
+  object "ThrowRock" {
+    geometry: "sphere"
+    color: "#9a8775"
+    position: [-0.688, 1.431, -2]
+    scale: [0.34, 0.34, 0.34]
+    rotation: [0, 90, 55]
+    label: "released rock transform"
+  }
+
+  object "ImpactTarget" {
+    geometry: "cylinder"
+    color: "#7dcfff"
+    position: [2.2, 1.1, -2]
+    scale: [0.42, 1.85, 0.42]
+    label: "target"
+  }
+
+  object "ProvenancePanel" {
+    geometry: "plane"
+    color: "#d5f5e3"
+    position: [0.4, 2.85, -2.42]
+    scale: [4.8, 0.64, 1]
+    label: "receipt 05_ballistic_arc_late Ballistic Arc Late"
+  }
+
+  object "ArcSample0" {
+    geometry: "sphere"
+    color: "#ffd76a"
+    position: [-1.48, 1.32, -2]
+    scale: [0.16, 0.16, 0.16]
+  }
+
+  object "ArcSample1" {
+    geometry: "sphere"
+    color: "#ffd76a"
+    position: [-0.688, 1.431, -2]
+    scale: [0.16, 0.16, 0.16]
+  }
+
+  object "ArcSample2" {
+    geometry: "sphere"
+    color: "#ffd76a"
+    position: [0.104, 1.224, -2]
+    scale: [0.16, 0.16, 0.16]
+  }
+
+  object "ArcSample3" {
+    geometry: "sphere"
+    color: "#ffd76a"
+    position: [0.896, 0.7, -2]
+    scale: [0.16, 0.16, 0.16]
+  }
+
+  object "ArcSample4" {
+    geometry: "sphere"
+    color: "#ffd76a"
+    position: [1.74, 1.28, -2]
+    scale: [0.16, 0.16, 0.16]
+  }
+
+  camera perspective {
+    position: [-3.278, 2.4, 5.5]
+    look_at: [0.8, 1, -2]
+    fov: 42
+    near: 0.1
+    far: 50
+    label: "live segment capture camera"
+  }
+}

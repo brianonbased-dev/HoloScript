@@ -1,0 +1,143 @@
+{
+  "schema": "holoshell-format-gauntlet-board-tasks-v1",
+  "generatedAt": "2026-06-21T02:04:41.414Z",
+  "sourceRun": ".bench-logs/format-stress/2026-06-21_codex-format-realism-ratchet/two-agent-handoff-catch",
+  "tasks": [
+    {
+      "title": "[format-stress] Implement dynamic evidence for 00_scene_loaded",
+      "description": "Segment: Scene Loaded (00_scene_loaded)\nObserved: Scene-loaded still and command evidence exist; visual realism remains a separate quality ratchet.\nReceipt: 00_scene_loaded\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "cli-screenshot-and-hololand-visual-debugger"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 01_agents_aligned",
+      "description": "Segment: Agents Aligned (01_agents_aligned)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 01_agents_aligned\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "hololand-segmented-camera-choreography"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 02_release_detach",
+      "description": "Segment: Release Detach (02_release_detach)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: engine headless event playback and physics runtime.\nReceipt: 02_release_detach\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "engine-headless-event-playback-and-physics-runti"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 03_ballistic_arc_early",
+      "description": "Segment: Ballistic Arc Early (03_ballistic_arc_early)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: physics trajectory solver and deterministic replay.\nReceipt: 03_ballistic_arc_early\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "physics-trajectory-solver-and-deterministic-repl"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 04_ballistic_arc_mid",
+      "description": "Segment: Ballistic Arc Mid (04_ballistic_arc_mid)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: physics trajectory solver and deterministic replay.\nReceipt: 04_ballistic_arc_mid\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "physics-trajectory-solver-and-deterministic-repl"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 05_ballistic_arc_late",
+      "description": "Segment: Ballistic Arc Late (05_ballistic_arc_late)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: physics trajectory solver and deterministic replay.\nReceipt: 05_ballistic_arc_late\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "physics-trajectory-solver-and-deterministic-repl"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 06_catch_volume",
+      "description": "Segment: Catch Volume Entered (06_catch_volume)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 06_catch_volume\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "hololand-segmented-camera-choreography"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 07_catch_constraint",
+      "description": "Segment: Catch Constraint Attached (07_catch_constraint)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 07_catch_constraint\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "hololand-segmented-camera-choreography"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 08_ownership_transfer",
+      "description": "Segment: Ownership Transfer (08_ownership_transfer)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 08_ownership_transfer\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "hololand-segmented-camera-choreography"
+      ],
+      "source": "format-realism-gauntlet"
+    },
+    {
+      "title": "[format-stress] Implement dynamic evidence for 09_receipt_panel",
+      "description": "Segment: Receipt Panel (09_receipt_panel)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 09_receipt_panel\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence.",
+      "priority": 2,
+      "role": "build",
+      "tags": [
+        "format-stress",
+        "holoshell",
+        "gauntlet",
+        "hololand-segmented-camera-choreography"
+      ],
+      "source": "format-realism-gauntlet"
+    }
+  ],
+  "duplicateSearch": {
+    "status": "skipped",
+    "localDuplicates": [],
+    "liveDuplicates": [],
+    "removed": 0
+  }
+}

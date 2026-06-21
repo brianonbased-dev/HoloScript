@@ -1,0 +1,92 @@
+[
+  {
+    "segment": "00_scene_loaded",
+    "still": "stills/00_scene_loaded.png",
+    "exists": true,
+    "bytes": 122188,
+    "sha256": "0cab0f68010fb0507016517c64b80ab04b5c0e034a74cb09189a24111fbd7f5c",
+    "mode": "captured-scene-loaded",
+    "oracleStatus": "world-model-event-replay"
+  },
+  {
+    "segment": "01_agents_aligned",
+    "still": "stills/01_agents_aligned.png",
+    "exists": true,
+    "bytes": 21577,
+    "sha256": "725cc1f324e99b5bf079f81cba79858514f732420f16275b6c9a6ef936d788e7",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "02_release_detach",
+    "still": "stills/02_release_detach.png",
+    "exists": true,
+    "bytes": 20968,
+    "sha256": "dcbd6990044d149ed60c91a128287ac82dbb8399a62320465dc83d141512a402",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "03_ballistic_arc_early",
+    "still": "stills/03_ballistic_arc_early.png",
+    "exists": true,
+    "bytes": 23686,
+    "sha256": "cd23121f66387927d403c5cfa3e9c6ba02ff3d2bf8e5bd3a983b6e349f16e04f",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "04_ballistic_arc_mid",
+    "still": "stills/04_ballistic_arc_mid.png",
+    "exists": true,
+    "bytes": 22612,
+    "sha256": "024325238e4691246d01049b901875f6d1e9b2d349fefe7794d2d01b2b2c6e26",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "05_ballistic_arc_late",
+    "still": "stills/05_ballistic_arc_late.png",
+    "exists": true,
+    "bytes": 23515,
+    "sha256": "929e239e9c0974025616b131fe0480b21bc10b71c03f06eca38f9e77f0666e64",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "06_catch_volume",
+    "still": "stills/06_catch_volume.png",
+    "exists": true,
+    "bytes": 20735,
+    "sha256": "0435dba033b97161c60bb0e25f6b54db3e8cf631fb1d979e080292b69dc23dbc",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "07_catch_constraint",
+    "still": "stills/07_catch_constraint.png",
+    "exists": true,
+    "bytes": 22358,
+    "sha256": "571f45645aed7fe068835af55480bc14dace92404a42b42c639a49e3e5fdc21d",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "08_ownership_transfer",
+    "still": "stills/08_ownership_transfer.png",
+    "exists": true,
+    "bytes": 23384,
+    "sha256": "6c0e25b5a87ce6b604fe850f0815f8ef9848c67714a38e743f8ea3c6149a3fd6",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  },
+  {
+    "segment": "09_receipt_panel",
+    "still": "stills/09_receipt_panel.png",
+    "exists": true,
+    "bytes": 21453,
+    "sha256": "8e84796a081f82d9d80e7a038cf8fb0130c1f1ab34b043d7650a2c99743f4786",
+    "mode": "live-segment-screenshot",
+    "oracleStatus": "live-segment-screenshot"
+  }
+]

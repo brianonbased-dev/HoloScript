@@ -1,0 +1,27 @@
+{
+  "stillFilesPresent": 10,
+  "uniqueStillHashes": 10,
+  "replayCandidateSegments": 10,
+  "replayDistinctSegments": 10,
+  "capturedReplaySegments": 10,
+  "replayDistinctSegmentIds": [
+    "00_scene_loaded",
+    "01_agents_aligned",
+    "02_release_detach",
+    "03_ballistic_arc_early",
+    "04_ballistic_arc_mid",
+    "05_ballistic_arc_late",
+    "06_catch_volume",
+    "07_catch_constraint",
+    "08_ownership_transfer",
+    "09_receipt_panel"
+  ],
+  "liveSegmentScreenshotSegments": 9,
+  "worldModelPixelReplaySegments": 0,
+  "staticCopySegments": 0,
+  "placeholderSegments": 0,
+  "staticCopyCoverageBlocked": false,
+  "dynamicReplayBlockedSegments": 0,
+  "falseGreenRisk": "none-detected",
+  "visualCoverageStatus": "replay-distinct"
+}

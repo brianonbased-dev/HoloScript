@@ -1,0 +1,8 @@
+{
+  "schema": "holomesh-board-task-seed-v1",
+  "source": "format-realism-gauntlet",
+  "title": "[format-stress] Implement dynamic evidence for 09_receipt_panel",
+  "priority": 2,
+  "owningSurface": "HoloLand segmented camera choreography",
+  "description": "Segment: Receipt Panel (09_receipt_panel)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: HoloLand segmented camera choreography.\nReceipt: 09_receipt_panel\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+}

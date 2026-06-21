@@ -1,0 +1,322 @@
+{
+  "schema": "format-stress-pose-physics-v1",
+  "segmentId": "06_catch_volume",
+  "mode": "world-model-pixel-replay",
+  "complete": true,
+  "owningSurface": "HoloLand segmented camera choreography",
+  "sceneObjectCount": 63,
+  "sceneSnapshotSource": "hs-headless-json",
+  "runtimeScene": {
+    "schema": "format-stress-headless-scene-snapshot-v1",
+    "source": "hs-headless-json",
+    "stage": "experiments/format-realism-gauntlet/two-agent-handoff-catch.holo",
+    "objectCount": 63,
+    "templateCount": 15,
+    "status": "instantiated"
+  },
+  "sceneObjectAnchors": [
+    {
+      "id": "Floor",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          -90,
+          0,
+          0
+        ],
+        "scale": [
+          9,
+          5,
+          1
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": true,
+        "massKg": null
+      }
+    },
+    {
+      "id": "ThrowerTorso",
+      "type": "object",
+      "template": "AgentBody",
+      "transform": {
+        "position": [
+          -2.2,
+          1.1,
+          0
+        ],
+        "rotation": null,
+        "scale": [
+          0.32,
+          0.82,
+          0.28
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "CatcherTorso",
+      "type": "object",
+      "template": "AgentBody",
+      "transform": {
+        "position": [
+          2.2,
+          1.1,
+          0
+        ],
+        "rotation": null,
+        "scale": [
+          0.32,
+          0.82,
+          0.28
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "ThrowerHand",
+      "type": "object",
+      "template": "Hand",
+      "transform": {
+        "position": [
+          -1.72,
+          1.32,
+          0.08
+        ],
+        "rotation": null,
+        "scale": [
+          0.11,
+          0.11,
+          0.11
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "CatcherHand",
+      "type": "object",
+      "template": "Hand",
+      "transform": {
+        "position": [
+          1.74,
+          1.28,
+          0.08
+        ],
+        "rotation": null,
+        "scale": [
+          0.11,
+          0.11,
+          0.11
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "SharedTool",
+      "type": "object",
+      "template": "ToolProp",
+      "transform": {
+        "position": [
+          -1.48,
+          1.32,
+          0.08
+        ],
+        "rotation": [
+          0,
+          0,
+          88
+        ],
+        "scale": [
+          0.14,
+          0.44,
+          0.14
+        ]
+      },
+      "physics": {
+        "collidable": true,
+        "kinematic": false,
+        "massKg": 0.65
+      }
+    },
+    {
+      "id": "HandoffArc",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          0,
+          1.72,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          84
+        ],
+        "scale": [
+          0.018,
+          3.35,
+          0.018
+        ]
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    },
+    {
+      "id": "ReceiptPanel",
+      "type": "object",
+      "template": null,
+      "transform": {
+        "position": [
+          0,
+          2.55,
+          -1.4
+        ],
+        "rotation": null,
+        "scale": [
+          3.6,
+          0.52,
+          0.05
+        ]
+      },
+      "physics": {
+        "collidable": false,
+        "kinematic": false,
+        "massKg": null
+      }
+    }
+  ],
+  "worldModelReplay": {
+    "schema": "world-model-replay-v1",
+    "sceneId": "two-agent-handoff-catch-v1",
+    "sceneHash": "fnv1a-3975b949",
+    "eventLogHash": "fnv1a-671a7579",
+    "trajectoryId": "fnv1a-c0550c85",
+    "trajectoryStatus": "open",
+    "contactCount": 1,
+    "predicateViolationCount": 0
+  },
+  "worldModelEvents": [
+    {
+      "stepIndex": 6,
+      "timestampMs": 600,
+      "type": "catch_volume_entered",
+      "payload": {
+        "toolId": "shared-tool",
+        "catchVolumeId": "catch-volume",
+        "toolPosition": {
+          "x": 1.74,
+          "y": 1.28,
+          "z": 0.08
+        },
+        "clearanceM": 0.04
+      }
+    }
+  ],
+  "bodies": {
+    "avatar": {
+      "position": [
+        2.2,
+        1.1,
+        0
+      ],
+      "facing": "rock-target-line"
+    },
+    "rightHand": {
+      "position": [
+        1.74,
+        1.28,
+        0.08
+      ],
+      "contact": "catch-volume"
+    },
+    "rock": {
+      "position": [
+        1.74,
+        1.28,
+        0.08
+      ],
+      "attachedToHand": false,
+      "released": true
+    },
+    "target": {
+      "position": [
+        2.2,
+        1.1,
+        0
+      ],
+      "impacted": true
+    }
+  },
+  "physics": {
+    "massKg": 1.8,
+    "releaseVelocityMps": [
+      4.4,
+      1.5,
+      0
+    ],
+    "arcSamples": [
+      [
+        -1.48,
+        1.32,
+        0.08
+      ],
+      [
+        -0.688,
+        1.431,
+        0.08
+      ],
+      [
+        0.104,
+        1.224,
+        0.08
+      ],
+      [
+        0.896,
+        0.7,
+        0.08
+      ],
+      [
+        1.74,
+        1.28,
+        0.08
+      ]
+    ],
+    "solver": "world-model-two-agent-handoff-catch-v1",
+    "clearanceM": 0.04,
+    "semanticOwner": null,
+    "transferMode": null,
+    "provenancePanel": false
+  },
+  "notes": [
+    "Rendered still positions are driven by the two-agent world-model replay event payloads.",
+    "The shared tool is mapped onto the generic rock body slot until the receipt schema grows tool-specific fields.",
+    "This proves deterministic handoff semantics, not headset-grade interaction timing."
+  ]
+}

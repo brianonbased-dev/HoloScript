@@ -1,0 +1,8 @@
+{
+  "schema": "holomesh-board-task-seed-v1",
+  "source": "format-realism-gauntlet",
+  "title": "[format-stress] Implement dynamic evidence for 03_ballistic_arc_early",
+  "priority": 2,
+  "owningSurface": "physics trajectory solver and deterministic replay",
+  "description": "Segment: Ballistic Arc Early (03_ballistic_arc_early)\nObserved: Segment-specific HoloScript scene rendered through the live screenshot pipeline. Avatar pose, rock transform, camera pose, and provenance panel are encoded in the generated segment scene. Next owner: physics trajectory solver and deterministic replay.\nReceipt: 03_ballistic_arc_early\nAcceptance: still, event log, pose/physics JSON, oracle, and timing come from real segment playback rather than static-copy evidence."
+}
