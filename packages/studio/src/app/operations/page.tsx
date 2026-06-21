@@ -242,6 +242,41 @@ interface HoloShellExecution {
   summary: { killed: number; errors: number };
 }
 
+interface HoloShellAutomationStaleness {
+  state: 'ok' | 'due' | 'stale' | 'unknown';
+  ageMs: number | null;
+  thresholdMs: number | null;
+  label: string;
+}
+
+interface HoloShellAutomation {
+  id: string;
+  name?: string;
+  rrule?: string;
+  priority?: number;
+  role?: string;
+  model?: string;
+  due?: boolean;
+  dueStatus?: string | null;
+  nextFire?: string | null;
+  lastFiredAt?: string | null;
+  lastSuccessAt?: string | null;
+  lastFailureAt?: string | null;
+  lastFailureReason?: string | null;
+  lastDuplicateSeenAt?: string | null;
+  lastServerDuplicateAt?: string | null;
+  lastTaskIds?: string[];
+  staleness?: HoloShellAutomationStaleness;
+}
+
+interface HoloShellAutomationSummary {
+  total?: number;
+  ok?: number;
+  due?: number;
+  stale?: number;
+  unknown?: number;
+}
+
 interface MachineStateSnapshot {
   schema: string;
   collectedAt: string;
@@ -279,6 +314,26 @@ function timeAgo(iso?: string): string {
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.round(s / 60)}m ago`;
   return `${Math.round(s / 3600)}h ago`;
+}
+
+function formatDurationMs(ms?: number | null): string {
+  if (ms == null || !Number.isFinite(ms)) return 'n/a';
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
+}
+
+function timeUntil(iso?: string): string {
+  if (!iso) return 'n/a';
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return 'n/a';
+  const s = Math.round((t - Date.now()) / 1000);
+  if (s < 0) return timeAgo(iso);
+  if (s < 60) return `in ${s}s`;
+  if (s < 3600) return `in ${Math.round(s / 60)}m`;
+  return `in ${Math.round(s / 3600)}h`;
 }
 
 function Card({
@@ -348,6 +403,9 @@ export default function OperationsPage() {
   const [holoshellProcs, setHoloshellProcs] = useState<HoloShellProcess[] | null>(null);
   const [holoshellPending, setHoloshellPending] = useState<HoloShellPending[] | null>(null);
   const [holoshellHistory, setHoloshellHistory] = useState<HoloShellExecution[] | null>(null);
+  const [holoshellAutomations, setHoloshellAutomations] = useState<HoloShellAutomation[] | null>(null);
+  const [holoshellAutomationSummary, setHoloshellAutomationSummary] =
+    useState<HoloShellAutomationSummary | null>(null);
   const [machineState, setMachineState] = useState<MachineStateData | null>(null);
   const [approving, setApproving] = useState<string | null>(null);
 
@@ -457,6 +515,17 @@ export default function OperationsPage() {
       setHoloshellHistory(Array.isArray(j.items) ? j.items : []);
     } catch (e: unknown) {
       errs.holoshellHistory = e instanceof Error ? e.message : 'failed';
+    }
+
+    // HoloShell local automations
+    try {
+      const r = await fetch('/api/holoshell/automations', { cache: 'no-store' });
+      if (!r.ok) throw new Error(`holoshell-automations ${r.status}`);
+      const j = await r.json();
+      setHoloshellAutomations(Array.isArray(j.items) ? j.items : []);
+      setHoloshellAutomationSummary(j.summary ?? null);
+    } catch (e: unknown) {
+      errs.holoshellAutomations = e instanceof Error ? e.message : 'failed';
     }
 
     // Machine state (pub/sub via prod MCP cache or local fallback)
@@ -1104,6 +1173,113 @@ export default function OperationsPage() {
                 </div>
               ))}
             </div>
+          )}
+        </Card>
+
+        {/* HOLOSHELL AUTOMATIONS */}
+        <Card
+          title="HoloShell - Local Automations"
+          accent={
+            errors.holoshellAutomations
+              ? 'text-red-400'
+              : (holoshellAutomationSummary?.stale ?? 0) > 0
+                ? 'text-amber-300'
+                : 'text-studio-text'
+          }
+        >
+          {errors.holoshellAutomations ? (
+            <div className="text-xs text-red-400">Error: {errors.holoshellAutomations}</div>
+          ) : holoshellAutomations === null ? (
+            <div className="text-xs text-studio-muted">Loading...</div>
+          ) : holoshellAutomations.length === 0 ? (
+            <div className="text-xs text-studio-muted">No active local automations.</div>
+          ) : (
+            (() => {
+              const summary =
+                holoshellAutomationSummary ?? {
+                  total: holoshellAutomations.length,
+                  stale: holoshellAutomations.filter((a) => a.staleness?.state === 'stale').length,
+                  due: holoshellAutomations.filter((a) => a.staleness?.state === 'due').length,
+                  ok: holoshellAutomations.filter((a) => a.staleness?.state === 'ok').length,
+                  unknown: holoshellAutomations.filter((a) => a.staleness?.state === 'unknown').length,
+                };
+              const toneFor: Record<HoloShellAutomationStaleness['state'], string> = {
+                stale: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                due: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+                ok: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                unknown: 'bg-studio-border text-studio-muted border-studio-border',
+              };
+              const order: Record<HoloShellAutomationStaleness['state'], number> = {
+                stale: 0,
+                due: 1,
+                unknown: 2,
+                ok: 3,
+              };
+              const ranked = [...holoshellAutomations]
+                .sort((a, b) => {
+                  const aState = a.staleness?.state ?? 'unknown';
+                  const bState = b.staleness?.state ?? 'unknown';
+                  if (order[aState] !== order[bState]) return order[aState] - order[bState];
+                  return (b.staleness?.ageMs ?? 0) - (a.staleness?.ageMs ?? 0);
+                })
+                .slice(0, 8);
+
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-end gap-5">
+                    <Stat label="active" value={summary.total ?? holoshellAutomations.length} />
+                    <Stat
+                      label="stale"
+                      value={summary.stale ?? 0}
+                      tone={(summary.stale ?? 0) > 0 ? 'text-amber-300' : 'text-emerald-400'}
+                    />
+                    <Stat label="due" value={summary.due ?? 0} tone="text-blue-300" />
+                    <Stat label="ok" value={summary.ok ?? 0} tone="text-emerald-400" />
+                  </div>
+
+                  <div className="space-y-1">
+                    {ranked.map((a) => {
+                      const state = a.staleness?.state ?? 'unknown';
+                      return (
+                        <div
+                          key={a.id}
+                          className="rounded border border-studio-border/40 bg-studio-panel/20 px-2 py-1.5"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-[10px] text-studio-text truncate">
+                                {a.id} - {a.name || a.id}
+                              </div>
+                              <div className="text-[9px] text-studio-muted truncate">
+                                last fired {timeAgo(a.lastFiredAt ?? undefined)}; success{' '}
+                                {timeAgo(a.lastSuccessAt ?? undefined)}; next {timeUntil(a.nextFire ?? undefined)}
+                              </div>
+                            </div>
+                            <span
+                              className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-mono ${toneFor[state]}`}
+                            >
+                              {state}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-studio-muted">
+                            <span>{a.staleness?.label ?? 'unknown cadence'}</span>
+                            <span>
+                              age {formatDurationMs(a.staleness?.ageMs)} / window{' '}
+                              {formatDurationMs(a.staleness?.thresholdMs)}
+                            </span>
+                            {a.lastFailureReason && <span className="text-red-300">{a.lastFailureReason}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="text-[9px] text-studio-muted border-t border-studio-border/40 pt-1">
+                    Source: <code>scripts/holoshell-team-automations.mjs</code> state and registry.
+                  </div>
+                </div>
+              );
+            })()
           )}
         </Card>
 

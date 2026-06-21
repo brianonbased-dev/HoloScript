@@ -24,6 +24,8 @@ export interface HoloShellProdBundle {
   staleProcesses?: unknown[];
   pendingConsents?: unknown[];
   executionHistory?: unknown[];
+  automations?: unknown[];
+  automationSummary?: unknown;
 }
 
 export interface HoloShellProdCacheResult {
