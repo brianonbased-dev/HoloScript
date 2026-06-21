@@ -543,7 +543,7 @@ export class HoloCompositionParser {
       this.skipNewlines();
 
       while (!this.check('RBRACE') && !this.isAtEnd()) {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
 
         const key = this.expectIdentifier();
@@ -588,7 +588,7 @@ export class HoloCompositionParser {
       this.skipNewlines();
 
       while (!this.check('RBRACE') && !this.isAtEnd()) {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
 
         if (this.check('AT')) {
@@ -715,10 +715,20 @@ export class HoloCompositionParser {
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
       try {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
 
-        if (this.check('IMPORT')) {
+        if (
+          this.peek(1).type === 'COLON' &&
+          (this.isPropertyName() || this.check('METADATA_BLOCK'))
+        ) {
+          const key = this.advance().value;
+          this.advance(); // consume ':'
+          const value = !this.check('RBRACE') && !this.isAtEnd() ? this.parseValue() : null;
+          if (key === 'metadata' && value && typeof value === 'object' && !Array.isArray(value)) {
+            composition.metadata = { ...(composition.metadata ?? {}), ...value };
+          }
+        } else if (this.check('IMPORT')) {
           composition.imports.push(this.parseImport());
         } else if (this.check('THEME')) {
           composition.theme = this.parseTheme();
@@ -1167,7 +1177,7 @@ export class HoloCompositionParser {
 
     const properties: HoloEnvironmentProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       if (this.check('PARTICLES') || this.check('PARTICLE_SYSTEM')) {
@@ -1222,7 +1232,7 @@ export class HoloCompositionParser {
     const objects: HoloObjectDecl[] = [];
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       if (this.check('ENVIRONMENT')) {
@@ -1264,7 +1274,7 @@ export class HoloCompositionParser {
 
     const properties: Record<string, HoloValue> = {};
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
@@ -1317,7 +1327,7 @@ export class HoloCompositionParser {
 
     const properties: HoloLightProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       // Tolerate @traits in a light body: generators emit `light { @position(...) @color(...) }`
@@ -1392,7 +1402,7 @@ export class HoloCompositionParser {
 
     const effects: HoloEffect[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const effectType = this.expectIdentifier();
@@ -1401,7 +1411,7 @@ export class HoloCompositionParser {
 
       const properties: Record<string, HoloValue> = {};
       while (!this.check('RBRACE') && !this.isAtEnd()) {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
         const key = this.expectIdentifier();
         this.expect('COLON');
@@ -1454,7 +1464,7 @@ export class HoloCompositionParser {
 
     const properties: HoloCameraProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       // Handle AT decorators in camera body: @camera_3d, @perspective etc.
@@ -1504,7 +1514,7 @@ export class HoloCompositionParser {
     let loop: boolean | undefined;
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       // Check for timeline properties (autoplay, loop) vs entries (number: ...)
@@ -1553,7 +1563,7 @@ export class HoloCompositionParser {
       this.skipNewlines();
       const properties: Record<string, HoloValue> = {};
       while (!this.check('RBRACE') && !this.isAtEnd()) {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
         const key = this.expectIdentifier();
         this.expect('COLON');
@@ -1604,7 +1614,7 @@ export class HoloCompositionParser {
 
     const properties: HoloAudioProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       if (this.check('AT')) {
@@ -1652,7 +1662,7 @@ export class HoloCompositionParser {
     const handlers: HoloEventHandler[] = [];
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       // Check for event handlers (on_enter, on_exit, on_stay)
@@ -1698,7 +1708,7 @@ export class HoloCompositionParser {
 
     const elements: HoloUIElement[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       if (this.check('ELEMENT')) {
@@ -1727,7 +1737,7 @@ export class HoloCompositionParser {
 
     const properties: HoloUIProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
@@ -1759,7 +1769,7 @@ export class HoloCompositionParser {
 
     const properties: HoloTransitionProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
@@ -1923,7 +1933,7 @@ export class HoloCompositionParser {
 
     const properties: HoloStateProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
@@ -2169,7 +2179,7 @@ export class HoloCompositionParser {
     let state: HoloState | undefined;
 
     while (!this.check('RBRACE') && !this.check('EOF')) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       if (
@@ -3103,7 +3113,6 @@ export class HoloCompositionParser {
       return this.parseObjectValue();
     }
 
-
     this.error(`Expected value, got ${this.current().type}`);
     this.advance(); // CRITICAL: Advance to prevent infinite loop
     return null;
@@ -3298,7 +3307,7 @@ export class HoloCompositionParser {
 
     const properties: HoloLightProperty[] = [];
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
@@ -3418,7 +3427,7 @@ export class HoloCompositionParser {
       this.skipNewlines();
 
       while (!this.check('RBRACE') && !this.isAtEnd()) {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
 
         // Parse object body members (similar to parseObject)
@@ -3602,6 +3611,13 @@ export class HoloCompositionParser {
   private skipNewlines(): void {
     while (this.match('NEWLINE')) {
       // Skip all newlines
+    }
+  }
+
+  private skipBlockMemberSeparators(): void {
+    this.skipNewlines();
+    while (this.match('COMMA')) {
+      this.skipNewlines();
     }
   }
 
@@ -3949,14 +3965,23 @@ export class HoloCompositionParser {
           };
         } else if (key === 'brain') {
           // brain: { type: "llm", autonomy: "autonomous", ref: "...", tools: [...] }
-          const cfg = (value && typeof value === 'object' ? value : {}) as Record<string, HoloValue>;
+          const cfg = (value && typeof value === 'object' ? value : {}) as Record<
+            string,
+            HoloValue
+          >;
           npc.brain = {
             type: 'AgentBrainAttachment',
             brainType: (cfg.type as AgentBrainAttachment['brainType']) ?? 'llm',
             autonomy: cfg.autonomy as AgentBrainAttachment['autonomy'] | undefined,
             brainRef:
-              typeof cfg.ref === 'string' ? cfg.ref : typeof cfg.brainRef === 'string' ? cfg.brainRef : undefined,
-            toolPermissions: Array.isArray(cfg.tools) ? (cfg.tools as HoloValue[]).map(String) : undefined,
+              typeof cfg.ref === 'string'
+                ? cfg.ref
+                : typeof cfg.brainRef === 'string'
+                  ? cfg.brainRef
+                  : undefined,
+            toolPermissions: Array.isArray(cfg.tools)
+              ? (cfg.tools as HoloValue[]).map(String)
+              : undefined,
             model:
               cfg.model && typeof cfg.model === 'object'
                 ? (cfg.model as AgentBrainAttachment['model'])
@@ -4417,7 +4442,7 @@ export class HoloCompositionParser {
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
@@ -4456,7 +4481,7 @@ export class HoloCompositionParser {
       };
 
       while (!this.check('RBRACE') && !this.isAtEnd()) {
-        this.skipNewlines();
+        this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
 
         const key = this.expectIdentifier();
@@ -5663,7 +5688,8 @@ export class HoloCompositionParser {
         const val = this.parseValue();
         if (key === 'priority') priority = val as string | number;
         else if (key === 'biome') biome = val as string;
-        else if (key === 'lod_distances') lodDistances = (Array.isArray(val) ? val : [val]) as number[];
+        else if (key === 'lod_distances')
+          lodDistances = (Array.isArray(val) ? val : [val]) as number[];
         else if (key === 'npc_roster') npcRoster = (Array.isArray(val) ? val : [val]) as string[];
         else if (key === 'spawn_points') spawnPoints = val as unknown as HoloPosition[];
         else properties[key] = val;
@@ -5790,7 +5816,8 @@ export class HoloCompositionParser {
       else if (key === 'reset_timer') resetTimer = Number(val) || 0;
       else if (key === 'completion_quest') completionQuest = String(val);
       else if (key === 'npcs') npcs = (Array.isArray(val) ? val : [val]).map((v) => String(v));
-      else if (key === 'objects') objects = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      else if (key === 'objects')
+        objects = (Array.isArray(val) ? val : [val]).map((v) => String(v));
       else properties[key] = val;
       if (this.check('COMMA')) this.advance();
       this.skipNewlines();
@@ -5853,7 +5880,8 @@ export class HoloCompositionParser {
       const val = this.parseValue();
       if (key === 'min') min = toVec3(val);
       else if (key === 'max') max = toVec3(val);
-      else if (key === 'neighbors') neighbors = (Array.isArray(val) ? val : [val]).map((v) => String(v));
+      else if (key === 'neighbors')
+        neighbors = (Array.isArray(val) ? val : [val]).map((v) => String(v));
       else if (key === 'max_players') maxPlayers = Number(val) || 100;
       else if (key === 'handoff') handoff = String(val);
       else properties[key] = val;
@@ -5972,31 +6000,36 @@ export class HoloCompositionParser {
       if (this.check('IDENTIFIER') && this.current().value === 'on_enter') {
         this.advance(); // consume 'on_enter'
         const params = this.check('LPAREN') ? this.parseParameterList() : [];
-        const body = this.check('LBRACE') ? (() => {
-          this.advance(); // consume {
-          this.skipNewlines();
-          const stmts = this.parseStatementBlock();
-          this.expect('RBRACE');
-          return stmts;
-        })() : [];
+        const body = this.check('LBRACE')
+          ? (() => {
+              this.advance(); // consume {
+              this.skipNewlines();
+              const stmts = this.parseStatementBlock();
+              this.expect('RBRACE');
+              return stmts;
+            })()
+          : [];
         onEnter.push({ type: 'EventHandler', event: 'on_enter', parameters: params, body });
       } else if (this.check('IDENTIFIER') && this.current().value === 'on_exit') {
         this.advance(); // consume 'on_exit'
         const params = this.check('LPAREN') ? this.parseParameterList() : [];
-        const body = this.check('LBRACE') ? (() => {
-          this.advance(); // consume {
-          this.skipNewlines();
-          const stmts = this.parseStatementBlock();
-          this.expect('RBRACE');
-          return stmts;
-        })() : [];
+        const body = this.check('LBRACE')
+          ? (() => {
+              this.advance(); // consume {
+              this.skipNewlines();
+              const stmts = this.parseStatementBlock();
+              this.expect('RBRACE');
+              return stmts;
+            })()
+          : [];
         onExit.push({ type: 'EventHandler', event: 'on_exit', parameters: params, body });
       } else {
         const key = this.expectIdentifier();
         this.expect('COLON');
         const val = this.parseValue();
         if (key === 'radius') radius = val as number;
-        else if (key === 'faction_filter') factionFilter = (Array.isArray(val) ? val : [val]) as string[];
+        else if (key === 'faction_filter')
+          factionFilter = (Array.isArray(val) ? val : [val]) as string[];
         else if (key === 'position') {
           if (Array.isArray(val) && val.length >= 3) {
             position = { x: val[0] as number, y: val[1] as number, z: val[2] as number };
@@ -6105,25 +6138,34 @@ export class HoloCompositionParser {
       if (this.check('IDENTIFIER') && this.current().value === 'on_activate') {
         this.advance();
         const params = this.check('LPAREN') ? this.parseParameterList() : [];
-        const body = this.check('LBRACE') ? (() => {
-          this.advance();
-          this.skipNewlines();
-          const stmts = this.parseStatementBlock();
-          this.expect('RBRACE');
-          return stmts;
-        })() : [];
+        const body = this.check('LBRACE')
+          ? (() => {
+              this.advance();
+              this.skipNewlines();
+              const stmts = this.parseStatementBlock();
+              this.expect('RBRACE');
+              return stmts;
+            })()
+          : [];
         onActivate.push({ type: 'EventHandler', event: 'on_activate', parameters: params, body });
       } else if (this.check('IDENTIFIER') && this.current().value === 'on_deactivate') {
         this.advance();
         const params = this.check('LPAREN') ? this.parseParameterList() : [];
-        const body = this.check('LBRACE') ? (() => {
-          this.advance();
-          this.skipNewlines();
-          const stmts = this.parseStatementBlock();
-          this.expect('RBRACE');
-          return stmts;
-        })() : [];
-        onDeactivate.push({ type: 'EventHandler', event: 'on_deactivate', parameters: params, body });
+        const body = this.check('LBRACE')
+          ? (() => {
+              this.advance();
+              this.skipNewlines();
+              const stmts = this.parseStatementBlock();
+              this.expect('RBRACE');
+              return stmts;
+            })()
+          : [];
+        onDeactivate.push({
+          type: 'EventHandler',
+          event: 'on_deactivate',
+          parameters: params,
+          body,
+        });
       } else {
         const key = this.expectIdentifier();
         this.expect('COLON');
@@ -6493,7 +6535,10 @@ export class HoloCompositionParser {
 
       const tokenLower = this.current().value.toLowerCase();
 
-      if ((tokenLower === 'precondition' || tokenLower === 'invariant') && this.check('IDENTIFIER')) {
+      if (
+        (tokenLower === 'precondition' || tokenLower === 'invariant') &&
+        this.check('IDENTIFIER')
+      ) {
         const clauseKind = tokenLower as 'precondition' | 'invariant';
         this.advance(); // consume keyword
 
@@ -6646,7 +6691,11 @@ export class HoloCompositionParser {
           );
         } else if (key === 'audit_retention' || key === 'auditRetention') {
           auditRetention = this.asRecord(value);
-        } else if (key === 'monitoring' || key === 'monitoring_cadence' || key === 'monitoringCadence') {
+        } else if (
+          key === 'monitoring' ||
+          key === 'monitoring_cadence' ||
+          key === 'monitoringCadence'
+        ) {
           monitoringCadence = this.asRecord(value);
         } else {
           properties[key] = value;
@@ -6696,19 +6745,30 @@ export class HoloCompositionParser {
       this.skipNewlines();
       while (!this.check('RBRACE') && !this.isAtEnd()) {
         this.skipNewlines();
-        if (this.check('RBRACE') || this.check('NEWLINE')) { if (!this.check('RBRACE')) this.advance(); continue; }
+        if (this.check('RBRACE') || this.check('NEWLINE')) {
+          if (!this.check('RBRACE')) this.advance();
+          continue;
+        }
         // Accept any token as a property key (keywords like 'type' may not be IDENTIFIER)
         const key = this.current().value;
         this.advance();
         if (this.check('COLON')) this.advance();
         if (key === 'type' || key === 'dataType') {
-          dataType = this.check('STRING') ? this.expectString()
-            : this.check('IDENTIFIER') ? this.expectIdentifier() : (this.advance(), undefined);
+          dataType = this.check('STRING')
+            ? this.expectString()
+            : this.check('IDENTIFIER')
+              ? this.expectIdentifier()
+              : (this.advance(), undefined);
         } else if (key === 'broadcast') {
           broadcast = this.current().value === 'true';
           this.advance();
-        } else if (this.check('LBRACE') || this.check('STRING') || this.check('NUMBER') ||
-                   this.check('IDENTIFIER') || this.check('LBRACKET')) {
+        } else if (
+          this.check('LBRACE') ||
+          this.check('STRING') ||
+          this.check('NUMBER') ||
+          this.check('IDENTIFIER') ||
+          this.check('LBRACKET')
+        ) {
           metadata[key] = this.parseValue();
         }
         if (this.check('COMMA')) this.advance();
@@ -6744,22 +6804,36 @@ export class HoloCompositionParser {
       this.skipNewlines();
       while (!this.check('RBRACE') && !this.isAtEnd()) {
         this.skipNewlines();
-        if (this.check('RBRACE') || this.check('NEWLINE')) { if (!this.check('RBRACE')) this.advance(); continue; }
+        if (this.check('RBRACE') || this.check('NEWLINE')) {
+          if (!this.check('RBRACE')) this.advance();
+          continue;
+        }
         // Accept any token as a property key (keywords like 'from'/'to' may not be IDENTIFIER)
         const key = this.current().value;
         this.advance();
         if (this.check('COLON')) this.advance();
         if (key === 'from') {
-          from = this.check('STRING') ? this.expectString()
-            : this.check('IDENTIFIER') ? this.expectIdentifier() : undefined;
+          from = this.check('STRING')
+            ? this.expectString()
+            : this.check('IDENTIFIER')
+              ? this.expectIdentifier()
+              : undefined;
         } else if (key === 'to') {
-          to = this.check('STRING') ? this.expectString()
-            : this.check('IDENTIFIER') ? this.expectIdentifier() : undefined;
+          to = this.check('STRING')
+            ? this.expectString()
+            : this.check('IDENTIFIER')
+              ? this.expectIdentifier()
+              : undefined;
         } else if (key === 'capacity') {
           capacity = this.check('NUMBER') ? Number(this.current().value) : undefined;
           if (capacity !== undefined) this.advance();
-        } else if (this.check('LBRACE') || this.check('STRING') || this.check('NUMBER') ||
-                   this.check('IDENTIFIER') || this.check('LBRACKET')) {
+        } else if (
+          this.check('LBRACE') ||
+          this.check('STRING') ||
+          this.check('NUMBER') ||
+          this.check('IDENTIFIER') ||
+          this.check('LBRACKET')
+        ) {
           metadata[key] = this.parseValue();
         }
         if (this.check('COMMA')) this.advance();
@@ -6882,7 +6956,7 @@ export class HoloCompositionParser {
     const eventHandlers: HoloEventHandler[] = [];
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       // Nested objects

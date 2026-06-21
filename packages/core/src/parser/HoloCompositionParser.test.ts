@@ -67,6 +67,89 @@ describe('HoloCompositionParser', () => {
     });
   });
 
+  describe('Comma-separated block members', () => {
+    it('parses JSON-style composition-level properties', () => {
+      const source = `
+        composition PhysicsIntegrationDemo {
+          version: "1.0",
+          metadata: { name: "Demo", tags: ["physics", "demo"] },
+          world_settings: {
+            physics: { gravity: { x: 0, y: -9.81, z: 0 }, max_substeps: 4 },
+            renderer: { shadows: true, antialias: true },
+          },
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.name).toBe('PhysicsIntegrationDemo');
+    });
+
+    it('parses inline comma-separated environment, light, and object properties', () => {
+      const source = `
+        composition "Comma Props" {
+          environment { skybox: "gradient", ambient_light: 0.35, shadows: true, }
+          light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true, }
+          object "Orb" { geometry: "sphere", position: [0, 1.5, -2], scale: 0.3, material: { baseColor: "#00ffff", roughness: 0.25, metallic: 0.4 }, state { role: "orb", active: true, }, }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.environment?.properties).toHaveLength(3);
+      expect(result.ast?.lights).toHaveLength(1);
+      expect(result.ast?.objects).toHaveLength(1);
+      expect(result.ast?.objects[0].state?.properties).toHaveLength(2);
+    });
+
+    it('parses comma-separated dialogue option fields', () => {
+      const source = `
+        composition "Dialogue Options" {
+          dialogue "greta_greeting" {
+            character: "Greta",
+            content: "Welcome back.",
+            options: [
+              { text: "Trade", next: "shop" },
+              { text: "Leave", next: "end" },
+            ],
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.dialogues).toHaveLength(1);
+      expect(result.ast?.dialogues[0].options.map((option) => option.next)).toEqual([
+        'shop',
+        'end',
+      ]);
+    });
+
+    it('parses comma-separated domain block properties', () => {
+      const source = `
+        composition "Shader Config" {
+          shader "PredictShader" {
+            language: "wgsl",
+            stage: "compute",
+            workgroup_size: 256,
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.domainBlocks?.[0].properties.language).toBe('wgsl');
+    });
+  });
+
   describe('State', () => {
     it('parses state block', () => {
       const source = `
@@ -697,7 +780,9 @@ describe('HoloCompositionParser', () => {
       expect(result.success).toBe(true);
       expect(result.errors).toEqual([]);
 
-      const block = result.ast?.domainBlocks?.find((candidate) => candidate.keyword === 'post_processing');
+      const block = result.ast?.domainBlocks?.find(
+        (candidate) => candidate.keyword === 'post_processing'
+      );
       expect(block?.properties.bloom).toEqual({ intensity: 0.3, threshold: 0.9 });
       expect(block?.properties.tone_mapping).toEqual({ mode: 'aces', exposure: 1.1 });
     });
