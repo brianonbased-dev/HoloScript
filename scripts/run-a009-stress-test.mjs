@@ -33,9 +33,30 @@ const ROOT = path.resolve(__dirname, '..');
 const TEST_SCENARIOS = [
   'benchmarks/scenarios/02-high-complexity/high-complexity.holo',
   'benchmarks/scenarios/04-multiplayer-vr/multiplayer-vr.holo',
-  'examples/physics-constraints-demo.hsplus',
-  'examples/networked-collaboration-demo.hsplus',
+  'examples/traits/physics-object-lifecycle.hsplus',
+  'examples/traits/networking-synced-persistent-owned.hsplus',
 ];
+
+const PACKAGE_RUNNER =
+  process.env.HOLOSCRIPT_PACKAGE_RUNNER || (process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm');
+
+function quoteCmdArg(value) {
+  const text = String(value);
+  if (/^[A-Za-z0-9_./:\\-]+$/.test(text)) return text;
+  return `"${text.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/g, '$1$1')}"`;
+}
+
+function spawnPackageRunner(args, options) {
+  if (process.platform !== 'win32') {
+    return spawn(PACKAGE_RUNNER, args, options);
+  }
+
+  const commandLine = [PACKAGE_RUNNER, ...args].map(quoteCmdArg).join(' ');
+  return spawn('cmd.exe', ['/d', '/s', '/c', commandLine], {
+    ...options,
+    windowsHide: true,
+  });
+}
 
 /**
  * Run the HoloScript compiler against a file and capture errors
@@ -51,14 +72,27 @@ function compileComposition(filePath) {
     let stdout = '';
     let stderr = '';
 
-    const proc = spawn(
-      'npx',
-      ['tsx', 'packages/core/src/compiler/main.ts', '--input', fullPath, '--target', 'webgpu'],
-      {
-        cwd: ROOT,
-        timeout: 30000,
-      }
-    );
+    let proc;
+    try {
+      proc = spawnPackageRunner(
+        [
+          'exec',
+          'tsx',
+          'packages/core/src/compiler/main.ts',
+          '--input',
+          fullPath,
+          '--target',
+          'webgpu',
+        ],
+        {
+          cwd: ROOT,
+          timeout: 30000,
+        }
+      );
+    } catch (err) {
+      resolve({ success: false, error: err.message, stderr: '', stdout });
+      return;
+    }
 
     proc.stdout?.on('data', (data) => {
       stdout += data.toString();
