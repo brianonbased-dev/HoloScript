@@ -96,6 +96,15 @@ class StarterSampleActivity : AppSystemActivity() {
     }
 
     sceneReady = true
+
+    // MMO-style mobility invariant (F.118): a player is NEVER seated-locked in a world. If the scene
+    // (re)initializes while the user is already immersed, full locomotion (left-stick glide + right-
+    // stick turn, via the Spatial SDK LocomotionSystem) must be ON. The scanner HUD — MR passthrough
+    // in your real room, not a world — is the only surface where locomotion is intentionally off.
+    if (ScannerState.screen == Screen.IN_WORLD) {
+      enableLocomotion(true)
+      scene.setViewOrigin(0f, 0f, 0f, 0f)
+    }
     // Camera starts when the user taps "Start scanning" on the welcome screen (ScannerState.onStart).
   }
 

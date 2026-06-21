@@ -78,7 +78,16 @@ export interface BuildVerifyResult {
 /** Write the emitted file map over a skeleton copy. Returns the temp build dir. */
 function materialize(skeletonDir: string, emitted: Record<string, string>): string {
   const workDir = mkdtempSync(join(tmpdir(), 'holo-build-verify-'));
-  cpSync(skeletonDir, workDir, { recursive: true });
+  // Copy the SOURCE skeleton only — exclude build outputs + caches (build/, .gradle/, .cxx/,
+  // node_modules/). A local working copy accumulates these; copying them poisons the fresh build
+  // (e.g. a stale merged-asset intermediate → AGP "Duplicate resources", or a reused stale config
+  // cache). CI's clean checkout never had them, so the gate must mirror that to stay trustworthy
+  // (W.810: a gate that flakes on local state is worse than no gate). The gradle WRAPPER (gradlew,
+  // gradle/wrapper/) is NOT under these dirs and is still copied.
+  cpSync(skeletonDir, workDir, {
+    recursive: true,
+    filter: (src) => !/[\\/](build|\.gradle|\.cxx|node_modules)([\\/]|$)/.test(src.slice(skeletonDir.length)),
+  });
   for (const [rel, content] of Object.entries(emitted)) {
     const out = join(workDir, rel);
     mkdirSync(dirname(out), { recursive: true });
