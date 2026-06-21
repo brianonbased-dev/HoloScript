@@ -175,3 +175,16 @@ export {
   HEARTBEAT_INTERVAL,
   TIMEOUT_INTERVAL,
 } from './StreamingProtocol';
+
+// VRR live data sync over StreamingProtocol
+export {
+  VRRLiveDataSync,
+  type SensorData,
+  type VRRLiveDataKind,
+  type VRRLiveDataSnapshot,
+  type VRRLiveDataSource,
+  type VRRLiveDataState,
+  type VRRLiveDataSyncOptions,
+  type VRRLiveDataTransport,
+  type VRRProviderSubscriptions,
+} from './VRRLiveDataSync';
