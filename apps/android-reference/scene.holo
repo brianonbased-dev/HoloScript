@@ -1,0 +1,33 @@
+// Legacy plain-Android (ARCore) reference scene — golden reference for compile_to_android.
+//
+// HoloScript-native composition compiled by AndroidCompiler through the REAL HoloCompositionParser.
+// The Kotlin + gradle under android/ is @generated output, golden-diff gated
+// (scripts/holo-ci/check-android-emit-matches-reference.mts). Edit HERE, then re-run
+// generate-native.mts — never hand-edit the generated Kotlin (mirrors the Android-XR scene.holo
+// pattern). Distinct from compile_to_android_xr (Jetpack XR / headset): this is the phone-AR
+// ARCore target.
+
+composition "AndroidReference" {
+  environment {
+    surface: "ar"
+    runtime: "arcore"
+    plane_detection: true
+    package: "net.holoscript.android"
+  }
+
+  // A cube placed on a detected plane via hit-testing.
+  object "anchor_cube" {
+    @plane_detection
+    geometry: "cube"
+    position: [0.0, 0.0, -1.0]
+    scale: 0.2
+  }
+
+  // A sphere the user can reach with hand tracking.
+  object "target_sphere" {
+    @hand_tracking
+    geometry: "sphere"
+    position: [0.3, 0.0, -1.0]
+    scale: 0.1
+  }
+}

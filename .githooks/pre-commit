@@ -306,6 +306,34 @@ if [ -n "$STAGED_AXR" ]; then
     fi
 fi
 
+# Gate 5e-and: Android (legacy plain-Android / ARCore) emit golden-diff — the in-core AndroidCompiler
+# (compileToFiles) must byte-match the reference app (apps/android-reference/android). Parses scene.holo
+# via the real HoloCompositionParser. Enforces "edit the spec, not the generated Kotlin" so codegen-
+# correctness work toward a green `gradle assembleDebug` is drift-controlled (W.783). Only runs when the
+# reference app, the AndroidCompiler emit chain, or the gate is staged. (CI twin: AndroidCompiler.golden.test.ts.)
+echo "  ├─ Android emit golden-diff..."
+STAGED_AND=$(git diff --cached --name-only -- \
+    'apps/android-reference/**' \
+    'packages/core/src/compiler/AndroidCompiler.ts' \
+    'packages/core/src/compiler/AndroidARGenerators.ts' \
+    'packages/core/src/compiler/AndroidFeatureGenerators.ts' \
+    'packages/core/src/compiler/AndroidPeripheralGenerators.ts' \
+    'packages/core/src/compiler/AndroidKotlinHelpers.ts' \
+    'scripts/holo-ci/check-android-emit-matches-reference.mts' 2>/dev/null || true)
+if [ -n "$STAGED_AND" ]; then
+    AND_OUT=$(run_with_timeout 60 npx tsx scripts/holo-ci/check-android-emit-matches-reference.mts 2>&1)
+    AND_STATUS=$?
+    if [ "$AND_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Android emit drifted from the reference app${NC}"
+        echo "$AND_OUT"
+        echo "     Fix: edit apps/android-reference/scene.holo (not the generated Kotlin),"
+        echo "          then re-run 'npx tsx apps/android-reference/generate-native.mts'."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Android emit matches reference (no drift)"
+    fi
+fi
+
 # Gate 5f: Trait parity — every R3F-emitted trait must be handled or noop-classified.
 # This is the INTERLOCK before R3FCompiler retirement (research/2026-06-15_trait-parity-and-tsx-deprecation.md §5.6).
 # Only runs when R3FCompiler.ts or the trait runtime files are staged — avoids blocking

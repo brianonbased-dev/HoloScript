@@ -141,6 +141,53 @@ export class AndroidCompiler extends CompilerBase {
     return result;
   }
 
+  /**
+   * Compile to a path-keyed map of reference-relative files (Android project layout).
+   *
+   * Mirrors AndroidXRCompiler.compileToFiles(): the native return is named fields
+   * (AndroidCompileResult), so this adapter maps those fields onto the on-disk Android
+   * project layout, letting the SAME byte-diff golden gate + committed-reference-app pattern
+   * (QuestCompiler / AndroidXRCompiler) apply to the legacy plain-Android (ARCore) target.
+   * Keys are POSIX-relative to the app project root (the dir holding settings.gradle.kts).
+   *
+   * Optional feature-setup fields (npuSceneSetup, hapticSetup, …) are emitted as extra
+   * Kotlin files under the same package dir, keyed off the field name, so the gate covers
+   * them when a trait pulls them in. The field→filename map is fixed so output is stable.
+   */
+  public compileToFiles(composition: HoloComposition, agentToken = ''): Record<string, string> {
+    const r = this.compile(composition, agentToken);
+    const pkgPath = this.options.packageName.replace(/\./g, '/');
+    const javaRel = `app/src/main/java/${pkgPath}`;
+    // The activity class emitted by AndroidARGenerators is `${className}Activity` and the
+    // manifest references `.${className}Activity`, so the file follows Kotlin's one-public-
+    // class-per-file convention and is named after the class.
+    const files: Record<string, string> = {
+      [`${javaRel}/${this.options.className}Activity.kt`]: r.activityFile,
+      [`${javaRel}/ARSceneState.kt`]: r.stateFile,
+      [`${javaRel}/ARNodeFactory.kt`]: r.nodeFactoryFile,
+      'app/src/main/AndroidManifest.xml': r.manifestFile,
+      'app/build.gradle.kts': r.buildGradle,
+    };
+    // Optional feature setups → stable per-field Kotlin filenames (only when present).
+    const featureFiles: Record<string, string> = {
+      npuSceneSetup: 'NPUSceneSetup.kt',
+      authoringSetup: 'AuthoringSetup.kt',
+      hapticSetup: 'HapticSetup.kt',
+      nearbySetup: 'NearbySetup.kt',
+      foldableSetup: 'FoldableSetup.kt',
+      dexSetup: 'DexSetup.kt',
+      lensSetup: 'LensSetup.kt',
+      webxrSetup: 'WebXRSetup.kt',
+    };
+    for (const [field, fileName] of Object.entries(featureFiles)) {
+      const content = r[field];
+      if (typeof content === 'string' && content.length > 0) {
+        files[`${javaRel}/${fileName}`] = content;
+      }
+    }
+    return files;
+  }
+
   public emit(line: string): void {
     const indent = this.options.indent.repeat(this.indentLevel);
     this.lines.push(indent + line);
