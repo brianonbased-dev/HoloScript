@@ -104,4 +104,89 @@ describe('R3FCompiler.compileComposition — world blocks', () => {
     expect(pc?.props?.pointCount).toBe(1);
     expect(pc?.props?.positionsB64).toBe('AAAA');
   });
+
+  it('routes scientific color maps through the perceptual color pass', () => {
+    const root = compiler.compileComposition(
+      minimalComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'heat',
+            properties: [
+              { type: 'ObjectProperty', key: 'geometry', value: 'heatmap_view' },
+              { type: 'ObjectProperty', key: 'color_map', value: 'plasma' },
+              { type: 'ObjectProperty', key: 'steps', value: 5 },
+            ],
+            traits: [],
+          } as any,
+        ],
+      })
+    );
+
+    const heat = root.children?.find((node) => node.id === 'heat');
+    const pass = heat?.props.perceptualColor as { source: string; colorMap?: { name: string } };
+
+    expect(pass.source).toBe('color_map');
+    expect(pass.colorMap?.name).toBe('plasma');
+    expect(heat?.props.colorMapColors).toHaveLength(5);
+  });
+
+  it('routes @perceptual_color palette config through the compiler pass', () => {
+    const root = compiler.compileComposition(
+      minimalComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'legend',
+            properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'plane' }],
+            traits: [
+              {
+                name: 'perceptual_color',
+                config: {
+                  mode: 'palette',
+                  palette: ['#000000', '#FFFFFF'],
+                  steps: 3,
+                  neutral_axis: true,
+                },
+              },
+            ],
+          } as any,
+        ],
+      })
+    );
+
+    const legend = root.children?.find((node) => node.id === 'legend');
+    const pass = legend?.props.perceptualColor as {
+      source: string;
+      palette?: { colors: string[] };
+    };
+
+    expect(pass.source).toBe('palette');
+    expect(pass.palette?.colors).toEqual(['#000000', '#FFFFFF']);
+  });
+
+  it('uses viridis defaults for bare @perceptual_color traits', () => {
+    const root = compiler.compileComposition(
+      minimalComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'defaultLegend',
+            properties: [{ type: 'ObjectProperty', key: 'geometry', value: 'plane' }],
+            traits: [{ name: 'perceptual_color' }],
+          } as any,
+        ],
+      })
+    );
+
+    const legend = root.children?.find((node) => node.id === 'defaultLegend');
+    const pass = legend?.props.perceptualColor as {
+      source: string;
+      colorMap?: { name: string; colors: string[] };
+    };
+
+    expect(pass.source).toBe('color_map');
+    expect(pass.colorMap?.name).toBe('viridis');
+    expect(pass.colorMap?.colors).toHaveLength(7);
+  });
 });

@@ -2,6 +2,11 @@ import { HSPlusAST, ASTNode, HSPlusDirective, VRTraitName } from '../types';
 import type { HoloComposition, CompositionChild } from '../types/index';
 import { TraitCompositor } from '../traits/visual/TraitCompositor';
 import { ProvenanceSemiring, type ProvenanceContext } from './traits/ProvenanceSemiring';
+import {
+  applyPerceptualColorPass,
+  type PerceptualColorPassInput,
+  type PerceptualGradientStop,
+} from './PerceptualColorPass';
 // Side-effect import: registers all preset visuals into the registry
 import '../traits/visual';
 import {
@@ -3429,6 +3434,8 @@ export class SceneIRCompiler {
           props.magnifiable = trait.config || { max_scale: 3.0 };
         } else if (name === 'high_contrast') {
           props.highContrast = trait.config || { mode: 'outline' };
+        } else if (name === 'perceptual_color') {
+          props.perceptualColor = trait.config || true;
         } else if (name === 'motion_reduced') {
           props.motionReduced = trait.config || true;
           if (props.animated) props.animated = false;
@@ -3563,6 +3570,20 @@ export class SceneIRCompiler {
         };
       }
     }
+
+    const perceptualTrait = Array.isArray(obj.traits)
+      ? obj.traits.find((trait: Record<string, unknown>) => trait.name === 'perceptual_color')
+      : undefined;
+    const perceptualTraitConfig = perceptualTrait
+      ? perceptualTrait.config && typeof perceptualTrait.config === 'object'
+        ? (perceptualTrait.config as Record<string, unknown>)
+        : {}
+      : undefined;
+    this.applyPerceptualColorProps(
+      props,
+      perceptualTraitConfig,
+      this.isScientificColorNode(geometryType, props)
+    );
 
     // Determine node type
     let type: string;
@@ -4171,6 +4192,128 @@ export class SceneIRCompiler {
     return mapping[type] || type;
   }
 
+  private applyPerceptualColorProps(
+    props: Record<string, unknown>,
+    traitConfig: Record<string, unknown> | undefined,
+    scientific: boolean
+  ): void {
+    const input = this.resolvePerceptualColorInput(props, traitConfig, scientific);
+    if (!input) return;
+
+    const pass = applyPerceptualColorPass(input);
+    props.perceptualColor = pass;
+
+    if (pass.palette) {
+      props.palette = pass.palette.colors;
+    }
+    if (pass.gradient) {
+      props.gradient = pass.gradient.stops;
+      props.gradientColors = pass.gradient.colors;
+    }
+    if (pass.colorMap) {
+      props.colorMap = pass.colorMap.name;
+      props.colorMapColors = pass.colorMap.colors;
+      delete props.color_map;
+    }
+    if (!props.color && pass.gradient?.colors[0]) {
+      props.color = pass.gradient.colors[0];
+    }
+
+    const materialProps =
+      props.materialProps && typeof props.materialProps === 'object'
+        ? (props.materialProps as Record<string, unknown>)
+        : {};
+    if (pass.gradient?.colors[0] && materialProps.color === undefined) {
+      props.materialProps = { ...materialProps, color: pass.gradient.colors[0] };
+    }
+  }
+
+  private resolvePerceptualColorInput(
+    props: Record<string, unknown>,
+    traitConfig: Record<string, unknown> | undefined,
+    scientific: boolean
+  ): PerceptualColorPassInput | undefined {
+    const palette = this.stringArray(props.palette) ?? this.stringArray(traitConfig?.palette);
+    const gradient =
+      this.gradientStops(props.gradient) ?? this.gradientStops(traitConfig?.gradient);
+    const colorMap =
+      this.colorMapValue(props.colorMap) ??
+      this.colorMapValue(props.color_map) ??
+      this.colorMapValue(traitConfig?.color_map) ??
+      this.colorMapValue(traitConfig?.colorMap);
+
+    const hasColorInput = palette !== undefined || gradient !== undefined || colorMap !== undefined;
+    if (!traitConfig && !(scientific && hasColorInput)) return undefined;
+
+    const mode = typeof traitConfig?.mode === 'string' ? traitConfig.mode : 'auto';
+    const base: PerceptualColorPassInput = {
+      steps: this.numberValue(traitConfig?.steps) ?? this.numberValue(props.steps) ?? 7,
+      dampening: this.numberValue(traitConfig?.dampening),
+      targetDeltaE:
+        this.numberValue(traitConfig?.target_delta_e) ??
+        this.numberValue(traitConfig?.targetDeltaE),
+      neutralAxis:
+        this.booleanValue(traitConfig?.neutral_axis) ?? this.booleanValue(traitConfig?.neutralAxis),
+      scientific,
+    };
+
+    if (mode === 'palette') return { ...base, palette: palette ?? ['#1F77B4', '#FF7F0E'] };
+    if (mode === 'gradient') return { ...base, gradient: gradient ?? palette };
+    if (mode === 'color_map') return { ...base, colorMap: colorMap ?? 'viridis' };
+    if (colorMap !== undefined) return { ...base, colorMap };
+    if (gradient !== undefined) return { ...base, gradient };
+    if (palette !== undefined) return { ...base, palette };
+    return { ...base, colorMap: 'viridis' };
+  }
+
+  private isScientificColorNode(type: string, props: Record<string, unknown>): boolean {
+    return (
+      type === 'heatmap_view' ||
+      type === 'heatmap' ||
+      type === 'chart' ||
+      type === 'graph' ||
+      type === 'scatter_plot' ||
+      type === 'line_graph' ||
+      props.scientific === true ||
+      props.color_map !== undefined ||
+      props.colorMap !== undefined
+    );
+  }
+
+  private stringArray(value: unknown): string[] | undefined {
+    return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+      ? [...value]
+      : undefined;
+  }
+
+  private gradientStops(value: unknown): Array<string | PerceptualGradientStop> | undefined {
+    const stringColors = this.stringArray(value);
+    if (stringColors) return stringColors;
+    if (!Array.isArray(value)) return undefined;
+    const stops: PerceptualGradientStop[] = [];
+    for (const entry of value) {
+      if (!entry || typeof entry !== 'object') continue;
+      const record = entry as Record<string, unknown>;
+      if (typeof record.t === 'number' && typeof record.color === 'string') {
+        stops.push({ t: record.t, color: record.color });
+      }
+    }
+    return stops.length > 0 ? stops : undefined;
+  }
+
+  private colorMapValue(value: unknown): PerceptualColorPassInput['colorMap'] | undefined {
+    if (typeof value === 'string') return value;
+    return this.gradientStops(value) ?? this.stringArray(value);
+  }
+
+  private numberValue(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+  }
+
+  private booleanValue(value: unknown): boolean | undefined {
+    return typeof value === 'boolean' ? value : undefined;
+  }
+
   private compileProperties(
     node: ASTNode,
     rawProps: Record<string, unknown>
@@ -4276,6 +4419,20 @@ export class SceneIRCompiler {
         }
       }
     }
+
+    const perceptualDirective = node.directives?.find(
+      (directive) => directive.type === 'trait' && directive.name === 'perceptual_color'
+    ) as (HSPlusDirective & { config?: unknown }) | undefined;
+    const perceptualDirectiveConfig = perceptualDirective
+      ? perceptualDirective.config && typeof perceptualDirective.config === 'object'
+        ? (perceptualDirective.config as Record<string, unknown>)
+        : {}
+      : undefined;
+    this.applyPerceptualColorProps(
+      props,
+      perceptualDirectiveConfig,
+      this.isScientificColorNode(node.type, props)
+    );
 
     delete props.type;
     delete props.geometry;
