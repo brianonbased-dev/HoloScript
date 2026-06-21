@@ -13,7 +13,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // captured LLMCompletionRequests (used to assert past-threads prompt injection).
 const h = vi.hoisted(() => ({
   chunks: [] as Array<Record<string, unknown>>,
-  captured: [] as Array<{ messages: Array<{ role: string; content: unknown }> }>,
+  captured: [] as Array<{
+    messages: Array<{ role: string; content: unknown }>;
+    tools?: Array<{ name: string }>;
+  }>,
 }));
 
 vi.mock('next-auth', () => ({
@@ -66,7 +69,10 @@ vi.mock('@/lib/brittney/provider', () => ({
   },
   resolveBrittneyProviderAsync: async () => ({
     provider: {
-      streamCompletion: (request: { messages: Array<{ role: string; content: unknown }> }) => {
+      streamCompletion: (request: {
+        messages: Array<{ role: string; content: unknown }>;
+        tools?: Array<{ name: string }>;
+      }) => {
         h.captured.push(request);
         const items = [...h.chunks];
         return (async function* () {
@@ -129,6 +135,24 @@ beforeEach(() => {
 });
 
 describe('POST /api/brittney write-through', () => {
+  it('sends a 12-tool mode-scoped default registry to the provider', async () => {
+    mockSession('user-tool-diet');
+    h.chunks.push(...textChunks('queued'));
+
+    await POST(
+      chatReq({
+        messages: [{ role: 'user', content: 'Add a task to the team board' }],
+      })
+    );
+
+    const names = h.captured[0]?.tools?.map((t) => t.name) ?? [];
+    expect(names.length).toBeLessThanOrEqual(12);
+    expect(names).toContain('find_tools');
+    expect(names).toContain('board_add_task');
+    expect(names).toContain('suggest_ecosystem_gap');
+    expect(names).not.toContain('create_object');
+  });
+
   it('creates a conversation on scope-only requests and persists both turns', async () => {
     mockSession('user-wt-1');
     h.chunks.push(...textChunks('Hello ', 'world'));
