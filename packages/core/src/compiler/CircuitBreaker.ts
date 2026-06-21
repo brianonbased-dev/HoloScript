@@ -76,6 +76,7 @@ export type ExportTarget =
   | 'native-2d' // Native 2D UI for mobile/desktop fallback
   | 'canvas2d-game' // Native 2D canvas GAME (trait-driven, self-contained offline HTML)
   | '3dgs' // Gaussian Splatting (KHR_gaussian_splatting glTF extension)
+  | '3dtiles' // 3D Tiles 1.1 Gaussian splat spatial index
   | 'gaussian-train' // Sovereign native 3DGS training job (GaussianTrainer3D, $0) — NOT a glTF bridge
   | 'code-editor' // CodeMirror 6 editor configuration bundle (Studio native editor)
   | 'svg' // SVG vector graphics output (sovereign)

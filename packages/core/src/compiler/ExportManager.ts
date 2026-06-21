@@ -56,6 +56,7 @@ import { USDPhysicsCompiler } from './USDPhysicsCompiler';
 import { USDZExportCompiler } from './USDZExportCompiler';
 import { FMUCompiler } from './FMUCompiler';
 import { GaussianSplattingCompiler } from './GaussianSplattingCompiler';
+import { ThreeDTilesCompiler } from './ThreeDTilesCompiler';
 import { GaussianTrainCompiler } from './GaussianTrainCompiler';
 import { CodeEditorCompiler } from './CodeEditorCompiler';
 import { SVGCompiler } from './SVGCompiler';
@@ -278,6 +279,8 @@ class CompilerFactory {
         return new FMUCompiler(options);
       case '3dgs':
         return new GaussianSplattingCompiler(options);
+      case '3dtiles':
+        return new ThreeDTilesCompiler(options);
       case 'gaussian-train':
         return new GaussianTrainCompiler(options);
       case 'canvas2d-game':
@@ -651,6 +654,7 @@ export class ExportManager {
       'openxr-spatial-entities',
       'phone-sleeve-vr',
       '3dgs',
+      '3dtiles',
     ];
   }
 

@@ -411,6 +411,24 @@ export type {
   GaussianSplattingExtendedResult,
 } from './GaussianSplattingCompiler';
 
+// 3D Tiles compiler - 3D Tiles 1.1 tileset plus Gaussian splat tile payloads
+export {
+  ThreeDTilesCompiler,
+  compileTo3DTiles,
+  createThreeDTilesCompiler,
+  streamWorldTiles,
+} from './ThreeDTilesCompiler';
+export type {
+  StreamWorldTilesResult,
+  ThreeDTilesCompileResult,
+  ThreeDTilesCompilerOptions,
+  ThreeDTilesLodLevel,
+  ThreeDTilesManifest,
+  ThreeDTilesTile,
+  ThreeDTilesTileManifest,
+  ThreeDTilesTileset,
+} from './ThreeDTilesCompiler';
+
 // Gaussian training compiler — compile_to_gaussian_train (SOVEREIGN: native GaussianTrainer3D, $0)
 export {
   GaussianTrainCompiler,

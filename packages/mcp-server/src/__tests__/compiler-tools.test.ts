@@ -66,6 +66,24 @@ describe('compiler tools', () => {
     expect(result.output).toContain('base_link');
   });
 
+  it('returns a 3D Tiles stream manifest through stream_world_tiles', async () => {
+    const result = (await handleCompilerTool('stream_world_tiles', {
+      code: 'composition "TileWorld" {}',
+      options: { streamBaseUrl: 'https://tiles.example/holo', streamId: 'tile-run' },
+    })) as {
+      success?: boolean;
+      target?: string;
+      manifestUrl?: string;
+      files?: Record<string, string>;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.target).toBe('3dtiles');
+    expect(result.manifestUrl).toBe('https://tiles.example/holo/tile-run/tileset.json');
+    expect(result.files?.['tileset.json']).toContain('"version": "1.1"');
+    expect(result.files?.['cael-tile-provenance.json']).toContain('cael-3dtiles-provenance-chain');
+  });
+
   it('returns a non-empty ROS 2 deployment bundle', async () => {
     const result = await handleCompilerTool('compile_to_ros2_deploy', {
       code: robotComposition,

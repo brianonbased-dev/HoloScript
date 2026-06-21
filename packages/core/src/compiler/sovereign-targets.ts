@@ -71,6 +71,7 @@ export const BRIDGE_TARGETS = [
   'openxr-spatial-entities',
   'phone-sleeve-vr',
   '3dgs',
+  '3dtiles',
   'openapi', // OpenAPI 3.x spec — consumed by third-party API gateways/clients
   'onnx', // ONNX model export — consumed by third-party ML runtimes (ONNX Runtime, TensorFlow, etc.)
   'flutter', // Flutter/Dart widget tree — consumed by Flutter engine

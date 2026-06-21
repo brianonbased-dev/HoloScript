@@ -42,7 +42,13 @@ import { handleMapSchema, handleMapCsvHeaders } from './schema-mapper';
 import { handleAuditNumbers, auditTools } from './audit-tools';
 import { handleFetchStructure, alphafoldTools } from './alphafold-tools';
 import { generateWebGPUBrowserTemplate } from './renderer';
-import { targetSovereignty, DialectRegistry, registerBuiltinDialects, absorbFMU } from '@holoscript/core/compiler';
+import {
+  targetSovereignty,
+  DialectRegistry,
+  registerBuiltinDialects,
+  absorbFMU,
+  streamWorldTiles,
+} from '@holoscript/core/compiler';
 
 // Initialize ExportManager singleton with memory monitoring disabled.
 // Railway containers have constrained RAM ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the default monitoring loop
@@ -60,7 +66,7 @@ const _INTERNAL_DIALECT_NAMES = new Set([
 
 // ExportManager targets not yet migrated to DialectRegistry -- surfaced via legacy path.
 const _LEGACY_EXPORT_TARGETS = [
-  'usd', 'usdz', 'fmu', '3dgs', 'canvas2d-game', 'code-editor',
+  'usd', 'usdz', 'fmu', '3dgs', '3dtiles', 'canvas2d-game', 'code-editor',
 ] as const;
 
 // =============================================================================
@@ -366,6 +372,49 @@ export async function handleCompileToTarget(
   }
 }
 
+export async function handleStreamWorldTiles(args: Record<string, unknown>): Promise<{
+  success: true;
+  target: '3dtiles';
+  manifestUrl: string;
+  streamId: string;
+  tileset: unknown;
+  manifest: unknown;
+  files: Record<string, string>;
+  metadata: {
+    tileCount: number;
+    lodLevels: string[];
+    outputSizeBytes: number;
+  };
+}> {
+  const { code, options = {} } = args as {
+    code?: string;
+    options?: Record<string, unknown>;
+  };
+
+  if (!code) {
+    throw new Error(
+      'code is required: pass the HoloScript source with @gaussian_splat data as the "code" field.'
+    );
+  }
+
+  const parseResult = parseHolo(code);
+  if (!parseResult.success || !parseResult.ast) {
+    const errors =
+      parseResult.errors?.map((e: any) => e.message).join(', ') || 'Unknown parse error';
+    throw new Error(`Failed to parse composition: ${errors}`);
+  }
+
+  const stream = streamWorldTiles(parseResult.ast, options as Parameters<typeof streamWorldTiles>[1]);
+  return {
+    ...stream,
+    metadata: {
+      tileCount: stream.manifest.tiles.length,
+      lodLevels: stream.manifest.stream.lodLevels,
+      outputSizeBytes: JSON.stringify(stream.files).length,
+    },
+  };
+}
+
 export async function handleComposeTraits(args: Record<string, unknown>): Promise<unknown> {
   const { declarations, baseTraits = {} } = args as {
     declarations: TraitCompositionDecl[];
@@ -583,7 +632,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
     'Web Platforms': ['webgpu', 'wasm'] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
-    '3D Formats': ['usd', 'usdz', 'fmu', '3dgs'] as unknown as ExportTarget[],
+    '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
     'AI/MCP': ['mcp-server'] as unknown as ExportTarget[],
   };
@@ -736,6 +785,10 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'state' });
     case 'compile_to_3dgs':
       return handleCompileToTarget({ ...args, target: '3dgs' });
+    case 'compile_to_3dtiles':
+      return handleCompileToTarget({ ...args, target: '3dtiles' });
+    case 'stream_world_tiles':
+      return handleStreamWorldTiles(args);
     case 'compile_to_gaussian_train':
       return handleCompileToTarget({ ...args, target: 'gaussian-train' });
     case 'compile_to_code_editor':
@@ -1042,6 +1095,7 @@ export const compilerTools: Tool[] = [
             // 'native-2d' — retired apex-poison 2026-06-17
             'node-service',
             '3dgs',
+            '3dtiles',
             'canvas2d-game',
             'code-editor',
           ],
@@ -1588,6 +1642,75 @@ export const compilerTools: Tool[] = [
             shDegree: {
               type: 'number',
               description: 'Maximum spherical-harmonics degree 0-3 (default: 0)',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'compile_to_3dtiles',
+    description:
+      'Compile HoloScript Gaussian splats to a 3D Tiles 1.1 source bundle. ' +
+      'Partitions @gaussian_splat data into spatial tile footprints, emits ' +
+      'coarse/medium/fine LOD GLB payloads, tileset.json, stream-manifest.json, ' +
+      'and CAEL per-tile provenance.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code with @gaussian_splat data' },
+        options: {
+          type: 'object',
+          properties: {
+            tileSizeMeters: {
+              type: 'number',
+              description: 'Spatial footprint size for each tile in meters (default: 50)',
+            },
+            lodLevels: {
+              type: 'array',
+              items: { type: 'string', enum: ['coarse', 'medium', 'fine'] },
+              description: 'LOD levels to emit (default: coarse, medium, fine)',
+            },
+            streamBaseUrl: {
+              type: 'string',
+              description: 'Base URL used to derive the stream manifest URL',
+            },
+            streamId: {
+              type: 'string',
+              description: 'Stable stream id; generated from the composition hash when omitted',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+
+  {
+    name: 'stream_world_tiles',
+    description:
+      'Return a streamable 3D Tiles manifest for a HoloScript world. Emits a manifest URL, ' +
+      'tileset.json, base64 GLB tile payload files, and CAEL tile provenance.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript composition code with @gaussian_splat data' },
+        options: {
+          type: 'object',
+          properties: {
+            tileSizeMeters: {
+              type: 'number',
+              description: 'Spatial footprint size for each tile in meters (default: 50)',
+            },
+            streamBaseUrl: {
+              type: 'string',
+              description: 'Base URL used to derive the stream manifest URL',
+            },
+            streamId: {
+              type: 'string',
+              description: 'Stable stream id; generated from the composition hash when omitted',
             },
           },
         },
@@ -2155,6 +2278,7 @@ export const compilerTools: Tool[] = [
             'dtdl',
             'multi-layer',
             '3dgs',
+            '3dtiles',
           ],
           description: 'Export target to check',
         },
