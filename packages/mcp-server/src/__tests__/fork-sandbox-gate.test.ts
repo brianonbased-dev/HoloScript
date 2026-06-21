@@ -13,6 +13,7 @@ import {
   resolvePolicy,
   DEFAULT_SENSITIVE_POLICY,
   DEFAULT_BENIGN_POLICY,
+  SYSTEM_DEFAULT_BLOCKED_ACTIONS,
 } from '../security/fork-sandbox-gate';
 import { globalReceiptStore } from '../security/sandbox-policy';
 
@@ -119,6 +120,13 @@ describe('resolvePolicy', () => {
   it('sensitive for sensitive tool even if canonical', () => {
     const policy = resolvePolicy({ kind: 'mcp_tool', source: 'canonical' }, 'create_world');
     expect(policy.policyId).toBe(DEFAULT_SENSITIVE_POLICY.policyId);
+  });
+
+  it('promotes default blocked physical actions into the sensitive policy', () => {
+    expect(SYSTEM_DEFAULT_BLOCKED_ACTIONS).toContain('actuator:command');
+    expect(SYSTEM_DEFAULT_BLOCKED_ACTIONS).toContain('robot:move');
+    expect(DEFAULT_SENSITIVE_POLICY.defaultBlockedActions).toEqual(SYSTEM_DEFAULT_BLOCKED_ACTIONS);
+    expect(DEFAULT_BENIGN_POLICY.defaultBlockedActions).toEqual([]);
   });
 });
 

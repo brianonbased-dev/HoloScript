@@ -6,11 +6,18 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   handleRobotAiMcpTool,
   clearRobotAiRegistries,
+  configureRobotAiRegistryPersistence,
+  loadRobotAiRegistries,
   robotAiMcpTools,
   twinEarthIdentityRegistry,
+  safetyEnvelopeRegistry,
+  permissionGrantRegistry,
   twinEarthReceiptRegistry,
   setRobotDispatcher,
   getRobotDispatcher,
@@ -47,7 +54,13 @@ async function registerAI(overrides?: Record<string, unknown>) {
 
 describe('robot-ai-mcp-tools', () => {
   beforeEach(() => {
-    clearRobotAiRegistries();
+    configureRobotAiRegistryPersistence(null);
+    clearRobotAiRegistries({ persist: false });
+  });
+
+  afterEach(() => {
+    configureRobotAiRegistryPersistence(null);
+    clearRobotAiRegistries({ persist: false });
   });
 
   // ===========================================================================
@@ -660,6 +673,7 @@ describe('robot-ai-mcp-tools', () => {
         envelopeId: 'act-env',
         // D.044: robot:move is default-blocked unless explicitly allowlisted.
         allowedActions: ['robot:move'],
+        humanApprovalGrantedAt: new Date().toISOString(),
       });
       await handleRobotAiMcpTool('twin_earth_grant_permission', {
         granteeId: 'act-bot',
@@ -708,6 +722,7 @@ describe('robot-ai-mcp-tools', () => {
           envelopeId: 'ros2-env',
           // D.044: robot:move is default-blocked unless explicitly allowlisted.
           allowedActions: ['robot:move'],
+          humanApprovalGrantedAt: new Date().toISOString(),
         });
         await handleRobotAiMcpTool('twin_earth_grant_permission', {
           granteeId: 'ros2-bot',
@@ -900,5 +915,55 @@ describe('robot-ai-mcp-tools', () => {
     expect(twinEarthIdentityRegistry.size).toBeGreaterThan(0);
     clearRobotAiRegistries();
     expect(twinEarthIdentityRegistry.size).toBe(0);
+  });
+
+  it('persists and reloads identity, envelope, permission, and receipt registries', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'twin-earth-registries-'));
+    const snapshotPath = join(dir, 'registries.json');
+
+    try {
+      configureRobotAiRegistryPersistence(snapshotPath);
+      clearRobotAiRegistries();
+
+      await registerIdentity({ agentId: 'persist-bot' });
+      await registerIdentity({ agentId: 'persist-granter' });
+      await handleRobotAiMcpTool('twin_earth_create_safety_envelope', {
+        agentId: 'persist-bot',
+        envelopeId: 'persist-env',
+        allowedActions: ['robot:move'],
+        humanApprovalGrantedAt: new Date().toISOString(),
+      });
+      const grant = (await handleRobotAiMcpTool('twin_earth_grant_permission', {
+        granteeId: 'persist-bot',
+        granterId: 'persist-granter',
+        action: 'robot:move',
+        scope: '*',
+      })) as Record<string, unknown>;
+      await handleRobotAiMcpTool('twin_earth_capture_receipt', {
+        actorId: 'persist-bot',
+        action: 'robot:move',
+        status: 'success',
+        envelopeId: 'persist-env',
+      });
+
+      expect(existsSync(snapshotPath)).toBe(true);
+      const snapshot = JSON.parse(readFileSync(snapshotPath, 'utf8')) as Record<string, unknown[]>;
+      expect(snapshot.identities).toHaveLength(2);
+      expect(snapshot.safetyEnvelopes).toHaveLength(1);
+      expect(snapshot.permissionGrants).toHaveLength(1);
+      expect(snapshot.receipts).toHaveLength(1);
+
+      clearRobotAiRegistries({ persist: false });
+      expect(twinEarthIdentityRegistry.size).toBe(0);
+
+      expect(loadRobotAiRegistries()).toBe(true);
+      expect(twinEarthIdentityRegistry.has('persist-bot')).toBe(true);
+      expect(safetyEnvelopeRegistry.get('persist-env')?.humanApprovalRequired).toBe(true);
+      expect(permissionGrantRegistry.has(grant.grantHash as string)).toBe(true);
+      expect(twinEarthReceiptRegistry.size).toBe(1);
+    } finally {
+      configureRobotAiRegistryPersistence(null);
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

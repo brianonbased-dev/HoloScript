@@ -88,6 +88,7 @@ export {
   globalReceiptStore,
   DEFAULT_SENSITIVE_POLICY,
   DEFAULT_BENIGN_POLICY,
+  SYSTEM_DEFAULT_BLOCKED_ACTIONS,
   SENSITIVE_TOOL_PATTERNS,
   type SandboxPolicy,
   type CapabilityManifest,

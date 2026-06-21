@@ -751,6 +751,7 @@ export {
   validateModeTransitionReceipt,
   evaluateActuation,
   DEFAULT_BLOCKED_ACTIONS,
+  PHYSICAL_WORLD_ACTIONS,
   isSupportedTwinEarthRole,
   isSupportedParticipationMode,
   isSupportedTwinEarthKind,

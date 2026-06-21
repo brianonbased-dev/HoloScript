@@ -22,6 +22,7 @@ import {
   isSensitiveTool,
   DEFAULT_SENSITIVE_POLICY,
   DEFAULT_BENIGN_POLICY,
+  SYSTEM_DEFAULT_BLOCKED_ACTIONS,
 } from './sandbox-policy';
 
 // ── Fork Detection Heuristics ────────────────────────────────────────────────
@@ -533,4 +534,10 @@ export async function gatePluginRegistration(
 
 // ── Re-exports for consumers ───────────────────────────────────────────────────
 
-export { isSensitiveTool, resolvePolicy, DEFAULT_SENSITIVE_POLICY, DEFAULT_BENIGN_POLICY };
+export {
+  isSensitiveTool,
+  resolvePolicy,
+  DEFAULT_SENSITIVE_POLICY,
+  DEFAULT_BENIGN_POLICY,
+  SYSTEM_DEFAULT_BLOCKED_ACTIONS,
+};

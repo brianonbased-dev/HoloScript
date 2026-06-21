@@ -23,6 +23,7 @@ import {
   validateModeTransitionReceipt,
   evaluateActuation,
   DEFAULT_BLOCKED_ACTIONS,
+  PHYSICAL_WORLD_ACTIONS,
   isSupportedTwinEarthRole,
   isSupportedParticipationMode,
   isSupportedTwinEarthKind,
@@ -116,6 +117,8 @@ describe('twin-earth-substrate contract', () => {
       deterministic: true,
       localOnly: false,
       substrateEnforced: true,
+      updatedAt: new Date().toISOString(),
+      humanApprovalGrantedAt: new Date().toISOString(),
     };
 
     const errors = validateSafetyEnvelope(envelope);
@@ -346,6 +349,8 @@ describe('twin-earth-substrate contract', () => {
       deterministic: true,
       localOnly: false,
       substrateEnforced: true,
+      updatedAt: new Date().toISOString(),
+      humanApprovalGrantedAt: new Date().toISOString(),
     };
 
     it('permits valid actuation (happy path)', () => {
@@ -517,7 +522,13 @@ describe('twin-earth-substrate contract', () => {
       // Default-blocked actions (actuator:command, robot:move etc.) still require explicit allow.
       const dialogueGrant: PermissionGrant = { ...baseGrant, action: 'npc:dialogue' };
       const openEnvelope: SafetyEnvelope = { ...baseEnvelope, allowedActions: [] };
-      const result = evaluateActuation(baseIdentity, dialogueGrant, openEnvelope, 'npc:dialogue', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        dialogueGrant,
+        openEnvelope,
+        'npc:dialogue',
+        'shard_1'
+      );
       expect(result.allowed).toBe(true);
     });
 
@@ -567,6 +578,14 @@ describe('twin-earth-substrate contract', () => {
       expect(DEFAULT_BLOCKED_ACTIONS).toContain('contract:ratify');
     });
 
+    it('PHYSICAL_WORLD_ACTIONS requires human accountability for robot actions', () => {
+      expect(PHYSICAL_WORLD_ACTIONS).toEqual([
+        'actuator:command',
+        'robot:move',
+        'robot:task:execute',
+      ]);
+    });
+
     it('denies default-blocked action when not in allowedActions', () => {
       const envelope: SafetyEnvelope = { ...baseEnvelope, allowedActions: [], blockedActions: [] };
       const grant: PermissionGrant = { ...baseGrant, action: 'robot:move' };
@@ -574,6 +593,20 @@ describe('twin-earth-substrate contract', () => {
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('blocked_actions');
       expect(result.reason).toContain('default-blocked');
+    });
+
+    it('denies default-blocked action when the envelope has no updatedAt timestamp', () => {
+      const envelope: SafetyEnvelope = {
+        ...baseEnvelope,
+        allowedActions: ['robot:move'],
+        blockedActions: [],
+      };
+      delete envelope.updatedAt;
+      const grant: PermissionGrant = { ...baseGrant, action: 'robot:move' };
+      const result = evaluateActuation(baseIdentity, grant, envelope, 'robot:move', 'shard_1');
+      expect(result.allowed).toBe(false);
+      expect(result.blockingRule).toBe('stale_envelope');
+      expect(result.reason).toContain('no updatedAt');
     });
 
     it('permits a default-blocked action when explicitly in allowedActions', () => {
@@ -591,9 +624,15 @@ describe('twin-earth-substrate contract', () => {
       const staleEnvelope: SafetyEnvelope = {
         ...baseEnvelope,
         updatedAt: new Date(Date.now() - 60_000).toISOString(), // 60s ago
-        freshnessTtlMs: 10_000,                                  // TTL = 10s
+        freshnessTtlMs: 10_000, // TTL = 10s
       };
-      const result = evaluateActuation(baseIdentity, baseGrant, staleEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        staleEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('stale_envelope');
       expect(result.reason).toContain('stale');
@@ -603,15 +642,42 @@ describe('twin-earth-substrate contract', () => {
       const freshEnvelope: SafetyEnvelope = {
         ...baseEnvelope,
         updatedAt: new Date(Date.now() - 1_000).toISOString(), // 1s ago
-        freshnessTtlMs: 60_000,                                  // TTL = 60s
+        freshnessTtlMs: 60_000, // TTL = 60s
       };
-      const result = evaluateActuation(baseIdentity, baseGrant, freshEnvelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        freshEnvelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(true);
     });
 
     it('denies actuation when humanApprovalRequired but no approval granted', () => {
       const envelope: SafetyEnvelope = { ...baseEnvelope, humanApprovalRequired: true };
-      const result = evaluateActuation(baseIdentity, baseGrant, envelope, 'actuator:command', 'shard_1');
+      delete envelope.humanApprovalGrantedAt;
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        envelope,
+        'actuator:command',
+        'shard_1'
+      );
+      expect(result.allowed).toBe(false);
+      expect(result.blockingRule).toBe('human_approval_required');
+    });
+
+    it('denies physical-world actuation without human approval even when the envelope did not opt in', () => {
+      const envelope: SafetyEnvelope = { ...baseEnvelope, humanApprovalRequired: false };
+      delete envelope.humanApprovalGrantedAt;
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        envelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('human_approval_required');
     });
@@ -621,9 +687,15 @@ describe('twin-earth-substrate contract', () => {
         ...baseEnvelope,
         humanApprovalRequired: true,
         humanApprovalGrantedAt: new Date(Date.now() - 90_000).toISOString(), // 90s ago
-        humanApprovalTtlMs: 30_000,                                           // TTL = 30s
+        humanApprovalTtlMs: 30_000, // TTL = 30s
       };
-      const result = evaluateActuation(baseIdentity, baseGrant, envelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        envelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(false);
       expect(result.blockingRule).toBe('human_approval_required');
       expect(result.reason).toContain('expired');
@@ -634,9 +706,15 @@ describe('twin-earth-substrate contract', () => {
         ...baseEnvelope,
         humanApprovalRequired: true,
         humanApprovalGrantedAt: new Date(Date.now() - 1_000).toISOString(), // 1s ago
-        humanApprovalTtlMs: 60_000,                                          // TTL = 60s
+        humanApprovalTtlMs: 60_000, // TTL = 60s
       };
-      const result = evaluateActuation(baseIdentity, baseGrant, envelope, 'actuator:command', 'shard_1');
+      const result = evaluateActuation(
+        baseIdentity,
+        baseGrant,
+        envelope,
+        'actuator:command',
+        'shard_1'
+      );
       expect(result.allowed).toBe(true);
     });
   });

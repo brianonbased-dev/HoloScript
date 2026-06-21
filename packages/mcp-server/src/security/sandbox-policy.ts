@@ -114,6 +114,8 @@ export interface SandboxPolicy {
   receipt: DenialReceiptConfig;
   /** Default trust posture when source provenance is unknown */
   defaultPosture: 'hostile' | 'benign';
+  /** Action classes that are denied by default unless a runtime gate explicitly re-allows them. */
+  defaultBlockedActions: string[];
 }
 
 // ── Sandbox Subject ──────────────────────────────────────────────────────────
@@ -178,6 +180,14 @@ export interface SandboxGateResult {
 
 // ── Default Policies ─────────────────────────────────────────────────────────
 
+export const SYSTEM_DEFAULT_BLOCKED_ACTIONS = [
+  'identity:revoke',
+  'contract:ratify',
+  'actuator:command',
+  'robot:move',
+  'robot:task:execute',
+];
+
 export const DEFAULT_SENSITIVE_POLICY: SandboxPolicy = {
   policyId: 'holoscript-sensitive-default-v1',
   description:
@@ -216,6 +226,7 @@ export const DEFAULT_SENSITIVE_POLICY: SandboxPolicy = {
     includePayload: false,
   },
   defaultPosture: 'hostile',
+  defaultBlockedActions: [...SYSTEM_DEFAULT_BLOCKED_ACTIONS],
 };
 
 export const DEFAULT_BENIGN_POLICY: SandboxPolicy = {
@@ -252,6 +263,7 @@ export const DEFAULT_BENIGN_POLICY: SandboxPolicy = {
     maxNestedCalls: 5,
   },
   defaultPosture: 'benign',
+  defaultBlockedActions: [],
 };
 
 // ── Policy Resolution ──────────────────────────────────────────────────────

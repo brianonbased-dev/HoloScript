@@ -437,11 +437,18 @@ export interface ActuationResult {
  * These are the highest-consequence, hardest-to-reverse action classes.
  */
 export const DEFAULT_BLOCKED_ACTIONS: TwinEarthAction[] = [
-  'identity:revoke',     // permanent identity termination — requires founder auth
-  'contract:ratify',     // governance mutation — requires multi-party sign-off
-  'actuator:command',    // physical-world actuation — explicit allow + human accountability
-  'robot:move',          // physical movement — same
-  'robot:task:execute',  // physical task execution — same
+  'identity:revoke', // permanent identity termination — requires founder auth
+  'contract:ratify', // governance mutation — requires multi-party sign-off
+  'actuator:command', // physical-world actuation — explicit allow + human accountability
+  'robot:move', // physical movement — same
+  'robot:task:execute', // physical task execution — same
+];
+
+/** Physical-world action classes always require recent human accountability. */
+export const PHYSICAL_WORLD_ACTIONS: TwinEarthAction[] = [
+  'actuator:command',
+  'robot:move',
+  'robot:task:execute',
 ];
 
 /**
@@ -452,9 +459,11 @@ export const DEFAULT_BLOCKED_ACTIONS: TwinEarthAction[] = [
  * 2. Safety envelope is substrate-enforced.
  * 3. Action is in envelope allowedActions (if whitelist is non-empty).
  * 4. Action is NOT in envelope blockedActions (blacklist overrides whitelist).
- * 5. Permission grant is valid and covers the requested action + scope.
- * 6. Grant has not expired.
- * 7. Grant has not been revoked.
+ * 5. Default-blocked actions are explicitly allowlisted.
+ * 6. Default-blocked actions use a fresh envelope.
+ * 7. Physical-world actions have recent human approval.
+ * 8. Permission grant is valid and covers the requested action + scope.
+ * 9. Grant has not expired or been revoked.
  */
 export function evaluateActuation(
   identity: TwinEarthIdentity,
@@ -513,7 +522,9 @@ export function evaluateActuation(
   // 11b. Default-block check (D.044): high-risk actions are blocked unless
   // they appear explicitly in the allowedActions whitelist.
   const isExplicitlyAllowed = envelope.allowedActions.includes(action);
-  if (!isExplicitlyAllowed && DEFAULT_BLOCKED_ACTIONS.includes(action)) {
+  const isDefaultBlockedAction = DEFAULT_BLOCKED_ACTIONS.includes(action);
+  const isPhysicalWorldAction = PHYSICAL_WORLD_ACTIONS.includes(action);
+  if (!isExplicitlyAllowed && isDefaultBlockedAction) {
     return {
       allowed: false,
       reason: `Action '${action}' is default-blocked (high-risk). Add it to allowedActions to permit.`,
@@ -522,9 +533,24 @@ export function evaluateActuation(
   }
 
   // 11c. Freshness check (D.044): stale envelopes cannot authorize actuation.
-  if (envelope.updatedAt) {
+  if (isDefaultBlockedAction || envelope.updatedAt) {
+    if (!envelope.updatedAt) {
+      return {
+        allowed: false,
+        reason: `Safety envelope for high-risk action '${action}' has no updatedAt timestamp. Re-issue the envelope.`,
+        blockingRule: 'stale_envelope',
+      };
+    }
     const ttl = envelope.freshnessTtlMs ?? 30 * 24 * 60 * 60 * 1000; // 30 days default
-    const age = Date.now() - new Date(envelope.updatedAt).getTime();
+    const updatedAtMs = new Date(envelope.updatedAt).getTime();
+    if (!Number.isFinite(updatedAtMs)) {
+      return {
+        allowed: false,
+        reason: `Safety envelope updatedAt is invalid: ${envelope.updatedAt}. Re-issue the envelope.`,
+        blockingRule: 'stale_envelope',
+      };
+    }
+    const age = Date.now() - updatedAtMs;
     if (age > ttl) {
       return {
         allowed: false,
@@ -535,17 +561,25 @@ export function evaluateActuation(
   }
 
   // 11d. Human accountability check (D.044): physical-world actions require
-  // a recent human approval when the envelope mandates it.
-  if (envelope.humanApprovalRequired) {
+  // a recent human approval. Envelopes may also require it for non-physical actions.
+  if (envelope.humanApprovalRequired || isPhysicalWorldAction) {
     if (!envelope.humanApprovalGrantedAt) {
       return {
         allowed: false,
-        reason: 'Envelope requires human approval; none has been granted.',
+        reason: `Action '${action}' requires human approval; none has been granted.`,
         blockingRule: 'human_approval_required',
       };
     }
     const approvalTtl = envelope.humanApprovalTtlMs ?? 24 * 60 * 60 * 1000; // 24h default
-    const approvalAge = Date.now() - new Date(envelope.humanApprovalGrantedAt).getTime();
+    const approvalGrantedAtMs = new Date(envelope.humanApprovalGrantedAt).getTime();
+    if (!Number.isFinite(approvalGrantedAtMs)) {
+      return {
+        allowed: false,
+        reason: `Human approval timestamp is invalid: ${envelope.humanApprovalGrantedAt}. Re-approve to proceed.`,
+        blockingRule: 'human_approval_required',
+      };
+    }
+    const approvalAge = Date.now() - approvalGrantedAtMs;
     if (approvalAge > approvalTtl) {
       return {
         allowed: false,

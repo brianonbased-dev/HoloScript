@@ -11,6 +11,9 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, resolve } from 'node:path';
 import {
   type TwinEarthIdentity,
   type PermissionGrant,
@@ -53,11 +56,16 @@ export interface StoredSafetyEnvelope {
   deterministic: boolean;
   localOnly: boolean;
   substrateEnforced: boolean;
+  updatedAt?: string;
+  freshnessTtlMs?: number;
+  humanApprovalRequired?: boolean;
+  humanApprovalGrantedAt?: string;
+  humanApprovalTtlMs?: number;
   createdAt: string;
   modifiedAt: string;
 }
 
-interface StoredPermissionGrant {
+export interface StoredPermissionGrant {
   granteeId: string;
   granterId: string;
   action: string;
@@ -91,6 +99,118 @@ export const safetyEnvelopeRegistry = new Map<string, StoredSafetyEnvelope>();
 export const permissionGrantRegistry = new Map<string, StoredPermissionGrant>();
 export const twinEarthReceiptRegistry = new Map<string, StoredTwinEarthReceipt>();
 
+const PHYSICAL_WORLD_ACTIONS = ['actuator:command', 'robot:move', 'robot:task:execute'] as const;
+
+export interface RobotAiRegistrySnapshot {
+  version: 1;
+  updatedAt: string;
+  identities: StoredTwinEarthIdentity[];
+  safetyEnvelopes: StoredSafetyEnvelope[];
+  permissionGrants: StoredPermissionGrant[];
+  receipts: StoredTwinEarthReceipt[];
+}
+
+export interface RobotAiRegistryPersistenceOptions {
+  /** Load the snapshot immediately after changing the persistence path. */
+  load?: boolean;
+}
+
+const DEFAULT_ROBOT_AI_REGISTRY_PATH = resolve(
+  homedir(),
+  '.holoscript',
+  'twin-earth-registries.json'
+);
+
+function initialRobotAiRegistryPath(): string | null {
+  if (process.env.TWIN_EARTH_REGISTRY_PERSISTENCE === '0') {
+    return null;
+  }
+  const configured = process.env.TWIN_EARTH_REGISTRY_PATH ?? process.env.ROBOT_AI_REGISTRY_PATH;
+  if (configured) {
+    return resolve(configured);
+  }
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+    return null;
+  }
+  return DEFAULT_ROBOT_AI_REGISTRY_PATH;
+}
+
+let robotAiRegistryPersistencePath: string | null = initialRobotAiRegistryPath();
+
+export function getRobotAiRegistryPersistencePath(): string | null {
+  return robotAiRegistryPersistencePath;
+}
+
+export function configureRobotAiRegistryPersistence(
+  path: string | null,
+  options: RobotAiRegistryPersistenceOptions = {}
+): void {
+  robotAiRegistryPersistencePath = path ? resolve(path) : null;
+  if (options.load) {
+    loadRobotAiRegistries();
+  }
+}
+
+function snapshotRobotAiRegistries(): RobotAiRegistrySnapshot {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    identities: Array.from(twinEarthIdentityRegistry.values()),
+    safetyEnvelopes: Array.from(safetyEnvelopeRegistry.values()),
+    permissionGrants: Array.from(permissionGrantRegistry.values()),
+    receipts: Array.from(twinEarthReceiptRegistry.values()),
+  };
+}
+
+function requireArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+export function loadRobotAiRegistries(path = robotAiRegistryPersistencePath): boolean {
+  if (!path || !existsSync(path)) {
+    return false;
+  }
+
+  const snapshot = JSON.parse(readFileSync(path, 'utf8')) as Partial<RobotAiRegistrySnapshot>;
+  twinEarthIdentityRegistry.clear();
+  safetyEnvelopeRegistry.clear();
+  permissionGrantRegistry.clear();
+  twinEarthReceiptRegistry.clear();
+
+  for (const identity of requireArray<StoredTwinEarthIdentity>(snapshot.identities)) {
+    twinEarthIdentityRegistry.set(identity.agentId, identity);
+  }
+  for (const envelope of requireArray<StoredSafetyEnvelope>(snapshot.safetyEnvelopes)) {
+    safetyEnvelopeRegistry.set(envelope.id, envelope);
+  }
+  for (const grant of requireArray<StoredPermissionGrant>(snapshot.permissionGrants)) {
+    permissionGrantRegistry.set(grant.hash, grant);
+  }
+  for (const receipt of requireArray<StoredTwinEarthReceipt>(snapshot.receipts)) {
+    twinEarthReceiptRegistry.set(receipt.id, receipt);
+  }
+  return true;
+}
+
+export function flushRobotAiRegistries(path = robotAiRegistryPersistencePath): boolean {
+  if (!path) {
+    return false;
+  }
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(snapshotRobotAiRegistries(), null, 2)}\n`, 'utf8');
+  return true;
+}
+
+function persistRobotAiRegistries(): void {
+  flushRobotAiRegistries();
+}
+
+function includesPhysicalWorldAction(actions: string[]): boolean {
+  return actions.some((action) =>
+    PHYSICAL_WORLD_ACTIONS.includes(action as SafetyEnvelope['allowedActions'][number])
+  );
+}
+
 function genId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -116,11 +236,24 @@ export function getRobotDispatcher(): RobotDispatcher {
 }
 
 /** Clear all in-memory registries ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â used by tests for isolation. */
-export function clearRobotAiRegistries(): void {
+export function clearRobotAiRegistries(options: { persist?: boolean } = {}): void {
   twinEarthIdentityRegistry.clear();
   safetyEnvelopeRegistry.clear();
   permissionGrantRegistry.clear();
   twinEarthReceiptRegistry.clear();
+  if (options.persist !== false) {
+    persistRobotAiRegistries();
+  }
+}
+
+try {
+  loadRobotAiRegistries();
+} catch (error) {
+  console.warn(
+    `[robot-ai-mcp-tools] failed to load Twin Earth registry snapshot: ${
+      error instanceof Error ? error.message : String(error)
+    }`
+  );
 }
 
 async function simpleHash(input: string): Promise<string> {
@@ -307,6 +440,23 @@ export const robotAiMcpTools: Tool[] = [
           type: 'boolean',
           description: 'Block all outbound network calls. Default: false.',
         },
+        freshnessTtlMs: {
+          type: 'number',
+          description: 'Max envelope age before high-risk actuation is rejected.',
+        },
+        humanApprovalRequired: {
+          type: 'boolean',
+          description:
+            'Require recent human approval. Defaults true when physical actions are allowlisted.',
+        },
+        humanApprovalGrantedAt: {
+          type: 'string',
+          description: 'ISO-8601 timestamp of the most recent human approval.',
+        },
+        humanApprovalTtlMs: {
+          type: 'number',
+          description: 'Max human approval age before re-approval is required.',
+        },
       },
       required: ['agentId'],
     },
@@ -336,6 +486,10 @@ export const robotAiMcpTools: Tool[] = [
         blockedActions: { type: 'array', items: { type: 'string' } },
         deterministic: { type: 'boolean' },
         localOnly: { type: 'boolean' },
+        freshnessTtlMs: { type: 'number' },
+        humanApprovalRequired: { type: 'boolean' },
+        humanApprovalGrantedAt: { type: 'string' },
+        humanApprovalTtlMs: { type: 'number' },
       },
       required: ['envelopeId'],
     },
@@ -606,6 +760,7 @@ async function handleTwinEarthRegisterIdentity(args: Record<string, unknown>): P
   };
 
   twinEarthIdentityRegistry.set(agentId, identity);
+  persistRobotAiRegistries();
 
   return {
     success: true,
@@ -666,6 +821,7 @@ async function handleTwinEarthUpdateIdentity(args: Record<string, unknown>): Pro
   if (args.mode) identity.mode = args.mode as string;
   if (args.brainCompositionId) identity.brainCompositionId = args.brainCompositionId as string;
   identity.modifiedAt = new Date().toISOString();
+  persistRobotAiRegistries();
 
   return { success: true, agentId, identity };
 }
@@ -703,6 +859,7 @@ async function handleTwinEarthRevokeIdentity(args: Record<string, unknown>): Pro
       safetyEnvelopeRegistry.delete(envelope.id);
     }
   }
+  persistRobotAiRegistries();
 
   return { success: true, agentId, revoked: true, revokedAt: identity.revokedAt };
 }
@@ -753,22 +910,34 @@ async function handleTwinEarthCreateSafetyEnvelope(
     };
   }
 
+  const now = new Date().toISOString();
+  const allowedActions = (args.allowedActions as string[]) ?? [];
+  const humanApprovalRequired =
+    (args.humanApprovalRequired as boolean | undefined) ??
+    includesPhysicalWorldAction(allowedActions);
+
   const envelope: StoredSafetyEnvelope = {
     id: envelopeId,
     agentId,
     maxTickDurationMs: (args.maxTickDurationMs as number) ?? 1000,
     maxMemoryBytes: (args.maxMemoryBytes as number) ?? 536870912,
     maxNetworkCallsPerMinute: (args.maxNetworkCallsPerMinute as number) ?? 60,
-    allowedActions: (args.allowedActions as string[]) ?? [],
+    allowedActions,
     blockedActions: (args.blockedActions as string[]) ?? [],
     deterministic: (args.deterministic as boolean) ?? false,
     localOnly: (args.localOnly as boolean) ?? false,
     substrateEnforced: true,
-    createdAt: new Date().toISOString(),
-    modifiedAt: new Date().toISOString(),
+    updatedAt: now,
+    freshnessTtlMs: (args.freshnessTtlMs as number | undefined) ?? undefined,
+    humanApprovalRequired,
+    humanApprovalGrantedAt: (args.humanApprovalGrantedAt as string | undefined) ?? undefined,
+    humanApprovalTtlMs: (args.humanApprovalTtlMs as number | undefined) ?? undefined,
+    createdAt: now,
+    modifiedAt: now,
   };
 
   safetyEnvelopeRegistry.set(envelopeId, envelope);
+  persistRobotAiRegistries();
 
   return {
     success: true,
@@ -802,11 +971,28 @@ async function handleTwinEarthUpdateSafetyEnvelope(
   if (args.maxMemoryBytes !== undefined) envelope.maxMemoryBytes = args.maxMemoryBytes as number;
   if (args.maxNetworkCallsPerMinute !== undefined)
     envelope.maxNetworkCallsPerMinute = args.maxNetworkCallsPerMinute as number;
-  if (args.allowedActions !== undefined) envelope.allowedActions = args.allowedActions as string[];
+  if (args.allowedActions !== undefined) {
+    envelope.allowedActions = args.allowedActions as string[];
+    if (
+      args.humanApprovalRequired === undefined &&
+      includesPhysicalWorldAction(envelope.allowedActions)
+    ) {
+      envelope.humanApprovalRequired = true;
+    }
+  }
   if (args.blockedActions !== undefined) envelope.blockedActions = args.blockedActions as string[];
   if (args.deterministic !== undefined) envelope.deterministic = args.deterministic as boolean;
   if (args.localOnly !== undefined) envelope.localOnly = args.localOnly as boolean;
-  envelope.modifiedAt = new Date().toISOString();
+  if (args.freshnessTtlMs !== undefined) envelope.freshnessTtlMs = args.freshnessTtlMs as number;
+  if (args.humanApprovalRequired !== undefined)
+    envelope.humanApprovalRequired = args.humanApprovalRequired as boolean;
+  if (args.humanApprovalGrantedAt !== undefined)
+    envelope.humanApprovalGrantedAt = args.humanApprovalGrantedAt as string;
+  if (args.humanApprovalTtlMs !== undefined)
+    envelope.humanApprovalTtlMs = args.humanApprovalTtlMs as number;
+  envelope.updatedAt = new Date().toISOString();
+  envelope.modifiedAt = envelope.updatedAt;
+  persistRobotAiRegistries();
 
   return { success: true, envelopeId, envelope };
 }
@@ -830,6 +1016,7 @@ async function handleTwinEarthDeleteSafetyEnvelope(
   }
 
   safetyEnvelopeRegistry.delete(envelopeId);
+  persistRobotAiRegistries();
   return { success: true, envelopeId, deleted: true };
 }
 
@@ -886,6 +1073,7 @@ async function handleTwinEarthGrantPermission(args: Record<string, unknown>): Pr
   };
 
   permissionGrantRegistry.set(hash, grant);
+  persistRobotAiRegistries();
 
   return { success: true, grantHash: hash, granteeId, granterId, action, scope, expiresAt };
 }
@@ -914,6 +1102,7 @@ async function handleTwinEarthRevokePermission(args: Record<string, unknown>): P
   }
 
   grant.revocationSignature = revocationSignature;
+  persistRobotAiRegistries();
   return { success: true, grantHash, revoked: true };
 }
 
@@ -1033,6 +1222,11 @@ async function handleTwinEarthRobotActuate(
     blockedActions: storedEnvelope.blockedActions as SafetyEnvelope['blockedActions'],
     deterministic: storedEnvelope.deterministic,
     localOnly: storedEnvelope.localOnly,
+    updatedAt: storedEnvelope.updatedAt,
+    freshnessTtlMs: storedEnvelope.freshnessTtlMs,
+    humanApprovalRequired: storedEnvelope.humanApprovalRequired,
+    humanApprovalGrantedAt: storedEnvelope.humanApprovalGrantedAt,
+    humanApprovalTtlMs: storedEnvelope.humanApprovalTtlMs,
     substrateEnforced: storedEnvelope.substrateEnforced, // THIN (ratchet P5): flag copied from in-memory registry but never enforced by a substrate Ã¢â‚¬â€ client self-reports the value
   };
 
@@ -1116,6 +1310,7 @@ async function handleTwinEarthRobotActuate(
     ...(receipt.payloadHash ? { payloadHash: receipt.payloadHash } : {}),
   };
   twinEarthReceiptRegistry.set(receipt.id, stored);
+  persistRobotAiRegistries();
 
   return {
     success: true,
@@ -1224,6 +1419,7 @@ async function handleTwinEarthAIInvoke(args: Record<string, unknown>): Promise<u
   };
 
   twinEarthReceiptRegistry.set(receiptId, receipt);
+  persistRobotAiRegistries();
 
   return {
     success: true,
@@ -1270,6 +1466,7 @@ async function handleTwinEarthCaptureReceipt(args: Record<string, unknown>): Pro
   };
 
   twinEarthReceiptRegistry.set(receiptId, receipt);
+  persistRobotAiRegistries();
 
   return {
     success: true,
