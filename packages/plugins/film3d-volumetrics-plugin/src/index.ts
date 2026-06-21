@@ -24,6 +24,8 @@ export {
   buildInsetPerimeterTraversal,
   buildSemanticGCodePreamble,
   buildTraversalStackFromMesh,
+  serializeTraversalStackToGCode,
+  writeGCodeFile,
 } from './traits/GCodeSlicerTrait';
 export * from './traits/types';
 

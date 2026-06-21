@@ -1,4 +1,7 @@
 /** @gcode_slicer Trait — Volumetric extraction to GCode for 3D printing. @trait gcode_slicer */
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import type { TraitHandler, HSPlusNode, TraitContext, TraitEvent } from './types';
 
 /**
@@ -24,6 +27,8 @@ export interface GCodeSlicerConfig extends GCodeSemanticParams {
   layerHeightMm: number;
   infillPercent: number;
   printSpeedMmS: number;
+  /** Optional default output path for generated .gcode files. */
+  outputGCodePath?: string;
 }
 
 export interface MeshSliceInput {
@@ -56,6 +61,22 @@ export interface GCodeSlicerState {
   traversal?: TraversalLayerPlan[];
   /** Short G-code preamble reflecting current semantic params */
   gcodePreamble?: string;
+}
+
+type GCodeWriteFile = (path: string, contents: string) => Promise<void> | void;
+
+interface GCodeFileSystemCapability {
+  writeFile?: GCodeWriteFile;
+}
+
+interface GCodeHostCapabilityContext {
+  fileSystem?: GCodeFileSystemCapability;
+  hostCapabilities?: {
+    fileSystem?: GCodeFileSystemCapability;
+  };
+  outputGCodePath?: unknown;
+  gcodeOutputPath?: unknown;
+  writeFile?: unknown;
 }
 
 const defaultConfig: GCodeSlicerConfig = {
@@ -206,6 +227,128 @@ export function buildTraversalStackFromMesh(
   return plans;
 }
 
+function formatMm(value: number): string {
+  return Number.isFinite(value) ? value.toFixed(3) : '0.000';
+}
+
+function segmentLengthMm(a: [number, number, number], b: [number, number, number]): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const dz = b[2] - a[2];
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function pickString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function outputPathFromEvent(e: TraitEvent, c: GCodeSlicerConfig, ctx: TraitContext): string {
+  const payload = e.payload ?? {};
+  const host = ctx as TraitContext & GCodeHostCapabilityContext;
+  const candidate =
+    pickString(
+      payload.outputGCodePath,
+      payload.outputPath,
+      payload.filePath,
+      payload.path,
+      c.outputGCodePath,
+      host.outputGCodePath,
+      host.gcodeOutputPath
+    ) ?? join(tmpdir(), 'holoscript_output.gcode');
+  return resolve(candidate);
+}
+
+export function serializeTraversalStackToGCode(
+  c: GCodeSlicerConfig,
+  traversal: TraversalLayerPlan[],
+  preamble: string
+): string {
+  const feedRate = Math.max(1, Math.round(c.printSpeedMmS * 60));
+  const travelFeedRate = Math.max(feedRate, 6000);
+  const extrusionPerMm = Math.max(0.001, c.layerHeightMm * 0.045);
+  const lines: string[] = [
+    preamble.trimEnd(),
+    '; traversal generated from HoloScript semantic layer plans',
+    'M82 ; absolute extrusion',
+    'G92 E0 ; reset extrusion distance',
+  ];
+  let extrusionMm = 0;
+
+  for (let layerIndex = 0; layerIndex < traversal.length; layerIndex += 1) {
+    const layer = traversal[layerIndex]!;
+    const points = layer.pointsMm;
+    if (points.length === 0) continue;
+    const first = points[0]!;
+    lines.push(
+      `; layer ${layerIndex} Z=${formatMm(layer.layerZMm)} points=${points.length}`,
+      `G0 Z${formatMm(layer.layerZMm)} F${travelFeedRate}`,
+      `G0 X${formatMm(first[0])} Y${formatMm(first[1])} F${travelFeedRate}`
+    );
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1]!;
+      const point = points[i]!;
+      extrusionMm += segmentLengthMm(prev, point) * extrusionPerMm;
+      lines.push(
+        `G1 X${formatMm(point[0])} Y${formatMm(point[1])} Z${formatMm(point[2])} E${formatMm(
+          extrusionMm
+        )} F${feedRate}`
+      );
+    }
+  }
+
+  lines.push(
+    '; end sequence',
+    'M104 S0 ; turn off nozzle',
+    'M140 S0 ; turn off bed',
+    'G91 ; relative positioning',
+    'G1 E-1 F1800 ; retract',
+    'G90 ; absolute positioning',
+    'G28 X Y ; home XY',
+    'M84 ; disable motors'
+  );
+  return `${lines.join('\n')}\n`;
+}
+
+function getContextWriteFile(ctx?: TraitContext): GCodeWriteFile | undefined {
+  const host = ctx as (TraitContext & GCodeHostCapabilityContext) | undefined;
+  if (typeof host?.hostCapabilities?.fileSystem?.writeFile === 'function') {
+    return host.hostCapabilities.fileSystem.writeFile;
+  }
+  if (typeof host?.fileSystem?.writeFile === 'function') {
+    return host.fileSystem.writeFile;
+  }
+  if (typeof host?.writeFile === 'function') {
+    return host.writeFile as GCodeWriteFile;
+  }
+  return undefined;
+}
+
+export async function writeGCodeFile(
+  outputPath: string,
+  contents: string,
+  ctx?: TraitContext
+): Promise<void> {
+  const contextWriteFile = getContextWriteFile(ctx);
+  if (contextWriteFile) {
+    await contextWriteFile(outputPath, contents);
+    return;
+  }
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, contents, 'utf8');
+}
+
+function byteLength(value: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(value).byteLength;
+  }
+  return value.length;
+}
+
 export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
   return {
     name: 'gcode_slicer',
@@ -278,19 +421,30 @@ export function createGCodeSlicerHandler(): TraitHandler<GCodeSlicerConfig> {
         s.estimatedPrintTimeMs =
           (volumeEstimate / Math.max(0.01, c.printSpeedMmS * c.layerHeightMm)) * 1000;
 
-        setTimeout(() => {
-          s.isSlicing = false;
-          s.progressPercent = 100;
-          s.outputGCodePath = '/tmp/holoscript_output.gcode';
-          const preamble = s.gcodePreamble ?? buildSemanticGCodePreamble(c, s.mesh);
-          ctx.emit?.('gcode_slicer:completed', {
-            path: s.outputGCodePath,
-            estimatedTimeMs: s.estimatedPrintTimeMs,
-            preamble,
-            adhesionPlan: s.adhesionPlan,
-            traversal: s.traversal,
+        const outputPath = outputPathFromEvent(e);
+        const preamble = s.gcodePreamble ?? buildSemanticGCodePreamble(c, s.mesh);
+        const traversal = s.traversal ?? [];
+        const gcode = serializeTraversalStackToGCode(c, traversal, preamble);
+
+        void writeGCodeFile(outputPath, gcode)
+          .then(() => {
+            s.isSlicing = false;
+            s.progressPercent = 100;
+            s.outputGCodePath = outputPath;
+            ctx.emit?.('gcode_slicer:completed', {
+              path: s.outputGCodePath,
+              bytes: gcode.length,
+              estimatedTimeMs: s.estimatedPrintTimeMs,
+              preamble,
+              adhesionPlan: s.adhesionPlan,
+              traversal,
+            });
+          })
+          .catch((err: unknown) => {
+            s.isSlicing = false;
+            const message = err instanceof Error ? err.message : String(err);
+            ctx.emit?.('gcode_slicer:error', { path: outputPath, error: message });
           });
-        }, 1500);
       }
     },
   };
