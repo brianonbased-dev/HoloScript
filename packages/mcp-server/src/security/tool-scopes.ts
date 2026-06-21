@@ -58,6 +58,11 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   convert_format: ['tools:write'],
   edit_holo: ['tools:write'],
   generate_3d_object: ['tools:write'],
+  compose_workflow: ['tools:write'],
+  execute_workflow: ['tools:write'],
+  workflow_memory_write: ['tools:write'],
+  workflow_memory_read: ['tools:read'],
+  workflow_memory_subscribe: ['tools:read'],
 
   // === HoloLand MCP tools (world CRUD + MMO + Twin Earth) ===
   generate_world: ['tools:write'],

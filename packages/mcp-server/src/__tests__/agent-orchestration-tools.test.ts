@@ -7,6 +7,9 @@
  * Part of HoloScript v5.5 "Agents as Universal Orchestrators".
  */
 
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   agentOrchestrationTools,
@@ -14,13 +17,18 @@ import {
   resetOrchestrationSingletons,
 } from '../agent-orchestration-tools';
 import { getDefaultRegistry, resetDefaultRegistry } from '@holoscript/framework/agents';
+import { setWorkflowMemoryStoreForTest, WorkflowMemoryStore } from '../workflow-memory';
 
 // =============================================================================
 // SETUP
 // =============================================================================
 
 describe('Agent Orchestration MCP Tools', () => {
+  let tempMemoryDir: string;
+
   beforeEach(() => {
+    tempMemoryDir = mkdtempSync(join(tmpdir(), 'holoscript-workflow-memory-test-'));
+    setWorkflowMemoryStoreForTest(new WorkflowMemoryStore(tempMemoryDir));
     resetDefaultRegistry();
     resetOrchestrationSingletons();
   });
@@ -28,6 +36,8 @@ describe('Agent Orchestration MCP Tools', () => {
   afterEach(() => {
     resetDefaultRegistry();
     resetOrchestrationSingletons();
+    setWorkflowMemoryStoreForTest(null);
+    rmSync(tempMemoryDir, { recursive: true, force: true });
   });
 
   // ===========================================================================
@@ -35,8 +45,8 @@ describe('Agent Orchestration MCP Tools', () => {
   // ===========================================================================
 
   describe('tool definitions', () => {
-    it('exports 5 tools', () => {
-      expect(agentOrchestrationTools).toHaveLength(5);
+    it('exports 8 tools', () => {
+      expect(agentOrchestrationTools).toHaveLength(8);
     });
 
     it('all tools have name, description, and inputSchema', () => {
@@ -55,6 +65,9 @@ describe('Agent Orchestration MCP Tools', () => {
       expect(names).toContain('get_task_status');
       expect(names).toContain('compose_workflow');
       expect(names).toContain('execute_workflow');
+      expect(names).toContain('workflow_memory_write');
+      expect(names).toContain('workflow_memory_read');
+      expect(names).toContain('workflow_memory_subscribe');
     });
 
     it('delegate_task requires skillId and arguments', () => {
@@ -100,6 +113,14 @@ describe('Agent Orchestration MCP Tools', () => {
       });
       expect(result).toBeDefined();
       expect((result as Record<string, unknown>).valid).toBe(true);
+    });
+
+    it('routes workflow_memory_read correctly', async () => {
+      const result = await handleAgentOrchestrationTool('workflow_memory_read', {
+        workflowRunId: 'routing-run',
+      });
+      expect(result).toBeDefined();
+      expect((result as Record<string, unknown>).success).toBe(true);
     });
   });
 
@@ -262,6 +283,25 @@ describe('Agent Orchestration MCP Tools', () => {
       >;
       expect(result.valid).toBe(false);
     });
+
+    it('returns workflow memory plan when configured', async () => {
+      const result = (await handleAgentOrchestrationTool('compose_workflow', {
+        name: 'memory-plan',
+        workflowMemory: {
+          enabled: true,
+          runId: 'wf-memory-plan',
+          schema: { facts: { type: 'array' } },
+          assignedAgentIds: ['agent-a', 'agent-b'],
+        },
+        steps: [{ id: 'a', skillId: 'parse_hs' }],
+      })) as Record<string, unknown>;
+
+      expect(result.valid).toBe(true);
+      const memory = result.workflowMemory as Record<string, unknown>;
+      expect(memory.runId).toBe('wf-memory-plan');
+      expect(memory.schemaKeys).toEqual(['facts']);
+      expect(memory.assignedAgentIds).toEqual(['agent-a', 'agent-b']);
+    });
   });
 
   // ===========================================================================
@@ -333,6 +373,124 @@ describe('Agent Orchestration MCP Tools', () => {
         unknown
       >;
       expect(result.status).toBe('failed');
+    });
+
+    it('creates and garbage-collects workflow memory on completion', async () => {
+      const result = (await handleAgentOrchestrationTool('execute_workflow', {
+        name: 'memory-exec',
+        workflowMemory: {
+          enabled: true,
+          runId: 'wf-memory-exec',
+          schema: { __workflow_context__: { type: 'object' } },
+          gcOnCompletion: true,
+        },
+        context: { requestId: 'req-1' },
+        steps: [{ id: 'a', skillId: 'test_skill', inputs: { x: 1 } }],
+      })) as Record<string, unknown>;
+
+      expect(result.status).toBe('dry-run');
+      const memory = result.workflowMemory as Record<string, unknown>;
+      expect(memory.gc).toBe(true);
+      expect(typeof memory.finalSnapshotBase64).toBe('string');
+
+      const readAfterGc = (await handleAgentOrchestrationTool('workflow_memory_read', {
+        workflowRunId: 'wf-memory-exec',
+      })) as Record<string, unknown>;
+      expect(readAfterGc.success).toBe(true);
+      expect(readAfterGc.persisted).toBe(false);
+      expect(readAfterGc.totalKeys).toBe(0);
+    });
+  });
+
+  // ===========================================================================
+  // WORKFLOW_MEMORY
+  // ===========================================================================
+
+  describe('workflow_memory_*', () => {
+    it('writes typed memory and reads it after store re-instantiation', async () => {
+      const write = (await handleAgentOrchestrationTool('workflow_memory_write', {
+        workflowRunId: 'wf-shared-memory',
+        key: 'facts',
+        value: ['alpha', 'beta'],
+        agentId: 'agent-a',
+        schema: { facts: { type: 'array' } },
+        assignedAgentIds: ['agent-a', 'agent-b'],
+      })) as Record<string, unknown>;
+
+      expect(write.success).toBe(true);
+      expect((write.entry as Record<string, unknown>).schemaType).toBe('array');
+
+      setWorkflowMemoryStoreForTest(new WorkflowMemoryStore(tempMemoryDir));
+
+      const read = (await handleAgentOrchestrationTool('workflow_memory_read', {
+        workflowRunId: 'wf-shared-memory',
+        key: 'facts',
+        includeSnapshot: true,
+      })) as Record<string, unknown>;
+
+      expect(read.success).toBe(true);
+      expect(read.persisted).toBe(true);
+      expect(typeof read.snapshotBase64).toBe('string');
+      const entry = read.entry as Record<string, unknown>;
+      expect(entry.value).toEqual(['alpha', 'beta']);
+    });
+
+    it('rejects writers outside the assigned workflow agent set', async () => {
+      const result = (await handleAgentOrchestrationTool('workflow_memory_write', {
+        workflowRunId: 'wf-assigned',
+        key: 'claim',
+        value: 'owned by agent-a',
+        agentId: 'agent-z',
+        assignedAgentIds: ['agent-a'],
+      })) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not assigned');
+    });
+
+    it('returns cursor-based subscription events', async () => {
+      await handleAgentOrchestrationTool('workflow_memory_write', {
+        workflowRunId: 'wf-subscribe',
+        key: 'step.plan',
+        value: { status: 'ready' },
+        agentId: 'agent-a',
+      });
+      await handleAgentOrchestrationTool('workflow_memory_write', {
+        workflowRunId: 'wf-subscribe',
+        key: 'step.result',
+        value: { status: 'done' },
+        agentId: 'agent-b',
+      });
+
+      const first = (await handleAgentOrchestrationTool('workflow_memory_subscribe', {
+        workflowRunId: 'wf-subscribe',
+        sinceCursor: 0,
+      })) as Record<string, unknown>;
+
+      expect(first.success).toBe(true);
+      expect(first.eventCount).toBe(2);
+      expect(first.nextCursor).toBe(2);
+
+      const second = (await handleAgentOrchestrationTool('workflow_memory_subscribe', {
+        workflowRunId: 'wf-subscribe',
+        sinceCursor: 1,
+      })) as Record<string, unknown>;
+
+      expect(second.eventCount).toBe(1);
+      expect((second.events as Array<Record<string, unknown>>)[0].key).toBe('step.result');
+    });
+
+    it('enforces configured schema type', async () => {
+      const result = (await handleAgentOrchestrationTool('workflow_memory_write', {
+        workflowRunId: 'wf-schema',
+        key: 'score',
+        value: 'not-a-number',
+        agentId: 'agent-a',
+        schema: { score: { type: 'number' } },
+      })) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('expects number');
     });
   });
 });

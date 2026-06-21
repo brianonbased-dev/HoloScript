@@ -667,7 +667,10 @@ export async function handleTool(
     name === 'delegate_task' ||
     name === 'get_task_status' ||
     name === 'compose_workflow' ||
-    name === 'execute_workflow'
+    name === 'execute_workflow' ||
+    name === 'workflow_memory_write' ||
+    name === 'workflow_memory_read' ||
+    name === 'workflow_memory_subscribe'
   ) {
     const { handleAgentOrchestrationTool } = await import('./agent-orchestration-tools');
     // Wire a real tool executor so execute_workflow steps actually invoke MCP tools

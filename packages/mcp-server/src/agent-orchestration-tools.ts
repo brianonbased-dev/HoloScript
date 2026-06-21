@@ -7,6 +7,7 @@
  * - get_task_status: Check status of a delegated task
  * - compose_workflow: Define and validate a skill workflow DAG
  * - execute_workflow: Run a validated workflow
+ * - workflow_memory_*: Durable Loro CRDT memory scoped to a workflow run
  *
  * Part of HoloScript v5.5 "Agents as Universal Orchestrators".
  *
@@ -26,6 +27,11 @@ import {
   type WorkflowInput,
   type CapabilityQuery,
 } from '@holoscript/framework/agents';
+import {
+  getWorkflowMemoryStore,
+  normalizeWorkflowMemoryConfig,
+  type WorkflowMemorySchema,
+} from './workflow-memory';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -127,7 +133,7 @@ export const agentOrchestrationTools: Tool[] = [
   {
     name: 'compose_workflow',
     description:
-      'Define and validate a multi-step skill workflow (DAG). Returns validation result with execution plan.',
+      'Define and validate a multi-step skill workflow (DAG), optionally with durable workflow memory.',
     inputSchema: {
       type: 'object' as const,
       properties: {
@@ -174,6 +180,11 @@ export const agentOrchestrationTools: Tool[] = [
           type: 'string',
           description: 'Optional workflow description.',
         },
+        workflowMemory: {
+          type: 'object',
+          description:
+            'Optional durable shared memory config: {enabled, runId, schema, assignedAgentIds, gcOnCompletion}.',
+        },
       },
       required: ['name', 'steps'],
     },
@@ -209,8 +220,62 @@ export const agentOrchestrationTools: Tool[] = [
           type: 'object',
           description: 'Initial context data passed to the workflow.',
         },
+        workflowMemory: {
+          type: 'object',
+          description:
+            'Optional durable shared memory config: {enabled, runId, schema, assignedAgentIds, gcOnCompletion}.',
+        },
       },
       required: ['name', 'steps'],
+    },
+  },
+  {
+    name: 'workflow_memory_write',
+    description:
+      'Write a typed value to durable Loro workflow memory for one workflow run.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        workflowRunId: { type: 'string', description: 'Workflow run ID that owns this memory.' },
+        key: { type: 'string', description: 'Memory key to write.' },
+        value: { description: 'JSON-serializable value.' },
+        agentId: { type: 'string', description: 'Writing agent ID.' },
+        schema: { type: 'object', description: 'Optional key schema, e.g. {facts:{type:"array"}}.' },
+        assignedAgentIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional write allowlist for agents assigned to this run.',
+        },
+      },
+      required: ['workflowRunId', 'key', 'value'],
+    },
+  },
+  {
+    name: 'workflow_memory_read',
+    description:
+      'Read one key or the full durable Loro workflow memory snapshot for a run.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        workflowRunId: { type: 'string', description: 'Workflow run ID that owns this memory.' },
+        key: { type: 'string', description: 'Optional memory key to read.' },
+        includeSnapshot: { type: 'boolean', description: 'Include base64 Loro snapshot bytes.' },
+      },
+      required: ['workflowRunId'],
+    },
+  },
+  {
+    name: 'workflow_memory_subscribe',
+    description:
+      'Return cursor-based workflow memory events and a subscription manifest for a run.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        workflowRunId: { type: 'string', description: 'Workflow run ID that owns this memory.' },
+        sinceCursor: { type: 'number', description: 'Return events after this sequence cursor.' },
+        includeSnapshot: { type: 'boolean', description: 'Include base64 Loro snapshot bytes.' },
+      },
+      required: ['workflowRunId'],
     },
   },
 ];
@@ -265,6 +330,12 @@ export async function handleAgentOrchestrationTool(
       return handleComposeWorkflow(args);
     case 'execute_workflow':
       return handleExecuteWorkflow(args, toolExecutor);
+    case 'workflow_memory_write':
+      return handleWorkflowMemoryWrite(args);
+    case 'workflow_memory_read':
+      return handleWorkflowMemoryRead(args);
+    case 'workflow_memory_subscribe':
+      return handleWorkflowMemorySubscribe(args);
     default:
       return null;
   }
@@ -387,6 +458,7 @@ async function handleComposeWorkflow(args: Record<string, unknown>): Promise<unk
     description: args.description as string | undefined,
     steps,
   };
+  const workflowMemory = normalizeWorkflowMemoryConfig(args.workflowMemory, definition.id);
 
   const validation = workflowEngine.validate(definition);
 
@@ -396,6 +468,17 @@ async function handleComposeWorkflow(args: Record<string, unknown>): Promise<unk
     warnings: validation.warnings,
     executionPlan: validation.executionPlan,
     stepCount: steps.length,
+    ...(workflowMemory.enabled
+      ? {
+          workflowMemory: {
+            enabled: true,
+            runId: workflowMemory.runId,
+            schemaKeys: Object.keys(workflowMemory.schema ?? {}),
+            assignedAgentIds: workflowMemory.assignedAgentIds,
+            gcOnCompletion: workflowMemory.gcOnCompletion,
+          },
+        }
+      : {}),
   };
 }
 
@@ -418,6 +501,14 @@ async function handleExecuteWorkflow(
     steps,
     context,
   };
+  const workflowMemory = normalizeWorkflowMemoryConfig(args.workflowMemory, definition.id);
+  const memoryStore = getWorkflowMemoryStore();
+  const memoryDocument = workflowMemory.enabled
+    ? memoryStore.open(workflowMemory.runId, {
+        schema: workflowMemory.schema,
+        assignedAgentIds: workflowMemory.assignedAgentIds,
+      })
+    : null;
 
   // Validate first
   const validation = workflowEngine.validate(definition);
@@ -448,7 +539,30 @@ async function handleExecuteWorkflow(
       };
 
   const isDryRun = !toolExecutor;
+  if (memoryDocument) {
+    context.workflowMemory = {
+      runId: workflowMemory.runId,
+      readTool: 'workflow_memory_read',
+      writeTool: 'workflow_memory_write',
+      subscribeTool: 'workflow_memory_subscribe',
+    };
+    memoryStore.write({
+      workflowRunId: workflowMemory.runId,
+      key: '__workflow_context__',
+      value: context,
+      writerAgentId: 'execute_workflow',
+      schema: workflowMemory.schema,
+      assignedAgentIds: workflowMemory.assignedAgentIds,
+    });
+  }
   const result = await workflowEngine.execute(definition, executor);
+  const workflowMemoryCompletion = memoryDocument
+    ? memoryStore.complete({
+        workflowRunId: workflowMemory.runId,
+        writerAgentId: 'execute_workflow',
+        gc: workflowMemory.gcOnCompletion,
+      })
+    : null;
 
   return {
     workflowId: result.workflowId,
@@ -462,6 +576,11 @@ async function handleExecuteWorkflow(
       output: sr.output,
       error: sr.error,
     })),
+    ...(workflowMemoryCompletion
+      ? {
+          workflowMemory: workflowMemoryCompletion,
+        }
+      : {}),
     ...(isDryRun
       ? {
           message:
@@ -469,6 +588,49 @@ async function handleExecuteWorkflow(
         }
       : {}),
   };
+}
+
+async function handleWorkflowMemoryWrite(args: Record<string, unknown>): Promise<unknown> {
+  try {
+    return getWorkflowMemoryStore().write({
+      workflowRunId: args.workflowRunId,
+      key: args.key,
+      value: args.value,
+      writerAgentId: args.agentId,
+      schema: args.schema as WorkflowMemorySchema | undefined,
+      assignedAgentIds: Array.isArray(args.assignedAgentIds)
+        ? (args.assignedAgentIds as unknown[]).filter(
+            (id): id is string => typeof id === 'string' && id.trim().length > 0
+          )
+        : undefined,
+    });
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function handleWorkflowMemoryRead(args: Record<string, unknown>): Promise<unknown> {
+  try {
+    return getWorkflowMemoryStore().read({
+      workflowRunId: args.workflowRunId,
+      key: args.key,
+      includeSnapshot: args.includeSnapshot === true,
+    });
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function handleWorkflowMemorySubscribe(args: Record<string, unknown>): Promise<unknown> {
+  try {
+    return getWorkflowMemoryStore().subscribe({
+      workflowRunId: args.workflowRunId,
+      sinceCursor: args.sinceCursor,
+      includeSnapshot: args.includeSnapshot === true,
+    });
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 // =============================================================================
