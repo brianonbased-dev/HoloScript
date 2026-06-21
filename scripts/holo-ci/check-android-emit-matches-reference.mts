@@ -8,119 +8,28 @@
 // of scene.holo (or edit scene.holo without re-running generate-native.mts) and this goes red. CRLF is
 // normalised so git autocrlf can't cause false drift.
 //
-// Mirrors scripts/holo-ci/check-android-xr-emit-matches-reference.mts, and carries the same negative
-// self-test (--self-test) that proves the detector goes red on drift (W.783).
+// All shared gate logic (parse, byte-compare, first-diff report, --self-test) lives in
+// scripts/holo-ci/build-verify/golden-diff.mts; this file is config only.
 //
 //   npx tsx scripts/holo-ci/check-android-emit-matches-reference.mts            # real gate
 //   npx tsx scripts/holo-ci/check-android-emit-matches-reference.mts --self-test # prove it detects drift
-import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { HoloCompositionParser } from '../../packages/core/src/parser/HoloCompositionParser';
 import { AndroidCompiler } from '../../packages/core/src/compiler/AndroidCompiler';
 import { ANDROID_PACKAGE, ANDROID_CLASS } from '../../apps/android-reference/compile-config.mts';
+import { parseOrDie, runGoldenDiffGate } from './build-verify/golden-diff.mts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'android-reference');
-const specPath = join(appDir, 'scene.holo');
-const refDir = join(appDir, 'android');
 
-const norm = (s: string) => s.replace(/\r\n/g, '\n');
-
-function parseOrDie(file: string, label: string) {
-  const r = new HoloCompositionParser().parse(readFileSync(file, 'utf8'));
-  if (!r.success || !r.ast) {
-    console.error(`✗ ${label} failed to parse:`, r.errors);
-    process.exit(1);
-  }
-  return r.ast;
-}
-
-function emit(): Record<string, string> {
-  const compiler = new AndroidCompiler({
-    packageName: ANDROID_PACKAGE,
-    className: ANDROID_CLASS,
-  });
-  return compiler.compileToFiles(parseOrDie(specPath, 'scene.holo'), '');
-}
-
-/**
- * Compare emitted files to a reference resolver. Returns the number of drift/missing failures.
- * `readRef` returns the reference content for a path, or null if it is missing.
- */
-function compare(
-  emitted: Record<string, string>,
-  readRef: (rel: string) => string | null,
-  log = true
-): number {
-  let failures = 0;
-  for (const rel of Object.keys(emitted)) {
-    const ref = readRef(rel);
-    if (ref === null) {
-      if (log) console.error(`✗ MISSING reference file: ${rel}`);
-      failures++;
-      continue;
-    }
-    if (norm(emitted[rel]) !== norm(ref)) {
-      if (log) {
-        console.error(`✗ DRIFT: emitted output != reference for ${rel}`);
-        const a = norm(emitted[rel]).split('\n');
-        const b = norm(ref).split('\n');
-        for (let i = 0; i < Math.max(a.length, b.length); i++) {
-          if (a[i] !== b[i]) {
-            console.error(`    first diff at line ${i + 1}:`);
-            console.error(`      emitted  : ${JSON.stringify(a[i])}`);
-            console.error(`      reference: ${JSON.stringify(b[i])}`);
-            break;
-          }
-        }
-      }
-      failures++;
-    }
-  }
-  return failures;
-}
-
-// ── Negative self-test: prove the detector goes red on a single-byte drift ──
-if (process.argv.includes('--self-test')) {
-  const emitted = emit();
-  const firstKey = Object.keys(emitted)[0];
-  // Reference == emitted EXCEPT one corrupted file → the gate MUST report exactly one failure.
-  const corrupted = compare(
-    emitted,
-    (rel) => (rel === firstKey ? emitted[rel] + '\n// DRIFT-INJECTED' : emitted[rel]),
-    false
-  );
-  const cleanPass = compare(emitted, (rel) => emitted[rel], false);
-  if (corrupted >= 1 && cleanPass === 0) {
-    console.log(
-      `✅ self-test: detector flags injected drift (${corrupted} failure) and passes a clean match (0). Gate is live.`
-    );
-    process.exit(0);
-  }
-  console.error(
-    `❌ self-test FAILED: corrupted=${corrupted} (want >=1), clean=${cleanPass} (want 0) — the gate is not actually detecting drift.`
-  );
-  process.exit(1);
-}
-
-// ── Real gate ──
-const emitted = emit();
-const failures = compare(emitted, (rel) => {
-  try {
-    return readFileSync(join(refDir, rel), 'utf8');
-  } catch {
-    return null;
-  }
+runGoldenDiffGate({
+  target: 'android',
+  refDir: join(appDir, 'android'),
+  emit: () =>
+    new AndroidCompiler({
+      packageName: ANDROID_PACKAGE,
+      className: ANDROID_CLASS,
+    }).compileToFiles(parseOrDie(join(appDir, 'scene.holo'), 'scene.holo'), ''),
+  fixHint:
+    'edit apps/android-reference/scene.holo (not the generated Kotlin), then re-run apps/android-reference/generate-native.mts.',
 });
-
-console.log(
-  `\nandroid emit: ${Object.keys(emitted).length} emitted file(s) checked vs android (native compiler path)`
-);
-if (failures) {
-  console.error(
-    `\n❌ ${failures} drift/missing failure(s) — edit scene.holo (not the generated Kotlin) and re-run apps/android-reference/generate-native.mts.`
-  );
-  process.exit(1);
-}
-console.log('✅ emitted Android file(s) byte-match the reference; no drift.');

@@ -334,6 +334,33 @@ if [ -n "$STAGED_AND" ]; then
     fi
 fi
 
+# Gate 5e-axr-bv: Android XR BUILD-VERIFY — proves the freshly-emitted AndroidXRCompiler output
+# BUILDS (not just byte-matches a string). Materializes the emit over a throwaway copy of the gradle
+# skeleton and runs the shared build-verify runner (scripts/holo-ci/build-verify/build-verify.mts).
+# Default mode SKIPs gracefully (exit 0) on a box with no JDK after proving the file map writes cleanly
+# over the skeleton — so it never blocks a commit on a toolchain-less machine while still exercising the
+# harness. A box with a JDK runs the real `gradle assembleDebug`. Only runs when the reference app, the
+# AndroidXR emit chain, the build-verify runner, or the gate is staged. (F.126: validation IS construction.)
+echo "  ├─ Android XR build-verify..."
+STAGED_AXR_BV=$(git diff --cached --name-only -- \
+    'apps/android-xr-reference/**' \
+    'packages/core/src/compiler/AndroidXRCompiler.ts' \
+    'packages/core/src/compiler/AndroidXRGenerators.ts' \
+    'scripts/holo-ci/build-verify/**' \
+    'scripts/holo-ci/check-android-xr-build-verify.mts' 2>/dev/null || true)
+if [ -n "$STAGED_AXR_BV" ]; then
+    AXR_BV_OUT=$(run_with_timeout 120 npx tsx scripts/holo-ci/check-android-xr-build-verify.mts 2>&1)
+    AXR_BV_STATUS=$?
+    if [ "$AXR_BV_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Android XR build-verify failed${NC}"
+        echo "$AXR_BV_OUT"
+        echo "     The emitted source did not build. Fix the AndroidXR codegen so the emit is buildable."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Android XR build-verify passed (built or skipped — no toolchain)"
+    fi
+fi
+
 # Gate 5f: Trait parity — every R3F-emitted trait must be handled or noop-classified.
 # This is the INTERLOCK before R3FCompiler retirement (research/2026-06-15_trait-parity-and-tsx-deprecation.md §5.6).
 # Only runs when R3FCompiler.ts or the trait runtime files are staged — avoids blocking

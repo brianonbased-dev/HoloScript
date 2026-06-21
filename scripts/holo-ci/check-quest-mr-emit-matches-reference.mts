@@ -8,84 +8,55 @@
 // scanner.holo (or edit scanner.holo without re-running generate-native.mts) and this goes red.
 // CRLF is normalised so git autocrlf can't cause false drift.
 //
-//   npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+// All shared gate logic (parse, byte-compare, first-diff report, --self-test) lives in
+// scripts/holo-ci/build-verify/golden-diff.mts; this file is config + the quest-specific worlds emit.
+// Routing through the shared module also closes the --self-test gap the Quest gate left open (W.783).
+//
+//   npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts            # real gate
+//   npx tsx scripts/holo-ci/check-quest-mr-emit-matches-reference.mts --self-test # prove it detects drift
+import { readdirSync, existsSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { HoloCompositionParser } from '../../packages/core/src/parser/HoloCompositionParser';
 import { QuestCompiler } from '../../packages/core/src/compiler/QuestCompiler';
 import {
   emitWorldSceneKt,
   emitWorldsRegistryKt,
 } from '../../packages/core/src/compiler/quest-world-emit';
+import { parseOrDie, runGoldenDiffGate } from './build-verify/golden-diff.mts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'quest-universal-qr-scanner');
 const specPath = join(appDir, 'scanner.holo');
-const refDir = join(appDir, 'android-mr');
 const srcRel = 'app/src/main/java/com/meta/spatial/samples/startersample';
 
-const norm = (s: string) => s.replace(/\r\n/g, '\n');
-
-function parseOrDie(file: string, label: string) {
-  const r = new HoloCompositionParser().parse(readFileSync(file, 'utf8'));
-  if (!r.success || !r.ast) {
-    console.error(`✗ ${label} failed to parse:`, r.errors);
-    process.exit(1);
-  }
-  return r.ast;
-}
-
-const emitted: Record<string, string> = new QuestCompiler().compile(parseOrDie(specPath, 'scanner.holo'), '');
-
-// HoloScript worlds (worlds/*.holo → Meta Spatial SDK scene Kotlin) — same drift invariant.
-const worldsDir = join(appDir, 'worlds');
-if (existsSync(worldsDir)) {
-  const worldFiles = readdirSync(worldsDir).filter((f) => f.endsWith('.holo')).sort();
-  const worldIds: string[] = [];
-  for (const wf of worldFiles) {
-    const id = basename(wf, '.holo');
-    worldIds.push(id);
-    emitted[`${srcRel}/World_${id.replace(/[^a-zA-Z0-9]+/g, '_')}.kt`] = emitWorldSceneKt(
-      parseOrDie(join(worldsDir, wf), wf),
-      id
-    );
-  }
-  emitted[`${srcRel}/WorldsRegistry.kt`] = emitWorldsRegistryKt(worldIds);
-}
-
-let failures = 0;
-const paths = Object.keys(emitted);
-for (const rel of paths) {
-  let ref: string;
-  try {
-    ref = readFileSync(join(refDir, rel), 'utf8');
-  } catch {
-    console.error(`✗ MISSING reference file: ${rel}`);
-    failures++;
-    continue;
-  }
-  if (norm(emitted[rel]) !== norm(ref)) {
-    console.error(`✗ DRIFT: emitted output != reference for ${rel}`);
-    const a = norm(emitted[rel]).split('\n');
-    const b = norm(ref).split('\n');
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-      if (a[i] !== b[i]) {
-        console.error(`    first diff at line ${i + 1}:`);
-        console.error(`      emitted  : ${JSON.stringify(a[i])}`);
-        console.error(`      reference: ${JSON.stringify(b[i])}`);
-        break;
-      }
-    }
-    failures++;
-  }
-}
-
-console.log(`\nquest-mr emit: ${paths.length} emitted file(s) checked vs android-mr (native compiler path)`);
-if (failures) {
-  console.error(
-    `\n❌ ${failures} drift/missing failure(s) — edit scanner.holo (not the generated Kotlin) and re-run generate-native.mts.`
+/** Quest MR emit = scanner.holo (trait-dispatch) + worlds/*.holo → Meta Spatial SDK scene Kotlin. */
+function emit(): Record<string, string> {
+  const emitted: Record<string, string> = new QuestCompiler().compile(
+    parseOrDie(specPath, 'scanner.holo'),
+    ''
   );
-  process.exit(1);
+
+  const worldsDir = join(appDir, 'worlds');
+  if (existsSync(worldsDir)) {
+    const worldFiles = readdirSync(worldsDir).filter((f) => f.endsWith('.holo')).sort();
+    const worldIds: string[] = [];
+    for (const wf of worldFiles) {
+      const id = basename(wf, '.holo');
+      worldIds.push(id);
+      emitted[`${srcRel}/World_${id.replace(/[^a-zA-Z0-9]+/g, '_')}.kt`] = emitWorldSceneKt(
+        parseOrDie(join(worldsDir, wf), wf),
+        id
+      );
+    }
+    emitted[`${srcRel}/WorldsRegistry.kt`] = emitWorldsRegistryKt(worldIds);
+  }
+  return emitted;
 }
-console.log('✅ emitted MR file(s) byte-match the reference; no drift.');
+
+runGoldenDiffGate({
+  target: 'quest-mr',
+  refDir: join(appDir, 'android-mr'),
+  emit,
+  fixHint:
+    'edit apps/quest-universal-qr-scanner/scanner.holo (not the generated Kotlin) and re-run generate-native.mts.',
+});

@@ -469,6 +469,47 @@ export abstract class CompilerBase implements ICompiler {
     | IOSCompileResult
     | any;
 
+  /**
+   * Compile to a path-keyed file map: relative output path → file contents.
+   *
+   * This is the standardized "emits buildable source" contract every target
+   * shares — the byte-diff golden gates and the build-verify runner both consume
+   * a `Record<string, string>`, so any target that implements this can be
+   * gate-enforced and build-verified without bespoke per-target plumbing.
+   *
+   * The default wraps the single-string `compile()` output under one default
+   * path. Multi-file targets (e.g. Android, AndroidXR, Quest) override this to
+   * emit a full project layout. Auth is delegated to `compile()`, which each
+   * subclass already gates; this method does not re-validate.
+   *
+   * @param composition - HoloScript AST
+   * @param agentToken - JWT token proving agent identity (default '' bypasses RBAC)
+   * @returns Map of relative output path → file contents
+   */
+  compileToFiles(composition: HoloComposition, agentToken = ''): Record<string, string> {
+    const result = this.compile(composition, agentToken);
+    if (typeof result === 'string') {
+      return { [this.defaultOutputFileName()]: result };
+    }
+    if (result && typeof result === 'object') {
+      // Already path-keyed (or close enough) — keep string entries as-is.
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(result as Record<string, unknown>)) {
+        if (typeof v === 'string') out[k] = v;
+      }
+      if (Object.keys(out).length > 0) return out;
+    }
+    return { [this.defaultOutputFileName()]: String(result) };
+  }
+
+  /**
+   * Default single-file output name for the wrapping `compileToFiles()` default.
+   * Override to name a single-file target's emit (e.g. `index.ts`, `Main.kt`).
+   */
+  protected defaultOutputFileName(): string {
+    return 'output.txt';
+  }
+
   // =========================================================================
   // P3 Migration Bridge: Dual-mode token support
   // =========================================================================
