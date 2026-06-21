@@ -29,6 +29,7 @@ import { createTeamStore, type TeamStore } from './team-store';
 import { createStateStore, type StateStoreBackend } from './state-store';
 import { createPlayerStore, type PlayerStore, type StoredPlayer } from './player-store';
 import { createInviteStore, type InviteStore } from './invite-store';
+import { createGeoAnchorStore, type GeoAnchorStore } from './geo-anchor-store';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ export const playerStore: PlayerStore = createPlayerStore(); // playerId → Sto
 
 // Agent-first invite tokens — claimed by humans to create their player account
 export const inviteStore: InviteStore = createInviteStore(); // token → InviteRecord
+export const geoAnchorStore: GeoAnchorStore = createGeoAnchorStore(); // anchorId -> StoredGeoAnchor
 const stateStore: StateStoreBackend = createStateStore(); // audit/defense/dispatch backend
 export const teamPresenceStore: Map<string, Map<string, TeamPresenceEntry>> = new Map(); // teamId → (agentId → presence)
 export const teamMessageStore: Map<string, TeamMessage[]> = new Map(); // teamId → messages

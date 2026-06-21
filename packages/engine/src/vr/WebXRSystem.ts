@@ -35,6 +35,26 @@ export interface XRViewState {
   viewport: { x: number; y: number; width: number; height: number };
 }
 
+export interface XRHitTestResult {
+  id?: string;
+  anchorId?: string;
+  position: Vec3;
+  rotation?: Vec3;
+  confidence?: number;
+  source: 'webxr-hit-test' | 'geospatial-anchor' | 'mock';
+}
+
+export interface XRGeospatialAnchorState {
+  anchorId: string;
+  position: Vec3;
+  rotation?: Vec3;
+  confidence: number;
+  resolvedAt: number;
+  lat?: number;
+  lng?: number;
+  alt?: number;
+}
+
 export type XRMode = 'inactive' | 'immersive-vr' | 'immersive-ar' | 'inline';
 
 export interface XRFrameData {
@@ -43,6 +63,8 @@ export interface XRFrameData {
   headRotation: Vec3;
   views: XRViewState[];
   controllers: Map<string, XRInputState>;
+  hitTests?: XRHitTestResult[];
+  geospatialAnchors?: XRGeospatialAnchorState[];
   hands: Map<string, Map<string, Vec3>>; // side → joint → position
 }
 
@@ -79,6 +101,8 @@ export class WebXRSystem implements EngineSystem {
   // Controller tracking
   private controllers: Map<string, XRInputState> = new Map();
   private handJoints: Map<string, Map<string, Vec3>> = new Map();
+  private hitTestResults: XRHitTestResult[] = [];
+  private geospatialAnchors: Map<string, XRGeospatialAnchorState> = new Map();
 
   // Physics integration callbacks
   private grabCallbacks: ((controllerId: string, position: Vec3) => void)[] = [];
@@ -148,6 +172,8 @@ export class WebXRSystem implements EngineSystem {
     this.frameData = null;
     this.controllers.clear();
     this.handJoints.clear();
+    this.hitTestResults = [];
+    this.geospatialAnchors.clear();
     this.eventListeners.clear();
   }
 
@@ -179,6 +205,8 @@ export class WebXRSystem implements EngineSystem {
     const wasActive = this.mode !== 'inactive';
     this.mode = 'inactive';
     this.frameData = null;
+    this.hitTestResults = [];
+    this.geospatialAnchors.clear();
     if (wasActive) this.emit('sessionend');
   }
 
@@ -195,6 +223,10 @@ export class WebXRSystem implements EngineSystem {
     this.frameData = data;
     this.controllers = data.controllers;
     this.handJoints = data.hands;
+    this.hitTestResults = data.hitTests ? [...data.hitTests] : [];
+    this.geospatialAnchors = new Map(
+      (data.geospatialAnchors ?? []).map((anchor) => [anchor.anchorId, anchor])
+    );
 
     // Extract stereo views
     this.leftEye = data.views.find((v) => v.eye === 'left') ?? null;
@@ -223,6 +255,47 @@ export class WebXRSystem implements EngineSystem {
 
   getHeadRotation(): Vec3 {
     return this.frameData?.headRotation ?? [0, 0, 0];
+  }
+
+  getHitTestResults(): XRHitTestResult[] {
+    return this.hitTestResults.map((hit) => ({
+      ...hit,
+      position: [...hit.position],
+      rotation: hit.rotation ? [...hit.rotation] : undefined,
+    }));
+  }
+
+  getPrimaryHitTest(): XRHitTestResult | null {
+    const hit = this.hitTestResults[0];
+    if (!hit) return null;
+    return {
+      ...hit,
+      position: [...hit.position],
+      rotation: hit.rotation ? [...hit.rotation] : undefined,
+    };
+  }
+
+  getGeospatialAnchor(anchorId: string): XRGeospatialAnchorState | undefined {
+    const anchor = this.geospatialAnchors.get(anchorId);
+    if (!anchor) return undefined;
+    return {
+      ...anchor,
+      position: [...anchor.position],
+      rotation: anchor.rotation ? [...anchor.rotation] : undefined,
+    };
+  }
+
+  getAllGeospatialAnchors(): Map<string, XRGeospatialAnchorState> {
+    return new Map(
+      Array.from(this.geospatialAnchors.entries()).map(([id, anchor]) => [
+        id,
+        {
+          ...anchor,
+          position: [...anchor.position],
+          rotation: anchor.rotation ? [...anchor.rotation] : undefined,
+        },
+      ])
+    );
   }
 
   // ---------------------------------------------------------------------------

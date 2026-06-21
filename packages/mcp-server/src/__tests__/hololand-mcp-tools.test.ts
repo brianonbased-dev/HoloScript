@@ -29,6 +29,7 @@ import {
 import { emergentDaemonId } from '../daemon-lifecycle-tools';
 import { type Shard, type Zone, validateShard, validateZone } from '@holoscript/framework';
 import { mcpStartReconstructFromVideo } from '../holo-reconstruct-sessions';
+import { geoAnchorStore } from '../holomesh/state';
 
 describe('hololand-mcp-tools', () => {
   beforeEach(() => {
@@ -695,6 +696,63 @@ describe('hololand-mcp-tools', () => {
       lng: 0,
     });
     expect(result).toMatchObject({ error: expect.stringContaining('Place not found') });
+  });
+
+  it('hololand_get_geo_anchor reloads a persistent anchor after local cache reset', async () => {
+    await handleHololandMcpTool('hololand_create_geo_anchor', {
+      id: 'durable-anchor',
+      lat: 33.4484,
+      lng: -112.074,
+      radius: 40,
+    });
+
+    geoAnchorStore.clearLocal();
+
+    const fetched = (await handleHololandMcpTool('hololand_get_geo_anchor', {
+      anchorId: 'durable-anchor',
+    })) as Record<string, unknown>;
+
+    expect(fetched.success).toBe(true);
+    expect((fetched.anchor as Record<string, unknown>).id).toBe('durable-anchor');
+    expect((fetched.anchor as Record<string, unknown>).lat).toBe(33.4484);
+    expect((fetched.anchor as Record<string, unknown>).persistent).toBe(true);
+  });
+
+  it('hololand_create_geo_anchor stores a D.044 safety envelope', async () => {
+    const result = (await handleHololandMcpTool('hololand_create_geo_anchor', {
+      id: 'safe-anchor',
+      lat: 40.7128,
+      lng: -74.006,
+    })) as Record<string, unknown>;
+
+    const safety = result.safety as Record<string, unknown>;
+    expect(safety.doctrine).toBe('D.044');
+    expect(safety.targetingUseProhibited).toBe(true);
+    expect(safety.humanApprovalRequiredForActuation).toBe(true);
+    expect(safety.prohibitedUses).toContain('weapon-guidance');
+  });
+
+  it('hololand_list_geo_anchors filters anchors by radius', async () => {
+    await handleHololandMcpTool('hololand_create_geo_anchor', {
+      id: 'phoenix-anchor',
+      lat: 33.4484,
+      lng: -112.074,
+    });
+    await handleHololandMcpTool('hololand_create_geo_anchor', {
+      id: 'nyc-anchor',
+      lat: 40.7128,
+      lng: -74.006,
+    });
+
+    const listed = (await handleHololandMcpTool('hololand_list_geo_anchors', {
+      lat: 33.4484,
+      lng: -112.074,
+      radius: 1000,
+    })) as Record<string, unknown>;
+
+    const anchors = listed.anchors as Array<Record<string, unknown>>;
+    expect(anchors.map((anchor) => anchor.id)).toContain('phoenix-anchor');
+    expect(anchors.map((anchor) => anchor.id)).not.toContain('nyc-anchor');
   });
 
   // ---------------------------------------------------------------------------

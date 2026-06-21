@@ -55,8 +55,9 @@ import {
   twinEarthReceiptRegistry,
 } from './robot-ai-mcp-tools.js';
 import { buildMeshToolManifest, publishMeshToolManifest } from './holomesh/mesh-tool-registry.js';
-import { playerStore, inviteStore } from './holomesh/state.js';
+import { playerStore, inviteStore, geoAnchorStore } from './holomesh/state.js';
 import type { StoredPlayer } from './holomesh/player-store.js';
+import type { GeoAnchorSafetyEnvelope, StoredGeoAnchor } from './holomesh/geo-anchor-store.js';
 import { emergentDaemonId } from './daemon-lifecycle-tools.js';
 import { generateInviteToken } from './holomesh/invite-store.js';
 import {
@@ -974,6 +975,35 @@ export const hololandMcpTools: Tool[] = [
     },
   },
   {
+    name: 'hololand_get_geo_anchor',
+    description:
+      'Read a HoloLand geo anchor by id. Persistent anchors reload from the shared backend so other replicas and restarts can resolve the same world-locking record.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        anchorId: { type: 'string', description: 'Geo anchor identifier' },
+      },
+      required: ['anchorId'],
+    },
+  },
+  {
+    name: 'hololand_list_geo_anchors',
+    description:
+      'List HoloLand geo anchors, optionally filtered by Place, Zone, or radius around a lat/lng point.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        placeId: { type: 'string', description: 'Filter anchors bound to this Place' },
+        zoneId: { type: 'string', description: 'Filter anchors bound to this Zone' },
+        lat: { type: 'number', description: 'Latitude for radius filtering' },
+        lng: { type: 'number', description: 'Longitude for radius filtering' },
+        radius: { type: 'number', description: 'Radius filter in meters' },
+        limit: { type: 'number', description: 'Maximum anchors to return. Default: 50' },
+        offset: { type: 'number', description: 'Pagination offset. Default: 0' },
+      },
+    },
+  },
+  {
     name: 'hololand_steward_tick',
     description:
       'On-demand steward maintenance tick for a Shard: cleanup orphans, validate encounters, ' +
@@ -1672,18 +1702,6 @@ interface StoredZoneRuntime {
   publishedAt?: string;
 }
 
-interface StoredGeoAnchor {
-  id: string;
-  placeId?: string;
-  zoneId?: string;
-  lat: number;
-  lng: number;
-  alt?: number;
-  radius: number;
-  persistent: boolean;
-  createdAt: string;
-}
-
 interface StoredShardReceipt {
   id: string;
   shardId: string;
@@ -1746,7 +1764,6 @@ const zoneRegistry = new Map<string, StoredZone>();
 const placeRegistry = new Map<string, StoredPlace>();
 const questRegistry = new Map<string, StoredLocationQuest>();
 const zoneRuntimeRegistry = new Map<string, StoredZoneRuntime>();
-const geoAnchorRegistry = new Map<string, StoredGeoAnchor>();
 const shardReceiptRegistry = new Map<string, StoredShardReceipt>();
 // FAMILY-tier policy config for all HoloLand NPC surfaces (P.013).
 // Shared across the module; built once at import time (sync, no model calls).
@@ -1772,7 +1789,7 @@ export function clearHololandRegistries(): void {
   placeRegistry.clear();
   questRegistry.clear();
   zoneRuntimeRegistry.clear();
-  geoAnchorRegistry.clear();
+  geoAnchorStore.clear();
   shardReceiptRegistry.clear();
   npcRegistry.clear();
   playerStore.clear();
@@ -1916,6 +1933,10 @@ async function _dispatchHololandTool(
       return handleHololandPublishZone(args);
     case 'hololand_create_geo_anchor':
       return handleHololandCreateGeoAnchor(args);
+    case 'hololand_get_geo_anchor':
+      return handleHololandGetGeoAnchor(args);
+    case 'hololand_list_geo_anchors':
+      return handleHololandListGeoAnchors(args);
     case 'hololand_steward_tick':
       return handleHololandStewardTick(args);
     case 'hololand_capture_runtime_receipt':
@@ -2875,6 +2896,32 @@ async function handleHololandPublishZone(args: Record<string, unknown>): Promise
   };
 }
 
+function buildGeoAnchorSafetyEnvelope(): GeoAnchorSafetyEnvelope {
+  return {
+    doctrine: 'D.044',
+    targetingUseProhibited: true,
+    humanApprovalRequiredForActuation: true,
+    permittedUses: ['world-locking', 'navigation', 'provenance', 'place-based-quest'],
+    prohibitedUses: ['targeting', 'weapon-guidance', 'surveillance-target-selection'],
+  };
+}
+
+function geoAnchorDistanceMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+): number {
+  const earthRadiusMeters = 6371000;
+  const toRad = (degrees: number) => (degrees * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * earthRadiusMeters * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 async function handleHololandCreateGeoAnchor(args: Record<string, unknown>): Promise<unknown> {
   const anchorId = (args.id as string) || genId('anchor');
   const placeId = args.placeId as string | undefined;
@@ -2887,6 +2934,7 @@ async function handleHololandCreateGeoAnchor(args: Record<string, unknown>): Pro
     return { error: `Zone not found: ${zoneId}` };
   }
 
+  const now = new Date().toISOString();
   const anchor: StoredGeoAnchor = {
     id: anchorId,
     placeId,
@@ -2896,9 +2944,15 @@ async function handleHololandCreateGeoAnchor(args: Record<string, unknown>): Pro
     alt: args.alt as number | undefined,
     radius: (args.radius as number) ?? 50,
     persistent: (args.persistent as boolean) ?? true,
-    createdAt: new Date().toISOString(),
+    safety: buildGeoAnchorSafetyEnvelope(),
+    createdAt: now,
+    modifiedAt: now,
   };
-  geoAnchorRegistry.set(anchorId, anchor);
+  if (anchor.persistent) {
+    await geoAnchorStore.setDurable(anchorId, anchor);
+  } else {
+    geoAnchorStore.setLocal(anchorId, anchor);
+  }
 
   return {
     success: true,
@@ -2907,7 +2961,61 @@ async function handleHololandCreateGeoAnchor(args: Record<string, unknown>): Pro
     lng: anchor.lng,
     radius: anchor.radius,
     persistent: anchor.persistent,
+    storage: anchor.persistent ? (geoAnchorStore.usesPostgres ? 'postgres' : 'memory') : 'ephemeral',
+    safety: anchor.safety,
     boundTo: placeId ? { placeId } : zoneId ? { zoneId } : null,
+  };
+}
+
+async function handleHololandGetGeoAnchor(args: Record<string, unknown>): Promise<unknown> {
+  const anchorId = args.anchorId as string;
+  const local = geoAnchorStore.get(anchorId);
+  const anchor = local?.persistent === false ? local : await geoAnchorStore.getFresh(anchorId);
+  if (!anchor) {
+    return { error: `Geo anchor not found: ${anchorId}` };
+  }
+  return {
+    success: true,
+    anchorId,
+    anchor,
+    storage: anchor.persistent ? (geoAnchorStore.usesPostgres ? 'postgres' : 'memory') : 'ephemeral',
+  };
+}
+
+async function handleHololandListGeoAnchors(args: Record<string, unknown>): Promise<unknown> {
+  const limit = Math.max(0, (args.limit as number) ?? 50);
+  const offset = Math.max(0, (args.offset as number) ?? 0);
+  const placeId = args.placeId as string | undefined;
+  const zoneId = args.zoneId as string | undefined;
+  const lat = args.lat as number | undefined;
+  const lng = args.lng as number | undefined;
+  const radius = args.radius as number | undefined;
+
+  await geoAnchorStore.loadAll();
+
+  let items = Array.from(geoAnchorStore.values());
+  if (placeId !== undefined) items = items.filter((anchor) => anchor.placeId === placeId);
+  if (zoneId !== undefined) items = items.filter((anchor) => anchor.zoneId === zoneId);
+  if (
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    typeof radius === 'number' &&
+    Number.isFinite(radius)
+  ) {
+    items = items.filter(
+      (anchor) => geoAnchorDistanceMeters({ lat, lng }, anchor) <= Math.max(0, radius)
+    );
+  }
+
+  const total = items.length;
+  items = items.slice(offset, offset + limit);
+  return {
+    success: true,
+    total,
+    limit,
+    offset,
+    anchors: items,
+    storage: geoAnchorStore.usesPostgres ? 'postgres' : 'memory',
   };
 }
 

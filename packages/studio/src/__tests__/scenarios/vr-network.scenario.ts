@@ -73,6 +73,46 @@ describe('WebXRSystem', () => {
     expect(xr.getStereoViews().length).toBe(2);
   });
 
+  it('submitFrame exposes hit-test and geospatial anchor evidence', () => {
+    const xr = new WebXRSystem();
+    xr.enterAR();
+
+    xr.submitFrame({
+      time: 123,
+      headPosition: [0, 1.7, 0],
+      headRotation: [0, 0, 0],
+      views: [],
+      controllers: new Map(),
+      hands: new Map(),
+      hitTests: [
+        {
+          id: 'hit-1',
+          anchorId: 'event-anchor',
+          position: [1, 0, -2],
+          rotation: [0, 0.25, 0],
+          confidence: 0.82,
+          source: 'webxr-hit-test',
+        },
+      ],
+      geospatialAnchors: [
+        {
+          anchorId: 'event-anchor',
+          position: [1, 0, -2],
+          rotation: [0, 0.25, 0],
+          confidence: 0.82,
+          resolvedAt: 123,
+          lat: 33.4484,
+          lng: -112.074,
+        },
+      ],
+    });
+
+    expect(xr.getPrimaryHitTest()?.anchorId).toBe('event-anchor');
+    expect(xr.getHitTestResults()).toHaveLength(1);
+    expect(xr.getGeospatialAnchor('event-anchor')?.confidence).toBe(0.82);
+    expect(xr.getAllGeospatialAnchors().has('event-anchor')).toBe(true);
+  });
+
   it('controller tracking returns input state', () => {
     const xr = new WebXRSystem();
     xr.enterVR();
