@@ -361,6 +361,33 @@ if [ -n "$STAGED_AXR_BV" ]; then
     fi
 fi
 
+# Gate 5e-quest-bv: Quest BUILD-VERIFY — proves the freshly-emitted QuestCompiler output (scanner +
+# worlds) BUILDS via real `gradlew assembleDebug` over the committed Meta Spatial SDK skeleton. Unlike
+# AndroidXR, compile_to_quest is device-proven and PASSES (green 2026-06-21). Default mode SKIPs on a
+# JDK-less box (never blocks a commit); a box/CI with a JDK runs the real build. Only runs when the
+# scanner app, the Quest emit chain, the build-verify runner, or the gate is staged. (W.810: build-verify
+# is the trust gate; golden-diff alone is blind to whether the output compiles.)
+echo "  ├─ Quest build-verify..."
+STAGED_QUEST_BV=$(git diff --cached --name-only -- \
+    'apps/quest-universal-qr-scanner/**' \
+    'packages/core/src/compiler/QuestCompiler.ts' \
+    'packages/core/src/compiler/quest-mr-emit.ts' \
+    'packages/core/src/compiler/quest-world-emit.ts' \
+    'scripts/holo-ci/build-verify/**' \
+    'scripts/holo-ci/check-quest-build-verify.mts' 2>/dev/null || true)
+if [ -n "$STAGED_QUEST_BV" ]; then
+    QUEST_BV_OUT=$(run_with_timeout 600 npx tsx scripts/holo-ci/check-quest-build-verify.mts 2>&1)
+    QUEST_BV_STATUS=$?
+    if [ "$QUEST_BV_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Quest build-verify failed${NC}"
+        echo "$QUEST_BV_OUT"
+        echo "     The emitted Quest app did not build. Fix the QuestCompiler emit so the output is buildable."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} Quest build-verify passed (built or skipped — no toolchain)"
+    fi
+fi
+
 # Gate 5f: Trait parity — every R3F-emitted trait must be handled or noop-classified.
 # This is the INTERLOCK before R3FCompiler retirement (research/2026-06-15_trait-parity-and-tsx-deprecation.md §5.6).
 # Only runs when R3FCompiler.ts or the trait runtime files are staged — avoids blocking
