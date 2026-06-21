@@ -2,6 +2,9 @@
   "name": "@holoscript/plugin-fashion",
   "version": "2.0.2",
   "main": "src/index.ts",
+  "dependencies": {
+    "@holoscript/engine": "workspace:*"
+  },
   "peerDependencies": {
     "@holoscript/core": ">=8.0.0"
   },
