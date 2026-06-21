@@ -238,10 +238,15 @@ interface HoloMapTileSample {
   texture: number;
 }
 
+interface RetainedReconstructionStep {
+  frameIndex: number;
+  points: Pick<PointCloudChunk, 'positions' | 'confidence'>;
+}
+
 class HoloMapRuntimeImpl implements HoloMapRuntime {
   private config: HoloMapConfig = { ...HOLOMAP_DEFAULTS };
   private initialized = false;
-  private readonly steps: ReconstructionStep[] = [];
+  private readonly steps: RetainedReconstructionStep[] = [];
   private replayKey = 'unset';
   private readonly runId = createHoloMapRunId();
   private encoderDevice: GPUDevice | null = null;
@@ -322,7 +327,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     minStepMs: number;
   } = { stepCount: 0, throttledCount: 0, totalStepMs: 0, maxStepMs: 0, minStepMs: Infinity };
 
-  private static computeBounds(steps: ReconstructionStep[]): {
+  private static computeBounds(steps: RetainedReconstructionStep[]): {
     min: [number, number, number];
     max: [number, number, number];
   } {
@@ -405,8 +410,16 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     return HoloMapRuntimeImpl.computeBounds(this.steps);
   }
 
+  private static *retainedPositionChunks(
+    steps: readonly RetainedReconstructionStep[],
+    current: Float32Array
+  ): Iterable<Float32Array> {
+    for (const step of steps) yield step.points.positions;
+    yield current;
+  }
+
   private static estimatePrincipalAxisRotation(
-    chunks: readonly Float32Array[],
+    chunks: Iterable<Float32Array>,
     centroid: [number, number, number]
   ): [number, number, number, number] {
     let xx = 0;
@@ -551,6 +564,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         weightUrl: this.config.weightUrl,
         weightUrls: this.config.weightUrls,
         weightCid: this.config.weightCid,
+        localResolver: this.config.localResolver,
       });
       this.weightBytes = result.bytes;
     }
@@ -769,7 +783,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         this.updateBounds(s.points.positions);
       }
       logHoloMapEvent(this.runId, 'step_evict', {
-        frameIndex: evicted.frame.index,
+        frameIndex: evicted.frameIndex,
         evictedPoints,
         retainedSteps: this.steps.length,
       });
@@ -974,7 +988,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     const extentY = b.max[1] - b.min[1];
     const extentZ = b.max[2] - b.min[2];
     const anchorRotation = HoloMapRuntimeImpl.estimatePrincipalAxisRotation(
-      [...this.steps.map((s) => s.points.positions), positions],
+      HoloMapRuntimeImpl.retainedPositionChunks(this.steps, positions),
       anchorCenter
     );
     const anchorDescriptor = new Float32Array([extentX, extentY, extentZ, globalMeanConfidence]);
@@ -1019,7 +1033,13 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       },
     };
 
-    this.steps.push(step);
+    this.steps.push({
+      frameIndex: frame.index,
+      points: {
+        positions,
+        confidence,
+      },
+    });
     this.totalPointCount += numPoints;
 
     // Sprint-3: performance metrics
