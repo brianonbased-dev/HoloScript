@@ -1,12 +1,13 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-06-21T02:25:00Z | Next review: 2026-07-21
+> Generated: 2026-06-21T02:40:00Z | Next review: 2026-07-21
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
 | CG-036 | Game / 3D platform ecosystems | Unity | 🟠 P1 | catch-up | 🚧 In Progress | Unity editor, asset store, learning, profiling, collaboration, and LiveOps ecosystem maturity |
 | CG-037 | Game / 3D platform ecosystems | Unreal Engine (Epic Games) | 🟡 P2 | differentiator | 🚧 In Progress | Unreal visual fidelity and toolchain depth vs HoloScript simulation fidelity |
 | CG-071 | Game / 3D platform ecosystems | Unreal Engine (Epic Games) | 🟡 P2 | differentiator | ✅ Shipped | Declarative PCG spatial-operator node graph |
+| CG-072 | Game / 3D platform ecosystems | Unreal Engine (Epic Games) | 🟡 P2 | differentiator | ✅ Shipped | Real-time multi-user 3D world authoring session |
 | CG-038 | Game / 3D platform ecosystems | Godot Engine | 🟡 P2 | differentiator | 👁️ Watch | Godot community bridge — massive Unity-migrator cohort with no physics simulation story |
 | CG-039 | Web 3D engine ecosystem | Babylon.js (Microsoft) | 🟠 P1 | catch-up | 🚧 In Progress | Babylon.js community MCP server threatens to own 'agent-native 3D' narrative before HoloScript achieves distribution |
 | CG-040 | Web 3D engine ecosystem | Three.js / React Three Fiber | 🟡 P2 | differentiator | 👁️ Watch | Three.js/R3F developer community not yet aware HoloScript compiles to their stack |
@@ -123,6 +124,36 @@ Keep Unreal PCG as a bridge target while making HoloScript the agent-native proc
 - packages/core/src/compiler/PCGGraphCompiler.ts
 - packages/mcp-server/src/compiler-tools.ts
 - packages/core/src/compiler/__tests__/PCGGraphCompiler.test.ts
+
+### CG-072 — Real-time multi-user 3D world authoring session
+
+- **Vertical:** Game / 3D platform ecosystems
+- **Competitor:** Unreal Engine (Epic Games)
+- **Severity:** P2
+- **Direction:** differentiator
+- **Status:** shipped
+- **Board Task:** task_1781381663857_xj9y
+
+**Competitor Advantage:**
+Unreal Multi-User Editing provides concurrent 3D scene edits with per-actor selection locks, real-time transform broadcasting, spatial presence, and conflict semantics through Concert.
+
+**HoloScript State:**
+HoloScript now has a CollaborativeWorldTrait contract for transform-level collaboration, selection locks, scene-space presence cursors, Lamport transform operations, and an Unreal Concert-compatible descriptor. Studio collaboration state now tracks 3D cursors, object locks, edit permissions, and transform op provenance.
+
+**Needed Response:**
+Wire the new trait/store primitives into live Studio networking and scene gizmos, then add an Unreal Concert fixture exporter once an asset-level MUE bridge is needed.
+
+**Evidence:**
+- packages/core/src/traits/CollaborativeWorldTrait.ts -- transform CRDT semantics, lock decisions, presence pruning, Concert descriptor
+- packages/studio/src/lib/collabStore.ts -- scene-space cursors, object locks, Lamport transform operation recording
+- packages/core/src/traits/__tests__/CollaborativeWorldTrait.test.ts -- trait parser, validation, conflict, merge, and descriptor coverage
+- packages/studio/src/lib/__tests__/collabStore.collaborativeWorld.test.ts -- Studio collaboration state coverage
+
+**Sources:**
+- packages/core/src/traits/CollaborativeWorldTrait.ts
+- packages/studio/src/lib/collabStore.ts
+- packages/core/src/traits/__tests__/CollaborativeWorldTrait.test.ts
+- packages/studio/src/lib/__tests__/collabStore.collaborativeWorld.test.ts
 
 ### CG-038 — Godot community bridge — massive Unity-migrator cohort with no physics simulation story
 

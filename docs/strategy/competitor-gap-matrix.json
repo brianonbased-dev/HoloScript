@@ -1,6 +1,6 @@
 {
   "$schema": "holoscript.competitor-gap-matrix.v1",
-  "generatedAt": "2026-06-21T02:25:00Z",
+  "generatedAt": "2026-06-21T02:40:00Z",
   "nextReviewBy": "2026-07-21",
   "nmosLegend": {
     "bars": [
@@ -121,6 +121,29 @@
             "packages/core/src/compiler/__tests__/PCGGraphCompiler.test.ts"
           ],
           "boardTaskId": "task_1781381663856_z64g"
+        },
+        {
+          "id": "CG-072",
+          "severity": "P2",
+          "direction": "differentiator",
+          "status": "shipped",
+          "title": "Real-time multi-user 3D world authoring session",
+          "competitorAdvantage": "Unreal Multi-User Editing provides concurrent 3D scene edits with per-actor selection locks, real-time transform broadcasting, spatial presence, and conflict semantics through Concert.",
+          "holoscriptState": "HoloScript now has a CollaborativeWorldTrait contract for transform-level collaboration, selection locks, scene-space presence cursors, Lamport transform operations, and an Unreal Concert-compatible descriptor. Studio collaboration state now tracks 3D cursors, object locks, edit permissions, and transform op provenance.",
+          "neededResponse": "Wire the new trait/store primitives into live Studio networking and scene gizmos, then add an Unreal Concert fixture exporter once an asset-level MUE bridge is needed.",
+          "evidence": [
+            "packages/core/src/traits/CollaborativeWorldTrait.ts -- transform CRDT semantics, lock decisions, presence pruning, Concert descriptor",
+            "packages/studio/src/lib/collabStore.ts -- scene-space cursors, object locks, Lamport transform operation recording",
+            "packages/core/src/traits/__tests__/CollaborativeWorldTrait.test.ts -- trait parser, validation, conflict, merge, and descriptor coverage",
+            "packages/studio/src/lib/__tests__/collabStore.collaborativeWorld.test.ts -- Studio collaboration state coverage"
+          ],
+          "sources": [
+            "packages/core/src/traits/CollaborativeWorldTrait.ts",
+            "packages/studio/src/lib/collabStore.ts",
+            "packages/core/src/traits/__tests__/CollaborativeWorldTrait.test.ts",
+            "packages/studio/src/lib/__tests__/collabStore.collaborativeWorld.test.ts"
+          ],
+          "boardTaskId": "task_1781381663857_xj9y"
         }
       ]
     },

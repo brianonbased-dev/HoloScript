@@ -478,6 +478,33 @@
     "conflicts": [],
     "source": "holoscript"
   },
+  "collaborative_world": {
+    "id": "collaborative_world",
+    "namespace": "@holoscript/core",
+    "category": "networking",
+    "properties": [
+      "syncRateHz",
+      "transformFields",
+      "conflictResolution",
+      "selectionLocks",
+      "lockTtlMs",
+      "presenceCursors",
+      "cursorFrame",
+      "concertBridge"
+    ],
+    "compileHints": [
+      "unreal-concert-compatible",
+      "transform-delta-stream",
+      "scene-space-presence"
+    ],
+    "composable": [
+      "crdt_room",
+      "shared_world",
+      "remote_presence"
+    ],
+    "conflicts": [],
+    "source": "holoscript"
+  },
   "color_grade": {
     "id": "color_grade",
     "composable": [],

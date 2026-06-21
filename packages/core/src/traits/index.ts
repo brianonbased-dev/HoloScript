@@ -48,6 +48,7 @@ export { choreographyHandler } from './ChoreographyTrait';
 export * from './CircuitBreakerTrait';
 export * from './ClothTrait';
 export * from './CoLocatedTrait';
+export * from './CollaborativeWorldTrait';
 export * from './ComputerUseTrait';
 export * from './ComputeTrait';
 export * from './ConsensusTrait';
