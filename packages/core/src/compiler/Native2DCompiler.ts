@@ -320,23 +320,72 @@ export default ${safeName}Component;
     }
 
     // Interactive props
-    if (traits.button?.onClick || traits.form?.onSubmit) {
+    // Preferred: @action{on, emit, args} — declarative event dispatch via context.emit.
+    //   on:   DOM event name ('click', 'submit', 'change', 'focus', …)
+    //   emit: action/event name to emit (maps to context.emit(emit, ...args) in runtime)
+    //   args: optional array of arguments (strings/numbers)
+    // @event{on, handler} — declarative event with a raw handler expression (injection-safe:
+    //   only identifier + dot-path characters are accepted; arbitrary JS is rejected).
+    // Legacy: @button{onClick} / @form{onSubmit} string-sniff kept for backward compat.
+    if (traits.action) {
+      const on = String(traits.action.on || 'click').toLowerCase();
+      const emit = String(traits.action.emit || '');
+      const rawArgs: unknown[] = Array.isArray(traits.action.args) ? traits.action.args : [];
+      const safeArgs = rawArgs.map((a) => JSON.stringify(a)).join(', ');
+      const argsExpr = safeArgs ? `, ${safeArgs}` : '';
+      const handler = emit
+        ? `context.emit(${JSON.stringify(emit)}${argsExpr})`
+        : 'undefined';
+      const reactEvent = on === 'submit' ? 'onSubmit' : on === 'change' ? 'onChange' : 'onClick';
+      const wrapArg = on === 'submit' ? 'e' : '';
+      props += wrapArg
+        ? ` ${reactEvent}={(${wrapArg}) => { ${wrapArg}.preventDefault(); ${handler}; }}`
+        : ` ${reactEvent}={() => { ${handler}; }}`;
+    } else if (traits.event) {
+      // @event{on, handler} — raw handler expression. Injection-safe: only
+      // identifier + call + dot-path characters are permitted.
+      const on = String(traits.event.on || 'click').toLowerCase();
+      const rawHandler = String(traits.event.handler || '');
+      // Allow: identifiers, parens, dots, commas, quotes, spaces, slashes (paths).
+      // Reject anything else (semicolons, backticks, template literals, etc.).
+      const safe = /^[a-zA-Z0-9_.,()'"/\s-]+$/.test(rawHandler);
+      if (safe && rawHandler) {
+        const reactEvent = on === 'submit' ? 'onSubmit' : on === 'change' ? 'onChange' : 'onClick';
+        const wrapArg = on === 'submit' ? 'e' : '';
+        props += wrapArg
+          ? ` ${reactEvent}={(${wrapArg}) => ${rawHandler}}`
+          : ` ${reactEvent}={() => ${rawHandler}}`;
+      }
+    } else if (traits.button?.onClick || traits.form?.onSubmit) {
+      // Legacy string-sniff path — kept for backward compat with existing .holo
+      // compositions that use @button{onClick:"navigate(...)"}.
       const action = traits.button?.onClick || traits.form?.onSubmit;
       if (action) {
         const cleanAction = action.replace(/["']/g, "'");
-        // Simple mapping for demo prototypes
         if (cleanAction.includes('navigate')) {
           props += ` onClick={() => ${cleanAction}}`;
         } else if (cleanAction.includes('submit')) {
-          // Wrap in an arrow so the handler is PASSED, not invoked during render.
-          // `onSubmit={submitFn(e)}` calls submitFn at render time (e undefined);
-          // `onSubmit={(e) => submitFn(e)}` is the correct event-handler form.
           props += ` onSubmit={(e) => ${cleanAction}}`;
         } else if (cleanAction.includes('window.open')) {
           props += ` onClick={() => ${cleanAction}}`;
         } else {
           props += ` onClick={() => console.log('${cleanAction}')}`;
         }
+      }
+    }
+
+    // @model{state, path} — two-way binding for input/select/textarea.
+    // Emits value={state.path} onChange={(e) => setState(e.target.value)}.
+    // state: the React state variable name (must have a corresponding useState setter).
+    // path:  optional sub-path for nested state (e.g. 'form.email'); defaults to state.
+    if (traits.model && (tag === 'input' || tag === 'select' || tag === 'textarea')) {
+      const stateVar = String(traits.model.state || '');
+      const subPath = traits.model.path ? String(traits.model.path) : '';
+      if (stateVar) {
+        // Derive setter name: 'myState' → 'setMyState'
+        const setter = `set${stateVar.charAt(0).toUpperCase()}${stateVar.slice(1)}`;
+        const valueExpr = subPath ? `${stateVar}.${subPath}` : stateVar;
+        props += ` value={${valueExpr}} onChange={(e) => ${setter}(e.target.value)}`;
       }
     }
 
@@ -904,9 +953,35 @@ export default ${safeName}Component;
       }
     }
 
-    // Input attributes
-    if (traits.button?.onClick) props += ` onclick="${traits.button.onClick}"`;
-    if (traits.form?.onSubmit) props += ` onsubmit="${traits.form.onSubmit}"`;
+    // Interactive attributes — HTML path
+    // @action{on, emit, args}: emit a data-holo-action attribute the vanilla
+    // runtime can read to dispatch context.emit() on the server-rendered page.
+    // @event{on, handler}: inline handler string for progressive enhancement.
+    // Legacy @button{onClick} / @form{onSubmit} kept for backward compat.
+    if (traits.action) {
+      const on = String(traits.action.on || 'click').toLowerCase();
+      const emit = String(traits.action.emit || '');
+      const rawArgs: unknown[] = Array.isArray(traits.action.args) ? traits.action.args : [];
+      const payload = JSON.stringify({ emit, args: rawArgs });
+      props += ` data-holo-action-on="${on}" data-holo-action='${payload.replace(/'/g, '&#39;')}'`;
+    } else if (traits.event) {
+      const on = String(traits.event.on || 'click').toLowerCase();
+      const rawHandler = String(traits.event.handler || '');
+      const safe = /^[a-zA-Z0-9_.,()'"/\s-]+$/.test(rawHandler);
+      if (safe && rawHandler) {
+        const attrName = on === 'submit' ? 'onsubmit' : on === 'change' ? 'onchange' : 'onclick';
+        props += ` ${attrName}="${rawHandler.replace(/"/g, '&quot;')}"`;
+      }
+    } else {
+      if (traits.button?.onClick) props += ` onclick="${traits.button.onClick}"`;
+      if (traits.form?.onSubmit) props += ` onsubmit="${traits.form.onSubmit}"`;
+    }
+    // @model{state, path}: data attribute for SSR hydration of two-way bindings.
+    if (traits.model && (tag === 'input' || tag === 'select' || tag === 'textarea')) {
+      const stateVar = String(traits.model.state || '');
+      const subPath = traits.model.path ? `.${traits.model.path}` : '';
+      if (stateVar) props += ` data-holo-model="${stateVar}${subPath}"`;
+    }
     if (traits.image?.src) props += ` src="${traits.image.src}"`;
     if (traits.image?.alt) props += ` alt="${traits.image.alt}"`;
     if (traits.link?.href) props += ` href="${traits.link.href}"`;

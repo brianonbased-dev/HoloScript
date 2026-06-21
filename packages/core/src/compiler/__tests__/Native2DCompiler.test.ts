@@ -587,3 +587,187 @@ describe('Native2DCompiler @bind value formatting', () => {
     expect(() => reactOf(evil, { snap: {} })).toThrow(/precision must be an integer/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// @action / @event / @model — declarative interactivity vocabulary
+// Golden-output tests: no string-sniffing, no arbitrary JS, injection-safe.
+// ---------------------------------------------------------------------------
+
+describe('Native2DCompiler @action declarative event dispatch (React)', () => {
+  it('compiles @action{on:click, emit:navigate, args:[\'/rooms\']} to onClick context.emit', () => {
+    const btn = objectDecl('cta', [
+      trait('button', { content: 'Go to rooms' }),
+      trait('action', { on: 'click', emit: 'navigate', args: ['/rooms'] }),
+    ]);
+    const react = reactOf(btn);
+    expect(react).toContain('onClick={() => { context.emit("navigate", "/rooms"); }}');
+    // Must NOT fall through to legacy string-sniff path
+    expect(react).not.toContain('console.log');
+  });
+
+  it('compiles @action{on:submit, emit:submit_form} with preventDefault wrapper', () => {
+    const form = objectDecl('signup_form', [
+      trait('form', { tag: 'form' }),
+      trait('action', { on: 'submit', emit: 'submit_form' }),
+    ]);
+    const react = reactOf(form);
+    expect(react).toContain('onSubmit={(e) => { e.preventDefault(); context.emit("submit_form"); }}');
+  });
+
+  it('compiles @action with no args (emit only)', () => {
+    const btn = objectDecl('close_btn', [
+      trait('button', { content: 'Close' }),
+      trait('action', { on: 'click', emit: 'close_dialog' }),
+    ]);
+    const react = reactOf(btn);
+    expect(react).toContain('context.emit("close_dialog")');
+    expect(react).not.toContain('undefined');
+  });
+
+  it('compiles @action with multiple args', () => {
+    const btn = objectDecl('buy_btn', [
+      trait('button', { content: 'Buy' }),
+      trait('action', { on: 'click', emit: 'purchase', args: ['item_42', 1] }),
+    ]);
+    const react = reactOf(btn);
+    expect(react).toContain('context.emit("purchase", "item_42", 1)');
+  });
+
+  it('is a byte-identical no-op when @action trait is absent (legacy @button.onClick preserved)', () => {
+    const btn = objectDecl('legacy', [
+      trait('button', { content: 'Open room', onClick: "navigate('/rooms')" }),
+    ]);
+    const react = reactOf(btn);
+    // Legacy string-sniff still works when @action is absent
+    expect(react).toContain("onClick={() => navigate('/rooms')}");
+  });
+});
+
+describe('Native2DCompiler @event declarative handler (React)', () => {
+  it('compiles @event{on:click, handler:"navigate(\'/home\')"} to onClick', () => {
+    const btn = objectDecl('nav_btn', [
+      trait('button', { content: 'Home' }),
+      trait('event', { on: 'click', handler: "navigate('/home')" }),
+    ]);
+    const react = reactOf(btn);
+    expect(react).toContain("onClick={() => navigate('/home')}");
+  });
+
+  it('compiles @event{on:submit, handler:"handleSubmit(e)"} with event arg', () => {
+    const form = objectDecl('contact_form', [
+      trait('form', { tag: 'form' }),
+      trait('event', { on: 'submit', handler: 'handleSubmit(e)' }),
+    ]);
+    const react = reactOf(form);
+    expect(react).toContain('onSubmit={(e) => handleSubmit(e)}');
+  });
+
+  it('silently drops @event when handler contains injection characters (semicolons)', () => {
+    const evil = objectDecl('evil_btn', [
+      trait('button', { content: 'x' }),
+      // Injection attempt: semicolon breaks the safe-char regex
+      trait('event', { on: 'click', handler: "navigate('/home'); alert(1)" }),
+    ]);
+    const react = reactOf(evil);
+    // Unsafe handler is NOT emitted; element still renders without any onClick
+    expect(react).not.toContain('alert');
+    expect(react).not.toContain('onClick');
+  });
+
+  it('silently drops @event when handler contains backtick template literals', () => {
+    const evil = objectDecl('evil_btn2', [
+      trait('button', { content: 'x' }),
+      trait('event', { on: 'click', handler: '`${alert(1)}`' }),
+    ]);
+    const react = reactOf(evil);
+    expect(react).not.toContain('alert');
+  });
+});
+
+describe('Native2DCompiler @model two-way binding (React)', () => {
+  it('compiles @model{state:email} on input to value= + onChange= setter', () => {
+    const input = objectDecl('email_field', [
+      trait('input', { type: 'email', placeholder: 'Enter email' }),
+      trait('model', { state: 'email' }),
+    ]);
+    const react = reactOf(input, { email: '' });
+    expect(react).toContain('value={email}');
+    expect(react).toContain('onChange={(e) => setEmail(e.target.value)}');
+    expect(react).toContain('const [email, setEmail] = useState("");');
+  });
+
+  it('compiles @model{state:form, path:name} to nested state path', () => {
+    const input = objectDecl('name_field', [
+      trait('input', { type: 'text', placeholder: 'Name' }),
+      trait('model', { state: 'form', path: 'name' }),
+    ]);
+    const react = reactOf(input, { form: { name: '' } });
+    expect(react).toContain('value={form.name}');
+    expect(react).toContain('onChange={(e) => setForm(e.target.value)}');
+  });
+
+  it('does not emit @model attributes on non-input elements (div)', () => {
+    const div = objectDecl('container', [
+      trait('theme', { tag: 'div' }),
+      trait('model', { state: 'title' }),
+    ]);
+    const react = reactOf(div, { title: '' });
+    // @model is input-scoped; divs must not get value/onChange
+    expect(react).not.toContain('value={title}');
+    expect(react).not.toContain('onChange');
+  });
+
+  it('is a no-op when @model trait is absent', () => {
+    const input = objectDecl('plain_input', [
+      trait('input', { type: 'text', placeholder: 'Plain' }),
+    ]);
+    const react = reactOf(input);
+    expect(react).not.toContain('onChange');
+    expect(react).not.toContain('value=');
+  });
+});
+
+describe('Native2DCompiler @action + @model — HTML path', () => {
+  function htmlOf(node: HoloObjectDecl): string {
+    return new Native2DCompiler().compile(singleNodeComposition(node), '');
+  }
+
+  it('compiles @action to data-holo-action attributes in HTML output', () => {
+    const btn = objectDecl('cta', [
+      trait('button', { content: 'Go' }),
+      trait('action', { on: 'click', emit: 'navigate', args: ['/rooms'] }),
+    ]);
+    const html = htmlOf(btn);
+    expect(html).toContain('data-holo-action-on="click"');
+    expect(html).toContain('data-holo-action=');
+    expect(html).toContain('"emit":"navigate"');
+  });
+
+  it('compiles @event to inline onclick in HTML output (safe chars only)', () => {
+    const btn = objectDecl('nav_btn', [
+      trait('button', { content: 'Home' }),
+      trait('event', { on: 'click', handler: "navigate('/home')" }),
+    ]);
+    const html = htmlOf(btn);
+    expect(html).toContain("onclick=");
+    expect(html).toContain("navigate");
+  });
+
+  it('compiles @model to data-holo-model attribute in HTML output', () => {
+    const input = objectDecl('email_field', [
+      trait('input', { type: 'email' }),
+      trait('model', { state: 'email' }),
+    ]);
+    const html = htmlOf(input);
+    expect(html).toContain('data-holo-model="email"');
+  });
+
+  it('compiles @model with path to data-holo-model="state.path" in HTML', () => {
+    const input = objectDecl('name_field', [
+      trait('input', { type: 'text' }),
+      trait('model', { state: 'form', path: 'name' }),
+    ]);
+    const html = htmlOf(input);
+    expect(html).toContain('data-holo-model="form.name"');
+  });
+});
