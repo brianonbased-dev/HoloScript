@@ -555,6 +555,39 @@ error, SimulationContract supplies the missing formal mechanism that lets
 both agents and humans treat simulation results as abductively licensed
 rather than merely asserted.
 
+\subsection{Gated Completion Discipline}
+\label{sec:model:gated-completion}
+
+The same admission rule applies one layer above a solver run, where an
+agent claims that a reproducibility artifact is complete. A model may
+propose completion in text, but the runner admits completion only after it
+has observed at least one productive, side-effecting dispatch and the
+resulting artifact or receipt. Pure text, read-only inspection, and trivial
+shell commands are therefore unable to close the run, emit the downstream
+CAEL record, or charge the budget as completed work.
+
+This differs from post-hoc receipt checking. Tool Receipts / NabaOS
+generate signed tool receipts and cross-check claims after the model has
+formed its answer~\cite{toolreceipts2026}. Verify-gated completion makes a
+read-only verifier decide whether a proposed completion is admitted, but
+the verifier is call-type agnostic~\cite{verifygatedcompletion2026}. In
+our setting, runner-mediated dispatch owns the effect-audit surface: it
+sees the tool invocation before completion is admitted, classifies whether
+the invocation produced a side effect, and withholds the done signal if no
+artifact-grounding effect occurred. A framework in which the language
+model calls tools directly has no equivalent single control point without
+rearchitecting the dispatch boundary.
+
+A deterministic ablation over the shipped classifier supports this narrow
+claim. With the gate enabled, 7/7 fabrication classes were blocked, 4/4
+genuine classes passed, and one known leak remained: a no-op hidden behind
+a productive command prefix. With the gate disabled, all seven fabrication
+classes were admitted. The result does not prove that the produced effect
+is the right effect; it proves the weaker, useful condition that completion
+is impossible without an auditable effect. Correctness of that effect is
+handled by the separate reflect gate and by replay of the emitted
+SimulationContract or CAEL artifact.
+
 \subsection{Adversary Model and Guarantee Boundary}
 \label{sec:model:adversary}
 
@@ -1747,6 +1780,18 @@ durable than discipline-based approaches.
   A.~Griffiths,
   \emph{Laws of Thought},
   Macmillan, 2026.
+
+\bibitem{toolreceipts2026}
+  A.~Basu,
+  ``Tool Receipts, Not Zero-Knowledge Proofs: Practical Hallucination
+  Detection for AI Agents,''
+  arXiv:2603.10060, 2026.
+
+\bibitem{verifygatedcompletion2026}
+  H.-D.~Nguyen and T.-X.~Tran,
+  ``Verify-Gated Completion as Admission Control in a Governed
+  Multi-Agent Runtime: A Bounded Architecture Case Study,''
+  arXiv:2605.17998, 2026.
 
 \end{thebibliography}
   \fi
