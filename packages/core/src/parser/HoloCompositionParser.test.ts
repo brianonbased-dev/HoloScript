@@ -150,6 +150,55 @@ describe('HoloCompositionParser', () => {
     });
   });
 
+  describe('Semicolon-separated block members', () => {
+    it('parses semicolon-separated object, state, trait, and object-value properties', () => {
+      const source = `
+        composition "Semicolon Props" {
+          environment { skybox: "gradient"; ambient_light: 0.35; shadows: true; }
+
+          object "Marker" {
+            @cultural_trace { traceType: "artifact"; intensity: 0.8; decayRate: 0 }
+            position: [-20, 0, 0]; geometry: "cylinder"; scale: [15, 0.1, 15]
+            material: { baseColor: "#d4a574"; opacity: 0.3 }
+            state { resources_shared: 0; sops_formed: 0; }
+          }
+
+          template "Agent" {
+            @tenant { tenantId: "city_001"; role: "steward"; rbac: true }
+            geometry: "humanoid"; color: "#3498db"; scale: [0.8, 1.6, 0.8]
+            state { proposals_made: 0; district: null; }
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.environment?.properties).toHaveLength(3);
+      expect(result.ast?.objects[0].traits[0].config).toMatchObject({
+        traceType: 'artifact',
+        intensity: 0.8,
+        decayRate: 0,
+      });
+      expect(
+        result.ast?.objects[0].properties.find((property) => property.key === 'material')?.value
+      ).toMatchObject({ baseColor: '#d4a574', opacity: 0.3 });
+      expect(result.ast?.objects[0].state?.properties).toHaveLength(2);
+      expect(result.ast?.templates[0].traits[0].config).toMatchObject({
+        tenantId: 'city_001',
+        role: 'steward',
+        rbac: true,
+      });
+      expect(result.ast?.templates[0].properties.map((property) => property.key)).toEqual([
+        'geometry',
+        'color',
+        'scale',
+      ]);
+      expect(result.ast?.templates[0].state?.properties).toHaveLength(2);
+    });
+  });
+
   describe('State', () => {
     it('parses state block', () => {
       const source = `

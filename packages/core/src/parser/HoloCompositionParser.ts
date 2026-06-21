@@ -1193,10 +1193,6 @@ export class HoloCompositionParser {
         const value = this.parseValue();
         properties.push({ type: 'EnvironmentProperty', key, value });
       }
-      // Allow semicolon as property separator (single-line environment blocks)
-      if (this.check('SEMICOLON')) {
-        this.advance();
-      }
       this.skipNewlines();
     }
 
@@ -1973,7 +1969,7 @@ export class HoloCompositionParser {
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       if (this.check('STATE')) {
@@ -2111,7 +2107,7 @@ export class HoloCompositionParser {
         const value = this.parseValue();
         template.properties.push({ type: 'TemplateProperty', key, value });
       }
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
     }
 
     this.expect('RBRACE');
@@ -3187,9 +3183,8 @@ export class HoloCompositionParser {
     this.skipNewlines();
     const obj: Record<string, HoloValue> = {};
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
-      this.match('COMMA'); // consume optional comma separator
 
       // Only parse key: value if it looks like a property (identifier followed by colon)
       if (this.isPropertyName() && this.peek(1).type === 'COLON') {
@@ -3616,9 +3611,13 @@ export class HoloCompositionParser {
 
   private skipBlockMemberSeparators(): void {
     this.skipNewlines();
-    while (this.match('COMMA')) {
+    while (this.matchBlockMemberSeparator()) {
       this.skipNewlines();
     }
+  }
+
+  private matchBlockMemberSeparator(): boolean {
+    return this.match('COMMA') || this.match('SEMICOLON');
   }
 
   private currentLocation(): SourceLocation {
@@ -3744,9 +3743,7 @@ export class HoloCompositionParser {
         config[key] = this.parseValue();
       }
 
-      if (this.check('COMMA')) {
-        this.advance();
-      }
+      this.matchBlockMemberSeparator();
       this.skipNewlines();
     }
 
@@ -3760,16 +3757,14 @@ export class HoloCompositionParser {
 
     const config: Record<string, HoloValue> = {};
     while (!this.check('RBRACE') && !this.isAtEnd()) {
-      this.skipNewlines();
+      this.skipBlockMemberSeparators();
       if (this.check('RBRACE')) break;
 
       const key = this.expectIdentifier();
       this.expect('COLON');
       config[key] = this.parseValue();
 
-      if (this.check('COMMA')) {
-        this.advance();
-      }
+      this.matchBlockMemberSeparator();
       this.skipNewlines();
     }
 
