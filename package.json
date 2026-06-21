@@ -41,6 +41,7 @@
     "bench:perf-regression-update": "node scripts/perf-regression-check.mjs --update-baseline",
     "bench:perf-regression-test": "node scripts/__tests__/perf-regression-check.test.mjs",
     "holo-ci:docker-core-entries-test": "node scripts/__tests__/docker-core-entries-gate.test.mjs",
+    "holo-ci:holonews-proof-adjacency-test": "node scripts/__tests__/holonews-proof-adjacency.test.mjs",
     "bench:paper26:section7": "node scripts/run-paper26-section7-harness.mjs",
     "bench:paper26:section7-test": "node scripts/__tests__/paper26-section7-harness.test.mjs",
     "holoshell:format-gauntlet": "node scripts/holoshell-format-gauntlet.mjs",

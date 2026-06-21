@@ -1,0 +1,15 @@
+{
+  "name": "@holoscript/plugin-holonews",
+  "version": "1.0.0",
+  "description": "HoloNews verifiable-claim display primitive (@claim_kiosk trait, proof-adjacency guard)",
+  "main": "src/index.mjs",
+  "type": "module",
+  "peerDependencies": {
+    "@holoscript/core": ">=8.0.0"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests"
+  }
+}
