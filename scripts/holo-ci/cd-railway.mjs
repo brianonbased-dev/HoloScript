@@ -42,6 +42,12 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
+import {
+  isRailwayReference,
+  isRailwaySealedValue,
+  redactSecret,
+  registryCredentialPasswordFinding,
+} from '../lib/holokey-railway-bridge.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -62,24 +68,10 @@ const RAW_SECRET_PATTERNS = [
 ];
 const TOKEN_SHAPED = /^[A-Za-z0-9_\-./+=]{24,}$/;
 
-function redact(value) {
-  return typeof value === 'string' && value.length > 4 ? `${value.slice(0, 4)}...(${value.length})` : '****';
-}
-
-function isRailwayReference(value) {
-  if (typeof value !== 'string') return false;
-  const trimmed = value.trim();
-  return (
-    /^\$\{\{[A-Za-z0-9_.-]+(?:\.[A-Za-z0-9_.-]+)*\}\}$/.test(trimmed) ||
-    /^\$\{[A-Za-z_][A-Za-z0-9_]*\}$/.test(trimmed)
-  );
-}
-
-function isRailwaySealedValue(value) {
-  return typeof value === 'string' && value.trim().startsWith('{');
-}
-
-function classifyPlaintextSecret(value, { includeTokenShape = false, includePlaintext = false } = {}) {
+function classifyPlaintextSecret(
+  value,
+  { includeTokenShape = false, includePlaintext = false } = {}
+) {
   if (typeof value !== 'string' || !value.trim()) return null;
   if (isRailwayReference(value) || isRailwaySealedValue(value)) return null;
   for (const [type, re] of RAW_SECRET_PATTERNS) {
@@ -90,7 +82,11 @@ function classifyPlaintextSecret(value, { includeTokenShape = false, includePlai
   return null;
 }
 
-function collectPlaintextRegistryCredentialFindings(projectName, serviceEdges, targetServiceIds = null) {
+function collectPlaintextRegistryCredentialFindings(
+  projectName,
+  serviceEdges,
+  targetServiceIds = null
+) {
   const findings = [];
   for (const edge of serviceEdges ?? []) {
     const svc = edge?.node;
@@ -100,16 +96,20 @@ function collectPlaintextRegistryCredentialFindings(projectName, serviceEdges, t
     const registryCredentials = meta?.serviceManifest?.deploy?.registryCredentials;
     if (!registryCredentials) continue;
     const password = registryCredentials.password;
+    const referenceFinding = registryCredentialPasswordFinding(
+      registryCredentials,
+      `${projectName}/${svc.name}`
+    );
     const type = classifyPlaintextSecret(password, {
       includeTokenShape: true,
       includePlaintext: true,
     });
-    if (type) {
+    if (referenceFinding || type) {
       findings.push({
         scope: `${projectName}/${svc.name}`,
-        type,
-        user: redact(registryCredentials.username ?? ''),
-        pass: redact(password),
+        type: type ?? referenceFinding.reason,
+        user: redactSecret(registryCredentials.username ?? ''),
+        pass: referenceFinding?.pass ?? redactSecret(password),
       });
     }
   }
@@ -123,17 +123,44 @@ function collectPlaintextRegistryCredentialFindings(projectName, serviceEdges, t
  * we fall back to its package/service directory.
  */
 const SERVICES = [
-  { name: 'mcp-server', id: '098119b1-7832-4788-9ab2-3ced6c1cd2ab', config: 'packages/mcp-server/railway.toml', fallbackGlob: 'packages/mcp-server/' },
-  { name: 'studio', id: '55a18466-6702-4497-ad22-5856f4f196f3', config: 'packages/studio/railway.toml', fallbackGlob: 'packages/studio/' },
-  { name: 'marketplace-api', id: '64a114f9-c992-425b-8934-f287a68afd8b', config: 'packages/marketplace-api/railway.toml', fallbackGlob: 'packages/marketplace-api/' },
-  { name: 'holoscript-net-v2', id: '8f1cb924-5baa-4de6-914a-2e7d7360dc0f', config: 'services/holoscript-net-v2/railway.json', fallbackGlob: 'services/holoscript-net-v2/' },
-  { name: 'llm-service', id: 'a4f847f4-2793-43f2-92d9-570a34f625cd', config: 'services/llm-service/railway.toml', fallbackGlob: 'services/llm-service/' },
+  {
+    name: 'mcp-server',
+    id: '098119b1-7832-4788-9ab2-3ced6c1cd2ab',
+    config: 'packages/mcp-server/railway.toml',
+    fallbackGlob: 'packages/mcp-server/',
+  },
+  {
+    name: 'studio',
+    id: '55a18466-6702-4497-ad22-5856f4f196f3',
+    config: 'packages/studio/railway.toml',
+    fallbackGlob: 'packages/studio/',
+  },
+  {
+    name: 'marketplace-api',
+    id: '64a114f9-c992-425b-8934-f287a68afd8b',
+    config: 'packages/marketplace-api/railway.toml',
+    fallbackGlob: 'packages/marketplace-api/',
+  },
+  {
+    name: 'holoscript-net-v2',
+    id: '8f1cb924-5baa-4de6-914a-2e7d7360dc0f',
+    config: 'services/holoscript-net-v2/railway.json',
+    fallbackGlob: 'services/holoscript-net-v2/',
+  },
+  {
+    name: 'llm-service',
+    id: 'a4f847f4-2793-43f2-92d9-570a34f625cd',
+    config: 'services/llm-service/railway.toml',
+    fallbackGlob: 'services/llm-service/',
+  },
 ];
 
 function token() {
   const t = process.env.RAILWAY_TOKEN?.trim();
   if (!t) {
-    throw new Error('RAILWAY_TOKEN not set. It is a project-scoped Railway token (see HoloScript/.env or the repo secret).');
+    throw new Error(
+      'RAILWAY_TOKEN not set. It is a project-scoped Railway token (see HoloScript/.env or the repo secret).'
+    );
   }
   return t;
 }
@@ -155,8 +182,10 @@ async function validateToken() {
   const d = await gql('query { projectToken { projectId environmentId } }');
   const pt = d?.projectToken;
   if (!pt) throw new Error('RAILWAY_TOKEN is not a project token (no projectToken in response).');
-  if (pt.projectId !== PROJECT_ID) throw new Error(`Token bound to project ${pt.projectId}, expected HoloScript ${PROJECT_ID}.`);
-  if (pt.environmentId !== ENV_ID) console.warn(`WARN: token env ${pt.environmentId} != expected prod ${ENV_ID}.`);
+  if (pt.projectId !== PROJECT_ID)
+    throw new Error(`Token bound to project ${pt.projectId}, expected HoloScript ${PROJECT_ID}.`);
+  if (pt.environmentId !== ENV_ID)
+    console.warn(`WARN: token env ${pt.environmentId} != expected prod ${ENV_ID}.`);
   return pt;
 }
 
@@ -188,11 +217,13 @@ async function assertNoPlaintextRegistryCredentials(targets) {
   );
   const projectName = data?.project?.name ?? 'HoloScript';
   const serviceEdges = data?.project?.services?.edges ?? [];
-  const findings = collectPlaintextRegistryCredentialFindings(projectName, serviceEdges, targetServiceIds);
+  const findings = collectPlaintextRegistryCredentialFindings(
+    projectName,
+    serviceEdges,
+    targetServiceIds
+  );
   if (findings.length) {
-    const lines = findings.map(
-      (f) => `  - ${f.scope} [${f.type}] user=${f.user} pass=${f.pass}`
-    );
+    const lines = findings.map((f) => `  - ${f.scope} [${f.type}] user=${f.user} pass=${f.pass}`);
     throw new Error(
       `REFUSING DEPLOY: plaintext registryCredentials detected before railway up.\n` +
         lines.join('\n') +
@@ -235,7 +266,10 @@ function watchPatterns(svc) {
 }
 
 function changedFiles(ref) {
-  const r = spawnSync('git', ['diff', '--name-only', `${ref}...HEAD`], { cwd: REPO_ROOT, encoding: 'utf8' });
+  const r = spawnSync('git', ['diff', '--name-only', `${ref}...HEAD`], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+  });
   if (r.status !== 0) {
     // fall back to working-tree changes
     const r2 = spawnSync('git', ['diff', '--name-only', ref], { cwd: REPO_ROOT, encoding: 'utf8' });
@@ -276,7 +310,9 @@ const REQUIRED_IGNORES = ['.scratch', '.bench-logs', 'quantum_receipts', 'target
 function assertRailwayignoreSane() {
   const p = join(REPO_ROOT, '.railwayignore');
   if (!existsSync(p)) {
-    throw new Error('REFUSING DEPLOY: no .railwayignore — `railway up` would upload the entire tree (incl. multi-GB .scratch/.bench-logs) and OOM buildkit. Add one first.');
+    throw new Error(
+      'REFUSING DEPLOY: no .railwayignore — `railway up` would upload the entire tree (incl. multi-GB .scratch/.bench-logs) and OOM buildkit. Add one first.'
+    );
   }
   const body = readFileSync(p, 'utf8');
   const missing = REQUIRED_IGNORES.filter(
@@ -448,7 +484,11 @@ async function main() {
     const live = await liveServices();
     console.log(`Project HoloScript — ${live.length} services:`);
     for (const s of live.sort((a, b) => a.name.localeCompare(b.name))) {
-      const src = s.repo ? `repo:${s.repo}` : s.image ? `image:${s.image}` : 'upload/none (token-driven or empty)';
+      const src = s.repo
+        ? `repo:${s.repo}`
+        : s.image
+          ? `image:${s.image}`
+          : 'upload/none (token-driven or empty)';
       const flag = s.repo ? '  ⚠ GitHub-coupled' : '';
       console.log(`  ${s.name.padEnd(22)} ${src}${flag}`);
     }
@@ -469,21 +509,32 @@ async function main() {
   if (serviceName) {
     targets = SERVICES.filter((s) => s.name === serviceName);
     if (!targets.length) {
-      throw new Error(`Unknown service "${serviceName}". Known: ${SERVICES.map((s) => s.name).join(', ')}`);
+      throw new Error(
+        `Unknown service "${serviceName}". Known: ${SERVICES.map((s) => s.name).join(', ')}`
+      );
     }
   } else if (changedFrom) {
     targets = servicesForChange(changedFrom);
-    console.log(`Changed-from ${changedFrom}: ${targets.length ? targets.map((s) => s.name).join(', ') : '(no mapped service touched)'}`);
+    console.log(
+      `Changed-from ${changedFrom}: ${targets.length ? targets.map((s) => s.name).join(', ') : '(no mapped service touched)'}`
+    );
   } else {
     targets = SERVICES;
   }
 
   const cli = railwayCliPresent();
-  console.log(cli ? `✓ railway CLI ${cli}` : '⚠ railway CLI NOT installed (needed for live deploy: npm i -g @railway/cli)');
+  console.log(
+    cli
+      ? `✓ railway CLI ${cli}`
+      : '⚠ railway CLI NOT installed (needed for live deploy: npm i -g @railway/cli)'
+  );
 
   if (!live) {
     console.log('\n[dry-run] would deploy via `railway up`:');
-    for (const s of targets) console.log(`  - ${s.name} (${s.id})  watch=${(watchPatterns(s).length ? watchPatterns(s) : [s.fallbackGlob]).join(', ')}`);
+    for (const s of targets)
+      console.log(
+        `  - ${s.name} (${s.id})  watch=${(watchPatterns(s).length ? watchPatterns(s) : [s.fallbackGlob]).join(', ')}`
+      );
     console.log('\nRe-run with --service <name> / --all (and no --dry-run) to deploy.');
     return;
   }
