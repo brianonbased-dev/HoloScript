@@ -71,9 +71,17 @@ export async function handleAdminRoutes(
 
     const walletAddress =
       (body.wallet_address as string | undefined) || `0x${crypto.randomBytes(20).toString('hex')}`;
+    // Default scope floor includes tools:read so a provisioned agent can consume the
+    // read-only LANGUAGE surface (parse_hs / validate_holoscript / list_traits /
+    // explain_*) via the edge mcp_call tool — non-destructive, the safest + most
+    // common edge use (a brain validating its own output). /founder ruling 2026-06-21:
+    // tools:read is agent-decidable + safe-by-default (D.100 Axis-1, W.GOLD.193). The
+    // compute/write set (tools:write, tools:codebase) stays an EXPLICIT grant — pass
+    // `scopes` to provision a sovereign edge agent with the fuller safe set; admin /
+    // marketplace / paid-fleet scopes are never defaulted.
     const scopes: string[] = Array.isArray(body.scopes)
       ? (body.scopes as string[])
-      : ['holomesh', 'mcp'];
+      : ['holomesh', 'mcp', 'tools:read'];
     const isFounder = body.is_founder === true;
     const agentId = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const apiKey = `hs_sk_${crypto.randomUUID().replace(/-/g, '')}`;
