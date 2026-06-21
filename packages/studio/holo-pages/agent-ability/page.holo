@@ -3,22 +3,22 @@
 // src/app/agent-ability/page.tsx. Regenerate: pnpm tsx scripts/compile-vector-pages.mts
 //
 // Spec: docs/AGENT_MODEL.md (ai-ecosystem). 8 PillarDomain-grounded axes; Accuracy (X) and
-// Truth (Z) are the two safety facets. Per-class values are illustrative archetypes until
-// fed by real pillar_domain slice telemetry. Axis order == series value order.
+// Truth (Z) are the two safety facets. compile-vector-pages.mts injects series values from
+// pillar:slice telemetry and uses fallback_values only when a slice is absent.
 @page({ route: "/agent-ability" })
 composition "AgentAbility" {
   object "radar" { kind: "radar" cx: 220 cy: 210 r: 150 max: 10 }
 
-  object "axis_reason" { kind: "axis" label: "Reasoning" }
-  object "axis_tool"   { kind: "axis" label: "Tool use" }
-  object "axis_write"  { kind: "axis" label: "Write" }
-  object "axis_acc"    { kind: "axis" label: "Accuracy" facet: "X" }
-  object "axis_mem"    { kind: "axis" label: "Memory" }
-  object "axis_truth"  { kind: "axis" label: "Truth" facet: "Z" }
-  object "axis_coord"  { kind: "axis" label: "Coordination" }
-  object "axis_mob"    { kind: "axis" label: "Mobility" }
+  object "axis_reason" { kind: "axis" label: "Reasoning" pillar_domain: "solver" }
+  object "axis_tool"   { kind: "axis" label: "Tool use" pillar_domain: "compiler" }
+  object "axis_write"  { kind: "axis" label: "Write" pillar_domain: "language" }
+  object "axis_acc"    { kind: "axis" label: "Accuracy" facet: "X" pillar_domain: "accuracy_speed" }
+  object "axis_mem"    { kind: "axis" label: "Memory" pillar_domain: "storage" }
+  object "axis_truth"  { kind: "axis" label: "Truth" facet: "Z" pillar_domain: "truth_approval" }
+  object "axis_coord"  { kind: "axis" label: "Coordination" pillar_domain: "coordination" }
+  object "axis_mob"    { kind: "axis" label: "Mobility" pillar_domain: "agent" }
 
-  object "series_worker"   { kind: "series" name: "Worker"   color: "#378ADD" values: "5,9,7,8,3,6,6,3" }
-  object "series_brittney" { kind: "series" name: "Brittney" color: "#1D9E75" values: "8,7,6,6,7,7,8,6" }
-  object "series_daimon"   { kind: "series" name: "Daimon"   color: "#7F77DD" values: "9,6,7,6,10,9,9,9" }
+  object "series_worker"   { kind: "series" name: "Worker"   color: "#378ADD" telemetry: "pillar_domain" fallback_values: "5,9,7,8,3,6,6,3" }
+  object "series_brittney" { kind: "series" name: "Brittney" color: "#1D9E75" telemetry: "pillar_domain" fallback_values: "8,7,6,6,7,7,8,6" }
+  object "series_daimon"   { kind: "series" name: "Daimon"   color: "#7F77DD" telemetry: "pillar_domain" fallback_values: "9,6,7,6,10,9,9,9" }
 }

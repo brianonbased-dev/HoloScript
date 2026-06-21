@@ -10,11 +10,15 @@
  *
  *   pnpm tsx scripts/compile-vector-pages.mts
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { parseHolo } from '../../core/src/parser/HoloCompositionParser';
 import { Vector2DCompiler } from '../../core/src/compiler/Vector2DCompiler';
 import type { HoloComposition } from '../../core/src/parser/HoloCompositionTypes';
+import {
+  applyPillarDomainRadarTelemetry,
+  normalizePillarTelemetryInput,
+} from '../src/lib/agentAbility/pillarDomainRadar';
 
 const STUDIO_ROOT = join(import.meta.dirname || __dirname, '..');
 
@@ -26,6 +30,53 @@ const PAGES: Array<{ src: string; out: string; component: string }> = [
   },
 ];
 
+function telemetryPaths(): string[] {
+  const fromEnv =
+    process.env.AGENT_ABILITY_PILLAR_TELEMETRY ||
+    process.env.HOLOSCRIPT_AGENT_ABILITY_PILLAR_TELEMETRY ||
+    '';
+
+  return fromEnv
+    .split(/[;,]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => resolve(STUDIO_ROOT, entry));
+}
+
+function parseTelemetryFile(path: string): unknown[] {
+  const text = readFileSync(path, 'utf-8').trim();
+  if (!text) return [];
+
+  try {
+    return normalizePillarTelemetryInput(JSON.parse(text));
+  } catch {
+    // Fall through to JSONL: one pillar event/envelope per line.
+  }
+
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => normalizePillarTelemetryInput(JSON.parse(line)));
+}
+
+function loadAgentAbilityTelemetry(): unknown[] {
+  const records: unknown[] = [];
+  for (const path of telemetryPaths()) {
+    if (!existsSync(path)) {
+      console.warn(`agent-ability telemetry missing: ${path}; using fallback_values for absent slices`);
+      continue;
+    }
+    records.push(...parseTelemetryFile(path));
+  }
+  return records;
+}
+
+function prepareComposition(page: { component: string }, composition: HoloComposition): HoloComposition {
+  if (page.component !== 'AgentAbility') return composition;
+  return applyPillarDomainRadarTelemetry(composition, loadAgentAbilityTelemetry()) as HoloComposition;
+}
+
 let failed = 0;
 for (const page of PAGES) {
   const source = readFileSync(page.src, 'utf-8');
@@ -35,7 +86,8 @@ for (const page of PAGES) {
     failed++;
     continue;
   }
-  const { code, componentName } = new Vector2DCompiler().compile(parsed.ast as unknown as HoloComposition, {
+  const composition = prepareComposition(page, parsed.ast as unknown as HoloComposition);
+  const { code, componentName } = new Vector2DCompiler().compile(composition, {
     componentName: page.component,
   });
   mkdirSync(dirname(page.out), { recursive: true });
