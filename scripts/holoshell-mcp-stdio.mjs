@@ -33,6 +33,10 @@ import {
   listRecentExecutions,
   lookupProcessesByPid,
 } from './holoshell-execute-receipt.mjs';
+import {
+  callHoloshellDownloadRecoveryTool,
+  holoshellDownloadRecoveryToolDefinitions,
+} from './holoshell-download-recovery-runtime.mjs';
 
 const server = new Server({ name: 'holoshell', version: '0.1.0' }, { capabilities: { tools: {} } });
 
@@ -125,7 +129,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        limit:       { type: 'number', description: 'Max receipts to return (default: 20)', default: 20 },
+        limit: { type: 'number', description: 'Max receipts to return (default: 20)', default: 20 },
         preflightId: { type: 'string', description: 'Filter to a specific preflight (optional)' },
       },
     },
@@ -176,6 +180,7 @@ const TOOLS = [
       required: ['consentToken', 'preflightId'],
     },
   },
+  ...holoshellDownloadRecoveryToolDefinitions,
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -240,14 +245,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'holoshell_list_executions': {
         const executions = listRecentExecutions({
-          limit:       Number(args.limit ?? 20),
+          limit: Number(args.limit ?? 20),
           preflightId: args.preflightId ? String(args.preflightId) : undefined,
         });
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({ count: executions.length, executions }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ count: executions.length, executions }, null, 2),
+            },
+          ],
         };
       }
 
@@ -398,6 +405,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           consentToken: String(args.consentToken),
           preflightId: String(args.preflightId),
         });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'holoshell_download_recovery_list':
+      case 'holoshell_download_recovery_resume':
+      case 'holoshell_download_recovery_quarantine':
+      case 'holoshell_download_recovery_forensic_export':
+      case 'holoshell_download_recovery_import_handoff': {
+        const result = await callHoloshellDownloadRecoveryTool(name, args);
         return {
           content: [
             {

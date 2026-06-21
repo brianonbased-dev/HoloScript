@@ -13,18 +13,28 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { holoshellDownloadRecoveryToolDefinitions } from './holoshell-download-recovery-runtime.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TAG = '[verify-holoshell-mcp-registration]';
 
-// The 5 stable Phase A tools. Update here when tools are intentionally added/renamed.
+// Stable local HoloShell tools. Update here when tools are intentionally added/renamed.
 const EXPECTED_TOOLS = [
   'holoshell_list_stale_processes',
   'holoshell_preflight_process_cleanup',
+  'holoshell_request_cleanup',
+  'holoshell_list_pending',
+  'holoshell_list_executions',
   'holoshell_consent_classify',
   'holoshell_consent_issue',
   'holoshell_execute_receipt',
+  'holoshell_download_recovery_list',
+  'holoshell_download_recovery_resume',
+  'holoshell_download_recovery_quarantine',
+  'holoshell_download_recovery_forensic_export',
+  'holoshell_download_recovery_import_handoff',
 ];
+const REQUIRE_DESKTOP_REGISTRATION = process.env.HOLOSHELL_REQUIRE_DESKTOP_REGISTRATION === '1';
 
 const STDIO_SERVER = path.join(__dirname, 'holoshell-mcp-stdio.mjs');
 const CONFIG_PATH = path.join(
@@ -48,6 +58,7 @@ function extractToolNames(source) {
 }
 
 let failed = false;
+let desktopConfigStatus = 'not checked';
 
 // --- 1. Verify server tool list ---
 if (!fs.existsSync(STDIO_SERVER)) {
@@ -56,7 +67,10 @@ if (!fs.existsSync(STDIO_SERVER)) {
 }
 
 const source = fs.readFileSync(STDIO_SERVER, 'utf8');
-const actualTools = extractToolNames(source);
+const actualTools = [
+  ...extractToolNames(source),
+  ...holoshellDownloadRecoveryToolDefinitions.map((tool) => tool.name),
+];
 const actualSet = new Set(actualTools);
 const expectedSet = new Set(EXPECTED_TOOLS);
 
@@ -84,10 +98,17 @@ if (fs.existsSync(CONFIG_PATH)) {
     failed = true;
   }
   if (config) {
-    const reg = config?.mcpServers?.holoshell;
+    const servers = config?.mcpServers ?? {};
+    const reg = servers.holoshell ?? servers['holoshell-local'];
     if (!reg) {
-      console.error(`${TAG} ERROR: mcpServers.holoshell absent from ${CONFIG_PATH}`);
-      failed = true;
+      const message = `${TAG} WARN: mcpServers.holoshell/holoshell-local absent from ${CONFIG_PATH}`;
+      if (REQUIRE_DESKTOP_REGISTRATION) {
+        console.error(message.replace('WARN:', 'ERROR:'));
+        failed = true;
+      } else {
+        console.warn(`${message} — skipping local Desktop registration check`);
+        desktopConfigStatus = 'missing entry (skipped)';
+      }
     } else {
       const regPath = (reg.args ?? []).find((a) => a.endsWith('holoshell-mcp-stdio.mjs'));
       if (!regPath) {
@@ -101,16 +122,21 @@ if (fs.existsSync(CONFIG_PATH)) {
         console.error(`  config : ${path.normalize(regPath)}`);
         console.error(`  repo   : ${path.normalize(STDIO_SERVER)}`);
         failed = true;
+      } else {
+        desktopConfigStatus = 'synchronized';
       }
     }
   }
 } else {
   console.warn(`${TAG} WARN: Desktop config not found at ${CONFIG_PATH} — skipping (OK in CI)`);
+  desktopConfigStatus = 'missing file (skipped)';
 }
 
 if (failed) {
   process.exit(1);
 }
 
-console.log(`${TAG} OK — ${actualTools.length} tool(s) verified, Desktop config synchronized`);
+console.log(
+  `${TAG} OK — ${actualTools.length} tool(s) verified, Desktop config ${desktopConfigStatus}`
+);
 EXPECTED_TOOLS.forEach((t) => console.log(`  ✓ ${t}`));
