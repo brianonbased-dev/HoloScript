@@ -4,6 +4,9 @@
 %
 % Target: IEEE Quantum Week (QCE) 2027 / EuroSys 2027 workshop track
 %         (gated; also suitable as a NISQ/QEC methods short paper)
+% Submission status: manuscript source is agent-finalizable; QCE 2027
+%         public CFP was not published in the 2026-06-21 check. Founder
+%         must decide whether/when to submit under Joseph's name.
 % Format: IEEEtran, conference mode
 % Author: Joseph Krzywoszyja (F.026)
 % Draft: 2026-06-15
@@ -32,8 +35,7 @@
 \usepackage{graphicx}
 \usepackage{array}
 
-% ── Draft / todo annotation ──────────────────────────────────────────────────
-\newcommand{\todo}[1]{\textcolor{red!70!black}{[\textbf{TODO}: #1]}}
+% Status marker commands
 \newcommand{\cmark}{\textcolor{green!60!black}{\checkmark}}
 \newcommand{\xmark}{\textcolor{red!70!black}{$\times$}}
 
@@ -317,7 +319,7 @@ reported; the $\af$ that produced it must accompany it.
 
 Listing~\ref{lst:receipt} shows a representative receipt from the Tier-0
 simulator at $d{=}11$, $p{=}0.10$:
-\measuredFrom{ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
+\measuredFrom{.ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
 
 \begin{lstlisting}[language=JSON,caption={Example \texttt{cael-quantum-v1.qec} receipt at $d=11$, $p=0.10$},label=lst:receipt]
 {
@@ -436,7 +438,7 @@ tesseract code. It is NOT circuit-level noise. It is NOT hardware.
 The repetition code corrects a single Pauli axis only (a CSS sub-code).
 
 \subsection{Threshold Result}
-\measuredFrom{ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
+\measuredFrom{.ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
 
 The threshold $\pth \approx 0.5$ is confirmed empirically: at $p = 0.5$,
 $d = 3$, the logical error rate is $0.499$ ($\pm 0.0025$); at $d = 11$,
@@ -456,7 +458,7 @@ $(d, p)$ points. All measurements use $\af = 1.0$ (no post-selection).
 All receipts: \texttt{acceptance\_fraction = 1.0} (zero shots discarded).}
 \label{tab:suppression}
 \small
-\measuredFrom{ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
+\measuredFrom{.ai-ecosystem/scripts/quantum-scaleup/receipts/2026-06-15_qec-threshold-repetition.ndjson}
 \begin{tabular}{@{}ccrr@{}}
 \toprule
 $d$ & $\pP$ & $\pL$ & $\suppfactor = \pP/\pL$ \\
@@ -505,23 +507,24 @@ The deterministic-equivalent column applies the honest-reporting rule:
 $\suppfactor_{\mathrm{det}} = \suppfactor \times \af$.}
 \label{tab:comparison}
 \small
-\begin{tabular}{@{}p{2.4cm}rrp{1.5cm}r@{}}
+\begin{tabular}{@{}p{2.4cm}rp{1.55cm}p{1.45cm}p{1.55cm}@{}}
 \toprule
 \textbf{Result} & $\suppfactor$ & $\af$ & \textbf{Regime} & $\suppfactor_{\mathrm{det}}$ \\
 \midrule
-MS/QH carbon (sel.~rej.) & $800\times$ & \todo{undisclosed} & heralded & \todo{needs $\af$} \\
+MS/QH carbon (sel.~rej.) & $800\times$ & not public & heralded & requires $\af$ \\
 MS/QH carbon (filtered) & ${\sim}5\times$ & $1.0$ & deterministic & $5\times$ \\
-MS/QH mid-computation & ${>}50\times$ & \todo{undisclosed} & mid-comp. & \todo{needs $\af$} \\
+MS/QH mid-computation & ${>}50\times$ & not public & mid-comp. & requires $\af$ \\
 \textbf{Ours} ($d{=}11$, $p{=}0.1$) & $444\times$ & $\mathbf{1.0}$ & \textbf{classical sim.} & $\mathbf{444\times}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The \todo{undisclosed} entries illustrate exactly the gap this schema
-closes. Until $\af$ is a required field, the 800$\times$ headline and the
-444$\times$ headline cannot be honestly compared: one may reflect a 1\%
-acceptance fraction; the other reflects 100\%. The schema makes this
-comparison structurally possible.
+The \textit{not public} entries illustrate exactly the gap this schema
+closes. Public summaries report the 800$\times$ and $>50\times$ figures,
+but not a table-level accepted-shot fraction for those headline regimes.
+Until $\af$ is a required field, a heralded headline and a deterministic
+headline cannot be honestly compared. The schema makes that comparison
+structurally possible without dismissing either result.
 
 \subsection{Schema Viability}
 
@@ -590,13 +593,15 @@ suppression figure is real; the hardware gap to the 800$\times$ baseline
 is large and acknowledged.
 
 \paragraph{Tier-1: Quantinuum hardware run.}
-\todo{Tier-1 Quantinuum backend required. The build spec in
-\texttt{2026-06-15\_microsoft-quantinuum-qec.md} defines the
-\texttt{QuantinuumBackend} in \texttt{qm-bridge}: mirror the existing
-\texttt{IBMQuantumBackend} pattern with pytket/qnexus SDK; run logical
-qubits (carbon/tesseract encoding); emit logical-vs-physical error rate
-and real $\af$ into \texttt{cael-quantum-v1.qec}. Hardware run is
-founder-gated paid compute (D.080).}
+Tier-1 remains outside this manuscript's completed evidence bundle. The
+next hardware step is to implement a \texttt{QuantinuumBackend} in
+\texttt{qm-bridge}, mirroring the existing \texttt{IBMQuantumBackend}
+pattern with the pytket/qnexus SDK, then run logical qubits
+(carbon/tesseract encoding) and emit logical-vs-physical error rate plus
+the real $\af$ into \texttt{cael-quantum-v1.qec}. That run requires paid
+hardware access and remains founder-gated (D.080); the present paper is
+complete as a Tier-0/Tier-2 receipt-schema methods manuscript without
+claiming a Tier-1 Quantinuum result.
 
 \paragraph{Tier-2: 2-D surface code under circuit-level noise.}
 Tier-2 has been demonstrated.  A rotated planar surface code at distances
