@@ -18,9 +18,6 @@ import {
   ChevronLeft,
   GitBranch,
   FolderGit2,
-  Loader2,
-  Zap,
-  BarChart2,
 } from 'lucide-react';
 import { useImportRepoWizard } from '@/hooks/useImportRepoWizard';
 import { AnimatedStep } from './AnimatedStep';
@@ -174,6 +171,10 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               onAcceptConversion={acceptConversionCandidate}
               onDismissConversion={dismissConversionCandidate}
               onExportConversions={exportConversionCandidates}
+              onOpenWorkspace={handleLaunch}
+              onImproveWorkspace={handleAbsorbAndImprove}
+              canImprove={config.autoStart}
+              isImproving={isTriggering}
             />
           </AnimatedStep>
         </div>
@@ -220,32 +221,12 @@ export function ImportRepoWizard({ onClose }: ImportRepoWizardProps) {
               <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleAbsorbAndImprove}
-                disabled={isTriggering || !config.autoStart}
-                className="flex items-center gap-2 rounded-lg bg-purple-500/20 px-4 py-1.5 text-sm font-medium text-purple-400 transition hover:bg-purple-500/30 disabled:opacity-40"
-                title={
-                  config.autoStart
-                    ? 'Trigger recursive pipeline'
-                    : 'Enable auto-start in /integrations'
-                }
-              >
-                {isTriggering ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4" />
-                )}
-                Absorb & Improve
-              </button>
-              <button
-                onClick={handleLaunch}
-                className="flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-1.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 hover:scale-[1.02] active:scale-95"
-              >
-                <BarChart2 className="h-4 w-4" />
-                Open Workspace
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex items-center gap-2 rounded-lg bg-studio-accent px-5 py-1.5 text-sm font-semibold text-white shadow-lg shadow-studio-accent/20 transition hover:brightness-110 active:scale-95"
+            >
+              Done
+            </button>
           )}
         </div>
       </div>

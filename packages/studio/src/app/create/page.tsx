@@ -96,7 +96,11 @@ import { logger } from '@/lib/logger';
 import { useToast } from '@/app/providers';
 import { UXCommandPalette, createStudioPublishingCommands } from '@/core-ui/UXCommandPalette';
 import { runStudioCommand } from '@/lib/studio/commandRegistry';
-import type { StudioViewCommandId } from '@/lib/studio/viewRegistry';
+import {
+  STUDIO_VIEW_IDS,
+  type StudioViewCommandId,
+  type StudioViewId,
+} from '@/lib/studio/viewRegistry';
 import { useCreateModeStore, type CreateMode } from '@/components/create/createModeStore';
 import type { PrintabilityReport } from '@/components/manufacturing/PrintabilityReportPanel';
 import type { MeshResult } from '@/components/manufacturing/ParametricSlidersPanel';
@@ -1127,6 +1131,11 @@ export default function CreatePage() {
       setRepoWizardOpen(true);
     } else if (intake === 'scan') {
       setSplatWizardOpen(true);
+    }
+
+    const viewParam = searchParams.get('view');
+    if (viewParam && STUDIO_VIEW_IDS.includes(viewParam as StudioViewId)) {
+      runViewCommand(`studio.view.${viewParam}.toggle` as StudioViewCommandId);
     }
 
     // ── 3. sessionStorage landing prompt ──────────────────────────────────

@@ -20,6 +20,7 @@ export const analyticsPlugin: HoloScriptPlugin = {
     license: 'MIT',
     keywords: ['analytics', 'metrics', 'dashboard', 'visualization'],
     icon: 'BarChart2',
+    depth: 'real',
   },
 
   // Lifecycle hooks

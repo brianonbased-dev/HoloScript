@@ -1,20 +1,236 @@
 'use client';
 
-import { Check, ArrowRight } from 'lucide-react';
+import {
+  Check,
+  ArrowRight,
+  Box,
+  ExternalLink,
+  Loader2,
+  PackageCheck,
+  Rocket,
+  Sparkles,
+  Wand2,
+} from 'lucide-react';
 import type {
   ConversionAction,
   ConversionCandidate,
   ProjectDNA,
+  ProjectKind,
 } from '@/lib/stores/workspaceStore';
 import { KIND_META } from './importWizardConstants';
 import { generateWorkspaceSeed } from '@/lib/workspaceSeeder';
 import { ConversionRecommendations } from './ConversionRecommendations';
+import { READINESS_DEPTH_LABELS, type ReadinessDepth } from '@/lib/plugins/types';
 
 interface AbsorbStats {
   totalFiles: number;
   totalSymbols: number;
   totalLoc: number;
   durationMs: number;
+}
+
+export type WizardHubActionId = 'build-scene' | 'improve-repo' | 'compile-target' | 'ship-share';
+
+export interface WizardHubAction {
+  id: WizardHubActionId;
+  title: string;
+  description: string;
+  cta: string;
+  depth: ReadinessDepth;
+  icon: typeof Sparkles;
+  colorClass: string;
+  mode?: 'world' | 'app' | 'sim' | 'game' | 'avatar' | 'part';
+  view?: 'exportV2' | 'publish' | 'share';
+  handler?: 'improve';
+}
+
+export const WIZARD_HUB_ACTIONS: WizardHubAction[] = [
+  {
+    id: 'build-scene',
+    title: 'Build a scene',
+    description: 'Open the creation workbench with the right mode for this workspace.',
+    cta: 'Open Create',
+    depth: 'real',
+    icon: Sparkles,
+    colorClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  },
+  {
+    id: 'improve-repo',
+    title: 'Improve this repo',
+    description: 'Run the absorb pipeline and daemon improvement pass for this import.',
+    cta: 'Run improve',
+    depth: 'real',
+    icon: Wand2,
+    colorClass: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
+    handler: 'improve',
+  },
+  {
+    id: 'compile-target',
+    title: 'Compile to a target',
+    description: 'Open the workbench with the export pipeline ready for target selection.',
+    cta: 'Open targets',
+    depth: 'real',
+    icon: PackageCheck,
+    colorClass: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
+    view: 'exportV2',
+  },
+  {
+    id: 'ship-share',
+    title: 'Publish, deploy, share',
+    description: 'Open the publish surface for release checks, sharing, and account-gated deploys.',
+    cta: 'Open publish',
+    depth: 'sketch',
+    icon: Rocket,
+    colorClass: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+    view: 'publish',
+  },
+];
+
+export function createModeForProjectKind(kind: ProjectKind | undefined) {
+  if (kind === 'spatial' || kind === 'storefront') return 'world';
+  if (kind === 'data') return 'app';
+  if (kind === 'service' || kind === 'frontend' || kind === 'automation') return 'app';
+  if (kind === 'agent-backend' || kind === 'library') return 'app';
+  return 'world';
+}
+
+export function getWizardHubActions(kind: ProjectKind | undefined): WizardHubAction[] {
+  const mode = createModeForProjectKind(kind);
+  return WIZARD_HUB_ACTIONS.map((action) => ({ ...action, mode }));
+}
+
+export function wizardHubHref(action: WizardHubAction): string {
+  const params = new URLSearchParams();
+  params.set('mode', action.mode ?? 'world');
+  if (action.view) params.set('view', action.view);
+  return `/create?${params.toString()}`;
+}
+
+function ReadinessBadge({ depth }: { depth: ReadinessDepth }) {
+  const isReal = depth === 'real';
+  return (
+    <span
+      className={`rounded-md border px-1.5 py-0.5 text-[9px] font-semibold ${
+        isReal
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+          : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+      }`}
+    >
+      {READINESS_DEPTH_LABELS[depth]}
+    </span>
+  );
+}
+
+interface WizardHubProps {
+  repoName: string;
+  dna: ProjectDNA | null;
+  absorbStats: AbsorbStats | null;
+  canImprove: boolean;
+  improving: boolean;
+  onOpenWorkspace: () => void;
+  onImproveWorkspace: () => void | Promise<void>;
+}
+
+function WizardHub({
+  repoName,
+  dna,
+  absorbStats,
+  canImprove,
+  improving,
+  onOpenWorkspace,
+  onImproveWorkspace,
+}: WizardHubProps) {
+  const actions = getWizardHubActions(dna?.kind);
+
+  return (
+    <section className="w-full rounded-lg border border-studio-border bg-black/20 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Box className="h-4 w-4 text-studio-accent" />
+            <p className="text-sm font-semibold text-studio-text">Workspace Hub</p>
+          </div>
+          <p className="mt-1 text-[11px] text-studio-muted">
+            {repoName || 'Imported workspace'}
+            {dna?.kind ? ` - ${dna.kind}` : ''}
+            {absorbStats ? ` - ${absorbStats.totalFiles.toLocaleString()} files indexed` : ''}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenWorkspace}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-studio-border bg-studio-surface px-3 text-xs font-semibold text-studio-text transition hover:border-studio-accent/50"
+        >
+          Open project
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {actions.map((action) => {
+          const Icon = action.icon;
+          const disabled = action.handler === 'improve' && (!canImprove || improving);
+          const content = (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <div className={`rounded-lg border p-2 ${action.colorClass}`}>
+                  {action.handler === 'improve' && improving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
+                </div>
+                <ReadinessBadge depth={action.depth} />
+              </div>
+              <div className="mt-3 min-h-[72px]">
+                <p className="text-sm font-semibold text-studio-text">{action.title}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-studio-muted">
+                  {action.description}
+                </p>
+                {action.handler === 'improve' && !canImprove && (
+                  <p className="mt-1 text-[10px] text-amber-300">
+                    Enable auto-start in Integrations.
+                  </p>
+                )}
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-studio-accent">
+                {improving && action.handler === 'improve' ? 'Running...' : action.cta}
+                {action.handler === 'improve' ? (
+                  <ArrowRight className="h-3.5 w-3.5" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5" />
+                )}
+              </div>
+            </>
+          );
+
+          if (action.handler === 'improve') {
+            return (
+              <button
+                key={action.id}
+                type="button"
+                onClick={onImproveWorkspace}
+                disabled={disabled}
+                className="rounded-lg border border-studio-border bg-studio-panel/60 p-3 text-left transition hover:border-studio-accent/50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <a
+              key={action.id}
+              href={wizardHubHref(action)}
+              className="rounded-lg border border-studio-border bg-studio-panel/60 p-3 text-left transition hover:border-studio-accent/50"
+            >
+              {content}
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 interface Step4WorkspaceReadyProps {
@@ -28,6 +244,10 @@ interface Step4WorkspaceReadyProps {
   onAcceptConversion: (candidateId: string) => void;
   onDismissConversion: (candidateId: string) => void;
   onExportConversions: () => void;
+  onOpenWorkspace: () => void;
+  onImproveWorkspace: () => void | Promise<void>;
+  canImprove: boolean;
+  isImproving: boolean;
 }
 
 export function Step4WorkspaceReady({
@@ -41,6 +261,10 @@ export function Step4WorkspaceReady({
   onAcceptConversion,
   onDismissConversion,
   onExportConversions,
+  onOpenWorkspace,
+  onImproveWorkspace,
+  canImprove,
+  isImproving,
 }: Step4WorkspaceReadyProps) {
   return (
     <div className="flex flex-col items-center gap-6 py-4">
@@ -81,7 +305,17 @@ export function Step4WorkspaceReady({
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5 text-[11px] text-studio-muted w-full">
+      <WizardHub
+        repoName={repoName}
+        dna={dna}
+        absorbStats={absorbStats}
+        canImprove={canImprove}
+        improving={isImproving}
+        onOpenWorkspace={onOpenWorkspace}
+        onImproveWorkspace={onImproveWorkspace}
+      />
+
+      <div className="hidden">
         <p className="text-xs font-medium text-studio-text">
           {dna?.kind === 'storefront'
             ? 'Your storefront is ready:'

@@ -20,6 +20,17 @@ type ContentType =
   | 'audio'
   | 'script';
 
+export type ReadinessDepth = 'real' | 'sketch';
+
+export const READINESS_DEPTH_LABELS: Record<ReadinessDepth, string> = {
+  real: 'Real',
+  sketch: 'Preview',
+};
+
+export function normalizeReadinessDepth(depth: ReadinessDepth | null | undefined): ReadinessDepth {
+  return depth === 'real' ? 'real' : 'sketch';
+}
+
 // ── Plugin Metadata ───────────────────────────────────────────────────────
 
 export interface PluginMetadata {
@@ -37,6 +48,8 @@ export interface PluginMetadata {
   license?: string;
   keywords?: string[];
   icon?: string; // Lucide icon name or URL
+  depth: ReadinessDepth;
+  preview?: boolean;
 }
 
 // ── Plugin Lifecycle Hooks ────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { usePluginManager } from '@/lib/plugins/pluginManager';
+import { READINESS_DEPTH_LABELS, normalizeReadinessDepth } from '@/lib/plugins/types';
 import type { PluginRegistryEntry } from '@/lib/plugins/types';
 import { logger } from '@/lib/logger';
 
@@ -211,6 +212,7 @@ function PluginCard({
 }: PluginCardProps) {
   const { plugin, enabled } = entry;
   const { metadata } = plugin;
+  const depth = normalizeReadinessDepth(metadata.depth);
   const IconComponent = metadata.icon
     ? (LucideIcons as unknown as Record<string, typeof LucideIcons.Box>)[metadata.icon] || Package
     : Package;
@@ -242,6 +244,15 @@ function PluginCard({
                 Enabled
               </span>
             )}
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                depth === 'real'
+                  ? 'bg-emerald-500/10 text-emerald-300'
+                  : 'bg-amber-500/10 text-amber-300'
+              }`}
+            >
+              {READINESS_DEPTH_LABELS[depth]}
+            </span>
           </div>
           <p className="mt-1 text-xs text-studio-muted line-clamp-2">{metadata.description}</p>
           <div className="mt-2 flex flex-wrap gap-1">
@@ -309,6 +320,7 @@ interface PluginDetailsProps {
 function PluginDetails({ entry, showSettings, onCloseSettings }: PluginDetailsProps) {
   const { plugin } = entry;
   const { metadata } = plugin;
+  const depth = normalizeReadinessDepth(metadata.depth);
 
   if (showSettings && plugin.settingsSchema) {
     return (
@@ -373,6 +385,19 @@ function PluginDetails({ entry, showSettings, onCloseSettings }: PluginDetailsPr
       </div>
 
       <p className="text-sm text-studio-text">{metadata.description}</p>
+
+      <div>
+        <p className="text-xs font-medium text-studio-muted">Readiness</p>
+        <p
+          className={`mt-1 inline-flex rounded px-2 py-1 text-xs font-semibold ${
+            depth === 'real'
+              ? 'bg-emerald-500/10 text-emerald-300'
+              : 'bg-amber-500/10 text-amber-300'
+          }`}
+        >
+          {READINESS_DEPTH_LABELS[depth]}
+        </p>
+      </div>
 
       {metadata.author && (
         <div>

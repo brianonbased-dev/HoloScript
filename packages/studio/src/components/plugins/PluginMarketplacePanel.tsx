@@ -311,6 +311,15 @@ function PluginCard({
           </p>
         </div>
         <div className="flex items-center gap-1">
+          <span
+            className={`rounded-full border px-1.5 py-0.5 text-[7px] ${
+              p.depth === 'real'
+                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+            }`}
+          >
+            {p.depth === 'real' ? 'Real' : 'Preview'}
+          </span>
           {CATEGORY_EMOJI[p.category] && (
             <span className="rounded-full border border-studio-border bg-studio-panel px-1.5 py-0.5 text-[7px]">
               {CATEGORY_EMOJI[p.category]} {CATEGORY_LABELS[p.category]}

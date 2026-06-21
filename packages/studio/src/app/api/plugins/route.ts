@@ -21,6 +21,7 @@ export interface HoloPlugin {
   previewEmoji: string;
   size: string; // e.g. "12 KB"
   featured?: boolean;
+  depth: 'real' | 'sketch';
 }
 
 const PLUGINS: HoloPlugin[] = [
@@ -37,6 +38,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['pbr', 'ibl', 'reflections'],
     previewEmoji: '🌟',
     size: '84 KB',
+    depth: 'sketch',
     featured: true,
   },
   {
@@ -52,6 +54,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['fog', 'atmosphere', 'volumetrics'],
     previewEmoji: '🌫️',
     size: '41 KB',
+    depth: 'sketch',
   },
   {
     id: 'flow-physics',
@@ -66,6 +69,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['cloth', 'softbody', 'pbd'],
     previewEmoji: '🧵',
     size: '62 KB',
+    depth: 'sketch',
     featured: true,
   },
   {
@@ -81,6 +85,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['fluid', 'water', 'sph'],
     previewEmoji: '💧',
     size: '29 KB',
+    depth: 'sketch',
   },
   {
     id: 'spatial-audio-suite',
@@ -95,6 +100,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['hrtf', 'binaural', 'acoustics'],
     previewEmoji: '🎧',
     size: '38 KB',
+    depth: 'sketch',
     featured: true,
   },
   {
@@ -110,6 +116,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['fft', 'music', 'reactive'],
     previewEmoji: '🎵',
     size: '22 KB',
+    depth: 'sketch',
   },
   {
     id: 'npc-brain',
@@ -124,6 +131,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['npc', 'bt', 'patrol'],
     previewEmoji: '🤖',
     size: '71 KB',
+    depth: 'sketch',
     featured: true,
   },
   {
@@ -139,6 +147,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['dialogue', 'rpg', 'branching'],
     previewEmoji: '💬',
     size: '55 KB',
+    depth: 'sketch',
   },
   {
     id: 'scene-linter',
@@ -153,6 +162,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['linting', 'performance', 'audit'],
     previewEmoji: '🔍',
     size: '18 KB',
+    depth: 'sketch',
   },
   {
     id: 'git-scenes',
@@ -167,6 +177,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['git', 'versioning', 'diff'],
     previewEmoji: '📦',
     size: '24 KB',
+    depth: 'sketch',
   },
   {
     id: 'usdz-export',
@@ -181,6 +192,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['usdz', 'ios', 'ar', 'visionos'],
     previewEmoji: '📱',
     size: '31 KB',
+    depth: 'sketch',
     featured: true,
   },
   {
@@ -196,6 +208,7 @@ const PLUGINS: HoloPlugin[] = [
     tags: ['unreal', 'live-link', 'bridge'],
     previewEmoji: '🔗',
     size: '19 KB',
+    depth: 'sketch',
   },
 ];
 
