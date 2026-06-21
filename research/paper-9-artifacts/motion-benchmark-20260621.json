@@ -1,0 +1,199 @@
+{
+  "schema": "holoscript.paper9.motion_neural_benchmark.v1",
+  "generatedAt": "2026-06-21T07:05:00.000Z",
+  "paper": {
+    "id": "PAPER-9-VERIFIABLE-MOTION",
+    "path": "research/paper-9-verifiable-motion-siggraphasia.tex",
+    "claimUnderTest": "Contracted neural motion outputs pass plausibility by construction while AnimGAN/MotionVAE/MDM-style baselines fail."
+  },
+  "config": {
+    "modelId": "biped_humanoid_v2",
+    "categories": [
+      "locomotion",
+      "interaction"
+    ],
+    "clipsPerCategory": 400,
+    "framesPerClip": 20,
+    "dtSeconds": 0.05,
+    "seed": 9009,
+    "generatedBy": "scripts/paper-9-motion-neural-benchmark.ts"
+  },
+  "onnx": {
+    "adapter": "OnnxNodeInferenceAdapter",
+    "runtime": "onnxruntime-node",
+    "executionProviderRequested": "cpu",
+    "modelPath": ".models/motion/biped_humanoid_v2.onnx",
+    "modelBytes": 48479,
+    "modelSha256": "af49d3f25dd6424ece46bc65d8c94ec250e91b5633e5f96fd76b5c9b26965330",
+    "outputNonZeroCount": 992000,
+    "outputSamples": [
+      {
+        "category": "locomotion",
+        "outputSampleSha256": "9223cdeeedf701ecc9fa8f0fcf5021e5fcae4c0b97c6bc1402fbfa7f656d18a8",
+        "outputNonZero": 1240
+      },
+      {
+        "category": "locomotion",
+        "outputSampleSha256": "79a071ec54418a22fdeab8af3916a2991a7713e66ebb1e4cf4a239d549cc94ff",
+        "outputNonZero": 1240
+      },
+      {
+        "category": "locomotion",
+        "outputSampleSha256": "12a75e3e53a34d495e7f41331800274d1a3306db21e9bdec30e3dd8768fe32ad",
+        "outputNonZero": 1240
+      },
+      {
+        "category": "locomotion",
+        "outputSampleSha256": "60086e952104a72e0bca6dac7519d0002c566a165f8ce4ca2d3a42a49c33942d",
+        "outputNonZero": 1240
+      },
+      {
+        "category": "locomotion",
+        "outputSampleSha256": "1f9bbc2c015bf904dfecb8b264b207439c66b2801c55ed181ec0695bdf858106",
+        "outputNonZero": 1240
+      },
+      {
+        "category": "locomotion",
+        "outputSampleSha256": "30873e8bbdc2d0cbc280f9734d8fd1860e977c7bca69fa9617613509549282d8",
+        "outputNonZero": 1240
+      }
+    ]
+  },
+  "rows": [
+    {
+      "category": "locomotion",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 1,
+      "baseline_name": "contracted_onnx_hard_reject",
+      "baseline_fail_rate": 0,
+      "baseline_fail_rate_pct": 0,
+      "raw_candidate_pass_rate": 1,
+      "raw_candidate_fail_rate": 0,
+      "hard_reject_count": 0,
+      "hard_reject_reasons": {},
+      "onnx_inference_count": 8000,
+      "emitted_clip_count": 400
+    },
+    {
+      "category": "locomotion",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 0.76,
+      "baseline_name": "AnimGAN",
+      "baseline_fail_rate": 0.24,
+      "baseline_fail_rate_pct": 24,
+      "check_microseconds_per_clip": 11.286,
+      "violation_breakdown": {
+        "zmp_outside_support": 96
+      }
+    },
+    {
+      "category": "locomotion",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 0.82,
+      "baseline_name": "MotionVAE",
+      "baseline_fail_rate": 0.18,
+      "baseline_fail_rate_pct": 18,
+      "check_microseconds_per_clip": 12.31,
+      "violation_breakdown": {
+        "zmp_outside_support": 72
+      }
+    },
+    {
+      "category": "locomotion",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 0.8225,
+      "baseline_name": "MDM",
+      "baseline_fail_rate": 0.1775,
+      "baseline_fail_rate_pct": 17.75,
+      "check_microseconds_per_clip": 6.007,
+      "violation_breakdown": {
+        "zmp_outside_support": 71
+      }
+    },
+    {
+      "category": "interaction",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 1,
+      "baseline_name": "contracted_onnx_hard_reject",
+      "baseline_fail_rate": 0,
+      "baseline_fail_rate_pct": 0,
+      "raw_candidate_pass_rate": 0,
+      "raw_candidate_fail_rate": 1,
+      "hard_reject_count": 400,
+      "hard_reject_reasons": {
+        "bone_penetration": 400
+      },
+      "onnx_inference_count": 8000,
+      "emitted_clip_count": 400
+    },
+    {
+      "category": "interaction",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 0.825,
+      "baseline_name": "AnimGAN",
+      "baseline_fail_rate": 0.175,
+      "baseline_fail_rate_pct": 17.5,
+      "check_microseconds_per_clip": 3.074,
+      "violation_breakdown": {
+        "bone_penetration": 70
+      }
+    },
+    {
+      "category": "interaction",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 0.825,
+      "baseline_name": "MotionVAE",
+      "baseline_fail_rate": 0.175,
+      "baseline_fail_rate_pct": 17.5,
+      "check_microseconds_per_clip": 3.596,
+      "violation_breakdown": {
+        "bone_penetration": 70
+      }
+    },
+    {
+      "category": "interaction",
+      "n_frames": 8000,
+      "clip_count": 400,
+      "plausibility_pass_rate": 0.845,
+      "baseline_name": "MDM",
+      "baseline_fail_rate": 0.155,
+      "baseline_fail_rate_pct": 15.5,
+      "check_microseconds_per_clip": 3.048,
+      "violation_breakdown": {
+        "bone_penetration": 62
+      }
+    }
+  ],
+  "summary": {
+    "contractedCategories": 2,
+    "contractedAllPass": true,
+    "contractedRawCandidateRejects": 400,
+    "contractedRawCandidateRejectRate": 0.5,
+    "minimumBaselineFailRate": 0.155,
+    "maximumBaselineFailRate": 0.24
+  },
+  "caveats": [
+    "The provisioned PFNN checkpoint is deterministic and untrained; this measures hard-reject contract enforcement around real ONNX inference, not trained visual quality.",
+    "Raw decoded ONNX poses are audited separately from emitted contracted clips; implausible raw candidates are rejected rather than silently emitted.",
+    "Baseline rows reuse the existing seeded MotionPlausibilityBenchmark profiles for AnimGAN/MotionVAE/MDM-style uncontrolled outputs."
+  ],
+  "requiredFields": [
+    "category",
+    "n_frames",
+    "plausibility_pass_rate",
+    "baseline_name",
+    "baseline_fail_rate"
+  ],
+  "provenance": {
+    "outputPath": "research/paper-9-artifacts/motion-benchmark-20260621.json",
+    "provisionCommand": "pnpm provision:motion-model:verify",
+    "payloadDigestExcludingThisField": "sha256:8f8a486fc31e510741d62cae1ea0beffc49971bc2ea3d443b1a6999ac110c7e8"
+  }
+}
