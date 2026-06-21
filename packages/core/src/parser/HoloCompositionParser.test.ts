@@ -171,6 +171,34 @@ describe('HoloCompositionParser', () => {
       expect(result.ast?.objects[0].name).toBe('Player');
     });
 
+    it('parses entity names that collide with scene keyword tokens', () => {
+      const source = `
+        composition "Keyword Entity Names" {
+          entity Camera {
+            camera: { fov: 60 }
+          }
+
+          entity Light {
+            light: { intensity: 1 }
+          }
+
+          entity Terrain {
+            terrain: { roughness: 0.4 }
+          }
+        }
+      `;
+
+      const result = parseHolo(source);
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.ast?.objects.map((object) => object.name)).toEqual([
+        'Camera',
+        'Light',
+        'Terrain',
+      ]);
+    });
+
     it('parses object with using clause', () => {
       const source = `
         composition "Test" {

@@ -2128,8 +2128,8 @@ export class HoloCompositionParser {
     let name = '';
     if (this.check('STRING')) {
       name = this.expectString();
-    } else if (this.check('IDENTIFIER')) {
-      name = this.expectIdentifier();
+    } else if (this.isObjectNameToken()) {
+      name = this.advance().value;
     } else if (typeOverride === 'behavior' && this.check('LBRACE')) {
       name = 'behavior'; // anonymous block name
     } else {
@@ -3044,6 +3044,17 @@ export class HoloCompositionParser {
 
   private isKeywordAsIdentifier(): boolean {
     return isKeywordAsIdentifierRule(this._exprApi);
+  }
+
+  private isObjectNameToken(): boolean {
+    const type = this.current().type;
+    if (type === 'IDENTIFIER') return true;
+
+    // `entity` is tokenized as OBJECT, and `orb` remains an object-declaration
+    // alias. Keep those reserved while accepting scene nouns like `Camera`.
+    if (type === 'OBJECT') return false;
+
+    return this.isKeywordAsIdentifierType(type);
   }
 
   // ===========================================================================
