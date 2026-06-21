@@ -242,6 +242,62 @@ describe('RailwayConnector', () => {
           value: 'secret123',
         });
       });
+
+      it('refuses credential-shaped plaintext values before variableUpsert', async () => {
+        const fakeGithubPat = `github_pat_${'A'.repeat(52)}`;
+
+        await expect(
+          connector.executeTool('railway_variable_set', {
+            projectId: 'proj_123',
+            environmentId: 'env_prod',
+            serviceId: 'svc_456',
+            name: 'GITHUB_TOKEN',
+            value: fakeGithubPat,
+          })
+        ).rejects.toThrow(/refuses to inject a plaintext secret \(GitHub PAT/);
+
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
+
+      it('does not allow allowSecret to bypass the plaintext secret guard', async () => {
+        const fakeOpenAiKey = `sk-${'A'.repeat(32)}`;
+
+        await expect(
+          connector.executeTool('railway_variable_set', {
+            projectId: 'proj_123',
+            environmentId: 'env_prod',
+            serviceId: 'svc_456',
+            name: 'OPENAI_API_KEY',
+            value: fakeOpenAiKey,
+            allowSecret: true,
+          })
+        ).rejects.toThrow(/refuses to inject a plaintext secret \(OpenAI\/Anthropic key\)/);
+
+        expect(global.fetch).not.toHaveBeenCalled();
+      });
+
+      it('allows Railway managed/shared variable references', async () => {
+        (global.fetch as any).mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          headers: mockHeaders([['X-RateLimit-Remaining', '100']]),
+          json: async () => ({ data: { variableUpsert: true } }),
+        });
+
+        await connector.executeTool('railway_variable_set', {
+          projectId: 'proj_123',
+          environmentId: 'env_prod',
+          serviceId: 'svc_456',
+          name: 'GITHUB_TOKEN',
+          value: '${{shared.GITHUB_TOKEN}}',
+        });
+
+        const callBody = JSON.parse((global.fetch as any).mock.calls[0][1].body);
+        expect(callBody.variables).toMatchObject({
+          name: 'GITHUB_TOKEN',
+          value: '${{shared.GITHUB_TOKEN}}',
+        });
+      });
     });
 
     describe('railway_domain_add', () => {

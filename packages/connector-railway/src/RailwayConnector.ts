@@ -15,8 +15,9 @@ export interface RailwayConnectorCredentials {
  * Hard-secret pattern guard for `railway_variable_set` (F.106 bleed-stopper). A plaintext
  * secret written to a Railway env value is readable by any holder of `RAILWAY_API_TOKEN` —
  * the exact 5th/6th-leak surface. The connector refuses to inject a value matching a known
- * credential shape unless the caller explicitly passes `allowSecret: true` (a conscious
- * managed-var write). Returns the matched credential type, or null when not secret-shaped.
+ * credential shape. Managed/shared Railway variables still pass as references, but raw
+ * secret values fail closed. Returns the matched credential type, or null when not
+ * secret-shaped.
  */
 const RAW_SECRET_PATTERNS: Array<[string, RegExp]> = [
   ['GitHub PAT (fine)', /github_pat_[A-Za-z0-9_]{50,}/],
@@ -117,14 +118,15 @@ export class RailwayConnector extends ServiceConnector {
         // 5th/6th-leak surface. Non-secret config (URLs/flags) passes through unchanged.
         const rawValue = String(args.value ?? '');
         const secretType = looksLikeRawSecret(rawValue);
-        if (secretType && args.allowSecret !== true) {
+        if (secretType) {
           throw new Error(
             `railway_variable_set refuses to inject a plaintext secret (${secretType}) into ` +
               `Railway env "${String(args.name)}": a plaintext value is readable by any holder of ` +
               `RAILWAY_API_TOKEN — the F.106 5th/6th-leak surface. Prefer a project-level shared ` +
               `variable referenced by name (\${{shared.${String(args.name)}}}), resolve it at ` +
-              `runtime via HoloKey (@needs_key / vault:), or pass allowSecret:true to acknowledge a ` +
-              `deliberate managed-var write. (HoloScript/CLAUDE.md BEHAVIORAL OVERRIDES; F.106.)`
+              `runtime via HoloKey (@needs_key / vault:), or store the value as a Railway ` +
+              `managed/sealed variable outside this raw injection path. ` +
+              `(HoloScript/CLAUDE.md BEHAVIORAL OVERRIDES; F.106.)`
           );
         }
         query = `mutation UpsertVariable($projectId: String!, $environmentId: String!, $serviceId: String!, $name: String!, $value: String!) { variableUpsert(input: {projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, name: $name, value: $value}) }`;
