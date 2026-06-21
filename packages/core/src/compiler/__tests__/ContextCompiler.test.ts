@@ -1072,14 +1072,6 @@ describe('compile() - edge cases', () => {
     expect(result.ast.refusals).toEqual([]);
   });
 
-  it('throws on requesting an unimplemented Phase 1+ format', () => {
-    // anthropic_system_prompt + brain_includes + mcp_context_loader are
-    // still Phase 1+ follow-ups. (cursor_rules + agents_md + skill_md
-    // were promoted out of this branch when those emitters shipped.)
-    const compiler = new ContextCompiler({ formats: ['anthropic_system_prompt'] });
-    expect(() => compiler.compile(makeComposition(), '')).toThrow(/Phase 1\+ follow-up/);
-  });
-
   it('@refusal with no reason emits without breaking', () => {
     const compiler = new ContextCompiler();
     const comp = makeComposition({
@@ -1101,6 +1093,127 @@ describe('compile() - edge cases', () => {
     const result = compiler.compile(comp, '');
     expect(result.files['CLAUDE.md']).toContain('### Refuse the test');
     expect(result.files['CLAUDE.md']).not.toContain('**Reason**:');
+  });
+});
+
+// --- Happy path: Phase 1+ emitters ----------------------------------
+
+describe('compile() - Phase 1+ emitters', () => {
+  it('emits anthropic_system_prompt as compact runtime text without skill metadata', () => {
+    const compiler = new ContextCompiler({ formats: ['anthropic_system_prompt'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+
+    expect(Object.keys(result.files)).toEqual(['anthropic.system.txt']);
+    const prompt = result.files['anthropic.system.txt'];
+    expect(prompt).toContain('HoloScript runtime context');
+    expect(prompt).toContain('- bandaid: when test failing, type wrong, hook misbehaving');
+    expect(prompt).toContain('do fix root cause');
+    expect(prompt).toContain("Hard don'ts:");
+    expect(prompt).toContain('- git_add_all: F.001/F.011 - leaked .env twice.');
+    expect(prompt).toContain('Alternative: git add <explicit-path>');
+
+    // False cases: SDK system prompts must stay runtime-focused.
+    expect(prompt).not.toContain('Skill registry');
+    expect(prompt).not.toContain('/founder');
+    expect(prompt).not.toContain('outputProtocol');
+    expect(prompt).not.toContain('## Output shape');
+  });
+
+  it('emits brain_includes as a .hsplus context fragment', () => {
+    const compiler = new ContextCompiler({ formats: ['brain_includes'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+
+    expect(Object.keys(result.files)).toEqual(['context.includes.hsplus']);
+    const fragment = result.files['context.includes.hsplus'];
+    expect(fragment).toContain('@context_include {');
+    expect(fragment).toContain('name: "ecosystem-engineering-agent"');
+    expect(fragment).toContain('authority_order: ["GOLD vault","this skill"');
+    expect(fragment).toContain('refusals:');
+    expect(fragment).toContain('"bandaid"');
+    expect(fragment).toContain('hard_donts:');
+    expect(fragment).toContain('"git_add_all"');
+
+    // False cases: brain include is data-shaped .hsplus, not Markdown.
+    expect(fragment).not.toContain('```');
+    expect(fragment).not.toContain('## The Four Refusals');
+  });
+
+  it('emits mcp_context_loader as parseable JSON manifest', () => {
+    const compiler = new ContextCompiler({ formats: ['mcp_context_loader'] });
+    const result = compiler.compile(makeFullV1Composition(), '');
+
+    expect(Object.keys(result.files)).toEqual(['mcp-context-loader.json']);
+    const manifest = JSON.parse(result.files['mcp-context-loader.json']) as {
+      schema_version: string;
+      authority_order: string[];
+      active_rules: {
+        refusals: Array<{ name: string; do_not: string[] }>;
+        hard_donts: Array<{ name: string; alternative: string | null }>;
+      };
+      skill_registry: Array<{ name: string; invocable_as: string }>;
+    };
+
+    expect(manifest.schema_version).toBe('holoscript.context-loader.v1');
+    expect(manifest.authority_order).toContain('GOLD vault');
+    expect(manifest.active_rules.refusals[0]).toMatchObject({
+      name: 'bandaid',
+      do_not: ['skip', '.only', '@ts-ignore', 'escape clause'],
+    });
+    expect(manifest.active_rules.hard_donts[0]).toMatchObject({
+      name: 'git_add_all',
+      alternative: 'git add <explicit-path>',
+    });
+    expect(manifest.skill_registry[0]).toMatchObject({
+      name: 'founder',
+      invocable_as: '/founder',
+    });
+  });
+
+  it('can emit all seven context formats in one compile result', () => {
+    const compiler = new ContextCompiler({
+      formats: [
+        'claude_md',
+        'agents_md',
+        'cursor_rules',
+        'skill_md',
+        'anthropic_system_prompt',
+        'brain_includes',
+        'mcp_context_loader',
+      ],
+    });
+    const result = compiler.compile(
+      makeComposition({
+        objects: [
+          {
+            type: 'Object',
+            name: 'A',
+            properties: [],
+            traits: [
+              {
+                type: 'ObjectTrait',
+                name: 'identity',
+                config: {
+                  name: 'all-formats',
+                  role: 'r',
+                  domain: 'd',
+                  surface: 'any',
+                  description: 'all formats skill',
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      ''
+    );
+
+    expect(result.files).toHaveProperty('CLAUDE.md');
+    expect(result.files).toHaveProperty('AGENTS.md');
+    expect(result.files).toHaveProperty('SKILL.md');
+    expect(result.files).toHaveProperty('anthropic.system.txt');
+    expect(result.files).toHaveProperty('context.includes.hsplus');
+    expect(result.files).toHaveProperty('mcp-context-loader.json');
+    expect(Object.keys(result.files).some((k) => k.startsWith('.cursor/rules/'))).toBe(true);
   });
 });
 
