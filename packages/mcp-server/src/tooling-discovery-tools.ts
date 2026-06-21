@@ -255,6 +255,7 @@ function inferCategory(name: string): string {
   if (name.startsWith('holo_')) return 'graph/codebase';
   if (name.startsWith('hs_ai_')) return 'ai-assistant';
   if (name.startsWith('hs_')) return 'ide';
+  if (name.startsWith('holotune_')) return 'holotune';
   if (name.startsWith('holomesh_')) return 'holomesh';
   if (name.startsWith('browser_')) return 'browser';
   if (name.includes('trace') || name.includes('metrics') || name.includes('health'))
@@ -585,6 +586,7 @@ const REPRESENTATIVE_TOOLS: Record<string, string[]> = {
   plugins: ['list_plugins'],
   economy: ['get_creator_earnings'],
   simulation: ['verify_cael_trace'],
+  holotune: ['holotune_status', 'holotune_launch'],
   discovery: ['get_tool_manifest', 'suggest_tools_for_goal'],
   tooling: ['batch_tool_call', 'get_tool_health'],
 };
@@ -612,6 +614,33 @@ const CANARY_ARGS: Record<string, Record<string, unknown>> = {
   list_plugins: {},
   get_creator_earnings: {},
   verify_cael_trace: { trace: [] },
+  holotune_status: {},
+  holotune_curate: {
+    identity: 'canary',
+    traceRows: [{ user: 'say hello', target: '<tool_call>{"name":"noop"}</tool_call>' }],
+  },
+  holotune_launch: { identity: 'canary', dryRun: true, corpusHash: 'sha256:canary' },
+  holotune_eval: {
+    identity: 'canary',
+    baselineMetrics: { pass_rate: 0.5 },
+    tunedMetrics: { pass_rate: 0.6 },
+    requiredBenchmarks: ['pass_rate'],
+  },
+  holotune_promote: {
+    identity: 'canary',
+    dryRun: true,
+    adapterUri: 'file:///tmp/canary-adapter',
+    ggufUri: 'file:///tmp/canary.gguf',
+  },
+  holotune_serve: {
+    identity: 'canary',
+    adapterUri: 'file:///tmp/canary-adapter',
+    ggufUri: 'file:///tmp/canary.gguf',
+  },
+  holotune_download: {
+    identity: 'canary',
+    ggufUri: 'file:///tmp/canary.gguf',
+  },
   get_tool_manifest: { includeInputSchema: false, includeOutputSchema: false },
   suggest_tools_for_goal: { goal: 'parse holoscript', maxSuggestions: 2 },
   batch_tool_call: { calls: [] },

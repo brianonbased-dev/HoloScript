@@ -59,6 +59,7 @@ import { isSpatialMcpToolName, handleSpatialMcpTool } from './spatial-mcp-tools'
 import { isNegotiationToolName, handleNegotiationTool } from './negotiation-mcp-tools';
 import { isHologramToolName, handleHologramTool } from './hologram-mcp-tools';
 import { isHoloTwinToolName, handleHoloTwinTool } from './holotwin-mcp-tools';
+import { isHoloTuneToolName, handleHoloTuneTool } from './holotune-mcp-tools';
 import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
 import { handleKolmogorovTaskScoreTool } from './tools/kolmogorov_task_score';
 import { handleCriticTool } from './critic-handler';
@@ -472,6 +473,11 @@ export async function handleTool(
   // HoloTwin IoT → Hologram pipeline tools
   if (isHoloTwinToolName(name)) {
     return handleHoloTwinTool(name, args);
+  }
+
+  // HoloTune sovereign per-agent fine-tune surface
+  if (isHoloTuneToolName(name)) {
+    return handleHoloTuneTool(name, args);
   }
 
   if (name === 'holo_estimate_task_duration') {
