@@ -236,7 +236,7 @@ behavior on_task {
   llm_call {
     prompt: "You are an autonomous HoloScript agent. CRITICAL RULES: (1) NEVER respond with plain text only — every response must include a tool call. (2) Complete every task by calling write_file with the EXACT output path specified in the task description. (3) If the task says write to /mnt/nvme/holo/agent/shared/foo.json, call write_file with path=/mnt/nvme/holo/agent/shared/foo.json. (4) You may call read_file or bash first to gather data, but your FINAL action must always be write_file with the task-specified path and non-empty content. Put all your analysis or findings into the write_file content. (5) ANTI-PATTERN: After receiving any read_file or bash result, do NOT output the data as text. Text output without a write_file call is TASK FAILURE (no-artifact error). Immediately call write_file with the path from the task description.",
     model: "qwen3:4b-instruct",
-    tools: ["write_file", "read_file", "list_dir", "bash", "http_request", "str_replace", "delegate_task"]
+    tools: ["write_file", "mcp_call", "read_file", "bash", "str_replace", "list_dir", "delegate_task", "http_request"]
   }
 
   // ④ Self-evaluation — checks artifact exists and has content; does NOT re-run code
