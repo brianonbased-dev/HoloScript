@@ -21,6 +21,11 @@ import {
   LocalProphecyTransport,
   HoloMeshProphecyTransport,
   ProphecyNotImplementedError,
+  createTrainedSpikeRateProvider,
+  decodeProphecySpikeRates,
+  decodeSpikeRateWindow,
+  encodeProphecySceneProbeFeatures,
+  trainProphecySpikeRateModel,
   type ProphecyConfig,
   type ProphecySceneContext,
 } from '../prophetic-gi/index.js';
@@ -39,6 +44,7 @@ function makeConfig(overrides?: Partial<ProphecyConfig>): ProphecyConfig {
     confidenceFloor: overrides?.confidenceFloor ?? 0.05,
     albedo: overrides?.albedo,
     failSafe: overrides?.failSafe,
+    temporalReprojection: overrides?.temporalReprojection,
   };
 }
 
@@ -181,6 +187,128 @@ describe('ProphecyOrchestrator', () => {
       const o = new ProphecyOrchestrator(ctx, makeConfig());
       expect(() => o.step(SCENE)).toThrow(/initialize\(\) first/);
     });
+
+    it('temporally reprojects stable probe history when camera and sun remain close', () => {
+      const o = new ProphecyOrchestrator(
+        ctx,
+        makeConfig({
+          temporalReprojection: {
+            enabled: true,
+            historyWeight: 0.5,
+            confidenceDecay: 1,
+            maxCameraDelta: 1,
+            maxSunDelta: 1,
+          },
+        })
+      );
+      o.initialize();
+      o.primeSpikeRatesShadow(new Float32Array(64).fill(1));
+      const bright = o.step(SCENE);
+      o.primeSpikeRatesShadow(new Float32Array(64).fill(0));
+      const carried = o.step(SCENE);
+      expect(bright.probes[0].rgb[0]).toBeGreaterThan(0.9);
+      expect(carried.probes[0].rgb[0]).toBeGreaterThan(0.45);
+      expect(carried.probes[0].confidence).toBeGreaterThan(0.45);
+      o.destroy();
+    });
+
+    it('rejects temporal history after a large camera jump', () => {
+      const o = new ProphecyOrchestrator(
+        ctx,
+        makeConfig({
+          temporalReprojection: {
+            enabled: true,
+            historyWeight: 0.9,
+            maxCameraDelta: 0.25,
+          },
+        })
+      );
+      o.initialize();
+      o.primeSpikeRatesShadow(new Float32Array(64).fill(1));
+      o.step(SCENE);
+      o.primeSpikeRatesShadow(new Float32Array(64).fill(0));
+      const reset = o.step({ ...SCENE, cameraPosition: [100, 1.7, 5] });
+      expect(reset.probes[0].rgb).toEqual([0, 0, 0]);
+      expect(reset.probes[0].confidence).toBe(0);
+      o.destroy();
+    });
+  });
+});
+
+describe('Prophetic GI training pipeline', () => {
+  function makeTrainingPositions(probeCount = 64): Float32Array {
+    const positions = new Float32Array(probeCount * 3);
+    for (let i = 0; i < probeCount; i++) {
+      positions[i * 3 + 0] = (i % 8) - 3.5;
+      positions[i * 3 + 1] = Math.floor(i / 8) * 0.2;
+      positions[i * 3 + 2] = -2 - (i % 4);
+    }
+    return positions;
+  }
+
+  function targetRates(scene: ProphecySceneContext, positions: Float32Array): Float32Array {
+    const rates = new Float32Array(64);
+    for (let i = 0; i < rates.length; i++) {
+      const f = encodeProphecySceneProbeFeatures(scene, positions, i);
+      rates[i] = Math.min(1, Math.max(0, 0.1 + 0.55 * f[0] + 0.25 * f[1] + 0.1 * f[3]));
+    }
+    return rates;
+  }
+
+  it('trains a serializable spike-rate model that improves corpus loss', () => {
+    const probePositions = makeTrainingPositions();
+    const scenes: ProphecySceneContext[] = [
+      SCENE,
+      {
+        ...SCENE,
+        cameraPosition: [2, 1.7, 4],
+        cameraForward: [-0.25, 0, -1],
+        prevAvgLuminance: 0.2,
+      },
+      {
+        ...SCENE,
+        sunDirection: [0.3, 0.7, 0.1],
+        sunColor: [0.8, 0.9, 1],
+        prevAvgLuminance: 0.7,
+      },
+    ];
+    const samples = scenes.map((scene) => ({
+      scene,
+      targetSpikeRates: targetRates(scene, probePositions),
+    }));
+
+    const model = trainProphecySpikeRateModel(samples, {
+      probeCount: 64,
+      probePositions,
+      epochs: 120,
+      learningRate: 0.18,
+    });
+
+    expect(model.training.finalLoss).toBeLessThan(model.training.initialLoss * 0.8);
+    const decoded = decodeProphecySpikeRates(model, SCENE, 64);
+    expect(decoded.length).toBe(64);
+    expect(decoded[0]).toBeGreaterThan(0);
+  });
+
+  it('creates a trained SpikeRateProvider and rejects mismatched probe counts', () => {
+    const probePositions = makeTrainingPositions();
+    const model = trainProphecySpikeRateModel(
+      [{ scene: SCENE, targetSpikeRates: targetRates(SCENE, probePositions) }],
+      { probeCount: 64, probePositions, epochs: 80 }
+    );
+    const provider = createTrainedSpikeRateProvider(model);
+    const rates = provider(SCENE, 64);
+    expect(rates).toBeInstanceOf(Float32Array);
+    expect((rates as Float32Array).length).toBe(64);
+    expect(() => provider(SCENE, 32)).toThrow(/model has 64/);
+  });
+
+  it('decodes a trained SNN spike window into per-probe rates', () => {
+    const rates = decodeSpikeRateWindow(new Float32Array([1, 0, 1, 0, 0, 0, 1, 1]), 2, 4);
+    expect(Array.from(rates)).toEqual([0.5, 0.5]);
+    expect(() => decodeSpikeRateWindow(new Float32Array([1, 0, 1]), 2, 4)).toThrow(
+      /does not match/
+    );
   });
 });
 
@@ -256,6 +384,21 @@ describe('LocalProphecyTransport', () => {
     await transport.step(SCENE);
     expect(received).not.toBeNull();
     expect(received!.sunDirection).toEqual(SCENE.sunDirection);
+    await transport.destroy();
+  });
+
+  it('passes configured probe count to the provider on the first frame', async () => {
+    let receivedCount = -1;
+    const transport = new LocalProphecyTransport({
+      ctx,
+      spikeRates: (_scene, count) => {
+        receivedCount = count;
+        return new Float32Array(count).fill(0.4);
+      },
+    });
+    await transport.initialize(makeConfig());
+    await transport.step(SCENE);
+    expect(receivedCount).toBe(64);
     await transport.destroy();
   });
 });

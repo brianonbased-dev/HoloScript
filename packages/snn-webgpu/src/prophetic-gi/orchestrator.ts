@@ -28,6 +28,7 @@ const WORKGROUP_SIZE = 64;
 export class ProphecyOrchestrator {
   private frameCounter = 0;
   private lastFrame: ProphecyFrame | null = null;
+  private lastScene: ProphecySceneContext | null = null;
   private initialized = false;
 
   // GPU buffers — created in initialize().  Names mirror the WGSL bind
@@ -213,7 +214,7 @@ export class ProphecyOrchestrator {
     const uniforms = this.packUniforms(scene);
     this.ctx.device.queue.writeBuffer(this.uniformBuffer!, 0, uniforms);
 
-    const probes = this.computeProbesCpu(scene);
+    const probes = this.applyTemporalReprojection(this.computeProbesCpu(scene), scene);
 
     const t1 =
       typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -228,6 +229,7 @@ export class ProphecyOrchestrator {
       source: 'local',
     };
     this.lastFrame = frame;
+    this.lastScene = scene;
     return frame;
   }
 
@@ -277,6 +279,66 @@ export class ProphecyOrchestrator {
     return out;
   }
 
+  private applyTemporalReprojection(
+    probes: RadianceProbe[],
+    scene: ProphecySceneContext
+  ): RadianceProbe[] {
+    const temporal = this.config.temporalReprojection;
+    if (!temporal?.enabled || !this.lastFrame || !this.lastScene) {
+      return probes;
+    }
+
+    const historyWeight = this.clamp01(temporal.historyWeight ?? 0.85);
+    const confidenceDecay = this.clamp01(temporal.confidenceDecay ?? 0.98);
+    const maxCameraDelta = temporal.maxCameraDelta ?? 0.5;
+    const maxSunDelta = temporal.maxSunDelta ?? 0.5;
+    const cameraDelta = this.vecDistance(scene.cameraPosition, this.lastScene.cameraPosition);
+    const sunDelta = this.vecDistance(scene.sunDirection, this.lastScene.sunDirection);
+    const cameraFactor = maxCameraDelta <= 0 ? 0 : this.clamp01(1 - cameraDelta / maxCameraDelta);
+    const sunFactor = maxSunDelta <= 0 ? 0 : this.clamp01(1 - sunDelta / maxSunDelta);
+    const alpha = historyWeight * cameraFactor * sunFactor;
+
+    if (alpha <= 0) {
+      return probes;
+    }
+
+    const previous = this.lastFrame.probes;
+    return probes.map((probe, index) => {
+      const prev = previous[index];
+      if (!prev || prev.index !== probe.index) {
+        return probe;
+      }
+      return {
+        ...probe,
+        rgb: [
+          prev.rgb[0] * alpha + probe.rgb[0] * (1 - alpha),
+          prev.rgb[1] * alpha + probe.rgb[1] * (1 - alpha),
+          prev.rgb[2] * alpha + probe.rgb[2] * (1 - alpha),
+        ],
+        confidence: this.clamp01(
+          prev.confidence * confidenceDecay * alpha + probe.confidence * (1 - alpha)
+        ),
+      };
+    });
+  }
+
+  private vecDistance(
+    a: readonly [number, number, number],
+    b: readonly [number, number, number]
+  ): number {
+    const dx = a[0] - b[0];
+    const dy = a[1] - b[1];
+    const dz = a[2] - b[2];
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  private clamp01(value: number): number {
+    if (!Number.isFinite(value)) return 0;
+    if (value < 0) return 0;
+    if (value > 1) return 1;
+    return value;
+  }
+
   /** CPU-side shadow of the most recent spike-rate upload, for the
    *  reference path.  Will be removed once WGSL dispatch is on. */
   private lastSpikeRatesShadow: Float32Array | null = null;
@@ -315,6 +377,8 @@ export class ProphecyOrchestrator {
 
     this.initialized = false;
     this.lastSpikeRatesShadow = null;
+    this.lastFrame = null;
+    this.lastScene = null;
   }
 
   private assertInit(): void {

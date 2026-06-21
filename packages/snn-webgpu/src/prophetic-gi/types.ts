@@ -70,6 +70,26 @@ export interface ProphecyConfig {
    * probes are reused (one-frame latency).  Defaults to `true`.
    */
   failSafe?: boolean;
+  /**
+   * Optional Phase 3 temporal reprojection. When enabled, the
+   * orchestrator blends the previous frame's probe radiance back into
+   * the current frame when camera/sun deltas are small enough.
+   */
+  temporalReprojection?: ProphecyTemporalConfig;
+}
+
+/** Temporal reprojection controls for Phase 3 prophetic GI. */
+export interface ProphecyTemporalConfig {
+  /** Enable history blending. Defaults to false. */
+  enabled?: boolean;
+  /** Previous-frame blend weight before motion rejection. Defaults to 0.85. */
+  historyWeight?: number;
+  /** Reject history when camera movement exceeds this many metres. Defaults to 0.5. */
+  maxCameraDelta?: number;
+  /** Reject history when sun-direction vector delta exceeds this amount. Defaults to 0.5. */
+  maxSunDelta?: number;
+  /** Decay applied to previous-frame confidence before blending. Defaults to 0.98. */
+  confidenceDecay?: number;
 }
 
 /**

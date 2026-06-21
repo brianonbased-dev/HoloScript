@@ -37,10 +37,12 @@ export class LocalProphecyTransport implements ProphecyTransport {
   readonly kind = 'local' as const;
 
   private orchestrator: ProphecyOrchestrator | null = null;
+  private config: ProphecyConfig | null = null;
 
   constructor(private readonly options: LocalProphecyTransportOptions) {}
 
   async initialize(config: ProphecyConfig): Promise<void> {
+    this.config = config;
     this.orchestrator = new ProphecyOrchestrator(this.options.ctx, config);
     this.orchestrator.initialize();
   }
@@ -49,16 +51,7 @@ export class LocalProphecyTransport implements ProphecyTransport {
     if (!this.orchestrator) {
       throw new Error('LocalProphecyTransport: not initialized');
     }
-    const rates = await this.options.spikeRates(
-      scene,
-      this.orchestrator.getLastFrame()?.probes.length ??
-        // Probe count is fixed at initialize-time; if no frame has run
-        // yet we ask the provider for the configured count.  We can
-        // recover that from the orchestrator's last upload, or we
-        // honour what the provider returns.  We choose the latter for
-        // simplicity and validate length in primeSpikeRatesShadow.
-        0
-    );
+    const rates = await this.options.spikeRates(scene, this.config?.probeCount ?? 0);
     this.orchestrator.primeSpikeRatesShadow(rates);
     this.orchestrator.uploadSpikeRates(rates);
     return this.orchestrator.step(scene);
@@ -67,5 +60,6 @@ export class LocalProphecyTransport implements ProphecyTransport {
   async destroy(): Promise<void> {
     this.orchestrator?.destroy();
     this.orchestrator = null;
+    this.config = null;
   }
 }

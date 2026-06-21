@@ -13,6 +13,7 @@ export type {
   RadianceProbe,
   ProphecyFrame,
   ProphecyConfig,
+  ProphecyTemporalConfig,
   ProphecySceneContext,
   ProphecyTransport,
 } from './types.js';
@@ -26,6 +27,18 @@ export {
   type LocalProphecyTransportOptions,
   type SpikeRateProvider,
 } from './transport-local.js';
+
+export {
+  PROPHECY_SPIKE_FEATURE_COUNT,
+  createTrainedSpikeRateProvider,
+  decodeProphecySpikeRates,
+  decodeSpikeRateWindow,
+  encodeProphecySceneProbeFeatures,
+  trainProphecySpikeRateModel,
+  type ProphecyTrainingOptions,
+  type ProphecyTrainingSample,
+  type TrainedProphecySpikeModel,
+} from './training.js';
 
 export {
   HoloMeshProphecyTransport,

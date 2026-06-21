@@ -112,16 +112,26 @@ export {
   ProphecyNotImplementedError,
   LocalProphecyTransport,
   HoloMeshProphecyTransport,
+  PROPHECY_SPIKE_FEATURE_COUNT,
+  createTrainedSpikeRateProvider,
+  decodeProphecySpikeRates,
+  decodeSpikeRateWindow,
+  encodeProphecySceneProbeFeatures,
+  trainProphecySpikeRateModel,
 } from './prophetic-gi/index.js';
 export type {
   RadianceProbe,
   ProphecyFrame,
   ProphecyConfig,
+  ProphecyTemporalConfig,
   ProphecySceneContext,
   ProphecyTransport,
   LocalProphecyTransportOptions,
   HoloMeshProphecyTransportOptions,
   SpikeRateProvider,
+  ProphecyTrainingOptions,
+  ProphecyTrainingSample,
+  TrainedProphecySpikeModel,
 } from './prophetic-gi/index.js';
 
 // Botanical photo-to-material extraction for provenance-grounded organic assets.
