@@ -1,0 +1,532 @@
+{
+  "schema": "holoscript.paper32.grpo_accuracy_delta.v1",
+  "generatedAt": "2026-06-21T06:44:47.395Z",
+  "paper": {
+    "id": "P32-PILLAR-SLICE",
+    "title": "Pillar-Slice Framework",
+    "claimUnderTest": "WorldModelReceipt-verified Pillar-generated slices improve held-out verifier accuracy vs no-Pillar baseline by >= +5%.",
+    "paperPath": "research/paper-32-pillar-slice-neurips.tex"
+  },
+  "config": {
+    "samplesRequested": 240,
+    "samplesUsed": 240,
+    "trainRatio": 0.7,
+    "seed": 32026,
+    "variants": [
+      "valid",
+      "valid",
+      "missing_signature",
+      "high_tolerance",
+      "hash_mismatch",
+      "latent_anomaly"
+    ],
+    "model": {
+      "family": "tiny online logistic classifier",
+      "epochs": 80,
+      "learningRate": 0.18,
+      "l2": 0.0005
+    }
+  },
+  "split": {
+    "strategy": "source-receipt chronological 70/30; no source receipt appears in both arms",
+    "trainCount": 168,
+    "testCount": 72,
+    "trainPositive": 57,
+    "testPositive": 24,
+    "trainStart": "packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json",
+    "trainEnd": "research/paper26/corpus/gazebos-150/ep_0016_turtlebot3.receipt.json",
+    "testStart": "research/paper26/corpus/gazebos-150/ep_0017_simple_leg.receipt.json",
+    "testEnd": "research/paper26/corpus/gazebos-150/ep_0088_simple_leg.receipt.json"
+  },
+  "realComponentsUsed": [
+    "packages/core/src/traits/pillar/uAALComposedAgent.ts :: uAALComposedAgentHandler smoke path",
+    "packages/core/src/traits/pillar/SliceEmitter.ts :: sliceEmitterHandler training-slice emission",
+    "packages/core/src/traits/pillar/PillarRegistry.ts :: shipped seed Pillars",
+    "packages/core/src/traits/pillar/LatentIntegrityLayer.ts :: latent-integrity feature path",
+    "packages/engine/src/simulation/__tests__/fixtures/world-model-receipt.json :: WorldModelReceipt fixture",
+    "research/paper26/corpus/**/*.receipt.json :: receipt corpus"
+  ],
+  "uaalSmoke": {
+    "ticks": 64,
+    "trainingSlices": 16,
+    "uniqueTrainingSlices": 1,
+    "firstSlice": {
+      "axis_1_id": "steady_state",
+      "axis_2_id": "transient",
+      "pos_1": 1,
+      "pos_2": 0,
+      "pillar_id": "temporal_lifecycle_left",
+      "pillar_domain": "steady_state"
+    },
+    "finding": "default uAAL tick path is low-diversity; cross-domain benchmark uses seed Pillars through SliceEmitter"
+  },
+  "metrics": {
+    "baselineTextOnly": {
+      "accuracy": 0.666667,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "confusion": {
+        "tp": 0,
+        "tn": 48,
+        "fp": 0,
+        "fn": 24
+      }
+    },
+    "receiptPillarTreatment": {
+      "accuracy": 1,
+      "precision": 1,
+      "recall": 1,
+      "f1": 1,
+      "confusion": {
+        "tp": 24,
+        "tn": 48,
+        "fp": 0,
+        "fn": 0
+      }
+    },
+    "accuracyDeltaPct": 33.333,
+    "targetDeltaPct": 5,
+    "targetMet": true,
+    "bootstrapDeltaPctCi95": {
+      "low": 22.222,
+      "high": 44.444,
+      "iterations": 1000
+    }
+  },
+  "heldOutSlices": [
+    {
+      "id": "p32-0168",
+      "variant": "hash_mismatch",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0017_simple_leg.receipt.json",
+      "slice": {
+        "axis_1_id": "energy",
+        "axis_2_id": "momentum",
+        "pos_1": 0.005,
+        "pos_2": 0,
+        "pillar_id": "physics_conservation",
+        "pillar_domain": "physics"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": false,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "hash_mismatch"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 292.893,
+        "sycophancyScore": 0.5
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0169",
+      "variant": "latent_anomaly",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0018_turtlebot3.receipt.json",
+      "slice": {
+        "axis_1_id": "lod_level",
+        "axis_2_id": "detail_budget",
+        "pos_1": 0.01,
+        "pos_2": 0.99,
+        "pillar_id": "rendering_lod",
+        "pillar_domain": "rendering"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "latent_anomaly"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": true,
+        "latentGateFailed": true,
+        "byzantineSigma": 5.928,
+        "sycophancyScore": 0.495
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0170",
+      "variant": "valid",
+      "label": 1,
+      "source": "research/paper26/corpus/gazebos-150/ep_0019_simple_leg.receipt.json",
+      "slice": {
+        "axis_1_id": "precision_level",
+        "axis_2_id": "iteration_budget",
+        "pos_1": 0.5,
+        "pos_2": 1,
+        "pillar_id": "solver_precision",
+        "pillar_domain": "solver"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "valid"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 101.101,
+        "sycophancyScore": 0.5
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 1
+    },
+    {
+      "id": "p32-0171",
+      "variant": "valid",
+      "label": 1,
+      "source": "research/paper26/corpus/gazebos-150/ep_0020_simple_leg.receipt.json",
+      "slice": {
+        "axis_1_id": "sync_strength",
+        "axis_2_id": "latency_budget",
+        "pos_1": 1,
+        "pos_2": 1,
+        "pillar_id": "coordination_sync",
+        "pillar_domain": "coordination"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "valid"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 51.317,
+        "sycophancyScore": 0.5
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 1
+    },
+    {
+      "id": "p32-0172",
+      "variant": "missing_signature",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0021_ur5_arm.receipt.json",
+      "slice": {
+        "axis_1_id": "cost_efficiency",
+        "axis_2_id": "reward_pressure",
+        "pos_1": 0.5,
+        "pos_2": 0.5,
+        "pillar_id": "economics_budget",
+        "pillar_domain": "economics"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": false,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "missing_signature"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": false,
+        "rawSycophancyDrift": false,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 0,
+        "sycophancyScore": 0.25
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0173",
+      "variant": "high_tolerance",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0022_turtlebot3.receipt.json",
+      "slice": {
+        "axis_1_id": "capacity_used",
+        "axis_2_id": "retrieval_speed",
+        "pos_1": 0.5,
+        "pos_2": 0.5,
+        "pillar_id": "storage_capacity",
+        "pillar_domain": "storage"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": false,
+        "toleranceBin": "gt_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "high_tolerance"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": false,
+        "rawSycophancyDrift": false,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 0,
+        "sycophancyScore": 0.25
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0174",
+      "variant": "hash_mismatch",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0023_turtlebot3.receipt.json",
+      "slice": {
+        "axis_1_id": "energy",
+        "axis_2_id": "momentum",
+        "pos_1": 0.566,
+        "pos_2": 0,
+        "pillar_id": "physics_conservation",
+        "pillar_domain": "physics"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": false,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "hash_mismatch"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 292.893,
+        "sycophancyScore": 0.5
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0175",
+      "variant": "latent_anomaly",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0024_ur5_arm.receipt.json",
+      "slice": {
+        "axis_1_id": "lod_level",
+        "axis_2_id": "detail_budget",
+        "pos_1": 0.99,
+        "pos_2": 0.99,
+        "pillar_id": "rendering_lod",
+        "pillar_domain": "rendering"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "latent_anomaly"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": false,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": true,
+        "latentGateFailed": true,
+        "byzantineSigma": 0.867,
+        "sycophancyScore": 0.495
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0176",
+      "variant": "valid",
+      "label": 1,
+      "source": "research/paper26/corpus/gazebos-150/ep_0025_turtlebot3.receipt.json",
+      "slice": {
+        "axis_1_id": "precision_level",
+        "axis_2_id": "iteration_budget",
+        "pos_1": 0.5,
+        "pos_2": 1,
+        "pillar_id": "solver_precision",
+        "pillar_domain": "solver"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "valid"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 51.317,
+        "sycophancyScore": 0.5
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 1
+    },
+    {
+      "id": "p32-0177",
+      "variant": "valid",
+      "label": 1,
+      "source": "research/paper26/corpus/gazebos-150/ep_0026_turtlebot3.receipt.json",
+      "slice": {
+        "axis_1_id": "sync_strength",
+        "axis_2_id": "latency_budget",
+        "pos_1": 1,
+        "pos_2": 1,
+        "pillar_id": "coordination_sync",
+        "pillar_domain": "coordination"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "valid"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": true,
+        "rawSycophancyDrift": true,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 51.317,
+        "sycophancyScore": 0.5
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 1
+    },
+    {
+      "id": "p32-0178",
+      "variant": "missing_signature",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0027_simple_leg.receipt.json",
+      "slice": {
+        "axis_1_id": "cost_efficiency",
+        "axis_2_id": "reward_pressure",
+        "pos_1": 0.5,
+        "pos_2": 0.5,
+        "pillar_id": "economics_budget",
+        "pillar_domain": "economics"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": false,
+        "hasGroundTruthHash": true,
+        "toleranceOk": true,
+        "toleranceBin": "le_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "missing_signature"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": false,
+        "rawSycophancyDrift": false,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 0,
+        "sycophancyScore": 0.25
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    },
+    {
+      "id": "p32-0179",
+      "variant": "high_tolerance",
+      "label": 0,
+      "source": "research/paper26/corpus/gazebos-150/ep_0028_simple_leg.receipt.json",
+      "slice": {
+        "axis_1_id": "capacity_used",
+        "axis_2_id": "retrieval_speed",
+        "pos_1": 0.5,
+        "pos_2": 0.5,
+        "pillar_id": "storage_capacity",
+        "pillar_domain": "storage"
+      },
+      "receiptFeatures": {
+        "sourceSchema": "paper26_minimal_receipt",
+        "hasWmrHash": false,
+        "hasCorpusSignature": true,
+        "hasGroundTruthHash": true,
+        "toleranceOk": false,
+        "toleranceBin": "gt_003",
+        "deltaErrorBin": "low",
+        "confidenceCoverageOk": true,
+        "variant": "high_tolerance"
+      },
+      "integrityFeatures": {
+        "rawByzantineAnomaly": false,
+        "rawSycophancyDrift": false,
+        "injectedLatentAnomaly": false,
+        "latentGateFailed": false,
+        "byzantineSigma": 0,
+        "sycophancyScore": 0.25
+      },
+      "baselinePredicted": 0,
+      "treatmentPredicted": 0
+    }
+  ],
+  "caveats": [
+    "This harness is a deterministic lightweight verifier-classifier fine-tune, not a paid GPU GRPO policy-training run.",
+    "The task is receipt admission over natural-language prompts; the treatment arm receives receipt/PillarSlice features, while the baseline arm does not.",
+    "uAALComposedAgent currently emits a low-diversity steady_state slice on the default tick path; the benchmark uses shipped seed Pillars through the real SliceEmitter for cross-domain slices and records the uAAL smoke separately.",
+    "OpenTimestamps sidecar was not created by this script; see provenance.otsStatus."
+  ],
+  "provenance": {
+    "sourceReceiptCount": 371,
+    "outputPath": "research/paper-32-artifacts/grpo-accuracy-delta-20260621.json",
+    "otsStatus": "not_anchored_by_harness",
+    "otsReason": "anchor_ots.py/CLI is not part of this HoloScript harness; do not treat the JSON as Bitcoin-anchored until a real .ots sidecar exists.",
+    "payloadDigestExcludingThisField": "sha256:a567e99c5c4e37081b40c0beac3e79d51a26d464681015eca41cbc0e5f95d161"
+  }
+}
