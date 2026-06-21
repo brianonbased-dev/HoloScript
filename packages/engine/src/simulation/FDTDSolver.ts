@@ -374,9 +374,12 @@ export class FDTDSolver {
   private initializeNTF(surface: NTFSurfaceConfig): void {
     const { min, max, frequencies } = surface;
     if (frequencies.length === 0) throw new Error('NTFSurface requires at least one frequency.');
-    const pml = this.config.pmlThickness ?? 0;
+    const pml = Math.max(1, this.config.pmlThickness ?? 0);
     const [i0, j0, k0] = min;
     const [i1, j1, k1] = max;
+    if (![i0, j0, k0, i1, j1, k1].every(Number.isInteger)) {
+      throw new Error('NTFSurface indices must be integers.');
+    }
     if (
       i0 < pml ||
       j0 < pml ||
@@ -782,6 +785,12 @@ export class FDTDSolver {
     };
   }
 
+  getRunningDFTPhasors(): RunningDFTPhasor[] {
+    return [...this.ntfDft.keys()]
+      .sort((a, b) => a - b)
+      .map((frequency) => this.getRunningDFTPhasor(frequency));
+  }
+
   getRunningDFTPhasor(frequency: number): RunningDFTPhasor {
     const state = this.ntfDft.get(frequency);
     if (!state) throw new Error(`No running DFT accumulator for frequency ${frequency}.`);
@@ -803,9 +812,10 @@ export class FDTDSolver {
     };
   }
 
-  getFarField(theta: number, phi: number, frequency: number): FarFieldResult {
-    const state = this.ntfDft.get(frequency);
-    if (!state) throw new Error(`No running DFT accumulator for frequency ${frequency}.`);
+  getFarField(theta: number, phi: number, frequency?: number): FarFieldResult {
+    const targetFrequency = frequency ?? [...this.ntfDft.keys()].sort((a, b) => a - b)[0];
+    const state = targetFrequency === undefined ? undefined : this.ntfDft.get(targetFrequency);
+    if (!state) throw new Error(`No running DFT accumulator for frequency ${targetFrequency}.`);
     if (state.samples === 0) throw new Error('No NTF samples accumulated yet; call step() first.');
 
     const direction: Vec3 = [
@@ -831,7 +841,7 @@ export class FDTDSolver {
     const directivity = (1.5 * power) / momentPower;
 
     return {
-      frequency,
+      frequency: targetFrequency,
       theta,
       phi,
       eTheta,
@@ -842,6 +852,17 @@ export class FDTDSolver {
       gain: directivity,
       samples: state.samples,
     };
+  }
+
+  computeFarField(theta: number, phi: number, frequency?: number): FarFieldResult {
+    return this.getFarField(theta, phi, frequency);
+  }
+
+  getFarFieldPattern(
+    angles: Array<{ theta: number; phi: number }>,
+    frequency?: number
+  ): FarFieldResult[] {
+    return angles.map(({ theta, phi }) => this.getFarField(theta, phi, frequency));
   }
 
   dispose(): void {

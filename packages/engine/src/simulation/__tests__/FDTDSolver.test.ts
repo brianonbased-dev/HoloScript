@@ -171,6 +171,89 @@ describe('FDTDSolver', () => {
     });
   });
 
+  describe('Near-to-far-field running DFT', () => {
+    it('accumulates Huygens-surface phasors and computes far-field samples', () => {
+      const frequency = 1e9;
+      const config: FDTDConfig = {
+        cellCount: [12, 12, 12],
+        cellSize: [0.01, 0.01, 0.01],
+        sources: [
+          {
+            id: 'dipole',
+            type: 'sinusoidal',
+            position: [6, 6, 6],
+            polarization: 'z',
+            amplitude: 1e-3,
+            frequency,
+          },
+        ],
+        ntfSurface: {
+          min: [4, 4, 4],
+          max: [8, 8, 8],
+          frequencies: [frequency, 2 * frequency],
+        },
+      };
+
+      const solver = new FDTDSolver(config);
+      for (let i = 0; i < 24; i++) solver.step();
+
+      const phasors = solver.getRunningDFTPhasors();
+      expect(phasors).toHaveLength(2);
+      expect(phasors[0].frequency).toBe(frequency);
+      expect(phasors[0].samples).toBe(24);
+      expect(phasors[0].surfaceSampleCount).toBe(150);
+      expect(complexMagnitude(phasors[0].sourceMoment[2])).toBeGreaterThan(0);
+      for (const component of [
+        ...phasors[0].equivalentElectricCurrent,
+        ...phasors[0].equivalentMagneticCurrent,
+        ...phasors[0].sourceMoment,
+      ]) {
+        expect(Number.isFinite(component.re)).toBe(true);
+        expect(Number.isFinite(component.im)).toBe(true);
+      }
+
+      const far = solver.getFarField(Math.PI / 2, 0);
+      expect(far.frequency).toBe(frequency);
+      expect(far.samples).toBe(24);
+      expect(Number.isFinite(far.magnitude)).toBe(true);
+      expect(Number.isFinite(far.power)).toBe(true);
+      expect(far.directivity).toBeGreaterThanOrEqual(0);
+
+      const pattern = solver.getFarFieldPattern(
+        [
+          { theta: Math.PI / 2, phi: 0 },
+          { theta: Math.PI / 2, phi: Math.PI / 2 },
+        ],
+        frequency
+      );
+      expect(pattern).toHaveLength(2);
+      expect(pattern.every((sample) => sample.frequency === frequency)).toBe(true);
+    });
+
+    it('rejects invalid or boundary-touching NTF surfaces', () => {
+      const base: FDTDConfig = {
+        cellCount: [8, 8, 8],
+        cellSize: [0.01, 0.01, 0.01],
+        sources: [],
+      };
+
+      expect(
+        () =>
+          new FDTDSolver({
+            ...base,
+            ntfSurface: { min: [0, 2, 2], max: [5, 5, 5], frequencies: [1e9] },
+          })
+      ).toThrow(/inside the FDTD domain/);
+      expect(
+        () =>
+          new FDTDSolver({
+            ...base,
+            ntfSurface: { min: [2, 2, 2], max: [5, 5, 5], frequencies: [] },
+          })
+      ).toThrow(/at least one frequency/);
+    });
+  });
+
   describe('SimSolver adapter', () => {
     it('FDTDSolverAdapter implements SimSolver correctly', () => {
       const config: FDTDConfig = {
@@ -208,4 +291,8 @@ function computeFieldEnergy(solver: FDTDSolver): number {
     for (let i = 0; i < f.data.length; i++) energy += f.data[i] * f.data[i];
   }
   return energy;
+}
+
+function complexMagnitude(z: { re: number; im: number }): number {
+  return Math.hypot(z.re, z.im);
 }
