@@ -80,6 +80,9 @@ import {
 } from '@/lib/brittney/toolCatalog';
 import { fetchUserRepos } from '@/lib/brittney/githubContext';
 import {
+  HOLOSHELL_OPERATOR_TOOLS,
+  HOLOSHELL_OPERATOR_TOOL_NAMES,
+  executeHoloShellOperatorTool,
   resolveHoloShellOperatorConfig,
   runHoloShellOperatorTurn,
   summarizeHoloShellOperatorReceipt,
@@ -131,6 +134,7 @@ const SERVER_EXECUTED_TOOL_NAMES = new Set([
   ...LOTUS_TOOL_NAMES,
   ...EMBODIED_TOOL_NAMES,
   ...HS_AUTHORING_TOOL_NAMES,
+  ...HOLOSHELL_OPERATOR_TOOL_NAMES,
 ]);
 
 /**
@@ -158,6 +162,7 @@ function convertToolsToProviderFormat(
       ...SIMULATION_TOOLS,
       ...LOTUS_TOOLS,
       ...EMBODIED_TOOLS,
+      ...HOLOSHELL_OPERATOR_TOOLS,
       ...(includeAuthoring ? HS_AUTHORING_TOOLS : []),
     ],
     tier
@@ -1042,6 +1047,13 @@ export async function POST(request: NextRequest) {
                         } else if (EMBODIED_TOOL_NAMES.has(tc.name)) {
                           const emb = await executeEmbodiedTool(tc.name, tc.input);
                           result = { success: emb.success, data: emb.data, error: emb.error };
+                        } else if (HOLOSHELL_OPERATOR_TOOL_NAMES.has(tc.name)) {
+                          result = await executeHoloShellOperatorTool(
+                            tc.name,
+                            tc.input,
+                            sceneContext,
+                            holoshellOperator
+                          );
                         } else if (WORKSPACE_FS_TOOL_NAMES.has(tc.name) && !workspaceFsPath) {
                           // Workspace agency without an attached local clone:
                           // fail soft with actionable guidance instead of a 4xx.
