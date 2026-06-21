@@ -31,6 +31,32 @@ describe('CRDT Primitives', () => {
       expect(register1.get()).toBe('newer-value');
     });
 
+    it('should converge equal timestamp writes by value origin nodeId', () => {
+      const register1 = new LWWRegister('value1', 'node1');
+      const register2 = new LWWRegister('value2', 'node2');
+
+      register1.set('from-node1', 100);
+      register2.set('from-node2', 100);
+
+      register1.merge(register2.getState());
+      register2.merge(register1.getState());
+
+      expect(register1.get()).toBe('from-node2');
+      expect(register2.get()).toBe('from-node2');
+      expect(register1.getState().nodeId).toBe('node2');
+      expect(register2.getState().nodeId).toBe('node2');
+    });
+
+    it('should not let a lower local node overwrite a higher-origin value on timestamp tie', () => {
+      const register = new LWWRegister('initial', 'node1');
+      register.merge({ value: 'remote-winner', timestamp: 100, nodeId: 'node9' });
+
+      register.set('local-loser', 100);
+
+      expect(register.get()).toBe('remote-winner');
+      expect(register.getState().nodeId).toBe('node9');
+    });
+
     it('should preserve older value when merging with older timestamp', () => {
       const register = new LWWRegister('current', 'node1');
       register.set('current'); // Set with current timestamp

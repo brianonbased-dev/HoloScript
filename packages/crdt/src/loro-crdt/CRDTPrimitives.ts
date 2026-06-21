@@ -9,32 +9,36 @@ export class LWWRegister<T> {
   private value: T;
   private timestamp: number;
   private nodeId: string;
+  private valueNodeId: string;
   constructor(initial: T, nodeId: string) {
     this.value = initial;
     this.timestamp = 0;
     this.nodeId = nodeId;
+    this.valueNodeId = nodeId;
   }
   get(): T {
     return this.value;
   }
   set(value: T, timestamp?: number): void {
     const ts = timestamp ?? Date.now();
-    if (ts > this.timestamp || (ts === this.timestamp && this.nodeId > this.nodeId)) {
+    if (ts > this.timestamp || (ts === this.timestamp && this.nodeId > this.valueNodeId)) {
       this.value = value;
       this.timestamp = ts;
+      this.valueNodeId = this.nodeId;
     }
   }
   merge(other: { value: T; timestamp: number; nodeId: string }): void {
     if (
       other.timestamp > this.timestamp ||
-      (other.timestamp === this.timestamp && other.nodeId > this.nodeId)
+      (other.timestamp === this.timestamp && other.nodeId > this.valueNodeId)
     ) {
       this.value = other.value;
       this.timestamp = other.timestamp;
+      this.valueNodeId = other.nodeId;
     }
   }
   getState(): { value: T; timestamp: number; nodeId: string } {
-    return { value: this.value, timestamp: this.timestamp, nodeId: this.nodeId };
+    return { value: this.value, timestamp: this.timestamp, nodeId: this.valueNodeId };
   }
 }
 
