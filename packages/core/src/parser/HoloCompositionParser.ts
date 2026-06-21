@@ -126,6 +126,7 @@ import type {
   PlatformConstraint,
   HoloContract,
   HoloContractClause,
+  HoloPolicyPackBlock,
   HoloTopic,
   HoloChannel,
   HoloConnection,
@@ -290,6 +291,7 @@ export class HoloCompositionParser {
       worldShards: [],
       movementPaths: [],
       reactionTriggers: [],
+      policyPacks: [],
     };
 
     while (!this.isAtEnd()) {
@@ -432,6 +434,8 @@ export class HoloCompositionParser {
           // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
         } else if (this.check('HOLO_CONTRACT')) {
           composition.contract = this.parseContractBlock();
+        } else if (this.check('IDENTIFIER') && this.current().value === 'policy_pack') {
+          composition.policyPacks!.push(this.parsePolicyPackBlock());
           // Pub/sub messaging primitives (v6.4)
         } else if (this.check('HOLO_TOPIC')) {
           if (!composition.topics) composition.topics = [];
@@ -706,6 +710,7 @@ export class HoloCompositionParser {
       worldShards: [],
       movementPaths: [],
       reactionTriggers: [],
+      policyPacks: [],
     };
 
     while (!this.check('RBRACE') && !this.isAtEnd()) {
@@ -801,6 +806,8 @@ export class HoloCompositionParser {
           // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
         } else if (this.check('HOLO_CONTRACT')) {
           composition.contract = this.parseContractBlock();
+        } else if (this.check('IDENTIFIER') && this.current().value === 'policy_pack') {
+          composition.policyPacks!.push(this.parsePolicyPackBlock());
           // Pub/sub messaging primitives (v6.4)
         } else if (this.check('HOLO_TOPIC')) {
           if (!composition.topics) composition.topics = [];
@@ -6564,6 +6571,90 @@ export class HoloCompositionParser {
   }
 
   // ── Pub/sub messaging primitives (v6.4) ───────────────────────────────────
+
+  /**
+   * Parse policy_pack Name { ... } as a first-class regulated-AI governance
+   * primitive. Validation lives in policy/PolicyPack.ts so compilers and deploy
+   * gates consume the same schema the parser emits.
+   */
+  private parsePolicyPackBlock(): HoloPolicyPackBlock {
+    const startLoc = this.currentLocation();
+    this.pushContext('policy-pack');
+    this.advance(); // consume policy_pack
+
+    const name = this.check('STRING') ? this.expectString() : this.expectIdentifier();
+    this.expect('LBRACE');
+    this.skipNewlines();
+
+    const properties: Record<string, HoloValue> = {};
+    let version = '1.0.0';
+    let frameworkId = '';
+    let requiredTests: HoloValue[] = [];
+    let requiredCompileTargets: string[] = [];
+    let auditRetention: Record<string, HoloValue> = {};
+    let monitoringCadence: Record<string, HoloValue> = {};
+
+    while (!this.check('RBRACE') && !this.isAtEnd()) {
+      this.skipNewlines();
+      if (this.check('RBRACE')) break;
+
+      const key = this.expectIdentifier();
+
+      if ((key === 'audit_retention' || key === 'auditRetention') && this.check('LBRACE')) {
+        auditRetention = this.parseBlockTraitConfig();
+      } else if (
+        (key === 'monitoring' || key === 'monitoring_cadence' || key === 'monitoringCadence') &&
+        this.check('LBRACE')
+      ) {
+        monitoringCadence = this.parseBlockTraitConfig();
+      } else {
+        this.expect('COLON');
+        const value = this.parseValue();
+        if (key === 'version') version = typeof value === 'string' ? value : String(value);
+        else if (key === 'framework_id' || key === 'frameworkId') {
+          frameworkId = typeof value === 'string' ? value : String(value);
+        } else if (key === 'required_tests' || key === 'requiredTests') {
+          requiredTests = Array.isArray(value) ? value : [value];
+        } else if (key === 'required_compile_targets' || key === 'requiredCompileTargets') {
+          requiredCompileTargets = (Array.isArray(value) ? value : [value]).map((target) =>
+            String(target)
+          );
+        } else if (key === 'audit_retention' || key === 'auditRetention') {
+          auditRetention = this.asRecord(value);
+        } else if (key === 'monitoring' || key === 'monitoring_cadence' || key === 'monitoringCadence') {
+          monitoringCadence = this.asRecord(value);
+        } else {
+          properties[key] = value;
+        }
+      }
+
+      if (this.check('COMMA')) this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE');
+    this.popContext();
+
+    return {
+      loc: { start: startLoc, end: this.currentLocation() },
+      type: 'PolicyPack',
+      name,
+      version,
+      frameworkId,
+      requiredTests,
+      requiredCompileTargets,
+      auditRetention,
+      monitoringCadence,
+      properties,
+    };
+  }
+
+  private asRecord(value: HoloValue): Record<string, HoloValue> {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || '__bind' in value) {
+      return {};
+    }
+    return value;
+  }
 
   /** Parse `topic Name { type: "T" broadcast: true }` */
   private parseTopicBlock(): HoloTopic {

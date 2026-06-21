@@ -144,6 +144,8 @@ export interface HoloComposition extends HoloNode {
   actions?: HoloAction[];
   /** Raw metadata key-value properties */
   metadata?: Record<string, HoloValue>;
+  /** Named regulatory bundles that gate deploy/compile evidence. */
+  policyPacks?: HoloPolicyPackBlock[];
   // Spatial primitives (v4 — March 2026)
   spawnGroups?: HoloSpawnGroup[];
   waypointSets?: HoloWaypoints[];
@@ -2364,6 +2366,39 @@ export interface HoloContract extends HoloNode {
    * Keys are field names; values are type annotations (string).
    */
   receipt: Record<string, string>;
+}
+
+// =============================================================================
+// POLICY PACK BLOCK (v6.5 - regulated AI governance)
+// =============================================================================
+
+/**
+ * Named regulatory bundle for regulated AI deployments.
+ *
+ * Syntax:
+ * ```holoscript
+ * policy_pack fair_lending_v1 {
+ *   version: "2026.06"
+ *   framework_id: CFPB_FAIR_LENDING
+ *   required_tests: [
+ *     { id: "four_fifths", protected_attribute: "race", adverse_impact_ratio_min: 0.8 }
+ *   ]
+ *   required_compile_targets: ["model_card", "impact_assessment"]
+ *   audit_retention { min_days: 2555 storage: "immutable_ledger" }
+ *   monitoring { interval: "quarterly" drift_sweep_required: true }
+ * }
+ * ```
+ */
+export interface HoloPolicyPackBlock extends HoloNode {
+  type: 'PolicyPack';
+  name: string;
+  version: string;
+  frameworkId: string;
+  requiredTests: HoloValue[];
+  requiredCompileTargets: string[];
+  auditRetention: Record<string, HoloValue>;
+  monitoringCadence: Record<string, HoloValue>;
+  properties: Record<string, HoloValue>;
 }
 
 // =============================================================================
