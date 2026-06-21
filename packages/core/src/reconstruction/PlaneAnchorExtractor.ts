@@ -116,8 +116,8 @@ function planeExtent(cloud: PointCloud, p: RawPlane): { width: number; height: n
     pu.push(dot(rel, p.u)); pv.push(dot(rel, p.v));
   }
   pu.sort((a, b) => a - b); pv.sort((a, b) => a - b);
-  const lo = (arr: number[]) => arr[Math.floor(0.02 * (arr.length - 1))];
-  const hi = (arr: number[]) => arr[Math.floor(0.98 * (arr.length - 1))];
+  const lo = (arr: number[]) => arr[Math.floor(0.05 * (arr.length - 1))];
+  const hi = (arr: number[]) => arr[Math.floor(0.95 * (arr.length - 1))];
   const uMin = lo(pu), uMax = hi(pu), vMin = lo(pv), vMax = hi(pv);
   const width = uMax - uMin, height = vMax - vMin, uc = (uMin + uMax) / 2, vc = (vMin + vMax) / 2;
   const center: Vector3 = [p.centroid[0] + p.u[0] * uc + p.v[0] * vc, p.centroid[1] + p.u[1] * uc + p.v[1] * vc, p.centroid[2] + p.u[2] * uc + p.v[2] * vc];
@@ -169,15 +169,22 @@ export function extractPlaneAnchors(cloud: PointCloud, opts: ExtractPlaneAnchors
   }
   if (raw.length === 0) return [];
 
-  // --- Phase 2: merge near-coplanar planes (parallel + small offset) — collapses duplicate slabs ---
-  const cosMerge = Math.cos((12 * Math.PI) / 180), offMerge = distThreshold * 2;
-  const merged: RawPlane[] = [];
-  for (const p of raw) {
-    const hit = merged.find((m) => Math.abs(dot(m.normal, p.normal)) >= cosMerge && Math.abs(dot(m.normal, sub(p.centroid, m.centroid))) < offMerge);
-    if (hit) hit.inliers.push(...p.inliers);
-    else merged.push(p);
+  // --- Phase 2: iteratively merge near-coplanar planes (parallel + small offset), REFITTING each round
+  //     so duplicate slabs of one wall/floor collapse into a single anchor (a single pass with stale
+  //     centroids misses slabs a few cm apart — the duplicate-wall bug) ---
+  const cosMerge = Math.cos((15 * Math.PI) / 180), offMerge = Math.max(0.15, distThreshold * 3);
+  let groups: number[][] = raw.map((p) => p.inliers.slice());
+  for (let pass = 0; pass < 8; pass++) {
+    const fits = groups.map((g) => fitPlane(cloud, g));
+    let mergedAny = false;
+    outer: for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
+      if (Math.abs(dot(fits[i].normal, fits[j].normal)) >= cosMerge && Math.abs(dot(fits[i].normal, sub(fits[j].centroid, fits[i].centroid))) < offMerge) {
+        groups[i] = groups[i].concat(groups[j]); groups.splice(j, 1); mergedAny = true; break outer;
+      }
+    }
+    if (!mergedAny) break;
   }
-  const planes = merged.map((m) => fitPlane(cloud, m.inliers)).filter((p) => p.inliers.length >= minInliers);
+  const planes = groups.map((g) => fitPlane(cloud, g)).filter((p) => p.inliers.length >= minInliers);
 
   // --- Phase 3: detect the room's up-axis = the normal direction shared by the most horizontal inliers ---
   let up: Vector3 = [0, 1, 0], bestScore = -1;
