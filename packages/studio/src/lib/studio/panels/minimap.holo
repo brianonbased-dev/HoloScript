@@ -1,4 +1,4 @@
 @view({ id: "minimap", title: "Minimap", icon: "Map", category: "authoring", placement: "floating-overlay", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: true, exclusiveWith: [], order: 22 })
 composition "minimap" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "MinimapOverlay" @slot(component: "MinimapOverlay", import: "@/components/minimap/MinimapOverlay") {}
 }

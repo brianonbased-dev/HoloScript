@@ -1,4 +1,4 @@
 @view({ id: "agentEnsemble", title: "Agent Ensemble", icon: "Users", category: "authoring", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 50 })
 composition "agentEnsemble" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "DesktopAgentEnsemble" @slot(component: "DesktopAgentEnsemble", import: "@/components/orchestration/DesktopAgentEnsemble") {}
 }

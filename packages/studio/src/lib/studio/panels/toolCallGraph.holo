@@ -1,4 +1,4 @@
 @view({ id: "toolCallGraph", title: "Tool Call Graph", icon: "Zap", category: "debug", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 52 })
 composition "toolCallGraph" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "ToolCallGraphVisualizer" @slot(component: "ToolCallGraphVisualizer", import: "@/components/orchestration/ToolCallGraphVisualizer") {}
 }

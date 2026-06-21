@@ -1162,21 +1162,41 @@ export const GENERATED_VIEW_REGISTRY: StudioViewDefinition[] = [
 
 /** Per-view React widget mounts declared via @slot in each panel .holo. */
 export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: string }> = {
+  "agentEnsemble": {
+    "component": "DesktopAgentEnsemble",
+    "import": "@/components/orchestration/DesktopAgentEnsemble"
+  },
   "agentMonitor": {
     "component": "AgentMonitorComponent",
     "import": "@/components/panels/native/agentMonitor.native"
+  },
+  "agentWorkflow": {
+    "component": "AgentOrchestrationGraphEditor",
+    "import": "@/components/orchestration/AgentOrchestrationGraphEditor"
   },
   "aiMaterial": {
     "component": "AIMaterialPanel",
     "import": "@/components/ai/AIMaterialPanel"
   },
+  "assetImport": {
+    "component": "AssetImportDropZone",
+    "import": "@/components/import/AssetImportDropZone"
+  },
   "assetLib": {
     "component": "AssetLibraryPanel",
     "import": "@/components/assets/AssetLibraryPanel"
   },
+  "assetPack": {
+    "component": "AssetPackPanel",
+    "import": "@/components/assets/AssetPackPanel"
+  },
   "audio": {
     "component": "AudioTraitPanel",
     "import": "@/components/audio/AudioTraitPanel"
+  },
+  "audioVisualizer": {
+    "component": "AudioVisualizerPanel",
+    "import": "@/components/audio/AudioVisualizerPanel"
   },
   "avatarParams": {
     "component": "AvatarParamsPanel",
@@ -1186,9 +1206,69 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "AvatarRigLedgerPanel",
     "import": "@/components/avatar/AvatarRigLedgerPanel"
   },
+  "behaviorTree": {
+    "component": "BehaviorTreeVisualEditor",
+    "import": "@/components/orchestration/BehaviorTreeVisualEditor"
+  },
+  "blame": {
+    "component": "SpatialBlameOverlay",
+    "import": "@/components/versionControl/SpatialBlameOverlay"
+  },
+  "calibration": {
+    "component": "CalibrationUncertaintyIndicator",
+    "import": "@/components/ai/CalibrationUncertaintyIndicator"
+  },
+  "chat": {
+    "component": "BrittneyChatPanel",
+    "import": "@/components/ai/BrittneyChatPanel"
+  },
+  "cinematicCamera": {
+    "component": "CinematicCameraPanel",
+    "import": "@/components/camera/CinematicCameraPanel"
+  },
   "cloudDeploy": {
     "component": "CloudDeployPanel",
     "import": "@/components/cloud/CloudDeployPanel"
+  },
+  "compilationPipeline": {
+    "component": "CompilationPipelineVisualizer",
+    "import": "@/components/pipeline/CompilationPipelineVisualizer"
+  },
+  "confidenceXR": {
+    "component": "ConfidenceAwareXRUI",
+    "import": "@/components/xr/ConfidenceAwareXRUI"
+  },
+  "console": {
+    "component": "ScriptConsole",
+    "import": "@/components/console/ScriptConsole"
+  },
+  "critique": {
+    "component": "CritiquePanel",
+    "import": "@/components/critique/CritiquePanel"
+  },
+  "dag": {
+    "component": "DAGVisualizationPanel",
+    "import": "@/components/visualization/DAGVisualizationPanel"
+  },
+  "debugger": {
+    "component": "DebuggerPanel",
+    "import": "@/components/debugger/DebuggerPanel"
+  },
+  "dragonPreview": {
+    "component": "DragonPreviewComponent",
+    "import": "@/components/panels/native/dragonPreview.native"
+  },
+  "environment": {
+    "component": "EnvironmentPanel",
+    "import": "@/components/environment/EnvironmentPanel"
+  },
+  "eventMonitor": {
+    "component": "AgentEventMonitorPanel",
+    "import": "@/components/orchestration/AgentEventMonitorPanel"
+  },
+  "examples": {
+    "component": "ExampleGallery",
+    "import": "@/components/gallery/ExampleGallery"
   },
   "export": {
     "component": "ExportPanel",
@@ -1198,6 +1278,10 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "ExportPipelinePanel",
     "import": "@/components/export/ExportPipelinePanel"
   },
+  "foundationDao": {
+    "component": "FoundationDAOPanel",
+    "import": "@/components/governance/FoundationDAOPanel"
+  },
   "gameGateLedger": {
     "component": "GameGateLedgerPanel",
     "import": "@/components/game/GameGateLedgerPanel"
@@ -1206,9 +1290,29 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "GameParamsPanel",
     "import": "@/components/game/GameParamsPanel"
   },
+  "generator": {
+    "component": "SceneGeneratorPanel",
+    "import": "@/components/ai/SceneGeneratorPanel"
+  },
   "history": {
     "component": "HistoryPanel",
     "import": "@/components/HistoryPanel"
+  },
+  "holoDiff": {
+    "component": "HoloDiffPanel",
+    "import": "@/components/diff/HoloDiffPanel"
+  },
+  "hotkey": {
+    "component": "HotkeyMapOverlay",
+    "import": "@/components/hotkeys/HotkeyMapOverlay"
+  },
+  "hotkeyOverlay": {
+    "component": "HotkeyMapOverlay",
+    "import": "@/components/hotkeys/HotkeyMapOverlay"
+  },
+  "inspector": {
+    "component": "NodeInspectorPanel",
+    "import": "@/components/inspector/NodeInspectorPanel"
   },
   "keyframes": {
     "component": "KeyframeEditor",
@@ -1218,17 +1322,45 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "LodPanel",
     "import": "@/components/lod/LodPanel"
   },
+  "marketplace": {
+    "component": "MarketplacePanel",
+    "import": "@/components/marketplace/MarketplacePanel"
+  },
+  "material": {
+    "component": "MaterialPanel",
+    "import": "@/components/materials/MaterialPanel"
+  },
   "mcpConfig": {
     "component": "MCPServerConfigPanel",
     "import": "@/components/orchestration/MCPServerConfigPanel"
+  },
+  "minimap": {
+    "component": "MinimapOverlay",
+    "import": "@/components/minimap/MinimapOverlay"
+  },
+  "multiTransform": {
+    "component": "MultiTransformPanel",
+    "import": "@/components/transform/MultiTransformPanel"
   },
   "multiplayer": {
     "component": "MultiplayerPanel",
     "import": "@/components/collaboration/MultiplayerPanel"
   },
+  "nodeGraph": {
+    "component": "NodeGraphPanel",
+    "import": "@/components/node-graph/NodeGraphPanel"
+  },
   "operationsHub": {
     "component": "OperationsSurfacePanel",
     "import": "@/components/daemon/OperationsSurfacePanel"
+  },
+  "outliner": {
+    "component": "SceneOutliner",
+    "import": "@/components/outliner/SceneOutliner"
+  },
+  "palette": {
+    "component": "CommandPalette",
+    "import": "@/components/command-palette/CommandPalette"
   },
   "parametricSliders": {
     "component": "ParametricSlidersPanel",
@@ -1237,6 +1369,10 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
   "particles": {
     "component": "ParticlePanel",
     "import": "@/components/particles/ParticlePanel"
+  },
+  "physics": {
+    "component": "PhysicsPanel",
+    "import": "@/components/physics/PhysicsPanel"
   },
   "pluginManager": {
     "component": "PluginManagerPanel",
@@ -1250,17 +1386,41 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "PrintabilityReportPanel",
     "import": "@/components/manufacturing/PrintabilityReportPanel"
   },
+  "profiler": {
+    "component": "ProfilerComponent",
+    "import": "@/components/panels/native/profiler.native"
+  },
+  "prompts": {
+    "component": "PromptLibrary",
+    "import": "@/components/ai/PromptLibrary"
+  },
+  "publish": {
+    "component": "PublishPanel",
+    "import": "@/components/publish/PublishPanel"
+  },
   "registry": {
     "component": "RegistryPanel",
     "import": "@/components/registry/RegistryPanel"
+  },
+  "remote": {
+    "component": "QRRemotePanel",
+    "import": "@/components/remote/QRRemotePanel"
   },
   "repl": {
     "component": "REPLPanel",
     "import": "@/components/repl/REPLPanel"
   },
+  "runtimeTier": {
+    "component": "RuntimeTierPanel",
+    "import": "@/components/panels/RuntimeTierPanel"
+  },
   "sandboxedPlugins": {
     "component": "SandboxedPluginsPanel",
     "import": "@/components/plugins/SandboxedPluginsPanel"
+  },
+  "sceneSearch": {
+    "component": "SceneSearch",
+    "import": "@/components/search/SceneSearch"
   },
   "shaderEditor": {
     "component": "ShaderEditorPanel",
@@ -1278,16 +1438,64 @@ export const GENERATED_VIEW_SLOTS: Record<string, { component: string; import: s
     "component": "SimRunReportPanel",
     "import": "@/components/simsci/SimRunReportPanel"
   },
+  "simulation": {
+    "component": "SimulationPanel",
+    "import": "@/components/simulation/SimulationPanel"
+  },
+  "sliderInspector": {
+    "component": "SliderMaterialInspector",
+    "import": "@/components/inspector/SliderMaterialInspector"
+  },
+  "snapshotDiff": {
+    "component": "SnapshotDiffPanel",
+    "import": "@/components/diff/SnapshotDiffPanel"
+  },
   "snapshots": {
     "component": "SnapshotGallery",
     "import": "@/components/gallery/SnapshotGallery"
+  },
+  "splatWizard": {
+    "component": "SplatCaptureWizard",
+    "import": "@/components/assets/SplatCaptureWizard"
+  },
+  "syntheticData": {
+    "component": "SyntheticDataDashboard",
+    "import": "@/components/synthetic/SyntheticDataDashboard"
   },
   "templateGallery": {
     "component": "TemplateGallery",
     "import": "@/components/templates/TemplateGallery"
   },
+  "templatePicker": {
+    "component": "TemplatePicker",
+    "import": "@/components/templates/TemplatePicker"
+  },
+  "texturePaint": {
+    "component": "TexturePaintPanel",
+    "import": "@/components/paint/TexturePaintPanel"
+  },
   "timeline": {
     "component": "TimelinePanel",
     "import": "@/components/panels/TimelinePanel"
+  },
+  "toolCallGraph": {
+    "component": "ToolCallGraphVisualizer",
+    "import": "@/components/orchestration/ToolCallGraphVisualizer"
+  },
+  "traitMatrix": {
+    "component": "TraitSupportMatrixDashboard",
+    "import": "@/components/registry/TraitSupportMatrixDashboard"
+  },
+  "tutorial": {
+    "component": "FirstLaunchTutorial",
+    "import": "@/components/wizard/FirstLaunchTutorial"
+  },
+  "undoHistory": {
+    "component": "UndoHistorySidebar",
+    "import": "@/components/history/UndoHistorySidebar"
+  },
+  "versions": {
+    "component": "VersionHistoryPanel",
+    "import": "@/components/versionControl/VersionHistoryPanel"
   }
 };

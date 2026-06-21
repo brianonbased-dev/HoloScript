@@ -1,4 +1,4 @@
 @view({ id: "generator", title: "AI Generator", icon: "Wand2", category: "assistant", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: ["export","profiler"], order: 16 })
 composition "generator" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "SceneGeneratorPanel" @slot(component: "SceneGeneratorPanel", import: "@/components/ai/SceneGeneratorPanel") {}
 }

@@ -1,4 +1,34 @@
 @view({ id: "dragonPreview", title: "Dragon Preview", icon: "Flame", category: "authoring", placement: "right-rail", scope: "project", gate: "experimental", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 64 })
 composition "dragonPreview" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  @native_panel
+
+  object "Root" {
+    @layout { flex: "column", gap: "12px" }
+    @theme { className: "p-3 h-full overflow-y-auto text-studio-text" }
+
+    object "Title" {
+      @text { variant: "h3", content: "Dragon Preview" }
+      @theme { className: "text-sm font-semibold text-studio-text" }
+    }
+
+    object "Status" {
+      @text { variant: "caption", content: "Procedural asset preview" }
+      @theme { className: "text-xs leading-5 text-studio-muted" }
+    }
+
+    object "PreviewFrame" {
+      @layout { flex: "column", gap: "8px", align: "center", justify: "center" }
+      @theme { className: "min-h-32 rounded-lg border border-studio-border bg-studio-surface/70 p-4 text-center" }
+
+      object "Glyph" {
+        @text { variant: "h2", content: "FLAME" }
+        @theme { className: "text-xs font-semibold tracking-wide text-orange-300" }
+      }
+
+      object "Caption" {
+        @text { variant: "caption", content: "No dragon asset loaded" }
+        @theme { className: "text-[11px] leading-4 text-studio-muted" }
+      }
+    }
+  }
 }

@@ -1,4 +1,4 @@
 @view({ id: "behaviorTree", title: "Behavior Tree", icon: "GitBranch", category: "authoring", placement: "top-overlay", scope: "global", gate: "always", surfaceClass: "lab", defaultOpen: false, exclusiveWith: [], order: 49 })
 composition "behaviorTree" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "BehaviorTreeVisualEditor" @slot(component: "BehaviorTreeVisualEditor", import: "@/components/orchestration/BehaviorTreeVisualEditor") {}
 }

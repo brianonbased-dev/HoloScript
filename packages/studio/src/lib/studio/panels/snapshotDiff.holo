@@ -1,4 +1,4 @@
 @view({ id: "snapshotDiff", title: "Snapshot Diff", icon: "GitCompare", category: "debug", placement: "right-rail", scope: "project", gate: "always", surfaceClass: "core-workbench", defaultOpen: false, exclusiveWith: [], order: 36 })
 composition "snapshotDiff" {
-  // @slot widget mount pending — registry metadata migrated, render-wiring is the follow-on step
+  object "SnapshotDiffPanel" @slot(component: "SnapshotDiffPanel", import: "@/components/diff/SnapshotDiffPanel") {}
 }
