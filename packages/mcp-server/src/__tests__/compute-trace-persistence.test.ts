@@ -211,4 +211,61 @@ describe('compute-trace corpus durability (native-model compute axis)', () => {
     expect(mineExported).toHaveLength(2);
     expect(mineExported.every((r: { grader: { passed: boolean } }) => r.grader.passed)).toBe(true);
   });
+
+  it('resolved export and stats fall back to Postgres when local JSONL is empty', async () => {
+    const pgTemp = mkdtempSync(join(tmpdir(), 'compute-trace-pg-fallback-'));
+    const previousDataDir = process.env.HOLOMESH_DATA_DIR;
+    const previousDatabaseUrl = process.env.DATABASE_URL;
+
+    process.env.HOLOMESH_DATA_DIR = pgTemp;
+    process.env.DATABASE_URL = 'postgres://unit-test/compute-traces';
+
+    const pgStore = await import('../compute-trace-store?pg-fallback=1');
+    const pgRecord = {
+      sessionId: 'railway-session',
+      instruction: 'Set the glow intensity to 7.',
+      contractId: 'glow-railway',
+      scene: 'obj#lamp { @glow(intensity: 1) }',
+      bound: { trait: 'glow', property: 'intensity', min: 0, max: 10, current: 1 },
+      mutation: {
+        tool: 'set_trait_property',
+        objectName: 'lamp',
+        traitName: 'glow',
+        propertyKey: 'intensity',
+        propertyValue: 7,
+      },
+      expectedValue: 7,
+      gradedValue: 7,
+      passed: true,
+      opLabel: 'live-brittney',
+      caelReceiptRef: null,
+      gradedAt: '2026-06-21T00:00:00.000Z',
+    };
+
+    pgStore._setPgForTest(
+      {
+        query: async () => ({ rows: [{ data: pgRecord }] }),
+      },
+      Promise.resolve()
+    );
+
+    try {
+      const outPath = join(pgTemp, 'compute-export.normalized.jsonl');
+      const exported = await pgStore.exportTracesJsonlResolved(outPath, { passedOnly: true });
+      expect(exported.rows).toBe(1);
+      expect(existsSync(outPath)).toBe(true);
+
+      const stats = await pgStore.computeTraceStatsResolved();
+      expect(stats.records).toBe(1);
+      expect(stats.passed).toBe(1);
+      expect(stats.source).toBe('postgres-fallback');
+    } finally {
+      pgStore._setPgForTest(null, null);
+      if (previousDataDir === undefined) delete process.env.HOLOMESH_DATA_DIR;
+      else process.env.HOLOMESH_DATA_DIR = previousDataDir;
+      if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = previousDatabaseUrl;
+      rmSync(pgTemp, { recursive: true, force: true });
+    }
+  });
 });

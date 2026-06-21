@@ -465,8 +465,7 @@ export async function exportTracesJsonlResolved(
   return { path: target, rows: rows.length, bytes: Buffer.byteLength(body, 'utf8') };
 }
 
-/** Diagnostics: where the corpus lives + how much real compute data has accrued. */
-export function computeTraceStats(): {
+export type ComputeTraceStats = {
   tracePath: string;
   exists: boolean;
   records: number;
@@ -474,8 +473,13 @@ export function computeTraceStats(): {
   failed: number;
   sessions: number;
   contracts: number;
-} {
-  const records = readComputeTraces();
+  source: 'local-jsonl' | 'postgres-fallback' | 'empty';
+};
+
+function summarizeComputeTraces(
+  records: ComputeTraceRecord[],
+  source: ComputeTraceStats['source']
+): ComputeTraceStats {
   const sessions = new Set(records.map((r) => r.sessionId));
   const contracts = new Set(records.map((r) => r.contractId));
   let passed = 0;
@@ -488,7 +492,33 @@ export function computeTraceStats(): {
     failed: records.length - passed,
     sessions: sessions.size,
     contracts: contracts.size,
+    source,
   };
+}
+
+/** Diagnostics: where the corpus lives + how much real compute data has accrued. */
+export function computeTraceStats(): ComputeTraceStats {
+  const records = readComputeTraces();
+  return summarizeComputeTraces(records, records.length > 0 ? 'local-jsonl' : 'empty');
+}
+
+/**
+ * Railway-safe diagnostics: summarize the same corpus source that resolved
+ * export would use. This keeps `holo_export_compute_traces` from reporting
+ * Postgres-exported rows with local-only stats.records = 0 on ephemeral disks.
+ */
+export async function computeTraceStatsResolved(): Promise<ComputeTraceStats> {
+  const local = readComputeTraces();
+  if (local.length > 0) {
+    return summarizeComputeTraces(local, 'local-jsonl');
+  }
+  if (process.env.DATABASE_URL) {
+    const pgRecords = await readComputeTracesFromPg();
+    if (pgRecords.length > 0) {
+      return summarizeComputeTraces(pgRecords, 'postgres-fallback');
+    }
+  }
+  return summarizeComputeTraces(local, 'empty');
 }
 
 // ── Grading primitive (the live counterpart of compute_suite's accept gate) ────
@@ -575,4 +605,10 @@ export function gradeComputeMutation(input: GradeComputeInput): GradeComputeResu
 /** Test-only: the resolved corpus path (so tests can point HOLOMESH_DATA_DIR). */
 export function _tracePathForTest(): string {
   return TRACE_PATH;
+}
+
+/** Test-only: inject a fake Postgres pool without loading pg or opening sockets. */
+export function _setPgForTest(pool: PgLike | null, ready: Promise<void> | null = null): void {
+  pgPool = pool;
+  pgReady = ready;
 }
