@@ -13,6 +13,7 @@ import { randomUUID } from 'crypto';
 export type AdminOperationAction =
   | 'key_rotation'
   | 'provision'
+  | 'update_scopes'
   | 'revoke'
   | 'deregister'
   | 'manual_failover'
