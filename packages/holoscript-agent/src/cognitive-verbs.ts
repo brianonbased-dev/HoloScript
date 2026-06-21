@@ -22,6 +22,7 @@
  */
 import type { KnowledgeEntry } from './holomesh-client.js';
 import type { OnTaskAction } from './types.js';
+import { groundCitations, annotateGrounding, type GroundingEntry } from './citation-grounding.js';
 
 export interface CognitiveVerbDeps {
   /** The brain's base system prompt to augment. */
@@ -50,6 +51,25 @@ export interface CognitiveVerbDeps {
   queryPrivateKnowledge: () => Promise<KnowledgeEntry[]>;
   /** One-shot provider planner (plan). Optional — when absent, `plan` is skipped. */
   plan?: (prompt: string) => Promise<string>;
+  /**
+   * Consult a PEER for the `ask_peer` cognitive verb — agent-to-agent questioning,
+   * the reasoning substrate (D.100 keystone: "agents asking agents questions IS
+   * reasoning"). Resolves a peer (by `capability` or explicit `peer` handle), asks
+   * the question, returns its answer + which peer answered. Optional — when absent,
+   * `ask_peer` is skipped (mirrors `plan`). The answer is run through the CITE-by-ID
+   * grounding gate before injection, so a confabulating peer is caught structurally
+   * regardless of which model answered.
+   */
+  askPeer?: (
+    question: string,
+    opts: { capability?: string; peer?: string }
+  ) => Promise<{ answer: string; peer: string } | null>;
+  /**
+   * Resolve the knowledge corpus the grounding gate checks peer citations against
+   * (typically the agent's accessible knowledge entries). Optional — when absent,
+   * grounding runs against an empty corpus (fail-closed: every citation unverified).
+   */
+  groundingCorpus?: () => Promise<GroundingEntry[]>;
   /**
    * Embed text for SEMANTIC `recall` (the fleet nomic model). Optional — when absent
    * OR it returns null (no fleet/registry reachable), `recall` falls back to the
@@ -184,6 +204,59 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             content += `\n\n[Plan]\n${trimmed}`;
             deps.log({ ev: 'on-task-plan', taskId: deps.task.id, planLen: trimmed.length });
           }
+          break;
+        }
+        case 'ask_peer': {
+          if (!deps.askPeer) break;
+          const question =
+            strField(action.config, 'question', 'q', 'ask', 'of') || deps.task.title;
+          const capability = strField(action.config, 'capability', 'cap');
+          const peer = strField(action.config, 'peer', 'handle', 'to');
+          // Default ON: a peer that cites invented IDs is the exact 4B failure mode
+          // (D.100). Brains opt OUT with `require_grounding: false` to keep an
+          // answer whose citations don't resolve (e.g. a peer with no shared corpus).
+          const requireGrounding =
+            action.config.require_grounding !== false &&
+            action.config.requireGrounding !== false;
+          const result = await deps.askPeer(question, {
+            capability: capability || undefined,
+            peer: peer || undefined,
+          });
+          if (!result || !result.answer.trim()) {
+            deps.log({ ev: 'on-task-ask-peer', taskId: deps.task.id, question, answered: false });
+            break;
+          }
+          const corpus = deps.groundingCorpus ? await deps.groundingCorpus() : [];
+          const grounding = groundCitations(result.answer, corpus);
+          // GATE: when grounding is required and the peer cited sources but NONE
+          // resolve, the answer is confabulation — reject it (do not inject).
+          if (
+            requireGrounding &&
+            grounding.citations.length > 0 &&
+            grounding.grounded.length === 0
+          ) {
+            deps.log({
+              ev: 'on-task-ask-peer',
+              taskId: deps.task.id,
+              question,
+              peer: result.peer,
+              answered: true,
+              rejected: true,
+              citationsConfabulated: grounding.confabulated.length,
+            });
+            break;
+          }
+          const annotated = annotateGrounding(result.answer, grounding).slice(0, MAX_INJECTED_CHARS);
+          content += `\n\n[Peer answer from ${result.peer} re "${question}"]\n${annotated}`;
+          deps.log({
+            ev: 'on-task-ask-peer',
+            taskId: deps.task.id,
+            question,
+            peer: result.peer,
+            answered: true,
+            citationsGrounded: grounding.grounded.length,
+            citationsConfabulated: grounding.confabulated.length,
+          });
           break;
         }
         // `reflect` is handled post-artifact in runner.ts, not here.

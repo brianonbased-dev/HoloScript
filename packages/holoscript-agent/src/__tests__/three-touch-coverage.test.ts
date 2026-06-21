@@ -74,6 +74,8 @@ const OPT_OUT_NOT_RUNTIME = new Set<string>([
   'updateTask', // called from DelegatedAuthorityHandler (E4), not directly from runner
   'deleteTask', // called from DelegatedAuthorityHandler (E4), not directly from runner
   'delegateTask', // called from DelegatedAuthorityHandler (E4), not directly from runner
+  'queryTeamKnowledge', // @deprecated — rag_query was refactored to queryGrep + queryAbsorb (W.754); kept for API stability, no longer runner-wired
+  'queryCodebase', // @deprecated — superseded by queryGrep + queryAbsorb in the rag_query path (W.754); kept for API stability, no longer runner-wired
 ]);
 
 // ─── Parsers ─────────────────────────────────────────────────────────────

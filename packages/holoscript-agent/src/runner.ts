@@ -164,6 +164,29 @@ export class AgentRunner {
         );
         return resp.content;
       },
+      // `ask_peer` — agent-to-agent questioning, the reasoning substrate (D.100
+      // keystone). Routes to a designated peer model (HOLOSCRIPT_AGENT_PEER_MODEL)
+      // when set, else the agent's own model wearing a peer-consultation persona.
+      // The CITE-by-ID grounding gate (citation-grounding.ts) is what makes the
+      // answer trustworthy — a confabulating peer is caught regardless of which
+      // model answered. The peer is told to cite only by REAL knowledge ID.
+      askPeer: async (question, opts) => {
+        const peerModel = process.env.HOLOSCRIPT_AGENT_PEER_MODEL || identity.llmModel;
+        const sys =
+          (opts.capability
+            ? `You are a peer agent consulted for your ${opts.capability} expertise. `
+            : 'You are a peer agent being consulted by another agent. ') +
+          'Answer concisely and concretely. When you cite supporting knowledge, cite ONLY by its real ID ' +
+          '(e.g. W.123, F.045, D.101); NEVER invent an ID — an unsupported claim is better than a fabricated citation.';
+        const resp = await provider.complete(
+          { messages: [{ role: 'system', content: sys }, { role: 'user', content: question }], maxTokens: 512, temperature: 0.3 },
+          peerModel
+        );
+        return { answer: resp.content, peer: opts.peer || peerModel };
+      },
+      // Knowledge corpus the grounding gate resolves peer citations against — the
+      // agent's private workspace (real entry IDs + content). Empty → fail-closed.
+      groundingCorpus: () => mesh.queryPrivateKnowledge(),
       // Semantic `recall` over the private workspace via the fleet nomic (W.753).
       // brainPath from HOLO_LLM_FLEET_BRAIN; if unset/unreachable embedAcrossFleet
       // returns null and cognitive-verbs falls back to the substring filter.

@@ -11,7 +11,9 @@ function deps(over: Partial<Parameters<typeof augmentWithOnTaskCognition>[0]> = 
     systemPrompt: BASE,
     onTaskActions: [] as OnTaskAction[],
     task: TASK,
-    queryTeamKnowledge: vi.fn(async (): Promise<KnowledgeEntry[]> => []),
+    // rag_query now reads grep (local JSONL) + Absorb GraphRAG (W.754) — default no-op.
+    queryGrep: vi.fn(async (): Promise<KnowledgeEntry[]> => []),
+    queryAbsorb: vi.fn(async (): Promise<KnowledgeEntry[]> => []),
     queryPrivateKnowledge: vi.fn(async (): Promise<KnowledgeEntry[]> => []),
     plan: vi.fn(async () => 'PLAN TEXT'),
     log: vi.fn(),
@@ -33,84 +35,53 @@ describe('augmentWithOnTaskCognition', () => {
     expect(out).toContain('focus on edge cases');
   });
 
-  it('rag_query retrieves team knowledge and injects it', async () => {
-    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
+  // ── rag_query (grep stage 1 + Absorb GraphRAG stage 2, W.754) ──────────────
+
+  it('rag_query injects grep results and records the grep source', async () => {
+    const queryGrep = vi.fn(async (): Promise<KnowledgeEntry[]> => [
       { id: 'k1', content: 'widgets need a frobnicator' },
     ]);
     const d = deps({
       onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
-      queryTeamKnowledge,
+      queryGrep,
     });
     const out = await augmentWithOnTaskCognition(d);
-    expect(queryTeamKnowledge).toHaveBeenCalledWith('widget', 3);
-    expect(out).toContain('[Retrieved knowledge for "widget"]');
+    expect(queryGrep).toHaveBeenCalledWith('widget', 3);
+    expect(out).toContain('[Grep results for "widget"]');
     expect(out).toContain('frobnicator');
-  });
-
-  it('rag_query falls back to the task title when no query given, and logs mode + retrieved', async () => {
-    const d = deps({
-      onTaskActions: [{ verb: 'rag_query', config: {} }],
-      queryTeamKnowledge: vi.fn(async (): Promise<KnowledgeEntry[]> => []),
-    });
-    await augmentWithOnTaskCognition(d);
-    expect(d.queryTeamKnowledge).toHaveBeenCalledWith('Build the widget', 5);
     expect(d.log).toHaveBeenCalledWith(
-      expect.objectContaining({ ev: 'on-task-rag-query', mode: 'team-knowledge', retrieved: 0 })
+      expect.objectContaining({ ev: 'on-task-rag-query', sources: ['grep'] })
     );
   });
 
-  it('rag_query uses codebase GraphRAG when queryCodebase is wired and returns results', async () => {
-    const queryCodebase = vi.fn(async () => [
-      { name: 'WidgetFactory.create', type: 'function', file: 'src/widget.ts', line: 42, score: 0.92, signature: 'create(opts: WidgetOpts): Widget' },
-    ]);
-    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => []);
+  it('rag_query injects Absorb GraphRAG results alongside grep', async () => {
+    const queryGrep = vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'g', content: 'grep hit' }]);
+    const queryAbsorb = vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'a', content: 'absorb semantic hit' }]);
     const d = deps({
-      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget factory', limit: 3 } }],
-      queryCodebase,
-      queryTeamKnowledge,
+      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 4 } }],
+      queryGrep,
+      queryAbsorb,
     });
     const out = await augmentWithOnTaskCognition(d);
-    // Codebase path wins → symbol names injected, team knowledge NOT called
-    expect(queryCodebase).toHaveBeenCalledWith('widget factory', 3);
-    expect(queryTeamKnowledge).not.toHaveBeenCalled();
-    expect(out).toContain('[Codebase search for "widget factory"]');
-    expect(out).toContain('WidgetFactory.create');
-    expect(out).toContain('src/widget.ts');
-    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-rag-query', mode: 'codebase-graphrag' }));
+    expect(queryAbsorb).toHaveBeenCalledWith('widget', 4);
+    expect(out).toContain('[Grep results for "widget"]');
+    expect(out).toContain('[Absorb knowledge for "widget"]');
+    expect(out).toContain('absorb semantic hit');
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-rag-query', sources: ['grep', 'absorb-graphrag'] })
+    );
   });
 
-  it('rag_query falls back to team knowledge when queryCodebase returns empty (graph not loaded)', async () => {
-    const queryCodebase = vi.fn(async () => []); // graph cold → empty
-    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
-      { id: 'k2', content: 'widget docs from team store' },
-    ]);
-    const d = deps({
-      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
-      queryCodebase,
-      queryTeamKnowledge,
-    });
-    const out = await augmentWithOnTaskCognition(d);
-    expect(queryCodebase).toHaveBeenCalledWith('widget', 3);
-    expect(queryTeamKnowledge).toHaveBeenCalledWith('widget', 3);
-    expect(out).toContain('[Retrieved knowledge for "widget"]');
-    expect(out).toContain('widget docs from team store');
-    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-rag-query', mode: 'team-knowledge' }));
+  it('rag_query falls back to the task title when no query given, and logs sources + retrieved', async () => {
+    const d = deps({ onTaskActions: [{ verb: 'rag_query', config: {} }] });
+    await augmentWithOnTaskCognition(d);
+    expect(d.queryGrep).toHaveBeenCalledWith('Build the widget', 5);
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-rag-query', sources: [], retrieved: 0 })
+    );
   });
 
-  it('rag_query uses team knowledge when queryCodebase dep is absent', async () => {
-    const queryTeamKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
-      { id: 'k3', content: 'team-only knowledge' },
-    ]);
-    // No queryCodebase dep → should call queryTeamKnowledge as before
-    const d = deps({
-      onTaskActions: [{ verb: 'rag_query', config: { query: 'widget', limit: 3 } }],
-      queryTeamKnowledge,
-    });
-    const out = await augmentWithOnTaskCognition(d);
-    expect(queryTeamKnowledge).toHaveBeenCalledWith('widget', 3);
-    expect(out).toContain('team-only knowledge');
-    expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-rag-query', mode: 'team-knowledge' }));
-  });
+  // ── recall (private workspace) ─────────────────────────────────────────────
 
   it('recall pulls private knowledge and filters by query client-side', async () => {
     const queryPrivateKnowledge = vi.fn(async (): Promise<KnowledgeEntry[]> => [
@@ -130,20 +101,17 @@ describe('augmentWithOnTaskCognition', () => {
       { id: 'p1', content: 'last time the widget broke on null input' },
       { id: 'p2', content: 'unrelated note about coffee' },
     ]);
-    // Fake embed: 'gadget' and 'widget' share an axis → a semantic hit the substring
-    // filter would MISS (the query word never appears literally in any entry).
     const embed = vi.fn(async (t: string) => [/widget|gadget/i.test(t) ? 1 : 0, /coffee/i.test(t) ? 1 : 0]);
     const similarity = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1];
     const d = deps({
-      // limit 1 → only the TOP-ranked entry returns, proving semantic RANKING (not just retrieval).
       onTaskActions: [{ verb: 'recall', config: { query: 'gadget', limit: 1 } }],
       queryPrivateKnowledge,
       embed,
       similarity,
     });
     const out = await augmentWithOnTaskCognition(d);
-    expect(out).toContain('null input'); // semantic ranked the widget entry #1 for "gadget" (substring would find nothing)
-    expect(out).not.toContain('coffee'); // the lower-scored entry is ranked out by limit 1
+    expect(out).toContain('null input');
+    expect(out).not.toContain('coffee');
     expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-recall', mode: 'semantic' }));
   });
 
@@ -152,7 +120,7 @@ describe('augmentWithOnTaskCognition', () => {
       { id: 'p1', content: 'the widget broke' },
       { id: 'p2', content: 'coffee note' },
     ]);
-    const embed = vi.fn(async () => null); // fleet/registry unreachable → null
+    const embed = vi.fn(async () => null);
     const similarity = vi.fn(() => 0);
     const d = deps({
       onTaskActions: [{ verb: 'recall', config: { query: 'widget' } }],
@@ -161,10 +129,12 @@ describe('augmentWithOnTaskCognition', () => {
       similarity,
     });
     const out = await augmentWithOnTaskCognition(d);
-    expect(out).toContain('the widget broke'); // substring fallback still recalls
+    expect(out).toContain('the widget broke');
     expect(out).not.toContain('coffee');
     expect(d.log).toHaveBeenCalledWith(expect.objectContaining({ ev: 'on-task-recall', mode: 'substring' }));
   });
+
+  // ── plan ───────────────────────────────────────────────────────────────────
 
   it('plan calls the planner and injects the result', async () => {
     const plan = vi.fn(async () => '1. read spec\n2. write code');
@@ -183,6 +153,84 @@ describe('augmentWithOnTaskCognition', () => {
     expect(out).toBe(BASE);
   });
 
+  // ── ask_peer (agent-to-agent questioning + CITE-by-ID grounding gate) ────────
+
+  it('ask_peer injects a grounded peer answer with a verified-citation footer', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'Use the approach from W.810.', peer: 'jetson-orin' }));
+    const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'ollama ctx OOM' }]);
+    const d = deps({
+      onTaskActions: [{ verb: 'ask_peer', config: { question: 'how do I fix the GPU?', capability: 'hardware' } }],
+      askPeer,
+      groundingCorpus,
+    });
+    const out = await augmentWithOnTaskCognition(d);
+    expect(askPeer).toHaveBeenCalledWith('how do I fix the GPU?', { capability: 'hardware', peer: undefined });
+    expect(out).toContain('[Peer answer from jetson-orin re "how do I fix the GPU?"]');
+    expect(out).toContain('[citation grounding: 1/1 citations verified]');
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-ask-peer', answered: true, citationsGrounded: 1, citationsConfabulated: 0 })
+    );
+  });
+
+  it('ask_peer injects a mixed answer but flags confabulated citations', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'See W.810 (real) and W.999 (invented).', peer: 'peer-x' }));
+    const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'real entry' }]);
+    const out = await augmentWithOnTaskCognition(
+      deps({ onTaskActions: [{ verb: 'ask_peer', config: { question: 'q' } }], askPeer, groundingCorpus })
+    );
+    expect(out).toContain('[Peer answer from peer-x');
+    expect(out).toContain('1/2 citations verified');
+    expect(out).toContain('UNVERIFIED');
+    expect(out).toContain('W.999');
+  });
+
+  it('ask_peer REJECTS an all-confabulated answer when grounding is required (default)', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'Per W.999 and W.888, do X.', peer: 'liar' }));
+    const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'the only real entry' }]);
+    const d = deps({
+      onTaskActions: [{ verb: 'ask_peer', config: { question: 'q' } }],
+      askPeer,
+      groundingCorpus,
+    });
+    const out = await augmentWithOnTaskCognition(d);
+    expect(out).toBe(BASE); // rejected → nothing injected
+    expect(d.log).toHaveBeenCalledWith(
+      expect.objectContaining({ ev: 'on-task-ask-peer', rejected: true, citationsConfabulated: 2 })
+    );
+  });
+
+  it('ask_peer keeps an all-confabulated answer when require_grounding:false', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'Per W.999, do X.', peer: 'p' }));
+    const groundingCorpus = vi.fn(async () => [{ id: 'W.810', content: 'real' }]);
+    const out = await augmentWithOnTaskCognition(
+      deps({
+        onTaskActions: [{ verb: 'ask_peer', config: { question: 'q', require_grounding: false } }],
+        askPeer,
+        groundingCorpus,
+      })
+    );
+    expect(out).toContain('[Peer answer from p');
+    expect(out).toContain('0/1 citations verified');
+  });
+
+  it('ask_peer with a citation-free answer injects it as-is (no footer, not rejected)', async () => {
+    const askPeer = vi.fn(async () => ({ answer: 'Just write the file directly.', peer: 'p' }));
+    const out = await augmentWithOnTaskCognition(
+      deps({ onTaskActions: [{ verb: 'ask_peer', config: { question: 'q' } }], askPeer })
+    );
+    expect(out).toContain('Just write the file directly.');
+    expect(out).not.toContain('citation grounding');
+  });
+
+  it('skips ask_peer when no askPeer dep is provided', async () => {
+    const out = await augmentWithOnTaskCognition(
+      deps({ onTaskActions: [{ verb: 'ask_peer', config: { question: 'q' } }] })
+    );
+    expect(out).toBe(BASE);
+  });
+
+  // ── ordering + resilience ────────────────────────────────────────────────────
+
   it('executes verbs in authored order (rag before llm_call)', async () => {
     const out = await augmentWithOnTaskCognition(
       deps({
@@ -190,7 +238,7 @@ describe('augmentWithOnTaskCognition', () => {
           { verb: 'rag_query', config: { query: 'a' } },
           { verb: 'llm_call', config: { prompt: 'ZZZ' } },
         ],
-        queryTeamKnowledge: vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'k', content: 'AAA-knowledge' }]),
+        queryGrep: vi.fn(async (): Promise<KnowledgeEntry[]> => [{ id: 'k', content: 'AAA-knowledge' }]),
       })
     );
     expect(out.indexOf('AAA-knowledge')).toBeLessThan(out.indexOf('ZZZ'));
@@ -202,8 +250,8 @@ describe('augmentWithOnTaskCognition', () => {
         { verb: 'rag_query', config: { query: 'x' } },
         { verb: 'llm_call', config: { prompt: 'still appended' } },
       ],
-      queryTeamKnowledge: vi.fn(async () => {
-        throw new Error('mesh down');
+      queryGrep: vi.fn(async () => {
+        throw new Error('grep blew up');
       }),
     });
     const out = await augmentWithOnTaskCognition(d);

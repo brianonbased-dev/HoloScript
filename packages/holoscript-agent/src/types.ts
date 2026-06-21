@@ -67,7 +67,7 @@ export interface RuntimeBrainConfig {
 
 /** A single cognitive verb call parsed from `behavior on_task { … }`. */
 export interface OnTaskAction {
-  verb: 'recall' | 'rag_query' | 'llm_call' | 'plan' | 'reflect';
+  verb: 'recall' | 'rag_query' | 'llm_call' | 'plan' | 'reflect' | 'ask_peer';
   config: Record<string, unknown>;
 }
 
