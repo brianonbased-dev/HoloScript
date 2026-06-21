@@ -40,6 +40,11 @@ export interface GroundingResult {
  */
 const CITATION_RE = /\b([A-Z]\.GOLD\.\d+|[A-Z]\.\d+[a-z]?|task_[a-z0-9_]+)\b/g;
 
+/** Escape a string for safe use inside a RegExp (the `.` in IDs is a metachar). */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /** Extract the unique knowledge-IDs cited in `text` (first-seen order). */
 export function extractCitations(text: string): string[] {
   if (!text) return [];
@@ -77,7 +82,12 @@ export function groundCitations(text: string, corpus: GroundingEntry[]): Groundi
   const confabulated: string[] = [];
   for (const c of citations) {
     const lc = c.toLowerCase();
-    if (idSet.has(lc) || haystack.includes(lc)) grounded.push(c);
+    // Content match must be WHOLE-TOKEN, not raw substring: otherwise a cited
+    // "W.1" would falsely ground against content mentioning "W.126" ("w.126"
+    // contains "w.1") — letting a confabulated ID through the very gate meant to
+    // catch it. \b…\b anchors so "W.1" matches "W.1" but not "W.126"/"W.10".
+    const inContent = new RegExp(`\\b${escapeRegExp(lc)}\\b`).test(haystack);
+    if (idSet.has(lc) || inContent) grounded.push(c);
     else confabulated.push(c);
   }
   return { citations, grounded, confabulated };

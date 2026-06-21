@@ -52,6 +52,14 @@ describe('groundCitations', () => {
     const r = groundCitations('a plain answer with no citations', corpus);
     expect(r).toEqual({ citations: [], grounded: [], confabulated: [] });
   });
+
+  it('content match is whole-token: a cited W.1 does NOT ground against content "W.126"', () => {
+    // The confabulation-gate-defeating bug: raw substring would treat "W.126" as
+    // grounding "W.1". Boundary-anchored matching must reject it as confabulated.
+    const r = groundCitations('relies on W.1', [{ id: 'k', content: 'the real entry is W.126' }]);
+    expect(r.grounded).toEqual([]);
+    expect(r.confabulated).toEqual(['W.1']);
+  });
 });
 
 describe('annotateGrounding', () => {
