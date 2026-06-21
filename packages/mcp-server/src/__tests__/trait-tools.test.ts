@@ -92,4 +92,23 @@ describe('trait tools', () => {
       await closeServer(server);
     }
   });
+
+  it('does not verify the hardware contract when rosbridge_server is unreachable', async () => {
+    const server = new WebSocketServer({ port: 0 });
+    const port = await listenOnEphemeralPort(server);
+    process.env.ROS2_BRIDGE_URL = `ws://127.0.0.1:${port}`;
+    process.env.ROS2_BRIDGE_TIMEOUT_MS = '25';
+
+    try {
+      const result = (await handleTraitTool('sync_hardware_loop', {
+        nodeName: 'holo_rig_01',
+      })) as Record<string, any>;
+
+      expect(result.status).toBe('ros2_bridge_unreachable');
+      expect(result.contractVerified).toBe(false);
+      expect(result.error).toContain('timed out');
+    } finally {
+      await closeServer(server);
+    }
+  });
 });
