@@ -1,6 +1,6 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-06-21T02:40:00Z | Next review: 2026-07-21
+> Generated: 2026-06-21T19:10:00Z | Next review: 2026-07-21
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
@@ -80,20 +80,22 @@ Editor: Studio is beta; lacks Scene/Game/Inspector/Hierarchy/Project window pari
 - **Board Task:** task_1779252073335_096i
 
 **Competitor Advantage:**
-Nanite virtualized geometry, Lumen global illumination, MetaHuman digital humans, Blueprints visual scripting, UE Marketplace with 10K+ assets, Fab asset store. For cinematic-quality real-time rendering there is no peer.
+Nanite virtualized geometry, Lumen global illumination, MetaHuman digital humans, Blueprints visual scripting, UE Marketplace/Fab asset ecosystem, and UE 5.8 advanced worldbuilding/PCG plus Experimental MCP plugin for LLM workflows. For cinematic-quality real-time rendering there is no peer, and Unreal now has a native agent-editing story inside the engine.
 
 **HoloScript State:**
 UnrealCompiler.ts emits C++ + Blueprints. HoloScript's advantage is simulation fidelity and multi-target — the same composition that compiles to Unreal also compiles to Unity, Godot, WASM, VRChat, USD. Unreal compiles to Unreal only.
 
 **Needed Response:**
-Position as the IR layer above Unreal: studios use HoloScript for world logic and simulation, Unreal for rendering. Publish integration guide showing HoloScript USD export → Unreal import with SimulationContract preserved.
+Position as the semantic IR layer above Unreal: studios use HoloScript for world logic, simulation, provenance, and cross-target source truth, then Unreal for rendering. Publish an integration guide showing HoloScript USD export -> Unreal import with SimulationContract preserved, plus a comparison against UE 5.8 MCP that makes clear Unreal MCP edits one engine while HoloScript compiles to many targets.
 
 **Evidence:**
 - packages/core/src/compiler/UnrealCompiler.ts
 - docs/targets/usd-omniverse.md — USD pipeline applies to Unreal too
+- Epic official UE 5.8 release: final planned UE5 major release with integrated LLM workflows and Experimental MCP plugin exposing core Unreal systems.
 
 **Sources:**
 - packages/core/src/compiler/UnrealCompiler.ts
+- https://www.unrealengine.com/news/unreal-engine-5-8-is-now-available
 
 ### CG-071 — Declarative PCG spatial-operator node graph
 

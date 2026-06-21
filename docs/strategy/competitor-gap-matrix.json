@@ -1,6 +1,6 @@
 {
   "$schema": "holoscript.competitor-gap-matrix.v1",
-  "generatedAt": "2026-06-21T02:40:00Z",
+  "generatedAt": "2026-06-21T19:10:00Z",
   "nextReviewBy": "2026-07-21",
   "nmosLegend": {
     "bars": [
@@ -76,10 +76,10 @@
         ],
         "score": "2/5",
         "classification": "BRIDGE",
-        "vitality": "healthy — UE5 Nanite/Lumen adoption growing; Fortnite ecosystem massive"
+        "vitality": "healthy - UE 5.8 shipped June 2026 as final planned UE5 major release; Experimental MCP plugin raises the agent-native Unreal threat"
       },
       "holoscript_superiority": "multi-target IR; SimulationContract; web/browser deployment Unreal cannot match; agent-native MCP",
-      "holoscript_gap": "visual fidelity (Nanite/Lumen); AAA toolchain; Blueprints visual scripting; MetaHuman creator",
+      "holoscript_gap": "visual fidelity (Nanite/Lumen); AAA toolchain; Blueprints visual scripting; MetaHuman creator; UE 5.8 MCP agent-editing narrative",
       "gaps": [
         {
           "id": "CG-037",
@@ -87,15 +87,17 @@
           "direction": "differentiator",
           "status": "in-progress",
           "title": "Unreal visual fidelity and toolchain depth vs HoloScript simulation fidelity",
-          "competitorAdvantage": "Nanite virtualized geometry, Lumen global illumination, MetaHuman digital humans, Blueprints visual scripting, UE Marketplace with 10K+ assets, Fab asset store. For cinematic-quality real-time rendering there is no peer.",
+          "competitorAdvantage": "Nanite virtualized geometry, Lumen global illumination, MetaHuman digital humans, Blueprints visual scripting, UE Marketplace/Fab asset ecosystem, and UE 5.8 advanced worldbuilding/PCG plus Experimental MCP plugin for LLM workflows. For cinematic-quality real-time rendering there is no peer, and Unreal now has a native agent-editing story inside the engine.",
           "holoscriptState": "UnrealCompiler.ts emits C++ + Blueprints. HoloScript's advantage is simulation fidelity and multi-target — the same composition that compiles to Unreal also compiles to Unity, Godot, WASM, VRChat, USD. Unreal compiles to Unreal only.",
-          "neededResponse": "Position as the IR layer above Unreal: studios use HoloScript for world logic and simulation, Unreal for rendering. Publish integration guide showing HoloScript USD export → Unreal import with SimulationContract preserved.",
+          "neededResponse": "Position as the semantic IR layer above Unreal: studios use HoloScript for world logic, simulation, provenance, and cross-target source truth, then Unreal for rendering. Publish an integration guide showing HoloScript USD export -> Unreal import with SimulationContract preserved, plus a comparison against UE 5.8 MCP that makes clear Unreal MCP edits one engine while HoloScript compiles to many targets.",
           "evidence": [
             "packages/core/src/compiler/UnrealCompiler.ts",
-            "docs/targets/usd-omniverse.md — USD pipeline applies to Unreal too"
+            "docs/targets/usd-omniverse.md — USD pipeline applies to Unreal too",
+            "Epic official UE 5.8 release: final planned UE5 major release with integrated LLM workflows and Experimental MCP plugin exposing core Unreal systems."
           ],
           "sources": [
-            "packages/core/src/compiler/UnrealCompiler.ts"
+            "packages/core/src/compiler/UnrealCompiler.ts",
+            "https://www.unrealengine.com/news/unreal-engine-5-8-is-now-available"
           ],
           "boardTaskId": "task_1779252073335_096i"
         },
