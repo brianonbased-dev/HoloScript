@@ -6,6 +6,7 @@ import {
   PROVIDER_EXPORT_REPAIR_PLAN_RECEIPT_VERSION,
   PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION,
   buildProviderExportRepairPlanReceipt,
+  buildProviderExportWitnessFixtureResult,
   cloneHoloShellProviderExportRepairReceiptPack,
   isSupportedProviderExportRepairAction,
   isSupportedProviderExportRepairStatus,
@@ -15,6 +16,8 @@ import {
   type ProviderExportFailureKind,
   type ProviderExportFailureReceipt,
   type ProviderExportRepairPlanReceipt,
+  type ProviderExportWitnessFixture,
+  type ProviderExportWitnessStatus,
   validateExportRepairReplayReceipt,
   validateHoloShellProviderExportRepairReceiptPack,
   validatePartialArchiveEvidenceReceipt,
@@ -163,6 +166,60 @@ function makePack(
   };
 }
 
+function makeWitnessFixture(
+  overrides: Partial<ProviderExportWitnessFixture> = {}
+): ProviderExportWitnessFixture {
+  return {
+    idPrefix: 'takeout-fixture',
+    provider: 'google',
+    providerStatus: 'ready_link',
+    redactedAccountLabel: 'j***@example.com',
+    accountLabelHash: 'account-hash-001',
+    exportIdHash: 'export-hash-001',
+    deliveryMethod: 'email_link',
+    archiveFormat: 'zip',
+    observedAt: '2026-06-21T08:00:00Z',
+    linkExpiresAt: '2026-06-22T08:00:00Z',
+    connectedAppAccessInvolved: false,
+    selectedProductsHash: 'selected-products-hash-001',
+    userApprovalNonce: 'approval-nonce-001',
+    plannedAt: '2026-06-21T08:01:00Z',
+    quarantine: {
+      quarantineReceiptId: 'quarantine-001',
+      destinationFolderLabel: 'exports/google-takeout-quarantine',
+      destinationFolderHash: 'destination-hash-001',
+      expectedPartCount: 3,
+      observedParts: [
+        {
+          partId: 'takeout-001.zip',
+          redactedPath: 'exports/google/takeout-001.zip',
+          sizeBytes: 1024,
+          sha256: 'part-hash-001',
+          complete: true,
+          openTest: 'pass',
+        },
+        {
+          partId: 'takeout-002.zip',
+          redactedPath: 'exports/google/takeout-002.zip',
+          sizeBytes: 2048,
+          sha256: 'part-hash-002',
+          complete: true,
+          openTest: 'fail',
+        },
+      ],
+      missingEvidence: [
+        'takeout-003.zip not present in quarantine',
+        'takeout-002.zip failed archive open test',
+      ],
+      unzipError: 'takeout-002.zip central directory mismatch',
+      unexpectedExecutableCount: 0,
+      sensitivityScanStatus: 'warn',
+      privateAbsolutePathReceipt: 'private-path-receipt-001',
+    },
+    ...overrides,
+  };
+}
+
 function planFor(
   failureKind: ProviderExportFailureKind,
   archiveOverrides: Partial<PartialArchiveEvidenceReceipt> = {},
@@ -216,6 +273,7 @@ describe('HoloShell provider export repair receipts', () => {
   it('blocks import, delete, share, private publication, and public absolute paths for partial archives', () => {
     const receipt = makeArchiveEvidence({
       destinationFolderLabel: 'C:/Users/josep/Downloads/Takeout',
+      privateAbsolutePathReceipt: 'C:/Users/josep/Downloads/Takeout/private-receipt.json',
       missingPartCount: 1,
       missingEvidence: [],
       importAllowed: true as false,
@@ -232,6 +290,7 @@ describe('HoloShell provider export repair receipts', () => {
         'PartialArchiveEvidenceReceipt.deleteAllowed must be false.',
         'PartialArchiveEvidenceReceipt.shareAllowed must be false.',
         'PartialArchiveEvidenceReceipt.rawPrivateDataPublished must be false.',
+        'PartialArchiveEvidenceReceipt.privateAbsolutePathReceipt must be a private receipt id, not an absolute path.',
       ])
     );
   });
@@ -289,5 +348,117 @@ describe('HoloShell provider export repair receipts', () => {
     expect(isSupportedProviderExportRepairAction('click_random_provider_button')).toBe(false);
     expect(isSupportedProviderExportRepairStatus('repair_planned')).toBe(true);
     expect(isSupportedProviderExportRepairStatus('ready_for_retry')).toBe(false);
+  });
+
+  it('builds a fixture-backed witness pack without public private-path leaks', () => {
+    const result = buildProviderExportWitnessFixtureResult(makeWitnessFixture());
+
+    expect(result.validationErrors).toEqual([]);
+    expect(result.pack.importAllowed).toBe(false);
+    expect(result.pack.deleteAllowed).toBe(false);
+    expect(result.pack.shareAllowed).toBe(false);
+    expect(result.pack.archiveEvidence?.importAllowed).toBe(false);
+    expect(result.pack.archiveEvidence?.deleteAllowed).toBe(false);
+    expect(result.pack.archiveEvidence?.shareAllowed).toBe(false);
+    expect(result.pack.failure.failureKind).toBe('corrupt_archive');
+    expect(result.pack.repairPlan?.repairAction).toBe('change_archive_size');
+    expect(result.pack.replay?.replayableWithoutProviderAccess).toBe(true);
+    expect(result.publicRepairDockSummary.blockedActions).toEqual(['import', 'delete', 'share']);
+    expect(result.publicRepairDockSummary.lesson).toContain('Do not import, delete, or share');
+
+    const publicReceiptJson = JSON.stringify({
+      failure: result.pack.failure,
+      archiveEvidence: result.pack.archiveEvidence,
+      repairPlan: result.pack.repairPlan,
+      replay: result.pack.replay,
+      publicRepairDockSummary: result.publicRepairDockSummary,
+    });
+    expect(publicReceiptJson).not.toMatch(/[A-Za-z]:[\\/]/);
+    expect(publicReceiptJson).not.toContain('/Users/josep');
+  });
+
+  it('routes provider witness statuses to deterministic safe retry actions', () => {
+    const missingOnlyFixture = {
+      ...makeWitnessFixture().quarantine,
+      observedParts: [
+        {
+          partId: 'takeout-001.zip',
+          redactedPath: 'exports/google/takeout-001.zip',
+          sizeBytes: 1024,
+          sha256: 'part-hash-001',
+          complete: true,
+          openTest: 'pass' as const,
+        },
+      ],
+      expectedPartCount: 2,
+      missingEvidence: ['takeout-002.zip not present in quarantine'],
+      unzipError: undefined,
+      sensitivityScanStatus: 'warn' as const,
+    };
+
+    const cases: Array<{
+      status: ProviderExportWitnessStatus;
+      failureKind: ProviderExportFailureKind;
+      action: ProviderExportRepairPlanReceipt['repairAction'];
+      quarantine?: ProviderExportWitnessFixture['quarantine'];
+    }> = [
+      { status: 'provider_waiting', failureKind: 'provider_delay', action: 'wait' },
+      { status: 'expired_link', failureKind: 'link_expired', action: 're_download_same_link' },
+      { status: 'admin_block', failureKind: 'admin_blocked', action: 'manual_provider_ticket' },
+      {
+        status: 'cloud_handoff_block',
+        failureKind: 'cloud_handoff_block',
+        action: 'change_delivery_method',
+      },
+      {
+        status: 'ready_link',
+        failureKind: 'missing_archive_part',
+        action: 'resume_download',
+        quarantine: missingOnlyFixture,
+      },
+    ];
+
+    for (const { status, failureKind, action, quarantine } of cases) {
+      const result = buildProviderExportWitnessFixtureResult(
+        makeWitnessFixture({
+          idPrefix: `fixture-${status}`,
+          providerStatus: status,
+          ...(quarantine ? { quarantine } : {}),
+        })
+      );
+      expect(result.validationErrors).toEqual([]);
+      expect(result.pack.failure.failureKind).toBe(failureKind);
+      expect(result.pack.repairPlan?.repairAction).toBe(action);
+    }
+  });
+
+  it('rejects fixture receipts that leak absolute paths into public fields', () => {
+    const result = buildProviderExportWitnessFixtureResult(
+      makeWitnessFixture({
+        quarantine: {
+          ...makeWitnessFixture().quarantine,
+          destinationFolderLabel: 'C:/Users/josep/Downloads/Takeout',
+          privateAbsolutePathReceipt: 'C:/Users/josep/private/path-receipt.json',
+          observedParts: [
+            {
+              partId: 'takeout-001.zip',
+              redactedPath: 'C:/Users/josep/Downloads/Takeout/takeout-001.zip',
+              sizeBytes: 1024,
+              sha256: 'part-hash-001',
+              complete: true,
+              openTest: 'pass',
+            },
+          ],
+        },
+      })
+    );
+
+    expect(result.validationErrors).toEqual(
+      expect.arrayContaining([
+        'PartialArchiveEvidenceReceipt.destinationFolderLabel must be redacted or hashed, not an absolute path.',
+        'PartialArchivePartEvidence.redactedPath must be redacted or hashed, not an absolute path.',
+        'PartialArchiveEvidenceReceipt.privateAbsolutePathReceipt must be a private receipt id, not an absolute path.',
+      ])
+    );
   });
 });

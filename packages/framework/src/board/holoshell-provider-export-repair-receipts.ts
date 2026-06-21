@@ -193,6 +193,69 @@ export interface BuildProviderExportRepairPlanOptions {
   preferredAction?: ProviderExportRepairAction;
 }
 
+export const PROVIDER_EXPORT_WITNESS_STATUSES = [
+  'provider_waiting',
+  'ready_link',
+  'expired_link',
+  'admin_block',
+  'cloud_handoff_block',
+  'managed_account_block',
+  'provider_failed',
+] as const;
+export type ProviderExportWitnessStatus = (typeof PROVIDER_EXPORT_WITNESS_STATUSES)[number];
+
+export interface ProviderExportQuarantineObservationFixture {
+  quarantineReceiptId?: string;
+  destinationFolderLabel: string;
+  destinationFolderHash: string;
+  observedParts: PartialArchivePartEvidence[];
+  expectedPartCount?: number;
+  missingEvidence?: string[];
+  unzipError?: string;
+  unexpectedExecutableCount?: number;
+  sensitivityScanStatus?: PartialArchiveEvidenceReceipt['sensitivityScanStatus'];
+  privateAbsolutePathReceipt: string;
+}
+
+export interface ProviderExportWitnessFixture {
+  idPrefix: string;
+  provider: AccountExportProvider;
+  providerStatus: ProviderExportWitnessStatus;
+  redactedAccountLabel: string;
+  accountLabelHash: string;
+  exportIdHash?: string;
+  deliveryMethod?: AccountExportDeliveryMethod;
+  archiveFormat?: AccountExportArchiveFormat;
+  observedAt: string;
+  linkExpiresAt?: string;
+  connectedAppAccessInvolved?: boolean;
+  selectedProductsHash: string;
+  userApprovalNonce: string;
+  plannedAt: string;
+  hashPrefix?: string;
+  quarantine: ProviderExportQuarantineObservationFixture;
+  preferredAction?: ProviderExportRepairAction;
+}
+
+export interface ProviderExportRepairDockSummary {
+  schemaVersion: 'holoscript-provider-export-repair-dock-summary/v1';
+  packId: string;
+  provider: AccountExportProvider;
+  status: ProviderExportRepairStatus;
+  receiptHash: string;
+  blockedActions: ['import', 'delete', 'share'];
+  repairAction?: ProviderExportRepairAction;
+  nextSafeAction: string;
+  lesson: string;
+  publicMissingEvidence: string[];
+}
+
+export interface ProviderExportWitnessFixtureResult {
+  pack: HoloShellProviderExportRepairReceiptPack;
+  publicRepairDockSummary: ProviderExportRepairDockSummary;
+  validationErrors: string[];
+}
+
 function isIsoTimestamp(value: string | undefined): boolean {
   return typeof value === 'string' && value.length > 0 && !Number.isNaN(Date.parse(value));
 }
@@ -416,6 +479,10 @@ export function validatePartialArchiveEvidenceReceipt(
   }
   if (!receipt.privateAbsolutePathReceipt) {
     errors.push('PartialArchiveEvidenceReceipt.privateAbsolutePathReceipt is required.');
+  } else if (hasAbsolutePath(receipt.privateAbsolutePathReceipt)) {
+    errors.push(
+      'PartialArchiveEvidenceReceipt.privateAbsolutePathReceipt must be a private receipt id, not an absolute path.'
+    );
   }
   validateHashFields('PartialArchiveEvidenceReceipt', receipt.hash, receipt.hashAlgorithm, errors);
   validateVerificationCommands(
@@ -621,6 +688,234 @@ export function buildProviderExportRepairPlanReceipt(
     hash: options.hash,
     hashAlgorithm: options.hashAlgorithm,
   };
+}
+
+export function buildProviderExportWitnessFixtureResult(
+  fixture: ProviderExportWitnessFixture
+): ProviderExportWitnessFixtureResult {
+  const hashPrefix = fixture.hashPrefix ?? fixture.idPrefix;
+  const failureKind = providerStatusToFailureKind(fixture.providerStatus, fixture.quarantine);
+  const failure: ProviderExportFailureReceipt = {
+    id: `${fixture.idPrefix}-failure`,
+    schemaVersion: PROVIDER_EXPORT_FAILURE_RECEIPT_VERSION,
+    provider: fixture.provider,
+    redactedAccountLabel: fixture.redactedAccountLabel,
+    accountLabelHash: fixture.accountLabelHash,
+    ...(fixture.exportIdHash ? { exportIdHash: fixture.exportIdHash } : {}),
+    failureKind,
+    providerWaitState: providerStatusToWaitState(fixture.providerStatus),
+    deliveryMethod:
+      fixture.deliveryMethod ??
+      (fixture.providerStatus === 'cloud_handoff_block' ? 'google_drive' : 'email_link'),
+    archiveFormat: fixture.archiveFormat ?? 'zip',
+    observedAt: fixture.observedAt,
+    ...(fixture.linkExpiresAt ? { linkExpiresAt: fixture.linkExpiresAt } : {}),
+    adminOrManagedAccountBlock:
+      fixture.providerStatus === 'admin_block' || fixture.providerStatus === 'managed_account_block',
+    connectedAppAccessInvolved: fixture.connectedAppAccessInvolved ?? false,
+    accountMutationPerformed: false,
+    rawPrivateDataPublished: false,
+    privatePathLeakedToPublicReceipt: false,
+    hash: witnessFixtureHash(hashPrefix, 'failure'),
+    hashAlgorithm: 'sha256',
+  };
+
+  const observedParts = fixture.quarantine.observedParts.map((part) => ({ ...part }));
+  const completePartCount = observedParts.filter((part) => part.complete).length;
+  const expectedPartCount = fixture.quarantine.expectedPartCount;
+  const inferredMissingCount =
+    expectedPartCount !== undefined ? Math.max(0, expectedPartCount - completePartCount) : 0;
+  const missingEvidence =
+    fixture.quarantine.missingEvidence ??
+    (inferredMissingCount > 0
+      ? [`${inferredMissingCount} archive part(s) missing from quarantine`]
+      : []);
+  const missingPartCount =
+    expectedPartCount !== undefined ? inferredMissingCount : missingEvidence.length;
+
+  const archiveEvidence: PartialArchiveEvidenceReceipt = {
+    id: `${fixture.idPrefix}-archive`,
+    schemaVersion: PARTIAL_ARCHIVE_EVIDENCE_RECEIPT_VERSION,
+    failureReceiptId: failure.id,
+    ...(fixture.quarantine.quarantineReceiptId
+      ? { quarantineReceiptId: fixture.quarantine.quarantineReceiptId }
+      : {}),
+    destinationFolderLabel: fixture.quarantine.destinationFolderLabel,
+    destinationFolderHash: fixture.quarantine.destinationFolderHash,
+    observedParts,
+    ...(expectedPartCount !== undefined ? { expectedPartCount } : {}),
+    missingPartCount,
+    verifiedPartCount: observedParts.filter((part) => part.complete && part.openTest === 'pass')
+      .length,
+    ...(fixture.quarantine.unzipError ? { unzipError: fixture.quarantine.unzipError } : {}),
+    unexpectedExecutableCount: fixture.quarantine.unexpectedExecutableCount ?? 0,
+    sensitivityScanStatus: fixture.quarantine.sensitivityScanStatus ?? 'not_run',
+    missingEvidence,
+    importAllowed: false,
+    deleteAllowed: false,
+    shareAllowed: false,
+    rawPrivateDataPublished: false,
+    privateAbsolutePathReceipt: fixture.quarantine.privateAbsolutePathReceipt,
+    hash: witnessFixtureHash(hashPrefix, 'archive'),
+    hashAlgorithm: 'sha256',
+  };
+
+  const repairPlan = buildProviderExportRepairPlanReceipt(failure, archiveEvidence, {
+    id: `${fixture.idPrefix}-plan`,
+    selectedProductsHash: fixture.selectedProductsHash,
+    userApprovalNonce: fixture.userApprovalNonce,
+    plannedAt: fixture.plannedAt,
+    hash: witnessFixtureHash(hashPrefix, 'plan'),
+    hashAlgorithm: 'sha256',
+    preferredAction:
+      fixture.preferredAction ?? chooseProviderExportWitnessRepairAction(failure, archiveEvidence),
+  });
+
+  const replay: ExportRepairReplayReceipt = {
+    id: `${fixture.idPrefix}-replay`,
+    schemaVersion: EXPORT_REPAIR_REPLAY_RECEIPT_VERSION,
+    failureReceiptId: failure.id,
+    repairPlanReceiptId: repairPlan.id,
+    replayKey: `${failure.accountLabelHash}:${archiveEvidence.destinationFolderHash}:${repairPlan.repairAction}`,
+    originalFailureKind: failure.failureKind,
+    repairedOutcome: replayOutcomeForFixture(failure, archiveEvidence),
+    missingEvidenceListed: true,
+    replayableWithoutProviderAccess: true,
+    rawPrivateDataPublished: false,
+    lesson: describeProviderExportWitnessLesson(failure, archiveEvidence, repairPlan),
+    nextSafeAction: repairPlan.safeReason,
+    createdAt: fixture.plannedAt,
+    hash: witnessFixtureHash(hashPrefix, 'replay'),
+    hashAlgorithm: 'sha256',
+  };
+
+  const pack: HoloShellProviderExportRepairReceiptPack = {
+    id: `${fixture.idPrefix}-pack`,
+    schemaVersion: PROVIDER_EXPORT_REPAIR_RECEIPT_PACK_VERSION,
+    status: replay.repairedOutcome === 'verified' ? 'verified' : 'repair_planned',
+    failure,
+    archiveEvidence,
+    repairPlan,
+    replay,
+    importAllowed: false,
+    deleteAllowed: false,
+    shareAllowed: false,
+    hash: witnessFixtureHash(hashPrefix, 'pack'),
+    hashAlgorithm: 'sha256',
+  };
+
+  return {
+    pack,
+    publicRepairDockSummary: buildProviderExportRepairDockSummary(pack),
+    validationErrors: validateHoloShellProviderExportRepairReceiptPack(pack),
+  };
+}
+
+export function buildProviderExportRepairDockSummary(
+  pack: HoloShellProviderExportRepairReceiptPack
+): ProviderExportRepairDockSummary {
+  return {
+    schemaVersion: 'holoscript-provider-export-repair-dock-summary/v1',
+    packId: pack.id,
+    provider: pack.failure.provider,
+    status: pack.status,
+    receiptHash: pack.hash,
+    blockedActions: ['import', 'delete', 'share'],
+    ...(pack.repairPlan ? { repairAction: pack.repairPlan.repairAction } : {}),
+    nextSafeAction:
+      pack.replay?.nextSafeAction ??
+      'Keep the export in quarantine until a verified repair receipt exists.',
+    lesson:
+      pack.replay?.lesson ??
+      'Provider export evidence is preserved, but no replay lesson has been generated yet.',
+    publicMissingEvidence: pack.archiveEvidence?.missingEvidence ?? [],
+  };
+}
+
+function providerStatusToFailureKind(
+  status: ProviderExportWitnessStatus,
+  quarantine: ProviderExportQuarantineObservationFixture
+): ProviderExportFailureKind {
+  if (status === 'provider_waiting') return 'provider_delay';
+  if (status === 'expired_link') return 'link_expired';
+  if (status === 'admin_block') return 'admin_blocked';
+  if (status === 'cloud_handoff_block') return 'cloud_handoff_block';
+  if (status === 'managed_account_block') return 'managed_account_block';
+  if (status === 'provider_failed') return 'provider_failed';
+  if (quarantine.unzipError || quarantine.observedParts.some((part) => part.openTest === 'fail')) {
+    return 'corrupt_archive';
+  }
+  return 'missing_archive_part';
+}
+
+function providerStatusToWaitState(status: ProviderExportWitnessStatus): ProviderExportWaitState {
+  if (status === 'provider_waiting') return 'provider_waiting';
+  if (status === 'expired_link') return 'expired';
+  if (
+    status === 'admin_block' ||
+    status === 'cloud_handoff_block' ||
+    status === 'managed_account_block'
+  ) {
+    return 'blocked';
+  }
+  if (status === 'ready_link') return 'ready_to_download';
+  return 'requested';
+}
+
+function chooseProviderExportWitnessRepairAction(
+  failure: ProviderExportFailureReceipt,
+  archiveEvidence: PartialArchiveEvidenceReceipt
+): ProviderExportRepairAction {
+  if (
+    failure.adminOrManagedAccountBlock ||
+    failure.failureKind === 'admin_blocked' ||
+    failure.failureKind === 'managed_account_block'
+  ) {
+    return 'manual_provider_ticket';
+  }
+  if (failure.failureKind === 'provider_delay' || failure.providerWaitState === 'provider_waiting') {
+    return 'wait';
+  }
+  if (failure.failureKind === 'link_expired') return 're_download_same_link';
+  if (failure.failureKind === 'cloud_handoff_block') return 'change_delivery_method';
+  if (failure.failureKind === 'corrupt_archive') return 'change_archive_size';
+  if (archiveEvidence.missingPartCount > 0) return 'resume_download';
+  return 'split_product_scope';
+}
+
+function replayOutcomeForFixture(
+  failure: ProviderExportFailureReceipt,
+  archiveEvidence: PartialArchiveEvidenceReceipt
+): ExportRepairReplayReceipt['repairedOutcome'] {
+  if (failure.providerWaitState === 'provider_waiting') return 'waiting';
+  if (
+    archiveEvidence.missingPartCount === 0 &&
+    archiveEvidence.unexpectedExecutableCount === 0 &&
+    archiveEvidence.sensitivityScanStatus === 'pass'
+  ) {
+    return 'verified';
+  }
+  return 'still_blocked';
+}
+
+function describeProviderExportWitnessLesson(
+  failure: ProviderExportFailureReceipt,
+  archiveEvidence: PartialArchiveEvidenceReceipt,
+  repairPlan: ProviderExportRepairPlanReceipt
+): string {
+  const missing =
+    archiveEvidence.missingEvidence.length > 0
+      ? ` Missing evidence: ${archiveEvidence.missingEvidence.join('; ')}.`
+      : '';
+  return (
+    `Provider ${failure.provider} export is preserved as redacted receipts. ` +
+    `Do not import, delete, or share until the repair action "${repairPlan.repairAction}" is complete and verified.` +
+    missing
+  );
+}
+
+function witnessFixtureHash(prefix: string, label: string): string {
+  return `${prefix}-${label}-sha256`;
 }
 
 function chooseRepairAction(
