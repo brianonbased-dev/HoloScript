@@ -50,16 +50,26 @@ import {
   ResearchLaneArtifacts,
 } from '@/components/research/ResearchLanePrompt';
 import { useDaemonJobs } from '@/hooks/useDaemonJobs';
-import type { DaemonJob, DaemonProfile, DaemonProjectDNA } from '@/hooks/useDaemonJobs';
+import type { DaemonJob, DaemonProfile } from '@/hooks/useDaemonJobs';
 import { HOLO_DAEMON_MISSIONS } from '@/lib/daemon/agentProfiles';
 import type { DaemonMissionProfile } from '@/lib/daemon/types';
 import type { PaperUnlockState, PublishWorthinessSummary } from '@/lib/stores/workspaceStore';
+import {
+  buildProjectDna,
+  isWorkspaceAbsorbStale,
+  workspaceAbsorbStatus,
+  workspaceAgentStatus,
+  workspaceBuildStatus,
+  type BulkWorkspaceProgress,
+  type ProjectWorkspaceOverview,
+  type WorkspaceGitSnapshot,
+} from './workspaceOverview';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type WorkbenchTab = 'files' | 'diff' | 'agent' | 'board' | 'absorb';
 
-interface WorkspaceSummary {
+interface WorkspaceSummary extends ProjectWorkspaceOverview {
   id: string;
   name: string;
   repoUrl: string | null;
@@ -73,14 +83,6 @@ interface WorkspaceSummary {
   metadata: Record<string, unknown>;
   publishWorthiness?: PublishWorthinessSummary | null;
   paperUnlockState?: PaperUnlockState | null;
-  lastAbsorbedAt: string | null;
-  absorbJobs?: Array<{
-    id: string;
-    status: string;
-    depth: string;
-    updatedAt: string;
-    error?: string | null;
-  }>;
 }
 
 interface WorkspaceImportResponse {
@@ -197,21 +199,6 @@ interface RepoRef {
   repo: string;
 }
 
-interface WorkspaceGitSnapshot {
-  status: 'clean' | 'dirty' | 'unknown' | 'error';
-  branch: string | null;
-  changedFiles: number | null;
-  checkedAt: string;
-  error?: string;
-}
-
-interface BulkWorkspaceProgress {
-  kind: 'agent' | 'absorb';
-  done: number;
-  total: number;
-  current: string;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -292,13 +279,6 @@ function formatTime(value: string | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-}
-
-function ageInHours(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return (Date.now() - date.getTime()) / (1000 * 60 * 60);
 }
 
 function statusTone(status: string | null | undefined): string {
@@ -417,91 +397,6 @@ function mergeWorkspaces(diskPayload: unknown, absorbPayload: unknown): Workspac
   return Array.from(byId.values()).sort((a, b) =>
     (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')
   );
-}
-
-function workspaceLastAbsorbedAt(workspace: WorkspaceSummary): string | null {
-  return (
-    workspace.lastAbsorbedAt ??
-    stringField(workspace.metadata.lastAbsorbedAt) ??
-    stringField(workspace.metadata.last_absorbed_at)
-  );
-}
-
-function workspaceAbsorbStatus(workspace: WorkspaceSummary): string {
-  const activeJob = workspace.absorbJobs?.find((job) =>
-    ['queued', 'running', 'scanning', 'absorbing'].includes(job.status)
-  );
-  if (activeJob) return activeJob.status;
-  if (workspace.status === 'scanning' || workspace.status === 'absorbing') return workspace.status;
-  const age = ageInHours(workspaceLastAbsorbedAt(workspace));
-  if (age === null) return 'stale';
-  return age <= 24 ? 'fresh' : 'stale';
-}
-
-function isWorkspaceAbsorbStale(workspace: WorkspaceSummary): boolean {
-  const status = workspaceAbsorbStatus(workspace);
-  return status === 'stale' || status === 'failed' || status === 'error';
-}
-
-function workspaceBuildStatus(workspace: WorkspaceSummary): string {
-  const metadata = workspace.metadata;
-  const nested = isRecord(metadata.lastBuild) ? metadata.lastBuild.status : null;
-  const raw =
-    stringField(metadata.buildHealth) ??
-    stringField(metadata.buildStatus) ??
-    stringField(metadata.lastBuildStatus) ??
-    stringField(nested);
-  if (!raw) return 'unknown';
-  const normalized = raw.toLowerCase();
-  if (['ok', 'pass', 'passed', 'passing', 'success', 'succeeded', 'green'].includes(normalized)) {
-    return 'passing';
-  }
-  if (['fail', 'failed', 'failing', 'error', 'red'].includes(normalized)) return 'failing';
-  return normalized;
-}
-
-function workspaceLatestJob(workspace: WorkspaceSummary, jobs: DaemonJob[]): DaemonJob | null {
-  return (
-    jobs.find((job) => job.projectId === workspace.id || job.projectPath === workspace.localPath) ??
-    null
-  );
-}
-
-function workspaceAgentStatus(workspace: WorkspaceSummary, jobs: DaemonJob[]): string {
-  const job = workspaceLatestJob(workspace, jobs);
-  if (!job) return 'idle';
-  if (job.status === 'running' || job.status === 'queued') return job.status;
-  return job.status;
-}
-
-function buildProjectDna(
-  workspace: WorkspaceSummary,
-  profile: DaemonProfile,
-  mission: (typeof HOLO_DAEMON_MISSIONS)[number]
-): DaemonProjectDNA {
-  return {
-    kind: 'unknown',
-    confidence: 0.65,
-    detectedStack: [
-      workspace.fileCount ? `${workspace.fileCount} files` : 'imported repo',
-      workspace.branch ? `branch ${workspace.branch}` : 'git workspace',
-      `daemon:${mission.id}`,
-    ],
-    recommendedProfile: profile,
-    notes: [
-      `Workbench assigned ${workspace.name} to HoloDaemon mission ${mission.id}.`,
-      mission.description,
-      `Workspace path: ${workspace.localPath}`,
-    ],
-    daemonAgent: {
-      missionProfile: mission.id,
-      agentName: mission.name,
-      skills: mission.defaultSkills,
-      authorityRefs: mission.authorityRefs,
-      schedules: mission.schedules,
-      rawSecretAccess: false,
-    },
-  };
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -1442,8 +1337,8 @@ export function ReposTab() {
                   </button>
                 )}
               </div>
-              <div className="grid gap-2">
-                {workspaces.slice(0, 8).map((workspace) => {
+              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                {workspaces.map((workspace) => {
                   const snapshot = workspaceGitSnapshots[workspace.id];
                   const selected = selectedWorkspaceIds.has(workspace.id);
                   const agentStatus = workspaceAgentStatus(workspace, jobs);
@@ -1474,11 +1369,23 @@ export function ReposTab() {
                           {workspace.name}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <StatusPill status={snapshot?.status ?? 'unknown'} />
-                        <StatusPill status={absorbStatus} />
-                        <StatusPill status={agentStatus} />
-                        <StatusPill status={buildStatus} />
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
+                        <div className="min-w-0">
+                          <span className="mb-1 block text-slate-500">Git</span>
+                          <StatusPill status={snapshot?.status ?? 'unknown'} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="mb-1 block text-slate-500">Absorb</span>
+                          <StatusPill status={absorbStatus} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="mb-1 block text-slate-500">Agent</span>
+                          <StatusPill status={agentStatus} />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="mb-1 block text-slate-500">Build</span>
+                          <StatusPill status={buildStatus} />
+                        </div>
                       </div>
                       <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-500">
                         <span className="truncate">
@@ -1493,11 +1400,6 @@ export function ReposTab() {
                     </div>
                   );
                 })}
-                {workspaces.length > 8 && (
-                  <p className="text-[10px] text-slate-500">
-                    Showing 8 of {workspaces.length}; use the workspace list below for the rest.
-                  </p>
-                )}
                 {workspaces.length === 0 && (
                   <p className="rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-4 text-center text-xs text-slate-500">
                     No projects to summarize yet.
@@ -1540,33 +1442,45 @@ export function ReposTab() {
               <div className="space-y-2">
                 {workspaces.map((workspace) => {
                   const active = workspace.id === activeWorkspaceId;
+                  const selected = selectedWorkspaceIds.has(workspace.id);
                   return (
-                    <button
+                    <div
                       key={workspace.id}
-                      type="button"
-                      onClick={() => setActiveWorkspaceId(workspace.id)}
-                      className={`w-full rounded-lg border p-3 text-left transition ${
+                      className={`flex w-full items-start gap-2 rounded-lg border p-3 text-left transition ${
                         active
                           ? 'border-emerald-500/40 bg-emerald-500/10'
                           : 'border-slate-800 bg-slate-900/70 hover:border-slate-600'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-slate-100">
-                            {workspace.name}
-                          </p>
-                          <p className="mt-1 truncate text-xs text-slate-500">
-                            {workspace.localPath}
-                          </p>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleWorkspaceSelection(workspace.id)}
+                        aria-label={`Select ${workspace.name}`}
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-emerald-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setActiveWorkspaceId(workspace.id)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-100">
+                              {workspace.name}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-slate-500">
+                              {workspace.localPath}
+                            </p>
+                          </div>
+                          <StatusPill status={workspace.status} />
                         </div>
-                        <StatusPill status={workspace.status} />
-                      </div>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
-                        <GitBranch className="h-3.5 w-3.5" />
-                        <span className="truncate">{workspace.branch ?? 'unknown branch'}</span>
-                      </div>
-                    </button>
+                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                          <GitBranch className="h-3.5 w-3.5" />
+                          <span className="truncate">{workspace.branch ?? 'unknown branch'}</span>
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
                 {!loadingWorkspaces && workspaces.length === 0 && (
