@@ -132,8 +132,21 @@ export { CodeEditorCompiler } from './CodeEditorCompiler';
 export type { CodeEditorConfig, CodeEditorCompilerOptions } from './CodeEditorCompiler';
 
 // Sprint 3: Agent inference
-// @ts-expect-error During migration
-export { AgentInferenceExportTarget } from './AgentInferenceExportTarget';
+export {
+  AgentInferenceCompiler,
+  createAgentInferenceCompiler,
+  createPythonAgentInferenceCompiler,
+  default as AgentInferenceExportTarget,
+} from './AgentInferenceExportTarget';
+export type {
+  AgentDefinition,
+  AgentInferenceCompilerOptions,
+  AgentInferenceResult,
+  ModelConfig,
+  ModelProvider,
+  OutputLanguage,
+  ToolDefinition,
+} from './AgentInferenceExportTarget';
 
 // Agent context compiler
 export { ContextCompiler, ContextCompileError, createContextCompiler } from './ContextCompiler';

@@ -496,6 +496,17 @@ Table~\ref{tab:targets} aggregates \emph{product targets} (some backends
 share a compiler). Reconcile the Total row against the canonical
 target list in \texttt{research/REPRODUCIBILITY.md} before camera-ready.
 
+\paragraph{Executable agent-target evidence.}
+The AI/Agent row is backed by
+\texttt{packages/core/src/compiler/\_\_tests\_\_/AgentCompileTargetRegistry.test.ts}:
+the test type-checks \texttt{agent-inference} as an \texttt{ExportTarget}
+covered by the \texttt{\_AssertNever} target-classification gate, then
+compiles the same \texttt{.hsplus} brain through
+\texttt{ExportManager.export} for \texttt{agent-inference}, \texttt{nir},
+and \texttt{webgpu}.  This is the executable evidence that agent brains
+traverse the same compile-target registry path as neuromorphic and scene
+targets, rather than a parallel agent-only pipeline.
+
 \paragraph{Parser Architecture (W1-T2).}
 The front-end was substantially refactored under the W1-T2 parser workstream.
 The main code parser \texttt{HoloScriptCodeParser.ts} shrank from 6477 to 3017

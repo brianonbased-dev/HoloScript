@@ -144,6 +144,10 @@ const COMPILER_CLASS_TO_ANS_NAME: Readonly<Record<string, CompilerName>> = {
   SVGCompiler: 'svg',
 };
 
+export function getRegisteredCompilerANSName(compilerClassName: string): CompilerName | undefined {
+  return COMPILER_CLASS_TO_ANS_NAME[compilerClassName];
+}
+
 /**
  * Base compiler options (extended by specific compilers)
  */

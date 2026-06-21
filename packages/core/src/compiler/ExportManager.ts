@@ -50,6 +50,7 @@ import { StateCompiler } from './StateCompiler';
 import { TraitCompositionCompiler } from './TraitCompositionCompiler';
 import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
+import { AgentInferenceCompiler } from './AgentInferenceExportTarget';
 import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
@@ -267,6 +268,10 @@ class CompilerFactory {
         return new TSLCompiler(options);
       case 'a2a-agent-card':
         return new A2AAgentCardCompiler(options);
+      case 'agent-inference':
+        return new AgentInferenceCompiler(
+          options as unknown as ConstructorParameters<typeof AgentInferenceCompiler>[0]
+        );
       case 'nir':
         return new NIRCompiler(options);
       case 'openxr-spatial-entities':
@@ -645,6 +650,7 @@ export class ExportManager {
       'trait-composition',
       'tsl',
       'a2a-agent-card',
+      'agent-inference',
       'nir',
       'openxr-spatial-entities',
       '3dgs',

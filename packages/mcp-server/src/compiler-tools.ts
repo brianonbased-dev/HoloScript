@@ -247,8 +247,16 @@ async function compileToTarget(
     throw new Error(result.error?.message || 'Compilation failed');
   }
 
+  const rawOutput = (result as { output?: unknown }).output;
+  const output =
+    typeof rawOutput === 'string'
+      ? rawOutput
+      : rawOutput == null
+        ? ''
+        : JSON.stringify(rawOutput, null, 2);
+
   return {
-    output: result.output || '',
+    output,
     usedFallback: result.usedFallback || false,
     degraded: result.degraded || false,
     warnings: result.warnings || [],
@@ -634,7 +642,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
-    'AI/MCP': ['mcp-server'] as unknown as ExportTarget[],
+    'AI/MCP': ['a2a-agent-card', 'agent-inference', 'mcp-server'] as unknown as ExportTarget[],
   };
 
   const sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'> = {};
@@ -781,6 +789,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'node-service' });
     case 'compile_to_a2a_agent_card':
       return handleCompileToTarget({ ...args, target: 'a2a-agent-card' });
+    case 'compile_to_agent_inference':
+      return handleCompileToTarget({ ...args, target: 'agent-inference' });
     case 'compile_to_state':
       return handleCompileToTarget({ ...args, target: 'state' });
     case 'compile_to_3dgs':
@@ -1599,6 +1609,36 @@ export const compilerTools: Tool[] = [
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
         options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_agent_inference',
+    description:
+      'Compile a HoloScript or HSPlus agent brain into a runnable inference project (agent script, tools, config, README)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript / HSPlus agent brain source code' },
+        options: {
+          type: 'object',
+          properties: {
+            language: {
+              type: 'string',
+              enum: ['typescript', 'python'],
+              description: 'Generated agent language (default: typescript)',
+            },
+            defaultProvider: {
+              type: 'string',
+              enum: ['anthropic', 'openai', 'local', 'ollama', 'custom'],
+              description: 'Default model provider when no @model trait is present',
+            },
+            defaultModel: { type: 'string', description: 'Default model name' },
+            defaultTemperature: { type: 'number', description: 'Default sampling temperature' },
+            defaultMaxTokens: { type: 'number', description: 'Default max token budget' },
+          },
+        },
       },
       required: ['code'],
     },

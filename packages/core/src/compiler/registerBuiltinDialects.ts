@@ -311,6 +311,18 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.json'],
     },
     {
+      name: 'agent-inference',
+      domain: 'ai',
+      description: 'Compiles agent brain compositions into runnable inference projects',
+      supportedTraits: ['agent', 'model', 'inference', 'system_prompt', 'tool', 'persona'],
+      riskTier: 'high',
+      factory: (opts) => {
+        const { AgentInferenceCompiler } = require('./AgentInferenceExportTarget');
+        return new AgentInferenceCompiler(opts);
+      },
+      outputExtensions: ['.ts', '.py', '.json', '.md'],
+    },
+    {
       name: 'mcp-server',
       domain: 'ai',
       description:

@@ -62,6 +62,7 @@ export const BRIDGE_TARGETS = [
   'fmu',
   'dtdl',
   'a2a-agent-card',
+  'agent-inference', // Runnable agent scripts consumed by Node/Python + model/provider runtimes
   'openxr-spatial-entities',
   '3dgs',
   '3dtiles',
