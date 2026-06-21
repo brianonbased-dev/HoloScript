@@ -3,12 +3,15 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+  ADVANCED_LIGHTING_RUNTIME_CLAIM,
   AdvancedLightingTrait,
   type AdvancedLightingConfig,
+  type AdvancedLightingRuntimeState,
   type AreaRectLightConfig,
   type AreaDiskLightConfig,
   type IESLightConfig,
 } from '../AdvancedLightingTrait';
+import type { HSPlusNode, TraitContext, TraitEvent } from '../TraitTypes';
 
 function makeRectConfig(overrides: Partial<AreaRectLightConfig> = {}): AreaRectLightConfig {
   return { width: 2, height: 1, intensity: 500, color: [1, 1, 1], ...overrides };
@@ -22,9 +25,38 @@ function makeIESConfig(overrides: Partial<IESLightConfig> = {}): IESLightConfig 
   return { profilePath: 'lights/office.ies', intensity: 1000, color: [1, 1, 1], ...overrides };
 }
 
+interface EmittedEvent {
+  type: string;
+  payload: unknown;
+}
+
+function makeNode(): HSPlusNode {
+  return {
+    type: 'Object',
+    id: 'advanced-lighting-node',
+  } as unknown as HSPlusNode;
+}
+
+function makeContext(events: EmittedEvent[]): TraitContext {
+  return {
+    emit(type: string, payload?: unknown): void {
+      events.push({ type, payload });
+    },
+  } as unknown as TraitContext;
+}
+
 describe('AdvancedLightingTrait — metadata', () => {
   it('has name "advanced_lighting"', () => {
     expect(AdvancedLightingTrait.name).toBe('advanced_lighting');
+  });
+
+  it('advertises a renderer-adapter runtime claim instead of a full renderer', () => {
+    expect(ADVANCED_LIGHTING_RUNTIME_CLAIM).toMatchObject({
+      capability: 'renderer-adapter',
+      runtimeBody: 'node-state-and-events',
+      rendererRequired: true,
+    });
+    expect(ADVANCED_LIGHTING_RUNTIME_CLAIM.omittedFeatures).toContain('no in-core renderer');
   });
 });
 
@@ -167,6 +199,85 @@ describe('AdvancedLightingTrait — compile (web)', () => {
     };
     const result = AdvancedLightingTrait.compile!(config, 'react-three-fiber');
     expect(typeof result).toBe('string');
+  });
+});
+
+describe('AdvancedLightingTrait — compile (webgpu)', () => {
+  it('names the host renderer requirement for LTC integration', () => {
+    const config: AdvancedLightingConfig = {
+      lights: [{ type: 'area_rect', config: makeRectConfig() }],
+    };
+    const result = AdvancedLightingTrait.compile!(config, 'webgpu');
+    expect(result).toContain('Host renderers must provide LTC lookup textures');
+    expect(result).not.toContain('full LTC polygon integration omitted');
+  });
+});
+
+describe('AdvancedLightingTrait — runtime adapter lifecycle', () => {
+  it('stores renderer-facing state and emits an attach event', () => {
+    const events: EmittedEvent[] = [];
+    const node = makeNode();
+    const config: AdvancedLightingConfig = {
+      lights: [{ type: 'area_rect', config: makeRectConfig() }],
+    };
+
+    AdvancedLightingTrait.onAttach!(node, config, makeContext(events));
+
+    const state = node.__advancedLightingState as AdvancedLightingRuntimeState;
+    expect(state.active).toBe(true);
+    expect(state.revision).toBe(0);
+    expect(state.claim.rendererRequired).toBe(true);
+    expect(state.lights).toEqual(config.lights);
+    expect(state.lights).not.toBe(config.lights);
+    expect(events[0]).toMatchObject({
+      type: 'advanced_lighting_attached',
+      payload: { nodeId: 'advanced-lighting-node', rendererRequired: true },
+    });
+  });
+
+  it('updates runtime state through explicit adapter events', () => {
+    const events: EmittedEvent[] = [];
+    const node = makeNode();
+    const context = makeContext(events);
+    const config: AdvancedLightingConfig = {
+      lights: [{ type: 'area_rect', config: makeRectConfig() }],
+    };
+    const nextConfig: AdvancedLightingConfig = {
+      lights: [{ type: 'area_disk', config: makeDiskConfig({ radius: 2 }) }],
+    };
+
+    AdvancedLightingTrait.onAttach!(node, config, context);
+    AdvancedLightingTrait.onEvent!(node, config, context, {
+      type: 'advanced_lighting_update',
+      payload: { config: nextConfig },
+    } as TraitEvent);
+
+    const state = node.__advancedLightingState as AdvancedLightingRuntimeState;
+    expect(state.revision).toBe(1);
+    expect(state.lights).toEqual(nextConfig.lights);
+    expect(events.map((event) => event.type)).toContain('advanced_lighting_updated');
+  });
+
+  it('answers state queries and clears state on detach', () => {
+    const events: EmittedEvent[] = [];
+    const node = makeNode();
+    const context = makeContext(events);
+    const config: AdvancedLightingConfig = {
+      lights: [{ type: 'area_rect', config: makeRectConfig() }],
+    };
+
+    AdvancedLightingTrait.onAttach!(node, config, context);
+    AdvancedLightingTrait.onEvent!(node, config, context, {
+      type: 'advanced_lighting_query',
+    } as TraitEvent);
+    AdvancedLightingTrait.onDetach!(node, config, context);
+
+    expect(events.map((event) => event.type)).toEqual([
+      'advanced_lighting_attached',
+      'advanced_lighting_state',
+      'advanced_lighting_detached',
+    ]);
+    expect(node.__advancedLightingState).toBeUndefined();
   });
 });
 

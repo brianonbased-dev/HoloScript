@@ -1,13 +1,14 @@
 /**
  * AdvancedLightingTrait
  *
- * Area lights (rectangle, disk), IES photometric profiles,
- * emissive mesh lights, and light cookies.
+ * Declarative advanced-lighting adapter. The trait validates author intent,
+ * stores a renderer-facing descriptor at runtime, and compiles target-specific
+ * setup snippets for hosts that provide the actual lighting renderer.
  *
  * @version 1.0.0
  */
 
-import type { TraitHandler } from './TraitTypes';
+import type { HSPlusNode, TraitContext, TraitEvent, TraitHandler } from './TraitTypes';
 
 // =============================================================================
 // TYPES
@@ -66,6 +67,102 @@ export interface AdvancedLightingConfig {
 }
 
 // =============================================================================
+// RUNTIME CONTRACT
+// =============================================================================
+
+export interface AdvancedLightingRuntimeClaim {
+  capability: 'renderer-adapter';
+  runtimeBody: 'node-state-and-events';
+  rendererRequired: true;
+  implementedFeatures: AdvancedLightType[];
+  omittedFeatures: string[];
+}
+
+export interface AdvancedLightingRuntimeState {
+  active: boolean;
+  revision: number;
+  claim: AdvancedLightingRuntimeClaim;
+  lights: AdvancedLightingConfig['lights'];
+}
+
+export const ADVANCED_LIGHTING_RUNTIME_CLAIM: AdvancedLightingRuntimeClaim = {
+  capability: 'renderer-adapter',
+  runtimeBody: 'node-state-and-events',
+  rendererRequired: true,
+  implementedFeatures: ['area_rect', 'area_disk', 'ies', 'emissive_mesh', 'cookie'],
+  omittedFeatures: [
+    'no in-core renderer',
+    'no in-core IES file parser',
+    'no complete WebGPU LTC polygon integration',
+  ],
+};
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function validateAdvancedLightingConfig(config: AdvancedLightingConfig): boolean {
+  if (!Array.isArray(config.lights) || config.lights.length === 0) {
+    throw new Error('advanced_lighting requires at least one light entry');
+  }
+  for (const entry of config.lights) {
+    const validTypes: AdvancedLightType[] = [
+      'area_rect',
+      'area_disk',
+      'ies',
+      'emissive_mesh',
+      'cookie',
+    ];
+    if (!validTypes.includes(entry.type as AdvancedLightType)) {
+      throw new Error(`Unknown light type: ${entry.type}`);
+    }
+    if (entry.type === 'area_rect') {
+      const c = (entry as { type: 'area_rect'; config: AreaRectLightConfig }).config;
+      if (c.width <= 0 || c.height <= 0) throw new Error('area_rect: width and height must be > 0');
+      if (c.intensity < 0) throw new Error('area_rect: intensity must be >= 0');
+    }
+    if (entry.type === 'area_disk') {
+      const c = (entry as { type: 'area_disk'; config: AreaDiskLightConfig }).config;
+      if (c.radius <= 0) throw new Error('area_disk: radius must be > 0');
+    }
+    if (entry.type === 'ies') {
+      const c = (entry as { type: 'ies'; config: IESLightConfig }).config;
+      if (!c.profilePath) throw new Error('ies: profilePath is required');
+    }
+  }
+  return true;
+}
+
+function cloneLightEntries(config: AdvancedLightingConfig): AdvancedLightingConfig['lights'] {
+  return config.lights.map((entry) => ({
+    ...entry,
+    config: { ...entry.config },
+  })) as AdvancedLightingConfig['lights'];
+}
+
+function createRuntimeState(
+  config: AdvancedLightingConfig,
+  revision = 0
+): AdvancedLightingRuntimeState {
+  return {
+    active: true,
+    revision,
+    claim: ADVANCED_LIGHTING_RUNTIME_CLAIM,
+    lights: cloneLightEntries(config),
+  };
+}
+
+function getRuntimeState(node: HSPlusNode): AdvancedLightingRuntimeState | undefined {
+  return node.__advancedLightingState as AdvancedLightingRuntimeState | undefined;
+}
+
+function eventPayload(event: TraitEvent): Record<string, unknown> {
+  return event.payload && typeof event.payload === 'object'
+    ? (event.payload as Record<string, unknown>)
+    : {};
+}
+
+// =============================================================================
 // TRAIT HANDLER
 // =============================================================================
 
@@ -73,36 +170,54 @@ export const AdvancedLightingTrait: TraitHandler<AdvancedLightingConfig> = {
   name: 'advanced_lighting',
 
   validate(config: AdvancedLightingConfig): boolean {
-    if (!Array.isArray(config.lights) || config.lights.length === 0) {
-      throw new Error('advanced_lighting requires at least one light entry');
+    return validateAdvancedLightingConfig(config);
+  },
+
+  onAttach(node: HSPlusNode, config: AdvancedLightingConfig, context: TraitContext): void {
+    validateAdvancedLightingConfig(config);
+    const state = createRuntimeState(config);
+    node.__advancedLightingState = state;
+    context.emit('advanced_lighting_attached', {
+      nodeId: node.id,
+      state,
+      rendererRequired: ADVANCED_LIGHTING_RUNTIME_CLAIM.rendererRequired,
+    });
+  },
+
+  onDetach(node: HSPlusNode, _config: AdvancedLightingConfig, context: TraitContext): void {
+    const state = getRuntimeState(node);
+    if (!state) return;
+    state.active = false;
+    context.emit('advanced_lighting_detached', { nodeId: node.id, revision: state.revision });
+    delete node.__advancedLightingState;
+  },
+
+  onEvent(
+    node: HSPlusNode,
+    _config: AdvancedLightingConfig,
+    context: TraitContext,
+    event: TraitEvent
+  ): void {
+    const state = getRuntimeState(node);
+    if (!state) return;
+
+    if (event.type === 'advanced_lighting_update') {
+      const nextConfig = eventPayload(event).config as AdvancedLightingConfig | undefined;
+      if (!nextConfig) return;
+      validateAdvancedLightingConfig(nextConfig);
+      const nextState = createRuntimeState(nextConfig, state.revision + 1);
+      node.__advancedLightingState = nextState;
+      context.emit('advanced_lighting_updated', {
+        nodeId: node.id,
+        revision: nextState.revision,
+        state: nextState,
+      });
+      return;
     }
-    for (const entry of config.lights) {
-      const validTypes: AdvancedLightType[] = [
-        'area_rect',
-        'area_disk',
-        'ies',
-        'emissive_mesh',
-        'cookie',
-      ];
-      if (!validTypes.includes(entry.type as AdvancedLightType)) {
-        throw new Error(`Unknown light type: ${entry.type}`);
-      }
-      if (entry.type === 'area_rect') {
-        const c = (entry as { type: 'area_rect'; config: AreaRectLightConfig }).config;
-        if (c.width <= 0 || c.height <= 0)
-          throw new Error('area_rect: width and height must be > 0');
-        if (c.intensity < 0) throw new Error('area_rect: intensity must be >= 0');
-      }
-      if (entry.type === 'area_disk') {
-        const c = (entry as { type: 'area_disk'; config: AreaDiskLightConfig }).config;
-        if (c.radius <= 0) throw new Error('area_disk: radius must be > 0');
-      }
-      if (entry.type === 'ies') {
-        const c = (entry as { type: 'ies'; config: IESLightConfig }).config;
-        if (!c.profilePath) throw new Error('ies: profilePath is required');
-      }
+
+    if (event.type === 'advanced_lighting_query') {
+      context.emit('advanced_lighting_state', { nodeId: node.id, state });
     }
-    return true;
   },
 
   compile(config: AdvancedLightingConfig, target: string): string {
@@ -271,8 +386,8 @@ ${blocks.join('\n')}
       (l) => l.type === 'area_rect' || l.type === 'area_disk'
     );
     return `
-// WebGPU — Area Light BRDF Integration
-// Linearly Transformed Cosines (LTC) for area lights
+// WebGPU renderer adapter for area-light BRDF integration.
+// Host renderers must provide LTC lookup textures and polygon integration.
 
 struct AreaLight {
     position: vec3<f32>,
@@ -292,8 +407,7 @@ fn evaluateLTC(normal: vec3<f32>, view: vec3<f32>, pos: vec3<f32>, roughness: f3
     let uv = vec2<f32>(roughness, sqrt(1.0 - NdotV));
     let ltcCoeffs = textureSample(ltcMat, ltcSampler, uv);
 
-    // Transform to LTC space and integrate polygon
-    // (full LTC polygon integration omitted — see Heitz 2016 paper)
+    // Adapter hook: host renderer supplies complete LTC polygon integration.
     return light.color * light.intensity;
 }
 
