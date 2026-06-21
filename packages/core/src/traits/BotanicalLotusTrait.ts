@@ -850,6 +850,51 @@ export interface LotusScenePetal {
   title: string;
 }
 
+/**
+ * B1 build-time receipt — engine ReactionDiffusion lotus seed-pod under
+ * SimulationContract. Embedded by compile-lotus-scene.mts alongside the compiled
+ * petal scene; the renderer replays the baked activator field as the
+ * receipt-bearing AUTHORITY for seed-pod carpel placement.
+ *
+ * @cites I.007, plan §0.6 B1, SimulationContract (cael.v1), bake-lotus-seedpod.mts
+ */
+export interface LotusEngineReceipt {
+  /** Human-readable proof label. */
+  proof: string;
+  /** Kinetics description (Schnakenberg Arrhenius mass-action). */
+  kinetics: string;
+  /** Grid dimensions [Nx, Ny, Nz]. */
+  grid: [number, number, number];
+  /** Reaction scaling parameter γ (controls spot count). */
+  gamma: number;
+  /** Diffusivity ratio d = Dv/Du (Turing instability requires d > d_c). */
+  d_ratio: number;
+  /** Number of integration steps run. */
+  steps: number;
+  /** Fixed timestep (CFL-safe). */
+  fixedDt: number;
+  /** Deterministic perturbation seed (no RNG — bit-identical). */
+  seed: number;
+  /** SimulationContract geometry hash (per-step state digest of initial geometry). */
+  geometryHash: string;
+  /** SimulationContract contract identifier. */
+  contractId: string;
+  /** sha256 of the joined per-step state-digest chain (the CAEL replay fingerprint). */
+  digestChainHash: string;
+  /** Field statistics at the baked solve endpoint. */
+  field: { spots: number; min: number; max: number; mean: number; std: number };
+  /** Independent cold re-run bit-identical (determinism gate). */
+  reRunBitIdentical: boolean;
+  /** replayFromProvenance bit-identical (cael replay gate). */
+  replayBitIdentical: boolean;
+  /**
+   * Baked activator field u at the solve endpoint (row-major, length = Nx*Ny).
+   * Encoded as 4-decimal fixed-point numbers for compact JSON representation.
+   * Renderer uses this to place seed-pod carpels at activator peaks.
+   */
+  activator: number[];
+}
+
 export interface LotusScene {
   seed: string;
   golden_angle_deg: number;
@@ -860,6 +905,14 @@ export interface LotusScene {
   colors: BotanicalLotusColors;
   stamen_filament_count: number;
   seed_pod_dot_pattern: string;
+  /**
+   * B1 engine receipt — present when compiled with the engine ReactionDiffusion
+   * bake (compile-lotus-scene.mts). Absent in environments where the engine
+   * package is unavailable (e.g. browser bundles). Renderers that consume this
+   * use the activator field for receipt-bearing carpel placement; renderers that
+   * don't fall back to seed_pod_dot_pattern (the low-res labeled fallback).
+   */
+  engineReceipt?: LotusEngineReceipt;
 }
 
 export const LOTUS_GOLDEN_ANGLE_DEG = 137.50776;
