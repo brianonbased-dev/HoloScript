@@ -534,6 +534,48 @@ function buildPredicateParams(config: ZkPrivateConfig): Record<string, unknown> 
 // BARRETENBERG BACKEND WRAPPER
 // =============================================================================
 
+interface BarretenbergWitness {
+  publicInputs: Record<string, unknown>;
+  privateInputs: Record<string, unknown>;
+  values: Record<string, unknown>;
+}
+
+interface BarretenbergProofBackend {
+  generateProof(
+    acir: Uint8Array,
+    witness: BarretenbergWitness
+  ): Uint8Array | { proof: unknown } | Promise<Uint8Array | { proof: unknown }>;
+  verifyProof(proof: Uint8Array, verificationKey: Uint8Array): boolean | Promise<boolean>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function toProofBytes(value: unknown): Uint8Array {
+  if (value instanceof Uint8Array) return new Uint8Array(value);
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(
+      value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+    );
+  }
+  if (Array.isArray(value)) return new Uint8Array(value.map((byte) => Number(byte) & 0xff));
+  if (isRecord(value) && 'proof' in value) return toProofBytes(value.proof);
+  throw new Error('Proof bytes must be a Uint8Array, ArrayBuffer, number array, or { proof }');
+}
+
+function buildWitness(
+  publicInputs: Record<string, unknown>,
+  privateInputs: Record<string, unknown>
+): BarretenbergWitness {
+  return {
+    publicInputs: { ...publicInputs },
+    privateInputs: { ...privateInputs },
+    values: { ...publicInputs, ...privateInputs },
+  };
+}
+
 /**
  * Wraps the Barretenberg backend for circuit compilation, proof generation, and verification.
  * Falls back to mock when @aztec/bb.js is unavailable.
@@ -600,9 +642,17 @@ class BarretenbergBackend {
       return { proof, publicInputs };
     }
 
-    // Real Barretenberg proof generation
-    // In production: bb.generateProof(witness, acir)
-    return { proof: new Uint8Array(64), publicInputs };
+    const compiled = this.compiledCircuits.get(circuitId);
+    if (!compiled) {
+      throw new Error(`Circuit is not compiled: ${circuitId}`);
+    }
+
+    const witness = buildWitness(publicInputs, privateInputs);
+    const proofResult = await (this.bb as BarretenbergProofBackend).generateProof(
+      compiled.acir,
+      witness
+    );
+    return { proof: toProofBytes(proofResult), publicInputs };
   }
 
   async verifyProof(
@@ -615,9 +665,14 @@ class BarretenbergBackend {
       return proof.length > 0 && proof.some((b) => b !== 0);
     }
 
-    // Real Barretenberg verification
-    // In production: bb.verifyProof(proof, verificationKey)
-    return true;
+    const compiled = this.compiledCircuits.get(circuitId);
+    if (!compiled) {
+      throw new Error(`Circuit is not compiled: ${circuitId}`);
+    }
+
+    return Boolean(
+      await (this.bb as BarretenbergProofBackend).verifyProof(proof, compiled.verificationKey)
+    );
   }
 
   isInitialized(): boolean {
@@ -628,6 +683,15 @@ class BarretenbergBackend {
     this.compiledCircuits.clear();
     this.bb = null;
   }
+}
+
+type ZkPrivateNodeSlots = HSPlusNode & {
+  __zkPrivateState?: ZkPrivateState;
+  __zkBBBackend?: BarretenbergBackend;
+};
+
+function zkPrivateSlots(node: HSPlusNode): ZkPrivateNodeSlots {
+  return node as ZkPrivateNodeSlots;
 }
 
 // =============================================================================
@@ -735,10 +799,36 @@ export const zkPrivateHandler = {
       const timeout = new Promise<never>((_, r) =>
         setTimeout(() => r(new Error(`Timeout ${config.timeout_ms}ms`)), config.timeout_ms)
       );
-      Promise.race([
-        Promise.resolve(mockGenerate(circuit, publicInputs as Record<string, unknown>)),
-        timeout,
-      ])
+      const bbBackend = zkPrivateSlots(node).__zkBBBackend;
+      const publicInputRecord = publicInputs as Record<string, unknown>;
+      const privateInputRecord = privateInputs as Record<string, unknown>;
+      const proofTask: Promise<ZkProof> = bbBackend?.isInitialized()
+        ? bbBackend
+            .compileCircuit(circuit)
+            .then((result) => {
+              circuit.acir = result.acir;
+              circuit.compiledAt = Date.now();
+              circuit.isCompiled = true;
+              ctx.emit('circuit_compiled', {
+                node,
+                circuitId: circuit.id,
+                size_bytes: result.size,
+                backend: 'barretenberg',
+              });
+            })
+            .then(() =>
+              bbBackend.generateProof(circuitId as string, publicInputRecord, privateInputRecord)
+            )
+            .then((proofResult) => ({
+              requestId: '',
+              circuitId: circuitId as string,
+              proof: proofResult.proof,
+              publicInputs: proofResult.publicInputs,
+              generatedAt: Date.now(),
+              backend: 'barretenberg' as const,
+            }))
+        : Promise.resolve(mockGenerate(circuit, publicInputRecord));
+      Promise.race([proofTask, timeout])
         .then((proofResult: ZkProof) => {
           const proof = { ...proofResult, requestId: requestId as string };
           s.activeProofs.delete(requestId as string);
@@ -761,22 +851,40 @@ export const zkPrivateHandler = {
       if (!proofBytes) return;
       const requestId = payload.requestId ?? `verify_${Date.now()}`;
       const t0 = Date.now();
-      const valid = mockVerify({
-        requestId: requestId as string,
-        circuitId: (circuitId as string) ?? '',
-        proof: new Uint8Array(proofBytes as ArrayBuffer),
-        publicInputs: publicInputs as Record<string, unknown>,
-        generatedAt: 0,
-        backend: s.backend,
-      });
-      s.totalProofsVerified++;
-      ctx.emit('proof_verified', {
-        node,
-        requestId,
-        valid,
-        duration_ms: Date.now() - t0,
-        circuitId,
-      });
+      const proof = toProofBytes(proofBytes);
+      const publicInputRecord = publicInputs as Record<string, unknown>;
+      const bbBackend = zkPrivateSlots(node).__zkBBBackend;
+      const emitVerified = (valid: boolean): void => {
+        s.totalProofsVerified++;
+        ctx.emit('proof_verified', {
+          node,
+          requestId,
+          valid,
+          duration_ms: Date.now() - t0,
+          circuitId,
+          backend: bbBackend?.isInitialized() ? 'barretenberg' : s.backend,
+        });
+      };
+
+      if (bbBackend?.isInitialized()) {
+        bbBackend
+          .verifyProof((circuitId as string) ?? '', proof, publicInputRecord)
+          .then(emitVerified)
+          .catch((err: Error) => {
+            ctx.emit('zk_error', { node, requestId, error: err.message });
+          });
+      } else {
+        emitVerified(
+          mockVerify({
+            requestId: requestId as string,
+            circuitId: (circuitId as string) ?? '',
+            proof,
+            publicInputs: publicInputRecord,
+            generatedAt: 0,
+            backend: s.backend,
+          })
+        );
+      }
     } else if (event.type === 'circuit_register') {
       const c = payload as unknown as ZkCircuit;
       if (c?.id) {

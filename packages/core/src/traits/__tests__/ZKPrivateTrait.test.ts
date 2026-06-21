@@ -851,6 +851,101 @@ describe('ZkPrivateTrait -- BarretenbergBackend (v4.3)', () => {
     expect(valid).toBe(false);
   });
 
+  it('delegates proof generation and verification to an initialized Barretenberg backend', async () => {
+    const backend = new BarretenbergBackend();
+    await backend.compileCircuit({
+      id: 'test',
+      name: 'Test',
+      description: '',
+      source: 'fn main(x: pub u32, secret: u32) {}',
+      publicInputs: [{ name: 'x', type: 'u32', visibility: 'public' }],
+      privateInputs: [{ name: 'secret', type: 'u32', visibility: 'private' }],
+    });
+
+    const calls: Array<{ acir: Uint8Array; witness: unknown }> = [];
+    const fakeBackend = {
+      generateProof(acir: Uint8Array, witness: unknown) {
+        calls.push({ acir, witness });
+        return new Uint8Array([9, 8, 7]);
+      },
+      verifyProof(proof: Uint8Array, verificationKey: Uint8Array) {
+        return proof[0] === 9 && verificationKey.length === 32;
+      },
+    };
+    (backend as unknown as { bb: typeof fakeBackend }).bb = fakeBackend;
+
+    const result = await backend.generateProof('test', { x: 42 }, { secret: 7 });
+    expect(Array.from(result.proof)).toEqual([9, 8, 7]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.acir.length).toBeGreaterThan(0);
+    expect(calls[0]?.witness).toMatchObject({
+      publicInputs: { x: 42 },
+      privateInputs: { secret: 7 },
+      values: { x: 42, secret: 7 },
+    });
+    await expect(backend.verifyProof('test', result.proof, { x: 42 })).resolves.toBe(true);
+  });
+
+  it('routes proof_generate and proof_verify events through initialized Barretenberg backend', async () => {
+    const { node, ctx, config } = await attach();
+    const fakeBackend = {
+      generateProof(_acir: Uint8Array, witness: unknown) {
+        expect(witness).toMatchObject({
+          publicInputs: { public_hash: 'x' },
+          privateInputs: { secret_preimage: 's' },
+        });
+        return new Uint8Array([11, 12, 13]);
+      },
+      verifyProof(proof: Uint8Array) {
+        return proof[0] === 11;
+      },
+    };
+    const backend = new BarretenbergBackend();
+    (backend as unknown as { bb: typeof fakeBackend }).bb = fakeBackend;
+    node.__zkBBBackend = backend;
+    node.__zkPrivateState.backend = 'barretenberg';
+
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_generate',
+      payload: {
+        circuitId: 'ownership_proof',
+        publicInputs: { public_hash: 'x' },
+        privateInputs: { secret_preimage: 's' },
+        requestId: 'bb-generate',
+      },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const generated = ctx.of('proof_generated')[0].payload as {
+      requestId: string;
+      backend: string;
+      proof: number[];
+    };
+    expect(generated.requestId).toBe('bb-generate');
+    expect(generated.backend).toBe('barretenberg');
+    expect(generated.proof).toEqual([11, 12, 13]);
+
+    zkPrivateHandler.onEvent(node, config, ctx, {
+      type: 'proof_verify',
+      payload: {
+        proof: generated.proof,
+        publicInputs: { public_hash: 'x' },
+        circuitId: 'ownership_proof',
+        requestId: 'bb-verify',
+      },
+    });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const verified = ctx.of('proof_verified')[0].payload as {
+      requestId: string;
+      backend: string;
+      valid: boolean;
+    };
+    expect(verified.requestId).toBe('bb-verify');
+    expect(verified.backend).toBe('barretenberg');
+    expect(verified.valid).toBe(true);
+  });
+
   it('destroy cleans up state', async () => {
     const backend = new BarretenbergBackend();
     await backend.initialize();
