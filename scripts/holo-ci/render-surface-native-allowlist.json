@@ -31,6 +31,7 @@
     "packages/r3f-renderer/src/components/LODMeshNode.tsx",
     "packages/r3f-renderer/src/components/MeshNode.tsx",
     "packages/r3f-renderer/src/components/MeshRefinementCompare.tsx",
+    "packages/r3f-renderer/src/components/NeRF.tsx",
     "packages/r3f-renderer/src/components/OceanRenderer.tsx",
     "packages/r3f-renderer/src/components/PostProcessingRenderer.tsx",
     "packages/r3f-renderer/src/components/ProceduralMesh.tsx",

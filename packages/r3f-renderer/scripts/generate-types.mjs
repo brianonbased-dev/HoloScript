@@ -165,6 +165,66 @@ export interface GaussianSplatViewerProps {
 }
 export declare function GaussianSplatViewer(props: GaussianSplatViewerProps): any;
 
+export type NeRFMethod = 'instant_ngp' | 'nerfacto' | 'tensorf' | 'mip_nerf' | 'zip_nerf';
+export type Vec3 = [number, number, number];
+export interface NeRFResolvedConfig {
+  method: NeRFMethod;
+  src: string | null;
+  resolution: number;
+  nearPlane: number;
+  farPlane: number;
+  samplesPerRay: number;
+  batchSize: number;
+  enableDeformation: boolean;
+  backgroundColor: Vec3;
+  densityScale: number;
+}
+export interface NeRFGridDescriptor {
+  schema?: string;
+  gridSize?: Vec3;
+  density?: ArrayLike<number>;
+  colors?: ArrayLike<number>;
+  rgba?: ArrayLike<number>;
+  bounds?: { min: Vec3; max: Vec3 } | [Vec3, Vec3];
+  exposure?: number;
+}
+export interface NeRFGridModel {
+  schema: string;
+  gridSize: Vec3;
+  density: Float32Array;
+  colors: Float32Array;
+  bounds: { min: Vec3; max: Vec3 };
+  exposure: number;
+}
+export interface NeRFProps {
+  nerf?: boolean | Record<string, unknown>;
+  src?: string;
+  modelUrl?: string;
+  model?: NeRFGridDescriptor | NeRFGridModel;
+  method?: NeRFMethod;
+  resolution?: number;
+  nearPlane?: number;
+  farPlane?: number;
+  samplesPerRay?: number;
+  batchSize?: number;
+  enableDeformation?: boolean;
+  backgroundColor?: Vec3;
+  densityScale?: number;
+  position?: Vec3;
+  rotation?: Vec3;
+  scale?: Vec3 | number;
+  onLoad?: (model: NeRFGridModel) => void;
+  onError?: (error: Error) => void;
+}
+export declare function resolveNeRFConfig(props: NeRFProps): NeRFResolvedConfig;
+export declare function normalizeNeRFGridModel(
+  input: NeRFGridDescriptor | NeRFGridModel
+): NeRFGridModel;
+export declare function createProceduralNeRFGrid(gridSize?: Vec3): NeRFGridModel;
+export declare function packNeRFRadianceGrid(model: NeRFGridModel): Uint8Array;
+export declare function NeRF(props: NeRFProps): any;
+export declare const NeRFVolume: typeof NeRF;
+
 export declare const CROSS_SCALE_PROJECTION_RECEIPT_SCHEMA: 'cross-scale-projection-r3f/v1';
 export declare const CROSS_SCALE_PROJECTION_SCALES: readonly [
   'atomic',

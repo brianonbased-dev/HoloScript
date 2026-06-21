@@ -99,6 +99,21 @@ export type { QuiltViewerProps } from './components/QuiltViewer';
 export { GaussianSplatViewer } from './components/GaussianSplatViewer';
 export type { GaussianSplatViewerProps } from './components/GaussianSplatViewer';
 export {
+  NeRF,
+  NeRFVolume,
+  createProceduralNeRFGrid,
+  normalizeNeRFGridModel,
+  packNeRFRadianceGrid,
+  resolveNeRFConfig,
+} from './components/NeRF';
+export type {
+  NeRFGridDescriptor,
+  NeRFGridModel,
+  NeRFMethod,
+  NeRFProps,
+  NeRFResolvedConfig,
+} from './components/NeRF';
+export {
   VolumetricRenderUpdateConsumer,
   createVolumetricRenderUpdateConsumer,
   createWindowVolumetricRenderUpdateConsumer,
