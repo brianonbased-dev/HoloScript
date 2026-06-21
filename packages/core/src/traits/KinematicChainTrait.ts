@@ -281,7 +281,7 @@ export const kinematicChainHandler: TraitHandler<KinematicChainConfig> = {
 
   onAttach(node, config) {
     if (config.links.length > 0 && config.jointAngles.length === config.links.length) {
-      (node as Record<string, unknown>).__kinematic_fk = solveFk(config.links, config.jointAngles);
+      (node as unknown as Record<string, unknown>).__kinematic_fk = solveFk(config.links, config.jointAngles);
     }
   },
 
@@ -290,11 +290,11 @@ export const kinematicChainHandler: TraitHandler<KinematicChainConfig> = {
       const e = event as unknown as Partial<KinematicChainConfig>;
       const links = e.links ?? config.links;
       const angles = e.jointAngles ?? config.jointAngles;
-      (node as Record<string, unknown>).__kinematic_fk = solveFk(links, angles);
+      (node as unknown as Record<string, unknown>).__kinematic_fk = solveFk(links, angles);
     }
     if (event.type === 'kinematic_chain.solve_ik') {
       const req = event as unknown as Partial<IKRequest>;
-      (node as Record<string, unknown>).__kinematic_ik = solveIk({
+      (node as unknown as Record<string, unknown>).__kinematic_ik = solveIk({
         links: req.links ?? config.links,
         target: req.target ?? { x: 0, y: 0, z: 0 },
         initialAngles: req.initialAngles,

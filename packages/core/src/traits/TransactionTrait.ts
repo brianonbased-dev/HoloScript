@@ -260,14 +260,14 @@ export const transactionHandler: TraitHandler<TransactionConfig> = {
   defaultConfig: {},
 
   onAttach(node, config) {
-    const n = node as Record<string, unknown>;
+    const n = node as unknown as Record<string, unknown>;
     n.__tx_state = initState(config);
     n.__tx_last_receipt = null;
     n.__tx_ledger = null;
   },
 
   onEvent(node, config, _ctx, event) {
-    const n = node as Record<string, unknown>;
+    const n = node as unknown as Record<string, unknown>;
     const state = getState(n, config);
     const limits = config.limits ?? {};
 

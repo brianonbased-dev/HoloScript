@@ -386,12 +386,12 @@ export const controlLoopHandler: TraitHandler<ControlLoopConfig> = {
   defaultConfig: {},
 
   onAttach(node) {
-    (node as Record<string, unknown>).__control_state = {};
-    (node as Record<string, unknown>).__control_output = null;
+    (node as unknown as Record<string, unknown>).__control_state = {};
+    (node as unknown as Record<string, unknown>).__control_output = null;
   },
 
   onEvent(node, config, _ctx, event) {
-    const n = node as Record<string, unknown>;
+    const n = node as unknown as Record<string, unknown>;
 
     if (event.type === 'control_loop.reset') {
       resetPidState(n);

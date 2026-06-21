@@ -294,14 +294,14 @@ export const sensorSamplingHandler: TraitHandler<SensorSamplingConfig> = {
   defaultConfig: { sensors: [] },
 
   onAttach(node, config) {
-    const n = node as Record<string, unknown>;
+    const n = node as unknown as Record<string, unknown>;
     getOrCreateState(n, config);
     n.__sensor_last = {};
     n.__sensor_window = {};
   },
 
   onEvent(node, config, _ctx, event) {
-    const n = node as Record<string, unknown>;
+    const n = node as unknown as Record<string, unknown>;
     const state = getOrCreateState(n, config);
 
     if (event.type === 'sensor.record') {
