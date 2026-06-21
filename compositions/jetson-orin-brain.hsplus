@@ -220,6 +220,16 @@ behavior on_task {
   // ② Domain context — task-title-aware semantic search (H-2 W.754 interim)
   rag_query { limit: 3 }
 
+  // ②·⑤ Peer consultation — agent-to-agent questioning IS reasoning (D.100 keystone:
+  //      the edge agent was using HoloMesh as a task board, not a reasoning substrate).
+  //      Question defaults to the task title, so a peer is consulted about THIS task.
+  //      The answer is injected ONLY through the CITE-by-ID grounding gate
+  //      (require_grounding defaults ON): a peer citation that does not resolve to real
+  //      knowledge is flagged, and an all-confabulated answer is rejected — so a 4B
+  //      peer that invents IDs (the audit's exact failure mode) is caught structurally,
+  //      not trusted. Routes to HOLOSCRIPT_AGENT_PEER_MODEL when set, else self-consult.
+  ask_peer { capability: "holoscript-native" }
+
   // ③ Execution — dispatches to LLMAgentTrait → LocalLLMAdapter → holojetson.local:11434
   //    qwen3:4b-instruct: non-thinking variant — neither /no_think nor think:false is sent
   //    (W.740/W.741). tools surface all Week 1-3 shipped tools to the model.
