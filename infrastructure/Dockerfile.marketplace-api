@@ -52,12 +52,12 @@ COPY packages/marketplace-api/ packages/marketplace-api/
 
 # Build in dependency order (skip DTS for runtime)
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
-RUN cd packages/config && npx tsup --no-dts
-RUN cd packages/llm-provider && npx tsup --no-dts
-RUN cd packages/auth && npx tsup --no-dts
-RUN cd packages/registry && npx tsup --no-dts
-RUN cd packages/marketplace-agentkit && npx tsup --no-dts
-RUN cd packages/marketplace-api && npx tsup --no-dts
+RUN cd packages/config && pnpm exec tsup --no-dts
+RUN cd packages/llm-provider && pnpm exec tsup --no-dts
+RUN cd packages/auth && pnpm exec tsup --no-dts
+RUN cd packages/registry && pnpm exec tsup --no-dts
+RUN cd packages/marketplace-agentkit && pnpm exec tsup --no-dts
+RUN cd packages/marketplace-api && pnpm exec tsup --no-dts
 
 # --- Production stage ---
 FROM node:20-alpine

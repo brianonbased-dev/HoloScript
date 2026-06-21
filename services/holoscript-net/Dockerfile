@@ -55,22 +55,22 @@ COPY packages/r3f-renderer/ packages/r3f-renderer/
 COPY services/holoscript-net/ services/holoscript-net/
 
 # Build workspace dependencies (no dts for speed in Docker)
-RUN cd packages/crdt && npx tsup --no-dts
-RUN cd packages/crdt-spatial && npx tsup --no-dts
-RUN cd packages/agent-protocol && npx tsup --no-dts
-RUN cd packages/core-types && npx tsup --no-dts
-RUN cd packages/config && npx tsup --no-dts
-RUN cd packages/llm-provider && npx tsup --no-dts
-RUN cd packages/platform && npx tsup --no-dts
-RUN cd packages/core && npx tsup --no-dts
-RUN cd packages/mesh && npx tsup --no-dts
-RUN cd packages/framework && npx tsup --config tsup.config.ts --no-dts
-RUN cd packages/uaal && npx tsup --no-dts
-RUN cd packages/engine && npx tsup --no-dts
-RUN cd packages/ui && npx tsup --no-dts
-RUN cd packages/mcp-server && npx tsup --no-dts
-RUN cd packages/runtime && npx tsup --no-dts
-RUN cd packages/r3f-renderer && npx tsup --no-dts
+RUN cd packages/crdt && pnpm exec tsup --no-dts
+RUN cd packages/crdt-spatial && pnpm exec tsup --no-dts
+RUN cd packages/agent-protocol && pnpm exec tsup --no-dts
+RUN cd packages/core-types && pnpm exec tsup --no-dts
+RUN cd packages/config && pnpm exec tsup --no-dts
+RUN cd packages/llm-provider && pnpm exec tsup --no-dts
+RUN cd packages/platform && pnpm exec tsup --no-dts
+RUN cd packages/core && pnpm exec tsup --no-dts
+RUN cd packages/mesh && pnpm exec tsup --no-dts
+RUN cd packages/framework && pnpm exec tsup --config tsup.config.ts --no-dts
+RUN cd packages/uaal && pnpm exec tsup --no-dts
+RUN cd packages/engine && pnpm exec tsup --no-dts
+RUN cd packages/ui && pnpm exec tsup --no-dts
+RUN cd packages/mcp-server && pnpm exec tsup --no-dts
+RUN cd packages/runtime && pnpm exec tsup --no-dts
+RUN cd packages/r3f-renderer && pnpm exec tsup --no-dts
 
 # Force workspace symlinks during client bundling. The manifest-first Docker
 # install can leave service-local workspace links stale after the full source
@@ -112,7 +112,7 @@ RUN mkdir -p /app/node_modules/@holoscript && \
 # Build the service (client + server)
 WORKDIR /app/services/holoscript-net
 RUN pnpm run build:client && \
-	npx tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core
+	pnpm exec tsup server.ts --out-dir dist/server --external @holoscript/mcp-server --external @holoscript/core
 
 # Production stage
 FROM base AS runner

@@ -4,6 +4,7 @@
   "description": "Render service for HoloScript previews and sharing",
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@9.15.9",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

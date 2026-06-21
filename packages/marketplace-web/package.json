@@ -3,6 +3,7 @@
   "version": "1.0.3",
   "description": "HoloScript Trait Marketplace Web UI",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

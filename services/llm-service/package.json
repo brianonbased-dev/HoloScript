@@ -4,6 +4,7 @@
   "description": "Brittney Cloud Service — AI-powered HoloScript spatial intelligence gateway",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@9.15.9",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

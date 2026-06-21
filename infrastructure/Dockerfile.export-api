@@ -31,11 +31,11 @@ COPY packages/llm-provider/ packages/llm-provider/
 COPY services/export-api/ services/export-api/
 
 # Build in dependency order (skip DTS for runtime)
-RUN cd packages/crdt && npx tsup --no-dts
-RUN cd packages/agent-protocol && npx tsup --no-dts
-RUN cd packages/core && npx tsup --no-dts && node scripts/generate-types.mjs
-RUN cd packages/llm-provider && npx tsup --no-dts
-RUN cd services/export-api && npx tsup
+RUN cd packages/crdt && pnpm exec tsup --no-dts
+RUN cd packages/agent-protocol && pnpm exec tsup --no-dts
+RUN cd packages/core && pnpm exec tsup --no-dts && node scripts/generate-types.mjs
+RUN cd packages/llm-provider && pnpm exec tsup --no-dts
+RUN cd services/export-api && pnpm exec tsup
 
 # --- Production stage ---
 FROM node:20-alpine
