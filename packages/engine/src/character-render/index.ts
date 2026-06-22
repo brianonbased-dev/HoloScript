@@ -46,4 +46,14 @@ export {
 
 export { gaitPose, type GaitMode, type AvatarPoseMap } from './gait';
 
+export {
+  buildCharacterHostFromComposition,
+  type ParsedComposition,
+  type CompObject,
+  type CompTrait,
+  type CompTemplate,
+  type CharacterHostFromCompositionOptions,
+  type CharacterHostFromCompositionResult,
+} from './CharacterHostFromComposition';
+
 export * as SkinMath from './skin-math';
