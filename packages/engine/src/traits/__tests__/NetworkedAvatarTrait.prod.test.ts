@@ -45,26 +45,8 @@ const _controllerInstance = {
   update: vi.fn(),
 };
 
-vi.mock('@holoscript/engine/animation/BoneSystem', () => {
-  class BoneSystem {
-    addBone = _boneInstance.addBone;
-    getBone = _boneInstance.getBone;
-    getChain = _boneInstance.getChain;
-    setLocalTransform = _boneInstance.setLocalTransform;
-    updateWorldTransforms = _boneInstance.updateWorldTransforms;
-  }
-  return { BoneSystem };
-});
-
-vi.mock('@holoscript/engine/animation/IKSolver', () => {
-  class IKSolver {
-    addChain = _solverInstance.addChain;
-    solve = _solverInstance.solve;
-  }
-  return { IKSolver };
-});
-
-vi.mock('@holoscript/engine/animation/AvatarController', () => {
+// All animation subpaths resolve to the same barrel — mock once with all exports.
+vi.mock('@holoscript/engine/animation', () => {
   class BoneSystem {
     addBone = _boneInstance.addBone;
     getBone = _boneInstance.getBone;
@@ -80,7 +62,7 @@ vi.mock('@holoscript/engine/animation/AvatarController', () => {
     calibrate = _controllerInstance.calibrate;
     update = _controllerInstance.update;
   }
-  return { AvatarController, BoneSystem, IKSolver };
+  return { BoneSystem, IKSolver, AvatarController };
 });
 
 import { networkedAvatarHandler } from '../NetworkedAvatarTrait';
