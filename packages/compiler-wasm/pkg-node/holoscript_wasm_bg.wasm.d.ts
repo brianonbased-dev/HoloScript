@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const compile_to_kotlin: (a: number, b: number, c: number, d: number, e: number) => void;
 export const init: () => void;
 export const parse: (a: number, b: number, c: number) => void;
 export const parse_pretty: (a: number, b: number, c: number) => void;

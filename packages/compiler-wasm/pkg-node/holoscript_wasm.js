@@ -1,5 +1,47 @@
 /* @ts-self-types="./holoscript_wasm.d.ts" */
 
+/**
+ * Compile the top-level `function`s in a `.hs` source string to Kotlin.
+ *
+ * This is the first target-language backend in the crate: it parses `source` with the
+ * canonical `.hs` grammar (the only parser that produces a real logic AST — the TS
+ * parser keeps function bodies as raw strings) and emits Kotlin function declarations
+ * for the `compile_to_quest` target.
+ *
+ * # Arguments
+ * * `source` - `.hs` source containing one or more top-level `function` declarations.
+ * * `indent` - leading indentation applied to each emitted function (e.g. `"  "` when
+ *   the functions are nested inside a Kotlin `object`).
+ *
+ * # Returns
+ * The emitted Kotlin on success, or a JSON error object `{"error": "..."}` on a parse
+ * or emit failure — same convention as [`parse`], so the TS bridge can branch on it.
+ * @param {string} source
+ * @param {string} indent
+ * @returns {string}
+ */
+function compile_to_kotlin(source, indent) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(source, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(indent, wasm.__wbindgen_export2, wasm.__wbindgen_export3);
+        const len1 = WASM_VECTOR_LEN;
+        wasm.compile_to_kotlin(retptr, ptr0, len0, ptr1, len1);
+        var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+        var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+        deferred3_0 = r0;
+        deferred3_1 = r1;
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_export(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.compile_to_kotlin = compile_to_kotlin;
+
 function init() {
     wasm.init();
 }
