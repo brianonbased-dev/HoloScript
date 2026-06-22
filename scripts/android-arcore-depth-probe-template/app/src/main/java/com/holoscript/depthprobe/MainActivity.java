@@ -70,10 +70,12 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
     private static final int DEPTH_W = 160, DEPTH_H = 90;        // depth sample (init only)
     private static final float MIN_DEPTH_COVERAGE = 0.12f;
     private static final double MIN_SHARPNESS = 120.0;           // var-of-Laplacian; reject blur
-    private static final int TARGET_FRAMES = 40;
-    private static final float MIN_MOVE_M = 0.05f;
-    private static final long MIN_CAPTURE_INTERVAL_MS = 400L;
-    private static final long MAX_CAPTURE_MS = 180000L;
+    private static final int TARGET_FRAMES = 120;               // denser room coverage (was 40)
+    private static final float MIN_MOVE_M = 0.12f;              // space frames ~12cm apart so filling the
+                                                                // quota REQUIRES walking, not panning in place
+                                                                // (5cm let rotation alone fill it → no parallax)
+    private static final long MIN_CAPTURE_INTERVAL_MS = 350L;
+    private static final long MAX_CAPTURE_MS = 240000L;         // 4 min for a full room loop
 
     private GLSurfaceView surfaceView;
     private TextView hintText, statusText;
@@ -95,6 +97,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
     private final AtomicBoolean wroteReceipt = new AtomicBoolean(false);
     private String lastError = "starting";
     private double lastSharp = 0;
+    private float pathLen = 0f;                                  // total distance walked across banked frames
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,7 +123,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
         hintText = new TextView(this);
         hintText.setTextColor(Color.WHITE);
         hintText.setTextSize(22);
-        hintText.setText("Sweep slowly — hold steady for sharp frames");
+        hintText.setText("WALK slowly around the room — to new spots, not just turning. Parallax builds the twin.");
         statusText = new TextView(this);
         statusText.setTextColor(0xFF8EE6C0);
         statusText.setTextSize(15);
@@ -268,9 +271,10 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
             if (sharp < MIN_SHARPNESS) { setStatus(String.format(Locale.US, "Too blurry (%.0f) — hold steady", sharp), elapsed); return; }
 
             bankFrame(frame, cam, depth, color, pose, cov, sharp);
+            if (lastPose != null) pathLen += translation(pose, lastPose);
             lastPose = pose; lastCaptureMs = now;
             final int n = frames.length();
-            setStatus(String.format(Locale.US, "Banked %d/%d  sharp %.0f  cov %d%%", n, TARGET_FRAMES, sharp, (int)(cov*100)), elapsed);
+            setStatus(String.format(Locale.US, "Banked %d/%d  ·  walked %.1fm  ·  keep moving to new spots", n, TARGET_FRAMES, pathLen), elapsed);
             runOnUiThread(new Runnable() { @Override public void run() { progress.setProgress(n); } });
             maybeFinish(now);
         } finally {
@@ -316,6 +320,7 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
             m.put("deviceModel", android.os.Build.MODEL);
             m.put("frameCount", frames.length());
             m.put("durationMs", SystemClock.elapsedRealtime() - startedAtMs);
+            m.put("pathLengthM", round4(pathLen));   // total walked distance — parallax/quality signal
             m.put("cameraImage", new JSONObject().put("width", camImgW).put("height", camImgH).put("format", "jpeg"));
             m.put("intrinsics", intrinsicsJson);
             m.put("frames", frames);
