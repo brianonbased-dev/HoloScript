@@ -36,11 +36,14 @@ struct VSIn {
   @location(1) normal : vec3<f32>,
   @location(2) jointIndex : u32,
   @location(3) jointWeight : f32,
+  @location(4) tangent : vec4<f32>,   // xyz strand-flow tangent; w = strandT
 };
 struct VSOut {
   @builtin(position) clip : vec4<f32>,
   @location(0) wN : vec3<f32>,
   @location(1) wP : vec3<f32>,
+  @location(2) wT : vec3<f32>,        // skinned tangent (hair)
+  @location(3) strandT : f32,         // 0 root → 1 tip (hair)
 };
 
 @vertex
@@ -51,6 +54,8 @@ fn vs(in : VSIn) -> VSOut {
   o.clip = frame.mvp * vec4<f32>(sp.xyz, 1.0);
   o.wP = (frame.model * vec4<f32>(sp.xyz, 1.0)).xyz;
   o.wN = (skin * vec4<f32>(in.normal, 0.0)).xyz;
+  o.wT = (skin * vec4<f32>(in.tangent.xyz, 0.0)).xyz; // tangent rides the bone too
+  o.strandT = in.tangent.w;
   return o;
 }
 
@@ -102,4 +107,45 @@ fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
   var color = mat.color.rgb * (vec3<f32>(mat.params.w) + sss) + transmit + vec3<f32>(spec);
   color = color / (color + vec3<f32>(1.0)); // Reinhard
   return vec4<f32>(color, mat.color.a);
+}
+
+// melanin → hair colour (eumelanin/pheomelanin absorption; port of HairRenderer melaninToColor).
+fn melaninColor(m : f32, red : f32) -> vec3<f32> {
+  let eu = m;
+  let ph = red * m;
+  return clamp(
+    vec3<f32>(exp(-eu * 1.5 - ph * 0.5), exp(-eu * 2.5 - ph * 1.5), exp(-eu * 4.0 - ph * 3.0)),
+    vec3<f32>(0.02),
+    vec3<f32>(1.0)
+  );
+}
+
+// ── Hair: Kajiya-Kay anisotropic diffuse + dual-lobe highlight using a REAL strand tangent. ──
+// Material packing (from fillMaterial 'marschner-hair'): scatterColor = (melanin, redness,
+// primaryExp, secondaryExp); color.a = opacity.
+@fragment
+fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
+  let T = normalize(in.wT);
+  let L = normalize(frame.lightDir.xyz);
+  let V = normalize(frame.cameraPos.xyz - in.wP);
+
+  let TdotL = dot(T, L);
+  let TdotV = dot(T, V);
+  let sinTL = sqrt(max(0.0, 1.0 - TdotL * TdotL));
+  let sinTV = sqrt(max(0.0, 1.0 - TdotV * TdotV));
+  let kkDiffuse = sinTL; // Kajiya-Kay diffuse ≈ sin(T,L)
+
+  // Dual-lobe highlight (KK cos-difference term), primary sharp + secondary broad.
+  let lobe = max(0.0, sinTL * sinTV - TdotL * TdotV);
+  let primaryExp = max(mat.scatterColor.z, 1.0);
+  let secondaryExp = max(mat.scatterColor.w, 1.0);
+  let specR = pow(lobe, primaryExp);
+  let specTRT = pow(lobe, secondaryExp) * 0.5;
+
+  let base = melaninColor(mat.scatterColor.x, mat.scatterColor.y);
+  let rootDarken = mix(0.55, 1.0, in.strandT);
+  var col = base * rootDarken * (kkDiffuse * 0.6 + 0.25)
+          + vec3<f32>(specR * 0.35)
+          + base * specTRT * 0.3;
+  return vec4<f32>(col, mat.color.a);
 }

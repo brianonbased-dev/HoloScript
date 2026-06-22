@@ -23,16 +23,17 @@ import type {
   MaterialSpec,
   MaterialGroup,
   SkinSSSMaterialSpec,
+  MarschnerHairMaterialSpec,
 } from '../native-render/draw-spec';
 import {
-  buildAgentAvatarMesh,
   computeBindWorld,
   computeInverseBind,
   computeJointPalette,
   colorForEntity,
-  type AgentAvatarMeshData,
+  JOINT_COUNT,
   type AvatarPose,
 } from './AgentAvatarMesh';
+import { buildCharacterMesh, type CharacterMeshData } from './AgentAvatarHair';
 import {
   fromRotationTranslation,
   fromTranslation,
@@ -53,6 +54,10 @@ export interface CharacterHostOptions {
   color?: number;
   /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
   skinTone?: number;
+  /** Hair eumelanin 0..1 (0 = white/blond, ~0.9 = black). Default 0.7 (dark brown). */
+  melanin?: number;
+  /** Hair pheomelanin/redness 0..1. Default 0.2. */
+  melaninRedness?: number;
   /** Initial world position. */
   position?: [number, number, number];
 }
@@ -72,6 +77,18 @@ const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
   ambient: 0.12,
 };
 
+/** Kajiya-Kay hair preset; melanin/redness set per-host. */
+const HAIR_BASE: Omit<MarschnerHairMaterialSpec, 'melanin' | 'melaninRedness'> = {
+  shadingModel: 'marschner-hair',
+  color: 0xffffff,
+  metalness: 0,
+  roughness: 0.4,
+  emissive: 0,
+  opacity: 1,
+  primaryExp: 48,
+  secondaryExp: 12,
+};
+
 /** Authoritative world-state for an embodied agent (subset of xr-embodiment's WorldStateSource). */
 export interface CharacterWorldState {
   position?: { x?: number; y?: number; z?: number };
@@ -83,17 +100,18 @@ export interface CharacterWorldState {
 
 export class CharacterHost {
   readonly entityId: string;
-  private readonly mesh: AgentAvatarMeshData;
+  private readonly built: CharacterMeshData;
   private readonly bindWorld: Map<string, Mat4>;
   private readonly inverseBind: Map<string, Mat4>;
   private readonly material: MaterialSpec;
   private readonly skinMaterial: SkinSSSMaterialSpec;
+  private readonly hairMaterial: MarschnerHairMaterialSpec;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
 
   constructor(opts: CharacterHostOptions) {
     this.entityId = opts.entityId;
-    this.mesh = buildAgentAvatarMesh({
+    this.built = buildCharacterMesh({
       entityId: opts.entityId,
       heightScale: opts.heightScale,
       buildScale: opts.buildScale,
@@ -111,6 +129,11 @@ export class CharacterHost {
     };
     // Default SSS skin material — characters have skin (W.241: biggest realism jump).
     this.skinMaterial = { ...HUMAN_SKIN, color: skinTone };
+    this.hairMaterial = {
+      ...HAIR_BASE,
+      melanin: opts.melanin ?? 0.7,
+      melaninRedness: opts.melaninRedness ?? 0.2,
+    };
     const p = opts.position ?? [0, 0, 0];
     this.modelMatrix = fromTranslation(p[0], p[1], p[2]);
   }
@@ -157,13 +180,14 @@ export class CharacterHost {
    */
   getDrawSpec(): CharacterDrawSpec {
     const groups: MaterialGroup[] = [
-      { indexStart: 0, indexCount: this.mesh.indices.length, material: this.skinMaterial },
+      { ...this.built.bodyRange, material: this.skinMaterial },
+      { ...this.built.hairRange, material: this.hairMaterial },
     ];
     return {
       entityId: this.entityId,
-      mesh: this.mesh,
+      mesh: this.built.mesh,
       jointMatrices: computeJointPalette(this.pose, this.bindWorld, this.inverseBind),
-      jointCount: this.mesh.jointCount,
+      jointCount: JOINT_COUNT,
       material: this.material,
       modelMatrix: this.modelMatrix,
       materialGroups: groups,

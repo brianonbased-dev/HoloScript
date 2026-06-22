@@ -96,6 +96,9 @@ export interface SkinnedMeshData {
   // at device.queue.writeBuffer — matches PrimitiveMesh in primitive-mesh.ts.
   positions: Float32Array<ArrayBuffer>;
   normals: Float32Array<ArrayBuffer>;
+  /** 4 floats/vertex: xyz strand-flow tangent (Kajiya-Kay) + w = strandT (0 root → 1 tip).
+   *  Body verts carry a placeholder (0,1,0,0); only hair/anisotropic materials read it. */
+  tangents: Float32Array<ArrayBuffer>;
   indices: Uint32Array<ArrayBuffer>;
   jointIndices: Uint32Array<ArrayBuffer>;
   jointWeights: Float32Array<ArrayBuffer>;

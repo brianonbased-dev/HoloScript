@@ -25,6 +25,14 @@ export {
 } from './AgentAvatarMesh';
 
 export {
+  buildAgentAvatarHair,
+  buildCharacterMesh,
+  type HairMeshData,
+  type HairOptions,
+  type CharacterMeshData,
+} from './AgentAvatarHair';
+
+export {
   CharacterHost,
   type CharacterHostOptions,
   type CharacterWorldState,

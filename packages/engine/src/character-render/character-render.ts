@@ -152,6 +152,7 @@ export async function renderCharacter(
     { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: 'float32x3' }] },
     { arrayStride: 4, attributes: [{ shaderLocation: 2, offset: 0, format: 'uint32' }] },
     { arrayStride: 4, attributes: [{ shaderLocation: 3, offset: 0, format: 'float32' }] },
+    { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: 'float32x4' }] },
   ];
 
   const pipelineCache = new Map<string, GPURenderPipeline>();
@@ -200,6 +201,8 @@ export async function renderCharacter(
   device.queue.writeBuffer(jiBuf, 0, mesh.jointIndices);
   const jwBuf = device.createBuffer({ size: mesh.jointWeights.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
   device.queue.writeBuffer(jwBuf, 0, mesh.jointWeights);
+  const tanBuf = device.createBuffer({ size: mesh.tangents.byteLength, usage: BUF_VERTEX | BUF_COPY_DST });
+  device.queue.writeBuffer(tanBuf, 0, mesh.tangents);
   const idxBuf = device.createBuffer({ size: mesh.indices.byteLength, usage: BUF_INDEX | BUF_COPY_DST });
   device.queue.writeBuffer(idxBuf, 0, mesh.indices);
 
@@ -281,6 +284,7 @@ export async function renderCharacter(
   pass.setVertexBuffer(1, normBuf);
   pass.setVertexBuffer(2, jiBuf);
   pass.setVertexBuffer(3, jwBuf);
+  pass.setVertexBuffer(4, tanBuf);
   pass.setIndexBuffer(idxBuf, 'uint32');
   pass.setBindGroup(0, frameBindGroup);
 
@@ -318,6 +322,7 @@ export async function renderCharacter(
   normBuf.destroy();
   jiBuf.destroy();
   jwBuf.destroy();
+  tanBuf.destroy();
   idxBuf.destroy();
   frameBuf.destroy();
   jointBuf.destroy();

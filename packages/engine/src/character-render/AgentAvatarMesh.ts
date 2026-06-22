@@ -44,6 +44,8 @@ export interface AgentAvatarMeshData {
   positions: Float32Array<ArrayBuffer>;
   /** Flat XYZ flat-face normals, 3 floats/vertex. */
   normals: Float32Array<ArrayBuffer>;
+  /** 4 floats/vertex: xyz tangent + w strandT. Body = placeholder (0,1,0,0). */
+  tangents: Float32Array<ArrayBuffer>;
   indices: Uint32Array<ArrayBuffer>;
   /** One palette (bone) index per vertex. */
   jointIndices: Uint32Array<ArrayBuffer>;
@@ -180,6 +182,7 @@ function radiusFor(name: string, buildScale: number): number {
 interface MeshAccum {
   positions: number[];
   normals: number[];
+  tangents: number[];
   indices: number[];
   jointIndices: number[];
   jointWeights: number[];
@@ -237,6 +240,7 @@ function pushBox(acc: MeshAccum, a: Vec3, b: Vec3, r: number, jointIdx: number):
       const p = corner(sx, sy, sz);
       acc.positions.push(p.x, p.y, p.z);
       acc.normals.push(face.n.x, face.n.y, face.n.z);
+      acc.tangents.push(0, 1, 0, 0); // body placeholder (only hair reads tangent)
       acc.jointIndices.push(jointIdx);
       acc.jointWeights.push(1.0);
     }
@@ -260,6 +264,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   const acc: MeshAccum = {
     positions: [],
     normals: [],
+    tangents: [],
     indices: [],
     jointIndices: [],
     jointWeights: [],
@@ -302,6 +307,7 @@ export function buildAgentAvatarMesh(opts: AgentAvatarMeshOptions = {}): AgentAv
   return {
     positions,
     normals: new Float32Array(acc.normals),
+    tangents: new Float32Array(acc.tangents),
     indices: new Uint32Array(acc.indices),
     jointIndices: new Uint32Array(acc.jointIndices),
     jointWeights: new Float32Array(acc.jointWeights),
