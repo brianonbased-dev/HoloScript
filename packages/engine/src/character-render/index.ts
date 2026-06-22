@@ -34,6 +34,12 @@ export {
 } from './AgentAvatarHair';
 
 export {
+  parseGlb,
+  extractGltfSkinnedMesh,
+  type GltfSkinnedMesh,
+} from './GltfMeshExtractor';
+
+export {
   CharacterHost,
   type CharacterHostOptions,
   type CharacterWorldState,

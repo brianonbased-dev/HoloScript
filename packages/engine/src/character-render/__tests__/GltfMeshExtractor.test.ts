@@ -1,0 +1,211 @@
+/**
+ * GltfMeshExtractor tests — fully headless (no GPU, no asset file).
+ *
+ * Builds a tiny in-memory .glb (one triangle, a 2-joint RPM-named skin, identity inverse-binds)
+ * and asserts the whole extract path: GLB container parse, accessor decode + Uint16→Uint32 index
+ * upcast, glTF-joint → canonical palette remap via the matched standard, the 4→1 dominant-weight
+ * reduction, palette-ordered inverse-binds, and ArrayBuffer-backed outputs. Includes the false
+ * case (G.GOLD.013): an unmapped joint name falls back to root.
+ */
+import { describe, it, expect } from 'vitest';
+import { parseGlb, extractGltfSkinnedMesh } from '../GltfMeshExtractor';
+import { BONE_ORDER, JOINT_COUNT } from '../AgentAvatarMesh';
+import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
+import { renderCharacter } from '../character-render';
+import { IDENTITY4 } from '../skin-math';
+import { fromTranslation } from '../skin-math';
+import type { CharacterDrawSpec } from '../../native-render/draw-spec';
+
+const HIPS = BONE_ORDER.indexOf('hips');
+const SPINE = BONE_ORDER.indexOf('spine');
+
+/** Assemble a .glb from a glTF JSON object + a BIN ArrayBuffer (4-byte chunk padding). */
+function buildGlb(json: object, bin: ArrayBuffer): ArrayBuffer {
+  const jsonBytes = new TextEncoder().encode(JSON.stringify(json));
+  const jsonPad = (4 - (jsonBytes.length % 4)) % 4;
+  const binPad = (4 - (bin.byteLength % 4)) % 4;
+  const total = 12 + 8 + jsonBytes.length + jsonPad + 8 + bin.byteLength + binPad;
+  const buf = new ArrayBuffer(total);
+  const dv = new DataView(buf);
+  const u8 = new Uint8Array(buf);
+  dv.setUint32(0, 0x46546c67, true); // magic 'glTF'
+  dv.setUint32(4, 2, true); // version
+  dv.setUint32(8, total, true);
+  let off = 12;
+  // JSON chunk
+  dv.setUint32(off, jsonBytes.length + jsonPad, true);
+  dv.setUint32(off + 4, 0x4e4f534a, true); // 'JSON'
+  u8.set(jsonBytes, off + 8);
+  for (let i = 0; i < jsonPad; i++) u8[off + 8 + jsonBytes.length + i] = 0x20; // space pad
+  off += 8 + jsonBytes.length + jsonPad;
+  // BIN chunk
+  dv.setUint32(off, bin.byteLength + binPad, true);
+  dv.setUint32(off + 4, 0x004e4942, true); // 'BIN\0'
+  u8.set(new Uint8Array(bin), off + 8);
+  return buf;
+}
+
+/** A one-triangle skinned .glb with 2 RPM-named joints (Hips, Spine) + identity inverse-binds. */
+function makeSkinnedTriangleGlb(): ArrayBuffer {
+  // BIN layout (one bufferView, accessors by byteOffset):
+  //   POSITION VEC3 f32 x3  @0   (36)
+  //   NORMAL   VEC3 f32 x3  @36  (36)
+  //   JOINTS_0 VEC4 u8  x3  @72  (12)
+  //   WEIGHTS_0 VEC4 f32 x3 @84  (48)
+  //   indices  SCALAR u16 x3 @132 (6)
+  //   IBM      MAT4 f32 x2  @140 (128)  [pad 138→140]
+  const binLen = 268;
+  const bin = new ArrayBuffer(binLen);
+  const dv = new DataView(bin);
+  const pos = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+  pos.forEach((v, i) => dv.setFloat32(i * 4, v, true));
+  const nrm = [0, 0, 1, 0, 0, 1, 0, 0, 1];
+  nrm.forEach((v, i) => dv.setFloat32(36 + i * 4, v, true));
+  // JOINTS_0 (u8) per vert: all reference skin slots {0:Hips, 1:Spine}
+  const joints = [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0];
+  joints.forEach((v, i) => dv.setUint8(72 + i, v));
+  // WEIGHTS_0 (f32): vert0 dominant slot0(Hips), vert1 dominant slot1(Spine), vert2 dominant slot0
+  const weights = [1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0];
+  weights.forEach((v, i) => dv.setFloat32(84 + i * 4, v, true));
+  // indices u16
+  [0, 1, 2].forEach((v, i) => dv.setUint16(132 + i * 2, v, true));
+  // IBM: two identity mat4
+  for (let m = 0; m < 2; m++) {
+    const I = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    I.forEach((v, i) => dv.setFloat32(140 + m * 64 + i * 4, v, true));
+  }
+
+  const json = {
+    asset: { version: '2.0' },
+    buffers: [{ byteLength: binLen }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: binLen }],
+    accessors: [
+      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' }, // POSITION
+      { bufferView: 0, byteOffset: 36, componentType: 5126, count: 3, type: 'VEC3' }, // NORMAL
+      { bufferView: 0, byteOffset: 72, componentType: 5121, count: 3, type: 'VEC4' }, // JOINTS_0 (u8)
+      { bufferView: 0, byteOffset: 84, componentType: 5126, count: 3, type: 'VEC4' }, // WEIGHTS_0
+      { bufferView: 0, byteOffset: 132, componentType: 5123, count: 3, type: 'SCALAR' }, // indices u16
+      { bufferView: 0, byteOffset: 140, componentType: 5126, count: 2, type: 'MAT4' }, // IBM
+    ],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 },
+            indices: 4,
+            mode: 4,
+          },
+        ],
+      },
+    ],
+    nodes: [{ mesh: 0, skin: 0 }, { name: 'Hips' }, { name: 'Spine' }],
+    skins: [{ joints: [1, 2], inverseBindMatrices: 5 }],
+  };
+  return buildGlb(json, bin);
+}
+
+describe('GltfMeshExtractor', () => {
+  it('parses the GLB container into JSON + BIN chunks', () => {
+    const { json, bin } = parseGlb(makeSkinnedTriangleGlb());
+    expect(json.meshes?.length).toBe(1);
+    expect(bin.byteLength).toBeGreaterThanOrEqual(268);
+  });
+
+  it('extracts a skinned mesh with palette-remapped single-influence joints', () => {
+    const m = extractGltfSkinnedMesh(makeSkinnedTriangleGlb());
+    expect(m.vertexCount).toBe(3);
+    expect(m.positions.length).toBe(9);
+    expect(m.tangents.length).toBe(12); // 4/vert placeholder
+    expect(Array.from(m.indices)).toEqual([0, 1, 2]); // Uint16 upcast → Uint32
+    expect(m.indices).toBeInstanceOf(Uint32Array);
+
+    // RPM-named joints → matched standard; Hips/Spine remap to canonical palette indices.
+    expect(m.skeletonStandard).toBe('rpm');
+    expect(m.unmappedJoints).toEqual([]);
+    // Dominant-weight reduction: vert0→Hips, vert1→Spine, vert2→Hips.
+    expect(Array.from(m.jointIndices)).toEqual([HIPS, SPINE, HIPS]);
+    expect(Array.from(m.jointWeights)).toEqual([1, 1, 1]);
+
+    // Palette-ordered inverse-binds, ArrayBuffer-backed.
+    expect(m.inverseBindMatrices.length).toBe(JOINT_COUNT * 16);
+    expect(m.jointCount).toBe(JOINT_COUNT);
+    expect(m.positions.buffer).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('rejects Draco-compressed primitives loudly', () => {
+    // Hand-build a glb whose primitive declares the Draco extension.
+    const bin = new ArrayBuffer(4);
+    const json = {
+      asset: { version: '2.0' },
+      buffers: [{ byteLength: 4 }],
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 4 }],
+      accessors: [],
+      meshes: [
+        {
+          primitives: [
+            {
+              attributes: { JOINTS_0: 0, WEIGHTS_0: 0 },
+              extensions: { KHR_draco_mesh_compression: {} },
+            },
+          ],
+        },
+      ],
+    };
+    expect(() => extractGltfSkinnedMesh(buildGlb(json, bin))).toThrow(/Draco|meshopt|compressed/i);
+  });
+
+  it('falls back to root for an unmapped joint name (false case)', () => {
+    // Build a glb whose single joint has a non-canonical name → unmapped → vertices collapse to root.
+    const binLen = 268;
+    const bin = new ArrayBuffer(binLen);
+    const dv = new DataView(bin);
+    [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true));
+    [0, 0, 1, 0, 0, 1, 0, 0, 1].forEach((v, i) => dv.setFloat32(36 + i * 4, v, true));
+    for (let i = 0; i < 12; i++) dv.setUint8(72 + i, 0); // all → slot 0
+    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0].forEach((v, i) => dv.setFloat32(84 + i * 4, v, true));
+    [0, 1, 2].forEach((v, i) => dv.setUint16(132 + i * 2, v, true));
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1].forEach((v, i) => dv.setFloat32(140 + i * 4, v, true));
+    const json = {
+      asset: { version: '2.0' },
+      buffers: [{ byteLength: binLen }],
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: binLen }],
+      accessors: [
+        { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+        { bufferView: 0, byteOffset: 36, componentType: 5126, count: 3, type: 'VEC3' },
+        { bufferView: 0, byteOffset: 72, componentType: 5121, count: 3, type: 'VEC4' },
+        { bufferView: 0, byteOffset: 84, componentType: 5126, count: 3, type: 'VEC4' },
+        { bufferView: 0, byteOffset: 132, componentType: 5123, count: 3, type: 'SCALAR' },
+        { bufferView: 0, byteOffset: 140, componentType: 5126, count: 1, type: 'MAT4' },
+      ],
+      meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1, JOINTS_0: 2, WEIGHTS_0: 3 }, indices: 4, mode: 4 }] }],
+      nodes: [{ mesh: 0, skin: 0 }, { name: 'made_up_bone' }],
+      skins: [{ joints: [1], inverseBindMatrices: 5 }],
+    };
+    const m = extractGltfSkinnedMesh(buildGlb(json, bin));
+    expect(m.unmappedJoints).toContain('made_up_bone');
+    expect(Array.from(m.jointIndices)).toEqual([0, 0, 0]); // collapse to root
+  });
+
+  const itGpu = GPU_LIVE ? it : it.skip;
+  itGpu('the extracted glTF mesh renders natively at bind pose (GLB → WebGPU pixels)', async () => {
+    const m = extractGltfSkinnedMesh(makeSkinnedTriangleGlb());
+    // Bind pose = identity skin palette (skinnedPos == authored vertex; no deform).
+    const palette = new Float32Array(JOINT_COUNT * 16);
+    for (let i = 0; i < JOINT_COUNT; i++) palette.set(IDENTITY4(), i * 16);
+    const spec: CharacterDrawSpec = {
+      entityId: 'gltf-test',
+      mesh: m,
+      jointMatrices: palette,
+      jointCount: JOINT_COUNT,
+      material: { color: 0xc08040, metalness: 0, roughness: 0.8, emissive: 0, opacity: 1 },
+      modelMatrix: fromTranslation(0, 0, 0),
+    };
+    // Frame the unit triangle (spans x,y in [0,1]).
+    const grid = await renderCharacter(testDevice!, spec, { size: 64, heightScale: 1 });
+    let nonClear = 0;
+    for (let i = 0; i < grid.data.length; i += 4) {
+      if (Math.abs(grid.data[i] - 18) + Math.abs(grid.data[i + 1] - 18) + Math.abs(grid.data[i + 2] - 23) > 40) nonClear++;
+    }
+    expect(nonClear).toBeGreaterThan(20); // the triangle rasterized
+  });
+});
