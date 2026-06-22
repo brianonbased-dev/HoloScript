@@ -14,6 +14,14 @@
 
 ---
 
+## HoloMap Verifiability Paper (reconstruction-as-receipt)
+
+**What might be valuable**: The 2026-06-21 Quest/headset deep-research found HoloMap has a **proven verifiability claim** (GATE-45: tamper-detection 1.0, false-positive 0.0, 8/8 reproducible) but **no paper** — the strongest unclaimed paper candidate in the program. The novel contribution is *not* reconstruction quality (GATE-46 is honest-negative: near-static pose vs COLMAP's 10k-point cloud) but **verifiable, tamper-evident reality capture** — a reconstruction you can prove wasn't doctored, which COLMAP/photogrammetry cannot offer. A paper led by the verifiability claim (with COLMAP as the accuracy baseline, an ablation, and a metric anchor) fits the CAEL/SimulationContract "trust by construction" thesis and the news/provenance layer (F.123).
+
+**Why not now**: (a) No trained HMW1 checkpoint exists — `getMicroWeights()` falls back to PRNG, so any accuracy number is unanchored; mesh-gen is a 6–12mo / $15–80k ML track (see AGI-roadmap). (b) The accuracy leg is honest-negative, so the paper can only stand on verifiability — needs a related-work scan to confirm the verifiable-capture claim is genuinely novel and an RFC §6 acceptance run. (c) D.101 (build-the-language-only freeze) + D.102 (portable agent mind) are the active priorities; the HoloMap paper is downstream of a real checkpoint. Revisit once a trained checkpoint exists or the founder prioritizes the verifiable-capture wedge.
+
+---
+
 ## SpacetimeDB Single-Source Compile Target (`@spacetimedb_module`)
 
 **What might be valuable**: One `.holo`/`.hs` source compiling to a SpacetimeDB Rust WASM module (server reducers + table definitions) + TypeScript client subscription SDK simultaneously with the Colyseus/mmo-server targets. SpacetimeDB is the closest industry analogue to HoloScript's single-source authority-split vision — all game state lives in a distributed relational DB, reducers are transactional triggers, and persistence is zero-configuration. The `@reducer` annotation already proposed in `.hs` maps cleanly to SpacetimeDB's reducer model; the `@replicated` fields map to SpacetimeDB table columns. A true multi-backend emit (Colyseus + SpacetimeDB + sovereign mmo-server from one source) would be a uniquely strong PLDI/OOPSLA paper contribution.
@@ -266,3 +274,26 @@ consumes it directly. Secondary constraint: the JS/CPU trainer is too slow for a
 (~313k gaussians × many views) — train a downsampled/subset proof on CPU first (`cameraScaled` exists for
 exactly this), and finish Stage 3 (WGSL backward, started in `splat-train-backward.wgsl`) for fast on-device
 training on the Jetson/fleet.
+
+---
+
+## Multi-endpoint sovereign council fan-out (parallelize reasoning seats across devices)
+
+**What might be valuable**: Cuts sovereign multi-agent reasoning latency dramatically by utilizing aggregate
+local + fleet TOPS instead of one device. The D.100 keystone experiment (2026-06-20) proved a sovereign
+council reasons end-to-end on the Jetson's `brittney-edge` ($0, zero cloud) but ran SERIALLY (~17s/seat,
+~8 min total) because `scripts/council.mjs` points at a single `FLEET_PROVIDER_URL`. A council is
+embarrassingly parallel — seats within a round are independent — so fanning seats across multiple sovereign
+endpoints concurrently collapses a round from N×17s toward one seat's time. This is the throughput half of
+"release cloud Claude/Codex" (memory `direction_release-cloud-frontier-deps.md`): capability proven
+(read→write 5/5, W.804), reasoning mechanism proven (W.808); latency is the residual gap, and it is a
+utilization problem, not a hardware ceiling.
+
+**Why not now**: (1) `council.mjs` is single-endpoint — needs a multi-endpoint seat scheduler (assign
+seat→endpoint, run concurrently, gather). (2) The obvious second node, the founder dev laptop (RTX 3060,
+~204 TOPS), is NOT reliable — verified 2026-06-20 it runs the founder's Quest Link + Chrome at 100% GPU /
+95% VRAM (daily-driver; W.758 retired it from serving for exactly this). So the laptop is
+opportunistic-when-free only; reliable parallel TOPS comes from the Vast fleet (within the $100/day cap,
+F.129) or more dedicated always-on edge nodes (another Jetson / a reasoning box). (3) Also wants a
+CITE-by-ID grounding gate on seats (W.808: 4B seats confabulated citations) so parallel ≠ parallel-garbage.
+Sequence after the `xagi` council-verb build (`task_1782002213705_xagi`).
