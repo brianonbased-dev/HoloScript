@@ -14,7 +14,7 @@
  * backend). Editing the app is a scanner.holo edit — never a hand-edit of generated Kotlin (F.126).
  */
 import type { HoloComposition, HoloObjectTrait, HoloValue } from '../parser/HoloCompositionTypes';
-import { QUEST_MR_TEMPLATES } from './quest-mr-templates.generated';
+import { QUEST_MR_TEMPLATES, QUEST_MR_COMPILED_LOGIC } from './quest-mr-templates.generated';
 
 // ── HoloValue accessors ──────────────────────────────────────────────────────
 type Obj = Record<string, HoloValue>;
@@ -307,6 +307,24 @@ function buildContentWhen(f: QuestMrFeatures): string {
   return arms.join('\n');
 }
 
+/**
+ * The WorldPortal recognition/naming logic, compiled from quest-mr-logic/WorldPortal.logic.hs to
+ * Kotlin via the canonical Rust/WASM grammar (gen-quest-mr-templates.mjs). Trailing newline is
+ * trimmed so the template's `{{WORLDPORTAL_LOGIC}}` (already on its own line) injects cleanly.
+ * Fails loud if the compiled block is missing — a missing block means the build skipped the .hs
+ * compile, which must not silently ship an empty WorldPortal.
+ */
+function worldPortalLogic(): string {
+  const logic = QUEST_MR_COMPILED_LOGIC['WorldPortal'];
+  if (logic == null || logic.trim().length === 0) {
+    throw new Error(
+      'quest-mr-emit: missing compiled WorldPortal logic. Run `node scripts/gen-quest-mr-templates.mjs` ' +
+        'in packages/core after building packages/compiler-wasm (pkg-node).'
+    );
+  }
+  return logic.replace(/\n+$/, '');
+}
+
 /** Replace {{TOKEN}} markers in a .kt.tmpl with feature values. */
 function applyTokens(tmplName: string, f: QuestMrFeatures): string {
   const tmpl = QUEST_MR_TEMPLATES[tmplName];
@@ -332,6 +350,10 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     AUTO_IMMERSE: String(f.autoImmerse),
     CONTENT_WHEN: buildContentWhen(f),
     SCAN_SOUND: String(f.feedbackSound),
+    // Recognition/naming logic compiled from quest-mr-logic/WorldPortal.logic.hs (.hs → Kotlin via
+    // the canonical Rust/WASM grammar). The template owns only the data members + irreducible
+    // stdlib helpers; this is the .hs-authored control flow.
+    WORLDPORTAL_LOGIC: worldPortalLogic(),
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole

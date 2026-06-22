@@ -33,6 +33,7 @@
 //! (full-grammar TS parser) automatically when WASM is unavailable.
 
 mod ast;
+mod kotlin_emit;
 mod lexer;
 mod parser;
 mod token;
@@ -157,6 +158,38 @@ pub fn validate_detailed(source: &str) -> String {
 #[wasm_bindgen]
 pub fn version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Compile the top-level `function`s in a `.hs` source string to Kotlin.
+///
+/// This is the first target-language backend in the crate: it parses `source` with the
+/// canonical `.hs` grammar (the only parser that produces a real logic AST — the TS
+/// parser keeps function bodies as raw strings) and emits Kotlin function declarations
+/// for the `compile_to_quest` target.
+///
+/// # Arguments
+/// * `source` - `.hs` source containing one or more top-level `function` declarations.
+/// * `indent` - leading indentation applied to each emitted function (e.g. `"  "` when
+///   the functions are nested inside a Kotlin `object`).
+///
+/// # Returns
+/// The emitted Kotlin on success, or a JSON error object `{"error": "..."}` on a parse
+/// or emit failure — same convention as [`parse`], so the TS bridge can branch on it.
+#[wasm_bindgen]
+pub fn compile_to_kotlin(source: &str, indent: &str) -> String {
+    match kotlin_emit::compile_source_to_kotlin(source, indent) {
+        Ok(kotlin) => kotlin,
+        Err(e) => serde_json::to_string(&serde_json::json!({ "error": e.message }))
+            .unwrap_or_else(|_| r#"{"error": "Unknown emit error"}"#.to_string()),
+    }
+}
+
+/// Native-only re-export of the Kotlin emitter for tests and the `parser_bench`-style
+/// tooling. NOT exported to WASM.
+#[cfg(not(target_arch = "wasm32"))]
+#[doc(hidden)]
+pub fn __compile_to_kotlin(source: &str, indent: &str) -> Result<String, String> {
+    kotlin_emit::compile_source_to_kotlin(source, indent).map_err(|e| e.message)
 }
 
 #[cfg(test)]
