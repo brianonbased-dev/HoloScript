@@ -7,8 +7,10 @@ import {
   sendEvent,
 } from './traitTestHelpers';
 
-// Mock BoneSystem, IKSolver, AvatarController
-vi.mock('@holoscript/engine/animation/BoneSystem', () => ({
+// All animation subpaths (@holoscript/engine/animation/*) resolve to the same barrel file
+// (dist/animation/index.js) via the package.json exports map. Mock the barrel once with
+// all needed exports; separate per-class mocks conflict because they target the same module.
+vi.mock('@holoscript/engine/animation', () => ({
   BoneSystem: class MockBoneSystem {
     bones = new Map();
     addBone = vi.fn();
@@ -17,25 +19,8 @@ vi.mock('@holoscript/engine/animation/BoneSystem', () => ({
     setLocalTransform = vi.fn();
     updateWorldTransforms = vi.fn();
   },
-}));
-
-vi.mock('@holoscript/engine/animation/IKSolver', () => ({
   IKSolver: class MockIKSolver {
     chains = new Map();
-    addChain = vi.fn();
-    solve = vi.fn();
-  },
-}));
-
-vi.mock('@holoscript/engine/animation/AvatarController', () => ({
-  BoneSystem: class MockBoneSystemFromAvatarModule {
-    addBone = vi.fn();
-    getBone = vi.fn().mockReturnValue({ local: { tx: 0, ty: 0, tz: 0 } });
-    getChain = vi.fn().mockReturnValue(['LeftArm', 'LeftForeArm']);
-    setLocalTransform = vi.fn();
-    updateWorldTransforms = vi.fn();
-  },
-  IKSolver: class MockIKSolverFromAvatarModule {
     addChain = vi.fn();
     solve = vi.fn();
   },

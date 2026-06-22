@@ -6,9 +6,8 @@
  */
 
 import type { TraitHandler } from '@holoscript/core';
-import { BoneSystem, BoneTransform } from '@holoscript/engine/animation/BoneSystem';
-import { IKSolver } from '@holoscript/engine/animation/IKSolver';
-import { AvatarController } from '@holoscript/engine/animation/AvatarController';
+import { BoneSystem, IKSolver, AvatarController } from '@holoscript/engine/animation';
+import type { BoneTransform } from '@holoscript/engine/animation';
 
 export interface NetworkedAvatarConfig {
   /** Peer ID of the avatar owner */
