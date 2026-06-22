@@ -86,6 +86,38 @@ export interface DrawSpec {
   modelMatrix: Float32Array;
 }
 
+/**
+ * Skinned mesh geometry as pure data (no GPU). One palette (bone) index + one weight per
+ * vertex — rigid per-bone linear-blend skinning for the procedural body; a future glTF/VRM
+ * importer can populate up to 4 influences by extending these to be stride-N.
+ */
+export interface SkinnedMeshData {
+  // Typed as <ArrayBuffer> (not ArrayBufferLike) so they satisfy GPUAllowSharedBufferSource
+  // at device.queue.writeBuffer — matches PrimitiveMesh in primitive-mesh.ts.
+  positions: Float32Array<ArrayBuffer>;
+  normals: Float32Array<ArrayBuffer>;
+  indices: Uint32Array<ArrayBuffer>;
+  jointIndices: Uint32Array<ArrayBuffer>;
+  jointWeights: Float32Array<ArrayBuffer>;
+  vertexCount: number;
+}
+
+/**
+ * Pure-data CHARACTER draw spec — kept SEPARATE from the primitive `DrawSpec` so the
+ * existing primitive render path is untouched (premortem regression guard). The native
+ * WebGPU character renderer uploads the mesh + the per-frame joint-matrix palette and skins
+ * on-GPU. `jointMatrices` = jointCount × 16 column-major floats (skin = worldPose · invBind).
+ */
+export interface CharacterDrawSpec {
+  entityId: string;
+  mesh: SkinnedMeshData;
+  jointMatrices: Float32Array<ArrayBuffer>;
+  jointCount: number;
+  material: MaterialSpec;
+  /** Column-major 4x4 root placement matrix (world position/orientation of the figure). */
+  modelMatrix: Float32Array;
+}
+
 const GEOMETRY_KIND: Record<number, GeometryKind> = {
   [GeometryType.Cube]: 'cube',
   [GeometryType.Sphere]: 'sphere',

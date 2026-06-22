@@ -73,6 +73,8 @@ export * as Combat from './combat';
 export * as Dialogue from './dialogue';
 export * as Gameplay from './gameplay';
 export * as Character from './character';
+// Native-WebGPU character rendering (D.094 entity-generic body → GPU-skinned pixels)
+export * as CharacterRender from './character-render';
 
 // Spatial infrastructure subsystem (A.011.01i)
 export * as ECS from './ecs';
