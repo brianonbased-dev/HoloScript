@@ -1,6 +1,6 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-06-21T19:10:00Z | Next review: 2026-07-21
+> Generated: 2026-06-22T19:05:08Z | Next review: 2026-07-21
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
@@ -200,10 +200,12 @@ HoloScript MCP has 215+ tools vs Babylon's scene-inspection-only plugin. Babylon
 
 **Evidence:**
 - docs/strategy/battlecards/babylon-js-9.md
+- Babylon.js 9.13.0 official release notes: Gaussian Splatting streaming/LOD work continued across core, inspector, and loaders; GPU picker depth point and normal support landed in core.
 - packages/core/src/compiler/BabylonCompiler.ts
 
 **Sources:**
 - docs/strategy/battlecards/babylon-js-9.md
+- https://github.com/BabylonJS/Babylon.js/releases/tag/9.13.0
 - packages/core/src/compiler/BabylonCompiler.ts
 
 ### CG-040 — Three.js/R3F developer community not yet aware HoloScript compiles to their stack
@@ -310,10 +312,12 @@ HoloScript MCP server exists at mcp.holoscript.net with 215+ tools. Not yet publ
 **Evidence:**
 - docs/strategy/battlecards/cursor.md
 - mcp.holoscript.net — live MCP server
+- Cursor 3.8 official changelog: Automations now add /automate setup, GitHub and Slack triggers, marketplace templates for failed-action triage and PR-review autofix, and computer use for cloud agents.
 - docs/guides/agent-mcp-quickstart.md
 
 **Sources:**
 - docs/strategy/battlecards/cursor.md
+- https://cursor.com/changelog
 - docs/guides/agent-mcp-quickstart.md
 
 ### CG-032 — HoloScript can become the cross-hardware semantic evidence layer competitors do not provide
