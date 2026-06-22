@@ -104,7 +104,13 @@ public final class MainActivity extends Activity implements GLSurfaceView.Render
         super.onCreate(savedInstanceState);
         sweepDir = new File(getExternalFilesDir(null), "sweep");
         framesDir = new File(sweepDir, "frames");
-        deleteRec(sweepDir);
+        // Preserve any prior capture instead of wiping it — the user may sweep the room several times
+        // and want them ALL kept (each is archived as sweep_<epochMs>; `sweep` is always the latest, so
+        // the host pull path is unchanged). Only wipe if the archive rename fails.
+        if (sweepDir.exists()) {
+            File archive = new File(getExternalFilesDir(null), "sweep_" + System.currentTimeMillis());
+            if (!sweepDir.renameTo(archive)) deleteRec(sweepDir);
+        }
         framesDir.mkdirs();
 
         FrameLayout root = new FrameLayout(this);
