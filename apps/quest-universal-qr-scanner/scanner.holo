@@ -44,6 +44,11 @@ composition "UniversalQrScanner" {
       decode_interval_ms: 200
       dedupe_window_ms: 2500
 
+      // Scan feedback — a short confirmation beep on every decode (non-visual cue). Compiles to a
+      // ToneGenerator call in StarterSampleActivity. (Haptics aren't reliable from a headset app, so
+      // the cue is audible; the visual success card already animates on a hit.)
+      feedback: { sound: true }
+
       // Universal content classification — the DATA the compiler turns into the on-device
       // classifyContent() Kotlin (StarterSampleActivity.kt). Each row: a content kind, the primary
       // action (open = launch in the Quest browser; copy = copy to clipboard), the result-card label,

@@ -62,6 +62,7 @@ export interface QuestMrFeatures {
   centerCropH: number;
   decodeIntervalMs: number;
   dedupeWindowMs: number;
+  feedbackSound: boolean; // qr_decode.feedback.sound — beep on decode
   title: string;
   tagline: string;
   howTo: QuestHowTo[];
@@ -111,6 +112,7 @@ function defaults(): QuestMrFeatures {
     centerCropH: 480,
     decodeIntervalMs: 200,
     dedupeWindowMs: 2500,
+    feedbackSound: true,
     title: 'Universal QR Scanner',
     tagline: 'Read any QR code — right in mixed reality',
     howTo: [],
@@ -188,6 +190,7 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.centerCropH = vnum(crop.height, f.centerCropH);
           f.decodeIntervalMs = vnum(c.decode_interval_ms, f.decodeIntervalMs);
           f.dedupeWindowMs = vnum(c.dedupe_window_ms, f.dedupeWindowMs);
+          f.feedbackSound = vbool(vobj(c.feedback).sound, f.feedbackSound);
           // Universal content classification table → on-device classifyContent() when-arms.
           const cts = varr(c.content_types)
             .map((row) => {
@@ -328,6 +331,7 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     LINK_PATTERNS: 'listOf(' + f.worldLinkPatterns.map((p) => kstr(p)).join(', ') + ')',
     AUTO_IMMERSE: String(f.autoImmerse),
     CONTENT_WHEN: buildContentWhen(f),
+    SCAN_SOUND: String(f.feedbackSound),
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole

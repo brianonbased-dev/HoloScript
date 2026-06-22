@@ -9,6 +9,8 @@ package {{PKG}}
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -50,6 +52,12 @@ class StarterSampleActivity : AppSystemActivity() {
   private val worldRenderer = WorldRenderer() // builds/tears down the themed 3D world while immersed
   private var smoothPose: Pose? = null // last head-locked panel pose, eased toward the head each tick
   private var sceneReady = false
+
+  // Audible scan feedback (scanner.holo @qr_decode.feedback.sound): a short confirmation beep on every
+  // decode so the user gets a non-visual cue even before they look at the result card. A reused
+  // ToneGenerator (no audio asset needed); released in onSpatialShutdown.
+  private val scanSound = {{SCAN_SOUND}}
+  private var toneGen: ToneGenerator? = null
 
   // Custom continuous MMO locomotion: the player rig's accumulated world position + heading, integrated
   // each tick from the thumbstick DIRECTION bits on the Controller component (ButtonBits) — the SDK's
@@ -178,6 +186,7 @@ class StarterSampleActivity : AppSystemActivity() {
   private fun onDecoded(text: String) {
     Log.i(tag, "decoded: $text")
     controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
+    if (scanSound) playScanTone() // audible confirmation cue (config: @qr_decode.feedback.sound)
     // A HoloScript world link takes precedence (its own @world_portal patterns) — auto-immerse or offer
     // an "Enter world" card.
     if (WorldPortal.isWorldLink(text)) {
@@ -340,6 +349,16 @@ class StarterSampleActivity : AppSystemActivity() {
     }
   }
 
+  /** A short confirmation beep on a successful decode (reuses one ToneGenerator). */
+  private fun playScanTone() {
+    try {
+      val tg = toneGen ?: ToneGenerator(AudioManager.STREAM_MUSIC, 80).also { toneGen = it }
+      tg.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+    } catch (e: Exception) {
+      Log.w(tag, "scan tone failed: ${e.message}")
+    }
+  }
+
   /** Copy a non-link result (Wi-Fi, contact, text, …) to the clipboard so the user can use it. */
   private fun copyToClipboard(text: String) {
     try {
@@ -374,6 +393,8 @@ class StarterSampleActivity : AppSystemActivity() {
   override fun onSpatialShutdown() {
     controller?.stop()
     controller = null
+    toneGen?.release()
+    toneGen = null
     super.onSpatialShutdown()
   }
 
