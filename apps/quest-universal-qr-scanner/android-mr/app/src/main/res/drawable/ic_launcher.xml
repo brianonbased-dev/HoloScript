@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- @generated from scanner.holo by the quest compiler — edit the spec, not here. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#101418" android:pathData="M0,0h108v108h-108z" />
+    <path android:fillColor="#9FE2BF" android:fillType="evenOdd" android:pathData="M16,16h26v26h-26z M23,23h12v12h-12z" />
+    <path android:fillColor="#9FE2BF" android:fillType="evenOdd" android:pathData="M66,16h26v26h-26z M73,23h12v12h-12z" />
+    <path android:fillColor="#9FE2BF" android:fillType="evenOdd" android:pathData="M16,66h26v26h-26z M23,73h12v12h-12z" />
+    <path android:fillColor="#9FE2BF" android:pathData="M52,18h8v8h-8z M52,34h8v8h-8z M18,52h8v8h-8z M34,52h8v8h-8z M52,52h8v8h-8z" />
+    <path android:fillColor="#7FD8FF" android:pathData="M79,62l17,17l-17,17l-17,-17z" />
+    <path android:fillColor="#101418" android:pathData="M79,72l7,7l-7,7l-7,-7z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M79,75l4,4l-4,4l-4,-4z" />
+</vector>

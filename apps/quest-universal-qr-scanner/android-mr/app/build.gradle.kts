@@ -4,6 +4,10 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+// @generated from scanner.holo by the quest compiler — edit the spec, not here.
+
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -11,6 +15,14 @@ plugins {
   alias(libs.plugins.meta.spatial.plugin)
   alias(libs.plugins.compose.compiler)
 }
+
+// Signing: read from keystore.properties (gitignored) OR env vars (CI). Never commit a keystore (F.106).
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+  if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
+}
+fun signingValue(propKey: String, envKey: String): String? =
+  keystoreProps.getProperty(propKey) ?: System.getenv(envKey)
 
 android {
   namespace = "net.holoscript.qrscanner"
@@ -24,7 +36,7 @@ android {
     //noinspection OldTargetApi,ExpiredTargetSdkVersion
     targetSdk = 34
     versionCode = 1
-    versionName = "1.0"
+    versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -34,15 +46,29 @@ android {
 
   packaging { resources.excludes.add("META-INF/LICENSE") }
 
+  signingConfigs {
+    create("release") {
+      val storePath = signingValue("storeFile", "KEYSTORE_FILE")
+      if (storePath != null) {
+        storeFile = file(storePath)
+        storePassword = signingValue("storePassword", "KEYSTORE_PASSWORD")
+        keyAlias = signingValue("keyAlias", "KEY_ALIAS")
+        keyPassword = signingValue("keyPassword", "KEY_PASSWORD")
+      }
+    }
+  }
+
   lint {
     abortOnError = false
-    checkReleaseBuilds = false
+    checkReleaseBuilds = true
   }
 
   buildTypes {
     release {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      val rel = signingConfigs.getByName("release")
+      if (rel.storeFile != null) signingConfig = rel
     }
   }
   buildFeatures {

@@ -16,6 +16,15 @@ composition "UniversalQrScanner" {
     target_devices: ["quest3", "quest3s"]
     min_horizon_os: 76
     package: "net.holoscript.qrscanner"
+    icon: {
+      background: "#101418"
+      qr_color:   "#9FE2BF"
+      holo_color: "#7FD8FF"
+    }
+    version: {
+      code: 1
+      name: "1.0.0"
+    }
   }
 
   // Passthrough camera frame source — trait: PassthroughCameraTrait.

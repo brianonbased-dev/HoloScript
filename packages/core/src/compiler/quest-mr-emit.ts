@@ -85,6 +85,13 @@ export interface QuestMrFeatures {
   fallbackKind: string;
   fallbackAction: string;
   fallbackLabel: string;
+  // environment.icon — launcher icon colors (the @generated ic_launcher.xml vector).
+  iconBackground: string;
+  iconQrColor: string;
+  iconHoloColor: string;
+  // environment.version — Horizon Store version (manifest + app build.gradle.kts).
+  versionCode: number;
+  versionName: string;
 }
 
 function defaults(): QuestMrFeatures {
@@ -148,6 +155,11 @@ function defaults(): QuestMrFeatures {
     fallbackKind: 'text',
     fallbackAction: 'copy',
     fallbackLabel: 'Text',
+    iconBackground: '#101418',
+    iconQrColor: '#9FE2BF',
+    iconHoloColor: '#7FD8FF',
+    versionCode: 1,
+    versionName: '1.0.0',
   };
 }
 
@@ -168,6 +180,17 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
 
   const env = composition.environment?.properties ?? [];
   f.packageName = vstr(env.find((p) => p.key === 'package')?.value as HoloValue, f.packageName);
+
+  // environment.icon — launcher icon colors (→ @generated ic_launcher.xml vector).
+  const iconObj = vobj(env.find((p) => p.key === 'icon')?.value as HoloValue);
+  f.iconBackground = vstr(iconObj.background, f.iconBackground);
+  f.iconQrColor = vstr(iconObj.qr_color, f.iconQrColor);
+  f.iconHoloColor = vstr(iconObj.holo_color, f.iconHoloColor);
+
+  // environment.version — Horizon Store version (→ manifest + app build.gradle.kts).
+  const versionObj = vobj(env.find((p) => p.key === 'version')?.value as HoloValue);
+  f.versionCode = vnum(versionObj.code, f.versionCode);
+  f.versionName = vstr(versionObj.name, f.versionName);
 
   for (const obj of composition.objects ?? []) {
     for (const t of (obj.traits ?? []) as HoloObjectTrait[]) {
@@ -278,6 +301,10 @@ const PANEL_REL = `${SRC_DIR}/ScannerPanel.kt`;
 const ACTIVITY_REL = `${SRC_DIR}/StarterSampleActivity.kt`;
 const WORLDPORTAL_REL = `${SRC_DIR}/WorldPortal.kt`;
 const WORLDRENDERER_REL = `${SRC_DIR}/WorldRenderer.kt`;
+// Signed-release + Horizon-submission artifacts (MR paths are app/...-relative).
+const ICON_REL = 'app/src/main/res/drawable/ic_launcher.xml';
+const GRADLE_REL = 'app/build.gradle.kts';
+const MANIFEST_REL = 'app/src/main/AndroidManifest.xml';
 
 const kstr = (s: string): string =>
   '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$') + '"';
@@ -489,6 +516,261 @@ export const emitWorldPortalKt = (f: QuestMrFeatures): string =>
 export const emitWorldRendererKt = (f: QuestMrFeatures): string =>
   applyTokens('WorldRenderer.kt.tmpl', f);
 
+/**
+ * @generated ic_launcher.xml — the launcher icon vector drawable. Colors come from
+ * scanner.holo's environment.icon (background / qr_color / holo_color); the literal white
+ * highlight in the holo glyph is an intrinsic accent, not a spec color.
+ */
+export function emitIcLauncherXml(f: QuestMrFeatures): string {
+  return `<?xml version="1.0" encoding="utf-8" ?>
+<!-- @generated from scanner.holo by the quest compiler — edit the spec, not here. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="${f.iconBackground}" android:pathData="M0,0h108v108h-108z" />
+    <path android:fillColor="${f.iconQrColor}" android:fillType="evenOdd" android:pathData="M16,16h26v26h-26z M23,23h12v12h-12z" />
+    <path android:fillColor="${f.iconQrColor}" android:fillType="evenOdd" android:pathData="M66,16h26v26h-26z M73,23h12v12h-12z" />
+    <path android:fillColor="${f.iconQrColor}" android:fillType="evenOdd" android:pathData="M16,66h26v26h-26z M23,73h12v12h-12z" />
+    <path android:fillColor="${f.iconQrColor}" android:pathData="M52,18h8v8h-8z M52,34h8v8h-8z M18,52h8v8h-8z M34,52h8v8h-8z M52,52h8v8h-8z" />
+    <path android:fillColor="${f.iconHoloColor}" android:pathData="M79,62l17,17l-17,17l-17,-17z" />
+    <path android:fillColor="${f.iconBackground}" android:pathData="M79,72l7,7l-7,7l-7,-7z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M79,75l4,4l-4,4l-4,-4z" />
+</vector>
+`;
+}
+
+/**
+ * @generated app/build.gradle.kts — the Meta Spatial SDK app module build script with a signed-release
+ * config. Reproduces the committed Meta-sample build (all plugins, the Spatial SDK deps, spatial{} /
+ * buildFeatures{} / composeOptions{}) with the store-readiness changes wired in: versionCode/Name from
+ * the spec, a signingConfigs.create("release") that reads keystore.properties (gitignored) OR env vars,
+ * and signingConfig applied to the release buildType ONLY when a keystore is present (so debug builds
+ * with no keystore still work). Mirrors QuestCompiler.ts:312-368. Never commit a keystore (F.106).
+ */
+export function emitAppBuildGradle(f: QuestMrFeatures): string {
+  return `/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+// @generated from scanner.holo by the quest compiler — edit the spec, not here.
+
+import java.io.FileInputStream
+import java.util.Properties
+
+plugins {
+  alias(libs.plugins.android.application)
+  alias(libs.plugins.jetbrains.kotlin.android)
+  alias(libs.plugins.meta.spatial.plugin)
+  alias(libs.plugins.compose.compiler)
+}
+
+// Signing: read from keystore.properties (gitignored) OR env vars (CI). Never commit a keystore (F.106).
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+  if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
+}
+fun signingValue(propKey: String, envKey: String): String? =
+  keystoreProps.getProperty(propKey) ?: System.getenv(envKey)
+
+android {
+  namespace = "net.holoscript.qrscanner"
+  //noinspection GradleDependency
+  compileSdk = 34
+
+  defaultConfig {
+    applicationId = "net.holoscript.qrscanner"
+    minSdk = 34
+    // HorizonOS is Android 14 (API level 34)
+    //noinspection OldTargetApi,ExpiredTargetSdkVersion
+    targetSdk = 34
+    versionCode = ${f.versionCode}
+    versionName = "${f.versionName}"
+
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    // Update the ndkVersion to the right version for your app
+    // ndkVersion = "27.0.12077973"
+  }
+
+  packaging { resources.excludes.add("META-INF/LICENSE") }
+
+  signingConfigs {
+    create("release") {
+      val storePath = signingValue("storeFile", "KEYSTORE_FILE")
+      if (storePath != null) {
+        storeFile = file(storePath)
+        storePassword = signingValue("storePassword", "KEYSTORE_PASSWORD")
+        keyAlias = signingValue("keyAlias", "KEY_ALIAS")
+        keyPassword = signingValue("keyPassword", "KEY_PASSWORD")
+      }
+    }
+  }
+
+  lint {
+    abortOnError = false
+    checkReleaseBuilds = true
+  }
+
+  buildTypes {
+    release {
+      isMinifyEnabled = false
+      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      val rel = signingConfigs.getByName("release")
+      if (rel.storeFile != null) signingConfig = rel
+    }
+  }
+  buildFeatures {
+    compose = true
+    buildConfig = true
+  }
+  composeOptions { kotlinCompilerExtensionVersion = "1.5.15" }
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
+  kotlinOptions { jvmTarget = "17" }
+}
+
+//noinspection UseTomlInstead
+dependencies {
+  implementation(libs.androidx.core.ktx)
+  testImplementation(libs.junit)
+  androidTestImplementation(libs.androidx.junit)
+  androidTestImplementation(libs.androidx.espresso.core)
+
+  // compose
+  implementation(libs.androidx.activity.compose)
+  implementation(platform(libs.androidx.compose.bom))
+  implementation(libs.androidx.ui)
+  implementation(libs.androidx.ui.graphics)
+  implementation(libs.androidx.material3)
+  implementation(libs.androidx.ui.tooling.preview)
+  debugImplementation(libs.androidx.ui.tooling)
+
+  // QR decode — pure-Java ZXing (GMS-free; Quest has no Google Play Services)
+  implementation("com.google.zxing:core:3.5.3")
+
+  // Meta Spatial SDK libs
+  implementation(libs.meta.spatial.sdk.base)
+  implementation(libs.meta.spatial.sdk.compose)
+  implementation(libs.meta.spatial.sdk.ovrmetrics)
+  implementation(libs.meta.spatial.sdk.toolkit)
+  implementation(libs.meta.spatial.sdk.vr)
+  implementation(libs.meta.spatial.sdk.isdk)
+  implementation(libs.meta.spatial.sdk.castinputforward)
+  implementation(libs.meta.spatial.sdk.hotreload)
+  implementation(libs.meta.spatial.sdk.datamodelinspector)
+  implementation(libs.meta.spatial.sdk.uiset)
+}
+
+spatial {
+  // No Spatial Editor scene export — the scanner builds its UI programmatically (passthrough MR
+  // + a Compose panel placed via Entity.create(Panel + Transform)), so it needs no .metaspatial
+  // CLI export. This keeps the build CLI-free (the Spatial Editor desktop app is not installed here).
+  allowUsageDataCollection.set(true)
+}
+`;
+}
+
+/**
+ * @generated AndroidManifest.xml — the Horizon-submission manifest. Reproduces the committed Meta-sample
+ * manifest with the store-readiness changes: versionCode/Name from the spec, android:icon on
+ * <application>, supportedDevices = quest3|quest3s, PASSTHROUGH required, and the launcher activity
+ * excluded from recents. Everything else (permissions, features, meta-data, the horizonos sdk tag, the
+ * VR-category intent-filter) is byte-identical to the reference.
+ */
+export function emitAndroidManifestXml(f: QuestMrFeatures): string {
+  return `<?xml version="1.0" encoding="utf-8" ?>
+<!-- @generated from scanner.holo by the quest compiler — edit the spec, not here. -->
+<manifest
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:horizonos="http://schemas.horizonos/sdk"
+  android:versionCode="${f.versionCode}"
+  android:versionName="${f.versionName}"
+  android:installLocation="auto"
+>
+
+  <horizonos:uses-horizonos-sdk
+    horizonos:minSdkVersion="69"
+    horizonos:targetSdkVersion="69"
+  />
+  <!-- Tell the system this app works in either 3dof or 6dof mode -->
+  <uses-feature
+    android:name="android.hardware.vr.headtracking"
+    android:required="true"
+  />
+  <uses-feature
+    android:name="oculus.software.handtracking"
+    android:required="false"
+  />
+  <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
+  <!-- Tell the system this app can render passthrough -->
+  <uses-feature
+    android:name="com.oculus.feature.PASSTHROUGH"
+    android:required="true"
+  />
+  <!-- Tell the system this app uses the virtual keyboard extensions -->
+  <uses-feature
+    android:name="com.oculus.feature.VIRTUAL_KEYBOARD"
+    android:required="false"
+  />
+  <uses-feature android:glEsVersion="0x00030001" />
+  <uses-feature
+    android:name="oculus.software.overlay_keyboard"
+    android:required="false"
+  />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Passthrough camera for QR scanning (Camera2 PCA, Horizon OS v76+) -->
+  <uses-permission android:name="horizonos.permission.HEADSET_CAMERA" />
+  <uses-feature android:name="android.hardware.camera2.any" android:required="false" />
+  <uses-feature
+    android:name="com.oculus.feature.RENDER_MODEL"
+    android:required="false"
+  />
+  <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
+  <!-- Volume Control -->
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+  <application android:allowBackup="false" android:icon="@drawable/ic_launcher" android:label="@string/app_name">
+    <meta-data
+      android:name="com.oculus.supportedDevices"
+      android:value="quest3|quest3s"
+    />
+    <meta-data
+      android:name="com.oculus.handtracking.version"
+      android:value="V2.0"
+    />
+    <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
+    <uses-native-library
+      android:name="libossdk.oculus.so"
+      android:required="true"
+    />
+    <!--
+      Prevents activity recreation when configuration changes (e.g., detachable keyboard
+      attach/detach, screen rotation). This allows the app to handle these events gracefully
+      without restarting the activity.
+      See: https://developer.android.com/develop/ui/compose/quick-guides/content/manage-detachable-keyboards
+    -->
+    <activity
+      android:name="net.holoscript.qrscanner.StarterSampleActivity"
+      android:launchMode="singleTask"
+      android:excludeFromRecents="true"
+      android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
+      android:exported="true"
+    >
+      <!-- This filter lets the apk show up as a launchable icon. -->
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="com.oculus.intent.category.VR" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>
+`;
+}
+
 /** All emitted MR files, keyed by android-mr-relative path. */
 export function emitQuestMrFiles(composition?: HoloComposition): Record<string, string> {
   const f = collectQuestMrFeatures(composition);
@@ -509,5 +791,9 @@ export function emitQuestMrFiles(composition?: HoloComposition): Record<string, 
     [ACTIVITY_REL]: emitStarterSampleActivityKt(f),
     [WORLDPORTAL_REL]: emitWorldPortalKt(f),
     [WORLDRENDERER_REL]: emitWorldRendererKt(f),
+    // Signed-release + Horizon-submission artifacts (icon, app build, manifest).
+    [ICON_REL]: emitIcLauncherXml(f),
+    [GRADLE_REL]: emitAppBuildGradle(f),
+    [MANIFEST_REL]: emitAndroidManifestXml(f),
   };
 }

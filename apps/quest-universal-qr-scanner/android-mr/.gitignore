@@ -2,6 +2,7 @@
 keystore.properties
 *.keystore
 *.jks
+*.p12
 local.properties
 
 # Build output
