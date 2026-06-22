@@ -18,7 +18,7 @@
 | G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
 | G5 | cognitive ⇄ spatial via `SceneSnapshot` | both VMs exist; not joined in the canonical compile path | ⚠️ |
 | G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter only landed 2026-06-21; TS parser can't parse `.hs` logic (HSP101) | ⚠️ young |
-| G7 | declarative trait/brain authoring is native | native annotation ≈ **1.32%** of traits; ~88% of declared traits have no runtime handler | ⚠️ |
+| G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate — real packages-scoped coverage **22.63%** (162 native vs 554 hand-TS), must rise/hold; replaces the unverified "1.32%" paper figure | ✅ |
 | G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
 | G9 | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending | ✅⚠️ **partial** |
 
@@ -108,15 +108,26 @@ target. Generalize beyond the current subset (loops/structs/mutable-state still 
 
 ## G7 — Make native-authoring coverage a tracked, rising gate
 
-1.32% of traits are natively annotated; the rest are hand-TS. This is the D.104 metric (TS must
-push `.hsplus`). Without a gate it stays a footnote.
+TS capability must dissolve INTO native authoring (`.hsplus`/`.holo`/`.hs`), not grow as TS. This
+is the D.104 metric. Without a gate it stays a footnote — and the only figure that ever circulated
+("1.32% native trait annotation", 37/2801) was an **unverified paper claim with no code computing
+it** (a fitting irony for this whole thread). The gate replaces it with a real number from the tree.
 
-- **Falsifiable claim:** a check reports `native_authored / total` per surface and fails CI if it
-  drops release-over-release.
-- **Real seam:** a `check:native-coverage` script + HoloCI wiring (this is *measurement of the
-  language*, D.101-compatible).
-- **Failing-if-broken evidence:** the check itself (red when coverage regresses).
-- **Scope/blast:** new check script + CI config. Regression: none (reporting).
+- **Falsifiable claim:** a check reports `native / (native + hand-TS-traits)` over `packages/` and
+  fails CI if either the native count or the ratio drops below a committed baseline.
+- **Real seam:** a `check:native-coverage` script + `package.json` `check:*` entry (HoloCI runs
+  these); D.101-compatible (it is *measurement of the language*).
+- **Failing-if-broken evidence:** the check itself (red on regression) + a pure-node test
+  asserting the metric is real, the baseline is honest, and a simulated drop exits 1.
+- **Scope/blast:** new check script + baseline + test + package.json entries. Regression: none.
+- **STATUS — SHIPPED 2026-06-22.** `scripts/holo-ci/check-native-coverage.mjs` +
+  `native-coverage-baseline.json` + `scripts/__tests__/check-native-coverage.test.mjs` (9/9 pass).
+  Real packages-scoped baseline: **native 162** (.hsplus 24 / .holo 137 / .hs 1) vs **hand-TS
+  traits 554** = **22.63%**. (Note `.hs` = 1 in packages — the `.hs` logic format is barely used
+  yet, consistent with G6.) `package.json`: `check:native-coverage`, `:update`,
+  `check:native-coverage-test`. The gate fails if native count or ratio drops — coverage can only
+  rise or hold. **Pre-commit Gate wiring** (a `.githooks/pre-commit` block like Gate 5e) is an
+  optional follow-up; the `check:*` entry is the CI hook.
 
 ## G9 — Fleet agents communicate as uAAL peers *(Jetson / laptop / Vast)*
 
