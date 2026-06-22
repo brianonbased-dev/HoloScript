@@ -35,6 +35,7 @@ import {
   type Mat4,
   type Quat,
 } from './skin-math';
+import { gaitPose, type GaitMode } from './gait';
 
 export interface CharacterHostOptions {
   /** Entity id — drives deterministic accent colour + world-state driver binding (D.094). */
@@ -95,6 +96,14 @@ export class CharacterHost {
   /** Set a single bone's local rotation (e.g. raise an arm). */
   setBoneRotation(bone: string, rotation: Quat): void {
     this.pose.set(bone, rotation);
+  }
+
+  /**
+   * Drive the skeletal pose from a locomotion gait at time `t` (seconds). Replaces the pose
+   * with a walk/run stride cycle or an idle rest (modes track `LocomotionConfig.mode`).
+   */
+  applyLocomotion(mode: GaitMode, t: number, speed = 1.4): void {
+    this.pose = gaitPose(mode, t, speed);
   }
 
   /** Place the figure at a world position (yaw 0). */

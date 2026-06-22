@@ -36,4 +36,6 @@ export {
   type CharacterRenderOptions,
 } from './character-render';
 
+export { gaitPose, type GaitMode, type AvatarPoseMap } from './gait';
+
 export * as SkinMath from './skin-math';

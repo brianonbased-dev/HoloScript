@@ -88,6 +88,16 @@ export function quatFromAxisAngle(ax: number, ay: number, az: number, rad: numbe
 
 export const IDENTITY_QUAT: Quat = { x: 0, y: 0, z: 0, w: 1 };
 
+/** Hamilton product a·b (apply b, then a — same convention as matrix multiply). */
+export function quatMultiply(a: Quat, b: Quat): Quat {
+  return {
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+  };
+}
+
 /** Transform a point (w=1) by a column-major matrix. */
 export function transformPoint(m: Mat4, x: number, y: number, z: number): Vec3 {
   return {

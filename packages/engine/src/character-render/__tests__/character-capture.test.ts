@@ -75,7 +75,13 @@ describe('character-capture — viewable PNG proof', () => {
     const posed = await renderCharacter(testDevice!, host.getDrawSpec(), { size: 256 });
     writeFileSync(resolve(outDir, 'brittney-posed.png'), encodePNG(posed));
 
+    // Locomotion: a mid-stride walk frame.
+    host.applyLocomotion('walk', 0.45);
+    const walk = await renderCharacter(testDevice!, host.getDrawSpec(), { size: 256 });
+    writeFileSync(resolve(outDir, 'brittney-walk.png'), encodePNG(walk));
+
     expect(bind.data.length).toBe(256 * 256 * 4);
     expect(posed.data.length).toBe(256 * 256 * 4);
+    expect(walk.data.length).toBe(256 * 256 * 4);
   });
 });
