@@ -20,13 +20,37 @@
  * @version 1.0.0
  */
 
-import type { WebGPUContext } from './WebGPUContext.js';
-
 // Import WGSL shader source as strings (bundler handles this)
 // For environments without bundler support, these are loaded via fetch
 import radixSortWGSL from './shaders/radix-sort.wgsl?raw';
 import splatCompressWGSL from './shaders/splat-compress.wgsl?raw';
 import splatRenderSortedWGSL from './shaders/splat-render-sorted.wgsl?raw';
+
+// WebGPU flag values as numeric literals (the WebGPU spec fixes these). Using literals instead
+// of the `GPUBufferUsage`/`GPUShaderStage` global constructors lets the sorter be built from a
+// bare GPUDevice in environments where those globals are not installed (e.g. a headless Dawn
+// test device) — the same global-availability-free convention as native-render/character-render.
+const BUF_COPY_SRC = 0x0004;
+const BUF_COPY_DST = 0x0008;
+const BUF_UNIFORM = 0x0040;
+const BUF_STORAGE = 0x0080;
+const SHADER_COMPUTE = 0x4;
+
+/** Safe preferred render format — `navigator.gpu.getPreferredCanvasFormat()` when available. */
+function defaultRenderFormat(): GPUTextureFormat {
+  const gpu = (globalThis as { navigator?: { gpu?: GPU } }).navigator?.gpu;
+  return gpu?.getPreferredCanvasFormat ? gpu.getPreferredCanvasFormat() : 'bgra8unorm';
+}
+
+/**
+ * Minimal device provider — the sorter only needs `getDevice()`. A full `WebGPUContext`
+ * structurally satisfies this interface, so existing callers are unaffected. `fromDevice()`
+ * uses it to drive the sorter from a bare GPUDevice (a headless Dawn test device, or a device
+ * shared with the character renderer) without constructing a WebGPUContext.
+ */
+export interface SplatDeviceProvider {
+  getDevice(): GPUDevice;
+}
 
 // =============================================================================
 // Types
@@ -50,6 +74,13 @@ export interface GaussianSplatSorterOptions {
 
   /** Canvas height for projection calculations */
   canvasHeight: number;
+
+  /**
+   * Color-attachment format the render pipeline targets. Defaults to the preferred canvas format
+   * (browser) or `bgra8unorm` (headless). Set to match the offscreen texture when rendering to a
+   * render-to-texture target (e.g. `rgba8unorm` for the headless readback verification floor).
+   */
+  renderFormat?: GPUTextureFormat;
 }
 
 export interface SplatSortStats {
@@ -110,7 +141,7 @@ const BYTES_PER_RAW_SPLAT = 64; // vec3 pos + vec3 scale + vec4 rot + vec4 color
 // =============================================================================
 
 export class GaussianSplatSorter {
-  private context: WebGPUContext;
+  private context: SplatDeviceProvider;
   private device: GPUDevice;
   private options: Required<GaussianSplatSorterOptions>;
 
@@ -155,7 +186,7 @@ export class GaussianSplatSorter {
   private blockCount: number = 0;
   private initialized: boolean = false;
 
-  constructor(context: WebGPUContext, options: GaussianSplatSorterOptions) {
+  constructor(context: SplatDeviceProvider, options: GaussianSplatSorterOptions) {
     this.context = context;
     this.device = context.getDevice();
     this.options = {
@@ -165,7 +196,18 @@ export class GaussianSplatSorter {
       enableTimestamps: options.enableTimestamps ?? false,
       canvasWidth: options.canvasWidth,
       canvasHeight: options.canvasHeight,
+      renderFormat: options.renderFormat ?? defaultRenderFormat(),
     };
+  }
+
+  /**
+   * Build a sorter from a bare GPUDevice (no WebGPUContext). For headless render-to-texture
+   * (the Dawn verification floor) and for sharing one device with the character renderer so a
+   * skinned mesh and a Gaussian-splat variant can composite into the same frame. Call
+   * `await sorter.initialize()` before use, exactly as with the constructor.
+   */
+  static fromDevice(device: GPUDevice, options: GaussianSplatSorterOptions): GaussianSplatSorter {
+    return new GaussianSplatSorter({ getDevice: () => device }, options);
   }
 
   // ===========================================================================
@@ -261,13 +303,13 @@ export class GaussianSplatSorter {
     const sortBindGroupLayout = this.device.createBindGroupLayout({
       label: 'radix-sort-bind-group-layout',
       entries: [
-        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
-        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
-        { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
-        { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
-        { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
-        { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
-        { binding: 6, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+        { binding: 0, visibility: SHADER_COMPUTE, buffer: { type: 'uniform' } },
+        { binding: 1, visibility: SHADER_COMPUTE, buffer: { type: 'read-only-storage' } },
+        { binding: 2, visibility: SHADER_COMPUTE, buffer: { type: 'storage' } },
+        { binding: 3, visibility: SHADER_COMPUTE, buffer: { type: 'read-only-storage' } },
+        { binding: 4, visibility: SHADER_COMPUTE, buffer: { type: 'storage' } },
+        { binding: 5, visibility: SHADER_COMPUTE, buffer: { type: 'storage' } },
+        { binding: 6, visibility: SHADER_COMPUTE, buffer: { type: 'storage' } },
       ],
     });
     this.sortBindGroupLayout = sortBindGroupLayout;
@@ -338,7 +380,7 @@ export class GaussianSplatSorter {
         entryPoint: 'fs_main',
         targets: [
           {
-            format: navigator.gpu.getPreferredCanvasFormat(),
+            format: this.options.renderFormat,
             blend: {
               // Premultiplied alpha blending (back-to-front)
               color: {
@@ -380,14 +422,14 @@ export class GaussianSplatSorter {
     this.rawSplatBuffer = this.device.createBuffer({
       label: 'raw-splats',
       size: maxSplats * BYTES_PER_RAW_SPLAT,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      usage: BUF_STORAGE | BUF_COPY_DST,
     });
 
     // Compressed splat buffer
     this.compressedSplatBuffer = this.device.createBuffer({
       label: 'compressed-splats',
       size: maxSplats * BYTES_PER_COMPRESSED_SPLAT,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      usage: BUF_STORAGE | BUF_COPY_DST,
     });
 
     // Double-buffered sort key/value pairs (ping-pong between passes)
@@ -401,33 +443,33 @@ export class GaussianSplatSorter {
     this.blockHistogramsBuffer = this.device.createBuffer({
       label: 'block-histograms',
       size: maxBlocks * RADIX_SIZE * 4,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      usage: BUF_STORAGE | BUF_COPY_DST,
     });
 
     // Global prefix sums: RADIX_SIZE * sizeof(u32)
     this.globalPrefixesBuffer = this.device.createBuffer({
       label: 'global-prefixes',
       size: RADIX_SIZE * 4,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      usage: BUF_STORAGE | BUF_COPY_DST,
     });
 
     // Uniform buffers
     this.compressUniformBuffer = this.device.createBuffer({
       label: 'compress-uniforms',
       size: 160, // 2 * mat4x4 (128) + 4 floats (16) + 4 u32 (16) = 160
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      usage: BUF_UNIFORM | BUF_COPY_DST,
     });
 
     this.sortUniformBuffer = this.device.createBuffer({
       label: 'sort-uniforms',
       size: 16, // totalCount (4) + bitOffset (4) + blockCount (4) + pad (4)
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      usage: BUF_UNIFORM | BUF_COPY_DST,
     });
 
     this.renderUniformBuffer = this.device.createBuffer({
       label: 'render-uniforms',
       size: 160, // viewProj (64) + view (64) + camPos (12) + 5 floats (20)
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      usage: BUF_UNIFORM | BUF_COPY_DST,
     });
   }
 
@@ -435,7 +477,7 @@ export class GaussianSplatSorter {
     return this.device.createBuffer({
       label,
       size,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+      usage: BUF_STORAGE | BUF_COPY_DST | BUF_COPY_SRC,
     });
   }
 

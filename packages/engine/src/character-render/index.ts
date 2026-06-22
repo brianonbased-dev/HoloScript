@@ -58,6 +58,15 @@ export {
   type CharacterRenderOptions,
 } from './character-render';
 
+// Render "Part 2" — native WebGPU Gaussian-splat variant (photoreal mesh/skin upgrade route).
+export {
+  renderSplats,
+  packRawSplats,
+  defaultSplatCamera,
+  type RawSplatInput,
+  type SplatRenderOptions,
+} from '../native-render/splat-render';
+
 export {
   detectSupport,
   composeEyeViewProj,
