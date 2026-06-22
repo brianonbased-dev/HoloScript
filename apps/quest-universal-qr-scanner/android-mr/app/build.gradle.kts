@@ -13,12 +13,12 @@ plugins {
 }
 
 android {
-  namespace = "com.meta.spatial.samples.startersample"
+  namespace = "net.holoscript.qrscanner"
   //noinspection GradleDependency
   compileSdk = 34
 
   defaultConfig {
-    applicationId = "com.meta.spatial.samples.startersample"
+    applicationId = "net.holoscript.qrscanner"
     minSdk = 34
     // HorizonOS is Android 14 (API level 34)
     //noinspection OldTargetApi,ExpiredTargetSdkVersion

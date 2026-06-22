@@ -213,7 +213,11 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
 }
 
 // ── Emit ─────────────────────────────────────────────────────────────────────
-export const PKG = 'com.meta.spatial.samples.startersample';
+// The emitted app package = scanner.holo's `environment.package`. This const is the single source
+// the scanner + world emit share; the parser reads the declaration into `f.packageName` (see :141)
+// and emitQuestMrFiles asserts they match, so scanner.holo's declaration is AUTHORITATIVE — the emit
+// refuses to drift from it (a Horizon Store ships its own id, never Meta's sample namespace).
+export const PKG = 'net.holoscript.qrscanner';
 const SRC_DIR = `app/src/main/java/${PKG.replace(/\./g, '/')}`;
 const GEN_REL = `${SRC_DIR}/ScannerContent.kt`;
 const STRINGS_REL = 'app/src/main/res/values/strings.xml';
@@ -335,6 +339,14 @@ export const emitWorldRendererKt = (f: QuestMrFeatures): string =>
 /** All emitted MR files, keyed by android-mr-relative path. */
 export function emitQuestMrFiles(composition?: HoloComposition): Record<string, string> {
   const f = collectQuestMrFeatures(composition);
+  // scanner.holo's `environment.package` is authoritative: the emit refuses to drift from the
+  // declaration. (PKG is the shared source for the scanner + world file paths/packages.)
+  if (f.packageName !== PKG) {
+    throw new Error(
+      `quest-mr-emit: scanner.holo declares package "${f.packageName}" but the emitter PKG is "${PKG}". ` +
+        `Update PKG (compiler) to match the .holo declaration — the declaration drives the Meta app id.`
+    );
+  }
   return {
     [GEN_REL]: emitScannerContentKt(f),
     [STRINGS_REL]: emitStringsXml(f),

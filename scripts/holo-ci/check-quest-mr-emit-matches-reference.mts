@@ -27,7 +27,7 @@ import { parseOrDie, runGoldenDiffGate } from './build-verify/golden-diff.mts';
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'quest-universal-qr-scanner');
 const specPath = join(appDir, 'scanner.holo');
-const srcRel = 'app/src/main/java/com/meta/spatial/samples/startersample';
+const srcRel = 'app/src/main/java/net/holoscript/qrscanner';
 
 /** Quest MR emit = scanner.holo (trait-dispatch) + worlds/*.holo → Meta Spatial SDK scene Kotlin. */
 function emit(): Record<string, string> {

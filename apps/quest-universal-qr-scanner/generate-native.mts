@@ -19,7 +19,7 @@ import {
 const here = dirname(fileURLToPath(import.meta.url));
 const specPath = join(here, 'scanner.holo');
 const refDir = join(here, 'android-mr');
-const srcRel = 'app/src/main/java/com/meta/spatial/samples/startersample';
+const srcRel = 'app/src/main/java/net/holoscript/qrscanner';
 
 function parse(file: string) {
   const r = new HoloCompositionParser().parse(readFileSync(file, 'utf8'));

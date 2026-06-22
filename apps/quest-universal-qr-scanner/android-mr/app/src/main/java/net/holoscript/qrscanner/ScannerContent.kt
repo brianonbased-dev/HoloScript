@@ -1,4 +1,4 @@
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 /*
  * @generated from scanner.holo by the quest compiler (compile_to_quest, surface: immersive_mr).

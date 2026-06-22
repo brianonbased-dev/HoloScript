@@ -30,7 +30,7 @@ import { runBuildVerifyGate } from './build-verify/build-verify.mts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'quest-universal-qr-scanner');
-const srcRel = 'app/src/main/java/com/meta/spatial/samples/startersample';
+const srcRel = 'app/src/main/java/net/holoscript/qrscanner';
 
 import { readFileSync } from 'node:fs';
 function parse(file: string, label: string) {

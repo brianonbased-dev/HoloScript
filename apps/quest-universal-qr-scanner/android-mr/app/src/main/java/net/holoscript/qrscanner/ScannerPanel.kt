@@ -10,7 +10,7 @@
  *  - SCANNING shows only a small "Scanning… / Menu" pill (the rest transparent) so the user keeps
  *    working; a real read pops a full RESULT card, then it returns to the pill.
  */
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import android.graphics.Bitmap
 import androidx.compose.animation.core.LinearEasing

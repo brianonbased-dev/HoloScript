@@ -5,7 +5,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

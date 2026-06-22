@@ -1,4 +1,4 @@
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap

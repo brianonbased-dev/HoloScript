@@ -9,7 +9,7 @@
  * the simulation / character-action layer. A skybox entity occludes passthrough; that, plus
  * enablePassthrough(false) in the activity, is what makes "entering a world" replace the real room.
  */
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import android.net.Uri
 import com.meta.spatial.core.Color4

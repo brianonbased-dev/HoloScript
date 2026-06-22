@@ -1,4 +1,4 @@
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import android.net.Uri
 import com.meta.spatial.core.Color4

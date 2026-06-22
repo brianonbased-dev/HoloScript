@@ -10,7 +10,7 @@
  * Pure recognition/naming logic; the immerse transition lives in StarterSampleActivity (enter/leave)
  * and the in-world HUD in ScannerPanel. AUTO_IMMERSE selects auto-enter vs. an "Enter world" card.
  */
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 object WorldPortal {
   /** Decoded-QR prefixes that mark a world link (from scanner.holo's world_portal.link_patterns). */

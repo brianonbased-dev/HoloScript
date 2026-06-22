@@ -1,4 +1,4 @@
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import android.content.Context
 import android.graphics.ImageFormat

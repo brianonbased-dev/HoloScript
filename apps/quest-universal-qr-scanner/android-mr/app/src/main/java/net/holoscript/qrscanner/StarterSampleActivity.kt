@@ -5,7 +5,7 @@
  * Universal QR Scanner — immersive Meta Spatial SDK (MR) app. Passthrough MR + a programmatic Compose
  * spatial panel; the passthrough Camera2 feed is decoded with ZXing and results drive the panel.
  */
-package com.meta.spatial.samples.startersample
+package net.holoscript.qrscanner
 
 import android.content.Intent
 import android.content.pm.PackageManager

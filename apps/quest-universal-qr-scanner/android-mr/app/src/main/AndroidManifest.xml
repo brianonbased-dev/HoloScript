@@ -68,7 +68,7 @@
       See: https://developer.android.com/develop/ui/compose/quick-guides/content/manage-detachable-keyboards
     -->
     <activity
-      android:name="com.meta.spatial.samples.startersample.StarterSampleActivity"
+      android:name="net.holoscript.qrscanner.StarterSampleActivity"
       android:launchMode="singleTask"
       android:excludeFromRecents="false"
       android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
