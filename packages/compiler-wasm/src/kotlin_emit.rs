@@ -15,11 +15,20 @@
 //! - `return <expr>` / bare `return`           → Kotlin `return <expr>` / `return`
 //! - expressions: binary / unary / call / member / index / literals / identifiers
 //!
-//! Type policy: `.hs` logic functions are untyped. For the Quest logic surface every
-//! parameter is a `String` and the return type is inferred (`Boolean` when the function
-//! only ever returns boolean-shaped expressions, otherwise `String`). This is a
+//! Type policy: `.hs` logic functions are untyped. For the Quest logic surface the return
+//! type is inferred (`Boolean` when the function only ever returns boolean-shaped
+//! expressions; `Float` when it only ever returns numeric-shaped expressions; otherwise
+//! `String`), and each parameter is typed by usage (`Float` when it participates in
+//! arithmetic or is passed to a numeric builtin like `sqrt`, otherwise `String`). This is a
 //! deliberately small, predictable inference — the emitter's contract is "behaviourally
 //! matches the hand-Kotlin", verified by golden I/O parity, not byte-identity.
+//!
+//! Numeric subset (added for the Quest locomotion math, authored in `.hs`): numeric literals
+//! emit with the Kotlin `Float` `f` suffix; `+ - * /` arithmetic is re-parenthesized from the
+//! parsed precedence so grouping survives (the parser discards parentheses, keeping only the
+//! precedence-correct tree — the emitter must restore the parentheses the math needs); and a
+//! `.hs` `sqrt(x)` call maps to Kotlin `kotlin.math.sqrt(x)`. Statefulness, SDK/host calls, and
+//! loops stay in the Kotlin shell — only pure single-assignment math lives in `.hs`.
 //!
 //! Anything outside the subset (loops, the behavioural `move`/`action`/`on_*` blocks,
 //! object-graph nodes) is skipped at the top level and reported via
@@ -48,18 +57,20 @@ impl std::fmt::Display for KotlinEmitError {
     }
 }
 
-/// Inferred Kotlin return type for an emitted function.
+/// Inferred Kotlin type for an emitted function's return or a parameter.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RetType {
+enum ValType {
     Str,
     Bool,
+    Float,
 }
 
-impl RetType {
+impl ValType {
     fn kotlin(self) -> &'static str {
         match self {
-            RetType::Str => "String",
-            RetType::Bool => "Boolean",
+            ValType::Str => "String",
+            ValType::Bool => "Boolean",
+            ValType::Float => "Float",
         }
     }
 }
@@ -106,7 +117,7 @@ fn emit_function(
     let ret = infer_return_type(body);
     let param_list = params
         .iter()
-        .map(|p| format!("{}: String", p))
+        .map(|p| format!("{}: {}", p, infer_param_type(p, body).kotlin()))
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -132,16 +143,94 @@ fn emit_function(
     Ok(out)
 }
 
-/// Infer the Kotlin return type: `Boolean` if every `return` carries a boolean-shaped
-/// expression (and at least one does), otherwise `String`. The conservative default of
-/// `String` matches the Quest logic surface where naming functions dominate.
-fn infer_return_type(body: &[AstNode]) -> RetType {
+/// Infer the Kotlin return type from the function's `return` expressions:
+/// `Boolean` if every return is boolean-shaped, `Float` if every return is numeric-shaped
+/// (and at least one return exists in each case), otherwise `String`. The conservative
+/// default of `String` matches the Quest naming functions; the `Float` branch carries the
+/// locomotion math. Booleans are checked first so a comparison never reads as numeric.
+fn infer_return_type(body: &[AstNode]) -> ValType {
     let mut returns: Vec<&AstNode> = Vec::new();
     collect_returns(body, &mut returns);
-    if !returns.is_empty() && returns.iter().all(|n| is_boolean_expr(n)) {
-        RetType::Bool
+    if returns.is_empty() {
+        return ValType::Str;
+    }
+    if returns.iter().all(|n| is_boolean_expr(n)) {
+        ValType::Bool
+    } else if returns.iter().all(|n| is_numeric_expr(n)) {
+        ValType::Float
     } else {
-        RetType::Str
+        ValType::Str
+    }
+}
+
+/// Infer a parameter's Kotlin type by how the function body uses it: `Float` when the
+/// parameter participates in arithmetic (`+ - * /`), is the argument of a numeric builtin
+/// (`sqrt`), or is returned by a `Float`-returning function; otherwise `String`. This is the
+/// numeric analogue of the existing all-`String` policy — a `.hs` logic function is pure
+/// single-assignment, so a parameter used arithmetically anywhere is numeric everywhere.
+fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
+    if body_uses_param_numerically(param, body) {
+        ValType::Float
+    } else {
+        ValType::Str
+    }
+}
+
+/// Walk every statement/expression in `body` looking for a numeric use of `param`.
+fn body_uses_param_numerically(param: &str, body: &[AstNode]) -> bool {
+    body.iter().any(|n| stmt_uses_param_numerically(param, n))
+}
+
+fn stmt_uses_param_numerically(param: &str, node: &AstNode) -> bool {
+    match node {
+        AstNode::Property(p) => expr_uses_param_numerically(param, &p.value),
+        AstNode::Return(r) => r
+            .argument
+            .as_ref()
+            .is_some_and(|a| expr_uses_param_numerically(param, a)),
+        AstNode::If(if_node) => {
+            expr_uses_param_numerically(param, &if_node.test)
+                || body_uses_param_numerically(param, &if_node.consequent)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alt| body_uses_param_numerically(param, alt))
+        }
+        AstNode::CallExpression(_)
+        | AstNode::MemberExpression(_)
+        | AstNode::BinaryExpression(_)
+        | AstNode::UnaryExpression(_) => expr_uses_param_numerically(param, node),
+        _ => false,
+    }
+}
+
+/// Is `param` used in a numeric position anywhere inside `node`? A numeric position is: an
+/// operand of an arithmetic operator, the operand of a unary `-`, or an argument to `sqrt`.
+fn expr_uses_param_numerically(param: &str, node: &AstNode) -> bool {
+    let direct_hit = |operand: &AstNode| matches!(operand, AstNode::Identifier(id) if id.name == param);
+    match node {
+        AstNode::BinaryExpression(b) => {
+            let arithmetic = matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%");
+            (arithmetic && (direct_hit(&b.left) || direct_hit(&b.right)))
+                || expr_uses_param_numerically(param, &b.left)
+                || expr_uses_param_numerically(param, &b.right)
+        }
+        AstNode::UnaryExpression(u) => {
+            (u.operator == "-" && direct_hit(&u.argument))
+                || expr_uses_param_numerically(param, &u.argument)
+        }
+        AstNode::CallExpression(c) => {
+            let is_sqrt = matches!(c.callee.as_ref(), AstNode::Identifier(id) if id.name == "sqrt");
+            (is_sqrt && c.arguments.iter().any(direct_hit))
+                || c.arguments
+                    .iter()
+                    .any(|a| expr_uses_param_numerically(param, a))
+        }
+        AstNode::MemberExpression(m) => {
+            expr_uses_param_numerically(param, &m.object)
+                || expr_uses_param_numerically(param, &m.property)
+        }
+        _ => false,
     }
 }
 
@@ -174,6 +263,25 @@ fn is_boolean_expr(node: &AstNode) -> bool {
             b.operator.as_str(),
             "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||"
         ),
+        _ => false,
+    }
+}
+
+/// Is this expression numeric-shaped? A numeric literal, a unary `-`, an arithmetic binary
+/// operator (`+ - * /` / `%`), or a `sqrt(...)` builtin call all read as `Float`. Used only
+/// for return-type inference. Plain identifiers are NOT numeric on their own — a function that
+/// just returns a parameter is conservatively `String` unless arithmetic forces `Float`,
+/// which keeps the existing naming functions unchanged.
+fn is_numeric_expr(node: &AstNode) -> bool {
+    match node {
+        AstNode::Number(_) => true,
+        AstNode::UnaryExpression(u) => u.operator == "-",
+        AstNode::BinaryExpression(b) => {
+            matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%")
+        }
+        AstNode::CallExpression(c) => {
+            matches!(c.callee.as_ref(), AstNode::Identifier(id) if id.name == "sqrt")
+        }
         _ => false,
     }
 }
@@ -232,20 +340,29 @@ fn emit_statement(
 fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
     match node {
         AstNode::String(s) => Ok(emit_string_literal(&s.value)),
-        AstNode::Number(n) => Ok(n.raw.clone()),
+        AstNode::Number(n) => Ok(emit_float_literal(&n.raw)),
         AstNode::Boolean(b) => Ok(b.value.to_string()),
         AstNode::Null(_) => Ok("null".to_string()),
         AstNode::Identifier(id) => Ok(id.name.clone()),
         AstNode::BinaryExpression(b) => {
+            // The parser discards parentheses, keeping only a precedence-correct tree. To emit
+            // Kotlin that means the SAME thing, re-parenthesize: wrap a child whose operator binds
+            // LOOSER than this one, and wrap the right child of a left-associative operator when it
+            // shares this precedence (so `a - (b - c)` and `(a + b) * c` survive intact).
+            let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator);
-            Ok(format!(
-                "{} {} {}",
-                emit_expr(&b.left)?,
-                op,
-                emit_expr(&b.right)?
-            ))
+            let left = emit_operand(&b.left, parent, false)?;
+            let right = emit_operand(&b.right, parent, true)?;
+            Ok(format!("{} {} {}", left, op, right))
         }
-        AstNode::UnaryExpression(u) => Ok(format!("{}{}", u.operator, emit_expr(&u.argument)?)),
+        AstNode::UnaryExpression(u) => {
+            // Parenthesize a binary argument so `-(a + b)` / `!(a && b)` keep their grouping.
+            let arg = match u.argument.as_ref() {
+                AstNode::BinaryExpression(_) => format!("({})", emit_expr(&u.argument)?),
+                _ => emit_expr(&u.argument)?,
+            };
+            Ok(format!("{}{}", u.operator, arg))
+        }
         AstNode::MemberExpression(m) => {
             let object = emit_expr(&m.object)?;
             if m.computed {
@@ -259,7 +376,13 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
             }
         }
         AstNode::CallExpression(c) => {
-            let callee = emit_expr(&c.callee)?;
+            // A bare `sqrt(x)` call maps to the Kotlin stdlib `kotlin.math.sqrt(x)` so the
+            // gaze-length math can be authored in `.hs` instead of kept in the Kotlin shell.
+            // Member-call forms (e.g. `x.trim()`) pass through unchanged.
+            let callee = match c.callee.as_ref() {
+                AstNode::Identifier(id) => map_builtin_call(&id.name).to_string(),
+                other => emit_expr(other)?,
+            };
             let args = c
                 .arguments
                 .iter()
@@ -291,6 +414,59 @@ fn map_binary_operator(op: &str) -> &str {
     match op {
         "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||" => op,
         _ => op,
+    }
+}
+
+/// Map a bare `.hs` builtin call name to its Kotlin equivalent. `sqrt` → `kotlin.math.sqrt`;
+/// every other identifier callee passes through unchanged (it is a local helper the shell
+/// defines, e.g. `matchedPattern`).
+fn map_builtin_call(name: &str) -> &str {
+    match name {
+        "sqrt" => "kotlin.math.sqrt",
+        other => other,
+    }
+}
+
+/// Binding strength of a binary operator, higher = binds tighter. Mirrors the parser's
+/// precedence ladder (logical < equality < comparison < additive < multiplicative) so the
+/// emitter can restore exactly the parentheses the parsed tree implies. Non-binary nodes are
+/// treated as atoms (highest precedence) by the callers, so they never get wrapped.
+fn precedence(op: &str) -> u8 {
+    match op {
+        "||" => 1,
+        "&&" => 2,
+        "==" | "!=" => 3,
+        "<" | ">" | "<=" | ">=" => 4,
+        "+" | "-" => 5,
+        "*" | "/" | "%" => 6,
+        _ => 7,
+    }
+}
+
+/// Emit one operand of a binary expression, wrapping it in parentheses when its own operator
+/// binds looser than the parent (`is_right` additionally forces a wrap at EQUAL precedence so
+/// the right child of a left-associative operator — `a - (b - c)`, `a / (b / c)` — is not
+/// silently reassociated). Atoms (identifiers, literals, calls, members, unary) never wrap.
+fn emit_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, KotlinEmitError> {
+    let emitted = emit_expr(node)?;
+    if let AstNode::BinaryExpression(b) = node {
+        let child = precedence(&b.operator);
+        if child < parent || (is_right && child == parent) {
+            return Ok(format!("({})", emitted));
+        }
+    }
+    Ok(emitted)
+}
+
+/// Emit a numeric literal as a Kotlin `Float` (the `.hs` numeric subset is Float-only — the
+/// Quest locomotion math runs in Float). The `.hs` lexer never carries an `f`/`F` suffix, so we
+/// append one; an exponent form (`1e3`) keeps the exponent and still gets the suffix. Already
+/// having a trailing `f`/`F` (defensive) is left untouched.
+fn emit_float_literal(raw: &str) -> String {
+    if raw.ends_with('f') || raw.ends_with('F') {
+        raw.to_string()
+    } else {
+        format!("{}f", raw)
     }
 }
 
@@ -431,5 +607,138 @@ mod tests {
 }"#;
         let out = kotlin(src);
         assert!(out.contains("): String {"), "{out}");
+    }
+
+    // ── Numeric subset (locomotion math) ──────────────────────────────────────────────────
+
+    #[test]
+    fn infers_float_return_and_float_params_for_arithmetic() {
+        let src = r#"function newYaw(yaw, turn, turnSpeed, dt) {
+  return yaw + turn * turnSpeed * dt
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains(
+                "fun newYaw(yaw: Float, turn: Float, turnSpeed: Float, dt: Float): Float {"
+            ),
+            "{out}"
+        );
+        assert!(out.contains("return yaw + turn * turnSpeed * dt"), "{out}");
+    }
+
+    #[test]
+    fn emits_float_literal_with_f_suffix() {
+        let src = r#"function half(x) {
+  return x * 0.5
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return x * 0.5f"), "{out}");
+        assert!(out.contains("fun half(x: Float): Float {"), "{out}");
+    }
+
+    #[test]
+    fn emits_integer_literal_as_float() {
+        let src = r#"function inc(x) {
+  return x + 1
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return x + 1f"), "{out}");
+    }
+
+    #[test]
+    fn reparenthesizes_sum_times_factor() {
+        // The parser discards the parens but keeps a precedence-correct tree; the emitter must
+        // restore them so `(a + b) * c` does NOT collapse to `a + b * c`.
+        let src = r#"function f(a, b, c) {
+  return (a + b) * c
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return (a + b) * c"), "{out}");
+    }
+
+    #[test]
+    fn does_not_overparenthesize_factor_plus_factor() {
+        // `a * b + c * d` needs NO parens — multiplication already binds tighter than addition.
+        let src = r#"function f(a, b, c, d) {
+  return a * b + c * d
+}"#;
+        let out = kotlin(src);
+        // Assert on the body line only (the `f(...)` signature legitimately contains parens).
+        assert!(out.contains("return a * b + c * d"), "{out}");
+        let body = out.lines().find(|l| l.contains("return")).unwrap_or("");
+        assert!(!body.contains("("), "should not add spurious parens to body: {body}");
+    }
+
+    #[test]
+    fn reparenthesizes_right_associative_subtraction() {
+        // `a - (b - c)` must keep its parens — left-assoc `-` would otherwise reassociate.
+        let src = r#"function f(a, b, c) {
+  return a - (b - c)
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return a - (b - c)"), "{out}");
+    }
+
+    #[test]
+    fn left_associative_subtraction_needs_no_parens() {
+        let src = r#"function f(a, b, c) {
+  return a - b - c
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return a - b - c"), "{out}");
+        let body = out.lines().find(|l| l.contains("return")).unwrap_or("");
+        assert!(!body.contains("("), "no parens for naturally-left-assoc form: {body}");
+    }
+
+    #[test]
+    fn maps_sqrt_to_kotlin_math_sqrt() {
+        let src = r#"function gazeLen(fx, fz) {
+  return sqrt(fx * fx + fz * fz)
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("return kotlin.math.sqrt(fx * fx + fz * fz)"),
+            "{out}"
+        );
+        assert!(out.contains("fun gazeLen(fx: Float, fz: Float): Float {"), "{out}");
+    }
+
+    #[test]
+    fn unary_minus_on_param_is_float() {
+        let src = r#"function rightX(fz) {
+  return -fz
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun rightX(fz: Float): Float {"), "{out}");
+        assert!(out.contains("return -fz"), "{out}");
+    }
+
+    #[test]
+    fn position_integration_full_expression() {
+        // The real locomotion position-integration formula: every grouping must survive.
+        let src = r#"function newX(x, fwd, fx, strafe, rx, moveSpeed, dt) {
+  return x + (fwd * fx + strafe * rx) * moveSpeed * dt
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("return x + (fwd * fx + strafe * rx) * moveSpeed * dt"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn string_logic_still_emits_string_params_and_return() {
+        // Regression: the numeric inference must not disturb the existing naming functions.
+        let src = r#"function pick(text) {
+  let seg = text.trim()
+  if (seg == "") {
+    return "world"
+  } else {
+    return seg
+  }
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun pick(text: String): String {"), "{out}");
+        assert!(!out.contains("Float"), "no Float in string logic: {out}");
     }
 }

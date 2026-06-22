@@ -325,6 +325,34 @@ function worldPortalLogic(): string {
   return logic.replace(/\n+$/, '');
 }
 
+/**
+ * The continuous-locomotion integration MATH, compiled from quest-mr-logic/Locomotion.logic.hs to
+ * Kotlin via the canonical Rust/WASM grammar (gen-quest-mr-templates.mjs). The compiled functions
+ * (newYaw / gazeLength / normalize / groundRightX / newX / newZ — all pure Float math) are injected
+ * into StarterSampleActivity.kt.tmpl's `{{LOCOMOTION_LOGIC}}` marker (a private `Locomotion` object
+ * on the activity); the Kotlin shell's updateLocomotion() reads the stick inputs + the SDK gaze pose
+ * and calls these for ALL arithmetic. Fails loud if missing — a missing block means the build skipped
+ * the .hs compile, which must not silently ship un-compiled (hand-Kotlin) locomotion math.
+ */
+function locomotionLogic(): string {
+  const logic = QUEST_MR_COMPILED_LOGIC['Locomotion'];
+  if (logic == null || logic.trim().length === 0) {
+    throw new Error(
+      'quest-mr-emit: missing compiled Locomotion logic. Run `node scripts/gen-quest-mr-templates.mjs` ' +
+        'in packages/core after building packages/compiler-wasm (pkg-node).'
+    );
+  }
+  // The logic is compiled at 2-space indent (object-member depth). Unlike WorldPortal — a TOP-level
+  // object — Locomotion is nested inside the activity class, so its members sit one level deeper.
+  // Re-indent each non-blank line by two more spaces so the emitted object reads cleanly; blank
+  // lines stay blank. (Kotlin is whitespace-insensitive — this is purely for readable output.)
+  return logic
+    .replace(/\n+$/, '')
+    .split('\n')
+    .map((line) => (line.length === 0 ? line : '  ' + line))
+    .join('\n');
+}
+
 /** Replace {{TOKEN}} markers in a .kt.tmpl with feature values. */
 function applyTokens(tmplName: string, f: QuestMrFeatures): string {
   const tmpl = QUEST_MR_TEMPLATES[tmplName];
@@ -354,6 +382,9 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     // the canonical Rust/WASM grammar). The template owns only the data members + irreducible
     // stdlib helpers; this is the .hs-authored control flow.
     WORLDPORTAL_LOGIC: worldPortalLogic(),
+    // Continuous-locomotion integration math compiled from quest-mr-logic/Locomotion.logic.hs
+    // (.hs → Kotlin). The activity shell owns the state + SDK calls; this is the .hs-authored math.
+    LOCOMOTION_LOGIC: locomotionLogic(),
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole

@@ -286,7 +286,8 @@ class StarterSampleActivity : AppSystemActivity() {
 
     val moveSpeed = 2.6f // m/s — brisk MMO walk
     val turnSpeed = 90f // deg/s smooth comfort turn (right stick), on top of physical/room turning
-    if (turn != 0f) playerYaw += turn * turnSpeed * dt
+    // Heading integration is .hs-authored math (Locomotion.newYaw); the shell only owns the state.
+    if (turn != 0f) playerYaw = Locomotion.newYaw(playerYaw, turn, turnSpeed, dt)
 
     if (fwd != 0f || strafe != 0f) {
       // HEAD-RELATIVE movement: walk where you LOOK, not along a fixed rig yaw. (Rig-relative makes a
@@ -294,21 +295,34 @@ class StarterSampleActivity : AppSystemActivity() {
       // 1 m in front of the head minus the head position, flattened to the ground — the same
       // getViewerPose().times(...) pattern the head-locked HUD uses. getViewerPose already includes the
       // rig yaw set below, so movement stays consistent after a stick turn.
+      //
+      // The SDK Pose subtraction below is the ONE thing that can't be expressed in .hs (its operands
+      // are SDK Vector3 fields); everything downstream — gaze length, normalization, the ground-right
+      // axis, and the position integration — is .hs-authored math (Locomotion.*).
       val head = scene.getViewerPose()
       val ahead = head.times(Pose(Vector3(0f, 0f, 1f)))
-      var fx = ahead.t.x - head.t.x
-      var fz = ahead.t.z - head.t.z
-      val len = kotlin.math.sqrt(fx * fx + fz * fz)
+      val rawFx = ahead.t.x - head.t.x
+      val rawFz = ahead.t.z - head.t.z
+      val len = Locomotion.gazeLength(rawFx, rawFz)
       if (len > 1e-4f) {
-        fx /= len
-        fz /= len
-        val rx = -fz // ground-right = gaze-forward rotated 90°
-        val rz = fx
-        playerX += (fwd * fx + strafe * rx) * moveSpeed * dt
-        playerZ += (fwd * fz + strafe * rz) * moveSpeed * dt
+        val fx = Locomotion.normalize(rawFx, len)
+        val fz = Locomotion.normalize(rawFz, len)
+        val rx = Locomotion.groundRightX(fz) // ground-right.x = -fz (gaze-forward rotated 90°)
+        val rz = fx // ground-right.z = fx — a pure identity copy, so no .hs function (see Locomotion)
+        playerX = Locomotion.newX(playerX, fwd, fx, strafe, rx, moveSpeed, dt)
+        playerZ = Locomotion.newZ(playerZ, fwd, fz, strafe, rz, moveSpeed, dt)
       }
     }
     scene.setViewOrigin(playerX, 0f, playerZ, playerYaw)
+  }
+
+  // ── @generated from logic/Locomotion.logic.hs (compile_to_kotlin) ───────────────────────────
+  // Pure single-assignment Float math for continuous MMO locomotion. The activity shell above owns
+  // ALL state (playerX/playerZ/playerYaw, lastLocoNanos) and EVERY SDK/host call; this object is the
+  // .hs-authored arithmetic it integrates with. Change logic/Locomotion.logic.hs and recompile —
+  // never hand-edit here.
+  private object Locomotion {
+{{LOCOMOTION_LOGIC}}
   }
 
   // Leave the world: tear down the 3D world and restore passthrough scanning.

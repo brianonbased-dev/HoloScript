@@ -77,6 +77,10 @@ impl<'a> Lexer<'a> {
             // Numbers
             '0'..='9' => self.read_number(),
             '-' if self.peek_next().is_some_and(|c| c.is_ascii_digit()) => self.read_number(),
+            // Bare `-` (not a negative-number prefix): the subtraction / unary-negation operator.
+            // Needed for the numeric `.hs` logic subset (arithmetic `a - b`, ground-right `rx = -fz`).
+            // The parser already understands `TokenType::Minus` as both binary and prefix-unary.
+            '-' => self.single_char_token(TokenType::Minus, "-"),
 
             // Traits
             '@' => self.read_trait(),
