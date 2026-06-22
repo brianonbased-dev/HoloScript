@@ -1976,6 +1976,7 @@ async function main(): Promise<void> {
         'flat-semantic',
         'web-2d',
         'scm-dag',
+        'uaal',
       ];
 
       if (!validTargets.includes(target)) {
@@ -2054,6 +2055,29 @@ async function main(): Promise<void> {
         const outputPath = path.resolve(options.output || 'index.mjs');
         writeCompileOutputFile(outputPath, compiled.code);
         console.log(`\n\x1b[32m✓ Pipeline compiled to Node.js module: ${outputPath}\x1b[0m\n`);
+        process.exit(0);
+      }
+
+      // uAAL cognitive bytecode (G4): .holo behavior -> UaalBehaviorCompiler -> .uaal
+      if (target === 'uaal') {
+        const { HoloCompositionParser, UaalBehaviorCompiler } = await import('@holoscript/core');
+        const parseResult = new HoloCompositionParser().parse(content);
+        if (!parseResult.success || !parseResult.ast) {
+          console.error('\x1b[31mError: failed to parse source for --target uaal (expects a .holo composition).\x1b[0m');
+          for (const err of parseResult.errors || []) {
+            console.error(`  - ${typeof err === 'string' ? err : JSON.stringify(err)}`);
+          }
+          process.exit(1);
+        }
+        const { bytecode, stats } = new UaalBehaviorCompiler().compile(parseResult.ast);
+        const outputPath = path.resolve(options.output || 'out.uaal');
+        writeCompileOutputFile(outputPath, JSON.stringify(bytecode, null, 2));
+        const deferred = Object.keys(stats.unhandled);
+        console.log(`\n\x1b[32m✓ Compiled to UAAL bytecode: ${outputPath}\x1b[0m`);
+        console.log(
+          `  ${stats.instructions} instructions · ${stats.executeCalls} calls · ${stats.branches} branches` +
+            (deferred.length ? ` · deferred: ${deferred.join(', ')}` : '')
+        );
         process.exit(0);
       }
 

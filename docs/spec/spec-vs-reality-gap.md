@@ -15,7 +15,7 @@
 | G1 | `.holo → bytecode → VM → render` | `HolobCompiler` + `holo-vm` (2,996 LOC), e2e-tested to pixels | ✅ |
 | G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` 1,666 LOC, alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
 | G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **slice 1 bridged**: `UaalBehaviorCompiler` lowers the behavioral subset (actions/handlers + if/else) to UAAL bytecode, e2e-tested on the real VM; loops deferred | ✅⚠️ **partial** |
-| G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | no `uaal` target in `packages/cli` | ❌ |
+| G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
 | G5 | cognitive ⇄ spatial via `SceneSnapshot` | both VMs exist; not joined in the canonical compile path | ⚠️ |
 | G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter only landed 2026-06-21; TS parser can't parse `.hs` logic (HSP101) | ⚠️ young |
 | G7 | declarative trait/brain authoring is native | native annotation ≈ **1.32%** of traits; ~88% of declared traits have no runtime handler | ⚠️ |
@@ -68,6 +68,18 @@ target.
 - **Failing-if-broken evidence:** a CLI smoke test asserting a non-empty `.uaal` artifact and a
   loadable bytecode header.
 - **Scope/blast:** depends on G3. Out of scope: bundling the runtime. Regression: low.
+- **STATUS — SHIPPED 2026-06-22.** `packages/cli/src/cli.ts` adds `uaal` to `validTargets` + an
+  inline handler block: parse `.holo` (`HoloCompositionParser`) → `UaalBehaviorCompiler.compile` →
+  write `.uaal` JSON bytecode (with `--output`). Verified end-to-end: `pnpm --filter @holoscript/cli
+  build` (exit 0), then `holo compile <fixture>.holo --target uaal` emitted valid bytecode
+  (`{version:2, instructions:[{opCode:255 HALT}]}`) and the parse-error path prints + exits 1.
+  - **Required publishing the new core export:** `UaalBehaviorCompiler` was added to
+    `packages/core/scripts/generate-types.mjs` (the hand-curated `dist/index.d.ts`) and core
+    rebuilt, so consumers see it on `@holoscript/core`. (core/dist is gitignored — consumers
+    rebuild from src; the committable change is the `generate-types.mjs` declaration.)
+  - **Scope note:** behavior lowering requires *composition-level* `actions`/`eventHandlers`/`logic`;
+    a behavior-less scene compiles to a single `HALT`. `.hsplus` input (vs `.holo`) needs the
+    `.hsplus → HoloComposition` bridge — a known follow-up, not in this slice.
 
 ## G5 — Join cognitive ⇄ spatial through `SceneSnapshot`
 

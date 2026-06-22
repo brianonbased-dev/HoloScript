@@ -518,6 +518,23 @@ export function parseHoloScriptPlus(source: string, options?: any): ParseResult;
 export const holoFactory: any;
 export function generateHoloSource(ast: any): string;
 
+// uAAL cognitive front-end bridge (G3): HoloComposition behavior -> UAAL bytecode.
+export class UaalBehaviorCompiler {
+  compile(composition: any): {
+    bytecode: { version: number; instructions: Array<{ opCode: number; operands?: any[] }> };
+    stats: {
+      actions: number;
+      handlers: number;
+      statements: number;
+      instructions: number;
+      executeCalls: number;
+      branches: number;
+      unhandled: Record<string, number>;
+      compilationMs: number;
+    };
+  };
+}
+
 // ============================================================================
 // COMPOSITION TYPES (from .holo files)
 // ============================================================================
