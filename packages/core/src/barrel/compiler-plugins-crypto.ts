@@ -19,6 +19,14 @@ export {
   type HolobCompilerOptions,
   type HolobCompileResult,
 } from '../compiler/HolobCompiler';
+export {
+  UaalBehaviorCompiler,
+  type UaalBehaviorCompileResult,
+  type UaalBehaviorCompileStats,
+  type UaalBytecode,
+  type UaalInstruction,
+  type UaalOperand,
+} from '../compiler/UaalBehaviorCompiler';
 
 // ── Trait System Base Types ─────────────────────────────────────────────────
 export type { TraitHandler } from '../traits/TraitTypes';

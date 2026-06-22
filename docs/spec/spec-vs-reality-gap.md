@@ -14,7 +14,7 @@
 |---|------------|---------|--------|
 | G1 | `.holo → bytecode → VM → render` | `HolobCompiler` + `holo-vm` (2,996 LOC), e2e-tested to pixels | ✅ |
 | G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` 1,666 LOC, alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
-| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | uaal compiler reads its **own Intent-DSL**, not the `.hs`/`.hsplus` AST | ⚠️ **island** |
+| G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **slice 1 bridged**: `UaalBehaviorCompiler` lowers the behavioral subset (actions/handlers + if/else) to UAAL bytecode, e2e-tested on the real VM; loops deferred | ✅⚠️ **partial** |
 | G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | no `uaal` target in `packages/cli` | ❌ |
 | G5 | cognitive ⇄ spatial via `SceneSnapshot` | both VMs exist; not joined in the canonical compile path | ⚠️ |
 | G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter only landed 2026-06-21; TS parser can't parse `.hs` logic (HSP101) | ⚠️ young |
@@ -40,6 +40,21 @@ tokenizes its own Intent-DSL (`INTAKE("…")`, `CYCLE("…")`, `IF…THEN…END`
 - **Scope/blast:** new file under `core/src/compiler/` + a test; consumes existing
   `@holoscript/uaal`. Out of scope: changing the uaal VM ISA. Regression risk: low (additive
   target; does not touch `HolobCompiler` or the `.holo` path).
+- **STATUS — slice 1 SHIPPED 2026-06-22.** `core/src/compiler/UaalBehaviorCompiler.ts` +
+  `core/src/__tests__/compiler/UaalBehaviorCompiler.test.ts` (6/6 pass on the real
+  `@holoscript/uaal` VM; `tsc --noEmit` on core clean; **no new dependency / lockfile change** —
+  local opcode constants are drift-guarded against the real ISA in the test).
+  - **Premortem correction applied:** lowers only the *behavioral* subset (actions /
+    eventHandlers / logic → `HoloStatement` bodies), NOT spatial nodes (that would be the
+    category error the premortem flagged — spatial is `HolobCompiler → HoloVM`). The test is
+    non-vacuous: distinct inputs yield distinct observable EXECUTE traces, and `JUMP_IF` is
+    proven to gate execution (a false condition skips the consequent).
+  - **Covered:** MethodCall, EmitStatement, Assignment, VariableDeclaration, AwaitStatement,
+    ExpressionStatement, ReturnStatement, IfStatement (real `PUSH`/`JUMP_IF`/`JUMP` control
+    flow with back-patched targets).
+  - **Deferred (recorded as `stats.unhandled`, not faked):** For/While/ClassicFor (loop
+    back-edges), Animate, OnError — slice 2; idea-seed `2026-06-22_uaal-loop-control-flow-lowering`.
+  - **Remaining for G3:** loop lowering; then G4 wires this pass to a `--target uaal` CLI.
 
 ## G4 — Register a `uaal` CLI compile target
 
