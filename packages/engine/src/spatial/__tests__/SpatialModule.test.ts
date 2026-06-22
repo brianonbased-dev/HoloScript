@@ -1,4 +1,3 @@
-import type { Vector3 } from '@holoscript/core';
 /**
  * Spatial Module Tests
  * Sprint 4 Priority 4 - Spatial Context Awareness
