@@ -49,6 +49,10 @@ export type {
   HoloSourceMapping,
 } from './bytecode';
 
+// Cognitive <-> spatial hand-off (SceneSnapshot)
+export { sceneSnapshot } from './scene-snapshot';
+export type { SceneSnapshot, SceneSnapshotEntity } from './scene-snapshot';
+
 // VM Executor
 export { HoloVM, ECSWorld, VMStatus, UnsupportedHostOpcodeError, isHostOpcode } from './executor';
 export type {

@@ -16,7 +16,7 @@
 | G2 | `@holoscript/uaal` cognitive VM + compiler | `packages/uaal` 1,666 LOC, alive, consumed by agent-protocol/engine/studio | ✅ (runtime) |
 | G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **slice 1 bridged**: `UaalBehaviorCompiler` lowers the behavioral subset (actions/handlers + if/else) to UAAL bytecode, e2e-tested on the real VM; loops deferred | ✅⚠️ **partial** |
 | G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
-| G5 | cognitive ⇄ spatial via `SceneSnapshot` | both VMs exist; not joined in the canonical compile path | ⚠️ |
+| G5 | cognitive ⇄ spatial via `SceneSnapshot` | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both) | ✅⚠️ **partial** |
 | G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter only landed 2026-06-21; TS parser can't parse `.hs` logic (HSP101) | ⚠️ young |
 | G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate — real packages-scoped coverage **22.63%** (162 native vs 554 hand-TS), must rise/hold; replaces the unverified "1.32%" paper figure | ✅ |
 | G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
@@ -93,6 +93,21 @@ actuate back) is described but not exercised in a canonical path.
 - **Failing-if-broken evidence:** integration test asserting a perceive→reason→act tick changes
   world state.
 - **Scope/blast:** test/integration only initially. Regression: none (read paths).
+- **STATUS — SHIPPED 2026-06-22 (both halves proven; in-process join deferred).**
+  `packages/holo-vm/src/scene-snapshot.ts` adds `SceneSnapshot` + `sceneSnapshot(world)` — a
+  wire-safe perception serializer (the greenfield piece; none existed). Proven on BOTH sides
+  against the shared SceneSnapshot contract:
+  - **Spatial side** (`holo-vm/__tests__/scene-snapshot.test.ts`, 3/3): produces the perception
+    (JSON round-trips), captures per-entity components, and applies a cull decision back to the
+    world (`despawn` → entityCount 3→2 — the act seam).
+  - **Cognitive side** (`uaal/__tests__/scene-perception.test.ts`, 2/2): the REAL `@holoscript/uaal`
+    VM reasons over a SceneSnapshot perception and emits `cull`/`noop` by entityCount (non-vacuous).
+  - `tsc --noEmit` clean on both packages. No dependency/lockfile change.
+  - **Deferred — the in-process join** (one call: snapshot → uaal → act): needs an adapter that
+    deps BOTH VMs (holo-vm is merged into engine which doesn't dep uaal; agent-protocol/studio dep
+    uaal but not holo-vm). That's a deliberate dependency-graph step (a `pnpm add` + lockfile), not
+    rushed at marathon's end. Same architecture as G9b (the cross-package join lives in an adapter).
+    Idea-seed `2026-06-22_cognitive-spatial-inprocess-adapter`. This is the D.102 portable-mind tick.
 
 ## G6 — Mature the `.hs` grammar + emitter on the canonical Rust/WASM parser
 
