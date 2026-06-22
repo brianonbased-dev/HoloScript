@@ -186,11 +186,18 @@ export function extractPlaneAnchors(cloud: PointCloud, opts: ExtractPlaneAnchors
   }
   const planes = groups.map((g) => fitPlane(cloud, g)).filter((p) => p.inliers.length >= minInliers);
 
-  // --- Phase 3: detect the room's up-axis = the normal direction shared by the most horizontal inliers ---
+  // --- Phase 3: detect the room's up-axis = the normal direction shared by the most horizontal inliers,
+  //     biased toward gravity. ARCore captures are gravity-aligned, so the floor's normal is the most
+  //     Y-aligned of the large planes. Weighting the shared-inlier vote by |normal·Y| stops a dominant
+  //     WALL cluster (e.g. a big kitchen wall the user faced) from being mistaken for "up" — the failure
+  //     that mislabeled a Z-facing wall as the floor on a wall-heavy capture. Still tolerates real tilt
+  //     (a 25°-tilted floor has |normal.y|≈0.9, far above any wall's ≈0). ---
+  const GY: Vector3 = [0, 1, 0];
   let up: Vector3 = [0, 1, 0], bestScore = -1;
   for (const p of planes) {
-    let score = 0;
-    for (const q of planes) if (Math.abs(dot(p.normal, q.normal)) >= horizontalDot) score += q.inliers.length;
+    let shared = 0;
+    for (const q of planes) if (Math.abs(dot(p.normal, q.normal)) >= horizontalDot) shared += q.inliers.length;
+    const score = shared * Math.abs(dot(p.normal, GY));
     if (score > bestScore) { bestScore = score; up = p.normal; }
   }
   // refine to the inlier-weighted consensus of all surfaces parallel to the candidate (robust gravity —
