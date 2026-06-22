@@ -1,0 +1,161 @@
+// ============================================================================
+// @frame_declaration — canonical example
+//
+// @frame_declaration is a first-class .hsplus brain annotation that declares
+// an agent's epistemic scope at construction time. The runtime reads the
+// declared frame to detect boundary violations: a tool call or knowledge
+// assertion outside the declared scope emits 'frame_violation' instead of
+// letting the agent hallucinate through the frame edge.
+//
+// Fields:
+//   domain          — primary knowledge domain ("*" = unrestricted)
+//   horizon         — ISO-8601 temporal cutoff, e.g. "2026-06" or "2026-06-21"
+//   capability_tier — 0-3 matching D.051 hierarchy (T0 > T1 > T2 > T3); default 2
+//   trust_tier      — inbound trust level 0-3; actions requiring higher tier blocked
+//   allowed_tools   — MCP tool allowlist; absent/empty = all tools permitted
+//   denied_domains  — topic tags this agent MUST NOT act on
+//
+// Runtime enforcement:
+//   Emit 'frame_check_tool' { tool, domain_tag? } before any MCP call.
+//   Emit 'frame_check_horizon' { claimed_date } when asserting time-bound facts.
+//   Emit 'frame_check_tier' { required_tier } before privileged operations.
+//   The trait responds with 'frame_violation' (and specific sub-event) on breach.
+//
+// D.101-compatible: pure language work — grammar extension + runtime enforcement.
+// ============================================================================
+
+#version 6.0.0
+#target daemon
+#mode build
+
+// ── Example 1: HoloScript-language specialist agent ──────────────────────────
+//
+// This agent knows HoloScript up through June 2026, can invoke codebase + memory
+// tools, and operates at standard capability tier. It must never touch finance or
+// medical-advice domains.
+
+brain HoloScriptSpecialist : @behavior_tree {
+  @frame_declaration {
+    domain: "holoscript-language"
+    horizon: "2026-06"
+    capability_tier: 2
+    trust_tier: 2
+    allowed_tools: [
+      "holo_query_codebase"
+      "holo_ask_codebase"
+      "holo_semantic_search"
+      "holo_memory_recall"
+      "holo_memory_store"
+      "hs_diagnostics"
+      "hs_ai_fix_code"
+    ]
+    denied_domains: ["finance", "medical-advice", "legal-advice"]
+  }
+
+  @provider_policy {
+    prefer: "qwen3:4b-instruct"
+    fallback: "claude-sonnet"
+    requires: "tool-call"
+  }
+
+  @memory_persistence true
+
+  identity {
+    domain: "holoscript-language"
+    capability_tags: ["holoscript-authoring", "codebase-query", "language-specialist"]
+  }
+
+  state idle {
+    transition to analyzing @when { task != null }
+  }
+
+  state analyzing {
+    llm_call {
+      prompt: "Analyse the incoming HoloScript code and identify issues."
+      tools: ["hs_diagnostics", "holo_query_codebase"]
+    }
+    transition to reporting @when { analysis_complete }
+  }
+
+  state reporting {
+    recall { query: "prior similar issues" top_k: 3 }
+    transition to idle @when { report_sent }
+  }
+}
+
+
+// ── Example 2: Tier-1 trusted agent with broad domain access ─────────────────
+//
+// A more privileged agent that can cross into any domain but is time-bounded to
+// the June 2026 knowledge horizon. Operates at trust_tier 1 — will block requests
+// that require tier-0 sovereign access.
+
+brain TrustedAnalyst : @behavior_tree {
+  @frame_declaration {
+    domain: "*"
+    horizon: "2026-06-21"
+    capability_tier: 1
+    trust_tier: 1
+    allowed_tools: []
+    denied_domains: []
+  }
+
+  @memory_persistence true
+
+  identity {
+    domain: "multi-domain-analysis"
+    capability_tags: ["trusted", "analyst", "multi-domain"]
+  }
+
+  state active {
+    llm_call {
+      prompt: "Analyse the request using available tools."
+    }
+    transition to active @when { tasks_remain }
+  }
+}
+
+
+// ── Example 3: Restricted edge agent ─────────────────────────────────────────
+//
+// A narrow-purpose edge agent for Jetson deployment. Locked to holoscript-edge
+// domain, tool-call-restricted to local tools, and time-bounded to the last
+// model update. Capability tier 3 (restricted) — cannot escalate.
+
+brain JetsonEdgeAgent : @behavior_tree {
+  @frame_declaration {
+    domain: "holoscript-edge"
+    horizon: "2026-06"
+    capability_tier: 3
+    trust_tier: 3
+    allowed_tools: [
+      "holo_memory_recall"
+      "holo_memory_store"
+      "hs_diagnostics"
+    ]
+    denied_domains: ["finance", "medical-advice", "legal-advice", "governance"]
+  }
+
+  @provider_policy {
+    prefer: "qwen3:4b-instruct"
+    requires: "local-llm"
+  }
+
+  identity {
+    domain: "holoscript-edge"
+    capability_tags: ["edge", "jetson", "local-inference", "restricted"]
+    requires: ["local-llm"]
+  }
+
+  state idle {
+    transition to working @when { task != null }
+  }
+
+  state working {
+    llm_call {
+      prompt: "Complete the edge task using only declared tools."
+      tools: ["holo_memory_recall", "hs_diagnostics"]
+    }
+    transition to idle @when { task_complete }
+  }
+}
