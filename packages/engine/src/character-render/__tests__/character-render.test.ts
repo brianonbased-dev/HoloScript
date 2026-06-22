@@ -84,3 +84,24 @@ describe('character-render — native WebGPU GPU-skinned humanoid', () => {
     expect(typeof GPU_LIVE).toBe('boolean');
   });
 });
+
+describe('character-render — material groups (skin-SSS) + lambert fallback', () => {
+  itGpu('the lambert fallback path (no materialGroups) still renders a figure', async () => {
+    const host = new CharacterHost({ entityId: 'brittney' });
+    const spec = host.getDrawSpec();
+    // Strip groups → exercise the single-draw lambert fallback (the additive guard).
+    const fallback = { ...spec, materialGroups: undefined };
+    const grid = await renderCharacter(testDevice!, fallback, { size: 128 });
+    expect(figurePixels(grid)).toBeGreaterThan(150);
+  });
+
+  itGpu('SSS skin shades differently from the flat lambert fallback', async () => {
+    const host = new CharacterHost({ entityId: 'brittney' });
+    const spec = host.getDrawSpec(); // emits a skin-sss material group
+    const skin = await renderCharacter(testDevice!, spec, { size: 128 });
+    const lambert = await renderCharacter(testDevice!, { ...spec, materialGroups: undefined }, { size: 128 });
+    // Same silhouette, different shading → many pixels differ but the figure area is similar.
+    expect(pixelDiff(skin, lambert)).toBeGreaterThan(50);
+    expect(figurePixels(skin)).toBeGreaterThan(150);
+  });
+});

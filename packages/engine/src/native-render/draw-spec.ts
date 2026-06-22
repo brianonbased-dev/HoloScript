@@ -113,9 +113,71 @@ export interface CharacterDrawSpec {
   mesh: SkinnedMeshData;
   jointMatrices: Float32Array<ArrayBuffer>;
   jointCount: number;
+  /** Required fallback material applied to the whole mesh when `materialGroups` is absent. */
   material: MaterialSpec;
   /** Column-major 4x4 root placement matrix (world position/orientation of the figure). */
   modelMatrix: Float32Array;
+  /**
+   * Optional per-region materials (glTF-primitive model): contiguous index sub-ranges, each
+   * drawn with its own shading pipeline in the SAME render pass + shared skin palette. When
+   * present and non-empty, used INSTEAD of `material` (which stays the single-draw fallback —
+   * the existing path is byte-for-byte preserved when this is omitted).
+   */
+  materialGroups?: MaterialGroup[];
+}
+
+// ---------------------------------------------------------------------------
+// Character material system — additive over the primitive MaterialSpec.
+// ---------------------------------------------------------------------------
+
+/** Which fragment shading model a material group renders with. */
+export type ShadingModel = 'lambert' | 'skin-sss' | 'marschner-hair';
+
+/** Flat two-sided half-Lambert (the Phase-0 base; the single-material fallback). */
+export interface BaseMaterialSpec extends MaterialSpec {
+  shadingModel: 'lambert';
+}
+
+/** Single-pass real-time skin: per-channel wrap diffuse + scatter tint + transmission + Fresnel. */
+export interface SkinSSSMaterialSpec extends MaterialSpec {
+  shadingModel: 'skin-sss';
+  /** Subsurface tint, RGB 0..1 (reddish for skin). */
+  scatterColor: [number, number, number];
+  /** Per-channel relative scatter radius (red widest → leaks furthest past the terminator). */
+  scatterRadii: [number, number, number];
+  /** Fresnel F0 (skin ≈ 0.028). */
+  specularF0: number;
+  /** 0 = thin/translucent, 1 = thick/opaque (drives back transmission). */
+  thickness: number;
+  /** Back-scatter transmission strength. */
+  transmitStrength: number;
+  /** Ambient floor. */
+  ambient: number;
+}
+
+/** Kajiya-Kay anisotropic hair with melanin→colour (needs the tangent vertex attribute). */
+export interface MarschnerHairMaterialSpec extends MaterialSpec {
+  shadingModel: 'marschner-hair';
+  melanin: number;
+  melaninRedness: number;
+  primaryExp: number;
+  secondaryExp: number;
+}
+
+export type CharacterMaterialSpec =
+  | BaseMaterialSpec
+  | SkinSSSMaterialSpec
+  | MarschnerHairMaterialSpec;
+
+/** A contiguous slice of `mesh.indices` drawn with one material. Offsets are INDEX ELEMENTS. */
+export interface MaterialGroup {
+  /** First index (element offset into mesh.indices) — passed as drawIndexed firstIndex. */
+  indexStart: number;
+  /** Number of indices in this group. */
+  indexCount: number;
+  material: CharacterMaterialSpec;
+  /** Draw after opaque groups with blend + depthWrite off (e.g. refractive eyes). */
+  transparent?: boolean;
 }
 
 const GEOMETRY_KIND: Record<number, GeometryKind> = {

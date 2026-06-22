@@ -18,7 +18,12 @@
  * @module character-render
  */
 
-import type { CharacterDrawSpec, MaterialSpec } from '../native-render/draw-spec';
+import type {
+  CharacterDrawSpec,
+  MaterialSpec,
+  MaterialGroup,
+  SkinSSSMaterialSpec,
+} from '../native-render/draw-spec';
 import {
   buildAgentAvatarMesh,
   computeBindWorld,
@@ -44,11 +49,28 @@ export interface CharacterHostOptions {
   heightScale?: number;
   /** Limb/torso thickness multiplier. */
   buildScale?: number;
-  /** Packed 0xRRGGBB; defaults to a deterministic colour from `entityId`. */
+  /** Packed 0xRRGGBB accent/fallback colour; defaults to a deterministic colour from `entityId`. */
   color?: number;
+  /** Skin base colour 0xRRGGBB for the SSS material (default warm skin #e8c4a0). */
+  skinTone?: number;
   /** Initial world position. */
   position?: [number, number, number];
 }
+
+/** Human-skin SSS preset (SubsurfaceScattering.ts humanSkin + SkinSSRenderer defaults). */
+const HUMAN_SKIN: Omit<SkinSSSMaterialSpec, 'color'> = {
+  shadingModel: 'skin-sss',
+  metalness: 0,
+  roughness: 0.45,
+  emissive: 0,
+  opacity: 1,
+  scatterColor: [0.8, 0.25, 0.13],
+  scatterRadii: [3.67, 1.37, 0.68],
+  specularF0: 0.028,
+  thickness: 0.3,
+  transmitStrength: 0.4,
+  ambient: 0.12,
+};
 
 /** Authoritative world-state for an embodied agent (subset of xr-embodiment's WorldStateSource). */
 export interface CharacterWorldState {
@@ -65,6 +87,7 @@ export class CharacterHost {
   private readonly bindWorld: Map<string, Mat4>;
   private readonly inverseBind: Map<string, Mat4>;
   private readonly material: MaterialSpec;
+  private readonly skinMaterial: SkinSSSMaterialSpec;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
 
@@ -77,6 +100,8 @@ export class CharacterHost {
     });
     this.bindWorld = computeBindWorld();
     this.inverseBind = computeInverseBind(this.bindWorld);
+    const skinTone = opts.skinTone ?? 0xe8c4a0;
+    // Lambert fallback colour (accent / used if a caller renders without material groups).
     this.material = {
       color: opts.color ?? colorForEntity(opts.entityId),
       metalness: 0,
@@ -84,6 +109,8 @@ export class CharacterHost {
       emissive: 0,
       opacity: 1,
     };
+    // Default SSS skin material — characters have skin (W.241: biggest realism jump).
+    this.skinMaterial = { ...HUMAN_SKIN, color: skinTone };
     const p = opts.position ?? [0, 0, 0];
     this.modelMatrix = fromTranslation(p[0], p[1], p[2]);
   }
@@ -123,8 +150,15 @@ export class CharacterHost {
     // Phase-1 seam: map state.activity → locomotion gait pose + FACS speak visemes.
   }
 
-  /** Emit the current frame's pure-data character draw spec for the native WebGPU renderer. */
+  /**
+   * Emit the current frame's pure-data character draw spec for the native WebGPU renderer.
+   * The body renders as a single SSS-skin material group; `material` remains the lambert
+   * fallback for callers that render without material groups.
+   */
   getDrawSpec(): CharacterDrawSpec {
+    const groups: MaterialGroup[] = [
+      { indexStart: 0, indexCount: this.mesh.indices.length, material: this.skinMaterial },
+    ];
     return {
       entityId: this.entityId,
       mesh: this.mesh,
@@ -132,6 +166,7 @@ export class CharacterHost {
       jointCount: this.mesh.jointCount,
       material: this.material,
       modelMatrix: this.modelMatrix,
+      materialGroups: groups,
     };
   }
 

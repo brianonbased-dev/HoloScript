@@ -1,21 +1,35 @@
-// skin-skinning.wgsl — native WebGPU GPU skinning for HoloScript characters.
+// skin-skinning.wgsl — shared native-WebGPU character shading module.
 //
-// Linear-blend skinning (LBS) with a single bone influence per vertex (rigid per-bone — the
-// procedural AgentAvatarMesh body). The skin matrix palette (skin = worldPose · inverseBind)
-// is supplied per-frame as a read-only storage buffer; the vertex stage transforms each
-// vertex by its bone's matrix, the fragment stage applies a two-sided half-Lambert shade
-// (cullMode 'none' downstream, so both faces read). MVP folds viewProj·model on the CPU.
+// One module, multiple fragment entry points selected per material group by the renderer:
+//   fs_lambert   — two-sided half-Lambert (the Phase-0 base + the single-material fallback)
+//   fs_skin_sss  — single-pass real-time skin: per-channel wrap diffuse + scatter tint +
+//                  thin-slab back transmission + Schlick-Fresnel specular + Reinhard tonemap
 //
-// This is the Phase-0 base material; Phase 1 layers skin-SSS / Marschner-hair on top.
+// Bind groups are split so the shared frame state (camera + light + skin palette) is set ONCE
+// and only the per-group Material changes between draws (material-groups model):
+//   @group(0) = Frame{mvp,model,cameraPos,lightDir} + joints palette   (shared, set once)
+//   @group(1) = Material                                               (per group/draw)
+//
+// Vertex stage: single-bone linear-blend skinning (rigid procedural body); emits world
+// position + world normal so the fragment stages have view/light geometry. cullMode 'none'
+// downstream, so the lit terms are two-sided where appropriate.
 
-struct U {
-  mvp : mat4x4<f32>,
-  color : vec4<f32>,
-  lightDir : vec4<f32>, // xyz = world-space light direction; w unused
+struct Frame {
+  mvp       : mat4x4<f32>,
+  model     : mat4x4<f32>,   // root placement → world position for view dir
+  cameraPos : vec4<f32>,     // xyz world camera; w unused
+  lightDir  : vec4<f32>,     // xyz world light direction; w unused
 };
-
-@group(0) @binding(0) var<uniform> u : U;
+@group(0) @binding(0) var<uniform> frame : Frame;
 @group(0) @binding(1) var<storage, read> joints : array<mat4x4<f32>>;
+
+struct Material {
+  color        : vec4<f32>,  // rgb baseColor (linear); a = opacity
+  scatterColor : vec4<f32>,  // rgb subsurface tint (linear); w = roughness
+  scatterDist  : vec4<f32>,  // rgb per-channel relative scatter radius; w unused
+  params       : vec4<f32>,  // x = specularF0, y = thickness, z = transmitStrength, w = ambient
+};
+@group(1) @binding(0) var<uniform> mat : Material;
 
 struct VSIn {
   @location(0) pos : vec3<f32>,
@@ -23,31 +37,69 @@ struct VSIn {
   @location(2) jointIndex : u32,
   @location(3) jointWeight : f32,
 };
-
 struct VSOut {
   @builtin(position) clip : vec4<f32>,
-  @location(0) worldNormal : vec3<f32>,
+  @location(0) wN : vec3<f32>,
+  @location(1) wP : vec3<f32>,
 };
 
 @vertex
 fn vs(in : VSIn) -> VSOut {
   let skin = joints[in.jointIndex];
-  // Blend bind→skinned by weight (weight==1 ⇒ fully skinned for the rigid procedural body).
-  let skinnedPos = mix(vec4<f32>(in.pos, 1.0), skin * vec4<f32>(in.pos, 1.0), in.jointWeight);
-  let skinnedNormal = (skin * vec4<f32>(in.normal, 0.0)).xyz;
-
-  var out : VSOut;
-  out.clip = u.mvp * vec4<f32>(skinnedPos.xyz, 1.0);
-  out.worldNormal = skinnedNormal;
-  return out;
+  let sp = mix(vec4<f32>(in.pos, 1.0), skin * vec4<f32>(in.pos, 1.0), in.jointWeight);
+  var o : VSOut;
+  o.clip = frame.mvp * vec4<f32>(sp.xyz, 1.0);
+  o.wP = (frame.model * vec4<f32>(sp.xyz, 1.0)).xyz;
+  o.wN = (skin * vec4<f32>(in.normal, 0.0)).xyz;
+  return o;
 }
 
+// ── Fallback: flat two-sided half-Lambert (identical look to the Phase-0 shader). ──
 @fragment
-fn fs(in : VSOut) -> @location(0) vec4<f32> {
-  let n = normalize(in.worldNormal);
-  let l = normalize(u.lightDir.xyz);
-  // Two-sided half-Lambert: ambient floor + wrapped diffuse so the figure reads in the round.
+fn fs_lambert(in : VSOut) -> @location(0) vec4<f32> {
+  let n = normalize(in.wN);
+  let l = normalize(frame.lightDir.xyz);
   let ndl = abs(dot(n, l));
   let lit = 0.35 + 0.65 * ndl;
-  return vec4<f32>(u.color.rgb * lit, u.color.a);
+  return vec4<f32>(mat.color.rgb * lit, mat.color.a);
+}
+
+fn fresnel(cosT : f32, f0 : f32) -> f32 {
+  return f0 + (1.0 - f0) * pow(saturate(1.0 - cosT), 5.0);
+}
+
+// ── Skin: single-pass subsurface approximation of the CPU Burley model. ──
+@fragment
+fn fs_skin_sss(in : VSOut) -> @location(0) vec4<f32> {
+  let N = normalize(in.wN);
+  let L = normalize(frame.lightDir.xyz);
+  let V = normalize(frame.cameraPos.xyz - in.wP);
+  let ndl = dot(N, L);
+
+  // Per-channel wrap widths from relative scatter radii — red widest, so light leaks
+  // furthest past the terminator (reproduces the CPU model's wide-R / tight-B character).
+  let radii = mat.scatterDist.rgb;
+  let maxR = max(radii.r, max(radii.g, radii.b)) + 1e-4;
+  let wrap = clamp(radii * (0.6 / maxR), vec3<f32>(0.15), vec3<f32>(0.6));
+  let diffuse = max(vec3<f32>(0.0), (vec3<f32>(ndl) + wrap) / (vec3<f32>(1.0) + wrap));
+
+  // Redden the terminator: tint where light grazes toward the subsurface colour.
+  let term = smoothstep(0.0, 0.5, 1.0 - max(ndl, 0.0));
+  let tint = mix(vec3<f32>(1.0), mat.scatterColor.rgb, term);
+  let sss = diffuse * tint;
+
+  // Thin-slab back transmission (relative radii, NO unit fold-in — stays visible).
+  let backLobe = pow(saturate(dot(-V, L)), 3.0);
+  let transmit = mat.scatterColor.rgb * backLobe * mat.params.z * (1.0 - mat.params.y);
+
+  // Specular: roughness→Beckmann-ish exponent (clamped so pow() never NaNs).
+  let rough = clamp(mat.scatterColor.w, 0.05, 1.0);
+  let H = normalize(L + V);
+  let ndh = max(dot(N, H), 0.0);
+  let expo = 2.0 / (rough * rough) - 2.0;
+  let spec = pow(ndh, expo) * fresnel(max(dot(V, H), 0.0), mat.params.x);
+
+  var color = mat.color.rgb * (vec3<f32>(mat.params.w) + sss) + transmit + vec3<f32>(spec);
+  color = color / (color + vec3<f32>(1.0)); // Reinhard
+  return vec4<f32>(color, mat.color.a);
 }
