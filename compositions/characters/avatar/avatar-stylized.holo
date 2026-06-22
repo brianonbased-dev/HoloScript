@@ -1,0 +1,42 @@
+// Avatar — stylized, remixable character asset (archetype 2).
+//
+// A created/fictional figure: a publishable, importable, REMIXABLE asset with no inherent
+// driver (an animation, a player, or an agent can be assigned to it later). Its distinguishing
+// machinery vs a human is the deploy/provenance layer + multi-target export, not fidelity or a
+// driver. provenance{} declares origin; the compiler auto-classifies Original/Remix/Curated from
+// the import tree (creators can't override). Renders natively via the engine character-render path.
+
+composition "Avatar - Stylized Explorer" {
+  metadata {
+    title: "Stylized Explorer Avatar"
+    version: "1.0.0"
+    archetype: "avatar"
+    tags: ["avatar", "stylized", "remixable", "humanoid"]
+    description: "Remixable stylized avatar asset: multi-target deploy + provenance, driverless."
+  }
+
+  object "Explorer" {
+    @skeleton(rig: "humanoid_65", ik_enabled: true)
+    @body(height: 1.72, build_scale: 1.1, skin_tone: "#caa06e")
+    @subsurface_scattering(color: [0.78, 0.3, 0.18], radius: 1.0, thickness: 0.28)
+    @hair(style: "long_braided", color: "#3a2418")
+    @face(blend_shapes: 52, eye_tracking: true)
+    @expressive(presets: { happy: { mouthSmile: 0.9 }, focused: { browDown: 0.4 } }, auto_blink: true)
+    @locomotion(mode: "walk", speed: 1.5)
+    @character_voice { spatial_audio: true }
+
+    geometry: "avatar"
+    position: [0, 0, 0]
+    state { pose: "idle" }
+
+    on_init() { play("idle_breathe") }
+  }
+
+  // Remixable asset: multi-platform deploy targets. Provenance (Original/Remix/Curated) is
+  // NOT authored here — it is DERIVED from the import tree by the compiler (F.126: correctness
+  // is derived, not asserted), so creators cannot forge it.
+  object "ExplorerDeploy" {
+    @deploy(targets: ["web_gltf", "vrchat_vrm", "quest_glb"])
+    parent: "Explorer"
+  }
+}

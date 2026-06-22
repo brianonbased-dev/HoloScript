@@ -1,0 +1,35 @@
+// Human — realistic adult (archetype 1).
+//
+// Maximum appearance fidelity: SSS skin, refractive eyes, FACS-52 face, Marschner hair, audio-
+// driven visemes. The human IS the authority (their own tracked head/hands/voice in XR); no
+// autonomous driver, no wallet identity. Reference proportions: 1.75 m. Renders natively via the
+// engine character-render path (NOT R3F).
+
+composition "Human - Realistic Adult" {
+  metadata {
+    title: "Realistic Adult Human"
+    version: "1.0.0"
+    archetype: "human"
+    tags: ["human", "realistic", "humanoid"]
+    description: "High-fidelity human: SSS skin + FACS-52 face + Marschner hair, self-driven."
+  }
+
+  object "Person" {
+    @skeleton(rig: "humanoid_65", ik_enabled: true)
+    @body(height: 1.75, build_scale: 1.0, skin_tone: "#d8a878")
+    @subsurface_scattering(color: [0.85, 0.35, 0.2], radius: 1.3, thickness: 0.32)
+    @hair(style: "short", color: "#2a1c12")
+    @face(blend_shapes: 52, eye_tracking: true, jaw_physics: true)
+    @expressive(presets: { happy: { mouthSmile: 0.8, eyeSquint: 0.3 }, surprised: { eyeWide: 0.9, jawOpen: 0.5 } }, auto_blink: true, blink_interval: [3, 6])
+    @morph(targets: { muscle_definition: 0.45, jaw_width: 0.5, cheekbone_height: 0.5 })
+    @locomotion(mode: "walk", speed: 1.4)
+    @character_voice { spatial_audio: true, lip_sync: true, lip_sync_source: "microphone" }
+    @avatar_embodiment(first_person: true, head_hidden_in_fp: true, mirror_visible: true)
+
+    geometry: "avatar"
+    position: [0, 0, 0]
+    state { pose: "idle" }
+
+    on_init() { play("idle_breathe") }
+  }
+}

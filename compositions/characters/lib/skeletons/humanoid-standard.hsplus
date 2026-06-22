@@ -1,0 +1,16 @@
+// Canonical humanoid skeleton reference — the 65-bone HUMANOID_65 rig.
+//
+// The bone names + bind offsets are DATA in TypeScript
+// (packages/engine/src/character/HumanoidSkeleton.ts → HUMANOID_65_SKELETON, 65 bones:
+// root/hips/spine/spine1/spine2/neck/head + arms+15 fingers/side + legs+toes). Compositions
+// reference the rig BY NAME via @skeleton(rig: "humanoid_65") — they never re-declare bones.
+//
+// Retarget standards (platform bone-name maps) live in SkeletonStandardRegistry.ts:
+// holoscript_65 (canonical), vrm1, vrm0, rpm, mixamo, ue_mannequin, metahuman, daz_genesis8/9,
+// autorig_pro, cc3. This template carries the rig + the standards a character object inherits
+// when it `use`s "HumanoidStandard".
+
+template "HumanoidStandard" {
+  @skeleton(rig: "humanoid_65", ik_enabled: true, standards: ["holoscript_65", "vrm1", "mixamo", "rpm"])
+  @poseable
+}

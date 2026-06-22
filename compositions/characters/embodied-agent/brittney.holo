@@ -1,0 +1,44 @@
+// Brittney — flagship EMBODIED AGENT (archetype 3).
+//
+// The same entity-generic body as a human/avatar, but DRIVEN by authoritative world-state
+// (keyed by entity_id) and — per D.102 "portable agent mind" — anchored to a seat WALLET
+// identity with memory loaded from private:<wallet>. D.094: never hardcode Brittney into the
+// machinery; she is the flagship DEFAULT, and any BYOK agent plugs into the identical body.
+// Renders natively via the bridge: parseHolo → buildCharacterHostFromComposition → renderCharacter
+// (@holoscript/engine character-render). NOT R3F.
+
+composition "Brittney - Embodied Agent" {
+  metadata {
+    title: "Brittney"
+    version: "1.0.0"
+    archetype: "embodied_agent"
+    tags: ["agent", "embodied", "humanoid", "brittney"]
+    description: "Agent-agnostic embodiment: world-state-driven body; identity = seat wallet; memory = private wallet store (D.102)."
+  }
+
+  object "Brittney" {
+    @skeleton(rig: "humanoid_65", ik_enabled: true)
+    @body(height: 1.68, build_scale: 1.0, skin_tone: "#e8c4a0")
+    @subsurface_scattering(color: [0.8, 0.25, 0.13], radius: 1.2, thickness: 0.3)
+    @hair(style: "medium_wavy", color: "#2c1810")
+    @face(blend_shapes: 52, eye_tracking: true)
+    @expressive(presets: { happy: { mouthSmile: 0.8 }, thinking: { browInnerUp: 0.4 } }, auto_blink: true)
+    @locomotion(mode: "walk", speed: 1.4)
+    @character_voice { spatial_audio: true, lip_sync: true }
+    @avatar_embodiment(first_person: false, mirror_visible: true)
+
+    geometry: "avatar"
+    position: [0, 0, 0]
+
+    // Embodied-agent state: the body is a projection of authoritative world-state (entity_id).
+    // identity_wallet + memory_scope are the D.102 seams (declared; bridged in a later task).
+    state {
+      activity: "idle"
+      entity_id: "brittney"
+      identity_wallet: ""
+      memory_scope: "private:<wallet>"
+    }
+
+    on_init() { play("idle_breathe") }
+  }
+}
