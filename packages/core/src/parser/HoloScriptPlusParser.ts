@@ -28,6 +28,10 @@ import {
   type CognitiveVerb,
   type HoloCognitiveAction,
 } from '../traits/cognitive/CognitiveActions';
+import {
+  coerceFrameDeclarationConfig,
+  type FrameDeclaration,
+} from '../traits/FrameDeclarationTrait';
 import { isLocomotionReactionTrigger } from '../traits/locomotion/LocomotionActions';
 import type { ReactionCategory } from '../types/base';
 
@@ -107,6 +111,14 @@ export interface HoloBrainDecl {
    * A load-time hint the sovereign-first resolver reads (it does NOT duplicate the resolver).
    */
   providerPolicy?: { prefer?: string; fallback?: string; requires?: string };
+  /**
+   * Explicit frame of reference — `@frame_declaration { domain, horizon, capability_tier,
+   * trust_tier, allowed_tools, denied_domains }`. Declares the agent's epistemic scope at
+   * construction time. The runtime uses this to detect boundary violations: a tool call
+   * outside the declared frame emits `frame_violation` instead of hallucinating through
+   * the frame edge. Absent = unrestricted frame (no boundary enforcement).
+   */
+  frameDeclaration?: FrameDeclaration;
   states: HoloBrainState[];
   traits: Record<string, unknown>;
 }
@@ -3085,6 +3097,17 @@ export class HoloScriptPlusParser {
             fallback: typeof cfg.fallback === 'string' ? cfg.fallback : undefined,
             requires: typeof cfg.requires === 'string' ? cfg.requires : undefined,
           };
+
+        } else if (dirName === 'frame_declaration') {
+          // @frame_declaration { domain, horizon, capability_tier, trust_tier,
+          //                      allowed_tools, denied_domains }
+          //
+          // Declares the agent's epistemic scope. The runtime reads this field to
+          // enforce boundary violations: a tool call outside the declared frame
+          // emits 'frame_violation' instead of hallucinating through the edge.
+          // All fields are optional; coerceFrameDeclarationConfig applies defaults.
+          const cfg = this.check('LBRACE') ? (this.parseBlockContent() as Record<string, unknown>) : {};
+          brain.frameDeclaration = coerceFrameDeclarationConfig(cfg);
 
         } else if (dirName === 'behavior_tree') {
           // @behavior_tree { ... } block inside the brain body

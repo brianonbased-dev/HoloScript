@@ -88,6 +88,9 @@ pub enum AstNode {
 
     // Comments
     Comment(CommentNode),
+
+    // Epistemic frame declaration
+    FrameDeclaration(FrameDeclarationNode),
 }
 
 /// Location information for AST nodes
@@ -568,4 +571,162 @@ pub struct Directive {
     pub config: Option<Box<AstNode>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
+}
+
+/// Parsed form of `@frame_declaration { ... }` when it appears as a top-level
+/// directive in a `.hs` file or on an object/trait node.
+///
+/// The Rust parser materialises the declaration from a generic `Directive` whose
+/// `name == "frame_declaration"` by calling `FrameDeclarationNode::try_from_directive`.
+/// All fields default to the permissive baseline when absent from the source block.
+///
+/// Serialises to JSON with snake_case keys so the TS wasm-api layer can read it
+/// directly without a naming translation step.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[typeshare]
+pub struct FrameDeclarationNode {
+    /// Primary knowledge domain. `"*"` means unrestricted.
+    #[serde(default = "frame_domain_default")]
+    pub domain: String,
+
+    /// Temporal knowledge cutoff as an ISO-8601 prefix (e.g. `"2026-06"`).
+    /// Empty string means no cutoff.
+    #[serde(default)]
+    pub horizon: String,
+
+    /// Capability tier — 0 (sovereign) through 3 (restricted). Default: 2.
+    #[serde(default = "frame_tier_default")]
+    pub capability_tier: u8,
+
+    /// Trust tier — 0 through 3. Default: 2.
+    #[serde(default = "frame_tier_default")]
+    pub trust_tier: u8,
+
+    /// Explicit tool allowlist. Empty vec = all tools permitted.
+    #[serde(default)]
+    pub allowed_tools: Vec<String>,
+
+    /// Domains this agent must not act on.
+    #[serde(default)]
+    pub denied_domains: Vec<String>,
+
+    /// Source location in the original file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+fn frame_domain_default() -> String {
+    "*".to_string()
+}
+
+fn frame_tier_default() -> u8 {
+    2
+}
+
+impl FrameDeclarationNode {
+    /// Extract a `FrameDeclarationNode` from a generic `Directive` whose name is
+    /// `"frame_declaration"`. Returns `None` if the directive name does not match.
+    /// All fields default gracefully when the config block is absent or incomplete.
+    pub fn try_from_directive(directive: &Directive) -> Option<Self> {
+        if directive.name != "frame_declaration" {
+            return None;
+        }
+
+        let loc = directive.loc.clone();
+
+        // Config block is optional — all fields default when absent
+        let Some(config_node) = &directive.config else {
+            return Some(Self {
+                domain: frame_domain_default(),
+                horizon: String::new(),
+                capability_tier: frame_tier_default(),
+                trust_tier: frame_tier_default(),
+                allowed_tools: Vec::new(),
+                denied_domains: Vec::new(),
+                loc,
+            });
+        };
+
+        // Config must be an ObjectLiteral to extract fields
+        let AstNode::ObjectLiteral(obj) = config_node.as_ref() else {
+            return Some(Self {
+                domain: frame_domain_default(),
+                horizon: String::new(),
+                capability_tier: frame_tier_default(),
+                trust_tier: frame_tier_default(),
+                allowed_tools: Vec::new(),
+                denied_domains: Vec::new(),
+                loc,
+            });
+        };
+
+        let mut domain = frame_domain_default();
+        let mut horizon = String::new();
+        let mut capability_tier = frame_tier_default();
+        let mut trust_tier = frame_tier_default();
+        let mut allowed_tools: Vec<String> = Vec::new();
+        let mut denied_domains: Vec<String> = Vec::new();
+
+        for prop in &obj.properties {
+            match prop.key.as_str() {
+                "domain" => {
+                    if let AstNode::String(s) = prop.value.as_ref() {
+                        domain = s.value.clone();
+                    } else if let AstNode::Identifier(id) = prop.value.as_ref() {
+                        domain = id.name.clone();
+                    }
+                }
+                "horizon" => {
+                    if let AstNode::String(s) = prop.value.as_ref() {
+                        horizon = s.value.clone();
+                    }
+                }
+                "capability_tier" => {
+                    if let AstNode::Number(n) = prop.value.as_ref() {
+                        let v = n.value as u8;
+                        if v <= 3 {
+                            capability_tier = v;
+                        }
+                    }
+                }
+                "trust_tier" => {
+                    if let AstNode::Number(n) = prop.value.as_ref() {
+                        let v = n.value as u8;
+                        if v <= 3 {
+                            trust_tier = v;
+                        }
+                    }
+                }
+                "allowed_tools" => {
+                    if let AstNode::Array(arr) = prop.value.as_ref() {
+                        for elem in &arr.elements {
+                            if let AstNode::String(s) = elem {
+                                allowed_tools.push(s.value.clone());
+                            }
+                        }
+                    }
+                }
+                "denied_domains" => {
+                    if let AstNode::Array(arr) = prop.value.as_ref() {
+                        for elem in &arr.elements {
+                            if let AstNode::String(s) = elem {
+                                denied_domains.push(s.value.clone());
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        Some(Self {
+            domain,
+            horizon,
+            capability_tier,
+            trust_tier,
+            allowed_tools,
+            denied_domains,
+            loc,
+        })
+    }
 }

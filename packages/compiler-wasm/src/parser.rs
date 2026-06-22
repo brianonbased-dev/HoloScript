@@ -88,7 +88,25 @@ impl Parser {
     }
 
     fn parse_top_level(&mut self) -> Result<AstNode, ParseError> {
-        // Skip any traits at top level - they become directives
+        // `@frame_declaration { ... }` at the top level is promoted to a typed
+        // FrameDeclarationNode rather than a generic Trait node. This lets consumers
+        // pattern-match on `AstNode::FrameDeclaration` without inspecting the name.
+        if self.check(TokenType::Trait)
+            && self.peek().value.trim_start_matches('@') == "frame_declaration"
+        {
+            let trait_node = self.parse_trait()?;
+            // Build the equivalent Directive and extract the typed node.
+            let directive = crate::ast::Directive {
+                name: trait_node.name.clone(),
+                config: trait_node.config,
+                loc: trait_node.loc,
+            };
+            if let Some(fd) = crate::ast::FrameDeclarationNode::try_from_directive(&directive) {
+                return Ok(AstNode::FrameDeclaration(fd));
+            }
+        }
+
+        // All other top-level traits remain generic Trait nodes (directives).
         if self.check(TokenType::Trait) {
             let trait_node = self.parse_trait()?;
             // Store as directive (we could add to ast.directives here)
