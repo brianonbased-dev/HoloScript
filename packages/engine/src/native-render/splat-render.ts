@@ -17,6 +17,8 @@
  */
 
 import { GaussianSplatSorter, type CameraState } from '../gpu/GaussianSplatSorter';
+import type { Gaussian3D } from '../gpu/GaussianTrainer3D';
+import type { GaussianSplatData } from '../gpu/codecs/types';
 import type { PixelGrid } from './gpu-verify';
 
 // WebGPU flag values (numeric — avoids global-availability deps; matches character-render.ts).
@@ -68,6 +70,46 @@ export function packRawSplats(splats: readonly RawSplatInput[]): Float32Array<Ar
     out[o + 13] = s.color[1];
     out[o + 14] = s.color[2];
     out[o + 15] = s.color[3];
+  }
+  return out;
+}
+
+/**
+ * Adapt the trainer / PLY-loader `Gaussian3D` SoA buffers (the `loadGaussianPly` output, the
+ * decode proven correct against real captures) into render-input splats. `Gaussian3D` already
+ * uses this pipeline's conventions: LINEAR scale, `(w,x,y,z)` quaternion, `[0,1]` color+opacity —
+ * so this is a straight per-splat gather, no convention conversion.
+ */
+export function gaussian3DToSplats(g: Gaussian3D): RawSplatInput[] {
+  const out: RawSplatInput[] = new Array(g.N);
+  for (let i = 0; i < g.N; i++) {
+    out[i] = {
+      position: [g.x[i], g.y[i], g.z[i]],
+      scale: [g.sx[i], g.sy[i], g.sz[i]],
+      rotation: [g.qr[i], g.qx[i], g.qy[i], g.qz[i]],
+      color: [g.r[i], g.gr[i], g.bl[i], g.op[i]],
+    };
+  }
+  return out;
+}
+
+/**
+ * Adapt the codec interchange format (`GaussianSplatData` — the `GltfGaussianSplatCodec` /
+ * KHR_gaussian_splatting / SPZ decode target) into render-input splats. Two conventions differ
+ * from this pipeline and are converted here: codec rotations are `(x,y,z,w)` → reordered to
+ * `(w,x,y,z)`, and opacity is the dedicated `opacities[i]` (used as the splat's alpha). Scales are
+ * already LINEAR (the codec exponentiates KHR log-space scales on decode).
+ */
+export function gaussianSplatDataToSplats(d: GaussianSplatData): RawSplatInput[] {
+  const out: RawSplatInput[] = new Array(d.count);
+  for (let i = 0; i < d.count; i++) {
+    out[i] = {
+      position: [d.positions[i * 3], d.positions[i * 3 + 1], d.positions[i * 3 + 2]],
+      scale: [d.scales[i * 3], d.scales[i * 3 + 1], d.scales[i * 3 + 2]],
+      // codec (x,y,z,w) → SplatRaw (w,x,y,z)
+      rotation: [d.rotations[i * 4 + 3], d.rotations[i * 4], d.rotations[i * 4 + 1], d.rotations[i * 4 + 2]],
+      color: [d.colors[i * 4], d.colors[i * 4 + 1], d.colors[i * 4 + 2], d.opacities[i]],
+    };
   }
   return out;
 }

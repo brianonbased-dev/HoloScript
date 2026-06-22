@@ -63,9 +63,20 @@ export {
   renderSplats,
   packRawSplats,
   defaultSplatCamera,
+  gaussian3DToSplats,
+  gaussianSplatDataToSplats,
   type RawSplatInput,
   type SplatRenderOptions,
 } from '../native-render/splat-render';
+
+// Splat-bodied character entity (D.094 entity-generic + D.102 portable mind) loaded from the
+// existing splat infrastructure (PLY loader / codec interchange).
+export {
+  SplatCharacterHost,
+  framingSplatCamera,
+  type SplatCharacterHostOptions,
+  type SplatCharacterRenderOptions,
+} from './SplatCharacterHost';
 
 export {
   detectSupport,
