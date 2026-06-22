@@ -58,6 +58,16 @@ export {
   type CharacterRenderOptions,
 } from './character-render';
 
+export {
+  detectSupport,
+  composeEyeViewProj,
+  packFrameUniform,
+  XRCharacterRenderer,
+  type XRSupport,
+  type XRRenderMode,
+  type XRCharacterRendererOptions,
+} from './character-render-xr';
+
 export { gaitPose, type GaitMode, type AvatarPoseMap } from './gait';
 
 export {
