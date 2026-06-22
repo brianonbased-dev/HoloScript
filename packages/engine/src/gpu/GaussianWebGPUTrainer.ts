@@ -193,7 +193,7 @@ export class GaussianWebGPUTrainer {
     this.ensureBuffers(N, W, H);
     const d = this.dev;
     this.writeUniforms(W, H, N, bg);
-    d.queue.writeBuffer(this.splatBuf!, 0, packed);
+    d.queue.writeBuffer(this.splatBuf!, 0, packed.buffer as ArrayBuffer, packed.byteOffset, packed.byteLength);
 
     const enc = d.createCommandEncoder({ label: 'fwd-enc' });
     enc.clearBuffer(this.imgBuf!);
@@ -235,8 +235,8 @@ export class GaussianWebGPUTrainer {
     this.ensureBuffers(N, W, H);
     const d = this.dev;
     this.writeUniforms(W, H, N, bg);
-    d.queue.writeBuffer(this.splatBuf!, 0, packed);
-    d.queue.writeBuffer(this.dLBuf!,   0, dLimg);
+    d.queue.writeBuffer(this.splatBuf!, 0, packed.buffer as ArrayBuffer, packed.byteOffset, packed.byteLength);
+    d.queue.writeBuffer(this.dLBuf!,   0, dLimg.buffer  as ArrayBuffer, dLimg.byteOffset,  dLimg.byteLength);
 
     const enc = d.createCommandEncoder({ label: 'bwd-enc' });
     enc.clearBuffer(this.gradBuf!);
