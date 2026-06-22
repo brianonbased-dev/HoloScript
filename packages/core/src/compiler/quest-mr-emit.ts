@@ -353,6 +353,33 @@ function locomotionLogic(): string {
     .join('\n');
 }
 
+/**
+ * The scan-result ROUTING DECISION, compiled from quest-mr-logic/Routing.logic.hs to Kotlin via the
+ * canonical Rust/WASM grammar (gen-quest-mr-templates.mjs). The compiled output is the `enum class
+ * Route { … }` + the pure `decideRoute(isWorldLink, autoImmerse, isOpenAction): Route` boolean logic;
+ * it is injected into StarterSampleActivity.kt.tmpl's `{{ROUTING_LOGIC}}` marker (a private `Routing`
+ * object on the activity). The Kotlin shell's onDecoded() computes the three booleans (its side
+ * effects + state mutations stay in the shell) and applies the returned Route in a `when`. Fails loud
+ * if missing — a missing block means the build skipped the .hs compile, which must not silently ship
+ * a hand-Kotlin routing decision (the LAST imperative-logic holdout this slice removes).
+ */
+function routingLogic(): string {
+  const logic = QUEST_MR_COMPILED_LOGIC['Routing'];
+  if (logic == null || logic.trim().length === 0) {
+    throw new Error(
+      'quest-mr-emit: missing compiled Routing logic. Run `node scripts/gen-quest-mr-templates.mjs` ' +
+        'in packages/core after building packages/compiler-wasm (pkg-node).'
+    );
+  }
+  // Like Locomotion, the Routing object is nested inside the activity class, so its members sit one
+  // level deeper than the 2-space compile indent. Re-indent each non-blank line by two more spaces.
+  return logic
+    .replace(/\n+$/, '')
+    .split('\n')
+    .map((line) => (line.length === 0 ? line : '  ' + line))
+    .join('\n');
+}
+
 /** Replace {{TOKEN}} markers in a .kt.tmpl with feature values. */
 function applyTokens(tmplName: string, f: QuestMrFeatures): string {
   const tmpl = QUEST_MR_TEMPLATES[tmplName];
@@ -385,6 +412,9 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     // Continuous-locomotion integration math compiled from quest-mr-logic/Locomotion.logic.hs
     // (.hs → Kotlin). The activity shell owns the state + SDK calls; this is the .hs-authored math.
     LOCOMOTION_LOGIC: locomotionLogic(),
+    // Scan-result routing decision compiled from quest-mr-logic/Routing.logic.hs (.hs → Kotlin).
+    // The onDecoded() shell owns the side effects + state writes; this is the .hs-authored decision.
+    ROUTING_LOGIC: routingLogic(),
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole

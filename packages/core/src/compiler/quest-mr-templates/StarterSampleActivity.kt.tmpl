@@ -187,12 +187,18 @@ class StarterSampleActivity : AppSystemActivity() {
     Log.i(tag, "decoded: $text")
     controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
     if (scanSound) playScanTone() // audible confirmation cue (config: @qr_decode.feedback.sound)
-    // A HoloScript world link takes precedence (its own @world_portal patterns) — auto-immerse or offer
-    // an "Enter world" card.
-    if (WorldPortal.isWorldLink(text)) {
-      if (WorldPortal.autoImmerse) {
-        enterWorld(text)
-      } else {
+    // FUNCTIONAL-CORE / IMPERATIVE-SHELL: the ROUTING DECISION (which of four outcomes a scan is) is
+    // .hs-authored pure boolean logic (Routing.decideRoute, below). This shell computes the three
+    // boolean inputs — a HoloScript world link takes precedence (its own @world_portal patterns);
+    // otherwise classify the payload (url / wifi / contact / email / phone / sms / geo / event / text)
+    // from scanner.holo's @qr_decode.content_types — then APPLIES the returned route (state writes +
+    // host call). classifyContent is computed only for non-world payloads (it only drives those routes).
+    val isWorld = WorldPortal.isWorldLink(text)
+    val c: QrContent? = if (isWorld) null else classifyContent(text)
+    val isOpen = c?.action == QrAction.OPEN
+    when (Routing.decideRoute(isWorld, WorldPortal.autoImmerse, isOpen)) {
+      Routing.Route.EnterWorld -> enterWorld(text)
+      Routing.Route.PendingWorld -> {
         ScannerState.pendingWorld = text
         ScannerState.pendingUrl = null
         ScannerState.lastResult = null
@@ -200,22 +206,31 @@ class StarterSampleActivity : AppSystemActivity() {
         ScannerState.resultLabel = null
         ScannerState.status = "World found — enter it?"
       }
-      return
+      Routing.Route.OpenUrl -> {
+        ScannerState.resultKind = c!!.kind
+        ScannerState.resultLabel = c.label
+        ScannerState.pendingUrl = text
+        ScannerState.lastResult = null
+        ScannerState.status = c.label + " — open it?"
+      }
+      Routing.Route.ShowResult -> {
+        ScannerState.resultKind = c!!.kind
+        ScannerState.resultLabel = c.label
+        ScannerState.pendingUrl = null
+        ScannerState.lastResult = text
+        ScannerState.status = c.label
+      }
     }
-    // Otherwise classify the payload (url / wifi / contact / email / phone / sms / geo / event / text)
-    // from scanner.holo's @qr_decode.content_types and present the typed result + the right action.
-    val c = classifyContent(text)
-    ScannerState.resultKind = c.kind
-    ScannerState.resultLabel = c.label
-    if (c.action == QrAction.OPEN) {
-      ScannerState.pendingUrl = text
-      ScannerState.lastResult = null
-      ScannerState.status = c.label + " — open it?"
-    } else {
-      ScannerState.pendingUrl = null
-      ScannerState.lastResult = text
-      ScannerState.status = c.label
-    }
+  }
+
+  // ── @generated from logic/Routing.logic.hs (compile_to_kotlin) ──────────────────────────────
+  // Pure boolean ROUTING DECISION for a decoded scan: the `enum class Route` + decideRoute(). The
+  // onDecoded() shell above owns ALL side effects (Log / pauseScanning / playScanTone), the boolean
+  // computations (WorldPortal.isWorldLink / classifyContent / WorldPortal.autoImmerse), the
+  // ScannerState writes, and the enterWorld() host call; this object is the .hs-authored decision it
+  // applies. Change logic/Routing.logic.hs and recompile — never hand-edit here.
+  private object Routing {
+{{ROUTING_LOGIC}}
   }
 
   // Immerse into a HoloScript world: drop passthrough (the real room vanishes — you are "in" the

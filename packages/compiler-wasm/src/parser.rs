@@ -133,6 +133,7 @@ impl Parser {
             TokenType::Import => self.parse_import(),
             TokenType::Export => self.parse_export(),
             TokenType::Function => self.parse_function(),
+            TokenType::Enum => self.parse_enum_declaration(),
             TokenType::Move => self.parse_move_statement(),
             TokenType::Action => self.parse_action_decl(),
             TokenType::OnEvent => self.parse_game_event_block(),
@@ -674,6 +675,38 @@ impl Parser {
             name,
             params,
             body,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse an enum (sum-type) declaration:
+    ///   enum Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }
+    ///
+    /// The name and each member lex as Identifier tokens. Commas between members are
+    /// optional (mirroring the object-literal grammar's lenient comma handling) and a
+    /// trailing comma is tolerated. The members are a closed set of bare identifiers —
+    /// no associated values, no methods (the `.hs` logic subset is data-only).
+    fn parse_enum_declaration(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'enum'
+
+        let name = self.expect_identifier()?;
+        self.expect(TokenType::LBrace)?;
+
+        let mut members = Vec::new();
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            members.push(self.expect_identifier()?);
+            // Comma between members is optional; tolerate a trailing one.
+            if self.check(TokenType::Comma) {
+                self.advance();
+            }
+        }
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::EnumDeclaration(EnumDeclarationNode {
+            name,
+            members,
             loc: Some(self.location_from(start_loc)),
         }))
     }
@@ -1618,6 +1651,7 @@ impl Parser {
                 | TokenType::Import
                 | TokenType::Export
                 | TokenType::Function
+                | TokenType::Enum
                 | TokenType::Move
                 | TokenType::Action
                 | TokenType::OnEvent => return,
@@ -1918,6 +1952,47 @@ mod tests {
         } else {
             panic!("Expected GameEventBlock node");
         }
+    }
+
+    #[test]
+    fn test_parse_enum_declaration() {
+        let source = r#"enum Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        if let AstNode::EnumDeclaration(e) = &program.body[0] {
+            assert_eq!(e.name, "Route");
+            assert_eq!(
+                e.members,
+                vec![
+                    "EnterWorld".to_string(),
+                    "PendingWorld".to_string(),
+                    "OpenUrl".to_string(),
+                    "ShowResult".to_string()
+                ]
+            );
+        } else {
+            panic!("Expected EnumDeclaration node");
+        }
+    }
+
+    #[test]
+    fn test_parse_enum_with_function() {
+        // An enum followed by a function that returns its members parses as two top-level nodes.
+        let source = r#"enum Route { EnterWorld, ShowResult }
+function decideRoute(isWorldLink) {
+  if (isWorldLink) { return Route.EnterWorld } else { return Route.ShowResult }
+}"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 2);
+        assert!(matches!(program.body[0], AstNode::EnumDeclaration(_)));
+        assert!(matches!(program.body[1], AstNode::Function(_)));
     }
 
     #[test]

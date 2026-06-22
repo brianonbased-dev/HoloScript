@@ -75,6 +75,7 @@ pub enum TokenType {
     While,
     Return,
     Function,
+    Enum,
 
     // Declarations
     Const,
@@ -183,6 +184,7 @@ pub fn get_keyword(word: &str) -> Option<TokenType> {
         "while" => Some(TokenType::While),
         "return" => Some(TokenType::Return),
         "function" => Some(TokenType::Function),
+        "enum" => Some(TokenType::Enum),
 
         // Declarations
         "const" => Some(TokenType::Const),

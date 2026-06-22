@@ -77,6 +77,7 @@ pub enum AstNode {
     If(IfNode),
     For(ForNode),
     While(WhileNode),
+    EnumDeclaration(EnumDeclarationNode),
 
     // Event handlers
     EventHandler(EventHandlerNode),
@@ -447,6 +448,18 @@ pub struct FunctionNode {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Enum (sum-type) declaration: `enum Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }`.
+/// A named, fixed set of bare member identifiers. The `.hs` logic subset uses it as a closed
+/// return-domain for routing decisions; the Kotlin backend emits `enum class <name> { <members> }`
+/// and lets a function that returns `<name>.<Member>` infer the enum return type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnumDeclarationNode {
+    pub name: String,
+    pub members: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

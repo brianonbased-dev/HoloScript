@@ -35,7 +35,7 @@
 //! [`KotlinEmitError`] for function-body constructs, so an unhandled node fails loud
 //! instead of silently emitting wrong Kotlin.
 
-use crate::ast::{Ast, AstNode};
+use crate::ast::{Ast, AstNode, EnumDeclarationNode};
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
 #[derive(Debug, Clone)]
@@ -58,37 +58,74 @@ impl std::fmt::Display for KotlinEmitError {
 }
 
 /// Inferred Kotlin type for an emitted function's return or a parameter.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ValType {
     Str,
     Bool,
     Float,
+    /// A declared `.hs` enum (sum-type), carrying its Kotlin type name (e.g. `Route`).
+    Enum(String),
 }
 
 impl ValType {
-    fn kotlin(self) -> &'static str {
+    fn kotlin(&self) -> String {
         match self {
-            ValType::Str => "String",
-            ValType::Bool => "Boolean",
-            ValType::Float => "Float",
+            ValType::Str => "String".to_string(),
+            ValType::Bool => "Boolean".to_string(),
+            ValType::Float => "Float".to_string(),
+            ValType::Enum(name) => name.clone(),
         }
     }
 }
 
-/// Emit Kotlin function declarations for every top-level `function` in `ast`.
+/// Emit Kotlin declarations for every top-level `enum` and `function` in `ast`.
 ///
-/// Each function is rendered with the given `indent` prefix (e.g. two spaces when the
-/// functions live inside a Kotlin `object`). Functions are separated by a blank line.
-/// Non-function top-level nodes are ignored (they belong to the object-graph surface,
-/// not the logic surface this emitter targets).
+/// Each declaration is rendered with the given `indent` prefix (e.g. two spaces when the
+/// declarations live inside a Kotlin `object`). Declarations are separated by a blank line,
+/// with `enum class` blocks emitted before the functions (so a function may name an enum as
+/// its return type). Non-function/non-enum top-level nodes are ignored (they belong to the
+/// object-graph surface, not the logic surface this emitter targets).
 pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError> {
+    // First pass: collect the declared enum names so return-type inference can recognize an
+    // `Enum.Member` reference as that enum's value (and so a stray member name can't be read
+    // as a plain identifier). `.hs` enums are data-only — name + bare member list.
+    let enums: Vec<&EnumDeclarationNode> = ast
+        .body
+        .iter()
+        .filter_map(|n| match n {
+            AstNode::EnumDeclaration(e) => Some(e),
+            _ => None,
+        })
+        .collect();
+    let enum_names: Vec<String> = enums.iter().map(|e| e.name.clone()).collect();
+
     let mut blocks: Vec<String> = Vec::new();
+    for e in &enums {
+        blocks.push(emit_enum(e, indent));
+    }
     for node in &ast.body {
         if let AstNode::Function(func) = node {
-            blocks.push(emit_function(&func.name, &func.params, &func.body, indent)?);
+            blocks.push(emit_function(
+                &func.name,
+                &func.params,
+                &func.body,
+                indent,
+                &enum_names,
+            )?);
         }
     }
     Ok(blocks.join("\n\n"))
+}
+
+/// Emit `enum class <Name> { <Member>, <Member>, … }` for a `.hs` enum declaration.
+/// Members are bare identifiers (no associated values), matching the data-only `.hs` subset.
+fn emit_enum(node: &EnumDeclarationNode, indent: &str) -> String {
+    format!(
+        "{}enum class {} {{ {} }}",
+        indent,
+        node.name,
+        node.members.join(", ")
+    )
 }
 
 /// Parse `.hs` source and emit Kotlin for its top-level functions.
@@ -113,8 +150,9 @@ fn emit_function(
     params: &[String],
     body: &[AstNode],
     indent: &str,
+    enum_names: &[String],
 ) -> Result<String, KotlinEmitError> {
-    let ret = infer_return_type(body);
+    let ret = infer_return_type(body, enum_names);
     let param_list = params
         .iter()
         .map(|p| format!("{}: {}", p, infer_param_type(p, body).kotlin()))
@@ -144,15 +182,31 @@ fn emit_function(
 }
 
 /// Infer the Kotlin return type from the function's `return` expressions:
+/// an `enum` type if every return is a member of the SAME declared enum (`Route.EnterWorld`),
 /// `Boolean` if every return is boolean-shaped, `Float` if every return is numeric-shaped
 /// (and at least one return exists in each case), otherwise `String`. The conservative
 /// default of `String` matches the Quest naming functions; the `Float` branch carries the
-/// locomotion math. Booleans are checked first so a comparison never reads as numeric.
-fn infer_return_type(body: &[AstNode]) -> ValType {
+/// locomotion math; the enum branch carries the routing decision. Enum is checked first so a
+/// member access never falls through to `String`, then Boolean so a comparison never reads as
+/// numeric.
+fn infer_return_type(body: &[AstNode], enum_names: &[String]) -> ValType {
     let mut returns: Vec<&AstNode> = Vec::new();
     collect_returns(body, &mut returns);
     if returns.is_empty() {
         return ValType::Str;
+    }
+    // Enum: every return must be a member of the SAME declared enum. A mix of two enums (or an
+    // enum and something else) is not a single enum type, so it falls through to the rules below.
+    if let Some(first) = returns
+        .first()
+        .and_then(|n| enum_member_owner(n, enum_names))
+    {
+        if returns
+            .iter()
+            .all(|n| enum_member_owner(n, enum_names).as_deref() == Some(first.as_str()))
+        {
+            return ValType::Enum(first);
+        }
     }
     if returns.iter().all(|n| is_boolean_expr(n)) {
         ValType::Bool
@@ -163,16 +217,88 @@ fn infer_return_type(body: &[AstNode]) -> ValType {
     }
 }
 
+/// If `node` is an enum-member reference (`<EnumName>.<Member>` where `<EnumName>` is a declared
+/// enum), return the enum's name; otherwise `None`. Used by return-type inference to type a
+/// function that yields enum values as returning that enum.
+fn enum_member_owner(node: &AstNode, enum_names: &[String]) -> Option<String> {
+    if let AstNode::MemberExpression(m) = node {
+        if !m.computed {
+            if let AstNode::Identifier(obj) = m.object.as_ref() {
+                if enum_names.iter().any(|e| e == &obj.name) {
+                    return Some(obj.name.clone());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Infer a parameter's Kotlin type by how the function body uses it: `Float` when the
 /// parameter participates in arithmetic (`+ - * /`), is the argument of a numeric builtin
-/// (`sqrt`), or is returned by a `Float`-returning function; otherwise `String`. This is the
-/// numeric analogue of the existing all-`String` policy — a `.hs` logic function is pure
-/// single-assignment, so a parameter used arithmetically anywhere is numeric everywhere.
+/// (`sqrt`); `Boolean` when it is used only as a bare truth value (an `if (param)` test, or an
+/// operand of `&& || !`); otherwise `String`. This is the analogue of the existing all-`String`
+/// policy — a `.hs` logic function is pure single-assignment, so a parameter used arithmetically
+/// (or booleanly) anywhere is that type everywhere. Numeric is checked first so a value used in
+/// both arithmetic and a comparison reads as `Float`; the routing decision's flags
+/// (`isWorldLink` / `autoImmerse` / `isOpenAction`) are used only as bare `if` tests → `Boolean`.
 fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
     if body_uses_param_numerically(param, body) {
         ValType::Float
+    } else if body_uses_param_as_boolean(param, body) {
+        ValType::Bool
     } else {
         ValType::Str
+    }
+}
+
+/// Walk every statement in `body` looking for a bare-boolean use of `param`: it appears directly
+/// as an `if (...)` test, or as a `&& || !` operand. A param NOT used this way (e.g. only compared
+/// or returned) stays `String` under the conservative default.
+fn body_uses_param_as_boolean(param: &str, body: &[AstNode]) -> bool {
+    let is_param = |n: &AstNode| matches!(n, AstNode::Identifier(id) if id.name == param);
+    body.iter().any(|node| match node {
+        AstNode::If(if_node) => {
+            // `if (param)` — the test IS the bare param.
+            is_param(&if_node.test)
+                || expr_uses_param_as_boolean(param, &if_node.test)
+                || body_uses_param_as_boolean(param, &if_node.consequent)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alt| body_uses_param_as_boolean(param, alt))
+        }
+        AstNode::Property(p) => expr_uses_param_as_boolean(param, &p.value),
+        AstNode::Return(r) => r
+            .argument
+            .as_ref()
+            .is_some_and(|a| expr_uses_param_as_boolean(param, a)),
+        other => expr_uses_param_as_boolean(param, other),
+    })
+}
+
+/// Is `param` used as a logical operand (`&& || !`) anywhere inside `node`?
+fn expr_uses_param_as_boolean(param: &str, node: &AstNode) -> bool {
+    let is_param = |n: &AstNode| matches!(n, AstNode::Identifier(id) if id.name == param);
+    match node {
+        AstNode::BinaryExpression(b) => {
+            let logical = matches!(b.operator.as_str(), "&&" | "||");
+            (logical && (is_param(&b.left) || is_param(&b.right)))
+                || expr_uses_param_as_boolean(param, &b.left)
+                || expr_uses_param_as_boolean(param, &b.right)
+        }
+        AstNode::UnaryExpression(u) => {
+            (u.operator == "!" && is_param(&u.argument))
+                || expr_uses_param_as_boolean(param, &u.argument)
+        }
+        AstNode::CallExpression(c) => c
+            .arguments
+            .iter()
+            .any(|a| expr_uses_param_as_boolean(param, a)),
+        AstNode::MemberExpression(m) => {
+            expr_uses_param_as_boolean(param, &m.object)
+                || expr_uses_param_as_boolean(param, &m.property)
+        }
+        _ => false,
     }
 }
 
@@ -526,6 +652,7 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::Import(_) => "Import",
         AstNode::Export(_) => "Export",
         AstNode::Function(_) => "Function",
+        AstNode::EnumDeclaration(_) => "EnumDeclaration",
         AstNode::Return(_) => "Return",
         AstNode::If(_) => "If",
         AstNode::For(_) => "For",
@@ -740,5 +867,117 @@ mod tests {
         let out = kotlin(src);
         assert!(out.contains("fun pick(text: String): String {"), "{out}");
         assert!(!out.contains("Float"), "no Float in string logic: {out}");
+    }
+
+    // ── Enum (sum-type) + Boolean params (routing decision) ───────────────────────────────────
+
+    #[test]
+    fn emits_enum_declaration_as_enum_class() {
+        let src = r#"enum Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("enum class Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_enum_return_for_enum_member_returns() {
+        // A function whose every return is a member of the declared enum returns that enum type,
+        // and the bare-boolean params are typed Boolean by usage (used only as `if` tests).
+        let src = r#"enum Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }
+function decideRoute(isWorldLink, autoImmerse, isOpenAction) {
+  if (isWorldLink) {
+    if (autoImmerse) { return Route.EnterWorld } else { return Route.PendingWorld }
+  } else {
+    if (isOpenAction) { return Route.OpenUrl } else { return Route.ShowResult }
+  }
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("enum class Route { EnterWorld, PendingWorld, OpenUrl, ShowResult }"),
+            "{out}"
+        );
+        assert!(
+            out.contains(
+                "fun decideRoute(isWorldLink: Boolean, autoImmerse: Boolean, isOpenAction: Boolean): Route {"
+            ),
+            "{out}"
+        );
+        assert!(out.contains("if (isWorldLink) {"), "{out}");
+        assert!(out.contains("return Route.EnterWorld"), "{out}");
+        assert!(out.contains("return Route.PendingWorld"), "{out}");
+        assert!(out.contains("return Route.OpenUrl"), "{out}");
+        assert!(out.contains("return Route.ShowResult"), "{out}");
+    }
+
+    #[test]
+    fn enum_class_is_emitted_before_functions() {
+        // The `enum class` must precede any function that names it as a return type, so the
+        // emitted Kotlin compiles top-to-bottom.
+        let src = r#"enum Route { A, B }
+function f(x) {
+  if (x) { return Route.A } else { return Route.B }
+}"#;
+        let out = kotlin(src);
+        let enum_pos = out.find("enum class Route").expect("enum emitted");
+        let fn_pos = out.find("fun f(").expect("fn emitted");
+        assert!(enum_pos < fn_pos, "enum must precede fn: {out}");
+    }
+
+    #[test]
+    fn infers_boolean_param_for_bare_if_test() {
+        let src = r#"function gate(flag) {
+  if (flag) { return "yes" } else { return "no" }
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun gate(flag: Boolean): String {"), "{out}");
+    }
+
+    #[test]
+    fn infers_boolean_param_for_logical_operand() {
+        let src = r#"function both(a, b) {
+  return a && b
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun both(a: Boolean, b: Boolean): Boolean {"), "{out}");
+    }
+
+    #[test]
+    fn enum_decl_with_optional_commas_and_trailing_comma() {
+        // The member list tolerates a trailing comma (object-literal-style lenient commas).
+        let src = r#"enum Color { Red, Green, Blue, }"#;
+        let out = kotlin(src);
+        assert!(out.contains("enum class Color { Red, Green, Blue }"), "{out}");
+    }
+
+    #[test]
+    fn regression_string_and_float_functions_unchanged_alongside_enum() {
+        // The enum/Boolean additions must NOT disturb the shipped WorldPortal (String) and
+        // Locomotion (Float) function shapes when they coexist with an enum in one compile unit.
+        let src = r#"enum Route { EnterWorld, ShowResult }
+function worldId(text) {
+  let t = text.trim()
+  let seg = t.substringBefore("/")
+  if (seg == "") {
+    return "world"
+  } else {
+    return seg
+  }
+}
+function newYaw(yaw, turn, turnSpeed, dt) {
+  return yaw + turn * turnSpeed * dt
+}"#;
+        let out = kotlin(src);
+        // WorldPortal-style String function unchanged.
+        assert!(out.contains("fun worldId(text: String): String {"), "{out}");
+        // Locomotion-style Float function unchanged.
+        assert!(
+            out.contains(
+                "fun newYaw(yaw: Float, turn: Float, turnSpeed: Float, dt: Float): Float {"
+            ),
+            "{out}"
+        );
+        assert!(out.contains("return yaw + turn * turnSpeed * dt"), "{out}");
     }
 }
