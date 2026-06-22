@@ -31,6 +31,13 @@ export interface QuestHowTo {
   icon: string;
   text: string;
 }
+/** A QR content-classification rule (from @qr_decode.content_types) → an on-device when-arm. */
+export interface QuestContentType {
+  kind: string; // url | wifi | contact | email | phone | sms | geo | event | …
+  action: string; // 'open' (Quest browser) | 'copy' (clipboard)
+  label: string; // result-card heading
+  prefixes: string[]; // case-insensitive payload prefixes that identify this kind
+}
 export interface QuestMrFeatures {
   packageName: string;
   appName: string;
@@ -72,6 +79,11 @@ export interface QuestMrFeatures {
   enteringLabel: string;
   leaveAction: string;
   demoWorldUrl: string;
+  // qr_decode.content_types — universal content classification rule table (+ fallback).
+  contentTypes: QuestContentType[];
+  fallbackKind: string;
+  fallbackAction: string;
+  fallbackLabel: string;
 }
 
 function defaults(): QuestMrFeatures {
@@ -119,6 +131,21 @@ function defaults(): QuestMrFeatures {
     enteringLabel: 'Entered',
     leaveAction: 'Leave world',
     demoWorldUrl: 'holoscript://world/hololand',
+    // Defaults mirror scanner.holo's @qr_decode.content_types so emit == reference even if a spec
+    // omits the table; scanner.holo is authoritative when it declares it.
+    contentTypes: [
+      { kind: 'url', action: 'open', label: 'Link', prefixes: ['http://', 'https://'] },
+      { kind: 'wifi', action: 'copy', label: 'Wi-Fi network', prefixes: ['WIFI:'] },
+      { kind: 'contact', action: 'copy', label: 'Contact card', prefixes: ['BEGIN:VCARD', 'MECARD:'] },
+      { kind: 'email', action: 'copy', label: 'Email', prefixes: ['mailto:', 'MATMSG:'] },
+      { kind: 'phone', action: 'copy', label: 'Phone number', prefixes: ['tel:'] },
+      { kind: 'sms', action: 'copy', label: 'Message', prefixes: ['sms:', 'smsto:'] },
+      { kind: 'geo', action: 'copy', label: 'Location', prefixes: ['geo:'] },
+      { kind: 'event', action: 'copy', label: 'Calendar event', prefixes: ['BEGIN:VEVENT'] },
+    ],
+    fallbackKind: 'text',
+    fallbackAction: 'copy',
+    fallbackLabel: 'Text',
   };
 }
 
@@ -161,6 +188,27 @@ export function collectQuestMrFeatures(composition?: HoloComposition): QuestMrFe
           f.centerCropH = vnum(crop.height, f.centerCropH);
           f.decodeIntervalMs = vnum(c.decode_interval_ms, f.decodeIntervalMs);
           f.dedupeWindowMs = vnum(c.dedupe_window_ms, f.dedupeWindowMs);
+          // Universal content classification table → on-device classifyContent() when-arms.
+          const cts = varr(c.content_types)
+            .map((row) => {
+              const r = vobj(row);
+              return {
+                kind: vstr(r.kind, ''),
+                action: vstr(r.action, 'copy'),
+                label: vstr(r.label, ''),
+                prefixes: varr(r.prefixes)
+                  .map((p) => (typeof p === 'string' ? p : ''))
+                  .filter((p) => p.length > 0),
+              };
+            })
+            .filter((ct) => ct.kind.length > 0 && ct.prefixes.length > 0);
+          if (cts.length > 0) f.contentTypes = cts;
+          const fb = vobj(c.fallback_type);
+          if (Object.keys(fb).length > 0) {
+            f.fallbackKind = vstr(fb.kind, f.fallbackKind);
+            f.fallbackAction = vstr(fb.action, f.fallbackAction);
+            f.fallbackLabel = vstr(fb.label, f.fallbackLabel);
+          }
           break;
         }
         case 'spatial_panel': {
@@ -239,6 +287,23 @@ const xesc = (s: string): string =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, "\\'");
 
+/**
+ * Build the body of the @generated Kotlin `classifyContent()` when-block from the content-type rule
+ * table. Each rule → a `pre(...) -> QrContent(kind, label, action)` arm; the fallback → the `else`.
+ * `pre()` is a case-insensitive startsWith helper defined in the template. First match wins.
+ */
+function buildContentWhen(f: QuestMrFeatures): string {
+  const kact = (a: string): string => (a === 'open' ? 'QrAction.OPEN' : 'QrAction.COPY');
+  const arms = f.contentTypes.map((ct) => {
+    const pres = ct.prefixes.map((p) => kstr(p)).join(', ');
+    return `      pre(${pres}) -> QrContent(${kstr(ct.kind)}, ${kstr(ct.label)}, ${kact(ct.action)})`;
+  });
+  arms.push(
+    `      else -> QrContent(${kstr(f.fallbackKind)}, ${kstr(f.fallbackLabel)}, ${kact(f.fallbackAction)})`
+  );
+  return arms.join('\n');
+}
+
 /** Replace {{TOKEN}} markers in a .kt.tmpl with feature values. */
 function applyTokens(tmplName: string, f: QuestMrFeatures): string {
   const tmpl = QUEST_MR_TEMPLATES[tmplName];
@@ -262,6 +327,7 @@ function applyTokens(tmplName: string, f: QuestMrFeatures): string {
     FOLLOW_DISTANCE: f.followDistance,
     LINK_PATTERNS: 'listOf(' + f.worldLinkPatterns.map((p) => kstr(p)).join(', ') + ')',
     AUTO_IMMERSE: String(f.autoImmerse),
+    CONTENT_WHEN: buildContentWhen(f),
   };
   return tmpl.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) =>
     key in map ? String(map[key]) : whole

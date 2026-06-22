@@ -98,9 +98,12 @@ object ScannerState {
   var pendingWorld by mutableStateOf<String?>(null) // world link awaiting "Enter world" (auto_immerse=false)
   var worldName by mutableStateOf<String?>(null) // current immersed world (null = passthrough scanning)
   var justEnteredWorld by mutableStateOf(false) // transient: show "Entered <world>" briefly
+  var resultKind by mutableStateOf<String?>(null) // classified content kind (url/wifi/contact/email/…)
+  var resultLabel by mutableStateOf<String?>(null) // typed heading for the result card (e.g. "Wi-Fi network")
   var onOpen: ((String) -> Unit)? = null
   var onStart: (() -> Unit)? = null
   var onDismiss: (() -> Unit)? = null // resume scanning after a result card is cleared
+  var onCopy: ((String) -> Unit)? = null // copy a non-link result (wifi/contact/text/…) to the clipboard
   var onEnterWorld: ((String) -> Unit)? = null // immerse into the scanned world
   var onLeaveWorld: (() -> Unit)? = null // return to passthrough scanning
   var mockQr by mutableStateOf<ImageBitmap?>(null)
@@ -121,6 +124,8 @@ object ScannerState {
     pendingWorld = null
     pendingUrl = null
     lastResult = null
+    resultKind = null
+    resultLabel = null
     worldName = name
     justEnteredWorld = true
     screen = Screen.IN_WORLD
@@ -132,6 +137,8 @@ object ScannerState {
     pendingWorld = null
     pendingUrl = null
     lastResult = null
+    resultKind = null
+    resultLabel = null
     screen = Screen.SCANNING
     status = "Point at a QR code…"
   }
@@ -140,6 +147,8 @@ object ScannerState {
     pendingUrl = null
     pendingWorld = null
     lastResult = null
+    resultKind = null
+    resultLabel = null
     status = "Point at a QR code…"
   }
 }
@@ -284,7 +293,8 @@ private fun ResultCard() {
     Text(text = "✓", fontSize = 48.sp, color = Color.White)
   }
   Spacer(Modifier.size(14.dp))
-  Heading("QR found")
+  // Typed heading from the classifier (e.g. "Link", "Wi-Fi network", "Contact card"); "QR found" if none.
+  Heading(ScannerState.resultLabel ?: "QR found")
   Spacer(Modifier.size(12.dp))
   val url = ScannerState.pendingUrl
   if (url != null) {
@@ -311,15 +321,30 @@ private fun ResultCard() {
       }
     }
   } else {
-    Body(ScannerState.lastResult ?: "")
+    // Non-link payload (wifi / contact / email / phone / sms / geo / event / text): show it and offer
+    // Copy so the user can actually use it (the headset has no dialer/joiner for most of these).
+    val result = ScannerState.lastResult ?: ""
+    Body(result)
     Spacer(Modifier.size(20.dp))
-    Button(
-        onClick = {
-          ScannerState.reset()
-          ScannerState.onDismiss?.invoke()
-        }
-    ) {
-      Text("Dismiss")
+    Row {
+      Button(
+          onClick = {
+            ScannerState.onCopy?.invoke(result)
+            ScannerState.reset()
+            ScannerState.onDismiss?.invoke()
+          }
+      ) {
+        Text("Copy")
+      }
+      Spacer(Modifier.size(14.dp))
+      Button(
+          onClick = {
+            ScannerState.reset()
+            ScannerState.onDismiss?.invoke()
+          }
+      ) {
+        Text("Dismiss")
+      }
     }
   }
 }

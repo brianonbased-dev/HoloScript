@@ -35,6 +35,12 @@ import com.meta.spatial.toolkit.UIPanelSettings
 import com.meta.spatial.vr.LocomotionSystem
 import com.meta.spatial.vr.VRFeature
 
+/** What to do with a scanned payload: OPEN it in the Quest browser, or COPY it to the clipboard. */
+enum class QrAction { OPEN, COPY }
+
+/** A classified QR payload: its content kind, the result-card label, and the primary action. */
+data class QrContent(val kind: String, val label: String, val action: QrAction)
+
 class StarterSampleActivity : AppSystemActivity() {
 
   private val cameraPermission = "horizonos.permission.HEADSET_CAMERA"
@@ -63,6 +69,7 @@ class StarterSampleActivity : AppSystemActivity() {
     ScannerState.onOpen = { url -> openInQuestBrowser(url) }
     ScannerState.onStart = { maybeStartScanner() }
     ScannerState.onDismiss = { controller?.resumeScanning() } // resume scanning after a result clears
+    ScannerState.onCopy = { text -> copyToClipboard(text) } // copy a non-link result to the clipboard
     ScannerState.onEnterWorld = { link -> enterWorld(link) } // scan a world QR → immerse
     ScannerState.onLeaveWorld = { leaveWorld() } // in-world "Leave world" → back to passthrough scanning
     ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
@@ -171,28 +178,34 @@ class StarterSampleActivity : AppSystemActivity() {
   private fun onDecoded(text: String) {
     Log.i(tag, "decoded: $text")
     controller?.pauseScanning() // hold scanning while the result card is shown; resume on dismiss/open
-    when {
-      WorldPortal.isWorldLink(text) -> {
-        // A HoloScript world link. Auto-immerse, or offer an "Enter world" card.
-        if (WorldPortal.autoImmerse) {
-          enterWorld(text)
-        } else {
-          ScannerState.pendingWorld = text
-          ScannerState.pendingUrl = null
-          ScannerState.lastResult = null
-          ScannerState.status = "World found — enter it?"
-        }
-      }
-      isUrl(text) -> {
-        ScannerState.pendingUrl = text
-        ScannerState.lastResult = null
-        ScannerState.status = "QR found — open it?"
-      }
-      else -> {
+    // A HoloScript world link takes precedence (its own @world_portal patterns) — auto-immerse or offer
+    // an "Enter world" card.
+    if (WorldPortal.isWorldLink(text)) {
+      if (WorldPortal.autoImmerse) {
+        enterWorld(text)
+      } else {
+        ScannerState.pendingWorld = text
         ScannerState.pendingUrl = null
-        ScannerState.lastResult = text
-        ScannerState.status = "Scanned (not a link):"
+        ScannerState.lastResult = null
+        ScannerState.resultKind = null
+        ScannerState.resultLabel = null
+        ScannerState.status = "World found — enter it?"
       }
+      return
+    }
+    // Otherwise classify the payload (url / wifi / contact / email / phone / sms / geo / event / text)
+    // from scanner.holo's @qr_decode.content_types and present the typed result + the right action.
+    val c = classifyContent(text)
+    ScannerState.resultKind = c.kind
+    ScannerState.resultLabel = c.label
+    if (c.action == QrAction.OPEN) {
+      ScannerState.pendingUrl = text
+      ScannerState.lastResult = null
+      ScannerState.status = c.label + " — open it?"
+    } else {
+      ScannerState.pendingUrl = null
+      ScannerState.lastResult = text
+      ScannerState.status = c.label
     }
   }
 
@@ -316,9 +329,28 @@ class StarterSampleActivity : AppSystemActivity() {
     }
   }
 
-  private fun isUrl(s: String): Boolean {
-    val t = s.trim()
-    return t.startsWith("http://", ignoreCase = true) || t.startsWith("https://", ignoreCase = true)
+  // @generated content classifier — the when-arms come from scanner.holo's @qr_decode.content_types
+  // (compiler token CONTENT_WHEN). Edit the rule table in scanner.holo and recompile — never here.
+  // First match wins; `pre()` is a case-insensitive startsWith over the trimmed payload.
+  private fun classifyContent(text: String): QrContent {
+    val t = text.trim()
+    fun pre(vararg ps: String): Boolean = ps.any { t.startsWith(it, ignoreCase = true) }
+    return when {
+{{CONTENT_WHEN}}
+    }
+  }
+
+  /** Copy a non-link result (Wi-Fi, contact, text, …) to the clipboard so the user can use it. */
+  private fun copyToClipboard(text: String) {
+    try {
+      val cm =
+          getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+              as android.content.ClipboardManager
+      cm.setPrimaryClip(android.content.ClipData.newPlainText("QR", text))
+      ScannerState.status = "Copied"
+    } catch (e: Exception) {
+      Log.w(tag, "clipboard failed: ${e.message}")
+    }
   }
 
   private fun hasCameraPermission(): Boolean =

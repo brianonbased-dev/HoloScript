@@ -43,6 +43,24 @@ composition "UniversalQrScanner" {
       center_crop: { width: 640, height: 480 }
       decode_interval_ms: 200
       dedupe_window_ms: 2500
+
+      // Universal content classification — the DATA the compiler turns into the on-device
+      // classifyContent() Kotlin (StarterSampleActivity.kt). Each row: a content kind, the primary
+      // action (open = launch in the Quest browser; copy = copy to clipboard), the result-card label,
+      // and the case-insensitive prefixes that identify it. First match wins; world links are matched
+      // earlier by @world_portal and take precedence. Add a row here → recompile → the app handles a
+      // new QR type. (Native authoring F.126: behavior is data the compiler consumes, not hand-Kotlin.)
+      content_types: [
+        { kind: "url",     action: "open", label: "Link",           prefixes: ["http://", "https://"] },
+        { kind: "wifi",    action: "copy", label: "Wi-Fi network",  prefixes: ["WIFI:"] },
+        { kind: "contact", action: "copy", label: "Contact card",   prefixes: ["BEGIN:VCARD", "MECARD:"] },
+        { kind: "email",   action: "copy", label: "Email",          prefixes: ["mailto:", "MATMSG:"] },
+        { kind: "phone",   action: "copy", label: "Phone number",   prefixes: ["tel:"] },
+        { kind: "sms",     action: "copy", label: "Message",        prefixes: ["sms:", "smsto:"] },
+        { kind: "geo",     action: "copy", label: "Location",       prefixes: ["geo:"] },
+        { kind: "event",   action: "copy", label: "Calendar event", prefixes: ["BEGIN:VEVENT"] }
+      ]
+      fallback_type: { kind: "text", action: "copy", label: "Text" }   // no prefix matched
     }
   }
 
