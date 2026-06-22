@@ -24,6 +24,7 @@ import type {
   MaterialGroup,
   SkinSSSMaterialSpec,
   MarschnerHairMaterialSpec,
+  RefractiveEyeMaterialSpec,
 } from '../native-render/draw-spec';
 import {
   computeBindWorld,
@@ -58,6 +59,8 @@ export interface CharacterHostOptions {
   melanin?: number;
   /** Hair pheomelanin/redness 0..1. Default 0.2. */
   melaninRedness?: number;
+  /** Iris colour 0xRRGGBB (default warm brown #4a3520). */
+  irisColor?: number;
   /** Initial world position. */
   position?: [number, number, number];
 }
@@ -89,6 +92,16 @@ const HAIR_BASE: Omit<MarschnerHairMaterialSpec, 'melanin' | 'melaninRedness'> =
   secondaryExp: 12,
 };
 
+/** Refractive eye preset; iris colour set per-host. */
+const EYE_BASE: Omit<RefractiveEyeMaterialSpec, 'color'> = {
+  shadingModel: 'refractive-eye',
+  metalness: 0,
+  roughness: 0.05,
+  emissive: 0,
+  opacity: 1,
+  ior: 1.376,
+};
+
 /** Authoritative world-state for an embodied agent (subset of xr-embodiment's WorldStateSource). */
 export interface CharacterWorldState {
   position?: { x?: number; y?: number; z?: number };
@@ -106,6 +119,7 @@ export class CharacterHost {
   private readonly material: MaterialSpec;
   private readonly skinMaterial: SkinSSSMaterialSpec;
   private readonly hairMaterial: MarschnerHairMaterialSpec;
+  private readonly eyeMaterial: RefractiveEyeMaterialSpec;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
 
@@ -134,6 +148,7 @@ export class CharacterHost {
       melanin: opts.melanin ?? 0.7,
       melaninRedness: opts.melaninRedness ?? 0.2,
     };
+    this.eyeMaterial = { ...EYE_BASE, color: opts.irisColor ?? 0x4a3520 };
     const p = opts.position ?? [0, 0, 0];
     this.modelMatrix = fromTranslation(p[0], p[1], p[2]);
   }
@@ -182,6 +197,7 @@ export class CharacterHost {
     const groups: MaterialGroup[] = [
       { ...this.built.bodyRange, material: this.skinMaterial },
       { ...this.built.hairRange, material: this.hairMaterial },
+      { ...this.built.eyeRange, material: this.eyeMaterial },
     ];
     return {
       entityId: this.entityId,

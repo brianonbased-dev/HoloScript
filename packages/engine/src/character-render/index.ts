@@ -26,6 +26,7 @@ export {
 
 export {
   buildAgentAvatarHair,
+  buildAgentAvatarEyes,
   buildCharacterMesh,
   type HairMeshData,
   type HairOptions,

@@ -46,6 +46,7 @@ const FRAG_ENTRY: Record<ShadingModel, string> = {
   lambert: 'fs_lambert',
   'skin-sss': 'fs_skin_sss',
   'marschner-hair': 'fs_marschner',
+  'refractive-eye': 'fs_eye',
 };
 
 /**
@@ -108,6 +109,8 @@ function fillMaterial(m: CharacterMaterialSpec): Float32Array<ArrayBuffer> {
     out[5] = m.melaninRedness;
     out[6] = m.primaryExp;
     out[7] = m.secondaryExp;
+  } else if (m.shadingModel === 'refractive-eye') {
+    out[4] = m.ior; // scatterColor.x = ior (Fresnel rim)
   }
   // lambert: leaves 4..15 zero (fs_lambert reads only color).
   return out;

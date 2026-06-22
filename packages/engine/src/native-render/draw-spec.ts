@@ -134,7 +134,7 @@ export interface CharacterDrawSpec {
 // ---------------------------------------------------------------------------
 
 /** Which fragment shading model a material group renders with. */
-export type ShadingModel = 'lambert' | 'skin-sss' | 'marschner-hair';
+export type ShadingModel = 'lambert' | 'skin-sss' | 'marschner-hair' | 'refractive-eye';
 
 /** Flat two-sided half-Lambert (the Phase-0 base; the single-material fallback). */
 export interface BaseMaterialSpec extends MaterialSpec {
@@ -167,10 +167,18 @@ export interface MarschnerHairMaterialSpec extends MaterialSpec {
   secondaryExp: number;
 }
 
+/** Refractive eye: iris/sclera blend + pupil + wet specular catchlight + Fresnel rim. */
+export interface RefractiveEyeMaterialSpec extends MaterialSpec {
+  shadingModel: 'refractive-eye';
+  /** Cornea index of refraction (~1.376) — drives the Fresnel rim strength. */
+  ior: number;
+}
+
 export type CharacterMaterialSpec =
   | BaseMaterialSpec
   | SkinSSSMaterialSpec
-  | MarschnerHairMaterialSpec;
+  | MarschnerHairMaterialSpec
+  | RefractiveEyeMaterialSpec;
 
 /** A contiguous slice of `mesh.indices` drawn with one material. Offsets are INDEX ELEMENTS. */
 export interface MaterialGroup {

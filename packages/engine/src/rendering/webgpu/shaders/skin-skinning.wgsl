@@ -149,3 +149,29 @@ fn fs_marschner(in : VSOut) -> @location(0) vec4<f32> {
           + base * specTRT * 0.3;
   return vec4<f32>(col, mat.color.a);
 }
+
+// ── Eye: iris/sclera blend + pupil + wet specular catchlight + Fresnel rim. ──
+// Material packing: color = iris colour; scatterColor.x = ior (Fresnel rim strength).
+@fragment
+fn fs_eye(in : VSOut) -> @location(0) vec4<f32> {
+  let N = normalize(in.wN);
+  let L = normalize(frame.lightDir.xyz);
+  let V = normalize(frame.cameraPos.xyz - in.wP);
+  let ndl = max(dot(N, L), 0.0);
+  let facing = max(dot(N, V), 0.0); // 1 at the front of the eyeball, 0 at the rim
+
+  let iris = mat.color.rgb;
+  let sclera = vec3<f32>(0.93, 0.93, 0.91);
+  var base = mix(sclera, iris, smoothstep(0.55, 0.9, facing)); // sclera ring → iris center
+  let pupil = smoothstep(0.86, 0.98, facing);
+  base = mix(base, vec3<f32>(0.02), pupil); // dark pupil at dead-center
+
+  let H = normalize(L + V);
+  let ndh = max(dot(N, H), 0.0);
+  let catchlight = pow(ndh, 200.0); // sharp wet highlight
+  let ior = max(mat.scatterColor.x, 1.0);
+  let fres = pow(1.0 - facing, 4.0) * (ior - 1.0); // corneal rim
+
+  let col = base * (0.3 + 0.7 * ndl) + vec3<f32>(catchlight) + vec3<f32>(fres * 0.3);
+  return vec4<f32>(col, mat.color.a);
+}

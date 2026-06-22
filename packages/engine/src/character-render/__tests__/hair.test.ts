@@ -73,7 +73,10 @@ describe('hair — procedural geometry (pure data)', () => {
     const c = buildCharacterMesh({ entityId: 'brittney' });
     expect(c.bodyRange.indexStart).toBe(0);
     expect(c.hairRange.indexStart).toBe(c.bodyRange.indexCount);
-    expect(c.bodyRange.indexCount + c.hairRange.indexCount).toBe(c.mesh.indices.length);
+    // body + hair + eyes are contiguous and exhaustive over the index buffer.
+    expect(c.bodyRange.indexCount + c.hairRange.indexCount + c.eyeRange.indexCount).toBe(
+      c.mesh.indices.length
+    );
     // every index addresses a real vertex; tangents present for all
     expect(c.mesh.tangents.length).toBe(c.mesh.vertexCount * 4);
     for (let i = 0; i < c.mesh.indices.length; i++) {

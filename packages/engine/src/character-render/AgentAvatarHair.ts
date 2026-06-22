@@ -154,6 +154,71 @@ export function buildAgentAvatarHair(o: HairOptions = {}): HairMeshData {
   };
 }
 
+/**
+ * Two eyeball spheres at the front of the head, weighted to the head bone (so they ride the
+ * head). Emits the same 6-array format as hair; rendered with the refractive-eye material.
+ */
+export function buildAgentAvatarEyes(o: { buildScale?: number; heightScale?: number } = {}): HairMeshData {
+  const bs = o.buildScale ?? 1;
+  const hScale = o.heightScale ?? 1;
+  const bind = computeBindWorld();
+  const head = getTranslation(bind.get('head')!); // y≈1.51
+  const headR = 0.09 * bs;
+  const r = 0.02 * bs;
+  const eyeY = head.y + 0.12 * bs;
+  const eyeZ = head.z + headR * 0.85;
+  const eyeX = 0.035 * bs;
+  const centers: Vec3[] = [v(head.x - eyeX, eyeY, eyeZ), v(head.x + eyeX, eyeY, eyeZ)];
+
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const tangents: number[] = [];
+  const indices: number[] = [];
+  const ji: number[] = [];
+  const jw: number[] = [];
+  const lat = 8;
+  const lon = 10;
+
+  for (const c of centers) {
+    const base = positions.length / 3;
+    for (let y = 0; y <= lat; y++) {
+      const theta = (y / lat) * Math.PI;
+      const st = Math.sin(theta);
+      const ct = Math.cos(theta);
+      for (let x = 0; x <= lon; x++) {
+        const phi = (x / lon) * Math.PI * 2;
+        const n = v(Math.cos(phi) * st, ct, Math.sin(phi) * st);
+        positions.push(c.x + r * n.x, c.y + r * n.y, c.z + r * n.z);
+        normals.push(n.x, n.y, n.z);
+        tangents.push(0, 1, 0, 0);
+        ji.push(HEAD_INDEX);
+        jw.push(1.0);
+      }
+    }
+    const stride = lon + 1;
+    for (let y = 0; y < lat; y++) {
+      for (let x = 0; x < lon; x++) {
+        const a = base + y * stride + x;
+        const b = a + stride;
+        indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+  }
+
+  const pos = new Float32Array(positions);
+  if (hScale !== 1) for (let i = 0; i < pos.length; i++) pos[i] *= hScale;
+
+  return {
+    positions: pos,
+    normals: new Float32Array(normals),
+    tangents: new Float32Array(tangents),
+    indices: new Uint32Array(indices),
+    jointIndices: new Uint32Array(ji),
+    jointWeights: new Float32Array(jw),
+    vertexCount: positions.length / 3,
+  };
+}
+
 // ── typed-array concat helpers ──
 function catF32(a: Float32Array, b: Float32Array): Float32Array<ArrayBuffer> {
   const out = new Float32Array(a.length + b.length);
@@ -172,11 +237,19 @@ export interface CharacterMeshData {
   mesh: SkinnedMeshData;
   bodyRange: { indexStart: number; indexCount: number };
   hairRange: { indexStart: number; indexCount: number };
+  eyeRange: { indexStart: number; indexCount: number };
+}
+
+/** Offset a set of mesh-local indices by a vertex base (for concatenation). */
+function offsetIndices(src: Uint32Array, base: number): Uint32Array {
+  const out = new Uint32Array(src.length);
+  for (let i = 0; i < src.length; i++) out[i] = src[i] + base;
+  return out;
 }
 
 /**
- * Build the combined body+hair mesh as one SkinnedMeshData, with the two index ranges the
- * renderer slices for the body=skin-SSS and hair=marschner material groups.
+ * Build the combined body+hair+eyes mesh as one SkinnedMeshData, with the three index ranges
+ * the renderer slices for the body=skin-SSS / hair=marschner / eyes=refractive material groups.
  */
 export function buildCharacterMesh(
   opts: AgentAvatarMeshOptions & HairOptions = {}
@@ -191,25 +264,29 @@ export function buildCharacterMesh(
     cardWidth: opts.cardWidth,
     length: opts.length,
   });
+  const eyes = buildAgentAvatarEyes({ buildScale: opts.buildScale, heightScale: opts.heightScale });
 
   const bodyVC = body.vertexCount;
-  // Hair indices reference hair-local verts; offset by the body vertex count after concat.
-  const hairIdx = new Uint32Array(hair.indices.length);
-  for (let i = 0; i < hairIdx.length; i++) hairIdx[i] = hair.indices[i] + bodyVC;
+  const hairVC = hair.vertexCount;
+  const hairIdx = offsetIndices(hair.indices, bodyVC);
+  const eyeIdx = offsetIndices(eyes.indices, bodyVC + hairVC);
 
   const mesh: SkinnedMeshData = {
-    positions: catF32(body.positions, hair.positions),
-    normals: catF32(body.normals, hair.normals),
-    tangents: catF32(body.tangents, hair.tangents),
-    indices: catU32(body.indices, hairIdx),
-    jointIndices: catU32(body.jointIndices, hair.jointIndices),
-    jointWeights: catF32(body.jointWeights, hair.jointWeights),
-    vertexCount: bodyVC + hair.vertexCount,
+    positions: catF32(catF32(body.positions, hair.positions), eyes.positions),
+    normals: catF32(catF32(body.normals, hair.normals), eyes.normals),
+    tangents: catF32(catF32(body.tangents, hair.tangents), eyes.tangents),
+    indices: catU32(catU32(body.indices, hairIdx), eyeIdx),
+    jointIndices: catU32(catU32(body.jointIndices, hair.jointIndices), eyes.jointIndices),
+    jointWeights: catF32(catF32(body.jointWeights, hair.jointWeights), eyes.jointWeights),
+    vertexCount: bodyVC + hairVC + eyes.vertexCount,
   };
 
+  const hairStart = body.indices.length;
+  const eyeStart = hairStart + hair.indices.length;
   return {
     mesh,
     bodyRange: { indexStart: 0, indexCount: body.indices.length },
-    hairRange: { indexStart: body.indices.length, indexCount: hair.indices.length },
+    hairRange: { indexStart: hairStart, indexCount: hair.indices.length },
+    eyeRange: { indexStart: eyeStart, indexCount: eyes.indices.length },
   };
 }
