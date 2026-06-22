@@ -43,6 +43,7 @@ import {
   type Quat,
 } from './skin-math';
 import { gaitPose, type GaitMode } from './gait';
+import type { CharacterMind, MindIdentity, MindMemoryEntry } from './CharacterMind';
 
 export interface CharacterHostOptions {
   /** Entity id — drives deterministic accent colour + world-state driver binding (D.094). */
@@ -122,6 +123,10 @@ export class CharacterHost {
   private readonly eyeMaterial: RefractiveEyeMaterialSpec;
   private modelMatrix: Mat4;
   private pose: Map<string, Quat> = new Map();
+  // D.102 portable mind (opt-in via bindMind; body renders identically with or without it).
+  private mind: CharacterMind | null = null;
+  private boundIdentity: MindIdentity | null = null;
+  private memory: MindMemoryEntry[] = [];
 
   constructor(opts: CharacterHostOptions) {
     this.entityId = opts.entityId;
@@ -210,8 +215,36 @@ export class CharacterHost {
     };
   }
 
-  // ── D.102 "portable agent mind" seams (declared, not wired — see plan Excludes) ──
-  // identity(): wallet  — the embodied agent authenticates as its seat wallet (device-independent).
-  // loadMemory(): the headset/runtime loads private:<walletAddress> so the SAME mind inhabits the body.
-  // These bridge to queryPrivateKnowledge / holo_memory_recall in a dedicated D.102 task.
+  // ── D.102 "portable agent mind" — wired seam (opt-in) ──
+  /**
+   * Bind a portable mind to this body: adopt its wallet identity and load its wallet-scoped
+   * memory (private:<wallet>) so the SAME agent inhabits the body across substrates (Jetson →
+   * headset). Degrades to body-only on any failure — NEVER throws, and never changes how the
+   * body renders (getDrawSpec is byte-identical with or without a bound mind).
+   */
+  async bindMind(mind: CharacterMind, query?: string, limit?: number): Promise<void> {
+    this.mind = mind;
+    try {
+      this.boundIdentity = mind.identity();
+      this.memory = await mind.loadMemory(query, limit);
+    } catch {
+      // body-without-mind: keep rendering; identity/memory simply stay empty.
+      this.memory = [];
+    }
+  }
+
+  /** The bound mind's identity (wallet + agent id), or null if no mind is bound. */
+  getIdentity(): MindIdentity | null {
+    return this.boundIdentity ? { ...this.boundIdentity } : null;
+  }
+
+  /** A copy of the loaded wallet-scoped memory (empty if no mind / load failed). */
+  getMemory(): MindMemoryEntry[] {
+    return this.memory.map((e) => ({ ...e }));
+  }
+
+  /** True once a mind has been bound (regardless of whether memory loaded). */
+  hasMind(): boolean {
+    return this.mind !== null;
+  }
 }

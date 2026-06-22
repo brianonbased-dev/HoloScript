@@ -46,6 +46,13 @@ export {
 } from './CharacterHost';
 
 export {
+  StaticCharacterMind,
+  type CharacterMind,
+  type MindIdentity,
+  type MindMemoryEntry,
+} from './CharacterMind';
+
+export {
   renderCharacter,
   framingMatrix,
   type CharacterRenderOptions,
