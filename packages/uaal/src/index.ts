@@ -31,3 +31,6 @@ export { UAALVirtualMachine } from './vm';
 export type { VMState, VMResult, VMProxy, OpcodeHandler, UAALVMOptions } from './vm';
 
 export { UAALCompiler } from './compiler';
+
+export { registerMeshHandlers, InMemoryMeshRouter } from './mesh-transport';
+export type { MeshTransport, MeshRequestHandler } from './mesh-transport';

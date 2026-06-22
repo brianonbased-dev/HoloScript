@@ -20,6 +20,7 @@
 | G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter only landed 2026-06-21; TS parser can't parse `.hs` logic (HSP101) | ⚠️ young |
 | G7 | declarative trait/brain authoring is native | native annotation ≈ **1.32%** of traits; ~88% of declared traits have no runtime handler | ⚠️ |
 | G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
+| G9 | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending | ✅⚠️ **partial** |
 
 ---
 
@@ -104,6 +105,28 @@ push `.hsplus`). Without a gate it stays a footnote.
   language*, D.101-compatible).
 - **Failing-if-broken evidence:** the check itself (red when coverage regresses).
 - **Scope/blast:** new check script + CI config. Regression: none (reporting).
+
+## G9 — Fleet agents communicate as uAAL peers *(Jetson / laptop / Vast)*
+
+The uAAL ISA ships peer opcodes — `CALL_NODE` (0x21), `OP_OFFLOAD` (0x23), `OP_SYNC` (0x24) —
+but they were inert extension points. A uAAL program on one node could not actually reach
+another. This is the "fleet agents all communicating with each other" gap (MEMORY direction
+`fleet-is-uaal-mesh-of-peers`, D.102 portable agent mind).
+
+- **Falsifiable claim:** a uAAL program with `CALL_NODE` on one VM routes through a transport to
+  a peer node's handler and the reply lands on the caller's stack; `OP_OFFLOAD`/`OP_SYNC`
+  deliver to peer inboxes.
+- **Real seam:** `registerMeshHandlers(vm, transport)` registers handlers on the VM's
+  handler-dispatch (`vm.ts` checks handlers before the built-in switch); `MeshTransport` is the
+  pluggable transport.
+- **Failing-if-broken evidence:** `packages/uaal/src/__tests__/mesh-transport.test.ts` (6/6) —
+  jetson↔laptop↔Vast round-trip, 3-tier aggregation, offload, broadcast, bidirectional, fail-loud.
+- **Scope/blast:** `packages/uaal/src/mesh-transport.ts` + index export + test. `tsc` clean;
+  full uaal suite 47/47. Additive (handlers only active when registered); uaal stays dependency-free.
+- **STATUS — slice 1 SHIPPED 2026-06-22.** In-process `InMemoryMeshRouter` proves the semantics.
+  **Remaining:** a HoloMesh-backed `MeshTransport` (`request`→`ask_peer`/`send_message`,
+  `offload`→one-way message, `sync`→gossip) so the transport spans real machines — lives in an
+  edge/agent package, NOT uaal (keep uaal dependency-free). That is the next slice.
 
 ---
 
