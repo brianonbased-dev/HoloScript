@@ -87,14 +87,19 @@ traits [
   "trace_producer"
 ]
 
-// ── The fleet: the always-on Jetson is the SOLE LLM node ──
-// (founder 2026-06-17: "since we are not serving instances on the laptop GPU we don't need
-// models or Ollama on it.") The laptop's GPU value is its UNIQUE lanes — WebGPU dev (the only
-// WebGPU-capable owned box; the Jetson is headless CUDA-only) + cuQuantum/cuTensorNet — which run
-// on CUDA/WSL2, NOT Ollama. So LLM/embeddings/computer-use serving is 100% the Jetson; the laptop
-// stays the daily-driver + specialized-compute + surface host with no Ollama footprint. The
-// laptop can be re-added as an overflow node later (re-install models + restore the node block +
-// its registry local-llm endpoint) — the router already supports primary/overflow (see tests).
+// ── The fleet: jetson primary (always-on) + laptop fast-overflow ──
+// The Jetson is the always-on baseline LLM node. The laptop RTX 3060 was retired as an LLM node
+// 2026-06-17, then RE-ACTIVATED 2026-06-20 (founder "yes leave it up") as the fast OVERFLOW /
+// parallel-council reasoning node — qwen3:4b-instruct, ~4x the Jetson's tok/s when its 6GB is free
+// (W.809/W.810; it also serves WebGPU + cuQuantum on the same card, so it contends for VRAM, and
+// real throughput swings with VRAM-free-at-load). LLM/embeddings/computer-use baseline is the
+// Jetson; the laptop takes SPILL when the Jetson's VRAM load crosses primary_max_load_gb and the
+// laptop's 6GB is free (not in PCVR). The router already supports primary/overflow
+// (fleet-router.ts: primary wins until saturated, then overflow GPUs compete by load — proven by
+// tests); this restores the laptop node block to match the 2026-06-20 sovereign-devices registry
+// reactivation (config/sovereign-devices/laptop-rtx3060.json local-llm endpoint). If the laptop is
+// unreachable or saturated, discovery (/api/tags + /api/ps) drops it and routing falls back to the
+// Jetson — so wiring it is safe even when it is offline.
 // Nodes are named by sovereign-devices registry HANDLE — never by raw address; the runtime
 // resolves the handle to its LAN-absolute Ollama endpoint, discovers (/api/tags + /api/ps), routes.
 
@@ -108,6 +113,15 @@ traits [
     role: "the sovereign brain — tool-calls (qwen3:4b-instruct) + embeddings (nomic-embed-text) + computer-use/GUI grounding (Fara-7B), always-on $0"
   }
 
+  laptop {
+    node: "laptop-rtx3060"
+    gpu: "RTX 3060 Laptop (sm_86, 6GB)"
+    vramGb: 6
+    alwaysOn: false
+    models: ["qwen3:4b-instruct"]
+    role: "fast OVERFLOW + parallel-council reasoning — opportunistic when its 6GB is free (not in PCVR); ~4x the Jetson's tok/s on GPU (cuda_v12 runner, W.810). Reactivated 2026-06-20; endpoint resolved by handle. Contends with WebGPU + cuQuantum for the same 6GB."
+  }
+
   endpoints: "resolved by handle from config/sovereign-devices/<handle>.json (LAN-absolute, never hardcoded)"
   strategy: "least-loaded"
   warm_preferred: true
@@ -115,8 +129,8 @@ traits [
   primary_max_load_gb: "6"
   blacklist: ["qwen2.5"]
   discover: "per node: GET <registry-endpoint>/api/tags (installed) + /api/ps (warm + VRAM load)"
-  route: "single LLM node: every request lands on the always-on Jetson ($0). One model fits the 8GB at a time (each evicts the prior), so DON'T run concurrent models here — that's what a re-added overflow node would be for. The laptop GPU is NOT an LLM node (no Ollama); its GPU serves WebGPU + cuQuantum only."
-  escalate: "Jetson saturated AND task exceeds it → escalateTo fleet (Vast, scale-to-zero, paid). The laptop is NOT the overflow path while it has no Ollama."
+  route: "jetson-orin is PRIMARY (always-on, carries the main load). When the Jetson's VRAM load crosses primary_max_load_gb (6) it SPILLS to laptop-rtx3060 (fast-overflow) whenever the laptop's 6GB is free — both GPUs then answer as one, warm-preferred. The laptop also serves WebGPU + cuQuantum on the same card, so when it is saturated or unreachable, discovery drops it and routing stays on the Jetson."
+  escalate: "BOTH local GPUs (jetson + laptop) saturated AND the task exceeds them → escalateTo fleet (Vast, scale-to-zero, paid)."
 }
 
 // Per-model hint the sovereign-first resolver reads (the fleet's default model).
