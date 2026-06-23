@@ -25,6 +25,7 @@ import type {
   HoloObjectTrait,
 } from '../parser/HoloCompositionTypes';
 import type { GLTFExportResult, GLTFExportStats } from './CompilerTypes';
+import type { HolomapPointCloudPayload } from './HolomapExportPayload';
 
 // =============================================================================
 // MULTI-USER SHARED-SORT DETECTION (P.043 — substrate side of the paper claim)
@@ -107,6 +108,14 @@ export interface GaussianSplattingCompilerOptions {
   copyright?: string;
   /** Maximum spherical-harmonics degree (0-3) */
   shDegree?: number;
+  /**
+   * Optional HoloMap reconstruction point cloud, threaded through
+   * `ExportManager.compilerOptions` by `holo_reconstruct_export`. When present
+   * and the composition carries no `@gaussian_splat` trait, the captured cloud
+   * is splatted via covariance estimation instead of falling back to the demo
+   * grid — so a real capture actually renders. (ssja parity / remix seam.)
+   */
+  holomapPointCloud?: HolomapPointCloudPayload;
 }
 
 /**
@@ -162,7 +171,8 @@ export class GaussianSplattingCompiler extends CompilerBase {
     return ANSCapabilityPath.GLTF;
   }
 
-  private options: Required<GaussianSplattingCompilerOptions>;
+  private options: Required<Omit<GaussianSplattingCompilerOptions, 'holomapPointCloud'>>;
+  private readonly holomapPointCloud?: HolomapPointCloudPayload;
 
   constructor(options: GaussianSplattingCompilerOptions = {}) {
     super();
@@ -173,6 +183,7 @@ export class GaussianSplattingCompiler extends CompilerBase {
       copyright: options.copyright ?? '',
       shDegree: options.shDegree ?? 0,
     };
+    this.holomapPointCloud = options.holomapPointCloud;
   }
 
   compile(
@@ -272,11 +283,48 @@ export class GaussianSplattingCompiler extends CompilerBase {
         }
       }
     }
+    // HoloMap reconstruction point cloud (MCP holo_reconstruct_export): the
+    // stub composition carries no @gaussian_splat trait, but a captured cloud
+    // was threaded through compilerOptions. Splat it via covariance estimation
+    // (same path as a raw positions+colors @gaussian_splat trait) instead of
+    // the demo grid, so captures actually render. (ssja parity / remix seam.)
+    const cloud = this.holomapPointCloud;
+    if (cloud && cloud.pointCount >= 1) {
+      const { positions, colors } = this.decodeHolomapCloud(cloud);
+      if (positions.length >= 3) {
+        return { data: this.computeCovarianceFromPointCloud(positions, colors) };
+      }
+    }
+
     // Fallback demo grid so the compiler is always testable
     return {
       data: this.generateDemoGrid(),
       warnings: ['No valid @gaussian_splat trait data found; falling back to demo grid'],
     };
+  }
+
+  /**
+   * Decode a HoloMap point-cloud payload (base64 little-endian Float32 xyz +
+   * base64 uint8 rgb, per {@link HolomapPointCloudPayload}) into Float32
+   * positions and 0..1 colors. Point count is clamped to the smaller of the
+   * declared `pointCount` and the actual buffer capacity so a truncated or
+   * mismatched payload can never read past the end of a buffer.
+   */
+  private decodeHolomapCloud(cloud: HolomapPointCloudPayload): {
+    positions: Float32Array;
+    colors: Float32Array;
+  } {
+    const posBuf = Buffer.from(cloud.positionsB64, 'base64');
+    const colBuf = Buffer.from(cloud.colorsB64, 'base64');
+    const n = Math.max(
+      0,
+      Math.min(cloud.pointCount, Math.floor(posBuf.length / 12), Math.floor(colBuf.length / 3))
+    );
+    const positions = new Float32Array(n * 3);
+    for (let i = 0; i < n * 3; i++) positions[i] = posBuf.readFloatLE(i * 4);
+    const colors = new Float32Array(n * 3);
+    for (let i = 0; i < n * 3; i++) colors[i] = colBuf[i] / 255;
+    return { positions, colors };
   }
 
   private expandRgbToRgba(rgb: Float32Array, count: number): Float32Array {

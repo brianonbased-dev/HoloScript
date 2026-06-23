@@ -90,6 +90,18 @@ function makeEmptyComposition(): HoloComposition {
   };
 }
 
+/** Build a HolomapPointCloudPayload exactly as holo_reconstruct_export packs it
+ * (base64 little-endian Float32 xyz + base64 uint8 rgb). */
+function makeHolomapCloud(positions: number[], rgb: number[]) {
+  const pos = new Float32Array(positions);
+  const col = Uint8Array.from(rgb);
+  return {
+    positionsB64: Buffer.from(pos.buffer, pos.byteOffset, pos.byteLength).toString('base64'),
+    colorsB64: Buffer.from(col.buffer, col.byteOffset, col.byteLength).toString('base64'),
+    pointCount: Math.floor(positions.length / 3),
+  };
+}
+
 describe('GaussianSplattingCompiler', () => {
   it('should instantiate with default options', () => {
     const compiler = new GaussianSplattingCompiler();
@@ -237,5 +249,30 @@ describe('GaussianSplattingCompiler', () => {
 
     expect(result.json).toBeDefined();
     expect(result.stats.totalVertices).toBe(3);
+  });
+
+  it('should splat a HoloMap point cloud from compilerOptions when no @gaussian_splat trait is present (ssja capture seam)', () => {
+    // 3 captured points threaded through ExportManager.compilerOptions, exactly
+    // as holo_reconstruct_export does. Must splat the capture via covariance —
+    // NOT fall back to the 8-point demo grid.
+    const cloud = makeHolomapCloud(
+      [0, 0, 0, 1, 0, 0, 0, 1, 0],
+      [255, 0, 0, 0, 255, 0, 0, 0, 255]
+    );
+    const compiler = new GaussianSplattingCompiler({ holomapPointCloud: cloud });
+    const result = compiler.compile(makeEmptyComposition());
+
+    expect(result.binary).toBeDefined();
+    expect(result.stats.totalVertices).toBe(3); // captured points, not the 8-point demo grid
+    expect(result.warnings ?? []).not.toContain(
+      'No valid @gaussian_splat trait data found; falling back to demo grid'
+    );
+  });
+
+  it('should still fall back to the demo grid when neither a trait nor a cloud is present', () => {
+    // Regression: the capture seam must not change the no-data behavior.
+    const compiler = new GaussianSplattingCompiler();
+    const result = compiler.compile(makeEmptyComposition());
+    expect(result.stats.totalVertices).toBe(8);
   });
 });
