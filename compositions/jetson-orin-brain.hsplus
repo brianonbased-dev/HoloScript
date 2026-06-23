@@ -249,3 +249,20 @@ behavior on_task {
     log "task complete — CAEL trace emitted by AgentRunner"
   }
 }
+
+// ── Self-healing: self-direct when the board has no matching task (founder 2026-06-23) ──
+// Always-on metal must NOT sit in a no-claimable-task poll loop. When no open board task
+// matches this node's capability_tags, the runner derives ONE small, language-advancing
+// improvement from this directive and EXECUTES it through the SAME tools + the SAME W.107.b
+// artifact-grounding gate as a real task — so idle work can never fabricate a deliverable
+// (0 productive tool calls ⇒ idle-skipped, no receipt, no board task). $0: local Ollama +
+// free mesh REST. fileBoard surfaces the produced work for capability-matched peers / review.
+// SAFE: idle work gets the same MESH_TOOLS subset whose productive bash prefixes EXCLUDE
+// git push/commit — it can inspect/write/build/validate locally but never push, spend, or
+// mutate governance. GPU-needing work is filed as a `gpu`-tagged board task for the
+// autoscaler path, never rented from this loop (Vast escalation is increment 2).
+behavior on_idle {
+  directive: "The team board has no task matching your capabilities. Find and complete ONE small, concrete improvement that ADVANCES THE HOLOSCRIPT LANGUAGE — a grammar/.hs/.hsplus/.holo edge, a compiler/target or trait fix, a native-authoring conversion, or a real validation/fix you can finish in a few tool calls. Inspect first (read_file/list_dir/bash/mcp_call validate_holoscript), then PRODUCE A REAL ARTIFACT with write_file or a productive build/validate. Prefer fixing edges over net-new infrastructure (D.101)."
+  fileBoard: true
+  maxTools: 8
+}
