@@ -5,14 +5,17 @@ import type { Vector3 } from '../types';
  * Translates a HoloComposition AST into VRChat-compatible Unity prefabs
  * with UdonSharp scripts for interactivity.
  *
- * Emits:
- *   - UdonSharp C# scripts for interactions
- *   - Unity scene structure compatible with VRChat SDK3
+ * Emits (by outputFormat):
+ *   - 'udonsharp-csharp' (default): UdonSharp C# scripts + Unity scene structure (VRChat SDK3)
+ *   - 'udon-assembly': Udon Assembly (.uasm) text, the D.064 "Byte" target. Validated offline
+ *     by validateUdonAssembly() against the EXTERN manifest; runnable only after the Phase-3
+ *     Unity-side assemble + AssetBundle build (VRChat publish is a closed Unity loop).
+ *   - 'udon-bytecode': still gated — it is the Unity-side serialized derivative of .uasm,
+ *     not an offline artifact (see assertSupportedOutputFormat()).
  *
- * RATCHET (OVERCLAIMED): Founder direction D.064 specifies Udon bytecode as the VRChat target.
- * This compiler currently emits UdonSharp C# only. Udon bytecode output is gated
- * behind assertSupportedOutputFormat(). The compiled artifact is NOT runnable
- * VRChat bytecode — it is C# source that requires VRChat SDK compilation.
+ * NOTE: neither emitted artifact is a runnable world on its own — VRChat worlds ship as
+ * Unity AssetBundles built by the SDK on an exactly-matched Unity version. This target is a
+ * BRIDGE; the sovereign part HoloScript owns is the offline codegen + validation.
  *   - VRC_Pickup, VRC_Trigger, VRC_ObjectSync components
  *   - Avatar pedestals, mirrors, portals
  *   - Audio with VRC_SpatialAudioSource
@@ -21,6 +24,8 @@ import type { Vector3 } from '../types';
  */
 
 import { CompilerBase } from './CompilerBase';
+import { renderUdonAssembly, type UdonAssemblyProgram } from './udon/udon-assembly';
+import { UDON_RETURN_ADDRESS } from './udon/udon-extern-manifest';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import type {
   HoloComposition,
@@ -94,6 +99,13 @@ export interface VRChatCompileResult {
   udonScripts: Map<string, string>;
   prefabHierarchy: string;
   worldDescriptor: string;
+  /**
+   * Canonical "Byte" artifact for the `udon-assembly` target (D.064 contract):
+   * `filename.uasm` → Udon Assembly text. A plain Record (not a Map) so it survives
+   * `JSON.stringify` at the MCP seam and feeds the byte-diff `compileToFiles` contract.
+   * Absent for the legacy `udonsharp-csharp` target.
+   */
+  udonAssembly?: Record<string, string>;
 }
 
 export class VRChatCompiler extends CompilerBase {
@@ -133,6 +145,12 @@ export class VRChatCompiler extends CompilerBase {
     outputPath?: string
   ): VRChatCompileResult {
     this.validateCompilerAccess(agentToken, outputPath);
+
+    // Byte target (D.064): emit Udon Assembly directly instead of UdonSharp C#.
+    if (this.options.outputFormat === 'udon-assembly') {
+      return this.compileToUdonAssembly(composition);
+    }
+
     this.assertSupportedOutputFormat();
     this.lines = [];
     this.udonScripts.clear();
@@ -158,6 +176,88 @@ export class VRChatCompiler extends CompilerBase {
       prefabHierarchy,
       worldDescriptor,
     };
+  }
+
+  /**
+   * Byte target codegen — `.holo` → Udon Assembly. Phase-2 vertical slice scope:
+   * `@clickable`/`@pointable` objects lower to an `_interact` toggle behaviour; every
+   * world emits a trivial `_start`. Other traits (grabbable/networked/portal/mirror) are
+   * NOT yet lowered to UASM — they intentionally produce no behaviour here rather than a
+   * silently-fake one (see roadmap Phase 2 breadth). Output is validated offline by
+   * `validateUdonAssembly` against the EXTERN manifest.
+   */
+  private compileToUdonAssembly(composition: HoloComposition): VRChatCompileResult {
+    const className = this.options.className;
+    const udonAssembly: Record<string, string> = {};
+
+    const mainUasm = this.generateMainUdonAssembly();
+    udonAssembly[`${className}.uasm`] = mainUasm;
+
+    for (const obj of composition.objects || []) {
+      const isClickable = obj.traits?.some(
+        (t) => t.name === 'pointable' || t.name === 'clickable'
+      );
+      if (isClickable) {
+        udonAssembly[`${this.sanitizeName(obj.name)}Behaviour.uasm`] =
+          this.generateClickableToggleAssembly(obj);
+      }
+    }
+
+    return {
+      outputFormat: 'udon-assembly',
+      mainScript: mainUasm,
+      udonScripts: new Map(),
+      prefabHierarchy: this.generatePrefabHierarchy(composition),
+      worldDescriptor: this.generateWorldDescriptor(composition),
+      udonAssembly,
+    };
+  }
+
+  /** Trivial world-init behaviour: an exported `_start` that returns immediately. */
+  private generateMainUdonAssembly(): string {
+    const program: UdonAssemblyProgram = {
+      heap: [],
+      code: ['.export _start', '_start:', `JUMP, ${UDON_RETURN_ADDRESS}`],
+    };
+    return renderUdonAssembly(program);
+  }
+
+  /**
+   * `@clickable` → toggle the object's active state on Interact, using only real,
+   * manifest-resolvable Udon nodes (get_activeSelf + SetActive) and control flow —
+   * no invented "boolean-negation" node. The target is a null-initialised GameObject
+   * slot wired in the Unity inspector at bundle time (Phase 3), avoiding the
+   * self-disable footgun of toggling the behaviour's own GameObject.
+   */
+  private generateClickableToggleAssembly(obj: HoloObjectDecl): string {
+    const target = `${this.sanitizeName(obj.name)}Target`;
+    const program: UdonAssemblyProgram = {
+      heap: [
+        { name: target, type: 'UnityEngineGameObject', init: 'null' },
+        { name: 'isActive', type: 'SystemBoolean', init: 'null' },
+        { name: 'constTrue', type: 'SystemBoolean', init: 'true' },
+        { name: 'constFalse', type: 'SystemBoolean', init: 'false' },
+      ],
+      code: [
+        '.export _interact',
+        '_interact:',
+        `PUSH, ${target}`,
+        'PUSH, isActive',
+        'EXTERN, "UnityEngineGameObject.__get_activeSelf__SystemBoolean"',
+        'PUSH, isActive',
+        'JUMP_IF_FALSE, _activate',
+        `PUSH, ${target}`,
+        'PUSH, constFalse',
+        'EXTERN, "UnityEngineGameObject.__SetActive__SystemBoolean__SystemVoid"',
+        `JUMP, ${UDON_RETURN_ADDRESS}`,
+        '_activate:',
+        `PUSH, ${target}`,
+        'PUSH, constTrue',
+        'EXTERN, "UnityEngineGameObject.__SetActive__SystemBoolean__SystemVoid"',
+        `JUMP, ${UDON_RETURN_ADDRESS}`,
+      ],
+    };
+    return renderUdonAssembly(program);
   }
 
   private assertSupportedOutputFormat(): void {

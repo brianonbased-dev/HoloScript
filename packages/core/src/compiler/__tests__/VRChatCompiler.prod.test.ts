@@ -71,19 +71,24 @@ describe('VRChatCompiler — Production', () => {
       expect(result.outputFormat).toBe('udonsharp-csharp');
     });
 
-    it.each(['udon-assembly', 'udon-bytecode'] as const)(
-      'rejects %s until the Byte artifact contract is confirmed',
-      (outputFormat) => {
-        const c = new VRChatCompiler({ outputFormat });
-        expect(() => c.compile(makeComp(), 'test-token')).toThrow(
-          /artifact contract must be confirmed/
-        );
-      }
-    );
+    it('still gates udon-bytecode until its Unity-side contract is confirmed', () => {
+      const c = new VRChatCompiler({ outputFormat: 'udon-bytecode' });
+      expect(() => c.compile(makeComp(), 'test-token')).toThrow(
+        /artifact contract must be confirmed/
+      );
+    });
 
-    it('does not silently treat useUdonSharp false as a working raw Udon target', () => {
+    it('emits Udon Assembly for the udon-assembly target (D.064 Byte contract selected)', () => {
+      const c = new VRChatCompiler({ outputFormat: 'udon-assembly' });
+      const result = c.compile(makeComp(), 'test-token');
+      expect(result.outputFormat).toBe('udon-assembly');
+      expect(result.udonAssembly).toBeDefined();
+    });
+
+    it('treats useUdonSharp:false as the udon-assembly target, not a hard gate', () => {
       const c = new VRChatCompiler({ useUdonSharp: false });
-      expect(() => c.compile(makeComp(), 'test-token')).toThrow(/udon-assembly output is gated/);
+      const result = c.compile(makeComp(), 'test-token');
+      expect(result.outputFormat).toBe('udon-assembly');
     });
 
     it('mainScript is a string', () => {
