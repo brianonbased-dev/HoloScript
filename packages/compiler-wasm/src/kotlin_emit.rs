@@ -39,6 +39,8 @@
 //! nodes) is skipped at the top level and reported via [`KotlinEmitError`] for function-body
 //! constructs, so an unhandled node fails loud instead of silently emitting wrong Kotlin.
 
+use std::collections::HashMap;
+
 use crate::ast::{Ast, AstNode, EnumDeclarationNode, StructDeclarationNode};
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
@@ -121,11 +123,19 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         .collect();
     let struct_names: Vec<String> = structs.iter().map(|s| s.name.clone()).collect();
 
+    // Infer each struct's per-field Kotlin type from its constructor-call sites (defaults to the
+    // all-`Float` record when a struct is unconstructed or its args carry no literal signal).
+    let struct_field_types = infer_struct_field_types(ast, &struct_names);
+
     let mut blocks: Vec<String> = Vec::new();
     // Data declarations (struct/enum) precede functions so a function may name them as a return
     // type or construct them.
     for s in &structs {
-        blocks.push(emit_struct(s, indent));
+        let field_types = struct_field_types
+            .get(&s.name)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        blocks.push(emit_struct(s, indent, field_types));
     }
     for e in &enums {
         blocks.push(emit_enum(e, indent));
@@ -145,19 +155,34 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
     Ok(blocks.join("\n\n"))
 }
 
-/// Emit `data class <Name>(val <field>: Float, …)` for a `.hs` struct declaration. Fields are
-/// untyped in the `.hs` logic subset; the data-only record types every field `Float` (the numeric
-/// default that matches the math/geometry use cases — a struct carries a multi-field numeric
-/// result out of a pure function). A zero-field struct emits `class <Name>` (Kotlin forbids an
-/// empty `data class`).
-fn emit_struct(node: &StructDeclarationNode, indent: &str) -> String {
+/// Emit `data class <Name>(val <field>: <Type>, …)` for a `.hs` struct declaration. Fields are
+/// untyped in the `.hs` logic subset, so each field's Kotlin type is inferred from the struct's
+/// constructor-call sites (`field_types`, indexed by field position) — a string-literal argument
+/// types that field `String`, a boolean `Boolean`, a nested struct constructor that struct type.
+/// A field with no inferred type (no construction, or a non-literal/expression argument) falls
+/// back to `Float` — the numeric default that matches the math/geometry use cases and keeps an
+/// unconstructed record byte-identical to the prior all-`Float` output. A zero-field struct emits
+/// `class <Name>` (Kotlin forbids an empty `data class`).
+fn emit_struct(
+    node: &StructDeclarationNode,
+    indent: &str,
+    field_types: &[Option<ValType>],
+) -> String {
     if node.fields.is_empty() {
         return format!("{}class {}", indent, node.name);
     }
     let fields = node
         .fields
         .iter()
-        .map(|f| format!("val {}: Float", f))
+        .enumerate()
+        .map(|(i, f)| {
+            let ty = field_types
+                .get(i)
+                .and_then(|t| t.as_ref())
+                .map(ValType::kotlin)
+                .unwrap_or_else(|| "Float".to_string());
+            format!("val {}: {}", f, ty)
+        })
         .collect::<Vec<_>>()
         .join(", ");
     format!("{}data class {}({})", indent, node.name, fields)
@@ -359,6 +384,150 @@ fn struct_ctor_owner(node: &AstNode, struct_names: &[String]) -> Option<String> 
         }
     }
     None
+}
+
+/// Infer a per-field Kotlin type for every declared struct from the literal arguments at its
+/// constructor-call sites. Returns `struct name → per-field-index type`. A field is present only
+/// when a single unambiguous signal was seen across all sites; a field with no signal, or with
+/// conflicting signals, is `None` (the emitter defaults it to `Float`). This keeps a struct that
+/// is never constructed — or constructed only from identifiers/expressions — byte-identical to
+/// the prior all-`Float` output (zero drift), while typing the common `Person("Alice", 30)` /
+/// nested-record cases correctly.
+fn infer_struct_field_types(
+    ast: &Ast,
+    struct_names: &[String],
+) -> HashMap<String, Vec<Option<ValType>>> {
+    // struct name → per-field-index list of the literal signals gathered across all ctor sites.
+    let mut acc: HashMap<String, Vec<Vec<ValType>>> = HashMap::new();
+    for node in &ast.body {
+        if let AstNode::Function(func) = node {
+            collect_ctor_calls(&func.body, struct_names, &mut acc);
+        }
+    }
+
+    acc.into_iter()
+        .map(|(name, fields)| {
+            let resolved = fields
+                .into_iter()
+                .map(|signals| {
+                    // A single distinct signal wins; zero or conflicting → None (default Float).
+                    let mut distinct: Vec<ValType> = Vec::new();
+                    for s in signals {
+                        if !distinct.contains(&s) {
+                            distinct.push(s);
+                        }
+                    }
+                    if distinct.len() == 1 {
+                        distinct.into_iter().next()
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            (name, resolved)
+        })
+        .collect()
+}
+
+/// Walk every statement in `body`, recording the literal type signal of each positional argument
+/// of every struct-constructor call into `acc` (keyed by struct name, indexed by argument
+/// position). Recurses into loop/if/decl/assignment/return sub-bodies and into nested expressions.
+fn collect_ctor_calls(
+    body: &[AstNode],
+    struct_names: &[String],
+    acc: &mut HashMap<String, Vec<Vec<ValType>>>,
+) {
+    for node in body {
+        collect_ctor_calls_in_stmt(node, struct_names, acc);
+    }
+}
+
+fn collect_ctor_calls_in_stmt(
+    node: &AstNode,
+    struct_names: &[String],
+    acc: &mut HashMap<String, Vec<Vec<ValType>>>,
+) {
+    match node {
+        AstNode::ForOf(f) => {
+            collect_ctor_calls_in_expr(&f.range, struct_names, acc);
+            collect_ctor_calls(&f.body, struct_names, acc);
+        }
+        AstNode::While(w) => {
+            collect_ctor_calls_in_expr(&w.test, struct_names, acc);
+            collect_ctor_calls(&w.body, struct_names, acc);
+        }
+        AstNode::If(if_node) => {
+            collect_ctor_calls_in_expr(&if_node.test, struct_names, acc);
+            collect_ctor_calls(&if_node.consequent, struct_names, acc);
+            if let Some(alt) = &if_node.alternate {
+                collect_ctor_calls(alt, struct_names, acc);
+            }
+        }
+        AstNode::VariableDeclaration(v) => collect_ctor_calls_in_expr(&v.value, struct_names, acc),
+        AstNode::Assignment(a) => collect_ctor_calls_in_expr(&a.value, struct_names, acc),
+        AstNode::Return(r) => {
+            if let Some(arg) = &r.argument {
+                collect_ctor_calls_in_expr(arg, struct_names, acc);
+            }
+        }
+        other => collect_ctor_calls_in_expr(other, struct_names, acc),
+    }
+}
+
+fn collect_ctor_calls_in_expr(
+    node: &AstNode,
+    struct_names: &[String],
+    acc: &mut HashMap<String, Vec<Vec<ValType>>>,
+) {
+    if let Some(name) = struct_ctor_owner(node, struct_names) {
+        if let AstNode::CallExpression(c) = node {
+            // Record this site's per-field signals first; scope the `entry` borrow so it ends
+            // before the recursive walk re-borrows `acc` for nested constructors.
+            {
+                let entry = acc.entry(name).or_default();
+                for (idx, arg) in c.arguments.iter().enumerate() {
+                    if let Some(signal) = arg_literal_signal(arg, struct_names) {
+                        if entry.len() <= idx {
+                            entry.resize(idx + 1, Vec::new());
+                        }
+                        entry[idx].push(signal);
+                    }
+                }
+            }
+            // An argument may itself be a (nested) struct constructor — keep walking.
+            for arg in &c.arguments {
+                collect_ctor_calls_in_expr(arg, struct_names, acc);
+            }
+        }
+        return;
+    }
+
+    match node {
+        AstNode::BinaryExpression(b) => {
+            collect_ctor_calls_in_expr(&b.left, struct_names, acc);
+            collect_ctor_calls_in_expr(&b.right, struct_names, acc);
+        }
+        AstNode::UnaryExpression(u) => collect_ctor_calls_in_expr(&u.argument, struct_names, acc),
+        AstNode::CallExpression(c) => {
+            for arg in &c.arguments {
+                collect_ctor_calls_in_expr(arg, struct_names, acc);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// The unambiguous Kotlin type signal carried by a constructor argument, if any: a string literal
+/// ⇒ `String`, a boolean literal ⇒ `Boolean`, a number literal ⇒ `Float`, a nested struct
+/// constructor ⇒ that struct type. Identifiers, member accesses, and arithmetic yield `None` (no
+/// override of the `Float` default — their type can't be read from the call site alone).
+fn arg_literal_signal(node: &AstNode, struct_names: &[String]) -> Option<ValType> {
+    match node {
+        AstNode::String(_) => Some(ValType::Str),
+        AstNode::Boolean(_) => Some(ValType::Bool),
+        AstNode::Number(_) => Some(ValType::Float),
+        _ => struct_ctor_owner(node, struct_names).map(ValType::Struct),
+    }
 }
 
 /// Infer a parameter's Kotlin type by how the function body uses it: `Float` when the
@@ -1446,6 +1615,91 @@ function mk(a) {
         let out = kotlin(src);
         assert!(out.contains("class Unit"), "{out}");
         assert!(!out.contains("data class Unit"), "{out}");
+    }
+
+    // ── Per-field struct types from constructor sites (G7) ───────────────────────────────────────
+
+    #[test]
+    fn struct_field_typed_string_from_ctor_literal() {
+        // A field whose constructor argument is a string literal types `String`; a numeric-literal
+        // argument stays `Float`.
+        let src = r#"struct Person { name, age }
+function mk() {
+  return Person("Alice", 30.0)
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Person(val name: String, val age: Float)"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn struct_field_typed_boolean_from_ctor_literal() {
+        let src = r#"struct Flag { on, label }
+function mk() {
+  return Flag(true, "ready")
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Flag(val on: Boolean, val label: String)"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn struct_nested_field_typed_as_struct() {
+        // A field constructed from a nested struct constructor types that struct.
+        let src = r#"struct Vec2 { x, y }
+struct Segment { a, b }
+function mk() {
+  return Segment(Vec2(1.0, 2.0), Vec2(3.0, 4.0))
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Segment(val a: Vec2, val b: Vec2)"),
+            "{out}"
+        );
+        // The nested constructor's own fields are still inferred (numeric → Float).
+        assert!(out.contains("data class Vec2(val x: Float, val y: Float)"), "{out}");
+    }
+
+    #[test]
+    fn struct_unconstructed_stays_all_float() {
+        // Zero-drift guard: a struct that is never constructed keeps the all-`Float` record.
+        let src = r#"struct Q { p, r }
+function f(p) {
+  return p
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("data class Q(val p: Float, val r: Float)"), "{out}");
+    }
+
+    #[test]
+    fn struct_conflicting_field_signals_default_float() {
+        // Conflicting literal signals across sites (string here, number there) fall back to the
+        // conservative `Float` default rather than assert a wrong specific type.
+        let src = r#"struct M { v }
+function a() {
+  return M("hi")
+}
+function b() {
+  return M(2.0)
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("data class M(val v: Float)"), "{out}");
+    }
+
+    #[test]
+    fn struct_field_from_identifier_arg_stays_float() {
+        // An identifier/expression argument carries no call-site signal, so the field stays `Float`
+        // (matches the pre-G7 behaviour for `Vec2(x * k, y * k)`-style constructions).
+        let src = r#"struct P { a }
+function mk(a) {
+  return P(a)
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("data class P(val a: Float)"), "{out}");
     }
 
     #[test]
