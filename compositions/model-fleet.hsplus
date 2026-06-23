@@ -109,8 +109,8 @@ traits [
     gpu: "Jetson Orin Nano Super 8GB (iGPU, sm_87)"
     vramGb: 8
     alwaysOn: true
-    models: ["qwen3:4b-instruct", "qwen3:4b", "nomic-embed-text:latest", "hf.co/bartowski/microsoft_Fara-7B-GGUF:Q4_K_M"]
-    role: "the sovereign brain — tool-calls (qwen3:4b-instruct) + embeddings (nomic-embed-text) + computer-use/GUI grounding (Fara-7B), always-on $0"
+    models: ["qwen3:4b-instruct", "qwen3:4b", "nomic-embed-text:latest", "qwen3-vl:4b"]
+    role: "the sovereign brain — tool-calls (qwen3:4b-instruct) + embeddings (nomic-embed-text) + EDGE vision (qwen3-vl:4b, on-demand), always-on $0. Computer-use/GUI-grounding (Fara-7B) moved to the laptop (founder 2026-06-23: Fara = desktop automation where the desktop is). Run only ONE model resident at a time — 8GB holds one comfortably (two = swap-thrash freeze)."
   }
 
   laptop {
