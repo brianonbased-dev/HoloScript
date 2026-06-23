@@ -7,7 +7,9 @@
  */
 package net.holoscript.qrscanner
 
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
@@ -81,6 +83,25 @@ class StarterSampleActivity : AppSystemActivity() {
     ScannerState.onEnterWorld = { link -> enterWorld(link) } // scan a world QR → immerse
     ScannerState.onLeaveWorld = { leaveWorld() } // in-world "Leave world" → back to passthrough scanning
     ScannerState.mockQr = qrImageBitmap(ScannerState.demoUrl, 360) // tutorial mock QR (on-device)
+
+    // In-app bookmarks: load saved links from SharedPreferences ("holoqr" / "bookmarks", newline-joined,
+    // most-recent first), and wire save/delete. Each write re-persists the whole list + refreshes state.
+    val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    ScannerState.bookmarks =
+        (prefs.getString(PREFS_BOOKMARKS, "") ?: "")
+            .split("\n")
+            .filter { it.isNotBlank() }
+    ScannerState.onBookmark = { url ->
+      // Dedup (drop any existing copy), prepend (most-recent first), cap the list, persist, refresh.
+      val next = (listOf(url) + ScannerState.bookmarks.filter { it != url }).take(MAX_BOOKMARKS)
+      ScannerState.bookmarks = next
+      saveBookmarks(next)
+    }
+    ScannerState.onDeleteBookmark = { url ->
+      val next = ScannerState.bookmarks.filter { it != url }
+      ScannerState.bookmarks = next
+      saveBookmarks(next)
+    }
     if (!hasCameraPermission()) {
       requestPermissions(arrayOf(cameraPermission), REQUEST_CAMERA)
     }
@@ -396,15 +417,20 @@ class StarterSampleActivity : AppSystemActivity() {
     controller?.resumeScanning()
   }
 
-  /** Quest "Web Task" scheme — the documented way to open a URL in the Quest Browser. */
+  /**
+   * Open a scanned URL in the FULL Quest Browser. A plain ACTION_VIEW launches the real Quest Browser
+   * with its own tabs/bookmarks/settings — the user can save the link, manage history, and keep
+   * browsing. The "ovrweb://webtask?uri=" scheme is only a minimal chrome-less Web Task dialog (no
+   * bookmarks/settings), so it is the FALLBACK when no browser handles ACTION_VIEW.
+   */
   private fun openInQuestBrowser(url: String) {
     Log.i(tag, "user opened: $url")
-    val webtask = "ovrweb://webtask?uri=" + Uri.encode(url)
     try {
-      startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webtask)))
+      startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) // full Quest Browser (tabs/bookmarks/settings)
     } catch (e: Exception) {
       try {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        val webtask = "ovrweb://webtask?uri=" + Uri.encode(url) // minimal Web Task dialog (no chrome)
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(webtask)))
       } catch (e2: Exception) {
         ScannerState.status = "Could not open browser for: $url"
       }
@@ -437,6 +463,16 @@ class StarterSampleActivity : AppSystemActivity() {
       tg.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
     } catch (e: Exception) {
       Log.w(tag, "scan tone failed: ${e.message}")
+    }
+  }
+
+  /** Persist the bookmark list to SharedPreferences (newline-joined; URLs contain no newlines). */
+  private fun saveBookmarks(list: List<String>) {
+    try {
+      val prefs: SharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+      prefs.edit().putString(PREFS_BOOKMARKS, list.joinToString("\n")).apply()
+    } catch (e: Exception) {
+      Log.w(tag, "save bookmarks failed: ${e.message}")
     }
   }
 
@@ -502,5 +538,8 @@ class StarterSampleActivity : AppSystemActivity() {
     private const val REQUEST_CAMERA = 101
     private const val FOLLOW_DISTANCE = 1.2f
     private const val HEAD_LOCK_SMOOTHING = 0.2f // 0..1 per tick; lower = smoother trail
+    private const val PREFS_NAME = "holoqr" // SharedPreferences store for in-app bookmarks
+    private const val PREFS_BOOKMARKS = "bookmarks" // newline-joined saved links (most-recent first)
+    private const val MAX_BOOKMARKS = 100 // cap saved links so the list never grows unbounded
   }
 }

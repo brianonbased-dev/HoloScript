@@ -71,6 +71,7 @@ enum class Screen {
   TUTORIAL,
   SCANNING,
   IN_WORLD,
+  BOOKMARKS,
 }
 
 data class HowTo(val context: String, val text: String)
@@ -107,6 +108,12 @@ object ScannerState {
   var onEnterWorld: ((String) -> Unit)? = null // immerse into the scanned world
   var onLeaveWorld: (() -> Unit)? = null // return to passthrough scanning
   var mockQr by mutableStateOf<ImageBitmap?>(null)
+
+  // In-app bookmarks: scanned links the user saved to paste into the main Quest Browser. Persisted by
+  // the activity in SharedPreferences; most-recent first. Copy/Open reuse onCopy/onOpen above.
+  var bookmarks by mutableStateOf<List<String>>(emptyList()) // saved links (most-recent first)
+  var onBookmark: ((String) -> Unit)? = null // persist + add a link
+  var onDeleteBookmark: ((String) -> Unit)? = null // remove a link
 
   // Content comes from ScannerContent.kt — @generated from scanner.holo by the quest compiler.
   // Edit copy in scanner.holo (onboarding/tutorial/world_portal), recompile — never here.
@@ -159,6 +166,7 @@ fun ScannerPanel() {
     when (ScannerState.screen) {
       Screen.WELCOME -> PanelSurface { WelcomeScreen() }
       Screen.TUTORIAL -> PanelSurface { TutorialScreen() }
+      Screen.BOOKMARKS -> PanelSurface { BookmarksScreen() }
       Screen.SCANNING ->
           // Ambient: while scanning, render NOTHING (clear passthrough). A read pops a card on the
           // head-locked panel; dismissing it returns to the clear view. A world link → EnterWorldCard.
@@ -219,7 +227,38 @@ private fun WelcomeScreen() {
   Row {
     Button(onClick = { ScannerState.screen = Screen.TUTORIAL }) { Text("See how it works") }
     Spacer(Modifier.size(14.dp))
+    Button(onClick = { ScannerState.screen = Screen.BOOKMARKS }) { Text("Saved links") }
+    Spacer(Modifier.size(14.dp))
     Button(onClick = { startScanning() }) { Text("Start scanning") }
+  }
+}
+
+/** Saved links: bookmarked URLs the user can copy out (to paste into the main browser), open, or delete. */
+@Composable
+private fun BookmarksScreen() {
+  Heading("Saved links")
+  Spacer(Modifier.size(16.dp))
+  if (ScannerState.bookmarks.isEmpty()) {
+    Body("No saved links yet — scan a QR and tap Bookmark.", secondary = true)
+  } else {
+    ScannerState.bookmarks.forEach { link ->
+      Row(
+          modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+          verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Box(modifier = Modifier.weight(1f)) { Body(link) }
+        Spacer(Modifier.size(12.dp))
+        Button(onClick = { ScannerState.onCopy?.invoke(link) }) { Text("Copy") }
+        Spacer(Modifier.size(8.dp))
+        Button(onClick = { ScannerState.onOpen?.invoke(link) }) { Text("Open") }
+        Spacer(Modifier.size(8.dp))
+        Button(onClick = { ScannerState.onDeleteBookmark?.invoke(link) }) { Text("✕") }
+      }
+    }
+  }
+  Spacer(Modifier.size(22.dp))
+  Row {
+    Button(onClick = { ScannerState.screen = Screen.WELCOME }) { Text("Back") }
   }
 }
 
@@ -300,6 +339,7 @@ private fun ResultCard() {
   if (url != null) {
     Body(url)
     Spacer(Modifier.size(20.dp))
+    // Three actions (Open / Bookmark / Dismiss) — stacked into two Rows so they don't crowd the panel.
     Row {
       Button(
           onClick = {
@@ -311,6 +351,18 @@ private fun ResultCard() {
         Text("Open in browser")
       }
       Spacer(Modifier.size(14.dp))
+      Button(
+          onClick = {
+            ScannerState.onBookmark?.invoke(url) // save the link, then dismiss back to scanning
+            ScannerState.reset()
+            ScannerState.onDismiss?.invoke()
+          }
+      ) {
+        Text("Bookmark")
+      }
+    }
+    Spacer(Modifier.size(12.dp))
+    Row {
       Button(
           onClick = {
             ScannerState.reset()
