@@ -454,12 +454,13 @@ describe('HoloScriptWasm trait-evaluation surface', () => {
       expect(typeof info!.exists).toBe('boolean');
     });
 
-    it('returns fallback info when bridge is unavailable', () => {
+    it('returns bridge not-found info for unknown traits when core bridge is available', () => {
       const info = wrapper.getTraitInfo('unknown_trait_xyz');
-      // In fallback mode, exists is true and sourceMap indicates fallback
+      // In the workspace test run, @holoscript/core resolves and the bridge
+      // reports the registry miss instead of using the pure-WASM fallback.
       expect(info).toBeDefined();
       if (info) {
-        expect(info.sourceMap).toContain('fallback');
+        expect(info.sourceMap).toContain('not found in any registry');
       }
     });
   });
@@ -484,11 +485,11 @@ describe('HoloScriptWasm trait-evaluation surface', () => {
       expect(code.length).toBeGreaterThan(0);
     });
 
-    it('returns fallback stub when bridge is unavailable', () => {
+    it('returns bridge missing-codegen stub when target has no codegen path', () => {
       const code = wrapper.generateTraitCode('physics', 'webgpu');
       expect(code.length).toBeGreaterThan(0);
-      // In fallback mode, indicates unavailability
-      expect(code[0]).toContain('codegen unavailable');
+      // The core bridge is available, but webgpu has no codegen path yet.
+      expect(code[0]).toContain('no codegen path registered');
     });
   });
 
