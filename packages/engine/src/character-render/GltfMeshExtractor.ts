@@ -3,7 +3,7 @@
  *
  * The opt-in photoreal body source: parses a binary glTF (.glb), pulls the first skinned
  * primitive's POSITION/NORMAL/JOINTS_0/WEIGHTS_0/indices (+ TANGENT or a placeholder, +
- * TEXCOORD_0 UVs when present), and
+ * TEXCOORD_0 UVs and the bound material's PBR texture maps as encoded bytes when present), and
  * remaps the rig's joints onto the canonical HoloScript palette via SkeletonStandardRegistry
  * so it feeds the SAME CharacterHost/renderCharacter path as the procedural body. The WGSL
  * shader is single-influence, so the 4-bone glTF skin is reduced to the dominant joint
@@ -19,7 +19,7 @@
  * @module character-render
  */
 
-import type { SkinnedMeshData } from '../native-render/draw-spec';
+import type { SkinnedMeshData, MaterialTextureMaps, TextureRef } from '../native-render/draw-spec';
 import { BONE_ORDER, JOINT_COUNT } from './AgentAvatarMesh';
 import {
   matchSkeletonStandard,
@@ -46,11 +46,26 @@ interface GltfJson {
   buffers?: Array<{ uri?: string; byteLength: number }>;
   nodes?: Array<{ name?: string; mesh?: number; skin?: number }>;
   skins?: Array<{ joints: number[]; inverseBindMatrices?: number }>;
+  materials?: GltfMaterial[];
+  textures?: Array<{ source?: number }>;
+  images?: Array<{ bufferView?: number; mimeType?: string; uri?: string }>;
+}
+interface GltfTextureInfo {
+  index: number;
+}
+interface GltfMaterial {
+  pbrMetallicRoughness?: {
+    baseColorTexture?: GltfTextureInfo;
+    metallicRoughnessTexture?: GltfTextureInfo;
+  };
+  normalTexture?: GltfTextureInfo;
+  emissiveTexture?: GltfTextureInfo;
 }
 interface GltfPrimitive {
   attributes: Record<string, number>;
   indices?: number;
   mode?: number;
+  material?: number;
   extensions?: Record<string, unknown>;
 }
 interface GltfAccessor {
@@ -70,6 +85,9 @@ export interface GltfSkinnedMesh extends SkinnedMeshData {
   inverseBindMatrices: Float32Array<ArrayBuffer>;
   skeletonStandard: SkeletonStandardId;
   unmappedJoints: string[];
+  /** The bound material's PBR texture maps (encoded image bytes), when the primitive has a
+   *  material with texture maps. Undefined for an un-textured / material-less primitive. */
+  materialMaps?: MaterialTextureMaps;
 }
 
 /** Parse a .glb container into its JSON + BIN chunks. */
@@ -141,6 +159,50 @@ function readScalar(dv: DataView, at: number, ct: number, normalized?: boolean):
 }
 
 /**
+ * Resolve a primitive's material PBR texture maps into pure-data TextureRefs (encoded image
+ * bytes + mime, or external uri). Returns undefined when the primitive has no material or no
+ * texture maps — the scalar-only path is unaffected. No image decoding: carries encoded bytes,
+ * a later stage / the GPU backend decodes + uploads.
+ */
+function extractMaterialMaps(
+  g: GltfJson,
+  bin: Uint8Array,
+  prim: GltfPrimitive
+): MaterialTextureMaps | undefined {
+  if (prim.material === undefined) return undefined;
+  const mat = g.materials?.[prim.material];
+  if (!mat) return undefined;
+  const refOf = (info?: GltfTextureInfo): TextureRef | undefined => {
+    if (!info) return undefined;
+    const tex = g.textures?.[info.index];
+    if (tex?.source === undefined) return undefined;
+    const img = g.images?.[tex.source];
+    if (!img) return undefined;
+    if (img.uri) return { uri: img.uri };
+    if (img.bufferView !== undefined) {
+      const bv = g.bufferViews?.[img.bufferView];
+      if (!bv) return undefined;
+      const start = bv.byteOffset ?? 0;
+      const bytes = new Uint8Array(bv.byteLength);
+      bytes.set(bin.subarray(start, start + bv.byteLength));
+      return img.mimeType ? { bytes, mimeType: img.mimeType } : { bytes };
+    }
+    return undefined;
+  };
+  const albedoMap = refOf(mat.pbrMetallicRoughness?.baseColorTexture);
+  const normalMap = refOf(mat.normalTexture);
+  const metalRoughMap = refOf(mat.pbrMetallicRoughness?.metallicRoughnessTexture);
+  const emissiveMap = refOf(mat.emissiveTexture);
+  if (!albedoMap && !normalMap && !metalRoughMap && !emissiveMap) return undefined;
+  return {
+    ...(albedoMap ? { albedoMap } : {}),
+    ...(normalMap ? { normalMap } : {}),
+    ...(metalRoughMap ? { metalRoughMap } : {}),
+    ...(emissiveMap ? { emissiveMap } : {}),
+  };
+}
+
+/**
  * Extract the first skinned primitive of a .glb into a palette-remapped SkinnedMeshData.
  */
 export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
@@ -194,6 +256,8 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
     prim.attributes.TEXCOORD_0 !== undefined
       ? new Float32Array(readAccessor(g, bin, prim.attributes.TEXCOORD_0).array)
       : undefined;
+  // The bound material's PBR texture maps (encoded bytes), when present. (Track 0 prerequisite.)
+  const materialMaps = extractMaterialMaps(g, bin, prim);
 
   // 3) glTF joint slot → canonical palette index (via the matched skeleton standard).
   const jointNames: string[] = skin.joints.map((nodeIdx) => g.nodes?.[nodeIdx]?.name ?? '');
@@ -245,6 +309,7 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
     normals,
     tangents,
     ...(uvs ? { uvs } : {}),
+    ...(materialMaps ? { materialMaps } : {}),
     indices,
     jointIndices,
     jointWeights,

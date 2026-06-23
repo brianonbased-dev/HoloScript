@@ -68,6 +68,28 @@ export type GeometryKind =
   | 'mesh'
   | 'unknown';
 
+/** Pure-data reference to a texture map — either the ENCODED image bytes (e.g. PNG/JPEG, as
+ *  embedded in a glTF image bufferView) + MIME type, or an external URI. No decoded pixels and
+ *  no GPU resources: a later stage / the GPU backend decodes + uploads. (Track 0: the `.holo`
+ *  material IR can carry a real imported texture map, not only packed scalars.) */
+export interface TextureRef {
+  /** Encoded image bytes (e.g. PNG/JPEG) when embedded in the source (glTF image bufferView). */
+  bytes?: Uint8Array<ArrayBuffer>;
+  /** MIME type of `bytes` (e.g. 'image/png', 'image/jpeg'). */
+  mimeType?: string;
+  /** External URI when the source references the image by path instead of embedding it. */
+  uri?: string;
+}
+
+/** Optional PBR texture maps (glTF model): base color, tangent-space normal, the glTF-combined
+ *  metallic-roughness map, and emissive. All optional — absence = the scalar-only material. */
+export interface MaterialTextureMaps {
+  albedoMap?: TextureRef;
+  normalMap?: TextureRef;
+  metalRoughMap?: TextureRef;
+  emissiveMap?: TextureRef;
+}
+
 /** Pure-data material (no GPUBindGroup) — the GPU backend resolves this to a pipeline+bind group. */
 export interface MaterialSpec {
   color: number; // packed 0xRRGGBB
@@ -75,6 +97,12 @@ export interface MaterialSpec {
   roughness: number;
   emissive: number;
   opacity: number;
+  /** Optional PBR texture maps populated by the glTF importer; undefined for the procedural /
+   *  scalar-only material (existing path byte-for-byte untouched when omitted). */
+  albedoMap?: TextureRef;
+  normalMap?: TextureRef;
+  metalRoughMap?: TextureRef;
+  emissiveMap?: TextureRef;
 }
 
 /** Pure-data draw specification. NO GPU resources — see module header. */

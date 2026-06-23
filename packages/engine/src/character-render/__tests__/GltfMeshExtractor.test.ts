@@ -152,6 +152,62 @@ function makeSkinnedTriangleGlbWithUv(): ArrayBuffer {
   return buildGlb(json, bin);
 }
 
+/** A textured one-triangle skinned glb: UV geometry + a 4-byte embedded baseColor image. */
+function makeTexturedSkinnedTriangleGlb(): ArrayBuffer {
+  const geomLen = 292; // same geometry layout as makeSkinnedTriangleGlbWithUv
+  const imgBytes = [0x89, 0x50, 0x4e, 0x47]; // 'PNG' magic — opaque to the extractor (no decode)
+  const binLen = geomLen + imgBytes.length; // 296
+  const bin = new ArrayBuffer(binLen);
+  const dv = new DataView(bin);
+  [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true)); // POSITION
+  [0, 0, 1, 0, 0, 1, 0, 0, 1].forEach((v, i) => dv.setFloat32(36 + i * 4, v, true)); // NORMAL
+  [0, 0, 1, 0, 0, 1].forEach((v, i) => dv.setFloat32(72 + i * 4, v, true)); // TEXCOORD_0
+  [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0].forEach((v, i) => dv.setUint8(96 + i, v)); // JOINTS_0
+  [1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0].forEach((v, i) => dv.setFloat32(108 + i * 4, v, true)); // WEIGHTS_0
+  [0, 1, 2].forEach((v, i) => dv.setUint16(156 + i * 2, v, true)); // indices
+  for (let m = 0; m < 2; m++) {
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1].forEach((v, i) =>
+      dv.setFloat32(164 + m * 64 + i * 4, v, true)
+    ); // IBM
+  }
+  imgBytes.forEach((b, i) => dv.setUint8(geomLen + i, b)); // embedded baseColor image @292
+  const json = {
+    asset: { version: '2.0' },
+    buffers: [{ byteLength: binLen }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: geomLen },
+      { buffer: 0, byteOffset: geomLen, byteLength: imgBytes.length },
+    ],
+    accessors: [
+      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 0, byteOffset: 36, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 0, byteOffset: 72, componentType: 5126, count: 3, type: 'VEC2' },
+      { bufferView: 0, byteOffset: 96, componentType: 5121, count: 3, type: 'VEC4' },
+      { bufferView: 0, byteOffset: 108, componentType: 5126, count: 3, type: 'VEC4' },
+      { bufferView: 0, byteOffset: 156, componentType: 5123, count: 3, type: 'SCALAR' },
+      { bufferView: 0, byteOffset: 164, componentType: 5126, count: 2, type: 'MAT4' },
+    ],
+    images: [{ bufferView: 1, mimeType: 'image/png' }],
+    textures: [{ source: 0 }],
+    materials: [{ pbrMetallicRoughness: { baseColorTexture: { index: 0 } } }],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2, JOINTS_0: 3, WEIGHTS_0: 4 },
+            indices: 5,
+            material: 0,
+            mode: 4,
+          },
+        ],
+      },
+    ],
+    nodes: [{ mesh: 0, skin: 0 }, { name: 'Hips' }, { name: 'Spine' }],
+    skins: [{ joints: [1, 2], inverseBindMatrices: 6 }],
+  };
+  return buildGlb(json, bin);
+}
+
 describe('GltfMeshExtractor', () => {
   it('parses the GLB container into JSON + BIN chunks', () => {
     const { json, bin } = parseGlb(makeSkinnedTriangleGlb());
@@ -191,6 +247,23 @@ describe('GltfMeshExtractor', () => {
   it('leaves uvs undefined when the primitive has no TEXCOORD_0 (false case)', () => {
     const m = extractGltfSkinnedMesh(makeSkinnedTriangleGlb());
     expect(m.uvs).toBeUndefined();
+  });
+
+  it('extracts the material baseColor texture map as encoded bytes (Track 0: .holo material carries texture maps)', () => {
+    const m = extractGltfSkinnedMesh(makeTexturedSkinnedTriangleGlb());
+    expect(m.materialMaps).toBeDefined();
+    expect(m.materialMaps!.albedoMap?.mimeType).toBe('image/png');
+    // the embedded image bytes round-trip out of the GLB BIN verbatim
+    expect(Array.from(m.materialMaps!.albedoMap!.bytes!)).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    expect(m.materialMaps!.albedoMap!.bytes!.buffer).toBeInstanceOf(ArrayBuffer);
+    // un-referenced maps stay undefined
+    expect(m.materialMaps!.normalMap).toBeUndefined();
+    expect(m.materialMaps!.metalRoughMap).toBeUndefined();
+  });
+
+  it('leaves materialMaps undefined when the primitive has no material (false case)', () => {
+    const m = extractGltfSkinnedMesh(makeSkinnedTriangleGlbWithUv());
+    expect(m.materialMaps).toBeUndefined();
   });
 
   it('rejects Draco-compressed primitives loudly', () => {
