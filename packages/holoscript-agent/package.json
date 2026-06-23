@@ -60,6 +60,10 @@
     "./mesh-character-mind": {
       "types": "./dist/mesh-character-mind.d.ts",
       "import": "./dist/mesh-character-mind.js"
+    },
+    "./portable-mind": {
+      "types": "./dist/portable-mind.d.ts",
+      "import": "./dist/portable-mind.js"
     }
   },
   "files": [

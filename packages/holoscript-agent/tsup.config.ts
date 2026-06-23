@@ -15,6 +15,7 @@ export default defineConfig({
     'src/provision.ts',
     'src/audit-log.ts',
     'src/mesh-character-mind.ts',
+    'src/portable-mind.ts',
     'src/types.ts',
   ],
   format: ['esm'],
