@@ -20,6 +20,7 @@ import { CostGuard, defaultPricerForProvider } from './cost-guard.js';
 import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { resolveBearerViaBroker } from './bearer-broker.js';
+import { decideWalletCoherence } from './wallet-coherence.js';
 import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
 import { runAblation, renderAblationMarkdown } from './ablation.js';
@@ -113,7 +114,36 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
   // Load the seat wallet ONCE: it both signs strict-mode requests AND (when no
   // explicit bearer is set) proves ownership to the HoloKey broker to fetch the
   // mesh bearer — so the edge holds only its wallet, not a plaintext bearer.
-  const seat = loadSeatWallet(identity.handle);
+  let seat = loadSeatWallet(identity.handle);
+  // Wallet coherence self-heal (W.820): the seat key MUST derive the declared identity wallet.
+  // A mismatch means the key is not this agent's identity key (a mis-pasted / shared-.env stray —
+  // the holojetson incident). We never sign as the wrong wallet: emit a loud canary and either
+  // drop the stray key to operate bearer-only as the true identity, or halt. Coherent agents are
+  // unaffected.
+  const coherence = decideWalletCoherence({
+    derivedAddress: seat?.address,
+    declaredWallet: identity.wallet,
+    hasBearer: !!identity.x402Bearer,
+    halt: process.env.HOLOSCRIPT_AGENT_WALLET_COHERENCE_HALT === '1',
+  });
+  if (!coherence.coherent) {
+    console.error(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        ev: 'wallet-coherence-fail',
+        declared: identity.wallet,
+        derived: seat?.address ?? null,
+        action: coherence.action,
+        reason: coherence.reason,
+      })
+    );
+    if (coherence.action === 'halt') {
+      throw new Error(`wallet-coherence-fail: ${coherence.reason}`);
+    }
+    // degrade-to-bearer-only: drop the stray key so nothing (broker proof, request signer, receipt
+    // signing) uses it. The explicit bearer carries the true declared identity.
+    seat = undefined;
+  }
   let bearer = identity.x402Bearer;
   if (!bearer) {
     if (!seat) {
