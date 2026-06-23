@@ -55,6 +55,16 @@ impl<'a> Lexer<'a> {
                 } else if let Some(&(_, '*')) = self.chars.peek() {
                     self.advance();
                     return self.read_block_comment(start, start_line, start_column);
+                } else if let Some(&(_, '=')) = self.chars.peek() {
+                    self.advance();
+                    return Token::new(
+                        TokenType::SlashEquals,
+                        "/=",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    );
                 }
                 Token::new(
                     TokenType::Slash,
@@ -80,7 +90,7 @@ impl<'a> Lexer<'a> {
             // Bare `-` (not a negative-number prefix): the subtraction / unary-negation operator.
             // Needed for the numeric `.hs` logic subset (arithmetic `a - b`, ground-right `rx = -fz`).
             // The parser already understands `TokenType::Minus` as both binary and prefix-unary.
-            '-' => self.single_char_token(TokenType::Minus, "-"),
+            '-' => self.op_or_compound(TokenType::Minus, "-", TokenType::MinusEquals, "-="),
 
             // Traits
             '@' => self.read_trait(),
@@ -106,6 +116,15 @@ impl<'a> Lexer<'a> {
                             self.position,
                         );
                     }
+                    // Exactly two dots: a range operator `a..b` (used by `for (i in 0..n)`).
+                    return Token::new(
+                        TokenType::Range,
+                        "..",
+                        start_line,
+                        start_column,
+                        start,
+                        self.position,
+                    );
                 }
                 Token::new(
                     TokenType::Dot,
@@ -149,9 +168,9 @@ impl<'a> Lexer<'a> {
                     )
                 }
             }
-            '+' => self.single_char_token(TokenType::Plus, "+"),
-            '*' => self.single_char_token(TokenType::Star, "*"),
-            '%' => self.single_char_token(TokenType::Percent, "%"),
+            '+' => self.op_or_compound(TokenType::Plus, "+", TokenType::PlusEquals, "+="),
+            '*' => self.op_or_compound(TokenType::Star, "*", TokenType::StarEquals, "*="),
+            '%' => self.op_or_compound(TokenType::Percent, "%", TokenType::PercentEquals, "%="),
             '!' => {
                 self.advance();
                 if let Some(&(_, '=')) = self.chars.peek() {
@@ -341,6 +360,29 @@ impl<'a> Lexer<'a> {
         let column = self.column;
         self.advance();
         Token::new(token_type, value, line, column, start, self.position)
+    }
+
+    /// Lex an arithmetic operator that may be a compound-assignment: emit `compound` (`+=`, `-=`,
+    /// `*=`, `/=`, `%=`) when the operator char is immediately followed by `=`, otherwise the bare
+    /// `base` operator (`+`, `-`, `*`, `/`, `%`). Supports LOCAL mutable-state accumulation in the
+    /// `.hs` logic subset (`acc += x` inside a pure loop).
+    fn op_or_compound(
+        &mut self,
+        base: TokenType,
+        base_str: &str,
+        compound: TokenType,
+        compound_str: &str,
+    ) -> Token {
+        let start = self.position;
+        let line = self.line;
+        let column = self.column;
+        self.advance(); // consume the operator char
+        if let Some(&(_, '=')) = self.chars.peek() {
+            self.advance(); // consume '='
+            Token::new(compound, compound_str, line, column, start, self.position)
+        } else {
+            Token::new(base, base_str, line, column, start, self.position)
+        }
     }
 
     fn read_string(&mut self, quote: char) -> Token {
@@ -615,6 +657,67 @@ mod tests {
         assert_eq!(tokens[0].value, "42");
         assert_eq!(tokens[1].token_type, TokenType::Number);
         assert_eq!(tokens[1].value, "3.14");
+    }
+
+    #[test]
+    fn test_range_operator() {
+        // `..` lexes as a single Range token (distinct from `.` Dot and `...` Spread).
+        let mut lexer = Lexer::new("0..n");
+        let tokens: Vec<TokenType> = lexer
+            .tokenize()
+            .into_iter()
+            .map(|t| t.token_type)
+            .filter(|t| !matches!(t, TokenType::Whitespace | TokenType::Newline | TokenType::Eof))
+            .collect();
+        assert_eq!(
+            tokens,
+            vec![TokenType::Number, TokenType::Range, TokenType::Identifier]
+        );
+    }
+
+    #[test]
+    fn test_compound_assignment_operators() {
+        let mut lexer = Lexer::new("+= -= *= /= %=");
+        let tokens: Vec<TokenType> = lexer
+            .tokenize()
+            .into_iter()
+            .map(|t| t.token_type)
+            .filter(|t| !matches!(t, TokenType::Whitespace | TokenType::Newline | TokenType::Eof))
+            .collect();
+        assert_eq!(
+            tokens,
+            vec![
+                TokenType::PlusEquals,
+                TokenType::MinusEquals,
+                TokenType::StarEquals,
+                TokenType::SlashEquals,
+                TokenType::PercentEquals,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_struct_and_in_keywords() {
+        let mut lexer = Lexer::new("struct in");
+        let tokens: Vec<TokenType> = lexer
+            .tokenize()
+            .into_iter()
+            .map(|t| t.token_type)
+            .filter(|t| !matches!(t, TokenType::Whitespace | TokenType::Newline | TokenType::Eof))
+            .collect();
+        assert_eq!(tokens, vec![TokenType::Struct, TokenType::In]);
+    }
+
+    #[test]
+    fn test_spread_still_distinct_from_range() {
+        // `...` must still lex as Spread, not Range + Dot.
+        let mut lexer = Lexer::new("...");
+        let first = lexer
+            .tokenize()
+            .into_iter()
+            .find(|t| !matches!(t.token_type, TokenType::Whitespace | TokenType::Newline))
+            .unwrap();
+        assert_eq!(first.token_type, TokenType::Spread);
     }
 
     #[test]

@@ -134,6 +134,7 @@ impl Parser {
             TokenType::Export => self.parse_export(),
             TokenType::Function => self.parse_function(),
             TokenType::Enum => self.parse_enum_declaration(),
+            TokenType::Struct => self.parse_struct_declaration(),
             TokenType::Move => self.parse_move_statement(),
             TokenType::Action => self.parse_action_decl(),
             TokenType::OnEvent => self.parse_game_event_block(),
@@ -711,6 +712,34 @@ impl Parser {
         }))
     }
 
+    /// Parse a struct (record) declaration: `struct Vec3 { x, y, z }`.
+    /// Fields are bare identifiers; commas between them are optional and a trailing comma is
+    /// tolerated (same lenient comma policy as enum members / object literals). Data-only — no
+    /// methods. The Kotlin backend emits `data class Vec3(val x: Float, val y: Float, val z: Float)`.
+    fn parse_struct_declaration(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'struct'
+
+        let name = self.expect_identifier()?;
+        self.expect(TokenType::LBrace)?;
+
+        let mut fields = Vec::new();
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            fields.push(self.expect_identifier()?);
+            if self.check(TokenType::Comma) {
+                self.advance();
+            }
+        }
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::StructDeclaration(StructDeclarationNode {
+            name,
+            fields,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
     /// Parse a movement statement:
     ///   move <target> to [x, y, z]
     ///   move <target> to otherEntity
@@ -1163,13 +1192,34 @@ impl Parser {
     }
 
     fn parse_comparison_expression(&mut self) -> Result<AstNode, ParseError> {
-        let mut left = self.parse_additive_expression()?;
+        let mut left = self.parse_range_expression()?;
 
         while self.check(TokenType::Lt)
             || self.check(TokenType::Gt)
             || self.check(TokenType::Le)
             || self.check(TokenType::Ge)
         {
+            let op = self.advance().value.clone();
+            let right = self.parse_range_expression()?;
+            left = AstNode::BinaryExpression(BinaryExpression {
+                operator: op,
+                left: Box::new(left),
+                right: Box::new(right),
+                loc: None,
+            });
+        }
+
+        Ok(left)
+    }
+
+    /// Parse a range expression `a..b` (used by `for (i in 0..n)`). Binds looser than additive so
+    /// `0..n + 1` reads as `0..(n + 1)`, matching Kotlin's `..` precedence. Non-associative in
+    /// practice (`a..b..c` is meaningless), but parsed left-associatively for simplicity. Emitted
+    /// as a `..` binary expression so the Kotlin backend renders it verbatim.
+    fn parse_range_expression(&mut self) -> Result<AstNode, ParseError> {
+        let mut left = self.parse_additive_expression()?;
+
+        while self.check(TokenType::Range) {
             let op = self.advance().value.clone();
             let right = self.parse_additive_expression()?;
             left = AstNode::BinaryExpression(BinaryExpression {
@@ -1465,32 +1515,20 @@ impl Parser {
         }))
     }
 
+    /// Parse a for-of / for-in loop: `for (<var> in <iterable>) { … }`.
+    ///
+    /// The `<iterable>` is any expression — typically a range (`0..n`, parsed as a `..` binary
+    /// expression) or an array/identifier. This idiomatic bounded-iteration form replaces the old
+    /// toy C-style `for (init : test : update)`: it maps 1:1 onto Kotlin's `for (x in y)`, needs no
+    /// mutable-counter ceremony, and keeps a pure loop pure (the loop variable is a fresh binding,
+    /// per the functional-core doctrine in MEMORY W.815).
     fn parse_for_statement(&mut self) -> Result<AstNode, ParseError> {
         self.advance(); // consume 'for'
         self.expect(TokenType::LParen)?;
 
-        // Simplified for loop parsing
-        let init = if !self.check(TokenType::Colon) {
-            Some(Box::new(self.parse_expression()?))
-        } else {
-            None
-        };
-
-        self.expect(TokenType::Colon)?; // Using : as separator for simplicity
-
-        let test = if !self.check(TokenType::Colon) {
-            Some(Box::new(self.parse_expression()?))
-        } else {
-            None
-        };
-
-        self.expect(TokenType::Colon)?;
-
-        let update = if !self.check(TokenType::RParen) {
-            Some(Box::new(self.parse_expression()?))
-        } else {
-            None
-        };
+        let var_name = self.expect_identifier()?;
+        self.expect(TokenType::In)?;
+        let range = self.parse_expression()?;
 
         self.expect(TokenType::RParen)?;
         self.expect(TokenType::LBrace)?;
@@ -1501,10 +1539,9 @@ impl Parser {
         }
         self.expect(TokenType::RBrace)?;
 
-        Ok(AstNode::For(ForNode {
-            init,
-            test,
-            update,
+        Ok(AstNode::ForOf(ForOfNode {
+            var_name,
+            range: Box::new(range),
             body,
             loc: None,
         }))
@@ -1546,21 +1583,48 @@ impl Parser {
     }
 
     fn parse_variable_declaration(&mut self) -> Result<AstNode, ParseError> {
-        // For now, treat as property assignment
+        // `var` opts into LOCAL mutable state (functional-core: the mutation never escapes the
+        // function — see MEMORY W.815); `let`/`const` are single-assignment (immutable `val`).
+        let mutable = self.check(TokenType::Var);
         self.advance(); // consume const/let/var
         let name = self.expect_identifier()?;
         self.expect(TokenType::Equals)?;
         let value = self.parse_expression()?;
 
-        Ok(AstNode::Property(PropertyNode {
-            key: name,
+        Ok(AstNode::VariableDeclaration(VariableDeclarationNode {
+            name,
             value: Box::new(value),
+            mutable,
             loc: None,
         }))
     }
 
+    /// Parse an expression statement, OR — when the expression is an l-value (identifier, member,
+    /// or index) immediately followed by `=` / `+=` / `-=` / `*=` / `/=` / `%=` — an assignment
+    /// statement (`x = expr`, `acc += 1`). Assignment to a previously-declared `var` is how the
+    /// `.hs` logic subset expresses LOCAL mutable state (e.g. an accumulator inside a pure loop).
     fn parse_expression_statement(&mut self) -> Result<AstNode, ParseError> {
-        self.parse_expression()
+        let expr = self.parse_expression()?;
+        let op = match self.peek().token_type {
+            TokenType::Equals => Some("="),
+            TokenType::PlusEquals => Some("+="),
+            TokenType::MinusEquals => Some("-="),
+            TokenType::StarEquals => Some("*="),
+            TokenType::SlashEquals => Some("/="),
+            TokenType::PercentEquals => Some("%="),
+            _ => None,
+        };
+        if let Some(op) = op {
+            self.advance(); // consume the assignment operator
+            let value = self.parse_expression()?;
+            return Ok(AstNode::Assignment(AssignmentNode {
+                operator: op.to_string(),
+                target: Box::new(expr),
+                value: Box::new(value),
+                loc: None,
+            }));
+        }
+        Ok(expr)
     }
 
     // Helper methods
@@ -1993,6 +2057,125 @@ function decideRoute(isWorldLink) {
         assert_eq!(program.body.len(), 2);
         assert!(matches!(program.body[0], AstNode::EnumDeclaration(_)));
         assert!(matches!(program.body[1], AstNode::Function(_)));
+    }
+
+    #[test]
+    fn test_parse_struct_declaration() {
+        let source = r#"struct Vec3 { x, y, z }"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("struct should parse");
+        assert_eq!(program.body.len(), 1);
+        if let AstNode::StructDeclaration(s) = &program.body[0] {
+            assert_eq!(s.name, "Vec3");
+            assert_eq!(
+                s.fields,
+                vec!["x".to_string(), "y".to_string(), "z".to_string()]
+            );
+        } else {
+            panic!("Expected StructDeclaration node, got {:?}", program.body[0]);
+        }
+    }
+
+    #[test]
+    fn test_parse_var_is_mutable_let_is_not() {
+        let source = r#"function f(a) {
+  var acc = a
+  let base = a
+  return acc
+}"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("should parse");
+        let func = match &program.body[0] {
+            AstNode::Function(f) => f,
+            other => panic!("expected Function, got {:?}", other),
+        };
+        let var_decl = match &func.body[0] {
+            AstNode::VariableDeclaration(v) => v,
+            other => panic!("expected VariableDeclaration, got {:?}", other),
+        };
+        assert_eq!(var_decl.name, "acc");
+        assert!(var_decl.mutable, "var must be mutable");
+        let let_decl = match &func.body[1] {
+            AstNode::VariableDeclaration(v) => v,
+            other => panic!("expected VariableDeclaration, got {:?}", other),
+        };
+        assert!(!let_decl.mutable, "let must be immutable");
+    }
+
+    #[test]
+    fn test_parse_assignment_and_compound() {
+        let source = r#"function f(x) {
+  var acc = 0
+  acc = x
+  acc += 1
+  return acc
+}"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("should parse");
+        let func = match &program.body[0] {
+            AstNode::Function(f) => f,
+            other => panic!("expected Function, got {:?}", other),
+        };
+        // body[0] = var decl, body[1] = `acc = x`, body[2] = `acc += 1`, body[3] = return
+        let assign = match &func.body[1] {
+            AstNode::Assignment(a) => a,
+            other => panic!("expected Assignment, got {:?}", other),
+        };
+        assert_eq!(assign.operator, "=");
+        let compound = match &func.body[2] {
+            AstNode::Assignment(a) => a,
+            other => panic!("expected Assignment, got {:?}", other),
+        };
+        assert_eq!(compound.operator, "+=");
+    }
+
+    #[test]
+    fn test_parse_for_in_range() {
+        let source = r#"function f(n) {
+  var total = 0
+  for (i in 0..n) {
+    total += i
+  }
+  return total
+}"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("should parse");
+        let func = match &program.body[0] {
+            AstNode::Function(f) => f,
+            other => panic!("expected Function, got {:?}", other),
+        };
+        let for_of = match &func.body[1] {
+            AstNode::ForOf(f) => f,
+            other => panic!("expected ForOf, got {:?}", other),
+        };
+        assert_eq!(for_of.var_name, "i");
+        // The range is a `..` binary expression.
+        match for_of.range.as_ref() {
+            AstNode::BinaryExpression(b) => assert_eq!(b.operator, ".."),
+            other => panic!("expected range BinaryExpression, got {:?}", other),
+        }
+        assert_eq!(for_of.body.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_while_loop() {
+        let source = r#"function f(n) {
+  while (n > 0) {
+    n = n - 1
+  }
+  return n
+}"#;
+        let mut parser = Parser::new(source);
+        let program = parser.parse().expect("should parse");
+        let func = match &program.body[0] {
+            AstNode::Function(f) => f,
+            other => panic!("expected Function, got {:?}", other),
+        };
+        assert!(
+            matches!(&func.body[0], AstNode::While(_)),
+            "expected While node, got {:?}",
+            func.body[0]
+        );
     }
 
     #[test]

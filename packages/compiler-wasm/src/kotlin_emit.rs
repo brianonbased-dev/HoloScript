@@ -8,12 +8,17 @@
 //!
 //! Scope (intentional, matches the `.hs` logic subset the parser accepts):
 //! - top-level `function name(params) { … }`  → Kotlin `fun name(p: String): T { … }`
-//! - `let` / `const` / `var` binding           → Kotlin `val name = <expr>`
-//!   (the `.hs` logic subset is single-assignment — reassignment is a parse error,
-//!   so every binding is an immutable `val`)
+//! - top-level `struct Name { f, … }`          → Kotlin `data class Name(val f: Float, …)`
+//! - top-level `enum Name { A, … }`            → Kotlin `enum class Name { A, … }`
+//! - `let` / `const` binding                   → Kotlin `val name = <expr>` (immutable)
+//! - `var` binding + reassignment              → Kotlin `var name = <expr>` + `name = <expr>`
+//!   (`var` opts into LOCAL mutable state so a pure function can accumulate inside a loop —
+//!   the mutation never escapes the function; host state stays in the Kotlin shell, W.815)
 //! - `if (cond) { … } else { … }`              → Kotlin `if (cond) { … } else { … }`
+//! - `while (cond) { … }`                       → Kotlin `while (cond) { … }`
+//! - `for (i in 0..n) { … }`                    → Kotlin `for (i in 0..n) { … }`
 //! - `return <expr>` / bare `return`           → Kotlin `return <expr>` / `return`
-//! - expressions: binary / unary / call / member / index / literals / identifiers
+//! - expressions: binary / unary / call / member / index / range / literals / identifiers
 //!
 //! Type policy: `.hs` logic functions are untyped. For the Quest logic surface the return
 //! type is inferred (`Boolean` when the function only ever returns boolean-shaped
@@ -30,12 +35,11 @@
 //! `.hs` `sqrt(x)` call maps to Kotlin `kotlin.math.sqrt(x)`. Statefulness, SDK/host calls, and
 //! loops stay in the Kotlin shell — only pure single-assignment math lives in `.hs`.
 //!
-//! Anything outside the subset (loops, the behavioural `move`/`action`/`on_*` blocks,
-//! object-graph nodes) is skipped at the top level and reported via
-//! [`KotlinEmitError`] for function-body constructs, so an unhandled node fails loud
-//! instead of silently emitting wrong Kotlin.
+//! Anything outside the subset (the behavioural `move`/`action`/`on_*` blocks, object-graph
+//! nodes) is skipped at the top level and reported via [`KotlinEmitError`] for function-body
+//! constructs, so an unhandled node fails loud instead of silently emitting wrong Kotlin.
 
-use crate::ast::{Ast, AstNode, EnumDeclarationNode};
+use crate::ast::{Ast, AstNode, EnumDeclarationNode, StructDeclarationNode};
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
 #[derive(Debug, Clone)]
@@ -63,8 +67,12 @@ enum ValType {
     Str,
     Bool,
     Float,
+    /// An integer — used for a parameter that bounds a range (`for (i in 0..n)` ⇒ `n: Int`).
+    Int,
     /// A declared `.hs` enum (sum-type), carrying its Kotlin type name (e.g. `Route`).
     Enum(String),
+    /// A declared `.hs` struct (record), carrying its Kotlin type name (e.g. `Vec3`).
+    Struct(String),
 }
 
 impl ValType {
@@ -73,7 +81,9 @@ impl ValType {
             ValType::Str => "String".to_string(),
             ValType::Bool => "Boolean".to_string(),
             ValType::Float => "Float".to_string(),
+            ValType::Int => "Int".to_string(),
             ValType::Enum(name) => name.clone(),
+            ValType::Struct(name) => name.clone(),
         }
     }
 }
@@ -99,7 +109,24 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         .collect();
     let enum_names: Vec<String> = enums.iter().map(|e| e.name.clone()).collect();
 
+    // Collect declared struct (record) names so return-type inference can recognize a
+    // `Name(...)` constructor call as that struct's value. `.hs` structs are data-only.
+    let structs: Vec<&StructDeclarationNode> = ast
+        .body
+        .iter()
+        .filter_map(|n| match n {
+            AstNode::StructDeclaration(s) => Some(s),
+            _ => None,
+        })
+        .collect();
+    let struct_names: Vec<String> = structs.iter().map(|s| s.name.clone()).collect();
+
     let mut blocks: Vec<String> = Vec::new();
+    // Data declarations (struct/enum) precede functions so a function may name them as a return
+    // type or construct them.
+    for s in &structs {
+        blocks.push(emit_struct(s, indent));
+    }
     for e in &enums {
         blocks.push(emit_enum(e, indent));
     }
@@ -111,10 +138,29 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
                 &func.body,
                 indent,
                 &enum_names,
+                &struct_names,
             )?);
         }
     }
     Ok(blocks.join("\n\n"))
+}
+
+/// Emit `data class <Name>(val <field>: Float, …)` for a `.hs` struct declaration. Fields are
+/// untyped in the `.hs` logic subset; the data-only record types every field `Float` (the numeric
+/// default that matches the math/geometry use cases — a struct carries a multi-field numeric
+/// result out of a pure function). A zero-field struct emits `class <Name>` (Kotlin forbids an
+/// empty `data class`).
+fn emit_struct(node: &StructDeclarationNode, indent: &str) -> String {
+    if node.fields.is_empty() {
+        return format!("{}class {}", indent, node.name);
+    }
+    let fields = node
+        .fields
+        .iter()
+        .map(|f| format!("val {}: Float", f))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{}data class {}({})", indent, node.name, fields)
 }
 
 /// Emit `enum class <Name> { <Member>, <Member>, … }` for a `.hs` enum declaration.
@@ -151,8 +197,9 @@ fn emit_function(
     body: &[AstNode],
     indent: &str,
     enum_names: &[String],
+    struct_names: &[String],
 ) -> Result<String, KotlinEmitError> {
-    let ret = infer_return_type(body, enum_names);
+    let ret = infer_return_type(body, enum_names, struct_names);
     let param_list = params
         .iter()
         .map(|p| format!("{}: {}", p, infer_param_type(p, body).kotlin()))
@@ -189,7 +236,7 @@ fn emit_function(
 /// locomotion math; the enum branch carries the routing decision. Enum is checked first so a
 /// member access never falls through to `String`, then Boolean so a comparison never reads as
 /// numeric.
-fn infer_return_type(body: &[AstNode], enum_names: &[String]) -> ValType {
+fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[String]) -> ValType {
     let mut returns: Vec<&AstNode> = Vec::new();
     collect_returns(body, &mut returns);
     if returns.is_empty() {
@@ -208,12 +255,79 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String]) -> ValType {
             return ValType::Enum(first);
         }
     }
+    // Struct: every return must construct the SAME declared struct (`Vec3(x, y, z)`).
+    if let Some(first) = returns
+        .first()
+        .and_then(|n| struct_ctor_owner(n, struct_names))
+    {
+        if returns
+            .iter()
+            .all(|n| struct_ctor_owner(n, struct_names).as_deref() == Some(first.as_str()))
+        {
+            return ValType::Struct(first);
+        }
+    }
+    // Collect local bindings whose value is numeric (a `var`/`let` initialized to numeric-shaped
+    // arithmetic, or mutated by numeric assignment / a `+=`-style compound). This lets a function
+    // that returns a bare accumulator identifier (`return total`) resolve to `Float` instead of the
+    // `String` default — the common pure-loop shape.
+    let numeric_locals = collect_numeric_local_bindings(body);
+    let is_num = |n: &AstNode| -> bool {
+        is_numeric_expr(n)
+            || matches!(n, AstNode::Identifier(id) if numeric_locals.iter().any(|b| b == &id.name))
+    };
+
     if returns.iter().all(|n| is_boolean_expr(n)) {
         ValType::Bool
-    } else if returns.iter().all(|n| is_numeric_expr(n)) {
+    } else if returns.iter().all(|n| is_num(n)) {
         ValType::Float
     } else {
         ValType::Str
+    }
+}
+
+/// Collect the names of local bindings (`let`/`const`/`var`) in this function body whose value is
+/// numeric — either initialized to a numeric-shaped expression, or mutated anywhere by a numeric
+/// assignment (`x = x + 1`) or a `+=`/`-=`/`*=`/`/=`/`%=` compound. Used so a bare-identifier
+/// return of an accumulator infers `Float`. Walks into nested loop/if blocks (an accumulator
+/// declared outside a loop is mutated inside it).
+fn collect_numeric_local_bindings(body: &[AstNode]) -> Vec<String> {
+    let mut numeric: Vec<String> = Vec::new();
+    walk_collect_numeric_bindings(body, &mut numeric);
+    numeric
+}
+
+fn walk_collect_numeric_bindings(body: &[AstNode], numeric: &mut Vec<String>) {
+    for node in body {
+        match node {
+            AstNode::VariableDeclaration(v) => {
+                if is_numeric_expr(&v.value) && !numeric.iter().any(|b| b == &v.name) {
+                    numeric.push(v.name.clone());
+                }
+            }
+            AstNode::Assignment(a) => {
+                // A compound arithmetic assignment is numeric by construction; a plain `=` is
+                // numeric when its r-value is numeric-shaped.
+                let compound_numeric =
+                    matches!(a.operator.as_str(), "+=" | "-=" | "*=" | "/=" | "%=");
+                if compound_numeric || is_numeric_expr(&a.value) {
+                    if let AstNode::Identifier(id) = a.target.as_ref() {
+                        if !numeric.iter().any(|b| b == &id.name) {
+                            numeric.push(id.name.clone());
+                        }
+                    }
+                }
+            }
+            AstNode::ForOf(f) => walk_collect_numeric_bindings(&f.body, numeric),
+            AstNode::While(w) => walk_collect_numeric_bindings(&w.body, numeric),
+            AstNode::If(if_node) => {
+                walk_collect_numeric_bindings(&if_node.consequent, numeric);
+                if let Some(alt) = &if_node.alternate {
+                    walk_collect_numeric_bindings(alt, numeric);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -233,6 +347,20 @@ fn enum_member_owner(node: &AstNode, enum_names: &[String]) -> Option<String> {
     None
 }
 
+/// If `node` is a struct-constructor call (`<StructName>(args)` where `<StructName>` is a declared
+/// struct), return the struct's name; otherwise `None`. Used by return-type inference to type a
+/// function that yields a struct value as returning that struct.
+fn struct_ctor_owner(node: &AstNode, struct_names: &[String]) -> Option<String> {
+    if let AstNode::CallExpression(c) = node {
+        if let AstNode::Identifier(id) = c.callee.as_ref() {
+            if struct_names.iter().any(|s| s == &id.name) {
+                return Some(id.name.clone());
+            }
+        }
+    }
+    None
+}
+
 /// Infer a parameter's Kotlin type by how the function body uses it: `Float` when the
 /// parameter participates in arithmetic (`+ - * /`), is the argument of a numeric builtin
 /// (`sqrt`); `Boolean` when it is used only as a bare truth value (an `if (param)` test, or an
@@ -242,12 +370,72 @@ fn enum_member_owner(node: &AstNode, enum_names: &[String]) -> Option<String> {
 /// both arithmetic and a comparison reads as `Float`; the routing decision's flags
 /// (`isWorldLink` / `autoImmerse` / `isOpenAction`) are used only as bare `if` tests → `Boolean`.
 fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
-    if body_uses_param_numerically(param, body) {
+    // A param that bounds a range (`for (i in 0..n)`) is definitively `Int` — Kotlin ranges are
+    // integer-typed — so this is checked before the Float/Boolean/String fallbacks.
+    if body_uses_param_as_range_bound(param, body) {
+        ValType::Int
+    } else if body_uses_param_numerically(param, body) {
         ValType::Float
     } else if body_uses_param_as_boolean(param, body) {
         ValType::Bool
     } else {
         ValType::Str
+    }
+}
+
+/// Does `param` appear as an operand of a range expression (`a..param`, `param..b`) anywhere in
+/// `body`? Such a param is an integer range bound. Walks into loop/if/decl/assignment bodies.
+fn body_uses_param_as_range_bound(param: &str, body: &[AstNode]) -> bool {
+    body.iter().any(|n| stmt_uses_param_as_range_bound(param, n))
+}
+
+fn stmt_uses_param_as_range_bound(param: &str, node: &AstNode) -> bool {
+    match node {
+        AstNode::ForOf(f) => {
+            expr_uses_param_as_range_bound(param, &f.range)
+                || body_uses_param_as_range_bound(param, &f.body)
+        }
+        AstNode::While(w) => {
+            expr_uses_param_as_range_bound(param, &w.test)
+                || body_uses_param_as_range_bound(param, &w.body)
+        }
+        AstNode::If(if_node) => {
+            expr_uses_param_as_range_bound(param, &if_node.test)
+                || body_uses_param_as_range_bound(param, &if_node.consequent)
+                || if_node
+                    .alternate
+                    .as_ref()
+                    .is_some_and(|alt| body_uses_param_as_range_bound(param, alt))
+        }
+        AstNode::VariableDeclaration(v) => expr_uses_param_as_range_bound(param, &v.value),
+        AstNode::Assignment(a) => expr_uses_param_as_range_bound(param, &a.value),
+        AstNode::Return(r) => r
+            .argument
+            .as_ref()
+            .is_some_and(|a| expr_uses_param_as_range_bound(param, a)),
+        other => expr_uses_param_as_range_bound(param, other),
+    }
+}
+
+fn expr_uses_param_as_range_bound(param: &str, node: &AstNode) -> bool {
+    let is_param = |n: &AstNode| matches!(n, AstNode::Identifier(id) if id.name == param);
+    match node {
+        AstNode::BinaryExpression(b) if b.operator == ".." => {
+            is_param(&b.left)
+                || is_param(&b.right)
+                || expr_uses_param_as_range_bound(param, &b.left)
+                || expr_uses_param_as_range_bound(param, &b.right)
+        }
+        AstNode::BinaryExpression(b) => {
+            expr_uses_param_as_range_bound(param, &b.left)
+                || expr_uses_param_as_range_bound(param, &b.right)
+        }
+        AstNode::UnaryExpression(u) => expr_uses_param_as_range_bound(param, &u.argument),
+        AstNode::CallExpression(c) => c
+            .arguments
+            .iter()
+            .any(|a| expr_uses_param_as_range_bound(param, a)),
+        _ => false,
     }
 }
 
@@ -267,7 +455,18 @@ fn body_uses_param_as_boolean(param: &str, body: &[AstNode]) -> bool {
                     .as_ref()
                     .is_some_and(|alt| body_uses_param_as_boolean(param, alt))
         }
+        AstNode::While(w) => {
+            is_param(&w.test)
+                || expr_uses_param_as_boolean(param, &w.test)
+                || body_uses_param_as_boolean(param, &w.body)
+        }
+        AstNode::ForOf(f) => {
+            expr_uses_param_as_boolean(param, &f.range)
+                || body_uses_param_as_boolean(param, &f.body)
+        }
         AstNode::Property(p) => expr_uses_param_as_boolean(param, &p.value),
+        AstNode::VariableDeclaration(v) => expr_uses_param_as_boolean(param, &v.value),
+        AstNode::Assignment(a) => expr_uses_param_as_boolean(param, &a.value),
         AstNode::Return(r) => r
             .argument
             .as_ref()
@@ -310,6 +509,11 @@ fn body_uses_param_numerically(param: &str, body: &[AstNode]) -> bool {
 fn stmt_uses_param_numerically(param: &str, node: &AstNode) -> bool {
     match node {
         AstNode::Property(p) => expr_uses_param_numerically(param, &p.value),
+        AstNode::VariableDeclaration(v) => expr_uses_param_numerically(param, &v.value),
+        AstNode::Assignment(a) => {
+            expr_uses_param_numerically(param, &a.target)
+                || expr_uses_param_numerically(param, &a.value)
+        }
         AstNode::Return(r) => r
             .argument
             .as_ref()
@@ -321,6 +525,14 @@ fn stmt_uses_param_numerically(param: &str, node: &AstNode) -> bool {
                     .alternate
                     .as_ref()
                     .is_some_and(|alt| body_uses_param_numerically(param, alt))
+        }
+        AstNode::While(w) => {
+            expr_uses_param_numerically(param, &w.test)
+                || body_uses_param_numerically(param, &w.body)
+        }
+        AstNode::ForOf(f) => {
+            expr_uses_param_numerically(param, &f.range)
+                || body_uses_param_numerically(param, &f.body)
         }
         AstNode::CallExpression(_)
         | AstNode::MemberExpression(_)
@@ -374,6 +586,8 @@ fn collect_returns<'a>(body: &'a [AstNode], out: &mut Vec<&'a AstNode>) {
                     collect_returns(alt, out);
                 }
             }
+            AstNode::ForOf(for_node) => collect_returns(&for_node.body, out),
+            AstNode::While(while_node) => collect_returns(&while_node.body, out),
             _ => {}
         }
     }
@@ -418,10 +632,50 @@ fn emit_statement(
     lines: &mut Vec<String>,
 ) -> Result<(), KotlinEmitError> {
     match node {
-        // `let`/`const`/`var x = expr` is parsed into a Property node (var decl).
+        // `let`/`const x = expr` → immutable `val`; `var x = expr` → mutable `var`.
+        AstNode::VariableDeclaration(v) => {
+            let value = emit_expr(&v.value)?;
+            let kw = if v.mutable { "var" } else { "val" };
+            lines.push(format!("{}{} {} = {}", indent, kw, v.name, value));
+            Ok(())
+        }
+        // Defensive: an object-graph `Property` reaching the logic emitter is treated as an
+        // immutable binding (the parser now emits `VariableDeclaration` for `.hs` logic bindings).
         AstNode::Property(p) => {
             let value = emit_expr(&p.value)?;
             lines.push(format!("{}val {} = {}", indent, p.key, value));
+            Ok(())
+        }
+        // `x = expr` / `acc += expr` reassignment of a LOCAL `var`.
+        AstNode::Assignment(a) => {
+            let target = emit_expr(&a.target)?;
+            let value = emit_expr(&a.value)?;
+            lines.push(format!("{}{} {} {}", indent, target, a.operator, value));
+            Ok(())
+        }
+        // `while (cond) { … }` → Kotlin `while (cond) { … }`.
+        AstNode::While(w) => {
+            lines.push(format!("{}while ({}) {{", indent, emit_expr(&w.test)?));
+            let inner = format!("{}  ", indent);
+            for stmt in &w.body {
+                emit_statement(stmt, &inner, lines)?;
+            }
+            lines.push(format!("{}}}", indent));
+            Ok(())
+        }
+        // `for (i in 0..n) { … }` → Kotlin `for (i in 0..n) { … }`.
+        AstNode::ForOf(f) => {
+            lines.push(format!(
+                "{}for ({} in {}) {{",
+                indent,
+                f.var_name,
+                emit_expr(&f.range)?
+            ));
+            let inner = format!("{}  ", indent);
+            for stmt in &f.body {
+                emit_statement(stmt, &inner, lines)?;
+            }
+            lines.push(format!("{}}}", indent));
             Ok(())
         }
         AstNode::Return(r) => {
@@ -471,6 +725,14 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
         AstNode::Null(_) => Ok("null".to_string()),
         AstNode::Identifier(id) => Ok(id.name.clone()),
         AstNode::BinaryExpression(b) => {
+            // A range `a..b` is integer-typed and rendered tight (`0..n`), per Kotlin convention.
+            // Its operands live in an Int context, so numeric literals drop the Float `f` suffix.
+            if b.operator == ".." {
+                let parent = precedence(&b.operator);
+                let left = emit_range_operand(&b.left, parent, false)?;
+                let right = emit_range_operand(&b.right, parent, true)?;
+                return Ok(format!("{}..{}", left, right));
+            }
             // The parser discards parentheses, keeping only a precedence-correct tree. To emit
             // Kotlin that means the SAME thing, re-parenthesize: wrap a child whose operator binds
             // LOOSER than this one, and wrap the right child of a left-associative operator when it
@@ -538,7 +800,8 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
 /// than passing through silently.
 fn map_binary_operator(op: &str) -> &str {
     match op {
-        "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||" => op,
+        "+" | "-" | "*" | "/" | "%" | "==" | "!=" | "<" | ">" | "<=" | ">=" | "&&" | "||"
+        | ".." => op,
         _ => op,
     }
 }
@@ -563,9 +826,10 @@ fn precedence(op: &str) -> u8 {
         "&&" => 2,
         "==" | "!=" => 3,
         "<" | ">" | "<=" | ">=" => 4,
-        "+" | "-" => 5,
-        "*" | "/" | "%" => 6,
-        _ => 7,
+        ".." => 5,
+        "+" | "-" => 6,
+        "*" | "/" | "%" => 7,
+        _ => 8,
     }
 }
 
@@ -582,6 +846,61 @@ fn emit_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, Ko
         }
     }
     Ok(emitted)
+}
+
+/// Emit one operand of a range expression (`a..b`). Same precedence-aware parenthesization as
+/// [`emit_operand`], but the operand lives in an INTEGER context, so it is rendered via
+/// [`emit_int_expr`] (numeric literals drop the Float `f` suffix — `0..n`, not `0f..n`).
+fn emit_range_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, KotlinEmitError> {
+    let emitted = emit_int_expr(node)?;
+    if let AstNode::BinaryExpression(b) = node {
+        let child = precedence(&b.operator);
+        if child < parent || (is_right && child == parent) {
+            return Ok(format!("({})", emitted));
+        }
+    }
+    Ok(emitted)
+}
+
+/// Emit an expression in an INTEGER context (a range bound). Numeric literals render as plain
+/// integers (no Float `f` suffix); arithmetic sub-expressions recurse in the same Int context;
+/// everything else falls back to the normal expression emitter (identifiers, calls, members pass
+/// through — they are assumed to already be Int-typed in a range position).
+fn emit_int_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
+    match node {
+        AstNode::Number(n) => Ok(emit_int_literal(&n.raw)),
+        AstNode::BinaryExpression(b) if matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%") => {
+            let parent = precedence(&b.operator);
+            let op = map_binary_operator(&b.operator);
+            let left = emit_int_operand(&b.left, parent, false)?;
+            let right = emit_int_operand(&b.right, parent, true)?;
+            Ok(format!("{} {} {}", left, op, right))
+        }
+        other => emit_expr(other),
+    }
+}
+
+fn emit_int_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, KotlinEmitError> {
+    let emitted = emit_int_expr(node)?;
+    if let AstNode::BinaryExpression(b) = node {
+        let child = precedence(&b.operator);
+        if child < parent || (is_right && child == parent) {
+            return Ok(format!("({})", emitted));
+        }
+    }
+    Ok(emitted)
+}
+
+/// Emit a numeric literal as a Kotlin `Int` (range-bound context): strip any trailing `f`/`F` and
+/// any fractional part (`5.0` → `5`). A genuinely fractional range bound is not meaningful for an
+/// integer range, so truncating to the integer part is the safe, predictable rule.
+fn emit_int_literal(raw: &str) -> String {
+    let trimmed = raw.trim_end_matches(['f', 'F']);
+    match trimmed.split_once('.') {
+        Some((int_part, _frac)) if !int_part.is_empty() => int_part.to_string(),
+        Some((empty, _frac)) if empty.is_empty() => "0".to_string(),
+        _ => trimmed.to_string(),
+    }
 }
 
 /// Emit a numeric literal as a Kotlin `Float` (the `.hs` numeric subset is Float-only — the
@@ -653,9 +972,13 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::Export(_) => "Export",
         AstNode::Function(_) => "Function",
         AstNode::EnumDeclaration(_) => "EnumDeclaration",
+        AstNode::StructDeclaration(_) => "StructDeclaration",
+        AstNode::VariableDeclaration(_) => "VariableDeclaration",
+        AstNode::Assignment(_) => "Assignment",
         AstNode::Return(_) => "Return",
         AstNode::If(_) => "If",
         AstNode::For(_) => "For",
+        AstNode::ForOf(_) => "ForOf",
         AstNode::While(_) => "While",
         AstNode::EventHandler(_) => "EventHandler",
         AstNode::MovementStatement(_) => "MovementStatement",
@@ -949,6 +1272,199 @@ function f(x) {
         let src = r#"enum Color { Red, Green, Blue, }"#;
         let out = kotlin(src);
         assert!(out.contains("enum class Color { Red, Green, Blue }"), "{out}");
+    }
+
+    // ── Mutable state (LOCAL var) + loops (G6) ────────────────────────────────────────────────
+
+    #[test]
+    fn emits_var_for_mutable_binding_and_val_for_immutable() {
+        // `var` opts into local mutable state → Kotlin `var`; `let`/`const` stay immutable `val`.
+        let src = r#"function f(x) {
+  var acc = 0
+  let base = x
+  return acc + base
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("var acc = 0f"), "{out}");
+        assert!(out.contains("val base = x"), "{out}");
+    }
+
+    #[test]
+    fn emits_reassignment_of_local_var() {
+        let src = r#"function f(x) {
+  var acc = 0
+  acc = acc + x
+  return acc
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("var acc = 0f"), "{out}");
+        assert!(out.contains("acc = acc + x"), "{out}");
+    }
+
+    #[test]
+    fn emits_compound_assignment() {
+        let src = r#"function f(x) {
+  var acc = 0
+  acc += x
+  acc *= 2
+  return acc
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("acc += x"), "{out}");
+        assert!(out.contains("acc *= 2f"), "{out}");
+    }
+
+    #[test]
+    fn emits_while_loop() {
+        // A pure countdown accumulator: `total` is initialized from the (numeric) param `start`
+        // and decremented in the loop; the bare-identifier return resolves to Float via the
+        // numeric-local-binding rule.
+        let src = r#"function countdown(start) {
+  var total = start - 0
+  while (total > 0) {
+    total = total - 1
+  }
+  return total
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun countdown(start: Float): Float {"), "{out}");
+        assert!(out.contains("var total = start - 0f"), "{out}");
+        assert!(out.contains("while (total > 0f) {"), "{out}");
+        assert!(out.contains("total = total - 1f"), "{out}");
+    }
+
+    #[test]
+    fn emits_for_in_range_loop() {
+        // Range literals are integer-form (`0..n`, NOT `0f..n`); the accumulator stays Float.
+        let src = r#"function sumTo(n) {
+  var total = 0
+  for (i in 0..n) {
+    total = total + i
+  }
+  return total
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("for (i in 0..n) {"), "{out}");
+        assert!(out.contains("total = total + i"), "{out}");
+        // The accumulator is a mutable Float.
+        assert!(out.contains("var total = 0f"), "{out}");
+        // The range-bound param types Int.
+        assert!(out.contains("fun sumTo(n: Int): Float {"), "{out}");
+    }
+
+    #[test]
+    fn pure_accumulator_loop_infers_float() {
+        // The canonical pure-loop: sum 1..n. Param `n` bounds the range → `Int`; the accumulator
+        // is a mutable Float (its bare-identifier return resolves to Float).
+        let src = r#"function gauss(n) {
+  var total = 0
+  for (i in 1..n) {
+    total += i
+  }
+  return total
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun gauss(n: Int): Float {"), "{out}");
+        assert!(out.contains("for (i in 1..n) {"), "{out}");
+        assert!(out.contains("total += i"), "{out}");
+        assert!(out.contains("var total = 0f"), "{out}");
+    }
+
+    #[test]
+    fn range_binds_looser_than_additive() {
+        // `0..n + 1` must read as `0..n + 1` — the additive binds tighter than `..`, and the range
+        // operands render integer-form (no `f` suffix on the `1`).
+        let src = r#"function f(n) {
+  var c = 0
+  for (i in 0..n + 1) {
+    c = c + 1
+  }
+  return c
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("for (i in 0..n + 1) {"), "{out}");
+    }
+
+    #[test]
+    fn for_in_over_identifier_iterable() {
+        // The range slot accepts any expression, including a bare array/list identifier.
+        let src = r#"function joinAll(items) {
+  var out = ""
+  for (x in items) {
+    out = out + x
+  }
+  return out
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("for (x in items) {"), "{out}");
+    }
+
+    // ── Structs (records) (G6) ────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn emits_struct_as_data_class() {
+        let src = r#"struct Vec3 { x, y, z }"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Vec3(val x: Float, val y: Float, val z: Float)"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_struct_return_for_struct_constructor() {
+        // A function whose every return constructs the declared struct returns that struct type.
+        let src = r#"struct Vec2 { x, y }
+function scale(x, y, k) {
+  return Vec2(x * k, y * k)
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("data class Vec2(val x: Float, val y: Float)"), "{out}");
+        assert!(
+            out.contains("fun scale(x: Float, y: Float, k: Float): Vec2 {"),
+            "{out}"
+        );
+        assert!(out.contains("return Vec2(x * k, y * k)"), "{out}");
+    }
+
+    #[test]
+    fn struct_emitted_before_functions() {
+        let src = r#"struct P { a }
+function mk(a) {
+  return P(a)
+}"#;
+        let out = kotlin(src);
+        let struct_pos = out.find("data class P").expect("struct emitted");
+        let fn_pos = out.find("fun mk(").expect("fn emitted");
+        assert!(struct_pos < fn_pos, "struct must precede fn: {out}");
+    }
+
+    #[test]
+    fn empty_struct_emits_plain_class() {
+        // Kotlin forbids an empty `data class`, so a zero-field struct emits a plain `class`.
+        let src = r#"struct Unit { }"#;
+        let out = kotlin(src);
+        assert!(out.contains("class Unit"), "{out}");
+        assert!(!out.contains("data class Unit"), "{out}");
+    }
+
+    #[test]
+    fn regression_existing_subset_unchanged_with_loops_present() {
+        // The loop/struct/mutable additions must NOT disturb the shipped String/Float/enum shapes.
+        let src = r#"struct Acc { total }
+enum Route { A, B }
+function worldId(text) {
+  let seg = text.trim()
+  return seg
+}
+function newYaw(yaw, turn) {
+  return yaw + turn
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun worldId(text: String): String {"), "{out}");
+        assert!(out.contains("fun newYaw(yaw: Float, turn: Float): Float {"), "{out}");
+        assert!(out.contains("data class Acc(val total: Float)"), "{out}");
+        assert!(out.contains("enum class Route { A, B }"), "{out}");
     }
 
     #[test]

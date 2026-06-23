@@ -42,7 +42,13 @@ pub enum TokenType {
     Colon,
     Comma,
     Dot,
+    Range,
     Equals,
+    PlusEquals,
+    MinusEquals,
+    StarEquals,
+    SlashEquals,
+    PercentEquals,
     Arrow,
     Plus,
     Minus,
@@ -76,6 +82,8 @@ pub enum TokenType {
     Return,
     Function,
     Enum,
+    Struct,
+    In,
 
     // Declarations
     Const,
@@ -185,6 +193,8 @@ pub fn get_keyword(word: &str) -> Option<TokenType> {
         "return" => Some(TokenType::Return),
         "function" => Some(TokenType::Function),
         "enum" => Some(TokenType::Enum),
+        "struct" => Some(TokenType::Struct),
+        "in" => Some(TokenType::In),
 
         // Declarations
         "const" => Some(TokenType::Const),

@@ -76,8 +76,12 @@ pub enum AstNode {
     Return(ReturnNode),
     If(IfNode),
     For(ForNode),
+    ForOf(ForOfNode),
     While(WhileNode),
     EnumDeclaration(EnumDeclarationNode),
+    StructDeclaration(StructDeclarationNode),
+    VariableDeclaration(VariableDeclarationNode),
+    Assignment(AssignmentNode),
 
     // Event handlers
     EventHandler(EventHandlerNode),
@@ -460,6 +464,66 @@ pub struct FunctionNode {
 pub struct EnumDeclarationNode {
     pub name: String,
     pub members: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Struct (record) declaration: `struct Vec3 { x, y, z }` or `struct Hit { id, dist }`.
+/// A named immutable data carrier whose fields are bare identifiers (untyped in the `.hs`
+/// logic subset — the Kotlin backend types each field by usage, defaulting to `Float`).
+/// The Kotlin backend emits `data class <Name>(val <field>: <T>, …)`; pure functions can
+/// return a struct to carry a multi-field result without resorting to a side-effecting host call.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StructDeclarationNode {
+    pub name: String,
+    pub fields: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Variable declaration: `let x = expr` / `const x = expr` / `var x = expr`.
+///
+/// `mutable` is `true` only for `var`. The `.hs` logic subset is single-assignment by default
+/// (`let`/`const` → Kotlin `val`); a `var` binding opts into LOCAL mutable state so a pure
+/// function can accumulate inside a loop (functional-core: the mutation never escapes the
+/// function — host state stays in the Kotlin shell, per MEMORY W.815). The Kotlin backend emits
+/// `val`/`var` accordingly.
+///
+/// Distinct from the object-graph `PropertyNode` (`key: value`) so the emitter can tell a logic
+/// binding apart from a scene property and pick `val` vs `var`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VariableDeclarationNode {
+    pub name: String,
+    pub value: Box<AstNode>,
+    pub mutable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Assignment / compound-assignment statement: `x = expr`, `x += expr`, `acc = acc + 1`.
+///
+/// Only legal against a previously-declared `var` (LOCAL mutable state). The parser records the
+/// operator verbatim (`=`, `+=`, `-=`, `*=`, `/=`, `%=`); the Kotlin backend emits it unchanged.
+/// The target is an l-value expression (a bare identifier today; member/index targets parse too).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AssignmentNode {
+    pub operator: String,
+    pub target: Box<AstNode>,
+    pub value: Box<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// For-of / for-in loop over a range or iterable: `for (i in 0..n) { … }` or
+/// `for (x in items) { … }`. The idiomatic PURE loop form — bounded iteration with a local
+/// binding, no C-style mutable counter ceremony. `range` carries the iterable expression
+/// (`RangeExpression` for `a..b`, or any expression for an array/identifier). The Kotlin backend
+/// emits `for (<var> in <range>) { … }` directly.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ForOfNode {
+    pub var_name: String,
+    pub range: Box<AstNode>,
+    pub body: Vec<AstNode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }
