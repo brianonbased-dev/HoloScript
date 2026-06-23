@@ -68,6 +68,7 @@ const KEYWORDS_AS_IDENTIFIERS: TokenType[] = [
   'EFFECTS',
   'CAMERA',
   'BIND',
+  'CONNECT',
   'TIMELINE',
   'AUDIO',
   'ZONE',
