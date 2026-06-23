@@ -67,6 +67,7 @@ const _INTERNAL_DIALECT_NAMES = new Set([
 // ExportManager targets not yet migrated to DialectRegistry -- surfaced via legacy path.
 const _LEGACY_EXPORT_TARGETS = [
   'usd', 'usdz', 'fmu', '3dgs', '3dtiles', 'canvas2d-game', 'code-editor',
+  'character-webgpu', // authored .holo character -> CharacterDrawSpec (sovereign); compiles via the generic compile tool
 ] as const;
 
 // =============================================================================
@@ -638,7 +639,7 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'VR Platforms': ['vrchat', 'openxr'] as unknown as ExportTarget[],
     'Mobile AR': ['android', 'android-xr', 'ios', 'visionos'] as unknown as ExportTarget[],
     // ar, babylon, r3f, playcanvas, vrr retired as apex-poison 2026-06-17
-    'Web Platforms': ['webgpu', 'wasm'] as unknown as ExportTarget[],
+    'Web Platforms': ['webgpu', 'character-webgpu', 'wasm'] as unknown as ExportTarget[],
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
@@ -767,6 +768,8 @@ export async function handleCompilerTool(
     // compile_to_ar — retired (apex-poison, 2026-06-17)
     case 'compile_to_wasm':
       return handleCompileToTarget({ ...args, target: 'wasm' });
+    case 'compile_to_character_webgpu':
+      return handleCompileToTarget({ ...args, target: 'character-webgpu' });
     case 'compile_to_usd':
       return handleCompileToTarget({ ...args, target: 'usd' });
     case 'compile_to_usdz':
@@ -1371,6 +1374,21 @@ export const compilerTools: Tool[] = [
       properties: {
         code: { type: 'string', description: 'HoloScript composition code' },
         options: { type: 'object' },
+      },
+      required: ['code'],
+    },
+  },
+  {
+    name: 'compile_to_character_webgpu',
+    description:
+      'Compile an authored .holo CHARACTER composition to a native-WebGPU CharacterDrawSpec ' +
+      'bundle (skinned mesh + joint palette + skin/hair/eye material groups) run by renderCharacter. ' +
+      'Sovereign target; replaces the placeholder-cube fallthrough for character bodies.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', description: 'HoloScript .holo character composition code' },
+        options: { type: 'object', description: 'Optional { entityId } override' },
       },
       required: ['code'],
     },
