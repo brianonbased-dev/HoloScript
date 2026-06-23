@@ -40,7 +40,7 @@ object World_aurora {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-22.0f, -0.05f, -22.0f), Vector3(22.0f, 0.05f, 22.0f)),
-                Material().apply { baseColor = Color4(0.1412f, 0.0627f, 0.2745f, 1.0f) },
+                Material().apply { baseColor = Color4(0.1412f, 0.0627f, 0.2745f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(0.0f, 0.0f, 0.0f))),
             )
         )
@@ -51,7 +51,7 @@ object World_aurora {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.25f, -2.2f, -0.25f), Vector3(0.25f, 2.2f, 0.25f)),
-                Material().apply { baseColor = Color4(0.6588f, 0.3333f, 0.9686f, 1.0f) },
+                Material().apply { baseColor = Color4(0.6588f, 0.3333f, 0.9686f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(-4.0f, 2.2f, 5.0f))),
             )
         )
@@ -62,7 +62,7 @@ object World_aurora {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.25f, -3.0f, -0.25f), Vector3(0.25f, 3.0f, 0.25f)),
-                Material().apply { baseColor = Color4(0.7529f, 0.5176f, 0.9882f, 1.0f) },
+                Material().apply { baseColor = Color4(0.7529f, 0.5176f, 0.9882f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(-1.4f, 3.0f, 6.5f))),
             )
         )
@@ -73,7 +73,7 @@ object World_aurora {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.25f, -2.6f, -0.25f), Vector3(0.25f, 2.6f, 0.25f)),
-                Material().apply { baseColor = Color4(0.9098f, 0.4745f, 0.9765f, 1.0f) },
+                Material().apply { baseColor = Color4(0.9098f, 0.4745f, 0.9765f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(1.4f, 2.6f, 6.5f))),
             )
         )
@@ -84,7 +84,7 @@ object World_aurora {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.25f, -2.0f, -0.25f), Vector3(0.25f, 2.0f, 0.25f)),
-                Material().apply { baseColor = Color4(0.6588f, 0.3333f, 0.9686f, 1.0f) },
+                Material().apply { baseColor = Color4(0.6588f, 0.3333f, 0.9686f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(4.0f, 2.0f, 5.0f))),
             )
         )

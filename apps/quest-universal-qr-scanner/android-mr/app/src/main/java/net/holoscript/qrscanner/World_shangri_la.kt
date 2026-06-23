@@ -40,7 +40,7 @@ object World_shangri_la {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-35.0f, -0.05f, -35.0f), Vector3(35.0f, 0.05f, 35.0f)),
-                Material().apply { baseColor = Color4(0.0706f, 0.1922f, 0.2275f, 1.0f) },
+                Material().apply { baseColor = Color4(0.0706f, 0.1922f, 0.2275f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(0.0f, 0.0f, 0.0f))),
             )
         )
@@ -51,7 +51,7 @@ object World_shangri_la {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-10.0f, -0.2f, -10.0f), Vector3(10.0f, 0.2f, 10.0f)),
-                Material().apply { baseColor = Color4(0.0863f, 0.2314f, 0.251f, 1.0f) },
+                Material().apply { baseColor = Color4(0.0863f, 0.2314f, 0.251f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(0.0f, 0.2f, 12.0f))),
             )
         )

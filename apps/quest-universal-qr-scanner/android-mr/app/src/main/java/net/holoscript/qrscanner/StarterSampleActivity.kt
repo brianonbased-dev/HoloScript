@@ -30,6 +30,8 @@ import com.meta.spatial.toolkit.AppSystemActivity
 import com.meta.spatial.toolkit.Controller
 import com.meta.spatial.toolkit.ControllerType
 import com.meta.spatial.toolkit.DpPerMeterDisplayOptions
+import com.meta.spatial.toolkit.Light
+import com.meta.spatial.toolkit.LightType
 import com.meta.spatial.toolkit.Panel
 import com.meta.spatial.toolkit.PanelRegistration
 import com.meta.spatial.toolkit.PanelStyleOptions
@@ -121,14 +123,40 @@ class StarterSampleActivity : AppSystemActivity() {
     super.onSceneReady()
     scene.setReferenceSpace(ReferenceSpace.LOCAL_FLOOR)
 
-    // Lighting for compiled worlds: a warm directional sun + soft ambient. Lit Materials shade with
-    // depth; unlit "glow" Materials read as emissive. No IBL cubemap asset needed. (Harmless during
-    // passthrough scanning — there is no 3D content then.)
+    // Lighting for compiled worlds — a serene mountain-valley key/fill rig so PBR Materials shade
+    // with photoreal depth (roughness/metallic emitted per-object by quest-world-emit). Three parts:
+    //   1. setLightingEnvironment(ambient, sunColor, sunDir, environmentIntensity): a WARM key sun
+    //      from high-left + a COOL sky-blue ambient fill (so shadowed faces read sky-lit, not black),
+    //      with environmentIntensity > 0 so the SDK's image-based-lighting term contributes ambient
+    //      reflections to lit/PBR surfaces. (No .env asset is bundled — that file is Meta's
+    //      proprietary KTX format produced from an HDR by the Spatial Editor / CLI toolchain, which we
+    //      can't author $0/offline; updateIBLEnvironment(".env") is therefore intentionally NOT called.
+    //      A nonzero environmentIntensity still enables the engine's built-in ambient/IBL term, which
+    //      is what gives materials reflective ambient without a custom cubemap.)
+    //   2. A shadow-CASTING fill Light entity (toolkit Light, castsShadow = true) high above the
+    //      valley, so geometry grounds with real contact shadows instead of floating flat.
+    // (Harmless during passthrough scanning — there is no 3D content then; the Light entity sits idle.)
     scene.setLightingEnvironment(
-        Vector3(0.42f, 0.45f, 0.55f),
-        Vector3(2.6f, 2.45f, 2.1f),
-        -Vector3(1.0f, 2.6f, -1.4f),
-        0.0f,
+        Vector3(0.34f, 0.40f, 0.52f), // cool sky-blue ambient fill (shadowed faces read sky-lit)
+        Vector3(2.9f, 2.65f, 2.2f), // warm sun key (golden mountain light)
+        -Vector3(1.0f, 2.6f, -1.4f), // sun from high-left, angled down — long readable shadows
+        0.6f, // environmentIntensity: enable the built-in IBL/ambient term (0 = off; default 1.0)
+    )
+
+    // Shadow-casting key light: a high point light over the valley centre. With castsShadow = true the
+    // SDK renders contact shadows so objects sit on the ground plane with depth. Tinted warm to match
+    // the sun key; the LightSystem consumes this Light component into a runtime SceneLight each frame.
+    Entity.create(
+        listOf(
+            Light(
+                type = LightType.POINT,
+                color = Vector3(1.0f, 0.93f, 0.78f), // warm key tint
+                intensity = 12.0f,
+                range = 60.0f,
+                castsShadow = true,
+            ),
+            Transform(Pose(Vector3(2.0f, 14.0f, 8.0f))),
+        )
     )
 
     // Mixed reality: the user sees their real room (passthrough); the spatial panel floats in front.

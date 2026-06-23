@@ -7,15 +7,20 @@
  * Per object:
  *   geometry: sphere|cube|box|plane|cylinder  → built-in mesh (mesh://sphere / mesh://box)
  *   model: "x.glb"                            → Mesh(apk:///models/x.glb)  (real AAA asset slot)
- *   color: "#hex"   + glow: true              → Material(Color4)  (lit by default; glow = unlit/full-bright)
+ *   color: "#hex"   + glow: true              → Material(Color4)  (PBR-lit by default; glow = unlit/full-bright)
+ *   roughness / metallic (0..1)               → Material.roughness / Material.metallic (PBR shading)
  *   position / rotation / scale               → Transform(Pose(Vector3[, Quaternion]))  (size baked into geometry)
  *   behavior: spin|orbit|bob|float|sway       → a WorldAnimated descriptor the WorldRenderer ticks
  *     (speed, amplitude/amp, radius, orbit_center) → simulation / character actions, per-frame
  *
- * Lighting is a directional sun + ambient set once by the activity (setLightingEnvironment); lit
- * materials shade, unlit/glow materials read as emissive. No glb download, no procedural hash — the
- * world IS the composition, compiled to Meta. Consumed at app-build time by generate-native.mts:
- * each worlds/<id>.holo → World_<id>.kt, plus a WorldsRegistry the WorldRenderer dispatches on.
+ * Lighting is set once by the activity (StarterSampleActivity onSceneReady): a warm sun key + cool
+ * sky ambient + a nonzero environmentIntensity (the engine's built-in IBL/ambient term) +
+ * setLightingEnvironment, PLUS a shadow-casting toolkit Light entity. Non-glow materials are PBR-lit
+ * (baseColor + roughness/metallic → the SDK pbLit shader) so primitives read with real form,
+ * reflective ambient, and contact shadows; unlit/glow materials read as emissive. No glb download, no
+ * procedural hash — the world IS the composition, compiled to Meta. Consumed at app-build time by
+ * generate-native.mts: each worlds/<id>.holo → World_<id>.kt, plus a WorldsRegistry the WorldRenderer
+ * dispatches on.
  */
 import type { HoloComposition, HoloObjectDecl, HoloValue } from '../parser/HoloCompositionTypes';
 import { PKG } from './quest-mr-emit';
@@ -85,6 +90,8 @@ interface WorldObj {
   scale: Vec3;
   color: Rgba;
   glow: boolean;
+  roughness: number; // PBR surface roughness (0 = mirror, 1 = fully matte); default 0.85 (matte)
+  metallic: number; // PBR metalness (0 = dielectric, 1 = metal); default 0
   behavior: string;
   speed: number;
   amp: number;
@@ -102,6 +109,8 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
   let scale: Vec3 = [1, 1, 1];
   let color: Rgba = [0.6, 0.6, 0.65, 1];
   let glow = false;
+  let roughness = 0.85; // matte by default — most world surfaces (stone, wood, foliage) are rough
+  let metallic = 0; // dielectric by default
   let behavior = '';
   let speed = 1;
   let amp = 0.2;
@@ -145,6 +154,13 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
       case 'emissive':
         glow = bool(p.value, true);
         break;
+      case 'roughness':
+        roughness = num(p.value, roughness);
+        break;
+      case 'metallic':
+      case 'metalness':
+        metallic = num(p.value, metallic);
+        break;
       case 'motion':
       case 'animate':
         // 'behavior'/'action' are reserved keywords in the composition grammar — use 'motion'.
@@ -183,6 +199,8 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
     scale,
     color,
     glow,
+    roughness: Math.min(1, Math.max(0, roughness)),
+    metallic: Math.min(1, Math.max(0, metallic)),
     behavior,
     speed,
     amp,
@@ -191,11 +209,15 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
   };
 }
 
-function materialKt(c: Rgba, glow: boolean): string {
-  // Lit by default (shaded by the sun/ambient); glow = unlit, full-bright (reads as emissive).
+function materialKt(c: Rgba, glow: boolean, roughness: number, metallic: number): string {
+  // glow = unlit, full-bright (reads as emissive, no shading). Otherwise PBR-lit: baseColor +
+  // roughness/metallic so the SDK's physically-based shader (pbLit) shades the surface with the
+  // sun key, sky ambient, the IBL/environment term, and contact shadows from the shadow-casting
+  // Light — giving primitives real form and reflective ambient, not a flat fill.
+  const col = `baseColor = Color4(${kf(c[0])}, ${kf(c[1])}, ${kf(c[2])}, ${kf(c[3])})`;
   return glow
-    ? `Material().apply { baseColor = Color4(${kf(c[0])}, ${kf(c[1])}, ${kf(c[2])}, ${kf(c[3])}); unlit = true }`
-    : `Material().apply { baseColor = Color4(${kf(c[0])}, ${kf(c[1])}, ${kf(c[2])}, ${kf(c[3])}) }`;
+    ? `Material().apply { ${col}; unlit = true }`
+    : `Material().apply { ${col}; roughness = ${kf(roughness)}; metallic = ${kf(metallic)} }`;
 }
 
 function transformKt(o: WorldObj): string {
@@ -214,19 +236,23 @@ function meshComponentsKt(o: WorldObj): string[] {
   const [sx, sy, sz] = o.scale;
   const shape = o.shape.toLowerCase();
   if (shape === 'sphere' || shape === 'orb') {
-    return [`Mesh(Uri.parse("mesh://sphere"))`, `Sphere(${kf(0.5 * sx)})`, materialKt(o.color, o.glow)];
+    return [
+      `Mesh(Uri.parse("mesh://sphere"))`,
+      `Sphere(${kf(0.5 * sx)})`,
+      materialKt(o.color, o.glow, o.roughness, o.metallic),
+    ];
   }
   if (shape === 'plane' || shape === 'ground') {
     return [
       `Mesh(Uri.parse("mesh://box"))`,
       `Box(Vector3(${kf(-sx / 2)}, -0.05f, ${kf(-sy / 2)}), Vector3(${kf(sx / 2)}, 0.05f, ${kf(sy / 2)}))`,
-      materialKt(o.color, o.glow),
+      materialKt(o.color, o.glow, o.roughness, o.metallic),
     ];
   }
   return [
     `Mesh(Uri.parse("mesh://box"))`,
     `Box(Vector3(${kf(-sx / 2)}, ${kf(-sy / 2)}, ${kf(-sz / 2)}), Vector3(${kf(sx / 2)}, ${kf(sy / 2)}, ${kf(sz / 2)}))`,
-    materialKt(o.color, o.glow),
+    materialKt(o.color, o.glow, o.roughness, o.metallic),
   ];
 }
 

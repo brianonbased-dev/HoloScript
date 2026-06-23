@@ -40,7 +40,7 @@ object World_hololand {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-22.0f, -0.05f, -22.0f), Vector3(22.0f, 0.05f, 22.0f)),
-                Material().apply { baseColor = Color4(0.0549f, 0.1412f, 0.2588f, 1.0f) },
+                Material().apply { baseColor = Color4(0.0549f, 0.1412f, 0.2588f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(0.0f, 0.0f, 0.0f))),
             )
         )
@@ -51,7 +51,7 @@ object World_hololand {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.65f, -1.7f, -0.65f), Vector3(0.65f, 1.7f, 0.65f)),
-                Material().apply { baseColor = Color4(0.1137f, 0.3059f, 0.8471f, 1.0f) },
+                Material().apply { baseColor = Color4(0.1137f, 0.3059f, 0.8471f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(0.0f, 1.7f, 6.0f))),
             )
         )
@@ -106,7 +106,7 @@ object World_hololand {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.1f, -0.35f), Vector3(0.35f, 1.1f, 0.35f)),
-                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f) },
+                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(-5.0f, 1.1f, -5.0f))),
             )
         )
@@ -117,7 +117,7 @@ object World_hololand {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.1f, -0.35f), Vector3(0.35f, 1.1f, 0.35f)),
-                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f) },
+                Material().apply { baseColor = Color4(0.1451f, 0.3882f, 0.9216f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(5.0f, 1.1f, -5.0f))),
             )
         )
@@ -128,7 +128,7 @@ object World_hololand {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.4f, -0.35f), Vector3(0.35f, 1.4f, 0.35f)),
-                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f) },
+                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(-6.5f, 1.4f, 1.5f))),
             )
         )
@@ -139,7 +139,7 @@ object World_hololand {
             listOf(
                 Mesh(Uri.parse("mesh://box")),
                 Box(Vector3(-0.35f, -1.4f, -0.35f), Vector3(0.35f, 1.4f, 0.35f)),
-                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f) },
+                Material().apply { baseColor = Color4(0.2314f, 0.5098f, 0.9647f, 1.0f); roughness = 0.85f; metallic = 0.0f },
                 Transform(Pose(Vector3(6.5f, 1.4f, 1.5f))),
             )
         )

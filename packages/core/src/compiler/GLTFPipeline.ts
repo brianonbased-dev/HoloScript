@@ -159,6 +159,8 @@ export interface GLTFAccessor {
   type: string;
   min?: number[];
   max?: number[];
+  /** glTF normalized integer accessor (e.g. UNSIGNED_BYTE COLOR_0 read as 0..1). */
+  normalized?: boolean;
 }
 
 export interface GLTFBufferView {
@@ -2438,6 +2440,19 @@ export class GLTFPipeline extends CompilerBase {
       metallic?: number;
       roughness?: number;
       name?: string;
+      /**
+       * Optional per-vertex color. When supplied, a `COLOR_0` VEC4 float accessor is emitted and
+       * wired into the primitive — the cheap organic-richness win (gradients/mottling baked into the
+       * mesh, no textures). Called once per vertex with its position, vertex index, and the mesh's
+       * world bounds (so callers can drive a vertical gradient or position-based variation). Returns
+       * either RGB (alpha defaults to 1) or RGBA in 0..1. Backward-compatible: omit it and the mesh
+       * is identical to before (no COLOR_0, flat baseColor).
+       */
+      vertexColor?: (
+        pos: [number, number, number],
+        i: number,
+        bounds: { min: [number, number, number]; max: [number, number, number] }
+      ) => [number, number, number] | [number, number, number, number];
     } = {}
   ): Uint8Array {
     // Fresh GLB state (the buffer is a shared static; reset offsets + collections).
@@ -2453,6 +2468,34 @@ export class GLTFPipeline extends CompilerBase {
     const normals = opts.normals ?? GLTFPipeline.computeVertexNormals(positions, indices);
     const posAcc = this.createAccessor(positions, 'VEC3', true); // computeBounds → POSITION min/max
     const normAcc = this.createAccessor(normals, 'VEC3');
+
+    // OPTIONAL per-vertex colors (COLOR_0). Build the attribute buffer BEFORE indices so it lands in
+    // the ARRAY_BUFFER region with POSITION/NORMAL, indices last. Packed as normalized UNSIGNED_BYTE
+    // VEC4 (4 bytes/vertex, the conventional vertex-color encoding) — 4× smaller than FLOAT VEC4 and
+    // read back as 0..1 by the engine, keeping GLBs inside the size budget.
+    let colorAcc = -1;
+    if (opts.vertexColor) {
+      const vertCount = positions.length / 3;
+      // Derive bounds from POSITION min/max (already computed on posAcc by createAccessor).
+      const posAccessor = this.accessors[posAcc];
+      const bMin = (posAccessor.min as [number, number, number]) ?? [0, 0, 0];
+      const bMax = (posAccessor.max as [number, number, number]) ?? [0, 0, 0];
+      const bounds = { min: bMin, max: bMax };
+      const colors = new Uint8Array(vertCount * 4);
+      const toByte = (x: number) => Math.round(Math.max(0, Math.min(1, x)) * 255);
+      for (let v = 0; v < vertCount; v++) {
+        const px = positions[v * 3];
+        const py = positions[v * 3 + 1];
+        const pz = positions[v * 3 + 2];
+        const c = opts.vertexColor([px, py, pz], v, bounds);
+        colors[v * 4] = toByte(c[0]);
+        colors[v * 4 + 1] = toByte(c[1]);
+        colors[v * 4 + 2] = toByte(c[2]);
+        colors[v * 4 + 3] = c.length > 3 ? toByte(c[3]!) : 255;
+      }
+      colorAcc = this.emitColorAccessor(colors, vertCount);
+    }
+
     const idxAcc = this.createAccessor(indices, 'SCALAR');
 
     this.materials.push({
@@ -2464,11 +2507,12 @@ export class GLTFPipeline extends CompilerBase {
       },
     } as unknown as GLTFMaterial);
 
+    const attributes: Record<string, number> = { POSITION: posAcc, NORMAL: normAcc };
+    if (colorAcc >= 0) attributes.COLOR_0 = colorAcc;
+
     this.meshes.push({
       name,
-      primitives: [
-        { attributes: { POSITION: posAcc, NORMAL: normAcc }, indices: idxAcc, material: 0 },
-      ],
+      primitives: [{ attributes, indices: idxAcc, material: 0 }],
     } as unknown as GLTFMesh);
     this.nodes.push({ name, mesh: 0 } as unknown as GLTFNode);
     this.scenes.push({ name, nodes: [0] });
@@ -2479,6 +2523,36 @@ export class GLTFPipeline extends CompilerBase {
     );
     const buffer = this.bufferData.subarray(0, this.bufferByteLength);
     return this.createGLB(gltf, buffer);
+  }
+
+  /**
+   * Emit a COLOR_0 accessor as a normalized UNSIGNED_BYTE VEC4 (4 bytes/vertex). Sets the
+   * ARRAY_BUFFER target + `normalized: true` so loaders (incl. Meta Spatial SDK / glTF runtimes)
+   * read the bytes back as 0..1 colors. Returns the accessor index.
+   */
+  private emitColorAccessor(colors: Uint8Array, vertCount: number): number {
+    const byteOffset = this.bufferByteLength;
+    this.appendToBuffer(colors);
+    this.padBuffer(4);
+
+    const bufferViewIndex = this.bufferViews.length;
+    this.bufferViews.push({
+      buffer: 0,
+      byteOffset,
+      byteLength: colors.byteLength,
+      target: 34962, // ARRAY_BUFFER
+    });
+
+    const accessorIndex = this.accessors.length;
+    this.accessors.push({
+      bufferView: bufferViewIndex,
+      componentType: 5121, // UNSIGNED_BYTE
+      count: vertCount,
+      type: 'VEC4',
+      normalized: true,
+    });
+
+    return accessorIndex;
   }
 
   /** Per-vertex normals (averaged face normals) for an indexed triangle mesh. */
