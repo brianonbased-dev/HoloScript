@@ -312,6 +312,29 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
             .unwrap_or(ValType::Float);
         return ValType::List(Box::new(elem));
     }
+    // List via bare-identifier return: every return is an identifier bound to a `let xs = [..]` list
+    // local with a consistent element type (the list analogue of the numeric-accumulator rule below,
+    // `return total` ⇒ `Float`). Additive: only fires when a list local is both declared AND returned.
+    let list_locals = collect_list_local_bindings(body, enum_names, struct_names);
+    if !list_locals.is_empty() {
+        let elem_of = |n: &AstNode| -> Option<ValType> {
+            match n {
+                AstNode::Identifier(id) => list_locals
+                    .iter()
+                    .find(|(name, _)| name == &id.name)
+                    .map(|(_, t)| t.clone()),
+                _ => None,
+            }
+        };
+        if let Some(first_elem) = returns.first().and_then(|n| elem_of(n)) {
+            if returns
+                .iter()
+                .all(|n| elem_of(n).as_ref() == Some(&first_elem))
+            {
+                return ValType::List(Box::new(first_elem));
+            }
+        }
+    }
     // Collect local bindings whose value is numeric (a `var`/`let` initialized to numeric-shaped
     // arithmetic, or mutated by numeric assignment / a `+=`-style compound). This lets a function
     // that returns a bare accumulator identifier (`return total`) resolve to `Float` instead of the
@@ -429,6 +452,50 @@ fn infer_array_element_type(
             arg_literal_signal(first, struct_names).unwrap_or(ValType::Float)
         }
         None => ValType::Float,
+    }
+}
+
+/// Collect local bindings whose value is an array literal (`let xs = [1, 2, 3]`), mapped to their
+/// `List` element type. Lets a function that returns a bare list identifier (`return xs`) infer
+/// `List<element>` instead of the `String` default — the list analogue of
+/// `collect_numeric_local_bindings` (which does the same for numeric accumulators). Walks nested
+/// loop/if blocks.
+fn collect_list_local_bindings(
+    body: &[AstNode],
+    enum_names: &[String],
+    struct_names: &[String],
+) -> Vec<(String, ValType)> {
+    let mut out: Vec<(String, ValType)> = Vec::new();
+    walk_collect_list_bindings(body, enum_names, struct_names, &mut out);
+    out
+}
+
+fn walk_collect_list_bindings(
+    body: &[AstNode],
+    enum_names: &[String],
+    struct_names: &[String],
+    out: &mut Vec<(String, ValType)>,
+) {
+    for node in body {
+        match node {
+            AstNode::VariableDeclaration(v) => {
+                if let AstNode::Array(arr) = v.value.as_ref() {
+                    if !out.iter().any(|(n, _)| n == &v.name) {
+                        let elem = infer_array_element_type(&arr.elements, enum_names, struct_names);
+                        out.push((v.name.clone(), elem));
+                    }
+                }
+            }
+            AstNode::ForOf(f) => walk_collect_list_bindings(&f.body, enum_names, struct_names, out),
+            AstNode::While(w) => walk_collect_list_bindings(&w.body, enum_names, struct_names, out),
+            AstNode::If(if_node) => {
+                walk_collect_list_bindings(&if_node.consequent, enum_names, struct_names, out);
+                if let Some(alt) = &if_node.alternate {
+                    walk_collect_list_bindings(alt, enum_names, struct_names, out);
+                }
+            }
+            _ => {}
+        }
     }
 }
 
@@ -585,9 +652,13 @@ fn arg_literal_signal(node: &AstNode, struct_names: &[String]) -> Option<ValType
 /// both arithmetic and a comparison reads as `Float`; the routing decision's flags
 /// (`isWorldLink` / `autoImmerse` / `isOpenAction`) are used only as bare `if` tests → `Boolean`.
 fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
-    // A param that bounds a range (`for (i in 0..n)`) is definitively `Int` — Kotlin ranges are
-    // integer-typed — so this is checked before the Float/Boolean/String fallbacks.
-    if body_uses_param_as_range_bound(param, body) {
+    // A param iterated as a bare list (`for (v in param)`) is a `List<T>` — checked first since that
+    // usage carries the most specific signal (the element type comes from how the loop var is used).
+    if let Some(elem) = body_uses_param_as_list(param, body) {
+        ValType::List(Box::new(elem))
+    } else if body_uses_param_as_range_bound(param, body) {
+        // A param that bounds a range (`for (i in 0..n)`) is definitively `Int` — Kotlin ranges are
+        // integer-typed — so this is checked before the Float/Boolean/String fallbacks.
         ValType::Int
     } else if body_uses_param_numerically(param, body) {
         ValType::Float
@@ -595,6 +666,47 @@ fn infer_param_type(param: &str, body: &[AstNode]) -> ValType {
         ValType::Bool
     } else {
         ValType::Str
+    }
+}
+
+/// If `param` is iterated as a bare list (`for (v in param)` — the range IS the param identifier, not
+/// a `0..n` range), return `Some(element type)`. The element type is read from how the loop variable
+/// is used in the body (numeric ⇒ `Float`, boolean ⇒ `Boolean`), defaulting to `Float` (the common
+/// numeric-array case). Returns `None` when the param is never iterated as a list, so a non-list
+/// param keeps its existing Int/Float/Bool/Str inference (zero drift). Walks nested blocks.
+fn body_uses_param_as_list(param: &str, body: &[AstNode]) -> Option<ValType> {
+    for node in body {
+        if let Some(elem) = stmt_uses_param_as_list(param, node) {
+            return Some(elem);
+        }
+    }
+    None
+}
+
+fn stmt_uses_param_as_list(param: &str, node: &AstNode) -> Option<ValType> {
+    match node {
+        // `for (v in param)` — the iterable is the bare param identifier (not a `0..n` range).
+        AstNode::ForOf(f)
+            if matches!(f.range.as_ref(), AstNode::Identifier(id) if id.name == param) =>
+        {
+            let elem = if body_uses_param_numerically(&f.var_name, &f.body) {
+                ValType::Float
+            } else if body_uses_param_as_boolean(&f.var_name, &f.body) {
+                ValType::Bool
+            } else {
+                ValType::Float
+            };
+            Some(elem)
+        }
+        AstNode::ForOf(f) => body_uses_param_as_list(param, &f.body),
+        AstNode::While(w) => body_uses_param_as_list(param, &w.body),
+        AstNode::If(if_node) => body_uses_param_as_list(param, &if_node.consequent).or_else(|| {
+            if_node
+                .alternate
+                .as_ref()
+                .and_then(|alt| body_uses_param_as_list(param, alt))
+        }),
+        _ => None,
     }
 }
 
@@ -1985,5 +2097,62 @@ function newYaw(yaw, turn) {
         assert!(out.contains("fun worldId(text: String): String {"), "{out}");
         assert!(out.contains("fun newYaw(yaw: Float, turn: Float): Float {"), "{out}");
         assert!(out.contains("enum class Route { A, B }"), "{out}");
+    }
+
+    // ── G7d: List<T> param inference + bare-identifier list-return inference ──────────────────────
+
+    #[test]
+    fn infers_list_param_for_iterated_param() {
+        // A param iterated as a bare list (`for (v in xs)`) infers `List<Float>` (element type from
+        // the loop var's numeric use); the accumulator return stays `Float`.
+        let src = r#"function total(xs) {
+  var t = 0
+  for (v in xs) {
+    t = t + v
+  }
+  return t
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun total(xs: List<Float>): Float {"), "{out}");
+    }
+
+    #[test]
+    fn range_loop_param_still_infers_int_not_list() {
+        // Zero-drift guard: a `0..n` range bound stays `Int` — the List branch must NOT mis-fire on a
+        // range loop (its range is a `..` expression, not a bare param identifier).
+        let src = r#"function loop(n) {
+  var t = 0
+  for (i in 0..n) {
+    t = t + i
+  }
+  return t
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun loop(n: Int): Float {"), "{out}");
+    }
+
+    #[test]
+    fn infers_list_float_return_for_bare_identifier_list_local() {
+        // `let xs = [..]` then `return xs` infers `List<Float>` (bare-identifier list return) — the
+        // list analogue of the numeric-accumulator `return total` ⇒ `Float` rule.
+        let src = r#"function make() {
+  let xs = [1, 2, 3]
+  return xs
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun make(): List<Float> {"), "{out}");
+        assert!(out.contains("val xs = listOf(1f, 2f, 3f)"), "{out}");
+        assert!(out.contains("return xs"), "{out}");
+    }
+
+    #[test]
+    fn infers_list_string_return_for_bare_identifier_list_local() {
+        let src = r#"function labels() {
+  let names = ["a", "b"]
+  return names
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun labels(): List<String> {"), "{out}");
+        assert!(out.contains("return names"), "{out}");
     }
 }
