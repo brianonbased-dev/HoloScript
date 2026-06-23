@@ -607,6 +607,21 @@ function loadSeatWallet(handle: string): SeatWallet | undefined {
   if (rawKey) {
     try {
       const wallet = new Wallet(rawKey);
+      // Deprecation nudge: a plaintext wallet key in .env is the leak-prone path (W.721/F.106) and
+      // the exact shape behind the holojetson stray-key incident (W.820 — a single shared .env key
+      // belonging to neither agent). Prefer an encrypted seat file (wallet.enc + master-key, the
+      // SEATS_ROOT path below). One line at boot; the wallet still loads.
+      console.warn(
+        JSON.stringify({
+          ts: new Date().toISOString(),
+          ev: 'wallet-key-plaintext-deprecated',
+          handle,
+          wallet: `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`,
+          advice:
+            'HOLOSCRIPT_AGENT_WALLET_PRIVATE_KEY is a plaintext .env key; migrate to an encrypted ' +
+            'seat (HOLOSCRIPT_AGENT_SEATS_ROOT + HOLOSCRIPT_AGENT_SEAT_ID) — wallet-coherence still guards it.',
+        })
+      );
       return { wallet, address: wallet.address };
     } catch {
       // Fall through to seat-file path if key is malformed.
