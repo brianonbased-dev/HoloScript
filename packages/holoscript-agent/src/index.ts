@@ -21,6 +21,7 @@ import { pickProvider, BUILT_IN_CANDIDATES } from './capability-router.js';
 import { HolomeshClient } from './holomesh-client.js';
 import { resolveBearerViaBroker } from './bearer-broker.js';
 import { decideWalletCoherence } from './wallet-coherence.js';
+import { withVaultSecrets, resolveVaultSecret } from './vault-secrets.js';
 import { AgentRunner } from './runner.js';
 import { makeCommitHook } from './commit-hook.js';
 import { runAblation, renderAblationMarkdown } from './ablation.js';
@@ -77,7 +78,9 @@ async function main(): Promise<void> {
 }
 
 async function cmdRun(opts: { once: boolean }): Promise<void> {
-  const identity = loadIdentity();
+  // Sovereign-node consumers (HOLOKEY_VAULT_BIN set) resolve the mesh bearer from the encrypted
+  // HoloKey vault (owner = handle); every other surface gets the same env unchanged (vault-secrets.ts).
+  const identity = loadIdentity(withVaultSecrets(process.env));
   const brain = await loadBrain(identity.brainPath, scopeTierFromEnv());
 
   // Capability-aware routing (Lane 3 Phase 4 — founder ruling 2026-05-06):
@@ -347,7 +350,11 @@ async function cmdProvision(rest: string[]): Promise<void> {
   }
   const execute = rest.includes('--execute');
   const force = rest.includes('--force');
-  const founderBearer = process.env.HOLOMESH_API_KEY;
+  // Founder-tier bearer: vault-first (owner=infra) on sovereign nodes, env-fallback everywhere else.
+  const founderBearer = resolveVaultSecret(
+    { name: 'HOLOMESH_API_KEY', owner: process.env.HOLOKEY_INFRA_OWNER ?? 'infra' },
+    process.env
+  );
   if (!founderBearer) {
     throw new Error(
       'HOLOMESH_API_KEY env var required for provisioning (founder-tier bearer for /register endpoints)'
