@@ -161,8 +161,540 @@ object World_shangri_la {
             Vector3(0.0f, 0.9f, 7.0f),
         )
     )
-    // object "Brittney" (sphere, behavior: float) @agent brittney
+    // object "PineL1" (pine.glb, behavior: sway)
     val o10 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine.glb")),
+                Transform(Pose(Vector3(-9.5f, 0.4f, 9.0f))),
+            )
+        )
+    w.entities.add(o10)
+    w.animated.add(
+        WorldAnimated(
+            o10,
+            "sway",
+            Vector3(-9.5f, 0.4f, 9.0f),
+            0.5f,
+            0.04f,
+            2.0f,
+            Vector3(-9.5f, 0.4f, 9.0f),
+        )
+    )
+    // object "PineL2" (pine2.glb, behavior: sway)
+    val o11 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine2.glb")),
+                Transform(Pose(Vector3(-11.0f, 0.4f, 13.0f))),
+            )
+        )
+    w.entities.add(o11)
+    w.animated.add(
+        WorldAnimated(
+            o11,
+            "sway",
+            Vector3(-11.0f, 0.4f, 13.0f),
+            0.6f,
+            0.05f,
+            2.0f,
+            Vector3(-11.0f, 0.4f, 13.0f),
+        )
+    )
+    // object "PineL3" (pine.glb, behavior: sway)
+    val o12 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine.glb")),
+                Transform(Pose(Vector3(-10.0f, 0.4f, 17.0f))),
+            )
+        )
+    w.entities.add(o12)
+    w.animated.add(
+        WorldAnimated(
+            o12,
+            "sway",
+            Vector3(-10.0f, 0.4f, 17.0f),
+            0.45f,
+            0.04f,
+            2.0f,
+            Vector3(-10.0f, 0.4f, 17.0f),
+        )
+    )
+    // object "PineL4" (pine3.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine3.glb")),
+                Transform(Pose(Vector3(-8.0f, 0.4f, 11.0f))),
+            )
+        )
+    )
+    // object "PineL5" (pine3.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine3.glb")),
+                Transform(Pose(Vector3(-12.0f, 0.4f, 16.0f))),
+            )
+        )
+    )
+    // object "PineR1" (pine.glb, behavior: sway)
+    val o15 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine.glb")),
+                Transform(Pose(Vector3(9.5f, 0.4f, 10.0f))),
+            )
+        )
+    w.entities.add(o15)
+    w.animated.add(
+        WorldAnimated(
+            o15,
+            "sway",
+            Vector3(9.5f, 0.4f, 10.0f),
+            0.55f,
+            0.04f,
+            2.0f,
+            Vector3(9.5f, 0.4f, 10.0f),
+        )
+    )
+    // object "PineR2" (pine2.glb, behavior: sway)
+    val o16 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine2.glb")),
+                Transform(Pose(Vector3(11.0f, 0.4f, 14.0f))),
+            )
+        )
+    w.entities.add(o16)
+    w.animated.add(
+        WorldAnimated(
+            o16,
+            "sway",
+            Vector3(11.0f, 0.4f, 14.0f),
+            0.5f,
+            0.05f,
+            2.0f,
+            Vector3(11.0f, 0.4f, 14.0f),
+        )
+    )
+    // object "PineR3" (pine.glb, behavior: sway)
+    val o17 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine.glb")),
+                Transform(Pose(Vector3(10.5f, 0.4f, 18.0f))),
+            )
+        )
+    w.entities.add(o17)
+    w.animated.add(
+        WorldAnimated(
+            o17,
+            "sway",
+            Vector3(10.5f, 0.4f, 18.0f),
+            0.48f,
+            0.04f,
+            2.0f,
+            Vector3(10.5f, 0.4f, 18.0f),
+        )
+    )
+    // object "PineR4" (pine3.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine3.glb")),
+                Transform(Pose(Vector3(8.5f, 0.4f, 12.0f))),
+            )
+        )
+    )
+    // object "PineR5" (pine3.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine3.glb")),
+                Transform(Pose(Vector3(12.0f, 0.4f, 17.0f))),
+            )
+        )
+    )
+    // object "PineB1" (pine2.glb, behavior: sway)
+    val o20 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine2.glb")),
+                Transform(Pose(Vector3(-4.5f, 0.4f, 22.0f))),
+            )
+        )
+    w.entities.add(o20)
+    w.animated.add(
+        WorldAnimated(
+            o20,
+            "sway",
+            Vector3(-4.5f, 0.4f, 22.0f),
+            0.5f,
+            0.05f,
+            2.0f,
+            Vector3(-4.5f, 0.4f, 22.0f),
+        )
+    )
+    // object "PineB2" (pine.glb, behavior: sway)
+    val o21 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine.glb")),
+                Transform(Pose(Vector3(2.0f, 0.4f, 23.0f))),
+            )
+        )
+    w.entities.add(o21)
+    w.animated.add(
+        WorldAnimated(
+            o21,
+            "sway",
+            Vector3(2.0f, 0.4f, 23.0f),
+            0.46f,
+            0.04f,
+            2.0f,
+            Vector3(2.0f, 0.4f, 23.0f),
+        )
+    )
+    // object "PineB3" (pine3.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/pine3.glb")),
+                Transform(Pose(Vector3(5.0f, 0.4f, 21.0f))),
+            )
+        )
+    )
+    // object "OakL1" (broadleaf.glb, behavior: sway)
+    val o23 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/broadleaf.glb")),
+                Transform(Pose(Vector3(-6.0f, 0.4f, 6.0f))),
+            )
+        )
+    w.entities.add(o23)
+    w.animated.add(
+        WorldAnimated(
+            o23,
+            "sway",
+            Vector3(-6.0f, 0.4f, 6.0f),
+            0.4f,
+            0.05f,
+            2.0f,
+            Vector3(-6.0f, 0.4f, 6.0f),
+        )
+    )
+    // object "OakL2" (broadleaf2.glb, behavior: sway)
+    val o24 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/broadleaf2.glb")),
+                Transform(Pose(Vector3(-13.0f, 0.4f, 10.0f))),
+            )
+        )
+    w.entities.add(o24)
+    w.animated.add(
+        WorldAnimated(
+            o24,
+            "sway",
+            Vector3(-13.0f, 0.4f, 10.0f),
+            0.35f,
+            0.06f,
+            2.0f,
+            Vector3(-13.0f, 0.4f, 10.0f),
+        )
+    )
+    // object "OakR1" (broadleaf.glb, behavior: sway)
+    val o25 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/broadleaf.glb")),
+                Transform(Pose(Vector3(6.0f, 0.4f, 6.5f))),
+            )
+        )
+    w.entities.add(o25)
+    w.animated.add(
+        WorldAnimated(
+            o25,
+            "sway",
+            Vector3(6.0f, 0.4f, 6.5f),
+            0.42f,
+            0.05f,
+            2.0f,
+            Vector3(6.0f, 0.4f, 6.5f),
+        )
+    )
+    // object "OakR2" (broadleaf2.glb, behavior: sway)
+    val o26 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/broadleaf2.glb")),
+                Transform(Pose(Vector3(13.0f, 0.4f, 11.0f))),
+            )
+        )
+    w.entities.add(o26)
+    w.animated.add(
+        WorldAnimated(
+            o26,
+            "sway",
+            Vector3(13.0f, 0.4f, 11.0f),
+            0.36f,
+            0.06f,
+            2.0f,
+            Vector3(13.0f, 0.4f, 11.0f),
+        )
+    )
+    // object "OakFront" (broadleaf.glb, behavior: sway)
+    val o27 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/broadleaf.glb")),
+                Transform(Pose(Vector3(-3.5f, 0.4f, 2.0f))),
+            )
+        )
+    w.entities.add(o27)
+    w.animated.add(
+        WorldAnimated(
+            o27,
+            "sway",
+            Vector3(-3.5f, 0.4f, 2.0f),
+            0.4f,
+            0.05f,
+            2.0f,
+            Vector3(-3.5f, 0.4f, 2.0f),
+        )
+    )
+    // object "OakBack" (broadleaf2.glb, behavior: sway)
+    val o28 =
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/broadleaf2.glb")),
+                Transform(Pose(Vector3(-1.0f, 0.4f, 24.0f))),
+            )
+        )
+    w.entities.add(o28)
+    w.animated.add(
+        WorldAnimated(
+            o28,
+            "sway",
+            Vector3(-1.0f, 0.4f, 24.0f),
+            0.33f,
+            0.06f,
+            2.0f,
+            Vector3(-1.0f, 0.4f, 24.0f),
+        )
+    )
+    // object "GrassA" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(-4.0f, 0.4f, 5.0f))),
+            )
+        )
+    )
+    // object "GrassB" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(-1.0f, 0.4f, 7.0f))),
+            )
+        )
+    )
+    // object "GrassC" (grass_patch2.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch2.glb")),
+                Transform(Pose(Vector3(2.5f, 0.4f, 6.0f))),
+            )
+        )
+    )
+    // object "GrassD" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(4.5f, 0.4f, 9.0f))),
+            )
+        )
+    )
+    // object "GrassE" (grass_patch2.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch2.glb")),
+                Transform(Pose(Vector3(-4.5f, 0.4f, 11.0f))),
+            )
+        )
+    )
+    // object "GrassF" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(0.0f, 0.4f, 11.0f))),
+            )
+        )
+    )
+    // object "GrassG" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(4.0f, 0.4f, 13.0f))),
+            )
+        )
+    )
+    // object "GrassH" (grass_patch2.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch2.glb")),
+                Transform(Pose(Vector3(-3.0f, 0.4f, 16.0f))),
+            )
+        )
+    )
+    // object "GrassI" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(2.5f, 0.4f, 17.0f))),
+            )
+        )
+    )
+    // object "GrassJ" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(-1.0f, 0.4f, 3.0f))),
+            )
+        )
+    )
+    // object "GrassK" (grass_patch2.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch2.glb")),
+                Transform(Pose(Vector3(6.0f, 0.4f, 4.0f))),
+            )
+        )
+    )
+    // object "GrassL" (grass_patch.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/grass_patch.glb")),
+                Transform(Pose(Vector3(-6.5f, 0.4f, 4.0f))),
+            )
+        )
+    )
+    // object "RockA" (rock_cluster.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/rock_cluster.glb")),
+                Transform(Pose(Vector3(-5.5f, 0.4f, 9.0f))),
+            )
+        )
+    )
+    // object "RockB" (rock_cluster.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/rock_cluster.glb")),
+                Transform(Pose(Vector3(5.5f, 0.4f, 11.0f))),
+            )
+        )
+    )
+    // object "RockC" (rock_cluster.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/rock_cluster.glb")),
+                Transform(Pose(Vector3(-8.5f, 0.4f, 15.0f))),
+            )
+        )
+    )
+    // object "RockD" (rock_cluster.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/rock_cluster.glb")),
+                Transform(Pose(Vector3(7.0f, 0.4f, 7.0f))),
+            )
+        )
+    )
+    // object "RockE" (rock_cluster.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/rock_cluster.glb")),
+                Transform(Pose(Vector3(1.5f, 0.4f, 20.0f))),
+            )
+        )
+    )
+    // object "BushA" (bush.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/bush.glb")),
+                Transform(Pose(Vector3(-2.5f, 0.4f, 4.0f))),
+            )
+        )
+    )
+    // object "BushB" (bush.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/bush.glb")),
+                Transform(Pose(Vector3(3.0f, 0.4f, 4.5f))),
+            )
+        )
+    )
+    // object "BushC" (bush.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/bush.glb")),
+                Transform(Pose(Vector3(-6.0f, 0.4f, 12.0f))),
+            )
+        )
+    )
+    // object "BushD" (bush.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/bush.glb")),
+                Transform(Pose(Vector3(6.5f, 0.4f, 14.0f))),
+            )
+        )
+    )
+    // object "BushE" (bush.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/bush.glb")),
+                Transform(Pose(Vector3(-3.5f, 0.4f, 19.0f))),
+            )
+        )
+    )
+    // object "BushF" (bush.glb)
+    w.entities.add(
+        Entity.create(
+            listOf(
+                Mesh(Uri.parse("apk:///models/bush.glb")),
+                Transform(Pose(Vector3(4.0f, 0.4f, 19.5f))),
+            )
+        )
+    )
+    // object "Brittney" (sphere, behavior: float) @agent brittney
+    val o52 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -171,10 +703,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-1.8f, 1.4f, 6.0f))),
             )
         )
-    w.entities.add(o10)
+    w.entities.add(o52)
     w.animated.add(
         WorldAnimated(
-            o10,
+            o52,
             "float",
             Vector3(-1.8f, 1.4f, 6.0f),
             1.0f,
@@ -184,7 +716,7 @@ object World_shangri_la {
         )
     )
     // object "Guardian" (sphere, behavior: orbit)
-    val o11 =
+    val o53 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -193,10 +725,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(6.0f, 3.4f, 13.0f))),
             )
         )
-    w.entities.add(o11)
+    w.entities.add(o53)
     w.animated.add(
         WorldAnimated(
-            o11,
+            o53,
             "orbit",
             Vector3(6.0f, 3.4f, 13.0f),
             0.45f,
@@ -206,7 +738,7 @@ object World_shangri_la {
         )
     )
     // object "LanternA" (box, behavior: bob)
-    val o12 =
+    val o54 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
@@ -215,10 +747,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-2.4f, 2.6f, 6.0f))),
             )
         )
-    w.entities.add(o12)
+    w.entities.add(o54)
     w.animated.add(
         WorldAnimated(
-            o12,
+            o54,
             "bob",
             Vector3(-2.4f, 2.6f, 6.0f),
             1.6f,
@@ -228,7 +760,7 @@ object World_shangri_la {
         )
     )
     // object "LanternB" (box, behavior: bob)
-    val o13 =
+    val o55 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
@@ -237,10 +769,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(2.4f, 3.0f, 6.5f))),
             )
         )
-    w.entities.add(o13)
+    w.entities.add(o55)
     w.animated.add(
         WorldAnimated(
-            o13,
+            o55,
             "bob",
             Vector3(2.4f, 3.0f, 6.5f),
             1.3f,
@@ -250,7 +782,7 @@ object World_shangri_la {
         )
     )
     // object "LanternC" (box, behavior: bob)
-    val o14 =
+    val o56 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://box")),
@@ -259,10 +791,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-1.4f, 3.4f, 9.5f))),
             )
         )
-    w.entities.add(o14)
+    w.entities.add(o56)
     w.animated.add(
         WorldAnimated(
-            o14,
+            o56,
             "bob",
             Vector3(-1.4f, 3.4f, 9.5f),
             1.9f,
@@ -272,7 +804,7 @@ object World_shangri_la {
         )
     )
     // object "SpiritA" (sphere, behavior: float)
-    val o15 =
+    val o57 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -281,10 +813,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(-5.0f, 2.4f, 9.0f))),
             )
         )
-    w.entities.add(o15)
+    w.entities.add(o57)
     w.animated.add(
         WorldAnimated(
-            o15,
+            o57,
             "float",
             Vector3(-5.0f, 2.4f, 9.0f),
             1.2f,
@@ -294,7 +826,7 @@ object World_shangri_la {
         )
     )
     // object "SpiritB" (sphere, behavior: float)
-    val o16 =
+    val o58 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -303,10 +835,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(5.0f, 2.8f, 10.0f))),
             )
         )
-    w.entities.add(o16)
+    w.entities.add(o58)
     w.animated.add(
         WorldAnimated(
-            o16,
+            o58,
             "float",
             Vector3(5.0f, 2.8f, 10.0f),
             1.0f,
@@ -316,7 +848,7 @@ object World_shangri_la {
         )
     )
     // object "SpiritC" (sphere, behavior: float)
-    val o17 =
+    val o59 =
         Entity.create(
             listOf(
                 Mesh(Uri.parse("mesh://sphere")),
@@ -325,10 +857,10 @@ object World_shangri_la {
                 Transform(Pose(Vector3(0.0f, 3.0f, 4.0f))),
             )
         )
-    w.entities.add(o17)
+    w.entities.add(o59)
     w.animated.add(
         WorldAnimated(
-            o17,
+            o59,
             "float",
             Vector3(0.0f, 3.0f, 4.0f),
             0.9f,
