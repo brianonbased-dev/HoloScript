@@ -14,6 +14,7 @@ export default defineConfig({
     'src/supervisor-config.ts',
     'src/provision.ts',
     'src/audit-log.ts',
+    'src/mesh-character-mind.ts',
     'src/types.ts',
   ],
   format: ['esm'],
