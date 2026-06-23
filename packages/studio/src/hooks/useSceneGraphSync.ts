@@ -13,6 +13,7 @@
 import { useEffect, useRef } from 'react';
 import { useSceneGraphStore } from '@/lib/stores';
 import type { SceneNode } from '@/lib/stores/sceneGraphStore';
+import { HOLOMAP_POINT_CLOUD_TRAIT } from '@/lib/holomap-scene-placement';
 
 interface R3FTreeNode {
   id?: string;
@@ -31,13 +32,31 @@ function flattenTree(node: R3FTreeNode, parentId: string | null, out: SceneNode[
   const props = node.props || {};
 
   // Only create SceneNode entries for renderable types
-  if (node.type === 'mesh' || node.type === 'group') {
+  if (node.type === 'mesh' || node.type === 'group' || node.type === 'holomapPointCloud') {
+    const isHoloMapPointCloud = node.type === 'holomapPointCloud';
     const sceneNode: SceneNode = {
       id,
       name: props.name || props.hsType || id,
-      type: node.type === 'group' ? 'group' : 'mesh',
+      type: node.type === 'group' ? 'group' : isHoloMapPointCloud ? 'holomapPointCloud' : 'mesh',
       parentId,
-      traits: [],
+      traits: isHoloMapPointCloud
+        ? [
+            {
+              name: HOLOMAP_POINT_CLOUD_TRAIT,
+              properties: {
+                source: props.source ?? `compiler:${id}`,
+                positionsB64: props.positionsB64,
+                colorsB64: props.colorsB64,
+                pointCount: props.pointCount,
+                maxPoints: props.maxPoints,
+                pointSize: props.pointSize,
+                opacity: props.opacity,
+                bounds: props.bounds,
+                gpuPath: 'HolomapPointCloudViewer',
+              },
+            },
+          ]
+        : [],
       position: props.position || [0, 0, 0],
       rotation: props.rotation || [0, 0, 0],
       scale:
@@ -148,12 +167,12 @@ export function useSceneGraphSync(r3fTree: R3FTreeNode | null) {
       }
     }
 
-    // Also keep user-placed nodes (from builderStore clicks) that aren't from the parser
+    // Also keep user-placed nodes that aren't from the parser.
     for (const existing of store.nodes) {
-      if (!parsedMap.has(existing.id) && existing.id.startsWith('placed-')) {
-        mergedNodes.push(existing);
-      }
-      if (!parsedMap.has(existing.id) && existing.id.startsWith('dropped-')) {
+      if (
+        !parsedMap.has(existing.id) &&
+        (existing.id.startsWith('placed-') || existing.id.startsWith('dropped-'))
+      ) {
         mergedNodes.push(existing);
       }
     }

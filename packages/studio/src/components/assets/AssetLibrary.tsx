@@ -6,6 +6,7 @@ import {
   Upload,
   Link,
   Layers,
+  Cloud,
   Box,
   Image,
   Music,
@@ -28,6 +29,7 @@ const CATEGORIES: Array<{
 }> = [
   { id: 'all', label: 'All', icon: Layers },
   { id: 'splat', label: 'Splats', icon: Crosshair },
+  { id: 'pointCloud', label: 'Clouds', icon: Cloud },
   { id: 'model', label: 'Models', icon: Box },
   { id: 'texture', label: 'Textures', icon: Image },
   { id: 'audio', label: 'Audio', icon: Music },
@@ -37,6 +39,7 @@ const CATEGORIES: Array<{
 
 const CATEGORY_COLORS: Record<AssetCategory, string> = {
   splat: 'text-purple-400',
+  pointCloud: 'text-cyan-400',
   model: 'text-blue-400',
   texture: 'text-pink-400',
   audio: 'text-yellow-400',
@@ -46,6 +49,7 @@ const CATEGORY_COLORS: Record<AssetCategory, string> = {
 
 const CATEGORY_BG: Record<AssetCategory, string> = {
   splat: 'bg-purple-500/10',
+  pointCloud: 'bg-cyan-500/10',
   model: 'bg-blue-500/10',
   texture: 'bg-pink-500/10',
   audio: 'bg-yellow-500/10',
@@ -131,6 +135,7 @@ function URLImportDialog({
 
   const guessCategory = (u: string): AssetCategory => {
     if (u.endsWith('.splat') || u.endsWith('.ksplat')) return 'splat';
+    if (u.endsWith('.ply') || u.endsWith('.pcd') || u.endsWith('.xyz')) return 'pointCloud';
     if (u.endsWith('.glb') || u.endsWith('.gltf') || u.endsWith('.obj')) return 'model';
     if (u.endsWith('.png') || u.endsWith('.jpg') || u.endsWith('.webp')) return 'texture';
     if (u.endsWith('.mp3') || u.endsWith('.ogg') || u.endsWith('.wav')) return 'audio';
@@ -243,13 +248,15 @@ export function AssetLibrary({ onOpenSplatWizard }: AssetLibraryProps) {
           ? 'splat'
           : ['glb', 'gltf', 'obj'].includes(ext)
             ? 'model'
-            : ['mp3', 'ogg', 'wav'].includes(ext)
-              ? 'audio'
-              : ['png', 'jpg', 'webp'].includes(ext)
-                ? 'texture'
-                : ['hdr', 'exr'].includes(ext)
-                  ? 'hdri'
-                  : 'script';
+            : ['ply', 'pcd', 'xyz'].includes(ext)
+              ? 'pointCloud'
+              : ['mp3', 'ogg', 'wav'].includes(ext)
+                ? 'audio'
+                : ['png', 'jpg', 'webp'].includes(ext)
+                  ? 'texture'
+                  : ['hdr', 'exr'].includes(ext)
+                    ? 'hdri'
+                    : 'script';
 
         reader.onload = () => {
           const src = reader.result as string;
@@ -326,7 +333,7 @@ export function AssetLibrary({ onOpenSplatWizard }: AssetLibraryProps) {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".splat,.ksplat,.glb,.gltf,.obj,.png,.jpg,.webp,.mp3,.ogg,.wav,.hdr,.exr,.ts,.js,.holo"
+        accept=".splat,.ksplat,.ply,.pcd,.xyz,.glb,.gltf,.obj,.png,.jpg,.webp,.mp3,.ogg,.wav,.hdr,.exr,.ts,.js,.holo"
         className="hidden"
         onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
       />

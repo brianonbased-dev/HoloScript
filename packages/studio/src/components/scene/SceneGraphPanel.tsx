@@ -13,6 +13,7 @@ import {
   Trash2,
   Copy,
   Layers,
+  Cloud,
   Type,
 } from 'lucide-react';
 import { useSceneGraphStore } from '@/lib/stores';
@@ -26,6 +27,7 @@ const NODE_ICONS = {
   audio: Music,
   group: Folder,
   splat: Layers,
+  holomapPointCloud: Cloud,
 } as const;
 
 const NODE_COLORS = {
@@ -35,6 +37,7 @@ const NODE_COLORS = {
   audio: 'text-pink-400',
   group: 'text-gray-400',
   splat: 'text-purple-400',
+  holomapPointCloud: 'text-cyan-400',
 } as const;
 
 // ─── Context Menu ─────────────────────────────────────────────────────────────
@@ -377,6 +380,7 @@ export function SceneGraphPanel() {
         audio: 'Audio',
         group: 'Group',
         splat: 'Splat',
+        holomapPointCloud: 'Point Cloud',
       };
       addNode({
         id,

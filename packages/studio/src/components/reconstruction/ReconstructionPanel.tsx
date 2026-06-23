@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   QrCode,
   Smartphone,
@@ -9,10 +9,14 @@ import {
   CheckCircle2,
   Loader2,
   AlertTriangle,
+  Cloud,
 } from 'lucide-react';
 import { QRCodeImage } from '@/components/QRCodeImage';
 import { AcceptanceVideoInspector } from './AcceptanceVideoInspector';
 import { HoloMapScanViewer } from './HoloMapScanViewer';
+import { useAssetStore } from '@/components/assets/useAssetStore';
+import { useSceneGraphStore } from '@/lib/stores';
+import { createHoloMapScanScenePlacement } from '@/lib/holomap-scene-placement';
 import {
   clearStoredScanSession,
   readStoredScanSession,
@@ -62,6 +66,11 @@ export function ReconstructionPanel() {
   const [state, setState] = useState<ScanSessionState | null>(null);
   const [loading, setLoading] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [placedScanId, setPlacedScanId] = useState<string | null>(null);
+  const assets = useAssetStore((s) => s.assets);
+  const addAsset = useAssetStore((s) => s.addAsset);
+  const nodes = useSceneGraphStore((s) => s.nodes);
+  const addNode = useSceneGraphStore((s) => s.addNode);
 
   const expiresIn = useMemo(() => {
     if (!session?.expiresAt) return null;
@@ -85,11 +94,32 @@ export function ReconstructionPanel() {
       setSession(data);
       setState(null);
       setSessionError(null);
+      setPlacedScanId(null);
       writeStoredScanSession(data);
     } finally {
       setLoading(false);
     }
   };
+
+  const placeScanInScene = useCallback(() => {
+    if (!state?.renderAsset) return;
+
+    const placement = createHoloMapScanScenePlacement({
+      renderAsset: state.renderAsset,
+      token: state.token ?? session?.token,
+      videoHash: state.videoHash,
+      manifest: state.manifest,
+    });
+
+    if (!assets.some((asset) => asset.id === placement.asset.id)) {
+      addAsset(placement.asset);
+    }
+    if (!nodes.some((node) => node.id === placement.node.id)) {
+      addNode(placement.node);
+    }
+
+    setPlacedScanId(placement.node.id);
+  }, [addAsset, addNode, assets, nodes, session?.token, state]);
 
   useEffect(() => {
     const stored = readStoredScanSession();
@@ -267,7 +297,29 @@ export function ReconstructionPanel() {
                     replayFingerprint={state.replayFingerprint}
                   />
                 )}
-                {state.renderAsset && <HoloMapScanViewer renderAsset={state.renderAsset} />}
+                {state.renderAsset && (
+                  <div className="space-y-2">
+                    <HoloMapScanViewer renderAsset={state.renderAsset} />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        data-testid="place-holomap-scan-in-scene"
+                        onClick={placeScanInScene}
+                        className="inline-flex items-center gap-2 rounded-lg border border-studio-border px-3 py-1.5 text-xs text-studio-muted hover:text-studio-text disabled:opacity-70"
+                      >
+                        {placedScanId ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                        ) : (
+                          <Cloud className="h-3.5 w-3.5 text-cyan-300" />
+                        )}
+                        {placedScanId ? 'Placed in scene graph' : 'Place in scene'}
+                      </button>
+                      <span className="text-[11px] text-studio-muted">
+                        {state.renderAsset.pointCount.toLocaleString()} points
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {state?.lastError && <p className="mt-2 text-red-400">Error: {state.lastError}</p>}

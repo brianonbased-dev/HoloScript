@@ -10,7 +10,14 @@ import { devtools } from 'zustand/middleware';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type AssetCategory = 'splat' | 'model' | 'texture' | 'audio' | 'hdri' | 'script';
+export type AssetCategory =
+  | 'splat'
+  | 'pointCloud'
+  | 'model'
+  | 'texture'
+  | 'audio'
+  | 'hdri'
+  | 'script';
 
 export interface Asset {
   id: string;
@@ -24,6 +31,7 @@ export interface Asset {
   size: number;
   addedAt: number;
   tags: string[];
+  metadata?: Record<string, unknown>;
 }
 
 interface AssetState {

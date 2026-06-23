@@ -10,6 +10,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import type { Group } from 'three';
 import { ErrorBoundary as StudioErrorBoundary } from '@holoscript/ui';
 import { OrbitControls, Grid, Stars, Environment, Stats } from '@react-three/drei';
 import type { R3FNode } from '@holoscript/core';
@@ -32,8 +33,13 @@ import { ContentCameraUI, ContentCameraCapture } from '@/components/camera/Conte
 import { usePipelineMaturitySync } from '@/hooks/usePipelineMaturitySync';
 import { useLOD } from '@/hooks/useLOD';
 import { useStudioBus } from '@/hooks/useStudioBus';
-import { ProgressiveLoader, usePerformanceRegression } from '@holoscript/r3f-renderer';
+import {
+  HolomapPointCloudViewer,
+  ProgressiveLoader,
+  usePerformanceRegression,
+} from '@holoscript/r3f-renderer';
 import { PerformanceRegressionBridge } from '@/hooks/usePerformanceRegressionBridge';
+import { HOLOMAP_POINT_CLOUD_TRAIT } from '@/lib/holomap-scene-placement';
 
 interface SceneRendererProps {
   r3fTree: R3FNode | null;
@@ -103,6 +109,7 @@ function EmptyScene() {
 
 function assetToNodeType(category: Asset['category']): SceneNode['type'] {
   if (category === 'splat') return 'splat';
+  if (category === 'pointCloud') return 'holomapPointCloud';
   if (category === 'audio') return 'audio';
   if (category === 'model') return 'mesh';
   return 'mesh';
@@ -114,6 +121,21 @@ function assetToTrait(asset: Asset): { name: string; properties: Record<string, 
       return {
         name: 'gaussian_splat',
         properties: { source: asset.src, quality: 'medium', sh_degree: 3 },
+      };
+    case 'pointCloud':
+      return {
+        name: HOLOMAP_POINT_CLOUD_TRAIT,
+        properties: {
+          source: asset.src,
+          assetId: asset.id,
+          ...(typeof asset.metadata?.renderAsset === 'object' && asset.metadata.renderAsset !== null
+            ? asset.metadata.renderAsset
+            : {}),
+          ...(typeof asset.metadata?.holomapRenderAsset === 'object' &&
+          asset.metadata.holomapRenderAsset !== null
+            ? asset.metadata.holomapRenderAsset
+            : {}),
+        },
       };
     case 'audio':
       return {
@@ -128,6 +150,78 @@ function assetToTrait(asset: Asset): { name: string; properties: Record<string, 
 }
 
 // ─── Physics wrapper (only mounts Rapier when physics enabled) ───────────────
+
+// Placed HoloMap point cloud scene-graph layer.
+function getPointCloudTrait(node: SceneNode): Record<string, unknown> {
+  return node.traits.find((trait) => trait.name === HOLOMAP_POINT_CLOUD_TRAIT)?.properties ?? {};
+}
+
+function validString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function validNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function SceneGraphPointCloudNode({ node }: { node: SceneNode }) {
+  const setSelectedId = useEditorStore((s) => s.setSelectedObjectId);
+  const setNodeRef = useSceneGraphStore((s) => s.setNodeRef);
+  const groupRef = useRef<Group>(null);
+  const props = getPointCloudTrait(node);
+  const positionsB64 = validString(props.positionsB64);
+  const colorsB64 = validString(props.colorsB64);
+  const pointCount = validNumber(props.pointCount);
+
+  useEffect(() => {
+    if (!groupRef.current) return;
+    setNodeRef(node.id, groupRef.current);
+    return () => setNodeRef(node.id, undefined);
+  }, [node.id, setNodeRef]);
+
+  if (!positionsB64 || !colorsB64 || pointCount === undefined) return null;
+
+  return (
+    <group
+      ref={groupRef}
+      userData={{ nodeId: node.id }}
+      position={node.position}
+      rotation={node.rotation}
+      scale={node.scale}
+      onClick={(event) => {
+        event.stopPropagation();
+        setSelectedId(node.id);
+      }}
+    >
+      <HolomapPointCloudViewer
+        positionsB64={positionsB64}
+        colorsB64={colorsB64}
+        pointCount={pointCount}
+        maxPoints={validNumber(props.maxPoints)}
+        pointSize={validNumber(props.pointSize)}
+        opacity={validNumber(props.opacity)}
+      />
+    </group>
+  );
+}
+
+function SceneGraphPointCloudLayer() {
+  const nodes = useSceneGraphStore((s) =>
+    s.nodes.filter(
+      (node) =>
+        node.type === 'holomapPointCloud' &&
+        (node.id.startsWith('placed-') || node.id.startsWith('dropped-'))
+    )
+  );
+
+  return (
+    <>
+      {nodes.map((node) => (
+        <SceneGraphPointCloudNode key={node.id} node={node} />
+      ))}
+    </>
+  );
+}
 
 function PhysicsProviderWrapper() {
   const physicsEnabled = usePhysicsStore((s) => s.physicsEnabled);
@@ -251,6 +345,7 @@ export function SceneRenderer({ r3fTree, profilerOpen = false }: SceneRendererPr
           <Suspense fallback={null}>
             {r3fTree ? <SceneContent r3fTree={r3fTree} /> : <EmptyScene />}
           </Suspense>
+          <SceneGraphPointCloudLayer />
 
           {/*
           PerformanceRegressionBridge: monitors frame time via R3F's useFrame
