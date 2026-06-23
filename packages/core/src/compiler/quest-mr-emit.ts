@@ -592,6 +592,12 @@ android {
 
     // Update the ndkVersion to the right version for your app
     // ndkVersion = "27.0.12077973"
+
+    // Quest is arm64 ONLY — package only arm64-v8a so 32-bit (armeabi-v7a) and x86/x86_64 native
+    // libs from dependencies are stripped. A 32-bit binary fails store review (VRC.Quest.Packaging.6:
+    // all Quest APKs must be 64-bit). Without this filter the .so from the Spatial SDK / deps ship
+    // every ABI and the upload validator rejects the APK.
+    ndk { abiFilters += "arm64-v8a" }
   }
 
   packaging { resources.excludes.add("META-INF/LICENSE") }
