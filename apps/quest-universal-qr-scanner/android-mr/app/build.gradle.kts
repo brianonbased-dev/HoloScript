@@ -119,6 +119,8 @@ dependencies {
   implementation(libs.meta.spatial.sdk.hotreload)
   implementation(libs.meta.spatial.sdk.datamodelinspector)
   implementation(libs.meta.spatial.sdk.uiset)
+  // Gaussian splatting — Meta's native Splat component (.spz/.ply, ≤150k splats on Quest 3).
+  implementation(libs.meta.spatial.sdk.splat)
 }
 
 spatial {

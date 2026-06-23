@@ -38,6 +38,8 @@ import com.meta.spatial.toolkit.PanelStyleOptions
 import com.meta.spatial.toolkit.QuadShapeOptions
 import com.meta.spatial.toolkit.Transform
 import com.meta.spatial.toolkit.UIPanelSettings
+import com.meta.spatial.splat.SpatialSDKExperimentalSplatAPI
+import com.meta.spatial.splat.SplatFeature
 import com.meta.spatial.vr.LocomotionSystem
 import com.meta.spatial.vr.VRFeature
 
@@ -73,8 +75,14 @@ class StarterSampleActivity : AppSystemActivity() {
   private var playerYaw = 0f // degrees; the rig heading (right stick turns it)
   private var lastLocoNanos = 0L
 
+  // SplatFeature enables Meta's native Gaussian-splat rendering (com.meta.spatial.splat.Splat reads
+  // .spz/.ply, ≤150k splats on Quest 3) so compiled worlds can place splat clouds. It's an
+  // experimental API (@RequiresOptIn) and takes (SpatialContext, SystemManager). Registering it is
+  // inert for splat-free worlds — the marketing worlds emit no Splat entity, so it does nothing there.
+  @OptIn(SpatialSDKExperimentalSplatAPI::class)
   override fun registerFeatures(): List<SpatialFeature> =
-      mutableListOf<SpatialFeature>(VRFeature(this), ComposeFeature())
+      mutableListOf<SpatialFeature>(
+          VRFeature(this), ComposeFeature(), SplatFeature(spatial, systemManager))
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

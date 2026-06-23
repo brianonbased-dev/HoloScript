@@ -84,6 +84,7 @@ interface WorldObj {
   agentId: string; // `agent:` — this object embodies a HoloScript agent (its mind carries via memory)
   shape: string;
   model: string;
+  splat: string; // a Gaussian-splat asset file (`.spz`/`.ply`) → Meta's native com.meta.spatial.splat.Splat
   pos: Vec3;
   rot: Vec3;
   hasRot: boolean;
@@ -99,10 +100,14 @@ interface WorldObj {
   center: Vec3;
 }
 
+/** A Gaussian-splat asset reference is any source ending in .spz or .ply (Meta Splat reads both). */
+const isSplatAsset = (s: string): boolean => /\.(spz|ply)$/i.test(s.trim());
+
 function collectObject(obj: HoloObjectDecl): WorldObj {
   let shape = 'box';
   let agentId = '';
   let model = '';
+  let splat = '';
   let pos: Vec3 = [0, 0, 0];
   let rot: Vec3 = [0, 0, 0];
   let hasRot = false;
@@ -134,8 +139,18 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
         break;
       case 'model':
       case 'src':
-      case 'source':
-        model = str(p.value, model);
+      case 'source': {
+        // A .spz/.ply source is a Gaussian splat (Meta's native Splat target); anything else is a glb
+        // mesh. Routing on the extension lets one `source:`/`model:` key feed either path natively.
+        const s = str(p.value, '');
+        if (isSplatAsset(s)) splat = s;
+        else if (s) model = s;
+        break;
+      }
+      case 'splat':
+      case 'gaussian_splat':
+        // Explicit Gaussian-splat asset (also accepts the @gaussian_splat trait's `splat: "x.spz"`).
+        splat = str(p.value, splat);
         break;
       case 'position':
         pos = readVec3(p.value, pos);
@@ -193,6 +208,8 @@ function collectObject(obj: HoloObjectDecl): WorldObj {
     agentId,
     shape,
     model,
+    // bundled-asset basename only (apk:///splats/<file>); drop any leading dir the author wrote
+    splat: splat ? splat.trim().replace(/^.*[\\/]/, '') : '',
     pos,
     rot,
     hasRot,
@@ -227,8 +244,13 @@ function transformKt(o: WorldObj): string {
   return `Transform(Pose(${v}))`;
 }
 
-/** Geometry/material component lines for one object (model glb, or a built-in primitive). */
+/** Geometry/material component lines for one object (splat asset, model glb, or a built-in primitive). */
 function meshComponentsKt(o: WorldObj): string[] {
+  if (o.splat) {
+    // Gaussian-splat asset — Meta's native com.meta.spatial.splat.Splat reads the .spz/.ply directly
+    // (≤150k splats on Quest 3). No mesh/material: the splat cloud carries its own per-gaussian color.
+    return [`Splat(Uri.parse("apk:///splats/${o.splat}"))`];
+  }
   if (o.model) {
     // Real asset slot — the glb supplies geometry + its own materials.
     return [`Mesh(Uri.parse("apk:///models/${o.model}"))`];
@@ -287,14 +309,22 @@ export function emitWorldSceneKt(composition: HoloComposition, worldId: string):
   const sky = skyboxColor(composition);
   const objs = (composition.objects ?? []).map(collectObject);
 
+  // Does this world reference a Gaussian-splat asset? Only then do we import Meta's experimental Splat
+  // component and opt in to its @RequiresOptIn API — so splat-free worlds (e.g. the marketing worlds)
+  // emit BYTE-IDENTICAL Kotlin with no splat import and no dependency on meta-spatial-sdk-splat.
+  const usesSplat = objs.some((o) => o.splat);
+
   const objLines = objs
     .map((o, i) => {
       const comps = meshComponentsKt(o).concat(transformKt(o));
       const compBlock = comps.map((c) => `                ${c},`).join('\n');
       const animated = BEHAVIORS.has(o.behavior);
       const agentTag = o.agentId ? ` @agent ${o.agentId}` : '';
+      // Comment label: splat asset > glb model > primitive shape (so the generated comment names what
+      // the object actually is — a splat reads "splat: x.spz", not the unused fallback "box").
+      const descriptor = o.splat ? `splat: ${o.splat}` : o.model || o.shape;
       if (!animated) {
-        return `    // object "${o.name}" (${o.model || o.shape})${agentTag}
+        return `    // object "${o.name}" (${descriptor})${agentTag}
     w.entities.add(
         Entity.create(
             listOf(
@@ -304,7 +334,7 @@ ${compBlock}
     )`;
       }
       const v = `o${i}`;
-      return `    // object "${o.name}" (${o.model || o.shape}, behavior: ${o.behavior})${agentTag}
+      return `    // object "${o.name}" (${descriptor}, behavior: ${o.behavior})${agentTag}
     val ${v} =
         Entity.create(
             listOf(
@@ -326,6 +356,14 @@ ${compBlock}
     })
     .join('\n');
 
+  // Splat import + experimental opt-in, injected ONLY when the world uses a Gaussian splat (keeps
+  // splat-free worlds byte-identical and free of the meta-spatial-sdk-splat dependency).
+  const splatImports = usesSplat
+    ? `import com.meta.spatial.splat.Splat\nimport com.meta.spatial.splat.SpatialSDKExperimentalSplatAPI\n`
+    : '';
+  // Splat is a @RequiresOptIn(ERROR) experimental API — the object that references it must opt in.
+  const splatOptIn = usesSplat ? `@OptIn(SpatialSDKExperimentalSplatAPI::class)\n` : '';
+
   return `package ${PKG}
 
 import android.net.Uri
@@ -334,7 +372,7 @@ import com.meta.spatial.core.Entity
 import com.meta.spatial.core.Pose
 import com.meta.spatial.core.Quaternion
 import com.meta.spatial.core.Vector3
-import com.meta.spatial.toolkit.Box
+${splatImports}import com.meta.spatial.toolkit.Box
 import com.meta.spatial.toolkit.Material
 import com.meta.spatial.toolkit.Mesh
 import com.meta.spatial.toolkit.MeshCollision
@@ -347,7 +385,7 @@ import com.meta.spatial.toolkit.Transform
  * Authored in HoloScript, compiled to Meta Spatial SDK entities (geometry -> mesh, color -> Material,
  * position/rotation/scale -> Transform, behavior -> a per-frame WorldAnimated the WorldRenderer ticks).
  */
-object World_${kid} {
+${splatOptIn}object World_${kid} {
   const val displayName = ${ksafe(display)}
 
   fun build(): WorldBuild {

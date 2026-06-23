@@ -26,6 +26,7 @@ meta-spatial-sdk-datamodelinspector = { group = "com.meta.spatial", name = "meta
 meta-spatial-sdk-isdk = { group = "com.meta.spatial", name = "meta-spatial-sdk-isdk", version.ref = "spatialsdk" }
 meta-spatial-sdk-spatialaudio = { group = "com.meta.spatial", name = "meta-spatial-sdk-spatialaudio", version.ref = "spatialsdk" }
 meta-spatial-sdk-uiset = { group = "com.meta.spatial", name = "meta-spatial-sdk-uiset", version.ref = "spatialsdk" }
+meta-spatial-sdk-splat = { group = "com.meta.spatial", name = "meta-spatial-sdk-splat", version.ref = "spatialsdk" }
 
 # Core Android Libraries
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

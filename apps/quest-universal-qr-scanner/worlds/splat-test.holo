@@ -1,0 +1,25 @@
+// Splat Test — proves the sovereign $0 Quest Gaussian-splat pipeline end-to-end. A single splat
+// object references the procedurally-generated test-orb.spz (16k gaussians, ~126 KiB, encoded by our
+// own SpzCodec via scripts/gen-test-orb-spz.mts), which the quest target compiles to Meta's native
+// com.meta.spatial.splat.Splat. Reached by scanning holoscript://world/splat-test (registry key
+// "splat-test"). A dim ground plane gives the floating glowing orb a place to sit.
+
+composition "SplatTest" {
+  environment {
+    backgroundColor: "#0a0a12"   // near-black so the colourful orb reads brightly
+    ambient_light: 0.4
+  }
+
+  object "Ground" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [20, 20, 1]
+    color: "#15151f"
+  }
+
+  // The synthetic glowing orb, rendered as a Gaussian splat cloud by Meta's native Splat component.
+  object "TestOrb" {
+    splat: "test-orb.spz"
+    position: [0, 1.4, -2.2]
+  }
+}
