@@ -240,7 +240,12 @@ export class AnimationTrait {
     return true;
   }
 
-  public crossfade(stateName: string, duration: number = 0.25, layer: number = 0): boolean {
+  public crossfade(
+    stateName: string,
+    duration: number = 0.25,
+    layer: number = 0,
+    easing?: string
+  ): boolean {
     const resolved = this.sm.resolveClipForState(stateName, this.clips);
     if (!resolved) return false;
 
@@ -264,6 +269,7 @@ export class AnimationTrait {
       to: newAnim,
       progress: 0,
       duration,
+      easing,
     });
 
     this.emit({

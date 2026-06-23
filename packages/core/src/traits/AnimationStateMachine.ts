@@ -15,11 +15,17 @@ import type {
   CrossfadeState,
   TransitionCondition,
 } from './AnimationTypes';
+import { applyEasing } from '../runtime/easing';
 
 /**
  * Callback invoked by the state machine when a crossfade is needed.
  */
-export type CrossfadeRequestFn = (stateName: string, duration: number, layer: number) => boolean;
+export type CrossfadeRequestFn = (
+  stateName: string,
+  duration: number,
+  layer: number,
+  easing?: string
+) => boolean;
 
 /**
  * Animation State Machine — states, transitions, conditions, parameters, layers
@@ -169,7 +175,7 @@ export class AnimationStateMachine {
         if (!transition.canTransitionToSelf && transition.to === currentState) continue;
 
         if (this.evaluateConditions(transition.conditions ?? [])) {
-          this.onCrossfade(transition.to, transition.duration ?? 0.25, layerIndex);
+          this.onCrossfade(transition.to, transition.duration ?? 0.25, layerIndex, transition.easing);
           break;
         }
       }
@@ -274,8 +280,12 @@ export class AnimationStateMachine {
         emit({ type: 'transition-end', toState: crossfade.to.state, timestamp: Date.now() });
         emit({ type: 'state-enter', state: crossfade.to.state, timestamp: Date.now() });
       } else {
-        crossfade.from.weight = 1 - crossfade.progress;
-        crossfade.to.weight = crossfade.progress;
+        // Ease the crossfade blend with the transition's easing curve (reuses
+        // the shipped applyEasing: spring overshoots, bounce rebounds, etc.).
+        // Default 'linear' reproduces the prior raw-progress weighting exactly.
+        const eased = applyEasing(crossfade.progress, crossfade.easing ?? 'linear');
+        crossfade.from.weight = 1 - eased;
+        crossfade.to.weight = eased;
         updateAnimation(crossfade.from, deltaTime);
         updateAnimation(crossfade.to, deltaTime);
       }

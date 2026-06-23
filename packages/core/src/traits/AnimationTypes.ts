@@ -146,6 +146,13 @@ export interface AnimationTransition {
 
   /** Priority (higher = checked first) */
   priority?: number;
+
+  /**
+   * Crossfade easing curve name — reuses the shipped `applyEasing` vocabulary
+   * (`linear` / `easeIn` / `easeOut` / `easeInOut` / `spring` / `bounce` /
+   * `smoothstep`). Default `linear` (preserves prior crossfade behavior).
+   */
+  easing?: string;
 }
 
 /**
@@ -169,6 +176,8 @@ export interface CrossfadeState {
   to: ActiveAnimation;
   progress: number;
   duration: number;
+  /** Easing curve for the blend weight (see AnimationTransition.easing). */
+  easing?: string;
 }
 
 /**
