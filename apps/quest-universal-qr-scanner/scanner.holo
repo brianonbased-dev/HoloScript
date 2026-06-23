@@ -85,7 +85,7 @@ composition "UniversalQrScanner" {
       size: { width: 1.2, height: 1.2 }
       follow_head: true                    // HUD follows the head (not world-fixed) — moves with your gaze
       follow_distance: 1.2                 // meters in front of the head
-      title: "Universal QR Scanner"
+      title: "HoloQR"
       ambient: true                        // nothing shown while scanning; a result card pops only on a hit
     }
   }
@@ -105,7 +105,7 @@ composition "UniversalQrScanner" {
   // Welcome / how-to-use screen — trait: OnboardingTrait.
   object "welcome" {
     @onboarding {
-      title: "Universal QR Scanner"
+      title: "HoloQR"
       tagline: "Read any QR code — right in mixed reality"
       how_to_use: [
         { context: "At your computer", icon: "monitor", text: "Look at a QR on your screen — the scanner reads it straight through passthrough." },

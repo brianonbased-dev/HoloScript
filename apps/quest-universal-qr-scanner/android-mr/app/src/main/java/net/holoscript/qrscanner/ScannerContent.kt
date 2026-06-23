@@ -6,8 +6,8 @@ package net.holoscript.qrscanner
  * traits and recompiling. The Compose UI in ScannerPanel.kt renders THIS data.
  */
 object ScannerContent {
-  const val appName = "Universal QR Scanner"
-  const val title = "Universal QR Scanner"
+  const val appName = "HoloQR"
+  const val title = "HoloQR"
   const val tagline = "Read any QR code — right in mixed reality"
   const val aimTip = "Center the QR in your view, about an arm's length away, and hold steady for a moment."
   const val startAction = "Start scanning"

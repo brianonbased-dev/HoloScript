@@ -143,6 +143,12 @@ class StarterSampleActivity : AppSystemActivity() {
   override fun onSceneTick() {
     super.onSceneTick()
     if (!sceneReady) return
+    // YIELD TO THE SYSTEM: when the Meta button opens the universal menu the app loses window focus
+    // (it keeps rendering — focusaware) but must STOP driving the scene. Otherwise the head-locked,
+    // interactive panel keeps following the head into the menu and competes for the controller pointer,
+    // so the universal menu can't be dismissed ("menu opens and doesn't close"). Freeze the panel +
+    // locomotion until focus returns; the system menu then behaves normally.
+    if (!hasWindowFocus()) return
     if (ScannerState.screen == Screen.IN_WORLD) updateLocomotion() // MMO free-roam while immersed
     val p = panelEntity ?: return
     val target = scene.getViewerPose().times(Pose(Vector3(0f, 0f, FOLLOW_DISTANCE)))
