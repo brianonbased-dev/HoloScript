@@ -1,9 +1,9 @@
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'crypto';
 import { join } from 'path';
 import { v4 as uuid } from 'uuid';
-import { logger } from '../utils/logger';
-import { JsonFileStore } from './JsonFileStore';
-import { StorageService } from './StorageService';
+import { logger } from '../utils/logger.js';
+import { JsonFileStore } from './JsonFileStore.js';
+import { StorageService } from './StorageService.js';
 
 type Role = 'user' | 'admin' | 'service';
 

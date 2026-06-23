@@ -8,8 +8,8 @@
 import { createHash } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { join } from 'path';
-import { logger } from '../utils/logger';
-import { JsonFileStore } from './JsonFileStore';
+import { logger } from '../utils/logger.js';
+import { JsonFileStore } from './JsonFileStore.js';
 
 // ============================================================================
 // Types

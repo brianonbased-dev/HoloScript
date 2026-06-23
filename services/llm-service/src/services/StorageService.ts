@@ -5,7 +5,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { v4 as uuid } from 'uuid';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface StoredBuild {
   id: string;

@@ -38,7 +38,7 @@ import {
   type LLMCompletionRequest,
   type ToolSpec,
 } from '@holoscript/llm-provider';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 // ============================================================================
 // Types (PUBLIC WIRE CONTRACT — server.ts + brittney-cloud.ts depend on these)

@@ -2,7 +2,7 @@
  * Ollama inference service
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface OllamaStatus {
   available: boolean;

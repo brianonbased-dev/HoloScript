@@ -20,7 +20,7 @@
  * Ref: ai-ecosystem/research/2026-05-31_self-hosted-fleet-inference-plan.md (Phase 0).
  */
 
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DEFAULT_WINDOW_HOURS = 168; // 7 days — enough to read a weekly crossover

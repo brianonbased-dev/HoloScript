@@ -2,10 +2,10 @@
  * Build generation service - converts prompts to HoloScript code
  */
 
-import { StorageService, StoredBuild } from './StorageService';
-import { OllamaService } from './OllamaService';
+import { StorageService, StoredBuild } from './StorageService.js';
+import { OllamaService } from './OllamaService.js';
 import { v4 as _uuid } from 'uuid';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface GenerateOptions {
   context: string;
