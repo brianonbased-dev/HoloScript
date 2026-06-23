@@ -17,7 +17,7 @@
 | G3 | `.hs/.hsplus → uAA2++ compiler → UAAL bytecode` | **slice 1 bridged**: `UaalBehaviorCompiler` lowers the behavioral subset (actions/handlers + if/else) to UAAL bytecode, e2e-tested on the real VM; loops deferred | ✅⚠️ **partial** |
 | G4 | `holo compile … --target uaal` (per `agents/uaal-vm.md`) | **shipped**: `--target uaal` parses `.holo` → `UaalBehaviorCompiler` → writes `.uaal` bytecode; verified end-to-end | ✅ |
 | G5 | cognitive ⇄ spatial via `SceneSnapshot` | **shipped**: `sceneSnapshot()` serializes HOLO world → perception; both real VMs proven against the shared contract (producer+act / cognitive decision); in-process adapter deferred (needs a package depping both) | ✅⚠️ **partial** |
-| G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter only landed 2026-06-21; TS parser can't parse `.hs` logic (HSP101) | ⚠️ young |
+| G6 | `.hs` imperative logic is a real compiled language | Rust/WASM grammar parses; `.hs→Kotlin` emitter now covers a substantial subset — numerics, enums, structs (+per-field type inference), strings (+`${}` interpolation), arrays→`listOf` with `List<T>` inference on returns/params/locals (G6 + G7 slice-1/slice-2/G7c/G7d shipped 2026-06-21..23); still a *declared* subset (object-literals→`mapOf` = G7e, struct list-fields = G7f queued); TS parser can't parse `.hs` logic (HSP101) | ⚠️ growing |
 | G7 | native-authoring coverage is tracked + rising | **shipped**: `check:native-coverage` ratchet gate — real packages-scoped coverage **22.63%** (162 native vs 554 hand-TS), must rise/hold; replaces the unverified "1.32%" paper figure | ✅ |
 | G8 | the spec is the language's source of truth | spec lived only in the Gemini knowledge silo until 2026-06-22 | ✅ (reclaimed by this dir) |
 | G9 | fleet agents (Jetson/laptop/Vast) communicate as uAAL peers | mesh opcodes (`CALL_NODE`/`OP_OFFLOAD`/`OP_SYNC`) were inert; **now wired** to a `MeshTransport` (slice 1 in-process router, e2e proven); real HoloMesh adapter pending | ✅⚠️ **partial** |
@@ -111,8 +111,12 @@ actuate back) is described but not exercised in a canonical path.
 
 ## G6 — Mature the `.hs` grammar + emitter on the canonical Rust/WASM parser
 
-The `.hs→Kotlin` emitter (2026-06-21, W.815) is the first proof `.hs` logic compiles to a real
-target. Generalize beyond the current subset (loops/structs/mutable-state still open).
+The `.hs→Kotlin` emitter (first landed 2026-06-21, W.815) is the proof `.hs` logic compiles to a
+real target. Since then the subset has grown — loops, structs (with per-field type inference),
+local mutable-state, string interpolation (`${}`), and typed arrays/lists (`listOf` + `List<T>`
+inference on returns, params, and locals) all ship and are cargo-/parity-tested. It is still a
+*declared subset* (`lib.rs:1` self-labels "`.hs` subset parser"): object literals → `mapOf` (G7e)
+and struct list-fields (G7f) are the next queued slices; broader grammar generalization continues.
 
 - **Falsifiable claim:** the documented `.hs` logic subset compiles via `packages/compiler-wasm`
   to ≥1 target with parity tests green.
