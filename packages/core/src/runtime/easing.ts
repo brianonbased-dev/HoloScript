@@ -32,7 +32,9 @@ export type EasingName =
   // `spring` overshoots above 1 before settling — physics easing, see below.
   | 'spring'
   // `bounce` stays in [0,1] but is non-monotonic (rebounds) — physics easing.
-  | 'bounce';
+  | 'bounce'
+  // `smoothstep` = Hermite t²(3−2t); the default tween for timeline tracks.
+  | 'smoothstep';
 
 /**
  * Spring (physics) easing — the analytic step response of an underdamped
@@ -125,6 +127,8 @@ export function applyEasing(t: number, easing: string): number {
       return springEasing(t);
     case 'bounce':
       return bounceEasing(t);
+    case 'smoothstep':
+      return t * t * (3 - 2 * t);
     case 'linear':
     default:
       return t;

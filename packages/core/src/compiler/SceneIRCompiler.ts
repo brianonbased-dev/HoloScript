@@ -2765,6 +2765,9 @@ export class SceneIRCompiler {
     if (node.type === 'component') {
       return this.compileComponentNode(node as unknown as CompositionChild);
     }
+    if (node.type === 'timeline') {
+      return this.compileHsplusTimelineNode(node as unknown as Record<string, unknown>);
+    }
 
     const rawProps = (node as unknown as CompositionChild).properties || {};
     const type = this.mapType(node.type, rawProps);
@@ -4119,6 +4122,57 @@ export class SceneIRCompiler {
     );
     timelineNode.children = entries;
     return timelineNode;
+  }
+
+  /**
+   * Compile a `.hsplus` keyframe-track timeline (HoloScriptPlusParser shape:
+   * `{ type:'timeline', children:[{ type:'track', target, keyframes:[{time,value,easing}] }] }`,
+   * the Theatre.js harvest grammar) into the SAME `Timeline` + `TimelineEntry`
+   * R3F shape the existing `<TimelineDriver>` already plays — one `TimelineEntry`
+   * per keyframe, grouped by the track's target. The per-keyframe `easing` is
+   * carried onto the entry so the driver can honor it (driver-side application is
+   * the S4b slice; today the driver tweens with smoothstep). End-to-end: a
+   * keyframe-track timeline now DRIVES `__animatedTransform` consumers.
+   */
+  private compileHsplusTimelineNode(node: Record<string, unknown>): R3FNode {
+    const entries: R3FNode[] = [];
+    const children = (node.children as Array<Record<string, unknown>>) || [];
+    for (const track of children) {
+      if (track.type !== 'track') continue;
+      const target = track.target as string;
+      const keyframes = (track.keyframes as Array<Record<string, unknown>>) || [];
+      for (const kf of keyframes) {
+        const entryProps: Record<string, unknown> = {
+          time: Number(kf.time),
+          actionKind: 'animate',
+          target,
+          properties: { value: this.resolveKeyframeValue(kf.value) },
+        };
+        if (typeof kf.easing === 'string') entryProps.easing = kf.easing;
+        entries.push(this.createNode('TimelineEntry', entryProps));
+      }
+    }
+    const props = (node.properties as Record<string, unknown>) || {};
+    const safeName = node.name ? escapeStringValue(node.name as string, 'JSX') : undefined;
+    const timelineNode = this.createNode(
+      'Timeline',
+      { autoplay: props.autoplay, loop: props.loop },
+      safeName
+    );
+    timelineNode.children = entries;
+    return timelineNode;
+  }
+
+  /** Resolve a keyframe value (a HoloScriptPlusParser `parseValue` result) to a
+   *  number — a bare number, a `{ value }` literal wrapper, or a coercible. */
+  private resolveKeyframeValue(v: unknown): number {
+    if (typeof v === 'number') return v;
+    if (v && typeof v === 'object' && 'value' in (v as Record<string, unknown>)) {
+      const n = Number((v as Record<string, unknown>).value);
+      return Number.isFinite(n) ? n : 0;
+    }
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
   }
 
   private compileAudioBlock(audio: Record<string, unknown>): R3FNode {
