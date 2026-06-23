@@ -115,6 +115,15 @@ describe('DialectRegistry', () => {
       expect(info).toBeDefined();
       expect(info!.experimental).toBe(true);
     });
+
+    it('registers DaimonSeed as an AI dialect using the shared ANS path', () => {
+      const info = DialectRegistry.get('daimon-seed');
+      expect(info).toBeDefined();
+      expect(info!.domain).toBe('ai');
+      expect(info!.riskTier).toBe('high');
+      expect(info!.ansPath).toBe('/compile/ai/daimon-seed');
+      expect(info!.outputExtensions).toContain('.json');
+    });
   });
 
   describe('has()', () => {

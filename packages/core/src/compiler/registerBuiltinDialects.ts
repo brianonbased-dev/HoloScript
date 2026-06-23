@@ -323,6 +323,19 @@ export function registerBuiltinDialects(): void {
       outputExtensions: ['.ts', '.py', '.json', '.md'],
     },
     {
+      name: 'daimon-seed',
+      domain: 'ai',
+      description:
+        'Compiles portable DaimonSeed IR recipes with shared JSON-Logic thresholds; never serializes runtime soul state',
+      supportedTraits: ['daimon', 'agent', 'emergence', 'identity', 'content_policy'],
+      riskTier: 'high',
+      factory: (opts) => {
+        const { DaimonSeedCompiler } = require('./DaimonSeedCompiler');
+        return new DaimonSeedCompiler(opts);
+      },
+      outputExtensions: ['.json'],
+    },
+    {
       name: 'mcp-server',
       domain: 'ai',
       description:

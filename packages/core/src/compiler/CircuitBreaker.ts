@@ -67,6 +67,7 @@ export type ExportTarget =
   | 'tsl' // Trait Shader Language (trait-to-shader)
   | 'a2a-agent-card' // A2A Protocol Agent Card manifests
   | 'agent-inference' // Runnable agent inference scripts (AgentInferenceCompiler)
+  | 'daimon-seed' // Portable DaimonSeed IR recipe, not runtime soul serialization
   | 'nir' // Neuromorphic Intermediate Representation (Intel Loihi 2, SpiNNaker 2, SynSense)
   | 'openxr-spatial-entities' // OpenXR Spatial Entity persistence (XR_FB_spatial_entity_storage)
   | 'canvas2d-game' // Native 2D canvas GAME (trait-driven, self-contained offline HTML)

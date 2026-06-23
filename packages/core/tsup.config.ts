@@ -109,6 +109,7 @@ export default defineConfig({
 
     // Sprint 3: Agent inference export
     'compiler/agent-inference': 'src/compiler/AgentInferenceExportTarget.ts',
+    'compiler/daimon-seed': 'src/compiler/DaimonSeedCompiler.ts',
 
     // Agent context compiler (CLAUDE.md / AGENTS.md-style context emitters)
     'compiler/context': 'src/compiler/ContextCompiler.ts',

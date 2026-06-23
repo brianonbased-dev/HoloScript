@@ -168,6 +168,27 @@ export type {
   ToolDefinition,
 } from './AgentInferenceExportTarget';
 
+// DaimonSeed compiler: portable seed recipe, shared JSON-Logic thresholds, no soul serialization.
+export {
+  DaimonSeedCompiler,
+  computeExportFidelity,
+  createDaimonSeedCompiler,
+  runHysteresisExp2,
+} from './DaimonSeedCompiler';
+export type {
+  DaimonCompositionPriors,
+  DaimonFieldPriors,
+  DaimonSeedCompilerOptions,
+  DaimonSeedIR,
+  DaimonSeedSchemaVersion,
+  DaimonSeedThresholdPreview,
+  DaimonSeedThresholdRuntime,
+  ExportFidelityInput,
+  ExportFidelityResult,
+  HysteresisExp2Input,
+  HysteresisExp2Result,
+} from './DaimonSeedCompiler';
+
 // Agent context compiler
 export { ContextCompiler, ContextCompileError, createContextCompiler } from './ContextCompiler';
 export type {

@@ -52,6 +52,7 @@ import { TraitCompositionCompiler } from './TraitCompositionCompiler';
 import { TSLCompiler } from './TSLCompiler';
 import { A2AAgentCardCompiler } from './A2AAgentCardCompiler';
 import { AgentInferenceCompiler } from './AgentInferenceExportTarget';
+import { DaimonSeedCompiler } from './DaimonSeedCompiler';
 import { NIRCompiler } from './NIRCompiler';
 import { OpenXRSpatialEntitiesCompiler } from './OpenXRSpatialEntitiesCompiler';
 import { USDPhysicsCompiler } from './USDPhysicsCompiler';
@@ -274,6 +275,10 @@ class CompilerFactory {
       case 'agent-inference':
         return new AgentInferenceCompiler(
           options as unknown as ConstructorParameters<typeof AgentInferenceCompiler>[0]
+        );
+      case 'daimon-seed':
+        return new DaimonSeedCompiler(
+          options as unknown as ConstructorParameters<typeof DaimonSeedCompiler>[0]
         );
       case 'nir':
         return new NIRCompiler(options);
@@ -654,6 +659,7 @@ export class ExportManager {
       'tsl',
       'a2a-agent-card',
       'agent-inference',
+      'daimon-seed',
       'nir',
       'openxr-spatial-entities',
       '3dgs',

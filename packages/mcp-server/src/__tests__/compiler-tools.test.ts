@@ -89,6 +89,42 @@ describe('compiler tools', () => {
     expect(files['config.json']).toContain('gpt-4o');
   });
 
+  it('compiles DaimonSeed IR through its convenience tool', async () => {
+    const result = (await handleCompilerTool('compile_to_daimon_seed', {
+      code: `composition "SeedBrain" {
+        object "mentor_agent" {
+          @agent(role: "mentor")
+          @emergence(heldout: true)
+        }
+      }`,
+      options: {
+        provenanceChainRef: 'prov:v2:test',
+        emergenceContractRef: 'emergence:t4:test',
+      },
+    })) as {
+      success?: boolean;
+      output?: string;
+      target?: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.target).toBe('daimon-seed');
+    const seed = JSON.parse(result.output ?? '{}') as {
+      kind?: string;
+      thresholdRuntime?: { id?: string };
+      fidelityContract?: { metric?: string };
+      hysteresisExp2?: { coefficient?: string };
+      custody?: { runtimeOnly?: string[] };
+      provenanceChainRef?: string;
+    };
+    expect(seed.kind).toBe('DaimonSeed');
+    expect(seed.thresholdRuntime?.id).toBe('ContentPolicyGate.jsonLogic');
+    expect(seed.fidelityContract?.metric).toBe('exportFidelity');
+    expect(seed.hysteresisExp2?.coefficient).toBe('div(A,B)/div(A,A_prime)');
+    expect(seed.custody?.runtimeOnly).toEqual(['realizedComposition', 'observationPath', 'soul']);
+    expect(seed.provenanceChainRef).toBe('prov:v2:test');
+  });
+
   it('returns a 3D Tiles stream manifest through stream_world_tiles', async () => {
     const result = (await handleCompilerTool('stream_world_tiles', {
       code: 'composition "TileWorld" {}',

@@ -176,6 +176,7 @@ export type CompilerName =
   | 'scm'
   | 'a2a-agent-card'
   | 'agent-inference'
+  | 'daimon-seed'
   | 'mcp-config'
   | 'mcp-server'
   // neuromorphic
@@ -265,6 +266,7 @@ export const ANSCapabilityPath = {
   SCM: '/compile/ai/scm',
   A2A_AGENT_CARD: '/compile/ai/a2a-agent-card',
   AGENT_INFERENCE: '/compile/ai/agent-inference',
+  DAIMON_SEED: '/compile/ai/daimon-seed',
   MCP_CONFIG: '/compile/ai/mcp-config',
   MCP_SERVER: '/compile/ai/mcp-server',
 
@@ -342,6 +344,7 @@ export const COMPILER_DOMAIN_MAP: Readonly<Record<CompilerName, ANSDomainValue>>
   scm: ANSDomain.AI,
   'a2a-agent-card': ANSDomain.AI,
   'agent-inference': ANSDomain.AI,
+  'daimon-seed': ANSDomain.AI,
   'mcp-config': ANSDomain.AI,
   'mcp-server': ANSDomain.AI,
   // neuromorphic
@@ -402,6 +405,7 @@ export const COMPILER_ANS_MAP: Readonly<Record<CompilerName, ANSCapabilityPathVa
   // vrr: retired as apex-poison 2026-06-17
   'a2a-agent-card': ANSCapabilityPath.A2A_AGENT_CARD,
   'agent-inference': ANSCapabilityPath.AGENT_INFERENCE,
+  'daimon-seed': ANSCapabilityPath.DAIMON_SEED,
   'mcp-config': ANSCapabilityPath.MCP_CONFIG,
   'mcp-server': ANSCapabilityPath.MCP_SERVER,
   nir: ANSCapabilityPath.NIR,

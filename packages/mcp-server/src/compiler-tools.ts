@@ -163,6 +163,44 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const EXPORT_OPTION_KEYS = new Set([
+  'useCircuitBreaker',
+  'useFallback',
+  'throwOnError',
+  'circuitConfig',
+  'compilerOptions',
+  'useMemoryMonitoring',
+  'memoryMonitorConfig',
+  'enableGaussianBudgetWarnings',
+  'gaussianBudgetOverrides',
+  'generateDocs',
+  'docsOptions',
+  'agentToken',
+]);
+
+function toExportOptions(options: Record<string, unknown>): Partial<ExportOptions> {
+  const exportOptions: Record<string, unknown> = {};
+  const compilerOptions: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(options)) {
+    if (EXPORT_OPTION_KEYS.has(key)) {
+      exportOptions[key] = value;
+    } else {
+      compilerOptions[key] = value;
+    }
+  }
+
+  const nestedCompilerOptions = isRecord(exportOptions['compilerOptions'])
+    ? exportOptions['compilerOptions']
+    : {};
+  const mergedCompilerOptions = { ...compilerOptions, ...nestedCompilerOptions };
+  if (Object.keys(mergedCompilerOptions).length > 0) {
+    exportOptions['compilerOptions'] = mergedCompilerOptions;
+  }
+
+  return exportOptions as Partial<ExportOptions>;
+}
+
 function normalizeTargetOptions(
   target: ExportTarget,
   options: Partial<ExportOptions>
@@ -237,11 +275,12 @@ async function compileToTarget(
   warnings: string[];
 }> {
   const exportManager = getExportManager();
+  const exportOptions = toExportOptions(options as Record<string, unknown>);
   // ExportManager.export(target, composition, options) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â target is first arg
   const result = await exportManager.export(
     target,
     composition,
-    normalizeTargetOptions(target, options)
+    normalizeTargetOptions(target, exportOptions)
   );
 
   if (!result.success) {
@@ -643,7 +682,12 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     'Robotics/IoT': ['urdf', 'sdf', 'dtdl'] as unknown as ExportTarget[],
     '3D Formats': ['usd', 'usdz', 'fmu', '3dgs', '3dtiles'] as unknown as ExportTarget[],
     'Studio Tools': ['code-editor'] as unknown as ExportTarget[],
-    'AI/MCP': ['a2a-agent-card', 'agent-inference', 'mcp-server'] as unknown as ExportTarget[],
+    'AI/MCP': [
+      'a2a-agent-card',
+      'agent-inference',
+      'daimon-seed',
+      'mcp-server',
+    ] as unknown as ExportTarget[],
   };
 
   const sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'> = {};
@@ -794,6 +838,8 @@ export async function handleCompilerTool(
       return handleCompileToTarget({ ...args, target: 'a2a-agent-card' });
     case 'compile_to_agent_inference':
       return handleCompileToTarget({ ...args, target: 'agent-inference' });
+    case 'compile_to_daimon_seed':
+      return handleCompileToTarget({ ...args, target: 'daimon-seed' });
     case 'compile_to_state':
       return handleCompileToTarget({ ...args, target: 'state' });
     case 'compile_to_3dgs':
@@ -1662,6 +1708,62 @@ export const compilerTools: Tool[] = [
     },
   },
   {
+    name: 'compile_to_daimon_seed',
+    description:
+      'Compile HoloScript to portable DaimonSeed IR: field priors, shared ContentPolicyGate JSON-Logic thresholds, provenance/emergence refs, export-fidelity custody semantics, and no serialized soul/runtime observation path.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          description: 'HoloScript / HSPlus source to compile into a DaimonSeed recipe',
+        },
+        options: {
+          type: 'object',
+          properties: {
+            seedId: {
+              type: 'string',
+              description: 'Optional deterministic seed identifier override',
+            },
+            domainSpecHash: {
+              type: 'string',
+              description: 'Optional domain-spec hash override',
+            },
+            provenanceChainRef: {
+              type: 'string',
+              description: 'T1 provenance-chain receipt reference',
+            },
+            emergenceContractRef: {
+              type: 'string',
+              description: 'T4 emergence contract reference',
+            },
+            noiseFloorRef: {
+              type: 'string',
+              description: 'Receipt/reference for reproducibility noise floor',
+            },
+            fieldPriors: {
+              type: 'object',
+              description: 'Tensor prior metadata: tensorSchema, shape, dtype, weightsRef',
+            },
+            thresholdFn: {
+              type: 'object',
+              description: 'JSON-Logic predicate evaluated by the shared ContentPolicyGate runtime',
+            },
+            thresholdFacts: {
+              type: 'object',
+              description: 'Facts used for threshold preview evaluation',
+            },
+            initialWeights: {
+              type: 'object',
+              description: 'Optional trait-vocabulary initial weights',
+            },
+          },
+        },
+      },
+      required: ['code'],
+    },
+  },
+  {
     name: 'compile_to_state',
     description: 'Compile HoloScript to reactive state shape JSON for agent brain configurations',
     inputSchema: {
@@ -2337,6 +2439,7 @@ export const compilerTools: Tool[] = [
             'multi-layer',
             '3dgs',
             '3dtiles',
+            'daimon-seed',
           ],
           description: 'Export target to check',
         },

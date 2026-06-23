@@ -41,6 +41,7 @@ export const ANSCapabilityPath = {
   VRR: '/compile/ai/vrr',
   A2A_AGENT_CARD: '/compile/ai/a2a-agent-card',
   AGENT_INFERENCE: '/compile/ai/agent-inference',
+  DAIMON_SEED: '/compile/ai/daimon-seed',
   NIR: '/compile/neuromorphic/nir',
   MULTI_LAYER: '/compile/meta/multi-layer',
   INCREMENTAL: '/compile/meta/incremental',
