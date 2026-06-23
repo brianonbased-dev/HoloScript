@@ -1084,24 +1084,65 @@ fn emit_float_literal(raw: &str) -> String {
     }
 }
 
-/// Emit a Kotlin double-quoted string literal, escaping `\`, `"`, and `$`
-/// (Kotlin string templates treat `$` specially).
+/// Emit a Kotlin double-quoted string literal.
+///
+/// A `${ … }` segment is passed through verbatim as a Kotlin string-template expression — this is
+/// HoloScript string interpolation (`"hi ${name}"` ⇒ Kotlin interpolates `name`). The inner
+/// expression is handed to Kotlin as-is and validated at Kotlin-compile time (the `.hs` emitter
+/// does not yet re-parse it). Every *other* `$` is escaped to `\$` so a bare dollar stays literal
+/// (`"$cost"` ⇒ `"\$cost"`) — Kotlin treats an unescaped `$` specially, and bare-`$`-literal is the
+/// shipped behaviour this preserves (so only the explicit `${ … }` form interpolates, never a bare
+/// `$name`). Braces inside the interpolation are balanced so `${ … {…} … }` passes through whole;
+/// an unbalanced `${` falls back to a literal `$`. `\`, `"`, and whitespace controls escape as usual.
 fn emit_string_literal(value: &str) -> String {
+    let chars: Vec<char> = value.chars().collect();
     let mut out = String::with_capacity(value.len() + 2);
     out.push('"');
-    for ch in value.chars() {
+    let mut i = 0;
+    while i < chars.len() {
+        let ch = chars[i];
         match ch {
+            '$' if i + 1 < chars.len() && chars[i + 1] == '{' => {
+                // `${ … }` — pass the whole balanced template expression through to Kotlin.
+                if let Some(end) = matching_brace(&chars, i + 1) {
+                    out.extend(&chars[i..=end]);
+                    i = end + 1;
+                    continue;
+                }
+                // Unbalanced `${` — no matching `}`, so treat the dollar as a literal.
+                out.push_str("\\$");
+            }
+            '$' => out.push_str("\\$"),
             '\\' => out.push_str("\\\\"),
             '"' => out.push_str("\\\""),
-            '$' => out.push_str("\\$"),
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
             other => out.push(other),
         }
+        i += 1;
     }
     out.push('"');
     out
+}
+
+/// Given `chars[open]` is `{`, return the index of the matching `}` (brace-balanced), or `None`
+/// if the braces never balance before the end of the slice.
+fn matching_brace(chars: &[char], open: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (offset, &c) in chars[open..].iter().enumerate() {
+        match c {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(open + offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn node_kind(node: &AstNode) -> &'static str {
@@ -1214,6 +1255,48 @@ mod tests {
 }"#;
         let out = kotlin(src);
         assert!(out.contains("return \"\\$cost\""), "{out}");
+    }
+
+    // ── String interpolation `${ … }` (G7b) ─────────────────────────────────────────────────────
+
+    #[test]
+    fn interpolates_braced_expression() {
+        // `${name}` passes through as a Kotlin template expression (NOT escaped to a literal).
+        let src = r#"function greet(name) {
+  return "hello ${name}"
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return \"hello ${name}\""), "{out}");
+        assert!(!out.contains("\\${name}"), "must not escape an interpolation: {out}");
+    }
+
+    #[test]
+    fn interpolates_member_access_expression() {
+        let src = r#"function f(user) {
+  return "${user.name}"
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return \"${user.name}\""), "{out}");
+    }
+
+    #[test]
+    fn bare_dollar_outside_braces_stays_literal_with_interpolation() {
+        // A bare `$` (not `${`) stays literal even alongside an interpolation in the same string.
+        let src = r#"function price(qty) {
+  return "$5 for ${qty}"
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return \"\\$5 for ${qty}\""), "{out}");
+    }
+
+    #[test]
+    fn unbalanced_interpolation_brace_falls_back_to_literal_dollar() {
+        // `${` with no matching `}` is malformed as a template, so the dollar is emitted literal.
+        let src = r#"function f() {
+  return "${oops"
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("return \"\\${oops\""), "{out}");
     }
 
     #[test]
