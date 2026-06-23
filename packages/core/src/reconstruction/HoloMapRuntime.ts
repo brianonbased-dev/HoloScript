@@ -142,6 +142,13 @@ export interface DepthAlignmentFit {
 /** Capture-domain hint for specialist weights (v1.1+); affects replay fingerprint when not `generalist`. */
 export type HoloMapVerticalProfile = 'generalist' | 'indoor' | 'outdoor' | 'object';
 
+/**
+ * `preview` preserves the deterministic PRNG fallback for CI and low-trust demos.
+ * `dense-proof` raises point density and refuses to initialize unless verified
+ * checkpoint bytes are actually consumed by the runtime.
+ */
+export type HoloMapReconstructionMode = 'preview' | 'dense-proof';
+
 export interface HoloMapConfig {
   /** Input resolution — rescales frames before inference */
   inputResolution: { width: number; height: number };
@@ -167,6 +174,8 @@ export interface HoloMapConfig {
   cpuOffload: boolean;
   /** Model/weights strategy gate for MVP */
   weightStrategy?: 'distill' | 'fine-tune' | 'from-scratch';
+  /** Reconstruction trust/density mode. */
+  reconstructionMode?: HoloMapReconstructionMode;
   /**
    * Optional vertical specialist profile (pairs with a vertical-tuned `weightCid` in v1.1+).
    * Omitted or `generalist` does not change the replay fingerprint.
@@ -198,7 +207,14 @@ export const HOLOMAP_DEFAULTS: HoloMapConfig = {
   tileGrid: 4,
   cpuOffload: false,
   weightStrategy: 'distill',
+  reconstructionMode: 'preview',
   allowCpuFallback: true,
+};
+
+export const HOLOMAP_DENSE_PROOF_DEFAULTS: HoloMapConfig = {
+  ...HOLOMAP_DEFAULTS,
+  tileGrid: 16,
+  reconstructionMode: 'dense-proof',
 };
 
 // =============================================================================
@@ -260,6 +276,16 @@ export interface ReconstructionManifest {
   };
   /** Strategy used for selecting / running model weights */
   weightStrategy: 'distill' | 'fine-tune' | 'from-scratch';
+  /** Runtime proof-of-consumption metadata for reconstruction quality claims. */
+  reconstruction?: {
+    mode: HoloMapReconstructionMode;
+    modelHash: string;
+    tileGrid: number;
+    weightCid?: string;
+    weightLoadedBytes: number;
+    weightVerified: boolean;
+    weightSource?: 'cache' | 'network' | 'file';
+  };
 }
 
 // =============================================================================
@@ -301,6 +327,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   private microEncoder: HoloMapMicroEncoder | null = null;
   /** Loaded weight blob (optional; GPU upload wiring follows R3+). */
   private weightBytes: ArrayBuffer | null = null;
+  private weightVerified = false;
+  private weightSource: 'cache' | 'network' | 'file' | null = null;
   private streamingKVCache: PagedKVCache | null = null;
   private streamingKVNextToken = 0;
 
@@ -737,8 +765,20 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
   }
 
   async init(config: HoloMapConfig): Promise<void> {
-    this.config = { ...config };
+    this.config = {
+      ...config,
+      reconstructionMode: config.reconstructionMode ?? 'preview',
+    };
+    if (this.config.reconstructionMode === 'dense-proof') {
+      this.config.tileGrid = Math.max(
+        this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N,
+        HoloMapRuntimeImpl.DENSE_PROOF_GRID_N
+      );
+    }
     this.config.tileGrid = HoloMapRuntimeImpl.normalizeTileGrid(this.config.tileGrid);
+    if (this.config.reconstructionMode === 'dense-proof') {
+      HoloMapRuntimeImpl.assertDenseProofConfig(this.config);
+    }
     const allowCpu = this.config.allowCpuFallback !== false;
     if (!allowCpu && !isWebGpuEnvironmentPresent()) {
       const err =
@@ -783,14 +823,31 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       verticalProfile: this.config.verticalProfile,
     });
     this.weightBytes = null;
-    if (this.config.weightUrl) {
+    this.weightVerified = false;
+    this.weightSource = null;
+    const weightUrl =
+      this.config.weightUrl ??
+      (this.config.weightCid && this.config.localResolver
+        ? `holomap-local://${this.config.weightCid}`
+        : undefined);
+    if (weightUrl) {
       const result = await loadHoloMapWeightBlob({
-        weightUrl: this.config.weightUrl,
+        weightUrl,
         weightUrls: this.config.weightUrls,
         weightCid: this.config.weightCid,
         localResolver: this.config.localResolver,
       });
       this.weightBytes = result.bytes;
+      this.weightVerified = result.verified;
+      this.weightSource = result.source;
+    }
+    if (
+      this.config.reconstructionMode === 'dense-proof' &&
+      (!this.weightBytes || !this.weightVerified)
+    ) {
+      throw new Error(
+        'HoloMap dense-proof mode requires verified checkpoint bytes; preview mode is the only mode allowed to fall back to PRNG weights.'
+      );
     }
 
     this.encoderDevice = await tryCreateHoloMapEncoderDevice();
@@ -799,7 +856,10 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       1,
       this.config.maxSequenceLength * (this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N) ** 2
     );
-    const streamingPageSize = Math.max(1, Math.min(64, this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N));
+    const streamingPageSize = Math.max(
+      1,
+      Math.min(64, this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N)
+    );
     this.streamingKVCache = createPagedKVCache({
       pageSize: streamingPageSize,
       maxResidentPages: Math.max(1, Math.min(256, Math.ceil(streamingTokens / streamingPageSize))),
@@ -817,8 +877,11 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       allowCpuFallback: allowCpu,
       webgpu: isWebGpuEnvironmentPresent(),
       microEncoder: this.microEncoder ? 'webgpu' : 'cpu',
+      reconstructionMode: this.config.reconstructionMode,
       tileGrid: this.config.tileGrid,
       weightLoadedBytes: this.weightBytes?.byteLength ?? 0,
+      weightVerified: this.weightVerified,
+      weightSource: this.weightSource,
       replayFingerprint: this.replayKey,
     });
   }
@@ -832,6 +895,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
    * for future streaming kLen>1 paths.
    */
   private static readonly GRID_N = 4;
+  private static readonly DENSE_PROOF_GRID_N = 16;
   private static readonly MAX_GRID_N = 32;
 
   private static normalizeTileGrid(value: number | undefined): number {
@@ -846,6 +910,20 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       );
     }
     return tileGrid;
+  }
+
+  private static assertDenseProofConfig(config: HoloMapConfig): void {
+    const missing: string[] = [];
+    if (!config.modelHash || config.modelHash === 'unset') missing.push('modelHash');
+    if (!config.weightCid) missing.push('weightCid');
+    if (!config.weightUrl && !config.localResolver) missing.push('weightUrl or localResolver');
+    if (missing.length > 0) {
+      throw new Error(
+        `HoloMap dense-proof mode requires ${missing.join(
+          ', '
+        )}; preview mode is the only mode allowed to use PRNG/default weights.`
+      );
+    }
   }
 
   /**
@@ -1438,6 +1516,16 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
       sessionDurationMs: Math.round(performance.now() - this.sessionStartMs),
     });
 
+    const reconstruction: ReconstructionManifest['reconstruction'] = {
+      mode: this.config.reconstructionMode ?? 'preview',
+      modelHash: this.config.modelHash,
+      tileGrid: this.config.tileGrid ?? HoloMapRuntimeImpl.GRID_N,
+      weightLoadedBytes: this.weightBytes?.byteLength ?? 0,
+      weightVerified: this.weightVerified,
+      ...(this.config.weightCid ? { weightCid: this.config.weightCid } : {}),
+      ...(this.weightSource ? { weightSource: this.weightSource } : {}),
+    };
+
     const manifest: ReconstructionManifest = {
       version: '1.0.0',
       worldId: `holomap-${this.replayKey}`,
@@ -1461,6 +1549,7 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
         anchors: 'reconstruction.anchors.json',
       },
       weightStrategy: this.config.weightStrategy ?? 'distill',
+      reconstruction,
     };
 
     try {
@@ -1491,6 +1580,8 @@ class HoloMapRuntimeImpl implements HoloMapRuntime {
     this.streamingKVCache = null;
     this.streamingKVNextToken = 0;
     this.weightBytes = null;
+    this.weightVerified = false;
+    this.weightSource = null;
     this.totalPointCount = 0;
     this.cumulativeDriftMeters = 0;
     this.prevPose = null;

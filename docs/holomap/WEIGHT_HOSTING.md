@@ -17,6 +17,20 @@ The runtime identifies a weight blob by its **`weightCid`**: a SHA-256 digest in
 
 **Never embed weights inside `.holo` compositions.** The CID keeps compositions small and preserves provenance.
 
+### 1.1 Dense-Proof Runtime Gate
+
+Use `HoloMapConfig.reconstructionMode = 'dense-proof'` when a capture is being used as proof-grade evidence rather than preview output.
+
+Dense-proof mode:
+
+- raises the default tile grid to at least `16` tiles per axis (`256` points per full-size frame);
+- requires a non-placeholder `modelHash`;
+- requires a `weightCid` plus either `weightUrl` or `localResolver`;
+- refuses initialization unless verified checkpoint bytes are loaded and passed into the micro-encoder;
+- writes `manifest.reconstruction` with mode, tile grid, `weightCid`, loaded bytes, verification status, and source.
+
+Current checkpoint caveat (2026-06-23): this repository does not contain or register a tracked trained HMW1 HoloMap checkpoint artifact. Dense-proof mode now prevents PRNG/default-weight output from being mistaken for trained reconstruction, but operators still must publish a real trained blob and register its `weightCid`/URL before claiming trained HoloMap quality.
+
 ## 2. Hosting Modes
 
 ### 2.1 Production CDN (default)

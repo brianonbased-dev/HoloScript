@@ -66,6 +66,30 @@ function buildFrame(index: number): ReconstructionFrame {
   };
 }
 
+function buildDenseFrame(index: number): ReconstructionFrame {
+  const width = 16;
+  const height = 16;
+  const stride = 4;
+  const rgb = new Uint8Array(width * height * stride);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const i = (y * width + x) * stride;
+      rgb[i] = (x * 11 + index) % 255;
+      rgb[i + 1] = (y * 13 + index) % 255;
+      rgb[i + 2] = ((x + y) * 7 + index) % 255;
+      rgb[i + 3] = 255;
+    }
+  }
+  return {
+    index,
+    timestampMs: index * 33,
+    width,
+    height,
+    stride,
+    rgb,
+  };
+}
+
 function buildMeasuredPoseFrame(index: number): ReconstructionFrame {
   return {
     ...buildFrame(index),
@@ -129,6 +153,63 @@ afterEach(() => {
 });
 
 describe('HoloMap acceptance harness', () => {
+  it('refuses dense-proof mode without a verified checkpoint', async () => {
+    const runtime = createHoloMapRuntime();
+
+    await expect(
+      runtime.init({
+        ...HOLOMAP_DEFAULTS,
+        seed: 123,
+        modelHash: 'acceptance-model-v1',
+        videoHash: 'acceptance-video-fixture',
+        reconstructionMode: 'dense-proof',
+        targetFPS: 10000,
+      })
+    ).rejects.toThrow(/requires weightCid, weightUrl or localResolver/);
+  });
+
+  it('consumes local verified weights and raises density in dense-proof mode', async () => {
+    const weightBytes = serializeMicroWeights(makeAcceptanceWeights());
+    const weightCid = createHash('sha256').update(weightBytes).digest('hex');
+    const weightBuffer = weightBytes.buffer.slice(
+      weightBytes.byteOffset,
+      weightBytes.byteOffset + weightBytes.byteLength
+    ) as ArrayBuffer;
+    const localResolver = vi.fn(async () => weightBuffer);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const runtime = createHoloMapRuntime();
+    await runtime.init({
+      ...HOLOMAP_DEFAULTS,
+      seed: 123,
+      modelHash: 'acceptance-model-v1',
+      videoHash: 'acceptance-video-fixture',
+      reconstructionMode: 'dense-proof',
+      weightCid,
+      localResolver,
+      targetFPS: 10000,
+    });
+
+    const step = await runtime.step(buildDenseFrame(0));
+    const manifest = await runtime.finalize();
+    await runtime.dispose();
+
+    expect(localResolver).toHaveBeenCalledWith(weightCid);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(step!.points.positions).toHaveLength(16 * 16 * 3);
+    expect(manifest.pointCount).toBe(16 * 16);
+    expect(manifest.reconstruction).toMatchObject({
+      mode: 'dense-proof',
+      modelHash: 'acceptance-model-v1',
+      tileGrid: 16,
+      weightCid,
+      weightLoadedBytes: weightBytes.byteLength,
+      weightVerified: true,
+      weightSource: 'file',
+    });
+  });
+
   it('loads verified weights and produces deterministic manifests with timing stats', async () => {
     const weightBytes = serializeMicroWeights(makeAcceptanceWeights());
     const weightCid = createHash('sha256').update(weightBytes).digest('hex');
