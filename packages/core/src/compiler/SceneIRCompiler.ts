@@ -36,6 +36,7 @@ import { getRBAC, ResourceType } from './identity/AgentRBAC';
 import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
+import { applyStaggerToChildren, type StaggerableNode } from '../animation/stagger';
 import type { HolomapPointCloudPayload } from './HolomapExportPayload';
 import type { AssetMaturity } from '../traits/DraftTrait';
 import {
@@ -3872,6 +3873,11 @@ export class SceneIRCompiler {
     templateMap?: Map<string, unknown>
   ): R3FNode {
     const props: Record<string, unknown> = {};
+    // `stagger N`: ripple each direct child's animation start by index*N (the
+    // anime.js stagger effect, native). Driver-units (matches __animatedTransform
+    // edge0/edge1). Forwarded onto the group node so it survives to the renderer,
+    // and applied to children below. 0 / non-numeric ⇒ no stagger.
+    let staggerStep = 0;
     if (group.properties) {
       for (const prop of group.properties as Array<Record<string, unknown>>) {
         if (prop.key === 'position') props.position = prop.value;
@@ -3880,6 +3886,13 @@ export class SceneIRCompiler {
           props.scale = Array.isArray(prop.value)
             ? prop.value
             : [prop.value, prop.value, prop.value];
+        else if (prop.key === 'stagger') {
+          const n = Number(prop.value);
+          if (Number.isFinite(n)) {
+            staggerStep = n;
+            props.stagger = n;
+          }
+        }
       }
     }
 
@@ -3892,6 +3905,13 @@ export class SceneIRCompiler {
     if (group.groups) {
       for (const sub of group.groups as Array<Record<string, unknown>>)
         node.children!.push(this.compileSpatialGroup(sub, templateMap));
+    }
+
+    // Ripple animated direct children in declaration order. Static children
+    // (no __animatedTransform) are untouched, and nested groups carry their own
+    // stagger via their own compile pass, so offsets never compound across levels.
+    if (staggerStep && node.children) {
+      applyStaggerToChildren(node.children as unknown as StaggerableNode[], staggerStep);
     }
 
     return node;
