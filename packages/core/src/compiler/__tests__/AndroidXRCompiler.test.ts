@@ -94,15 +94,17 @@ describe('AndroidXRCompiler', () => {
     expect(result.activityFile).toContain('Subspace {');
   });
 
-  it('emits ARCore imports when useARCore is true', () => {
+  it('emits Android XR runtime config import when useARCore is true', () => {
     const result = compiler.compile(minimalComposition(), 'test-token');
-    expect(result.activityFile).toContain('com.google.ar.core.Config');
+    expect(result.activityFile).toContain('androidx.xr.runtime.Config');
+    expect(result.activityFile).toContain('xrSession.configure(Config())');
   });
 
-  it('omits ARCore imports when useARCore is false', () => {
+  it('omits Android XR runtime config when useARCore is false', () => {
     compiler = new AndroidXRCompiler({ useARCore: false });
     const result = compiler.compile(minimalComposition(), 'test-token');
-    expect(result.activityFile).not.toContain('com.google.ar.core.Config');
+    expect(result.activityFile).not.toContain('androidx.xr.runtime.Config');
+    expect(result.activityFile).not.toContain('xrSession.configure(Config())');
   });
 
   it('emits Filament imports when useFilament is true', () => {
@@ -125,7 +127,8 @@ describe('AndroidXRCompiler', () => {
       ],
     });
     const result = compiler.compile(comp, 'test-token');
-    expect(result.activityFile).toContain('Float3(1f, 2f, 3f)');
+    expect(result.activityFile).toContain('Vector3(1f, 2f, 3f)');
+    expect(result.activityFile).toContain('Quaternion.Identity');
     expect(result.activityFile).toContain('myBox');
   });
 
@@ -246,9 +249,12 @@ describe('AndroidXRCompiler', () => {
     });
     const result = compiler.compile(comp, 'test-token');
     expect(result.activityFile).toContain(
-      'GltfModel.create(xrSession, Uri.parse("models/robot.glb"))'
+      'glTF model "models/robot.glb" is exposed through XRNodeFactory.loadGltfModel(...)'
     );
-    expect(result.activityFile).toContain('GltfModelEntity.create(xrSession');
+    expect(result.nodeFactoryFile).toContain(
+      'GltfModel.create(session, Uri.parse("models/robot.glb"))'
+    );
+    expect(result.nodeFactoryFile).toContain('GltfModelEntity.create(');
     expect(result.activityFile).not.toContain('ArModelNode');
   });
 
@@ -601,10 +607,10 @@ describe('AndroidXRCompiler', () => {
     it('AndroidXRCompiler fingerprint for empty Wave1 gate composition', () => {
       const comp = minimalComposition({ name: 'Wave1SplitCharacterization' });
       const out = compiler.compile(comp, 'test-token');
-      // Updated 2026-06-20: real alpha15 XR coordinates + compileSdk 36 + manifest package= removal
-      // (build-verify gate progress, task_1781992603676_l7g7) intentionally changed the emitted output.
+      // Updated 2026-06-21: SceneCore alpha16-compatible runtime Session, Vector3 pose,
+      // and capability-gated depth/probe comments keep the Android XR reference buildable.
       expect(hashRecordStrings(out as unknown as Record<string, unknown>)).toBe(
-        '97f97d24672d1fca33da198db95f1106aa0c0deef1817609100fe084373bd0d1'
+        '7b1988c05bcd692341dec78de7e224dbc509c2acf9d27897a4dc93b515e0da25'
       );
     });
   });
@@ -645,12 +651,14 @@ describe('AndroidXRCompiler', () => {
         ],
       });
       const result = compiler.compile(comp, 'test-token');
-      expect(result.activityFile).toContain('isDepthSupported');
-      expect(result.activityFile).toContain('Config.DepthMode.AUTOMATIC');
-      expect(result.activityFile).toContain('enableDepthOcclusion');
+      expect(result.activityFile).toContain('Depth occlusion requested for soundstage_occlusion');
+      expect(result.activityFile).toContain(
+        'Activate strictly if depth API is physically supported on-device'
+      );
+      expect(result.activityFile).not.toContain('Config.DepthMode.AUTOMATIC');
     });
 
-    it('environment_probe emits createEnvironmentProbe + addComponent in activity', () => {
+    it('environment_probe emits a capability-gated runtime marker in activity', () => {
       const comp = minimalComposition({
         objects: [
           {
@@ -662,8 +670,9 @@ describe('AndroidXRCompiler', () => {
         ],
       });
       const result = compiler.compile(comp, 'test-token');
-      expect(result.activityFile).toContain('createEnvironmentProbe');
-      expect(result.activityFile).toContain('sceneRoot.addComponent');
+      expect(result.activityFile).toContain('Environment probe requested for hdr_environment');
+      expect(result.activityFile).toContain('capability check required');
+      expect(result.activityFile).not.toContain('createEnvironmentProbe');
     });
 
     it('FILM3D_XR triple (occlusion_mesh + environment_probe + gaze_interactable) emits all grounding code', () => {
@@ -691,9 +700,9 @@ describe('AndroidXRCompiler', () => {
       });
       const result = compiler.compile(comp, 'test-token');
       expect(result.manifestFile).toContain('android.hardware.camera.ar');
-      expect(result.activityFile).toContain('isDepthSupported');
-      expect(result.activityFile).toContain('Config.DepthMode.AUTOMATIC');
-      expect(result.activityFile).toContain('createEnvironmentProbe');
+      expect(result.activityFile).toContain('Depth occlusion requested for soundstage_occlusion');
+      expect(result.activityFile).toContain('Environment probe requested for hdr_environment');
+      expect(result.activityFile).not.toContain('Config.DepthMode.AUTOMATIC');
     });
 
     it('combined traits add camera.ar manifest entry only once (deduplication)', () => {

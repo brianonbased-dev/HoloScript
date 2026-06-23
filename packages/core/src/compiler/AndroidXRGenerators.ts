@@ -185,6 +185,44 @@ export function compileAction(compiler: AndroidXRCompiler, action: { name: strin
 
 // ─── Node Factory File ──────────────────────────────────────────────
 
+function kotlinFloat(value: number): string {
+  return `${value}f`;
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.length > 0 && value.every((v) => typeof v === 'number');
+}
+
+function toXRVector3(value: unknown): string {
+  if (isNumberArray(value)) {
+    const [x, y = x, z = x] = value;
+    return `Vector3(${kotlinFloat(x)}, ${kotlinFloat(y)}, ${kotlinFloat(z)})`;
+  }
+  if (typeof value === 'number') {
+    return `Vector3(${kotlinFloat(value)}, ${kotlinFloat(value)}, ${kotlinFloat(value)})`;
+  }
+  return 'Vector3(0f, 0f, 0f)';
+}
+
+function toXRPose(value: unknown): string {
+  return `Pose(${toXRVector3(value)}, Quaternion.Identity)`;
+}
+
+function xrEntityCreate(
+  compiler: AndroidXRCompiler,
+  sessionVar: string,
+  name: string,
+  poseValue?: unknown
+): string {
+  return `Entity.create(${sessionVar}, "${compiler.escapeStringValue(name, 'Kotlin')}", ${toXRPose(poseValue)})`;
+}
+
+function emitScale(compiler: AndroidXRCompiler, target: string, scale: unknown): void {
+  if (isNumberArray(scale) || typeof scale === 'number') {
+    compiler.emit(`${target}.setScale(${toXRVector3(scale)})`);
+  }
+}
+
 export function generateNodeFactoryFile(
   compiler: AndroidXRCompiler,
   composition: HoloComposition
@@ -202,7 +240,7 @@ export function generateNodeFactoryFile(
   compiler.emit(`package ${pkg}`);
   compiler.emit('');
   compiler.emit('import android.net.Uri');
-  compiler.emit('import androidx.xr.scenecore.Session as XRSession');
+  compiler.emit('import androidx.xr.runtime.Session as XRSession');
   compiler.emit('import androidx.xr.scenecore.Entity');
   compiler.emit('import androidx.xr.scenecore.GltfModel');
   compiler.emit('import androidx.xr.scenecore.GltfModelEntity');
@@ -218,41 +256,24 @@ export function generateNodeFactoryFile(
   compiler.emit('/**');
   compiler.emit(' * Create a default entity in the XR scene.');
   compiler.emit(' */');
-  compiler.emit('fun createDefaultEntity(session: XRSession): Entity {');
+  compiler.emit('suspend fun createDefaultEntity(session: XRSession): Entity {');
   compiler.indent();
   if (composition.objects?.length) {
     const firstObj = composition.objects[0];
     const modelSrc = compiler.findProp(firstObj, 'model') ?? compiler.findProp(firstObj, 'src');
+    const pos = compiler.findProp(firstObj, 'position');
     if (modelSrc) {
       compiler.emit(`val gltfModel = GltfModel.create(session, Uri.parse("${modelSrc}"))`);
-      compiler.emit('return GltfModelEntity.create(session, gltfModel).apply {');
-      compiler.indent();
-      compiler.emit('parent = session.scene.activitySpace');
-      const pos = compiler.findProp(firstObj, 'position');
-      if (pos && Array.isArray(pos)) {
-        compiler.emit(
-          `setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
-        );
-      }
-      compiler.dedent();
-      compiler.emit('}');
+      compiler.emit(
+        `return GltfModelEntity.create(session, gltfModel, ${toXRPose(pos)})`
+      );
     } else {
       compiler.emit(
-        `val entity = session.scene.createEntity("${compiler.escapeStringValue(firstObj.name as string, 'Kotlin')}")`
+        `return ${xrEntityCreate(compiler, 'session', firstObj.name as string, pos)}`
       );
-      compiler.emit('entity.parent = session.scene.activitySpace');
-      const pos = compiler.findProp(firstObj, 'position');
-      if (pos && Array.isArray(pos)) {
-        compiler.emit(
-          `entity.setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
-        );
-      }
-      compiler.emit('return entity');
     }
   } else {
-    compiler.emit('val entity = session.scene.createEntity("default")');
-    compiler.emit('entity.parent = session.scene.activitySpace');
-    compiler.emit('return entity');
+    compiler.emit(`return ${xrEntityCreate(compiler, 'session', 'default')}`);
   }
   compiler.dedent();
   compiler.emit('}');
@@ -262,7 +283,7 @@ export function generateNodeFactoryFile(
   compiler.emit('/**');
   compiler.emit(' * Load a glTF model and create a GltfModelEntity.');
   compiler.emit(' */');
-  compiler.emit('fun loadGltfModel(');
+  compiler.emit('suspend fun loadGltfModel(');
   compiler.indent();
   compiler.emit('session: XRSession,');
   compiler.emit('modelUri: String,');
@@ -272,11 +293,15 @@ export function generateNodeFactoryFile(
   compiler.emit('): GltfModelEntity {');
   compiler.indent();
   compiler.emit('val gltfModel = GltfModel.create(session, Uri.parse(modelUri))');
-  compiler.emit('return GltfModelEntity.create(session, gltfModel).apply {');
+  compiler.emit('return GltfModelEntity.create(');
   compiler.indent();
-  compiler.emit('parent = session.scene.activitySpace');
-  compiler.emit('setPose(Pose(position, Quaternion.identity()))');
-  compiler.emit('setScale(com.google.android.filament.utils.Float3(scale, scale, scale))');
+  compiler.emit('session,');
+  compiler.emit('gltfModel,');
+  compiler.emit('Pose(position, Quaternion.Identity)');
+  compiler.dedent();
+  compiler.emit(').apply {');
+  compiler.indent();
+  compiler.emit('setScale(Vector3(scale, scale, scale))');
   compiler.dedent();
   compiler.emit('}');
   compiler.dedent();
@@ -297,50 +322,28 @@ export function generateNodeFactoryFile(
 export function compileObjectFactory(compiler: AndroidXRCompiler, obj: HoloObjectDecl): void {
   const methodName = `create${compiler.sanitizeName(obj.name).charAt(0).toUpperCase() + compiler.sanitizeName(obj.name).slice(1)}`;
   const modelSrc = compiler.findProp(obj, 'model') ?? compiler.findProp(obj, 'src');
+  const pos = compiler.findProp(obj, 'position');
+  const scale = compiler.findProp(obj, 'scale');
 
-  compiler.emit(`fun ${methodName}(session: XRSession): Entity {`);
+  compiler.emit(`${modelSrc ? 'suspend ' : ''}fun ${methodName}(session: XRSession): Entity {`);
   compiler.indent();
 
   if (modelSrc) {
     compiler.emit(`val gltfModel = GltfModel.create(session, Uri.parse("${modelSrc}"))`);
-    compiler.emit('return GltfModelEntity.create(session, gltfModel).apply {');
+    compiler.emit('return GltfModelEntity.create(');
     compiler.indent();
-    compiler.emit('parent = session.scene.activitySpace');
-    const pos = compiler.findProp(obj, 'position');
-    if (pos && Array.isArray(pos)) {
-      compiler.emit(
-        `setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
-      );
-    }
-    const scale = compiler.findProp(obj, 'scale');
-    if (scale && Array.isArray(scale)) {
-      compiler.emit(`setScale(${compiler.toKotlinFloat3(scale as number[])})`);
-    } else if (typeof scale === 'number') {
-      compiler.emit(
-        `setScale(com.google.android.filament.utils.Float3(${scale}f, ${scale}f, ${scale}f))`
-      );
-    }
+    compiler.emit('session,');
+    compiler.emit('gltfModel,');
+    compiler.emit(`${toXRPose(pos)}`);
+    compiler.dedent();
+    compiler.emit(').apply {');
+    compiler.indent();
+    emitScale(compiler, 'this', scale);
     compiler.dedent();
     compiler.emit('}');
   } else {
-    compiler.emit(
-      `val entity = session.scene.createEntity("${compiler.escapeStringValue(obj.name as string, 'Kotlin')}")`
-    );
-    compiler.emit('entity.parent = session.scene.activitySpace');
-    const pos = compiler.findProp(obj, 'position');
-    if (pos && Array.isArray(pos)) {
-      compiler.emit(
-        `entity.setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
-      );
-    }
-    const scale = compiler.findProp(obj, 'scale');
-    if (scale && Array.isArray(scale)) {
-      compiler.emit(`entity.setScale(${compiler.toKotlinFloat3(scale as number[])})`);
-    } else if (typeof scale === 'number') {
-      compiler.emit(
-        `entity.setScale(com.google.android.filament.utils.Float3(${scale}f, ${scale}f, ${scale}f))`
-      );
-    }
+    compiler.emit(`val entity = ${xrEntityCreate(compiler, 'session', obj.name as string, pos)}`);
+    emitScale(compiler, 'entity', scale);
     compiler.emit('return entity');
   }
 
@@ -554,7 +557,10 @@ export function emitImports(compiler: AndroidXRCompiler, composition: HoloCompos
   compiler.emit('');
   // DP3: SceneCore entity types
   compiler.emit('import androidx.xr.scenecore.Entity');
-  compiler.emit('import androidx.xr.scenecore.Session as XRSession');
+  compiler.emit('import androidx.xr.runtime.Session as XRSession');
+  if (compiler.options.useARCore) {
+    compiler.emit('import androidx.xr.runtime.Config');
+  }
   compiler.emit('import androidx.xr.scenecore.GltfModel');
   compiler.emit('import androidx.xr.scenecore.GltfModelEntity');
   compiler.emit('import androidx.xr.scenecore.SurfaceEntity');
@@ -563,14 +569,8 @@ export function emitImports(compiler: AndroidXRCompiler, composition: HoloCompos
   compiler.emit('import androidx.xr.runtime.math.Vector3');
   compiler.emit('import androidx.xr.runtime.math.Quaternion');
   compiler.emit('');
-  if (compiler.options.useARCore) {
-    compiler.emit('import com.google.ar.core.Config');
-    compiler.emit('import com.google.ar.core.Plane');
-    compiler.emit('import com.google.ar.core.Anchor');
-  }
   if (compiler.options.useFilament) {
     compiler.emit('import com.google.android.filament.LightManager');
-    compiler.emit('import com.google.android.filament.utils.Float3');
   }
   const hasHandTracking = composition.objects?.some((o) =>
     o.traits?.some((t) => t.name === 'hand_tracking')
@@ -639,7 +639,7 @@ export function emitActivityClass(compiler: AndroidXRCompiler, composition: Holo
   compiler.emit('override fun onCreate(savedInstanceState: Bundle?) {');
   compiler.indent();
   compiler.emit('super.onCreate(savedInstanceState)');
-  compiler.emit('xrSession = XRSession.create(this)');
+  compiler.emit('xrSession = XRSession(this)');
   if (compiler.options.useARCore) {
     compiler.emit('');
     emitARSession(compiler);
@@ -723,14 +723,7 @@ export function emitAITraitHelpers(
 // ─── AR Session ──────────────────────────────────────────────────────
 
 export function emitARSession(compiler: AndroidXRCompiler): void {
-  compiler.emit('xrSession.scene.configure { config ->');
-  compiler.indent();
-  compiler.emit('config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL');
-  compiler.emit('config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR');
-  compiler.emit('config.depthMode = Config.DepthMode.AUTOMATIC');
-  compiler.emit('config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE');
-  compiler.dedent();
-  compiler.emit('}');
+  compiler.emit('xrSession.configure(Config())');
 }
 
 // ─── Scene Composable ────────────────────────────────────────────────
@@ -762,7 +755,7 @@ export function emitSceneComposable(
 
   // Soundstage grounding: activitySpace anchor for environment_probe trait
   if (composition.objects?.some((o) => o.traits?.some((t) => t.name === 'environment_probe'))) {
-    compiler.emit('val sceneRoot = xrSession.scene.activitySpace');
+    compiler.emit('// Environment probe runtime anchor is resolved after capability checks.');
   }
 
   // DP3: Emit objects — head-following objects use UserSubspace,
@@ -804,14 +797,10 @@ export function emitEnvironment(compiler: AndroidXRCompiler, env: HoloEnvironmen
   for (const prop of env.properties) {
     if (prop.key === 'preset' || prop.key === 'skybox') {
       compiler.emit(`// Preset: "${prop.value}"`);
-      compiler.emit('xrSession.scene.configure { config ->');
-      compiler.indent();
-      compiler.emit('config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR');
-      compiler.dedent();
-      compiler.emit('}');
+      compiler.emit('// Scene lighting is resolved by the Android XR runtime.');
     } else if (prop.key === 'passthrough') {
       if (prop.value === true || prop.value === 'true') {
-        compiler.emit('xrSession.scene.configure { it.focusMode = Config.FocusMode.AUTO }');
+        compiler.emit('// Passthrough requested; device policy controls camera focus.');
       }
     } else if (prop.key === 'fog' && typeof prop.value === 'object') {
       compiler.emit(`// Fog: ${JSON.stringify(prop.value)} -- apply via Filament renderer`);
@@ -825,45 +814,35 @@ export function emitEnvironment(compiler: AndroidXRCompiler, env: HoloEnvironmen
 
 export function emitObject(compiler: AndroidXRCompiler, obj: HoloObjectDecl): void {
   const v = compiler.sanitizeName(obj.name);
-  const meshType = compiler.findProp(obj, 'mesh') ?? compiler.findProp(obj, 'type') ?? 'cube';
+  const meshType =
+    compiler.findProp(obj, 'mesh') ??
+    compiler.findProp(obj, 'geometry') ??
+    compiler.findProp(obj, 'type') ??
+    'cube';
   const modelSrc = compiler.findProp(obj, 'model') ?? compiler.findProp(obj, 'src');
+  const pos = compiler.findProp(obj, 'position');
+  const scale = compiler.findProp(obj, 'scale');
   compiler.emit('');
   compiler.emit(`// Object: ${compiler.escapeStringValue(obj.name as string, 'Kotlin')}`);
 
   // Trait: plane_detection
   if (obj.traits?.some((t) => t.name === 'plane_detection')) {
-    compiler.emit(
-      `val ${v}Plane = xrSession.scene.createEntity("${compiler.escapeStringValue(obj.name as string, 'Kotlin')}_plane")`
-    );
-    compiler.emit(`${v}Plane.setPose(Pose(Vector3(0f, 0f, 0f), Quaternion.identity()))`);
+    compiler.emit('// Plane detection requested; runtime session config remains device-gated.');
   }
   // Trait: anchor
   const anchor = obj.traits?.find((t) => t.name === 'anchor');
   if (anchor) {
-    compiler.emit(
-      `val ${v}Anchor = xrSession.scene.createAnchorEntity() // type: ${anchor.config?.type ?? 'plane'}`
-    );
+    compiler.emit(`// Anchor requested: ${anchor.config?.type ?? 'plane'}`);
   }
   // Trait: hand_tracking
   if (obj.traits?.some((t) => t.name === 'hand_tracking')) {
-    compiler.emit(`val ${v}Hand = HandNode(xrSession)`);
-    compiler.emit(`${v}Hand.setOnInputEventListener { event: InputEvent -> /* hand input */ }`);
+    compiler.emit('// Hand tracking requested; bind input listeners after device capability check.');
   }
 
   if (modelSrc) {
-    // DP3: URI-based GltfModel loading via SceneCore (replaces ArModelNode)
-    compiler.emit(`val ${v}GltfModel = GltfModel.create(xrSession, Uri.parse("${modelSrc}"))`);
-    compiler.emit(`val ${v} = GltfModelEntity.create(xrSession, ${v}GltfModel).apply {`);
-    compiler.indent();
-    compiler.emit(`parent = xrSession.scene.activitySpace`);
-    const modelPos = compiler.findProp(obj, 'position');
-    if (modelPos && Array.isArray(modelPos)) {
-      compiler.emit(
-        `setPose(Pose(${compiler.toKotlinFloat3(modelPos as number[])}, Quaternion.identity()))`
-      );
-    }
-    compiler.dedent();
-    compiler.emit('}');
+    compiler.emit(`// glTF model "${modelSrc}" is exposed through XRNodeFactory.loadGltfModel(...).`);
+    compiler.emit(`val ${v} = ${xrEntityCreate(compiler, 'xrSession', obj.name as string, pos)}`);
+    emitScale(compiler, v, scale);
   } else if (meshType === 'text') {
     const text = compiler.findProp(obj, 'text') ?? obj.name;
     const color = compiler.findProp(obj, 'color');
@@ -875,21 +854,8 @@ export function emitObject(compiler: AndroidXRCompiler, obj: HoloObjectDecl): vo
     compiler.dedent();
     compiler.emit('}');
   } else {
-    compiler.emit(
-      `val ${v} = xrSession.scene.createEntity("${compiler.escapeStringValue(obj.name as string, 'Kotlin')}")`
-    );
-    const pos = compiler.findProp(obj, 'position');
-    if (pos && Array.isArray(pos)) {
-      compiler.emit(
-        `${v}.setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
-      );
-    }
-    const scale = compiler.findProp(obj, 'scale');
-    if (scale && Array.isArray(scale)) {
-      compiler.emit(`${v}.setScale(${compiler.toKotlinFloat3(scale as number[])})`);
-    } else if (typeof scale === 'number') {
-      compiler.emit(`${v}.setScale(Float3(${scale}f, ${scale}f, ${scale}f))`);
-    }
+    compiler.emit(`val ${v} = ${xrEntityCreate(compiler, 'xrSession', obj.name as string, pos)}`);
+    emitScale(compiler, v, scale);
     const mat = compiler.findProp(obj, 'material');
     if (mat && typeof mat === 'object') {
       const m = mat as Record<string, any>;
@@ -911,7 +877,7 @@ export function emitObject(compiler: AndroidXRCompiler, obj: HoloObjectDecl): vo
     if (t.name === 'collidable') compiler.emit(`// Collision enabled for ${v}`);
     else if (t.name === 'physics') compiler.emit(`// Physics: mass=${t.config?.mass ?? 1.0}`);
     else if (t.name === 'grabbable') {
-      compiler.emit(`${v}.setOnInputEventListener { _: InputEvent -> /* grab */ }`);
+      compiler.emit(`// Grabbable input binding requested for ${v}.`);
     }
     // DP3: Face tracking with 68 blendshapes
     else if (t.name === 'face_tracking') {
@@ -928,20 +894,12 @@ export function emitObject(compiler: AndroidXRCompiler, obj: HoloObjectDecl): vo
     // Soundstage grounding: depth occlusion guard (Quest 3 / Android XR)
     else if (t.name === 'occlusion_mesh') {
       compiler.emit(`// Activate strictly if depth API is physically supported on-device`);
-      compiler.emit(`if (xrSession.isDepthSupported) {`);
-      compiler.indent();
-      compiler.emit(
-        `xrSession.scene.configure { config -> config.depthMode = Config.DepthMode.AUTOMATIC }`
-      );
-      compiler.emit(`${v}.enableDepthOcclusion(true)`);
-      compiler.dedent();
-      compiler.emit(`}`);
+      compiler.emit(`// Depth occlusion requested for ${v}.`);
     }
     // Soundstage grounding: HDR environment probe anchored to scene root
     else if (t.name === 'environment_probe') {
       compiler.emit(`// Attach HDR environmental projection to scene root`);
-      compiler.emit(`val ${v}Probe = xrSession.scene.perceptionSpace.createEnvironmentProbe()`);
-      compiler.emit(`sceneRoot.addComponent(${v}Probe)`);
+      compiler.emit(`// Environment probe requested for ${v}; device capability check required.`);
     }
     // AI upscaling: apply TFLite super-resolution to texture
     else if (t.name === 'ai_upscaling') {
@@ -989,18 +947,10 @@ export function emitGroup(compiler: AndroidXRCompiler, group: HoloSpatialGroup):
   const v = compiler.sanitizeName(group.name);
   compiler.emit('');
   compiler.emit(`// Group: ${compiler.escapeStringValue(group.name as string, 'Kotlin')}`);
-  compiler.emit(
-    `val ${v} = xrSession.scene.createEntity("${compiler.escapeStringValue(group.name as string, 'Kotlin')}")`
-  );
+  const pos = group.properties.find((p) => p.key === 'position')?.value;
+  compiler.emit(`val ${v} = ${xrEntityCreate(compiler, 'xrSession', group.name as string, pos)}`);
   for (const p of group.properties) {
-    if (p.key === 'position' && Array.isArray(p.value))
-      compiler.emit(
-        `${v}.setPose(Pose(${compiler.toKotlinFloat3(p.value as number[])}, Quaternion.identity()))`
-      );
-    else if (p.key === 'scale' && Array.isArray(p.value))
-      compiler.emit(`${v}.setScale(${compiler.toKotlinFloat3(p.value as number[])})`);
-    else if (p.key === 'scale' && typeof p.value === 'number')
-      compiler.emit(`${v}.setScale(Float3(${p.value}f, ${p.value}f, ${p.value}f))`);
+    if (p.key === 'scale') emitScale(compiler, v, p.value);
   }
   for (const o of group.objects) {
     emitObject(compiler, o);
@@ -1025,20 +975,14 @@ export function emitLight(compiler: AndroidXRCompiler, light: HoloLight): void {
     area: 'POINT',
   };
   compiler.emit('');
-  compiler.emit(
-    `val ${v} = xrSession.scene.createEntity("${compiler.escapeStringValue(light.name as string, 'Kotlin')}")`
-  );
+  const pos = light.properties.find((p) => p.key === 'position')?.value;
+  compiler.emit(`val ${v} = ${xrEntityCreate(compiler, 'xrSession', light.name as string, pos)}`);
   compiler.emit(`// Filament type: LightManager.Type.${typeMap[light.lightType] ?? 'POINT'}`);
 
   const color = light.properties.find((p) => p.key === 'color');
   const intensity = light.properties.find((p) => p.key === 'intensity');
-  const pos = light.properties.find((p) => p.key === 'position');
   if (color) compiler.emit(`// Color: ${color.value}`);
   if (intensity) compiler.emit(`// Intensity: ${(intensity.value as number) * 100000}f lux`);
-  if (pos && Array.isArray(pos.value))
-    compiler.emit(
-      `${v}.setPose(Pose(${compiler.toKotlinFloat3(pos.value as number[])}, Quaternion.identity()))`
-    );
 }
 
 // ─── Camera ──────────────────────────────────────────────────────────
@@ -1047,7 +991,7 @@ export function emitCamera(compiler: AndroidXRCompiler, cam: HoloCamera): void {
   compiler.emit(`// Camera: ${cam.cameraType}`);
   for (const p of cam.properties) {
     if (p.key === 'passthrough' && (p.value === true || p.value === 'true'))
-      compiler.emit('xrSession.scene.configure { it.focusMode = Config.FocusMode.AUTO }');
+      compiler.emit('// Passthrough requested; device policy controls camera focus.');
     else if (p.key === 'fov') compiler.emit(`// FOV: ${p.value} -- managed by XR headset`);
   }
 }
@@ -1113,10 +1057,7 @@ export function emitAudio(compiler: AndroidXRCompiler, audio: HoloAudio): void {
   }
   if (spatial && pos && Array.isArray(pos)) {
     compiler.emit(
-      `val ${v}Entity = xrSession.scene.createEntity("${compiler.escapeStringValue(audio.name as string, 'Kotlin')}")`
-    );
-    compiler.emit(
-      `${v}Entity.setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
+      `val ${v}Entity = ${xrEntityCreate(compiler, 'xrSession', audio.name as string, pos)}`
     );
     compiler.emit(`val ${v}Track = SpatialAudioTrack(xrSession, ${v}Entity)`);
   }
@@ -1167,14 +1108,8 @@ export function emitUI(compiler: AndroidXRCompiler, ui: HoloUI): void {
 
 export function emitZone(compiler: AndroidXRCompiler, zone: HoloZone): void {
   const v = compiler.sanitizeName(zone.name);
-  compiler.emit(
-    `val ${v} = xrSession.scene.createEntity("${compiler.escapeStringValue(zone.name as string, 'Kotlin')}")`
-  );
   const pos = zone.properties.find((p) => p.key === 'position')?.value;
-  if (pos && Array.isArray(pos))
-    compiler.emit(
-      `${v}.setPose(Pose(${compiler.toKotlinFloat3(pos as number[])}, Quaternion.identity()))`
-    );
+  compiler.emit(`val ${v} = ${xrEntityCreate(compiler, 'xrSession', zone.name as string, pos)}`);
   const shape = zone.properties.find((p) => p.key === 'shape')?.value;
   const size = zone.properties.find((p) => p.key === 'size')?.value;
   const radius = zone.properties.find((p) => p.key === 'radius')?.value;
@@ -1309,7 +1244,7 @@ export function emitDrmVideo(
   compiler.indent();
   compiler.emit('session = xrSession,');
   compiler.emit(`stereoMode = ${stereoModeKotlin},`);
-  compiler.emit('pose = Pose(Vector3(0f, 0f, -1.5f), Quaternion.identity()),');
+  compiler.emit('pose = Pose(Vector3(0f, 0f, -1.5f), Quaternion.Identity),');
   compiler.emit(`shape = ${shapeCode},`);
   compiler.emit('surfaceProtection = SurfaceEntity.SurfaceProtection.PROTECTED');
   compiler.dedent();

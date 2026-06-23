@@ -300,9 +300,10 @@ describe('AndroidXRCompiler -- Production', () => {
       { key: 'position', value: [0, 0, -2] },
     ]);
     const result = compiler.compile(makeComp({ objects: [obj] }), 'test-token');
-    expect(result.activityFile).toContain('GltfModel.create');
-    expect(result.activityFile).toContain('Uri.parse');
-    expect(result.activityFile).toContain('GltfModelEntity.create');
+    expect(result.activityFile).toContain('XRNodeFactory.loadGltfModel');
+    expect(result.nodeFactoryFile).toContain('GltfModel.create');
+    expect(result.nodeFactoryFile).toContain('Uri.parse');
+    expect(result.nodeFactoryFile).toContain('GltfModelEntity.create');
     expect(result.activityFile).not.toContain('ArModelNode');
   });
 

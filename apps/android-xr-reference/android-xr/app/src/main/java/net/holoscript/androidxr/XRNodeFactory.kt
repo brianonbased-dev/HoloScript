@@ -4,7 +4,7 @@
 package net.holoscript.androidxr
 
 import android.net.Uri
-import androidx.xr.scenecore.Session as XRSession
+import androidx.xr.runtime.Session as XRSession
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
@@ -16,43 +16,38 @@ object XRNodeFactory {
     /**
      * Create a default entity in the XR scene.
      */
-    fun createDefaultEntity(session: XRSession): Entity {
-        val entity = session.scene.createEntity("anchor_cube")
-        entity.parent = session.scene.activitySpace
-        entity.setPose(Pose(Float3(0f, 1f, -1.5f), Quaternion.identity()))
-        return entity
+    suspend fun createDefaultEntity(session: XRSession): Entity {
+        return Entity.create(session, "anchor_cube", Pose(Vector3(0f, 1f, -1.5f), Quaternion.Identity))
     }
     
     /**
      * Load a glTF model and create a GltfModelEntity.
      */
-    fun loadGltfModel(
+    suspend fun loadGltfModel(
         session: XRSession,
         modelUri: String,
         position: Vector3 = Vector3(0f, 0f, 0f),
         scale: Float = 1f
     ): GltfModelEntity {
         val gltfModel = GltfModel.create(session, Uri.parse(modelUri))
-        return GltfModelEntity.create(session, gltfModel).apply {
-            parent = session.scene.activitySpace
-            setPose(Pose(position, Quaternion.identity()))
-            setScale(com.google.android.filament.utils.Float3(scale, scale, scale))
+        return GltfModelEntity.create(
+            session,
+            gltfModel,
+            Pose(position, Quaternion.Identity)
+        ).apply {
+            setScale(Vector3(scale, scale, scale))
         }
     }
     
     fun createAnchor_cube(session: XRSession): Entity {
-        val entity = session.scene.createEntity("anchor_cube")
-        entity.parent = session.scene.activitySpace
-        entity.setPose(Pose(Float3(0f, 1f, -1.5f), Quaternion.identity()))
-        entity.setScale(com.google.android.filament.utils.Float3(0.2f, 0.2f, 0.2f))
+        val entity = Entity.create(session, "anchor_cube", Pose(Vector3(0f, 1f, -1.5f), Quaternion.Identity))
+        entity.setScale(Vector3(0.2f, 0.2f, 0.2f))
         return entity
     }
     
     fun createTarget_sphere(session: XRSession): Entity {
-        val entity = session.scene.createEntity("target_sphere")
-        entity.parent = session.scene.activitySpace
-        entity.setPose(Pose(Float3(0.4f, 1.2f, -1.5f), Quaternion.identity()))
-        entity.setScale(com.google.android.filament.utils.Float3(0.1f, 0.1f, 0.1f))
+        val entity = Entity.create(session, "target_sphere", Pose(Vector3(0.4f, 1.2f, -1.5f), Quaternion.Identity))
+        entity.setScale(Vector3(0.1f, 0.1f, 0.1f))
         return entity
     }
     

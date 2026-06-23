@@ -21,7 +21,8 @@ import androidx.xr.compose.spatial.*
 import androidx.xr.compose.subspace.layout.*
 
 import androidx.xr.scenecore.Entity
-import androidx.xr.scenecore.Session as XRSession
+import androidx.xr.runtime.Session as XRSession
+import androidx.xr.runtime.Config
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
 import androidx.xr.scenecore.SurfaceEntity
@@ -30,11 +31,7 @@ import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.runtime.math.Quaternion
 
-import com.google.ar.core.Config
-import com.google.ar.core.Plane
-import com.google.ar.core.Anchor
 import com.google.android.filament.LightManager
-import com.google.android.filament.utils.Float3
 import androidx.xr.scenecore.InputEvent
 
 class GeneratedXRActivity : ComponentActivity() {
@@ -42,14 +39,9 @@ class GeneratedXRActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        xrSession = XRSession.create(this)
+        xrSession = XRSession(this)
         
-        xrSession.scene.configure { config ->
-            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
-            config.depthMode = Config.DepthMode.AUTOMATIC
-            config.updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
-        }
+        xrSession.configure(Config())
         
         setContent {
             AndroidXrReferenceScene()
@@ -60,23 +52,19 @@ class GeneratedXRActivity : ComponentActivity() {
     private fun AndroidXrReferenceScene() {
         Subspace {
             // Environment
-            xrSession.scene.configure { it.focusMode = Config.FocusMode.AUTO }
+            // Passthrough requested; device policy controls camera focus.
             
             // Object: anchor_cube
-            val anchor_cubeHand = HandNode(xrSession)
-            anchor_cubeHand.setOnInputEventListener { event: InputEvent -> /* hand input */ }
-            val anchor_cube = xrSession.scene.createEntity("anchor_cube")
-            anchor_cube.setPose(Pose(Float3(0f, 1f, -1.5f), Quaternion.identity()))
-            anchor_cube.setScale(Float3(0.2f, 0.2f, 0.2f))
+            // Hand tracking requested; bind input listeners after device capability check.
+            val anchor_cube = Entity.create(xrSession, "anchor_cube", Pose(Vector3(0f, 1f, -1.5f), Quaternion.Identity))
+            anchor_cube.setScale(Vector3(0.2f, 0.2f, 0.2f))
             // Geometry: BoxShape
             
             // Object: target_sphere
-            val target_spherePlane = xrSession.scene.createEntity("target_sphere_plane")
-            target_spherePlane.setPose(Pose(Vector3(0f, 0f, 0f), Quaternion.identity()))
-            val target_sphere = xrSession.scene.createEntity("target_sphere")
-            target_sphere.setPose(Pose(Float3(0.4f, 1.2f, -1.5f), Quaternion.identity()))
-            target_sphere.setScale(Float3(0.1f, 0.1f, 0.1f))
-            // Geometry: BoxShape
+            // Plane detection requested; runtime session config remains device-gated.
+            val target_sphere = Entity.create(xrSession, "target_sphere", Pose(Vector3(0.4f, 1.2f, -1.5f), Quaternion.Identity))
+            target_sphere.setScale(Vector3(0.1f, 0.1f, 0.1f))
+            // Geometry: IcoSphereShape
         }
     }
     

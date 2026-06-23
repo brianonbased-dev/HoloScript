@@ -127,11 +127,18 @@ expectExit(
 {
   testsRun += 1;
   const { out } = runGate('check-android-xr-build-verify.mts', ['--require-toolchain']);
-  if (!out.includes('SKIPPED')) {
+  const verdictLine = out
+    .split('\n')
+    .reverse()
+    .find((line) => line.includes('build-verify [android-xr]'));
+  const nonSkipVerdict =
+    verdictLine?.includes(' PASS:') || verdictLine?.includes(' FAIL:');
+  if (nonSkipVerdict) {
     console.log('  PASS android-xr build-verify --require-toolchain never SKIPs');
   } else {
     testsFailed += 1;
     console.error('  FAIL android-xr build-verify --require-toolchain never SKIPs');
+    console.error(`    verdict: ${verdictLine || '<missing>'}`);
     console.error(`    tail: ${out.split('\n').slice(-4).join(' | ')}`);
   }
 }

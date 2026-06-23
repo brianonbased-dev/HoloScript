@@ -10,9 +10,9 @@
 // Degrades gracefully: with no Android toolchain it reports SKIPPED (exit 0) after proving the file map
 // writes cleanly over the skeleton. With { requireToolchain: true } (CI) a missing toolchain FAILs.
 //
-// NOTE (W.802/c2e5bcb43): the build harness is REAL and resolves AGP/Kotlin/Compose/Filament/ARCore;
-// it currently fails at checkDebugAarMetadata on the codegen's placeholder androidx.xr coordinate.
-// Codegen-correctness is the scoped next gate. Use --require-toolchain only once codegen is buildable.
+// NOTE (task_1781992603676_l7g7): the build harness is REAL and now compile-checks the emitted
+// Jetpack XR Kotlin through Gradle assembleDebug. Use --require-toolchain in CI/fleet contexts where
+// a JDK + Android SDK are mandatory; the default local path still skips cleanly without them.
 //
 //   npx tsx scripts/holo-ci/check-android-xr-build-verify.mts                    # skip if no toolchain
 //   npx tsx scripts/holo-ci/check-android-xr-build-verify.mts --require-toolchain # CI: toolchain mandatory
@@ -28,6 +28,9 @@ import { runBuildVerifyGate } from './build-verify/build-verify.mts';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const appDir = join(repoRoot, 'apps', 'android-xr-reference');
+const javaCommand = process.env.JAVA_HOME
+  ? join(process.env.JAVA_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java')
+  : 'java';
 
 const emitted = new AndroidXRCompiler({
   packageName: ANDROID_XR_PACKAGE,
@@ -40,7 +43,7 @@ runBuildVerifyGate({
   skeletonDir: join(appDir, 'android-xr'),
   buildCommand: ['./gradlew', 'assembleDebug', '--no-daemon', '--console=plain'],
   // gradle needs a JDK; without one this SKIPs (unless --require-toolchain).
-  toolchainProbe: { command: ['java', '-version'] },
+  toolchainProbe: { command: [javaCommand, '-version'] },
   expectArtifacts: ['app/build/outputs/apk/debug'],
   requireToolchain: process.argv.includes('--require-toolchain'),
 });
