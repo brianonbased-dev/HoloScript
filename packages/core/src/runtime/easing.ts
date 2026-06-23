@@ -30,7 +30,9 @@ export type EasingName =
   | 'easeOutQuad'
   | 'easeInOutQuad'
   // `spring` overshoots above 1 before settling — physics easing, see below.
-  | 'spring';
+  | 'spring'
+  // `bounce` stays in [0,1] but is non-monotonic (rebounds) — physics easing.
+  | 'bounce';
 
 /**
  * Spring (physics) easing — the analytic step response of an underdamped
@@ -72,6 +74,32 @@ export function springEasing(t: number): number {
 }
 
 /**
+ * Bounce (physics) easing — the canonical "ball dropped onto a floor" curve:
+ * a sequence of decaying parabolic arcs. Unlike {@link springEasing} it never
+ * exceeds 1 (no overshoot) but it is NON-monotonic — it rises to a peak, dips
+ * back (the rebound), and repeats with shrinking amplitude, settling exactly
+ * at 1. Authorable via `move <t> to <d> over <n> easing bounce`.
+ * Exact endpoints: f(0)=0, f(1)=1.
+ */
+export function bounceEasing(t: number): number {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const n1 = 7.5625;
+  const d1 = 2.75;
+  if (t < 1 / d1) {
+    return n1 * t * t;
+  } else if (t < 2 / d1) {
+    const u = t - 1.5 / d1;
+    return n1 * u * u + 0.75;
+  } else if (t < 2.5 / d1) {
+    const u = t - 2.25 / d1;
+    return n1 * u * u + 0.9375;
+  }
+  const u = t - 2.625 / d1;
+  return n1 * u * u + 0.984375;
+}
+
+/**
  * Apply an easing curve to a normalized progress value.
  *
  * @param t       Progress in [0, 1]
@@ -95,6 +123,8 @@ export function applyEasing(t: number, easing: string): number {
       return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     case 'spring':
       return springEasing(t);
+    case 'bounce':
+      return bounceEasing(t);
     case 'linear':
     default:
       return t;
