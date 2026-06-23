@@ -2269,6 +2269,13 @@ export declare class AnimationEngine {
   update(delta: number): void;
   clear(): void;
 }
+export interface SampledKeyframe { time: number; value: number; easing?: string; }
+export declare function applyEasing(t: number, easing: string): number;
+export declare function sampleTrack(
+  keyframes: SampledKeyframe[],
+  t: number,
+  defaultEasing?: string
+): number;
 
 // ============================================================================
 // AUDIO ENGINE

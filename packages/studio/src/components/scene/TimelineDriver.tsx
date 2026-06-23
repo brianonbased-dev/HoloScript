@@ -21,45 +21,17 @@
  */
 import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import type { R3FNode } from '@holoscript/core';
+import { sampleTrack, type R3FNode, type SampledKeyframe } from '@holoscript/core';
 import { setTimelineValue, clearTimelineValue } from './timelineRuntime';
 
-interface Keyframe {
-  t: number;
-  value: number;
-}
-
-/** Smoothstep so a 0→1 track eases in/out instead of moving at constant velocity. */
-function smoothstep(x: number): number {
-  const c = Math.min(1, Math.max(0, x));
-  return c * c * (3 - 2 * c);
-}
-
-/** Sample a sorted keyframe track at playhead `t` (clamped to the endpoints). */
-function sampleTrack(track: Keyframe[], t: number): number {
-  if (track.length === 0) return 0;
-  if (t <= track[0].t) return track[0].value;
-  const last = track[track.length - 1];
-  if (t >= last.t) return last.value;
-  for (let i = 1; i < track.length; i += 1) {
-    const a = track[i - 1];
-    const b = track[i];
-    if (t <= b.t) {
-      const span = b.t - a.t;
-      const f = span <= 0 ? 1 : smoothstep((t - a.t) / span);
-      return a.value + (b.value - a.value) * f;
-    }
-  }
-  return last.value;
-}
-
+/** Core sampler keeps legacy smoothstep defaults while honoring per-keyframe easing. */
 export function TimelineDriver({ node }: { node: R3FNode }) {
   const autoplay = node.props.autoplay !== false; // default true
   const loop = node.props.loop === true;
 
   // Build one sorted keyframe track per animated target from the TimelineEntry children.
   const tracks = useMemo(() => {
-    const byTarget = new Map<string, Keyframe[]>();
+    const byTarget = new Map<string, SampledKeyframe[]>();
     for (const child of node.children ?? []) {
       const p = child.props;
       if (p.actionKind !== 'animate' || typeof p.target !== 'string') continue;
@@ -69,16 +41,16 @@ export function TimelineDriver({ node }: { node: R3FNode }) {
       const t = typeof p.time === 'number' ? p.time : Number(p.time);
       if (!Number.isFinite(t)) continue;
       const arr = byTarget.get(p.target) ?? [];
-      arr.push({ t, value });
+      arr.push({ time: t, value, ...(typeof p.easing === 'string' ? { easing: p.easing } : {}) });
       byTarget.set(p.target, arr);
     }
-    for (const arr of byTarget.values()) arr.sort((a, b) => a.t - b.t);
+    for (const arr of byTarget.values()) arr.sort((a, b) => a.time - b.time);
     return byTarget;
   }, [node]);
 
   const duration = useMemo(() => {
     let d = 0;
-    for (const arr of tracks.values()) if (arr.length) d = Math.max(d, arr[arr.length - 1].t);
+    for (const arr of tracks.values()) if (arr.length) d = Math.max(d, arr[arr.length - 1].time);
     return d;
   }, [tracks]);
 
@@ -93,14 +65,14 @@ export function TimelineDriver({ node }: { node: R3FNode }) {
   useFrame((state) => {
     if (!autoplay) {
       // Paused at t=0: publish the initial keyframe so consumers have a defined value.
-      for (const [target, track] of tracks) setTimelineValue(target, sampleTrack(track, 0));
+      for (const [target, track] of tracks) setTimelineValue(target, sampleTrack(track, 0, 'smoothstep'));
       return;
     }
     const now = state.clock.elapsedTime;
     if (startRef.current === null) startRef.current = now;
     let playhead = now - startRef.current;
     if (loop && duration > 0) playhead %= duration;
-    for (const [target, track] of tracks) setTimelineValue(target, sampleTrack(track, playhead));
+    for (const [target, track] of tracks) setTimelineValue(target, sampleTrack(track, playhead, 'smoothstep'));
   });
 
   return null;

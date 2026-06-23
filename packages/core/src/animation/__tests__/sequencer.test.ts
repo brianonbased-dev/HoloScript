@@ -37,6 +37,11 @@ describe('sampleTrack — clamping & linear default', () => {
     expect(sampleTrack(ks, 0.5)).toBeCloseTo(5);
     expect(sampleTrack(ks, 0.25)).toBeCloseTo(2.5);
   });
+
+  it('uses the caller default easing when a destination keyframe omits easing', () => {
+    expect(sampleTrack(ks, 0.5, 'smoothstep')).toBeCloseTo(5);
+    expect(sampleTrack(ks, 0.25, 'smoothstep')).toBeCloseTo(1.5625);
+  });
 });
 
 describe('sampleTrack — per-segment easing (destination keyframe governs)', () => {

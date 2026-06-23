@@ -15,6 +15,11 @@ export {
 } from '../errors/safeJsonParse';
 export type { JsonParseError, SafeJsonResult, JsonParseResult } from '../errors/safeJsonParse';
 
+// Timeline sequencing primitives (shared by Studio TimelineDriver).
+export { sampleTrack } from '../animation/sequencer';
+export type { SampledKeyframe } from '../animation/sequencer';
+export { applyEasing } from '../runtime/easing';
+
 // Trait System types
 export { TraitContext, TraitEvent, type RaycastHit } from '../traits/TraitTypes';
 

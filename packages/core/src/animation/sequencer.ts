@@ -46,7 +46,11 @@ export interface SampledKeyframe {
  * so the sampled value overshoots the destination mid-segment then settles —
  * that is the spring bounce, by design. Keyframes are defensively sorted by time.
  */
-export function sampleTrack(keyframes: SampledKeyframe[], t: number): number {
+export function sampleTrack(
+  keyframes: SampledKeyframe[],
+  t: number,
+  defaultEasing = 'linear'
+): number {
   if (keyframes.length === 0) return 0;
   if (keyframes.length === 1) return keyframes[0].value;
 
@@ -61,7 +65,7 @@ export function sampleTrack(keyframes: SampledKeyframe[], t: number): number {
     if (t >= a.time && t <= b.time) {
       const span = b.time - a.time;
       const localT = span <= 0 ? 0 : (t - a.time) / span;
-      const eased = applyEasing(localT, b.easing ?? 'linear');
+      const eased = applyEasing(localT, b.easing ?? defaultEasing);
       return a.value + (b.value - a.value) * eased;
     }
   }
