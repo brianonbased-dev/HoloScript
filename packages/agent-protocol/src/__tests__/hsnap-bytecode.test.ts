@@ -4,14 +4,14 @@ import { UAALOpCode } from '@holoscript/uaal';
 
 import { compileHSNAPToUAAL, compileHSNAPToUAALDetailed } from '../hsnap-bytecode';
 
-describe('hsnap-bytecode (deprecated stubs)', () => {
-  it('compileHSNAPToUAALDetailed throws with migration hint to @holoscript/hsnap-compiler', () => {
+describe('hsnap-bytecode (unimplemented stubs)', () => {
+  it('compileHSNAPToUAALDetailed throws — not implemented in agent-protocol, not consumed', () => {
     expect(() => compileHSNAPToUAALDetailed('composition X {}')).toThrow(
-      '@holoscript/hsnap-compiler'
+      'not implemented in @holoscript/agent-protocol'
     );
   });
 
-  it('compileHSNAPToUAAL throws with migration hint to @holoscript/hsnap-compiler', () => {
+  it('compileHSNAPToUAAL throws — not implemented in agent-protocol, not consumed', () => {
     expect(() =>
       compileHSNAPToUAAL(
         `composition Lightweight {
@@ -20,7 +20,7 @@ describe('hsnap-bytecode (deprecated stubs)', () => {
     }`,
         { includeFullCycle: false }
       )
-    ).toThrow('@holoscript/hsnap-compiler');
+    ).toThrow('not implemented in @holoscript/agent-protocol');
   });
 
   it('keeps UAAL opcode enum reachable for protocol consumers that align with VM', () => {

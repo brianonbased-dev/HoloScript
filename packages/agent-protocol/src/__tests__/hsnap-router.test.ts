@@ -131,7 +131,7 @@ describe('HSNAPRouter', () => {
     expect(receipt.lifecycle.at(-1)?.type).toBe('task.fail');
   });
 
-  it('passes compiled as undefined when no compile hook is provided (HSNAP compile lives in @holoscript/hsnap-compiler)', async () => {
+  it('passes compiled as undefined when no compile hook is provided (HSNAP→uAAL bytecode compilation is not implemented in agent-protocol)', async () => {
     const dispatch = vi.fn(async (message: HSNAPDispatchMessage) => ({
       echoedCompiled: message.compiled,
     }));
