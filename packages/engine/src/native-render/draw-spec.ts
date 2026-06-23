@@ -99,6 +99,11 @@ export interface SkinnedMeshData {
   /** 4 floats/vertex: xyz strand-flow tangent (Kajiya-Kay) + w = strandT (0 root → 1 tip).
    *  Body verts carry a placeholder (0,1,0,0); only hair/anisotropic materials read it. */
   tangents: Float32Array<ArrayBuffer>;
+  /** Optional UV coordinates, 2 floats/vertex (glTF TEXCOORD_0). Populated by the glTF
+   *  importer when the source primitive carries texture coordinates; undefined for the
+   *  procedural body (which has no UVs). Prerequisite for textured / material-mapped imported
+   *  meshes — Track 0: the `.holo` mesh IR carries a real imported surface, not a text pointer. */
+  uvs?: Float32Array<ArrayBuffer>;
   indices: Uint32Array<ArrayBuffer>;
   jointIndices: Uint32Array<ArrayBuffer>;
   jointWeights: Float32Array<ArrayBuffer>;

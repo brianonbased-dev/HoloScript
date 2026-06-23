@@ -2,7 +2,8 @@
  * GltfMeshExtractor — native (Three.js-free) .glb → SkinnedMeshData extractor.
  *
  * The opt-in photoreal body source: parses a binary glTF (.glb), pulls the first skinned
- * primitive's POSITION/NORMAL/JOINTS_0/WEIGHTS_0/indices (+ TANGENT or a placeholder), and
+ * primitive's POSITION/NORMAL/JOINTS_0/WEIGHTS_0/indices (+ TANGENT or a placeholder, +
+ * TEXCOORD_0 UVs when present), and
  * remaps the rig's joints onto the canonical HoloScript palette via SkeletonStandardRegistry
  * so it feeds the SAME CharacterHost/renderCharacter path as the procedural body. The WGSL
  * shader is single-influence, so the 4-bone glTF skin is reduced to the dominant joint
@@ -187,6 +188,12 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
   } else {
     for (let v = 0; v < vertexCount; v++) tangents[v * 4 + 1] = 1; // body placeholder (0,1,0,0)
   }
+  // TEXCOORD_0 UVs (2/vert) when the primitive carries them — undefined otherwise so the
+  // procedural body (no UVs) and un-textured imports are unaffected. (Track 0 prerequisite.)
+  const uvs =
+    prim.attributes.TEXCOORD_0 !== undefined
+      ? new Float32Array(readAccessor(g, bin, prim.attributes.TEXCOORD_0).array)
+      : undefined;
 
   // 3) glTF joint slot → canonical palette index (via the matched skeleton standard).
   const jointNames: string[] = skin.joints.map((nodeIdx) => g.nodes?.[nodeIdx]?.name ?? '');
@@ -237,6 +244,7 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
     positions,
     normals,
     tangents,
+    ...(uvs ? { uvs } : {}),
     indices,
     jointIndices,
     jointWeights,

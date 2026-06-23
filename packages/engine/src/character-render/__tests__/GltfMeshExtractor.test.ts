@@ -104,6 +104,54 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
   return buildGlb(json, bin);
 }
 
+/** The same one-triangle skinned .glb, plus a TEXCOORD_0 (UV) attribute. */
+function makeSkinnedTriangleGlbWithUv(): ArrayBuffer {
+  // BIN: POSITION@0(36) NORMAL@36(36) TEXCOORD_0@72(24) JOINTS_0@96(12,u8)
+  //      WEIGHTS_0@108(48) indices@156(6,u16) [pad→164] IBM@164(128) = 292
+  const binLen = 292;
+  const bin = new ArrayBuffer(binLen);
+  const dv = new DataView(bin);
+  [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true)); // POSITION
+  [0, 0, 1, 0, 0, 1, 0, 0, 1].forEach((v, i) => dv.setFloat32(36 + i * 4, v, true)); // NORMAL
+  [0, 0, 1, 0, 0, 1].forEach((v, i) => dv.setFloat32(72 + i * 4, v, true)); // TEXCOORD_0: uv0,uv1,uv2
+  [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0].forEach((v, i) => dv.setUint8(96 + i, v)); // JOINTS_0
+  [1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0].forEach((v, i) => dv.setFloat32(108 + i * 4, v, true)); // WEIGHTS_0
+  [0, 1, 2].forEach((v, i) => dv.setUint16(156 + i * 2, v, true)); // indices
+  for (let m = 0; m < 2; m++) {
+    [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1].forEach((v, i) =>
+      dv.setFloat32(164 + m * 64 + i * 4, v, true)
+    ); // IBM (two identity mat4)
+  }
+  const json = {
+    asset: { version: '2.0' },
+    buffers: [{ byteLength: binLen }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: binLen }],
+    accessors: [
+      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' }, // POSITION
+      { bufferView: 0, byteOffset: 36, componentType: 5126, count: 3, type: 'VEC3' }, // NORMAL
+      { bufferView: 0, byteOffset: 72, componentType: 5126, count: 3, type: 'VEC2' }, // TEXCOORD_0
+      { bufferView: 0, byteOffset: 96, componentType: 5121, count: 3, type: 'VEC4' }, // JOINTS_0 (u8)
+      { bufferView: 0, byteOffset: 108, componentType: 5126, count: 3, type: 'VEC4' }, // WEIGHTS_0
+      { bufferView: 0, byteOffset: 156, componentType: 5123, count: 3, type: 'SCALAR' }, // indices u16
+      { bufferView: 0, byteOffset: 164, componentType: 5126, count: 2, type: 'MAT4' }, // IBM
+    ],
+    meshes: [
+      {
+        primitives: [
+          {
+            attributes: { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2, JOINTS_0: 3, WEIGHTS_0: 4 },
+            indices: 5,
+            mode: 4,
+          },
+        ],
+      },
+    ],
+    nodes: [{ mesh: 0, skin: 0 }, { name: 'Hips' }, { name: 'Spine' }],
+    skins: [{ joints: [1, 2], inverseBindMatrices: 6 }],
+  };
+  return buildGlb(json, bin);
+}
+
 describe('GltfMeshExtractor', () => {
   it('parses the GLB container into JSON + BIN chunks', () => {
     const { json, bin } = parseGlb(makeSkinnedTriangleGlb());
@@ -130,6 +178,19 @@ describe('GltfMeshExtractor', () => {
     expect(m.inverseBindMatrices.length).toBe(JOINT_COUNT * 16);
     expect(m.jointCount).toBe(JOINT_COUNT);
     expect(m.positions.buffer).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('extracts TEXCOORD_0 UVs that round-trip from the GLB (Track 0: .holo mesh carries UVs)', () => {
+    const m = extractGltfSkinnedMesh(makeSkinnedTriangleGlbWithUv());
+    expect(m.uvs).toBeInstanceOf(Float32Array);
+    expect(m.uvs!.length).toBe(m.vertexCount * 2); // 2 floats/vert
+    expect(Array.from(m.uvs!)).toEqual([0, 0, 1, 0, 0, 1]); // source UVs survive byte-for-byte
+    expect(m.uvs!.buffer).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('leaves uvs undefined when the primitive has no TEXCOORD_0 (false case)', () => {
+    const m = extractGltfSkinnedMesh(makeSkinnedTriangleGlb());
+    expect(m.uvs).toBeUndefined();
   });
 
   it('rejects Draco-compressed primitives loudly', () => {
