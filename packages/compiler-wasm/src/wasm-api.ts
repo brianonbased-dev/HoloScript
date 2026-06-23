@@ -100,6 +100,35 @@ export interface TimelineNode {
   loc?: Location;
 }
 
+/**
+ * Keyframe-track inside a `timeline`: `track "<target>" { key … ; key … }`.
+ * Mirrors `TrackNode` in ast.rs. `target` is the animated prop name
+ * (e.g. `"scaleUniform"`); `keyframes` are the ordered key entries.
+ * Harvested from Theatre.js's per-prop Sequence channel; the track is DATA
+ * the sequencer runtime consumes, not a class.
+ */
+export interface TrackNode {
+  type: 'Track';
+  target: string;
+  keyframes: KeyframeNode[];
+  loc?: Location;
+}
+
+/**
+ * A single keyframe inside a `track`: `key <time> { <value> } [easing <ease>]`.
+ * Mirrors `KeyframeNode` in ast.rs. `time` is the position along the timeline;
+ * `value` is the target value expression in the `{…}` block; `easing` is the
+ * optional per-segment timing function (reuses the shipped spring/bounce/easeX
+ * easing names). Note: `KeyframeNode` is a sub-struct of `TrackNode`, not an
+ * `AstNode` enum variant, so it has no `type` discriminant.
+ */
+export interface KeyframeNode {
+  time: number;
+  value: AstNode;
+  easing?: string;
+  loc?: Location;
+}
+
 export interface EnvironmentNode {
   type: 'Environment';
   properties: PropertyNode[];
@@ -186,6 +215,7 @@ export type AstNode =
   | CompositionNode
   | GroupNode
   | TimelineNode
+  | TrackNode
   | EnvironmentNode
   | PropertyNode
   | TraitNode

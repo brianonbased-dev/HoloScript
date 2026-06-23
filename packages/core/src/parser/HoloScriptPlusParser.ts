@@ -1719,6 +1719,18 @@ export class HoloScriptPlusParser {
     }
 
     // =========================================================================
+    // Special handling for timeline blocks (Theatre.js harvest S1)
+    // A timeline may contain `track "<target>" { key … }` keyframe channels.
+    // The generic node-body parser collapses `track "x" { … }` into two bare
+    // boolean properties and silently drops the keyframe block, breaking parity
+    // with the canonical Rust grammar (TimelineNode → Track → keyframes). Route
+    // to a dedicated parser that produces the same shape.
+    // =========================================================================
+    if (type === 'timeline') {
+      return this.parseTimelineNode(startToken);
+    }
+
+    // =========================================================================
     // Special handling for environment blocks
     // =========================================================================
     if (type === 'environment') {
@@ -3843,6 +3855,184 @@ export class HoloScriptPlusParser {
       traits: new Map(),
       loc: {
         start: startLoc,
+        end: { line: this.current().line, column: this.current().column },
+      },
+    } as unknown as HSPlusNode;
+  }
+
+  /**
+   * Parse a `timeline <name> { …properties, track-blocks, children }` node.
+   * (Theatre.js harvest S1.) Produces the same shape as the canonical Rust
+   * grammar: a `timeline` node whose `children` include structured `track`
+   * nodes (`{ type: 'track', target, keyframes: [...] }`). Non-track lines are
+   * handled the generic way: `key: value` → property, nested block keyword →
+   * child node. The `timeline` keyword has already been consumed by the caller.
+   */
+  private parseTimelineNode(startToken: Token): HSPlusNode {
+    let name: string | undefined;
+    if (this.check('STRING') || this.check('IDENTIFIER')) {
+      name = this.advance().value;
+    }
+
+    const properties: Record<string, unknown> = {};
+    const children: HSPlusNode[] = [];
+    const directives: HSPlusDirective[] = [];
+    const traits = new Map<VRTraitName, unknown>();
+
+    if (this.check('LBRACE')) {
+      this.advance(); // {
+      this.skipNewlines();
+
+      while (!this.check('RBRACE') && !this.check('EOF')) {
+        this.skipNewlines();
+        if (this.check('RBRACE') || this.check('EOF')) break;
+
+        if (this.check('AT')) {
+          const directive = this.parseDirective();
+          if (directive) {
+            if (directive.type === 'trait') {
+              traits.set(directive.name as VRTraitName, directive.config);
+              this.hasVRTraits = true;
+            }
+            directives.push(directive);
+          }
+          this.skipNewlines();
+          continue;
+        }
+
+        const token = this.current();
+        const next = this.peek(1);
+
+        // `track "<target>" { key … }` — a keyframe channel. Disambiguated from
+        // a property literally named `track` (which has a COLON/EQUALS next) by
+        // the look-ahead: target token followed by an opening brace.
+        if (
+          token.type === 'IDENTIFIER' &&
+          token.value === 'track' &&
+          (next.type === 'STRING' || next.type === 'IDENTIFIER') &&
+          this.peek(2).type === 'LBRACE'
+        ) {
+          this.advance(); // consume 'track'
+          children.push(this.parseTrackNode(token));
+          if (this.check('COMMA')) this.advance();
+          this.skipNewlines();
+          continue;
+        }
+
+        // `key: value` / `key = value` property.
+        if (
+          (token.type === 'IDENTIFIER' || token.type === 'STRING') &&
+          (next.type === 'COLON' || next.type === 'EQUALS')
+        ) {
+          const key = this.advance().value;
+          this.advance(); // : or =
+          properties[key] = this.parseValue();
+          if (this.check('COMMA')) this.advance();
+          this.skipNewlines();
+          continue;
+        }
+
+        // Anything else (nested node keyword, statement) → generic node parse.
+        if (token.type === 'IDENTIFIER' || token.type === 'STRING') {
+          children.push(this.parseNode());
+          if (this.check('COMMA')) this.advance();
+          this.skipNewlines();
+          continue;
+        }
+
+        // Unrecognized token — skip to avoid an infinite loop.
+        this.advance();
+        this.skipNewlines();
+      }
+
+      this.expect('RBRACE', 'Expected } to close timeline block');
+    }
+
+    return {
+      type: 'timeline',
+      name,
+      id: name,
+      properties,
+      directives,
+      children,
+      traits,
+      loc: {
+        start: { line: startToken.line, column: startToken.column },
+        end: { line: this.current().line, column: this.current().column },
+      },
+    } as unknown as HSPlusNode;
+  }
+
+  /**
+   * Parse a keyframe-track inside a timeline:
+   *   track "<target>" { key <time> { <value> } [easing <ease>] ; … }
+   * Mirrors the Rust `TrackNode`/`KeyframeNode`. `;` is skipped by the lexer,
+   * so keyframe separators are implicit. The `track` keyword has already been
+   * consumed by the caller. Returns `{ type: 'track', target, keyframes }`.
+   */
+  private parseTrackNode(startToken: Token): HSPlusNode {
+    const target = this.check('STRING')
+      ? this.advance().value
+      : this.expect('IDENTIFIER', 'Expected track target name').value;
+
+    const keyframes: Array<{ time: number; value: unknown; easing?: string }> = [];
+
+    this.expect('LBRACE', 'Expected { to open track block');
+    this.skipNewlines();
+
+    while (!this.check('RBRACE') && !this.check('EOF')) {
+      this.skipNewlines();
+      if (this.check('RBRACE') || this.check('EOF')) break;
+
+      if (this.check('COMMA')) {
+        this.advance();
+        continue;
+      }
+
+      if (this.check('IDENTIFIER') && this.current().value === 'key') {
+        this.advance(); // consume 'key'
+
+        // Keyframe time: a numeric literal (allow a leading minus).
+        let timeSign = 1;
+        if (this.check('MINUS')) {
+          this.advance();
+          timeSign = -1;
+        }
+        const timeTok = this.expect('NUMBER', 'Expected numeric time after key');
+        const time = timeSign * Number(timeTok.value);
+
+        // `{ <value> }` value block.
+        this.expect('LBRACE', 'Expected { value block after key time');
+        const value = this.parseValue();
+        this.expect('RBRACE', 'Expected } to close key value block');
+
+        // Optional `easing <ease>` clause (reuses the shipped easing names).
+        let easing: string | undefined;
+        if (this.check('IDENTIFIER') && this.current().value === 'easing') {
+          this.advance();
+          if (this.check('IDENTIFIER') || this.check('STRING')) {
+            easing = this.advance().value;
+          }
+        }
+
+        keyframes.push(easing === undefined ? { time, value } : { time, value, easing });
+        this.skipNewlines();
+        continue;
+      }
+
+      // Unexpected token inside a track — skip to stay resilient.
+      this.advance();
+      this.skipNewlines();
+    }
+
+    this.expect('RBRACE', 'Expected } to close track block');
+
+    return {
+      type: 'track',
+      target,
+      keyframes,
+      loc: {
+        start: { line: startToken.line, column: startToken.column },
         end: { line: this.current().line, column: this.current().column },
       },
     } as unknown as HSPlusNode;

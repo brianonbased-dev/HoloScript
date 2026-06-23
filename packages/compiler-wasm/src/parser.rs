@@ -300,11 +300,13 @@ impl Parser {
         }))
     }
 
-    /// Parse a timeline construct: `timeline <name> { ...properties, children }`.
+    /// Parse a timeline construct: `timeline <name> { ...properties, tracks, children }`.
     /// Mirrors `parse_group` — a named temporal container. Properties carry the
-    /// sequencing parameters (`duration`, `autoplay`, `loop`, `stagger`) and
-    /// children are the sequenced statements (e.g. `move` statements). Valid at
-    /// top level and as a nested child (see `is_child_object`).
+    /// sequencing parameters (`duration`, `autoplay`, `loop`, `stagger`);
+    /// `track "<target>" { key … }` sub-blocks are the keyframe channels
+    /// (harvested from Theatre.js's Sequence model); remaining children are
+    /// sequenced statements (e.g. `move` statements). Valid at top level and as
+    /// a nested child (see `is_child_object`).
     fn parse_timeline(&mut self) -> Result<AstNode, ParseError> {
         let start_loc = self.current_location();
         self.advance(); // consume 'timeline'
@@ -312,7 +314,7 @@ impl Parser {
         let name = self.expect_identifier()?;
         self.expect(TokenType::LBrace)?;
 
-        let (traits, properties, children) = self.parse_object_body()?;
+        let (traits, properties, children) = self.parse_timeline_body()?;
 
         self.expect(TokenType::RBrace)?;
 
@@ -323,6 +325,134 @@ impl Parser {
             children,
             loc: Some(self.location_from(start_loc)),
         }))
+    }
+
+    /// Parse the body of a `timeline`. Identical to `parse_object_body` except
+    /// that an identifier `track` followed by a string/identifier target opens a
+    /// keyframe-track sub-block (`track "<target>" { key … }`), pushed as a
+    /// `Track` child node. `track` lexes as an `Identifier` (not a keyword), so
+    /// it is matched by value — same convention as `move`'s `to`/`over`/`easing`.
+    fn parse_timeline_body(&mut self) -> Result<ObjectBody, ParseError> {
+        let mut traits = Vec::new();
+        let mut properties = Vec::new();
+        let mut children = Vec::new();
+
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            if self.check(TokenType::Trait) {
+                traits.push(self.parse_trait()?);
+            } else if self.check(TokenType::Move) {
+                children.push(self.parse_move_statement()?);
+            } else if self.check(TokenType::Action) {
+                children.push(self.parse_action_decl()?);
+            } else if self.check(TokenType::OnEvent) {
+                children.push(self.parse_game_event_block()?);
+            } else if self.is_child_object() {
+                children.push(self.parse_top_level()?);
+            } else if self.is_track_start() {
+                children.push(self.parse_track()?);
+            } else if self.check(TokenType::Identifier) {
+                let name = self.peek().value.clone();
+                if name.starts_with("on") && self.peek_next_is(TokenType::Colon) {
+                    children.push(self.parse_event_handler()?);
+                } else if self.is_object_type(&name) {
+                    children.push(self.parse_generic_object(&name)?);
+                } else {
+                    properties.push(self.parse_property()?);
+                }
+            } else {
+                return Err(self.error("Expected trait, property, track, or nested object"));
+            }
+        }
+
+        Ok((traits, properties, children))
+    }
+
+    /// True when the cursor is at the start of a `track "<target>" { … }` block:
+    /// the identifier `track` followed by a string/identifier target and an
+    /// opening brace. The brace look-ahead disambiguates the keyframe-track from
+    /// a property literally named `track` (`track: <value>`), which has a colon
+    /// next instead.
+    fn is_track_start(&self) -> bool {
+        if !(self.check(TokenType::Identifier) && self.peek().value == "track") {
+            return false;
+        }
+        // Next token must be the target name (string or identifier), and the
+        // one after that must open the keyframe block. This brace look-ahead
+        // disambiguates `track "x" { … }` from a property named `track`.
+        matches!(
+            self.peek_at(1).map(|t| &t.token_type),
+            Some(TokenType::String) | Some(TokenType::Identifier)
+        ) && matches!(self.peek_at(2).map(|t| &t.token_type), Some(TokenType::LBrace))
+    }
+
+    /// Parse a keyframe-track: `track "<target>" { key <time> { <value> } [easing <ease>] ; … }`.
+    /// Keyframe separators (`;` / newline / `,`) are optional and skipped.
+    fn parse_track(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'track' (matched by value)
+
+        let target = self.expect_string_or_identifier()?;
+        self.expect(TokenType::LBrace)?;
+
+        let mut keyframes = Vec::new();
+        while !self.check(TokenType::RBrace) && !self.is_at_end() {
+            // Skip optional keyframe separators between entries. `;` lexes as an
+            // `Invalid` token (no Semicolon token type); `,` is a real Comma.
+            // Newlines are already filtered out, so separators are optional.
+            if self.check(TokenType::Comma)
+                || (self.check(TokenType::Invalid) && self.peek().value == ";")
+            {
+                self.advance();
+                continue;
+            }
+            if self.check_value("key") {
+                keyframes.push(self.parse_keyframe()?);
+            } else {
+                return Err(self.error("Expected 'key' inside track block"));
+            }
+        }
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::Track(TrackNode {
+            target,
+            keyframes,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a single keyframe entry: `key <time> { <value> } [easing <ease>]`.
+    /// `key` and `easing` lex as identifiers (matched by value). The `{ <value> }`
+    /// block holds the target value expression at this keyframe.
+    fn parse_keyframe(&mut self) -> Result<KeyframeNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'key' (matched by value)
+
+        // Keyframe time: a numeric literal.
+        let time = if self.check(TokenType::Number) {
+            self.advance().value.parse().unwrap_or(0.0)
+        } else {
+            return Err(self.error("Expected numeric time after 'key'"));
+        };
+
+        // `{ <value> }` value block.
+        self.expect(TokenType::LBrace)?;
+        let value = self.parse_value()?;
+        self.expect(TokenType::RBrace)?;
+
+        // Optional `easing <ease>` clause (reuses the shipped easing names).
+        let mut easing: Option<String> = None;
+        if self.check_value("easing") {
+            self.advance();
+            easing = Some(self.expect_identifier()?);
+        }
+
+        Ok(KeyframeNode {
+            time,
+            value: Box::new(value),
+            easing,
+            loc: Some(self.location_from(start_loc)),
+        })
     }
 
     fn parse_environment(&mut self) -> Result<AstNode, ParseError> {
@@ -1668,6 +1798,12 @@ impl Parser {
         }
     }
 
+    /// Look ahead `offset` tokens past the cursor without consuming. Returns
+    /// `None` past the end of the token stream.
+    fn peek_at(&self, offset: usize) -> Option<&Token> {
+        self.tokens.get(self.current + offset)
+    }
+
     fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
             self.current += 1;
@@ -2024,6 +2160,146 @@ mod tests {
         } else {
             panic!("Expected Group node, got {:?}", &program.body[0]);
         }
+    }
+
+    // ── Keyframe-track sub-grammar inside timeline (Theatre.js harvest S1) ──
+
+    #[test]
+    fn test_parse_timeline_with_keyframe_track() {
+        // The headline target syntax from the harvest plan.
+        let source = r#"timeline intro {
+            track "scaleUniform" { key 0 {0}; key 1 {1} easing spring }
+        }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        let AstNode::Timeline(t) = &program.body[0] else {
+            panic!("Expected Timeline node, got {:?}", &program.body[0]);
+        };
+        assert_eq!(t.name, "intro");
+        assert_eq!(t.children.len(), 1, "expected one track child");
+
+        let AstNode::Track(track) = &t.children[0] else {
+            panic!("Expected Track child, got {:?}", &t.children[0]);
+        };
+        assert_eq!(track.target, "scaleUniform");
+        assert_eq!(track.keyframes.len(), 2);
+
+        // key 0 {0} — no easing
+        assert_eq!(track.keyframes[0].time, 0.0);
+        assert!(track.keyframes[0].easing.is_none());
+        assert!(
+            matches!(track.keyframes[0].value.as_ref(), AstNode::Number(n) if n.value == 0.0),
+            "expected key 0 value to be Number(0)"
+        );
+
+        // key 1 {1} easing spring — reuses the shipped spring easing name
+        assert_eq!(track.keyframes[1].time, 1.0);
+        assert_eq!(track.keyframes[1].easing.as_deref(), Some("spring"));
+        assert!(
+            matches!(track.keyframes[1].value.as_ref(), AstNode::Number(n) if n.value == 1.0),
+            "expected key 1 value to be Number(1)"
+        );
+    }
+
+    #[test]
+    fn test_parse_track_separators_optional() {
+        // Keyframes may be newline-separated (no `;`) since newlines are
+        // filtered out — the grammar must accept both forms.
+        let source = r#"timeline t {
+            track "opacity" {
+                key 0 {0}
+                key 0.5 {0.8} easing ease_in_out
+                key 1 {1}
+            }
+        }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        let AstNode::Timeline(t) = &program.body[0] else {
+            panic!("Expected Timeline node");
+        };
+        let AstNode::Track(track) = &t.children[0] else {
+            panic!("Expected Track child");
+        };
+        assert_eq!(track.target, "opacity");
+        assert_eq!(track.keyframes.len(), 3);
+        assert_eq!(track.keyframes[1].time, 0.5);
+        assert_eq!(track.keyframes[1].easing.as_deref(), Some("ease_in_out"));
+    }
+
+    #[test]
+    fn test_parse_timeline_mixes_track_property_and_move() {
+        // A timeline may carry sequencing properties, keyframe tracks, AND
+        // statement children side by side.
+        let source = r#"timeline scene {
+            duration: 2.0
+            track "rotationY" { key 0 {0}; key 1 {6.28} easing bounce }
+            move camera to [0, 2, 5] over 2 easing ease_out
+        }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        let AstNode::Timeline(t) = &program.body[0] else {
+            panic!("Expected Timeline node");
+        };
+        assert_eq!(t.properties.len(), 1, "duration property");
+        assert_eq!(t.properties[0].key, "duration");
+        assert_eq!(t.children.len(), 2, "one track + one move");
+        assert!(matches!(&t.children[0], AstNode::Track(_)));
+        assert!(matches!(&t.children[1], AstNode::MovementStatement(_)));
+
+        let AstNode::Track(track) = &t.children[0] else {
+            unreachable!();
+        };
+        assert_eq!(track.target, "rotationY");
+        assert_eq!(track.keyframes[1].easing.as_deref(), Some("bounce"));
+    }
+
+    #[test]
+    fn test_parse_track_identifier_target() {
+        // The track target may be a bare identifier, not only a string.
+        let source = r#"timeline t {
+            track positionX { key 0 {-1}; key 1 {1} }
+        }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        let AstNode::Timeline(t) = &program.body[0] else {
+            panic!("Expected Timeline node");
+        };
+        let AstNode::Track(track) = &t.children[0] else {
+            panic!("Expected Track child");
+        };
+        assert_eq!(track.target, "positionX");
+        assert_eq!(track.keyframes.len(), 2);
+    }
+
+    #[test]
+    fn test_property_named_track_is_not_a_track_block() {
+        // `track:` (colon) is a property, NOT a keyframe-track block — the
+        // brace look-ahead in `is_track_start` must keep them distinct.
+        let source = r#"timeline t { track: "main" }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        let AstNode::Timeline(t) = &program.body[0] else {
+            panic!("Expected Timeline node");
+        };
+        assert_eq!(t.properties.len(), 1, "track should parse as a property");
+        assert_eq!(t.properties[0].key, "track");
+        assert!(t.children.is_empty(), "no Track child expected");
     }
 
     #[test]

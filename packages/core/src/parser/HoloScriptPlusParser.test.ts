@@ -665,3 +665,89 @@ describe('HoloScriptPlusParser - Behavioral Layer', () => {
     expect(String(reactBlock.children[0].body)).toContain('open');
   });
 });
+
+describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1)', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  function timelineOf(source: string): any {
+    const result = parser.parse(source);
+    expect(result.success).toBe(true);
+    const tl = (result.ast.root.children ?? []).find((c: any) => c.type === 'timeline');
+    expect(tl, 'expected a timeline child node').toBeDefined();
+    return tl;
+  }
+
+  it('parses the headline track grammar into structured keyframes', () => {
+    // Parity target with the Rust grammar:
+    //   timeline intro { track "scaleUniform" { key 0 {0}; key 1 {1} easing spring } }
+    const tl = timelineOf(`composition Demo {
+      timeline intro {
+        track "scaleUniform" { key 0 {0}; key 1 {1} easing spring }
+      }
+    }`);
+
+    expect(tl.name).toBe('intro');
+    const tracks = tl.children.filter((c: any) => c.type === 'track');
+    expect(tracks).toHaveLength(1);
+
+    const track = tracks[0];
+    expect(track.target).toBe('scaleUniform');
+    expect(track.keyframes).toHaveLength(2);
+
+    expect(track.keyframes[0]).toMatchObject({ time: 0, value: 0 });
+    expect(track.keyframes[0].easing).toBeUndefined();
+    expect(track.keyframes[1]).toMatchObject({ time: 1, value: 1, easing: 'spring' });
+  });
+
+  it('keeps a duration property alongside tracks', () => {
+    const tl = timelineOf(`composition Demo {
+      timeline scene {
+        duration: 2.0
+        track "rotationY" { key 0 {0}; key 1 {6.28} easing bounce }
+      }
+    }`);
+
+    expect(tl.properties.duration).toBe(2);
+    const track = tl.children.find((c: any) => c.type === 'track');
+    expect(track.target).toBe('rotationY');
+    expect(track.keyframes[1].easing).toBe('bounce');
+  });
+
+  it('accepts newline-separated keyframes, identifier targets, and negative values', () => {
+    const tl = timelineOf(`composition Demo {
+      timeline t {
+        track positionX {
+          key 0 {-1}
+          key 0.5 {0} easing ease_in_out
+          key 1 {1}
+        }
+      }
+    }`);
+
+    const track = tl.children.find((c: any) => c.type === 'track');
+    expect(track.target).toBe('positionX');
+    expect(track.keyframes).toHaveLength(3);
+    expect(track.keyframes[0].value).toBe(-1);
+    expect(track.keyframes[1]).toMatchObject({ time: 0.5, value: 0, easing: 'ease_in_out' });
+  });
+
+  it('treats `track:` as a property, not a keyframe-track block', () => {
+    const tl = timelineOf(`composition Demo {
+      timeline t { track: "main" }
+    }`);
+    expect(tl.properties.track).toBe('main');
+    expect(tl.children.filter((c: any) => c.type === 'track')).toHaveLength(0);
+  });
+
+  it('supports multiple tracks in one timeline', () => {
+    const tl = timelineOf(`composition Demo {
+      timeline multi {
+        track "opacity" { key 0 {0}; key 1 {1} }
+        track "scaleUniform" { key 0 {0.5}; key 1 {1} easing spring }
+      }
+    }`);
+    const tracks = tl.children.filter((c: any) => c.type === 'track');
+    expect(tracks.map((t: any) => t.target)).toEqual(['opacity', 'scaleUniform']);
+    expect(tracks[1].keyframes[1].easing).toBe('spring');
+  });
+});

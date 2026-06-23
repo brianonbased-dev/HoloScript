@@ -37,6 +37,7 @@ pub enum AstNode {
     Template(TemplateNode),
     Group(GroupNode),
     Timeline(TimelineNode),
+    Track(TrackNode),
     Environment(EnvironmentNode),
     Logic(LogicNode),
 
@@ -203,6 +204,34 @@ pub struct TimelineNode {
     pub traits: Vec<TraitNode>,
     pub properties: Vec<PropertyNode>,
     pub children: Vec<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// A keyframe-track inside a `timeline`: `track "<target>" { key … ; key … }`.
+/// `target` is the animated prop name (e.g. `"scaleUniform"`, `"position.x"`);
+/// `keyframes` are ordered key entries. Harvested from Theatre.js's Sequence
+/// model — the track is the per-prop keyframe channel of a sequence. Native:
+/// the track is DATA the sequencer runtime consumes, not a class.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrackNode {
+    pub target: String,
+    pub keyframes: Vec<KeyframeNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// A single keyframe inside a `track`: `key <time> { <value> } [easing <ease>]`.
+/// `time` is the position along the timeline (seconds or normalized 0..1 — the
+/// runtime decides); `value` is the target value expression in the `{…}` block;
+/// `easing` is the per-segment timing function (reuses the shipped
+/// `spring`/`bounce`/`easeX` easings — direct payoff of the anime.js work).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyframeNode {
+    pub time: f64,
+    pub value: Box<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub easing: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loc: Option<Location>,
 }

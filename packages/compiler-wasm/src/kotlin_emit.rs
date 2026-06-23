@@ -1313,6 +1313,7 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::Template(_) => "Template",
         AstNode::Group(_) => "Group",
         AstNode::Timeline(_) => "Timeline",
+        AstNode::Track(_) => "Track",
         AstNode::Environment(_) => "Environment",
         AstNode::Logic(_) => "Logic",
         AstNode::Npc(_) => "Npc",

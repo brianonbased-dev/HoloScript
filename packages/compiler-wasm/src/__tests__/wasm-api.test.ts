@@ -23,6 +23,8 @@ import {
   type ActionDeclNode,
   type GameEventBlockNode,
   type TimelineNode,
+  type TrackNode,
+  type KeyframeNode,
 } from '../wasm-api';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -611,6 +613,51 @@ describe('behavioral construct AST nodes', () => {
     expect(node.properties).toHaveLength(1);
     expect(node.children).toHaveLength(1);
     expect((node.children[0] as MovementStatementNode).easing).toBe('spring');
+  });
+
+  it('round-trips a Timeline with a keyframe Track (Theatre.js harvest S1)', () => {
+    // Mirrors the Rust grammar shape for:
+    //   timeline intro { track "scaleUniform" { key 0 {0}; key 1 {1} easing spring } }
+    const TIMELINE_TRACK_AST: Ast = {
+      type: 'Program',
+      body: [
+        {
+          type: 'Timeline',
+          name: 'intro',
+          traits: [],
+          properties: [],
+          children: [
+            {
+              type: 'Track',
+              target: 'scaleUniform',
+              keyframes: [
+                { time: 0, value: { type: 'Number', value: 0 } },
+                { time: 1, value: { type: 'Number', value: 1 }, easing: 'spring' },
+              ],
+            } as unknown as TrackNode,
+          ],
+        } as unknown as TimelineNode,
+      ],
+      directives: [],
+    };
+
+    const result = parseFromMock(TIMELINE_TRACK_AST);
+    const timeline = result.body[0] as TimelineNode;
+    expect(timeline.type).toBe('Timeline');
+    expect(timeline.children).toHaveLength(1);
+
+    const track = timeline.children[0] as TrackNode;
+    expect(track.type).toBe('Track');
+    expect(track.target).toBe('scaleUniform');
+    expect(track.keyframes).toHaveLength(2);
+
+    const [k0, k1] = track.keyframes as KeyframeNode[];
+    expect(k0.time).toBe(0);
+    expect(k0.easing).toBeUndefined();
+    expect((k0.value as { value: number }).value).toBe(0);
+    expect(k1.time).toBe(1);
+    expect(k1.easing).toBe('spring');
+    expect((k1.value as { value: number }).value).toBe(1);
   });
 
   it('round-trips an ActionDecl with clauses and flags', () => {
