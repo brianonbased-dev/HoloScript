@@ -29,6 +29,7 @@ import type { ExportTarget } from './CircuitBreaker';
  */
 export const SOVEREIGN_TARGETS = [
   'webgpu', // WebGPUCompiler → WGSL compute+render shaders on our own WebGPU device (WebGPURenderer)
+  'character-webgpu', // CharacterWebGPUCompiler → authored .holo character → CharacterDrawSpec run by our renderCharacter (sovereign skinned-character path)
   'nir', // NIRCompiler → our Neuromorphic IR; NIRToWGSLCompiler runs it on our WebGPU path
   'canvas2d-game', // Canvas2DGameCompiler → self-contained canvas game runtime (loop/physics/WebAudio)
   'tsl', // Trait Shader Language — our trait-to-shader codegen

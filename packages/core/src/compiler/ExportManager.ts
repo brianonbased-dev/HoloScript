@@ -36,6 +36,7 @@ import { PCGGraphCompiler } from './PCGGraphCompiler';
 import { GodotCompiler } from './GodotCompiler';
 import { Canvas2DGameCompiler } from './Canvas2DGameCompilerTarget';
 import { WebGPUCompiler } from './WebGPUCompiler';
+import { CharacterWebGPUCompiler } from './CharacterWebGPUCompiler';
 import { OpenXRCompiler } from './OpenXRCompiler';
 import { VRChatCompiler } from './VRChatCompiler';
 import { IOSCompiler } from './IOSCompiler';
@@ -236,6 +237,8 @@ class CompilerFactory {
         return new GodotCompiler(options);
       case 'webgpu':
         return new WebGPUCompiler(options);
+      case 'character-webgpu':
+        return new CharacterWebGPUCompiler(options);
       case 'openxr':
         return new OpenXRCompiler(options);
       case 'vrchat':

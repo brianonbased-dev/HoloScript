@@ -54,6 +54,7 @@ export type ExportTarget =
   | 'ios' // iOS ARKit
   | 'visionos' // Apple Vision Pro
   | 'webgpu' // WebGPU API
+  | 'character-webgpu' // Native-WebGPU skinned CHARACTER (.holo body/skeleton/materials → CharacterDrawSpec, sovereign)
   | 'wasm' // WebAssembly
   | 'usd' // Pixar USD
   | 'usdz' // USDZ (iOS AR)
