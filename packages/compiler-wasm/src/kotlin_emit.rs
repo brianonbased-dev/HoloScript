@@ -129,7 +129,7 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
 
     // Infer each struct's per-field Kotlin type from its constructor-call sites (defaults to the
     // all-`Float` record when a struct is unconstructed or its args carry no literal signal).
-    let struct_field_types = infer_struct_field_types(ast, &struct_names);
+    let struct_field_types = infer_struct_field_types(ast, &enum_names, &struct_names);
 
     let mut blocks: Vec<String> = Vec::new();
     // Data declarations (struct/enum) precede functions so a function may name them as a return
@@ -304,9 +304,11 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
         let elem = returns
             .iter()
             .find_map(|n| match n {
-                AstNode::Array(a) if !a.elements.is_empty() => {
-                    Some(infer_array_element_type(&a.elements, enum_names, struct_names))
-                }
+                AstNode::Array(a) if !a.elements.is_empty() => Some(infer_array_element_type(
+                    &a.elements,
+                    enum_names,
+                    struct_names,
+                )),
                 _ => None,
             })
             .unwrap_or(ValType::Float);
@@ -481,7 +483,8 @@ fn walk_collect_list_bindings(
             AstNode::VariableDeclaration(v) => {
                 if let AstNode::Array(arr) = v.value.as_ref() {
                     if !out.iter().any(|(n, _)| n == &v.name) {
-                        let elem = infer_array_element_type(&arr.elements, enum_names, struct_names);
+                        let elem =
+                            infer_array_element_type(&arr.elements, enum_names, struct_names);
                         out.push((v.name.clone(), elem));
                     }
                 }
@@ -508,13 +511,14 @@ fn walk_collect_list_bindings(
 /// nested-record cases correctly.
 fn infer_struct_field_types(
     ast: &Ast,
+    enum_names: &[String],
     struct_names: &[String],
 ) -> HashMap<String, Vec<Option<ValType>>> {
     // struct name → per-field-index list of the literal signals gathered across all ctor sites.
     let mut acc: HashMap<String, Vec<Vec<ValType>>> = HashMap::new();
     for node in &ast.body {
         if let AstNode::Function(func) = node {
-            collect_ctor_calls(&func.body, struct_names, &mut acc);
+            collect_ctor_calls(&func.body, enum_names, struct_names, &mut acc);
         }
     }
 
@@ -547,48 +551,55 @@ fn infer_struct_field_types(
 /// position). Recurses into loop/if/decl/assignment/return sub-bodies and into nested expressions.
 fn collect_ctor_calls(
     body: &[AstNode],
+    enum_names: &[String],
     struct_names: &[String],
     acc: &mut HashMap<String, Vec<Vec<ValType>>>,
 ) {
     for node in body {
-        collect_ctor_calls_in_stmt(node, struct_names, acc);
+        collect_ctor_calls_in_stmt(node, enum_names, struct_names, acc);
     }
 }
 
 fn collect_ctor_calls_in_stmt(
     node: &AstNode,
+    enum_names: &[String],
     struct_names: &[String],
     acc: &mut HashMap<String, Vec<Vec<ValType>>>,
 ) {
     match node {
         AstNode::ForOf(f) => {
-            collect_ctor_calls_in_expr(&f.range, struct_names, acc);
-            collect_ctor_calls(&f.body, struct_names, acc);
+            collect_ctor_calls_in_expr(&f.range, enum_names, struct_names, acc);
+            collect_ctor_calls(&f.body, enum_names, struct_names, acc);
         }
         AstNode::While(w) => {
-            collect_ctor_calls_in_expr(&w.test, struct_names, acc);
-            collect_ctor_calls(&w.body, struct_names, acc);
+            collect_ctor_calls_in_expr(&w.test, enum_names, struct_names, acc);
+            collect_ctor_calls(&w.body, enum_names, struct_names, acc);
         }
         AstNode::If(if_node) => {
-            collect_ctor_calls_in_expr(&if_node.test, struct_names, acc);
-            collect_ctor_calls(&if_node.consequent, struct_names, acc);
+            collect_ctor_calls_in_expr(&if_node.test, enum_names, struct_names, acc);
+            collect_ctor_calls(&if_node.consequent, enum_names, struct_names, acc);
             if let Some(alt) = &if_node.alternate {
-                collect_ctor_calls(alt, struct_names, acc);
+                collect_ctor_calls(alt, enum_names, struct_names, acc);
             }
         }
-        AstNode::VariableDeclaration(v) => collect_ctor_calls_in_expr(&v.value, struct_names, acc),
-        AstNode::Assignment(a) => collect_ctor_calls_in_expr(&a.value, struct_names, acc),
+        AstNode::VariableDeclaration(v) => {
+            collect_ctor_calls_in_expr(&v.value, enum_names, struct_names, acc)
+        }
+        AstNode::Assignment(a) => {
+            collect_ctor_calls_in_expr(&a.value, enum_names, struct_names, acc)
+        }
         AstNode::Return(r) => {
             if let Some(arg) = &r.argument {
-                collect_ctor_calls_in_expr(arg, struct_names, acc);
+                collect_ctor_calls_in_expr(arg, enum_names, struct_names, acc);
             }
         }
-        other => collect_ctor_calls_in_expr(other, struct_names, acc),
+        other => collect_ctor_calls_in_expr(other, enum_names, struct_names, acc),
     }
 }
 
 fn collect_ctor_calls_in_expr(
     node: &AstNode,
+    enum_names: &[String],
     struct_names: &[String],
     acc: &mut HashMap<String, Vec<Vec<ValType>>>,
 ) {
@@ -599,7 +610,7 @@ fn collect_ctor_calls_in_expr(
             {
                 let entry = acc.entry(name).or_default();
                 for (idx, arg) in c.arguments.iter().enumerate() {
-                    if let Some(signal) = arg_literal_signal(arg, struct_names) {
+                    if let Some(signal) = ctor_arg_field_signal(arg, enum_names, struct_names) {
                         if entry.len() <= idx {
                             entry.resize(idx + 1, Vec::new());
                         }
@@ -609,7 +620,7 @@ fn collect_ctor_calls_in_expr(
             }
             // An argument may itself be a (nested) struct constructor — keep walking.
             for arg in &c.arguments {
-                collect_ctor_calls_in_expr(arg, struct_names, acc);
+                collect_ctor_calls_in_expr(arg, enum_names, struct_names, acc);
             }
         }
         return;
@@ -617,16 +628,38 @@ fn collect_ctor_calls_in_expr(
 
     match node {
         AstNode::BinaryExpression(b) => {
-            collect_ctor_calls_in_expr(&b.left, struct_names, acc);
-            collect_ctor_calls_in_expr(&b.right, struct_names, acc);
+            collect_ctor_calls_in_expr(&b.left, enum_names, struct_names, acc);
+            collect_ctor_calls_in_expr(&b.right, enum_names, struct_names, acc);
         }
-        AstNode::UnaryExpression(u) => collect_ctor_calls_in_expr(&u.argument, struct_names, acc),
+        AstNode::UnaryExpression(u) => {
+            collect_ctor_calls_in_expr(&u.argument, enum_names, struct_names, acc)
+        }
         AstNode::CallExpression(c) => {
             for arg in &c.arguments {
-                collect_ctor_calls_in_expr(arg, struct_names, acc);
+                collect_ctor_calls_in_expr(arg, enum_names, struct_names, acc);
+            }
+        }
+        AstNode::Array(a) => {
+            for elem in &a.elements {
+                collect_ctor_calls_in_expr(elem, enum_names, struct_names, acc);
             }
         }
         _ => {}
+    }
+}
+
+fn ctor_arg_field_signal(
+    node: &AstNode,
+    enum_names: &[String],
+    struct_names: &[String],
+) -> Option<ValType> {
+    match node {
+        AstNode::Array(arr) => Some(ValType::List(Box::new(infer_array_element_type(
+            &arr.elements,
+            enum_names,
+            struct_names,
+        )))),
+        _ => arg_literal_signal(node, struct_names),
     }
 }
 
@@ -686,8 +719,7 @@ fn body_uses_param_as_list(param: &str, body: &[AstNode]) -> Option<ValType> {
 fn stmt_uses_param_as_list(param: &str, node: &AstNode) -> Option<ValType> {
     match node {
         // `for (v in param)` — the iterable is the bare param identifier (not a `0..n` range).
-        AstNode::ForOf(f)
-            if matches!(f.range.as_ref(), AstNode::Identifier(id) if id.name == param) =>
+        AstNode::ForOf(f) if matches!(f.range.as_ref(), AstNode::Identifier(id) if id.name == param) =>
         {
             let elem = if body_uses_param_numerically(&f.var_name, &f.body) {
                 ValType::Float
@@ -713,7 +745,8 @@ fn stmt_uses_param_as_list(param: &str, node: &AstNode) -> Option<ValType> {
 /// Does `param` appear as an operand of a range expression (`a..param`, `param..b`) anywhere in
 /// `body`? Such a param is an integer range bound. Walks into loop/if/decl/assignment bodies.
 fn body_uses_param_as_range_bound(param: &str, body: &[AstNode]) -> bool {
-    body.iter().any(|n| stmt_uses_param_as_range_bound(param, n))
+    body.iter()
+        .any(|n| stmt_uses_param_as_range_bound(param, n))
 }
 
 fn stmt_uses_param_as_range_bound(param: &str, node: &AstNode) -> bool {
@@ -872,7 +905,8 @@ fn stmt_uses_param_numerically(param: &str, node: &AstNode) -> bool {
 /// Is `param` used in a numeric position anywhere inside `node`? A numeric position is: an
 /// operand of an arithmetic operator, the operand of a unary `-`, or an argument to `sqrt`.
 fn expr_uses_param_numerically(param: &str, node: &AstNode) -> bool {
-    let direct_hit = |operand: &AstNode| matches!(operand, AstNode::Identifier(id) if id.name == param);
+    let direct_hit =
+        |operand: &AstNode| matches!(operand, AstNode::Identifier(id) if id.name == param);
     match node {
         AstNode::BinaryExpression(b) => {
             let arithmetic = matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%");
@@ -1178,7 +1212,11 @@ fn emit_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, Ko
 /// Emit one operand of a range expression (`a..b`). Same precedence-aware parenthesization as
 /// [`emit_operand`], but the operand lives in an INTEGER context, so it is rendered via
 /// [`emit_int_expr`] (numeric literals drop the Float `f` suffix — `0..n`, not `0f..n`).
-fn emit_range_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<String, KotlinEmitError> {
+fn emit_range_operand(
+    node: &AstNode,
+    parent: u8,
+    is_right: bool,
+) -> Result<String, KotlinEmitError> {
     let emitted = emit_int_expr(node)?;
     if let AstNode::BinaryExpression(b) = node {
         let child = precedence(&b.operator);
@@ -1196,7 +1234,9 @@ fn emit_range_operand(node: &AstNode, parent: u8, is_right: bool) -> Result<Stri
 fn emit_int_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
     match node {
         AstNode::Number(n) => Ok(emit_int_literal(&n.raw)),
-        AstNode::BinaryExpression(b) if matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%") => {
+        AstNode::BinaryExpression(b)
+            if matches!(b.operator.as_str(), "+" | "-" | "*" | "/" | "%") =>
+        {
             let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator);
             let left = emit_int_operand(&b.left, parent, false)?;
@@ -1387,7 +1427,10 @@ mod tests {
   return text == ""
 }"#;
         let out = kotlin(src);
-        assert!(out.contains("fun isEmpty(text: String): Boolean {"), "{out}");
+        assert!(
+            out.contains("fun isEmpty(text: String): Boolean {"),
+            "{out}"
+        );
         assert!(out.contains("return text == \"\""), "{out}");
     }
 
@@ -1427,7 +1470,10 @@ mod tests {
 }"#;
         let out = kotlin(src);
         assert!(out.contains("return \"hello ${name}\""), "{out}");
-        assert!(!out.contains("\\${name}"), "must not escape an interpolation: {out}");
+        assert!(
+            !out.contains("\\${name}"),
+            "must not escape an interpolation: {out}"
+        );
     }
 
     #[test]
@@ -1528,7 +1574,10 @@ mod tests {
         // Assert on the body line only (the `f(...)` signature legitimately contains parens).
         assert!(out.contains("return a * b + c * d"), "{out}");
         let body = out.lines().find(|l| l.contains("return")).unwrap_or("");
-        assert!(!body.contains("("), "should not add spurious parens to body: {body}");
+        assert!(
+            !body.contains("("),
+            "should not add spurious parens to body: {body}"
+        );
     }
 
     #[test]
@@ -1549,7 +1598,10 @@ mod tests {
         let out = kotlin(src);
         assert!(out.contains("return a - b - c"), "{out}");
         let body = out.lines().find(|l| l.contains("return")).unwrap_or("");
-        assert!(!body.contains("("), "no parens for naturally-left-assoc form: {body}");
+        assert!(
+            !body.contains("("),
+            "no parens for naturally-left-assoc form: {body}"
+        );
     }
 
     #[test]
@@ -1562,7 +1614,10 @@ mod tests {
             out.contains("return kotlin.math.sqrt(fx * fx + fz * fz)"),
             "{out}"
         );
-        assert!(out.contains("fun gazeLen(fx: Float, fz: Float): Float {"), "{out}");
+        assert!(
+            out.contains("fun gazeLen(fx: Float, fz: Float): Float {"),
+            "{out}"
+        );
     }
 
     #[test]
@@ -1675,7 +1730,10 @@ function f(x) {
   return a && b
 }"#;
         let out = kotlin(src);
-        assert!(out.contains("fun both(a: Boolean, b: Boolean): Boolean {"), "{out}");
+        assert!(
+            out.contains("fun both(a: Boolean, b: Boolean): Boolean {"),
+            "{out}"
+        );
     }
 
     #[test]
@@ -1683,7 +1741,10 @@ function f(x) {
         // The member list tolerates a trailing comma (object-literal-style lenient commas).
         let src = r#"enum Color { Red, Green, Blue, }"#;
         let out = kotlin(src);
-        assert!(out.contains("enum class Color { Red, Green, Blue }"), "{out}");
+        assert!(
+            out.contains("enum class Color { Red, Green, Blue }"),
+            "{out}"
+        );
     }
 
     // ── Mutable state (LOCAL var) + loops (G6) ────────────────────────────────────────────────
@@ -1739,7 +1800,10 @@ function f(x) {
   return total
 }"#;
         let out = kotlin(src);
-        assert!(out.contains("fun countdown(start: Float): Float {"), "{out}");
+        assert!(
+            out.contains("fun countdown(start: Float): Float {"),
+            "{out}"
+        );
         assert!(out.contains("var total = start - 0f"), "{out}");
         assert!(out.contains("while (total > 0f) {"), "{out}");
         assert!(out.contains("total = total - 1f"), "{out}");
@@ -1831,7 +1895,10 @@ function scale(x, y, k) {
   return Vec2(x * k, y * k)
 }"#;
         let out = kotlin(src);
-        assert!(out.contains("data class Vec2(val x: Float, val y: Float)"), "{out}");
+        assert!(
+            out.contains("data class Vec2(val x: Float, val y: Float)"),
+            "{out}"
+        );
         assert!(
             out.contains("fun scale(x: Float, y: Float, k: Float): Vec2 {"),
             "{out}"
@@ -1904,7 +1971,49 @@ function mk() {
             "{out}"
         );
         // The nested constructor's own fields are still inferred (numeric → Float).
-        assert!(out.contains("data class Vec2(val x: Float, val y: Float)"), "{out}");
+        assert!(
+            out.contains("data class Vec2(val x: Float, val y: Float)"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn struct_field_typed_list_struct_from_array_ctor_arg() {
+        let src = r#"struct Vec3 { x, y, z }
+struct Path { pts }
+function mk() {
+  return Path([Vec3(1, 2, 3), Vec3(4, 5, 6)])
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Path(val pts: List<Vec3>)"),
+            "{out}"
+        );
+        assert!(
+            out.contains("data class Vec3(val x: Float, val y: Float, val z: Float)"),
+            "{out}"
+        );
+        assert!(
+            out.contains("return Path(listOf(Vec3(1f, 2f, 3f), Vec3(4f, 5f, 6f)))"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn struct_field_typed_list_string_from_array_ctor_arg() {
+        let src = r#"struct Tags { labels }
+function mk() {
+  return Tags(["alpha", "beta"])
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Tags(val labels: List<String>)"),
+            "{out}"
+        );
+        assert!(
+            out.contains("return Tags(listOf(\"alpha\", \"beta\"))"),
+            "{out}"
+        );
     }
 
     #[test]
@@ -1915,7 +2024,10 @@ function f(p) {
   return p
 }"#;
         let out = kotlin(src);
-        assert!(out.contains("data class Q(val p: Float, val r: Float)"), "{out}");
+        assert!(
+            out.contains("data class Q(val p: Float, val r: Float)"),
+            "{out}"
+        );
     }
 
     #[test]
@@ -1959,7 +2071,10 @@ function newYaw(yaw, turn) {
 }"#;
         let out = kotlin(src);
         assert!(out.contains("fun worldId(text: String): String {"), "{out}");
-        assert!(out.contains("fun newYaw(yaw: Float, turn: Float): Float {"), "{out}");
+        assert!(
+            out.contains("fun newYaw(yaw: Float, turn: Float): Float {"),
+            "{out}"
+        );
         assert!(out.contains("data class Acc(val total: Float)"), "{out}");
         assert!(out.contains("enum class Route { A, B }"), "{out}");
     }
@@ -2096,7 +2211,10 @@ function newYaw(yaw, turn) {
         let out = kotlin(src);
         assert!(out.contains("fun pts(): List<Float> {"), "{out}");
         assert!(out.contains("fun worldId(text: String): String {"), "{out}");
-        assert!(out.contains("fun newYaw(yaw: Float, turn: Float): Float {"), "{out}");
+        assert!(
+            out.contains("fun newYaw(yaw: Float, turn: Float): Float {"),
+            "{out}"
+        );
         assert!(out.contains("enum class Route { A, B }"), "{out}");
     }
 
