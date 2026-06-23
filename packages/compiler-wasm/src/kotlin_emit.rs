@@ -75,6 +75,9 @@ enum ValType {
     Enum(String),
     /// A declared `.hs` struct (record), carrying its Kotlin type name (e.g. `Vec3`).
     Struct(String),
+    /// A `List<T>` — e.g. an array-literal return `[1, 2, 3]` ⇒ `List<Float>`, or a nested
+    /// `[[1], [2]]` ⇒ `List<List<Float>>`. Carries the element type (boxed for recursion).
+    List(Box<ValType>),
 }
 
 impl ValType {
@@ -86,6 +89,7 @@ impl ValType {
             ValType::Int => "Int".to_string(),
             ValType::Enum(name) => name.clone(),
             ValType::Struct(name) => name.clone(),
+            ValType::List(inner) => format!("List<{}>", inner.kotlin()),
         }
     }
 }
@@ -292,6 +296,22 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
             return ValType::Struct(first);
         }
     }
+    // List: every return is an array literal (`[1, 2, 3]`) ⇒ `List<element>`. The element type is
+    // taken from the first NON-empty array (Float default when all returns are empty / signal-less —
+    // Kotlin reconciles a bare `listOf()` against the annotated return type). Additive: this only
+    // fires when EVERY return is an array, so no existing non-array function changes type (zero drift).
+    if returns.iter().all(|n| matches!(n, AstNode::Array(_))) {
+        let elem = returns
+            .iter()
+            .find_map(|n| match n {
+                AstNode::Array(a) if !a.elements.is_empty() => {
+                    Some(infer_array_element_type(&a.elements, enum_names, struct_names))
+                }
+                _ => None,
+            })
+            .unwrap_or(ValType::Float);
+        return ValType::List(Box::new(elem));
+    }
     // Collect local bindings whose value is numeric (a `var`/`let` initialized to numeric-shaped
     // arithmetic, or mutated by numeric assignment / a `+=`-style compound). This lets a function
     // that returns a bare accumulator identifier (`return total`) resolve to `Float` instead of the
@@ -384,6 +404,32 @@ fn struct_ctor_owner(node: &AstNode, struct_names: &[String]) -> Option<String> 
         }
     }
     None
+}
+
+/// Infer the Kotlin element type of an array literal for `List<T>` typing. The grammar has no
+/// heterogeneous-array construct, so element type is read from the FIRST element and the array is
+/// assumed homogeneous. Rules mirror the return/argument signal ladder: a nested array →
+/// `List<inner>`; a declared enum member → that enum; otherwise the literal/struct signal
+/// (`String`/`Boolean`/`Float`/`Struct`). An empty or signal-less array defaults to `Float`.
+fn infer_array_element_type(
+    elements: &[AstNode],
+    enum_names: &[String],
+    struct_names: &[String],
+) -> ValType {
+    match elements.first() {
+        Some(AstNode::Array(inner)) => ValType::List(Box::new(infer_array_element_type(
+            &inner.elements,
+            enum_names,
+            struct_names,
+        ))),
+        Some(first) => {
+            if let Some(owner) = enum_member_owner(first, enum_names) {
+                return ValType::Enum(owner);
+            }
+            arg_literal_signal(first, struct_names).unwrap_or(ValType::Float)
+        }
+        None => ValType::Float,
+    }
 }
 
 /// Infer a per-field Kotlin type for every declared struct from the literal arguments at its
@@ -1154,6 +1200,7 @@ fn node_kind(node: &AstNode) -> &'static str {
         AstNode::Object(_) => "Object",
         AstNode::Template(_) => "Template",
         AstNode::Group(_) => "Group",
+        AstNode::Timeline(_) => "Timeline",
         AstNode::Environment(_) => "Environment",
         AstNode::Logic(_) => "Logic",
         AstNode::Npc(_) => "Npc",
@@ -1832,5 +1879,111 @@ function newYaw(yaw, turn, turnSpeed, dt) {
             "{out}"
         );
         assert!(out.contains("return yaw + turn * turnSpeed * dt"), "{out}");
+    }
+
+    // ── Typed arrays `[1, 2, 3]` ⇒ `listOf(...)` with `List<T>` inference (G7c) ──────────────────
+
+    #[test]
+    fn infers_list_float_return_for_numeric_array_literal() {
+        let src = r#"function pts() {
+  return [1, 2, 3]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun pts(): List<Float> {"), "{out}");
+        assert!(out.contains("return listOf(1f, 2f, 3f)"), "{out}");
+    }
+
+    #[test]
+    fn infers_list_string_return_for_string_array_literal() {
+        let src = r#"function names() {
+  return ["a", "b"]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun names(): List<String> {"), "{out}");
+        assert!(out.contains("return listOf(\"a\", \"b\")"), "{out}");
+    }
+
+    #[test]
+    fn infers_list_boolean_return_for_bool_array_literal() {
+        let src = r#"function flags() {
+  return [true, false]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun flags(): List<Boolean> {"), "{out}");
+        assert!(out.contains("return listOf(true, false)"), "{out}");
+    }
+
+    #[test]
+    fn infers_nested_list_for_array_of_arrays() {
+        let src = r#"function grid() {
+  return [[1, 2], [3, 4]]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun grid(): List<List<Float>> {"), "{out}");
+        assert!(
+            out.contains("return listOf(listOf(1f, 2f), listOf(3f, 4f))"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_list_struct_return_for_struct_array_literal() {
+        // An array of declared-struct constructors infers `List<Struct>` (element type via the
+        // same struct-ctor signal used by scalar return inference).
+        let src = r#"struct Vec3 { x, y, z }
+function points() {
+  return [Vec3(1, 2, 3), Vec3(4, 5, 6)]
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun points(): List<Vec3> {"), "{out}");
+        assert!(
+            out.contains("return listOf(Vec3(1f, 2f, 3f), Vec3(4f, 5f, 6f))"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn emits_listof_for_local_array_binding() {
+        // A local array binding emits `listOf(...)`; Kotlin infers `List<Float>` from the value,
+        // so no explicit annotation is needed on the `val`.
+        let src = r#"function build() {
+  let xs = [1, 2, 3]
+  return ""
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("val xs = listOf(1f, 2f, 3f)"), "{out}");
+    }
+
+    #[test]
+    fn empty_array_return_defaults_to_list_float() {
+        // No element signal ⇒ `List<Float>`; the bare `listOf()` reconciles against the annotation.
+        let src = r#"function none() {
+  return []
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun none(): List<Float> {"), "{out}");
+        assert!(out.contains("return listOf()"), "{out}");
+    }
+
+    #[test]
+    fn array_inference_leaves_non_array_functions_unchanged() {
+        // Zero-drift guard: adding `List<T>` return inference must NOT perturb the shipped
+        // String / Float / enum function shapes when they coexist with an array function.
+        let src = r#"enum Route { A, B }
+function pts() {
+  return [1, 2, 3]
+}
+function worldId(text) {
+  let seg = text.trim()
+  return seg
+}
+function newYaw(yaw, turn) {
+  return yaw + turn
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun pts(): List<Float> {"), "{out}");
+        assert!(out.contains("fun worldId(text: String): String {"), "{out}");
+        assert!(out.contains("fun newYaw(yaw: Float, turn: Float): Float {"), "{out}");
+        assert!(out.contains("enum class Route { A, B }"), "{out}");
     }
 }

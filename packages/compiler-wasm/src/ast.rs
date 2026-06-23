@@ -36,6 +36,7 @@ pub enum AstNode {
     Object(ObjectNode),
     Template(TemplateNode),
     Group(GroupNode),
+    Timeline(TimelineNode),
     Environment(EnvironmentNode),
     Logic(LogicNode),
 
@@ -184,6 +185,20 @@ pub struct TemplateNode {
 /// Group node (container for multiple objects)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupNode {
+    pub name: String,
+    pub traits: Vec<TraitNode>,
+    pub properties: Vec<PropertyNode>,
+    pub children: Vec<AstNode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub loc: Option<Location>,
+}
+
+/// Timeline node (named temporal / animation-sequence container). Mirrors
+/// `GroupNode`: `properties` carry sequencing parameters (e.g. `duration`,
+/// `autoplay`, `loop`, `stagger`) and `children` are the sequenced statements
+/// (e.g. `move` statements). Parsed in both top-level and nested positions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TimelineNode {
     pub name: String,
     pub traits: Vec<TraitNode>,
     pub properties: Vec<PropertyNode>,

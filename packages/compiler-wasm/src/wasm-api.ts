@@ -85,6 +85,21 @@ export interface GroupNode {
   loc?: Location;
 }
 
+/**
+ * Timeline construct: `timeline <name> { ...properties, children }`.
+ * Mirrors `GroupNode` — a named temporal container whose `properties` carry
+ * sequencing parameters (duration, autoplay, loop, stagger) and whose
+ * `children` are the sequenced statements.
+ */
+export interface TimelineNode {
+  type: 'Timeline';
+  name: string;
+  traits: TraitNode[];
+  properties: PropertyNode[];
+  children: AstNode[];
+  loc?: Location;
+}
+
 export interface EnvironmentNode {
   type: 'Environment';
   properties: PropertyNode[];
@@ -170,6 +185,7 @@ export type AstNode =
   | OrbNode
   | CompositionNode
   | GroupNode
+  | TimelineNode
   | EnvironmentNode
   | PropertyNode
   | TraitNode

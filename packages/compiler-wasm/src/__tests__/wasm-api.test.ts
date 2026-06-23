@@ -22,6 +22,7 @@ import {
   type MovementStatementNode,
   type ActionDeclNode,
   type GameEventBlockNode,
+  type TimelineNode,
 } from '../wasm-api';
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -578,6 +579,38 @@ describe('behavioral construct AST nodes', () => {
     expect(node.type).toBe('MovementStatement');
     expect(node.target).toBe('self');
     expect(node.destination).toBe('enemy');
+  });
+
+  it('round-trips a Timeline node with properties and children', () => {
+    const TIMELINE_AST: Ast = {
+      type: 'Program',
+      body: [
+        {
+          type: 'Timeline',
+          name: 'intro',
+          traits: [],
+          properties: [{ type: 'Property', key: 'duration', value: { type: 'Number', value: 3 } }],
+          children: [
+            {
+              type: 'MovementStatement',
+              target: 'player',
+              destination: [1, 0, 0],
+              duration: 1,
+              easing: 'spring',
+            } as MovementStatementNode,
+          ],
+        } as unknown as TimelineNode,
+      ],
+      directives: [],
+    };
+
+    const result = parseFromMock(TIMELINE_AST);
+    const node = result.body[0] as TimelineNode;
+    expect(node.type).toBe('Timeline');
+    expect(node.name).toBe('intro');
+    expect(node.properties).toHaveLength(1);
+    expect(node.children).toHaveLength(1);
+    expect((node.children[0] as MovementStatementNode).easing).toBe('spring');
   });
 
   it('round-trips an ActionDecl with clauses and flags', () => {

@@ -23,6 +23,7 @@ pub enum TokenType {
     World,
     Template,
     Group,
+    Timeline,
     Environment,
     Logic,
 
@@ -165,6 +166,7 @@ pub fn get_keyword(word: &str) -> Option<TokenType> {
         "world" => Some(TokenType::World),
         "template" => Some(TokenType::Template),
         "group" => Some(TokenType::Group),
+        "timeline" => Some(TokenType::Timeline),
         "environment" => Some(TokenType::Environment),
         "logic" => Some(TokenType::Logic),
 

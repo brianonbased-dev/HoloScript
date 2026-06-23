@@ -121,6 +121,7 @@ impl Parser {
             TokenType::Object => self.parse_generic_object("object"),
             TokenType::Template => self.parse_template(),
             TokenType::Group => self.parse_group(),
+            TokenType::Timeline => self.parse_timeline(),
             TokenType::Environment => self.parse_environment(),
             TokenType::Logic => self.parse_logic(),
             TokenType::Npc => self.parse_npc(),
@@ -291,6 +292,31 @@ impl Parser {
         self.expect(TokenType::RBrace)?;
 
         Ok(AstNode::Group(GroupNode {
+            name,
+            traits,
+            properties,
+            children,
+            loc: Some(self.location_from(start_loc)),
+        }))
+    }
+
+    /// Parse a timeline construct: `timeline <name> { ...properties, children }`.
+    /// Mirrors `parse_group` — a named temporal container. Properties carry the
+    /// sequencing parameters (`duration`, `autoplay`, `loop`, `stagger`) and
+    /// children are the sequenced statements (e.g. `move` statements). Valid at
+    /// top level and as a nested child (see `is_child_object`).
+    fn parse_timeline(&mut self) -> Result<AstNode, ParseError> {
+        let start_loc = self.current_location();
+        self.advance(); // consume 'timeline'
+
+        let name = self.expect_identifier()?;
+        self.expect(TokenType::LBrace)?;
+
+        let (traits, properties, children) = self.parse_object_body()?;
+
+        self.expect(TokenType::RBrace)?;
+
+        Ok(AstNode::Timeline(TimelineNode {
             name,
             traits,
             properties,
@@ -1067,6 +1093,7 @@ impl Parser {
                 | TokenType::Entity
                 | TokenType::Object
                 | TokenType::Group
+                | TokenType::Timeline
                 | TokenType::Template
                 | TokenType::Environment
                 | TokenType::Logic
@@ -1945,6 +1972,57 @@ mod tests {
             }
         } else {
             panic!("Expected MovementStatement node");
+        }
+    }
+
+    // ── Timeline construct (named temporal container, mirrors group) ────
+
+    #[test]
+    fn test_parse_timeline_top_level() {
+        let source = r#"timeline intro {
+            duration: 3.0
+            move player to [1, 0, 0] over 1 easing spring
+        }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.body.len(), 1);
+
+        if let AstNode::Timeline(t) = &program.body[0] {
+            assert_eq!(t.name, "intro");
+            assert_eq!(t.properties.len(), 1);
+            assert_eq!(t.properties[0].key, "duration");
+            assert_eq!(t.children.len(), 1);
+            assert!(
+                matches!(&t.children[0], AstNode::MovementStatement(_)),
+                "Expected the timeline child to be a move statement"
+            );
+        } else {
+            panic!("Expected Timeline node, got {:?}", &program.body[0]);
+        }
+    }
+
+    #[test]
+    fn test_parse_timeline_as_nested_child() {
+        // `timeline` must parse as a nested child too (parity with `group`),
+        // so authored forms like `group stage { timeline intro { ... } }` work.
+        let source = r#"group stage {
+            timeline intro { autoplay: true }
+        }"#;
+        let mut parser = Parser::new(source);
+        let result = parser.parse();
+        assert!(result.is_ok(), "Parse error: {:?}", result.err());
+        let program = result.unwrap();
+
+        if let AstNode::Group(g) = &program.body[0] {
+            assert_eq!(g.children.len(), 1);
+            assert!(
+                matches!(&g.children[0], AstNode::Timeline(_)),
+                "Expected a nested Timeline child inside the group"
+            );
+        } else {
+            panic!("Expected Group node, got {:?}", &program.body[0]);
         }
     }
 
