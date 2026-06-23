@@ -1,0 +1,35 @@
+// S23 Capture — a REAL photoreal Gaussian-splat scene, sovereign end-to-end. Captured on a Galaxy S23,
+// trained to 3DGS on the Jetson Orin ($0, local), pruned to 213k, then decimated to 140k (top-opacity)
+// and transcoded to Niantic SPZ by our own pipeline:
+//   jetson:/mnt/nvme/holo/3dgs_s23_culled.ply
+//     -> scripts/transcode-ply-to-spz.mts (GaussianPlyLoader -> SpzCodec v3, $0)
+//     -> assets/splats/s23-scene.spz (2.1 MiB, round-trip verified)
+//   -> the quest target compiles the splat object to Meta's native com.meta.spatial.splat.Splat.
+// Reached by scanning holoscript://world/s23-capture (registry key "s23-capture"). This is the first
+// REAL capture (not synthetic) through the on-headset splat path — the D.106 photoreal tier, proven.
+//
+// Placement: the capture is ~14x14x20 COLMAP units, recentered to origin by the transcode. Shown as a
+// diorama ahead of the viewer (scale 0.3 -> ~4-6 m, lifted + set back). Orientation is COLMAP-frame;
+// if it reads tilted/inverted on the headset, adjust the rotation here (a one-line tweak) — captures
+// land in an arbitrary up-axis and the correction is per-capture.
+
+composition "S23Capture" {
+  environment {
+    backgroundColor: "#0b0e14"   // dark surround so the lit capture reads brightly
+    ambient_light: 0.45
+  }
+
+  object "Ground" {
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [24, 24, 1]
+    color: "#12151c"
+  }
+
+  // The real S23 capture, rendered as a Gaussian splat cloud by Meta's native Splat component.
+  object "Capture" {
+    splat: "s23-scene.spz"
+    position: [0, 1.5, -6]
+    scale: [0.3, 0.3, 0.3]
+  }
+}
