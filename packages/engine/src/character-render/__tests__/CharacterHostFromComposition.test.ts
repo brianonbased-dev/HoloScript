@@ -45,10 +45,43 @@ describe('buildCharacterHostFromComposition', () => {
     expect(r.gait?.speed).toBeCloseTo(1.6);
     expect(r.report.warnings.some((w) => w.includes("'smooth'"))).toBe(true);
 
-    // @morph / @skeleton stubbed (no seam yet); @hair noted as default-rendered.
+    // @morph stubbed (no channel); @skeleton(humanoid_65) validated → mapped; @hair(style-only) noted.
     const stubbed = r.report.stubbed.map((s) => s.trait);
     expect(stubbed).toContain('@morph');
-    expect(stubbed).toContain('@skeleton');
+    expect(r.report.mapped.some((m) => m.startsWith('@skeleton'))).toBe(true);
+    expect(r.report.warnings.some((w) => w.includes('@hair'))).toBe(true);
+  });
+
+  it('@hair(color) is operative — authored colour drives the rendered Marschner melanin (D.104)', () => {
+    const make = (hex: string) =>
+      buildCharacterHostFromComposition({
+        objects: [
+          { name: 'A', traits: [{ name: 'body', config: {} }, { name: 'hair', config: { style: 'short', color: hex } }] },
+        ],
+      });
+    const dark = make('#1a0e08');
+    const blonde = make('#e8d088');
+    expect(dark.report.mapped).toContain('@hair(color)');
+
+    const melaninOf = (r: ReturnType<typeof make>): number => {
+      const g = r.host?.getDrawSpec().materialGroups?.find((x) => x.material.shadingModel === 'marschner-hair');
+      return g && g.material.shadingModel === 'marschner-hair' ? g.material.melanin : NaN;
+    };
+    // Darker authored hair → more eumelanin: the .holo colour reaches the draw spec, not a constant.
+    expect(melaninOf(dark)).toBeGreaterThan(melaninOf(blonde));
+    expect(dark.report.warnings.some((w) => w.includes('style'))).toBe(true); // style noted, not faked
+  });
+
+  it('@skeleton(rig) is validated: matching rig → mapped, unsupported rig → stubbed', () => {
+    const ok = buildCharacterHostFromComposition({
+      objects: [{ name: 'A', traits: [{ name: 'skeleton', config: { rig: 'humanoid_65' } }] }],
+    });
+    expect(ok.report.mapped.some((m) => m.startsWith('@skeleton'))).toBe(true);
+
+    const bad = buildCharacterHostFromComposition({
+      objects: [{ name: 'B', traits: [{ name: 'skeleton', config: { rig: 'quadruped_32' } }] }],
+    });
+    expect(bad.report.stubbed.some((s) => s.trait === '@skeleton')).toBe(true);
   });
 
   it('non-bipedal locomotion (fly) degrades to idle and is recorded as stubbed', () => {

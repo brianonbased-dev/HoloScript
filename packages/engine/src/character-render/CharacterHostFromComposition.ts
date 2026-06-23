@@ -6,8 +6,9 @@
  * Pure-data + GPU-free + parser-decoupled: it takes a STRUCTURAL view of the parsed AST (the
  * minimal subset it reads), so it needs no cross-package type import and no runtime parser
  * dependency — the caller parses (`parseHolo`) and passes `.ast` in. It maps the cleanly
- * supported traits (@body, @subsurface_scattering, @locomotion) onto CharacterHost and returns
- * an honest report of what is mapped vs stubbed (@morph/@skeleton/@hair seams not yet wired).
+ * supported traits (@body, @subsurface_scattering, @hair(color), @skeleton(rig), @locomotion)
+ * onto CharacterHost and returns an honest report of what is mapped vs stubbed (@morph and
+ * @hair(style) channels not yet wired).
  *
  * @module character-render
  */
@@ -66,6 +67,8 @@ export interface CharacterHostFromCompositionResult {
 
 const DEFAULT_BOUNDS = { min: 0.5, max: 2.0 };
 const HUMAN_REF_HEIGHT_M = 1.75;
+/** The single skeletal rig the procedural body renders (HUMANOID_65 / 55-bone palette). */
+const SUPPORTED_RIG = 'humanoid_65';
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi);
 const asNum = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
 const asStr = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
@@ -207,17 +210,50 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 4. entityId + position.
+  // 4. @hair(color) → Marschner melanin/redness. Darker authored hair → more eumelanin;
+  //    warmer (red-dominant) → more pheomelanin. Makes the authored hair colour OPERATIVE
+  //    (changing @hair(color) in the .holo changes the rendered hair). @hair(style) has no
+  //    geometry channel yet → reported, not faked.
+  let melanin: number | undefined;
+  let melaninRedness: number | undefined;
+  const hair = traits.get('hair');
+  if (hair) {
+    const hairColor = asStr(cfgVal(hair, 'color', 'base_color'));
+    const style = asStr(cfgVal(hair, 'style'));
+    if (hairColor && /^#?[0-9a-fA-F]{6}$/.test(hairColor)) {
+      const rgb = parseInt(hairColor.replace('#', ''), 16);
+      const r = ((rgb >> 16) & 0xff) / 255;
+      const g = ((rgb >> 8) & 0xff) / 255;
+      const b = (rgb & 0xff) / 255;
+      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+      melanin = clamp(1 - luminance, 0.05, 0.95);
+      melaninRedness = clamp((r - b) * 1.5, 0, 1);
+      report.mapped.push('@hair(color)');
+      if (style) report.warnings.push(`@hair(style:'${style}') has no geometry channel yet; colour mapped`);
+    } else {
+      report.warnings.push('@hair present: default procedural hair rendered; colour/style not author-driven');
+    }
+  }
+
+  // 5. entityId + position.
   const entityId = opts.entityId ?? obj.id ?? obj.name ?? parsed.name ?? 'character';
   const p = obj.position;
   const position: [number, number, number] | undefined = p
     ? [p.x ?? 0, p.y ?? 0, p.z ?? 0]
     : undefined;
 
-  // 5. Construct (color undefined → CharacterHost uses its skin-tone default).
-  const host = new CharacterHost({ entityId, heightScale, buildScale, skinTone: color, position });
+  // 6. Construct (undefined fields → CharacterHost uses its skin-tone / hair defaults).
+  const host = new CharacterHost({
+    entityId,
+    heightScale,
+    buildScale,
+    skinTone: color,
+    melanin,
+    melaninRedness,
+    position,
+  });
 
-  // 6. @locomotion → gait descriptor (caller drives the per-frame clock).
+  // 7. @locomotion → gait descriptor (caller drives the per-frame clock).
   let gait: { mode: GaitMode; speed: number } | undefined;
   const loco = traits.get('locomotion');
   if (loco) {
@@ -242,14 +278,25 @@ export function buildCharacterHostFromComposition(
     }
   }
 
-  // 7. STUBBED traits — captured, never faked (the underlying CharacterHost seams don't exist).
+  // 8. @skeleton(rig) → validated against the one rig the host renders. A matching rig is
+  //    operative-by-agreement (the authored rig IS what renders); a mismatch is reported, never
+  //    silently mis-rendered.
+  const skel = traits.get('skeleton');
+  if (skel) {
+    const rig = asStr(cfgVal(skel, 'rig', 'template'));
+    if (!rig || rig.toLowerCase() === SUPPORTED_RIG) {
+      report.mapped.push(`@skeleton(rig=${rig ?? SUPPORTED_RIG})`);
+    } else {
+      report.stubbed.push({
+        trait: '@skeleton',
+        reason: `rig '${rig}' unsupported; rendering ${SUPPORTED_RIG}`,
+      });
+    }
+  }
+
+  // 9. STUBBED traits — captured, never faked (no CharacterHost channel exists yet).
   if (traits.has('morph'))
     report.stubbed.push({ trait: '@morph', reason: 'no FACS/morph-target channel yet' });
-  if (traits.has('skeleton'))
-    report.stubbed.push({ trait: '@skeleton', reason: 'host fixed to HUMANOID_65; no skeleton swap' });
-  // @hair: the procedural body DOES grow hair, but its colour/style aren't author-driven yet.
-  if (traits.has('hair'))
-    report.warnings.push('@hair present: default procedural hair rendered; style/colour not yet author-driven');
 
   return { ok: true, host, gait, materialColor: color, report };
 }
