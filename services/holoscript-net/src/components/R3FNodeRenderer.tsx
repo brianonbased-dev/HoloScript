@@ -11,6 +11,7 @@ import {
   hasLOD,
   DraftMeshNode,
   partitionStudioChildren,
+  buildScatterMesh,
 } from '@holoscript/r3f-renderer';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
@@ -239,6 +240,11 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
           rotation={props.rotation}
         />
       );
+
+    case 'scatter': {
+      const scatterMesh = buildScatterMesh(node);
+      return scatterMesh ? <primitive object={scatterMesh} dispose={null} /> : null;
+    }
 
     default: {
       // Unknown type — wrap in group and render children

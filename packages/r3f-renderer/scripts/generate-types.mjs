@@ -71,6 +71,7 @@ export declare function useKeyframeAnimation(
   keyframes: any[],
   meshRef: React.RefObject<THREE.Mesh | null>
 ): void;
+export declare function buildScatterMesh(node: R3FNode): any;
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 

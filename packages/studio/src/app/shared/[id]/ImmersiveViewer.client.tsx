@@ -22,6 +22,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HoloCompositionParser, SceneIRCompiler, type R3FNode } from '@holoscript/core';
 import { XRLocomotionController, AgentAvatarTracker } from '@holoscript/xr-embodiment';
 
@@ -225,7 +227,16 @@ function geometryForHsType(
   }
 }
 
-/** MeshStandardMaterial from a compiled node's props (color + PBR materialProps). */
+/**
+ * Material from a compiled node's props (color + PBR materialProps).
+ *
+ * Returns a MeshStandardMaterial by default, but upgrades to MeshPhysicalMaterial
+ * when the node declares advanced PBR channels (transmission/ior/clearcoat/
+ * thickness/sheen/iridescence) — so glass, lacquer, and fabric read realistically
+ * once an environment map is present. The standard channels (color/roughness/
+ * metalness/emissive/opacity/wireframe) apply to both, since MeshPhysicalMaterial
+ * extends MeshStandardMaterial.
+ */
 function materialFromProps(props: Record<string, unknown>): THREE.MeshStandardMaterial {
   const mp =
     props.materialProps && typeof props.materialProps === 'object'
@@ -233,23 +244,70 @@ function materialFromProps(props: Record<string, unknown>): THREE.MeshStandardMa
       : {};
   // materialProps take precedence over flattened props (matches getMaterialProps).
   const pick = (key: string): unknown => (mp[key] !== undefined ? mp[key] : props[key]);
+  const num = (key: string): number | undefined => {
+    const v = pick(key);
+    return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+  };
+
+  // Detect the physical-only channels. If any is present, build a
+  // MeshPhysicalMaterial; otherwise stay on the cheaper MeshStandardMaterial.
+  const transmission = num('transmission');
+  const ior = num('ior');
+  const clearcoat = num('clearcoat');
+  const clearcoatRoughness = num('clearcoatRoughness');
+  const thickness = num('thickness');
+  const sheen = num('sheen');
+  const sheenRoughness = num('sheenRoughness');
+  const iridescence = num('iridescence');
+  const iridescenceIOR = num('iridescenceIOR');
+  const specularIntensity = num('specularIntensity');
+  const isPhysical =
+    transmission !== undefined ||
+    ior !== undefined ||
+    clearcoat !== undefined ||
+    thickness !== undefined ||
+    sheen !== undefined ||
+    iridescence !== undefined;
+
   const colorHex = (pick('color') as string) ?? '#8888cc';
-  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(colorHex), roughness: 0.5 });
-  const roughness = pick('roughness');
-  if (typeof roughness === 'number') mat.roughness = roughness;
-  const metalness = pick('metalness');
-  if (typeof metalness === 'number') mat.metalness = metalness;
+  const mat: THREE.MeshStandardMaterial = isPhysical
+    ? new THREE.MeshPhysicalMaterial({ color: new THREE.Color(colorHex), roughness: 0.5 })
+    : new THREE.MeshStandardMaterial({ color: new THREE.Color(colorHex), roughness: 0.5 });
+
+  const roughness = num('roughness');
+  if (roughness !== undefined) mat.roughness = roughness;
+  const metalness = num('metalness');
+  if (metalness !== undefined) mat.metalness = metalness;
   const emissive = pick('emissive');
   if (typeof emissive === 'string') mat.emissive = new THREE.Color(emissive);
-  const emissiveIntensity = pick('emissiveIntensity');
-  if (typeof emissiveIntensity === 'number') mat.emissiveIntensity = emissiveIntensity;
-  const opacity = pick('opacity');
-  if (typeof opacity === 'number' && opacity < 1) {
+  const emissiveIntensity = num('emissiveIntensity');
+  if (emissiveIntensity !== undefined) mat.emissiveIntensity = emissiveIntensity;
+  const opacity = num('opacity');
+  if (opacity !== undefined && opacity < 1) {
     mat.opacity = opacity;
     mat.transparent = true;
   }
   const wireframe = pick('wireframe');
   if (typeof wireframe === 'boolean') mat.wireframe = wireframe;
+
+  if (mat instanceof THREE.MeshPhysicalMaterial) {
+    // transmission needs no transparent flag (it's its own blending path), but
+    // does need a non-zero thickness to refract; default thickness so plain
+    // `transmission: 1` glass still reads as solid rather than a flat film.
+    if (transmission !== undefined) mat.transmission = transmission;
+    if (ior !== undefined) mat.ior = ior;
+    if (thickness !== undefined) mat.thickness = thickness;
+    else if (transmission !== undefined && transmission > 0) mat.thickness = 0.5;
+    if (clearcoat !== undefined) mat.clearcoat = clearcoat;
+    if (clearcoatRoughness !== undefined) mat.clearcoatRoughness = clearcoatRoughness;
+    if (sheen !== undefined) mat.sheen = sheen;
+    if (sheenRoughness !== undefined) mat.sheenRoughness = sheenRoughness;
+    const sheenColor = pick('sheenColor');
+    if (typeof sheenColor === 'string') mat.sheenColor = new THREE.Color(sheenColor);
+    if (iridescence !== undefined) mat.iridescence = iridescence;
+    if (iridescenceIOR !== undefined) mat.iridescenceIOR = iridescenceIOR;
+    if (specularIntensity !== undefined) mat.specularIntensity = specularIntensity;
+  }
   return mat;
 }
 
@@ -364,10 +422,69 @@ function buildObject3D(node: R3FNode, ctx: BuildCtx): THREE.Object3D | null {
       container = g;
       break;
     }
+    case 'gltfModel': {
+      // GLB/glTF model node (compiler emits `type:'gltfModel'` with the URL in
+      // props.src — see SceneIRCompiler). Worlds like Shangri-La carry their
+      // temple/trees as GLBs; before this they hit the "draw nothing" path and
+      // rendered empty. Load via three's GLTFLoader and keep the GLB's own PBR
+      // materials (which the environment map now lights). Load is async, so add
+      // a transformed group immediately and swap the scene in on load.
+      const src = (typeof p.src === 'string' && p.src) || (typeof p.model === 'string' && p.model);
+      const g = new THREE.Group();
+      g.name = node.id ?? 'gltfModel';
+      setPos(g);
+      setRot(g);
+      setScale(g);
+      if (src) {
+        // Count the model as a mesh so the canonical path isn't discarded as
+        // "produced no geometry" when a scene is GLB-only.
+        ctx.meshes++;
+        new GLTFLoader()
+          .loadAsync(src)
+          .then((gltf) => {
+            g.add(gltf.scene);
+          })
+          .catch((err) => {
+            console.warn('[ImmersiveViewer] GLTF load failed:', src, err);
+          });
+      }
+      container = g;
+      break;
+    }
+    case 'scatter': {
+      // Procedural scatter (compiler emits `type:'scatter'` with props.transforms,
+      // each [x, y, z, rotationY, scale] — see SceneIRCompiler.compileProceduralScatterNode).
+      // Render the whole field as ONE InstancedMesh so `scatter { count: 2000 }`
+      // is real geometry at one draw call instead of being dropped.
+      const transforms = Array.isArray(p.transforms) ? (p.transforms as number[][]) : [];
+      const hsType = String(p.hsType ?? 'box');
+      const inst = new THREE.InstancedMesh(
+        geometryForHsType(hsType, null, p),
+        materialFromProps(p),
+        Math.max(1, transforms.length)
+      );
+      inst.name = node.id ?? 'scatter';
+      const dummy = new THREE.Object3D();
+      transforms.forEach((t, i) => {
+        dummy.position.set(numProp(t[0], 0), numProp(t[1], 0), numProp(t[2], 0));
+        dummy.rotation.set(0, numProp(t[3], 0), 0);
+        const s = numProp(t[4], 1);
+        dummy.scale.set(s, s, s);
+        dummy.updateMatrix();
+        inst.setMatrixAt(i, dummy.matrix);
+      });
+      inst.count = transforms.length;
+      inst.instanceMatrix.needsUpdate = true;
+      if (transforms.length > 0) ctx.meshes++;
+      const group = new THREE.Group();
+      group.add(inst);
+      container = group;
+      break;
+    }
     case 'group':
     default: {
       // group, plus non-renderable nodes (Environment, EffectComposer, Text,
-      // Sparkles, gltfModel, Timeline) host children but draw nothing in v0.
+      // Sparkles, Timeline) host children but draw nothing in v0.
       const g = new THREE.Group();
       setPos(g);
       setRot(g);
@@ -549,9 +666,31 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
     renderer.xr.enabled = true;
     renderer.setClearColor(0x0a0a12, 1);
+    // Photoreal output pipeline: ACES filmic tone mapping + sRGB output give PBR
+    // its film-like highlight rolloff and correct gamma. Without these, lit PBR
+    // reads washed-out/flat. Exposure nudged slightly above 1 to lift the IBL.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     rendererRef.current = renderer;
 
     const scene = new THREE.Scene();
+
+    // Image-based lighting (IBL): generate a prefiltered environment map from
+    // three's built-in RoomEnvironment (a synthetic neutral-lit room — no asset
+    // file, $0) and set it as scene.environment. This is what gives metalness/
+    // roughness materials something to reflect and a soft ambient term, so PBR
+    // surfaces read as real materials instead of dull flat shapes. We keep the
+    // dark clearColor as the background (transparent-friendly for passthrough);
+    // the env map drives reflections/shading only, not the visible backdrop.
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const roomEnv = new RoomEnvironment();
+    const envTexture = pmrem.fromScene(roomEnv, 0.04).texture;
+    scene.environment = envTexture;
+    // The room scene + PMREM generator are done after baking; free them.
+    roomEnv.dispose();
+    pmrem.dispose();
 
     // Canonical .holo (geometry:/material:, templates, lights, nesting) is rendered
     // through @holoscript/core's real SceneIRCompiler so the immersive viewer faithfully
@@ -644,6 +783,10 @@ export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveVie
         if (Array.isArray(mat)) mat.forEach((m) => m?.dispose());
         else (mat as THREE.Material | undefined)?.dispose();
       });
+      // The PMREM-baked environment map is scene-owned too — free it so a scene
+      // rebuild doesn't leak a render target per mount.
+      scene.environment?.dispose();
+      scene.environment = null;
       renderer.dispose();
       rendererRef.current = null;
       sceneRef.current = null;

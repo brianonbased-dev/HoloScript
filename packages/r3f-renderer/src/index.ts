@@ -66,6 +66,7 @@ export {
   FireEmbers,
   useKeyframeAnimation,
 } from './components/ProceduralMesh';
+export { buildScatterMesh } from './utils/buildScatterMesh';
 export { ProgressiveLoader } from './components/ProgressiveLoader';
 export type { ProgressiveLoaderProps, LoadingEntity } from './components/ProgressiveLoader';
 

@@ -18,6 +18,7 @@ import {
   compileAudioSourceBlock,
   compileWeatherBlock,
   compileSimulationBlock,
+  compileProceduralBlock,
   materialToR3F,
   physicsToR3F,
   particlesToR3F,
@@ -26,6 +27,7 @@ import {
   weatherToR3F,
   simulationToR3F,
 } from './DomainBlockCompilerMixin';
+import { mulberry32 } from '../math/tropicalSpmv';
 
 import {
   PlatformConditionalCompilerMixin,
@@ -2340,6 +2342,9 @@ export class SceneIRCompiler {
               children: [],
             } as R3FNode;
           },
+          procedural: (block) =>
+            this.compileProceduralScatterNode(block) ??
+            this.createNode('Group', {}, block.name),
         }
       );
       if (!root.children) root.children = [];
@@ -2433,6 +2438,154 @@ export class SceneIRCompiler {
     node.traits = new Map();
     node.directives = [];
     return node;
+  }
+
+  /**
+   * Compiles a `procedural` domain block (keyword scatter/procedural/generate/
+   * distribute/pcg_graph) into an instanced `scatter` R3FNode that the web R3F
+   * renderer (ScatterMesh) consumes as a THREE.InstancedMesh.
+   *
+   * Before this method, `.holo` scatter/procedural blocks parsed into the IR but
+   * were silently dropped (compileComposition never read composition.domainBlocks),
+   * so every "dense" world rendered only its hand-listed objects.
+   *
+   * Emitted node shape (shared contract with ImmersiveViewer):
+   *   { type: 'scatter', id: block.name, props: { transforms, count, sourceMesh,
+   *     hsType, color?, roughness?, metalness?, emissive? }, children: [] }
+   * where each transform is [x, y, z, rotationY, scale].
+   *
+   * Placement is DETERMINISTIC (seeded mulberry32 — never Math.random) so builds
+   * are reproducible. Placement is uniform on the XZ plane within `bounds`, with a
+   * bounded rejection loop honoring `min_distance`.
+   *
+   * v1 limitations (documented):
+   *  - .glb/.gltf sourceMesh instances as a `box` placeholder (instancing a loaded
+   *    GLB across instances is a follow-up).
+   *  - Placement is flat (y=0); slope/terrain-conforming placement is out of scope.
+   */
+  private compileProceduralScatterNode(
+    block: import('../parser/HoloCompositionTypes').HoloDomainBlock
+  ): R3FNode | null {
+    const proc = compileProceduralBlock(block);
+    const props = (block.properties ?? {}) as Record<string, unknown>;
+
+    // Resolve a pcg_graph scatter node (the parser stores positional
+    // `scatter(mesh, N)` args inside properties.nodes[].properties).
+    let scatterNode: Record<string, unknown> | undefined;
+    if (Array.isArray(props.nodes)) {
+      for (const n of props.nodes as Array<Record<string, unknown>>) {
+        const nType = (n.type ?? n.op ?? n.keyword ?? n.kind) as string | undefined;
+        if (typeof nType === 'string' && nType.toLowerCase().includes('scatter')) {
+          scatterNode = (n.properties ?? n) as Record<string, unknown>;
+          break;
+        }
+      }
+    }
+
+    // count: from block.properties.count OR the pcg_graph scatter-node count.
+    const rawCount =
+      (props.count as number | undefined) ??
+      (scatterNode?.count as number | undefined) ??
+      (proc.density as number | undefined);
+    const count = Math.floor(typeof rawCount === 'number' ? rawCount : 0);
+    if (count < 1) return null;
+
+    // sourceMesh: proc → scatter-node source_mesh → 'box'.
+    const sourceMesh =
+      proc.sourceMesh ||
+      ((scatterNode?.source_mesh || scatterNode?.sourceMesh || scatterNode?.mesh) as
+        | string
+        | undefined) ||
+      'box';
+
+    // hsType: a loaded GLB can't be instanced yet (v1) → box placeholder.
+    const isGlb = /\.(glb|gltf)$/i.test(sourceMesh);
+    const hsType = isGlb ? 'box' : sourceMesh;
+
+    // bounds: properties.bounds || properties.area || [10, 0, 10].
+    const boundsRaw =
+      (props.bounds as number[] | undefined) ??
+      (props.area as number[] | undefined) ??
+      (scatterNode?.bounds as number[] | undefined) ??
+      [10, 0, 10];
+    const bx = typeof boundsRaw[0] === 'number' ? boundsRaw[0] : 10;
+    const bz = typeof boundsRaw[2] === 'number' ? boundsRaw[2] : 10;
+
+    const minDistance = (() => {
+      const md = (props.min_distance ?? props.minDistance ?? scatterNode?.min_distance) as
+        | number
+        | undefined;
+      return typeof md === 'number' && md > 0 ? md : 0;
+    })();
+
+    // scale_range: [sMin, sMax], default [1, 1].
+    const sr = proc.scaleRange ?? (props.scale_range as [number, number] | undefined);
+    const sMin = Array.isArray(sr) && typeof sr[0] === 'number' ? sr[0] : 1;
+    const sMax = Array.isArray(sr) && typeof sr[1] === 'number' ? sr[1] : 1;
+
+    const randomRotation = (() => {
+      const rr = (props.random_rotation ?? props.randomRotation ?? scatterNode?.random_rotation) as
+        | boolean
+        | undefined;
+      return rr === true;
+    })();
+
+    // DETERMINISTIC seeded placement. Default to a FIXED constant when seed is
+    // absent — builds must be reproducible (NEVER Math.random).
+    const seed = typeof proc.seed === 'number' ? proc.seed : 1337;
+    const rand = mulberry32(seed);
+
+    const halfX = bx / 2;
+    const halfZ = bz / 2;
+    const minDistSq = minDistance * minDistance;
+    const transforms: number[][] = [];
+    const maxAttempts = count * 30;
+    let attempts = 0;
+
+    while (transforms.length < count && attempts < maxAttempts) {
+      attempts++;
+      const x = (rand() * 2 - 1) * halfX;
+      const z = (rand() * 2 - 1) * halfZ;
+
+      if (minDistSq > 0) {
+        let tooClose = false;
+        for (const t of transforms) {
+          const dx = t[0] - x;
+          const dz = t[2] - z;
+          if (dx * dx + dz * dz < minDistSq) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (tooClose) continue;
+      }
+
+      const ry = randomRotation ? rand() * Math.PI * 2 : 0;
+      const scale = sMin + rand() * (sMax - sMin);
+      transforms.push([x, 0, z, ry, scale]);
+    }
+
+    if (transforms.length < 1) return null;
+
+    // Pass through optional material props if declared on the block.
+    const materialProps: Record<string, unknown> = {};
+    if (props.color != null) materialProps.color = props.color;
+    if (props.roughness != null) materialProps.roughness = props.roughness;
+    if (props.metalness != null) materialProps.metalness = props.metalness;
+    if (props.emissive != null) materialProps.emissive = props.emissive;
+    if (props.material != null) materialProps.material = props.material;
+
+    return this.createNode(
+      'scatter',
+      {
+        transforms,
+        count: transforms.length,
+        sourceMesh,
+        hsType,
+        ...materialProps,
+      },
+      block.name
+    );
   }
 
   /**
@@ -2821,6 +2974,28 @@ export class SceneIRCompiler {
         props: {},
         children: this.extractPostProcessingNodes(root),
       });
+    }
+
+    // Compile procedural domain blocks (scatter/procedural/generate/distribute/
+    // pcg_graph) into instanced `scatter` nodes. Before this, compileComposition
+    // never read composition.domainBlocks, so ALL domain blocks were dropped for
+    // `.holo` — scoped here to procedural ONLY (other domains are a separate
+    // concern handled on the `.hsplus` path).
+    const domainBlocks = (composition.domainBlocks ?? []) as Array<
+      import('../parser/HoloCompositionTypes').HoloDomainBlock
+    >;
+    for (const block of domainBlocks) {
+      const kw = (block.keyword ?? '').toLowerCase();
+      const isProcedural =
+        block.domain === 'procedural' ||
+        kw === 'scatter' ||
+        kw === 'procedural' ||
+        kw === 'generate' ||
+        kw === 'distribute' ||
+        kw === 'pcg_graph';
+      if (!isProcedural) continue;
+      const node = this.compileProceduralScatterNode(block);
+      if (node) root.children!.push(node);
     }
 
     this.injectHolomapPointCloud(root);

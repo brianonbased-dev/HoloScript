@@ -18,6 +18,7 @@ import {
   resolveGaussianSplatSrc,
   resolveWebSurfaceConfig,
   partitionStudioChildren,
+  buildScatterMesh,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -444,6 +445,11 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
           rotation={props.rotation}
         />
       );
+
+    case 'scatter': {
+      const scatterMesh = buildScatterMesh(node);
+      return scatterMesh ? <primitive object={scatterMesh} dispose={null} /> : null;
+    }
 
     default: {
       // Unknown type — wrap in group and render children

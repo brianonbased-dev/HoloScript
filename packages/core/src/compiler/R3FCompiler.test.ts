@@ -26,6 +26,7 @@ function minimalComposition(overrides: Partial<HoloComposition>): HoloCompositio
     talentTrees: [],
     shapes: [],
     worlds: [],
+    domainBlocks: [],
     ...overrides,
   };
 }
@@ -188,5 +189,64 @@ describe('R3FCompiler.compileComposition — world blocks', () => {
     expect(pass.source).toBe('color_map');
     expect(pass.colorMap?.name).toBe('viridis');
     expect(pass.colorMap?.colors).toHaveLength(7);
+  });
+
+  it('compiles a procedural scatter domain block into an instanced scatter node', () => {
+    const root = compiler.compileComposition(
+      minimalComposition({
+        domainBlocks: [
+          {
+            type: 'DomainBlock',
+            domain: 'procedural',
+            keyword: 'scatter',
+            name: 'forest',
+            properties: {
+              count: 25,
+              seed: 42,
+              source_mesh: 'box',
+              bounds: [20, 0, 20],
+              scale_range: [0.5, 2.0],
+            },
+          } as any,
+        ],
+      })
+    );
+
+    const scatter = findByType(root.children, 'scatter');
+    expect(scatter).toBeDefined();
+    expect(scatter?.props?.count).toBe(25);
+    expect((scatter?.props?.transforms as number[][]).length).toBe(25);
+    expect(scatter?.props?.sourceMesh).toBe('box');
+    expect(scatter?.props?.hsType).toBe('box');
+  });
+
+  it('produces deterministic transforms for the same seed', () => {
+    const block = {
+      type: 'DomainBlock',
+      domain: 'procedural',
+      keyword: 'scatter',
+      name: 'grass',
+      properties: {
+        count: 30,
+        seed: 7,
+        source_mesh: 'box',
+        bounds: [10, 0, 10],
+        scale_range: [0.8, 1.2],
+        random_rotation: true,
+      },
+    };
+    const rootA = compiler.compileComposition(
+      minimalComposition({ domainBlocks: [{ ...block } as any] })
+    );
+    const rootB = compiler.compileComposition(
+      minimalComposition({ domainBlocks: [{ ...block } as any] })
+    );
+
+    const a = findByType(rootA.children, 'scatter')?.props?.transforms as number[][];
+    const b = findByType(rootB.children, 'scatter')?.props?.transforms as number[][];
+
+    expect(a).toBeDefined();
+    expect(b).toBeDefined();
+    expect(a).toEqual(b);
   });
 });
