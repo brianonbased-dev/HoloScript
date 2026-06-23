@@ -19,8 +19,31 @@ your Meta developer identity — neither can (or should) be done by an agent.
 - **Horizon manifest** — `supportedDevices = quest3|quest3s`, `PASSTHROUGH required=true`,
   `headtracking required=true`, `android:icon`, `excludeFromRecents=true`, VR launcher category,
   `HEADSET_CAMERA` permission, version from `scanner.holo` `environment.version { code / name }`.
+- **64-bit only** — emitted gradle `ndk { abiFilters += "arm64-v8a" }` strips 32-bit/x86 native libs
+  (VRC.Quest.Packaging.6; a 32-bit binary fails review).
 - **Verified:** `assembleDebug` GREEN · `assembleRelease` GREEN → signed `app-release.apk` (~120 MB,
-  under Horizon's 1 GB) · **v2 signature verified** (Horizon's requirement) · golden drift gate green.
+  under Horizon's 1 GB) · **v2 signature verified** · **APK contains only `lib/arm64-v8a`** · golden
+  drift gate green.
+
+> **Horizon developer app:** `1114952721709215` (already created in the dashboard — the upload target).
+
+## Pre-submission VRC readiness (Meta Quest review)
+
+Review runs **Technical → Content → Publishing**. Mandatory technical VRCs and our status:
+
+| VRC | Requirement | Status |
+|---|---|---|
+| Packaging.2 | APK v2 signature | ✅ verified v2 |
+| Packaging.6 | 64-bit (arm64-v8a) only | ✅ fixed — arm64-only |
+| Packaging.1 | Manifest conforms (VR category, version) | ✅ emitted |
+| Packaging.5 | APK < 1 GB | ✅ ~120 MB |
+| Functional.14 | Passthrough app launches in passthrough | ✅ `enablePassthrough(true)` on scene-ready |
+| Functional.1 / 5 | No crashes; responds to head tracking | ▶ playtest (BETA channel) |
+| Performance.1 / 3 | Hits refresh rate; graphics ≤ 4 s or VR loader | ▶ playtest (lightweight panel + passthrough) |
+| Security.2 | Minimum permissions | ⚠ manifest declares `HAND_TRACKING`/`RENDER_MODEL` (Spatial-SDK starter inheritance) the scanner may not use — trim after a headset test confirms controller input still works; not a hard blocker |
+| Security.1 | Entitlement check | ➖ **recommended, NOT required** — no Platform SDK integration needed |
+
+**Founder/submission-side (not build):** Data Use Checkup (declare the passthrough camera — "frames decoded on-device, not stored/transmitted"), Content Guidelines, IARC age rating, and the listing assets. Use a **Release Channel (ALPHA/BETA)** to install on-headset with no review before the public submission.
 
 Current version: `versionCode 1` / `versionName "1.0.0"` (bump both in `scanner.holo`'s `version` block
 for each store re-upload — Horizon requires a strictly higher `versionCode` each time).
