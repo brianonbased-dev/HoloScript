@@ -1,6 +1,6 @@
 # Competitor Gap Matrix
 
-> Generated: 2026-06-22T19:05:08Z | Next review: 2026-07-21
+> Generated: 2026-06-23T05:56:54Z | Next review: 2026-07-23
 
 | ID | Vertical | Competitor | Severity | Direction | Status | Title |
 |---|---|---|---|---|---|---|
@@ -34,6 +34,7 @@
 | CG-056 | Causal ML / simulation-for-ML | DoWhy / CausalML (causal inference frameworks) | 🟢 P3 | differentiator | 👁️ Watch | SCMCompiler positions HoloScript as a causal training data generator — undocumented niche |
 | CG-057 | Creator economy / on-chain assets | OpenSea / NFT Marketplaces | 🟢 P3 | watch | 👁️ Watch | NFT marketplace — WATCH + BUILD-INTERNAL (HoloScript Protocol is the sovereign answer) |
 | CG-058 | Phone-sleeve VR (sovereign revival) | Google Cardboard / phone-sleeve VR category | 🟡 P2 | differentiator | 👁️ Watch | PhoneSleeveVR sovereign revival — compiler exists, no product or marketing yet |
+| CG-073 | W.501 live MCP compile/generate surface coverage | Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems | 🟡 P2 | differentiator | 👁️ Watch | W.501 live MCP compile/generate coverage row prevents unconsumed tool surfaces |
 
 ## Detailed Gap Descriptions
 
@@ -812,3 +813,40 @@ PhoneSleeveVRCompiler.ts generates self-contained WebXR HTML for stereoscopic VR
 
 **Sources:**
 - packages/core/src/compiler/PhoneSleeveVRCompiler.ts
+
+### CG-073 — W.501 live MCP compile/generate coverage row prevents unconsumed tool surfaces
+
+- **Vertical:** W.501 live MCP compile/generate surface coverage
+- **Competitor:** Vercel v0 / Lovable / Bolt / Subframe / specialist SDK ecosystems
+- **Severity:** P2
+- **Direction:** differentiator
+- **Status:** watch
+- **Board Task:** task_1782181922840_1wma
+
+**Competitor Advantage:**
+Vercel v0, Lovable, Bolt, and Subframe own prompt-to-app or prompt-to-UI distribution; specialist ecosystems such as Qiskit/Cirq/PennyLane, FMI/Modelica/Simulink, ROS/Gazebo/Isaac, Lens Studio, and mobile SDKs own their category-specific docs, examples, and communities. Their advantage is not that they compile more targets; it is that users can see and consume each capability from an obvious surface.
+
+**HoloScript State:**
+Live MCP tools/list returned 407 tools. W.501 scope counted 62 compile/generate tools: 54 compile_to_* and 8 generate_* tools. This row records the exact names so the surface is auditable even when a tool is covered by a broader competitor row rather than a bespoke row.
+
+**Needed Response:**
+Rerun W.501 monthly. Promote dedicated rows when a family needs product motion (current candidates: compile_to_qasm, compile_to_fmu, compile_to_lens_studio, compile_to_flutter/compile_to_ios, generate_semantic_ui). Keep internal emitters rolled into this coverage row unless they face a market/distribution competitor. Do not claim a compile/generate capability is strategically covered unless its exact tool name appears in this row or a dedicated row.
+
+**Evidence:**
+- Live MCP tools/list 2026-06-23: totalTools=407; W.501 scope=62 tools; compileTools=54; generateTools=8.
+- Pre-refresh exact-name matrix mentions were 9/62: compile_to_a2a_agent_card, compile_to_android, compile_to_android_xr, compile_to_godot, compile_to_pcg_graph, compile_to_urdf, compile_to_usd, compile_to_usdz, compile_to_vrchat.
+- Compile census A: compile_to_3dgs, compile_to_3dtiles, compile_to_a2a_agent_card, compile_to_agent_inference, compile_to_ai_glasses, compile_to_android, compile_to_android_xr, compile_to_bias_audit_report, compile_to_bot_swarm, compile_to_canvas2d_game, compile_to_character_webgpu, compile_to_code_editor, compile_to_colyseus, compile_to_dtdl, compile_to_dungeon_instance, compile_to_edge, compile_to_flutter, compile_to_fmu.
+- Compile census B: compile_to_gaussian_train, compile_to_gltf, compile_to_godot, compile_to_holob, compile_to_ios, compile_to_lens_studio, compile_to_mcp_config, compile_to_mcp_server, compile_to_multi_layer, compile_to_nft_marketplace, compile_to_nir, compile_to_node_service, compile_to_onnx, compile_to_openapi, compile_to_openxr, compile_to_openxr_spatial_entities, compile_to_pcg_graph, compile_to_qasm.
+- Compile census C: compile_to_quest, compile_to_ros2_deploy, compile_to_scm, compile_to_sdf, compile_to_state, compile_to_stl_export, compile_to_svg, compile_to_tsl, compile_to_unity, compile_to_unreal, compile_to_urdf, compile_to_usd, compile_to_usdz, compile_to_visionos, compile_to_vrchat, compile_to_wasm, compile_to_webgpu, compile_to_world_shard.
+- Generate census: generate_3d_object, generate_hololand_training, generate_object, generate_scene, generate_semantic_ui, generate_service_contract, generate_world, generate_world_from_prompt.
+- Family rows already cover major external ecosystems: CG-043 covers compile_to_usd/compile_to_usdz/Omniverse/Isaac; CG-047 covers compile_to_dtdl/Azure Digital Twins; CG-055 covers compile_to_ros2_deploy/compile_to_urdf/ROS 2/Gazebo; CG-045/CG-046 cover compile_to_android/compile_to_android_xr/compile_to_a2a_agent_card; CG-054 covers compile_to_3dgs; CG-001 covers compile_to_nir; CG-056 covers compile_to_scm; CG-057 covers compile_to_nft_marketplace.
+
+**Sources:**
+- https://mcp.holoscript.net/mcp tools/list queried 2026-06-23 with HOLOSCRIPT_MCP_API_KEY
+- docs/strategy/competitor-gap-matrix.json
+- https://v0.app/
+- https://bolt.new/
+- https://www.subframe.com/
+- https://lovable.dev/guides/best-ai-app-builders
+- packages/mcp-server/src/handlers.ts
+- packages/mcp-server/src/compiler-tools.ts
