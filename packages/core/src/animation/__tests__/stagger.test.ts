@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { staggerOffsets, applyStaggerToChildren } from '../stagger';
+import { staggerOffsets, applyStaggerToChildren, synthesizeEntranceChannels } from '../stagger';
 
 describe('staggerOffsets', () => {
   it('produces [from, from+step, from+2*step, …]', () => {
@@ -64,5 +64,51 @@ describe('applyStaggerToChildren', () => {
     const child = animatedChild(0.1, 0.5);
     applyStaggerToChildren([child], 0);
     expect((child.props.__animatedTransform[0] as { edge0: number }).edge0).toBeCloseTo(0.1);
+  });
+});
+
+describe('synthesizeEntranceChannels', () => {
+  const at = (c: { props: Record<string, unknown> }) =>
+    (c.props.__animatedTransform as Array<Record<string, number>> | undefined)?.[0];
+
+  it('adds a default entrance channel to a bare @animated child', () => {
+    const child = { props: { animated: true } as Record<string, unknown> };
+    const n = synthesizeEntranceChannels([child], 'entrance_fx');
+    expect(n).toBe(1);
+    const ch = at(child)!;
+    expect(ch.prop).toBe('scaleUniform');
+    expect(ch.target).toBe('entrance_fx');
+    expect(ch.from).toBe(0);
+    expect(ch.to).toBe(1);
+  });
+
+  it('skips CONFIGURED @animated (props.animated is an object, not true)', () => {
+    const child = { props: { animated: { type: 'pulse' } } as Record<string, unknown> };
+    expect(synthesizeEntranceChannels([child], 'entrance_fx')).toBe(0);
+    expect(at(child)).toBeUndefined();
+  });
+
+  it('skips children that already carry __animatedTransform', () => {
+    const existing = [{ prop: 'posY', target: 't', edge0: 0, edge1: 1, from: 0, to: 1 }];
+    const child = {
+      props: { animated: true, __animatedTransform: existing } as Record<string, unknown>,
+    };
+    expect(synthesizeEntranceChannels([child], 'entrance_fx')).toBe(0);
+    expect(child.props.__animatedTransform).toBe(existing); // untouched
+  });
+
+  it('skips non-animated children', () => {
+    const child = { props: { color: 'red' } as Record<string, unknown> };
+    expect(synthesizeEntranceChannels([child], 'entrance_fx')).toBe(0);
+  });
+
+  it('composes with stagger: synthesized channels then ripple by index (closes Gap 1)', () => {
+    const a = { props: { animated: true } as Record<string, unknown> };
+    const b = { props: { animated: true } as Record<string, unknown> };
+    synthesizeEntranceChannels([a, b], 'entrance_fx');
+    applyStaggerToChildren([a, b], 0.1);
+    expect(at(a)!.edge0).toBeCloseTo(0); // index 0 → no shift
+    expect(at(b)!.edge0).toBeCloseTo(0.1); // index 1 → +0.1
+    expect(at(b)!.edge1).toBeCloseTo(0.5); // 0.4 + 0.1
   });
 });

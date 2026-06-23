@@ -59,3 +59,34 @@ export function applyStaggerToChildren(
     }
   });
 }
+
+/**
+ * Default entrance channel: a scale-in (0→1) over the first 40% of the driver,
+ * leaving headroom for stagger offsets to shift the window without pushing late
+ * children past the driver's end. `target` is the timeline driver it reads.
+ */
+export function defaultEntranceChannel(target: string): Record<string, unknown> {
+  return { prop: 'scaleUniform', target, edge0: 0, edge1: 0.4, from: 0, to: 1 };
+}
+
+/**
+ * Synthesize a default entrance `__animatedTransform` on each BARE `@animated`
+ * child (`props.animated === true`) that has no animation channels yet — so a
+ * stagger has something to ripple and a driver can play it. Left untouched:
+ * non-animated children, CONFIGURED `@animated { … }` (whose `props.animated`
+ * is the config object, not `true`, so e.g. `pulse`/`idle` are not overridden),
+ * and children that already carry `__animatedTransform`. Returns the count
+ * synthesized. Mutates in place; pure over node shape (no compiler/renderer dep).
+ */
+export function synthesizeEntranceChannels(children: StaggerableNode[], target: string): number {
+  let count = 0;
+  for (const child of children) {
+    const props = child.props;
+    if (!props) continue;
+    if (props.animated !== true) continue;
+    if (Array.isArray(props.__animatedTransform)) continue;
+    props.__animatedTransform = [defaultEntranceChannel(target)];
+    count += 1;
+  }
+  return count;
+}

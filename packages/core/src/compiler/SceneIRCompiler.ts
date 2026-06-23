@@ -38,7 +38,11 @@ import { getRBAC, ResourceType } from './identity/AgentRBAC';
 import { UnauthorizedCompilerAccessError, escapeStringValue } from './CompilerBase';
 import { WorkflowStep } from './identity/AgentIdentity';
 import { ASTNodePool } from './ObjectPool';
-import { applyStaggerToChildren, type StaggerableNode } from '../animation/stagger';
+import {
+  applyStaggerToChildren,
+  synthesizeEntranceChannels,
+  type StaggerableNode,
+} from '../animation/stagger';
 import type { HolomapPointCloudPayload } from './HolomapExportPayload';
 import type { AssetMaturity } from '../traits/DraftTrait';
 import {
@@ -4089,10 +4093,51 @@ export class SceneIRCompiler {
     // (no __animatedTransform) are untouched, and nested groups carry their own
     // stagger via their own compile pass, so offsets never compound across levels.
     if (staggerStep && node.children) {
+      // Give bare @animated children a default entrance channel so the stagger
+      // has something to ripple (closes the stagger-on-@animated gap), then
+      // offset each by index*step.
+      const entranceTarget = `entrance_${String(group.name ?? 'group').replace(
+        /[^a-zA-Z0-9_]/g,
+        '_'
+      )}`;
+      const synthesized = synthesizeEntranceChannels(
+        node.children as unknown as StaggerableNode[],
+        entranceTarget
+      );
       applyStaggerToChildren(node.children as unknown as StaggerableNode[], staggerStep);
+      // Drive the synthesized entrances: a hidden Timeline ramps the target 0→1,
+      // played by the existing <TimelineDriver>, so the staggered @animated
+      // children scale in without an author-supplied timeline.
+      if (synthesized > 0) {
+        node.children.push(this.buildEntranceDriver(entranceTarget));
+      }
     }
 
     return node;
+  }
+
+  /**
+   * Build a hidden `Timeline` node that ramps `target` 0→1, played by the
+   * existing `<TimelineDriver>`, so the synthesized `@animated` entrance channels
+   * in a staggered group animate with no author-supplied timeline. (S3)
+   */
+  private buildEntranceDriver(target: string): R3FNode {
+    const driver = this.createNode('Timeline', { autoplay: true, loop: false });
+    driver.children = [
+      this.createNode('TimelineEntry', {
+        time: 0,
+        actionKind: 'animate',
+        target,
+        properties: { value: 0 },
+      }),
+      this.createNode('TimelineEntry', {
+        time: 1,
+        actionKind: 'animate',
+        target,
+        properties: { value: 1 },
+      }),
+    ];
+    return driver;
   }
 
   private compileTimelineBlock(timeline: Record<string, unknown>): R3FNode {
