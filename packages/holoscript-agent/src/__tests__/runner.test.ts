@@ -127,6 +127,9 @@ function mockMesh(opts: {
     queryTeamKnowledge: vi.fn(async () => []),
     queryPrivateKnowledge: vi.fn(async () => []),
     writePrivateKnowledge: vi.fn(async () => true),
+    // Self-direction (idle director) surface — file board tasks + core MCP tools.
+    addTasks: vi.fn(async (tasks: unknown[]) => ({ added: Array.isArray(tasks) ? tasks.length : 0 })),
+    invokeTool: vi.fn(async () => ({ ok: true })),
   };
 }
 
@@ -474,6 +477,120 @@ describe('AgentRunner.tick', () => {
     const result = await runner.tick();
     expect(result.action).toBe('no-claimable-task');
     expect(mesh.claim).not.toHaveBeenCalled();
+  });
+
+  // ── Self-healing idle director (founder 2026-06-23) ──────────────────────────
+  // When the board is dry, a brain that authors `behavior on_idle` derives + executes
+  // one small self-task through the SAME tool + W.107.b artifact gate as a real task.
+  describe('idle self-direction (behavior on_idle)', () => {
+    const IDLE_BRAIN: RuntimeBrainConfig = {
+      ...BRAIN,
+      idle: { directive: 'Find and fix a small edge in the HoloScript language.', fileBoard: true, maxTools: 6 },
+    };
+    // No board task matches the brain tags → the runner reaches the idle branch.
+    const DRY_BOARD: BoardTask[] = [
+      { id: 't-ui', title: 'theme tweak', description: 'css', priority: 'low', tags: ['ui'], status: 'open' },
+    ];
+
+    it('a brain WITHOUT on_idle still returns no-claimable-task and never derives idle work', async () => {
+      const mesh = mockMesh({ tasks: DRY_BOARD });
+      const provider = mockProvider({ promptTokens: 1, completionTokens: 1 });
+      const completeSpy = vi.spyOn(provider, 'complete');
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN, // no idle field
+        provider,
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+      const result = await runner.tick();
+      expect(result.action).toBe('no-claimable-task');
+      expect(completeSpy).not.toHaveBeenCalled(); // no self-task derivation
+      expect(mesh.addTasks).not.toHaveBeenCalled();
+    });
+
+    it('derives + executes a self-task and returns idle-worked when it produces a real artifact', async () => {
+      const mesh = mockMesh({ tasks: DRY_BOARD });
+      let n = 0;
+      const usage = { promptTokens: 10, completionTokens: 5, totalTokens: 15 };
+      const provider: ILLMProvider = {
+        name: 'mock',
+        models: ['mock-1'],
+        defaultHoloScriptModel: 'mock-1',
+        async complete(): Promise<LLMCompletionResponse> {
+          n++;
+          if (n === 1) {
+            // DISCOVER: derive a concrete self-task (text).
+            return { content: 'TASK: tighten a grammar edge in the parser', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+          }
+          if (n === 2) {
+            // EXECUTE iter 1: a PRODUCTIVE write_file (non-empty content) → satisfies W.107.b.
+            return {
+              content: '', usage, model: 'mock-1', provider: 'mock', finishReason: 'tool_use',
+              toolUses: [{ id: 'w1', name: 'write_file', input: { path: '/root/agent-output/idle.txt', content: 'idle artifact content' } }],
+              assistantBlocks: [{ type: 'tool_use' as const, id: 'w1', name: 'write_file', input: { path: '/root/agent-output/idle.txt', content: 'idle artifact content' } }],
+            } as unknown as LLMCompletionResponse;
+          }
+          return { content: 'Tightened the edge.', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+        },
+        async generateHoloScript() { throw new Error('not used'); },
+        async healthCheck() { return { ok: true, latencyMs: 1 }; },
+      };
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: IDLE_BRAIN,
+        provider,
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+      const result = await runner.tick();
+      expect(result.action).toBe('idle-worked');
+      expect(mesh.claim).not.toHaveBeenCalled(); // idle work is not a board claim
+      expect(mesh.addTasks).toHaveBeenCalledTimes(1); // filed for capability-matched peers
+      const filed = (mesh.addTasks as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+      expect(filed.title).toContain('[idle:security-auditor]');
+      expect(filed.tags).toEqual(BRAIN.capabilityTags);
+      expect(mesh.writePrivateKnowledge).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns idle-skipped and files NO board task when idle work produces no artifact (W.107.b holds for idle)', async () => {
+      const mesh = mockMesh({ tasks: DRY_BOARD });
+      let n = 0;
+      const usage = { promptTokens: 10, completionTokens: 5, totalTokens: 15 };
+      const provider: ILLMProvider = {
+        name: 'mock',
+        models: ['mock-1'],
+        defaultHoloScriptModel: 'mock-1',
+        async complete(): Promise<LLMCompletionResponse> {
+          n++;
+          if (n === 1) {
+            return { content: 'TASK: audit the lexer', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+          }
+          if (n === 2) {
+            // EXECUTE: only a READ-ONLY tool → NOT productive → no real artifact.
+            return {
+              content: '', usage, model: 'mock-1', provider: 'mock', finishReason: 'tool_use',
+              toolUses: [{ id: 'r1', name: 'read_file', input: { path: '/tmp/x' } }],
+              assistantBlocks: [{ type: 'tool_use' as const, id: 'r1', name: 'read_file', input: { path: '/tmp/x' } }],
+            } as unknown as LLMCompletionResponse;
+          }
+          return { content: 'I looked at it.', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+        },
+        async generateHoloScript() { throw new Error('not used'); },
+        async healthCheck() { return { ok: true, latencyMs: 1 }; },
+      };
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: IDLE_BRAIN,
+        provider,
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+      const result = await runner.tick();
+      expect(result.action).toBe('idle-skipped');
+      expect(mesh.addTasks).not.toHaveBeenCalled(); // no fabricated work filed
+      expect(mesh.writePrivateKnowledge).not.toHaveBeenCalled();
+    });
   });
 
   it('writes a task-executed event to the audit log when supplied (Phase 3 producer wiring)', async () => {

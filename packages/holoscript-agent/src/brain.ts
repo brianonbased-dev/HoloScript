@@ -27,7 +27,36 @@ export async function loadBrain(
     avoids,
     reflect: extractReflect(raw),
     onTaskActions: extractOnTaskActions(raw),
+    idle: extractIdleDirective(raw),
   };
+}
+
+/**
+ * Extract the brain's `behavior on_idle { … }` self-direction block (founder 2026-06-23).
+ * Mirrors extractReflect's sliceNamedBlock + scalarField approach — no new parser primitives.
+ *   behavior on_idle {
+ *     directive: "Find and fix a small edge in the HoloScript grammar/compilers/traits."
+ *     fileBoard: true
+ *     maxTools: 8
+ *   }
+ * `directive` is required (a brain with on_idle but no directive parses to undefined → the
+ * runner keeps the prior no-claimable-task behavior). fileBoard defaults true, maxTools 8.
+ * Absent block → undefined → runner is unchanged (opt-in, backward-compatible).
+ */
+function extractIdleDirective(
+  brain: string
+): { directive: string; fileBoard: boolean; maxTools: number } | undefined {
+  const block = sliceNamedBlock(brain, 'on_idle');
+  if (block === undefined) return undefined;
+  const directive = scalarField(block, 'directive');
+  if (!directive) return undefined;
+  const fileBoardRaw = scalarField(block, 'fileBoard') ?? scalarField(block, 'file_board');
+  // Unquoted scalars run to the segment end; take the first comma-delimited token.
+  const fileBoard = (fileBoardRaw ?? 'true').split(',')[0].trim().toLowerCase() !== 'false';
+  const maxToolsRaw = scalarField(block, 'maxTools') ?? scalarField(block, 'max_tools');
+  const maxToolsNum = Number((maxToolsRaw ?? '8').split(',')[0].trim());
+  const maxTools = Number.isFinite(maxToolsNum) && maxToolsNum > 0 ? Math.floor(maxToolsNum) : 8;
+  return { directive, fileBoard, maxTools };
 }
 
 /**

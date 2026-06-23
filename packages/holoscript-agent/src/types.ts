@@ -63,6 +63,20 @@ export interface RuntimeBrainConfig {
    * Absent (default) = hardcoded MESH_TOOLS loop only — backward-compatible.
    */
   onTaskActions?: OnTaskAction[];
+  /**
+   * Optional self-directed idle behavior (founder 2026-06-23 — local metal must
+   * SELF-HEAL, not sit in a no-claimable-task poll loop). When the brain authors a
+   * `behavior on_idle { directive: "…" }` block AND the board has no capability-matched
+   * task, the runner derives ONE small, language-advancing improvement and executes it
+   * through the SAME tool primitives + the SAME W.107.b artifact-grounding gate as a real
+   * task — so an idle action can never fabricate work. $0 (local Ollama provider + free
+   * mesh REST). Absent (default) = the runner returns `no-claimable-task` and sleeps,
+   * exactly as before — non-idle brains are completely unaffected (opt-in).
+   *   - directive: the brain-authored instruction for what idle work to pursue.
+   *   - fileBoard: file the produced work as a board task for capability-matched peers.
+   *   - maxTools: cap on the idle tool-loop iterations (bounded autonomy).
+   */
+  idle?: { directive: string; fileBoard: boolean; maxTools: number };
 }
 
 /** A single cognitive verb call parsed from `behavior on_task { … }`. */
@@ -104,7 +118,9 @@ export interface TickResult {
     | 'errored'
     | 'no-artifact'
     | 'reflect-escalate'
-    | 'messages-processed';
+    | 'messages-processed'
+    | 'idle-worked'
+    | 'idle-skipped';
   taskId?: string;
   spentUsd: number;
   remainingUsd: number;

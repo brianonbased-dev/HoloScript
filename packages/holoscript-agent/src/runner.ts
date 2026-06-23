@@ -153,6 +153,13 @@ export class AgentRunner {
     const target = pickClaimableTask(tasks, brain.capabilityTags);
     if (!target) {
       log({ ev: 'no-claimable-task', open: tasks.length });
+      // Self-heal instead of idling (founder 2026-06-23): a brain that authors
+      // `behavior on_idle` derives + executes one small language-advancing improvement
+      // through the same tool primitives + W.107.b artifact gate as a real task. Opt-in —
+      // brains without an idle block keep the exact no-claimable-task return below.
+      if (brain.idle) {
+        return await this.runIdleSelfDirection({ identity, brain, mesh, costGuard, provider, log });
+      }
       return {
         action: 'no-claimable-task',
         spentUsd: costGuard.getState().spentUsd,
@@ -760,6 +767,192 @@ export class AgentRunner {
       taskId: target.id,
       spentUsd: cost.spentUsd,
       remainingUsd: cost.remainingUsd,
+    };
+  }
+
+  /**
+   * Self-directed idle work (founder 2026-06-23: local metal must SELF-HEAL, not sit in a
+   * no-claimable-task poll loop). Fires only when the board has no capability-matched task
+   * AND the brain authors `behavior on_idle`. Derives ONE small, language-advancing
+   * improvement and executes it through the SAME tool primitives (resolveActiveTools/runTool)
+   * + the SAME W.107.b artifact-grounding gate (summarizeToolProductivity) as a real task —
+   * so an idle action cannot fabricate work (0 productive calls ⇒ idle-skipped, no receipt,
+   * no board task). $0: the provider is the Jetson's local Ollama; mesh calls are free REST.
+   *
+   * Safety bounds (founder-ruled): idle work uses resolveActiveTools(brain) — the same
+   * MESH_TOOLS subset whose productive bash prefixes EXCLUDE `git push`/`git commit`
+   * (W.107.b), so it can inspect/write/build/validate locally but NEVER push, mutate
+   * governance, or spend. costGuard.isOverBudget() already short-circuited before this
+   * branch, so an idle worker is guaranteed under-budget. Vast escalation is NOT in v1:
+   * a self-task needing GPU the Jetson lacks is filed as a board task tagged `gpu` for the
+   * autoscaler path, never rented from the idle loop.
+   */
+  private async runIdleSelfDirection(ctx: {
+    identity: AgentIdentity;
+    brain: RuntimeBrainConfig;
+    mesh: HolomeshClient;
+    costGuard: CostGuard;
+    provider: ILLMProvider;
+    log: (event: Record<string, unknown>) => void;
+  }): Promise<TickResult> {
+    const { identity, brain, mesh, costGuard, provider, log } = ctx;
+    const idle = brain.idle!;
+    const spent = () => costGuard.getState().spentUsd;
+    const remaining = () => costGuard.getRemainingUsd();
+
+    // 1. DISCOVER-WORK — derive ONE small self-task, grounded in the agent's own backlog
+    //    + capability tags so the work is capability-matched by construction. Local, $0.
+    let recentSummary = '';
+    try {
+      const recent = await mesh.queryPrivateKnowledge();
+      recentSummary = recent
+        .slice(-5)
+        .map((e) => `- ${(e.content ?? '').slice(0, 80)}`)
+        .join('\n');
+    } catch {
+      /* private knowledge optional */
+    }
+
+    const planResp = await provider.complete(
+      {
+        messages: [
+          { role: 'system', content: brain.systemPrompt },
+          {
+            role: 'user',
+            content:
+              `${idle.directive}\n\n` +
+              `Your capability tags: ${brain.capabilityTags.join(', ') || '(none)'}.\n` +
+              (recentSummary ? `Your recent work:\n${recentSummary}\n\n` : '') +
+              'The team board has NO task matching your capabilities right now. Pick ONE small, ' +
+              'concrete improvement you can complete in a few tool calls that ADVANCES THE HOLOSCRIPT ' +
+              'LANGUAGE (grammar/.hs/.hsplus/.holo, compilers/targets, traits, native authoring, or a ' +
+              'real fix/validation) — NOT net-new infrastructure (D.101). Reply with ONLY one line: ' +
+              'TASK: <one concrete, actionable title>',
+          },
+        ],
+        maxTokens: 400,
+        temperature: 0.3,
+      },
+      identity.llmModel
+    );
+    const selfTitle = (
+      planResp.content.match(/TASK:\s*(.+)/i)?.[1] ??
+      planResp.content.split('\n').find((l) => l.trim())?.trim() ??
+      ''
+    )
+      .slice(0, 160)
+      .trim();
+    if (!selfTitle) {
+      log({ ev: 'idle-skipped', reason: 'no-self-task-derived' });
+      return {
+        action: 'idle-skipped',
+        spentUsd: spent(),
+        remainingUsd: remaining(),
+        message: 'idle director derived no actionable self-task',
+      };
+    }
+    log({ ev: 'idle-derived', title: selfTitle });
+
+    // 2. EXECUTE — bounded tool loop reusing the SAME resolveActiveTools + runTool primitives.
+    const { tools: activeTools } = resolveActiveTools(brain);
+    const messages: LLMMessage[] = [
+      { role: 'system', content: brain.systemPrompt },
+      {
+        role: 'user',
+        content:
+          `Self-directed idle work. Complete this concrete improvement now using your tools:\n${selfTitle}\n\n` +
+          'Inspect what you need, then PRODUCE A REAL ARTIFACT: call write_file with non-empty content, ' +
+          'OR run a productive bash build/validate (e.g. pnpm vitest run, lake build), OR mcp_call ' +
+          'compile_holoscript / validate_holoscript. Do NOT just describe — act. End with a one-line summary.',
+      },
+    ];
+    let finalText = '';
+    let iters = 0;
+    let productiveCallCount = 0;
+    const toolsCalled = new Set<string>();
+    const maxIters = Math.min(idle.maxTools, 12);
+    while (iters < maxIters) {
+      iters++;
+      const resp = await provider.complete(
+        { messages, maxTokens: 8192, temperature: 0.4, tools: activeTools },
+        identity.llmModel
+      );
+      if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
+        // Same artifact-grounding classifier as the task path (tools.ts SSOT) — the gate
+        // that makes idle work un-fabricatable can never drift from the real-task gate.
+        const productivity = summarizeToolProductivity(resp.toolUses);
+        for (const n of productivity.names) toolsCalled.add(n);
+        productiveCallCount += productivity.productiveCount;
+        messages.push({ role: 'assistant', content: (resp.assistantBlocks ?? []) as never });
+        const toolResults = await Promise.all(
+          resp.toolUses.map((u) =>
+            runTool(u, {
+              signReceipt: this.opts.signReceipt,
+              addTask: (t) => mesh.addTasks(t),
+              invokeMcpTool: (tool, args) => mesh.invokeTool(tool, args),
+            })
+          )
+        );
+        messages.push({ role: 'user', content: toolResults as never });
+        continue;
+      }
+      finalText = resp.content;
+      break;
+    }
+    log({ ev: 'idle-loop-done', iters, toolsCalled: [...toolsCalled], productiveCallCount });
+
+    // 3. ARTIFACT GATE (W.107.b) — no productive tool call ⇒ no real work happened. Refuse
+    //    to record/file anything; idle work must never fabricate a deliverable.
+    if (productiveCallCount === 0) {
+      log({ ev: 'idle-skipped', reason: 'no-artifact', title: selfTitle, toolsCalled: [...toolsCalled] });
+      return {
+        action: 'idle-skipped',
+        spentUsd: spent(),
+        remainingUsd: remaining(),
+        message: `idle work produced no artifact (toolsCalled=[${[...toolsCalled].join(',')}])`,
+      };
+    }
+
+    // 4. CONTINUITY — record the outcome to the agent's private knowledge (free, best-effort).
+    try {
+      await mesh.writePrivateKnowledge([
+        {
+          content: `Idle self-directed work: ${selfTitle}\n${finalText.slice(0, 600)}`,
+          type: 'idle-outcome',
+          tags: ['idle-outcome', identity.handle],
+          title: selfTitle,
+        },
+      ]);
+    } catch {
+      /* continuity best-effort */
+    }
+
+    // 5. FILE BOARD TASK — surface the work for capability-matched peers / review (opt-in).
+    if (idle.fileBoard) {
+      try {
+        await mesh.addTasks([
+          {
+            title: `[idle:${identity.handle}] ${selfTitle}`,
+            description:
+              `Self-directed idle work by ${identity.handle} (no claimable board task). ` +
+              `Produced a real artifact (productiveCalls=${productiveCallCount}, tools=[${[...toolsCalled].join(',')}]).\n\n` +
+              `Outcome: ${finalText.slice(0, 1000)}\n\nReview / continue / verify.`,
+            source: `idle-director:${identity.handle}`,
+            tags: brain.capabilityTags,
+          },
+        ]);
+      } catch (err) {
+        log({ ev: 'idle-file-board-error', message: err instanceof Error ? err.message : String(err) });
+      }
+    }
+
+    log({ ev: 'idle-worked', title: selfTitle, productiveCallCount });
+    return {
+      action: 'idle-worked',
+      spentUsd: spent(),
+      remainingUsd: remaining(),
+      taskId: undefined,
+      message: `idle self-direction completed: ${selfTitle}`,
     };
   }
 
