@@ -41,7 +41,7 @@
 
 use std::collections::HashMap;
 
-use crate::ast::{Ast, AstNode, EnumDeclarationNode, StructDeclarationNode};
+use crate::ast::{Ast, AstNode, EnumDeclarationNode, PropertyNode, StructDeclarationNode};
 
 /// An error raised while emitting Kotlin from a parsed `.hs` AST.
 #[derive(Debug, Clone)]
@@ -78,6 +78,8 @@ enum ValType {
     /// A `List<T>` — e.g. an array-literal return `[1, 2, 3]` ⇒ `List<Float>`, or a nested
     /// `[[1], [2]]` ⇒ `List<List<Float>>`. Carries the element type (boxed for recursion).
     List(Box<ValType>),
+    /// A `Map<String, V>` emitted from object literals (`{ k: v }` -> `mapOf("k" to v)`).
+    Map(Box<ValType>),
 }
 
 impl ValType {
@@ -90,6 +92,7 @@ impl ValType {
             ValType::Enum(name) => name.clone(),
             ValType::Struct(name) => name.clone(),
             ValType::List(inner) => format!("List<{}>", inner.kotlin()),
+            ValType::Map(inner) => format!("Map<String, {}>", inner.kotlin()),
         }
     }
 }
@@ -314,6 +317,23 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
             .unwrap_or(ValType::Float);
         return ValType::List(Box::new(elem));
     }
+    // Map: every return is an object literal (`{ key: value }`) => `Map<String, value>`.
+    // The value type is read from the first non-empty object; empty objects default to Float.
+    if returns
+        .iter()
+        .all(|n| matches!(n, AstNode::ObjectLiteral(_)))
+    {
+        let value = returns
+            .iter()
+            .find_map(|n| match n {
+                AstNode::ObjectLiteral(o) if !o.properties.is_empty() => Some(
+                    infer_map_value_type(&o.properties, enum_names, struct_names),
+                ),
+                _ => None,
+            })
+            .unwrap_or(ValType::Float);
+        return ValType::Map(Box::new(value));
+    }
     // List via bare-identifier return: every return is an identifier bound to a `let xs = [..]` list
     // local with a consistent element type (the list analogue of the numeric-accumulator rule below,
     // `return total` ⇒ `Float`). Additive: only fires when a list local is both declared AND returned.
@@ -334,6 +354,28 @@ fn infer_return_type(body: &[AstNode], enum_names: &[String], struct_names: &[St
                 .all(|n| elem_of(n).as_ref() == Some(&first_elem))
             {
                 return ValType::List(Box::new(first_elem));
+            }
+        }
+    }
+    // Map via bare-identifier return: `let lookup = { a: 1 }` then `return lookup` infers
+    // `Map<String, Float>` rather than falling through to the `String` default.
+    let map_locals = collect_map_local_bindings(body, enum_names, struct_names);
+    if !map_locals.is_empty() {
+        let value_of = |n: &AstNode| -> Option<ValType> {
+            match n {
+                AstNode::Identifier(id) => map_locals
+                    .iter()
+                    .find(|(name, _)| name == &id.name)
+                    .map(|(_, t)| t.clone()),
+                _ => None,
+            }
+        };
+        if let Some(first_value) = returns.first().and_then(|n| value_of(n)) {
+            if returns
+                .iter()
+                .all(|n| value_of(n).as_ref() == Some(&first_value))
+            {
+                return ValType::Map(Box::new(first_value));
             }
         }
     }
@@ -442,18 +484,47 @@ fn infer_array_element_type(
     struct_names: &[String],
 ) -> ValType {
     match elements.first() {
-        Some(AstNode::Array(inner)) => ValType::List(Box::new(infer_array_element_type(
+        Some(first) => {
+            literal_value_signal(first, enum_names, struct_names).unwrap_or(ValType::Float)
+        }
+        None => ValType::Float,
+    }
+}
+
+/// Infer the Kotlin value type of an object literal for `Map<String, V>` typing. Like array
+/// inference, object values are assumed homogeneous and the first property value supplies the
+/// signal. An empty or signal-less object defaults to `Float`.
+fn infer_map_value_type(
+    properties: &[PropertyNode],
+    enum_names: &[String],
+    struct_names: &[String],
+) -> ValType {
+    match properties.first() {
+        Some(first) => literal_value_signal(first.value.as_ref(), enum_names, struct_names)
+            .unwrap_or(ValType::Float),
+        None => ValType::Float,
+    }
+}
+
+fn literal_value_signal(
+    node: &AstNode,
+    enum_names: &[String],
+    struct_names: &[String],
+) -> Option<ValType> {
+    match node {
+        AstNode::Array(inner) => Some(ValType::List(Box::new(infer_array_element_type(
             &inner.elements,
             enum_names,
             struct_names,
-        ))),
-        Some(first) => {
-            if let Some(owner) = enum_member_owner(first, enum_names) {
-                return ValType::Enum(owner);
-            }
-            arg_literal_signal(first, struct_names).unwrap_or(ValType::Float)
-        }
-        None => ValType::Float,
+        )))),
+        AstNode::ObjectLiteral(obj) => Some(ValType::Map(Box::new(infer_map_value_type(
+            &obj.properties,
+            enum_names,
+            struct_names,
+        )))),
+        _ => enum_member_owner(node, enum_names)
+            .map(ValType::Enum)
+            .or_else(|| arg_literal_signal(node, struct_names)),
     }
 }
 
@@ -495,6 +566,47 @@ fn walk_collect_list_bindings(
                 walk_collect_list_bindings(&if_node.consequent, enum_names, struct_names, out);
                 if let Some(alt) = &if_node.alternate {
                     walk_collect_list_bindings(alt, enum_names, struct_names, out);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Collect local bindings whose value is an object literal (`let m = { a: 1 }`), mapped to their
+/// map value type. This mirrors list-local return inference.
+fn collect_map_local_bindings(
+    body: &[AstNode],
+    enum_names: &[String],
+    struct_names: &[String],
+) -> Vec<(String, ValType)> {
+    let mut out: Vec<(String, ValType)> = Vec::new();
+    walk_collect_map_bindings(body, enum_names, struct_names, &mut out);
+    out
+}
+
+fn walk_collect_map_bindings(
+    body: &[AstNode],
+    enum_names: &[String],
+    struct_names: &[String],
+    out: &mut Vec<(String, ValType)>,
+) {
+    for node in body {
+        match node {
+            AstNode::VariableDeclaration(v) => {
+                if let AstNode::ObjectLiteral(obj) = v.value.as_ref() {
+                    if !out.iter().any(|(n, _)| n == &v.name) {
+                        let value = infer_map_value_type(&obj.properties, enum_names, struct_names);
+                        out.push((v.name.clone(), value));
+                    }
+                }
+            }
+            AstNode::ForOf(f) => walk_collect_map_bindings(&f.body, enum_names, struct_names, out),
+            AstNode::While(w) => walk_collect_map_bindings(&w.body, enum_names, struct_names, out),
+            AstNode::If(if_node) => {
+                walk_collect_map_bindings(&if_node.consequent, enum_names, struct_names, out);
+                if let Some(alt) = &if_node.alternate {
+                    walk_collect_map_bindings(alt, enum_names, struct_names, out);
                 }
             }
             _ => {}
@@ -644,6 +756,11 @@ fn collect_ctor_calls_in_expr(
                 collect_ctor_calls_in_expr(elem, enum_names, struct_names, acc);
             }
         }
+        AstNode::ObjectLiteral(obj) => {
+            for prop in &obj.properties {
+                collect_ctor_calls_in_expr(prop.value.as_ref(), enum_names, struct_names, acc);
+            }
+        }
         _ => {}
     }
 }
@@ -654,12 +771,12 @@ fn ctor_arg_field_signal(
     struct_names: &[String],
 ) -> Option<ValType> {
     match node {
-        AstNode::Array(arr) => Some(ValType::List(Box::new(infer_array_element_type(
-            &arr.elements,
-            enum_names,
-            struct_names,
-        )))),
-        _ => arg_literal_signal(node, struct_names),
+        AstNode::Array(_) | AstNode::ObjectLiteral(_) => {
+            literal_value_signal(node, enum_names, struct_names)
+        }
+        _ => enum_member_owner(node, enum_names)
+            .map(ValType::Enum)
+            .or_else(|| arg_literal_signal(node, struct_names)),
     }
 }
 
@@ -1148,6 +1265,17 @@ fn emit_expr(node: &AstNode) -> Result<String, KotlinEmitError> {
                 .collect::<Result<Vec<_>, _>>()?
                 .join(", ");
             Ok(format!("listOf({})", elems))
+        }
+        AstNode::ObjectLiteral(obj) => {
+            let mut entries: Vec<String> = Vec::new();
+            for prop in &obj.properties {
+                entries.push(format!(
+                    "{} to {}",
+                    emit_string_literal(&prop.key),
+                    emit_expr(prop.value.as_ref())?
+                ));
+            }
+            Ok(format!("mapOf({})", entries.join(", ")))
         }
         other => Err(KotlinEmitError::new(format!(
             "unsupported expression node in .hs logic body: {}",
@@ -2273,5 +2401,105 @@ function newYaw(yaw, turn) {
         let out = kotlin(src);
         assert!(out.contains("fun labels(): List<String> {"), "{out}");
         assert!(out.contains("return names"), "{out}");
+    }
+
+    // G7e: Object literals `{ k: v }` => `mapOf(...)` with `Map<String, V>` inference.
+
+    #[test]
+    fn infers_map_float_return_for_numeric_object_literal() {
+        let src = r#"function weights() {
+  return { left: 1, right: 2 }
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun weights(): Map<String, Float> {"), "{out}");
+        assert!(
+            out.contains("return mapOf(\"left\" to 1f, \"right\" to 2f)"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_map_string_return_for_string_object_literal() {
+        let src = r#"function labels() {
+  return { primary: "alpha", secondary: "beta" }
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun labels(): Map<String, String> {"), "{out}");
+        assert!(
+            out.contains("return mapOf(\"primary\" to \"alpha\", \"secondary\" to \"beta\")"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_nested_map_for_object_of_objects() {
+        let src = r#"function grid() {
+  return { row: { x: 1 } }
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("fun grid(): Map<String, Map<String, Float>> {"),
+            "{out}"
+        );
+        assert!(
+            out.contains("return mapOf(\"row\" to mapOf(\"x\" to 1f))"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_map_struct_return_for_struct_object_literal() {
+        let src = r#"struct Vec3 { x, y, z }
+function points() {
+  return { start: Vec3(1, 2, 3) }
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun points(): Map<String, Vec3> {"), "{out}");
+        assert!(
+            out.contains("return mapOf(\"start\" to Vec3(1f, 2f, 3f))"),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn infers_map_return_for_bare_identifier_map_local() {
+        let src = r#"function make() {
+  let lookup = { a: 1, b: 2 }
+  return lookup
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun make(): Map<String, Float> {"), "{out}");
+        assert!(
+            out.contains("val lookup = mapOf(\"a\" to 1f, \"b\" to 2f)"),
+            "{out}"
+        );
+        assert!(out.contains("return lookup"), "{out}");
+    }
+
+    #[test]
+    fn empty_object_return_defaults_to_map_float() {
+        let src = r#"function none() {
+  return {}
+}"#;
+        let out = kotlin(src);
+        assert!(out.contains("fun none(): Map<String, Float> {"), "{out}");
+        assert!(out.contains("return mapOf()"), "{out}");
+    }
+
+    #[test]
+    fn struct_field_typed_map_from_object_ctor_arg() {
+        let src = r#"struct Bag { attrs }
+function mk() {
+  return Bag({ label: "alpha", alt: "beta" })
+}"#;
+        let out = kotlin(src);
+        assert!(
+            out.contains("data class Bag(val attrs: Map<String, String>)"),
+            "{out}"
+        );
+        assert!(
+            out.contains("return Bag(mapOf(\"label\" to \"alpha\", \"alt\" to \"beta\"))"),
+            "{out}"
+        );
     }
 }
