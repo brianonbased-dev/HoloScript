@@ -1,6 +1,7 @@
 import type { ILLMProvider, LLMMessage, TokenUsage, ToolUseBlock } from '@holoscript/llm-provider';
 import { embedAcrossFleet, cosineSimilarity, createLocalLLMProvider } from '@holoscript/llm-provider';
 import { readFileSync } from 'node:fs';
+import { freemem } from 'node:os';
 import { resolvePeer, parsePeerRegistry, type PeerEntry } from './peer-registry.js';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
@@ -147,6 +148,27 @@ export class AgentRunner {
         remainingUsd: 0,
         message: `daily budget $${identity.budgetUsdPerDay} exhausted`,
       };
+    }
+
+    // Memory-headroom guard (founder 2026-06-23, after the Jetson two-model swap-thrash
+    // freeze): on a memory-constrained box, claiming a task or running idle work loads the
+    // model + grows the KV cache — if the box is already starved, that OOMs/freezes it. When
+    // HOLOSCRIPT_AGENT_MIN_FREE_MB is set and available memory is below it, SKIP this tick's
+    // work (heartbeat already ran) so the agent degrades gracefully instead of crashing the
+    // box. Opt-in (default 0 = off → existing fleet agents are unaffected); the Jetson sets it
+    // (e.g. 800). Fails OPEN: if memory can't be read, work proceeds.
+    const minFreeMb = Number(process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB || 0);
+    if (minFreeMb > 0) {
+      const availMb = availableMemoryMb();
+      if (availMb != null && availMb < minFreeMb) {
+        log({ ev: 'low-memory-skip', availableMb: availMb, minFreeMb });
+        return {
+          action: 'low-memory-skip',
+          spentUsd: costGuard.getState().spentUsd,
+          remainingUsd: costGuard.getRemainingUsd(),
+          message: `paused: ${availMb}MB available < ${minFreeMb}MB floor (avoiding OOM)`,
+        };
+      }
     }
 
     const tasks = await mesh.getOpenTasks();
@@ -901,6 +923,46 @@ export class AgentRunner {
     }
     log({ ev: 'idle-loop-done', iters, toolsCalled: [...toolsCalled], productiveCallCount });
 
+    // 2b. READ→WRITE re-prompt (W.780 applied to idle work). The 4B edge model often inspects
+    //     files then stops without writing (read→skip). If it called tools but produced nothing,
+    //     nudge it ONCE to ACT — turning "consumed a file" into "improved a file." Same
+    //     summarizeToolProductivity classifier as the task path, so the gate cannot drift.
+    if (productiveCallCount === 0 && toolsCalled.size > 0 && iters < maxIters) {
+      iters++;
+      if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') messages.pop();
+      messages.push({
+        role: 'user',
+        content:
+          'You inspected files but produced NO artifact. To advance the work you must ACT, not just read.\n' +
+          `Self-task: ${selfTitle}\n` +
+          'Call write_file NOW with a concrete improvement, OR run a productive build/validate ' +
+          '(pnpm vitest run / lake build) or mcp_call validate_holoscript. Your ONLY valid response ' +
+          'is a productive tool call — do NOT output plain text.',
+      });
+      const reResp = await provider.complete(
+        { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
+        identity.llmModel
+      );
+      if (reResp.finishReason === 'tool_use' && reResp.toolUses && reResp.toolUses.length > 0) {
+        const reProd = summarizeToolProductivity(reResp.toolUses);
+        for (const n of reProd.names) toolsCalled.add(n);
+        productiveCallCount += reProd.productiveCount;
+        messages.push({ role: 'assistant', content: (reResp.assistantBlocks ?? []) as never });
+        const reResults = await Promise.all(
+          reResp.toolUses.map((u) =>
+            runTool(u, {
+              signReceipt: this.opts.signReceipt,
+              addTask: (t) => mesh.addTasks(t),
+              invokeMcpTool: (tool, args) => mesh.invokeTool(tool, args),
+            })
+          )
+        );
+        messages.push({ role: 'user', content: reResults as never });
+      }
+      finalText = reResp.content || finalText;
+      log({ ev: 'idle-reprompt-done', productiveCallCount });
+    }
+
     // 3. ARTIFACT GATE (W.107.b) — no productive tool call ⇒ no real work happened. Refuse
     //    to record/file anything; idle work must never fabricate a deliverable.
     if (productiveCallCount === 0) {
@@ -1068,6 +1130,29 @@ function buildTaskPrompt(task: BoardTask): string {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Available system memory in MB, or null if it can't be read (→ the memory guard
+ * fails OPEN: never block work just because we couldn't measure). On Linux we read
+ * /proc/meminfo MemAvailable (free + reclaimable cache) — the MEANINGFUL headroom on a
+ * unified-memory Jetson, where os.freemem() (MemFree) reads misleadingly low (e.g. 350MB
+ * free but 1.6GB available). Elsewhere we fall back to os.freemem().
+ */
+function availableMemoryMb(): number | null {
+  if (process.platform === 'linux') {
+    try {
+      const m = readFileSync('/proc/meminfo', 'utf8').match(/MemAvailable:\s+(\d+)\s+kB/);
+      if (m) return Math.floor(Number(m[1]) / 1024);
+    } catch {
+      /* fall through to os.freemem */
+    }
+  }
+  try {
+    return Math.floor(freemem() / (1024 * 1024));
+  } catch {
+    return null;
+  }
 }
 
 function jitter(base: number): number {

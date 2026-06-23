@@ -120,7 +120,8 @@ export interface TickResult {
     | 'reflect-escalate'
     | 'messages-processed'
     | 'idle-worked'
-    | 'idle-skipped';
+    | 'idle-skipped'
+    | 'low-memory-skip';
   taskId?: string;
   spentUsd: number;
   remainingUsd: number;

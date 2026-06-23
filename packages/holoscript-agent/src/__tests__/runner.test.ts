@@ -453,6 +453,50 @@ describe('AgentRunner.tick', () => {
     expect(mesh.heartbeat).toHaveBeenCalledTimes(1);
   });
 
+  // Memory-headroom guard (founder 2026-06-23, after the Jetson two-model swap-thrash freeze).
+  it('returns low-memory-skip WITHOUT claiming or calling the LLM when available memory is below the floor', async () => {
+    const prev = process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB;
+    process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB = '99999999'; // above any real machine → always trips
+    try {
+      const mesh = mockMesh({
+        tasks: [{ id: 't1', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' }],
+      });
+      const provider = mockProvider({ promptTokens: 1, completionTokens: 1 });
+      const completeSpy = vi.spyOn(provider, 'complete');
+      const runner = new AgentRunner({ identity: IDENTITY, brain: BRAIN, provider, costGuard: freshGuard(), mesh: mesh as never });
+      const result = await runner.tick();
+      expect(result.action).toBe('low-memory-skip');
+      expect(result.message).toMatch(/avoiding OOM/);
+      expect(mesh.claim).not.toHaveBeenCalled();
+      expect(completeSpy).not.toHaveBeenCalled();
+      expect(mesh.heartbeat).toHaveBeenCalledTimes(1); // heartbeat still runs — agent stays a live member
+    } finally {
+      if (prev === undefined) delete process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB;
+      else process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB = prev;
+    }
+  });
+
+  it('does NOT skip when the memory floor is unset — guard is opt-in, no regression for fleet agents', async () => {
+    const prev = process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB;
+    delete process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB;
+    try {
+      const mesh = mockMesh({
+        tasks: [{ id: 't-G10', title: 'security memo', description: '', priority: 'high', tags: ['security'], status: 'open' }],
+      });
+      const runner = new AgentRunner({
+        identity: IDENTITY,
+        brain: BRAIN,
+        provider: mockProvider({ promptTokens: 1, completionTokens: 1, toolCallsBeforeText: ['bash'] }),
+        costGuard: freshGuard(),
+        mesh: mesh as never,
+      });
+      const result = await runner.tick();
+      expect(result.action).toBe('executed'); // guard off → normal claim/execute
+    } finally {
+      if (prev !== undefined) process.env.HOLOSCRIPT_AGENT_MIN_FREE_MB = prev;
+    }
+  });
+
   it('heartbeats and reports no-claimable-task when no open task matches the brain capability set', async () => {
     const mesh = mockMesh({
       tasks: [
@@ -590,6 +634,35 @@ describe('AgentRunner.tick', () => {
       expect(result.action).toBe('idle-skipped');
       expect(mesh.addTasks).not.toHaveBeenCalled(); // no fabricated work filed
       expect(mesh.writePrivateKnowledge).not.toHaveBeenCalled();
+    });
+
+    it('re-prompts a read-only idle attempt to write — turns read→skip into read→write (idle-worked)', async () => {
+      const mesh = mockMesh({ tasks: DRY_BOARD });
+      let n = 0;
+      const usage = { promptTokens: 10, completionTokens: 5, totalTokens: 15 };
+      const toolUse = (id: string, name: string, input: Record<string, unknown>) =>
+        ({
+          content: '', usage, model: 'mock-1', provider: 'mock', finishReason: 'tool_use',
+          toolUses: [{ id, name, input }],
+          assistantBlocks: [{ type: 'tool_use' as const, id, name, input }],
+        }) as unknown as LLMCompletionResponse;
+      const provider: ILLMProvider = {
+        name: 'mock', models: ['mock-1'], defaultHoloScriptModel: 'mock-1',
+        async complete(): Promise<LLMCompletionResponse> {
+          n++;
+          if (n === 1) return { content: 'TASK: tighten a parser edge', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' };
+          if (n === 2) return toolUse('r1', 'read_file', { path: '/tmp/x' }); // inspect only
+          if (n === 3) return { content: 'I read the file.', usage, model: 'mock-1', provider: 'mock', finishReason: 'stop' }; // no write → triggers re-prompt
+          // re-prompt: now ACT with a productive write_file
+          return toolUse('w1', 'write_file', { path: '/root/agent-output/idle.txt', content: 'a real improvement' });
+        },
+        async generateHoloScript() { throw new Error('not used'); },
+        async healthCheck() { return { ok: true, latencyMs: 1 }; },
+      };
+      const runner = new AgentRunner({ identity: IDENTITY, brain: IDLE_BRAIN, provider, costGuard: freshGuard(), mesh: mesh as never });
+      const result = await runner.tick();
+      expect(result.action).toBe('idle-worked'); // the re-prompt rescued a read-only attempt
+      expect(mesh.addTasks).toHaveBeenCalledTimes(1);
     });
   });
 
