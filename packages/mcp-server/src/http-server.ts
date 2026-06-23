@@ -129,6 +129,7 @@ import { resolveStoreRoot } from './hologram-renderer';
 import { isHologramMcpResponse, wrapHologramMcpEnvelope } from '@holoscript/core';
 import { promises as fsPromises } from 'fs';
 import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
+import { handleSovereign3DRoute } from './sovereign-3d-backend';
 
 const { OPERATION_COSTS } = require('@holoscript/absorb-service/credits') as {
   OPERATION_COSTS: Record<string, { baseCostCents: number; description: string }>;
@@ -1023,6 +1024,10 @@ const httpServer = http.createServer(async (req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
     }
+    return;
+  }
+
+  if (await handleSovereign3DRoute(req, res, fullUrl)) {
     return;
   }
 
