@@ -27,41 +27,54 @@ for each store re-upload — Horizon requires a strictly higher `versionCode` ea
 
 ---
 
-## Founder step 1 — Production signing keystore (custody)
+## Founder step 1 — Production signing keystore (custody, via HoloKey)
 
 The release key signs every present and future build. **If it is ever lost, you can NEVER ship an
-update** — Meta has no key recovery (unlike Google Play). It is yours to own and back up.
+update** — Meta has no key recovery (unlike Google Play). It is yours to own and back up. The
+signing secrets live in **HoloKey** (the wallet-keyed vault) — encrypted at rest, resolved at build
+time — never in a plaintext file. `build-release.mjs` resolves them, materializes the keystore to a
+private tmp file, builds, and **deletes the keystore after the build**.
 
-**Option A (recommended for you): ask me to generate it.** I will run `keytool`, write the key to a
-path you choose *outside* git, and put the path + a strong password ONLY into the gitignored
-`keystore.properties` (never into chat or any committed/logged file). You then **back up that keystore
-file + copy the password into your password manager.** That's the whole custody step.
-
-**Option B (you run it yourself):**
+### 1a. Generate the keystore (once, ever)
 ```bash
 keytool -genkeypair -v \
-  -keystore holoscript-qrscanner-release.keystore \
-  -alias holoscript-qrscanner \
+  -keystore release.keystore \
+  -alias quest_qr \
   -keyalg RSA -keysize 2048 -validity 10000 \
   -dname "CN=Joseph Krzywoszyja, OU=HoloScript, O=HoloScript, L=YourCity, S=YourState, C=US"
 ```
-Then create `apps/quest-universal-qr-scanner/android-mr/keystore.properties` (gitignored — verify
-`git status` does NOT show it):
-```properties
-storeFile=C:/secure/path/holoscript-qrscanner-release.keystore
-storePassword=YOUR_STORE_PASSWORD
-keyAlias=holoscript-qrscanner
-keyPassword=YOUR_KEY_PASSWORD
-```
+**Back up `release.keystore` to two secure locations (offline). Record the passwords.** HoloKey holds
+the *operational* copy; your offline backup is the custody master. Losing the HoloKey KEK ≠ losing the
+keystore as long as that offline backup exists.
 
-**Back up the keystore to two secure locations. Record the passwords. Do not lose either.**
-
-### Build the signed APK
+### 1b. Store the four secrets in HoloKey (once)
+The vault needs a KEK + Postgres in env: `HOLOKEY_PROD_KEK_CURRENT` + `HOLOKEY_PROD_KEK_<ID>`
+(`node scripts/holokey.mjs gen-kek` prints them) and `DATABASE_URL`.
 ```bash
-cd apps/quest-universal-qr-scanner/android-mr
-./gradlew :app:assembleRelease
-# → app/build/outputs/apk/release/app-release.apk  (signed v2)
+node scripts/holokey.mjs set KEYSTORE_PASSWORD    '<store-password>'
+node scripts/holokey.mjs set KEY_PASSWORD         '<key-password>'
+node scripts/holokey.mjs set KEY_ALIAS            'quest_qr'
+node scripts/holokey.mjs set ANDROID_KEYSTORE_B64 "$(base64 -w0 release.keystore)"
 ```
+(I can run these for you secrets-safely — the values go only into the encrypted vault, never into chat
+or a committed/logged file.) Secrets are owner-bound under `HOLOKEY_OWNER` (default `infra`); the build
+must resolve under the same owner.
+
+### 1c. Build the signed APK
+```bash
+# env: JAVA_HOME (JDK 17) + ANDROID_HOME, plus the HoloKey KEK + DATABASE_URL (so the vault is ON)
+node scripts/build-release.mjs
+# → android-mr/app/build/outputs/apk/release/app-release.apk  (signed v2)
+```
+`build-release.mjs` resolves the four secrets from HoloKey (or, if the vault is OFF — no KEK — from
+matching env vars `KEYSTORE_PASSWORD`/`KEY_PASSWORD`/`KEY_ALIAS`/`ANDROID_KEYSTORE_B64`), writes the
+keystore to a `0o600` tmp file, runs `gradlew assembleRelease`, and unlinks the tmp keystore. **No
+gradle change was needed** — `android-mr/app/build.gradle.kts` already reads `KEYSTORE_FILE`/`…` from
+env. A plaintext `keystore.properties` still works as a *local-only optional override* but is
+gitignored and unnecessary with HoloKey.
+
+> Verified (2026-06-22): the full resolve → materialize → `assembleRelease` → v2-signed APK → cleanup
+> chain builds GREEN on-device via the env-fallback path (same resolver code the vault uses).
 
 ---
 
