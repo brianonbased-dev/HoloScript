@@ -42,9 +42,9 @@
       "environmentId": "9cccd9a6-12e3-483f-b382-dba1efbb229d",
       "service": "llm-service",
       "serviceId": "a4f847f4-2793-43f2-92d9-570a34f625cd",
-      "healthUrl": "https://llm-service-production.up.railway.app/api/health",
+      "healthUrl": "https://llm-service-production-6d86.up.railway.app/api/health",
       "healthAuthHeader": null,
-      "_note": "brittney-service (fleet-metric O1 emitter). Source: services/llm-service. Needs GitHub source connected in Railway UI (serviceConnect requires OAuth; API token is project-scoped only). Env vars: NODE_ENV=production, PORT=8000, REQUIRE_AUTH=true, BRITTNEY_PROVIDER=fleet, HOLOSCRIPT_API_KEY, FLEET_REGISTRY_URL, FLEET_REGISTRY_KEY."
+      "_note": "brittney-service (fleet-metric O1 emitter). Source: services/llm-service. GitHub source connected to brianonbased-dev/HoloScript main; deploy verified healthy on Railway 2026-06-23. Env vars: NODE_ENV=production, PORT=8000, REQUIRE_AUTH=true, BRITTNEY_PROVIDER=fleet, HOLOSCRIPT_API_KEY, FLEET_REGISTRY_URL, FLEET_REGISTRY_KEY, LLM_SERVICE_API_KEYS. Railway kept the generated service-domain suffix; llm-service-production.up.railway.app returned 404 when checked."
     },
     {
       "name": "studio",
