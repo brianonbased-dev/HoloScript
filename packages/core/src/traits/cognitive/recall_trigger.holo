@@ -1,0 +1,22 @@
+@trait {
+  name: "@recall_trigger",
+  category: "cognitive",
+  description: "Event-driven memory recall trigger. Fires a semantic recall query against agent memory when a condition is met (proximity, time, topic match) and injects results into context. Authored from RecallTriggerTrait.ts.",
+  props: {
+    trigger_type: enum("proximity" | "keyword" | "schedule" | "event") = "keyword",
+    query_template: string = "",
+    keywords: list<string> = [],
+    top_k: number = 3,
+    inject_target: enum("llm_context" | "entity_prop" | "event") = "llm_context",
+    cooldown_ms: number = 5000
+  },
+  events: {
+    attached: "recall_trigger_attached",
+    detached: "recall_trigger_detached",
+    on_trigger: "recall_trigger_fire",
+    on_recall: "recall_trigger_result",
+    on_empty: "recall_trigger_empty",
+    force_recall: "recall_trigger_force"
+  },
+  behaviors: ["@agent_memory", "@rag_knowledge", "@llm_agent"]
+}
