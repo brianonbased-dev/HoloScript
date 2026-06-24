@@ -1,0 +1,27 @@
+@trait {
+  name: "@fine_tune",
+  category: "cognitive",
+  description: "Model fine-tuning job launcher. Uploads training data from JSONL examples, kicks off a fine-tuning run, tracks progress, and switches the inference endpoint to the new checkpoint. Authored from FineTuneTrait.ts.",
+  props: {
+    provider: enum("openai" | "anthropic" | "huggingface" | "holoscript") = "holoscript",
+    base_model: string = "",
+    training_file: string = "",
+    validation_pct: number = 10.0,
+    epochs: number = 3,
+    batch_size: number = 4,
+    learning_rate: number = 2e-5,
+    auto_swap_on_complete: boolean = true
+  },
+  events: {
+    attached: "fine_tune_attached",
+    detached: "fine_tune_detached",
+    on_start: "fine_tune_start",
+    on_progress: "fine_tune_progress",
+    on_complete: "fine_tune_complete",
+    on_fail: "fine_tune_fail",
+    on_swapped: "fine_tune_swapped",
+    launch: "fine_tune_launch",
+    cancel: "fine_tune_cancel"
+  },
+  behaviors: ["@llm_agent", "@holotune"]
+}

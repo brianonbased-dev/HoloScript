@@ -1,0 +1,22 @@
+@trait {
+  name: "@gpu_buffer",
+  category: "visual",
+  description: "Named WebGPU buffer resource. Allocates, writes, and reads typed buffer data accessible by compute shaders, vertex pipelines, and storage bindings. Authored from GPUBufferTrait.ts.",
+  props: {
+    label: string = "",
+    usage: list<enum("vertex" | "index" | "uniform" | "storage" | "copy_src" | "copy_dst" | "indirect")> = [],
+    size_bytes: number = 0,
+    mapped_at_creation: boolean = false,
+    stride_bytes: number = 0
+  },
+  events: {
+    attached: "gpu_buffer_attached",
+    detached: "gpu_buffer_detached",
+    on_write: "gpu_buffer_write",
+    on_read: "gpu_buffer_read",
+    on_map: "gpu_buffer_map",
+    write: "gpu_buffer_trigger_write",
+    read: "gpu_buffer_trigger_read"
+  },
+  behaviors: ["@compute_shader", "@rendering"]
+}

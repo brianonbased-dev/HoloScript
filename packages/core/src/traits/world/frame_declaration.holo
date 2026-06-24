@@ -1,0 +1,20 @@
+@trait {
+  name: "@frame_declaration",
+  category: "world",
+  description: "Coordinate frame declaration. Names a spatial reference frame (world, body, sensor, tool, map) and stores its transform relative to the parent frame for digital twin and robotics use. Authored from FrameDeclarationTrait.ts.",
+  props: {
+    frame_id: string = "",
+    parent_frame: string = "world",
+    translation: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    rotation: { x: number, y: number, z: number, w: number } = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
+    static_tf: boolean = true,
+    broadcast: boolean = true
+  },
+  events: {
+    attached: "frame_declaration_attached",
+    detached: "frame_declaration_detached",
+    on_update: "frame_declaration_update",
+    set_transform: "frame_declaration_set_transform"
+  },
+  behaviors: ["@spatial_anchor", "@urdf_robot"]
+}

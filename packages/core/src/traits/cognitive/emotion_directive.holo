@@ -1,0 +1,21 @@
+@trait {
+  name: "@emotion_directive",
+  category: "cognitive",
+  description: "Emotion directive injector for LLM agent responses. Adds affect labels (curious, empathetic, assertive, playful) to system prompts to shape conversational tone. Authored from EmotionDirectiveTrait.ts.",
+  props: {
+    target_emotion: enum("neutral" | "curious" | "empathetic" | "assertive" | "playful" | "formal" | "custom") = "neutral",
+    custom_directive: string = "",
+    intensity: number = 0.5,
+    blend: boolean = false,
+    secondary_emotion: enum("neutral" | "curious" | "empathetic" | "assertive" | "playful" | "formal") = "neutral",
+    apply_to_tts: boolean = true
+  },
+  events: {
+    attached: "emotion_directive_attached",
+    detached: "emotion_directive_detached",
+    on_change: "emotion_directive_change",
+    on_blend: "emotion_directive_blend",
+    set_emotion: "emotion_directive_set"
+  },
+  behaviors: ["@llm_agent", "@emotional_voice", "@speech_synthesis"]
+}
