@@ -1,0 +1,25 @@
+@trait {
+  name: "@hologram",
+  category: "visual",
+  description: "Volumetric hologram display trait for quilt-based and web holographic rendering. Binds a pre-rendered asset_url (quilt image or multi-view video) to a display surface and configures the quilt grid (quilt_cols × quilt_rows), view-direction depth fade, holographic rendering mode, and parallax sensitivity. holographic_mode selects the target display technology: looking_glass drives the LKG display API, holoplay uses the HoloPlay SDK for multi-view rendering, web renders a convincing single-screen parallax approximation via mouse or head-gaze tracking. depth_fade softens far-field views at steep angles to avoid aliasing. parallax_strength (0–1) scales the lateral view shift per degree of head movement. Pairs with @gaussian_splat for real-capture source assets.",
+  props: {
+    asset_url: string = "",
+    quilt_cols: number = 5,
+    quilt_rows: number = 9,
+    depth_fade: boolean = true,
+    holographic_mode: enum("looking_glass" | "holoplay" | "web") = "web",
+    parallax_strength: number = 0.5
+  },
+  events: {
+    attached: "hologram:attached",
+    detached: "hologram:detached",
+    asset_loaded: "hologram:asset_loaded",
+    asset_error: "hologram:asset_error",
+    view_changed: "hologram:view_changed",
+    on_load: "hologram:load",
+    on_set_asset: "hologram:set_asset",
+    on_set_mode: "hologram:set_mode",
+    on_set_parallax: "hologram:set_parallax"
+  },
+  behaviors: ["@transform"]
+}

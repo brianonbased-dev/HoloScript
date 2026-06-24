@@ -1,0 +1,28 @@
+@trait {
+  name: "@highlight",
+  category: "visual",
+  description: "Declarative selection and hover highlight for interactive entities. Renders a configurable outline, glow, or color overlay on the host mesh when a trigger condition is met. color controls the base tint; outline_width sets the rim width in world units; glow_intensity drives an additive emissive bloom contribution; pulse_rate (Hz) applies a sinusoidal breath to glow_intensity (0 = static); trigger enum controls activation mode — hover fires on pointer-enter, select fires on explicit selection, always keeps the highlight permanently active, signal listens on a named signal bus key; fade_in_ms / fade_out_ms smooth the transition when trigger activates or releases. Pairs with @eye_tracked (gaze-driven hover) and @bloom_reactive (post-process amplification).",
+  props: {
+    color: string = "#00ffff",
+    pulse_rate: number = 0.0,
+    outline_width: number = 0.02,
+    glow_intensity: number = 1.0,
+    trigger: enum("hover" | "select" | "always" | "signal") = "hover",
+    signal_key: string = "",
+    fade_in_ms: number = 120,
+    fade_out_ms: number = 200
+  },
+  events: {
+    attached: "highlight:attached",
+    detached: "highlight:detached",
+    activated: "highlight:activated",
+    deactivated: "highlight:deactivated",
+    pulse_tick: "highlight:pulse_tick",
+    on_activate: "highlight:activate",
+    on_deactivate: "highlight:deactivate",
+    on_set_color: "highlight:set_color",
+    on_set_intensity: "highlight:set_intensity",
+    on_signal: "highlight:signal"
+  },
+  behaviors: ["@transform"]
+}

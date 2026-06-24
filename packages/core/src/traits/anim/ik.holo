@@ -1,0 +1,26 @@
+@trait {
+  name: "@ik",
+  category: "anim",
+  description: "Inverse kinematics solver for skeletal chains. rig selects the solver algorithm: two_bone is an analytic single-elbow/knee solver for 2-bone chains; ccd is Cyclic Coordinate Descent, iterative and stable for long chains; fabrik is Forward-And-Backward-Reaching IK, fast convergence and pole-target aware; xpbd is position-based IK with joint constraints (stiffness, limits). effector_target names the scene-graph node the chain tip should track; chain_length is the number of bones counted from the effector toward the root (auto-detected from skeleton if 0); iterations caps the solver iterations per frame for ccd / fabrik / xpbd; tolerance is the convergence threshold in world units — solver exits early when tip-to-target distance falls below this; reach_limit is the maximum fraction of the chain's total bone length the effector can reach (1.0 = full stretch). Blends on top of animation via weight (0–1). Pairs with @skeleton, @animation, and @avatar_embodiment (full-body IK mode).",
+  props: {
+    effector_target: string = "",
+    rig: enum("two_bone" | "ccd" | "fabrik" | "xpbd") = "fabrik",
+    chain_length: number = 0,
+    iterations: number = 10,
+    tolerance: number = 0.001,
+    reach_limit: number = 1.0,
+    weight: number = 1.0
+  },
+  events: {
+    attached: "ik:attached",
+    detached: "ik:detached",
+    solved: "ik:solved",
+    unreachable: "ik:unreachable",
+    foot_lock_changed: "ik:foot_lock_changed",
+    on_set_target: "ik:set_target",
+    on_set_weight: "ik:set_weight",
+    on_set_iterations: "ik:set_iterations",
+    on_foot_contact: "ik:foot_contact"
+  },
+  behaviors: ["@skeleton", "@animation"]
+}

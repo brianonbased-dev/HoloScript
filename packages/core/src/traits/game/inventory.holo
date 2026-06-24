@@ -1,0 +1,30 @@
+@trait {
+  name: "@inventory",
+  category: "game",
+  description: "Item container and inventory management for game entities. capacity caps the total number of item slots; weight_limit (kg) enforces an optional mass budget across held items (0 = unlimited); categories restricts which item type tags are accepted (empty list = accept all); stack_size sets the maximum quantity that stacks into a single slot for stackable items; allow_duplicates controls whether the same item id can occupy multiple slots simultaneously. on_add_event, on_remove_event, and on_full_event are the event bus keys emitted when items are added, removed, or rejected due to capacity. Pairs with @lootable, @health (dropped-on-death loot tables), and @economy_primitives (tradeable inventories).",
+  props: {
+    capacity: number = 20,
+    weight_limit: number = 0.0,
+    categories: string[] = [],
+    stack_size: number = 64,
+    allow_duplicates: boolean = true,
+    on_add_event: string = "inventory:item_added",
+    on_remove_event: string = "inventory:item_removed",
+    on_full_event: string = "inventory:full"
+  },
+  events: {
+    attached: "inventory:attached",
+    detached: "inventory:detached",
+    item_added: "inventory:item_added",
+    item_removed: "inventory:item_removed",
+    item_moved: "inventory:item_moved",
+    full: "inventory:full",
+    cleared: "inventory:cleared",
+    weight_exceeded: "inventory:weight_exceeded",
+    on_add: "inventory:add",
+    on_remove: "inventory:remove",
+    on_move: "inventory:move",
+    on_clear: "inventory:clear",
+    on_query: "inventory:query"
+  }
+}
