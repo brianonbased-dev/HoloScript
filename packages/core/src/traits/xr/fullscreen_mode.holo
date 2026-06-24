@@ -1,0 +1,22 @@
+@trait {
+  name: "@fullscreen_mode",
+  category: "xr",
+  description: "Fullscreen and immersive display mode controller. Requests browser or OS fullscreen entry for a 2D canvas surface or initiates XR immersive-vr/immersive-ar session request, handling user gesture requirements and capability fallback. Authored from FullscreenModeTrait.ts.",
+  props: {
+    target_mode: enum("fullscreen" | "xr_vr" | "xr_ar" | "xr_inline") = "xr_vr",
+    fallback_mode: enum("fullscreen" | "windowed" | "xr_inline") = "fullscreen",
+    auto_enter: boolean = false,
+    hide_ui_on_enter: boolean = true,
+    restore_on_exit: boolean = true
+  },
+  events: {
+    attached: "fullscreen_mode_attached",
+    detached: "fullscreen_mode_detached",
+    on_enter: "fullscreen_mode_enter",
+    on_exit: "fullscreen_mode_exit",
+    on_error: "fullscreen_mode_error",
+    enter: "fullscreen_mode_trigger_enter",
+    exit: "fullscreen_mode_trigger_exit"
+  },
+  behaviors: ["@xr_controller", "@display", "@scene_transition"]
+}

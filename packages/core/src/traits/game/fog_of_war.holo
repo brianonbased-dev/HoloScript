@@ -1,0 +1,22 @@
+@trait {
+  name: "@fog_of_war",
+  category: "game",
+  description: "Fog-of-war visibility masking system. Tracks explored vs unexplored map cells for a given player or team, revealing cells within line-of-sight of their units and darkening cells outside vision range, with optional shroud-of-darkness for unexplored territory. Authored from FogOfWarTrait.ts.",
+  props: {
+    cell_size_m: number = 1.0,
+    vision_range_m: number = 15.0,
+    team_id: string = "",
+    shroud_unexplored: boolean = true,
+    fog_opacity: number = 0.7,
+    shroud_opacity: number = 1.0,
+    update_rate_hz: number = 5.0
+  },
+  events: {
+    attached: "fog_of_war_attached",
+    detached: "fog_of_war_detached",
+    on_reveal: "fog_of_war_reveal",
+    on_reset: "fog_of_war_reset",
+    reset: "fog_of_war_trigger_reset"
+  },
+  behaviors: ["@minimap", "@ecs_world", "@zone"]
+}

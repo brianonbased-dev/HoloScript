@@ -1,0 +1,23 @@
+@trait {
+  name: "@force_field",
+  category: "game",
+  description: "Energy shield / force field that absorbs incoming damage up to a capacity threshold, regenerating over time. Visualizes as a shimmering hull glow that pulses on impact hit, collapses when depleted, and notifies on recharge completion. Authored from ForceFieldTrait.ts.",
+  props: {
+    max_capacity: number = 100.0,
+    current_capacity: number = 100.0,
+    regen_per_s: number = 10.0,
+    regen_delay_s: number = 3.0,
+    color: string = "#00aaff",
+    opacity: number = 0.3,
+    pulse_on_hit: boolean = true,
+    pass_types: list<string> = []
+  },
+  events: {
+    attached: "force_field_attached",
+    detached: "force_field_detached",
+    on_hit: "force_field_hit",
+    on_deplete: "force_field_deplete",
+    on_recharge: "force_field_recharge"
+  },
+  behaviors: ["@health", "@damage_zone", "@collider"]
+}

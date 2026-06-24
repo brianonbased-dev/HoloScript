@@ -1,0 +1,23 @@
+@trait {
+  name: "@game_mode",
+  category: "game",
+  description: "Top-level game mode controller. Tracks current mode (lobby, pregame, in-progress, paused, overtime, ended), enforces mode transition rules, broadcasts mode-change events to all players, and fires lifecycle hooks for scoring, respawn, and cleanup. Authored from GameModeTrait.ts.",
+  props: {
+    mode: enum("lobby" | "pregame" | "in_progress" | "paused" | "overtime" | "ended") = "lobby",
+    time_limit_s: number = 0,
+    auto_start: boolean = false,
+    min_players: number = 1,
+    max_players: number = 64,
+    allow_late_join: boolean = true
+  },
+  events: {
+    attached: "game_mode_attached",
+    detached: "game_mode_detached",
+    on_mode_change: "game_mode_change",
+    on_start: "game_mode_start",
+    on_end: "game_mode_end",
+    on_pause: "game_mode_pause",
+    set_mode: "game_mode_trigger_set"
+  },
+  behaviors: ["@player", "@match_making", "@leaderboard"]
+}
