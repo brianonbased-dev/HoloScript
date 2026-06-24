@@ -1,0 +1,22 @@
+@trait {
+  name: "@bot_filter",
+  category: "security",
+  description: "Automated bot-detection and filtering gate. Applies rate-limit heuristics, CAPTCHA challenge, behavioral entropy scoring, and IP reputation checks to incoming interactions, blocking suspected non-human agents. Authored from BotFilterTrait.ts.",
+  props: {
+    mode: enum("passive" | "challenge" | "block") = "passive",
+    score_threshold: number = 0.7,
+    rate_limit_per_min: number = 60,
+    challenge_type: enum("hcaptcha" | "proof_of_work" | "custom") = "hcaptcha",
+    challenge_secret: string = "",
+    ip_blocklist_url: string = "",
+    allow_known_agents: boolean = true
+  },
+  events: {
+    attached: "bot_filter_attached",
+    detached: "bot_filter_detached",
+    on_challenge: "bot_filter_challenge",
+    on_block: "bot_filter_block",
+    on_pass: "bot_filter_pass"
+  },
+  behaviors: ["@rate_limit", "@anti_grief", "@audit_log"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@calibration",
+  category: "world",
+  description: "Spatial calibration procedure manager. Guides a user through a multi-step calibration sequence (floor level, scale, controller offset, eye height) for an XR or physical robot session, persisting the calibration profile for future sessions. Authored from CalibrationTrait.ts.",
+  props: {
+    steps: list<enum("floor" | "scale" | "controller_offset" | "eye_height" | "imu_zero" | "camera_extrinsics")> = ["floor", "eye_height"],
+    current_step: number = 0,
+    profile_id: string = "",
+    persist: boolean = true,
+    auto_apply: boolean = true
+  },
+  events: {
+    attached: "calibration_attached",
+    detached: "calibration_detached",
+    on_step_complete: "calibration_step",
+    on_complete: "calibration_complete",
+    on_reset: "calibration_reset",
+    next_step: "calibration_next",
+    reset: "calibration_trigger_reset"
+  },
+  behaviors: ["@sensor_hub", "@xr_anchor", "@persistent"]
+}

@@ -1,0 +1,24 @@
+@trait {
+  name: "@broadcast",
+  category: "network",
+  description: "One-to-many event broadcast channel. Publishes typed messages to all subscribers in a named channel — world-scoped, team-scoped, or global — with optional persistence and replay-to-late-joiners. Authored from BroadcastTrait.ts.",
+  props: {
+    channel: string = "",
+    scope: enum("entity" | "world" | "team" | "global") = "world",
+    persist: boolean = false,
+    replay_last: number = 0,
+    throttle_ms: number = 0,
+    auth_required: boolean = false
+  },
+  events: {
+    attached: "broadcast_attached",
+    detached: "broadcast_detached",
+    on_message: "broadcast_message",
+    on_subscribe: "broadcast_subscribe",
+    on_unsubscribe: "broadcast_unsubscribe",
+    publish: "broadcast_publish",
+    subscribe: "broadcast_trigger_subscribe",
+    unsubscribe: "broadcast_trigger_unsubscribe"
+  },
+  behaviors: ["@signaling", "@networked", "@event_bus"]
+}

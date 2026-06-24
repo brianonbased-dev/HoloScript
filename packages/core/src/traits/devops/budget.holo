@@ -1,0 +1,24 @@
+@trait {
+  name: "@budget",
+  category: "devops",
+  description: "Spend budget tracker for compute, API, or wallet operations. Accumulates spend against a configurable daily/monthly cap, emits threshold warnings, and triggers a circuit-breaker halt when the cap is exceeded. Authored from BudgetTrait.ts.",
+  props: {
+    cap_usd: number = 100.0,
+    period: enum("daily" | "weekly" | "monthly") = "daily",
+    spent_usd: number = 0.0,
+    warn_at_pct: number = 80,
+    halt_at_pct: number = 100,
+    category: enum("gpu" | "wallet" | "api" | "infra" | "all") = "all",
+    auto_reset: boolean = true
+  },
+  events: {
+    attached: "budget_attached",
+    detached: "budget_detached",
+    on_spend: "budget_spend",
+    on_warn: "budget_warn",
+    on_halt: "budget_halt",
+    on_reset: "budget_reset",
+    spend: "budget_trigger_spend"
+  },
+  behaviors: ["@compute_budget", "@circuit_breaker", "@audit_log"]
+}
