@@ -1,0 +1,26 @@
+@trait {
+  name: "@ai_texture_gen",
+  category: "visual",
+  description: "AI-driven procedural texture generation trait that synthesises seamless PBR textures from a text prompt using diffusion models hosted on the HoloScript sovereign inference service or an on-device LoRA adapter. prompt is the natural-language description of the desired surface appearance — e.g. 'weathered concrete with moss' — used to condition the generative model. style selects the aesthetic register for the generation: photorealistic produces physically-based albedo/normal/roughness channels calibrated for PBR pipelines; painterly applies an artist-brushstroke aesthetic with soft edges and saturated colour; toon renders a flat-shaded cel look with bold outlines; holoscript routes through the HoloScript optimised inference backend and applies the project's sovereign model weights. resolution controls the output texture resolution in pixels on each side (512, 1024, 2048, or 4096). seed is the random-noise seed fed to the diffusion sampler; a value of -1 draws a fresh random seed each run so repeated calls produce varied results while any fixed positive integer makes generation deterministic and reproducible. lora_url is an optional HTTPS URL or local path to a LoRA adapter checkpoint (.safetensors or .pt); when provided it is merged into the base model weights before sampling to steer the output toward a fine-tuned style or material vocabulary. refine when true applies a high-frequency enhancement pass after the primary generation step to recover fine surface detail lost during VRAM-efficient tiled sampling. Send ai_texture_gen:generate {prompt?, seed?} to start a generation run; the trait emits ai_texture_gen:progress with step index and a low-resolution preview during the diffusion loop and ai_texture_gen:complete when the full-resolution result is ready, carrying diffuseUrl, normalUrl, roughnessUrl. ai_texture_gen:error fires on model-load failure, VRAM overflow, or network timeout. Research: AiTextureGenTrait.ts v1.0 (V43 Tier 2) — prompt queue, tiled sampling, LoRA adapter merge, PBR channel split, StableDiffusionTrait.ts, ControlNetTrait.ts.",
+  props: {
+    prompt: string = "",
+    style: enum("photorealistic" | "painterly" | "toon" | "holoscript") = "photorealistic",
+    resolution: enum("512" | "1024" | "2048" | "4096") = "1024",
+    seed: number = -1,
+    lora_url: string = "",
+    refine: boolean = false
+  },
+  events: {
+    attached: "ai_texture_gen:attached",
+    detached: "ai_texture_gen:detached",
+    ready: "ai_texture_gen:ready",
+    complete: "ai_texture_gen:complete",
+    progress: "ai_texture_gen:progress",
+    error: "ai_texture_gen:error",
+    on_generate: "ai_texture_gen:generate",
+    on_set_prompt: "ai_texture_gen:set_prompt",
+    on_set_style: "ai_texture_gen:set_style",
+    on_cancel: "ai_texture_gen:cancel"
+  },
+  behaviors: ["@material"]
+}

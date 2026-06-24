@@ -1,0 +1,25 @@
+@trait {
+  name: "@anchor",
+  category: "xr",
+  description: "General-purpose spatial anchor that pins an entity's origin to a stable real-world or virtual-world coordinate frame with configurable lifetime, coordinate system, and cloud synchronisation. persistence controls the anchor lifetime: ephemeral anchors exist only for the current frame and are discarded on the next tick, making them suitable for transient placement indicators or debug visualisations; session anchors survive for the lifetime of the running application session and are lost on app close; permanent anchors are persisted to on-device storage and restored automatically on the next launch. coordinate_system selects the reference frame the anchor is expressed in: world uses the room-scale or geo-referenced world origin (the XR runtime's stage frame); scene uses the HoloScript scene-graph root so the anchor moves with scene-level transforms; entity uses a named entity as the parent frame and makes the anchor body-relative. sync_to_cloud when true registers the anchor with the HoloScript cloud anchor service so it can be shared across devices and users in the same environment; the service assigns a stable cloud_id that other sessions can use to restore the shared anchor. cloud_id is the opaque identifier returned by the cloud anchor service on creation; pass it to subsequent sessions to restore a previously saved cloud anchor — when non-empty on attach the runtime attempts to resolve the anchor from the cloud rather than creating a new one. on_create fires when the anchor is first established, carrying anchor_id, coordinate_system, and the initial world transform. on_update fires whenever the anchor's tracked pose is refined by the XR runtime, carrying the delta transform and confidence score. on_delete fires when the anchor is explicitly released or expires (ephemeral/session lifecycle end), carrying anchor_id and reason. on_restore fires when a persistent or cloud anchor is successfully re-localised from storage or the cloud service, carrying anchor_id and cloud_id. Research: AnchorTrait.ts v2.0 — anchor lifecycle, PersistentAnchorTrait.ts, GeospatialAnchorTrait.ts, HoloMapAnchorContextTrait.ts — world-graph integration, SharedAnchorTrait.ts — cloud sync.",
+  props: {
+    persistence: enum("ephemeral" | "session" | "permanent") = "session",
+    coordinate_system: enum("world" | "scene" | "entity") = "world",
+    sync_to_cloud: boolean = false,
+    cloud_id: string = ""
+  },
+  events: {
+    attached: "anchor:attached",
+    detached: "anchor:detached",
+    on_create: "anchor:create",
+    on_update: "anchor:update",
+    on_delete: "anchor:delete",
+    on_restore: "anchor:restore",
+    tracking_lost: "anchor:tracking_lost",
+    tracking_recovered: "anchor:tracking_recovered",
+    error: "anchor:error",
+    on_save: "anchor:save",
+    on_load: "anchor:load"
+  },
+  behaviors: ["@transform"]
+}
