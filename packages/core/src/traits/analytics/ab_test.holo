@@ -1,0 +1,29 @@
+@trait {
+  name: "@ab_test",
+  category: "analytics",
+  description: "A/B experiment framework for spatial-computing scenes with deterministic variant assignment, conversion tracking, and multi-armed bandit adaptive allocation. experiment_id is the canonical experiment key registered in the analytics backend. variants is a list of objects each carrying an id string and a weight number (0-1); weights need not sum to 1 — the runtime normalises them. user_id_source selects how the current participant is identified for deterministic hashing: cookie reads a first-party browser cookie, wallet uses the connected on-chain wallet address, device uses a stable device fingerprint. persist stores the assigned variant across sessions so the same participant always sees the same arm; set false for ephemeral/bandit runs. backend routes events and conversion signals to the specified analytics pipeline. on_assign fires when a participant is deterministically mapped to a variant, carrying variant_id and experiment_id. on_convert fires when the tracked conversion event is received, carrying variant_id, experiment_id, and optional value. on_expose fires on first render of the variant (impression, not assignment), used for intent-to-treat analysis. Pairs with @analytics_event for event routing and @feature_flag for graduated rollout control. Research: ABTestTrait.ts v1.0.0.",
+  props: {
+    experiment_id: string = "",
+    variants: array<{
+      id: string,
+      weight: number
+    }> = [],
+    user_id_source: enum("cookie" | "wallet" | "device") = "device",
+    persist: boolean = true,
+    backend: enum("holoscript" | "amplitude" | "optimizely") = "holoscript"
+  },
+  events: {
+    attached: "ab_test:attached",
+    detached: "ab_test:detached",
+    assigned: "ab_test:assigned",
+    exposed: "ab_test:exposed",
+    converted: "ab_test:converted",
+    experiment_started: "ab_test:experiment_started",
+    experiment_completed: "ab_test:experiment_completed",
+    on_assign: "ab_test:assign",
+    on_convert: "ab_test:convert",
+    on_expose: "ab_test:expose",
+    on_reset: "ab_test:reset"
+  },
+  behaviors: ["@analytics_event"]
+}

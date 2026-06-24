@@ -1,0 +1,28 @@
+@trait {
+  name: "@advanced_cloth",
+  category: "physics",
+  description: "Position-Based Dynamics (PBD) cloth simulation with structural, shear, and bending constraints, wind forces, self-collision, and tearing. vertex_count is the total number of simulated particles (width × height grid); the runtime auto-derives the grid topology from this count. stiffness controls structural and shear constraint resistance in the [0,1] range — 0 is fully elastic, 1 is rigid. damping is the per-step velocity decay coefficient in [0,1]; values above 0.9 damp motion to rest very quickly. gravity_scale multiplies the world gravity vector applied to each particle — set 0 to simulate zero-g cloth. wind_influence scales the wind force vector contributed by a co-located @wind trait; 0 means the cloth ignores wind. collision_layers is a list of layer name strings the cloth particles test collisions against; empty disables external collision (self_collision still applies). self_collision enables particle-particle penetration prevention within the same cloth mesh — enabling this roughly doubles simulation cost. on_torn fires when a constraint is torn (tear_threshold exceeded), carrying the particle indices of the torn edge. on_settle fires when the cloth velocity drops below the settle threshold across all particles. on_collide fires when a particle first contacts a collider in collision_layers, carrying the particle index and collider entity id. Research: AdvancedClothTrait.ts, ClothTrait.ts, SoftBodyTrait.ts.",
+  props: {
+    vertex_count: number = 400,
+    stiffness: number = 0.8,
+    damping: number = 0.1,
+    gravity_scale: number = 1.0,
+    wind_influence: number = 0.5,
+    collision_layers: string[] = [],
+    self_collision: boolean = false
+  },
+  events: {
+    attached: "advanced_cloth:attached",
+    detached: "advanced_cloth:detached",
+    torn: "advanced_cloth:torn",
+    settled: "advanced_cloth:settled",
+    collided: "advanced_cloth:collided",
+    reset: "advanced_cloth:reset",
+    on_apply_wind: "advanced_cloth:apply_wind",
+    on_pin: "advanced_cloth:pin",
+    on_unpin: "advanced_cloth:unpin",
+    on_reset: "advanced_cloth:reset_cmd",
+    on_set_stiffness: "advanced_cloth:set_stiffness"
+  },
+  behaviors: ["@rigid_body"]
+}
