@@ -1,0 +1,26 @@
+@trait {
+  name: "@choreography",
+  category: "anim",
+  description: "Multi-character synchronized choreography director. Sequences animations across a group of entities with beat-sync, spatial formation, and emotional arc. Authored from ChoreographyTrait.ts.",
+  props: {
+    track_url: string = "",
+    participants: list<string> = [],
+    beat_sync: boolean = true,
+    formation: enum("line" | "circle" | "grid" | "custom") = "custom",
+    lead_entity: string = "",
+    loop: boolean = false,
+    blend_in_ms: number = 500
+  },
+  events: {
+    attached: "choreography_attached",
+    detached: "choreography_detached",
+    on_start: "choreography_start",
+    on_step: "choreography_step",
+    on_end: "choreography_end",
+    on_beat: "choreography_beat",
+    play: "choreography_play",
+    stop: "choreography_stop",
+    pause: "choreography_pause"
+  },
+  behaviors: ["@animation", "@beatmap", "@timeline"]
+}

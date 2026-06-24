@@ -1,0 +1,26 @@
+@trait {
+  name: "@cron",
+  category: "devops",
+  description: "Cron-style job scheduler for entity actions. Fires events on a time expression, supports timezone-aware schedules, and records execution history. Authored from CronTrait.ts.",
+  props: {
+    expression: string = "0 * * * *",
+    timezone: string = "UTC",
+    enabled: boolean = true,
+    max_delay_s: number = 60,
+    retry_on_fail: boolean = true,
+    retry_max: number = 3,
+    record_history: number = 100
+  },
+  events: {
+    attached: "cron_attached",
+    detached: "cron_detached",
+    on_fire: "cron_fire",
+    on_skip: "cron_skip",
+    on_fail: "cron_fail",
+    on_retry: "cron_retry",
+    enable: "cron_enable",
+    disable: "cron_disable",
+    fire_now: "cron_fire_now"
+  },
+  behaviors: ["@scheduler", "@alert"]
+}
