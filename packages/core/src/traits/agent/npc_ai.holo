@@ -1,0 +1,30 @@
+@trait {
+  name: "@npc_ai",
+  category: "agent",
+  description: "LLM-driven NPC with behavior tree, dialogue system, and spatial perception. behavior_tree names the BT asset URI that governs action sequencing; dialog_tree names the branching dialogue asset URI. detection_radius is the perception sphere radius in metres; awareness_level tracks the NPC alert state (none = unaware, alerted = confirmed threat, suspicious = unconfirmed, hostile = actively engaging). patrol_route is an ordered list of world-space vec3 waypoints the NPC cycles when idle; personality_profile seeds the LLM persona and tone; idle_animation names the animation clip played when awaiting player interaction. Send npc_ai:prompt {text} to inject a player utterance; result arrives as npc_ai:response {text}. Behavior events follow the pattern npc_behavior_<type> for downstream animation and action dispatch. Research: NPCAITrait.ts, BehaviorTreeTrait.ts, PatrolTrait.ts.",
+  props: {
+    behavior_tree: string = "",
+    dialog_tree: string = "",
+    detection_radius: number = 10.0,
+    awareness_level: enum("none" | "suspicious" | "alerted" | "hostile") = "none",
+    patrol_route: list<vec3> = [],
+    personality_profile: string = "professional",
+    idle_animation: string = "idle_casual_loop"
+  },
+  events: {
+    attached: "npc_ai:attached",
+    detached: "npc_ai:detached",
+    initialized: "npc_ai:initialized",
+    think_begin: "npc_ai:think_begin",
+    think_end: "npc_ai:think_end",
+    response: "npc_ai:response",
+    speak: "npc_ai:speak",
+    action: "npc_ai:action",
+    awareness_changed: "npc_ai:awareness_changed",
+    error: "npc_ai:error",
+    on_prompt: "npc_ai:prompt",
+    on_set_goal: "npc_ai:set_goal",
+    on_set_awareness: "npc_ai:set_awareness"
+  },
+  behaviors: ["@steering", "@nav_mesh", "@llm_agent"]
+}

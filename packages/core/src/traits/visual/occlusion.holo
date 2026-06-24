@@ -1,0 +1,26 @@
+@trait {
+  name: "@occlusion",
+  category: "visual",
+  description: "Per-entity occlusion culling and AR environment occlusion. mode selects the culling strategy: frustum performs standard view-frustum culling (always enabled as baseline); portal extends frustum culling through portal geometry for indoor scenes; hw_occlusion issues GPU occlusion queries to skip rendering of depth-occluded objects. cull_small_below discards entities whose projected screen-space area falls below this value in pixels (0 = disabled). update_interval_ms controls how often occlusion state is re-evaluated in milliseconds — lower values increase accuracy at higher CPU/GPU cost. conservative delays marking an object as occluded until it has been hidden for two consecutive queries, avoiding flicker for objects at the visibility boundary. In AR/MR mode this trait also handles real-world geometry occlusion via the platform depth API when paired with @mesh_detection. Research: OcclusionTrait.ts, AudioOcclusionTrait.ts.",
+  props: {
+    mode: enum("frustum" | "portal" | "hw_occlusion") = "frustum",
+    cull_small_below: number = 0,
+    update_interval_ms: number = 16,
+    conservative: boolean = false,
+    depth_api: boolean = true,
+    edge_smoothing: boolean = true,
+    fade_distance: number = 0.5,
+    priority: number = 0
+  },
+  events: {
+    attached: "occlusion:attached",
+    detached: "occlusion:detached",
+    occlusion_start: "occlusion:start",
+    occlusion_end: "occlusion:end",
+    depth_available: "occlusion:depth_available",
+    on_occlusion_update: "occlusion:update",
+    on_set_mode: "occlusion:set_mode",
+    on_set_priority: "occlusion:set_priority"
+  },
+  behaviors: ["@transform", "@shadow"]
+}
