@@ -1,0 +1,28 @@
+@trait {
+  name: "@vibration",
+  category: "interaction",
+  description: "Procedural vibration feedback emitter for XR controllers, spatial audio actuators, and device haptics. pattern is an ordered list of pulse descriptors; each entry specifies duration_ms (how long the actuator runs) and intensity (0–1 amplitude, linearly mapped to actuator drive strength). repeat loops the pattern continuously until an on_stop command event arrives or the entity is detached. actuator selects the output surface: controller drives the held XR controller haptic motor via OpenXR XR_EXT_hand_interaction, device routes to the host platform's device-level vibration API (mobile, headset body), and spatial emits a low-frequency audio cue via @environmental_audio for environments without physical actuators. hand selects which controller to actuate when actuator is controller: left, right, or both. on_complete is the HoloScript event name fired once per full pattern cycle completion (including when repeat is false and the pattern ends). Pairs with @haptic for collision-driven and proximity-driven feedback, @gesture for gesture-confirmation pulses, and @trigger for boundary-crossing feedback. Research: HapticTrait.ts, HapticCueTrait.ts, VRTraitSystem.ts, OpenXRHALTrait.ts.",
+  props: {
+    pattern: list<{
+      duration_ms: number,
+      intensity: number
+    }> = [{ duration_ms: 50, intensity: 0.5 }],
+    repeat: boolean = false,
+    actuator: enum("controller" | "device" | "spatial") = "controller",
+    hand: enum("left" | "right" | "both") = "both",
+    on_complete: string = "vibration:complete"
+  },
+  events: {
+    attached: "vibration:attached",
+    detached: "vibration:detached",
+    started: "vibration:started",
+    stopped: "vibration:stopped",
+    complete: "vibration:complete",
+    pulse: "vibration:pulse",
+    error: "vibration:error",
+    on_play: "vibration:play",
+    on_stop: "vibration:stop",
+    on_set_pattern: "vibration:set_pattern",
+    on_set_intensity: "vibration:set_intensity"
+  }
+}

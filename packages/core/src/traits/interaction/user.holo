@@ -1,0 +1,32 @@
+@trait {
+  name: "@user",
+  category: "interaction",
+  description: "Attaches a session-scoped user identity and role to an entity, enabling auth-gated behaviour, per-user personalisation, and multi-user presence differentiation. user_id is the canonical opaque identifier for the authenticated principal — for wallet-auth sessions this is the checksum-address string, for email/oauth it is the provider-issued subject claim, and for anonymous sessions it is a client-generated UUID. display_name is the mutable human-readable label shown in UI and proximity labels. avatar_url points to the avatar asset URI; an empty string falls back to the platform default avatar. role controls capability access for permission-gated interactions: guest has read-only presence, member can interact with @trigger and @grabbable volumes, moderator can additionally invoke moderation actions on other users, admin extends to scene configuration, and owner has full scene authority. auth_provider records the identity source used at login time: anon issues an ephemeral session-local UUID, email verifies a password-hashed credential, wallet requires an EIP-712 SIWE signature (pairs with @wallet), and oauth delegates to a third-party OIDC provider. locale is the BCP-47 language tag used to select localised strings from @translation. on_login, on_logout, and on_profile_update are the HoloScript event names fired on lifecycle transitions, enabling downstream state machines and analytics pipelines to react. Research: OauthTrait.ts, WalletTrait.ts, SessionTrait.ts, RBACTrait.ts, UserMonitorTrait.ts.",
+  props: {
+    user_id: string = "",
+    display_name: string = "",
+    avatar_url: string = "",
+    role: enum("guest" | "member" | "moderator" | "admin" | "owner") = "guest",
+    auth_provider: enum("anon" | "email" | "wallet" | "oauth") = "anon",
+    locale: string = "en",
+    on_login: string = "user:login",
+    on_logout: string = "user:logout",
+    on_profile_update: string = "user:profile_update"
+  },
+  events: {
+    attached: "user:attached",
+    detached: "user:detached",
+    login: "user:login",
+    logout: "user:logout",
+    profile_updated: "user:profile_updated",
+    role_changed: "user:role_changed",
+    session_expired: "user:session_expired",
+    auth_error: "user:auth_error",
+    on_login: "user:login",
+    on_logout: "user:logout",
+    on_update_profile: "user:update_profile",
+    on_set_role: "user:set_role",
+    on_refresh_session: "user:refresh_session",
+    on_query_permissions: "user:query_permissions"
+  }
+}

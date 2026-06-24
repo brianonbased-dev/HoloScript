@@ -1,0 +1,33 @@
+@trait {
+  name: "@solver",
+  category: "physics",
+  description: "Declares the physics solver configuration for an entity's simulation domain. type selects the simulation model: rigid_body uses Newtonian impulse-based integration (pairs with @rigid_body for mass/shape), soft_body drives position-based deformation (pairs with @elasticity), fluid runs MLS-MPM particle advection (pairs with @fluid_simulation), cloth uses constraint projection with tear thresholds, constraint drives a joint-anchored positional or rotational constraint network (pairs with @joint), and ik activates the IK sub-solver for skeletal chain resolution (pairs with @ik). substeps is the number of integration substeps executed per render frame — higher values improve stability for stiff or high-velocity bodies at a proportional CPU cost. iterations caps the constraint/solver iterations per substep. gravity_override overrides the world gravity vector for this entity only (null inherits the world gravity); expressed as a vec3 in m/s². damping is a per-substep velocity attenuation coefficient (0 = no damping, 1 = fully damped per substep). restitution is the coefficient of restitution for collision response (0 = fully inelastic, 1 = fully elastic). friction is the Coulomb friction coefficient applied at contact manifolds. on_step fires once per solver substep, carrying timing and energy diagnostics. on_contact fires when a new contact manifold is established. on_sleep fires when the body's kinetic energy falls below the sleep threshold and the solver deactivates it. Research: SimulationSolverFactory.ts, SimulationTraitHandlers.ts, RigidbodyTrait.ts, FluidTrait.ts, IKTrait.ts, ElasticityTrait.ts.",
+  props: {
+    type: enum("rigid_body" | "soft_body" | "fluid" | "cloth" | "constraint" | "ik") = "rigid_body",
+    substeps: number = 4,
+    iterations: number = 8,
+    gravity_override: vec3 = { x: 0.0, y: -9.81, z: 0.0 },
+    damping: number = 0.0,
+    restitution: number = 0.5,
+    friction: number = 0.5,
+    on_step: string = "solver:step",
+    on_contact: string = "solver:contact",
+    on_sleep: string = "solver:sleep"
+  },
+  events: {
+    attached: "solver:attached",
+    detached: "solver:detached",
+    step: "solver:step",
+    contact: "solver:contact",
+    sleep: "solver:sleep",
+    wake: "solver:wake",
+    error: "solver:error",
+    on_set_gravity: "solver:set_gravity",
+    on_set_substeps: "solver:set_substeps",
+    on_set_iterations: "solver:set_iterations",
+    on_set_damping: "solver:set_damping",
+    on_reset: "solver:reset",
+    on_query_stats: "solver:query_stats"
+  },
+  behaviors: ["@transform"]
+}

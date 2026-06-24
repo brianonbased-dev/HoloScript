@@ -1,0 +1,32 @@
+@trait {
+  name: "@undo",
+  category: "sync",
+  description: "Undo/redo history manager for entity property mutations. max_history caps the number of reversible steps retained in the ring buffer — older entries are evicted when the cap is reached. group_window_ms collapses rapid sequential mutations into a single undoable group: any change arriving within this window after the previous one is merged rather than appended, preventing undo storms from continuous-input gestures. scope controls the boundary of the history: node isolates the stack to the owning entity, scene shares a single undo stack across all entities in the scene, world federates the stack ecosystem-wide (requires @collaborative_world). persistent serialises the full undo stack to durable storage via @offline_sync so history survives session restarts — useful for editor-mode authoring. on_change_event is emitted whenever any tracked prop changes, carrying {prop, old, new, groupId} for observability and downstream state machines. Pairs with @snapshot for per-entity checkpointing and @collaborative_world for CRDT-aware multi-user undo. Research: RollbackTrait.ts, SnapshotTrait.ts, TimeTravelDebugTrait.ts.",
+  props: {
+    max_history: number = 50,
+    group_window_ms: number = 300,
+    scope: enum("node" | "scene" | "world") = "node",
+    persistent: boolean = false,
+    on_change_event: string = "undo:change"
+  },
+  events: {
+    attached: "undo:attached",
+    detached: "undo:detached",
+    pushed: "undo:pushed",
+    undone: "undo:undone",
+    redone: "undo:redone",
+    cleared: "undo:cleared",
+    group_opened: "undo:group_opened",
+    group_closed: "undo:group_closed",
+    stack_overflow: "undo:stack_overflow",
+    change: "undo:change",
+    on_undo: "undo:undo",
+    on_redo: "undo:redo",
+    on_push: "undo:push",
+    on_clear: "undo:clear",
+    on_open_group: "undo:open_group",
+    on_close_group: "undo:close_group",
+    on_query_stack: "undo:query_stack"
+  },
+  behaviors: ["@snapshot"]
+}
