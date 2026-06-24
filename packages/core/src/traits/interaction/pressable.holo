@@ -1,0 +1,24 @@
+@trait {
+  name: "@pressable",
+  category: "interaction",
+  description: "Physical button interaction for XR and desktop. Detects fingertip or cursor contact, applies a configurable press depth, provides haptic feedback, and fires discrete click/hold/release events. Authored from PressableTrait.ts.",
+  props: {
+    press_depth_m: number = 0.01,
+    hold_duration_ms: number = 500,
+    cooldown_ms: number = 200,
+    haptic: boolean = true,
+    haptic_intensity: number = 0.5,
+    visual_response: boolean = true,
+    toggle_mode: boolean = false,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "pressable_attached",
+    detached: "pressable_detached",
+    on_press: "pressable_press",
+    on_hold: "pressable_hold",
+    on_release: "pressable_release",
+    on_toggle: "pressable_toggle"
+  },
+  behaviors: ["@haptic", "@touch_surface", "@controller_input"]
+}

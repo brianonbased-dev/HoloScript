@@ -1,0 +1,24 @@
+@trait {
+  name: "@post_process",
+  category: "visual",
+  description: "Full-screen post-processing effect stack. Applies ordered screen-space passes (bloom, SSAO, tonemapping, chromatic aberration, vignette, FXAA) to the resolved color buffer each frame. Authored from PostProcessTrait.ts.",
+  props: {
+    bloom: boolean = false,
+    bloom_threshold: number = 1.0,
+    bloom_intensity: number = 0.5,
+    ssao: boolean = false,
+    ssao_radius: number = 0.5,
+    tonemapping: enum("none" | "aces" | "reinhard" | "filmic") = "aces",
+    exposure: number = 1.0,
+    fxaa: boolean = true,
+    vignette: number = 0.0,
+    chromatic_aberration: number = 0.0
+  },
+  events: {
+    attached: "post_process_attached",
+    detached: "post_process_detached",
+    on_change: "post_process_change",
+    set_bloom: "post_process_set_bloom"
+  },
+  behaviors: ["@render_pipeline", "@gpu_buffer"]
+}
