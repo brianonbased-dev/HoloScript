@@ -1,0 +1,26 @@
+@trait {
+  name: "@rsa_encryption",
+  category: "security",
+  description: "RSA-OAEP and RSA-PSS cryptographic primitives. Generates key pairs, encrypts/decrypts payload blobs, signs/verifies messages, and exports public keys as PEM or JWK for inter-agent trust chains. Authored from RSAEncryptionTrait.ts.",
+  props: {
+    key_size: enum(2048 | 3072 | 4096) = 2048,
+    hash: enum("sha256" | "sha384" | "sha512") = "sha256",
+    mode: enum("oaep" | "pss") = "oaep",
+    public_key: string = "",
+    private_key_secret: string = "",
+    export_format: enum("pem" | "jwk") = "pem"
+  },
+  events: {
+    attached: "rsa_encryption_attached",
+    detached: "rsa_encryption_detached",
+    on_encrypt: "rsa_encrypt",
+    on_decrypt: "rsa_decrypt",
+    on_sign: "rsa_sign",
+    on_verify: "rsa_verify",
+    encrypt: "rsa_trigger_encrypt",
+    decrypt: "rsa_trigger_decrypt",
+    sign: "rsa_trigger_sign",
+    verify: "rsa_trigger_verify"
+  },
+  behaviors: ["@jwt", "@spatial_proof", "@api_key"]
+}

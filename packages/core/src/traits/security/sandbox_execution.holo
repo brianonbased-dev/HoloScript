@@ -1,0 +1,24 @@
+@trait {
+  name: "@sandbox_execution",
+  category: "security",
+  description: "Isolated code execution sandbox. Runs untrusted JavaScript or WASM snippets in a Deno subworker or quickjs context with resource limits, capability allowlists, and time-bounded termination. Authored from SandboxExecutionTrait.ts.",
+  props: {
+    runtime: enum("deno" | "quickjs" | "wasm" | "holoscript") = "quickjs",
+    timeout_ms: number = 5000,
+    memory_limit_mb: number = 64,
+    allow_net: boolean = false,
+    allow_fs: boolean = false,
+    allow_env: boolean = false,
+    capabilities: list<string> = []
+  },
+  events: {
+    attached: "sandbox_execution_attached",
+    detached: "sandbox_execution_detached",
+    on_start: "sandbox_start",
+    on_result: "sandbox_result",
+    on_timeout: "sandbox_timeout",
+    on_error: "sandbox_error",
+    run: "sandbox_run"
+  },
+  behaviors: ["@ffi", "@wasm", "@audit_log"]
+}

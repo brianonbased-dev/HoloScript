@@ -1,0 +1,22 @@
+@trait {
+  name: "@quantum_inspired",
+  category: "physics",
+  description: "Quantum-inspired optimization solver. Applies simulated annealing, QUBO, or Ising-model formulations to combinatorial problems (routing, scheduling, assignment) using classical hardware as a quantum analog. Authored from QuantumInspiredTrait.ts.",
+  props: {
+    formulation: enum("qubo" | "ising" | "qaoa_inspired" | "sa") = "sa",
+    num_variables: number = 100,
+    iterations: number = 10000,
+    temperature_init: number = 10.0,
+    temperature_final: number = 0.01,
+    num_reads: number = 1,
+    time_limit_s: number = 30
+  },
+  events: {
+    attached: "quantum_inspired_attached",
+    detached: "quantum_inspired_detached",
+    on_complete: "quantum_inspired_complete",
+    on_error: "quantum_inspired_error",
+    solve: "quantum_inspired_solve"
+  },
+  behaviors: ["@navmesh_solver", "@formation_control"]
+}
