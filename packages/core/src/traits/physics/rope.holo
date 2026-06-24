@@ -1,0 +1,25 @@
+@trait {
+  name: "@rope",
+  category: "physics",
+  description: "Position-based dynamics rope or cable. Simulates a flexible inextensible chain between two anchor points with configurable segment count, stiffness, and damping, supporting cutting and tying gestures. Authored from RopeTrait.ts.",
+  props: {
+    segment_count: number = 20,
+    segment_length_m: number = 0.1,
+    mass_per_segment: number = 0.05,
+    stiffness: number = 0.9,
+    damping: number = 0.1,
+    gravity_scale: number = 1.0,
+    render_mode: enum("tube" | "line" | "chain") = "tube",
+    tube_radius_m: number = 0.005,
+    cuttable: boolean = false
+  },
+  events: {
+    attached: "rope_attached",
+    detached: "rope_detached",
+    on_taut: "rope_taut",
+    on_slack: "rope_slack",
+    on_cut: "rope_cut",
+    cut: "rope_trigger_cut"
+  },
+  behaviors: ["@rigid_body", "@joint_constraint", "@soft_body"]
+}

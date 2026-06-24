@@ -1,0 +1,22 @@
+@trait {
+  name: "@rooftop_anchor",
+  category: "spatial",
+  description: "Rooftop spatial anchor for urban AR. Binds a HoloScript entity to the top surface of a building identified by OSM building ID or bounding box, and adjusts the anchor when the building footprint is updated. Authored from RooftopAnchorTrait.ts.",
+  props: {
+    building_id: string = "",
+    osm_way_id: string = "",
+    height_offset_m: number = 0.5,
+    face_street: boolean = true,
+    auto_update: boolean = true,
+    update_interval_s: number = 3600,
+    min_height_m: number = 3.0
+  },
+  events: {
+    attached: "rooftop_anchor_attached",
+    detached: "rooftop_anchor_detached",
+    on_resolved: "rooftop_anchor_resolved",
+    on_update: "rooftop_anchor_update",
+    on_error: "rooftop_anchor_error"
+  },
+  behaviors: ["@spatial_anchor", "@landmark", "@xr_anchor"]
+}
