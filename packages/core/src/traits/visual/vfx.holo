@@ -1,0 +1,30 @@
+@trait {
+  name: "@vfx",
+  category: "visual",
+  description: "Declarative visual effect emitter for particle systems, trails, and distortion volumes. effect selects the built-in VFX preset: particles emits a configurable point-emitter particle cloud, trail draws a ribbon from the entity's motion path, distortion applies a screen-space refraction volume, ripple spawns a planar expanding ring, shockwave emits a spherical pressure-wave ring, fire and smoke use physics-aware buoyant particle stacks, sparks launches high-speed spark arcs, none disables emission without detaching the trait. color is the base tint in CSS hex notation (e.g. '#ff4400') blended with any texture alpha. emission_rate is the number of particles per second at steady state. lifetime is the individual particle lifetime in seconds. size_start and size_end are the particle radius in metres at birth and death, enabling grow or shrink over the particle's life. gravity_scale multiplies world gravity on each particle (0 = floats in place, negative = rises). collision_mode controls particle collision: none disables collision, die destroys a particle on first surface contact, bounce reflects the velocity vector on impact. looping causes the emitter to restart automatically after the burst completes; set false for one-shot effects. Pairs with @material for texture overrides and @audio for synchronized impact sounds. Research: VRTraitSystem.ts VFX_PARTICLE_TRAITS, vfx-audio.ts.",
+  props: {
+    effect: enum("particles" | "trail" | "distortion" | "ripple" | "shockwave" | "fire" | "smoke" | "sparks" | "none") = "particles",
+    color: string = "#ffffff",
+    emission_rate: number = 50.0,
+    lifetime: number = 1.5,
+    size_start: number = 0.1,
+    size_end: number = 0.0,
+    gravity_scale: number = 0.0,
+    collision_mode: enum("none" | "die" | "bounce") = "none",
+    looping: boolean = true
+  },
+  events: {
+    attached: "vfx:attached",
+    detached: "vfx:detached",
+    started: "vfx:started",
+    stopped: "vfx:stopped",
+    burst_complete: "vfx:burst_complete",
+    particle_died: "vfx:particle_died",
+    on_play: "vfx:play",
+    on_stop: "vfx:stop",
+    on_burst: "vfx:burst",
+    on_set_effect: "vfx:set_effect",
+    on_set_color: "vfx:set_color"
+  },
+  behaviors: ["@transform"]
+}

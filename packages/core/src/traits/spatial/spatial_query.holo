@@ -1,0 +1,25 @@
+@trait {
+  name: "@spatial_query",
+  category: "spatial",
+  description: "Physics-backed spatial overlap and ray query emitter. query_shape selects the test geometry: sphere casts a radius-bounded sphere overlap, box uses half_extents as per-axis half-sizes in metres, ray fires an infinite-precision ray from the entity's transform origin in ray_direction, cone sweeps a frustum defined by radius and a forward cone angle. radius is the sphere equatorial radius and the capsule base radius in metres; half_extents is the box half-size vec3; ray_direction is the world-space unit vector for ray and cone queries. max_hits caps the result list length; excess hits are dropped. filter_tags restricts results to entities carrying at least one of the listed tags (empty = no tag filter). filter_layers is a collision-layer bitmask; only entities whose collision_layer intersects the mask are reported (0 = test all layers). on_result_event fires after each query with the list of matching entity identifiers. Pairs with @trigger for passive zone detection (event-driven vs. polled) and @rigid_body for physics-layer participation. Research: SpatiotemporalTraits.ts, SpatialAwarenessTrait.ts, SpatialNavigationTrait.ts.",
+  props: {
+    query_shape: enum("sphere" | "box" | "ray" | "cone") = "sphere",
+    radius: number = 1.0,
+    half_extents: vec3 = { x: 0.5, y: 0.5, z: 0.5 },
+    ray_direction: vec3 = { x: 0.0, y: 0.0, z: -1.0 },
+    max_hits: number = 8,
+    filter_tags: array<string> = [],
+    filter_layers: number = -1
+  },
+  events: {
+    attached: "spatial_query:attached",
+    detached: "spatial_query:detached",
+    result: "spatial_query:result",
+    no_hit: "spatial_query:no_hit",
+    on_result_event: "spatial_query:hit",
+    on_execute: "spatial_query:execute",
+    on_set_shape: "spatial_query:set_shape",
+    on_set_filter: "spatial_query:set_filter"
+  },
+  behaviors: ["@transform"]
+}

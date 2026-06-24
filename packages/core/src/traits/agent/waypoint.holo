@@ -1,0 +1,27 @@
+@trait {
+  name: "@waypoint",
+  category: "agent",
+  description: "Ordered waypoint path follower for agent locomotion. waypoints is the ordered list of world-space positions in metres; the agent traverses them in index order. loop_mode controls what happens after the final point: once halts and emits on_complete_event, loop wraps back to index 0, ping_pong reverses direction and traverses the list in reverse before wrapping again. move_speed is the travel speed in metres per second. stop_duration_ms is the hold time at each waypoint in milliseconds before advancing; set 0 to pass through without pausing. ease selects the inter-point interpolation profile: linear gives constant velocity, smooth applies a cubic ease-in/out ramp, step teleports instantaneously to each waypoint. on_arrive_event fires each time the agent reaches any waypoint, carrying the reached index. on_complete_event fires when a non-looping path is fully traversed. Pairs with @nav_mesh or @flow_field for obstacle-aware steering to each waypoint position and @transform for reading the entity's current world position. Research: PatrolTrait.ts, SpatialNavigationTrait.ts.",
+  props: {
+    waypoints: array<vec3> = [],
+    loop_mode: enum("once" | "loop" | "ping_pong") = "loop",
+    move_speed: number = 3.0,
+    stop_duration_ms: number = 0,
+    ease: enum("linear" | "smooth" | "step") = "linear"
+  },
+  events: {
+    attached: "waypoint:attached",
+    detached: "waypoint:detached",
+    started: "waypoint:started",
+    arrived: "waypoint:arrived",
+    complete: "waypoint:complete",
+    reversed: "waypoint:reversed",
+    on_arrive_event: "waypoint:arrive",
+    on_complete_event: "waypoint:done",
+    on_set_waypoints: "waypoint:set_waypoints",
+    on_jump_to: "waypoint:jump_to",
+    on_pause: "waypoint:pause",
+    on_resume: "waypoint:resume"
+  },
+  behaviors: ["@transform"]
+}

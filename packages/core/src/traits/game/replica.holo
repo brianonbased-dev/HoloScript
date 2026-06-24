@@ -1,0 +1,26 @@
+@trait {
+  name: "@replica",
+  category: "game",
+  description: "Network replication descriptor for multiplayer entity state synchronization. authority declares who owns and broadcasts the canonical value: server = dedicated server owns all writes, owner = the controlling client owns the state, shared = any peer may write with conflict resolution applied. sync_rate_hz is the target reconciliation frequency in Hz. interpolate enables client-side position/rotation interpolation between received snapshots to smooth visual movement. compress enables delta-compression of the network payload, reducing bandwidth at a slight CPU cost. conflict_resolution specifies the strategy when two peers submit competing writes within the same tick: server_wins defers to the server snapshot, owner_wins preserves the owning client's value, last_write applies the most recent timestamp. sync_props is an allowlist of property names to replicate (empty list = replicate all tracked state). on_reconcile_event fires each time the local state is overwritten by an incoming authoritative snapshot, enabling visual correction effects. Pairs with @lobby for session scoping and @multi_agent for peer-to-peer mesh replication. Research: NetworkedTrait.ts, NetworkedTraitHandler.ts.",
+  props: {
+    authority: enum("server" | "owner" | "shared") = "server",
+    sync_rate_hz: number = 20,
+    interpolate: boolean = true,
+    compress: boolean = false,
+    conflict_resolution: enum("server_wins" | "owner_wins" | "last_write") = "server_wins",
+    sync_props: array<string> = []
+  },
+  events: {
+    attached: "replica:attached",
+    detached: "replica:detached",
+    snapshot_received: "replica:snapshot_received",
+    snapshot_sent: "replica:snapshot_sent",
+    authority_transferred: "replica:authority_transferred",
+    reconciled: "replica:reconciled",
+    desync_detected: "replica:desync_detected",
+    on_reconcile_event: "replica:reconcile",
+    on_transfer_authority: "replica:transfer_authority",
+    on_force_sync: "replica:force_sync"
+  },
+  behaviors: ["@multi_agent"]
+}
