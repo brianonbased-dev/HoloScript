@@ -1,0 +1,27 @@
+@trait {
+  name: "@timeline",
+  category: "anim",
+  description: "Declarative media and animation timeline controller. duration_ms sets the total playback length in milliseconds. loop causes the timeline to restart from zero when the playhead reaches duration_ms; set false for one-shot sequences. autoplay starts the timeline immediately on trait attachment without waiting for an on_play command. tracks is a structured list of clip descriptors, each carrying a clip_id reference (resolved against the scene's asset registry), a start_ms offset within the timeline, and a duration_ms override for the clip's active window — clip_id clips that exceed their duration_ms window are clamped at the window boundary. time_scale multiplies the global playback rate: 1.0 is real time, 2.0 is double speed, 0.5 is half speed, negative values play in reverse from the current head position. on_play fires when playback begins or resumes, on_pause fires when playback halts with the playhead retained, on_stop fires when playback halts and the playhead is reset to zero, on_complete fires when a non-looping sequence finishes. Pairs with @animation for skeletal clip binding, @morph for shape-key tracks, and @audio for synchronized audio tracks. Research: CinematicSeqTrait.ts, AnimationTrait.ts.",
+  props: {
+    duration_ms: number = 5000,
+    loop: boolean = false,
+    autoplay: boolean = false,
+    tracks: array<{clip_id: string, start_ms: number, duration_ms: number}> = [],
+    time_scale: number = 1.0
+  },
+  events: {
+    attached: "timeline:attached",
+    detached: "timeline:detached",
+    played: "timeline:played",
+    paused: "timeline:paused",
+    stopped: "timeline:stopped",
+    complete: "timeline:complete",
+    clip_started: "timeline:clip_started",
+    clip_ended: "timeline:clip_ended",
+    seeked: "timeline:seeked",
+    on_play: "timeline:play",
+    on_pause: "timeline:pause",
+    on_stop: "timeline:stop",
+    on_seek: "timeline:seek"
+  }
+}

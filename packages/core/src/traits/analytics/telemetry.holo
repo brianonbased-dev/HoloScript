@@ -1,0 +1,26 @@
+@trait {
+  name: "@telemetry",
+  category: "analytics",
+  description: "Structured metric emission for runtime observability pipelines. metric_id is the dot-scoped metric name used as the series identifier in downstream collectors (e.g. 'scene.fps', 'agent.memory_mb'). unit labels the physical quantity for display and validation (e.g. 'ms', 'bytes', 'count'). report_interval_ms is the emission cadence; the trait samples the attached entity's metric source and emits at each tick. aggregation selects the per-interval rollup applied before emission: sum accumulates all samples, avg averages them, max/min take the extreme, last emits only the final sample in the window. tags is an arbitrary string-keyed dict attached to every emitted data point for multi-dimensional filtering (e.g. {'env': 'prod', 'region': 'us-west'}). threshold_warn and threshold_error set alert levels; breaching warn fires on_warn, breaching error fires on_error. Both thresholds are inclusive and evaluate against the aggregated value before emission. Pairs with @healthcheck and @canary for composite observability dashboards; integrates with the HoloScript SLOMonitor and ServiceObservability pipelines. Research: TelemetryTrait.ts, SLOMonitorTrait.ts, ServiceObservabilityTrait.ts.",
+  props: {
+    metric_id: string = "",
+    unit: string = "count",
+    report_interval_ms: number = 5000,
+    aggregation: enum("sum" | "avg" | "max" | "min" | "last") = "avg",
+    tags: dict<string, string> = {},
+    threshold_warn: number = -1.0,
+    threshold_error: number = -1.0
+  },
+  events: {
+    attached: "telemetry:attached",
+    detached: "telemetry:detached",
+    emitted: "telemetry:emitted",
+    threshold_warn: "telemetry:warn",
+    threshold_error: "telemetry:error",
+    interval_changed: "telemetry:interval_changed",
+    on_warn: "telemetry:on_warn",
+    on_error: "telemetry:on_error",
+    on_flush: "telemetry:flush",
+    on_reset: "telemetry:reset"
+  }
+}

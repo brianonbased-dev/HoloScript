@@ -1,0 +1,30 @@
+@trait {
+  name: "@vehicle",
+  category: "physics",
+  description: "Wheeled vehicle dynamics simulation for cars, trucks, and autonomous platforms. drive_type selects the drivetrain layout: fwd applies torque to front axle only, rwd to rear axle only, awd distributes torque across all axles. mass is the total vehicle mass in kilograms; it feeds the inertia tensor and determines force-to-acceleration ratios. max_speed caps the vehicle's sustainable velocity in m/s; the torque curve is normalised against this to derive the per-tick force budget. max_torque is the peak motor output in Newton-metres applied to driven wheels each physics step. brake_force is the per-axle braking impulse in Newtons applied when a brake input is present. steer_angle_max is the maximum front-wheel steer deflection in degrees; input values are mapped linearly into this range. suspension_stiffness is the spring constant (N/m) for each wheel's suspension strut; higher values produce a stiffer, bouncier ride. suspension_rest is the neutral suspension length in metres; the wheel returns to this offset when load is removed. tire_friction is the coefficient of friction used in the lateral and longitudinal slip model; values above 1 indicate a high-grip compound. Pairs with @rigid_body for chassis collision, @transform for world-space output, and @ai_driver or @controller_input for throttle/brake/steer signals. Research: AIDriverTrait.ts, CavemanDriveTrait.ts, RigidbodyTrait.ts.",
+  props: {
+    drive_type: enum("fwd" | "rwd" | "awd") = "rwd",
+    mass: number = 1500.0,
+    max_speed: number = 40.0,
+    max_torque: number = 300.0,
+    brake_force: number = 8000.0,
+    steer_angle_max: number = 35.0,
+    suspension_stiffness: number = 35000.0,
+    suspension_rest: number = 0.35,
+    tire_friction: number = 1.1
+  },
+  events: {
+    attached: "vehicle:attached",
+    detached: "vehicle:detached",
+    engine_started: "vehicle:engine_started",
+    engine_stopped: "vehicle:engine_stopped",
+    speed_changed: "vehicle:speed_changed",
+    collision: "vehicle:collision",
+    flipped: "vehicle:flipped",
+    on_throttle: "vehicle:throttle",
+    on_brake: "vehicle:brake",
+    on_steer: "vehicle:steer",
+    on_handbrake: "vehicle:handbrake"
+  },
+  behaviors: ["@rigid_body", "@transform"]
+}

@@ -1,0 +1,30 @@
+@trait {
+  name: "@steering",
+  category: "agent",
+  description: "Autonomous steering behaviour for agents and NPCs. behavior selects the active steering algorithm: seek drives directly toward a target, flee runs away from it, arrive slows to a halt within arrival_radius metres of the target, wander produces organic random movement within wander_radius, flock combines separation/cohesion/alignment for crowd dynamics using flock_radius as the neighbourhood range, path_follow tracks a sequence of waypoints using the sibling @waypoint trait. max_speed caps the agent's sustained velocity in m/s; max_force caps the per-frame steering impulse in Newtons, bounding how sharply the agent can redirect. arrival_radius (arrive mode) sets the deceleration onset distance; at the boundary the agent begins blending to zero velocity. wander_radius defines the sphere radius for jitter sampling in wander mode. flock_radius is the neighbourhood radius checked for flock-mates; separation_weight, cohesion_weight, and alignment_weight are the relative scalars for each Reynolds rule summed into the final flock steering vector. Pairs with @transform for world-space output, @rigid_body for force integration, @nav_mesh or @flow_field for obstacle-aware pathing. Research: FlowFieldTrait.ts, FormationControlTrait.ts, CrowdSimTrait.ts, NavmeshSolverTrait.ts.",
+  props: {
+    behavior: enum("seek" | "flee" | "arrive" | "wander" | "flock" | "cohesion" | "separation" | "path_follow") = "seek",
+    target_id: string = "",
+    max_speed: number = 5.0,
+    max_force: number = 10.0,
+    arrival_radius: number = 1.0,
+    wander_radius: number = 3.0,
+    flock_radius: number = 5.0,
+    separation_weight: number = 1.5,
+    cohesion_weight: number = 1.0,
+    alignment_weight: number = 1.0
+  },
+  events: {
+    attached: "steering:attached",
+    detached: "steering:detached",
+    target_reached: "steering:target_reached",
+    target_lost: "steering:target_lost",
+    behavior_changed: "steering:behavior_changed",
+    stalled: "steering:stalled",
+    flock_formed: "steering:flock_formed",
+    on_set_target: "steering:set_target",
+    on_set_behavior: "steering:set_behavior",
+    on_set_speed: "steering:set_speed"
+  },
+  behaviors: ["@transform"]
+}
