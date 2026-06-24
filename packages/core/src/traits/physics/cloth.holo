@@ -1,0 +1,27 @@
+@trait {
+  name: "@cloth",
+  category: "physics",
+  description: "Position-based dynamics cloth simulation. Models woven fabric with stretch, shear, and bend constraints. Used for garments, flags, curtains, and soft scenery. Authored from ClothTrait.ts.",
+  props: {
+    resolution_u: number = 16,
+    resolution_v: number = 16,
+    mass: number = 0.1,
+    stretch_stiffness: number = 0.9,
+    shear_stiffness: number = 0.5,
+    bend_stiffness: number = 0.1,
+    damping: number = 0.01,
+    gravity_scale: number = 1.0,
+    pinned_vertices: list<number> = [],
+    self_collision: boolean = false
+  },
+  events: {
+    attached: "cloth_attached",
+    detached: "cloth_detached",
+    on_settle: "cloth_settle",
+    on_tear: "cloth_tear",
+    on_wind: "cloth_wind",
+    pin: "cloth_pin",
+    unpin: "cloth_unpin"
+  },
+  behaviors: ["@soft_body", "@wind_system"]
+}

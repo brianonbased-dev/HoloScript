@@ -1,0 +1,25 @@
+@trait {
+  name: "@controller_input",
+  category: "xr",
+  description: "Generic XR controller input mapping. Normalizes button, trigger, grip, and thumbstick events across Meta, SteamVR, OpenXR, and gamepad profiles. Authored from ControllerInputTrait.ts.",
+  props: {
+    profile: enum("meta_touch" | "valve_index" | "htc_vive" | "wmr" | "gamepad" | "openxr") = "openxr",
+    hand: enum("left" | "right" | "both") = "both",
+    haptic_feedback: boolean = true,
+    deadzone: number = 0.1,
+    button_repeat_ms: number = 500,
+    remap: list<{ source: string, target: string }> = []
+  },
+  events: {
+    attached: "controller_input_attached",
+    detached: "controller_input_detached",
+    on_button_down: "controller_input_button_down",
+    on_button_up: "controller_input_button_up",
+    on_trigger: "controller_input_trigger",
+    on_grip: "controller_input_grip",
+    on_thumbstick: "controller_input_thumbstick",
+    on_touch: "controller_input_touch",
+    vibrate: "controller_input_vibrate"
+  },
+  behaviors: ["@motion_controller", "@xr_interaction", "@haptic"]
+}
