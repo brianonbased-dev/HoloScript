@@ -1,0 +1,24 @@
+@trait {
+  name: "@sandbox_exec",
+  category: "devops",
+  description: "Isolated code execution sandbox for untrusted or user-supplied scripts. runtime selects the execution substrate: wasm compiles the payload to a WebAssembly module and runs it inside a linear-memory isolation boundary with no ambient capability; js runs the payload in a V8 Isolate (or Web Worker on browser targets) with a stripped global; python executes via a Pyodide or subprocess-isolated interpreter; deno runs the payload under Deno's permission-flag model. code is the source text to execute; set it at author time for embedded scripts or supply it at runtime via the on_run command event. timeout_ms caps total wall-clock execution time — the sandbox is force-terminated and on_timeout fires when the limit is exceeded. max_memory_mb sets the heap ceiling in megabytes; the runtime raises an out-of-memory condition and on_error fires if the payload exceeds it. allow_network permits outbound network calls from within the sandbox when true; false blocks all network access regardless of runtime capabilities. allow_fs permits read and write access to the entity's designated storage partition when true; false is strongly recommended for untrusted payloads. on_result fires with the return value or last expression of the payload on successful completion. on_error fires with the error message if the payload throws or the sandbox raises a capability violation. on_timeout fires when timeout_ms is exceeded. Research: SandboxExecutionTrait.ts v1.0.0 wasm + vm + worker + iframe substrates.",
+  props: {
+    runtime: enum("wasm" | "js" | "python" | "deno") = "wasm",
+    code: string = "",
+    timeout_ms: number = 5000,
+    max_memory_mb: number = 128,
+    allow_network: boolean = false,
+    allow_fs: boolean = false
+  },
+  events: {
+    attached: "sandbox_exec:attached",
+    detached: "sandbox_exec:detached",
+    on_result: "sandbox_exec:result",
+    on_error: "sandbox_exec:error",
+    on_timeout: "sandbox_exec:timeout",
+    on_run: "sandbox_exec:run",
+    on_cancel: "sandbox_exec:cancel",
+    on_set_code: "sandbox_exec:set_code",
+    on_set_runtime: "sandbox_exec:set_runtime"
+  }
+}
