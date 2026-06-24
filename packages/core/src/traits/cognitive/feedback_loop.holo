@@ -1,0 +1,24 @@
+@trait {
+  name: "@feedback_loop",
+  category: "cognitive",
+  description: "Agent self-improvement feedback loop. Collects outcome signals (user ratings, goal completions, supervisor scores), stores them as RLHF-style pairs, and surfaces them for holotune fine-tuning runs. Authored from FeedbackLoopTrait.ts.",
+  props: {
+    signal_source: enum("user_rating" | "goal_metric" | "supervisor" | "holotune") = "user_rating",
+    min_rating: number = 1,
+    max_rating: number = 5,
+    buffer_size: number = 1000,
+    export_on_fill: boolean = true,
+    export_path: string = "",
+    auto_label: boolean = false
+  },
+  events: {
+    attached: "feedback_loop_attached",
+    detached: "feedback_loop_detached",
+    on_signal: "feedback_loop_signal",
+    on_export: "feedback_loop_export",
+    on_buffer_full: "feedback_loop_buffer_full",
+    record: "feedback_loop_record",
+    export: "feedback_loop_export_trigger"
+  },
+  behaviors: ["@holotune", "@audit_log", "@fine_tune"]
+}

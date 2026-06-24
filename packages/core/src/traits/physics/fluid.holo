@@ -1,0 +1,22 @@
+@trait {
+  name: "@fluid",
+  category: "physics",
+  description: "Lightweight fluid material annotation. Tags an entity as a fluid body with surface properties, enabling compatible physics solvers to apply buoyancy, viscosity, and wave effects. Authored from FluidTrait.ts.",
+  props: {
+    density: number = 1000.0,
+    viscosity: number = 0.001,
+    surface_tension: number = 0.07,
+    color: string = "#1a6fb0",
+    opacity: number = 0.8,
+    foam_enabled: boolean = true,
+    wave_amplitude: number = 0.1
+  },
+  events: {
+    attached: "fluid_attached",
+    detached: "fluid_detached",
+    on_enter: "fluid_enter",
+    on_exit: "fluid_exit",
+    on_splash: "fluid_splash"
+  },
+  behaviors: ["@rigid_body", "@water", "@buoyancy"]
+}
