@@ -1,0 +1,23 @@
+@trait {
+  name: "@persistent",
+  category: "world",
+  description: "Entity persistence marker. Flags the entity's state snapshot for automatic save-on-change to the world store and restoration on scene load, using the entity ID as the durable key. Authored from PersistentTrait.ts.",
+  props: {
+    key: string = "",
+    store: enum("world_store" | "player_store" | "team_store" | "holoscript") = "world_store",
+    auto_save: boolean = true,
+    debounce_ms: number = 2000,
+    restore_on_load: boolean = true,
+    version: number = 1
+  },
+  events: {
+    attached: "persistent_attached",
+    detached: "persistent_detached",
+    on_save: "persistent_save",
+    on_restore: "persistent_restore",
+    on_error: "persistent_error",
+    save: "persistent_trigger_save",
+    restore: "persistent_trigger_restore"
+  },
+  behaviors: ["@reactive_store", "@orm_entity", "@change_tracking"]
+}

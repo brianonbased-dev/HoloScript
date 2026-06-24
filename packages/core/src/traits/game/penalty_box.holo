@@ -1,0 +1,24 @@
+@trait {
+  name: "@penalty_box",
+  category: "game",
+  description: "Temporary player penalty zone enforcer. Restricts an entity's movement, abilities, or spawn rights for a timed duration following a rules violation, with configurable grace periods and escalation levels. Authored from PenaltyBoxTrait.ts.",
+  props: {
+    duration_s: number = 120,
+    restrictions: list<enum("move" | "build" | "interact" | "chat" | "spawn" | "trade")> = [],
+    grace_period_s: number = 5,
+    escalation_count: number = 0,
+    max_escalations: number = 3,
+    visible_to_others: boolean = true,
+    reason: string = ""
+  },
+  events: {
+    attached: "penalty_box_attached",
+    detached: "penalty_box_detached",
+    on_penalize: "penalty_box_penalize",
+    on_release: "penalty_box_release",
+    on_escalate: "penalty_box_escalate",
+    penalize: "penalty_box_trigger",
+    release: "penalty_box_release_trigger"
+  },
+  behaviors: ["@anti_grief", "@rbac", "@audit_log"]
+}
