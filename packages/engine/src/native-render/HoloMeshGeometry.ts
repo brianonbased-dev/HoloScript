@@ -51,11 +51,15 @@ function bytesToB64(bytes: Uint8Array): string {
   return btoa(bin);
 }
 
-function b64ToBytes(b64: string): Uint8Array {
+/** Decode base64 into a FRESH, exactly-sized ArrayBuffer (zero-offset). Typed as
+ *  `ArrayBuffer` — not `ArrayBufferLike` — so the views below satisfy
+ *  SkinnedMeshData's `Float32Array<ArrayBuffer>` fields. */
+function b64ToArrayBuffer(b64: string): ArrayBuffer {
   const bin = atob(b64);
-  const u8 = new Uint8Array(bin.length); // fresh, zero-offset ArrayBuffer
+  const ab = new ArrayBuffer(bin.length);
+  const u8 = new Uint8Array(ab);
   for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-  return u8;
+  return ab;
 }
 
 function f32ToB64(a: Float32Array): string {
@@ -65,12 +69,12 @@ function u32ToB64(a: Uint32Array): string {
   return bytesToB64(new Uint8Array(a.buffer, a.byteOffset, a.byteLength));
 }
 function b64ToF32(b64: string): Float32Array<ArrayBuffer> {
-  const u8 = b64ToBytes(b64);
-  return new Float32Array(u8.buffer, u8.byteOffset, u8.byteLength / 4);
+  const ab = b64ToArrayBuffer(b64);
+  return new Float32Array(ab, 0, ab.byteLength / 4);
 }
 function b64ToU32(b64: string): Uint32Array<ArrayBuffer> {
-  const u8 = b64ToBytes(b64);
-  return new Uint32Array(u8.buffer, u8.byteOffset, u8.byteLength / 4);
+  const ab = b64ToArrayBuffer(b64);
+  return new Uint32Array(ab, 0, ab.byteLength / 4);
 }
 
 // ─── codec ────────────────────────────────────────────────────────────────────

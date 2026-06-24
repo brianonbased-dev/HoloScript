@@ -76,6 +76,14 @@ export * as Character from './character';
 // Native-WebGPU character rendering (D.094 entity-generic body → GPU-skinned pixels)
 export * as CharacterRender from './character-render';
 
+// Track-0: `.holo` mesh carrier — real imported geometry, not a text pointer.
+export {
+  encodeSkinnedMeshToHolo,
+  decodeSkinnedMeshFromHolo,
+  type HoloMeshGeometry,
+} from './native-render/HoloMeshGeometry';
+export type { SkinnedMeshData } from './native-render/draw-spec';
+
 // Spatial infrastructure subsystem (A.011.01i)
 export * as ECS from './ecs';
 export * as Scene from './scene';

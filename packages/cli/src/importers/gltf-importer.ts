@@ -8,6 +8,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { CharacterRender, encodeSkinnedMeshToHolo } from '@holoscript/engine';
+import { meshShapeToHolo } from './mesh-shape';
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -740,7 +742,7 @@ function nodeToHolo(nodeIndex: number, gltf: GltfData, inputPath: string, indent
 /**
  * Build the complete .holo composition string from parsed glTF data.
  */
-function buildHoloComposition(gltf: GltfData, inputPath: string): string {
+function buildHoloComposition(gltf: GltfData, inputPath: string, meshShapeBlock?: string): string {
   const lines: string[] = [];
 
   // Header comment
@@ -839,6 +841,12 @@ function buildHoloComposition(gltf: GltfData, inputPath: string): string {
     }
   }
 
+  // Track 0: real imported mesh carried as a shape INSIDE the composition.
+  if (meshShapeBlock) {
+    lines.push('');
+    lines.push(meshShapeBlock);
+  }
+
   lines.push('}');
   lines.push('');
 
@@ -875,10 +883,23 @@ export function importGltf(inputPath: string): string {
 
   const ext = path.extname(resolvedPath).toLowerCase();
   let gltfData: GltfData;
+  let meshShapeBlock: string | undefined;
 
   if (ext === '.glb') {
     const buffer = fs.readFileSync(resolvedPath);
     gltfData = parseGlb(buffer);
+    // Track 0: carry the REAL skinned mesh in `.holo` as a `shape … mesh { … }`
+    // block instead of only a text pointer. Best-effort — only for skinned
+    // triangle GLBs the native extractor supports (has JOINTS_0/WEIGHTS_0, no
+    // Draco). Anything else keeps the existing text-pointer behavior unchanged.
+    try {
+      const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+      const mesh = CharacterRender.extractGltfSkinnedMesh(ab);
+      const meshName = path.basename(resolvedPath, ext) + '_mesh';
+      meshShapeBlock = meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh));
+    } catch {
+      // non-skinned / Draco / multi-primitive — leave geometry as a text pointer
+    }
   } else if (ext === '.gltf') {
     const rawJson = fs.readFileSync(resolvedPath, 'utf8');
     try {
@@ -895,7 +916,7 @@ export function importGltf(inputPath: string): string {
     throw new Error('Invalid glTF: missing required "asset.version" field.');
   }
 
-  return buildHoloComposition(gltfData, resolvedPath);
+  return buildHoloComposition(gltfData, resolvedPath, meshShapeBlock);
 }
 
 /**
