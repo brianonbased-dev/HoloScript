@@ -1,0 +1,23 @@
+@trait {
+  name: "@traffic_light",
+  category: "spatial",
+  description: "Signalized traffic light controller for digital twin road networks. Supports fixed, adaptive, and sensor-triggered timing plans. Authored from TrafficLightTrait.ts.",
+  props: {
+    phases: list<{ color: string, duration_s: number }> = [],
+    current_phase: number = 0,
+    mode: enum("fixed" | "adaptive" | "sensor" | "off") = "fixed",
+    intersection_id: string = "",
+    pedestrian_crossing: boolean = false,
+    emergency_preempt: boolean = true
+  },
+  events: {
+    attached: "traffic_light_attached",
+    detached: "traffic_light_detached",
+    on_phase_change: "traffic_light_phase_change",
+    on_emergency: "traffic_light_emergency",
+    on_pedestrian_request: "traffic_light_ped_request",
+    set_mode: "traffic_light_set_mode",
+    preempt: "traffic_light_preempt"
+  },
+  behaviors: ["@road_network", "@twin_actuator"]
+}

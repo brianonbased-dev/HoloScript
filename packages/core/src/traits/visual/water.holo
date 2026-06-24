@@ -1,0 +1,27 @@
+@trait {
+  name: "@water",
+  category: "visual",
+  description: "Physically-based water surface with FFT wave simulation, subsurface scattering, foam, and caustics. For oceans, lakes, pools, and rivers. Authored from WaterTrait.ts.",
+  props: {
+    wave_height: number = 0.5,
+    wave_speed: number = 1.0,
+    choppiness: number = 0.3,
+    wind_direction_deg: number = 0.0,
+    wind_speed_kph: number = 10.0,
+    base_color: string = "#1a6b8a",
+    depth_color: string = "#0a2d4a",
+    foam_threshold: number = 0.6,
+    turbidity: number = 0.2,
+    caustics: boolean = true,
+    reflection: boolean = true,
+    fft_resolution: enum("64" | "128" | "256" | "512") = "256"
+  },
+  events: {
+    attached: "water_attached",
+    detached: "water_detached",
+    on_splash: "water_splash",
+    on_wave_peak: "water_wave_peak",
+    set_turbulence: "water_set_turbulence"
+  },
+  behaviors: ["@material", "@rendering"]
+}

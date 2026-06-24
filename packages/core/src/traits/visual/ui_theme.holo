@@ -1,0 +1,25 @@
+@trait {
+  name: "@ui_theme",
+  category: "visual",
+  description: "Global UI theme token provider. Defines color palette, typography scale, spacing, border radius, and dark/light mode switching for HoloScript Studio UI surfaces. Authored from UIThemeTrait.ts.",
+  props: {
+    mode: enum("light" | "dark" | "system" | "high_contrast") = "system",
+    primary_color: string = "#6366f1",
+    secondary_color: string = "#8b5cf6",
+    background_color: string = "#ffffff",
+    surface_color: string = "#f8fafc",
+    error_color: string = "#ef4444",
+    font_family: string = "Inter, sans-serif",
+    border_radius_px: number = 8,
+    animation_duration_ms: number = 200
+  },
+  events: {
+    attached: "ui_theme_attached",
+    detached: "ui_theme_detached",
+    on_mode_change: "ui_theme_mode_change",
+    on_token_update: "ui_theme_token_update",
+    set_mode: "ui_theme_set_mode",
+    apply_preset: "ui_theme_apply_preset"
+  },
+  behaviors: ["@accessibility", "@i18n"]
+}

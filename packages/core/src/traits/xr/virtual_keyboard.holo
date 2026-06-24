@@ -1,0 +1,27 @@
+@trait {
+  name: "@virtual_keyboard",
+  category: "xr",
+  description: "Floating XR virtual keyboard for text input in VR/AR. Supports ray-cast selection, direct touch, and hand tracking with predictive text. Authored from VirtualKeyboardTrait.ts.",
+  props: {
+    layout: enum("qwerty" | "numeric" | "emoji" | "symbol" | "holoscript") = "qwerty",
+    input_mode: enum("ray_cast" | "hand_touch" | "gaze_dwell" | "controller") = "ray_cast",
+    predictive: boolean = true,
+    haptic: boolean = true,
+    placement: enum("floating" | "world_locked" | "body_locked") = "body_locked",
+    scale: number = 1.0,
+    opacity: number = 0.9,
+    auto_hide: boolean = true
+  },
+  events: {
+    attached: "virtual_keyboard_attached",
+    detached: "virtual_keyboard_detached",
+    on_key: "virtual_keyboard_key",
+    on_submit: "virtual_keyboard_submit",
+    on_show: "virtual_keyboard_show",
+    on_hide: "virtual_keyboard_hide",
+    on_suggestion: "virtual_keyboard_suggestion",
+    show: "virtual_keyboard_trigger_show",
+    hide: "virtual_keyboard_trigger_hide"
+  },
+  behaviors: ["@xr_interaction", "@haptic", "@text_input"]
+}
