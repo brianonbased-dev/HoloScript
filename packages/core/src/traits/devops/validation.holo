@@ -1,0 +1,21 @@
+@trait {
+  name: "@validation",
+  category: "devops",
+  description: "Schema-driven data validation gate. schema_url points to a JSON Schema, OpenAPI component, or HoloScript trait schema document used as the validation contract; relative URLs are resolved against the workspace root. mode controls evaluation policy: strict rejects the document and emits on_invalid on any schema violation; lenient logs violations but passes the document through; warn_only always passes but emits on_invalid as a warning-class event for downstream telemetry. on_valid fires with the normalised (coerced and default-filled) document on success. on_invalid fires with an errors array containing one entry per violation — each entry has a path string (JSON Pointer), rule string, and message string. error_format controls how the errors payload is serialised: json emits the full structured array, summary emits a single human-readable sentence, verbose emits the structured array plus the failing document excerpt. Pairs with @feature_flag for staged validation roll-outs, @audit_log for durable violation records, and @version for schema-migration-aware validation. Research: DataQualityTrait.ts, DataLineageTrait.ts, SchemaMigrateTrait.ts.",
+  props: {
+    schema_url: string = "",
+    mode: enum("strict" | "lenient" | "warn_only") = "strict",
+    error_format: enum("json" | "summary" | "verbose") = "json"
+  },
+  events: {
+    attached: "validation:attached",
+    detached: "validation:detached",
+    on_valid: "validation:valid",
+    on_invalid: "validation:invalid",
+    schema_loaded: "validation:schema_loaded",
+    schema_error: "validation:schema_error",
+    on_validate: "validation:validate",
+    on_reload_schema: "validation:reload_schema"
+  },
+  behaviors: ["@feature_flag"]
+}

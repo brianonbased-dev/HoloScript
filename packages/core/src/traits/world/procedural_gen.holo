@@ -1,0 +1,26 @@
+@trait {
+  name: "@procedural_gen",
+  category: "world",
+  description: "Procedural content generation (PCG) for terrain, mesh, voxel, and point-cloud outputs. algorithm selects the noise or space-filling strategy: perlin and simplex produce smooth continuous noise fields suitable for heightmaps and biome masks; voronoi partitions space into cell regions for ecosystem or city-block layouts; l_system applies iterated turtle-grammar rewriting for botanical or fractal structures; wave_collapse runs Wave Function Collapse for tile-consistent dungeon/map generation; marching_cubes extracts an isosurface mesh from a scalar field for voxel-sculpted terrain. seed is the integer PRNG seed for deterministic replay. octaves, frequency, amplitude, lacunarity, and gain are standard fractal Brownian motion (fBm) parameters applied to noise-based algorithms; they are ignored by wave_collapse and l_system. output declares the downstream format: heightmap emits a 2-D Float32 elevation grid, mesh emits a triangulated GLB-compatible geometry, voxel emits a 3-D occupancy grid, points emits an unstructured PLY-compatible point cloud. Emits procedural_gen:complete with the generated asset handle on success; procedural_gen:error on failure. Pairs with @terrain for heightmap→scene binding, @gaussian_splat for point-cloud splat injection, and @spawn for object distribution over the generated output. Research: WorldGeneratorTrait.ts, PhyllotaxisTrait.ts.",
+  props: {
+    algorithm: enum("perlin" | "simplex" | "voronoi" | "l_system" | "wave_collapse" | "marching_cubes") = "simplex",
+    seed: number = 42,
+    octaves: number = 6,
+    frequency: number = 1.0,
+    amplitude: number = 1.0,
+    lacunarity: number = 2.0,
+    gain: number = 0.5,
+    output: enum("heightmap" | "mesh" | "voxel" | "points") = "heightmap"
+  },
+  events: {
+    attached: "procedural_gen:attached",
+    detached: "procedural_gen:detached",
+    complete: "procedural_gen:complete",
+    progress: "procedural_gen:progress",
+    error: "procedural_gen:error",
+    on_generate: "procedural_gen:generate",
+    on_seed: "procedural_gen:set_seed",
+    on_cancel: "procedural_gen:cancel"
+  },
+  behaviors: ["@terrain"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@version",
+  category: "devops",
+  description: "Semantic versioning and schema-migration controller for HoloScript entities, compositions, and persistent data stores. version is the current semver string of the entity or schema (e.g. '2.1.0'). min_compatible declares the oldest version whose data this handler can transparently upgrade without data loss; loading a document older than min_compatible triggers on_downgrade and may require a migration_script pass. migration_script is a URI to a HoloScript .hs migration handler that accepts an (oldVersion, newVersion, data) triple and returns the transformed document; leave empty to rely on the runtime's built-in field-add/drop-with-default strategy. breaking_change flags that the transition from the previous version introduces an incompatible wire format or removed required fields, so the runtime must refuse to load the document without an explicit migration pass rather than silently coercing it. on_upgrade fires after a successful forward migration with both versions and the transformed document handle. on_downgrade fires when a document with a higher version than the current handler is loaded; the runtime logs a warning and attempts a best-effort read. Pairs with @validation for schema-aware migration gates, @persistent for durable version-stamped storage, and @quantum_circuit for circuit schema evolution. Research: VersionedStateTrait.ts, SchemaMigrateTrait.ts, MigrateTrait.ts.",
+  props: {
+    version: string = "1.0.0",
+    min_compatible: string = "1.0.0",
+    migration_script: string = "",
+    breaking_change: boolean = false
+  },
+  events: {
+    attached: "version:attached",
+    detached: "version:detached",
+    on_upgrade: "version:upgrade",
+    on_downgrade: "version:downgrade",
+    migration_complete: "version:migration_complete",
+    migration_error: "version:migration_error",
+    on_check: "version:check",
+    on_migrate: "version:migrate"
+  },
+  behaviors: ["@validation"]
+}
