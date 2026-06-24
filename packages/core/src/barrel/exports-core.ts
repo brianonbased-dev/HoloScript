@@ -183,3 +183,33 @@ export {
   mergePermissionUpdates,
   makePresetProfile,
 } from '../daemon/DaemonCustomizationProfile';
+
+// Reconstruction provenance primitives — public barrel (idea-run-24 #1, D.101-clear)
+// Needed by: FidelityEvalContract (ssja), studio import, mcp-server eval.
+// Exports the observed-vs-invented axis (PointProvenance), the hashed attestation
+// receipt (ProvenanceReceipt), the deterministic interpolation densifier, and the
+// pluggable generative-densifier seam (D.101 carve-out, 2026-06-24).
+export {
+  type PointProvenanceClass,
+  POINT_PROVENANCE_CODE,
+  POINT_PROVENANCE_CLASS_BY_CODE,
+  provenanceClassToCode,
+  provenanceCodeToClass,
+  type ProvenanceHistogram,
+  provenanceHistogram,
+  uniformProvenance,
+  HOLOMAP_CAPTURE_DEFAULT_PROVENANCE,
+} from '../reconstruction/PointProvenance';
+
+export {
+  PROVENANCE_RECEIPT_VERSION,
+  type ProvenanceReceipt,
+  buildProvenanceReceipt,
+} from '../reconstruction/ProvenanceReceipt';
+
+export {
+  type DensifyResult,
+  type DensifyMode,
+  type GenerativeDensifierBackend,
+  densifyByInterpolation,
+} from '../reconstruction/densifyByInterpolation';
