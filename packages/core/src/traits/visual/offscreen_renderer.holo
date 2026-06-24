@@ -1,0 +1,21 @@
+@trait {
+  name: "@offscreen_renderer",
+  category: "visual",
+  description: "Offscreen render-to-texture target. Renders a configurable scene view or entity subgraph into a WebGPU texture that can be sampled by material shaders, minimap overlays, or portal surfaces without affecting the main camera pass. Authored from OffscreenRendererTrait.ts.",
+  props: {
+    width: number = 512,
+    height: number = 512,
+    format: enum("rgba8" | "rgba16f" | "depth24") = "rgba8",
+    msaa: number = 1,
+    auto_mip: boolean = false,
+    entity_subgraph: string = "",
+    update_rate_hz: number = 0
+  },
+  events: {
+    attached: "offscreen_renderer_attached",
+    detached: "offscreen_renderer_detached",
+    on_render: "offscreen_renderer_render",
+    render: "offscreen_renderer_trigger"
+  },
+  behaviors: ["@mirror_surface", "@minimap", "@portal"]
+}

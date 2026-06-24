@@ -1,0 +1,24 @@
+@trait {
+  name: "@objective",
+  category: "game",
+  description: "Mission objective tracker with completion conditions and progress display. Tracks a named goal (reach zone, collect items, defeat count, survive time) via observable conditions, emitting partial progress updates and a completion or failure event at threshold. Authored from ObjectiveTrait.ts.",
+  props: {
+    title: string = "",
+    description: string = "",
+    type: enum("reach_zone" | "collect" | "defeat" | "survive" | "activate" | "custom") = "custom",
+    target_count: number = 1,
+    current_count: number = 0,
+    time_limit_s: number = 0,
+    optional: boolean = false,
+    show_hud: boolean = true
+  },
+  events: {
+    attached: "objective_attached",
+    detached: "objective_detached",
+    on_progress: "objective_progress",
+    on_complete: "objective_complete",
+    on_fail: "objective_fail",
+    increment: "objective_trigger_increment"
+  },
+  behaviors: ["@quest_system", "@game_mode", "@player"]
+}

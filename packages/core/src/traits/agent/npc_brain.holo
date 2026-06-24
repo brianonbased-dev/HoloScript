@@ -1,0 +1,20 @@
+@trait {
+  name: "@npc_brain",
+  category: "agent",
+  description: "NPC cognitive brain using behavior trees or utility AI scoring. Evaluates a named behavior tree or utility function set each tick to select actions (patrol, investigate, dialogue, attack, flee, wait), maintaining working memory about perceived targets and world state. Authored from NpcBrainTrait.ts.",
+  props: {
+    behavior_tree_url: string = "",
+    tick_rate_hz: number = 5.0,
+    memory_slots: number = 8,
+    decision_mode: enum("behavior_tree" | "utility_ai" | "hfsm") = "behavior_tree",
+    debug_draw: boolean = false
+  },
+  events: {
+    attached: "npc_brain_attached",
+    detached: "npc_brain_detached",
+    on_action_select: "npc_brain_action",
+    on_memory_update: "npc_brain_memory",
+    tick: "npc_brain_trigger_tick"
+  },
+  behaviors: ["@npc", "@utility_ai", "@blackboard"]
+}

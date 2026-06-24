@@ -1,0 +1,20 @@
+@trait {
+  name: "@open_graph",
+  category: "network",
+  description: "OpenGraph meta-tag emitter for shareable world and entity URLs. Generates og:title, og:description, og:image, og:url, and og:type tags for the entity's canonical share URL, enabling rich previews in social platforms and messaging apps. Authored from OpenGraphTrait.ts.",
+  props: {
+    title: string = "",
+    description: string = "",
+    image_url: string = "",
+    canonical_url: string = "",
+    og_type: enum("website" | "article" | "video" | "game" | "object") = "object",
+    twitter_card: enum("summary" | "summary_large_image" | "player") = "summary_large_image"
+  },
+  events: {
+    attached: "open_graph_attached",
+    detached: "open_graph_detached",
+    on_share: "open_graph_share",
+    share: "open_graph_trigger_share"
+  },
+  behaviors: ["@link_preview", "@networked", "@broadcast"]
+}
