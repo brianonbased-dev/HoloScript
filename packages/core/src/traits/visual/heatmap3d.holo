@@ -1,0 +1,23 @@
+@trait {
+  name: "@heatmap3d",
+  category: "visual",
+  description: "3D spatial heatmap renderer. Accumulates weighted sample points and renders them as a volumetric color gradient in world space, useful for analytics, attention maps, and threat visualization. Authored from Heatmap3DTrait.ts.",
+  props: {
+    resolution: number = 32,
+    color_min: string = "#0000ff",
+    color_max: string = "#ff0000",
+    opacity: number = 0.5,
+    radius_m: number = 1.0,
+    decay: number = 0.0,
+    max_samples: number = 10000,
+    normalize: boolean = true
+  },
+  events: {
+    attached: "heatmap3d_attached",
+    detached: "heatmap3d_detached",
+    on_update: "heatmap3d_update",
+    add_sample: "heatmap3d_add_sample",
+    clear: "heatmap3d_clear"
+  },
+  behaviors: ["@gpu_buffer", "@rendering", "@telemetry"]
+}

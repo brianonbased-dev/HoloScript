@@ -1,0 +1,22 @@
+@trait {
+  name: "@high_contrast",
+  category: "visual",
+  description: "Accessibility high-contrast rendering mode. Swaps the scene to a reduced-palette color scheme that meets WCAG AA/AAA contrast ratios, overriding theme colors and UI materials. Authored from HighContrastTrait.ts.",
+  props: {
+    enabled: boolean = false,
+    mode: enum("white_on_black" | "black_on_white" | "yellow_on_black" | "custom") = "white_on_black",
+    foreground_color: string = "#ffffff",
+    background_color: string = "#000000",
+    outline_width_px: number = 2,
+    reduce_motion: boolean = false,
+    filter_target: enum("ui" | "scene" | "all") = "ui"
+  },
+  events: {
+    attached: "high_contrast_attached",
+    detached: "high_contrast_detached",
+    on_toggle: "high_contrast_toggle",
+    on_mode_change: "high_contrast_mode_change",
+    toggle: "high_contrast_trigger_toggle"
+  },
+  behaviors: ["@ui_theme", "@accessibility"]
+}
