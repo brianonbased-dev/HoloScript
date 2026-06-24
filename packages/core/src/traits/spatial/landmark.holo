@@ -1,0 +1,23 @@
+@trait {
+  name: "@landmark",
+  category: "spatial",
+  description: "Named geographic or virtual landmark. Registers a position with a human-readable label, category, and rich-media card for map overlays, wayfinding breadcrumbs, and spatial search indexes. Authored from LandmarkTrait.ts.",
+  props: {
+    label: string = "",
+    category: enum("place" | "event" | "agent" | "asset" | "poi" | "custom") = "place",
+    description: string = "",
+    icon_url: string = "",
+    media_url: string = "",
+    visible_range_m: number = 500.0,
+    searchable: boolean = true,
+    region_id: string = ""
+  },
+  events: {
+    attached: "landmark_attached",
+    detached: "landmark_detached",
+    on_enter_range: "landmark_enter_range",
+    on_exit_range: "landmark_exit_range",
+    on_select: "landmark_select"
+  },
+  behaviors: ["@point_of_interest", "@spatial_anchor"]
+}

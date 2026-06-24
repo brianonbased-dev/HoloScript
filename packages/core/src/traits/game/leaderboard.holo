@@ -1,0 +1,25 @@
+@trait {
+  name: "@leaderboard",
+  category: "game",
+  description: "Ranked leaderboard for scores, completion times, or custom metrics. Persists entries to a backend store, paginates results, and fires rank-change events for trophy/achievement integration. Authored from LeaderboardTrait.ts.",
+  props: {
+    board_id: string = "",
+    metric: string = "score",
+    sort: enum("desc" | "asc") = "desc",
+    max_entries: number = 100,
+    page_size: number = 20,
+    scope: enum("global" | "friends" | "region" | "team") = "global",
+    refresh_interval_s: number = 60,
+    backend: enum("holoscript" | "postgres" | "redis") = "holoscript"
+  },
+  events: {
+    attached: "leaderboard_attached",
+    detached: "leaderboard_detached",
+    on_update: "leaderboard_update",
+    on_rank_change: "leaderboard_rank_change",
+    on_new_high: "leaderboard_new_high",
+    submit: "leaderboard_submit",
+    fetch: "leaderboard_fetch"
+  },
+  behaviors: ["@reputation_ledger", "@analytics"]
+}

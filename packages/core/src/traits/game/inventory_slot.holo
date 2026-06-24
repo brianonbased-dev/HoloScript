@@ -1,0 +1,25 @@
+@trait {
+  name: "@inventory_slot",
+  category: "game",
+  description: "Single inventory slot with drag-drop, stack counting, equipment-type gating, and tooltip metadata. Composes into a grid via @inventory. Authored from InventorySlotTrait.ts.",
+  props: {
+    item_id: string = "",
+    quantity: number = 1,
+    max_stack: number = 64,
+    slot_type: enum("any" | "weapon" | "armor" | "consumable" | "material" | "quest") = "any",
+    locked: boolean = false,
+    icon_url: string = "",
+    display_name: string = ""
+  },
+  events: {
+    attached: "inventory_slot_attached",
+    detached: "inventory_slot_detached",
+    on_add: "inventory_slot_add",
+    on_remove: "inventory_slot_remove",
+    on_swap: "inventory_slot_swap",
+    on_use: "inventory_slot_use",
+    add: "inventory_slot_trigger_add",
+    remove: "inventory_slot_trigger_remove"
+  },
+  behaviors: ["@inventory", "@draggable"]
+}
