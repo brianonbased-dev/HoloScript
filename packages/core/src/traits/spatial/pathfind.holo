@@ -1,0 +1,24 @@
+@trait {
+  name: "@pathfind",
+  category: "spatial",
+  description: "A* or navmesh pathfinding agent for entity locomotion. Computes a collision-free path from the entity's current position to a goal using the scene navmesh, updating on obstacle change, and streaming waypoints to the locomotion system. Authored from PathfindTrait.ts.",
+  props: {
+    goal: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    speed: number = 1.4,
+    stopping_distance_m: number = 0.2,
+    recompute_interval_s: number = 0.5,
+    avoid_dynamic: boolean = true,
+    algorithm: enum("astar" | "navmesh" | "flow_field") = "navmesh"
+  },
+  events: {
+    attached: "pathfind_attached",
+    detached: "pathfind_detached",
+    on_path_found: "pathfind_path_found",
+    on_waypoint: "pathfind_waypoint",
+    on_arrive: "pathfind_arrive",
+    on_fail: "pathfind_fail",
+    set_goal: "pathfind_trigger_set_goal",
+    stop: "pathfind_trigger_stop"
+  },
+  behaviors: ["@navigation", "@kinematic", "@follow_target"]
+}

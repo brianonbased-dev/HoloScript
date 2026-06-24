@@ -1,0 +1,22 @@
+@trait {
+  name: "@paused",
+  category: "game",
+  description: "World simulation pause state controller. Halts physics, animation, AI ticks, and timer advancement for all entities in scope (world or zone) when in paused state, while keeping HUD and input active for pause-menu navigation. Authored from PausedTrait.ts.",
+  props: {
+    is_paused: boolean = false,
+    scope: enum("world" | "zone" | "entity_group") = "world",
+    zone_id: string = "",
+    pause_ai: boolean = true,
+    pause_physics: boolean = true,
+    pause_animations: boolean = true,
+    show_pause_menu: boolean = true
+  },
+  events: {
+    attached: "paused_attached",
+    detached: "paused_detached",
+    on_pause: "paused_pause",
+    on_resume: "paused_resume",
+    toggle: "paused_trigger_toggle"
+  },
+  behaviors: ["@game_mode", "@sim_speed", "@input_map"]
+}

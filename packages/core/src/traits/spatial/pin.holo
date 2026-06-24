@@ -1,0 +1,21 @@
+@trait {
+  name: "@pin",
+  category: "spatial",
+  description: "Spatial pin and bookmark for a world-space location. Lets users or agents pin a named annotation at a 3D position that persists across sessions, with optional expiry and sharing to team members. Authored from PinTrait.ts.",
+  props: {
+    label: string = "",
+    color: string = "#ff6600",
+    icon_url: string = "",
+    owner_id: string = "",
+    shared: boolean = false,
+    expires_at: string = "",
+    payload: dict<string, string> = {}
+  },
+  events: {
+    attached: "pin_attached",
+    detached: "pin_detached",
+    on_tap: "pin_tap",
+    on_expire: "pin_expire"
+  },
+  behaviors: ["@marker", "@persistent", "@map_marker"]
+}

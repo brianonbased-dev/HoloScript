@@ -1,0 +1,26 @@
+@trait {
+  name: "@physics_body",
+  category: "physics",
+  description: "Full rigid-body physics integration for dynamic entities. Registers the entity with the physics engine as a dynamic rigidbody with configurable mass, linear/angular damping, friction, restitution, and lock axes, responding to applied forces and collisions. Authored from PhysicsBodyTrait.ts.",
+  props: {
+    mass_kg: number = 1.0,
+    linear_damping: number = 0.05,
+    angular_damping: number = 0.05,
+    friction: number = 0.5,
+    restitution: number = 0.3,
+    lock_linear: enum("none" | "x" | "y" | "z" | "xz") = "none",
+    lock_angular: enum("none" | "x" | "y" | "z" | "xyz") = "none",
+    gravity_scale: number = 1.0,
+    is_sensor: boolean = false
+  },
+  events: {
+    attached: "physics_body_attached",
+    detached: "physics_body_detached",
+    on_collision_enter: "physics_body_collision_enter",
+    on_collision_exit: "physics_body_collision_exit",
+    on_sleep: "physics_body_sleep",
+    apply_force: "physics_body_trigger_force",
+    apply_impulse: "physics_body_trigger_impulse"
+  },
+  behaviors: ["@collider", "@kinematic", "@magnetism"]
+}
