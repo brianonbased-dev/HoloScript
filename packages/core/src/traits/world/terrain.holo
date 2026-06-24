@@ -1,0 +1,28 @@
+@trait {
+  name: "@terrain",
+  category: "world",
+  description: "Heightmap-based terrain surface for world environments. size_x and size_z set the terrain footprint in world units along the X and Z axes respectively. height_scale multiplies the normalised [0,1] heightmap values to produce world-unit elevation. heightmap_url points to a greyscale PNG or EXR heightmap; an empty string generates a flat plane. resolution controls the vertex grid density (number of quads per axis) — higher values increase fidelity and runtime cost. biome selects the procedural surface material set and vegetation palette applied at compile time: desert, grassland, forest, tundra, ocean, and volcanic each carry their own texture atlas, colour grading, and ambient sound profile. erosion enables a lightweight hydraulic-erosion pass baked into the heightmap at import to add natural gullies and ridgelines. lod_levels is the number of level-of-detail reduction steps applied at render time; 0 disables LOD (single mesh). Pairs with @rigid_body for physics collision and @gaussian_splat for photorealistic surface overlays. Research: DeformableTerrainTrait.ts — runtime deformation and heightmap streaming, TerrainAnchorTrait.ts — AR terrain anchoring.",
+  props: {
+    size_x: number = 1000.0,
+    size_z: number = 1000.0,
+    height_scale: number = 100.0,
+    heightmap_url: string = "",
+    resolution: number = 256,
+    biome: enum("desert" | "grassland" | "forest" | "tundra" | "ocean" | "volcanic") = "grassland",
+    erosion: boolean = false,
+    lod_levels: number = 4
+  },
+  events: {
+    attached: "terrain:attached",
+    detached: "terrain:detached",
+    loaded: "terrain:loaded",
+    load_failed: "terrain:load_failed",
+    deformed: "terrain:deformed",
+    lod_changed: "terrain:lod_changed",
+    on_load_heightmap: "terrain:load_heightmap",
+    on_deform: "terrain:deform",
+    on_set_biome: "terrain:set_biome",
+    on_set_lod: "terrain:set_lod"
+  },
+  behaviors: ["@transform", "@rigid_body"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@spatial_anchor",
+  category: "xr",
+  description: "World-locked spatial anchor for AR/XR. Pins an entity to a real-world coordinate so it persists and remains stable across device movement, session re-entry, and (with cloud persistence) device switches. anchor_id is a caller-assigned stable handle used to look up and restore previously saved anchors; leave empty to auto-generate. persistence controls anchor lifetime: session anchors are lost on app close, persistent anchors survive across sessions on the same device, cloud anchors are stored on a backend service and can be shared across devices and users. platform selects the underlying anchor runtime: arcore (Android), arkit (iOS/visionOS), openxr (PC VR and multi-vendor headsets), holoscript (the HoloScript world-graph anchor layer). drift_correction_m is the max positional error in metres before the anchor re-localises and repositions the entity; 0 disables active drift correction. Research: GeospatialAnchorTrait.ts — anchor lifecycle, PersistentAnchorTrait.ts — cross-session storage, SharedAnchorTrait.ts — multi-user sharing, HoloMapAnchorContextTrait.ts — world-graph integration.",
+  props: {
+    anchor_id: string = "",
+    persistence: enum("session" | "persistent" | "cloud") = "session",
+    platform: enum("arcore" | "arkit" | "openxr" | "holoscript") = "holoscript",
+    drift_correction_m: number = 0.05
+  },
+  events: {
+    attached: "spatial_anchor:attached",
+    detached: "spatial_anchor:detached",
+    on_track: "spatial_anchor:track",
+    on_lost: "spatial_anchor:lost",
+    anchor_saved: "spatial_anchor:saved",
+    anchor_loaded: "spatial_anchor:loaded",
+    anchor_deleted: "spatial_anchor:deleted",
+    drift_corrected: "spatial_anchor:drift_corrected",
+    on_save: "spatial_anchor:save",
+    on_load: "spatial_anchor:load",
+    on_delete: "spatial_anchor:delete",
+    on_set_platform: "spatial_anchor:set_platform"
+  },
+  behaviors: ["@transform"]
+}

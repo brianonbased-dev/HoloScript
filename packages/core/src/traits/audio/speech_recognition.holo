@@ -1,0 +1,28 @@
+@trait {
+  name: "@speech_recognition",
+  category: "audio",
+  description: "Speech-to-text recognition trait. language is a BCP-47 locale tag (e.g. 'en-US', 'es-MX') that selects the recognition model. continuous keeps the microphone open and fires on_result events for each utterance without requiring a fresh start; false mode closes the recognizer after the first result. interim_results enables partial transcript delivery before the final result stabilises — useful for live captions and low-latency response. confidence_threshold gates on_result dispatch: results whose top hypothesis scores below this value fire on_error instead of on_result. wakeword pins activation to a keyword prefix (e.g. 'Hey Holo') so recognition only fires when preceded by the wakeword; empty string disables wakeword gating. punctuation requests punctuation injection from the recognition backend when supported by the platform. Research: VoiceInputTrait.ts — microphone capture, recognition lifecycle, wakeword gate, SpeechAwareEncounterTrait.ts — utterance-to-event routing.",
+  props: {
+    language: string = "en-US",
+    continuous: boolean = true,
+    interim_results: boolean = false,
+    confidence_threshold: number = 0.7,
+    wakeword: string = "",
+    punctuation: boolean = true
+  },
+  events: {
+    attached: "speech_recognition:attached",
+    detached: "speech_recognition:detached",
+    listening_start: "speech_recognition:listening_start",
+    listening_stop: "speech_recognition:listening_stop",
+    on_result: "speech_recognition:result",
+    on_interim: "speech_recognition:interim",
+    on_error: "speech_recognition:error",
+    wakeword_detected: "speech_recognition:wakeword_detected",
+    on_start: "speech_recognition:start",
+    on_stop: "speech_recognition:stop",
+    on_set_language: "speech_recognition:set_language",
+    on_set_wakeword: "speech_recognition:set_wakeword"
+  },
+  behaviors: []
+}

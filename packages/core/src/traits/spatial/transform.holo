@@ -1,0 +1,25 @@
+@trait {
+  name: "@transform",
+  category: "spatial",
+  description: "Spatial position, orientation, and scale for any entity in the HoloScript scene graph. position is a vec3 (x, y, z) in metres, defaulting to the world origin. rotation is a vec3 of Euler angles in degrees (pitch, yaw, roll) applied in XYZ order; the compiler converts to quaternion internally before passing to the render target. scale is a per-axis vec3 multiplier — uniform scale is expressed as equal xyz values. inherit_parent controls whether this transform is expressed in the parent entity's local space (true) or in absolute world space regardless of the scene hierarchy (false). world_space is a read-only derived flag that signals to compilers and renderers that the effective transform has already been resolved to world coordinates and should not be re-parented. This trait is the compositional root of the HoloScript spatial layer — nearly every renderable, physical, and XR-anchored trait declares it in its behaviors list. Research: TransformTrait.ts (data-transform pipeline variant, not this trait), SpatialConstraintTraits.ts — constraint solvers, SpatialNavigationTrait.ts — pathfinding integration.",
+  props: {
+    position: vec3 = { x: 0.0, y: 0.0, z: 0.0 },
+    rotation: vec3 = { x: 0.0, y: 0.0, z: 0.0 },
+    scale: vec3 = { x: 1.0, y: 1.0, z: 1.0 },
+    inherit_parent: boolean = true,
+    world_space: boolean = false
+  },
+  events: {
+    attached: "transform:attached",
+    detached: "transform:detached",
+    changed: "transform:changed",
+    on_set_position: "transform:set_position",
+    on_set_rotation: "transform:set_rotation",
+    on_set_scale: "transform:set_scale",
+    on_set_world_space: "transform:set_world_space",
+    on_look_at: "transform:look_at",
+    on_translate: "transform:translate",
+    on_rotate: "transform:rotate"
+  },
+  behaviors: []
+}
