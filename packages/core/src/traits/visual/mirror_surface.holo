@@ -1,0 +1,19 @@
+@trait {
+  name: "@mirror_surface",
+  category: "visual",
+  description: "Real-time planar mirror surface renderer. Renders a reflected view from the entity's plane into a render texture applied as the entity's material, supporting configurable clip plane offset, resolution scale, and roughness-blurred reflections for imperfect mirrors. Authored from MirrorSurfaceTrait.ts.",
+  props: {
+    resolution_scale: number = 0.5,
+    clip_offset_m: number = 0.001,
+    roughness: number = 0.0,
+    tint: string = "#ffffff",
+    enabled: boolean = true,
+    max_range_m: number = 50.0
+  },
+  events: {
+    attached: "mirror_surface_attached",
+    detached: "mirror_surface_detached",
+    on_enable: "mirror_surface_enable"
+  },
+  behaviors: ["@reflection_probe", "@post_process", "@static_mesh"]
+}

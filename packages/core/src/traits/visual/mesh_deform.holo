@@ -1,0 +1,21 @@
+@trait {
+  name: "@mesh_deform",
+  category: "visual",
+  description: "Runtime mesh deformation driver. Applies vertex displacement via noise field, wave function, or blend-shape morph-target weights to a skinned or static mesh, enabling procedural squash-and-stretch, wind ripple, and impact dent effects. Authored from MeshDeformTrait.ts.",
+  props: {
+    mode: enum("noise" | "wave" | "morph_target" | "physics_sim") = "noise",
+    intensity: number = 0.1,
+    frequency: number = 1.0,
+    speed: number = 1.0,
+    axis_mask: enum("xyz" | "xy" | "xz" | "yz" | "x" | "y" | "z") = "xyz",
+    morph_target_url: string = "",
+    animated: boolean = true
+  },
+  events: {
+    attached: "mesh_deform_attached",
+    detached: "mesh_deform_detached",
+    on_deform: "mesh_deform_deform",
+    set_intensity: "mesh_deform_trigger_intensity"
+  },
+  behaviors: ["@static_mesh", "@gpu_particle", "@noise_field"]
+}

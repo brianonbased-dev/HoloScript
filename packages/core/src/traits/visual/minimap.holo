@@ -1,0 +1,22 @@
+@trait {
+  name: "@minimap",
+  category: "visual",
+  description: "Top-down minimap renderer overlay. Captures a downward orthographic view of the world within a configurable radius and renders it to a HUD canvas element, with player dot, map markers, and fog-of-war mask from any active @fog_of_war entity. Authored from MinimapTrait.ts.",
+  props: {
+    radius_m: number = 50.0,
+    zoom: number = 1.0,
+    rotate_with_player: boolean = true,
+    show_player_dot: boolean = true,
+    show_markers: boolean = true,
+    show_fog: boolean = true,
+    size_px: number = 200,
+    opacity: number = 0.85
+  },
+  events: {
+    attached: "minimap_attached",
+    detached: "minimap_detached",
+    on_zoom: "minimap_zoom",
+    set_zoom: "minimap_trigger_zoom"
+  },
+  behaviors: ["@fog_of_war", "@map_marker", "@display"]
+}

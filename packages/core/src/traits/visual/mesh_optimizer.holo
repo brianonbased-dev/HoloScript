@@ -1,0 +1,21 @@
+@trait {
+  name: "@mesh_optimizer",
+  category: "visual",
+  description: "Mesh simplification and optimization pipeline stage. Reduces triangle count on an imported mesh asset to a target ratio using quadric error or edge collapse algorithms, outputting an optimized mesh variant for LOD generation or runtime budget enforcement. Authored from MeshOptimizerTrait.ts.",
+  props: {
+    target_ratio: number = 0.5,
+    algorithm: enum("quadric_error" | "edge_collapse" | "vertex_cluster") = "quadric_error",
+    preserve_boundary: boolean = true,
+    preserve_normals: boolean = true,
+    weld_threshold_m: number = 0.0001,
+    auto_run_on_attach: boolean = false
+  },
+  events: {
+    attached: "mesh_optimizer_attached",
+    detached: "mesh_optimizer_detached",
+    on_complete: "mesh_optimizer_complete",
+    on_error: "mesh_optimizer_error",
+    optimize: "mesh_optimizer_trigger"
+  },
+  behaviors: ["@static_mesh", "@lod_manager", "@level_of_detail"]
+}
