@@ -935,32 +935,32 @@ through the plugin provenance-preservation theorem.
     compilation provenance chain to the rendering contract
     (P3-CENTER~\cite{paper-13-dumbglass-siggraph2028}),
     closing the loop from source notation to rendered pixel.
-  \item \textbf{ContractClause: pre/inv/post clause sets.}
-    Attach typed \texttt{preconditions}/\texttt{invariants}/%
-    \texttt{postconditions} to \texttt{ContractConfig}, evaluated
-    at construction, per-step, and at finalize, with violations
-    carried into the receipt.  This closes the gap between ``a run
-    happened'' (the current guarantee) and ``a run was right''
-    (a dischargeable theorem): a green receipt becomes a witness
-    that no clause fired, and a non-trivially falsifiable invariant
+  \item \textbf{ContractClause: pre/inv/post clause sets.} \emph{(Shipped.)}
+    Typed \texttt{preconditions}/\texttt{invariants}/\texttt{postconditions}
+    are parsed from the \texttt{sim\_contract~\{\}} block
+    (\texttt{packages/core/src/parser/HoloCompositionParser.ts}) and
+    evaluated—before the solver, per step, after finalize—by
+    \texttt{PluginSolverContract} (\texttt{packages/core/src/plugin-solver-contract/}).
+    Violations are carried into the receipt; a green receipt is a
+    witness that no clause fired.  A non-trivially falsifiable invariant
     is required before a trace is labelled \texttt{verified}
     rather than \texttt{execution\-only}.
-  \item \textbf{ParameterEnvelope: first-class valid-parameter domain.}
-    Attach a generic \(\{param,\min,\max,\text{allowed},\text{unit}\}\)
-    envelope to compiled contracts so that parametric correctness
-    (``for any parameters within the envelope the postcondition
-    holds'') is a compile-time-checkable property.  Within-envelope
-    remix inherits the proof automatically; out-of-envelope remix
-    re-discharges or flags honestly---resolving the provenance
-    ambiguity between ``parameter changed'' and ``correctness
-    boundary crossed.''
-  \item \textbf{DimensionalTypeSystem: SI-unit refinement types.}
-    Introduce \texttt{Float<kg>}, \texttt{Float<N>}, \texttt{Float<N/m>}
-    as a sixth \texttt{CompilerSafetyPass}, catching unit-mismatch
-    sim\-to\-real failures at parse time across all domain plugins
-    without requiring any plugin code change.  Generalises the
-    shipped \texttt{@freshnessBound} compile-time checker to the
-    physical-dimension axis.
+  \item \textbf{ParameterEnvelope: first-class valid-parameter domain.} \emph{(Shipped.)}
+    A generic \(\{param,\min,\max,\text{allowed},\text{unit},\text{onViolation}\}\)
+    envelope (\texttt{packages/core/src/parameter-envelope/ParameterEnvelope.ts})
+    attaches to compiled contracts.  Within-envelope remixes inherit
+    the proof automatically; out-of-envelope remixes trigger
+    \texttt{redischarge} (re-proof required) or emit an honest
+    \texttt{error}---resolving the provenance ambiguity between
+    ``parameter changed'' and ``correctness boundary crossed.''
+  \item \textbf{DimensionalTypeSystem: SI-unit refinement types.} \emph{(Shipped as Layer~8.)}
+    \texttt{Float<kg>}, \texttt{Float<N>}, \texttt{Float<N/m>} and the
+    full SI-unit UNIT\_REGISTRY are implemented as the eighth
+    \texttt{CompilerSafetyPass} layer
+    (\texttt{packages/core/src/compiler/safety/DimensionalTypeSystem.ts})
+    and wired into \texttt{runSafetyPass} via \texttt{dimensionalNodes}.
+    Unit-mismatch sim-to-real failures are caught at parse time across
+    all domain plugins without any plugin code change.
 \end{itemize}
 
 % ────────────────────────────────────────────────────────────────────────────
