@@ -1,0 +1,20 @@
+@trait {
+  name: "@gesture_recognizer",
+  category: "xr",
+  description: "Hand gesture pattern recognizer for XR input. Matches finger pose landmarks against a named gesture library (pinch, fist, open palm, point, thumbs-up, custom) and fires typed gesture events with confidence score when a pose is held above threshold duration. Authored from GestureRecognizerTrait.ts.",
+  props: {
+    gestures: list<enum("pinch" | "fist" | "open_palm" | "point" | "thumbs_up" | "peace" | "custom")> = ["pinch", "open_palm"],
+    custom_gesture_url: string = "",
+    confidence_threshold: number = 0.85,
+    hold_duration_ms: number = 100,
+    hands: enum("left" | "right" | "both") = "both"
+  },
+  events: {
+    attached: "gesture_recognizer_attached",
+    detached: "gesture_recognizer_detached",
+    on_gesture_start: "gesture_recognizer_start",
+    on_gesture_end: "gesture_recognizer_end",
+    on_gesture_hold: "gesture_recognizer_hold"
+  },
+  behaviors: ["@xr_hand_tracking", "@xr_controller", "@affordance"]
+}

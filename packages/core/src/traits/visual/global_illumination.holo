@@ -1,0 +1,20 @@
+@trait {
+  name: "@global_illumination",
+  category: "visual",
+  description: "Global illumination and indirect lighting controller. Configures GI method (baked lightmaps, DDGI probes, SSGI, or VXGI), sky contribution, probe grid density, and indirect intensity for photorealistic ambient bounce lighting in static and dynamic scenes. Authored from GlobalIlluminationTrait.ts.",
+  props: {
+    method: enum("baked" | "ddgi" | "ssgi" | "vxgi" | "none") = "ddgi",
+    sky_intensity: number = 1.0,
+    bounce_intensity: number = 1.0,
+    probe_spacing_m: number = 4.0,
+    max_distance_m: number = 50.0,
+    update_frequency: enum("realtime" | "periodic" | "bake_only") = "periodic"
+  },
+  events: {
+    attached: "global_illumination_attached",
+    detached: "global_illumination_detached",
+    on_bake_complete: "global_illumination_bake_complete",
+    bake: "global_illumination_trigger_bake"
+  },
+  behaviors: ["@light_probe", "@reflection_probe", "@skybox"]
+}

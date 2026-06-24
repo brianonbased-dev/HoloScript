@@ -1,0 +1,22 @@
+@trait {
+  name: "@gizmo",
+  category: "visual",
+  description: "Editor gizmo overlay for in-world transform manipulation. Renders translate/rotate/scale handles on the entity in editor mode, fires transform deltas on drag, and optionally snaps to a configurable grid/angle increment. Authored from GizmoTrait.ts.",
+  props: {
+    mode: enum("translate" | "rotate" | "scale" | "all") = "translate",
+    snap_translate_m: number = 0.0,
+    snap_rotate_deg: number = 0.0,
+    snap_scale: number = 0.0,
+    visible_in_play: boolean = false,
+    size: number = 1.0,
+    axis_mask: enum("xyz" | "xy" | "xz" | "yz" | "x" | "y" | "z") = "xyz"
+  },
+  events: {
+    attached: "gizmo_attached",
+    detached: "gizmo_detached",
+    on_drag_start: "gizmo_drag_start",
+    on_drag: "gizmo_drag",
+    on_drag_end: "gizmo_drag_end"
+  },
+  behaviors: ["@transform", "@affordance", "@spatial_anchor"]
+}

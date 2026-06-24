@@ -1,0 +1,20 @@
+@trait {
+  name: "@gradient",
+  category: "visual",
+  description: "Procedural color gradient shader for entity surfaces. Defines a multi-stop color ramp applied along a configurable axis (linear, radial, angular) with animated offset and optional UV-based noise mask for organic effects. Authored from GradientTrait.ts.",
+  props: {
+    stops: list<{ t: number, color: string }> = [{ t: 0.0, color: "#000000" }, { t: 1.0, color: "#ffffff" }],
+    type: enum("linear" | "radial" | "angular" | "conic") = "linear",
+    axis: enum("x" | "y" | "z" | "uv") = "y",
+    animate_offset_speed: number = 0.0,
+    noise_scale: number = 0.0,
+    opacity: number = 1.0
+  },
+  events: {
+    attached: "gradient_attached",
+    detached: "gradient_detached",
+    on_update: "gradient_update",
+    set_stops: "gradient_trigger_set_stops"
+  },
+  behaviors: ["@decal", "@post_process", "@perceptual_color"]
+}
