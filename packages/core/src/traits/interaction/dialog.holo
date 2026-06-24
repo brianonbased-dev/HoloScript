@@ -1,0 +1,27 @@
+@trait {
+  name: "@dialog",
+  category: "interaction",
+  description: "Branching dialog system for NPC conversations. Manages dialog trees, condition-gated branches, choice presentation, and relationship state mutations. Authored from DialogTrait.ts.",
+  props: {
+    dialog_url: string = "",
+    format: enum("holoscript" | "yarn" | "ink" | "json") = "holoscript",
+    npc_name: string = "",
+    portrait_url: string = "",
+    skip_enabled: boolean = true,
+    typewriter_speed_cps: number = 40,
+    auto_advance_ms: number = 0
+  },
+  events: {
+    attached: "dialog_attached",
+    detached: "dialog_detached",
+    on_start: "dialog_start",
+    on_line: "dialog_line",
+    on_choice: "dialog_choice",
+    on_select: "dialog_select",
+    on_end: "dialog_end",
+    start: "dialog_trigger_start",
+    choose: "dialog_trigger_choose",
+    skip: "dialog_trigger_skip"
+  },
+  behaviors: ["@speech_synthesis", "@user", "@quest_system"]
+}
