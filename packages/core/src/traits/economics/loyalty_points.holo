@@ -1,0 +1,25 @@
+@trait {
+  name: "@loyalty_points",
+  category: "economics",
+  description: "Loyalty point accumulator and redemption ledger. Tracks a user's point balance earned from purchases or actions, applies tier multipliers, enforces per-period earn caps, and validates redemption requests against point cost catalog entries. Authored from LoyaltyPointsTrait.ts.",
+  props: {
+    balance: number = 0,
+    tier: enum("bronze" | "silver" | "gold" | "platinum") = "bronze",
+    tier_multiplier: number = 1.0,
+    earn_cap_per_day: number = 0,
+    points_per_unit_spend: number = 1.0,
+    expiry_days: number = 365,
+    currency_symbol: string = "pts"
+  },
+  events: {
+    attached: "loyalty_points_attached",
+    detached: "loyalty_points_detached",
+    on_earn: "loyalty_points_earn",
+    on_redeem: "loyalty_points_redeem",
+    on_expire: "loyalty_points_expire",
+    on_tier_change: "loyalty_points_tier_change",
+    earn: "loyalty_points_trigger_earn",
+    redeem: "loyalty_points_trigger_redeem"
+  },
+  behaviors: ["@token_gating", "@price_oracle", "@leaderboard"]
+}

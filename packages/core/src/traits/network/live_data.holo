@@ -1,0 +1,23 @@
+@trait {
+  name: "@live_data",
+  category: "network",
+  description: "Live data stream subscriber and prop binder. Subscribes to a named WebSocket or SSE stream, parses incoming JSON messages against a schema, and binds extracted fields directly to entity props — for real-time sensor, financial, or telemetry feeds. Authored from LiveDataTrait.ts.",
+  props: {
+    source_url: string = "",
+    protocol: enum("websocket" | "sse" | "polling") = "websocket",
+    poll_interval_s: number = 1,
+    schema_url: string = "",
+    prop_bindings: dict<string, string> = {},
+    reconnect_on_error: boolean = true,
+    auth_header: string = ""
+  },
+  events: {
+    attached: "live_data_attached",
+    detached: "live_data_detached",
+    on_message: "live_data_message",
+    on_connect: "live_data_connect",
+    on_disconnect: "live_data_disconnect",
+    on_error: "live_data_error"
+  },
+  behaviors: ["@networked", "@event_bus", "@signal_bus"]
+}

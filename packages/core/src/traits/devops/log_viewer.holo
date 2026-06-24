@@ -1,0 +1,21 @@
+@trait {
+  name: "@log_viewer",
+  category: "devops",
+  description: "In-world or in-panel log viewer surface. Streams structured log entries from a named log sink (service name, log level filter) into a scrollable display entity, supporting keyword highlight, level filter, and tail mode. Authored from LogViewerTrait.ts.",
+  props: {
+    source_service: string = "",
+    level_filter: enum("debug" | "info" | "warn" | "error" | "all") = "info",
+    tail_lines: number = 100,
+    highlight_keywords: list<string> = [],
+    auto_scroll: boolean = true,
+    max_lines: number = 1000
+  },
+  events: {
+    attached: "log_viewer_attached",
+    detached: "log_viewer_detached",
+    on_entry: "log_viewer_entry",
+    on_clear: "log_viewer_clear",
+    clear: "log_viewer_trigger_clear"
+  },
+  behaviors: ["@diagnostic", "@audit_log", "@display"]
+}

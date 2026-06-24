@@ -1,0 +1,19 @@
+@trait {
+  name: "@lod_manager",
+  category: "visual",
+  description: "Scene-wide LOD budget manager. Tracks all LOD-enabled entities in the world, scores them by screen-size and distance, and enforces a target triangle budget by selecting the appropriate LOD level for each entity each frame. Authored from LodManagerTrait.ts.",
+  props: {
+    target_triangle_budget: number = 2000000,
+    update_rate_hz: number = 10,
+    bias_close: number = 1.0,
+    bias_far: number = 1.0,
+    freeze: boolean = false
+  },
+  events: {
+    attached: "lod_manager_attached",
+    detached: "lod_manager_detached",
+    on_budget_exceeded: "lod_manager_budget_exceeded",
+    on_update: "lod_manager_update"
+  },
+  behaviors: ["@level_of_detail", "@occlusion_culling", "@scene_optimizer"]
+}
