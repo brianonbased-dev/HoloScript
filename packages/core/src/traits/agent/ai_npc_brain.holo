@@ -1,0 +1,30 @@
+@trait {
+  name: "@ai_npc_brain",
+  category: "agent",
+  description: "Autonomous NPC cognitive controller wired to a visual behavior graph and an LLM dialogue backend. behavior_graph_url is a URI pointing to a behaviour graph asset (JSON or .hsplus brain) that drives the NPC's decision cycle — nodes map to actions, edges to conditions. perception_radius_m is the spatial radius in metres within which the NPC perceives entities and events; stimuli outside this radius are discarded before the decision cycle. memory_slots caps the working-memory capacity: the runtime keeps the most recent memory_slots percepts and agent-generated facts in an eviction-priority queue. decision_hz is the frequency in Hz at which the NPC evaluates the behaviour graph and may emit a new action — lower values reduce CPU cost; higher values make the NPC more reactive. stance sets the NPC's current social disposition and biases LLM system-prompt injection and animation selection: aggressive heightens threat response and confrontational dialogue; neutral is the balanced baseline; friendly opens cooperative dialogue paths and reduces combat triggers; fearful activates avoidance locomotion and distressed dialogue. on_percept fires each time a new stimulus enters perception_radius_m, carrying entity id, stimulus type, and distance. on_decide fires after each decision cycle, carrying the selected behaviour node id and confidence score. on_action fires when the NPC commits to a physical action (move, speak, attack, emote), carrying action type and target. on_dialogue fires when the LLM backend produces a spoken utterance, carrying the text and TTS metadata. Research: AINPCBrainTrait.ts, LLMAgentTrait.ts, NPCAITrait.ts, BehaviorTreeTrait.ts.",
+  props: {
+    behavior_graph_url: string = "",
+    perception_radius_m: number = 8.0,
+    memory_slots: number = 20,
+    decision_hz: number = 4.0,
+    stance: enum("aggressive" | "neutral" | "friendly" | "fearful") = "neutral"
+  },
+  events: {
+    attached: "ai_npc_brain:attached",
+    detached: "ai_npc_brain:detached",
+    initialized: "ai_npc_brain:initialized",
+    percept: "ai_npc_brain:percept",
+    decided: "ai_npc_brain:decided",
+    action: "ai_npc_brain:action",
+    dialogue: "ai_npc_brain:dialogue",
+    stance_changed: "ai_npc_brain:stance_changed",
+    error: "ai_npc_brain:error",
+    on_percept: "ai_npc_brain:percept_cmd",
+    on_decide: "ai_npc_brain:decide",
+    on_action: "ai_npc_brain:action_cmd",
+    on_dialogue: "ai_npc_brain:dialogue_cmd",
+    on_set_stance: "ai_npc_brain:set_stance",
+    on_set_behavior_graph: "ai_npc_brain:set_behavior_graph"
+  },
+  behaviors: ["@npc_ai", "@llm_agent", "@agent_memory", "@steering"]
+}

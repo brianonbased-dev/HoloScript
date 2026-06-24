@@ -1,0 +1,26 @@
+@trait {
+  name: "@advanced_texturing",
+  category: "visual",
+  description: "GPU-accelerated texture streaming and compression pipeline for high-resolution surface detail. virtual_texturing enables sparse virtual texture (SVT/UDIM) paging so only resident tiles are held in GPU memory, supporting effectively unbounded texture resolution. tile_size sets the streaming tile edge length in texels (power-of-two: 128–2048); smaller tiles reduce residency overhead; larger tiles reduce per-tile overhead at the cost of memory granularity. compression selects the GPU block-compression codec: bc7 offers highest quality for RGBA on PC/console (BC7 Mode 6); astc is the adaptive scalable codec used on mobile and Apple Silicon — supports variable block footprint; etc2 is the backwards-compatible mobile format required for OpenGL ES 3.0 targets. mip_count caps the mip chain depth (1 = no mipmapping); the runtime generates the full chain unless capped. aniso_level sets the anisotropic filtering level (1–16x); higher levels reduce angular aliasing on oblique surfaces at a small bandwidth cost. streaming_priority is a [0, 10] hint passed to the texture streaming scheduler; higher values cause tiles to be loaded sooner when under memory pressure. on_load fires when all mandatory mip levels are resident, carrying the texture asset id and elapsed load time. on_stream fires each time a tile is paged in or out, carrying tile address and direction (in | out). on_error fires on decode or upload failure, carrying asset id and error code. Research: AdvancedTexturingTrait.ts DisplacementConfig / POMConfig / TriplanarConfig.",
+  props: {
+    virtual_texturing: boolean = false,
+    tile_size: number = 256,
+    compression: enum("bc7" | "astc" | "etc2") = "bc7",
+    mip_count: number = 0,
+    aniso_level: number = 4,
+    streaming_priority: number = 5
+  },
+  events: {
+    attached: "advanced_texturing:attached",
+    detached: "advanced_texturing:detached",
+    loaded: "advanced_texturing:loaded",
+    streamed: "advanced_texturing:streamed",
+    error: "advanced_texturing:error",
+    on_load: "advanced_texturing:load",
+    on_stream: "advanced_texturing:stream",
+    on_error: "advanced_texturing:error_cmd",
+    on_set_compression: "advanced_texturing:set_compression",
+    on_set_priority: "advanced_texturing:set_priority"
+  },
+  behaviors: ["@material", "@rendering"]
+}
