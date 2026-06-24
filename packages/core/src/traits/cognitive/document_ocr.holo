@@ -1,0 +1,22 @@
+@trait {
+  name: "@document_ocr",
+  category: "cognitive",
+  description: "Optical character recognition pipeline for images, PDFs, and document streams. engine selects the OCR backend: tesseract uses the open-source Tesseract 5 engine running locally; google_vision delegates to the Google Cloud Vision API; aws_textract delegates to AWS Textract; holoscript uses the HoloScript-native OCR model compiled to WASM/ONNX for on-device inference. language_hints is an ordered list of BCP-47 language codes (e.g. ['en', 'es']) used to bias the language model toward expected input languages — ignored by engines that auto-detect. confidence_min is the minimum per-word confidence score (0.0–1.0) below which tokens are omitted from the output; set to 0.0 to include all tokens. output_format controls the serialisation of recognised text: text emits a flat UTF-8 string; json emits a structured payload with bounding boxes, word confidences, and paragraph groupings; markdown emits the text re-flowed as Markdown with heading inference enabled. deskew applies automatic image straightening before recognition to compensate for scanned-document skew; disable if the input is already axis-aligned to save processing time. on_ocr fires after a successful recognition pass with the structured result (format per output_format) and the measured processing time in ms; on_error fires with the engine name and error message on recognition failure; on_progress fires on multi-page documents after each page with page index and total count. Compose with @embedding to index recognised text, @full_text_search to make documents searchable, and @cache to avoid redundant re-recognition of the same digest. Research: VisionTrait.ts (camera-based perception pipeline), InferenceTrait.ts (ONNX-backed inference), OnnxRuntimeTrait.ts.",
+  props: {
+    engine: enum("tesseract" | "google_vision" | "aws_textract" | "holoscript") = "tesseract",
+    language_hints: list<string> = [],
+    confidence_min: number = 0.5,
+    output_format: enum("text" | "json" | "markdown") = "text",
+    deskew: boolean = true
+  },
+  events: {
+    attached: "document_ocr:attached",
+    detached: "document_ocr:detached",
+    on_ocr: "document_ocr:result",
+    on_error: "document_ocr:error",
+    on_progress: "document_ocr:progress",
+    on_recognize: "document_ocr:recognize",
+    on_cancel: "document_ocr:cancel"
+  },
+  behaviors: ["@cache", "@embedding"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@dependency_injection",
+  category: "devops",
+  description: "Service-container dependency injection for HoloScript entities. token is the injection key (string identifier) used by consumers to resolve the registered service; factory_fn names the provider function string invoked to construct the service instance. scope controls lifetime: singleton creates the instance once per container and reuses it for every resolution; transient creates a fresh instance on every resolution; scoped creates one instance per container scope (e.g. per-request in a server context). lazy defers construction until the first resolution call rather than at registration time, reducing startup cost for expensive services. on_resolve fires with the token and the constructed instance after every successful resolution; on_dispose fires when the container scope closes and the instance is torn down (singleton and scoped only); on_error fires if the factory_fn throws or the token cannot be resolved. Compose with @validation to type-check resolved payloads and with @feature_flag to gate service registrations by environment. Research: FileSystemTrait.ts (DI token resolution pattern), EnvConfigTrait.ts (config-driven provider selection).",
+  props: {
+    token: string = "",
+    factory_fn: string = "",
+    scope: enum("singleton" | "transient" | "scoped") = "singleton",
+    lazy: boolean = false
+  },
+  events: {
+    attached: "dependency_injection:attached",
+    detached: "dependency_injection:detached",
+    on_resolve: "dependency_injection:resolved",
+    on_dispose: "dependency_injection:disposed",
+    on_error: "dependency_injection:error",
+    on_register: "dependency_injection:register",
+    on_override: "dependency_injection:override",
+    on_clear_scope: "dependency_injection:clear_scope"
+  },
+  behaviors: ["@feature_flag"]
+}

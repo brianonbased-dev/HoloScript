@@ -1,0 +1,22 @@
+@trait {
+  name: "@error_boundary",
+  category: "devops",
+  description: "Hierarchical error isolation boundary that catches exceptions thrown by descendant nodes and presents a configurable fallback surface instead of propagating the failure upward. fallback_component names the HoloScript component or .holo file rendered in place of the failed subtree while recovery is in progress; empty string falls back to a built-in minimal error card. report_to_url is an optional HTTPS endpoint to which structured error payloads are POSTed (JSON: message, stack, componentStack, timestamp, entityId, sessionId) — leave empty to suppress remote reporting. capture_console when true intercepts console.error calls within the boundary scope and folds them into the on_error event stream alongside thrown exceptions. error_types is a list of error class name strings (e.g. ['NetworkError', 'TimeoutError']) used as an allowlist — only errors whose constructor name matches are caught; an empty list catches all error types. stack_filter is a substring match applied to the stack trace string; only errors whose stack contains the filter are caught — useful for narrowing to a specific package or module path. on_error fires when an error is caught with payload: message, stack, componentStack, timestamp, and whether remote reporting was attempted; on_reset fires when the boundary is cleared and the original subtree re-mounts after a recovery command; on_report fires after a successful remote POST with the HTTP status code and response body prefix. Pairs with @healthcheck to surface boundary-tripped state in ops dashboards and with @validation for structured error payload contracts. Research: ChaosTestTrait.ts, IncidentTrait.ts, ServiceObservabilityTrait.ts.",
+  props: {
+    fallback_component: string = "",
+    report_to_url: string = "",
+    capture_console: boolean = false,
+    error_types: list<string> = [],
+    stack_filter: string = ""
+  },
+  events: {
+    attached: "error_boundary:attached",
+    detached: "error_boundary:detached",
+    on_error: "error_boundary:caught",
+    on_reset: "error_boundary:reset",
+    on_report: "error_boundary:reported",
+    on_retry: "error_boundary:retry",
+    on_dismiss: "error_boundary:dismiss"
+  },
+  behaviors: ["@healthcheck", "@validation"]
+}

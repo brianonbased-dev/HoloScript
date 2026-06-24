@@ -1,0 +1,27 @@
+@trait {
+  name: "@file_system",
+  category: "system",
+  description: "Sandboxed file system access layer for HoloScript entities. root_path is the absolute or workspace-relative directory that acts as the confinement root; all path operations are restricted to this subtree — any path that would escape via '..' traversal is rejected with on_error before reaching the host OS. allowed_extensions is an allowlist of file extensions (e.g. ['.json', '.holo', '.txt']) the trait will read or write; an empty list permits all extensions. max_file_size_mb is the per-file size cap in megabytes applied on both read and write; operations exceeding this limit emit on_error with a size_exceeded code. mode controls the access policy: read permits only read operations; write permits only write operations (including create and delete); readwrite permits all operations. watch enables a filesystem watcher on root_path that fires on_watch on any create, modify, or delete event within the monitored tree; recursive extends watching into subdirectories. on_read fires after a successful file read with path, size_bytes, and encoding in the payload; on_write fires after a successful write or create with path and bytes_written; on_delete fires after a successful deletion with the affected path; on_watch fires for each filesystem change event with path, event_type (created|modified|deleted), and timestamp when watch is enabled; on_error fires on any access violation, size limit breach, extension block, or host I/O error. Compose with @encryption for at-rest encryption and with @audit_log for durable access records. Research: FileSystemTrait.ts (path normalization, root sandboxing, fs.watch watcher pattern, event routing via hostCapabilities.fileSystem).",
+  props: {
+    root_path: string = "/",
+    allowed_extensions: list<string> = [],
+    max_file_size_mb: number = 100,
+    mode: enum("read" | "write" | "readwrite") = "readwrite",
+    watch: boolean = false,
+    recursive: boolean = false
+  },
+  events: {
+    attached: "file_system:attached",
+    detached: "file_system:detached",
+    on_read: "file_system:read",
+    on_write: "file_system:write",
+    on_delete: "file_system:delete",
+    on_watch: "file_system:watch",
+    on_error: "file_system:error",
+    on_list: "file_system:list",
+    on_stat: "file_system:stat",
+    on_move: "file_system:move",
+    on_set_watch: "file_system:cmd_set_watch"
+  },
+  behaviors: ["@encryption", "@audit_log"]
+}
