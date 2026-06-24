@@ -1,0 +1,23 @@
+@trait {
+  name: "@layer_compositor",
+  category: "visual",
+  description: "Multi-layer post-processing compositor. Stacks render passes and composites them with blend modes, masks, and ordering. Authored from LayerCompositeTrait.ts.",
+  props: {
+    layers: list<{ name: string, enabled: boolean, blend_mode: string, opacity: number }> = [],
+    output_format: enum("rgba8" | "rgba16f" | "rgba32f") = "rgba8",
+    hdr: boolean = false,
+    msaa: enum("off" | "2x" | "4x" | "8x") = "off",
+    render_scale: number = 1.0
+  },
+  events: {
+    attached: "layer_compositor_attached",
+    detached: "layer_compositor_detached",
+    on_render: "layer_compositor_render",
+    on_layer_change: "layer_compositor_layer_change",
+    on_error: "layer_compositor_error",
+    add_layer: "layer_compositor_add",
+    remove_layer: "layer_compositor_remove",
+    reorder_layers: "layer_compositor_reorder"
+  },
+  behaviors: ["@rendering", "@screen_space_effects"]
+}

@@ -1,0 +1,27 @@
+@trait {
+  name: "@knowledge_graph",
+  category: "cognitive",
+  description: "Structured knowledge graph for entity relationships, facts, and reasoning. Supports SPARQL-like queries and semantic inference over typed nodes and edges. Authored from KnowledgeGraphTrait.ts.",
+  props: {
+    backend: enum("holoscript" | "neo4j" | "jena" | "memory") = "holoscript",
+    endpoint_url: string = "",
+    schema_url: string = "",
+    max_nodes: number = 100000,
+    inference_enabled: boolean = true,
+    persist: boolean = true,
+    namespace: string = "default"
+  },
+  events: {
+    attached: "knowledge_graph_attached",
+    detached: "knowledge_graph_detached",
+    on_node_add: "knowledge_graph_node_add",
+    on_edge_add: "knowledge_graph_edge_add",
+    on_query: "knowledge_graph_query",
+    on_infer: "knowledge_graph_infer",
+    on_error: "knowledge_graph_error",
+    query: "knowledge_graph_trigger_query",
+    add_node: "knowledge_graph_add_node",
+    add_edge: "knowledge_graph_add_edge"
+  },
+  behaviors: ["@rag", "@embedding"]
+}

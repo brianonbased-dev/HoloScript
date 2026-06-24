@@ -1,0 +1,22 @@
+@trait {
+  name: "@lod",
+  category: "visual",
+  description: "Level-of-detail switching for mesh geometry. Automatically selects lower-resolution mesh variants as the camera distance increases. Authored from LODTrait.ts.",
+  props: {
+    levels: list<{ distance_m: number, mesh_url: string, screen_size_pct: number }> = [],
+    mode: enum("distance" | "screen_size" | "manual") = "screen_size",
+    hysteresis: number = 0.05,
+    fade_mode: enum("cross_fade" | "instant" | "dither") = "cross_fade",
+    fade_duration_ms: number = 200,
+    cull_distance_m: number = 500.0
+  },
+  events: {
+    attached: "lod_attached",
+    detached: "lod_detached",
+    on_level_change: "lod_level_change",
+    on_cull: "lod_cull",
+    on_uncull: "lod_uncull",
+    set_level: "lod_set_level"
+  },
+  behaviors: ["@rendering"]
+}

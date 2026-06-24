@@ -1,0 +1,26 @@
+@trait {
+  name: "@joint_constraint",
+  category: "physics",
+  description: "Physics constraint between two rigidbodies. Supports hinge, slider, ball-socket, fixed, and cone-twist joints with configurable limits and motors. Authored from JointConstraintTrait.ts.",
+  props: {
+    type: enum("hinge" | "slider" | "ball_socket" | "fixed" | "cone_twist" | "generic") = "hinge",
+    body_a: string = "",
+    body_b: string = "",
+    anchor_a: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    anchor_b: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    limit_lower: number = -180.0,
+    limit_upper: number = 180.0,
+    motor_enabled: boolean = false,
+    motor_velocity: number = 0.0,
+    max_motor_force: number = 100.0,
+    break_force: number = 0.0
+  },
+  events: {
+    attached: "joint_constraint_attached",
+    detached: "joint_constraint_detached",
+    on_break: "joint_constraint_break",
+    on_limit: "joint_constraint_limit",
+    on_update: "joint_constraint_update"
+  },
+  behaviors: ["@rigid_body"]
+}
