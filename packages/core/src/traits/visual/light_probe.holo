@@ -1,0 +1,19 @@
+@trait {
+  name: "@light_probe",
+  category: "visual",
+  description: "Spherical harmonic light probe for dynamic indirect lighting capture. Samples environment radiance at the entity's position into an L2 SH coefficient set, updating at a configurable rate and contributing to nearby dynamic objects' ambient term. Authored from LightProbeTrait.ts.",
+  props: {
+    resolution: number = 64,
+    update_frequency: enum("realtime" | "per_frame" | "manual") = "per_frame",
+    blend_radius_m: number = 5.0,
+    intensity_multiplier: number = 1.0,
+    bake_on_attach: boolean = false
+  },
+  events: {
+    attached: "light_probe_attached",
+    detached: "light_probe_detached",
+    on_update: "light_probe_update",
+    bake: "light_probe_trigger_bake"
+  },
+  behaviors: ["@global_illumination", "@reflection_probe", "@skybox"]
+}

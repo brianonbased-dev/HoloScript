@@ -1,0 +1,21 @@
+@trait {
+  name: "@lipsync",
+  category: "audio",
+  description: "Audio-driven lip-sync blend-shape animator. Analyzes PCM audio amplitude and phoneme envelope to drive jaw/viseme morph-target weights in real-time, supporting both recorded audio file input and live microphone streaming for agent speech visualization. Authored from LipsyncTrait.ts.",
+  props: {
+    source: enum("audio_file" | "live_mic" | "tts_stream") = "tts_stream",
+    audio_url: string = "",
+    viseme_map_url: string = "",
+    smoothing: number = 0.15,
+    amplitude_scale: number = 1.0,
+    jaw_max_open: number = 0.8
+  },
+  events: {
+    attached: "lipsync_attached",
+    detached: "lipsync_detached",
+    on_start: "lipsync_start",
+    on_stop: "lipsync_stop",
+    on_phoneme: "lipsync_phoneme"
+  },
+  behaviors: ["@expression", "@tts", "@audio_source"]
+}

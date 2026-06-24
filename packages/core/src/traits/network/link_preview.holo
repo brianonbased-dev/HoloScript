@@ -1,0 +1,21 @@
+@trait {
+  name: "@link_preview",
+  category: "network",
+  description: "URL OpenGraph / meta-tag link preview fetcher. Fetches title, description, and thumbnail from a URL via server-side proxy, caching results with TTL and emitting a structured preview card payload for in-world or feed display. Authored from LinkPreviewTrait.ts.",
+  props: {
+    url: string = "",
+    ttl_s: number = 3600,
+    auto_fetch: boolean = true,
+    proxy_url: string = "",
+    max_image_size_kb: number = 512,
+    fallback_image_url: string = ""
+  },
+  events: {
+    attached: "link_preview_attached",
+    detached: "link_preview_detached",
+    on_preview: "link_preview_preview",
+    on_error: "link_preview_error",
+    fetch: "link_preview_trigger_fetch"
+  },
+  behaviors: ["@networked", "@open_graph", "@document_store"]
+}

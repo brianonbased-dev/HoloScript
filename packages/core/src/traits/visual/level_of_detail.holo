@@ -1,0 +1,19 @@
+@trait {
+  name: "@level_of_detail",
+  category: "visual",
+  description: "Discrete LOD switcher for mesh entities. Assigns LOD mesh variants at distance thresholds, blending between levels with cross-fade or instant swap, reducing GPU vertex load on distant entities. Authored from LevelOfDetailTrait.ts.",
+  props: {
+    levels: list<{ distance_m: number, mesh_url: string }> = [],
+    blend_mode: enum("instant" | "cross_fade" | "dither") = "cross_fade",
+    blend_duration_ms: number = 200,
+    cull_distance_m: number = 200.0,
+    auto_generate: boolean = false
+  },
+  events: {
+    attached: "level_of_detail_attached",
+    detached: "level_of_detail_detached",
+    on_level_change: "level_of_detail_change",
+    on_cull: "level_of_detail_cull"
+  },
+  behaviors: ["@static_mesh", "@lod_manager", "@occlusion_culling"]
+}
