@@ -1,0 +1,29 @@
+@trait {
+  name: "@biometric",
+  category: "security",
+  description: "Biometric authentication and identity verification gate for HoloScript entities. modality selects the biometric channel: face recognition, fingerprint, iris scan, voice print, or continuous behavioral analytics. liveness_check enables presentation-attack detection to reject spoofs (printed photos, recordings). threshold is a normalized match score [0,1] above which on_match fires; below it on_fail fires. store_mode controls where enrolled templates are persisted: local (device-only, never network), vault (encrypted via @holokey_vault, portable), or federated (tenant-managed remote store). on_enroll captures and registers a new biometric template; on_revoke deletes it. Composes with @encryption and @secret for template-at-rest protection.",
+  props: {
+    modality: enum("face" | "fingerprint" | "iris" | "voice" | "behavioral") = "face",
+    liveness_check: boolean = true,
+    threshold: number = 0.92,
+    store_mode: enum("local" | "vault" | "federated") = "local",
+    max_attempts: number = 3,
+    lockout_duration_s: number = 30
+  },
+  events: {
+    attached: "biometric:attached",
+    detached: "biometric:detached",
+    match: "biometric:match",
+    fail: "biometric:fail",
+    enrolled: "biometric:enrolled",
+    revoked: "biometric:revoked",
+    liveness_failed: "biometric:liveness_failed",
+    locked_out: "biometric:locked_out",
+    unlocked: "biometric:unlocked",
+    on_match: "biometric:do_match",
+    on_fail: "biometric:on_fail",
+    on_enroll: "biometric:enroll",
+    on_revoke: "biometric:revoke"
+  },
+  behaviors: ["@encryption"]
+}

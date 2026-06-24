@@ -1,0 +1,30 @@
+@trait {
+  name: "@blockchain",
+  category: "network",
+  description: "On-chain event subscription and transaction dispatch for HoloScript entities. protocol selects the chain family: evm (Ethereum-compatible chains, including Base), solana, icp (Internet Computer), or holoscript (HoloScript sovereign anchoring via the provenance layer). rpc_url points to the JSON-RPC or WebSocket endpoint for the selected protocol. contract_address names the on-chain contract to watch or call; abi_url resolves the contract ABI at compile time for type-safe call generation. on_event fires for every matching chain event; on_tx fires when a transaction receipt is confirmed; on_error fires on RPC failures or reverts. auto_reconnect re-establishes the subscription on disconnect without surfacing an error to higher-level handlers. Composes with @wallet for signing and @encryption for RPC credential storage.",
+  props: {
+    protocol: enum("evm" | "solana" | "icp" | "holoscript") = "evm",
+    rpc_url: string = "",
+    contract_address: string = "",
+    abi_url: string = "",
+    auto_reconnect: boolean = true,
+    confirmation_blocks: number = 1
+  },
+  events: {
+    attached: "blockchain:attached",
+    detached: "blockchain:detached",
+    connected: "blockchain:connected",
+    disconnected: "blockchain:disconnected",
+    event: "blockchain:event",
+    tx: "blockchain:tx",
+    error: "blockchain:error",
+    reorg_detected: "blockchain:reorg_detected",
+    on_event: "blockchain:on_event",
+    on_tx: "blockchain:on_tx",
+    on_error: "blockchain:on_error",
+    on_call: "blockchain:call",
+    on_subscribe: "blockchain:subscribe",
+    on_unsubscribe: "blockchain:unsubscribe"
+  },
+  behaviors: ["@wallet", "@encryption"]
+}

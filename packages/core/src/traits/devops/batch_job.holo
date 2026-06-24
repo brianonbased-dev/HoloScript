@@ -1,0 +1,31 @@
+@trait {
+  name: "@batch_job",
+  category: "devops",
+  description: "Durable batch processing runner for HoloScript workflows. batch_id is a stable identifier for this job definition; items_per_batch controls how many work items are dispatched per concurrency slot; concurrency caps parallel in-flight batches. on_batch_start fires when a new batch slice is dispatched; on_batch_complete fires when all items in a slice finish; on_item_error fires per failing item with the item index and error payload; on_all_complete fires when every item across the full job has been processed. retry_max limits per-item retry attempts before on_item_error is emitted as terminal. dry_run executes all orchestration logic but skips side-effecting item handlers, emitting events with a dry_run flag set. progress_key is a blackboard key (compose with @behavior_tree) where the completion ratio [0,1] is written after each item. Composes with @scheduler for cron-triggered batch runs.",
+  props: {
+    batch_id: string = "",
+    items_per_batch: number = 100,
+    concurrency: number = 4,
+    retry_max: number = 3,
+    dry_run: boolean = false,
+    progress_key: string = "batch_progress"
+  },
+  events: {
+    attached: "batch_job:attached",
+    detached: "batch_job:detached",
+    batch_start: "batch_job:batch_start",
+    batch_complete: "batch_job:batch_complete",
+    item_error: "batch_job:item_error",
+    all_complete: "batch_job:all_complete",
+    paused: "batch_job:paused",
+    resumed: "batch_job:resumed",
+    on_batch_start: "batch_job:start",
+    on_batch_complete: "batch_job:on_batch_complete",
+    on_item_error: "batch_job:on_item_error",
+    on_all_complete: "batch_job:on_all_complete",
+    on_pause: "batch_job:pause",
+    on_resume: "batch_job:resume",
+    on_cancel: "batch_job:cancel"
+  },
+  behaviors: ["@scheduler"]
+}
