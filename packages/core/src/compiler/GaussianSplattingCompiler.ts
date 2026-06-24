@@ -32,6 +32,7 @@ import {
   HOLOMAP_CAPTURE_DEFAULT_PROVENANCE,
   type PointProvenanceClass,
 } from '../reconstruction/PointProvenance';
+import { buildProvenanceReceipt, type ProvenanceReceipt } from '../reconstruction/ProvenanceReceipt';
 
 // =============================================================================
 // MULTI-USER SHARED-SORT DETECTION (P.043 — substrate side of the paper claim)
@@ -209,6 +210,36 @@ export class GaussianSplattingCompiler extends CompilerBase {
       result.warnings = warnings;
     }
     return result;
+  }
+
+  /**
+   * Compile AND emit a {@link ProvenanceReceipt} over the delivered bytes when
+   * the composition carries provenance (a HoloMap capture cloud or a
+   * `@provenance` trait). The receipt attests the observed-vs-invented histogram
+   * and hashes the delivered GLB/buffer bytes — the provenance-axis input a
+   * FidelityEvalContract composes (see ProvenanceReceipt.ts). `receipt` is
+   * undefined when no provenance is present (an authored splat with no
+   * `@provenance` trait).
+   */
+  compileWithReceipt(
+    composition: HoloComposition,
+    agentToken?: string,
+    outputPath?: string
+  ): { result: GLTFExportResult; receipt?: ProvenanceReceipt } {
+    this.validateCompilerAccess(agentToken, outputPath);
+    const { data, warnings } = this.extractGaussianData(composition);
+    const result = this.buildGLTF(data);
+    if (warnings && warnings.length > 0) {
+      result.warnings = warnings;
+    }
+    let receipt: ProvenanceReceipt | undefined;
+    if (data.provenance && data.provenance.length === data.count) {
+      const bytes = result.binary ?? result.buffer;
+      if (bytes) {
+        receipt = buildProvenanceReceipt(data.provenance, bytes, data.provenanceSource ?? null);
+      }
+    }
+    return { result, receipt };
   }
 
   /**

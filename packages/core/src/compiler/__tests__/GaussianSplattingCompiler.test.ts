@@ -409,5 +409,31 @@ describe('GaussianSplattingCompiler', () => {
       expect(prov.observedFraction).toBe(0);
       expect(prov.source).toBe('artifixer-14b');
     });
+
+    it('compileWithReceipt emits a provenance receipt over the delivered bytes', () => {
+      const cloud = makeHolomapCloudProv(
+        [0, 0, 0, 1, 0, 0, 0, 1, 0],
+        [255, 0, 0, 0, 255, 0, 0, 0, 255],
+        { provenance: [0, 0, 2], provenanceSource: 'artifixer-14b' }
+      );
+      const compiler = new GaussianSplattingCompiler({ holomapPointCloud: cloud });
+      const { result, receipt } = compiler.compileWithReceipt(makeEmptyComposition());
+
+      expect(result.binary).toBeDefined();
+      expect(receipt).toBeDefined();
+      expect(receipt!.version).toBe('provenance-receipt-v1');
+      expect(receipt!.histogram.observed).toBe(2);
+      expect(receipt!.histogram['generative-extended']).toBe(1);
+      expect(receipt!.source).toBe('artifixer-14b');
+      expect(receipt!.deliveredBytesHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(receipt!.receiptHash).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('compileWithReceipt returns no receipt for an authored splat with no provenance', () => {
+      const compiler = new GaussianSplattingCompiler();
+      const { result, receipt } = compiler.compileWithReceipt(makeCompositionWithGaussian());
+      expect(result.binary).toBeDefined();
+      expect(receipt).toBeUndefined();
+    });
   });
 });
