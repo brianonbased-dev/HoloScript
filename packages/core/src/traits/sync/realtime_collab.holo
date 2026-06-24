@@ -1,0 +1,26 @@
+@trait {
+  name: "@realtime_collab",
+  category: "sync",
+  description: "Real-time collaborative editing via CRDT. Multiple users edit shared documents, canvases, or scene graphs simultaneously with conflict-free merge. Authored from RealtimeCollabTrait.ts.",
+  props: {
+    document_id: string = "",
+    backend: enum("loro" | "yjs" | "automerge" | "holoscript") = "loro",
+    awareness: boolean = true,
+    cursor_color: string = "#ff0000",
+    undo_history: number = 100,
+    max_collaborators: number = 50,
+    offline_support: boolean = true
+  },
+  events: {
+    attached: "realtime_collab_attached",
+    detached: "realtime_collab_detached",
+    on_change: "realtime_collab_change",
+    on_peer_join: "realtime_collab_peer_join",
+    on_peer_leave: "realtime_collab_peer_leave",
+    on_conflict: "realtime_collab_conflict",
+    on_sync: "realtime_collab_sync",
+    undo: "realtime_collab_undo",
+    redo: "realtime_collab_redo"
+  },
+  behaviors: ["@global_state", "@offline_sync", "@replica"]
+}

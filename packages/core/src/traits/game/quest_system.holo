@@ -1,0 +1,26 @@
+@trait {
+  name: "@quest_system",
+  category: "game",
+  description: "Narrative quest and achievement tracker. Manages objectives, progress, rewards, and branching quest trees. Authored from QuestSystemTrait.ts.",
+  props: {
+    quests: list<{ id: string, title: string, objectives: list<string>, reward: string }> = [],
+    active_quest_id: string = "",
+    persist: boolean = true,
+    on_objective_complete_sound_url: string = "",
+    on_quest_complete_sound_url: string = "",
+    max_active: number = 10
+  },
+  events: {
+    attached: "quest_system_attached",
+    detached: "quest_system_detached",
+    on_quest_start: "quest_system_start",
+    on_objective_complete: "quest_system_objective_complete",
+    on_quest_complete: "quest_system_complete",
+    on_quest_fail: "quest_system_fail",
+    on_reward: "quest_system_reward",
+    start_quest: "quest_system_trigger_start",
+    complete_objective: "quest_system_trigger_objective",
+    abandon_quest: "quest_system_trigger_abandon"
+  },
+  behaviors: ["@inventory", "@user"]
+}

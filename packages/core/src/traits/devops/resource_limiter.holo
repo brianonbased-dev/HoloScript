@@ -1,0 +1,24 @@
+@trait {
+  name: "@resource_limiter",
+  category: "devops",
+  description: "Compute resource quota enforcer. Caps CPU, memory, GPU VRAM, and network bandwidth per entity or scene. Triggers throttle or eviction when limits are exceeded. Authored from ResourceLimiterTrait.ts.",
+  props: {
+    cpu_pct_max: number = 100.0,
+    mem_mb_max: number = 512.0,
+    vram_mb_max: number = 256.0,
+    bandwidth_kbps_max: number = 0.0,
+    check_interval_ms: number = 1000,
+    on_exceed_action: enum("throttle" | "evict" | "warn" | "kill") = "warn",
+    soft_limit_pct: number = 80.0
+  },
+  events: {
+    attached: "resource_limiter_attached",
+    detached: "resource_limiter_detached",
+    on_warn: "resource_limiter_warn",
+    on_throttle: "resource_limiter_throttle",
+    on_evict: "resource_limiter_evict",
+    on_recover: "resource_limiter_recover",
+    on_sample: "resource_limiter_sample"
+  },
+  behaviors: ["@memory_mgmt", "@telemetry", "@circuit_breaker"]
+}

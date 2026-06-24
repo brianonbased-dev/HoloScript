@@ -1,0 +1,22 @@
+@trait {
+  name: "@deep_link",
+  category: "network",
+  description: "Universal deep linking and app redirect handler. Parses incoming URIs, resolves routes, and passes parameters. Authored from DeepLinkTrait.ts.",
+  props: {
+    scheme: string = "holoscript",
+    host: string = "",
+    route_map: list<{ pattern: string, action: string }> = [],
+    fallback_url: string = "",
+    on_parse_error: enum("fallback" | "ignore" | "throw") = "fallback",
+    handle_web_links: boolean = true
+  },
+  events: {
+    attached: "deep_link_attached",
+    detached: "deep_link_detached",
+    on_link: "deep_link_open",
+    on_route_match: "deep_link_route",
+    on_error: "deep_link_error",
+    open: "deep_link_trigger_open"
+  },
+  behaviors: ["@url_router"]
+}
