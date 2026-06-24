@@ -102,6 +102,28 @@ function makeHolomapCloud(positions: number[], rgb: number[]) {
   };
 }
 
+/** Same as makeHolomapCloud but with optional per-point provenance, encoded the
+ *  way holo_reconstruct_export would pack it (base64 uint8 class codes:
+ *  0=observed, 1=interpolated, 2=generative-extended). */
+function makeHolomapCloudProv(
+  positions: number[],
+  rgb: number[],
+  opts?: {
+    provenance?: number[];
+    provenanceDefault?: 'observed' | 'interpolated' | 'generative-extended';
+    provenanceSource?: string;
+  }
+) {
+  const base = makeHolomapCloud(positions, rgb);
+  const extra: Record<string, unknown> = {};
+  if (opts?.provenance) {
+    extra.provenanceB64 = Buffer.from(Uint8Array.from(opts.provenance)).toString('base64');
+  }
+  if (opts?.provenanceDefault) extra.provenanceDefault = opts.provenanceDefault;
+  if (opts?.provenanceSource) extra.provenanceSource = opts.provenanceSource;
+  return { ...base, ...extra };
+}
+
 describe('GaussianSplattingCompiler', () => {
   it('should instantiate with default options', () => {
     const compiler = new GaussianSplattingCompiler();
@@ -274,5 +296,82 @@ describe('GaussianSplattingCompiler', () => {
     const compiler = new GaussianSplattingCompiler();
     const result = compiler.compile(makeEmptyComposition());
     expect(result.stats.totalVertices).toBe(8);
+  });
+
+  describe('per-point provenance (observed-vs-invented moat axis)', () => {
+    it('tags a raw HoloMap capture as observed by default and records it in glTF', () => {
+      const cloud = makeHolomapCloudProv(
+        [0, 0, 0, 1, 0, 0, 0, 1, 0],
+        [255, 0, 0, 0, 255, 0, 0, 0, 255]
+      );
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf', holomapPointCloud: cloud });
+      const result = compiler.compile(makeEmptyComposition());
+
+      const gltf = result.json as Record<string, unknown>;
+      const meshes = gltf.meshes as Array<Record<string, unknown>>;
+      const primitive = (meshes[0].primitives as Array<Record<string, unknown>>)[0];
+      const attrs = primitive.attributes as Record<string, number>;
+      expect(attrs._PROVENANCE).toBe(5);
+
+      const extras = (gltf.asset as Record<string, unknown>).extras as Record<string, unknown>;
+      const prov = extras.holoProvenance as Record<string, unknown>;
+      expect(prov.total).toBe(3);
+      expect(prov.observed).toBe(3);
+      expect(prov['generative-extended']).toBe(0);
+      expect(prov.observedFraction).toBe(1);
+      expect(prov.source).toBe('holomap-capture');
+    });
+
+    it('carries explicit per-point provenance codes through to the histogram', () => {
+      // 2 observed (0) + 1 generative-extended (2)
+      const cloud = makeHolomapCloudProv(
+        [0, 0, 0, 1, 0, 0, 0, 1, 0],
+        [255, 0, 0, 0, 255, 0, 0, 0, 255],
+        { provenance: [0, 0, 2], provenanceSource: 'artifixer-14b' }
+      );
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf', holomapPointCloud: cloud });
+      const result = compiler.compile(makeEmptyComposition());
+
+      const gltf = result.json as Record<string, unknown>;
+      const extras = (gltf.asset as Record<string, unknown>).extras as Record<string, unknown>;
+      const prov = extras.holoProvenance as Record<string, unknown>;
+      expect(prov.observed).toBe(2);
+      expect(prov['generative-extended']).toBe(1);
+      expect(prov.total).toBe(3);
+      expect(prov.observedFraction).toBeCloseTo(2 / 3, 5);
+      expect(prov.source).toBe('artifixer-14b');
+    });
+
+    it('honours provenanceDefault so a densified cloud cannot masquerade as observed', () => {
+      const cloud = makeHolomapCloudProv(
+        [0, 0, 0, 1, 0, 0, 0, 1, 0],
+        [255, 0, 0, 0, 255, 0, 0, 0, 255],
+        { provenanceDefault: 'generative-extended', provenanceSource: 'artifixer-14b' }
+      );
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf', holomapPointCloud: cloud });
+      const result = compiler.compile(makeEmptyComposition());
+
+      const gltf = result.json as Record<string, unknown>;
+      const extras = (gltf.asset as Record<string, unknown>).extras as Record<string, unknown>;
+      const prov = extras.holoProvenance as Record<string, unknown>;
+      expect(prov.observed).toBe(0);
+      expect(prov['generative-extended']).toBe(3);
+      expect(prov.observedFraction).toBe(0);
+    });
+
+    it('does NOT emit _PROVENANCE for an authored @gaussian_splat trait (false case)', () => {
+      // G.GOLD.013: test the FALSE case. Authored splats carry no provenance, so
+      // no _PROVENANCE attribute and no asset.extras provenance block.
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf' });
+      const result = compiler.compile(makeCompositionWithGaussian());
+
+      const gltf = result.json as Record<string, unknown>;
+      const meshes = gltf.meshes as Array<Record<string, unknown>>;
+      const primitive = (meshes[0].primitives as Array<Record<string, unknown>>)[0];
+      const attrs = primitive.attributes as Record<string, number>;
+      expect(attrs._PROVENANCE).toBeUndefined();
+      const asset = gltf.asset as Record<string, unknown>;
+      expect(asset.extras).toBeUndefined();
+    });
   });
 });

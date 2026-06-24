@@ -26,6 +26,11 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import type { GLTFExportResult, GLTFExportStats } from './CompilerTypes';
 import type { HolomapPointCloudPayload } from './HolomapExportPayload';
+import {
+  provenanceHistogram,
+  uniformProvenance,
+  HOLOMAP_CAPTURE_DEFAULT_PROVENANCE,
+} from '../reconstruction/PointProvenance';
 
 // =============================================================================
 // MULTI-USER SHARED-SORT DETECTION (P.043 — substrate side of the paper claim)
@@ -158,6 +163,11 @@ interface GaussianData {
   opacities: Float32Array; // N
   shCoefficients?: Float32Array;
   count: number;
+  /** Optional per-splat provenance-class codes (N uint8: 0=observed,
+   *  1=interpolated, 2=generative-extended). The observed-vs-invented moat axis. */
+  provenance?: Uint8Array;
+  /** Origin label for the provenance (sensor id / generative model id). */
+  provenanceSource?: string;
 }
 
 // =============================================================================
@@ -290,9 +300,16 @@ export class GaussianSplattingCompiler extends CompilerBase {
     // the demo grid, so captures actually render. (ssja parity / remix seam.)
     const cloud = this.holomapPointCloud;
     if (cloud && cloud.pointCount >= 1) {
-      const { positions, colors } = this.decodeHolomapCloud(cloud);
+      const { positions, colors, provenance } = this.decodeHolomapCloud(cloud);
       if (positions.length >= 3) {
-        return { data: this.computeCovarianceFromPointCloud(positions, colors) };
+        return {
+          data: this.computeCovarianceFromPointCloud(
+            positions,
+            colors,
+            provenance,
+            cloud.provenanceSource ?? 'holomap-capture'
+          ),
+        };
       }
     }
 
@@ -313,6 +330,7 @@ export class GaussianSplattingCompiler extends CompilerBase {
   private decodeHolomapCloud(cloud: HolomapPointCloudPayload): {
     positions: Float32Array;
     colors: Float32Array;
+    provenance: Uint8Array;
   } {
     const posBuf = Buffer.from(cloud.positionsB64, 'base64');
     const colBuf = Buffer.from(cloud.colorsB64, 'base64');
@@ -324,7 +342,20 @@ export class GaussianSplattingCompiler extends CompilerBase {
     for (let i = 0; i < n * 3; i++) positions[i] = posBuf.readFloatLE(i * 4);
     const colors = new Float32Array(n * 3);
     for (let i = 0; i < n * 3; i++) colors[i] = colBuf[i] / 255;
-    return { positions, colors };
+
+    // Per-point provenance: explicit codes if supplied, else a uniform fill of
+    // the declared default (or the honest capture default 'observed' for a raw
+    // sensor cloud). Always length n, so the capture path always carries the
+    // observed-vs-invented signal through to the splat. A short/truncated
+    // provenance buffer back-fills with the default rather than reading garbage.
+    const defaultClass = cloud.provenanceDefault ?? HOLOMAP_CAPTURE_DEFAULT_PROVENANCE;
+    const provenance = uniformProvenance(n, defaultClass);
+    if (cloud.provenanceB64) {
+      const provBuf = Buffer.from(cloud.provenanceB64, 'base64');
+      const m = Math.min(n, provBuf.length);
+      for (let i = 0; i < m; i++) provenance[i] = provBuf[i];
+    }
+    return { positions, colors, provenance };
   }
 
   private expandRgbToRgba(rgb: Float32Array, count: number): Float32Array {
@@ -362,7 +393,9 @@ export class GaussianSplattingCompiler extends CompilerBase {
    */
   private computeCovarianceFromPointCloud(
     positions: Float32Array,
-    colors: Float32Array
+    colors: Float32Array,
+    provenance?: Uint8Array,
+    provenanceSource?: string
   ): GaussianData {
     const n = Math.floor(positions.length / 3);
     const k = Math.min(12, Math.max(4, n - 1));
@@ -452,6 +485,8 @@ export class GaussianSplattingCompiler extends CompilerBase {
       colors: rgbaColors,
       opacities,
       count: n,
+      ...(provenance && provenance.length === n ? { provenance } : {}),
+      ...(provenanceSource ? { provenanceSource } : {}),
     };
   }
 
@@ -730,18 +765,25 @@ export class GaussianSplattingCompiler extends CompilerBase {
 
   private buildGLTF(data: GaussianData): GLTFExportResult {
     const N = data.count;
+    const hasProvenance = !!(data.provenance && data.provenance.length === N);
     const bufferData = this.buildBuffer(data);
-    const bufferViews = this.buildBufferViews(N);
-    const accessors = this.buildAccessors(N);
+    const bufferViews = this.buildBufferViews(N, hasProvenance);
+    const accessors = this.buildAccessors(N, hasProvenance);
+
+    const attributes: Record<string, number> = {
+      POSITION: 0,
+      _ROTATION: 1,
+      _SCALE: 2,
+      _OPACITY: 3,
+      COLOR_0: 4,
+    };
+    // Custom per-splat provenance attribute (uint8 SCALAR) — survives in the GLB
+    // BIN chunk so the renderer / PLY export can distinguish observed vs invented
+    // geometry. Emitted only when provenance data is present.
+    if (hasProvenance) attributes._PROVENANCE = 5;
 
     const primitive: Record<string, unknown> = {
-      attributes: {
-        POSITION: 0,
-        _ROTATION: 1,
-        _SCALE: 2,
-        _OPACITY: 3,
-        COLOR_0: 4,
-      },
+      attributes,
       mode: 0, // POINTS
       extensions: {
         KHR_gaussian_splatting: {
@@ -760,12 +802,25 @@ export class GaussianSplattingCompiler extends CompilerBase {
       mesh: 0,
     };
 
+    const asset: Record<string, unknown> = {
+      version: '2.0',
+      generator: this.options.generator,
+      ...(this.options.copyright ? { copyright: this.options.copyright } : {}),
+    };
+    // Provenance histogram in asset.extras — the observed-vs-invented summary
+    // that travels inside the asset (no out-of-band metadata). Foundation for a
+    // FidelityEvalContract receipt over the delivered bytes.
+    if (hasProvenance) {
+      asset.extras = {
+        holoProvenance: {
+          source: data.provenanceSource ?? null,
+          ...provenanceHistogram(data.provenance!),
+        },
+      };
+    }
+
     const gltf: Record<string, unknown> = {
-      asset: {
-        version: '2.0',
-        generator: this.options.generator,
-        ...(this.options.copyright ? { copyright: this.options.copyright } : {}),
-      },
+      asset,
       scene: 0,
       scenes: [{ name: 'Scene', nodes: [0] }],
       nodes: [node],
@@ -806,7 +861,11 @@ export class GaussianSplattingCompiler extends CompilerBase {
     for (let i = 0; i < N * 3; i++) {
       logScales[i] = Math.log(Math.max(data.scales[i]!, 1e-8));
     }
-    const size = N * 3 * 4 + N * 4 * 4 + N * 3 * 4 + N * 4 + N * 4 * 4;
+    const hasProvenance = !!(data.provenance && data.provenance.length === N);
+    const provLen = hasProvenance ? N : 0; // uint8, 1 byte per point
+    // Layout: POSITION(12N) ROTATION(16N) SCALE(12N) OPACITY(4N) COLOR(16N) = 60N,
+    // a multiple of 4, so the appended uint8 _PROVENANCE view stays 4-byte aligned.
+    const size = N * 3 * 4 + N * 4 * 4 + N * 3 * 4 + N * 4 + N * 4 * 4 + provLen;
     const buf = new Uint8Array(size);
     let off = 0;
     const write = (arr: Float32Array) => {
@@ -819,11 +878,16 @@ export class GaussianSplattingCompiler extends CompilerBase {
     write(logScales);
     write(data.opacities);
     write(data.colors);
+    if (hasProvenance) {
+      buf.set(data.provenance!, off);
+      off += provLen;
+    }
     return buf;
   }
 
   private buildBufferViews(
-    N: number
+    N: number,
+    hasProvenance = false
   ): Array<{ buffer: number; byteOffset: number; byteLength: number }> {
     let off = 0;
     const views: Array<{ buffer: number; byteOffset: number; byteLength: number }> = [];
@@ -837,11 +901,13 @@ export class GaussianSplattingCompiler extends CompilerBase {
     add(N * 3 * 4); // _SCALE
     add(N * 4); // _OPACITY
     add(N * 4 * 4); // COLOR_0
+    if (hasProvenance) add(N); // _PROVENANCE (uint8, 1 byte/point)
     return views;
   }
 
   private buildAccessors(
-    N: number
+    N: number,
+    hasProvenance = false
   ): Array<{ bufferView: number; componentType: number; count: number; type: string }> {
     let bv = 0;
     const accs: Array<{ bufferView: number; componentType: number; count: number; type: string }> =
@@ -854,6 +920,7 @@ export class GaussianSplattingCompiler extends CompilerBase {
     add('VEC3', 5126, N); // _SCALE
     add('SCALAR', 5126, N); // _OPACITY
     add('VEC4', 5126, N); // COLOR_0
+    if (hasProvenance) add('SCALAR', 5121, N); // _PROVENANCE (UNSIGNED_BYTE codes)
     return accs;
   }
 
