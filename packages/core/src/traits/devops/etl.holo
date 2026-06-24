@@ -1,0 +1,26 @@
+@trait {
+  name: "@etl",
+  category: "devops",
+  description: "Extract-Transform-Load pipeline coordinator. Orchestrates data extraction from sources, transformation via @data_transform, and loading into target stores on schedule or trigger. Authored from EtlTrait.ts.",
+  props: {
+    source: string = "",
+    source_format: enum("json" | "csv" | "parquet" | "sql" | "rest") = "json",
+    destination: string = "",
+    destination_format: enum("json" | "csv" | "parquet" | "sql") = "parquet",
+    schedule: string = "",
+    batch_size: number = 10000,
+    on_error: enum("abort" | "skip" | "retry") = "retry",
+    incremental: boolean = false
+  },
+  events: {
+    attached: "etl_attached",
+    detached: "etl_detached",
+    on_run_start: "etl_run_start",
+    on_run_complete: "etl_run_complete",
+    on_run_fail: "etl_run_fail",
+    on_record: "etl_record",
+    run: "etl_trigger_run",
+    cancel: "etl_cancel"
+  },
+  behaviors: ["@data_transform", "@data_quality", "@cron"]
+}

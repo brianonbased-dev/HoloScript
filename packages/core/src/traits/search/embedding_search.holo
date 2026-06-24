@@ -1,0 +1,23 @@
+@trait {
+  name: "@embedding_search",
+  category: "search",
+  description: "Semantic embedding search over vector stores. Embeds query text, retrieves nearest neighbors, and returns ranked results with scores. Authored from EmbeddingSearchTrait.ts.",
+  props: {
+    vector_store: enum("pinecone" | "qdrant" | "pgvector" | "holoscript") = "holoscript",
+    embed_model: string = "text-embedding-3-small",
+    top_k: number = 10,
+    score_threshold: number = 0.7,
+    namespace: string = "",
+    filter: dict<string, string> = {},
+    hybrid_weight: number = 0.0
+  },
+  events: {
+    attached: "embedding_search_attached",
+    detached: "embedding_search_detached",
+    on_results: "embedding_search_results",
+    on_empty: "embedding_search_empty",
+    on_error: "embedding_search_error",
+    search: "embedding_search_trigger"
+  },
+  behaviors: ["@rag_knowledge", "@full_text_search"]
+}
