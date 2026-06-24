@@ -1,0 +1,30 @@
+@trait {
+  name: "@streaming",
+  category: "media",
+  description: "Adaptive live-stream player for HLS, DASH, WebRTC ingest, and RTMP sources. source_url is the stream manifest or endpoint URL. protocol selects the delivery protocol: hls (HTTP Live Streaming, widest device support), dash (Dynamic Adaptive Streaming over HTTP, lower latency), webrtc (sub-second latency ingest via the WebRTC track API), rtmp (legacy push protocol; requires a relay bridge on the client). buffer_ms is the target playback buffer in milliseconds — lower values reduce latency but increase stall risk; defaults to 3 000 ms (3 s). adaptive_bitrate enables ABR ladder switching: the player monitors throughput and selects the highest-quality rendition that fits available bandwidth. latency_mode controls the latency/quality trade-off: live targets broadcast latency (~6–10 s), low reduces to ~2–4 s with smaller buffers, ultra_low uses low-latency HLS or LL-DASH extensions for sub-2 s glass-to-glass. Events: playing / paused / ended / buffering / stalled / resumed / error are outbound state notifications; on_play / on_pause / on_seek / on_set_quality give scene logic playback control. quality_changed fires when ABR selects a new rendition, carrying the new bitrate and resolution in its payload. Pairs with @video for surface rendering and @subtitle for caption overlay. Research: StreamTrait.ts (pub-sub variant), VideoTranscodeTrait.ts.",
+  props: {
+    source_url: string = "",
+    protocol: enum("hls" | "dash" | "webrtc" | "rtmp") = "hls",
+    buffer_ms: number = 3000,
+    adaptive_bitrate: boolean = true,
+    latency_mode: enum("live" | "low" | "ultra_low") = "live"
+  },
+  events: {
+    attached: "streaming:attached",
+    detached: "streaming:detached",
+    playing: "streaming:playing",
+    paused: "streaming:paused",
+    ended: "streaming:ended",
+    buffering: "streaming:buffering",
+    stalled: "streaming:stalled",
+    resumed: "streaming:resumed",
+    quality_changed: "streaming:quality_changed",
+    error: "streaming:error",
+    on_play: "streaming:cmd_play",
+    on_pause: "streaming:cmd_pause",
+    on_seek: "streaming:cmd_seek",
+    on_set_quality: "streaming:cmd_set_quality",
+    on_set_source: "streaming:cmd_set_source"
+  },
+  behaviors: ["@video"]
+}

@@ -1,0 +1,37 @@
+@trait {
+  name: "@webrtc",
+  category: "network",
+  description: "WebRTC peer-to-peer connection manager for real-time audio, video, screen share, and data channels. room_id namespaces a signalling session — only peers sharing the same room_id are connected. signal_url points to the signalling server endpoint (WebSocket or HTTP long-poll); leave empty to use the HoloMesh built-in signaller. ice_servers is the list of STUN/TURN URIs used for NAT traversal (empty = browser defaults). data_channel enables a low-latency binary/text data channel alongside any media tracks; useful for game state, chat, or custom protocol messages. video and audio toggle outbound media capture; screen_share replaces the video track with a display-capture surface. max_bitrate_kbps caps the outbound bitrate for adaptive congestion control (0 = uncapped). Events cover the full peer lifecycle: peer_joined / peer_left / connected / disconnected are outbound state notifications; track_received fires when a remote media track arrives; message fires on incoming data-channel payloads. Inbound commands: on_join / on_leave / on_send_message / on_toggle_video / on_toggle_audio trigger signalling actions from scene logic. Pairs with @voice_chat for spatial audio mixing and @replica for state sync over the data channel. Research: NetworkedTrait.ts, NetworkedAvatarTrait.ts.",
+  props: {
+    room_id: string = "",
+    signal_url: string = "",
+    ice_servers: array<string> = [],
+    data_channel: boolean = false,
+    video: boolean = false,
+    audio: boolean = false,
+    screen_share: boolean = false,
+    max_bitrate_kbps: number = 0
+  },
+  events: {
+    attached: "webrtc:attached",
+    detached: "webrtc:detached",
+    peer_joined: "webrtc:peer_joined",
+    peer_left: "webrtc:peer_left",
+    connected: "webrtc:connected",
+    disconnected: "webrtc:disconnected",
+    track_received: "webrtc:track_received",
+    track_ended: "webrtc:track_ended",
+    message: "webrtc:message",
+    error: "webrtc:error",
+    ice_connected: "webrtc:ice_connected",
+    ice_failed: "webrtc:ice_failed",
+    on_join: "webrtc:cmd_join",
+    on_leave: "webrtc:cmd_leave",
+    on_send_message: "webrtc:cmd_send_message",
+    on_toggle_video: "webrtc:cmd_toggle_video",
+    on_toggle_audio: "webrtc:cmd_toggle_audio",
+    on_start_screen_share: "webrtc:cmd_start_screen_share",
+    on_stop_screen_share: "webrtc:cmd_stop_screen_share"
+  },
+  behaviors: ["@voice_chat", "@replica"]
+}

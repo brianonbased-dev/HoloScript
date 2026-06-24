@@ -1,0 +1,28 @@
+@trait {
+  name: "@spawn",
+  category: "world",
+  description: "Prefab spawner and object-pool controller for runtime entity instantiation. prefab_id names the registered prefab to spawn; the HoloScript runtime resolves it from the scene asset registry. pool_size pre-allocates a warm pool of inactive entities on attach, eliminating instantiation latency at spawn time (0 = no pool, allocate on demand). spawn_on_attach immediately spawns one instance when the trait is first attached. spawn_interval_ms, when > 0, starts a repeating timer that spawns a new instance at that cadence; set to 0 to disable auto-spawning and rely on the on_spawn command event instead. max_active caps the number of live instances; reaching the limit silently drops further spawn attempts and emits pool_exhausted. spawn_offset positions each new instance relative to the host entity's origin (vec3 in scene units). ttl_ms automatically despawns an instance after the given lifetime in milliseconds (0 = immortal). Events: spawned fires immediately after a new instance is live; despawned fires on explicit despawn or TTL expiry; pool_exhausted fires when a spawn is attempted but max_active is already reached. Inbound commands: on_spawn / on_despawn / on_despawn_all give scene logic direct control over the pool. Pairs with @trigger to spawn on collision entry and @animation to play a birth/death sequence on the spawned entity.",
+  props: {
+    prefab_id: string = "",
+    pool_size: number = 0,
+    spawn_on_attach: boolean = false,
+    spawn_interval_ms: number = 0,
+    max_active: number = 0,
+    spawn_offset: vec3 = { x: 0.0, y: 0.0, z: 0.0 },
+    ttl_ms: number = 0
+  },
+  events: {
+    attached: "spawn:attached",
+    detached: "spawn:detached",
+    spawned: "spawn:spawned",
+    despawned: "spawn:despawned",
+    pool_exhausted: "spawn:pool_exhausted",
+    pool_ready: "spawn:pool_ready",
+    on_spawn: "spawn:cmd_spawn",
+    on_despawn: "spawn:cmd_despawn",
+    on_despawn_all: "spawn:cmd_despawn_all",
+    on_set_interval: "spawn:cmd_set_interval",
+    on_set_prefab: "spawn:cmd_set_prefab"
+  },
+  behaviors: ["@transform"]
+}
