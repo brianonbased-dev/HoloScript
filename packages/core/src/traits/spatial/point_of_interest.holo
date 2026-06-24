@@ -1,0 +1,26 @@
+@trait {
+  name: "@point_of_interest",
+  category: "spatial",
+  description: "Named point of interest with activation radius and content reveal. Used for tour guides, location markers, and spatial storytelling. Authored from PointOfInterestTrait.ts.",
+  props: {
+    label: string = "",
+    description: string = "",
+    icon_url: string = "",
+    activation_radius_m: number = 3.0,
+    content_url: string = "",
+    content_type: enum("scene" | "panel" | "audio" | "video" | "text") = "text",
+    visible_range_m: number = 50.0,
+    category: string = "general",
+    auto_activate: boolean = false
+  },
+  events: {
+    attached: "poi_attached",
+    detached: "poi_detached",
+    on_enter: "poi_enter",
+    on_exit: "poi_exit",
+    on_activate: "poi_activate",
+    on_deactivate: "poi_deactivate",
+    activate: "poi_trigger_activate"
+  },
+  behaviors: ["@hotspot", "@spatial_anchor"]
+}

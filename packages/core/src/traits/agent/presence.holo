@@ -1,0 +1,26 @@
+@trait {
+  name: "@presence",
+  category: "agent",
+  description: "Real-time user/agent presence tracking. Maintains connection state, idle detection, and heartbeat for mesh-wide awareness. Authored from PresenceTrait.ts.",
+  props: {
+    handle: string = "",
+    status: enum("online" | "away" | "busy" | "offline") = "offline",
+    idle_timeout_ms: number = 300000,
+    heartbeat_interval_ms: number = 30000,
+    broadcast: boolean = true,
+    location_visible: boolean = true,
+    last_seen: number = 0
+  },
+  events: {
+    attached: "presence_attached",
+    detached: "presence_detached",
+    on_online: "presence_online",
+    on_offline: "presence_offline",
+    on_away: "presence_away",
+    on_return: "presence_return",
+    on_heartbeat: "presence_heartbeat",
+    on_peer_change: "presence_peer_change",
+    set_status: "presence_set_status"
+  },
+  behaviors: ["@replica", "@persistent_connection"]
+}

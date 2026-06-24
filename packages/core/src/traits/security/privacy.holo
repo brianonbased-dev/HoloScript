@@ -1,0 +1,26 @@
+@trait {
+  name: "@privacy",
+  category: "security",
+  description: "Privacy policy enforcement layer. Controls data collection consent, PII handling, and regulation compliance (GDPR, CCPA, HIPAA). Authored from PrivacyTrait.ts.",
+  props: {
+    regulation: enum("gdpr" | "ccpa" | "hipaa" | "pipeda" | "holoscript") = "gdpr",
+    consent_required: boolean = true,
+    data_categories: list<string> = [],
+    retention_days: number = 365,
+    anonymize: boolean = false,
+    right_to_erasure: boolean = true,
+    on_breach_url: string = ""
+  },
+  events: {
+    attached: "privacy_attached",
+    detached: "privacy_detached",
+    on_consent_grant: "privacy_consent_grant",
+    on_consent_revoke: "privacy_consent_revoke",
+    on_erasure_request: "privacy_erasure_request",
+    on_breach: "privacy_breach",
+    on_export_request: "privacy_export_request",
+    request_consent: "privacy_request_consent",
+    erase_data: "privacy_erase"
+  },
+  behaviors: ["@audit_log", "@encryption"]
+}

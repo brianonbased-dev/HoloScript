@@ -1,0 +1,27 @@
+@trait {
+  name: "@push_notification",
+  category: "network",
+  description: "Cross-platform push notification sender. Delivers messages via FCM, APNs, Web Push, or HoloScript mesh with topic subscription and payload templating. Authored from PushNotificationTrait.ts.",
+  props: {
+    provider: enum("fcm" | "apns" | "web_push" | "holoscript") = "holoscript",
+    topics: list<string> = [],
+    credentials_secret: string = "",
+    ttl_s: number = 86400,
+    collapse_key: string = "",
+    priority: enum("normal" | "high") = "normal",
+    badge_count: number = 0
+  },
+  events: {
+    attached: "push_notification_attached",
+    detached: "push_notification_detached",
+    on_send: "push_notification_send",
+    on_delivered: "push_notification_delivered",
+    on_open: "push_notification_open",
+    on_dismiss: "push_notification_dismiss",
+    on_error: "push_notification_error",
+    send: "push_notification_trigger_send",
+    subscribe: "push_notification_subscribe",
+    unsubscribe: "push_notification_unsubscribe"
+  },
+  behaviors: ["@messaging", "@alert"]
+}
