@@ -1,0 +1,31 @@
+@trait {
+  name: "@zone",
+  category: "game",
+  description: "Spatial trigger volume that raises lifecycle events as entities enter, dwell, or exit the zone boundary. shape selects the collision primitive used for overlap testing: sphere uses a single radius; box uses axis-aligned half-extents (half_extents vec3); cylinder uses radius and height along the Y axis; mesh defers to the entity's collision mesh. radius is the sphere or cylinder radius in world units. half_extents is the box half-size in world units along each axis ([x, y, z]). height is the cylinder height in world units. zone_type classifies the zone for game-rule arbitration: combat enables PvP damage and ability use; safe prevents all combat damage and forced teleports; restricted locks entry to authorised entities only; pvp mirrors combat but advertises the zone to the matchmaking layer for tracking; event marks a temporally bounded area (e.g. raid boss arena) that the event system activates and deactivates by schedule. on_enter is emitted immediately when an entity's origin crosses into the zone volume (payload: {entityId, zoneId, zone_type}). on_exit is emitted when the entity's origin leaves the volume (payload: {entityId, zoneId, dwell_ms}). on_dwell is emitted after an entity has remained continuously inside the volume for at least dwell_threshold_ms milliseconds (payload: {entityId, zoneId, dwell_ms}). Research: ReverbZoneTrait.ts trigger-volume pattern, ZoneWorldConstraints.ts rule-enforcement layer.",
+  props: {
+    shape: enum("sphere" | "box" | "cylinder" | "mesh") = "sphere",
+    radius: number = 5.0,
+    half_extents: vec3 = [5.0, 5.0, 5.0],
+    height: number = 10.0,
+    zone_type: enum("combat" | "safe" | "restricted" | "pvp" | "event") = "safe",
+    on_enter: string = "zone:enter",
+    on_exit: string = "zone:exit",
+    on_dwell: string = "zone:dwell",
+    dwell_threshold_ms: number = 3000
+  },
+  events: {
+    attached: "zone:attached",
+    detached: "zone:detached",
+    enter: "zone:enter",
+    exit: "zone:exit",
+    dwell: "zone:dwell",
+    activated: "zone:activated",
+    deactivated: "zone:deactivated",
+    rule_enforced: "zone:rule_enforced",
+    on_activate: "zone:cmd_activate",
+    on_deactivate: "zone:cmd_deactivate",
+    on_set_type: "zone:cmd_set_type",
+    on_query_occupants: "zone:cmd_query_occupants"
+  },
+  behaviors: ["@transform", "@rigid_body"]
+}

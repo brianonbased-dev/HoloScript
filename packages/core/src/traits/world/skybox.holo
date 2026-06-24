@@ -1,0 +1,30 @@
+@trait {
+  name: "@skybox",
+  category: "world",
+  description: "World-level sky environment source. type selects the sky rendering mode: hdri loads a spherical HDR image from texture_url and is the highest-fidelity option; procedural drives a physically-based atmospheric scattering model parameterised by azimuth_deg, altitude_deg, sun_size, cloud_coverage, and atmospheric_scattering; gradient renders a simple two-colour vertical gradient (no sun or clouds); video streams a 360° equirectangular video from texture_url as the sky dome. azimuth_deg is the compass bearing of the primary light source (0 = North, 90 = East). altitude_deg is the elevation of the primary light source above the horizon (0 = horizon, 90 = zenith). intensity is an HDR exposure multiplier applied to the sky radiance used for image-based lighting (IBL). sun_size scales the angular diameter of the procedural sun disc in degrees (ignored unless type = procedural). cloud_coverage is a 0–1 fraction of sky coverage used by the procedural model (0 = clear, 1 = fully overcast). atmospheric_scattering enables wavelength-dependent Rayleigh and Mie scattering in procedural mode. time_of_day_24h pins the sun position to a 24-hour clock value in hours (e.g. 14.5 = 14:30); when set the renderer overrides azimuth_deg and altitude_deg each frame. Pairs with @weather (atmosphere coupling), @lighting (directional light sync), and @volumetric_clouds. Research: LightingTrait.ts skybox config block, AdvancedLightingTrait.ts HDRI pipeline.",
+  props: {
+    type: enum("hdri" | "procedural" | "gradient" | "video") = "procedural",
+    texture_url: string = "",
+    azimuth_deg: number = 180.0,
+    altitude_deg: number = 45.0,
+    intensity: number = 1.0,
+    sun_size: number = 2.0,
+    cloud_coverage: number = 0.3,
+    atmospheric_scattering: boolean = true,
+    time_of_day_24h: number = -1.0
+  },
+  events: {
+    attached: "skybox:attached",
+    detached: "skybox:detached",
+    changed: "skybox:changed",
+    texture_loaded: "skybox:texture_loaded",
+    texture_failed: "skybox:texture_failed",
+    time_advanced: "skybox:time_advanced",
+    on_set_type: "skybox:set_type",
+    on_set_texture: "skybox:set_texture",
+    on_set_time: "skybox:set_time",
+    on_set_intensity: "skybox:set_intensity",
+    on_set_cloud_coverage: "skybox:set_cloud_coverage"
+  },
+  behaviors: ["@lighting", "@weather"]
+}

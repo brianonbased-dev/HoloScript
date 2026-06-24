@@ -1,0 +1,30 @@
+@trait {
+  name: "@swarm",
+  category: "agent",
+  description: "Reynolds-style swarm coordination trait for multi-entity collective behaviour. count is the target population size; the swarm runtime spawns or culls entities to match. role determines this entity's function within the swarm: leader drives the flock's heading and emits route events; follower steers toward the leader and local neighbours; scout roams ahead of the formation to sample the environment and report; defender holds a perimeter at cohesion_radius and intercepts threats. behavior selects the aggregate steering law: flock applies separation, cohesion, and alignment weights (classic Reynolds boids); scatter disperses entities radially away from a trigger point; orbit circles a pivot entity at cohesion_radius; attack converges on a target entity and closes within separation_radius; defend encircles and holds position around a protected entity; patrol loops a waypoint path managed by @waypoint. cohesion_radius is the neighbourhood radius in world units used to compute cohesion and alignment forces. separation_radius is the exclusion radius within which separation repulsion is applied. alignment_weight is a 0–1 multiplier on the velocity-matching alignment force (higher = tighter formation). max_speed caps individual entity velocity in world units per second. sync_interval_ms governs how often swarm members exchange neighbour state over the network; lower values increase fidelity at the cost of bandwidth. Research: SpatialAgentOrchestrator.ts swarm formation pass, MultiAgentTrait.ts peer roster.",
+  props: {
+    count: number = 10,
+    role: enum("leader" | "follower" | "scout" | "defender") = "follower",
+    behavior: enum("flock" | "scatter" | "orbit" | "attack" | "defend" | "patrol") = "flock",
+    cohesion_radius: number = 5.0,
+    separation_radius: number = 1.5,
+    alignment_weight: number = 0.5,
+    max_speed: number = 3.0,
+    sync_interval_ms: number = 100
+  },
+  events: {
+    attached: "swarm:attached",
+    detached: "swarm:detached",
+    member_joined: "swarm:member_joined",
+    member_left: "swarm:member_left",
+    behavior_changed: "swarm:behavior_changed",
+    role_changed: "swarm:role_changed",
+    target_reached: "swarm:target_reached",
+    scattered: "swarm:scattered",
+    on_set_behavior: "swarm:set_behavior",
+    on_set_target: "swarm:set_target",
+    on_scatter: "swarm:trigger_scatter",
+    on_query_members: "swarm:query_members"
+  },
+  behaviors: ["@multi_agent", "@steering", "@waypoint"]
+}
