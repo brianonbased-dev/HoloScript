@@ -176,12 +176,25 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
   // Non-streaming completion — POST ${baseURL}/chat/completions
   // ---------------------------------------------------------------------------
 
+  // Ollama (and compatible local servers) require `options.num_ctx` to be set
+  // explicitly in the request body — Modelfile PARAMETER values are not reliably
+  // applied at inference time when num_ctx defaults to 3072, causing context-
+  // overflow errors when knowledge is injected into the prompt. Read from env
+  // so the caller can tune without a code change (W.786 / W.787).
+  private ollamaNumCtx(): number {
+    const v = process.env.HOLOSCRIPT_AGENT_OLLAMA_NUM_CTX;
+    if (!v) return 0;
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
   async complete(
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): Promise<LLMCompletionResponse> {
     const url = `${this.endpointBaseURL}/chat/completions`;
     const tools = filterGenericTools(request.tools);
+    const numCtx = this.ollamaNumCtx();
 
     const body = JSON.stringify({
       model,
@@ -195,6 +208,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
       stop: request.stop,
       stream: false,
       ...(tools.length > 0 ? { tools: tools.map((t) => this.mapToolToOpenAI(t)) } : {}),
+      ...(numCtx > 0 ? { options: { num_ctx: numCtx } } : {}),
     });
 
     return await this.withRetry(async () => {
@@ -321,6 +335,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
   ): AsyncIterable<LLMStreamChunk> {
     const url = `${this.endpointBaseURL}/chat/completions`;
     const tools = filterGenericTools(request.tools);
+    const numCtx = this.ollamaNumCtx();
 
     const body = JSON.stringify({
       model,
@@ -334,6 +349,7 @@ export class OpenAICompatibleAdapter extends BaseLLMAdapter {
       stop: request.stop,
       stream: true,
       ...(tools.length > 0 ? { tools: tools.map((t) => this.mapToolToOpenAI(t)) } : {}),
+      ...(numCtx > 0 ? { options: { num_ctx: numCtx } } : {}),
     });
 
     // --- Pre-flight: fetch + status check (throw before first chunk) ---
