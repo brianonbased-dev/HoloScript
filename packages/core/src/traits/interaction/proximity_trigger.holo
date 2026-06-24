@@ -1,0 +1,22 @@
+@trait {
+  name: "@proximity_trigger",
+  category: "interaction",
+  description: "Distance-based event trigger. Fires enter/exit/dwell events when the target entity enters, leaves, or dwells within a configurable radius from this entity, with hysteresis to prevent event flooding. Authored from ProximityTriggerTrait.ts.",
+  props: {
+    radius_m: number = 3.0,
+    exit_hysteresis_m: number = 0.5,
+    target_tags: list<string> = [],
+    filter_player_only: boolean = false,
+    dwell_time_ms: number = 0,
+    max_targets: number = 32,
+    check_rate_hz: number = 10
+  },
+  events: {
+    attached: "proximity_trigger_attached",
+    detached: "proximity_trigger_detached",
+    on_enter: "proximity_trigger_enter",
+    on_exit: "proximity_trigger_exit",
+    on_dwell: "proximity_trigger_dwell"
+  },
+  behaviors: ["@sensor_hub", "@zone"]
+}

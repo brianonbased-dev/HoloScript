@@ -1,0 +1,22 @@
+@trait {
+  name: "@procedural_structure",
+  category: "world",
+  description: "Single procedural structure generator. Builds a parametric building, bridge, tower, or ruin from modular grammar rules, exporting a GLB mesh with UV-unwrapped segments for tiling textures. Authored from ProceduralStructureTrait.ts.",
+  props: {
+    type: enum("building" | "bridge" | "tower" | "ruin" | "wall" | "arch") = "building",
+    seed: number = 0,
+    floors: number = 4,
+    footprint_w_m: number = 20.0,
+    footprint_d_m: number = 15.0,
+    style: enum("modern" | "gothic" | "industrial" | "ruins" | "sci_fi") = "modern",
+    lod: number = 1,
+    auto_generate: boolean = true
+  },
+  events: {
+    attached: "procedural_structure_attached",
+    detached: "procedural_structure_detached",
+    on_generate: "procedural_structure_generate",
+    regenerate: "procedural_structure_trigger"
+  },
+  behaviors: ["@lod_group", "@procedural_city"]
+}

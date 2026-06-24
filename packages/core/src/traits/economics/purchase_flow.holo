@@ -1,0 +1,25 @@
+@trait {
+  name: "@purchase_flow",
+  category: "economics",
+  description: "In-world purchase checkout flow. Presents a price confirmation UX, submits a payment via x402 USDC or Stripe, issues a receipt, and unlocks the purchased entity on successful settlement. Authored from PurchaseFlowTrait.ts.",
+  props: {
+    price_usd: number = 0.0,
+    currency: enum("usdc" | "usd_stripe" | "holoscript_credit") = "usdc",
+    item_id: string = "",
+    seller_wallet: string = "",
+    require_confirm: boolean = true,
+    receipt_ttl_s: number = 3600,
+    unlock_on_success: boolean = true
+  },
+  events: {
+    attached: "purchase_flow_attached",
+    detached: "purchase_flow_detached",
+    on_initiate: "purchase_flow_initiate",
+    on_confirm: "purchase_flow_confirm",
+    on_complete: "purchase_flow_complete",
+    on_fail: "purchase_flow_fail",
+    on_refund: "purchase_flow_refund",
+    purchase: "purchase_flow_trigger"
+  },
+  behaviors: ["@invoice", "@wallet", "@execute_economic_contract"]
+}

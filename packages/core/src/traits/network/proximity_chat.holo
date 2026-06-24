@@ -1,0 +1,23 @@
+@trait {
+  name: "@proximity_chat",
+  category: "network",
+  description: "Spatial proximity voice and text chat channel. Routes audio and messages only to entities within a configurable radius, applying distance-based attenuation and spatial panning for realistic presence. Authored from ProximityChatTrait.ts.",
+  props: {
+    radius_m: number = 15.0,
+    falloff_start_m: number = 8.0,
+    transport: enum("webrtc" | "holomesh" | "livekit") = "holomesh",
+    text_enabled: boolean = true,
+    voice_enabled: boolean = true,
+    push_to_talk: boolean = false,
+    spatial_audio: boolean = true
+  },
+  events: {
+    attached: "proximity_chat_attached",
+    detached: "proximity_chat_detached",
+    on_enter_range: "proximity_chat_enter",
+    on_leave_range: "proximity_chat_leave",
+    on_message: "proximity_chat_message",
+    on_voice: "proximity_chat_voice"
+  },
+  behaviors: ["@networked", "@voice_activity", "@signaling"]
+}
