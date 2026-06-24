@@ -1,0 +1,26 @@
+@trait {
+  name: "@share_play",
+  category: "xr",
+  description: "Apple SharePlay and visionOS GroupActivity integration for synchronized multi-participant spatial experiences. activity_type is a reverse-domain string identifying the GroupActivity (e.g. 'net.holoscript.studio.collab') — registered with the system so the OS can route FaceTime handoffs. participants_max caps the number of simultaneous session members; the runtime rejects join attempts that exceed this limit and fires on_participant_join with a rejected flag. sync_mode controls authority policy: host_leads means all participants' state is driven from the session host's authoritative stream (lowest latency, best for media playback); all_equal uses a CRDTRoom merge strategy so any participant can mutate shared state (good for collaborative editing); observer_only grants the local participant read-only access to the host's state without contributing mutations (good for live demos and spectators). on_start fires when the GroupActivity session is established and all founding participants have joined. on_end fires when the session is torn down, carrying a reason string (host_left, all_departed, network_error, or system_terminated). on_participant_join fires for each new joiner with their participant id, display name, and host bool. on_participant_leave fires on departure with the same fields plus a leave_reason. local_mirror caches a read-only snapshot of the synced state locally so the entity remains coherent when the session is briefly interrupted (e.g. FaceTime call on hold); the mirror is invalidated once the session fully ends. Pairs with @webrtc for non-Apple real-time sync and @replica for CRDT-based state replication across platforms. Research: SharePlayTrait.ts, CRDTRoomTrait.ts, NetworkedAvatarTrait.ts.",
+  props: {
+    activity_type: string = "",
+    participants_max: number = 8,
+    sync_mode: enum("host_leads" | "all_equal" | "observer_only") = "host_leads",
+    local_mirror: boolean = true
+  },
+  events: {
+    attached: "share_play:attached",
+    detached: "share_play:detached",
+    on_start: "share_play:start",
+    on_end: "share_play:end",
+    on_participant_join: "share_play:participant_join",
+    on_participant_leave: "share_play:participant_leave",
+    session_suspended: "share_play:suspended",
+    session_resumed: "share_play:resumed",
+    sync_conflict: "share_play:sync_conflict",
+    on_join: "share_play:cmd_join",
+    on_leave: "share_play:cmd_leave",
+    on_set_sync_mode: "share_play:cmd_set_sync_mode"
+  },
+  behaviors: ["@webrtc", "@replica"]
+}

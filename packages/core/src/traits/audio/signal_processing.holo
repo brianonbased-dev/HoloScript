@@ -1,0 +1,26 @@
+@trait {
+  name: "@signal_processing",
+  category: "audio",
+  description: "DSP pipeline trait for real-time digital signal processing on audio, sensor, or telemetry streams. domain selects the analysis domain: time operates directly on sample buffers (RMS, peak, zero-crossing); frequency applies FFT-based analysis yielding magnitude spectra; wavelet applies a discrete wavelet transform for time-frequency localisation at multiple scales. sample_rate_hz is the input stream's sampling rate in Hz; the runtime validates that attached sources match or resamples at the pipeline boundary. filter selects the IIR biquad filter type applied before the transform stage: lowpass attenuates above the cutoff, highpass attenuates below, bandpass retains a frequency band, notch rejects a narrow band (useful for mains-hum removal). window selects the time-domain windowing function applied before FFT: rect (rectangular, no windowing — maximum frequency resolution, high spectral leakage), hann (Hann window — good general-purpose trade-off), hamming (Hamming window — reduced sidelobe amplitude), blackman (Blackman window — lowest sidelobe level, best for detecting weak frequency components near strong ones). fft_size controls the DFT frame length in samples; must be a power of two; larger values improve frequency resolution but increase latency. on_frame fires once per completed input frame with the raw time-domain buffer. on_filtered fires after the IIR filter stage with the filtered buffer. on_spectrum fires after the FFT/wavelet stage with the frequency-domain result array and bin resolution in Hz. Pairs with @environmental_audio for spatial audio pipelines, @telemetry for metric emission from spectrum peaks, and @onnx_runtime for ML inference on extracted features. Research: AmbisonicsTrait.ts, SonificationTrait.ts, HeadTrackedAudioTrait.ts.",
+  props: {
+    domain: enum("time" | "frequency" | "wavelet") = "frequency",
+    sample_rate_hz: number = 44100,
+    filter: enum("lowpass" | "highpass" | "bandpass" | "notch") = "lowpass",
+    window: enum("rect" | "hann" | "hamming" | "blackman") = "hann",
+    fft_size: number = 1024
+  },
+  events: {
+    attached: "signal_processing:attached",
+    detached: "signal_processing:detached",
+    on_frame: "signal_processing:frame",
+    on_filtered: "signal_processing:filtered",
+    on_spectrum: "signal_processing:spectrum",
+    on_peak: "signal_processing:peak",
+    filter_changed: "signal_processing:filter_changed",
+    on_set_filter: "signal_processing:cmd_set_filter",
+    on_set_window: "signal_processing:cmd_set_window",
+    on_set_fft_size: "signal_processing:cmd_set_fft_size",
+    on_flush: "signal_processing:cmd_flush"
+  },
+  behaviors: ["@environmental_audio", "@telemetry"]
+}

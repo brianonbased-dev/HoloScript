@@ -1,0 +1,26 @@
+@trait {
+  name: "@service_mesh",
+  category: "network",
+  description: "Service-mesh sidecar descriptor for inter-service communication policy in HoloScript compositions. proxy declares the data-plane proxy implementation: envoy uses the Envoy proxy sidecar (standard in Istio/Kubernetes deployments), linkerd uses the Linkerd2 ultralight Rust proxy, holoscript uses the native HoloScript mesh router (default — zero external dependency, runs in-process or as a WASM sidecar on edge nodes). mtls enables mutual TLS for all inter-service calls when true; the runtime generates short-lived x.509 certificates signed by the composition's internal CA and rotates them automatically. retry_policy is a dict controlling retry behaviour on transient failures: keys max_attempts (int, default 3), initial_delay_ms (int, default 100), backoff_multiplier (float, default 2.0), and retryable_status_codes (array of HTTP status ints, default [503, 504]). circuit_breaker enables a per-upstream circuit breaker using the half-open/open/closed state machine from @circuit_breaker; tripping opens the circuit and fires on_circuit_open with the upstream name and failure count. on_request fires for every outbound request with method, target service, and path. on_response fires when the upstream responds with status code and latency_ms. on_circuit_open fires when a circuit trips open, carrying upstream and failure_count. on_circuit_close fires when a circuit recovers to closed, carrying upstream and recovered_after_ms. Pairs with @routing for inbound request routing, @telemetry for latency/error-rate metric emission, and @retry for composable retry semantics when the built-in retry_policy is insufficient. Research: RestEndpointTrait.ts, CircuitBreakerTrait.ts, RetryTrait.ts, ServiceObservabilityTrait.ts.",
+  props: {
+    proxy: enum("envoy" | "linkerd" | "holoscript") = "holoscript",
+    mtls: boolean = true,
+    retry_policy: dict<string, unknown> = {},
+    circuit_breaker: boolean = true
+  },
+  events: {
+    attached: "service_mesh:attached",
+    detached: "service_mesh:detached",
+    on_request: "service_mesh:request",
+    on_response: "service_mesh:response",
+    on_circuit_open: "service_mesh:circuit_open",
+    on_circuit_close: "service_mesh:circuit_close",
+    mtls_handshake: "service_mesh:mtls_handshake",
+    mtls_error: "service_mesh:mtls_error",
+    cert_rotated: "service_mesh:cert_rotated",
+    on_set_retry_policy: "service_mesh:cmd_set_retry_policy",
+    on_set_mtls: "service_mesh:cmd_set_mtls",
+    on_reset_circuit: "service_mesh:cmd_reset_circuit"
+  },
+  behaviors: ["@routing", "@telemetry"]
+}
