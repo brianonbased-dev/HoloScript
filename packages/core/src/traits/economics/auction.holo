@@ -1,0 +1,28 @@
+@trait {
+  name: "@auction",
+  category: "economics",
+  description: "On-chain or off-chain auction engine for world items or services. Manages bid collection, reserve price enforcement, timer countdown, winner selection, and settlement via x402 or smart contract. Authored from AuctionTrait.ts.",
+  props: {
+    item_id: string = "",
+    seller_wallet: string = "",
+    reserve_price_usd: number = 0.0,
+    start_price_usd: number = 0.0,
+    currency: enum("usdc" | "eth" | "holoscript_credit") = "usdc",
+    duration_s: number = 86400,
+    bid_increment_pct: number = 5.0,
+    auto_settle: boolean = true,
+    visible: boolean = true
+  },
+  events: {
+    attached: "auction_attached",
+    detached: "auction_detached",
+    on_bid: "auction_bid",
+    on_outbid: "auction_outbid",
+    on_end: "auction_end",
+    on_settle: "auction_settle",
+    on_cancel: "auction_cancel",
+    bid: "auction_trigger_bid",
+    cancel: "auction_trigger_cancel"
+  },
+  behaviors: ["@purchase_flow", "@wallet", "@price_oracle"]
+}

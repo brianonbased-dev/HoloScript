@@ -1,0 +1,21 @@
+@trait {
+  name: "@avatar_customizer",
+  category: "agent",
+  description: "Avatar appearance customization slot manager. Stores and applies per-slot material, geometry, and color overrides for a character entity, supporting real-time preview and persistent save to a player profile. Authored from AvatarCustomizerTrait.ts.",
+  props: {
+    slots: list<{ id: string, label: string, asset_url: string, color: string }> = [],
+    auto_apply: boolean = true,
+    persist: boolean = true,
+    randomize_on_create: boolean = false
+  },
+  events: {
+    attached: "avatar_customizer_attached",
+    detached: "avatar_customizer_detached",
+    on_apply: "avatar_customizer_apply",
+    on_save: "avatar_customizer_save",
+    on_reset: "avatar_customizer_reset",
+    apply: "avatar_customizer_trigger_apply",
+    randomize: "avatar_customizer_randomize"
+  },
+  behaviors: ["@player", "@material_override", "@persistent"]
+}

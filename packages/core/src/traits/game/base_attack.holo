@@ -1,0 +1,26 @@
+@trait {
+  name: "@base_attack",
+  category: "game",
+  description: "Base melee or ranged attack declaration. Defines damage, range, hitbox shape, knockback, attack-speed, and critical-hit multiplier for an entity's default attack action, composable with @ability for skill extensions. Authored from BaseAttackTrait.ts.",
+  props: {
+    damage: number = 10.0,
+    range_m: number = 1.5,
+    attack_speed_per_s: number = 1.0,
+    hitbox: enum("sphere" | "box" | "cone" | "line") = "sphere",
+    hitbox_size_m: number = 1.0,
+    knockback_n: number = 0.0,
+    crit_chance: number = 0.05,
+    crit_multiplier: number = 2.0,
+    damage_type: enum("physical" | "fire" | "frost" | "arcane" | "true") = "physical"
+  },
+  events: {
+    attached: "base_attack_attached",
+    detached: "base_attack_detached",
+    on_attack: "base_attack_execute",
+    on_hit: "base_attack_hit",
+    on_crit: "base_attack_crit",
+    on_miss: "base_attack_miss",
+    attack: "base_attack_trigger"
+  },
+  behaviors: ["@ability", "@combat_stats", "@health"]
+}

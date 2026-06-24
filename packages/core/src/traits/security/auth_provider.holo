@@ -1,0 +1,24 @@
+@trait {
+  name: "@auth_provider",
+  category: "security",
+  description: "Pluggable authentication provider facade. Routes sign-in/sign-out calls to the configured backend (wallet-sig, oauth, passkey, API key), emits token payloads, and exposes the current session state as reactive props. Authored from AuthProviderTrait.ts.",
+  props: {
+    provider: enum("wallet_sig" | "oauth" | "passkey" | "api_key" | "holoscript") = "holoscript",
+    session_ttl_s: number = 3600,
+    auto_refresh: boolean = true,
+    require_2fa: boolean = false,
+    token_store: enum("vault" | "memory" | "cookie") = "vault",
+    signed_in: boolean = false
+  },
+  events: {
+    attached: "auth_provider_attached",
+    detached: "auth_provider_detached",
+    on_sign_in: "auth_provider_sign_in",
+    on_sign_out: "auth_provider_sign_out",
+    on_refresh: "auth_provider_refresh",
+    on_error: "auth_provider_error",
+    sign_in: "auth_trigger_sign_in",
+    sign_out: "auth_trigger_sign_out"
+  },
+  behaviors: ["@oauth", "@mfa", "@jwt", "@sso"]
+}
