@@ -1,0 +1,26 @@
+@trait {
+  name: "@health_check",
+  category: "devops",
+  description: "Active health probe for services and endpoints. Polls at a configurable interval and emits state transitions between healthy, degraded, and unhealthy. Authored from HealthCheckTrait.ts.",
+  props: {
+    endpoint_url: string = "",
+    interval_ms: number = 30000,
+    timeout_ms: number = 5000,
+    method: enum("http_get" | "http_post" | "tcp" | "grpc" | "holoscript") = "http_get",
+    expected_status: number = 200,
+    failure_threshold: number = 3,
+    success_threshold: number = 1,
+    initial_delay_ms: number = 0
+  },
+  events: {
+    attached: "health_check_attached",
+    detached: "health_check_detached",
+    on_healthy: "health_check_healthy",
+    on_degraded: "health_check_degraded",
+    on_unhealthy: "health_check_unhealthy",
+    on_probe: "health_check_probe",
+    on_error: "health_check_error",
+    probe: "health_check_trigger"
+  },
+  behaviors: ["@circuit_breaker", "@alert", "@telemetry"]
+}

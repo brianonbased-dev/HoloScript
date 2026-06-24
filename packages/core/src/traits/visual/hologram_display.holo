@@ -1,0 +1,24 @@
+@trait {
+  name: "@hologram_display",
+  category: "visual",
+  description: "Light-field hologram display controller. Drives a Looking Glass or multi-view lenticular display from a 3D scene, or renders a quilt layout for volumetric video. Authored from HologramDisplayTrait.ts.",
+  props: {
+    display_type: enum("looking_glass" | "leia" | "spatial_reality" | "holoscript") = "looking_glass",
+    views: number = 48,
+    aspect: number = 0.75,
+    quilt_url: string = "",
+    focus_plane_z: number = 0.0,
+    depth_inversion: boolean = false,
+    brightness: number = 1.0
+  },
+  events: {
+    attached: "hologram_display_attached",
+    detached: "hologram_display_detached",
+    on_render: "hologram_display_render",
+    on_calibrate: "hologram_display_calibrate",
+    on_error: "hologram_display_error",
+    on_mode_change: "hologram_display_mode_change",
+    calibrate: "hologram_display_trigger_calibrate"
+  },
+  behaviors: ["@rendering"]
+}

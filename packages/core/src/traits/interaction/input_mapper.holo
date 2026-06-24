@@ -1,0 +1,24 @@
+@trait {
+  name: "@input_mapper",
+  category: "interaction",
+  description: "Device-agnostic input remapping layer. Maps raw controller/keyboard/gamepad inputs to semantic actions, enabling rebinding and multi-device support. Authored from InputMapperTrait.ts.",
+  props: {
+    profile: enum("keyboard_mouse" | "gamepad" | "xr_hands" | "touch" | "holoscript") = "holoscript",
+    bindings: list<{ action: string, key: string, modifier: string }> = [],
+    dead_zone: number = 0.1,
+    rumble_enabled: boolean = true,
+    repeat_delay_ms: number = 500,
+    repeat_interval_ms: number = 100
+  },
+  events: {
+    attached: "input_mapper_attached",
+    detached: "input_mapper_detached",
+    on_action: "input_mapper_action",
+    on_axis: "input_mapper_axis",
+    on_bind_change: "input_mapper_bind_change",
+    on_profile_change: "input_mapper_profile_change",
+    rebind: "input_mapper_rebind",
+    reset_bindings: "input_mapper_reset"
+  },
+  behaviors: ["@keyboard_nav"]
+}

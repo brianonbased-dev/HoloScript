@@ -1,0 +1,26 @@
+@trait {
+  name: "@hotspot",
+  category: "xr",
+  description: "Interactive hotspot for spatial UI. A spatial anchor that reveals content (tooltip, panel, media) on gaze, proximity, or tap. Authored from HotspotTrait.ts.",
+  props: {
+    trigger: enum("gaze" | "proximity" | "tap" | "hover" | "voice") = "gaze",
+    dwell_ms: number = 1000,
+    proximity_m: number = 1.0,
+    content_type: enum("tooltip" | "panel" | "video" | "audio" | "scene") = "tooltip",
+    content_url: string = "",
+    once: boolean = false,
+    billboard: boolean = true,
+    icon_url: string = ""
+  },
+  events: {
+    attached: "hotspot_attached",
+    detached: "hotspot_detached",
+    on_activate: "hotspot_activate",
+    on_deactivate: "hotspot_deactivate",
+    on_dwell_start: "hotspot_dwell_start",
+    on_dwell_complete: "hotspot_dwell_complete",
+    on_proximity_enter: "hotspot_proximity_enter",
+    on_proximity_exit: "hotspot_proximity_exit"
+  },
+  behaviors: ["@transform", "@trigger"]
+}
