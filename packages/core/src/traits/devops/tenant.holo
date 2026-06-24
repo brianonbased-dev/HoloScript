@@ -1,0 +1,33 @@
+@trait {
+  name: "@tenant",
+  category: "devops",
+  description: "Multi-tenant organisation isolation boundary for HoloScript enterprise deployments. tenant_id is the stable UUID-style identifier for this tenant; it is set once at provisioning and never mutated. plan is the subscription tier and gates feature availability: free provides basic access with default quotas, starter unlocks extended limits, pro enables advanced composition features, enterprise removes platform ceilings and enables cross-tenant sharing. isolated controls the isolation mode: true enforces a logical data boundary so this tenant's entities, assets, and trait registries are invisible to all other tenants; false allows explicitly-granted cross-tenant resource references. rate_limit_rpm caps API and event-dispatch calls per rolling minute for this tenant; 0 = unlimited (enterprise only). storage_quota_mb sets the maximum persistent storage in megabytes across all of this tenant's scenes and assets; 0 = unlimited. on_quota_exceeded fires when storage_quota_mb is exhausted, carrying consumed_mb and quota_mb; the triggering write is rejected. on_plan_change fires when the plan property is mutated at runtime with old_plan and new_plan; downstream handlers can react to quota unlocks or feature removals. Research: TenantTrait.ts v1.0.0.",
+  props: {
+    tenant_id: string = "",
+    plan: enum("free" | "starter" | "pro" | "enterprise") = "free",
+    isolated: boolean = true,
+    rate_limit_rpm: number = 600,
+    storage_quota_mb: number = 512
+  },
+  events: {
+    attached: "tenant:attached",
+    detached: "tenant:detached",
+    provisioned: "tenant:provisioned",
+    suspended: "tenant:suspended",
+    archived: "tenant:archived",
+    on_quota_exceeded: "tenant:quota_exceeded",
+    on_plan_change: "tenant:plan_changed",
+    session_started: "tenant:session_started",
+    session_ended: "tenant:session_ended",
+    cross_tenant_grant_created: "tenant:grant_created",
+    cross_tenant_grant_revoked: "tenant:grant_revoked",
+    trait_registered: "tenant:trait_registered",
+    trait_revoked: "tenant:trait_revoked",
+    on_provision: "tenant:cmd_provision",
+    on_suspend: "tenant:cmd_suspend",
+    on_archive: "tenant:cmd_archive",
+    on_set_plan: "tenant:cmd_set_plan",
+    on_grant_access: "tenant:cmd_grant_access",
+    on_revoke_access: "tenant:cmd_revoke_access"
+  }
+}

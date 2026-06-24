@@ -1,0 +1,33 @@
+@trait {
+  name: "@task_queue",
+  category: "devops",
+  description: "Priority work queue with retry, dead-letter, and drain lifecycle for HoloScript compositions. max_size caps the total pending queue depth; at capacity on_enqueue is rejected and task_queue:full fires. worker_count sets the number of concurrent processing slots (parallel consumer threads). priority_mode selects the dispatch strategy: fifo processes tasks strictly in arrival order, lifo processes the most-recently-enqueued task first (useful for cache-warm workloads), priority_score dispatches in descending numeric priority-score order with arrival-time tiebreaking. retry_max is the per-task retry ceiling before the task is moved to the dead-letter store; 0 = no retries. backoff_ms is the base delay in milliseconds between retry attempts (exponential backoff is applied by the handler: attempt N waits backoff_ms * 2^N). dead_letter retains failed-beyond-retry tasks in a bounded store when true; when false exhausted tasks are discarded. Events: on_enqueue fires when a task enters the queue with its id, priority_score, and data payload; on_dequeue fires when a worker claims a task; on_complete fires when a worker reports successful completion with the result payload; on_fail fires when a task attempt fails with the error and current retry count; on_drain fires when the queue empties with total processed count. Research: TaskQueueTrait.ts v5.1.",
+  props: {
+    max_size: number = 1000,
+    worker_count: number = 1,
+    priority_mode: enum("fifo" | "lifo" | "priority_score") = "fifo",
+    retry_max: number = 3,
+    backoff_ms: number = 1000,
+    dead_letter: boolean = true
+  },
+  events: {
+    attached: "task_queue:attached",
+    detached: "task_queue:detached",
+    ready: "task_queue:ready",
+    full: "task_queue:full",
+    on_enqueue: "task_queue:enqueue",
+    on_dequeue: "task_queue:dequeue",
+    on_complete: "task_queue:complete",
+    on_fail: "task_queue:fail",
+    on_drain: "task_queue:drain",
+    dead_letter_received: "task_queue:dead_letter",
+    retry_scheduled: "task_queue:retry",
+    on_add: "task_queue:cmd_add",
+    on_task_done: "task_queue:cmd_task_done",
+    on_task_failed: "task_queue:cmd_task_failed",
+    on_cancel: "task_queue:cmd_cancel",
+    on_pause: "task_queue:cmd_pause",
+    on_resume: "task_queue:cmd_resume"
+  },
+  behaviors: ["@feature_flag"]
+}
