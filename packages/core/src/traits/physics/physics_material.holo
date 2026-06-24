@@ -1,0 +1,20 @@
+@trait {
+  name: "@physics_material",
+  category: "physics",
+  description: "Physics material defining surface friction, restitution, and combine modes. Applied to colliders to control contact response behavior. Authored from PhysicsMaterialTrait.ts.",
+  props: {
+    static_friction: number = 0.6,
+    dynamic_friction: number = 0.4,
+    restitution: number = 0.2,
+    friction_combine: enum("average" | "minimum" | "multiply" | "maximum") = "average",
+    restitution_combine: enum("average" | "minimum" | "multiply" | "maximum") = "average",
+    density: number = 1.0
+  },
+  events: {
+    attached: "physics_material_attached",
+    detached: "physics_material_detached",
+    on_update: "physics_material_update",
+    on_contact: "physics_material_contact"
+  },
+  behaviors: ["@rigid_body", "@mesh_collider"]
+}

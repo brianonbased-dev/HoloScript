@@ -1,0 +1,24 @@
+@trait {
+  name: "@passthrough",
+  category: "xr",
+  description: "Mixed-reality passthrough layer compositing. Blends camera passthrough with virtual content at configurable opacity and layers. Authored from PassthroughTrait.ts.",
+  props: {
+    mode: enum("full" | "selective" | "edge_highlight" | "off") = "off",
+    opacity: number = 1.0,
+    layer_order: number = 0,
+    color_map: enum("color" | "mono" | "sepia" | "inverted") = "color",
+    edge_color: { r: number, g: number, b: number } = { r: 1.0, g: 1.0, b: 0.0 },
+    edge_thickness: number = 2.0,
+    brightness: number = 1.0,
+    contrast: number = 1.0
+  },
+  events: {
+    attached: "passthrough_attached",
+    detached: "passthrough_detached",
+    on_mode_change: "passthrough_mode_change",
+    on_opacity_change: "passthrough_opacity_change",
+    on_error: "passthrough_error",
+    set_mode: "passthrough_set_mode"
+  },
+  behaviors: ["@rendering"]
+}

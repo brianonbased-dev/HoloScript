@@ -1,0 +1,30 @@
+@trait {
+  name: "@particle_emitter",
+  category: "visual",
+  description: "GPU-accelerated particle system emitter. Controls burst and continuous emission with velocity, lifetime, color-over-lifetime, and shape modules. Authored from ParticleEmitterTrait.ts.",
+  props: {
+    max_particles: number = 1000,
+    emission_rate: number = 50,
+    burst_count: number = 0,
+    lifetime_s: number = 2.0,
+    start_speed: number = 1.0,
+    start_size: number = 0.1,
+    start_color: { r: number, g: number, b: number, a: number } = { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+    gravity_modifier: number = 0.0,
+    shape: enum("sphere" | "cone" | "box" | "mesh" | "circle") = "cone",
+    loop: boolean = true,
+    texture_url: string = ""
+  },
+  events: {
+    attached: "particle_emitter_attached",
+    detached: "particle_emitter_detached",
+    on_particle_spawn: "particle_emitter_spawn",
+    on_particle_die: "particle_emitter_die",
+    on_burst: "particle_emitter_burst",
+    on_stop: "particle_emitter_stop",
+    play: "particle_emitter_play",
+    stop: "particle_emitter_stop_cmd",
+    burst: "particle_emitter_trigger_burst"
+  },
+  behaviors: ["@vfx"]
+}

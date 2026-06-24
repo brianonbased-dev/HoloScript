@@ -1,0 +1,29 @@
+@trait {
+  name: "@paint",
+  category: "visual",
+  description: "Real-time texture painting directly onto mesh surfaces. Supports brush strokes, stencils, layers, and decal stamping. Authored from PaintTrait.ts.",
+  props: {
+    brush_size: number = 0.05,
+    brush_hardness: number = 0.8,
+    color: { r: number, g: number, b: number, a: number } = { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
+    blend_mode: enum("normal" | "multiply" | "screen" | "overlay" | "erase") = "normal",
+    layer_index: number = 0,
+    undo_history: number = 20,
+    texture_size: number = 1024,
+    channel: enum("albedo" | "roughness" | "metalness" | "normal" | "emissive") = "albedo"
+  },
+  events: {
+    attached: "paint_attached",
+    detached: "paint_detached",
+    on_stroke_start: "paint_stroke_start",
+    on_stroke: "paint_stroke",
+    on_stroke_end: "paint_stroke_end",
+    on_undo: "paint_undo",
+    on_redo: "paint_redo",
+    on_clear: "paint_clear",
+    undo: "paint_trigger_undo",
+    redo: "paint_trigger_redo",
+    clear_layer: "paint_trigger_clear"
+  },
+  behaviors: ["@material"]
+}
