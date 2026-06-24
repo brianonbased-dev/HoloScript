@@ -38,6 +38,13 @@ export interface TransformComponent {
 export interface GeometryComponent {
   type: GeometryType;
   params: Record<string, number>;
+  /**
+   * Real imported vertex buffers — populated when the geometry was carried from a
+   * glTF/GLB import (Track-0 / D.101/ssja). When present and type === GeometryType.Mesh,
+   * extractDrawSpecs forwards it into DrawSpec.geometry.meshData so a native render
+   * path can upload positions/indices without the original source file.
+   */
+  meshData?: import('../native-render/draw-spec').SkinnedMeshData;
 }
 
 export interface MaterialComponent {

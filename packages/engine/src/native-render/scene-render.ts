@@ -60,7 +60,9 @@ export interface SceneRenderOptions {
 /**
  * Render the given draw specs to an offscreen rgba8unorm texture and read the pixels back.
  * One render pass; one vertex/index/uniform buffer + bind group per spec (fine for the small
- * scenes this verifies). `mesh`-kind specs (external geometry) are skipped here.
+ * scenes this verifies). `mesh`-kind specs that carry `geometry.meshData` (Track-0 imported
+ * real vertex buffers) are rendered using those buffers directly. `mesh`-kind specs WITHOUT
+ * meshData (legacy external-reference pointer) are still skipped as before.
  */
 export async function renderDrawSpecs(
   device: GPUDevice,
@@ -97,10 +99,20 @@ export async function renderDrawSpecs(
   });
 
   // Build per-spec GPU resources.
+  // Accepted: procedural primitives (not 'mesh') + mesh-kind specs that carry real meshData.
+  // Skipped: mesh-kind specs without meshData (legacy external-reference pointer, no vertex data).
   const draws = specs
-    .filter((s) => s.geometry.kind !== 'mesh')
+    .filter((s) => s.geometry.kind !== 'mesh' || s.geometry.meshData !== undefined)
     .map((s) => {
-      const mesh = primitiveToMesh(s.geometry.kind, s.geometry.params);
+      // For mesh-kind specs with real vertex buffers, use them directly.
+      // For procedural primitives, generate CPU geometry.
+      const mesh =
+        s.geometry.kind === 'mesh' && s.geometry.meshData
+          ? {
+              positions: s.geometry.meshData.positions,
+              indices: s.geometry.meshData.indices,
+            }
+          : primitiveToMesh(s.geometry.kind, s.geometry.params);
       const vbuf = device.createBuffer({
         size: mesh.positions.byteLength,
         usage: BUF_VERTEX | BUF_COPY_DST,
