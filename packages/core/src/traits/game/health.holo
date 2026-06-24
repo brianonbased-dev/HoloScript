@@ -1,0 +1,24 @@
+@trait {
+  name: "@health",
+  category: "game",
+  description: "Game entity health, damage, and death lifecycle. Tracks current HP against max_hp with optional passive regen_rate (HP/s); armor reduces incoming damage as a flat value; invincible flag suppresses all damage intake for cinematic or tutorial moments. death_behavior controls what happens when HP reaches zero: respawn resets HP at origin, destroy removes the entity, persist keeps the entity at 0 HP for corpse physics, notify emits the death event and halts. Damage, heal, and death events carry source identifiers for kill-credit and analytics pipelines.",
+  props: {
+    max_hp: number = 100,
+    regen_rate: number = 0.0,
+    armor: number = 0,
+    invincible: boolean = false,
+    death_behavior: enum("respawn" | "destroy" | "persist" | "notify") = "notify"
+  },
+  events: {
+    attached: "health:attached",
+    detached: "health:detached",
+    damaged: "health:damaged",
+    healed: "health:healed",
+    died: "health:died",
+    respawned: "health:respawned",
+    stat_changed: "health:stat_changed",
+    on_damage_event: "health:damage",
+    on_heal_event: "health:heal",
+    on_death_event: "health:death"
+  }
+}

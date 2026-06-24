@@ -1,0 +1,28 @@
+@trait {
+  name: "@faction",
+  category: "game",
+  description: "Faction and reputation system for multi-faction scene entities. Tracks standing on a -100 to 100 scale per faction via the allegiance dict; supports locked hostile / trade-allowed sets; rank_titles maps reputation tiers to display strings (ascending order, index 0 = lowest rank). Reputation decays toward neutral each decay_interval. Backed by FactionTrait.ts handler with Strogatz-style relational dynamics and Nash-equilibrium locking for pinned hostile/allied factions.",
+  props: {
+    faction_id: string = "",
+    allegiance: dict<string, number> = {},
+    reputation: number = 0,
+    is_hostile_to: array<string> = [],
+    can_trade_with: array<string> = [],
+    rank_titles: array<string> = [],
+    neutral_threshold: number = 25,
+    friendly_threshold: number = 50,
+    allied_threshold: number = 75,
+    reputation_decay: number = 0.01,
+    decay_interval: number = 60,
+    history_limit: number = 100
+  },
+  events: {
+    registered: "faction_registered",
+    unregistered: "faction_unregistered",
+    reputation_updated: "reputation_updated",
+    relation_changed: "faction_relation_changed",
+    on_reputation_change: "reputation_change",
+    on_get_relation: "get_relation",
+    on_check_hostile: "check_hostile"
+  }
+}

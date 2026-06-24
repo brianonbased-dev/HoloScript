@@ -1,0 +1,23 @@
+@trait {
+  name: "@heatmap",
+  category: "analytics",
+  description: "Spatial analytics heatmap overlay for scene surfaces. Accumulates dwell-time, gaze direction, click/tap events, or custom scalar signals at discretised resolution cells; applies temporal decay so stale activity fades naturally; suppresses render until min_samples threshold is met to avoid noisy visualisation on sparse data. colormap selects the perceptual gradient: viridis (blue→yellow, perceptually uniform), plasma (blue→magenta→yellow), hot (black→red→white), or cool (cyan→magenta). Backed by Heatmap3DTrait.ts for the underlying spatial accumulator.",
+  props: {
+    metric: enum("dwell" | "gaze" | "clicks" | "custom") = "dwell",
+    resolution: number = 32,
+    colormap: enum("viridis" | "plasma" | "hot" | "cool") = "viridis",
+    decay_rate: number = 0.01,
+    min_samples: number = 5
+  },
+  events: {
+    attached: "heatmap:attached",
+    detached: "heatmap:detached",
+    point_recorded: "heatmap:point_recorded",
+    rendered: "heatmap:rendered",
+    cleared: "heatmap:cleared",
+    query_result: "heatmap:query_result",
+    on_record: "heatmap:record",
+    on_clear: "heatmap:clear",
+    on_query: "heatmap:query"
+  }
+}
