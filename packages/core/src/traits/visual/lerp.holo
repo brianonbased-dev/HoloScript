@@ -1,0 +1,20 @@
+@trait {
+  name: "@lerp",
+  category: "visual",
+  description: "Linear interpolation driver for transform and numeric props. Smoothly interpolates an entity's position, rotation, scale, or a named numeric prop toward a target value each frame using a fixed lerp factor or fixed-step speed, independent of animation clips. Authored from LerpTrait.ts.",
+  props: {
+    target_prop: enum("position" | "rotation" | "scale" | "custom") = "position",
+    custom_prop: string = "",
+    factor: number = 0.1,
+    threshold: number = 0.001,
+    snap_on_reach: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "lerp_attached",
+    detached: "lerp_detached",
+    on_reach: "lerp_reach",
+    set_target: "lerp_trigger_set"
+  },
+  behaviors: ["@easing", "@transform", "@follow_target"]
+}

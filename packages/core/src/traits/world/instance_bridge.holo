@@ -1,0 +1,19 @@
+@trait {
+  name: "@instance_bridge",
+  category: "world",
+  description: "Cross-shard or cross-world entity instance bridge. Maintains a bidirectional sync channel for an entity that simultaneously exists in multiple world instances (mirrors), propagating state deltas and preventing echo loops via vector-clock deduplication. Authored from InstanceBridgeTrait.ts.",
+  props: {
+    target_shard_ids: list<string> = [],
+    sync_props: list<string> = [],
+    sync_interval_ms: number = 100,
+    echo_prevention: boolean = true,
+    conflict_resolution: enum("latest_write" | "source_wins" | "merge") = "latest_write"
+  },
+  events: {
+    attached: "instance_bridge_attached",
+    detached: "instance_bridge_detached",
+    on_sync: "instance_bridge_sync",
+    on_conflict: "instance_bridge_conflict"
+  },
+  behaviors: ["@networked", "@recursive_link", "@digital_twin"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@kinematic",
+  category: "physics",
+  description: "Kinematic rigid body controller. Moves an entity via direct position/velocity commands that respect physics broadphase collision detection but bypass force integration, ideal for character controllers, elevators, and scripted movers where animation drives motion. Authored from KinematicTrait.ts.",
+  props: {
+    speed: number = 5.0,
+    max_slope_deg: number = 45.0,
+    step_height_m: number = 0.3,
+    snap_to_ground: boolean = true,
+    gravity_scale: number = 1.0,
+    push_rigidbodies: boolean = true
+  },
+  events: {
+    attached: "kinematic_attached",
+    detached: "kinematic_detached",
+    on_ground: "kinematic_ground",
+    on_air: "kinematic_air",
+    on_collision: "kinematic_collision",
+    move: "kinematic_trigger_move"
+  },
+  behaviors: ["@collider", "@navigation", "@physics_body"]
+}

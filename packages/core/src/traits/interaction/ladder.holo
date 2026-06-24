@@ -1,0 +1,21 @@
+@trait {
+  name: "@ladder",
+  category: "interaction",
+  description: "Climbable ladder interaction volume. Triggers a ladder-climb locomotion mode for any kinematic character that overlaps the volume, driving vertical movement on input axis and blending to a climb animation, disabling gravity while mounted. Authored from LadderTrait.ts.",
+  props: {
+    climb_speed: number = 2.0,
+    auto_align: boolean = true,
+    top_dismount_offset_m: number = 0.5,
+    bottom_dismount_offset_m: number = 0.1,
+    rungs_visible: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "ladder_attached",
+    detached: "ladder_detached",
+    on_mount: "ladder_mount",
+    on_dismount_top: "ladder_dismount_top",
+    on_dismount_bottom: "ladder_dismount_bottom"
+  },
+  behaviors: ["@affordance", "@kinematic", "@collider"]
+}
