@@ -1,0 +1,23 @@
+@trait {
+  name: "@hot_reload",
+  category: "devops",
+  description: "Live-reload HoloScript files on disk change without stopping the runtime. watch_patterns is a list of glob patterns relative to the scene root (e.g. ['./agents/*.hs', './scenes/*.holo']); changes to any matching file trigger a reload cycle. debounce_ms collapses rapid successive saves (e.g. editor auto-save storms) into a single reload by waiting the specified window before acting — set to 0 to disable debouncing. reload_scope controls how widely the reload propagates: self re-parses and re-initialises only the node carrying the trait; subtree walks all descendant nodes and re-initialises them in dependency order; scene tears down and rebuilds the full scene graph while preserving world state. enabled is a runtime kill-switch — set to false to pause watching without detaching the trait. on_reload fires after a successful re-parse and re-initialisation and receives the changed file path; on_error fires if the re-parse fails, carrying the error message and the original file path so callers can surface a developer notification. Research: HotReloadTrait.ts — fs.watch watcher, debounce timers, extension filter (.hs/.hsplus/.holo), soft vs. hard reload modes.",
+  props: {
+    watch_patterns: list<string> = [],
+    debounce_ms: number = 300,
+    reload_scope: enum("self" | "subtree" | "scene") = "self",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "hot_reload:attached",
+    detached: "hot_reload:detached",
+    watching_started: "hot_reload:watching_started",
+    watching_stopped: "hot_reload:watching_stopped",
+    on_reload: "hot_reload:reload",
+    on_error: "hot_reload:error",
+    file_changed: "hot_reload:file_changed",
+    on_set_enabled: "hot_reload:set_enabled",
+    on_set_patterns: "hot_reload:set_patterns"
+  },
+  behaviors: []
+}
