@@ -1,0 +1,20 @@
+@trait {
+  name: "@arkit_image",
+  category: "xr",
+  description: "ARKit image-tracking target. Registers a reference image with the ARKit session and fires events when the image is detected, tracked, or lost in the camera feed, enabling marker-based AR activation. Authored from ARKitImageTrait.ts.",
+  props: {
+    image_url: string = "",
+    physical_width_m: number = 0.1,
+    max_simultaneous: number = 4,
+    auto_attach_entity: boolean = true,
+    tracking_quality_threshold: number = 0.5
+  },
+  events: {
+    attached: "arkit_image_attached",
+    detached: "arkit_image_detached",
+    on_detected: "arkit_image_detected",
+    on_tracked: "arkit_image_tracked",
+    on_lost: "arkit_image_lost"
+  },
+  behaviors: ["@xr_anchor", "@persistent_anchor", "@plane_detection"]
+}

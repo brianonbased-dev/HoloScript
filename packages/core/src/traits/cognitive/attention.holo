@@ -1,0 +1,22 @@
+@trait {
+  name: "@attention",
+  category: "cognitive",
+  description: "Agent attention focus manager. Scores and ranks perceived world objects by salience (recency, threat, novelty, goal-relevance), maintains a priority focus stack, and fires focus-changed events to drive head orientation and dialogue targeting. Authored from AttentionTrait.ts.",
+  props: {
+    max_focus_items: number = 5,
+    novelty_weight: number = 0.3,
+    threat_weight: number = 0.4,
+    goal_weight: number = 0.3,
+    decay_per_s: number = 0.1,
+    focus_angle_deg: number = 60,
+    update_rate_hz: number = 5
+  },
+  events: {
+    attached: "attention_attached",
+    detached: "attention_detached",
+    on_focus_change: "attention_focus_change",
+    on_distract: "attention_distract",
+    on_focus_lost: "attention_focus_lost"
+  },
+  behaviors: ["@perception", "@blackboard", "@neural_expression"]
+}

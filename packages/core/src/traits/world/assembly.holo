@@ -1,0 +1,22 @@
+@trait {
+  name: "@assembly",
+  category: "world",
+  description: "Compound entity assembly from named part entities. Declares an ordered list of component entity handles, manages rigid attachment offsets, tracks assembly completion state, and fires disassembly events when parts are removed. Authored from AssemblyTrait.ts.",
+  props: {
+    parts: list<{ entity_id: string, label: string, required: boolean, offset: { x: number, y: number, z: number } }> = [],
+    auto_attach: boolean = true,
+    completion_threshold: number = 1.0,
+    disassemble_on_exit: boolean = false,
+    highlight_missing: boolean = true
+  },
+  events: {
+    attached: "assembly_attached",
+    detached: "assembly_detached",
+    on_part_attach: "assembly_part_attach",
+    on_part_remove: "assembly_part_remove",
+    on_complete: "assembly_complete",
+    on_disassemble: "assembly_disassemble",
+    disassemble: "assembly_trigger_disassemble"
+  },
+  behaviors: ["@prefab", "@affordance", "@persistent"]
+}

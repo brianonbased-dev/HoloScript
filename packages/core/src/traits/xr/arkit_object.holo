@@ -1,0 +1,20 @@
+@trait {
+  name: "@arkit_object",
+  category: "xr",
+  description: "ARKit 3D object-tracking target. Registers a scanned .arobject reference and fires track/lost events when the physical object is detected in the camera feed, enabling physical-object-anchored AR overlays. Authored from ARKitObjectTrait.ts.",
+  props: {
+    arobject_url: string = "",
+    auto_attach_entity: boolean = true,
+    detection_threshold: number = 0.7,
+    redetect_on_lost: boolean = true,
+    max_detection_distance_m: number = 3.0
+  },
+  events: {
+    attached: "arkit_object_attached",
+    detached: "arkit_object_detached",
+    on_detected: "arkit_object_detected",
+    on_tracked: "arkit_object_tracked",
+    on_lost: "arkit_object_lost"
+  },
+  behaviors: ["@arkit_image", "@xr_anchor", "@photogrammetry"]
+}
