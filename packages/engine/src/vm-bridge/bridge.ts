@@ -24,7 +24,7 @@ import type {
   Vec3,
 } from '../vm/executor';
 
-import type { UAALVirtualMachine, UAALOperand, VMProxy } from '@holoscript/uaal';
+import type { UAALVirtualMachine, UAALOperand, VMProxy, UAALBytecode } from '@holoscript/uaal';
 import { createRequire } from 'node:module';
 
 // ---------------------------------------------------------------------------
@@ -227,6 +227,15 @@ export interface BridgeConfig {
   enableLogging?: boolean;
   /** Max actions per cognitive tick */
   maxActionsPerTick?: number;
+  /**
+   * Pre-compiled uAAL program to run each cognitive cycle. When provided,
+   * {@link SpatialCognitiveAgent.decide} executes this bytecode instead of
+   * the default 7-phase `buildFullCycle(task)`. This is the channel a
+   * marketplace-acquired agent template flows through: the acquired uAAL
+   * program drives the agent's behavior instead of a generic observe-and-act
+   * cycle.
+   */
+  program?: UAALBytecode;
 }
 
 export interface CognitiveTickResult {
@@ -241,7 +250,8 @@ export class SpatialCognitiveAgent {
   private world: ECSWorld;
   private cognitiveVM: UAALVirtualMachine;
   private compiler: import('@holoscript/uaal').UAALCompiler;
-  private config: Required<BridgeConfig>;
+  private config: Required<Omit<BridgeConfig, 'program'>>;
+  private program?: UAALBytecode;
   private lastCognitiveTickMs: number = -Infinity;
   private cognitiveIntervalMs: number;
   private pendingActions: AgentAction[] = [];
@@ -258,6 +268,7 @@ export class SpatialCognitiveAgent {
       enableLogging: config.enableLogging ?? false,
       maxActionsPerTick: config.maxActionsPerTick ?? 50,
     };
+    this.program = config.program;
     this.cognitiveIntervalMs = 1000 / this.config.cognitiveHz;
 
     // Register spatial perception handler on INTAKE
@@ -351,16 +362,32 @@ export class SpatialCognitiveAgent {
   }
 
   /**
-   * Run a cognitive cycle (7-phase) with the current scene as context
+   * Run a cognitive cycle with the current scene as context.
+   *
+   * If a pre-compiled {@link BridgeConfig.program} was supplied (e.g. a
+   * marketplace-acquired uAAL template), that bytecode is executed; otherwise
+   * the default 7-phase `buildFullCycle(task)` runs.
    */
   async decide(task: string): Promise<unknown> {
-    const bytecode = this.compiler.buildFullCycle(task);
+    const bytecode = this.program ?? this.compiler.buildFullCycle(task);
     const result = await this.cognitiveVM.execute(bytecode, {
       task,
       sceneEntityCount: this.world.entityCount,
       timestamp: Date.now(),
     });
     return result;
+  }
+
+  /**
+   * Replace the agent's standing program at runtime. Pass `undefined` to fall
+   * back to the default 7-phase cycle.
+   */
+  setProgram(program: UAALBytecode | undefined): void {
+    this.program = program;
+  }
+
+  getProgram(): UAALBytecode | undefined {
+    return this.program;
   }
 
   /**

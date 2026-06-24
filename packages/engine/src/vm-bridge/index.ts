@@ -14,3 +14,17 @@ export type {
   BridgeConfig,
   CognitiveTickResult,
 } from './bridge';
+
+// Agent lifecycle/registry layer (G5 join) — service over the bridge primitives.
+export { InMemoryAgentRegistry } from './agent-registry';
+export type { IAgentRegistry, RegisteredAgent } from './agent-registry';
+
+export {
+  SpatialAgentService,
+  spawnConfigFromMarketplaceInstall,
+} from './spatial-agent-service';
+export type {
+  SpawnAgentConfig,
+  SpatialAgentServiceConfig,
+  MarketplaceInstallResult,
+} from './spatial-agent-service';
