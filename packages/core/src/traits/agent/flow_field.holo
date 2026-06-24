@@ -1,0 +1,27 @@
+@trait {
+  name: "@flow_field",
+  category: "agent",
+  description: "GPU-accelerated flow-field navigation for NPC and agent steering. Agents follow a destination by sampling directional vectors from the NavigationEngine (gpu_flowfield backend) and blending with their current momentum via steeringWeight. Computes world-space velocity deltas each update; stops within stopDistance of the destination. Pair with @transform for position/rotation output. Research: FlowFieldTrait.ts NavigationEngine gpu_flowfield / default backends.",
+  props: {
+    destination_id: string = "",
+    speed: number = 3.0,
+    steering_weight: number = 0.8,
+    stop_distance: number = 0.5,
+    vector_source: enum("gpu_flowfield" | "navmesh" | "potential_field" | "default") = "gpu_flowfield",
+    influence_radius: number = 0.0,
+    turbulence: number = 0.0,
+    magnitude: number = 1.0,
+    resolution: number[] = [64, 1, 64]
+  },
+  events: {
+    attached: "flow_field_attached",
+    detached: "flow_field_detached",
+    destination_reached: "flow_field_destination_reached",
+    direction_updated: "flow_field_direction_updated",
+    stalled: "flow_field_stalled",
+    on_set_destination: "flow_field_set_destination",
+    on_recalculate: "flow_field_recalculate",
+    on_query: "flow_field_query"
+  },
+  behaviors: ["@transform"]
+}

@@ -1,0 +1,43 @@
+@trait {
+  name: "@fmu",
+  category: "physics",
+  description: "FMI (Functional Mock-up Interface) co-simulation and model-exchange coupling. Bridges a physics FMU (.fmu archive) into a HoloScript scene by declaring typed input/output/parameter ports and a step size. The FMUCompiler emits an FMI 3.0 source bundle with a CAEL coupling-provenance receipt (cael-fmu-coupling-contract.json). Supports co-simulation (driven by onUpdate at stepSize cadence), model-exchange (caller steps manually via fmu:step event), or both modes. Port types: Real / Integer / Boolean / String; causality: input / output / parameter / local / independent. Research: FMUCompiler.ts FMUTrait.ts createFMUCouplingReceipt.",
+  props: {
+    source: string = "",
+    model_identifier: string = "holoscript_fmu",
+    fmi_version: enum("1.0" | "2.0" | "3.0") = "3.0",
+    mode: enum("co-simulation" | "model-exchange" | "both") = "co-simulation",
+    step_size: number = 0.01,
+    inputs: array<{
+      name: string,
+      type: enum("Real" | "Integer" | "Boolean" | "String") = "Real",
+      causality: enum("input" | "output" | "parameter" | "local" | "independent") = "input",
+      value_reference: number = 0
+    }> = [],
+    outputs: array<{
+      name: string,
+      type: enum("Real" | "Integer" | "Boolean" | "String") = "Real",
+      causality: enum("input" | "output" | "parameter" | "local" | "independent") = "output",
+      value_reference: number = 0
+    }> = [],
+    parameters: array<{
+      name: string,
+      start: number = 0.0,
+      type: enum("Real" | "Integer" | "Boolean" | "String") = "Real",
+      causality: enum("input" | "output" | "parameter" | "local" | "independent") = "parameter"
+    }> = []
+  },
+  events: {
+    attached: "fmu:attached",
+    detached: "fmu:detached",
+    step_complete: "fmu:step_complete",
+    receipt: "fmu:receipt",
+    error: "fmu:error",
+    on_set_input: "fmu:set_input",
+    on_set_output: "fmu:set_output",
+    on_step: "fmu:step",
+    on_reset: "fmu:reset",
+    on_query: "fmu:query"
+  },
+  behaviors: ["@transform"]
+}

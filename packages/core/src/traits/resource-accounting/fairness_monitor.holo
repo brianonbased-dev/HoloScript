@@ -1,0 +1,40 @@
+@trait {
+  name: "@fairness_monitor",
+  category: "audit",
+  description: "Deployed-model fairness auditing with sliding-window metrics and deterministic CAEL receipts. Streams inference decisions into a bounded window, runs demographic-parity and adverse-impact sweeps at a cadence, and emits a fairness.monitor.receipt.v1 per sweep. Risk levels: green (AIR >= threshold), amber (drift zone), red (policy_drift). Four-fifths rule enforced (AIR >= 0.8). Escalates via fairness_drift_event to the shared security/audit bus. Metrics: approvalRate per protected-attribute group, adverseImpactRatio (min/max rate ratio), demographicParityDiff. Research: FairnessMonitorTrait.ts runFairnessMonitorSweep analyzeFairnessWindow deriveFairnessRisk.",
+  props: {
+    enabled: boolean = true,
+    protected_attrs: array<string> = [],
+    protected_attribute_field: string = "protectedAttribute",
+    decision_field: string = "approved",
+    positive_decision_values: array<string> = ["true", "approved", "approve", "pass", "1", "yes"],
+    metric: enum("demographic_parity" | "equalized_odds" | "calibration" | "counterfactual") = "demographic_parity",
+    threshold: number = 0.8,
+    drift_threshold: number = 0.05,
+    window_size: number = 200,
+    min_window_size: number = 20,
+    sweep_cadence: number = 25,
+    action: enum("warn" | "block" | "audit") = "warn",
+    model_id: string = "",
+    emit_audit_log: boolean = true,
+    emit_security_event: boolean = true
+  },
+  events: {
+    ready: "fairness_monitor_ready",
+    window_updated: "fairness_monitor_window_updated",
+    receipt: "fairness_monitor_receipt",
+    drift: "fairness_drift_event",
+    waiting: "fairness_monitor_waiting",
+    error: "fairness_monitor_error",
+    query_result: "fairness_monitor_query_result",
+    on_record_inference: "fairness_monitor:record_inference",
+    on_record_batch: "fairness_monitor:record_batch",
+    on_sweep: "fairness_monitor:sweep",
+    on_tick: "fairness_monitor:tick",
+    on_query: "fairness_monitor:query"
+  },
+  evidence: [
+    "D.044",
+    "F.037"
+  ]
+}

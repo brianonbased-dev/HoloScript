@@ -1,0 +1,34 @@
+@trait {
+  name: "@gaussian_train",
+  category: "splat",
+  description: "Compile-time trait declaring the intent to TRAIN a 3D Gaussian Splat from posed views. Behavior-as-data consumed by compile_to_gaussian_train; the GaussianTrainCompiler reads this config and emits a validated GaussianTrainJob. Sovereign backend routes to the native GaussianTrainer3D ($0, no remote tokens); legacy remote backend submits to api.rendernetwork.com via GaussianSplatBakingPipeline. Hyperparameters mirror GaussianBakingConfig so both backends share one vocabulary. densifyInterval > 0 turns on adaptive density control (3DGS Algorithm 1). Research: GaussianTrainCompiler.ts sovereign-targets.ts GaussianTrainer3D GaussianTrainer2D.",
+  props: {
+    views: string = "",
+    init: string = "random",
+    iterations: number = 30000,
+    target_gaussians: number = 500000,
+    learning_rates: {
+      position: number = 0.00016,
+      scale: number = 0.005,
+      rotation: number = 0.001,
+      opacity: number = 0.05,
+      color: number = 0.0025
+    },
+    densify_interval: number = 100,
+    dilation: number = 0.3,
+    backend: enum("sovereign" | "remote") = "sovereign",
+    output: string = ""
+  },
+  events: {
+    attached: "gaussian_train_attached",
+    job_compiled: "gaussian_train_job_compiled",
+    started: "gaussian_train_started",
+    iteration: "gaussian_train_iteration",
+    densify: "gaussian_train_densify",
+    completed: "gaussian_train_completed",
+    failed: "gaussian_train_failed",
+    on_start: "gaussian_train_start",
+    on_cancel: "gaussian_train_cancel",
+    on_query: "gaussian_train_query"
+  }
+}
