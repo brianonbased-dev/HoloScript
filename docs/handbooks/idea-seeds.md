@@ -297,3 +297,32 @@ opportunistic-when-free only; reliable parallel TOPS comes from the Vast fleet (
 F.129) or more dedicated always-on edge nodes (another Jetson / a reasoning box). (3) Also wants a
 CITE-by-ID grounding gate on seats (W.808: 4B seats confabulated citations) so parallel ≠ parallel-garbage.
 Sequence after the `xagi` council-verb build (`task_1782002213705_xagi`).
+
+---
+
+## Absorb Dashboard Workbench Tabs (Agents / Daemon Ops / Tools) — Sovereign Ops Surface
+
+**What might be valuable**: The old `/absorb` 6-tab dashboard contained three workbench-style
+tabs beyond Credits/Projects that were retired (not re-homed) in the A4 IA refactor
+(2026-06-24, task_1781158205576_bny7):
+
+- **Agents tab** — Moltbook agent health management: list running agents, view their last-heartbeat,
+  kill/restart, inspect live logs. This is a real operator surface for managing the agent fleet from
+  the Studio UI (no SSH required). Currently approximated by `/workspace/agents` (manifest creation),
+  but that page creates agents — it does not manage live ones.
+- **Daemon Ops tab** — live daemon job queue: poll pending/running/failed jobs, retry failed, inspect
+  outputs. The `/api/daemon/jobs` route still exists and is tested; the operator surface was dropped.
+- **Tools tab** (`ToolsTab.tsx`) — absorb-project-scoped developer tools: query a project's knowledge
+  graph (with optional LLM), render a project to PNG/JPEG/WebP/PDF, diff two source files. These are
+  power-user capabilities for Absorb project owners that have no current UI home.
+
+A natural re-home for all three would be a `/workspace/ops` route (or a `/workspace?tab=ops` panel)
+once the workspace is the canonical operations surface. The components are preserved in
+`packages/studio/src/app/absorb/components/` (ToolsTab.tsx + inline agent/daemon logic from the old
+absorb page in git history before commit 527e2860643a).
+
+**Why not now**: D.101 (build-the-language-only freeze) prohibits new peripheral routes. The existing
+`/workspace/agents` covers the creation side; re-introducing a live-agent management panel requires
+HoloMesh team-ops API surface work (agent health endpoint, restart/kill actions) that is currently only
+in the daemon-side MCP tools, not in a clean REST surface Studio can call without CORS issues. Wire once
+D.101 lifts or the ops surface becomes a language-deliverable (compile_to_agent → manage from Studio).

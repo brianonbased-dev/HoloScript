@@ -31,6 +31,7 @@ import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
 import { IntegrationsView } from '@/components/integrations/IntegrationsView';
+import { CreditBalanceCard, PricingTab } from '@/app/absorb/components';
 
 // ── Types (kept host-side; not exposed to composition) ─────────────────────────
 
@@ -48,12 +49,13 @@ type OracleStatus = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-type SettingsTab = 'profile' | 'integrations' | 'api-keys';
+type SettingsTab = 'profile' | 'integrations' | 'api-keys' | 'credits';
 
 const SETTINGS_TABS: { id: SettingsTab; label: string }[] = [
   { id: 'profile', label: 'Profile' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'api-keys', label: 'API Keys' },
+  { id: 'credits', label: 'Credits' },
 ];
 
 export function SettingsView() {
@@ -63,8 +65,15 @@ export function SettingsView() {
   // ── Tab state — driven by ?tab= query param so /integrations redirect lands correctly
   const tabParam = searchParams.get('tab') as SettingsTab | null;
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    tabParam && ['profile', 'integrations', 'api-keys'].includes(tabParam) ? tabParam : 'profile'
+    tabParam && ['profile', 'integrations', 'api-keys', 'credits'].includes(tabParam)
+      ? tabParam
+      : 'profile'
   );
+
+  // ── Credits state ──────────────────────────────────────────────────────────
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [creditTier, setCreditTier] = useState<string>('free');
+  const [creditsLoading, setCreditsLoading] = useState(false);
 
   // ── Profile form state (React-controlled; kept in host) ────────────────────
   const [displayName, setDisplayName] = useState('');
@@ -114,6 +123,17 @@ export function SettingsView() {
         setTotalEarningsCents(data.totalEarningsCents ?? 0);
       })
       .catch(() => setStripeStatus('not_started'));
+
+    // Credits balance
+    setCreditsLoading(true);
+    fetch('/api/absorb/credits')
+      .then((r) => r.json())
+      .then((data) => {
+        setCreditBalance((data.balance as number) ?? 0);
+        setCreditTier((data.tier as string) ?? 'free');
+      })
+      .catch(() => {})
+      .finally(() => setCreditsLoading(false));
 
     // Oracle Boost status + telemetry
     const tier = (session as { user: { tier?: string } }).user?.tier ?? 'free';
@@ -208,6 +228,22 @@ export function SettingsView() {
       // Silently fail
     } finally {
       setConnectingStripe(false);
+    }
+  }
+
+  async function purchaseCredits(pkgId: string) {
+    try {
+      const res = await fetch('/api/absorb/credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageId: pkgId }),
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl as string;
+      }
+    } catch {
+      // Silently fail
     }
   }
 
@@ -411,6 +447,36 @@ export function SettingsView() {
           }}
         >
           Please sign in to manage API keys.
+        </div>
+      )}
+
+      {activeTab === 'credits' && session?.user?.id && (
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 40px' }}>
+          {creditsLoading ? (
+            <div style={{ padding: 40, textAlign: 'center', color: '#888', fontFamily: 'system-ui' }}>
+              Loading credit balance...
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <CreditBalanceCard balance={creditBalance} tier={creditTier} />
+              <PricingTab onPurchase={(pkgId) => void purchaseCredits(pkgId)} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'credits' && !session?.user?.id && (
+        <div
+          style={{
+            maxWidth: 600,
+            margin: '0 auto',
+            padding: 40,
+            textAlign: 'center',
+            color: '#888',
+            fontFamily: 'system-ui',
+          }}
+        >
+          Please sign in to manage credits.
         </div>
       )}
     </div>
