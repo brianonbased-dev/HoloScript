@@ -1,0 +1,22 @@
+@trait {
+  name: "@reason",
+  category: "cognitive",
+  description: "Explicit reasoning step logger and tracer for cognitive agents. Wraps a chain-of-thought step as a structured entry with hypothesis, evidence list, conclusion, and confidence score — building a traceable audit trail of agent decisions for provenance and oversight. Authored from ReasonTrait.ts.",
+  props: {
+    max_steps: number = 20,
+    persist: boolean = true,
+    trace_url: string = "",
+    include_evidence: boolean = true,
+    min_confidence: number = 0.0,
+    export_format: enum("jsonl" | "markdown" | "holoscript") = "jsonl"
+  },
+  events: {
+    attached: "reason_attached",
+    detached: "reason_detached",
+    on_step: "reason_step",
+    on_complete: "reason_complete",
+    add_step: "reason_trigger_add_step",
+    export: "reason_trigger_export"
+  },
+  behaviors: ["@audit_log", "@blackboard", "@autonomous_agenda"]
+}

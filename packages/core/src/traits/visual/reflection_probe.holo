@@ -1,0 +1,22 @@
+@trait {
+  name: "@reflection_probe",
+  category: "visual",
+  description: "Environment reflection capture probe. Renders a 360° cubemap of the scene from the entity's world position into a reflection texture sampled by PBR materials in the probe's blend radius, supporting realtime, per-frame, or baked-only update modes. Authored from ReflectionProbeTrait.ts.",
+  props: {
+    resolution: number = 128,
+    blend_radius_m: number = 8.0,
+    update_mode: enum("realtime" | "per_frame" | "baked") = "per_frame",
+    intensity: number = 1.0,
+    clip_near_m: number = 0.1,
+    clip_far_m: number = 200.0,
+    bake_on_attach: boolean = false
+  },
+  events: {
+    attached: "reflection_probe_attached",
+    detached: "reflection_probe_detached",
+    on_bake: "reflection_probe_bake",
+    on_update: "reflection_probe_update",
+    bake: "reflection_probe_trigger_bake"
+  },
+  behaviors: ["@light_probe", "@global_illumination", "@mirror_surface"]
+}

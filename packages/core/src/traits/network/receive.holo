@@ -1,0 +1,21 @@
+@trait {
+  name: "@receive",
+  category: "network",
+  description: "Named message receiver endpoint. Registers the entity as a message sink under a named channel address, dispatching validated incoming payloads to the event system and echoing acknowledgement to the sender. Authored from ReceiveTrait.ts.",
+  props: {
+    channel: string = "",
+    filter_sender: string = "",
+    schema_url: string = "",
+    max_queue: number = 32,
+    ack: boolean = true,
+    drop_on_overflow: boolean = true
+  },
+  events: {
+    attached: "receive_attached",
+    detached: "receive_detached",
+    on_message: "receive_message",
+    on_ack: "receive_ack",
+    on_overflow: "receive_overflow"
+  },
+  behaviors: ["@event_bus", "@broadcast", "@networked"]
+}

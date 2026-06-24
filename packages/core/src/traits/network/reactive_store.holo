@@ -1,0 +1,21 @@
+@trait {
+  name: "@reactive_store",
+  category: "network",
+  description: "Reactive key-value state store with change-notification subscriptions. Stores typed values keyed by string, notifies all subscribed listeners when a key changes (fine-grained reactivity), and supports computed derived values via formula strings. Authored from ReactiveStoreTrait.ts.",
+  props: {
+    initial_state: dict<string, string> = {},
+    persist: boolean = false,
+    persist_key: string = "",
+    computed: dict<string, string> = {},
+    broadcast_to_peers: boolean = false
+  },
+  events: {
+    attached: "reactive_store_attached",
+    detached: "reactive_store_detached",
+    on_change: "reactive_store_change",
+    on_set: "reactive_store_set",
+    set: "reactive_store_trigger_set",
+    get: "reactive_store_trigger_get"
+  },
+  behaviors: ["@blackboard", "@signal_bus", "@event_bus"]
+}
