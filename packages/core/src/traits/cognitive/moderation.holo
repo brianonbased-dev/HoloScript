@@ -1,0 +1,23 @@
+@trait {
+  name: "@moderation",
+  category: "cognitive",
+  description: "Content moderation classifier. Screens text, images, and audio for policy violations (hate, harassment, CSAM, violence, spam) using a configurable backend and applies automated or human-review actions. Authored from ModerationTrait.ts.",
+  props: {
+    backend: enum("openai" | "perspective" | "aws_rekognition" | "holoscript") = "holoscript",
+    categories: list<enum("hate" | "harassment" | "violence" | "spam" | "adult" | "self_harm")> = [],
+    threshold: number = 0.8,
+    on_flag: enum("block" | "queue_review" | "tag" | "log") = "queue_review",
+    modalities: list<enum("text" | "image" | "audio")> = [],
+    api_key_secret: string = ""
+  },
+  events: {
+    attached: "moderation_attached",
+    detached: "moderation_detached",
+    on_pass: "moderation_pass",
+    on_flag: "moderation_flag",
+    on_block: "moderation_block",
+    on_error: "moderation_error",
+    screen: "moderation_screen"
+  },
+  behaviors: ["@fairness_monitor", "@audit_log", "@consent_gate"]
+}

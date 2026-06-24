@@ -1,0 +1,24 @@
+@trait {
+  name: "@mfa",
+  category: "security",
+  description: "Multi-factor authentication enforcer. Challenges users with TOTP, SMS OTP, or hardware key on high-risk operations and maintains a per-session MFA state. Authored from MfaTrait.ts.",
+  props: {
+    methods: list<enum("totp" | "sms" | "email_otp" | "webauthn" | "holoscript")> = [],
+    required_on: list<enum("login" | "high_value_tx" | "admin_action" | "wallet_op")> = [],
+    grace_period_s: number = 300,
+    otp_length: number = 6,
+    totp_issuer: string = "",
+    sms_secret: string = ""
+  },
+  events: {
+    attached: "mfa_attached",
+    detached: "mfa_detached",
+    on_challenge: "mfa_challenge",
+    on_pass: "mfa_pass",
+    on_fail: "mfa_fail",
+    on_lockout: "mfa_lockout",
+    challenge: "mfa_trigger_challenge",
+    verify: "mfa_verify"
+  },
+  behaviors: ["@sso", "@jwt", "@rbac"]
+}

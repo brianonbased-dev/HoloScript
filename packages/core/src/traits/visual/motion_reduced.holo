@@ -1,0 +1,21 @@
+@trait {
+  name: "@motion_reduced",
+  category: "visual",
+  description: "Reduced motion accessibility mode. Intercepts animation and transition requests and replaces continuous movement with instant cuts or opacity fades for users with vestibular sensitivities. Authored from MotionReducedTrait.ts.",
+  props: {
+    enabled: boolean = false,
+    auto_detect: boolean = true,
+    fade_duration_ms: number = 150,
+    allow_scale: boolean = false,
+    allow_opacity: boolean = true,
+    allow_rotate: boolean = false,
+    allow_translate: boolean = false
+  },
+  events: {
+    attached: "motion_reduced_attached",
+    detached: "motion_reduced_detached",
+    on_toggle: "motion_reduced_toggle",
+    toggle: "motion_reduced_trigger_toggle"
+  },
+  behaviors: ["@high_contrast", "@accessibility"]
+}

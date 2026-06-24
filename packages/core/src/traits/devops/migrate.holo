@@ -1,0 +1,26 @@
+@trait {
+  name: "@migrate",
+  category: "devops",
+  description: "Database schema migration runner. Applies ordered SQL or NoSQL migration scripts, tracks the applied version in a migrations table, and supports dry-run, rollback, and idempotent re-run. Authored from MigrateTrait.ts.",
+  props: {
+    migrations_url: string = "",
+    dialect: enum("postgres" | "sqlite" | "mysql" | "mongodb" | "holoscript") = "postgres",
+    connection_secret: string = "",
+    table: string = "schema_migrations",
+    dry_run: boolean = false,
+    auto_run_on_start: boolean = false,
+    timeout_s: number = 60
+  },
+  events: {
+    attached: "migrate_attached",
+    detached: "migrate_detached",
+    on_start: "migrate_start",
+    on_applied: "migrate_applied",
+    on_rollback: "migrate_rollback",
+    on_complete: "migrate_complete",
+    on_error: "migrate_error",
+    run: "migrate_trigger_run",
+    rollback: "migrate_trigger_rollback"
+  },
+  behaviors: ["@database", "@audit_log"]
+}
