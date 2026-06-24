@@ -1,0 +1,24 @@
+@trait {
+  name: "@memory_mgmt",
+  category: "resource-accounting",
+  description: "Runtime heap and object-pool memory manager for HoloScript entities. Attaches a memory budget to the entity and triggers adaptive GC, eviction, and prefetch behaviors when the budget is approached. max_heap_mb is the maximum heap allocation budget for this entity's managed pool in megabytes; the runtime emits on_low_memory when the pool reaches 80% utilisation. gc_interval_ms is the period between explicit garbage-collection sweeps — lower values reduce peak usage at the cost of throughput; 0 disables scheduled GC (relies on eviction only). pool_size is the number of pre-allocated object slots in the entity's fast-path object pool, trading startup cost for zero-alloc steady-state operation. eviction selects the cache eviction policy applied when the pool is full: lru discards the least-recently-used slot, lfu discards the least-frequently-used slot, priority discards the slot with the lowest priority score (set per-object via the on_set_priority command), ttl discards slots whose time-to-live has expired in insertion order. prefetch, when true, proactively loads the next expected asset or data block into the pool while the current block is in use, reducing stall latency at the cost of peak pool occupancy. on_low_memory fires when utilisation exceeds 80% of max_heap_mb, carrying current_mb and max_mb; handlers should free non-critical resources. on_gc_complete fires after each GC sweep with freed_mb and duration_ms. Pairs with @resource_accounting for cross-entity budget tracking and @cache for explicit key-value caching with TTL. Research: MemoryTrait.ts v2.0.0, ResourceAccountingTrait.ts, CacheTrait.ts.",
+  props: {
+    max_heap_mb: number = 64,
+    gc_interval_ms: number = 5000,
+    pool_size: number = 256,
+    eviction: enum("lru" | "lfu" | "priority" | "ttl") = "lru",
+    prefetch: boolean = false
+  },
+  events: {
+    attached: "memory_mgmt:attached",
+    detached: "memory_mgmt:detached",
+    on_low_memory: "memory_mgmt:low_memory",
+    on_gc_complete: "memory_mgmt:gc_complete",
+    pool_overflow: "memory_mgmt:pool_overflow",
+    eviction_triggered: "memory_mgmt:evicted",
+    on_gc: "memory_mgmt:cmd_gc",
+    on_set_priority: "memory_mgmt:cmd_set_priority",
+    on_resize_pool: "memory_mgmt:cmd_resize_pool"
+  },
+  behaviors: ["@resource_accounting"]
+}

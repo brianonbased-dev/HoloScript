@@ -1,0 +1,27 @@
+@trait {
+  name: "@model_load",
+  category: "media",
+  description: "Declarative 3D asset loader for entity geometry. src_url is the URL or path to the model file. format selects the asset format: gltf and glb are the preferred interchange formats (glb = single-file binary encoding), usd and usdz target Apple/Pixar pipelines, fbx and obj are legacy interchange formats, ply is the raw point-cloud format used by Gaussian splat sources. lod_mode controls level-of-detail: auto derives LOD thresholds from the asset's bounding sphere and viewer distance, manual requires an explicit lod_distances prop list (not included in this trait — pair with a LOD orchestrator), off disables LOD switching. cast_shadows and receive_shadows gate the entity's shadow participation in the scene render graph. scale_factor scales the loaded geometry uniformly at import time — useful for assets authored at different unit scales (e.g. cm vs m). auto_center shifts the mesh origin to its geometric centroid after load, preventing off-center pivots. on_load fires when the asset is fully parsed and GPU-uploaded, carrying the entity id and bounding sphere radius. on_error fires on any load failure (network error, parse failure, unsupported format) with a reason string. on_progress fires during streaming loads with a loaded_bytes / total_bytes progress payload. Pairs with @gaussian_splat for PLY point-cloud bodies, @material for surface overrides, and @animation for skeletal or morph-target playback. Research: ModelLoadTrait.ts v5.1, GLTFTrait.ts, FBXTrait.ts, USDTrait.ts.",
+  props: {
+    src_url: string = "",
+    format: enum("gltf" | "glb" | "usd" | "usdz" | "fbx" | "obj" | "ply") = "glb",
+    lod_mode: enum("auto" | "manual" | "off") = "auto",
+    cast_shadows: boolean = true,
+    receive_shadows: boolean = true,
+    scale_factor: number = 1.0,
+    auto_center: boolean = false
+  },
+  events: {
+    attached: "model_load:attached",
+    detached: "model_load:detached",
+    loading: "model_load:loading",
+    on_progress: "model_load:progress",
+    on_load: "model_load:loaded",
+    on_error: "model_load:error",
+    unloaded: "model_load:unloaded",
+    on_reload: "model_load:cmd_reload",
+    on_set_src: "model_load:cmd_set_src",
+    on_set_lod_mode: "model_load:cmd_set_lod_mode"
+  },
+  behaviors: ["@transform", "@material"]
+}

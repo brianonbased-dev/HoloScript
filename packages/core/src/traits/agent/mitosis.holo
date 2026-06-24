@@ -1,0 +1,24 @@
+@trait {
+  name: "@mitosis",
+  category: "agent",
+  description: "Autonomous cell-division spawner for HoloScript entities — splits the host entity into N children when a trigger condition is met. trigger selects what drives the split: time fires after a fixed interval, energy fires when an internal energy counter exceeds threshold, size fires when the entity's bounding volume exceeds threshold, signal fires on an explicit external event. threshold is the numeric value that triggers the split — interpretation depends on trigger (seconds for time, units for energy, world-units radius for size, not used for signal). child_count is the number of child entities spawned per split, clamped to 2–8. inherit_props is the list of prop keys copied from the parent entity to each child at spawn time, enabling trait-configuration inheritance without re-authoring. disperse_force is the outward impulse magnitude applied to each child in world-space along the parent-to-child vector immediately after spawn, separating children from the origin. on_split fires once per split cycle, carrying the parent id, the list of child ids, and the trigger value that crossed the threshold. max_generations caps the spawn depth — a child spawned by this trait tracks its generation count; at max_generations the on_split event fires but no children are created, preventing unbounded swarm growth. set generation_count on child entities to 0 at generation 1 and increment on every spawn. Pairs with @swarm for flocking of spawned children, @multi_agent for task delegation, and @rigid_body for physics-driven dispersal. Research: MitosisTrait.ts, SwarmTrait.ts, MultiAgentTrait.ts.",
+  props: {
+    trigger: enum("time" | "energy" | "size" | "signal") = "time",
+    threshold: number = 10.0,
+    child_count: number = 2,
+    inherit_props: list<string> = [],
+    disperse_force: number = 1.0,
+    max_generations: number = 3
+  },
+  events: {
+    attached: "mitosis:attached",
+    detached: "mitosis:detached",
+    on_split: "mitosis:split",
+    child_spawned: "mitosis:child_spawned",
+    generation_limit_reached: "mitosis:generation_limit",
+    on_trigger_signal: "mitosis:cmd_trigger",
+    on_set_threshold: "mitosis:cmd_set_threshold",
+    on_set_child_count: "mitosis:cmd_set_child_count"
+  },
+  behaviors: ["@swarm"]
+}
