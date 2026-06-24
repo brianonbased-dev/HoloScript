@@ -1,0 +1,22 @@
+@trait {
+  name: "@delegate",
+  category: "cognitive",
+  description: "Task delegation forwarder. Packages a structured task description and required capability tags, submits it to the HoloMesh board or a named agent handle, and tracks the outcome via a receipt reference. Authored from DelegateTrait.ts.",
+  props: {
+    task_title: string = "",
+    capability_tags: list<string> = [],
+    target_handle: string = "",
+    priority: enum("low" | "normal" | "high" | "urgent") = "normal",
+    timeout_s: number = 3600,
+    on_fail: enum("retry" | "escalate" | "drop") = "escalate"
+  },
+  events: {
+    attached: "delegate_attached",
+    detached: "delegate_detached",
+    on_claimed: "delegate_claimed",
+    on_complete: "delegate_complete",
+    on_fail: "delegate_fail",
+    delegate: "delegate_trigger"
+  },
+  behaviors: ["@roadmap", "@autonomous_agenda", "@blackboard"]
+}

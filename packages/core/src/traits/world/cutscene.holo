@@ -1,0 +1,24 @@
+@trait {
+  name: "@cutscene",
+  category: "world",
+  description: "Cinematic cutscene sequencer. Plays a timed sequence of camera moves, entity animations, dialogue lines, and world-state changes, locking player input for the duration and restoring control on completion. Authored from CutsceneTrait.ts.",
+  props: {
+    sequence_id: string = "",
+    duration_s: number = 10.0,
+    skippable: boolean = true,
+    lock_input: boolean = true,
+    camera_target: string = "",
+    auto_play: boolean = false,
+    one_shot: boolean = true
+  },
+  events: {
+    attached: "cutscene_attached",
+    detached: "cutscene_detached",
+    on_start: "cutscene_start",
+    on_skip: "cutscene_skip",
+    on_complete: "cutscene_complete",
+    play: "cutscene_trigger_play",
+    skip: "cutscene_trigger_skip"
+  },
+  behaviors: ["@scene_transition", "@replay", "@animation_blender"]
+}

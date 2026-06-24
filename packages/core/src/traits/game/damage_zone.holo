@@ -1,0 +1,22 @@
+@trait {
+  name: "@damage_zone",
+  category: "game",
+  description: "Area-of-effect damage zone. Applies continuous or periodic damage to all entities with @health that enter the zone volume, with configurable damage type, immunity mask, and visual effect reference. Authored from DamageZoneTrait.ts.",
+  props: {
+    damage_per_s: number = 10.0,
+    damage_type: enum("physical" | "fire" | "frost" | "poison" | "void") = "physical",
+    tick_rate_hz: number = 2,
+    immune_tags: list<string> = [],
+    fall_off: boolean = false,
+    effect_url: string = "",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "damage_zone_attached",
+    detached: "damage_zone_detached",
+    on_enter: "damage_zone_enter",
+    on_tick: "damage_zone_tick",
+    on_exit: "damage_zone_exit"
+  },
+  behaviors: ["@health", "@zone", "@collider"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@decal",
+  category: "visual",
+  description: "World-space surface decal projector. Projects a texture or material overlay onto underlying geometry (impact marks, graffiti, blood splatter, UI indicators) using a box projection, with fade-out over time and distance. Authored from DecalTrait.ts.",
+  props: {
+    texture_url: string = "",
+    size: { x: number, y: number, z: number } = { x: 1.0, y: 1.0, z: 0.1 },
+    blend_mode: enum("alpha" | "multiply" | "add" | "normal") = "alpha",
+    fade_duration_s: number = 0.0,
+    lifetime_s: number = 0.0,
+    angle_fade: boolean = true,
+    receive_shadows: boolean = true
+  },
+  events: {
+    attached: "decal_attached",
+    detached: "decal_detached",
+    on_fade: "decal_fade",
+    on_expire: "decal_expire"
+  },
+  behaviors: ["@post_process", "@gpu_particle"]
+}
