@@ -58,6 +58,6 @@
       "enabled": true
     }
   ],
-  "globalBudgetUsdPerDay": 20,
+  "globalBudgetUsdPerDay": 100,
   "defaultTickIntervalMs": 60000
 }

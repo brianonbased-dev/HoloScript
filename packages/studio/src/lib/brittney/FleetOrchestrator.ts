@@ -219,8 +219,9 @@ export function selectNextTask(tasks: BoardTask[]): BoardTask | null {
 
 // ─── Spend governance ────────────────────────────────────────────────────────
 
-/** Conservative default daily cap for autonomous fleet execution (USD). */
-export const DEFAULT_DAILY_SPEND_CAP_USD = 25;
+/** Default daily cap for autonomous fleet execution (USD). Dual-cap policy
+ * 2026-06-20 (F.129): GPU fleet compute is agent-autonomous up to $100/day. */
+export const DEFAULT_DAILY_SPEND_CAP_USD = 100;
 
 export interface SpendSnapshot {
   dayKey: string;

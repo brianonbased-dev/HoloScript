@@ -123,7 +123,7 @@ For each successfully bootstrapped instance:
   - `mock`: $0
   - `local-llm` on the GPU: $0 LLM (compute is base burn)
   - `anthropic` Claude Opus 4.7: ~$3-15/day depending on tick rate + task complexity. Capped by `budgetUsdPerDay`.
-- Worst case 31 anthropic agents × $5/day budget = $155/day LLM cost. Cap via `globalBudgetUsdPerDay` in agents.json.
+- Remote GPU fleet compute (Vast.ai rental + paid LLM API) is capped at **$100/day** total via `globalBudgetUsdPerDay` in agents.json (SpendGovernor, SSOT `scripts/lib/autoscaler-decision.mjs`). Local fleet (Jetson Orin + laptop GPU) is uncapped / free. Updated F.129 2026-06-20 — retires the prior "31 agents × $5/day = $155/day" estimate and the per-action founder-approval gate.
 - Recommended starting mix per template: 1 local-llm primary capability lane,
   25 local-llm warm lanes, 5 mock = $0/day LLM cost plus the approved Vast
   compute burn. H100/H200 should be rented only when the active manifest proves

@@ -39,11 +39,13 @@ Enable only after `HOLOSCRIPT_REPO_ROOT` is confirmed valid. The startup guard w
 
 ### FLEET_DAILY_SPEND_CAP_USD
 
-| Field         | Value                                                             |
-| ------------- | ----------------------------------------------------------------- |
-| Required      | No                                                                |
-| Default       | `1.00` (see `FleetOrchestrator.ts` `DEFAULT_DAILY_SPEND_CAP_USD`) |
-| Railway value | e.g. `5.00` for production fleets                                 |
+| Field         | Value                                                                  |
+| ------------- | ---------------------------------------------------------------------- |
+| Required      | No                                                                     |
+| Default       | `100` (see `scripts/lib/autoscaler-decision.mjs` `DEFAULT_DAILY_CAP_USD`) |
+| Railway value | `100` (remote GPU fleet compute cap — Vast.ai rental + paid LLM API)  |
+
+**Dual-cap spend policy (F.129, 2026-06-20):** Two independent $100/day caps tracked separately (up to $200/day total): (1) **remote GPU fleet compute** (Vast.ai + paid LLM API) — this variable; (2) **wallet/on-chain spend** (Base ETH gas, x402 USDC micropayments, seat-wallet top-ups) — policy-only, no ledger yet. Local fleet (Jetson Orin + laptop GPU, owned hardware) is FREE / uncapped. Within each cap, agents act autonomously — no per-action founder approval. Agents may self-fund seat wallets up to the wallet cap. Still founder-only regardless of cap: Trezor seed/recovery, treasury master wallet, governance-tier mutations, and any single action or cumulative daily total exceeding a cap. **Supersedes**: the `1.00` default, the per-action `>$5` gate, `$120/day` single GPU budget, and "every GPU fleet run is founder-gated." GPU cap is live-enforced by autoscaler SpendGovernor (`scripts/lib/autoscaler-decision.mjs`).
 
 ---
 

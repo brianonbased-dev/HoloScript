@@ -201,7 +201,7 @@ export class Supervisor {
       llmProvider: spec.provider,
       llmModel: spec.model,
       brainPath: spec.brainPath,
-      budgetUsdPerDay: spec.budgetUsdPerDay ?? 5,
+      budgetUsdPerDay: spec.budgetUsdPerDay ?? 100, // dual-cap policy F.129 (2026-06-20); global cap still bounds the fleet total
       teamId: this.opts.teamId,
       meshApiBase: this.opts.meshApiBase ?? 'https://mcp.holoscript.net/api/holomesh',
     };
