@@ -1,0 +1,24 @@
+@trait {
+  name: "@session_manager",
+  category: "agent",
+  description: "Agent session lifecycle manager. Issues and validates session tokens for connected users or peer agents, tracks session expiry and renewal, enforces concurrent-session limits per wallet, and fires session-end events for cleanup. Authored from SessionManagerTrait.ts.",
+  props: {
+    session_ttl_s: number = 3600,
+    max_concurrent_per_wallet: number = 5,
+    auto_renew: boolean = true,
+    renew_threshold_s: number = 300,
+    store: enum("memory" | "redis" | "postgres") = "memory",
+    connection_secret: string = ""
+  },
+  events: {
+    attached: "session_manager_attached",
+    detached: "session_manager_detached",
+    on_start: "session_manager_start",
+    on_expire: "session_manager_expire",
+    on_renew: "session_manager_renew",
+    on_end: "session_manager_end",
+    issue: "session_manager_trigger_issue",
+    invalidate: "session_manager_trigger_invalidate"
+  },
+  behaviors: ["@oauth", "@permission", "@rate_limit"]
+}

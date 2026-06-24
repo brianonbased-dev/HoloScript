@@ -1,0 +1,19 @@
+@trait {
+  name: "@signal_bus",
+  category: "network",
+  description: "Typed signal dispatcher for tightly-coupled in-entity communication. Emits named typed signals synchronously to registered handler callbacks within the same entity or entity group, providing a lighter alternative to the full async event bus for frame-rate critical logic. Authored from SignalBusTrait.ts.",
+  props: {
+    bus_id: string = "",
+    max_handlers_per_signal: number = 16,
+    log_signals: boolean = false,
+    allow_cross_entity: boolean = false
+  },
+  events: {
+    attached: "signal_bus_attached",
+    detached: "signal_bus_detached",
+    on_signal: "signal_bus_signal",
+    emit: "signal_bus_trigger_emit",
+    subscribe: "signal_bus_trigger_subscribe"
+  },
+  behaviors: ["@event_bus", "@reactive_store", "@receive"]
+}

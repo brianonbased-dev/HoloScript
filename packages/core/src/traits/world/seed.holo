@@ -1,0 +1,20 @@
+@trait {
+  name: "@seed",
+  category: "world",
+  description: "Deterministic world seed anchor. Stores a numeric or string seed value shared with all procedural generation traits in the world (dungeon, city, noise, biome), ensuring the world reproduces identically when recreated from the same seed. Authored from SeedTrait.ts.",
+  props: {
+    value: number = 0,
+    string_seed: string = "",
+    auto_generate: boolean = false,
+    expose_to_players: boolean = true,
+    version: number = 1
+  },
+  events: {
+    attached: "seed_attached",
+    detached: "seed_detached",
+    on_set: "seed_set",
+    on_reset: "seed_reset",
+    set: "seed_trigger_set"
+  },
+  behaviors: ["@world_seed", "@dungeon_generator", "@procedural_city"]
+}

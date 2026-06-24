@@ -1,0 +1,21 @@
+@trait {
+  name: "@screen_capture",
+  category: "visual",
+  description: "Screen and canvas capture tool. Captures the current WebGL/Canvas frame or a named entity's render-texture to a blob, PNG, or video frame buffer, suitable for screenshot previews, video recording initiation, and social share thumbnail generation. Authored from ScreenCaptureTrait.ts.",
+  props: {
+    target: enum("main_canvas" | "entity_texture" | "offscreen") = "main_canvas",
+    entity_id: string = "",
+    format: enum("png" | "jpeg" | "webp" | "raw") = "png",
+    quality: number = 0.92,
+    auto_download: boolean = false,
+    watermark_url: string = ""
+  },
+  events: {
+    attached: "screen_capture_attached",
+    detached: "screen_capture_detached",
+    on_capture: "screen_capture_capture",
+    on_error: "screen_capture_error",
+    capture: "screen_capture_trigger_capture"
+  },
+  behaviors: ["@recording_session", "@display", "@social_share"]
+}
