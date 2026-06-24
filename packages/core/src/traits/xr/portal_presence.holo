@@ -1,0 +1,26 @@
+@trait {
+  name: "@portal_presence",
+  category: "xr",
+  description: "Spatial portal for cross-world presence. Renders a live viewport into a remote HoloScript world behind a physical archway, teleports the player on walk-through, and synchronizes the transition with the target world's spawn anchor. Authored from PortalPresenceTrait.ts.",
+  props: {
+    target_world_id: string = "",
+    target_spawn_anchor: string = "",
+    width_m: number = 1.2,
+    height_m: number = 2.2,
+    preview_resolution: enum("low" | "medium" | "high") = "medium",
+    bidirectional: boolean = true,
+    auto_teleport: boolean = true,
+    teleport_delay_ms: number = 500
+  },
+  events: {
+    attached: "portal_presence_attached",
+    detached: "portal_presence_detached",
+    on_enter: "portal_presence_enter",
+    on_exit: "portal_presence_exit",
+    on_teleport: "portal_presence_teleport",
+    on_preview_update: "portal_presence_preview",
+    open: "portal_presence_open",
+    close: "portal_presence_close"
+  },
+  behaviors: ["@spatial_anchor", "@xr_anchor", "@networked"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@plane_detection",
+  category: "xr",
+  description: "XR horizontal and vertical plane detector. Queries the WebXR Plane Detection API or ARCore/ARKit planes API, classifies surfaces, and emits geometry updates for AR shadow-casters and physics floors. Authored from PlaneDetectionTrait.ts.",
+  props: {
+    types: list<enum("horizontal" | "vertical" | "ceiling" | "wall" | "floor")> = [],
+    min_area_m2: number = 0.1,
+    max_planes: number = 20,
+    update_rate_hz: number = 5,
+    mesh_enabled: boolean = false,
+    shadow_receiver: boolean = true
+  },
+  events: {
+    attached: "plane_detection_attached",
+    detached: "plane_detection_detached",
+    on_added: "plane_detection_added",
+    on_updated: "plane_detection_updated",
+    on_removed: "plane_detection_removed"
+  },
+  behaviors: ["@surface_detection", "@mesh_collider", "@light_estimation"]
+}
