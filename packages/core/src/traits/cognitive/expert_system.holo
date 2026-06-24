@@ -1,0 +1,22 @@
+@trait {
+  name: "@expert_system",
+  category: "cognitive",
+  description: "Rule-based expert system engine. Evaluates a forward-chaining Rete-style ruleset against a working-memory fact base, firing matched actions and updating facts until no more rules trigger or a goal state is reached. Authored from ExpertSystemTrait.ts.",
+  props: {
+    ruleset_url: string = "",
+    max_cycles: number = 1000,
+    trace: boolean = false,
+    conflict_resolution: enum("priority" | "recency" | "specificity" | "random") = "priority",
+    auto_run_on_fact_change: boolean = true
+  },
+  events: {
+    attached: "expert_system_attached",
+    detached: "expert_system_detached",
+    on_rule_fire: "expert_system_fire",
+    on_goal: "expert_system_goal",
+    on_cycle_complete: "expert_system_cycle",
+    add_fact: "expert_system_add_fact",
+    run: "expert_system_trigger_run"
+  },
+  behaviors: ["@blackboard", "@action_graph", "@autonomous_agenda"]
+}

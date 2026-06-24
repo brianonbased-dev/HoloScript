@@ -1,0 +1,25 @@
+@trait {
+  name: "@encoding",
+  category: "media",
+  description: "Media encoding pipeline stage. Transcodes an input audio/video stream or file to a target codec, container, and quality preset, outputting to a destination URL or event payload. Authored from EncodingTrait.ts.",
+  props: {
+    input_url: string = "",
+    output_url: string = "",
+    codec: enum("h264" | "h265" | "av1" | "vp9" | "aac" | "opus" | "wav") = "h264",
+    container: enum("mp4" | "webm" | "mkv" | "ogg" | "wav") = "mp4",
+    preset: enum("fast" | "medium" | "slow" | "veryslow") = "medium",
+    crf: number = 23,
+    audio_bitrate_kbps: number = 128,
+    gpu_encode: boolean = false
+  },
+  events: {
+    attached: "encoding_attached",
+    detached: "encoding_detached",
+    on_start: "encoding_start",
+    on_progress: "encoding_progress",
+    on_complete: "encoding_complete",
+    on_error: "encoding_error",
+    encode: "encoding_trigger"
+  },
+  behaviors: ["@recording_session", "@live_stream", "@pdf_generate"]
+}

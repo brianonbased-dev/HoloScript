@@ -1,0 +1,23 @@
+@trait {
+  name: "@event_bus",
+  category: "network",
+  description: "In-process or cross-entity event bus with topic-based pub/sub. Decouples event producers from consumers via named channels, supporting typed payload schemas, filter predicates, and replay-from-offset for late subscribers. Authored from EventBusTrait.ts.",
+  props: {
+    bus_id: string = "",
+    buffer_size: number = 256,
+    persist_last: number = 0,
+    schema_url: string = "",
+    allow_anonymous: boolean = true,
+    max_subscribers: number = 0
+  },
+  events: {
+    attached: "event_bus_attached",
+    detached: "event_bus_detached",
+    on_publish: "event_bus_publish",
+    on_subscribe: "event_bus_subscribe",
+    on_unsubscribe: "event_bus_unsubscribe",
+    publish: "event_bus_trigger_publish",
+    subscribe: "event_bus_trigger_subscribe"
+  },
+  behaviors: ["@broadcast", "@signal_bus", "@networked"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@event_filter",
+  category: "network",
+  description: "Event stream filter and transform middleware. Intercepts events on a named bus channel, applies predicate conditions and field-mapping transforms, and re-emits only passing events to downstream subscribers. Authored from EventFilterTrait.ts.",
+  props: {
+    source_channel: string = "",
+    output_channel: string = "",
+    conditions: list<{ field: string, op: enum("eq" | "ne" | "gt" | "lt" | "contains"), value: string }> = [],
+    field_map: dict<string, string> = {},
+    drop_on_fail: boolean = true,
+    rate_limit_hz: number = 0
+  },
+  events: {
+    attached: "event_filter_attached",
+    detached: "event_filter_detached",
+    on_pass: "event_filter_pass",
+    on_drop: "event_filter_drop"
+  },
+  behaviors: ["@event_bus", "@broadcast", "@signal_bus"]
+}
