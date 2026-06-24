@@ -1,0 +1,23 @@
+@trait {
+  name: "@s3_upload",
+  category: "media",
+  description: "S3-compatible object storage upload for HoloScript entities that produce binary payloads (renders, scans, exports, recordings). bucket is the target bucket name; if the backend supports virtual-hosted-style addressing this is also the subdomain component of the endpoint. region is the AWS region string or equivalent for S3-compatible providers (e.g. 'us-east-1', 'auto' for Cloudflare R2). prefix is prepended to every object key before upload (e.g. 'renders/2026/'); trailing slash is optional and normalised by the handler. acl sets the object-level canned ACL on upload: private restricts access to the bucket owner; public makes the object world-readable via a direct URL; authenticated restricts read to AWS-authenticated principals. content_type is the MIME type written to the Content-Type header on the PutObject call; leave empty to let the handler detect from file extension. max_file_size_mb is the upper size guard in mebibytes; files exceeding this limit fire on_error without initiating an upload. Multipart upload is used automatically for objects above 5 MiB. Credentials are resolved exclusively through @secret (key_name='s3_access_key' / 's3_secret_key') — never inline. Fires on_progress with { bytesUploaded, totalBytes, percent } during transfer and on_upload with { key, bucket, etag, location } on success. Research: S3UploadTrait.ts v5.1, WIRING SPEC 2026-05-25, wisdom_holokey-vault-cutover-proven-prod.md.",
+  props: {
+    bucket: string = "",
+    region: string = "us-east-1",
+    prefix: string = "",
+    acl: enum("private" | "public" | "authenticated") = "private",
+    content_type: string = "",
+    max_file_size_mb: number = 100
+  },
+  events: {
+    attached: "s3_upload:attached",
+    detached: "s3_upload:detached",
+    on_upload: "s3_upload:upload",
+    on_progress: "s3_upload:progress",
+    on_error: "s3_upload:error",
+    uploaded: "s3_upload:uploaded",
+    upload_error: "s3_upload:upload_error"
+  },
+  behaviors: ["@secret"]
+}

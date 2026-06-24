@@ -1,0 +1,23 @@
+@trait {
+  name: "@segment",
+  category: "cognitive",
+  description: "Real-time image segmentation for entities with an image, video, or texture source. model selects the segmentation backend: sam2 runs Segment Anything Model 2 via Transformers.js for zero-shot object detection with WebGPU acceleration (WASM fallback); dino uses GroundingDINO for text-prompted open-vocabulary segmentation; neural_holoscript dispatches through the HoloScript sovereign inference adapter with automatic hardware routing (edge/Jetson/WebGPU). classes is the list of object categories the model should detect and segment; leave empty for background-removal mode. confidence_threshold is the minimum per-mask confidence score [0.0, 1.0] below which masks are suppressed before emission. mask_resolution sets the output mask width in pixels; height is derived from the source aspect ratio. update_interval_ms controls the segmentation cadence in milliseconds: 0 = on-demand only (fire segment:compute to trigger), >0 = continuous interval mode. Emits segment:mask with a Uint8ClampedArray binary mask and segment:points with detected centroid coordinates. Pairs with @holographic_sprite for background removal, @billboard for subject isolation, and @inference for composed model pipelines. Research: SegmentTrait.ts, SegmentTrait.test.ts, capabilities.",
+  props: {
+    model: enum("sam2" | "dino" | "neural_holoscript") = "sam2",
+    classes: list<string> = [],
+    confidence_threshold: number = 0.5,
+    mask_resolution: number = 512,
+    update_interval_ms: number = 0
+  },
+  events: {
+    attached: "segment:attached",
+    detached: "segment:detached",
+    ready: "segment:ready",
+    mask: "segment:mask",
+    points: "segment:points",
+    error: "segment:error",
+    on_segment: "segment:compute",
+    on_abort: "segment:abort"
+  },
+  behaviors: ["@inference"]
+}

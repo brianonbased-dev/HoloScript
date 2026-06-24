@@ -1,0 +1,24 @@
+@trait {
+  name: "@service_observability",
+  category: "analytics",
+  description: "Service-level observability contract for HoloScript service compositions. service_name is the canonical dot-scoped identifier used as the trace root (e.g. 'uaa2-service.mesh-gateway'). trace_rate is the fraction of requests sampled for distributed tracing [0.0 = off, 1.0 = all]; values between 0 and 1 enable probabilistic head-based sampling. log_level sets the minimum severity emitted to the log exporter: debug emits all messages, info omits debug-class entries, warn omits info-class entries, error emits only error and fatal entries. metrics is the list of dot-scoped metric names this service declares as mandatory emission contracts (e.g. ['agent.count', 'request.latency_ms', 'memory.used_mb']); absence of an expected metric during a reporting window fires on_alert. exporter selects the telemetry sink: otlp ships to any OpenTelemetry-compatible collector (Jaeger, Tempo, Grafana Cloud); prometheus exposes a pull scrape endpoint; holoscript routes through the HoloScript sovereign telemetry pipeline for team-feed integration and GOLD-vault receipt generation. on_alert fires when a metric threshold is breached or a declared metric goes missing; the event payload includes the metric name, current value, and severity. Lifted from uaa2-service runtime-observability stack (migrations/006_runtime_observability.sql). Pairs with @telemetry, @healthcheck, and @canary. Research: ServiceObservabilityTrait.ts, SERVICE_OBSERVABILITY_VERIFICATION_MEMO.md.",
+  props: {
+    service_name: string = "",
+    trace_rate: number = 0.1,
+    log_level: enum("debug" | "info" | "warn" | "error") = "info",
+    metrics: list<string> = [],
+    exporter: enum("otlp" | "prometheus" | "holoscript") = "holoscript"
+  },
+  events: {
+    attached: "service_observability:attached",
+    detached: "service_observability:detached",
+    metric_emitted: "service_observability:metric_emitted",
+    trace_sampled: "service_observability:trace_sampled",
+    log_emitted: "service_observability:log_emitted",
+    schema_validated: "service_observability:schema_validated",
+    schema_error: "service_observability:schema_error",
+    on_alert: "service_observability:alert",
+    on_flush: "service_observability:flush"
+  },
+  behaviors: ["@telemetry"]
+}
