@@ -1,0 +1,25 @@
+@trait {
+  name: "@hand_tracking",
+  category: "xr",
+  description: "Articulated hand skeleton tracking for XR. mode selects fidelity: full delivers a 25-joint skeletal pose per hand at the platform rate; gesture_only skips joint data and only fires named gesture events; pinch_only is a lightweight path that tracks pinch distance only (lowest latency, useful for UI controllers). confidence_threshold gates joint/gesture output — data below this value is dropped and hand_lost fires. show_mesh overlays the platform-rendered hand mesh when true. gesture_events lists which named gestures are dispatched to the entity (pinch, grab, point, palm_open); unlisted gestures are suppressed. Research: HandTrackingTrait.ts v2.0.0 skeletal joints + gesture detection.",
+  props: {
+    mode: enum("full" | "gesture_only" | "pinch_only") = "full",
+    confidence_threshold: number = 0.5,
+    show_mesh: boolean = false,
+    gesture_events: list<enum("pinch" | "grab" | "point" | "palm_open")> = ["pinch", "grab", "point", "palm_open"]
+  },
+  events: {
+    attached: "hand_tracking:attached",
+    detached: "hand_tracking:detached",
+    hand_found: "hand_tracking:hand_found",
+    hand_lost: "hand_tracking:hand_lost",
+    gesture_start: "hand_tracking:gesture_start",
+    gesture_end: "hand_tracking:gesture_end",
+    pinch_start: "hand_tracking:pinch_start",
+    pinch_end: "hand_tracking:pinch_end",
+    joint_update: "hand_tracking:joint_update",
+    on_set_mode: "hand_tracking:set_mode",
+    on_set_threshold: "hand_tracking:set_threshold"
+  },
+  behaviors: []
+}

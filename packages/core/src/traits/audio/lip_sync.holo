@@ -1,0 +1,27 @@
+@trait {
+  name: "@lip_sync",
+  category: "audio",
+  description: "Real-time lip synchronization for 3D avatars. source selects the input path: microphone feeds live mic audio through FFT analysis; audio_node taps a Web Audio node or platform audio stream; text_to_speech receives pre-computed viseme timestamps from a TTS provider (ElevenLabs, Azure, OpenAI) at session start; manual accepts direct viseme/phoneme pushes from external ML (NVIDIA Audio2Face, custom pipeline). blend_shapes overrides individual morph-target weights directly (dict<string,number>). viseme_map remaps phoneme labels to mesh-specific morph target names (dict<string,string>). smoothing_ms controls the exponential-decay window for blend-shape interpolation — longer values are smoother but add mouth-motion latency. amplitude_scale multiplies raw audio amplitude before viseme-weight derivation so quiet speakers can still drive full jaw motion. Integrates with @face_tracking and @emotional_voice. Research: LipSyncTrait.ts v1.0 FFT + timestamps + phoneme + external pipeline.",
+  props: {
+    source: enum("microphone" | "audio_node" | "text_to_speech" | "manual") = "audio_node",
+    blend_shapes: dict<string, number> = {},
+    viseme_map: dict<string, string> = {},
+    smoothing_ms: number = 80,
+    amplitude_scale: number = 1.0
+  },
+  events: {
+    attached: "lip_sync:attached",
+    detached: "lip_sync:detached",
+    session_start: "lip_sync:session_start",
+    session_end: "lip_sync:session_end",
+    viseme_changed: "lip_sync:viseme_changed",
+    speech_detected: "lip_sync:speech_detected",
+    silence_detected: "lip_sync:silence_detected",
+    on_start_session: "lip_sync:start_session",
+    on_end_session: "lip_sync:end_session",
+    on_set_viseme: "lip_sync:set_viseme",
+    on_set_blend_shapes: "lip_sync:set_blend_shapes",
+    on_configure: "lip_sync:configure"
+  },
+  behaviors: ["@face_tracking"]
+}

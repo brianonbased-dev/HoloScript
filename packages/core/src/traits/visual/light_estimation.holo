@@ -1,0 +1,24 @@
+@trait {
+  name: "@light_estimation",
+  category: "visual",
+  description: "Real-world environment light estimation for AR/MR scenes. Samples the platform's ambient light probe at sample_rate_hz and applies the result to virtual lighting so digital objects match the physical environment. hdr enables high-dynamic-range intensity sampling (luminance in nits rather than normalised 0-1). shadow_probe adds a directional shadow caster driven by the estimated sun/dominant-light direction. update_skybox replaces the scene's IBL skybox with the live environment map each frame when enabled. spherical_harmonics_order controls the SH band count (1 = 3 coefficients, L1 ambient only; 9 = 27 coefficients, full L2 spatial-frequency reconstruction) — higher values capture sharper directional colour variation at the cost of bandwidth. Pairs with @rendering and @scene_reconstruction. Research: LightEstimationTrait.ts v2.0.0 ambient-intensity + SH + colour-temperature pipeline.",
+  props: {
+    sample_rate_hz: number = 30,
+    hdr: boolean = false,
+    shadow_probe: boolean = false,
+    update_skybox: boolean = false,
+    spherical_harmonics_order: number = 3
+  },
+  events: {
+    attached: "light_estimation:attached",
+    detached: "light_estimation:detached",
+    estimated: "light_estimation:estimated",
+    environment_map_updated: "light_estimation:environment_map_updated",
+    paused: "light_estimation:paused",
+    resumed: "light_estimation:resumed",
+    on_pause: "light_estimation:pause",
+    on_resume: "light_estimation:resume",
+    on_query: "light_estimation:query"
+  },
+  behaviors: ["@rendering"]
+}

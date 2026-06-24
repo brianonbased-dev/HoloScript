@@ -1,0 +1,24 @@
+@trait {
+  name: "@haptic",
+  category: "xr",
+  description: "Haptic feedback controller for XR hand controllers and wristbands. Fires a waveform pattern (click, pulse, buzz, rumble, impact, or none) at a configurable intensity on one or both hands. Supports spatial haptics — intensity scales with world-space distance from the owning entity to the active hand so nearby objects feel stronger. duration_ms caps the playback length per trigger; repeat loops the pattern until cancelled. Used by @grabbable, @pressable, and collision-response pipelines. Research: HapticTrait.ts v1.0.0 proximity + pattern-sequence playback.",
+  props: {
+    intensity: number = 0.5,
+    pattern: enum("click" | "pulse" | "buzz" | "rumble" | "impact" | "none") = "click",
+    duration_ms: number = 100,
+    repeat: boolean = false,
+    spatial: boolean = false,
+    hand: enum("left" | "right" | "both") = "both"
+  },
+  events: {
+    attached: "haptic:attached",
+    detached: "haptic:detached",
+    triggered: "haptic:triggered",
+    stopped: "haptic:stopped",
+    on_trigger: "haptic:trigger",
+    on_stop: "haptic:stop",
+    on_set_intensity: "haptic:set_intensity",
+    on_set_pattern: "haptic:set_pattern"
+  },
+  behaviors: ["@transform"]
+}
