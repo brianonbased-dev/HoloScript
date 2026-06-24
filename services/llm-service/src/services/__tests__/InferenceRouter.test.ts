@@ -127,6 +127,13 @@ describe('FleetProvider', () => {
     process.env.VAST_API_KEY = 'vast-key';
     process.env.FLEET_MODEL = 'qwen3-coder:30b';
     const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const telemetry: Array<{
+      provider: string;
+      endpoint?: string;
+      model?: string;
+      requestId?: string;
+      usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+    }> = [];
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string, init?: RequestInit) => {
@@ -139,6 +146,7 @@ describe('FleetProvider', () => {
         }
         return sseResponse([
           'data: {"choices":[{"delta":{"content":"fleet ok"}}],"model":"qwen3-coder:30b"}\n',
+          'data: {"choices":[{"delta":{}}],"model":"qwen3-coder:30b","usage":{"prompt_tokens":5,"completion_tokens":2,"total_tokens":7}}\n',
           'data: [DONE]\n',
         ]);
       }),
@@ -146,7 +154,10 @@ describe('FleetProvider', () => {
 
     const provider = new FleetProvider();
     const events: StreamEvent[] = [];
-    for await (const event of provider.stream({ messages: [{ role: 'user', content: 'hi' }] })) {
+    for await (const event of provider.stream({
+      messages: [{ role: 'user', content: 'hi' }],
+      onTelemetry: (next) => telemetry.push(next),
+    })) {
       events.push(event);
     }
 
@@ -157,6 +168,18 @@ describe('FleetProvider', () => {
     expect(calls[1].body.payload).toMatchObject({ model: 'qwen3-coder:30b', stream: true });
     expect(events).toContainEqual({ type: 'text', payload: 'fleet ok' });
     expect(events[events.length - 1]).toEqual({ type: 'done', payload: null });
+    expect(telemetry[0]).toMatchObject({
+      provider: 'fleet',
+      endpoint: 'vast-serverless:holoscript-qwen-coder',
+      model: 'qwen3-coder:30b',
+    });
+    expect(telemetry[telemetry.length - 1]).toMatchObject({
+      provider: 'fleet',
+      endpoint: 'vast-serverless:holoscript-qwen-coder',
+      model: 'qwen3-coder:30b',
+      requestId: 'vast:holoscript-qwen-coder:0',
+      usage: { promptTokens: 5, completionTokens: 2, totalTokens: 7 },
+    });
   });
 });
 

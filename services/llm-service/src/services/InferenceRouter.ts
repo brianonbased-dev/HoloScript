@@ -71,6 +71,7 @@ export interface ChatRequest {
   maxTokens?: number;
   tier?: 'pro' | 'standard';
   lane?: BrittneyLane;
+  onTelemetry?: (telemetry: InferenceTelemetry) => void;
 }
 
 export interface ToolDefinition {
@@ -91,6 +92,15 @@ export interface UsageInfo {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+}
+
+export interface InferenceTelemetry {
+  provider: string;
+  endpoint?: string;
+  model?: string;
+  requestId?: string;
+  usage?: UsageInfo;
+  responseHeaders?: Record<string, string>;
 }
 
 export interface InferenceProvider {
@@ -180,6 +190,27 @@ function toCompletionRequest(request: ChatRequest, defaultMaxTokens = 2048): LLM
   };
 }
 
+interface StreamTelemetryContext {
+  provider: string;
+  endpoint?: string;
+  model?: string;
+  onTelemetry?: (telemetry: InferenceTelemetry) => void;
+}
+
+function emitTelemetry(
+  callback: ((telemetry: InferenceTelemetry) => void) | undefined,
+  telemetry: InferenceTelemetry
+): void {
+  if (!callback) return;
+  try {
+    callback(telemetry);
+  } catch (err) {
+    logger.warn(
+      `[InferenceRouter] telemetry callback failed: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+}
+
 /**
  * THE WIRE-CONTRACT SHIM. Translate the package's internal `LLMStreamChunk`
  * discriminated union back to the router's public `StreamEvent {type,payload}`.
@@ -198,6 +229,7 @@ function toCompletionRequest(request: ChatRequest, defaultMaxTokens = 2048): LLM
  */
 async function* streamChunksToStreamEvents(
   chunks: AsyncIterable<LLMStreamChunk>,
+  telemetry?: StreamTelemetryContext,
 ): AsyncGenerator<StreamEvent> {
   const toolNamesById = new Map<string, string>();
   let emittedDone = false;
@@ -224,6 +256,16 @@ async function* streamChunksToStreamEvents(
         };
         break;
       case 'message_stop':
+        if (telemetry) {
+          emitTelemetry(telemetry.onTelemetry, {
+            provider: telemetry.provider,
+            endpoint: telemetry.endpoint,
+            model: chunk.model ?? telemetry.model,
+            requestId: chunk.requestId,
+            usage: chunk.usage,
+            responseHeaders: chunk.responseHeaders,
+          });
+        }
         if (chunk.finishReason === 'error') {
           yield { type: 'error', payload: 'Inference stream error' };
         }
@@ -248,9 +290,17 @@ async function* streamChunksToStreamEvents(
 async function* streamViaAdapter(
   providerLabel: string,
   run: () => AsyncIterable<LLMStreamChunk>,
+  telemetry?: StreamTelemetryContext,
 ): AsyncGenerator<StreamEvent> {
   let iterable: AsyncIterable<LLMStreamChunk>;
   try {
+    if (telemetry) {
+      emitTelemetry(telemetry.onTelemetry, {
+        provider: telemetry.provider,
+        endpoint: telemetry.endpoint,
+        model: telemetry.model,
+      });
+    }
     iterable = run();
   } catch (err) {
     yield { type: 'error', payload: `${providerLabel} error: ${err instanceof Error ? err.message : String(err)}` };
@@ -258,7 +308,7 @@ async function* streamViaAdapter(
     return;
   }
   try {
-    yield* streamChunksToStreamEvents(iterable);
+    yield* streamChunksToStreamEvents(iterable, telemetry);
   } catch (err) {
     // streamCompletion may throw a terminal error AFTER yielding message_stop;
     // the shim already emitted `done` in that case, but a pre-first-chunk throw
@@ -295,6 +345,12 @@ class FireworksProvider implements InferenceProvider {
     const model = request.model || this.model;
     yield* streamViaAdapter('Fireworks', () =>
       adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+      {
+        provider: this.name,
+        endpoint: 'https://api.fireworks.ai/inference/v1',
+        model,
+        onTelemetry: request.onTelemetry,
+      },
     );
   }
 }
@@ -327,6 +383,12 @@ class KimiProvider implements InferenceProvider {
     const model = request.model || this.model;
     yield* streamViaAdapter('Kimi K2.5', () =>
       adapter.streamCompletion(toCompletionRequest(request, 4096), model),
+      {
+        provider: this.name,
+        endpoint: 'https://api.fireworks.ai/inference/v1',
+        model,
+        onTelemetry: request.onTelemetry,
+      },
     );
   }
 }
@@ -358,6 +420,12 @@ class TogetherProvider implements InferenceProvider {
     const model = request.model || this.model;
     yield* streamViaAdapter('Together', () =>
       adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+      {
+        provider: this.name,
+        endpoint: 'https://api.together.xyz/v1',
+        model,
+        onTelemetry: request.onTelemetry,
+      },
     );
   }
 }
@@ -397,6 +465,12 @@ class OllamaLocalProvider implements InferenceProvider {
     const model = request.model || this.model;
     yield* streamViaAdapter('Ollama', () =>
       adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+      {
+        provider: this.name,
+        endpoint: this.url,
+        model,
+        onTelemetry: request.onTelemetry,
+      },
     );
   }
 }
@@ -470,6 +544,12 @@ export class FleetProvider implements InferenceProvider {
     const model = request.model || this.model;
     yield* streamViaAdapter('Fleet', () =>
       adapter.streamCompletion(toCompletionRequest(request, 2048), model),
+      {
+        provider: this.name,
+        endpoint: `vast-serverless:${this.endpointName}`,
+        model,
+        onTelemetry: request.onTelemetry,
+      },
     );
   }
 }

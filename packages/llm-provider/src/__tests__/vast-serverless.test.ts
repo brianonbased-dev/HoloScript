@@ -80,6 +80,13 @@ describe('VastServerlessAdapter', () => {
       ])
     );
     expect(types[types.length - 1]).toBe('message_stop');
+    const stop = chunks[types.length - 1] as Extract<LLMStreamChunk, { type: 'message_stop' }>;
+    expect(stop.requestId).toBe('vast:holoscript-qwen-coder:0');
+    expect(stop.responseHeaders).toMatchObject({
+      'x-holoscript-fleet-endpoint': 'holoscript-qwen-coder',
+      'x-holoscript-fleet-worker-url': 'http://worker.test:8000',
+      'x-holoscript-fleet-request-idx': '0',
+    });
     const start = chunks.find((c) => c.type === 'tool_use_start') as Extract<
       LLMStreamChunk,
       { type: 'tool_use_start' }
@@ -122,7 +129,7 @@ describe('VastServerlessAdapter', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) => {
-        if (url === ROUTE) return json({ url: 'http://w:8000' });
+        if (url === ROUTE) return json({ url: 'http://w:8000', request_idx: 7 });
         return json({
           choices: [
             {
@@ -147,6 +154,12 @@ describe('VastServerlessAdapter', () => {
     });
     const res = await adapter.complete(req(), 'qwen3:14b');
     expect(res.provider).toBe('fleet');
+    expect(res.requestId).toBe('vast:e:7');
+    expect(res.responseHeaders).toMatchObject({
+      'x-holoscript-fleet-endpoint': 'e',
+      'x-holoscript-fleet-worker-url': 'http://w:8000',
+      'x-holoscript-fleet-request-idx': '7',
+    });
     expect(res.content).toBe('done');
     expect(res.finishReason).toBe('tool_use');
     expect(res.toolUses?.[0]).toMatchObject({ name: 'compile_to_unity', input: { x: 1 } });

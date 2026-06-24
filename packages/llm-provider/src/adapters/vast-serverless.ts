@@ -92,6 +92,14 @@ interface RouteResponse {
   status?: unknown;
 }
 
+function headerObject(headers: Headers): Record<string, string> {
+  const out: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    out[key.toLowerCase()] = value;
+  });
+  return out;
+}
+
 export class VastServerlessAdapter extends BaseLLMAdapter {
   readonly name = 'fleet' as const;
   readonly models: readonly string[];
@@ -142,7 +150,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
    */
   private async resolveWorker(
     options: { maxWaitS?: number; pollIntervalMs?: number } = {}
-  ): Promise<{ url: string; authData: unknown }> {
+  ): Promise<{ url: string; authData: unknown; requestIdx?: number }> {
     const maxWaitS = options.maxWaitS ?? this.maxWaitS;
     const pollIntervalMs = options.pollIntervalMs ?? this.pollIntervalMs;
     const t0 = Date.now();
@@ -183,7 +191,8 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
       }
       const route = (await resp.json()) as RouteResponse;
       requestIdx = route.request_idx ?? requestIdx;
-      if (route.url) return { url: route.url.replace(/\/$/, ''), authData: route };
+      if (route.url)
+        return { url: route.url.replace(/\/$/, ''), authData: route, requestIdx: route.request_idx };
       if (maxWaitS <= 0 || (Date.now() - t0) / 1000 >= maxWaitS) {
         const latestStatus =
           route.status === undefined ? 'no status' : JSON.stringify(route.status).slice(0, 200);
@@ -224,8 +233,8 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
   }
 
   /** POST the resolved worker with the {auth_data, session_id, payload} envelope. */
-  private async postWorker(payload: unknown): Promise<Response> {
-    const { url, authData } = await this.resolveWorker();
+  private async postWorker(payload: unknown): Promise<{ response: Response; workerUrl: string; requestIdx?: number }> {
+    const { url, authData, requestIdx } = await this.resolveWorker();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
     try {
@@ -248,7 +257,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
           response.status >= 500
         );
       }
-      return response;
+      return { response, workerUrl: url, requestIdx };
     } catch (err) {
       clearTimeout(timeoutId);
       if (err instanceof LLMProviderError) throw err;
@@ -262,12 +271,36 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     }
   }
 
+  private buildRequestId(response: Response, requestIdx?: number): string | undefined {
+    return (
+      response.headers.get('x-request-id') ??
+      response.headers.get('request-id') ??
+      response.headers.get('x-vast-request-id') ??
+      (requestIdx !== undefined ? `vast:${this.endpointName}:${requestIdx}` : undefined)
+    );
+  }
+
+  private buildResponseHeaders(
+    response: Response,
+    workerUrl: string,
+    requestIdx?: number
+  ): Record<string, string> {
+    return {
+      ...headerObject(response.headers),
+      'x-holoscript-fleet-endpoint': this.endpointName,
+      'x-holoscript-fleet-worker-url': workerUrl,
+      ...(requestIdx !== undefined ? { 'x-holoscript-fleet-request-idx': String(requestIdx) } : {}),
+    };
+  }
+
   async complete(
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): Promise<LLMCompletionResponse> {
     return await this.withRetry(async () => {
-      const response = await this.postWorker(this.buildPayload(request, model, false));
+      const { response, workerUrl, requestIdx } = await this.postWorker(
+        this.buildPayload(request, model, false)
+      );
       const data = (await response.json()) as {
         choices?: Array<{
           message?: { content?: string; tool_calls?: OpenAIDeltaToolCall[] };
@@ -306,6 +339,8 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
           completionTokens: data.usage?.completion_tokens ?? 0,
           totalTokens: data.usage?.total_tokens ?? 0,
         },
+        requestId: this.buildRequestId(response, requestIdx),
+        responseHeaders: this.buildResponseHeaders(response, workerUrl, requestIdx),
         ...(toolUses.length > 0
           ? { toolUses, assistantBlocks: [{ type: 'text' as const, text: content }, ...toolUses] }
           : {}),
@@ -318,10 +353,14 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     request: LLMCompletionRequest,
     model: string = this.defaultHoloScriptModel
   ): AsyncIterable<LLMStreamChunk> {
-    const response = await this.postWorker(this.buildPayload(request, model, true));
+    const { response, workerUrl, requestIdx } = await this.postWorker(
+      this.buildPayload(request, model, true)
+    );
+    const requestId = this.buildRequestId(response, requestIdx);
+    const responseHeaders = this.buildResponseHeaders(response, workerUrl, requestIdx);
 
     if (!response.body) {
-      yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model };
+      yield { type: 'message_stop', finishReason: 'stop', usage: this.zeroUsage(), model, requestId, responseHeaders };
       return;
     }
 
@@ -425,7 +464,7 @@ export class VastServerlessAdapter extends BaseLLMAdapter {
     if (streamErrored) finishReason = 'error';
     else if (hadToolCalls && finishReason === 'stop') finishReason = 'tool_use';
 
-    yield { type: 'message_stop', finishReason, usage, model: finalModel };
+    yield { type: 'message_stop', finishReason, usage, model: finalModel, requestId, responseHeaders };
     if (streamErrored) {
       throw new LLMProviderError('Stream error during vast serverless completion', this.name);
     }

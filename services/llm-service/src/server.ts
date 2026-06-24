@@ -24,7 +24,13 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { StorageService } from './services/StorageService.js';
 import { AuthService, type AuthPrincipal } from './services/AuthService.js';
-import { InferenceRouter, BRITTNEY_LANES, type ChatRequest, type StreamEvent } from './services/InferenceRouter.js';
+import {
+  InferenceRouter,
+  BRITTNEY_LANES,
+  type ChatRequest,
+  type StreamEvent,
+  type InferenceTelemetry,
+} from './services/InferenceRouter.js';
 import { RateLimiter } from './services/RateLimiter.js';
 import { UsageTracker } from './services/UsageTracker.js';
 import { FleetMetrics } from './services/FleetMetrics.js';
@@ -59,6 +65,25 @@ const ollama = new OllamaService(
   process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL
 );
 const buildService = new BuildService(storage, ollama);
+
+function mergeInferenceTelemetry(
+  current: InferenceTelemetry | undefined,
+  next: InferenceTelemetry
+): InferenceTelemetry {
+  return {
+    ...current,
+    ...next,
+    endpoint: next.endpoint ?? current?.endpoint,
+    model: next.model ?? current?.model,
+    requestId: next.requestId ?? current?.requestId,
+    usage: next.usage ?? current?.usage,
+    responseHeaders: next.responseHeaders ?? current?.responseHeaders,
+  };
+}
+
+function positiveTokenCount(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : fallback;
+}
 
 // ============================================================================
 // MIDDLEWARE
@@ -204,7 +229,21 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
   // tier passes through UNSET when the client didn't pin one — the router treats
   // non-'pro' as standard, and an unset tier is what allows an explicit
   // lane=vision|reasoning to promote to pro (applyLaneRouting).
-  const request: ChatRequest = { messages, sceneContext, tools, model, temperature, maxTokens, tier, lane };
+  let telemetry: InferenceTelemetry | undefined;
+  const onTelemetry = (next: InferenceTelemetry) => {
+    telemetry = mergeInferenceTelemetry(telemetry, next);
+  };
+  const request: ChatRequest = {
+    messages,
+    sceneContext,
+    tools,
+    model,
+    temperature,
+    maxTokens,
+    tier,
+    lane,
+    onTelemetry,
+  };
   let completionText = '';
   let errored = false;
 
@@ -213,6 +252,8 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
     for await (const event of inference.chat(request)) {
       if (event.type === 'text' && typeof event.payload === 'string') {
         completionText += event.payload;
+      } else if (event.type === 'error') {
+        errored = true;
       }
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     }
@@ -223,11 +264,19 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
   } finally {
     // Record usage (billing) + fleet telemetry (capacity) — in finally so a
     // client disconnect or stream error still decrements the concurrency gauge.
-    const completionTokens = usage.estimateTokens(completionText);
-    usage.record(apiKey, estimatedPromptTokens, completionTokens);
+    const providerUsage = telemetry?.usage;
+    const promptTokens = positiveTokenCount(providerUsage?.promptTokens, estimatedPromptTokens);
+    const completionTokens = positiveTokenCount(
+      providerUsage?.completionTokens,
+      usage.estimateTokens(completionText)
+    );
+    usage.record(apiKey, promptTokens, completionTokens);
     fleetMetrics.end(handle, {
-      provider: inference.getPreferredProvider(),
-      promptTokens: estimatedPromptTokens,
+      provider: telemetry?.provider ?? inference.getPreferredProvider(),
+      endpoint: telemetry?.endpoint,
+      model: telemetry?.model ?? model,
+      requestId: telemetry?.requestId,
+      promptTokens,
       completionTokens,
       error: errored,
     });
@@ -254,6 +303,12 @@ app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Re
 
   const promptTokens = usage.estimateTokens(prompt);
   let completionTokens = 0;
+  let metricProvider = inference.getPreferredProvider();
+  let telemetry: InferenceTelemetry | undefined;
+  const onTelemetry = (next: InferenceTelemetry) => {
+    telemetry = mergeInferenceTelemetry(telemetry, next);
+    metricProvider = telemetry.provider;
+  };
   let errored = false;
   const handle = fleetMetrics.begin();
   try {
@@ -262,23 +317,29 @@ app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Re
       messages: [{ role: 'user', content: prompt }],
       sceneContext: context,
       model,
+      onTelemetry,
     };
 
     let fullResponse = '';
     for await (const event of inference.chat(request)) {
       if (event.type === 'text' && typeof event.payload === 'string') {
         fullResponse += event.payload;
+      } else if (event.type === 'error') {
+        errored = true;
       }
     }
 
     if (fullResponse) {
-      completionTokens = usage.estimateTokens(fullResponse);
-      usage.record(apiKey, promptTokens, completionTokens);
+      const providerUsage = telemetry?.usage;
+      const finalPromptTokens = positiveTokenCount(providerUsage?.promptTokens, promptTokens);
+      completionTokens = positiveTokenCount(providerUsage?.completionTokens, usage.estimateTokens(fullResponse));
+      usage.record(apiKey, finalPromptTokens, completionTokens);
       res.json({ success: true, code: fullResponse });
       return;
     }
 
     // Fallback: BuildService (Ollama direct)
+    if (!telemetry?.provider) metricProvider = 'build-service';
     const result = await buildService.generateFromPrompt(prompt, { context, model, userId: apiKey });
     res.json(result);
   } catch (error) {
@@ -287,8 +348,11 @@ app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Re
     res.status(500).json({ error: 'Generation failed' });
   } finally {
     fleetMetrics.end(handle, {
-      provider: inference.getPreferredProvider(),
-      promptTokens,
+      provider: telemetry?.provider ?? metricProvider,
+      endpoint: telemetry?.endpoint,
+      model: telemetry?.model ?? model,
+      requestId: telemetry?.requestId,
+      promptTokens: positiveTokenCount(telemetry?.usage?.promptTokens, promptTokens),
       completionTokens,
       error: errored,
     });

@@ -91,12 +91,22 @@ export class FleetMetrics {
    */
   end(
     handle: FleetRequestHandle,
-    info: { provider: string; promptTokens: number; completionTokens: number; error?: boolean }
+    info: {
+      provider: string;
+      promptTokens: number;
+      completionTokens: number;
+      error?: boolean;
+      endpoint?: string;
+      model?: string;
+      requestId?: string;
+    }
   ): void {
     if (this.active > 0) this.active -= 1;
 
     const endMs = Date.now();
     const latencyMs = endMs - handle.startMs;
+    const totalTokens = info.promptTokens + info.completionTokens;
+    const tokensPerSecond = latencyMs > 0 ? Math.round((totalTokens / (latencyMs / 1000)) * 100) / 100 : 0;
     const bucket = this.bucketFor(handle.startMs);
 
     bucket.requests += 1;
@@ -109,10 +119,15 @@ export class FleetMetrics {
     logger.info(
       `[fleet-metric] ${JSON.stringify({
         ts: new Date(endMs).toISOString(),
+        source: 'llm-service',
         provider: info.provider,
+        endpoint: info.endpoint,
+        model: info.model,
+        requestId: info.requestId,
         promptTokens: info.promptTokens,
         completionTokens: info.completionTokens,
         latencyMs,
+        tokensPerSecond,
         concurrencyAtStart: handle.concurrencyAtStart,
         error: info.error ?? false,
       })}`
