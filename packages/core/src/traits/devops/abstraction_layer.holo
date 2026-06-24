@@ -1,0 +1,26 @@
+@trait {
+  name: "@abstraction_layer",
+  category: "devops",
+  description: "Declarative middleware abstraction that inserts a named semantic layer between callers and an underlying service or entity. layer_name is the human-readable name for this abstraction boundary, used in traces and error messages. beneath_layer identifies the immediate layer below this one; the runtime uses the pair to construct a layered call chain and enforce ordering. transparent set to true passes all calls through without interception, effectively disabling the layer at runtime without removing the composition (useful for toggling mock_mode without recompile). mock_mode intercepts all calls and returns synthetic responses derived from the last known real response, enabling isolated testing without live dependencies. on_call fires when a call enters this layer, carrying the caller context and request payload; on_return fires on exit from the layer carrying the response and latency_ms; on_error fires when the layer catches a downstream exception before propagating. Pairs with @circuit_breaker for fault-isolation at layer boundaries, @timeout_guard for per-layer SLO enforcement, and @telemetry for layer-level latency metrics. Research: CircuitBreakerTrait.ts, TimeoutGuardTrait.ts.",
+  props: {
+    layer_name: string = "",
+    beneath_layer: string = "",
+    transparent: boolean = false,
+    mock_mode: boolean = false
+  },
+  events: {
+    attached: "abstraction_layer:attached",
+    detached: "abstraction_layer:detached",
+    on_call: "abstraction_layer:call",
+    on_return: "abstraction_layer:return",
+    on_error: "abstraction_layer:error",
+    on_set_transparent: "abstraction_layer:set_transparent",
+    on_set_mock_mode: "abstraction_layer:set_mock_mode",
+    called: "abstraction_layer:called",
+    returned: "abstraction_layer:returned",
+    error: "abstraction_layer:errored",
+    mock_activated: "abstraction_layer:mock_on",
+    mock_deactivated: "abstraction_layer:mock_off"
+  },
+  behaviors: ["@telemetry"]
+}

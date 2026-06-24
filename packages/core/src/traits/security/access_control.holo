@@ -1,0 +1,29 @@
+@trait {
+  name: "@access_control",
+  category: "security",
+  description: "Declarative role-permission gate with runtime grant/revoke and configurable deny behaviour. roles is the ordered list of role names valid for this entity; a role not in this list cannot be granted via on_grant and the attempt fires on_deny. permissions is a dict mapping each role name to the list of permission strings it holds (e.g. {'admin': ['read', 'write', 'delete'], 'viewer': ['read']}); permissions are evaluated on every on_check call and the result fires on_grant or on_deny accordingly. default_role is the role assigned to any caller that presents no explicit role credential; setting it to an empty string means unauthenticated callers receive no permissions and are denied by default. on_grant fires when a caller is granted a permission, carrying role, permission, and caller context. on_revoke fires when a role's permission entry is removed, carrying role and the revoked permissions. on_deny fires when a caller is denied, carrying role, requested permission, and the deny_action taken. deny_action controls the gate behaviour on denial: throw raises a runtime error that surfaces to the calling trait, log records the denial silently and returns a denied result to the caller, redirect emits a redirect event with a target the caller can act on. Pairs with @rbac for enterprise multi-role hierarchies, @audit_log for denial audit trails, @consent_gate for user-facing permission prompts, and @session for caller identity binding. Research: RBACTrait.ts, ConsentGateTrait.ts.",
+  props: {
+    roles: array<string> = [],
+    permissions: dict<string, array<string>> = {},
+    default_role: string = "",
+    deny_action: enum("throw" | "log" | "redirect") = "log"
+  },
+  events: {
+    attached: "access_control:attached",
+    detached: "access_control:detached",
+    on_grant: "access_control:grant",
+    on_revoke: "access_control:revoke",
+    on_deny: "access_control:deny",
+    on_check: "access_control:check",
+    on_set_permissions: "access_control:set_permissions",
+    on_add_role: "access_control:add_role",
+    on_remove_role: "access_control:remove_role",
+    granted: "access_control:granted",
+    revoked: "access_control:revoked",
+    denied: "access_control:denied",
+    check_result: "access_control:check_result",
+    role_added: "access_control:role_added",
+    role_removed: "access_control:role_removed"
+  },
+  behaviors: ["@audit_log"]
+}

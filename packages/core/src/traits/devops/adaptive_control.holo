@@ -1,0 +1,31 @@
+@trait {
+  name: "@adaptive_control",
+  category: "devops",
+  description: "Declarative PID closed-loop controller with anti-windup and derivative filtering. setpoint is the target reference value the controller drives toward. kp, ki, kd are the proportional, integral, and derivative gains respectively. output_min and output_max clamp the control signal; a saturated output fires on_saturate with the pre-clamp value and the clamp direction. anti_windup freezes integral accumulation whenever the output is saturated, preventing windup drift in systems with long ramp-up times. derivative_filter_hz is the cut-off frequency of the first-order low-pass applied to the derivative term (0 = no filter); lowering this value reduces derivative kick on noisy measurements. on_update fires every control step carrying the computed output, error, and PID component breakdown. on_error fires when the absolute error exceeds a watchdog threshold configurable via the on_set_watchdog command. Pairs with @control_loop for multi-axis MPC, @pid_controller for lightweight single-axis use, and @sensor_sampling for measurement input. Research: ControlLoopTrait.ts PID branch, PIDControllerTrait.ts.",
+  props: {
+    setpoint: number = 0.0,
+    kp: number = 1.0,
+    ki: number = 0.0,
+    kd: number = 0.0,
+    output_min: number = -1.0,
+    output_max: number = 1.0,
+    anti_windup: boolean = true,
+    derivative_filter_hz: number = 0.0
+  },
+  events: {
+    attached: "adaptive_control:attached",
+    detached: "adaptive_control:detached",
+    on_update: "adaptive_control:step",
+    on_saturate: "adaptive_control:saturated",
+    on_error: "adaptive_control:error",
+    on_set_setpoint: "adaptive_control:set_setpoint",
+    on_set_gains: "adaptive_control:set_gains",
+    on_set_watchdog: "adaptive_control:set_watchdog",
+    on_reset: "adaptive_control:reset",
+    updated: "adaptive_control:updated",
+    saturated: "adaptive_control:saturated_notify",
+    error_threshold: "adaptive_control:error_threshold",
+    reset: "adaptive_control:reset_done"
+  },
+  behaviors: ["@telemetry"]
+}
