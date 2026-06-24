@@ -1,0 +1,22 @@
+@trait {
+  name: "@stereoscopic_camera",
+  category: "visual",
+  description: "Dual-eye stereoscopic camera for VR rendering. Controls IPD, convergence, and per-eye projection for OpenXR-compatible headsets. Authored from StereoscopicCameraTrait.ts.",
+  props: {
+    ipd_m: number = 0.064,
+    convergence_m: number = 2.0,
+    near_plane: number = 0.01,
+    far_plane: number = 1000.0,
+    fov_h_deg: number = 90.0,
+    render_mode: enum("mono" | "stereo" | "instanced_stereo" | "single_pass_instanced") = "single_pass_instanced",
+    msaa: enum("off" | "2x" | "4x") = "4x"
+  },
+  events: {
+    attached: "stereoscopic_camera_attached",
+    detached: "stereoscopic_camera_detached",
+    on_ipd_change: "stereoscopic_camera_ipd_change",
+    on_render: "stereoscopic_camera_render",
+    set_ipd: "stereoscopic_camera_set_ipd"
+  },
+  behaviors: ["@rendering", "@foveated_render"]
+}

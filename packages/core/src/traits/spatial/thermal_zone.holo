@@ -1,0 +1,25 @@
+@trait {
+  name: "@thermal_zone",
+  category: "spatial",
+  description: "Thermal comfort zone for digital twin HVAC simulation. Models temperature, humidity, and airflow within a bounded spatial region. Authored from ThermalZoneTrait.ts.",
+  props: {
+    target_temp_c: number = 21.0,
+    target_humidity_pct: number = 50.0,
+    airflow_m3s: number = 0.1,
+    zone_volume_m3: number = 50.0,
+    heat_capacity: number = 1.0,
+    hvac_mode: enum("heat" | "cool" | "auto" | "off") = "auto",
+    occupancy_factor: boolean = true
+  },
+  events: {
+    attached: "thermal_zone_attached",
+    detached: "thermal_zone_detached",
+    on_temp_update: "thermal_zone_temp_update",
+    on_setpoint_reached: "thermal_zone_setpoint",
+    on_alert: "thermal_zone_alert",
+    on_occupancy_change: "thermal_zone_occupancy",
+    set_mode: "thermal_zone_set_mode",
+    set_setpoint: "thermal_zone_set_setpoint"
+  },
+  behaviors: ["@sensor", "@telemetry", "@twin_actuator"]
+}

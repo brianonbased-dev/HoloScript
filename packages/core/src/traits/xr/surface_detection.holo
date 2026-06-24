@@ -1,0 +1,25 @@
+@trait {
+  name: "@surface_detection",
+  category: "xr",
+  description: "AR plane and surface detection. Discovers horizontal, vertical, and arbitrary planes for object placement and occlusion. Authored from SurfaceDetectionTrait.ts.",
+  props: {
+    mode: enum("planes" | "meshes" | "both") = "planes",
+    plane_types: list<string> = [],
+    update_rate_hz: number = 10,
+    min_size_m2: number = 0.1,
+    max_planes: number = 50,
+    visualization: boolean = false
+  },
+  events: {
+    attached: "surface_detection_attached",
+    detached: "surface_detection_detached",
+    on_plane_added: "surface_detection_plane_added",
+    on_plane_updated: "surface_detection_plane_updated",
+    on_plane_removed: "surface_detection_plane_removed",
+    on_mesh_update: "surface_detection_mesh_update",
+    on_error: "surface_detection_error",
+    start: "surface_detection_start",
+    stop: "surface_detection_stop"
+  },
+  behaviors: ["@mesh_detection", "@spatial_anchor"]
+}

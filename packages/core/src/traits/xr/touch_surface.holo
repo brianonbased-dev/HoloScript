@@ -1,0 +1,25 @@
+@trait {
+  name: "@touch_surface",
+  category: "xr",
+  description: "XR touchable surface that receives finger/stylus contacts and translates them to 2D UV coordinates for paint, UI, and drawing. Authored from TouchSurfaceTrait.ts.",
+  props: {
+    width_m: number = 0.3,
+    height_m: number = 0.2,
+    max_touches: number = 10,
+    pressure_sensitive: boolean = true,
+    palm_rejection: boolean = true,
+    haptic_feedback: boolean = true,
+    hover_distance_m: number = 0.02
+  },
+  events: {
+    attached: "touch_surface_attached",
+    detached: "touch_surface_detached",
+    on_touch_start: "touch_surface_start",
+    on_touch_move: "touch_surface_move",
+    on_touch_end: "touch_surface_end",
+    on_hover: "touch_surface_hover",
+    on_pressure: "touch_surface_pressure",
+    on_palm: "touch_surface_palm"
+  },
+  behaviors: ["@xr_interaction", "@haptic", "@paint"]
+}
