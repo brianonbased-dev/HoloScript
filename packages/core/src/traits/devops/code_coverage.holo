@@ -1,0 +1,23 @@
+@trait {
+  name: "@code_coverage",
+  category: "devops",
+  description: "Test coverage measurement gate that instruments a target surface, collects coverage data, and enforces a minimum threshold before reporting pass or fail. target selects the coverage dimension to measure: statements counts individual executable statements, branches counts all conditional branch paths, functions counts callable function bodies, lines counts physical source lines reached during execution. threshold_pct is the minimum coverage percentage (0–100) required to emit on_pass; coverage below this value emits on_fail with the measured percentage and the shortfall. tool selects the underlying instrumentor: istanbul is the Node.js nyc/istanbul provider, v8 uses the V8 built-in coverage API (faster, lower overhead), c8 is the V8-based c8 reporter, holoscript uses the HoloScript native coverage engine which instruments .hs/.hsplus bytecode directly. output_dir is the directory path (relative to project root) where the coverage report artefacts (lcov, json, html) are written; leave empty to suppress file output. on_report fires after each coverage collection run with the measured percentages for all dimensions; on_fail fires when threshold_pct is not met with the delta; on_pass fires when coverage meets or exceeds threshold_pct.",
+  props: {
+    target: enum("statements" | "branches" | "functions" | "lines") = "lines",
+    threshold_pct: number = 80,
+    tool: enum("istanbul" | "v8" | "c8" | "holoscript") = "v8",
+    output_dir: string = "coverage"
+  },
+  events: {
+    attached: "code_coverage:attached",
+    detached: "code_coverage:detached",
+    on_report: "code_coverage:report",
+    on_fail: "code_coverage:fail",
+    on_pass: "code_coverage:pass",
+    collection_started: "code_coverage:started",
+    collection_stopped: "code_coverage:stopped",
+    on_collect: "code_coverage:cmd_collect",
+    on_reset: "code_coverage:cmd_reset"
+  },
+  behaviors: ["@validation", "@telemetry"]
+}

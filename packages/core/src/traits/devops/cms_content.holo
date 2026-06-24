@@ -1,0 +1,25 @@
+@trait {
+  name: "@cms_content",
+  category: "devops",
+  description: "Headless CMS content binding that fetches, caches, and reacts to published content from an external content management system. cms_type selects the integration target: strapi uses the Strapi REST/GraphQL API, contentful uses the Contentful Delivery API, sanity uses the Sanity GROQ API, holoscript uses the HoloScript native content store. content_type names the content model or collection slug to query (e.g. 'blog-post', 'product', 'scene-config'). locale is the BCP-47 language tag for localised content resolution; an empty string uses the CMS default locale. draft when true fetches unpublished draft content for preview environments; when false only published content is returned. cache_ttl_s is the seconds to hold fetched content in local cache before re-fetching; 0 disables the cache and re-fetches on every access. on_fetch fires with the content payload after a successful fetch or cache miss resolution; on_publish fires when the CMS emits a publish webhook; on_update fires when the content changes since the last fetch (detected via revision or hash comparison); on_unpublish fires when previously published content is retracted.",
+  props: {
+    cms_type: enum("strapi" | "contentful" | "sanity" | "holoscript") = "holoscript",
+    content_type: string = "",
+    locale: string = "",
+    draft: boolean = false,
+    cache_ttl_s: number = 300
+  },
+  events: {
+    attached: "cms_content:attached",
+    detached: "cms_content:detached",
+    on_fetch: "cms_content:fetch",
+    on_publish: "cms_content:publish",
+    on_update: "cms_content:update",
+    on_unpublish: "cms_content:unpublish",
+    fetch_error: "cms_content:fetch_error",
+    cache_hit: "cms_content:cache_hit",
+    on_refresh: "cms_content:cmd_refresh",
+    on_invalidate: "cms_content:cmd_invalidate"
+  },
+  behaviors: ["@cache", "@feature_flag"]
+}
