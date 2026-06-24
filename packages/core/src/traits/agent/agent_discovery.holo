@@ -1,0 +1,40 @@
+@trait {
+  name: "@agent_discovery",
+  category: "agent",
+  description: "Registers a node as a discoverable agent in the AgentRegistry. Handles capability advertisement, peer discovery, heartbeat management, and federated capability queries. Part of HoloScript Agentic Choreography (v3.1).",
+  props: {
+    agent_id: string = "",
+    agent_name: string = "",
+    agent_version: string = "1.0.0",
+    description: string = "",
+    capabilities: string[] = [],
+    spatial_scope: string = "",
+    trust_level: enum("local" | "team" | "federated" | "public") = "local",
+    discovery_mode: enum("passive" | "active" | "broadcast") = "active",
+    heartbeat_interval: number = 10000,
+    discovery_interval: number = 30000,
+    auto_register: boolean = true,
+    auto_discover: boolean = true,
+    max_discovered_agents: number = 100,
+    event_history_limit: number = 1000,
+    tags: string[] = []
+  },
+  events: {
+    initialized: "agent_discovery_initialized",
+    detached: "agent_discovery_detached",
+    registered: "agent_registered",
+    deregistered: "agent_deregistered",
+    peer_discovered: "peer_discovered",
+    peer_lost: "peer_lost",
+    query_result: "query_result",
+    discovered_agents: "discovered_agents",
+    status: "discovery_status",
+    error: "agent_discovery_error",
+    on_register: "agent_register",
+    on_deregister: "agent_deregister",
+    on_discover: "agent_discover",
+    on_query: "agent_query",
+    on_get_discovered: "agent_get_discovered",
+    on_get_status: "agent_get_status"
+  }
+}

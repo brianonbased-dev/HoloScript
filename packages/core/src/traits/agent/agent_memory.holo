@@ -1,0 +1,32 @@
+@trait {
+  name: "@agent_memory",
+  category: "agent",
+  description: "Persistent queryable vector memory for HoloScript agents. Replaces ephemeral LLM context windows with durable, searchable memory. Supports IndexedDB local storage, cosine-similarity semantic search, tag filtering, TTL expiry, and auto-compression when memory count exceeds the limit.",
+  props: {
+    max_memories: number = 10000,
+    default_ttl: number = 0,
+    embedding_model: enum("local" | "openai" | "none") = "none",
+    embedding_dim: number = 384,
+    auto_compress: boolean = true,
+    compress_prompt: string = "Summarize the following memories into a compact representation:",
+    sync_to_postgres: boolean = false,
+    postgres_url: string = "",
+    db_name: string = "holoscript-agent-memory"
+  },
+  events: {
+    ready: "memory_ready",
+    closed: "memory_closed",
+    stored: "memory_stored",
+    recalled: "memory_recalled",
+    forgotten: "memory_forgotten",
+    compressed: "memory_compressed",
+    listed: "memory_listed",
+    stats: "memory_stats",
+    on_store: "memory_store",
+    on_recall: "memory_recall",
+    on_forget: "memory_forget",
+    on_compress: "memory_compress",
+    on_list: "memory_list",
+    on_stats: "memory_stats"
+  }
+}
