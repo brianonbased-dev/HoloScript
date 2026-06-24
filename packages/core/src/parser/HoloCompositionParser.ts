@@ -3095,6 +3095,14 @@ export class HoloCompositionParser {
     if (this.match('HASH')) {
       return this.parseHashLiteral();
     }
+    // enum() type-spec: enum("a" | "b") — used in @trait props blocks.
+    // The ENUM keyword is tokenized differently from IDENTIFIER, so it must be
+    // handled explicitly here. Parse the full enum(...) call and return it as a
+    // string type-spec so downstream consumers (trait loaders, schema emitters)
+    // can interpret it without the parser erroring out.
+    if (this.check('ENUM')) {
+      return this.parseEnumTypeSpec();
+    }
     if (this.isBarewordPathToken()) {
       return this.parseBarewordPathValue();
     }
@@ -3108,6 +3116,27 @@ export class HoloCompositionParser {
     this.error(`Expected value, got ${this.current().type}`);
     this.advance(); // CRITICAL: Advance to prevent infinite loop
     return null;
+  }
+
+  /**
+   * Parse an `enum(...)` type-spec expression, e.g.:
+   *   enum("button" | "slider" | "checkbox")
+   *
+   * Returns the canonical string representation so trait loaders and schema
+   * emitters can read it as a type annotation. Called from parseValue() when
+   * the current token is ENUM (the keyword `enum` tokenized as 'ENUM' rather
+   * than 'IDENTIFIER').
+   *
+   * The opening `enum` token is consumed here. The caller should check for a
+   * trailing `= defaultValue` if the context supports it (e.g. parseObjectValue).
+   */
+  private parseEnumTypeSpec(): string {
+    this.advance(); // consume 'enum'
+    let spec = 'enum';
+    if (this.check('LPAREN')) {
+      spec += this.parseParenthesizedLiteral();
+    }
+    return spec;
   }
 
   private isBarewordPathToken(): boolean {
@@ -3248,6 +3277,12 @@ export class HoloCompositionParser {
         const key = this.parsePropertyKey();
         this.expect('COLON');
         obj[key] = this.parseValue();
+        // Consume optional `= defaultValue` after type-spec annotations (e.g. in @trait props
+        // blocks: `role: enum("a" | "b") = "a"` or `label: string = ""`). The EQUALS token
+        // is not a block-member separator so it would confuse the loop if left unconsumed.
+        if (this.match('EQUALS')) {
+          this.parseValue(); // parse-and-discard the default value (not stored separately)
+        }
       } else if (this.check('RBRACE')) {
         break;
       } else {
