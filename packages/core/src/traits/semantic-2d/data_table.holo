@@ -1,0 +1,28 @@
+@trait {
+  name: "@data_table",
+  category: "ui",
+  description: "Declarative data table with sorting, pagination, filtering, and row selection. columns is an ordered list of column descriptors — each entry carries field (the data key), label (the display header), and sortable (whether clicking the header triggers sort). rows_per_page is the number of data rows visible per page; 0 disables pagination and renders all rows. sort_by is the field name of the currently active sort column; an empty string means no active sort. sort_dir controls whether the active sort column is ascending (asc) or descending (desc). selectable enables checkbox row selection; the on_select event fires with the selected row indices whenever the selection changes. filterable enables a per-column filter input row rendered above the data rows; on_filter fires whenever the active filter expression changes. on_sort fires when the user clicks a sortable column header, carrying field and dir in the payload. on_page fires when the user navigates to a new page, carrying page_index (0-based) and rows_per_page. Pairs with @data_binding for live data source wiring and @semantic_layout for responsive column width negotiation. Research: UITraits.ts (table primitives), DataBindingTrait.ts, DataQualityTrait.ts.",
+  props: {
+    columns: list<{ field: string, label: string, sortable: boolean }> = [],
+    rows_per_page: number = 25,
+    sort_by: string = "",
+    sort_dir: enum("asc" | "desc") = "asc",
+    selectable: boolean = false,
+    filterable: boolean = false
+  },
+  events: {
+    attached: "data_table:attached",
+    detached: "data_table:detached",
+    on_sort: "data_table:sort",
+    on_page: "data_table:page",
+    on_select: "data_table:select",
+    on_filter: "data_table:filter",
+    sorted: "data_table:sorted",
+    page_changed: "data_table:page_changed",
+    selection_changed: "data_table:selection_changed",
+    filter_changed: "data_table:filter_changed",
+    on_set_columns: "data_table:cmd_set_columns",
+    on_set_rows_per_page: "data_table:cmd_set_rows_per_page"
+  },
+  behaviors: ["@data_binding", "@semantic_layout"]
+}

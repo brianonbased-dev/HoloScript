@@ -1,0 +1,26 @@
+@trait {
+  name: "@pdf_generator",
+  category: "media",
+  description: "PDF document generation from a template URL. template_url points to an HTML, Markdown, or HoloScript template that is rendered into the document; an empty string generates a blank page. engine selects the render backend: puppeteer uses a headless Chromium pipeline for pixel-perfect HTML/CSS output, pdfmake uses a JSON-driven layout engine suited to structured reports without browser dependencies, holoscript uses the native HoloScript IR-to-PDF compiler path (sovereign, no external process). page_size sets the ISO or ANSI paper size: A4 (210×297 mm), letter (8.5×11 in), or legal (8.5×14 in). orientation selects portrait (tall) or landscape (wide) page layout. headers and footers are arbitrary string-keyed dicts whose values are template expressions evaluated per page — supports page number tokens ({page}, {total}). watermark is an optional diagonal text stamp applied to every page in light grey; an empty string disables it. on_render fires when PDF bytes are ready, carrying document_id, bytes, page_count, and engine in the payload. on_save fires after the document has been persisted to the configured output path. on_error fires on template fetch failure, render timeout, or output I/O error. Pairs with @file_system for output persistence and @data_binding for dynamic template data injection. Research: PdfGenerateTrait.ts (v5.1 handler, pdf:generate event routing).",
+  props: {
+    template_url: string = "",
+    engine: enum("puppeteer" | "pdfmake" | "holoscript") = "holoscript",
+    page_size: enum("A4" | "letter" | "legal") = "A4",
+    orientation: enum("portrait" | "landscape") = "portrait",
+    headers: dict<string, string> = {},
+    footers: dict<string, string> = {},
+    watermark: string = ""
+  },
+  events: {
+    attached: "pdf_generator:attached",
+    detached: "pdf_generator:detached",
+    rendered: "pdf_generator:rendered",
+    saved: "pdf_generator:saved",
+    error: "pdf_generator:error",
+    on_render: "pdf_generator:cmd_render",
+    on_save: "pdf_generator:cmd_save",
+    on_set_template: "pdf_generator:cmd_set_template",
+    on_set_watermark: "pdf_generator:cmd_set_watermark"
+  },
+  behaviors: ["@file_system"]
+}

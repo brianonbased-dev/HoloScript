@@ -1,0 +1,27 @@
+@trait {
+  name: "@url_router",
+  category: "system",
+  description: "Declarative client-side URL router for HoloScript scenes and Studio pages. routes is an ordered list of route descriptors — each entry carries path (a URL pattern string supporting :param tokens and * wildcards), component (the HoloScript entity or .holo scene to mount when the path matches), and title (the document title set on navigation). base_path is the URL prefix under which all routes are mounted; useful for sub-path deployments (e.g. '/app'). hash_mode switches between History API routing (default, clean URLs) and hash-fragment routing (URL contains '#/path'), required when the host server cannot rewrite all paths to the app root. scroll_restoration controls whether the browser's scroll position is saved and restored on back/forward navigation (matches the History API scrollRestoration option). on_navigate fires when the active route changes, carrying path, params (matched :param values), and title in the payload. on_not_found fires when no route matches the current URL. on_params_change fires when the URL path changes but the same route component is already mounted (param-only update, e.g. navigating from /user/1 to /user/2). Pairs with @session for auth-gated route guards and @portal for cross-world deep-link handling. Research: WorldPortalTrait.ts (deep-link entry), AgentPortalTrait.ts (federated relay).",
+  props: {
+    routes: list<{ path: string, component: string, title: string }> = [],
+    base_path: string = "/",
+    hash_mode: boolean = false,
+    scroll_restoration: boolean = true
+  },
+  events: {
+    attached: "url_router:attached",
+    detached: "url_router:detached",
+    on_navigate: "url_router:navigate",
+    on_not_found: "url_router:not_found",
+    on_params_change: "url_router:params_change",
+    navigated: "url_router:navigated",
+    not_found: "url_router:not_found_fired",
+    params_changed: "url_router:params_changed",
+    on_push: "url_router:cmd_push",
+    on_replace: "url_router:cmd_replace",
+    on_back: "url_router:cmd_back",
+    on_forward: "url_router:cmd_forward",
+    on_set_base: "url_router:cmd_set_base"
+  },
+  behaviors: ["@session"]
+}

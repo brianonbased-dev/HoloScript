@@ -1,0 +1,29 @@
+@trait {
+  name: "@spatial_audio_3d",
+  category: "audio",
+  description: "Full 3D positional audio with configurable rolloff, spatialization backend, and distance model. backend selects the audio engine: webaudio uses the W3C Web Audio API PannerNode (widest browser support), resonance uses Google's Resonance Audio SDK for high-order ambisonics and room acoustics, holoscript uses the native HoloScript sovereign audio pipeline. rolloff_model controls how gain falls with distance: linear decreases gain proportionally between ref_distance and max_distance, inverse applies the inverse-square law (physically accurate for point sources), exponential applies a configurable power-law rolloff. max_distance is the distance in world units beyond which gain is clamped to zero (linear/exponential) or approaches zero (inverse). ref_distance is the distance at which gain equals 1.0 (full volume); below this distance the source plays at full level. spatialization selects the rendering technique: binaural uses HRTF convolution for headphone-accurate stereo imaging, stereo_pan uses simple left-right panning for lightweight spatial cues, ambisonics uses first-order (4-channel) or higher-order ambisonics for speaker arrays and room-scale immersion. on_play fires when playback starts, on_pause when paused, on_end when the clip reaches its end, on_loop when a looping clip wraps around. Pairs with @environmental_audio for reverb and absorption and @hrtf for personalised binaural processing. Research: SpatialAudioCueTrait.ts, AmbisonicsTrait.ts, HRTFTrait.ts, HeadTrackedAudioTrait.ts.",
+  props: {
+    backend: enum("webaudio" | "resonance" | "holoscript") = "webaudio",
+    rolloff_model: enum("linear" | "inverse" | "exponential") = "inverse",
+    max_distance: number = 100.0,
+    ref_distance: number = 1.0,
+    spatialization: enum("binaural" | "stereo_pan" | "ambisonics") = "binaural"
+  },
+  events: {
+    attached: "spatial_audio_3d:attached",
+    detached: "spatial_audio_3d:detached",
+    on_play: "spatial_audio_3d:play",
+    on_pause: "spatial_audio_3d:pause",
+    on_end: "spatial_audio_3d:end",
+    on_loop: "spatial_audio_3d:loop",
+    playing: "spatial_audio_3d:playing",
+    paused: "spatial_audio_3d:paused",
+    ended: "spatial_audio_3d:ended",
+    looped: "spatial_audio_3d:looped",
+    error: "spatial_audio_3d:error",
+    on_set_rolloff: "spatial_audio_3d:cmd_set_rolloff",
+    on_set_spatialization: "spatial_audio_3d:cmd_set_spatialization",
+    on_set_distance: "spatial_audio_3d:cmd_set_distance"
+  },
+  behaviors: ["@environmental_audio", "@transform"]
+}
