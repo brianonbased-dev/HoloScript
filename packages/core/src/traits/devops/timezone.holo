@@ -1,0 +1,22 @@
+@trait {
+  name: "@timezone",
+  category: "devops",
+  description: "Timezone-aware timestamp conversion and display formatting for HoloScript compositions. tz is the active timezone identifier (IANA tz database key, e.g. 'America/New_York', 'Asia/Tokyo'); defaults to UTC. dst_aware enables automatic Daylight Saving Time adjustment when the host runtime provides a DST-aware clock; set to false for fixed-offset environments such as embedded systems and financial platforms where DST transitions must be manually controlled. format selects the output serialisation: iso8601 emits a full ISO 8601 string with timezone offset (e.g. '2026-06-24T17:00:00+09:00'); unix emits a 64-bit integer epoch in seconds; rfc2822 emits an email-compatible date string (e.g. 'Tue, 24 Jun 2026 17:00:00 +0900'); locale formats the timestamp using locale-sensitive rules governed by the locale prop. locale is a BCP 47 language tag (e.g. 'en-US', 'ja-JP', 'fr-FR') used when format=locale; ignored for other formats. on_tz_change fires whenever the active timezone is updated via on_set_tz; payload includes the previous and next tz values. on_convert fires the converted result in response to on_request_convert; payload includes from_tz, to_tz, input_ts, and output_ts. Pairs with @temporal_guard for clock-drift enforcement and @telemetry for timestamp-annotated metric emission. Research: TimezoneTrait.ts — tz:set, tz:changed, tz:convert, tz:converted.",
+  props: {
+    tz: string = "UTC",
+    dst_aware: boolean = true,
+    format: enum("iso8601" | "unix" | "rfc2822" | "locale") = "iso8601",
+    locale: string = "en-US"
+  },
+  events: {
+    attached: "timezone:attached",
+    detached: "timezone:detached",
+    on_tz_change: "timezone:tz_changed",
+    on_convert: "timezone:converted",
+    on_error: "timezone:error",
+    on_set_tz: "timezone:set_tz",
+    on_request_convert: "timezone:request_convert",
+    on_get_current: "timezone:get_current"
+  },
+  behaviors: ["@temporal_guard"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@token_bucket",
+  category: "network",
+  description: "Token bucket rate limiter for controlling action throughput in HoloScript compositions. capacity is the maximum number of tokens the bucket can hold at any time; this is also the initial token count on attach. refill_rate_per_s is the continuous refill rate in tokens per second; fractional values are valid (e.g. 0.5 = one token every 2 seconds). burst_size is the maximum number of tokens that may be consumed in a single consume event — if the consumer requests more than burst_size the request is rejected even if the bucket has sufficient tokens, preventing large instantaneous spikes. consume_on is the event type string that triggers a consume attempt; when this event fires the trait attempts to deduct one token (or the amount specified in the payload's count field) from the bucket. If the bucket has sufficient tokens, on_consumed fires with the remaining count and the consume event is forwarded; if the bucket is empty or the request exceeds burst_size, on_rejected fires with retry_after_ms indicating how long the caller must wait for the next refill cycle. on_refill fires on every periodic refill tick with the added count and new total. strict mode changes rejection behaviour: in strict mode the consume event is dropped and on_rejected fires; in non-strict mode on_rejected fires but the event is still forwarded with a rate_limited annotation so the consumer can degrade gracefully rather than halt. Pairs with @rate_limiter for composite strategy selection and @telemetry for bucket utilisation metrics. Research: RateLimiterTrait.ts — token_bucket strategy, checkTokenBucket, refill logic.",
+  props: {
+    capacity: number = 100,
+    refill_rate_per_s: number = 10,
+    burst_size: number = 20,
+    consume_on: string = "",
+    strict: boolean = true
+  },
+  events: {
+    attached: "token_bucket:attached",
+    detached: "token_bucket:detached",
+    on_consumed: "token_bucket:consumed",
+    on_rejected: "token_bucket:rejected",
+    on_refill: "token_bucket:refill",
+    on_overflow: "token_bucket:overflow",
+    on_empty: "token_bucket:empty",
+    on_consume: "token_bucket:consume",
+    on_reset: "token_bucket:reset",
+    on_set_rate: "token_bucket:set_rate",
+    on_status: "token_bucket:status"
+  },
+  behaviors: ["@telemetry"]
+}
