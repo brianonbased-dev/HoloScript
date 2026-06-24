@@ -1,0 +1,272 @@
+/**
+ * Provenance-Attested 3D Reconstruction — HoloScript native authoring example
+ *
+ * Demonstrates the @provenance and @provenance_densify traits, which are the
+ * language-level surface for the observed-vs-invented moat axis
+ * (research/2026-06-24_idea-run-24.md, Pattern C + D.104 payback).
+ *
+ * WHY this exists:
+ *   NVIDIA ArtiFixer (SIGGRAPH 2026) makes 3D reconstruction generative — it
+ *   hallucinates unobserved regions and distills them back into the splat, with
+ *   NO signal distinguishing observed geometry from invented geometry. That
+ *   missing signal is HoloScript's moat. This file is the native authoring
+ *   surface for it: a .holo author writes @provenance and @provenance_densify
+ *   on their splat objects, and the GaussianSplattingCompiler stamps every
+ *   emitted point with the declared class, hashing it into a ProvenanceReceipt.
+ *
+ * Three entities in one scene demonstrate all three provenance cases:
+ *
+ *   CaptureCloud   — fully sensor-attested (Quest 3 LiDAR/passthrough depth)
+ *   DensifiedCloud — interpolation-densified (honest midpoints, bounded by real
+ *                    neighbours; no invention, no model)
+ *   GenerativeHalo — generative fill of unobserved regions (the ArtiFixer case,
+ *                    now with the honesty signal ArtiFixer lacks)
+ *
+ * The GaussianSplattingCompiler reads the @provenance and @provenance_densify
+ * traits and:
+ *   1. Stamps every splat with a uint8 provenance code
+ *      (observed=0, interpolated=1, generative-extended=2)
+ *   2. Emits a glTF _PROVENANCE attribute on the point cloud
+ *   3. Hashes the provenance-code array into a ProvenanceReceipt
+ *      (PROVENANCE_RECEIPT_VERSION, sha256 of the uint8 buffer,
+ *       observedFraction, splatCount)
+ *
+ * The ProvenanceReceipt is designed to compose into a FidelityEvalContract
+ * (ssja, jetson-orin-01 task_1782266549445_ng4a) as its provenance dimension.
+ *
+ * Track-0 gate note: full mesh-carry (BIN-chunk decode into DrawSpec IR) is a
+ * separate board task (task_1782304605985_bekv). Until that lands, this example
+ * authors the provenance vocabulary natively — the GaussianSplattingCompiler
+ * already operates on the PLY/splat path; real .glb BIN-chunk imports unlock the
+ * broader reconstruction pipeline.
+ *
+ * D.101-clear: this is native-authoring / .holo format work.
+ * D.104 payback: six .ts files landed 2026-06-24; this .holo file is the native
+ *   AUTHOR of those traits, raising the native-authored fraction.
+ *
+ * Run this example:
+ *   holoc examples/reconstruction/01-provenance-attested-splat.holo --target webgpu
+ *
+ * @version 6.0.0
+ * @see packages/core/src/traits/ProvenanceTrait.ts
+ * @see packages/core/src/traits/ProvenanceDensifyTrait.ts
+ * @see packages/core/src/reconstruction/PointProvenance.ts
+ * @see packages/core/src/reconstruction/ProvenanceReceipt.ts
+ * @see research/2026-06-24_idea-run-24.md
+ */
+
+scene ProvenanceAttestedReconstruction {
+
+  // ── 1. SENSOR-ATTESTED CAPTURE ─────────────────────────────────────────────
+  //
+  // A point cloud captured directly from a Quest 3 passthrough-depth session.
+  // Every point is observed; the @provenance trait declares this explicitly so
+  // the compiler emits observed=0 for all splats and the ProvenanceReceipt
+  // reflects observedFraction=1.0 (fully sensor-attested).
+
+  entity CaptureCloud @gaussian_splat @provenance {
+    position: [0, 1.2, -3]
+    scale: [1, 1, 1]
+
+    gaussian_splat: {
+      source: "./assets/quest3-capture.ply"
+      format: "ply"
+      quality: "high"
+      max_splats: 500000
+      sort_mode: "distance"
+      sh_degree: 1
+    }
+
+    // Declare all points sensor-attested: Quest 3 passthrough depth capture.
+    // The compiler will stamp every splat with provenance code 0 (observed)
+    // and emit observedFraction=1.0 in the ProvenanceReceipt.
+    provenance: {
+      class: "observed"
+      source: "sensor:quest3-depth-2026-06-24"
+    }
+  }
+
+
+  // ── 2. INTERPOLATION-DENSIFIED CAPTURE ────────────────────────────────────
+  //
+  // The same capture, but densified by the sovereign interpolation densifier
+  // (densifyByInterpolation.ts). Added points are bounded-by-reality midpoints
+  // between observed neighbours — honest fill with NO model, NO invention.
+  // The @provenance_densify trait with mode "interpolation" triggers this path.
+  //
+  // Result: original points carry provenance code 0 (observed); densified
+  // midpoints carry code 1 (interpolated). The ProvenanceReceipt reflects the
+  // honest split (e.g. observedFraction=0.65 if 35% were added midpoints).
+
+  entity DensifiedCloud @gaussian_splat @provenance @provenance_densify {
+    position: [2.5, 1.2, -3]
+    scale: [1, 1, 1]
+
+    gaussian_splat: {
+      source: "./assets/quest3-capture.ply"
+      format: "ply"
+      quality: "high"
+      max_splats: 800000
+      sort_mode: "distance"
+      sh_degree: 1
+    }
+
+    // Base: all originals are sensor-attested.
+    provenance: {
+      class: "observed"
+      source: "sensor:quest3-depth-2026-06-24"
+    }
+
+    // Densify using honest interpolation (no model, no invention).
+    // Added midpoints are tagged "interpolated" — bounded by real neighbours,
+    // never inventing geometry that was not observed.
+    provenance_densify: {
+      mode: "interpolation"
+      source: "holoscript:densifyByInterpolation"
+    }
+  }
+
+
+  // ── 3. GENERATIVE-FILL CAPTURE ────────────────────────────────────────────
+  //
+  // The observed capture extended with generative fill of unobserved regions —
+  // the ArtiFixer case, but with the honesty signal ArtiFixer structurally
+  // cannot provide. Added generative points carry provenance code 2
+  // (generative-extended) so the ProvenanceReceipt exposes the invented
+  // fraction explicitly (e.g. observedFraction=0.40 if 60% was model-filled).
+  //
+  // The generative backend is a pluggable seam (GenerativeDensifierBackend).
+  // When no backend is configured the compiler emits a warning and fills
+  // nothing — the honest seam never fabricates silently.
+
+  entity GenerativeHalo @gaussian_splat @provenance @provenance_densify {
+    position: [-2.5, 1.2, -3]
+    scale: [1, 1, 1]
+
+    gaussian_splat: {
+      source: "./assets/quest3-capture.ply"
+      format: "ply"
+      quality: "high"
+      max_splats: 1200000
+      sort_mode: "distance"
+      sh_degree: 2
+    }
+
+    // Base: originals are sensor-attested.
+    provenance: {
+      class: "observed"
+      source: "sensor:quest3-depth-2026-06-24"
+    }
+
+    // Generative fill: unobserved regions filled by the sovereign densifier.
+    // Added points carry provenance code 2 (generative-extended).
+    // The compiler logs a warning if no GenerativeDensifierBackend is wired —
+    // it will never silently invent geometry without the backend present.
+    provenance_densify: {
+      mode: "generative"
+      source: "holoscript:sovereign-densifier-wan2.1"
+      maxAdded: 400000
+    }
+  }
+
+
+  // ── LIGHTING ───────────────────────────────────────────────────────────────
+
+  light "AmbientLight" {
+    type: "ambient"
+    color: "#ccddff"
+    intensity: 0.5
+  }
+
+  light "KeyLight" {
+    type: "directional"
+    color: "#ffffff"
+    intensity: 0.8
+    rotation: [-30, 45, 0]
+    cast_shadows: true
+  }
+
+
+  // ── PROVENANCE RECEIPT EVENTS ──────────────────────────────────────────────
+  //
+  // The GaussianSplattingCompiler emits provenance_receipt_ready after stamping
+  // points. Surface the receipt for inspection / FidelityEvalContract wiring.
+
+  on(CaptureCloud, "provenance_receipt_ready") {
+    log("ProvenanceReceipt — CaptureCloud (fully observed):")
+    log("  version:         " + event.receipt.version)
+    log("  splatCount:      " + event.receipt.splatCount)
+    log("  observedFraction:" + event.receipt.observedFraction.toFixed(4))
+    log("  sha256:          " + event.receipt.sha256)
+  }
+
+  on(DensifiedCloud, "provenance_receipt_ready") {
+    log("ProvenanceReceipt — DensifiedCloud (interpolation-densified):")
+    log("  version:         " + event.receipt.version)
+    log("  splatCount:      " + event.receipt.splatCount)
+    log("  observedFraction:" + event.receipt.observedFraction.toFixed(4))
+    log("  interpolatedFraction:" + event.receipt.interpolatedFraction.toFixed(4))
+    log("  sha256:          " + event.receipt.sha256)
+  }
+
+  on(GenerativeHalo, "provenance_receipt_ready") {
+    log("ProvenanceReceipt — GenerativeHalo (generative-extended fill):")
+    log("  version:                  " + event.receipt.version)
+    log("  splatCount:               " + event.receipt.splatCount)
+    log("  observedFraction:         " + event.receipt.observedFraction.toFixed(4))
+    log("  generativeExtendedFraction:" + event.receipt.generativeExtendedFraction.toFixed(4))
+    log("  sha256:                   " + event.receipt.sha256)
+  }
+
+
+  // ── DISPLAY LABELS ─────────────────────────────────────────────────────────
+
+  entity LabelObserved {
+    geometry: plane
+    position: [0, 0.1, -2.5]
+    scale: [1.8, 0.35, 1]
+    traits: [text_display]
+    text_display: {
+      content: "OBSERVED\nobservedFraction=1.0"
+      fontSize: 0.10
+      color: "#22d3ee"
+    }
+  }
+
+  entity LabelInterpolated {
+    geometry: plane
+    position: [2.5, 0.1, -2.5]
+    scale: [2.2, 0.35, 1]
+    traits: [text_display]
+    text_display: {
+      content: "INTERPOLATED\n(honest densification)"
+      fontSize: 0.10
+      color: "#4ade80"
+    }
+  }
+
+  entity LabelGenerative {
+    geometry: plane
+    position: [-2.5, 0.1, -2.5]
+    scale: [2.2, 0.35, 1]
+    traits: [text_display]
+    text_display: {
+      content: "GENERATIVE-EXTENDED\n(with provenance signal)"
+      fontSize: 0.10
+      color: "#f59e0b"
+    }
+  }
+
+  entity Title {
+    geometry: plane
+    position: [0, 3, -3]
+    scale: [5, 0.5, 1]
+    traits: [text_display]
+    text_display: {
+      content: "Provenance-Attested 3D Reconstruction\nHoloScript vs ArtiFixer: the moat is the receipt"
+      fontSize: 0.12
+      color: "#e2e8f0"
+    }
+  }
+
+}
