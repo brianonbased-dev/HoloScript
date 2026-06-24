@@ -1,0 +1,24 @@
+@trait {
+  name: "@wind_zone",
+  category: "world",
+  description: "Volumetric wind zone affecting cloth, hair, particle systems, and foliage inside the zone bounds. Applies directional, spherical, or turbulence wind modes with seasonal and gust variation. Authored from WindZoneTrait.ts.",
+  props: {
+    mode: enum("directional" | "spherical" | "turbulence") = "directional",
+    strength_mps: number = 5.0,
+    direction: { x: number, y: number, z: number } = { x: 1.0, y: 0.0, z: 0.0 },
+    turbulence: number = 0.1,
+    gust_interval_s: number = 0.0,
+    gust_strength_multiplier: number = 1.5,
+    affects_cloth: boolean = true,
+    affects_hair: boolean = true,
+    affects_particles: boolean = true,
+    affects_foliage: boolean = true
+  },
+  events: {
+    attached: "wind_zone_attached",
+    detached: "wind_zone_detached",
+    on_gust: "wind_zone_gust",
+    on_change: "wind_zone_change"
+  },
+  behaviors: ["@gpu_particle", "@environmental_audio", "@zone"]
+}

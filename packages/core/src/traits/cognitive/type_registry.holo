@@ -1,0 +1,21 @@
+@trait {
+  name: "@type_registry",
+  category: "cognitive",
+  description: "Runtime type and trait registry. Maintains a live catalog of all registered trait names, categories, prop types, and versions in the current world context, queryable by name glob or category filter. Authored from TypeRegistryTrait.ts.",
+  props: {
+    scope: enum("world" | "team" | "global") = "world",
+    auto_refresh: boolean = true,
+    refresh_interval_s: number = 60,
+    include_deprecated: boolean = false
+  },
+  events: {
+    attached: "type_registry_attached",
+    detached: "type_registry_detached",
+    on_register: "type_registry_register",
+    on_deregister: "type_registry_deregister",
+    on_refresh: "type_registry_refresh",
+    query: "type_registry_query",
+    refresh: "type_registry_trigger_refresh"
+  },
+  behaviors: ["@trait_schema", "@blackboard"]
+}

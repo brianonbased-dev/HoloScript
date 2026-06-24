@@ -1,0 +1,21 @@
+@trait {
+  name: "@voice_activity",
+  category: "audio",
+  description: "Voice activity detector (VAD). Monitors a microphone or audio stream for speech onset and offset using energy thresholding or a WebRTC VAD model, emitting events to gate PTT, transcription, and avatar lipsync. Authored from VoiceActivityTrait.ts.",
+  props: {
+    model: enum("energy" | "webrtc_vad" | "silero") = "webrtc_vad",
+    threshold_db: number = -40.0,
+    onset_ms: number = 200,
+    offset_ms: number = 500,
+    noise_floor_db: number = -60.0,
+    visualize: boolean = false
+  },
+  events: {
+    attached: "voice_activity_attached",
+    detached: "voice_activity_detached",
+    on_speech_start: "voice_activity_start",
+    on_speech_end: "voice_activity_end",
+    on_noise: "voice_activity_noise"
+  },
+  behaviors: ["@proximity_chat", "@tts", "@screenshare"]
+}

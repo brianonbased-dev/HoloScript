@@ -1,0 +1,20 @@
+@trait {
+  name: "@trait_schema",
+  category: "cognitive",
+  description: "Runtime trait schema introspection handle. Exposes the prop/event/behavior declaration of a named trait as a typed schema blob, enabling tooling, dynamic forms, and LLM-assisted entity authoring at runtime. Authored from TraitSchemaTrait.ts.",
+  props: {
+    trait_name: string = "",
+    include_behaviors: boolean = true,
+    include_events: boolean = true,
+    include_props: boolean = true,
+    format: enum("json" | "holoscript" | "openapi_schema") = "json"
+  },
+  events: {
+    attached: "trait_schema_attached",
+    detached: "trait_schema_detached",
+    on_resolve: "trait_schema_resolve",
+    on_error: "trait_schema_error",
+    resolve: "trait_schema_trigger_resolve"
+  },
+  behaviors: ["@type_registry", "@blackboard"]
+}
