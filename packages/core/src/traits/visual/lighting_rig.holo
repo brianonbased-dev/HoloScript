@@ -1,0 +1,22 @@
+@trait {
+  name: "@lighting_rig",
+  category: "visual",
+  description: "Scene lighting rig preset manager. Applies a named lighting setup (three-point, HDRI, cinematic, natural) to the scene by configuring directional, point, and ambient light entities in one shot. Authored from LightingRigTrait.ts.",
+  props: {
+    preset: enum("three_point" | "hdri" | "cinematic" | "natural" | "night" | "custom") = "natural",
+    hdri_url: string = "",
+    exposure: number = 1.0,
+    shadow_quality: enum("soft" | "sharp" | "none") = "soft",
+    color_temperature_k: number = 6500,
+    intensity: number = 1.0,
+    animate: boolean = false,
+    animate_cycle_s: number = 120
+  },
+  events: {
+    attached: "lighting_rig_attached",
+    detached: "lighting_rig_detached",
+    on_change: "lighting_rig_change",
+    set_preset: "lighting_rig_set_preset"
+  },
+  behaviors: ["@light_estimation", "@environment_audio"]
+}

@@ -1,0 +1,27 @@
+@trait {
+  name: "@live_stream",
+  category: "media",
+  description: "Live video stream producer and consumer. Ingests a WebRTC or RTMP source, applies optional post-processing, and distributes to HLS/DASH endpoints or in-world spatial screens. Authored from LiveStreamTrait.ts.",
+  props: {
+    src_url: string = "",
+    protocol: enum("webrtc" | "rtmp" | "hls" | "dash" | "holoscript") = "webrtc",
+    resolution: enum("720p" | "1080p" | "4k") = "1080p",
+    bitrate_kbps: number = 3000,
+    low_latency: boolean = true,
+    record: boolean = false,
+    record_url: string = "",
+    viewer_limit: number = 0
+  },
+  events: {
+    attached: "live_stream_attached",
+    detached: "live_stream_detached",
+    on_start: "live_stream_start",
+    on_end: "live_stream_end",
+    on_viewer_join: "live_stream_viewer_join",
+    on_viewer_leave: "live_stream_viewer_leave",
+    on_error: "live_stream_error",
+    start: "live_stream_trigger_start",
+    stop: "live_stream_trigger_stop"
+  },
+  behaviors: ["@media", "@push_notification"]
+}

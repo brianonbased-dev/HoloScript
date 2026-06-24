@@ -1,0 +1,23 @@
+@trait {
+  name: "@locale",
+  category: "i18n",
+  description: "Locale and localization manager. Sets the active locale tag, loads translation message bundles, formats dates/numbers, and broadcasts locale changes to child UI components. Authored from LocaleTrait.ts.",
+  props: {
+    locale: string = "en-US",
+    fallback_locale: string = "en-US",
+    bundle_url: string = "",
+    auto_detect: boolean = true,
+    date_format: string = "YYYY-MM-DD",
+    number_format: enum("decimal" | "percent" | "currency") = "decimal",
+    currency: string = "USD"
+  },
+  events: {
+    attached: "locale_attached",
+    detached: "locale_detached",
+    on_change: "locale_change",
+    on_bundle_load: "locale_bundle_load",
+    on_missing_key: "locale_missing_key",
+    set_locale: "locale_set"
+  },
+  behaviors: ["@rtl", "@i18n"]
+}

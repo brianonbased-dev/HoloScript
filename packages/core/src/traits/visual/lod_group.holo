@@ -1,0 +1,22 @@
+@trait {
+  name: "@lod_group",
+  category: "visual",
+  description: "Level-of-detail group controller. Switches between mesh/material variants at configurable distance thresholds and optionally culls the entity beyond the maximum range. Authored from LodGroupTrait.ts.",
+  props: {
+    lod0_url: string = "",
+    lod1_url: string = "",
+    lod2_url: string = "",
+    lod3_url: string = "",
+    lod1_distance_m: number = 20.0,
+    lod2_distance_m: number = 60.0,
+    lod3_distance_m: number = 150.0,
+    cull_distance_m: number = 400.0,
+    fade_transitions: boolean = true
+  },
+  events: {
+    attached: "lod_group_attached",
+    detached: "lod_group_detached",
+    on_lod_change: "lod_group_change"
+  },
+  behaviors: ["@rendering", "@zone_director"]
+}
