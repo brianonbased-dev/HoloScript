@@ -1,0 +1,21 @@
+@trait {
+  name: "@prune",
+  category: "cognitive",
+  description: "Knowledge and memory pruning policy enforcer. Periodically scans an agent's memory or document store for entries older than TTL, below relevance threshold, or exceeding max-count, deleting stale entries and emitting a pruned-count event to keep the working context tight. Authored from PruneTrait.ts.",
+  props: {
+    ttl_days: number = 30,
+    max_entries: number = 1000,
+    relevance_threshold: number = 0.2,
+    run_interval_h: number = 24,
+    dry_run: boolean = false,
+    auto_run: boolean = true
+  },
+  events: {
+    attached: "prune_attached",
+    detached: "prune_detached",
+    on_prune: "prune_run",
+    on_complete: "prune_complete",
+    run: "prune_trigger_run"
+  },
+  behaviors: ["@document_store", "@blackboard", "@audit_log"]
+}

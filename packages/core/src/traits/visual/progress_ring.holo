@@ -1,0 +1,22 @@
+@trait {
+  name: "@progress_ring",
+  category: "visual",
+  description: "Circular progress ring HUD element. Renders an SVG or canvas arc that sweeps from 0 to 100% to represent completion of a timed action, loading phase, or skill cooldown, with configurable color, thickness, and animated fill direction. Authored from ProgressRingTrait.ts.",
+  props: {
+    value: number = 0.0,
+    max_value: number = 1.0,
+    thickness_px: number = 6,
+    color: string = "#00aaff",
+    background_color: string = "#333333",
+    clockwise: boolean = true,
+    animated: boolean = true,
+    animation_duration_ms: number = 200
+  },
+  events: {
+    attached: "progress_ring_attached",
+    detached: "progress_ring_detached",
+    on_complete: "progress_ring_complete",
+    set_value: "progress_ring_trigger_set"
+  },
+  behaviors: ["@easing", "@fade_in", "@ui_frame"]
+}

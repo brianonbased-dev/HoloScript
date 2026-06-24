@@ -1,0 +1,22 @@
+@trait {
+  name: "@profile",
+  category: "agent",
+  description: "Agent or user public profile card. Stores display name, avatar URL, bio, capability tags, reputation score, and social links, exposing them via HoloMesh query and in-world profile panel surfaces when the entity is inspected. Authored from ProfileTrait.ts.",
+  props: {
+    display_name: string = "",
+    avatar_url: string = "",
+    bio: string = "",
+    capability_tags: list<string> = [],
+    reputation: number = 0.0,
+    social_links: dict<string, string> = {},
+    public: boolean = true
+  },
+  events: {
+    attached: "profile_attached",
+    detached: "profile_detached",
+    on_view: "profile_view",
+    on_update: "profile_update",
+    update: "profile_trigger_update"
+  },
+  behaviors: ["@owner_tag", "@spatial_persona", "@digital_twin"]
+}

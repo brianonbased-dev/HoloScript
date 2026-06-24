@@ -1,0 +1,22 @@
+@trait {
+  name: "@proof",
+  category: "security",
+  description: "Cryptographic proof attachment and verifier. Signs an entity's state snapshot or event payload with the owner's wallet key, attaches the EIP-712 signature and verification URL, and validates incoming proofs from peer entities to establish authentic provenance. Authored from ProofTrait.ts.",
+  props: {
+    signing_mode: enum("eip712" | "ed25519" | "secp256k1") = "eip712",
+    domain: string = "",
+    auto_sign_on_change: boolean = false,
+    verify_on_receive: boolean = true,
+    proof_store: enum("inline" | "ipfs" | "holoscript") = "holoscript"
+  },
+  events: {
+    attached: "proof_attached",
+    detached: "proof_detached",
+    on_signed: "proof_signed",
+    on_verified: "proof_verified",
+    on_fail: "proof_fail",
+    sign: "proof_trigger_sign",
+    verify: "proof_trigger_verify"
+  },
+  behaviors: ["@owner_tag", "@permission", "@provenance_anchor"]
+}
