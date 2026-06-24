@@ -1,0 +1,25 @@
+@trait {
+  name: "@media_query",
+  category: "devops",
+  description: "Responsive breakpoint detector that maps viewport width to named size tiers and exposes the active tier and device orientation as reactive state. breakpoints is a dict mapping tier name (e.g. 'sm', 'md', 'lg', 'xl') to a minimum pixel width; the active tier is the highest-named breakpoint whose threshold the viewport width meets or exceeds, falling back to the smallest defined tier when below all thresholds. current holds the name of the active breakpoint tier and is updated on every viewport resize; initial value is resolved on attach. on_change fires whenever the active tier transitions — useful for swapping layout compositions, asset quality levels, or interaction modes without polling. orientation reports the display orientation: portrait when height >= width, landscape when width > height, any disables orientation tracking. pixel_ratio_min filters the breakpoint-change callback to only fire when the device pixel ratio meets or exceeds this value; set to 0 to fire on all displays. Composes with @feature_flag for density-conditional feature gates and @version for adaptive delivery. Research: FeatureFlagTrait.ts, ValidationTrait.ts.",
+  props: {
+    breakpoints: dict<string, number> = {
+      sm: 480,
+      md: 768,
+      lg: 1024,
+      xl: 1280
+    },
+    current: string = "md",
+    orientation: enum("portrait" | "landscape" | "any") = "any",
+    pixel_ratio_min: number = 0
+  },
+  events: {
+    attached: "media_query:attached",
+    detached: "media_query:detached",
+    on_change: "media_query:change",
+    orientation_change: "media_query:orientation_change",
+    on_set_breakpoints: "media_query:cmd_set_breakpoints",
+    on_query: "media_query:cmd_query"
+  },
+  behaviors: ["@feature_flag"]
+}

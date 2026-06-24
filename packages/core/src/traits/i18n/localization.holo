@@ -1,0 +1,23 @@
+@trait {
+  name: "@localization",
+  category: "i18n",
+  description: "Locale-aware asset and string bundle resolver with automatic locale detection, multi-locale bundle dictionary, ICU/Mustache/none interpolation modes, and locale-change lifecycle events. bundles maps locale tags (BCP-47, e.g. 'en', 'fr-CA') to their bundle URL so the runtime can lazy-fetch only the needed locale. fallback_locale is the BCP-47 tag used when a key is missing from the active bundle; defaults to 'en'. interpolation controls the placeholder substitution mode: icu for full ICU MessageFormat patterns (plurals, selects, date/number formats), mustache for simple '{{key}}' substitution, none disables substitution. auto_detect, when true, reads the user's navigator/device locale on attach and selects the closest available bundle before firing on_locale_change. on_locale_change fires after the new bundle is resolved and ready; on_load fires when a bundle URL finishes loading; on_error fires on fetch or parse failures. Composes with @translation for per-key resolution and @accessible for locale-aware alt-text. Research: TranslationTrait.ts, LocaleTrait.ts, RtlTrait.ts.",
+  props: {
+    bundles: dict<string, string> = {},
+    fallback_locale: string = "en",
+    interpolation: enum("icu" | "mustache" | "none") = "icu",
+    auto_detect: boolean = true
+  },
+  events: {
+    attached: "localization:attached",
+    detached: "localization:detached",
+    on_locale_change: "localization:locale_change",
+    on_load: "localization:load",
+    on_error: "localization:error",
+    locale_changed: "localization:locale_changed",
+    bundle_ready: "localization:bundle_ready",
+    on_set_locale: "localization:cmd_set_locale",
+    on_reload: "localization:cmd_reload"
+  },
+  behaviors: ["@translation"]
+}

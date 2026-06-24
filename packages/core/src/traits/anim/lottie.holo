@@ -1,0 +1,29 @@
+@trait {
+  name: "@lottie",
+  category: "anim",
+  description: "Lottie animation player for JSON-based vector animations exported from After Effects or similar tooling. animation_url points to the .json Lottie asset or a .lottie (dotLottie) bundle URL. speed scales playback rate: 1.0 is normal, 0.5 is half speed, 2.0 is double; clamped to 0.0–4.0. autoplay starts animation immediately on attach. loop restarts from frame 0 after the last frame. renderer selects the rendering backend: svg gives widest cross-platform fidelity, canvas improves performance on dense compositions, webgl enables GPU-accelerated paths for large animation counts. segments is an optional ordered list of [startFrame, endFrame] pairs to play in sequence instead of the full animation; empty list plays the whole animation. on_loaded fires once the JSON asset is parsed and ready; on_complete fires when playback reaches the final frame (or final segment) without looping; on_loop fires each time a loop cycle restarts; on_enter_frame fires on each frame advance carrying the current frame index. Composes with @animation for blend-tree sequencing and @timeline for keyframe-driven control. Research: AnimationTrait.ts, TimelineTrait.ts.",
+  props: {
+    animation_url: string = "",
+    speed: number = 1.0,
+    autoplay: boolean = true,
+    loop: boolean = true,
+    renderer: enum("svg" | "canvas" | "webgl") = "svg",
+    segments: array<array<number>> = []
+  },
+  events: {
+    attached: "lottie:attached",
+    detached: "lottie:detached",
+    on_loaded: "lottie:loaded",
+    on_complete: "lottie:complete",
+    on_loop: "lottie:loop",
+    on_enter_frame: "lottie:enter_frame",
+    error: "lottie:error",
+    on_play: "lottie:cmd_play",
+    on_pause: "lottie:cmd_pause",
+    on_stop: "lottie:cmd_stop",
+    on_set_speed: "lottie:cmd_set_speed",
+    on_seek_frame: "lottie:cmd_seek_frame",
+    on_play_segments: "lottie:cmd_play_segments"
+  },
+  behaviors: ["@animation"]
+}

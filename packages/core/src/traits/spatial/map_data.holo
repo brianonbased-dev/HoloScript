@@ -1,0 +1,27 @@
+@trait {
+  name: "@map_data",
+  category: "spatial",
+  description: "Tile-based map data provider with configurable provider backends, zoom range clamping, and layer-aware event routing. provider selects the tile service: mapbox uses vector/raster tiles via the Mapbox GL API, google uses the Maps JavaScript API tile pipeline, osm sources directly from OpenStreetMap tile CDN (no API key required), holoscript uses the HoloScript GeoSpatial tile backend for private or offline-cached maps. tile_url is an optional override template ({z}/{x}/{y} XYZ convention) that bypasses the provider default endpoint, enabling self-hosted or custom tile servers. zoom_min and zoom_max clamp the tile fetch range; requests outside this range snap to the nearest boundary. on_ready fires after the first tile batch is loaded and the map viewport is interactive; on_click carries the geographic coordinate and layer info for the clicked point; on_drag fires during viewport pan with the new center coordinate; on_zoom fires when the zoom level settles after pinch/scroll with the final zoom value; on_layer_add fires when a new data layer is mounted onto the map. attribution is the required copyright string rendered in the map corner per most tile provider terms. Composes with @geofence for boundary enforcement and @geospatial_anchor for world-space pinning. Research: GeospatialAnchorTrait.ts, GeospatialEnvTrait.ts.",
+  props: {
+    provider: enum("mapbox" | "google" | "osm" | "holoscript") = "osm",
+    tile_url: string = "",
+    zoom_min: number = 1,
+    zoom_max: number = 22,
+    attribution: string = ""
+  },
+  events: {
+    attached: "map_data:attached",
+    detached: "map_data:detached",
+    on_ready: "map_data:ready",
+    on_click: "map_data:click",
+    on_drag: "map_data:drag",
+    on_zoom: "map_data:zoom",
+    on_layer_add: "map_data:layer_add",
+    error: "map_data:error",
+    on_set_provider: "map_data:cmd_set_provider",
+    on_set_zoom: "map_data:cmd_set_zoom",
+    on_add_layer: "map_data:cmd_add_layer",
+    on_remove_layer: "map_data:cmd_remove_layer"
+  },
+  behaviors: ["@geospatial_anchor"]
+}
