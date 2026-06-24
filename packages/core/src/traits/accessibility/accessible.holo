@@ -1,0 +1,28 @@
+@trait {
+  name: "@accessible",
+  category: "accessibility",
+  description: "Master accessibility trait for spatial content. Provides ARIA-like semantics, focus management, keyboard shortcut binding, and live-region announcements.",
+  props: {
+    role: enum("button" | "slider" | "checkbox" | "dialog" | "menu" | "menuitem" | "progressbar" | "region" | "group" | "list" | "listitem" | "none") = "button",
+    label: string = "",
+    description: string = "",
+    live_region: enum("off" | "polite" | "assertive") = "off",
+    keyboard_shortcut: string = "",
+    tab_index: number = 0,
+    focus_visible: boolean = true,
+    disabled: boolean = false,
+    value_min: number = 0,
+    value_max: number = 100,
+    value_now: number = 0
+  },
+  events: {
+    register: "accessibility_register",
+    unregister: "accessibility_unregister",
+    focus_ring: "accessibility_focus_ring",
+    update: "accessibility_update",
+    on_focus: "on_accessible_focus",
+    activate: "accessible_activate",
+    value_change: "accessible_value_change"
+  },
+  behaviors: ["@focus_ring", "@keyboard_nav"]
+}

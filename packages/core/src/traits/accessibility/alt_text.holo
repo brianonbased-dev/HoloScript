@@ -1,0 +1,22 @@
+@trait {
+  name: "@alt_text",
+  category: "accessibility",
+  description: "Alternative text description for 3D objects. Supports multiple verbosity levels, auto-generation, and spatial position context for screen-reader announcement.",
+  props: {
+    text: string = "",
+    verbose: string = "",
+    language: string = "en",
+    auto_generate: boolean = false,
+    context_aware: boolean = true,
+    include_spatial: boolean = false
+  },
+  events: {
+    register: "alt_text_register",
+    unregister: "alt_text_unregister",
+    generate_request: "alt_text_generate_request",
+    query: "alt_text_query",
+    response: "alt_text_response",
+    update: "alt_text_update",
+    generated: "alt_text_generated"
+  }
+}

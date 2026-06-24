@@ -1,0 +1,20 @@
+@trait {
+  name: "@keyboard_nav",
+  category: "accessibility",
+  description: "Keyboard navigation layer for spatial UI. Manages tab order, arrow-key traversal of focusable nodes, and shortcut dispatch for accessible spatial interfaces.",
+  props: {
+    tab_index: number = 0,
+    group: string = "",
+    arrow_nav: boolean = true,
+    wrap_focus: boolean = true,
+    shortcut: string = "",
+    skip_disabled: boolean = true
+  },
+  events: {
+    focus_next: "keyboard_nav_focus_next",
+    focus_prev: "keyboard_nav_focus_prev",
+    activate: "accessible_activate",
+    register: "keyboard_nav_register",
+    unregister: "keyboard_nav_unregister"
+  }
+}
