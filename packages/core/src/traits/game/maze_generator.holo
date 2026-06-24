@@ -1,0 +1,22 @@
+@trait {
+  name: "@maze_generator",
+  category: "game",
+  description: "Procedural maze layout generator using recursive backtracking or Wilson's algorithm. Produces a 2D grid of walls and passages with configurable dimensions, seed, and loop density, outputting a tile map and entrance/exit positions for spawner/nav consumption. Authored from MazeGeneratorTrait.ts.",
+  props: {
+    seed: number = 0,
+    cols: number = 20,
+    rows: number = 20,
+    cell_size_m: number = 2.0,
+    algorithm: enum("recursive_backtrack" | "wilsons" | "prims" | "kruskals") = "recursive_backtrack",
+    loop_factor: number = 0.0,
+    wall_height_m: number = 3.0
+  },
+  events: {
+    attached: "maze_generator_attached",
+    detached: "maze_generator_detached",
+    on_generate: "maze_generator_generate",
+    on_complete: "maze_generator_complete",
+    generate: "maze_generator_trigger"
+  },
+  behaviors: ["@dungeon_generator", "@ecs_world", "@nav_guard"]
+}

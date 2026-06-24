@@ -1,0 +1,25 @@
+@trait {
+  name: "@meditation",
+  category: "interaction",
+  description: "Guided meditation and biofeedback session controller. Sequences breath-pacing visuals, ambient audio fades, and progress tracking for timed meditation sessions, integrating optional HRV sensor input to adapt pacing and award session completion. Authored from MeditationTrait.ts.",
+  props: {
+    duration_s: number = 300,
+    breath_cycle_s: number = 8.0,
+    inhale_ratio: number = 0.4,
+    use_hrv_feedback: boolean = false,
+    ambient_preset: enum("forest" | "ocean" | "rain" | "silence" | "custom") = "forest",
+    ambient_url: string = "",
+    reward_on_complete: boolean = true
+  },
+  events: {
+    attached: "meditation_attached",
+    detached: "meditation_detached",
+    on_start: "meditation_start",
+    on_breath_cycle: "meditation_breath_cycle",
+    on_complete: "meditation_complete",
+    on_interrupt: "meditation_interrupt",
+    start: "meditation_trigger_start",
+    stop: "meditation_trigger_stop"
+  },
+  behaviors: ["@audio_source", "@biometric", "@fade_in"]
+}

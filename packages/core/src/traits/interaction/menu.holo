@@ -1,0 +1,22 @@
+@trait {
+  name: "@menu",
+  category: "interaction",
+  description: "Hierarchical action menu for in-world or HUD UI surfaces. Declares a nested list of menu items with labels, icons, hotkeys, and callback action names, supporting context-menu, radial, and list layouts with keyboard/controller/XR navigation. Authored from MenuTrait.ts.",
+  props: {
+    items: list<{ label: string, icon: string, action: string, hotkey: string, sub_items: list<string> }> = [],
+    layout: enum("list" | "radial" | "grid" | "contextual") = "list",
+    open_on_attach: boolean = false,
+    close_on_select: boolean = true,
+    wrap_navigation: boolean = true
+  },
+  events: {
+    attached: "menu_attached",
+    detached: "menu_detached",
+    on_open: "menu_open",
+    on_close: "menu_close",
+    on_select: "menu_select",
+    open: "menu_trigger_open",
+    close: "menu_trigger_close"
+  },
+  behaviors: ["@affordance", "@ui_controller", "@input_map"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@material_override",
+  category: "visual",
+  description: "Runtime material property override for mesh entities. Replaces or blends specific material parameters (albedo, roughness, metallic, emissive) on a named submesh or all surfaces, without changing the base material asset — for hit effects, color customization, and team tinting. Authored from MaterialOverrideTrait.ts.",
+  props: {
+    submesh: string = "",
+    albedo: string = "",
+    emissive: string = "",
+    emissive_intensity: number = 0.0,
+    roughness: number = -1.0,
+    metallic: number = -1.0,
+    opacity: number = 1.0,
+    blend_factor: number = 1.0
+  },
+  events: {
+    attached: "material_override_attached",
+    detached: "material_override_detached",
+    on_apply: "material_override_apply",
+    on_reset: "material_override_reset",
+    reset: "material_override_trigger_reset"
+  },
+  behaviors: ["@static_mesh", "@decal", "@perceptual_color"]
+}
