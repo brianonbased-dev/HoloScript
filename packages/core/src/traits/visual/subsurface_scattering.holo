@@ -1,0 +1,20 @@
+@trait {
+  name: "@subsurface_scattering",
+  category: "visual",
+  description: "Subsurface scattering material extension for translucent organics (skin, wax, marble, leaves). Simulates light diffusion beneath the surface for biological realism. Authored from SubsurfaceScatteringTrait.ts.",
+  props: {
+    scatter_color: string = "#ff8080",
+    scatter_radius_m: number = 0.003,
+    transmission_tint: string = "#ffcc99",
+    ior: number = 1.4,
+    thickness_map_url: string = "",
+    quality: enum("low" | "medium" | "high") = "medium",
+    wrap_lighting: number = 0.5
+  },
+  events: {
+    attached: "subsurface_scattering_attached",
+    detached: "subsurface_scattering_detached",
+    on_update: "subsurface_scattering_update"
+  },
+  behaviors: ["@material", "@advanced_pbr"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@spatial_accessory",
+  category: "xr",
+  description: "Wearable spatial accessory (watch, glasses, ring, badge) that follows a hand/wrist joint and exposes interaction affordances. Authored from SpatialAccessoryTrait.ts.",
+  props: {
+    attach_joint: enum("left_wrist" | "right_wrist" | "head" | "chest" | "left_hand" | "right_hand") = "left_wrist",
+    model_url: string = "",
+    offset: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    visible: boolean = true,
+    physics_collision: boolean = false,
+    always_on: boolean = true
+  },
+  events: {
+    attached: "spatial_accessory_attached",
+    detached: "spatial_accessory_detached",
+    on_show: "spatial_accessory_show",
+    on_hide: "spatial_accessory_hide",
+    on_tap: "spatial_accessory_tap",
+    show: "spatial_accessory_trigger_show",
+    hide: "spatial_accessory_trigger_hide"
+  },
+  behaviors: ["@xr_interaction", "@body_tracking"]
+}

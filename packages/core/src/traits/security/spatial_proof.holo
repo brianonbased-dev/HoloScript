@@ -1,0 +1,24 @@
+@trait {
+  name: "@spatial_proof",
+  category: "security",
+  description: "Spatial provenance proof anchoring. Cryptographically attests that an XR experience, digital twin observation, or in-world event occurred at a specific geolocation and time. Authored from SpatialProofTrait.ts.",
+  props: {
+    chain: enum("base" | "ethereum" | "holoscript") = "holoscript",
+    wallet_handle: string = "",
+    include_gps: boolean = true,
+    include_photo: boolean = false,
+    include_imu: boolean = false,
+    auto_anchor_on_event: list<string> = [],
+    anchor_ttl_s: number = 300
+  },
+  events: {
+    attached: "spatial_proof_attached",
+    detached: "spatial_proof_detached",
+    on_anchor_created: "spatial_proof_anchor",
+    on_verify: "spatial_proof_verify",
+    on_error: "spatial_proof_error",
+    anchor: "spatial_proof_trigger_anchor",
+    verify: "spatial_proof_trigger_verify"
+  },
+  behaviors: ["@provenance_trait", "@audit_log", "@encryption"]
+}
