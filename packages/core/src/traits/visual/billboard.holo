@@ -1,0 +1,19 @@
+@trait {
+  name: "@billboard",
+  category: "visual",
+  description: "Camera-facing billboard renderer. Constrains entity rotation to always face the active camera along configurable axes (full, y-axis, or screen-space aligned), with optional spherical or cylindrical mode and distance-scale compensation. Authored from BillboardTrait.ts.",
+  props: {
+    mode: enum("full" | "y_axis" | "screen_aligned") = "full",
+    axis_lock: list<enum("x" | "y" | "z")> = [],
+    distance_scale: boolean = false,
+    min_scale: number = 0.1,
+    max_scale: number = 10.0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "billboard_attached",
+    detached: "billboard_detached",
+    on_update: "billboard_update"
+  },
+  behaviors: ["@annotation", "@chat_bubble", "@marker"]
+}

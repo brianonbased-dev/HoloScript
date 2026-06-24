@@ -1,0 +1,22 @@
+@trait {
+  name: "@bookmark",
+  category: "spatial",
+  description: "Saved spatial location bookmark. Stores a named world position and orientation for rapid teleportation recall, with optional visibility to team members and expiry. Authored from BookmarkTrait.ts.",
+  props: {
+    label: string = "",
+    world_id: string = "",
+    position: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    rotation: { x: number, y: number, z: number, w: number } = { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
+    shared: boolean = false,
+    icon_url: string = "",
+    expires_at: string = ""
+  },
+  events: {
+    attached: "bookmark_attached",
+    detached: "bookmark_detached",
+    on_teleport: "bookmark_teleport",
+    on_share: "bookmark_share",
+    teleport: "bookmark_trigger_teleport"
+  },
+  behaviors: ["@landmark", "@teleport", "@place_anchor"]
+}

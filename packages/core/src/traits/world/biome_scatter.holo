@@ -1,0 +1,24 @@
+@trait {
+  name: "@biome_scatter",
+  category: "world",
+  description: "Biome-aware foliage and prop scatterer. Places prefabs across a terrain surface using noise-based density maps per biome type, respecting slope limits and altitude bands, with GPU-instanced rendering for millions of instances. Authored from BiomeScatterTrait.ts.",
+  props: {
+    biome: enum("forest" | "desert" | "tundra" | "grassland" | "swamp" | "custom") = "forest",
+    density: number = 1.0,
+    radius_m: number = 500.0,
+    prefab_ids: list<string> = [],
+    slope_max_deg: number = 30.0,
+    altitude_min_m: number = 0.0,
+    altitude_max_m: number = 1000.0,
+    seed: number = 0,
+    cull_distance_m: number = 200.0
+  },
+  events: {
+    attached: "biome_scatter_attached",
+    detached: "biome_scatter_detached",
+    on_scatter: "biome_scatter_scatter",
+    on_lod_change: "biome_scatter_lod",
+    scatter: "biome_scatter_trigger"
+  },
+  behaviors: ["@procedural_terrain", "@lod_group", "@gpu_particle"]
+}

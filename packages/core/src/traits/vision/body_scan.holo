@@ -1,0 +1,21 @@
+@trait {
+  name: "@body_scan",
+  category: "vision",
+  description: "Full-body scan capture and mesh reconstruction. Combines depth camera frames or structured light into a watertight body mesh, extracting body measurements and skeleton estimate for avatar fitting or medical telemetry. Authored from BodyScanTrait.ts.",
+  props: {
+    capture_mode: enum("depth_camera" | "structured_light" | "photogrammetry") = "depth_camera",
+    resolution: enum("low" | "medium" | "high") = "medium",
+    extract_measurements: boolean = true,
+    export_format: enum("gltf" | "ply" | "obj") = "gltf",
+    auto_fit_avatar: boolean = false
+  },
+  events: {
+    attached: "body_scan_attached",
+    detached: "body_scan_detached",
+    on_capture_start: "body_scan_start",
+    on_complete: "body_scan_complete",
+    on_error: "body_scan_error",
+    capture: "body_scan_trigger"
+  },
+  behaviors: ["@photogrammetry", "@pose_estimation", "@avatar_customizer"]
+}
