@@ -1,0 +1,25 @@
+@trait {
+  name: "@semantic_annotation",
+  category: "ui",
+  description: "ML-driven semantic annotation layer that attaches structured label sets to an entity or scene region in real time or from a pre-computed pass. annotations is the live list of annotation records; each record is a dict with keys label (string), confidence (float 0–1), and bounding_box (dict with x, y, w, h in normalised 0–1 image coordinates). model is the model identifier or inference endpoint used to produce annotations (e.g. 'yolov8n', 'clip-vit-b-32', or an HTTP endpoint URL); when empty the trait accepts externally-supplied annotations via on_annotate without running its own inference. classes is the whitelist of label strings the trait accepts; labels outside this list are discarded before on_annotate fires; an empty list passes all classes through. live when true enables continuous re-annotation at the cadence controlled by the parent scene tick or an internal interval derived from the attached entity's frame budget; when false annotation runs only when on_annotate is triggered manually, suitable for pre-processed datasets or batch pipelines. min_confidence is the inclusive lower threshold applied to every incoming annotation record; records with confidence below this value are discarded before being added to the annotations list and before on_annotate fires; defaults to 0.5. on_annotate fires after annotations is updated with the new list of accepted records; carries the full updated annotations list, the model id, and the timestamp. on_update fires when the annotations list changes incrementally (a subset of records replaced without a full re-inference pass) — useful for lightweight visual overlays that patch only the changed bounding boxes. on_clear fires when all annotations are removed (either by an explicit clear command or because no detections exceeded min_confidence), carrying the previous annotations list so callers can log the cleared state. Pairs with @semantic_entity for entity-level meaning propagation, @agent_attention for directing agent focus to high-confidence annotations, and @telemetry for tracking annotation throughput and model latency. Research: SemanticAnnotationTrait concept; related: semantic_entity.holo, agent_attention.holo, Semantic2DTraits.ts.",
+  props: {
+    annotations: list<dict<string, unknown>> = [],
+    model: string = "",
+    classes: list<string> = [],
+    live: boolean = false,
+    min_confidence: number = 0.5
+  },
+  events: {
+    attached: "semantic_annotation:attached",
+    detached: "semantic_annotation:detached",
+    on_annotate: "semantic_annotation:annotate",
+    on_update: "semantic_annotation:update",
+    on_clear: "semantic_annotation:clear",
+    on_set_model: "semantic_annotation:set_model",
+    on_set_classes: "semantic_annotation:set_classes",
+    on_set_min_confidence: "semantic_annotation:set_min_confidence",
+    annotated: "semantic_annotation:annotated",
+    cleared: "semantic_annotation:cleared"
+  },
+  behaviors: ["@semantic_entity", "@agent_attention"]
+}

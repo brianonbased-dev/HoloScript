@@ -1,0 +1,25 @@
+@trait {
+  name: "@render_capture",
+  category: "media",
+  description: "Scene render-capture controller for producing still images and video recordings from an entity's attached render surface. target selects the capture destination: screen writes to the compositor display buffer (for screenshot workflows), canvas writes to an offscreen CanvasRenderingContext2D (for 2D compositing pipelines), offscreen uses an OffscreenCanvas or WebGL FBO without any compositor involvement (fastest, no display side-effect). format is the output image/video codec: png (lossless, full alpha), jpeg (lossy, no alpha, smallest size), webp (lossy or lossless via quality, smaller than png, full alpha), h264 (AVC video, broadest device support for captured sequences), h265 (HEVC video, ~40% better compression than H.264 for the same perceived quality). fps is the target frame rate for continuous capture (h264/h265 only); for still formats (png/jpeg/webp) this field is ignored and capture fires on each on_capture command. quality is a normalised 0–1 quality hint applied to lossy codecs (jpeg, webp) and video encoders; 1.0 = lossless/highest-bitrate, 0.0 = most compressed — intermediate values map to encoder-specific quality scales. encode_worker when true routes the encode step to a WorkerGlobalScope to avoid blocking the main thread; the on_frame event fires on the worker thread and the encoded blob is transferred back to the main thread on_frame_ready. Events: on_frame fires for every captured and encoded frame carrying the frame blob (ArrayBuffer or Blob), timestamp, and frame index; on_capture is the command event to trigger a single still capture or start a continuous sequence; on_error fires on codec initialisation failure, OOM, or GPU context loss with a reason string. Pairs with @streaming to push captured frames to a live stream, @s3_upload to persist recordings to object storage, and @telemetry to track frame drop rate and encoding latency. Research: RenderCaptureTrait concept; related: VideoTranscodeTrait.ts, s3_upload.holo, streaming.holo.",
+  props: {
+    target: enum("screen" | "canvas" | "offscreen") = "offscreen",
+    format: enum("png" | "jpeg" | "webp" | "h264" | "h265") = "png",
+    fps: number = 30,
+    quality: number = 0.92,
+    encode_worker: boolean = true
+  },
+  events: {
+    attached: "render_capture:attached",
+    detached: "render_capture:detached",
+    on_frame: "render_capture:frame",
+    on_frame_ready: "render_capture:frame_ready",
+    on_capture: "render_capture:capture",
+    on_start_recording: "render_capture:start_recording",
+    on_stop_recording: "render_capture:stop_recording",
+    recording_started: "render_capture:recording_started",
+    recording_stopped: "render_capture:recording_stopped",
+    on_error: "render_capture:error"
+  },
+  behaviors: ["@streaming", "@s3_upload"]
+}

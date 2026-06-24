@@ -1,0 +1,25 @@
+@trait {
+  name: "@provenance_trait",
+  category: "security",
+  description: "Data-lineage and integrity tracking for HoloScript entities, scenes, and derived artifacts. provenance_id is the globally-unique identifier for this provenance record — by convention a UUIDv4 or a content-addressed hash prefix that links the entity to its audit trail. source_hash is the SHA-256 (hex, no prefix) or CID of the originating asset or event stream; the trait runtime re-computes this hash on demand via on_verify and compares against the stored value to detect tampering. chain is an ordered list of transformation descriptors recording every processing step applied to the original asset — each entry is a dict with keys op (operation name), agent (actor id or wallet address), ts (ISO-8601 timestamp), and hash (output hash of that step); the chain grows with each on_attest call and is never mutated retroactively. verified is a derived flag set to true by the runtime after a successful on_verify comparison and cleared to false on any tamper detection or chain extension before re-verification; never set this field manually in composition — it is runtime-derived. anchor_url is the URL of an on-chain or notary anchor receipt that commits the current chain state to an external verifiable log (e.g. a Base L2 transaction receipt URL or an IPFS CID URL); populated by on_attest when anchor_backend is reachable. on_verify triggers a re-hash of the entity's current content and emits verified (hash match) or tampered (mismatch) with diff details. on_attest appends a new step to chain, commits the current chain hash to anchor_url via the configured anchor_backend (holoscript, ipfs, base, or none), and emits attested carrying the updated chain entry. on_tamper is fired by the runtime — not a command — when on_verify detects a hash mismatch; carries the stored_hash, computed_hash, and provenance_id so downstream handlers can quarantine, alert, or trigger recovery. Pairs with @secret for key-managed signing of chain entries, @anchor for on-chain receipt management, and @resource_accounting for audit-log cost tracking. Research: AnchorTrait.ts, provenance-anchoring.md, holokey-vault-cutover-proven-prod.md.",
+  props: {
+    provenance_id: string = "",
+    source_hash: string = "",
+    chain: list<dict<string, string>> = [],
+    verified: boolean = false,
+    anchor_url: string = ""
+  },
+  events: {
+    attached: "provenance_trait:attached",
+    detached: "provenance_trait:detached",
+    verified: "provenance_trait:verified",
+    tampered: "provenance_trait:tampered",
+    attested: "provenance_trait:attested",
+    on_verify: "provenance_trait:verify",
+    on_attest: "provenance_trait:attest",
+    on_tamper: "provenance_trait:tamper",
+    on_get_chain: "provenance_trait:get_chain",
+    on_reset: "provenance_trait:reset"
+  },
+  behaviors: ["@secret", "@anchor"]
+}

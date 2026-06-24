@@ -1,0 +1,25 @@
+@trait {
+  name: "@rate_limiter",
+  category: "network",
+  description: "Composite rate limiter for controlling action throughput in HoloScript compositions. algorithm selects the limiting strategy: token_bucket maintains a token reservoir that refills at a fixed rate — suitable for bursty traffic with a well-defined burst ceiling; leaky_bucket drains requests at a steady pace regardless of arrival pattern — eliminates bursts at the cost of higher average latency; sliding_window counts requests within a rolling time window and rejects those exceeding max_requests — accurate and memory-proportional to traffic; fixed_window counts requests in non-overlapping epoch slots — cheapest per-check, susceptible to boundary bursts. max_requests is the maximum allowed requests within window_ms for sliding_window and fixed_window; for token_bucket and leaky_bucket it sets the capacity of the bucket. window_ms is the observation window duration in milliseconds (sliding_window, fixed_window) or the refill/drain interval (token_bucket, leaky_bucket). burst is the maximum number of tokens that may be consumed in a single decision cycle for token_bucket (ignored by other algorithms); set to max_requests to disable burst limiting. key_selector is an expression string evaluated against the incoming event payload to derive a per-key namespace (e.g. 'payload.userId' or 'payload.ip') enabling per-entity rate limits from a single trait instance; when empty the limiter uses a single shared counter for all traffic. on_limit fires when a request exceeds the configured rate, carrying key, retryAfterMs, and limit; on_pass fires when a request is admitted, carrying key and remaining capacity. Pairs with @token_bucket for single-strategy token-bucket composition, @telemetry for rejection-rate metric emission, and @circuit_breaker for downstream protection when upstream traffic surges. Research: RateLimiterTrait.ts — token_bucket, sliding_window strategies; token_bucket.holo for single-strategy token bucket.",
+  props: {
+    algorithm: enum("token_bucket" | "leaky_bucket" | "sliding_window" | "fixed_window") = "token_bucket",
+    max_requests: number = 100,
+    window_ms: number = 60000,
+    burst: number = 20,
+    key_selector: string = ""
+  },
+  events: {
+    attached: "rate_limiter:attached",
+    detached: "rate_limiter:detached",
+    on_limit: "rate_limiter:rejected",
+    on_pass: "rate_limiter:allowed",
+    status: "rate_limiter:status",
+    on_execute: "rate_limiter:execute",
+    on_get_status: "rate_limiter:get_status",
+    on_reset: "rate_limiter:reset",
+    on_set_algorithm: "rate_limiter:set_algorithm",
+    on_set_limit: "rate_limiter:set_limit"
+  },
+  behaviors: ["@token_bucket", "@telemetry"]
+}
