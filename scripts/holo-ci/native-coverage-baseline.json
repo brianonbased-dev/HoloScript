@@ -1,12 +1,12 @@
 {
-  "native": 663,
+  "native": 671,
   "handTsTraits": 591,
   "byExt": {
     ".hsplus": 24,
-    ".holo": 634,
+    ".holo": 642,
     ".hs": 5
   },
-  "ratio": 0.528708,
+  "ratio": 0.531696,
   "note": "D.104 native-authoring ratchet baseline. Coverage must rise or hold. Reseed only when it has GENUINELY risen (more native authoring), never to mask a regression.",
-  "updatedAtIso": "2026-06-24T22:46:31.295Z"
+  "updatedAtIso": "2026-06-24T22:49:42.033Z"
 }
