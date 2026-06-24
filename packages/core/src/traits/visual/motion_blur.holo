@@ -1,0 +1,20 @@
+@trait {
+  name: "@motion_blur",
+  category: "visual",
+  description: "Per-object or camera motion blur post-process effect. Applies velocity-buffer based motion blur to fast-moving entities or the full camera view, with configurable shutter angle, sample count, and max blur pixel radius for cinematic or speed-trail effects. Authored from MotionBlurTrait.ts.",
+  props: {
+    mode: enum("camera" | "per_object" | "both") = "camera",
+    shutter_angle_deg: number = 180,
+    samples: number = 8,
+    max_blur_px: number = 32,
+    velocity_scale: number = 1.0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "motion_blur_attached",
+    detached: "motion_blur_detached",
+    on_enable: "motion_blur_enable",
+    on_disable: "motion_blur_disable"
+  },
+  behaviors: ["@post_process", "@image_effect", "@virtual_camera"]
+}

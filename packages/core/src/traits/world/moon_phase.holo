@@ -1,0 +1,20 @@
+@trait {
+  name: "@moon_phase",
+  category: "world",
+  description: "Simulated moon phase cycle controller. Advances lunar phase state (new, waxing crescent, first quarter, waxing gibbous, full, waning gibbous, last quarter, waning crescent) on a real-time or accelerated clock, driving ambient light intensity and tidal/event triggers. Authored from MoonPhaseTrait.ts.",
+  props: {
+    phase: enum("new" | "waxing_crescent" | "first_quarter" | "waxing_gibbous" | "full" | "waning_gibbous" | "last_quarter" | "waning_crescent") = "new",
+    cycle_duration_s: number = 2551443,
+    auto_advance: boolean = true,
+    affect_ambient: boolean = true,
+    ambient_full_moon_boost: number = 0.3
+  },
+  events: {
+    attached: "moon_phase_attached",
+    detached: "moon_phase_detached",
+    on_phase_change: "moon_phase_change",
+    on_full_moon: "moon_phase_full",
+    on_new_moon: "moon_phase_new"
+  },
+  behaviors: ["@day_night_cycle", "@weather", "@skybox"]
+}

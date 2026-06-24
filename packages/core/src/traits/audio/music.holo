@@ -1,0 +1,26 @@
+@trait {
+  name: "@music",
+  category: "audio",
+  description: "Adaptive music track controller. Plays looping musical stems from a playlist, crossfading between tracks on trigger, duck on voice/alert events, and modulating intensity layer mix based on gameplay tension score from connected entities. Authored from MusicTrait.ts.",
+  props: {
+    playlist: list<string> = [],
+    volume: number = 0.7,
+    crossfade_ms: number = 1500,
+    loop: boolean = true,
+    shuffle: boolean = false,
+    duck_on_voice: boolean = true,
+    duck_volume: number = 0.3,
+    adaptive_layers: boolean = false
+  },
+  events: {
+    attached: "music_attached",
+    detached: "music_detached",
+    on_track_change: "music_track_change",
+    on_complete: "music_complete",
+    play: "music_trigger_play",
+    pause: "music_trigger_pause",
+    next: "music_trigger_next",
+    stop: "music_trigger_stop"
+  },
+  behaviors: ["@audio_source", "@playlist", "@room_mode_resonance"]
+}

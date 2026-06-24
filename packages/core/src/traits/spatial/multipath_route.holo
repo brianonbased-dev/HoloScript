@@ -1,0 +1,21 @@
+@trait {
+  name: "@multipath_route",
+  category: "spatial",
+  description: "Multi-modal route planner that chains segments across different transport modes (walk, drive, transit, fly, teleport) into a unified itinerary with waypoints, estimated durations, and mode transitions. Authored from MultipathRouteTrait.ts.",
+  props: {
+    origin: { lat: number, lon: number } = { lat: 0.0, lon: 0.0 },
+    destination: { lat: number, lon: number } = { lat: 0.0, lon: 0.0 },
+    modes: list<enum("walk" | "drive" | "transit" | "fly" | "teleport")> = ["walk"],
+    optimize: enum("time" | "distance" | "cost") = "time",
+    avoid: list<enum("highways" | "tolls" | "ferries")> = [],
+    auto_route: boolean = true
+  },
+  events: {
+    attached: "multipath_route_attached",
+    detached: "multipath_route_detached",
+    on_route: "multipath_route_route",
+    on_error: "multipath_route_error",
+    plan: "multipath_route_trigger_plan"
+  },
+  behaviors: ["@navigation", "@waypoint", "@route_planner"]
+}
