@@ -1,0 +1,25 @@
+@trait {
+  name: "@resource_node",
+  category: "game",
+  description: "Harvestable resource node in game worlds. Tracks quantity, regeneration rate, depletion state, and harvester queue, emitting events for gather interactions and availability changes. Authored from ResourceNodeTrait.ts.",
+  props: {
+    resource_type: string = "",
+    quantity: number = 100,
+    max_quantity: number = 100,
+    regen_rate_per_s: number = 1.0,
+    harvest_amount: number = 10,
+    harvest_time_ms: number = 1000,
+    max_harvesters: number = 1,
+    respawn_empty: boolean = true,
+    respawn_time_s: number = 300
+  },
+  events: {
+    attached: "resource_node_attached",
+    detached: "resource_node_detached",
+    on_harvest: "resource_node_harvest",
+    on_depleted: "resource_node_depleted",
+    on_respawn: "resource_node_respawn",
+    harvest: "resource_node_trigger_harvest"
+  },
+  behaviors: ["@proximity_trigger", "@inventory_slot", "@economy"]
+}

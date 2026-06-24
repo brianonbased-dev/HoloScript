@@ -1,0 +1,23 @@
+@trait {
+  name: "@reputation",
+  category: "agent",
+  description: "Agent or player reputation ledger. Tracks community feedback scores across dimensions (trust, quality, reliability), computes rolling averages, and gates capability unlocks based on threshold crossings. Authored from ReputationTrait.ts.",
+  props: {
+    dimensions: list<string> = ["trust", "quality"],
+    score: dict<string, number> = {},
+    min_score: number = -100.0,
+    max_score: number = 100.0,
+    decay_per_day: number = 0.5,
+    vote_weight: number = 1.0,
+    history_days: number = 90
+  },
+  events: {
+    attached: "reputation_attached",
+    detached: "reputation_detached",
+    on_update: "reputation_update",
+    on_threshold: "reputation_threshold",
+    upvote: "reputation_upvote",
+    downvote: "reputation_downvote"
+  },
+  behaviors: ["@social_graph", "@role", "@analytics"]
+}

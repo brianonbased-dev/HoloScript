@@ -1,0 +1,22 @@
+@trait {
+  name: "@scene_transition",
+  category: "world",
+  description: "World or scene transition manager. Orchestrates cross-fade, wipe, portal-zoom, or instant transitions between world IDs, managing asset preloading, teleportation of the player, and clean teardown of the departing scene. Authored from SceneTransitionTrait.ts.",
+  props: {
+    transition_type: enum("fade" | "wipe" | "portal_zoom" | "instant" | "dissolve") = "fade",
+    duration_ms: number = 500,
+    preload_radius_m: number = 100.0,
+    carry_entities: list<string> = [],
+    default_spawn_anchor: string = "",
+    loading_screen: boolean = true
+  },
+  events: {
+    attached: "scene_transition_attached",
+    detached: "scene_transition_detached",
+    on_start: "scene_transition_start",
+    on_complete: "scene_transition_complete",
+    on_error: "scene_transition_error",
+    trigger: "scene_transition_trigger"
+  },
+  behaviors: ["@portal_presence", "@recursive_link", "@zone_director"]
+}

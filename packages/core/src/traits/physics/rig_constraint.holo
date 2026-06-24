@@ -1,0 +1,22 @@
+@trait {
+  name: "@rig_constraint",
+  category: "physics",
+  description: "Skeleton rig joint constraint. Applies IK, look-at, aim, parent, or position constraints to a named bone, with blending weight and enable/disable toggle for procedural animation layering. Authored from RigConstraintTrait.ts.",
+  props: {
+    target_bone: string = "",
+    constraint_type: enum("ik" | "look_at" | "aim" | "parent" | "position" | "rotation") = "ik",
+    target_entity: string = "",
+    weight: number = 1.0,
+    enabled: boolean = true,
+    chain_length: number = 2,
+    iterations: number = 10
+  },
+  events: {
+    attached: "rig_constraint_attached",
+    detached: "rig_constraint_detached",
+    on_apply: "rig_constraint_apply",
+    enable: "rig_constraint_enable",
+    disable: "rig_constraint_disable"
+  },
+  behaviors: ["@pose_retarget", "@locomotion"]
+}
