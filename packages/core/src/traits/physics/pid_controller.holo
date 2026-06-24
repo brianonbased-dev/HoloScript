@@ -1,0 +1,25 @@
+@trait {
+  name: "@pid_controller",
+  category: "physics",
+  description: "PID feedback controller. Computes a corrective output signal from the error between a setpoint and measured process variable, used for drone altitude, arm joint, thermal, and motion control loops. Authored from PIDControllerTrait.ts.",
+  props: {
+    kp: number = 1.0,
+    ki: number = 0.0,
+    kd: number = 0.0,
+    setpoint: number = 0.0,
+    output_min: number = -1.0,
+    output_max: number = 1.0,
+    integral_clamp: number = 10.0,
+    derivative_filter: number = 0.1,
+    update_rate_hz: number = 60
+  },
+  events: {
+    attached: "pid_controller_attached",
+    detached: "pid_controller_detached",
+    on_output: "pid_controller_output",
+    on_settle: "pid_controller_settle",
+    set_setpoint: "pid_controller_setpoint",
+    update: "pid_controller_update"
+  },
+  behaviors: ["@control_loop", "@sensor"]
+}

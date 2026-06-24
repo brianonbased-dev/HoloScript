@@ -1,0 +1,23 @@
+@trait {
+  name: "@pipeline",
+  category: "devops",
+  description: "Generic sequential processing pipeline. Chains named stages into an ordered execution graph, threading data through each stage's handler and emitting progress events at each step. Authored from PipelineTrait.ts.",
+  props: {
+    stages: list<{ name: string, timeout_ms: number, retry: number }> = [],
+    on_error: enum("abort" | "skip" | "retry") = "abort",
+    parallel_stages: boolean = false,
+    max_concurrency: number = 4,
+    persist_state: boolean = false
+  },
+  events: {
+    attached: "pipeline_attached",
+    detached: "pipeline_detached",
+    on_stage_start: "pipeline_stage_start",
+    on_stage_complete: "pipeline_stage_complete",
+    on_stage_fail: "pipeline_stage_fail",
+    on_complete: "pipeline_complete",
+    run: "pipeline_run",
+    cancel: "pipeline_cancel"
+  },
+  behaviors: ["@etl", "@data_transform", "@cron"]
+}

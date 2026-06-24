@@ -1,0 +1,24 @@
+@trait {
+  name: "@pdf_generate",
+  category: "media",
+  description: "PDF document generator. Renders a HoloScript entity's declared template to a paginated PDF via Puppeteer or WeasyPrint, and stores or streams the output. Authored from PdfGenerateTrait.ts.",
+  props: {
+    template_url: string = "",
+    format: enum("a4" | "letter" | "a3" | "custom") = "a4",
+    orientation: enum("portrait" | "landscape") = "portrait",
+    margin_mm: number = 15,
+    header_template: string = "",
+    footer_template: string = "",
+    watermark: string = "",
+    backend: enum("puppeteer" | "weasyprint" | "holoscript") = "holoscript"
+  },
+  events: {
+    attached: "pdf_generate_attached",
+    detached: "pdf_generate_detached",
+    on_render: "pdf_generate_render",
+    on_complete: "pdf_generate_complete",
+    on_error: "pdf_generate_error",
+    generate: "pdf_generate_trigger"
+  },
+  behaviors: ["@blob_store", "@draft"]
+}

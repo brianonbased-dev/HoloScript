@@ -1,0 +1,24 @@
+@trait {
+  name: "@perception",
+  category: "cognitive",
+  description: "Unified agent perception pipeline. Aggregates vision, audio, and spatial sensor inputs into a structured percept that agent brain skills can query for decision-making. Authored from PerceptionTrait.ts.",
+  props: {
+    vision: boolean = true,
+    audio: boolean = false,
+    spatial: boolean = true,
+    text_input: boolean = true,
+    fov_deg: number = 120,
+    hear_range_m: number = 20.0,
+    update_rate_hz: number = 10,
+    max_objects: number = 32
+  },
+  events: {
+    attached: "perception_attached",
+    detached: "perception_detached",
+    on_percept: "perception_percept",
+    on_new_object: "perception_new_object",
+    on_lost_object: "perception_lost_object",
+    on_sound: "perception_sound"
+  },
+  behaviors: ["@vision", "@audio_occlusion", "@multi_target_tracking"]
+}
