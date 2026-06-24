@@ -1,0 +1,26 @@
+@trait {
+  name: "@mesh_collider",
+  category: "physics",
+  description: "High-fidelity mesh-based physics collider. Supports convex hull decomposition for dynamic bodies or exact concave mesh for static geometry. Authored from MeshColliderTrait.ts.",
+  props: {
+    mesh_url: string = "",
+    convex: boolean = true,
+    decompose: boolean = false,
+    decompose_max_hulls: number = 8,
+    friction: number = 0.5,
+    restitution: number = 0.3,
+    density: number = 1.0,
+    is_trigger: boolean = false,
+    collision_layer: number = 0
+  },
+  events: {
+    attached: "mesh_collider_attached",
+    detached: "mesh_collider_detached",
+    on_collision_enter: "mesh_collider_collision_enter",
+    on_collision_exit: "mesh_collider_collision_exit",
+    on_trigger_enter: "mesh_collider_trigger_enter",
+    on_trigger_exit: "mesh_collider_trigger_exit",
+    on_bake_complete: "mesh_collider_bake_complete"
+  },
+  behaviors: ["@rigid_body", "@collision_filter"]
+}

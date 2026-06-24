@@ -1,0 +1,27 @@
+@trait {
+  name: "@microphone",
+  category: "audio",
+  description: "Device microphone input capture. Provides raw PCM frames, VAD detection, and noise gating for voice, music, and ambient input. Authored from MicrophoneTrait.ts.",
+  props: {
+    sample_rate_hz: number = 44100,
+    channels: number = 1,
+    bit_depth: enum("int16" | "float32") = "float32",
+    vad_enabled: boolean = true,
+    noise_gate_db: number = -40.0,
+    gain_db: number = 0.0,
+    device_id: string = "",
+    echo_cancellation: boolean = true
+  },
+  events: {
+    attached: "microphone_attached",
+    detached: "microphone_detached",
+    on_frame: "microphone_frame",
+    on_vad_start: "microphone_vad_start",
+    on_vad_end: "microphone_vad_end",
+    on_error: "microphone_error",
+    on_permission: "microphone_permission",
+    start: "microphone_start",
+    stop: "microphone_stop"
+  },
+  behaviors: ["@voice_chat", "@speech_recognition"]
+}

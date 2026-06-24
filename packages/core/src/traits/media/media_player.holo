@@ -1,0 +1,31 @@
+@trait {
+  name: "@media_player",
+  category: "media",
+  description: "Spatial media player for video, audio, and live streams. Controls playback state, scrubbing, looping, and adaptive bitrate. Authored from MediaPlayerTrait.ts.",
+  props: {
+    src_url: string = "",
+    autoplay: boolean = false,
+    loop: boolean = false,
+    muted: boolean = false,
+    volume: number = 1.0,
+    playback_rate: number = 1.0,
+    preload: enum("none" | "metadata" | "auto") = "metadata",
+    drm_license_url: string = "",
+    spatial: boolean = false
+  },
+  events: {
+    attached: "media_player_attached",
+    detached: "media_player_detached",
+    on_play: "media_player_play",
+    on_pause: "media_player_pause",
+    on_end: "media_player_end",
+    on_buffering: "media_player_buffering",
+    on_ready: "media_player_ready",
+    on_time_update: "media_player_time_update",
+    on_error: "media_player_error",
+    play: "media_player_trigger_play",
+    pause: "media_player_trigger_pause",
+    seek: "media_player_trigger_seek"
+  },
+  behaviors: ["@spatial_audio_3d"]
+}

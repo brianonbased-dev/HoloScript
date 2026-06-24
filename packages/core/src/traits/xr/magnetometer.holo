@@ -1,0 +1,22 @@
+@trait {
+  name: "@magnetometer",
+  category: "xr",
+  description: "Device magnetometer / compass input. Provides raw magnetic field vector and calibrated heading for AR wayfinding and device orientation. Authored from MagnetometerTrait.ts.",
+  props: {
+    coordinate_frame: enum("device" | "world" | "geo") = "world",
+    sample_rate_hz: number = 10,
+    calibrate_on_start: boolean = true,
+    declination_deg: number = 0.0,
+    low_pass_alpha: number = 0.8
+  },
+  events: {
+    attached: "magnetometer_attached",
+    detached: "magnetometer_detached",
+    on_sample: "magnetometer_sample",
+    on_heading: "magnetometer_heading",
+    on_calibrate: "magnetometer_calibrate",
+    on_error: "magnetometer_error",
+    calibrate: "magnetometer_trigger_calibrate"
+  },
+  behaviors: ["@sensor"]
+}
