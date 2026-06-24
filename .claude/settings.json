@@ -7,6 +7,16 @@
           {
             "type": "command",
             "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs sessionstart/room-connect.mjs"
+          },
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs sessionstart/memory-ceiling-check.mjs",
+            "timeout": 10,
+            "async": true,
+            "statusMessage": "Checking HoloScript MEMORY.md ceiling (auto-graduate if over 20KB)...",
+            "env": {
+              "CLAUDE_PROJECT_MEMORY_DIR": "C:/Users/Josep/.claude/projects/c--Users-Josep-Documents-GitHub-HoloScript/memory"
+            }
           }
         ]
       }
@@ -84,6 +94,21 @@
         ]
       }
     ],
-    "Stop": []
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/Josep/.ai-ecosystem/hooks/run-hook.mjs stop/knowledge-sync.mjs",
+            "timeout": 20,
+            "async": true,
+            "env": {
+              "CLAUDE_PROJECT_MEMORY_DIR": "C:/Users/Josep/.claude/projects/c--Users-Josep-Documents-GitHub-HoloScript/memory",
+              "HOLOSCRIPT_ROOT": "C:/Users/Josep/Documents/GitHub/HoloScript"
+            }
+          }
+        ]
+      }
+    ]
   }
 }
