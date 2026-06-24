@@ -1,0 +1,22 @@
+@trait {
+  name: "@ray_cast",
+  category: "physics",
+  description: "Ray casting probe for scene intersection queries. Fires rays from a source entity in configurable directions, returns hit entity, distance, normal, and UV, and emits events for real-time interaction (pointer, selection, line-of-sight). Authored from RayCastTrait.ts.",
+  props: {
+    max_distance_m: number = 100.0,
+    layer_mask: list<string> = [],
+    fire_rate_hz: number = 30,
+    num_rays: number = 1,
+    spread_angle_deg: number = 0.0,
+    visualize: boolean = false,
+    query_type: enum("closest" | "all" | "any") = "closest"
+  },
+  events: {
+    attached: "ray_cast_attached",
+    detached: "ray_cast_detached",
+    on_hit: "ray_cast_hit",
+    on_miss: "ray_cast_miss",
+    cast: "ray_cast_trigger"
+  },
+  behaviors: ["@sensor_hub", "@proximity_trigger"]
+}

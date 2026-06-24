@@ -1,0 +1,21 @@
+@trait {
+  name: "@query_builder",
+  category: "search",
+  description: "Declarative query builder for structured data. Constructs SQL, Cypher, or Holoscript query ASTs from a filter, sort, and projection spec, sends them to the configured backend, and surfaces paginated results as events. Authored from QueryBuilderTrait.ts.",
+  props: {
+    backend: enum("postgres" | "sqlite" | "cypher_neo4j" | "holoscript") = "holoscript",
+    connection_secret: string = "",
+    page_size: number = 50,
+    timeout_ms: number = 5000,
+    cache_ttl_s: number = 0,
+    readonly: boolean = true
+  },
+  events: {
+    attached: "query_builder_attached",
+    detached: "query_builder_detached",
+    on_result: "query_builder_result",
+    on_error: "query_builder_error",
+    query: "query_builder_run"
+  },
+  behaviors: ["@orm_entity", "@embedding_search", "@blackboard"]
+}

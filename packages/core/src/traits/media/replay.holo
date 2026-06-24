@@ -1,0 +1,26 @@
+@trait {
+  name: "@replay",
+  category: "media",
+  description: "Deterministic world-state replay player. Loads a HoloScript replay bundle and scrubs entity state diffs frame by frame, supporting variable speed playback, seek, loop, and ghost-overlay against a live scene. Authored from ReplayTrait.ts.",
+  props: {
+    source_url: string = "",
+    speed: number = 1.0,
+    loop: boolean = false,
+    ghost_overlay: boolean = false,
+    seek_frame: number = 0,
+    auto_play: boolean = false,
+    sync_physics: boolean = true
+  },
+  events: {
+    attached: "replay_attached",
+    detached: "replay_detached",
+    on_play: "replay_play",
+    on_pause: "replay_pause",
+    on_seek: "replay_seek",
+    on_end: "replay_end",
+    play: "replay_trigger_play",
+    pause: "replay_trigger_pause",
+    seek: "replay_trigger_seek"
+  },
+  behaviors: ["@recording_session", "@state_sync"]
+}

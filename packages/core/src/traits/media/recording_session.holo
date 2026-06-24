@@ -1,0 +1,26 @@
+@trait {
+  name: "@recording_session",
+  category: "media",
+  description: "World or XR session recorder. Captures entity state diffs, audio, and camera track into a compressed replay bundle at configurable fidelity, with live streaming or batch upload to an output URL. Authored from RecordingSessionTrait.ts.",
+  props: {
+    output_url: string = "",
+    format: enum("holoscript_replay" | "webm" | "mp4" | "jpeg_seq") = "holoscript_replay",
+    fps: number = 30,
+    include_audio: boolean = true,
+    include_state_diff: boolean = true,
+    max_duration_s: number = 3600,
+    live_stream: boolean = false,
+    quality: enum("draft" | "medium" | "high") = "medium"
+  },
+  events: {
+    attached: "recording_session_attached",
+    detached: "recording_session_detached",
+    on_start: "recording_start",
+    on_stop: "recording_stop",
+    on_complete: "recording_complete",
+    on_error: "recording_error",
+    start: "recording_trigger_start",
+    stop: "recording_trigger_stop"
+  },
+  behaviors: ["@live_stream", "@replay", "@screenshare"]
+}
