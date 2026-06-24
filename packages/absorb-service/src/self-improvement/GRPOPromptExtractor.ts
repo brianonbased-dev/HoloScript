@@ -33,6 +33,9 @@
  * @module self-improvement
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 /**
  * Compute ROUGE-L similarity between two strings using Longest Common Subsequence.
  * Returns F1-score in [0, 1].
@@ -1349,9 +1352,9 @@ function truncate(text: string, maxLength: number): string {
  * that returns predetermined file contents.
  */
 export function createNodeFS(): PromptExtractorFS {
-  // Lazy imports to avoid bundling issues in non-Node environments
-  const fsModule = require('fs') as typeof import('fs');
-  const pathModule = require('path') as typeof import('path');
+  // fs and path are top-level ESM imports (node:fs / node:path above).
+  const fsModule = fs;
+  const pathModule = path;
 
   return {
     async readFile(filePath: string): Promise<string> {
