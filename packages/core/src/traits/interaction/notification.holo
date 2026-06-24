@@ -1,0 +1,27 @@
+@trait {
+  name: "@notification",
+  category: "interaction",
+  description: "Unified in-world and platform notification emitter. channel selects the delivery surface: system (OS-level toast/banner), in_app (HoloScript HUD overlay), push (mobile/web push via @push_notification), or email. priority tiers map to OS urgency levels — low stays silent, normal uses default alert cadence, high interrupts the user, urgent overrides do-not-disturb on supporting platforms. badge controls whether the app icon badge increments. sound names the audio asset to play on delivery (empty string = silent). on_dismiss_event and on_action_event are the HoloScript event names fired when the user dismisses or acts on the notification, enabling downstream state machines to react. cooldown_ms prevents notification flooding — subsequent notifications on the same channel within the cooldown window are dropped and a notification:suppressed event is emitted. Research: PushNotificationTrait.ts (push delivery), MessagingTrait.ts (channel routing).",
+  props: {
+    channel: enum("system" | "in_app" | "push" | "email") = "in_app",
+    priority: enum("low" | "normal" | "high" | "urgent") = "normal",
+    badge: boolean = false,
+    sound: string = "",
+    on_dismiss_event: string = "notification:dismissed",
+    on_action_event: string = "notification:action",
+    cooldown_ms: number = 0
+  },
+  events: {
+    attached: "notification:attached",
+    detached: "notification:detached",
+    sent: "notification:sent",
+    dismissed: "notification:dismissed",
+    action: "notification:action",
+    suppressed: "notification:suppressed",
+    error: "notification:error",
+    on_send: "notification:send",
+    on_cancel: "notification:cancel",
+    on_set_badge: "notification:set_badge",
+    on_clear_badge: "notification:clear_badge"
+  }
+}

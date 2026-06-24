@@ -1,0 +1,29 @@
+@trait {
+  name: "@nav_mesh",
+  category: "agent",
+  description: "Agent navigation mesh descriptor. Declares the walkability parameters used when baking or streaming a navigation mesh for this entity or world region. agent_radius and agent_height define the capsule extents that must clear obstacles; max_slope_deg is the steepest walkable incline; step_height is the tallest climbable step. area_cost is a named cost map for semantic surface types (e.g. {\"water\": 3.0, \"mud\": 2.0}) — the pathfinder multiplies base traversal cost by the area value. dynamic_obstacles enables runtime re-baking when obstacle nodes move. bake_on_attach triggers an immediate bake when the trait is mounted; set false to defer until an explicit nav_mesh:bake event. Pairs with @navmesh_solver (the low-level SPH/grid bake seam) and downstream PID controllers or locomotion traits that consume nav_mesh:path events. Research: NavmeshSolverTrait.ts, WalkableNavmeshBuilder.ts.",
+  props: {
+    agent_radius: number = 0.4,
+    agent_height: number = 1.8,
+    max_slope_deg: number = 45.0,
+    step_height: number = 0.3,
+    area_cost: dict<string, number> = {},
+    dynamic_obstacles: boolean = false,
+    bake_on_attach: boolean = true
+  },
+  events: {
+    attached: "nav_mesh:attached",
+    detached: "nav_mesh:detached",
+    baked: "nav_mesh:baked",
+    invalidated: "nav_mesh:invalidated",
+    path_found: "nav_mesh:path",
+    path_not_found: "nav_mesh:no_path",
+    obstacle_added: "nav_mesh:obstacle_added",
+    obstacle_removed: "nav_mesh:obstacle_removed",
+    on_bake: "nav_mesh:bake",
+    on_query_path: "nav_mesh:query_path",
+    on_add_obstacle: "nav_mesh:add_obstacle",
+    on_remove_obstacle: "nav_mesh:remove_obstacle"
+  },
+  behaviors: ["@transform"]
+}

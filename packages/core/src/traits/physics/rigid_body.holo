@@ -1,0 +1,31 @@
+@trait {
+  name: "@rigid_body",
+  category: "physics",
+  description: "Rigid-body physics for solid non-deformable entities. mass sets the body's inertial mass in kg. linear_drag and angular_drag are per-frame velocity damping coefficients (0 = frictionless, 1 = fully damped per step). gravity_scale multiplies the world gravity vector — 0 disables gravity, negative values invert it. is_kinematic bypasses force integration and lets the transform be driven directly by animation or scripts while still participating in collision events. collision_shape selects the broadphase/narrowphase hull: auto derives the best fit from the mesh, box/sphere/capsule/convex/mesh are explicit overrides — mesh gives exact fidelity at higher runtime cost. collision_layer and collision_mask are bitmask integers that determine which layer this body broadcasts on and which layers it tests against, enabling selective pass-through between object groups. Pairs with @elasticity for deformation, @joint for constraints, and @fluid_simulation for buoyancy. Research: RigidbodyTrait.ts, GranularMaterialTrait.ts, GPUPhysicsTrait.ts.",
+  props: {
+    mass: number = 1.0,
+    linear_drag: number = 0.0,
+    angular_drag: number = 0.05,
+    gravity_scale: number = 1.0,
+    is_kinematic: boolean = false,
+    collision_shape: enum("auto" | "box" | "sphere" | "capsule" | "convex" | "mesh") = "auto",
+    collision_layer: number = 1,
+    collision_mask: number = 1
+  },
+  events: {
+    attached: "rigid_body:attached",
+    detached: "rigid_body:detached",
+    collision_enter: "rigid_body:collision_enter",
+    collision_exit: "rigid_body:collision_exit",
+    trigger_enter: "rigid_body:trigger_enter",
+    trigger_exit: "rigid_body:trigger_exit",
+    sleep: "rigid_body:sleep",
+    wake: "rigid_body:wake",
+    on_apply_force: "rigid_body:apply_force",
+    on_apply_impulse: "rigid_body:apply_impulse",
+    on_apply_torque: "rigid_body:apply_torque",
+    on_set_velocity: "rigid_body:set_velocity",
+    on_set_kinematic: "rigid_body:set_kinematic"
+  },
+  behaviors: ["@transform"]
+}
