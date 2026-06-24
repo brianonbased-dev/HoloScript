@@ -1,0 +1,27 @@
+@trait {
+  name: "@vqe",
+  category: "quantum",
+  description: "Variational Quantum Eigensolver (VQE) execution trait. ansatz names the parameterised circuit template used to prepare the trial state: hardware_efficient uses a brick-layer of Ry and CNOT gates tiled to the target device's connectivity (lowest gate count, widest hardware support); uccsd (Unitary Coupled Cluster Singles and Doubles) constructs a chemistry-motivated ansatz from Hartree-Fock molecular orbitals (higher expressibility, more gates); adapt iteratively grows the ansatz by appending the operator with the largest gradient at each macro-iteration (best for deep convergence, highest circuit depth). qubits is the number of qubits in the ansatz; must match the target operator's Hilbert-space dimension. layers is the number of ansatz repetition blocks (hardware_efficient and uccsd only; adapt ignores this and grows layers dynamically). backend selects the execution target: simulator runs a statevector or shot-based local simulator (zero hardware cost, ideal for dev and benchmarking); ibm_quantum submits to IBM Quantum Network hardware via the qm-bridge plugin (requires IBMQ credentials in @secret); ionq submits to IonQ trapped-ion hardware via the IonQ REST API (requires IONQ_API_KEY in @secret). shots is the number of measurement samples per expectation-value evaluation (simulator and hardware backends); more shots reduce sampling noise at the cost of wall time. classical_optimizer is the variational optimisation algorithm that adjusts circuit parameters: cobyla (Constrained Optimisation by Linear Approximation) is gradient-free and robust for noisy hardware; nelder_mead is a simplex method suited for smooth landscapes with few parameters; spsa (Simultaneous Perturbation Stochastic Approximation) uses random finite differences — effective on hardware where gradient estimation is expensive; adam uses first and second moment estimates and is fastest on simulators. on_iteration fires after each optimiser step carrying the current energy and iteration index. on_converge fires when the optimiser satisfies its convergence criterion carrying the ground-state energy estimate and final parameter vector. on_error fires on hardware rejection, timeout, or numerical divergence. Research: VQERunnerTrait.ts v1.0.0 + QuantumCircuitCompiler qasm-bridge + D.056 Explore→Prove→Build flywheel.",
+  props: {
+    ansatz: enum("hardware_efficient" | "uccsd" | "adapt") = "hardware_efficient",
+    qubits: number = 4,
+    layers: number = 2,
+    backend: enum("simulator" | "ibm_quantum" | "ionq") = "simulator",
+    shots: number = 1024,
+    classical_optimizer: enum("cobyla" | "nelder_mead" | "spsa" | "adam") = "cobyla"
+  },
+  events: {
+    attached: "vqe:attached",
+    detached: "vqe:detached",
+    started: "vqe:started",
+    on_iteration: "vqe:iteration",
+    on_converge: "vqe:converged",
+    on_error: "vqe:error",
+    cancelled: "vqe:cancelled",
+    on_run: "vqe:run",
+    on_cancel: "vqe:cancel",
+    on_set_backend: "vqe:set_backend",
+    on_set_shots: "vqe:set_shots"
+  },
+  behaviors: ["@quantum_circuit"]
+}

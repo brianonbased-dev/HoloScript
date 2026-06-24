@@ -1,0 +1,27 @@
+@trait {
+  name: "@web_view",
+  category: "devops",
+  description: "Embedded web view panel that renders a remote or inline web document inside a HoloScript entity. src_url is the initial URL loaded into the view; supply an empty string and set it at runtime via on_navigate to defer loading. width and height are the panel dimensions in pixels at the entity's native resolution; the view clips or scales to match the entity's spatial or 2D surface. interactive, when true, routes pointer and keyboard input from the entity into the web document (click, scroll, text entry); false renders a non-interactive snapshot suitable for live-preview panels or read-only dashboards — use this for untrusted or decorative content. allow_scroll, when true, enables the document's own scroll behaviour via the entity's scroll input; false clips at the document root and ignores scroll events. inject_js is an optional JavaScript expression evaluated in the document's global scope after each navigation; use for lightweight theming, bridge-event wiring, or instrumentation. Keep injection minimal and idempotent — the expression is re-evaluated on every on_navigate event including back/forward history. cors_proxy, when true, routes all fetch and XHR calls from within the document through the HoloScript edge CORS proxy, allowing cross-origin content from hosts that do not set permissive CORS headers. on_load fires after the document and its subresources finish loading, carrying the final resolved URL. on_navigate fires each time the document navigates (link click, history push, redirect), carrying the new URL. on_message fires when the embedded document calls window.parent.postMessage, carrying the message payload — use this as the primary bidirectional channel between the document and the HoloScript runtime. on_error fires on navigation failure, TLS error, or blocked content. Research: WebhookTrait.ts, HttpClientTrait.ts, SseTrait.ts; composable with @cors_proxy edge adapter.",
+  props: {
+    src_url: string = "",
+    width: number = 800,
+    height: number = 600,
+    interactive: boolean = true,
+    allow_scroll: boolean = true,
+    inject_js: string = "",
+    cors_proxy: boolean = false
+  },
+  events: {
+    attached: "web_view:attached",
+    detached: "web_view:detached",
+    on_load: "web_view:loaded",
+    on_navigate: "web_view:navigated",
+    on_message: "web_view:message",
+    on_error: "web_view:error",
+    on_go: "web_view:go",
+    on_reload: "web_view:reload",
+    on_back: "web_view:back",
+    on_forward: "web_view:forward",
+    on_post_message: "web_view:post_message"
+  }
+}

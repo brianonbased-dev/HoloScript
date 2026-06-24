@@ -1,0 +1,25 @@
+@trait {
+  name: "@volumetric_capture",
+  category: "media",
+  description: "Multi-sensor volumetric capture controller for producing 3D reconstructions from live or recorded sensor streams. source selects the acquisition modality: rgbd_array uses a calibrated array of RGB-D cameras (typical studio setup — multiple Kinect or RealSense units covering a subject from all angles); lidar_scan ingests a single or multi-return LiDAR sweep (large-scale outdoor or industrial environments); photogrammetry reconstructs geometry from overlapping colour photographs via SfM+MVS (highest texture fidelity, no depth hardware required); video_stream processes a live video feed through a depth-estimation neural network before reconstruction (lowest hardware barrier, suitable for mobile or single-camera rigs). sensor_count is the number of synchronised sensors in the rig (rgbd_array and lidar_scan); photogrammetry and video_stream treat this as the number of concurrent camera angles. sync_mode controls sensor synchronisation: hw uses a hardware trigger signal for sub-millisecond frame alignment (required for fast-moving subjects); sw synchronises by matching software timestamps with a configurable jitter budget; free_running allows each sensor to produce frames at its own rate and the reconstruction pipeline aligns them post-hoc (highest latency, acceptable for static scenes). output_format is the geometry representation written by on_complete: tsdf fuses depth maps into a truncated signed-distance field volume (good for watertight meshes); pointcloud emits an unstructured point cloud (fast, no meshing step); ply writes a polygon mesh in PLY format suitable for downstream tools and splat pipelines; mesh emits an indexed triangle mesh with normals and UV coords ready for PBR. color, when true, captures and fuses per-point or per-texel colour alongside geometry; false produces geometry-only output (faster, smaller). on_frame fires after each captured and decoded sensor frame carrying sensor index and frame timestamp. on_complete fires when a reconstruction pass finishes carrying the output asset URL. on_error fires on sensor failure, sync loss, or reconstruction divergence. Research: VolumetricTrait.ts, PhotogrammetryTrait.ts, PointCloudTrait.ts, gaussian-splat pipelines.",
+  props: {
+    source: enum("rgbd_array" | "lidar_scan" | "photogrammetry" | "video_stream") = "rgbd_array",
+    sensor_count: number = 4,
+    sync_mode: enum("hw" | "sw" | "free_running") = "hw",
+    output_format: enum("tsdf" | "pointcloud" | "ply" | "mesh") = "ply",
+    color: boolean = true
+  },
+  events: {
+    attached: "volumetric_capture:attached",
+    detached: "volumetric_capture:detached",
+    on_frame: "volumetric_capture:frame",
+    on_complete: "volumetric_capture:complete",
+    on_error: "volumetric_capture:error",
+    started: "volumetric_capture:started",
+    stopped: "volumetric_capture:stopped",
+    on_start: "volumetric_capture:start",
+    on_stop: "volumetric_capture:stop",
+    on_set_output_format: "volumetric_capture:set_output_format"
+  },
+  behaviors: ["@point_cloud", "@gaussian_splat"]
+}

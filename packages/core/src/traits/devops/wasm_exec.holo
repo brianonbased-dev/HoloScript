@@ -1,0 +1,25 @@
+@trait {
+  name: "@wasm_exec",
+  category: "devops",
+  description: "WebAssembly module loader and executor with configurable import namespace, memory model, and sandboxing policy. module_url is the URL or asset-registry path from which the compiled .wasm binary is fetched; loading is deferred to the first on_call event unless warm_up is added via composition. imports is a string-to-string dict that maps import namespace keys to resolved binding identifiers — the runtime resolves each value against the entity's capability scope before instantiating the module (e.g. {'env/log': 'console.log', 'env/rand': 'crypto.random'}). memory_pages is the initial linear-memory size in 64 KiB pages; the module may grow up to the host-configured maximum. timeout_ms caps total wall-clock execution time per exported function invocation — the invocation is aborted and on_timeout fires if exceeded. sandbox_mode, when true, runs the module inside a fully isolated environment with no access to ambient host APIs beyond those declared in imports; false allows the module to call any host function reachable in the global scope (use only for trusted first-party modules). linear_memory, when true, exposes the WebAssembly.Memory object to the HoloScript runtime for direct read/write (required for zero-copy buffer passing); false hides the memory object and forces all data exchange through exported function parameters and return values. on_result fires with the exported function return value after successful invocation; its payload includes the function name and return value. on_error fires on instantiation failure, missing import, or trap. on_timeout fires when timeout_ms is exceeded during an invocation. Research: WasmBridgeTrait.ts v5.1 + SandboxExecutionTrait.ts wasm runtime path + compiler-wasm Rust WASM parser.",
+  props: {
+    module_url: string = "",
+    imports: dict<string, string> = {},
+    memory_pages: number = 16,
+    timeout_ms: number = 5000,
+    sandbox_mode: boolean = true,
+    linear_memory: boolean = false
+  },
+  events: {
+    attached: "wasm_exec:attached",
+    detached: "wasm_exec:detached",
+    loaded: "wasm_exec:loaded",
+    on_result: "wasm_exec:result",
+    on_error: "wasm_exec:error",
+    on_timeout: "wasm_exec:timeout",
+    on_call: "wasm_exec:call",
+    on_load: "wasm_exec:load",
+    on_unload: "wasm_exec:unload",
+    on_set_module_url: "wasm_exec:set_module_url"
+  }
+}
