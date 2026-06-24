@@ -1,0 +1,32 @@
+@trait {
+  name: "@video",
+  category: "visual",
+  description: "Embeds and controls a video surface on any HoloScript entity. src_url points to the media resource (mp4, webm, hls, dash, or blob URL). autoplay starts playback on attach; loop restarts when the stream ends; muted suppresses audio output (required for autoplay in most browsers). volume is a 0-1 linear gain applied to the audio track. playback_rate scales speed: 0.5 = half speed, 2.0 = double. subtitles_url is an optional WebVTT file URL for caption overlay. thumbnail_url shows a poster frame before first play. Events map directly to HTMLMediaElement lifecycle: on_play / on_pause / on_end / on_error are inbound commands; play / pause / end / error are outbound notifications. Research: VideoTranscodeTrait.ts v5.1 + VolumetricVideoTrait.ts + XR per-eye surface compositing.",
+  props: {
+    src_url: string = "",
+    autoplay: boolean = false,
+    loop: boolean = false,
+    muted: boolean = false,
+    volume: number = 1.0,
+    playback_rate: number = 1.0,
+    subtitles_url: string = "",
+    thumbnail_url: string = ""
+  },
+  events: {
+    attached: "video:attached",
+    detached: "video:detached",
+    ready: "video:ready",
+    play: "video:play",
+    pause: "video:pause",
+    end: "video:end",
+    error: "video:error",
+    time_update: "video:time_update",
+    on_play: "video:cmd_play",
+    on_pause: "video:cmd_pause",
+    on_seek: "video:cmd_seek",
+    on_set_volume: "video:cmd_set_volume",
+    on_set_playback_rate: "video:cmd_set_playback_rate",
+    on_set_src: "video:cmd_set_src"
+  },
+  behaviors: ["@rendering"]
+}

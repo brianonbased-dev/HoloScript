@@ -1,0 +1,33 @@
+@trait {
+  name: "@voice_chat",
+  category: "audio",
+  description: "Real-time multi-participant voice communication channel with spatial audio support. room_id namespaces participants — only nodes sharing the same room_id hear each other. codec selects the audio codec: opus is the default (low-latency, adaptive bitrate), aac for broad device compatibility, pcm for uncompressed lossless. spatial_audio enables HRTF-based 3D positioning; max_distance is the world-unit radius beyond which a speaker becomes inaudible; rolloff controls attenuation shape: linear, exponential (WebAudio default), or inverse (physically accurate). vad (Voice Activity Detection) suppresses background noise between speech bursts; noise_cancel applies algorithmic echo/noise cancellation. Events cover the full session lifecycle: joined/left/speaking/silent/muted/unmuted/error are outbound; mute/unmute/join/leave are inbound commands. Research: SpatialVoiceTrait.ts + VoiceMeshTrait.ts + HRTFTrait.ts + SpatialAudioCueTrait.ts.",
+  props: {
+    room_id: string = "",
+    codec: enum("opus" | "aac" | "pcm") = "opus",
+    spatial_audio: boolean = true,
+    max_distance: number = 20.0,
+    rolloff: enum("linear" | "exponential" | "inverse") = "inverse",
+    vad: boolean = true,
+    noise_cancel: boolean = true
+  },
+  events: {
+    attached: "voice_chat:attached",
+    detached: "voice_chat:detached",
+    joined: "voice_chat:joined",
+    left: "voice_chat:left",
+    peer_joined: "voice_chat:peer_joined",
+    peer_left: "voice_chat:peer_left",
+    speaking: "voice_chat:speaking",
+    silent: "voice_chat:silent",
+    muted: "voice_chat:muted",
+    unmuted: "voice_chat:unmuted",
+    error: "voice_chat:error",
+    on_join: "voice_chat:cmd_join",
+    on_leave: "voice_chat:cmd_leave",
+    on_mute: "voice_chat:cmd_mute",
+    on_unmute: "voice_chat:cmd_unmute",
+    on_set_volume: "voice_chat:cmd_set_volume"
+  },
+  behaviors: ["@environmental_audio"]
+}

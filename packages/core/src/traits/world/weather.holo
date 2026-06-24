@@ -1,0 +1,30 @@
+@trait {
+  name: "@weather",
+  category: "world",
+  description: "World-level atmospheric simulation driver. system selects the fidelity tier: realistic applies ISO 9613-1 air absorption, physically-based precipitation density, and Mie/Rayleigh scattering; stylized produces exaggerated artistic weather cues; game is lightweight with no physically-based atmospheric coupling. wind_speed is in m/s; wind_dir_deg is compass bearing (0 = North, 90 = East). precipitation selects the active precipitation type: none / rain / snow / hail. cloud_coverage is a 0-1 fraction of sky coverage (0 = clear, 1 = overcast). fog_density is an exponential fog coefficient (0 = none, 1 = dense pea-soup). temperature_c is ambient temperature in Celsius, used for precipitation-type transitions and ISO 9613-1 air absorption. Consumer traits (@volumetric_clouds, @god_rays, @fluid, @cloth, @environmental_audio) read the weather blackboard each frame. Research: WeatherHubTrait.ts + WeatherSystem + WeatherBlackboard + hub-trait pattern P.GAPS.10.",
+  props: {
+    system: enum("realistic" | "stylized" | "game") = "realistic",
+    wind_speed: number = 2.0,
+    wind_dir_deg: number = 0.0,
+    precipitation: enum("none" | "rain" | "snow" | "hail") = "none",
+    cloud_coverage: number = 0.3,
+    fog_density: number = 0.0,
+    temperature_c: number = 20.0
+  },
+  events: {
+    attached: "weather:attached",
+    detached: "weather:detached",
+    changed: "weather:changed",
+    precipitation_started: "weather:precipitation_started",
+    precipitation_stopped: "weather:precipitation_stopped",
+    wind_changed: "weather:wind_changed",
+    fog_changed: "weather:fog_changed",
+    temperature_changed: "weather:temperature_changed",
+    on_set_precipitation: "weather:cmd_set_precipitation",
+    on_set_wind: "weather:cmd_set_wind",
+    on_set_fog: "weather:cmd_set_fog",
+    on_set_temperature: "weather:cmd_set_temperature",
+    on_set_cloud_coverage: "weather:cmd_set_cloud_coverage"
+  },
+  behaviors: ["@environmental_audio", "@volumetric_clouds"]
+}

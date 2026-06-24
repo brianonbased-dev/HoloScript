@@ -1,0 +1,28 @@
+@trait {
+  name: "@text_render",
+  category: "visual",
+  description: "Renders a string of text onto an entity surface with full typographic control. text is the UTF-8 string to display; font_family names a system or loaded web font (e.g. 'Inter', 'Roboto Mono'). font_size is in world units. color is a CSS hex string (#rrggbb). alignment positions text within the max_width box: left / center / right / justify. line_height is a unitless multiplier on font_size (1.2 is compact, 1.6 is airy). word_wrap enables automatic line breaks at word boundaries when text exceeds max_width. max_width is the column width in world units (0 = unlimited single line). billboard keeps the text panel facing the active camera regardless of parent rotation, enabling readable floating labels in 3D/XR scenes. Events expose a render-complete notification and inbound set_text / set_color / set_font commands for runtime updates. Research: MarkdownRenderTrait.ts + SpatialTextLayoutTrait.ts + SpatialPanelTrait.ts + SubtitleTrait.ts.",
+  props: {
+    text: string = "",
+    font_family: string = "Inter",
+    font_size: number = 0.1,
+    color: string = "#ffffff",
+    alignment: enum("left" | "center" | "right" | "justify") = "left",
+    line_height: number = 1.4,
+    word_wrap: boolean = true,
+    max_width: number = 0.0,
+    billboard: boolean = false
+  },
+  events: {
+    attached: "text_render:attached",
+    detached: "text_render:detached",
+    rendered: "text_render:rendered",
+    overflow: "text_render:overflow",
+    on_set_text: "text_render:cmd_set_text",
+    on_set_color: "text_render:cmd_set_color",
+    on_set_font: "text_render:cmd_set_font",
+    on_set_alignment: "text_render:cmd_set_alignment",
+    on_set_billboard: "text_render:cmd_set_billboard"
+  },
+  behaviors: ["@rendering"]
+}
