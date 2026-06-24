@@ -1,7 +1,8 @@
 import type { ILLMProvider, LLMMessage, TokenUsage, ToolUseBlock } from '@holoscript/llm-provider';
 import { embedAcrossFleet, cosineSimilarity, createLocalLLMProvider } from '@holoscript/llm-provider';
-import { readFileSync } from 'node:fs';
+import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { freemem } from 'node:os';
+import { join as pathJoin } from 'node:path';
 import { resolvePeer, parsePeerRegistry, type PeerEntry } from './peer-registry.js';
 import type { CostGuard } from './cost-guard.js';
 import type { HolomeshClient } from './holomesh-client.js';
@@ -580,6 +581,16 @@ export class AgentRunner {
           '(lake build / pnpm --filter / vitest run / lean / pnpm vitest). ' +
           'Pure-text, read-only inspection, and trivial-bash-bypass (`echo`, `cat`, etc.) do not satisfy the gate.',
       });
+      // Capture the no-artifact failure as a graded NEGATIVE training row — the W.107.b
+      // artifact-grounding verdict is the richest negative-supervision signal in the system and
+      // was previously discarded. Opt-in via HOLOSCRIPT_AGENT_TRACE_DIR; passed:false → kept for
+      // DPO/contrast, dropped from the SFT split by the harvest grader-gate.
+      this.recordTrace({
+        user: buildTaskPrompt(target),
+        target: finalText || `[no artifact — inspected/replied but produced nothing; toolsCalled=${[...toolsCalled].join(',')}]`,
+        grader: { passed: false, kind: 'no-artifact', toolsCalled: [...toolsCalled], productiveCallCount },
+        source: 'agent-runner-negative',
+      });
       // Best-effort: leave the task in claimed state so the supervisor can either
       // re-tick or release it via heartbeat-rejoin. We deliberately do NOT post
       // a "fake-done" message on the board, do NOT post a CAEL record, and do NOT
@@ -967,6 +978,12 @@ export class AgentRunner {
     //    to record/file anything; idle work must never fabricate a deliverable.
     if (productiveCallCount === 0) {
       log({ ev: 'idle-skipped', reason: 'no-artifact', title: selfTitle, toolsCalled: [...toolsCalled] });
+      this.recordTrace({
+        user: `Self-directed idle improvement: ${selfTitle}`,
+        target: finalText || `[no artifact — inspected but produced nothing; toolsCalled=${[...toolsCalled].join(',')}]`,
+        grader: { passed: false, kind: 'idle-no-artifact', toolsCalled: [...toolsCalled] },
+        source: 'agent-runner-idle-negative',
+      });
       return {
         action: 'idle-skipped',
         spentUsd: spent(),
@@ -1009,6 +1026,14 @@ export class AgentRunner {
     }
 
     log({ ev: 'idle-worked', title: selfTitle, productiveCallCount });
+    // Capture the productive idle outcome as a graded POSITIVE training row (self-directed work
+    // that produced a real artifact — not captured by any other emitter; flows into the SFT corpus).
+    this.recordTrace({
+      user: `Self-directed idle improvement: ${selfTitle}`,
+      target: finalText || `[artifact produced; productiveCalls=${productiveCallCount}]`,
+      grader: { passed: true, kind: 'idle-worked', productiveCallCount },
+      source: 'agent-runner-idle',
+    });
     return {
       action: 'idle-worked',
       spentUsd: spent(),
@@ -1016,6 +1041,51 @@ export class AgentRunner {
       taskId: undefined,
       message: `idle self-direction completed: ${selfTitle}`,
     };
+  }
+
+  /**
+   * Emit a graded REC-SHAPE training row to the per-identity trace store (D.086) — the same shape
+   * scripts/trace-writer.mjs writes and harvest_real.py reads {system,user,target,grader,family,
+   * modality,source,agentId,ts}. Opt-in via HOLOSCRIPT_AGENT_TRACE_DIR (unset → no-op, zero
+   * regression for unconfigured agents). Captures the NEGATIVE / outcome signal the runner computes
+   * every tick (no-artifact, idle-skipped/worked) that was previously only log()'d and DISCARDED —
+   * the highest-value training signal in the ecosystem (founder 2026-06-24). Negatives carry
+   * grader.passed:false and are dropped from the SFT split by the harvest grader-gate (de632431)
+   * but stay captured for DPO/contrast; positives (passed:true) flow into the corpus.
+   */
+  private recordTrace(row: {
+    user: string;
+    target: string;
+    grader: Record<string, unknown>;
+    source: string;
+    system?: string;
+    family?: string;
+    modality?: string;
+  }): void {
+    const dir = process.env.HOLOSCRIPT_AGENT_TRACE_DIR;
+    if (!dir || !row.user || !row.target) return;
+    try {
+      const agentId = process.env.HOLOSCRIPT_AGENT_TRACE_IDENTITY || this.opts.identity.handle;
+      const traceDir = pathJoin(dir, agentId);
+      mkdirSync(traceDir, { recursive: true });
+      const rec = {
+        system: row.system ?? 'HoloScript autonomous agent task execution.',
+        user: row.user,
+        target: row.target,
+        grader: row.grader,
+        family: row.family ?? 'agentic-execution',
+        modality: row.modality ?? 'agentic',
+        source: row.source,
+        agentId,
+        ts: new Date().toISOString(),
+      };
+      appendFileSync(pathJoin(traceDir, 'trace.jsonl'), `${JSON.stringify(rec)}\n`, 'utf8');
+    } catch (err) {
+      (this.opts.logger ?? (() => undefined))({
+        ev: 'trace-emit-error',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   async runForever(opts: { tickIntervalMs?: number } = {}): Promise<void> {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type {
@@ -260,6 +260,36 @@ describe('AgentRunner.tick', () => {
     // misled into trusting the hallucinated "validated" claim.
     expect(mesh.postAuditRecords).not.toHaveBeenCalled();
     expect(mesh.sendMessageOnTask).not.toHaveBeenCalled();
+  });
+
+  // Training-signal capture (founder 2026-06-24): the no-artifact verdict is the richest negative
+  // supervision signal and was previously discarded. With HOLOSCRIPT_AGENT_TRACE_DIR set, it is
+  // written as a graded NEGATIVE trace row (grader.passed:false) — opt-in, so unconfigured agents
+  // are unaffected.
+  it('emits a graded NEGATIVE trace row on no-artifact when HOLOSCRIPT_AGENT_TRACE_DIR is set', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'agent-trace-'));
+    const prev = process.env.HOLOSCRIPT_AGENT_TRACE_DIR;
+    process.env.HOLOSCRIPT_AGENT_TRACE_DIR = dir;
+    try {
+      const mesh = mockMesh({
+        tasks: [{ id: 't-neg', title: 'validate scenes', description: '', priority: 'high', tags: ['security'], status: 'open' }],
+      });
+      const provider = mockProvider({ promptTokens: 100, completionTokens: 50, toolCallsBeforeText: [], content: 'fabricated success' });
+      const runner = new AgentRunner({ identity: IDENTITY, brain: BRAIN, provider, costGuard: freshGuard(), mesh: mesh as never });
+      const result = await runner.tick();
+      expect(result.action).toBe('no-artifact');
+      const rows = readFileSync(join(dir, IDENTITY.handle, 'trace.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      expect(rows).toHaveLength(1);
+      expect(rows[0].grader.passed).toBe(false);
+      expect(rows[0].grader.kind).toBe('no-artifact');
+      expect(rows[0].user).toBeTruthy();
+      expect(rows[0].target).toBeTruthy();
+      expect(rows[0].agentId).toBe(IDENTITY.handle);
+      expect(rows[0].source).toBe('agent-runner-negative');
+    } finally {
+      if (prev === undefined) delete process.env.HOLOSCRIPT_AGENT_TRACE_DIR;
+      else process.env.HOLOSCRIPT_AGENT_TRACE_DIR = prev;
+    }
   });
 
   // W.107.b tightened gate (added 2026-04-26): bash with read-only prefixes
