@@ -1,0 +1,1896 @@
+{
+  "generated": "2026-06-24",
+  "method": "first-pass name-based split, founder-ruled substrate-vs-skin spine",
+  "note": "proofStatus=unverified pending per-handler audit; contractRoles illustrative. SUBSTRATE only; skin traits omitted by design.",
+  "count": 131,
+  "traits": [
+    {
+      "name": "thermal_simulation",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "thermal_conduction",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "thermal_convection",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "thermal_radiation",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "thermal_source",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "thermal_boundary",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "structural_fem",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "structural_static",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "structural_dynamic",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "structural_constraint",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "structural_load",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "structural_material",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydraulic_pipe",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydraulic_junction",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydraulic_reservoir",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydraulic_valve",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydraulic_pump",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "scalar_field_overlay",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "colormap_jet",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "colormap_viridis",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "colormap_turbo",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "colormap_inferno",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "colormap_coolwarm",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "simulation-domains"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "submersible",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "waterproof",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "sinkable",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "absorbent",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "drainable",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "permeable",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "watertight",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "floatable",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydrophobic",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "hydrophilic",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "pressurized",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "leaking",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "overflowing",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "evaporating",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "condensing",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "frozen_liquid",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "boiling",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "viscous",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "corrosive",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "water-fluid"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "measurable",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "weighable",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "thermometer",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "compass",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "radar",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "sonar",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "scanner",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "detector",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "beacon",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "signal",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "humidity_sensor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "air_quality",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "vibration_sensor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "power_monitor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "camera_feed",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "noise_level",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "filament_sensor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "measurement-sensing"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "stretchable",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "cloth",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "fluid",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "fluid_simulation",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "soft_body",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "rope",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "chain",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "wind",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "buoyancy",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "destruction",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "granular_material",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "voronoi_fracture",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "physics-expansion"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_reconstruct",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_camera_trajectory",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_anchor_context",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_drift_correction",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_splat_output",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "reconstruction_source",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "acceptance_video",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "drift_corrected",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_reconstruct",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_camera_trajectory",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "holomap_anchor_context",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "receipt"
+      ],
+      "domainTag": [
+        "holomap-reconstruction"
+      ],
+      "proofStatus": "unverified",
+      "origin": "sub-category"
+    },
+    {
+      "name": "pendulum",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "spring_loaded",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ratchet",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "gear_mechanism",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "pulley",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "hinge",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "piston",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "fulcrum",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "balance",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "crank",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "bellows",
+      "class": "substrate",
+      "frontier": "kinematics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "physical-affordances"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "terrain_hydraulic_erosion",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "terrain-ocean"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "terrain_thermal_erosion",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "terrain-ocean"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ocean_fft",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "terrain-ocean"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ocean_gerstner",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "terrain-ocean"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ocean_buoyancy",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "terrain-ocean"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "pose_estimation",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "humanoid-avatar"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "hand_tracking",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "humanoid-avatar"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "eye_tracked",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "humanoid-avatar"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "hrtf",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "audio"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "audio_occlusion",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "audio"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ambisonics",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "audio"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "reverb_zone",
+      "class": "substrate",
+      "frontier": "physics",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "audio"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "printable",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "fdm_target",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "resin_target",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "laser_cuttable",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "cnc_millable",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "embroiderable",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "vinyl_cuttable",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "printability_feedback",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "fabrication_ready",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant"
+      ],
+      "domainTag": [
+        "fabrication-devices"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "geospatial_anchor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "geospatial-web3"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "terrain_anchor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "geospatial-web3"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "rooftop_anchor",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "geospatial-web3"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "vps",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "geospatial-web3"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "vital_signs",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ecg",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "biofeedback",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "x_ray_scan",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "mri_scan",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ct_scan",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "ultrasound",
+      "class": "substrate",
+      "frontier": "measurement",
+      "contractRoles": [
+        "precondition",
+        "receipt"
+      ],
+      "domainTag": [
+        "healthcare-medical"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "pathfinding",
+      "class": "substrate",
+      "frontier": "geometry",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "intelligence-behavior"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "sensor",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "iot-autonomous-agents"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "telemetry",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "iot-autonomous-agents"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "digital_twin",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "iot-autonomous-agents"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "twin_sync",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "iot-autonomous-agents"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    },
+    {
+      "name": "twin_actuator",
+      "class": "substrate",
+      "frontier": "causal",
+      "contractRoles": [
+        "precondition",
+        "invariant",
+        "receipt"
+      ],
+      "domainTag": [
+        "iot-autonomous-agents"
+      ],
+      "proofStatus": "unverified",
+      "origin": "mixed-split"
+    }
+  ]
+}
