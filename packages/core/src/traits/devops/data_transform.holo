@@ -1,0 +1,23 @@
+@trait {
+  name: "@data_transform",
+  category: "devops",
+  description: "Declarative data transformation pipeline. Applies a chain of map, filter, aggregate, and enrich operations to streaming or batch entity data. Authored from DataTransformTrait.ts.",
+  props: {
+    steps: list<{ op: enum("map" | "filter" | "aggregate" | "enrich" | "join" | "flatten"), config: string }> = [],
+    input_format: enum("json" | "csv" | "parquet" | "holoscript") = "json",
+    output_format: enum("json" | "csv" | "parquet" | "holoscript") = "json",
+    batch_size: number = 1000,
+    streaming: boolean = false,
+    on_error: enum("skip" | "fail" | "dead_letter") = "dead_letter"
+  },
+  events: {
+    attached: "data_transform_attached",
+    detached: "data_transform_detached",
+    on_batch_complete: "data_transform_batch",
+    on_record: "data_transform_record",
+    on_error: "data_transform_error",
+    run: "data_transform_run",
+    cancel: "data_transform_cancel"
+  },
+  behaviors: ["@data_lineage", "@data_quality"]
+}

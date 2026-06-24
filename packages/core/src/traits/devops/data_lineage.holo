@@ -1,0 +1,22 @@
+@trait {
+  name: "@data_lineage",
+  category: "devops",
+  description: "Data lineage tracker. Records the provenance graph of data transformations — where each field originated, which transforms touched it, and who accessed it. Authored from DataLineageTrait.ts.",
+  props: {
+    backend: enum("holoscript" | "openlineage" | "marquez" | "memory") = "holoscript",
+    track_reads: boolean = false,
+    track_writes: boolean = true,
+    namespace: string = "",
+    emit_events: boolean = true,
+    graph_depth: number = 10
+  },
+  events: {
+    attached: "data_lineage_attached",
+    detached: "data_lineage_detached",
+    on_write: "data_lineage_write",
+    on_transform: "data_lineage_transform",
+    on_read: "data_lineage_read",
+    query: "data_lineage_query"
+  },
+  behaviors: ["@audit_log", "@provenance_trait", "@change_tracking"]
+}
