@@ -1,0 +1,21 @@
+@trait {
+  name: "@deploy_gate",
+  category: "devops",
+  description: "Deployment readiness gate. Runs a checklist of preconditions (health checks, test pass, budget under cap, no active incidents) before allowing a deployment artifact to proceed to production, emitting pass/block with failure reasons. Authored from DeployGateTrait.ts.",
+  props: {
+    checks: list<enum("health" | "tests" | "budget" | "incident" | "coverage" | "canary")> = ["health", "tests"],
+    block_on_any_fail: boolean = true,
+    canary_pct: number = 5,
+    timeout_s: number = 300,
+    auto_deploy_on_pass: boolean = false
+  },
+  events: {
+    attached: "deploy_gate_attached",
+    detached: "deploy_gate_detached",
+    on_pass: "deploy_gate_pass",
+    on_block: "deploy_gate_block",
+    on_timeout: "deploy_gate_timeout",
+    check: "deploy_gate_trigger"
+  },
+  behaviors: ["@healthcheck", "@rollback", "@incident", "@budget"]
+}

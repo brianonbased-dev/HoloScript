@@ -1,0 +1,21 @@
+@trait {
+  name: "@discovery",
+  category: "network",
+  description: "Service and peer discovery resolver. Queries mDNS, the HoloMesh presence channel, or a registry URL to enumerate available services or agent peers matching a capability filter, caching results with a TTL. Authored from DiscoveryTrait.ts.",
+  props: {
+    method: enum("mdns" | "holomesh" | "registry_url" | "dns_sd") = "holomesh",
+    capability_filter: list<string> = [],
+    ttl_s: number = 30,
+    auto_refresh: boolean = true,
+    max_results: number = 20
+  },
+  events: {
+    attached: "discovery_attached",
+    detached: "discovery_detached",
+    on_found: "discovery_found",
+    on_lost: "discovery_lost",
+    on_refresh: "discovery_refresh",
+    refresh: "discovery_trigger"
+  },
+  behaviors: ["@networked", "@signaling", "@broadcast"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@display",
+  category: "visual",
+  description: "World-space display surface. Renders a texture, video stream, or UI canvas onto a planar mesh entity, supporting touch interaction passthrough, resolution scaling, and HDR output for in-world screens and kiosks. Authored from DisplayTrait.ts.",
+  props: {
+    source: enum("texture" | "video" | "canvas" | "screenshare" | "live_stream") = "canvas",
+    source_url: string = "",
+    resolution: { w: number, h: number } = { w: 1920, h: 1080 },
+    interactive: boolean = false,
+    hdr: boolean = false,
+    aspect_fit: boolean = true,
+    brightness: number = 1.0
+  },
+  events: {
+    attached: "display_attached",
+    detached: "display_detached",
+    on_interact: "display_interact",
+    on_source_change: "display_source_change",
+    set_source: "display_set_source"
+  },
+  behaviors: ["@screenshare", "@live_stream", "@billboard"]
+}

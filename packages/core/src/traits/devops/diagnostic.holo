@@ -1,0 +1,21 @@
+@trait {
+  name: "@diagnostic",
+  category: "devops",
+  description: "Runtime diagnostic probe. Collects CPU/memory/frame-time samples, queries connected health endpoints, and emits a structured diagnostic report on demand or at a fixed interval. Authored from DiagnosticTrait.ts.",
+  props: {
+    interval_s: number = 0,
+    include_cpu: boolean = true,
+    include_memory: boolean = true,
+    include_frame_time: boolean = true,
+    include_health_endpoints: list<string> = [],
+    output: enum("event" | "log" | "store") = "event"
+  },
+  events: {
+    attached: "diagnostic_attached",
+    detached: "diagnostic_detached",
+    on_report: "diagnostic_report",
+    on_anomaly: "diagnostic_anomaly",
+    run: "diagnostic_trigger"
+  },
+  behaviors: ["@healthcheck", "@sensor_hub", "@audit_log"]
+}
