@@ -1,0 +1,22 @@
+@trait {
+  name: "@pointer_lock",
+  category: "interaction",
+  description: "Browser Pointer Lock API manager for first-person and precise mouse-input experiences. Requests pointer lock on a trigger event, handles lock acquisition and release, and re-maps raw mouse delta to look/aim events while locked. Authored from PointerLockTrait.ts.",
+  props: {
+    sensitivity_x: number = 0.002,
+    sensitivity_y: number = 0.002,
+    invert_y: boolean = false,
+    lock_on: enum("click" | "auto" | "trigger") = "click",
+    release_on_escape: boolean = true
+  },
+  events: {
+    attached: "pointer_lock_attached",
+    detached: "pointer_lock_detached",
+    on_lock: "pointer_lock_lock",
+    on_unlock: "pointer_lock_unlock",
+    on_delta: "pointer_lock_delta",
+    lock: "pointer_lock_trigger_lock",
+    release: "pointer_lock_trigger_release"
+  },
+  behaviors: ["@input_map", "@player_state", "@xr_controller"]
+}

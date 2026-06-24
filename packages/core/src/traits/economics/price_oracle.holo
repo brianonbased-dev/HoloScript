@@ -1,0 +1,22 @@
+@trait {
+  name: "@price_oracle",
+  category: "economics",
+  description: "On-chain or feed-based price oracle subscriber. Fetches the current price of a token, commodity, or in-world asset from a Chainlink feed URL or HoloScript price-feed service, caching with TTL and emitting price-change events for marketplace and DeFi integrations. Authored from PriceOracleTrait.ts.",
+  props: {
+    feed_url: string = "",
+    asset_id: string = "",
+    currency: string = "USD",
+    ttl_s: number = 60,
+    alert_delta_pct: number = 5.0,
+    auto_refresh: boolean = true
+  },
+  events: {
+    attached: "price_oracle_attached",
+    detached: "price_oracle_detached",
+    on_price: "price_oracle_price",
+    on_alert: "price_oracle_alert",
+    on_error: "price_oracle_error",
+    refresh: "price_oracle_trigger_refresh"
+  },
+  behaviors: ["@live_data", "@token_gating", "@loyalty_points"]
+}

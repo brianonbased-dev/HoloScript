@@ -1,0 +1,22 @@
+@trait {
+  name: "@priority_queue",
+  category: "agent",
+  description: "Min/max priority queue for agent task scheduling. Manages a sorted queue of pending tasks keyed by numeric priority score, supporting push, pop-highest, peek, and batch-drain operations for orchestrator or scheduler entities. Authored from PriorityQueueTrait.ts.",
+  props: {
+    mode: enum("max" | "min") = "max",
+    max_size: number = 256,
+    dedup_key: string = "",
+    auto_drain_on_idle: boolean = false,
+    drain_interval_ms: number = 100
+  },
+  events: {
+    attached: "priority_queue_attached",
+    detached: "priority_queue_detached",
+    on_push: "priority_queue_push",
+    on_pop: "priority_queue_pop",
+    on_full: "priority_queue_full",
+    push: "priority_queue_trigger_push",
+    pop: "priority_queue_trigger_pop"
+  },
+  behaviors: ["@autonomous_agenda", "@fan_out", "@blackboard"]
+}

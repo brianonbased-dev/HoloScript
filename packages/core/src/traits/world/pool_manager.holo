@@ -1,0 +1,22 @@
+@trait {
+  name: "@pool_manager",
+  category: "world",
+  description: "Entity object pool for frequent spawn/despawn cycles. Pre-instantiates and caches a typed entity template at init time, issuing pooled instances on acquire and reclaiming on release — eliminating GC pressure for bullets, particles, and crowds. Authored from PoolManagerTrait.ts.",
+  props: {
+    template_entity_id: string = "",
+    initial_size: number = 16,
+    max_size: number = 64,
+    auto_expand: boolean = true,
+    warm_up_on_attach: boolean = true
+  },
+  events: {
+    attached: "pool_manager_attached",
+    detached: "pool_manager_detached",
+    on_acquire: "pool_manager_acquire",
+    on_release: "pool_manager_release",
+    on_exhausted: "pool_manager_exhausted",
+    acquire: "pool_manager_trigger_acquire",
+    release: "pool_manager_trigger_release"
+  },
+  behaviors: ["@spawn_gate", "@ecs_world", "@resource_loader"]
+}
