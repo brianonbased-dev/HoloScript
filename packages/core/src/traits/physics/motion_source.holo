@@ -1,0 +1,25 @@
+@trait {
+  name: "@motion_source",
+  category: "physics",
+  description: "Motion capture data source. Streams BVH, C3D, or live mocap solver output into the skeleton's bone transform channels, enabling direct physical performance capture and retargeting. Authored from MotionSourceTrait.ts.",
+  props: {
+    src_url: string = "",
+    format: enum("bvh" | "c3d" | "fbx_take" | "live_udp" | "holoscript") = "bvh",
+    fps: number = 60,
+    loop: boolean = false,
+    retarget: boolean = true,
+    scale: number = 1.0,
+    start_frame: number = 0,
+    end_frame: number = 0
+  },
+  events: {
+    attached: "motion_source_attached",
+    detached: "motion_source_detached",
+    on_frame: "motion_source_frame",
+    on_end: "motion_source_end",
+    play: "motion_source_play",
+    stop: "motion_source_stop",
+    seek: "motion_source_seek"
+  },
+  behaviors: ["@skeleton", "@anim", "@fbx"]
+}

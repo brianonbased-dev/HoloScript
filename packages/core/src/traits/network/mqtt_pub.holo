@@ -1,0 +1,25 @@
+@trait {
+  name: "@mqtt_pub",
+  category: "network",
+  description: "MQTT publisher. Connects to an MQTT broker, publishes entity state changes and events to configured topics, and subscribes to command topics to drive actuators. Authored from MqttPubTrait.ts.",
+  props: {
+    broker_url: string = "",
+    client_id: string = "",
+    username_secret: string = "",
+    password_secret: string = "",
+    pub_topics: list<string> = [],
+    sub_topics: list<string> = [],
+    qos: enum(0 | 1 | 2) = 1,
+    retain: boolean = false,
+    clean_session: boolean = true
+  },
+  events: {
+    attached: "mqtt_pub_attached",
+    detached: "mqtt_pub_detached",
+    on_connected: "mqtt_pub_connected",
+    on_message: "mqtt_pub_message",
+    on_error: "mqtt_pub_error",
+    publish: "mqtt_pub_publish"
+  },
+  behaviors: ["@telemetry", "@digital_twin"]
+}
