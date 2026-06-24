@@ -1,0 +1,20 @@
+@trait {
+  name: "@reset_on_change",
+  category: "world",
+  description: "Automatic entity reset trigger on a watched prop change. Monitors a named entity property for change events and restores the entity's position, rotation, props, or inventory to a saved snapshot state whenever the watched value transitions — for respawn pads, puzzle resets, and physics demos. Authored from ResetOnChangeTrait.ts.",
+  props: {
+    watch_entity_id: string = "",
+    watch_prop: string = "",
+    watch_event: string = "",
+    reset_targets: list<enum("position" | "rotation" | "props" | "all")> = ["all"],
+    delay_ms: number = 0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "reset_on_change_attached",
+    detached: "reset_on_change_detached",
+    on_reset: "reset_on_change_reset",
+    save_snapshot: "reset_on_change_trigger_save"
+  },
+  behaviors: ["@persistent", "@spawn_gate", "@ecs_world"]
+}

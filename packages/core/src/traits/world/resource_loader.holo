@@ -1,0 +1,23 @@
+@trait {
+  name: "@resource_loader",
+  category: "world",
+  description: "Async asset resource loader with caching and priority queuing. Fetches mesh, texture, audio, or JSON assets from URLs, deduplicates concurrent requests via a shared cache, exposes load-progress events, and evicts LRU entries when the budget is exceeded. Authored from ResourceLoaderTrait.ts.",
+  props: {
+    preload_urls: list<string> = [],
+    cache_budget_mb: number = 256,
+    max_concurrent: number = 4,
+    priority: enum("high" | "normal" | "low") = "normal",
+    timeout_s: number = 30,
+    retry_count: number = 2
+  },
+  events: {
+    attached: "resource_loader_attached",
+    detached: "resource_loader_detached",
+    on_start: "resource_loader_start",
+    on_progress: "resource_loader_progress",
+    on_complete: "resource_loader_complete",
+    on_error: "resource_loader_error",
+    load: "resource_loader_trigger_load"
+  },
+  behaviors: ["@pool_manager", "@ecs_world", "@level_of_detail"]
+}

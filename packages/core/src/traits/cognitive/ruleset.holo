@@ -1,0 +1,21 @@
+@trait {
+  name: "@ruleset",
+  category: "cognitive",
+  description: "Declarative behavioral ruleset loader and enforcer. Parses a JSON rule document defining event→condition→action triplets and evaluates them on each matching event, executing actions synchronously and logging rule firings to the audit trail. Authored from RulesetTrait.ts.",
+  props: {
+    rules_url: string = "",
+    enabled: boolean = true,
+    max_rules: number = 256,
+    log_firings: boolean = false,
+    stop_after_first_match: boolean = false,
+    reload_interval_s: number = 0
+  },
+  events: {
+    attached: "ruleset_attached",
+    detached: "ruleset_detached",
+    on_rule_fire: "ruleset_fire",
+    on_load: "ruleset_load",
+    reload: "ruleset_trigger_reload"
+  },
+  behaviors: ["@expert_system", "@blackboard", "@audit_log"]
+}

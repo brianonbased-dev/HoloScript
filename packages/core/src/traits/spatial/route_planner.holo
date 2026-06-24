@@ -1,0 +1,21 @@
+@trait {
+  name: "@route_planner",
+  category: "spatial",
+  description: "Multi-waypoint ordered route manager. Stores an ordered list of waypoints and advances a cursor through them as the entity reaches each one, supporting looping, reversing, and branching sub-routes for patrol, transit, and guided tour behaviors. Authored from RoutePlannerTrait.ts.",
+  props: {
+    waypoints: list<{ id: string, position: { x: number, y: number, z: number }, dwell_s: number }> = [],
+    current_index: number = 0,
+    loop: boolean = false,
+    reverse_on_end: boolean = false,
+    arrival_threshold_m: number = 0.5
+  },
+  events: {
+    attached: "route_planner_attached",
+    detached: "route_planner_detached",
+    on_waypoint_arrive: "route_planner_arrive",
+    on_route_complete: "route_planner_complete",
+    next: "route_planner_trigger_next",
+    go_to: "route_planner_trigger_go_to"
+  },
+  behaviors: ["@pathfind", "@navigation", "@multipath_route"]
+}
