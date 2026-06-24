@@ -43,6 +43,17 @@ export interface KnowledgeEntry {
   createdAt?: string;
 }
 
+/** Presence entry shape returned by GET /team/:id/presence. */
+export interface PresenceEntry {
+  agentId: string;
+  agentName: string;
+  surface?: string;
+  surfaceTag?: string;
+  capabilityTags?: string[];
+  status?: string;
+  lastHeartbeat?: string;
+}
+
 export class HolomeshClient {
   private readonly apiBase: string;
   private readonly bearer: string;
@@ -67,6 +78,16 @@ export class HolomeshClient {
 
   async heartbeat(payload: { agentName: string; surface: string; capabilityTags?: string[] }): Promise<void> {
     await this.req('POST', `/team/${this.teamId}/presence`, await this.signBody(payload as Record<string, unknown>));
+  }
+
+  /** Return live presence entries for the team (pruned of stale heartbeats). Best-effort — returns [] on error. */
+  async queryPresence(): Promise<PresenceEntry[]> {
+    try {
+      const data = await this.req<{ online?: PresenceEntry[] }>('GET', `/team/${this.teamId}/presence`);
+      return data.online ?? [];
+    } catch {
+      return [];
+    }
   }
 
   async getOpenTasks(): Promise<BoardTask[]> {

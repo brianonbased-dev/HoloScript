@@ -53,6 +53,17 @@ export interface CognitiveVerbDeps {
   /** One-shot provider planner (plan). Optional — when absent, `plan` is skipped. */
   plan?: (prompt: string) => Promise<string>;
   /**
+   * Enumerate live teammates by capability_tags for the `discover` cognitive verb.
+   * Called before `llm_call` so the model knows WHO is online and what capabilities
+   * they offer before issuing a `delegate_task` call — enabling capability-informed
+   * routing instead of blind board posting (D.100 Axis-3). Optional — when absent,
+   * `discover` is skipped gracefully (no-op, no error).
+   *
+   * If `tags` is provided, only peers that declare ALL of those tags are returned.
+   * If `tags` is empty/absent, all live peers are returned.
+   */
+  discoverPeers?: (tags?: string[]) => Promise<Array<{ agentId: string; agentName: string; surface?: string; capabilityTags?: string[] }>>;
+  /**
    * Consult a PEER for the `ask_peer` cognitive verb — agent-to-agent questioning,
    * the reasoning substrate (D.100 keystone: "agents asking agents questions IS
    * reasoning"). Resolves a peer (by `capability` or explicit `peer` handle), asks
@@ -258,6 +269,24 @@ export async function augmentWithOnTaskCognition(deps: CognitiveVerbDeps): Promi
             citationsGrounded: grounding.grounded.length,
             citationsConfabulated: grounding.confabulated.length,
           });
+          break;
+        }
+        case 'discover': {
+          if (!deps.discoverPeers) break;
+          const filterTags = Array.isArray(action.config.tags)
+            ? (action.config.tags as unknown[]).map(String).filter(Boolean)
+            : undefined;
+          const peers = await deps.discoverPeers(filterTags);
+          if (peers.length === 0) {
+            deps.log({ ev: 'on-task-discover', taskId: deps.task.id, filterTags, peers: 0 });
+            break;
+          }
+          const lines = peers.map((p) => {
+            const caps = p.capabilityTags?.join(', ') ?? 'none';
+            return `- ${p.agentName} (surface: ${p.surface ?? 'unknown'}) [${caps}]`;
+          });
+          content += `\n\n[Live peers (${peers.length}) — pass matching tags to delegate_task to route work]\n${lines.join('\n')}`;
+          deps.log({ ev: 'on-task-discover', taskId: deps.task.id, filterTags, peers: peers.length });
           break;
         }
         case 'council': {

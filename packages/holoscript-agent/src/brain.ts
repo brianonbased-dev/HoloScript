@@ -150,7 +150,7 @@ function extractOnTaskActions(brain: string): OnTaskAction[] {
   const block = sliceNamedBlock(brain, 'on_task');
   if (!block) return [];
 
-  const VERBS: OnTaskAction['verb'][] = ['recall', 'rag_query', 'llm_call', 'plan', 'reflect', 'ask_peer', 'council'];
+  const VERBS: OnTaskAction['verb'][] = ['recall', 'rag_query', 'llm_call', 'plan', 'reflect', 'ask_peer', 'council', 'discover'];
   const entries: Array<OnTaskAction & { _pos: number }> = [];
 
   for (const verb of VERBS) {

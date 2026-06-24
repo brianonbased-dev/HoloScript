@@ -275,6 +275,13 @@ export class AgentRunner {
       // Knowledge corpus the grounding gate resolves peer citations against — the
       // agent's private workspace (real entry IDs + content). Empty → fail-closed.
       groundingCorpus: () => mesh.queryPrivateKnowledge(),
+      // `discover` — enumerate live teammates by capability_tags before llm_call so
+      // the model can make informed delegate_task routing decisions (D.100 Axis-3).
+      discoverPeers: async (filterTags) => {
+        const all = await mesh.queryPresence();
+        if (!filterTags || filterTags.length === 0) return all;
+        return all.filter((p) => filterTags.every((t) => p.capabilityTags?.includes(t)));
+      },
       // Semantic `recall` over the private workspace via the fleet nomic (W.753).
       // brainPath from HOLO_LLM_FLEET_BRAIN; if unset/unreachable embedAcrossFleet
       // returns null and cognitive-verbs falls back to the substring filter.
