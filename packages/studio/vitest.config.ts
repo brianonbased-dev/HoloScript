@@ -86,6 +86,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../core/src/reconstruction/index.ts'),
       },
       {
+        find: '@holoscript/core/parameter-envelope',
+        replacement: path.resolve(__dirname, '../core/src/parameter-envelope/index.ts'),
+      },
+      {
         find: '@holoscript/core/paper-0c-spike',
         replacement: path.resolve(__dirname, '../core/src/paper-0c-spike/index.ts'),
       },

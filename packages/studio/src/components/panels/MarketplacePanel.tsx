@@ -2,10 +2,25 @@
 
 /**
  * MarketplacePanel — Browse, search, install HoloScript packages
+ *
+ * Tabs: browse | installed | agents
+ *
+ * The "agents" tab mounts AgentMarketplaceTab and wires its onAgentInstalled
+ * callback to deployInstalledAgent, which spawns the acquired uAAL program as a
+ * live SpatialCognitiveAgent in a per-panel ECS world.  A rAF loop drives
+ * service.tickAll so agents process their perceive→decide→mutate cycle while the
+ * tab is visible.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useMarketplace } from '../../hooks/useMarketplace';
+import { AgentMarketplaceTab } from '../marketplace/AgentMarketplaceTab';
+import {
+  createSpatialAgentService,
+  deployInstalledAgent,
+  type InstalledAgentResult,
+} from '../../lib/marketplace/agentDeployment';
+import { VM } from '@holoscript/engine';
 
 // `@holoscript/platform` does not export `ContentCategory` (the named import broke
 // the Docker typecheck of studio). It is only ever used here as the local UI
@@ -48,7 +63,51 @@ export function MarketplacePanel({ worldId = 'default', category }: MarketplaceP
     useMarketplace(worldId);
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ContentCategory | 'all'>(category || 'all');
-  const [tab, setTab] = useState<'browse' | 'installed'>('browse');
+  const [tab, setTab] = useState<'browse' | 'installed' | 'agents'>('browse');
+
+  // ── Spatial agent service (lazy, one per panel mount) ───────────────────────
+  // The ECSWorld lives for the lifetime of this panel instance. Agents spawned
+  // via the marketplace tab tick inside it.
+  const agentServiceRef = useRef<ReturnType<typeof createSpatialAgentService> | null>(null);
+  const rafRef = useRef<number>(0);
+
+  const getOrCreateService = useCallback(() => {
+    if (!agentServiceRef.current) {
+      const world = new VM.ECSWorld();
+      agentServiceRef.current = createSpatialAgentService(world);
+    }
+    return agentServiceRef.current;
+  }, []);
+
+  const handleAgentInstalled = useCallback(
+    (result: InstalledAgentResult) => {
+      const service = getOrCreateService();
+      deployInstalledAgent(service, result);
+    },
+    [getOrCreateService]
+  );
+
+  // Drive the cognitive tick loop while the agents tab is visible.
+  useEffect(() => {
+    if (tab !== 'agents') {
+      cancelAnimationFrame(rafRef.current);
+      return;
+    }
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      const service = agentServiceRef.current;
+      if (service && service.agentCount > 0) {
+        void service.tickAll(performance.now());
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      running = false;
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [tab]);
 
   useEffect(() => {
     search({
@@ -81,9 +140,20 @@ export function MarketplacePanel({ worldId = 'default', category }: MarketplaceP
         >
           Installed ({installed.length})
         </button>
+        <button
+          style={tab === 'agents' ? styles.tabActive : styles.tab}
+          onClick={() => setTab('agents')}
+        >
+          🤖 Agents
+        </button>
       </div>
 
-      {tab === 'browse' ? (
+      {tab === 'agents' ? (
+        /* Agents Tab — uAA2++ marketplace: browse + acquire + spawn into ECS world */
+        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+          <AgentMarketplaceTab onAgentInstalled={handleAgentInstalled} />
+        </div>
+      ) : tab === 'browse' ? (
         <>
           {/* Search */}
           <input
