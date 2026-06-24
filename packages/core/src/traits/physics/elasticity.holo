@@ -1,0 +1,20 @@
+@trait {
+  name: "@elasticity",
+  category: "physics",
+  description: "Continuum elasticity for deformable bodies. Expresses material stiffness via Young's modulus (Pa) and Poisson ratio, selects a position-based or FEM solver, and configures substep count for stability vs. performance tradeoff. Consumed by the physics runtime to drive per-frame deformation updates. Pairs with @rigidbody and @soft_body; research: elasticityCore.ts compileElasticityTraitContext.",
+  props: {
+    young_modulus: number = 1000.0,
+    poisson_ratio: number = 0.45,
+    solver: enum("projective_dynamics" | "fem" | "xpbd") = "xpbd",
+    substeps: number = 4
+  },
+  events: {
+    attached: "elasticity:attached",
+    detached: "elasticity:detached",
+    step_complete: "elasticity:step_complete",
+    collision: "elasticity:collision",
+    on_set_params: "elasticity:set_params",
+    on_reset: "elasticity:reset"
+  },
+  behaviors: ["@transform", "@rigidbody"]
+}

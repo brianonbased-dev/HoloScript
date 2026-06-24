@@ -1,0 +1,23 @@
+@trait {
+  name: "@encounter",
+  category: "interaction",
+  description: "Spatial encounter trigger with cooldown and concurrency control. A proximity sphere (radius) watches for enter / proximity / gaze events from nearby agents or the player; gates re-firing via cooldown_ms; caps simultaneous active encounters via max_concurrent. npc_ids scopes the listener to a named set of NPCs (empty = all agents). Design anchor: research/2026-05-12_difficulty-and-luck-p-vs-np.md §W.503 — encounters are the boundary where difficulty meets participants.",
+  props: {
+    radius: number = 2.0,
+    trigger_mode: enum("enter" | "proximity" | "gaze") = "proximity",
+    cooldown_ms: number = 3000,
+    max_concurrent: number = 1,
+    npc_ids: string[] = []
+  },
+  events: {
+    attached: "encounter:attached",
+    detached: "encounter:detached",
+    ready: "encounter:ready",
+    fire: "encounter:fire",
+    suppressed: "encounter:suppressed",
+    expired: "encounter:expired",
+    on_check: "encounter:check",
+    on_reset: "encounter:reset"
+  },
+  behaviors: ["@transform"]
+}

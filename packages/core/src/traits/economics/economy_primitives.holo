@@ -1,0 +1,26 @@
+@trait {
+  name: "@economy_primitives",
+  category: "economics",
+  description: "Marketplace economics primitives for in-scene asset listings. Declares a price oracle endpoint, currency, price floor/ceiling, royalty basis points, and listing mode (buy-now / auction / rental). Consumed by MarketplaceTrait, NFTTrait, and TokenGatedTrait for on-chain and off-chain economic coordination. Royalty enforcement is provenance-anchored at listing time.",
+  props: {
+    price_oracle_url: string = "",
+    currency: enum("ETH" | "USDC" | "HOLO" | "USD" | "CUSTOM") = "USDC",
+    max_price: number = 0.0,
+    min_price: number = 0.0,
+    royalty_bps: number = 500,
+    listing_mode: enum("buy_now" | "auction" | "rental") = "buy_now"
+  },
+  events: {
+    attached: "economy_primitives:attached",
+    detached: "economy_primitives:detached",
+    price_updated: "economy_primitives:price_updated",
+    oracle_refreshed: "economy_primitives:oracle_refreshed",
+    listing_created: "economy_primitives:listing_created",
+    listing_cancelled: "economy_primitives:listing_cancelled",
+    sale_completed: "economy_primitives:sale_completed",
+    on_refresh_price: "economy_primitives:refresh_price",
+    on_create_listing: "economy_primitives:create_listing",
+    on_cancel_listing: "economy_primitives:cancel_listing"
+  },
+  behaviors: ["@transform"]
+}
