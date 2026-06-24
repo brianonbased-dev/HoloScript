@@ -1,0 +1,24 @@
+@trait {
+  name: "@shadow",
+  category: "visual",
+  description: "Per-entity shadow casting and reception control with configurable algorithm and bias. cast_shadows enables this entity as a shadow caster (writes to shadow maps). receive_shadows enables this entity as a shadow receiver (reads from shadow maps and darkens accordingly). shadow_type selects the shadow algorithm: hard produces a sharp single-sample shadow with no softening; soft applies a multi-sample PCF kernel for blurred penumbrae; pcss (Percentage Closer Soft Shadows) derives penumbra width from the light-to-blocker distance for physically plausible soft shadows; ray_traced uses hardware or compute ray tracing for fully correct area-light shadows at higher GPU cost. shadow_resolution sets the shadow map texel budget in pixels (must be a power of two; higher values reduce aliasing at the cost of memory). bias is the depth bias constant applied when sampling the shadow map to prevent shadow acne on shallow-angle surfaces. normal_bias shifts the sample point along the surface normal before the shadow test, which eliminates acne on curved surfaces that depth bias alone cannot fix. cull_mode controls which faces contribute to shadow volume: front culls front faces (Peter-Pan fix), back culls back faces (thin geometry), off disables face culling in the shadow pass. Pairs with @lighting for scene-level shadow configuration and @material for surface response. Research: LightingTrait.ts GlobalIlluminationConfig.shadowType, AdvancedLightingTrait.ts, RayTracingTrait.ts.",
+  props: {
+    cast_shadows: boolean = true,
+    receive_shadows: boolean = true,
+    shadow_type: enum("hard" | "soft" | "pcss" | "ray_traced") = "soft",
+    shadow_resolution: number = 1024,
+    bias: number = 0.001,
+    normal_bias: number = 0.002,
+    cull_mode: enum("front" | "back" | "off") = "back"
+  },
+  events: {
+    attached: "shadow:attached",
+    detached: "shadow:detached",
+    shadow_map_updated: "shadow:shadow_map_updated",
+    on_set_cast: "shadow:set_cast",
+    on_set_receive: "shadow:set_receive",
+    on_set_type: "shadow:set_type",
+    on_set_resolution: "shadow:set_resolution"
+  },
+  behaviors: ["@transform"]
+}

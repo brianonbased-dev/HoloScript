@@ -1,0 +1,27 @@
+@trait {
+  name: "@rag",
+  category: "cognitive",
+  description: "Retrieval-Augmented Generation (RAG) pipeline for knowledge-grounded LLM responses. index_name names the vector index to query; use separate indices per domain to scope retrieval. top_k is the number of nearest-neighbour chunks to retrieve per query. similarity_threshold discards chunks with cosine similarity below this value (0–1). embedding_model selects the encoder: local uses the on-device ONNX embedding model, openai delegates to the OpenAI embeddings API, holoscript routes through the HoloScript MCP inference registry. rerank applies a cross-encoder pass over the retrieved candidates to improve relevance ordering before the LLM prompt is assembled. metadata_filter is a key-value dict applied server-side to restrict retrieval to documents matching all filter conditions. on_result fires after a successful retrieval with the ranked chunk list and source citations; on_no_match fires when zero chunks meet the threshold. Pairs with @inference for the LLM completion step and @agent_memory for durable session context. Research: RAGKnowledgeTrait.ts, EmbeddingSearchTrait.ts, VectorSearchTrait.ts.",
+  props: {
+    index_name: string = "",
+    top_k: number = 5,
+    similarity_threshold: number = 0.7,
+    embedding_model: enum("local" | "openai" | "holoscript") = "holoscript",
+    rerank: boolean = true,
+    metadata_filter: dict<string, string> = {}
+  },
+  events: {
+    attached: "rag:attached",
+    detached: "rag:detached",
+    indexed: "rag:indexed",
+    result: "rag:result",
+    no_match: "rag:no_match",
+    error: "rag:error",
+    on_result: "rag:on_result",
+    on_no_match: "rag:on_no_match",
+    on_query: "rag:query",
+    on_index: "rag:index",
+    on_clear_index: "rag:clear_index"
+  },
+  behaviors: ["@inference"]
+}

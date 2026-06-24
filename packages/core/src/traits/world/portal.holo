@@ -1,0 +1,29 @@
+@trait {
+  name: "@portal",
+  category: "world",
+  description: "Spatial world-hop portal — a geometric gateway that teleports an entity from this scene to a target world. target_world_id identifies the destination world by its registry ID. target_position and target_rotation set the arrival transform in the target world's coordinate space (vec3 position in metres, vec3 Euler angles in degrees). shape controls the portal aperture geometry: circle is a disc of radius r, rect is an axis-aligned rectangle width × height, arch is a rounded-top rectangle, irregular delegates silhouette to an asset mesh. radius applies to circle and arch (arch half-width). visible_through enables rendering the destination scene inside the portal frame (true) or a configurable occluder (false). teleport_mode governs the transition: immediate cuts instantly, fade blends through black, warp plays a warp-flash effect. on_enter fires when an entity crosses the portal threshold inbound; on_exit fires when it crosses outbound. Pairs with @trigger for physics-layer overlap detection and @transform for portal placement. Research: WorldPortalTrait.ts (QR-entry variant), AgentPortalTrait.ts (federated relay variant).",
+  props: {
+    target_world_id: string = "",
+    target_position: vec3 = { x: 0.0, y: 0.0, z: 0.0 },
+    target_rotation: vec3 = { x: 0.0, y: 0.0, z: 0.0 },
+    shape: enum("circle" | "rect" | "arch" | "irregular") = "circle",
+    radius: number = 1.0,
+    width: number = 1.0,
+    height: number = 2.0,
+    visible_through: boolean = true,
+    teleport_mode: enum("immediate" | "fade" | "warp") = "fade"
+  },
+  events: {
+    attached: "portal:attached",
+    detached: "portal:detached",
+    entity_entered: "portal:entity_entered",
+    entity_exited: "portal:entity_exited",
+    teleport_start: "portal:teleport_start",
+    teleport_complete: "portal:teleport_complete",
+    on_enter: "portal:enter",
+    on_exit: "portal:exit",
+    on_set_target: "portal:set_target",
+    on_set_shape: "portal:set_shape"
+  },
+  behaviors: ["@transform"]
+}

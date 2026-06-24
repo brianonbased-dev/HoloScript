@@ -1,0 +1,25 @@
+@trait {
+  name: "@trigger",
+  category: "interaction",
+  description: "Collision zone that fires events without producing a physics response — the entity passes through the trigger volume while enter, stay, and exit events are broadcast to the scene. shape selects the collision volume geometry: sphere uses radius, box uses half_extents as a per-axis half-size vec3 in metres, capsule uses radius and height, mesh fits the volume to the entity's collision mesh (highest fidelity, higher CPU cost). radius is the sphere and capsule equatorial radius in metres. half_extents is the box half-size vec3. on_enter fires once per overlapping entity when it first crosses the boundary inbound. on_exit fires when it leaves. on_stay fires every physics tick while an entity remains inside. filter_tag restricts overlap detection to entities carrying this tag string (empty string = no filter). filter_layer is a bitmask integer; only entities whose collision_layer matches the mask are detected. one_shot disables the trigger permanently after the first on_enter, preventing repeated activations. cooldown_ms is the minimum elapsed time in milliseconds between consecutive on_enter events for the same entity (0 = no cooldown). Pairs with @rigid_body for physics-layer participation and @transform for volume placement. Research: TriggerTrait.ts, LotusGenesisTriggerTrait.ts, RecallTriggerTrait.ts.",
+  props: {
+    shape: enum("sphere" | "box" | "capsule" | "mesh") = "box",
+    radius: number = 0.5,
+    half_extents: vec3 = { x: 0.5, y: 0.5, z: 0.5 },
+    filter_tag: string = "",
+    filter_layer: number = -1,
+    one_shot: boolean = false,
+    cooldown_ms: number = 0
+  },
+  events: {
+    attached: "trigger:attached",
+    detached: "trigger:detached",
+    on_enter: "trigger:enter",
+    on_exit: "trigger:exit",
+    on_stay: "trigger:stay",
+    on_enable: "trigger:enable",
+    on_disable: "trigger:disable",
+    on_reset: "trigger:reset"
+  },
+  behaviors: ["@transform"]
+}
