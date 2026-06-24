@@ -1,0 +1,24 @@
+@trait {
+  name: "@lotus_petal",
+  category: "agent",
+  description: "Lotus petal agent. Holds a unique domain specialty (paper, benchmark, dataset, capability), accumulates clarity from completed milestones, and contributes to the LotusCenter genesis countdown. Authored from LotusPetalTrait.ts.",
+  props: {
+    petal_id: string = "",
+    domain: string = "",
+    clarity: number = 0.0,
+    clarity_capacity: number = 1.0,
+    milestone_url: string = "",
+    bloom_threshold: number = 0.8,
+    bloomed: boolean = false,
+    center_id: string = ""
+  },
+  events: {
+    attached: "lotus_petal_attached",
+    detached: "lotus_petal_detached",
+    on_clarity: "lotus_petal_clarity",
+    on_bloom: "lotus_petal_bloom",
+    on_register: "lotus_petal_register",
+    contribute: "lotus_petal_contribute"
+  },
+  behaviors: ["@lotus_center", "@holotune"]
+}
