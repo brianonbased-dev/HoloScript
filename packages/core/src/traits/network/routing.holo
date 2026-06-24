@@ -1,0 +1,32 @@
+@trait {
+  name: "@routing",
+  category: "network",
+  description: "HTTP routing trait for service-bearing entities. Declares URL pattern-to-handler rules, cross-origin policy, rate limiting, and auth requirements so the HoloScript service compiler can emit a correct router without imperative glue. rules is an ordered list of routing rules, each with a URL pattern (path-to-regexp syntax), a target handler name, and an HTTP method enum. Base route matching starts at base_path (default '/'). cors enables permissive cross-origin headers on all routes when true; fine-grained CORS policy is handled by pairing with @rest_endpoint. rate_limit_rps is the maximum number of requests per second accepted per connected client IP; 0 disables rate limiting. auth_required sets a global auth gate on all routes — when true, every request must carry a valid bearer token resolved from the HoloKey vault; individual rules may override this. on_request fires on each inbound request with method, path, headers, and body payload. on_response fires after the handler returns with status code and response body. Research: RestEndpointTrait.ts, HttpClientTrait.ts, GraphqlTrait.ts, WebhookTrait.ts.",
+  props: {
+    rules: list<{
+      pattern: string,
+      target: string,
+      method: enum("GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "ANY")
+    }> = [],
+    base_path: string = "/",
+    cors: boolean = false,
+    rate_limit_rps: number = 0,
+    auth_required: boolean = false
+  },
+  events: {
+    attached: "routing:attached",
+    detached: "routing:detached",
+    ready: "routing:ready",
+    request: "routing:request",
+    response: "routing:response",
+    rate_limited: "routing:rate_limited",
+    auth_failed: "routing:auth_failed",
+    error: "routing:error",
+    on_request: "routing:cmd_handle_request",
+    on_response: "routing:cmd_send_response",
+    on_add_rule: "routing:cmd_add_rule",
+    on_remove_rule: "routing:cmd_remove_rule",
+    on_set_cors: "routing:cmd_set_cors"
+  },
+  behaviors: ["@feature_flag"]
+}

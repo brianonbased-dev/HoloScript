@@ -1,0 +1,32 @@
+@trait {
+  name: "@xr_interaction",
+  category: "xr",
+  description: "Unified XR interaction trait governing how an entity responds to controller and hand input across ray, near-field, poke, grab, and pinch interaction modes. mode selects the primary interaction paradigm: ray fires a pointer ray from the controller or hand and detects this entity at range; near_field activates when the controller or hand is within a proximity threshold in metres; poke registers direct fingertip contact with the entity surface; grab allows the entity to be physically picked up and held; pinch recognises a thumb-index pinch gesture directed at the entity. hover_feedback enables a visual highlight (platform-default affordance) when the entity is targeted but not yet selected. press_haptic fires a haptic pulse on the interacting hand controller or glove on the select/press event. grab_haptic fires a haptic pulse when the entity is grabbed. interaction_layer is a bitmask integer used to filter which interaction sources can target this entity — only sources whose layer mask intersects this value produce events (0xFFFF = all sources). on_hover fires when a ray or near-field source begins targeting the entity. on_select fires on the primary action input (trigger, tap, or pinch confirmation). on_grab fires when the entity is gripped and detached from its static position. on_release fires when a previously grabbed entity is let go. on_squeeze fires on secondary action input (grip button or squeeze gesture). Research: GrabbableTrait.ts, PressableTrait.ts, HandMenuTrait.ts, SpatialInputTraits.ts, SpatialAwarenessTrait.ts.",
+  props: {
+    mode: enum("ray" | "near_field" | "poke" | "grab" | "pinch") = "ray",
+    hover_feedback: boolean = true,
+    press_haptic: boolean = true,
+    grab_haptic: boolean = true,
+    interaction_layer: number = 65535
+  },
+  events: {
+    attached: "xr_interaction:attached",
+    detached: "xr_interaction:detached",
+    hover_start: "xr_interaction:hover_start",
+    hover_end: "xr_interaction:hover_end",
+    select_start: "xr_interaction:select_start",
+    select_end: "xr_interaction:select_end",
+    grab_start: "xr_interaction:grab_start",
+    grab_end: "xr_interaction:grab_end",
+    squeeze_start: "xr_interaction:squeeze_start",
+    squeeze_end: "xr_interaction:squeeze_end",
+    on_hover: "xr_interaction:hover",
+    on_select: "xr_interaction:select",
+    on_grab: "xr_interaction:grab",
+    on_release: "xr_interaction:release",
+    on_squeeze: "xr_interaction:squeeze",
+    on_set_mode: "xr_interaction:set_mode",
+    on_set_layer: "xr_interaction:set_layer"
+  },
+  behaviors: ["@transform", "@haptic"]
+}

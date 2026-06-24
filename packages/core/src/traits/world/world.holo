@@ -1,0 +1,31 @@
+@trait {
+  name: "@world",
+  category: "world",
+  description: "Top-level world configuration trait that governs physics engine selection, simulation time, ambient environment, and entity budget. name is the human-readable identifier for this world scene. gravity is the world-space gravitational acceleration vector in metres per second squared (default earth-standard downward). physics_engine selects the integrated solver: bullet uses Bullet Physics 3 (stable, broad ecosystem), rapier uses the Rust-native Rapier engine (deterministic, WASM-portable), havok uses Havok SDK (industry-standard, licence required), holoscript uses the built-in HoloScript lightweight solver (zero-dependency, suitable for AR/mobile). time_scale multiplies the simulation clock rate: 1.0 = real-time, 0.5 = half-speed, 2.0 = double-speed; clamped to [0.0, 8.0]. ambient_light_color sets the scene ambient fill colour as a CSS hex string (#rrggbb). ambient_intensity linearly scales the ambient fill contribution (0 = dark, 1 = authored, >1 = HDR). fixed_timestep_ms is the physics tick interval in milliseconds; smaller values improve accuracy at higher CPU cost (typical range 8-16 ms). max_entities is the maximum number of live entities allowed in this world at once; attempts to exceed this cap drop the entity and emit a quota event. tick_rate_hz is the target game-logic update frequency in hertz, independent of physics and render rate. Research: ECSWorldTrait.ts, WorldHeartbeatTrait.ts, WorldStateTrait.ts, CollaborativeWorldTrait.ts.",
+  props: {
+    name: string = "untitled-world",
+    gravity: vec3 = { x: 0.0, y: -9.81, z: 0.0 },
+    physics_engine: enum("bullet" | "rapier" | "havok" | "holoscript") = "rapier",
+    time_scale: number = 1.0,
+    ambient_light_color: string = "#404040",
+    ambient_intensity: number = 0.5,
+    fixed_timestep_ms: number = 16,
+    max_entities: number = 10000,
+    tick_rate_hz: number = 60
+  },
+  events: {
+    attached: "world:attached",
+    detached: "world:detached",
+    ready: "world:ready",
+    tick: "world:tick",
+    entity_quota_exceeded: "world:entity_quota_exceeded",
+    physics_step: "world:physics_step",
+    on_set_gravity: "world:set_gravity",
+    on_set_time_scale: "world:set_time_scale",
+    on_set_physics_engine: "world:set_physics_engine",
+    on_set_tick_rate: "world:set_tick_rate",
+    on_pause: "world:pause",
+    on_resume: "world:resume"
+  },
+  behaviors: []
+}
