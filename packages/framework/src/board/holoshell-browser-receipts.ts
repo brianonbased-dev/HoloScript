@@ -322,3 +322,140 @@ export function cloneBrowserAbsorptionReceipt(
     ...(receipt.metadata ? { metadata: { ...receipt.metadata } } : {}),
   };
 }
+
+// ── Execution Consent Gate ──
+//
+// Phase 2 Track A (HoloShell expansion plan, holoshell-expansion-plan.md):
+// live desktop execution (click / type / submit / download / upload) is GATED.
+// Read-only actions (navigate, screenshot, scroll, hover, wait, focus) are always
+// admitted. The gate is the trust boundary: no agent may mutate external state
+// without an explicit ExecutionConsentToken tied to the session policy.
+
+/** Action kinds that mutate external state and require a consent token. */
+export const GATED_EXECUTION_KINDS: ReadonlySet<BrowserActionKind> = new Set<BrowserActionKind>([
+  'click',
+  'type',
+  'submit',
+  'download',
+  'upload',
+]);
+
+/**
+ * A consent token authorising live desktop execution for a scoped session.
+ * Issued by the HoloShell consent contract before any GATED_EXECUTION_KINDS
+ * action is admitted. Irreversible actions (submit / download / upload) require
+ * `includesIrreversible: true`, which in turn requires Founder Gate D.080
+ * sign-off at token-issuance time.
+ */
+export interface ExecutionConsentToken {
+  /** Stable token id, bound to a specific BrowserAbsorptionPolicy session. */
+  tokenId: string;
+  /** ISO-8601 timestamp when consent was granted. */
+  grantedAt: string;
+  /** ISO-8601 timestamp when this consent expires. */
+  expiresAt: string;
+  /** Policy envelope this token authorises. Evaluated at gate-check time. */
+  policy: BrowserAbsorptionPolicy;
+  /**
+   * Whether the consented session includes irreversible action kinds
+   * (submit / download / upload). Requires D.080 Founder Gate sign-off.
+   * Defaults to false — reversible-only sessions issue the token without
+   * escalation.
+   */
+  includesIrreversible: boolean;
+  /** Human-readable scope description surfaced in the consent UI. */
+  scope: string;
+}
+
+/** Result of the desktop execution gate check. */
+export interface ExecutionGateResult {
+  /** True = action is admitted; false = action is blocked. */
+  admitted: boolean;
+  /** Machine-readable reason code for logging and surface display. */
+  reason: string;
+  /** Token id that admitted the action. Present when admitted = true. */
+  tokenId?: string;
+}
+
+/**
+ * Gate live desktop execution before admitting click / type / submit actions.
+ *
+ * Every GATED_EXECUTION_KINDS action (click, type, submit, download, upload)
+ * MUST pass this gate before the browser automation layer executes it.
+ * Read-only actions are always admitted without a token.
+ *
+ * Decision order:
+ *  1. Not a gated kind → admitted (read-only, no token needed).
+ *  2. No consent token → blocked.
+ *  3. Token expired → blocked.
+ *  4. Action kind not in policy.allowedActions (when non-empty) → blocked.
+ *  5. Target domain in policy.blockedDomains → blocked.
+ *  6. Target domain NOT in policy.allowedDomains (when non-empty) → blocked.
+ *  7. Irreversible kind (submit / download / upload) + includesIrreversible false → blocked.
+ *  8. All checks pass → admitted.
+ *
+ * @param action  The action about to execute (kind + optional target url).
+ * @param token   The consent token for this session, or null/undefined if absent.
+ * @param nowIso  ISO-8601 timestamp used as "now" (injectable for deterministic tests).
+ */
+export function gateDesktopExecution(
+  action: { kind: BrowserActionKind; url?: string },
+  token: ExecutionConsentToken | null | undefined,
+  nowIso?: string
+): ExecutionGateResult {
+  if (!GATED_EXECUTION_KINDS.has(action.kind)) {
+    return { admitted: true, reason: 'read-only action — no consent required' };
+  }
+  if (!token) {
+    return {
+      admitted: false,
+      reason:
+        'live desktop execution requires an ExecutionConsentToken — call the consent contract first',
+    };
+  }
+  const now = nowIso != null ? Date.parse(nowIso) : Date.now();
+  if (Date.parse(token.expiresAt) <= now) {
+    return {
+      admitted: false,
+      reason: `consent token ${token.tokenId} expired at ${token.expiresAt}`,
+    };
+  }
+  const allowed = token.policy.allowedActions;
+  if (allowed.length > 0 && !allowed.includes(action.kind)) {
+    return {
+      admitted: false,
+      reason: `action kind "${action.kind}" is not in consent token's policy.allowedActions`,
+    };
+  }
+  const domain = action.url != null ? extractDomain(action.url) : null;
+  if (domain != null) {
+    if (token.policy.blockedDomains.includes(domain)) {
+      return {
+        admitted: false,
+        reason: `domain "${domain}" is blocked by consent token policy`,
+      };
+    }
+    if (token.policy.allowedDomains.length > 0 && !token.policy.allowedDomains.includes(domain)) {
+      return {
+        admitted: false,
+        reason: `domain "${domain}" is not in consent token's policy.allowedDomains`,
+      };
+    }
+  }
+  const IRREVERSIBLE: BrowserActionKind[] = ['submit', 'download', 'upload'];
+  if (IRREVERSIBLE.includes(action.kind) && !token.includesIrreversible) {
+    return {
+      admitted: false,
+      reason: `action kind "${action.kind}" is irreversible — token must have includesIrreversible:true (Founder Gate D.080 required at issuance)`,
+    };
+  }
+  return { admitted: true, reason: 'consent verified', tokenId: token.tokenId };
+}
+
+function extractDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
+}

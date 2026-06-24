@@ -343,6 +343,11 @@ export {
   isSupportedBrowserActionKind,
   isSupportedBrowserAbsorptionOutcome,
   cloneBrowserAbsorptionReceipt,
+  // HoloShell Execution Consent Gate (task_1782259905311_lbe3)
+  GATED_EXECUTION_KINDS,
+  type ExecutionConsentToken,
+  type ExecutionGateResult,
+  gateDesktopExecution,
 } from './holoshell-browser-receipts';
 
 export {
