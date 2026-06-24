@@ -1,0 +1,23 @@
+@trait {
+  name: "@outpost",
+  category: "world",
+  description: "Persistent world outpost anchor. Designates an entity as a durable settlement point with ownership, supply inventory, and spawn radius, persisting across sessions and enabling teams to claim territory and replenish from a local stock. Authored from OutpostTrait.ts.",
+  props: {
+    name: string = "",
+    owner_id: string = "",
+    team_id: string = "",
+    spawn_radius_m: number = 20.0,
+    supply_capacity: number = 100,
+    current_supply: number = 100,
+    claimable: boolean = true,
+    claim_time_s: number = 10.0
+  },
+  events: {
+    attached: "outpost_attached",
+    detached: "outpost_detached",
+    on_claim: "outpost_claim",
+    on_neutralize: "outpost_neutralize",
+    on_supply_change: "outpost_supply"
+  },
+  behaviors: ["@persistent", "@zone", "@spawn_gate"]
+}

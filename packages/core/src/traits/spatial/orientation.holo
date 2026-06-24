@@ -1,0 +1,20 @@
+@trait {
+  name: "@orientation",
+  category: "spatial",
+  description: "Entity orientation constraint and alignment helper. Locks or aligns the entity's rotation relative to a target direction vector, surface normal, viewer gaze, or compass bearing, with lerp smoothing and optional axis freedom masking. Authored from OrientationTrait.ts.",
+  props: {
+    mode: enum("look_at" | "surface_align" | "compass" | "gravity_align" | "free") = "look_at",
+    target_entity_id: string = "",
+    compass_bearing_deg: number = 0.0,
+    up_axis: enum("y" | "z" | "world_up") = "world_up",
+    lerp_speed: number = 5.0,
+    axis_mask: enum("xyz" | "y_only" | "xz_only") = "xyz"
+  },
+  events: {
+    attached: "orientation_attached",
+    detached: "orientation_detached",
+    on_align: "orientation_align",
+    set_target: "orientation_trigger_set"
+  },
+  behaviors: ["@transform", "@lerp", "@slam"]
+}

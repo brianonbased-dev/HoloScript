@@ -1,0 +1,20 @@
+@trait {
+  name: "@owner_tag",
+  category: "agent",
+  description: "Entity ownership tag and provenance marker. Records the wallet address, agent handle, and creation timestamp of the entity's owner, enabling access control checks, revenue routing, and attribution queries by ownership-aware systems. Authored from OwnerTagTrait.ts.",
+  props: {
+    owner_wallet: string = "",
+    owner_handle: string = "",
+    team_id: string = "",
+    transferable: boolean = false,
+    created_at: string = "",
+    provenance_url: string = ""
+  },
+  events: {
+    attached: "owner_tag_attached",
+    detached: "owner_tag_detached",
+    on_transfer: "owner_tag_transfer",
+    transfer: "owner_tag_trigger_transfer"
+  },
+  behaviors: ["@permission", "@token_gating", "@digital_twin"]
+}

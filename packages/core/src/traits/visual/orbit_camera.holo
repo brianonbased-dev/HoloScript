@@ -1,0 +1,24 @@
+@trait {
+  name: "@orbit_camera",
+  category: "visual",
+  description: "Orbiting third-person camera controller. Rotates and zooms a camera around a target entity pivot point in response to input events, respecting configurable yaw/pitch clamps, zoom distance limits, and collision avoidance against geometry. Authored from OrbitCameraTrait.ts.",
+  props: {
+    target_entity_id: string = "",
+    distance_m: number = 5.0,
+    min_distance_m: number = 1.0,
+    max_distance_m: number = 20.0,
+    pitch_deg: number = 30.0,
+    min_pitch_deg: number = -30.0,
+    max_pitch_deg: number = 80.0,
+    damping: number = 0.1,
+    collision_avoid: boolean = true
+  },
+  events: {
+    attached: "orbit_camera_attached",
+    detached: "orbit_camera_detached",
+    on_zoom: "orbit_camera_zoom",
+    on_rotate: "orbit_camera_rotate",
+    set_target: "orbit_camera_trigger_set_target"
+  },
+  behaviors: ["@virtual_camera", "@follow_target", "@pinned_camera"]
+}
