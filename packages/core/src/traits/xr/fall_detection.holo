@@ -1,0 +1,20 @@
+@trait {
+  name: "@fall_detection",
+  category: "xr",
+  description: "XR user fall and sudden-drop detection for safety applications. Monitors head/body pose velocity and acceleration for characteristic fall signatures (rapid downward acceleration > threshold), emitting alerts to caregivers or disabling locomotion for vulnerable users. Authored from FallDetectionTrait.ts.",
+  props: {
+    accel_threshold_m_s2: number = 9.0,
+    velocity_threshold_m_s: number = 2.0,
+    window_ms: number = 200,
+    alert_handle: string = "",
+    disable_locomotion_on_detect: boolean = false,
+    cooldown_s: number = 5.0
+  },
+  events: {
+    attached: "fall_detection_attached",
+    detached: "fall_detection_detached",
+    on_fall: "fall_detection_fall",
+    on_clear: "fall_detection_clear"
+  },
+  behaviors: ["@imu_tracker", "@xr_hand_tracking", "@pose_retarget"]
+}

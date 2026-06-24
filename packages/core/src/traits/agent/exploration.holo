@@ -1,0 +1,22 @@
+@trait {
+  name: "@exploration",
+  category: "agent",
+  description: "Autonomous spatial exploration behavior. Drives an agent to systematically visit unvisited world cells or zones using a frontier-based strategy, marking coverage and reporting discovery events when new entities or areas are encountered. Authored from ExplorationTrait.ts.",
+  props: {
+    strategy: enum("frontier" | "random_walk" | "spiral" | "coverage_grid") = "frontier",
+    max_range_m: number = 50.0,
+    cell_size_m: number = 1.0,
+    stop_when_full: boolean = true,
+    revisit_after_s: number = 0,
+    speed: number = 1.0
+  },
+  events: {
+    attached: "exploration_attached",
+    detached: "exploration_detached",
+    on_discover: "exploration_discover",
+    on_complete: "exploration_complete",
+    start: "exploration_trigger_start",
+    stop: "exploration_trigger_stop"
+  },
+  behaviors: ["@navigation", "@slam", "@spatial_persona"]
+}

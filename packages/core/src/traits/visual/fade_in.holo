@@ -1,0 +1,21 @@
+@trait {
+  name: "@fade_in",
+  category: "visual",
+  description: "Opacity fade-in and fade-out transition controller for entity visibility. Animates an entity's master opacity from 0→1 on spawn or trigger, with configurable curve, delay, and optional auto-fade-out after a hold duration. Authored from FadeInTrait.ts.",
+  props: {
+    duration_ms: number = 500,
+    delay_ms: number = 0,
+    curve: enum("linear" | "ease_in" | "ease_out" | "ease_in_out") = "ease_in_out",
+    auto_play: boolean = true,
+    hold_ms: number = 0,
+    fade_out_ms: number = 0
+  },
+  events: {
+    attached: "fade_in_attached",
+    detached: "fade_in_detached",
+    on_complete: "fade_in_complete",
+    play: "fade_in_trigger_play",
+    reverse: "fade_in_trigger_reverse"
+  },
+  behaviors: ["@easing", "@visibility", "@scene_transition"]
+}

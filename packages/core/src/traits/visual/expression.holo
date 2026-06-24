@@ -1,0 +1,20 @@
+@trait {
+  name: "@expression",
+  category: "visual",
+  description: "Facial expression and emotion blend-shape driver for character entities. Maps emotion labels (joy, sadness, surprise, anger, disgust, fear, neutral) to morph-target weights on the entity's mesh, supporting blend transitions and procedural micro-expressions. Authored from ExpressionTrait.ts.",
+  props: {
+    current_emotion: enum("neutral" | "joy" | "sadness" | "surprise" | "anger" | "disgust" | "fear" | "contempt") = "neutral",
+    blend_duration_ms: number = 200,
+    intensity: number = 1.0,
+    micro_expressions: boolean = false,
+    micro_interval_s: number = 4.0,
+    blink_rate_hz: number = 0.25
+  },
+  events: {
+    attached: "expression_attached",
+    detached: "expression_detached",
+    on_change: "expression_change",
+    set_emotion: "expression_trigger_set"
+  },
+  behaviors: ["@lipsync", "@face_tracking", "@animation_blender"]
+}
