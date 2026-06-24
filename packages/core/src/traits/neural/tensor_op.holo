@@ -1,0 +1,25 @@
+@trait {
+  name: "@tensor_op",
+  category: "neural",
+  description: "Declarative tensor operation node for HoloScript neural compositions. op selects the primitive: matmul performs matrix multiplication of two input tensors (shapes must be broadcast-compatible), conv2d applies a 2-D spatial convolution (requires input_shape to be rank-4: [N,C,H,W]), relu applies element-wise rectified linear activation, softmax applies softmax over the last axis to produce a probability distribution, pool applies average or max spatial pooling (determined at compile time from the downstream consumer), norm applies layer or batch normalisation, transpose permutes axes according to a compile-time perm list. input_shape declares the expected input tensor shape as a list of ints (use -1 for dynamic axes); mismatches emit on_error at runtime. output_shape declares the expected output tensor shape as a list of ints; used by downstream nodes and compile targets for shape inference. backend selects execution substrate: cpu dispatches to WebAssembly SIMD, gpu dispatches to WebGPU compute shaders, wasm dispatches to the holoscript WASM runtime. precision selects numeric format: fp32 for full-precision 32-bit float, fp16 for half-precision 16-bit float (requires gpu or supported WASM build), int8 for 8-bit quantised integer inference (requires a pre-quantised model). on_result fires when the op completes, carrying the output tensor reference and elapsed_ms. on_error fires on shape mismatch, backend unavailability, or precision incompatibility. Pairs with @tensorrt_inference for multi-op pipelines and @training_loop for gradient-tracked forward passes. Research: TensorOpTrait.ts — TensorOpConfig, op enums, backend dispatch, shape-inference pipeline.",
+  props: {
+    op: enum("matmul" | "conv2d" | "relu" | "softmax" | "pool" | "norm" | "transpose") = "matmul",
+    input_shape: list<number> = [],
+    output_shape: list<number> = [],
+    backend: enum("cpu" | "gpu" | "wasm") = "cpu",
+    precision: enum("fp32" | "fp16" | "int8") = "fp32"
+  },
+  events: {
+    attached: "tensor_op:attached",
+    detached: "tensor_op:detached",
+    initialized: "tensor_op:initialized",
+    on_result: "tensor_op:result",
+    on_error: "tensor_op:error",
+    on_run: "tensor_op:cmd_run",
+    on_reset: "tensor_op:cmd_reset",
+    on_set_backend: "tensor_op:cmd_set_backend",
+    on_set_precision: "tensor_op:cmd_set_precision",
+    on_query_shape: "tensor_op:query_shape"
+  },
+  behaviors: ["@neural_animation"]
+}

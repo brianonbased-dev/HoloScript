@@ -1,0 +1,26 @@
+@trait {
+  name: "@urdf_robot",
+  category: "spatial",
+  description: "URDF robot model loader and runtime controller for HoloScript spatial compositions. urdf_url is the URI of the Unified Robot Description Format XML file; supports file:// paths, https:// URLs, and HoloScript asset-registry URIs. joint_names is an ordered list of controllable joint names matching the URDF joint elements that accept position, velocity, or torque commands; joints omitted from this list are treated as fixed. control_mode selects the actuation paradigm: position commands joints to target angle or translation values, velocity commands joints to target angular or linear rates, torque commands joints to target effort values (requires dynamics solver). on_joint_state fires at each control tick carrying current position, velocity, and effort vectors for all listed joints. on_collision fires when the robot's collision geometry intersects another scene body, carrying the contact pair and penetration depth. on_contact fires on contact-force events above the solver's contact threshold, carrying force magnitude and contact normal. simulation flags whether the trait drives a physics simulation (true) or a purely kinematic display model (false — joint positions are set directly without solver integration). mesh_scale is a uniform scale factor applied to all visual and collision meshes loaded from the URDF; use 1.0 for no scaling. Pairs with @twin_actuator for physical device bridging and @physics for collision-world integration. Research: URDFRobotTrait.ts — URDFRobotConfig, control_mode enum, joint_names parser, collision event flow.",
+  props: {
+    urdf_url: string = "",
+    joint_names: list<string> = [],
+    control_mode: enum("position" | "velocity" | "torque") = "position",
+    simulation: boolean = true,
+    mesh_scale: number = 1.0
+  },
+  events: {
+    attached: "urdf_robot:attached",
+    detached: "urdf_robot:detached",
+    loaded: "urdf_robot:loaded",
+    on_joint_state: "urdf_robot:joint_state",
+    on_collision: "urdf_robot:collision",
+    on_contact: "urdf_robot:contact",
+    on_error: "urdf_robot:error",
+    on_set_joint: "urdf_robot:cmd_set_joint",
+    on_set_control_mode: "urdf_robot:cmd_set_control_mode",
+    on_reset_pose: "urdf_robot:cmd_reset_pose",
+    on_query_joints: "urdf_robot:query_joints"
+  },
+  behaviors: ["@transform", "@twin_actuator"]
+}

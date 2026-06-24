@@ -1,0 +1,25 @@
+@trait {
+  name: "@usd_stage",
+  category: "spatial",
+  description: "Universal Scene Description (USD) stage loader and variant controller for HoloScript spatial compositions. stage_url is the URI of the USD, USDA, USDC, or USDZ file to open; supports file:// paths, https:// URLs, and HoloScript asset-registry URIs. variant_set is a dict mapping VariantSet names to the chosen variant name within that set (e.g. {\"MaterialVariants\": \"Shiny\", \"LOD\": \"High\"}); applied after stage open and re-applied on on_variant_change. default_prim is the prim path of the stage's default root prim (e.g. '/World/Robot'); when empty the stage's authored defaultPrim metadata is used. kind classifies the stage's purpose in the USD model hierarchy: model is a generic asset model, component is a leaf asset (no child models), assembly is a composed scene of components. up_axis selects the stage's world up axis: Y for DCC-authored (Maya/Blender default) and Z for robotics/ROS convention (Gazebo/USD Physics default). on_load fires when the stage is fully composed and the default prim is ready, carrying the resolved prim paths and active variants. on_save fires when a stage write completes, carrying the destination URI. on_variant_change fires when a variant selection is applied, carrying the variant_set name and the new variant value. Pairs with @usd_stage for nested sublayer composition and @twin_actuator for physics-driven USD prim transforms. Research: USDStageTrait.ts — USDStageConfig, variant_set resolver, kind enum, up_axis convention, sublayer composition event flow.",
+  props: {
+    stage_url: string = "",
+    variant_set: dict<string, string> = {},
+    default_prim: string = "",
+    kind: enum("model" | "component" | "assembly") = "component",
+    up_axis: enum("Y" | "Z") = "Y"
+  },
+  events: {
+    attached: "usd_stage:attached",
+    detached: "usd_stage:detached",
+    on_load: "usd_stage:load",
+    on_save: "usd_stage:save",
+    on_variant_change: "usd_stage:variant_change",
+    on_error: "usd_stage:error",
+    on_open: "usd_stage:cmd_open",
+    on_set_variant: "usd_stage:cmd_set_variant",
+    on_set_default_prim: "usd_stage:cmd_set_default_prim",
+    on_query_prims: "usd_stage:query_prims"
+  },
+  behaviors: ["@transform"]
+}

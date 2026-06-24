@@ -1,0 +1,27 @@
+@trait {
+  name: "@tensorrt_inference",
+  category: "neural",
+  description: "NVIDIA TensorRT inference engine integration for HoloScript neural compositions. engine_url is the URI of a pre-built TensorRT serialised engine file (.trt / .engine) loaded at init time; can be a HoloScript asset-registry URI, a relative path, or an HTTPS URL. input_binding names the engine input binding (as set during TensorRT build, e.g. 'input' or 'images'); required for buffer allocation. output_binding names the engine output binding (e.g. 'output' or 'prob'). device selects the execution device: gpu dispatches to the primary CUDA device, dla dispatches to NVIDIA Deep Learning Accelerator (Jetson Orin DLA0/DLA1 — falls back to GPU if DLA unavailable). max_batch_size sets the upper bound on concurrent inference samples; must not exceed the batch dimension the engine was compiled for. fp16 enables FP16 precision mode when the engine was built with FP16 layer support. int8 enables INT8 precision mode when the engine was built with INT8 calibration; mutually exclusive with fp16 (fp16 takes precedence if both are true). on_infer fires when inference completes carrying output tensor reference and latency_ms. on_load fires when the engine file is successfully deserialised and the execution context is ready. on_error fires on engine load failure, binding mismatch, OOM, or precision unsupported by the device. Pairs with @tensor_op for pre/post-processing and @training_loop for hybrid train+infer pipelines. Research: TensorRTInferenceTrait.ts — TensorRTConfig, device enum, binding allocation, DLA fallback logic.",
+  props: {
+    engine_url: string = "",
+    input_binding: string = "input",
+    output_binding: string = "output",
+    device: enum("gpu" | "dla") = "gpu",
+    max_batch_size: number = 1,
+    fp16: boolean = false,
+    int8: boolean = false
+  },
+  events: {
+    attached: "tensorrt_inference:attached",
+    detached: "tensorrt_inference:detached",
+    on_load: "tensorrt_inference:load",
+    on_infer: "tensorrt_inference:infer",
+    on_error: "tensorrt_inference:error",
+    on_run: "tensorrt_inference:cmd_run",
+    on_reload: "tensorrt_inference:cmd_reload",
+    on_set_device: "tensorrt_inference:cmd_set_device",
+    on_set_batch: "tensorrt_inference:cmd_set_batch",
+    on_query_bindings: "tensorrt_inference:query_bindings"
+  },
+  behaviors: ["@tensor_op", "@neural_animation"]
+}
