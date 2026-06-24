@@ -1,0 +1,25 @@
+@trait {
+  name: "@voice_command",
+  category: "interaction",
+  description: "Wake-word and intent-based voice command listener. Parses spoken commands into structured intents mapped to entity actions. Authored from VoiceCommandTrait.ts.",
+  props: {
+    wake_word: string = "hey holo",
+    commands: list<{ intent: string, phrases: list<string>, action: string }> = [],
+    language: string = "en-US",
+    provider: enum("web_speech" | "whisper" | "vosk" | "holoscript") = "web_speech",
+    continuous: boolean = false,
+    confidence_min: number = 0.75,
+    noise_gate_db: number = -40.0
+  },
+  events: {
+    attached: "voice_command_attached",
+    detached: "voice_command_detached",
+    on_wake: "voice_command_wake",
+    on_intent: "voice_command_intent",
+    on_unknown: "voice_command_unknown",
+    on_error: "voice_command_error",
+    start: "voice_command_start",
+    stop: "voice_command_stop"
+  },
+  behaviors: ["@microphone", "@speech_recognition"]
+}

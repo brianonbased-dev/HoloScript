@@ -1,0 +1,28 @@
+@trait {
+  name: "@volumetric_video",
+  category: "media",
+  description: "Volumetric video playback for 4D holographic captures (V-Nova, Looking Glass, MPEG-I). Streams per-frame point clouds or mesh sequences into the scene. Authored from VolumetricVideoTrait.ts.",
+  props: {
+    src_url: string = "",
+    format: enum("draco_sequence" | "mpeg_i" | "looking_glass" | "holoscript") = "holoscript",
+    autoplay: boolean = false,
+    loop: boolean = false,
+    playback_rate: number = 1.0,
+    target_fps: number = 30,
+    preload_frames: number = 5,
+    occlusion_enabled: boolean = true
+  },
+  events: {
+    attached: "volumetric_video_attached",
+    detached: "volumetric_video_detached",
+    on_play: "volumetric_video_play",
+    on_pause: "volumetric_video_pause",
+    on_frame: "volumetric_video_frame",
+    on_end: "volumetric_video_end",
+    on_error: "volumetric_video_error",
+    play: "volumetric_video_trigger_play",
+    pause: "volumetric_video_trigger_pause",
+    seek: "volumetric_video_trigger_seek"
+  },
+  behaviors: ["@media_player", "@rendering"]
+}

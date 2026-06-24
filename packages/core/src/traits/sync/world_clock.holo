@@ -1,0 +1,28 @@
+@trait {
+  name: "@world_clock",
+  category: "sync",
+  description: "Synchronized world simulation clock. Drives day/night cycles, scheduled events, and time-scale control across all entities in a scene. Authored from WorldClockTrait.ts.",
+  props: {
+    time_scale: number = 1.0,
+    start_hour: number = 8.0,
+    day_duration_s: number = 1440.0,
+    paused: boolean = false,
+    sync_real_time: boolean = false,
+    timezone: string = "UTC",
+    epoch: number = 0
+  },
+  events: {
+    attached: "world_clock_attached",
+    detached: "world_clock_detached",
+    on_tick: "world_clock_tick",
+    on_sunrise: "world_clock_sunrise",
+    on_sunset: "world_clock_sunset",
+    on_midnight: "world_clock_midnight",
+    on_noon: "world_clock_noon",
+    set_time: "world_clock_set_time",
+    set_scale: "world_clock_set_scale",
+    pause: "world_clock_pause",
+    resume: "world_clock_resume"
+  },
+  behaviors: ["@day_night_cycle", "@scheduling"]
+}

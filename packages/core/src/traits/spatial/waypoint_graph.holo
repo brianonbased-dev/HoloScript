@@ -1,0 +1,23 @@
+@trait {
+  name: "@waypoint_graph",
+  category: "spatial",
+  description: "Waypoint graph for NPC patrol routes, vehicle paths, and cinematic dolly tracks. Nodes store position and metadata; edges store travel cost and direction. Authored from WaypointGraphTrait.ts.",
+  props: {
+    nodes: list<{ id: string, position: { x: number, y: number, z: number }, label: string }> = [],
+    edges: list<{ from: string, to: string, cost: number, bidirectional: boolean }> = [],
+    loop: boolean = false,
+    visualization: boolean = false,
+    spline_smooth: boolean = true
+  },
+  events: {
+    attached: "waypoint_graph_attached",
+    detached: "waypoint_graph_detached",
+    on_node_reach: "waypoint_graph_node_reach",
+    on_path_complete: "waypoint_graph_path_complete",
+    on_path_error: "waypoint_graph_path_error",
+    navigate_to: "waypoint_graph_navigate",
+    add_node: "waypoint_graph_add_node",
+    remove_node: "waypoint_graph_remove_node"
+  },
+  behaviors: ["@nav_mesh", "@road_network"]
+}
