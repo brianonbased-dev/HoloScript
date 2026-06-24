@@ -1,0 +1,27 @@
+@trait {
+  name: "@optimization",
+  category: "optimization",
+  description: "Per-entity render and simulation performance budget management. lod_bias shifts the LOD selection threshold: positive values favour lower-detail meshes earlier (saves GPU), negative values favour higher-detail (better quality). occlusion_cull enables hardware occlusion-query culling so the entity is skipped when fully hidden behind scene geometry. batch_draw signals to the renderer that this entity is eligible for draw-call batching with other same-material entities. instance_count sets the desired GPU-instancing count for repeated geometry (1 = no instancing). frustum_cull gates standard view-frustum culling; disable only for entities that must render outside the view (shadow casters, reflections). max_draw_calls caps the number of draw calls this entity may issue per frame; when the cap is exceeded the renderer coalesces sub-meshes. budget_ms is the per-frame millisecond allowance for this entity's GPU work; on_budget_exceeded fires when the entity's frame-time contribution exceeds the budget so upstream controllers can trigger LOD demote or hide. Research: OptimizationTrait.ts — OptimizationConfig, ComputableObjective solver; task spec D.104 batch-23.",
+  props: {
+    lod_bias: number = 0.0,
+    occlusion_cull: boolean = true,
+    batch_draw: boolean = false,
+    instance_count: number = 1,
+    frustum_cull: boolean = true,
+    max_draw_calls: number = 0,
+    budget_ms: number = 0.0
+  },
+  events: {
+    attached: "optimization:attached",
+    detached: "optimization:detached",
+    on_budget_exceeded: "optimization:budget_exceeded",
+    on_lod_changed: "optimization:lod_changed",
+    on_cull_state_changed: "optimization:cull_state_changed",
+    on_set_lod_bias: "optimization:set_lod_bias",
+    on_set_instance_count: "optimization:set_instance_count",
+    on_set_budget_ms: "optimization:set_budget_ms",
+    on_solve: "opt:solve",
+    on_solution: "opt:solution"
+  },
+  behaviors: ["@transform"]
+}

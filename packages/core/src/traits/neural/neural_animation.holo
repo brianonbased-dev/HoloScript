@@ -1,0 +1,31 @@
+@trait {
+  name: "@neural_animation",
+  category: "neural",
+  description: "Neural-model-driven animation synthesis for HoloScript entities. model_url points to the ONNX or HoloScript-registry weights used for motion inference. style selects the animation domain: locomotion drives walk/run cycles, gesture drives expressive hand and body motion, dance drives rhythmic full-body synthesis, combat drives reactive fighter choreography, sport drives athletic motion (throws, swings, catches). latency_ms is the per-frame inference budget in milliseconds; exceeding it triggers on_motion_event with kind=timeout so downstream handlers can fall back to a clip. blend_weight (0–1) controls how strongly the neural output blends with any base clip already on the entity. on_motion_event fires on every synthesized frame with the resulting SkeletonPose plus metadata (latency, gait, stability). gpu_infer routes inference to the GPU compute backend (WebGPU / CUDA) when true; when false the handler dispatches to the edge-node CPU path. Pairs with @animation for clip fallback and @ik for foot-contact correction. Research: NeuralAnimationTrait.ts — animation_model, blend_weight, locomotion config, on_foot_contact / on_stumble_detected events.",
+  props: {
+    model_url: string = "",
+    style: enum("locomotion" | "gesture" | "dance" | "combat" | "sport") = "locomotion",
+    latency_ms: number = 33,
+    blend_weight: number = 1.0,
+    gpu_infer: boolean = false
+  },
+  events: {
+    attached: "neural_animation:attached",
+    detached: "neural_animation:detached",
+    initialized: "neural_animation:initialized",
+    on_motion_event: "neural_animation:motion_event",
+    on_foot_contact: "neural_animation:foot_contact",
+    on_stumble_detected: "neural_animation:stumble_detected",
+    on_locomotion_initialized: "neural_animation:locomotion_initialized",
+    on_locomotion_fallback: "neural_animation:locomotion_fallback",
+    on_animation_synthesis_start: "neural_animation:synthesis_start",
+    on_retargeting_complete: "neural_animation:retargeting_complete",
+    on_set_engine: "neural_animation:set_engine",
+    on_clear_engine: "neural_animation:clear_engine",
+    on_set_target_velocity: "neural_animation:set_target_velocity",
+    on_synthesize: "neural_animation:synthesize",
+    on_retarget: "neural_animation:retarget",
+    on_query_locomotion: "neural_animation:query_locomotion"
+  },
+  behaviors: ["@animation", "@skeleton", "@transform"]
+}
