@@ -1,0 +1,22 @@
+@trait {
+  name: "@dynamic_region_mask",
+  category: "visual",
+  description: "Dynamic GPU texture mask for selective rendering, fog-of-war, ownership zones, and team boundaries. Updates a GPU-side mask texture each frame from entity positions and events. Authored from DynamicRegionMaskTrait.ts.",
+  props: {
+    resolution: number = 512,
+    channels: enum("r" | "rg" | "rgba") = "r",
+    falloff: number = 16.0,
+    update_rate_hz: number = 10,
+    blend_mode: enum("replace" | "add" | "max" | "min") = "replace",
+    decay_per_frame: number = 0.0,
+    persistent: boolean = false
+  },
+  events: {
+    attached: "dynamic_region_mask_attached",
+    detached: "dynamic_region_mask_detached",
+    on_update: "dynamic_region_mask_update",
+    set_mask: "dynamic_region_mask_set",
+    clear: "dynamic_region_mask_clear"
+  },
+  behaviors: ["@gpu_buffer", "@render_pipeline"]
+}

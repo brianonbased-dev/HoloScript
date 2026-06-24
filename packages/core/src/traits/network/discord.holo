@@ -1,0 +1,26 @@
+@trait {
+  name: "@discord",
+  category: "network",
+  description: "Discord bot integration. Sends messages to channels, listens for slash commands, manages presence, and posts embeds via the Discord REST and Gateway APIs. Authored from DiscordTrait.ts.",
+  props: {
+    bot_token_secret: string = "",
+    guild_id: string = "",
+    default_channel_id: string = "",
+    prefix: string = "!",
+    slash_commands: list<string> = [],
+    presence_activity: string = "HoloScript",
+    presence_type: enum("playing" | "listening" | "watching" | "streaming") = "playing"
+  },
+  events: {
+    attached: "discord_attached",
+    detached: "discord_detached",
+    on_message: "discord_message",
+    on_command: "discord_command",
+    on_member_join: "discord_member_join",
+    on_reaction: "discord_reaction",
+    on_error: "discord_error",
+    send: "discord_send",
+    set_presence: "discord_set_presence"
+  },
+  behaviors: ["@messaging", "@alert", "@push_notification"]
+}

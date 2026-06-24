@@ -1,0 +1,24 @@
+@trait {
+  name: "@draft",
+  category: "cognitive",
+  description: "In-progress content draft holder. Stores partial text, structured outline, and revision metadata for papers, blog posts, or world descriptions being iteratively authored by an agent. Authored from DraftTrait.ts.",
+  props: {
+    content: string = "",
+    title: string = "",
+    format: enum("markdown" | "latex" | "html" | "holoscript") = "markdown",
+    revision: number = 0,
+    word_count: number = 0,
+    target_word_count: number = 0,
+    status: enum("outline" | "draft" | "review" | "final") = "outline"
+  },
+  events: {
+    attached: "draft_attached",
+    detached: "draft_detached",
+    on_update: "draft_update",
+    on_status_change: "draft_status_change",
+    on_export: "draft_export",
+    update: "draft_trigger_update",
+    export: "draft_trigger_export"
+  },
+  behaviors: ["@markdown", "@revision_history"]
+}
