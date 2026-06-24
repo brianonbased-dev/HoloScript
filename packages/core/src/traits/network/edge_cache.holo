@@ -1,0 +1,24 @@
+@trait {
+  name: "@edge_cache",
+  category: "network",
+  description: "CDN/edge caching policy descriptor. Defines TTL, cache keys, vary headers, and purge strategy for edge-served assets. Authored from EdgeCacheTrait.ts.",
+  props: {
+    ttl_s: number = 3600,
+    stale_while_revalidate_s: number = 60,
+    cache_key_params: list<string> = [],
+    vary_headers: list<string> = [],
+    purge_on_deploy: boolean = true,
+    provider: enum("cloudflare" | "fastly" | "akamai" | "holoscript") = "cloudflare",
+    bypass_cookies: list<string> = []
+  },
+  events: {
+    attached: "edge_cache_attached",
+    detached: "edge_cache_detached",
+    on_hit: "edge_cache_hit",
+    on_miss: "edge_cache_miss",
+    on_purge: "edge_cache_purge",
+    on_error: "edge_cache_error",
+    purge: "edge_cache_trigger_purge"
+  },
+  behaviors: ["@cache", "@rate_limiter"]
+}

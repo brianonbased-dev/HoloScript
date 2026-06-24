@@ -1,0 +1,25 @@
+@trait {
+  name: "@global_state",
+  category: "sync",
+  description: "Scene-wide shared reactive state store. Entities subscribe to named keys and receive updates when values change. Backed by CRDT or key-value sync. Authored from GlobalStateTrait.ts.",
+  props: {
+    namespace: string = "default",
+    keys: list<string> = [],
+    backend: enum("loro_crdt" | "redis" | "holoscript" | "memory") = "holoscript",
+    persist: boolean = false,
+    broadcast: boolean = true,
+    debounce_ms: number = 0
+  },
+  events: {
+    attached: "global_state_attached",
+    detached: "global_state_detached",
+    on_change: "global_state_change",
+    on_sync: "global_state_sync",
+    on_conflict: "global_state_conflict",
+    on_reset: "global_state_reset",
+    set: "global_state_set",
+    get: "global_state_get",
+    reset: "global_state_reset_cmd"
+  },
+  behaviors: ["@replica", "@offline_sync"]
+}

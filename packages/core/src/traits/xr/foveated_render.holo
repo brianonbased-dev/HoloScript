@@ -1,0 +1,22 @@
+@trait {
+  name: "@foveated_render",
+  category: "xr",
+  description: "Variable-rate shading for XR via foveated rendering. Reduces GPU load by rendering peripheral vision at lower resolution based on gaze or fixed pattern. Authored from FoveatedRenderTrait.ts.",
+  props: {
+    mode: enum("fixed" | "gaze_driven" | "eye_tracked" | "dynamic") = "fixed",
+    inner_radius: number = 0.3,
+    mid_radius: number = 0.6,
+    inner_rate: enum("x1" | "x2" | "x4") = "x1",
+    mid_rate: enum("x1" | "x2" | "x4") = "x2",
+    outer_rate: enum("x1" | "x2" | "x4" | "x8") = "x4",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "foveated_attached",
+    detached: "foveated_detached",
+    on_gaze_update: "foveated_gaze_update",
+    on_mode_change: "foveated_mode_change",
+    on_update: "foveated_update"
+  },
+  behaviors: ["@eye_tracked", "@rendering"]
+}
