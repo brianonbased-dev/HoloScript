@@ -1,0 +1,26 @@
+@trait {
+  name: "@tint",
+  category: "visual",
+  description: "Full-surface color tint overlay applied as a compositing pass over the entity's rendered output. color is the tint hex (#rrggbb); blend_mode controls how the tint composites over the underlying pixel: multiply darkens toward the tint (good for glass/shadows), screen lightens (good for glows), overlay preserves highlights and shadows while shifting hue, add is purely additive (HDR-safe bloom tinting), normal replaces the pixel with the tint at the given intensity (flat colorization). intensity scales the tint contribution from 0 (invisible, passthrough) to 1 (full tint). animated enables the pulse oscillator; when false, pulse_rate and on_pulse_peak are inert. pulse_rate is the oscillation frequency in Hz — the intensity breathes as a sine wave from 0 to the configured intensity and back; on_pulse_peak fires once per cycle when the sine reaches its maximum. Typical use: status rings (scan-pulse), enemy outlines, faction colouring, health-bar overlays, AR camera colour grades. Pairs with @highlight (interaction-triggered tint), @bloom_reactive (post-process amplification), and @style (theme-driven color injection). Research: HighlightTrait.ts, BloomReactiveTrait.ts, PostProcessTrait.ts.",
+  props: {
+    color: string = "#ffffff",
+    blend_mode: enum("multiply" | "screen" | "overlay" | "add" | "normal") = "normal",
+    intensity: number = 1.0,
+    animated: boolean = false,
+    pulse_rate: number = 1.0
+  },
+  events: {
+    attached: "tint:attached",
+    detached: "tint:detached",
+    applied: "tint:applied",
+    removed: "tint:removed",
+    pulse_peak: "tint:pulse_peak",
+    on_set_color: "tint:cmd_set_color",
+    on_set_blend_mode: "tint:cmd_set_blend_mode",
+    on_set_intensity: "tint:cmd_set_intensity",
+    on_set_animated: "tint:cmd_set_animated",
+    on_set_pulse_rate: "tint:cmd_set_pulse_rate",
+    on_pulse_peak: "tint:cmd_pulse_peak"
+  },
+  behaviors: ["@rendering"]
+}

@@ -1,0 +1,31 @@
+@trait {
+  name: "@text_input",
+  category: "interaction",
+  description: "Declarative text-entry field for spatial and 2D interfaces. placeholder is the ghost string shown when value is empty. max_length caps the accepted character count (0 = unlimited). input_type maps to the HTML5 / native keyboard intent hint: text = general Unicode input, password = obscured with bullet glyphs and disables clipboard paste on secure platforms, email = '@' key hint + validation, url = '/' key hint + URL validation, number = numeric keyboard + optional min/max clamping, search = magnifier icon + clear button, tel = numeric pad with '#' and '*' keys. multiline switches from a single-line field to a textarea that grows vertically with content. autocomplete enables platform autocomplete suggestions from the user's saved profile or recent entries. spellcheck enables inline red-underline spell-check (ignored on number / password / url / email types). value is the current string held by the field; bind to @crdt_room for collaborative editing. Events: on_change fires after every keystroke with the new value, on_submit fires on Enter (or form submit in 2D), on_focus fires when the field gains focus, on_blur fires when it loses focus. Research: FormBuilderTrait.ts, AutocompleteTrait.ts, DialogTrait.ts, AccessibleTrait.ts.",
+  props: {
+    placeholder: string = "",
+    max_length: number = 0,
+    input_type: enum("text" | "password" | "email" | "url" | "number" | "search" | "tel") = "text",
+    multiline: boolean = false,
+    autocomplete: boolean = false,
+    spellcheck: boolean = false,
+    value: string = ""
+  },
+  events: {
+    attached: "text_input:attached",
+    detached: "text_input:detached",
+    changed: "text_input:changed",
+    submitted: "text_input:submitted",
+    focused: "text_input:focused",
+    blurred: "text_input:blurred",
+    validated: "text_input:validated",
+    validation_error: "text_input:validation_error",
+    on_change: "text_input:cmd_change",
+    on_submit: "text_input:cmd_submit",
+    on_focus: "text_input:cmd_focus",
+    on_blur: "text_input:cmd_blur",
+    on_set_value: "text_input:cmd_set_value",
+    on_clear: "text_input:cmd_clear"
+  },
+  behaviors: ["@accessible", "@keyboard_nav"]
+}

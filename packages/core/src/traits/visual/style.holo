@@ -1,0 +1,29 @@
+@trait {
+  name: "@style",
+  category: "visual",
+  description: "Global theme and design-token provider for an entity or subtree. theme selects the built-in palette: light applies a high-luminance neutral palette, dark applies a low-luminance palette, high_contrast maximises foreground/background ratio for accessibility, custom defers all values to the explicit props below. primary_color is the brand/action hex (e.g. '#0070f3'); accent_color is the secondary-highlight hex used for decorative elements, badges, and active-state rings. font_scale is a unitless multiplier on all typography sizes in the subtree (0.5 = half-size, 1.0 = default, 2.0 = double); clamped to [0.5, 2.0]. border_radius is the corner rounding in world units or pixels depending on render target (0 = sharp square corners). spacing_unit is the base grid step in world units from which all padding, gap, and margin multiples derive. animation_speed governs the speed class applied to all CSS/shader transitions in the subtree: none disables all motion (respects @motion_reduced), reduced halves durations, normal uses designer-authored timing, energetic doubles speed and adds bounce. global_opacity is an alpha multiplier (0–1) applied uniformly to the entity and all children; use for fade-in/out transitions or ghost-state indicators. Research: UITraits.ts, HighContrastTrait.ts, MotionReducedTrait.ts, SpatialPanelTrait.ts.",
+  props: {
+    theme: enum("light" | "dark" | "high_contrast" | "custom") = "light",
+    primary_color: string = "#0070f3",
+    accent_color: string = "#ff4081",
+    font_scale: number = 1.0,
+    border_radius: number = 4.0,
+    spacing_unit: number = 8.0,
+    animation_speed: enum("none" | "reduced" | "normal" | "energetic") = "normal",
+    global_opacity: number = 1.0
+  },
+  events: {
+    attached: "style:attached",
+    detached: "style:detached",
+    theme_changed: "style:theme_changed",
+    token_updated: "style:token_updated",
+    opacity_changed: "style:opacity_changed",
+    on_set_theme: "style:cmd_set_theme",
+    on_set_primary_color: "style:cmd_set_primary_color",
+    on_set_accent_color: "style:cmd_set_accent_color",
+    on_set_font_scale: "style:cmd_set_font_scale",
+    on_set_opacity: "style:cmd_set_opacity",
+    on_set_animation_speed: "style:cmd_set_animation_speed"
+  },
+  behaviors: ["@accessible"]
+}
