@@ -1,0 +1,19 @@
+@trait {
+  name: "@nav_guard",
+  category: "game",
+  description: "Navigation boundary guard enforcer. Blocks entity movement or teleportation attempts that would exit a defined world-space boundary box or zone list, optionally redirecting to the nearest valid point or emitting a bounce-back force to kinematic characters. Authored from NavGuardTrait.ts.",
+  props: {
+    mode: enum("box" | "zone_list" | "navmesh") = "box",
+    bounds_min: { x: number, y: number, z: number } = { x: -100.0, y: -10.0, z: -100.0 },
+    bounds_max: { x: number, y: number, z: number } = { x: 100.0, y: 100.0, z: 100.0 },
+    zone_ids: list<string> = [],
+    on_violate: enum("block" | "redirect" | "bounce" | "teleport_back") = "redirect",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "nav_guard_attached",
+    detached: "nav_guard_detached",
+    on_violation: "nav_guard_violation"
+  },
+  behaviors: ["@zone", "@navigation", "@world_border"]
+}

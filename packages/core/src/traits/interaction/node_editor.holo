@@ -1,0 +1,23 @@
+@trait {
+  name: "@node_editor",
+  category: "interaction",
+  description: "Visual node graph editor surface for in-world or panel-based flow authoring. Renders a draggable/connectable node canvas with typed input/output ports, supporting serialization to JSON and execution via a connected runtime interpreter. Authored from NodeEditorTrait.ts.",
+  props: {
+    graph_url: string = "",
+    node_types_url: string = "",
+    read_only: boolean = false,
+    auto_save: boolean = true,
+    zoom_min: number = 0.1,
+    zoom_max: number = 3.0,
+    snap_grid: number = 16
+  },
+  events: {
+    attached: "node_editor_attached",
+    detached: "node_editor_detached",
+    on_change: "node_editor_change",
+    on_execute: "node_editor_execute",
+    on_save: "node_editor_save",
+    execute: "node_editor_trigger_execute"
+  },
+  behaviors: ["@action_graph", "@blackboard", "@display"]
+}

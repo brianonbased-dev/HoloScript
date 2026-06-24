@@ -1,0 +1,21 @@
+@trait {
+  name: "@noise_field",
+  category: "visual",
+  description: "Procedural 3D noise field generator. Evaluates Perlin, simplex, Worley, or fractal Brownian motion noise at sample positions, outputting scalar or vector fields used by mesh deform, particle, weather, and terrain systems for organic randomness. Authored from NoiseFieldTrait.ts.",
+  props: {
+    type: enum("perlin" | "simplex" | "worley" | "fbm" | "ridged") = "perlin",
+    frequency: number = 1.0,
+    amplitude: number = 1.0,
+    octaves: number = 4,
+    persistence: number = 0.5,
+    lacunarity: number = 2.0,
+    seed: number = 0,
+    animate_speed: number = 0.0
+  },
+  events: {
+    attached: "noise_field_attached",
+    detached: "noise_field_detached",
+    on_sample: "noise_field_sample"
+  },
+  behaviors: ["@mesh_deform", "@gpu_particle", "@voxel_terrain"]
+}

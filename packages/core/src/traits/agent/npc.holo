@@ -1,0 +1,23 @@
+@trait {
+  name: "@npc",
+  category: "agent",
+  description: "Non-player character base controller. Combines locomotion, simple state machine (idle/patrol/chase/attack/flee), interaction radius detection, and dialogue trigger into a single composite for world-population NPCs that do not require a full cognitive brain. Authored from NpcTrait.ts.",
+  props: {
+    name: string = "",
+    archetype: enum("neutral" | "friendly" | "hostile" | "vendor" | "quest_giver") = "neutral",
+    patrol_radius_m: number = 10.0,
+    detect_radius_m: number = 8.0,
+    chase_radius_m: number = 20.0,
+    speed: number = 1.4,
+    dialogue_id: string = ""
+  },
+  events: {
+    attached: "npc_attached",
+    detached: "npc_detached",
+    on_detect_player: "npc_detect_player",
+    on_lose_player: "npc_lose_player",
+    on_interact: "npc_interact",
+    on_state_change: "npc_state_change"
+  },
+  behaviors: ["@navigation", "@npc_brain", "@kinematic"]
+}
