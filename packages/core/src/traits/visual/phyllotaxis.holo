@@ -1,0 +1,23 @@
+@trait {
+  name: "@phyllotaxis",
+  category: "visual",
+  description: "Phyllotaxis spiral procedural layout generator. Distributes N child entities in Fibonacci golden-angle spiral patterns for flower petals, seed arrangements, and organic decorative structures. Authored from PhyllotaxisTrait.ts.",
+  props: {
+    count: number = 100,
+    scale: number = 1.0,
+    angle_deg: number = 137.508,
+    growth_rate: number = 1.0,
+    plane: enum("xy" | "xz" | "yz") = "xz",
+    jitter: number = 0.0,
+    animate: boolean = false,
+    animate_speed: number = 0.5
+  },
+  events: {
+    attached: "phyllotaxis_attached",
+    detached: "phyllotaxis_detached",
+    on_layout: "phyllotaxis_layout",
+    on_animate_tick: "phyllotaxis_tick",
+    regenerate: "phyllotaxis_regenerate"
+  },
+  behaviors: ["@procedural_terrain", "@particle_emitter"]
+}
