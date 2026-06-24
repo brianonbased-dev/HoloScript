@@ -1,0 +1,23 @@
+@trait {
+  name: "@portable",
+  category: "agent",
+  description: "Agent portability handle. Packages the entity's identity, memory snapshot, and active trait state into a transferable capsule that can be deserialized on a different host, fleet node, or XR device without loss of continuity. Authored from PortableTrait.ts.",
+  props: {
+    include_memory: boolean = true,
+    include_state: boolean = true,
+    include_world_refs: boolean = false,
+    compression: enum("none" | "zstd" | "lz4") = "zstd",
+    max_snapshot_mb: number = 16,
+    target_host: string = ""
+  },
+  events: {
+    attached: "portable_attached",
+    detached: "portable_detached",
+    on_pack: "portable_pack",
+    on_unpack: "portable_unpack",
+    on_transfer: "portable_transfer",
+    pack: "portable_trigger_pack",
+    transfer: "portable_trigger_transfer"
+  },
+  behaviors: ["@persistent", "@remote_presence", "@networked"]
+}

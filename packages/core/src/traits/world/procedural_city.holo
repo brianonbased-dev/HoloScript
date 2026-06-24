@@ -1,0 +1,24 @@
+@trait {
+  name: "@procedural_city",
+  category: "world",
+  description: "Procedural city block and street grid generator. Produces building footprints, road networks, sidewalks, and LOD meshes from a bounding box and seed, using real OSM data or pure noise to fill blocks with typed structures. Authored from ProceduralCityTrait.ts.",
+  props: {
+    seed: number = 42,
+    width_m: number = 1000.0,
+    depth_m: number = 1000.0,
+    block_size_m: number = 80.0,
+    road_width_m: number = 12.0,
+    building_height_min_m: number = 10.0,
+    building_height_max_m: number = 100.0,
+    use_osm: boolean = false,
+    lod_levels: number = 3
+  },
+  events: {
+    attached: "procedural_city_attached",
+    detached: "procedural_city_detached",
+    on_generate: "procedural_city_generate",
+    on_lod_change: "procedural_city_lod",
+    regenerate: "procedural_city_trigger"
+  },
+  behaviors: ["@ecs_world", "@lod_group", "@digital_twin"]
+}

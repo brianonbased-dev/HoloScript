@@ -1,0 +1,21 @@
+@trait {
+  name: "@pose_retarget",
+  category: "physics",
+  description: "Skeleton pose retargeter. Maps source skeleton joint angles onto a target rig with different bone hierarchy or proportions using IK-based or ratio-scaling retargeting, enabling cross-character animation sharing. Authored from PoseRetargetTrait.ts.",
+  props: {
+    source_rig: string = "",
+    target_rig: string = "",
+    method: enum("ik" | "ratio_scale" | "direct_map" | "neural") = "ik",
+    preserve_feet: boolean = true,
+    preserve_hands: boolean = true,
+    blend_weight: number = 1.0,
+    fps: number = 30
+  },
+  events: {
+    attached: "pose_retarget_attached",
+    detached: "pose_retarget_detached",
+    on_retarget: "pose_retarget_apply",
+    on_error: "pose_retarget_error"
+  },
+  behaviors: ["@motion_source", "@rig_match_skeleton", "@locomotion"]
+}

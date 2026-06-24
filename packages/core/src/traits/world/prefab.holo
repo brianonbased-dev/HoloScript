@@ -1,0 +1,21 @@
+@trait {
+  name: "@prefab",
+  category: "world",
+  description: "Reusable entity prefab template reference. Links an entity to a named prefab definition in the asset registry, enabling stamped instantiation with per-instance property overrides while maintaining a single canonical authoring source. Authored from PrefabTrait.ts.",
+  props: {
+    prefab_id: string = "",
+    registry: enum("local" | "holoscript" | "hololand") = "holoscript",
+    overrides: dict<string, string> = {},
+    auto_update: boolean = false,
+    instance_id: string = ""
+  },
+  events: {
+    attached: "prefab_attached",
+    detached: "prefab_detached",
+    on_instantiate: "prefab_instantiate",
+    on_update: "prefab_update",
+    on_unlink: "prefab_unlink",
+    unlink: "prefab_trigger_unlink"
+  },
+  behaviors: ["@persistent", "@change_tracking"]
+}
