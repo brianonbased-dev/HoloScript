@@ -1,0 +1,28 @@
+@trait {
+  name: "@sprite_sheet",
+  category: "visual",
+  description: "2D sprite sheet animation player. Supports frame-based atlases, named clips, and event-based frame callbacks for 2.5D and billboard entities. Authored from SpriteSheetTrait.ts.",
+  props: {
+    texture_url: string = "",
+    frame_width: number = 64,
+    frame_height: number = 64,
+    columns: number = 1,
+    rows: number = 1,
+    fps: number = 24,
+    clips: list<{ name: string, start: number, end: number, loop: boolean }> = [],
+    current_clip: string = "",
+    autoplay: boolean = true
+  },
+  events: {
+    attached: "sprite_sheet_attached",
+    detached: "sprite_sheet_detached",
+    on_frame: "sprite_sheet_frame",
+    on_clip_end: "sprite_sheet_clip_end",
+    on_clip_loop: "sprite_sheet_clip_loop",
+    on_load: "sprite_sheet_load",
+    play_clip: "sprite_sheet_play",
+    stop: "sprite_sheet_stop",
+    set_frame: "sprite_sheet_set_frame"
+  },
+  behaviors: ["@animation", "@material"]
+}

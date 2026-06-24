@@ -1,0 +1,26 @@
+@trait {
+  name: "@soft_body",
+  category: "physics",
+  description: "Position-based dynamics soft body simulation for deformable meshes, cloth, and jelly-like objects. Authored from SoftBodyTrait.ts.",
+  props: {
+    stiffness: number = 0.5,
+    damping: number = 0.1,
+    mass: number = 1.0,
+    iterations: number = 10,
+    pressure: number = 0.0,
+    volume_conservation: boolean = false,
+    self_collision: boolean = false,
+    gravity_scale: number = 1.0,
+    constraint_type: enum("distance" | "bend" | "volume" | "combined") = "combined"
+  },
+  events: {
+    attached: "soft_body_attached",
+    detached: "soft_body_detached",
+    on_settle: "soft_body_settle",
+    on_collision: "soft_body_collision",
+    on_tear: "soft_body_tear",
+    on_update: "soft_body_update",
+    reset: "soft_body_reset"
+  },
+  behaviors: ["@rigid_body"]
+}

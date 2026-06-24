@@ -1,0 +1,24 @@
+@trait {
+  name: "@road_network",
+  category: "spatial",
+  description: "Procedural road network graph for vehicles and pedestrians. Defines lanes, intersections, speed limits, and traffic signals. Authored from RoadNetworkTrait.ts.",
+  props: {
+    graph_url: string = "",
+    default_speed_kph: number = 50.0,
+    lane_width_m: number = 3.5,
+    sidewalk_width_m: number = 1.5,
+    traffic_light_cycle_s: number = 30.0,
+    bidirectional: boolean = true,
+    generate_sidewalks: boolean = true
+  },
+  events: {
+    attached: "road_network_attached",
+    detached: "road_network_detached",
+    on_loaded: "road_network_loaded",
+    on_signal_change: "road_network_signal_change",
+    on_congestion: "road_network_congestion",
+    on_error: "road_network_error",
+    set_signal: "road_network_set_signal"
+  },
+  behaviors: ["@nav_mesh", "@waypoint"]
+}

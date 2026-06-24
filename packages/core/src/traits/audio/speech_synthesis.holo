@@ -1,0 +1,27 @@
+@trait {
+  name: "@speech_synthesis",
+  category: "audio",
+  description: "Text-to-speech synthesis with voice selection, SSML support, and spatial output. Drives avatar lip sync when combined with @avatar_embodiment. Authored from SpeechSynthesisTrait.ts.",
+  props: {
+    voice_id: string = "en-US-Neural-F",
+    language: string = "en-US",
+    speed: number = 1.0,
+    pitch: number = 0.0,
+    volume: number = 1.0,
+    backend: enum("elevenlabs" | "openai" | "azure" | "web_speech" | "holoscript") = "web_speech",
+    ssml: boolean = false,
+    lip_sync: boolean = false
+  },
+  events: {
+    attached: "speech_synthesis_attached",
+    detached: "speech_synthesis_detached",
+    on_start: "speech_synthesis_start",
+    on_end: "speech_synthesis_end",
+    on_word: "speech_synthesis_word",
+    on_error: "speech_synthesis_error",
+    speak: "speech_synthesis_trigger_speak",
+    stop: "speech_synthesis_trigger_stop",
+    pause: "speech_synthesis_trigger_pause"
+  },
+  behaviors: ["@emotional_voice", "@avatar_embodiment"]
+}
