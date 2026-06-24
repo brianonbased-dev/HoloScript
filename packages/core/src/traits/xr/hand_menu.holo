@@ -1,0 +1,24 @@
+@trait {
+  name: "@hand_menu",
+  category: "xr",
+  description: "Hand-tracked radial menu for XR interactions. Renders a UI panel attached to the palm that opens on wrist-up gesture and offers tool-belt buttons selectable by gaze or pinch. Authored from HandMenuTrait.ts.",
+  props: {
+    items: list<{ label: string, icon_url: string, action: string }> = [],
+    hand: enum("left" | "right") = "left",
+    activation_gesture: enum("wrist_up" | "palm_face" | "pinch_hold") = "wrist_up",
+    radius_m: number = 0.08,
+    visible_angle_deg: number = 45,
+    haptic_on_select: boolean = true,
+    close_on_select: boolean = true
+  },
+  events: {
+    attached: "hand_menu_attached",
+    detached: "hand_menu_detached",
+    on_open: "hand_menu_open",
+    on_close: "hand_menu_close",
+    on_select: "hand_menu_select",
+    open: "hand_menu_trigger_open",
+    close: "hand_menu_trigger_close"
+  },
+  behaviors: ["@hand_tracking", "@haptic", "@spatial_panel"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@invoice",
+  category: "economics",
+  description: "Invoice generation and payment tracking. Creates itemized invoices, issues them via email or URL, tracks payment status, and integrates with Stripe or on-chain settlement. Authored from InvoiceTrait.ts.",
+  props: {
+    provider: enum("stripe" | "holoscript" | "on_chain" | "manual") = "holoscript",
+    currency: string = "USD",
+    line_items: list<{ description: string, amount: number, quantity: number }> = [],
+    tax_pct: number = 0.0,
+    due_days: number = 30,
+    auto_send: boolean = true,
+    memo: string = ""
+  },
+  events: {
+    attached: "invoice_attached",
+    detached: "invoice_detached",
+    on_created: "invoice_created",
+    on_sent: "invoice_sent",
+    on_paid: "invoice_paid",
+    on_overdue: "invoice_overdue",
+    create: "invoice_trigger_create",
+    mark_paid: "invoice_mark_paid"
+  },
+  behaviors: ["@stripe", "@subscription", "@email"]
+}

@@ -1,0 +1,27 @@
+@trait {
+  name: "@http_client",
+  category: "network",
+  description: "Declarative HTTP client with retry, timeout, auth, and response schema validation. Issues GET/POST/PUT/DELETE requests from trait handlers without raw fetch calls. Authored from HttpClientTrait.ts.",
+  props: {
+    base_url: string = "",
+    timeout_ms: number = 10000,
+    retry_max: number = 3,
+    retry_delay_ms: number = 1000,
+    auth: enum("none" | "bearer" | "basic" | "api_key" | "holoscript") = "none",
+    auth_secret: string = "",
+    default_headers: dict<string, string> = {},
+    follow_redirects: boolean = true
+  },
+  events: {
+    attached: "http_client_attached",
+    detached: "http_client_detached",
+    on_response: "http_client_response",
+    on_error: "http_client_error",
+    on_retry: "http_client_retry",
+    get: "http_client_get",
+    post: "http_client_post",
+    put: "http_client_put",
+    delete: "http_client_delete"
+  },
+  behaviors: ["@rest_endpoint", "@circuit_breaker"]
+}
