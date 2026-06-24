@@ -99,6 +99,31 @@ export { provenanceHandler } from '../traits/ProvenanceTrait';
 export type { ProvenanceTraitConfig } from '../traits/ProvenanceTrait';
 export { provenanceDensifyHandler } from '../traits/ProvenanceDensifyTrait';
 export type { ProvenanceDensifyConfig } from '../traits/ProvenanceDensifyTrait';
+
+// Reconstruction provenance primitives — the observed-vs-invented moat. Exposed
+// on the public barrel so other packages (e.g. the ssja FidelityEvalContract)
+// can COMPOSE the receipt + histogram rather than re-deriving them.
+export {
+  provenanceClassToCode,
+  provenanceCodeToClass,
+  provenanceHistogram,
+  uniformProvenance,
+  POINT_PROVENANCE_CODE,
+  POINT_PROVENANCE_CLASS_BY_CODE,
+  HOLOMAP_CAPTURE_DEFAULT_PROVENANCE,
+} from '../reconstruction/PointProvenance';
+export type { PointProvenanceClass, ProvenanceHistogram } from '../reconstruction/PointProvenance';
+export {
+  buildProvenanceReceipt,
+  PROVENANCE_RECEIPT_VERSION,
+} from '../reconstruction/ProvenanceReceipt';
+export type { ProvenanceReceipt } from '../reconstruction/ProvenanceReceipt';
+export { densifyByInterpolation } from '../reconstruction/densifyByInterpolation';
+export type {
+  DensifyMode,
+  DensifyResult,
+  GenerativeDensifierBackend,
+} from '../reconstruction/densifyByInterpolation';
 export type {
   AutoRigConfig,
   AutoRigPose,
