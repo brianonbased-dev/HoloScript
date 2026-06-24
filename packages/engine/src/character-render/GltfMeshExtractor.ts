@@ -261,6 +261,46 @@ function readPrimitiveGeometry(g: GltfJson, bin: Uint8Array, prim: GltfPrimitive
 }
 
 /**
+ * Merge several primitives' scalar geometry into one contiguous buffer set, offsetting each
+ * primitive's indices into the merged vertex stream. UVs survive only when EVERY input carries
+ * them (a mixed set drops UVs rather than emit garbage coordinates); the FIRST input's material
+ * maps are carried (faithful per-primitive material GROUPS are a further layer — see
+ * CharacterDrawSpec.materialGroups). A single-element merge returns that geometry unchanged.
+ */
+function mergePrimitiveGeometries(geoms: PrimitiveGeometry[]): PrimitiveGeometry {
+  if (geoms.length === 1) return geoms[0];
+  const totalV = geoms.reduce((s, x) => s + x.vertexCount, 0);
+  const totalI = geoms.reduce((s, x) => s + x.indices.length, 0);
+  const allHaveUv = geoms.every((x) => x.uvs);
+  const positions = new Float32Array(totalV * 3);
+  const normals = new Float32Array(totalV * 3);
+  const tangents = new Float32Array(totalV * 4);
+  const uvs = allHaveUv ? new Float32Array(totalV * 2) : undefined;
+  const indices = new Uint32Array(totalI);
+  let vBase = 0;
+  let iBase = 0;
+  for (const x of geoms) {
+    positions.set(x.positions, vBase * 3);
+    normals.set(x.normals, vBase * 3);
+    tangents.set(x.tangents, vBase * 4);
+    if (uvs && x.uvs) uvs.set(x.uvs, vBase * 2);
+    for (let k = 0; k < x.indices.length; k++) indices[iBase + k] = x.indices[k] + vBase; // offset into merged stream
+    vBase += x.vertexCount;
+    iBase += x.indices.length;
+  }
+  const materialMaps = geoms[0].materialMaps;
+  return {
+    positions,
+    normals,
+    tangents,
+    ...(uvs ? { uvs } : {}),
+    indices,
+    vertexCount: totalV,
+    ...(materialMaps ? { materialMaps } : {}),
+  };
+}
+
+/**
  * Extract the first skinned primitive of a .glb into a palette-remapped SkinnedMeshData.
  */
 export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
@@ -362,39 +402,43 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
 export type GltfStaticMesh = GltfSkinnedMesh;
 
 /**
- * Extract the first triangle primitive of a .glb as a STATIC mesh: real
- * POSITION/NORMAL/TANGENT/TEXCOORD_0/indices (+ bound PBR maps) carried with a
- * rigid identity bind — every vertex rides palette root (joint 0) at weight 1.0
- * with identity inverse-binds, i.e. undeformed at rest. This lets a NON-skinned
- * GLB (the majority of environment/object assets) carry its real surface through
- * the exact same codec + `.holo` `shape "<name>" mesh { … }` block as a skinned
- * one, instead of degrading to an external text pointer. The rigid root bind is
- * the same form the skinned extractor emits for an unmapped vertex
- * (jointIndices=0, weight=1). Any JOINTS_0/WEIGHTS_0 on the primitive are ignored
- * — call {@link extractGltfSkinnedMesh} for those. Same documented limits as the
- * skinned path: no Draco/meshopt, no sparse/external buffers, first primitive only.
+ * Extract a .glb as a STATIC mesh: real POSITION/NORMAL/TANGENT/TEXCOORD_0/indices (+ bound PBR
+ * maps) carried with a rigid identity bind — every vertex rides palette root (joint 0) at weight
+ * 1.0 with identity inverse-binds, i.e. undeformed at rest. This lets a NON-skinned GLB (the
+ * majority of environment/object assets) carry its real surface through the exact same codec +
+ * `.holo` `shape "<name>" mesh { … }` block as a skinned one, instead of degrading to an external
+ * text pointer. The rigid root bind is the same form the skinned extractor emits for an unmapped
+ * vertex (jointIndices=0, weight=1). Any JOINTS_0/WEIGHTS_0 on the primitives are ignored — call
+ * {@link extractGltfSkinnedMesh} for those.
+ *
+ * MULTI-PRIMITIVE: ALL triangle primitives of the first mesh that has any are MERGED into one
+ * geometry (multi-primitive props — split by material — are common). Non-triangle primitives are
+ * skipped; the first primitive's PBR maps are carried (per-primitive material groups are a further
+ * layer). Limits: no Draco/meshopt (decode at the CLI import boundary, `glb-decompress.ts`), no
+ * sparse/external buffers, first mesh only.
  */
 export function extractGltfStaticMesh(glb: ArrayBuffer): GltfStaticMesh {
   const { json: g, bin } = parseGlb(glb);
 
-  // First triangle primitive carrying POSITION (skin attributes, if any, ignored).
-  let prim: GltfPrimitive | undefined;
+  // First mesh with >=1 triangle primitive carrying POSITION; merge all such primitives of it.
+  let prims: GltfPrimitive[] | undefined;
   for (let mi = 0; mi < (g.meshes?.length ?? 0); mi++) {
+    const tris: GltfPrimitive[] = [];
     for (const p of g.meshes![mi].primitives) {
       if (p.extensions?.KHR_draco_mesh_compression || p.extensions?.EXT_meshopt_compression)
         throw new Error('compressed primitive (Draco/meshopt) not supported by the native extractor');
-      if (p.attributes?.POSITION !== undefined) {
-        prim = p;
-        break;
-      }
+      if (p.mode !== undefined && p.mode !== 4) continue; // non-triangle primitive: skip, don't merge
+      if (p.attributes?.POSITION !== undefined) tris.push(p);
     }
-    if (prim) break;
+    if (tris.length) {
+      prims = tris;
+      break;
+    }
   }
-  if (!prim) throw new Error('no primitive with a POSITION attribute found');
-  if (prim.mode !== undefined && prim.mode !== 4) throw new Error('only triangle primitives (mode 4) supported');
+  if (!prims || !prims.length) throw new Error('no triangle primitive with a POSITION attribute found');
 
   const { positions, normals, tangents, uvs, indices, vertexCount, materialMaps } =
-    readPrimitiveGeometry(g, bin, prim);
+    mergePrimitiveGeometries(prims.map((p) => readPrimitiveGeometry(g, bin, p)));
 
   // Rigid identity bind: no source skin → every vertex → palette root at weight
   // 1.0 with identity inverse-binds. Undeformed at rest; identical in form to the
