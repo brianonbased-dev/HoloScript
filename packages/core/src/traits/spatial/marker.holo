@@ -1,0 +1,20 @@
+@trait {
+  name: "@marker",
+  category: "spatial",
+  description: "General-purpose spatial marker for tagging world positions with metadata. Stores an arbitrary key-value payload at a world-space position, used by nav, quest, analytics, and spawn systems to reference named locations without requiring a full entity. Authored from MarkerTrait.ts.",
+  props: {
+    key: string = "",
+    payload: dict<string, string> = {},
+    group: string = "",
+    visible: boolean = false,
+    icon_url: string = "",
+    label: string = ""
+  },
+  events: {
+    attached: "marker_attached",
+    detached: "marker_detached",
+    on_activate: "marker_activate",
+    activate: "marker_trigger_activate"
+  },
+  behaviors: ["@map_marker", "@waypoint", "@tag_filter"]
+}

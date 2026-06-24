@@ -1,0 +1,24 @@
+@trait {
+  name: "@match_making",
+  category: "game",
+  description: "Multiplayer matchmaking ticket and session manager. Submits a matchmaking ticket with skill rating and mode preferences, polls for a match, and fires a session-ready event with connection details when a match is found or a timeout occurs. Authored from MatchMakingTrait.ts.",
+  props: {
+    mode: string = "default",
+    skill_rating: number = 1000,
+    max_wait_s: number = 60,
+    team_size: number = 1,
+    region: string = "auto",
+    fill_bots: boolean = false
+  },
+  events: {
+    attached: "match_making_attached",
+    detached: "match_making_detached",
+    on_searching: "match_making_searching",
+    on_found: "match_making_found",
+    on_timeout: "match_making_timeout",
+    on_cancel: "match_making_cancel",
+    search: "match_making_trigger_search",
+    cancel: "match_making_trigger_cancel"
+  },
+  behaviors: ["@player", "@game_mode", "@networked"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@map_marker",
+  category: "spatial",
+  description: "Minimap and world-map marker pin for entities and points of interest. Registers an entity as a named marker on any active minimap surfaces, supporting icon, label, color, category filter, and visibility range. Authored from MapMarkerTrait.ts.",
+  props: {
+    label: string = "",
+    icon_url: string = "",
+    color: string = "#ffffff",
+    category: string = "poi",
+    visible_range_m: number = 0,
+    always_visible: boolean = false,
+    show_direction_arrow: boolean = true
+  },
+  events: {
+    attached: "map_marker_attached",
+    detached: "map_marker_detached",
+    on_click: "map_marker_click",
+    set_label: "map_marker_trigger_set_label"
+  },
+  behaviors: ["@minimap", "@place_anchor", "@waypoint"]
+}

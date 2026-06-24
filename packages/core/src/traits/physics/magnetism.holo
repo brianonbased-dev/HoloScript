@@ -1,0 +1,21 @@
+@trait {
+  name: "@magnetism",
+  category: "physics",
+  description: "Attraction/repulsion force field around an entity. Applies a configurable dipole force on nearby physics-enabled entities within range, with falloff curve and polarity toggle for magnetic snap, sorting, or push-away effects. Authored from MagnetismTrait.ts.",
+  props: {
+    polarity: enum("attract" | "repel" | "dipole") = "attract",
+    force_n: number = 10.0,
+    range_m: number = 3.0,
+    falloff: enum("linear" | "quadratic" | "constant") = "quadratic",
+    affect_tags: list<string> = [],
+    enabled: boolean = true,
+    rotate_to_pole: boolean = false
+  },
+  events: {
+    attached: "magnetism_attached",
+    detached: "magnetism_detached",
+    on_attract: "magnetism_attract",
+    on_repel: "magnetism_repel"
+  },
+  behaviors: ["@collider", "@force_field", "@physics_body"]
+}
