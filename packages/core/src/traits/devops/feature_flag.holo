@@ -1,0 +1,25 @@
+@trait {
+  name: "@feature_flag",
+  category: "devops",
+  description: "Runtime feature-flag evaluation with per-flag boolean state, environment scoping, and progressive rollout control. flags is a static dict of flag key → default enabled state; rollout_percentage gates how many users/agents see the flag; environment scopes the evaluation context. Composed with @healthcheck and @canary in operations dashboard scenes. Integrates with LaunchDarkly, Unleash, or the HoloScript-native flag resolver depending on the provider hint on the consuming service.",
+  props: {
+    flags: dict<string, boolean> = {},
+    default_enabled: boolean = false,
+    rollout_percentage: number = 100,
+    environment: enum("development" | "staging" | "production" | "edge") = "production",
+    max_flags: number = 200,
+    refresh_interval_ms: number = 30000
+  },
+  events: {
+    attached: "feature_flag:attached",
+    detached: "feature_flag:detached",
+    flag_defined: "feature_flag:defined",
+    flag_toggled: "feature_flag:toggled",
+    flag_evaluated: "feature_flag:evaluated",
+    rollout_updated: "feature_flag:rollout_updated",
+    on_define: "feature_flag:define",
+    on_toggle: "feature_flag:toggle",
+    on_evaluate: "feature_flag:evaluate",
+    on_refresh: "feature_flag:refresh"
+  }
+}

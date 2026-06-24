@@ -1,0 +1,31 @@
+@trait {
+  name: "@emotional_voice",
+  category: "audio",
+  description: "Neural TTS vocalization with emotional synthesis for NPC and agent speech. Selects a backend engine (elevenlabs, openai, holoscript-native, or edge-local), maps a stable voice_id, blends PAD-space emotion via valence/arousal weights, and controls speaking rate and prosody stability. Integrates with @lip_sync for audio-driven facial animation. Consumed by @avatar_embodiment, @ai_companion, and the Brittney authority-locus pipeline.",
+  props: {
+    engine: enum("elevenlabs" | "openai" | "holoscript" | "edge") = "holoscript",
+    voice_id: string = "",
+    emotion_blend: {
+      valence: number = 0.0,
+      arousal: number = 0.0
+    },
+    speaking_rate: number = 1.0,
+    stability: number = 0.75,
+    cache_audio: boolean = true,
+    similarity_boost: number = 0.75
+  },
+  events: {
+    attached: "emotional_voice:attached",
+    detached: "emotional_voice:detached",
+    speak_started: "emotional_voice:speak_started",
+    speak_finished: "emotional_voice:speak_finished",
+    speak_error: "emotional_voice:speak_error",
+    engine_changed: "emotional_voice:engine_changed",
+    on_speak: "emotional_voice:speak",
+    on_set_engine: "emotional_voice:set_engine",
+    on_set_voice: "emotional_voice:set_voice",
+    on_set_emotion: "emotional_voice:set_emotion",
+    on_stop: "emotional_voice:stop"
+  },
+  behaviors: ["@lip_sync"]
+}

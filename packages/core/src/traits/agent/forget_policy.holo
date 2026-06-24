@@ -1,0 +1,28 @@
+@trait {
+  name: "@forget_policy",
+  category: "agent",
+  description: "Deterministic memory-retention and deletion policy for memory-bearing agent scopes. Declares how long memories survive (retention_days), which scope they belong to (node-local / session / user / global), what happens on entity detach (purge, archive to cold store, or anonymize PII), and whether GDPR-compliant audit trails are required. Composes with @agent_memory and @memory_crystal; the runtime evaluates the policy on a configurable interval and emits audit events for every deletion. Guards accidental mass-deletion via max_deletes_per_cycle.",
+  props: {
+    retention_days: number = 30,
+    scope: enum("node" | "session" | "user" | "global") = "session",
+    on_detach: enum("purge" | "archive" | "anonymize") = "archive",
+    gdpr_compliant: boolean = true,
+    audit: boolean = true,
+    dry_run: boolean = false,
+    eval_interval_ms: number = 60000,
+    max_deletes_per_cycle: number = 100
+  },
+  events: {
+    attached: "forget_policy:attached",
+    detached: "forget_policy:detached",
+    evaluated: "forget_policy:evaluated",
+    applied: "forget_policy:applied",
+    audit_entry: "forget_policy:audit_entry",
+    audit_exported: "forget_policy:audit_exported",
+    error: "forget_policy:error",
+    on_execute: "forget_policy:execute",
+    on_export_audit: "forget_policy:export_audit",
+    on_query: "forget_policy:query"
+  },
+  behaviors: ["@agent_memory"]
+}

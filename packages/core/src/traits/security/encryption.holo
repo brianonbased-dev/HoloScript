@@ -1,0 +1,27 @@
+@trait {
+  name: "@encryption",
+  category: "security",
+  description: "Data-at-rest and in-transit encryption policy for HoloScript entities. Selects a symmetric algorithm (AES-256-GCM or ChaCha20-Poly1305) or an asymmetric key-exchange cipher (X25519 ECDH), controls per-scope encryption planes, and specifies a key-derivation function (HKDF or PBKDF2). Composes with @secret and @holokey_vault for key material resolution. Drives compile targets that emit native TLS/WebCrypto/NaCl bindings.",
+  props: {
+    algorithm: enum("AES-256-GCM" | "ChaCha20" | "X25519") = "AES-256-GCM",
+    at_rest: boolean = true,
+    in_transit: boolean = true,
+    key_derivation: enum("HKDF" | "PBKDF2") = "HKDF",
+    key_rotation_days: number = 90,
+    certificate_pinning: boolean = false,
+    perfect_forward_secrecy: boolean = true
+  },
+  events: {
+    attached: "encryption:attached",
+    detached: "encryption:detached",
+    key_rotated: "encryption:key_rotated",
+    encrypt_done: "encryption:encrypt_done",
+    decrypt_done: "encryption:decrypt_done",
+    error: "encryption:error",
+    on_rotate: "encryption:rotate",
+    on_encrypt: "encryption:encrypt",
+    on_decrypt: "encryption:decrypt",
+    on_query: "encryption:query"
+  },
+  behaviors: ["@secret"]
+}
