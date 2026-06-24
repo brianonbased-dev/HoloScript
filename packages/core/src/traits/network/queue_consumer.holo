@@ -1,0 +1,29 @@
+@trait {
+  name: "@queue_consumer",
+  category: "network",
+  description: "Message-queue consumer bridge for HoloScript entities. backend selects the queue technology: rabbitmq connects via AMQP 0-9-1 to a RabbitMQ broker using the connection_url; kafka connects to an Apache Kafka cluster via bootstrap_servers and reads from a Kafka topic partitioned by partition_key; sqs polls an Amazon SQS queue at the url given by connection_url using AWS credentials resolved from the HoloKey vault; holoscript routes through the HoloMesh mesh-message bus using the built-in channel addressing. queue_name is the queue, topic, or channel name to subscribe on — for Kafka this is the topic name. consumer_group identifies the consumer group for load-balanced delivery across multiple instances; empty = solo consumer (no group balancing). prefetch caps the number of unacknowledged messages held in flight before the broker stops sending more; 0 = unlimited (broker-default). ordered, when true, constrains the consumer to process messages in strict arrival order (disables concurrent dispatch; for Kafka this pins to a single partition). dead_letter, when true, routes messages that exceed retry_max or that receive on_nack without requeue to a broker-managed dead-letter queue or topic; the dead-letter destination is broker-specific. on_message fires for each delivered message with the payload, message_id, headers dict, and redelivered flag; the handler must call on_ack or on_nack to release the broker slot. on_ack is the command event to acknowledge successful processing of a message_id. on_nack is the command event to negatively-acknowledge a message_id; requeue boolean controls whether the broker re-enqueues the message (true) or routes it to dead-letter (false). on_error fires on connection failure or deserialisation error with the reason string and optional message_id. Research: MessagingTrait.ts, TaskQueueTrait.ts, queue consumer patterns.",
+  props: {
+    backend: enum("rabbitmq" | "kafka" | "sqs" | "holoscript") = "holoscript",
+    queue_name: string = "",
+    consumer_group: string = "",
+    connection_url: string = "",
+    prefetch: number = 10,
+    ordered: boolean = false,
+    dead_letter: boolean = true,
+    retry_max: number = 3
+  },
+  events: {
+    attached: "queue_consumer:attached",
+    detached: "queue_consumer:detached",
+    connected: "queue_consumer:connected",
+    disconnected: "queue_consumer:disconnected",
+    on_message: "queue_consumer:message",
+    on_ack: "queue_consumer:cmd_ack",
+    on_nack: "queue_consumer:cmd_nack",
+    on_error: "queue_consumer:error",
+    dead_letter_routed: "queue_consumer:dead_letter",
+    on_pause: "queue_consumer:cmd_pause",
+    on_resume: "queue_consumer:cmd_resume"
+  },
+  behaviors: ["@circuit_breaker"]
+}

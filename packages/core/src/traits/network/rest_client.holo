@@ -1,0 +1,28 @@
+@trait {
+  name: "@rest_client",
+  category: "network",
+  description: "Declarative HTTP REST client for outbound API integration from HoloScript entities. base_url is the root URL prepended to every request path (e.g. 'https://api.example.com/v2'). auth_scheme selects the authentication strategy: bearer injects an 'Authorization: Bearer <token>' header using a secret resolved from the HoloKey vault (vault key = 'rest_client.<entity_id>.token'); basic encodes a username:password pair as Base64 Basic auth; api_key injects the secret value into the header named by api_key_header (default 'X-Api-Key'); none sends no authentication header. timeout_ms is the per-request timeout in milliseconds before the request is aborted and on_timeout fires. retry_max is the maximum number of automatic retries on 5xx or network failure; 0 = no retries. Retries use exponential backoff seeded at 500ms. interceptors is a list of interceptor names registered in the HoloScript trait registry; each named interceptor receives the request and response in order for mutation (e.g. request signing, response transformation, logging). on_request fires before every outbound call with the method, path, headers dict, and body; it is a command-class event — handlers may mutate the outbound payload by emitting a modified version. on_response fires after every successful response with status, headers, body, and latency_ms. on_error fires on network failure, non-retryable 4xx (excluding 429), or exhausted retries with the status code and reason string. on_timeout fires when the request exceeds timeout_ms. Research: WebhookTrait.ts v5.1, circuit_breaker.holo, rest-client integration patterns.",
+  props: {
+    base_url: string = "",
+    auth_scheme: enum("bearer" | "basic" | "api_key" | "none") = "none",
+    api_key_header: string = "X-Api-Key",
+    timeout_ms: number = 10000,
+    retry_max: number = 3,
+    interceptors: list<string> = []
+  },
+  events: {
+    attached: "rest_client:attached",
+    detached: "rest_client:detached",
+    on_request: "rest_client:cmd_request",
+    on_response: "rest_client:response",
+    on_error: "rest_client:error",
+    on_timeout: "rest_client:timeout",
+    retry: "rest_client:retry",
+    on_get: "rest_client:cmd_get",
+    on_post: "rest_client:cmd_post",
+    on_put: "rest_client:cmd_put",
+    on_patch: "rest_client:cmd_patch",
+    on_delete: "rest_client:cmd_delete"
+  },
+  behaviors: ["@circuit_breaker", "@rate_limiter"]
+}

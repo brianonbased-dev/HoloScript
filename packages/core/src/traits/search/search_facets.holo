@@ -1,0 +1,23 @@
+@trait {
+  name: "@search_facets",
+  category: "search",
+  description: "Faceted search narrowing layer for HoloScript search compositions. Declares a set of typed facets that partition a result set into enumerable or range-bounded buckets for interactive filtering. facets is a list of facet descriptors; each descriptor contains field (the indexed field name to facet on) and type (term for discrete value enumeration or range for numeric/date range bucketing). max_facet_values is the maximum number of distinct values returned per term facet before the tail is collapsed into an 'other' bucket; 0 = unlimited. multi_select, when true, allows simultaneous activation of multiple values within a single facet using OR semantics — selecting 'red' and 'blue' from a color facet returns items matching either color; when false only one value per facet is active at a time (radio semantics). range_fields is an explicit list of field names that should always be treated as numeric range facets regardless of their type entry in facets, enabling runtime override without modifying the facet descriptor list. on_facet_change fires when any facet selection changes with the facet field name, the new active_values list, and the full updated filters dict; downstream search traits should re-execute with the new filters. on_facet_clear fires when a single facet's selection is reset with the cleared field name. on_apply fires when the caller explicitly commits the current facet selections as the active filter set, useful for deferred-apply UX patterns that batch multiple facet changes before re-querying. Composes with @full_text_search and @graph_query for hybrid narrowing pipelines. Research: FacetedSearchTrait.ts, full_text_search.holo.",
+  props: {
+    facets: list<{ field: string, type: enum("term" | "range") }> = [],
+    max_facet_values: number = 20,
+    multi_select: boolean = true,
+    range_fields: list<string> = []
+  },
+  events: {
+    attached: "search_facets:attached",
+    detached: "search_facets:detached",
+    on_facet_change: "search_facets:facet_changed",
+    on_facet_clear: "search_facets:facet_cleared",
+    on_apply: "search_facets:cmd_apply",
+    on_reset_all: "search_facets:cmd_reset_all",
+    on_set_facet: "search_facets:cmd_set_facet",
+    on_remove_value: "search_facets:cmd_remove_value",
+    facets_loaded: "search_facets:facets_loaded"
+  },
+  behaviors: ["@full_text_search"]
+}
