@@ -1,0 +1,24 @@
+@trait {
+  name: "@signaling",
+  category: "network",
+  description: "WebRTC signaling coordinator. Manages offer/answer SDP exchange and ICE candidate relay between peers via a signaling server or HoloMesh channel, bootstrapping direct P2P connections for voice, data, and video. Authored from SignalingTrait.ts.",
+  props: {
+    server_url: string = "",
+    room_id: string = "",
+    ice_servers: list<string> = [],
+    transport: enum("websocket" | "holomesh" | "firebase") = "holomesh",
+    trickle_ice: boolean = true,
+    dtls_fingerprint: string = "",
+    reconnect_attempts: number = 3
+  },
+  events: {
+    attached: "signaling_attached",
+    detached: "signaling_detached",
+    on_offer: "signaling_offer",
+    on_answer: "signaling_answer",
+    on_ice: "signaling_ice",
+    on_connected: "signaling_connected",
+    on_disconnected: "signaling_disconnected"
+  },
+  behaviors: ["@networked", "@proximity_chat", "@shared_world"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@sensor_hub",
+  category: "world",
+  description: "Aggregated sensor fusion hub. Collects readings from named sensor channels (IMU, GPS, depth, LiDAR, acoustic), merges them at a configurable fusion rate, and publishes a unified sensor frame event. Authored from SensorHubTrait.ts.",
+  props: {
+    sensors: list<enum("imu" | "gps" | "depth" | "lidar" | "acoustic" | "thermal" | "rgb")> = [],
+    fusion_rate_hz: number = 60,
+    filter: enum("none" | "kalman" | "complementary") = "kalman",
+    output_frame: enum("world" | "local") = "world",
+    log_to_store: boolean = false
+  },
+  events: {
+    attached: "sensor_hub_attached",
+    detached: "sensor_hub_detached",
+    on_frame: "sensor_hub_frame",
+    on_sensor_lost: "sensor_hub_lost",
+    on_calibrate: "sensor_hub_calibrate"
+  },
+  behaviors: ["@kalman_filter", "@digital_twin", "@ray_cast"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@screenshare",
+  category: "media",
+  description: "Desktop or application screen-share source. Captures a window or monitor via the Screen Capture API or a native capture hook, encodes to WebRTC or RTMP, and mounts the stream onto a world surface entity. Authored from ScreenshareTrait.ts.",
+  props: {
+    source: enum("screen" | "window" | "tab" | "camera") = "screen",
+    target_surface: string = "",
+    resolution: enum("480p" | "720p" | "1080p" | "4k") = "1080p",
+    fps: number = 30,
+    cursor_overlay: boolean = true,
+    audio_passthrough: boolean = false
+  },
+  events: {
+    attached: "screenshare_attached",
+    detached: "screenshare_detached",
+    on_start: "screenshare_start",
+    on_stop: "screenshare_stop",
+    on_error: "screenshare_error",
+    start: "screenshare_trigger_start",
+    stop: "screenshare_trigger_stop"
+  },
+  behaviors: ["@live_stream", "@recording_session"]
+}
