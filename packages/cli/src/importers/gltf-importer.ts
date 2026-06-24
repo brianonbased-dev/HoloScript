@@ -602,7 +602,13 @@ function extractPhysicsParams(node: GltfNode): string[] {
  * Convert a single glTF node (and its children recursively) into .holo
  * object block(s).
  */
-function nodeToHolo(nodeIndex: number, gltf: GltfData, inputPath: string, indent: number): string {
+function nodeToHolo(
+  nodeIndex: number,
+  gltf: GltfData,
+  inputPath: string,
+  indent: number,
+  meshShapeName?: string,
+): string {
   const nodes = gltf.nodes;
   if (!nodes || nodeIndex < 0 || nodeIndex >= nodes.length) {
     return '';
@@ -654,10 +660,19 @@ function nodeToHolo(nodeIndex: number, gltf: GltfData, inputPath: string, indent
   const lines: string[] = [];
   lines.push(`${pad}object "${displayName}"${traitStr} {`);
 
-  // Geometry reference - point back to the source model
-  const sourceFile = path.basename(inputPath);
+  // Geometry reference. When the importer carried the REAL mesh into this
+  // composition as an in-file `shape "<name>" mesh { … }` block (Track-0,
+  // single-mesh skinned GLB), point the node at that shape by name so the
+  // surface lives in the `.holo` file itself — no dead `file.glb#Node`
+  // external pointer. Otherwise fall back to the legacy text pointer
+  // (non-skinned / Draco / multi-mesh — the carried-mesh follow-ups).
   if (node.mesh !== undefined) {
-    lines.push(`${innerPad}geometry: "${sourceFile}#${displayName}"`);
+    if (meshShapeName) {
+      lines.push(`${innerPad}geometry: "${meshShapeName}"`);
+    } else {
+      const sourceFile = path.basename(inputPath);
+      lines.push(`${innerPad}geometry: "${sourceFile}#${displayName}"`);
+    }
   }
 
   // Transform: position
@@ -723,7 +738,7 @@ function nodeToHolo(nodeIndex: number, gltf: GltfData, inputPath: string, indent
   if (node.children && node.children.length > 0) {
     lines.push('');
     for (const childIdx of node.children) {
-      const childBlock = nodeToHolo(childIdx, gltf, inputPath, indent + 1);
+      const childBlock = nodeToHolo(childIdx, gltf, inputPath, indent + 1, meshShapeName);
       if (childBlock) {
         lines.push(childBlock);
       }
@@ -742,7 +757,12 @@ function nodeToHolo(nodeIndex: number, gltf: GltfData, inputPath: string, indent
 /**
  * Build the complete .holo composition string from parsed glTF data.
  */
-function buildHoloComposition(gltf: GltfData, inputPath: string, meshShapeBlock?: string): string {
+function buildHoloComposition(
+  gltf: GltfData,
+  inputPath: string,
+  meshShapeBlock?: string,
+  meshShapeName?: string,
+): string {
   const lines: string[] = [];
 
   // Header comment
@@ -809,7 +829,7 @@ function buildHoloComposition(gltf: GltfData, inputPath: string, meshShapeBlock?
   lines.push('  spatial_group "Root" {');
 
   for (const nodeIdx of rootNodes) {
-    const block = nodeToHolo(nodeIdx, gltf, inputPath, 2);
+    const block = nodeToHolo(nodeIdx, gltf, inputPath, 2, meshShapeName);
     if (block) {
       lines.push(block);
       lines.push('');
@@ -884,6 +904,7 @@ export function importGltf(inputPath: string): string {
   const ext = path.extname(resolvedPath).toLowerCase();
   let gltfData: GltfData;
   let meshShapeBlock: string | undefined;
+  let meshShapeName: string | undefined;
 
   if (ext === '.glb') {
     const buffer = fs.readFileSync(resolvedPath);
@@ -897,6 +918,12 @@ export function importGltf(inputPath: string): string {
       const mesh = CharacterRender.extractGltfSkinnedMesh(ab);
       const meshName = path.basename(resolvedPath, ext) + '_mesh';
       meshShapeBlock = meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh));
+      // Rewrite the per-node `geometry:` pointer to reference this carried shape
+      // only when the GLB has exactly one mesh — then the node→shape link is
+      // unambiguous. Multi-mesh per-node mapping is the multi-primitive follow-up.
+      if (gltfData.meshes?.length === 1) {
+        meshShapeName = meshName;
+      }
     } catch {
       // non-skinned / Draco / multi-primitive — leave geometry as a text pointer
     }
@@ -916,7 +943,7 @@ export function importGltf(inputPath: string): string {
     throw new Error('Invalid glTF: missing required "asset.version" field.');
   }
 
-  return buildHoloComposition(gltfData, resolvedPath, meshShapeBlock);
+  return buildHoloComposition(gltfData, resolvedPath, meshShapeBlock, meshShapeName);
 }
 
 /**

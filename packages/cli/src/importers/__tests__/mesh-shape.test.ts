@@ -28,7 +28,7 @@ function constructedMesh(): SkinnedMeshData {
 function findMeshShape(holo: string) {
   const result = parseHolo(holo);
   expect(result.success).toBe(true);
-  const shape = result.ast?.shapes?.find((s) => s.shapeType === 'mesh');
+  const shape = result.ast?.shapes?.find((s: { shapeType: string }) => s.shapeType === 'mesh');
   expect(shape).toBeDefined();
   return shape!;
 }
@@ -129,6 +129,23 @@ describe('Track-0 .holo mesh shape round-trip', () => {
       // reduction, so length tracks the extractor's layout, not a fixed 4/vert)
       expect(back.jointWeights.length).toBeGreaterThan(0);
       expect(back.jointIndices.length).toBe(back.jointWeights.length);
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  it('the object geometry references the in-file carried shape, not a dead external pointer (single-mesh GLB)', () => {
+    const tmp = path.join(os.tmpdir(), `holo-track0-link-${process.pid}.glb`);
+    fs.writeFileSync(tmp, Buffer.from(makeSkinnedTriangleGlb()));
+    try {
+      const holo = importGltf(tmp);
+      const shape = findMeshShape(holo);
+      const geom = holo.match(/geometry:\s*"([^"]+)"/);
+      expect(geom).not.toBeNull();
+      // object.geometry resolves to the carried shape BY NAME — the surface lives
+      // in the `.holo` file, not a `file.glb#Node` pointer to an external model.
+      expect(geom![1]).toBe(shape.name);
+      expect(holo).not.toMatch(/geometry:\s*"[^"]*\.glb#/);
     } finally {
       fs.rmSync(tmp, { force: true });
     }
