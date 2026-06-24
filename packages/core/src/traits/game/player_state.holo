@@ -1,0 +1,22 @@
+@trait {
+  name: "@player_state",
+  category: "game",
+  description: "Player physics and locomotion state machine. Tracks stance (standing, crouching, prone, airborne, swimming, climbing, ragdoll), speed, stamina, and movement flags, emitting state transitions for animation blending and ability gating. Authored from PlayerStateTrait.ts.",
+  props: {
+    stance: enum("standing" | "crouching" | "prone" | "airborne" | "swimming" | "climbing" | "ragdoll") = "standing",
+    speed: number = 0.0,
+    stamina: number = 1.0,
+    max_stamina: number = 1.0,
+    stamina_regen_rate: number = 0.1,
+    is_sprinting: boolean = false,
+    is_aiming: boolean = false
+  },
+  events: {
+    attached: "player_state_attached",
+    detached: "player_state_detached",
+    on_stance_change: "player_state_stance_change",
+    on_stamina_empty: "player_state_stamina_empty",
+    on_stamina_full: "player_state_stamina_full"
+  },
+  behaviors: ["@player", "@kinematic", "@animation_blender"]
+}

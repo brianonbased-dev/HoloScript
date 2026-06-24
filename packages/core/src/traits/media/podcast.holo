@@ -1,0 +1,23 @@
+@trait {
+  name: "@podcast",
+  category: "media",
+  description: "RSS/Atom podcast feed subscriber and episode player. Fetches a feed URL, lists episodes with metadata (title, duration, date, description), plays the selected episode via an audio pipeline, and persists playback position across sessions. Authored from PodcastTrait.ts.",
+  props: {
+    feed_url: string = "",
+    current_episode_index: number = 0,
+    playback_position_s: number = 0.0,
+    auto_download_latest: boolean = false,
+    playback_rate: number = 1.0,
+    persist_progress: boolean = true
+  },
+  events: {
+    attached: "podcast_attached",
+    detached: "podcast_detached",
+    on_episode_load: "podcast_episode_load",
+    on_play: "podcast_play",
+    on_complete: "podcast_complete",
+    play: "podcast_trigger_play",
+    seek: "podcast_trigger_seek"
+  },
+  behaviors: ["@audio_source", "@playlist", "@live_data"]
+}

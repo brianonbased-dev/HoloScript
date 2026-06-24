@@ -1,0 +1,23 @@
+@trait {
+  name: "@playlist",
+  category: "media",
+  description: "Ordered or shuffled media playlist manager for audio and video queues. Tracks an index into an ordered item list, handles skip/prev/repeat modes, and emits item-change events driving any connected @audio_source or @video_player. Authored from PlaylistTrait.ts.",
+  props: {
+    items: list<string> = [],
+    current_index: number = 0,
+    shuffle: boolean = false,
+    repeat: enum("none" | "one" | "all") = "all",
+    auto_play: boolean = true,
+    cross_fade_ms: number = 0
+  },
+  events: {
+    attached: "playlist_attached",
+    detached: "playlist_detached",
+    on_item_change: "playlist_item_change",
+    on_end: "playlist_end",
+    next: "playlist_trigger_next",
+    prev: "playlist_trigger_prev",
+    go_to: "playlist_trigger_go_to"
+  },
+  behaviors: ["@music", "@audio_source", "@video_player"]
+}

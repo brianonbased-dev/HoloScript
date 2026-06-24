@@ -1,0 +1,22 @@
+@trait {
+  name: "@pinned_camera",
+  category: "visual",
+  description: "Fixed-perspective pinned camera for surveillance, CCTV, or cinematic locked-shot angles. Anchors a camera entity at a world-space position and orientation, optionally panning to track a target entity within a configurable FOV arc. Authored from PinnedCameraTrait.ts.",
+  props: {
+    fov_deg: number = 60.0,
+    near_m: number = 0.1,
+    far_m: number = 500.0,
+    track_entity_id: string = "",
+    track_max_arc_deg: number = 30.0,
+    output_texture_id: string = "",
+    priority: number = 0
+  },
+  events: {
+    attached: "pinned_camera_attached",
+    detached: "pinned_camera_detached",
+    on_track_enter: "pinned_camera_track_enter",
+    on_track_exit: "pinned_camera_track_exit",
+    activate: "pinned_camera_trigger_activate"
+  },
+  behaviors: ["@virtual_camera", "@orbit_camera", "@offscreen_renderer"]
+}
