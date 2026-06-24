@@ -1,0 +1,24 @@
+@trait {
+  name: "@npc_scheduler",
+  category: "agent",
+  description: "Daily-schedule planner for NPCs. Assigns activities, locations, and states at different times of day using a cron-like schedule. Authored from NPCSchedulerTrait.ts.",
+  props: {
+    schedule: list<{ time: string, activity: string, location_id: string }> = [],
+    time_scale: number = 1.0,
+    loop_daily: boolean = true,
+    on_late_threshold_s: number = 60,
+    interrupt_priority: number = 5,
+    current_activity: string = ""
+  },
+  events: {
+    attached: "npc_scheduler_attached",
+    detached: "npc_scheduler_detached",
+    on_activity_start: "npc_scheduler_activity_start",
+    on_activity_end: "npc_scheduler_activity_end",
+    on_late: "npc_scheduler_late",
+    on_interrupt: "npc_scheduler_interrupt",
+    on_day_cycle: "npc_scheduler_day_cycle",
+    interrupt: "npc_scheduler_trigger_interrupt"
+  },
+  behaviors: ["@npc_ai", "@waypoint", "@scheduler"]
+}

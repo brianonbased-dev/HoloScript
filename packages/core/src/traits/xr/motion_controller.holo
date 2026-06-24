@@ -1,0 +1,25 @@
+@trait {
+  name: "@motion_controller",
+  category: "xr",
+  description: "XR motion controller input with hand tracking fallback. Exposes grip, trigger, thumbstick, and touchpad axes plus button events for OpenXR-compatible controllers. Authored from MotionControllerTrait.ts.",
+  props: {
+    hand: enum("left" | "right") = "right",
+    profile: enum("oculus_touch" | "vive_wand" | "index" | "wmr" | "generic") = "generic",
+    haptic_enabled: boolean = true,
+    pointer_mode: enum("ray" | "hand" | "gaze") = "ray",
+    fallback_to_hands: boolean = true
+  },
+  events: {
+    attached: "motion_controller_attached",
+    detached: "motion_controller_detached",
+    on_trigger: "motion_controller_trigger",
+    on_grip: "motion_controller_grip",
+    on_thumbstick: "motion_controller_thumbstick",
+    on_button_a: "motion_controller_button_a",
+    on_button_b: "motion_controller_button_b",
+    on_touchpad: "motion_controller_touchpad",
+    on_menu: "motion_controller_menu",
+    haptic_pulse: "motion_controller_haptic"
+  },
+  behaviors: ["@xr_interaction", "@haptic"]
+}

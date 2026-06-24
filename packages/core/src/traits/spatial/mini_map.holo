@@ -1,0 +1,25 @@
+@trait {
+  name: "@mini_map",
+  category: "spatial",
+  description: "Overhead 2D or 3D mini-map renderer. Tracks entities with configurable icons and updates in real time. Authored from MiniMapTrait.ts.",
+  props: {
+    size_px: number = 200,
+    zoom: number = 1.0,
+    orientation: enum("world_north" | "player_forward" | "fixed") = "world_north",
+    tracked_layers: list<number> = [],
+    icon_scale: number = 1.0,
+    fog_of_war: boolean = false,
+    rotate_with_player: boolean = true,
+    border_radius_px: number = 8
+  },
+  events: {
+    attached: "mini_map_attached",
+    detached: "mini_map_detached",
+    on_update: "mini_map_update",
+    on_icon_click: "mini_map_icon_click",
+    on_zoom_change: "mini_map_zoom_change",
+    set_zoom: "mini_map_set_zoom",
+    center_on: "mini_map_center_on"
+  },
+  behaviors: ["@rendering"]
+}

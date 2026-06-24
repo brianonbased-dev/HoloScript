@@ -1,0 +1,26 @@
+@trait {
+  name: "@object_pool",
+  category: "devops",
+  description: "Pre-allocated object pool for frequent allocations. Reuses entity or resource instances to avoid GC pressure in hot loops. Authored from ObjectPoolTrait.ts.",
+  props: {
+    pool_id: string = "",
+    initial_size: number = 10,
+    max_size: number = 100,
+    grow_by: number = 5,
+    prefab_url: string = "",
+    reset_on_return: boolean = true,
+    auto_grow: boolean = true
+  },
+  events: {
+    attached: "object_pool_attached",
+    detached: "object_pool_detached",
+    on_acquire: "object_pool_acquire",
+    on_release: "object_pool_release",
+    on_grow: "object_pool_grow",
+    on_exhausted: "object_pool_exhausted",
+    acquire: "object_pool_trigger_acquire",
+    release: "object_pool_trigger_release",
+    clear: "object_pool_clear"
+  },
+  behaviors: ["@spawn"]
+}
