@@ -307,7 +307,12 @@ function mergePrimitiveGeometries(geoms: PrimitiveGeometry[]): PrimitiveGeometry
  */
 export function extractGltfSkinnedMesh(glb: ArrayBuffer, onlyMeshIndex?: number): GltfSkinnedMesh {
   const { json: g, bin } = parseGlb(glb);
+  return skinnedMeshFromParsed(g, bin, onlyMeshIndex);
+}
 
+/** The post-parse core of {@link extractGltfSkinnedMesh}, over an already-parsed
+ *  glTF — lets {@link extractGltfMeshes} carry every mesh from ONE container parse. */
+function skinnedMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: number): GltfSkinnedMesh {
   // 1) Find the first skinned primitive + its bound skin (within onlyMeshIndex, if given).
   let prim: GltfPrimitive | undefined;
   let meshIndex = -1;
@@ -422,7 +427,11 @@ export type GltfStaticMesh = GltfSkinnedMesh;
  */
 export function extractGltfStaticMesh(glb: ArrayBuffer, onlyMeshIndex?: number): GltfStaticMesh {
   const { json: g, bin } = parseGlb(glb);
+  return staticMeshFromParsed(g, bin, onlyMeshIndex);
+}
 
+/** The post-parse core of {@link extractGltfStaticMesh}, over an already-parsed glTF. */
+function staticMeshFromParsed(g: GltfJson, bin: Uint8Array, onlyMeshIndex?: number): GltfStaticMesh {
   // First mesh with >=1 triangle primitive carrying POSITION; merge all such primitives of it.
   // When `onlyMeshIndex` is given, restrict to that one glTF mesh (multi-mesh per-node import).
   let prims: GltfPrimitive[] | undefined;
@@ -469,4 +478,31 @@ export function extractGltfStaticMesh(glb: ArrayBuffer, onlyMeshIndex?: number):
     skeletonStandard: 'holoscript_65',
     unmappedJoints: [],
   };
+}
+
+/**
+ * Carry EVERY mesh of a .glb in a SINGLE container parse. For each glTF mesh,
+ * prefers the skinned core (palette-remapped skin) and falls back to the static
+ * core (rigid identity bind); a mesh neither can read (Draco/meshopt that wasn't
+ * decompressed, or no triangle POSITION primitive) is skipped, not thrown. Returns
+ * one entry per carryable mesh, keyed by its glTF mesh index — the importer's
+ * multi-mesh entry point (one parse, vs. re-parsing the container per mesh).
+ */
+export function extractGltfMeshes(glb: ArrayBuffer): Array<{ meshIndex: number; mesh: GltfSkinnedMesh }> {
+  const { json: g, bin } = parseGlb(glb);
+  const out: Array<{ meshIndex: number; mesh: GltfSkinnedMesh }> = [];
+  for (let mi = 0; mi < (g.meshes?.length ?? 0); mi++) {
+    let mesh: GltfSkinnedMesh | undefined;
+    try {
+      mesh = skinnedMeshFromParsed(g, bin, mi);
+    } catch {
+      try {
+        mesh = staticMeshFromParsed(g, bin, mi);
+      } catch {
+        // Draco/meshopt or no extractable primitive — skip this mesh.
+      }
+    }
+    if (mesh) out.push({ meshIndex: mi, mesh });
+  }
+  return out;
 }

@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { CharacterRender, encodeSkinnedMeshToHolo, type SkinnedMeshData } from '@holoscript/engine';
+import { CharacterRender, encodeSkinnedMeshToHolo } from '@holoscript/engine';
 import { meshShapeToHolo } from './mesh-shape';
 
 // ---------------------------------------------------------------------------
@@ -922,30 +922,18 @@ export function importGltf(inputPath: string): string {
     // glTF mesh index so every mesh node references its OWN surface (multi-mesh
     // GLBs included). A mesh neither extractor can read (Draco/meshopt that
     // wasn't decompressed, or no POSITION) keeps the legacy text pointer.
-    // NOTE: each extractor re-parses the GLB; fine for the usual handful of
-    // meshes, a single-parse all-meshes extractor is the perf follow-up.
     const base = path.basename(resolvedPath, ext);
     const meshCount = gltfData.meshes?.length ?? 0;
     const blocks: string[] = [];
     const names = new Map<number, string>();
-    for (let mi = 0; mi < meshCount; mi++) {
-      let mesh: SkinnedMeshData | undefined;
-      try {
-        mesh = CharacterRender.extractGltfSkinnedMesh(ab, mi);
-      } catch {
-        try {
-          mesh = CharacterRender.extractGltfStaticMesh(ab, mi);
-        } catch {
-          // Draco/meshopt or no extractable primitive — this mesh stays a text pointer.
-        }
-      }
-      if (mesh) {
-        // Single mesh keeps the bare `<base>_mesh` name (back-compat); multi-mesh
-        // disambiguates per glTF mesh index.
-        const meshName = meshCount === 1 ? `${base}_mesh` : `${base}_mesh${mi}`;
-        blocks.push(meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh)));
-        names.set(mi, meshName);
-      }
+    // Single container parse; each carryable mesh (skinned or static) comes back
+    // keyed by its glTF mesh index. Unreadable meshes are simply absent here.
+    for (const { meshIndex, mesh } of CharacterRender.extractGltfMeshes(ab)) {
+      // Single mesh keeps the bare `<base>_mesh` name (back-compat); multi-mesh
+      // disambiguates per glTF mesh index.
+      const meshName = meshCount === 1 ? `${base}_mesh` : `${base}_mesh${meshIndex}`;
+      blocks.push(meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh)));
+      names.set(meshIndex, meshName);
     }
     if (blocks.length > 0) {
       meshShapeBlocks = blocks;

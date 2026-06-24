@@ -37,6 +37,7 @@ export {
   parseGlb,
   extractGltfSkinnedMesh,
   extractGltfStaticMesh,
+  extractGltfMeshes,
   type GltfSkinnedMesh,
   type GltfStaticMesh,
 } from './GltfMeshExtractor';

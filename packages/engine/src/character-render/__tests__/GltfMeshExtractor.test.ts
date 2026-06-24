@@ -8,7 +8,12 @@
  * case (G.GOLD.013): an unmapped joint name falls back to root.
  */
 import { describe, it, expect } from 'vitest';
-import { parseGlb, extractGltfSkinnedMesh, extractGltfStaticMesh } from '../GltfMeshExtractor';
+import {
+  parseGlb,
+  extractGltfSkinnedMesh,
+  extractGltfStaticMesh,
+  extractGltfMeshes,
+} from '../GltfMeshExtractor';
 import { BONE_ORDER, JOINT_COUNT } from '../AgentAvatarMesh';
 import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
 import { renderCharacter } from '../character-render';
@@ -403,5 +408,85 @@ describe('GltfMeshExtractor', () => {
       nodes: [{ mesh: 0 }],
     };
     expect(() => extractGltfStaticMesh(buildGlb(json, bin))).toThrow(/Draco/);
+  });
+
+  // ─── extractGltfMeshes (single-parse, all meshes) ───────────────────────────
+
+  /** Two static triangles, one glTF mesh each (mesh0 @origin, mesh1 @+5x). */
+  function makeTwoStaticMeshGlb(): ArrayBuffer {
+    const binLen = 88; // m0 POS@0(36) idx@36(6) pad→44; m1 POS@44(36) idx@80(6).
+    const bin = new ArrayBuffer(binLen);
+    const dv = new DataView(bin);
+    [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true));
+    [0, 1, 2].forEach((v, i) => dv.setUint16(36 + i * 2, v, true));
+    [5, 0, 0, 6, 0, 0, 5, 1, 0].forEach((v, i) => dv.setFloat32(44 + i * 4, v, true));
+    [0, 1, 2].forEach((v, i) => dv.setUint16(80 + i * 2, v, true));
+    const json = {
+      asset: { version: '2.0' },
+      buffers: [{ byteLength: binLen }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 0, byteLength: 36 },
+        { buffer: 0, byteOffset: 36, byteLength: 6 },
+        { buffer: 0, byteOffset: 44, byteLength: 36 },
+        { buffer: 0, byteOffset: 80, byteLength: 6 },
+      ],
+      accessors: [
+        { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+        { bufferView: 1, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+        { bufferView: 2, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+        { bufferView: 3, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+      ],
+      meshes: [
+        { primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] },
+        { primitives: [{ attributes: { POSITION: 2 }, indices: 3, mode: 4 }] },
+      ],
+      nodes: [{ mesh: 0 }, { mesh: 1 }],
+    };
+    return buildGlb(json, bin);
+  }
+
+  /** mesh0 readable static; mesh1 a Draco primitive (must be skipped, not thrown). */
+  function makeStaticThenDracoGlb(): ArrayBuffer {
+    const binLen = 42;
+    const bin = new ArrayBuffer(binLen);
+    const dv = new DataView(bin);
+    [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true));
+    [0, 1, 2].forEach((v, i) => dv.setUint16(36 + i * 2, v, true));
+    const json = {
+      asset: { version: '2.0' },
+      buffers: [{ byteLength: binLen }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 0, byteLength: 36 },
+        { buffer: 0, byteOffset: 36, byteLength: 6 },
+      ],
+      accessors: [
+        { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+        { bufferView: 1, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+      ],
+      meshes: [
+        { primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] },
+        {
+          primitives: [
+            { attributes: { POSITION: 0 }, extensions: { KHR_draco_mesh_compression: {} }, mode: 4 },
+          ],
+        },
+      ],
+      nodes: [{ mesh: 0 }, { mesh: 1 }],
+    };
+    return buildGlb(json, bin);
+  }
+
+  it('extractGltfMeshes returns one entry per carryable mesh, keyed by glTF mesh index', () => {
+    const meshes = extractGltfMeshes(makeTwoStaticMeshGlb());
+    expect(meshes.map((m) => m.meshIndex)).toEqual([0, 1]);
+    expect(meshes[0].mesh.vertexCount).toBe(3);
+    expect(Array.from(meshes[0].mesh.positions)).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    expect(Array.from(meshes[1].mesh.positions)).toEqual([5, 0, 0, 6, 0, 0, 5, 1, 0]);
+  });
+
+  it('extractGltfMeshes skips a mesh neither extractor can read (Draco), without throwing', () => {
+    const meshes = extractGltfMeshes(makeStaticThenDracoGlb());
+    expect(meshes.map((m) => m.meshIndex)).toEqual([0]); // mesh1 (Draco) skipped
+    expect(meshes[0].mesh.vertexCount).toBe(3);
   });
 });
