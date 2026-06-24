@@ -1,0 +1,21 @@
+@trait {
+  name: "@fan_out",
+  category: "agent",
+  description: "Task fan-out dispatcher. Splits an incoming work item into N parallel sub-tasks dispatched to peer agents or sub-entities by capability tag, collecting results and emitting a merged completion event when all branches resolve or timeout. Authored from FanOutTrait.ts.",
+  props: {
+    capability_tags: list<string> = [],
+    max_parallel: number = 8,
+    timeout_s: number = 60,
+    fail_policy: enum("fail_fast" | "collect_all" | "best_effort") = "collect_all",
+    merge_strategy: enum("concat" | "first_wins" | "vote_majority") = "concat"
+  },
+  events: {
+    attached: "fan_out_attached",
+    detached: "fan_out_detached",
+    on_branch_complete: "fan_out_branch_complete",
+    on_all_complete: "fan_out_all_complete",
+    on_timeout: "fan_out_timeout",
+    dispatch: "fan_out_trigger_dispatch"
+  },
+  behaviors: ["@broadcast", "@election", "@autonomous_agenda"]
+}

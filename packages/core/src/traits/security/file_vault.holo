@@ -1,0 +1,22 @@
+@trait {
+  name: "@file_vault",
+  category: "security",
+  description: "Encrypted file vault for sensitive agent or user assets. Stores arbitrary blobs under AES-256-GCM with key-derivation from a wallet-proof or KMS secret, supporting put/get/list/delete operations and optional TTL expiry. Authored from FileVaultTrait.ts.",
+  props: {
+    backend: enum("holokey" | "local_fs" | "s3" | "ipfs") = "holokey",
+    namespace: string = "",
+    kms_secret: string = "",
+    ttl_days: number = 0,
+    max_size_mb: number = 100,
+    compress: boolean = true
+  },
+  events: {
+    attached: "file_vault_attached",
+    detached: "file_vault_detached",
+    on_put: "file_vault_put",
+    on_get: "file_vault_get",
+    on_delete: "file_vault_delete",
+    on_expire: "file_vault_expire"
+  },
+  behaviors: ["@encrypted_storage", "@permission", "@oauth"]
+}

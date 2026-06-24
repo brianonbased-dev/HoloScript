@@ -1,0 +1,22 @@
+@trait {
+  name: "@follow_target",
+  category: "agent",
+  description: "Target-following locomotion behavior. Continuously moves the entity toward a designated target entity or position, maintaining a configurable follow distance, orientation lock, and optional offset for formation or escort behaviors. Authored from FollowTargetTrait.ts.",
+  props: {
+    target_entity_id: string = "",
+    follow_distance_m: number = 1.5,
+    speed: number = 1.0,
+    look_at_target: boolean = true,
+    offset: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    stop_when_close: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "follow_target_attached",
+    detached: "follow_target_detached",
+    on_reach: "follow_target_reach",
+    on_lose: "follow_target_lose",
+    set_target: "follow_target_trigger_set"
+  },
+  behaviors: ["@navigation", "@exploration", "@pathfind"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@feedback_bus",
+  category: "network",
+  description: "User or agent feedback collector and aggregator bus. Accepts structured feedback entries (rating, free text, category) from multiple sources, persists them to a store, and emits aggregate statistics on a configurable rollup interval for dashboards and learning loops. Authored from FeedbackBusTrait.ts.",
+  props: {
+    store_backend: enum("holoscript" | "postgres" | "memory") = "holoscript",
+    namespace: string = "",
+    rollup_interval_s: number = 60,
+    categories: list<string> = [],
+    anonymize: boolean = true,
+    max_entries: number = 10000
+  },
+  events: {
+    attached: "feedback_bus_attached",
+    detached: "feedback_bus_detached",
+    on_entry: "feedback_bus_entry",
+    on_rollup: "feedback_bus_rollup",
+    submit: "feedback_bus_trigger_submit"
+  },
+  behaviors: ["@event_bus", "@audit_log", "@document_store"]
+}
