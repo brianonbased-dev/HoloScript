@@ -23,6 +23,7 @@ export const SCRIPTING_AUTOMATION_TRAITS = [
   // ─── I/O & Integration ─────────────────────────────────────────────
   'watcher', // File/state/event watchers with debounce
   'webhook', // HTTP trigger (inbound) and callback (outbound)
+  'persistent_connection', // Long-lived WS/SSE/long_poll/holoscript connection with reconnect
   'shell', // Subprocess exec with timeout + output capture
 
   // ─── Resilience ────────────────────────────────────────────────────

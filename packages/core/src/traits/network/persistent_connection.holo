@@ -1,0 +1,25 @@
+@trait {
+  name: "@persistent_connection",
+  category: "network",
+  description: "Long-lived bidirectional connection manager with automatic reconnection, heartbeat keepalive, and structured lifecycle events. protocol selects the transport: ws establishes a WebSocket connection; sse subscribes to a Server-Sent Events stream (read-only); long_poll implements HTTP long-poll by reissuing a blocking GET immediately after each response; holoscript opens a HoloScript mesh peer-to-peer channel using the platform bearer identity. url is the endpoint address; for holoscript channels this is the HoloMesh team or peer address. reconnect_strategy governs the delay policy on disconnect: exponential applies binary exponential backoff capped at 60 s; linear increments the delay by a fixed step each attempt; fixed waits the same interval on every attempt. max_retries is the maximum reconnection attempts before declaring the connection failed and emitting on_error; set to 0 for unlimited retries. heartbeat_ms is the keepalive ping interval in milliseconds; 0 disables keepalive pings. The heartbeat verifies liveness and resets the reconnect counter on receipt of a pong or any server-initiated message within the window. on_connect fires when the connection is first established or re-established after a retry, carrying the attempt count and round-trip latency. on_disconnect fires on any unintended close, carrying the close code and reason. on_reconnect fires at the start of each reconnection attempt, carrying the attempt count and next delay. on_error fires when max_retries is exceeded or a fatal error occurs, carrying the error payload. Pairs with @webhook for outbound HTTP callbacks, @rate_limiter for inbound message throttling, and @circuit_breaker for upstream failure isolation. Research: SseTrait.ts, CRDTRoomTrait.ts, NetworkedTrait.ts — persistent SSE, mesh, and WebSocket connection patterns.",
+  props: {
+    protocol: enum("ws" | "sse" | "long_poll" | "holoscript") = "ws",
+    url: string = "",
+    reconnect_strategy: enum("exponential" | "linear" | "fixed") = "exponential",
+    max_retries: number = 10,
+    heartbeat_ms: number = 30000
+  },
+  events: {
+    attached: "persistent_connection:attached",
+    detached: "persistent_connection:detached",
+    on_connect: "persistent_connection:connect",
+    on_disconnect: "persistent_connection:disconnect",
+    on_reconnect: "persistent_connection:reconnect",
+    on_error: "persistent_connection:error",
+    on_message: "persistent_connection:message",
+    on_send: "persistent_connection:send",
+    on_close: "persistent_connection:close",
+    on_status: "persistent_connection:status"
+  },
+  behaviors: ["@circuit_breaker", "@telemetry"]
+}

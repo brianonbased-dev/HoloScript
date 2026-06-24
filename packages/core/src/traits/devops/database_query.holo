@@ -1,0 +1,27 @@
+@trait {
+  name: "@database_query",
+  category: "devops",
+  description: "Relational and embedded database query executor with connection pooling, slow-query detection, and migration-directory discovery. engine selects the underlying database driver: postgres targets a PostgreSQL server; mysql targets MySQL or MariaDB; sqlite uses an embedded file-based SQLite database; holoscript targets the HoloScript in-scene key-value store exposed through the @database trait handler. connection_url is the connection string or DSN for the selected engine; for sqlite this is the file path; for holoscript this is left empty. max_pool_size controls the maximum number of concurrent pooled connections maintained by the driver; set to 1 for SQLite (which supports only a single writer). timeout_ms is the per-query execution deadline in milliseconds; queries that exceed this timeout are cancelled and on_error fires with a timeout reason. on_query fires after each successful query execution, carrying sql, params, row_count, and duration_ms. on_error fires when a query fails or times out, carrying sql, error, and duration_ms. on_slow_query fires when a query's execution time exceeds slow_threshold_ms, carrying sql, params, and duration_ms — useful for surfacing performance regressions without modifying query logic. slow_threshold_ms is the threshold in milliseconds above which a query is classified as slow; set to 0 to disable slow-query detection. migrations_dir is an optional directory path containing numbered migration scripts (.sql or .js) that the runtime can discover and apply in order during entity attach; leave empty to skip automatic migration scanning. Pairs with @schema_migrate for versioned migration execution, @circuit_breaker for upstream DB failure isolation, and @telemetry for query-latency metric emission. Research: DatabaseTrait.ts, SqlQueryTrait.ts — key-value and SQL query execution patterns.",
+  props: {
+    engine: enum("postgres" | "mysql" | "sqlite" | "holoscript") = "postgres",
+    connection_url: string = "",
+    max_pool_size: number = 10,
+    timeout_ms: number = 30000,
+    slow_threshold_ms: number = 1000,
+    migrations_dir: string = ""
+  },
+  events: {
+    attached: "database_query:attached",
+    detached: "database_query:detached",
+    on_query: "database_query:query",
+    on_error: "database_query:error",
+    on_slow_query: "database_query:slow_query",
+    on_exec: "database_query:exec",
+    on_prepare: "database_query:prepare",
+    on_transaction_begin: "database_query:tx_begin",
+    on_transaction_commit: "database_query:tx_commit",
+    on_transaction_rollback: "database_query:tx_rollback",
+    on_status: "database_query:status"
+  },
+  behaviors: ["@schema_migrate", "@circuit_breaker", "@telemetry"]
+}

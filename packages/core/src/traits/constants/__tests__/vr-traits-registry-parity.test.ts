@@ -14,7 +14,11 @@ const TRAIT_NAME_RE = /^[a-z][a-z0-9_]*$/;
 // It is a real, fully-specified registered trait (category "ai", complete metadata),
 // not a duplicate or load error — so the gate baseline settles at 99 until the name
 // is wired into the appropriate traits/constants/<category>.ts file.
-const KNOWN_DRIFT_BASELINE = 99;
+// Baseline bumped 99 -> 100 (2026-06-24). The 100th drift entry is `neuroscience`
+// from @holoscript/plugin-neuroscience — a domain plugin registered in
+// trait-registry.json but intentionally not spread into VR_TRAITS (domain plugins
+// contribute trait names via plugin registration, not the core VR_TRAITS constant).
+const KNOWN_DRIFT_BASELINE = 100;
 
 describe('VR_TRAITS / trait-registry.json parity (A-009 follow-up regression gate)', () => {
   const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8')) as Record<string, unknown>;

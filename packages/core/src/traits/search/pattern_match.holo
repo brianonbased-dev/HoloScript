@@ -1,0 +1,23 @@
+@trait {
+  name: "@pattern_match",
+  category: "search",
+  description: "Declarative pattern-matching engine for inspecting event payloads, entity state strings, or arbitrary string inputs against a list of rule patterns. Each entry in patterns is a {pattern, action} pair: pattern is the match expression evaluated according to mode, and action is an opaque string label emitted in the on_match payload so downstream listeners can branch on which rule fired. mode selects the matching strategy: regex evaluates each pattern as a regular expression with standard ECMAScript semantics; glob uses standard glob wildcards (* any sequence, ? single char, ** recursive) suited to path- and name-style matching; semantic delegates to a vector-similarity backend and treats each pattern as a query embedding match rather than a literal string comparison; fuzzy applies Levenshtein-distance matching and considers a pattern to match when the edit distance is within a tolerance proportional to the input length. case_sensitive controls case folding for regex and glob modes (ignored by semantic and fuzzy). on_match fires when any pattern matches, carrying matched_pattern, action, input, and the zero-based index of the first rule that matched. no_match fires when every pattern has been evaluated without a match, carrying input and checked_count for diagnostics. max_matches caps the number of patterns evaluated per input event: 0 = no cap, evaluate all rules. When multiple patterns match, only the first max_matches results are emitted — set to 1 to implement first-match-wins dispatch. Pairs with @full_text_search for structured corpus search and @trigger for event-driven conditional branching. Research: PatternMatchTrait.ts — multi-mode pattern evaluation with regex, glob, semantic, and fuzzy strategies.",
+  props: {
+    patterns: list<{pattern: string, action: string}> = [],
+    mode: enum("regex" | "glob" | "semantic" | "fuzzy") = "regex",
+    case_sensitive: boolean = false,
+    max_matches: number = 0
+  },
+  events: {
+    attached: "pattern_match:attached",
+    detached: "pattern_match:detached",
+    on_match: "pattern_match:match",
+    no_match: "pattern_match:no_match",
+    on_test: "pattern_match:test",
+    on_add_pattern: "pattern_match:add_pattern",
+    on_remove_pattern: "pattern_match:remove_pattern",
+    on_clear_patterns: "pattern_match:clear_patterns",
+    on_status: "pattern_match:status"
+  },
+  behaviors: ["@telemetry"]
+}
