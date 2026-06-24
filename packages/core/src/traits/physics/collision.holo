@@ -1,0 +1,21 @@
+@trait {
+  name: "@collision",
+  category: "physics",
+  description: "Collision response handler. Reacts to @collider contact events with configurable response actions (bounce, stick, destroy, emit_damage), supporting per-material response overrides and minimum impulse thresholds. Authored from CollisionTrait.ts.",
+  props: {
+    response: enum("bounce" | "stick" | "pass_through" | "destroy" | "emit_damage") = "bounce",
+    min_impulse: number = 0.0,
+    damage_on_impact: number = 0.0,
+    sound_on_impact: string = "",
+    particle_on_impact: string = "",
+    cooldown_ms: number = 0
+  },
+  events: {
+    attached: "collision_attached",
+    detached: "collision_detached",
+    on_hit: "collision_hit",
+    on_damage: "collision_damage",
+    on_destroy: "collision_destroy"
+  },
+  behaviors: ["@collider", "@health", "@destruction"]
+}

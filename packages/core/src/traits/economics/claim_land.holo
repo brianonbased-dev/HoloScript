@@ -1,0 +1,24 @@
+@trait {
+  name: "@claim_land",
+  category: "economics",
+  description: "Land parcel claim and ownership registration. Associates the entity with a spatial bounding box, registers ownership on-chain or in the HoloLand registry, and enforces access permissions against the owner's wallet. Authored from ClaimLandTrait.ts.",
+  props: {
+    parcel_id: string = "",
+    owner_wallet: string = "",
+    bounds: { min_x: number, min_z: number, max_x: number, max_z: number } = { min_x: 0.0, min_z: 0.0, max_x: 10.0, max_z: 10.0 },
+    on_chain: boolean = false,
+    registry: enum("hololand" | "holoscript" | "custom") = "hololand",
+    transferable: boolean = true,
+    access: enum("private" | "friends" | "public") = "public"
+  },
+  events: {
+    attached: "claim_land_attached",
+    detached: "claim_land_detached",
+    on_claimed: "claim_land_claimed",
+    on_transfer: "claim_land_transfer",
+    on_access_denied: "claim_land_access_denied",
+    claim: "claim_land_trigger",
+    transfer: "claim_land_trigger_transfer"
+  },
+  behaviors: ["@wallet", "@permission", "@zone"]
+}

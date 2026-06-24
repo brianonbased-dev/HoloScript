@@ -1,0 +1,25 @@
+@trait {
+  name: "@combat_stats",
+  category: "game",
+  description: "Combat stat block for players and NPCs. Stores base and effective values for attack, defense, speed, and resistances, applies buff/debuff modifiers, and recomputes derived stats on change. Authored from CombatStatsTrait.ts.",
+  props: {
+    attack: number = 10.0,
+    defense: number = 5.0,
+    speed: number = 5.0,
+    crit_chance: number = 0.05,
+    crit_multiplier: number = 2.0,
+    resistances: dict<string, number> = {},
+    buffs: list<{ stat: string, amount: number, duration_s: number }> = [],
+    level: number = 1
+  },
+  events: {
+    attached: "combat_stats_attached",
+    detached: "combat_stats_detached",
+    on_buff: "combat_stats_buff",
+    on_debuff: "combat_stats_debuff",
+    on_stat_change: "combat_stats_change",
+    apply_buff: "combat_stats_apply_buff",
+    remove_buff: "combat_stats_remove_buff"
+  },
+  behaviors: ["@base_attack", "@health", "@ability"]
+}

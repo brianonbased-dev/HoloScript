@@ -1,0 +1,24 @@
+@trait {
+  name: "@collider",
+  category: "physics",
+  description: "Physics collider shape definition. Specifies a primitive or mesh collider type, physics material, layer membership, and trigger/solid mode for the entity's physics participation in the world simulation. Authored from ColliderTrait.ts.",
+  props: {
+    shape: enum("box" | "sphere" | "capsule" | "cylinder" | "convex_mesh" | "tri_mesh") = "box",
+    size: { x: number, y: number, z: number } = { x: 1.0, y: 1.0, z: 1.0 },
+    offset: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    is_trigger: boolean = false,
+    friction: number = 0.5,
+    restitution: number = 0.2,
+    layer: string = "default",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "collider_attached",
+    detached: "collider_detached",
+    on_collision_enter: "collider_enter",
+    on_collision_exit: "collider_exit",
+    on_trigger_enter: "trigger_enter",
+    on_trigger_exit: "trigger_exit"
+  },
+  behaviors: ["@character_controller", "@kinematic", "@proximity_trigger"]
+}
