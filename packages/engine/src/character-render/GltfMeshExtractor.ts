@@ -202,6 +202,64 @@ function extractMaterialMaps(
   };
 }
 
+/** The scalar geometry an extractor reads from one primitive — shared by the
+ *  skinned and static paths (the skinned one layers skin attributes on top). */
+interface PrimitiveGeometry {
+  positions: Float32Array<ArrayBuffer>;
+  normals: Float32Array<ArrayBuffer>;
+  tangents: Float32Array<ArrayBuffer>;
+  uvs?: Float32Array<ArrayBuffer>;
+  indices: Uint32Array<ArrayBuffer>;
+  vertexCount: number;
+  materialMaps?: MaterialTextureMaps;
+}
+
+/**
+ * Read a primitive's POSITION/NORMAL/TANGENT/TEXCOORD_0/indices (+ bound PBR maps)
+ * into typed arrays, synthesizing the glTF-optional fields: an up-normal (0,1,0)
+ * when NORMAL is absent, a (0,1,0,0) placeholder tangent when TANGENT is absent,
+ * and sequential indices when the primitive is non-indexed. Skin attributes are
+ * NOT read here — the skinned extractor reads JOINTS_0/WEIGHTS_0 separately.
+ */
+function readPrimitiveGeometry(g: GltfJson, bin: Uint8Array, prim: GltfPrimitive): PrimitiveGeometry {
+  const posR = readAccessor(g, bin, prim.attributes.POSITION);
+  const vertexCount = posR.count;
+  const positions = new Float32Array(posR.array);
+  const normals =
+    prim.attributes.NORMAL !== undefined
+      ? new Float32Array(readAccessor(g, bin, prim.attributes.NORMAL).array)
+      : (() => {
+          const n = new Float32Array(vertexCount * 3);
+          for (let v = 0; v < vertexCount; v++) n[v * 3 + 1] = 1; // default up
+          return n;
+        })();
+  const idxR = prim.indices !== undefined ? readAccessor(g, bin, prim.indices).array : undefined;
+  const indices = new Uint32Array(idxR ? idxR : Array.from({ length: vertexCount }, (_, i) => i));
+  const tangents = new Float32Array(vertexCount * 4);
+  if (prim.attributes.TANGENT !== undefined) {
+    tangents.set(readAccessor(g, bin, prim.attributes.TANGENT).array);
+  } else {
+    for (let v = 0; v < vertexCount; v++) tangents[v * 4 + 1] = 1; // body placeholder (0,1,0,0)
+  }
+  // TEXCOORD_0 UVs (2/vert) when the primitive carries them — undefined otherwise so the
+  // procedural body (no UVs) and un-textured imports are unaffected. (Track 0 prerequisite.)
+  const uvs =
+    prim.attributes.TEXCOORD_0 !== undefined
+      ? new Float32Array(readAccessor(g, bin, prim.attributes.TEXCOORD_0).array)
+      : undefined;
+  // The bound material's PBR texture maps (encoded bytes), when present. (Track 0 prerequisite.)
+  const materialMaps = extractMaterialMaps(g, bin, prim);
+  return {
+    positions,
+    normals,
+    tangents,
+    ...(uvs ? { uvs } : {}),
+    indices,
+    vertexCount,
+    ...(materialMaps ? { materialMaps } : {}),
+  };
+}
+
 /**
  * Extract the first skinned primitive of a .glb into a palette-remapped SkinnedMeshData.
  */
@@ -228,36 +286,11 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
   const node = g.nodes?.find((n) => n.mesh === meshIndex && n.skin !== undefined);
   const skin = g.skins![node?.skin ?? 0];
 
-  // 2) Vertex attributes.
-  const posR = readAccessor(g, bin, prim.attributes.POSITION);
-  const vertexCount = posR.count;
-  const positions = new Float32Array(posR.array);
-  const normals =
-    prim.attributes.NORMAL !== undefined
-      ? new Float32Array(readAccessor(g, bin, prim.attributes.NORMAL).array)
-      : (() => {
-          const n = new Float32Array(vertexCount * 3);
-          for (let v = 0; v < vertexCount; v++) n[v * 3 + 1] = 1; // default up
-          return n;
-        })();
+  // 2) Vertex attributes — scalar geometry (shared with the static path) + skin.
+  const { positions, normals, tangents, uvs, indices, vertexCount, materialMaps } =
+    readPrimitiveGeometry(g, bin, prim);
   const j4 = readAccessor(g, bin, prim.attributes.JOINTS_0).array; // 4 slots/vert
   const w4 = readAccessor(g, bin, prim.attributes.WEIGHTS_0).array; // 4 weights/vert
-  const idxR = prim.indices !== undefined ? readAccessor(g, bin, prim.indices).array : undefined;
-  const indices = new Uint32Array(idxR ? idxR : Array.from({ length: vertexCount }, (_, i) => i));
-  const tangents = new Float32Array(vertexCount * 4);
-  if (prim.attributes.TANGENT !== undefined) {
-    tangents.set(readAccessor(g, bin, prim.attributes.TANGENT).array);
-  } else {
-    for (let v = 0; v < vertexCount; v++) tangents[v * 4 + 1] = 1; // body placeholder (0,1,0,0)
-  }
-  // TEXCOORD_0 UVs (2/vert) when the primitive carries them — undefined otherwise so the
-  // procedural body (no UVs) and un-textured imports are unaffected. (Track 0 prerequisite.)
-  const uvs =
-    prim.attributes.TEXCOORD_0 !== undefined
-      ? new Float32Array(readAccessor(g, bin, prim.attributes.TEXCOORD_0).array)
-      : undefined;
-  // The bound material's PBR texture maps (encoded bytes), when present. (Track 0 prerequisite.)
-  const materialMaps = extractMaterialMaps(g, bin, prim);
 
   // 3) glTF joint slot → canonical palette index (via the matched skeleton standard).
   const jointNames: string[] = skin.joints.map((nodeIdx) => g.nodes?.[nodeIdx]?.name ?? '');
@@ -319,5 +352,72 @@ export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
     inverseBindMatrices,
     skeletonStandard: standard,
     unmappedJoints: unmapped,
+  };
+}
+
+/** A non-skinned mesh extracted with a rigid identity bind. Structurally a
+ *  {@link GltfSkinnedMesh} so it flows through the same SkinnedMeshData / `.holo`
+ *  mesh-shape pipeline — its "skin" is the no-deformation identity (joint 0,
+ *  weight 1, identity inverse-binds). */
+export type GltfStaticMesh = GltfSkinnedMesh;
+
+/**
+ * Extract the first triangle primitive of a .glb as a STATIC mesh: real
+ * POSITION/NORMAL/TANGENT/TEXCOORD_0/indices (+ bound PBR maps) carried with a
+ * rigid identity bind — every vertex rides palette root (joint 0) at weight 1.0
+ * with identity inverse-binds, i.e. undeformed at rest. This lets a NON-skinned
+ * GLB (the majority of environment/object assets) carry its real surface through
+ * the exact same codec + `.holo` `shape "<name>" mesh { … }` block as a skinned
+ * one, instead of degrading to an external text pointer. The rigid root bind is
+ * the same form the skinned extractor emits for an unmapped vertex
+ * (jointIndices=0, weight=1). Any JOINTS_0/WEIGHTS_0 on the primitive are ignored
+ * — call {@link extractGltfSkinnedMesh} for those. Same documented limits as the
+ * skinned path: no Draco/meshopt, no sparse/external buffers, first primitive only.
+ */
+export function extractGltfStaticMesh(glb: ArrayBuffer): GltfStaticMesh {
+  const { json: g, bin } = parseGlb(glb);
+
+  // First triangle primitive carrying POSITION (skin attributes, if any, ignored).
+  let prim: GltfPrimitive | undefined;
+  for (let mi = 0; mi < (g.meshes?.length ?? 0); mi++) {
+    for (const p of g.meshes![mi].primitives) {
+      if (p.extensions?.KHR_draco_mesh_compression || p.extensions?.EXT_meshopt_compression)
+        throw new Error('compressed primitive (Draco/meshopt) not supported by the native extractor');
+      if (p.attributes?.POSITION !== undefined) {
+        prim = p;
+        break;
+      }
+    }
+    if (prim) break;
+  }
+  if (!prim) throw new Error('no primitive with a POSITION attribute found');
+  if (prim.mode !== undefined && prim.mode !== 4) throw new Error('only triangle primitives (mode 4) supported');
+
+  const { positions, normals, tangents, uvs, indices, vertexCount, materialMaps } =
+    readPrimitiveGeometry(g, bin, prim);
+
+  // Rigid identity bind: no source skin → every vertex → palette root at weight
+  // 1.0 with identity inverse-binds. Undeformed at rest; identical in form to the
+  // skinned extractor's fallback for an unmapped vertex.
+  const jointIndices = new Uint32Array(vertexCount); // all 0 (root)
+  const jointWeights = new Float32Array(vertexCount).fill(1.0);
+  const inverseBindMatrices = new Float32Array(JOINT_COUNT * 16);
+  for (let i = 0; i < JOINT_COUNT; i++) inverseBindMatrices.set(IDENTITY4(), i * 16);
+
+  return {
+    positions,
+    normals,
+    tangents,
+    ...(uvs ? { uvs } : {}),
+    ...(materialMaps ? { materialMaps } : {}),
+    indices,
+    jointIndices,
+    jointWeights,
+    vertexCount,
+    jointCount: JOINT_COUNT,
+    boneOrder: BONE_ORDER,
+    inverseBindMatrices,
+    skeletonStandard: 'holoscript_65',
+    unmappedJoints: [],
   };
 }

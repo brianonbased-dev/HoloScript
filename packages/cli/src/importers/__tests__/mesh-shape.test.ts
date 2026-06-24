@@ -97,6 +97,36 @@ function makeSkinnedTriangleGlb(): ArrayBuffer {
   return buildGlb(json, bin);
 }
 
+// ─── minimal NON-skinned (static) triangle GLB ────────────────────────────────
+
+function makeStaticTriangleGlb(): ArrayBuffer {
+  // POSITION VEC3 f32 x3 @0 (36); NORMAL VEC3 f32 x3 @36 (36); indices u16 x3 @72 (6).
+  const binLen = 78;
+  const bin = new ArrayBuffer(binLen);
+  const dv = new DataView(bin);
+  [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true));
+  [0, 0, 1, 0, 0, 1, 0, 0, 1].forEach((v, i) => dv.setFloat32(36 + i * 4, v, true));
+  [0, 1, 2].forEach((v, i) => dv.setUint16(72 + i * 2, v, true));
+  const json = {
+    asset: { version: '2.0' },
+    buffers: [{ byteLength: binLen }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: 36 },
+      { buffer: 0, byteOffset: 36, byteLength: 36 },
+      { buffer: 0, byteOffset: 72, byteLength: 6 },
+    ],
+    accessors: [
+      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 1, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 2, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+    ],
+    // NO JOINTS_0 / WEIGHTS_0 / skin — exercises the static extractor fallback.
+    meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1 }, indices: 2, mode: 4 }] }],
+    nodes: [{ mesh: 0 }],
+  };
+  return buildGlb(json, bin);
+}
+
 // ─── tests ─────────────────────────────────────────────────────────────────────
 
 describe('Track-0 .holo mesh shape round-trip', () => {
@@ -145,6 +175,30 @@ describe('Track-0 .holo mesh shape round-trip', () => {
       // object.geometry resolves to the carried shape BY NAME — the surface lives
       // in the `.holo` file, not a `file.glb#Node` pointer to an external model.
       expect(geom![1]).toBe(shape.name);
+      expect(holo).not.toMatch(/geometry:\s*"[^"]*\.glb#/);
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  it('importGltf carries a NON-skinned static .glb as a real mesh (static extractor fallback)', () => {
+    const tmp = path.join(os.tmpdir(), `holo-track0-static-${process.pid}.glb`);
+    fs.writeFileSync(tmp, Buffer.from(makeStaticTriangleGlb()));
+    try {
+      const holo = importGltf(tmp);
+      expect(holo).toContain(' mesh {'); // real geometry carried, not a text pointer
+      const shape = findMeshShape(holo);
+      const back = holoShapeToMesh(shape);
+      expect(back.vertexCount).toBe(3);
+      expect(Array.from(back.positions)).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+      expect(Array.from(back.normals)).toEqual([0, 0, 1, 0, 0, 1, 0, 0, 1]);
+      expect(Array.from(back.indices)).toEqual([0, 1, 2]);
+      // rigid identity bind: no source skin → every vertex → root, weight 1.0.
+      expect(Array.from(back.jointIndices)).toEqual([0, 0, 0]);
+      expect(Array.from(back.jointWeights)).toEqual([1, 1, 1]);
+      // single-mesh → object geometry references the carried shape, no dead pointer.
+      const geom = holo.match(/geometry:\s*"([^"]+)"/);
+      expect(geom?.[1]).toBe(shape.name);
       expect(holo).not.toMatch(/geometry:\s*"[^"]*\.glb#/);
     } finally {
       fs.rmSync(tmp, { force: true });

@@ -8,7 +8,7 @@
  * case (G.GOLD.013): an unmapped joint name falls back to root.
  */
 import { describe, it, expect } from 'vitest';
-import { parseGlb, extractGltfSkinnedMesh } from '../GltfMeshExtractor';
+import { parseGlb, extractGltfSkinnedMesh, extractGltfStaticMesh } from '../GltfMeshExtractor';
 import { BONE_ORDER, JOINT_COUNT } from '../AgentAvatarMesh';
 import { testDevice, GPU_LIVE } from '../../physics/__tests__/gpu-setup';
 import { renderCharacter } from '../character-render';
@@ -341,5 +341,67 @@ describe('GltfMeshExtractor', () => {
       if (Math.abs(grid.data[i] - 18) + Math.abs(grid.data[i + 1] - 18) + Math.abs(grid.data[i + 2] - 23) > 40) nonClear++;
     }
     expect(nonClear).toBeGreaterThan(20); // the triangle rasterized
+  });
+
+  // ─── static (non-skinned) extractor ─────────────────────────────────────────
+
+  /** A one-triangle NON-skinned glb: POSITION + indices only (no NORMAL, no skin). */
+  function makeStaticTriangleGlbNoNormal(): ArrayBuffer {
+    const binLen = 42; // POSITION VEC3 f32 x3 @0 (36); indices u16 x3 @36 (6).
+    const bin = new ArrayBuffer(binLen);
+    const dv = new DataView(bin);
+    [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true));
+    [0, 1, 2].forEach((v, i) => dv.setUint16(36 + i * 2, v, true));
+    const json = {
+      asset: { version: '2.0' },
+      buffers: [{ byteLength: binLen }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 0, byteLength: 36 },
+        { buffer: 0, byteOffset: 36, byteLength: 6 },
+      ],
+      accessors: [
+        { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+        { bufferView: 1, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+      ],
+      meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] }],
+      nodes: [{ mesh: 0 }],
+    };
+    return buildGlb(json, bin);
+  }
+
+  it('extractGltfStaticMesh carries a non-skinned mesh with a rigid identity bind', () => {
+    const m = extractGltfStaticMesh(makeStaticTriangleGlbNoNormal());
+    expect(m.vertexCount).toBe(3);
+    expect(Array.from(m.positions)).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+    expect(Array.from(m.indices)).toEqual([0, 1, 2]);
+    // No source skin → every vertex rides palette root (joint 0) at weight 1.0.
+    expect(Array.from(m.jointIndices)).toEqual([0, 0, 0]);
+    expect(Array.from(m.jointWeights)).toEqual([1, 1, 1]);
+    expect(m.jointCount).toBe(JOINT_COUNT);
+    expect(m.skeletonStandard).toBe('holoscript_65');
+  });
+
+  it('extractGltfStaticMesh synthesizes up-normals when NORMAL is absent', () => {
+    const m = extractGltfStaticMesh(makeStaticTriangleGlbNoNormal());
+    expect(Array.from(m.normals)).toEqual([0, 1, 0, 0, 1, 0, 0, 1, 0]); // (0,1,0)/vert
+  });
+
+  it('extractGltfStaticMesh throws on a Draco-compressed primitive (fail loud)', () => {
+    const bin = new ArrayBuffer(4);
+    const json = {
+      asset: { version: '2.0' },
+      buffers: [{ byteLength: 4 }],
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 4 }],
+      accessors: [{ bufferView: 0, byteOffset: 0, componentType: 5126, count: 1, type: 'SCALAR' }],
+      meshes: [
+        {
+          primitives: [
+            { attributes: { POSITION: 0 }, extensions: { KHR_draco_mesh_compression: {} }, mode: 4 },
+          ],
+        },
+      ],
+      nodes: [{ mesh: 0 }],
+    };
+    expect(() => extractGltfStaticMesh(buildGlb(json, bin))).toThrow(/Draco/);
   });
 });

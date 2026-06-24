@@ -8,7 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { CharacterRender, encodeSkinnedMeshToHolo } from '@holoscript/engine';
+import { CharacterRender, encodeSkinnedMeshToHolo, type SkinnedMeshData } from '@holoscript/engine';
 import { meshShapeToHolo } from './mesh-shape';
 
 // ---------------------------------------------------------------------------
@@ -913,19 +913,30 @@ export function importGltf(inputPath: string): string {
     // block instead of only a text pointer. Best-effort — only for skinned
     // triangle GLBs the native extractor supports (has JOINTS_0/WEIGHTS_0, no
     // Draco). Anything else keeps the existing text-pointer behavior unchanged.
+    const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    // Track 0: carry the REAL mesh in `.holo`. Prefer the skinned extractor
+    // (palette-remapped skin); fall back to the static extractor (rigid identity
+    // bind) for non-skinned GLBs — the majority of environment/object assets.
+    // Only Draco/meshopt or a primitive with no POSITION leaves a text pointer.
+    let mesh: SkinnedMeshData | undefined;
     try {
-      const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-      const mesh = CharacterRender.extractGltfSkinnedMesh(ab);
+      mesh = CharacterRender.extractGltfSkinnedMesh(ab);
+    } catch {
+      try {
+        mesh = CharacterRender.extractGltfStaticMesh(ab);
+      } catch {
+        // Draco/meshopt or no extractable primitive — geometry stays a text pointer.
+      }
+    }
+    if (mesh) {
       const meshName = path.basename(resolvedPath, ext) + '_mesh';
       meshShapeBlock = meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh));
-      // Rewrite the per-node `geometry:` pointer to reference this carried shape
-      // only when the GLB has exactly one mesh — then the node→shape link is
-      // unambiguous. Multi-mesh per-node mapping is the multi-primitive follow-up.
+      // Reference the carried shape from the per-node `geometry:` only when the
+      // GLB has exactly one mesh — then the node→shape link is unambiguous.
+      // Multi-mesh per-node mapping is the multi-primitive follow-up.
       if (gltfData.meshes?.length === 1) {
         meshShapeName = meshName;
       }
-    } catch {
-      // non-skinned / Draco / multi-primitive — leave geometry as a text pointer
     }
   } else if (ext === '.gltf') {
     const rawJson = fs.readFileSync(resolvedPath, 'utf8');
