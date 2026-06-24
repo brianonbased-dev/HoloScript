@@ -1,0 +1,26 @@
+@trait {
+  name: "@color_grading",
+  category: "visual",
+  description: "Post-process color grading pipeline with LUT support, per-channel lift/gamma/gain, and tone mapping. Authored from ColorGradingTrait.ts.",
+  props: {
+    lut_url: string = "",
+    exposure: number = 0.0,
+    contrast: number = 1.0,
+    saturation: number = 1.0,
+    temperature: number = 6500.0,
+    tint: number = 0.0,
+    lift: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    gamma: { x: number, y: number, z: number } = { x: 1.0, y: 1.0, z: 1.0 },
+    gain: { x: number, y: number, z: number } = { x: 1.0, y: 1.0, z: 1.0 },
+    tone_map: enum("aces" | "filmic" | "reinhard" | "neutral") = "aces",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "color_grading_attached",
+    detached: "color_grading_detached",
+    on_update: "color_grading_update",
+    on_lut_load: "color_grading_lut_load",
+    on_lut_error: "color_grading_lut_error"
+  },
+  behaviors: ["@rendering"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@crowd_simulation",
+  category: "agent",
+  description: "Multi-agent crowd steering with local avoidance. Implements ORCA, Social Force, RVO2, or native HoloScript algorithms for dense agent navigation. Authored from CrowdSimulationTrait.ts.",
+  props: {
+    max_agents: number = 100,
+    algorithm: enum("orca" | "social_force" | "rvo2" | "holoscript") = "orca",
+    avoidance_radius_m: number = 0.5,
+    comfort_speed: number = 1.4,
+    goal_sharing: boolean = false,
+    neighbor_dist_m: number = 5.0,
+    time_horizon_s: number = 2.0
+  },
+  events: {
+    attached: "crowd_simulation_attached",
+    detached: "crowd_simulation_detached",
+    on_agent_enter: "crowd_agent_enter",
+    on_agent_exit: "crowd_agent_exit",
+    on_goal_reached: "crowd_goal_reached",
+    on_stuck: "crowd_agent_stuck",
+    add_agent: "crowd_add_agent",
+    remove_agent: "crowd_remove_agent"
+  },
+  behaviors: ["@nav_mesh", "@steering", "@formation_control"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@collision_filter",
+  category: "physics",
+  description: "Layer-based collision filtering for physics bodies. Controls which collision layers an entity belongs to and which it responds to. Authored from CollisionFilterTrait.ts.",
+  props: {
+    layer: number = 0,
+    mask: list<number> = [],
+    ignore_list: list<string> = [],
+    trigger: boolean = false,
+    continuous: boolean = false,
+    debug_draw: boolean = false
+  },
+  events: {
+    attached: "collision_filter_attached",
+    detached: "collision_filter_detached",
+    on_filter_change: "collision_filter_change",
+    on_collision_enter: "collision_filter_enter",
+    on_collision_exit: "collision_filter_exit"
+  },
+  behaviors: ["@rigid_body"]
+}
