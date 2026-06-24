@@ -1,0 +1,29 @@
+@trait {
+  name: "@face_tracking",
+  category: "anim",
+  description: "Face mesh and expression tracking for avatars. Drives named blend shapes (ARKit / HTC / Meta / generic topology) with configurable smoothing, optional eye-gaze channels, lip-sync phoneme extraction, and head-pose forwarding. Emits expression deltas at the configured update_rate. Used by @avatar_embodiment and voice-driven NPC pipelines. Research: FaceTrackingTrait.ts v2.0.0 blend-shape smoothing + phoneme detection.",
+  props: {
+    blend_shapes: dict<string, number> = {},
+    tracking_mode: enum("arkit" | "htc" | "meta" | "generic") = "arkit",
+    mirror: boolean = false,
+    eye_tracking: boolean = true,
+    lip_sync: boolean = true,
+    smoothing: number = 0.3,
+    confidence_threshold: number = 0.5,
+    update_rate: number = 60
+  },
+  events: {
+    attached: "face_tracking_start",
+    detached: "face_tracking_stop",
+    found: "face_tracking_found",
+    lost: "face_tracking_lost",
+    expression_update: "face_expression_update",
+    blend_shapes_update: "avatar_blend_shapes",
+    eye_gaze_update: "avatar_eye_gaze",
+    head_pose_update: "avatar_head_pose",
+    phoneme: "lip_sync_phoneme",
+    on_face_data: "face_data_update",
+    on_tracking_lost: "face_tracking_lost"
+  },
+  behaviors: ["@animation", "@avatar_embodiment"]
+}

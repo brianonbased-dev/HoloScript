@@ -1,0 +1,28 @@
+@trait {
+  name: "@formation_control",
+  category: "agent",
+  description: "Declarative multi-agent geometric formation for swarm scenes. Assigns agents to slots in a named pattern (grid/line/circle/wedge/triangle/column/v) relative to a leader entity, emitting per-slot world-space target positions at a configurable sync rate. Slot assignments persist across reconfiguration; PID controllers or navmesh solvers consume the emitted targets. Research: FormationControlTrait.ts FormationShape / sync_rate_hz design.",
+  props: {
+    pattern: enum("grid" | "line" | "circle" | "wedge" | "triangle" | "column" | "v") = "line",
+    spacing: number = 3.0,
+    leader_id: string = "",
+    role: enum("follower" | "flank" | "rear-guard" | "scout") = "follower",
+    sync_rate_hz: number = 10,
+    rotation_offset_rad: number = 0.0,
+    y_offset: number = 0.0,
+    max_agents: number = 16
+  },
+  events: {
+    attached: "formation_control_attached",
+    detached: "formation_control_detached",
+    updated: "formation_control_updated",
+    agent_added: "formation_control_agent_added",
+    agent_removed: "formation_control_agent_removed",
+    shape_changed: "formation_control_shape_changed",
+    on_add_agent: "formation:add_agent",
+    on_remove_agent: "formation:remove_agent",
+    on_reconfigure: "formation:reconfigure",
+    on_sync: "formation:sync"
+  },
+  behaviors: ["@transform"]
+}

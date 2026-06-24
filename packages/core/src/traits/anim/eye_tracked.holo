@@ -1,0 +1,32 @@
+@trait {
+  name: "@eye_tracked",
+  category: "anim",
+  description: "Eye-gaze interaction and foveated rendering control for XR entities. Supports gaze-enter/exit events, dwell-to-activate (configurable dwell_time_ms with progress feedback), highlight and scale response on gaze, smooth-pursuit object following, and foveation priority hints for Quest Pro / Vision Pro class hardware. Falls back to head-rotation gaze on hardware without real eye tracking. Research: EyeTrackedTrait.ts v1.0.0 eye_gaze_update real-eye caching + head-rotation fallback.",
+  props: {
+    gaze_target: string = "",
+    smooth_follow: boolean = false,
+    foveation_mode: enum("fixed" | "eye_gaze_driven" | "head_gaze_driven") = "fixed",
+    dwell_enabled: boolean = true,
+    dwell_time_ms: number = 1000,
+    dwell_feedback: boolean = true,
+    gaze_highlight: boolean = true,
+    highlight_color: string = "#00ffff",
+    gaze_scale: number = 1.1,
+    foveated_priority: enum("low" | "medium" | "high") = "medium",
+    gaze_tolerance_deg: number = 2.0
+  },
+  events: {
+    attached: "eye_tracked_attached",
+    detached: "eye_tracked_detached",
+    gaze_enter: "gaze_enter",
+    gaze_exit: "gaze_exit",
+    dwell_progress: "dwell_progress",
+    dwell_activate: "dwell_activate",
+    foveation_registered: "register_foveated",
+    foveation_unregistered: "unregister_foveated",
+    on_eye_gaze: "eye_gaze_update",
+    on_simulate_gaze: "simulate_gaze",
+    on_cancel_dwell: "cancel_dwell"
+  },
+  behaviors: ["@transform"]
+}

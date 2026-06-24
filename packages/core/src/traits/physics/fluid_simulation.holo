@@ -1,0 +1,34 @@
+@trait {
+  name: "@fluid_simulation",
+  category: "physics",
+  description: "SPH (Smoothed Particle Hydrodynamics) fluid simulation for liquids and gases. Drives density, pressure, viscosity, and surface-tension forces on a particle field. Supports SPH, FLIP, and hybrid solvers; configurable grid resolution, smoothing radius, and particle budget. Emits per-step kinetic-energy and density statistics for downstream render surfaces and VFX traits. Research: W.829 dead-delegation fix (FluidSimulationTrait.ts).",
+  props: {
+    resolution: number = 64,
+    viscosity: number = 0.001,
+    surface_tension: number = 0.072,
+    rest_density: number = 1000.0,
+    gas_constant: number = 8.314,
+    smoothing_radius: number = 0.04,
+    particle_radius: number = 0.01,
+    max_particles: number = 4096,
+    time_step: number = 0.016,
+    max_velocity: number = 100.0,
+    gravity: number[] = [0.0, -9.81, 0.0],
+    solver: enum("sph" | "flip" | "hybrid") = "sph",
+    boundary_restitution: number = 0.5,
+    render_surface: boolean = true
+  },
+  events: {
+    attached: "fluid_simulation_attached",
+    detached: "fluid_simulation_detached",
+    configured: "fluid_simulation_configured",
+    step_complete: "fluid_simulation_step",
+    particle_added: "fluid_simulation_particle_added",
+    particle_removed: "fluid_simulation_particle_removed",
+    on_configure: "fluid_simulation_configure",
+    on_add_particle: "fluid_simulation_add_particle",
+    on_clear: "fluid_simulation_clear",
+    on_query_density: "fluid_simulation_query_density"
+  },
+  behaviors: ["@transform"]
+}
