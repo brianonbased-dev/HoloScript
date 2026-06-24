@@ -1,0 +1,23 @@
+@trait {
+  name: "@ai_upscaling",
+  category: "visual",
+  description: "AI super-resolution trait that upscales textures, render targets, or live frames using learned single-image upscaling models. model selects the inference backend: real_esrgan uses Real-ESRGAN for photorealistic upscaling with artefact suppression, swinir uses SwinIR for perceptually sharp detail recovery, holoscript routes through the HoloScript sovereign inference service. scale controls the output size multiplier: x2 doubles resolution, x4 quadruples it, x8 octets for extreme upscaling. denoise (0–1.0) blends the model's internal denoising pass; 0 preserves source noise, 1 applies maximum smoothing. tile_size controls tiled inference chunk size in pixels to cap VRAM usage; 0 disables tiling (processes the full image at once). batch enables simultaneous processing of multiple textures in one forward pass when the model and hardware support it. Send ai_upscaling:upscale {textureId} to trigger an upscale; result arrives via ai_upscaling:complete. ai_upscaling:progress fires with intermediate outputs during multi-tile processing. Research: AiUpscalingTrait.ts, ImageResizeTrait.ts, TensorRTInferenceTrait.ts.",
+  props: {
+    model: enum("real_esrgan" | "swinir" | "holoscript") = "real_esrgan",
+    scale: enum("x2" | "x4" | "x8") = "x4",
+    denoise: number = 0.5,
+    tile_size: number = 512,
+    batch: boolean = false
+  },
+  events: {
+    attached: "ai_upscaling:attached",
+    detached: "ai_upscaling:detached",
+    ready: "ai_upscaling:ready",
+    complete: "ai_upscaling:complete",
+    progress: "ai_upscaling:progress",
+    error: "ai_upscaling:error",
+    on_upscale: "ai_upscaling:upscale",
+    on_set_model: "ai_upscaling:set_model",
+    on_set_scale: "ai_upscaling:set_scale"
+  }
+}

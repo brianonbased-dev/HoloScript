@@ -1,0 +1,26 @@
+@trait {
+  name: "@ai_driver",
+  category: "agent",
+  description: "AI-powered autonomous navigation trait for agents and vehicles. target_path is an ordered list of world-space vec3 waypoints the entity follows; the runtime replans if obstacles are encountered. obstacle_avoidance enables dynamic replanning when obstacles are detected along the projected path. speed controls travel velocity as a 0–100 percentage of the entity's rated max speed. lookahead_m is the forward look-ahead distance in metres used by the path-tracking controller to compute steering corrections; larger values produce smoother curves, smaller values hug the path tighter around bends. follow_mode governs high-level tracking behaviour: path drives through the explicit waypoint list in order, entity steers toward a moving target entity identified by id, formation maintains a relative offset within a multi-agent formation group. Send ai_driver:set_path with a waypoints array to update the route at runtime. ai_driver:waypoint fires each time the agent crosses a waypoint; ai_driver:arrive fires on final destination reached; ai_driver:blocked fires when replanning fails after the maximum retry count; ai_driver:reroute fires when a successful replan redirects the agent. Research: AIDriverTrait.ts, NavmeshSolverTrait.ts, FlowFieldTrait.ts, PIDControllerTrait.ts.",
+  props: {
+    target_path: list<vec3> = [],
+    obstacle_avoidance: boolean = true,
+    speed: number = 50.0,
+    lookahead_m: number = 2.0,
+    follow_mode: enum("path" | "entity" | "formation") = "path"
+  },
+  events: {
+    attached: "ai_driver:attached",
+    detached: "ai_driver:detached",
+    ready: "ai_driver:ready",
+    waypoint: "ai_driver:waypoint",
+    arrive: "ai_driver:arrive",
+    blocked: "ai_driver:blocked",
+    reroute: "ai_driver:reroute",
+    error: "ai_driver:error",
+    on_set_path: "ai_driver:set_path",
+    on_set_target: "ai_driver:set_target",
+    on_set_speed: "ai_driver:set_speed"
+  },
+  behaviors: ["@nav_mesh", "@steering", "@transform"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@ai_companion",
+  category: "agent",
+  description: "AI-driven NPC companion with configurable persona, memory depth, voice, and emotional state machine. persona seeds the character's personality and tone delivered to the underlying LLM. memory_depth caps how many past exchanges the companion retains for contextual recall. response_delay_ms is the simulated thinking pause before the companion speaks, in milliseconds. voice_id selects the TTS voice used for speech synthesis. mood controls the companion's current emotional posture: curious biases the companion toward open-ended questions, helpful keeps responses solution-focused, playful adds humour and levity, serious maintains a professional and earnest tone. llm_model names the hosted or on-device model used for dialogue generation (e.g. 'claude-sonnet-4-5', 'gpt-4o', 'llama-3.2-3b'). Send ai_companion:speak {text} to inject player input; the companion replies via ai_companion:response. ai_companion:emotion_change fires whenever the mood enum transitions. ai_companion:idle fires when the companion has had no interaction for longer than the idle timeout. Research: AICompanionTrait.ts, LLMAgentTrait.ts.",
+  props: {
+    persona: string = "friendly",
+    memory_depth: number = 20,
+    response_delay_ms: number = 400,
+    voice_id: string = "",
+    mood: enum("curious" | "helpful" | "playful" | "serious") = "helpful",
+    llm_model: string = "claude-sonnet-4-5"
+  },
+  events: {
+    attached: "ai_companion:attached",
+    detached: "ai_companion:detached",
+    ready: "ai_companion:ready",
+    response: "ai_companion:response",
+    emotion_change: "ai_companion:emotion_change",
+    idle: "ai_companion:idle",
+    error: "ai_companion:error",
+    on_speak: "ai_companion:speak",
+    on_listen: "ai_companion:listen",
+    on_set_mood: "ai_companion:set_mood"
+  },
+  behaviors: ["@llm_agent", "@agent_memory"]
+}
