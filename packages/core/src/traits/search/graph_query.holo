@@ -1,0 +1,26 @@
+@trait {
+  name: "@graph_query",
+  category: "search",
+  description: "Declarative graph query execution across GraphQL, Cypher (Neo4j), SPARQL (RDF/OWL), and HoloScript-native graph engines. endpoint_url points to the remote query engine; schema_url is the introspection or ontology endpoint used when introspect is true; batch_size caps the number of results returned per query invocation. Emits on_query when a query is dispatched, on_error on network or parse failure, and on_cache_hit when the result is served from the local response cache. Composes with @embedding_search and @rag for hybrid retrieval pipelines. Research: GraphqlTrait.ts, QueryTrait.ts, EmbeddingSearchTrait.ts.",
+  props: {
+    engine: enum("graphql" | "cypher" | "sparql" | "holoscript") = "graphql",
+    endpoint_url: string = "",
+    schema_url: string = "",
+    scopes: array<string> = [],
+    batch_size: number = 50,
+    introspect: boolean = false,
+    cache_ttl_ms: number = 60000,
+    timeout_ms: number = 10000
+  },
+  events: {
+    attached: "graph_query:attached",
+    detached: "graph_query:detached",
+    on_query: "graph_query:query",
+    on_error: "graph_query:error",
+    on_cache_hit: "graph_query:cache_hit",
+    result: "graph_query:result",
+    schema_loaded: "graph_query:schema_loaded",
+    on_introspect: "graph_query:introspect",
+    on_clear_cache: "graph_query:clear_cache"
+  }
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@geofence",
+  category: "spatial",
+  description: "Geographic boundary enforcement with enter/exit/dwell detection. zones is an ordered list of named polygonal regions each identified by id, polygon vertex list, and an optional label; trigger_mode controls which crossing directions fire events; dwell_ms is the minimum milliseconds an entity must remain inside a zone before the dwell event fires; accuracy_m is the expected GPS or spatial-sensor accuracy in metres used to debounce boundary noise. Composes with @geospatial_anchor and @spatial_query for world-space to geographic-space coordinate bridging. Research: GeospatialAnchorTrait.ts, GeospatialEnvTrait.ts.",
+  props: {
+    zones: array<{ id: string, polygon: array<vec2>, label: string }> = [],
+    trigger_mode: enum("enter" | "exit" | "dwell" | "enter_exit" | "all") = "all",
+    dwell_ms: number = 5000,
+    accuracy_m: number = 5.0,
+    multi_zone: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "geofence:attached",
+    detached: "geofence:detached",
+    on_enter: "geofence:enter",
+    on_exit: "geofence:exit",
+    on_dwell: "geofence:dwell",
+    zone_added: "geofence:zone_added",
+    zone_removed: "geofence:zone_removed",
+    on_add_zone: "geofence:add_zone",
+    on_remove_zone: "geofence:remove_zone",
+    on_query: "geofence:query"
+  },
+  behaviors: ["@geospatial_anchor"]
+}

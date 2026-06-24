@@ -1,0 +1,28 @@
+@trait {
+  name: "@identity_provider",
+  category: "security",
+  description: "Federated identity and authentication flow for HoloScript entities. protocol selects the identity exchange standard: oidc (OpenID Connect), saml (SAML 2.0), ldap, or holoscript (wallet-keyed sovereign identity). issuer_url is the authorization server base URL; client_id is the registered application identifier; scopes is the list of OAuth scopes requested at login; pkce enables Proof Key for Code Exchange for public clients. on_login fires with the resolved identity payload on successful authentication; on_logout fires on explicit session termination; on_token_refresh fires each time an access token is silently renewed; on_error fires on authentication failure or configuration problems. Composes with @rbac, @jwt, and @mfa for layered access control. Research: OauthTrait.ts, SSOTrait.ts, JwtTrait.ts, RBACTrait.ts.",
+  props: {
+    protocol: enum("oidc" | "saml" | "ldap" | "holoscript") = "oidc",
+    issuer_url: string = "",
+    client_id: string = "",
+    scopes: array<string> = ["openid", "profile", "email"],
+    pkce: boolean = true,
+    auto_refresh: boolean = true,
+    session_ttl_ms: number = 3600000,
+    logout_redirect_url: string = ""
+  },
+  events: {
+    attached: "identity_provider:attached",
+    detached: "identity_provider:detached",
+    on_login: "identity_provider:login",
+    on_logout: "identity_provider:logout",
+    on_token_refresh: "identity_provider:token_refresh",
+    on_error: "identity_provider:error",
+    session_started: "identity_provider:session_started",
+    session_expired: "identity_provider:session_expired",
+    on_authenticate: "identity_provider:authenticate",
+    on_revoke: "identity_provider:revoke"
+  },
+  behaviors: ["@jwt", "@rbac"]
+}

@@ -1,0 +1,24 @@
+@trait {
+  name: "@image_processing",
+  category: "media",
+  description: "Declarative image transformation pipeline with configurable per-stage operations. pipeline is an ordered list of processing steps: resize, crop, blur, sharpen, grayscale, denoise, or upscale; stages execute in list order against the source image buffer. output_format controls the encoded output container; quality is a 0.0–1.0 perceptual quality factor for lossy formats (jpeg, webp, avif). preserve_exif retains EXIF metadata in the output. on_process fires with the resulting image buffer when the pipeline completes; on_error fires on unsupported stage combinations or codec failures. Composes with @s3_upload for store-on-complete patterns and @render_capture for in-scene image acquisition. Research: ImageResizeTrait.ts, AiInpaintingTrait.ts, AiUpscalingTrait.ts.",
+  props: {
+    pipeline: array<enum("resize" | "crop" | "blur" | "sharpen" | "grayscale" | "denoise" | "upscale")> = ["resize"],
+    output_format: enum("png" | "jpeg" | "webp" | "avif") = "webp",
+    quality: number = 0.85,
+    max_width: number = 0,
+    max_height: number = 0,
+    preserve_exif: boolean = false,
+    concurrency: number = 4
+  },
+  events: {
+    attached: "image_processing:attached",
+    detached: "image_processing:detached",
+    on_process: "image_processing:process",
+    on_error: "image_processing:error",
+    stage_complete: "image_processing:stage_complete",
+    pipeline_complete: "image_processing:pipeline_complete",
+    on_configure: "image_processing:configure",
+    on_abort: "image_processing:abort"
+  }
+}
