@@ -1,0 +1,26 @@
+@trait {
+  name: "@stripe",
+  category: "economics",
+  description: "Stripe payment processor integration. Handles one-time charges, subscriptions, refunds, and webhooks. Authored from StripeTrait.ts.",
+  props: {
+    publishable_key_secret: string = "",
+    webhook_secret: string = "",
+    currency: string = "usd",
+    payment_methods: list<string> = [],
+    auto_confirm: boolean = true,
+    save_payment_method: boolean = false,
+    tax_automatic: boolean = false
+  },
+  events: {
+    attached: "stripe_attached",
+    detached: "stripe_detached",
+    on_payment_intent: "stripe_payment_intent",
+    on_payment_success: "stripe_payment_success",
+    on_payment_fail: "stripe_payment_fail",
+    on_refund: "stripe_refund",
+    on_webhook: "stripe_webhook",
+    charge: "stripe_charge",
+    refund: "stripe_trigger_refund"
+  },
+  behaviors: ["@transaction", "@subscription"]
+}

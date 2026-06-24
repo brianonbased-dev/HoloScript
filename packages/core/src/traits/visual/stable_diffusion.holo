@@ -1,0 +1,29 @@
+@trait {
+  name: "@stable_diffusion",
+  category: "visual",
+  description: "Stable Diffusion inference binding for in-world image and texture generation. Supports txt2img, img2img, inpainting, and ControlNet pipelines. Authored from StableDiffusionTrait.ts.",
+  props: {
+    endpoint_url: string = "",
+    model_id: string = "stabilityai/stable-diffusion-xl-base-1.0",
+    prompt: string = "",
+    negative_prompt: string = "ugly, blurry, low quality",
+    steps: number = 30,
+    cfg_scale: number = 7.5,
+    width: number = 1024,
+    height: number = 1024,
+    seed: number = -1,
+    mode: enum("txt2img" | "img2img" | "inpaint" | "controlnet") = "txt2img",
+    strength: number = 0.8
+  },
+  events: {
+    attached: "stable_diffusion_attached",
+    detached: "stable_diffusion_detached",
+    on_start: "stable_diffusion_start",
+    on_step: "stable_diffusion_step",
+    on_result: "stable_diffusion_result",
+    on_error: "stable_diffusion_error",
+    generate: "stable_diffusion_generate",
+    cancel: "stable_diffusion_cancel"
+  },
+  behaviors: ["@ai_texture_gen", "@ai_inpainting"]
+}
