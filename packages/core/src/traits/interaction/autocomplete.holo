@@ -1,0 +1,29 @@
+@trait {
+  name: "@autocomplete",
+  category: "interaction",
+  description: "Typeahead suggestion overlay with configurable data source, query debouncing, result limit, keyboard navigation, and free-text fallback. source selects where candidates come from: static provides a fixed in-scene candidate list declared at author time; api issues HTTP GET requests to source_url with the user's query appended as a ?q= parameter and expects a JSON array of strings in the response; holoscript queries the HoloScript knowledge store for entity names and trait identifiers matching the input. source_url is the endpoint used when source is api (ignored otherwise). min_chars suppresses suggestion fetch and display until the user has typed at least this many characters — prevents noisy results on single-character input. max_results caps the dropdown to this many candidates; candidates are ranked by relevance score and truncated from the bottom. debounce_ms is the delay in milliseconds between the last keystroke and the suggestion fetch; set to 0 for immediate response on static sources; recommended 150–300 ms for api sources to avoid rate-limit exhaustion. free_text allows the user to submit arbitrary input that does not match any candidate; when false, the field resets to empty if the user tabs or clicks away without selecting a suggestion. highlight wraps the matched prefix of each candidate in a <mark> span in the rendered dropdown; disable for plain-text-only renderers. on_query fires when a fetch is dispatched, carrying the current query string. on_select fires when the user picks a candidate, carrying the selected value. on_clear fires when the field is reset or the user clears the input. Pairs with @text_input for the input surface, @form_builder for field-level suggestion integration, and @full_text_search for in-scene entity lookups. Research: AutocompleteTrait.ts (static suggestions, min_chars gate), FullTextSearchTrait.ts (holoscript source mode).",
+  props: {
+    source: enum("static" | "api" | "holoscript") = "static",
+    source_url: string = "",
+    min_chars: number = 1,
+    max_results: number = 10,
+    debounce_ms: number = 200,
+    free_text: boolean = true,
+    highlight: boolean = true
+  },
+  events: {
+    attached: "ac:attached",
+    detached: "ac:detached",
+    queried: "ac:queried",
+    suggestions_ready: "ac:suggestions",
+    selected: "ac:selected",
+    cleared: "ac:cleared",
+    fetch_error: "ac:fetch_error",
+    on_query: "ac:query",
+    on_select: "ac:select",
+    on_clear: "ac:clear",
+    on_set_candidates: "ac:set_candidates",
+    on_set_source_url: "ac:set_source_url"
+  },
+  behaviors: ["@text_input", "@accessible", "@keyboard_nav"]
+}

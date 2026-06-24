@@ -1,0 +1,26 @@
+@trait {
+  name: "@event_log",
+  category: "analytics",
+  description: "Bounded in-scene event log with configurable capacity, category filtering, optional persistence, export, and automatic retention eviction. max_entries is the maximum number of log entries held in memory; when the buffer is full the oldest entry is evicted before the new one is appended. categories is an allow-list of event-category strings accepted by the log; entries whose category is not in the list are silently dropped — an empty list accepts all categories. on_entry fires when a new entry is appended, carrying the entry payload (timestamp, category, message, metadata dict). on_clear fires when the log is wiped via the on_clear command event. on_export fires when an export is requested via on_export, carrying the serialised log in the format selected by export_format. persist enables write-through to the HoloScript storage backend so the log survives entity reload and session restarts; disable for ephemeral in-session diagnostics. export_format controls the shape of the data emitted on on_export: json produces a JSON array of entry objects; csv produces a comma-separated table with timestamp, category, message columns; ndjson produces one JSON object per line for streaming ingestion pipelines. retention_days sets the maximum age of persisted entries in days; entries older than this threshold are evicted during the next export or session load (0 = no eviction). Pairs with @telemetry for metric-level observability, @profiler for timing instrumentation, and @notification for alerting on high-severity log events. Research: TelemetryTrait.ts, ProfilerTrait.ts, ServiceObservabilityTrait.ts.",
+  props: {
+    max_entries: number = 1000,
+    categories: array<string> = [],
+    persist: boolean = false,
+    export_format: enum("json" | "csv" | "ndjson") = "json",
+    retention_days: number = 0
+  },
+  events: {
+    attached: "event_log:attached",
+    detached: "event_log:detached",
+    entry_added: "event_log:entry",
+    cleared: "event_log:cleared",
+    exported: "event_log:exported",
+    evicted: "event_log:evicted",
+    on_entry: "event_log:append",
+    on_clear: "event_log:clear",
+    on_export: "event_log:export",
+    on_set_max_entries: "event_log:set_max_entries",
+    on_set_categories: "event_log:set_categories"
+  },
+  behaviors: ["@telemetry"]
+}
