@@ -31,6 +31,27 @@ export interface DensifyResult {
 }
 
 /**
+ * Densification mode. `interpolation` is the honest, bounded-by-reality producer
+ * implemented by {@link densifyByInterpolation} (added points are `interpolated`).
+ * `generative` fills UNOBSERVED regions with model-invented geometry (added points
+ * are `generative-extended`) and requires a {@link GenerativeDensifierBackend}.
+ */
+export type DensifyMode = 'interpolation' | 'generative';
+
+/**
+ * Pluggable backend for GENERATIVE densification — fills UNOBSERVED regions with
+ * model-invented geometry (ArtiFixer-class). Drop-in seam unfrozen by the D.101
+ * carve-out (founder, 2026-06-24): the sovereign Wan2.1-based model implements
+ * this. The returned provenance MUST tag invented points `generative-extended`
+ * (originals stay `observed`/`interpolated`). Bounded-by-reality fill is
+ * {@link densifyByInterpolation}'s job, not this.
+ */
+export interface GenerativeDensifierBackend {
+  readonly modelId: string;
+  densify(input: { positions: Float32Array; colors: Float32Array }): DensifyResult;
+}
+
+/**
  * @param positions  N×3 observed positions.
  * @param colors     N×3 (RGB) or N×4 (RGBA, alpha dropped) colors in 0..1. Length must be a multiple of N.
  * @param opts.maxAdded  Optional cap on added points (default: N).

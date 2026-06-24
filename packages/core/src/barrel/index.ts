@@ -97,6 +97,8 @@ export {
 } from '../traits/AutoRigTrait';
 export { provenanceHandler } from '../traits/ProvenanceTrait';
 export type { ProvenanceTraitConfig } from '../traits/ProvenanceTrait';
+export { provenanceDensifyHandler } from '../traits/ProvenanceDensifyTrait';
+export type { ProvenanceDensifyConfig } from '../traits/ProvenanceDensifyTrait';
 export type {
   AutoRigConfig,
   AutoRigPose,

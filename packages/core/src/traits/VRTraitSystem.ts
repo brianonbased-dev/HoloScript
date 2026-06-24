@@ -72,6 +72,7 @@ import { meshDetectionHandler } from './MeshDetectionTrait';
 import { roomMeshHandler } from './RoomMeshTrait';
 import { autoRigHandler, generatedMeshHandler } from './AutoRigTrait';
 import { provenanceHandler } from './ProvenanceTrait';
+import { provenanceDensifyHandler } from './ProvenanceDensifyTrait';
 import { aiUpscalingHandler, neuralUpscalingHandler } from './AiUpscalingTrait';
 import { anchorHandler } from './AnchorTrait';
 import { persistentAnchorHandler } from './PersistentAnchorTrait';
@@ -1634,6 +1635,7 @@ export class VRTraitRegistry {
     this.register(generatedMeshHandler as TraitHandler);
     this.register(autoRigHandler as TraitHandler);
     this.register(provenanceHandler as TraitHandler);
+    this.register(provenanceDensifyHandler as TraitHandler);
     this.register(bodyHandler);
     this.register(proactiveHandler);
     this.register(eventTraitHandler as TraitHandler);

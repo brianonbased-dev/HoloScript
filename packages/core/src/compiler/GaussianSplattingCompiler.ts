@@ -33,6 +33,11 @@ import {
   type PointProvenanceClass,
 } from '../reconstruction/PointProvenance';
 import { buildProvenanceReceipt, type ProvenanceReceipt } from '../reconstruction/ProvenanceReceipt';
+import {
+  densifyByInterpolation,
+  type DensifyMode,
+  type GenerativeDensifierBackend,
+} from '../reconstruction/densifyByInterpolation';
 
 // =============================================================================
 // MULTI-USER SHARED-SORT DETECTION (P.043 — substrate side of the paper claim)
@@ -123,6 +128,13 @@ export interface GaussianSplattingCompilerOptions {
    * grid — so a real capture actually renders. (ssja parity / remix seam.)
    */
   holomapPointCloud?: HolomapPointCloudPayload;
+  /**
+   * Optional generative densifier backend. When a `@provenance_densify` trait or
+   * a payload `densify` directive requests `mode: 'generative'`, this backend
+   * produces the model-invented `generative-extended` fill. Absent, generative
+   * requests emit a warning and invent nothing (honest seam, D.101 carve-out).
+   */
+  generativeDensifierBackend?: GenerativeDensifierBackend;
 }
 
 /**
@@ -183,8 +195,11 @@ export class GaussianSplattingCompiler extends CompilerBase {
     return ANSCapabilityPath.GLTF;
   }
 
-  private options: Required<Omit<GaussianSplattingCompilerOptions, 'holomapPointCloud'>>;
+  private options: Required<
+    Omit<GaussianSplattingCompilerOptions, 'holomapPointCloud' | 'generativeDensifierBackend'>
+  >;
   private readonly holomapPointCloud?: HolomapPointCloudPayload;
+  private readonly generativeDensifierBackend?: GenerativeDensifierBackend;
 
   constructor(options: GaussianSplattingCompilerOptions = {}) {
     super();
@@ -196,6 +211,7 @@ export class GaussianSplattingCompiler extends CompilerBase {
       shDegree: options.shDegree ?? 0,
     };
     this.holomapPointCloud = options.holomapPointCloud;
+    this.generativeDensifierBackend = options.generativeDensifierBackend;
   }
 
   compile(
@@ -334,6 +350,28 @@ export class GaussianSplattingCompiler extends CompilerBase {
         if (positions && colors) {
           const count = positions.length / 3;
           if (colors.length === count * 3 || colors.length === count * 4) {
+            // Native `@provenance_densify` trait → densify before splatting; the
+            // densifier re-derives per-point provenance (observed + interpolated /
+            // generative-extended).
+            const densifyCfg = obj.traits?.find(
+              (t: HoloObjectTrait) => t.name === 'provenance_densify'
+            )?.config as { mode?: DensifyMode; source?: string; maxAdded?: number } | undefined;
+            if (densifyCfg) {
+              const d = this.applyDensify(positions, colors, {
+                mode: densifyCfg.mode ?? 'interpolation',
+                maxAdded: densifyCfg.maxAdded,
+                source: densifyCfg.source ?? provSource,
+              });
+              return {
+                data: this.computeCovarianceFromPointCloud(
+                  d.positions,
+                  d.colors,
+                  d.provenance,
+                  d.source
+                ),
+                ...(d.warning ? { warnings: [d.warning] } : {}),
+              };
+            }
             return {
               data: this.computeCovarianceFromPointCloud(
                 positions,
@@ -355,6 +393,19 @@ export class GaussianSplattingCompiler extends CompilerBase {
     if (cloud && cloud.pointCount >= 1) {
       const { positions, colors, provenance } = this.decodeHolomapCloud(cloud);
       if (positions.length >= 3) {
+        // Optional payload densify directive (real-capture use case). Densify
+        // re-derives provenance, superseding the decoded payload provenance.
+        if (cloud.densify) {
+          const d = this.applyDensify(positions, colors, {
+            mode: cloud.densify.mode,
+            maxAdded: cloud.densify.maxAdded,
+            source: cloud.provenanceSource ?? 'holomap-capture',
+          });
+          return {
+            data: this.computeCovarianceFromPointCloud(d.positions, d.colors, d.provenance, d.source),
+            ...(d.warning ? { warnings: [d.warning] } : {}),
+          };
+        }
         return {
           data: this.computeCovarianceFromPointCloud(
             positions,
@@ -409,6 +460,56 @@ export class GaussianSplattingCompiler extends CompilerBase {
       for (let i = 0; i < m; i++) provenance[i] = provBuf[i];
     }
     return { positions, colors, provenance };
+  }
+
+  /**
+   * Apply a densification directive to a raw point cloud, returning the densified
+   * cloud + re-derived per-point provenance. `interpolation` adds
+   * bounded-by-reality midpoints (added points `interpolated`). `generative`
+   * dispatches to the configured GenerativeDensifierBackend (added points
+   * `generative-extended`); with NO backend it invents nothing and returns a loud
+   * warning — the honest seam unfrozen by the D.101 carve-out (founder, 2026-06-24).
+   */
+  private applyDensify(
+    positions: Float32Array,
+    colors: Float32Array,
+    directive: { mode: DensifyMode; maxAdded?: number; source?: string }
+  ): {
+    positions: Float32Array;
+    colors: Float32Array;
+    provenance: Uint8Array;
+    source?: string;
+    warning?: string;
+  } {
+    const count = Math.floor(positions.length / 3);
+    if (directive.mode === 'interpolation') {
+      const r = densifyByInterpolation(positions, colors, { maxAdded: directive.maxAdded });
+      return {
+        positions: r.positions,
+        colors: r.colors,
+        provenance: r.provenance,
+        source: directive.source ?? 'interpolation',
+      };
+    }
+    // generative
+    if (this.generativeDensifierBackend) {
+      const r = this.generativeDensifierBackend.densify({ positions, colors });
+      return {
+        positions: r.positions,
+        colors: r.colors,
+        provenance: r.provenance,
+        source: directive.source ?? this.generativeDensifierBackend.modelId,
+      };
+    }
+    // No backend — do NOT fabricate. Emit input unchanged, tagged observed, loud warning.
+    return {
+      positions,
+      colors,
+      provenance: uniformProvenance(count, HOLOMAP_CAPTURE_DEFAULT_PROVENANCE),
+      source: directive.source,
+      warning:
+        "@provenance_densify mode 'generative' requested but no GenerativeDensifierBackend is configured; emitted without generative fill (no points invented)",
+    };
   }
 
   private expandRgbToRgba(rgb: Float32Array, count: number): Float32Array {

@@ -139,6 +139,33 @@ function makeCompositionWithProvenance(
   return comp;
 }
 
+/** Composition with an authored @gaussian_splat RAW point cloud, optionally
+ *  carrying a @provenance_densify trait. */
+function makeRawCloudComposition(
+  positions: number[],
+  colors: number[],
+  densify?: { mode: string; source?: string; maxAdded?: number }
+): HoloComposition {
+  const comp = makeEmptyComposition();
+  const obj: HoloObjectDecl = {
+    type: 'Object',
+    name: 'RawCloud',
+    properties: [],
+    traits: [
+      {
+        type: 'ObjectTrait',
+        name: 'gaussian_splat',
+        config: { positions: new Float32Array(positions), colors: new Float32Array(colors) },
+      },
+    ],
+  };
+  if (densify) {
+    obj.traits!.push({ type: 'ObjectTrait', name: 'provenance_densify', config: densify });
+  }
+  comp.objects.push(obj);
+  return comp;
+}
+
 describe('GaussianSplattingCompiler', () => {
   it('should instantiate with default options', () => {
     const compiler = new GaussianSplattingCompiler();
@@ -434,6 +461,87 @@ describe('GaussianSplattingCompiler', () => {
       const { result, receipt } = compiler.compileWithReceipt(makeCompositionWithGaussian());
       expect(result.binary).toBeDefined();
       expect(receipt).toBeUndefined();
+    });
+
+    it('@provenance_densify interpolation densifies an authored cloud and tags additions interpolated', () => {
+      const comp = makeRawCloudComposition([0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 1], {
+        mode: 'interpolation',
+      });
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf' });
+      const result = compiler.compile(comp);
+
+      const gltf = result.json as Record<string, unknown>;
+      const prov = ((gltf.asset as Record<string, unknown>).extras as Record<string, unknown>)
+        .holoProvenance as Record<string, unknown>;
+      expect(prov.observed).toBe(2);
+      expect(prov.interpolated).toBe(1); // one midpoint added, bounded by reality
+      expect(prov.total).toBe(3);
+      expect(result.stats.totalVertices).toBe(3);
+    });
+
+    it('@provenance_densify generative with no backend warns and invents nothing (honest seam)', () => {
+      const comp = makeRawCloudComposition([0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 1], {
+        mode: 'generative',
+      });
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf' });
+      const result = compiler.compile(comp);
+
+      expect(result.stats.totalVertices).toBe(2); // NOT increased — nothing fabricated
+      expect(result.warnings?.some((w) => w.includes('no GenerativeDensifierBackend'))).toBe(true);
+      const gltf = result.json as Record<string, unknown>;
+      const prov = ((gltf.asset as Record<string, unknown>).extras as Record<string, unknown>)
+        .holoProvenance as Record<string, unknown>;
+      expect(prov.observed).toBe(2);
+      expect(prov['generative-extended']).toBe(0);
+    });
+
+    it('@provenance_densify generative dispatches to a configured backend (generative-extended)', () => {
+      const backend = {
+        modelId: 'test-gen',
+        densify: ({ positions, colors }: { positions: Float32Array; colors: Float32Array }) => {
+          const n = positions.length / 3;
+          const outPos = new Float32Array((n + 1) * 3);
+          outPos.set(positions);
+          outPos[n * 3] = 0.5;
+          const outCol = new Float32Array((n + 1) * 3);
+          outCol.set(colors.subarray(0, n * 3));
+          const provenance = new Uint8Array(n + 1);
+          provenance[n] = 2; // generative-extended
+          return { positions: outPos, colors: outCol, provenance, observedCount: n, interpolatedCount: 0 };
+        },
+      };
+      const comp = makeRawCloudComposition([0, 0, 0, 1, 0, 0], [1, 0, 0, 0, 0, 1], {
+        mode: 'generative',
+        source: 'test-gen',
+      });
+      const compiler = new GaussianSplattingCompiler({
+        format: 'gltf',
+        generativeDensifierBackend: backend,
+      });
+      const result = compiler.compile(comp);
+
+      const gltf = result.json as Record<string, unknown>;
+      const prov = ((gltf.asset as Record<string, unknown>).extras as Record<string, unknown>)
+        .holoProvenance as Record<string, unknown>;
+      expect(prov.observed).toBe(2);
+      expect(prov['generative-extended']).toBe(1);
+      expect(prov.source).toBe('test-gen');
+      expect(result.stats.totalVertices).toBe(3);
+    });
+
+    it('holomap payload densify densifies a capture (interpolated)', () => {
+      const cloud = {
+        ...makeHolomapCloud([0, 0, 0, 1, 0, 0], [255, 0, 0, 0, 255, 0]),
+        densify: { mode: 'interpolation' as const },
+      };
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf', holomapPointCloud: cloud });
+      const result = compiler.compile(makeEmptyComposition());
+
+      const gltf = result.json as Record<string, unknown>;
+      const prov = ((gltf.asset as Record<string, unknown>).extras as Record<string, unknown>)
+        .holoProvenance as Record<string, unknown>;
+      expect(prov.observed).toBe(2);
+      expect(prov.interpolated).toBe(1);
     });
   });
 });

@@ -1,4 +1,5 @@
 import type { PointProvenanceClass } from '../reconstruction/PointProvenance';
+import type { DensifyMode } from '../reconstruction/densifyByInterpolation';
 
 /**
  * Optional reconstruction geometry passed through ExportManager.compilerOptions
@@ -32,4 +33,13 @@ export interface HolomapPointCloudPayload {
    * Recorded verbatim in the exported glTF `asset.extras.holoProvenance.source`.
    */
   provenanceSource?: string;
+  /**
+   * Optional densification directive applied to the captured cloud before it is
+   * splatted. `interpolation` adds bounded-by-reality midpoints (tagged
+   * `interpolated`); `generative` adds model-invented fill (tagged
+   * `generative-extended`, requires a configured GenerativeDensifierBackend on
+   * the compiler). When present, densification re-derives per-point provenance,
+   * superseding `provenanceB64`/`provenanceDefault` for the densified result.
+   */
+  densify?: { mode: DensifyMode; maxAdded?: number };
 }
