@@ -1,0 +1,25 @@
+@trait {
+  name: "@character_controller",
+  category: "agent",
+  description: "Kinematic character controller. Manages step-up, slope-limit, ground detection, and capsule-sweep movement for a character entity without full rigid-body simulation, exposing velocity and ground-contact state as reactive props. Authored from CharacterControllerTrait.ts.",
+  props: {
+    height_m: number = 1.8,
+    radius_m: number = 0.3,
+    step_height_m: number = 0.3,
+    slope_limit_deg: number = 45.0,
+    skin_width_m: number = 0.01,
+    gravity_mps2: number = 9.81,
+    is_grounded: boolean = true,
+    velocity: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 }
+  },
+  events: {
+    attached: "character_controller_attached",
+    detached: "character_controller_detached",
+    on_land: "character_controller_land",
+    on_fall: "character_controller_fall",
+    on_step: "character_controller_step",
+    move: "character_controller_move",
+    jump: "character_controller_jump"
+  },
+  behaviors: ["@locomotion", "@kinematic", "@collider"]
+}

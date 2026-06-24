@@ -1,0 +1,22 @@
+@trait {
+  name: "@check_wallet",
+  category: "economics",
+  description: "Wallet balance verification gate. Queries the configured wallet address for USDC or ETH balance, compares against a required threshold, and fires pass/fail events to gate capability unlock or content access. Authored from CheckWalletTrait.ts.",
+  props: {
+    wallet_address: string = "",
+    token: enum("usdc" | "eth" | "holoscript_credit") = "usdc",
+    required_amount: number = 0.0,
+    chain_id: number = 8453,
+    check_interval_s: number = 60,
+    auto_check: boolean = false
+  },
+  events: {
+    attached: "check_wallet_attached",
+    detached: "check_wallet_detached",
+    on_pass: "check_wallet_pass",
+    on_fail: "check_wallet_fail",
+    on_error: "check_wallet_error",
+    check: "check_wallet_trigger"
+  },
+  behaviors: ["@wallet", "@purchase_flow", "@price_oracle"]
+}

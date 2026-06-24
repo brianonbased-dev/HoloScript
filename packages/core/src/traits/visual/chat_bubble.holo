@@ -1,0 +1,23 @@
+@trait {
+  name: "@chat_bubble",
+  category: "visual",
+  description: "Spatial chat bubble renderer. Displays an agent's most recent utterance as a world-space speech bubble above the entity, with typewriter animation, fade-out delay, and proximity-based scale compensation. Authored from ChatBubbleTrait.ts.",
+  props: {
+    text: string = "",
+    max_chars: number = 160,
+    display_duration_ms: number = 4000,
+    fade_ms: number = 500,
+    typewriter: boolean = true,
+    offset: { x: number, y: number, z: number } = { x: 0.0, y: 0.3, z: 0.0 },
+    max_width_m: number = 1.2,
+    background_color: string = "#1a1a2e"
+  },
+  events: {
+    attached: "chat_bubble_attached",
+    detached: "chat_bubble_detached",
+    on_show: "chat_bubble_show",
+    on_hide: "chat_bubble_hide",
+    show: "chat_bubble_trigger_show"
+  },
+  behaviors: ["@billboard", "@streaming_cursor", "@tts"]
+}

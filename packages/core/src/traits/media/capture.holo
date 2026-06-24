@@ -1,0 +1,22 @@
+@trait {
+  name: "@capture",
+  category: "media",
+  description: "Single-frame or burst capture trigger. Captures the current render output, camera frame, or XR viewport as a PNG/JPEG/EXR and writes it to a configurable output URL or fires it as an event payload. Authored from CaptureTrait.ts.",
+  props: {
+    format: enum("png" | "jpeg" | "exr" | "webp") = "png",
+    quality: number = 0.92,
+    output_url: string = "",
+    source: enum("viewport" | "camera" | "texture") = "viewport",
+    include_ui: boolean = false,
+    burst_count: number = 1,
+    burst_interval_ms: number = 0
+  },
+  events: {
+    attached: "capture_attached",
+    detached: "capture_detached",
+    on_capture: "capture_complete",
+    on_error: "capture_error",
+    capture: "capture_trigger"
+  },
+  behaviors: ["@recording_session", "@screenshare"]
+}
