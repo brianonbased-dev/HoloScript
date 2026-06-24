@@ -1,0 +1,24 @@
+@trait {
+  name: "@depth_of_field",
+  category: "visual",
+  description: "Camera depth-of-field post-processing. Supports bokeh simulation, auto-focus tracking, and manual focus plane control. Authored from DepthOfFieldTrait.ts.",
+  props: {
+    mode: enum("auto" | "manual" | "tracking") = "auto",
+    focal_distance_m: number = 5.0,
+    aperture_f: number = 2.8,
+    bokeh_blades: number = 6,
+    max_blur_px: number = 16,
+    focus_target_id: string = "",
+    near_blur: boolean = true,
+    far_blur: boolean = true
+  },
+  events: {
+    attached: "dof_attached",
+    detached: "dof_detached",
+    on_focus_change: "dof_focus_change",
+    on_update: "dof_update",
+    set_focus: "dof_set_focus",
+    set_target: "dof_set_target"
+  },
+  behaviors: ["@rendering", "@ai_camera"]
+}

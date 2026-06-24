@@ -1,0 +1,29 @@
+@trait {
+  name: "@algorithmic_trading",
+  category: "economics",
+  description: "Algorithmic trading strategy executor for on-chain or simulated markets. Supports rule-based, ML-driven, and arbitrage strategies. Authored from AlgorithmicTradingTrait.ts.",
+  props: {
+    strategy: enum("rule_based" | "ml_model" | "arbitrage" | "market_making" | "holoscript") = "rule_based",
+    market_id: string = "",
+    base_currency: string = "USDC",
+    quote_currency: string = "ETH",
+    max_position_size: number = 1000.0,
+    stop_loss_pct: number = 0.05,
+    take_profit_pct: number = 0.10,
+    dry_run: boolean = true,
+    model_url: string = ""
+  },
+  events: {
+    attached: "algotrading_attached",
+    detached: "algotrading_detached",
+    on_signal: "algotrading_signal",
+    on_order_placed: "algotrading_order_placed",
+    on_fill: "algotrading_fill",
+    on_stop_loss: "algotrading_stop_loss",
+    on_take_profit: "algotrading_take_profit",
+    on_error: "algotrading_error",
+    place_order: "algotrading_place",
+    cancel_order: "algotrading_cancel"
+  },
+  behaviors: ["@transaction", "@token_bucket", "@telemetry"]
+}

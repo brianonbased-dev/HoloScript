@@ -1,0 +1,26 @@
+@trait {
+  name: "@biofeedback",
+  category: "agent",
+  description: "Physiological signal input for adaptive experiences. Reads heart rate, EEG, GSR, or respiration and emits normalized state signals. Authored from BiofeedbackTrait.ts.",
+  props: {
+    modality: enum("ecg" | "eeg" | "gsr" | "respiration" | "emg" | "ppg") = "ppg",
+    device_id: string = "",
+    sample_rate_hz: number = 64,
+    baseline_window_s: number = 30,
+    normalize: boolean = true,
+    on_alert_threshold: number = 0.8,
+    smooth: boolean = true
+  },
+  events: {
+    attached: "biofeedback_attached",
+    detached: "biofeedback_detached",
+    on_sample: "biofeedback_sample",
+    on_alert: "biofeedback_alert",
+    on_baseline_set: "biofeedback_baseline",
+    on_connect: "biofeedback_connect",
+    on_disconnect: "biofeedback_disconnect",
+    on_error: "biofeedback_error",
+    calibrate: "biofeedback_calibrate"
+  },
+  behaviors: ["@sensor", "@telemetry"]
+}

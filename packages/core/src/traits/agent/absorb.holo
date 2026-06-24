@@ -1,0 +1,25 @@
+@trait {
+  name: "@absorb",
+  category: "agent",
+  description: "Codebase absorption into a semantic graph for query, impact analysis, and symbol resolution. Wraps the HoloGraph absorb pipeline. Authored from AbsorbTrait.ts.",
+  props: {
+    project_id: string = "",
+    source_dirs: list<string> = [],
+    include_patterns: list<string> = [],
+    exclude_patterns: list<string> = [],
+    auto_refresh: boolean = false,
+    refresh_interval_ms: number = 60000,
+    backend: enum("holograph" | "treesitter" | "lsp") = "holograph"
+  },
+  events: {
+    attached: "absorb_attached",
+    detached: "absorb_detached",
+    on_absorb_start: "absorb_start",
+    on_absorb_complete: "absorb_complete",
+    on_absorb_error: "absorb_error",
+    on_file_change: "absorb_file_change",
+    absorb: "absorb_trigger",
+    query: "absorb_query"
+  },
+  behaviors: ["@agent_memory", "@embedding"]
+}
