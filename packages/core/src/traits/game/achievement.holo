@@ -1,0 +1,26 @@
+@trait {
+  name: "@achievement",
+  category: "game",
+  description: "Player achievement record. Defines unlock criteria, progress tracking, reward payload, and rarity classification for a single achievement, evaluating completion against observable game events. Authored from AchievementTrait.ts.",
+  props: {
+    achievement_id: string = "",
+    title: string = "",
+    description: string = "",
+    icon_url: string = "",
+    rarity: enum("common" | "uncommon" | "rare" | "epic" | "legendary") = "common",
+    progress: number = 0,
+    goal: number = 1,
+    unlocked: boolean = false,
+    reward: string = "",
+    hidden: boolean = false
+  },
+  events: {
+    attached: "achievement_attached",
+    detached: "achievement_detached",
+    on_progress: "achievement_progress",
+    on_unlock: "achievement_unlock",
+    increment: "achievement_increment",
+    unlock: "achievement_trigger_unlock"
+  },
+  behaviors: ["@quest_system", "@leaderboard", "@player"]
+}

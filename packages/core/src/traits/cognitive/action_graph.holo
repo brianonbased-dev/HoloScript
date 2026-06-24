@@ -1,0 +1,23 @@
+@trait {
+  name: "@action_graph",
+  category: "cognitive",
+  description: "Directed action dependency graph for autonomous agents. Nodes are actions with preconditions and effects; edges express ordering and conditional branching. The runtime planner selects and executes the cheapest goal-satisfying path. Authored from ActionGraphTrait.ts.",
+  props: {
+    actions: list<{ id: string, preconditions: list<string>, effects: list<string>, cost: number }> = [],
+    goal: string = "",
+    replan_on_fail: boolean = true,
+    max_depth: number = 10,
+    heuristic: enum("zero" | "inadmissible_fast") = "zero"
+  },
+  events: {
+    attached: "action_graph_attached",
+    detached: "action_graph_detached",
+    on_plan: "action_graph_plan",
+    on_action_start: "action_graph_action_start",
+    on_action_end: "action_graph_action_end",
+    on_goal_reached: "action_graph_goal",
+    on_fail: "action_graph_fail",
+    plan: "action_graph_trigger_plan"
+  },
+  behaviors: ["@roadmap", "@blackboard", "@autonomous_agenda"]
+}

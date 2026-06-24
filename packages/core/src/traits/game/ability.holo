@@ -1,0 +1,28 @@
+@trait {
+  name: "@ability",
+  category: "game",
+  description: "Active player or agent ability with cooldown, cost, and effect chain. Manages charge state, use count, interrupt conditions, and the triggered effect payload, enabling composable ability systems without hardcoded switch logic. Authored from AbilityTrait.ts.",
+  props: {
+    ability_id: string = "",
+    cooldown_s: number = 1.0,
+    cost_type: enum("mana" | "stamina" | "charges" | "free") = "free",
+    cost: number = 0,
+    max_charges: number = 1,
+    charges: number = 1,
+    cast_time_ms: number = 0,
+    interrupt_on_move: boolean = false,
+    range_m: number = 0.0,
+    area_of_effect_m: number = 0.0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "ability_attached",
+    detached: "ability_detached",
+    on_use: "ability_use",
+    on_interrupt: "ability_interrupt",
+    on_cooldown_end: "ability_ready",
+    use: "ability_trigger_use",
+    interrupt: "ability_trigger_interrupt"
+  },
+  behaviors: ["@combat_stats", "@health", "@skill_tree"]
+}

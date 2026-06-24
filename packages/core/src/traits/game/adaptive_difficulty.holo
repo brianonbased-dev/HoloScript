@@ -1,0 +1,23 @@
+@trait {
+  name: "@adaptive_difficulty",
+  category: "game",
+  description: "Dynamic difficulty adjustment system. Monitors player performance metrics (death rate, time-to-complete, score trend) and smoothly adjusts enemy health/damage or puzzle complexity within configured bounds to maintain target engagement. Authored from AdaptiveDifficultyTrait.ts.",
+  props: {
+    target_death_rate: number = 0.2,
+    target_completion_rate: number = 0.85,
+    window_events: number = 10,
+    difficulty: number = 1.0,
+    min_difficulty: number = 0.5,
+    max_difficulty: number = 2.0,
+    adjust_rate: number = 0.1,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "adaptive_difficulty_attached",
+    detached: "adaptive_difficulty_detached",
+    on_adjust: "adaptive_difficulty_adjust",
+    on_death: "adaptive_difficulty_death",
+    on_complete: "adaptive_difficulty_complete"
+  },
+  behaviors: ["@game_mode", "@analytics", "@player"]
+}
