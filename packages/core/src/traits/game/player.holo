@@ -1,0 +1,29 @@
+@trait {
+  name: "@player",
+  category: "game",
+  description: "Human player identity and state record. Tracks the active player's session, score, health, experience, and current zone, and exposes controls for join/leave/respawn lifecycle events. Authored from PlayerTrait.ts.",
+  props: {
+    player_id: string = "",
+    display_name: string = "",
+    health: number = 100.0,
+    max_health: number = 100.0,
+    score: number = 0,
+    level: number = 1,
+    xp: number = 0,
+    xp_to_next: number = 100,
+    current_zone: string = "",
+    respawn_delay_s: number = 3.0,
+    spectating: boolean = false
+  },
+  events: {
+    attached: "player_attached",
+    detached: "player_detached",
+    on_join: "player_join",
+    on_leave: "player_leave",
+    on_death: "player_death",
+    on_respawn: "player_respawn",
+    on_level_up: "player_level_up",
+    respawn: "player_trigger_respawn"
+  },
+  behaviors: ["@health", "@inventory", "@quest_system", "@locomotion"]
+}

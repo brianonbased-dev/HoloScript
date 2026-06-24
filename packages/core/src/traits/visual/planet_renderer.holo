@@ -1,0 +1,22 @@
+@trait {
+  name: "@planet_renderer",
+  category: "visual",
+  description: "Procedural planet renderer with atmospheric scattering, ocean shaders, and multi-layer terrain noise. Generates planet geometry from SDF noise and compiles to a LOD sphere mesh in the native render pipeline. Authored from PlanetRendererTrait.ts.",
+  props: {
+    radius_km: number = 6371.0,
+    ocean_depth_m: number = 3800.0,
+    atmosphere_height_km: number = 100.0,
+    terrain_noise_octaves: number = 6,
+    mountain_height_km: number = 8.8,
+    base_color: string = "#1a4f8b",
+    cloud_coverage: number = 0.5,
+    axial_tilt_deg: number = 23.5
+  },
+  events: {
+    attached: "planet_renderer_attached",
+    detached: "planet_renderer_detached",
+    on_lod_change: "planet_renderer_lod",
+    on_day_night: "planet_renderer_day_night"
+  },
+  behaviors: ["@lod_group", "@lighting_rig", "@orbital"]
+}

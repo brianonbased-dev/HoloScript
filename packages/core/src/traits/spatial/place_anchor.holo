@@ -1,0 +1,21 @@
+@trait {
+  name: "@place_anchor",
+  category: "spatial",
+  description: "Real-world place anchor binding. Ties a HoloScript entity to a named place (HoloLand place ID, Google Place ID, or OSM node), adjusting position when the underlying geocoordinate is updated. Authored from PlaceAnchorTrait.ts.",
+  props: {
+    place_id: string = "",
+    provider: enum("hololand" | "google" | "osm" | "holoscript") = "hololand",
+    height_offset_m: number = 0.0,
+    snap_to_ground: boolean = true,
+    auto_update: boolean = true,
+    update_interval_s: number = 86400
+  },
+  events: {
+    attached: "place_anchor_attached",
+    detached: "place_anchor_detached",
+    on_resolved: "place_anchor_resolved",
+    on_update: "place_anchor_update",
+    on_error: "place_anchor_error"
+  },
+  behaviors: ["@landmark", "@spatial_anchor", "@persistent_anchor"]
+}
