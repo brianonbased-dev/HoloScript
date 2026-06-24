@@ -124,6 +124,21 @@ function makeHolomapCloudProv(
   return { ...base, ...extra };
 }
 
+/** Composition with a @gaussian_splat object that also carries a native
+ *  @provenance trait declaring its data-origin class (the D.104 surface). */
+function makeCompositionWithProvenance(
+  provClass: 'observed' | 'interpolated' | 'generative-extended',
+  source?: string
+): HoloComposition {
+  const comp = makeCompositionWithGaussian();
+  comp.objects[0].traits!.push({
+    type: 'ObjectTrait',
+    name: 'provenance',
+    config: { class: provClass, ...(source ? { source } : {}) },
+  });
+  return comp;
+}
+
 describe('GaussianSplattingCompiler', () => {
   it('should instantiate with default options', () => {
     const compiler = new GaussianSplattingCompiler();
@@ -372,6 +387,27 @@ describe('GaussianSplattingCompiler', () => {
       expect(attrs._PROVENANCE).toBeUndefined();
       const asset = gltf.asset as Record<string, unknown>;
       expect(asset.extras).toBeUndefined();
+    });
+
+    it('emits the declared @provenance class for an authored splat (native authoring surface)', () => {
+      const compiler = new GaussianSplattingCompiler({ format: 'gltf' });
+      const result = compiler.compile(
+        makeCompositionWithProvenance('generative-extended', 'artifixer-14b')
+      );
+
+      const gltf = result.json as Record<string, unknown>;
+      const meshes = gltf.meshes as Array<Record<string, unknown>>;
+      const primitive = (meshes[0].primitives as Array<Record<string, unknown>>)[0];
+      const attrs = primitive.attributes as Record<string, number>;
+      expect(attrs._PROVENANCE).toBe(5);
+
+      const extras = (gltf.asset as Record<string, unknown>).extras as Record<string, unknown>;
+      const prov = extras.holoProvenance as Record<string, unknown>;
+      expect(prov.total).toBe(2); // makeCompositionWithGaussian uses 2 points
+      expect(prov['generative-extended']).toBe(2);
+      expect(prov.observed).toBe(0);
+      expect(prov.observedFraction).toBe(0);
+      expect(prov.source).toBe('artifixer-14b');
     });
   });
 });

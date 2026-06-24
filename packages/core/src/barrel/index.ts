@@ -95,6 +95,8 @@ export {
   createNativeAutoRigPlan,
   generatedMeshHandler,
 } from '../traits/AutoRigTrait';
+export { provenanceHandler } from '../traits/ProvenanceTrait';
+export type { ProvenanceTraitConfig } from '../traits/ProvenanceTrait';
 export type {
   AutoRigConfig,
   AutoRigPose,

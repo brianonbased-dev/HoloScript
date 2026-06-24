@@ -30,6 +30,7 @@ import {
   provenanceHistogram,
   uniformProvenance,
   HOLOMAP_CAPTURE_DEFAULT_PROVENANCE,
+  type PointProvenanceClass,
 } from '../reconstruction/PointProvenance';
 
 // =============================================================================
@@ -254,6 +255,14 @@ export class GaussianSplattingCompiler extends CompilerBase {
       const trait = obj.traits?.find((t: HoloObjectTrait) => t.name === 'gaussian_splat');
       if (trait && trait.config) {
         const p = trait.config;
+        // Native `@provenance` trait on the same object declares the data-origin
+        // class for the emitted splat (the D.104 authoring surface). Absent it,
+        // an authored splat carries no provenance.
+        const provCfg = obj.traits?.find((t: HoloObjectTrait) => t.name === 'provenance')?.config as
+          | { class?: PointProvenanceClass; source?: string }
+          | undefined;
+        const provClass = provCfg?.class;
+        const provSource = provCfg?.source;
         const positions = this.parseFloatArray(p.positions);
         const scales = this.parseFloatArray(p.scales);
         const rotations = this.parseFloatArray(p.rotations);
@@ -280,6 +289,12 @@ export class GaussianSplattingCompiler extends CompilerBase {
                 opacities,
                 shCoefficients: this.parseFloatArray(p.shCoefficients),
                 count,
+                ...(provClass
+                  ? {
+                      provenance: uniformProvenance(count, provClass),
+                      provenanceSource: provSource,
+                    }
+                  : {}),
               },
             };
           }
@@ -288,7 +303,14 @@ export class GaussianSplattingCompiler extends CompilerBase {
         if (positions && colors) {
           const count = positions.length / 3;
           if (colors.length === count * 3 || colors.length === count * 4) {
-            return { data: this.computeCovarianceFromPointCloud(positions, colors) };
+            return {
+              data: this.computeCovarianceFromPointCloud(
+                positions,
+                colors,
+                provClass ? uniformProvenance(count, provClass) : undefined,
+                provSource
+              ),
+            };
           }
         }
       }
