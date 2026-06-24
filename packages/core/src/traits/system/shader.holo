@@ -1,0 +1,23 @@
+@trait {
+  name: "@shader",
+  category: "system",
+  description: "Custom GPU shader program with URL-referenced GLSL/WGSL sources, compile-time defines, runtime uniforms, and blend-mode control. vert_url and frag_url are asset-relative or absolute URLs to the vertex and fragment shader source files respectively; both support the holoscript:// scheme for built-in presets (e.g. holoscript://shaders/hologram.vert). If vert_url is empty the renderer substitutes the default pass-through vertex shader. defines is a compile-time string-to-string substitution map injected as #define directives before the source is compiled, supporting feature-flag-driven conditional compilation (e.g. {\"ENABLE_FOG\": \"1\"}). uniforms is a runtime number-valued map of named uniform variables; values are uploaded to the GPU each frame and are mutable without recompile. blend_mode selects the alpha compositing strategy: opaque disables alpha blending (fastest, no depth-sorting required), alpha enables standard over-compositing (Porter-Duff SRC_ALPHA / ONE_MINUS_SRC_ALPHA), additive adds the fragment contribution to the existing framebuffer colour (particles, energy effects, glows). double_sided, when true, disables back-face culling so the shader renders on both winding orders; required for flat geometry seen from both sides. on_compile fires after the runtime successfully compiles and links the shader program, carrying vert_url, frag_url, and compile_time_ms. on_error fires when either source fails to compile or link, carrying stage ('vertex' | 'fragment' | 'link'), line (if available), and message. Pairs with @rendering for pipeline participation and @material for PBR→custom-shader blending seams. Research: ShaderTrait.ts, ComputeShaderTrait.ts.",
+  props: {
+    vert_url: string = "",
+    frag_url: string = "",
+    defines: dict<string, string> = {},
+    uniforms: dict<string, number> = {},
+    blend_mode: enum("opaque" | "alpha" | "additive") = "opaque",
+    double_sided: boolean = false
+  },
+  events: {
+    attached: "shader:attached",
+    detached: "shader:detached",
+    on_compile: "shader:compiled",
+    on_error: "shader:error",
+    on_set_uniform: "shader:cmd_set_uniform",
+    on_set_define: "shader:cmd_set_define",
+    on_recompile: "shader:cmd_recompile"
+  },
+  behaviors: ["@rendering"]
+}

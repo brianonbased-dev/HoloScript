@@ -1,0 +1,22 @@
+@trait {
+  name: "@scheduler",
+  category: "system",
+  description: "Cron-expression scheduler for time-driven entity behaviors. cron is a standard 5-field or 6-field cron string (e.g. '*/5 * * * *' for every 5 minutes) that governs the tick cadence; the parser supports @hourly/@daily/@weekly/@monthly shortcuts. timezone is the IANA timezone string (e.g. 'America/New_York') used to evaluate the cron expression; defaults to UTC so behavior is deterministic across deployments. enabled is a live gate — setting it false suspends future ticks without detaching the trait; the next tick resumes from the next scheduled time when re-enabled. max_missed caps how many missed fires (e.g. from downtime) are replayed on recovery; 0 replays none, -1 replays all. jitter_ms adds a uniform random jitter in [0, jitter_ms] milliseconds before each fire to spread coordinated entity bursts across the event loop. on_tick fires on each scheduled execution, carrying scheduled_at (ISO-8601 timestamp) and missed_count (fires replayed this cycle). on_error fires when the cron expression is invalid, the timezone is unresolvable, or the host runtime rejects the schedule, carrying reason and raw_expression. Pairs with @timeout_guard to bound runaway tick handlers and @telemetry to track tick latency. Research: SchedulerTrait.ts v5.1, CronTrait.ts.",
+  props: {
+    cron: string = "* * * * *",
+    timezone: string = "UTC",
+    enabled: boolean = true,
+    max_missed: number = 0,
+    jitter_ms: number = 0
+  },
+  events: {
+    attached: "scheduler:attached",
+    detached: "scheduler:detached",
+    on_tick: "scheduler:tick",
+    on_error: "scheduler:error",
+    tick_skipped: "scheduler:tick_skipped",
+    on_enable: "scheduler:cmd_enable",
+    on_disable: "scheduler:cmd_disable"
+  },
+  behaviors: ["@timeout_guard"]
+}
