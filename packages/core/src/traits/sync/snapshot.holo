@@ -1,0 +1,27 @@
+@trait {
+  name: "@snapshot",
+  category: "sync",
+  description: "Entity-state snapshot capture, restore, and diff pipeline for composition checkpointing, undo/redo, and time-travel debugging. auto_interval_ms, when > 0, fires a recurring capture on that cadence; set to 0 to capture only on explicit on_capture commands. max_snapshots is the rolling buffer cap — once full the oldest snapshot is evicted before a new one is written. include_props is an allowlist of property names to capture; an empty list captures all tracked props on the entity. compress enables delta encoding between consecutive snapshots, reducing storage cost at a slight CPU overhead. on_snapshot fires immediately after a capture completes, carrying the new snapshot ID, byte size, and wall-clock timestamp. on_restore fires after a successful state restore, carrying the restored snapshot ID and the entity property values that changed. on_diff_event fires when on_diff is triggered, carrying a structured property-level diff object comparing two named snapshot IDs; if the second ID is omitted the diff is against the current live state. Pairs with @offline_sync for durable cross-session persistence and @replica for network rewind replay. Research: SnapshotTrait.ts v5.1, VersionedStateTrait.ts, RollbackTrait.ts, TimeTravelDebugTrait.ts.",
+  props: {
+    auto_interval_ms: number = 0,
+    max_snapshots: number = 20,
+    include_props: list<string> = [],
+    compress: boolean = false
+  },
+  events: {
+    attached: "snapshot:attached",
+    detached: "snapshot:detached",
+    captured: "snapshot:captured",
+    restored: "snapshot:restored",
+    evicted: "snapshot:evicted",
+    diff_ready: "snapshot:diff_ready",
+    error: "snapshot:error",
+    on_snapshot: "snapshot:capture",
+    on_restore: "snapshot:restore",
+    on_diff_event: "snapshot:diff",
+    on_list: "snapshot:list",
+    on_delete: "snapshot:delete",
+    on_clear_all: "snapshot:clear_all"
+  },
+  behaviors: ["@offline_sync"]
+}

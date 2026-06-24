@@ -1,0 +1,25 @@
+@trait {
+  name: "@spectator",
+  category: "xr",
+  description: "View-only observer mode that attaches a spectating camera to a target entity with configurable follow behaviour. target_entity_id is the entity ID to observe; leave empty to enter free-fly mode with no tracked subject. mode selects the camera posture: first_person mounts the camera at the target's head position and orientation (requires a skeleton joint mapping), third_person positions the camera behind and above the target at a fixed world-unit offset, orbit pivots the camera around the target in a free spherical shell the observer can rotate by input, free_fly releases all constraints and lets the observer navigate independently. follow_lag_ms introduces a smooth-damped lag between the target's movement and the spectator camera's response — higher values (e.g. 200 ms) produce cinematic trailing, 0 produces locked synchronous tracking. fov_override, when > 0, replaces the viewer's default field of view with the given value in degrees; set to 0 to inherit the viewer's platform default. on_spectator_attach fires when a spectator begins observing this entity, carrying the observer's agent ID and chosen mode. on_spectator_detach fires when the observer leaves, carrying the observer's agent ID and total watch duration in milliseconds. allow_ui controls whether the observing client receives the target's in-world HUD and UI overlays while spectating; set to false for a clean broadcast view. Pairs with @spatial_anchor for stable spectator positioning, @replica for lag-compensated network state, and @streaming for live broadcast output. Research: SpectatorTrait.ts v2.0, PortalPresenceTrait.ts, NetworkedAvatarTrait.ts.",
+  props: {
+    target_entity_id: string = "",
+    mode: enum("first_person" | "third_person" | "orbit" | "free_fly") = "orbit",
+    follow_lag_ms: number = 0,
+    fov_override: number = 0,
+    allow_ui: boolean = true
+  },
+  events: {
+    attached: "spectator:attached",
+    detached: "spectator:detached",
+    mode_changed: "spectator:mode_changed",
+    target_changed: "spectator:target_changed",
+    on_spectator_attach: "spectator:observer_attached",
+    on_spectator_detach: "spectator:observer_detached",
+    on_set_target: "spectator:cmd_set_target",
+    on_set_mode: "spectator:cmd_set_mode",
+    on_set_fov: "spectator:cmd_set_fov",
+    on_toggle_ui: "spectator:cmd_toggle_ui"
+  },
+  behaviors: ["@spatial_anchor", "@replica"]
+}

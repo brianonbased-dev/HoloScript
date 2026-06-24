@@ -1,0 +1,29 @@
+@trait {
+  name: "@social",
+  category: "network",
+  description: "Agent-to-agent social graph node for presence, friend management, and in-world messaging. profile_url points to the agent's public profile resource (avatar card, bio, or social-graph record). friend_ids is the list of agent or player IDs considered connected; the runtime uses this to scope presence events and permission checks. status is the agent's current availability signal: online marks the agent as fully present, away marks a soft-idle state (still receiving messages but with no active input), busy blocks incoming invites and suppresses low-priority notifications, invisible hides the agent from presence lists while preserving full connectivity. broadcast_presence, when true, publishes status change events to all agents in friend_ids as well as any room that includes this entity; set to false for stealth mode. allow_invites controls whether on_friend_join and in-world session invitations are accepted by the entity's host logic. on_friend_join fires when any ID in friend_ids enters the same world or scene, carrying the joining friend's ID and display name. on_friend_leave fires on departure or status change to offline. on_message fires on receipt of an in-world direct message, carrying sender ID, message text, and timestamp. Pairs with @voice_chat for spatial communication, @replica for networked state sync, and @lobby for shared-session scoping. Research: SocialTraits.ts, HolomeshSocialTraits.ts, NetworkedAvatarTrait.ts, MessagingTrait.ts.",
+  props: {
+    profile_url: string = "",
+    friend_ids: list<string> = [],
+    status: enum("online" | "away" | "busy" | "invisible") = "online",
+    broadcast_presence: boolean = true,
+    allow_invites: boolean = true
+  },
+  events: {
+    attached: "social:attached",
+    detached: "social:detached",
+    status_changed: "social:status_changed",
+    friend_added: "social:friend_added",
+    friend_removed: "social:friend_removed",
+    presence_broadcast: "social:presence_broadcast",
+    on_friend_join: "social:friend_join",
+    on_friend_leave: "social:friend_leave",
+    on_message: "social:message_received",
+    on_invite: "social:invite_received",
+    on_set_status: "social:cmd_set_status",
+    on_send_message: "social:cmd_send_message",
+    on_add_friend: "social:cmd_add_friend",
+    on_remove_friend: "social:cmd_remove_friend"
+  },
+  behaviors: ["@replica"]
+}

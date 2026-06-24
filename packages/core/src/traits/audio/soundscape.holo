@@ -1,0 +1,39 @@
+@trait {
+  name: "@soundscape",
+  category: "audio",
+  description: "Layered ambient soundscape compositor with weather-reactive modulation, altitude filtering, and per-layer spatial controls. layers is an ordered list of audio layer descriptors; each entry specifies audio_url (source clip or stream), volume (0–1 linear gain), loop (whether the clip repeats), and spatial_mode (global = uniform volume everywhere, positional = 3D spatialised with distance attenuation, ambisonics = first-order ambisonic field). crossfade_ms is the blend duration in milliseconds applied when switching the active layer set or responding to a weather/time-of-day transition; lower values produce hard cuts, higher values produce smooth dissolves. altitude_filter attenuates or mutes layers outside a defined altitude band — useful for layering separate low-ground, mid-air, and high-sky soundscapes on a single world entity. weather_reactive, when true, enables the trait to subscribe to @weather state-change events and automatically adjust layer gains according to weather-driven mix presets (clear, rain, storm, wind, etc.). time_of_day_schedule is a dict mapping 24-hour clock keys (e.g. '06', '12', '20') to an ordered list of layer indices that should be foregrounded during that hour band; the compositor crossfades between schedule entries as world time advances. on_layer_change fires after every compositor mix update carrying the new active layer index set and the reason for the change (weather, schedule, or command). Pairs with @environmental_audio for reverb and absorption coupling, @weather for reactive gain, and @skybox for time-of-day clock source. Research: EnvironmentalAudioTrait.ts, AmbisonicsTrait.ts, SonificationTrait.ts.",
+  props: {
+    layers: list<{
+      audio_url: string,
+      volume: number,
+      loop: boolean,
+      spatial_mode: enum("global" | "positional" | "ambisonics")
+    }> = [],
+    crossfade_ms: number = 1000,
+    altitude_filter: {
+      enabled: boolean = false,
+      min_altitude: number = 0.0,
+      max_altitude: number = 1000.0
+    },
+    weather_reactive: boolean = false,
+    time_of_day_schedule: dict<string, list<number>> = {}
+  },
+  events: {
+    attached: "soundscape:attached",
+    detached: "soundscape:detached",
+    layer_changed: "soundscape:layer_changed",
+    layer_started: "soundscape:layer_started",
+    layer_stopped: "soundscape:layer_stopped",
+    crossfade_started: "soundscape:crossfade_started",
+    crossfade_finished: "soundscape:crossfade_finished",
+    weather_mix_applied: "soundscape:weather_mix_applied",
+    schedule_advanced: "soundscape:schedule_advanced",
+    error: "soundscape:error",
+    on_layer_change: "soundscape:cmd_set_layers",
+    on_set_volume: "soundscape:cmd_set_volume",
+    on_set_weather_reactive: "soundscape:cmd_set_weather_reactive",
+    on_play: "soundscape:cmd_play",
+    on_stop: "soundscape:cmd_stop"
+  },
+  behaviors: ["@environmental_audio", "@weather"]
+}
