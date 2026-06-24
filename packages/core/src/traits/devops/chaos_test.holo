@@ -1,0 +1,24 @@
+@trait {
+  name: "@chaos_test",
+  category: "devops",
+  description: "Chaos engineering fault injector. Randomly introduces latency spikes, service errors, dropped connections, and resource contention to validate system resilience. Authored from ChaosTestTrait.ts.",
+  props: {
+    enabled: boolean = false,
+    fault_types: list<enum("latency" | "error" | "timeout" | "packet_loss" | "resource_starvation")> = [],
+    probability: number = 0.1,
+    latency_range_ms: { min: number, max: number } = { min: 100, max: 2000 },
+    error_codes: list<number> = [],
+    target_services: list<string> = [],
+    safe_list: list<string> = []
+  },
+  events: {
+    attached: "chaos_test_attached",
+    detached: "chaos_test_detached",
+    on_fault_inject: "chaos_test_inject",
+    on_fault_clear: "chaos_test_clear",
+    on_result: "chaos_test_result",
+    enable: "chaos_test_enable",
+    disable: "chaos_test_disable"
+  },
+  behaviors: ["@circuit_breaker", "@alert", "@health_check"]
+}
