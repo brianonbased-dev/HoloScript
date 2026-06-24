@@ -1,0 +1,23 @@
+@trait {
+  name: "@rollback",
+  category: "devops",
+  description: "Deployment rollback coordinator. Detects a failed deployment via health-check probes or error-rate thresholds and automatically reverts the service to the previous known-good image and migration version. Authored from RollbackTrait.ts.",
+  props: {
+    trigger_on: list<enum("health_fail" | "error_rate" | "p99_breach" | "manual")> = [],
+    health_check_url: string = "",
+    error_rate_threshold_pct: number = 5.0,
+    p99_threshold_ms: number = 2000,
+    window_s: number = 60,
+    max_rollbacks: number = 3,
+    notify_channel: string = ""
+  },
+  events: {
+    attached: "rollback_attached",
+    detached: "rollback_detached",
+    on_trigger: "rollback_trigger",
+    on_complete: "rollback_complete",
+    on_fail: "rollback_fail",
+    rollback: "rollback_manual"
+  },
+  behaviors: ["@rollout", "@healthcheck", "@incident"]
+}

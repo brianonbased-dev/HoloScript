@@ -1,0 +1,22 @@
+@trait {
+  name: "@reverb_zone",
+  category: "audio",
+  description: "Spatial audio reverb zone. Applies a convolution or algorithmic reverb preset to all audio sources within a bounded volume, blending with distance from the zone boundary. Authored from ReverbZoneTrait.ts.",
+  props: {
+    preset: enum("room" | "hall" | "cave" | "outdoor" | "church" | "custom") = "room",
+    decay_time_s: number = 1.5,
+    pre_delay_ms: number = 20,
+    diffusion: number = 0.7,
+    density: number = 0.7,
+    wet_dry: number = 0.3,
+    shape: enum("box" | "sphere") = "sphere",
+    blend_distance_m: number = 3.0
+  },
+  events: {
+    attached: "reverb_zone_attached",
+    detached: "reverb_zone_detached",
+    on_enter: "reverb_zone_enter",
+    on_exit: "reverb_zone_exit"
+  },
+  behaviors: ["@audio_portal", "@environmental_audio", "@hrtf"]
+}
