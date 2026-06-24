@@ -1,0 +1,21 @@
+@trait {
+  name: "@puppet",
+  category: "agent",
+  description: "Remote puppet controller that feeds an entity's pose from an external authoritative source (motion capture stream, remote agent, physics replay) instead of local simulation, blending incoming pose frames with a configurable IK fallback when the stream lags. Authored from PuppetTrait.ts.",
+  props: {
+    source: enum("mocap_stream" | "remote_agent" | "replay" | "physics_mirror") = "remote_agent",
+    stream_url: string = "",
+    lag_compensation_ms: number = 80,
+    blend_on_lag: boolean = true,
+    blend_duration_ms: number = 200,
+    authority_handle: string = ""
+  },
+  events: {
+    attached: "puppet_attached",
+    detached: "puppet_detached",
+    on_frame: "puppet_frame",
+    on_lag: "puppet_lag",
+    on_restore: "puppet_restore"
+  },
+  behaviors: ["@pose_retarget", "@animation_blender", "@networked"]
+}

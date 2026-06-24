@@ -1,0 +1,22 @@
+@trait {
+  name: "@rag_query",
+  category: "cognitive",
+  description: "Retrieval-augmented generation query dispatcher. Embeds a user query, retrieves top-K semantically similar document chunks from a vector store, and passes them as context to an LLM inference call, returning a grounded answer with source citations. Authored from RagQueryTrait.ts.",
+  props: {
+    vector_store_url: string = "",
+    top_k: number = 5,
+    similarity_threshold: number = 0.7,
+    model: string = "",
+    max_context_tokens: number = 8192,
+    cite_sources: boolean = true,
+    rerank: boolean = false
+  },
+  events: {
+    attached: "rag_query_attached",
+    detached: "rag_query_detached",
+    on_result: "rag_query_result",
+    on_error: "rag_query_error",
+    query: "rag_query_trigger_query"
+  },
+  behaviors: ["@document_store", "@embedding_search", "@helpdesk"]
+}

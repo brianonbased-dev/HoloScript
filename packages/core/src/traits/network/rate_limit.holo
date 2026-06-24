@@ -1,0 +1,21 @@
+@trait {
+  name: "@rate_limit",
+  category: "network",
+  description: "Request and event rate limiter using a token-bucket or sliding-window algorithm. Applies a configurable per-entity or per-session request cap, queueing or dropping excess requests and emitting throttle events to upstream callers for backpressure. Authored from RateLimitTrait.ts.",
+  props: {
+    algorithm: enum("token_bucket" | "leaky_bucket" | "sliding_window" | "fixed_window") = "token_bucket",
+    max_per_window: number = 100,
+    window_s: number = 1,
+    burst: number = 10,
+    on_exceed: enum("queue" | "drop" | "error") = "drop",
+    keyed_by: enum("entity" | "session" | "wallet" | "global") = "global"
+  },
+  events: {
+    attached: "rate_limit_attached",
+    detached: "rate_limit_detached",
+    on_throttle: "rate_limit_throttle",
+    on_allow: "rate_limit_allow",
+    on_reset: "rate_limit_reset"
+  },
+  behaviors: ["@event_filter", "@networked", "@permission"]
+}

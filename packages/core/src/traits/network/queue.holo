@@ -1,0 +1,24 @@
+@trait {
+  name: "@queue",
+  category: "network",
+  description: "Durable async work queue for agent task dispatch. Accepts job payloads, persists them to a backend (in-memory, Redis, or Postgres), dispatches jobs to worker handlers in FIFO or priority order, and tracks job status through pending/running/done/failed states. Authored from QueueTrait.ts.",
+  props: {
+    backend: enum("memory" | "redis" | "postgres" | "holoscript") = "memory",
+    connection_secret: string = "",
+    queue_name: string = "",
+    max_concurrency: number = 4,
+    retry_count: number = 3,
+    retry_delay_s: number = 5,
+    timeout_s: number = 60
+  },
+  events: {
+    attached: "queue_attached",
+    detached: "queue_detached",
+    on_enqueue: "queue_enqueue",
+    on_process: "queue_process",
+    on_complete: "queue_complete",
+    on_fail: "queue_fail",
+    enqueue: "queue_trigger_enqueue"
+  },
+  behaviors: ["@priority_queue", "@fan_out", "@event_bus"]
+}
