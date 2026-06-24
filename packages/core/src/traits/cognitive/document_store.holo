@@ -1,0 +1,23 @@
+@trait {
+  name: "@document_store",
+  category: "cognitive",
+  description: "Structured document store and retrieval index. Persists agent-authored documents (reports, specs, logs) with metadata tags and makes them queryable by semantic similarity or keyword filter via the knowledge backend. Authored from DocumentStoreTrait.ts.",
+  props: {
+    backend: enum("holoscript" | "postgres" | "sqlite" | "notion") = "holoscript",
+    connection_secret: string = "",
+    namespace: string = "",
+    max_doc_size_kb: number = 512,
+    auto_embed: boolean = true,
+    ttl_days: number = 0
+  },
+  events: {
+    attached: "document_store_attached",
+    detached: "document_store_detached",
+    on_write: "document_store_write",
+    on_query: "document_store_query",
+    on_delete: "document_store_delete",
+    write: "document_store_trigger_write",
+    query: "document_store_trigger_query"
+  },
+  behaviors: ["@embedding_search", "@query_builder", "@blackboard"]
+}

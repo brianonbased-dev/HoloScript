@@ -1,0 +1,20 @@
+@trait {
+  name: "@drift_detection",
+  category: "devops",
+  description: "Infrastructure configuration drift detector. Compares the declared desired state of a service (Dockerfile, env vars, package versions) against the observed live state, alerting on divergence with a structured diff payload. Authored from DriftDetectionTrait.ts.",
+  props: {
+    target_service: string = "",
+    check_interval_s: number = 3600,
+    compare: list<enum("dockerfile" | "env_vars" | "package_versions" | "config_files")> = ["env_vars", "package_versions"],
+    alert_channel: string = "",
+    auto_remediate: boolean = false
+  },
+  events: {
+    attached: "drift_detection_attached",
+    detached: "drift_detection_detached",
+    on_drift: "drift_detection_drift",
+    on_clear: "drift_detection_clear",
+    check: "drift_detection_trigger"
+  },
+  behaviors: ["@diagnostic", "@deploy_gate", "@incident", "@rollback"]
+}

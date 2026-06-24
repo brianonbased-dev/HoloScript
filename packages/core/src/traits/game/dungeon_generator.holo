@@ -1,0 +1,23 @@
+@trait {
+  name: "@dungeon_generator",
+  category: "game",
+  description: "Procedural dungeon layout generator. Builds a connected room-and-corridor graph from seed parameters using BSP or cellular automata, outputting tile-map data and spawn points for enemies, loot, and the exit. Authored from DungeonGeneratorTrait.ts.",
+  props: {
+    seed: number = 0,
+    width_tiles: number = 64,
+    height_tiles: number = 64,
+    min_rooms: number = 5,
+    max_rooms: number = 20,
+    algorithm: enum("bsp" | "cellular_automata" | "drunkard_walk") = "bsp",
+    tile_size_m: number = 2.0,
+    difficulty: number = 1.0
+  },
+  events: {
+    attached: "dungeon_generator_attached",
+    detached: "dungeon_generator_detached",
+    on_generate: "dungeon_generator_generate",
+    on_complete: "dungeon_generator_complete",
+    generate: "dungeon_generator_trigger"
+  },
+  behaviors: ["@ecs_world", "@maze_generator", "@procedural_city"]
+}

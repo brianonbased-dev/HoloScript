@@ -1,0 +1,22 @@
+@trait {
+  name: "@drop_zone",
+  category: "interaction",
+  description: "Drag-and-drop acceptance zone for inventory or world items. Validates incoming dragged entities against a type filter, fires accept/reject events, and optionally snaps the dropped entity to a defined anchor offset. Authored from DropZoneTrait.ts.",
+  props: {
+    accepted_types: list<string> = [],
+    max_items: number = 1,
+    snap_on_drop: boolean = true,
+    snap_offset: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    highlight_on_hover: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "drop_zone_attached",
+    detached: "drop_zone_detached",
+    on_hover_enter: "drop_zone_hover_enter",
+    on_hover_exit: "drop_zone_hover_exit",
+    on_accept: "drop_zone_accept",
+    on_reject: "drop_zone_reject"
+  },
+  behaviors: ["@affordance", "@inventory", "@assembly"]
+}
