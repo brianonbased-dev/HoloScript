@@ -1,0 +1,24 @@
+@trait {
+  name: "@token_gated",
+  category: "economics",
+  description: "Access-control gate driven by on-chain token ownership. Verifies that the connected wallet holds at least min_balance of the specified token on the chosen chain before allowing interaction. contract_address is the EVM contract or HoloScript sovereign-chain contract. chain selects the L1/L2 network: ethereum, polygon, base, or holoscript (HoloMesh sovereign chain). token_type distinguishes fungible (erc20, holoscript) from non-fungible (erc721, erc1155) ownership semantics; for erc1155 a token_id should be supplied on the consuming scene node. cache_ttl_s controls how long a verified result is trusted before re-checking the chain (0 = re-check every time). Emits on_gate_open when the wallet clears the balance threshold, on_gate_close when a previously open gate revokes access (wallet disconnected, tokens transferred out, cache expired + re-check fails), and on_gate_check on every active verification attempt. Pairs with @economy_primitives for price-oracle and listing-mode coordination. Research: TokenGatedTrait.ts — TokenGatedConfig, chain/token-type enums, balance-check event flow.",
+  props: {
+    contract_address: string = "",
+    chain: enum("ethereum" | "polygon" | "base" | "holoscript") = "ethereum",
+    token_type: enum("erc20" | "erc721" | "erc1155" | "holoscript") = "erc721",
+    min_balance: number = 1,
+    cache_ttl_s: number = 0
+  },
+  events: {
+    attached: "token_gated:attached",
+    detached: "token_gated:detached",
+    on_gate_open: "token_gated:gate_open",
+    on_gate_close: "token_gated:gate_close",
+    on_gate_check: "token_gated:gate_check",
+    on_error: "token_gated:error",
+    on_verify: "token_gated:verify",
+    on_revoke: "token_gated:revoke",
+    on_query: "token_gated:query"
+  },
+  behaviors: ["@economy_primitives", "@wallet"]
+}

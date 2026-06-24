@@ -1,0 +1,25 @@
+@trait {
+  name: "@transaction",
+  category: "economics",
+  description: "On-chain transaction authoring and lifecycle tracking for HoloScript entities. chain selects the target L1/L2 network: ethereum, polygon, base, or arbitrum. signer_type controls the key-management surface: wallet (external EOA signer such as MetaMask / WalletConnect), passkey (WebAuthn credential bound to the device), or session_key (a short-lived delegated key issued by the seat wallet for gas-free or subsidised flows). gas_limit sets the EVM execution gas ceiling; 0 = estimate. max_fee_gwei caps the EIP-1559 maxFeePerGas in gwei; 0 = market. simulate bool enables a dry-run through the chain's eth_call / debug_traceCall surface before broadcasting — useful for catching reverts without spending gas. Emits on_pending when the transaction is broadcast and waiting for inclusion, on_confirmed when the receipt lands with a non-zero status, on_failed when the transaction reverts or is dropped, and on_receipt with the full decoded receipt object. Pairs with @economy_primitives for currency/price-oracle coordination and @wallet for signer resolution. Research: TransactionTrait.ts — TransactionConfig, TxReceipt, debitBalance / stakeBalance / depositBalance flows.",
+  props: {
+    chain: enum("ethereum" | "polygon" | "base" | "arbitrum") = "base",
+    signer_type: enum("wallet" | "passkey" | "session_key") = "wallet",
+    gas_limit: number = 0,
+    max_fee_gwei: number = 0,
+    simulate: boolean = false
+  },
+  events: {
+    attached: "transaction:attached",
+    detached: "transaction:detached",
+    on_pending: "transaction:pending",
+    on_confirmed: "transaction:confirmed",
+    on_failed: "transaction:failed",
+    on_receipt: "transaction:receipt",
+    on_error: "transaction:error",
+    on_send: "transaction:send",
+    on_cancel: "transaction:cancel",
+    on_query_ledger: "transaction:query_ledger"
+  },
+  behaviors: ["@economy_primitives", "@wallet"]
+}

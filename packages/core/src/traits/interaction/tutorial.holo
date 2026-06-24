@@ -1,0 +1,22 @@
+@trait {
+  name: "@tutorial",
+  category: "interaction",
+  description: "Guided in-world tutorial orchestrator. steps is an ordered list of step descriptors — each carries a title (display heading), content (body text or markdown), and target_id (scene node ID to highlight or spotlight during that step). mode controls the presentation surface: overlay renders a full-screen panel, tooltip anchors the step callout to the target node, spotlight dims the scene and focuses the camera on the target. skip_allowed enables the user to exit the tutorial early; when false, the skip affordance is hidden and on_skip is never emitted. progress_key is a string key written to the agent memory store to persist tutorial completion across sessions — empty string disables persistence. Emits on_step_complete when the user advances past a step (payload carries step index and step descriptor), on_all_complete when the final step is acknowledged, and on_skip when the user exits early. Research: TutorialTrait.ts — TutorialConfig, steps/mock_qr/result_preview fields, onAttach show flow.",
+  props: {
+    steps: list<{ title: string, content: string, target_id: string }> = [],
+    mode: enum("overlay" | "tooltip" | "spotlight") = "overlay",
+    skip_allowed: boolean = true,
+    progress_key: string = ""
+  },
+  events: {
+    attached: "tutorial:attached",
+    detached: "tutorial:detached",
+    on_step_complete: "tutorial:step_complete",
+    on_all_complete: "tutorial:all_complete",
+    on_skip: "tutorial:skip",
+    on_error: "tutorial:error",
+    on_start: "tutorial:start",
+    on_advance: "tutorial:advance",
+    on_reset: "tutorial:reset"
+  }
+}
