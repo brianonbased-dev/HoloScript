@@ -14,7 +14,7 @@
 import {
   decodeSkinnedMeshFromHolo,
   type HoloMeshGeometry,
-  type SkinnedMeshData,
+  type DecodedHoloMesh,
 } from '@holoscript/engine';
 
 /**
@@ -32,6 +32,11 @@ export function meshShapeToHolo(name: string, geo: HoloMeshGeometry, indent = ' 
   lines.push(`${ii}indicesB64: "${geo.indicesB64}"`);
   lines.push(`${ii}jointIndicesB64: "${geo.jointIndicesB64}"`);
   lines.push(`${ii}jointWeightsB64: "${geo.jointWeightsB64}"`);
+  // Rig (optional) — carried so the mesh can be re-emitted WITH a glTF skin.
+  if (geo.inverseBindMatricesB64 && geo.jointCount !== undefined) {
+    lines.push(`${ii}inverseBindMatricesB64: "${geo.inverseBindMatricesB64}"`);
+    lines.push(`${ii}jointCount: ${geo.jointCount}`);
+  }
   lines.push(`${ii}vertexCount: ${geo.vertexCount}`);
   lines.push(`${i}}`);
   return lines.join('\n');
@@ -44,7 +49,7 @@ export function meshShapeToHolo(name: string, geo: HoloMeshGeometry, indent = ' 
  */
 export function holoShapeToMesh(shape: {
   properties: ReadonlyArray<{ key: string; value: unknown }>;
-}): SkinnedMeshData {
+}): DecodedHoloMesh {
   const map = new Map(shape.properties.map((p) => [p.key, p.value]));
   const str = (k: string): string => {
     const v = map.get(k);
@@ -54,6 +59,8 @@ export function holoShapeToMesh(shape: {
     return v;
   };
   const uvsVal = map.get('uvsB64');
+  const ibmVal = map.get('inverseBindMatricesB64');
+  const jointCountVal = map.get('jointCount');
   const geo: HoloMeshGeometry = {
     positionsB64: str('positionsB64'),
     normalsB64: str('normalsB64'),
@@ -62,6 +69,9 @@ export function holoShapeToMesh(shape: {
     indicesB64: str('indicesB64'),
     jointIndicesB64: str('jointIndicesB64'),
     jointWeightsB64: str('jointWeightsB64'),
+    ...(typeof ibmVal === 'string' && jointCountVal !== undefined
+      ? { inverseBindMatricesB64: ibmVal, jointCount: Number(jointCountVal) }
+      : {}),
     vertexCount: Number(map.get('vertexCount') ?? 0),
   };
   return decodeSkinnedMeshFromHolo(geo);

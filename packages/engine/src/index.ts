@@ -81,6 +81,7 @@ export {
   encodeSkinnedMeshToHolo,
   decodeSkinnedMeshFromHolo,
   type HoloMeshGeometry,
+  type DecodedHoloMesh,
 } from './native-render/HoloMeshGeometry';
 export type { SkinnedMeshData } from './native-render/draw-spec';
 

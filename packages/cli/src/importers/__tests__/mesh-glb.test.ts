@@ -13,12 +13,14 @@ import { meshToGlb, compileMeshShapeToGlb } from '../mesh-glb';
 import { importGltf } from '../gltf-importer';
 
 type GltfLike = {
-  accessors: Array<{ bufferView: number; count: number; type: string }>;
+  accessors: Array<{ bufferView: number; count: number; type: string; componentType?: number }>;
   bufferViews: Array<{ byteOffset?: number; byteLength: number }>;
   meshes: Array<{ primitives: Array<{ attributes: Record<string, number>; indices: number }> }>;
+  nodes?: Array<{ mesh?: number; skin?: number; name?: string }>;
+  skins?: Array<{ joints: number[]; inverseBindMatrices?: number }>;
 };
 
-const COMPS: Record<string, number> = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
+const COMPS: Record<string, number> = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
 
 function readF32(g: GltfLike, bin: Uint8Array, acc: number): number[] {
   const a = g.accessors[acc];
@@ -34,6 +36,14 @@ function readU32(g: GltfLike, bin: Uint8Array, acc: number): number[] {
   const dv = new DataView(bin.buffer, bin.byteOffset + (bv.byteOffset ?? 0), bv.byteLength);
   const out: number[] = [];
   for (let i = 0; i < a.count; i++) out.push(dv.getUint32(i * 4, true));
+  return out;
+}
+function readU16(g: GltfLike, bin: Uint8Array, acc: number): number[] {
+  const a = g.accessors[acc];
+  const bv = g.bufferViews[a.bufferView];
+  const dv = new DataView(bin.buffer, bin.byteOffset + (bv.byteOffset ?? 0), bv.byteLength);
+  const out: number[] = [];
+  for (let i = 0; i < a.count * COMPS[a.type]; i++) out.push(dv.getUint16(i * 2, true));
   return out;
 }
 
@@ -142,6 +152,74 @@ describe('Track-0 mesh → .glb export', () => {
       // the original triangle survives the entire loop
       expect(readF32(g, bin, prim.attributes.POSITION)).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0]);
       expect(readU32(g, bin, prim.indices)).toEqual([0, 1, 2]);
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  // ─── skin re-emit (Track-0 follow-up) ─────────────────────────────────────────
+
+  function riggedMesh(): SkinnedMeshData & { inverseBindMatrices: Float32Array; jointCount: number } {
+    // jointCount=2; distinct (non-identity) inverse-binds so we can prove the values survive.
+    const ibm = new Float32Array(2 * 16);
+    for (let j = 0; j < 2; j++) {
+      ibm.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, j === 0 ? -1 : 2, 0.5, 0, 1], j * 16);
+    }
+    return {
+      ...constructedMesh(),
+      jointIndices: new Uint32Array([0, 1, 0]),
+      jointWeights: new Float32Array([1, 1, 1]),
+      inverseBindMatrices: ibm,
+      jointCount: 2,
+    };
+  }
+
+  it('meshToGlb re-emits a skin (JOINTS_0/WEIGHTS_0 + joints + inverse-binds) when the mesh carries a rig', () => {
+    const mesh = riggedMesh();
+    const { g, bin } = parse(meshToGlb(mesh));
+    const prim = g.meshes[0].primitives[0];
+
+    // single-influence skin attributes are present
+    expect(prim.attributes.JOINTS_0).toBeDefined();
+    expect(prim.attributes.WEIGHTS_0).toBeDefined();
+    // dominant joint lands in slot 0; the other three slots are zero
+    expect(readU16(g, bin, prim.attributes.JOINTS_0)).toEqual([0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
+    expect(readF32(g, bin, prim.attributes.WEIGHTS_0)).toEqual([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
+
+    // a real skin: 2 joint nodes, mesh node bound to it, inverse-binds carried verbatim
+    expect(g.skins).toBeDefined();
+    expect(g.skins![0].joints.length).toBe(2);
+    expect(g.nodes?.[0].skin).toBe(0);
+    const ibmAcc = g.skins![0].inverseBindMatrices!;
+    expect(g.accessors[ibmAcc].type).toBe('MAT4');
+    expect(g.accessors[ibmAcc].count).toBe(2);
+    expect(readF32(g, bin, ibmAcc)).toEqual(Array.from(mesh.inverseBindMatrices));
+  });
+
+  it('geometry-only mesh (no rig) re-emits NO skin', () => {
+    const { g } = parse(meshToGlb(constructedMesh()));
+    expect(g.skins).toBeUndefined();
+    expect(g.meshes[0].primitives[0].attributes.JOINTS_0).toBeUndefined();
+    expect(g.nodes?.[0].skin).toBeUndefined();
+  });
+
+  it('full vertical with skin: real skinned GLB → importGltf → .holo → compile → .glb keeps a skin', () => {
+    const tmp = path.join(os.tmpdir(), `holo-track0-skin-${process.pid}.glb`);
+    fs.writeFileSync(tmp, Buffer.from(makeSkinnedTriangleGlb()));
+    try {
+      const result = parseHolo(importGltf(tmp));
+      const shape = result.ast?.shapes?.find((s) => s.shapeType === 'mesh');
+      expect(shape).toBeDefined();
+
+      const { g, bin } = parse(compileMeshShapeToGlb(shape!));
+      const prim = g.meshes[0].primitives[0];
+      // the rig carried by the importer round-trips into a real skin on export
+      expect(prim.attributes.JOINTS_0).toBeDefined();
+      expect(prim.attributes.WEIGHTS_0).toBeDefined();
+      expect(g.skins).toBeDefined();
+      expect(g.skins![0].joints.length).toBeGreaterThan(0);
+      // geometry still intact alongside the skin
+      expect(readF32(g, bin, prim.attributes.POSITION)).toEqual([0, 0, 0, 1, 0, 0, 0, 1, 0]);
     } finally {
       fs.rmSync(tmp, { force: true });
     }

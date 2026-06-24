@@ -37,7 +37,23 @@ export interface HoloMeshGeometry {
   jointIndicesB64: string;
   /** base64 LE Float32, 4 skin weights/vertex. */
   jointWeightsB64: string;
+  /** base64 LE Float32, `jointCount` × 16 column-major inverse-bind matrices. Carries the RIG
+   *  so a carried mesh can be re-emitted WITH a glTF skin (joints + JOINTS_0/WEIGHTS_0 + IBM);
+   *  omitted for an unskinned mesh, in which case export degrades to geometry-only. */
+  inverseBindMatricesB64?: string;
+  /** Palette joint count the inverse-binds + joint indices index into (present iff IBM is). */
+  jointCount?: number;
   vertexCount: number;
+}
+
+/**
+ * A decoded mesh plus — when the `.holo` block carried a rig — the inverse-bind matrices and
+ * palette joint count needed to re-emit a glTF skin. The base {@link SkinnedMeshData} has no
+ * rig fields, so the exporter reads these to decide skin-vs-geometry-only re-emit.
+ */
+export interface DecodedHoloMesh extends SkinnedMeshData {
+  inverseBindMatrices?: Float32Array<ArrayBuffer>;
+  jointCount?: number;
 }
 
 // ─── base64 <-> bytes (web-safe; no Node Buffer) ──────────────────────────────
@@ -79,8 +95,16 @@ function b64ToU32(b64: string): Uint32Array<ArrayBuffer> {
 
 // ─── codec ────────────────────────────────────────────────────────────────────
 
-/** Serialize an in-memory {@link SkinnedMeshData} to a `.holo`-carriable mesh block. */
-export function encodeSkinnedMeshToHolo(mesh: SkinnedMeshData): HoloMeshGeometry {
+/**
+ * Serialize an in-memory mesh to a `.holo`-carriable block. Accepts the base
+ * {@link SkinnedMeshData} and, optionally, the rig ({@link GltfSkinnedMesh} satisfies this) —
+ * when `inverseBindMatrices` + `jointCount` are present they are carried so the mesh can later
+ * be re-emitted WITH a glTF skin instead of degrading to geometry-only.
+ */
+export function encodeSkinnedMeshToHolo(
+  mesh: SkinnedMeshData & { inverseBindMatrices?: Float32Array; jointCount?: number }
+): HoloMeshGeometry {
+  const carryRig = !!mesh.inverseBindMatrices && mesh.jointCount !== undefined;
   return {
     positionsB64: f32ToB64(mesh.positions),
     normalsB64: f32ToB64(mesh.normals),
@@ -89,12 +113,21 @@ export function encodeSkinnedMeshToHolo(mesh: SkinnedMeshData): HoloMeshGeometry
     indicesB64: u32ToB64(mesh.indices),
     jointIndicesB64: u32ToB64(mesh.jointIndices),
     jointWeightsB64: f32ToB64(mesh.jointWeights),
+    ...(carryRig
+      ? {
+          inverseBindMatricesB64: f32ToB64(
+            // Float32Array (any backing buffer) → bytes; symmetric with b64ToF32 on decode.
+            new Float32Array(mesh.inverseBindMatrices!)
+          ),
+          jointCount: mesh.jointCount,
+        }
+      : {}),
     vertexCount: mesh.vertexCount,
   };
 }
 
-/** Decode a `.holo` mesh block back to an in-memory {@link SkinnedMeshData}. */
-export function decodeSkinnedMeshFromHolo(geo: HoloMeshGeometry): SkinnedMeshData {
+/** Decode a `.holo` mesh block back to an in-memory mesh, surfacing the rig when carried. */
+export function decodeSkinnedMeshFromHolo(geo: HoloMeshGeometry): DecodedHoloMesh {
   return {
     positions: b64ToF32(geo.positionsB64),
     normals: b64ToF32(geo.normalsB64),
@@ -103,6 +136,9 @@ export function decodeSkinnedMeshFromHolo(geo: HoloMeshGeometry): SkinnedMeshDat
     indices: b64ToU32(geo.indicesB64),
     jointIndices: b64ToU32(geo.jointIndicesB64),
     jointWeights: b64ToF32(geo.jointWeightsB64),
+    ...(geo.inverseBindMatricesB64 && geo.jointCount !== undefined
+      ? { inverseBindMatrices: b64ToF32(geo.inverseBindMatricesB64), jointCount: geo.jointCount }
+      : {}),
     vertexCount: geo.vertexCount,
   };
 }
