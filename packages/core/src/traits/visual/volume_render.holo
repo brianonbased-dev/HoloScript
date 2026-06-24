@@ -1,0 +1,33 @@
+@trait {
+  name: "@volume_render",
+  category: "visual",
+  description: "Volumetric data renderer for 3D scalar fields such as CT/MRI scans, fluid simulations, and point-density clouds. data_url points to the raw volumetric dataset (NIfTI, raw binary, or HoloScript .holo volume block). voxel_size sets the physical dimensions of one voxel in scene units as a (x, y, z) triple. transfer_function maps scalar intensity to colour + opacity: linear applies a straight ramp from min to max density, sigmoid applies an S-curve emphasising mid-range values, custom defers to a caller-supplied lookup table. opacity_scale globally multiplies the transfer-function opacity channel (0 = invisible, 1 = authored, >1 = over-bright accumulation). emission_scale multiplies the emission term for glow and depth-haze effects. iso_value sets the isovalue for iso-surface extraction when render_mode is iso_surface. render_mode selects the integration strategy: mip (Maximum Intensity Projection) finds the brightest sample along each ray, dvr (Direct Volume Rendering) blends samples front-to-back with early-exit, iso_surface extracts a polygon mesh at iso_value and shades it with a standard PBR pass. Research: VolumeRenderTrait.ts, volumetric-webgpu.ts, VolumetricWebGPUPreset.",
+  props: {
+    data_url: string = "",
+    voxel_size: {
+      x: number = 1.0,
+      y: number = 1.0,
+      z: number = 1.0
+    },
+    transfer_function: enum("linear" | "sigmoid" | "custom") = "linear",
+    opacity_scale: number = 1.0,
+    emission_scale: number = 0.0,
+    iso_value: number = 0.5,
+    render_mode: enum("mip" | "dvr" | "iso_surface") = "dvr"
+  },
+  events: {
+    attached: "volume_render:attached",
+    detached: "volume_render:detached",
+    loaded: "volume_render:loaded",
+    load_failed: "volume_render:load_failed",
+    rendered: "volume_render:rendered",
+    iso_extracted: "volume_render:iso_extracted",
+    error: "volume_render:error",
+    on_load: "volume_render:cmd_load",
+    on_set_transfer_function: "volume_render:cmd_set_transfer_function",
+    on_set_iso_value: "volume_render:cmd_set_iso_value",
+    on_set_render_mode: "volume_render:cmd_set_render_mode",
+    on_set_opacity_scale: "volume_render:cmd_set_opacity_scale"
+  },
+  behaviors: ["@material", "@rendering"]
+}

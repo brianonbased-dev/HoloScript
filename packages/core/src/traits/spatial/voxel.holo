@@ -1,0 +1,34 @@
+@trait {
+  name: "@voxel",
+  category: "spatial",
+  description: "Discrete voxel grid for editable 3D block data — terrain, destructible geometry, sculpted volumes, and occupancy maps. resolution declares the grid dimensions as a (x, y, z) integer triple (e.g. 32×32×32). chunk_size is the number of voxels per axis in a single serialisable chunk; chunking keeps memory and network delta payloads bounded during streaming edits. palette is an ordered list of CSS hex colour strings that index the voxel colour table; palette index 0 is conventionally the empty/air voxel. fill_value sets the default palette index for newly allocated voxels (0 = empty). rle_compress enables run-length encoding when serialising the grid, halving bandwidth for sparse or uniform regions. lod_levels is the number of mip levels to generate for distance-based simplification (0 = no LOD). on_voxel_change fires after any set/fill/erase operation with the affected chunk id and the bounding box of changed voxels. Research: ProceduralGeometry.ts voxel path, SceneIRCompiler voxel block.",
+  props: {
+    resolution: {
+      x: number = 32,
+      y: number = 32,
+      z: number = 32
+    },
+    chunk_size: number = 16,
+    palette: list<string> = ["#000000", "#ffffff"],
+    fill_value: number = 0,
+    rle_compress: boolean = true,
+    lod_levels: number = 0
+  },
+  events: {
+    attached: "voxel:attached",
+    detached: "voxel:detached",
+    initialised: "voxel:initialised",
+    voxel_change: "voxel:voxel_change",
+    chunk_loaded: "voxel:chunk_loaded",
+    chunk_saved: "voxel:chunk_saved",
+    lod_change: "voxel:lod_change",
+    error: "voxel:error",
+    on_set: "voxel:cmd_set",
+    on_fill: "voxel:cmd_fill",
+    on_erase: "voxel:cmd_erase",
+    on_load_chunk: "voxel:cmd_load_chunk",
+    on_save_chunk: "voxel:cmd_save_chunk",
+    on_clear: "voxel:cmd_clear"
+  },
+  behaviors: ["@transform", "@rendering"]
+}

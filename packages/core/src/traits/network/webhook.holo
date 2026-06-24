@@ -1,0 +1,29 @@
+@trait {
+  name: "@webhook",
+  category: "network",
+  description: "HTTP trigger and callback bridge for outbound webhook dispatch and inbound signature-verified delivery. url is the default target endpoint for outbound requests. method selects the HTTP verb: POST, PUT, or PATCH. headers is a static dict of key-value string pairs merged into every outbound request (e.g. Content-Type, Authorization). payload_template is a Mustache-compatible string template rendered against the triggering event payload before dispatch; empty = full event JSON. trigger_events is the list of entity event names that automatically fire an outbound request when they occur on the attached entity; empty = manual-only dispatch via on_send. retry_count is the number of automatic retries on 5xx or network failure. retry_delay_ms is the delay between retry attempts. auth_type selects the outbound authentication scheme: none sends no auth header, bearer injects 'Authorization: Bearer <token>' using a secret resolved from the HoloKey vault, basic injects a Base64 Basic credential pair, hmac computes an HMAC-SHA256 signature header over the serialised body using a shared secret. Inbound webhook verification uses the same hmac key. Events: sent fires after a successful dispatch with status and latency; received fires on a verified inbound payload; error fires on network failure or rejected signature. Research: WebhookTrait.ts v5.1.",
+  props: {
+    url: string = "",
+    method: enum("POST" | "PUT" | "PATCH") = "POST",
+    headers: dict<string, string> = {},
+    payload_template: string = "",
+    trigger_events: list<string> = [],
+    retry_count: number = 3,
+    retry_delay_ms: number = 1000,
+    auth_type: enum("none" | "bearer" | "basic" | "hmac") = "none"
+  },
+  events: {
+    attached: "webhook:attached",
+    detached: "webhook:detached",
+    ready: "webhook:ready",
+    sent: "webhook:sent",
+    received: "webhook:received",
+    error: "webhook:error",
+    retry: "webhook:retry",
+    on_send: "webhook:cmd_send",
+    on_verify: "webhook:cmd_verify",
+    on_set_url: "webhook:cmd_set_url",
+    on_set_headers: "webhook:cmd_set_headers"
+  },
+  behaviors: ["@feature_flag"]
+}
