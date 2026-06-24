@@ -1,0 +1,24 @@
+@trait {
+  name: "@terrain_deform",
+  category: "visual",
+  description: "Real-time terrain deformation driver. Applies sculpt, erode, flatten, and smooth brush operations to a heightmap terrain entity, with configurable strength, radius, and hardness, and undo-stack support. Authored from TerrainDeformTrait.ts.",
+  props: {
+    brush_type: enum("sculpt" | "erode" | "flatten" | "smooth" | "paint") = "sculpt",
+    brush_radius_m: number = 2.0,
+    brush_strength: number = 0.5,
+    brush_hardness: number = 0.8,
+    max_undo_steps: number = 20,
+    auto_recalculate_normals: boolean = true,
+    physics_update: boolean = true
+  },
+  events: {
+    attached: "terrain_deform_attached",
+    detached: "terrain_deform_detached",
+    on_stroke: "terrain_deform_stroke",
+    on_undo: "terrain_deform_undo",
+    on_redo: "terrain_deform_redo",
+    stroke: "terrain_deform_trigger_stroke",
+    undo: "terrain_deform_trigger_undo"
+  },
+  behaviors: ["@deformable_terrain", "@gpu_particle", "@procedural_terrain"]
+}

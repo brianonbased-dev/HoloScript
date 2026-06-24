@@ -1,0 +1,22 @@
+@trait {
+  name: "@trajectory_prediction",
+  category: "physics",
+  description: "Physics trajectory predictor. Simulates N-step ahead projectile, vehicle, or agent paths under gravity and drag, exposing the predicted positions list as an event payload for aim-assist or path-visualization. Authored from TrajectoryPredictionTrait.ts.",
+  props: {
+    steps: number = 60,
+    dt_s: number = 0.05,
+    gravity_mps2: number = 9.81,
+    drag_coefficient: number = 0.47,
+    projectile_radius_m: number = 0.1,
+    visualize: boolean = true,
+    update_on_change: boolean = true
+  },
+  events: {
+    attached: "trajectory_prediction_attached",
+    detached: "trajectory_prediction_detached",
+    on_update: "trajectory_prediction_update",
+    on_impact: "trajectory_prediction_impact",
+    predict: "trajectory_prediction_trigger"
+  },
+  behaviors: ["@pid_controller", "@ray_cast", "@flow_field"]
+}

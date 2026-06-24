@@ -1,0 +1,25 @@
+@trait {
+  name: "@time_scale",
+  category: "world",
+  description: "World-local time scale controller. Multiplies the physics and animation delta time within a scoped zone or globally, enabling bullet-time slow-motion, time-lapse fast-forward, and pause effects. Authored from TimeScaleTrait.ts.",
+  props: {
+    scale: number = 1.0,
+    min_scale: number = 0.0,
+    max_scale: number = 10.0,
+    transition_ms: number = 200,
+    scope: enum("global" | "zone" | "entity") = "global",
+    affect_audio: boolean = true,
+    affect_particles: boolean = true
+  },
+  events: {
+    attached: "time_scale_attached",
+    detached: "time_scale_detached",
+    on_change: "time_scale_change",
+    on_pause: "time_scale_pause",
+    on_resume: "time_scale_resume",
+    set_scale: "time_scale_set",
+    pause: "time_scale_trigger_pause",
+    resume: "time_scale_trigger_resume"
+  },
+  behaviors: ["@replay", "@game_mode"]
+}
