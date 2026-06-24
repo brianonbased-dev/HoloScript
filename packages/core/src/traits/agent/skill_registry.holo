@@ -1,0 +1,24 @@
+@trait {
+  name: "@skill_registry",
+  category: "agent",
+  description: "Agent skill registry and dispatcher. Stores named skill definitions with input/output schemas and routes tool-call intents to the correct skill handler. Authored from SkillRegistryTrait.ts.",
+  props: {
+    skills: list<{ name: string, description: string, schema_url: string, handler: string }> = [],
+    default_skill: string = "",
+    auto_discover: boolean = true,
+    max_skills: number = 256,
+    version_policy: enum("latest" | "pinned" | "semver") = "latest"
+  },
+  events: {
+    attached: "skill_registry_attached",
+    detached: "skill_registry_detached",
+    on_skill_register: "skill_registry_register",
+    on_skill_invoke: "skill_registry_invoke",
+    on_skill_error: "skill_registry_error",
+    on_skill_update: "skill_registry_update",
+    register: "skill_registry_trigger_register",
+    invoke: "skill_registry_trigger_invoke",
+    unregister: "skill_registry_trigger_unregister"
+  },
+  behaviors: ["@llm_agent", "@multi_agent"]
+}
