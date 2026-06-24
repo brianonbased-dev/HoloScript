@@ -1,0 +1,23 @@
+@trait {
+  name: "@animation_blender",
+  category: "visual",
+  description: "Multi-layer animation blend tree. Combines base locomotion, additive overlay, and expression animations with weight blending, crossfade, and partial-body masking for fully expressive character playback. Authored from AnimationBlenderTrait.ts.",
+  props: {
+    base_clip: string = "",
+    overlay_clips: list<{ clip: string, weight: number, mask: string }> = [],
+    crossfade_ms: number = 200,
+    speed_multiplier: number = 1.0,
+    loop: boolean = true,
+    auto_play: boolean = true,
+    sync_root_motion: boolean = false
+  },
+  events: {
+    attached: "animation_blender_attached",
+    detached: "animation_blender_detached",
+    on_clip_start: "animation_blender_start",
+    on_clip_end: "animation_blender_end",
+    play: "animation_blender_play",
+    set_weight: "animation_blender_set_weight"
+  },
+  behaviors: ["@pose_retarget", "@locomotion", "@rig_constraint"]
+}

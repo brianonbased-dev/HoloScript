@@ -1,0 +1,22 @@
+@trait {
+  name: "@allocation",
+  category: "devops",
+  description: "Compute and memory resource allocation record. Declares CPU core count, memory limit, GPU fraction, and priority tier for a service or agent workload, consumed by the scheduler to place work on available fleet nodes. Authored from AllocationTrait.ts.",
+  props: {
+    cpu_cores: number = 1.0,
+    memory_mb: number = 512,
+    gpu_fraction: number = 0.0,
+    disk_mb: number = 0,
+    priority: enum("low" | "normal" | "high" | "realtime") = "normal",
+    affinity: list<string> = [],
+    preemptible: boolean = true
+  },
+  events: {
+    attached: "allocation_attached",
+    detached: "allocation_detached",
+    on_allocated: "allocation_granted",
+    on_evicted: "allocation_evicted",
+    on_pressure: "allocation_pressure"
+  },
+  behaviors: ["@compute_budget", "@scheduler", "@pipeline"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@affordance",
+  category: "interaction",
+  description: "Interaction affordance descriptor. Declares what actions the entity supports (grab, sit, press, activate, enter), the required hand pose or ray distance, and optional permission gate, enabling universal UI systems to auto-generate interaction hints. Authored from AffordanceTrait.ts.",
+  props: {
+    actions: list<enum("grab" | "sit" | "press" | "activate" | "enter" | "use" | "inspect" | "trade")> = [],
+    hand_pose: enum("pinch" | "point" | "open" | "any") = "any",
+    max_distance_m: number = 2.0,
+    highlight_on_hover: boolean = true,
+    tooltip: string = "",
+    permission_required: string = ""
+  },
+  events: {
+    attached: "affordance_attached",
+    detached: "affordance_detached",
+    on_hover: "affordance_hover",
+    on_activate: "affordance_activate",
+    on_exit: "affordance_exit"
+  },
+  behaviors: ["@pressable", "@proximity_trigger", "@xr_ray_interactor"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@annotation",
+  category: "visual",
+  description: "Spatial annotation label. Renders a world-space callout with a title, body text, optional icon, and a leader line connecting to a 3D anchor point, with configurable fade distance and visibility rules. Authored from AnnotationTrait.ts.",
+  props: {
+    title: string = "",
+    body: string = "",
+    icon_url: string = "",
+    anchor_offset: { x: number, y: number, z: number } = { x: 0.0, y: 0.5, z: 0.0 },
+    face_camera: boolean = true,
+    fade_start_m: number = 10.0,
+    fade_end_m: number = 20.0,
+    visible: boolean = true,
+    permission_read: string = ""
+  },
+  events: {
+    attached: "annotation_attached",
+    detached: "annotation_detached",
+    on_show: "annotation_show",
+    on_hide: "annotation_hide",
+    on_click: "annotation_click",
+    show: "annotation_trigger_show",
+    hide: "annotation_trigger_hide"
+  },
+  behaviors: ["@landmark", "@billboard", "@tooltip"]
+}
