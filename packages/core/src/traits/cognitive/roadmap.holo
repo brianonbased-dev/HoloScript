@@ -1,0 +1,23 @@
+@trait {
+  name: "@roadmap",
+  category: "cognitive",
+  description: "Agent goal roadmap with decomposed milestone graph. Stores a directed acyclic graph of objectives, tracks completion state, and surfaces the next claimable milestone for autonomous agents. Authored from RoadmapTrait.ts.",
+  props: {
+    goals: list<{ id: string, title: string, depends_on: list<string>, status: enum("pending" | "active" | "done" | "blocked") }> = [],
+    auto_advance: boolean = true,
+    max_parallel_goals: number = 3,
+    reflect_interval_ms: number = 60000,
+    persist: boolean = true
+  },
+  events: {
+    attached: "roadmap_attached",
+    detached: "roadmap_detached",
+    on_start_goal: "roadmap_start_goal",
+    on_complete_goal: "roadmap_complete_goal",
+    on_block_goal: "roadmap_block_goal",
+    on_roadmap_done: "roadmap_done",
+    advance: "roadmap_advance",
+    block: "roadmap_block"
+  },
+  behaviors: ["@autonomous_agenda", "@blackboard"]
+}

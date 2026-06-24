@@ -1,0 +1,24 @@
+@trait {
+  name: "@remote_presence",
+  category: "agent",
+  description: "Remote agent embodiment handle. Projects a local agent's identity and sensor stream into a remote world by registering a presence stub that forwards perception events and actuator commands across the mesh. Authored from RemotePresenceTrait.ts.",
+  props: {
+    remote_world_id: string = "",
+    agent_handle: string = "",
+    avatar_url: string = "",
+    presence_mode: enum("avatar" | "ghost" | "camera") = "avatar",
+    relay_perception: boolean = true,
+    relay_actuators: boolean = true,
+    latency_budget_ms: number = 200
+  },
+  events: {
+    attached: "remote_presence_attached",
+    detached: "remote_presence_detached",
+    on_connected: "remote_presence_connected",
+    on_disconnected: "remote_presence_disconnected",
+    on_perception: "remote_presence_perception",
+    connect: "remote_presence_connect",
+    disconnect: "remote_presence_disconnect"
+  },
+  behaviors: ["@networked", "@spatial_persona", "@perception"]
+}

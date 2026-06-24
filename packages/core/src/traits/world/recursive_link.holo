@@ -1,0 +1,23 @@
+@trait {
+  name: "@recursive_link",
+  category: "world",
+  description: "Recursive world-embedding link. Embeds a reference to a child HoloScript world as a nested scene inside the parent, enabling infinite-depth world-in-world compositions without data duplication. Authored from RecursiveLinkTrait.ts.",
+  props: {
+    child_world_id: string = "",
+    scale: number = 1.0,
+    max_depth: number = 3,
+    lazy_load: boolean = true,
+    lod_distance_m: number = 50.0,
+    portal_mode: boolean = false,
+    sync_clock: boolean = true
+  },
+  events: {
+    attached: "recursive_link_attached",
+    detached: "recursive_link_detached",
+    on_load: "recursive_link_load",
+    on_unload: "recursive_link_unload",
+    on_enter: "recursive_link_enter",
+    load: "recursive_link_trigger_load"
+  },
+  behaviors: ["@portal_presence", "@zone_director"]
+}

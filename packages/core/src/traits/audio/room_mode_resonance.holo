@@ -1,0 +1,22 @@
+@trait {
+  name: "@room_mode_resonance",
+  category: "audio",
+  description: "Acoustic room-mode resonance simulator. Computes axial, tangential, and oblique modes from room dimensions and applies comb-filter shelving to standing-wave frequencies for physically realistic low-frequency audio behavior. Authored from RoomModeResonanceTrait.ts.",
+  props: {
+    room_width_m: number = 5.0,
+    room_height_m: number = 2.5,
+    room_depth_m: number = 6.0,
+    material_absorption: number = 0.2,
+    max_modes: number = 20,
+    frequency_limit_hz: number = 300,
+    boost_db: number = 3.0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "room_mode_resonance_attached",
+    detached: "room_mode_resonance_detached",
+    on_mode_update: "room_mode_update",
+    on_enable: "room_mode_enable"
+  },
+  behaviors: ["@reverb_zone", "@environmental_audio", "@room_mesh"]
+}
