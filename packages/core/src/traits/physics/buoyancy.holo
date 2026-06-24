@@ -1,0 +1,23 @@
+@trait {
+  name: "@buoyancy",
+  category: "physics",
+  description: "Archimedes buoyancy simulation. Computes displaced fluid volume from mesh voxelization and applies upward force for boats, debris, and floating characters. Authored from BuoyancyTrait.ts.",
+  props: {
+    fluid_density: number = 1025.0,
+    voxel_resolution: number = 8,
+    drag_linear: number = 0.5,
+    drag_angular: number = 0.3,
+    wave_response: boolean = true,
+    submersion_target: number = 0.5,
+    air_drag: number = 0.1
+  },
+  events: {
+    attached: "buoyancy_attached",
+    detached: "buoyancy_detached",
+    on_submerge: "buoyancy_submerge",
+    on_surface: "buoyancy_surface",
+    on_sink: "buoyancy_sink",
+    on_update: "buoyancy_update"
+  },
+  behaviors: ["@rigid_body", "@water", "@fluid_simulation"]
+}

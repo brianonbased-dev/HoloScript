@@ -1,0 +1,26 @@
+@trait {
+  name: "@crdt_room",
+  category: "sync",
+  description: "CRDT-backed multiplayer room. All entity state changes are encoded as Loro operations, distributed peer-to-peer, and merged conflict-free on reconnect. Authored from CRDTRoomTrait.ts.",
+  props: {
+    room_id: string = "",
+    backend: enum("loro" | "yjs" | "automerge") = "loro",
+    transport: enum("websocket" | "webrtc" | "holoscript") = "holoscript",
+    max_peers: number = 100,
+    presence: boolean = true,
+    history_depth: number = 1000,
+    compression: boolean = true
+  },
+  events: {
+    attached: "crdt_room_attached",
+    detached: "crdt_room_detached",
+    on_join: "crdt_room_join",
+    on_leave: "crdt_room_leave",
+    on_change: "crdt_room_change",
+    on_conflict: "crdt_room_conflict",
+    on_snapshot: "crdt_room_snapshot",
+    join: "crdt_room_trigger_join",
+    leave: "crdt_room_trigger_leave"
+  },
+  behaviors: ["@realtime_collab", "@global_state", "@replica"]
+}

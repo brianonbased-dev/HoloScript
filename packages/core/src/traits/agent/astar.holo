@@ -1,0 +1,24 @@
+@trait {
+  name: "@astar",
+  category: "agent",
+  description: "A* pathfinding solver for grid, nav-mesh, and waypoint graphs. Returns optimal paths with configurable heuristics and obstacle avoidance. Authored from AstarTrait.ts.",
+  props: {
+    heuristic: enum("manhattan" | "euclidean" | "chebyshev" | "octile") = "euclidean",
+    grid_resolution_m: number = 0.5,
+    max_iterations: number = 10000,
+    allow_diagonal: boolean = true,
+    smooth_path: boolean = true,
+    dynamic_obstacles: boolean = false,
+    cost_layer: string = ""
+  },
+  events: {
+    attached: "astar_attached",
+    detached: "astar_detached",
+    on_path_found: "astar_path_found",
+    on_path_fail: "astar_path_fail",
+    on_path_update: "astar_path_update",
+    find_path: "astar_find",
+    cancel: "astar_cancel"
+  },
+  behaviors: ["@nav_mesh", "@waypoint", "@steering"]
+}

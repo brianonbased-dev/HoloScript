@@ -1,0 +1,23 @@
+@trait {
+  name: "@blackboard",
+  category: "agent",
+  description: "Shared blackboard memory for behavior trees and multi-agent coordination. Agents read/write typed key-value pairs; changes propagate to subscribed branches. Authored from BlackboardTrait.ts.",
+  props: {
+    namespace: string = "",
+    keys: list<{ name: string, type: string, initial: string }> = [],
+    scope: enum("local" | "team" | "global") = "local",
+    persist: boolean = false,
+    clear_on_task_end: boolean = true
+  },
+  events: {
+    attached: "blackboard_attached",
+    detached: "blackboard_detached",
+    on_set: "blackboard_set",
+    on_clear: "blackboard_clear",
+    on_watch_change: "blackboard_watch_change",
+    set: "blackboard_trigger_set",
+    get: "blackboard_trigger_get",
+    watch: "blackboard_trigger_watch"
+  },
+  behaviors: ["@behavior_tree", "@agent_memory"]
+}
