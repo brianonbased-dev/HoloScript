@@ -1,0 +1,31 @@
+@trait {
+  name: "@body_tracking",
+  category: "xr",
+  description: "Full-body and partial-body pose tracking pipeline for XR, AR, and camera-based spatial computing. mode selects the joint coverage: full_body delivers a complete skeletal pose (typically 33+ landmarks from head to feet); upper_body delivers only the torso, arms, and head joints (lower-latency, used when the lower half is occluded or irrelevant); hands_only delivers only wrist, palm, and finger joints (equivalent to @hand_tracking but unified under the body tracking pipeline for multi-limb composition). provider selects the pose estimation backend: mediapipe uses Google MediaPipe BlazePose running on-device in WASM or WebGL; arkit uses Apple ARKit body anchor and skeleton API (iOS/visionOS only); holoscript uses the HoloScript sovereign pose estimation pipeline running on the Jetson Orin or web GPU. joints is an optional allow-list of named joint identifiers to include in each pose frame; an empty list includes all joints for the current mode. confidence_min gates per-landmark output — landmarks below this confidence score are omitted from the on_pose payload and counted as low-confidence. on_pose fires at the provider's native cadence (typically 30–60 Hz) carrying a list of joint records each containing joint_id, position vec3, rotation quaternion, and confidence float. on_landmark fires per individual landmark when a specific joint_id is listed in joints and its confidence exceeds confidence_min. on_lost fires when body presence confidence drops below confidence_min for all tracked joints for more than 500 ms; on_pose resumes once tracking is reacquired. smooth applies a one-euro filter to joint positions; smooth_factor sets the filter's beta parameter (higher = less lag, more jitter). Pairs with @skeleton for binding pose data to a skeletal rig, @avatar_embodiment for the full embodiment pipeline, and @ik for IK chain solving on tracked joints. Research: BodyTrackingTrait.ts, HandTrackingTrait.ts, AvatarEmbodimentTrait.ts.",
+  props: {
+    mode: enum("full_body" | "upper_body" | "hands_only") = "full_body",
+    provider: enum("mediapipe" | "arkit" | "holoscript") = "mediapipe",
+    joints: list<string> = [],
+    confidence_min: number = 0.5,
+    smooth: boolean = true,
+    smooth_factor: number = 0.007
+  },
+  events: {
+    attached: "body_tracking:attached",
+    detached: "body_tracking:detached",
+    on_pose: "body_tracking:pose",
+    on_landmark: "body_tracking:landmark",
+    on_lost: "body_tracking:lost",
+    pose_updated: "body_tracking:pose_updated",
+    tracking_acquired: "body_tracking:acquired",
+    tracking_lost: "body_tracking:lost",
+    on_set_mode: "body_tracking:set_mode",
+    on_set_provider: "body_tracking:set_provider",
+    on_set_joints: "body_tracking:set_joints",
+    on_set_confidence_min: "body_tracking:set_confidence_min",
+    on_calibrate: "body_tracking:calibrate",
+    on_reset: "body_tracking:reset",
+    error: "body_tracking:error"
+  },
+  behaviors: ["@skeleton"]
+}

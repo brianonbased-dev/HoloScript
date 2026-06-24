@@ -1,0 +1,29 @@
+@trait {
+  name: "@data_binding",
+  category: "sync",
+  description: "Declarative reactive data binding between an entity property and an external data source with optional transform, debounce, and synchronisation mode control. source_path is a dot-scoped path into the bound data source (e.g. 'store.user.displayName', 'entity.health.current') resolved against the runtime's reactive store registry. target_path is the dot-scoped destination path on the attached entity's property tree (e.g. 'label.text', 'mesh.visible') that receives the bound value. mode governs the sync direction and lifecycle: one_way propagates changes from source to target only — the target is read-only with respect to the binding; two_way propagates changes in both directions, writing mutations on the target back to the source (requires the source to be writable); one_time resolves the binding once at attach time and then tears down the subscription, suitable for initialising props from remote config or server-rendered data. transform_fn names a registered transform function in the runtime's transform registry (e.g. 'toUpperCase', 'msToSeconds', 'boolToVisible') applied to the source value before it is written to the target; an empty string means no transform. on_change fires each time a new value is written to the target, carrying the new value, the previous value, and the source path. on_error fires when source resolution fails (path not found, type mismatch, or transform throws), carrying the error description and the attempted source path. on_sync fires on two_way writes from target back to source, carrying the written value and the target path. debounce_ms delays change propagation by this many milliseconds after the last source mutation — coalesces rapid upstream changes into a single target write; 0 disables debounce. Pairs with @offline_sync for offline-first write queueing, @snapshot for capturing bound state checkpoints, and @undo for two_way mutation rollback. Research: DataBindingTrait.ts, ReactiveStoreTrait.ts, SyncTrait.ts.",
+  props: {
+    source_path: string = "",
+    target_path: string = "",
+    mode: enum("one_way" | "two_way" | "one_time") = "one_way",
+    transform_fn: string = "",
+    debounce_ms: number = 0
+  },
+  events: {
+    attached: "data_binding:attached",
+    detached: "data_binding:detached",
+    on_change: "data_binding:change",
+    on_error: "data_binding:error",
+    on_sync: "data_binding:sync",
+    changed: "data_binding:changed",
+    synced: "data_binding:synced",
+    error: "data_binding:errored",
+    on_set_mode: "data_binding:set_mode",
+    on_set_source: "data_binding:set_source",
+    on_set_target: "data_binding:set_target",
+    on_set_debounce: "data_binding:set_debounce",
+    on_refresh: "data_binding:refresh",
+    on_reset: "data_binding:reset"
+  },
+  behaviors: ["@offline_sync", "@snapshot"]
+}

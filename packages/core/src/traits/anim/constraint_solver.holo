@@ -1,0 +1,28 @@
+@trait {
+  name: "@constraint_solver",
+  category: "anim",
+  description: "Multi-algorithm skeletal constraint and IK solver for animation chains with per-frame convergence events and secondary task support. solver selects the algorithm: ik is a general-purpose two-bone analytic solver; ccd is Cyclic Coordinate Descent — iterative, stable for long or looping chains, converges in O(n) per iteration; fabrik is Forward-And-Backward-Reaching IK — fast convergence, pole-target aware, preferred for character limbs; jacobian uses the Jacobian pseudoinverse (damped least squares) — slow but handles kinematic singularities and over-constrained chains, suited for robotic arms and multi-effector setups. chain is a list of joint_id strings defining the IK chain from root to effector; the order is root-first (index 0 = root, last index = effector). tolerance is the convergence threshold in world units — the solver exits early when the effector-to-target distance falls below this value. max_iterations caps the per-frame solve loop to prevent frame budget overruns on non-convergent configurations. on_solve fires each frame the solver successfully converges, carrying the iteration count and final residual error. on_fail fires when the solver exits without converging (either max_iterations reached or target unreachable), carrying the final residual. on_converge fires the first frame the solver achieves convergence after a period of failure — useful for triggering reach animations or IK blend-in. secondary_tasks is a list of secondary objective identifiers (e.g. joint limit avoidance, preferred angle, look-at sub-goal) evaluated as null-space projections on top of the primary end-effector goal; supported identifiers depend on the runtime's secondary-task registry. Pairs with @ik for targeted two-bone solving, @skeleton for the joint hierarchy, and @animation for blending solved poses with keyframe animation. Research: ConstraintSolverTrait.ts, IKTrait.ts, AnimationTrait.ts, SimulationSolverFactory.ts.",
+  props: {
+    solver: enum("ik" | "ccd" | "fabrik" | "jacobian") = "fabrik",
+    chain: list<string> = [],
+    tolerance: number = 0.001,
+    max_iterations: number = 20,
+    secondary_tasks: list<string> = []
+  },
+  events: {
+    attached: "constraint_solver:attached",
+    detached: "constraint_solver:detached",
+    on_solve: "constraint_solver:solve",
+    on_fail: "constraint_solver:fail",
+    on_converge: "constraint_solver:converge",
+    solved: "constraint_solver:solved",
+    failed: "constraint_solver:failed",
+    converged: "constraint_solver:converged",
+    on_set_solver: "constraint_solver:set_solver",
+    on_set_chain: "constraint_solver:set_chain",
+    on_set_tolerance: "constraint_solver:set_tolerance",
+    on_set_iterations: "constraint_solver:set_iterations",
+    on_reset: "constraint_solver:reset"
+  },
+  behaviors: ["@ik", "@skeleton", "@animation"]
+}
