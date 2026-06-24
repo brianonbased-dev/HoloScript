@@ -1,0 +1,19 @@
+@trait {
+  name: "@edge_mesh",
+  category: "visual",
+  description: "Edge highlight and wireframe overlay renderer. Traces silhouette and crease edges on an entity's mesh geometry using a screen-space or geometry-shader pass, for stylized, technical, or AR visualization. Authored from EdgeMeshTrait.ts.",
+  props: {
+    mode: enum("silhouette" | "crease" | "wireframe" | "custom") = "silhouette",
+    color: string = "#ffffff",
+    thickness_px: number = 1.5,
+    depth_bias: number = 0.001,
+    animated: boolean = false,
+    opacity: number = 1.0
+  },
+  events: {
+    attached: "edge_mesh_attached",
+    detached: "edge_mesh_detached",
+    on_enable: "edge_mesh_enable"
+  },
+  behaviors: ["@post_process", "@high_contrast", "@static_mesh"]
+}

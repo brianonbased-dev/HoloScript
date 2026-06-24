@@ -1,0 +1,24 @@
+@trait {
+  name: "@easing",
+  category: "visual",
+  description: "Easing function applier for animated numeric props. Wraps a target prop with configurable ease-in/out curve (linear, cubic, elastic, bounce, spring) over a given duration, enabling smooth transitions without animation clip overhead. Authored from EasingTrait.ts.",
+  props: {
+    target_prop: string = "",
+    from_value: number = 0.0,
+    to_value: number = 1.0,
+    duration_ms: number = 300,
+    curve: enum("linear" | "ease_in" | "ease_out" | "ease_in_out" | "cubic" | "elastic" | "bounce" | "spring") = "ease_in_out",
+    loop: boolean = false,
+    auto_play: boolean = false,
+    yoyo: boolean = false
+  },
+  events: {
+    attached: "easing_attached",
+    detached: "easing_detached",
+    on_start: "easing_start",
+    on_complete: "easing_complete",
+    play: "easing_trigger_play",
+    stop: "easing_trigger_stop"
+  },
+  behaviors: ["@animation_blender", "@lerp", "@fade_in"]
+}

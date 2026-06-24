@@ -1,0 +1,20 @@
+@trait {
+  name: "@ecosystem_bridge",
+  category: "interop",
+  description: "Cross-ecosystem protocol bridge. Translates HoloScript trait events to/from external ecosystem schemas (Unity GameObject messages, ROS2 topics, A2A agent cards), enabling bidirectional interop without format lock-in. Authored from EcosystemBridgeTrait.ts.",
+  props: {
+    target_ecosystem: enum("unity" | "ros2" | "a2a" | "openxr" | "dtdl" | "custom") = "a2a",
+    adapter_url: string = "",
+    bidirectional: boolean = true,
+    filter_events: list<string> = [],
+    transform_schema: string = ""
+  },
+  events: {
+    attached: "ecosystem_bridge_attached",
+    detached: "ecosystem_bridge_detached",
+    on_inbound: "ecosystem_bridge_inbound",
+    on_outbound: "ecosystem_bridge_outbound",
+    on_error: "ecosystem_bridge_error"
+  },
+  behaviors: ["@ffi", "@digital_twin", "@networked"]
+}

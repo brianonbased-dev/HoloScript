@@ -1,0 +1,22 @@
+@trait {
+  name: "@election",
+  category: "agent",
+  description: "Distributed leader election protocol. Runs a Raft or Bully election among agent peers to designate a single authority node for a shared task, handling candidate timeout, vote collection, and demotion on failure. Authored from ElectionTrait.ts.",
+  props: {
+    algorithm: enum("raft" | "bully" | "coin_flip") = "raft",
+    peer_handles: list<string> = [],
+    heartbeat_interval_ms: number = 150,
+    election_timeout_ms: number = 300,
+    term: number = 0,
+    is_leader: boolean = false
+  },
+  events: {
+    attached: "election_attached",
+    detached: "election_detached",
+    on_elected: "election_elected",
+    on_demoted: "election_demoted",
+    on_vote: "election_vote",
+    start: "election_trigger_start"
+  },
+  behaviors: ["@broadcast", "@networked", "@blackboard"]
+}
