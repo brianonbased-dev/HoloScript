@@ -1,0 +1,22 @@
+@trait {
+  name: "@auto_rig",
+  category: "anim",
+  description: "Automatic skeleton rigging from mesh geometry. Detects symmetry, segments limbs, places joints, and generates skin weights without manual intervention. Authored from AutoRigTrait.ts.",
+  props: {
+    topology: enum("humanoid" | "quadruped" | "creature" | "vehicle" | "auto") = "auto",
+    joint_count_target: number = 0,
+    symmetry: boolean = true,
+    weight_algorithm: enum("nearest" | "heat_diffusion" | "geodesic") = "geodesic",
+    normalize_weights: boolean = true,
+    output_format: enum("holoscript" | "gltf" | "fbx") = "gltf"
+  },
+  events: {
+    attached: "auto_rig_attached",
+    detached: "auto_rig_detached",
+    on_start: "auto_rig_start",
+    on_complete: "auto_rig_complete",
+    on_error: "auto_rig_error",
+    rig: "auto_rig_trigger"
+  },
+  behaviors: ["@skeleton", "@ik", "@animation"]
+}

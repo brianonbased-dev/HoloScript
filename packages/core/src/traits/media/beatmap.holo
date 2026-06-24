@@ -1,0 +1,27 @@
+@trait {
+  name: "@beatmap",
+  category: "media",
+  description: "Rhythm game beatmap loader and event emitter. Parses .osu, .chart, or HoloScript beatmap formats and fires note events synchronized to the audio track. Authored from BeatmapTrait.ts.",
+  props: {
+    audio_url: string = "",
+    map_url: string = "",
+    format: enum("osu" | "chart" | "holoscript" | "json") = "holoscript",
+    offset_ms: number = 0,
+    difficulty: enum("easy" | "normal" | "hard" | "expert") = "normal",
+    autoplay: boolean = false,
+    speed_multiplier: number = 1.0
+  },
+  events: {
+    attached: "beatmap_attached",
+    detached: "beatmap_detached",
+    on_note: "beatmap_note",
+    on_beat: "beatmap_beat",
+    on_bar: "beatmap_bar",
+    on_end: "beatmap_end",
+    on_miss: "beatmap_miss",
+    play: "beatmap_play",
+    pause: "beatmap_pause",
+    seek: "beatmap_seek"
+  },
+  behaviors: ["@media_player", "@animation"]
+}

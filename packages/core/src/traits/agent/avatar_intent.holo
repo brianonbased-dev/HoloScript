@@ -1,0 +1,20 @@
+@trait {
+  name: "@avatar_intent",
+  category: "agent",
+  description: "Avatar intention broadcaster. Emits the current agent intent (moving, talking, building, idle, in-combat) as spatial signals readable by co-present avatars and world systems. Authored from AvatarIntentTrait.ts.",
+  props: {
+    intent: enum("idle" | "moving" | "talking" | "building" | "in_combat" | "observing" | "custom") = "idle",
+    custom_intent: string = "",
+    broadcast_radius_m: number = 10.0,
+    visible_to: enum("all" | "team" | "self") = "all",
+    animation_hint: boolean = true
+  },
+  events: {
+    attached: "avatar_intent_attached",
+    detached: "avatar_intent_detached",
+    on_intent_change: "avatar_intent_change",
+    on_peer_intent: "avatar_intent_peer_change",
+    set_intent: "avatar_intent_set"
+  },
+  behaviors: ["@avatar_embodiment", "@presence", "@spatial_persona"]
+}
