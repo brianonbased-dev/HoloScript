@@ -1,0 +1,26 @@
+@trait {
+  name: "@resource_accounting",
+  category: "devops",
+  description: "Per-entity and per-tenant resource usage accounting. Tracks compute, storage, bandwidth, and API calls; enforces quotas and generates billing records. Authored from ResourceAccountingTrait.ts.",
+  props: {
+    tenant_id: string = "",
+    track_cpu: boolean = true,
+    track_memory: boolean = true,
+    track_bandwidth: boolean = true,
+    track_api_calls: boolean = true,
+    quota_cpu_ms: number = 0,
+    quota_mem_mb: number = 0,
+    billing_interval_s: number = 3600,
+    on_quota_exceed: enum("block" | "warn" | "throttle") = "warn"
+  },
+  events: {
+    attached: "resource_accounting_attached",
+    detached: "resource_accounting_detached",
+    on_quota_warn: "resource_accounting_quota_warn",
+    on_quota_exceed: "resource_accounting_quota_exceed",
+    on_billing_record: "resource_accounting_billing",
+    on_reset: "resource_accounting_reset",
+    get_usage: "resource_accounting_get_usage"
+  },
+  behaviors: ["@resource_limiter", "@telemetry", "@transaction"]
+}
