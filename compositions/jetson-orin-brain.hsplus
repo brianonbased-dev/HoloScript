@@ -230,6 +230,13 @@ behavior on_task {
   //      not trusted. Routes to HOLOSCRIPT_AGENT_PEER_MODEL when set, else self-consult.
   ask_peer { capability: "holoscript-native" }
 
+  // ②·⑥ Peer discovery — enumerate live teammates by capability_tags so the LLM
+  //      knows WHO is online before issuing a delegate_task call. Injected as context:
+  //      "Live peers (N) — pass matching tags to delegate_task to route work". No
+  //      hardcoded target: the LLM selects tags from the discovered roster and lets
+  //      the board's capability router do the routing (D.100 Axis-3).
+  discover { }
+
   // ③ Execution — dispatches to LLMAgentTrait → LocalLLMAdapter → holojetson.local:11434
   //    qwen3:4b-instruct: non-thinking variant — neither /no_think nor think:false is sent
   //    (W.740/W.741). tools surface all Week 1-3 shipped tools to the model.
