@@ -1,0 +1,21 @@
+@trait {
+  name: "@neural_expression",
+  category: "visual",
+  description: "Neural face expression synthesizer. Drives facial blend-shape channels from emotion labels or audio mel-spectrogram input using a lightweight ONNX expression model. Authored from NeuralExpressionTrait.ts.",
+  props: {
+    model_url: string = "",
+    input_mode: enum("emotion" | "audio" | "text" | "holoscript") = "emotion",
+    blend_shape_target: string = "",
+    smoothing: number = 0.3,
+    intensity: number = 1.0,
+    update_rate_hz: number = 30,
+    eye_contact: boolean = true
+  },
+  events: {
+    attached: "neural_expression_attached",
+    detached: "neural_expression_detached",
+    on_expression: "neural_expression_update",
+    set_emotion: "neural_expression_set_emotion"
+  },
+  behaviors: ["@morph", "@lip_sync", "@emotion"]
+}

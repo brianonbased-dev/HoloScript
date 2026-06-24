@@ -1,0 +1,24 @@
+@trait {
+  name: "@neural_forge",
+  category: "cognitive",
+  description: "Neural architecture search and model generation forge. Synthesizes custom lightweight ONNX models from task specifications and training data, targeting the Jetson or WebGPU deployment surface. Authored from NeuralForgeTrait.ts.",
+  props: {
+    task: enum("classification" | "regression" | "generation" | "embedding" | "detection") = "classification",
+    input_shape: list<number> = [],
+    output_dim: number = 10,
+    target_device: enum("jetson" | "webgpu" | "cpu" | "holoscript") = "webgpu",
+    flop_budget: number = 1000000,
+    search_budget_s: number = 300,
+    export_format: enum("onnx" | "tflite" | "wasm") = "onnx"
+  },
+  events: {
+    attached: "neural_forge_attached",
+    detached: "neural_forge_detached",
+    on_search: "neural_forge_search",
+    on_found: "neural_forge_found",
+    on_export: "neural_forge_export",
+    on_error: "neural_forge_error",
+    forge: "neural_forge_trigger"
+  },
+  behaviors: ["@inference", "@holotune", "@fine_tune"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@networked",
+  category: "sync",
+  description: "Entity network replication trait. Registers the entity with the HoloMesh networking layer, selects sync transport (WebSocket/WebRTC), and replicates the declared prop keys at the configured rate. Authored from NetworkedTrait.ts.",
+  props: {
+    network_id: string = "",
+    owner: string = "",
+    transport: enum("websocket" | "webrtc" | "holoscript") = "holoscript",
+    sync_props: list<string> = [],
+    send_rate_hz: number = 20,
+    interpolate: boolean = true,
+    authority: enum("owner" | "server" | "all") = "owner"
+  },
+  events: {
+    attached: "networked_attached",
+    detached: "networked_detached",
+    on_sync: "networked_sync",
+    on_owner_change: "networked_owner_change",
+    on_connected: "networked_connected",
+    on_disconnected: "networked_disconnected"
+  },
+  behaviors: ["@crdt_room", "@sync_tier"]
+}

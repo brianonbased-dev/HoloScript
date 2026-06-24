@@ -1,0 +1,24 @@
+@trait {
+  name: "@networked_avatar",
+  category: "sync",
+  description: "Networked avatar replicator. Syncs head, hand, and hip transforms from XR hardware at low latency, applies dead-reckoning prediction, and renders remote avatars with interpolated movement. Authored from NetworkedAvatarTrait.ts.",
+  props: {
+    player_id: string = "",
+    sync_head: boolean = true,
+    sync_hands: boolean = true,
+    sync_hips: boolean = false,
+    send_rate_hz: number = 30,
+    interpolation_ms: number = 100,
+    show_nameplate: boolean = true,
+    voice_sync: boolean = true
+  },
+  events: {
+    attached: "networked_avatar_attached",
+    detached: "networked_avatar_detached",
+    on_sync: "networked_avatar_sync",
+    on_enter: "networked_avatar_enter",
+    on_leave: "networked_avatar_leave",
+    on_voice: "networked_avatar_voice"
+  },
+  behaviors: ["@networked", "@spatial_persona", "@hrtf"]
+}
