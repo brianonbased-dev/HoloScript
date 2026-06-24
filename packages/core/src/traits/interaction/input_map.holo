@@ -1,0 +1,20 @@
+@trait {
+  name: "@input_map",
+  category: "interaction",
+  description: "Input action remapping layer. Binds semantic action names (jump, attack, use, sprint, interact) to device-specific input sources (keyboard keys, gamepad buttons, XR trigger/squeeze), supporting multiple bindings per action and runtime rebinding. Authored from InputMapTrait.ts.",
+  props: {
+    bindings: dict<string, list<string>> = {},
+    device: enum("keyboard_mouse" | "gamepad" | "xr" | "touch" | "any") = "any",
+    deadzone: number = 0.1,
+    allow_runtime_rebind: boolean = true,
+    profile_id: string = "default"
+  },
+  events: {
+    attached: "input_map_attached",
+    detached: "input_map_detached",
+    on_action: "input_map_action",
+    on_rebind: "input_map_rebind",
+    rebind: "input_map_trigger_rebind"
+  },
+  behaviors: ["@xr_controller", "@gesture_recognizer", "@player"]
+}

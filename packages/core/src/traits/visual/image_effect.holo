@@ -1,0 +1,19 @@
+@trait {
+  name: "@image_effect",
+  category: "visual",
+  description: "Full-screen image effect post-process pass. Applies a named effect (bloom, chromatic aberration, film grain, scanline, vignette, pixelate, color grade) on the main camera output via a WebGPU render pass, with configurable intensity and blend mode. Authored from ImageEffectTrait.ts.",
+  props: {
+    effect: enum("bloom" | "chromatic_aberration" | "film_grain" | "scanline" | "vignette" | "pixelate" | "color_grade" | "invert") = "bloom",
+    intensity: number = 1.0,
+    blend: enum("add" | "multiply" | "screen" | "normal") = "normal",
+    enabled: boolean = true,
+    resolution_scale: number = 1.0
+  },
+  events: {
+    attached: "image_effect_attached",
+    detached: "image_effect_detached",
+    on_enable: "image_effect_enable",
+    on_disable: "image_effect_disable"
+  },
+  behaviors: ["@post_process", "@vignette", "@motion_blur"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@helpdesk",
+  category: "cognitive",
+  description: "Contextual helpdesk assistant brain. Responds to user support queries by retrieving relevant documentation from a knowledge base, escalating to a human queue when confidence is below threshold, and tracking ticket state through open/pending/resolved. Authored from HelpdeskTrait.ts.",
+  props: {
+    knowledge_base_url: string = "",
+    escalation_threshold: number = 0.6,
+    escalation_queue: string = "",
+    max_context_turns: number = 10,
+    auto_close_on_resolve: boolean = true,
+    language: string = "en"
+  },
+  events: {
+    attached: "helpdesk_attached",
+    detached: "helpdesk_detached",
+    on_query: "helpdesk_query",
+    on_reply: "helpdesk_reply",
+    on_escalate: "helpdesk_escalate",
+    on_resolve: "helpdesk_resolve"
+  },
+  behaviors: ["@rag_query", "@document_store", "@autonomous_agenda"]
+}

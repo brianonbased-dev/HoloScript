@@ -1,0 +1,21 @@
+@trait {
+  name: "@heartbeat",
+  category: "devops",
+  description: "Periodic liveness heartbeat emitter. POSTs a heartbeat ping with entity ID and status to a watchdog URL at a fixed interval, firing an alert event if the watchdog marks it overdue or if the POST fails. Authored from HeartbeatTrait.ts.",
+  props: {
+    interval_s: number = 30,
+    watchdog_url: string = "",
+    timeout_s: number = 5,
+    payload: dict<string, string> = {},
+    on_fail_alert: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "heartbeat_attached",
+    detached: "heartbeat_detached",
+    on_beat: "heartbeat_beat",
+    on_fail: "heartbeat_fail",
+    on_overdue: "heartbeat_overdue"
+  },
+  behaviors: ["@healthcheck", "@diagnostic", "@incident"]
+}
