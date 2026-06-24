@@ -1,0 +1,24 @@
+@trait {
+  name: "@deformable_terrain",
+  category: "visual",
+  description: "Real-time terrain deformation from vehicle tracks, explosions, and tool interactions. Updates height map GPU-side and syncs physics collider incrementally. Authored from DeformableTerrainTrait.ts.",
+  props: {
+    resolution: number = 256,
+    width_m: number = 1000.0,
+    depth_m: number = 1000.0,
+    max_deform_m: number = 2.0,
+    brush_radius_m: number = 3.0,
+    regenerate: boolean = false,
+    regen_rate: number = 0.01,
+    lod_levels: number = 4
+  },
+  events: {
+    attached: "deformable_terrain_attached",
+    detached: "deformable_terrain_detached",
+    on_deform: "deformable_terrain_deform",
+    on_regen: "deformable_terrain_regen",
+    deform: "deformable_terrain_trigger_deform",
+    reset: "deformable_terrain_reset"
+  },
+  behaviors: ["@terrain", "@rigid_body", "@mesh_collider"]
+}

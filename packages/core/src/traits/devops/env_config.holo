@@ -1,0 +1,23 @@
+@trait {
+  name: "@env_config",
+  category: "devops",
+  description: "Environment configuration loader. Resolves config values from env vars, vault secrets, or remote config services, with schema validation and hot-reload support. Authored from EnvConfigTrait.ts.",
+  props: {
+    source: enum("env" | "vault" | "remote" | "file") = "env",
+    remote_url: string = "",
+    refresh_interval_s: number = 0,
+    required_keys: list<string> = [],
+    schema_url: string = "",
+    on_missing: enum("error" | "default" | "warn") = "error"
+  },
+  events: {
+    attached: "env_config_attached",
+    detached: "env_config_detached",
+    on_loaded: "env_config_loaded",
+    on_refresh: "env_config_refresh",
+    on_error: "env_config_error",
+    on_missing_key: "env_config_missing_key",
+    reload: "env_config_reload"
+  },
+  behaviors: ["@secret", "@validation"]
+}

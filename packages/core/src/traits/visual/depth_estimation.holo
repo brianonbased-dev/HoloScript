@@ -1,0 +1,20 @@
+@trait {
+  name: "@depth_estimation",
+  category: "visual",
+  description: "Monocular or stereo depth estimation. Produces a per-pixel depth map from RGB input for AR occlusion, 3D reconstruction, and scene understanding. Authored from DepthEstimationTrait.ts.",
+  props: {
+    model: enum("depth_anything" | "midas" | "dpt" | "holoscript") = "depth_anything",
+    mode: enum("monocular" | "stereo" | "lidar_fused") = "monocular",
+    output_resolution: enum("native" | "half" | "quarter") = "half",
+    normalize: boolean = true,
+    colorize: boolean = false,
+    target_fps: number = 15
+  },
+  events: {
+    attached: "depth_estimation_attached",
+    detached: "depth_estimation_detached",
+    on_frame: "depth_estimation_frame",
+    on_error: "depth_estimation_error"
+  },
+  behaviors: ["@vision", "@segment", "@scene_reconstruction"]
+}
