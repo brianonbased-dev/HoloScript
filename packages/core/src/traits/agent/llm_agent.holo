@@ -1,0 +1,32 @@
+@trait {
+  name: "@llm_agent",
+  category: "agent",
+  description: "LLM-powered decision-making node with bounded autonomy and conversation history. model names the hosted or on-device model (e.g. 'gpt-4', 'claude-3-opus', 'llama-3.2-3b'). system_prompt seeds the agent's persona and policy at session start. max_tokens caps per-response generation. temperature controls sampling randomness (0 = deterministic, 1 = creative). tool_use enables function-calling/tool dispatch; on_response_event is the HoloScript event name the agent fires when it produces a text response; streaming enables token-by-token delivery via repeated on_response_event emissions. memory_key links the agent to a named @agent_memory store for persistent recall across sessions (empty string = ephemeral). Bounded autonomy: the handler tracks turn action counts and emits llm_agent:turn_limit_reached when max_tokens_per_turn is exceeded; escalation conditions can pause or escalate via llm_agent:escalation. Research: LLMAgentTrait.ts v2.0.0 + G.XR.04 XR context-limit + P.XR.05 spatial verification.",
+  props: {
+    model: string = "gpt-4",
+    system_prompt: string = "",
+    max_tokens: number = 4096,
+    temperature: number = 0.7,
+    tool_use: boolean = false,
+    streaming: boolean = false,
+    memory_key: string = "",
+    on_response_event: string = "llm_agent:response"
+  },
+  events: {
+    attached: "llm_agent:attached",
+    detached: "llm_agent:detached",
+    ready: "llm_agent:ready",
+    request: "llm_agent:request",
+    response: "llm_agent:response",
+    tool_call: "llm_agent:tool_call",
+    tool_result: "llm_agent:tool_result",
+    turn_limit_reached: "llm_agent:turn_limit_reached",
+    escalation: "llm_agent:escalation",
+    rate_limited: "llm_agent:rate_limited",
+    history_cleared: "llm_agent:history_cleared",
+    on_prompt: "llm_agent:prompt",
+    on_clear_history: "llm_agent:clear_history",
+    on_set_system_prompt: "llm_agent:set_system_prompt"
+  },
+  behaviors: ["@agent_memory"]
+}

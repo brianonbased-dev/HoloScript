@@ -1,0 +1,27 @@
+@trait {
+  name: "@lighting",
+  category: "visual",
+  description: "Dynamic scene lighting with per-light type, shadow, and global illumination control. type selects the light model: ambient adds a directionless base fill; directional simulates a sun (infinite parallel rays with shadow cascades); point emits spherical rays up to range units; spot is a cone-shaped point light gated by angle_deg and shadow bias; area emits from a planar surface for soft fill; hemisphere blends a sky_color from above with a ground_color from below. color is a CSS hex string (#rrggbb). intensity is a linear multiplier (0-1+ for HDR). cast_shadows enables shadow map generation; shadow_bias combats shadow acne artifacts. range limits point and spot falloff in world units. angle_deg sets the spot outer cone half-angle. global_illumination enables indirect diffuse/specular (IBL + light probes). Research: LightingTrait.ts createDirectionalLight / createPointLight / createSpotLight / createAreaLight + GlobalIlluminationConfig.",
+  props: {
+    type: enum("ambient" | "directional" | "point" | "spot" | "area" | "hemisphere") = "directional",
+    color: string = "#ffffff",
+    intensity: number = 1.0,
+    cast_shadows: boolean = true,
+    shadow_bias: number = 0.001,
+    range: number = 10.0,
+    angle_deg: number = 45.0,
+    global_illumination: boolean = true
+  },
+  events: {
+    attached: "lighting:attached",
+    detached: "lighting:detached",
+    configured: "lighting:configured",
+    shadow_updated: "lighting:shadow_updated",
+    gi_changed: "lighting:gi_changed",
+    on_configure: "lighting:configure",
+    on_set_intensity: "lighting:set_intensity",
+    on_set_color: "lighting:set_color",
+    on_set_shadows: "lighting:set_shadows"
+  },
+  behaviors: ["@rendering"]
+}

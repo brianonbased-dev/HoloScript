@@ -1,0 +1,32 @@
+@trait {
+  name: "@lobby",
+  category: "game",
+  description: "Multiplayer room/session lifecycle manager. max_players caps the room; min_players is the quorum required before a countdown can start. game_mode is a free-form string forwarded to the game-starting event payload (e.g. 'deathmatch', 'co-op', 'battle-royale'). visibility controls discoverability: public lists the room in matchmaking; friends restricts to social-graph connections; invite_only requires an explicit invite token. ready_timeout_ms is the maximum time a player can remain unready before the lobby auto-kicks them (0 = no timeout). auto_start fires a countdown and launches the session as soon as all players mark ready and the min_players quorum is met. The host (first joiner; migrates on disconnect when host_migration is true) may kick players, transfer host, and force-start. Research: LobbyTrait.ts addPlayer / startCountdown / startGame + LobbyConfig.",
+  props: {
+    max_players: number = 8,
+    min_players: number = 2,
+    game_mode: string = "default",
+    visibility: enum("public" | "friends" | "invite_only") = "public",
+    ready_timeout_ms: number = 0,
+    auto_start: boolean = false
+  },
+  events: {
+    attached: "lobby:attached",
+    detached: "lobby:detached",
+    player_joined: "lobby:player_joined",
+    player_left: "lobby:player_left",
+    player_ready: "lobby:player_ready",
+    player_unready: "lobby:player_unready",
+    host_changed: "lobby:host_changed",
+    countdown_started: "lobby:countdown_started",
+    countdown_cancelled: "lobby:countdown_cancelled",
+    game_starting: "lobby:game_starting",
+    game_ended: "lobby:game_ended",
+    player_kicked: "lobby:player_kicked",
+    on_join: "lobby:join",
+    on_leave: "lobby:leave",
+    on_set_ready: "lobby:set_ready",
+    on_kick: "lobby:kick",
+    on_start: "lobby:start"
+  }
+}

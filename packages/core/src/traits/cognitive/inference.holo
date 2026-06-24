@@ -1,0 +1,24 @@
+@trait {
+  name: "@inference",
+  category: "cognitive",
+  description: "Model inference runner with pluggable adapter dispatch. model_path is the local file path or registry ID of the model weights. backend selects the execution engine: onnx runs ONNX Runtime (CPU/CUDA); webgpu runs WebGPU compute shaders in-browser or on-device; holoscript dispatches through the HoloScript MCP inference adapter registry; edge routes to the nearest sovereign edge node (@edge_node). input_shape declares the expected tensor dimensions so the handler can validate and reshape input before dispatch. output_keys names the output tensor keys to extract from the backend result. batch_size sets the default inference batch dimension (1 = single-sample). warm_up pre-warms the backend on attach by running a zero-filled dummy input through the pipeline, reducing first-inference latency. Send inference:run {modelId, input} to trigger; result arrives as inference:result {output, latencyMs}; errors as inference:error {code, message}. Research: InferenceTrait.ts v5.1 adapter-dispatch loop + InferenceConfig.",
+  props: {
+    model_path: string = "",
+    backend: enum("onnx" | "webgpu" | "holoscript" | "edge") = "holoscript",
+    input_shape: list<number> = [],
+    output_keys: list<string> = [],
+    batch_size: number = 1,
+    warm_up: boolean = false
+  },
+  events: {
+    attached: "inference:attached",
+    detached: "inference:detached",
+    warmed_up: "inference:warmed_up",
+    result: "inference:result",
+    error: "inference:error",
+    timeout: "inference:timeout",
+    on_run: "inference:run",
+    on_abort: "inference:abort"
+  },
+  behaviors: ["@edge_node"]
+}
