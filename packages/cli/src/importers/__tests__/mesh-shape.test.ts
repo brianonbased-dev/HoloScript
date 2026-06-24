@@ -127,6 +127,41 @@ function makeStaticTriangleGlb(): ArrayBuffer {
   return buildGlb(json, bin);
 }
 
+// ─── minimal TWO-mesh GLB (two static triangles, one node each) ───────────────
+
+function makeTwoMeshGlb(): ArrayBuffer {
+  // mesh0 POS @0 (36), idx @36 (6); pad→44; mesh1 POS @44 (36), idx @80 (6).
+  const binLen = 88;
+  const bin = new ArrayBuffer(binLen);
+  const dv = new DataView(bin);
+  [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((v, i) => dv.setFloat32(i * 4, v, true)); // mesh0 @origin
+  [0, 1, 2].forEach((v, i) => dv.setUint16(36 + i * 2, v, true));
+  [5, 0, 0, 6, 0, 0, 5, 1, 0].forEach((v, i) => dv.setFloat32(44 + i * 4, v, true)); // mesh1 @+5x
+  [0, 1, 2].forEach((v, i) => dv.setUint16(80 + i * 2, v, true));
+  const json = {
+    asset: { version: '2.0' },
+    buffers: [{ byteLength: binLen }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: 36 },
+      { buffer: 0, byteOffset: 36, byteLength: 6 },
+      { buffer: 0, byteOffset: 44, byteLength: 36 },
+      { buffer: 0, byteOffset: 80, byteLength: 6 },
+    ],
+    accessors: [
+      { bufferView: 0, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 1, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+      { bufferView: 2, byteOffset: 0, componentType: 5126, count: 3, type: 'VEC3' },
+      { bufferView: 3, byteOffset: 0, componentType: 5123, count: 3, type: 'SCALAR' },
+    ],
+    meshes: [
+      { primitives: [{ attributes: { POSITION: 0 }, indices: 1, mode: 4 }] },
+      { primitives: [{ attributes: { POSITION: 2 }, indices: 3, mode: 4 }] },
+    ],
+    nodes: [{ name: 'A', mesh: 0 }, { name: 'B', mesh: 1 }],
+  };
+  return buildGlb(json, bin);
+}
+
 // ─── tests ─────────────────────────────────────────────────────────────────────
 
 describe('Track-0 .holo mesh shape round-trip', () => {
@@ -199,6 +234,29 @@ describe('Track-0 .holo mesh shape round-trip', () => {
       // single-mesh → object geometry references the carried shape, no dead pointer.
       const geom = holo.match(/geometry:\s*"([^"]+)"/);
       expect(geom?.[1]).toBe(shape.name);
+      expect(holo).not.toMatch(/geometry:\s*"[^"]*\.glb#/);
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+  });
+
+  it('importGltf links each node to its OWN carried shape for a multi-mesh GLB (no dead pointers)', () => {
+    const tmp = path.join(os.tmpdir(), `holo-track0-multi-${process.pid}.glb`);
+    fs.writeFileSync(tmp, Buffer.from(makeTwoMeshGlb()));
+    try {
+      const holo = importGltf(tmp);
+      const result = parseHolo(holo);
+      expect(result.success).toBe(true);
+      // Two distinct carried mesh shapes — one per glTF mesh.
+      const meshShapes =
+        result.ast?.shapes?.filter((s: { shapeType: string }) => s.shapeType === 'mesh') ?? [];
+      expect(meshShapes.length).toBe(2);
+      const shapeNames = new Set(meshShapes.map((s: { name: string }) => s.name));
+      // Each object node references a real carried shape; both distinct; no dead pointer.
+      const geomRefs = [...holo.matchAll(/geometry:\s*"([^"]+)"/g)].map((m) => m[1]);
+      expect(geomRefs.length).toBe(2);
+      expect(geomRefs[0]).not.toBe(geomRefs[1]);
+      expect(new Set(geomRefs)).toEqual(shapeNames);
       expect(holo).not.toMatch(/geometry:\s*"[^"]*\.glb#/);
     } finally {
       fs.rmSync(tmp, { force: true });

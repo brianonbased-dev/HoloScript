@@ -607,7 +607,7 @@ function nodeToHolo(
   gltf: GltfData,
   inputPath: string,
   indent: number,
-  meshShapeName?: string,
+  meshShapeNames?: ReadonlyMap<number, string>,
 ): string {
   const nodes = gltf.nodes;
   if (!nodes || nodeIndex < 0 || nodeIndex >= nodes.length) {
@@ -660,15 +660,17 @@ function nodeToHolo(
   const lines: string[] = [];
   lines.push(`${pad}object "${displayName}"${traitStr} {`);
 
-  // Geometry reference. When the importer carried the REAL mesh into this
-  // composition as an in-file `shape "<name>" mesh { … }` block (Track-0,
-  // single-mesh skinned GLB), point the node at that shape by name so the
-  // surface lives in the `.holo` file itself — no dead `file.glb#Node`
-  // external pointer. Otherwise fall back to the legacy text pointer
-  // (non-skinned / Draco / multi-mesh — the carried-mesh follow-ups).
+  // Geometry reference. When the importer carried this node's mesh into the
+  // composition as an in-file `shape "<name>" mesh { … }` block (Track-0), point
+  // the node at ITS mesh's carried shape by name (looked up by glTF mesh index,
+  // so multi-mesh GLBs link each node to its own surface) — the surface lives in
+  // the `.holo` file itself, no dead `file.glb#Node` external pointer. Falls back
+  // to the legacy text pointer when this mesh has no carried shape (Draco that
+  // wasn't decompressed, or a primitive with no POSITION).
   if (node.mesh !== undefined) {
-    if (meshShapeName) {
-      lines.push(`${innerPad}geometry: "${meshShapeName}"`);
+    const shapeName = meshShapeNames?.get(node.mesh);
+    if (shapeName) {
+      lines.push(`${innerPad}geometry: "${shapeName}"`);
     } else {
       const sourceFile = path.basename(inputPath);
       lines.push(`${innerPad}geometry: "${sourceFile}#${displayName}"`);
@@ -738,7 +740,7 @@ function nodeToHolo(
   if (node.children && node.children.length > 0) {
     lines.push('');
     for (const childIdx of node.children) {
-      const childBlock = nodeToHolo(childIdx, gltf, inputPath, indent + 1, meshShapeName);
+      const childBlock = nodeToHolo(childIdx, gltf, inputPath, indent + 1, meshShapeNames);
       if (childBlock) {
         lines.push(childBlock);
       }
@@ -760,8 +762,8 @@ function nodeToHolo(
 function buildHoloComposition(
   gltf: GltfData,
   inputPath: string,
-  meshShapeBlock?: string,
-  meshShapeName?: string,
+  meshShapeBlocks?: readonly string[],
+  meshShapeNames?: ReadonlyMap<number, string>,
 ): string {
   const lines: string[] = [];
 
@@ -829,7 +831,7 @@ function buildHoloComposition(
   lines.push('  spatial_group "Root" {');
 
   for (const nodeIdx of rootNodes) {
-    const block = nodeToHolo(nodeIdx, gltf, inputPath, 2, meshShapeName);
+    const block = nodeToHolo(nodeIdx, gltf, inputPath, 2, meshShapeNames);
     if (block) {
       lines.push(block);
       lines.push('');
@@ -861,10 +863,12 @@ function buildHoloComposition(
     }
   }
 
-  // Track 0: real imported mesh carried as a shape INSIDE the composition.
-  if (meshShapeBlock) {
-    lines.push('');
-    lines.push(meshShapeBlock);
+  // Track 0: real imported mesh(es) carried as shape blocks INSIDE the composition.
+  if (meshShapeBlocks) {
+    for (const block of meshShapeBlocks) {
+      lines.push('');
+      lines.push(block);
+    }
   }
 
   lines.push('}');
@@ -903,40 +907,49 @@ export function importGltf(inputPath: string): string {
 
   const ext = path.extname(resolvedPath).toLowerCase();
   let gltfData: GltfData;
-  let meshShapeBlock: string | undefined;
-  let meshShapeName: string | undefined;
+  let meshShapeBlocks: string[] | undefined;
+  let meshShapeNames: Map<number, string> | undefined;
 
   if (ext === '.glb') {
     const buffer = fs.readFileSync(resolvedPath);
     gltfData = parseGlb(buffer);
-    // Track 0: carry the REAL skinned mesh in `.holo` as a `shape … mesh { … }`
-    // block instead of only a text pointer. Best-effort — only for skinned
-    // triangle GLBs the native extractor supports (has JOINTS_0/WEIGHTS_0, no
-    // Draco). Anything else keeps the existing text-pointer behavior unchanged.
     const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    // Track 0: carry the REAL mesh in `.holo`. Prefer the skinned extractor
-    // (palette-remapped skin); fall back to the static extractor (rigid identity
-    // bind) for non-skinned GLBs — the majority of environment/object assets.
-    // Only Draco/meshopt or a primitive with no POSITION leaves a text pointer.
-    let mesh: SkinnedMeshData | undefined;
-    try {
-      mesh = CharacterRender.extractGltfSkinnedMesh(ab);
-    } catch {
+    // Track 0: carry the REAL mesh in `.holo`. For EACH glTF mesh, prefer the
+    // skinned extractor (palette-remapped skin), fall back to the static one
+    // (rigid identity bind) for non-skinned meshes — the majority of
+    // environment/object assets. Each carried mesh becomes its own
+    // `shape "<name>" mesh { … }` block, and the node→shape link is recorded by
+    // glTF mesh index so every mesh node references its OWN surface (multi-mesh
+    // GLBs included). A mesh neither extractor can read (Draco/meshopt that
+    // wasn't decompressed, or no POSITION) keeps the legacy text pointer.
+    // NOTE: each extractor re-parses the GLB; fine for the usual handful of
+    // meshes, a single-parse all-meshes extractor is the perf follow-up.
+    const base = path.basename(resolvedPath, ext);
+    const meshCount = gltfData.meshes?.length ?? 0;
+    const blocks: string[] = [];
+    const names = new Map<number, string>();
+    for (let mi = 0; mi < meshCount; mi++) {
+      let mesh: SkinnedMeshData | undefined;
       try {
-        mesh = CharacterRender.extractGltfStaticMesh(ab);
+        mesh = CharacterRender.extractGltfSkinnedMesh(ab, mi);
       } catch {
-        // Draco/meshopt or no extractable primitive — geometry stays a text pointer.
+        try {
+          mesh = CharacterRender.extractGltfStaticMesh(ab, mi);
+        } catch {
+          // Draco/meshopt or no extractable primitive — this mesh stays a text pointer.
+        }
+      }
+      if (mesh) {
+        // Single mesh keeps the bare `<base>_mesh` name (back-compat); multi-mesh
+        // disambiguates per glTF mesh index.
+        const meshName = meshCount === 1 ? `${base}_mesh` : `${base}_mesh${mi}`;
+        blocks.push(meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh)));
+        names.set(mi, meshName);
       }
     }
-    if (mesh) {
-      const meshName = path.basename(resolvedPath, ext) + '_mesh';
-      meshShapeBlock = meshShapeToHolo(meshName, encodeSkinnedMeshToHolo(mesh));
-      // Reference the carried shape from the per-node `geometry:` only when the
-      // GLB has exactly one mesh — then the node→shape link is unambiguous.
-      // Multi-mesh per-node mapping is the multi-primitive follow-up.
-      if (gltfData.meshes?.length === 1) {
-        meshShapeName = meshName;
-      }
+    if (blocks.length > 0) {
+      meshShapeBlocks = blocks;
+      meshShapeNames = names;
     }
   } else if (ext === '.gltf') {
     const rawJson = fs.readFileSync(resolvedPath, 'utf8');
@@ -954,7 +967,7 @@ export function importGltf(inputPath: string): string {
     throw new Error('Invalid glTF: missing required "asset.version" field.');
   }
 
-  return buildHoloComposition(gltfData, resolvedPath, meshShapeBlock, meshShapeName);
+  return buildHoloComposition(gltfData, resolvedPath, meshShapeBlocks, meshShapeNames);
 }
 
 /**

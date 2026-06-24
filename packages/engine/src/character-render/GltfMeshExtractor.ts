@@ -302,14 +302,17 @@ function mergePrimitiveGeometries(geoms: PrimitiveGeometry[]): PrimitiveGeometry
 
 /**
  * Extract the first skinned primitive of a .glb into a palette-remapped SkinnedMeshData.
+ * When `onlyMeshIndex` is given, the search is restricted to that one glTF mesh —
+ * the per-mesh entry point for the importer's multi-mesh carry.
  */
-export function extractGltfSkinnedMesh(glb: ArrayBuffer): GltfSkinnedMesh {
+export function extractGltfSkinnedMesh(glb: ArrayBuffer, onlyMeshIndex?: number): GltfSkinnedMesh {
   const { json: g, bin } = parseGlb(glb);
 
-  // 1) Find the first skinned primitive + its bound skin.
+  // 1) Find the first skinned primitive + its bound skin (within onlyMeshIndex, if given).
   let prim: GltfPrimitive | undefined;
   let meshIndex = -1;
   for (let mi = 0; mi < (g.meshes?.length ?? 0); mi++) {
+    if (onlyMeshIndex !== undefined && mi !== onlyMeshIndex) continue;
     for (const p of g.meshes![mi].primitives) {
       if (p.extensions?.KHR_draco_mesh_compression || p.extensions?.EXT_meshopt_compression)
         throw new Error('compressed primitive (Draco/meshopt) not supported by the native extractor');
@@ -417,12 +420,14 @@ export type GltfStaticMesh = GltfSkinnedMesh;
  * layer). Limits: no Draco/meshopt (decode at the CLI import boundary, `glb-decompress.ts`), no
  * sparse/external buffers, first mesh only.
  */
-export function extractGltfStaticMesh(glb: ArrayBuffer): GltfStaticMesh {
+export function extractGltfStaticMesh(glb: ArrayBuffer, onlyMeshIndex?: number): GltfStaticMesh {
   const { json: g, bin } = parseGlb(glb);
 
   // First mesh with >=1 triangle primitive carrying POSITION; merge all such primitives of it.
+  // When `onlyMeshIndex` is given, restrict to that one glTF mesh (multi-mesh per-node import).
   let prims: GltfPrimitive[] | undefined;
   for (let mi = 0; mi < (g.meshes?.length ?? 0); mi++) {
+    if (onlyMeshIndex !== undefined && mi !== onlyMeshIndex) continue;
     const tris: GltfPrimitive[] = [];
     for (const p of g.meshes![mi].primitives) {
       if (p.extensions?.KHR_draco_mesh_compression || p.extensions?.EXT_meshopt_compression)
