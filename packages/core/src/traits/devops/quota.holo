@@ -1,0 +1,24 @@
+@trait {
+  name: "@quota",
+  category: "devops",
+  description: "Request and resource quota enforcer with sliding window and token bucket policies. Rejects or queues operations that exceed per-user, per-tenant, or per-agent limits. Authored from QuotaTrait.ts.",
+  props: {
+    requests_per_minute: number = 0,
+    requests_per_day: number = 0,
+    tokens_per_minute: number = 0,
+    cost_per_month: number = 0,
+    scope: enum("user" | "tenant" | "agent" | "global") = "user",
+    on_exceed: enum("reject" | "queue" | "throttle") = "reject",
+    alert_threshold_pct: number = 80.0
+  },
+  events: {
+    attached: "quota_attached",
+    detached: "quota_detached",
+    on_check: "quota_check",
+    on_exceed: "quota_exceed",
+    on_reset: "quota_reset",
+    on_alert: "quota_alert",
+    check: "quota_trigger_check"
+  },
+  behaviors: ["@rate_limiter", "@resource_accounting", "@circuit_breaker"]
+}

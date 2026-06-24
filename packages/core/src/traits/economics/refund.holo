@@ -1,0 +1,24 @@
+@trait {
+  name: "@refund",
+  category: "economics",
+  description: "Automated refund policy executor. Evaluates refund eligibility, triggers provider reversals, and records outcomes in the transaction ledger. Authored from RefundTrait.ts.",
+  props: {
+    provider: enum("stripe" | "crypto" | "holoscript") = "holoscript",
+    window_days: number = 30,
+    auto_approve_under_usd: number = 5.0,
+    partial_allowed: boolean = true,
+    reason_required: boolean = true,
+    on_fraud_block: boolean = true
+  },
+  events: {
+    attached: "refund_attached",
+    detached: "refund_detached",
+    on_request: "refund_request",
+    on_approve: "refund_approve",
+    on_deny: "refund_deny",
+    on_complete: "refund_complete",
+    on_fraud: "refund_fraud",
+    request: "refund_trigger_request"
+  },
+  behaviors: ["@transaction", "@audit_log"]
+}

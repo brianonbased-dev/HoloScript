@@ -1,0 +1,22 @@
+@trait {
+  name: "@ray_trace",
+  category: "visual",
+  description: "Hardware ray tracing extension for reflections, global illumination, and shadow rays. Falls back to rasterization on unsupported hardware. Authored from RayTraceTrait.ts.",
+  props: {
+    mode: enum("reflections" | "gi" | "shadows" | "full") = "reflections",
+    max_bounces: number = 4,
+    samples_per_pixel: number = 1,
+    denoiser: enum("none" | "oidn" | "optix" | "dlss") = "oidn",
+    max_recursion_depth: number = 8,
+    clamp_indirect: number = 10.0,
+    fallback: boolean = true
+  },
+  events: {
+    attached: "ray_trace_attached",
+    detached: "ray_trace_detached",
+    on_frame: "ray_trace_frame",
+    on_denoised: "ray_trace_denoised",
+    on_fallback: "ray_trace_fallback"
+  },
+  behaviors: ["@rendering", "@render_pipeline"]
+}
