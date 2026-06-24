@@ -1,0 +1,23 @@
+@trait {
+  name: "@audio_portal",
+  category: "audio",
+  description: "Spatial audio portal that controls how sound bleeds between zones (rooms, floors, zones). Models the acoustic impedance of openings like doors and windows. Authored from AudioPortalTrait.ts.",
+  props: {
+    width_m: number = 1.0,
+    height_m: number = 2.1,
+    open_pct: number = 100.0,
+    attenuation_closed_db: number = -30.0,
+    zone_a: string = "",
+    zone_b: string = "",
+    reverb_crossfade: boolean = true
+  },
+  events: {
+    attached: "audio_portal_attached",
+    detached: "audio_portal_detached",
+    on_open: "audio_portal_open",
+    on_close: "audio_portal_close",
+    on_open_pct_change: "audio_portal_pct_change",
+    set_open_pct: "audio_portal_set_pct"
+  },
+  behaviors: ["@audio_occlusion", "@environmental_audio"]
+}

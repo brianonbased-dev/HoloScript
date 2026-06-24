@@ -1,0 +1,24 @@
+@trait {
+  name: "@change_tracking",
+  category: "devops",
+  description: "Entity property diff and change log tracker. Records which props changed, when, and by whom. Supports undo/redo, audit trails, and event-sourcing replay. Authored from ChangeTrackingTrait.ts.",
+  props: {
+    tracked_props: list<string> = [],
+    max_history: number = 100,
+    persist: boolean = false,
+    include_author: boolean = true,
+    debounce_ms: number = 100,
+    emit_on_change: boolean = true
+  },
+  events: {
+    attached: "change_tracking_attached",
+    detached: "change_tracking_detached",
+    on_change: "change_tracking_change",
+    on_undo: "change_tracking_undo",
+    on_redo: "change_tracking_redo",
+    undo: "change_tracking_trigger_undo",
+    redo: "change_tracking_trigger_redo",
+    checkpoint: "change_tracking_checkpoint"
+  },
+  behaviors: ["@audit_log", "@snapshot"]
+}

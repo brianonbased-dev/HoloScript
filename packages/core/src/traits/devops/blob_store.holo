@@ -1,0 +1,26 @@
+@trait {
+  name: "@blob_store",
+  category: "devops",
+  description: "Binary large object storage adapter. Uploads, downloads, and manages entity-associated blobs (images, meshes, audio, WASM) across S3-compatible and IPFS backends. Authored from BlobStoreTrait.ts.",
+  props: {
+    backend: enum("s3" | "gcs" | "r2" | "ipfs" | "holoscript") = "holoscript",
+    bucket: string = "",
+    credentials_secret: string = "",
+    prefix: string = "",
+    public_read: boolean = false,
+    cdn_url: string = "",
+    max_size_mb: number = 100,
+    compression: enum("none" | "gzip" | "zstd") = "none"
+  },
+  events: {
+    attached: "blob_store_attached",
+    detached: "blob_store_detached",
+    on_upload: "blob_store_upload",
+    on_download: "blob_store_download",
+    on_delete: "blob_store_delete",
+    on_error: "blob_store_error",
+    upload: "blob_store_trigger_upload",
+    download: "blob_store_trigger_download"
+  },
+  behaviors: ["@streaming", "@media_player"]
+}

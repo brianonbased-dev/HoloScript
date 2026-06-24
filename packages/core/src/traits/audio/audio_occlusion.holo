@@ -1,0 +1,20 @@
+@trait {
+  name: "@audio_occlusion",
+  category: "audio",
+  description: "Geometry-based audio occlusion and obstruction simulation. Attenuates sound when walls or objects block the direct path between source and listener. Authored from AudioOcclusionTrait.ts.",
+  props: {
+    mode: enum("raycast" | "portal_graph" | "voxel" | "geometry") = "raycast",
+    occlusion_max_db: number = -24.0,
+    obstruction_max_db: number = -6.0,
+    layers: list<string> = [],
+    update_rate_hz: number = 10,
+    propagation_speed_ms: number = 343
+  },
+  events: {
+    attached: "audio_occlusion_attached",
+    detached: "audio_occlusion_detached",
+    on_occlusion_change: "audio_occlusion_change",
+    on_obstruction_change: "audio_occlusion_obstruction"
+  },
+  behaviors: ["@spatial_audio_3d", "@environmental_audio"]
+}
