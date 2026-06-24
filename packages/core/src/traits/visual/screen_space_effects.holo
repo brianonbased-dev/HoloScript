@@ -1,0 +1,24 @@
+@trait {
+  name: "@screen_space_effects",
+  category: "visual",
+  description: "Composable post-processing stack for screen-space rendering effects applied after the main scene pass. effects is an ordered list of active effect names drawn from: ambient_occlusion (SSAO — darkens crevices and contact shadows), bloom (bright-area glow via threshold + blur), chromatic_aberration (RGB channel fringing at screen edges simulating lens distortion), film_grain (photographic noise overlay), lens_flare (starburst and halo artefacts from bright light sources), motion_blur (velocity-based trailing for camera and object movement), vignette (edge darkening to focus the viewer's gaze). The list is evaluated in order; effects not in the list are disabled. intensity is a per-effect dictionary mapping effect name to a normalised 0–1 strength scalar — unspecified effects default to 1.0. enabled is a master gate that bypasses the entire stack without detaching the trait, allowing cheap runtime toggling (e.g. for performance or accessibility reasons). on_render fires after each post-processing pass, carrying frame_time_ms and active_effect_count. Pairs with @rendering for render-pipeline integration and @rendering for HDR tonemapping compatibility. Research: ScreenSpaceEffectsTrait.ts v1.0.0 SSAOConfig / PostProcessTrait.ts / BloomReactiveTrait.ts.",
+  props: {
+    effects: list<enum("ambient_occlusion" | "bloom" | "chromatic_aberration" | "film_grain" | "lens_flare" | "motion_blur" | "vignette")> = ["bloom"],
+    intensity: map<string, number> = {},
+    enabled: boolean = true
+  },
+  events: {
+    attached: "screen_space_effects:attached",
+    detached: "screen_space_effects:detached",
+    on_render: "screen_space_effects:render",
+    effect_added: "screen_space_effects:effect_added",
+    effect_removed: "screen_space_effects:effect_removed",
+    stack_enabled: "screen_space_effects:stack_enabled",
+    stack_disabled: "screen_space_effects:stack_disabled",
+    on_enable: "screen_space_effects:cmd_enable",
+    on_disable: "screen_space_effects:cmd_disable",
+    on_set_intensity: "screen_space_effects:cmd_set_intensity",
+    on_set_effects: "screen_space_effects:cmd_set_effects"
+  },
+  behaviors: ["@rendering"]
+}

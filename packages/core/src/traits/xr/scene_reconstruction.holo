@@ -1,0 +1,26 @@
+@trait {
+  name: "@scene_reconstruction",
+  category: "xr",
+  description: "Real-time 3D environment reconstruction using depth sensors and computer vision. mode selects the sensing modality: lidar uses a time-of-flight laser scanner for precise sub-centimetre geometry; rgbd fuses an RGB camera with a structured-light or depth camera (e.g. ARKit, RealSense); stereo derives depth from two calibrated cameras via disparity; photogrammetry accumulates multiple posed RGB frames into a dense mesh (offline or slow-real-time); neural runs a learned depth estimator from a single monocular RGB stream. voxel_resolution_m is the edge length of each voxel in the output occupancy/TSDF grid in metres — smaller values yield finer geometry at higher memory cost. stream when true continuously emits mesh deltas as the device moves; when false reconstruction accumulates silently until on_mesh_update is polled or a flush event fires. semantic_labels annotates each mesh region with scene-understanding categories (floor, wall, ceiling, furniture, person, unknown) when the platform supports it. min_confidence is a normalised 0–1 gate: voxels whose reconstruction confidence falls below this threshold are discarded, reducing noise at the cost of coverage. on_mesh_update fires whenever the reconstructed mesh changes, carrying mesh_id, vertex_count, and a bounding_box. Pairs with @mesh_detection for plane/surface gating, @light_estimation for environment lighting, and @spatial_anchor for world-locking. Research: SceneReconstructionTrait.ts v1.0.0 reconstruction_mode / HoloMapReconstructionTrait.ts / PhotogrammetryTrait.ts.",
+  props: {
+    mode: enum("lidar" | "rgbd" | "stereo" | "photogrammetry" | "neural") = "rgbd",
+    voxel_resolution_m: number = 0.05,
+    stream: boolean = true,
+    semantic_labels: boolean = false,
+    min_confidence: number = 0.5
+  },
+  events: {
+    attached: "scene_reconstruction:attached",
+    detached: "scene_reconstruction:detached",
+    on_mesh_update: "scene_reconstruction:mesh_update",
+    scan_started: "scene_reconstruction:scan_started",
+    scan_stopped: "scene_reconstruction:scan_stopped",
+    scan_progress: "scene_reconstruction:scan_progress",
+    mesh_cleared: "scene_reconstruction:mesh_cleared",
+    on_start: "scene_reconstruction:cmd_start",
+    on_stop: "scene_reconstruction:cmd_stop",
+    on_flush: "scene_reconstruction:cmd_flush",
+    on_clear: "scene_reconstruction:cmd_clear"
+  },
+  behaviors: ["@mesh_detection", "@spatial_anchor"]
+}

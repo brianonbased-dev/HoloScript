@@ -1,0 +1,25 @@
+@trait {
+  name: "@screen_reader",
+  category: "accessibility",
+  description: "Assistive technology integration for blind and low-vision users in spatial and 2D interfaces. verbosity controls how much detail is spoken per element: verbose reads all properties including position, distance, and optional metadata; standard reads label, role, and state; terse reads label only. punctuation governs whether punctuation characters are vocalised by the underlying TTS engine: all pronounces every character (e.g. 'comma', 'period'); some speaks sentence-boundary punctuation only; none strips all punctuation from announcements. announce_focus when true automatically speaks the focused element's label and role each time focus moves — disable to let the application drive announcements manually via on_announce. language is a BCP-47 locale tag (e.g. 'en-US', 'es-ES') passed to the platform TTS engine; empty string inherits the system locale. on_start fires when the screen reader attaches and the TTS engine is ready. on_stop fires on detach or when the user disables the screen reader via platform settings. on_announce fires each time the trait dispatches an utterance, carrying text (the announcement string), priority ('polite' or 'assertive'), and interrupted (true if a prior utterance was cut short). Pairs with @accessible for ARIA-like role/label semantics and @keyboard_nav for spatial navigation order. Research: ScreenReaderTrait.ts v2.0.0 ReadingMode / AccessibleTrait.ts / AltTextTrait.ts.",
+  props: {
+    verbosity: enum("verbose" | "standard" | "terse") = "standard",
+    punctuation: enum("all" | "some" | "none") = "some",
+    announce_focus: boolean = true,
+    language: string = ""
+  },
+  events: {
+    attached: "screen_reader:attached",
+    detached: "screen_reader:detached",
+    on_start: "screen_reader:started",
+    on_stop: "screen_reader:stopped",
+    on_announce: "screen_reader:announce",
+    focus_changed: "screen_reader:focus_changed",
+    reading_paused: "screen_reader:reading_paused",
+    reading_resumed: "screen_reader:reading_resumed",
+    on_speak: "screen_reader:cmd_speak",
+    on_silence: "screen_reader:cmd_silence",
+    on_set_verbosity: "screen_reader:cmd_set_verbosity"
+  },
+  behaviors: ["@accessible", "@keyboard_nav"]
+}

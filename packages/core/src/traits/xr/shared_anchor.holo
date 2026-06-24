@@ -1,0 +1,26 @@
+@trait {
+  name: "@shared_anchor",
+  category: "xr",
+  description: "Multi-user anchor sharing for co-located and remote mixed-reality experiences. anchor_id is the stable handle used to publish or resolve the anchor — all participants joining the same anchor_id converge to the same world-locked pose. share_mode selects the distribution channel: local_network uses LAN multicast or peer-to-peer for low-latency co-located sessions without cloud dependency; cloud uploads the anchor to a backend service (ARCore Cloud Anchors, Azure Spatial Anchors, or the HoloScript anchor registry) for cross-device and cross-session sharing; proximity shares only with devices within a configurable physical distance using Bluetooth or UWB ranging. sync_interval_ms is the polling cadence in milliseconds at which the client checks for anchor pose updates from the source of truth; lower values reduce drift at the cost of bandwidth. role declares this participant's relationship to the anchor: host creates and publishes the anchor and is the authoritative pose source; participant resolves an existing anchor published by a host. on_aligned fires when this device successfully resolves and aligns to the shared anchor, carrying anchor_id and pose_error_m (residual alignment error in metres). on_lost fires when the anchor tracking is lost (device moved out of coverage, anchor expired, or network failure), carrying reason. on_updated fires on each pose refinement after initial alignment, carrying delta_m (pose correction magnitude in metres). Pairs with @spatial_anchor for single-device persistence and @crdt_room for state synchronisation across aligned participants. Research: SharedAnchorTrait.ts v2.0.0 AuthorityMode / GeospatialAnchorTrait.ts / PersistentAnchorTrait.ts.",
+  props: {
+    anchor_id: string = "",
+    share_mode: enum("local_network" | "cloud" | "proximity") = "cloud",
+    sync_interval_ms: number = 1000,
+    role: enum("host" | "participant") = "participant"
+  },
+  events: {
+    attached: "shared_anchor:attached",
+    detached: "shared_anchor:detached",
+    on_aligned: "shared_anchor:aligned",
+    on_lost: "shared_anchor:lost",
+    on_updated: "shared_anchor:updated",
+    upload_started: "shared_anchor:upload_started",
+    upload_complete: "shared_anchor:upload_complete",
+    resolve_started: "shared_anchor:resolve_started",
+    resolve_failed: "shared_anchor:resolve_failed",
+    on_publish: "shared_anchor:cmd_publish",
+    on_resolve: "shared_anchor:cmd_resolve",
+    on_release: "shared_anchor:cmd_release"
+  },
+  behaviors: ["@spatial_anchor", "@crdt_room"]
+}
