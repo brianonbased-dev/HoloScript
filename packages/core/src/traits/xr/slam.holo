@@ -1,0 +1,22 @@
+@trait {
+  name: "@slam",
+  category: "xr",
+  description: "Simultaneous localization and mapping controller. Drives an on-device SLAM pipeline to estimate device pose in the real world, building and updating a sparse/dense 3D map of the environment for anchoring virtual content. Authored from SlamTrait.ts.",
+  props: {
+    mode: enum("sparse" | "dense" | "semantic" | "lidar") = "sparse",
+    map_url: string = "",
+    persist_map: boolean = true,
+    relocalize_on_restart: boolean = true,
+    tracking_quality_threshold: number = 0.7,
+    update_rate_hz: number = 30
+  },
+  events: {
+    attached: "slam_attached",
+    detached: "slam_detached",
+    on_tracking_start: "slam_tracking_start",
+    on_tracking_lost: "slam_tracking_lost",
+    on_map_update: "slam_map_update",
+    on_relocalize: "slam_relocalize"
+  },
+  behaviors: ["@spatial_anchor", "@ar_surface_detect", "@depth_sensor"]
+}

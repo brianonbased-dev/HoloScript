@@ -1,0 +1,21 @@
+@trait {
+  name: "@sim_speed",
+  category: "world",
+  description: "World simulation speed multiplier. Scales the step rate of physics, animations, AI ticks, and particle systems by a global factor, enabling slow-motion replays, fast-forward previews, and deterministic benchmarking at super-real-time rates. Authored from SimSpeedTrait.ts.",
+  props: {
+    scale: number = 1.0,
+    min_scale: number = 0.1,
+    max_scale: number = 8.0,
+    affect_physics: boolean = true,
+    affect_animations: boolean = true,
+    affect_ai: boolean = true,
+    affect_particles: boolean = true
+  },
+  events: {
+    attached: "sim_speed_attached",
+    detached: "sim_speed_detached",
+    on_change: "sim_speed_change",
+    set_scale: "sim_speed_trigger_set"
+  },
+  behaviors: ["@paused", "@ecs_world", "@time_source"]
+}

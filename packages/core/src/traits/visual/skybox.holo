@@ -1,0 +1,21 @@
+@trait {
+  name: "@skybox",
+  category: "visual",
+  description: "Environment skybox and IBL source. Wraps a 360° HDR image, procedural sky model, or cubemap as the scene background, contributing to image-based lighting for PBR materials and reflection probes. Authored from SkyboxTrait.ts.",
+  props: {
+    type: enum("equirectangular" | "cubemap" | "procedural" | "video_360") = "equirectangular",
+    url: string = "",
+    exposure: number = 1.0,
+    rotation_deg: number = 0,
+    ibl_intensity: number = 1.0,
+    procedural_turbidity: number = 10,
+    procedural_rayleigh: number = 3
+  },
+  events: {
+    attached: "skybox_attached",
+    detached: "skybox_detached",
+    on_change: "skybox_change",
+    set_url: "skybox_trigger_set_url"
+  },
+  behaviors: ["@global_illumination", "@atmosphere", "@reflection_probe"]
+}

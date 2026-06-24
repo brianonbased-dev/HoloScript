@@ -1,0 +1,22 @@
+@trait {
+  name: "@spatial_audio",
+  category: "audio",
+  description: "3D spatial audio emitter and listener controller. Positions audio sources in 3D space relative to the listener using HRTF or pan-law panning, with configurable distance attenuation, directional cone falloff, reverb zone blending, and Doppler effect scaling. Authored from SpatialAudioTrait.ts.",
+  props: {
+    mode: enum("hrtf" | "pan_law" | "ambisonics") = "hrtf",
+    ref_distance_m: number = 1.0,
+    max_distance_m: number = 40.0,
+    rolloff: enum("linear" | "inverse" | "exponential") = "inverse",
+    cone_inner_deg: number = 360,
+    cone_outer_deg: number = 360,
+    cone_outer_gain: number = 0.0,
+    doppler_factor: number = 1.0
+  },
+  events: {
+    attached: "spatial_audio_attached",
+    detached: "spatial_audio_detached",
+    on_enter_range: "spatial_audio_enter_range",
+    on_exit_range: "spatial_audio_exit_range"
+  },
+  behaviors: ["@audio_source", "@lipsync", "@reverb_zone"]
+}
