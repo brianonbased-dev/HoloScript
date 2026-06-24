@@ -1,0 +1,26 @@
+@trait {
+  name: "@xr_anchor",
+  category: "xr",
+  description: "World-locked XR spatial anchor that persists across sessions. Stores pose relative to a detected plane or marker and restores it on resume. Authored from XRAnchorTrait.ts.",
+  props: {
+    anchor_id: string = "",
+    persist: boolean = true,
+    tracking_mode: enum("plane" | "image" | "object" | "world") = "world",
+    target_image_url: string = "",
+    visual_indicator: boolean = false,
+    update_rate_hz: number = 30,
+    confidence_min: number = 0.7
+  },
+  events: {
+    attached: "xr_anchor_attached",
+    detached: "xr_anchor_detached",
+    on_found: "xr_anchor_found",
+    on_lost: "xr_anchor_lost",
+    on_tracking_change: "xr_anchor_tracking_change",
+    on_save: "xr_anchor_save",
+    on_restore: "xr_anchor_restore",
+    save: "xr_anchor_trigger_save",
+    restore: "xr_anchor_trigger_restore"
+  },
+  behaviors: ["@spatial_anchor", "@surface_detection"]
+}

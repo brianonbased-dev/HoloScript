@@ -1,0 +1,24 @@
+@trait {
+  name: "@world_border",
+  category: "world",
+  description: "Configurable world boundary enforcer. Defines a spatial perimeter that blocks, repels, or teleports entities that exceed it. Used for game areas, safe zones, and digital twin coverage limits. Authored from WorldBorderTrait.ts.",
+  props: {
+    shape: enum("box" | "cylinder" | "sphere" | "polygon") = "box",
+    size: { x: number, y: number, z: number } = { x: 1000.0, y: 512.0, z: 1000.0 },
+    on_exceed: enum("block" | "repel" | "teleport" | "damage" | "warn") = "repel",
+    repel_force: number = 10.0,
+    damage_per_s: number = 1.0,
+    visible: boolean = true,
+    warn_distance_m: number = 20.0
+  },
+  events: {
+    attached: "world_border_attached",
+    detached: "world_border_detached",
+    on_entity_approach: "world_border_approach",
+    on_entity_exceed: "world_border_exceed",
+    on_entity_return: "world_border_return",
+    resize: "world_border_resize",
+    set_mode: "world_border_set_mode"
+  },
+  behaviors: ["@spatial_anchor", "@collision_filter"]
+}

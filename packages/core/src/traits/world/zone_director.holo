@@ -1,0 +1,24 @@
+@trait {
+  name: "@zone_director",
+  category: "world",
+  description: "Scene zone director that streams entities in/out based on player proximity. Manages level-of-detail swap, culling, and dynamic loading for large worlds. Authored from ZoneDirectorTrait.ts.",
+  props: {
+    stream_radius_m: number = 200.0,
+    unload_radius_m: number = 300.0,
+    max_loaded_zones: number = 9,
+    lod_distances: list<number> = [],
+    async_load: boolean = true,
+    priority: enum("distance" | "frustum" | "combined") = "combined",
+    loading_screen: boolean = false
+  },
+  events: {
+    attached: "zone_director_attached",
+    detached: "zone_director_detached",
+    on_zone_load: "zone_director_load",
+    on_zone_unload: "zone_director_unload",
+    on_zone_ready: "zone_director_ready",
+    on_budget_exceed: "zone_director_budget_exceed",
+    preload: "zone_director_preload"
+  },
+  behaviors: ["@streaming", "@world_border", "@lod"]
+}

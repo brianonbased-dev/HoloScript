@@ -1,0 +1,25 @@
+@trait {
+  name: "@wind_system",
+  category: "spatial",
+  description: "Atmospheric wind field driving foliage, cloth, particles, and sound propagation. Supports global constant wind and localized turbulence volumes. Authored from WindSystemTrait.ts.",
+  props: {
+    speed_ms: number = 3.0,
+    direction_deg: number = 0.0,
+    turbulence: number = 0.2,
+    gustiness: number = 0.3,
+    gust_interval_s: number = 8.0,
+    gust_strength: number = 1.5,
+    affect_particles: boolean = true,
+    affect_audio: boolean = true
+  },
+  events: {
+    attached: "wind_system_attached",
+    detached: "wind_system_detached",
+    on_gust: "wind_system_gust",
+    on_calm: "wind_system_calm",
+    on_update: "wind_system_update",
+    set_speed: "wind_system_set_speed",
+    set_direction: "wind_system_set_direction"
+  },
+  behaviors: ["@weather", "@particle_emitter", "@foliage"]
+}
