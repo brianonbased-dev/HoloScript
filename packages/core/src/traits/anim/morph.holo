@@ -1,0 +1,24 @@
+@trait {
+  name: "@morph",
+  category: "anim",
+  description: "Blend-shape morph target controller for facial animation, body deformation, and procedural shape blending. targets is a dict mapping morph target names to their current blend weights (0-1). smooth_ms is the interpolation window in milliseconds used when transitioning between weight states — 0 applies weights instantly. on_target_reached fires when any target weight reaches exactly 0 or 1 (the bound endpoints), enabling state-machine transitions. Designed to compose with @animation and @avatar_embodiment for full character expression pipelines. Research: MorphTrait.ts MorphConfig / MorphTarget / MorphPreset / blendToWeights + autoBlink.",
+  props: {
+    targets: dict<string, number> = {},
+    smooth_ms: number = 100,
+    on_target_reached: string = ""
+  },
+  events: {
+    attached: "morph:attached",
+    detached: "morph:detached",
+    weight_changed: "morph:weight_changed",
+    preset_applied: "morph:preset_applied",
+    blend_start: "morph:blend_start",
+    blend_end: "morph:blend_end",
+    target_reached: "morph:target_reached",
+    on_set_weight: "morph:set_weight",
+    on_set_weights: "morph:set_weights",
+    on_apply_preset: "morph:apply_preset",
+    on_reset: "morph:reset"
+  },
+  behaviors: ["@animation"]
+}

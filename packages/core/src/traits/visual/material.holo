@@ -1,0 +1,35 @@
+@trait {
+  name: "@material",
+  category: "visual",
+  description: "PBR material properties for photorealistic rendering. albedo is the base surface color as a CSS hex string (#rrggbb). metalness controls the metallic response (0 = dielectric, 1 = full metal). roughness controls microsurface scattering (0 = mirror, 1 = fully diffuse). emissive is the self-emission color hex; opacity drives alpha on the surface. transparency_mode selects the blend strategy: opaque discards alpha, blend alpha-blends, mask clips at 0.5. normal_scale amplifies the normal-map tangent-space perturbation (1 = authored strength). ao_intensity scales the baked ambient occlusion contribution (1 = full occlusion). uv_tiling uniformly tiles all UV-mapped textures. texture_refs wires named texture asset paths to the four standard PBR channels: albedo_map, normal_map, metal_rough_map (packed G=roughness R=metalness), and emissive_map. Research: MaterialTrait.ts MaterialConfig / PBRMaterial + MATERIAL_PRESETS.",
+  props: {
+    albedo: string = "#ffffff",
+    metalness: number = 0.0,
+    roughness: number = 0.5,
+    emissive: string = "#000000",
+    opacity: number = 1.0,
+    transparency_mode: enum("opaque" | "blend" | "mask") = "opaque",
+    normal_scale: number = 1.0,
+    ao_intensity: number = 1.0,
+    uv_tiling: number = 1.0,
+    texture_refs: {
+      albedo_map: string = "",
+      normal_map: string = "",
+      metal_rough_map: string = "",
+      emissive_map: string = ""
+    }
+  },
+  events: {
+    attached: "material:attached",
+    detached: "material:detached",
+    configured: "material:configured",
+    texture_loaded: "material:texture_loaded",
+    on_configure: "material:configure",
+    on_set_albedo: "material:set_albedo",
+    on_set_roughness: "material:set_roughness",
+    on_set_metalness: "material:set_metalness",
+    on_set_emissive: "material:set_emissive",
+    on_set_opacity: "material:set_opacity"
+  },
+  behaviors: ["@rendering"]
+}
