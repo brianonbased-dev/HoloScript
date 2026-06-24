@@ -1,0 +1,24 @@
+@trait {
+  name: "@chain",
+  category: "economics",
+  description: "Blockchain chain selector and network switcher. Manages multi-chain connectivity, gas estimation, and network switching for Base, Ethereum, and HoloScript mesh. Authored from ChainTrait.ts.",
+  props: {
+    default_chain: enum("base" | "ethereum" | "polygon" | "holoscript") = "base",
+    rpc_urls: dict<string, string> = {},
+    auto_switch: boolean = false,
+    gas_buffer_pct: number = 20.0,
+    max_gas_gwei: number = 50.0,
+    testnet: boolean = false
+  },
+  events: {
+    attached: "chain_attached",
+    detached: "chain_detached",
+    on_connect: "chain_connect",
+    on_disconnect: "chain_disconnect",
+    on_switch: "chain_switch",
+    on_error: "chain_error",
+    switch_chain: "chain_trigger_switch",
+    estimate_gas: "chain_estimate_gas"
+  },
+  behaviors: ["@blockchain", "@transaction"]
+}

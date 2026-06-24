@@ -1,0 +1,23 @@
+@trait {
+  name: "@bioluminescent",
+  category: "visual",
+  description: "Procedural bioluminescence material effect. Simulates light-emitting organisms (jellyfish, deep-sea creatures, fireflies) with pulse patterns, color cycling, and proximity response. Authored from BioluminescentTrait.ts.",
+  props: {
+    base_color: string = "#00ffcc",
+    emission_intensity: number = 2.0,
+    pulse_rate_hz: number = 0.5,
+    pulse_shape: enum("sine" | "sawtooth" | "square" | "random") = "sine",
+    proximity_response: boolean = true,
+    response_radius_m: number = 2.0,
+    noise_scale: number = 1.0,
+    noise_speed: number = 0.2
+  },
+  events: {
+    attached: "bioluminescent_attached",
+    detached: "bioluminescent_detached",
+    on_pulse: "bioluminescent_pulse",
+    on_stimulate: "bioluminescent_stimulate",
+    set_rate: "bioluminescent_set_rate"
+  },
+  behaviors: ["@material", "@rendering"]
+}
