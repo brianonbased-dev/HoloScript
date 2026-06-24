@@ -1,0 +1,31 @@
+@trait {
+  name: "@emotion",
+  category: "emotion",
+  description: "Emotional state model using the PAD (Pleasure-Arousal-Dominance) tri-dimensional space. Tracks a current emotion (Plutchik wheel: joy/sadness/anger/fear/surprise/disgust/trust/anticipation/neutral), blends toward target PAD via configurable reactivity and decay, maps emotions to expression-animation names, and propagates affective contagion to nearby entities within a radius. Used by @avatar_embodiment, ConversationDaemon, and the Brittney authority-locus pipeline.",
+  props: {
+    model: enum("basic" | "pad") = "pad",
+    default_mood: enum("joy" | "sadness" | "anger" | "fear" | "surprise" | "disgust" | "trust" | "anticipation" | "neutral") = "neutral",
+    valence: number = 0.0,
+    arousal: number = 0.0,
+    dominance: number = 0.0,
+    reactivity: number = 0.5,
+    decay_rate: number = 0.1,
+    expression_mapping: dict<string, string> = {},
+    blend_weights: dict<string, number> = {},
+    influence_behavior: boolean = true,
+    social_contagion: boolean = false,
+    contagion_radius: number = 2.0,
+    history_limit: number = 20
+  },
+  events: {
+    state_changed: "emotion_state_changed",
+    blended: "emotion_blended",
+    contagion_received: "emotion_contagion_received",
+    expression_triggered: "emotion_expression_triggered",
+    on_set_emotion: "emotion_set",
+    on_set_pad: "emotion_set_pad",
+    on_reset: "emotion_reset",
+    on_query: "emotion_query"
+  },
+  behaviors: ["@animation"]
+}

@@ -1,0 +1,40 @@
+@trait {
+  name: "@environmental_audio",
+  category: "audio",
+  description: "Environmental audio effects for realistic XR soundscapes. Applies weather-driven ambient modulation (clear/rain/storm/snow/fog/wind), ISO 9613-1 air absorption (distance-based high-frequency rolloff by temperature and humidity), Doppler pitch shift, and reverb zone coupling. Consumed by @reverb_zone, @audio_occlusion, and the HRTF pipeline.",
+  props: {
+    reverb_preset: enum("none" | "room" | "hall" | "cave" | "forest" | "outdoor" | "underwater" | "custom") = "none",
+    absorption: {
+      enabled: boolean = false,
+      temperature: number = 20.0,
+      humidity: number = 50.0
+    },
+    room_dimensions: {
+      width: number = 10.0,
+      height: number = 3.0,
+      depth: number = 10.0
+    },
+    weather: enum("clear" | "rain" | "storm" | "snow" | "fog" | "wind") = "clear",
+    ambient_volume: number = 0.3,
+    reverb_damping: number = 0.1,
+    air_absorption_multiplier: number = 1.0,
+    doppler: {
+      enabled: boolean = false,
+      speed_of_sound: number = 343.0,
+      max_pitch_shift: number = 1.5
+    },
+    doppler_scale: number = 1.0,
+    wind_speed: number = 2.0
+  },
+  events: {
+    weather_changed: "env_audio_weather_changed",
+    reverb_updated: "env_audio_reverb_updated",
+    absorption_updated: "env_audio_absorption_updated",
+    doppler_updated: "env_audio_doppler_updated",
+    on_set_weather: "env_audio_set_weather",
+    on_set_reverb: "env_audio_set_reverb",
+    on_set_absorption: "env_audio_set_absorption",
+    on_query: "env_audio_query"
+  },
+  behaviors: ["@reverb_zone"]
+}

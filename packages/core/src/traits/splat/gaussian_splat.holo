@@ -1,0 +1,44 @@
+@trait {
+  name: "@gaussian_splat",
+  category: "splat",
+  description: "3D Gaussian Splatting asset renderer. Loads a .ply/.splat/.spz source, manages view-dependent spherical harmonics (degree 0-3), distance/depth/radix Gaussian sort, octree-based LOD with configurable anchor thresholds, temporal modes (static/4D/streaming), and hard VR budget caps (Quest 3: ~180K total, ~60K per avatar via SqueezeMe). SPZ v2 with smallest-three quaternion encoding is the production compression path (G.030.04). Research: W.031 SPZ compression, W.032 Octree-GS LOD, W.034 VR budget.",
+  props: {
+    asset_url: string = "",
+    format: enum("ply" | "splat" | "compressed" | "spz") = "ply",
+    quality: enum("low" | "medium" | "high" | "ultra") = "medium",
+    max_gaussians: number = 1000000,
+    sort_mode: enum("distance" | "depth" | "radix") = "distance",
+    sh_degree: number = 3,
+    alpha_threshold: number = 0.01,
+    scale_modifier: number = 1.0,
+    cull_invisible: boolean = true,
+    streaming: boolean = false,
+    compression: boolean = true,
+    lod: {
+      mode: enum("none" | "octree" | "distance") = "none",
+      octree_depth: number = 0,
+      anchor_thresholds: number[] = []
+    },
+    temporal_mode: enum("static" | "4d" | "streaming") = "static",
+    gaussian_budget: {
+      total_cap: number = 180000,
+      per_avatar_reservation: number = 60000
+    },
+    spz: {
+      version: enum("1.0" | "2.0") = "2.0",
+      quaternion_encoding: enum("default" | "smallest_three") = "smallest_three"
+    }
+  },
+  events: {
+    loaded: "splat_loaded",
+    load_failed: "splat_load_failed",
+    sorted: "splat_sorted",
+    lod_change: "splat_lod_change",
+    budget_exceeded: "splat_budget_exceeded",
+    on_load: "splat_load",
+    on_unload: "splat_unload",
+    on_set_lod: "splat_set_lod",
+    on_set_quality: "splat_set_quality",
+    on_query: "splat_query"
+  }
+}
