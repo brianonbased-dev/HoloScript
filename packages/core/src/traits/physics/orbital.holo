@@ -1,0 +1,24 @@
+@trait {
+  name: "@orbital",
+  category: "physics",
+  description: "Keplerian orbital mechanics for planet, satellite, and space-station entities. Computes position from six orbital elements and integrates Newtonian gravity for multi-body systems. Authored from OrbitalTrait.ts.",
+  props: {
+    semi_major_axis_km: number = 7000.0,
+    eccentricity: number = 0.0,
+    inclination_deg: number = 0.0,
+    raan_deg: number = 0.0,
+    arg_periapsis_deg: number = 0.0,
+    true_anomaly_deg: number = 0.0,
+    parent_body: string = "earth",
+    time_scale: number = 1.0
+  },
+  events: {
+    attached: "orbital_attached",
+    detached: "orbital_detached",
+    on_tick: "orbital_tick",
+    on_periapsis: "orbital_periapsis",
+    on_apoapsis: "orbital_apoapsis",
+    set_elements: "orbital_set_elements"
+  },
+  behaviors: ["@rigid_body", "@world_clock"]
+}

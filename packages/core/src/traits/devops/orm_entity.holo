@@ -1,0 +1,27 @@
+@trait {
+  name: "@orm_entity",
+  category: "devops",
+  description: "ORM-backed entity persistence. Maps the entity's declared props to a database table schema, handles CRUD operations, and keeps the in-memory state synchronized with Postgres or SQLite. Authored from OrmEntityTrait.ts.",
+  props: {
+    table: string = "",
+    primary_key: string = "id",
+    connection_secret: string = "",
+    dialect: enum("postgres" | "sqlite" | "mysql") = "postgres",
+    auto_migrate: boolean = false,
+    timestamp_fields: boolean = true,
+    soft_delete: boolean = false,
+    cache_ttl_s: number = 0
+  },
+  events: {
+    attached: "orm_entity_attached",
+    detached: "orm_entity_detached",
+    on_save: "orm_entity_save",
+    on_load: "orm_entity_load",
+    on_delete: "orm_entity_delete",
+    on_error: "orm_entity_error",
+    save: "orm_entity_trigger_save",
+    load: "orm_entity_trigger_load",
+    delete: "orm_entity_trigger_delete"
+  },
+  behaviors: ["@database", "@data_lineage"]
+}
