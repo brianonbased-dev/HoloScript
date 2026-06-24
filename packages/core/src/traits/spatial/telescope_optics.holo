@@ -1,0 +1,25 @@
+@trait {
+  name: "@telescope_optics",
+  category: "spatial",
+  description: "Physical telescope optics calculator that derives FOV, magnification, exit pupil, limiting magnitude, and Dawes resolution limit from instrument specifications. aperture_mm is the objective (primary lens or mirror) diameter in millimetres — drives light-gathering capacity, limiting magnitude, and Dawes resolution limit. focal_length_mm is the objective focal length in millimetres; combined with the eyepiece this determines magnification and true field of view. mount_type describes the mechanical mount: alt_az is a simple altitude-azimuth mount suitable for terrestrial use; equatorial is a polar-aligned mount that enables tracking by rotating a single axis; dobsonian is a large-aperture alt-az variant optimised for visual observation. tracking enables motorised sidereal tracking — when true the mount corrects for Earth rotation and keeps targets centred; only effective with equatorial mounts unless the controller implements alt-az field-rotation compensation. wavelength selects the observing band: visible covers 380–700 nm; ir covers near-infrared 700–2500 nm; uv covers ultraviolet 200–380 nm; radio selects radio wavelengths and switches the FOV and resolution formulae to use the radio Rayleigh criterion. on_target fires when a slew completes and the target is within the field of view; on_slew fires during an active slew move and carries current az/alt coordinates; on_track fires on each tracking correction pulse. Pairs with @starfield, @aurora, and @orbital for observatory scenes. Research: TelescopeOpticsTrait.ts — computeTelescopeOptics(), validateTelescopeOptics(), exit-pupil warnings, Dawes limit 116/D_mm, limiting magnitude 2.1+5*log10(D_mm).",
+  props: {
+    aperture_mm: number = 200,
+    focal_length_mm: number = 1000,
+    mount_type: enum("alt_az" | "equatorial" | "dobsonian") = "alt_az",
+    tracking: boolean = false,
+    wavelength: enum("visible" | "ir" | "uv" | "radio") = "visible"
+  },
+  events: {
+    attached: "telescope_optics:attached",
+    detached: "telescope_optics:detached",
+    optics_ready: "telescope_optics:ready",
+    optics_updated: "telescope_optics:updated",
+    on_target: "telescope_optics:on_target",
+    on_slew: "telescope_optics:slew",
+    on_track: "telescope_optics:track",
+    on_reconfigure: "telescope_optics:reconfigure",
+    warning_exit_pupil: "telescope_optics:warning_exit_pupil",
+    warning_magnification: "telescope_optics:warning_magnification"
+  },
+  behaviors: ["@transform"]
+}

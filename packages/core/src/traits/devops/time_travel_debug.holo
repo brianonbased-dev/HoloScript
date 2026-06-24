@@ -1,0 +1,24 @@
+@trait {
+  name: "@time_travel_debug",
+  category: "devops",
+  description: "Time-travel debugging trait that captures a rolling ring-buffer of node state snapshots and exposes rewind, replay, diff, and branch operations for deterministic replay and root-cause analysis. buffer_size is the maximum number of snapshots retained in the ring buffer — older entries are evicted when the buffer is full. record_events when true causes every inbound event to be recorded alongside the state snapshot at the moment it arrived, enabling full event-sourced replay; when false only state snapshots are captured without event payloads. snapshot_interval_ms is the automatic snapshot cadence in milliseconds — the trait clones the owning node's observable state at each interval; set to 0 to disable automatic snapshotting and rely solely on on_snapshot calls. max_branches limits the number of parallel debug branches that may be open simultaneously; a branch is a named fork of the snapshot timeline that lets callers explore counterfactual state progressions without mutating the main timeline. on_snapshot fires after each successful state capture and carries frame index, timestamp, and a shallow state summary; on_replay fires when the cursor moves to a specific frame and carries the restored state; on_diff fires when two frames are compared and carries a structured delta report; on_branch fires when a new timeline branch is created or activated. Research: TimeTravelDebugTrait.ts — ring-buffer snapshots (ttd:snapshot), cursor navigation (ttd:rewind, ttd:forward), max_snapshots eviction via shift(), frame indexing.",
+  props: {
+    buffer_size: number = 100,
+    record_events: boolean = true,
+    snapshot_interval_ms: number = 0,
+    max_branches: number = 4
+  },
+  events: {
+    attached: "time_travel_debug:attached",
+    detached: "time_travel_debug:detached",
+    on_snapshot: "time_travel_debug:snapshot",
+    on_replay: "time_travel_debug:replay",
+    on_diff: "time_travel_debug:diff",
+    on_branch: "time_travel_debug:branch",
+    on_rewind: "time_travel_debug:rewind",
+    on_forward: "time_travel_debug:forward",
+    on_seek: "time_travel_debug:seek",
+    buffer_full: "time_travel_debug:buffer_full"
+  },
+  behaviors: ["@snapshot"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@tegra_monitor",
+  category: "analytics",
+  description: "Jetson Tegra hardware monitoring trait that samples tegrastats for GPU utilisation, CPU load, memory pressure, power draw, and thermal zones. sample_interval_ms is the polling cadence in milliseconds — the trait calls tegrastats at this interval and emits a structured snapshot; 0 disables automatic polling and the caller must drive samples via on_poll. thresholds is a dict mapping metric keys (gpu, cpu, mem, power) to numeric alert ceilings — when a sampled value exceeds the ceiling the trait fires on_alert with the metric key and value; omit a key to disable its threshold. alert_mode controls the action taken when a threshold is breached: log writes a structured warning to the HoloScript logger; event emits on_alert but takes no automatic action; throttle reduces the Jetson CPU or GPU clock via tegrastats hints; kill triggers a graceful shutdown of the owning node. export_prometheus when true exposes metrics on a local Prometheus scrape endpoint at /metrics — metric names follow the pattern holoscript_tegra_<metric> with labels node_id and surface. on_sample fires after every successful tegrastats read and carries the full structured snapshot; on_alert fires when a threshold is breached; on_throttle fires when alert_mode=throttle and a clock reduction is applied. Research: TegraMonitorTrait.ts — tegrastats line parser, thermal zone extraction, EMC bandwidth, power mW-to-W conversion, Jetson JetPack 5+ compatibility.",
+  props: {
+    sample_interval_ms: number = 1000,
+    thresholds: dict<string, number> = {},
+    alert_mode: enum("log" | "event" | "throttle" | "kill") = "log",
+    export_prometheus: boolean = false
+  },
+  events: {
+    attached: "tegra_monitor:attached",
+    detached: "tegra_monitor:detached",
+    on_sample: "tegra_monitor:sample",
+    on_alert: "tegra_monitor:alert",
+    on_throttle: "tegra_monitor:throttle",
+    on_poll: "tegra_monitor:poll",
+    on_set_interval: "tegra_monitor:set_interval",
+    on_set_alert_mode: "tegra_monitor:set_alert_mode",
+    prometheus_scraped: "tegra_monitor:prometheus_scraped"
+  },
+  behaviors: ["@telemetry"]
+}
