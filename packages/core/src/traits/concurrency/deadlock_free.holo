@@ -1,0 +1,20 @@
+@trait {
+  name: "@deadlock_free",
+  category: "concurrency",
+  description: "Deadlock prevention annotation and runtime watcher. Enforces lock acquisition order, detects cycle formation in wait-for graphs, and applies a configurable resolution policy. Authored from DeadlockFreeTrait.ts.",
+  props: {
+    strategy: enum("lock_ordering" | "timeout" | "detect_and_break" | "optimistic") = "timeout",
+    lock_timeout_ms: number = 5000,
+    max_wait_cycles: number = 3,
+    on_deadlock: enum("abort" | "retry" | "log_and_continue") = "abort",
+    track_owners: boolean = true
+  },
+  events: {
+    attached: "deadlock_free_attached",
+    detached: "deadlock_free_detached",
+    on_deadlock_detected: "deadlock_detected",
+    on_resolved: "deadlock_resolved",
+    on_timeout: "deadlock_timeout"
+  },
+  behaviors: ["@audit_log", "@alert"]
+}

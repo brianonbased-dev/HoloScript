@@ -1,0 +1,24 @@
+@trait {
+  name: "@data_retention",
+  category: "devops",
+  description: "Data retention policy enforcer. Purges, archives, or anonymizes records older than the retention window based on regulation (GDPR, CCPA, HIPAA) or custom rules. Authored from DataRetentionTrait.ts.",
+  props: {
+    retention_days: number = 365,
+    regulation: enum("gdpr" | "ccpa" | "hipaa" | "custom" | "none") = "none",
+    action: enum("delete" | "archive" | "anonymize" | "flag") = "archive",
+    target_store: string = "",
+    date_field: string = "created_at",
+    dry_run: boolean = false,
+    schedule: string = "0 2 * * *"
+  },
+  events: {
+    attached: "data_retention_attached",
+    detached: "data_retention_detached",
+    on_purge: "data_retention_purge",
+    on_archive: "data_retention_archive",
+    on_skip: "data_retention_skip",
+    on_complete: "data_retention_complete",
+    run: "data_retention_trigger_run"
+  },
+  behaviors: ["@privacy", "@audit_log", "@cron", "@forget_policy"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@flow_field",
+  category: "physics",
+  description: "GPU-side vector flow field for steering large crowds and particle swarms. Bakes a 2D or 3D vector texture from navigation mesh and obstacle queries and samples it per-agent each tick. Authored from FlowFieldTrait.ts.",
+  props: {
+    resolution_x: number = 64,
+    resolution_y: number = 64,
+    resolution_z: number = 1,
+    cell_size_m: number = 1.0,
+    goal_position: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    update_interval_ms: number = 500,
+    blend_frames: number = 3,
+    obstacle_layer: string = "default"
+  },
+  events: {
+    attached: "flow_field_attached",
+    detached: "flow_field_detached",
+    on_rebuild: "flow_field_rebuild",
+    rebuild: "flow_field_trigger_rebuild",
+    set_goal: "flow_field_set_goal"
+  },
+  behaviors: ["@navigation_mesh", "@gpu_buffer", "@crowd_simulation"]
+}
