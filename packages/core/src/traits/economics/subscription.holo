@@ -1,0 +1,26 @@
+@trait {
+  name: "@subscription",
+  category: "economics",
+  description: "Recurring subscription billing and access gate. Integrates with Stripe, crypto, or HoloScript mesh payments. Controls feature access based on active subscription tier. Authored from SubscriptionTrait.ts.",
+  props: {
+    provider: enum("stripe" | "crypto" | "holoscript" | "apple" | "google") = "holoscript",
+    product_id: string = "",
+    tiers: list<{ name: string, price_usd: number, interval: enum("day" | "month" | "year"), features: list<string> }> = [],
+    trial_days: number = 0,
+    grace_period_days: number = 3,
+    webhook_secret: string = ""
+  },
+  events: {
+    attached: "subscription_attached",
+    detached: "subscription_detached",
+    on_subscribe: "subscription_subscribe",
+    on_cancel: "subscription_cancel",
+    on_renew: "subscription_renew",
+    on_expire: "subscription_expire",
+    on_trial_end: "subscription_trial_end",
+    on_payment_fail: "subscription_payment_fail",
+    subscribe: "subscription_trigger_subscribe",
+    cancel: "subscription_trigger_cancel"
+  },
+  behaviors: ["@transaction", "@access_control"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@sonification",
+  category: "audio",
+  description: "Data sonification engine. Maps numeric data streams to musical parameters (pitch, timbre, rhythm, volume) for accessible data audition. Authored from SonificationTrait.ts.",
+  props: {
+    mappings: list<{ key: string, parameter: enum("pitch" | "volume" | "rhythm" | "timbre" | "pan"), range_min: number, range_max: number }> = [],
+    instrument: enum("sine" | "piano" | "strings" | "synth" | "custom") = "sine",
+    tempo_bpm: number = 120,
+    scale: enum("major" | "minor" | "pentatonic" | "chromatic") = "pentatonic",
+    update_rate_hz: number = 4,
+    normalize: boolean = true
+  },
+  events: {
+    attached: "sonification_attached",
+    detached: "sonification_detached",
+    on_note: "sonification_note",
+    on_update: "sonification_update",
+    on_silence: "sonification_silence",
+    play: "sonification_play",
+    stop: "sonification_stop"
+  },
+  behaviors: ["@accessibility", "@telemetry"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@sso",
+  category: "security",
+  description: "Single sign-on federation. Authenticates users via SAML 2.0, OIDC, or OAuth 2.0 identity providers and issues session tokens. Authored from SSOTrait.ts.",
+  props: {
+    provider: enum("saml2" | "oidc" | "oauth2" | "holoscript") = "oidc",
+    issuer_url: string = "",
+    client_id_secret: string = "",
+    scopes: list<string> = [],
+    redirect_uri: string = "",
+    token_ttl_s: number = 3600,
+    refresh_enabled: boolean = true,
+    mfa_required: boolean = false
+  },
+  events: {
+    attached: "sso_attached",
+    detached: "sso_detached",
+    on_login: "sso_login",
+    on_logout: "sso_logout",
+    on_token_refresh: "sso_token_refresh",
+    on_error: "sso_error",
+    login: "sso_trigger_login",
+    logout: "sso_trigger_logout"
+  },
+  behaviors: ["@identity_provider", "@access_control"]
+}

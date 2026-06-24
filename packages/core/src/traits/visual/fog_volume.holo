@@ -1,0 +1,24 @@
+@trait {
+  name: "@fog_volume",
+  category: "visual",
+  description: "Volumetric fog and atmospheric scattering bounded to a spatial volume. Supports height fog, depth fog, god rays, and animated noise. Authored from FogVolumeTrait.ts.",
+  props: {
+    density: number = 0.05,
+    color: string = "#c8d8e8",
+    start_m: number = 10.0,
+    end_m: number = 500.0,
+    height_falloff: number = 0.5,
+    mode: enum("exponential" | "exponential_squared" | "linear" | "height") = "exponential",
+    noise_scale: number = 1.0,
+    noise_speed: number = 0.1,
+    god_rays: boolean = false
+  },
+  events: {
+    attached: "fog_volume_attached",
+    detached: "fog_volume_detached",
+    on_density_change: "fog_volume_density_change",
+    set_density: "fog_volume_set_density",
+    set_color: "fog_volume_set_color"
+  },
+  behaviors: ["@rendering", "@weather"]
+}
