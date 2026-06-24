@@ -1,0 +1,22 @@
+@trait {
+  name: "@state_sync",
+  category: "sync",
+  description: "Entity state synchronizer over a Loro CRDT channel. Serializes declared props into a delta packet at the target tick rate, merges remote deltas conflict-free, and tracks divergence for reconciliation. Authored from StateSyncTrait.ts.",
+  props: {
+    sync_props: list<string> = [],
+    tick_rate_hz: number = 20,
+    channel: string = "",
+    compress: boolean = true,
+    authority: enum("server" | "owner" | "host" | "distributed") = "server",
+    divergence_threshold_ms: number = 200,
+    reconcile_on_diverge: boolean = true
+  },
+  events: {
+    attached: "state_sync_attached",
+    detached: "state_sync_detached",
+    on_receive: "state_sync_receive",
+    on_diverge: "state_sync_diverge",
+    on_reconcile: "state_sync_reconcile"
+  },
+  behaviors: ["@networked", "@networked_avatar", "@shared_world"]
+}

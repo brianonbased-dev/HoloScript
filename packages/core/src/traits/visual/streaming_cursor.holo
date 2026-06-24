@@ -1,0 +1,21 @@
+@trait {
+  name: "@streaming_cursor",
+  category: "visual",
+  description: "Live streaming token cursor for generative text surfaces. Animates a blinking insertion-point cursor at the end of a streaming text buffer, smoothly expanding the visible text as tokens arrive. Authored from StreamingCursorTrait.ts.",
+  props: {
+    target_entity: string = "",
+    cursor_char: string = "▋",
+    blink_rate_hz: number = 1.5,
+    token_delay_ms: number = 20,
+    fade_on_complete: boolean = true,
+    complete_after_ms: number = 500
+  },
+  events: {
+    attached: "streaming_cursor_attached",
+    detached: "streaming_cursor_detached",
+    on_token: "streaming_cursor_token",
+    on_complete: "streaming_cursor_complete",
+    append_token: "streaming_cursor_append"
+  },
+  behaviors: ["@typewriter", "@tts", "@chat_bubble"]
+}

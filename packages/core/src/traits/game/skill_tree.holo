@@ -1,0 +1,22 @@
+@trait {
+  name: "@skill_tree",
+  category: "game",
+  description: "Player skill tree with dependency graph and unlock gating. Stores skill nodes with prerequisite edges, XP cost, and effect payloads, and evaluates unlock eligibility on point spend. Authored from SkillTreeTrait.ts.",
+  props: {
+    skills: list<{ id: string, name: string, requires: list<string>, cost: number, unlocked: boolean }> = [],
+    available_points: number = 0,
+    max_points: number = 100,
+    auto_save: boolean = true,
+    reset_cost: number = 0
+  },
+  events: {
+    attached: "skill_tree_attached",
+    detached: "skill_tree_detached",
+    on_unlock: "skill_tree_unlock",
+    on_reset: "skill_tree_reset",
+    on_point_gain: "skill_tree_point_gain",
+    unlock_skill: "skill_tree_trigger_unlock",
+    reset: "skill_tree_trigger_reset"
+  },
+  behaviors: ["@player", "@quest_system", "@leaderboard"]
+}

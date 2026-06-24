@@ -1,0 +1,25 @@
+@trait {
+  name: "@social_graph",
+  category: "agent",
+  description: "Agent or player social relationship graph. Tracks follow, friend, block, and guild edges between entity handles, with privacy-scoped read access and activity-feed aggregation. Authored from SocialGraphTrait.ts.",
+  props: {
+    handle: string = "",
+    follows: list<string> = [],
+    followers: list<string> = [],
+    blocked: list<string> = [],
+    privacy: enum("public" | "followers" | "private") = "public",
+    max_follows: number = 5000,
+    guild_ids: list<string> = []
+  },
+  events: {
+    attached: "social_graph_attached",
+    detached: "social_graph_detached",
+    on_follow: "social_graph_follow",
+    on_unfollow: "social_graph_unfollow",
+    on_block: "social_graph_block",
+    follow: "social_graph_trigger_follow",
+    unfollow: "social_graph_trigger_unfollow",
+    block: "social_graph_trigger_block"
+  },
+  behaviors: ["@reputation", "@proximity_chat", "@analytics"]
+}
