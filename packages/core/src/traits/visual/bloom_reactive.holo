@@ -1,0 +1,39 @@
+@trait {
+  name: "@bloom_reactive",
+  category: "visual",
+  description: "Declarative bloom post-process effect that reacts to a named signal source. Maps threshold, intensity, color, and pulse parameters to a per-stage or per-value emissive bloom output. Supports reactive_to enum to bind to emissive texture, audio amplitude, script signal, or lotus bloom-state. Replaces manual @animated-keyframe + @glowing combos with a single semantic block.",
+  props: {
+    reactive_to: enum("emissive" | "audio" | "signal" | "lotus_bloom_state" | "none") = "emissive",
+    signal_key: string = "",
+    threshold: number = 0.8,
+    intensity: number = 1.0,
+    color: string = "#ffffff",
+    radius: number = 4.0,
+    initial_state: enum("sealed" | "budding" | "blooming" | "full" | "wilted" | "on" | "off") = "off",
+    stages: {
+      sealed: { emissive: number = 0.1, scale: number = 0.9, pulse: boolean = false },
+      budding: { emissive: number = 0.4, scale: number = 0.95, pulse: boolean = false },
+      blooming: { emissive: number = 1.2, scale: number = 1.0, pulse: boolean = true },
+      full: { emissive: number = 2.5, scale: number = 1.05, pulse_fast: boolean = true },
+      wilted: { emissive: number = 0.05, scale: number = 0.85, pulse: boolean = false }
+    },
+    pulse_hz_slow: number = 0.5,
+    pulse_hz_fast: number = 2.0,
+    pulse_amplitude: number = 0.25,
+    emit_attach_event: boolean = true
+  },
+  events: {
+    attached: "bloom_reactive_attached",
+    detached: "bloom_reactive_detached",
+    stage_changed: "bloom_reactive_stage_changed",
+    sample: "bloom_reactive_sample",
+    reset_done: "bloom_reactive_reset_done",
+    response: "bloom_reactive_response",
+    on_state_changed: "lotus_bloom_state_changed",
+    on_query: "bloom_reactive_query",
+    on_reset: "bloom_reactive_reset",
+    on_set_intensity: "bloom_reactive_set_intensity",
+    on_set_threshold: "bloom_reactive_set_threshold",
+    on_set_color: "bloom_reactive_set_color"
+  }
+}

@@ -1,0 +1,29 @@
+@trait {
+  name: "@audio_material",
+  category: "visual",
+  description: "Per-surface acoustic material metadata for spatial audio engines. Declares frequency-band absorption coefficients (125–4000 Hz), reflection, transmission, and scattering coefficients. Named presets (concrete, wood, glass, metal, fabric, carpet, tile) are resolved at attach time; custom coefficients override the preset. Static config trait — no per-frame update. Consumed by @reverb_zone, @audio_occlusion, and HRTF pipeline.",
+  props: {
+    material_preset: enum("concrete" | "wood" | "glass" | "metal" | "fabric" | "carpet" | "tile" | "custom") = "concrete",
+    absorption_coefficients: {
+      hz_125: number = 0.0,
+      hz_250: number = 0.0,
+      hz_500: number = 0.0,
+      hz_1000: number = 0.0,
+      hz_2000: number = 0.0,
+      hz_4000: number = 0.0
+    },
+    reflection_coefficient: number = 0.5,
+    transmission_coefficient: number = 0.1,
+    occlusion_coefficient: number = 0.3,
+    scattering_coefficient: number = 0.3
+  },
+  events: {
+    registered: "audio_material_register",
+    unregistered: "audio_material_unregister",
+    updated: "audio_material_update",
+    response: "audio_material_response",
+    on_query: "audio_material_query",
+    on_set_preset: "audio_material_set_preset",
+    on_set_coefficients: "audio_material_set_coefficients"
+  }
+}

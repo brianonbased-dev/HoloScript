@@ -1,0 +1,70 @@
+@trait {
+  name: "@animation",
+  category: "anim",
+  description: "Animation clip management and state-machine playback for HoloScript entities. Supports named clip dictionary, hierarchical blend-tree states, parameterised transitions, crossfade blend_time, multi-layer composition (override / additive), root-motion, and timed clip events. Drives character locomotion, cut-scenes, and procedural gesture loops.",
+  props: {
+    clips: dict<string, {
+      asset: string,
+      duration: number,
+      wrap_mode: enum("once" | "loop" | "ping-pong" | "clamp") = "loop",
+      blend_mode: enum("override" | "additive") = "override",
+      speed: number = 1.0,
+      root_motion: boolean = false
+    }> = {},
+    states: dict<string, {
+      clip: string = "",
+      clips: string[] = [],
+      parameter: string = "",
+      thresholds: number[] = [],
+      speed: number = 1.0,
+      tags: string[] = []
+    }> = {},
+    transitions: array<{
+      from: string,
+      to: string,
+      condition: string = "",
+      blend_time: number = 0.25,
+      has_exit_time: boolean = false,
+      exit_time: number = 1.0,
+      priority: number = 0
+    }> = [],
+    parameters: dict<string, {
+      type: enum("float" | "int" | "bool" | "trigger"),
+      default_value: number = 0.0
+    }> = {},
+    layers: dict<string, {
+      weight: number = 1.0,
+      blend_mode: enum("override" | "additive") = "override",
+      default_state: string = ""
+    }> = {},
+    default_state: string = "",
+    blend_time: number = 0.25,
+    apply_root_motion: boolean = false,
+    update_mode: enum("normal" | "animate_physics" | "unscaled_time") = "normal"
+  },
+  events: {
+    attached: "animation_attached",
+    detached: "animation_detached",
+    configured: "animation_configured",
+    clip_start: "animation_clip_start",
+    clip_end: "animation_clip_end",
+    clip_loop: "animation_clip_loop",
+    state_enter: "animation_state_enter",
+    state_exit: "animation_state_exit",
+    transition_start: "animation_transition_start",
+    transition_end: "animation_transition_end",
+    event_fired: "animation_event_fired",
+    on_play: "animation_play",
+    on_stop: "animation_stop",
+    on_pause: "animation_pause",
+    on_resume: "animation_resume",
+    on_set_state: "animation_set_state",
+    on_crossfade: "animation_crossfade",
+    on_set_float: "animation_set_float",
+    on_set_bool: "animation_set_bool",
+    on_set_trigger: "animation_set_trigger",
+    on_set_layer_weight: "animation_set_layer_weight",
+    on_configure: "animation_configure"
+  },
+  behaviors: ["@skeleton", "@transform"]
+}

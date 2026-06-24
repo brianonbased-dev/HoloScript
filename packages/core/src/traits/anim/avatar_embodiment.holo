@@ -1,0 +1,61 @@
+@trait {
+  name: "@avatar_embodiment",
+  category: "anim",
+  description: "Full AI / user avatar embodiment pipeline for VR/AR and spatial computing. Orchestrates the Voice → LLM → Voice Output → Lip Sync → Emotion → Animation pipeline. Supports headset, camera, AI-driven, remote, and playback tracking sources, full-body IK, automatic conversation pipeline management, and personality-modulated gesture selection.",
+  props: {
+    tracking_source: enum("headset" | "camera" | "ai" | "remote" | "playback") = "ai",
+    ik_mode: enum("none" | "head_only" | "upper_body" | "full_body") = "upper_body",
+    lip_sync: boolean = true,
+    lip_sync_config: {
+      provider: enum("webxr" | "arkit" | "mediapipe" | "none") = "none",
+      blend_frames: number = 3,
+      jaw_open_channel: string = "jawOpen",
+      smoothing: number = 0.1
+    },
+    emotion_directives: boolean = true,
+    emotion_config: {
+      blend_duration: number = 0.4,
+      default_expression: string = "neutral",
+      intensity_scale: number = 1.0
+    },
+    mirror_expressions: boolean = true,
+    eye_tracking_forward: boolean = false,
+    personal_space_radius: number = 0.5,
+    voice_output: {
+      engine: enum("elevenlabs" | "openai_tts" | "local" | "none") = "none",
+      voice: string = "",
+      speed: number = 1.0
+    },
+    personality: {
+      sociability: number = 0.7,
+      warmth: number = 0.8,
+      expressiveness: number = 0.6,
+      formality: number = 0.4,
+      energy: number = 0.5
+    },
+    conversation_fillers: boolean = true,
+    auto_pipeline: boolean = true
+  },
+  events: {
+    embodied: "on_avatar_embodied",
+    disembodied: "on_avatar_disembodied",
+    calibrated: "on_avatar_calibrated",
+    pipeline_stage_changed: "avatar_pipeline_stage_changed",
+    speech_start: "avatar_speech_start",
+    speech_end: "avatar_speech_end",
+    listen_start: "avatar_listen_start",
+    listen_end: "avatar_listen_end",
+    turn_start: "avatar_turn_start",
+    turn_end: "avatar_turn_end",
+    expression_changed: "avatar_expression_changed",
+    animation_changed: "avatar_animation_changed",
+    on_embody: "embody",
+    on_disembody: "disembody",
+    on_calibrate: "calibrate",
+    on_set_expression: "avatar_set_expression",
+    on_set_pipeline_stage: "avatar_set_pipeline_stage",
+    on_start_speech: "avatar_start_speech",
+    on_end_speech: "avatar_end_speech"
+  },
+  behaviors: ["@animation", "@skeleton", "@lip_sync", "@emotion"]
+}
