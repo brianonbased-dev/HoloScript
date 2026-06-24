@@ -71,6 +71,11 @@ The demotions are not random — they cluster into five named failure modes, eac
    wiring fixes that would turn 3 overclaims into 3 REAL substrate traits** — a pure win the handoff's
    gap-trait list didn't name. (Distinct from deep-ratchet's "echo-stub" family: here the math exists
    but is unreachable.)
+   > **SHIPPED (this commit):** `granular_material` is fixed and promoted to REAL — `onUpdate` now falls
+   > back to `step(dt)` (with `step?` added to `TraitInstanceDelegate`), and `GranularMaterialTrait.test.ts`
+   > proves a particle falls under gravity through the trait lifecycle. Verified count is now **12 REAL / 33
+   > THIN / 83 OVERCLAIMED**. `fluid_simulation` (swap `new SpatialHash` → `new FluidSimulationSystem` + the
+   > same step fallback) and the non-fix `voronoi_fracture` (event-driven + fake voronoi) remain queued.
 2. **Deprecated dead stub, zero listeners** (`cloth`, `chain`). `cloth` self-declares DEPRECATED in its
    header; `chain.onUpdate` is an explicit no-op. Emit-only shells; real engines exist elsewhere, unwired.
 3. **Visualization-as-substrate** (`scalar_field_overlay`, `colormap_jet/viridis/turbo/inferno/coolwarm`).

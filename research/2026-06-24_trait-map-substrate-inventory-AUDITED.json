@@ -4,12 +4,12 @@
  "method": "4 parallel audit subagents read every handler-backed trait + 2 ambiguous constants families; family rules (no handler + no solver routing = overclaimed) for pure-vocabulary names; cross-referenced research/2026-05-24_deep-ratchet-trait-solver.md",
  "dedup_note": "original inventory had 131 entries / 128 unique (holomap_reconstruct, holomap_camera_trajectory, holomap_anchor_context each duplicated); audited set is the 128 unique",
  "counts": {
-  "real": 11,
+  "real": 12,
   "thin": 33,
-  "overclaimed": 84,
+  "overclaimed": 83,
   "unverified": 0
  },
- "verified_substrate_after_demotion": 44,
+ "verified_substrate_after_demotion": 45,
  "traits": [
   {
    "name": "thermal_simulation",
@@ -1025,17 +1025,19 @@
   },
   {
    "name": "granular_material",
-   "class": "skin",
+   "class": "substrate",
    "frontier": "physics",
-   "contractRoles": [],
+   "contractRoles": [
+    "precondition",
+    "invariant",
+    "receipt"
+   ],
    "domainTag": [
     "physics-expansion"
    ],
-   "proofStatus": "overclaimed",
+   "proofStatus": "real",
    "origin": "sub-category",
-   "auditEvidence": "GranularMaterialTrait.ts:602-606 real DEM solver in-file but handler calls instance.onUpdate (class only has step()); never stepped (dead-delegation)",
-   "demotedTo": "skin",
-   "classOriginal": "substrate"
+   "auditEvidence": "FIXED 2026-06-24: was dead-delegation overclaim (handler called instance.onUpdate; GranularMaterialSystem only has step()). onUpdate now falls back to step(dt) + step?() added to TraitInstanceDelegate; GranularMaterialTrait.test.ts proves a particle falls under gravity via the trait lifecycle. Real DEM solver (spring contact + Coulomb friction, step():289) now advances."
   },
   {
    "name": "voronoi_fracture",

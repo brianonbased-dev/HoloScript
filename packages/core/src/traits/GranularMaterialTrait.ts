@@ -602,6 +602,12 @@ export const granularMaterialHandler = {
   onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__granular_material_instance as TraitInstanceDelegate;
     if (!instance) return;
+    // GranularMaterialSystem integrates via step(dt), not the node/ctx-shaped
+    // onUpdate. Without this fallback the DEM solver is constructed in onAttach
+    // but never advanced â€” the dead-delegation overclaim caught in the
+    // 2026-06-24 substrate audit (Â§3.1). Try onUpdate first to preserve the
+    // delegate template, then fall back to the stepper.
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+    else if (typeof instance.step === 'function') instance.step(dt);
   },
 } as const satisfies TraitHandler;

@@ -319,6 +319,14 @@ export interface TraitInstanceDelegate {
   onDetach?: (node: HSPlusNode, ctx: TraitContext) => void;
   onEvent?: (event: TraitEvent) => void;
   onUpdate?: (node: HSPlusNode, ctx: TraitContext, dt: number) => void;
+  /**
+   * Per-frame stepper for solver-style delegates (e.g. GranularMaterialSystem)
+   * that integrate by time-step rather than the node/ctx-shaped `onUpdate`. A
+   * handler's onUpdate falls back to `step(dt)` when the delegate exposes no
+   * `onUpdate` â€” without it the solver is constructed but never advanced (the
+   * dead-delegation overclaim; see research/2026-06-24_trait-map-substrate-audit.md Â§3.1).
+   */
+  step?: (dt: number) => void;
   emit?: (event: TraitEvent) => void;
   dispose?: () => void;
   cleanup?: () => void;
