@@ -1,0 +1,25 @@
+@trait {
+  name: "@page_flip",
+  category: "interaction",
+  description: "Page-turn animation and content pagination controller for in-world book, magazine, and slide deck entities. Animates a curl page-flip transition between indexed content pages on swipe/tap, with configurable flip speed and optional preload lookahead. Authored from PageFlipTrait.ts.",
+  props: {
+    total_pages: number = 1,
+    current_page: number = 0,
+    flip_duration_ms: number = 400,
+    flip_curve: enum("linear" | "ease_in_out" | "spring") = "ease_in_out",
+    preload_ahead: number = 1,
+    loop: boolean = false,
+    auto_advance_s: number = 0
+  },
+  events: {
+    attached: "page_flip_attached",
+    detached: "page_flip_detached",
+    on_page_change: "page_flip_page_change",
+    on_first: "page_flip_first",
+    on_last: "page_flip_last",
+    next: "page_flip_trigger_next",
+    prev: "page_flip_trigger_prev",
+    go_to: "page_flip_trigger_go_to"
+  },
+  behaviors: ["@affordance", "@easing", "@display"]
+}

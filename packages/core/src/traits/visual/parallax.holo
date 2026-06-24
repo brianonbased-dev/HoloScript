@@ -1,0 +1,19 @@
+@trait {
+  name: "@parallax",
+  category: "visual",
+  description: "Depth-layer parallax scrolling effect for 2D and billboard elements. Offsets the entity's UV or position based on camera or head movement at a configurable parallax factor, creating the illusion of depth for background planes and UI layers. Authored from ParallaxTrait.ts.",
+  props: {
+    factor: number = 0.1,
+    mode: enum("uv_offset" | "position" | "both") = "uv_offset",
+    horizontal: boolean = true,
+    vertical: boolean = true,
+    clamp: boolean = true,
+    max_offset_m: number = 0.05
+  },
+  events: {
+    attached: "parallax_attached",
+    detached: "parallax_detached",
+    on_offset: "parallax_offset"
+  },
+  behaviors: ["@billboard", "@display", "@skybox"]
+}

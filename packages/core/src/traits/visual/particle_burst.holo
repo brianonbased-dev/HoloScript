@@ -1,0 +1,25 @@
+@trait {
+  name: "@particle_burst",
+  category: "visual",
+  description: "One-shot particle burst emitter for impact, pickup, and celebration VFX. Spawns a configurable count of billboard sprites or mesh instances in a sphere/cone pattern with random velocity, fade-out lifetime, and optional physics bounce. Authored from ParticleBurstTrait.ts.",
+  props: {
+    count: number = 32,
+    sprite_url: string = "",
+    color: string = "#ffffff",
+    size_min: number = 0.05,
+    size_max: number = 0.15,
+    speed_min: number = 1.0,
+    speed_max: number = 3.0,
+    lifetime_s: number = 0.8,
+    spread_deg: number = 180,
+    gravity_scale: number = 0.5,
+    auto_play: boolean = false
+  },
+  events: {
+    attached: "particle_burst_attached",
+    detached: "particle_burst_detached",
+    on_complete: "particle_burst_complete",
+    play: "particle_burst_trigger_play"
+  },
+  behaviors: ["@gpu_particle", "@trail_emitter", "@decal"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@panel",
+  category: "interaction",
+  description: "World-space UI panel container for HUD or in-world control surfaces. Groups child UI elements (buttons, sliders, text, displays) on a flat billboard or curved plane, managing focus ring navigation, panel visibility, and z-depth stacking in XR. Authored from PanelTrait.ts.",
+  props: {
+    width_m: number = 0.6,
+    height_m: number = 0.4,
+    curvature_deg: number = 0.0,
+    face_camera: boolean = true,
+    visible: boolean = true,
+    background_color: string = "#1a1a1a",
+    background_opacity: number = 0.85,
+    border_radius_m: number = 0.02
+  },
+  events: {
+    attached: "panel_attached",
+    detached: "panel_detached",
+    on_show: "panel_show",
+    on_hide: "panel_hide",
+    on_focus: "panel_focus",
+    show: "panel_trigger_show",
+    hide: "panel_trigger_hide"
+  },
+  behaviors: ["@ui_frame", "@menu", "@billboard"]
+}
