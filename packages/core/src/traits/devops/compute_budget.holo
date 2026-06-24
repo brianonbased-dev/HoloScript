@@ -1,0 +1,19 @@
+@trait {
+  name: "@compute_budget",
+  category: "devops",
+  description: "Per-frame or per-request compute budget enforcer. Caps the CPU/GPU time slice available to a subsystem (AI inference, physics, particle update), yielding the remainder to the scheduler when exceeded to maintain target frame rate. Authored from ComputeBudgetTrait.ts.",
+  props: {
+    budget_ms: number = 2.0,
+    subsystem: enum("ai" | "physics" | "particles" | "rendering" | "all") = "all",
+    yield_on_exceed: boolean = true,
+    warn_at_pct: number = 80,
+    measure_interval_frames: number = 10
+  },
+  events: {
+    attached: "compute_budget_attached",
+    detached: "compute_budget_detached",
+    on_exceed: "compute_budget_exceed",
+    on_warn: "compute_budget_warn"
+  },
+  behaviors: ["@allocation", "@budget", "@circuit_breaker"]
+}

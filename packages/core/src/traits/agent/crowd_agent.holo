@@ -1,0 +1,23 @@
+@trait {
+  name: "@crowd_agent",
+  category: "agent",
+  description: "Crowd simulation agent handle. Registers the entity with the crowd manager (Recast/Detour or HoloScript flow-field), enabling collision avoidance, lane formation, and density-aware speed adaptation for large NPC populations. Authored from CrowdAgentTrait.ts.",
+  props: {
+    radius_m: number = 0.3,
+    height_m: number = 1.8,
+    max_speed_mps: number = 3.5,
+    max_acceleration_mps2: number = 8.0,
+    priority: number = 0.5,
+    avoidance_quality: enum("low" | "medium" | "high") = "medium",
+    separation_weight: number = 2.0,
+    crowd_group: string = ""
+  },
+  events: {
+    attached: "crowd_agent_attached",
+    detached: "crowd_agent_detached",
+    on_arrive: "crowd_agent_arrive",
+    on_stuck: "crowd_agent_stuck",
+    set_target: "crowd_agent_set_target"
+  },
+  behaviors: ["@locomotion", "@flow_field", "@formation_control"]
+}

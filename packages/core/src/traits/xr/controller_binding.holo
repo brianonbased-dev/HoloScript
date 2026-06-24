@@ -1,0 +1,21 @@
+@trait {
+  name: "@controller_binding",
+  category: "xr",
+  description: "XR controller input binding mapper. Maps physical controller buttons, axes, and gestures to semantic action names, supporting remapping, dead zones, and per-handedness overrides for Quest, Index, Vive, and WebXR profiles. Authored from ControllerBindingTrait.ts.",
+  props: {
+    profile: enum("quest3" | "index" | "vive" | "wmr" | "generic") = "quest3",
+    hand: enum("left" | "right" | "both") = "both",
+    bindings: dict<string, string> = {},
+    dead_zone: number = 0.1,
+    haptic_on_press: boolean = true
+  },
+  events: {
+    attached: "controller_binding_attached",
+    detached: "controller_binding_detached",
+    on_button: "controller_button",
+    on_axis: "controller_axis",
+    on_gesture: "controller_gesture",
+    on_remap: "controller_remap"
+  },
+  behaviors: ["@xr_hand_tracking", "@gesture_recognizer", "@input_map"]
+}

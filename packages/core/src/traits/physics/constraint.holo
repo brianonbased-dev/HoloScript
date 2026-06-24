@@ -1,0 +1,25 @@
+@trait {
+  name: "@constraint",
+  category: "physics",
+  description: "Generic physics joint constraint between two bodies. Supports hinge, ball-socket, slider, fixed, and distance constraints with configurable limits, spring stiffness, and damping for ragdolls, hinges, and mechanical linkages. Authored from ConstraintTrait.ts.",
+  props: {
+    body_a: string = "",
+    body_b: string = "",
+    type: enum("hinge" | "ball_socket" | "slider" | "fixed" | "distance" | "cone") = "fixed",
+    anchor_a: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    anchor_b: { x: number, y: number, z: number } = { x: 0.0, y: 0.0, z: 0.0 },
+    stiffness: number = 1000.0,
+    damping: number = 50.0,
+    limit_min: number = -180.0,
+    limit_max: number = 180.0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "constraint_attached",
+    detached: "constraint_detached",
+    on_break: "constraint_break",
+    on_limit: "constraint_limit",
+    break_constraint: "constraint_trigger_break"
+  },
+  behaviors: ["@collider", "@rig_constraint", "@rope"]
+}
