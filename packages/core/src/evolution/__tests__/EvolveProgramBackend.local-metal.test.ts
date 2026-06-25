@@ -16,7 +16,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { runEvolution, makeOllamaProposer, type Gate } from '../EvolveProgramBackend';
+import {
+  runEvolution,
+  makeOllamaProposer,
+  toGradedTraceRow,
+  type Gate,
+  type EvolveTraceRecord,
+} from '../EvolveProgramBackend';
 
 const ENABLED = process.env.EVOLVE_LOCAL_METAL_PROOF === '1';
 const ENDPOINT = process.env.EVOLVE_OLLAMA_ENDPOINT ?? 'http://holojetson.local:11434';
@@ -34,6 +40,9 @@ describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
       score: code.length,
     });
 
+    // The DATA BRIDGE: capture every gated candidate as verifier-labeled training
+    // signal — the proof that failures become training data on local metal.
+    const traceRecs: EvolveTraceRecord[] = [];
     const { bestCode, receipt } = await runEvolution(
       seed,
       {
@@ -43,7 +52,7 @@ describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
         archiveSize: 6,
         proposerModel: MODEL,
       },
-      { propose, gate },
+      { propose, gate, onCandidate: (r) => traceRecs.push(r) },
     );
 
     // Whatever the small on-device model produced, the loop must be sound + auditable.
@@ -55,10 +64,23 @@ describe.skipIf(!ENABLED)('runEvolution on LOCAL METAL (Jetson Ollama)', () => {
     mkdirSync('.scratch/evolve-proof', { recursive: true });
     writeFileSync('.scratch/evolve-proof/receipt.json', JSON.stringify(receipt, null, 2));
     writeFileSync('.scratch/evolve-proof/best.txt', bestCode ?? '(no improvement surfaced)');
+
+    // The TRAINING DATA the loop generated from its own gated attempts (the second
+    // loop) — graded REC-SHAPE rows ready for the grader-gated harvest -> DPO/SFT.
+    const ts = new Date().toISOString();
+    const rows = traceRecs.map((r) => toGradedTraceRow(r, { agentId: 'jetson-evolve', ts }));
+    writeFileSync(
+      '.scratch/evolve-proof/trace.jsonl',
+      rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length ? '\n' : ''),
+    );
+    const chosen = rows.filter((row) => (row.grader as { passed: boolean }).passed).length;
+    const rejected = rows.length - chosen;
+    expect(rows.length).toBe(receipt.evaluated - 1); // every gated candidate except the seed
     // eslint-disable-next-line no-console
     console.log(
       `[evolve][local-metal] result=${receipt.result} seed=${receipt.seedScore} -> best=${receipt.bestScore} ` +
-        `| model=${MODEL} evaluated=${receipt.evaluated} discarded=${receipt.discarded} survivors=${receipt.survivors}`,
+        `| model=${MODEL} evaluated=${receipt.evaluated} discarded=${receipt.discarded} survivors=${receipt.survivors} ` +
+        `| TRAINING ROWS=${rows.length} (chosen/SFT=${chosen}, rejected/DPO=${rejected})`,
     );
   }, 180000);
 });

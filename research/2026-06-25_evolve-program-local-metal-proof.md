@@ -86,3 +86,59 @@ src/evolution/__tests__/EvolveProgramBackend.local-metal.test.ts`.)
    target and schedulable on the Jetson via `/scheduler`.
 3. **Trait→backend wiring** — `evolve_program_declared` event drives the backend
    at compile time.
+
+---
+
+## Loop 2 — the training-data bridge (shipped, closes the "small agent problem")
+
+Founder insight: the *discarded failures are verifier-labeled training data*. The
+same gate that protects the code (Loop 1) automatically labels the data for
+improving the *model* (Loop 2). This is already a live ecosystem pattern — the
+runtime agent (`runner.ts recordTrace`) emits graded REC-SHAPE rows that
+`scripts/corpus/harvest_real.py` reads; the grader-gate (`de632431`,
+"close-the-poison-vector") routes them `passed:true → SFT`, `passed:false → DPO/
+contrast`. The evolve loop is a *superior* source: verifier-labeled by the test
+suite, not just artifact-grounding.
+
+**Built:** `EvolveProgramBackend` now emits every gated candidate via an injected
+`onCandidate` hook, and `toGradedTraceRow()` renders the exact harvest REC-SHAPE
+(`{system, user, target, grader, family:'program-evolution', modality:'code',
+source:'evolve-loop', agentId, ts}`). Pure + injectable; the sink is the caller's.
+
+**Proven on local metal (same Jetson run):** the 6 gated failures became **6
+graded DPO-rejected rows**, harvest-ready. Confirmed against `harvest_real.py`'s
+`_grader_passed(rec)` — `rec.grader.passed is True → SFT`, else `→ DPO/contrast` —
+so the evolve rows flow into the existing pipeline **unchanged**.
+
+**An honest signal in the generated data:** `brittney-edge:v0-4` (fine-tuned on
+HoloScript) kept rewriting the JS seed into `@trait { … }` HoloScript syntax —
+which failed the JS-shaped gate. That model bias *is* what DPO corrects, and it
+argues for HoloScript-native targets (the WASMCompiler / `.hs` next increment
+matches the model's competence). The loop captured the bias as labeled rejection
+data — exactly the point.
+
+**The closed loop:**
+```
+evolve (Loop 1, test-gated) → graded REC-SHAPE rows (chosen=SFT / rejected=DPO)
+  → harvest_real.py grader-gate → DPO/SFT corpus → HoloTune fine-tune
+  → brittney-edge:v0-5 → proposes better → finds improvements v0-4 couldn't → ↻
+```
+Data generation is **free on local metal** and accumulates per run.
+
+**Loop-2 guardrails (mirror Loop 1's propose-not-ship):** (a) grader-gate on the
+harvest (existing) — train only on verifier-labeled data; (b) held-out eval before
+`holotune_promote` — never auto-redeploy a regression; (c) verifier independent of
+the proposer (the test-gate ≠ the model); (d) **spend** — generating data is free,
+but *fine-tuning* is GPU: the Jetson (8GB) is too small, it needs the sovereign
+Vast fleet, and >$100/day GPU is the founder gate.
+
+### Staged: the fine-tune run (the one GPU-spend step)
+
+Not run here — it needs accumulated data (one run ≈ 6 rows) and the spend
+decision. The pipeline already exists: point an `@evolve_program` policy at a
+HoloScript-native target, schedule N runs on the Jetson (free) to accumulate the
+trace corpus, then `holotune` curate → launch (Vast fleet, qwen3-coder or a
+brittney-edge continue-train) → eval (held-out) → promote → serve back to the
+Jetson as `brittney-edge:v0-5`. Reproduce the data step:
+`EVOLVE_LOCAL_METAL_PROOF=1 pnpm --filter @holoscript/core exec vitest run
+src/evolution/__tests__/EvolveProgramBackend.local-metal.test.ts`.

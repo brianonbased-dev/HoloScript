@@ -10,7 +10,13 @@
  * @see ../EvolveProgramBackend.ts
  */
 import { describe, it, expect } from 'vitest';
-import { runEvolution, type EvolvePolicy, type Gate } from '../EvolveProgramBackend';
+import {
+  runEvolution,
+  toGradedTraceRow,
+  type EvolvePolicy,
+  type Gate,
+  type EvolveTraceRecord,
+} from '../EvolveProgramBackend';
 
 const policy: EvolvePolicy = {
   goal: 'shorten while staying valid',
@@ -99,5 +105,54 @@ describe('runEvolution (gated evolutionary loop)', () => {
     const a = await run();
     const b = await run();
     expect(a.receipt.verifyUrl).toBe(b.receipt.verifyUrl);
+  });
+});
+
+describe('evolve → training data bridge (the second loop)', () => {
+  it('emits a verifier-labeled record for EVERY gated candidate — pass AND fail', async () => {
+    const recs: EvolveTraceRecord[] = [];
+    await runEvolution('OK 0123456789', policy, {
+      propose: scriptedProposer(['OK 012345', 'BAD junk', 'OK 12', 'OK 012345']),
+      gate,
+      now: NOW,
+      onCandidate: (r) => recs.push(r),
+    });
+    // 4 proposals reached the gate → 4 records (the seed is not a proposal, not emitted).
+    expect(recs.length).toBe(4);
+    // Both outcomes captured: passing (SFT/chosen) and failing (DPO/rejected).
+    expect(recs.filter((r) => r.passed).length).toBe(3);
+    const failed = recs.filter((r) => !r.passed);
+    expect(failed.length).toBe(1);
+    // The discarded failure is STILL captured — it is the rejected training example.
+    expect(failed[0].candidateCode).toBe('BAD junk');
+    expect(failed[0].score).toBe(Infinity);
+    expect(failed[0].goal).toBe(policy.goal);
+  });
+
+  it('toGradedTraceRow renders the harvest REC-SHAPE (passed→SFT, failed→DPO-rejected)', () => {
+    const ts = NOW();
+    const passRow = toGradedTraceRow(
+      { gen: 1, parentId: 0, parentCode: 'OK long', goal: 'shorten', candidateCode: 'OK', passed: true, score: 2 },
+      { agentId: 'claude1', ts },
+    );
+    expect(passRow).toMatchObject({
+      target: 'OK',
+      family: 'program-evolution',
+      modality: 'code',
+      source: 'evolve-loop',
+      agentId: 'claude1',
+      ts,
+    });
+    expect(passRow.user).toContain('GOAL: shorten');
+    expect(passRow.user).toContain('OK long'); // the parent the model must improve
+    expect(passRow.grader).toMatchObject({ passed: true, score: 2, kind: 'evolve-gated' });
+
+    // Failed candidate → score null (dropped from SFT, kept for DPO/contrast by the grader-gate).
+    const failRow = toGradedTraceRow(
+      { gen: 1, parentId: 0, parentCode: 'OK', goal: 'g', candidateCode: 'BAD', passed: false, score: Infinity },
+      { agentId: 'claude1', ts },
+    );
+    expect(failRow.grader).toMatchObject({ passed: false, score: null });
+    expect(failRow.target).toBe('BAD');
   });
 });

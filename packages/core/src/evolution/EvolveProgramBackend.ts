@@ -59,12 +59,37 @@ export type Proposer = (parentCode: string, goal: string, policy: EvolvePolicy) 
 /** The correctness + fitness oracle. `passed` is the hard gate; `score` is lower-is-better. */
 export type Gate = (candidateCode: string) => Promise<{ passed: boolean; score: number }>;
 
+/**
+ * One gated proposal, as training signal. THE second loop: every candidate that
+ * reaches the gate — pass OR fail — is verifier-labeled supervision for the
+ * proposer model. `passed:true` is an imitation (SFT) example; `passed:false` is
+ * a contrast (DPO-rejected) example. This is how the loop closes on the "small
+ * agent problem": a weak local proposer's gated failures fine-tune the next
+ * model so it proposes better. See {@link toGradedTraceRow}.
+ */
+export interface EvolveTraceRecord {
+  gen: number;
+  parentId: number;
+  parentCode: string;
+  goal: string;
+  candidateCode: string;
+  passed: boolean;
+  /** Fitness, lower-is-better. `Infinity` when the candidate failed the gate. */
+  score: number;
+}
+
 /** Injected effects, so the loop is pure + deterministic under test. */
 export interface EvolveIO {
   propose: Proposer;
   gate: Gate;
   /** ISO timestamp source (injected for deterministic tests). */
   now?: () => string;
+  /**
+   * Called once per GATED candidate (gen >= 1) with verifier-labeled training
+   * signal — the data bridge to the harvest → DPO/SFT → HoloTune pipeline.
+   * Pure: the loop hands you the record; YOU decide the sink (file/stdout/none).
+   */
+  onCandidate?: (rec: EvolveTraceRecord) => void;
 }
 
 export type EvolveOutcome = 'IMPROVED' | 'NO_IMPROVEMENT' | 'SEED_INVALID';
@@ -236,6 +261,19 @@ export async function runEvolution(
         note: g.passed ? 'gated_pass' : 'gated_fail_discarded',
       });
 
+      // DATA BRIDGE: every gated candidate — pass OR fail — is verifier-labeled
+      // training signal for the proposer model (the second loop). A discarded
+      // failure is still emitted: it is the DPO-rejected example.
+      io.onCandidate?.({
+        gen,
+        parentId: parent.cand.id,
+        parentCode: parent.code,
+        goal: policy.goal,
+        candidateCode: code,
+        passed: g.passed,
+        score: g.passed ? g.score : Infinity,
+      });
+
       // THE GUARDRAIL: a candidate that fails correctness is discarded, never kept.
       if (!g.passed) {
         discarded++;
@@ -287,5 +325,55 @@ export function makeOllamaProposer(endpoint: string, model: string): Proposer {
       .replace(/^```[a-z]*\n?/i, '')
       .replace(/\n?```$/i, '')
       .trim();
+  };
+}
+
+/** A graded training row in the ecosystem REC-SHAPE — the exact shape
+ *  `scripts/trace-writer.mjs` writes and `harvest_real.py` reads
+ *  (`{system, user, target, grader, family, modality, source, agentId, ts}`),
+ *  so evolve traces flow into the existing grader-gated harvest unchanged. */
+export interface GradedTraceRow {
+  system: string;
+  user: string;
+  target: string;
+  grader: Record<string, unknown>;
+  family: string;
+  modality: string;
+  source: string;
+  agentId: string;
+  ts: string;
+}
+
+/**
+ * Convert a gated evolve candidate into a graded training row. The harvest's
+ * grader-gate (close-the-poison-vector) routes it: `passed:true` → the SFT
+ * corpus (imitate good proposals); `passed:false` → kept for DPO/contrast
+ * (the verifier-labeled "don't propose this" signal). `user` is the proposer
+ * prompt the model should learn to answer well; `target` is what it proposed.
+ */
+export function toGradedTraceRow(
+  rec: EvolveTraceRecord,
+  opts: { agentId: string; ts: string; source?: string },
+): GradedTraceRow {
+  return {
+    system:
+      'HoloScript program-evolution proposer: improve the program toward the goal while keeping it valid.',
+    user:
+      `GOAL: ${rec.goal}\n\n` +
+      `Improve this program toward the goal. Return ONLY the full revised program.\n\n` +
+      `--- CURRENT PROGRAM ---\n${rec.parentCode}\n--- END ---`,
+    target: rec.candidateCode,
+    grader: {
+      passed: rec.passed,
+      score: rec.passed ? rec.score : null,
+      kind: 'evolve-gated',
+      gen: rec.gen,
+      parentId: rec.parentId,
+    },
+    family: 'program-evolution',
+    modality: 'code',
+    source: opts.source ?? 'evolve-loop',
+    agentId: opts.agentId,
+    ts: opts.ts,
   };
 }
