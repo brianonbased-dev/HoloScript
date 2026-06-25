@@ -1,0 +1,27 @@
+@trait {
+  name: "@ecs_world",
+  category: "physics",
+  description: "Entity-Component-System runtime for high-throughput spatial scenes (target: 1K+ entities @ 60fps). Component types: Transform/Velocity/Collider/Renderable/Agent via bitmask queries. Systems: physics (Euler integration), agent movement, LOD (camera-distance levels). WASM bridge path for future acceleration. Optional auto-benchmark on attach. Port of ECSWorldTrait.ts wasmBridgeHandler (no explicit name field — assigned ecs_world).",
+  props: {
+    entity_count: number = 100,
+    target_fps: number = 60,
+    auto_benchmark: boolean = false,
+    systems: list<string> = ["physics", "agents", "lod"]
+  },
+  events: {
+    on_ready: "ecs_ready",
+    on_stopped: "ecs_stopped",
+    on_ticked: "ecs_ticked",
+    on_entity_spawned: "ecs_entity_spawned",
+    on_entity_destroyed: "ecs_entity_destroyed",
+    on_query_result: "ecs_query_result",
+    on_stats: "ecs_stats",
+    on_benchmark_complete: "ecs_benchmark_complete",
+    tick: "ecs_tick",
+    spawn_entity: "ecs_spawn_entity",
+    destroy_entity: "ecs_destroy_entity",
+    query: "ecs_query",
+    benchmark: "ecs_benchmark"
+  },
+  behaviors: ["@physics_body", "@kinematic_chain", "@terrain_anchor"]
+}

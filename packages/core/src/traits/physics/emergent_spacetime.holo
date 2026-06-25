@@ -1,0 +1,23 @@
+@trait {
+  name: "@emergent_spacetime",
+  category: "physics",
+  description: "Provenance-weighted entanglement network where spacetime geometry emerges from entanglement structure. Implements H1 from LOOP OUTPUT v4: prov_fuse (idempotent, associative, CRDT-merge), emergent distance metric d(i,j)=-log(|⟨ψ_i|ψ_j⟩|²×p_ij/S(ρ_i||ρ_j)), Ricci curvature with violation logging (|computed_Ricci|<1e-5 = flatness guarantee, NOT full GR validation), force-layout singularity guard, adaptive octree LOD, Hubble correction from provenance loop density. Mulberry32 seeded PRNG for deterministic replay. Port of EmergentSpacetimeTrait.ts (handler name: emergent_spacetime).",
+  props: {
+    initial_voxels: number = 1000,
+    max_voxels: number = 1000000,
+    real_time_budget_ms: number = 2.0,
+    ricci_error_bound: number = 0.00001,
+    loop_threshold: number = 0.05,
+    ricci_heatmap: boolean = true,
+    force_layout_guard: boolean = true,
+    seed: number = 42
+  },
+  events: {
+    attached: "emergent_spacetime_ready",
+    detached: "emergent_spacetime_stopped",
+    on_updated: "emergent_spacetime_updated",
+    on_violation: "emergent_spacetime_ricci_violation",
+    on_error: "emergent_spacetime_error"
+  },
+  behaviors: ["@physics_body", "@ecs_world"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@co_located",
+  category: "spatial",
+  description: "Shared AR experience in the same physical space with spatial alignment. Multiple users see the same virtual content in the same location via cloud_anchor/image_marker/qr_code/manual/vps alignment. Tracks per-participant alignment state. Configurable alignment timeout (ms), visual indicator, max participant count, auto-align, and realignment threshold (meters). Port of CoLocatedTrait.ts (handler name: co_located).",
+  props: {
+    shared_anchor_id: string = "",
+    alignment_method: enum("cloud_anchor" | "image_marker" | "qr_code" | "manual" | "vps") = "cloud_anchor",
+    alignment_timeout: number = 30000,
+    visual_indicator: boolean = true,
+    max_participants: number = 10,
+    auto_align: boolean = true,
+    realignment_threshold: number = 0.5
+  },
+  events: {
+    on_aligned: "co_located_aligned",
+    on_lost: "co_located_lost",
+    on_participant_joined: "co_located_participant_joined",
+    on_participant_left: "co_located_participant_left",
+    on_realigned: "co_located_realigned",
+    on_error: "co_located_error",
+    align: "co_located_align",
+    update_cursor: "co_located_update_cursor"
+  },
+  behaviors: ["@vps", "@geospatial_anchor", "@geospatial"]
+}

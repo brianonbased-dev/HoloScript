@@ -1,0 +1,16 @@
+@trait {
+  name: "@a_i_driver",
+  category: "cognitive",
+  description: "Behavior tree runner for NPC AI. Dynamically loads behavior root config and dispatches to a BehaviorTreeRunner delegate. Supports Idle/Wander/Hunt/Flee/Gather/Rest/Fear/Curious/Patrol/Attack/Chase behavioral nodes. Reconfigures at runtime via a_i_driver_configure with a new behavior payload. Port of AIDriverTrait.ts (handler name: a_i_driver — no defaultConfig, behavior root is passed at runtime).",
+  props: {
+    initial_state: enum("idle" | "wander" | "patrol" | "hunt" | "flee" | "gather" | "rest" | "fear" | "curious" | "attack" | "chase") = "idle"
+  },
+  events: {
+    attached: "a_i_driver_attached",
+    detached: "a_i_driver_detached",
+    configure: "a_i_driver_configure",
+    on_state_changed: "a_i_driver_state_changed",
+    on_action: "a_i_driver_action"
+  },
+  behaviors: ["@caveman_drive", "@ai_companion", "@behavior_tree"]
+}
