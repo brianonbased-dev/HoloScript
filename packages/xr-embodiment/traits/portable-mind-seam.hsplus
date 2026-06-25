@@ -1,0 +1,59 @@
+// @portable_mind_seam — D.102 E5b: wallet-keyed agent mind carry into XR avatar at spawn.
+//
+// Apply to any @avatar or @agent_body entity to bind a running agent's identity + memory
+// to the headset body. The bearer authenticates as the seat wallet; the mind loads
+// private:<wallet> memory from the mesh, proving one continuous agent across substrates.
+//
+// Usage:
+//   avatar#jetson_body @portable_mind_seam(
+//     bearer: env("HOLOSCRIPT_AGENT_X402_BEARER"),
+//     mesh_api_base: env("HOLOMESH_API_BASE"),
+//     team_id: env("HOLOMESH_TEAM_ID"),
+//     agent_id: "jetson-orin-super"
+//   ) { ... }
+//
+// Compile target: compile_to_android_xr / compile_to_openxr / compile_to_visionos
+// Runtime bridge: PortableMind interface in @holoscript/xr-embodiment (structural)
+
+@trait portable_mind_seam {
+  // Required: pre-resolved x402 bearer for the seat wallet (sourced from vault, never embedded)
+  bearer: String
+
+  // Required: HoloMesh API base endpoint
+  mesh_api_base: String
+
+  // Required: team ID the seat belongs to
+  team_id: String
+
+  // Optional: seat handle; defaults to wallet address derived from the bearer
+  agent_id: String?
+
+  capability_tags: ["identity_carry", "portable_mind", "wallet_keyed", "cross_substrate"]
+
+  @on_spawn => {
+    mind = build_portable_mind({
+      bearer: bearer,
+      mesh_api_base: mesh_api_base,
+      team_id: team_id,
+      agent_id: agent_id
+    })
+    identity = mind.identity()
+    memories = mind.load_memory(limit: 50)
+    emit("mind_loaded", {
+      wallet: identity.wallet,
+      agent_id: identity.agent_id,
+      memory_count: len(memories)
+    })
+  }
+
+  // CrossSubstrateIdentityReceipt — proves one continuous agent across node + headset
+  @receipt cross_substrate_identity {
+    type: "CrossSubstrateIdentityReceipt"
+    wallet: derived(bearer)
+    agent_id: agent_id ?? derived(bearer)
+    substrate_from: "jetson-edge"
+    substrate_to: "xr-embodiment"
+    memory_count: len(memories)
+    timestamp: now()
+  }
+}
