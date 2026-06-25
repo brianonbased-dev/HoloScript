@@ -1,0 +1,29 @@
+@trait {
+  name: "@volumetric_window",
+  category: "xr",
+  description: "visionOS spatial window management: bounded/unbounded/volumetric/immersive/mixed window types with tabletop/room/world/object scale modes and full/progressive/mixed immersion styles. Configurable initial dimensions (meters), resizable flag, min/max scale multipliers, default placement (front/hand/scene), and ornament (window chrome) visibility. Port of VolumetricWindowTrait.ts (handler name: volumetric_window).",
+  props: {
+    window_type: enum("bounded" | "unbounded" | "volumetric" | "immersive" | "mixed") = "bounded",
+    scale_mode: enum("tabletop" | "room" | "world" | "object") = "tabletop",
+    immersion_style: enum("full" | "progressive" | "mixed") = "mixed",
+    initial_width: number = 0.6,
+    initial_height: number = 0.4,
+    initial_depth: number = 0.3,
+    resizable: boolean = true,
+    min_scale: number = 0.1,
+    max_scale: number = 10.0,
+    default_placement: enum("front" | "hand" | "scene") = "front",
+    ornament_visibility: boolean = true
+  },
+  events: {
+    attached: "volumetric_window_opened",
+    detached: "volumetric_window_closed",
+    on_resized: "volumetric_window_resized",
+    on_immersion_changed: "volumetric_window_immersion_changed",
+    open: "volumetric_window_open",
+    close: "volumetric_window_close",
+    resize: "volumetric_window_resize",
+    set_immersion: "volumetric_window_set_immersion"
+  },
+  behaviors: ["@open_xr_hal", "@ar_placement"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@volumetric_clouds",
+  category: "environment",
+  description: "Raymarched volumetric cloud sky dome using Beer-Lambert absorption and Henyey-Greenstein phase function. Reads wind/cloud_density/cloud_altitude from @weather blackboard when use_weather=true. Configurable altitude, layer thickness, absorption and scattering coefficients, phase asymmetry, ray-march step count, wind influence, and base coverage. Port of VolumetricCloudsTrait.ts (handler name: volumetric_clouds).",
+  props: {
+    altitude: number = 500.0,
+    thickness: number = 200.0,
+    absorption_coeff: number = 0.04,
+    scattering_coeff: number = 0.06,
+    phase_g: number = 0.3,
+    max_steps: number = 64,
+    wind_scale: number = 1.0,
+    coverage: number = 0.5,
+    use_weather: boolean = true
+  },
+  events: {
+    attached: "volumetric_clouds_create",
+    detached: "volumetric_clouds_destroy",
+    on_update: "volumetric_clouds_update"
+  },
+  behaviors: ["@weather", "@sky_dome", "@volumetric"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@vqeRunner",
+  category: "cognitive",
+  description: "Variational Quantum Eigensolver (VQE) execution loop for quantum chemistry. Composes with @quantumCircuit to specify and execute quantum simulations. Supports aer/statevector/ibm-quantum backends, COBYLA/SPSA/L-BFGS-B/Nelder-Mead optimizers, and STO-3G/6-31G/cc-pVDZ basis sets. Emits CAEL self-certifying receipts on convergence. Cancel is post-hoc (flag-based, not AbortSignal-wired). Port of VQERunnerTrait.ts (handler name: vqeRunner).",
+  props: {
+    method: enum("vqe" | "vqe-adapt") = "vqe",
+    basis: enum("sto-3g" | "6-31g" | "cc-pvdz") = "sto-3g",
+    backend: enum("aer" | "ibm-quantum" | "statevector") = "aer",
+    optimizer: enum("cobyla" | "spsa" | "l-bfgs-b" | "nelder-mead") = "cobyla",
+    ansatz_type: string = "",
+    max_iter: number = 300,
+    n_shots: number = 1024,
+    write_receipt: boolean = true
+  },
+  events: {
+    on_started: "vqe:started",
+    on_energy: "vqe:energy",
+    on_converged: "vqe:converged",
+    on_receipt: "vqe:receipt",
+    on_error: "vqe:error",
+    run: "vqe:run",
+    cancel: "vqe:cancel",
+    status: "vqe:status"
+  },
+  behaviors: ["@quantum_circuit", "@paper26_quantum_assignment"]
+}

@@ -1,0 +1,15 @@
+@trait {
+  name: "@vector_search",
+  category: "data",
+  description: "Nearest-neighbor similarity search over named vector collections. Index documents with vsearch:index, query with vsearch:query (cosine similarity ranking, returns topK matches). Caps total collection count via max_collections. Port of VectorSearchTrait.ts (handler name: vector_search).",
+  props: {
+    default_top_k: number = 10,
+    max_collections: number = 20
+  },
+  events: {
+    on_result: "vsearch:result",
+    index: "vsearch:index",
+    query: "vsearch:query"
+  },
+  behaviors: ["@vector_db", "@rag_retriever"]
+}
