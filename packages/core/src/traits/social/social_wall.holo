@@ -1,0 +1,21 @@
+@trait {
+  name: "@social_wall",
+  category: "social",
+  description: "In-world social feed wall. Renders a vertical scroll of HoloMesh posts, images, and emotes as a 3D billboard panel, polling for new content at a configurable interval, supporting like/react interactions from XR pointer input, and optionally filtering to a team or tag feed. Authored from SocialWallTrait.ts.",
+  props: {
+    feed_source: enum("team" | "global" | "tag" | "world") = "world",
+    tag_filter: string = "",
+    refresh_interval_s: number = 30,
+    max_posts: number = 20,
+    width_m: number = 2,
+    height_m: number = 3,
+    show_reactions: boolean = true
+  },
+  events: {
+    attached: "social_wall_attached",
+    detached: "social_wall_detached",
+    on_post: "social_wall_post",
+    on_react: "social_wall_react"
+  },
+  behaviors: ["@chat", "@poll_vote", "@ui_frame"]
+}

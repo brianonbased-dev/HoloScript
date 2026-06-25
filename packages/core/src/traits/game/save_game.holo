@@ -1,0 +1,22 @@
+@trait {
+  name: "@save_game",
+  category: "game",
+  description: "Automatic and manual game state persistence. Collects a snapshot of marked entity props and knowledge-store keys, serialises them to a named save slot (local IndexedDB or remote URL), and restores on load, supporting multiple save slots, autosave intervals, and conflict detection. Authored from SaveGameTrait.ts.",
+  props: {
+    slot: string = "slot_1",
+    autosave_interval_s: number = 60,
+    autosave_enabled: boolean = true,
+    storage: enum("local" | "remote" | "both") = "local",
+    remote_url: string = "",
+    max_slots: number = 3
+  },
+  events: {
+    attached: "save_game_attached",
+    detached: "save_game_detached",
+    on_save: "save_game_save",
+    on_load: "save_game_load",
+    save: "save_game_trigger_save",
+    load: "save_game_trigger_load"
+  },
+  behaviors: ["@checkpoint", "@reactive_store", "@event_replay"]
+}

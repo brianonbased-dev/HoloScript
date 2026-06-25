@@ -1,0 +1,21 @@
+@trait {
+  name: "@screen_shader",
+  category: "visual",
+  description: "Full-screen post-process shader effect. Applies a custom GLSL/WGSL fragment shader as a full-screen quad pass after the main scene render, supporting uniform injection from entity props, hot-reload, and chaining with other screen passes (bloom, color-grade, vignette). Authored from ScreenShaderTrait.ts.",
+  props: {
+    shader_url: string = "",
+    uniforms: dict<string, number> = {},
+    enabled: boolean = true,
+    priority: number = 0,
+    blend: enum("over" | "add" | "multiply") = "over",
+    hot_reload: boolean = false
+  },
+  events: {
+    attached: "screen_shader_attached",
+    detached: "screen_shader_detached",
+    on_load: "screen_shader_load",
+    on_error: "screen_shader_error",
+    set_uniform: "screen_shader_trigger_set_uniform"
+  },
+  behaviors: ["@color_grade", "@vignette", "@bloom"]
+}

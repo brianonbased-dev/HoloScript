@@ -1,0 +1,21 @@
+@trait {
+  name: "@spawner_pool",
+  category: "world",
+  description: "Pre-warmed entity object pool manager. Pre-instantiates N copies of a template entity, recycling them on spawn/despawn rather than creating/destroying, reducing frame spikes for frequently-spawned objects such as projectiles, particles, or NPCs. Authored from SpawnerPoolTrait.ts.",
+  props: {
+    template_entity_id: string = "",
+    pool_size: number = 20,
+    preload: boolean = true,
+    overflow_policy: enum("discard" | "expand" | "recycle_oldest") = "discard",
+    expand_by: number = 5
+  },
+  events: {
+    attached: "spawner_pool_attached",
+    detached: "spawner_pool_detached",
+    on_spawn: "spawner_pool_spawn",
+    on_recycle: "spawner_pool_recycle",
+    spawn: "spawner_pool_trigger_spawn",
+    recycle: "spawner_pool_trigger_recycle"
+  },
+  behaviors: ["@spawn_gate", "@resource_loader", "@procedural_placement"]
+}
