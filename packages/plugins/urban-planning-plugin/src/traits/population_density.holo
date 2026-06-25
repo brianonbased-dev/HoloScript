@@ -1,0 +1,19 @@
+@trait {
+  name: "@population_density",
+  category: "urban",
+  description: "Urban population density model. populationCount is the current population. areaKm2 is the zone area in km² (used to compute density: people/km²). growthRatePercent is the annual population growth rate (default: 1.5%). ageDistribution maps age cohort labels to percentages (optional). housingUnits is the total dwelling count. avgHouseholdSize is the mean occupants per unit (default: 2.5). Port of PopulationDensityTrait.ts (handler name: population_density).",
+  props: {
+    population_count: number = 0,
+    area_km2: number = 1,
+    growth_rate_percent: number = 1.5,
+    housing_units: number = 0,
+    avg_household_size: number = 2.5
+  },
+  events: {
+    on_density_updated: "population_density_updated",
+    on_growth_projected: "population_growth_projected",
+    update: "population_update",
+    project: "population_project"
+  },
+  behaviors: ["@zoning", "@geospatial_climate", "@traffic_flow"]
+}

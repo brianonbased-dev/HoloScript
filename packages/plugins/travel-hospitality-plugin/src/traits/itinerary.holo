@@ -1,0 +1,19 @@
+@trait {
+  name: "@itinerary",
+  category: "travel",
+  description: "Travel itinerary aggregator. tripName is the trip label. startDate and endDate are ISO 8601 dates. travelers is the party size. items is an ordered list of itinerary segments (date, time, type, title, location, confirmationNumber). Port of ItineraryTrait.ts (handler name: itinerary).",
+  props: {
+    trip_name: string = "",
+    start_date: string = "",
+    end_date: string = "",
+    travelers: number = 1
+  },
+  events: {
+    on_item_added: "itinerary_item_added",
+    on_item_changed: "itinerary_item_changed",
+    on_conflict: "itinerary_conflict",
+    add_item: "itinerary_add",
+    remove_item: "itinerary_remove"
+  },
+  behaviors: ["@reservation", "@rate_management"]
+}

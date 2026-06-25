@@ -1,0 +1,20 @@
+@trait {
+  name: "@rate_management",
+  category: "travel",
+  description: "Hospitality dynamic rate management. baseRate is the standard nightly/unit rate. currency is ISO 4217. seasons is a list of seasonal rate overrides (name, dateRange, multiplier). weekendMultiplier applies a rate bump on Friday/Saturday nights (default: 1.2 = +20%). dynamicPricingEnabled enables demand-based pricing. minRate and maxRate enforce rate floor and ceiling. Port of RateManagementTrait.ts (handler name: rate_management).",
+  props: {
+    base_rate: number = 100,
+    currency: string = "USD",
+    weekend_multiplier: number = 1.2,
+    dynamic_pricing_enabled: boolean = false,
+    min_rate: number = 50,
+    max_rate: number = 500
+  },
+  events: {
+    on_rate_updated: "rate_updated",
+    on_surge: "rate_surge",
+    update_base: "rate_update_base",
+    calculate: "rate_calculate"
+  },
+  behaviors: ["@reservation", "@itinerary"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@geospatial_climate",
+  category: "urban",
+  description: "Urban microclimate simulation. baseTemperatureC is the ambient temperature baseline. albedo is the surface solar reflectance (0=black, 1=mirror; default 0.2 = asphalt). vegetationCoverPercent is the green coverage percentage (0-100). windPermeability controls airflow through the urban canyon (0=sealed, 1=open). waterRetentionRate is the fraction of rainfall retained (0-1). emitEvents enables periodic temperature/humidity update events. emitIntervalMs is the event cadence (default: 2000ms). Port of GeospatialClimateTrait.ts (handler name: geospatial_climate).",
+  props: {
+    base_temperature_c: number = 22,
+    albedo: number = 0.2,
+    vegetation_cover_percent: number = 10,
+    wind_permeability: number = 0.5,
+    water_retention_rate: number = 0.3,
+    emit_events: boolean = true,
+    emit_interval_ms: number = 2000
+  },
+  events: {
+    on_temperature_changed: "climate_temperature_changed",
+    on_heat_island_alert: "climate_heat_island",
+    update: "climate_update"
+  },
+  behaviors: ["@zoning", "@population_density", "@traffic_flow"]
+}

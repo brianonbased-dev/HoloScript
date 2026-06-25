@@ -1,0 +1,22 @@
+@trait {
+  name: "@zoning",
+  category: "urban",
+  description: "Urban land use zoning code. zoneType: residential, commercial, industrial, mixed_use, open_space, or agricultural. density: low, medium, or high. maxHeightM is the maximum building height in meters (default: 15m). floorAreaRatio (FAR) is the ratio of gross floor area to lot area (default: 2.0). setbackM is the minimum setback from property lines in meters (default: 5m). lotCoveragePercent is the maximum lot coverage percentage (default: 60%). parkingRequirement is the minimum parking spaces per unit (default: 1.5). Port of ZoningTrait.ts (handler name: zoning).",
+  props: {
+    zone_type: enum("residential" | "commercial" | "industrial" | "mixed_use" | "open_space" | "agricultural") = "residential",
+    density: enum("low" | "medium" | "high") = "medium",
+    max_height_m: number = 15,
+    floor_area_ratio: number = 2.0,
+    setback_m: number = 5,
+    lot_coverage_percent: number = 60,
+    parking_requirement: number = 1.5
+  },
+  events: {
+    on_variance_requested: "zoning_variance_requested",
+    on_variance_approved: "zoning_variance_approved",
+    on_violation: "zoning_violation",
+    request_variance: "zoning_request_variance",
+    check_compliance: "zoning_check_compliance"
+  },
+  behaviors: ["@geospatial_climate", "@population_density", "@traffic_flow"]
+}

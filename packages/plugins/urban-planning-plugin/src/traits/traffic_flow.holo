@@ -1,0 +1,20 @@
+@trait {
+  name: "@traffic_flow",
+  category: "urban",
+  description: "Urban traffic flow simulation. roadType: arterial, collector, or local. lanesPerDirection is the lane count (default: 1). speedLimitKmh is the posted speed limit (default: 50 km/h). capacityVehiclesPerHour is the theoretical maximum throughput per direction (default: 800 veh/h). intersectionType: signal, stop_sign, roundabout, or interchange — affects capacity modeling. Port of TrafficFlowTrait.ts (handler name: traffic_flow).",
+  props: {
+    road_type: enum("arterial" | "collector" | "local") = "local",
+    lanes_per_direction: number = 1,
+    speed_limit_kmh: number = 50,
+    capacity_vehicles_per_hour: number = 800,
+    intersection_type: enum("signal" | "stop_sign" | "roundabout" | "interchange") = "stop_sign"
+  },
+  events: {
+    on_congestion: "traffic_congestion",
+    on_incident: "traffic_incident",
+    on_flow_updated: "traffic_flow_updated",
+    update_volume: "traffic_update_volume",
+    simulate: "traffic_simulate"
+  },
+  behaviors: ["@zoning", "@geospatial_climate", "@population_density"]
+}

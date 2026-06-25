@@ -1,0 +1,26 @@
+@trait {
+  name: "@reservation",
+  category: "travel",
+  description: "Hospitality reservation record. confirmationNumber is the booking reference. guestName is the primary guest. roomType: standard, deluxe, suite, or villa. checkIn/checkOut are ISO 8601 dates. guests is the occupancy count. ratePerNight is the nightly rate in the given currency. Status: pending, confirmed, checked_in, checked_out, or cancelled. Port of ReservationTrait.ts (handler name: reservation).",
+  props: {
+    confirmation_number: string = "",
+    guest_name: string = "",
+    room_type: enum("standard" | "deluxe" | "suite" | "villa") = "standard",
+    check_in: string = "",
+    check_out: string = "",
+    guests: number = 1,
+    rate_per_night: number = 0,
+    currency: string = "USD"
+  },
+  events: {
+    on_confirmed: "reservation_confirmed",
+    on_checked_in: "reservation_checked_in",
+    on_checked_out: "reservation_checked_out",
+    on_cancelled: "reservation_cancelled",
+    confirm: "reservation_confirm",
+    check_in: "reservation_check_in",
+    check_out: "reservation_check_out",
+    cancel: "reservation_cancel"
+  },
+  behaviors: ["@rate_management", "@itinerary"]
+}
