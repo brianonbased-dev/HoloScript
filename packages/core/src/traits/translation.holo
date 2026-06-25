@@ -1,0 +1,15 @@
+@trait {
+  name: "@translation",
+  category: "i18n",
+  description: "Internationalisation translation. fallback_locale is the locale used when a key is missing from the active locale (default: en). Port of TranslationTrait.ts (handler name: translation).",
+  props: {
+    fallback_locale: string = "en"
+  },
+  events: {
+    on_loaded: "translation:loaded",
+    on_changed: "translation:changed",
+    load: "translation.load",
+    t: "translation.t"
+  },
+  behaviors: ["@locale", "@vocabulary_register"]
+}

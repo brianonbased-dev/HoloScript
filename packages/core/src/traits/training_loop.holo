@@ -1,0 +1,17 @@
+@trait {
+  name: "@training_loop",
+  category: "ml",
+  description: "Supervised training loop. max_epochs is the maximum training rounds (default: 100). learning_rate is the optimizer step size (default: 0.001). Port of TrainingLoopTrait.ts (handler name: training_loop).",
+  props: {
+    max_epochs: number = 100,
+    learning_rate: number = 0.001
+  },
+  events: {
+    on_epoch: "training_loop:epoch",
+    on_complete: "training_loop:complete",
+    on_loss: "training_loop:loss",
+    start: "training_loop.start",
+    stop: "training_loop.stop"
+  },
+  behaviors: ["@neural_forge", "@quantum_inspired", "@tensor_op"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@world_state",
+  category: "world",
+  description: "World state synchroniser. sync_interval is the state broadcast cadence in seconds (default: 0.1s = 10Hz). autosave_interval is the persist cadence in seconds (default: 30s). max_objects is the world object capacity (default: 10,000). persist_terrain saves terrain state on autosave (default: true). Port of WorldStateTrait.ts (handler name: world_state).",
+  props: {
+    sync_interval: number = 0.1,
+    autosave_interval: number = 30,
+    max_objects: number = 10000,
+    persist_terrain: boolean = true
+  },
+  events: {
+    on_synced: "world_state:synced",
+    on_saved: "world_state:saved",
+    sync: "world_state.sync",
+    save: "world_state.save"
+  },
+  behaviors: ["@shared_world", "@versioned_state", "@world_heartbeat"]
+}

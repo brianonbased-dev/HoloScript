@@ -1,0 +1,18 @@
+@trait {
+  name: "@vision",
+  category: "ai",
+  description: "Computer vision scan. scan_interval is the ms between scans (default: 1000ms). fov is the camera field-of-view in degrees (default: 90°). max_distance is the detection range in meters (default: 10m). auto_scan starts scanning on attach (default: false). Port of VisionTrait.ts (handler name: vision).",
+  props: {
+    scan_interval: number = 1000,
+    fov: number = 90,
+    max_distance: number = 10,
+    auto_scan: boolean = false
+  },
+  events: {
+    on_detected: "vision:detected",
+    on_scan: "vision:scan",
+    start: "vision.start",
+    stop: "vision.stop"
+  },
+  behaviors: ["@perception", "@object_tracking", "@mesh_detection"]
+}

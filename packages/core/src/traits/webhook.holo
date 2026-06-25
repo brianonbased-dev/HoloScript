@@ -1,0 +1,16 @@
+@trait {
+  name: "@webhook",
+  category: "integration",
+  description: "HTTP webhook dispatcher. url is the target endpoint. method: POST (default), PUT, PATCH, GET. headers is the default header map (default includes Content-Type: application/json). timeout_ms is the request timeout in ms (default: 30,000ms). Port of WebhookTrait.ts (handler name: webhook).",
+  props: {
+    url: string = "",
+    method: enum("POST" | "PUT" | "PATCH" | "GET") = "POST",
+    timeout_ms: number = 30000
+  },
+  events: {
+    on_dispatched: "webhook:dispatched",
+    on_error: "webhook:error",
+    dispatch: "webhook.dispatch"
+  },
+  behaviors: ["@webhook_out", "@rest_endpoint", "@messaging"]
+}

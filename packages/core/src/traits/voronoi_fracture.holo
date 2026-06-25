@@ -1,0 +1,12 @@
+@trait {
+  name: "@voronoi_fracture",
+  category: "physics",
+  description: "Voronoi fracture for destructible objects. Config is set at class construction. Port of VoronoiFractureTrait.ts (handler name: voronoi_fracture).",
+  props: {},
+  events: {
+    on_fractured: "voronoi_fracture:fractured",
+    on_shard_settled: "voronoi_fracture:shard_settled",
+    fracture: "voronoi_fracture.fracture"
+  },
+  behaviors: ["@rigidbody", "@soft_body", "@chaos_test"]
+}

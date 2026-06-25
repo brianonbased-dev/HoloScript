@@ -1,0 +1,14 @@
+@trait {
+  name: "@transaction",
+  category: "web3",
+  description: "Atomic transaction coordinator. Manages multi-step transaction state with commit/rollback semantics. Config is context-dependent and set at instance construction. Port of TransactionTrait.ts (handler name: transaction).",
+  props: {},
+  events: {
+    on_committed: "transaction:committed",
+    on_rolled_back: "transaction:rolled_back",
+    begin: "transaction.begin",
+    commit: "transaction.commit",
+    rollback: "transaction.rollback"
+  },
+  behaviors: ["@rollback", "@persistent", "@resource_accounting"]
+}

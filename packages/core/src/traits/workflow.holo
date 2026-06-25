@@ -1,0 +1,17 @@
+@trait {
+  name: "@workflow",
+  category: "ops",
+  description: "Multi-step workflow engine. max_steps is the maximum steps per workflow (default: 50). Port of WorkflowTrait.ts (handler name: workflow).",
+  props: {
+    max_steps: number = 50
+  },
+  events: {
+    on_step: "workflow:step",
+    on_complete: "workflow:complete",
+    on_error: "workflow:error",
+    start: "workflow.start",
+    next: "workflow.next",
+    abort: "workflow.abort"
+  },
+  behaviors: ["@pipeline", "@state_machine", "@rollback"]
+}

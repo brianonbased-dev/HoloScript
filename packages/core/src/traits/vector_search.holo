@@ -1,0 +1,15 @@
+@trait {
+  name: "@vector_search",
+  category: "ml",
+  description: "In-memory vector search over named collections. default_top_k is the default nearest-neighbour count (default: 10). max_collections is the maximum number of named collections (default: 20). Port of VectorSearchTrait.ts (handler name: vector_search).",
+  props: {
+    default_top_k: number = 10,
+    max_collections: number = 20
+  },
+  events: {
+    on_result: "vector_search:result",
+    search: "vector_search.search",
+    upsert: "vector_search.upsert"
+  },
+  behaviors: ["@vector_db", "@rag_knowledge"]
+}

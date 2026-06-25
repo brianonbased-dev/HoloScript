@@ -1,0 +1,18 @@
+@trait {
+  name: "@urdf_robot",
+  category: "robotics",
+  description: "URDF robot description loader. urdf_source is the URL or file path to the URDF file. preview_format: usdz (default), glb, obj. interactive_joints enables joint manipulation (default: true). up_axis is the model up axis: Y (default), Z. Port of URDFRobotTrait.ts (handler name: urdf_robot).",
+  props: {
+    urdf_source: string = "",
+    preview_format: enum("usdz" | "glb" | "obj") = "usdz",
+    interactive_joints: boolean = true,
+    up_axis: enum("Y" | "Z") = "Y"
+  },
+  events: {
+    on_loaded: "urdf_robot:loaded",
+    on_joint_moved: "urdf_robot:joint_moved",
+    load: "urdf_robot.load",
+    move_joint: "urdf_robot.move_joint"
+  },
+  behaviors: ["@twin_actuator", "@skeleton", "@wot_thing"]
+}

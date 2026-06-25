@@ -1,0 +1,14 @@
+@trait {
+  name: "@transform",
+  category: "data",
+  description: "Declarative data transform pipeline. rules is the list of transform rules applied in sequence (default: []). Port of TransformTrait.ts (handler name: transform).",
+  props: {
+    rules: array = []
+  },
+  events: {
+    on_transformed: "transform:transformed",
+    on_error: "transform:error",
+    apply: "transform.apply"
+  },
+  behaviors: ["@data_transform", "@pipeline", "@data_bridge"]
+}

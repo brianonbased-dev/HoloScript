@@ -1,0 +1,18 @@
+@trait {
+  name: "@versioned_state",
+  category: "data",
+  description: "Versioned CRDT state. strategy: crdt (default), snapshot, event_sourcing. branches is the number of parallel state branches (default: 4). auto_merge_lww enables last-write-wins auto-merge (default: true). Port of VersionedStateTrait.ts (handler name: versioned_state).",
+  props: {
+    strategy: enum("crdt" | "snapshot" | "event_sourcing") = "crdt",
+    branches: number = 4,
+    auto_merge_lww: boolean = true
+  },
+  events: {
+    on_merged: "versioned_state:merged",
+    on_conflict: "versioned_state:conflict",
+    commit: "versioned_state.commit",
+    branch: "versioned_state.branch",
+    merge: "versioned_state.merge"
+  },
+  behaviors: ["@reactive_store", "@rollback", "@world_state"]
+}

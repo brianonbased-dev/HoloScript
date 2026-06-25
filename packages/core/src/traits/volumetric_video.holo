@@ -1,0 +1,19 @@
+@trait {
+  name: "@volumetric_video",
+  category: "rendering",
+  description: "Volumetric video playback. source is the video asset URL. format: 4dgs (default), holobox, depthkit. loop enables looping playback (default: false). playback_rate is the playback speed multiplier (default: 1.0). Port of VolumetricVideoTrait.ts (handler name: volumetric_video).",
+  props: {
+    source: string = "",
+    format: enum("4dgs" | "holobox" | "depthkit") = "4dgs",
+    loop: boolean = false,
+    playback_rate: number = 1.0
+  },
+  events: {
+    on_play: "volumetric_video:play",
+    on_end: "volumetric_video:end",
+    play: "volumetric_video.play",
+    pause: "volumetric_video.pause",
+    stop: "volumetric_video.stop"
+  },
+  behaviors: ["@volumetric", "@point_cloud", "@scene_graph"]
+}

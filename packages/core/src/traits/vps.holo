@@ -1,0 +1,17 @@
+@trait {
+  name: "@vps",
+  category: "xr",
+  description: "Visual Positioning System. provider: arcore (default), immersal, localization_timeout is the max wait for VPS fix in ms (default: 30,000ms). continuous_tracking keeps tracking active after initial fix (default: true). coverage_check verifies provider coverage before attempting VPS (default: true). Port of VPSTrait.ts (handler name: vps).",
+  props: {
+    provider: enum("arcore" | "immersal") = "arcore",
+    coverage_check: boolean = true,
+    localization_timeout: number = 30000,
+    continuous_tracking: boolean = true
+  },
+  events: {
+    on_localized: "vps:localized",
+    on_lost: "vps:lost",
+    on_error: "vps:error"
+  },
+  behaviors: ["@geospatial_anchor", "@persistent_anchor", "@shared_anchor"]
+}

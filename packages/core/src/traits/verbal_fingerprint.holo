@@ -1,0 +1,14 @@
+@trait {
+  name: "@verbal_fingerprint",
+  category: "language",
+  description: "Author verbal fingerprint detector. fingerprint_key is the fingerprint store key (default: default). Analyzes writing style metrics (sentence length, vocab richness, punctuation density) to profile authorship. Port of VerbalFingerprintTrait.ts (handler name: verbal_fingerprint).",
+  props: {
+    fingerprint_key: string = "default"
+  },
+  events: {
+    on_fingerprinted: "verbal_fingerprint:fingerprinted",
+    analyze: "verbal_fingerprint.analyze",
+    match: "verbal_fingerprint.match"
+  },
+  behaviors: ["@vocabulary_register", "@wisdom"]
+}

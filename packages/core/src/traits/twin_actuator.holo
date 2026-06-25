@@ -1,0 +1,16 @@
+@trait {
+  name: "@twin_actuator",
+  category: "robotics",
+  description: "Digital-twin actuator bridge. actuator_id is the physical actuator identifier. command_topic is the MQTT topic for commands (default: commands). allowed_actions is the whitelist of permitted commands (default: [move, rotate, stop, toggle]). safe_limits are the axis-keyed safety bounds (runtime-specified). Port of TwinActuatorTrait.ts (handler name: twin_actuator).",
+  props: {
+    actuator_id: string = "",
+    command_topic: string = "commands"
+  },
+  events: {
+    on_commanded: "twin_actuator:commanded",
+    on_limit_breach: "twin_actuator:limit_breach",
+    on_faulted: "twin_actuator:faulted",
+    command: "twin_actuator.command"
+  },
+  behaviors: ["@mqtt_pub", "@wot_thing", "@sensor"]
+}

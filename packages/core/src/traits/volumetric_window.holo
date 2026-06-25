@@ -1,0 +1,18 @@
+@trait {
+  name: "@volumetric_window",
+  category: "xr",
+  description: "Mixed-reality volumetric window. window_type: bounded (default), unbounded, portal. scale_mode: tabletop (default), room, world. immersion_style: mixed (default), immersive, transparent. initial_width is the window width in meters (default: 0.6m). Port of VolumetricWindowTrait.ts (handler name: volumetric_window).",
+  props: {
+    window_type: enum("bounded" | "unbounded" | "portal") = "bounded",
+    scale_mode: enum("tabletop" | "room" | "world") = "tabletop",
+    immersion_style: enum("mixed" | "immersive" | "transparent") = "mixed",
+    initial_width: number = 0.6
+  },
+  events: {
+    on_opened: "volumetric_window:opened",
+    on_resized: "volumetric_window:resized",
+    open: "volumetric_window.open",
+    close: "volumetric_window.close"
+  },
+  behaviors: ["@spatial_panel", "@volumetric", "@openxr_hal"]
+}

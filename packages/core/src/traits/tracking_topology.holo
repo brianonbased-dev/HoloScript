@@ -1,0 +1,16 @@
+@trait {
+  name: "@tracking_topology",
+  category: "xr",
+  description: "Multi-node spatial tracking topology visualiser. hub_position is the center hub in scene coordinates (default: origin). radius is the ring radius in meters (default: 3m). node_scale is the tracking node display scale (default: 1.0). refresh_rate_ms is the topology refresh cadence in ms (default: 100ms). Port of TrackingTopologyTrait.ts (handler name: tracking_topology).",
+  props: {
+    radius: number = 3,
+    node_scale: number = 1.0,
+    refresh_rate_ms: number = 100
+  },
+  events: {
+    on_updated: "tracking_topology:updated",
+    on_node_joined: "tracking_topology:node_joined",
+    on_node_left: "tracking_topology:node_left"
+  },
+  behaviors: ["@multi_target_tracking", "@networked_avatar", "@remote_presence"]
+}

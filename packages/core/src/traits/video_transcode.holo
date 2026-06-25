@@ -1,0 +1,15 @@
+@trait {
+  name: "@video_transcode",
+  category: "media",
+  description: "Video transcoding. default_codec: h264 (default), h265, av1, vp9. max_bitrate is the output bitrate cap in kbps (default: 8,000 kbps). Port of VideoTranscodeTrait.ts (handler name: video_transcode).",
+  props: {
+    default_codec: enum("h264" | "h265" | "av1" | "vp9") = "h264",
+    max_bitrate: number = 8000
+  },
+  events: {
+    on_complete: "video_transcode:complete",
+    on_progress: "video_transcode:progress",
+    transcode: "video_transcode.transcode"
+  },
+  behaviors: ["@volumetric_video", "@pdf_generate", "@push_notification"]
+}
