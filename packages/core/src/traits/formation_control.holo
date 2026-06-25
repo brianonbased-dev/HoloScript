@@ -1,0 +1,22 @@
+@trait {
+  name: "@formation_control",
+  category: "ai",
+  description: "Multi-agent formation control for swarm entities. shape: triangle, line, grid, circle, or custom. spacing is the inter-agent gap in world units (default: 3.0m). anchor is the entity ID of the formation anchor/leader (empty = world origin). sync_rate_hz is how often formation positions are recomputed (default: 10 Hz). rotation_offset_rad rotates the entire formation around the anchor (default: 0). y_offset shifts the formation vertically (default: 0). Port of FormationControlTrait.ts (handler name: formation_control).",
+  props: {
+    shape: enum("triangle" | "line" | "grid" | "circle" | "custom") = "triangle",
+    spacing: number = 3.0,
+    anchor: string = "",
+    sync_rate_hz: number = 10,
+    rotation_offset_rad: number = 0,
+    y_offset: number = 0
+  },
+  events: {
+    on_joined: "formation_joined",
+    on_position_updated: "formation_position_updated",
+    on_disbanded: "formation_disbanded",
+    join: "formation_join",
+    leave: "formation_leave",
+    update_shape: "formation_update_shape"
+  },
+  behaviors: ["@ai_driver", "@behavior_tree"]
+}

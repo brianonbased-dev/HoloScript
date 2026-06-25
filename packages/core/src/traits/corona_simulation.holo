@@ -1,0 +1,21 @@
+@trait {
+  name: "@corona_simulation",
+  category: "science",
+  description: "Solar corona simulation for astronomical visualization. base_temperature_mk is the baseline coronal temperature in megakelvin (default: 1.5 MK). loop_count is the number of coronal loop strands (default: 24). prominence_seed is the PRNG seed for prominence placement (default: 42). streamer_belt enables the equatorial streamer belt (default: true). coronal_holes lists active coronal hole regions (default: ['north', 'south']). cme_enabled enables coronal mass ejection simulation (default: false). halo_scale and halo_opacity control the outer halo glow. Port of CoronaSimulationTrait.ts (handler name: corona_simulation).",
+  props: {
+    base_temperature_mk: number = 1.5,
+    loop_count: number = 24,
+    prominence_seed: number = 42,
+    streamer_belt: boolean = true,
+    cme_enabled: boolean = false,
+    halo_scale: number = 2.5,
+    halo_opacity: number = 0.35
+  },
+  events: {
+    on_cme_ejection: "corona_cme_ejection",
+    on_loop_updated: "corona_loop_updated",
+    trigger_cme: "corona_trigger_cme",
+    set_activity: "corona_set_activity"
+  },
+  behaviors: ["@advanced_lighting"]
+}

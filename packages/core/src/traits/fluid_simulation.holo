@@ -1,0 +1,14 @@
+@trait {
+  name: "@fluid_simulation",
+  category: "physics",
+  description: "Fluid dynamics simulation (SPH, grid, or hybrid) attached to an entity. Wraps a FluidSimulationSystem instance. defaultConfig is empty — simulation parameters (viscosity, density, gravity, resolution) are resolved from the FluidSimulationSystem constructor args at runtime. Emits fluid_simulation_attached/detached lifecycle events. Port of FluidSimulationTrait.ts (handler name: fluid_simulation).",
+  props: {},
+  events: {
+    on_attached: "fluid_simulation_attached",
+    on_detached: "fluid_simulation_detached",
+    on_step: "fluid_simulation_step",
+    step: "fluid_simulation.step",
+    reset: "fluid_simulation.reset"
+  },
+  behaviors: ["@granular_material"]
+}

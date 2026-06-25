@@ -1,0 +1,11 @@
+@trait {
+  name: "@ai_driver",
+  category: "ai",
+  description: "AI behavior driver that wraps a BehaviorTreeRunner around an attached entity. Consumes a behavior-tree configuration (compatible with @behavior_tree) and drives the node via tick events. defaultConfig is empty — the behavior root is resolved from the attached node context at runtime. Emits a_i_driver_attached/detached lifecycle events. Port of AIDriverTrait.ts (handler name: a_i_driver).",
+  props: {},
+  events: {
+    on_attached: "a_i_driver_attached",
+    on_detached: "a_i_driver_detached"
+  },
+  behaviors: ["@behavior_tree", "@formation_control"]
+}

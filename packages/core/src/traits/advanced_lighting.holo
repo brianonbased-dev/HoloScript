@@ -1,0 +1,14 @@
+@trait {
+  name: "@advanced_lighting",
+  category: "rendering",
+  description: "Renderer-adapter trait for advanced photometric light types not available in standard three.js: area_rect (rectangular area light), area_disk (disk area light), ies (IES photometric profile), emissive_mesh (mesh-based GI emitter), cookie (gobo/cookie projection). The lights array is the authoring payload — each entry is a typed discriminated union {type, config}. Renderer adapters consume this at runtime. Port of AdvancedLightingTrait.ts (handler name: advanced_lighting).",
+  props: {
+    renderer_required: boolean = true
+  },
+  events: {
+    on_attached: "advanced_lighting_attached",
+    on_detached: "advanced_lighting_detached",
+    on_updated: "advanced_lighting_updated"
+  },
+  behaviors: ["@cinematic_camera", "@color_grade"]
+}

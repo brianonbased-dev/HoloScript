@@ -1,0 +1,26 @@
+@trait {
+  name: "@fairness_monitor",
+  category: "audit",
+  description: "Real-time fairness/bias monitor for AI decision pipelines. Computes adverse impact ratios (protected vs unprotected group approval rates) over a sliding window and emits CAEL receipts on drift. enabled toggles the monitor (default: true). window_size is the sliding evaluation window in records (default: 200). min_window_size is the minimum records before scoring begins (default: 20). protected_attribute_field is the record field name holding the protected group label (default: protectedAttribute). decision_field is the record field holding the binary decision (default: approved). positive_decision_values are the values counted as positive outcomes. sweep_cadence triggers a sweep every N records (default: 25). adverse_impact_threshold is the 4/5ths rule threshold (default: 0.8). drift_threshold is the delta that triggers a drift event (default: 0.05). Port of FairnessMonitorTrait.ts (handler name: fairness_monitor).",
+  props: {
+    enabled: boolean = true,
+    window_size: number = 200,
+    min_window_size: number = 20,
+    protected_attribute_field: string = "protectedAttribute",
+    decision_field: string = "approved",
+    sweep_cadence: number = 25,
+    adverse_impact_threshold: number = 0.8,
+    drift_threshold: number = 0.05,
+    emit_audit_log: boolean = true,
+    emit_security_event: boolean = true
+  },
+  events: {
+    on_ready: "fairness_monitor_ready",
+    on_sweep: "fairness_monitor_sweep",
+    on_drift: "fairness_monitor_drift",
+    on_violation: "fairness_monitor_violation",
+    record: "fairness_monitor_record",
+    reset: "fairness_monitor_reset"
+  },
+  behaviors: ["@provenance", "@interoperability_badge"]
+}

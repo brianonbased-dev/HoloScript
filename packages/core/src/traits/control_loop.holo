@@ -1,0 +1,14 @@
+@trait {
+  name: "@control_loop",
+  category: "robotics",
+  description: "Generic feedback control loop (PID / bang-bang / custom). Maintains __control_state and __control_output on the node. Responds to control_loop.reset, control_loop.step (with setpoint and measurement), and control_loop.set_params events. defaultConfig is empty — control parameters (Kp, Ki, Kd, mode) are set via the set_params event or inherited from the node context. Port of ControlLoopTrait.ts (handler name: control_loop).",
+  props: {},
+  events: {
+    on_step: "control_loop_step",
+    on_reset: "control_loop_reset",
+    step: "control_loop.step",
+    reset: "control_loop.reset",
+    set_params: "control_loop.set_params"
+  },
+  behaviors: ["@ros2_hardware_loop", "@sensor_sampling", "@kinematic_chain"]
+}

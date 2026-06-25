@@ -1,0 +1,24 @@
+@trait {
+  name: "@grab_feedback_profile",
+  category: "xr",
+  description: "VR grab interaction feedback profile — configures haptic, audio, and bloom responses when objects are grabbed/thrown/released. haptic.grab/throw/release are haptic pattern names (soft_pulse, sharp_snap, click). haptic.intensity is the motor amplitude 0-1 (default: 0.7). haptic.duration_ms is the vibration duration (default: 100ms). audio.grab/release are sound asset references (empty = none). audio.volume 0-1 (default: 0.6). audio.spatial enables 3D positional audio (default: true). audio.max_distance is the audio falloff radius in meters (default: 6m). bloom.idle_intensity/held_intensity/ramp_ms configure the emissive bloom glow on grab. Port of GrabFeedbackProfileTrait.ts (handler name: grab_feedback_profile).",
+  props: {
+    haptic_intensity: number = 0.7,
+    haptic_duration_ms: number = 100,
+    audio_volume: number = 0.6,
+    audio_spatial: boolean = true,
+    audio_max_distance: number = 6,
+    bloom_idle_intensity: number = 0.8,
+    bloom_held_intensity: number = 2.5,
+    bloom_ramp_ms: number = 80
+  },
+  events: {
+    on_grab: "grab_feedback_grab",
+    on_throw: "grab_feedback_throw",
+    on_release: "grab_feedback_release",
+    trigger_grab: "grab_feedback.grab",
+    trigger_throw: "grab_feedback.throw",
+    trigger_release: "grab_feedback.release"
+  },
+  behaviors: ["@hand_mesh_ai"]
+}

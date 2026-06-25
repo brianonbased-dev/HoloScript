@@ -1,0 +1,18 @@
+@trait {
+  name: "@behavior_tree",
+  category: "ai",
+  description: "Behavior tree executor for NPC and agent AI. root is the tree root node definition (type: sequence|selector|parallel|leaf with optional children array). tick_rate is the evaluation frequency in Hz (default: 10). debug_visualization renders the tree state in the inspector (default: false). blackboard is a key-value store of named variables shared across tree nodes. restart_on_complete restarts the tree from the root when it succeeds or fails (default: true). Port of BehaviorTreeTrait.ts (handler name: behavior_tree).",
+  props: {
+    tick_rate: number = 10,
+    debug_visualization: boolean = false,
+    restart_on_complete: boolean = true
+  },
+  events: {
+    on_tick: "behavior_tree_tick",
+    on_completed: "behavior_tree_completed",
+    on_failed: "behavior_tree_failed",
+    reset: "behavior_tree_reset",
+    set_blackboard: "behavior_tree_set_blackboard"
+  },
+  behaviors: ["@ai_driver", "@formation_control"]
+}

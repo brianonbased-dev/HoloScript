@@ -1,0 +1,29 @@
+@trait {
+  name: "@collaborative_world",
+  category: "collaboration",
+  description: "Loro CRDT-backed real-time collaborative world state. roomName is the shared session identifier (default: Untitled Collaborative World). syncRateHz is the CRDT sync frequency in Hz (default: 60). transformFields lists the entity fields synchronized across peers (default: position, rotation, scale). conflictResolution: lock_required (explicit lock before mutation), lamport_merge (timestamp-ordered CRDT merge), last_write_wins, or reject_remote. selectionLocks enables pessimistic locking for mutations (lockTtlMs default: 3000ms). presenceCursors broadcasts peer cursor/position in cursorFrame (world or local). concertBridge enables the HoloMesh concert-mode relay. opLogLimit caps the in-memory op log size (default: 2048). Port of CollaborativeWorldTrait.ts (handler name: collaborative_world).",
+  props: {
+    room_name: string = "Untitled Collaborative World",
+    sync_rate_hz: number = 60,
+    conflict_resolution: enum("lock_required" | "lamport_merge" | "last_write_wins" | "reject_remote") = "lock_required",
+    selection_locks: boolean = true,
+    lock_ttl_ms: number = 3000,
+    presence_cursors: boolean = true,
+    cursor_frame: enum("world" | "local") = "world",
+    presence_timeout_ms: number = 5000,
+    concert_bridge: boolean = true,
+    debug_ghosts: boolean = true,
+    op_log_limit: number = 2048
+  },
+  events: {
+    on_init: "collaborative_world_init",
+    on_peer_joined: "collaborative_world_peer_joined",
+    on_peer_left: "collaborative_world_peer_left",
+    on_lock_acquired: "collaborative_world_lock_acquired",
+    on_lock_released: "collaborative_world_lock_released",
+    on_conflict: "collaborative_world_conflict",
+    acquire_lock: "collaborative_world_acquire_lock",
+    release_lock: "collaborative_world_release_lock"
+  },
+  behaviors: ["@world_portal"]
+}

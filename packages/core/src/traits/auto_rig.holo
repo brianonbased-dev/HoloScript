@@ -1,0 +1,16 @@
+@trait {
+  name: "@auto_rig",
+  category: "animation",
+  description: "Automatic skeleton rigging for character meshes. rig: humanoid (55-bone BONE_ORDER layout; use BONE_ORDER.length not a hardcoded count) or custom (7-bone root/center/top/left/right/front/back scaffold). pose: t-pose (standard anatomical rest position) or a-pose (arms-down variant). topology: animation-compatible (blendshape-ready UV layout) or provider-native (as-generated). Emits auto_rig_bound with the generated skeleton plan. Port of AutoRigTrait.ts (handler name: auto_rig).",
+  props: {
+    rig: enum("humanoid" | "custom") = "humanoid",
+    pose: enum("t-pose" | "a-pose") = "t-pose",
+    topology: enum("animation-compatible" | "provider-native") = "animation-compatible"
+  },
+  events: {
+    on_bound: "auto_rig_bound",
+    on_detached: "auto_rig_detached",
+    rebind: "auto_rig_rebind"
+  },
+  behaviors: ["@animation", "@kinematic_chain"]
+}

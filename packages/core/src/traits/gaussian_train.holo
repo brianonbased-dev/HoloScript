@@ -1,0 +1,28 @@
+@trait {
+  name: "@gaussian_train",
+  category: "reconstruction",
+  description: "Compile-time 3DGS training configuration — consumed by GaussianTrainCompiler, not by a runtime renderer (a registered VR_TRAITS name with no runtime handler is a silent no-op by design; §394 constants). views is the path/URI to the input image set (SfM or video). init: random or sfm (Structure-from-Motion point cloud). iterations is the training step count (default: 30,000). targetGaussians is the target splat count (default: 500,000). Learning rates — positionLR, scaleLR, rotationLR, opacityLR, colorLR — govern the Adam optimizer. densifyInterval is how often densification runs (default: 100 steps). dilation is the Gaussian dilation factor for densification (default: 0.3). backend: sovereign (local trainer, default — F.127 native-first) or remote (fleet GPU). output is the output path for the trained .splat file. Port of GaussianTrainTrait.ts (handler name: gaussian_train).",
+  props: {
+    views: string = "",
+    init: enum("random" | "sfm") = "random",
+    iterations: number = 30000,
+    target_gaussians: number = 500000,
+    position_lr: number = 0.00016,
+    scale_lr: number = 0.005,
+    rotation_lr: number = 0.001,
+    opacity_lr: number = 0.05,
+    color_lr: number = 0.0025,
+    densify_interval: number = 100,
+    dilation: number = 0.3,
+    backend: enum("sovereign" | "remote") = "sovereign",
+    output: string = ""
+  },
+  events: {
+    on_training_started: "gaussian_train_started",
+    on_training_completed: "gaussian_train_completed",
+    on_checkpoint: "gaussian_train_checkpoint",
+    start: "gaussian_train_start",
+    stop: "gaussian_train_stop"
+  },
+  behaviors: ["@gaussian_splat", "@provenance"]
+}
