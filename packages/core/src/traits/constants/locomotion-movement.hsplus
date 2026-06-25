@@ -1,0 +1,16 @@
+// @constants_locomotion_movement — Registry: locomotion and movement trait name set.
+//
+// Native .hsplus surface for core/traits/constants/locomotion-movement.ts.
+
+@trait constants_locomotion_movement {
+  capability_tags: ["constants", "locomotion_movement", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_locomotion_movement_ready", {})
+  }
+
+  @receipt constants_locomotion_movement_config {
+    type: "ConstantsLocomotionMovementReceipt"
+    timestamp: now()
+  }
+}

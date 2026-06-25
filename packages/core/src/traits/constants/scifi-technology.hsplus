@@ -1,0 +1,16 @@
+// @constants_scifi_technology — Registry: sci-fi and futuristic technology trait name set.
+//
+// Native .hsplus surface for core/traits/constants/scifi-technology.ts.
+
+@trait constants_scifi_technology {
+  capability_tags: ["constants", "scifi_technology", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_scifi_technology_ready", {})
+  }
+
+  @receipt constants_scifi_technology_config {
+    type: "ConstantsScifiTechnologyReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_physics_expansion — Registry: extended physics simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/physics-expansion.ts.
+
+@trait constants_physics_expansion {
+  capability_tags: ["constants", "physics_expansion", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_physics_expansion_ready", {})
+  }
+
+  @receipt constants_physics_expansion_config {
+    type: "ConstantsPhysicsExpansionReceipt"
+    timestamp: now()
+  }
+}

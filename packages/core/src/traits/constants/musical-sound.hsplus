@@ -1,0 +1,16 @@
+// @constants_musical_sound — Registry: musical sound synthesis trait name set.
+//
+// Native .hsplus surface for core/traits/constants/musical-sound.ts.
+
+@trait constants_musical_sound {
+  capability_tags: ["constants", "musical_sound", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_musical_sound_ready", {})
+  }
+
+  @receipt constants_musical_sound_config {
+    type: "ConstantsMusicalSoundReceipt"
+    timestamp: now()
+  }
+}

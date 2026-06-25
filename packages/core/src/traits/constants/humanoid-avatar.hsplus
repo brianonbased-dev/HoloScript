@@ -1,0 +1,16 @@
+// @constants_humanoid_avatar — Registry: humanoid avatar and embodiment trait name set.
+//
+// Native .hsplus surface for core/traits/constants/humanoid-avatar.ts.
+
+@trait constants_humanoid_avatar {
+  capability_tags: ["constants", "humanoid_avatar", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_humanoid_avatar_ready", {})
+  }
+
+  @receipt constants_humanoid_avatar_config {
+    type: "ConstantsHumanoidAvatarReceipt"
+    timestamp: now()
+  }
+}

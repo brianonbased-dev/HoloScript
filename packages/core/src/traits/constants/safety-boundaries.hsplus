@@ -1,0 +1,16 @@
+// @constants_safety_boundaries — Registry: safety and boundary enforcement trait name set.
+//
+// Native .hsplus surface for core/traits/constants/safety-boundaries.ts.
+
+@trait constants_safety_boundaries {
+  capability_tags: ["constants", "safety_boundaries", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_safety_boundaries_ready", {})
+  }
+
+  @receipt constants_safety_boundaries_config {
+    type: "ConstantsSafetyBoundariesReceipt"
+    timestamp: now()
+  }
+}

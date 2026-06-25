@@ -1,0 +1,16 @@
+// @constants_media_analytics — Registry: media analytics trait name set.
+//
+// Native .hsplus surface for core/traits/constants/media-analytics.ts.
+
+@trait constants_media_analytics {
+  capability_tags: ["constants", "media_analytics", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_media_analytics_ready", {})
+  }
+
+  @receipt constants_media_analytics_config {
+    type: "ConstantsMediaAnalyticsReceipt"
+    timestamp: now()
+  }
+}

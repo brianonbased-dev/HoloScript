@@ -1,0 +1,16 @@
+// @constants_robotics_industrial — Registry: robotics and industrial automation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/robotics-industrial.ts.
+
+@trait constants_robotics_industrial {
+  capability_tags: ["constants", "robotics_industrial", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_robotics_industrial_ready", {})
+  }
+
+  @receipt constants_robotics_industrial_config {
+    type: "ConstantsRoboticsIndustrialReceipt"
+    timestamp: now()
+  }
+}

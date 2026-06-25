@@ -1,0 +1,16 @@
+// @constants_music_performance — Registry: music performance trait name set.
+//
+// Native .hsplus surface for core/traits/constants/music-performance.ts.
+
+@trait constants_music_performance {
+  capability_tags: ["constants", "music_performance", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_music_performance_ready", {})
+  }
+
+  @receipt constants_music_performance_config {
+    type: "ConstantsMusicPerformanceReceipt"
+    timestamp: now()
+  }
+}

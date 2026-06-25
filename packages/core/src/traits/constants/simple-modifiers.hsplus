@@ -1,0 +1,16 @@
+// @constants_simple_modifiers — Registry: simple modifier trait name set.
+//
+// Native .hsplus surface for core/traits/constants/simple-modifiers.ts.
+
+@trait constants_simple_modifiers {
+  capability_tags: ["constants", "simple_modifiers", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_simple_modifiers_ready", {})
+  }
+
+  @receipt constants_simple_modifiers_config {
+    type: "ConstantsSimpleModifiersReceipt"
+    timestamp: now()
+  }
+}

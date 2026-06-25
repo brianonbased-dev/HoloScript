@@ -1,0 +1,16 @@
+// @constants_instancing_geometry — Registry: GPU instancing and geometry trait name set.
+//
+// Native .hsplus surface for core/traits/constants/instancing-geometry.ts.
+
+@trait constants_instancing_geometry {
+  capability_tags: ["constants", "instancing_geometry", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_instancing_geometry_ready", {})
+  }
+
+  @receipt constants_instancing_geometry_config {
+    type: "ConstantsInstancingGeometryReceipt"
+    timestamp: now()
+  }
+}

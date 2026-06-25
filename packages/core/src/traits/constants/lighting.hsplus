@@ -1,0 +1,16 @@
+// @constants_lighting — Registry: lighting and illumination trait name set.
+//
+// Native .hsplus surface for core/traits/constants/lighting.ts.
+
+@trait constants_lighting {
+  capability_tags: ["constants", "lighting", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_lighting_ready", {})
+  }
+
+  @receipt constants_lighting_config {
+    type: "ConstantsLightingReceipt"
+    timestamp: now()
+  }
+}

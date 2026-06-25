@@ -1,0 +1,16 @@
+// @constants_nature_life — Registry: nature and life simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/nature-life.ts.
+
+@trait constants_nature_life {
+  capability_tags: ["constants", "nature_life", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_nature_life_ready", {})
+  }
+
+  @receipt constants_nature_life_config {
+    type: "ConstantsNatureLifeReceipt"
+    timestamp: now()
+  }
+}

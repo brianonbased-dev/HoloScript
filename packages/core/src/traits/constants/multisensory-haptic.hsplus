@@ -1,0 +1,16 @@
+// @constants_multisensory_haptic — Registry: multisensory and haptic trait name set.
+//
+// Native .hsplus surface for core/traits/constants/multisensory-haptic.ts.
+
+@trait constants_multisensory_haptic {
+  capability_tags: ["constants", "multisensory_haptic", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_multisensory_haptic_ready", {})
+  }
+
+  @receipt constants_multisensory_haptic_config {
+    type: "ConstantsMultisensoryHapticReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_ml_inference — Registry: ML inference trait name set.
+//
+// Native .hsplus surface for core/traits/constants/ml-inference.ts.
+
+@trait constants_ml_inference {
+  capability_tags: ["constants", "ml_inference", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_ml_inference_ready", {})
+  }
+
+  @receipt constants_ml_inference_config {
+    type: "ConstantsMlInferenceReceipt"
+    timestamp: now()
+  }
+}

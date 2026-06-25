@@ -1,0 +1,16 @@
+// @constants_i18n_localization — Registry: i18n and localization trait name set.
+//
+// Native .hsplus surface for core/traits/constants/i18n-localization.ts.
+
+@trait constants_i18n_localization {
+  capability_tags: ["constants", "i18n_localization", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_i18n_localization_ready", {})
+  }
+
+  @receipt constants_i18n_localization_config {
+    type: "ConstantsI18nLocalizationReceipt"
+    timestamp: now()
+  }
+}

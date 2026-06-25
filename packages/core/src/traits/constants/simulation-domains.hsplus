@@ -1,0 +1,16 @@
+// @constants_simulation_domains — Registry: simulation domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/simulation-domains.ts.
+
+@trait constants_simulation_domains {
+  capability_tags: ["constants", "simulation_domains", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_simulation_domains_ready", {})
+  }
+
+  @receipt constants_simulation_domains_config {
+    type: "ConstantsSimulationDomainsReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_iot_autonomous_agents — Registry: IoT and autonomous agent trait name set.
+//
+// Native .hsplus surface for core/traits/constants/iot-autonomous-agents.ts.
+
+@trait constants_iot_autonomous_agents {
+  capability_tags: ["constants", "iot_autonomous_agents", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_iot_autonomous_agents_ready", {})
+  }
+
+  @receipt constants_iot_autonomous_agents_config {
+    type: "ConstantsIotAutonomousAgentsReceipt"
+    timestamp: now()
+  }
+}

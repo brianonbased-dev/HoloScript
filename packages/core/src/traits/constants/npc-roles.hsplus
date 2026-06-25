@@ -1,0 +1,16 @@
+// @constants_npc_roles — Registry: NPC role and archetype trait name set.
+//
+// Native .hsplus surface for core/traits/constants/npc-roles.ts.
+
+@trait constants_npc_roles {
+  capability_tags: ["constants", "npc_roles", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_npc_roles_ready", {})
+  }
+
+  @receipt constants_npc_roles_config {
+    type: "ConstantsNpcRolesReceipt"
+    timestamp: now()
+  }
+}

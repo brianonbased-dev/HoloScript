@@ -1,0 +1,16 @@
+// @constants_narrative_storytelling — Registry: narrative and storytelling trait name set.
+//
+// Native .hsplus surface for core/traits/constants/narrative-storytelling.ts.
+
+@trait constants_narrative_storytelling {
+  capability_tags: ["constants", "narrative_storytelling", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_narrative_storytelling_ready", {})
+  }
+
+  @receipt constants_narrative_storytelling_config {
+    type: "ConstantsNarrativeStorytellingReceipt"
+    timestamp: now()
+  }
+}

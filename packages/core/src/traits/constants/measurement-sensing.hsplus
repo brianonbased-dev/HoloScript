@@ -1,0 +1,16 @@
+// @constants_measurement_sensing — Registry: measurement and sensing trait name set.
+//
+// Native .hsplus surface for core/traits/constants/measurement-sensing.ts.
+
+@trait constants_measurement_sensing {
+  capability_tags: ["constants", "measurement_sensing", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_measurement_sensing_ready", {})
+  }
+
+  @receipt constants_measurement_sensing_config {
+    type: "ConstantsMeasurementSensingReceipt"
+    timestamp: now()
+  }
+}

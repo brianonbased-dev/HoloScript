@@ -1,0 +1,16 @@
+// @constants_resource_gathering — Registry: resource gathering and crafting trait name set.
+//
+// Native .hsplus surface for core/traits/constants/resource-gathering.ts.
+
+@trait constants_resource_gathering {
+  capability_tags: ["constants", "resource_gathering", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_resource_gathering_ready", {})
+  }
+
+  @receipt constants_resource_gathering_config {
+    type: "ConstantsResourceGatheringReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_scripting_automation — Registry: scripting and automation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/scripting-automation.ts.
+
+@trait constants_scripting_automation {
+  capability_tags: ["constants", "scripting_automation", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_scripting_automation_ready", {})
+  }
+
+  @receipt constants_scripting_automation_config {
+    type: "ConstantsScriptingAutomationReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_notification_alerting — Registry: notification and alerting trait name set.
+//
+// Native .hsplus surface for core/traits/constants/notification-alerting.ts.
+
+@trait constants_notification_alerting {
+  capability_tags: ["constants", "notification_alerting", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_notification_alerting_ready", {})
+  }
+
+  @receipt constants_notification_alerting_config {
+    type: "ConstantsNotificationAlertingReceipt"
+    timestamp: now()
+  }
+}

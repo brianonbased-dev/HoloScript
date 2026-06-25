@@ -1,0 +1,16 @@
+// @constants_rendering — Registry: rendering pipeline trait name set.
+//
+// Native .hsplus surface for core/traits/constants/rendering.ts.
+
+@trait constants_rendering {
+  capability_tags: ["constants", "rendering", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_rendering_ready", {})
+  }
+
+  @receipt constants_rendering_config {
+    type: "ConstantsRenderingReceipt"
+    timestamp: now()
+  }
+}

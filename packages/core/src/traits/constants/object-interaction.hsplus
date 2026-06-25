@@ -1,0 +1,16 @@
+// @constants_object_interaction — Registry: object interaction trait name set.
+//
+// Native .hsplus surface for core/traits/constants/object-interaction.ts.
+
+@trait constants_object_interaction {
+  capability_tags: ["constants", "object_interaction", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_object_interaction_ready", {})
+  }
+
+  @receipt constants_object_interaction_config {
+    type: "ConstantsObjectInteractionReceipt"
+    timestamp: now()
+  }
+}

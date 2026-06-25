@@ -1,0 +1,16 @@
+// @constants_social_commerce — Registry: social commerce trait name set.
+//
+// Native .hsplus surface for core/traits/constants/social-commerce.ts.
+
+@trait constants_social_commerce {
+  capability_tags: ["constants", "social_commerce", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_social_commerce_ready", {})
+  }
+
+  @receipt constants_social_commerce_config {
+    type: "ConstantsSocialCommerceReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_parser_core_ui — Registry: parser, core, and UI primitive trait name set.
+//
+// Native .hsplus surface for core/traits/constants/parser-core-ui.ts.
+
+@trait constants_parser_core_ui {
+  capability_tags: ["constants", "parser_core_ui", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_parser_core_ui_ready", {})
+  }
+
+  @receipt constants_parser_core_ui_config {
+    type: "ConstantsParserCoreUiReceipt"
+    timestamp: now()
+  }
+}

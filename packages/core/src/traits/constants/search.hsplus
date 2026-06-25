@@ -1,0 +1,16 @@
+// @constants_search — Registry: search and retrieval trait name set.
+//
+// Native .hsplus surface for core/traits/constants/search.ts.
+
+@trait constants_search {
+  capability_tags: ["constants", "search", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_search_ready", {})
+  }
+
+  @receipt constants_search_config {
+    type: "ConstantsSearchReceipt"
+    timestamp: now()
+  }
+}

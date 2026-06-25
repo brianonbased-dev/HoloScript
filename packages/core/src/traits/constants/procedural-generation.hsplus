@@ -1,0 +1,16 @@
+// @constants_procedural_generation — Registry: procedural content generation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/procedural-generation.ts.
+
+@trait constants_procedural_generation {
+  capability_tags: ["constants", "procedural_generation", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_procedural_generation_ready", {})
+  }
+
+  @receipt constants_procedural_generation_config {
+    type: "ConstantsProceduralGenerationReceipt"
+    timestamp: now()
+  }
+}

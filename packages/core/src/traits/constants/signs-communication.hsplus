@@ -1,0 +1,16 @@
+// @constants_signs_communication — Registry: signs and visual communication trait name set.
+//
+// Native .hsplus surface for core/traits/constants/signs-communication.ts.
+
+@trait constants_signs_communication {
+  capability_tags: ["constants", "signs_communication", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_signs_communication_ready", {})
+  }
+
+  @receipt constants_signs_communication_config {
+    type: "ConstantsSignsCommunicationReceipt"
+    timestamp: now()
+  }
+}

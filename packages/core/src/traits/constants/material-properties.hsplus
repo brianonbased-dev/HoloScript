@@ -1,0 +1,16 @@
+// @constants_material_properties — Registry: material physical property trait name set.
+//
+// Native .hsplus surface for core/traits/constants/material-properties.ts.
+
+@trait constants_material_properties {
+  capability_tags: ["constants", "material_properties", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_material_properties_ready", {})
+  }
+
+  @receipt constants_material_properties_config {
+    type: "ConstantsMaterialPropertiesReceipt"
+    timestamp: now()
+  }
+}

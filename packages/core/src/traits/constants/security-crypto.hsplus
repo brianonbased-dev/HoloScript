@@ -1,0 +1,16 @@
+// @constants_security_crypto — Registry: security and cryptography trait name set.
+//
+// Native .hsplus surface for core/traits/constants/security-crypto.ts.
+
+@trait constants_security_crypto {
+  capability_tags: ["constants", "security_crypto", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_security_crypto_ready", {})
+  }
+
+  @receipt constants_security_crypto_config {
+    type: "ConstantsSecurityCryptoReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_maritime_naval — Registry: maritime and naval domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/maritime-naval.ts.
+
+@trait constants_maritime_naval {
+  capability_tags: ["constants", "maritime_naval", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_maritime_naval_ready", {})
+  }
+
+  @receipt constants_maritime_naval_config {
+    type: "ConstantsMaritimeNavalReceipt"
+    timestamp: now()
+  }
+}

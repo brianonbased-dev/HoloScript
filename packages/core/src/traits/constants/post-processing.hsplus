@@ -1,0 +1,16 @@
+// @constants_post_processing — Registry: post-processing and visual effect trait name set.
+//
+// Native .hsplus surface for core/traits/constants/post-processing.ts.
+
+@trait constants_post_processing {
+  capability_tags: ["constants", "post_processing", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_post_processing_ready", {})
+  }
+
+  @receipt constants_post_processing_config {
+    type: "ConstantsPostProcessingReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_ml_tensor — Registry: ML tensor operation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/ml-tensor.ts.
+
+@trait constants_ml_tensor {
+  capability_tags: ["constants", "ml_tensor", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_ml_tensor_ready", {})
+  }
+
+  @receipt constants_ml_tensor_config {
+    type: "ConstantsMlTensorReceipt"
+    timestamp: now()
+  }
+}

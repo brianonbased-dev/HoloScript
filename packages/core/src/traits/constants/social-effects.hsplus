@@ -1,0 +1,16 @@
+// @constants_social_effects — Registry: social effect and community trait name set.
+//
+// Native .hsplus surface for core/traits/constants/social-effects.ts.
+
+@trait constants_social_effects {
+  capability_tags: ["constants", "social_effects", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_social_effects_ready", {})
+  }
+
+  @receipt constants_social_effects_config {
+    type: "ConstantsSocialEffectsReceipt"
+    timestamp: now()
+  }
+}

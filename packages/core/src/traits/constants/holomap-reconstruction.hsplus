@@ -1,0 +1,16 @@
+// @constants_holomap_reconstruction — Registry: HoloMap reconstruction/capture trait name set.
+//
+// Native .hsplus surface for core/traits/constants/holomap-reconstruction.ts.
+
+@trait constants_holomap_reconstruction {
+  capability_tags: ["constants", "holomap_reconstruction", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_holomap_reconstruction_ready", {})
+  }
+
+  @receipt constants_holomap_reconstruction_config {
+    type: "ConstantsHolomapReconstructionReceipt"
+    timestamp: now()
+  }
+}

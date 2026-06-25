@@ -1,0 +1,16 @@
+// @constants_holomesh_social — Registry: HoloMesh social graph trait name set.
+//
+// Native .hsplus surface for core/traits/constants/holomesh-social.ts.
+
+@trait constants_holomesh_social {
+  capability_tags: ["constants", "holomesh_social", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_holomesh_social_ready", {})
+  }
+
+  @receipt constants_holomesh_social_config {
+    type: "ConstantsHolomeshSocialReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_magic_fantasy — Registry: magic and fantasy domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/magic-fantasy.ts.
+
+@trait constants_magic_fantasy {
+  capability_tags: ["constants", "magic_fantasy", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_magic_fantasy_ready", {})
+  }
+
+  @receipt constants_magic_fantasy_config {
+    type: "ConstantsMagicFantasyReceipt"
+    timestamp: now()
+  }
+}

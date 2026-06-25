@@ -1,0 +1,16 @@
+// @constants_intelligence_behavior — Registry: AI intelligence and agent behavior trait name set.
+//
+// Native .hsplus surface for core/traits/constants/intelligence-behavior.ts.
+
+@trait constants_intelligence_behavior {
+  capability_tags: ["constants", "intelligence_behavior", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_intelligence_behavior_ready", {})
+  }
+
+  @receipt constants_intelligence_behavior_config {
+    type: "ConstantsIntelligenceBehaviorReceipt"
+    timestamp: now()
+  }
+}

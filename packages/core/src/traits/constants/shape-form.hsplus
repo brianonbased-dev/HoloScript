@@ -1,0 +1,16 @@
+// @constants_shape_form — Registry: shape and form geometry trait name set.
+//
+// Native .hsplus surface for core/traits/constants/shape-form.ts.
+
+@trait constants_shape_form {
+  capability_tags: ["constants", "shape_form", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_shape_form_ready", {})
+  }
+
+  @receipt constants_shape_form_config {
+    type: "ConstantsShapeFormReceipt"
+    timestamp: now()
+  }
+}

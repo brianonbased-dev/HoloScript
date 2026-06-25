@@ -1,0 +1,16 @@
+// @constants_scientific_computing — Registry: scientific computing trait name set.
+//
+// Native .hsplus surface for core/traits/constants/scientific-computing.ts.
+
+@trait constants_scientific_computing {
+  capability_tags: ["constants", "scientific_computing", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_scientific_computing_ready", {})
+  }
+
+  @receipt constants_scientific_computing_config {
+    type: "ConstantsScientificComputingReceipt"
+    timestamp: now()
+  }
+}

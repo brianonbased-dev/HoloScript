@@ -1,0 +1,16 @@
+// @constants_size_scale — Registry: size and scale modifier trait name set.
+//
+// Native .hsplus surface for core/traits/constants/size-scale.ts.
+
+@trait constants_size_scale {
+  capability_tags: ["constants", "size_scale", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_size_scale_ready", {})
+  }
+
+  @receipt constants_size_scale_config {
+    type: "ConstantsSizeScaleReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_networking_ai — Registry: networking and AI integration trait name set.
+//
+// Native .hsplus surface for core/traits/constants/networking-ai.ts.
+
+@trait constants_networking_ai {
+  capability_tags: ["constants", "networking_ai", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_networking_ai_ready", {})
+  }
+
+  @receipt constants_networking_ai_config {
+    type: "ConstantsNetworkingAiReceipt"
+    timestamp: now()
+  }
+}

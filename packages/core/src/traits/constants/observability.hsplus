@@ -1,0 +1,16 @@
+// @constants_observability — Registry: observability trait name set.
+//
+// Native .hsplus surface for core/traits/constants/observability.ts.
+
+@trait constants_observability {
+  capability_tags: ["constants", "observability", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_observability_ready", {})
+  }
+
+  @receipt constants_observability_config {
+    type: "ConstantsObservabilityReceipt"
+    timestamp: now()
+  }
+}

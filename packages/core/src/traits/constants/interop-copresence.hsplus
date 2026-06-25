@@ -1,0 +1,16 @@
+// @constants_interop_copresence — Registry: interop and co-presence trait name set.
+//
+// Native .hsplus surface for core/traits/constants/interop-copresence.ts.
+
+@trait constants_interop_copresence {
+  capability_tags: ["constants", "interop_copresence", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_interop_copresence_ready", {})
+  }
+
+  @receipt constants_interop_copresence_config {
+    type: "ConstantsInteropCopresenceReceipt"
+    timestamp: now()
+  }
+}

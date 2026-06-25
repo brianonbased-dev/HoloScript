@@ -1,0 +1,16 @@
+// @constants_physical_affordances — Registry: physical affordance trait name set.
+//
+// Native .hsplus surface for core/traits/constants/physical-affordances.ts.
+
+@trait constants_physical_affordances {
+  capability_tags: ["constants", "physical_affordances", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_physical_affordances_ready", {})
+  }
+
+  @receipt constants_physical_affordances_config {
+    type: "ConstantsPhysicalAffordancesReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_payment — Registry: payment and transaction trait name set.
+//
+// Native .hsplus surface for core/traits/constants/payment.ts.
+
+@trait constants_payment {
+  capability_tags: ["constants", "payment", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_payment_ready", {})
+  }
+
+  @receipt constants_payment_config {
+    type: "ConstantsPaymentReceipt"
+    timestamp: now()
+  }
+}
