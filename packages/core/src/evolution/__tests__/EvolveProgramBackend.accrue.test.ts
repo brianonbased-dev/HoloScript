@@ -23,7 +23,7 @@
  * @see ../EvolveProgramBackend.ts
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, appendFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import {
@@ -157,6 +157,21 @@ describe.skipIf(!ENABLED)('STRATEGIC corpus accrual (local metal)', () => {
     const traceFile = join(corpusPath, 'trace.jsonl');
 
     const seenHash = new Set<string>();
+    // CROSS-RUN dedup: seed the hash set from the existing corpus so repeated
+    // (scheduled) runs accrue only NEW candidates — uniqueness over TIME, not just
+    // within one run. Without this, a fixed portfolio re-run would pile up dups.
+    if (existsSync(traceFile)) {
+      for (const line of readFileSync(traceFile, 'utf8').split('\n')) {
+        if (!line.trim()) continue;
+        try {
+          const prior = JSON.parse(line) as { target?: string };
+          if (prior.target) seenHash.add(createHash('sha256').update(prior.target).digest('hex'));
+        } catch {
+          /* skip malformed line */
+        }
+      }
+    }
+    const priorCorpusRows = seenHash.size;
     const stats = {
       perTarget: [] as Array<Record<string, unknown>>,
       gated: 0,
@@ -226,6 +241,8 @@ describe.skipIf(!ENABLED)('STRATEGIC corpus accrual (local metal)', () => {
     ).size;
     const summary = {
       model: MODEL,
+      priorCorpusRows,
+      corpusTotalRows: priorCorpusRows + stats.written,
       targets: PORTFOLIO.length,
       seedsParsed: PORTFOLIO.length - stats.seedInvalid,
       gated: stats.gated,
