@@ -1,0 +1,31 @@
+// @twin_test_harness — Digital twin test harness: spin up twin, run scenario, assert state.
+//
+// Native .hsplus surface for core/testing/TwinTestHarness.ts.
+//
+// spinUp(world) → TwinHandle / run(handle, scenario) / assert(handle, predicate) / tearDown(handle)
+
+@trait twin_test_harness {
+  capability_tags: ["twin_test_harness", "digital_twin_test", "scenario_execution", "state_assertion", "core"]
+
+  @on_spawn => {
+    emit("twin_test_harness_ready", {})
+  }
+
+  @on_spin_up(world) => {
+    handle = spin_up_twin_test(world)
+    emit("twin_test_started", {})
+    return handle
+  }
+
+  @on_assert(handle, predicate) => {
+    result = assert_twin_state(handle, predicate)
+    if !result { emit("twin_assertion_failed", {}) }
+    return result
+  }
+
+  @receipt twin_test_harness_config {
+    type: "TwinTestHarnessReceipt"
+    phases: ["spinUp", "run", "assert", "tearDown"]
+    timestamp: now()
+  }
+}

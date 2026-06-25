@@ -1,0 +1,23 @@
+// @developer_experience — DX utilities: hot reload, error overlay, stack-trace enrichment, dev hints.
+//
+// Native .hsplus surface for core/tools/DeveloperExperience.ts.
+//
+// enableHotReload() / showErrorOverlay(err) / enrichTrace(trace) → EnrichedTrace
+
+@trait developer_experience {
+  capability_tags: ["developer_experience", "hot_reload", "error_overlay", "stack_trace_enrichment", "core"]
+
+  @on_spawn => {
+    emit("developer_experience_ready", {})
+  }
+
+  @on_show_error(err) => {
+    show_dx_error_overlay(err)
+  }
+
+  @receipt developer_experience_config {
+    type: "DeveloperExperienceReceipt"
+    features: ["hot reload", "error overlay", "trace enrichment", "dev hints"]
+    timestamp: now()
+  }
+}

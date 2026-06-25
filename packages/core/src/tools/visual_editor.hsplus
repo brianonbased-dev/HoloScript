@@ -1,0 +1,24 @@
+// @visual_editor — HoloScript visual editor coordination: tool mode, selection, gizmo, undo stack.
+//
+// Native .hsplus surface for core/tools/VisualEditor.ts.
+//
+// setMode(mode) / selectEntity(id) / undo() / redo()
+
+@trait visual_editor {
+  capability_tags: ["visual_editor", "tool_mode", "selection_gizmo", "undo_redo", "core"]
+
+  @on_spawn => {
+    emit("visual_editor_ready", {})
+  }
+
+  @on_set_mode(mode) => {
+    set_visual_editor_mode(mode)
+    emit("editor_mode_changed", { mode })
+  }
+
+  @receipt visual_editor_config {
+    type: "VisualEditorReceipt"
+    features: ["tool mode", "selection", "gizmo", "undo/redo"]
+    timestamp: now()
+  }
+}

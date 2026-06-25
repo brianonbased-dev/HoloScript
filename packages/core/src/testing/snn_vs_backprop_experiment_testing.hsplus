@@ -1,0 +1,25 @@
+// @snn_vs_backprop_experiment_testing — SNN vs backprop confabulation-rate experiment (RFC-0042) test entry.
+//
+// Native .hsplus surface for core/testing/SNNvsBackpropExperiment.ts.
+// (Testing-layer entry; distinct from experiments/snn_vs_backprop_experiment which is the impl.)
+//
+// run(config) → ExperimentResult { snnRate, backpropRate, delta }
+
+@trait snn_vs_backprop_experiment_testing {
+  capability_tags: ["snn_vs_backprop_experiment_testing", "rfc_0042", "confabulation_rate", "experiment_test_entry", "core"]
+
+  @on_spawn => {
+    emit("snn_vs_backprop_experiment_testing_ready", {})
+  }
+
+  @on_run(config) => {
+    result = run_snn_backprop_experiment(config)
+    return result
+  }
+
+  @receipt snn_vs_backprop_experiment_testing_config {
+    type: "SNNvsBackpropExperimentTestingReceipt"
+    scope: "testing layer entry — distinct from experiments/ impl"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @trait_property_testing — Property-based testing for HoloScript traits: invariant verification.
+//
+// Native .hsplus surface for core/testing/TraitPropertyTesting.ts.
+//
+// check(trait, property, n) → PBTResult { passed, counterexample? }
+// Uses PBRSchema generators; shrinks on failure
+
+@trait trait_property_testing {
+  capability_tags: ["trait_property_testing", "invariant_verification", "pbt_traits", "shrink_on_failure", "core"]
+
+  @on_spawn => {
+    emit("trait_property_testing_ready", {})
+  }
+
+  @on_check(trait, property, n) => {
+    result = check_trait_property(trait, property, n)
+    if !result.passed { emit("property_falsified", { counterexample: result.counterexample }) }
+    return result
+  }
+
+  @receipt trait_property_testing_config {
+    type: "TraitPropertyTestingReceipt"
+    backing: "PBRSchema generators + shrinker"
+    timestamp: now()
+  }
+}

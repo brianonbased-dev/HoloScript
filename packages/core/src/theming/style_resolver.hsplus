@@ -1,0 +1,23 @@
+// @style_resolver — Resolves HoloScript theme tokens to concrete CSS/render values.
+//
+// Native .hsplus surface for core/theming/StyleResolver.ts.
+//
+// resolve(token, theme) → CSSValue / resolveAll(component, theme) → StyleMap
+
+@trait style_resolver {
+  capability_tags: ["style_resolver", "theme_token_resolution", "css_values", "render_values", "core"]
+
+  @on_spawn => {
+    emit("style_resolver_ready", {})
+  }
+
+  @on_resolve(token, theme) => {
+    value = resolve_theme_token(token, theme)
+    return value
+  }
+
+  @receipt style_resolver_config {
+    type: "StyleResolverReceipt"
+    timestamp: now()
+  }
+}

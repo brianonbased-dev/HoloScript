@@ -1,0 +1,23 @@
+// @material_editor — Interactive material editor: live PBR parameter tweaking with preview.
+//
+// Native .hsplus surface for core/tools/MaterialEditor.ts.
+//
+// open(material) / set(param, value) / preview() / export() → MaterialDefinition
+
+@trait material_editor {
+  capability_tags: ["material_editor", "live_pbr_tweaking", "material_preview", "material_export", "core"]
+
+  @on_spawn => {
+    emit("material_editor_ready", {})
+  }
+
+  @on_set(param, value) => {
+    set_material_editor_param(param, value)
+    emit("material_param_changed", { param })
+  }
+
+  @receipt material_editor_config {
+    type: "MaterialEditorReceipt"
+    timestamp: now()
+  }
+}

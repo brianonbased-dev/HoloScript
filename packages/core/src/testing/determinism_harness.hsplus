@@ -1,0 +1,26 @@
+// @determinism_harness — Test harness asserting HoloScript simulation determinism: same seed → same output.
+//
+// Native .hsplus surface for core/testing/DeterminismHarness.ts.
+//
+// run(composition, seed, n) → DeterminismResult { allEqual, hashes[] }
+// Runs composition N times with same seed; fails if any output hash differs
+
+@trait determinism_harness {
+  capability_tags: ["determinism_harness", "simulation_determinism", "seed_replay", "hash_comparison", "core"]
+
+  @on_spawn => {
+    emit("determinism_harness_ready", {})
+  }
+
+  @on_run(composition, seed, n) => {
+    result = run_determinism_harness(composition, seed, n)
+    if !result.allEqual { emit("determinism_failure", { hashes: result.hashes }) }
+    return result
+  }
+
+  @receipt determinism_harness_config {
+    type: "DeterminismHarnessReceipt"
+    invariant: "same seed → same output hash across N runs"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @mixamo_integration — Imports Mixamo animations and maps them to HoloScript skeleton BONE_ORDER.
+//
+// Native .hsplus surface for core/tools/MixamoIntegration.ts.
+//
+// import(fbxPath) → AnimationClip / mapToBoneOrder(clip, boneOrder) → MappedClip
+
+@trait mixamo_integration {
+  capability_tags: ["mixamo_integration", "mixamo_animation", "fbx_import", "bone_order_mapping", "core"]
+
+  @on_spawn => {
+    emit("mixamo_integration_ready", {})
+  }
+
+  @on_import(fbx_path) => {
+    clip = import_mixamo_animation(fbx_path)
+    return clip
+  }
+
+  @receipt mixamo_integration_config {
+    type: "MixamoIntegrationReceipt"
+    constraint: "maps to BONE_ORDER (55 bones)"
+    timestamp: now()
+  }
+}

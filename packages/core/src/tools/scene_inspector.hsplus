@@ -1,0 +1,24 @@
+// @scene_inspector — Runtime scene inspector: entity hierarchy, component values, live mutation.
+//
+// Native .hsplus surface for core/tools/SceneInspector.ts.
+//
+// inspect(entityId) → EntitySnapshot / mutate(entityId, component, value)
+
+@trait scene_inspector {
+  capability_tags: ["scene_inspector", "entity_hierarchy", "component_inspection", "live_mutation", "core"]
+
+  @on_spawn => {
+    emit("scene_inspector_ready", {})
+  }
+
+  @on_inspect(entity_id) => {
+    snapshot = inspect_scene_entity(entity_id)
+    return snapshot
+  }
+
+  @receipt scene_inspector_config {
+    type: "SceneInspectorReceipt"
+    features: ["hierarchy", "component values", "live mutation"]
+    timestamp: now()
+  }
+}

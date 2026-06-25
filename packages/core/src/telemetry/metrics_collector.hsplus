@@ -1,0 +1,27 @@
+// @metrics_collector — Collects runtime metrics: counters, gauges, histograms → Prometheus/OTLP.
+//
+// Native .hsplus surface for core/telemetry/MetricsCollector.ts.
+//
+// increment(name, labels?) / gauge(name, value, labels?) / histogram(name, value, labels?)
+
+@trait metrics_collector {
+  capability_tags: ["metrics_collector", "counters_gauges_histograms", "prometheus_otlp", "telemetry", "core"]
+
+  @on_spawn => {
+    emit("metrics_collector_ready", {})
+  }
+
+  @on_increment(name, labels) => {
+    increment_metric(name, labels)
+  }
+
+  @on_histogram(name, value, labels) => {
+    record_histogram(name, value, labels)
+  }
+
+  @receipt metrics_collector_config {
+    type: "MetricsCollectorReceipt"
+    destinations: ["Prometheus", "OTLP"]
+    timestamp: now()
+  }
+}

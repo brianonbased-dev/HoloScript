@@ -1,0 +1,28 @@
+// @span_factory — Creates and manages OpenTelemetry trace spans for HoloScript operations.
+//
+// Native .hsplus surface for core/telemetry/SpanFactory.ts.
+//
+// start(name, parentCtx?) → Span / end(span, status) / addEvent(span, name, attrs?)
+
+@trait span_factory {
+  capability_tags: ["span_factory", "opentelemetry_spans", "distributed_tracing", "trace_context", "core"]
+
+  @on_spawn => {
+    emit("span_factory_ready", {})
+  }
+
+  @on_start(name, parent_ctx) => {
+    span = start_otel_span(name, parent_ctx)
+    return span
+  }
+
+  @on_end(span, status) => {
+    end_otel_span(span, status)
+  }
+
+  @receipt span_factory_config {
+    type: "SpanFactoryReceipt"
+    standard: "OpenTelemetry"
+    timestamp: now()
+  }
+}

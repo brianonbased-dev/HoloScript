@@ -1,0 +1,21 @@
+// @theme_trait — HoloScript+ trait surface for declarative theme definitions.
+//
+// Native .hsplus surface for core/theming/ThemeTrait.ts.
+//
+// ThemeTrait { id, tokens: Record, extends?: themeId }
+// Authored as .hsplus; consumed by ThemeEngine at load time
+
+@trait theme_trait {
+  capability_tags: ["theme_trait", "declarative_theme", "token_map", "theme_extends", "core"]
+
+  @on_spawn => {
+    emit("theme_trait_ready", {})
+  }
+
+  @receipt theme_trait_config {
+    type: "ThemeTraitReceipt"
+    fields: ["id", "tokens", "extends"]
+    authoring: ".hsplus declarative"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @telemetry_provider — HoloScript telemetry provider: wires MetricsCollector + SpanFactory to OTLP exporter.
+//
+// Native .hsplus surface for core/telemetry/TelemetryProvider.ts.
+//
+// init(config) / shutdown() / getTracer() → Tracer / getMeter() → Meter
+
+@trait telemetry_provider {
+  capability_tags: ["telemetry_provider", "otlp_exporter", "tracer_meter", "telemetry_init", "core"]
+
+  @on_spawn(config) => {
+    init_telemetry_provider(config)
+    emit("telemetry_provider_ready", {})
+  }
+
+  @on_shutdown => {
+    shutdown_telemetry_provider()
+    emit("telemetry_provider_shutdown", {})
+  }
+
+  @receipt telemetry_provider_config {
+    type: "TelemetryProviderReceipt"
+    wires: ["MetricsCollector", "SpanFactory", "OTLP exporter"]
+    timestamp: now()
+  }
+}

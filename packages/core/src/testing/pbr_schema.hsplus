@@ -1,0 +1,25 @@
+// @pbr_schema — Property-based testing schema: generators and shrinkers for HoloScript value types.
+//
+// Native .hsplus surface for core/testing/PBRSchema.ts.
+//
+// arbitrary(type) → Generator / shrink(value) → ShrinkTree
+// Used by TraitPropertyTesting for PBT-style coverage
+
+@trait pbr_schema {
+  capability_tags: ["pbr_schema", "property_based_testing", "generators_shrinkers", "pbt_coverage", "core"]
+
+  @on_spawn => {
+    emit("pbr_schema_ready", {})
+  }
+
+  @on_arbitrary(type) => {
+    gen = get_pbr_generator(type)
+    return gen
+  }
+
+  @receipt pbr_schema_config {
+    type: "PBRSchemaReceipt"
+    consumer: "TraitPropertyTesting"
+    timestamp: now()
+  }
+}

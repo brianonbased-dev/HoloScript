@@ -1,0 +1,25 @@
+// @tile_map — 2D tile map: grid storage, pathfinding, collision layer, procedural fill.
+//
+// Native .hsplus surface for core/tilemap/TileMap.ts.
+//
+// set(x, y, tile) / get(x, y) → Tile / findPath(start, end) → Vec2[]
+
+@trait tile_map {
+  capability_tags: ["tile_map", "grid_storage", "pathfinding", "collision_layer", "core"]
+
+  @on_spawn(width, height) => {
+    init_tile_map(width, height)
+    emit("tile_map_ready", {})
+  }
+
+  @on_find_path(start, end) => {
+    path = tile_map_find_path(start, end)
+    return path
+  }
+
+  @receipt tile_map_config {
+    type: "TileMapReceipt"
+    features: ["grid storage", "pathfinding", "collision layer", "procedural fill"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @material_preset_quick_pick — Quick-pick UI for material presets in the Studio editor.
+//
+// Native .hsplus surface for core/tools/materialPresetQuickPick.ts.
+//
+// show(presets[]) → selected MaterialPreset? — renders a searchable picker in the editor overlay
+
+@trait material_preset_quick_pick {
+  capability_tags: ["material_preset_quick_pick", "quick_pick_ui", "material_presets", "studio_editor", "core"]
+
+  @on_spawn => {
+    emit("material_preset_quick_pick_ready", {})
+  }
+
+  @on_show(presets) => {
+    selected = show_material_preset_picker(presets)
+    return selected
+  }
+
+  @receipt material_preset_quick_pick_config {
+    type: "MaterialPresetQuickPickReceipt"
+    ui: "searchable overlay picker"
+    timestamp: now()
+  }
+}

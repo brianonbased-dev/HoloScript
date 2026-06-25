@@ -1,0 +1,17 @@
+// @telemetry_types — Type definitions for HoloScript telemetry: MetricKind, SpanStatus, TelemetryConfig.
+//
+// Native .hsplus surface for core/telemetry/types.ts.
+
+@trait telemetry_types {
+  capability_tags: ["telemetry_types", "metric_kind", "span_status", "telemetry_config", "core"]
+
+  @on_spawn => {
+    emit("telemetry_types_ready", {})
+  }
+
+  @receipt telemetry_types_config {
+    type: "TelemetryTypesReceipt"
+    types: ["MetricKind", "SpanStatus", "TelemetryConfig", "LabelSet"]
+    timestamp: now()
+  }
+}

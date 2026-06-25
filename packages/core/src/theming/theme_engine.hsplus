@@ -1,0 +1,23 @@
+// @theme_engine — HoloScript theme engine: load, switch, and apply theme definitions at runtime.
+//
+// Native .hsplus surface for core/theming/ThemeEngine.ts.
+//
+// load(themeDef) / switch(themeId) / current() → ThemeDef
+
+@trait theme_engine {
+  capability_tags: ["theme_engine", "theme_load_switch", "runtime_theming", "theme_definitions", "core"]
+
+  @on_spawn => {
+    emit("theme_engine_ready", {})
+  }
+
+  @on_switch(theme_id) => {
+    switch_theme(theme_id)
+    emit("theme_switched", { theme_id })
+  }
+
+  @receipt theme_engine_config {
+    type: "ThemeEngineReceipt"
+    timestamp: now()
+  }
+}
