@@ -1,0 +1,66 @@
+// @legal_document_crdt — Legal contract CRDT with tropical semiring provenance digest.
+//
+// Native .hsplus surface for legalDocumentCrdt.ts (crdt-spatial).
+//
+// Root map key: "legal_document_contracts" (LEGAL_DOCUMENT_CONTRACTS_ROOT)
+//
+// Tropical semiring digest: a 3x3 max-plus matrix derived from the LoroDoc's
+// vector clock. Serves as a Sovereign Provenance metric replacing structural
+// payload hashes — values are (maxTick, peerHash[i]) with identity in upper diag.
+// Use for provenance verification, not exact-match comparison.
+//
+// SignatureBlock: {signers: [DID...], required_signatures, signature_method, witnesses?}
+//   signature_method: "electronic" | "wet" | "hybrid"
+//
+// AuditTrailEntry: {id, actor (DID), action, timestamp (ISO-8601), hash?}
+//
+// LegalContractSpatialSnapshot: {document_id, title?, jurisdiction?, signature_block, audit_trail}
+//
+// G.GOLD.001: root map read via doc.getMap(ROOT_KEY) only.
+
+@trait legal_document_crdt {
+  // DID of this agent (signer/auditor identity)
+  agent_did: String
+
+  capability_tags: ["legal_document_crdt", "contract_crdt", "tropical_semiring", "signature_block", "audit_trail", "crdt_spatial"]
+
+  @on_spawn => {
+    doc = loro_doc_ref()
+    legal = init_legal_document_crdt(doc, agent_did)
+    // Pre-initialize root at t=0 so it appears in all exports
+    legal.ensure_root(doc)
+    emit("legal_document_crdt_ready", { agent_did: agent_did })
+  }
+
+  @on_set_contract_snapshot(document_id, snapshot) => {
+    legal.set_contract_snapshot(document_id, snapshot)
+    emit("legal_contract_set", { document_id: document_id })
+  }
+
+  @on_set_signature_block(document_id, sig_block) => {
+    legal.set_signature_block(document_id, sig_block)
+    emit("legal_signature_block_set", { document_id: document_id })
+  }
+
+  @on_append_audit_entry(document_id, entry) => {
+    legal.append_audit_trail_entry(document_id, entry)
+    emit("legal_audit_entry_appended", { document_id: document_id, action: entry.action })
+  }
+
+  @on_get_snapshot(document_id) => {
+    return legal.get_contract_snapshot(document_id)
+  }
+
+  // Tropical semiring digest — Sovereign Provenance (max-plus 3x3)
+  @on_compute_provenance_digest => {
+    return legal.compute_tropical_semiring_digest(doc)
+  }
+
+  @receipt legal_document_config {
+    type: "LegalDocumentCRDTReceipt"
+    agent_did: agent_did
+    root_key: "legal_document_contracts"
+    provenance_method: "tropical_semiring_max_plus_3x3"
+    timestamp: now()
+  }
+}

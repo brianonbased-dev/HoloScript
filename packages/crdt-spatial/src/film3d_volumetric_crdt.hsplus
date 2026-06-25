@@ -1,0 +1,68 @@
+// @film3d_volumetric_crdt — VDB/voxel binary payload CRDT on the shared LoroDoc.
+//
+// Native .hsplus surface for film3dVolumetricCrdt.ts (crdt-spatial).
+//
+// Lives on the SAME LoroDoc as LoroWebRTCProvider so `export({mode:"update"})`
+// includes volume bytes automatically in all peer-sync frames.
+//
+// Root map key: "film3d_volumetrics" (FILM3D_VOLUMETRICS_ROOT)
+//
+// Budget cap: MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES = 12MB per WebRTC frame.
+// Payloads over 12MB MUST use set_volumetric_chunk (ordered chunking);
+// the provider skips oversized frames with a budget_exceeded warning.
+//
+// Key layout under the root map:
+//   "{nodeId}::meta"         → JSON: { trait, format, updatedAt }
+//   "{nodeId}::voxels"       → Uint8Array (full replace per sync tick)
+//   "{nodeId}::chunk::{idx}" → Uint8Array (ordered chunk, caller merges)
+//
+// G.GOLD.001: root map accessed ONLY via doc root (ensureFilm3dVolumetricsRoot uses doc.getMap(ROOT_KEY)).
+
+@trait film3d_volumetric_crdt {
+  // VDB/voxel format: "vdb" | "nanovdb" | "raw" | "draco_voxel"
+  format: String = "vdb"
+
+  capability_tags: ["film3d_volumetric_crdt", "vdb_crdt", "voxel_binary", "volumetric_sync", "crdt_spatial", "loro_doc"]
+
+  @on_spawn => {
+    doc = loro_doc_ref()
+    vol = init_film3d_volumetric_crdt(doc, format)
+    // Pre-initialize the root map so it appears in all exports from t=0 (G.GOLD.001)
+    vol.ensure_root(doc)
+    emit("film3d_volumetric_ready", { format: format })
+  }
+
+  @on_register_node(node_id, format_override) => {
+    vol.register_node(node_id, { format: format_override ?? format })
+    emit("film3d_node_registered", { node_id: node_id })
+  }
+
+  @on_set_voxels(node_id, data) => {
+    // Full replace per sync tick — data: Uint8Array (VDB/raw voxel bytes)
+    vol.set_voxels(node_id, data)
+    emit("film3d_voxels_updated", { node_id: node_id, byte_length: data.byte_length })
+  }
+
+  @on_set_chunk(node_id, chunk_index, data) => {
+    // Ordered chunking for payloads >12MB — caller merges in index order
+    vol.set_chunk(node_id, chunk_index, data)
+    emit("film3d_chunk_set", { node_id: node_id, chunk_index: chunk_index })
+  }
+
+  @on_unregister_node(node_id) => {
+    vol.unregister_node(node_id)
+    emit("film3d_node_unregistered", { node_id: node_id })
+  }
+
+  @on_is_within_budget(byte_length) => {
+    return byte_length <= 12582912
+  }
+
+  @receipt film3d_volumetric_config {
+    type: "Film3dVolumetricCRDTReceipt"
+    format: format
+    root_key: "film3d_volumetrics"
+    max_webrtc_frame_bytes: 12582912
+    timestamp: now()
+  }
+}

@@ -1,0 +1,61 @@
+// @loro_spatial_trait_events — Loro v1.x subscribe batch helpers for economic trait detection.
+//
+// Native .hsplus surface for loroSpatialTraitEvents.ts (crdt-spatial).
+//
+// CRITICAL: LoroEvent.target is a ContainerID, NOT a live map handle.
+// Must read trait name via doc.getMap(target) — never cast target directly
+// (reinforces G.GOLD.001 root-level access principle).
+//
+// Economic trait names (loroSpatialTraitEvents.ts):
+//   "marketplace_listing" | "agent_owned_entity"
+//
+// Functions:
+//   is_economic_trait_name(value) → bool
+//   loro_event_touches_economic_trait(doc, ev) → bool
+//     true if diff.type == "map" AND name field resolves to an economic trait
+//   loro_batch_touches_economic_trait(doc, batch) → bool
+//     true if ANY event in the batch touches an economic trait
+//
+// Used by: MeshNodeIntegrator (@on_loro_event_batch) to trigger X402 interceptor
+
+@trait loro_spatial_trait_events {
+  capability_tags: ["loro_spatial_trait_events", "loro_event_helpers", "economic_trait_detection", "crdt_spatial", "x402_interceptor"]
+
+  @on_spawn => {
+    emit("loro_spatial_trait_events_ready", {})
+  }
+
+  @on_is_economic_trait_name(value) => {
+    return value == "marketplace_listing" or value == "agent_owned_entity"
+  }
+
+  // True if this Loro event has diff.type=="map" and the name field is an economic trait.
+  // G.GOLD.001: reads name from diff.updated["name"] first; falls back to doc.getMap(target).get("name")
+  @on_event_touches_economic_trait(doc, ev) => {
+    if ev.diff.type != "map" { return false }
+    // Read from diff.updated first (fast path)
+    name_val = ev.diff.updated["name"]
+    if name_val == null {
+      // Fall back to doc.getMap — G.GOLD.001: target is ContainerID, use doc.getMap(target)
+      name_val = doc.get_map(ev.target).get("name")
+    }
+    return name_val == "marketplace_listing" or name_val == "agent_owned_entity"
+  }
+
+  // True if ANY event in the batch touches an economic trait
+  @on_batch_touches_economic_trait(doc, batch) => {
+    for ev in batch.events {
+      if emit("on_event_touches_economic_trait", { doc: doc, ev: ev }).result {
+        return true
+      }
+    }
+    return false
+  }
+
+  @receipt loro_spatial_trait_events_config {
+    type: "LoroSpatialTraitEventsReceipt"
+    economic_trait_names: ["marketplace_listing", "agent_owned_entity"]
+    note: "G.GOLD.001: LoroEvent.target is ContainerID — use doc.getMap(target), never cast directly"
+    timestamp: now()
+  }
+}

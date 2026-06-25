@@ -1,0 +1,49 @@
+// @loro_coercion — Safe coercion for Loro map/counter reads (CRDT-02).
+//
+// Native .hsplus surface for loroCoercion.ts (crdt-spatial).
+//
+// Problem: after JSON round-trips, cross-peer sync, or tooling exports,
+// scalar fields in Loro maps may surface as `string` or `bigint` instead of
+// `number`. Unchecked casts yield NaN at runtime, silently breaking
+// rotation/position/scale math.
+//
+// coerce_counter_value(value):
+//   Handles number/bigint/string → finite number (fallback: 0)
+//   LoroCounter.value is numeric but typed as number|bigint across versions.
+//
+// coerce_finite_number(value, fallback):
+//   Same as above but with an explicit fallback (e.g. default scale = 1.0)
+//   Also handles boolean: true→1, false→0
+
+@trait loro_coercion {
+  capability_tags: ["loro_coercion", "crdt_type_safety", "loro_scalar_coerce", "crdt_spatial", "runtime_safety"]
+
+  @on_spawn => {
+    emit("loro_coercion_ready", {})
+  }
+
+  // Safe coerce for LoroCounter.value (number|bigint|string → finite number, fallback=0)
+  @on_coerce_counter_value(value) => {
+    if value == null { return 0.0 }
+    // All three types must succeed → finite; otherwise 0
+    n = to_number(value)
+    if is_finite(n) { return n }
+    return 0.0
+  }
+
+  // Safe coerce for any Loro scalar with explicit fallback
+  @on_coerce_finite_number(value, fallback) => {
+    if value == null { return fallback }
+    if is_bool(value) { return value ? 1.0 : 0.0 }
+    n = to_number(value)
+    if is_finite(n) { return n }
+    return fallback
+  }
+
+  @receipt loro_coercion_config {
+    type: "LoroCoercionReceipt"
+    coerce_targets: ["LoroCounter.value", "LoroMap scalar reads"]
+    safe_types: ["number", "bigint", "string", "boolean"]
+    timestamp: now()
+  }
+}
