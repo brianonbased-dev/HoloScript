@@ -1,0 +1,20 @@
+@trait {
+  name: "@database",
+  category: "storage",
+  description: "In-node key-value database with collections. default_collection is the default collection name (default: default). max_entries is the maximum total entries (default: 10,000). persist_on_detach flushes to IndexedDB when the trait detaches (default: false). Port of DatabaseTrait.ts (handler name: database).",
+  props: {
+    default_collection: string = "default",
+    max_entries: number = 10000,
+    persist_on_detach: boolean = false
+  },
+  events: {
+    on_set: "database:set",
+    on_deleted: "database:deleted",
+    on_cleared: "database:cleared",
+    get: "database.get",
+    set: "database.set",
+    delete: "database.delete",
+    clear: "database.clear"
+  },
+  behaviors: ["@cache", "@blob_store"]
+}

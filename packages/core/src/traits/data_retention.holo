@@ -1,0 +1,15 @@
+@trait {
+  name: "@data_retention",
+  category: "compliance",
+  description: "Data retention policy enforcer — deletes records past their TTL. default_ttl_days is the default retention period in days (default: 90). Port of DataRetentionTrait.ts (handler name: data_retention).",
+  props: {
+    default_ttl_days: number = 90
+  },
+  events: {
+    on_expired: "data_retention:expired",
+    on_deleted: "data_retention:deleted",
+    set_policy: "data_retention.set_policy",
+    purge: "data_retention.purge"
+  },
+  behaviors: ["@audit_log", "@consent_management"]
+}

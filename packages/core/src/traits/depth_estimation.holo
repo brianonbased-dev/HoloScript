@@ -1,0 +1,17 @@
+@trait {
+  name: "@depth_estimation",
+  category: "vision",
+  description: "Monocular depth estimation via transformer model. model_id is the HuggingFace model (default: Xenova/depth-anything-small-hf). mode: on-demand (default), interval, continuous. interval_ms is the estimation interval for interval mode (default: 1000ms). image_source_prop is the node property containing the input image. resolution is the input resolution (default: 518x518). Port of DepthEstimationTrait.ts (handler name: depth_estimation).",
+  props: {
+    model_id: string = "Xenova/depth-anything-small-hf",
+    mode: enum("on-demand" | "interval" | "continuous") = "on-demand",
+    interval_ms: number = 1000,
+    image_source_prop: string = "imageSource"
+  },
+  events: {
+    on_depth: "depth_estimation:depth",
+    on_error: "depth_estimation:error",
+    estimate: "depth_estimation.estimate"
+  },
+  behaviors: ["@object_tracking", "@scene_reconstruction"]
+}

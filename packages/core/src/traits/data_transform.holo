@@ -1,0 +1,16 @@
+@trait {
+  name: "@data_transform",
+  category: "data",
+  description: "Data transformation pipeline — applies a sequence of named transforms to incoming data. strict mode throws on transform errors (default: false — emit only). Port of DataTransformTrait.ts (handler name: data_transform).",
+  props: {
+    strict: boolean = false
+  },
+  events: {
+    on_transformed: "data_transform:transformed",
+    on_error: "data_transform:error",
+    add_transform: "data_transform.add",
+    remove_transform: "data_transform.remove",
+    transform: "data_transform.transform"
+  },
+  behaviors: ["@data_binding", "@data_quality"]
+}

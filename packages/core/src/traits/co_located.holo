@@ -1,0 +1,20 @@
+@trait {
+  name: "@co_located",
+  category: "xr",
+  description: "Multi-user co-location alignment — synchronizes multiple XR users to a shared world reference frame. shared_anchor_id is the cloud anchor identifier. alignment_method: cloud_anchor (default), image_target, manual. alignment_timeout is the maximum ms to wait for alignment (default: 30,000). visual_indicator shows a visual alignment guide (default: true). max_participants is the maximum co-located users (default: 10). Port of CoLocatedTrait.ts (handler name: co_located).",
+  props: {
+    shared_anchor_id: string = "",
+    alignment_method: enum("cloud_anchor" | "image_target" | "manual") = "cloud_anchor",
+    alignment_timeout: number = 30000,
+    visual_indicator: boolean = true,
+    max_participants: number = 10
+  },
+  events: {
+    on_aligned: "co_located:aligned",
+    on_participant_joined: "co_located:participant_joined",
+    on_participant_left: "co_located:participant_left",
+    on_timeout: "co_located:timeout",
+    align: "co_located.align"
+  },
+  behaviors: ["@shared_anchor", "@persistent_anchor"]
+}

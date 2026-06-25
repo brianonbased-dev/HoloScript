@@ -1,0 +1,15 @@
+@trait {
+  name: "@crdt_room",
+  category: "concurrency",
+  description: "Loro CRDT shared room — provides a conflict-free replicated data type backing for collaborative state. Config is room-dependent and passed through to the CRDTRoomTrait instance. Port of CRDTRoomTrait.ts (handler name: c_r_d_t_room).",
+  props: {},
+  events: {
+    on_change: "crdt_room:change",
+    on_sync: "crdt_room:sync",
+    on_conflict: "crdt_room:conflict",
+    set: "crdt_room.set",
+    get: "crdt_room.get",
+    sync: "crdt_room.sync"
+  },
+  behaviors: ["@collaborative_world", "@shared_world"]
+}

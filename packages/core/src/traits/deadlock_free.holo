@@ -1,0 +1,16 @@
+@trait {
+  name: "@deadlock_free",
+  category: "concurrency",
+  description: "Deadlock prevention via total resource ordering — enforces that all lock acquisitions follow a canonical order. max_resources is the maximum tracked resource locks (default: 100). Port of DeadlockFreeTrait.ts (handler name: deadlock_free).",
+  props: {
+    max_resources: number = 100
+  },
+  events: {
+    on_locked: "deadlock_free:locked",
+    on_released: "deadlock_free:released",
+    on_deadlock_prevented: "deadlock_free:deadlock_prevented",
+    acquire: "deadlock_free.acquire",
+    release: "deadlock_free.release"
+  },
+  behaviors: ["@circuit_breaker", "@consensus"]
+}

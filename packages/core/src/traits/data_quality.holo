@@ -1,0 +1,14 @@
+@trait {
+  name: "@data_quality",
+  category: "data",
+  description: "Data quality gate — validates incoming data against schema rules and emits pass/fail events. fail_on_error throws when a check fails (default: false — emit only). Port of DataQualityTrait.ts (handler name: data_quality).",
+  props: {
+    fail_on_error: boolean = false
+  },
+  events: {
+    on_passed: "data_quality:passed",
+    on_failed: "data_quality:failed",
+    check: "data_quality.check"
+  },
+  behaviors: ["@data_lineage", "@audit_log"]
+}

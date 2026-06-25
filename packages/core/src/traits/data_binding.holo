@@ -1,0 +1,19 @@
+@trait {
+  name: "@data_binding",
+  category: "data",
+  description: "Live data binding between a remote source and scene node properties. source is the data URL (REST endpoint, WebSocket, or GraphQL query). source_type: rest (default), websocket, graphql, mqtt. refresh_rate is the polling interval in ms for REST sources (default: 1000ms). interpolation smooths value transitions between updates (default: true). bindings is the list of {source_field, target_prop, transform} mapping rules. Port of DataBindingTrait.ts (handler name: data_binding).",
+  props: {
+    source: string = "",
+    source_type: enum("rest" | "websocket" | "graphql" | "mqtt") = "rest",
+    refresh_rate: number = 1000,
+    interpolation: boolean = true
+  },
+  events: {
+    on_updated: "data_binding:updated",
+    on_error: "data_binding:error",
+    bind: "data_binding.bind",
+    unbind: "data_binding.unbind",
+    refresh: "data_binding.refresh"
+  },
+  behaviors: ["@digital_twin", "@world_state"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@deploy",
+  category: "deployment",
+  description: "Deployment pipeline orchestrator. stages is the ordered list of pipeline stages (default: [prepare, deploy, verify]). auto_verify automatically runs the verify stage after deploy (default: true). Port of DeployTrait.ts (handler name: deploy).",
+  props: {
+    auto_verify: boolean = true
+  },
+  events: {
+    on_stage_started: "deploy:stage_started",
+    on_stage_completed: "deploy:stage_completed",
+    on_deployed: "deploy:deployed",
+    on_failed: "deploy:failed",
+    on_rolled_back: "deploy:rolled_back",
+    start: "deploy.start",
+    rollback: "deploy.rollback"
+  },
+  behaviors: ["@canary", "@circuit_breaker", "@audit_log"]
+}

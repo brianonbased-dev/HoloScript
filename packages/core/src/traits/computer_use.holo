@@ -1,0 +1,25 @@
+@trait {
+  name: "@computer_use",
+  category: "agent",
+  description: "Headless browser computer-use agent — navigates web pages, fills forms, takes screenshots, and executes actions. headless runs without a visible browser (default: true). viewport_width/height is the browser viewport in pixels (default: 1280x720). user_agent is the browser UA string. max_actions_per_session is the action cap before forced close (default: 100). allowed_domains is the domain allowlist (empty=all). allow_shell enables shell command execution (default: false). screenshot_quality is the JPEG quality [0,100] (default: 80). Port of ComputerUseTrait.ts (handler name: computer_use).",
+  props: {
+    headless: boolean = true,
+    viewport_width: number = 1280,
+    viewport_height: number = 720,
+    user_agent: string = "HoloScript-Agent/4.0 (compatible; AppleWebKit)",
+    max_actions_per_session: number = 100,
+    allow_shell: boolean = false,
+    screenshot_quality: number = 80
+  },
+  events: {
+    on_navigated: "computer_use:navigated",
+    on_action: "computer_use:action",
+    on_screenshot: "computer_use:screenshot",
+    on_session_closed: "computer_use:session_closed",
+    navigate: "computer_use.navigate",
+    click: "computer_use.click",
+    type: "computer_use.type",
+    screenshot: "computer_use.screenshot"
+  },
+  behaviors: ["@ai_companion", "@agent_memory"]
+}

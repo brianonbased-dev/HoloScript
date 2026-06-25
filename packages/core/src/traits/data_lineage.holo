@@ -1,0 +1,14 @@
+@trait {
+  name: "@data_lineage",
+  category: "audit",
+  description: "Data lineage graph tracker — records the provenance chain of each data value through transforms. max_depth is the maximum tracked transform depth (default: 50). Port of DataLineageTrait.ts (handler name: data_lineage).",
+  props: {
+    max_depth: number = 50
+  },
+  events: {
+    on_recorded: "data_lineage:recorded",
+    get_lineage: "data_lineage.get_lineage",
+    clear: "data_lineage.clear"
+  },
+  behaviors: ["@provenance", "@audit_log", "@change_tracking"]
+}
