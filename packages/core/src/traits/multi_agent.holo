@@ -1,0 +1,19 @@
+@trait {
+  name: "@multi_agent",
+  category: "agent",
+  description: "Multi-agent coordination — registers this node as a peer in a swarm with heartbeat-based presence. agent_id is the unique agent identifier. agent_name is the display name (default: Agent). heartbeat_interval is the presence pulse in ms (default: 5000ms). offline_threshold is the missed heartbeats before marking offline (default: 3). Port of MultiAgentTrait.ts (handler name: multi_agent).",
+  props: {
+    agent_id: string = "",
+    agent_name: string = "Agent",
+    heartbeat_interval: number = 5000,
+    offline_threshold: number = 3
+  },
+  events: {
+    on_peer_joined: "multi_agent:peer_joined",
+    on_peer_left: "multi_agent:peer_left",
+    on_message: "multi_agent:message",
+    broadcast: "multi_agent.broadcast",
+    send: "multi_agent.send"
+  },
+  behaviors: ["@blackboard", "@negotiation", "@edge_node"]
+}

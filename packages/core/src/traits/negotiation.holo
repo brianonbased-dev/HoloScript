@@ -1,0 +1,23 @@
+@trait {
+  name: "@negotiation",
+  category: "agent",
+  description: "Multi-agent negotiation protocol. role: participant (default), facilitator, observer. default_mechanism: majority (default), consensus, auction, vickrey. default_timeout is the round timeout in ms (default: 60,000ms). default_quorum is the quorum fraction [0,1] (default: 0.5). auto_vote enables automatic voting (default: false). auto_vote_strategy: none (default), agree, random, abstain. event_history_limit is the event log size (default: 100). require_justification requires agents to provide justification with votes (default: false). Port of NegotiationTrait.ts (handler name: negotiation).",
+  props: {
+    role: enum("participant" | "facilitator" | "observer") = "participant",
+    default_mechanism: enum("majority" | "consensus" | "auction" | "vickrey") = "majority",
+    default_timeout: number = 60000,
+    default_quorum: number = 0.5,
+    auto_vote: boolean = false,
+    auto_vote_strategy: enum("none" | "agree" | "random" | "abstain") = "none",
+    event_history_limit: number = 100,
+    require_justification: boolean = false
+  },
+  events: {
+    on_proposal: "negotiation:proposal",
+    on_vote: "negotiation:vote",
+    on_outcome: "negotiation:outcome",
+    propose: "negotiation.propose",
+    vote: "negotiation.vote"
+  },
+  behaviors: ["@consensus", "@multi_agent", "@hitl"]
+}

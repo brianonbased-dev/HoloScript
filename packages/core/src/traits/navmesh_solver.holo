@@ -1,0 +1,16 @@
+@trait {
+  name: "@navmesh_solver",
+  category: "navigation",
+  description: "Navigation mesh builder and path solver. cell_size is the voxelization cell size in meters (default: 0.5m). Port of NavmeshSolverTrait.ts (handler name: navmesh_solver).",
+  props: {
+    cell_size: number = 0.5
+  },
+  events: {
+    on_built: "navmesh_solver:built",
+    on_path_found: "navmesh_solver:path_found",
+    on_path_failed: "navmesh_solver:path_failed",
+    build: "navmesh_solver.build",
+    find_path: "navmesh_solver.find_path"
+  },
+  behaviors: ["@astar", "@flow_field"]
+}

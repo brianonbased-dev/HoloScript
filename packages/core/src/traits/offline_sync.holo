@@ -1,0 +1,15 @@
+@trait {
+  name: "@offline_sync",
+  category: "data",
+  description: "Offline-first sync queue — buffers writes when offline and flushes when connectivity is restored. sync_interval_ms is the retry interval in ms (default: 5000ms). Port of OfflineSyncTrait.ts (handler name: offline_sync).",
+  props: {
+    sync_interval_ms: number = 5000
+  },
+  events: {
+    on_online: "offline_sync:online",
+    on_offline: "offline_sync:offline",
+    on_synced: "offline_sync:synced",
+    on_pending: "offline_sync:pending"
+  },
+  behaviors: ["@crdt_room", "@database", "@http"]
+}

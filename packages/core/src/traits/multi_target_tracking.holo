@@ -1,0 +1,15 @@
+@trait {
+  name: "@multi_target_tracking",
+  category: "sensing",
+  description: "Multi-target tracking — maintains track identities across frames using a SORT/ByteTrack-style filter. update_rate_hz is the tracker update frequency (minimum 30Hz, enforced by validator). Config is target-type-dependent. Port of MultiTargetTrackingTrait.ts (handler name: multi_target_tracking).",
+  props: {
+    update_rate_hz: number = 30
+  },
+  events: {
+    on_track_started: "multi_target_tracking:track_started",
+    on_track_updated: "multi_target_tracking:track_updated",
+    on_track_lost: "multi_target_tracking:track_lost",
+    update: "multi_target_tracking.update"
+  },
+  behaviors: ["@kalman_filter", "@object_tracking", "@hungarian_assignment"]
+}

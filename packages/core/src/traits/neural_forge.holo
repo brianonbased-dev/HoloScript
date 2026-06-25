@@ -1,0 +1,16 @@
+@trait {
+  name: "@neural_forge",
+  category: "agent",
+  description: "Neural personality forge — synthesizes agent personality parameters from interaction history using Big-5 trait mechanics. auto_synthesize re-synthesizes personality when the interaction count passes synthesis_threshold (default: true). synthesis_threshold is the interaction count trigger (default: 10). base_weights is the initial Big-5 personality {openness, conscientiousness, ...} map. Port of NeuralForgeTrait.ts (handler name: neural_forge).",
+  props: {
+    auto_synthesize: boolean = true,
+    synthesis_threshold: number = 10
+  },
+  events: {
+    on_synthesized: "neural_forge:synthesized",
+    on_interaction: "neural_forge:interaction",
+    synthesize: "neural_forge.synthesize",
+    record: "neural_forge.record"
+  },
+  behaviors: ["@emotion", "@agent_memory", "@llm_agent"]
+}

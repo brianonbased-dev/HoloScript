@@ -1,0 +1,15 @@
+@trait {
+  name: "@networked_avatar",
+  category: "multiplayer",
+  description: "Networked avatar state synchronization. is_local marks this as the local player's avatar (default: false). update_rate is the network state push frequency in Hz (default: 30Hz). Port of NetworkedAvatarTrait.ts (handler name: networked_avatar).",
+  props: {
+    is_local: boolean = false,
+    update_rate: number = 30
+  },
+  events: {
+    on_state_received: "networked_avatar:state_received",
+    on_disconnect: "networked_avatar:disconnect",
+    send_state: "networked_avatar.send_state"
+  },
+  behaviors: ["@networked", "@avatar_embodiment", "@co_located"]
+}

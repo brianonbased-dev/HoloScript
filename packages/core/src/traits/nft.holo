@@ -1,0 +1,19 @@
+@trait {
+  name: "@nft",
+  category: "web3",
+  description: "NFT metadata and ownership binding. chain: ethereum (default), base, polygon, solana. contract_address is the NFT contract address. token_id is the token ID. metadata_uri is the ERC-721 metadata URI. display_ownership shows the owner in the scene (default: false). Port of NFTTrait.ts (handler name: nft).",
+  props: {
+    chain: enum("ethereum" | "base" | "polygon" | "solana") = "ethereum",
+    contract_address: string = "",
+    token_id: string = "",
+    metadata_uri: string = "",
+    display_ownership: boolean = false
+  },
+  events: {
+    on_loaded: "nft:loaded",
+    on_transferred: "nft:transferred",
+    on_error: "nft:error",
+    load: "nft.load"
+  },
+  behaviors: ["@marketplace", "@token_gated"]
+}

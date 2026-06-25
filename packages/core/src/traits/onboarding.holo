@@ -1,0 +1,20 @@
+@trait {
+  name: "@onboarding",
+  category: "ux",
+  description: "In-XR onboarding flow. title is the onboarding title (default: Universal QR Scanner). tagline is the subtitle text. how_to_use is the list of step strings. aim_tip is the tooltip for the aim indicator. start_action is the CTA button label (default: Start scanning). Port of OnboardingTrait.ts (handler name: onboarding).",
+  props: {
+    title: string = "Universal QR Scanner",
+    tagline: string = "Read any QR code — right in mixed reality",
+    aim_tip: string = "",
+    start_action: string = "Start scanning"
+  },
+  events: {
+    on_started: "onboarding:started",
+    on_completed: "onboarding:completed",
+    on_skipped: "onboarding:skipped",
+    start: "onboarding.start",
+    skip: "onboarding.skip",
+    complete: "onboarding.complete"
+  },
+  behaviors: ["@accessible", "@dialog", "@hand_menu"]
+}

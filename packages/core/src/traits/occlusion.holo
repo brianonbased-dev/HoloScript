@@ -1,0 +1,17 @@
+@trait {
+  name: "@occlusion",
+  category: "xr",
+  description: "XR environment occlusion — hides virtual objects behind real-world surfaces. mode: environment (default), person, hands, all. depth_api uses the device depth API for precision (default: true). edge_smoothing blends occlusion edges (default: true). fade_distance is the blend transition width in meters (default: 0.5m). hand_occlusion enables hand mesh occlusion (default: true). Port of OcclusionTrait.ts (handler name: occlusion).",
+  props: {
+    mode: enum("environment" | "person" | "hands" | "all") = "environment",
+    depth_api: boolean = true,
+    edge_smoothing: boolean = true,
+    fade_distance: number = 0.5,
+    hand_occlusion: boolean = true
+  },
+  events: {
+    on_occluded: "occlusion:occluded",
+    on_revealed: "occlusion:revealed"
+  },
+  behaviors: ["@mesh_detection", "@depth_estimation"]
+}

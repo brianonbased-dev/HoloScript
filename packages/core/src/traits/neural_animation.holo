@@ -1,0 +1,18 @@
+@trait {
+  name: "@neural_animation",
+  category: "animation",
+  description: "Neural motion synthesis and animation retargeting. animation_model is the motion model name (default: neural_motion). smoothing is the temporal smoothing factor [0,1] (default: 0.7). retargeting enables skeleton retargeting (default: false). blend_weight is the neural blend contribution [0,1] (default: 1.0). Port of NeuralAnimationTrait.ts (handler name: neural_animation).",
+  props: {
+    animation_model: string = "neural_motion",
+    smoothing: number = 0.7,
+    retargeting: boolean = false,
+    blend_weight: number = 1.0
+  },
+  events: {
+    on_frame: "neural_animation:frame",
+    on_retargeted: "neural_animation:retargeted",
+    play: "neural_animation.play",
+    stop: "neural_animation.stop"
+  },
+  behaviors: ["@motion_source", "@ik", "@fbx"]
+}

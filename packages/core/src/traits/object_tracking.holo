@@ -1,0 +1,18 @@
+@trait {
+  name: "@object_tracking",
+  category: "xr",
+  description: "XR object tracking — persistent identity tracking for physical objects in the scene. tracking_target: objects (default), images, faces, hands. anchor_persistence: session (default), cloud, none. tracking_quality: low, medium (default), high. max_distance is the maximum tracking range in meters (default: 5.0). update_rate_hz is the tracker update frequency in Hz (default: 30). Port of ObjectTrackingTrait.ts (handler name: object_tracking).",
+  props: {
+    tracking_target: enum("objects" | "images" | "faces" | "hands") = "objects",
+    anchor_persistence: enum("session" | "cloud" | "none") = "session",
+    tracking_quality: enum("low" | "medium" | "high") = "medium",
+    max_distance: number = 5.0,
+    update_rate_hz: number = 30
+  },
+  events: {
+    on_detected: "object_tracking:detected",
+    on_lost: "object_tracking:lost",
+    on_updated: "object_tracking:updated"
+  },
+  behaviors: ["@multi_target_tracking", "@anchor", "@kalman_filter"]
+}

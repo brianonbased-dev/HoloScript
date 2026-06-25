@@ -1,0 +1,20 @@
+@trait {
+  name: "@npc_ai",
+  category: "agent",
+  description: "NPC AI brain — full-stack NPC controller with perception, dialogue, and goal planning. model is the LLM model (default: hermes-3-70b). system_prompt is the NPC persona. intelligence_tier: basic, advanced (default), expert. perception_range is the awareness radius in meters (default: 10.0). learning_rate is the reputation/experience update rate (default: 0.1). Port of NPCAITrait.ts (handler name: npc_ai).",
+  props: {
+    model: string = "hermes-3-70b",
+    system_prompt: string = "You are a helpful holographic assistant.",
+    intelligence_tier: enum("basic" | "advanced" | "expert") = "advanced",
+    perception_range: number = 10.0,
+    learning_rate: number = 0.1
+  },
+  events: {
+    on_perceived: "npc_ai:perceived",
+    on_decision: "npc_ai:decision",
+    on_dialogue: "npc_ai:dialogue",
+    interact: "npc_ai.interact",
+    reset: "npc_ai.reset"
+  },
+  behaviors: ["@llm_agent", "@goal_oriented", "@dialogue", "@emotion"]
+}

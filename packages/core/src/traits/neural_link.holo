@@ -1,0 +1,18 @@
+@trait {
+  name: "@neural_link",
+  category: "agent",
+  description: "Neural link to a local GGUF model for on-device agent cognition. model is the GGUF model path (default: brittney-v4.gguf). temperature is the sampling temperature (default: 0.7). max_tokens is the generation cap (default: 2048). sync: local (default), edge, cloud. personality_anchor is an optional anchor identity string. Port of NeuralLinkTrait.ts (handler name: neural_link).",
+  props: {
+    model: string = "brittney-v4.gguf",
+    temperature: number = 0.7,
+    max_tokens: number = 2048,
+    sync: enum("local" | "edge" | "cloud") = "local",
+    personality_anchor: string = ""
+  },
+  events: {
+    on_response: "neural_link:response",
+    on_error: "neural_link:error",
+    generate: "neural_link.generate"
+  },
+  behaviors: ["@local_llm", "@local_inference", "@jetson_gpu"]
+}

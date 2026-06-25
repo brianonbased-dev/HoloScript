@@ -1,0 +1,15 @@
+@trait {
+  name: "@oauth",
+  category: "security",
+  description: "OAuth 2.0 token manager. providers is the enabled provider list (default: [google, github]). Port of OauthTrait.ts (handler name: oauth).",
+  props: {},
+  events: {
+    on_authenticated: "oauth:authenticated",
+    on_expired: "oauth:expired",
+    on_error: "oauth:error",
+    authenticate: "oauth.authenticate",
+    refresh: "oauth.refresh",
+    logout: "oauth.logout"
+  },
+  behaviors: ["@jwt", "@mfa", "@consent_gate"]
+}
