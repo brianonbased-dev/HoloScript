@@ -1,0 +1,21 @@
+@trait {
+  name: "@analytics_event",
+  category: "devops",
+  description: "Structured analytics event emitter. Fires a typed event payload to a configured analytics endpoint (Amplitude, Mixpanel, custom) whenever a watched entity event triggers, supporting property mapping, batching, and PII scrubbing before transmission. Authored from AnalyticsEventTrait.ts.",
+  props: {
+    endpoint_url: string = "",
+    api_secret: string = "",
+    event_name: string = "",
+    watch_event: string = "",
+    props_map: dict<string, string> = {},
+    batch_size: number = 10,
+    scrub_pii: boolean = true
+  },
+  events: {
+    attached: "analytics_event_attached",
+    detached: "analytics_event_detached",
+    on_send: "analytics_event_send",
+    on_flush: "analytics_event_flush"
+  },
+  behaviors: ["@tracker", "@stats", "@journal"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@anchor_constraint",
+  category: "physics",
+  description: "Fixed-point physics anchor constraint. Pins the entity's body to a world-space point or to another entity's socket, resisting translational and rotational displacement with configurable spring stiffness and damping — used for chains, hinged doors, and tethered objects. Authored from AnchorConstraintTrait.ts.",
+  props: {
+    anchor_entity_id: string = "",
+    socket_name: string = "",
+    world_point: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 },
+    linear_stiffness: number = 100,
+    angular_stiffness: number = 50,
+    damping: number = 0.1,
+    break_force: number = 0
+  },
+  events: {
+    attached: "anchor_constraint_attached",
+    detached: "anchor_constraint_detached",
+    on_break: "anchor_constraint_break"
+  },
+  behaviors: ["@rope_constraint", "@mount_point", "@kinematic_body"]
+}

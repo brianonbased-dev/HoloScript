@@ -1,0 +1,17 @@
+@trait {
+  name: "@air_resistance",
+  category: "physics",
+  description: "Aerodynamic drag and lift force applier. Computes drag from the entity's velocity, cross-sectional area, and drag coefficient, and optionally adds a lift force for winged or gliding bodies, subtracting from the physics velocity each tick for realistic projectile and vehicle flight arcs. Authored from AirResistanceTrait.ts.",
+  props: {
+    drag_coefficient: number = 0.47,
+    cross_section_m2: number = 0.1,
+    air_density: number = 1.225,
+    lift_coefficient: number = 0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "air_resistance_attached",
+    detached: "air_resistance_detached"
+  },
+  behaviors: ["@velocity", "@soft_body", "@rope_constraint"]
+}

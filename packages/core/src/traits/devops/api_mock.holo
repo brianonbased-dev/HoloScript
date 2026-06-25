@@ -1,0 +1,17 @@
+@trait {
+  name: "@api_mock",
+  category: "devops",
+  description: "Development API stub/mock server. Intercepts entity outbound HTTP requests matching a URL pattern and returns configurable JSON responses, status codes, and artificial delays — enabling offline-first development and reproducing edge-case API states in playtest. Authored from ApiMockTrait.ts.",
+  props: {
+    rules: list<{ url_pattern: string, method: enum("GET" | "POST" | "PUT" | "DELETE" | "PATCH"), status: number, body: string, delay_ms: number }> = [],
+    enabled: boolean = false,
+    passthrough_on_miss: boolean = true
+  },
+  events: {
+    attached: "api_mock_attached",
+    detached: "api_mock_detached",
+    on_intercept: "api_mock_intercept",
+    on_miss: "api_mock_miss"
+  },
+  behaviors: ["@inspector", "@unit_test", "@network_diagnostics"]
+}
