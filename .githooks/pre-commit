@@ -414,6 +414,29 @@ else
     echo -e "  ${GREEN}✓${NC} Trait parity (no relevant staged files)"
 fi
 
+# Gate 5g: Hardcoded ecosystem-count gate (Zero Hardcoded Stats / docs/NUMBERS.md SSOT).
+# Scans STAGED markdown for a bare count before a volatile noun (traits / compilers / MCP tools /
+# compile-export targets / knowledge entries) — the rot pattern that makes every doc a lie within
+# weeks ("1,800+ VR traits" was wrong in 12 files; tool count went 34→82→88→122→158). Gates NEW
+# violations only (staged scope, multi-agent-safe); the existing backlog is not retro-failed. Escape
+# a legit number with a NUMBERS.md reference, a verify/find/grep command, ~approx, or "as of <date>".
+echo "  ├─ Hardcoded-stats gate (NUMBERS.md SSOT)..."
+STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM -- '*.md' 2>/dev/null || true)
+if [ -n "$STAGED_MD" ]; then
+    STATS_OUT=$(run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs $STAGED_MD 2>&1)
+    STATS_STATUS=$?
+    if [ "$STATS_STATUS" -ne 0 ]; then
+        echo -e "  ${RED}❌ Hardcoded ecosystem count in a staged doc${NC}"
+        echo "$STATS_OUT"
+        echo "     Fix: reference docs/NUMBERS.md or the verification command instead of the literal count."
+        FAILED=1
+    else
+        echo -e "  ${GREEN}✓${NC} No hardcoded ecosystem counts"
+    fi
+else
+    echo -e "  ${GREEN}✓${NC} No staged markdown"
+fi
+
 # Gate 6: Complexity — skipped (not configured)
 echo -e "  ├─ Complexity analysis... ${YELLOW}⚠ skipped${NC}"
 
