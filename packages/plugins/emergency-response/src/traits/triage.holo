@@ -1,0 +1,21 @@
+@trait {
+  name: "@triage",
+  category: "emergency",
+  description: "Mass casualty triage tracking. priority follows START/JumpSTART color codes: red (immediate), yellow (delayed), green (minor/walking wounded), black (expectant/deceased). assessmentMethod: START (adults), JumpSTART (pediatrics), or SALT (Sort, Assess, Lifesaving interventions, Treatment/Transport). patientCount is the live count at this priority level. reassessmentEnabled triggers periodic re-triage. reassessmentIntervalSec controls the reassessment cadence (default: 300s). severityScore is a composite 0-100 acuity index. Port of TriageTrait.ts (handler name: triage).",
+  props: {
+    priority: enum("red" | "yellow" | "green" | "black") = "green",
+    patient_count: number = 0,
+    assessment_method: enum("START" | "JumpSTART" | "SALT") = "START",
+    reassessment_enabled: boolean = true,
+    reassessment_interval_sec: number = 300,
+    severity_score: number = 0
+  },
+  events: {
+    on_patient_triaged: "triage_patient_triaged",
+    on_priority_changed: "triage_priority_changed",
+    on_reassessment: "triage_reassessment",
+    triage: "triage_patient",
+    reassess: "triage_reassess"
+  },
+  behaviors: ["@resource_dispatch", "@incident_command"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@resource_dispatch",
+  category: "emergency",
+  description: "Emergency resource unit dispatch tracker. unitType: ems, fire, police, rescue, hazmat, or national_guard. status: available, dispatched, on_scene, transporting, or out_of_service. etaSeconds is the estimated arrival in seconds. personnelCount is the crew size. specializedEquipment is a list of equipment identifiers on the unit. Port of ResourceDispatchTrait.ts (handler name: resource_dispatch).",
+  props: {
+    unit_type: enum("ems" | "fire" | "police" | "rescue" | "hazmat" | "national_guard") = "ems",
+    unit_id: string = "",
+    status: enum("available" | "dispatched" | "on_scene" | "transporting" | "out_of_service") = "available",
+    eta_seconds: number = 0,
+    personnel_count: number = 2
+  },
+  events: {
+    on_dispatched: "resource_dispatched",
+    on_arrived: "resource_arrived",
+    on_cleared: "resource_cleared",
+    dispatch: "resource_dispatch_cmd",
+    clear: "resource_clear"
+  },
+  behaviors: ["@incident_command", "@triage"]
+}

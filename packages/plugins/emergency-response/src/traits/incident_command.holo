@@ -1,0 +1,22 @@
+@trait {
+  name: "@incident_command",
+  category: "emergency",
+  description: "ICS (Incident Command System) incident management. severity: minor, moderate, major, or catastrophic. commanderRole follows ICS titles (incident_commander, operations_section_chief, etc.). sectors is a list of operational division IDs. stagingAreas is a list of resource staging location IDs. channels maps function to radio channel (e.g., command: TAC-1). unifiedCommand enables multi-agency UC structure. operationalPeriod is the current ICS operational period number. Port of IncidentCommandTrait.ts (handler name: incident_command).",
+  props: {
+    incident_name: string = "",
+    commander_name: string = "",
+    commander_role: string = "incident_commander",
+    severity: enum("minor" | "moderate" | "major" | "catastrophic") = "moderate",
+    unified_command: boolean = false,
+    operational_period: number = 1
+  },
+  events: {
+    on_declared: "incident_declared",
+    on_severity_upgraded: "incident_severity_upgraded",
+    on_closed: "incident_closed",
+    declare: "incident_declare",
+    upgrade_severity: "incident_upgrade",
+    close: "incident_close"
+  },
+  behaviors: ["@evacuation_zone", "@resource_dispatch", "@triage"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@evacuation_zone",
+  category: "emergency",
+  description: "Emergency evacuation zone with geofence, capacity, and status tracking. radiusMeters defines the zone boundary. capacity is max occupants. status: standby, active, full, or closed. currentOccupancy is live headcount. routes is a list of egress route IDs. priorityLevel 1-5 (1=highest). perimeterSecured flags law enforcement perimeter establishment. Port of EvacuationZoneTrait.ts (handler name: evacuation_zone).",
+  props: {
+    radius_meters: number = 300,
+    capacity: number = 100,
+    status: enum("standby" | "active" | "full" | "closed") = "standby",
+    current_occupancy: number = 0,
+    priority_level: number = 3,
+    perimeter_secured: boolean = false
+  },
+  events: {
+    on_activated: "evacuation_zone_activated",
+    on_capacity_reached: "evacuation_zone_full",
+    on_cleared: "evacuation_zone_cleared",
+    activate: "evacuation_zone_activate",
+    update_occupancy: "evacuation_zone_update_occupancy"
+  },
+  behaviors: ["@incident_command", "@spatial_awareness"]
+}
