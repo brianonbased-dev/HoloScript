@@ -1,0 +1,40 @@
+// @a2a_hsnap_task_schema — Canonical A2A↔HSNAP task type mapping with Zod validation.
+//
+// Native .hsplus surface for a2a-hsnap-task-schema.ts (agent-protocol).
+//
+// SSOT for task shape across the A2A <-> HSNAP bridge. All translation
+// functions in A2AHSNAPBridge reference these types. Zod schemas provide
+// runtime validation at protocol boundaries.
+//
+// A2ATaskStatus (a2a-hsnap-task-schema.ts):
+//   submitted | working | input-required | completed | failed | canceled
+//
+// A2ATaskArtifact { name?, mime_type, data, index? }
+// A2ATaskMessage { role: user|agent, parts: A2AMessagePart[], timestamp: ISO 8601 }
+
+@trait a2a_hsnap_task_schema {
+  capability_tags: ["a2a_hsnap_task_schema", "a2a", "hsnap", "task_schema", "zod", "agent_protocol"]
+
+  @on_spawn => {
+    schema = init_a2a_hsnap_task_schema()
+    emit("a2a_hsnap_task_schema_ready", {})
+  }
+
+  // Parse and validate an A2A task payload at a protocol boundary
+  @on_validate_task(payload) => {
+    return schema.validate_task(payload)
+  }
+
+  // Translate an A2A task to HSNAP format
+  @on_translate_to_hsnap(a2a_task) => {
+    return schema.translate_to_hsnap(a2a_task)
+  }
+
+  @receipt a2a_hsnap_task_schema_config {
+    type: "A2AHSNAPTaskSchemaReceipt"
+    status_values: ["submitted", "working", "input-required", "completed", "failed", "canceled"]
+    validation: "Zod runtime validation at protocol boundaries"
+    ssot: "SSOT for task shape across A2A <-> HSNAP bridge"
+    timestamp: now()
+  }
+}

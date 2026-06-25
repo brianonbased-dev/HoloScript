@@ -1,0 +1,49 @@
+// @idempotent_transport_adapter — Exactly-once A2A delivery via request dedup + response cache.
+//
+// Native .hsplus surface for IdempotentTransportAdapter.ts (agent-protocol).
+//
+// Wraps any A2ATransportAdapter (A2ATransportLike) to guarantee exactly-once delivery.
+// On retry of a cached idempotency key (within TTL): returns cached response, skips re-send.
+//
+// IdempotentTransportConfig (IdempotentTransportAdapter.ts):
+//   ttl_ms:             Int = 300_000 (5 min)
+//   max_cache_size:     Int = 10_000
+//   idempotency_header: String = "X-Idempotency-Key"
+//   now?: () => Int     — injectable clock for testing
+//
+// DeliveryStatus: fresh | deduped | error
+// DeliveryResult { status, response, idempotency_key, cached: Bool }
+// CacheEntry { response, created_at, idempotency_key }
+
+@trait idempotent_transport_adapter {
+  ttl_ms: Int = 300000
+  max_cache_size: Int = 10000
+  idempotency_header: String = "X-Idempotency-Key"
+
+  capability_tags: ["idempotent_transport_adapter", "exactly_once", "dedup", "a2a", "agent_protocol"]
+
+  @on_spawn(base_transport) => {
+    adapter = init_idempotent_transport_adapter(base_transport, {
+      ttl_ms: ttl_ms,
+      max_cache_size: max_cache_size,
+      idempotency_header: idempotency_header
+    })
+    emit("idempotent_transport_adapter_ready", {})
+  }
+
+  // Send with dedup — returns cached response if idempotency key already seen
+  @on_send(input) => {
+    result = adapter.send(input)
+    emit("delivery_result", { status: result.status, cached: result.cached })
+    return result
+  }
+
+  @receipt idempotent_transport_adapter_config {
+    type: "IdempotentTransportAdapterReceipt"
+    semantics: "exactly-once delivery via request dedup + TTL response cache"
+    ttl_ms: ttl_ms
+    max_cache_size: max_cache_size
+    delivery_statuses: ["fresh", "deduped", "error"]
+    timestamp: now()
+  }
+}

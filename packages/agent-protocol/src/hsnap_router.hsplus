@@ -1,0 +1,49 @@
+// @hsnap_router — HSNAP task lifecycle routing and agent dispatch.
+//
+// Native .hsplus surface for hsnap-router.ts (agent-protocol).
+//
+// HSNAPLifecycleType (hsnap-router.ts):
+//   task.send | task.accept | task.progress | task.complete | task.fail | task.cancel
+//
+// HSNAPTaskMetadata { id?, from?, to?, intent?, priority?, timeout?, skill_id?, input?, idempotency_key? }
+// HSNAPResultMetadata { task_id?, status?, duration? }
+// HSNAPAgentMetadata { name?, accepts[], emits[], tools[], timeout?, max_concurrent? }
+// HSNAPLifecycleEvent { type, task_id, agent_id?, timestamp, payload? }
+// HSNAPDispatchMessage { source, task, result?, compiled?, target, report_progress: fn }
+// HSNAPRegisteredAgent — agent registered with the router
+// HSNAPAgentVM — VM handle for executing agent logic
+//
+// Optional compile hook: HSNAPRouter.compile(opts) → HSNAPCompileArtifacts (stubs in hsnap-bytecode.ts)
+
+@trait hsnap_router {
+  capability_tags: ["hsnap_router", "hsnap", "lifecycle", "agent_dispatch", "agent_protocol"]
+
+  @on_spawn => {
+    router = init_hsnap_router()
+    emit("hsnap_router_ready", {})
+  }
+
+  // Register an agent with the router
+  @on_register(agent_metadata, agent_vm) => {
+    router.register(agent_metadata, agent_vm)
+    emit("hsnap_agent_registered", { name: agent_metadata.name })
+  }
+
+  // Dispatch a task to the appropriate agent
+  @on_dispatch(message) => {
+    return router.dispatch(message)
+  }
+
+  // Emit a lifecycle event
+  @on_lifecycle(event) => {
+    router.emit_lifecycle(event)
+    emit("hsnap_lifecycle", { type: event.type, task_id: event.task_id })
+  }
+
+  @receipt hsnap_router_config {
+    type: "HSNAPRouterReceipt"
+    lifecycle_types: ["task.send", "task.accept", "task.progress", "task.complete", "task.fail", "task.cancel"]
+    compile_hook: "optional; inject compile fn for HSNAP→uAAL (see hsnap_bytecode)"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,51 @@
+// @task_bridge_schema — HSNAP↔A2A canonical task envelope bridge.
+//
+// Native .hsplus surface for task-bridge-schema.ts (agent-protocol).
+//
+// HSNAP↔A2A round-trip tested (see __tests__/task-bridge-schema.test.ts).
+// This is the REAL production path (source-level bridging), unlike hsnap_bytecode stubs.
+//
+// CANONICAL_TASK_BRIDGE_SCHEMA: "holoscript.task-bridge.v1"
+//
+// Types (task-bridge-schema.ts):
+//   CanonicalTaskEnvelope { schema, task: HSNAPTaskMetadata, result?, agent? }
+//   A2ASendMessageRequest { jsonrpc: "2.0", id, method: "a2a.sendMessage", params }
+//
+// Functions:
+//   createCanonicalTaskEnvelope(task, { result?, agent? }) → CanonicalTaskEnvelope
+//   canonicalTaskToA2ASendMessage(envelope, requestId, timestamp?) → A2ASendMessageRequest
+//   a2aSendMessageToCanonicalTask(request) → CanonicalTaskEnvelope
+
+@trait task_bridge_schema {
+  schema_version: String = "holoscript.task-bridge.v1"
+
+  capability_tags: ["task_bridge_schema", "hsnap", "a2a", "canonical_envelope", "bridge", "agent_protocol"]
+
+  @on_spawn => {
+    bridge = init_task_bridge_schema({ schema_version: schema_version })
+    emit("task_bridge_schema_ready", { schema_version: schema_version })
+  }
+
+  // Wrap a HSNAP task in a canonical envelope
+  @on_create_envelope(task, result, agent) => {
+    return bridge.create_canonical_envelope(task, { result: result, agent: agent })
+  }
+
+  // Translate canonical envelope → A2A sendMessage JSON-RPC request
+  @on_to_a2a_send_message(envelope, request_id, timestamp) => {
+    return bridge.to_a2a_send_message(envelope, request_id, timestamp)
+  }
+
+  // Parse A2A sendMessage → canonical envelope
+  @on_from_a2a_send_message(request) => {
+    return bridge.from_a2a_send_message(request)
+  }
+
+  @receipt task_bridge_schema_config {
+    type: "TaskBridgeSchemaReceipt"
+    schema_version: schema_version
+    round_trip_tested: true
+    production_path: "source-level bridging (not bytecode)"
+    timestamp: now()
+  }
+}

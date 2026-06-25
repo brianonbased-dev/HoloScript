@@ -1,0 +1,35 @@
+// @hsnap_bytecode — HSNAP compile-hook type surface (stubs; no implementation here).
+//
+// Native .hsplus surface for hsnap-bytecode.ts (agent-protocol).
+//
+// TYPE SURFACE ONLY. @holoscript/agent-protocol is type-only; no HSNAP→uAAL
+// bytecode-compilation implementation lives here. No @holoscript/hsnap-compiler
+// package exists today (downgraded 2026-06-22, deep-ratchet uAAL-consumption audit).
+//
+// Real consumption = source-level bridging in task-bridge-schema.ts + A2AHSNAPBridge.
+// These stubs keep the HSNAPRouter optional compile-hook contract stable.
+// To run bytecode compilation: inject a compile hook into HSNAPRouter.
+//
+// Types (hsnap-bytecode.ts):
+//   HSNAPStateTransition { event, from, to, guard? }
+//   HSNAPStateMachineSummary { initial?, states[], transitions[] }
+//   HSNAPCallSite { name, args_source? }
+//   HSNAPEmitSite { event, payload_source? }
+//   HSNAPCompileArtifacts { task, result?, agent?, state_machine?, llm_calls[], tool_calls[], emit_sites[] }
+
+@trait hsnap_bytecode {
+  capability_tags: ["hsnap_bytecode", "hsnap", "type_surface", "compile_hook", "agent_protocol"]
+
+  @on_spawn => {
+    bytecode = init_hsnap_bytecode_surface()
+    emit("hsnap_bytecode_ready", {})
+  }
+
+  @receipt hsnap_bytecode_config {
+    type: "HSNAPBytecodeReceipt"
+    status: "TYPE SURFACE ONLY — stubs for HSNAPRouter compile-hook contract"
+    no_impl: "no @holoscript/hsnap-compiler package; real path = source-level bridging"
+    downgraded: "2026-06-22 deep-ratchet audit (task_1782099281790_4t9i)"
+    timestamp: now()
+  }
+}

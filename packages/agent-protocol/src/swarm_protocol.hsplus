@@ -1,0 +1,44 @@
+// @swarm_protocol — Broadcast→Vote→Converge emergent consensus protocol.
+//
+// Native .hsplus surface for swarm-protocol.ts (agent-protocol).
+//
+// Emergent consensus via pheromone-like signal propagation:
+//   1. Agents broadcast proposals with signal strength [0.0–1.0]
+//   2. Peers reinforce (amplify) or dampen signals per round
+//   3. Signals decay each round — only strong consensus survives
+//   4. Converged when one proposal exceeds threshold, or max_rounds reached
+//
+// Types (swarm-protocol.ts):
+//   Signal { proposal_id, author_id, content, strength: [0,1], timestamp }
+//   Vote { voter_id, proposal_id, amplify: Bool, delta: [0,1], reasoning? }
+//   SwarmRound { round, signals, votes, signals_after_voting }
+//   SwarmResult { task, rounds, converged_proposal, status, total_rounds, total_duration_ms }
+//   status: "converged" | "max_rounds" | "quorum_failed"
+//   SwarmParticipant { agent_id, propose(task): Signal, vote(task, signals): Vote[] }
+
+@trait swarm_protocol {
+  capability_tags: ["swarm_protocol", "consensus", "broadcast_vote_converge", "pheromone", "agent_protocol"]
+
+  @on_spawn(participants) => {
+    orchestrator = init_swarm_orchestrator(participants)
+    emit("swarm_protocol_ready", { participant_count: participants.length })
+  }
+
+  // Run a swarm consensus round for a given task
+  @on_run_consensus(task, options) => {
+    result = orchestrator.run(task, options)
+    emit("swarm_consensus_complete", {
+      status: result.status,
+      rounds: result.total_rounds,
+      converged: result.converged_proposal != null
+    })
+    return result
+  }
+
+  @receipt swarm_protocol_config {
+    type: "SwarmProtocolReceipt"
+    algorithm: "pheromone signal propagation"
+    status_values: ["converged", "max_rounds", "quorum_failed"]
+    timestamp: now()
+  }
+}
