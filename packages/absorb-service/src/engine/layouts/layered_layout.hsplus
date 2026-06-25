@@ -1,0 +1,52 @@
+// @layered_layout — Sugiyama-style layered 3D layout for codebase dependency graphs.
+//
+// Native .hsplus surface for LayeredLayout.ts (absorb-service/engine/layouts).
+//
+// Positions nodes in horizontal layers based on dependency depth (topological sort).
+//   Bottom layer: files that depend on nothing
+//   Top layer:    files depended on by many
+// Within each layer, nodes are spaced evenly in 3D.
+//
+// LayeredLayoutOptions (LayeredLayout.ts):
+//   layer_spacing:  5   — vertical (Y) spacing between layers
+//   node_spacing:   4   — horizontal (X) spacing within a layer
+//   depth_spacing:  3   — depth (Z) spread
+//   max_columns:    8   — max columns per layer before wrapping to next depth row
+//
+// Input: LayoutNode/LayoutEdge (same types as ForceDirectedLayout)
+// layeredLayout(nodes, edges, options) → LayoutNode[] (positions set in-place)
+
+@trait layered_layout {
+  layer_spacing: Float = 5.0
+  node_spacing: Float = 4.0
+  depth_spacing: Float = 3.0
+  max_columns: Int = 8
+
+  capability_tags: ["layered_layout", "sugiyama", "dependency_depth", "3d_layout", "graph_layout", "codebase_visualization", "absorb_service"]
+
+  @on_spawn => {
+    layout_fn = init_layered_layout({
+      layer_spacing: layer_spacing,
+      node_spacing: node_spacing,
+      depth_spacing: depth_spacing,
+      max_columns: max_columns
+    })
+    emit("layered_layout_ready", {})
+  }
+
+  @on_layout(nodes, edges) => {
+    positioned = layout_fn.layout(nodes, edges)
+    emit("layered_layout_complete", { node_count: positioned.size })
+    return positioned
+  }
+
+  @receipt layered_layout_config {
+    type: "LayeredLayoutReceipt"
+    algorithm: "Sugiyama-style topological layering (3D)"
+    layer_spacing: layer_spacing
+    node_spacing: node_spacing
+    depth_spacing: depth_spacing
+    max_columns: max_columns
+    timestamp: now()
+  }
+}

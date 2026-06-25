@@ -1,0 +1,74 @@
+// @complexity_metrics — HoloScript code complexity analysis (Sprint 5 Priority 4).
+//
+// Native .hsplus surface for ComplexityMetrics.ts (absorb-service/analysis).
+//
+// Analyzes HoloScript composition complexity across six dimensions:
+//   1. Cyclomatic complexity — decision point count per function
+//   2. Nesting depth        — max + average nesting levels
+//   3. LOC metrics          — total / code / comments / blank
+//   4. Object/orb density   — objects per spatial group
+//   5. Trait complexity     — traits per object
+//   6. Overall score        — weighted composite
+//
+// ComplexityThresholds (DEFAULT_THRESHOLDS, ComplexityMetrics.ts):
+//   max_cyclomatic:      10  — per function
+//   max_nesting:          4  — depth levels
+//   max_lines_per_file: 500
+//   max_lines_per_fn:    50
+//   max_objects_per_group: 50
+//   max_traits_per_object: 10
+
+@trait complexity_metrics {
+  max_cyclomatic: Int = 10
+  max_nesting: Int = 4
+  max_lines_per_file: Int = 500
+  max_lines_per_fn: Int = 50
+  max_objects_per_group: Int = 50
+  max_traits_per_object: Int = 10
+
+  capability_tags: ["complexity_metrics", "cyclomatic", "nesting_depth", "loc_metrics", "trait_complexity", "absorb_service", "sprint5"]
+
+  @on_spawn => {
+    analyzer = init_complexity_metrics({
+      max_cyclomatic: max_cyclomatic,
+      max_nesting: max_nesting,
+      max_lines_per_file: max_lines_per_file,
+      max_lines_per_fn: max_lines_per_fn,
+      max_objects_per_group: max_objects_per_group,
+      max_traits_per_object: max_traits_per_object
+    })
+    emit("complexity_metrics_ready", {})
+  }
+
+  // Analyze a HoloComposition and return full complexity report
+  @on_analyze(composition, file_path) => {
+    report = analyzer.analyze(composition, file_path)
+    emit("complexity_analyzed", {
+      file: file_path,
+      score: report.overall_score,
+      violations: report.violations.size
+    })
+    return report
+  }
+
+  // Check if a composition exceeds any threshold
+  @on_check_thresholds(composition, file_path) => {
+    violations = analyzer.check_thresholds(composition, file_path)
+    return violations
+  }
+
+  @receipt complexity_metrics_config {
+    type: "ComplexityMetricsReceipt"
+    sprint: "Sprint 5 Priority 4"
+    dimensions: ["cyclomatic", "nesting_depth", "loc", "object_density", "trait_complexity", "overall_score"]
+    thresholds: {
+      max_cyclomatic: max_cyclomatic,
+      max_nesting: max_nesting,
+      max_lines_per_file: max_lines_per_file,
+      max_lines_per_fn: max_lines_per_fn,
+      max_objects_per_group: max_objects_per_group,
+      max_traits_per_object: max_traits_per_object
+    }
+    timestamp: now()
+  }
+}

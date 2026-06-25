@@ -1,0 +1,57 @@
+// @self_target_config — Safety config for HoloScript self-improvement mode.
+//
+// Native .hsplus surface for selfTargetConfig.ts (absorb-service/pipeline).
+//
+// Hardcoded DNA and denylist for when the recursive pipeline targets the
+// HoloScript monorepo itself. Avoids re-absorbing on every cycle.
+//
+// HOLOSCRIPT_SELF_DNA (selfTargetConfig.ts):
+//   kind: "spatial", confidence: 0.99, profile: "deep"
+//   stack: [typescript, tsx, react, next.js, three.js, holoscript, vitest]
+//   repoShape: "monorepo", riskSignals: ["large-codebase"]
+//   strengths: [has-tests, typed, has-ci, documented, linted]
+//   goal: "Core: ZERO type errors, 0.999 quality score"
+//
+// SELF_TARGET_DENYLIST — files the pipeline must NEVER modify (safety guard):
+//   daemon-state.json          — W.090: modification corrupts cycle tracking
+//   src/lib/recursive/         — pipeline's own orchestration logic
+//   compositions/recursive-pipeline.hsplus — self-recursive entry point
+//   (+ other protected infrastructure paths)
+//
+// isSelfTargetSafe(filePath) → Bool — checks path against denylist
+
+@trait self_target_config {
+  capability_tags: ["self_target_config", "self_improvement", "denylist", "grpo_pipeline", "safety_guard", "absorb_service"]
+
+  @on_spawn => {
+    config = init_self_target_config()
+    emit("self_target_config_ready", {})
+  }
+
+  // Check if a file path is safe to modify in self-target mode
+  @on_is_safe(file_path) => {
+    safe = config.is_self_target_safe(file_path)
+    if !safe {
+      emit("self_target_denylist_hit", { file: file_path })
+    }
+    return safe
+  }
+
+  // Get the hardcoded HOLOSCRIPT_SELF_DNA for self-improvement mode
+  @on_get_dna => {
+    return config.get_holoscript_self_dna()
+  }
+
+  @receipt self_target_config_config {
+    type: "SelfTargetConfigReceipt"
+    kind: "spatial"
+    confidence: 0.99
+    profile: "deep"
+    denylist_entries: [
+      "daemon-state.json (W.090 — corruption risk)",
+      "src/lib/recursive/ (pipeline orchestration)",
+      "compositions/recursive-pipeline.hsplus (self-recursive entry)"
+    ]
+    timestamp: now()
+  }
+}

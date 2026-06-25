@@ -1,0 +1,45 @@
+// @ollama_embedding_provider — Ollama-backed embedding provider for local inference.
+//
+// Native .hsplus surface for OllamaEmbeddingProvider.ts (absorb-service/engine/providers).
+//
+// Requires a running Ollama instance with the model pulled.
+// Explicit opt-in only — never auto-selected (F.106, W.GOLD.005).
+//
+// OllamaEmbeddingProvider (OllamaEmbeddingProvider.ts):
+//   name: "ollama"
+//   url: "http://localhost:11434" (default)
+//   model: "nomic-embed-text" (default, run `ollama pull nomic-embed-text` first)
+//
+// Calls Ollama /api/embeddings one text at a time (no batch endpoint).
+// Output dimension depends on model (nomic-embed-text → 768-dim).
+// Throws on unreachable Ollama instance or non-2xx response.
+
+@trait ollama_embedding_provider {
+  ollama_url: String = "http://localhost:11434"
+  model: String = "nomic-embed-text"
+
+  capability_tags: ["ollama_embedding_provider", "ollama", "local_inference", "embeddings", "absorb_service", "f106_opt_in"]
+
+  @on_spawn => {
+    provider = init_ollama_embedding_provider({
+      url: ollama_url,
+      model: model
+    })
+    emit("ollama_embedding_provider_ready", { url: ollama_url, model: model })
+  }
+
+  @on_get_embeddings(texts) => {
+    embeddings = provider.get_embeddings(texts)
+    return embeddings
+  }
+
+  @receipt ollama_embedding_provider_config {
+    type: "OllamaEmbeddingProviderReceipt"
+    name: "ollama"
+    url: ollama_url
+    model: model
+    opt_in: "explicit opt-in only; never auto-selected (F.106)"
+    batch: "one text per request (no batch endpoint)"
+    timestamp: now()
+  }
+}
