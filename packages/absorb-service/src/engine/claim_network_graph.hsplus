@@ -1,0 +1,64 @@
+// @claim_network_graph — Verifiable claim network as a deterministic HoloGraph.
+//
+// Native .hsplus surface for ClaimNetworkGraph.ts (absorb-service/engine).
+//
+// The claim-network is a deterministic HoloGraph used for HoloNews proof,
+// pricing, and router queries. Exact by construction — NOT embedding-ranked.
+//
+// ClaimGraphNodeKind (ClaimNetworkGraph.ts):
+//   claim | holomap_capture | source | geo_anchor | solver_contract | cael_receipt | frame | region
+//
+// ClaimProofStatus:
+//   proven | labeled | perceptual | captured | unverified | claimable | refuted
+//
+// ClaimGraphEdgeKind:
+//   supports | depends-on | imports | refutes | anchored-at | discharged-by
+//   captured-by | sourced-from | in-frame | located-in | fits-claim
+//
+// ClaimGraphNode: { id, kind, label?, owner_id?, proof_status?, claim_kind?,
+//   supported_claim_kinds?, evidence_kinds?, required_evidence_kinds?,
+//   verified?, claimable?, region_id?, frame_ids? }
+
+@trait claim_network_graph {
+  capability_tags: ["claim_network_graph", "holonews", "verifiable_claims", "deterministic_graph", "proof_network", "absorb_service", "cael"]
+
+  @on_spawn => {
+    graph = init_claim_network_graph()
+    emit("claim_graph_ready", {})
+  }
+
+  // Add a claim node to the graph
+  @on_add_node(node) => {
+    graph.add_node(node)
+    emit("claim_node_added", { id: node.id, kind: node.kind })
+  }
+
+  // Add a typed edge between two nodes
+  @on_add_edge(from_id, to_id, edge_kind) => {
+    graph.add_edge(from_id, to_id, edge_kind)
+    emit("claim_edge_added", { from: from_id, to: to_id, kind: edge_kind })
+  }
+
+  // Query all supports-chains for a claim (proof path)
+  @on_proof_path(claim_id) => {
+    return graph.proof_path(claim_id)
+  }
+
+  // Query all nodes of a given kind
+  @on_query_by_kind(kind) => {
+    return graph.query_by_kind(kind)
+  }
+
+  // Check if a claim is fully discharged (all required evidence present)
+  @on_is_discharged(claim_id) => {
+    return graph.is_discharged(claim_id)
+  }
+
+  @receipt claim_graph_config {
+    type: "ClaimNetworkGraphReceipt"
+    node_kinds: ["claim", "holomap_capture", "source", "geo_anchor", "solver_contract", "cael_receipt", "frame", "region"]
+    edge_kinds: ["supports", "depends-on", "imports", "refutes", "anchored-at", "discharged-by", "captured-by", "sourced-from", "in-frame", "located-in", "fits-claim"]
+    proof_statuses: ["proven", "labeled", "perceptual", "captured", "unverified", "claimable", "refuted"]
+    timestamp: now()
+  }
+}

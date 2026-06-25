@@ -1,0 +1,72 @@
+// @credit_service — Atomic credit operations for the Absorb Service.
+//
+// Native .hsplus surface for creditService.ts (absorb-service/credits).
+//
+// All balance-modifying operations use database transactions to prevent race
+// conditions. DB client is injected via setDbProvider() at init time.
+// Falls back gracefully when DB is not configured.
+//
+// CreditAccount (creditService.ts):
+//   user_id, balance_cents, lifetime_spent_cents,
+//   lifetime_purchased_cents, tier: Tier, free_credits_used_cents
+//
+// CreditTransaction:
+//   id, type, amount_cents, balance_after_cents, description, metadata, created_at
+//
+// BalanceCheck: { sufficient: Bool, balance_cents, ... }
+//
+// Tier limits in pricing.ts (TIER_LIMITS): per-tier daily/monthly caps.
+// 1 credit = 1 cent USD.
+
+@trait credit_service {
+  // Credits to grant new accounts (in cents)
+  new_account_free_credits_cents: Int = 0
+
+  capability_tags: ["credit_service", "credit_balance", "atomic_transactions", "absorb_service", "billing", "drizzle_db"]
+
+  @on_spawn => {
+    service = init_credit_service({
+      new_account_free_credits_cents: new_account_free_credits_cents
+    })
+    emit("credit_service_ready", {})
+  }
+
+  // Deduct credits atomically; emits balance event
+  @on_deduct(user_id, amount_cents, description, metadata) => {
+    result = service.deduct_credits(user_id, amount_cents, description, metadata)
+    if result.ok {
+      emit("credit_deducted", {
+        user_id: user_id,
+        amount_cents: amount_cents,
+        balance_after_cents: result.balance_after_cents
+      })
+    } else {
+      emit("credit_insufficient", { user_id: user_id, balance_cents: result.balance_cents })
+    }
+    return result
+  }
+
+  // Check balance without deducting
+  @on_check_balance(user_id) => {
+    check = service.check_balance(user_id)
+    return check
+  }
+
+  // Get or create a CreditAccount for user_id
+  @on_get_account(user_id) => {
+    return service.get_or_create_account(user_id)
+  }
+
+  // Get recent transactions for a user
+  @on_get_transactions(user_id, limit) => {
+    return service.get_transactions(user_id, limit ?? 20)
+  }
+
+  @receipt credit_service_config {
+    type: "CreditServiceReceipt"
+    rate: "1 credit = 1 cent USD"
+    new_account_free_credits_cents: new_account_free_credits_cents
+    db_note: "DB client injected via setDbProvider(); graceful fallback when unconfigured"
+    timestamp: now()
+  }
+}

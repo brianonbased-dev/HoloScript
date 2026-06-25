@@ -1,0 +1,92 @@
+// @grpo_reward_functions — Individual GRPO reward functions bridging quality scores to TRL.
+//
+// Native .hsplus surface for GRPORewardFunctions.ts (absorb-service/self-improvement).
+//
+// 5 individual reward functions (TRL callable: completions → Promise<number[]>)
+// that map directly to HoloScript quality dimensions and bridge to TRL GRPOTrainer.
+//
+// GRPO weights (GRPORewardFunctions.ts — different from QualityScore weights):
+//   test_pass_reward:        0.40  (tests are the strongest signal)
+//   type_check_reward:       0.20  (binary type safety gate)
+//   lint_reward:             0.15  (code quality)
+//   coverage_reward:         0.15  (coverage breadth)
+//   circuit_breaker_reward:  0.10  (system health)
+//
+// RewardFunctionOptions: work_dir, timeout_ms, max_lint_issues, file_extension, cleanup
+//
+// RewardToolRunner: interface for vitest/tsc/eslint/coverage tool execution.
+//
+// RewardEvaluation: { reward: Float [0-1], success: Bool, duration_ms, error?, raw_output? }
+//
+// The GRPO training loop = the self-improve loop:
+//   these functions train the model on signals from REAL tool execution.
+
+@trait grpo_reward_functions {
+  // Working directory for tool execution
+  work_dir: String = ""
+
+  // Per-completion timeout in ms
+  timeout_ms: Int = 30000
+
+  // Maximum lint issues before lint score drops to 0
+  max_lint_issues: Int = 10
+
+  // File extension for generated code files
+  file_extension: String = ".holo"
+
+  // Clean up temp files after evaluation
+  cleanup: Bool = true
+
+  capability_tags: ["grpo_reward_functions", "grpo", "trl_trainer", "reward_functions", "vitest", "tsc", "eslint", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    functions = init_grpo_reward_functions({
+      work_dir: work_dir,
+      timeout_ms: timeout_ms,
+      max_lint_issues: max_lint_issues,
+      file_extension: file_extension,
+      cleanup: cleanup
+    })
+    emit("grpo_reward_functions_ready", { work_dir: work_dir })
+  }
+
+  // Evaluate test-pass reward for a batch of completions
+  @on_test_pass_reward(completions, tool_runner) => {
+    results = functions.test_pass_reward(completions, tool_runner)
+    emit("grpo_test_pass_evaluated", { count: completions.size })
+    return results
+  }
+
+  // Evaluate type-check reward for a batch of completions
+  @on_type_check_reward(completions, tool_runner) => {
+    return functions.type_check_reward(completions, tool_runner)
+  }
+
+  // Evaluate lint reward for a batch of completions
+  @on_lint_reward(completions, tool_runner) => {
+    return functions.lint_reward(completions, tool_runner)
+  }
+
+  // Evaluate coverage reward for a batch of completions
+  @on_coverage_reward(completions, tool_runner) => {
+    return functions.coverage_reward(completions, tool_runner)
+  }
+
+  // Evaluate circuit-breaker health reward for a batch of completions
+  @on_circuit_breaker_reward(completions, tool_runner) => {
+    return functions.circuit_breaker_reward(completions, tool_runner)
+  }
+
+  @receipt grpo_reward_functions_config {
+    type: "GRPORewardFunctionsReceipt"
+    grpo_weights: {
+      test_pass: 0.40,
+      type_check: 0.20,
+      lint: 0.15,
+      coverage: 0.15,
+      circuit_breaker: 0.10
+    }
+    tools_executed: ["vitest", "tsc", "eslint", "coverage"]
+    timestamp: now()
+  }
+}
