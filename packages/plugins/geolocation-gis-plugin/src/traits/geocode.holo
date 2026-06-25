@@ -1,0 +1,17 @@
+@trait {
+  name: "@geocode",
+  category: "geo",
+  description: "Address-to-coordinate geocoder. address is the text address to resolve. provider: nominatim (free/OpenStreetMap), google, or mapbox. language is the ISO 639-1 locale code for result localization (default: en). Emits geocode:result with lat/lng on success, geocode:error on failure. Port of GeocodeTrait.ts (handler name: geocode).",
+  props: {
+    address: string = "",
+    provider: enum("nominatim" | "google" | "mapbox") = "nominatim",
+    language: string = "en"
+  },
+  events: {
+    on_result: "geocode_result",
+    on_error: "geocode_error",
+    geocode: "geocode_run",
+    reverse: "geocode_reverse"
+  },
+  behaviors: ["@map_view", "@route"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@map_view",
+  category: "geo",
+  description: "Interactive map viewport. center is the initial lat/lng. zoom is the initial zoom level (1-18). tileProvider: osm (OpenStreetMap), google, mapbox, or maptiler. style: streets, satellite, terrain, or dark. maxZoom/minZoom clamp the zoom range. Port of MapViewTrait.ts (handler name: map_view).",
+  props: {
+    zoom: number = 10,
+    tile_provider: enum("osm" | "google" | "mapbox" | "maptiler") = "osm",
+    style: enum("streets" | "satellite" | "terrain" | "dark") = "streets",
+    max_zoom: number = 18,
+    min_zoom: number = 1
+  },
+  events: {
+    on_zoom_changed: "map_zoom_changed",
+    on_pan: "map_panned",
+    on_click: "map_clicked",
+    pan_to: "map_pan_to",
+    set_zoom: "map_set_zoom"
+  },
+  behaviors: ["@geocode", "@route"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@chain_of_custody",
+  category: "forensics",
+  description: "Forensic chain of custody ledger. itemId is the evidence item identifier. currentHolder is the current custodian (name or badge number). status: collected, packaged, in_transit, at_lab, in_storage, released, or destroyed. Every status/holder change is appended to an immutable timestamped timeline. Port of ChainOfCustodyTrait.ts (handler name: chain_of_custody).",
+  props: {
+    item_id: string = "",
+    current_holder: string = "unknown",
+    status: enum("collected" | "packaged" | "in_transit" | "at_lab" | "in_storage" | "released" | "destroyed") = "collected"
+  },
+  events: {
+    on_transfer: "custody_transferred",
+    on_status_changed: "custody_status_changed",
+    transfer: "custody_transfer",
+    update_status: "custody_update_status",
+    get_timeline: "custody_get_timeline"
+  },
+  behaviors: ["@evidence_chain"]
+}

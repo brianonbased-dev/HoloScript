@@ -1,0 +1,17 @@
+@trait {
+  name: "@route",
+  category: "geo",
+  description: "Point-to-point routing with waypoint support. origin and destination are lat/lng objects. waypoints is an ordered list of intermediate lat/lng stops. mode: driving, walking, cycling, or transit. avoidTolls and avoidHighways are routing preferences. Emits route:calculated with polyline + duration + distance on success. Port of RouteTrait.ts (handler name: route).",
+  props: {
+    mode: enum("driving" | "walking" | "cycling" | "transit") = "driving",
+    avoid_tolls: boolean = false,
+    avoid_highways: boolean = false
+  },
+  events: {
+    on_calculated: "route_calculated",
+    on_error: "route_error",
+    calculate: "route_calculate",
+    clear: "route_clear"
+  },
+  behaviors: ["@geocode", "@map_view"]
+}

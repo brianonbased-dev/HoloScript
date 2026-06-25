@@ -1,0 +1,20 @@
+@trait {
+  name: "@evidence_chain",
+  category: "forensics",
+  description: "Forensic evidence item with tamper-evident action ledger. evidenceId is the official evidence number. classification: physical, digital, biological, or documentary. sealed flags whether the evidence container is sealed (modifying a sealed item appends a tamper event). collectorId is the collecting officer. Every action (attach, seal, unseal, photograph, transfer) is appended to an immutable timestamped ledger. Port of EvidenceChainTrait.ts (handler name: evidence_chain).",
+  props: {
+    evidence_id: string = "",
+    classification: enum("physical" | "digital" | "biological" | "documentary") = "physical",
+    sealed: boolean = false,
+    collector_id: string = ""
+  },
+  events: {
+    on_action: "evidence_action",
+    on_sealed: "evidence_sealed",
+    on_tamper: "evidence_tamper_detected",
+    seal: "evidence_seal",
+    unseal: "evidence_unseal",
+    log_action: "evidence_log_action"
+  },
+  behaviors: ["@chain_of_custody"]
+}
