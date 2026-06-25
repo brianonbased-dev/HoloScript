@@ -1,0 +1,29 @@
+// @tool_manager — Editor tool switching, keyboard shortcuts, and custom tool plugins.
+//
+// Native .hsplus surface for core/editor/ToolManager.ts.
+//
+// activate(toolId) / register(tool) / onShortcut(key, toolId)
+// Active tool receives all input events; custom tool plugins extend via register()
+
+@trait tool_manager {
+  capability_tags: ["tool_manager", "tool_switching", "keyboard_shortcuts", "custom_tools", "core"]
+
+  @on_spawn => {
+    emit("tool_manager_ready", {})
+  }
+
+  @on_activate(tool_id) => {
+    activate_editor_tool(tool_id)
+    emit("tool_activated", { tool_id })
+  }
+
+  @on_shortcut(key) => {
+    handle_tool_shortcut(key)
+  }
+
+  @receipt tool_manager_config {
+    type: "ToolManagerReceipt"
+    features: ["active tool management", "keyboard shortcuts", "custom tool plugins"]
+    timestamp: now()
+  }
+}

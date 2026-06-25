@@ -1,0 +1,27 @@
+// @deprecation_registry_core — Central registry for deprecated APIs, traits, and syntax. Sprint 5.
+//
+// Native .hsplus surface for core/deprecation/DeprecationRegistry.ts.
+// (Distinct from core/analysis/DeprecationRegistry — this is the singleton runtime registry.)
+//
+// register(entry) / check(name) → DeprecationInfo? / listAll() → DeprecationEntry[]
+// Emits deprecation warnings at compile/parse time
+
+@trait deprecation_registry_core {
+  capability_tags: ["deprecation_registry_core", "runtime_registry", "api_deprecation", "compile_time_warn", "core"]
+
+  @on_spawn => {
+    emit("deprecation_registry_core_ready", {})
+  }
+
+  @on_check(name) => {
+    info = check_deprecation(name)
+    if info { emit("deprecation_warning", { name, info }) }
+    return info
+  }
+
+  @receipt deprecation_registry_core_config {
+    type: "DeprecationRegistryCoreReceipt"
+    scope: "singleton runtime registry; emits at parse/compile time"
+    timestamp: now()
+  }
+}

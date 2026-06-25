@@ -1,0 +1,27 @@
+// @license_checker — Validates composition license compatibility with all imported compositions at compile/deploy time.
+//
+// Native .hsplus surface for core/deploy/license-checker.ts.
+//
+// check(composition) → LicenseResult { compatible, violations[] }
+// Errors at compile time — enforces compatibility before publish, not after
+// License kinds: MIT | Apache-2.0 | GPL-3.0 | proprietary | custom
+
+@trait license_checker {
+  capability_tags: ["license_checker", "license_compatibility", "deploy_gate", "compile_time_check", "core"]
+
+  @on_spawn => {
+    emit("license_checker_ready", {})
+  }
+
+  @on_check(composition) => {
+    result = check_license_compatibility(composition)
+    if result.violations.length > 0 { emit("license_violation", { count: result.violations.length }) }
+    return result
+  }
+
+  @receipt license_checker_config {
+    type: "LicenseCheckerReceipt"
+    enforcement: "compile/deploy time — errors, not lawsuits"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @inspector_panel — Editor panel shell for the Inspector: builds UI, wires sliders/inputs.
+//
+// Native .hsplus surface for core/editor/InspectorPanel.ts.
+//
+// mount(world, entity) → Panel entity
+// Assembles panel: createPanel + createButton + createTextInput + createSlider from UIComponents
+
+@trait inspector_panel {
+  capability_tags: ["inspector_panel", "editor_panel", "property_ui", "slider_input", "core"]
+
+  @on_spawn => {
+    emit("inspector_panel_ready", {})
+  }
+
+  @on_mount(world, entity_id) => {
+    panel = mount_inspector_panel(world, entity_id)
+    emit("inspector_panel_mounted", { entity_id })
+    return panel
+  }
+
+  @receipt inspector_panel_config {
+    type: "InspectorPanelReceipt"
+    components: ["createPanel", "createButton", "createTextInput", "createSlider"]
+    timestamp: now()
+  }
+}

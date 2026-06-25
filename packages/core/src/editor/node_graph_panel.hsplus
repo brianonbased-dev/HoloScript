@@ -1,0 +1,26 @@
+// @node_graph_panel — Visual Logic Editor panel: 3D UI nodes and connections in the editor.
+//
+// Native .hsplus surface for core/editor/NodeGraphPanel.ts.
+//
+// render(world) / addNode(type, position) / connect(fromId, toId)
+// executeGraph(world) → execution result consumed by nodeGraphPlayPreview
+
+@trait node_graph_panel {
+  capability_tags: ["node_graph_panel", "visual_logic_editor", "node_graph", "3d_ui_nodes", "core"]
+
+  @on_spawn => {
+    emit("node_graph_panel_ready", {})
+  }
+
+  @on_execute(world) => {
+    result = execute_node_graph(world)
+    emit("node_graph_executed", {})
+    return result
+  }
+
+  @receipt node_graph_panel_config {
+    type: "NodeGraphPanelReceipt"
+    features: ["3D UI nodes", "connections", "graph execution", "play preview bridge"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @asset_manager_editor — Editor-side asset management: wraps AssetRegistry for ECS world integration.
+//
+// Native .hsplus surface for core/editor/AssetManager.ts.
+//
+// load(world, id) → ECS Entity / list(type?) → AssetMetadata[]
+// Bridges AssetRegistry to the ECS world; editor context only
+
+@trait asset_manager_editor {
+  capability_tags: ["asset_manager_editor", "ecs_asset_bridge", "editor_registry", "core"]
+
+  @on_spawn => {
+    emit("asset_manager_editor_ready", {})
+  }
+
+  @on_load(world, id) => {
+    entity = load_asset_into_world(world, id)
+    emit("asset_loaded_to_world", { id })
+    return entity
+  }
+
+  @receipt asset_manager_editor_config {
+    type: "AssetManagerEditorReceipt"
+    scope: "editor-only; bridges AssetRegistry to ECS world"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @inspector — Component inspector: reads entity components, renders editable property fields.
+//
+// Native .hsplus surface for core/editor/Inspector.ts.
+//
+// inspect(world, entity) → ComponentViews[]
+// Per-component property editors; undo-integrated mutations
+// Uses World/Entity/ComponentType duck types — engine-package independent
+
+@trait inspector {
+  capability_tags: ["inspector", "component_viewer", "property_editor", "undo_integrated", "core"]
+
+  @on_spawn => {
+    emit("inspector_ready", {})
+  }
+
+  @on_inspect(world, entity_id) => {
+    views = inspect_entity_components(world, entity_id)
+    return views
+  }
+
+  @receipt inspector_config {
+    type: "InspectorReceipt"
+    features: ["component viewer", "property editing", "undo integration"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @hierarchy_panel — Scene hierarchy tree: drag-reparenting, search/filter, visibility toggles.
+//
+// Native .hsplus surface for core/editor/HierarchyPanel.ts.
+//
+// render(world) / reparent(entityId, newParentId) / toggleVisibility(entityId)
+// Tree navigation with search filter; drag-and-drop reparenting
+
+@trait hierarchy_panel {
+  capability_tags: ["hierarchy_panel", "scene_tree", "reparenting", "visibility_toggle", "core"]
+
+  @on_spawn => {
+    emit("hierarchy_panel_ready", {})
+  }
+
+  @on_reparent(entity_id, new_parent_id) => {
+    reparent_entity(entity_id, new_parent_id)
+    emit("entity_reparented", { entity_id, new_parent_id })
+  }
+
+  @receipt hierarchy_panel_config {
+    type: "HierarchyPanelReceipt"
+    features: ["tree navigation", "drag reparenting", "search/filter", "visibility toggle"]
+    timestamp: now()
+  }
+}

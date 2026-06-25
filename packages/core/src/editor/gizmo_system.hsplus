@@ -1,0 +1,29 @@
+// @gizmo_system — Transform gizmos for translate/rotate/scale with SelectionManager integration.
+//
+// Native .hsplus surface for core/editor/GizmoSystem.ts.
+//
+// activate(entity) / deactivate() / setMode(translate|rotate|scale)
+// Reads reactive selection; renders gizmo overlay into scene; emits transform deltas
+
+@trait gizmo_system {
+  capability_tags: ["gizmo_system", "transform_gizmo", "translate_rotate_scale", "selection_manager", "core"]
+
+  @on_spawn => {
+    emit("gizmo_system_ready", {})
+  }
+
+  @on_activate(entity_id) => {
+    activate_gizmo(entity_id)
+    emit("gizmo_activated", { entity_id })
+  }
+
+  @on_set_mode(mode) => {
+    set_gizmo_mode(mode)
+  }
+
+  @receipt gizmo_system_config {
+    type: "GizmoSystemReceipt"
+    modes: ["translate", "rotate", "scale"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @protocol_types — HoloScript Publishing Protocol: on-chain content registry, collect mechanism, import-chain revenue.
+//
+// Native .hsplus surface for core/deploy/protocol-types.ts.
+//
+// PublishMode: Original | Remix | Curated
+// ContentEntry: { contentHash, author, license, importChain[], publishMode }
+// Used by core CLI and marketplace-api for on-chain publish coordination
+
+@trait protocol_types {
+  capability_tags: ["protocol_types", "publishing_protocol", "content_registry", "import_chain", "core"]
+
+  @on_spawn => {
+    emit("protocol_types_ready", {})
+  }
+
+  @receipt protocol_types_config {
+    type: "ProtocolTypesReceipt"
+    publish_modes: ["Original", "Remix", "Curated"]
+    consumers: ["core CLI", "marketplace-api"]
+    timestamp: now()
+  }
+}

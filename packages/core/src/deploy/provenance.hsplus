@@ -1,0 +1,33 @@
+// @provenance — Content-addressed hashes, import tree extraction, auto-classify publish mode.
+//
+// Native .hsplus surface for core/deploy/provenance.ts.
+//
+// hash(composition) → SHA-256 content hash
+// extractImportTree(composition) → ImportNode[] (depth-first)
+// classifyPublishMode(composition) → Original | Remix | Curated
+// Compiler-enforced provenance tracking for deploy
+
+@trait provenance {
+  capability_tags: ["provenance", "content_hash", "import_tree", "publish_mode", "core"]
+
+  @on_spawn => {
+    emit("provenance_ready", {})
+  }
+
+  @on_hash(composition) => {
+    return hash_composition(composition)
+  }
+
+  @on_classify(composition) => {
+    mode = classify_publish_mode(composition)
+    emit("publish_mode_classified", { mode })
+    return mode
+  }
+
+  @receipt provenance_config {
+    type: "ProvenanceReceipt"
+    algorithm: "SHA-256 content-addressed"
+    publish_modes: ["Original", "Remix", "Curated"]
+    timestamp: now()
+  }
+}

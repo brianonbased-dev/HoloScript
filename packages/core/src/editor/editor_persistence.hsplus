@@ -1,0 +1,31 @@
+// @editor_persistence — Save and load editor scene state via SceneSerializer/SceneDeserializer.
+//
+// Native .hsplus surface for core/editor/EditorPersistence.ts.
+//
+// save(world) → SerializedScene / load(world, serialized)
+// Serializes full ECS world to JSON snapshot for file persistence and undo history
+
+@trait editor_persistence {
+  capability_tags: ["editor_persistence", "scene_serialization", "undo_history", "file_save", "core"]
+
+  @on_spawn => {
+    emit("editor_persistence_ready", {})
+  }
+
+  @on_save(world) => {
+    snapshot = serialize_editor_scene(world)
+    emit("scene_saved", {})
+    return snapshot
+  }
+
+  @on_load(world, snapshot) => {
+    deserialize_editor_scene(world, snapshot)
+    emit("scene_loaded", {})
+  }
+
+  @receipt editor_persistence_config {
+    type: "EditorPersistenceReceipt"
+    features: ["full ECS snapshot", "file persistence", "undo history support"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,27 @@
+// @semantic_diff — AST-based diff that ignores whitespace, formatting, and comment changes.
+//
+// Native .hsplus surface for core/diff/SemanticDiff.ts. Sprint 2 Priority 8.
+//
+// diff(a, b) → SemanticDiffResult { changes[], added[], removed[], moved[] }
+// Compares AST structure, not text — catches semantic mutations, ignores cosmetic noise
+// Used by: version control preview, merge conflict resolution, provenance delta
+
+@trait semantic_diff {
+  capability_tags: ["semantic_diff", "ast_diff", "whitespace_insensitive", "merge_conflict", "core"]
+
+  @on_spawn => {
+    emit("semantic_diff_ready", {})
+  }
+
+  @on_diff(a, b) => {
+    result = semantic_diff_ast(a, b)
+    emit("semantic_diff_done", { changes: result.changes.length })
+    return result
+  }
+
+  @receipt semantic_diff_config {
+    type: "SemanticDiffReceipt"
+    ignores: ["whitespace", "formatting", "comments"]
+    timestamp: now()
+  }
+}

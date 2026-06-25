@@ -1,0 +1,26 @@
+// @copilot_panel — Editor AI Copilot panel: chat interface and quick action buttons.
+//
+// Native .hsplus surface for core/editor/CopilotPanel.ts.
+//
+// open() / close() / sendMessage(text) → CopilotResponse
+// Quick actions: generate trait, explain selection, fix error, suggest refactor
+
+@trait copilot_panel {
+  capability_tags: ["copilot_panel", "ai_copilot", "editor_chat", "quick_actions", "core"]
+
+  @on_spawn => {
+    emit("copilot_panel_ready", {})
+  }
+
+  @on_send_message(text) => {
+    response = copilot_send_message(text)
+    emit("copilot_responded", {})
+    return response
+  }
+
+  @receipt copilot_panel_config {
+    type: "CopilotPanelReceipt"
+    quick_actions: ["generate trait", "explain selection", "fix error", "suggest refactor"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,31 @@
+// @selection_manager — Reactive entity selection: trigger/track reactive state for editor selection.
+//
+// Native .hsplus surface for core/editor/SelectionManager.ts.
+//
+// select(entity) / deselect() / getSelection() → Entity?
+// Uses trigger/track from ReactiveState for live updates to GizmoSystem and Inspector
+
+@trait selection_manager {
+  capability_tags: ["selection_manager", "reactive_selection", "editor_selection", "trigger_track", "core"]
+
+  @on_spawn => {
+    emit("selection_manager_ready", {})
+  }
+
+  @on_select(entity_id) => {
+    select_entity(entity_id)
+    emit("entity_selected", { entity_id })
+  }
+
+  @on_deselect => {
+    deselect_entity()
+    emit("entity_deselected", {})
+  }
+
+  @receipt selection_manager_config {
+    type: "SelectionManagerReceipt"
+    reactivity: "trigger/track from ReactiveState"
+    consumers: ["GizmoSystem", "Inspector"]
+    timestamp: now()
+  }
+}

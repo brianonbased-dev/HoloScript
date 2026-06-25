@@ -1,0 +1,25 @@
+// @asset_browser_panel — Editor panel for browsing, filtering, and dragging assets into the scene.
+//
+// Native .hsplus surface for core/editor/AssetBrowserPanel.ts.
+//
+// show(world) / filter(type, query) → Asset[] / dragToScene(assetId, position)
+// Integrates AssetManager + AssetMetadata for live filtering
+
+@trait asset_browser_panel {
+  capability_tags: ["asset_browser_panel", "editor_panel", "asset_filter", "drag_to_scene", "core"]
+
+  @on_spawn => {
+    emit("asset_browser_panel_ready", {})
+  }
+
+  @on_filter(asset_type, query) => {
+    results = filter_asset_browser(asset_type, query)
+    return results
+  }
+
+  @receipt asset_browser_panel_config {
+    type: "AssetBrowserPanelReceipt"
+    features: ["type filter", "text search", "drag-to-scene"]
+    timestamp: now()
+  }
+}

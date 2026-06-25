@@ -1,0 +1,26 @@
+// @node_graph_play_preview — Emits minimal HoloScript+ preview string from NodeGraphPanel.executeGraph.
+//
+// Native .hsplus surface for core/editor/nodeGraphPlayPreview.ts.
+//
+// toPreviewString(graphResult) → HoloScript+ preview snippet
+// Used by Studio node graph execution bridge for live preview rendering
+
+@trait node_graph_play_preview {
+  capability_tags: ["node_graph_play_preview", "preview_generation", "holoscript_plus", "studio_bridge", "core"]
+
+  @on_spawn => {
+    emit("node_graph_play_preview_ready", {})
+  }
+
+  @on_to_preview_string(graph_result) => {
+    preview = to_node_graph_preview_string(graph_result)
+    return preview
+  }
+
+  @receipt node_graph_play_preview_config {
+    type: "NodeGraphPlayPreviewReceipt"
+    output: "HoloScript+ preview snippet"
+    consumer: "Studio node graph execution bridge"
+    timestamp: now()
+  }
+}

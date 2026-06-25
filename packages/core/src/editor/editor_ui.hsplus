@@ -1,0 +1,25 @@
+// @editor_ui — Top-level editor UI: wires SelectionManager, GizmoSystem, Inspector, and panels.
+//
+// Native .hsplus surface for core/editor/EditorUI.ts.
+//
+// init(world) / update(deltaTime) / handleInput(event)
+// Coordinates all editor panels; manages focus, drag, and resize
+
+@trait editor_ui {
+  capability_tags: ["editor_ui", "editor_coordinator", "panel_management", "input_routing", "core"]
+
+  @on_spawn(world) => {
+    init_editor_ui(world)
+    emit("editor_ui_ready", {})
+  }
+
+  @on_tick(delta_time) => {
+    update_editor_ui(delta_time)
+  }
+
+  @receipt editor_ui_config {
+    type: "EditorUIReceipt"
+    subsystems: ["SelectionManager", "GizmoSystem", "Inspector", "panels"]
+    timestamp: now()
+  }
+}

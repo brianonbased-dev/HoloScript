@@ -1,0 +1,30 @@
+// @property_grid — Type-aware property editors: undo integration, multi-select batch editing.
+//
+// Native .hsplus surface for core/editor/PropertyGrid.ts.
+//
+// render(descriptors[]) / setValue(propId, value) / batchSet(values)
+// Custom property descriptors; undo stack integration; multi-select batch
+
+@trait property_grid {
+  capability_tags: ["property_grid", "type_aware_editors", "undo_integration", "batch_editing", "core"]
+
+  @on_spawn => {
+    emit("property_grid_ready", {})
+  }
+
+  @on_set_value(prop_id, value) => {
+    set_property_value(prop_id, value)
+    emit("property_set", { prop_id })
+  }
+
+  @on_batch_set(values) => {
+    batch_set_properties(values)
+    emit("properties_batch_set", { count: values.length })
+  }
+
+  @receipt property_grid_config {
+    type: "PropertyGridReceipt"
+    features: ["type-aware editors", "undo integration", "multi-select batch", "custom descriptors"]
+    timestamp: now()
+  }
+}

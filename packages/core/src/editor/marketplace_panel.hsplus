@@ -1,0 +1,30 @@
+// @marketplace_panel — Editor panel for browsing and collecting NFT assets from the marketplace.
+//
+// Native .hsplus surface for core/editor/MarketplacePanel.ts.
+//
+// browse(world) / search(query) → NFTAsset[] / collect(assetId)
+// Uses Web3Provider + NFTAsset from @holoscript/platform
+
+@trait marketplace_panel {
+  capability_tags: ["marketplace_panel", "editor_panel", "nft_assets", "web3_collect", "core"]
+
+  @on_spawn => {
+    emit("marketplace_panel_ready", {})
+  }
+
+  @on_search(query) => {
+    results = search_marketplace(query)
+    return results
+  }
+
+  @on_collect(asset_id) => {
+    collect_nft_asset(asset_id)
+    emit("nft_collected", { asset_id })
+  }
+
+  @receipt marketplace_panel_config {
+    type: "MarketplacePanelReceipt"
+    features: ["browse", "search", "NFT collect"]
+    timestamp: now()
+  }
+}

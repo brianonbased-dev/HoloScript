@@ -1,0 +1,27 @@
+// @revenue_splitter — Pure import-chain royalty calculator: no blockchain dependency, deterministic.
+//
+// Native .hsplus surface for core/deploy/revenue-splitter.ts.
+//
+// split(revenue, provenance) → RoyaltySplit[] { recipient, amount, basis }
+// Distributes revenue through import chain based on provenance tree depth and remix ratios
+// Pure math: blockchain agnostic; used by marketplace-api for payment distribution
+
+@trait revenue_splitter {
+  capability_tags: ["revenue_splitter", "royalty_calculation", "import_chain_revenue", "pure_math", "core"]
+
+  @on_spawn => {
+    emit("revenue_splitter_ready", {})
+  }
+
+  @on_split(revenue, provenance) => {
+    splits = split_revenue(revenue, provenance)
+    emit("revenue_split_calculated", { recipients: splits.length })
+    return splits
+  }
+
+  @receipt revenue_splitter_config {
+    type: "RevenueSplitterReceipt"
+    constraint: "pure math — no blockchain dependency; deterministic"
+    timestamp: now()
+  }
+}

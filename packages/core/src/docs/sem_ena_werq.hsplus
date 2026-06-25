@@ -1,0 +1,26 @@
+// @sem_ena_werq — Dual-layer documentation system: sem (machine-readable semantic) + ena-werq (human narrative).
+//
+// Native .hsplus surface for core/docs/SemEnaWerq.ts.
+//
+// Layer 1 (sem): machine-readable annotations for tooling and IDE
+// Layer 2 (ena-werq / "knowledge-work"): human-readable narrative documentation
+// annotate(node, semData, narrative) → DocumentedNode
+
+@trait sem_ena_werq {
+  capability_tags: ["sem_ena_werq", "dual_layer_docs", "semantic_annotation", "knowledge_work", "core"]
+
+  @on_spawn => {
+    emit("sem_ena_werq_ready", {})
+  }
+
+  @on_annotate(node, sem_data, narrative) => {
+    doc_node = annotate_node(node, sem_data, narrative)
+    return doc_node
+  }
+
+  @receipt sem_ena_werq_config {
+    type: "SemEnaWerqReceipt"
+    layers: ["sem (machine-readable)", "ena-werq (human narrative knowledge-work)"]
+    timestamp: now()
+  }
+}

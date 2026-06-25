@@ -1,0 +1,26 @@
+// @ui_builder — Editor ECS UI construction helper: creates panels, labels, buttons in the scene world.
+//
+// Native .hsplus surface for core/editor/UIBuilder.ts.
+//
+// createPanel(world, opts) → Entity / createLabel(world, text) → Entity
+// Thin wrapper over ECS World for editor UI panel construction
+// Uses duck-typed World { hasEntity, createEntity, addComponent } — engine-independent
+
+@trait ui_builder {
+  capability_tags: ["ui_builder", "ecs_ui_construction", "editor_panel_builder", "engine_independent", "core"]
+
+  @on_spawn => {
+    emit("ui_builder_ready", {})
+  }
+
+  @on_create_panel(world, opts) => {
+    entity = create_ui_panel(world, opts)
+    return entity
+  }
+
+  @receipt ui_builder_config {
+    type: "UIBuilderReceipt"
+    pattern: "duck-typed World — engine-package independent"
+    timestamp: now()
+  }
+}
