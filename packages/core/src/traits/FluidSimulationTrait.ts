@@ -469,8 +469,7 @@ export const fluidSimulationHandler = {
   name: 'fluid_simulation',
   defaultConfig: {},
   onAttach(node: HSPlusNode, config: unknown, ctx: TraitContext): void {
-    // @ts-expect-error
-    const instance = new SpatialHash(config);
+    const instance = new FluidSimulationSystem(config as FluidSimulationConfig);
     node.__fluid_simulation_instance = instance;
     ctx.emit('fluid_simulation_attached', { node, config });
   },
@@ -497,6 +496,12 @@ export const fluidSimulationHandler = {
   onUpdate(node: HSPlusNode, _config: unknown, ctx: TraitContext, dt: number): void {
     const instance = node.__fluid_simulation_instance as TraitInstanceDelegate;
     if (!instance) return;
+    // FluidSimulationSystem integrates via step(dt), not the node/ctx-shaped
+    // onUpdate. Without this fallback the SPH solver is constructed in onAttach
+    // but never advanced — the dead-delegation overclaim caught in the
+    // 2026-06-24 substrate audit (§3.1). Try onUpdate first to preserve the
+    // delegate template, then fall back to the stepper.
     if (typeof instance.onUpdate === 'function') instance.onUpdate(node, ctx, dt);
+    else if (typeof instance.step === 'function') instance.step(dt);
   },
 } as const satisfies TraitHandler;
