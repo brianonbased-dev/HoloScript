@@ -1,0 +1,20 @@
+@trait {
+  name: "@patrol",
+  category: "agent",
+  description: "Waypoint patrol behavior. mode: loop (default), ping_pong, random. speed is the patrol movement speed (default: 2). wait_time is the seconds to wait at each waypoint (default: 2s). alert_on_detection triggers alert when detecting a target (default: true). resume_after_alert resumes patrol after an alert event (default: true). Port of PatrolTrait.ts (handler name: patrol).",
+  props: {
+    mode: enum("loop" | "ping_pong" | "random") = "loop",
+    speed: number = 2,
+    wait_time: number = 2,
+    alert_on_detection: boolean = true,
+    resume_after_alert: boolean = true
+  },
+  events: {
+    on_waypoint_reached: "patrol:waypoint_reached",
+    on_alert: "patrol:alert",
+    on_resumed: "patrol:resumed",
+    start: "patrol.start",
+    stop: "patrol.stop"
+  },
+  behaviors: ["@navmesh_solver", "@perception", "@npc_ai"]
+}

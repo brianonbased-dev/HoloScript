@@ -1,0 +1,18 @@
+@trait {
+  name: "@persistent_anchor",
+  category: "xr",
+  description: "Persistent spatial anchor with cloud or local storage. storage: local (default), cloud, none. ttl is the anchor lifetime in ms (default: 86,400,000ms = 24h). auto_resolve resolves the anchor on attach (default: true). max_resolve_attempts is the resolution retry limit (default: 3). Port of PersistentAnchorTrait.ts (handler name: persistent_anchor).",
+  props: {
+    storage: enum("local" | "cloud" | "none") = "local",
+    ttl: number = 86400000,
+    auto_resolve: boolean = true,
+    max_resolve_attempts: number = 3
+  },
+  events: {
+    on_resolved: "persistent_anchor:resolved",
+    on_failed: "persistent_anchor:failed",
+    on_expired: "persistent_anchor:expired",
+    resolve: "persistent_anchor.resolve"
+  },
+  behaviors: ["@anchor", "@geospatial_anchor", "@offline_sync"]
+}

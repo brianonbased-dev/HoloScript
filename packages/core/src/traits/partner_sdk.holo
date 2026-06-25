@@ -1,0 +1,19 @@
+@trait {
+  name: "@partner_sdk",
+  category: "integration",
+  description: "Third-party partner SDK bridge. max_concurrent_requests is the request concurrency cap (default: 10). request_timeout_ms is the call timeout in ms (default: 30,000ms). session_ttl_ms is the session lifetime in ms (default: 3,600,000ms = 1h). rate_limit_per_partner is the per-partner request rate cap (default: 100). rate_limit_window_ms is the rate window in ms (default: 60,000ms). Port of PartnerSDKTrait.ts (handler name: partner_sdk).",
+  props: {
+    max_concurrent_requests: number = 10,
+    request_timeout_ms: number = 30000,
+    session_ttl_ms: number = 3600000,
+    rate_limit_per_partner: number = 100,
+    rate_limit_window_ms: number = 60000
+  },
+  events: {
+    on_connected: "partner_sdk:connected",
+    on_response: "partner_sdk:response",
+    on_error: "partner_sdk:error",
+    call: "partner_sdk.call"
+  },
+  behaviors: ["@http", "@rate_limiter", "@circuit_auto_reset"]
+}

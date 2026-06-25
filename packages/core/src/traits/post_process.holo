@@ -1,0 +1,15 @@
+@trait {
+  name: "@post_process",
+  category: "render",
+  description: "Render post-process effects stack. max_effects is the maximum stacked effects (default: 16). Port of PostProcessTrait.ts (handler name: post_process).",
+  props: {
+    max_effects: number = 16
+  },
+  events: {
+    on_effect_added: "post_process:effect_added",
+    on_effect_removed: "post_process:effect_removed",
+    add: "post_process.add",
+    remove: "post_process.remove"
+  },
+  behaviors: ["@global_illumination", "@screen_space_effects", "@render_pipeline"]
+}

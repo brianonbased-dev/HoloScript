@@ -1,0 +1,11 @@
+@trait {
+  name: "@pressable",
+  category: "interaction",
+  description: "Physical press interaction — responds to poke/controller button presses. Config is input-method-dependent and passed through to PressableTrait instance. Port of PressableTrait.ts (handler name: pressable).",
+  props: {},
+  events: {
+    on_pressed: "pressable:pressed",
+    on_released: "pressable:released"
+  },
+  behaviors: ["@grabbable", "@haptic_cue"]
+}

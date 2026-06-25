@@ -1,0 +1,14 @@
+@trait {
+  name: "@pdf_generate",
+  category: "document",
+  description: "PDF document generator. page_size: A4 (default), Letter, A3, A5. Port of PdfGenerateTrait.ts (handler name: pdf_generate).",
+  props: {
+    page_size: enum("A4" | "Letter" | "A3" | "A5") = "A4"
+  },
+  events: {
+    on_generated: "pdf_generate:generated",
+    on_error: "pdf_generate:error",
+    generate: "pdf_generate.generate"
+  },
+  behaviors: ["@invoice", "@form_builder"]
+}

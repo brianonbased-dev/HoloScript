@@ -1,0 +1,16 @@
+@trait {
+  name: "@phyllotaxis",
+  category: "lotus",
+  description: "Phyllotaxis petal placement — positions Lotus petals using the golden angle spiral. petal_index is this petal's index in the spiral (default: 0). layer_radii are the radial distances for each ring (default: [2.0, 3.4, 4.8]). layer_counts are the petal counts per ring (default: [8, 13, 21]). seed is the deterministic arrangement seed. y_offset is the vertical offset (default: 0). jitter is the position randomization (default: 0). Port of PhyllotaxisTrait.ts (handler name: phyllotaxis).",
+  props: {
+    petal_index: number = 0,
+    seed: string = "0x0000DEAD",
+    y_offset: number = 0,
+    jitter: number = 0
+  },
+  events: {
+    on_positioned: "phyllotaxis:positioned",
+    reposition: "phyllotaxis.reposition"
+  },
+  behaviors: ["@lotus_petal", "@botanical_lotus"]
+}

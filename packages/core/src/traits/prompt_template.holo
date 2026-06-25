@@ -1,0 +1,15 @@
+@trait {
+  name: "@prompt_template",
+  category: "ml",
+  description: "Reusable prompt template registry. max_templates is the template count cap (default: 100). Port of PromptTemplateTrait.ts (handler name: prompt_template).",
+  props: {
+    max_templates: number = 100
+  },
+  events: {
+    on_registered: "prompt_template:registered",
+    on_rendered: "prompt_template:rendered",
+    register: "prompt_template.register",
+    render: "prompt_template.render"
+  },
+  behaviors: ["@llm_agent", "@inference"]
+}

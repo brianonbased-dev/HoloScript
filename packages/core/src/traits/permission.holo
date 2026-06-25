@@ -1,0 +1,17 @@
+@trait {
+  name: "@permission",
+  category: "security",
+  description: "Role-based permission grant system. default_role is the role granted to unpermissioned callers (default: viewer). Port of PermissionTrait.ts (handler name: permission).",
+  props: {
+    default_role: string = "viewer"
+  },
+  events: {
+    on_granted: "permission:granted",
+    on_revoked: "permission:revoked",
+    on_denied: "permission:denied",
+    grant: "permission.grant",
+    revoke: "permission.revoke",
+    check: "permission.check"
+  },
+  behaviors: ["@role", "@oauth", "@consent_gate"]
+}

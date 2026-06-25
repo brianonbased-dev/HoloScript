@@ -1,0 +1,19 @@
+@trait {
+  name: "@portal_presence",
+  category: "multiplayer",
+  description: "World portal with entrant presence tracking. world_id is the destination world. zone_id is the destination zone. default_scopes is the access scopes granted on entry (default: [read-only]). open allows entry when true (default: true). max_entrants is the entrant cap (0 = unlimited, default: 0). Port of PortalPresenceTrait.ts (handler name: portal_presence).",
+  props: {
+    world_id: string = "",
+    zone_id: string = "",
+    open: boolean = true,
+    max_entrants: number = 0
+  },
+  events: {
+    on_entered: "portal_presence:entered",
+    on_exited: "portal_presence:exited",
+    on_full: "portal_presence:full",
+    open: "portal_presence.open",
+    close: "portal_presence.close"
+  },
+  behaviors: ["@world_portal", "@networked_avatar", "@co_located"]
+}

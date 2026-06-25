@@ -1,0 +1,20 @@
+@trait {
+  name: "@point_cloud",
+  category: "render",
+  description: "Point cloud renderer. source is the PLY/PCD file URL. point_size is the world-space point diameter (default: 1.0). color_mode: rgb (default), intensity, classification, height. max_points is the point budget (default: 5,000,000). lod enables level-of-detail thinning (default: true). lod_levels is the LOD depth (default: 4). Port of PointCloudTrait.ts (handler name: point_cloud).",
+  props: {
+    source: string = "",
+    point_size: number = 1.0,
+    color_mode: enum("rgb" | "intensity" | "classification" | "height") = "rgb",
+    max_points: number = 5000000,
+    lod: boolean = true,
+    lod_levels: number = 4
+  },
+  events: {
+    on_loaded: "point_cloud:loaded",
+    on_error: "point_cloud:error",
+    load: "point_cloud.load",
+    clear: "point_cloud.clear"
+  },
+  behaviors: ["@gaussian_splat", "@holomap_splat_output"]
+}

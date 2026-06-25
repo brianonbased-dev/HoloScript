@@ -1,0 +1,21 @@
+@trait {
+  name: "@pipeline",
+  category: "workflow",
+  description: "Step pipeline runner. pipeline_id is the pipeline identifier (default: default). steps is the ordered step list (default: []). mode: sequential (default), parallel. halt_on_error stops the pipeline on the first step failure (default: true). auto_start runs the pipeline on attach (default: false). Port of PipelineTrait.ts (handler name: pipeline).",
+  props: {
+    pipeline_id: string = "default",
+    mode: enum("sequential" | "parallel") = "sequential",
+    halt_on_error: boolean = true,
+    auto_start: boolean = false
+  },
+  events: {
+    on_started: "pipeline:started",
+    on_step_done: "pipeline:step_done",
+    on_complete: "pipeline:complete",
+    on_error: "pipeline:error",
+    run: "pipeline.run",
+    stop: "pipeline.stop",
+    reset: "pipeline.reset"
+  },
+  behaviors: ["@workflow", "@etl", "@batch_job"]
+}

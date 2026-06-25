@@ -1,0 +1,18 @@
+@trait {
+  name: "@pose_estimation",
+  category: "sensing",
+  description: "Human pose estimation. model: mediapipe (default), openpose, movenet. keypoints is the skeleton keypoint count (default: 17 = COCO). smoothing is the temporal filter coefficient (default: 0.5). min_confidence is the detection threshold (default: 0.5). multi_person enables multi-person tracking (default: false). tracking_enabled enables inter-frame tracking (default: true). Port of PoseEstimationTrait.ts (handler name: pose_estimation).",
+  props: {
+    model: enum("mediapipe" | "openpose" | "movenet") = "mediapipe",
+    keypoints: number = 17,
+    smoothing: number = 0.5,
+    min_confidence: number = 0.5,
+    multi_person: boolean = false,
+    tracking_enabled: boolean = true
+  },
+  events: {
+    on_pose: "pose_estimation:pose",
+    on_lost: "pose_estimation:lost"
+  },
+  behaviors: ["@body_tracking", "@onnx_runtime", "@neural_animation"]
+}

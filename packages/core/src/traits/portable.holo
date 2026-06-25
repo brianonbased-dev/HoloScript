@@ -1,0 +1,17 @@
+@trait {
+  name: "@portable",
+  category: "export",
+  description: "Cross-platform portability wrapper. interoperable enables cross-runtime usage (default: true). export_formats is the list of supported export targets (default: [gltf]). metadata_standard: gltf_pbr (default), usd, fbx. cross_platform enables multi-OS/runtime compile (default: true). version is the portability schema version (default: 1.0). preserve_animations retains animation data in exports (default: true). Port of PortableTrait.ts (handler name: portable).",
+  props: {
+    interoperable: boolean = true,
+    metadata_standard: enum("gltf_pbr" | "usd" | "fbx") = "gltf_pbr",
+    cross_platform: boolean = true,
+    version: string = "1.0",
+    preserve_animations: boolean = true
+  },
+  events: {
+    on_exported: "portable:exported",
+    export: "portable.export"
+  },
+  behaviors: ["@gltf", "@fbx", "@material_x"]
+}

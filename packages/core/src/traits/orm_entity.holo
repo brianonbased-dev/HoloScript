@@ -1,0 +1,17 @@
+@trait {
+  name: "@orm_entity",
+  category: "data",
+  description: "ORM entity adapter — maps node state to a database table via a typed schema. table_prefix prefixes all table names (default: empty). Port of OrmEntityTrait.ts (handler name: orm_entity).",
+  props: {
+    table_prefix: string = ""
+  },
+  events: {
+    on_saved: "orm_entity:saved",
+    on_loaded: "orm_entity:loaded",
+    on_deleted: "orm_entity:deleted",
+    save: "orm_entity.save",
+    load: "orm_entity.load",
+    delete: "orm_entity.delete"
+  },
+  behaviors: ["@database", "@migrate", "@persistent"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@photogrammetry",
+  category: "reconstruction",
+  description: "Photogrammetry reconstruction pipeline. source_type: images (default), video, lidar. quality: low, medium (default), high. mesh_simplification is the decimation ratio [0,1] (default: 0.5). texture_resolution in pixels (default: 2048). auto_align aligns overlapping images automatically (default: true). geo_reference geotags the reconstruction (default: false). Port of PhotogrammetryTrait.ts (handler name: photogrammetry).",
+  props: {
+    source_type: enum("images" | "video" | "lidar") = "images",
+    quality: enum("low" | "medium" | "high") = "medium",
+    mesh_simplification: number = 0.5,
+    texture_resolution: number = 2048,
+    auto_align: boolean = true,
+    geo_reference: boolean = false
+  },
+  events: {
+    on_started: "photogrammetry:started",
+    on_complete: "photogrammetry:complete",
+    on_error: "photogrammetry:error",
+    run: "photogrammetry.run"
+  },
+  behaviors: ["@holomap_reconstruction", "@scene_reconstruction", "@point_cloud"]
+}

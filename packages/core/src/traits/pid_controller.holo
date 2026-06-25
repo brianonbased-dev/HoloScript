@@ -1,0 +1,13 @@
+@trait {
+  name: "@pid_controller",
+  category: "control",
+  description: "PID controller — proportional-integral-derivative feedback loop for stabilization and trajectory following. Config is axis-dependent and passed through to PIDControllerTrait instance. Port of PIDControllerTrait.ts (handler name: p_i_d_controller).",
+  props: {},
+  events: {
+    on_output: "p_i_d_controller:output",
+    on_saturated: "p_i_d_controller:saturated",
+    update: "p_i_d_controller.update",
+    reset: "p_i_d_controller.reset"
+  },
+  behaviors: ["@control_loop", "@twin_actuator"]
+}

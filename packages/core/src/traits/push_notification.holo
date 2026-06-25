@@ -1,0 +1,15 @@
+@trait {
+  name: "@push_notification",
+  category: "communication",
+  description: "Push notification delivery. platform: fcm (default), apns, web_push. max_batch is the batch delivery size (default: 500). Port of PushNotificationTrait.ts (handler name: push_notification).",
+  props: {
+    platform: enum("fcm" | "apns" | "web_push") = "fcm",
+    max_batch: number = 500
+  },
+  events: {
+    on_sent: "push_notification:sent",
+    on_failed: "push_notification:failed",
+    send: "push_notification.send"
+  },
+  behaviors: ["@messaging", "@email"]
+}

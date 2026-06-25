@@ -1,0 +1,17 @@
+@trait {
+  name: "@profiler",
+  category: "diagnostics",
+  description: "Trace/span profiler. max_spans is the completed span buffer size (default: 500). auto_report_interval_ms is the auto-report cadence in ms (0 = manual only, default: 0). Port of ProfilerTrait.ts (handler name: profiler).",
+  props: {
+    max_spans: number = 500,
+    auto_report_interval_ms: number = 0
+  },
+  events: {
+    on_span_ended: "profiler:span_ended",
+    on_report: "profiler:report",
+    begin: "profiler.begin",
+    end: "profiler.end",
+    report: "profiler.report"
+  },
+  behaviors: ["@performance_regression", "@service_observability", "@log_aggregator"]
+}

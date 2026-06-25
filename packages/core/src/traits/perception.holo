@@ -1,0 +1,18 @@
+@trait {
+  name: "@perception",
+  category: "agent",
+  description: "NPC sensory system — line-of-sight vision and hearing. sight_range is the vision radius in meters (default: 20m). sight_angle is the field of view in degrees (default: 120°). hearing_range is the audio awareness radius (default: 15m). memory_duration is how long perceived entities are remembered in ms (default: 10,000ms). los_check enables line-of-sight raycasting (default: true). Port of PerceptionTrait.ts (handler name: perception).",
+  props: {
+    sight_range: number = 20,
+    sight_angle: number = 120,
+    hearing_range: number = 15,
+    memory_duration: number = 10000,
+    los_check: boolean = true
+  },
+  events: {
+    on_detected: "perception:detected",
+    on_lost: "perception:lost",
+    on_heard: "perception:heard"
+  },
+  behaviors: ["@npc_ai", "@patrol", "@object_tracking"]
+}

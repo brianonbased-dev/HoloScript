@@ -1,0 +1,15 @@
+@trait {
+  name: "@optimization",
+  category: "compute",
+  description: "Numerical optimization solver (gradient descent, L-BFGS, etc.). max_iterations is the solver iteration cap (default: 1000). tolerance is the convergence tolerance (default: 1e-6). Port of OptimizationTrait.ts (handler name: optimization).",
+  props: {
+    max_iterations: number = 1000,
+    tolerance: number = 0.000001
+  },
+  events: {
+    on_converged: "optimization:converged",
+    on_failed: "optimization:failed",
+    solve: "optimization.solve"
+  },
+  behaviors: ["@compute", "@simulation_solver"]
+}

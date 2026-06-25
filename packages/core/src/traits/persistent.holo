@@ -1,0 +1,18 @@
+@trait {
+  name: "@persistent",
+  category: "data",
+  description: "Persistent key-value store for node state that survives restarts. key is the storage key (default: default). default_value is the value returned when the key is missing (default: null). ttl_ms is the TTL in ms (0 = never expires, default: 0). Port of PersistentTrait.ts (handler name: persistent).",
+  props: {
+    key: string = "default",
+    ttl_ms: number = 0
+  },
+  events: {
+    on_loaded: "persistent:loaded",
+    on_saved: "persistent:saved",
+    on_expired: "persistent:expired",
+    load: "persistent.load",
+    save: "persistent.save",
+    clear: "persistent.clear"
+  },
+  behaviors: ["@database", "@offline_sync"]
+}

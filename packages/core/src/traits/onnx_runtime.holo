@@ -1,0 +1,16 @@
+@trait {
+  name: "@onnx_runtime",
+  category: "ml",
+  description: "ONNX Runtime inference engine. execution_provider: cpu (default), cuda, tensorrt, coreml. Port of OnnxRuntimeTrait.ts (handler name: onnx_runtime).",
+  props: {
+    execution_provider: enum("cpu" | "cuda" | "tensorrt" | "coreml") = "cpu"
+  },
+  events: {
+    on_loaded: "onnx_runtime:loaded",
+    on_inferred: "onnx_runtime:inferred",
+    on_error: "onnx_runtime:error",
+    load: "onnx_runtime.load",
+    run: "onnx_runtime.run"
+  },
+  behaviors: ["@inference", "@model_load", "@jetson_gpu"]
+}
