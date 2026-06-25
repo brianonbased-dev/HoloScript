@@ -1,0 +1,23 @@
+// @ai_companion_trait — AI companion: persistent social agent that remembers context and reacts to world events.
+//
+// Native .hsplus surface for core/traits/AICompanionTrait.ts.
+
+@trait ai_companion_trait {
+  capability_tags: ["ai_companion", "persistent_social_agent", "context_memory", "world_reactive", "core"]
+
+  @on_spawn(persona_id) => {
+    init_ai_companion(persona_id)
+    emit("ai_companion_ready", { persona_id })
+  }
+
+  @on_interact(player_id, message) => {
+    response = ai_companion_respond(player_id, message)
+    emit("companion_responded", {})
+    return response
+  }
+
+  @receipt ai_companion_trait_config {
+    type: "AICompanionTraitReceipt"
+    timestamp: now()
+  }
+}

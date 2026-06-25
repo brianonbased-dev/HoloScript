@@ -1,0 +1,17 @@
+// @advanced_texturing_trait — Advanced texturing: triplanar, parallax occlusion, virtual texturing.
+//
+// Native .hsplus surface for core/traits/AdvancedTexturingTrait.ts.
+
+@trait advanced_texturing_trait {
+  capability_tags: ["advanced_texturing", "triplanar", "parallax_occlusion", "virtual_texturing", "core"]
+
+  @on_spawn(params) => {
+    init_advanced_texturing(params)
+    emit("advanced_texturing_ready", {})
+  }
+
+  @receipt advanced_texturing_trait_config {
+    type: "AdvancedTexturingTraitReceipt"
+    timestamp: now()
+  }
+}

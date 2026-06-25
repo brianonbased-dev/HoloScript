@@ -1,0 +1,22 @@
+// @ai_npc_brain_trait — NPC brain: goal-directed AI with behavior tree, memory, and emotion state.
+//
+// Native .hsplus surface for core/traits/AINPCBrainTrait.ts.
+
+@trait ai_npc_brain_trait {
+  capability_tags: ["ai_npc_brain", "goal_directed", "behavior_tree", "emotion_state", "core"]
+
+  @on_spawn(npc_id, persona) => {
+    init_npc_brain(npc_id, persona)
+    emit("npc_brain_ready", { npc_id })
+  }
+
+  @on_tick(world_state) => {
+    action = npc_brain_tick(world_state)
+    return action
+  }
+
+  @receipt ai_npc_brain_trait_config {
+    type: "AINPCBrainTraitReceipt"
+    timestamp: now()
+  }
+}

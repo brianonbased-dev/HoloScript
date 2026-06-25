@@ -1,0 +1,23 @@
+// @astar_trait — A* pathfinding trait: grid or navmesh pathfinding with heuristic tuning.
+//
+// Native .hsplus surface for core/traits/AstarTrait.ts.
+
+@trait astar_trait {
+  capability_tags: ["astar", "pathfinding", "navmesh", "heuristic_tuning", "core"]
+
+  @on_spawn(graph) => {
+    init_astar(graph)
+    emit("astar_ready", {})
+  }
+
+  @on_find_path(start, goal) => {
+    path = astar_find_path(start, goal)
+    return path
+  }
+
+  @receipt astar_trait_config {
+    type: "AstarTraitReceipt"
+    algorithm: "A*"
+    timestamp: now()
+  }
+}

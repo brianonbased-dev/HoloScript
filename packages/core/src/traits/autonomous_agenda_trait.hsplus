@@ -1,0 +1,26 @@
+// @autonomous_agenda_trait — Agent autonomous agenda: self-directed goal queue, priority, persistence.
+//
+// Native .hsplus surface for core/traits/AutonomousAgendaTrait.ts.
+
+@trait autonomous_agenda_trait {
+  capability_tags: ["autonomous_agenda", "self_directed_goals", "goal_queue", "priority_persistence", "core"]
+
+  @on_spawn(agent_id) => {
+    init_autonomous_agenda(agent_id)
+    emit("autonomous_agenda_ready", {})
+  }
+
+  @on_add_goal(goal, priority) => {
+    add_agenda_goal(goal, priority)
+  }
+
+  @on_tick => {
+    next_action = tick_autonomous_agenda()
+    return next_action
+  }
+
+  @receipt autonomous_agenda_trait_config {
+    type: "AutonomousAgendaTraitReceipt"
+    timestamp: now()
+  }
+}

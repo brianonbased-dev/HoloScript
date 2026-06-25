@@ -1,0 +1,23 @@
+// @ai_texture_gen_trait — AI texture generation: prompt → PBR texture set (albedo/normal/roughness/metal).
+//
+// Native .hsplus surface for core/traits/AiTextureGenTrait.ts.
+
+@trait ai_texture_gen_trait {
+  capability_tags: ["ai_texture_gen", "pbr_texture_set", "prompt_to_texture", "albedo_normal_roughness", "core"]
+
+  @on_spawn => {
+    emit("ai_texture_gen_ready", {})
+  }
+
+  @on_generate(prompt, resolution) => {
+    texture_set = generate_ai_texture(prompt, resolution)
+    emit("texture_generated", {})
+    return texture_set
+  }
+
+  @receipt ai_texture_gen_trait_config {
+    type: "AiTextureGenTraitReceipt"
+    output: "albedo / normal / roughness / metal"
+    timestamp: now()
+  }
+}

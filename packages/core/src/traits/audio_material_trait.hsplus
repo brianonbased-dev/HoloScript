@@ -1,0 +1,21 @@
+// @audio_material_trait — Audio material: surface-type sound response (footstep, impact, scrape).
+//
+// Native .hsplus surface for core/traits/AudioMaterialTrait.ts.
+
+@trait audio_material_trait {
+  capability_tags: ["audio_material", "surface_sound", "footstep_impact", "audio_response", "core"]
+
+  @on_spawn(surface_type) => {
+    init_audio_material(surface_type)
+    emit("audio_material_ready", {})
+  }
+
+  @on_impact(velocity, contact_type) => {
+    play_audio_material_response(velocity, contact_type)
+  }
+
+  @receipt audio_material_trait_config {
+    type: "AudioMaterialTraitReceipt"
+    timestamp: now()
+  }
+}

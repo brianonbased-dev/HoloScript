@@ -1,0 +1,21 @@
+// @ai_camera_trait — AI-controlled cinematic camera: tracks subjects, cuts, smooth follow.
+//
+// Native .hsplus surface for core/traits/AiCameraTrait.ts.
+
+@trait ai_camera_trait {
+  capability_tags: ["ai_camera", "cinematic", "subject_tracking", "smooth_follow", "core"]
+
+  @on_spawn(target_id) => {
+    init_ai_camera(target_id)
+    emit("ai_camera_ready", {})
+  }
+
+  @on_track(subject_id) => {
+    track_ai_camera(subject_id)
+  }
+
+  @receipt ai_camera_trait_config {
+    type: "AICameraTraitReceipt"
+    timestamp: now()
+  }
+}

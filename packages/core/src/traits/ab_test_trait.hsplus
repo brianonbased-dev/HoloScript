@@ -1,0 +1,22 @@
+// @ab_test_trait — A/B test trait: splits users into buckets and exposes variant flag per session.
+//
+// Native .hsplus surface for core/traits/ABTestTrait.ts.
+
+@trait ab_test_trait {
+  capability_tags: ["ab_test", "experiment_bucket", "variant_flag", "analytics", "core"]
+
+  @on_spawn(experiment_id, buckets) => {
+    init_ab_test(experiment_id, buckets)
+    emit("ab_test_ready", { experiment_id })
+  }
+
+  @on_assign(user_id) => {
+    bucket = assign_ab_bucket(user_id)
+    return bucket
+  }
+
+  @receipt ab_test_trait_config {
+    type: "ABTestTraitReceipt"
+    timestamp: now()
+  }
+}

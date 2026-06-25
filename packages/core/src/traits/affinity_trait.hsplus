@@ -1,0 +1,23 @@
+// @affinity_trait — Entity affinity system: faction relations, reputation, hostility thresholds.
+//
+// Native .hsplus surface for core/traits/AffinityTrait.ts.
+
+@trait affinity_trait {
+  capability_tags: ["affinity", "faction_relations", "reputation", "hostility_threshold", "core"]
+
+  @on_spawn(faction_id) => {
+    init_affinity(faction_id)
+    emit("affinity_ready", {})
+  }
+
+  @on_adjust(target_faction, delta) => {
+    new_val = adjust_affinity(target_faction, delta)
+    emit("affinity_changed", { target_faction, new_val })
+    return new_val
+  }
+
+  @receipt affinity_trait_config {
+    type: "AffinityTraitReceipt"
+    timestamp: now()
+  }
+}

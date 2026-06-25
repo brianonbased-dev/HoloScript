@@ -1,0 +1,23 @@
+// @agent_memory_trait — Agent memory: wallet-keyed private knowledge store, recall, forget.
+//
+// Native .hsplus surface for core/traits/AgentMemoryTrait.ts.
+
+@trait agent_memory_trait {
+  capability_tags: ["agent_memory", "wallet_keyed", "private_knowledge", "recall_forget", "core"]
+
+  @on_spawn(wallet_address) => {
+    init_agent_memory(wallet_address)
+    emit("agent_memory_ready", {})
+  }
+
+  @on_recall(query) => {
+    results = recall_agent_memory(query)
+    return results
+  }
+
+  @receipt agent_memory_trait_config {
+    type: "AgentMemoryTraitReceipt"
+    store: "private:<walletAddress>"
+    timestamp: now()
+  }
+}

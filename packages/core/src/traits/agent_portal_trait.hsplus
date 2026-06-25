@@ -1,0 +1,23 @@
+// @agent_portal_trait — Agent portal: transit point between worlds/shards with identity continuity.
+//
+// Native .hsplus surface for core/traits/AgentPortalTrait.ts.
+
+@trait agent_portal_trait {
+  capability_tags: ["agent_portal", "world_transit", "identity_continuity", "shard_portal", "core"]
+
+  @on_spawn(portal_id, destination) => {
+    init_agent_portal(portal_id, destination)
+    emit("agent_portal_ready", { portal_id })
+  }
+
+  @on_transit(agent_id) => {
+    result = transit_agent_through_portal(agent_id)
+    emit("agent_transited", { agent_id })
+    return result
+  }
+
+  @receipt agent_portal_trait_config {
+    type: "AgentPortalTraitReceipt"
+    timestamp: now()
+  }
+}

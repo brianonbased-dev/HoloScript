@@ -1,0 +1,21 @@
+// @autocomplete_trait — Autocomplete: semantic suggestion engine for HoloScript+ editing contexts.
+//
+// Native .hsplus surface for core/traits/AutocompleteTrait.ts.
+
+@trait autocomplete_trait {
+  capability_tags: ["autocomplete", "semantic_suggestions", "holoscript_editor", "completion_engine", "core"]
+
+  @on_spawn => {
+    emit("autocomplete_ready", {})
+  }
+
+  @on_complete(prefix, context) => {
+    suggestions = get_autocomplete_suggestions(prefix, context)
+    return suggestions
+  }
+
+  @receipt autocomplete_trait_config {
+    type: "AutocompleteTraitReceipt"
+    timestamp: now()
+  }
+}

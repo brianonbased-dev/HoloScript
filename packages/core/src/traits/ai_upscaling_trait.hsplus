@@ -1,0 +1,22 @@
+// @ai_upscaling_trait — AI super-resolution upscaling for textures and hologram frames.
+//
+// Native .hsplus surface for core/traits/AiUpscalingTrait.ts.
+
+@trait ai_upscaling_trait {
+  capability_tags: ["ai_upscaling", "super_resolution", "texture_upscale", "hologram_upscale", "core"]
+
+  @on_spawn(scale_factor) => {
+    init_ai_upscaling(scale_factor)
+    emit("ai_upscaling_ready", {})
+  }
+
+  @on_upscale(image) => {
+    upscaled = upscale_with_ai(image)
+    return upscaled
+  }
+
+  @receipt ai_upscaling_trait_config {
+    type: "AiUpscalingTraitReceipt"
+    timestamp: now()
+  }
+}

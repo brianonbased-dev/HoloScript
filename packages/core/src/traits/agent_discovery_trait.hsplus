@@ -1,0 +1,22 @@
+// @agent_discovery_trait — Discovers peer agents in the world via HoloMesh presence broadcast.
+//
+// Native .hsplus surface for core/traits/AgentDiscoveryTrait.ts.
+
+@trait agent_discovery_trait {
+  capability_tags: ["agent_discovery", "peer_agent", "holomesh_presence", "discovery_broadcast", "core"]
+
+  @on_spawn => {
+    emit("agent_discovery_ready", {})
+  }
+
+  @on_discover(filter) => {
+    peers = discover_peer_agents(filter)
+    emit("agents_discovered", { count: peers.length })
+    return peers
+  }
+
+  @receipt agent_discovery_trait_config {
+    type: "AgentDiscoveryTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,17 @@
+// @audio_portal_trait — Audio portal: spatially accurate sound leaking through portal openings.
+//
+// Native .hsplus surface for core/traits/AudioPortalTrait.ts.
+
+@trait audio_portal_trait {
+  capability_tags: ["audio_portal", "portal_sound_leak", "spatial_audio", "opening_acoustics", "core"]
+
+  @on_spawn(portal_id, aperture) => {
+    init_audio_portal(portal_id, aperture)
+    emit("audio_portal_ready", {})
+  }
+
+  @receipt audio_portal_trait_config {
+    type: "AudioPortalTraitReceipt"
+    timestamp: now()
+  }
+}

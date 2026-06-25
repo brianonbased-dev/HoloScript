@@ -1,0 +1,21 @@
+// @bloom_reactive_trait — Reactive bloom: adjusts glow bloom intensity based on world events.
+//
+// Native .hsplus surface for core/traits/BloomReactiveTrait.ts.
+
+@trait bloom_reactive_trait {
+  capability_tags: ["bloom_reactive", "glow_intensity", "event_driven_bloom", "post_process", "core"]
+
+  @on_spawn(base_intensity) => {
+    init_bloom_reactive(base_intensity)
+    emit("bloom_reactive_ready", {})
+  }
+
+  @on_event(event_type, magnitude) => {
+    set_bloom_reaction(event_type, magnitude)
+  }
+
+  @receipt bloom_reactive_trait_config {
+    type: "BloomReactiveTraitReceipt"
+    timestamp: now()
+  }
+}

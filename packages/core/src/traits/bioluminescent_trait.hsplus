@@ -1,0 +1,21 @@
+// @bioluminescent_trait — Bioluminescent emission: animated glow response to proximity and interactions.
+//
+// Native .hsplus surface for core/traits/BioluminescentTrait.ts.
+
+@trait bioluminescent_trait {
+  capability_tags: ["bioluminescent", "animated_glow", "proximity_response", "emission_animation", "core"]
+
+  @on_spawn(color, intensity) => {
+    init_bioluminescence(color, intensity)
+    emit("bioluminescent_ready", {})
+  }
+
+  @on_react(stimulus_strength) => {
+    set_bioluminescent_response(stimulus_strength)
+  }
+
+  @receipt bioluminescent_trait_config {
+    type: "BioluminescentTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @ai_inpainting_trait — AI inpainting: mask-guided content fill for textures and holograms.
+//
+// Native .hsplus surface for core/traits/AiInpaintingTrait.ts.
+
+@trait ai_inpainting_trait {
+  capability_tags: ["ai_inpainting", "mask_fill", "texture_inpaint", "hologram_inpaint", "core"]
+
+  @on_spawn => {
+    emit("ai_inpainting_ready", {})
+  }
+
+  @on_inpaint(image, mask, prompt) => {
+    result = inpaint_with_ai(image, mask, prompt)
+    emit("inpainting_complete", {})
+    return result
+  }
+
+  @receipt ai_inpainting_trait_config {
+    type: "AiInpaintingTraitReceipt"
+    timestamp: now()
+  }
+}

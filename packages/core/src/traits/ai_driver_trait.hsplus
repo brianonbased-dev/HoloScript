@@ -1,0 +1,22 @@
+// @ai_driver_trait — AI vehicle driver: navigates paths, avoids obstacles, follows traffic rules.
+//
+// Native .hsplus surface for core/traits/AIDriverTrait.ts.
+
+@trait ai_driver_trait {
+  capability_tags: ["ai_driver", "vehicle_navigation", "obstacle_avoidance", "traffic_rules", "core"]
+
+  @on_spawn(vehicle_id) => {
+    init_ai_driver(vehicle_id)
+    emit("ai_driver_ready", {})
+  }
+
+  @on_drive(destination) => {
+    navigate_to_destination(destination)
+    emit("driving_started", { destination })
+  }
+
+  @receipt ai_driver_trait_config {
+    type: "AIDriverTraitReceipt"
+    timestamp: now()
+  }
+}

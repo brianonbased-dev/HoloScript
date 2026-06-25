@@ -1,0 +1,21 @@
+// @botanical_lotus_trait — Lotus flower botanical simulation: bloom cycle, light response, petal physics.
+//
+// Native .hsplus surface for core/traits/BotanicalLotusTrait.ts.
+
+@trait botanical_lotus_trait {
+  capability_tags: ["botanical_lotus", "bloom_cycle", "light_response", "petal_physics", "core"]
+
+  @on_spawn(variant) => {
+    init_lotus_simulation(variant)
+    emit("botanical_lotus_ready", {})
+  }
+
+  @on_light_change(intensity) => {
+    respond_lotus_to_light(intensity)
+  }
+
+  @receipt botanical_lotus_trait_config {
+    type: "BotanicalLotusTraitReceipt"
+    timestamp: now()
+  }
+}

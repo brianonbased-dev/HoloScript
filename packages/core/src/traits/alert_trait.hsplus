@@ -1,0 +1,22 @@
+// @alert_trait — Alert notifications: push alerts to UI panels, sound cues, and HoloMesh inbox.
+//
+// Native .hsplus surface for core/traits/AlertTrait.ts.
+
+@trait alert_trait {
+  capability_tags: ["alert", "notification", "sound_cue", "holomesh_inbox", "core"]
+
+  @on_spawn => {
+    emit("alert_trait_ready", {})
+  }
+
+  @on_alert(level, message, channels) => {
+    send_alert(level, message, channels)
+    emit("alert_sent", { level })
+  }
+
+  @receipt alert_trait_config {
+    type: "AlertTraitReceipt"
+    channels: ["UI panel", "sound cue", "HoloMesh inbox"]
+    timestamp: now()
+  }
+}

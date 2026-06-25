@@ -1,0 +1,23 @@
+// @auto_rig_trait — Auto-rigging: fits skeleton to character mesh using surface landmarks.
+//
+// Native .hsplus surface for core/traits/AutoRigTrait.ts.
+
+@trait auto_rig_trait {
+  capability_tags: ["auto_rig", "skeleton_fit", "surface_landmark", "character_rigging", "core"]
+
+  @on_spawn => {
+    emit("auto_rig_ready", {})
+  }
+
+  @on_rig(mesh_id, bone_order) => {
+    rig = auto_rig_mesh(mesh_id, bone_order)
+    emit("mesh_rigged", {})
+    return rig
+  }
+
+  @receipt auto_rig_trait_config {
+    type: "AutoRigTraitReceipt"
+    bone_palette: "55-bone BONE_ORDER"
+    timestamp: now()
+  }
+}

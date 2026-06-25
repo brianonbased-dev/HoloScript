@@ -1,0 +1,21 @@
+// @anchor_trait — Spatial anchor: pins a world entity to a real-world or virtual coordinate.
+//
+// Native .hsplus surface for core/traits/AnchorTrait.ts.
+
+@trait anchor_trait {
+  capability_tags: ["anchor", "spatial_anchor", "world_coordinate", "xr_anchor", "core"]
+
+  @on_spawn(position, frame) => {
+    init_spatial_anchor(position, frame)
+    emit("anchor_ready", {})
+  }
+
+  @on_update_pose(pose) => {
+    update_anchor_pose(pose)
+  }
+
+  @receipt anchor_trait_config {
+    type: "AnchorTraitReceipt"
+    timestamp: now()
+  }
+}

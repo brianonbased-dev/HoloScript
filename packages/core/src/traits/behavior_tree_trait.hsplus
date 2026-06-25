@@ -1,0 +1,23 @@
+// @behavior_tree_trait — Behavior tree: Sequence/Selector/Parallel/Leaf node AI decision making.
+//
+// Native .hsplus surface for core/traits/BehaviorTreeTrait.ts.
+
+@trait behavior_tree_trait {
+  capability_tags: ["behavior_tree", "sequence_selector_parallel", "ai_decision", "bt_nodes", "core"]
+
+  @on_spawn(tree_def) => {
+    init_behavior_tree(tree_def)
+    emit("behavior_tree_ready", {})
+  }
+
+  @on_tick(blackboard) => {
+    status = tick_behavior_tree(blackboard)
+    return status
+  }
+
+  @receipt behavior_tree_trait_config {
+    type: "BehaviorTreeTraitReceipt"
+    nodes: ["Sequence", "Selector", "Parallel", "Leaf"]
+    timestamp: now()
+  }
+}

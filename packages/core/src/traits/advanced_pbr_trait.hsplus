@@ -1,0 +1,18 @@
+// @advanced_pbr_trait — Advanced PBR: clearcoat, sheen, transmission, iridescence, anisotropy.
+//
+// Native .hsplus surface for core/traits/AdvancedPBRTrait.ts.
+
+@trait advanced_pbr_trait {
+  capability_tags: ["advanced_pbr", "clearcoat", "sheen", "transmission", "core"]
+
+  @on_spawn(params) => {
+    init_advanced_pbr(params)
+    emit("advanced_pbr_ready", {})
+  }
+
+  @receipt advanced_pbr_trait_config {
+    type: "AdvancedPBRTraitReceipt"
+    features: ["clearcoat", "sheen", "transmission", "iridescence", "anisotropy"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,18 @@
+// @advanced_lighting_trait — Advanced lighting: RTGI, area lights, IES profiles, light baking.
+//
+// Native .hsplus surface for core/traits/AdvancedLightingTrait.ts.
+
+@trait advanced_lighting_trait {
+  capability_tags: ["advanced_lighting", "rtgi", "area_lights", "ies_profiles", "core"]
+
+  @on_spawn(config) => {
+    init_advanced_lighting(config)
+    emit("advanced_lighting_ready", {})
+  }
+
+  @receipt advanced_lighting_trait_config {
+    type: "AdvancedLightingTraitReceipt"
+    features: ["RTGI", "area lights", "IES", "baking"]
+    timestamp: now()
+  }
+}

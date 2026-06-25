@@ -1,0 +1,22 @@
+// @animation_state_machine — Finite state machine controlling animation transitions and blend trees.
+//
+// Native .hsplus surface for core/traits/AnimationStateMachine.ts.
+
+@trait animation_state_machine {
+  capability_tags: ["animation_state_machine", "fsm_animation", "blend_tree", "transition_graph", "core"]
+
+  @on_spawn(states, transitions) => {
+    init_animation_fsm(states, transitions)
+    emit("animation_state_machine_ready", {})
+  }
+
+  @on_set_state(state_id, params) => {
+    transition_animation_state(state_id, params)
+    emit("animation_state_changed", { state_id })
+  }
+
+  @receipt animation_state_machine_config {
+    type: "AnimationStateMachineReceipt"
+    timestamp: now()
+  }
+}

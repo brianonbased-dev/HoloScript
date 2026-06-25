@@ -1,0 +1,23 @@
+// @anti_grief_trait — Anti-grief protection: rate limiting, zone ownership, harassment detection.
+//
+// Native .hsplus surface for core/traits/AntiGriefTrait.ts.
+
+@trait anti_grief_trait {
+  capability_tags: ["anti_grief", "rate_limiting", "zone_ownership", "harassment_detection", "core"]
+
+  @on_spawn(zone_id) => {
+    init_anti_grief(zone_id)
+    emit("anti_grief_ready", {})
+  }
+
+  @on_report(actor_id, action_type) => {
+    result = evaluate_grief_action(actor_id, action_type)
+    if result.blocked { emit("grief_blocked", { actor_id }) }
+    return result
+  }
+
+  @receipt anti_grief_trait_config {
+    type: "AntiGriefTraitReceipt"
+    timestamp: now()
+  }
+}

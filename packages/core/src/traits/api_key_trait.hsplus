@@ -1,0 +1,23 @@
+// @api_key_trait — API key holder: scoped credentials for external service calls, rotatable.
+//
+// Native .hsplus surface for core/traits/ApiKeyTrait.ts.
+
+@trait api_key_trait {
+  capability_tags: ["api_key", "scoped_credentials", "rotatable", "external_service", "core"]
+
+  @on_spawn(service_id) => {
+    init_api_key(service_id)
+    emit("api_key_ready", {})
+  }
+
+  @on_rotate => {
+    rotate_api_key()
+    emit("api_key_rotated", {})
+  }
+
+  @receipt api_key_trait_config {
+    type: "ApiKeyTraitReceipt"
+    note: "never inline key literals — resolve from vault"
+    timestamp: now()
+  }
+}

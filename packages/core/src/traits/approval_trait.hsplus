@@ -1,0 +1,23 @@
+// @approval_trait — Multi-party approval gate: N-of-M signature requirement before action executes.
+//
+// Native .hsplus surface for core/traits/ApprovalTrait.ts.
+
+@trait approval_trait {
+  capability_tags: ["approval", "multi_party", "n_of_m", "signature_gate", "core"]
+
+  @on_spawn(required_count, approvers) => {
+    init_approval_gate(required_count, approvers)
+    emit("approval_gate_ready", {})
+  }
+
+  @on_approve(approver_wallet, signature) => {
+    result = record_approval(approver_wallet, signature)
+    if result.threshold_met { emit("approval_threshold_met", {}) }
+    return result
+  }
+
+  @receipt approval_trait_config {
+    type: "ApprovalTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @ambisonics_trait — Ambisonic spatial audio: 3D sound field encoding and binaural rendering.
+//
+// Native .hsplus surface for core/traits/AmbisonicsTrait.ts.
+
+@trait ambisonics_trait {
+  capability_tags: ["ambisonics", "spatial_audio", "3d_sound_field", "binaural_rendering", "core"]
+
+  @on_spawn(order) => {
+    init_ambisonics(order)
+    emit("ambisonics_ready", {})
+  }
+
+  @on_encode(audio_source, position) => {
+    encode_ambisonics(audio_source, position)
+  }
+
+  @receipt ambisonics_trait_config {
+    type: "AmbisonicsTraitReceipt"
+    standard: "B-format ambisonics"
+    timestamp: now()
+  }
+}

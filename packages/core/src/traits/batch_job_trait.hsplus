@@ -1,0 +1,22 @@
+// @batch_job_trait — Batch job scheduler: queues, runs, and tracks long-running async jobs.
+//
+// Native .hsplus surface for core/traits/BatchJobTrait.ts.
+
+@trait batch_job_trait {
+  capability_tags: ["batch_job", "async_queue", "job_tracking", "long_running", "core"]
+
+  @on_spawn => {
+    emit("batch_job_ready", {})
+  }
+
+  @on_submit(job_def) => {
+    job_id = submit_batch_job(job_def)
+    emit("batch_job_submitted", { job_id })
+    return job_id
+  }
+
+  @receipt batch_job_trait_config {
+    type: "BatchJobTraitReceipt"
+    timestamp: now()
+  }
+}

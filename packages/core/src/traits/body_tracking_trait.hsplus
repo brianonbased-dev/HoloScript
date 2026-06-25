@@ -1,0 +1,22 @@
+// @body_tracking_trait — Full-body tracking: maps physical body pose to avatar skeleton in real-time.
+//
+// Native .hsplus surface for core/traits/BodyTrackingTrait.ts.
+
+@trait body_tracking_trait {
+  capability_tags: ["body_tracking", "pose_to_skeleton", "full_body", "realtime_tracking", "core"]
+
+  @on_spawn(device_id) => {
+    init_body_tracking(device_id)
+    emit("body_tracking_ready", {})
+  }
+
+  @on_pose(pose_data) => {
+    apply_body_tracking_pose(pose_data)
+    emit("body_pose_applied", {})
+  }
+
+  @receipt body_tracking_trait_config {
+    type: "BodyTrackingTraitReceipt"
+    timestamp: now()
+  }
+}

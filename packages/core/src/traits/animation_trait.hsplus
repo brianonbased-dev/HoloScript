@@ -1,0 +1,21 @@
+// @animation_trait — Core animation player: clip playback, blending, speed, looping, events.
+//
+// Native .hsplus surface for core/traits/AnimationTrait.ts.
+
+@trait animation_trait {
+  capability_tags: ["animation", "clip_playback", "blend", "loop", "core"]
+
+  @on_spawn => {
+    emit("animation_ready", {})
+  }
+
+  @on_play(clip_id, opts) => {
+    play_animation_clip(clip_id, opts)
+    emit("animation_playing", { clip_id })
+  }
+
+  @receipt animation_trait_config {
+    type: "AnimationTraitReceipt"
+    timestamp: now()
+  }
+}

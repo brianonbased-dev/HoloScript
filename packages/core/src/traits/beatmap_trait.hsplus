@@ -1,0 +1,23 @@
+// @beatmap_trait — Rhythm game beatmap: note timing, scoring, combo, miss detection.
+//
+// Native .hsplus surface for core/traits/BeatmapTrait.ts.
+
+@trait beatmap_trait {
+  capability_tags: ["beatmap", "rhythm_game", "note_timing", "combo_scoring", "core"]
+
+  @on_spawn(beatmap_id) => {
+    init_beatmap(beatmap_id)
+    emit("beatmap_ready", {})
+  }
+
+  @on_hit(note_id, timing) => {
+    result = score_beatmap_hit(note_id, timing)
+    emit("note_scored", { result })
+    return result
+  }
+
+  @receipt beatmap_trait_config {
+    type: "BeatmapTraitReceipt"
+    timestamp: now()
+  }
+}

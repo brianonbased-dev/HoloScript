@@ -1,0 +1,18 @@
+// @accessible_trait — WCAG/XR accessibility: screen-reader labels, focus ring, contrast enforcement.
+//
+// Native .hsplus surface for core/traits/AccessibleTrait.ts.
+
+@trait accessible_trait {
+  capability_tags: ["accessible", "wcag", "screen_reader", "focus_ring", "core"]
+
+  @on_spawn(aria_label) => {
+    init_accessibility(aria_label)
+    emit("accessible_trait_ready", {})
+  }
+
+  @receipt accessible_trait_config {
+    type: "AccessibleTraitReceipt"
+    standard: "WCAG 2.1 / XR accessibility"
+    timestamp: now()
+  }
+}

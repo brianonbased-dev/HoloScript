@@ -1,0 +1,20 @@
+// @audio_occlusion_trait — Audio occlusion: wall/object attenuation for spatial audio realism.
+//
+// Native .hsplus surface for core/traits/AudioOcclusionTrait.ts.
+
+@trait audio_occlusion_trait {
+  capability_tags: ["audio_occlusion", "wall_attenuation", "spatial_audio", "occlusion", "core"]
+
+  @on_spawn => {
+    emit("audio_occlusion_ready", {})
+  }
+
+  @on_compute(listener, source, world) => {
+    return compute_audio_occlusion(listener, source, world)
+  }
+
+  @receipt audio_occlusion_trait_config {
+    type: "AudioOcclusionTraitReceipt"
+    timestamp: now()
+  }
+}

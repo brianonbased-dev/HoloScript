@@ -1,0 +1,23 @@
+// @avatar_embodiment_trait — Avatar embodiment: maps agent wallet identity to rendered character body.
+//
+// Native .hsplus surface for core/traits/AvatarEmbodimentTrait.ts.
+
+@trait avatar_embodiment_trait {
+  capability_tags: ["avatar_embodiment", "wallet_identity", "character_body", "agent_body_link", "core"]
+
+  @on_spawn(agent_wallet, body_id) => {
+    embody_agent_in_avatar(agent_wallet, body_id)
+    emit("avatar_embodied", { agent_wallet, body_id })
+  }
+
+  @on_disembody => {
+    disembody_avatar()
+    emit("avatar_disembodied", {})
+  }
+
+  @receipt avatar_embodiment_trait_config {
+    type: "AvatarEmbodimentTraitReceipt"
+    note: "D.102 portable agent mind"
+    timestamp: now()
+  }
+}

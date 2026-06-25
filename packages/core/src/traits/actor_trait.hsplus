@@ -1,0 +1,21 @@
+// @actor_trait — Actor model trait: message inbox, send, receive, lifecycle supervision.
+//
+// Native .hsplus surface for core/traits/ActorTrait.ts.
+
+@trait actor_trait {
+  capability_tags: ["actor", "message_inbox", "actor_model", "supervision", "core"]
+
+  @on_spawn(actor_id) => {
+    init_actor(actor_id)
+    emit("actor_ready", { actor_id })
+  }
+
+  @on_receive(message) => {
+    handle_actor_message(message)
+  }
+
+  @receipt actor_trait_config {
+    type: "ActorTraitReceipt"
+    timestamp: now()
+  }
+}

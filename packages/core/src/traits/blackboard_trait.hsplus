@@ -1,0 +1,24 @@
+// @blackboard_trait — AI blackboard: shared key-value memory for behavior tree and agent coordination.
+//
+// Native .hsplus surface for core/traits/BlackboardTrait.ts.
+
+@trait blackboard_trait {
+  capability_tags: ["blackboard", "shared_key_value", "bt_coordination", "agent_shared_memory", "core"]
+
+  @on_spawn => {
+    emit("blackboard_ready", {})
+  }
+
+  @on_write(key, value) => {
+    write_blackboard(key, value)
+  }
+
+  @on_read(key) => {
+    return read_blackboard(key)
+  }
+
+  @receipt blackboard_trait_config {
+    type: "BlackboardTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @analytics_trait — Records world analytics events: session, engagement, conversion, funnel.
+//
+// Native .hsplus surface for core/traits/AnalyticsTrait.ts.
+
+@trait analytics_trait {
+  capability_tags: ["analytics", "session_tracking", "engagement", "conversion_funnel", "core"]
+
+  @on_spawn(world_id) => {
+    init_analytics(world_id)
+    emit("analytics_ready", {})
+  }
+
+  @on_track(event_name, properties) => {
+    track_analytics_event(event_name, properties)
+  }
+
+  @receipt analytics_trait_config {
+    type: "AnalyticsTraitReceipt"
+    timestamp: now()
+  }
+}

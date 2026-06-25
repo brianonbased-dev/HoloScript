@@ -1,0 +1,18 @@
+// @advanced_cloth_trait — PBD cloth simulation: wind, gravity, collision, tear.
+//
+// Native .hsplus surface for core/traits/AdvancedClothTrait.ts.
+
+@trait advanced_cloth_trait {
+  capability_tags: ["advanced_cloth", "pbd_cloth", "wind_gravity", "cloth_tear", "core"]
+
+  @on_spawn(mesh_id, params) => {
+    init_cloth_simulation(mesh_id, params)
+    emit("advanced_cloth_ready", {})
+  }
+
+  @receipt advanced_cloth_trait_config {
+    type: "AdvancedClothTraitReceipt"
+    simulation: "PBD"
+    timestamp: now()
+  }
+}

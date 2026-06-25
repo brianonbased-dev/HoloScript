@@ -1,0 +1,17 @@
+// @animation_types — Animation type definitions: Clip, BlendTree, KeyframeTrack, AnimationEvent.
+//
+// Native .hsplus surface for core/traits/AnimationTypes.ts.
+
+@trait animation_types {
+  capability_tags: ["animation_types", "clip", "blend_tree", "keyframe_track", "core"]
+
+  @on_spawn => {
+    emit("animation_types_ready", {})
+  }
+
+  @receipt animation_types_config {
+    type: "AnimationTypesReceipt"
+    types: ["Clip", "BlendTree", "KeyframeTrack", "AnimationEvent"]
+    timestamp: now()
+  }
+}

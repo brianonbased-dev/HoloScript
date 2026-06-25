@@ -1,0 +1,25 @@
+// @blob_store_trait — Blob store: content-addressed binary asset storage with URL generation.
+//
+// Native .hsplus surface for core/traits/BlobStoreTrait.ts.
+
+@trait blob_store_trait {
+  capability_tags: ["blob_store", "content_addressed", "binary_assets", "url_generation", "core"]
+
+  @on_spawn => {
+    emit("blob_store_ready", {})
+  }
+
+  @on_put(data) => {
+    cid = put_blob(data)
+    return cid
+  }
+
+  @on_get(cid) => {
+    return get_blob(cid)
+  }
+
+  @receipt blob_store_trait_config {
+    type: "BlobStoreTraitReceipt"
+    timestamp: now()
+  }
+}

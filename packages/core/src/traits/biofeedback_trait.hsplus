@@ -1,0 +1,24 @@
+// @biofeedback_trait — Biofeedback integration: reads HR/EEG/GSR signals to influence world state.
+//
+// Native .hsplus surface for core/traits/BiofeedbackTrait.ts.
+
+@trait biofeedback_trait {
+  capability_tags: ["biofeedback", "heart_rate", "eeg_gsr", "biosignal_world", "core"]
+
+  @on_spawn(device_id) => {
+    init_biofeedback(device_id)
+    emit("biofeedback_ready", {})
+  }
+
+  @on_sample(signals) => {
+    state = process_biofeedback_signals(signals)
+    emit("biofeedback_state_updated", { state })
+    return state
+  }
+
+  @receipt biofeedback_trait_config {
+    type: "BiofeedbackTraitReceipt"
+    signals: ["HR", "EEG", "GSR"]
+    timestamp: now()
+  }
+}

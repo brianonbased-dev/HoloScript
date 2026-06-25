@@ -1,0 +1,22 @@
+// @avatar_intent_trait — Avatar intent: interprets controller/gesture input as semantic intent signals.
+//
+// Native .hsplus surface for core/traits/AvatarIntentTrait.ts.
+
+@trait avatar_intent_trait {
+  capability_tags: ["avatar_intent", "controller_gesture", "semantic_intent", "input_interpretation", "core"]
+
+  @on_spawn => {
+    emit("avatar_intent_ready", {})
+  }
+
+  @on_input(raw_input) => {
+    intent = interpret_avatar_intent(raw_input)
+    emit("intent_recognized", { intent })
+    return intent
+  }
+
+  @receipt avatar_intent_trait_config {
+    type: "AvatarIntentTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @alt_text_trait — Auto-generates alt text descriptions for holograms and world objects.
+//
+// Native .hsplus surface for core/traits/AltTextTrait.ts.
+
+@trait alt_text_trait {
+  capability_tags: ["alt_text", "accessibility_description", "auto_alt_text", "hologram_description", "core"]
+
+  @on_spawn => {
+    emit("alt_text_trait_ready", {})
+  }
+
+  @on_describe(entity_id) => {
+    description = generate_alt_text(entity_id)
+    return description
+  }
+
+  @receipt alt_text_trait_config {
+    type: "AltTextTraitReceipt"
+    timestamp: now()
+  }
+}

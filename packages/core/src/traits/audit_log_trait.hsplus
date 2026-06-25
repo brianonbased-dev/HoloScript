@@ -1,0 +1,22 @@
+// @audit_log_trait — Structured audit log: append-only event log with actor, action, resource, outcome.
+//
+// Native .hsplus surface for core/traits/AuditLogTrait.ts.
+
+@trait audit_log_trait {
+  capability_tags: ["audit_log", "append_only_events", "actor_action_resource", "structured_log", "core"]
+
+  @on_spawn(log_id) => {
+    init_audit_log(log_id)
+    emit("audit_log_ready", {})
+  }
+
+  @on_log(actor, action, resource, outcome) => {
+    append_audit_entry(actor, action, resource, outcome)
+  }
+
+  @receipt audit_log_trait_config {
+    type: "AuditLogTraitReceipt"
+    invariant: "append-only"
+    timestamp: now()
+  }
+}

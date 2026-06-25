@@ -1,0 +1,22 @@
+// @absorb_trait — Absorbs external data sources into HoloGraph knowledge representation.
+//
+// Native .hsplus surface for core/traits/AbsorbTrait.ts.
+
+@trait absorb_trait {
+  capability_tags: ["absorb", "external_data_ingestion", "holograph_knowledge", "data_bridge", "core"]
+
+  @on_spawn => {
+    emit("absorb_trait_ready", {})
+  }
+
+  @on_absorb(source, opts) => {
+    result = absorb_external_source(source, opts)
+    emit("source_absorbed", { id: result.id })
+    return result
+  }
+
+  @receipt absorb_trait_config {
+    type: "AbsorbTraitReceipt"
+    timestamp: now()
+  }
+}
