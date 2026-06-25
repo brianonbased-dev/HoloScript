@@ -1,0 +1,18 @@
+@trait {
+  name: "@portfolio",
+  category: "finance",
+  description: "Investment portfolio tracker. holdings is a list of position records. benchmarkIndex is the comparison index ticker (default: SPY). riskTolerance: conservative, moderate, or aggressive — drives rebalancing rules. rebalanceThreshold is the drift percentage that triggers rebalancing (default: 5%). Tracks unrealized/realized P&L, allocation by asset class, and Sharpe ratio vs benchmark. Port of PortfolioTrait.ts (handler name: portfolio).",
+  props: {
+    benchmark_index: string = "SPY",
+    risk_tolerance: enum("conservative" | "moderate" | "aggressive") = "moderate",
+    rebalance_threshold: number = 5
+  },
+  events: {
+    on_rebalance: "portfolio_rebalance",
+    on_position_updated: "portfolio_position_updated",
+    on_benchmark_diverged: "portfolio_benchmark_diverged",
+    rebalance: "portfolio_rebalance_cmd",
+    update_position: "portfolio_update_position"
+  },
+  behaviors: ["@account", "@risk_model"]
+}

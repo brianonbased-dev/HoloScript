@@ -1,0 +1,20 @@
+@trait {
+  name: "@risk_model",
+  category: "finance",
+  description: "Quantitative risk model for financial positions. category: market, credit, liquidity, or operational. varConfidenceLevel is the Value at Risk confidence (default: 0.99 = 99%). timeHorizonDays is the VaR holding period (default: 1 day). stressScenarios is a list of named historical shock scenarios to replay. maxExposure is the notional exposure cap in base currency. Outputs VaR, CVaR, and stress-scenario P&L. Port of RiskModelTrait.ts (handler name: risk_model).",
+  props: {
+    category: enum("market" | "credit" | "liquidity" | "operational") = "market",
+    var_confidence_level: number = 0.99,
+    time_horizon_days: number = 1,
+    stress_scenarios: list<string> = ["crash_2008", "covid_2020", "rate_hike"],
+    max_exposure: number = 1000000
+  },
+  events: {
+    on_var_computed: "risk_var_computed",
+    on_limit_breach: "risk_limit_breach",
+    on_stress_result: "risk_stress_result",
+    compute: "risk_compute",
+    stress_test: "risk_stress_test"
+  },
+  behaviors: ["@portfolio", "@vulnerability_scanner"]
+}

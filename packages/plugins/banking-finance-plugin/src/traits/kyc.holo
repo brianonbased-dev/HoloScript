@@ -1,0 +1,21 @@
+@trait {
+  name: "@kyc",
+  category: "finance",
+  description: "Know Your Customer (KYC) / AML compliance trait. level: basic (name+ID), enhanced (+ address proof), or institutional (+ corporate docs). requiredDocuments lists required document types. expiryDays sets KYC expiry from approval date (default: 365). amlCheck enables Anti-Money Laundering screening. pepCheck enables Politically Exposed Person screening. Port of KYCTrait.ts (handler name: kyc).",
+  props: {
+    level: enum("basic" | "enhanced" | "institutional") = "basic",
+    required_documents: list<string> = ["government_id", "proof_of_address"],
+    expiry_days: number = 365,
+    aml_check: boolean = true,
+    pep_check: boolean = true
+  },
+  events: {
+    on_approved: "kyc_approved",
+    on_rejected: "kyc_rejected",
+    on_expired: "kyc_expired",
+    on_document_submitted: "kyc_document_submitted",
+    submit: "kyc_submit",
+    verify: "kyc_verify"
+  },
+  behaviors: ["@sso_saml", "@hsm_integration"]
+}

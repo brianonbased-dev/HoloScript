@@ -1,0 +1,23 @@
+@trait {
+  name: "@account",
+  category: "finance",
+  description: "Bank account entity. accountType: checking, savings, investment, or credit. currency follows ISO 4217. balance is current balance in currency units. interestRate is annual rate (0 = no interest). ownerKycId links to a @kyc trait for compliance gating. Port of AccountTrait.ts (handler name: account).",
+  props: {
+    account_number: string = "",
+    account_type: enum("checking" | "savings" | "investment" | "credit") = "checking",
+    currency: string = "USD",
+    balance: number = 0,
+    interest_rate: number = 0,
+    owner_kyc_id: string = ""
+  },
+  events: {
+    on_deposit: "account_deposit",
+    on_withdrawal: "account_withdrawal",
+    on_transfer: "account_transfer",
+    on_interest_accrued: "account_interest",
+    deposit: "account_deposit_cmd",
+    withdraw: "account_withdraw_cmd",
+    transfer: "account_transfer_cmd"
+  },
+  behaviors: ["@kyc", "@economy"]
+}
