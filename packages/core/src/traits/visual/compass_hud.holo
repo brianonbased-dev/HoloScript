@@ -1,0 +1,18 @@
+@trait {
+  name: "@compass_hud",
+  category: "visual",
+  description: "World-space compass strip HUD element. Displays a rotating cardinal-direction tape or dial at the top of screen driven by the camera yaw, marking waypoints and objective directions as notch icons on the strip, supporting both traditional N/S/E/W and degree-readout display modes. Authored from CompassHudTrait.ts.",
+  props: {
+    mode: enum("strip" | "dial") = "strip",
+    width_px: number = 400,
+    show_degrees: boolean = false,
+    waypoint_icons: boolean = true,
+    opacity: number = 0.85,
+    visible: boolean = true
+  },
+  events: {
+    attached: "compass_hud_attached",
+    detached: "compass_hud_detached"
+  },
+  behaviors: ["@minimap", "@gps_tracker", "@ui_frame"]
+}

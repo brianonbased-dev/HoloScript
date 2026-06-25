@@ -1,0 +1,21 @@
+@trait {
+  name: "@combat_log",
+  category: "game",
+  description: "Damage and combat event log. Records timestamped damage-dealt, damage-taken, heal, kill, and death events with source/target entity IDs and values, surfacing a scrolling in-world combat log HUD panel and exporting entries to a remote analytics endpoint. Authored from CombatLogTrait.ts.",
+  props: {
+    max_entries: number = 100,
+    show_hud: boolean = true,
+    hud_duration_ms: number = 4000,
+    log_url: string = "",
+    filter: list<string> = [],
+    show_sources: boolean = true
+  },
+  events: {
+    attached: "combat_log_attached",
+    detached: "combat_log_detached",
+    on_entry: "combat_log_entry",
+    on_clear: "combat_log_clear",
+    clear: "combat_log_trigger_clear"
+  },
+  behaviors: ["@journal", "@analytics_event", "@hit_reaction"]
+}

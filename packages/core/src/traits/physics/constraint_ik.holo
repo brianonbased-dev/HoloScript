@@ -1,0 +1,21 @@
+@trait {
+  name: "@constraint_ik",
+  category: "physics",
+  description: "Inverse-kinematics chain constraint. Solves a multi-joint IK chain from a root bone to an end-effector target entity using FABRIK or CCD iteration, with pole-vector control for elbow/knee direction, blending IK weight against the base animation pose. Authored from ConstraintIkTrait.ts.",
+  props: {
+    chain_root_bone: string = "",
+    chain_length: number = 2,
+    target_entity_id: string = "",
+    pole_entity_id: string = "",
+    solver: enum("fabrik" | "ccd") = "fabrik",
+    iterations: number = 10,
+    weight: number = 1.0
+  },
+  events: {
+    attached: "constraint_ik_attached",
+    detached: "constraint_ik_detached",
+    on_reach: "constraint_ik_reach",
+    on_miss: "constraint_ik_miss"
+  },
+  behaviors: ["@robot_arm", "@skeleton_pose", "@anchor_constraint"]
+}
