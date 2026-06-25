@@ -1,0 +1,20 @@
+@trait {
+  name: "@notification_manager",
+  category: "agent",
+  description: "In-world toast notification dispatcher. Queues and displays transient notification banners (mission update, system alert, XP gain) at a configurable screen position, stacking up to a max count, auto-dismissing after a duration, and routing high-priority notifications to a persistent inbox. Authored from NotificationManagerTrait.ts.",
+  props: {
+    max_stack: number = 5,
+    default_duration_ms: number = 3500,
+    position: enum("top" | "top_right" | "bottom" | "bottom_right") = "top_right",
+    group_duplicates: boolean = true,
+    persist_priority: enum("info" | "warning" | "critical") = "critical"
+  },
+  events: {
+    attached: "notification_manager_attached",
+    detached: "notification_manager_detached",
+    on_show: "notification_manager_show",
+    on_dismiss: "notification_manager_dismiss",
+    push: "notification_manager_trigger_push"
+  },
+  behaviors: ["@chat", "@ui_frame", "@mission_tracker"]
+}

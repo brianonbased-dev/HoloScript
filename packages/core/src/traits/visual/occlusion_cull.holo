@@ -1,0 +1,19 @@
+@trait {
+  name: "@occlusion_cull",
+  category: "visual",
+  description: "GPU occlusion culling gate for world entities. Submits an occlusion query each frame for the entity's AABB, delaying the main draw call until the query resolves, and suppressing the draw entirely when the entity is fully occluded by scene geometry — reducing GPU overdraw in dense scenes. Authored from OcclusionCullTrait.ts.",
+  props: {
+    enabled: boolean = true,
+    query_mode: enum("aabb" | "sphere" | "exact") = "aabb",
+    latency_frames: number = 2,
+    min_screen_area_px: number = 4,
+    debug_draw: boolean = false
+  },
+  events: {
+    attached: "occlusion_cull_attached",
+    detached: "occlusion_cull_detached",
+    on_occluded: "occlusion_cull_occluded",
+    on_visible: "occlusion_cull_visible"
+  },
+  behaviors: ["@visibility", "@lod_controller", "@static_mesh"]
+}

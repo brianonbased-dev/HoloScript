@@ -1,0 +1,18 @@
+@trait {
+  name: "@npc_schedule",
+  category: "agent",
+  description: "NPC daily routine scheduler. Defines a list of time-of-day activity entries (patrol, idle at location, interact with object, rest) keyed to the world clock, transitioning the NPC between activities via a state-machine tick. Authored from NpcScheduleTrait.ts.",
+  props: {
+    activities: list<{ time_h: number, type: enum("patrol" | "idle" | "interact" | "rest" | "follow"), target_id: string, duration_min: number }> = [],
+    time_source_entity_id: string = "",
+    loop_daily: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "npc_schedule_attached",
+    detached: "npc_schedule_detached",
+    on_activity_start: "npc_schedule_activity_start",
+    on_activity_end: "npc_schedule_activity_end"
+  },
+  behaviors: ["@idle_manager", "@npc_brain", "@day_night_cycle"]
+}

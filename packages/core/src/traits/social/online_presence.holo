@@ -1,0 +1,19 @@
+@trait {
+  name: "@online_presence",
+  category: "social",
+  description: "Agent/player online presence beacon. Publishes the entity's online status, current activity string, and last-seen timestamp to the HoloMesh presence bus at a configurable heartbeat interval, supporting rich status labels (in-game, idle, in-session, offline) consumed by friend lists and social panels. Authored from OnlinePresenceTrait.ts.",
+  props: {
+    status: enum("online" | "idle" | "in_session" | "away" | "offline") = "online",
+    activity: string = "",
+    broadcast_interval_s: number = 30,
+    auto_idle_after_s: number = 300,
+    show_on_profile: boolean = true
+  },
+  events: {
+    attached: "online_presence_attached",
+    detached: "online_presence_detached",
+    on_change: "online_presence_change",
+    set_status: "online_presence_trigger_set"
+  },
+  behaviors: ["@avatar", "@badge", "@heartbeat"]
+}
