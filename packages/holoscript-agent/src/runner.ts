@@ -92,6 +92,12 @@ export class AgentRunner {
   // workers stuck in indefinite 403→tick-error→sleep→retry loops; without
   // this, a fresh-deploy of an unjoined agent stays silent forever.
   private joinedThisProcess = false;
+  // Idle-loop stall guard: tracks consecutive cycles the same self-task title was
+  // derived without producing a real write. After IDLE_STALL_LIMIT consecutive
+  // same-title cycles, suppress that title for IDLE_SUPPRESS_CYCLES ticks.
+  private idleTitleCounts = new Map<string, number>();
+  private idleTitleSuppressed = new Map<string, number>();
+  private idleTick = 0;
 
   constructor(private readonly opts: AgentRunnerOptions) {}
 
@@ -891,6 +897,27 @@ export class AgentRunner {
         message: 'idle director derived no actionable self-task',
       };
     }
+    this.idleTick++;
+
+    // Stall guard: if the model keeps deriving the same title without ever producing a
+    // real write artifact, suppress it for IDLE_SUPPRESS_CYCLES ticks so the idle
+    // director is forced to pick something different next cycle.
+    const IDLE_STALL_LIMIT = 3;
+    const IDLE_SUPPRESS_CYCLES = 10;
+    const suppressedUntil = this.idleTitleSuppressed.get(selfTitle);
+    if (suppressedUntil !== undefined && this.idleTick <= suppressedUntil) {
+      log({ ev: 'idle-skipped', reason: 'title-suppressed', title: selfTitle, suppressedUntil });
+      return {
+        action: 'idle-skipped',
+        spentUsd: spent(),
+        remainingUsd: remaining(),
+        message: `idle title suppressed for ${suppressedUntil - this.idleTick} more ticks: ${selfTitle}`,
+      };
+    } else if (suppressedUntil !== undefined) {
+      this.idleTitleSuppressed.delete(selfTitle);
+      this.idleTitleCounts.delete(selfTitle);
+    }
+
     log({ ev: 'idle-derived', title: selfTitle });
 
     // 2. EXECUTE — bounded tool loop reusing the SAME resolveActiveTools + runTool primitives.
@@ -983,7 +1010,15 @@ export class AgentRunner {
 
     // 3. ARTIFACT GATE (W.107.b) — no productive tool call ⇒ no real work happened. Refuse
     //    to record/file anything; idle work must never fabricate a deliverable.
+    const wroteFile = toolsCalled.has('write_file') || toolsCalled.has('str_replace');
     if (productiveCallCount === 0) {
+      // Stall tracking: count consecutive no-artifact cycles for this title.
+      const stallCount = (this.idleTitleCounts.get(selfTitle) ?? 0) + 1;
+      this.idleTitleCounts.set(selfTitle, stallCount);
+      if (stallCount >= IDLE_STALL_LIMIT) {
+        this.idleTitleSuppressed.set(selfTitle, this.idleTick + IDLE_SUPPRESS_CYCLES);
+        log({ ev: 'idle-title-suppressed', title: selfTitle, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
+      }
       log({ ev: 'idle-skipped', reason: 'no-artifact', title: selfTitle, toolsCalled: [...toolsCalled] });
       this.recordTrace({
         user: `Self-directed idle improvement: ${selfTitle}`,
@@ -997,6 +1032,22 @@ export class AgentRunner {
         remainingUsd: remaining(),
         message: `idle work produced no artifact (toolsCalled=[${[...toolsCalled].join(',')}])`,
       };
+    }
+
+    // Stall tracking: mcp_call alone (validate, etc.) without a file write still
+    // means no lasting artifact was produced — count toward suppression. A real
+    // write_file/str_replace clears the stall counter for this title.
+    if (!wroteFile) {
+      const stallCount = (this.idleTitleCounts.get(selfTitle) ?? 0) + 1;
+      this.idleTitleCounts.set(selfTitle, stallCount);
+      if (stallCount >= IDLE_STALL_LIMIT) {
+        this.idleTitleSuppressed.set(selfTitle, this.idleTick + IDLE_SUPPRESS_CYCLES);
+        log({ ev: 'idle-title-suppressed', title: selfTitle, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
+      }
+    } else {
+      // Real file write — clear stall state for this title.
+      this.idleTitleCounts.delete(selfTitle);
+      this.idleTitleSuppressed.delete(selfTitle);
     }
 
     // 4. CONTINUITY — record the outcome to the agent's private knowledge (free, best-effort).
