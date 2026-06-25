@@ -1,0 +1,95 @@
+// @debate_protocol — Multi-agent debate: Propose → Challenge → Defend → Resolve.
+//
+// Native .hsplus surface for debate-protocol.ts (agent-protocol).
+//
+// Structured multi-round debate between N agents on a topic:
+//   Round 1: each agent proposes their position
+//   Round N: agents challenge each other's positions
+//   Round N+1: agents defend or revise
+//   Resolution: majority | judge | consensus
+//
+// Types (debate-protocol.ts):
+//   Position  { agent_id, claim, reasoning, confidence: 0–1, evidence: String[] }
+//   Challenge { challenger_id, target_agent_id, objection, counter_evidence: String[] }
+//   Defense   { defender_id, response, revised_confidence, concessions: String[] }
+//   DebateRound { round, positions, challenges, defenses }
+//   Resolution { strategy: majority|judge|consensus, winner?, winning_position?,
+//                votes?: Map<agent_id, voted_for_id>, judge_reasoning?, consensus_reached }
+//   DebateResult { topic, rounds, resolution, status: resolved|deadlocked|error, total_duration_ms }
+
+@trait debate_protocol {
+  // Max debate rounds before deadlock declared
+  max_rounds: Int = 3
+
+  // Resolution strategy
+  resolution_strategy: enum("majority" | "judge" | "consensus") = "majority"
+
+  // Min confidence threshold to declare consensus
+  consensus_threshold: Float = 0.75
+
+  // Timeout per round in ms
+  round_timeout_ms: Int = 30000
+
+  capability_tags: ["debate_protocol", "multi_agent_debate", "structured_argumentation", "consensus", "agent_protocol"]
+
+  @on_spawn => {
+    debate = init_debate({
+      max_rounds: max_rounds,
+      resolution_strategy: resolution_strategy,
+      consensus_threshold: consensus_threshold,
+      round_timeout_ms: round_timeout_ms
+    })
+    emit("debate_protocol_ready", {
+      max_rounds: max_rounds,
+      resolution_strategy: resolution_strategy
+    })
+  }
+
+  // Start a debate on a topic with a set of participant agent IDs
+  @on_start(topic, participant_ids) => {
+    emit("debate_started", { topic: topic, participant_count: participant_ids.size })
+    return debate.start(topic, participant_ids)
+  }
+
+  // Submit a position for an agent in the current round
+  @on_submit_position(agent_id, claim, reasoning, confidence, evidence) => {
+    position = { agent_id: agent_id, claim: claim, reasoning: reasoning, confidence: confidence, evidence: evidence }
+    debate.submit_position(position)
+    emit("debate_position_submitted", { agent_id: agent_id, confidence: confidence })
+  }
+
+  // Submit a challenge
+  @on_submit_challenge(challenger_id, target_agent_id, objection, counter_evidence) => {
+    challenge = { challenger_id: challenger_id, target_agent_id: target_agent_id, objection: objection, counter_evidence: counter_evidence }
+    debate.submit_challenge(challenge)
+    emit("debate_challenge_submitted", { challenger_id: challenger_id, target: target_agent_id })
+  }
+
+  // Submit a defense
+  @on_submit_defense(defender_id, response, revised_confidence, concessions) => {
+    defense = { defender_id: defender_id, response: response, revised_confidence: revised_confidence, concessions: concessions }
+    debate.submit_defense(defense)
+    emit("debate_defense_submitted", { defender_id: defender_id, revised_confidence: revised_confidence })
+  }
+
+  // Resolve after all rounds complete
+  @on_resolve => {
+    result = debate.resolve()
+    if result.resolution.consensus_reached {
+      emit("debate_resolved", { status: result.status, winner: result.resolution.winner ?? "consensus", rounds: result.rounds.size })
+    } else if result.status == "deadlocked" {
+      emit("debate_deadlocked", { topic: result.topic, rounds: result.rounds.size })
+    } else {
+      emit("debate_resolved", { status: result.status, winner: result.resolution.winner, rounds: result.rounds.size })
+    }
+    return result
+  }
+
+  @receipt debate_protocol_config {
+    type: "DebateProtocolReceipt"
+    max_rounds: max_rounds
+    resolution_strategy: resolution_strategy
+    consensus_threshold: consensus_threshold
+    timestamp: now()
+  }
+}

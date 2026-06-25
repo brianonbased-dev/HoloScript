@@ -1,0 +1,82 @@
+// @react_protocol — ReAct agent loop: Think → Act → Observe → Repeat.
+//
+// Native .hsplus surface for react-protocol.ts (agent-protocol).
+//
+// Implementation of the Reason+Act loop (Yao et al. 2022):
+//   1. Think: reason about current state → select action
+//   2. Act: execute action via tool executor
+//   3. Observe: read result
+//   4. Repeat until stop condition or max_iterations
+//
+// Types (react-protocol.ts):
+//   Thought     { reasoning, action, action_input, confidence: 0–1 }
+//   Observation { action, result, success, error? }
+//   ReactStep   { iteration, thought, observation, timestamp, duration_ms }
+//   ReactResult { task, steps, final_answer, status: solved|max_iterations|error,
+//                 total_iterations, total_duration_ms }
+//
+// Adapters wired at runtime (not in .hsplus):
+//   ReactLLMAdapter    — think(task, history) + synthesize(task, history)
+//   ReactToolExecutor  — execute(action, input) + availableTools()
+
+@trait react_protocol {
+  // Max think→act→observe iterations before status="max_iterations"
+  max_iterations: Int = 10
+
+  // Timeout per iteration step in ms
+  step_timeout_ms: Int = 30000
+
+  // Stop on first high-confidence thought (confidence >= this threshold)
+  confidence_stop_threshold: Float = 0.95
+
+  capability_tags: ["react_protocol", "reason_act", "agentic_loop", "tool_use", "agent_protocol"]
+
+  @on_spawn => {
+    react = init_react_agent({
+      max_iterations: max_iterations,
+      step_timeout_ms: step_timeout_ms,
+      confidence_stop_threshold: confidence_stop_threshold
+    })
+    emit("react_protocol_ready", { max_iterations: max_iterations })
+  }
+
+  // Execute the full ReAct loop on a task
+  @on_run(task) => {
+    emit("react_started", { task: task })
+    result = react.run(task)
+    emit("react_complete", {
+      status: result.status,
+      total_iterations: result.total_iterations,
+      total_duration_ms: result.total_duration_ms
+    })
+    return result
+  }
+
+  // Execute one step (think + act + observe) — useful for stepped execution
+  @on_step(task, history) => {
+    step = react.step(task, history)
+    emit("react_step", {
+      iteration: step.iteration,
+      action: step.thought.action,
+      success: step.observation.success
+    })
+    return step
+  }
+
+  // Synthesize final answer from completed step history
+  @on_synthesize(task, steps) => {
+    return react.synthesize(task, steps)
+  }
+
+  // List available tools from the wired executor
+  @on_available_tools => {
+    return react.available_tools()
+  }
+
+  @receipt react_protocol_config {
+    type: "ReactProtocolReceipt"
+    max_iterations: max_iterations
+    step_timeout_ms: step_timeout_ms
+    timestamp: now()
+  }
+}

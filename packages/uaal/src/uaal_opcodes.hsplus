@@ -1,0 +1,96 @@
+// @uaal_opcodes — uAAL Virtual Machine instruction set substrate trait.
+//
+// Native .hsplus surface for opcodes.ts (uaal).
+//
+// uAAL (Universal Agent Action Language) is HoloScript's cognitive VM layer
+// (P.017 / D.105 — language born in uaa2-service as uAAL; pairs I.001).
+//
+// OpCode organization (opcodes.ts):
+//   0x01–0x03  Stack Operations      PUSH / POP / PEEK
+//   0x10–0x17  Cognitive Operations  INTAKE / REFLECT / COMPRESS / EXECUTE /
+//                                    OP_INTAKE_STREAM / REINTAKE / GROW / EVOLVE
+//   0x20–0x2B  Execution & Mesh      EXEC / CALL_NODE / TELEPORT / OP_OFFLOAD /
+//                                    OP_SYNC / OP_PAY / OP_VALUE_PROOF / OP_SCALE_UP /
+//                                    OP_DELEGATE_FEDERATION / OP_MERGE_TRUTH /
+//                                    OP_ACTUATE_DEVICE / OP_MIND_MELD
+//   0x30–0x31  Control Flow          JUMP / JUMP_IF
+//   0x40–0x47  Temporal & Multiversal OP_FORK_UNIVERSE / OP_REVERSE_ENTROPY /
+//                                    OP_DREAM / OP_COLLAPSE_WAVEFUNCTION /
+//                                    OP_TIME_LOOP / OP_DELAY / OP_TIMESTAMP / OP_TIME_DELTA
+//   0x50–0x54  Transcendence
+//   0x60–0x62  Real-World Integration
+//   0x70–0x72  Local Intelligence
+//   0x80–0x82  Swarm Operations
+//   0x90–0x92  Discovery Operations
+//   0xA0–0xA2  Timeline/Snapshot
+//   0xB0–0xB6  HoloScript Integration
+//   0xC0–0xCF  Native Orchestration
+//   0xE0–0xE3  Error Handling
+//   0xF0–0xF2  Optimization
+//   0xFF       HALT
+//
+// The cognitive ops (0x10–0x17) map to the 7-phase uAA2++ protocol:
+//   INTAKE → REFLECT → COMPRESS → (EXECUTE) → REINTAKE → GROW → EVOLVE
+//   Note: REINTAKE (0x15) ABI retained; display phase = DREAMING.
+
+@trait uaal_opcodes {
+  // VM version this opcode table targets
+  vm_version: String = "1.0"
+
+  capability_tags: [
+    "uaal_opcodes", "uaal_vm", "cognitive_ops", "agent_protocol",
+    "holoscript_integration", "swarm_ops", "temporal_ops", "native_orchestration"
+  ]
+
+  @on_spawn => {
+    opcode_table = load_uaal_opcode_table({ vm_version: vm_version })
+    emit("uaal_opcodes_ready", {
+      vm_version: vm_version,
+      opcode_count: opcode_table.size
+    })
+  }
+
+  // Decode an opcode byte to its mnemonic and description
+  @on_decode(opcode_byte) => {
+    return uaal_decode_opcode(opcode_byte, vm_version)
+  }
+
+  // Validate a bytecode sequence against the opcode table
+  @on_validate_bytecode(bytecode) => {
+    result = uaal_validate_bytecode(bytecode, vm_version)
+    if not result.ok {
+      emit("uaal_bytecode_invalid", { reason: result.reason, offset: result.offset })
+    }
+    return result
+  }
+
+  // Dispatch a single opcode in a VM execution context
+  @on_dispatch(opcode_byte, ctx) => {
+    result = uaal_dispatch(opcode_byte, ctx)
+    emit("uaal_opcode_dispatched", { opcode: opcode_byte, success: result.ok })
+    return result
+  }
+
+  // List all cognitive phase opcodes (0x10–0x17 — the uAA2++ loop)
+  @on_cognitive_ops => {
+    return [
+      { opcode: 0x10, mnemonic: "INTAKE",           phase: "intake" },
+      { opcode: 0x11, mnemonic: "REFLECT",          phase: "reflect" },
+      { opcode: 0x12, mnemonic: "COMPRESS",         phase: "compress" },
+      { opcode: 0x13, mnemonic: "OP_INTAKE_STREAM", phase: "intake_stream" },
+      { opcode: 0x14, mnemonic: "EXECUTE",          phase: "execute" },
+      { opcode: 0x15, mnemonic: "REINTAKE",         phase: "dreaming" },
+      { opcode: 0x16, mnemonic: "GROW",             phase: "grow" },
+      { opcode: 0x17, mnemonic: "EVOLVE",           phase: "evolve" }
+    ]
+  }
+
+  @receipt uaal_opcodes_config {
+    type: "UAALOpcodesReceipt"
+    vm_version: vm_version
+    total_opcode_ranges: 16
+    cognitive_range: "0x10-0x17"
+    holoscript_integration_range: "0xB0-0xB6"
+    timestamp: now()
+  }
+}
