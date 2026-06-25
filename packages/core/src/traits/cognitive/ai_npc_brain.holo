@@ -1,0 +1,25 @@
+@trait {
+  name: "@ai_npc_brain",
+  category: "cognitive",
+  description: "NPC personality and dialogue system extending @llm_agent. Adds dialogue trigger range, voice synthesis, personality profiles (helpful/sarcastic/wise/cheerful/mysterious), memory integration, conversation history, and player relationship tracking [-1.0 hostile → 1.0 friendly]. Idle behaviors: static/wander/patrol. Port of AINPCBrainTrait.ts (handler name: ai_npc_brain, extends LLMAgentTrait defaults).",
+  props: {
+    dialogue_range: number = 5.0,
+    voice_enabled: boolean = true,
+    personality: enum("helpful" | "sarcastic" | "wise" | "cheerful" | "mysterious") = "helpful",
+    memory_size: number = 20,
+    conversation_history: boolean = true,
+    player_relationship: number = 0.5,
+    idle_behavior: enum("static" | "wander" | "patrol") = "static"
+  },
+  events: {
+    attached: "ai_npc_brain_ready",
+    detached: "ai_npc_brain_removed",
+    on_dialogue_started: "ai_npc_brain_dialogue_started",
+    on_dialogue_ended: "ai_npc_brain_dialogue_ended",
+    on_response: "ai_npc_brain_response",
+    on_relationship_changed: "ai_npc_brain_relationship_changed",
+    greet: "ai_npc_brain_greet",
+    query: "ai_npc_brain_query"
+  },
+  behaviors: ["@ai_companion", "@a_i_driver", "@llm_agent"]
+}

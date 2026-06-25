@@ -1,0 +1,25 @@
+@trait {
+  name: "@botanical_lotus",
+  category: "world",
+  description: "Provenance-anchored photorealistic lotus model. Schema: holoscript.trait.botanical_lotus.v0. Status lifecycle: visual_seed→anchored→certified. Three pink lotus reference images (conversation://2026-05-06/) pending CAEL wallet-signed media ingest. Material: subsurface scattering 0.74, petal translucency 0.68 base/0.36 edge, roughness 0.72, IOR 1.36, edge curl 0.58, gravity sag 0.3. Colors: petal base #fff1f6 → mid #f47ab7 → inner #ff9ecf → rim #c42a86 → shadow #84205f; seed pod #f4d74a. Port of BotanicalLotusTrait.ts (handler name: botanical_lotus).",
+  props: {
+    status: enum("visual_seed" | "anchored" | "certified") = "visual_seed",
+    subsurface_scattering: number = 0.74,
+    petal_translucency_base: number = 0.68,
+    petal_translucency_edge: number = 0.36,
+    roughness: number = 0.72,
+    ior: number = 1.36,
+    edge_curl_intensity: number = 0.58,
+    gravity_sag_outer: number = 0.3,
+    sheen: number = 0.5,
+    wallet_signed: boolean = false
+  },
+  events: {
+    attached: "botanical_lotus_attached",
+    detached: "botanical_lotus_detached",
+    on_anchored: "botanical_lotus_anchored",
+    on_certified: "botanical_lotus_certified",
+    on_error: "botanical_lotus_error"
+  },
+  behaviors: ["@lotus_root", "@lotus_gardener", "@lotus_stalk"]
+}
