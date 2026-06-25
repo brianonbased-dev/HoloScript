@@ -1,0 +1,24 @@
+@trait {
+  name: "@spreadsheet",
+  category: "interaction",
+  description: "Embeddable tabular data grid with inline cell editing, formula evaluation, sorting, and filtering. Backed by a reactive row/column model that fires change events on cell edits and exports to CSV or JSON on demand. Authored from SpreadsheetTrait.ts.",
+  props: {
+    columns: list<{ key: string, label: string, type: enum("string" | "number" | "boolean" | "date") }> = [],
+    rows_url: string = "",
+    editable: boolean = true,
+    sortable: boolean = true,
+    filterable: boolean = true,
+    max_visible_rows: number = 50,
+    auto_save: boolean = true
+  },
+  events: {
+    attached: "spreadsheet_attached",
+    detached: "spreadsheet_detached",
+    on_cell_edit: "spreadsheet_cell_edit",
+    on_row_add: "spreadsheet_row_add",
+    on_row_delete: "spreadsheet_row_delete",
+    on_export: "spreadsheet_export",
+    export: "spreadsheet_trigger_export"
+  },
+  behaviors: ["@data_table", "@reactive_store", "@node_editor"]
+}

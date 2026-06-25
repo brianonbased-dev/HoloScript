@@ -1,0 +1,22 @@
+@trait {
+  name: "@splash",
+  category: "visual",
+  description: "Fullscreen splash and loading screen controller. Displays a branded image or animated logo over the scene during initial load, fade-in/out transitions, and scene switches, hiding the underlying 3D canvas until a ready signal fires. Authored from SplashTrait.ts.",
+  props: {
+    image_url: string = "",
+    background_color: string = "#000000",
+    fade_in_ms: number = 300,
+    fade_out_ms: number = 500,
+    min_display_ms: number = 1000,
+    auto_hide_on_ready: boolean = true,
+    show_progress: boolean = false
+  },
+  events: {
+    attached: "splash_attached",
+    detached: "splash_detached",
+    on_show: "splash_show",
+    on_hide: "splash_hide",
+    hide: "splash_trigger_hide"
+  },
+  behaviors: ["@loading_screen", "@fade_in", "@ui_frame"]
+}

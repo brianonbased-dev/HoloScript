@@ -1,0 +1,24 @@
+@trait {
+  name: "@spawn_gate",
+  category: "world",
+  description: "Conditional entity spawn controller. Gates the instantiation of a child entity template on a set of required conditions (player count, cooldown elapsed, budget remaining, zone ownership) and throttles repeated spawns to prevent runaway instantiation. Authored from SpawnGateTrait.ts.",
+  props: {
+    template_entity_id: string = "",
+    max_alive: number = 1,
+    cooldown_s: number = 5,
+    require_zone_owner: boolean = false,
+    require_min_players: number = 0,
+    auto_spawn_on_attach: boolean = false,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "spawn_gate_attached",
+    detached: "spawn_gate_detached",
+    on_spawn: "spawn_gate_spawn",
+    on_despawn: "spawn_gate_despawn",
+    on_blocked: "spawn_gate_blocked",
+    spawn: "spawn_gate_trigger_spawn",
+    despawn: "spawn_gate_trigger_despawn"
+  },
+  behaviors: ["@pool_manager", "@outpost", "@reset_on_change"]
+}

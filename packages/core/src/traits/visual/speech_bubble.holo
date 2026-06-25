@@ -1,0 +1,24 @@
+@trait {
+  name: "@speech_bubble",
+  category: "visual",
+  description: "Floating speech and thought bubble for NPC and agent dialogue. Renders a billboard text panel above the entity with a configurable tail pointing at the speaker, auto-sizing to text length, and fading out after a configurable duration. Authored from SpeechBubbleTrait.ts.",
+  props: {
+    text: string = "",
+    type: enum("speech" | "thought" | "shout" | "whisper") = "speech",
+    font_size: number = 14,
+    max_width_m: number = 2.0,
+    offset_y_m: number = 0.3,
+    duration_s: number = 4,
+    fade_out_ms: number = 400,
+    background_color: string = "#ffffff",
+    text_color: string = "#000000"
+  },
+  events: {
+    attached: "speech_bubble_attached",
+    detached: "speech_bubble_detached",
+    on_show: "speech_bubble_show",
+    on_hide: "speech_bubble_hide",
+    say: "speech_bubble_trigger_say"
+  },
+  behaviors: ["@npc", "@panel", "@typewriter"]
+}
