@@ -1,0 +1,21 @@
+@trait {
+  name: "@clan_tag",
+  category: "social",
+  description: "Guild or clan membership tag. Associates the entity with a named clan, displaying the clan's short tag prefix beside the entity's display name, broadcasting clan join/leave events to the HoloMesh team feed, and gating clan-only zones and content via the tag identity. Authored from ClanTagTrait.ts.",
+  props: {
+    clan_id: string = "",
+    tag: string = "",
+    clan_name: string = "",
+    color: string = "#ffffff",
+    rank: enum("member" | "officer" | "leader") = "member",
+    show_tag: boolean = true
+  },
+  events: {
+    attached: "clan_tag_attached",
+    detached: "clan_tag_detached",
+    on_join: "clan_tag_join",
+    on_leave: "clan_tag_leave",
+    on_rank_change: "clan_tag_rank_change"
+  },
+  behaviors: ["@reputation_system", "@faction", "@online_presence"]
+}

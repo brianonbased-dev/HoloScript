@@ -1,0 +1,23 @@
+@trait {
+  name: "@cloud_save",
+  category: "devops",
+  description: "Cross-device cloud save synchronisation. Pushes serialised entity state to a wallet-keyed remote endpoint on every auto-save tick and on session end, pulling the latest cloud snapshot on session start and resolving conflicts by timestamp or version number. Authored from CloudSaveTrait.ts.",
+  props: {
+    endpoint_url: string = "",
+    wallet_address: string = "",
+    push_interval_s: number = 60,
+    pull_on_start: boolean = true,
+    conflict_strategy: enum("latest_wins" | "highest_version" | "manual") = "latest_wins",
+    compress: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "cloud_save_attached",
+    detached: "cloud_save_detached",
+    on_push: "cloud_save_push",
+    on_pull: "cloud_save_pull",
+    on_conflict: "cloud_save_conflict",
+    sync_now: "cloud_save_trigger_sync"
+  },
+  behaviors: ["@auto_save", "@save_game", "@identity"]
+}

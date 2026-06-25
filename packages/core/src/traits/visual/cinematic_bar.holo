@@ -1,0 +1,21 @@
+@trait {
+  name: "@cinematic_bar",
+  category: "visual",
+  description: "Letterbox cinematic bar overlay. Slides horizontal black bars in from the top and bottom of the screen to a target aspect-ratio crop, dimming the UI and optionally hiding the HUD, used during cutscenes, dialogue sequences, and cinematic camera transitions. Authored from CinematicBarTrait.ts.",
+  props: {
+    target_ratio: number = 2.35,
+    bar_color: string = "#000000",
+    transition_ms: number = 500,
+    hide_hud: boolean = true,
+    visible: boolean = false
+  },
+  events: {
+    attached: "cinematic_bar_attached",
+    detached: "cinematic_bar_detached",
+    on_show: "cinematic_bar_show",
+    on_hide: "cinematic_bar_hide",
+    show: "cinematic_bar_trigger_show",
+    hide: "cinematic_bar_trigger_hide"
+  },
+  behaviors: ["@backdrop", "@timeline_director", "@transition_manager"]
+}

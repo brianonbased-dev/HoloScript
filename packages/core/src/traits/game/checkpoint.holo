@@ -1,0 +1,23 @@
+@trait {
+  name: "@checkpoint",
+  category: "game",
+  description: "Race or progression checkpoint gate. Records the player's passage through an ordered sequence of waypoints, validates lap or route order, tracks split times, and emits completion and invalid-order events used by race managers and speedrun timers. Authored from CheckpointTrait.ts.",
+  props: {
+    checkpoint_id: number = 0,
+    total_checkpoints: number = 1,
+    trigger_radius_m: number = 3,
+    enforce_order: boolean = true,
+    record_splits: boolean = true,
+    visible_indicator: boolean = true,
+    activated: boolean = false
+  },
+  events: {
+    attached: "checkpoint_attached",
+    detached: "checkpoint_detached",
+    on_pass: "checkpoint_pass",
+    on_invalid: "checkpoint_invalid",
+    on_complete: "checkpoint_complete",
+    reset: "checkpoint_trigger_reset"
+  },
+  behaviors: ["@round_timer", "@zone_capture", "@portal_trigger"]
+}
