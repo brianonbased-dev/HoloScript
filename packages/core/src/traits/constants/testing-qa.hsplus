@@ -1,0 +1,16 @@
+// @constants_testing_qa — Registry: testing and QA trait name set.
+//
+// Native .hsplus surface for core/traits/constants/testing-qa.ts.
+
+@trait constants_testing_qa {
+  capability_tags: ["constants", "testing_qa", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_testing_qa_ready", {})
+  }
+
+  @receipt constants_testing_qa_config {
+    type: "ConstantsTestingQaReceipt"
+    timestamp: now()
+  }
+}

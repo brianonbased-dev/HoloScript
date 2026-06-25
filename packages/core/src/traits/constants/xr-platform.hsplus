@@ -1,0 +1,16 @@
+// @constants_xr_platform — Registry: XR platform trait name set.
+//
+// Native .hsplus surface for core/traits/constants/xr-platform.ts.
+
+@trait constants_xr_platform {
+  capability_tags: ["constants", "xr_platform", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_xr_platform_ready", {})
+  }
+
+  @receipt constants_xr_platform_config {
+    type: "ConstantsXrPlatformReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_sports_fitness — Registry: sports and fitness domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/sports-fitness.ts.
+
+@trait constants_sports_fitness {
+  capability_tags: ["constants", "sports_fitness", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_sports_fitness_ready", {})
+  }
+
+  @receipt constants_sports_fitness_config {
+    type: "ConstantsSportsFitnessReceipt"
+    timestamp: now()
+  }
+}

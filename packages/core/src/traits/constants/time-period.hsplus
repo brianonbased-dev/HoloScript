@@ -1,0 +1,16 @@
+// @constants_time_period — Registry: time period and era trait name set.
+//
+// Native .hsplus surface for core/traits/constants/time-period.ts.
+
+@trait constants_time_period {
+  capability_tags: ["constants", "time_period", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_time_period_ready", {})
+  }
+
+  @receipt constants_time_period_config {
+    type: "ConstantsTimePeriodReceipt"
+    timestamp: now()
+  }
+}

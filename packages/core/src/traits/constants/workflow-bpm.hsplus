@@ -1,0 +1,16 @@
+// @constants_workflow_bpm — Registry: workflow and BPM trait name set.
+//
+// Native .hsplus surface for core/traits/constants/workflow-bpm.ts.
+
+@trait constants_workflow_bpm {
+  capability_tags: ["constants", "workflow_bpm", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_workflow_bpm_ready", {})
+  }
+
+  @receipt constants_workflow_bpm_config {
+    type: "ConstantsWorkflowBpmReceipt"
+    timestamp: now()
+  }
+}

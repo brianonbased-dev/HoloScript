@@ -1,0 +1,16 @@
+// @constants_weather_phenomena — Registry: weather phenomena simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/weather-phenomena.ts.
+
+@trait constants_weather_phenomena {
+  capability_tags: ["constants", "weather_phenomena", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_weather_phenomena_ready", {})
+  }
+
+  @receipt constants_weather_phenomena_config {
+    type: "ConstantsWeatherPhenomenaReceipt"
+    timestamp: now()
+  }
+}

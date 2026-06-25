@@ -1,0 +1,16 @@
+// @constants_webxr — Registry: WebXR platform trait name set.
+//
+// Native .hsplus surface for core/traits/constants/webxr.ts.
+
+@trait constants_webxr {
+  capability_tags: ["constants", "webxr", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_webxr_ready", {})
+  }
+
+  @receipt constants_webxr_config {
+    type: "ConstantsWebxrReceipt"
+    timestamp: now()
+  }
+}

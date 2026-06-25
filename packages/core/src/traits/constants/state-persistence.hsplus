@@ -1,0 +1,16 @@
+// @constants_state_persistence — Registry: state persistence and sync trait name set.
+//
+// Native .hsplus surface for core/traits/constants/state-persistence.ts.
+
+@trait constants_state_persistence {
+  capability_tags: ["constants", "state_persistence", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_state_persistence_ready", {})
+  }
+
+  @receipt constants_state_persistence_config {
+    type: "ConstantsStatePersistenceReceipt"
+    timestamp: now()
+  }
+}

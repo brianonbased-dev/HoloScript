@@ -1,0 +1,16 @@
+// @constants_terrain_ocean — Registry: terrain and ocean simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/terrain-ocean.ts.
+
+@trait constants_terrain_ocean {
+  capability_tags: ["constants", "terrain_ocean", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_terrain_ocean_ready", {})
+  }
+
+  @receipt constants_terrain_ocean_config {
+    type: "ConstantsTerrainOceanReceipt"
+    timestamp: now()
+  }
+}

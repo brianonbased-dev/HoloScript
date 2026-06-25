@@ -1,0 +1,16 @@
+// @constants_v43_ai_xr — Registry: v4.3 AI and XR trait name set.
+//
+// Native .hsplus surface for core/traits/constants/v43-ai-xr.ts.
+
+@trait constants_v43_ai_xr {
+  capability_tags: ["constants", "v43_ai_xr", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_v43_ai_xr_ready", {})
+  }
+
+  @receipt constants_v43_ai_xr_config {
+    type: "ConstantsV43AiXrReceipt"
+    timestamp: now()
+  }
+}

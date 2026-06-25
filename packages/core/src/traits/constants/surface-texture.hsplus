@@ -1,0 +1,16 @@
+// @constants_surface_texture — Registry: surface texture and material trait name set.
+//
+// Native .hsplus surface for core/traits/constants/surface-texture.ts.
+
+@trait constants_surface_texture {
+  capability_tags: ["constants", "surface_texture", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_surface_texture_ready", {})
+  }
+
+  @receipt constants_surface_texture_config {
+    type: "ConstantsSurfaceTextureReceipt"
+    timestamp: now()
+  }
+}

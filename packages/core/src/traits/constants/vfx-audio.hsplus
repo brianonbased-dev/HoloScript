@@ -1,0 +1,16 @@
+// @constants_vfx_audio — Registry: VFX and audio effect trait name set.
+//
+// Native .hsplus surface for core/traits/constants/vfx-audio.ts.
+
+@trait constants_vfx_audio {
+  capability_tags: ["constants", "vfx_audio", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_vfx_audio_ready", {})
+  }
+
+  @receipt constants_vfx_audio_config {
+    type: "ConstantsVfxAudioReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_weather_particles — Registry: weather particle effect trait name set.
+//
+// Native .hsplus surface for core/traits/constants/weather-particles.ts.
+
+@trait constants_weather_particles {
+  capability_tags: ["constants", "weather_particles", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_weather_particles_ready", {})
+  }
+
+  @receipt constants_weather_particles_config {
+    type: "ConstantsWeatherParticlesReceipt"
+    timestamp: now()
+  }
+}

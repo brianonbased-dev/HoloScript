@@ -1,0 +1,16 @@
+// @constants_water_fluid — Registry: water and fluid simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/water-fluid.ts.
+
+@trait constants_water_fluid {
+  capability_tags: ["constants", "water_fluid", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_water_fluid_ready", {})
+  }
+
+  @receipt constants_water_fluid_config {
+    type: "ConstantsWaterFluidReceipt"
+    timestamp: now()
+  }
+}

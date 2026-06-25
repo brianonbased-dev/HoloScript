@@ -1,0 +1,16 @@
+// @constants_spatial_algorithms — Registry: spatial algorithm trait name set.
+//
+// Native .hsplus surface for core/traits/constants/spatial-algorithms.ts.
+
+@trait constants_spatial_algorithms {
+  capability_tags: ["constants", "spatial_algorithms", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_spatial_algorithms_ready", {})
+  }
+
+  @receipt constants_spatial_algorithms_config {
+    type: "ConstantsSpatialAlgorithmsReceipt"
+    timestamp: now()
+  }
+}

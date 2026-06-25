@@ -1,0 +1,16 @@
+// @constants_universal_service — Registry: universal service trait name set.
+//
+// Native .hsplus surface for core/traits/constants/universal-service.ts.
+
+@trait constants_universal_service {
+  capability_tags: ["constants", "universal_service", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_universal_service_ready", {})
+  }
+
+  @receipt constants_universal_service_config {
+    type: "ConstantsUniversalServiceReceipt"
+    timestamp: now()
+  }
+}

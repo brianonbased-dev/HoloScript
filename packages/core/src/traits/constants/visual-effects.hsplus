@@ -1,0 +1,16 @@
+// @constants_visual_effects — Registry: visual effect trait name set.
+//
+// Native .hsplus surface for core/traits/constants/visual-effects.ts.
+
+@trait constants_visual_effects {
+  capability_tags: ["constants", "visual_effects", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_visual_effects_ready", {})
+  }
+
+  @receipt constants_visual_effects_config {
+    type: "ConstantsVisualEffectsReceipt"
+    timestamp: now()
+  }
+}

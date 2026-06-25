@@ -1,0 +1,16 @@
+// @constants_transportation_vehicles — Registry: transportation and vehicle trait name set.
+//
+// Native .hsplus surface for core/traits/constants/transportation-vehicles.ts.
+
+@trait constants_transportation_vehicles {
+  capability_tags: ["constants", "transportation_vehicles", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_transportation_vehicles_ready", {})
+  }
+
+  @receipt constants_transportation_vehicles_config {
+    type: "ConstantsTransportationVehiclesReceipt"
+    timestamp: now()
+  }
+}

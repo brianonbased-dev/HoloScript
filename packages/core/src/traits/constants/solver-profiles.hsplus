@@ -1,0 +1,16 @@
+// @constants_solver_profiles — Registry: solver profile trait name set.
+//
+// Native .hsplus surface for core/traits/constants/solver-profiles.ts.
+
+@trait constants_solver_profiles {
+  capability_tags: ["constants", "solver_profiles", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_solver_profiles_ready", {})
+  }
+
+  @receipt constants_solver_profiles_config {
+    type: "ConstantsSolverProfilesReceipt"
+    timestamp: now()
+  }
+}

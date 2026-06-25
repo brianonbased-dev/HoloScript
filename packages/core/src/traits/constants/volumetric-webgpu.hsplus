@@ -1,0 +1,16 @@
+// @constants_volumetric_webgpu — Registry: volumetric WebGPU rendering trait name set.
+//
+// Native .hsplus surface for core/traits/constants/volumetric-webgpu.ts.
+
+@trait constants_volumetric_webgpu {
+  capability_tags: ["constants", "volumetric_webgpu", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_volumetric_webgpu_ready", {})
+  }
+
+  @receipt constants_volumetric_webgpu_config {
+    type: "ConstantsVolumetricWebgpuReceipt"
+    timestamp: now()
+  }
+}

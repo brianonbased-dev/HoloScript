@@ -1,0 +1,16 @@
+// @constants_twin_earth — Registry: Twin Earth digital-twin trait name set.
+//
+// Native .hsplus surface for core/traits/constants/twin-earth.ts.
+
+@trait constants_twin_earth {
+  capability_tags: ["constants", "twin_earth", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_twin_earth_ready", {})
+  }
+
+  @receipt constants_twin_earth_config {
+    type: "ConstantsTwinEarthReceipt"
+    timestamp: now()
+  }
+}
