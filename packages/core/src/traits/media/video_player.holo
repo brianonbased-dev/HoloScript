@@ -1,0 +1,27 @@
+@trait {
+  name: "@video_player",
+  category: "media",
+  description: "Declarative video playback controller. Wraps an HTML5 video or HLS media source, mapping it to an entity texture or display surface with full transport controls (play/pause/seek/loop/volume), subtitle track selection, and autoplay-gating for browser policy compliance. Authored from VideoPlayerTrait.ts.",
+  props: {
+    url: string = "",
+    autoplay: boolean = false,
+    loop: boolean = false,
+    muted: boolean = false,
+    volume: number = 1.0,
+    subtitles_url: string = "",
+    playback_rate: number = 1.0,
+    preload: enum("none" | "metadata" | "auto") = "metadata"
+  },
+  events: {
+    attached: "video_player_attached",
+    detached: "video_player_detached",
+    on_play: "video_player_play",
+    on_pause: "video_player_pause",
+    on_end: "video_player_end",
+    on_error: "video_player_error",
+    play: "video_player_trigger_play",
+    pause: "video_player_trigger_pause",
+    seek: "video_player_trigger_seek"
+  },
+  behaviors: ["@display", "@stream", "@playlist"]
+}

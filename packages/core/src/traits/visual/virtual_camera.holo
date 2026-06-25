@@ -1,0 +1,24 @@
+@trait {
+  name: "@virtual_camera",
+  category: "visual",
+  description: "Composable virtual camera with full physical camera properties. Implements sensor size, focal length, focus distance, depth of field, exposure, and shutter settings in a data-driven manner, compositing into the active camera stack via a priority layer and blend weight. Authored from VirtualCameraTrait.ts.",
+  props: {
+    priority: number = 0,
+    blend_weight: number = 1.0,
+    fov_deg: number = 60,
+    near_m: number = 0.1,
+    far_m: number = 500,
+    dof_enabled: boolean = false,
+    focus_distance_m: number = 5,
+    aperture_fstop: number = 5.6,
+    iso: number = 800
+  },
+  events: {
+    attached: "virtual_camera_attached",
+    detached: "virtual_camera_detached",
+    on_activate: "virtual_camera_activate",
+    on_deactivate: "virtual_camera_deactivate",
+    activate: "virtual_camera_trigger_activate"
+  },
+  behaviors: ["@orbit_camera", "@pinned_camera", "@motion_blur"]
+}

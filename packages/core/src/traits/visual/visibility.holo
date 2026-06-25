@@ -1,0 +1,22 @@
+@trait {
+  name: "@visibility",
+  category: "visual",
+  description: "Entity render visibility controller with fade and layer masking. Shows or hides the entity's rendered mesh and UI panels, supporting opacity-animated fade transitions, layer-mask filtering (shadow-only, hidden from player camera but visible to mirrors/probes), and distance-based auto-hide. Authored from VisibilityTrait.ts.",
+  props: {
+    visible: boolean = true,
+    opacity: number = 1.0,
+    fade_duration_ms: number = 0,
+    layer_mask: enum("all" | "camera_only" | "shadow_only" | "probe_only" | "none") = "all",
+    auto_hide_distance_m: number = 0,
+    hide_from_player: boolean = false
+  },
+  events: {
+    attached: "visibility_attached",
+    detached: "visibility_detached",
+    on_show: "visibility_show",
+    on_hide: "visibility_hide",
+    show: "visibility_trigger_show",
+    hide: "visibility_trigger_hide"
+  },
+  behaviors: ["@fade_in", "@level_of_detail", "@toggle"]
+}

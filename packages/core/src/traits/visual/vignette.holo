@@ -1,0 +1,21 @@
+@trait {
+  name: "@vignette",
+  category: "visual",
+  description: "Screen-space vignette and comfort frame post-process effect. Darkens the peripheral viewport area to focus attention on the scene center and reduce VR motion sickness by narrowing the effective field of view during locomotion, with configurable inner/outer radius, intensity, and color. Authored from VignetteTrait.ts.",
+  props: {
+    inner_radius: number = 0.4,
+    outer_radius: number = 1.0,
+    intensity: number = 0.5,
+    color: string = "#000000",
+    smooth: boolean = true,
+    enabled: boolean = true,
+    locomotion_boost: number = 0.3
+  },
+  events: {
+    attached: "vignette_attached",
+    detached: "vignette_detached",
+    on_change: "vignette_change",
+    set_intensity: "vignette_trigger_set_intensity"
+  },
+  behaviors: ["@image_effect", "@comfort_mode", "@xr_controller"]
+}
