@@ -1,0 +1,33 @@
+// @circuit_breaker — Circuit breaker: open/half-open/closed state machine protecting downstream calls.
+//
+// Native .hsplus surface for core/src/CircuitBreaker.ts.
+
+@trait circuit_breaker {
+  capability_tags: ["circuit_breaker", "open_half_closed", "downstream_protect", "fault_tolerance", "core"]
+
+  @state_machine {
+    states: ["closed", "open", "half_open"]
+    initial: "closed"
+    transitions: [
+      { from: "closed", to: "open", on: "threshold_exceeded" },
+      { from: "open", to: "half_open", on: "reset_timeout" },
+      { from: "half_open", to: "closed", on: "probe_success" },
+      { from: "half_open", to: "open", on: "probe_failure" }
+    ]
+  }
+
+  @on_spawn(config) => {
+    init_circuit_breaker(config)
+    emit("circuit_breaker_ready", {})
+  }
+
+  @on_call(fn) => {
+    result = circuit_breaker_call(fn)
+    return result
+  }
+
+  @receipt circuit_breaker_config {
+    type: "CircuitBreakerReceipt"
+    timestamp: now()
+  }
+}

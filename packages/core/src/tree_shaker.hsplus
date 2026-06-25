@@ -1,0 +1,21 @@
+// @tree_shaker — Tree shaker: eliminates dead traits and unreachable AST nodes from compositions.
+//
+// Native .hsplus surface for core/src/TreeShaker.ts.
+
+@trait tree_shaker {
+  capability_tags: ["tree_shaker", "dead_trait_elimination", "unreachable_ast", "optimizer", "core"]
+
+  @on_spawn => {
+    emit("tree_shaker_ready", {})
+  }
+
+  @on_shake(composition_ast) => {
+    trimmed_ast = shake_tree(composition_ast)
+    return trimmed_ast
+  }
+
+  @receipt tree_shaker_config {
+    type: "TreeShakerReceipt"
+    timestamp: now()
+  }
+}

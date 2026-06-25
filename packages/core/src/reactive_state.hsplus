@@ -1,0 +1,27 @@
+// @reactive_state — Reactive state: Loro CRDT-backed reactive state with fine-grained subscriptions.
+//
+// Native .hsplus surface for core/src/ReactiveState.ts.
+
+@trait reactive_state {
+  capability_tags: ["reactive_state", "loro_crdt", "fine_grained_sub", "reactive", "core"]
+
+  @on_spawn(initial_value) => {
+    init_reactive_state(initial_value)
+    emit("reactive_state_ready", {})
+  }
+
+  @on_set(key, value) => {
+    set_reactive_state(key, value)
+    emit("state_changed", { key, value })
+  }
+
+  @on_subscribe(key, handler) => {
+    subscribe_reactive_state(key, handler)
+  }
+
+  @receipt reactive_state_config {
+    type: "ReactiveStateReceipt"
+    crdt: "Loro"
+    timestamp: now()
+  }
+}

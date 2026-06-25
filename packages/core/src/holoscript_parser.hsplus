@@ -1,0 +1,23 @@
+// @holoscript_parser — HoloScript parser: unified .holo/.hs/.hsplus source → AST entry point.
+//
+// Native .hsplus surface for core/src/HoloScriptParser.ts.
+// P.017: .hs/.hsplus grammar = Rust+WASM; .holo = TS parser.
+
+@trait holoscript_parser {
+  capability_tags: ["holoscript_parser", "unified_parse", "holo_hs_hsplus_ast", "parser", "core"]
+
+  @on_spawn => {
+    emit("holoscript_parser_ready", {})
+  }
+
+  @on_parse(source, format) => {
+    ast = parse_holoscript_unified(source, format)
+    return ast
+  }
+
+  @receipt holoscript_parser_config {
+    type: "HoloScriptParserReceipt"
+    formats: [".holo", ".hs", ".hsplus"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @holoscript_spread_validator — Spread validator: validates trait spread inheritance is conflict-free.
+//
+// Native .hsplus surface for core/src/HoloScriptSpreadValidator.ts.
+
+@trait holoscript_spread_validator {
+  capability_tags: ["holoscript_spread_validator", "trait_spread_validate", "inheritance_conflict", "validator", "core"]
+
+  @on_spawn => {
+    emit("holoscript_spread_validator_ready", {})
+  }
+
+  @on_validate(spread_ast) => {
+    result = validate_holoscript_spread(spread_ast)
+    return result
+  }
+
+  @receipt holoscript_spread_validator_config {
+    type: "HoloScriptSpreadValidatorReceipt"
+    timestamp: now()
+  }
+}

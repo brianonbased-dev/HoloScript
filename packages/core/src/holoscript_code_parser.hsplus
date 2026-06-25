@@ -1,0 +1,22 @@
+// @holoscript_code_parser — HoloScript code parser: parses .hs logic blocks to AST.
+//
+// Native .hsplus surface for core/src/HoloScriptCodeParser.ts.
+// P.017: .hs grammar is Rust+WASM (packages/compiler-wasm/src/).
+
+@trait holoscript_code_parser {
+  capability_tags: ["holoscript_code_parser", "hs_logic_ast", "code_parse", "parser", "core"]
+
+  @on_spawn => {
+    emit("holoscript_code_parser_ready", {})
+  }
+
+  @on_parse(hs_source) => {
+    ast = parse_holoscript_code(hs_source)
+    return ast
+  }
+
+  @receipt holoscript_code_parser_config {
+    type: "HoloScriptCodeParserReceipt"
+    timestamp: now()
+  }
+}

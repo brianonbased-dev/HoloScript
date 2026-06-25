@@ -1,0 +1,20 @@
+// @circuit_breaker_metrics — Circuit breaker metrics: success/failure rate, latency histograms.
+//
+// Native .hsplus surface for core/src/CircuitBreakerMetrics.ts.
+
+@trait circuit_breaker_metrics {
+  capability_tags: ["circuit_breaker_metrics", "success_failure_rate", "latency_histogram", "observability", "core"]
+
+  @on_spawn => {
+    emit("circuit_breaker_metrics_ready", {})
+  }
+
+  @on_record(event_type, latency_ms) => {
+    record_circuit_breaker_metric(event_type, latency_ms)
+  }
+
+  @receipt circuit_breaker_metrics_config {
+    type: "CircuitBreakerMetricsReceipt"
+    timestamp: now()
+  }
+}

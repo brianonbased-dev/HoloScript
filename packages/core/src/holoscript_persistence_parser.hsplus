@@ -1,0 +1,21 @@
+// @holoscript_persistence_parser — Persistence parser: parses .holo @persist/@state_store blocks.
+//
+// Native .hsplus surface for core/src/HoloScriptPersistenceParser.ts.
+
+@trait holoscript_persistence_parser {
+  capability_tags: ["holoscript_persistence_parser", "persist_state_store", "holo_parse", "parser", "core"]
+
+  @on_spawn => {
+    emit("holoscript_persistence_parser_ready", {})
+  }
+
+  @on_parse(source) => {
+    persist_ast = parse_holoscript_persistence(source)
+    return persist_ast
+  }
+
+  @receipt holoscript_persistence_parser_config {
+    type: "HoloScriptPersistenceParserReceipt"
+    timestamp: now()
+  }
+}

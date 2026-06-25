@@ -1,0 +1,21 @@
+// @holoscript_type_checker — HoloScript type checker: validates .holo/.hs type annotations and contracts.
+//
+// Native .hsplus surface for core/src/HoloScriptTypeChecker.ts.
+
+@trait holoscript_type_checker {
+  capability_tags: ["holoscript_type_checker", "type_annotation_validate", "contract_check", "type_system", "core"]
+
+  @on_spawn => {
+    emit("holoscript_type_checker_ready", {})
+  }
+
+  @on_check(ast) => {
+    errors = check_holoscript_types(ast)
+    return errors
+  }
+
+  @receipt holoscript_type_checker_config {
+    type: "HoloScriptTypeCheckerReceipt"
+    timestamp: now()
+  }
+}

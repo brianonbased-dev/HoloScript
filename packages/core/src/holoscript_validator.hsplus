@@ -1,0 +1,21 @@
+// @holoscript_validator — HoloScript validator: full semantic validation of .holo ASTs before compile.
+//
+// Native .hsplus surface for core/src/HoloScriptValidator.ts.
+
+@trait holoscript_validator {
+  capability_tags: ["holoscript_validator", "semantic_validate", "pre_compile_check", "validator", "core"]
+
+  @on_spawn => {
+    emit("holoscript_validator_ready", {})
+  }
+
+  @on_validate(ast) => {
+    result = validate_holoscript_semantic(ast)
+    return result
+  }
+
+  @receipt holoscript_validator_config {
+    type: "HoloScriptValidatorReceipt"
+    timestamp: now()
+  }
+}

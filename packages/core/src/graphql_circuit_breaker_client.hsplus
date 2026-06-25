@@ -1,0 +1,22 @@
+// @graphql_circuit_breaker_client — GraphQL client with circuit-breaker wrapping for resilient queries.
+//
+// Native .hsplus surface for core/src/GraphQLCircuitBreakerClient.ts.
+
+@trait graphql_circuit_breaker_client {
+  capability_tags: ["graphql_circuit_breaker_client", "graphql_resilient", "circuit_wrap", "api_client", "core"]
+
+  @on_spawn(endpoint, breaker_config) => {
+    init_graphql_circuit_breaker_client(endpoint, breaker_config)
+    emit("graphql_circuit_breaker_client_ready", {})
+  }
+
+  @on_query(gql, variables) => {
+    result = query_graphql_circuit_breaker(gql, variables)
+    return result
+  }
+
+  @receipt graphql_circuit_breaker_client_config {
+    type: "GraphQLCircuitBreakerClientReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @holoscript_plus_parser — HoloScript Plus parser: parses .hsplus trait/brain definitions to AST.
+//
+// Native .hsplus surface for core/src/HoloScriptPlusParser.ts.
+// F.120: .hsplus = traits/brains; two-parser model: TS here, Rust+WASM for .hs.
+
+@trait holoscript_plus_parser {
+  capability_tags: ["holoscript_plus_parser", "hsplus_trait_brain", "trait_ast", "parser", "core"]
+
+  @on_spawn => {
+    emit("holoscript_plus_parser_ready", {})
+  }
+
+  @on_parse(hsplus_source) => {
+    trait_ast = parse_holoscript_plus(hsplus_source)
+    return trait_ast
+  }
+
+  @receipt holoscript_plus_parser_config {
+    type: "HoloScriptPlusParserReceipt"
+    doc: "F.120 three-format model: .holo=IR, .hsplus=traits/brains, .hs=logic"
+    timestamp: now()
+  }
+}

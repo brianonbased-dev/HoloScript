@@ -1,0 +1,26 @@
+// @holoscript_debugger — HoloScript debugger: breakpoint stepping, watch, and trace for .hs execution.
+//
+// Native .hsplus surface for core/src/HoloScriptDebugger.ts.
+
+@trait holoscript_debugger {
+  capability_tags: ["holoscript_debugger", "breakpoint_stepping", "watch_trace", "debug", "core"]
+
+  @on_spawn(session_id) => {
+    init_holoscript_debugger(session_id)
+    emit("holoscript_debugger_ready", {})
+  }
+
+  @on_break(location) => {
+    pause_holoscript_debugger(location)
+    emit("breakpoint_hit", { location })
+  }
+
+  @on_step => {
+    step_holoscript_debugger()
+  }
+
+  @receipt holoscript_debugger_config {
+    type: "HoloScriptDebuggerReceipt"
+    timestamp: now()
+  }
+}

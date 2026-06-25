@@ -1,0 +1,24 @@
+// @source_map_generator — Source map generator: maps compiled output positions back to .holo source.
+//
+// Native .hsplus surface for core/src/SourceMapGenerator.ts.
+
+@trait source_map_generator {
+  capability_tags: ["source_map_generator", "position_map", "holo_source_map", "debug", "core"]
+
+  @on_spawn => {
+    emit("source_map_generator_ready", {})
+  }
+
+  @on_map(compiled_offset, source_file, source_line) => {
+    add_source_map_entry(compiled_offset, source_file, source_line)
+  }
+
+  @on_serialize => {
+    return serialize_source_map()
+  }
+
+  @receipt source_map_generator_config {
+    type: "SourceMapGeneratorReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @holoscript_agent_runtime — HoloScript agent runtime: spawns and coordinates .hsplus brain agents.
+//
+// Native .hsplus surface for core/src/HoloScriptAgentRuntime.ts.
+// D.102: portable agent mind — wallet-keyed identity+memory across substrate.
+
+@trait holoscript_agent_runtime {
+  capability_tags: ["holoscript_agent_runtime", "brain_agent_spawn", "wallet_keyed_identity", "portable_mind", "core"]
+
+  @on_spawn(wallet_address, brain_spec) => {
+    init_holoscript_agent_runtime(wallet_address, brain_spec)
+    emit("holoscript_agent_runtime_ready", { wallet_address })
+  }
+
+  @on_run(intent) => {
+    result = run_holoscript_agent(intent)
+    return result
+  }
+
+  @receipt holoscript_agent_runtime_config {
+    type: "HoloScriptAgentRuntimeReceipt"
+    doc: "D.102 portable agent mind"
+    timestamp: now()
+  }
+}

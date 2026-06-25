@@ -1,0 +1,24 @@
+// @holoscript_runtime — HoloScript runtime: executes compiled .holo compositions in the HoloVM.
+//
+// Native .hsplus surface for core/src/HoloScriptRuntime.ts.
+// P.017: .holo→HolobCompiler→HoloVM→renderer is wired + e2e-tested.
+
+@trait holoscript_runtime {
+  capability_tags: ["holoscript_runtime", "holovm_execute", "composition_run", "runtime", "core"]
+
+  @on_spawn(config) => {
+    init_holoscript_runtime(config)
+    emit("holoscript_runtime_ready", {})
+  }
+
+  @on_execute(composition) => {
+    result = execute_holoscript_runtime(composition)
+    return result
+  }
+
+  @receipt holoscript_runtime_config {
+    type: "HoloScriptRuntimeReceipt"
+    doc: "P.017 .holo→HolobCompiler→HoloVM→renderer e2e-tested"
+    timestamp: now()
+  }
+}

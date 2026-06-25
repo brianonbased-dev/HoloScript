@@ -1,0 +1,22 @@
+// @mitosis_swarm — Mitosis swarm: self-replicating agent swarm that divides tasks via mitosis splits.
+//
+// Native .hsplus surface for core/src/MitosisSwarm.ts.
+
+@trait mitosis_swarm {
+  capability_tags: ["mitosis_swarm", "self_replicating_agent", "task_split", "swarm", "core"]
+
+  @on_spawn(population_size) => {
+    init_mitosis_swarm(population_size)
+    emit("mitosis_swarm_ready", {})
+  }
+
+  @on_divide(task) => {
+    subtasks = divide_mitosis_swarm(task)
+    return subtasks
+  }
+
+  @receipt mitosis_swarm_config {
+    type: "MitosisSwarmReceipt"
+    timestamp: now()
+  }
+}

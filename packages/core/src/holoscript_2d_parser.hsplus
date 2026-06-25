@@ -1,0 +1,21 @@
+// @holoscript_2d_parser — HoloScript 2D parser: parses 2D semantic layout blocks from .holo source.
+//
+// Native .hsplus surface for core/src/HoloScript2DParser.ts.
+
+@trait holoscript_2d_parser {
+  capability_tags: ["holoscript_2d_parser", "2d_layout_parse", "holo_source", "parser", "core"]
+
+  @on_spawn => {
+    emit("holoscript_2d_parser_ready", {})
+  }
+
+  @on_parse(source) => {
+    ast = parse_holoscript_2d(source)
+    return ast
+  }
+
+  @receipt holoscript_2d_parser_config {
+    type: "HoloScript2DParserReceipt"
+    timestamp: now()
+  }
+}

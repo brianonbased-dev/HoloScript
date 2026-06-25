@@ -1,0 +1,21 @@
+// @incremental_parser — Incremental parser: re-parses only changed subtrees for IDE responsiveness.
+//
+// Native .hsplus surface for core/src/IncrementalParser.ts.
+
+@trait incremental_parser {
+  capability_tags: ["incremental_parser", "subtree_reparse", "ide_responsive", "parser", "core"]
+
+  @on_spawn => {
+    emit("incremental_parser_ready", {})
+  }
+
+  @on_update(prev_ast, edit_range, new_text) => {
+    updated_ast = incremental_parse(prev_ast, edit_range, new_text)
+    return updated_ast
+  }
+
+  @receipt incremental_parser_config {
+    type: "IncrementalParserReceipt"
+    timestamp: now()
+  }
+}
