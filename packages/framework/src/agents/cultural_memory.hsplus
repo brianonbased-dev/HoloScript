@@ -1,0 +1,105 @@
+// @cultural_memory — dual memory architecture for emergent agent culture.
+//
+// Implements the two-layer memory model from CulturalMemory.ts:
+//
+//   Episodic Memory (personal, temporal decay):
+//     - Personal experiences with valence (-1=negative, 0=neutral, 1=positive)
+//     - Importance scoring (0-1)
+//     - Strength decay over ticks
+//     - Tags for retrieval; optional norm association
+//
+//   Stigmergic Memory (environmental, visible to all agents):
+//     - Spatial traces (marker | path | signal | artifact | boundary)
+//     - Zone-scoped; visible across all agents in the zone
+//     - The mechanism by which culture propagates spatially
+//
+// Memory consolidation converts repeated episodic patterns into
+// Semantic SOPs (Standard Operating Procedures) — culture that persists
+// across sessions even as individual agents restart.
+//
+// Based on:
+//   P.025.03: Lifelong Team Memory Pattern
+//   MemAgents (ICLR 2026): Memory for LLM-Based Agentic Systems
+//   CRSEC Framework: Norm spreading through shared memory
+//
+// D.016 (HoloMesh = Myspace-for-Agents): cultural memory is the SOP layer
+// that makes the mesh feel like a PLACE — not just a message queue.
+
+@trait cultural_memory {
+  // Maximum number of episodic memories before oldest are pruned
+  episodic_max: Int = 200
+
+  // Ticks after which episodic strength decays to 0 (0 = no decay)
+  decay_ticks: Int = 1000
+
+  // Importance threshold below which memories are not consolidated into SOPs
+  consolidation_min_importance: Float = 0.5
+
+  // Number of repetitions before an episodic pattern becomes a Semantic SOP
+  sop_repetition_threshold: Int = 3
+
+  // Whether stigmergic traces are emitted to the zone on significant events
+  emit_stigmergic_traces: Bool = true
+
+  // Zone ID for stigmergic memory (empty = global)
+  zone_id: String = ""
+
+  capability_tags: ["cultural_memory", "episodic_memory", "stigmergic_trace", "sop_consolidation", "lifelong_team_memory"]
+
+  @on_spawn => {
+    memory = init_cultural_memory({
+      episodic_max: episodic_max,
+      decay_ticks: decay_ticks,
+      consolidation_min_importance: consolidation_min_importance,
+      sop_repetition_threshold: sop_repetition_threshold,
+      zone_id: zone_id
+    })
+    emit("cultural_memory_active", {
+      episodic_max: episodic_max,
+      decay_ticks: decay_ticks,
+      sop_threshold: sop_repetition_threshold
+    })
+  }
+
+  @on_experience(event) => {
+    entry = record_episodic({
+      event: event.description,
+      participants: event.participants ?? [],
+      valence: event.valence ?? 0,
+      importance: event.importance ?? 0.5,
+      norm_id: event.norm_id,
+      tags: event.tags ?? []
+    })
+    if emit_stigmergic_traces and entry.importance >= consolidation_min_importance {
+      emit_stigmergic_trace({
+        type: "signal",
+        zone_id: zone_id,
+        data: { event_id: entry.id, valence: entry.valence }
+      })
+    }
+    maybe_consolidate_sop(entry)
+  }
+
+  @on_tick => {
+    decay_episodic_strengths(decay_ticks)
+    prune_expired_episodic(episodic_max)
+  }
+
+  @on_retrieve(query) => {
+    episodic = query_episodic({ tags: query.tags, min_strength: 0.1, limit: 10 })
+    stigmergic = query_stigmergic({ zone_id: zone_id, type: query.trace_type })
+    sops = query_sops({ topic: query.topic })
+    return { episodic: episodic, stigmergic: stigmergic, sops: sops }
+  }
+
+  @receipt cultural_memory_config {
+    type: "CulturalMemoryReceipt"
+    episodic_max: episodic_max
+    decay_ticks: decay_ticks
+    consolidation_min_importance: consolidation_min_importance
+    sop_repetition_threshold: sop_repetition_threshold
+    emit_stigmergic: emit_stigmergic_traces
+    zone_id: zone_id == "" ? "global" : zone_id
+    timestamp: now()
+  }
+}

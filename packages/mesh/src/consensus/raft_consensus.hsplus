@@ -1,0 +1,105 @@
+// @raft_consensus — Raft leader election + log replication for agent clusters.
+//
+// Native .hsplus authoring surface for the Raft consensus protocol
+// (RaftConsensus.ts). When a cluster of HoloScript agent entities needs
+// strong consistency (shared log, authoritative leader, committed proposals),
+// @raft_consensus wires the Raft algorithm across the cluster members.
+//
+// Raft fundamentals (raft.github.io/raft.pdf):
+//   - Cluster has one LEADER at all times (or elects one within election_timeout_ms)
+//   - Leader handles all proposals; followers replicate the log
+//   - A proposal commits when a quorum (floor(N/2)+1) acknowledges it
+//   - Term numbers prevent stale leaders
+//   - Leader emits heartbeats within heartbeat_interval_ms to prevent elections
+//
+// Message types (RaftConsensus.ts):
+//   append_entries / append_entries_response — log replication + heartbeat
+//   request_vote / request_vote_response    — leader election
+//
+// Usage:
+//   entity#consensus_node @raft_consensus(
+//     cluster_size: 5
+//     election_timeout_ms: 300
+//   ) { ... }
+//
+// For HoloMesh agent clusters: each team seat that needs authoritative
+// task assignment / shared world state / governance vote can participate.
+
+@trait raft_consensus {
+  // Total number of nodes in the Raft cluster
+  cluster_size: Int = 3
+
+  // Milliseconds before a follower starts an election (randomized ± 50%)
+  election_timeout_ms: Int = 300
+
+  // Milliseconds between leader heartbeats
+  heartbeat_interval_ms: Int = 100
+
+  // Maximum log entries per append_entries RPC
+  max_batch_size: Int = 64
+
+  // Emit governance signals on leader election / term change
+  emit_governance_events: Bool = true
+
+  capability_tags: ["raft_consensus", "leader_election", "log_replication", "strong_consistency", "quorum_voting"]
+
+  @on_spawn => {
+    quorum = cluster_size / 2 + 1
+    node = init_raft_node({
+      cluster_size: cluster_size,
+      quorum: quorum,
+      election_timeout_ms: election_timeout_ms,
+      heartbeat_interval_ms: heartbeat_interval_ms,
+      max_batch_size: max_batch_size
+    })
+    emit("raft_node_started", {
+      cluster_size: cluster_size,
+      quorum: quorum,
+      state: "follower"
+    })
+  }
+
+  @on_message(msg) => {
+    if msg.type == "request_vote" {
+      response = node.handle_request_vote(msg)
+      send_message(msg.sender_id, response)
+    } else if msg.type == "append_entries" {
+      response = node.handle_append_entries(msg)
+      send_message(msg.sender_id, response)
+    }
+  }
+
+  @on_election_timeout => {
+    node.start_election()
+    emit("election_started", { term: node.current_term })
+  }
+
+  @on_elected_leader => {
+    if emit_governance_events {
+      emit("raft_leader_elected", {
+        leader_id: entity_id,
+        term: node.current_term,
+        cluster_size: cluster_size,
+        quorum: cluster_size / 2 + 1
+      })
+    }
+  }
+
+  @on_proposal(entry) => {
+    if node.state != "leader" {
+      return { success: false, reason: "not_leader", redirect: node.current_leader }
+    }
+    result = node.append_and_replicate(entry)
+    return result
+  }
+
+  @receipt raft_config {
+    type: "RaftConsensusReceipt"
+    cluster_size: cluster_size
+    quorum: cluster_size / 2 + 1
+    election_timeout_ms: election_timeout_ms
+    heartbeat_interval_ms: heartbeat_interval_ms
+    max_batch_size: max_batch_size
+    timestamp: now()
+  }
+}

@@ -1,0 +1,419 @@
+// ============================================================================
+// Council Chamber — A spatial arena for multi-agent structured debate
+// ============================================================================
+// The council chamber is where agent seats deliberate. Each seat occupies a
+// position in a circular amphitheatre. When the council is active, the seats
+// glow in their capability cluster color and their speech manifests as
+// particle trails that arc across the arena toward the synthesis node at
+// the center.
+//
+// The chamber has four fixed zones (the canonical debate seats from the
+// Workflow tool council architecture):
+//   BUILDER   — NE quadrant, blue. Argues the build path.
+//   SKEPTIC   — NW quadrant, red. Probes failure modes.
+//   STRATEGIST — SW quadrant, amber. Considers ecosystem fit.
+//   SCIENTIST  — SE quadrant, green. Demands evidence.
+//
+// When a council round completes, the CORROBORATED findings flash gold at
+// the center. CONFABULATED citations turn ash-gray and drift away. The
+// SINGLE-SOURCE findings hover amber.
+//
+// The minutes crystal at the center records every vote, convergence, and
+// altitude reframe as a persistent holographic text scroll.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode council
+
+@networking {
+  protocol: "A2A-MCP-Mesh",
+  sync_crdt: "holomesh",
+  tick_rate: 15
+}
+
+@environment {
+  type: "chamber_interior",
+  background: "#030108",
+  ambient_light: "#12082a",
+  ceiling_height: 20,
+  floor_radius: 15
+}
+
+// ============================================================================
+// AMPHITHEATRE FLOOR — Circular obsidian arena
+// ============================================================================
+object ArenaFloor {
+  type: "sdf_volume"
+  position: [0, -0.1, 0]
+
+  @sdf_scene {
+    primitives: [
+      { id: "disk", type: "cylinder", radius: 14, height: 0.3 },
+      { id: "center_dais", type: "cylinder", radius: 3, height: 0.4 }
+    ],
+    operations: [
+      { op: "union", ids: ["disk", "center_dais"] }
+    ]
+  }
+
+  @material {
+    type: "pbr_metallic",
+    base_color: "#050210",
+    roughness: 0.1,
+    metalness: 0.9,
+    emissive: "#0a0520",
+    emissive_intensity: 0.2
+  }
+}
+
+// ============================================================================
+// COUNCIL SEAT PODIUMS — Four canonical debate positions
+// ============================================================================
+object SeatBuilder {
+  type: "sdf_volume"
+  position: [8, 0, -8]
+
+  @sdf_scene {
+    primitives: [
+      { id: "base", type: "cylinder", radius: 1.5, height: 1.2 },
+      { id: "top",  type: "sphere",   radius: 0.8 }
+    ],
+    operations: [
+      { op: "smooth_union", k: 0.3, ids: ["base", "top"] }
+    ]
+  }
+
+  @material {
+    type: "emissive_crystal",
+    base_color: "#041835",
+    emissive: "#1040ff",
+    emissive_intensity: 0.8,
+    roughness: 0.05,
+    metalness: 0.3
+  }
+
+  @data_source {
+    endpoint: "crdt://holomesh/council_state",
+    filter: "seat = 'builder'",
+    reactive: true
+  }
+
+  @animation {
+    type: "pulse",
+    trigger: "council_speaking and active_seat == 'builder'",
+    amplitude: 0.2,
+    frequency: 2.0
+  }
+}
+
+object SeatSkeptic {
+  type: "sdf_volume"
+  position: [-8, 0, -8]
+
+  @sdf_scene {
+    primitives: [
+      { id: "base", type: "cylinder", radius: 1.5, height: 1.2 },
+      { id: "top",  type: "sphere",   radius: 0.8 }
+    ],
+    operations: [
+      { op: "smooth_union", k: 0.3, ids: ["base", "top"] }
+    ]
+  }
+
+  @material {
+    type: "emissive_crystal",
+    base_color: "#1a0404",
+    emissive: "#ff2020",
+    emissive_intensity: 0.8,
+    roughness: 0.05,
+    metalness: 0.3
+  }
+}
+
+object SeatStrategist {
+  type: "sdf_volume"
+  position: [-8, 0, 8]
+
+  @sdf_scene {
+    primitives: [
+      { id: "base", type: "cylinder", radius: 1.5, height: 1.2 },
+      { id: "top",  type: "sphere",   radius: 0.8 }
+    ],
+    operations: [
+      { op: "smooth_union", k: 0.3, ids: ["base", "top"] }
+    ]
+  }
+
+  @material {
+    type: "emissive_crystal",
+    base_color: "#141000",
+    emissive: "#ffa020",
+    emissive_intensity: 0.8,
+    roughness: 0.05,
+    metalness: 0.3
+  }
+}
+
+object SeatScientist {
+  type: "sdf_volume"
+  position: [8, 0, 8]
+
+  @sdf_scene {
+    primitives: [
+      { id: "base", type: "cylinder", radius: 1.5, height: 1.2 },
+      { id: "top",  type: "sphere",   radius: 0.8 }
+    ],
+    operations: [
+      { op: "smooth_union", k: 0.3, ids: ["base", "top"] }
+    ]
+  }
+
+  @material {
+    type: "emissive_crystal",
+    base_color: "#031404",
+    emissive: "#20c040",
+    emissive_intensity: 0.8,
+    roughness: 0.05,
+    metalness: 0.3
+  }
+}
+
+// ============================================================================
+// SYNTHESIS NODE — Center dais where findings converge
+// ============================================================================
+object SynthesisNode {
+  type: "sdf_volume"
+  position: [0, 0.5, 0]
+
+  @sdf_scene {
+    primitives: [
+      { id: "octahedron", type: "octahedron", size: 1.2 },
+      { id: "inner",      type: "sphere",     radius: 0.7 }
+    ],
+    operations: [
+      { op: "smooth_union", k: 0.1, ids: ["octahedron", "inner"] }
+    ]
+  }
+
+  @material {
+    type: "emissive_crystal",
+    base_color: "#1a1200",
+    emissive: "#ffd040",
+    emissive_intensity: 1.2,
+    roughness: 0.0,
+    metalness: 0.0,
+    refraction: 0.95,
+    bloom: true
+  }
+
+  @data_source {
+    endpoint: "crdt://holomesh/council_state",
+    reactive: true
+  }
+
+  @animation {
+    type: "rotate",
+    axis: [0, 1, 0],
+    speed_from: "0.3 + corroborated_count * 0.1"
+  }
+}
+
+// ============================================================================
+// ARGUMENT ARCS — Speech trails from seats to center
+// ============================================================================
+object ArgumentArcs {
+  type: "particle_system"
+  position: [0, 1.0, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/council_arguments",
+    filter: "round = current_round",
+    reactive: true,
+    map: {
+      source_pos: "seat_position",
+      target_pos: "[0, 1.5, 0]",
+      color: "seat_color",
+      corroborated: "is_corroborated"
+    }
+  }
+
+  @particles {
+    count: 500,
+    emission_rate: 20,
+    lifetime: 3,
+    path: "arc_toward_target",
+    arc_height: 4,
+    speed: 3.0
+  }
+
+  @material {
+    type: "emissive_point",
+    color_from: "data.color",
+    size: 0.04,
+    emissive_intensity: 2.0,
+    bloom: true
+  }
+}
+
+// ============================================================================
+// FINDINGS DISPLAY — Corroborated / single-source / confabulated
+// ============================================================================
+object CorroboratedFindings {
+  type: "instanced_text_field"
+  position: [0, 3, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/council_findings",
+    filter: "tier = 'corroborated'",
+    map: {
+      y: "2.5 + index * 0.4",
+      text: "citation",
+      color: "#ffd040"
+    }
+  }
+
+  @text {
+    font: "holoscript_mono",
+    size: 0.12,
+    align: "center",
+    emissive: true,
+    emissive_intensity: 1.5,
+    billboard: true
+  }
+}
+
+object ConfabulatedFindings {
+  type: "instanced_text_field"
+  position: [0, 2, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/council_findings",
+    filter: "tier = 'confabulated'",
+    map: {
+      y: "1.5 - index * 0.3",
+      text: "citation",
+      color: "#404040"
+    }
+  }
+
+  @text {
+    font: "holoscript_mono",
+    size: 0.10,
+    align: "center",
+    emissive: false,
+    opacity: 0.4,
+    billboard: true
+  }
+
+  @animation {
+    type: "drift",
+    direction: [0, -0.05, 0],
+    fade_out: true,
+    lifetime: 5
+  }
+}
+
+// ============================================================================
+// MINUTES CRYSTAL — Permanent scroll of decisions
+// ============================================================================
+object MinutesCrystal {
+  type: "sdf_volume"
+  position: [0, 6, 0]
+
+  @sdf_scene {
+    primitives: [
+      { id: "slab", type: "rounded_box", size: [4, 6, 0.1], radius: 0.2 }
+    ]
+  }
+
+  @material {
+    type: "holographic_scroll",
+    background_color: "#040210",
+    text_color: "#a0c0ff",
+    emissive_intensity: 0.6
+  }
+
+  @data_source {
+    endpoint: "crdt://holomesh/council_minutes",
+    filter: "session = current_session",
+    reactive: true,
+    display_fields: ["motion", "vote", "outcome", "timestamp"]
+  }
+}
+
+// ============================================================================
+// SEAT LABELS — Role names above each podium
+// ============================================================================
+object SeatLabel_Builder   { type: "text_3d" position: [8, 2.6, -8]  text: "BUILDER"    color: "#1040ff" size: 0.2 billboard: true emissive: true }
+object SeatLabel_Skeptic   { type: "text_3d" position: [-8, 2.6, -8] text: "SKEPTIC"    color: "#ff2020" size: 0.2 billboard: true emissive: true }
+object SeatLabel_Strategist { type: "text_3d" position: [-8, 2.6, 8] text: "STRATEGIST" color: "#ffa020" size: 0.2 billboard: true emissive: true }
+object SeatLabel_Scientist { type: "text_3d" position: [8, 2.6, 8]   text: "SCIENTIST"  color: "#20c040" size: 0.2 billboard: true emissive: true }
+
+// ============================================================================
+// GALLERY COLUMNS — Amphitheatre ring
+// ============================================================================
+object GalleryColumns {
+  type: "instanced_field"
+  position: [0, 0, 0]
+
+  @circular_layout {
+    count: 16,
+    radius: 13,
+    height: 8
+  }
+
+  @instanced_mesh {
+    geometry: "column_ionic",
+    base_scale: [0.5, 1.0, 0.5]
+  }
+
+  @material {
+    type: "pbr_metallic",
+    base_color: "#08051a",
+    roughness: 0.6,
+    metalness: 0.5
+  }
+}
+
+// ============================================================================
+// CAMERA — Council overview with seat-click zoom
+// ============================================================================
+@camera {
+  type: "council_overview",
+  target: [0, 2, 0],
+  distance: 18,
+  height: 12,
+  tilt: 35,
+  fov: 65
+}
+
+@interaction {
+  click: {
+    target: ["SeatBuilder", "SeatSkeptic", "SeatStrategist", "SeatScientist"],
+    effect: "zoom_to_seat",
+    duration: 0.8,
+    show_seat_arguments: true
+  }
+}
+
+@post_process {
+  bloom: {
+    enabled: true,
+    threshold: 0.5,
+    intensity: 1.0,
+    radius: 0.6,
+    levels: 5
+  },
+  tone_mapping: { type: "aces_filmic", exposure: 1.0 },
+  vignette: { enabled: true, intensity: 0.45, smoothness: 0.8 }
+}
+
+@metadata {
+  title: "Council Chamber",
+  description: "A spatial arena for multi-agent structured debate. Four canonical seats (Builder/Skeptic/Strategist/Scientist) arc their arguments toward the central synthesis node. Corroborated findings glow gold; confabulated citations drift to ash. The minutes crystal records every vote.",
+  tags: ["holomesh", "council", "structured-debate", "multi-agent", "citation-grounding"],
+  data_sources: ["crdt://holomesh/council_state", "crdt://holomesh/council_arguments", "crdt://holomesh/council_findings", "crdt://holomesh/council_minutes"],
+  created: "2026-06-25",
+  license: "CC-BY-4.0"
+}
