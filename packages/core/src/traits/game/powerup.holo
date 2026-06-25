@@ -1,0 +1,21 @@
+@trait {
+  name: "@powerup",
+  category: "game",
+  description: "Collectible powerup effector. Grants a temporary buff (speed boost, invincibility, ammo refill, shield) on pickup, applying the effect for a configurable duration, optionally stacking, and respawning after a cooldown with a countdown visual. Authored from PowerupTrait.ts.",
+  props: {
+    type: enum("speed" | "invincibility" | "ammo" | "shield" | "score_mult" | "heal") = "speed",
+    magnitude: number = 2.0,
+    duration_s: number = 10,
+    stackable: boolean = false,
+    respawn_after_s: number = 30,
+    collect_radius_m: number = 0.8
+  },
+  events: {
+    attached: "powerup_attached",
+    detached: "powerup_detached",
+    on_collect: "powerup_collect",
+    on_expire: "powerup_expire",
+    on_respawn: "powerup_respawn"
+  },
+  behaviors: ["@collectable", "@player_state", "@spawn_gate"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@player_stats",
+  category: "game",
+  description: "Player character statistics sheet. Tracks core RPG stats (strength, agility, intelligence, endurance) and derived combat stats (attack, defense, crit_chance, speed) with a level and XP tracker, firing level-up events and recalculating derived values when base stats change. Authored from PlayerStatsTrait.ts.",
+  props: {
+    level: number = 1,
+    xp: number = 0,
+    xp_per_level: number = 1000,
+    strength: number = 10,
+    agility: number = 10,
+    intelligence: number = 10,
+    endurance: number = 10,
+    stat_point_pool: number = 0
+  },
+  events: {
+    attached: "player_stats_attached",
+    detached: "player_stats_detached",
+    on_level_up: "player_stats_level_up",
+    on_xp_gain: "player_stats_xp_gain",
+    add_xp: "player_stats_trigger_add_xp"
+  },
+  behaviors: ["@player_state", "@equip", "@leaderboard"]
+}

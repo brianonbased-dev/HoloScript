@@ -1,0 +1,21 @@
+@trait {
+  name: "@poll_vote",
+  category: "social",
+  description: "In-world community poll and voting widget. Displays a time-limited poll with up to six options as a spatial panel, records one-vote-per-wallet responses, renders live result bars, and publishes the final tally to the HoloMesh knowledge store on close. Authored from PollVoteTrait.ts.",
+  props: {
+    question: string = "",
+    options: list<string> = [],
+    duration_s: number = 60,
+    anonymous: boolean = false,
+    visible: boolean = false,
+    close_on_vote: boolean = false
+  },
+  events: {
+    attached: "poll_vote_attached",
+    detached: "poll_vote_detached",
+    on_vote: "poll_vote_vote",
+    on_close: "poll_vote_close",
+    open: "poll_vote_trigger_open"
+  },
+  behaviors: ["@chat", "@leaderboard", "@ui_frame"]
+}

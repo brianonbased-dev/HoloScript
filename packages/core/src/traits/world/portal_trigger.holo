@@ -1,0 +1,21 @@
+@trait {
+  name: "@portal_trigger",
+  category: "world",
+  description: "Scene teleportation portal. Renders a portal disc with a live preview of the destination scene and teleports any entering player/agent to the target shard or world anchor, with configurable transition effects and permission checks. Authored from PortalTriggerTrait.ts.",
+  props: {
+    destination_shard_id: string = "",
+    destination_anchor: string = "",
+    radius_m: number = 1.0,
+    preview: boolean = true,
+    transition: enum("instant" | "fade" | "tunnel") = "fade",
+    transition_ms: number = 600,
+    require_permission: boolean = false
+  },
+  events: {
+    attached: "portal_trigger_attached",
+    detached: "portal_trigger_detached",
+    on_enter: "portal_trigger_enter",
+    on_transit: "portal_trigger_transit"
+  },
+  behaviors: ["@proximity_zone", "@level_loader", "@transition"]
+}
