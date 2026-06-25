@@ -1,0 +1,83 @@
+// @state_synchronizer — Decentralized pub/sub engine for spatial/semantic deltas.
+//
+// Native .hsplus surface for StateSynchronizer.ts (mesh/network).
+//
+// The StateSynchronizer is the core pub/sub engine of the HoloScript realm:
+// isolated simulation chunks and local agent entities broadcast and subscribe
+// to spatial/semantic deltas globally across the realm.
+//
+// Architecture (StateSynchronizer.ts):
+//   Global subscribers     — receive ALL deltas
+//   Entity subscribers     — per-entity-id subscription
+//   Skill subscribers      — procedural skill sync mesh
+//   Spatial culling        — subscriber position+radius filters irrelevant deltas
+//   Shard routing          — SpatialSharder assigns entities to shards
+//   Adaptive batching      — 50ms default window, adjusted per load
+//   WAL                    — TransactionLog for durable delta ordering
+//   Transport              — WebSocketTransport to WS server
+//
+// StateDelta: { entityId, key, value, timestamp, shard?, priority? }
+// SubscriberOptions: { position?, interactionRadius? }
+// Singleton: StateSynchronizer.getInstance()
+
+@trait state_synchronizer {
+  // WebSocket server URL for transport (default from HoloScript config)
+  ws_server_url: String? = null
+
+  // Adaptive batch window in ms (StateSynchronizer default: 50ms)
+  batch_window_ms: Int = 50
+
+  capability_tags: ["state_synchronizer", "pub_sub", "spatial_culling", "adaptive_batching", "realm_sync", "wal", "decentralized"]
+
+  @on_spawn => {
+    sync = state_synchronizer_instance({ ws_server_url: ws_server_url, batch_window_ms: batch_window_ms })
+    emit("state_synchronizer_ready", { ws_server_url: ws_server_url ?? "default" })
+  }
+
+  // Bootstrap mesh connection
+  @on_initialize_mesh => {
+    sync.initialize_mesh()
+    emit("mesh_initialized", {})
+  }
+
+  // Broadcast a state delta to subscribers
+  @on_broadcast_delta(entity_id, key, value, shard) => {
+    sync.broadcast({ entity_id: entity_id, key: key, value: value, shard: shard })
+    emit("delta_broadcast", { entity_id: entity_id, key: key })
+  }
+
+  // Subscribe globally (all deltas)
+  @on_subscribe_global(subscriber_id, position, interaction_radius) => {
+    sync.subscribe_global(subscriber_id, { position: position, interaction_radius: interaction_radius })
+    emit("subscriber_added", { subscriber_id: subscriber_id, scope: "global" })
+  }
+
+  // Subscribe to a specific entity's deltas
+  @on_subscribe_entity(entity_id, subscriber_id) => {
+    sync.subscribe_entity(entity_id, subscriber_id)
+    emit("subscriber_added", { subscriber_id: subscriber_id, scope: "entity", entity_id: entity_id })
+  }
+
+  // Subscribe to procedural skill broadcast mesh
+  @on_subscribe_skills(subscriber_id) => {
+    sync.subscribe_skills(subscriber_id)
+    emit("subscriber_added", { subscriber_id: subscriber_id, scope: "skills" })
+  }
+
+  @on_unsubscribe(subscriber_id) => {
+    sync.unsubscribe(subscriber_id)
+    emit("subscriber_removed", { subscriber_id: subscriber_id })
+  }
+
+  // Update this entity's spatial position for culling
+  @on_update_position(entity_id, x, y, z) => {
+    sync.update_position(entity_id, { x: x, y: y, z: z })
+  }
+
+  @receipt state_synchronizer_config {
+    type: "StateSynchronizerReceipt"
+    batch_window_ms: batch_window_ms
+    backend: "WebSocketTransport + WAL + SpatialSharder"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,74 @@
+// @env_kek_provider — Environment-backed KEK provider (DEV / BOOTSTRAP ONLY).
+//
+// Native .hsplus surface for env-kek-provider.ts (secrets-broker).
+//
+// ⚠ PHASE-3 GATE (vault premortem, 2026-06-08):
+//   An env-var KEK is a SINGLE POINT OF TOTAL COMPROMISE: one leaked variable
+//   unwraps EVERY user's stored secret. This provider is for local dev, tests,
+//   and pre-GA bring-up ONLY. Before ANY real user secret is stored, replace
+//   with a KMS/HSM-backed provider implementing the same interface.
+//
+// Env contract (env-kek-provider.ts):
+//   SECRETS_VAULT_KEK_CURRENT = <kekId>            (e.g. "v1")
+//   SECRETS_VAULT_KEK_<KEKID> = <base64 32 bytes>  (e.g. SECRETS_VAULT_KEK_V1=...)
+//   Multiple SECRETS_VAULT_KEK_<id> vars may coexist for rotation.
+//
+// KekId constraint: /^[A-Za-z0-9_]+$/ — no embedded secrets in the key id.
+//
+// SECURITY: NO KEK bytes authored here. The trait resolves KEK at runtime
+// from env vars. Env vars are set by the deployment context — NEVER via .hsplus.
+
+@trait env_kek_provider {
+  // Which KEK id to use (read from SECRETS_VAULT_KEK_CURRENT at runtime if empty)
+  kek_id_override: String? = null
+
+  capability_tags: ["env_kek_provider", "kek", "secrets_broker", "dev_only", "bootstrap_only", "aes256"]
+
+  @on_spawn => {
+    // Validate at spawn — fail loud so misconfigured dev environments fail immediately
+    result = validate_env_kek_config({ kek_id_override: kek_id_override })
+    if not result.ok {
+      emit("env_kek_error", { reason: result.reason })
+      return
+    }
+    emit("env_kek_ready", {
+      kek_id: result.kek_id,
+      phase3_gate: "dev_only — replace before GA user data"
+    })
+  }
+
+  // Return the current KEK id (from env or override)
+  @on_get_current_kek_id => {
+    return get_env_kek_current_id({ kek_id_override: kek_id_override })
+  }
+
+  // Retrieve KEK bytes by id — bytes stay in secure memory, never in events
+  @on_load_kek(kek_id) => {
+    result = load_env_kek_bytes(kek_id)
+    if not result.ok {
+      emit("env_kek_error", { reason: result.reason, kek_id: kek_id })
+      return null
+    }
+    // Returns bytes to caller in secure context — NEVER emitted into events
+    return result.bytes
+  }
+
+  // Rotate: unwrap historical rows under old KEK, re-wrap under new KEK id
+  @on_rotate(old_kek_id, new_kek_id) => {
+    emit("env_kek_rotation_started", { old_kek_id: old_kek_id, new_kek_id: new_kek_id })
+    result = rotate_env_kek(old_kek_id, new_kek_id)
+    if result.ok {
+      emit("env_kek_rotation_complete", { new_kek_id: new_kek_id, rows_rotated: result.rows_rotated })
+    } else {
+      emit("env_kek_error", { reason: result.reason, context: "rotation" })
+    }
+  }
+
+  @receipt env_kek_config {
+    type: "EnvKekProviderReceipt"
+    kek_id_override_set: kek_id_override != null
+    phase3_gate: "DEV/BOOTSTRAP ONLY — env KEK is single point of total compromise"
+    kek_bytes_in_receipt: false
+    timestamp: now()
+  }
+}
