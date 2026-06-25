@@ -1,0 +1,21 @@
+@trait {
+  name: "@gps_tracker",
+  category: "spatial",
+  description: "Device GPS coordinate tracker. Subscribes to the browser Geolocation API or a custom NMEA source, emitting location update events at a configurable accuracy level, computing distance and bearing to a target coordinate, and feeding the position into the spatial coordinate system for geo-anchored AR. Authored from GpsTrackerTrait.ts.",
+  props: {
+    source: enum("browser" | "nmea_stream" | "simulated") = "browser",
+    update_interval_ms: number = 1000,
+    desired_accuracy: enum("low" | "medium" | "high") = "medium",
+    target_lat: number = 0,
+    target_lon: number = 0,
+    alert_radius_m: number = 0
+  },
+  events: {
+    attached: "gps_tracker_attached",
+    detached: "gps_tracker_detached",
+    on_update: "gps_tracker_update",
+    on_arrive: "gps_tracker_arrive",
+    on_deny: "gps_tracker_deny"
+  },
+  behaviors: ["@geo_anchor", "@map_marker", "@multipath_route"]
+}

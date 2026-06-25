@@ -1,0 +1,22 @@
+@trait {
+  name: "@geo_anchor",
+  category: "xr",
+  description: "GPS-coordinated geospatial anchor. Pins the entity to a real-world WGS-84 coordinate, computing the device-relative transform via SLAM and GPS fusion, enabling persistent AR objects tied to geographic locations that survive across sessions and devices. Authored from GeoAnchorTrait.ts.",
+  props: {
+    latitude: number = 0,
+    longitude: number = 0,
+    altitude_m: number = 0,
+    horizontal_accuracy_m: number = 5,
+    persist_id: string = "",
+    share: boolean = false,
+    label: string = ""
+  },
+  events: {
+    attached: "geo_anchor_attached",
+    detached: "geo_anchor_detached",
+    on_lock: "geo_anchor_lock",
+    on_lost: "geo_anchor_lost",
+    on_update: "geo_anchor_update"
+  },
+  behaviors: ["@slam", "@spatial_anchor", "@map_marker"]
+}

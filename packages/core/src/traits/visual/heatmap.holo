@@ -1,0 +1,21 @@
+@trait {
+  name: "@heatmap",
+  category: "visual",
+  description: "Realtime spatial heatmap renderer. Accumulates entity position samples into a 2D grid, renders a color-gradient overlay projected onto the world surface using a configurable color ramp (cold→hot), and supports export to PNG for analytics. Authored from HeatmapTrait.ts.",
+  props: {
+    resolution: number = 128,
+    world_size_m: number = 100,
+    decay_rate: number = 0.01,
+    color_ramp: list<string> = ["#0000ff", "#00ff00", "#ff0000"],
+    opacity: number = 0.6,
+    update_rate_hz: number = 2
+  },
+  events: {
+    attached: "heatmap_attached",
+    detached: "heatmap_detached",
+    on_sample: "heatmap_sample",
+    on_export: "heatmap_export",
+    export: "heatmap_trigger_export"
+  },
+  behaviors: ["@tracker", "@weight_map", "@stats"]
+}

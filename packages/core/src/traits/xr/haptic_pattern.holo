@@ -1,0 +1,18 @@
+@trait {
+  name: "@haptic_pattern",
+  category: "xr",
+  description: "Named haptic waveform pattern library. Stores reusable named haptic sequences (buzz, click, success, error, heartbeat) as amplitude-over-time arrays and dispatches them to XR controller or mobile vibration actuators on demand, supporting parametric intensity scaling. Authored from HapticPatternTrait.ts.",
+  props: {
+    patterns: list<{ id: string, waveform: list<number>, duration_ms: number }> = [],
+    default_intensity: number = 1.0,
+    channel: enum("both" | "left" | "right" | "phone") = "both",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "haptic_pattern_attached",
+    detached: "haptic_pattern_detached",
+    on_play: "haptic_pattern_play",
+    play: "haptic_pattern_trigger_play"
+  },
+  behaviors: ["@force_feedback", "@xr_controller", "@gesture_recognizer"]
+}
