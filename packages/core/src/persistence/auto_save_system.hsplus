@@ -1,0 +1,23 @@
+// @auto_save_system — Periodic auto-save with dirty-tracking and configurable interval.
+//
+// Native .hsplus surface for core/persistence/AutoSaveSystem.ts.
+//
+// start(interval) / stop() / markDirty() / forceSave()
+
+@trait auto_save_system {
+  capability_tags: ["auto_save_system", "periodic_save", "dirty_tracking", "configurable_interval", "core"]
+
+  @on_spawn(interval) => {
+    start_auto_save(interval)
+    emit("auto_save_system_ready", {})
+  }
+
+  @on_mark_dirty => {
+    mark_auto_save_dirty()
+  }
+
+  @receipt auto_save_system_config {
+    type: "AutoSaveSystemReceipt"
+    timestamp: now()
+  }
+}

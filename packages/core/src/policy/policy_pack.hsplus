@@ -1,0 +1,20 @@
+// @policy_pack — Named regulatory bundle for regulated AI deployment gates.
+//
+// Native .hsplus surface for core/policy/PolicyPack.ts.
+//
+// PolicyPack { name, jurisdiction, rules[], blocklist }
+// E.g. EU-AI-Act, HIPAA-safe, MINAB-civilian-harm-prevention (D.044)
+
+@trait policy_pack {
+  capability_tags: ["policy_pack", "regulatory_bundle", "jurisdiction", "ai_deployment_gate", "core"]
+
+  @on_spawn => {
+    emit("policy_pack_ready", {})
+  }
+
+  @receipt policy_pack_config {
+    type: "PolicyPackReceipt"
+    examples: ["EU-AI-Act", "HIPAA-safe", "MINAB-civilian-harm-prevention"]
+    timestamp: now()
+  }
+}

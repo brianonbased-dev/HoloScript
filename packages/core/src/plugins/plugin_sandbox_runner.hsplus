@@ -1,0 +1,26 @@
+// @plugin_sandbox_runner — Server-side sandboxed plugin execution using worker threads.
+//
+// Native .hsplus surface for core/plugins/PluginSandboxRunner.ts.
+//
+// run(plugin, input) → SandboxedResult
+// Server-side counterpart to PluginSandbox; uses worker threads for isolation
+
+@trait plugin_sandbox_runner {
+  capability_tags: ["plugin_sandbox_runner", "server_side_sandbox", "worker_thread_isolation", "server_plugins", "core"]
+
+  @on_spawn => {
+    emit("plugin_sandbox_runner_ready", {})
+  }
+
+  @on_run(plugin, input) => {
+    result = run_sandboxed_plugin(plugin, input)
+    emit("sandboxed_plugin_ran", {})
+    return result
+  }
+
+  @receipt plugin_sandbox_runner_config {
+    type: "PluginSandboxRunnerReceipt"
+    isolation: "worker threads — server-side"
+    timestamp: now()
+  }
+}

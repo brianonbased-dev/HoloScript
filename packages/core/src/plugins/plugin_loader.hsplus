@@ -1,0 +1,24 @@
+// @plugin_loader — Plugin lifecycle and dependency loading: resolves + loads plugin bundle.
+//
+// Native .hsplus surface for core/plugins/PluginLoader.ts.
+//
+// load(manifest) → PluginInstance / resolve(manifestPath) → PluginManifest
+
+@trait plugin_loader {
+  capability_tags: ["plugin_loader", "bundle_loading", "manifest_resolve", "plugin_instance", "core"]
+
+  @on_spawn => {
+    emit("plugin_loader_ready", {})
+  }
+
+  @on_load(manifest) => {
+    instance = load_plugin_bundle(manifest)
+    emit("plugin_bundle_loaded", { name: manifest.name })
+    return instance
+  }
+
+  @receipt plugin_loader_config {
+    type: "PluginLoaderReceipt"
+    timestamp: now()
+  }
+}

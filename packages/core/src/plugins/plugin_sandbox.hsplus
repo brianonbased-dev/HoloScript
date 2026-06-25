@@ -1,0 +1,25 @@
+// @plugin_sandbox — iframe-based plugin isolation for HoloScript Studio.
+//
+// Native .hsplus surface for core/plugins/PluginSandbox.ts.
+//
+// create(plugin) → Sandbox / call(sandbox, method, args) → Result
+// Runs plugin code in isolated iframe; postMessage bridge to main thread
+
+@trait plugin_sandbox {
+  capability_tags: ["plugin_sandbox", "iframe_isolation", "postmessage_bridge", "studio_plugins", "core"]
+
+  @on_spawn => {
+    emit("plugin_sandbox_ready", {})
+  }
+
+  @on_call(sandbox_id, method, args) => {
+    result = sandbox_call_method(sandbox_id, method, args)
+    return result
+  }
+
+  @receipt plugin_sandbox_config {
+    type: "PluginSandboxReceipt"
+    isolation: "iframe + postMessage bridge"
+    timestamp: now()
+  }
+}

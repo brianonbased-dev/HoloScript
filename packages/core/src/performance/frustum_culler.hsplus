@@ -1,0 +1,25 @@
+// @frustum_culler — View-frustum culling for scene graph performance.
+//
+// Native .hsplus surface for core/performance/FrustumCuller.ts.
+//
+// cull(camera, entities[]) → visibleEntities[]
+// Per-frame frustum test; skips draw calls for out-of-view entities
+
+@trait frustum_culler {
+  capability_tags: ["frustum_culler", "view_frustum", "draw_call_skip", "scene_performance", "core"]
+
+  @on_spawn => {
+    emit("frustum_culler_ready", {})
+  }
+
+  @on_cull(camera, entities) => {
+    visible = cull_frustum(camera, entities)
+    emit("frustum_culled", { visible: visible.length, total: entities.length })
+    return visible
+  }
+
+  @receipt frustum_culler_config {
+    type: "FrustumCullerReceipt"
+    timestamp: now()
+  }
+}

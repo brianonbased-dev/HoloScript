@@ -1,0 +1,25 @@
+// @plugin_manifest_descriptor — Declarative plugin descriptor (H1 proof machinery): schema, capabilities, entrypoint.
+//
+// Native .hsplus surface for core/plugin-manifest/PluginManifest.ts.
+//
+// PluginManifest { name, version, capabilities[], entrypoint, schema }
+// H1 proof: manifest declares what the plugin CAN do — compiler enforces at load time
+
+@trait plugin_manifest_descriptor {
+  capability_tags: ["plugin_manifest_descriptor", "h1_proof_machinery", "declarative_descriptor", "capability_declaration", "core"]
+
+  @on_spawn => {
+    emit("plugin_manifest_descriptor_ready", {})
+  }
+
+  @on_validate(manifest) => {
+    result = validate_plugin_manifest(manifest)
+    return result
+  }
+
+  @receipt plugin_manifest_descriptor_config {
+    type: "PluginManifestDescriptorReceipt"
+    proof: "H1 — manifest declares capability; compiler enforces"
+    timestamp: now()
+  }
+}

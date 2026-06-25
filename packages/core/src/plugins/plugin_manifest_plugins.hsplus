@@ -1,0 +1,24 @@
+// @plugin_manifest_plugins — Plugin manifest schema and validation for the plugins subsystem.
+//
+// Native .hsplus surface for core/plugins/PluginManifest.ts.
+// (Distinct from plugin-manifest/PluginManifest — this is the plugins-subsystem runtime schema.)
+//
+// validate(manifest) → ValidationResult / toCapabilities(manifest) → Capability[]
+
+@trait plugin_manifest_plugins {
+  capability_tags: ["plugin_manifest_plugins", "manifest_schema", "capability_extraction", "plugins_subsystem", "core"]
+
+  @on_spawn => {
+    emit("plugin_manifest_plugins_ready", {})
+  }
+
+  @on_validate(manifest) => {
+    return validate_plugin_manifest_schema(manifest)
+  }
+
+  @receipt plugin_manifest_plugins_config {
+    type: "PluginManifestPluginsReceipt"
+    scope: "plugins subsystem runtime — distinct from plugin-manifest descriptor"
+    timestamp: now()
+  }
+}

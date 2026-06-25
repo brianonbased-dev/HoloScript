@@ -1,0 +1,19 @@
+// @conditional_modality — @platform() conditional compilation: XR targets, modality selection, platform mixins.
+//
+// Native .hsplus surface for core/platforms/conditional-modality.ts.
+//
+// @platform(xr|web|mobile|desktop) decorator; modality mixin injection at compile time
+
+@trait conditional_modality {
+  capability_tags: ["conditional_modality", "platform_decorator", "xr_targets", "compile_time_mixin", "core"]
+
+  @on_spawn => {
+    emit("conditional_modality_ready", {})
+  }
+
+  @receipt conditional_modality_config {
+    type: "ConditionalModalityReceipt"
+    targets: ["xr", "web", "mobile", "desktop"]
+    timestamp: now()
+  }
+}

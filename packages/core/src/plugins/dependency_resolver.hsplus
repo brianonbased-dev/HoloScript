@@ -1,0 +1,26 @@
+// @dependency_resolver — Enhanced plugin dependency resolution: version compatibility, cycle detection.
+//
+// Native .hsplus surface for core/plugins/DependencyResolver.ts.
+//
+// resolve(plugins[]) → LoadOrder / detectCycles(graph) → Cycle[]
+// Topological sort with semver compat checks; emits load order for PluginLifecycleManager
+
+@trait dependency_resolver {
+  capability_tags: ["dependency_resolver", "topological_sort", "semver_compat", "cycle_detection", "core"]
+
+  @on_spawn => {
+    emit("dependency_resolver_ready", {})
+  }
+
+  @on_resolve(plugins) => {
+    order = resolve_plugin_dependencies(plugins)
+    emit("dependency_order_resolved", { count: plugins.length })
+    return order
+  }
+
+  @receipt dependency_resolver_config {
+    type: "DependencyResolverReceipt"
+    features: ["topological sort", "semver compat", "cycle detection"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @hololand_extension_registry — Central registry for HoloLand extension providers.
+//
+// Native .hsplus surface for core/plugins/HololandExtensionRegistry.ts.
+//
+// register(point, provider) / resolve(featureId) → Provider?
+
+@trait hololand_extension_registry {
+  capability_tags: ["hololand_extension_registry", "provider_registry", "feature_resolution", "hololand_extensions", "core"]
+
+  @on_spawn => {
+    emit("hololand_extension_registry_ready", {})
+  }
+
+  @on_register(point, provider) => {
+    register_extension_provider(point, provider)
+    emit("extension_provider_registered", {})
+  }
+
+  @receipt hololand_extension_registry_config {
+    type: "HololandExtensionRegistryReceipt"
+    timestamp: now()
+  }
+}

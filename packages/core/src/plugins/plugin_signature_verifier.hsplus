@@ -1,0 +1,26 @@
+// @plugin_signature_verifier — Ed25519 signature verification for plugins before loading.
+//
+// Native .hsplus surface for core/plugins/PluginSignatureVerifier.ts.
+//
+// verify(manifest, signature, publicKey) → bool
+// Rejects unsigned or tampered plugins before PluginLoader runs
+
+@trait plugin_signature_verifier {
+  capability_tags: ["plugin_signature_verifier", "ed25519", "signature_verification", "tamper_detection", "core"]
+
+  @on_spawn => {
+    emit("plugin_signature_verifier_ready", {})
+  }
+
+  @on_verify(manifest, signature, public_key) => {
+    valid = verify_plugin_signature(manifest, signature, public_key)
+    if !valid { emit("plugin_signature_invalid", {}) }
+    return valid
+  }
+
+  @receipt plugin_signature_verifier_config {
+    type: "PluginSignatureVerifierReceipt"
+    algorithm: "Ed25519"
+    timestamp: now()
+  }
+}

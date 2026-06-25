@@ -1,0 +1,24 @@
+// @cross_reality — Cross-reality trait registry: compile-time declarations for XR/AR/VR trait surfaces.
+//
+// Native .hsplus surface for core/platforms/cross-reality.ts.
+//
+// registerXRTrait(name, targets[]) / resolveTarget(name, platform) → TraitImpl
+
+@trait cross_reality {
+  capability_tags: ["cross_reality", "xr_trait_registry", "compile_time_declarations", "multi_platform", "core"]
+
+  @on_spawn => {
+    emit("cross_reality_ready", {})
+  }
+
+  @on_resolve(name, platform) => {
+    impl = resolve_xr_trait(name, platform)
+    return impl
+  }
+
+  @receipt cross_reality_config {
+    type: "CrossRealityReceipt"
+    platforms: ["XR", "AR", "VR", "web"]
+    timestamp: now()
+  }
+}

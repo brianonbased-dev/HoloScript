@@ -1,0 +1,30 @@
+// @save_manager — Orchestrates save/load: delegates to SaveSerializer, CheckpointSystem, MigrationManager.
+//
+// Native .hsplus surface for core/persistence/SaveManager.ts.
+//
+// save(world, slot) / load(slot) → World / delete(slot) / listSlots() → Slot[]
+
+@trait save_manager {
+  capability_tags: ["save_manager", "save_load_orchestration", "slot_management", "world_persistence", "core"]
+
+  @on_spawn => {
+    emit("save_manager_ready", {})
+  }
+
+  @on_save(world, slot) => {
+    save_world_to_slot(world, slot)
+    emit("world_saved", { slot })
+  }
+
+  @on_load(slot) => {
+    world = load_world_from_slot(slot)
+    emit("world_loaded", { slot })
+    return world
+  }
+
+  @receipt save_manager_config {
+    type: "SaveManagerReceipt"
+    delegates: ["SaveSerializer", "CheckpointSystem", "MigrationManager"]
+    timestamp: now()
+  }
+}

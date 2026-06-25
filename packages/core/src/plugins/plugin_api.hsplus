@@ -1,0 +1,21 @@
+// @plugin_api — Safe runtime API surface for plugins: sandboxed access to core services.
+//
+// Native .hsplus surface for core/plugins/PluginAPI.ts.
+//
+// Exposes: emit, read, schedule — sandboxed, capability-scoped
+// Plugins cannot exceed declared PluginManifest capabilities
+
+@trait plugin_api {
+  capability_tags: ["plugin_api", "sandboxed_api", "capability_scoped", "safe_runtime_access", "core"]
+
+  @on_spawn => {
+    emit("plugin_api_ready", {})
+  }
+
+  @receipt plugin_api_config {
+    type: "PluginAPIReceipt"
+    surface: ["emit", "read", "schedule"]
+    constraint: "capability-scoped to PluginManifest declarations"
+    timestamp: now()
+  }
+}

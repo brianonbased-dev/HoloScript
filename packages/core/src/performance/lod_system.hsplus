@@ -1,0 +1,22 @@
+// @lod_system — Level-of-Detail system: switches mesh/shader detail by camera distance.
+//
+// Native .hsplus surface for core/performance/LODSystem.ts.
+//
+// registerLOD(entity, levels[]) / update(camera) — picks LOD per entity
+
+@trait lod_system {
+  capability_tags: ["lod_system", "level_of_detail", "mesh_lod", "camera_distance", "core"]
+
+  @on_spawn => {
+    emit("lod_system_ready", {})
+  }
+
+  @on_update(camera) => {
+    update_lod_levels(camera)
+  }
+
+  @receipt lod_system_config {
+    type: "LODSystemReceipt"
+    timestamp: now()
+  }
+}

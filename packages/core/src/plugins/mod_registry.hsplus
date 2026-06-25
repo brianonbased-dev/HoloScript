@@ -1,0 +1,25 @@
+// @mod_registry — Mod discovery, conflict detection, and load order for HoloScript mods.
+//
+// Native .hsplus surface for core/plugins/ModRegistry.ts.
+//
+// discover(dir) → Mod[] / detectConflicts(mods[]) → Conflict[] / loadOrder(mods[]) → Mod[]
+
+@trait mod_registry {
+  capability_tags: ["mod_registry", "mod_discovery", "conflict_detection", "load_order", "core"]
+
+  @on_spawn => {
+    emit("mod_registry_ready", {})
+  }
+
+  @on_discover(dir) => {
+    mods = discover_mods(dir)
+    emit("mods_discovered", { count: mods.length })
+    return mods
+  }
+
+  @receipt mod_registry_config {
+    type: "ModRegistryReceipt"
+    features: ["discovery", "conflict detection", "load order"]
+    timestamp: now()
+  }
+}

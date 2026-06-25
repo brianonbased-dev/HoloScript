@@ -1,0 +1,29 @@
+// @checkpoint_system — Named save checkpoints for undo history and session recovery.
+//
+// Native .hsplus surface for core/persistence/CheckpointSystem.ts.
+//
+// create(name) → CheckpointId / restore(id) / list() → Checkpoint[]
+
+@trait checkpoint_system {
+  capability_tags: ["checkpoint_system", "named_checkpoints", "undo_history", "session_recovery", "core"]
+
+  @on_spawn => {
+    emit("checkpoint_system_ready", {})
+  }
+
+  @on_create(name) => {
+    id = create_checkpoint(name)
+    emit("checkpoint_created", { id, name })
+    return id
+  }
+
+  @on_restore(id) => {
+    restore_checkpoint(id)
+    emit("checkpoint_restored", { id })
+  }
+
+  @receipt checkpoint_system_config {
+    type: "CheckpointSystemReceipt"
+    timestamp: now()
+  }
+}

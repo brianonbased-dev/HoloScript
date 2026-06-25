@@ -1,0 +1,25 @@
+// @data_binding_persistence — Persists reactive data bindings across save/load cycles.
+//
+// Native .hsplus surface for core/persistence/DataBinding.ts.
+// (Distinct from events/DataBinding — this is the persistence-layer serialization of bound state.)
+//
+// serialize(bindings[]) → BindingSnapshot / restore(snapshot, world)
+
+@trait data_binding_persistence {
+  capability_tags: ["data_binding_persistence", "binding_snapshot", "save_load_cycle", "reactive_state", "core"]
+
+  @on_spawn => {
+    emit("data_binding_persistence_ready", {})
+  }
+
+  @on_serialize(bindings) => {
+    snapshot = serialize_bindings(bindings)
+    return snapshot
+  }
+
+  @receipt data_binding_persistence_config {
+    type: "DataBindingPersistenceReceipt"
+    scope: "persistence layer — distinct from events/DataBinding runtime"
+    timestamp: now()
+  }
+}

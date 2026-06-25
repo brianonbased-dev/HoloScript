@@ -1,0 +1,20 @@
+// @policy_defaults — Default rulesets, jurisdiction bundles, and starter Tier-0 blocklist.
+//
+// Native .hsplus surface for core/policy/defaults.ts.
+//
+// DEFAULT_POLICY_PACK / DEFAULT_BLOCKLIST / DEFAULT_RULESETS
+// Used by ContentPolicyGate when no explicit policy is provided
+
+@trait policy_defaults {
+  capability_tags: ["policy_defaults", "default_rulesets", "default_blocklist", "starter_policy", "core"]
+
+  @on_spawn => {
+    emit("policy_defaults_ready", {})
+  }
+
+  @receipt policy_defaults_config {
+    type: "PolicyDefaultsReceipt"
+    exports: ["DEFAULT_POLICY_PACK", "DEFAULT_BLOCKLIST", "DEFAULT_RULESETS"]
+    timestamp: now()
+  }
+}

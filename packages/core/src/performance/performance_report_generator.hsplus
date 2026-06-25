@@ -1,0 +1,24 @@
+// @performance_report_generator — Generates structured performance reports from PerformanceTracker data.
+//
+// Native .hsplus surface for core/performance/PerformanceReportGenerator.ts.
+//
+// generate(tracker) → PerformanceReport { summary, hotspots[], recommendations[] }
+
+@trait performance_report_generator {
+  capability_tags: ["performance_report_generator", "structured_reports", "hotspot_analysis", "recommendations", "core"]
+
+  @on_spawn => {
+    emit("performance_report_generator_ready", {})
+  }
+
+  @on_generate(tracker) => {
+    report = generate_performance_report(tracker)
+    emit("performance_report_generated", {})
+    return report
+  }
+
+  @receipt performance_report_generator_config {
+    type: "PerformanceReportGeneratorReceipt"
+    timestamp: now()
+  }
+}

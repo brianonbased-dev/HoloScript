@@ -1,0 +1,31 @@
+// @plugin_lifecycle_manager — Unified plugin lifecycle orchestrator: load, activate, deactivate, unload.
+//
+// Native .hsplus surface for core/plugins/PluginLifecycleManager.ts.
+//
+// load(manifest) / activate(id) / deactivate(id) / unload(id)
+// Respects DependencyResolver load order; triggers lifecycle hooks
+
+@trait plugin_lifecycle_manager {
+  capability_tags: ["plugin_lifecycle_manager", "lifecycle_orchestration", "load_activate_unload", "dependency_order", "core"]
+
+  @on_spawn => {
+    emit("plugin_lifecycle_manager_ready", {})
+  }
+
+  @on_load(manifest) => {
+    id = load_plugin(manifest)
+    emit("plugin_loaded", { id })
+    return id
+  }
+
+  @on_unload(id) => {
+    unload_plugin(id)
+    emit("plugin_unloaded", { id })
+  }
+
+  @receipt plugin_lifecycle_manager_config {
+    type: "PluginLifecycleManagerReceipt"
+    phases: ["load", "activate", "deactivate", "unload"]
+    timestamp: now()
+  }
+}

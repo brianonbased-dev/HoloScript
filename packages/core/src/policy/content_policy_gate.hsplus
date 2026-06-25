@@ -1,0 +1,26 @@
+// @content_policy_gate — Shared "what may be SAID" gate for the ecosystem.
+//
+// Native .hsplus surface for core/policy/ContentPolicyGate.ts.
+//
+// check(content, policy) → PolicyResult { pass, violations[] }
+// Three-tier cascade: blocklist → ruleset → jurisdiction bundle
+
+@trait content_policy_gate {
+  capability_tags: ["content_policy_gate", "what_may_be_said", "policy_cascade", "ecosystem_gate", "core"]
+
+  @on_spawn => {
+    emit("content_policy_gate_ready", {})
+  }
+
+  @on_check(content, policy) => {
+    result = check_content_policy(content, policy)
+    if !result.pass { emit("content_policy_violation", { count: result.violations.length }) }
+    return result
+  }
+
+  @receipt content_policy_gate_config {
+    type: "ContentPolicyGateReceipt"
+    cascade: ["blocklist", "ruleset", "jurisdiction bundle"]
+    timestamp: now()
+  }
+}

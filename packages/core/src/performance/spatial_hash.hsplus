@@ -1,0 +1,24 @@
+// @spatial_hash — Spatial hash grid for O(1) entity proximity queries.
+//
+// Native .hsplus surface for core/performance/SpatialHash.ts.
+//
+// insert(entity, bounds) / query(bounds) → Entity[] / remove(entity)
+// Used by physics broadphase and LOD distance queries
+
+@trait spatial_hash {
+  capability_tags: ["spatial_hash", "proximity_query", "broadphase", "o1_lookup", "core"]
+
+  @on_spawn => {
+    emit("spatial_hash_ready", {})
+  }
+
+  @on_query(bounds) => {
+    return query_spatial_hash(bounds)
+  }
+
+  @receipt spatial_hash_config {
+    type: "SpatialHashReceipt"
+    consumers: ["physics broadphase", "LOD distance queries"]
+    timestamp: now()
+  }
+}

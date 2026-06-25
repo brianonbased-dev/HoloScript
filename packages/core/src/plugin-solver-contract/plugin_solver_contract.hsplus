@@ -1,0 +1,26 @@
+// @plugin_solver_contract — Plugin contract discipline bundle (H2): solver capability declarations and enforcement.
+//
+// Native .hsplus surface for core/plugin-solver-contract/PluginSolverContract.ts.
+//
+// PluginSolverContract { solverCapabilities[], inputSchema, outputSchema }
+// H2: compiler enforces contract at compile time; plugins cannot exceed declared solver scope
+
+@trait plugin_solver_contract {
+  capability_tags: ["plugin_solver_contract", "h2_discipline", "solver_capabilities", "compile_time_enforcement", "core"]
+
+  @on_spawn => {
+    emit("plugin_solver_contract_ready", {})
+  }
+
+  @on_validate(contract, call) => {
+    valid = validate_solver_contract(contract, call)
+    if !valid { emit("solver_contract_violation", {}) }
+    return valid
+  }
+
+  @receipt plugin_solver_contract_config {
+    type: "PluginSolverContractReceipt"
+    proof: "H2 — compiler enforces solver scope from contract"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,20 @@
+// @hololand_extension_point — Extension contracts for HoloLand platform features.
+//
+// Native .hsplus surface for core/plugins/HololandExtensionPoint.ts.
+//
+// HololandExtensionPoint { featureId, version, contract: PluginSolverContract }
+// Defines the capability a plugin must fulfill to extend a HoloLand feature
+
+@trait hololand_extension_point {
+  capability_tags: ["hololand_extension_point", "extension_contracts", "hololand_features", "capability_fulfillment", "core"]
+
+  @on_spawn => {
+    emit("hololand_extension_point_ready", {})
+  }
+
+  @receipt hololand_extension_point_config {
+    type: "HololandExtensionPointReceipt"
+    pattern: "contract declares capability requirement; plugin fulfills it"
+    timestamp: now()
+  }
+}

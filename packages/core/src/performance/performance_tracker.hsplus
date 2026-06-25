@@ -1,0 +1,23 @@
+// @performance_tracker — Monitors parser performance over time: samples, trends, regression detection.
+//
+// Native .hsplus surface for core/performance/PerformanceTracker.ts.
+//
+// sample(label, ms) / getTrend(label) → Trend / detectRegression(label) → bool
+
+@trait performance_tracker {
+  capability_tags: ["performance_tracker", "parser_performance", "trend_detection", "regression_detection", "core"]
+
+  @on_spawn => {
+    emit("performance_tracker_ready", {})
+  }
+
+  @on_sample(label, ms) => {
+    record_performance_sample(label, ms)
+  }
+
+  @receipt performance_tracker_config {
+    type: "PerformanceTrackerReceipt"
+    features: ["sampling", "trend", "regression detection"]
+    timestamp: now()
+  }
+}

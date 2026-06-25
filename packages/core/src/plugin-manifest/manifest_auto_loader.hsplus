@@ -1,0 +1,25 @@
+// @manifest_auto_loader — Scans a plugins directory and auto-registers every manifest it finds.
+//
+// Native .hsplus surface for core/plugin-manifest/ManifestAutoLoader.ts.
+//
+// scan(dir) → PluginManifest[] / autoRegister(dir)
+// Discovers all PluginManifest.json files; validates and registers each
+
+@trait manifest_auto_loader {
+  capability_tags: ["manifest_auto_loader", "plugin_discovery", "manifest_scan", "auto_register", "core"]
+
+  @on_spawn => {
+    emit("manifest_auto_loader_ready", {})
+  }
+
+  @on_scan(dir) => {
+    manifests = scan_plugin_manifests(dir)
+    emit("manifests_scanned", { count: manifests.length })
+    return manifests
+  }
+
+  @receipt manifest_auto_loader_config {
+    type: "ManifestAutoLoaderReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @migration_manager_persistence — Applies save-file schema migrations on load for forward compatibility.
+//
+// Native .hsplus surface for core/persistence/MigrationManager.ts.
+//
+// migrate(save, fromVersion, toVersion) → MigratedSave
+// Runs migration chain; idempotent per version step
+
+@trait migration_manager_persistence {
+  capability_tags: ["migration_manager_persistence", "save_migration", "forward_compatibility", "version_chain", "core"]
+
+  @on_spawn => {
+    emit("migration_manager_persistence_ready", {})
+  }
+
+  @on_migrate(save, from_version, to_version) => {
+    migrated = migrate_save_file(save, from_version, to_version)
+    emit("save_migrated", { from_version, to_version })
+    return migrated
+  }
+
+  @receipt migration_manager_persistence_config {
+    type: "MigrationManagerPersistenceReceipt"
+    constraint: "idempotent per version step"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @json_logic_policy — Minimal dependency-free JSON-Logic evaluator for ContentPolicyGate rulesets.
+//
+// Native .hsplus surface for core/policy/jsonLogic.ts.
+//
+// evaluate(rule, data) → bool
+// No external deps; runs policy rules as JSON-Logic expressions in the Tier-1 gate
+
+@trait json_logic_policy {
+  capability_tags: ["json_logic_policy", "json_logic", "dependency_free", "policy_ruleset", "core"]
+
+  @on_spawn => {
+    emit("json_logic_policy_ready", {})
+  }
+
+  @on_evaluate(rule, data) => {
+    result = evaluate_json_logic(rule, data)
+    return result
+  }
+
+  @receipt json_logic_policy_config {
+    type: "JSONLogicPolicyReceipt"
+    tier: "Tier 1 — ruleset evaluation after Tier 0 blocklist"
+    constraint: "zero external dependencies"
+    timestamp: now()
+  }
+}

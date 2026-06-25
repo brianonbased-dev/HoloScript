@@ -1,0 +1,26 @@
+// @policy_blocklist — Tier-0 content moderation: deterministic, sub-millisecond term rejection.
+//
+// Native .hsplus surface for core/policy/blocklist.ts.
+//
+// check(text) → bool — exact match + normalized form check
+// Tier 0 of the ContentPolicyGate cascade; runs before ruleset evaluation
+
+@trait policy_blocklist {
+  capability_tags: ["policy_blocklist", "tier_0_moderation", "deterministic", "sub_millisecond", "core"]
+
+  @on_spawn => {
+    emit("policy_blocklist_ready", {})
+  }
+
+  @on_check(text) => {
+    blocked = check_policy_blocklist(text)
+    if blocked { emit("blocklist_hit", {}) }
+    return blocked
+  }
+
+  @receipt policy_blocklist_config {
+    type: "PolicyBlocklistReceipt"
+    tier: "Tier 0 — deterministic, sub-millisecond"
+    timestamp: now()
+  }
+}

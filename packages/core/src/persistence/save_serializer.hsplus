@@ -1,0 +1,30 @@
+// @save_serializer — Serializes/deserializes full world state to/from save format.
+//
+// Native .hsplus surface for core/persistence/SaveSerializer.ts.
+//
+// serialize(world) → SaveData / deserialize(data, version) → World
+// Version-tagged saves; consumed by MigrationManager for forward compat
+
+@trait save_serializer {
+  capability_tags: ["save_serializer", "world_state_serialization", "version_tagged", "save_format", "core"]
+
+  @on_spawn => {
+    emit("save_serializer_ready", {})
+  }
+
+  @on_serialize(world) => {
+    data = serialize_world_save(world)
+    return data
+  }
+
+  @on_deserialize(data, version) => {
+    world = deserialize_world_save(data, version)
+    return world
+  }
+
+  @receipt save_serializer_config {
+    type: "SaveSerializerReceipt"
+    format: "version-tagged save data"
+    timestamp: now()
+  }
+}

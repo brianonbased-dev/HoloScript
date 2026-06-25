@@ -1,0 +1,19 @@
+// @hololand_types_plugins — Type definitions for HoloLand platform plugin integration.
+//
+// Native .hsplus surface for core/plugins/HololandTypes.ts.
+//
+// HololandFeatureId, ExtensionProvider, HololandPlatformConfig
+
+@trait hololand_types_plugins {
+  capability_tags: ["hololand_types_plugins", "hololand_integration_types", "type_definitions", "core"]
+
+  @on_spawn => {
+    emit("hololand_types_plugins_ready", {})
+  }
+
+  @receipt hololand_types_plugins_config {
+    type: "HololandTypesPluginsReceipt"
+    types: ["HololandFeatureId", "ExtensionProvider", "HololandPlatformConfig"]
+    timestamp: now()
+  }
+}
