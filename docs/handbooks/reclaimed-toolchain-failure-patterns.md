@@ -77,6 +77,42 @@
   (1) the base class, (2) a recently-succeeded sibling as "evidence of the correct approach", and
   (3) ±15 lines around the symbol definition.
 
+## Algorithm & agent-state hazards (deep-review pass, 2026-06-25)
+
+> Reclaimed in a deep value-benchmark of the wider Gemini silo (24 keyword-flagged candidate
+> entries; verdict: almost all dead or superseded — the good parts were already reclaimed above, and
+> the rest documents the defunct `uaa2-service` monolith). These few are the genuinely transferable,
+> codebase-independent residue, cross-checked as not already in canon. Sources:
+> `uaa2_collective_intelligence_pwg_library/gotchas.md` (Apr 2026) and
+> `uaa2_production_deployment_and_hardened_ops/overview.md`.
+
+- **Deep-clone the incumbent best in PSO/GA/evolution loops** (G.ARCH.10). `globalBest = { ...particle }`
+  shallow-copies — nested arrays like `position` stay shared by reference, so as the particle moves the
+  recorded best silently tracks it and the algorithm "forgets" the true optimum. Clone the arrays:
+  `globalBest = { ...particle, position: [...particle.position] }`. **Directly relevant to `@evolve_program`**
+  (I.023) and any fitness search.
+- **Normalize fitness to `[0,1]` before cross-engine comparison** (G.STATS.02). A GA returning raw
+  milliseconds and a PSO returning a unitless probability cannot be compared on one scale — the
+  orchestrator then selects the wrong "best candidate". Normalize every optimizer's `best_fitness` to
+  `[0,1]` (1.0 = perfect). Relevant to the `@evolve_program` verifier-gate's candidate scoring.
+- **A fixed regression-slope threshold gives false trends on stable-but-noisy data** (G.STATS.01).
+  `[50,51,49,50,51,49,50]` has slope ≈ −0.07 → flagged "decreasing" at a `0.01` threshold despite being
+  visually flat. Make the stability threshold configurable (≥0.1 for noisy series) for any
+  convergence / trend detection.
+- **The "persistence illusion": a `saveState()` that only dehydrates loses data on restart** (G.ARCH.18).
+  A `saveState()` returning a serializable object is NOT a disk/DB write — code that does
+  `await this.saveState()` and assumes durability silently loses state across restarts. Keep dehydrate
+  (serialize) and persist (actually write) as distinct steps, and call the one that writes.
+- **Double-key prefix malformation** (G.ENV.08; pairs W.721 / F.106). Copy-pasting from a `.env` into a
+  CLI or variable manager yields a recursive value: `OPENAI_API_KEY="OPENAI_API_KEY=sk-..."`. The SDK
+  then fails "invalid key" because the prefix is inside the value. Scan for `KEY=KEY` when a key "looks
+  right" but is rejected.
+- **Ordered, level-verified service startup beats best-effort init** (Slow-Start Protocol). Initialize in
+  a deterministic dependency graph — Foundation (logging/config) → Infrastructure (DB/transport) →
+  Orchestration → Advanced → Scheduling/loops — and verify each level before starting the next, exposed
+  via a `/health/startup` endpoint. Prevents the race / circular-deadlock class of boot failure.
+
 ---
 *Reclaimed catalog id: be80b802 (Jan 2026, uaa2-service). This file is the transferable subset;
-the full 52-pattern source lived only in the Gemini silo.*
+the full source lived only in the Gemini silo. 2026-06-25 deep-review pass added the algorithm/
+agent-state section above; the rest of the silo's 24 candidate entries benchmarked as dead/superseded.*
