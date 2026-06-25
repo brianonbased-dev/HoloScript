@@ -1,0 +1,25 @@
+// @fallback_cache_strategy — Recovery strategy: return cached last-known-good on upstream failure.
+//
+// Native .hsplus surface for core/recovery/strategies/FallbackCacheStrategy.ts.
+//
+// apply(failure) → RecoveryResult { value: cachedResult, staleMs }
+
+@trait fallback_cache_strategy {
+  capability_tags: ["fallback_cache_strategy", "last_known_good", "stale_cache", "upstream_failure", "core"]
+
+  @on_spawn => {
+    emit("fallback_cache_strategy_ready", {})
+  }
+
+  @on_apply(failure) => {
+    result = apply_fallback_cache_strategy(failure)
+    emit("fallback_cache_used", { stale_ms: result.staleMs })
+    return result
+  }
+
+  @receipt fallback_cache_strategy_config {
+    type: "FallbackCacheStrategyReceipt"
+    approach: "return cached last-known-good"
+    timestamp: now()
+  }
+}

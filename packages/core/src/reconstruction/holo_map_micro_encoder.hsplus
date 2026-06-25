@@ -1,0 +1,25 @@
+// @holo_map_micro_encoder — Lightweight HoloMap encoder for mobile/edge devices.
+//
+// Native .hsplus surface for core/reconstruction/holoMapMicroEncoder.ts.
+//
+// encode(frame) → SceneEmbedding — quantized ViT-tiny variant; runs on mobile NPU
+
+@trait holo_map_micro_encoder {
+  capability_tags: ["holo_map_micro_encoder", "mobile_encoder", "quantized_vit", "edge_inference", "core"]
+
+  @on_spawn => {
+    emit("holo_map_micro_encoder_ready", {})
+  }
+
+  @on_encode(frame) => {
+    embedding = encode_micro_holomap(frame)
+    return embedding
+  }
+
+  @receipt holo_map_micro_encoder_config {
+    type: "HoloMapMicroEncoderReceipt"
+    model: "quantized ViT-tiny"
+    target: "mobile NPU / edge"
+    timestamp: now()
+  }
+}

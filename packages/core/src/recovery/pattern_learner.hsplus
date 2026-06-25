@@ -1,0 +1,29 @@
+// @pattern_learner — Learns recurring failure patterns to improve self-healing strategy selection.
+//
+// Native .hsplus surface for core/recovery/PatternLearner.ts.
+//
+// observe(failure, strategy, outcome) / recommend(failure) → Strategy
+// Online learning; weights strategies by past success rates
+
+@trait pattern_learner {
+  capability_tags: ["pattern_learner", "failure_pattern_learning", "strategy_selection", "online_learning", "core"]
+
+  @on_spawn => {
+    emit("pattern_learner_ready", {})
+  }
+
+  @on_observe(failure, strategy, outcome) => {
+    update_pattern_learner(failure, strategy, outcome)
+  }
+
+  @on_recommend(failure) => {
+    strategy = recommend_recovery_strategy(failure)
+    return strategy
+  }
+
+  @receipt pattern_learner_config {
+    type: "PatternLearnerReceipt"
+    approach: "online learning — weights by past success rate"
+    timestamp: now()
+  }
+}

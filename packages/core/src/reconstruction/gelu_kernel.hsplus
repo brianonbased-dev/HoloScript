@@ -1,0 +1,20 @@
+// @gelu_kernel — WebGPU WGSL GELU activation kernel for HoloMap MLP layers.
+//
+// Native .hsplus surface for core/reconstruction/geluKernel.ts.
+//
+// WGSL: gelu(x) = x * Φ(x) — element-wise; called from ffnKernel
+
+@trait gelu_kernel {
+  capability_tags: ["gelu_kernel", "wgsl_activation", "gelu", "mlp_layer", "core"]
+
+  @on_spawn => {
+    emit("gelu_kernel_ready", {})
+  }
+
+  @receipt gelu_kernel_config {
+    type: "GELUKernelReceipt"
+    op: "gelu(x) = x * Phi(x)"
+    format: "WGSL compute shader"
+    timestamp: now()
+  }
+}

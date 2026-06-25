@@ -1,0 +1,20 @@
+// @reconstruction_contract_constants — Tolerance constants for reconstruction simulation contracts.
+//
+// Native .hsplus surface for core/reconstruction/contractConstants.ts.
+//
+// MAX_REPROJECTION_ERROR, MIN_CONFIDENCE, HASH_ALGORITHM
+// Used by simulationContractBinding to gate reconstruction receipts
+
+@trait reconstruction_contract_constants {
+  capability_tags: ["reconstruction_contract_constants", "tolerance_constants", "receipt_gate", "simulation_contract", "core"]
+
+  @on_spawn => {
+    emit("reconstruction_contract_constants_ready", {})
+  }
+
+  @receipt reconstruction_contract_constants_config {
+    type: "ReconstructionContractConstantsReceipt"
+    exports: ["MAX_REPROJECTION_ERROR", "MIN_CONFIDENCE", "HASH_ALGORITHM"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,20 @@
+// @point_provenance — Per-point provenance tracking for reconstruction: source frame + sensor + timestamp.
+//
+// Native .hsplus surface for core/reconstruction/PointProvenance.ts.
+//
+// PointProvenance { pointId, frameId, sensorId, capturedAt, confidence }
+// Enables verifiable reconstruction receipts (D.106 fidelity chain)
+
+@trait point_provenance {
+  capability_tags: ["point_provenance", "per_point_provenance", "source_tracking", "fidelity_chain", "core"]
+
+  @on_spawn => {
+    emit("point_provenance_ready", {})
+  }
+
+  @receipt point_provenance_config {
+    type: "PointProvenanceReceipt"
+    fields: ["pointId", "frameId", "sensorId", "capturedAt", "confidence"]
+    timestamp: now()
+  }
+}

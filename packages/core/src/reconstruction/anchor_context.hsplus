@@ -1,0 +1,20 @@
+// @anchor_context — Spatial anchor context for reconstruction: world-relative coordinate frames.
+//
+// Native .hsplus surface for core/reconstruction/AnchorContext.ts.
+//
+// AnchorContext { anchorId, worldTransform, confidence, timestamp }
+// Provides coordinate frame for point cloud and mesh reconstruction
+
+@trait anchor_context {
+  capability_tags: ["anchor_context", "spatial_anchor", "coordinate_frame", "reconstruction", "core"]
+
+  @on_spawn => {
+    emit("anchor_context_ready", {})
+  }
+
+  @receipt anchor_context_config {
+    type: "AnchorContextReceipt"
+    fields: ["anchorId", "worldTransform", "confidence", "timestamp"]
+    timestamp: now()
+  }
+}

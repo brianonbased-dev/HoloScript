@@ -1,0 +1,23 @@
+// @holo_map_weight_cache — GPU weight cache for HoloMap encoder: avoids re-upload on each frame.
+//
+// Native .hsplus surface for core/reconstruction/holoMapWeightCache.ts.
+//
+// get(modelId) → GPUBuffer? / set(modelId, buffer) / invalidate(modelId)
+
+@trait holo_map_weight_cache {
+  capability_tags: ["holo_map_weight_cache", "gpu_weight_cache", "no_re_upload", "encoder_cache", "core"]
+
+  @on_spawn => {
+    emit("holo_map_weight_cache_ready", {})
+  }
+
+  @on_get(model_id) => {
+    return lookup_weight_cache(model_id)
+  }
+
+  @receipt holo_map_weight_cache_config {
+    type: "HoloMapWeightCacheReceipt"
+    strategy: "retain GPU buffer — avoid per-frame re-upload"
+    timestamp: now()
+  }
+}

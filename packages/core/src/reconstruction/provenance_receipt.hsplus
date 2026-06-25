@@ -1,0 +1,25 @@
+// @provenance_receipt — Signed provenance receipt for reconstruction output (D.106 fidelity gate).
+//
+// Native .hsplus surface for core/reconstruction/ProvenanceReceipt.ts.
+//
+// ProvenanceReceipt { hash, sources[], encoder, timestamp, signature }
+// Attaches to every reconstruction output; verifiable via verifyUrl
+
+@trait provenance_receipt {
+  capability_tags: ["provenance_receipt", "signed_provenance", "reconstruction_gate", "fidelity_chain", "core"]
+
+  @on_spawn => {
+    emit("provenance_receipt_ready", {})
+  }
+
+  @on_create(sources, encoder) => {
+    receipt = create_provenance_receipt(sources, encoder)
+    return receipt
+  }
+
+  @receipt provenance_receipt_config {
+    type: "ProvenanceReceipt"
+    fields: ["hash", "sources", "encoder", "timestamp", "signature"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,19 @@
+// @mobile_sensor_bundle — Bundles mobile sensor data (IMU, camera, depth) for reconstruction input.
+//
+// Native .hsplus surface for core/reconstruction/mobileSensorBundle.ts.
+//
+// MobileSensorBundle { frame, imu, depth?, timestamp } — single reconstruction tick input
+
+@trait mobile_sensor_bundle {
+  capability_tags: ["mobile_sensor_bundle", "imu_camera_depth", "reconstruction_input", "mobile_capture", "core"]
+
+  @on_spawn => {
+    emit("mobile_sensor_bundle_ready", {})
+  }
+
+  @receipt mobile_sensor_bundle_config {
+    type: "MobileSensorBundleReceipt"
+    fields: ["frame", "imu", "depth", "timestamp"]
+    timestamp: now()
+  }
+}

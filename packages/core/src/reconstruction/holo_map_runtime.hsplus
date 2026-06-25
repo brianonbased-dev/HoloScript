@@ -1,0 +1,25 @@
+// @holo_map_runtime — HoloMap reconstruction runtime: drives encoder inference + scene integration.
+//
+// Native .hsplus surface for core/reconstruction/HoloMapRuntime.ts.
+//
+// run(frame) → SceneDelta — encoder inference → integrate into live scene
+
+@trait holo_map_runtime {
+  capability_tags: ["holo_map_runtime", "reconstruction_runtime", "encoder_inference", "scene_integration", "core"]
+
+  @on_spawn => {
+    emit("holo_map_runtime_ready", {})
+  }
+
+  @on_run(frame) => {
+    delta = run_holomap_inference(frame)
+    emit("holomap_frame_processed", {})
+    return delta
+  }
+
+  @receipt holo_map_runtime_config {
+    type: "HoloMapRuntimeReceipt"
+    pipeline: "frame → encoder inference → SceneDelta → integrate"
+    timestamp: now()
+  }
+}

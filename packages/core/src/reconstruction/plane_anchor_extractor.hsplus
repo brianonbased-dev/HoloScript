@@ -1,0 +1,25 @@
+// @plane_anchor_extractor — Extracts plane anchors from point cloud for environment reconstruction.
+//
+// Native .hsplus surface for core/reconstruction/PlaneAnchorExtractor.ts.
+//
+// extract(pointCloud) → PlaneAnchor[] — RANSAC plane fitting; feeds AnchorContext
+
+@trait plane_anchor_extractor {
+  capability_tags: ["plane_anchor_extractor", "ransac_plane", "point_cloud", "environment_reconstruction", "core"]
+
+  @on_spawn => {
+    emit("plane_anchor_extractor_ready", {})
+  }
+
+  @on_extract(point_cloud) => {
+    anchors = extract_plane_anchors(point_cloud)
+    emit("plane_anchors_extracted", { count: anchors.length })
+    return anchors
+  }
+
+  @receipt plane_anchor_extractor_config {
+    type: "PlaneAnchorExtractorReceipt"
+    algorithm: "RANSAC plane fitting"
+    timestamp: now()
+  }
+}

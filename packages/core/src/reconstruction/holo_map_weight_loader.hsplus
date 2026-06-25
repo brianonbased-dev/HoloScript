@@ -1,0 +1,25 @@
+// @holo_map_weight_loader — Loads HoloMap encoder weights from GGUF/safetensors into GPU buffers.
+//
+// Native .hsplus surface for core/reconstruction/holoMapWeightLoader.ts.
+//
+// load(path, device) → WeightMap / loadSafetensors(path) / loadGGUF(path)
+
+@trait holo_map_weight_loader {
+  capability_tags: ["holo_map_weight_loader", "gguf_loader", "safetensors_loader", "gpu_buffer_upload", "core"]
+
+  @on_spawn => {
+    emit("holo_map_weight_loader_ready", {})
+  }
+
+  @on_load(path, device) => {
+    weights = load_holomap_weights(path, device)
+    emit("holomap_weights_loaded", {})
+    return weights
+  }
+
+  @receipt holo_map_weight_loader_config {
+    type: "HoloMapWeightLoaderReceipt"
+    formats: ["GGUF", "safetensors"]
+    timestamp: now()
+  }
+}

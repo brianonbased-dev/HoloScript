@@ -1,0 +1,25 @@
+// @fused_attention_kernel — WebGPU fused multi-head attention kernel for HoloMap encoder.
+//
+// Native .hsplus surface for core/reconstruction/FusedAttentionKernel.ts.
+//
+// dispatch(q, k, v, mask?) → attentionOutput — fused QKV GEMM + softmax + out projection
+
+@trait fused_attention_kernel {
+  capability_tags: ["fused_attention_kernel", "webgpu_kernel", "multi_head_attention", "holomap_encoder", "core"]
+
+  @on_spawn => {
+    emit("fused_attention_kernel_ready", {})
+  }
+
+  @on_dispatch(q, k, v, mask) => {
+    output = dispatch_fused_attention(q, k, v, mask)
+    return output
+  }
+
+  @receipt fused_attention_kernel_config {
+    type: "FusedAttentionKernelReceipt"
+    ops: ["QKV GEMM", "softmax", "out projection"]
+    target: "WebGPU compute shader"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @paged_kv_cache — Paged KV cache for HoloMap encoder attention: GPU memory management.
+//
+// Native .hsplus surface for core/reconstruction/PagedKVCache.ts.
+//
+// allocate(slots) / read(slot) / write(slot, kv) / evict(lru)
+// Manages attention KV buffer across frames without full realloc
+
+@trait paged_kv_cache {
+  capability_tags: ["paged_kv_cache", "attention_kv", "gpu_memory_management", "encoder_cache", "core"]
+
+  @on_spawn(page_size, max_pages) => {
+    init_paged_kv_cache(page_size, max_pages)
+    emit("paged_kv_cache_ready", {})
+  }
+
+  @on_write(slot, kv) => {
+    write_kv_cache(slot, kv)
+  }
+
+  @receipt paged_kv_cache_config {
+    type: "PagedKVCacheReceipt"
+    eviction: "LRU"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @gemm_kernel — WebGPU tiled GEMM kernel for HoloMap encoder linear layers.
+//
+// Native .hsplus surface for core/reconstruction/gemmKernel.ts.
+//
+// WGSL: C = A × B with shared-memory tiling (16×16 tile)
+
+@trait gemm_kernel {
+  capability_tags: ["gemm_kernel", "wgsl_gemm", "tiled_matmul", "encoder_linear", "core"]
+
+  @on_spawn => {
+    emit("gemm_kernel_ready", {})
+  }
+
+  @receipt gemm_kernel_config {
+    type: "GEMMKernelReceipt"
+    op: "C = A x B"
+    tile: "16x16 shared memory"
+    format: "WGSL compute shader"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,28 @@
+// @post_process_pipeline — Post-processing pipeline: chains passes (bloom, TAA, SSAO, tonemap).
+//
+// Native .hsplus surface for core/rendering/postprocess/PostProcessPipeline.ts.
+//
+// addPass(pass) / removePass(id) / render(scene, camera) → OutputTexture
+
+@trait post_process_pipeline {
+  capability_tags: ["post_process_pipeline", "pass_chain", "bloom_taa_ssao", "rendering_pipeline", "core"]
+
+  @on_spawn => {
+    emit("post_process_pipeline_ready", {})
+  }
+
+  @on_add_pass(pass) => {
+    add_postprocess_pass(pass)
+  }
+
+  @on_render(scene, camera) => {
+    output = render_postprocess_pipeline(scene, camera)
+    return output
+  }
+
+  @receipt post_process_pipeline_config {
+    type: "PostProcessPipelineReceipt"
+    passes: ["bloom", "TAA", "SSAO", "tonemap"]
+    timestamp: now()
+  }
+}

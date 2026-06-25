@@ -1,0 +1,26 @@
+// @webgpu_gate — WebGPU availability gate: feature detection, adapter selection, fallback.
+//
+// Native .hsplus surface for core/reconstruction/webgpuGate.ts.
+//
+// probe() → WebGPUGateResult { supported, adapter, limits }
+// Guards HoloMap reconstruction kernel dispatch; falls back to CPU path
+
+@trait webgpu_gate {
+  capability_tags: ["webgpu_gate", "webgpu_feature_detection", "adapter_selection", "cpu_fallback", "core"]
+
+  @on_spawn => {
+    emit("webgpu_gate_ready", {})
+  }
+
+  @on_probe => {
+    result = probe_webgpu_gate()
+    emit("webgpu_gate_probed", { supported: result.supported })
+    return result
+  }
+
+  @receipt webgpu_gate_config {
+    type: "WebGPUGateReceipt"
+    fallback: "CPU path when WebGPU unavailable"
+    timestamp: now()
+  }
+}

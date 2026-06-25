@@ -1,0 +1,26 @@
+// @densify_by_interpolation — Densifies sparse point clouds by temporal/spatial interpolation.
+//
+// Native .hsplus surface for core/reconstruction/densifyByInterpolation.ts.
+//
+// densify(sparse, frames[]) → DensePointCloud
+// D.101 carve-out: sovereign densifier; uses interpolation (NOT ArtiFixer weights)
+
+@trait densify_by_interpolation {
+  capability_tags: ["densify_by_interpolation", "point_cloud_densification", "temporal_interpolation", "sovereign_densifier", "core"]
+
+  @on_spawn => {
+    emit("densify_by_interpolation_ready", {})
+  }
+
+  @on_densify(sparse, frames) => {
+    dense = densify_point_cloud_interpolation(sparse, frames)
+    emit("point_cloud_densified", {})
+    return dense
+  }
+
+  @receipt densify_by_interpolation_config {
+    type: "DensifyByInterpolationReceipt"
+    approach: "sovereign interpolation — not ArtiFixer weights"
+    timestamp: now()
+  }
+}

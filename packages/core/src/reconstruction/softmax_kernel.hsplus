@@ -1,0 +1,20 @@
+// @softmax_kernel — WebGPU numerically-stable softmax kernel for attention score normalization.
+//
+// Native .hsplus surface for core/reconstruction/softmaxKernel.ts.
+//
+// WGSL: softmax(x) = exp(x - max(x)) / sum(exp(x - max(x))) — max-subtraction for stability
+
+@trait softmax_kernel {
+  capability_tags: ["softmax_kernel", "wgsl_softmax", "numerically_stable", "attention_normalization", "core"]
+
+  @on_spawn => {
+    emit("softmax_kernel_ready", {})
+  }
+
+  @receipt softmax_kernel_config {
+    type: "SoftmaxKernelReceipt"
+    op: "softmax(x) with max-subtraction for stability"
+    format: "WGSL compute shader"
+    timestamp: now()
+  }
+}

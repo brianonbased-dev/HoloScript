@@ -1,0 +1,20 @@
+// @rope_kernel — WebGPU RoPE (Rotary Position Embedding) kernel for HoloMap transformer.
+//
+// Native .hsplus surface for core/reconstruction/ropeKernel.ts.
+//
+// WGSL: applies RoPE to Q and K tensors in-place
+
+@trait rope_kernel {
+  capability_tags: ["rope_kernel", "wgsl_rope", "rotary_position_embedding", "transformer_attention", "core"]
+
+  @on_spawn => {
+    emit("rope_kernel_ready", {})
+  }
+
+  @receipt rope_kernel_config {
+    type: "RoPEKernelReceipt"
+    op: "RoPE applied to Q and K in-place"
+    format: "WGSL compute shader"
+    timestamp: now()
+  }
+}

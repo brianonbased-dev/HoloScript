@@ -1,0 +1,27 @@
+// @trajectory_memory — Stores and queries camera/sensor trajectory for reconstruction pose estimation.
+//
+// Native .hsplus surface for core/reconstruction/TrajectoryMemory.ts.
+//
+// record(pose, timestamp) / query(t) → Pose — interpolated pose at time t
+
+@trait trajectory_memory {
+  capability_tags: ["trajectory_memory", "pose_estimation", "trajectory_interpolation", "reconstruction_slam", "core"]
+
+  @on_spawn => {
+    emit("trajectory_memory_ready", {})
+  }
+
+  @on_record(pose, timestamp) => {
+    record_trajectory_pose(pose, timestamp)
+  }
+
+  @on_query(t) => {
+    return query_trajectory_pose(t)
+  }
+
+  @receipt trajectory_memory_config {
+    type: "TrajectoryMemoryReceipt"
+    interpolation: "pose at time t"
+    timestamp: now()
+  }
+}

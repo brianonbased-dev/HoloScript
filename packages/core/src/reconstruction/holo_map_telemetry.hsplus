@@ -1,0 +1,23 @@
+// @holo_map_telemetry — Telemetry emission for HoloMap reconstruction pipeline stages.
+//
+// Native .hsplus surface for core/reconstruction/holoMapTelemetry.ts.
+//
+// emitFrame(stage, ms, metadata) → routes to OTLP
+
+@trait holo_map_telemetry {
+  capability_tags: ["holo_map_telemetry", "reconstruction_telemetry", "otlp", "pipeline_stages", "core"]
+
+  @on_spawn => {
+    emit("holo_map_telemetry_ready", {})
+  }
+
+  @on_emit_frame(stage, ms, metadata) => {
+    emit_reconstruction_telemetry(stage, ms, metadata)
+  }
+
+  @receipt holo_map_telemetry_config {
+    type: "HoloMapTelemetryReceipt"
+    destination: "OTLP"
+    timestamp: now()
+  }
+}

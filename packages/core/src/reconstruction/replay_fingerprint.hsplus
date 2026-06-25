@@ -1,0 +1,24 @@
+// @replay_fingerprint — Computes replay fingerprint for reconstruction verification (anti-tamper).
+//
+// Native .hsplus surface for core/reconstruction/replayFingerprint.ts.
+//
+// fingerprint(frames[], encoder) → hex — deterministic hash over input frames + encoder version
+
+@trait replay_fingerprint {
+  capability_tags: ["replay_fingerprint", "anti_tamper", "deterministic_hash", "reconstruction_verification", "core"]
+
+  @on_spawn => {
+    emit("replay_fingerprint_ready", {})
+  }
+
+  @on_fingerprint(frames, encoder) => {
+    fp = compute_replay_fingerprint(frames, encoder)
+    return fp
+  }
+
+  @receipt replay_fingerprint_config {
+    type: "ReplayFingerprintReceipt"
+    algorithm: "SHA-256 over frames + encoder version"
+    timestamp: now()
+  }
+}

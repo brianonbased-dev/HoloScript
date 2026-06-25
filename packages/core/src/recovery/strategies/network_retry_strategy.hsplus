@@ -1,0 +1,25 @@
+// @network_retry_strategy — Recovery strategy: exponential-backoff retry for transient network failures.
+//
+// Native .hsplus surface for core/recovery/strategies/NetworkRetryStrategy.ts.
+//
+// apply(failure) → RecoveryResult — retries with jittered exponential backoff
+
+@trait network_retry_strategy {
+  capability_tags: ["network_retry_strategy", "exponential_backoff", "jitter", "transient_failure", "core"]
+
+  @on_spawn => {
+    emit("network_retry_strategy_ready", {})
+  }
+
+  @on_apply(failure) => {
+    result = apply_network_retry_strategy(failure)
+    emit("network_retry_applied", { attempt: result.attempt })
+    return result
+  }
+
+  @receipt network_retry_strategy_config {
+    type: "NetworkRetryStrategyReceipt"
+    approach: "jittered exponential backoff"
+    timestamp: now()
+  }
+}

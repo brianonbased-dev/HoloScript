@@ -1,0 +1,20 @@
+// @image_patch_embed_kernel — WebGPU patch embedding kernel for ViT-based HoloMap encoder.
+//
+// Native .hsplus surface for core/reconstruction/imagePatchEmbedKernel.ts.
+//
+// WGSL: splits image into patches, embeds each via linear projection
+
+@trait image_patch_embed_kernel {
+  capability_tags: ["image_patch_embed_kernel", "wgsl_patch_embed", "vit_preprocessing", "image_tokenization", "core"]
+
+  @on_spawn => {
+    emit("image_patch_embed_kernel_ready", {})
+  }
+
+  @receipt image_patch_embed_kernel_config {
+    type: "ImagePatchEmbedKernelReceipt"
+    op: "image → patches → linear projection"
+    format: "WGSL compute shader"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @holo_map_anchored_manifest — Anchored manifest binding reconstruction output to spatial anchor.
+//
+// Native .hsplus surface for core/reconstruction/holoMapAnchoredManifest.ts.
+//
+// AnchoredManifest { anchorId, sceneHash, provenance, timestamp }
+// Signed binding: anchor → reconstruction; verifiable via ProvenanceReceipt
+
+@trait holo_map_anchored_manifest {
+  capability_tags: ["holo_map_anchored_manifest", "anchored_manifest", "scene_hash", "spatial_binding", "core"]
+
+  @on_spawn => {
+    emit("holo_map_anchored_manifest_ready", {})
+  }
+
+  @on_create(anchor_id, scene_hash, provenance) => {
+    manifest = create_anchored_manifest(anchor_id, scene_hash, provenance)
+    emit("anchored_manifest_created", { anchor_id })
+    return manifest
+  }
+
+  @receipt holo_map_anchored_manifest_config {
+    type: "HoloMapAnchoredManifestReceipt"
+    fields: ["anchorId", "sceneHash", "provenance", "timestamp"]
+    timestamp: now()
+  }
+}

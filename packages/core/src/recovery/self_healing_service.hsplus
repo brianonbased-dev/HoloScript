@@ -1,0 +1,26 @@
+// @self_healing_service — Orchestrates self-healing: detects failures, selects strategy, applies recovery.
+//
+// Native .hsplus surface for core/recovery/SelfHealingService.ts.
+//
+// heal(failure) → HealResult { strategy, success, ms }
+// Delegates to PatternLearner + strategy implementations
+
+@trait self_healing_service {
+  capability_tags: ["self_healing_service", "failure_orchestration", "strategy_dispatch", "autonomous_recovery", "core"]
+
+  @on_spawn => {
+    emit("self_healing_service_ready", {})
+  }
+
+  @on_heal(failure) => {
+    result = orchestrate_self_heal(failure)
+    emit("self_heal_applied", { strategy: result.strategy, success: result.success })
+    return result
+  }
+
+  @receipt self_healing_service_config {
+    type: "SelfHealingServiceReceipt"
+    delegates: ["PatternLearner", "CircuitBreakerStrategy", "FallbackCacheStrategy", "NetworkRetryStrategy"]
+    timestamp: now()
+  }
+}

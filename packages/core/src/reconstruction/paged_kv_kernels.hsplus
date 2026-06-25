@@ -1,0 +1,20 @@
+// @paged_kv_kernels — WebGPU WGSL kernels for paged KV cache: read, write, evict pages.
+//
+// Native .hsplus surface for core/reconstruction/pagedKVKernels.ts.
+//
+// WGSL shaders called by PagedKVCache for GPU-side page management
+
+@trait paged_kv_kernels {
+  capability_tags: ["paged_kv_kernels", "wgsl_kv_page", "gpu_kv_management", "attention_cache", "core"]
+
+  @on_spawn => {
+    emit("paged_kv_kernels_ready", {})
+  }
+
+  @receipt paged_kv_kernels_config {
+    type: "PagedKVKernelsReceipt"
+    ops: ["page read", "page write", "LRU evict"]
+    consumer: "PagedKVCache"
+    timestamp: now()
+  }
+}

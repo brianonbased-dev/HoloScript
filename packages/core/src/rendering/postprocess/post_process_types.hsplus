@@ -1,0 +1,19 @@
+// @post_process_types — Type definitions for post-processing passes and pipeline configuration.
+//
+// Native .hsplus surface for core/rendering/postprocess/PostProcessTypes.ts.
+//
+// PostProcessPass, BloomConfig, TAAConfig, SSAOConfig, TonemapConfig
+
+@trait post_process_types {
+  capability_tags: ["post_process_types", "postprocess_config", "pass_types", "rendering_types", "core"]
+
+  @on_spawn => {
+    emit("post_process_types_ready", {})
+  }
+
+  @receipt post_process_types_config {
+    type: "PostProcessTypesReceipt"
+    types: ["PostProcessPass", "BloomConfig", "TAAConfig", "SSAOConfig", "TonemapConfig"]
+    timestamp: now()
+  }
+}

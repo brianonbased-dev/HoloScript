@@ -1,0 +1,20 @@
+// @layer_norm_kernel — WebGPU layer normalization kernel for HoloMap transformer layers.
+//
+// Native .hsplus surface for core/reconstruction/layerNormKernel.ts.
+//
+// WGSL: LayerNorm(x) = (x - mean) / sqrt(var + eps) * gamma + beta
+
+@trait layer_norm_kernel {
+  capability_tags: ["layer_norm_kernel", "wgsl_layer_norm", "transformer_normalization", "encoder_kernel", "core"]
+
+  @on_spawn => {
+    emit("layer_norm_kernel_ready", {})
+  }
+
+  @receipt layer_norm_kernel_config {
+    type: "LayerNormKernelReceipt"
+    op: "LayerNorm(x) = (x - mean) / sqrt(var + eps) * gamma + beta"
+    format: "WGSL compute shader"
+    timestamp: now()
+  }
+}

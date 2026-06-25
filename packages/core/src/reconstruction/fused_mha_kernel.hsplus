@@ -1,0 +1,21 @@
+// @fused_mha_kernel — Fused multi-head attention WebGPU WGSL compute kernel (low-level).
+//
+// Native .hsplus surface for core/reconstruction/fusedMHAKernel.ts.
+//
+// WGSL shader source + dispatchArgs(heads, seqLen) → DispatchArgs
+// Called by FusedAttentionKernel; pure WGSL — no JS logic
+
+@trait fused_mha_kernel {
+  capability_tags: ["fused_mha_kernel", "wgsl_compute", "mha_shader", "gpu_kernel", "core"]
+
+  @on_spawn => {
+    emit("fused_mha_kernel_ready", {})
+  }
+
+  @receipt fused_mha_kernel_config {
+    type: "FusedMHAKernelReceipt"
+    format: "WGSL compute shader"
+    consumer: "FusedAttentionKernel"
+    timestamp: now()
+  }
+}

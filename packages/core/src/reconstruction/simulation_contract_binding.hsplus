@@ -1,0 +1,26 @@
+// @simulation_contract_binding — Binds reconstruction output to simulation contract: tolerance gate + receipt.
+//
+// Native .hsplus surface for core/reconstruction/simulationContractBinding.ts.
+//
+// bind(output, contract) → BoundResult { receipt, violations[] }
+// Enforces contractConstants tolerances; emits DomainSimulationReceipt on pass
+
+@trait simulation_contract_binding {
+  capability_tags: ["simulation_contract_binding", "tolerance_gate", "contract_receipt", "reconstruction_gate", "core"]
+
+  @on_spawn => {
+    emit("simulation_contract_binding_ready", {})
+  }
+
+  @on_bind(output, contract) => {
+    result = bind_simulation_contract(output, contract)
+    if result.violations.length > 0 { emit("contract_violated", { count: result.violations.length }) }
+    return result
+  }
+
+  @receipt simulation_contract_binding_config {
+    type: "SimulationContractBindingReceipt"
+    gate: "contractConstants tolerances"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @holo_map_replay_verification — Replay-based verification for reconstruction receipts.
+//
+// Native .hsplus surface for core/reconstruction/holoMapReplayVerification.ts.
+//
+// verify(receipt, frames[]) → VerificationResult { pass, reprojectionError }
+// Re-runs encoder on stored frames; compares output to stored hash (D.106 fidelity gate)
+
+@trait holo_map_replay_verification {
+  capability_tags: ["holo_map_replay_verification", "replay_verification", "reprojection_error", "fidelity_gate", "core"]
+
+  @on_spawn => {
+    emit("holo_map_replay_verification_ready", {})
+  }
+
+  @on_verify(receipt, frames) => {
+    result = verify_holomap_replay(receipt, frames)
+    if !result.pass { emit("replay_verification_failed", { error: result.reprojectionError }) }
+    return result
+  }
+
+  @receipt holo_map_replay_verification_config {
+    type: "HoloMapReplayVerificationReceipt"
+    gate: "D.106 fidelity gate"
+    timestamp: now()
+  }
+}

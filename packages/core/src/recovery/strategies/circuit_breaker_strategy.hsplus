@@ -1,0 +1,25 @@
+// @circuit_breaker_strategy — Circuit-breaker recovery strategy: open circuit on repeated failures.
+//
+// Native .hsplus surface for core/recovery/strategies/CircuitBreakerStrategy.ts.
+//
+// apply(failure) → RecoveryResult — opens circuit for failing service; reopens after cooldown
+
+@trait circuit_breaker_strategy {
+  capability_tags: ["circuit_breaker_strategy", "circuit_open", "cooldown", "failure_isolation", "core"]
+
+  @on_spawn => {
+    emit("circuit_breaker_strategy_ready", {})
+  }
+
+  @on_apply(failure) => {
+    result = apply_circuit_breaker_strategy(failure)
+    emit("circuit_breaker_strategy_applied", { opened: result.opened })
+    return result
+  }
+
+  @receipt circuit_breaker_strategy_config {
+    type: "CircuitBreakerStrategyReceipt"
+    states: ["open", "half-open", "closed"]
+    timestamp: now()
+  }
+}
