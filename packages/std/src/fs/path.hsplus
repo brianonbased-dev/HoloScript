@@ -1,0 +1,46 @@
+// @std_path — Cross-platform path manipulation utilities.
+//
+// Native .hsplus surface for fs/path.ts (std, v0.2.0).
+//
+// Delegates to Node.js `path` module (nodePath) under the hood.
+//
+// Functions (fs/path.ts):
+//   join(...paths) → joined path (platform sep)
+//   resolve(...paths) → absolute path from cwd
+//   relative(from, to) → relative path between two absolute paths
+//   normalize(p) → resolve . and .. segments
+//   is_absolute(p) → bool
+//   dirname(p) → directory portion
+//   basename(p, ext?) → filename with optional ext strip
+//   extname(p) → ".ts" extension including dot
+//   parse(p) → { root, dir, base, name, ext }
+//   format(parsed) → string from parsed components
+//
+// Constants: sep (platform separator), delimiter (PATH delimiter)
+
+@trait std_path {
+  capability_tags: ["std_path", "fs_path", "cross_platform", "path_utils", "holoscript_std"]
+
+  @on_spawn => {
+    path_lib = get_std_path_lib()
+    emit("std_path_ready", {})
+  }
+
+  @on_join(paths)             => { return path_lib.join(paths) }
+  @on_resolve(paths)          => { return path_lib.resolve(paths) }
+  @on_relative(from_p, to_p) => { return path_lib.relative(from_p, to_p) }
+  @on_normalize(p)            => { return path_lib.normalize(p) }
+  @on_is_absolute(p)          => { return path_lib.is_absolute(p) }
+  @on_dirname(p)              => { return path_lib.dirname(p) }
+  @on_basename(p, ext)        => { return path_lib.basename(p, ext) }
+  @on_extname(p)              => { return path_lib.extname(p) }
+  @on_parse(p)                => { return path_lib.parse(p) }
+  @on_format(parsed)          => { return path_lib.format(parsed) }
+  @on_sep                     => { return path_lib.sep() }
+  @on_delimiter               => { return path_lib.delimiter() }
+
+  @receipt std_path_config {
+    type: "StdPathReceipt"
+    timestamp: now()
+  }
+}

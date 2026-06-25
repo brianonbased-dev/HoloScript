@@ -1,0 +1,85 @@
+// @std_time — Time, timer, scheduling, retry, and debounce utilities.
+//
+// Native .hsplus surface for time.ts (std, v0.2.0).
+//
+// Functions (time.ts):
+//   now() → ms timestamp
+//   hr_time() → high-resolution performance.now() if available
+//   sleep(ms) → async delay
+//   wait_until(condition, {timeout_ms?, interval_ms?}) → polls until true or timeout
+//   with_timeout(fn, ms) → races fn against a rejection timer
+//   retry(fn, {max_retries?, delay_ms?, backoff?, on_retry?}) → exponential backoff
+//   debounce(fn, ms) → fires fn only after ms of silence
+//   throttle(fn, ms) → fires fn at most once per ms window
+//   format_duration(ms, options?) → "2h 3m 4s" human-readable
+//
+// Timer / Stopwatch: start, stop, reset, elapsed
+
+@trait std_time {
+  capability_tags: ["std_time", "timer", "debounce", "throttle", "retry", "scheduling", "holoscript_std"]
+
+  @on_spawn => {
+    time_lib = get_std_time_lib()
+    emit("std_time_ready", {})
+  }
+
+  @on_now => {
+    return time_lib.now()
+  }
+
+  @on_hr_time => {
+    return time_lib.hr_time()
+  }
+
+  @on_sleep(ms) => {
+    time_lib.sleep(ms)
+  }
+
+  // Polls condition every interval_ms until true or timeout_ms exceeded (default: 30000/100)
+  @on_wait_until(condition_id, timeout_ms, interval_ms) => {
+    return time_lib.wait_until(condition_id, timeout_ms ?? 30000, interval_ms ?? 100)
+  }
+
+  // Races fn against a timeout rejection (ms)
+  @on_with_timeout(fn_id, ms) => {
+    return time_lib.with_timeout(fn_id, ms)
+  }
+
+  // Retry with exponential backoff
+  @on_retry(fn_id, max_retries, delay_ms, backoff_factor) => {
+    return time_lib.retry(fn_id, {
+      max_retries: max_retries ?? 3,
+      delay_ms: delay_ms ?? 100,
+      backoff_factor: backoff_factor ?? 2.0
+    })
+  }
+
+  // Debounce: returns debounced fn handle that fires after ms of silence
+  @on_debounce(fn_id, ms) => {
+    return time_lib.debounce(fn_id, ms)
+  }
+
+  // Throttle: at most once per ms window
+  @on_throttle(fn_id, ms) => {
+    return time_lib.throttle(fn_id, ms)
+  }
+
+  // Format duration: 90000 → "1m 30s"
+  @on_format_duration(ms, include_ms) => {
+    return time_lib.format_duration(ms, { include_ms: include_ms ?? false })
+  }
+
+  // Timer: returns handle
+  @on_start_timer => {
+    return time_lib.start_timer()
+  }
+
+  @on_elapsed(timer_handle) => {
+    return time_lib.elapsed(timer_handle)
+  }
+
+  @receipt std_time_config {
+    type: "StdTimeReceipt"
+    timestamp: now()
+  }
+}

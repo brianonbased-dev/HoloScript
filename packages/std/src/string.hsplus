@@ -1,0 +1,67 @@
+// @std_string — String manipulation utilities for HoloScript Plus programs.
+//
+// Native .hsplus surface for string.ts (std, v0.2.0).
+//
+// Functions (string.ts):
+//   is_blank, is_not_blank, capitalize, title_case
+//   camel_case, pascal_case, snake_case, kebab_case
+//   truncate(s, max_length, suffix="..."), pad_start, pad_end
+//   repeat(s, n), trim/trim_start/trim_end
+//   contains(s, sub), starts_with, ends_with, index_of
+//   count(s, sub) → occurrences
+//   slugify → lowercase + replace non-alphanum with "-"
+//   escape_html / unescape_html
+//   word_count(s) → number of words
+//   template(s, vars) → "Hello {name}" → "Hello World"
+
+@trait std_string {
+  capability_tags: ["std_string", "string_utils", "case_conversion", "text_processing", "holoscript_std"]
+
+  @on_spawn => {
+    str_lib = get_std_string_lib()
+    emit("std_string_ready", {})
+  }
+
+  @on_is_blank(s)     => { return str_lib.is_blank(s) }
+  @on_is_not_blank(s) => { return str_lib.is_not_blank(s) }
+
+  @on_capitalize(s)  => { return str_lib.capitalize(s) }
+  @on_title_case(s)  => { return str_lib.title_case(s) }
+  @on_camel_case(s)  => { return str_lib.camel_case(s) }
+  @on_pascal_case(s) => { return str_lib.pascal_case(s) }
+  @on_snake_case(s)  => { return str_lib.snake_case(s) }
+  @on_kebab_case(s)  => { return str_lib.kebab_case(s) }
+
+  @on_truncate(s, max_length, suffix) => {
+    sfx = suffix ?? "..."
+    if str_lib.length(s) <= max_length { return s }
+    return str_lib.slice(s, 0, max_length - str_lib.length(sfx)) + sfx
+  }
+
+  @on_pad_start(s, length, fill) => { return str_lib.pad_start(s, length, fill ?? " ") }
+  @on_pad_end(s, length, fill)   => { return str_lib.pad_end(s, length, fill ?? " ") }
+  @on_repeat(s, n) => { return str_lib.repeat(s, n) }
+
+  @on_trim(s)       => { return str_lib.trim(s) }
+  @on_trim_start(s) => { return str_lib.trim_start(s) }
+  @on_trim_end(s)   => { return str_lib.trim_end(s) }
+
+  @on_contains(s, sub)    => { return str_lib.contains(s, sub) }
+  @on_starts_with(s, pre) => { return str_lib.starts_with(s, pre) }
+  @on_ends_with(s, suf)   => { return str_lib.ends_with(s, suf) }
+  @on_index_of(s, sub)    => { return str_lib.index_of(s, sub) }
+  @on_count(s, sub)       => { return str_lib.count(s, sub) }
+  @on_word_count(s)       => { return str_lib.word_count(s) }
+
+  @on_slugify(s) => { return str_lib.slugify(s) }
+  @on_escape_html(s)   => { return str_lib.escape_html(s) }
+  @on_unescape_html(s) => { return str_lib.unescape_html(s) }
+
+  // Template: "Hello {name}" + {name: "World"} → "Hello World"
+  @on_template(s, vars) => { return str_lib.template(s, vars) }
+
+  @receipt std_string_config {
+    type: "StdStringReceipt"
+    timestamp: now()
+  }
+}

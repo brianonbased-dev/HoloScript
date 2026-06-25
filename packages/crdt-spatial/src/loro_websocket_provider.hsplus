@@ -1,0 +1,116 @@
+// @loro_websocket_provider — WebSocket sync transport for Loro CRDT documents.
+//
+// Native .hsplus surface for LoroWebSocketProvider.ts (crdt-spatial).
+//
+// Protocol (LoroWebSocketProvider.ts):
+//   (1) On connect → send full snapshot to server
+//   (2) Server broadcasts snapshot to other peers
+//   (3) Subsequent changes → send incremental updates (mode: "update")
+//   (4) Heartbeat ping/pong every 30s to detect disconnects
+//
+// W.059: Awareness/presence is EPHEMERAL — uses a SEPARATE pub/sub channel
+// (remoteAwareness state). It is NOT part of the Loro CRDT document.
+// Awareness state: { peerId, cursor?, selection?, online: bool, lastSeen }
+//
+// ConnectionState: disconnected | connecting | connected | reconnecting
+//
+// Custom transport (~200 LOC) because Loro has no official transport providers
+// unlike Yjs (which has y-websocket). SpatialCRDTBridge is the upstream doc holder.
+
+@trait loro_websocket_provider {
+  // WebSocket endpoint URL
+  url: String
+
+  // Room ID for server-side grouping
+  room_id: String
+
+  // Heartbeat interval in seconds
+  heartbeat_interval_s: Int = 30
+
+  // Max reconnect attempts (0 = unlimited)
+  max_reconnect_attempts: Int = 10
+
+  // Exponential backoff base delay in ms
+  reconnect_base_delay_ms: Int = 1000
+
+  capability_tags: ["loro_websocket_provider", "websocket_crdt", "loro_sync_transport", "awareness_ephemeral", "crdt_spatial"]
+
+  @on_spawn => {
+    bridge = get_spatial_crdt_bridge()
+    ws_provider = init_loro_websocket_provider({
+      bridge: bridge,
+      url: url,
+      room_id: room_id,
+      heartbeat_interval_s: heartbeat_interval_s,
+      max_reconnect_attempts: max_reconnect_attempts,
+      reconnect_base_delay_ms: reconnect_base_delay_ms
+    })
+    emit("loro_websocket_provider_created", { url: url, room_id: room_id })
+  }
+
+  @on_connect => {
+    ws_provider.set_state("connecting")
+    ws_provider.connect()
+    emit("loro_ws_connecting", { url: url, room_id: room_id })
+  }
+
+  @on_connected => {
+    ws_provider.set_state("connected")
+    ws_provider.reset_reconnect_attempts()
+    // (1) Send full snapshot to server on initial connect
+    snapshot = ws_provider.export_snapshot()
+    ws_provider.send(snapshot)
+    schedule_recurring(heartbeat_interval_s, "on_heartbeat_tick")
+    emit("loro_ws_connected", { url: url, room_id: room_id })
+  }
+
+  @on_message(data) => {
+    msg_type = ws_provider.parse_message_type(data)
+    if msg_type == "snapshot" or msg_type == "update" {
+      ws_provider.import(data)
+    }
+    // W.059: awareness messages go to the ephemeral awareness channel, NOT CRDT
+    if msg_type == "awareness" {
+      ws_provider.update_remote_awareness(data)
+      emit("loro_ws_awareness_changed", { room_id: room_id })
+    }
+  }
+
+  @on_local_change(batch) => {
+    if batch.by != "local" { return }
+    // (3) Incremental update for subsequent changes
+    update = ws_provider.export_update()
+    ws_provider.send(update)
+  }
+
+  @on_heartbeat_tick => {
+    ws_provider.send_ping()
+  }
+
+  @on_disconnected => {
+    ws_provider.set_state("disconnected")
+    ws_provider.clear_heartbeat()
+    emit("loro_ws_disconnected", { url: url, room_id: room_id })
+    ws_provider.schedule_reconnect()
+  }
+
+  @on_reconnecting(attempt) => {
+    ws_provider.set_state("reconnecting")
+    emit("loro_ws_reconnecting", { attempt: attempt, url: url })
+  }
+
+  @on_disconnect => {
+    ws_provider.disconnect()
+    emit("loro_ws_disconnect_requested", { url: url })
+  }
+
+  @receipt loro_websocket_provider_config {
+    type: "LoroWebSocketProviderReceipt"
+    url: url
+    room_id: room_id
+    heartbeat_interval_s: heartbeat_interval_s
+    awareness_model: "ephemeral_separate_channel"
+    note: "W.059: awareness is NOT in the Loro CRDT doc — ephemeral pub/sub only"
+    timestamp: now()
+  }
+}
