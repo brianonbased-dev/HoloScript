@@ -1,0 +1,22 @@
+@trait {
+  name: "@journal",
+  category: "cognitive",
+  description: "Agent decision and action journal. Appends structured entries (observation, reasoning, action taken, outcome) to a persistent log, supporting human-readable audit trails, time-sliced replay, and export for fine-tuning datasets. Authored from JournalTrait.ts.",
+  props: {
+    log_url: string = "",
+    max_entries: number = 10000,
+    auto_log_actions: boolean = true,
+    include_reasoning: boolean = true,
+    export_format: enum("jsonl" | "csv" | "markdown") = "jsonl",
+    compress: boolean = true
+  },
+  events: {
+    attached: "journal_attached",
+    detached: "journal_detached",
+    on_write: "journal_write",
+    on_export: "journal_export",
+    write: "journal_trigger_write",
+    export: "journal_trigger_export"
+  },
+  behaviors: ["@memory", "@event_replay", "@introspect"]
+}

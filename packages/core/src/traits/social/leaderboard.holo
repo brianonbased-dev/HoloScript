@@ -1,0 +1,20 @@
+@trait {
+  name: "@leaderboard",
+  category: "social",
+  description: "Ranked score leaderboard with live updates. Maintains an ordered ranking of player/agent scores persisted to the HoloMesh knowledge store or a custom backend, supports pagination, personal-rank highlight, and time-window scoping (daily, weekly, all-time). Authored from LeaderboardTrait.ts.",
+  props: {
+    metric: string = "score",
+    scope: enum("global" | "team" | "session" | "world") = "global",
+    window: enum("all_time" | "daily" | "weekly" | "monthly") = "all_time",
+    max_entries: number = 100,
+    refresh_interval_s: number = 30,
+    show_avatars: boolean = true
+  },
+  events: {
+    attached: "leaderboard_attached",
+    detached: "leaderboard_detached",
+    on_update: "leaderboard_update",
+    on_rank_change: "leaderboard_rank_change"
+  },
+  behaviors: ["@scoreboard", "@badge", "@stats"]
+}

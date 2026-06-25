@@ -1,0 +1,22 @@
+@trait {
+  name: "@knockback",
+  category: "physics",
+  description: "Physics knockback impulse controller. Applies a directional force impulse to the entity's rigid body on receiving a hit event, scaling magnitude by damage dealt, adding an upward arc component to produce knockup combos, and integrating with a stun timer that disables input during the recovery frames. Authored from KnockbackTrait.ts.",
+  props: {
+    base_impulse: number = 8,
+    upward_ratio: number = 0.3,
+    stun_duration_ms: number = 300,
+    scale_by_damage: boolean = true,
+    scale_cap: number = 3.0,
+    gravity_scale_during: number = 0.5,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "knockback_attached",
+    detached: "knockback_detached",
+    on_knockback: "knockback_hit",
+    on_recovery: "knockback_recovery",
+    apply: "knockback_trigger_apply"
+  },
+  behaviors: ["@hit_reaction", "@velocity", "@player_state"]
+}

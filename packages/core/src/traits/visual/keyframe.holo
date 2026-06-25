@@ -1,0 +1,23 @@
+@trait {
+  name: "@keyframe",
+  category: "visual",
+  description: "Property keyframe animation sequencer. Stores a list of time-stamped prop snapshots and interpolates between them on playback, supporting easing curves per keyframe, loop and ping-pong modes, and runtime addition of keyframes from script or editor. Authored from KeyframeTrait.ts.",
+  props: {
+    keyframes: list<{ time_ms: number, props: { key: string, value: string }[] }> = [],
+    duration_ms: number = 1000,
+    loop: boolean = false,
+    ping_pong: boolean = false,
+    auto_play: boolean = false,
+    default_curve: enum("linear" | "ease_in" | "ease_out" | "ease_in_out" | "spring") = "linear"
+  },
+  events: {
+    attached: "keyframe_attached",
+    detached: "keyframe_detached",
+    on_play: "keyframe_play",
+    on_complete: "keyframe_complete",
+    play: "keyframe_trigger_play",
+    pause: "keyframe_trigger_pause",
+    seek: "keyframe_trigger_seek"
+  },
+  behaviors: ["@easing", "@transition", "@animation"]
+}
