@@ -1,0 +1,15 @@
+@trait {
+  name: "@seated",
+  category: "xr",
+  description: "Seated XR experience mode. height_offset is the height adjustment for seated users in meters (default: 0). max_reach is the arm-reach radius in meters (default: 1.0m). auto_calibrate calibrates on first use (default: true). comfort_vignette applies vignette on fast motion (default: true). Port of SeatedTrait.ts (handler name: seated).",
+  props: {
+    height_offset: number = 0,
+    max_reach: number = 1.0,
+    auto_calibrate: boolean = true,
+    comfort_vignette: boolean = true
+  },
+  events: {
+    on_calibrated: "seated:calibrated"
+  },
+  behaviors: ["@openxr_hal", "@motion_reduced", "@accessible"]
+}

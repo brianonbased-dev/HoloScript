@@ -1,0 +1,15 @@
+@trait {
+  name: "@state_machine",
+  category: "logic",
+  description: "Hierarchical state machine. initial_state is the starting state (default: idle). Port of StateMachineTrait.ts (handler name: state_machine).",
+  props: {
+    initial_state: string = "idle"
+  },
+  events: {
+    on_transition: "state_machine:transition",
+    on_entered: "state_machine:entered",
+    transition: "state_machine.transition",
+    can: "state_machine.can"
+  },
+  behaviors: ["@workflow", "@negotiation", "@encounter"]
+}

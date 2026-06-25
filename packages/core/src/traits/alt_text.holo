@@ -1,0 +1,16 @@
+@trait {
+  name: "@alt_text",
+  category: "accessibility",
+  description: "Alternative text for accessibility. text is the primary alt text. verbose is the extended description. language is the BCP-47 language code (default: en). auto_generate uses AI to generate alt text (default: false). context_aware adapts text to context (default: true). Port of AltTextTrait.ts (handler name: alt_text).",
+  props: {
+    text: string = "",
+    verbose: string = "",
+    language: string = "en",
+    auto_generate: boolean = false,
+    context_aware: boolean = true
+  },
+  events: {
+    on_generated: "alt_text:generated"
+  },
+  behaviors: ["@screen_reader", "@accessible", "@translation"]
+}

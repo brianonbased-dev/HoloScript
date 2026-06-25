@@ -1,0 +1,17 @@
+@trait {
+  name: "@deformable_terrain",
+  category: "simulation",
+  description: "Hydraulic erosion deformable terrain. resolution is the heightmap grid size (default: 256). scale is the world-space terrain size in meters (default: 100m). displacement_scale is the max height in meters (default: 5.0m). erosion_rate is the erosion per step (default: 0.01). sediment_capacity is the water sediment capacity (default: 0.02). Port of DeformableTerrainTrait.ts (handler name: deformable_terrain).",
+  props: {
+    resolution: number = 256,
+    scale: number = 100,
+    displacement_scale: number = 5.0,
+    erosion_rate: number = 0.01,
+    sediment_capacity: number = 0.02
+  },
+  events: {
+    on_deformed: "deformable_terrain:deformed",
+    deform: "deformable_terrain.deform"
+  },
+  behaviors: ["@soft_body", "@gpu_physics", "@room_mesh"]
+}

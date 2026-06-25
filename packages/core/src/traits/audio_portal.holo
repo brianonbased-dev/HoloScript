@@ -1,0 +1,16 @@
+@trait {
+  name: "@audio_portal",
+  category: "audio",
+  description: "Audio portal between acoustic zones. opening_size is the portal aperture in meters (default: 1m). connected_zones are the two connected zone IDs. transmission_loss is the portal insertion loss in dB (default: 6dB). diffraction enables edge diffraction (default: true). frequency_filtering applies frequency-dependent filtering (default: true). Port of AudioPortalTrait.ts (handler name: audio_portal).",
+  props: {
+    opening_size: number = 1,
+    transmission_loss: number = 6,
+    diffraction: boolean = true,
+    frequency_filtering: boolean = true
+  },
+  events: {
+    on_crossed: "audio_portal:crossed",
+    on_zone_changed: "audio_portal:zone_changed"
+  },
+  behaviors: ["@audio_occlusion", "@reverb_zone", "@room_mesh"]
+}

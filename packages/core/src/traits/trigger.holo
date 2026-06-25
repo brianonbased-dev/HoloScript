@@ -1,0 +1,13 @@
+@trait {
+  name: "@trigger",
+  category: "logic",
+  description: "Generic event trigger. Config is condition-dependent and set at instance construction. Port of TriggerTrait.ts (handler name: trigger).",
+  props: {},
+  events: {
+    on_fired: "trigger:fired",
+    on_reset: "trigger:reset",
+    fire: "trigger.fire",
+    reset: "trigger.reset"
+  },
+  behaviors: ["@state_machine", "@encounter", "@recall_trigger"]
+}

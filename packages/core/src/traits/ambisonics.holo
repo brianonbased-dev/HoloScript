@@ -1,0 +1,16 @@
+@trait {
+  name: "@ambisonics",
+  category: "audio",
+  description: "Ambisonics spatial audio decoder. order is the ambisonics order (default: 1 = first-order). normalization: sn3d (default), n3d, fuma. channel_ordering: acn (default), fuma. decoder: binaural (default), stereo, surround. source is the audio source URL. Port of AmbisonicsTrait.ts (handler name: ambisonics).",
+  props: {
+    order: number = 1,
+    normalization: enum("sn3d" | "n3d" | "fuma") = "sn3d",
+    channel_ordering: enum("acn" | "fuma") = "acn",
+    decoder: enum("binaural" | "stereo" | "surround") = "binaural",
+    source: string = ""
+  },
+  events: {
+    on_decoded: "ambisonics:decoded"
+  },
+  behaviors: ["@spatial_voice", "@hrtf", "@reverb_zone"]
+}

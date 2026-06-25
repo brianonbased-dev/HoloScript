@@ -1,0 +1,13 @@
+@trait {
+  name: "@quantum_circuit",
+  category: "simulation",
+  description: "Quantum circuit simulator. Config contains circuit gates and qubit count — class-based construction. Port of QuantumCircuitTrait.ts (handler name: quantumCircuit — camelCase).",
+  props: {},
+  events: {
+    on_measured: "quantum_circuit:measured",
+    on_error: "quantum_circuit:error",
+    run: "quantum_circuit.run",
+    measure: "quantum_circuit.measure"
+  },
+  behaviors: ["@quantum_inspired", "@vqe_runner", "@tensor_op"]
+}

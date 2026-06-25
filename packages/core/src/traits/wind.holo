@@ -1,0 +1,16 @@
+@trait {
+  name: "@wind",
+  category: "simulation",
+  description: "Wind field. direction is the wind direction unit vector (default: [1,0,0] = +X). strength is the wind speed in m/s (default: 5m/s). turbulence is the turbulence intensity (default: 0.3). turbulence_frequency is the turbulence spatial frequency in Hz (default: 1.0). Port of WindTrait.ts (handler name: wind).",
+  props: {
+    strength: number = 5,
+    turbulence: number = 0.3,
+    turbulence_frequency: number = 1.0
+  },
+  events: {
+    on_gust: "wind:gust",
+    on_changed: "wind:changed",
+    set_wind: "wind.set_wind"
+  },
+  behaviors: ["@volumetric_clouds", "@soft_body", "@gpu_physics"]
+}

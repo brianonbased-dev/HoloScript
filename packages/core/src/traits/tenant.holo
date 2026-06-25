@@ -1,0 +1,17 @@
+@trait {
+  name: "@tenant",
+  category: "multi-tenant",
+  description: "Multi-tenant context. tenant_id is the tenant identifier. organization_name is the display name. status: provisioning (default), active, suspended, cancelled. tier: free (default), pro, enterprise. Port of TenantTrait.ts (handler name: tenant).",
+  props: {
+    tenant_id: string = "",
+    organization_name: string = "",
+    status: enum("provisioning" | "active" | "suspended" | "cancelled") = "provisioning",
+    tier: enum("free" | "pro" | "enterprise") = "free"
+  },
+  events: {
+    on_provisioned: "tenant:provisioned",
+    on_status_changed: "tenant:status_changed",
+    on_tier_changed: "tenant:tier_changed"
+  },
+  behaviors: ["@rbac", "@quota", "@subscription"]
+}

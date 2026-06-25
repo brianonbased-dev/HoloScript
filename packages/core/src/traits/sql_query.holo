@@ -1,0 +1,14 @@
+@trait {
+  name: "@sql_query",
+  category: "data",
+  description: "SQL query adapter. max_results is the result row cap (default: 1,000). Port of SqlQueryTrait.ts (handler name: sql_query).",
+  props: {
+    max_results: number = 1000
+  },
+  events: {
+    on_result: "sql_query:result",
+    on_error: "sql_query:error",
+    query: "sql_query.query"
+  },
+  behaviors: ["@query", "@orm_entity", "@migrate"]
+}

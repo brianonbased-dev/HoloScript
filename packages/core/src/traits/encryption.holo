@@ -1,0 +1,13 @@
+@trait {
+  name: "@encryption",
+  category: "security",
+  description: "Symmetric and asymmetric encryption. Config is key-and-algorithm-dependent and set at instance construction. Port of EncryptionTrait.ts (handler name: encryption).",
+  props: {},
+  events: {
+    on_encrypted: "encryption:encrypted",
+    on_decrypted: "encryption:decrypted",
+    encrypt: "encryption.encrypt",
+    decrypt: "encryption.decrypt"
+  },
+  behaviors: ["@rsa_encryption", "@secret", "@package_signing"]
+}

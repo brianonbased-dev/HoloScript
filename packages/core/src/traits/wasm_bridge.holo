@@ -1,0 +1,15 @@
+@trait {
+  name: "@wasm_bridge",
+  category: "system",
+  description: "WebAssembly module bridge. max_memory_pages is the WASM memory limit in 64KB pages (default: 256 = 16MB). Port of WasmBridgeTrait.ts (handler name: wasm_bridge).",
+  props: {
+    max_memory_pages: number = 256
+  },
+  events: {
+    on_loaded: "wasm_bridge:loaded",
+    on_error: "wasm_bridge:error",
+    call: "wasm_bridge.call",
+    load: "wasm_bridge.load"
+  },
+  behaviors: ["@shell", "@native_call", "@sandbox_execution"]
+}

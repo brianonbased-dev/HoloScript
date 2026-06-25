@@ -1,0 +1,13 @@
+@trait {
+  name: "@usd",
+  category: "assets",
+  description: "Universal Scene Description (USD) asset loader. Config is file-path-dependent and set at instance construction. Port of USDTrait.ts (handler name: usd).",
+  props: {},
+  events: {
+    on_loaded: "usd:loaded",
+    on_error: "usd:error",
+    load: "usd.load",
+    export: "usd.export"
+  },
+  behaviors: ["@portable", "@scene_graph", "@volumetric"]
+}

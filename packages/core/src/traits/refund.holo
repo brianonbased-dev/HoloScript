@@ -1,0 +1,14 @@
+@trait {
+  name: "@refund",
+  category: "payments",
+  description: "Refund manager. max_refund_days is the refund eligibility window in days (default: 30). Port of RefundTrait.ts (handler name: refund).",
+  props: {
+    max_refund_days: number = 30
+  },
+  events: {
+    on_issued: "refund:issued",
+    on_denied: "refund:denied",
+    issue: "refund.issue"
+  },
+  behaviors: ["@stripe", "@transaction", "@invoice"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@api_key",
+  category: "auth",
+  description: "API key manager. prefix is the key prefix (default: sk_). max_keys is the maximum active keys per node (default: 50). Port of ApiKeyTrait.ts (handler name: api_key).",
+  props: {
+    prefix: string = "sk_",
+    max_keys: number = 50
+  },
+  events: {
+    on_created: "api_key:created",
+    on_revoked: "api_key:revoked",
+    on_validated: "api_key:validated",
+    create: "api_key.create",
+    revoke: "api_key.revoke",
+    validate: "api_key.validate"
+  },
+  behaviors: ["@secret", "@oauth", "@permission"]
+}

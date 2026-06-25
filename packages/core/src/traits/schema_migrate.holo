@@ -1,0 +1,15 @@
+@trait {
+  name: "@schema_migrate",
+  category: "data",
+  description: "Database schema migration. auto_rollback reverts on failure (default: true). Port of SchemaMigrateTrait.ts (handler name: schema_migrate).",
+  props: {
+    auto_rollback: boolean = true
+  },
+  events: {
+    on_migrated: "schema_migrate:migrated",
+    on_rolled_back: "schema_migrate:rolled_back",
+    migrate: "schema_migrate.migrate",
+    rollback: "schema_migrate.rollback"
+  },
+  behaviors: ["@migrate", "@rollback", "@versioned_state"]
+}

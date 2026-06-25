@@ -1,0 +1,16 @@
+@trait {
+  name: "@audio_occlusion",
+  category: "audio",
+  description: "Geometry-based audio occlusion. mode: raycast (default), portal, hybrid. frequency_dependent applies frequency-based filtering (default: true). low_pass_filter applies a low-pass when occluded (default: true). attenuation_factor is the occlusion volume multiplier (default: 0.5). transmission_factor is the through-wall transmission multiplier (default: 0.2). Port of AudioOcclusionTrait.ts (handler name: audio_occlusion).",
+  props: {
+    mode: enum("raycast" | "portal" | "hybrid") = "raycast",
+    frequency_dependent: boolean = true,
+    low_pass_filter: boolean = true,
+    attenuation_factor: number = 0.5,
+    transmission_factor: number = 0.2
+  },
+  events: {
+    on_state_changed: "audio_occlusion:state_changed"
+  },
+  behaviors: ["@ambisonics", "@reverb_zone", "@audio_portal"]
+}

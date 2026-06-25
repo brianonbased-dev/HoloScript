@@ -1,0 +1,13 @@
+@trait {
+  name: "@shader",
+  category: "rendering",
+  description: "Custom shader program. Config is shader-source-and-pipeline-dependent and set at instance construction. Port of ShaderTrait.ts (handler name: shader).",
+  props: {},
+  events: {
+    on_compiled: "shader:compiled",
+    on_error: "shader:error",
+    compile: "shader.compile",
+    apply: "shader.apply"
+  },
+  behaviors: ["@material", "@post_process", "@advanced_pbr"]
+}

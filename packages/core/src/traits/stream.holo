@@ -1,0 +1,18 @@
+@trait {
+  name: "@stream",
+  category: "data",
+  description: "Reactive stream with backpressure. max_buffer is the buffer capacity (default: 1,000). replay_size is the number of events replayed to new subscribers (default: 100). enable_backpressure pauses the producer when the buffer is full (default: true). Port of StreamTrait.ts (handler name: stream).",
+  props: {
+    max_buffer: number = 1000,
+    replay_size: number = 100,
+    enable_backpressure: boolean = true
+  },
+  events: {
+    on_data: "stream:data",
+    on_end: "stream:end",
+    on_error: "stream:error",
+    push: "stream.push",
+    subscribe: "stream.subscribe"
+  },
+  behaviors: ["@reactive_store", "@sse", "@pipeline"]
+}

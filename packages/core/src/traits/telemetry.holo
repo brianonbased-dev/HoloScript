@@ -1,0 +1,17 @@
+@trait {
+  name: "@telemetry",
+  category: "ops",
+  description: "Telemetry channel aggregator. channels is the list of named telemetry channels (default: [default]). aggregation_ms is the aggregation window in ms (default: 1,000ms). batch_size is the flush batch size (default: 10). include_physics attaches physics metrics (default: false). Port of TelemetryTrait.ts (handler name: telemetry — as never cast).",
+  props: {
+    channels: array = ["default"],
+    aggregation_ms: number = 1000,
+    batch_size: number = 10,
+    include_physics: boolean = false
+  },
+  events: {
+    on_emitted: "telemetry:emitted",
+    on_flushed: "telemetry:flushed",
+    emit: "telemetry.emit"
+  },
+  behaviors: ["@analytics", "@service_observability", "@structured_logger"]
+}

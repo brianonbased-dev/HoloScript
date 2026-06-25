@@ -1,0 +1,16 @@
+@trait {
+  name: "@gpu_physics",
+  category: "physics",
+  description: "GPU-accelerated physics. sim_type: rigid_body (default), soft_body, fluid, cloth. method: pbd (default), xpbd, sph. gravity is the gravity vector in m/s² (default: [0,-9.81,0]). substeps is the physics substep count per frame (default: 4). mass is the default object mass in kg (default: 1.0). Port of GPUPhysicsTrait.ts (handler name: gpu_physics).",
+  props: {
+    sim_type: enum("rigid_body" | "soft_body" | "fluid" | "cloth") = "rigid_body",
+    method: enum("pbd" | "xpbd" | "sph") = "pbd",
+    substeps: number = 4,
+    mass: number = 1.0
+  },
+  events: {
+    on_collision: "gpu_physics:collision",
+    on_settled: "gpu_physics:settled"
+  },
+  behaviors: ["@rigidbody", "@soft_body", "@fluid"]
+}

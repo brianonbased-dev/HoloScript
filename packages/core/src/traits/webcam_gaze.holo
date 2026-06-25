@@ -1,0 +1,13 @@
+@trait {
+  name: "@webcam_gaze",
+  category: "ai",
+  description: "Webcam-based gaze estimation. Config is camera-resolution-dependent and set at instance construction. Port of WebcamGazeTrait.ts (handler name: webcam_gaze).",
+  props: {},
+  events: {
+    on_gaze: "webcam_gaze:gaze",
+    on_blink: "webcam_gaze:blink",
+    start: "webcam_gaze.start",
+    stop: "webcam_gaze.stop"
+  },
+  behaviors: ["@vision", "@pose_estimation", "@user_monitor"]
+}

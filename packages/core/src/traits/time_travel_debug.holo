@@ -1,0 +1,16 @@
+@trait {
+  name: "@time_travel_debug",
+  category: "diagnostics",
+  description: "Time-travel debugger — records state snapshots and allows replay. max_snapshots is the history size (default: 100). Port of TimeTravelDebugTrait.ts (handler name: time_travel_debug).",
+  props: {
+    max_snapshots: number = 100
+  },
+  events: {
+    on_snapshot: "time_travel_debug:snapshot",
+    on_replayed: "time_travel_debug:replayed",
+    capture: "time_travel_debug.capture",
+    replay: "time_travel_debug.replay",
+    seek: "time_travel_debug.seek"
+  },
+  behaviors: ["@rollback", "@versioned_state", "@snapshot"]
+}

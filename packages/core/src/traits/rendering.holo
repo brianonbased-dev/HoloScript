@@ -1,0 +1,11 @@
+@trait {
+  name: "@rendering",
+  category: "rendering",
+  description: "Generic rendering adapter. Config is target-dependent and set at instance construction. Port of RenderingTrait.ts (handler name: rendering).",
+  props: {},
+  events: {
+    on_frame: "rendering:frame",
+    on_resize: "rendering:resize"
+  },
+  behaviors: ["@post_process", "@global_illumination", "@shader"]
+}

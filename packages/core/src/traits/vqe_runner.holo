@@ -1,0 +1,17 @@
+@trait {
+  name: "@vqe_runner",
+  category: "simulation",
+  description: "Variational Quantum Eigensolver (VQE) runner. method: vqe (default), qpe. basis is the orbital basis set (default: sto-3g). backend: aer (default), statevector. optimizer: cobyla (default), spsa, adam. Port of VQERunnerTrait.ts (handler name: vqeRunner — camelCase).",
+  props: {
+    method: enum("vqe" | "qpe") = "vqe",
+    basis: string = "sto-3g",
+    backend: enum("aer" | "statevector") = "aer",
+    optimizer: enum("cobyla" | "spsa" | "adam") = "cobyla"
+  },
+  events: {
+    on_converged: "vqe_runner:converged",
+    on_error: "vqe_runner:error",
+    run: "vqe_runner.run"
+  },
+  behaviors: ["@quantum_circuit", "@quantum_inspired", "@tensor_op"]
+}

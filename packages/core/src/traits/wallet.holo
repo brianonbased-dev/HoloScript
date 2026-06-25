@@ -1,0 +1,19 @@
+@trait {
+  name: "@wallet",
+  category: "web3",
+  description: "Crypto wallet connector. supported_wallets is the list of supported wallet types (default: [metamask, walletconnect, coinbase]). auto_connect attempts silent reconnect on attach (default: false). display_address shows the truncated address (default: false). display_ens shows the ENS name if resolved (default: true). Port of WalletTrait.ts (handler name: wallet).",
+  props: {
+    supported_wallets: array = ["metamask", "walletconnect", "coinbase"],
+    auto_connect: boolean = false,
+    display_address: boolean = false,
+    display_ens: boolean = true
+  },
+  events: {
+    on_connected: "wallet:connected",
+    on_disconnected: "wallet:disconnected",
+    on_chain_changed: "wallet:chain_changed",
+    connect: "wallet.connect",
+    disconnect: "wallet.disconnect"
+  },
+  behaviors: ["@nft", "@token_gated", "@economy"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@scheduler",
+  category: "ops",
+  description: "Cron/interval job scheduler. jobs is the initial job list (default: []). max_jobs is the job capacity (default: 50). poll_interval_ms is the job-check cadence in ms (default: 1,000ms). Port of SchedulerTrait.ts (handler name: scheduler).",
+  props: {
+    jobs: array = [],
+    max_jobs: number = 50,
+    poll_interval_ms: number = 1000
+  },
+  events: {
+    on_fired: "scheduler:fired",
+    on_error: "scheduler:error",
+    add: "scheduler.add",
+    remove: "scheduler.remove"
+  },
+  behaviors: ["@task_queue", "@workflow", "@timeout_guard"]
+}

@@ -1,0 +1,16 @@
+@trait {
+  name: "@stat",
+  category: "gamedev",
+  description: "RPG-style stat (value + modifier stack). name is the stat identifier (default: value). value is the base value (default: 0). modifiers is the list of active modifier objects (default: []). Port of StatTrait.ts (handler name: stat).",
+  props: {
+    name: string = "value",
+    value: number = 0,
+    modifiers: array = []
+  },
+  events: {
+    on_changed: "stat:changed",
+    add_modifier: "stat.add_modifier",
+    remove_modifier: "stat.remove_modifier"
+  },
+  behaviors: ["@reward", "@luck", "@quota"]
+}

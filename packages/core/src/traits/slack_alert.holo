@@ -1,0 +1,15 @@
+@trait {
+  name: "@slack_alert",
+  category: "integration",
+  description: "Slack alert webhook. webhook_url is the incoming webhook URL. default_channel is the default post channel (default: #alerts). Port of SlackAlertTrait.ts (handler name: slack_alert).",
+  props: {
+    webhook_url: string = "",
+    default_channel: string = "#alerts"
+  },
+  events: {
+    on_sent: "slack_alert:sent",
+    on_error: "slack_alert:error",
+    alert: "slack_alert.alert"
+  },
+  behaviors: ["@slack", "@webhook_out", "@pagerduty"]
+}

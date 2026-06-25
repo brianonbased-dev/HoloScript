@@ -1,0 +1,15 @@
+@trait {
+  name: "@snapshot_test",
+  category: "testing",
+  description: "Snapshot regression test. update_on_mismatch overwrites the stored snapshot on mismatch instead of failing (default: false). Port of SnapshotTestTrait.ts (handler name: snapshot_test).",
+  props: {
+    update_on_mismatch: boolean = false
+  },
+  events: {
+    on_pass: "snapshot_test:pass",
+    on_fail: "snapshot_test:fail",
+    run: "snapshot_test.run",
+    update: "snapshot_test.update"
+  },
+  behaviors: ["@script_test", "@snapshot", "@chaos_test"]
+}

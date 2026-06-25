@@ -1,0 +1,18 @@
+@trait {
+  name: "@retry",
+  category: "ops",
+  description: "Retry with backoff. max_retries is the retry limit (default: 3). base_delay_ms is the initial delay in ms (default: 1,000ms). max_delay_ms is the maximum delay cap in ms (default: 30,000ms). backoff: exponential (default), linear, fixed. Port of RetryTrait.ts (handler name: retry).",
+  props: {
+    max_retries: number = 3,
+    base_delay_ms: number = 1000,
+    max_delay_ms: number = 30000,
+    backoff: enum("exponential" | "linear" | "fixed") = "exponential"
+  },
+  events: {
+    on_retrying: "retry:retrying",
+    on_exhausted: "retry:exhausted",
+    on_success: "retry:success",
+    run: "retry.run"
+  },
+  behaviors: ["@timeout_guard", "@circuit_auto_reset", "@webhook_out"]
+}

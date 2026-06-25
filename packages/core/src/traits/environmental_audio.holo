@@ -1,0 +1,11 @@
+@trait {
+  name: "@environmental_audio",
+  category: "audio",
+  description: "Procedural environmental audio — ambient soundscapes, weather, and biome audio. Config is scene-dependent and set at instance construction. Port of EnvironmentalAudioTrait.ts (handler name: environmental_audio).",
+  props: {},
+  events: {
+    on_zone_changed: "environmental_audio:zone_changed",
+    on_weather_changed: "environmental_audio:weather_changed"
+  },
+  behaviors: ["@ambisonics", "@reverb_zone", "@audio_occlusion"]
+}

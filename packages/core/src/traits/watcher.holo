@@ -1,0 +1,18 @@
+@trait {
+  name: "@watcher",
+  category: "ops",
+  description: "File/event watcher. watch_type: event (default), file, property, interval. patterns is the list of glob or event patterns (default: []). debounce_ms is the change debounce in ms (default: 200ms). recursive enables recursive file watching (default: false). Port of WatcherTrait.ts (handler name: watcher).",
+  props: {
+    watch_type: enum("event" | "file" | "property" | "interval") = "event",
+    patterns: array = [],
+    debounce_ms: number = 200,
+    recursive: boolean = false
+  },
+  events: {
+    on_changed: "watcher:changed",
+    on_error: "watcher:error",
+    start: "watcher.start",
+    stop: "watcher.stop"
+  },
+  behaviors: ["@trigger", "@stream", "@sys_io"]
+}

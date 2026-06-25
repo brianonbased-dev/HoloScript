@@ -1,0 +1,10 @@
+@trait {
+  name: "@subsurface_veins",
+  category: "rendering",
+  description: "Procedural subsurface vein rendering (skin, leaves, organic materials). Config is material-dependent and set at instance construction. Port of SubsurfaceVeinsTrait.ts (handler name: subsurface_veins).",
+  props: {},
+  events: {
+    on_updated: "subsurface_veins:updated"
+  },
+  behaviors: ["@subsurface_scattering", "@advanced_pbr", "@shader"]
+}

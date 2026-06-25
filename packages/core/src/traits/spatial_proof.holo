@@ -1,0 +1,13 @@
+@trait {
+  name: "@spatial_proof",
+  category: "web3",
+  description: "Spatial zero-knowledge proof — proves a position is inside a zone without revealing coordinates. Config is circuit-dependent and set at instance construction. Port of SpatialProofTrait.ts (handler name: spatial_proof).",
+  props: {},
+  events: {
+    on_proved: "spatial_proof:proved",
+    on_verified: "spatial_proof:verified",
+    prove: "spatial_proof.prove",
+    verify: "spatial_proof.verify"
+  },
+  behaviors: ["@zk_private", "@geospatial_anchor", "@persistent_anchor"]
+}

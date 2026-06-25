@@ -1,0 +1,15 @@
+@trait {
+  name: "@sms",
+  category: "integration",
+  description: "SMS messaging. provider is the SMS provider (default: default). max_length is the maximum message length in characters (default: 160). Port of SmsTrait.ts (handler name: sms).",
+  props: {
+    provider: string = "default",
+    max_length: number = 160
+  },
+  events: {
+    on_sent: "sms:sent",
+    on_error: "sms:error",
+    send: "sms.send"
+  },
+  behaviors: ["@mfa", "@messaging", "@push_notification"]
+}

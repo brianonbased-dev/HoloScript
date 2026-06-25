@@ -1,0 +1,14 @@
+@trait {
+  name: "@reward",
+  category: "rl",
+  description: "Reinforcement learning reward function. Tracks distance-based, interaction, and custom reward events. events is the list of reward event configs (default: []). Port of RewardTrait.ts (handler name: @reward).",
+  props: {
+    events: array = []
+  },
+  events: {
+    on_rewarded: "reward:rewarded",
+    on_penalized: "reward:penalized",
+    reward: "reward.reward"
+  },
+  behaviors: ["@feedback_loop", "@training_loop", "@drop_table"]
+}

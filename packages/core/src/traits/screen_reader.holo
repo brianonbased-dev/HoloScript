@@ -1,0 +1,16 @@
+@trait {
+  name: "@screen_reader",
+  category: "accessibility",
+  description: "Screen reader integration. semantic_structure emits ARIA-like structural events (default: true). navigation_order is the tab order index (default: 0). announce_changes reads out dynamic content changes (default: true). reading_mode: spatial (default), linear, structured. Port of ScreenReaderTrait.ts (handler name: screen_reader).",
+  props: {
+    semantic_structure: boolean = true,
+    navigation_order: number = 0,
+    announce_changes: boolean = true,
+    reading_mode: enum("spatial" | "linear" | "structured") = "spatial"
+  },
+  events: {
+    on_announced: "screen_reader:announced",
+    on_focused: "screen_reader:focused"
+  },
+  behaviors: ["@alt_text", "@subtitle", "@accessible"]
+}

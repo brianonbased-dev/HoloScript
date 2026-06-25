@@ -1,0 +1,15 @@
+@trait {
+  name: "@ray_trace",
+  category: "rendering",
+  description: "Ray trace query. max_bounces is the maximum ray bounces (default: 4). samples_per_pixel is the initial sample count (default: 1). Port of RayTraceTrait.ts (handler name: ray_trace).",
+  props: {
+    max_bounces: number = 4,
+    samples_per_pixel: number = 1
+  },
+  events: {
+    on_hit: "ray_trace:hit",
+    on_miss: "ray_trace:miss",
+    cast: "ray_trace.cast"
+  },
+  behaviors: ["@ray_tracing", "@gpu_physics", "@perception"]
+}

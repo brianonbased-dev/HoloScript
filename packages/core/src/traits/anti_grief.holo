@@ -1,0 +1,17 @@
+@trait {
+  name: "@anti_grief",
+  category: "safety",
+  description: "Anti-griefing shield. sensitivity is the anomaly detection threshold (default: 0.5). shield_threshold triggers auto-shield (default: 0.7). window_seconds is the rolling detection window in seconds (default: 60s). kill_threshold is the kill-event count triggering action (default: 5). destruction_threshold is the object-destruction count triggering action (default: 10). Port of AntiGriefTrait.ts (handler name: anti_grief).",
+  props: {
+    sensitivity: number = 0.5,
+    shield_threshold: number = 0.7,
+    window_seconds: number = 60,
+    kill_threshold: number = 5,
+    destruction_threshold: number = 10
+  },
+  events: {
+    on_detected: "anti_grief:detected",
+    on_shielded: "anti_grief:shielded"
+  },
+  behaviors: ["@moderation", "@permission", "@role"]
+}

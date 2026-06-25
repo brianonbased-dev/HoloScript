@@ -1,0 +1,17 @@
+@trait {
+  name: "@test",
+  category: "testing",
+  description: "Test runner. bail stops on first failure (default: false). debug emits verbose debug output (default: false). timeout is the per-test timeout in ms (default: 5,000ms). Port of TestTrait.ts (handler name: test).",
+  props: {
+    bail: boolean = false,
+    debug: boolean = false,
+    timeout: number = 5000
+  },
+  events: {
+    on_pass: "test:pass",
+    on_fail: "test:fail",
+    on_complete: "test:complete",
+    run: "test.run"
+  },
+  behaviors: ["@script_test", "@snapshot_test", "@chaos_test"]
+}

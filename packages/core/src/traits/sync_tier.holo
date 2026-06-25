@@ -1,0 +1,10 @@
+@trait {
+  name: "@sync_tier",
+  category: "networking",
+  description: "Network sync tier classifier. Classifies objects into sync tiers (high, medium, low priority) to optimize bandwidth. Config is scene-topology-dependent and set at instance construction. Port of SyncTierTrait.ts (handler name: sync_tier).",
+  props: {},
+  events: {
+    on_tier_changed: "sync_tier:tier_changed"
+  },
+  behaviors: ["@networked", "@shared_world", "@world_state"]
+}

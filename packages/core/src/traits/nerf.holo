@@ -1,0 +1,17 @@
+@trait {
+  name: "@nerf",
+  category: "rendering",
+  description: "Neural Radiance Field renderer. model_url is the trained NeRF model URL. resolution is the render resolution (default: 512). render_mode: volume (default), mesh, depth. quality: balanced (default), fast, accurate. cache_frames caches rendered frames for replay (default: true). Port of NerfTrait.ts (handler name: nerf).",
+  props: {
+    model_url: string = "",
+    resolution: number = 512,
+    render_mode: enum("volume" | "mesh" | "depth") = "volume",
+    quality: enum("fast" | "balanced" | "accurate") = "balanced",
+    cache_frames: boolean = true
+  },
+  events: {
+    on_loaded: "nerf:loaded",
+    on_rendered: "nerf:rendered"
+  },
+  behaviors: ["@volumetric", "@gaussian_splat", "@point_cloud"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@gpu_particle",
+  category: "rendering",
+  description: "GPU particle system. count is the particle count (default: 10,000). emission_rate is the particles per second (default: 1,000). lifetime is the particle lifetime in seconds (default: 2.0s). lifetime_variance is the lifetime randomness (default: 0.5). Port of GPUParticleTrait.ts (handler name: gpu_particle).",
+  props: {
+    count: number = 10000,
+    emission_rate: number = 1000,
+    lifetime: number = 2.0,
+    lifetime_variance: number = 0.5
+  },
+  events: {
+    on_emitted: "gpu_particle:emitted",
+    on_exhausted: "gpu_particle:exhausted",
+    emit: "gpu_particle.emit",
+    stop: "gpu_particle.stop"
+  },
+  behaviors: ["@volumetric", "@shader", "@post_process"]
+}

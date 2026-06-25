@@ -1,0 +1,13 @@
+@trait {
+  name: "@skill_registry",
+  category: "agent",
+  description: "Agent skill registry. Tracks available skills by name and routes invocations. Config is agent-context-dependent and set at instance construction. Port of SkillRegistryTrait.ts (handler name: skill_registry).",
+  props: {},
+  events: {
+    on_registered: "skill_registry:registered",
+    on_invoked: "skill_registry:invoked",
+    register: "skill_registry.register",
+    invoke: "skill_registry.invoke"
+  },
+  behaviors: ["@recall_trigger", "@neural_link", "@workflow"]
+}

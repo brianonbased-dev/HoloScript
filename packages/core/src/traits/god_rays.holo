@@ -1,0 +1,16 @@
+@trait {
+  name: "@god_rays",
+  category: "rendering",
+  description: "Screen-space god ray / volumetric light shaft effect. decay is the ray falloff per sample (default: 0.96). weight is the ray contribution weight (default: 0.5). exposure is the final exposure multiplier (default: 0.3). samples is the number of ray samples (default: 100). density is the ray marching density (default: 1.0). Port of GodRaysTrait.ts (handler name: god_rays).",
+  props: {
+    decay: number = 0.96,
+    weight: number = 0.5,
+    exposure: number = 0.3,
+    samples: number = 100,
+    density: number = 1.0
+  },
+  events: {
+    on_updated: "god_rays:updated"
+  },
+  behaviors: ["@volumetric_clouds", "@post_process", "@global_illumination"]
+}

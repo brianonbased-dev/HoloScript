@@ -1,0 +1,17 @@
+@trait {
+  name: "@crowd_sim",
+  category: "simulation",
+  description: "Agent-based crowd simulation. max_agents is the crowd size (default: 1000). speed is the agent walking speed in m/s (default: 1.5). avoidance_radius is the personal-space radius in meters (default: 1.0m). goal_weight is the steering weight toward the goal (default: 1.0). separation_weight is the steering weight for separation (default: 1.5). Port of CrowdSimTrait.ts (handler name: crowd_sim).",
+  props: {
+    max_agents: number = 1000,
+    speed: number = 1.5,
+    avoidance_radius: number = 1.0,
+    goal_weight: number = 1.0,
+    separation_weight: number = 1.5
+  },
+  events: {
+    on_congested: "crowd_sim:congested",
+    on_goal_reached: "crowd_sim:goal_reached"
+  },
+  behaviors: ["@navmesh_solver", "@npc_ai", "@perception"]
+}

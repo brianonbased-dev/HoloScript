@@ -1,0 +1,15 @@
+@trait {
+  name: "@drop_table",
+  category: "gamedev",
+  description: "Loot drop table. table_id is the table identifier. entries is the list of drop entries with weights (default: []). respect_luck scales drop chances by the @luck trait (default: false). Port of DropTableTrait.ts (handler name: drop_table).",
+  props: {
+    table_id: string = "unnamed-table",
+    entries: array = [],
+    respect_luck: boolean = false
+  },
+  events: {
+    on_rolled: "drop_table:rolled",
+    roll: "drop_table.roll"
+  },
+  behaviors: ["@luck", "@reward", "@inventory"]
+}

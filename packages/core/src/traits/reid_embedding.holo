@@ -1,0 +1,18 @@
+@trait {
+  name: "@reid_embedding",
+  category: "ml",
+  description: "Re-identification embedding. similarity_threshold is the match threshold (default: 0.75). embedding_dimension is the vector size (default: 256). gallery_size is the re-id gallery capacity (default: 64). gallery_ttl_ms is the gallery entry lifetime in ms (default: 60,000ms). Port of ReidEmbeddingTrait.ts (handler name: reid_embedding).",
+  props: {
+    similarity_threshold: number = 0.75,
+    embedding_dimension: number = 256,
+    gallery_size: number = 64,
+    gallery_ttl_ms: number = 60000
+  },
+  events: {
+    on_matched: "reid_embedding:matched",
+    on_new_identity: "reid_embedding:new_identity",
+    embed: "reid_embedding.embed",
+    match: "reid_embedding.match"
+  },
+  behaviors: ["@object_tracking", "@vector_db", "@multi_target_tracking"]
+}

@@ -1,0 +1,15 @@
+@trait {
+  name: "@soft_body_pro",
+  category: "physics",
+  description: "Advanced soft body with tearing. tear_threshold is the strain at which the mesh tears (default: 0.8). tear_color is the color at tear sites (default: #8b0000). solver_iterations is the constraint solver count per step (default: 10). compliance is the constraint compliance (default: 0.001). Port of SoftBodyProTrait.ts (handler name: soft_body_pro).",
+  props: {
+    tear_threshold: number = 0.8,
+    solver_iterations: number = 10,
+    compliance: number = 0.001
+  },
+  events: {
+    on_torn: "soft_body_pro:torn",
+    on_settled: "soft_body_pro:settled"
+  },
+  behaviors: ["@soft_body", "@gpu_physics", "@voronoi_fracture"]
+}

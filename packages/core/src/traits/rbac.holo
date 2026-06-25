@@ -1,0 +1,18 @@
+@trait {
+  name: "@rbac",
+  category: "auth",
+  description: "Role-based access control. tenant_id scopes the RBAC to a tenant. enabled activates RBAC checks (default: true). default_role is the fallback role (default: viewer). allow_custom_roles enables custom roles (default: true). max_custom_roles is the custom role cap (default: 10). Port of RBACTrait.ts (handler name: rbac).",
+  props: {
+    tenant_id: string = "",
+    enabled: boolean = true,
+    default_role: string = "viewer",
+    allow_custom_roles: boolean = true,
+    max_custom_roles: number = 10
+  },
+  events: {
+    on_granted: "rbac:granted",
+    on_denied: "rbac:denied",
+    check: "rbac.check"
+  },
+  behaviors: ["@role", "@permission", "@tenant"]
+}

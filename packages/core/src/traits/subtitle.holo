@@ -1,0 +1,18 @@
+@trait {
+  name: "@subtitle",
+  category: "accessibility",
+  description: "Subtitle / closed caption overlay. language is the BCP-47 subtitle language (default: en). position: bottom (default), top, overlay. font_size is the display font size in pt (default: 16). background adds a text shadow/background (default: true). Port of SubtitleTrait.ts (handler name: subtitle).",
+  props: {
+    language: string = "en",
+    position: enum("bottom" | "top" | "overlay") = "bottom",
+    font_size: number = 16,
+    background: boolean = true
+  },
+  events: {
+    on_shown: "subtitle:shown",
+    on_hidden: "subtitle:hidden",
+    show: "subtitle.show",
+    hide: "subtitle.hide"
+  },
+  behaviors: ["@screen_reader", "@translation", "@rtl"]
+}

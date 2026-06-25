@@ -1,0 +1,18 @@
+@trait {
+  name: "@approval",
+  category: "workflow",
+  description: "Approval workflow. timeout_ms is the approval request TTL in ms (default: 86,400,000ms = 24h). Port of ApprovalTrait.ts (handler name: approval).",
+  props: {
+    timeout_ms: number = 86400000
+  },
+  events: {
+    on_requested: "approval:requested",
+    on_approved: "approval:approved",
+    on_rejected: "approval:rejected",
+    on_expired: "approval:expired",
+    request: "approval.request",
+    approve: "approval.approve",
+    reject: "approval.reject"
+  },
+  behaviors: ["@workflow", "@permission", "@audit_log"]
+}

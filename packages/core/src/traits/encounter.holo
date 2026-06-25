@@ -1,0 +1,17 @@
+@trait {
+  name: "@encounter",
+  category: "gamedev",
+  description: "Encounter trigger. encounter_id identifies the encounter. trigger_type: interaction (default), proximity, time. cooldown_ms is the re-trigger cooldown in ms (default: 0 = no cooldown). Port of EncounterTrait.ts (handler name: encounter).",
+  props: {
+    encounter_id: string = "unnamed-encounter",
+    trigger_type: enum("interaction" | "proximity" | "time") = "interaction",
+    cooldown_ms: number = 0
+  },
+  events: {
+    on_triggered: "encounter:triggered",
+    on_ended: "encounter:ended",
+    trigger: "encounter.trigger",
+    end: "encounter.end"
+  },
+  behaviors: ["@patrol", "@npc_ai", "@speech_aware_encounter"]
+}

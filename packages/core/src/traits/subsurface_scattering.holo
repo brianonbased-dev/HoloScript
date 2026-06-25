@@ -1,0 +1,10 @@
+@trait {
+  name: "@subsurface_scattering",
+  category: "rendering",
+  description: "Subsurface scattering (SSS) material. Simulates light transport through translucent materials (skin, wax, leaves). Config is material-dependent and set at instance construction. Port of SubsurfaceScatteringTrait.ts (handler name: subsurface_scattering).",
+  props: {},
+  events: {
+    on_updated: "subsurface_scattering:updated"
+  },
+  behaviors: ["@advanced_pbr", "@material", "@shader"]
+}

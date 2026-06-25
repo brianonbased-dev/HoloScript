@@ -1,0 +1,18 @@
+@trait {
+  name: "@task_queue",
+  category: "ops",
+  description: "Async task queue. max_concurrent is the concurrency limit (default: 1). max_retries is the retry limit per task (default: 3). retry_delay_ms is the retry backoff in ms (default: 1,000ms). priority_levels is the number of priority tiers (default: 1). Port of TaskQueueTrait.ts (handler name: task_queue).",
+  props: {
+    max_concurrent: number = 1,
+    max_retries: number = 3,
+    retry_delay_ms: number = 1000,
+    priority_levels: number = 1
+  },
+  events: {
+    on_enqueued: "task_queue:enqueued",
+    on_completed: "task_queue:completed",
+    on_failed: "task_queue:failed",
+    enqueue: "task_queue.enqueue"
+  },
+  behaviors: ["@scheduler", "@retry", "@workflow"]
+}

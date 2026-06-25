@@ -1,0 +1,17 @@
+@trait {
+  name: "@shell",
+  category: "system",
+  description: "Shell command executor. command is the default command. args is the default argument list. cwd is the working directory (default: process.cwd()). timeout_ms is the execution timeout in ms (default: 30,000ms). Port of ShellTrait.ts (handler name: shell).",
+  props: {
+    command: string = "",
+    args: array = [],
+    timeout_ms: number = 30000
+  },
+  events: {
+    on_output: "shell:output",
+    on_done: "shell:done",
+    on_error: "shell:error",
+    run: "shell.run"
+  },
+  behaviors: ["@sys_io", "@sandbox_execution", "@wasm_bridge"]
+}

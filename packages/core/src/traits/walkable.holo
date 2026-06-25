@@ -1,0 +1,11 @@
+@trait {
+  name: "@walkable",
+  category: "xr",
+  description: "Walkable surface marker. Tags a surface as walkable for the navmesh solver. Config is surface-dependent and set at instance construction. Port of WalkableTrait.ts (handler name: walkable).",
+  props: {},
+  events: {
+    on_entered: "walkable:entered",
+    on_exited: "walkable:exited"
+  },
+  behaviors: ["@navmesh_solver", "@room_mesh", "@physics"]
+}

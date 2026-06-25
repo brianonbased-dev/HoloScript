@@ -1,0 +1,17 @@
+@trait {
+  name: "@rate_limiter",
+  category: "ops",
+  description: "Rate limiter. strategy: token_bucket (default), leaky_bucket, fixed_window, sliding_window. max_requests is the request cap (default: 100). window_ms is the sliding window in ms (default: 60,000ms). refill_rate is the token refill per second (default: 10). max_tokens is the token bucket capacity (default: 100). Port of RateLimiterTrait.ts (handler name: rate_limiter).",
+  props: {
+    strategy: enum("token_bucket" | "leaky_bucket" | "fixed_window" | "sliding_window") = "token_bucket",
+    max_requests: number = 100,
+    window_ms: number = 60000,
+    refill_rate: number = 10,
+    max_tokens: number = 100
+  },
+  events: {
+    on_limited: "rate_limiter:limited",
+    on_allowed: "rate_limiter:allowed"
+  },
+  behaviors: ["@quota", "@circuit_auto_reset", "@partner_sdk"]
+}

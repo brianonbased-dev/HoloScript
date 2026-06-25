@@ -1,0 +1,11 @@
+@trait {
+  name: "@advanced_texturing",
+  category: "rendering",
+  description: "Advanced procedural texturing. Config is material-and-pipeline-dependent and set at instance construction. Port of AdvancedTexturingTrait.ts (handler name: advanced_texturing).",
+  props: {},
+  events: {
+    on_applied: "advanced_texturing:applied",
+    apply: "advanced_texturing.apply"
+  },
+  behaviors: ["@advanced_pbr", "@material", "@shader"]
+}

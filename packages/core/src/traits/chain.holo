@@ -1,0 +1,17 @@
+@trait {
+  name: "@chain",
+  category: "physics",
+  description: "Physics chain. links is the number of links (default: 10). link_length is the length per link in meters (default: 0.1m). link_mass is the mass per link in kg (default: 0.5kg). stiffness is the joint stiffness (default: 1.0). damping is the joint damping (default: 0.1). Port of ChainTrait.ts (handler name: chain).",
+  props: {
+    links: number = 10,
+    link_length: number = 0.1,
+    link_mass: number = 0.5,
+    stiffness: number = 1.0,
+    damping: number = 0.1
+  },
+  events: {
+    on_snapped: "chain:snapped",
+    on_taut: "chain:taut"
+  },
+  behaviors: ["@rope", "@rigidbody", "@soft_body"]
+}

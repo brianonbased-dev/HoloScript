@@ -1,0 +1,11 @@
+@trait {
+  name: "@feedback_loop",
+  category: "ops",
+  description: "Closed-loop feedback controller. Monitors FPS, engagement time, error rate, and agent response time; adjusts system parameters to hit targets. Config specifies per-metric targets and bounds. Port of FeedbackLoopTrait.ts (handler name: feedback_loop).",
+  props: {},
+  events: {
+    on_adjustment: "feedback_loop:adjustment",
+    on_target_hit: "feedback_loop:target_hit"
+  },
+  behaviors: ["@slo_monitor", "@service_observability", "@analytics"]
+}
