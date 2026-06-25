@@ -1,0 +1,23 @@
+@trait {
+  name: "@plane_detection",
+  category: "xr",
+  description: "XR spatial plane detection (floor, walls, ceiling, horizontal surfaces). mode: horizontal, vertical, or all (default: all). min_area is the minimum plane area in m² to register (default: 0.25 m²). max_planes is the maximum simultaneous tracked planes (default: 10). update_interval is the detection refresh interval in ms (default: 100ms). visual_mesh renders a wireframe mesh overlay on detected planes (default: false). classification enables semantic plane classification (default: true). semantic_labels emits human-readable labels (floor, wall, table; default: false). merge_coplanar merges adjacent coplanar planes (default: true). plane_timeout removes a plane if unseen for this many ms (default: 2000ms). Port of PlaneDetectionTrait.ts (handler name: plane_detection).",
+  props: {
+    mode: enum("horizontal" | "vertical" | "all") = "all",
+    min_area: number = 0.25,
+    max_planes: number = 10,
+    update_interval: number = 100,
+    visual_mesh: boolean = false,
+    classification: boolean = true,
+    semantic_labels: boolean = false,
+    merge_coplanar: boolean = true,
+    plane_timeout: number = 2000
+  },
+  events: {
+    on_plane_added: "plane_detection_added",
+    on_plane_updated: "plane_detection_updated",
+    on_plane_removed: "plane_detection_removed",
+    reset: "plane_detection_reset"
+  },
+  behaviors: ["@passthrough_camera", "@gaze_focus_analytics"]
+}

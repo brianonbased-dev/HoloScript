@@ -1,0 +1,15 @@
+@trait {
+  name: "@provenance",
+  category: "audit",
+  description: "Provenance declaration for any entity — records the origin class and source URI of an asset, trait, or knowledge artifact. class: observed (derived from real-world capture), generated (AI/procedural synthesis), authored (human-crafted), or derived (computed from other provenance). source is the URI pointing to the originating asset, conversation, anchor, or data source. Emits provenance_declared on attach; the CAEL anchor pipeline consumes this at compile time. Port of ProvenanceTrait.ts (handler name: provenance).",
+  props: {
+    class: enum("observed" | "generated" | "authored" | "derived") = "observed",
+    source: string = ""
+  },
+  events: {
+    on_declared: "provenance_declared",
+    on_anchored: "provenance_anchored",
+    anchor: "provenance_anchor"
+  },
+  behaviors: ["@provenance_densify", "@fairness_monitor"]
+}

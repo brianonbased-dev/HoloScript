@@ -1,0 +1,16 @@
+@trait {
+  name: "@provenance_densify",
+  category: "reconstruction",
+  description: "Provenance reconstruction densifier — post-processes sparse point clouds or meshes to increase geometric density. mode: interpolation (spline/linear interpolation between known points), generative (Wan2.1-based sovereign generative densifier, Apache-2.0, D.101 carve-out granted 2026-06-24), or hybrid. source is the input provenance chain URI. maxAdded caps the number of generated points/faces to bound cost. Emits provenance_densify_declared on attach. Port of ProvenanceDensifyTrait.ts (handler name: provenance_densify).",
+  props: {
+    mode: enum("interpolation" | "generative" | "hybrid") = "interpolation",
+    source: string = "",
+    max_added: number = 0
+  },
+  events: {
+    on_declared: "provenance_densify_declared",
+    on_densified: "provenance_densify_complete",
+    densify: "provenance_densify.densify"
+  },
+  behaviors: ["@provenance", "@gaussian_train"]
+}

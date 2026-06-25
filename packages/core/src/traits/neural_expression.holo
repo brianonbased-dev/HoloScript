@@ -1,0 +1,15 @@
+@trait {
+  name: "@neural_expression",
+  category: "animation",
+  description: "Neural signal → facial blendshape expression driver. sources is the list of neural input channel names (e.g., eeg_alpha, eeg_theta; default: ['eeg_alpha', 'eeg_theta']). blendshape_map maps source channel names to blendshape target names and scale factors {channelName: {target, scale}}. smoothing_hz is the exponential smoothing frequency in Hz (default: 10 Hz). Integrates with @eeg_stream source channels and drives character facial blendshapes via the animation system. Port of NeuralExpressionTrait.ts (handler name: neural_expression).",
+  props: {
+    smoothing_hz: number = 10
+  },
+  events: {
+    on_expression_updated: "neural_expression_updated",
+    on_source_connected: "neural_expression_source_connected",
+    on_source_disconnected: "neural_expression_source_disconnected",
+    update: "neural_expression.update"
+  },
+  behaviors: ["@animation", "@eeg_stream"]
+}

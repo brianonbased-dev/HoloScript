@@ -1,0 +1,17 @@
+@trait {
+  name: "@language_adapter",
+  category: "language",
+  description: "HoloScript language adapter trait — registers a named language surface for code intelligence, syntax highlighting, and import resolution. language is the language identifier (e.g., holoscript, plaintext, json; default: plaintext). grammarPackage is the optional grammar package URI for syntax extension. extensions is the list of file extensions this adapter handles. symbols, imports, calls are lists of exported symbols, import bindings, and call sites discovered during parse. Category: data. Port of LanguageAdapterTrait.ts (handler name: language_adapter).",
+  props: {
+    language: string = "plaintext",
+    grammar_package: string = ""
+  },
+  events: {
+    on_registered: "language_adapter_registered",
+    on_symbols_updated: "language_adapter_symbols_updated",
+    on_imports_resolved: "language_adapter_imports_resolved",
+    register: "language_adapter_register",
+    update_symbols: "language_adapter_update_symbols"
+  },
+  behaviors: []
+}

@@ -1,0 +1,13 @@
+@trait {
+  name: "@kinematic_chain",
+  category: "robotics",
+  description: "Forward/inverse kinematics chain for robotic arms, tentacles, or articulated structures. links is an ordered list of link definitions {length, axis}. jointAngles is the current angle per joint in radians. On attach, if links and jointAngles are provided, FK is solved immediately and stored as __kinematic_fk. Responds to kinematic_chain.solve_fk events with updated joint angles. Port of KinematicChainTrait.ts (handler name: kinematic_chain).",
+  props: {},
+  events: {
+    on_fk_solved: "kinematic_chain_fk_solved",
+    on_ik_solved: "kinematic_chain_ik_solved",
+    solve_fk: "kinematic_chain.solve_fk",
+    solve_ik: "kinematic_chain.solve_ik"
+  },
+  behaviors: ["@control_loop", "@ros2_hardware_loop", "@auto_rig"]
+}

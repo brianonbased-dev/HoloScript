@@ -1,0 +1,14 @@
+@trait {
+  name: "@granular_material",
+  category: "physics",
+  description: "Granular material simulation (sand, gravel, powder, grain) attached to an entity. Wraps a GranularMaterialSystem instance. defaultConfig is empty — simulation parameters (particle radius, friction, restitution, gravity) are resolved from the GranularMaterialSystem constructor args at runtime. Emits granular_material_attached/detached lifecycle events. Port of GranularMaterialTrait.ts (handler name: granular_material).",
+  props: {},
+  events: {
+    on_attached: "granular_material_attached",
+    on_detached: "granular_material_detached",
+    on_step: "granular_material_step",
+    step: "granular_material.step",
+    reset: "granular_material.reset"
+  },
+  behaviors: ["@fluid_simulation"]
+}

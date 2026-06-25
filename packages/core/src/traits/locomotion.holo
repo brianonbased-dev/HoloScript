@@ -1,0 +1,33 @@
+@trait {
+  name: "@locomotion",
+  category: "movement",
+  description: "Entity locomotion controller supporting walk, run, fly, swim, path-follow, orbit, follow-target, and VR glide modes. mode selects the locomotion strategy (default: walk). speed is the base movement speed in m/s (default: 2). run_multiplier scales speed during run (default: 2x). gravity enables gravity (default: true). gravity_strength in m/s² (default: 9.8). fly_height is the default hover height in fly mode (default: 2m). swim_depth is the water surface depth offset (default: 0.5m). path_waypoints is an ordered list of world-space waypoints for path-follow mode. orbit_target is the entity ID to orbit. orbit_radius and orbit_speed control the orbit. follow_target is the entity ID to follow. follow_distance is the trailing distance (default: 1.5m). vr_glide_hand: left or right controller for glide direction (default: left). snap_turn_angle is the VR snap-turn increment in degrees (default: 45). teleport_fade_ms is the fade duration for VR teleport transitions (default: 200ms). Port of LocomotionTrait.ts (handler name: locomotion).",
+  props: {
+    mode: enum("walk" | "run" | "fly" | "swim" | "path" | "orbit" | "follow" | "vr_glide") = "walk",
+    speed: number = 2,
+    run_multiplier: number = 2,
+    gravity: boolean = true,
+    gravity_strength: number = 9.8,
+    fly_height: number = 2,
+    swim_depth: number = 0.5,
+    path_loop: boolean = true,
+    orbit_radius: number = 3,
+    orbit_speed: number = 0.5,
+    follow_distance: number = 1.5,
+    vr_glide_hand: enum("left" | "right") = "left",
+    snap_turn_angle: number = 45,
+    snap_turn_cooldown: number = 0.3,
+    teleport_fade_ms: number = 200
+  },
+  events: {
+    on_mode_changed: "locomotion_mode_changed",
+    on_grounded: "locomotion_grounded",
+    on_airborne: "locomotion_airborne",
+    on_waypoint_reached: "locomotion_waypoint_reached",
+    move: "locomotion_move",
+    set_mode: "locomotion_set_mode",
+    teleport: "locomotion_teleport",
+    snap_turn: "locomotion_snap_turn"
+  },
+  behaviors: ["@animation", "@motion_source"]
+}

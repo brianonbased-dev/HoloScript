@@ -1,0 +1,22 @@
+@trait {
+  name: "@motion_source",
+  category: "animation",
+  description: "Motion clip catalog and playback controller. kind: library (pre-authored clip catalog) or procedural (runtime-generated motion). blend is the crossfade blend duration in seconds (default: 0.25s). frequency is the update rate in Hz (default: 30 Hz). default_motion is the clip name to play on attach (default: idle). autoplay starts the default_motion immediately on attach (default: true). catalog is a map of {clipName: {path, loop, speed, events}} loaded at runtime. Port of MotionSourceTrait.ts (handler name: motion_source).",
+  props: {
+    kind: enum("library" | "procedural") = "library",
+    blend: number = 0.25,
+    frequency: number = 30,
+    default_motion: string = "idle",
+    autoplay: boolean = true
+  },
+  events: {
+    on_play: "motion_source_play",
+    on_stop: "motion_source_stop",
+    on_blend_complete: "motion_source_blend_complete",
+    on_event_marker: "motion_source_event_marker",
+    play: "motion_source.play",
+    stop: "motion_source.stop",
+    crossfade: "motion_source.crossfade"
+  },
+  behaviors: ["@animation", "@locomotion"]
+}

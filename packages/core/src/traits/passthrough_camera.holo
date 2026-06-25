@@ -1,0 +1,25 @@
+@trait {
+  name: "@passthrough_camera",
+  category: "xr",
+  description: "Meta Quest / HorizonOS passthrough camera access. permission is the Android permission string required (default: horizonos.permission.HEADSET_CAMERA). camera_source is the source index (0 = default). camera_position is the camera position selector (0 = default/center). frame_width/frame_height set the capture resolution (default: 1280x960). capture: max (maximum supported quality) or specified. format: YUV_420_888 (default) or JPEG. plane: luminance (Y channel only) or full_color. preview_downscale reduces the preview frame by this factor (default: 4x) for performance. Port of PassthroughCameraTrait.ts (handler name: passthrough_camera).",
+  props: {
+    permission: string = "horizonos.permission.HEADSET_CAMERA",
+    camera_source: number = 0,
+    camera_position: number = 0,
+    frame_width: number = 1280,
+    frame_height: number = 960,
+    capture: enum("max" | "specified") = "max",
+    format: enum("YUV_420_888" | "JPEG") = "YUV_420_888",
+    plane: enum("luminance" | "full_color") = "luminance",
+    preview_downscale: number = 4
+  },
+  events: {
+    on_frame: "passthrough_frame",
+    on_permission_granted: "passthrough_permission_granted",
+    on_permission_denied: "passthrough_permission_denied",
+    request_permission: "passthrough_request_permission",
+    start: "passthrough_start",
+    stop: "passthrough_stop"
+  },
+  behaviors: ["@qr_decode", "@plane_detection", "@gaze_focus_analytics"]
+}

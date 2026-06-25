@@ -1,0 +1,21 @@
+@trait {
+  name: "@perceptual_color",
+  category: "visual",
+  description: "Perceptually-uniform color mapping for data visualization and accessibility. mode: auto (palette auto-selected by data range), manual, or gradient. palette is a list of hex colors for categorical/discrete mapping (default: Tableau-10 subset). color_map: viridis (default), inferno, plasma, magma, or custom. steps is the quantization level for discrete maps (default: 7). target_delta_e is the minimum perceptual color distance (CIEDE2000 units) between adjacent palette entries (default: 8). neutral_axis disables color encoding on the neutral dimension (default: false). scientific uses scientifically rigorous color maps (default: true). emit_analysis emits a color analysis event on each palette apply (default: true). Port of PerceptualColorTrait.ts (handler name: perceptual_color).",
+  props: {
+    mode: enum("auto" | "manual" | "gradient") = "auto",
+    color_map: enum("viridis" | "inferno" | "plasma" | "magma" | "custom") = "viridis",
+    steps: number = 7,
+    target_delta_e: number = 8,
+    neutral_axis: boolean = false,
+    scientific: boolean = true,
+    emit_analysis: boolean = true
+  },
+  events: {
+    on_applied: "perceptual_color_applied",
+    on_analysis: "perceptual_color_analysis",
+    apply: "perceptual_color_apply",
+    reset: "perceptual_color_reset"
+  },
+  behaviors: ["@advanced_lighting", "@color_grade"]
+}
