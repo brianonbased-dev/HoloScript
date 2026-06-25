@@ -1,0 +1,25 @@
+@trait {
+  name: "@trait_marketplace",
+  category: "agent",
+  description: "Decentralized trait marketplace with x402 micropayments. Agents list traits for sale (max_listings_per_agent, max_price cap). Pay-what-you-want (allow_pwyw) lets buyers set their price above 0. Creator receives default_creator_share% (default: 95%) and platform takes platform_fee_percent%. auto_delist_days=0 disables auto-expiry. min_seller_reputation gate blocks low-trust listings. Tracks listings, purchases, and peer reviews. Port of HolomeshMarketplaceTrait.ts (handler name: trait_marketplace).",
+  props: {
+    platform_fee_percent: number = 5,
+    max_listings_per_agent: number = 50,
+    max_price: number = 10000,
+    min_seller_reputation: number = 0,
+    auto_delist_days: number = 0,
+    allow_pwyw: boolean = true,
+    default_creator_share: number = 95
+  },
+  events: {
+    on_listed: "marketplace_listed",
+    on_purchased: "marketplace_purchased",
+    on_review: "marketplace_review",
+    on_delisted: "marketplace_delisted",
+    list: "marketplace_list",
+    buy: "marketplace_buy",
+    delist: "marketplace_delist",
+    review: "marketplace_review_submit"
+  },
+  behaviors: ["@economy", "@agent_profile"]
+}

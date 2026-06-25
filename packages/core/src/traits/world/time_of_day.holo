@@ -1,0 +1,17 @@
+@trait {
+  name: "@time_of_day",
+  category: "world",
+  description: "World-clock time-of-day cycle driver. Cycles through 4 equal phases: dawn→golden→dusk→dark over cycle_duration_minutes (default: 24 minutes → 6 min/phase). start_phase selects the initial phase. emit_tick fires on every update tick with elapsed seconds and phase fraction. emit_phase_change fires exactly when the phase transitions. Drives sky/lighting traits. Port of TraitTimeOfDay.ts (handler name: time_of_day; phases: dawn|golden|dusk|dark).",
+  props: {
+    cycle_duration_minutes: number = 24,
+    start_phase: enum("dawn" | "golden" | "dusk" | "dark") = "golden",
+    emit_tick: boolean = true,
+    emit_phase_change: boolean = true
+  },
+  events: {
+    attached: "time_of_day_attached",
+    on_tick: "time_of_day_tick",
+    on_phase_change: "time_of_day_phase_change"
+  },
+  behaviors: ["@environmental_lighting", "@weather_system"]
+}

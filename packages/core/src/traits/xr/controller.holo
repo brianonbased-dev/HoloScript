@@ -1,0 +1,23 @@
+@trait {
+  name: "@controller",
+  category: "xr",
+  description: "XR controller input handler for both left and right controllers. Deadzone suppresses thumbstick drift. trigger_threshold and grip_threshold are the analog-to-digital thresholds for button events. haptic_on_button fires haptic feedback on every button press at haptic_intensity. button_mapping overrides default button actions. thumbstick_sensitivity scales analog thumbstick output. invert_y flips the thumbstick Y axis. Tracks prev-frame button state for rising/falling edge events. Port of ControllerInputTrait.ts (handler name: controller).",
+  props: {
+    haptic_on_button: boolean = true,
+    haptic_intensity: number = 0.3,
+    deadzone: number = 0.1,
+    trigger_threshold: number = 0.5,
+    grip_threshold: number = 0.5,
+    thumbstick_sensitivity: number = 1.0,
+    invert_y: boolean = false
+  },
+  events: {
+    on_button_press: "controller_button_press",
+    on_button_release: "controller_button_release",
+    on_trigger: "controller_trigger",
+    on_grip: "controller_grip",
+    on_thumbstick: "controller_thumbstick",
+    on_haptic: "controller_haptic"
+  },
+  behaviors: ["@openxr_hal", "@grab_feedback_profile"]
+}
