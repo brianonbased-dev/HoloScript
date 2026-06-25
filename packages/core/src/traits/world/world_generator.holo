@@ -1,0 +1,24 @@
+@trait {
+  name: "@world_generator",
+  category: "world",
+  description: "Sovereign 3D world generation using native HoloScript foundations (Brittney v43+). Generates 3D Gaussian Splats, meshes, or neural fields from text prompts or input images. Engines: sovereign-3d/stable-world/custom. Supports multi-view reconstruction, navmesh output, physics/collision interactive mode, auto-render on completion, and seeded reproducible generation. Port of WorldGeneratorTrait.ts (handler name: world_generator).",
+  props: {
+    prompt: string = "",
+    engine: enum("sovereign-3d" | "stable-world" | "custom") = "sovereign-3d",
+    format: enum("3dgs" | "mesh" | "both" | "neural_field") = "3dgs",
+    quality: enum("low" | "medium" | "high" | "ultra") = "medium",
+    auto_render: boolean = true,
+    seed: number = 0,
+    nav_enabled: boolean = false,
+    interactive_mode: boolean = false
+  },
+  events: {
+    attached: "world_generator_attached",
+    detached: "world_generator_detached",
+    on_progress: "world_generator_progress",
+    on_complete: "world_generator_complete",
+    on_error: "world_generator_error",
+    generate: "world_generator_generate"
+  },
+  behaviors: ["@splat_character", "@holo_twin", "@terrain_anchor"]
+}

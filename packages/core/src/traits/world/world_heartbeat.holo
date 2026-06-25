@@ -1,0 +1,17 @@
+@trait {
+  name: "@world_heartbeat",
+  category: "world",
+  description: "Global pulse emitter for distributed world-service synchronization. Provisions N redundant emitters (configurable) to avoid single-point-of-failure desync. Detects missed beats per emitter and triggers failover to the next active emitter. interval_ms must be >= 100; redundancy must be >= 1. Port of WorldHeartbeatTrait.ts (handler name: world_heartbeat).",
+  props: {
+    interval_ms: number = 1000,
+    redundancy: number = 2,
+    failover_threshold: number = 3
+  },
+  events: {
+    on_initialized: "heartbeat_initialized",
+    on_tick: "heartbeat_tick",
+    on_failover: "heartbeat_failover",
+    on_error: "heartbeat_error"
+  },
+  behaviors: ["@lotus_root", "@lotus_gardener"]
+}

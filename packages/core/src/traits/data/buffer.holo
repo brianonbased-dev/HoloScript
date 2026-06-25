@@ -1,0 +1,17 @@
+@trait {
+  name: "@buffer",
+  category: "data",
+  description: "Batch events by count or time window. Named channels each watch a source event and flush a batch output event when max_count items accumulate or max_wait_ms elapses. Older items are dropped when buffer exceeds max_size. Channels can be dynamically added/removed at runtime. Port of BufferTrait.ts (handler name: buffer).",
+  props: {
+    channels: list<{ id: string, source_event: string, output_event: string, max_count: number, max_wait_ms: number, max_size: number, enabled: boolean }> = []
+  },
+  events: {
+    on_flush: "buffer:flush",
+    on_overflow: "buffer:overflow",
+    add_channel: "buffer:add_channel",
+    remove_channel: "buffer:remove_channel",
+    force_flush: "buffer:force_flush",
+    get_status: "buffer:get_status"
+  },
+  behaviors: ["@throttle", "@debounce"]
+}
