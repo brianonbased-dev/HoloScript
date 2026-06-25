@@ -1,0 +1,106 @@
+// @spatial — Vec3 class and spatial transform utilities for spatial computing.
+//
+// Native .hsplus surface for spatial.ts (std, v0.2.0).
+//
+// Vec3 (spatial.ts):
+//   Constructors: zero, one, up (0,1,0), down (0,-1,0), forward (0,0,-1), right (1,0,0)
+//   Methods: add, sub, mul, div, dot, cross, length, normalize, lerp, distance
+//
+// Transform: position: Vec3, rotation: Quaternion {x,y,z,w}, scale: Vec3
+//
+// Ray: origin: Vec3, direction: Vec3
+//   ray_at(t) → origin + direction * t
+//
+// AABB: min: Vec3, max: Vec3
+//   contains_point(p): all(min <= p <= max)
+//   intersects(other): overlapping intervals on all 3 axes
+//   center: (min + max) / 2
+//   size: max - min
+
+@trait spatial_math {
+  capability_tags: ["spatial_math", "vec3", "transform", "ray", "aabb", "spatial_computing", "holoscript_std"]
+
+  @on_spawn => {
+    spatial = get_spatial_lib()
+    emit("spatial_math_ready", {})
+  }
+
+  // --- Vec3 constructors ---
+  @on_vec3_zero   => { return { x: 0.0, y: 0.0, z: 0.0 } }
+  @on_vec3_one    => { return { x: 1.0, y: 1.0, z: 1.0 } }
+  @on_vec3_up     => { return { x: 0.0, y: 1.0, z: 0.0 } }
+  @on_vec3_forward => { return { x: 0.0, y: 0.0, z: -1.0 } }
+  @on_vec3_right  => { return { x: 1.0, y: 0.0, z: 0.0 } }
+
+  // --- Vec3 operations ---
+  @on_vec3_add(a, b)    => { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z } }
+  @on_vec3_sub(a, b)    => { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z } }
+  @on_vec3_scale(v, s)  => { return { x: v.x * s,   y: v.y * s,   z: v.z * s   } }
+
+  @on_vec3_length(v) => {
+    return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+  }
+
+  @on_vec3_normalize(v) => {
+    len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    if len < 0.000001 { return { x: 0.0, y: 0.0, z: 0.0 } }
+    return { x: v.x / len, y: v.y / len, z: v.z / len }
+  }
+
+  @on_vec3_dot(a, b) => {
+    return a.x * b.x + a.y * b.y + a.z * b.z
+  }
+
+  @on_vec3_cross(a, b) => {
+    return {
+      x: a.y * b.z - a.z * b.y,
+      y: a.z * b.x - a.x * b.z,
+      z: a.x * b.y - a.y * b.x
+    }
+  }
+
+  @on_vec3_lerp(a, b, t) => {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }
+  }
+
+  @on_vec3_distance(a, b) => {
+    dx = a.x - b.x; dy = a.y - b.y; dz = a.z - b.z
+    return sqrt(dx * dx + dy * dy + dz * dz)
+  }
+
+  // --- Ray ---
+  @on_ray_at(origin, direction, t) => {
+    return {
+      x: origin.x + direction.x * t,
+      y: origin.y + direction.y * t,
+      z: origin.z + direction.z * t
+    }
+  }
+
+  // --- AABB ---
+  @on_aabb_contains(aabb, point) => {
+    return point.x >= aabb.min.x and point.x <= aabb.max.x and
+           point.y >= aabb.min.y and point.y <= aabb.max.y and
+           point.z >= aabb.min.z and point.z <= aabb.max.z
+  }
+
+  @on_aabb_intersects(a, b) => {
+    return a.min.x <= b.max.x and a.max.x >= b.min.x and
+           a.min.y <= b.max.y and a.max.y >= b.min.y and
+           a.min.z <= b.max.z and a.max.z >= b.min.z
+  }
+
+  @on_aabb_center(aabb) => {
+    return {
+      x: (aabb.min.x + aabb.max.x) * 0.5,
+      y: (aabb.min.y + aabb.max.y) * 0.5,
+      z: (aabb.min.z + aabb.max.z) * 0.5
+    }
+  }
+
+  @receipt spatial_config {
+    type: "SpatialMathReceipt"
+    types: ["Vec3", "Transform", "Ray", "AABB"]
+    timestamp: now()
+  }
+}

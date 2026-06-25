@@ -1,0 +1,108 @@
+// @webrtc_sync — Peer-to-peer CRDT synchronization over WebRTC data channels.
+//
+// Native .hsplus surface for WebRTCSync.ts (crdt/sync, v1.0.0).
+//
+// Protocol (WebRTCSync.ts):
+//   sync_request  — request full state from peer (with last_operation_id + vector_clock)
+//   sync_response — full CRDT state snapshot response
+//   operation     — incremental signed op update (SignedOperation)
+//   ack           — acknowledgment of received operation
+//   heartbeat     — keepalive; also used for RTT measurement
+//
+// SyncMessage fields:
+//   type (SyncMessageType), crdt_id, sender_did, timestamp, payload
+//
+// Features (WebRTCSync.ts):
+//   - Incremental sync via vector clock diff (only missing ops since last_operation_id)
+//   - Automatic reconnection on peer disconnect
+//   - Message ordering via logical timestamp
+//   - simple-peer (WebRTC) under the hood
+
+@trait webrtc_sync {
+  // CRDT document ID
+  crdt_id: String
+
+  // Local peer DID
+  local_did: String
+
+  // Heartbeat interval in seconds (0 = disabled)
+  heartbeat_interval_s: Int = 30
+
+  // Maximum reconnect attempts before giving up
+  max_reconnect_attempts: Int = 5
+
+  // Whether to request full sync on initial connect
+  full_sync_on_connect: Bool = true
+
+  capability_tags: ["webrtc_sync", "crdt_sync", "peer_to_peer", "incremental_sync", "webrtc", "simple_peer"]
+
+  @on_spawn => {
+    sync = init_webrtc_sync({
+      crdt_id: crdt_id,
+      local_did: local_did,
+      heartbeat_interval_s: heartbeat_interval_s,
+      max_reconnect_attempts: max_reconnect_attempts
+    })
+    if heartbeat_interval_s > 0 {
+      schedule_recurring(heartbeat_interval_s, "on_heartbeat_tick")
+    }
+    emit("webrtc_sync_ready", { crdt_id: crdt_id, local_did: local_did })
+  }
+
+  @on_peer_connected(peer_did, signal) => {
+    sync.connect_peer(peer_did, signal)
+    if full_sync_on_connect {
+      sync.send_sync_request(peer_did, {
+        last_operation_id: sync.last_operation_id(),
+        vector_clock: sync.vector_clock()
+      })
+    }
+    emit("webrtc_peer_connected", { peer_did: peer_did, crdt_id: crdt_id })
+  }
+
+  @on_peer_disconnected(peer_did) => {
+    emit("webrtc_peer_disconnected", { peer_did: peer_did, crdt_id: crdt_id })
+    sync.attempt_reconnect(peer_did)
+  }
+
+  @on_message(peer_did, msg) => {
+    if msg.type == "sync_request" {
+      state = sync.get_full_state_since(msg.payload.last_operation_id, msg.payload.vector_clock)
+      sync.send(peer_did, { type: "sync_response", crdt_id: crdt_id, sender_did: local_did, timestamp: lamport_now(), payload: state })
+    }
+    if msg.type == "sync_response" {
+      sync.apply_full_state(msg.payload)
+      emit("sync_applied", { from: peer_did, crdt_id: crdt_id })
+    }
+    if msg.type == "operation" {
+      sync.apply_signed_op(msg.payload)
+      sync.send(peer_did, { type: "ack", crdt_id: crdt_id, sender_did: local_did, timestamp: lamport_now(), payload: { operation_id: msg.payload.operation.id } })
+    }
+    if msg.type == "heartbeat" {
+      sync.record_rtt(peer_did, lamport_now() - msg.timestamp)
+    }
+  }
+
+  @on_broadcast_op(signed_op) => {
+    sync.broadcast({ type: "operation", crdt_id: crdt_id, sender_did: local_did, timestamp: lamport_now(), payload: signed_op })
+  }
+
+  @on_heartbeat_tick => {
+    sync.broadcast({ type: "heartbeat", crdt_id: crdt_id, sender_did: local_did, timestamp: lamport_now(), payload: {} })
+  }
+
+  @on_despawn => {
+    sync.disconnect_all()
+    emit("webrtc_sync_disconnected", { crdt_id: crdt_id })
+  }
+
+  @receipt webrtc_sync_config {
+    type: "WebRTCSyncReceipt"
+    crdt_id: crdt_id
+    local_did: local_did
+    heartbeat_interval_s: heartbeat_interval_s
+    max_reconnect_attempts: max_reconnect_attempts
+    protocol: "simple_peer_webrtc"
+    timestamp: now()
+  }
+}

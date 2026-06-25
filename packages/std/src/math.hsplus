@@ -1,0 +1,112 @@
+// @std_math — Math utilities: vector math, quaternion ops, interpolation, noise.
+//
+// Native .hsplus surface for math.ts (std, v0.2.0).
+//
+// Constants (math.ts):
+//   PI, TAU, HALF_PI, DEG_TO_RAD, RAD_TO_DEG, EPSILON (1e-6)
+//
+// Scalar functions: clamp, lerp, inverse_lerp, remap, smoothstep, smootherstep,
+//   deg_to_rad, rad_to_deg, mod (always positive), fract
+//
+// Vec3 operations (math.ts): add, sub, mul, length, normalize, dot, cross,
+//   lerp_vec3, distance, angle_between
+//
+// Quaternion operations: multiply, slerp, look_rotation, from_axis_angle,
+//   from_euler, to_euler, identity
+//
+// AABB: contains_point, intersects_aabb, center, size
+//
+// Noise: value_noise (simple pseudorandom; not production-grade Perlin)
+
+@trait std_math {
+  capability_tags: ["std_math", "vector_math", "quaternion", "interpolation", "math_utils", "holoscript_std"]
+
+  @on_spawn => {
+    math = get_std_math_lib()
+    emit("std_math_ready", {})
+  }
+
+  // --- Scalar ---
+  @on_clamp(value, min, max) => {
+    return math.clamp(value, min, max)
+  }
+
+  @on_lerp(a, b, t) => {
+    return a + (b - a) * t
+  }
+
+  @on_smoothstep(edge0, edge1, x) => {
+    t = math.clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+  }
+
+  @on_remap(value, in_min, in_max, out_min, out_max) => {
+    return math.lerp(out_min, out_max, (value - in_min) / (in_max - in_min))
+  }
+
+  @on_deg_to_rad(degrees) => {
+    return degrees * 0.017453292519943295
+  }
+
+  @on_rad_to_deg(radians) => {
+    return radians * 57.29577951308232
+  }
+
+  // --- Vec3 ---
+  @on_vec3_length(v) => {
+    return sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+  }
+
+  @on_vec3_normalize(v) => {
+    len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    if len < 0.000001 { return { x: 0.0, y: 0.0, z: 0.0 } }
+    return { x: v.x / len, y: v.y / len, z: v.z / len }
+  }
+
+  @on_vec3_dot(a, b) => {
+    return a.x * b.x + a.y * b.y + a.z * b.z
+  }
+
+  @on_vec3_cross(a, b) => {
+    return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }
+  }
+
+  @on_vec3_lerp(a, b, t) => {
+    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t }
+  }
+
+  @on_vec3_distance(a, b) => {
+    dx = a.x - b.x; dy = a.y - b.y; dz = a.z - b.z
+    return sqrt(dx * dx + dy * dy + dz * dz)
+  }
+
+  // --- Quaternion ---
+  @on_quat_identity => {
+    return { x: 0.0, y: 0.0, z: 0.0, w: 1.0 }
+  }
+
+  @on_quat_multiply(a, b) => {
+    return {
+      x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+      y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+      z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+      w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z
+    }
+  }
+
+  @on_quat_slerp(a, b, t) => {
+    return math.quat_slerp(a, b, t)
+  }
+
+  @on_quat_from_axis_angle(axis, angle_rad) => {
+    half = angle_rad * 0.5
+    s = sin(half)
+    return { x: axis.x * s, y: axis.y * s, z: axis.z * s, w: cos(half) }
+  }
+
+  @receipt std_math_config {
+    type: "StdMathReceipt"
+    constants: ["PI", "TAU", "HALF_PI", "DEG_TO_RAD", "RAD_TO_DEG", "EPSILON"]
+    timestamp: now()
+  }
+}

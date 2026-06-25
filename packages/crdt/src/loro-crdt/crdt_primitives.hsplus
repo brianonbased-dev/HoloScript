@@ -1,0 +1,127 @@
+// @crdt_primitives — LWW-Register, G-Counter, OR-Set standard library implementations.
+//
+// Native .hsplus surface for CRDTPrimitives.ts (crdt/loro-crdt, v1.0.0).
+//
+// Three lightweight CRDT primitives used throughout the stack before the
+// DID-signed variants (crdt/types/lww_register, g_counter, or_set) add auth.
+// These are the foundational math — no JWT, no DID, simpler merge semantics.
+//
+// LWWRegister<T> (CRDTPrimitives.ts):
+//   Tie-break: higher timestamp wins; on equal timestamp, lexicographically higher nodeId wins.
+//   State: { value, timestamp, nodeId }
+//
+// GCounter (CRDTPrimitives.ts):
+//   counts: Map<nodeId, number> — per-node vector; total = sum.
+//   Merge: max(current, remote) per nodeId.
+//   Constraint: only non-negative increments (throws on negative amount).
+//
+// ORSet<T> (CRDTPrimitives.ts):
+//   elements: Map<key, { value, addTags: Set, removeTags: Set }>
+//   Element present if addTags ∖ removeTags ≠ ∅ (add-biased).
+
+@trait crdt_lww_register {
+  // Node ID for tiebreaking (should be globally unique per peer)
+  node_id: String
+
+  // Optional initial value as serialized string (empty = null)
+  initial_value: String? = null
+
+  capability_tags: ["crdt_primitives", "lww_register", "primitive_crdt", "no_did", "lightweight"]
+
+  @on_spawn => {
+    register = init_crdt_lww_register(node_id, initial_value)
+    emit("crdt_lww_ready", { node_id: node_id })
+  }
+
+  @on_set(value, timestamp) => {
+    register.set(value, timestamp)
+  }
+
+  @on_merge(remote_state) => {
+    // remote_state: { value, timestamp, nodeId }
+    // Tie-break: higher timestamp wins; on equal → lexicographically higher nodeId
+    register.merge(remote_state)
+  }
+
+  @on_get => {
+    return register.get()
+  }
+
+  @on_get_state => {
+    return register.get_state()
+  }
+}
+
+@trait crdt_g_counter {
+  // Node ID for this peer's counter slot
+  node_id: String
+
+  capability_tags: ["crdt_primitives", "g_counter", "primitive_crdt", "no_did", "monotonic", "lightweight"]
+
+  @on_spawn => {
+    counter = init_crdt_g_counter(node_id)
+    emit("crdt_g_counter_ready", { node_id: node_id })
+  }
+
+  @on_increment(amount) => {
+    if (amount ?? 1) < 0 {
+      emit("crdt_g_counter_error", { reason: "negative_increment_rejected", amount: amount })
+      return { ok: false, reason: "negative_increment" }
+    }
+    counter.increment(amount ?? 1)
+    return { ok: true }
+  }
+
+  @on_merge(remote_counts) => {
+    // Merge: take max(current, remote) per nodeId
+    counter.merge(remote_counts)
+  }
+
+  @on_value => {
+    return counter.value()
+  }
+
+  @on_get_state => {
+    return counter.get_state()
+  }
+}
+
+@trait crdt_or_set {
+  // Node ID for tagging add operations
+  node_id: String
+
+  capability_tags: ["crdt_primitives", "or_set", "primitive_crdt", "no_did", "add_biased", "lightweight"]
+
+  @on_spawn => {
+    set_crdt = init_crdt_or_set(node_id)
+    emit("crdt_or_set_ready", { node_id: node_id })
+  }
+
+  @on_add(key, value) => {
+    set_crdt.add(key, value)
+  }
+
+  @on_remove(key) => {
+    set_crdt.remove(key)
+  }
+
+  @on_merge(remote_elements) => {
+    set_crdt.merge(remote_elements)
+  }
+
+  @on_has(key) => {
+    return set_crdt.has(key)
+  }
+
+  @on_values => {
+    return set_crdt.values()
+  }
+
+  @receipt crdt_primitives_config {
+    type: "CRDTPrimitivesReceipt"
+    node_id: node_id
+    primitives: ["lww_register", "g_counter", "or_set"]
+    auth_model: "none_lightweight"
+    timestamp: now()
+  }
+}
