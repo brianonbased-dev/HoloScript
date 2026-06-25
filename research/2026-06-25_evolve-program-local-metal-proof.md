@@ -213,8 +213,31 @@ for a capable agent to execute it; the corpus grows when *run*, which is proven 
 not yet autonomous.
 
 **Bootstrapped the real corpus** (manual run into the persistent dir): 7 unique
-verifier-labeled rows across all 5 targets, cross-run dedup armed. The
-genuinely-autonomous executor is the **Jetson idle-loop** — the agent runs
-`runEvolution` IN-PROCESS via its own runtime (no `pnpm vitest`), emitting through
-the existing `recordTrace` path. That (a careful live-agent redeploy with
-backup/rollback) is the remaining piece for hands-off continuous accrual.
+verifier-labeled rows across all 5 targets, cross-run dedup armed.
+
+### CORRECTION (grounded in JETSON.md per F.123) — the "executor gap" above was wrong
+
+Re-reading the Jetson SSOT corrected three assumptions the section above rests on:
+1. **The agent runs on a DESKTOP SEAT (the laptop), not the Jetson** — JETSON.md:
+   "the node joins the mesh as `jetson-orin-super` via the AgentRunner *driven from
+   a desktop seat, pointed at the node for inference*." So the agent HAS the repo
+   and CAN run `pnpm vitest`. "Jetson agents can't run it (no repo)" was false → the
+   "executor gap" / the staged "Jetson idle-loop in-process" plan are largely moot.
+   (The holoscript-agent is also no-`@holoscript/core`-dep by design, so an
+   in-process `accrueOneStep` import was the wrong approach anyway.)
+2. **The executor likely already exists**: the `evolve-corpus-accrual` automation
+   (4h) enqueues a board task; a board-claiming agent on the laptop (e.g. `a-022`
+   board-triage, 2h) can claim + run it → corpus grows. No bundle, no runner.ts
+   change, no core dep. (An esbuild "Jetson bundle" started here was deleted — it
+   solved a non-problem.)
+3. **The fine-tune can be $0 on the Jetson** — JETSON.md: "fine-tune node — small
+   LoRA/QLoRA runs on the 1 TB NVMe; large multi-GPU escalate to the fleet." So the
+   staged fine-tune does NOT need the Vast-fleet GPU spend; the founder spend
+   approval applies only to a *large* multi-GPU run. Jetson model = `qwen3:4b` (not
+   `brittney-edge`); corpus canonical home = `/mnt/nvme/holo/datasets/`.
+
+Lesson (F.123, founder 2026-06-25): read the surface SSOT before building
+deployment for it. The guardrails (founder-skill nudge + F.123) correctly caught
+the assumption-based bundle before it shipped — the real remaining work is small:
+verify the accrual automation fires + a board-claimer runs it, and (when the corpus
+is adequate) run the small LoRA/QLoRA on the Jetson for $0.
