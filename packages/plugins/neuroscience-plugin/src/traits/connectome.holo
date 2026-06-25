@@ -1,0 +1,18 @@
+@trait {
+  name: "@connectome",
+  category: "neuroscience",
+  description: "Neural connectome graph for brain circuit visualization and analysis. nodes is a list of neuron/region nodes (id, label, type, position). edges is a list of synaptic connections (source, target, weight, type). visualizationMode: graph (force-directed), matrix (connectivity matrix), or 3d (volumetric). directed determines whether synaptic direction is preserved. Port of ConnectomeTrait.ts (handler name: connectome).",
+  props: {
+    visualization_mode: enum("graph" | "matrix" | "3d") = "graph",
+    directed: boolean = false
+  },
+  events: {
+    on_node_added: "connectome_node_added",
+    on_edge_added: "connectome_edge_added",
+    on_analyzed: "connectome_analyzed",
+    add_node: "connectome_add_node",
+    add_edge: "connectome_add_edge",
+    analyze: "connectome_analyze"
+  },
+  behaviors: ["@eeg_stream"]
+}

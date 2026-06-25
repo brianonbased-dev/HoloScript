@@ -1,0 +1,18 @@
+@trait {
+  name: "@table_management",
+  category: "restaurant",
+  description: "Restaurant floor plan and table status management. tables is a list of table definitions (id, seats, section, status). turnoverTargetMin is the target table turn time in minutes (default: 60 min). waitlistEnabled activates waitlist mode when no tables are available. Status per table: available, occupied, reserved, cleaning, or out_of_service. Port of TableManagementTrait.ts (handler name: table_management).",
+  props: {
+    turnover_target_min: number = 60,
+    waitlist_enabled: boolean = true
+  },
+  events: {
+    on_seated: "table_seated",
+    on_cleared: "table_cleared",
+    on_waitlist_updated: "waitlist_updated",
+    seat: "table_seat",
+    clear: "table_clear",
+    add_to_waitlist: "waitlist_add"
+  },
+  behaviors: ["@order", "@kitchen_display"]
+}

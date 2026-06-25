@@ -1,0 +1,18 @@
+@trait {
+  name: "@kitchen_display",
+  category: "restaurant",
+  description: "Kitchen Display System (KDS) for order routing and prep tracking. stations is the list of kitchen stations that receive tickets (default: grill, salad, dessert). maxActiveTickets is the maximum concurrent tickets per station (default: 20). targetPrepTimeMin is the target ticket completion time in minutes (default: 15 min). Tickets are pushed from @order and status is tracked per station. Port of KitchenDisplayTrait.ts (handler name: kitchen_display).",
+  props: {
+    max_active_tickets: number = 20,
+    target_prep_time_min: number = 15
+  },
+  events: {
+    on_ticket_added: "kds_ticket_added",
+    on_ticket_ready: "kds_ticket_ready",
+    on_ticket_bumped: "kds_ticket_bumped",
+    on_overdue: "kds_ticket_overdue",
+    bump: "kds_bump",
+    recall: "kds_recall"
+  },
+  behaviors: ["@order", "@table_management"]
+}

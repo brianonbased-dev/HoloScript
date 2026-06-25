@@ -1,0 +1,19 @@
+@trait {
+  name: "@eeg_stream",
+  category: "neuroscience",
+  description: "Real-time EEG signal stream. channels is the list of electrode labels (default: 10-channel standard: Fp1,Fp2,F3,F4,C3,C4,P3,P4,O1,O2). samplingRate is in Hz (default: 256 Hz). epochLengthMs is the analysis epoch in milliseconds (default: 1000ms = 1s). frequencyBands is the list of bands to extract: delta (0.5-4Hz), theta (4-8Hz), alpha (8-12Hz), beta (12-30Hz), gamma (30-100Hz). artifactRejection enables amplitude-threshold artifact removal. notchFilter is the power-line notch frequency in Hz (60 for US/Japan, 50 for EU). Port of EEGStreamTrait.ts (handler name: eeg_stream).",
+  props: {
+    sampling_rate: number = 256,
+    epoch_length_ms: number = 1000,
+    artifact_rejection: boolean = true,
+    notch_filter: number = 60
+  },
+  events: {
+    on_epoch: "eeg_epoch",
+    on_artifact: "eeg_artifact_detected",
+    on_band_power: "eeg_band_power",
+    start: "eeg_start",
+    stop: "eeg_stop"
+  },
+  behaviors: ["@connectome"]
+}

@@ -1,0 +1,19 @@
+@trait {
+  name: "@order",
+  category: "restaurant",
+  description: "Restaurant order ticket. tableNumber is the table identifier (0 = counter/takeout). items is a list of line items (menuItemId, name, price, quantity, modifiers). orderType: dine_in, takeout, delivery, or bar_tab. Status: new, sent_to_kitchen, in_progress, ready, served, or cancelled. Subtotal/tax/total are computed from items. Port of OrderTrait.ts (handler name: order).",
+  props: {
+    table_number: number = 0,
+    order_type: enum("dine_in" | "takeout" | "delivery" | "bar_tab") = "dine_in"
+  },
+  events: {
+    on_sent: "order_sent_to_kitchen",
+    on_ready: "order_ready",
+    on_served: "order_served",
+    on_cancelled: "order_cancelled",
+    send: "order_send",
+    mark_served: "order_mark_served",
+    cancel: "order_cancel"
+  },
+  behaviors: ["@kitchen_display", "@table_management"]
+}
