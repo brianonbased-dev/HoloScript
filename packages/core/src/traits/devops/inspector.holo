@@ -1,0 +1,21 @@
+@trait {
+  name: "@inspector",
+  category: "devops",
+  description: "Runtime entity inspector panel. Renders a live-editable property sheet for all traits on the target entity in a floating debug panel, allowing real-time prop mutation during playtest without reloading, and exporting the current state snapshot as JSON. Authored from InspectorTrait.ts.",
+  props: {
+    target_entity_id: string = "",
+    visible: boolean = true,
+    position: { x: number, y: number } = { x: 20, y: 60 },
+    width_px: number = 320,
+    show_events: boolean = true,
+    show_readonly: boolean = false
+  },
+  events: {
+    attached: "inspector_attached",
+    detached: "inspector_detached",
+    on_prop_change: "inspector_prop_change",
+    on_export: "inspector_export",
+    set_target: "inspector_trigger_set_target"
+  },
+  behaviors: ["@unit_test", "@stats", "@diagnostic"]
+}

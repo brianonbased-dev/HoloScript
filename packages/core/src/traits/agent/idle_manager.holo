@@ -1,0 +1,20 @@
+@trait {
+  name: "@idle_manager",
+  category: "agent",
+  description: "Agent idle-state manager and watchdog. Monitors the time since the entity's last event or movement and transitions it into a configurable idle behavior (wander, sit, ambient animation, or shutdown) after a timeout, firing alerts to the team if idle exceeds a second threshold. Authored from IdleManagerTrait.ts.",
+  props: {
+    idle_after_s: number = 30,
+    idle_behavior: enum("wander" | "sit" | "ambient" | "shutdown") = "ambient",
+    alert_after_s: number = 0,
+    alert_channel: string = "",
+    reset_on: list<enum("move" | "event" | "message")> = ["move", "event", "message"]
+  },
+  events: {
+    attached: "idle_manager_attached",
+    detached: "idle_manager_detached",
+    on_idle: "idle_manager_idle",
+    on_active: "idle_manager_active",
+    on_alert: "idle_manager_alert"
+  },
+  behaviors: ["@autonomous_agenda", "@npc_brain", "@heartbeat"]
+}

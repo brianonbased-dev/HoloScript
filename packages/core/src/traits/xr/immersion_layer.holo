@@ -1,0 +1,20 @@
+@trait {
+  name: "@immersion_layer",
+  category: "xr",
+  description: "XR immersion and passthrough blend controller. Manages the blend between full VR immersion and passthrough AR mode, supporting progressive opacity blending for mixed-reality transitions, safe-zone boundary visualization, and per-eye opacity for left/right passthrough independently. Authored from ImmersionLayerTrait.ts.",
+  props: {
+    mode: enum("vr" | "ar" | "mixed") = "vr",
+    passthrough_opacity: number = 0.0,
+    blend_duration_ms: number = 500,
+    safe_zone_visible: boolean = false,
+    safe_zone_radius_m: number = 2.0,
+    color_correction: boolean = true
+  },
+  events: {
+    attached: "immersion_layer_attached",
+    detached: "immersion_layer_detached",
+    on_mode_change: "immersion_layer_mode_change",
+    set_mode: "immersion_layer_trigger_set_mode"
+  },
+  behaviors: ["@fullscreen_mode", "@vignette", "@field_of_view"]
+}

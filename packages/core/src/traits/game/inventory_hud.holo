@@ -1,0 +1,21 @@
+@trait {
+  name: "@inventory_hud",
+  category: "game",
+  description: "Inventory HUD overlay renderer. Mirrors a target entity's @inventory state as a spatial or screen-space grid of item icons with stack counts, slot highlighting for active/equipped items, drag-and-drop reordering, and animated acquisition flash on item pickup. Authored from InventoryHudTrait.ts.",
+  props: {
+    inventory_entity_id: string = "",
+    cols: number = 6,
+    rows: number = 4,
+    cell_size_m: number = 0.08,
+    show_count: boolean = true,
+    highlight_equipped: boolean = true,
+    position: enum("screen" | "spatial") = "screen"
+  },
+  events: {
+    attached: "inventory_hud_attached",
+    detached: "inventory_hud_detached",
+    on_slot_select: "inventory_hud_select",
+    on_item_use: "inventory_hud_use"
+  },
+  behaviors: ["@inventory", "@equip", "@ui_frame"]
+}
