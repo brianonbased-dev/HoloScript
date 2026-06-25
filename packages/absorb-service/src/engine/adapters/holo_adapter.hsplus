@@ -1,0 +1,62 @@
+// @holo_adapter — HoloScript native language adapter (.holo / .hsplus).
+//
+// Native .hsplus surface for HoloAdapter.ts (absorb-service/engine/adapters).
+//
+// Unlike tree-sitter adapters, parses via @holoscript/core parseHoloPartial (DT-14).
+// Emits the same ExternalSymbolDefinition/ImportEdge/CallEdge as tree-sitter adapters
+// so CodebaseGraph/ReferenceGraph/Absorb scanner consume .holo files identically.
+//
+// HoloAdapter (HoloAdapter.ts):
+//   language: "holo"
+//   extensions: [".holo", ".hsplus"]
+//   no tree-sitter grammar — uses @holoscript/core directly
+//
+// AST-migration meeting B1 goals:
+//   - Replace text tokenizer with parseHolo*() for .holo/.hsplus in Absorb
+//   - Keep regex/text for non-HoloScript languages
+//   - Preserve SourceRange on every definition for provenance semiring continuity
+//
+// Lazy-loads @holoscript/core (optional peer dep). Falls through to
+// regex extractLooseImports() if core not installed.
+// ParseTree carries __holoAST payload instead of a tree-sitter tree.
+
+@trait holo_adapter {
+  capability_tags: ["holo_adapter", "holoscript_core", "language_adapter", "holo", "hsplus", "dt14", "absorb_service", "provenance_semiring"]
+
+  @on_spawn => {
+    adapter = init_holo_adapter()
+    emit("holo_adapter_ready", {
+      language: "holo",
+      extensions: [".holo", ".hsplus"]
+    })
+  }
+
+  // Parse .holo/.hsplus source → ParseTree with __holoAST payload
+  @on_parse(content, file_path) => {
+    tree = adapter.parse(content, { file_path: file_path })
+    return tree
+  }
+
+  @on_extract_symbols(tree, file_path) => {
+    symbols = adapter.extract_symbols(tree, file_path)
+    return symbols
+  }
+
+  @on_extract_imports(tree, file_path) => {
+    return adapter.extract_imports(tree, file_path)
+  }
+
+  @on_extract_calls(tree, file_path) => {
+    return adapter.extract_calls(tree, file_path)
+  }
+
+  @receipt holo_adapter_config {
+    type: "HoloAdapterReceipt"
+    language: "holo"
+    extensions: [".holo", ".hsplus"]
+    parser: "@holoscript/core parseHoloPartial (DT-14 / no-regex-hs-parsing)"
+    fallback: "regex extractLooseImports() if @holoscript/core not installed"
+    provenance: "SourceRange preserved for semiring continuity"
+    timestamp: now()
+  }
+}
