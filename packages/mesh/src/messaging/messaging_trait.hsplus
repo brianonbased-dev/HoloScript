@@ -1,0 +1,102 @@
+// @messaging_trait — Agent communication channels for entity-based messaging.
+//
+// Native .hsplus surface for MessagingTrait.ts (mesh/messaging).
+// Sprint 4 Priority 6 — Agent Communication Channels.
+//
+// MessagingTraitBehavior (MessagingTrait.ts):
+//   createChannel(participants, config?) → AgentChannel
+//   joinChannel(channelId) / leaveChannel(channelId) / getChannels()
+//   send(channelId, recipientId, type, payload, priority?) → Message
+//   broadcast(channelId, type, payload, priority?) → BroadcastMessage
+//   reply(originalMessage, type, payload) → Message
+//   subscribe(channelId, handler) → unsubscribe fn
+//   subscribeToType(type, handler) → unsubscribe fn
+//   handleMessage(message) → MessageAck
+//   initializeEncryption() → { publicKey, privateKey }  (privateKey → vault, NEVER returned here)
+//   getPublicKey() → String | null
+//   getPendingCount() → Int
+//
+// MessagePriority: low | normal | high | critical
+
+@trait messaging_trait {
+  // Agent/entity ID for this messaging endpoint
+  agent_id: String
+
+  // Max pending outbound messages before backpressure
+  max_pending: Int = 1000
+
+  // Enable E2E channel encryption (keypair generated at spawn)
+  enable_encryption: Bool = false
+
+  capability_tags: ["messaging_trait", "agent_comms", "channels", "broadcast", "e2e_encryption", "holoscript_mesh"]
+
+  @on_spawn => {
+    messaging = init_agent_messaging({
+      agent_id: agent_id,
+      max_pending: max_pending
+    })
+    if enable_encryption {
+      // Private key goes to HoloKey vault ONLY — never returned in events or receipts
+      keypair = messaging.initialize_encryption()
+      emit("messaging_encryption_ready", { agent_id: agent_id, public_key: keypair.public_key })
+    }
+    emit("messaging_trait_ready", { agent_id: agent_id })
+  }
+
+  @on_create_channel(participants, config) => {
+    channel = messaging.create_channel(participants, config)
+    emit("messaging_channel_created", { channel_id: channel.id, participant_count: participants.size })
+    return channel
+  }
+
+  @on_join_channel(channel_id) => {
+    ok = messaging.join_channel(channel_id)
+    if ok { emit("messaging_joined_channel", { channel_id: channel_id }) }
+    return ok
+  }
+
+  @on_leave_channel(channel_id) => {
+    ok = messaging.leave_channel(channel_id)
+    if ok { emit("messaging_left_channel", { channel_id: channel_id }) }
+    return ok
+  }
+
+  @on_send(channel_id, recipient_id, msg_type, payload, priority) => {
+    msg = messaging.send(channel_id, recipient_id, msg_type, payload, priority ?? "normal")
+    if msg { emit("messaging_sent", { channel_id: channel_id, msg_id: msg.id, priority: priority ?? "normal" }) }
+    return msg
+  }
+
+  @on_broadcast(channel_id, msg_type, payload, priority) => {
+    bcast = messaging.broadcast(channel_id, msg_type, payload, priority ?? "normal")
+    if bcast { emit("messaging_broadcast", { channel_id: channel_id, count: bcast.recipient_count }) }
+    return bcast
+  }
+
+  @on_reply(original_msg, msg_type, payload) => {
+    return messaging.reply(original_msg, msg_type, payload)
+  }
+
+  @on_subscribe(channel_id, handler_id) => {
+    return messaging.subscribe(channel_id, handler_id)
+  }
+
+  @on_message(message) => {
+    ack = messaging.handle_message(message)
+    emit("messaging_received", { msg_id: message.id, type: message.type })
+    return ack
+  }
+
+  @on_pending_count => {
+    return messaging.get_pending_count()
+  }
+
+  @receipt messaging_trait_config {
+    type: "MessagingTraitReceipt"
+    agent_id: agent_id
+    max_pending: max_pending
+    encryption_enabled: enable_encryption
+    private_key_note: "private key goes to HoloKey vault — never in events or receipts"
+    timestamp: now()
+  }
+}

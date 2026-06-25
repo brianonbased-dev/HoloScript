@@ -1,0 +1,76 @@
+// @needs_key — HoloKey's HoloScript-native trait: secrets as composable capabilities.
+//
+// Native .hsplus surface for needs-key-trait.ts (secrets-broker).
+//
+// Differentiating piece of HoloKey (custody axis of HoloGate). A HoloScript
+// object declares the keys it needs as a TRAIT — the source carries only the
+// audit-safe REF, never the value:
+//
+//   object "BrittneyCall" @needs_key { ref: "vault:OPENAI_API_KEY", purpose: "llm-call" }
+//
+// Resolution (needs-key-trait.ts):
+//   - Resolves the secret AT USE-TIME via HoloKey fail-closed resolver
+//   - Stashes plaintext TRANSIENTLY on node.__resolvedSecrets[ref] for sibling traits
+//   - NEVER written to durable runtime state
+//   - NEVER placed in an emitted event payload
+//
+// Fail-closed: absent/empty authenticatedOwnerId → every resolve fails closed
+//   (emits needs_key_denied; no secret leaks out)
+//
+// Events (NONE carry the secret value):
+//   needs_key_ready  { nodeId, ref, purpose }   — resolved + stashed for siblings
+//   needs_key_denied { nodeId, ref, reason }     — fail-closed
+//   needs_key_error  { nodeId, error }           — malformed config (missing ref)
+//
+// Failure reasons (needs-key-trait.ts):
+//   unauthenticated | not_owner | not_found | decrypt_failed
+
+@trait needs_key {
+  // Secret reference — MUST be "vault:<name>" or "infra:<name>" format
+  ref: String
+
+  // Purpose recorded in the HoloKey resolve audit (no secret material)
+  purpose: String = "unspecified"
+
+  capability_tags: ["needs_key", "holokey", "secret_resolution", "fail_closed", "custody", "vault_ref"]
+
+  @on_spawn => {
+    if not ref or ref == "" {
+      emit("needs_key_error", { node_id: node_id(), error: "missing_ref" })
+      return
+    }
+    // Resolve at spawn time. Resolver checks authenticated owner — fails closed if absent.
+    result = holokey_resolve(ref, purpose)
+    if result.ok {
+      // Stash transiently for sibling traits — NEVER in event payload or durable state
+      node_stash_secret(ref, result.value)
+      emit("needs_key_ready", { node_id: node_id(), ref: ref, purpose: purpose })
+    } else {
+      emit("needs_key_denied", { node_id: node_id(), ref: ref, reason: result.reason })
+    }
+  }
+
+  // Sibling traits call this to obtain the transiently stashed value
+  @on_get_secret => {
+    return node_get_secret(ref)
+  }
+
+  // Re-resolve (e.g. on token rotation)
+  @on_refresh => {
+    result = holokey_resolve(ref, purpose)
+    if result.ok {
+      node_stash_secret(ref, result.value)
+      emit("needs_key_ready", { node_id: node_id(), ref: ref, purpose: purpose })
+    } else {
+      emit("needs_key_denied", { node_id: node_id(), ref: ref, reason: result.reason })
+    }
+  }
+
+  @receipt needs_key_config {
+    type: "NeedsKeyReceipt"
+    ref: ref
+    purpose: purpose
+    value_in_receipt: false
+    timestamp: now()
+  }
+}

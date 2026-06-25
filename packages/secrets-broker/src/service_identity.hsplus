@@ -1,0 +1,68 @@
+// @service_identity — Service/fleet HoloKey owner identity for non-human agents.
+//
+// Native .hsplus surface for service-identity.ts (secrets-broker).
+//
+// Studio users arrive with a human owner id. Operational services do not:
+// Railway, Jetson seats, fleet workers, and x402 bearers all boot without one.
+// This module turns those runtime facts into an audit-safe owner id in the
+// `infra://` namespace.
+//
+// ServiceIdentitySource (service-identity.ts):
+//   explicit | holomesh-agent | fleet-seat | railway-service | x402-bearer | fallback
+//
+// ServiceIdentity (service-identity.ts):
+//   owner_id: String (audit-safe, in infra:// namespace)
+//   source: ServiceIdentitySource
+//   namespace: "infra"
+//   label: String (human-readable audit label — NO secret material)
+//
+// SECURITY (service-identity.ts):
+//   x402 bearer is SHA-256 hashed → never appears as owner_id or in log lines
+//   `infra://<SECRET>` refs normalized to `vault:<SECRET>` store key
+//   bearer_hash is a prefix for the owner namespace, never the bearer value
+//
+// NormalizedServiceSecretRef:
+//   ref (vault-backed), env_name (fallback env var), namespace (infra|vault|env-name)
+
+@trait service_identity {
+  // Explicit owner override (optional — if absent, resolved from runtime signals)
+  explicit_owner: String? = null
+
+  // Fallback owner when no operational identity signal is present
+  fallback_owner: String = "infra://fallback"
+
+  capability_tags: ["service_identity", "holokey", "service_auth", "fleet_seat", "x402", "infra_namespace"]
+
+  @on_spawn => {
+    identity = resolve_service_identity({
+      explicit_owner: explicit_owner,
+      fallback_owner: fallback_owner
+    })
+    emit("service_identity_resolved", {
+      owner_id: identity.owner_id,
+      source: identity.source,
+      namespace: identity.namespace,
+      label: identity.label
+    })
+  }
+
+  @on_get_identity => {
+    return resolve_service_identity({
+      explicit_owner: explicit_owner,
+      fallback_owner: fallback_owner
+    })
+  }
+
+  // Normalize "infra:<NAME>" ref → "vault:<NAME>" store key + env fallback name
+  @on_normalize_ref(ref) => {
+    return normalize_service_secret_ref(ref)
+  }
+
+  @receipt service_identity_config {
+    type: "ServiceIdentityReceipt"
+    explicit_owner_set: explicit_owner != null
+    fallback_owner: fallback_owner
+    bearer_note: "x402 bearer is SHA-256 hashed before use as ownerId — never plaintext in owner namespace"
+    timestamp: now()
+  }
+}
