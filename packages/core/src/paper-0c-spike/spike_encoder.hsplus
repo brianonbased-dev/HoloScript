@@ -1,0 +1,18 @@
+// @spike_encoder — Spike encoder: encodes input signals to SNN spike trains.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/spike-encoder.ts.
+
+@trait spike_encoder {
+  capability_tags: ["spike_encoder", "signal_to_spike", "snn_encode", "snn", "core"]
+
+  @on_spawn => { emit("spike_encoder_ready", {}) }
+
+  @on_encode(signal) => {
+    return encode_to_spike_train(signal)
+  }
+
+  @receipt spike_encoder_config {
+    type: "SpikeEncoderReceipt"
+    timestamp: now()
+  }
+}

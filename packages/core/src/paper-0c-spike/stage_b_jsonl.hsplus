@@ -1,0 +1,19 @@
+// @stage_b_jsonl — Stage B: JSONL spike-train corpus ingestion for paper-0c experiments.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/stage-b-jsonl.ts.
+
+@trait stage_b_jsonl {
+  capability_tags: ["stage_b_jsonl", "jsonl_corpus", "paper_0c", "experiment", "core"]
+
+  @on_spawn => { emit("stage_b_jsonl_ready", {}) }
+
+  @on_ingest(jsonl_path) => {
+    corpus = ingest_jsonl_corpus(jsonl_path)
+    return corpus
+  }
+
+  @receipt stage_b_jsonl_config {
+    type: "StageBJsonlReceipt"
+    timestamp: now()
+  }
+}

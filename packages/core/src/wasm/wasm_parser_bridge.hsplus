@@ -1,0 +1,21 @@
+// @wasm_parser_bridge — WASM parser bridge: calls Rust+WASM parser for .hs source files.
+//
+// Native .hsplus surface for core/src/wasm/WasmParserBridge.ts.
+// F.120: .hs grammar = Rust+WASM in packages/compiler-wasm/src/.
+
+@trait wasm_parser_bridge {
+  capability_tags: ["wasm_parser_bridge", "rust_wasm_parser", "hs_source", "wasm_bridge", "core"]
+
+  @on_spawn => { emit("wasm_parser_bridge_ready", {}) }
+
+  @on_parse(hs_source) => {
+    ast = parse_hs_via_wasm(hs_source)
+    return ast
+  }
+
+  @receipt wasm_parser_bridge_config {
+    type: "WasmParserBridgeReceipt"
+    doc: "F.120 .hs grammar = Rust+WASM"
+    timestamp: now()
+  }
+}

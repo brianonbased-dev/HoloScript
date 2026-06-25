@@ -1,0 +1,27 @@
+// @corpus_portfolio — Corpus portfolio: manages the evolve-program corpus of native .holo seeds.
+//
+// Native .hsplus surface for core/src/evolution/corpusPortfolio.ts.
+// I.023: gated self-improvement — EvolveProgramBackend accrual; persistent corpus C:/Users/Josep/.ai-ecosystem/training/evolve-corpus.
+
+@trait corpus_portfolio {
+  capability_tags: ["corpus_portfolio", "evolve_corpus", "native_seed_portfolio", "evolution", "core"]
+
+  @on_spawn(corpus_path) => {
+    init_corpus_portfolio(corpus_path)
+    emit("corpus_portfolio_ready", {})
+  }
+
+  @on_add(seed) => {
+    add_corpus_seed(seed)
+  }
+
+  @on_list => {
+    return list_corpus_portfolio()
+  }
+
+  @receipt corpus_portfolio_config {
+    type: "CorpusPortfolioReceipt"
+    doc: "I.023 evolve-corpus persistent portfolio"
+    timestamp: now()
+  }
+}

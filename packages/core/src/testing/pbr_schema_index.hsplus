@@ -1,0 +1,14 @@
+// @pbr_schema_index — PBR schema index: indexes PBR material test schemas for validation.
+//
+// Native .hsplus surface for core/src/testing/PBRSchema.index.ts.
+
+@trait pbr_schema_index {
+  capability_tags: ["pbr_schema_index", "pbr_material_test", "schema_index", "testing", "core"]
+
+  @on_spawn => { emit("pbr_schema_index_ready", {}) }
+
+  @receipt pbr_schema_index_config {
+    type: "PBRSchemaIndexReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,18 @@
+// @spike_decoder — Spike decoder: decodes SNN spike trains to semantic outputs.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/spike-decoder.ts.
+
+@trait spike_decoder {
+  capability_tags: ["spike_decoder", "snn_spike_train", "semantic_decode", "snn", "core"]
+
+  @on_spawn => { emit("spike_decoder_ready", {}) }
+
+  @on_decode(spike_train) => {
+    return decode_spike_train(spike_train)
+  }
+
+  @receipt spike_decoder_config {
+    type: "SpikeDecoderReceipt"
+    timestamp: now()
+  }
+}

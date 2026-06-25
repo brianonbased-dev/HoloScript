@@ -1,0 +1,14 @@
+// @barrel_registry_deploy_events — Barrel: re-exports registry and deploy event surface.
+//
+// Native .hsplus surface for core/src/barrel/registry-deploy-events.ts.
+
+@trait barrel_registry_deploy_events {
+  capability_tags: ["barrel", "registry_deploy_events", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_registry_deploy_events_ready", {}) }
+
+  @receipt barrel_registry_deploy_events_config {
+    type: "BarrelRegistryDeployEventsReceipt"
+    timestamp: now()
+  }
+}

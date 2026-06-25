@@ -1,0 +1,14 @@
+// @barrel_exports_graphql_safety — Barrel: re-exports GraphQL safety circuit-breaker surface.
+//
+// Native .hsplus surface for core/src/barrel/exports-graphql-safety.ts.
+
+@trait barrel_exports_graphql_safety {
+  capability_tags: ["barrel", "exports_graphql_safety", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_exports_graphql_safety_ready", {}) }
+
+  @receipt barrel_exports_graphql_safety_config {
+    type: "BarrelExportsGraphqlSafetyReceipt"
+    timestamp: now()
+  }
+}

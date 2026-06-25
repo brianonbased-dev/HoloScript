@@ -1,0 +1,14 @@
+// @barrel_exports_semantics_diff_wasm — Barrel: re-exports semantics diff and WASM bridge.
+//
+// Native .hsplus surface for core/src/barrel/exports-semantics-diff-wasm.ts.
+
+@trait barrel_exports_semantics_diff_wasm {
+  capability_tags: ["barrel", "semantics_diff_wasm", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_exports_semantics_diff_wasm_ready", {}) }
+
+  @receipt barrel_exports_semantics_diff_wasm_config {
+    type: "BarrelExportsSemanticsDiffWasmReceipt"
+    timestamp: now()
+  }
+}

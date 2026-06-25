@@ -1,0 +1,22 @@
+// @world_generator_service — World generator service: HTTP service wrapping world generation pipeline.
+//
+// Native .hsplus surface for core/src/world/WorldGeneratorService.ts.
+
+@trait world_generator_service {
+  capability_tags: ["world_generator_service", "world_gen_http", "pipeline_service", "world_gen", "core"]
+
+  @on_spawn(config) => {
+    init_world_generator_service(config)
+    emit("world_generator_service_ready", {})
+  }
+
+  @on_request(world_spec) => {
+    result = request_world_generation(world_spec)
+    return result
+  }
+
+  @receipt world_generator_service_config {
+    type: "WorldGeneratorServiceReceipt"
+    timestamp: now()
+  }
+}

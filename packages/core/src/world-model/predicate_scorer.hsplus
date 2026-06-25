@@ -1,0 +1,19 @@
+// @predicate_scorer — Predicate scorer: evaluates world-model predicates and returns truth scores.
+//
+// Native .hsplus surface for core/src/world-model/PredicateScorer.ts.
+
+@trait predicate_scorer {
+  capability_tags: ["predicate_scorer", "predicate_truth", "world_model_eval", "scoring", "core"]
+
+  @on_spawn => { emit("predicate_scorer_ready", {}) }
+
+  @on_score(predicate, world_state) => {
+    score = score_world_predicate(predicate, world_state)
+    return score
+  }
+
+  @receipt predicate_scorer_config {
+    type: "PredicateScorerReceipt"
+    timestamp: now()
+  }
+}

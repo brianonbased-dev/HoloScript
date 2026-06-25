@@ -1,0 +1,22 @@
+// @wasm_module_cache — WASM module cache: content-hash keyed cache for compiled .wasm modules.
+//
+// Native .hsplus surface for core/src/wasm/WasmModuleCache.ts.
+
+@trait wasm_module_cache {
+  capability_tags: ["wasm_module_cache", "content_hash_cache", "wasm_module", "cache", "core"]
+
+  @on_spawn => { emit("wasm_module_cache_ready", {}) }
+
+  @on_get(hash) => {
+    return get_wasm_module_cache(hash)
+  }
+
+  @on_set(hash, module_bytes) => {
+    set_wasm_module_cache(hash, module_bytes)
+  }
+
+  @receipt wasm_module_cache_config {
+    type: "WasmModuleCacheReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,14 @@
+// @barrel_exports_core — Barrel: re-exports core public API surface.
+//
+// Native .hsplus surface for core/src/barrel/exports-core.ts.
+
+@trait barrel_exports_core {
+  capability_tags: ["barrel", "exports_core", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_exports_core_ready", {}) }
+
+  @receipt barrel_exports_core_config {
+    type: "BarrelExportsCoreReceipt"
+    timestamp: now()
+  }
+}

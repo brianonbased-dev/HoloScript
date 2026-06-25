@@ -1,0 +1,14 @@
+// @barrel_exports_visual_through_v43 — Barrel: re-exports visual traits through v4.3 surface.
+//
+// Native .hsplus surface for core/src/barrel/exports-visual-through-v43.ts.
+
+@trait barrel_exports_visual_through_v43 {
+  capability_tags: ["barrel", "visual_through_v43", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_exports_visual_through_v43_ready", {}) }
+
+  @receipt barrel_exports_visual_through_v43_config {
+    type: "BarrelExportsVisualThroughV43Receipt"
+    timestamp: now()
+  }
+}

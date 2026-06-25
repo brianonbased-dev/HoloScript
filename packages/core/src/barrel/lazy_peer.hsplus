@@ -1,0 +1,14 @@
+// @barrel_lazy_peer — Barrel: lazy-loading peer package re-exports.
+//
+// Native .hsplus surface for core/src/barrel/lazy-peer.ts.
+
+@trait barrel_lazy_peer {
+  capability_tags: ["barrel", "lazy_peer", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_lazy_peer_ready", {}) }
+
+  @receipt barrel_lazy_peer_config {
+    type: "BarrelLazyPeerReceipt"
+    timestamp: now()
+  }
+}

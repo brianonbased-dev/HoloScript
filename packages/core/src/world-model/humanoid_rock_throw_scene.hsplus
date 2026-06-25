@@ -1,0 +1,22 @@
+// @humanoid_rock_throw_scene — Humanoid rock-throw scene: physics test scene for arm/projectile trajectories.
+//
+// Native .hsplus surface for core/src/world-model/HumanoidRockThrowScene.ts.
+
+@trait humanoid_rock_throw_scene {
+  capability_tags: ["humanoid_rock_throw_scene", "arm_trajectory", "projectile_physics", "scene", "core"]
+
+  @on_spawn(rig_config) => {
+    init_humanoid_rock_throw_scene(rig_config)
+    emit("humanoid_rock_throw_scene_ready", {})
+  }
+
+  @on_run(throw_params) => {
+    result = run_rock_throw_scene(throw_params)
+    return result
+  }
+
+  @receipt humanoid_rock_throw_scene_config {
+    type: "HumanoidRockThrowSceneReceipt"
+    timestamp: now()
+  }
+}

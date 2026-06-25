@@ -1,0 +1,14 @@
+// @barrel_hololand_runtime — Barrel: re-exports HoloLand runtime surface.
+//
+// Native .hsplus surface for core/src/barrel/hololand-runtime.ts.
+
+@trait barrel_hololand_runtime {
+  capability_tags: ["barrel", "hololand_runtime", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_hololand_runtime_ready", {}) }
+
+  @receipt barrel_hololand_runtime_config {
+    type: "BarrelHololandRuntimeReceipt"
+    timestamp: now()
+  }
+}

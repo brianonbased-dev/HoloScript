@@ -1,0 +1,14 @@
+// @policy_types — Policy types: typed schema for access control and governance policy rules.
+//
+// Native .hsplus surface for core/src/policy/types.ts.
+
+@trait policy_types {
+  capability_tags: ["policy_types", "access_control_schema", "governance_policy", "policy", "core"]
+
+  @on_spawn => { emit("policy_types_ready", {}) }
+
+  @receipt policy_types_config {
+    type: "PolicyTypesReceipt"
+    timestamp: now()
+  }
+}

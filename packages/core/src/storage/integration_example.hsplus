@@ -1,0 +1,14 @@
+// @storage_integration_example — Storage integration example: demonstrates IPFS+vault storage wiring.
+//
+// Native .hsplus surface for core/src/storage/INTEGRATION_EXAMPLE.ts.
+
+@trait storage_integration_example {
+  capability_tags: ["storage_integration_example", "ipfs_vault_wiring", "example", "storage", "core"]
+
+  @on_spawn => { emit("storage_integration_example_ready", {}) }
+
+  @receipt storage_integration_example_config {
+    type: "StorageIntegrationExampleReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,14 @@
+// @barrel_marketplace — Barrel: re-exports marketplace API surface.
+//
+// Native .hsplus surface for core/src/barrel/marketplace.ts.
+
+@trait barrel_marketplace {
+  capability_tags: ["barrel", "marketplace", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_marketplace_ready", {}) }
+
+  @receipt barrel_marketplace_config {
+    type: "BarrelMarketplaceReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,19 @@
+// @compiler_worker — Compiler worker: off-thread .holo compilation via Web Worker.
+//
+// Native .hsplus surface for core/src/worker/CompilerWorker.ts.
+
+@trait compiler_worker {
+  capability_tags: ["compiler_worker", "off_thread_compile", "web_worker", "compiler", "core"]
+
+  @on_spawn => { emit("compiler_worker_ready", {}) }
+
+  @on_compile(source, target) => {
+    result = compile_in_worker(source, target)
+    return result
+  }
+
+  @receipt compiler_worker_config {
+    type: "CompilerWorkerReceipt"
+    timestamp: now()
+  }
+}

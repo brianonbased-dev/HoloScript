@@ -1,0 +1,14 @@
+// @barrel_compiler_plugins_crypto — Barrel: re-exports compiler plugin crypto surface.
+//
+// Native .hsplus surface for core/src/barrel/compiler-plugins-crypto.ts.
+
+@trait barrel_compiler_plugins_crypto {
+  capability_tags: ["barrel", "compiler_plugins_crypto", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_compiler_plugins_crypto_ready", {}) }
+
+  @receipt barrel_compiler_plugins_crypto_config {
+    type: "BarrelCompilerPluginsCryptoReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,19 @@
+// @hardware_receipt_metadata — Hardware receipt metadata: captures device metrics in world-model receipts.
+//
+// Native .hsplus surface for core/src/world-model/HardwareReceiptMetadata.ts.
+
+@trait hardware_receipt_metadata {
+  capability_tags: ["hardware_receipt_metadata", "device_metrics", "world_model_receipt", "provenance", "core"]
+
+  @on_spawn => { emit("hardware_receipt_metadata_ready", {}) }
+
+  @on_capture => {
+    metadata = capture_hardware_receipt_metadata()
+    return metadata
+  }
+
+  @receipt hardware_receipt_metadata_config {
+    type: "HardwareReceiptMetadataReceipt"
+    timestamp: now()
+  }
+}

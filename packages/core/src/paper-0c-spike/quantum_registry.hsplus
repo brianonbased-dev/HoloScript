@@ -1,0 +1,14 @@
+// @quantum_registry — Quantum registry: maps qubit IDs to physical device locations.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/quantum-registry.ts.
+
+@trait quantum_registry {
+  capability_tags: ["quantum_registry", "qubit_map", "device_location", "quantum", "core"]
+
+  @on_spawn => { emit("quantum_registry_ready", {}) }
+
+  @receipt quantum_registry_config {
+    type: "QuantumRegistryReceipt"
+    timestamp: now()
+  }
+}

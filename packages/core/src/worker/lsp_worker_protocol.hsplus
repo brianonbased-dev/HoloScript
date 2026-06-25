@@ -1,0 +1,18 @@
+// @lsp_worker_protocol — LSP worker protocol: typed message protocol for LSP ↔ worker thread.
+//
+// Native .hsplus surface for core/src/worker/LSPWorkerProtocol.ts.
+
+@trait lsp_worker_protocol {
+  capability_tags: ["lsp_worker_protocol", "lsp_message_protocol", "worker_thread", "lsp", "core"]
+
+  @on_spawn => { emit("lsp_worker_protocol_ready", {}) }
+
+  @on_dispatch(message) => {
+    return dispatch_lsp_worker_message(message)
+  }
+
+  @receipt lsp_worker_protocol_config {
+    type: "LSPWorkerProtocolReceipt"
+    timestamp: now()
+  }
+}

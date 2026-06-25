@@ -1,0 +1,18 @@
+// @stage_a_synthetic — Stage A: synthetic spike-train data generator for paper-0c experiments.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/stage-a-synthetic.ts.
+
+@trait stage_a_synthetic {
+  capability_tags: ["stage_a_synthetic", "spike_train_gen", "paper_0c", "experiment", "core"]
+
+  @on_spawn => { emit("stage_a_synthetic_ready", {}) }
+
+  @on_generate(count, params) => {
+    return generate_synthetic_spikes(count, params)
+  }
+
+  @receipt stage_a_synthetic_config {
+    type: "StageASyntheticReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @world_generator_adapter — World generator adapter: bridges .holo world spec to generator backends.
+//
+// Native .hsplus surface for core/src/world/WorldGeneratorAdapter.ts.
+
+@trait world_generator_adapter {
+  capability_tags: ["world_generator_adapter", "holo_world_spec", "generator_bridge", "world_gen", "core"]
+
+  @on_spawn(backend) => {
+    init_world_generator_adapter(backend)
+    emit("world_generator_adapter_ready", {})
+  }
+
+  @on_generate(world_spec) => {
+    world = generate_world_via_adapter(world_spec)
+    return world
+  }
+
+  @receipt world_generator_adapter_config {
+    type: "WorldGeneratorAdapterReceipt"
+    timestamp: now()
+  }
+}

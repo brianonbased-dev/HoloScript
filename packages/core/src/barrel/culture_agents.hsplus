@@ -1,0 +1,14 @@
+// @barrel_culture_agents — Barrel: re-exports culture and agent identity surface.
+//
+// Native .hsplus surface for core/src/barrel/culture-agents.ts.
+
+@trait barrel_culture_agents {
+  capability_tags: ["barrel", "culture_agents", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_culture_agents_ready", {}) }
+
+  @receipt barrel_culture_agents_config {
+    type: "BarrelCultureAgentsReceipt"
+    timestamp: now()
+  }
+}

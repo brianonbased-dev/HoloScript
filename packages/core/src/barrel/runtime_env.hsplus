@@ -1,0 +1,14 @@
+// @barrel_runtime_env — Barrel: re-exports runtime environment detection surface.
+//
+// Native .hsplus surface for core/src/barrel/runtime-env.ts.
+
+@trait barrel_runtime_env {
+  capability_tags: ["barrel", "runtime_env", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_runtime_env_ready", {}) }
+
+  @receipt barrel_runtime_env_config {
+    type: "BarrelRuntimeEnvReceipt"
+    timestamp: now()
+  }
+}

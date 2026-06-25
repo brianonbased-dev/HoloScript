@@ -1,0 +1,19 @@
+// @adversarial_trajectory_report — Report: summarizes adversarial trajectory runs for world-model papers.
+//
+// Native .hsplus surface for core/src/world-model/AdversarialTrajectoryReport.ts.
+
+@trait adversarial_trajectory_report {
+  capability_tags: ["adversarial_trajectory_report", "trajectory_summary", "world_model_paper", "core"]
+
+  @on_spawn => { emit("adversarial_trajectory_report_ready", {}) }
+
+  @on_generate(trajectories) => {
+    report = generate_trajectory_report(trajectories)
+    return report
+  }
+
+  @receipt adversarial_trajectory_report_config {
+    type: "AdversarialTrajectoryReportReceipt"
+    timestamp: now()
+  }
+}

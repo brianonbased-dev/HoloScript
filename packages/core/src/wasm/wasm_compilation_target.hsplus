@@ -1,0 +1,21 @@
+// @wasm_compilation_target — WASM compile target: compiles .holo compositions to .wasm binary.
+//
+// Native .hsplus surface for core/src/wasm/WASMCompilationTarget.ts.
+// I.023: WASMCompiler fitness target for EvolveProgramBackend.
+
+@trait wasm_compilation_target {
+  capability_tags: ["wasm_compilation_target", "holo_to_wasm", "wasm_binary", "compiler_target", "core"]
+
+  @on_spawn => { emit("wasm_compilation_target_ready", {}) }
+
+  @on_compile(holo_ast) => {
+    wasm_binary = compile_to_wasm(holo_ast)
+    return wasm_binary
+  }
+
+  @receipt wasm_compilation_target_config {
+    type: "WASMCompilationTargetReceipt"
+    doc: "I.023 WASMCompiler fitness target for EvolveProgramBackend"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @two_agent_handoff_catch_scene — Two-agent handoff/catch scene: coordination test for agent-to-agent pass.
+//
+// Native .hsplus surface for core/src/world-model/TwoAgentHandoffCatchScene.ts.
+// D.102: portable agent mind — one agent runs on Jetson then embodies in headset.
+
+@trait two_agent_handoff_catch_scene {
+  capability_tags: ["two_agent_handoff_catch_scene", "agent_coordination", "object_handoff", "scene", "core"]
+
+  @on_spawn(agent_a, agent_b) => {
+    init_two_agent_handoff_catch_scene(agent_a, agent_b)
+    emit("two_agent_handoff_catch_scene_ready", {})
+  }
+
+  @on_run => {
+    result = run_two_agent_handoff_catch_scene()
+    return result
+  }
+
+  @receipt two_agent_handoff_catch_scene_config {
+    type: "TwoAgentHandoffCatchSceneReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @deterministic_failure_scene — Deterministic failure scene: fixed-seed scene for reproducible failure tests.
+//
+// Native .hsplus surface for core/src/world-model/DeterministicFailureScene.ts.
+
+@trait deterministic_failure_scene {
+  capability_tags: ["deterministic_failure_scene", "fixed_seed_scene", "reproducible_failure", "world_model", "core"]
+
+  @on_spawn(seed) => {
+    init_deterministic_failure_scene(seed)
+    emit("deterministic_failure_scene_ready", {})
+  }
+
+  @on_run => {
+    result = run_deterministic_failure_scene()
+    return result
+  }
+
+  @receipt deterministic_failure_scene_config {
+    type: "DeterministicFailureSceneReceipt"
+    timestamp: now()
+  }
+}

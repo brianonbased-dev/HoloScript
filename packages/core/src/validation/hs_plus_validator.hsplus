@@ -1,0 +1,19 @@
+// @hs_plus_validator — HSPlus validator: validates .hsplus trait syntax and capability_tags schema.
+//
+// Native .hsplus surface for core/src/validation/HSPlusValidator.ts.
+
+@trait hs_plus_validator {
+  capability_tags: ["hs_plus_validator", "hsplus_syntax", "capability_tags_schema", "validator", "core"]
+
+  @on_spawn => { emit("hs_plus_validator_ready", {}) }
+
+  @on_validate(hsplus_source) => {
+    errors = validate_hs_plus(hsplus_source)
+    return errors
+  }
+
+  @receipt hs_plus_validator_config {
+    type: "HSPlusValidatorReceipt"
+    timestamp: now()
+  }
+}

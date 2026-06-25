@@ -1,0 +1,18 @@
+// @subgrid_attestation — Subgrid attestation: attests subgrid spike-train partitions via provenance hash.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/subgrid-attestation.ts.
+
+@trait subgrid_attestation {
+  capability_tags: ["subgrid_attestation", "provenance_hash", "partition_attest", "paper_0c", "core"]
+
+  @on_spawn => { emit("subgrid_attestation_ready", {}) }
+
+  @on_attest(partition, hash) => {
+    return attest_subgrid_partition(partition, hash)
+  }
+
+  @receipt subgrid_attestation_config {
+    type: "SubgridAttestationReceipt"
+    timestamp: now()
+  }
+}

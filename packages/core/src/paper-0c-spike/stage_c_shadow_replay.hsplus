@@ -1,0 +1,19 @@
+// @stage_c_shadow_replay — Stage C: shadow-replay validator for paper-0c spike train fidelity.
+//
+// Native .hsplus surface for core/src/paper-0c-spike/stage-c-shadow-replay.ts.
+
+@trait stage_c_shadow_replay {
+  capability_tags: ["stage_c_shadow_replay", "shadow_replay", "spike_fidelity", "paper_0c", "core"]
+
+  @on_spawn => { emit("stage_c_shadow_replay_ready", {}) }
+
+  @on_replay(recorded, replayed) => {
+    fidelity = compare_shadow_replay(recorded, replayed)
+    return fidelity
+  }
+
+  @receipt stage_c_shadow_replay_config {
+    type: "StageCshadowReplayReceipt"
+    timestamp: now()
+  }
+}

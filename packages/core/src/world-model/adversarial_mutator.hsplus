@@ -1,0 +1,19 @@
+// @adversarial_mutator — Adversarial mutator: generates adversarial world-state mutations for testing.
+//
+// Native .hsplus surface for core/src/world-model/AdversarialMutator.ts.
+
+@trait adversarial_mutator {
+  capability_tags: ["adversarial_mutator", "world_state_mutation", "adversarial_test", "world_model", "core"]
+
+  @on_spawn => { emit("adversarial_mutator_ready", {}) }
+
+  @on_mutate(world_state) => {
+    mutations = mutate_world_state_adversarial(world_state)
+    return mutations
+  }
+
+  @receipt adversarial_mutator_config {
+    type: "AdversarialMutatorReceipt"
+    timestamp: now()
+  }
+}

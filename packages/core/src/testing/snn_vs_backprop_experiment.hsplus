@@ -1,0 +1,22 @@
+// @snn_vs_backprop_experiment — SNN vs backprop: benchmark experiment comparing SNN and backprop training.
+//
+// Native .hsplus surface for core/src/testing/SNNvsBackpropExperiment.ts.
+
+@trait snn_vs_backprop_experiment {
+  capability_tags: ["snn_vs_backprop_experiment", "snn_benchmark", "backprop_compare", "experiment", "core"]
+
+  @on_spawn(config) => {
+    init_snn_vs_backprop_experiment(config)
+    emit("snn_vs_backprop_experiment_ready", {})
+  }
+
+  @on_run => {
+    results = run_snn_vs_backprop_experiment()
+    return results
+  }
+
+  @receipt snn_vs_backprop_experiment_config {
+    type: "SNNvsBackpropExperimentReceipt"
+    timestamp: now()
+  }
+}

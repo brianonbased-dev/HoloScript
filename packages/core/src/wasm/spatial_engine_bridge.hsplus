@@ -1,0 +1,19 @@
+// @spatial_engine_bridge — Spatial engine bridge: calls WASM spatial engine for collision/physics.
+//
+// Native .hsplus surface for core/src/wasm/SpatialEngineBridge.ts.
+
+@trait spatial_engine_bridge {
+  capability_tags: ["spatial_engine_bridge", "wasm_spatial", "collision_physics", "wasm_bridge", "core"]
+
+  @on_spawn => { emit("spatial_engine_bridge_ready", {}) }
+
+  @on_step(world_state, dt) => {
+    result = step_wasm_spatial_engine(world_state, dt)
+    return result
+  }
+
+  @receipt spatial_engine_bridge_config {
+    type: "SpatialEngineBridgeReceipt"
+    timestamp: now()
+  }
+}

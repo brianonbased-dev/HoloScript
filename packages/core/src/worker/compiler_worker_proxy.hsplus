@@ -1,0 +1,19 @@
+// @compiler_worker_proxy — Compiler worker proxy: main-thread RPC proxy for the compiler worker.
+//
+// Native .hsplus surface for core/src/worker/CompilerWorkerProxy.ts.
+
+@trait compiler_worker_proxy {
+  capability_tags: ["compiler_worker_proxy", "main_thread_rpc", "worker_proxy", "compiler", "core"]
+
+  @on_spawn => { emit("compiler_worker_proxy_ready", {}) }
+
+  @on_request(method, args) => {
+    result = proxy_compiler_worker(method, args)
+    return result
+  }
+
+  @receipt compiler_worker_proxy_config {
+    type: "CompilerWorkerProxyReceipt"
+    timestamp: now()
+  }
+}

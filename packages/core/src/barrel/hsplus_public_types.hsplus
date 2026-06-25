@@ -1,0 +1,14 @@
+// @barrel_hsplus_public_types — Barrel: re-exports .hsplus public type declarations.
+//
+// Native .hsplus surface for core/src/barrel/hsplus-public-types.ts.
+
+@trait barrel_hsplus_public_types {
+  capability_tags: ["barrel", "hsplus_public_types", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_hsplus_public_types_ready", {}) }
+
+  @receipt barrel_hsplus_public_types_config {
+    type: "BarrelHsplusPublicTypesReceipt"
+    timestamp: now()
+  }
+}

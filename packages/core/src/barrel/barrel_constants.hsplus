@@ -1,0 +1,14 @@
+// @barrel_constants — Barrel: re-exports core constant maps.
+//
+// Native .hsplus surface for core/src/barrel/constants.ts.
+
+@trait barrel_constants {
+  capability_tags: ["barrel", "constants_reexport", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_constants_ready", {}) }
+
+  @receipt barrel_constants_config {
+    type: "BarrelConstantsReceipt"
+    timestamp: now()
+  }
+}

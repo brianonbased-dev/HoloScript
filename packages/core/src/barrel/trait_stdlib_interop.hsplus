@@ -1,0 +1,14 @@
+// @barrel_trait_stdlib_interop — Barrel: re-exports trait stdlib interop surface.
+//
+// Native .hsplus surface for core/src/barrel/trait-stdlib-interop.ts.
+
+@trait barrel_trait_stdlib_interop {
+  capability_tags: ["barrel", "trait_stdlib_interop", "re_export", "core"]
+
+  @on_spawn => { emit("barrel_trait_stdlib_interop_ready", {}) }
+
+  @receipt barrel_trait_stdlib_interop_config {
+    type: "BarrelTraitStdlibInteropReceipt"
+    timestamp: now()
+  }
+}

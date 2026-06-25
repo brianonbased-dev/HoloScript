@@ -1,0 +1,19 @@
+// @adversarial_trajectory — Adversarial trajectory: world-model trajectory under adversarial inputs.
+//
+// Native .hsplus surface for core/src/world-model/AdversarialTrajectory.ts.
+
+@trait adversarial_trajectory {
+  capability_tags: ["adversarial_trajectory", "trajectory_under_attack", "world_model", "core"]
+
+  @on_spawn => { emit("adversarial_trajectory_ready", {}) }
+
+  @on_run(initial_state, adversary) => {
+    trajectory = run_adversarial_trajectory(initial_state, adversary)
+    return trajectory
+  }
+
+  @receipt adversarial_trajectory_config {
+    type: "AdversarialTrajectoryReceipt"
+    timestamp: now()
+  }
+}
