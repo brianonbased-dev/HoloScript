@@ -182,6 +182,11 @@
       "import": "./dist/reconstruction/index.js",
       "require": "./dist/reconstruction/index.cjs"
     },
+    "./evolution": {
+      "types": "./dist/evolution/index.d.ts",
+      "import": "./dist/evolution/index.js",
+      "require": "./dist/evolution/index.cjs"
+    },
     "./agents": {
       "types": "./dist/agents/index.d.ts",
       "import": "./dist/agents/index.js",

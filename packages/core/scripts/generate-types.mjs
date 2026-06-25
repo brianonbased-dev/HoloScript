@@ -7738,6 +7738,127 @@ export declare function connectToHololand(config?: Partial<Record<string, unknow
 export declare function disconnectFromHololand(): Promise<void>;
 `;
 
+const evolutionDTS = `/** @holoscript/core/evolution — browser-safe gated self-improvement slice
+ *  (Web Crypto + fetch + pure parser, no node:fs). The edge AgentRunner imports
+ *  this light subpath to accrue training corpus in-process on idle (I.023). */
+
+/** The evolution policy (runtime shape of the \`@evolve_program\` trait data). */
+export interface EvolvePolicy {
+  goal: string;
+  generations: number;
+  population: number;
+  archiveSize: number;
+  proposerModel: string;
+}
+/** One evaluated candidate — the provenance unit. */
+export interface EvolveCandidate {
+  id: number;
+  gen: number;
+  parentId: number | null;
+  passed: boolean;
+  score: number;
+  bytes: number;
+  note: string;
+}
+/** Proposes a mutation: returns the FULL revised program (no diff applier exists). */
+export type Proposer = (parentCode: string, goal: string, policy: EvolvePolicy) => Promise<string>;
+/** Correctness + fitness oracle. \`passed\` is the hard gate; \`score\` is lower-is-better. */
+export type Gate = (candidateCode: string) => Promise<{ passed: boolean; score: number }>;
+/** One gated proposal, as training signal (the second loop). */
+export interface EvolveTraceRecord {
+  gen: number;
+  parentId: number;
+  parentCode: string;
+  goal: string;
+  candidateCode: string;
+  passed: boolean;
+  score: number;
+}
+/** Injected effects, so the loop is pure + deterministic under test. */
+export interface EvolveIO {
+  propose: Proposer;
+  gate: Gate;
+  now?: () => string;
+  onCandidate?: (rec: EvolveTraceRecord) => void;
+}
+export type EvolveOutcome = 'IMPROVED' | 'NO_IMPROVEMENT' | 'SEED_INVALID';
+/** The auditable receipt — the native \`{result, traceJSONL, verifyUrl}\` envelope. */
+export interface EvolveReceipt {
+  result: EvolveOutcome;
+  generations: number;
+  evaluated: number;
+  survivors: number;
+  discarded: number;
+  seedScore: number | null;
+  bestScore: number | null;
+  improvementPct: number | null;
+  proposerModel: string;
+  verifierGated: true;
+  selfShips: false;
+  traceJSONL: string;
+  verifyUrl: string;
+  ts: string;
+}
+export interface EvolveResult {
+  bestCode: string | null;
+  receipt: EvolveReceipt;
+}
+/** A graded training row in the ecosystem REC-SHAPE (harvest_real.py reads this). */
+export interface GradedTraceRow {
+  system: string;
+  user: string;
+  target: string;
+  grader: Record<string, unknown>;
+  family: string;
+  modality: string;
+  source: string;
+  agentId: string;
+  ts: string;
+}
+/** Run the gated evolutionary search; returns winning code (only if it beat the seed)
+ *  plus a full provenance receipt. Propose-not-ship; the gate IS the engine. */
+export declare function runEvolution(seedCode: string, policy: EvolvePolicy, io: EvolveIO): Promise<EvolveResult>;
+/** Default sovereign proposer wired to a local Ollama endpoint (local metal). */
+export declare function makeOllamaProposer(endpoint: string, model: string): Proposer;
+/** Convert a gated evolve candidate into a graded REC-SHAPE training row. */
+export declare function toGradedTraceRow(rec: EvolveTraceRecord, opts: { agentId: string; ts: string; source?: string }): GradedTraceRow;
+
+/** Which native parser gates a seed's candidates (by CONSTRUCT, not file ext). */
+export type SeedFormat = 'holo' | 'hsplus';
+export interface EvolveSeed {
+  name: string;
+  format: SeedFormat;
+  goal: string;
+  source: string;
+  preserved: RegExp[];
+}
+/** The canonical strategic seed portfolio (diverse forms across the language surface). */
+export declare const CORPUS_PORTFOLIO: readonly EvolveSeed[];
+/** Native parse — clean iff success AND zero errors. Never throws. */
+export declare function parsesClean(src: string, format: SeedFormat): boolean;
+/** Gate = parse-clean AND every preserved construct present; fitness = length. */
+export declare function makeSeedGate(seed: EvolveSeed): Gate;
+export interface AccrueStepResult {
+  target: string;
+  rows: GradedTraceRow[];
+}
+/** Run ONE gated evolution step over a single portfolio seed (round-robin by \`tick\`)
+ *  and return graded REC-SHAPE rows — the unit an autonomous idle loop calls per tick. */
+export declare function accrueOneStep(opts: {
+  propose: Proposer;
+  agentId: string;
+  seed?: EvolveSeed;
+  tick?: number;
+  now?: () => string;
+}): Promise<AccrueStepResult>;
+/** Pure + browser-safe cross-run dedup keyed on the candidate program (\`row.target\`);
+ *  the caller owns the file IO (the node AgentRunner reads/appends the corpus JSONL). */
+export declare function dedupRows(
+  existingCorpus: string,
+  rows: readonly GradedTraceRow[]
+): { fresh: GradedTraceRow[]; deduped: number };
+`;
+
 // Create subdirectory declaration files
 const subdirDeclarations = [
   { dir: 'wot', content: wotDTS },
@@ -7750,6 +7871,7 @@ const subdirDeclarations = [
   { dir: 'storage', content: storageDTS },
   { dir: 'tools', content: toolsDTS },
   { dir: 'reconstruction', content: reconstructionDTS },
+  { dir: 'evolution', content: evolutionDTS },
   { dir: 'paper-0c-spike', content: paper0cSpikeDTS },
   { dir: 'coordinators', content: coordinatorsDTS },
   { dir: 'agents', content: agentsDTS },

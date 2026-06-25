@@ -118,6 +118,11 @@ export default defineConfig({
     // HoloMap native reconstruction (WebGPU feed-forward, SimulationContract binding)
     'reconstruction/index': 'src/reconstruction/index.ts',
 
+    // Gated self-improvement slice — browser-safe (Web Crypto + fetch + pure parser,
+    // no node:fs). The edge AgentRunner imports this light subpath to accrue training
+    // corpus in-process on idle, never the heavy main barrel (I.023 executor).
+    'evolution/index': 'src/evolution/index.ts',
+
     // Paper-0c CAEL primitives (subgrid-attestation; consumed by @holoscript/engine)
     'paper-0c-spike/index': 'src/paper-0c-spike/index.ts',
 
