@@ -1,0 +1,30 @@
+// @sequence_track — Multi-channel timeline: clips on tracks, keyframe interpolation, blending, looping.
+//
+// Native .hsplus surface for core/cinematic/SequenceTrack.ts.
+//
+// addTrack(name, clips[]) / sample(t) → TrackValues
+// Supports overlapping clips with blend weights; loop and ping-pong per track
+// Consumed by CinematicDirector; shares keyframe model with animation/sequencer
+
+@trait sequence_track {
+  capability_tags: ["sequence_track", "multi_channel_timeline", "clip_blending", "keyframe_track", "core"]
+
+  @on_spawn => {
+    emit("sequence_track_ready", {})
+  }
+
+  @on_add_track(name, clips) => {
+    add_sequence_track(name, clips)
+    emit("track_added", { name })
+  }
+
+  @on_sample(t) => {
+    return sample_sequence_tracks(t)
+  }
+
+  @receipt sequence_track_config {
+    type: "SequenceTrackReceipt"
+    features: ["multi-channel", "clip blending", "loop/ping-pong", "keyframe interpolation"]
+    timestamp: now()
+  }
+}

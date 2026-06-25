@@ -1,0 +1,29 @@
+// @circuit_breaker_cicd — CI/CD integration for the circuit breaker: pre-commit hooks, threshold management, rollback triggers.
+//
+// Native .hsplus surface for core/circuit-breaker/CircuitBreakerCICD.ts.
+//
+// generateWorkflow(config) → GitHub Actions YAML
+// generatePreCommitHook() → hook script
+// evaluateThresholds(report) → pass | fail | rollback
+// Automated rollback when compile regressions exceed threshold
+
+@trait circuit_breaker_cicd {
+  capability_tags: ["circuit_breaker_cicd", "github_actions", "pre_commit_hook", "rollback_trigger", "core"]
+
+  @on_spawn => {
+    emit("circuit_breaker_cicd_ready", {})
+  }
+
+  @on_evaluate(report) => {
+    verdict = evaluate_cicd_thresholds(report)
+    if verdict == "rollback" { emit("rollback_triggered", {}) }
+    return verdict
+  }
+
+  @receipt circuit_breaker_cicd_config {
+    type: "CircuitBreakerCICDReceipt"
+    verdicts: ["pass", "fail", "rollback"]
+    integrations: ["GitHub Actions", "pre-commit hook"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,28 @@
+// @god_file_detector — Detects oversized/complex files; generates virtual split plans for absorb pipeline.
+//
+// Native .hsplus surface for core/codebase/GodFileDetector.ts.
+// G.GAP.05 prevention: NEVER modifies source files — read-only analysis only.
+//
+// detect(file) → GodFileReport { isGodFile, lineCount, splitPlan[] }
+// splitPlan: suggested logical boundaries for virtual chunking
+
+@trait god_file_detector {
+  capability_tags: ["god_file_detector", "god_file", "absorb_pipeline", "split_plan", "read_only", "core"]
+
+  @on_spawn => {
+    emit("god_file_detector_ready", {})
+  }
+
+  @on_detect(file) => {
+    report = detect_god_file(file)
+    if report.isGodFile { emit("god_file_detected", { file, lines: report.lineCount }) }
+    return report
+  }
+
+  @receipt god_file_detector_config {
+    type: "GodFileDetectorReceipt"
+    constraint: "read-only — never modifies source (G.GAP.05)"
+    output: "{ isGodFile, lineCount, splitPlan[] }"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,31 @@
+// @cinematic_director — Scene orchestration: actor positioning, cue system, camera cuts, sequence execution.
+//
+// Native .hsplus surface for core/cinematic/CinematicDirector.ts.
+//
+// loadSequence(seq) / play() / pause() / fireCue(cueId)
+// Positions actors, cuts cameras, fires cues on timeline
+// Sequences export to SequenceTrack for multi-channel playback
+
+@trait cinematic_director {
+  capability_tags: ["cinematic_director", "scene_orchestration", "camera_cuts", "cue_system", "core"]
+
+  @on_spawn => {
+    emit("cinematic_director_ready", {})
+  }
+
+  @on_play => {
+    play_cinematic_sequence()
+    emit("cinematic_playing", {})
+  }
+
+  @on_fire_cue(cue_id) => {
+    fire_cinematic_cue(cue_id)
+    emit("cue_fired", { cue_id })
+  }
+
+  @receipt cinematic_director_config {
+    type: "CinematicDirectorReceipt"
+    features: ["actor positioning", "camera cuts", "cue system", "timeline"]
+    timestamp: now()
+  }
+}

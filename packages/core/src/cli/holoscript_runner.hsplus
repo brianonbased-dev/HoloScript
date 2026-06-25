@@ -1,0 +1,28 @@
+// @holoscript_runner — Headless CLI runner: compiles .hs scripts and executes on target.
+//
+// Native .hsplus surface for core/cli/holoscript-runner.ts.
+//
+// run(script, { target: node|edge|wasm, ... }) → RunResult
+// Targets: node (default headless) | edge | wasm | quest | web
+// CLI entry point for headless HoloScript execution
+
+@trait holoscript_runner {
+  capability_tags: ["holoscript_runner", "headless_cli", "script_runner", "compile_and_run", "core"]
+
+  @on_spawn => {
+    emit("holoscript_runner_ready", {})
+  }
+
+  @on_run(script, options) => {
+    result = run_holoscript(script, options)
+    emit("script_run", { target: options.target })
+    return result
+  }
+
+  @receipt holoscript_runner_config {
+    type: "HoloScriptRunnerReceipt"
+    targets: ["node", "edge", "wasm", "quest", "web"]
+    usage: "holoscript run script.hs [--target node]"
+    timestamp: now()
+  }
+}

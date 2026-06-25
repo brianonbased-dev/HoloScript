@@ -1,0 +1,27 @@
+// @circuit_breaker_benchmarks — Benchmark suite for HoloScript circuit breaker across compiler targets.
+//
+// Native .hsplus surface for core/circuit-breaker/CircuitBreakerBenchmarks.ts.
+//
+// run(targets[]) → BenchmarkReport { compilationTime, memoryUsage, throughput, regressions[] }
+// Measures compilation time, memory, throughput per ExportTarget
+// Regression detection: flags if current result exceeds baseline threshold
+
+@trait circuit_breaker_benchmarks {
+  capability_tags: ["circuit_breaker_benchmarks", "compile_benchmark", "regression_detection", "throughput", "core"]
+
+  @on_spawn => {
+    emit("circuit_breaker_benchmarks_ready", {})
+  }
+
+  @on_run(targets) => {
+    report = run_circuit_breaker_benchmarks(targets)
+    if report.regressions.length > 0 { emit("benchmark_regression", { count: report.regressions.length }) }
+    return report
+  }
+
+  @receipt circuit_breaker_benchmarks_config {
+    type: "CircuitBreakerBenchmarkReceipt"
+    measures: ["compilationTime", "memoryUsage", "throughput", "regressions"]
+    timestamp: now()
+  }
+}

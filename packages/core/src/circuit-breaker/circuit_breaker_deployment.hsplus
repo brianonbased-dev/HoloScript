@@ -1,0 +1,31 @@
+// @circuit_breaker_deployment — Production circuit breaker: health checks, graceful degradation, telemetry, alerts.
+//
+// Native .hsplus surface for core/circuit-breaker/CircuitBreakerDeployment.ts.
+//
+// healthCheck() → HealthReport / degrade(target) / collectTelemetry() → Metrics
+// Threshold alerts; dashboard metrics; graceful degradation when targets exceed budget
+
+@trait circuit_breaker_deployment {
+  capability_tags: ["circuit_breaker_deployment", "health_checks", "graceful_degradation", "telemetry", "core"]
+
+  @on_spawn => {
+    emit("circuit_breaker_deployment_ready", {})
+  }
+
+  @on_health_check => {
+    report = circuit_breaker_health_check()
+    if !report.healthy { emit("circuit_breaker_unhealthy", { report }) }
+    return report
+  }
+
+  @on_degrade(target) => {
+    degrade_circuit_breaker_target(target)
+    emit("circuit_breaker_degraded", { target })
+  }
+
+  @receipt circuit_breaker_deployment_config {
+    type: "CircuitBreakerDeploymentReceipt"
+    features: ["health checks", "graceful degradation", "telemetry", "alerting", "dashboard metrics"]
+    timestamp: now()
+  }
+}

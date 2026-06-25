@@ -1,0 +1,28 @@
+// @dedup_filter — Dual-layer deduplication for the absorb pipeline: SHA-256 + MinHash LSH.
+//
+// Native .hsplus surface for core/codebase/DedupFilter.ts.
+//
+// Layer 1: SHA-256 exact match (catches ~38% of known duplicates)
+// Layer 2: MinHash LSH semantic near-duplicate detection (template-based duplication)
+// Layer 3: Quality-weighted retention (keep highest-quality version)
+// filter(entries[]) → deduplicated entries
+
+@trait dedup_filter {
+  capability_tags: ["dedup_filter", "sha256_dedup", "minhash_lsh", "absorb_pipeline", "core"]
+
+  @on_spawn => {
+    emit("dedup_filter_ready", {})
+  }
+
+  @on_filter(entries) => {
+    result = dedup_filter_entries(entries)
+    emit("dedup_done", { removed: entries.length - result.length })
+    return result
+  }
+
+  @receipt dedup_filter_config {
+    type: "DedupFilterReceipt"
+    layers: ["SHA-256 exact", "MinHash LSH semantic", "quality-weighted retention"]
+    timestamp: now()
+  }
+}

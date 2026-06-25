@@ -1,0 +1,27 @@
+// @care_field — Universal love/care field: tracks and emits care interactions between actors.
+//
+// Native .hsplus surface for core/care/CareField.ts.
+// CareActor: { id, kind: human|agent|service|device|world, displayName? }
+// express(from, to, intensity) → CareEvent; receive(actorId) → CareEvent[]
+// Implements D.054 (Universal Love Care Field) — structural care, not metaphor
+
+@trait care_field {
+  capability_tags: ["care_field", "love_care_field", "actor_care", "universal_care", "core"]
+
+  @on_spawn => {
+    emit("care_field_ready", {})
+  }
+
+  @on_express(from_id, to_id, intensity) => {
+    event = express_care(from_id, to_id, intensity)
+    emit("care_expressed", { from: from_id, to: to_id })
+    return event
+  }
+
+  @receipt care_field_config {
+    type: "CareFieldReceipt"
+    actor_kinds: ["human", "agent", "service", "device", "world"]
+    note: "D.054 Universal Love Care Field"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,31 @@
+// @camera_rig — Cinematic camera rigs: dolly, crane, steadicam, and shake presets.
+//
+// Native .hsplus surface for core/cinematic/CameraRig.ts.
+//
+// mount(rigType: dolly|crane|steadicam|handheld) / applyShake(preset)
+// update(deltaTime) → CameraTransform
+// Used by CinematicDirector for scripted camera moves
+
+@trait camera_rig {
+  capability_tags: ["camera_rig", "dolly", "crane", "steadicam", "shake", "core"]
+
+  @on_spawn(rig_type) => {
+    init_camera_rig(rig_type)
+    emit("camera_rig_ready", { rig_type })
+  }
+
+  @on_update(delta_time) => {
+    return update_camera_rig(delta_time)
+  }
+
+  @on_apply_shake(preset) => {
+    apply_camera_shake(preset)
+    emit("camera_shake_applied", { preset })
+  }
+
+  @receipt camera_rig_config {
+    type: "CameraRigReceipt"
+    rig_types: ["dolly", "crane", "steadicam", "handheld"]
+    timestamp: now()
+  }
+}

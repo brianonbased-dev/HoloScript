@@ -1,0 +1,27 @@
+// @daemon_discord_bridge — Bridges daemon queue files to/from Discord channel.
+//
+// Native .hsplus surface for core/cli/daemon-discord-bridge.ts.
+//
+// Reads .holoscript/outbox.jsonl → sends messages to Discord channel
+// Receives Discord messages → writes to .holoscript/inbox.jsonl
+// Daemon mode: runs as persistent background process
+
+@trait daemon_discord_bridge {
+  capability_tags: ["daemon_discord_bridge", "discord_queue", "outbox_inbox", "daemon_bridge", "core"]
+
+  @on_spawn => {
+    emit("daemon_discord_bridge_ready", {})
+  }
+
+  @on_flush_outbox => {
+    count = flush_discord_outbox()
+    emit("outbox_flushed", { count })
+  }
+
+  @receipt daemon_discord_bridge_config {
+    type: "DaemonDiscordBridgeReceipt"
+    files: [".holoscript/outbox.jsonl", ".holoscript/inbox.jsonl"]
+    mode: "persistent background daemon"
+    timestamp: now()
+  }
+}
