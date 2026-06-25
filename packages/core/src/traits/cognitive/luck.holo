@@ -1,0 +1,18 @@
+@trait {
+  name: "@luck",
+  category: "cognitive",
+  description: "Deterministic xorshift32-seeded PRNG for binary chance outcomes. On luck:roll → compares (baseChance + luckBonus) against [0,1] roll → emits luck:success or luck:failure. Seed 0 treated as 1 (xorshift forbids zero state). Pairs with @drop_table (luckBonus injected via drop_table:roll payload). Port of LuckTrait.ts (handler name: luck).",
+  props: {
+    base_chance: number = 0.5,
+    luck_bonus: number = 0.0,
+    seed: number = 1
+  },
+  events: {
+    attached: "luck:ready",
+    roll: "luck:roll",
+    on_success: "luck:success",
+    on_failure: "luck:failure",
+    on_stats: "luck:stats"
+  },
+  behaviors: ["@drop_table", "@ab_test"]
+}

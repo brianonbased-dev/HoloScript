@@ -1,0 +1,19 @@
+@trait {
+  name: "@quantum_circuit",
+  category: "cognitive",
+  description: "Quantum circuit compiler for HoloScript nodes. Three circuit families: vqe (hardware-efficient VQE ansatz with Jordan-Wigner+STO-3G mapping for molecular energy estimation), qaoa (QAOA Max-Cut for combinatorial optimisation via weight adjacency matrix), grover (reserved — stub with warning). Backends: aer (local Qiskit Aer simulator, no cloud spend) or ibm-quantum (real QPU, billed). Compiles QASM at qc:compile → emits qc:compiled or qc:error. Port of QuantumCircuitTrait.ts (handler name: quantumCircuit — camelCase).",
+  props: {
+    circuit_type: enum("vqe" | "qaoa" | "grover") = "vqe",
+    backend: enum("aer" | "ibm-quantum") = "aer",
+    ansatz_depth: number = 2,
+    n_shots: number = 1024
+  },
+  events: {
+    attached: "qc_ready",
+    detached: "qc_detached",
+    compile: "qc:compile",
+    on_compiled: "qc:compiled",
+    on_error: "qc:error"
+  },
+  behaviors: ["@vqe_runner", "@quantum_error"]
+}

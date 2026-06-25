@@ -1,0 +1,21 @@
+@trait {
+  name: "@behavior_tree",
+  category: "cognitive",
+  description: "Pluggable behavior tree (BT) runtime for NPC AI. Node types: sequence (all children must succeed), selector (first success wins), parallel (concurrent), action (leaf — dispatches bt:action and awaits bt:action_result or bt:action_failure), condition (leaf — dispatches bt:condition and awaits bt:condition_result). Tick rate in Hz; supports blackboard (shared state dict), debug visualization, restart_on_complete loop. Port of BehaviorTreeTrait.ts (handler name: behavior_tree).",
+  props: {
+    tick_rate: number = 10,
+    debug_visualization: boolean = false,
+    restart_on_complete: boolean = true
+  },
+  events: {
+    on_started: "bt_started",
+    on_stopped: "bt_stopped",
+    on_completed: "bt_completed",
+    on_action: "bt:action",
+    on_condition: "bt:condition",
+    action_result: "bt:action_result",
+    action_failure: "bt:action_failure",
+    condition_result: "bt:condition_result"
+  },
+  behaviors: ["@a_i_driver", "@ai_companion", "@caveman_drive"]
+}
