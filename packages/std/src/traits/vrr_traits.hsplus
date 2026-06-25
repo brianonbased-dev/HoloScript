@@ -1,0 +1,157 @@
+// VRR (Virtual Reality Reality) — 1:1 digital twin trait library.
+//
+// Native .hsplus surface for VRRTraits.ts (std/traits).
+//
+// PURPOSE: VRRCompiler auto-generates Three.js + API integration code
+// from these trait annotations. Devs annotate compositions; the compiler
+// wires the real-world data sources.
+//
+// VRR trait families:
+//   Core:        @vrr_twin, @reality_mirror, @geo_anchor
+//   Real-time:   @weather_sync, @event_sync, @inventory_sync, @traffic_sync
+//   Business:    @quest_hub, @business_marker, @coupon_reward
+//   Layer:       @layer_shift, @ar_portal, @vr_portal
+//   Payment:     @x402_paywall, @subscription, @revenue_share
+//   Geo-spatial: @geo_coords, @geo_sync, @geo_fence
+//
+// Example composition (VRRTraits.ts):
+//   zone#phoenix_downtown @vrr_twin @reality_mirror @geo_sync("phoenix_az_center") { ... }
+
+@trait vrr_twin {
+  // Real-world location key this twin mirrors
+  mirror: String
+  capability_tags: ["vrr_twin", "digital_twin", "real_world_mirror", "vrr"]
+
+  @on_spawn => { emit("vrr_twin_ready", { mirror: mirror }) }
+  @on_sync_world_state(world_snapshot) => { emit("vrr_twin_synced", { mirror: mirror }) }
+}
+
+@trait reality_mirror {
+  // Data streams to sync: ["weather", "events", "inventory", "traffic"]
+  sync: Array<String>
+  refresh_interval_s: Int = 300
+  capability_tags: ["reality_mirror", "real_time_sync", "vrr"]
+
+  @on_spawn => {
+    for stream in sync { schedule_recurring(refresh_interval_s, "on_sync_" + stream) }
+    emit("reality_mirror_ready", { sync: sync })
+  }
+  @on_sync_weather => { emit("weather_sync_requested", {}) }
+  @on_sync_events  => { emit("event_sync_requested", {}) }
+  @on_sync_inventory => { emit("inventory_sync_requested", {}) }
+  @on_sync_traffic => { emit("traffic_sync_requested", {}) }
+}
+
+@trait geo_anchor {
+  lat: Float
+  lng: Float
+  altitude_m: Float = 0.0
+  capability_tags: ["geo_anchor", "geo_location", "lat_lng", "vrr"]
+
+  @on_spawn => { emit("geo_anchor_set", { lat: lat, lng: lng, altitude_m: altitude_m }) }
+  @on_get_scene_coords => { emit("geo_to_scene_coords", { lat: lat, lng: lng }) }
+}
+
+@trait weather_sync {
+  provider: String = "weather.gov"
+  refresh_s: Int = 300
+  capability_tags: ["weather_sync", "real_time_sync", "fog_precipitation", "vrr"]
+
+  @on_spawn => { schedule_recurring(refresh_s, "on_fetch") }
+  @on_fetch => { emit("weather_fetch", { provider: provider }) }
+  @on_weather_update(conditions) => { emit("scene_weather_apply", { conditions: conditions }) }
+}
+
+@trait event_sync {
+  provider: String = "eventbrite"
+  refresh_s: Int = 300
+  capability_tags: ["event_sync", "real_time_sync", "local_events", "vrr"]
+
+  @on_spawn => { schedule_recurring(refresh_s, "on_fetch") }
+  @on_fetch => { emit("event_fetch", { provider: provider }) }
+  @on_events_update(events) => { emit("scene_events_apply", { events: events }) }
+}
+
+@trait inventory_sync {
+  provider: String = "square_pos"
+  refresh_s: Int = 60
+  capability_tags: ["inventory_sync", "real_time_sync", "pos_integration", "vrr"]
+
+  @on_spawn => { schedule_recurring(refresh_s, "on_fetch") }
+  @on_fetch => { emit("inventory_fetch", { provider: provider }) }
+  @on_inventory_update(inventory) => { emit("scene_inventory_apply", { inventory: inventory }) }
+}
+
+@trait traffic_sync {
+  provider: String = "google_maps"
+  refresh_s: Int = 120
+  capability_tags: ["traffic_sync", "real_time_sync", "traffic_data", "vrr"]
+
+  @on_spawn => { schedule_recurring(refresh_s, "on_fetch") }
+  @on_fetch => { emit("traffic_fetch", { provider: provider }) }
+  @on_traffic_update(data) => { emit("scene_traffic_apply", { data: data }) }
+}
+
+@trait quest_hub {
+  quest_id: String
+  steps: Array<String>
+  capability_tags: ["quest_hub", "business_quest", "ar_quest", "vrr"]
+
+  @on_spawn => { emit("quest_hub_ready", { quest_id: quest_id }) }
+  @on_step_complete(step_index, player_id) => {
+    if step_index >= steps.size - 1 { emit("quest_complete", { quest_id: quest_id, player_id: player_id }) }
+    else { emit("quest_step_advanced", { quest_id: quest_id, next_step: step_index + 1 }) }
+  }
+}
+
+@trait business_marker {
+  name: String
+  business_type: String = "retail"
+  capability_tags: ["business_marker", "poi", "vrr"]
+
+  @on_spawn => { emit("business_marker_placed", { name: name, type: business_type }) }
+}
+
+@trait coupon_reward {
+  value: String
+  expiry_days: Int = 30
+  capability_tags: ["coupon_reward", "incentive", "vrr"]
+
+  @on_spawn => { emit("coupon_reward_ready", { value: value }) }
+  @on_redeem(player_id) => { emit("coupon_redeemed", { value: value, player_id: player_id }) }
+}
+
+@trait x402_paywall {
+  price_usdc: Float
+  network: String = "base"
+  capability_tags: ["x402_paywall", "x402", "usdc", "paywall", "vrr"]
+
+  @on_spawn => { emit("x402_paywall_ready", { price: price_usdc, network: network }) }
+  @on_payment_attempt(player_id, amount) => {
+    if amount >= price_usdc { emit("x402_payment_success", { player_id: player_id, amount: amount }) }
+    else { emit("x402_payment_failed", { player_id: player_id, required: price_usdc }) }
+  }
+}
+
+@trait layer_shift {
+  from_layer: String
+  to_layer: String
+  trigger: String = "proximity"
+  capability_tags: ["layer_shift", "layer_transition", "ar_to_vr", "vrr"]
+
+  @on_trigger(player_id) => { emit("layer_shift_triggered", { from: from_layer, to: to_layer, player_id: player_id }) }
+}
+
+@trait geo_fence {
+  lat: Float
+  lng: Float
+  radius_m: Float
+  capability_tags: ["geo_fence", "geo_location", "proximity_trigger", "vrr"]
+
+  @on_player_move(player_id, player_lat, player_lng) => {
+    distance = geo_distance(lat, lng, player_lat, player_lng)
+    if distance <= radius_m {
+      emit("geo_fence_entered", { player_id: player_id, distance_m: distance })
+    }
+  }
+}

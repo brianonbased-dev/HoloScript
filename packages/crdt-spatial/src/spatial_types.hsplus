@@ -1,0 +1,70 @@
+// @spatial_types — Strategy C hybrid rotation type substrate for crdt-spatial.
+//
+// Native .hsplus surface for types.ts (crdt-spatial).
+//
+// Declares the core spatial type contract used by SpatialCRDTBridge,
+// LoroWebSocketProvider, and useSpatialSync.
+//
+// Strategy C hybrid rotation (types.ts):
+//   base_quaternion (LWW via LoroMap) + delta_yaw/pitch/roll (LoroCounter)
+//   Effective rotation = base_quaternion * euler_to_quat(delta_yaw, delta_pitch, delta_roll)
+//   Checkpoint every 30s: fold deltas into base_quat, reset counters
+//   (G.GOLD.019: read counters AFTER merge, before reset)
+//
+// ConnectionState: disconnected | connecting | connected | reconnecting
+// SyncMessageType: sync_request | sync_response | operation | ack | heartbeat
+//
+// AwarenessState (ephemeral, NOT CRDT — W.059):
+//   {peer_id, cursor?, selection?, online: Bool, last_seen}
+//
+// DEFAULT_WS_CONFIG: heartbeat_interval_ms=30000, reconnect_delay_ms=1000, max_reconnect_attempts=10
+
+@trait spatial_type_substrate {
+  capability_tags: ["spatial_types", "strategy_c_rotation", "hybrid_rotation", "crdt_spatial", "spatial_type_contract"]
+
+  @on_spawn => {
+    emit("spatial_type_substrate_ready", {})
+  }
+
+  @on_make_spatial_transform(position, rotation, scale) => {
+    return { position: position, rotation: rotation, scale: scale }
+  }
+
+  @on_make_hybrid_rotation(base_quat, delta_yaw, delta_pitch, delta_roll, last_checkpoint_ms) => {
+    return {
+      base_quaternion: base_quat,
+      delta_yaw: delta_yaw,
+      delta_pitch: delta_pitch,
+      delta_roll: delta_roll,
+      last_checkpoint_ms: last_checkpoint_ms
+    }
+  }
+
+  @on_apply_euler_delta(hybrid_rot, delta) => {
+    return {
+      base_quaternion: hybrid_rot.base_quaternion,
+      delta_yaw:   hybrid_rot.delta_yaw   + delta.yaw,
+      delta_pitch: hybrid_rot.delta_pitch + delta.pitch,
+      delta_roll:  hybrid_rot.delta_roll  + delta.roll,
+      last_checkpoint_ms: hybrid_rot.last_checkpoint_ms
+    }
+  }
+
+  // Checkpoint: fold deltas into base_quat, zero deltas (G.GOLD.019: read counters AFTER merge first)
+  @on_checkpoint(hybrid_rot, now_ms) => {
+    folded = quat_multiply(hybrid_rot.base_quaternion, euler_to_quat(hybrid_rot.delta_yaw, hybrid_rot.delta_pitch, hybrid_rot.delta_roll))
+    return {
+      base_quaternion: folded,
+      delta_yaw: 0.0, delta_pitch: 0.0, delta_roll: 0.0,
+      last_checkpoint_ms: now_ms
+    }
+  }
+
+  @receipt spatial_types_config {
+    type: "SpatialTypeSubstrateReceipt"
+    rotation_strategy: "strategy_c_hybrid_quat_lww_plus_euler_counter"
+    checkpoint_interval_ms: 30000
+    awareness_note: "W.059: AwarenessState is ephemeral — NOT in Loro CRDT doc"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,86 @@
+// @std_fs — File and directory operations for HoloScript Plus programs.
+//
+// Native .hsplus surface for fs/fs.ts (std, v0.2.0).
+//
+// All paths enforced by sandbox.enforcePathBoundary before any syscall.
+// Path traversal outside the allowed root → throws PathBoundaryError.
+//
+// FileStats (fs.ts):
+//   size, is_file, is_directory, is_symlink,
+//   created_at, modified_at, accessed_at, mode
+//
+// DirEntry: name, path, is_file, is_directory, is_symlink
+//
+// Functions: read_file, write_file, append_file, exists, stat,
+//   mkdir, readdir (recursive?), copy, move, remove, glob_files
+
+@trait std_fs {
+  // Sandbox root — all paths must be under this directory
+  sandbox_root: String
+
+  // Default file encoding
+  default_encoding: String = "utf8"
+
+  capability_tags: ["std_fs", "file_system", "sandboxed_io", "path_boundary", "holoscript_std"]
+
+  @on_spawn => {
+    fs_lib = init_std_fs({ sandbox_root: sandbox_root, encoding: default_encoding })
+    emit("std_fs_ready", { sandbox_root: sandbox_root })
+  }
+
+  @on_read_file(path, encoding) => {
+    return fs_lib.read_file(path, encoding ?? default_encoding)
+  }
+
+  @on_write_file(path, content, options) => {
+    fs_lib.write_file(path, content, options)
+    emit("std_fs_wrote", { path: path })
+  }
+
+  @on_append_file(path, content, encoding) => {
+    fs_lib.append_file(path, content, encoding ?? default_encoding)
+  }
+
+  @on_exists(path) => {
+    return fs_lib.exists(path)
+  }
+
+  @on_stat(path) => {
+    return fs_lib.stat(path)
+  }
+
+  @on_mkdir(path, recursive) => {
+    fs_lib.mkdir(path, recursive ?? true)
+  }
+
+  @on_readdir(path, recursive) => {
+    return fs_lib.readdir(path, recursive ?? false)
+  }
+
+  @on_copy(src, dest, options) => {
+    fs_lib.copy(src, dest, options)
+    emit("std_fs_copied", { src: src, dest: dest })
+  }
+
+  @on_move(src, dest) => {
+    fs_lib.move(src, dest)
+    emit("std_fs_moved", { src: src, dest: dest })
+  }
+
+  @on_remove(path, recursive) => {
+    fs_lib.remove(path, recursive ?? false)
+    emit("std_fs_removed", { path: path })
+  }
+
+  @on_glob(pattern, options) => {
+    return fs_lib.glob(pattern, options)
+  }
+
+  @receipt std_fs_config {
+    type: "StdFSReceipt"
+    sandbox_root: sandbox_root
+    default_encoding: default_encoding
+    sandbox_enforced: true
+    timestamp: now()
+  }
+}

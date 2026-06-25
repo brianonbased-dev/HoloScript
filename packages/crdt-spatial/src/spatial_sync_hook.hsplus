@@ -1,0 +1,90 @@
+// @spatial_sync_hook — Spatial CRDT synchronization capability contract for VR compositions.
+//
+// Native .hsplus surface for useSpatialSync.ts (crdt-spatial).
+//
+// useSpatialSync.ts is a React hook (render-adjacent adapter) — the .hsplus surface
+// declares the synchronization CAPABILITY CONTRACT that a VR composition binds;
+// the React hook adapter is the generated TS layer consuming this contract.
+//
+// Hook API (useSpatialSync.ts):
+//   { connectionState, peerCount, setPosition, applyRotationDelta, getTransform, registerNode }
+//
+// Options:
+//   server_url: WebSocket sync endpoint
+//   room_id: multi-peer room grouping
+//   peer_id: local peer identifier (DID or UUID)
+//   team_id?: HoloMesh team for economic intercept (via MeshNodeIntegrator)
+//
+// Internals: SpatialCRDTBridge + LoroWebSocketProvider + MeshNodeIntegrator
+// Lifecycle: connect on mount, disconnect on unmount (React useEffect cleanup)
+//
+// Awareness (ephemeral, W.059): peerCount from remoteAwareness Map size; NOT CRDT state.
+
+@trait spatial_sync_hook {
+  // WebSocket sync endpoint
+  server_url: String
+
+  // Room identifier for peer grouping
+  room_id: String
+
+  // Local peer ID (DID or UUID)
+  peer_id: String
+
+  // Optional HoloMesh team ID (enables economic CRDT intercept)
+  team_id: String? = null
+
+  capability_tags: ["spatial_sync_hook", "r3f_crdt_sync", "multi_peer", "spatial_crdt", "react_three_fiber", "crdt_spatial"]
+
+  @on_spawn => {
+    bridge = init_spatial_crdt_bridge({ peer_id: peer_id })
+    ws_provider = init_loro_websocket_provider({
+      bridge: bridge,
+      url: server_url,
+      room_id: room_id
+    })
+    if team_id {
+      integrator = init_mesh_node_integrator({ room: room_id, team_id: team_id })
+    }
+    ws_provider.connect()
+    emit("spatial_sync_ready", { room_id: room_id, peer_id: peer_id })
+  }
+
+  @on_register_node(node_id, initial_transform) => {
+    bridge.register(node_id, initial_transform)
+  }
+
+  @on_set_position(node_id, position) => {
+    bridge.set_position(node_id, position)
+  }
+
+  @on_apply_rotation_delta(node_id, delta_euler) => {
+    bridge.apply_rotation_delta(node_id, delta_euler)
+  }
+
+  @on_get_transform(node_id) => {
+    return bridge.get_transform(node_id)
+  }
+
+  @on_connection_state => {
+    return ws_provider.connection_state()
+  }
+
+  @on_peer_count => {
+    // W.059: ephemeral awareness state, NOT CRDT
+    return ws_provider.remote_awareness_size()
+  }
+
+  @on_despawn => {
+    ws_provider.disconnect()
+    emit("spatial_sync_disconnected", { room_id: room_id })
+  }
+
+  @receipt spatial_sync_hook_config {
+    type: "SpatialSyncHookReceipt"
+    server_url: server_url
+    room_id: room_id
+    peer_id: peer_id
+    awareness_note: "W.059: peerCount from ephemeral remoteAwareness — not CRDT state"
+    timestamp: now()
+  }
+}
