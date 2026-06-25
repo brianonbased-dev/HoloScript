@@ -1,0 +1,34 @@
+// @semantic_search_service — Vector-based semantic search for HoloScript traits via AIAdapter embeddings.
+//
+// Native .hsplus surface for framework/ai/SemanticSearchService.ts.
+//
+// Requires items with { name, description } shape.
+// index(items) — generates and caches embeddings via AIAdapter.embed (OPT-IN only)
+// search(query, limit) → SearchResult[] sorted by cosine similarity
+// SearchResult { item, score }
+
+@trait semantic_search_service {
+  capability_tags: ["semantic_search_service", "vector_search", "embedding", "cosine_similarity", "opt_in", "framework"]
+
+  @on_spawn => {
+    svc = init_semantic_search_service()
+    emit("semantic_search_service_ready", {})
+  }
+
+  @on_index(items) => {
+    svc.index(items)
+    emit("semantic_index_built", { count: items.length })
+  }
+
+  @on_search(query, limit) => {
+    results = svc.search(query, limit)
+    return results
+  }
+
+  @receipt semantic_search_service_config {
+    type: "SemanticSearchServiceReceipt"
+    requires: "AIAdapter with embed() — OPT-IN, not default"
+    scoring: "cosine similarity 0-1"
+    timestamp: now()
+  }
+}

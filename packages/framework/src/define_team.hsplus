@@ -1,0 +1,28 @@
+// @define_team — Validated team configuration builder: agents, slots, concurrency.
+//
+// Native .hsplus surface for framework/define-team.ts.
+//
+// defineTeam(config: TeamConfig) → Team instance
+// Validates: name required, at least 1 agent, agents ≤ maxSlots (default 5)
+// Returns hydrated Team ready to run tasks
+
+@trait define_team {
+  capability_tags: ["define_team", "team_config", "slot_validation", "framework"]
+
+  @on_spawn => {
+    emit("define_team_ready", {})
+  }
+
+  @on_define(config) => {
+    team = define_team_from_config(config)
+    emit("team_defined", { name: config.name, agent_count: config.agents.length })
+    return team
+  }
+
+  @receipt define_team_config {
+    type: "DefineTeamReceipt"
+    defaults: { max_slots: 5 }
+    constraints: ["name required", "agents >= 1", "agents <= maxSlots"]
+    timestamp: now()
+  }
+}

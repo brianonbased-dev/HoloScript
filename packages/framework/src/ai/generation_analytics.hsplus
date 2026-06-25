@@ -1,0 +1,33 @@
+// @generation_analytics — Track generation metrics: success rates, confidence, quality, performance.
+//
+// Native .hsplus surface for framework/ai/GenerationAnalytics.ts.
+//
+// record(metrics: GenerationMetrics) — appends to adapter-keyed history
+// successRate(adapterId?) → 0-1
+// averageConfidence(adapterId?) → 0-1
+// p95Latency(adapterId?) → ms
+// export() → serializable analytics snapshot
+
+@trait generation_analytics {
+  capability_tags: ["generation_analytics", "success_rate", "confidence_tracking", "latency_p95", "ai_metrics", "framework"]
+
+  @on_spawn => {
+    analytics = init_generation_analytics()
+    emit("generation_analytics_ready", {})
+  }
+
+  @on_record(metrics) => {
+    analytics.record(metrics)
+  }
+
+  @on_report(adapter_id) => {
+    return analytics.export(adapter_id)
+  }
+
+  @receipt generation_analytics_config {
+    type: "GenerationAnalyticsReceipt"
+    tracked: ["promptLength", "codeLength", "confidence", "parseSuccess", "latencyMs", "adapterId"]
+    outputs: ["successRate", "averageConfidence", "p95Latency"]
+    timestamp: now()
+  }
+}

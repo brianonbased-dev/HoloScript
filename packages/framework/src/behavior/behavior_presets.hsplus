@@ -1,0 +1,33 @@
+// @behavior_presets — Pre-built behavior tree patterns: patrol, guard, chase, idle, wander.
+//
+// Native .hsplus surface for framework/behavior/BehaviorPresets.ts.
+//
+// createPatrolBehavior(waypoints, pauseMs) → BTNode tree
+// createGuardBehavior(origin, radius) → BTNode tree (seek target if detected, return to origin)
+// createChaseBehavior(getTarget) → BTNode tree (pursue + melee range check)
+// createIdleBehavior(waitMs) → WaitNode
+// createWanderBehavior(center, range) → BTNode tree (pick random point, move, wait)
+
+@trait behavior_presets {
+  capability_tags: ["behavior_presets", "patrol", "guard_behavior", "chase", "wander_preset", "bt_factory", "framework"]
+
+  @on_spawn => {
+    presets = init_behavior_presets()
+    emit("behavior_presets_ready", {})
+  }
+
+  @on_create_patrol(waypoints, pause_ms) => {
+    return presets.create_patrol(waypoints, pause_ms)
+  }
+
+  @on_create_guard(origin, radius) => {
+    return presets.create_guard(origin, radius)
+  }
+
+  @receipt behavior_presets_config {
+    type: "BehaviorPresetsReceipt"
+    presets: ["patrol", "guard", "chase", "idle", "wander"]
+    output: "BTNode tree ready for BehaviorTree.tick()"
+    timestamp: now()
+  }
+}

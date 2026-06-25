@@ -1,0 +1,35 @@
+// @generation_cache — LRU cache for AI-generated HoloScript; avoids redundant API calls.
+//
+// Native .hsplus surface for framework/ai/GenerationCache.ts.
+//
+// Key: SHA-256(prompt + adapterId)
+// get(prompt, adapterId) → CacheEntry | null
+// set(prompt, adapterId, result, ttlMs?)
+// LRU eviction when maxSize reached
+// stats() → { hits, misses, evictions, size }
+// serialize() / deserialize(data) — persistence across sessions
+
+@trait generation_cache {
+  capability_tags: ["generation_cache", "lru_cache", "ttl", "prompt_hash", "ai_caching", "framework"]
+
+  @on_spawn => {
+    cache = init_generation_cache()
+    emit("generation_cache_ready", {})
+  }
+
+  @on_get(prompt, adapter_id) => {
+    return cache.get(prompt, adapter_id)
+  }
+
+  @on_set(prompt, adapter_id, result, ttl_ms) => {
+    cache.set(prompt, adapter_id, result, ttl_ms)
+  }
+
+  @receipt generation_cache_config {
+    type: "GenerationCacheReceipt"
+    key: "SHA-256(prompt + adapterId)"
+    eviction: "LRU"
+    features: ["TTL", "stats", "serialize/deserialize"]
+    timestamp: now()
+  }
+}

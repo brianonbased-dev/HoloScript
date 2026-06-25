@@ -1,0 +1,35 @@
+// @steering_behaviors — Autonomous agent steering: seek, flee, arrive, wander, flock, obstacle avoidance.
+//
+// Native .hsplus surface for framework/ai/SteeringBehaviors.ts.
+//
+// SteeringAgent { position, velocity, maxSpeed, maxForce, mass }
+// seek(agent, target) → force vec3
+// flee(agent, threat) → force vec3
+// arrive(agent, target, slowingRadius) → force vec3
+// wander(agent, wanderRadius, wanderDistance, wanderJitter) → force vec3
+// flock(agent, neighbors) → combined separation+alignment+cohesion force
+// avoidObstacles(agent, obstacles) → force vec3
+
+@trait steering_behaviors {
+  capability_tags: ["steering_behaviors", "seek_flee", "arrive", "wander", "flocking", "obstacle_avoidance", "framework"]
+
+  @on_spawn => {
+    steering = init_steering_behaviors()
+    emit("steering_behaviors_ready", {})
+  }
+
+  @on_seek(agent, target) => {
+    return steering.seek(agent, target)
+  }
+
+  @on_flock(agent, neighbors) => {
+    return steering.flock(agent, neighbors)
+  }
+
+  @receipt steering_behaviors_config {
+    type: "SteeringBehaviorsReceipt"
+    behaviors: ["seek", "flee", "arrive", "wander", "flock (sep+align+cohesion)", "avoidObstacles"]
+    output: "force vec3 applied to SteeringAgent"
+    timestamp: now()
+  }
+}

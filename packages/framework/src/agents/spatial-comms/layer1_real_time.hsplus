@@ -1,0 +1,34 @@
+// @layer1_real_time — UDP/WebRTC real-time communication for 90fps agent coordination.
+//
+// Native .hsplus surface for framework/agents/spatial-comms/Layer1RealTime.ts.
+//
+// <1ms latency for position sync and frame budget updates.
+// 90 messages/second per agent capability.
+// Binary protocol for minimal overhead.
+// Spatial conflict detection and alerts.
+// sendPosition(pos) / sendFrameBudget(budget) / onConflict(handler)
+
+@trait layer1_real_time {
+  capability_tags: ["layer1_real_time", "udp_webrtc", "position_sync", "90fps", "binary_protocol", "spatial_comms", "framework"]
+
+  @on_spawn => {
+    l1 = init_layer1_real_time()
+    emit("layer1_real_time_ready", {})
+  }
+
+  @on_send_position(pos) => {
+    l1.send_position(pos)
+  }
+
+  @on_send_frame_budget(budget) => {
+    l1.send_frame_budget(budget)
+  }
+
+  @receipt layer1_real_time_config {
+    type: "Layer1RealTimeReceipt"
+    latency: "<1ms"
+    throughput: "90 msg/s per agent"
+    protocol: "binary over UDP/WebRTC"
+    timestamp: now()
+  }
+}

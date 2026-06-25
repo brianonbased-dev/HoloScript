@@ -1,0 +1,37 @@
+// @utility_ai — Utility-based AI: consideration curves, weighted scoring, cooldowns, action history.
+//
+// Native .hsplus surface for framework/ai/UtilityAI.ts.
+//
+// CurveType: linear | quadratic | logistic | step
+// Consideration { name, input: () → 0-1, curve, weight }
+// UtilityAction { id, name, considerations, cooldownMs?, weight? }
+// evaluate(action, context) → score 0-1 (product of consideration scores × weight)
+// selectBest(actions, context) → action with highest score (respects cooldowns)
+// history() → last N selected actions
+
+@trait utility_ai {
+  capability_tags: ["utility_ai", "consideration_curves", "weighted_scoring", "cooldown", "action_history", "framework"]
+
+  @on_spawn => {
+    uai = init_utility_ai()
+    emit("utility_ai_ready", {})
+  }
+
+  @on_evaluate(action, context) => {
+    score = uai.evaluate(action, context)
+    return score
+  }
+
+  @on_select_best(actions, context) => {
+    best = uai.select_best(actions, context)
+    emit("utility_action_selected", { id: best.id })
+    return best
+  }
+
+  @receipt utility_ai_config {
+    type: "UtilityAIReceipt"
+    curves: ["linear", "quadratic", "logistic", "step"]
+    scoring: "product of weighted considerations, cooldown-gated"
+    timestamp: now()
+  }
+}

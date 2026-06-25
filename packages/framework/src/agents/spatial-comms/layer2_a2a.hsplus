@@ -1,0 +1,35 @@
+// @layer2_a2a — JSON-RPC over HTTP/2 for agent-to-agent task coordination.
+//
+// Native .hsplus surface for framework/agents/spatial-comms/Layer2A2A.ts.
+//
+// assignTask(taskSpec) → TaskResult / completeTask(taskId)
+// claimRegion(claim: SpatialClaim) / resolveConflict(strategy)
+// requestResource(type, amount) / releaseResource(type, amount)
+// Retry with exponential backoff; request/response with acknowledgments.
+
+@trait layer2_a2a {
+  capability_tags: ["layer2_a2a", "json_rpc_http2", "task_coordination", "spatial_claim", "resource_management", "spatial_comms", "framework"]
+
+  @on_spawn => {
+    l2 = init_layer2_a2a()
+    emit("layer2_a2a_ready", {})
+  }
+
+  @on_assign_task(task_spec) => {
+    result = l2.assign_task(task_spec)
+    emit("task_assigned", { task_id: task_spec.id })
+    return result
+  }
+
+  @on_claim_region(claim) => {
+    l2.claim_region(claim)
+    emit("region_claimed", { region: claim.regionId })
+  }
+
+  @receipt layer2_a2a_config {
+    type: "Layer2A2AReceipt"
+    transport: "JSON-RPC over HTTP/2"
+    features: ["task assignment", "spatial region claims", "resource management", "exponential backoff"]
+    timestamp: now()
+  }
+}

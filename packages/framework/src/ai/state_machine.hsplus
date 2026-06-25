@@ -1,0 +1,34 @@
+// @ai_state_machine — Hierarchical FSM: states with enter/exit/update, guarded transitions.
+//
+// Native .hsplus surface for framework/ai/StateMachine.ts.
+//
+// StateConfig { id, onEnter?, onExit?, onUpdate? }
+// Transition { from, to, event, guard?: fn → bool }
+// dispatch(event, context) → triggers matching transition if guard passes
+// enter(stateId, context) / update(dt, context)
+// Hierarchical: states can contain sub-machines
+
+@trait ai_state_machine {
+  capability_tags: ["ai_state_machine", "hierarchical_fsm", "guarded_transitions", "enter_exit_hooks", "framework"]
+
+  @on_spawn => {
+    fsm = init_ai_state_machine()
+    emit("ai_state_machine_ready", {})
+  }
+
+  @on_dispatch(event, context) => {
+    transitioned = fsm.dispatch(event, context)
+    if transitioned { emit("state_transitioned", { event }) }
+    return transitioned
+  }
+
+  @on_update(dt, context) => {
+    fsm.update(dt, context)
+  }
+
+  @receipt ai_state_machine_config {
+    type: "AIStateMachineReceipt"
+    features: ["hierarchical states", "guarded transitions", "enter/exit/update hooks"]
+    timestamp: now()
+  }
+}

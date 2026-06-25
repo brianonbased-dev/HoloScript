@@ -1,0 +1,34 @@
+// @goal_planner — GOAP-style backward chaining planner: goals, actions with preconditions/effects.
+//
+// Native .hsplus surface for framework/ai/GoalPlanner.ts.
+//
+// WorldState = Map<string, boolean>
+// PlanAction { id, name, cost, preconditions: Map<str,bool>, effects: Map<str,bool> }
+// plan(currentState, goalState, actions) → PlanAction[] | null — A* backward chaining
+// execute(plan, executor) — sequential action execution
+
+@trait goal_planner {
+  capability_tags: ["goal_planner", "goap", "backward_chaining", "a_star", "action_planning", "framework"]
+
+  @on_spawn => {
+    planner = init_goal_planner()
+    emit("goal_planner_ready", {})
+  }
+
+  @on_plan(current_state, goal_state, actions) => {
+    plan = planner.plan(current_state, goal_state, actions)
+    emit("plan_generated", { steps: plan ? plan.length : 0 })
+    return plan
+  }
+
+  @on_execute(plan, executor) => {
+    planner.execute(plan, executor)
+  }
+
+  @receipt goal_planner_config {
+    type: "GoalPlannerReceipt"
+    algorithm: "A* backward chaining (GOAP)"
+    state_type: "Map<string, boolean>"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,37 @@
+// @blackboard — Shared key-value state for behavior trees: scoped data, observers, history.
+//
+// Native .hsplus surface for framework/ai/Blackboard.ts.
+//
+// set(key, value, scope?) / get(key, scope?) → value
+// BBEntry { key, value, scope, version, timestamp }
+// observe(key, handler) → called on any change to that key
+// history(key) → BBEntry[] — all past values for the key
+// clear(scope?) — clears all entries in a scope
+
+@trait blackboard {
+  capability_tags: ["blackboard", "behavior_tree_state", "scoped_kv", "observer", "history", "framework"]
+
+  @on_spawn => {
+    bb = init_blackboard()
+    emit("blackboard_ready", {})
+  }
+
+  @on_set(key, value, scope) => {
+    bb.set(key, value, scope)
+    emit("bb_entry_set", { key, scope })
+  }
+
+  @on_get(key, scope) => {
+    return bb.get(key, scope)
+  }
+
+  @on_observe(key, handler) => {
+    bb.observe(key, handler)
+  }
+
+  @receipt blackboard_config {
+    type: "BlackboardReceipt"
+    features: ["scoped keys", "version tracking", "observer notifications", "history"]
+    timestamp: now()
+  }
+}

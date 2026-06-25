@@ -1,0 +1,29 @@
+// @federated_registry_adapter — Cross-composition agent discovery via A2A Agent Card federation.
+//
+// Native .hsplus surface for framework/agents/FederatedRegistryAdapter.ts.
+//
+// fetchRemoteCard(url) → A2AAgentCard — fetches /.well-known/agent-card.json
+// toManifest(card) → AgentManifest — converts A2A card to local registry format
+// federateRegistry(urls) → registers remote agents into local AgentRegistry
+
+@trait federated_registry_adapter {
+  capability_tags: ["federated_registry_adapter", "a2a_federation", "cross_composition", "agent_card", "framework"]
+
+  @on_spawn => {
+    adapter = init_federated_registry_adapter()
+    emit("federated_registry_adapter_ready", {})
+  }
+
+  @on_federate(urls) => {
+    manifests = adapter.federate_registry(urls)
+    emit("remote_agents_registered", { count: manifests.length })
+    return manifests
+  }
+
+  @receipt federated_registry_adapter_config {
+    type: "FederatedRegistryAdapterReceipt"
+    source: "/.well-known/agent-card.json per remote host"
+    converts: "A2AAgentCard → AgentManifest"
+    timestamp: now()
+  }
+}

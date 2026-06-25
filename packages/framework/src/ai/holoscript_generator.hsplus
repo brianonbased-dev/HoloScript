@@ -1,0 +1,36 @@
+// @holoscript_generator — High-level API: natural language → validated HoloScript via AIAdapter.
+//
+// Native .hsplus surface for framework/ai/HoloScriptGenerator.ts.
+//
+// generate(prompt, options?) → GeneratedCode { code, confidence, errors, metadata }
+// validate(code) → ValidationResult (via AIOutputValidator)
+// fix(code, errors) → fixed code (up to maxRetries)
+// history: last N generated results retained for context
+
+@trait holoscript_generator {
+  capability_tags: ["holoscript_generator", "nl_to_holoscript", "validate", "auto_fix", "generation_history", "framework"]
+
+  @on_spawn => {
+    gen = init_holoscript_generator()
+    emit("holoscript_generator_ready", {})
+  }
+
+  @on_generate(prompt, options) => {
+    result = gen.generate(prompt, options)
+    emit("holoscript_generated", { confidence: result.confidence })
+    return result
+  }
+
+  @on_fix(code, errors) => {
+    fixed = gen.fix(code, errors)
+    emit("holoscript_fixed", {})
+    return fixed
+  }
+
+  @receipt holoscript_generator_config {
+    type: "HoloScriptGeneratorReceipt"
+    pipeline: "prompt → AIAdapter → parse → validate → auto-fix on error"
+    outputs: { code: "string", confidence: "0-1", errors: "string[]" }
+    timestamp: now()
+  }
+}

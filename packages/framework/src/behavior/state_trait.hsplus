@@ -1,0 +1,29 @@
+// @state_trait — Declarative FSM attachment for HoloScript+ nodes via trait config.
+//
+// Native .hsplus surface for framework/behavior/StateTrait.ts.
+//
+// StateTraitConfig { machine: StateMachineConfig }
+// Implements TraitHandler: onSpawn attaches StateMachine; node can dispatch events via trait.dispatch(event)
+// State changes fire emit("state_changed", { from, to, event }) on the node
+
+@trait state_trait {
+  capability_tags: ["state_trait", "declarative_fsm", "holoscript_node_attachment", "trait_handler", "framework"]
+
+  @on_spawn => {
+    machine = init_state_machine(config.machine)
+    emit("state_trait_ready", { initial: machine.current_state })
+  }
+
+  @on_dispatch(event) => {
+    prev = machine.current_state
+    transitioned = machine.dispatch(event)
+    if transitioned { emit("state_changed", { from: prev, to: machine.current_state, event }) }
+  }
+
+  @receipt state_trait_config {
+    type: "StateTraitReceipt"
+    pattern: "TraitHandler wrapping StateMachine; config.machine = StateMachineConfig"
+    events: ["state_changed { from, to, event }"]
+    timestamp: now()
+  }
+}

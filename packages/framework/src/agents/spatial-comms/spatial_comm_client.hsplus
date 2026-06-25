@@ -1,0 +1,37 @@
+// @spatial_comm_client — Unified client orchestrating all three spatial communication layers.
+//
+// Native .hsplus surface for framework/agents/spatial-comms/SpatialCommClient.ts.
+//
+// Layer 1: UDP/WebRTC <1ms real-time position + frame budget
+// Layer 2: HTTP/2 A2A task coordination + spatial claims
+// Layer 3: MCP high-level world/agent commands
+// Integrates Phase 1 agent identity + Phase 2 graceful degradation.
+
+@trait spatial_comm_client {
+  capability_tags: ["spatial_comm_client", "layer1_l2_l3", "unified_comms", "graceful_degradation", "agent_identity", "framework"]
+
+  @on_spawn => {
+    client = init_spatial_comm_client()
+    emit("spatial_comm_client_ready", {})
+  }
+
+  @on_send_real_time(msg) => {
+    client.send_real_time(msg)
+  }
+
+  @on_coordinate(task_spec) => {
+    client.coordinate(task_spec)
+    emit("task_coordinated", { task_id: task_spec.id })
+  }
+
+  @on_world_command(cmd) => {
+    return client.world_command(cmd)
+  }
+
+  @receipt spatial_comm_client_config {
+    type: "SpatialCommClientReceipt"
+    layers: ["L1 UDP/WebRTC <1ms", "L2 HTTP/2 A2A", "L3 MCP"]
+    features: ["Phase1 identity", "Phase2 graceful degradation"]
+    timestamp: now()
+  }
+}

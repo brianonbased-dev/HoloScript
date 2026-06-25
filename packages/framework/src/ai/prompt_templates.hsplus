@@ -1,0 +1,32 @@
+// @prompt_templates — Pre-built prompt templates for HoloScript generation with variable interpolation.
+//
+// Native .hsplus surface for framework/ai/PromptTemplates.ts.
+//
+// PromptTemplate { id, name, description, category, template, variables, examples }
+// render(templateId, vars: Record<string,string>) → interpolated prompt string
+// compose(id1, id2) → joined template
+// register(template) — add custom template
+// listByCategory(category) → PromptTemplate[]
+
+@trait prompt_templates {
+  capability_tags: ["prompt_templates", "variable_interpolation", "template_composition", "holoscript_generation", "framework"]
+
+  @on_spawn => {
+    templates = init_prompt_templates()
+    emit("prompt_templates_ready", {})
+  }
+
+  @on_render(template_id, vars) => {
+    return templates.render(template_id, vars)
+  }
+
+  @on_compose(id1, id2) => {
+    return templates.compose(id1, id2)
+  }
+
+  @receipt prompt_templates_config {
+    type: "PromptTemplatesReceipt"
+    features: ["variable interpolation", "template composition", "custom registration"]
+    timestamp: now()
+  }
+}

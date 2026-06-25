@@ -1,0 +1,30 @@
+// @ai_output_validator — Validate AI-generated HoloScript: structural errors, dangerous patterns, complexity.
+//
+// Native .hsplus surface for framework/ai/AIOutputValidator.ts.
+//
+// validate(code: string) → ValidationResult { valid, issues: ValidationIssue[], confidence (0-1), stats }
+// ValidationIssue { severity: error|warning|info, message, line?, rule }
+// Rules: depth limit, forbidden patterns (eval/exec), max node count, syntax check
+
+@trait ai_output_validator {
+  capability_tags: ["ai_output_validator", "code_validation", "dangerous_pattern_detection", "complexity_check", "framework"]
+
+  @on_spawn => {
+    validator = init_ai_output_validator()
+    emit("ai_output_validator_ready", {})
+  }
+
+  @on_validate(code) => {
+    result = validator.validate(code)
+    if !result.valid { emit("validation_failed", { issue_count: result.issues.length }) }
+    return result
+  }
+
+  @receipt ai_output_validator_config {
+    type: "AIOutputValidatorReceipt"
+    issue_severities: ["error", "warning", "info"]
+    confidence: "0-1 (higher = safer code)"
+    checks: ["syntax", "depth", "forbidden_patterns", "node_count"]
+    timestamp: now()
+  }
+}

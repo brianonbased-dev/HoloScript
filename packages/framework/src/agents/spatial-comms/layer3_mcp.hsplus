@@ -1,0 +1,34 @@
+// @layer3_mcp — MCP metadata layer: world management, agent registry queries, performance metrics.
+//
+// Native .hsplus surface for framework/agents/spatial-comms/Layer3MCP.ts.
+//
+// createWorld(spec: WorldSpec) → worldId
+// queryAgents(filter) → AgentManifest[]
+// getMetrics() → PerformanceMetrics
+// exportWorld(worldId, format: ExportFormat)
+// triggerSystemEvent(event)
+
+@trait layer3_mcp {
+  capability_tags: ["layer3_mcp", "world_management", "agent_registry_query", "metrics", "system_events", "spatial_comms", "framework"]
+
+  @on_spawn => {
+    l3 = init_layer3_mcp()
+    emit("layer3_mcp_ready", {})
+  }
+
+  @on_create_world(spec) => {
+    world_id = l3.create_world(spec)
+    emit("world_created", { world_id })
+    return world_id
+  }
+
+  @on_get_metrics => {
+    return l3.get_metrics()
+  }
+
+  @receipt layer3_mcp_config {
+    type: "Layer3MCPReceipt"
+    commands: ["createWorld", "queryAgents", "getMetrics", "exportWorld", "triggerSystemEvent"]
+    timestamp: now()
+  }
+}

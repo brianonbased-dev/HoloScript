@@ -1,0 +1,35 @@
+// @nav_mesh — Navigation mesh: polygon walk, A* pathfinding, path smoothing.
+//
+// Native .hsplus surface for framework/ai/NavMesh.ts.
+//
+// NavPolygon { id, vertices, neighbors, center, walkable, cost }
+// findPath(from, to) → NavPath { waypoints, totalCost, polygonIds }
+// getPolygonAt(x, y, z) → NavPolygon | null
+// smooth(path) → waypoints with string-pulling applied
+// addDynamicObstacle(pos, radius) / removeDynamicObstacle(id)
+
+@trait nav_mesh {
+  capability_tags: ["nav_mesh", "polygon_pathfinding", "a_star", "string_pulling", "dynamic_obstacle", "framework"]
+
+  @on_spawn => {
+    nav = init_nav_mesh()
+    emit("nav_mesh_ready", {})
+  }
+
+  @on_find_path(from, to) => {
+    path = nav.find_path(from, to)
+    emit("path_found", { cost: path ? path.total_cost : -1 })
+    return path
+  }
+
+  @on_add_obstacle(pos, radius) => {
+    nav.add_dynamic_obstacle(pos, radius)
+  }
+
+  @receipt nav_mesh_config {
+    type: "NavMeshReceipt"
+    algorithm: "A* on polygon graph + string-pulling smooth"
+    polygon_fields: ["vertices", "neighbors", "center", "walkable", "cost"]
+    timestamp: now()
+  }
+}

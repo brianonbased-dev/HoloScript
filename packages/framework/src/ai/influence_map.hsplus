@@ -1,0 +1,37 @@
+// @influence_map — Grid-based influence propagation with decay and multi-layer support.
+//
+// Native .hsplus surface for framework/ai/InfluenceMap.ts.
+//
+// InfluenceConfig { width, height, cellSize, decayRate (0-1), propagationRate (0-1), maxValue }
+// addSource(x, y, strength, layerId?) / removeSource(x, y, layerId?)
+// update() — propagates influence outward by propagationRate; decays by decayRate
+// query(x, y, layerId?) → influence value
+// getGradient(x, y) → direction of steepest increase
+
+@trait influence_map {
+  capability_tags: ["influence_map", "grid_propagation", "decay", "multi_layer", "spatial_query", "framework"]
+
+  @on_spawn => {
+    imap = init_influence_map()
+    emit("influence_map_ready", {})
+  }
+
+  @on_add_source(x, y, strength, layer_id) => {
+    imap.add_source(x, y, strength, layer_id)
+  }
+
+  @on_update => {
+    imap.update()
+  }
+
+  @on_query(x, y, layer_id) => {
+    return imap.query(x, y, layer_id)
+  }
+
+  @receipt influence_map_config {
+    type: "InfluenceMapReceipt"
+    config: { decay_rate: "0-1", propagation_rate: "0-1", cell_size: "meters" }
+    queries: ["value", "gradient (direction of steepest increase)"]
+    timestamp: now()
+  }
+}

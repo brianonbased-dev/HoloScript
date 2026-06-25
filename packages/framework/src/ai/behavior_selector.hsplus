@@ -1,0 +1,35 @@
+// @behavior_selector — Weighted random, priority-based, and conditional behavior picking.
+//
+// Native .hsplus surface for framework/ai/BehaviorSelector.ts.
+//
+// Behavior { id, name, weight, priority, condition?, action, lockoutMs? }
+// selectBehavior(behaviors) → Behavior — respects conditions, lockout timers, then priority/weight
+// execute(behavior) — runs action, starts lockout timer
+// addFallback(behavior) — executed when all behaviors unavailable
+
+@trait behavior_selector {
+  capability_tags: ["behavior_selector", "weighted_random", "priority_picking", "lockout_timer", "fallback", "framework"]
+
+  @on_spawn => {
+    selector = init_behavior_selector()
+    emit("behavior_selector_ready", {})
+  }
+
+  @on_select(behaviors) => {
+    chosen = selector.select_behavior(behaviors)
+    emit("behavior_selected", { id: chosen.id })
+    return chosen
+  }
+
+  @on_execute(behavior) => {
+    selector.execute(behavior)
+    emit("behavior_executed", { id: behavior.id })
+  }
+
+  @receipt behavior_selector_config {
+    type: "BehaviorSelectorReceipt"
+    strategies: ["weighted random", "priority", "conditional + lockout"]
+    fallback: "fallback behavior when all unavailable"
+    timestamp: now()
+  }
+}

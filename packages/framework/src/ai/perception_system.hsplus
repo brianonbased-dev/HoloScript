@@ -1,0 +1,35 @@
+// @perception_system — AI perception: sight/hearing/smell cones, stimulus memory, priority scoring.
+//
+// Native .hsplus surface for framework/ai/PerceptionSystem.ts.
+//
+// SenseType: sight | hearing | smell
+// Stimulus { id, type, sourceId, position, intensity, timestamp }
+// addStimulusSource(entity, senseConfig: { range, angle?, decay })
+// tick(allEntities) → detects stimuli, scores by priority, emits detection events
+// recall(type?) → Stimulus[] — remembered stimuli within memory window
+
+@trait perception_system {
+  capability_tags: ["perception_system", "sight_cone", "hearing_radius", "stimulus_memory", "priority_scoring", "framework"]
+
+  @on_spawn => {
+    perception = init_perception_system()
+    emit("perception_system_ready", {})
+  }
+
+  @on_add_source(entity, sense_config) => {
+    perception.add_stimulus_source(entity, sense_config)
+  }
+
+  @on_tick(all_entities) => {
+    detected = perception.tick(all_entities)
+    if detected.length > 0 { emit("stimulus_detected", { count: detected.length }) }
+    return detected
+  }
+
+  @receipt perception_system_config {
+    type: "PerceptionSystemReceipt"
+    senses: ["sight (cone + range)", "hearing (radius)", "smell (decay)"]
+    memory: "configurable window; stimuli recalled by type"
+    timestamp: now()
+  }
+}

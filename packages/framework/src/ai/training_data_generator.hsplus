@@ -1,0 +1,36 @@
+// @training_data_generator — Generate diverse HoloScript examples for AI model training.
+//
+// Native .hsplus surface for framework/ai/TrainingDataGenerator.ts.
+//
+// TrainingExample { id, category, description, holoScript, expectedOutput? }
+// TrainingCategory: basic_scene | physics | agent | medical | robotics | vr
+// generate(category, count) → TrainingExample[]
+// generateAll() → full corpus across all categories
+// validate(example) → { valid, errors }
+// export(format: 'jsonl' | 'csv') → string
+
+@trait training_data_generator {
+  capability_tags: ["training_data_generator", "training_corpus", "holoscript_examples", "ai_training", "framework"]
+
+  @on_spawn => {
+    gen = init_training_data_generator()
+    emit("training_data_generator_ready", {})
+  }
+
+  @on_generate(category, count) => {
+    examples = gen.generate(category, count)
+    emit("training_examples_generated", { count: examples.length })
+    return examples
+  }
+
+  @on_export(format) => {
+    return gen.export(format)
+  }
+
+  @receipt training_data_generator_config {
+    type: "TrainingDataGeneratorReceipt"
+    categories: ["basic_scene", "physics", "agent", "medical", "robotics", "vr"]
+    formats: ["jsonl", "csv"]
+    timestamp: now()
+  }
+}

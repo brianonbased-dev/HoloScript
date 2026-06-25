@@ -1,0 +1,27 @@
+// @bt_nodes — Behavior tree node types: composite, decorator, leaf.
+//
+// Native .hsplus surface for framework/ai/BTNodes.ts.
+//
+// BTStatus: success | failure | running | ready
+// Composites: SequenceNode (AND), SelectorNode (OR), ParallelNode (all run)
+// Decorators: InverterNode, RepeaterNode(n), GuardNode(condition)
+// Leaves: ActionNode(fn), ConditionNode(pred), WaitNode(durationMs)
+// All nodes implement tick(context) → BTStatus
+
+@trait bt_nodes {
+  capability_tags: ["bt_nodes", "sequence", "selector", "parallel", "inverter", "action_node", "framework"]
+
+  @on_spawn => {
+    nodes = init_bt_nodes()
+    emit("bt_nodes_ready", {})
+  }
+
+  @receipt bt_nodes_config {
+    type: "BTNodesReceipt"
+    statuses: ["success", "failure", "running", "ready"]
+    composites: ["SequenceNode (AND)", "SelectorNode (OR)", "ParallelNode"]
+    decorators: ["InverterNode", "RepeaterNode", "GuardNode"]
+    leaves: ["ActionNode", "ConditionNode", "WaitNode"]
+    timestamp: now()
+  }
+}

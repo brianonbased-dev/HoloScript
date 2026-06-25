@@ -1,0 +1,29 @@
+// @define_agent — Validated agent configuration builder for HoloScript framework teams.
+//
+// Native .hsplus surface for framework/define-agent.ts.
+//
+// defineAgent(config: AgentConfig) → AgentConfig (validates name, role, model, slots)
+// Valid roles: architect | coder | researcher | reviewer
+// Valid slot roles: coder | tester | researcher | reviewer | flex
+// Throws on invalid name, role, or missing model.provider/model.model
+
+@trait define_agent {
+  capability_tags: ["define_agent", "agent_config", "role_validation", "framework"]
+
+  @on_spawn => {
+    emit("define_agent_ready", {})
+  }
+
+  @on_define(config) => {
+    validated = validate_agent_config(config)
+    emit("agent_defined", { name: config.name, role: config.role })
+    return validated
+  }
+
+  @receipt define_agent_config {
+    type: "DefineAgentReceipt"
+    roles: ["architect", "coder", "researcher", "reviewer"]
+    slot_roles: ["coder", "tester", "researcher", "reviewer", "flex"]
+    timestamp: now()
+  }
+}

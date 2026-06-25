@@ -1,0 +1,35 @@
+// @ai_behavior_tree — Tick-based behavior tree runner with subtree mounting and conditional abort.
+//
+// Native .hsplus surface for framework/ai/BehaviorTree.ts.
+//
+// BTStatus: success | failure | running | ready
+// BehaviorTree(root: BTNode).tick(context) → BTStatus
+// mountSubtree(nodeId, subtree) / unmountSubtree(nodeId)
+// enableDebugTrace() → logs each node eval to blackboard
+// BTContext { blackboard: Blackboard, deltaTime, entity }
+
+@trait ai_behavior_tree {
+  capability_tags: ["ai_behavior_tree", "tick_based", "subtree_mount", "conditional_abort", "debug_trace", "framework"]
+
+  @on_spawn => {
+    tree = init_ai_behavior_tree()
+    emit("ai_behavior_tree_ready", {})
+  }
+
+  @on_tick(context) => {
+    status = tree.tick(context)
+    emit("tree_ticked", { status })
+    return status
+  }
+
+  @on_mount_subtree(node_id, subtree) => {
+    tree.mount_subtree(node_id, subtree)
+  }
+
+  @receipt ai_behavior_tree_config {
+    type: "AIBehaviorTreeReceipt"
+    statuses: ["success", "failure", "running", "ready"]
+    features: ["subtree mount/unmount", "conditional abort", "debug trace"]
+    timestamp: now()
+  }
+}

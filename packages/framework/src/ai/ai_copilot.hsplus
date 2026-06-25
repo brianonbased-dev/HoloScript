@@ -1,0 +1,37 @@
+// @ai_copilot — Editor-aware AI assistant bridging AIAdapter + HoloScriptGenerator with runtime.
+//
+// Native .hsplus surface for framework/ai/AICopilot.ts.
+//
+// CopilotContext { selectedEntity, sceneNodeTypes, stateKeys, recentActions }
+// suggest(prompt, context) → CopilotSuggestion[]
+// complete(partial, context) → completion string
+// fix(code, error) → fixed code
+// Uses HoloScriptGenerator for generation; AIAdapter for underlying LLM calls.
+
+@trait ai_copilot {
+  capability_tags: ["ai_copilot", "editor_ai", "holoscript_completion", "context_aware", "suggestion", "framework"]
+
+  @on_spawn => {
+    copilot = init_ai_copilot()
+    emit("ai_copilot_ready", {})
+  }
+
+  @on_suggest(prompt, context) => {
+    suggestions = copilot.suggest(prompt, context)
+    emit("suggestions_generated", { count: suggestions.length })
+    return suggestions
+  }
+
+  @on_fix(code, error) => {
+    fixed = copilot.fix(code, error)
+    emit("code_fixed", {})
+    return fixed
+  }
+
+  @receipt ai_copilot_config {
+    type: "AICopilotReceipt"
+    operations: ["suggest", "complete", "fix"]
+    deps: ["AIAdapter", "HoloScriptGenerator"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,36 @@
+// @ai_adapter — Provider-agnostic AI integration interface for HoloScript.
+//
+// Native .hsplus surface for framework/ai/AIAdapter.ts.
+//
+// IAIAdapter:
+//   generateHoloScript(prompt, options?) → { holoScript, confidence?, metadata? }
+//   generateText(prompt, options?) → string
+//   embed(text) → number[] (optional)
+// registerAIAdapter(adapter) — registers global adapter
+// getAIAdapter() → registered adapter
+
+@trait ai_adapter {
+  capability_tags: ["ai_adapter", "provider_agnostic", "holoscript_generation", "embedding", "framework"]
+
+  @on_spawn => {
+    adapter = init_ai_adapter()
+    emit("ai_adapter_ready", {})
+  }
+
+  @on_generate_holoscript(prompt, options) => {
+    result = adapter.generate_holoscript(prompt, options)
+    emit("holoscript_generated", { confidence: result.confidence })
+    return result
+  }
+
+  @on_embed(text) => {
+    return adapter.embed(text)
+  }
+
+  @receipt ai_adapter_config {
+    type: "AIAdapterReceipt"
+    interface: "IAIAdapter: generateHoloScript, generateText, embed (optional)"
+    pattern: "registerAIAdapter → getAIAdapter → call"
+    timestamp: now()
+  }
+}
