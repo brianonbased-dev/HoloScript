@@ -1,0 +1,20 @@
+@trait {
+  name: "@body_tracking",
+  category: "xr",
+  description: "Full-body skeletal tracking from XR sensor data. mode: upper_body (default), full_body, hands_only. joint_smoothing is the temporal smoothing factor [0,1] (default: 0.5). prediction enables physics-based motion prediction (default: true). avatar_binding auto-binds tracked joints to the avatar rig (default: true). calibrate_on_start runs calibration pose on attach (default: true). tracking_confidence_threshold is the minimum confidence to accept a joint pose (default: 0.5). Port of BodyTrackingTrait.ts (handler name: body_tracking).",
+  props: {
+    mode: enum("upper_body" | "full_body" | "hands_only") = "upper_body",
+    joint_smoothing: number = 0.5,
+    prediction: boolean = true,
+    avatar_binding: boolean = true,
+    calibrate_on_start: boolean = true,
+    tracking_confidence_threshold: number = 0.5
+  },
+  events: {
+    on_calibrated: "body_tracking:calibrated",
+    on_pose: "body_tracking:pose",
+    on_lost: "body_tracking:lost",
+    calibrate: "body_tracking.calibrate"
+  },
+  behaviors: ["@auto_rig", "@avatar_embodiment", "@hand_mesh_ai"]
+}

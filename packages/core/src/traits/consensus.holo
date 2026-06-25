@@ -1,0 +1,14 @@
+@trait {
+  name: "@consensus",
+  category: "concurrency",
+  description: "Distributed consensus primitive for multi-agent agreement (Raft-lite pattern). Config is instance-dependent and passed through to ConsensusTrait. Port of ConsensusTrait.ts (handler name: consensus).",
+  props: {},
+  events: {
+    on_elected: "consensus:elected",
+    on_committed: "consensus:committed",
+    on_partitioned: "consensus:partitioned",
+    propose: "consensus.propose",
+    vote: "consensus.vote"
+  },
+  behaviors: ["@blackboard", "@crdt_room"]
+}

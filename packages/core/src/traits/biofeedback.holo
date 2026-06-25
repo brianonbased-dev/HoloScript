@@ -1,0 +1,17 @@
+@trait {
+  name: "@biofeedback",
+  category: "sensing",
+  description: "Biofeedback sensor integration — reads physiological signals and emits events. sources is the list of sensor types to monitor (default: [heart_rate]). sample_rate_hz is the sampling frequency (default: 10 Hz). normalize normalizes values to [0,1] (default: true). emit_on_threshold fires events when threshold bands are crossed (default: true). Port of BiofeedbackTrait.ts (handler name: biofeedback).",
+  props: {
+    sample_rate_hz: number = 10,
+    normalize: boolean = true,
+    emit_on_threshold: boolean = true
+  },
+  events: {
+    on_reading: "biofeedback:reading",
+    on_threshold: "biofeedback:threshold",
+    start: "biofeedback.start",
+    stop: "biofeedback.stop"
+  },
+  behaviors: ["@neural_expression", "@sensor"]
+}

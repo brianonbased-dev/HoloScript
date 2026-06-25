@@ -1,0 +1,22 @@
+@trait {
+  name: "@ai_inpainting",
+  category: "generation",
+  description: "AI image inpainting — fills masked regions using a diffusion model. model is the inpainting model (default: sd-inpaint). mask_source is how the mask is provided (manual, depth, semantic, alpha; default: manual). blend_mode is the compositing mode (seamless, hard, soft; default: seamless). strength is the diffusion strength [0,1] (default: 0.8). padding is the mask expansion in pixels (default: 16). guidance_scale is the CFG scale (default: 7.5). steps is the diffusion step count (default: 20). preserve_original_on_mask_clear restores the original when mask is cleared (default: true). Port of AiInpaintingTrait.ts (handler name: ai_inpainting).",
+  props: {
+    model: string = "sd-inpaint",
+    mask_source: enum("manual" | "depth" | "semantic" | "alpha") = "manual",
+    blend_mode: enum("seamless" | "hard" | "soft") = "seamless",
+    strength: number = 0.8,
+    padding: number = 16,
+    guidance_scale: number = 7.5,
+    steps: number = 20,
+    preserve_original_on_mask_clear: boolean = true
+  },
+  events: {
+    on_inpainted: "ai_inpainting:inpainted",
+    on_error: "ai_inpainting:error",
+    inpaint: "ai_inpainting.inpaint",
+    set_mask: "ai_inpainting.set_mask"
+  },
+  behaviors: ["@ai_texture_gen", "@provenance_densify"]
+}

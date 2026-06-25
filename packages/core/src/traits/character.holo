@@ -1,0 +1,12 @@
+@trait {
+  name: "@character",
+  category: "character",
+  description: "Character system root — instantiates a CharacterTrait instance that coordinates skeleton, mesh, skin, and animation sub-systems. Config is mesh-dependent and passed through. Port of CharacterTrait.ts (handler name: character).",
+  props: {},
+  events: {
+    on_attached: "character_attached",
+    on_detached: "character_detached",
+    on_updated: "character_updated"
+  },
+  behaviors: ["@auto_rig", "@avatar_embodiment", "@body_tracking", "@neural_animation"]
+}

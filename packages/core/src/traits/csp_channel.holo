@@ -1,0 +1,17 @@
+@trait {
+  name: "@csp_channel",
+  category: "concurrency",
+  description: "CSP-style typed channel for communicating sequential processes. buffer_size is the channel buffer depth before backpressure (default: 10). Port of CspChannelTrait.ts (handler name: csp_channel).",
+  props: {
+    buffer_size: number = 10
+  },
+  events: {
+    on_sent: "csp_channel:sent",
+    on_received: "csp_channel:received",
+    on_blocked: "csp_channel:blocked",
+    send: "csp_channel.send",
+    receive: "csp_channel.receive",
+    close: "csp_channel.close"
+  },
+  behaviors: ["@buffer", "@actor"]
+}

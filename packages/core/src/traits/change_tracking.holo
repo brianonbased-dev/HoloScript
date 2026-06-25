@@ -1,0 +1,15 @@
+@trait {
+  name: "@change_tracking",
+  category: "audit",
+  description: "Entity field change history tracker. max_history is the maximum change records per entity (default: 100). Port of ChangeTrackingTrait.ts (handler name: change_tracking).",
+  props: {
+    max_history: number = 100
+  },
+  events: {
+    on_changed: "change_tracking:changed",
+    on_history_full: "change_tracking:history_full",
+    get_history: "change_tracking.get_history",
+    clear: "change_tracking.clear"
+  },
+  behaviors: ["@audit_log", "@provenance"]
+}

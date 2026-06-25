@@ -1,0 +1,25 @@
+@trait {
+  name: "@choreography",
+  category: "behavior",
+  description: "Multi-agent choreography coordinator — executes distributed step plans with HITL pause gates. mode: participant (default), conductor. auto_start starts the plan on attach (default: true). max_concurrent_plans limits parallel plan executions (default: 4). default_step_timeout is the per-step timeout in ms (default: 30,000). event_history_limit is the max replay events stored (default: 100). hitl_auto_pause pauses on steps requiring human approval (default: true). execute_fallback runs the fallback branch on step failure (default: true). Port of ChoreographyTrait.ts (handler name: choreography).",
+  props: {
+    mode: enum("participant" | "conductor") = "participant",
+    auto_start: boolean = true,
+    max_concurrent_plans: number = 4,
+    default_step_timeout: number = 30000,
+    event_history_limit: number = 100,
+    hitl_auto_pause: boolean = true,
+    execute_fallback: boolean = true
+  },
+  events: {
+    on_step_started: "choreography:step_started",
+    on_step_completed: "choreography:step_completed",
+    on_paused: "choreography:paused",
+    on_completed: "choreography:completed",
+    on_failed: "choreography:failed",
+    start: "choreography.start",
+    pause: "choreography.pause",
+    resume: "choreography.resume"
+  },
+  behaviors: ["@autonomous_agenda", "@cron", "@blackboard"]
+}

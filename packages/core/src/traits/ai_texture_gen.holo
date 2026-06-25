@@ -1,0 +1,21 @@
+@trait {
+  name: "@ai_texture_gen",
+  category: "generation",
+  description: "AI texture generation for 3D surfaces. style is the generation style (default: photorealistic). resolution is the output texture size in pixels (default: 1024). seamless generates tileable textures (default: true). tiling_factor is the tiling scale (default: 1.0). uv_space is the UV unwrap space (object, world; default: object). material_type is the material workflow (pbr, unlit; default: pbr). generate_normal_map generates a normal map in addition to albedo (default: true). generate_roughness_map generates a roughness map (default: true). Port of AiTextureGenTrait.ts (handler name: ai_texture_gen).",
+  props: {
+    style: string = "photorealistic",
+    resolution: number = 1024,
+    seamless: boolean = true,
+    tiling_factor: number = 1.0,
+    uv_space: enum("object" | "world") = "object",
+    material_type: enum("pbr" | "unlit") = "pbr",
+    generate_normal_map: boolean = true,
+    generate_roughness_map: boolean = true
+  },
+  events: {
+    on_generated: "ai_texture_gen:generated",
+    on_error: "ai_texture_gen:error",
+    generate: "ai_texture_gen.generate"
+  },
+  behaviors: ["@advanced_pbr", "@advanced_texturing"]
+}

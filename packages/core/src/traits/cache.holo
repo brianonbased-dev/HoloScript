@@ -1,0 +1,19 @@
+@trait {
+  name: "@cache",
+  category: "storage",
+  description: "LRU/LFU/FIFO key-value cache. max_size is the maximum entry count (default: 1000). default_ttl_ms is the entry expiry time in ms (default: 60,000ms). eviction_policy: lru (default), lfu, fifo. Port of CacheTrait.ts (handler name: cache).",
+  props: {
+    max_size: number = 1000,
+    default_ttl_ms: number = 60000,
+    eviction_policy: enum("lru" | "lfu" | "fifo") = "lru"
+  },
+  events: {
+    on_hit: "cache:hit",
+    on_miss: "cache:miss",
+    on_evict: "cache:evict",
+    get: "cache.get",
+    set: "cache.set",
+    clear: "cache.clear"
+  },
+  behaviors: ["@blob_store", "@agent_memory"]
+}

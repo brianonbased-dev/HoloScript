@@ -1,0 +1,15 @@
+@trait {
+  name: "@ai_camera",
+  category: "camera",
+  description: "AI-driven cinematic camera that tracks scene action and composes shots. tracking_speed controls how fast the camera follows its target (default: 1.0). Shot mode: static, follow, orbit, pan, zoom. Port of AiCameraTrait.ts (handler name: ai_camera).",
+  props: {
+    tracking_speed: number = 1.0
+  },
+  events: {
+    on_shot_changed: "ai_camera:shot_changed",
+    on_target_lost: "ai_camera:target_lost",
+    set_mode: "ai_camera.set_mode",
+    set_target: "ai_camera.set_target"
+  },
+  behaviors: ["@gaze_focus_analytics"]
+}

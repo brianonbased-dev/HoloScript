@@ -1,0 +1,16 @@
+@trait {
+  name: "@ai_upscaling",
+  category: "generation",
+  description: "AI image upscaling with Real-ESRGAN and compatible models. upscale_model is the upscaling model (default: realesrgan; options: realesrgan, espcn, fsrcnn, bilinear). scale_factor is the upscale multiplier (default: 4). tile_size is the processing tile size in pixels for VRAM management (default: 512). Also exposes a second handler alias 'neural_upscaling' for neural-specific config. Port of AiUpscalingTrait.ts (handlers: ai_upscaling, neural_upscaling).",
+  props: {
+    upscale_model: enum("realesrgan" | "espcn" | "fsrcnn" | "bilinear") = "realesrgan",
+    scale_factor: number = 4,
+    tile_size: number = 512
+  },
+  events: {
+    on_upscaled: "ai_upscaling:upscaled",
+    on_error: "ai_upscaling:error",
+    upscale: "ai_upscaling.upscale"
+  },
+  behaviors: ["@ai_inpainting", "@ai_texture_gen"]
+}

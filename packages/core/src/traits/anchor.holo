@@ -1,0 +1,22 @@
+@trait {
+  name: "@anchor",
+  category: "xr",
+  description: "Spatial anchor — attaches this node to a real-world reference frame. anchor_type: spatial (default), image, marker, plane, geo. tracking_quality: high (default), medium, low. offset is [x,y,z] position offset from the anchor (default: [0,0,0]). alignment: gravity (align to gravity; default), north, world. fallback_behavior when tracking is lost: freeze (default), hide, last_known. timeout_ms is tracking acquisition timeout (default: 5000). persist saves the anchor across sessions (default: false). recovery_attempts is the number of re-acquisition tries (default: 3). Port of AnchorTrait.ts (handler name: anchor).",
+  props: {
+    anchor_type: enum("spatial" | "image" | "marker" | "plane" | "geo") = "spatial",
+    tracking_quality: enum("high" | "medium" | "low") = "high",
+    alignment: enum("gravity" | "north" | "world") = "gravity",
+    fallback_behavior: enum("freeze" | "hide" | "last_known") = "freeze",
+    timeout_ms: number = 5000,
+    persist: boolean = false,
+    recovery_attempts: number = 3
+  },
+  events: {
+    on_acquired: "anchor:acquired",
+    on_lost: "anchor:lost",
+    on_recovered: "anchor:recovered",
+    acquire: "anchor.acquire",
+    release: "anchor.release"
+  },
+  behaviors: ["@persistent_anchor", "@geospatial"]
+}

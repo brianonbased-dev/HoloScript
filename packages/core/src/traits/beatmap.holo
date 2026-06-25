@@ -1,0 +1,20 @@
+@trait {
+  name: "@beatmap",
+  category: "audio",
+  description: "Beat-synchronized event trigger. bpm is the tempo in beats per minute (default: 120). sync_to: internal (default), audio_source. cues is a list of timed cue events. loop loops the beatmap (default: false). emit_attach_event fires a beatmap:attached event on start (default: true). fire_initial_cues fires all cues at t=0 (default: true). Port of BeatmapTrait.ts (handler name: beatmap).",
+  props: {
+    bpm: number = 120,
+    sync_to: enum("internal" | "audio_source") = "internal",
+    loop: boolean = false,
+    emit_attach_event: boolean = true,
+    fire_initial_cues: boolean = true
+  },
+  events: {
+    on_beat: "beatmap:beat",
+    on_cue: "beatmap:cue",
+    on_end: "beatmap:end",
+    play: "beatmap.play",
+    stop: "beatmap.stop"
+  },
+  behaviors: ["@positional", "@neural_animation"]
+}

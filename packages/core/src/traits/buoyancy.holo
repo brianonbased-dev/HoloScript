@@ -1,0 +1,20 @@
+@trait {
+  name: "@buoyancy",
+  category: "physics",
+  description: "Fluid buoyancy simulation. fluid_density is the fluid density in kg/m³ (default: 1000 — water). fluid_level is the y-coordinate of the fluid surface (default: 0). drag is the linear drag coefficient (default: 1.0). angular_drag is the rotational drag (default: 0.5). flow_direction is the fluid current direction [x,y,z] (default: [0,0,0]). flow_strength is the current force magnitude (default: 0). splash_effect spawns particles on water entry (default: true). submerge_threshold is the fraction submerged before full buoyancy applies (default: 0.9). Port of BuoyancyTrait.ts (handler name: buoyancy).",
+  props: {
+    fluid_density: number = 1000,
+    fluid_level: number = 0,
+    drag: number = 1.0,
+    angular_drag: number = 0.5,
+    flow_strength: number = 0,
+    splash_effect: boolean = true,
+    submerge_threshold: number = 0.9
+  },
+  events: {
+    on_submerged: "buoyancy:submerged",
+    on_surfaced: "buoyancy:surfaced",
+    on_splash: "buoyancy:splash"
+  },
+  behaviors: ["@fluid_simulation", "@gpu_physics"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@agent_discovery",
+  category: "agent",
+  description: "Agent A2A discovery advertisement — registers this agent's capabilities and endpoints with the HoloMesh agent registry. agent_id/agent_name/agent_version identify the agent. capabilities is the list of capability tags. endpoints is the list of transport endpoints. Port of AgentDiscoveryTrait.ts (handler name: agent_discovery).",
+  props: {
+    agent_id: string = "",
+    agent_name: string = "",
+    agent_version: string = "1.0.0",
+    description: string = ""
+  },
+  events: {
+    on_registered: "agent_discovery:registered",
+    on_discovered: "agent_discovery:discovered",
+    register: "agent_discovery.register",
+    discover: "agent_discovery.discover"
+  },
+  behaviors: ["@agent_portal", "@agent_memory"]
+}

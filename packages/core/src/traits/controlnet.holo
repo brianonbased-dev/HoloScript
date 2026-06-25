@@ -1,0 +1,19 @@
+@trait {
+  name: "@controlnet",
+  category: "generation",
+  description: "ControlNet diffusion conditioning — injects structural control (edges, depth, pose) into diffusion generation. model_type: canny (default), depth, pose, scribble, seg, normal. control_weight is the conditioning strength [0,2] (default: 1.0). guidance_start is the fraction through denoising to begin applying control (default: 0.0). guidance_end is the fraction through denoising to stop control (default: 1.0). preprocessor_resolution is the conditioning image resolution (default: 512). invert_mask inverts the conditioning mask (default: false). Port of ControlNetTrait.ts (handler name: controlnet).",
+  props: {
+    model_type: enum("canny" | "depth" | "pose" | "scribble" | "seg" | "normal") = "canny",
+    control_weight: number = 1.0,
+    guidance_start: number = 0.0,
+    guidance_end: number = 1.0,
+    preprocessor_resolution: number = 512,
+    invert_mask: boolean = false
+  },
+  events: {
+    on_conditioned: "controlnet:conditioned",
+    on_error: "controlnet:error",
+    condition: "controlnet.condition"
+  },
+  behaviors: ["@ai_inpainting", "@ai_texture_gen"]
+}

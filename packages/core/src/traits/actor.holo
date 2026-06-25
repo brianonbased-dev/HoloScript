@@ -1,0 +1,14 @@
+@trait {
+  name: "@actor",
+  category: "concurrency",
+  description: "Actor-model concurrency primitive — gives this node an in-process mailbox for message-passing. mailbox_size is the maximum mailbox queue depth (default: 1000). Messages that exceed the mailbox are dropped with an actor:overflow event. Port of ActorTrait.ts (handler name: actor).",
+  props: {
+    mailbox_size: number = 1000
+  },
+  events: {
+    on_message: "actor:message",
+    on_overflow: "actor:overflow",
+    send: "actor.send"
+  },
+  behaviors: ["@agent_memory", "@llm_agent"]
+}

@@ -1,0 +1,12 @@
+@trait {
+  name: "@ai_npc_brain",
+  category: "behavior",
+  description: "NPC brain state machine (core trait layer). Extends @llm_agent config with NPC-specific patrol/idle/aggro/flee state machine. State transitions driven by proximity events and time. Pairs with runtime/BehavioralTraits.ts NPC brain for THREE.js object updates. Port of AINPCBrainTrait.ts (handler name: ai_npc_brain).",
+  props: {},
+  events: {
+    on_state_changed: "ai_npc_brain:state_changed",
+    on_aggro: "ai_npc_brain:aggro",
+    on_flee: "ai_npc_brain:flee"
+  },
+  behaviors: ["@ai_companion", "@behavior_tree", "@llm_agent"]
+}

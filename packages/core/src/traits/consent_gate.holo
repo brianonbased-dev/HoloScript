@@ -1,0 +1,20 @@
+@trait {
+  name: "@consent_gate",
+  category: "compliance",
+  description: "Runtime consent gate — blocks capability execution until explicit consent is granted. scope is the list of capabilities requiring consent (default: [camera]). expiry_ms is the consent expiry in ms (default: 0 — no expiry). require_explicit requires an affirmative user action (default: true). audit_log logs consent events to the audit trail (default: true). purpose is the stated purpose of data collection. Port of ConsentGateTrait.ts (handler name: consent_gate).",
+  props: {
+    expiry_ms: number = 0,
+    require_explicit: boolean = true,
+    audit_log: boolean = true,
+    purpose: string = ""
+  },
+  events: {
+    on_granted: "consent_gate:granted",
+    on_withdrawn: "consent_gate:withdrawn",
+    on_expired: "consent_gate:expired",
+    on_blocked: "consent_gate:blocked",
+    grant: "consent_gate.grant",
+    withdraw: "consent_gate.withdraw"
+  },
+  behaviors: ["@care_ethics", "@audit_log"]
+}

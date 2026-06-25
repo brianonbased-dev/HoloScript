@@ -1,0 +1,14 @@
+@trait {
+  name: "@advanced_cloth",
+  category: "physics",
+  description: "Advanced cloth simulation — position-based dynamics cloth via AdvancedClothSystem. Config is mesh-dependent and passed through from the render surface. Handles winding, weight maps, pin constraints, and aerodynamic forces. Port of AdvancedClothTrait.ts (handler name: advanced_cloth).",
+  props: {},
+  events: {
+    on_settled: "advanced_cloth:settled",
+    on_torn: "advanced_cloth:torn",
+    pin: "advanced_cloth.pin",
+    unpin: "advanced_cloth.unpin",
+    reset: "advanced_cloth.reset"
+  },
+  behaviors: ["@soft_body_pro", "@gpu_physics"]
+}

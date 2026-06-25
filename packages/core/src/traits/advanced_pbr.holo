@@ -1,0 +1,16 @@
+@trait {
+  name: "@advanced_pbr",
+  category: "material",
+  description: "Advanced PBR material with clearcoat, sheen, subsurface, and transmission. base_color is the albedo as RGB [r,g,b] in [0,1] or hex string. roughness is the surface roughness [0,1]. metalness is the metalness factor [0,1]. Supports metallic_roughness and specular_glossiness workflows. Optional clearcoat, roughness_map, normal_map, metalness_map, emissive_map, occlusion_map. Port of AdvancedPBRTrait.ts (handler name: advanced_pbr).",
+  props: {
+    base_color: string = "#ffffff",
+    roughness: number = 0.5,
+    metalness: number = 0.0,
+    workflow: enum("metallic_roughness" | "specular_glossiness") = "metallic_roughness"
+  },
+  events: {
+    on_applied: "advanced_pbr:applied",
+    set_color: "advanced_pbr.set_color"
+  },
+  behaviors: ["@advanced_texturing", "@perceptual_color"]
+}

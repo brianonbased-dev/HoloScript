@@ -1,0 +1,16 @@
+@trait {
+  name: "@cinematic_seq",
+  category: "animation",
+  description: "Cinematic sequence clip editor — stores named clips with frame ranges and plays them at a set FPS. fps is the playback frame rate (default: 24). Port of CinematicSeqTrait.ts (handler name: cinematic_seq).",
+  props: {
+    fps: number = 24
+  },
+  events: {
+    on_started: "cinematic_seq:started",
+    on_frame: "cinematic_seq:frame",
+    on_clip_end: "cinematic_seq:clip_end",
+    play_clip: "cinematic_seq.play_clip",
+    stop: "cinematic_seq.stop"
+  },
+  behaviors: ["@beatmap", "@neural_animation"]
+}

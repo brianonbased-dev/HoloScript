@@ -1,0 +1,25 @@
+@trait {
+  name: "@alert",
+  category: "ux",
+  description: "Conditional alert trigger with visual, audio, and haptic feedback. condition is the boolean expression to evaluate (default: empty — manual trigger only). severity: warning, error, info, critical (default: warning). visual_effect: pulse, flash, shake, none (default: pulse). sound is the audio URL to play (default: empty). haptic enables haptic feedback (default: true). notification sends a system notification (default: true). cooldown is the minimum ms between alerts (default: 5000). auto_dismiss automatically clears the alert after ms (default: 0 — no auto-dismiss). max_active is the maximum simultaneous active alerts (default: 5). Port of AlertTrait.ts (handler name: alert).",
+  props: {
+    condition: string = "",
+    severity: enum("warning" | "error" | "info" | "critical") = "warning",
+    visual_effect: enum("pulse" | "flash" | "shake" | "none") = "pulse",
+    sound: string = "",
+    haptic: boolean = true,
+    notification: boolean = true,
+    cooldown: number = 5000,
+    auto_dismiss: number = 0,
+    max_active: number = 5,
+    message_template: string = "Alert triggered"
+  },
+  events: {
+    on_triggered: "alert:triggered",
+    on_dismissed: "alert:dismissed",
+    on_overflow: "alert:overflow",
+    trigger: "alert.trigger",
+    dismiss: "alert.dismiss"
+  },
+  behaviors: ["@fairness_monitor", "@audit_log"]
+}

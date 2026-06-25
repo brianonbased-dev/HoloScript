@@ -1,0 +1,21 @@
+@trait {
+  name: "@accessible",
+  category: "accessibility",
+  description: "Core ARIA accessibility annotation (core trait layer, richer than runtime adapter). role is the ARIA widget role (default: button). label is the accessible name. description is the long description for screen readers. live_region is the ARIA live region setting (off, polite, assertive; default: off). keyboard_shortcut is the keyboard access key. tab_index sets the tab order (default: 0). focus_visible shows focus ring (default: true). disabled disables interaction (default: false). Port of AccessibleTrait.ts (handler name: accessible).",
+  props: {
+    role: string = "button",
+    label: string = "",
+    description: string = "",
+    live_region: enum("off" | "polite" | "assertive") = "off",
+    keyboard_shortcut: string = "",
+    tab_index: number = 0,
+    focus_visible: boolean = true,
+    disabled: boolean = false
+  },
+  events: {
+    on_focused: "accessible:focused",
+    on_activated: "accessible:activated",
+    on_blur: "accessible:blur"
+  },
+  behaviors: ["@alt_text"]
+}

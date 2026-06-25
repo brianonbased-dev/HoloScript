@@ -1,0 +1,19 @@
+@trait {
+  name: "@ai_companion",
+  category: "behavior",
+  description: "AI companion NPC with personality, RAG knowledge retrieval, and SNN emotion model. personality is the character archetype (default: friendly). interaction_range is the world-unit detection radius (default: 10). response_latency is the simulated response delay in seconds (default: 0.5). memory_capacity is the maximum stored interactions (default: 100). use_rag enables RAG knowledge retrieval (default: true). Port of AICompanionTrait.ts (handler name: ai_companion).",
+  props: {
+    personality: string = "friendly",
+    interaction_range: number = 10,
+    response_latency: number = 0.5,
+    memory_capacity: number = 100,
+    use_rag: boolean = true
+  },
+  events: {
+    on_interaction: "ai_companion:interaction",
+    on_response: "ai_companion:response",
+    on_emotion: "ai_companion:emotion",
+    interact: "ai_companion.interact"
+  },
+  behaviors: ["@ai_npc_brain", "@agent_memory", "@llm_agent"]
+}

@@ -1,0 +1,11 @@
+@trait {
+  name: "@avatar_intent",
+  category: "xr",
+  description: "Maps controller/device button combinations to semantic avatar intent tokens (rest, move, interact, etc.). intent_mapping is an ordered list of {devices, predicate, intent, weight} rules evaluated in priority order. The highest-weight matching predicate wins and emits avatar_intent:intent with the intent token. Port of AvatarIntentTrait.ts (handler name: avatar_intent).",
+  props: {},
+  events: {
+    on_intent: "avatar_intent:intent",
+    on_cancelled: "avatar_intent:cancelled"
+  },
+  behaviors: ["@controller", "@avatar_embodiment", "@locomotion"]
+}

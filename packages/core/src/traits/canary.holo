@@ -1,0 +1,17 @@
+@trait {
+  name: "@canary",
+  category: "deployment",
+  description: "Canary release traffic splitter. initial_percentage is the initial canary traffic percentage (default: 5%). increment is the percentage increase per promotion step (default: 10%). Port of CanaryTrait.ts (handler name: canary).",
+  props: {
+    initial_percentage: number = 5,
+    increment: number = 10
+  },
+  events: {
+    on_promoted: "canary:promoted",
+    on_rolled_back: "canary:rolled_back",
+    on_ceiling: "canary:ceiling",
+    promote: "canary.promote",
+    rollback: "canary.rollback"
+  },
+  behaviors: ["@circuit_breaker", "@audit_log"]
+}

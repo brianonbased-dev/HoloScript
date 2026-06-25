@@ -1,0 +1,18 @@
+@trait {
+  name: "@bioluminescent",
+  category: "render",
+  description: "Bioluminescent glow effect with Perlin-noise spatial variation and pulse rhythm. color is the emission color hex. pulse_bpm is the pulse rate (default: 40 bpm — slow breathing glow). radius_falloff controls the falloff curve. min_intensity/max_intensity bound the emissive strength. pattern: perlin (default), wave, radial, random. spatial_scale controls the noise feature size. Port of BioluminescentTrait.ts (handler name: bioluminescent).",
+  props: {
+    color: string = "#00ff88",
+    pulse_bpm: number = 40,
+    min_intensity: number = 0.1,
+    max_intensity: number = 2.0,
+    pattern: enum("perlin" | "wave" | "radial" | "random") = "perlin"
+  },
+  events: {
+    on_pulse: "bioluminescent:pulse",
+    set_color: "bioluminescent.set_color",
+    set_bpm: "bioluminescent.set_bpm"
+  },
+  behaviors: ["@bloom", "@advanced_lighting"]
+}

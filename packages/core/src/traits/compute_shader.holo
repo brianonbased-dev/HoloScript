@@ -1,0 +1,15 @@
+@trait {
+  name: "@compute_shader",
+  category: "compute",
+  description: "WebGPU compute shader dispatcher. max_workgroups is the maximum workgroup count per dispatch (default: 256). Port of ComputeShaderTrait.ts (handler name: compute_shader).",
+  props: {
+    max_workgroups: number = 256
+  },
+  events: {
+    on_dispatched: "compute_shader:dispatched",
+    on_complete: "compute_shader:complete",
+    on_error: "compute_shader:error",
+    dispatch: "compute_shader.dispatch"
+  },
+  behaviors: ["@compute", "@gpu_physics"]
+}

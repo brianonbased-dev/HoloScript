@@ -1,0 +1,17 @@
+@trait {
+  name: "@blob_store",
+  category: "storage",
+  description: "In-node blob storage for binary assets (textures, audio, geometry). max_blob_mb is the maximum total storage in MB (default: 500). Port of BlobStoreTrait.ts (handler name: blob_store).",
+  props: {
+    max_blob_mb: number = 500
+  },
+  events: {
+    on_stored: "blob_store:stored",
+    on_evicted: "blob_store:evicted",
+    on_overflow: "blob_store:overflow",
+    store: "blob_store.store",
+    load: "blob_store.load",
+    remove: "blob_store.remove"
+  },
+  behaviors: ["@cache", "@agent_memory"]
+}

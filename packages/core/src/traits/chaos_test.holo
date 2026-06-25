@@ -1,0 +1,15 @@
+@trait {
+  name: "@chaos_test",
+  category: "testing",
+  description: "Chaos engineering fault injector — randomly injects failures at a configurable rate. failure_rate is the probability of injecting a fault on each operation [0,1] (default: 0.1). Port of ChaosTestTrait.ts (handler name: chaos_test).",
+  props: {
+    failure_rate: number = 0.1
+  },
+  events: {
+    on_fault_injected: "chaos_test:fault_injected",
+    on_recovered: "chaos_test:recovered",
+    arm: "chaos_test.arm",
+    disarm: "chaos_test.disarm"
+  },
+  behaviors: ["@circuit_breaker"]
+}

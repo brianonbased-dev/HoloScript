@@ -1,0 +1,15 @@
+@trait {
+  name: "@astar",
+  category: "navigation",
+  description: "A* pathfinding for scene-graph navigation graphs. max_iterations is the maximum node expansions per search (default: 10,000). heuristic: manhattan (default), euclidean, chebyshev, octile. Emits astar:path on success with the waypoint list; astar:no_path when no route exists. Port of AstarTrait.ts (handler name: astar).",
+  props: {
+    max_iterations: number = 10000,
+    heuristic: enum("manhattan" | "euclidean" | "chebyshev" | "octile") = "manhattan"
+  },
+  events: {
+    on_path: "astar:path",
+    on_no_path: "astar:no_path",
+    find_path: "astar.find_path"
+  },
+  behaviors: ["@locomotion", "@formation_control"]
+}

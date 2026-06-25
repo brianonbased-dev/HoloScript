@@ -1,0 +1,14 @@
+@trait {
+  name: "@bloom_reactive",
+  category: "render",
+  description: "Lotus bloom state machine — drives emissive intensity and scale from a state key (sealed → budding → blooming → full → wilted). state is the event field path for the current bloom state (default: lotus.api.bloom_state). initial_state is the starting state (default: sealed). Each state has emissive strength and scale multiplier; blooming/full add pulse animation. Port of BloomReactiveTrait.ts (handler name: bloom_reactive).",
+  props: {
+    state_field: string = "lotus.api.bloom_state",
+    initial_state: enum("sealed" | "budding" | "blooming" | "full" | "wilted") = "sealed"
+  },
+  events: {
+    on_state_changed: "bloom_reactive:state_changed",
+    set_state: "bloom_reactive.set_state"
+  },
+  behaviors: ["@botanical_lotus", "@bioluminescent", "@bloom"]
+}

@@ -1,0 +1,24 @@
+@trait {
+  name: "@audit_log",
+  category: "compliance",
+  description: "Compliance audit log with SHA-256 hash chain. tenant_id scopes the log to a tenant. enabled activates logging (default: true). max_entries is the in-memory entry cap (default: 100,000). retention_days is the log retention period (default: 90). min_severity is the minimum event severity to log (debug, info, warn, error, critical; default: info). enable_hash_chain builds a cryptographic log chain (default: true). log_reads logs read-access events in addition to writes (default: false). compliance_frameworks is a list of active frameworks (SOC2, HIPAA, GDPR, ISO27001). siem_webhook_url is an optional SIEM integration endpoint. enable_real_time_events emits audit_log:entry events in real time (default: true). Port of AuditLogTrait.ts (handler name: audit_log).",
+  props: {
+    tenant_id: string = "",
+    enabled: boolean = true,
+    max_entries: number = 100000,
+    retention_days: number = 90,
+    min_severity: enum("debug" | "info" | "warn" | "error" | "critical") = "info",
+    enable_hash_chain: boolean = true,
+    log_reads: boolean = false,
+    siem_webhook_url: string = "",
+    enable_real_time_events: boolean = true
+  },
+  events: {
+    on_entry: "audit_log:entry",
+    on_chain_break: "audit_log:chain_break",
+    on_export: "audit_log:export",
+    log: "audit_log.log",
+    export: "audit_log.export"
+  },
+  behaviors: ["@provenance", "@fairness_monitor"]
+}

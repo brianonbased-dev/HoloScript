@@ -1,0 +1,16 @@
+@trait {
+  name: "@absorb",
+  category: "interop",
+  description: "Reverse-mode code absorption — converts legacy Python/TS/JS code into typed .hsplus agents via the HoloAbsorb pipeline. source is the path to the source file (required). language is the source language (auto-detected from extension if unset). output is the output .hsplus file path. compile_targets is the list of compile targets (default: [node, python, headless]). Port of AbsorbTrait.ts (handler name: absorb).",
+  props: {
+    source: string = "",
+    language: string = "auto",
+    output: string = ""
+  },
+  events: {
+    on_absorbed: "absorb:absorbed",
+    on_error: "absorb:error",
+    absorb: "absorb.run"
+  },
+  behaviors: ["@provenance"]
+}

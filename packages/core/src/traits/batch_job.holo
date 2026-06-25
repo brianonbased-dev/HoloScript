@@ -1,0 +1,17 @@
+@trait {
+  name: "@batch_job",
+  category: "compute",
+  description: "Parallel batch job executor. max_concurrent is the maximum simultaneously running jobs (default: 5). Port of BatchJobTrait.ts (handler name: batch_job).",
+  props: {
+    max_concurrent: number = 5
+  },
+  events: {
+    on_started: "batch_job:started",
+    on_completed: "batch_job:completed",
+    on_failed: "batch_job:failed",
+    on_progress: "batch_job:progress",
+    submit: "batch_job.submit",
+    cancel: "batch_job.cancel"
+  },
+  behaviors: ["@compute", "@cron"]
+}

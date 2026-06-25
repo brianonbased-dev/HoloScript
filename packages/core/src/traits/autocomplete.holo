@@ -1,0 +1,16 @@
+@trait {
+  name: "@autocomplete",
+  category: "ux",
+  description: "Autocomplete suggestion engine for text inputs. max_suggestions is the maximum returned candidates (default: 10). min_chars is the minimum character count before suggestions fire (default: 2). Port of AutocompleteTrait.ts (handler name: autocomplete).",
+  props: {
+    max_suggestions: number = 10,
+    min_chars: number = 2
+  },
+  events: {
+    on_suggest: "autocomplete:suggest",
+    on_select: "autocomplete:select",
+    query: "autocomplete.query",
+    clear: "autocomplete.clear"
+  },
+  behaviors: ["@alert"]
+}

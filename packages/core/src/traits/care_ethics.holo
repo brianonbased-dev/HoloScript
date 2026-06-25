@@ -1,0 +1,18 @@
+@trait {
+  name: "@care_ethics",
+  category: "ethics",
+  description: "Care ethics constraint layer for AI agents — enforces agency preservation, consent, and relational boundaries. goal is the agent's primary ethical objective. consent: unknown (default), given, withdrawn. optimization_targets is the list of values to preserve (default: [human_agency, mutual_understanding]). has_disengage_path requires a clear opt-out for the human (default: true). preserves_outside_support prevents dependency creation that displaces human support networks (default: true). respects_data_boundary enforces data minimization and user data sovereignty (default: true). Port of CareEthicsTrait.ts (handler name: care_ethics).",
+  props: {
+    goal: string = "Preserve human agency while helping the person complete their chosen task.",
+    consent: enum("unknown" | "given" | "withdrawn") = "unknown",
+    has_disengage_path: boolean = true,
+    preserves_outside_support: boolean = true,
+    respects_data_boundary: boolean = true
+  },
+  events: {
+    on_consent_changed: "care_ethics:consent_changed",
+    on_boundary_violation: "care_ethics:boundary_violation",
+    set_consent: "care_ethics.set_consent"
+  },
+  behaviors: ["@consent_gate", "@fairness_monitor", "@audit_log"]
+}

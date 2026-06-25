@@ -1,0 +1,17 @@
+@trait {
+  name: "@circuit_auto_reset",
+  category: "reliability",
+  description: "Exponential backoff auto-reset for circuit breakers. backoff_base is the backoff multiplier (default: 2). max_attempts is the maximum reset attempts before permanent open (default: 5). cooldown_ms is the initial cooldown in ms (default: 30,000). max_backoff_ms is the maximum backoff in ms (default: 300,000 — 5 minutes). Port of CircuitAutoResetTrait.ts (handler name: circuit_auto_reset).",
+  props: {
+    backoff_base: number = 2,
+    max_attempts: number = 5,
+    cooldown_ms: number = 30000,
+    max_backoff_ms: number = 300000
+  },
+  events: {
+    on_reset_attempted: "circuit_auto_reset:reset_attempted",
+    on_reset_success: "circuit_auto_reset:reset_success",
+    on_permanent_open: "circuit_auto_reset:permanent_open"
+  },
+  behaviors: ["@circuit_breaker"]
+}

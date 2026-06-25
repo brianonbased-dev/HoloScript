@@ -1,0 +1,21 @@
+@trait {
+  name: "@autonomous_agenda",
+  category: "agent",
+  description: "Autonomous agent daily agenda planner with budget gating. agent_class is the NPC/agent type (default: npc). tick_interval_ms is the planning cycle frequency (default: 60,000ms). daily_budget_usd is the maximum spend per day (default: $0.50). max_actions_per_tick is the per-cycle action limit (default: 3). max_actions_per_day is the daily action cap (default: 50). pause_on_ceiling stops planning when the daily budget is exhausted (default: true). Port of AutonomousAgendaTrait.ts (handler name: autonomous_agenda).",
+  props: {
+    agent_class: string = "npc",
+    tick_interval_ms: number = 60000,
+    daily_budget_usd: number = 0.5,
+    max_actions_per_tick: number = 3,
+    max_actions_per_day: number = 50,
+    pause_on_ceiling: boolean = true
+  },
+  events: {
+    on_tick: "autonomous_agenda:tick",
+    on_ceiling: "autonomous_agenda:ceiling",
+    on_action: "autonomous_agenda:action",
+    pause: "autonomous_agenda.pause",
+    resume: "autonomous_agenda.resume"
+  },
+  behaviors: ["@ai_companion", "@audit_log"]
+}

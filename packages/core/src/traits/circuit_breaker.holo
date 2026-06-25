@@ -1,0 +1,22 @@
+@trait {
+  name: "@circuit_breaker",
+  category: "reliability",
+  description: "Circuit breaker pattern for fault tolerance. failure_threshold is the failure count to open the circuit (default: 5). window_ms is the failure tracking window in ms (default: 60,000). reset_timeout_ms is the half-open wait after circuit opens (default: 30,000). success_threshold is the consecutive successes to close the circuit (default: 2). failure_rate_threshold is an optional rate-based open threshold [0,1] (default: 0 — disabled). min_requests is the minimum requests before rate-based logic activates (default: 10). Port of CircuitBreakerTrait.ts (handler name: circuit_breaker).",
+  props: {
+    failure_threshold: number = 5,
+    window_ms: number = 60000,
+    reset_timeout_ms: number = 30000,
+    success_threshold: number = 2,
+    failure_rate_threshold: number = 0,
+    min_requests: number = 10
+  },
+  events: {
+    on_open: "circuit_breaker:open",
+    on_half_open: "circuit_breaker:half_open",
+    on_closed: "circuit_breaker:closed",
+    on_rejected: "circuit_breaker:rejected",
+    record_success: "circuit_breaker.record_success",
+    record_failure: "circuit_breaker.record_failure"
+  },
+  behaviors: ["@circuit_auto_reset", "@chaos_test"]
+}

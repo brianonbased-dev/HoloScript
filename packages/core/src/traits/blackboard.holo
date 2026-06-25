@@ -1,0 +1,17 @@
+@trait {
+  name: "@blackboard",
+  category: "behavior",
+  description: "Shared blackboard for swarm agent coordination — belief and proposal store with cleanup. group_id scopes this blackboard to a swarm (default: default_swarm). cleanup_interval is the stale-entry garbage collection interval in ms (default: 1000). Port of BlackboardTrait.ts (handler name: blackboard).",
+  props: {
+    group_id: string = "default_swarm",
+    cleanup_interval: number = 1000
+  },
+  events: {
+    on_belief_set: "blackboard:belief_set",
+    on_proposal: "blackboard:proposal",
+    on_accepted: "blackboard:accepted",
+    set_belief: "blackboard.set_belief",
+    propose: "blackboard.propose"
+  },
+  behaviors: ["@crowd_sim", "@formation_control"]
+}

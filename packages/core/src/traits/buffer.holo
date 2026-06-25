@@ -1,0 +1,14 @@
+@trait {
+  name: "@buffer",
+  category: "compute",
+  description: "Multi-channel ring buffer for streaming data pipelines. channels is the list of named channels to buffer (default: []). Each channel has an independent queue with configurable capacity and flush policy. Port of BufferTrait.ts (handler name: buffer).",
+  props: {},
+  events: {
+    on_flushed: "buffer:flushed",
+    on_overflow: "buffer:overflow",
+    write: "buffer.write",
+    flush: "buffer.flush",
+    read: "buffer.read"
+  },
+  behaviors: ["@cache", "@csp_channel"]
+}

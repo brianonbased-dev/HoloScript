@@ -1,0 +1,19 @@
+@trait {
+  name: "@cloth",
+  category: "physics",
+  description: "Position-based dynamics cloth simulation. resolution is the cloth grid resolution (default: 32). stiffness is the stretch stiffness [0,1] (default: 0.8). damping is the velocity damping (default: 0.01). mass is the cloth mass in kg (default: 1.0). gravity_scale scales gravity effect (default: 1.0). wind_response scales wind force response (default: 0.5). Port of ClothTrait.ts (handler name: cloth).",
+  props: {
+    resolution: number = 32,
+    stiffness: number = 0.8,
+    damping: number = 0.01,
+    mass: number = 1.0,
+    gravity_scale: number = 1.0,
+    wind_response: number = 0.5
+  },
+  events: {
+    on_settled: "cloth:settled",
+    on_torn: "cloth:torn",
+    reset: "cloth.reset"
+  },
+  behaviors: ["@advanced_cloth", "@gpu_physics"]
+}
