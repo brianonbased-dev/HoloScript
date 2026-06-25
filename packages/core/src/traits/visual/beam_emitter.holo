@@ -1,0 +1,24 @@
+@trait {
+  name: "@beam_emitter",
+  category: "visual",
+  description: "Directional beam or laser visual effect emitter. Renders a cylindrical or ribbon beam from the entity origin along a direction vector, with configurable color, width, length, and animated pulse or flicker pattern — used for laser sights, energy weapons, portal connectors, and light bridges. Authored from BeamEmitterTrait.ts.",
+  props: {
+    direction: { x: number, y: number, z: number } = { x: 0, y: 0, z: 1 },
+    length_m: number = 10,
+    width_m: number = 0.02,
+    color: string = "#00ffff",
+    intensity: number = 1.0,
+    pulse_hz: number = 0,
+    fade_at_end: boolean = true,
+    hit_particle_url: string = "",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "beam_emitter_attached",
+    detached: "beam_emitter_detached",
+    on_hit: "beam_emitter_hit",
+    enable: "beam_emitter_trigger_enable",
+    disable: "beam_emitter_trigger_disable"
+  },
+  behaviors: ["@particle_system", "@decal", "@raycast"]
+}

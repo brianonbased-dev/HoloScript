@@ -1,0 +1,20 @@
+@trait {
+  name: "@biome_zone",
+  category: "world",
+  description: "Named biome zone descriptor for procedural world placement. Tags a volume with a biome identity (forest, desert, tundra, ocean, etc.) that drives procedural scatter, weather preset, ambient audio, and NPC spawn-table selection, blending smoothly at boundaries with neighboring biome zones. Authored from BiomeZoneTrait.ts.",
+  props: {
+    biome: enum("forest" | "desert" | "tundra" | "ocean" | "jungle" | "urban" | "volcanic" | "custom") = "forest",
+    custom_id: string = "",
+    blend_radius_m: number = 20,
+    scatter_density: number = 1.0,
+    weather_preset: string = "",
+    ambient_audio_url: string = ""
+  },
+  events: {
+    attached: "biome_zone_attached",
+    detached: "biome_zone_detached",
+    on_enter: "biome_zone_enter",
+    on_exit: "biome_zone_exit"
+  },
+  behaviors: ["@weather_controller", "@procedural_placement", "@ambient_audio"]
+}

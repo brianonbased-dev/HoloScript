@@ -1,0 +1,20 @@
+@trait {
+  name: "@blend_shape",
+  category: "visual",
+  description: "Morph-target blend-shape controller. Drives a set of named morph targets on a skinned mesh from 0–1 weights, with smooth interpolation between expressions, lip-sync payload ingestion, and an audio-reactive mode that modulates weights in real time to voiced audio amplitude. Authored from BlendShapeTrait.ts.",
+  props: {
+    targets: list<{ name: string, weight: number }> = [],
+    transition_ms: number = 100,
+    audio_reactive: boolean = false,
+    audio_amplitude_scale: number = 1.0,
+    lipsync_url: string = ""
+  },
+  events: {
+    attached: "blend_shape_attached",
+    detached: "blend_shape_detached",
+    on_change: "blend_shape_change",
+    set_weight: "blend_shape_trigger_set_weight",
+    play_lipsync: "blend_shape_trigger_lipsync"
+  },
+  behaviors: ["@animated", "@skeleton_pose", "@face"]
+}
