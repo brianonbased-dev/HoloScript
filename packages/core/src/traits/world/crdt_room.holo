@@ -1,0 +1,34 @@
+@trait {
+  name: "@c_r_d_t_room",
+  category: "world",
+  description: "CRDT-backed multiplayer room configuration for .hsplus scenes. Declarative entity sync tiers (critical/high/normal/low/dormant), interest regions (id/center/radius/priority), spatial sharding, auto-save persistence, and Merkle tree integrity verification. Privacy: public/private with optional password. Presence heartbeating and stale-player detection. Port of CRDTRoomTrait.ts (handler name: c_r_d_t_room).",
+  props: {
+    room_name: string = "Untitled Room",
+    max_players: number = 50,
+    base_sync_rate_hz: number = 20,
+    max_batch_size: number = 50,
+    flush_interval_ms: number = 50,
+    interest_management: boolean = true,
+    view_distance: number = 100,
+    sharding_enabled: boolean = true,
+    sharding_entity_threshold: number = 500,
+    sharding_min_entities_per_shard: number = 50,
+    persistence_enabled: boolean = false,
+    persistence_auto_save_interval_ms: number = 30000,
+    privacy: enum("public" | "private") = "public",
+    heartbeat_interval_ms: number = 5000,
+    presence_timeout_ms: number = 15000,
+    max_chat_history: number = 200,
+    merkle_verification: boolean = false
+  },
+  events: {
+    attached: "c_r_d_t_room_attached",
+    detached: "c_r_d_t_room_detached",
+    on_player_joined: "c_r_d_t_room_player_joined",
+    on_player_left: "c_r_d_t_room_player_left",
+    on_state_synced: "c_r_d_t_room_state_synced",
+    on_shard_created: "c_r_d_t_room_shard_created",
+    on_error: "c_r_d_t_room_error"
+  },
+  behaviors: ["@collaborative_world", "@consensus", "@world_heartbeat"]
+}

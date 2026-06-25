@@ -1,0 +1,20 @@
+@trait {
+  name: "@controlnet",
+  category: "visual",
+  description: "ControlNet conditioning for guided diffusion generation in XR environments. Extracts control maps (canny/depth/pose/normal/hed/seg/scribble/softedge/lineart) from scene geometry and feeds them as conditioning signals to a diffusion pipeline. Configurable control weight [0–2], guidance start/end fractions, preprocessor resolution, and mask inversion. Port of ControlNetTrait.ts (handler name: controlnet).",
+  props: {
+    model_type: enum("canny" | "depth" | "pose" | "normal" | "hed" | "seg" | "scribble" | "softedge" | "lineart") = "canny",
+    control_weight: number = 1.0,
+    guidance_start: number = 0.0,
+    guidance_end: number = 1.0,
+    preprocessor_resolution: number = 512,
+    invert_mask: boolean = false
+  },
+  events: {
+    on_ready: "controlnet:ready",
+    on_processed: "controlnet:processed",
+    on_error: "controlnet:error",
+    process: "controlnet:process"
+  },
+  behaviors: ["@multiview_gaussian_renderer", "@gpu_particle"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@drop_table",
+  category: "world",
+  description: "Weighted loot/outcome picker. Seeded xorshift32 PRNG for deterministic replay. Entries with rareModifier get weight scaled by (1 + luckBonus * rareModifier) when respectLuck=true and caller passes luckBonus in drop_table:roll payload. Zero/negative weights are skipped. Composition wedge with @luck: caller reads luckBonus from luck:roll_result and passes to drop_table:roll. Port of DropTableTrait.ts (handler name: drop_table).",
+  props: {
+    table_id: string = "unnamed-table",
+    entries: list<{ item_id: string, weight: number, rare_modifier: number }> = [],
+    respect_luck: boolean = false
+  },
+  events: {
+    on_ready: "drop_table:ready",
+    on_result: "drop_table:result",
+    on_empty: "drop_table:empty",
+    roll: "drop_table:roll"
+  },
+  behaviors: ["@luck", "@marketplace"]
+}

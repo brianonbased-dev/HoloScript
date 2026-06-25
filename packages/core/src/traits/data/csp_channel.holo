@@ -1,0 +1,17 @@
+@trait {
+  name: "@csp_channel",
+  category: "data",
+  description: "CSP (Communicating Sequential Processes) channel communication. Named channels with bounded buffer (drop sends when full). Accepts csp:create (create channel), csp:send (push value, blocked if buffer full), csp:recv (shift value, returns hasValue flag). Port of CspChannelTrait.ts (handler name: csp_channel).",
+  props: {
+    buffer_size: number = 10
+  },
+  events: {
+    on_created: "csp:created",
+    on_sent: "csp:sent",
+    on_received: "csp:received",
+    create: "csp:create",
+    send: "csp:send",
+    recv: "csp:recv"
+  },
+  behaviors: ["@buffer", "@consensus"]
+}
