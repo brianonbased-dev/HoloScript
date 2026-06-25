@@ -1,0 +1,16 @@
+// @constants_geospatial_web3 — Registry: geospatial + web3 integration trait name set.
+//
+// Native .hsplus surface for core/traits/constants/geospatial-web3.ts.
+
+@trait constants_geospatial_web3 {
+  capability_tags: ["constants", "geospatial_web3", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_geospatial_web3_ready", {})
+  }
+
+  @receipt constants_geospatial_web3_config {
+    type: "ConstantsGeospatialWeb3Receipt"
+    timestamp: now()
+  }
+}

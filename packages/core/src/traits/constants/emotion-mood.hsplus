@@ -1,0 +1,16 @@
+// @constants_emotion_mood — Registry: emotion and mood simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/emotion-mood.ts.
+
+@trait constants_emotion_mood {
+  capability_tags: ["constants", "emotion_mood", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_emotion_mood_ready", {})
+  }
+
+  @receipt constants_emotion_mood_config {
+    type: "ConstantsEmotionMoodReceipt"
+    timestamp: now()
+  }
+}

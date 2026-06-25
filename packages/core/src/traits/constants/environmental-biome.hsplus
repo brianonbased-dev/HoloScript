@@ -1,0 +1,16 @@
+// @constants_environmental_biome — Registry: environmental biome trait name set.
+//
+// Native .hsplus surface for core/traits/constants/environmental-biome.ts.
+
+@trait constants_environmental_biome {
+  capability_tags: ["constants", "environmental_biome", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_environmental_biome_ready", {})
+  }
+
+  @receipt constants_environmental_biome_config {
+    type: "ConstantsEnvironmentalBiomeReceipt"
+    timestamp: now()
+  }
+}

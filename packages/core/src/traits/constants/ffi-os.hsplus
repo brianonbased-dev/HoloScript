@@ -1,0 +1,16 @@
+// @constants_ffi_os — Registry: FFI and OS interop trait name set.
+//
+// Native .hsplus surface for core/traits/constants/ffi-os.ts.
+
+@trait constants_ffi_os {
+  capability_tags: ["constants", "ffi_os", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_ffi_os_ready", {})
+  }
+
+  @receipt constants_ffi_os_config {
+    type: "ConstantsFfiOsReceipt"
+    timestamp: now()
+  }
+}

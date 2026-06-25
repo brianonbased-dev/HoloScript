@@ -1,0 +1,16 @@
+// @constants_animals — Registry: animal/creature entity trait name set.
+//
+// Native .hsplus surface for core/traits/constants/animals.ts.
+
+@trait constants_animals {
+  capability_tags: ["constants", "animals", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_animals_ready", {})
+  }
+
+  @receipt constants_animals_config {
+    type: "ConstantsAnimalsReceipt"
+    timestamp: now()
+  }
+}

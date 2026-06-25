@@ -1,0 +1,16 @@
+// @constants_debug_cinematic — Registry: debug and cinematic camera trait name set.
+//
+// Native .hsplus surface for core/traits/constants/debug-cinematic.ts.
+
+@trait constants_debug_cinematic {
+  capability_tags: ["constants", "debug_cinematic", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_debug_cinematic_ready", {})
+  }
+
+  @receipt constants_debug_cinematic_config {
+    type: "ConstantsDebugCinematicReceipt"
+    timestamp: now()
+  }
+}

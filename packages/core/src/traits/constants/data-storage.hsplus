@@ -1,0 +1,16 @@
+// @constants_data_storage — Registry: data storage trait name set.
+//
+// Native .hsplus surface for core/traits/constants/data-storage.ts.
+
+@trait constants_data_storage {
+  capability_tags: ["constants", "data_storage", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_data_storage_ready", {})
+  }
+
+  @receipt constants_data_storage_config {
+    type: "ConstantsDataStorageReceipt"
+    timestamp: now()
+  }
+}

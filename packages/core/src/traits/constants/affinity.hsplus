@@ -1,0 +1,16 @@
+// @constants_affinity — Registry: entity affinity/relationship trait name set.
+//
+// Native .hsplus surface for core/traits/constants/affinity.ts.
+
+@trait constants_affinity {
+  capability_tags: ["constants", "affinity", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_affinity_ready", {})
+  }
+
+  @receipt constants_affinity_config {
+    type: "ConstantsAffinityReceipt"
+    timestamp: now()
+  }
+}

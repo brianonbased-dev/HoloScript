@@ -1,0 +1,16 @@
+// @constants_construction_building — Registry: construction and building domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/construction-building.ts.
+
+@trait constants_construction_building {
+  capability_tags: ["constants", "construction_building", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_construction_building_ready", {})
+  }
+
+  @receipt constants_construction_building_config {
+    type: "ConstantsConstructionBuildingReceipt"
+    timestamp: now()
+  }
+}

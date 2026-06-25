@@ -1,0 +1,16 @@
+// @constants_communication — Registry: messaging and communication trait name set.
+//
+// Native .hsplus surface for core/traits/constants/communication.ts.
+
+@trait constants_communication {
+  capability_tags: ["constants", "communication", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_communication_ready", {})
+  }
+
+  @receipt constants_communication_config {
+    type: "ConstantsCommunicationReceipt"
+    timestamp: now()
+  }
+}

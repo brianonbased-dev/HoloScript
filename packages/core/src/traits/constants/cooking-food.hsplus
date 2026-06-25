@@ -1,0 +1,16 @@
+// @constants_cooking_food — Registry: cooking and food domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/cooking-food.ts.
+
+@trait constants_cooking_food {
+  capability_tags: ["constants", "cooking_food", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_cooking_food_ready", {})
+  }
+
+  @receipt constants_cooking_food_config {
+    type: "ConstantsCookingFoodReceipt"
+    timestamp: now()
+  }
+}

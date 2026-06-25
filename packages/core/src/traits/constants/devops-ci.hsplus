@@ -1,0 +1,16 @@
+// @constants_devops_ci — Registry: DevOps and CI/CD trait name set.
+//
+// Native .hsplus surface for core/traits/constants/devops-ci.ts.
+
+@trait constants_devops_ci {
+  capability_tags: ["constants", "devops_ci", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_devops_ci_ready", {})
+  }
+
+  @receipt constants_devops_ci_config {
+    type: "ConstantsDevopsCiReceipt"
+    timestamp: now()
+  }
+}

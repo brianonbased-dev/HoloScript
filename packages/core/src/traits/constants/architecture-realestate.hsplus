@@ -1,0 +1,16 @@
+// @constants_architecture_realestate — Registry: architecture/real-estate domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/architecture-realestate.ts.
+
+@trait constants_architecture_realestate {
+  capability_tags: ["constants", "architecture_realestate", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_architecture_realestate_ready", {})
+  }
+
+  @receipt constants_architecture_realestate_config {
+    type: "ConstantsArchitectureRealestateReceipt"
+    timestamp: now()
+  }
+}

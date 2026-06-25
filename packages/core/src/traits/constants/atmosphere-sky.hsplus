@@ -1,0 +1,16 @@
+// @constants_atmosphere_sky — Registry: atmosphere and sky rendering trait name set.
+//
+// Native .hsplus surface for core/traits/constants/atmosphere-sky.ts.
+
+@trait constants_atmosphere_sky {
+  capability_tags: ["constants", "atmosphere_sky", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_atmosphere_sky_ready", {})
+  }
+
+  @receipt constants_atmosphere_sky_config {
+    type: "ConstantsAtmosphereSkyReceipt"
+    timestamp: now()
+  }
+}

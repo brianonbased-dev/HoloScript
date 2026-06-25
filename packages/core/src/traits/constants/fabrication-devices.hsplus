@@ -1,0 +1,16 @@
+// @constants_fabrication_devices — Registry: digital fabrication and device trait name set.
+//
+// Native .hsplus surface for core/traits/constants/fabrication-devices.ts.
+
+@trait constants_fabrication_devices {
+  capability_tags: ["constants", "fabrication_devices", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_fabrication_devices_ready", {})
+  }
+
+  @receipt constants_fabrication_devices_config {
+    type: "ConstantsFabricationDevicesReceipt"
+    timestamp: now()
+  }
+}

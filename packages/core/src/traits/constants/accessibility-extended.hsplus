@@ -1,0 +1,16 @@
+// @constants_accessibility_extended — Registry: extended accessibility trait name set.
+//
+// Native .hsplus surface for core/traits/constants/accessibility-extended.ts.
+
+@trait constants_accessibility_extended {
+  capability_tags: ["constants", "accessibility_extended", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_accessibility_extended_ready", {})
+  }
+
+  @receipt constants_accessibility_extended_config {
+    type: "ConstantsAccessibilityExtendedReceipt"
+    timestamp: now()
+  }
+}

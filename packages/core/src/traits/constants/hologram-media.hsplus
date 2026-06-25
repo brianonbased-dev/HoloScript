@@ -1,0 +1,16 @@
+// @constants_hologram_media — Registry: hologram and volumetric media trait name set.
+//
+// Native .hsplus surface for core/traits/constants/hologram-media.ts.
+
+@trait constants_hologram_media {
+  capability_tags: ["constants", "hologram_media", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_hologram_media_ready", {})
+  }
+
+  @receipt constants_hologram_media_config {
+    type: "ConstantsHologramMediaReceipt"
+    timestamp: now()
+  }
+}

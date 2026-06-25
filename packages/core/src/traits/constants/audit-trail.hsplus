@@ -1,0 +1,16 @@
+// @constants_audit_trail — Registry: audit trail and compliance logging trait name set.
+//
+// Native .hsplus surface for core/traits/constants/audit-trail.ts.
+
+@trait constants_audit_trail {
+  capability_tags: ["constants", "audit_trail", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_audit_trail_ready", {})
+  }
+
+  @receipt constants_audit_trail_config {
+    type: "ConstantsAuditTrailReceipt"
+    timestamp: now()
+  }
+}

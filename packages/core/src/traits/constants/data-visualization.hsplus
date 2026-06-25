@@ -1,0 +1,16 @@
+// @constants_data_visualization — Registry: data visualization trait name set.
+//
+// Native .hsplus surface for core/traits/constants/data-visualization.ts.
+
+@trait constants_data_visualization {
+  capability_tags: ["constants", "data_visualization", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_data_visualization_ready", {})
+  }
+
+  @receipt constants_data_visualization_config {
+    type: "ConstantsDataVisualizationReceipt"
+    timestamp: now()
+  }
+}

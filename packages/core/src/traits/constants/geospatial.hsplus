@@ -1,0 +1,16 @@
+// @constants_geospatial — Registry: geospatial trait name set.
+//
+// Native .hsplus surface for core/traits/constants/geospatial.ts.
+
+@trait constants_geospatial {
+  capability_tags: ["constants", "geospatial", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_geospatial_ready", {})
+  }
+
+  @receipt constants_geospatial_config {
+    type: "ConstantsGeospatialReceipt"
+    timestamp: now()
+  }
+}

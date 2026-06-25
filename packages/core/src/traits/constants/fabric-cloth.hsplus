@@ -1,0 +1,16 @@
+// @constants_fabric_cloth — Registry: fabric and cloth simulation trait name set.
+//
+// Native .hsplus surface for core/traits/constants/fabric-cloth.ts.
+
+@trait constants_fabric_cloth {
+  capability_tags: ["constants", "fabric_cloth", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_fabric_cloth_ready", {})
+  }
+
+  @receipt constants_fabric_cloth_config {
+    type: "ConstantsFabricClothReceipt"
+    timestamp: now()
+  }
+}

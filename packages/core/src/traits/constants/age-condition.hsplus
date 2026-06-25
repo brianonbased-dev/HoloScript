@@ -1,0 +1,16 @@
+// @constants_age_condition — Registry: age-condition trait name set (lifecycle stages).
+//
+// Native .hsplus surface for core/traits/constants/age-condition.ts.
+
+@trait constants_age_condition {
+  capability_tags: ["constants", "age_condition", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_age_condition_ready", {})
+  }
+
+  @receipt constants_age_condition_config {
+    type: "ConstantsAgeConditionReceipt"
+    timestamp: now()
+  }
+}

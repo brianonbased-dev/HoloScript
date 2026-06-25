@@ -1,0 +1,16 @@
+// @constants_enterprise_multitenancy — Registry: enterprise multi-tenancy trait name set.
+//
+// Native .hsplus surface for core/traits/constants/enterprise-multitenancy.ts.
+
+@trait constants_enterprise_multitenancy {
+  capability_tags: ["constants", "enterprise_multitenancy", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_enterprise_multitenancy_ready", {})
+  }
+
+  @receipt constants_enterprise_multitenancy_config {
+    type: "ConstantsEnterpriseMultitenancyReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_furniture_decor — Registry: furniture and decor entity trait name set.
+//
+// Native .hsplus surface for core/traits/constants/furniture-decor.ts.
+
+@trait constants_furniture_decor {
+  capability_tags: ["constants", "furniture_decor", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_furniture_decor_ready", {})
+  }
+
+  @receipt constants_furniture_decor_config {
+    type: "ConstantsFurnitureDecorReceipt"
+    timestamp: now()
+  }
+}

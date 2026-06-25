@@ -1,0 +1,16 @@
+// @constants_global_illumination — Registry: global illumination and lighting trait name set.
+//
+// Native .hsplus surface for core/traits/constants/global-illumination.ts.
+
+@trait constants_global_illumination {
+  capability_tags: ["constants", "global_illumination", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_global_illumination_ready", {})
+  }
+
+  @receipt constants_global_illumination_config {
+    type: "ConstantsGlobalIlluminationReceipt"
+    timestamp: now()
+  }
+}

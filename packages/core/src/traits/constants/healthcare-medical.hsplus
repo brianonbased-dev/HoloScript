@@ -1,0 +1,16 @@
+// @constants_healthcare_medical — Registry: healthcare and medical domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/healthcare-medical.ts.
+
+@trait constants_healthcare_medical {
+  capability_tags: ["constants", "healthcare_medical", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_healthcare_medical_ready", {})
+  }
+
+  @receipt constants_healthcare_medical_config {
+    type: "ConstantsHealthcareMedicalReceipt"
+    timestamp: now()
+  }
+}

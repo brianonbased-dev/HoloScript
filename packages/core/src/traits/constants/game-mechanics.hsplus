@@ -1,0 +1,16 @@
+// @constants_game_mechanics — Registry: game mechanics trait name set.
+//
+// Native .hsplus surface for core/traits/constants/game-mechanics.ts.
+
+@trait constants_game_mechanics {
+  capability_tags: ["constants", "game_mechanics", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_game_mechanics_ready", {})
+  }
+
+  @receipt constants_game_mechanics_config {
+    type: "ConstantsGameMechanicsReceipt"
+    timestamp: now()
+  }
+}

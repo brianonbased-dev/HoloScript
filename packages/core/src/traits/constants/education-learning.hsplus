@@ -1,0 +1,16 @@
+// @constants_education_learning — Registry: education and learning domain trait name set.
+//
+// Native .hsplus surface for core/traits/constants/education-learning.ts.
+
+@trait constants_education_learning {
+  capability_tags: ["constants", "education_learning", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_education_learning_ready", {})
+  }
+
+  @receipt constants_education_learning_config {
+    type: "ConstantsEducationLearningReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_feature_flags — Registry: feature flag trait name set.
+//
+// Native .hsplus surface for core/traits/constants/feature-flags.ts.
+
+@trait constants_feature_flags {
+  capability_tags: ["constants", "feature_flags", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_feature_flags_ready", {})
+  }
+
+  @receipt constants_feature_flags_config {
+    type: "ConstantsFeatureFlagsReceipt"
+    timestamp: now()
+  }
+}

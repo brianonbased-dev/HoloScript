@@ -1,0 +1,16 @@
+// @constants_connector_integration — Registry: third-party connector/integration trait name set.
+//
+// Native .hsplus surface for core/traits/constants/connector-integration.ts.
+
+@trait constants_connector_integration {
+  capability_tags: ["constants", "connector_integration", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_connector_integration_ready", {})
+  }
+
+  @receipt constants_connector_integration_config {
+    type: "ConstantsConnectorIntegrationReceipt"
+    timestamp: now()
+  }
+}

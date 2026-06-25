@@ -1,0 +1,16 @@
+// @constants_character_materials — Registry: character material shader trait name set.
+//
+// Native .hsplus surface for core/traits/constants/character-materials.ts.
+
+@trait constants_character_materials {
+  capability_tags: ["constants", "character_materials", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_character_materials_ready", {})
+  }
+
+  @receipt constants_character_materials_config {
+    type: "ConstantsCharacterMaterialsReceipt"
+    timestamp: now()
+  }
+}

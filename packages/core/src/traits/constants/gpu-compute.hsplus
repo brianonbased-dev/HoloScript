@@ -1,0 +1,16 @@
+// @constants_gpu_compute — Registry: GPU compute trait name set.
+//
+// Native .hsplus surface for core/traits/constants/gpu-compute.ts.
+
+@trait constants_gpu_compute {
+  capability_tags: ["constants", "gpu_compute", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_gpu_compute_ready", {})
+  }
+
+  @receipt constants_gpu_compute_config {
+    type: "ConstantsGpuComputeReceipt"
+    timestamp: now()
+  }
+}

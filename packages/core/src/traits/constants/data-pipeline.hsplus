@@ -1,0 +1,16 @@
+// @constants_data_pipeline — Registry: data pipeline trait name set.
+//
+// Native .hsplus surface for core/traits/constants/data-pipeline.ts.
+
+@trait constants_data_pipeline {
+  capability_tags: ["constants", "data_pipeline", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_data_pipeline_ready", {})
+  }
+
+  @receipt constants_data_pipeline_config {
+    type: "ConstantsDataPipelineReceipt"
+    timestamp: now()
+  }
+}

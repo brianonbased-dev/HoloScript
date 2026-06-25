@@ -1,0 +1,16 @@
+// @constants_concurrency — Registry: concurrency primitive trait name set.
+//
+// Native .hsplus surface for core/traits/constants/concurrency.ts.
+
+@trait constants_concurrency {
+  capability_tags: ["constants", "concurrency", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_concurrency_ready", {})
+  }
+
+  @receipt constants_concurrency_config {
+    type: "ConstantsConcurrencyReceipt"
+    timestamp: now()
+  }
+}

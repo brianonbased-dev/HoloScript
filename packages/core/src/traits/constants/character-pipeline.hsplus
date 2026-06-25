@@ -1,0 +1,16 @@
+// @constants_character_pipeline — Registry: character rigging/animation pipeline trait name set.
+//
+// Native .hsplus surface for core/traits/constants/character-pipeline.ts.
+
+@trait constants_character_pipeline {
+  capability_tags: ["constants", "character_pipeline", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_character_pipeline_ready", {})
+  }
+
+  @receipt constants_character_pipeline_config {
+    type: "ConstantsCharacterPipelineReceipt"
+    timestamp: now()
+  }
+}

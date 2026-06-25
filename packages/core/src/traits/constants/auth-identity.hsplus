@@ -1,0 +1,16 @@
+// @constants_auth_identity — Registry: authentication and identity trait name set.
+//
+// Native .hsplus surface for core/traits/constants/auth-identity.ts.
+
+@trait constants_auth_identity {
+  capability_tags: ["constants", "auth_identity", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_auth_identity_ready", {})
+  }
+
+  @receipt constants_auth_identity_config {
+    type: "ConstantsAuthIdentityReceipt"
+    timestamp: now()
+  }
+}

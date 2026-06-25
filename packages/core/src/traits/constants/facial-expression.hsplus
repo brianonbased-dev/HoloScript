@@ -1,0 +1,16 @@
+// @constants_facial_expression — Registry: facial expression and blendshape trait name set.
+//
+// Native .hsplus surface for core/traits/constants/facial-expression.ts.
+
+@trait constants_facial_expression {
+  capability_tags: ["constants", "facial_expression", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_facial_expression_ready", {})
+  }
+
+  @receipt constants_facial_expression_config {
+    type: "ConstantsFacialExpressionReceipt"
+    timestamp: now()
+  }
+}

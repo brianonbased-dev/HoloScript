@@ -1,0 +1,16 @@
+// @constants_environment_input — Registry: environment and input sensing trait name set.
+//
+// Native .hsplus surface for core/traits/constants/environment-input.ts.
+
+@trait constants_environment_input {
+  capability_tags: ["constants", "environment_input", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_environment_input_ready", {})
+  }
+
+  @receipt constants_environment_input_config {
+    type: "ConstantsEnvironmentInputReceipt"
+    timestamp: now()
+  }
+}

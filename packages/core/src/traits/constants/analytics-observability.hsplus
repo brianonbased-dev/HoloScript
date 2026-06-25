@@ -1,0 +1,16 @@
+// @constants_analytics_observability — Registry: analytics and observability trait name set.
+//
+// Native .hsplus surface for core/traits/constants/analytics-observability.ts.
+
+@trait constants_analytics_observability {
+  capability_tags: ["constants", "analytics_observability", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_analytics_observability_ready", {})
+  }
+
+  @receipt constants_analytics_observability_config {
+    type: "ConstantsAnalyticsObservabilityReceipt"
+    timestamp: now()
+  }
+}

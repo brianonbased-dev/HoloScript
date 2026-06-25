@@ -1,0 +1,16 @@
+// @constants_gaps_physics — Registry: physics gap/pending trait name set.
+//
+// Native .hsplus surface for core/traits/constants/gaps-physics.ts.
+
+@trait constants_gaps_physics {
+  capability_tags: ["constants", "gaps_physics", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_gaps_physics_ready", {})
+  }
+
+  @receipt constants_gaps_physics_config {
+    type: "ConstantsGapsPhysicsReceipt"
+    timestamp: now()
+  }
+}

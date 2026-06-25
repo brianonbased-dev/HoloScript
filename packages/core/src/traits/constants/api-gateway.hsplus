@@ -1,0 +1,16 @@
+// @constants_api_gateway — Registry: API gateway trait name set.
+//
+// Native .hsplus surface for core/traits/constants/api-gateway.ts.
+
+@trait constants_api_gateway {
+  capability_tags: ["constants", "api_gateway", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_api_gateway_ready", {})
+  }
+
+  @receipt constants_api_gateway_config {
+    type: "ConstantsApiGatewayReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_file_storage — Registry: file and object storage trait name set.
+//
+// Native .hsplus surface for core/traits/constants/file-storage.ts.
+
+@trait constants_file_storage {
+  capability_tags: ["constants", "file_storage", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_file_storage_ready", {})
+  }
+
+  @receipt constants_file_storage_config {
+    type: "ConstantsFileStorageReceipt"
+    timestamp: now()
+  }
+}

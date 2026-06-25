@@ -1,0 +1,16 @@
+// @constants_core_vr_interaction — Registry: core VR interaction trait name set.
+//
+// Native .hsplus surface for core/traits/constants/core-vr-interaction.ts.
+
+@trait constants_core_vr_interaction {
+  capability_tags: ["constants", "core_vr_interaction", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_core_vr_interaction_ready", {})
+  }
+
+  @receipt constants_core_vr_interaction_config {
+    type: "ConstantsCoreVrInteractionReceipt"
+    timestamp: now()
+  }
+}

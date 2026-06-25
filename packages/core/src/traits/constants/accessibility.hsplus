@@ -1,0 +1,16 @@
+// @constants_accessibility — Registry: core accessibility trait name set.
+//
+// Native .hsplus surface for core/traits/constants/accessibility.ts.
+
+@trait constants_accessibility {
+  capability_tags: ["constants", "accessibility", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_accessibility_ready", {})
+  }
+
+  @receipt constants_accessibility_config {
+    type: "ConstantsAccessibilityReceipt"
+    timestamp: now()
+  }
+}

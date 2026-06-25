@@ -1,0 +1,16 @@
+// @constants_creatures_mythical — Registry: mythical creature entity trait name set.
+//
+// Native .hsplus surface for core/traits/constants/creatures-mythical.ts.
+
+@trait constants_creatures_mythical {
+  capability_tags: ["constants", "creatures_mythical", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_creatures_mythical_ready", {})
+  }
+
+  @receipt constants_creatures_mythical_config {
+    type: "ConstantsCreaturesMythicalReceipt"
+    timestamp: now()
+  }
+}

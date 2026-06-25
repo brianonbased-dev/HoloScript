@@ -1,0 +1,16 @@
+// @constants_database_persistence — Registry: database and persistence trait name set.
+//
+// Native .hsplus surface for core/traits/constants/database-persistence.ts.
+
+@trait constants_database_persistence {
+  capability_tags: ["constants", "database_persistence", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_database_persistence_ready", {})
+  }
+
+  @receipt constants_database_persistence_config {
+    type: "ConstantsDatabasePersistenceReceipt"
+    timestamp: now()
+  }
+}

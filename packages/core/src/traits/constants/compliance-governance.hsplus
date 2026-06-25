@@ -1,0 +1,16 @@
+// @constants_compliance_governance — Registry: compliance and governance trait name set.
+//
+// Native .hsplus surface for core/traits/constants/compliance-governance.ts.
+
+@trait constants_compliance_governance {
+  capability_tags: ["constants", "compliance_governance", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_compliance_governance_ready", {})
+  }
+
+  @receipt constants_compliance_governance_config {
+    type: "ConstantsComplianceGovernanceReceipt"
+    timestamp: now()
+  }
+}

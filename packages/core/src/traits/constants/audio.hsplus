@@ -1,0 +1,16 @@
+// @constants_audio — Registry: audio trait name set.
+//
+// Native .hsplus surface for core/traits/constants/audio.ts.
+
+@trait constants_audio {
+  capability_tags: ["constants", "audio", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_audio_ready", {})
+  }
+
+  @receipt constants_audio_config {
+    type: "ConstantsAudioReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,16 @@
+// @constants_gems_minerals — Registry: gems and minerals entity trait name set.
+//
+// Native .hsplus surface for core/traits/constants/gems-minerals.ts.
+
+@trait constants_gems_minerals {
+  capability_tags: ["constants", "gems_minerals", "trait_registry", "tag_set", "core"]
+
+  @on_spawn => {
+    emit("constants_gems_minerals_ready", {})
+  }
+
+  @receipt constants_gems_minerals_config {
+    type: "ConstantsGemsMineralsReceipt"
+    timestamp: now()
+  }
+}
