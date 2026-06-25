@@ -1,0 +1,24 @@
+@trait {
+  name: "@shareplay",
+  category: "xr",
+  description: "Apple SharePlay integration for synchronized visionOS group experiences. Manages session lifecycle (idle→joining→active→suspended→ended), participant tracking (host/guest, displayName), and state sync across FaceTime and spatial computing. Sync policies: none, playback (AV coordination), full_state (all synced properties), custom. Spatial audio for co-located presence. Fallback to screen share if SharePlay unavailable. Port of SharePlayTrait.ts (handler name: shareplay).",
+  props: {
+    activity_title: string = "Shared Experience",
+    max_participants: number = 8,
+    auto_join: boolean = true,
+    sync_policy: enum("none" | "playback" | "full_state" | "custom") = "full_state",
+    spatial_audio: boolean = true,
+    fallback_to_screen_share: boolean = false
+  },
+  events: {
+    attached: "shareplay:ready",
+    detached: "shareplay:ended",
+    on_participant_joined: "shareplay:participant_joined",
+    on_participant_left: "shareplay:participant_left",
+    on_state_synced: "shareplay:state_synced",
+    join: "shareplay:join",
+    leave: "shareplay:leave",
+    sync: "shareplay:sync"
+  },
+  behaviors: ["@crdt_room", "@collaborative_world"]
+}

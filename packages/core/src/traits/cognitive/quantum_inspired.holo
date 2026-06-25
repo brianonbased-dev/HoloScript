@@ -1,0 +1,17 @@
+@trait {
+  name: "@quantum_inspired",
+  category: "cognitive",
+  description: "Quantum-inspired optimization via Leaky Integrate-and-Fire (LIF) spiking neural network. Population coding maps input vectors (0-1) to spike rates across numNeurons LIF neurons. snnTimesteps controls simulation depth (50ms default at dt=1ms). GPU acceleration via SnnAccelerator from @holoscript/holoembed (inject via acceleratorProvider); CPU fallback uses sigmoid approximation. Results are normalized spike-rate vectors. learningRate exposed as scene-level metadata for downstream compositing. Port of QuantumInspiredTrait.ts (handler name: quantumInspired — camelCase).",
+  props: {
+    num_neurons: number = 128,
+    learning_rate: number = 0.01,
+    snn_timesteps: number = 50
+  },
+  events: {
+    attached: "quantum_inspired_ready",
+    on_result: "quantum_inspired_result",
+    on_error: "quantum_inspired_error",
+    optimize: "quantum_inspired_optimize"
+  },
+  behaviors: ["@vqe_runner", "@snn_webgpu"]
+}

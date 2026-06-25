@@ -1,0 +1,22 @@
+@trait {
+  name: "@vector_db",
+  category: "data",
+  description: "In-memory vector database for embeddings and semantic search. Similarity metrics: cosine (default), euclidean, dot_product. Index types: flat (exact, O(n)), hnsw (approximate, fast for >10K entries), ivf (inverted file, quantized). Supports insert/search/delete operations. Embedding models: sentence-transformers (384-dim default), clip, openai, custom. Results filtered by similarity_threshold. Port of VectorDBTrait.ts (handler name: vector_db).",
+  props: {
+    embedding_model: enum("clip" | "sentence-transformers" | "openai" | "custom") = "sentence-transformers",
+    dimension: number = 384,
+    similarity_metric: enum("cosine" | "euclidean" | "dot_product") = "cosine",
+    max_entries: number = 10000,
+    index_type: enum("flat" | "hnsw" | "ivf") = "hnsw",
+    similarity_threshold: number = 0.7
+  },
+  events: {
+    on_inserted: "vector_db_inserted",
+    on_search_result: "vector_db_search_result",
+    on_deleted: "vector_db_deleted",
+    insert: "vector_db_insert",
+    search: "vector_db_search",
+    delete: "vector_db_delete"
+  },
+  behaviors: ["@vector_search", "@agent_memory"]
+}

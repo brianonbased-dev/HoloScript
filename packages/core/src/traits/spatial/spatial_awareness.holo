@@ -1,0 +1,18 @@
+@trait {
+  name: "@spatial_awareness",
+  category: "spatial",
+  description: "Spatial context awareness for entities: nearby entity discovery, region membership, visibility tracking. Lazily loads @holoscript/engine/spatial SpatialContextProvider to avoid cold-import crash for consumers without the engine. Supports shared multi-agent provider for coordinated spatial queries. autoStart triggers initialization on attach. Emits context:updated, visibility:changed events. Port of SpatialAwarenessTrait.ts (handler name: spatial_awareness — defaultConfig={}, extends SpatialAwarenessConfig from engine).",
+  props: {
+    auto_start: boolean = true
+  },
+  events: {
+    attached: "spatial_awareness_ready",
+    detached: "spatial_awareness_stopped",
+    on_context_updated: "context:updated",
+    on_visibility_changed: "visibility:changed",
+    on_entity_nearby: "entity:nearby",
+    on_entity_left: "entity:left",
+    query: "spatial_awareness_query"
+  },
+  behaviors: ["@hungarian_assignment", "@gaze_focus_analytics", "@co_located"]
+}
