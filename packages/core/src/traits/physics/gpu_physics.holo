@@ -1,0 +1,28 @@
+@trait {
+  name: "@gpu_physics",
+  category: "physics",
+  description: "GPU-side physics simulation bridge via @holoscript/engine PhysicsEngine @builtin. Offloads particle/rigid-body/soft-body simulation to GPU. Methods: pbd (Position-Based Dynamics), xpbd (Extended PBD), impulse. Island detection prunes disconnected bodies for efficiency. SoftBodyAdapter wired for soft_body sim_type. Lazy-loads engine modules on first attach. Port of GPUPhysicsTrait.ts (handler name: gpu_physics).",
+  props: {
+    sim_type: enum("particles" | "rigid_body" | "soft_body") = "rigid_body",
+    method: enum("pbd" | "xpbd" | "impulse") = "pbd",
+    gravity_x: number = 0.0,
+    gravity_y: number = -9.81,
+    gravity_z: number = 0.0,
+    substeps: number = 4,
+    mass: number = 1.0,
+    shape: enum("box" | "sphere" | "capsule" | "mesh") = "box",
+    friction: number = 0.5,
+    restitution: number = 0.3,
+    is_static: boolean = false
+  },
+  events: {
+    attached: "gpu_physics_ready",
+    detached: "gpu_physics_stopped",
+    on_stepped: "gpu_physics_stepped",
+    on_collision: "gpu_physics_collision",
+    step: "gpu_physics_step",
+    set_velocity: "gpu_physics_set_velocity",
+    apply_force: "gpu_physics_apply_force"
+  },
+  behaviors: ["@physics_body", "@ecs_world", "@advanced_cloth", "@emergent_spacetime"]
+}

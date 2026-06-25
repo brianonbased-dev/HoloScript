@@ -1,0 +1,18 @@
+@trait {
+  name: "@gotcha",
+  category: "devops",
+  description: "Meta-trait for declarative failure-mode documentation. Registers a known gotcha (warning text, severity, mitigation, trigger events) into a module-level registry queryable by Studio/LSP/MCP holo_list_gotchas. Severity levels: info (dev=log, prod=silent), warning (dev=warn, prod=warn), critical (dev=error, prod=fail with --enforce-gotchas). On triggers_on event fire → emits gotcha_triggered. Port of GotchaTrait.ts (handler name: gotcha). See proposals/WISDOM_AND_GOTCHA_TRAITS_v1.md.",
+  props: {
+    warning: string = "",
+    severity: enum("info" | "warning" | "critical") = "warning",
+    mitigation: string = "",
+    triggers_on: list<string> = []
+  },
+  events: {
+    on_registered: "gotcha_registered",
+    on_triggered: "gotcha_triggered",
+    on_query_result: "gotcha_query_result",
+    query: "gotcha_query"
+  },
+  behaviors: ["@vulnerability_scanner"]
+}

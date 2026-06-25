@@ -1,0 +1,15 @@
+@trait {
+  name: "@graphql",
+  category: "data",
+  description: "GraphQL schema and resolver management. Registers field resolvers via gql:register (typeName+field). Executes queries via gql:query tracking total query count. Enforces max query depth via depth_limit to prevent deep introspection attacks. Port of GraphqlTrait.ts (handler name: graphql).",
+  props: {
+    depth_limit: number = 10
+  },
+  events: {
+    register: "gql:register",
+    on_registered: "gql:registered",
+    query: "gql:query",
+    on_result: "gql:result"
+  },
+  behaviors: ["@http", "@rest_api"]
+}

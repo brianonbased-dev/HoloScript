@@ -1,0 +1,29 @@
+@trait {
+  name: "@grab_feedback_profile",
+  category: "xr",
+  description: "Multi-channel grab feedback: haptic pattern (grab/throw/release presets: soft_pulse/sharp_snap/click/double_pulse/long_hold/buzz/none), spatial audio (grab/release sounds with volume+max_distance), and emissive bloom lerp (idle↔held ramp in ms). All three channels fire simultaneously on grab_feedback:grab / grab_feedback:release events. Port of GrabFeedbackProfileTrait.ts (handler name: grab_feedback_profile).",
+  props: {
+    haptic_grab: enum("soft_pulse" | "sharp_snap" | "click" | "double_pulse" | "long_hold" | "buzz" | "none") = "soft_pulse",
+    haptic_throw: enum("soft_pulse" | "sharp_snap" | "click" | "double_pulse" | "long_hold" | "buzz" | "none") = "sharp_snap",
+    haptic_release: enum("soft_pulse" | "sharp_snap" | "click" | "double_pulse" | "long_hold" | "buzz" | "none") = "click",
+    haptic_intensity: number = 0.7,
+    haptic_duration_ms: number = 100,
+    audio_grab: string = "",
+    audio_release: string = "",
+    audio_volume: number = 0.6,
+    audio_spatial: boolean = true,
+    audio_max_distance: number = 6,
+    bloom_idle_intensity: number = 0.8,
+    bloom_held_intensity: number = 2.5,
+    bloom_ramp_ms: number = 80
+  },
+  events: {
+    attached: "grab_feedback_ready",
+    grab: "grab_feedback:grab",
+    release: "grab_feedback:release",
+    throw: "grab_feedback:throw",
+    on_grabbed: "grab_feedback:grabbed",
+    on_released: "grab_feedback:released"
+  },
+  behaviors: ["@interactable", "@vr_hands"]
+}
