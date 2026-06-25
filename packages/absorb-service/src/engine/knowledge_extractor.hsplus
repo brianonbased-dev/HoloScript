@@ -1,0 +1,77 @@
+// @knowledge_extractor — Auto-extract W/P/G knowledge entries from an absorbed CodebaseGraph.
+//
+// Native .hsplus surface for KnowledgeExtractor.ts (absorb-service/engine).
+//
+// Core value of the absorb-to-marketplace pipeline: any absorbed codebase
+// becomes publishable W/P/G knowledge entries.
+//
+// KnowledgeEntry (KnowledgeExtractor.ts):
+//   id: "W.AUTO.001" | "P.AUTO.001" | "G.AUTO.001" (auto-generated)
+//   type: "wisdom" | "pattern" | "gotcha"
+//   content: String (human-readable)
+//   confidence: 0.0–1.0
+//   metadata: { extractor, files?, symbols?, community?, metric?, value? }
+//
+// Extraction heuristics:
+//   Patterns (P): adapter/factory/strategy naming + structure, repeated module shapes,
+//                 barrel files, test colocation
+//   Gotchas (G): high fan-in symbols (fragile), circular imports, dead code,
+//                large files, deep call chains, files with no tests, mixed concerns
+//   Wisdom (W):  architectural community structure, language boundaries,
+//                import depth distribution, coupling metrics, key hub files
+//
+// ExtractionOptions: min_confidence=0.5, max_per_type=20, include_speculative=false
+
+@trait knowledge_extractor {
+  // Minimum confidence for included entries (0.0–1.0)
+  min_confidence: Float = 0.5
+
+  // Max entries per type (wisdom | pattern | gotcha)
+  max_per_type: Int = 20
+
+  // Include speculative low-confidence entries
+  include_speculative: Bool = false
+
+  capability_tags: ["knowledge_extractor", "wpg_extraction", "codebase_knowledge", "marketplace_pipeline", "absorb_service", "auto_knowledge"]
+
+  @on_spawn => {
+    extractor = init_knowledge_extractor({
+      min_confidence: min_confidence,
+      max_per_type: max_per_type,
+      include_speculative: include_speculative
+    })
+    emit("knowledge_extractor_ready", {
+      min_confidence: min_confidence,
+      max_per_type: max_per_type
+    })
+  }
+
+  // Extract all W/P/G entries from an absorbed CodebaseGraph
+  @on_extract(graph, workspace_id) => {
+    result = extractor.extract(graph, { workspace_id: workspace_id })
+    emit("knowledge_extracted", {
+      total: result.stats.total_extracted,
+      wisdom_count: result.stats.by_type.wisdom ?? 0,
+      pattern_count: result.stats.by_type.pattern ?? 0,
+      gotcha_count: result.stats.by_type.gotcha ?? 0,
+      duration_ms: result.stats.duration_ms
+    })
+    return result
+  }
+
+  // Extract only a specific type
+  @on_extract_type(graph, entry_type, workspace_id) => {
+    result = extractor.extract_type(graph, entry_type, { workspace_id: workspace_id })
+    emit("knowledge_type_extracted", { type: entry_type, count: result.entries.size })
+    return result
+  }
+
+  @receipt knowledge_extractor_config {
+    type: "KnowledgeExtractorReceipt"
+    min_confidence: min_confidence
+    max_per_type: max_per_type
+    include_speculative: include_speculative
+    entry_types: ["wisdom", "pattern", "gotcha"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,68 @@
+// @metered_llm_provider — LLM provider wrapper with token counting + credit deduction.
+//
+// Native .hsplus surface for meteredLLMProvider.ts (absorb-service/credits).
+//
+// Wraps any LLMProvider with token estimation and per-call credit deduction.
+// Used ONLY for absorb-service paid-user operations. Internal daemon uses
+// unwrapped provider directly.
+//
+// Token estimation (meteredLLMProvider.ts):
+//   input_tokens  = ceil((system.length + prompt.length) / 4)
+//   output_tokens = ceil(result.text.length / 4)
+//
+// Cost formula:
+//   cost_cents = ceil( (tokens/1_000_000) * LLM_COSTS_PER_MTOK[provider] * 100 * LLM_MARKUP )
+//   LLM_MARKUP = 1.30 (30% markup over provider cost)
+//
+// Credit deduction: deductCredits(user_id, total_cost_cents, description, metadata)
+//   metadata: { provider, input_tokens, output_tokens, project_id }
+//
+// Provider cost keys (pricing.ts): "ollama" | "openai" | "claude" | ...
+// 0-cost calls (zero tokens) skip the deductCredits call.
+
+@trait metered_llm_provider {
+  // LLM provider name (for cost table lookup: "ollama", "openai", "claude", ...)
+  provider_name: String
+
+  // User being charged for LLM usage
+  user_id: String
+
+  // Project context for cost metadata
+  project_id: String
+
+  capability_tags: ["metered_llm_provider", "credit_deduction", "token_counting", "llm_metering", "absorb_service", "paid_users"]
+
+  @on_spawn => {
+    provider = init_metered_llm_provider({
+      provider_name: provider_name,
+      user_id: user_id,
+      project_id: project_id
+    })
+    emit("metered_llm_ready", { provider_name: provider_name, user_id: user_id })
+  }
+
+  // Chat call with token counting + credit deduction
+  @on_chat(system_prompt, user_prompt, max_tokens) => {
+    result = provider.chat({
+      system: system_prompt,
+      prompt: user_prompt,
+      max_tokens: max_tokens
+    })
+    // Credit deduction happens inside the provider — never in the event payload
+    emit("metered_llm_chat_complete", {
+      provider_name: provider_name,
+      project_id: project_id
+    })
+    return result
+  }
+
+  @receipt metered_llm_config {
+    type: "MeteredLLMProviderReceipt"
+    provider_name: provider_name
+    user_id: user_id
+    project_id: project_id
+    markup_note: "LLM_MARKUP=1.30 (30% over provider cost)"
+    cost_in_receipt: false
+    timestamp: now()
+  }
+}

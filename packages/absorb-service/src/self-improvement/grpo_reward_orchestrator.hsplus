@@ -1,0 +1,96 @@
+// @grpo_reward_orchestrator — Composite GRPO reward signal for TRL GRPOTrainer.
+//
+// Native .hsplus surface for GRPORewardOrchestrator.ts (absorb-service/self-improvement).
+//
+// Orchestrates 5 reward functions into a weighted composite reward signal:
+//   R(x) = w_test * test(x) + w_type * type(x) + w_lint * lint(x)
+//          + w_cov * cov(x) + w_cb * cb(x)
+//
+// Reward functions (GRPORewardFunctions.ts + GRPO_REWARD_WEIGHTS):
+//   test_pass_reward     — test suite passes (w_test)
+//   type_check_reward    — TypeScript type check passes (w_type)
+//   lint_reward          — ESLint clean (w_lint)
+//   coverage_reward      — code coverage threshold met (w_cov)
+//   circuit_breaker_reward — no circuit breakers triggered (w_cb)
+//   (weights must sum to 1.0)
+//
+// Execution features (GRPORewardOrchestrator.ts):
+//   parallel = true (default; runs all 5 functions concurrently)
+//   per_completion_timeout_ms = 30000
+//   batch_timeout_ms = 120000
+//   caching: SHA-256 of completion → reward vector (max 1000 entries LRU)
+//
+// RewardStatistics per function: { count, mean, std, min, max }
+
+@trait grpo_reward_orchestrator {
+  // Weights for 5 reward functions (must sum to 1.0)
+  weight_test_pass: Float = 0.4
+  weight_type_check: Float = 0.2
+  weight_lint: Float = 0.2
+  weight_coverage: Float = 0.1
+  weight_circuit_breaker: Float = 0.1
+
+  // Run reward functions in parallel
+  parallel: Bool = true
+
+  // Per-completion timeout in ms
+  per_completion_timeout_ms: Int = 30000
+
+  // Batch timeout in ms
+  batch_timeout_ms: Int = 120000
+
+  // Enable reward caching (SHA-256 keyed)
+  cache_enabled: Bool = true
+  max_cache_size: Int = 1000
+
+  capability_tags: ["grpo_reward_orchestrator", "grpo", "rl_training", "reward_signal", "self_improvement", "trl_trainer", "absorb_service"]
+
+  @on_spawn => {
+    orchestrator = init_grpo_reward_orchestrator({
+      weights: {
+        test_pass: weight_test_pass,
+        type_check: weight_type_check,
+        lint: weight_lint,
+        coverage: weight_coverage,
+        circuit_breaker: weight_circuit_breaker
+      },
+      parallel: parallel,
+      per_completion_timeout_ms: per_completion_timeout_ms,
+      batch_timeout_ms: batch_timeout_ms,
+      cache_enabled: cache_enabled,
+      max_cache_size: max_cache_size
+    })
+    emit("grpo_reward_orchestrator_ready", { parallel: parallel })
+  }
+
+  // Evaluate a batch of completions → composite reward vectors
+  @on_evaluate_batch(completions, tool_runner) => {
+    results = orchestrator.evaluate_batch(completions, tool_runner)
+    emit("grpo_batch_evaluated", { batch_size: completions.size })
+    return results
+  }
+
+  // Get per-function statistics accumulated across all batches
+  @on_statistics => {
+    return orchestrator.get_statistics()
+  }
+
+  // Clear the reward cache
+  @on_clear_cache => {
+    orchestrator.clear_cache()
+    emit("grpo_cache_cleared", {})
+  }
+
+  @receipt grpo_reward_config {
+    type: "GRPORewardOrchestratorReceipt"
+    weights: {
+      test_pass: weight_test_pass,
+      type_check: weight_type_check,
+      lint: weight_lint,
+      coverage: weight_coverage,
+      circuit_breaker: weight_circuit_breaker
+    }
+    composite_formula: "R(x) = w_test*test + w_type*type + w_lint*lint + w_cov*cov + w_cb*cb"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,79 @@
+// @graph_rag_engine — Graph RAG: semantic search + graph traversal for enriched code Q&A.
+//
+// Native .hsplus surface for GraphRAGEngine.ts (absorb-service/engine).
+//
+// Query flow:
+//   1. Embed query → top-K semantic matches (EmbeddingIndex)
+//   2. Fan out via graph: callers, callees, community, impact (CodebaseGraph)
+//   3. Re-rank by combined score (semantic + structural relevance)
+//   4. Optionally generate NL answer via LLM provider
+//
+// GraphRAGOptions (GraphRAGEngine.ts):
+//   top_k: Int = 20          (semantic search results to fan out)
+//   max_depth: Int = 5       (call chain tracing depth)
+//   weights: { semantic:0.6, connections:0.2, impact:0.2 }
+//   language?, type?, file?  (result filters)
+//   llm_provider?            (pluggable; Ollama localhost:11434 fallback)
+//
+// GraphRAGResult:
+//   query, results: EnrichedResult[], total_matches, communities: String[]
+//
+// EnrichedResult: symbol, semantic_score, connection_score, impact_score,
+//                 combined_score, callers, callees, community, impact_files
+
+@trait graph_rag_engine {
+  // Semantic search fan-out width
+  top_k: Int = 20
+
+  // Max graph depth for call chain tracing
+  max_depth: Int = 5
+
+  // Scoring weights (must sum to 1.0)
+  weight_semantic: Float = 0.6
+  weight_connections: Float = 0.2
+  weight_impact: Float = 0.2
+
+  // LLM answer generation (empty = Ollama fallback)
+  llm_provider_id: String? = null
+
+  capability_tags: ["graph_rag_engine", "graph_rag", "semantic_search", "codebase_graph", "knowledge_graph", "absorb_service"]
+
+  @on_spawn => {
+    engine = init_graph_rag_engine({
+      top_k: top_k,
+      max_depth: max_depth,
+      weights: { semantic: weight_semantic, connections: weight_connections, impact: weight_impact },
+      llm_provider_id: llm_provider_id
+    })
+    emit("graph_rag_engine_ready", { top_k: top_k, max_depth: max_depth })
+  }
+
+  // Query codebase with semantic + graph enrichment
+  @on_query(query, language, symbol_type, file_prefix) => {
+    result = engine.query(query, {
+      language: language,
+      type: symbol_type,
+      file: file_prefix
+    })
+    emit("graph_rag_query_complete", {
+      total_matches: result.total_matches,
+      community_count: result.communities.size
+    })
+    return result
+  }
+
+  // Query and generate a natural language answer via LLM
+  @on_ask(question, language, file_prefix) => {
+    result = engine.ask(question, { language: language, file: file_prefix })
+    emit("graph_rag_answer_generated", { question: question })
+    return result
+  }
+
+  @receipt graph_rag_config {
+    type: "GraphRAGEngineReceipt"
+    top_k: top_k
+    max_depth: max_depth
+    weights: { semantic: weight_semantic, connections: weight_connections, impact: weight_impact }
+    timestamp: now()
+  }
+}
