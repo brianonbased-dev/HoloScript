@@ -1,0 +1,16 @@
+@trait {
+  name: "@load_bearing",
+  category: "engineering",
+  description: "Structural load capacity tracker for civil engineering elements. capacityKN is the total load bearing capacity in kilonewtons. loadCases is a list of applied loads with magnitudeKN and combinationFactor. redundancyFactor scales capacity for redundant load paths (1.0 = no redundancy). Computes totalAppliedKN, remainingCapacityKN, and isOverloaded on attach. Port of LoadBearingTrait.ts (handler name: load_bearing).",
+  props: {
+    capacity_kn: number = 100,
+    redundancy_factor: number = 1.0
+  },
+  events: {
+    attached: "load_bearing_evaluated",
+    on_overload: "load_bearing_overloaded",
+    on_capacity_updated: "load_bearing_updated",
+    update_loads: "load_bearing_update_loads"
+  },
+  behaviors: ["@structural_analysis", "@material_fatigue"]
+}

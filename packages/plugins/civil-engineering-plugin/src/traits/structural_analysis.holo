@@ -1,0 +1,19 @@
+@trait {
+  name: "@structural_analysis",
+  category: "engineering",
+  description: "FEA-lite structural analysis for beams, columns, frames, and trusses. structureType selects the element model. material presets: steel (E=200 GPa, fy=250 MPa), concrete, timber, aluminum. yieldStrengthMPa and elasticModulusGPa override material presets. safetyFactor is the design safety factor applied to capacity. loadCasesCount is the number of load combinations to analyze. Outputs stress, deflection, and utilization ratio per member. Port of StructuralAnalysisTrait.ts (handler name: structural_analysis).",
+  props: {
+    structure_type: enum("beam" | "column" | "frame" | "truss") = "beam",
+    material: enum("steel" | "concrete" | "timber" | "aluminum") = "steel",
+    yield_strength_mpa: number = 250,
+    elastic_modulus_gpa: number = 200,
+    safety_factor: number = 1.5,
+    load_cases_count: number = 1
+  },
+  events: {
+    on_analysis_complete: "structural_analysis_complete",
+    on_utilization_exceeded: "structural_analysis_overutilized",
+    analyze: "structural_analysis_run"
+  },
+  behaviors: ["@load_bearing", "@material_fatigue", "@gpu_physics"]
+}

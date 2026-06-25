@@ -1,0 +1,22 @@
+@trait {
+  name: "@culture",
+  category: "localization",
+  description: "Locale and cultural formatting context. Drives date/time/number/currency rendering, text directionality (ltr/rtl/ttb), calendar systems (gregorian, hijri, hebrew, etc.), and measurement systems (metric, us_customary, imperial). firstDayOfWeek: 0=Sunday, 1=Monday. pluralRules selects CLDR plural category rule set. honorificRequired gates name display with honorific prefix. colorSemantics maps color names to culturally-appropriate override values. Port of CultureTrait.ts (handler name: culture).",
+  props: {
+    locale: string = "en-US",
+    date_format: string = "MM/dd/yyyy",
+    time_format: enum("12h" | "24h") = "12h",
+    currency_code: string = "USD",
+    currency_symbol_position: enum("prefix" | "suffix") = "prefix",
+    text_direction: enum("ltr" | "rtl" | "ttb") = "ltr",
+    calendar: enum("gregorian" | "hijri" | "hebrew" | "buddhist" | "persian") = "gregorian",
+    measurement: enum("metric" | "us_customary" | "imperial") = "us_customary",
+    first_day_of_week: number = 0,
+    honorific_required: boolean = false
+  },
+  events: {
+    on_locale_changed: "culture_locale_changed",
+    set_locale: "culture_set_locale"
+  },
+  behaviors: ["@vocabulary_register", "@sso_saml"]
+}

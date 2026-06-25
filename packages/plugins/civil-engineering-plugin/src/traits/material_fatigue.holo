@@ -1,0 +1,18 @@
+@trait {
+  name: "@material_fatigue",
+  category: "engineering",
+  description: "S-N curve fatigue life model for civil engineering materials. sNcurveSlope is the log-log slope of the S-N curve (default: -0.1). enduranceLimitMPa is the stress amplitude below which infinite life is assumed (default: 200 MPa). designLifeCycles is the target fatigue life (default: 1e6 cycles). stressRatio R=-1 = fully reversed loading. surfaceFinishFactor reduces endurance limit for rough surfaces (0-1). Outputs damage fraction, remaining life cycles, and safety margin. Port of MaterialFatigueTrait.ts (handler name: material_fatigue).",
+  props: {
+    s_n_curve_slope: number = -0.1,
+    endurance_limit_mpa: number = 200,
+    design_life_cycles: number = 1000000,
+    stress_ratio: number = -1,
+    surface_finish_factor: number = 0.9
+  },
+  events: {
+    on_damage_computed: "material_fatigue_damage",
+    on_life_exhausted: "material_fatigue_failed",
+    compute: "material_fatigue_compute"
+  },
+  behaviors: ["@load_bearing", "@structural_analysis"]
+}
