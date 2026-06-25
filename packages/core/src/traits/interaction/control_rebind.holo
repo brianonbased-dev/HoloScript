@@ -1,0 +1,20 @@
+@trait {
+  name: "@control_rebind",
+  category: "interaction",
+  description: "Player input key/button rebinding manager. Stores a per-player action-to-input mapping overlay, persisting remapped bindings to cloud save, exposing a rebind UI panel, and broadcasting the active binding map to all input consumers on change. Authored from ControlRebindTrait.ts.",
+  props: {
+    bindings: dict<string, string> = {},
+    profile_id: string = "default",
+    allow_conflicts: boolean = false,
+    persist: boolean = true,
+    gamepad_support: boolean = true
+  },
+  events: {
+    attached: "control_rebind_attached",
+    detached: "control_rebind_detached",
+    on_change: "control_rebind_change",
+    on_reset: "control_rebind_reset",
+    reset: "control_rebind_trigger_reset"
+  },
+  behaviors: ["@vr_comfort", "@menu_system", "@cloud_save"]
+}

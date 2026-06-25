@@ -1,0 +1,20 @@
+@trait {
+  name: "@crowd_density",
+  category: "world",
+  description: "Ambient crowd density and NPC spawn budget controller. Manages a regional count of ambient pedestrian or crowd NPCs, scaling spawn rate and culling distance to hit a target density, pausing spawns when the player count is low and suspending entirely when the shard is empty. Authored from CrowdDensityTrait.ts.",
+  props: {
+    target_density: number = 20,
+    spawn_radius_m: number = 60,
+    cull_radius_m: number = 80,
+    npc_template_ids: list<string> = [],
+    scale_with_players: boolean = true,
+    max_count: number = 50
+  },
+  events: {
+    attached: "crowd_density_attached",
+    detached: "crowd_density_detached",
+    on_spawn: "crowd_density_spawn",
+    on_cull: "crowd_density_cull"
+  },
+  behaviors: ["@spawner_pool", "@npc_schedule", "@procedural_placement"]
+}

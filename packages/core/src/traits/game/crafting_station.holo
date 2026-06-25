@@ -1,0 +1,21 @@
+@trait {
+  name: "@crafting_station",
+  category: "game",
+  description: "Crafting bench interaction point. Presents a recipe catalogue to interacting players, validates ingredient availability in the player inventory, consumes inputs and produces outputs after a craft-time animation, and supports quality tiers based on skill level. Authored from CraftingStationTrait.ts.",
+  props: {
+    recipes: list<{ id: string, inputs: list<{ item_id: string, count: number }>, output_item_id: string, output_count: number, craft_time_s: number }> = [],
+    interaction_radius_m: number = 2,
+    craft_skill: string = "",
+    quality_tier_prop: string = "",
+    station_type: string = "generic"
+  },
+  events: {
+    attached: "crafting_station_attached",
+    detached: "crafting_station_detached",
+    on_open: "crafting_station_open",
+    on_craft_start: "crafting_station_craft_start",
+    on_craft_complete: "crafting_station_craft_complete",
+    on_craft_fail: "crafting_station_craft_fail"
+  },
+  behaviors: ["@inventory", "@loot_table", "@build_timer"]
+}

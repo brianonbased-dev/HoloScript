@@ -1,0 +1,21 @@
+@trait {
+  name: "@cooldown_bar",
+  category: "visual",
+  description: "Single-ability cooldown progress bar widget. Renders a horizontal or radial fill bar that depletes on ability use and refills over the cooldown duration, pulling state from a named ability in @ability_cooldown and supporting animated fill easing and icon overlay. Authored from CooldownBarTrait.ts.",
+  props: {
+    ability_id: string = "",
+    mode: enum("bar" | "radial") = "bar",
+    width_px: number = 120,
+    height_px: number = 10,
+    fill_color: string = "#4488ff",
+    depleted_color: string = "#222244",
+    icon_url: string = "",
+    position: { x: number, y: number } = { x: 50, y: 90 },
+    visible: boolean = true
+  },
+  events: {
+    attached: "cooldown_bar_attached",
+    detached: "cooldown_bar_detached"
+  },
+  behaviors: ["@ability_cooldown", "@action_bar", "@ui_frame"]
+}
