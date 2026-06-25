@@ -1,0 +1,76 @@
+// @graph_selection_manager — Multi-select state for interactive codebase graph visualization.
+//
+// Native .hsplus surface for GraphSelectionManager.ts (absorb-service/engine/visualization).
+//
+// Manages additive selection, subgraph extraction, context generation for
+// AI queries, and N-hop neighborhood expansion.
+//
+// GraphSelectionManager (GraphSelectionManager.ts):
+//   selectedIds: Set<String>  — current multi-selection
+//
+// SelectionSubgraph { nodes: String[], edges: [{from, to, type: import|call}], symbols: ExternalSymbolDefinition[] }
+// SelectionContext  { text: String (formatted for AI), symbolCount, fileCount, communities: String[] }
+//
+// Operations:
+//   select(nodeId)           → Bool (true if newly added)
+//   deselect(nodeId)         → Bool (true if removed)
+//   clear()                  → clears all
+//   getSubgraph()            → SelectionSubgraph
+//   getContext()             → SelectionContext (AI-query-ready text)
+//   expandNHops(n)           → adds all nodes within N import/call hops
+
+@trait graph_selection_manager {
+  capability_tags: ["graph_selection_manager", "multi_select", "subgraph_extraction", "ai_context", "n_hop_expansion", "codebase_visualization", "absorb_service"]
+
+  @on_spawn(graph_ref) => {
+    manager = init_graph_selection_manager(graph_ref)
+    emit("graph_selection_manager_ready", {})
+  }
+
+  // Select a node; returns true if newly added
+  @on_select(node_id) => {
+    added = manager.select(node_id)
+    if added { emit("node_selected", { node_id: node_id }) }
+    return added
+  }
+
+  // Deselect a node; returns true if removed
+  @on_deselect(node_id) => {
+    removed = manager.deselect(node_id)
+    if removed { emit("node_deselected", { node_id: node_id }) }
+    return removed
+  }
+
+  // Clear all selections
+  @on_clear => {
+    manager.clear()
+    emit("selection_cleared", {})
+  }
+
+  // Extract a subgraph of selected nodes + their interconnecting edges
+  @on_get_subgraph => {
+    subgraph = manager.get_subgraph()
+    emit("subgraph_extracted", { node_count: subgraph.nodes.size })
+    return subgraph
+  }
+
+  // Generate AI-query-ready context from current selection
+  @on_get_context => {
+    ctx = manager.get_context()
+    return ctx
+  }
+
+  // Expand selection by N import/call hops
+  @on_expand_n_hops(n) => {
+    added_count = manager.expand_n_hops(n)
+    emit("selection_expanded", { hops: n, added: added_count })
+    return added_count
+  }
+
+  @receipt graph_selection_manager_config {
+    type: "GraphSelectionManagerReceipt"
+    edge_types: ["import", "call"]
+    context_use: "SelectionContext.text is formatted for AI query input"
+    timestamp: now()
+  }
+}

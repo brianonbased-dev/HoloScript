@@ -1,0 +1,73 @@
+// @codebase_graph — Unified knowledge graph of symbols, imports, calls, and events.
+//
+// Native .hsplus surface for CodebaseGraph.ts (absorb-service/engine).
+//
+// Wraps a ScanResult into a queryable graph for callers/callees, impact
+// analysis, and community detection.
+//
+// CodebaseGraphStats (CodebaseGraph.ts):
+//   total_files, total_symbols, total_imports, total_calls,
+//   total_event_edges (HoloGraph Phase 1), total_loc,
+//   files_by_language: Map<String, Int>,
+//   symbols_by_type: Map<String, Int>,
+//   communities: Int
+//
+// SymbolQuery: { name?, type?, file?, language?, visibility? }
+// CallChain:   { path: String[], depth: Int, cost?: Float }
+// CallChainOptions: bfs (default, shortest-hop) | weighted
+//
+// Edges: ImportEdge, CallEdge, EventEdge, ProvenanceEdge
+// Uses CommunityDetector for community membership.
+
+@trait codebase_graph {
+  capability_tags: ["codebase_graph", "knowledge_graph", "callers_callees", "impact_analysis", "call_chains", "event_edges", "absorb_service", "holograph_phase1"]
+
+  @on_spawn(scan_result) => {
+    graph = init_codebase_graph(scan_result)
+    emit("codebase_graph_ready", {})
+  }
+
+  // Query symbols by any combination of name/type/file/language/visibility
+  @on_query_symbols(query) => {
+    return graph.query_symbols(query)
+  }
+
+  // Find all callers of a symbol
+  @on_get_callers(symbol_id) => {
+    return graph.get_callers(symbol_id)
+  }
+
+  // Find all callees of a symbol
+  @on_get_callees(symbol_id) => {
+    return graph.get_callees(symbol_id)
+  }
+
+  // Compute call chains between two symbols
+  @on_get_call_chain(from_id, to_id, options) => {
+    chain = graph.get_call_chain(from_id, to_id, options)
+    return chain
+  }
+
+  // Get import neighbors for a file
+  @on_get_imports(file_path) => {
+    return graph.get_imports(file_path)
+  }
+
+  // Get all graph statistics
+  @on_get_stats => {
+    return graph.get_stats()
+  }
+
+  // Get community membership for a file
+  @on_get_community(file_path) => {
+    return graph.get_community(file_path)
+  }
+
+  @receipt codebase_graph_config {
+    type: "CodebaseGraphReceipt"
+    edge_types: ["ImportEdge", "CallEdge", "EventEdge", "ProvenanceEdge"]
+    call_chain_strategies: ["bfs (default, shortest-hop)", "weighted"]
+    holograph_phase: "Phase 1 (EventEdge tracking)"
+    timestamp: now()
+  }
+}

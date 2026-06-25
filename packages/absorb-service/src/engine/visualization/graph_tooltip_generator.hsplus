@@ -1,0 +1,45 @@
+// @graph_tooltip_generator — Rich tooltip content for hovered/selected codebase graph nodes.
+//
+// Native .hsplus surface for GraphTooltipGenerator.ts (absorb-service/engine/visualization).
+//
+// Generates structured tooltip data for standard symbol nodes and GraphRAG search results.
+//
+// TooltipData (GraphTooltipGenerator.ts):
+//   title:          String                 — symbol name (primary label)
+//   subtitle:       String                 — type + language (secondary label)
+//   lines:          TooltipLine[]
+//   rag_annotations?: RAGAnnotation[]      — only for GraphRAG search result nodes
+//
+// TooltipLine { label, value, icon?: file|code|link|alert|info }
+// RAGAnnotation { type: score|related|impact, text, value?: Float (for score bars) }
+//
+// generate(symbol, rag_result?) → TooltipData
+// The rag_result enriches tooltip with relevance score + related symbols.
+
+@trait graph_tooltip_generator {
+  capability_tags: ["graph_tooltip_generator", "tooltip", "graph_rag", "symbol_info", "codebase_visualization", "absorb_service"]
+
+  @on_spawn(graph_ref) => {
+    generator = init_graph_tooltip_generator(graph_ref)
+    emit("graph_tooltip_generator_ready", {})
+  }
+
+  // Generate tooltip data for a symbol (optionally with RAG annotations)
+  @on_generate(symbol, rag_result) => {
+    tooltip = generator.generate(symbol, rag_result)
+    return tooltip
+  }
+
+  // Generate tooltip for a node ID (looks up symbol from graph)
+  @on_generate_for_node(node_id, rag_score) => {
+    tooltip = generator.generate_for_node(node_id, rag_score)
+    return tooltip
+  }
+
+  @receipt graph_tooltip_generator_config {
+    type: "GraphTooltipGeneratorReceipt"
+    rag_annotation_types: ["score", "related", "impact"]
+    icon_options: ["file", "code", "link", "alert", "info"]
+    timestamp: now()
+  }
+}

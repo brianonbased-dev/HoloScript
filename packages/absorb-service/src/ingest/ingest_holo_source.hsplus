@@ -1,0 +1,72 @@
+// @ingest_holo_source — Canonical .holo/.hsplus intake via @holoscript/core parser.
+//
+// Native .hsplus surface for ingestHoloSource.ts (absorb-service/ingest).
+//
+// NORTH_STAR DT-14 sanctioned path. `holoscript/no-regex-hs-parsing` ESLint rule
+// enforces that every absorb-service consumer routes .holo/.hsplus reading here —
+// never hand-rolled regex/split/tokenization.
+//
+// Pipeline (ingestHoloSource.ts):
+//   1. Parse source via @holoscript/core: parseHoloPartial (tolerant) or parseHolo (strict)
+//   2. Build ReferenceGraph from HoloComposition AST with byte-precise loc ranges
+//   3. Return { ast, graph, errors, warnings }
+//      errors.length === 0 → clean parse
+//
+// IngestHoloSourceOptions:
+//   file_path:  String  = "input.holo" — attribute definitions to this path
+//   tolerant:   Bool    = true  — parseHoloPartial: never throws; best-effort AST
+//                         false — parseHolo (strict): halts on any parse error
+//   finalize:   Bool    = true  — finalize graph (build edges, find entry points)
+//                         false — multi-file ingest; caller calls graph.finalize() after last file
+//   graph:      ?       — reuse existing ReferenceGraph for multi-file batch ingest
+//
+// IngestHoloSourceWarning { message, loc?: { line, column } }
+
+@trait ingest_holo_source {
+  // Default to tolerant mode (REPL/LSP/live-preview)
+  tolerant: Bool = true
+
+  // Finalize graph after each file by default
+  finalize: Bool = true
+
+  capability_tags: ["ingest_holo_source", "holo_parser", "holoscript_core", "reference_graph", "dt14", "no_regex_hs_parsing", "absorb_service"]
+
+  @on_spawn => {
+    ingester = init_ingest_holo_source({
+      tolerant: tolerant,
+      finalize: finalize
+    })
+    emit("ingest_holo_source_ready", {
+      tolerant: tolerant,
+      finalize: finalize
+    })
+  }
+
+  // Ingest a single .holo/.hsplus source string
+  @on_ingest(source, file_path, graph_ref) => {
+    result = ingester.ingest(source, file_path ?? "input.holo", graph_ref)
+    emit("holo_source_ingested", {
+      file: file_path,
+      errors: result.errors.size,
+      warnings: result.warnings.size
+    })
+    return result
+  }
+
+  // Ingest multiple files into one shared graph (calls graph.finalize() after last)
+  @on_ingest_batch(files) => {
+    results = ingester.ingest_batch(files)
+    emit("holo_batch_ingested", { file_count: files.size })
+    return results
+  }
+
+  @receipt ingest_holo_source_config {
+    type: "IngestHoloSourceReceipt"
+    tolerant: tolerant
+    finalize: finalize
+    upstream: "NORTH_STAR DT-14 + holoscript/no-regex-hs-parsing ESLint rule"
+    parser: "@holoscript/core parseHoloPartial (tolerant) or parseHolo (strict)"
+    output: "{ ast: HoloComposition, graph: ReferenceGraph, errors[], warnings[] }"
+    timestamp: now()
+  }
+}
