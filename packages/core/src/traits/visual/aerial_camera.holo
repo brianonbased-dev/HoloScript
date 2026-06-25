@@ -1,0 +1,22 @@
+@trait {
+  name: "@aerial_camera",
+  category: "visual",
+  description: "Top-down or isometric aerial spectator camera. Locks the camera above the scene at a configurable altitude and tilt angle, panning by input or following a target entity, with smooth zoom, edge-scroll in RTS mode, and clip-plane adjustment for tall buildings. Authored from AerialCameraTrait.ts.",
+  props: {
+    altitude_m: number = 30,
+    tilt_deg: number = 45,
+    target_entity_id: string = "",
+    pan_speed: number = 20,
+    min_zoom_m: number = 10,
+    max_zoom_m: number = 80,
+    edge_scroll: boolean = false
+  },
+  events: {
+    attached: "aerial_camera_attached",
+    detached: "aerial_camera_detached",
+    on_pan: "aerial_camera_pan",
+    on_zoom: "aerial_camera_zoom",
+    set_target: "aerial_camera_trigger_set_target"
+  },
+  behaviors: ["@virtual_camera", "@follow_cam", "@orbit_camera"]
+}

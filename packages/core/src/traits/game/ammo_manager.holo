@@ -1,0 +1,24 @@
+@trait {
+  name: "@ammo_manager",
+  category: "game",
+  description: "Weapon ammunition and reload state manager. Tracks current magazine count and total reserve, driving a reload animation on empty-fire, capping auto-reload speed with haste, and firing events to HUD for clip bar and total-ammo display. Authored from AmmoManagerTrait.ts.",
+  props: {
+    magazine_size: number = 30,
+    current_magazine: number = 30,
+    reserve: number = 90,
+    reload_s: number = 2,
+    auto_reload: boolean = true,
+    infinite_reserve: boolean = false
+  },
+  events: {
+    attached: "ammo_manager_attached",
+    detached: "ammo_manager_detached",
+    on_fire: "ammo_manager_fire",
+    on_reload_start: "ammo_manager_reload_start",
+    on_reload_end: "ammo_manager_reload_end",
+    on_empty: "ammo_manager_empty",
+    fire: "ammo_manager_trigger_fire",
+    reload: "ammo_manager_trigger_reload"
+  },
+  behaviors: ["@equip", "@stamina_system", "@ability_cooldown"]
+}

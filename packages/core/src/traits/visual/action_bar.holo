@@ -1,0 +1,20 @@
+@trait {
+  name: "@action_bar",
+  category: "visual",
+  description: "HUD action-slot bar. Renders a horizontal strip of ability/item slots with keybind labels, cooldown overlay rings, charge-count badges, and active-highlight, consuming state from @ability_cooldown and @equip to keep slots in sync. Authored from ActionBarTrait.ts.",
+  props: {
+    slot_count: number = 10,
+    slot_size_px: number = 52,
+    position: { x: number, y: number } = { x: 50, y: 8 },
+    show_keybinds: boolean = true,
+    show_cooldown_ring: boolean = true,
+    opacity: number = 0.9
+  },
+  events: {
+    attached: "action_bar_attached",
+    detached: "action_bar_detached",
+    on_slot_activate: "action_bar_activate",
+    on_slot_change: "action_bar_change"
+  },
+  behaviors: ["@ability_cooldown", "@inventory_hud", "@ui_frame"]
+}

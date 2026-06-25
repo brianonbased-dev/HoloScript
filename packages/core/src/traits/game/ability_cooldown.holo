@@ -1,0 +1,18 @@
+@trait {
+  name: "@ability_cooldown",
+  category: "game",
+  description: "Per-ability cooldown timer manager. Tracks individual ability cooldown states by ID, blocking reuse until elapsed and surfacing remaining seconds to HUD via events, with haste-modifier scaling and global cooldown support. Authored from AbilityCooldownTrait.ts.",
+  props: {
+    abilities: list<{ id: string, cooldown_s: number, remaining_s: number }> = [],
+    global_cooldown_s: number = 0.5,
+    haste_factor: number = 1.0
+  },
+  events: {
+    attached: "ability_cooldown_attached",
+    detached: "ability_cooldown_detached",
+    on_ready: "ability_cooldown_ready",
+    on_use: "ability_cooldown_use",
+    use: "ability_cooldown_trigger_use"
+  },
+  behaviors: ["@stamina_system", "@player_stats", "@status_effect"]
+}
