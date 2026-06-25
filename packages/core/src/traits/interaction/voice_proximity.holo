@@ -1,0 +1,28 @@
+@trait {
+  name: "@voice_proximity",
+  category: "interaction",
+  description: "Spatial voice chat with distance-based attenuation. Applies logarithmic/linear/exponential falloff between min and max distance, optional HRTF panning, directional cone, voice-activity detection, and typed proximity zones (public/private/team). Port of VoiceProximityTrait.ts (handler name: voice_proximity).",
+  props: {
+    min_distance: number = 1.0,
+    max_distance: number = 20.0,
+    falloff: enum("linear" | "logarithmic" | "exponential" | "custom") = "logarithmic",
+    directional: boolean = false,
+    cone_inner_angle: number = 360,
+    cone_outer_angle: number = 360,
+    cone_outer_gain: number = 0.0,
+    enable_hrtf: boolean = true,
+    voice_activity_detection: boolean = true,
+    zones: list<{ id: string, type: enum("public" | "private" | "team"), radius: number, volume_multiplier: number }> = []
+  },
+  events: {
+    attached: "voice_proximity_attached",
+    detached: "voice_proximity_detached",
+    on_enter_range: "voice_proximity_enter_range",
+    on_exit_range: "voice_proximity_exit_range",
+    on_zone_enter: "voice_proximity_zone_enter",
+    on_zone_exit: "voice_proximity_zone_exit",
+    on_mute: "voice_proximity_mute",
+    on_unmute: "voice_proximity_unmute"
+  },
+  behaviors: ["@spatial_audio_cue", "@spatial_voice", "@voice_input"]
+}

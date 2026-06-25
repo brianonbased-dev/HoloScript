@@ -1,0 +1,34 @@
+@trait {
+  name: "@voice_output",
+  category: "interaction",
+  description: "Text-to-speech synthesis for NPCs, narration, and accessibility. Queues speech requests with priority, supports SSML, per-segment overrides (pitch/rate/emphasis/say-as), expressive styles (cheerful/sad/angry/etc.), and multiple synthesis engines (browser, Azure, Google, AWS, ElevenLabs). Port of VoiceOutputTrait.ts.",
+  props: {
+    engine: enum("browser" | "azure" | "google" | "aws" | "elevenlabs" | "custom") = "browser",
+    default_voice: string = "",
+    pitch: number = 1.0,
+    rate: number = 1.0,
+    volume: number = 1.0,
+    ssml: boolean = false,
+    max_queue_size: number = 10,
+    interrupt: boolean = false,
+    format: enum("mp3" | "wav" | "ogg" | "webm") = "mp3",
+    region: string = "",
+    endpoint: string = ""
+  },
+  events: {
+    attached: "voice_output_attached",
+    detached: "voice_output_detached",
+    on_start: "voice_output_start",
+    on_end: "voice_output_end",
+    on_pause: "voice_output_pause",
+    on_resume: "voice_output_resume",
+    on_word: "voice_output_word",
+    on_error: "voice_output_error",
+    on_queue_empty: "voice_output_queue_empty",
+    speak: "voice_output_trigger_speak",
+    pause: "voice_output_trigger_pause",
+    resume: "voice_output_trigger_resume",
+    stop: "voice_output_trigger_stop"
+  },
+  behaviors: ["@spatial_audio_cue", "@dialogue", "@npcai"]
+}

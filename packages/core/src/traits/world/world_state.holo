@@ -1,0 +1,25 @@
+@trait {
+  name: "@world_state",
+  category: "world",
+  description: "Loro CRDT persistent world state bridge. Manages scene objects, terrain, NPC memory, and inventory via two-tier sync: CRDT at ~10Hz for high-level state, raw binary at ~60Hz for physics particles. Autosaves on interval. Port of WorldStateTrait.ts (handler name: world_state).",
+  props: {
+    sync_interval: number = 0.1,
+    autosave_interval: number = 30,
+    max_objects: number = 10000,
+    persist_terrain: boolean = true,
+    persist_npc_memory: boolean = true,
+    persist_inventory: boolean = true,
+    world_id: string = "default"
+  },
+  events: {
+    attached: "world_state_attached",
+    detached: "world_state_detached",
+    on_sync: "world_state_sync",
+    on_autosave: "world_state_autosave",
+    on_object_add: "world_state_object_add",
+    on_object_remove: "world_state_object_remove",
+    save: "world_state_trigger_save",
+    restore: "world_state_trigger_restore"
+  },
+  behaviors: ["@collaborative_world", "@versioned_state", "@consensus"]
+}
