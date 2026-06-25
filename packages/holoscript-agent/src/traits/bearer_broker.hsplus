@@ -1,0 +1,90 @@
+// @bearer_broker — declares vault-based bearer resolution for an agent entity.
+//
+// This is the native-authoring surface for the bearer-broker module (bearer-broker.ts).
+// The core principle (I.022 / W.750): an agent seat holds only its WALLET (the durable
+// root identity) — not a plaintext bearer in .env. The bearer is fetched on demand by
+// proving wallet ownership via EIP-712 signed challenge.
+//
+// Protocol (bearer-broker.ts):
+//   1. POST /key/challenge  → server returns {nonce}
+//   2. Sign EIP-712 Recovery{nonce} with the wallet private key
+//   3. POST /key/recover    → server returns {api_key}
+//   The bearer is valid until the next rotation; private key never leaves the process.
+//
+// The sovereign vault path (I.022):
+//   When vault_bin is set, the entity instead reads the bearer from the local HoloKey
+//   vault (scripts/jetson/holokey-vault.cjs) via the HOLOKEY_VAULT_BIN + vault owner
+//   handle. This is the Jetson sovereign path: $0, off-Railway, vault-sole-source.
+//
+// Usage:
+//   entity#jetson_agent @bearer_broker(
+//     use_vault: true
+//     vault_owner: "jetson-orin-super"
+//   ) { ... }
+//
+//   entity#cloud_agent @bearer_broker(
+//     use_vault: false
+//     mesh_api_base: "https://mcp.holoscript.net/api/holomesh"
+//   ) { ... }
+
+@trait bearer_broker {
+  // Whether to use the local HoloKey vault (sovereign Jetson path, $0)
+  use_vault: Bool = false
+
+  // Handle whose bearer to resolve from the vault (use_vault=true only)
+  vault_owner: String?
+
+  // Path to the holokey-vault binary (defaults to HOLOKEY_VAULT_BIN env)
+  vault_bin: String?
+
+  // Mesh API base for the EIP-712 broker path (use_vault=false)
+  mesh_api_base: String = "https://mcp.holoscript.net/api/holomesh"
+
+  // Retry budget for broker failures before boot fails
+  max_retries: Int = 3
+
+  // Timeout for broker calls in milliseconds
+  timeout_ms: Int = 10000
+
+  capability_tags: ["bearer_broker", "wallet_proof", "eip712_challenge", "vault_first", "no_plaintext_bearer"]
+
+  @on_spawn => {
+    if use_vault {
+      if not vault_owner {
+        error("vault_owner is required when use_vault=true")
+      }
+      bearer = resolve_from_vault({
+        bin: vault_bin ?? env("HOLOKEY_VAULT_BIN"),
+        owner: vault_owner,
+        max_retries: max_retries
+      })
+    } else {
+      bearer = resolve_via_eip712_challenge({
+        mesh_api_base: mesh_api_base,
+        max_retries: max_retries,
+        timeout_ms: timeout_ms
+      })
+    }
+    store_bearer_in_session(bearer)
+    emit("bearer_resolved", {
+      method: use_vault ? "vault" : "eip712_challenge",
+      vault_owner: vault_owner,
+      mesh_api_base: use_vault ? null : mesh_api_base
+    })
+  }
+
+  @on_bearer_expiry => {
+    emit("bearer_refresh_needed", { vault_owner: vault_owner })
+    invoke_on_spawn()
+  }
+
+  @receipt bearer_resolution {
+    type: "BearerBrokerReceipt"
+    method: use_vault ? "vault" : "eip712_challenge"
+    vault_owner: vault_owner ?? "n/a"
+    mesh_api_base: use_vault ? "sovereign-local" : mesh_api_base
+    max_retries: max_retries
+    plaintext_in_env: false
+    timestamp: now()
+  }
+}

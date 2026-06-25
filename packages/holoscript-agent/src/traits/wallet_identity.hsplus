@@ -1,0 +1,90 @@
+// @wallet_identity — declares a wallet-keyed agent identity on an entity.
+//
+// This is the native-authoring surface for AgentIdentity (identity.ts).
+// An entity carrying @wallet_identity is an agent seat — it has a durable
+// wallet address (the root identity anchor, F.119), a surface handle, and
+// an LLM provider. The bearer is NOT stored here — it is resolved from the
+// HoloKey broker (@bearer_broker trait) at boot time, or injected at spawn.
+//
+// Wallet semantics (F.119 / I.022):
+//   - handle = the fleet NAME — this is the .hsplus brain skill selector
+//   - wallet = the 0x-address — durable, deterministic, survives key rotation
+//   - bearer = rotatable api_key — NEVER stored in .env; fetched from vault
+//
+// The private:<wallet> memory namespace (D.102):
+//   All reads and writes to this agent's long-term knowledge store use the
+//   wallet address as the scope key. Memory persists across substrates — the
+//   same agent running on Jetson and in the headset shares one store.
+//
+// Usage:
+//   entity#my_agent @wallet_identity(
+//     handle: "jetson-orin-super"
+//     wallet: "0x03a101E76BB37a745464243148A77d6D225E5c17"
+//     provider: "local_llm"
+//     budget_usd_per_day: 0.0
+//   ) { ... }
+
+@trait wallet_identity {
+  // Agent handle — the fleet seat name (NOT the wallet, NOT the surface)
+  handle: String
+
+  // EIP-55 wallet address — the durable identity root
+  wallet: String
+
+  // LLM provider for this seat
+  provider: enum("anthropic" | "openai" | "gemini" | "xai" | "openrouter" | "local_llm" | "bitnet" | "mock") = "anthropic"
+
+  // LLM model ID (provider-specific)
+  model: String?
+
+  // Surface identifier (defaults to handle if omitted)
+  surface: String?
+
+  // Max USD per day (0 = uncapped; local fleet default is 0 / FREE)
+  budget_usd_per_day: Float = 5.0
+
+  // HoloMesh team ID for private memory and mesh coordination
+  team_id: String
+
+  // Mesh API base URL
+  mesh_api_base: String = "https://mcp.holoscript.net/api/holomesh"
+
+  capability_tags: ["wallet_keyed", "agent_seat", "portable_identity", "private_memory_scope"]
+
+  @on_spawn => {
+    validate_wallet_address(wallet)
+    seat = register_seat({
+      handle: handle,
+      surface: surface ?? handle,
+      wallet: wallet,
+      provider: provider,
+      model: model,
+      budget_usd_per_day: budget_usd_per_day,
+      team_id: team_id,
+      mesh_api_base: mesh_api_base
+    })
+    emit("seat_registered", {
+      handle: handle,
+      wallet: wallet,
+      provider: provider,
+      team_id: team_id
+    })
+  }
+
+  @on_despawn => {
+    deregister_seat(handle)
+    emit("seat_deregistered", { handle: handle, wallet: wallet })
+  }
+
+  @receipt seat_identity {
+    type: "WalletIdentityReceipt"
+    handle: handle
+    wallet: wallet
+    surface: surface ?? handle
+    provider: provider
+    budget_usd_per_day: budget_usd_per_day
+    team_id: team_id
+    private_memory_scope: "private:" + wallet
+    timestamp: now()
+  }
+}

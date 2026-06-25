@@ -1,0 +1,93 @@
+// @mesh_character_mind — binds a live HoloMesh memory store to an embodied agent body.
+//
+// This is the native-authoring surface for MeshCharacterMind (mesh-character-mind.ts).
+// The D.102 "portable agent mind" thesis: one agent runs on Jetson/laptop and EMBODIES
+// in the headset, carrying the SAME memory+identity across substrates. The body is
+// transient (the XR render surface); the mind is permanent (private:<wallet> store).
+//
+// The three structural bindings this trait declares (from mesh-character-mind.ts):
+//   identity()     — wallet + handle from the seat identity
+//   loadMemory()   — queries private:<wallet> store; client-side filter by query string
+//   rememberOutcome() — writes a new fact back to the private store on completion
+//
+// The key structural property: this trait never imports @holoscript/engine — it is
+// dep-free on purpose so the edge package keeps its clean publish closure. The engine's
+// CharacterHost.bindMind() accepts any object with identity() + loadMemory() because
+// TypeScript is structural. The interfaces MIRROR CharacterMind but are not imported.
+//
+// Usage:
+//   entity#embodied_agent @mesh_character_mind(
+//     wallet: "0x03a101E76BB37a745464243148A77d6D225E5c17"
+//     handle: "jetson-orin-super"
+//     memory_limit: 50
+//   ) { ... }
+
+@trait mesh_character_mind {
+  // Wallet address — scopes the private:<wallet> memory store
+  wallet: String
+
+  // Agent handle — used as agentId in identity()
+  handle: String
+
+  // Maximum number of memory entries to load per recall
+  memory_limit: Int = 50
+
+  // Write the task outcome back to private memory when done
+  remember_outcomes: Bool = true
+
+  // Optional mesh API base (resolved from environment if omitted)
+  mesh_api_base: String?
+
+  // Optional x402 bearer (resolved from vault if omitted)
+  bearer: String?
+
+  capability_tags: ["portable_mind", "wallet_keyed", "private_memory", "cross_substrate_identity", "character_mind"]
+
+  @on_spawn => {
+    client = resolve_holomesh_client({
+      mesh_api_base: mesh_api_base,
+      bearer: bearer
+    })
+    mind = bind_mesh_character_mind({
+      wallet: wallet,
+      handle: handle,
+      memory_limit: memory_limit,
+      store: client
+    })
+    identity = mind.identity()
+    emit("mesh_mind_bound", {
+      wallet: identity.wallet,
+      handle: identity.agent_id,
+      private_scope: "private:" + wallet
+    })
+  }
+
+  @on_tick => {
+    memories = load_memory(nil, memory_limit)
+    inject_context({ memories: memories, scope: "private:" + wallet })
+  }
+
+  @on_task_done(outcome) => {
+    if remember_outcomes {
+      remember_outcome({
+        content: outcome.summary,
+        task_id: outcome.task_id,
+        wallet: wallet
+      })
+      emit("outcome_remembered", {
+        task_id: outcome.task_id,
+        wallet: wallet
+      })
+    }
+  }
+
+  @receipt portable_mind_binding {
+    type: "MeshCharacterMindReceipt"
+    wallet: wallet
+    handle: handle
+    private_scope: "private:" + wallet
+    memory_limit: memory_limit
+    remember_outcomes: remember_outcomes
+    timestamp: now()
+  }
+}
