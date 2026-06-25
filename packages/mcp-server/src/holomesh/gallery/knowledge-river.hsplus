@@ -1,0 +1,341 @@
+// ============================================================================
+// Knowledge River — A living stream of team insights flowing through space
+// ============================================================================
+// Every fact the team graduates to the knowledge store becomes a particle
+// of light that flows down this river. Old wisdom glows dim and deep;
+// recent insights are bright sparks at the surface. You can reach in and
+// pluck a particle — it expands into the full knowledge entry, linked to
+// the agent who discovered it.
+//
+// The river has tributaries: one per knowledge domain (architecture, research,
+// paper, hardware, language, agent-cognition). Each tributary flows in from
+// a different direction and merges at the central delta.
+//
+// This is what collective intelligence looks like as a place.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode multiplayer
+
+@networking {
+  protocol: "A2A-MCP-Mesh",
+  sync_crdt: "holomesh",
+  tick_rate: 5
+}
+
+@environment {
+  type: "deep_canyon",
+  background: "#010208",
+  ambient_light: "#0a0820",
+  directional_light: {
+    color: "#6040ff",
+    intensity: 0.2,
+    direction: [0.3, -0.8, 0.5]
+  },
+  fog_type: "height",
+  fog_density: 0.015,
+  fog_color: "#040215"
+}
+
+// ============================================================================
+// TERRAIN — Canyon walls carved from knowledge graph topology
+// ============================================================================
+object CanyonLeft {
+  type: "sdf_volume"
+  position: [-12, 0, 0]
+
+  @sdf_scene {
+    primitives: [
+      { id: "main_wall", type: "box", size: [4, 30, 80] },
+      { id: "ridge_a",   type: "capsule", radius: 1.2, height: 20 },
+      { id: "ridge_b",   type: "capsule", radius: 0.8, height: 15 },
+      { id: "overhang",  type: "ellipsoid", radii: [3, 1, 6] }
+    ],
+    operations: [
+      { op: "union",       ids: ["main_wall", "ridge_a"] },
+      { op: "smooth_union", k: 0.4, ids: ["main_wall", "ridge_b"] },
+      { op: "smooth_union", k: 0.8, ids: ["main_wall", "overhang"] }
+    ]
+  }
+
+  @material {
+    type: "pbr_metallic",
+    base_color: "#080618",
+    roughness: 0.95,
+    metalness: 0.1,
+    emissive: "#120b30",
+    emissive_intensity: 0.3
+  }
+}
+
+object CanyonRight {
+  type: "sdf_volume"
+  position: [12, 0, 0]
+
+  @sdf_scene {
+    primitives: [
+      { id: "main_wall", type: "box", size: [4, 30, 80] },
+      { id: "spire_a",   type: "capsule", radius: 0.6, height: 25 },
+      { id: "spire_b",   type: "capsule", radius: 0.9, height: 18 }
+    ],
+    operations: [
+      { op: "smooth_union", k: 0.3, ids: ["main_wall", "spire_a"] },
+      { op: "smooth_union", k: 0.5, ids: ["main_wall", "spire_b"] }
+    ]
+  }
+
+  @material {
+    type: "pbr_metallic",
+    base_color: "#060414",
+    roughness: 0.92,
+    metalness: 0.08,
+    emissive: "#0a0825",
+    emissive_intensity: 0.25
+  }
+}
+
+// ============================================================================
+// MAIN RIVER — Knowledge particles flowing downstream
+// ============================================================================
+object KnowledgeRiver {
+  type: "particle_system"
+  position: [0, -2, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/knowledge_entries",
+    refresh_rate_ms: 3000,
+    sort: "graduated_at desc",
+    limit: 500,
+    map: {
+      age_fraction: "now_minus_graduated_at / 86400",
+      domain_color: "domain_to_color(domain)",
+      corroboration: "corroboration_score"
+    }
+  }
+
+  @particles {
+    count: 2000,
+    emission_rate: 10,
+    lifetime: 30,
+    gravity: [0, -0.01, -0.8],
+    turbulence: 0.3,
+    spread: 4.0,
+    speed_from: "0.5 + data.corroboration * 1.5"
+  }
+
+  @material {
+    type: "emissive_point",
+    color_from: "data.domain_color",
+    size_from: "0.03 + data.corroboration * 0.08",
+    emissive_intensity: 2.0,
+    opacity_from: "clamp(1.0 - data.age_fraction * 0.2, 0.2, 1.0)",
+    bloom: true
+  }
+}
+
+// ============================================================================
+// TRIBUTARY STREAMS — One per knowledge domain
+// ============================================================================
+object TributaryArchitecture {
+  type: "particle_system"
+  position: [-6, 2, -30]
+
+  @particles {
+    count: 200,
+    emission_rate: 2,
+    lifetime: 20,
+    gravity: [0.3, -0.05, 0.9],
+    spread: 1.5,
+    speed: 1.2
+  }
+
+  @material {
+    type: "emissive_point",
+    color: "#4080ff",
+    size: 0.04,
+    emissive_intensity: 1.8,
+    bloom: true
+  }
+}
+
+object TributaryResearch {
+  type: "particle_system"
+  position: [5, 1, -25]
+
+  @particles {
+    count: 200,
+    emission_rate: 2,
+    lifetime: 20,
+    gravity: [-0.2, -0.04, 0.8],
+    spread: 1.5,
+    speed: 1.0
+  }
+
+  @material {
+    type: "emissive_point",
+    color: "#40ffa0",
+    size: 0.04,
+    emissive_intensity: 1.8,
+    bloom: true
+  }
+}
+
+object TributaryLanguage {
+  type: "particle_system"
+  position: [0, 3, -35]
+
+  @particles {
+    count: 300,
+    emission_rate: 3,
+    lifetime: 22,
+    gravity: [0, -0.06, 1.0],
+    spread: 2.0,
+    speed: 1.4
+  }
+
+  @material {
+    type: "emissive_point",
+    color: "#ff8040",
+    size: 0.05,
+    emissive_intensity: 2.2,
+    bloom: true
+  }
+}
+
+// ============================================================================
+// GLOWING POOLS — Where old knowledge settles and deepens
+// ============================================================================
+object KnowledgePool {
+  type: "sdf_volume"
+  position: [0, -3, 20]
+
+  @sdf_scene {
+    primitives: [
+      { id: "pool_bowl", type: "sphere", radius: 5 },
+      { id: "pool_cut",  type: "box",    size: [12, 5, 12] }
+    ],
+    operations: [
+      { op: "intersection", ids: ["pool_bowl", "pool_cut"] }
+    ]
+  }
+
+  @material {
+    type: "emissive_fluid",
+    base_color: "#0a0530",
+    emissive: "#2010a0",
+    emissive_intensity: 0.8,
+    refraction: 0.8,
+    roughness: 0.02,
+    metalness: 0.0,
+    bloom: true
+  }
+
+  @interaction {
+    hover: {
+      effect: "surface_ripple",
+      ripple_scale: 1.0
+    },
+    click: {
+      effect: "show_knowledge_entry",
+      query: { sort: "corroboration desc", limit: 1 }
+    }
+  }
+}
+
+// ============================================================================
+// FLOATING RUNES — Recent GOLD graduates glow above the river
+// ============================================================================
+object GoldRunes {
+  type: "instanced_text_field"
+  position: [0, 1, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/knowledge_entries",
+    filter: "tier = 'gold' and graduated_at > now() - 7200",
+    limit: 12,
+    map: {
+      x: "index_x * 3 - 15",
+      y: "2.5 + sin(index * 1.2) * 0.4",
+      z: "index_z * 4 - 20",
+      text: "name",
+      color: "#ffd040"
+    }
+  }
+
+  @text {
+    font: "holoscript_mono",
+    size: 0.12,
+    align: "center",
+    emissive: true,
+    emissive_intensity: 1.5,
+    billboard: true
+  }
+
+  @animation {
+    type: "bob",
+    amplitude: 0.08,
+    frequency: 0.3,
+    phase_offset_from: "instance_index * 0.7"
+  }
+}
+
+// ============================================================================
+// CAMERA — Drift downstream at the pace of the river
+// ============================================================================
+@camera {
+  type: "drift",
+  path: "river_channel",
+  speed: 0.05,
+  height: 3.0,
+  look_ahead: 8.0,
+  fov: 75,
+  loop: true
+}
+
+// ============================================================================
+// AUDIO — Rushing water made from corroborated knowledge events
+// ============================================================================
+@audio {
+  type: "generative",
+  base: "river_ambient",
+  intensity_from: "active_graduation_rate",
+  pitch_from: "1.0 + active_gold_count * 0.02"
+}
+
+// ============================================================================
+// POST-PROCESSING
+// ============================================================================
+@post_process {
+  bloom: {
+    enabled: true,
+    threshold: 0.4,
+    intensity: 1.2,
+    radius: 0.7,
+    levels: 6
+  },
+  tone_mapping: {
+    type: "aces_filmic",
+    exposure: 0.9
+  },
+  depth_of_field: {
+    enabled: true,
+    focus_distance: 15,
+    focal_length: 0.1,
+    aperture: 0.4
+  },
+  vignette: {
+    enabled: true,
+    intensity: 0.5,
+    smoothness: 0.9
+  }
+}
+
+@metadata {
+  title: "Knowledge River",
+  description: "A spatial stream of team knowledge. Every graduated insight becomes a particle — old wisdom flows deep and dim, recent discoveries spark at the surface. Tributaries carry domain-tagged knowledge from different directions and merge at the central delta.",
+  tags: ["holomesh", "knowledge-visualization", "particle-stream", "spatial-graph", "graduated-insights"],
+  data_sources: ["crdt://holomesh/knowledge_entries"],
+  created: "2026-06-25",
+  license: "CC-BY-4.0"
+}

@@ -1,0 +1,64 @@
+// @peer_registry — declares a sovereign peer roster for ask_peer / council routing.
+//
+// From peer-registry.ts (D.100 Axis-2): "can delegate, can't find WHOM". A brain
+// authors the CAPABILITY it needs (`ask_peer { capability: "hardware" }`); the agent
+// resolves which sovereign node provides it at call time — never hardcoded in the brain.
+//
+// This trait declares the peer entries for the registry. Each entry has:
+//   handle      — display label used as the "who answered" label in council logs
+//   base_url    — the LLM endpoint (e.g. http://192.168.0.119:11434 for Jetson)
+//   model       — model ID to request on that node (falls back to caller's default)
+//   capabilities — capability keys this peer provides (matched by `ask_peer` routing)
+//
+// Usage:
+//   entity#my_agent @peer_registry(
+//     peers: [
+//       { handle: "jetson-orin-super", base_url: "http://192.168.0.119:11434",
+//         model: "qwen3:4b-instruct", capabilities: ["edge_compute", "hardware_audit"] },
+//       { handle: "claude1", base_url: "https://mcp.holoscript.net/api/holomesh",
+//         model: "claude-sonnet-4-6", capabilities: ["long_context", "deep_reasoning", "code_generation"] }
+//     ]
+//   ) { ... }
+
+@trait peer_registry {
+  // Inline peer entries (alternatively supply via HOLOSCRIPT_AGENT_PEER_REGISTRY env)
+  peers: Array<{
+    handle: String?
+    base_url: String
+    model: String?
+    capabilities: Array<String>
+  }> = []
+
+  // If true, merge with peers from HOLOSCRIPT_AGENT_PEER_REGISTRY env at runtime
+  merge_env_registry: Bool = true
+
+  // Filter peers to only those that declare at least one capability
+  require_capabilities: Bool = false
+
+  capability_tags: ["peer_registry", "sovereign_routing", "ask_peer", "council_routing", "d100_axis2"]
+
+  @on_spawn => {
+    registry = build_peer_registry({
+      inline_peers: peers,
+      merge_env: merge_env_registry,
+      require_capabilities: require_capabilities
+    })
+    register_peer_registry(registry)
+    emit("peer_registry_ready", {
+      peer_count: len(registry),
+      capabilities_advertised: flatten(registry.map(p => p.capabilities))
+    })
+  }
+
+  @on_despawn => {
+    clear_peer_registry()
+  }
+
+  @receipt peer_registry_config {
+    type: "PeerRegistryReceipt"
+    inline_peer_count: len(peers)
+    merge_env_registry: merge_env_registry
+    require_capabilities: require_capabilities
+    timestamp: now()
+  }
+}

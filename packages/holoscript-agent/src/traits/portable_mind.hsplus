@@ -1,0 +1,91 @@
+// @portable_mind — the D.102 portable-mind ACQUISITION layer.
+//
+// One trait turns a seat (wallet root credential + mesh config) into a live,
+// ready-to-bind CharacterMind. The full composition (from portable-mind.ts):
+//   1. @bearer_broker resolves the mesh bearer via wallet-ownership proof
+//   2. HolomeshClient is constructed against the bearer + mesh API base
+//   3. MeshCharacterMind wraps the client over the wallet-scoped private store
+//   4. The body binds the mind: host.bindMind(mind) — one call, any substrate
+//
+// This is the "node→headset hop": the SAME agent that ran on a compute node
+// (Jetson) inhabits the headset body carrying its identity + memory (D.102).
+// Compute node and headset are just WHERE the one agent lives.
+//
+// ANCHOR COHERENCE (W.820): the identity wallet is DERIVED from the signing
+// private key (`new Wallet(privateKey).address`), never separately declared.
+// Identity wallet == signing key by construction — coherence without assertion.
+//
+// Usage (Quest-side):
+//   entity#my_body @portable_mind(
+//     team_id: "team_1777834718247_unr35n"
+//     mesh_api_base: "https://mcp.holoscript.net/api/holomesh"
+//     memory_limit: 50
+//   ) { ... }
+//
+// Note: private_key is NOT declared here — it is resolved from the sovereign
+// vault at runtime. NEVER author a private key as a literal in .hsplus.
+
+@trait portable_mind {
+  // HoloMesh team ID for the private:<wallet> memory scope
+  team_id: String
+
+  // Mesh API base URL
+  mesh_api_base: String = "https://mcp.holoscript.net/api/holomesh"
+
+  // Optional explicit agent handle (defaults to wallet address)
+  agent_id: String?
+
+  // Optional local JSONL knowledge path (edge mode — no network needed)
+  local_knowledge_path: String?
+
+  // Maximum memory entries loaded per recall
+  memory_limit: Int = 50
+
+  // Whether to remember outcomes back to the private store
+  remember_outcomes: Bool = true
+
+  capability_tags: ["portable_mind", "d102_carry", "wallet_keyed", "cross_substrate", "anchor_coherent"]
+
+  @on_spawn => {
+    // Bearer resolved from vault/broker — NEVER a literal here
+    bearer = resolve_bearer_from_session()
+    wallet = derive_wallet_from_key()
+    client = build_holomesh_client({
+      bearer: bearer,
+      mesh_api_base: mesh_api_base,
+      local_knowledge_path: local_knowledge_path
+    })
+    mind = build_mesh_character_mind({
+      wallet: wallet,
+      agent_id: agent_id ?? wallet,
+      store: client,
+      memory_limit: memory_limit
+    })
+    bind_mind(mind)
+    identity = mind.identity()
+    emit("portable_mind_acquired", {
+      wallet: identity.wallet,
+      agent_id: identity.agent_id,
+      team_id: team_id,
+      private_scope: "private:" + identity.wallet
+    })
+  }
+
+  @on_task_done(outcome) => {
+    if remember_outcomes {
+      remember_outcome({ content: outcome.summary, task_id: outcome.task_id })
+      emit("portable_memory_written", { task_id: outcome.task_id })
+    }
+  }
+
+  @receipt portable_mind_acquisition {
+    type: "PortableMindAcquisitionReceipt"
+    team_id: team_id
+    mesh_api_base: mesh_api_base
+    agent_id: agent_id ?? "wallet-derived"
+    local_mode: local_knowledge_path != null
+    memory_limit: memory_limit
+    anchor_coherence: "wallet_derived_from_key"
+    timestamp: now()
+  }
+}
