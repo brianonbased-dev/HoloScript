@@ -1,0 +1,24 @@
+// @ui_layout — HoloScript layout engine: flex/grid layout for 2D and XR spatial panels.
+//
+// Native .hsplus surface for core/ui/UILayout.ts.
+//
+// compute(tree) → LayoutResult / place(component, rect)
+
+@trait ui_layout {
+  capability_tags: ["ui_layout", "flex_grid_layout", "xr_spatial_layout", "layout_engine", "core"]
+
+  @on_spawn => {
+    emit("ui_layout_ready", {})
+  }
+
+  @on_compute(tree) => {
+    result = compute_ui_layout(tree)
+    return result
+  }
+
+  @receipt ui_layout_config {
+    type: "UILayoutReceipt"
+    modes: ["flex", "grid", "XR spatial"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @constitutional_validator — Validates HoloScript compositions against constitutional safety constraints.
+//
+// Native .hsplus surface for core/utils/ConstitutionalValidator.ts.
+//
+// validate(composition) → ConstitutionalResult { safe, violations[] }
+// D.044: structural impossibility of civilian-harm in HS action loops
+
+@trait constitutional_validator {
+  capability_tags: ["constitutional_validator", "safety_constraints", "constitutional_check", "d044_minab", "core"]
+
+  @on_spawn => {
+    emit("constitutional_validator_ready", {})
+  }
+
+  @on_validate(composition) => {
+    result = validate_constitutional_safety(composition)
+    if !result.safe { emit("constitutional_violation", { count: result.violations.length }) }
+    return result
+  }
+
+  @receipt constitutional_validator_config {
+    type: "ConstitutionalValidatorReceipt"
+    doctrine: "D.044 — structural impossibility in HS action loops"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @trait_docs — Generates developer documentation for all registered .hsplus traits.
+//
+// Native .hsplus surface for core/traitDocs/traitDocs.ts.
+//
+// generate(registry) → DocBundle / renderMarkdown(trait) → string
+
+@trait trait_docs {
+  capability_tags: ["trait_docs", "trait_documentation", "doc_generation", "registry_docs", "core"]
+
+  @on_spawn => {
+    emit("trait_docs_ready", {})
+  }
+
+  @on_generate(registry) => {
+    bundle = generate_trait_docs(registry)
+    emit("docs_generated", { count: bundle.count })
+    return bundle
+  }
+
+  @receipt trait_docs_config {
+    type: "TraitDocsReceipt"
+    output: "Markdown doc bundle per trait"
+    timestamp: now()
+  }
+}

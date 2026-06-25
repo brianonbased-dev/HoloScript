@@ -1,0 +1,22 @@
+// @type_alias_registry — Registry mapping HoloScript type aliases to their canonical forms.
+//
+// Native .hsplus surface for core/types/TypeAliasRegistry.ts.
+//
+// register(alias, canonical) / resolve(alias) → canonical / list() → AliasMap
+
+@trait type_alias_registry {
+  capability_tags: ["type_alias_registry", "type_alias_resolution", "canonical_type", "type_registry", "core"]
+
+  @on_spawn => {
+    emit("type_alias_registry_ready", {})
+  }
+
+  @on_resolve(alias) => {
+    return resolve_type_alias(alias)
+  }
+
+  @receipt type_alias_registry_config {
+    type: "TypeAliasRegistryReceipt"
+    timestamp: now()
+  }
+}

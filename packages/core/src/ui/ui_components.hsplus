@@ -1,0 +1,19 @@
+// @ui_components — HoloScript core UI component catalogue: Button, Panel, Label, Slider, TextInput.
+//
+// Native .hsplus surface for core/ui/UIComponents.ts.
+//
+// Shared component type registry; consumed by UILayout and UIRenderer
+
+@trait ui_components {
+  capability_tags: ["ui_components", "component_catalogue", "button_panel_label", "core_ui", "core"]
+
+  @on_spawn => {
+    emit("ui_components_ready", {})
+  }
+
+  @receipt ui_components_config {
+    type: "UIComponentsReceipt"
+    components: ["Button", "Panel", "Label", "Slider", "TextInput", "Widget"]
+    timestamp: now()
+  }
+}

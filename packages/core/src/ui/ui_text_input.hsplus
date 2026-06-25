@@ -1,0 +1,24 @@
+// @ui_text_input — HoloScript UI text input: single/multi-line, placeholder, validation, submit.
+//
+// Native .hsplus surface for core/ui/UITextInput.ts.
+
+@trait ui_text_input {
+  capability_tags: ["ui_text_input", "text_field", "placeholder", "validation", "core"]
+
+  @on_spawn(placeholder, multiline) => {
+    init_ui_text_input(placeholder, multiline)
+    emit("ui_text_input_ready", {})
+  }
+
+  @on_submit(value) => {
+    result = validate_text_input(value)
+    if result.valid { emit("text_input_submitted", { value }) }
+    return result
+  }
+
+  @receipt ui_text_input_config {
+    type: "UITextInputReceipt"
+    fields: ["placeholder", "multiline", "maxLength"]
+    timestamp: now()
+  }
+}

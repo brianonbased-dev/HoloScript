@@ -1,0 +1,24 @@
+// @friend_list — Social friend list UI: presence-aware list of connected agents/users.
+//
+// Native .hsplus surface for core/ui/social/FriendList.ts.
+//
+// load(userId) → Friend[] / invite(friendId) / remove(friendId)
+
+@trait friend_list {
+  capability_tags: ["friend_list", "social_ui", "presence_aware", "friend_management", "core"]
+
+  @on_spawn => {
+    emit("friend_list_ready", {})
+  }
+
+  @on_load(user_id) => {
+    friends = load_friend_list(user_id)
+    return friends
+  }
+
+  @receipt friend_list_config {
+    type: "FriendListReceipt"
+    feature: "presence-aware"
+    timestamp: now()
+  }
+}

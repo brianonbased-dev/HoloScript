@@ -1,0 +1,24 @@
+// @hitl_audit_logger — Human-in-the-loop audit logger: records agent decisions that required human review.
+//
+// Native .hsplus surface for core/utils/HITLAuditLogger.ts.
+//
+// log(decision, reviewer, outcome) / export() → AuditLog[]
+
+@trait hitl_audit_logger {
+  capability_tags: ["hitl_audit_logger", "human_in_loop", "decision_audit", "reviewer_log", "core"]
+
+  @on_spawn => {
+    emit("hitl_audit_logger_ready", {})
+  }
+
+  @on_log(decision, reviewer, outcome) => {
+    log_hitl_decision(decision, reviewer, outcome)
+    emit("hitl_decision_logged", { outcome })
+  }
+
+  @receipt hitl_audit_logger_config {
+    type: "HITLAuditLoggerReceipt"
+    scope: "agent decisions requiring human review"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,19 @@
+// @advanced_type_system — HoloScript+ advanced type constructs: dependent types, refinements, branded primitives.
+//
+// Native .hsplus surface for core/types/AdvancedTypeSystem.ts.
+//
+// Refined<T, P> / Branded<T, B> / DependentOn<T, U>
+
+@trait advanced_type_system {
+  capability_tags: ["advanced_type_system", "dependent_types", "refinement_types", "branded_primitives", "core"]
+
+  @on_spawn => {
+    emit("advanced_type_system_ready", {})
+  }
+
+  @receipt advanced_type_system_config {
+    type: "AdvancedTypeSystemReceipt"
+    constructs: ["Refined", "Branded", "DependentOn"]
+    timestamp: now()
+  }
+}

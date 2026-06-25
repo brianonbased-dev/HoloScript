@@ -1,0 +1,18 @@
+// @ui_button — HoloScript UI button component: label, icon, pressed state, click action.
+//
+// Native .hsplus surface for core/ui/UIButton.ts.
+
+@trait ui_button {
+  capability_tags: ["ui_button", "click_action", "button_state", "ui_component", "core"]
+
+  @on_spawn(label, on_click) => {
+    init_ui_button(label, on_click)
+    emit("ui_button_ready", { label })
+  }
+
+  @receipt ui_button_config {
+    type: "UIButtonReceipt"
+    fields: ["label", "icon", "pressed", "onClick"]
+    timestamp: now()
+  }
+}

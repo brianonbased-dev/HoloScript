@@ -1,0 +1,23 @@
+// @ui_event_router — Routes UI events (click, hover, focus, gesture) to registered handlers.
+//
+// Native .hsplus surface for core/ui/UIEventRouter.ts.
+//
+// register(componentId, eventType, handler) / route(event)
+
+@trait ui_event_router {
+  capability_tags: ["ui_event_router", "event_routing", "click_hover_gesture", "handler_registration", "core"]
+
+  @on_spawn => {
+    emit("ui_event_router_ready", {})
+  }
+
+  @on_route(event) => {
+    route_ui_event(event)
+  }
+
+  @receipt ui_event_router_config {
+    type: "UIEventRouterReceipt"
+    events: ["click", "hover", "focus", "gesture"]
+    timestamp: now()
+  }
+}

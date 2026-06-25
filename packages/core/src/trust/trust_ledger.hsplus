@@ -1,0 +1,30 @@
+// @trust_ledger — Append-only ledger of trust events: immutable, hash-chained, queryable.
+//
+// Native .hsplus surface for core/trust/TrustLedger.ts.
+//
+// append(event) / query(filter) → TrustEvent[] / head() → TrustEvent / verify() → bool
+
+@trait trust_ledger {
+  capability_tags: ["trust_ledger", "append_only", "hash_chained", "trust_events", "core"]
+
+  @on_spawn => {
+    emit("trust_ledger_ready", {})
+  }
+
+  @on_append(event) => {
+    hash = append_trust_ledger_event(event)
+    emit("ledger_event_appended", { hash })
+    return hash
+  }
+
+  @on_verify => {
+    valid = verify_trust_ledger()
+    return valid
+  }
+
+  @receipt trust_ledger_config {
+    type: "TrustLedgerReceipt"
+    invariant: "append-only; hash-chained"
+    timestamp: now()
+  }
+}

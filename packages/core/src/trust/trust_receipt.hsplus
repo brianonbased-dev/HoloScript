@@ -1,0 +1,19 @@
+// @trust_receipt — Base trust receipt type: common fields for all trust-layer proof receipts.
+//
+// Native .hsplus surface for core/trust/TrustReceipt.ts.
+//
+// TrustReceipt { id, kind, agentWallet, sha256, issuedAt }
+
+@trait trust_receipt {
+  capability_tags: ["trust_receipt", "receipt_base", "agent_wallet_proof", "sha256", "core"]
+
+  @on_spawn => {
+    emit("trust_receipt_ready", {})
+  }
+
+  @receipt trust_receipt_config {
+    type: "TrustReceiptBaseReceipt"
+    fields: ["id", "kind", "agentWallet", "sha256", "issuedAt"]
+    timestamp: now()
+  }
+}

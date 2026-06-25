@@ -1,0 +1,24 @@
+// @device_adapter_backlog — Queues device-side trust events for replay when connectivity resumes.
+//
+// Native .hsplus surface for core/trust/DeviceAdapterBacklog.ts.
+//
+// enqueue(event) / drain() → TrustEvent[] / size() → number
+
+@trait device_adapter_backlog {
+  capability_tags: ["device_adapter_backlog", "offline_event_queue", "trust_event_replay", "device_trust", "core"]
+
+  @on_spawn => {
+    emit("device_adapter_backlog_ready", {})
+  }
+
+  @on_drain => {
+    events = drain_device_backlog()
+    emit("backlog_drained", { count: events.length })
+    return events
+  }
+
+  @receipt device_adapter_backlog_config {
+    type: "DeviceAdapterBacklogReceipt"
+    timestamp: now()
+  }
+}

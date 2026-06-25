@@ -1,0 +1,25 @@
+// @gif_decomposer — Decomposes GIF files into frame sequences for hologram / animation import.
+//
+// Native .hsplus surface for core/utils/GIFDecomposer.ts.
+//
+// decompose(gifBuffer) → Frame[] { index, imageData, duration }
+
+@trait gif_decomposer {
+  capability_tags: ["gif_decomposer", "gif_to_frames", "animation_import", "frame_sequence", "core"]
+
+  @on_spawn => {
+    emit("gif_decomposer_ready", {})
+  }
+
+  @on_decompose(gif_buffer) => {
+    frames = decompose_gif(gif_buffer)
+    emit("gif_decomposed", { frameCount: frames.length })
+    return frames
+  }
+
+  @receipt gif_decomposer_config {
+    type: "GIFDecomposerReceipt"
+    output: "Frame[] { index, imageData, duration }"
+    timestamp: now()
+  }
+}

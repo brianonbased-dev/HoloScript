@@ -1,0 +1,23 @@
+// @ui_renderer — Renders HoloScript UI components to the active display surface (WebGL/XR/Canvas).
+//
+// Native .hsplus surface for core/ui/UIRenderer.ts.
+//
+// render(panel) / flush() / resize(width, height)
+
+@trait ui_renderer {
+  capability_tags: ["ui_renderer", "webgl_xr_canvas", "component_render", "display_surface", "core"]
+
+  @on_spawn => {
+    emit("ui_renderer_ready", {})
+  }
+
+  @on_render(panel) => {
+    render_ui_panel(panel)
+  }
+
+  @receipt ui_renderer_config {
+    type: "UIRendererReceipt"
+    targets: ["WebGL", "XR", "Canvas2D"]
+    timestamp: now()
+  }
+}

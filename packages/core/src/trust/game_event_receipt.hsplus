@@ -1,0 +1,19 @@
+// @game_event_receipt — Receipt for game events: proves a game action occurred at a specific world state.
+//
+// Native .hsplus surface for core/trust/GameEventReceipt.ts.
+//
+// GameEventReceipt { eventId, worldStateHash, actorWallet, actionType, timestamp }
+
+@trait game_event_receipt {
+  capability_tags: ["game_event_receipt", "game_action_proof", "world_state_hash", "trust_receipts", "core"]
+
+  @on_spawn => {
+    emit("game_event_receipt_ready", {})
+  }
+
+  @receipt game_event_receipt_config {
+    type: "GameEventReceiptReceipt"
+    fields: ["eventId", "worldStateHash", "actorWallet", "actionType", "timestamp"]
+    timestamp: now()
+  }
+}

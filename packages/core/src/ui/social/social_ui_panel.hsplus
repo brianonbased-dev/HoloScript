@@ -1,0 +1,24 @@
+// @social_ui_panel — Social UI panel: aggregates FriendList, UserProfileCard, notifications in one panel.
+//
+// Native .hsplus surface for core/ui/social/SocialUIPanel.ts.
+//
+// show(userId) / hide() / notify(message)
+
+@trait social_ui_panel {
+  capability_tags: ["social_ui_panel", "aggregated_social_ui", "friend_list", "profile_notifications", "core"]
+
+  @on_spawn => {
+    emit("social_ui_panel_ready", {})
+  }
+
+  @on_show(user_id) => {
+    show_social_panel(user_id)
+    emit("social_panel_shown", {})
+  }
+
+  @receipt social_ui_panel_config {
+    type: "SocialUIPanelReceipt"
+    aggregates: ["FriendList", "UserProfileCard", "notifications"]
+    timestamp: now()
+  }
+}

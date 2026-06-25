@@ -1,0 +1,17 @@
+// @math_utils — HoloScript math utilities: clamp, lerp, smoothstep, remap, approximately.
+//
+// Native .hsplus surface for core/utils/math.ts.
+
+@trait math_utils {
+  capability_tags: ["math_utils", "clamp_lerp_smoothstep", "remap", "approximately", "core"]
+
+  @on_spawn => {
+    emit("math_utils_ready", {})
+  }
+
+  @receipt math_utils_config {
+    type: "MathUtilsReceipt"
+    functions: ["clamp", "lerp", "smoothstep", "remap", "approximately"]
+    timestamp: now()
+  }
+}

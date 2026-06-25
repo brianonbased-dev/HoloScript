@@ -1,0 +1,24 @@
+// @hand_menu — XR hand-menu: palm-facing radial menu for VR quick-access actions.
+//
+// Native .hsplus surface for core/ui/HandMenu.ts.
+//
+// open(items[]) / select(id) / close()
+
+@trait hand_menu {
+  capability_tags: ["hand_menu", "xr_hand_menu", "radial_menu", "vr_quick_access", "core"]
+
+  @on_spawn => {
+    emit("hand_menu_ready", {})
+  }
+
+  @on_open(items) => {
+    open_hand_menu(items)
+    emit("hand_menu_opened", { itemCount: items.length })
+  }
+
+  @receipt hand_menu_config {
+    type: "HandMenuReceipt"
+    ux: "palm-facing radial"
+    timestamp: now()
+  }
+}

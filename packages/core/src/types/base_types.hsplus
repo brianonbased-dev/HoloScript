@@ -1,0 +1,17 @@
+// @base_types — HoloScript core primitive type definitions: Vec2/3/4, Color, UUID, Timestamp.
+//
+// Native .hsplus surface for core/types/base.ts.
+
+@trait base_types {
+  capability_tags: ["base_types", "vec2_vec3_vec4", "color", "uuid", "core"]
+
+  @on_spawn => {
+    emit("base_types_ready", {})
+  }
+
+  @receipt base_types_config {
+    type: "BaseTypesReceipt"
+    types: ["Vec2", "Vec3", "Vec4", "Color", "UUID", "Timestamp"]
+    timestamp: now()
+  }
+}

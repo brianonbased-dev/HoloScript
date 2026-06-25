@@ -1,0 +1,19 @@
+// @provider_export_custody_receipt — Chain-of-custody receipt for provider data export handoff.
+//
+// Native .hsplus surface for core/trust/ProviderExportCustodyReceipt.ts.
+//
+// ProviderExportCustodyReceipt { providerId, exportId, custodyHash, handoffAt, receiverWallet }
+
+@trait provider_export_custody_receipt {
+  capability_tags: ["provider_export_custody_receipt", "chain_of_custody", "provider_export", "trust_receipts", "core"]
+
+  @on_spawn => {
+    emit("provider_export_custody_receipt_ready", {})
+  }
+
+  @receipt provider_export_custody_receipt_config {
+    type: "ProviderExportCustodyReceiptReceipt"
+    fields: ["providerId", "exportId", "custodyHash", "handoffAt", "receiverWallet"]
+    timestamp: now()
+  }
+}

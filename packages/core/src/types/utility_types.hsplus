@@ -1,0 +1,17 @@
+// @utility_types — HoloScript utility type helpers: DeepPartial, Nullable, NonEmptyArray, Result.
+//
+// Native .hsplus surface for core/types/utility-types.ts.
+
+@trait utility_types {
+  capability_tags: ["utility_types", "deep_partial", "nullable", "result_type", "core"]
+
+  @on_spawn => {
+    emit("utility_types_ready", {})
+  }
+
+  @receipt utility_types_config {
+    type: "UtilityTypesReceipt"
+    types: ["DeepPartial", "Nullable", "NonEmptyArray", "Result"]
+    timestamp: now()
+  }
+}

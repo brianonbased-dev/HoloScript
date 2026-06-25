@@ -1,0 +1,24 @@
+// @ui_widget — HoloScript UI widget base: common lifecycle and layout interface for all UI components.
+//
+// Native .hsplus surface for core/ui/UIWidget.ts.
+//
+// mount() / unmount() / update(props) / getBounds() → Rect
+
+@trait ui_widget {
+  capability_tags: ["ui_widget", "widget_base", "lifecycle", "bounds_query", "core"]
+
+  @on_spawn(props) => {
+    mount_ui_widget(props)
+    emit("ui_widget_mounted", {})
+  }
+
+  @on_update(props) => {
+    update_ui_widget(props)
+  }
+
+  @receipt ui_widget_config {
+    type: "UIWidgetReceipt"
+    interface: "mount / unmount / update / getBounds"
+    timestamp: now()
+  }
+}

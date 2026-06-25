@@ -1,0 +1,18 @@
+// @ui_panel — HoloScript UI panel: container for component layouts, anchored in world or screen space.
+//
+// Native .hsplus surface for core/ui/UIPanel.ts.
+
+@trait ui_panel {
+  capability_tags: ["ui_panel", "container", "world_screen_anchor", "layout_root", "core"]
+
+  @on_spawn(anchor) => {
+    init_ui_panel(anchor)
+    emit("ui_panel_ready", { anchor })
+  }
+
+  @receipt ui_panel_config {
+    type: "UIPanelReceipt"
+    modes: ["world-space", "screen-space"]
+    timestamp: now()
+  }
+}

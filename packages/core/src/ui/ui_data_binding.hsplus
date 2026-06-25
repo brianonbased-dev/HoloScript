@@ -1,0 +1,23 @@
+// @ui_data_binding — Binds reactive state paths to UI component properties.
+//
+// Native .hsplus surface for core/ui/UIDataBinding.ts.
+//
+// bind(componentId, prop, statePath) / unbind(componentId, prop)
+
+@trait ui_data_binding {
+  capability_tags: ["ui_data_binding", "reactive_state_to_ui", "property_binding", "two_way_binding", "core"]
+
+  @on_spawn => {
+    emit("ui_data_binding_ready", {})
+  }
+
+  @on_bind(component_id, prop, state_path) => {
+    bind_ui_property(component_id, prop, state_path)
+  }
+
+  @receipt ui_data_binding_config {
+    type: "UIDataBindingReceipt"
+    mechanism: "reactive state path → UI property"
+    timestamp: now()
+  }
+}

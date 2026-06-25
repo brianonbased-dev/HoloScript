@@ -1,0 +1,24 @@
+// @account_export_archive_verifier — Verifies an account export archive matches its receipt hash.
+//
+// Native .hsplus surface for core/trust/AccountExportArchiveVerifier.ts.
+//
+// verify(archive, receipt) → VerificationResult { valid, errors[] }
+
+@trait account_export_archive_verifier {
+  capability_tags: ["account_export_archive_verifier", "archive_verification", "hash_check", "trust_verifier", "core"]
+
+  @on_spawn => {
+    emit("account_export_archive_verifier_ready", {})
+  }
+
+  @on_verify(archive, receipt) => {
+    result = verify_account_export_archive(archive, receipt)
+    if !result.valid { emit("archive_verification_failed", { errors: result.errors }) }
+    return result
+  }
+
+  @receipt account_export_archive_verifier_config {
+    type: "AccountExportArchiveVerifierReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,19 @@
+// @account_export_archive_receipt — Receipt proving an account export archive was sealed and timestamped.
+//
+// Native .hsplus surface for core/trust/AccountExportArchiveReceipt.ts.
+//
+// AccountExportArchiveReceipt { exportId, sha256, sealedAt, agentWallet }
+
+@trait account_export_archive_receipt {
+  capability_tags: ["account_export_archive_receipt", "export_seal", "sha256_proof", "trust_receipts", "core"]
+
+  @on_spawn => {
+    emit("account_export_archive_receipt_ready", {})
+  }
+
+  @receipt account_export_archive_receipt_config {
+    type: "AccountExportArchiveReceiptReceipt"
+    fields: ["exportId", "sha256", "sealedAt", "agentWallet"]
+    timestamp: now()
+  }
+}

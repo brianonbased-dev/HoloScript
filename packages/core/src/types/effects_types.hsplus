@@ -1,0 +1,17 @@
+// @effects_types — HoloScript effect type definitions: Effect<T>, SideEffect, PureEffect.
+//
+// Native .hsplus surface for core/types/effects.ts.
+
+@trait effects_types {
+  capability_tags: ["effects_types", "effect_type", "side_effect", "pure_effect", "core"]
+
+  @on_spawn => {
+    emit("effects_types_ready", {})
+  }
+
+  @receipt effects_types_config {
+    type: "EffectsTypesReceipt"
+    types: ["Effect", "SideEffect", "PureEffect"]
+    timestamp: now()
+  }
+}

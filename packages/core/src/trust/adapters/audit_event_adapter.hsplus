@@ -1,0 +1,24 @@
+// @audit_event_adapter — Adapter converting internal trust events to standardized audit log format.
+//
+// Native .hsplus surface for core/trust/adapters/AuditEventAdapter.ts.
+//
+// adapt(event) → AuditEntry / batch(events[]) → AuditEntry[]
+
+@trait audit_event_adapter {
+  capability_tags: ["audit_event_adapter", "trust_event_to_audit", "audit_log_format", "adapter", "core"]
+
+  @on_spawn => {
+    emit("audit_event_adapter_ready", {})
+  }
+
+  @on_adapt(event) => {
+    entry = adapt_trust_event_to_audit(event)
+    return entry
+  }
+
+  @receipt audit_event_adapter_config {
+    type: "AuditEventAdapterReceipt"
+    output: "standardized AuditEntry"
+    timestamp: now()
+  }
+}

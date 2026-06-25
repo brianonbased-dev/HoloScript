@@ -1,0 +1,22 @@
+// @keyboard_system — Input keyboard system: key binding registry, shortcut dispatch, focus management.
+//
+// Native .hsplus surface for core/ui/KeyboardSystem.ts.
+//
+// bind(key, action) / unbind(key) / dispatch(keyEvent) / focus(elementId)
+
+@trait keyboard_system {
+  capability_tags: ["keyboard_system", "key_binding", "shortcut_dispatch", "focus_management", "core"]
+
+  @on_spawn => {
+    emit("keyboard_system_ready", {})
+  }
+
+  @on_dispatch(key_event) => {
+    dispatch_keyboard_event(key_event)
+  }
+
+  @receipt keyboard_system_config {
+    type: "KeyboardSystemReceipt"
+    timestamp: now()
+  }
+}

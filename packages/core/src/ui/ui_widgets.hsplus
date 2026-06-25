@@ -1,0 +1,19 @@
+// @ui_widgets — Composite widget library: Tab, Accordion, Dropdown, Modal, Toast built on UIWidget.
+//
+// Native .hsplus surface for core/ui/UIWidgets.ts.
+//
+// Precomposed widget set; all extend UIWidget lifecycle
+
+@trait ui_widgets {
+  capability_tags: ["ui_widgets", "tab_accordion_dropdown", "modal_toast", "composite_widgets", "core"]
+
+  @on_spawn => {
+    emit("ui_widgets_ready", {})
+  }
+
+  @receipt ui_widgets_config {
+    type: "UIWidgetsReceipt"
+    widgets: ["Tab", "Accordion", "Dropdown", "Modal", "Toast"]
+    timestamp: now()
+  }
+}

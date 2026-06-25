@@ -1,0 +1,19 @@
+// @holoscript_plus_types — HoloScript+ type infrastructure: trait descriptor, action signature, receipt shape.
+//
+// Native .hsplus surface for core/types/HoloScriptPlus.ts.
+//
+// TraitDescriptor / ActionSignature / ReceiptShape — used by compiler and runtime
+
+@trait holoscript_plus_types {
+  capability_tags: ["holoscript_plus_types", "trait_descriptor", "action_signature", "receipt_shape", "core"]
+
+  @on_spawn => {
+    emit("holoscript_plus_types_ready", {})
+  }
+
+  @receipt holoscript_plus_types_config {
+    type: "HoloScriptPlusTypesReceipt"
+    types: ["TraitDescriptor", "ActionSignature", "ReceiptShape"]
+    timestamp: now()
+  }
+}

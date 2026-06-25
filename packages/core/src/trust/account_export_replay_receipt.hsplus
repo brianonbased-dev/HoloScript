@@ -1,0 +1,19 @@
+// @account_export_replay_receipt — Receipt for a replayed account export: proves state was reconstructed correctly.
+//
+// Native .hsplus surface for core/trust/AccountExportReplayReceipt.ts.
+//
+// AccountExportReplayReceipt { replayId, sourceExportId, finalStateHash, replayedAt }
+
+@trait account_export_replay_receipt {
+  capability_tags: ["account_export_replay_receipt", "replay_proof", "state_reconstruction", "trust_receipts", "core"]
+
+  @on_spawn => {
+    emit("account_export_replay_receipt_ready", {})
+  }
+
+  @receipt account_export_replay_receipt_config {
+    type: "AccountExportReplayReceiptReceipt"
+    fields: ["replayId", "sourceExportId", "finalStateHash", "replayedAt"]
+    timestamp: now()
+  }
+}

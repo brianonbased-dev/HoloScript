@@ -1,0 +1,24 @@
+// @virtual_keyboard — XR virtual keyboard: spatial floating input for VR/AR text entry.
+//
+// Native .hsplus surface for core/ui/VirtualKeyboard.ts.
+//
+// show(target, opts?) / hide() / onInput(cb)
+
+@trait virtual_keyboard {
+  capability_tags: ["virtual_keyboard", "xr_text_entry", "spatial_floating", "vr_ar_keyboard", "core"]
+
+  @on_spawn => {
+    emit("virtual_keyboard_ready", {})
+  }
+
+  @on_show(target, opts) => {
+    show_virtual_keyboard(target, opts)
+    emit("virtual_keyboard_shown", {})
+  }
+
+  @receipt virtual_keyboard_config {
+    type: "VirtualKeyboardReceipt"
+    ux: "spatial floating input for VR/AR"
+    timestamp: now()
+  }
+}

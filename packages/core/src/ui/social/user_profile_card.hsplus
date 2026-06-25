@@ -1,0 +1,24 @@
+// @user_profile_card — User profile card UI: avatar, wallet handle, status, follow/unfollow.
+//
+// Native .hsplus surface for core/ui/social/UserProfileCard.ts.
+//
+// render(userId) → ProfileCard / follow(userId) / unfollow(userId)
+
+@trait user_profile_card {
+  capability_tags: ["user_profile_card", "profile_ui", "wallet_handle", "follow_unfollow", "core"]
+
+  @on_spawn => {
+    emit("user_profile_card_ready", {})
+  }
+
+  @on_render(user_id) => {
+    card = render_user_profile_card(user_id)
+    return card
+  }
+
+  @receipt user_profile_card_config {
+    type: "UserProfileCardReceipt"
+    fields: ["avatar", "walletHandle", "status"]
+    timestamp: now()
+  }
+}

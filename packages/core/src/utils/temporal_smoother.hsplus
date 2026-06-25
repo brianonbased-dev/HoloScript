@@ -1,0 +1,24 @@
+// @temporal_smoother — Exponential smoothing for time-series signals: sensor data, physics, animation.
+//
+// Native .hsplus surface for core/utils/TemporalSmoother.ts.
+//
+// smooth(value, alpha, dt) → smoothed / reset()
+
+@trait temporal_smoother {
+  capability_tags: ["temporal_smoother", "exponential_smoothing", "sensor_data", "animation_smooth", "core"]
+
+  @on_spawn(alpha) => {
+    init_temporal_smoother(alpha)
+    emit("temporal_smoother_ready", {})
+  }
+
+  @on_smooth(value, dt) => {
+    return apply_temporal_smooth(value, dt)
+  }
+
+  @receipt temporal_smoother_config {
+    type: "TemporalSmootherReceipt"
+    method: "exponential moving average"
+    timestamp: now()
+  }
+}

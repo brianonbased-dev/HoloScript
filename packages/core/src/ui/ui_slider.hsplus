@@ -1,0 +1,23 @@
+// @ui_slider — HoloScript UI slider: range input with min/max/step, value binding.
+//
+// Native .hsplus surface for core/ui/UISlider.ts.
+
+@trait ui_slider {
+  capability_tags: ["ui_slider", "range_input", "value_binding", "ui_component", "core"]
+
+  @on_spawn(min, max, step, value) => {
+    init_ui_slider(min, max, step, value)
+    emit("ui_slider_ready", {})
+  }
+
+  @on_change(value) => {
+    set_slider_value(value)
+    emit("slider_changed", { value })
+  }
+
+  @receipt ui_slider_config {
+    type: "UISliderReceipt"
+    fields: ["min", "max", "step", "value"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,17 @@
+// @linear_types — Linear algebra type definitions: Matrix4, Quaternion, Transform, Ray.
+//
+// Native .hsplus surface for core/types/linear.ts.
+
+@trait linear_types {
+  capability_tags: ["linear_types", "matrix4", "quaternion", "transform", "core"]
+
+  @on_spawn => {
+    emit("linear_types_ready", {})
+  }
+
+  @receipt linear_types_config {
+    type: "LinearTypesReceipt"
+    types: ["Matrix4", "Quaternion", "Transform", "Ray"]
+    timestamp: now()
+  }
+}
