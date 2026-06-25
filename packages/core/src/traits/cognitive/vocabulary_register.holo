@@ -1,0 +1,21 @@
+@trait {
+  name: "@vocabulary_register",
+  category: "cognitive",
+  description: "LLM context middleware that injects a domain-specific vocabulary register into prompts. Ships six built-in registers (medieval-fantasy, sci-fi-remnant, modern-corporate, ancient-formal, criminal-underworld, scholarly-archaic) and accepts runtime additions via vocabulary_register_load. Hot-swappable. Port of VocabularyRegisterTrait.ts (handler name: vocabulary_register).",
+  props: {
+    active_register: string = "modern-corporate",
+    max_injected_entries: number = 20,
+    prepend_tone_hint: boolean = true
+  },
+  events: {
+    attached: "vocabulary_register_attached",
+    detached: "vocabulary_register_detached",
+    on_injected: "vocabulary_register_injected",
+    on_switched: "vocabulary_register_switched",
+    on_loaded: "vocabulary_register_loaded",
+    load: "vocabulary_register_load",
+    switch: "vocabulary_register_switch",
+    inject: "vocabulary_register_inject"
+  },
+  behaviors: ["@dialogue", "@language_adapter", "@neural_link"]
+}

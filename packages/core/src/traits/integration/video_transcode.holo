@@ -1,0 +1,14 @@
+@trait {
+  name: "@video_transcode",
+  category: "integration",
+  description: "Video format conversion and encoding. On video:transcode command clamps the requested bitrate to max_bitrate and emits video:transcoded with the source, codec, and final bitrate. Port of VideoTranscodeTrait.ts (handler name: video_transcode).",
+  props: {
+    default_codec: string = "h264",
+    max_bitrate: number = 8000
+  },
+  events: {
+    on_transcoded: "video:transcoded",
+    transcode: "video:transcode"
+  },
+  behaviors: ["@image_resize", "@database"]
+}

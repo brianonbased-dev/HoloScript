@@ -1,0 +1,23 @@
+@trait {
+  name: "@voice_mesh",
+  category: "interaction",
+  description: "HoloScript Mesh VoIP. Captures local microphone input, runs voice activity detection, and plays back remote peer streams via HeadTrackedAudio spatial audio. Auto-connects on attach when auto_connect=true. Port of VoiceMeshTrait.ts (handler name: voice_mesh).",
+  props: {
+    auto_connect: boolean = true,
+    mute: boolean = false,
+    spatial: boolean = true,
+    volume: number = 1.0,
+    vad_threshold: number = -50.0
+  },
+  events: {
+    on_ready: "voice_mesh_ready",
+    on_talking: "voice_mesh_talking",
+    on_silent: "voice_mesh_silent",
+    on_peer_added: "voice_mesh_peer_added",
+    on_peer_removed: "voice_mesh_peer_removed",
+    connect: "voice_mesh_connect",
+    disconnect: "voice_mesh_disconnect",
+    toggle_mute: "voice_mesh_toggle_mute"
+  },
+  behaviors: ["@spatial_voice", "@head_tracked_audio", "@voice_proximity"]
+}

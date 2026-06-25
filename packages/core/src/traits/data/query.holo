@@ -1,0 +1,14 @@
+@trait {
+  name: "@query",
+  category: "data",
+  description: "Structured query builder with filter, sort, and paginate. Responds to query:execute by clamping the requested limit to max_limit and emitting query:result with the collection, filter, sort, and effective limit. Port of QueryTrait.ts (handler name: query).",
+  props: {
+    default_limit: number = 50,
+    max_limit: number = 1000
+  },
+  events: {
+    on_result: "query:result",
+    execute: "query:execute"
+  },
+  behaviors: ["@database", "@sql_query", "@faceted_search"]
+}
