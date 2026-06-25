@@ -1,0 +1,22 @@
+@trait {
+  name: "@tracker",
+  category: "agent",
+  description: "Entity movement and state history tracker. Records timestamped position, velocity, and prop snapshots at a configurable sample rate and keeps a rolling time-windowed buffer, enabling replay, analytics, deviation detection, and forensic audit of entity behavior. Authored from TrackerTrait.ts.",
+  props: {
+    sample_rate_hz: number = 10,
+    window_s: number = 60,
+    track_position: boolean = true,
+    track_velocity: boolean = true,
+    track_props: list<string> = [],
+    persist_url: string = "",
+    alert_on_deviation_pct: number = 0
+  },
+  events: {
+    attached: "tracker_attached",
+    detached: "tracker_detached",
+    on_sample: "tracker_sample",
+    on_deviation: "tracker_deviation",
+    export: "tracker_trigger_export"
+  },
+  behaviors: ["@audit_log", "@replay", "@reason"]
+}

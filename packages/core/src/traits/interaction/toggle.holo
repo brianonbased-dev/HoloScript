@@ -1,0 +1,22 @@
+@trait {
+  name: "@toggle",
+  category: "interaction",
+  description: "Boolean state toggle with interlock. Maintains an on/off state and emits transition events, supporting mutual-exclusion interlocks with a named group (only one toggle in the group can be on), initial-state configuration, and toggle-on/toggle-off event mapping. Authored from ToggleTrait.ts.",
+  props: {
+    state: boolean = false,
+    group: string = "",
+    exclusive: boolean = false,
+    initial_state: boolean = false,
+    toggle_on_event: string = "",
+    toggle_off_event: string = ""
+  },
+  events: {
+    attached: "toggle_attached",
+    detached: "toggle_detached",
+    on_enable: "toggle_on",
+    on_disable: "toggle_off",
+    toggle: "toggle_trigger_toggle",
+    set: "toggle_trigger_set"
+  },
+  behaviors: ["@switch", "@reset_on_change", "@signal_bus"]
+}

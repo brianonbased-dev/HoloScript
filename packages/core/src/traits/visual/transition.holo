@@ -1,0 +1,21 @@
+@trait {
+  name: "@transition",
+  category: "visual",
+  description: "Scene and entity transition effect controller. Plays an enter or exit transition effect (crossfade, slide, zoom, blur, wipe, or custom shader) between visual states, managing timing, easing curves, and layer compositing across the entity's render hierarchy. Authored from TransitionTrait.ts.",
+  props: {
+    effect: enum("crossfade" | "slide" | "zoom" | "blur" | "wipe" | "dissolve" | "custom") = "crossfade",
+    direction: enum("in" | "out" | "in_out") = "in_out",
+    duration_ms: number = 400,
+    curve: enum("linear" | "ease_in" | "ease_out" | "ease_in_out" | "spring") = "ease_in_out",
+    auto_play: boolean = false,
+    shader_url: string = ""
+  },
+  events: {
+    attached: "transition_attached",
+    detached: "transition_detached",
+    on_start: "transition_start",
+    on_complete: "transition_complete",
+    play: "transition_trigger_play"
+  },
+  behaviors: ["@fade_in", "@easing", "@splash"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@trail_emitter",
+  category: "visual",
+  description: "Motion trail ribbon emitter. Tessellates a smooth ribbon mesh along the entity's movement path, with configurable width, color gradient, lifetime fade, and minimum vertex distance filtering to prevent over-sampling on slow movement. Authored from TrailEmitterTrait.ts.",
+  props: {
+    width_m: number = 0.1,
+    lifetime_s: number = 1.5,
+    color_start: string = "#ffffff",
+    color_end: string = "#ffffff00",
+    min_vertex_distance_m: number = 0.1,
+    texture_url: string = "",
+    emit: boolean = true,
+    world_space: boolean = true
+  },
+  events: {
+    attached: "trail_emitter_attached",
+    detached: "trail_emitter_detached",
+    on_emit: "trail_emitter_emit",
+    clear: "trail_emitter_trigger_clear"
+  },
+  behaviors: ["@particle_burst", "@motion_blur", "@easing"]
+}
