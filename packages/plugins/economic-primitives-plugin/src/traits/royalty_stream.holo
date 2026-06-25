@@ -1,0 +1,19 @@
+@trait {
+  name: "@royalty_stream",
+  category: "economics",
+  description: "On-chain royalty distribution stream. splits is a list of {recipientWallet, percent} records that must sum to 100%. currency: USDC, ETH, or HOLO. minimumPayout is the threshold below which payments are batched (default: 1 USDC). payoutFrequency: instant (per-sale trigger), daily, weekly, or monthly. Accumulates earned royalties and settles via x402 micropayments. Port of RoyaltyStreamTrait.ts (handler name: royalty_stream).",
+  props: {
+    asset_id: string = "",
+    currency: enum("USDC" | "ETH" | "HOLO") = "USDC",
+    minimum_payout: number = 1,
+    payout_frequency: enum("instant" | "daily" | "weekly" | "monthly") = "instant"
+  },
+  events: {
+    on_earned: "royalty_earned",
+    on_paid: "royalty_paid",
+    on_split_updated: "royalty_split_updated",
+    pay: "royalty_pay",
+    update_splits: "royalty_update_splits"
+  },
+  behaviors: ["@marketplace_listing", "@economy"]
+}

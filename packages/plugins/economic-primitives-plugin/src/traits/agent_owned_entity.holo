@@ -1,0 +1,23 @@
+@trait {
+  name: "@agent_owned_entity",
+  category: "economics",
+  description: "Marks an entity as agent-owned with on-chain provenance. ownerAgentId is the controlling agent handle. entityType: trait, world, object, or service. walletAddress is the EVM wallet for on-chain operations. revenueShare is the owner's % of revenue (default: 100%). autonomyLevel: limited (allowedActions gated), semi, or full. spendingLimitPerDay caps autonomous spend in USD. allowedActions whitelist controls what the entity can do autonomously. Port of AgentOwnedEntityTrait.ts (handler name: agent_owned_entity).",
+  props: {
+    entity_id: string = "",
+    owner_agent_id: string = "",
+    entity_type: enum("trait" | "world" | "object" | "service") = "trait",
+    wallet_address: string = "",
+    revenue_share: number = 100,
+    autonomy_level: enum("limited" | "semi" | "full") = "limited",
+    spending_limit_per_day: number = 10,
+    allowed_actions: list<string> = ["list", "price", "respond"]
+  },
+  events: {
+    on_revenue: "agent_owned_entity_revenue",
+    on_action: "agent_owned_entity_action",
+    on_ownership_transferred: "agent_owned_entity_transferred",
+    transfer: "agent_owned_entity_transfer",
+    set_autonomy: "agent_owned_entity_set_autonomy"
+  },
+  behaviors: ["@economy", "@agent_profile", "@trait_marketplace"]
+}

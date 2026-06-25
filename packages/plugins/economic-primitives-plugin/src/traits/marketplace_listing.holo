@@ -1,0 +1,26 @@
+@trait {
+  name: "@marketplace_listing",
+  category: "economics",
+  description: "Marketplace listing for digital assets. assetType: trait, world, object, or service. pricingModel: fixed, auction, or subscription. currency: USDC, ETH, or HOLO. royaltyPercent sets the secondary-sale royalty (default: 10%). licenseType governs usage rights (MIT, CC-BY, proprietary, etc.). tags enable discovery. Port of MarketplaceListingTrait.ts (handler name: marketplace_listing).",
+  props: {
+    listing_id: string = "",
+    title: string = "",
+    description: string = "",
+    seller_agent_id: string = "",
+    asset_type: enum("trait" | "world" | "object" | "service") = "trait",
+    price: number = 0,
+    currency: enum("USDC" | "ETH" | "HOLO") = "USDC",
+    pricing_model: enum("fixed" | "auction" | "subscription") = "fixed",
+    royalty_percent: number = 10,
+    license_type: string = "MIT"
+  },
+  events: {
+    on_listed: "marketplace_listing_created",
+    on_sold: "marketplace_listing_sold",
+    on_delisted: "marketplace_listing_delisted",
+    list: "marketplace_listing_create",
+    purchase: "marketplace_listing_purchase",
+    delist: "marketplace_listing_delist"
+  },
+  behaviors: ["@trait_marketplace", "@royalty_stream", "@agent_owned_entity"]
+}

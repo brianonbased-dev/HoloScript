@@ -1,0 +1,21 @@
+@trait {
+  name: "@foundation_dao",
+  category: "economics",
+  description: "On-chain foundation DAO governance layer. governanceToken is the ERC-20 voting token symbol (default: HOLO_GOV). quorumPercent is the minimum participation for a valid vote (default: 33%). executionDelayHours is the timelock delay after a proposal passes (default: 48h). multisigOwnersCount is the number of multisig signers for emergency actions (default: 9). Manages proposals, voting, execution queue, and treasury. Port of FoundationDAOTrait.ts (handler name: foundation_dao).",
+  props: {
+    governance_token: string = "HOLO_GOV",
+    quorum_percent: number = 33,
+    execution_delay_hours: number = 48,
+    multisig_owners_count: number = 9
+  },
+  events: {
+    on_proposal_created: "dao_proposal_created",
+    on_vote_cast: "dao_vote_cast",
+    on_proposal_passed: "dao_proposal_passed",
+    on_proposal_executed: "dao_proposal_executed",
+    propose: "dao_propose",
+    vote: "dao_vote",
+    execute: "dao_execute"
+  },
+  behaviors: ["@agent_owned_entity", "@economy"]
+}
