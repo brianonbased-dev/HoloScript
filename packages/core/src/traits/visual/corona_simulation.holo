@@ -1,0 +1,22 @@
+@trait {
+  name: "@corona_simulation",
+  category: "visual",
+  description: "Procedural solar corona renderer. Renders MHD flux-tube loop geometry, equatorial streamer belt, coronal-hole plumes, and an optional CME event API around a star object. Without this trait the corona falls back to bloom + @emissive_gi. Port of CoronaSimulationTrait.ts (handler name: corona_simulation).",
+  props: {
+    base_temperature_mk: number = 1.5,
+    loop_count: number = 24,
+    prominence_seed: number = 42,
+    streamer_belt: boolean = true,
+    coronal_holes: list<enum("north" | "south" | "equatorial")> = ["north", "south"],
+    cme_enabled: boolean = false,
+    halo_scale: number = 2.5,
+    halo_opacity: number = 0.35
+  },
+  events: {
+    attached: "corona_simulation_attached",
+    detached: "corona_simulation_detached",
+    on_cme: "corona_simulation_cme",
+    cme_trigger: "corona_cme_trigger"
+  },
+  behaviors: ["@volumetric", "@god_rays", "@weather"]
+}

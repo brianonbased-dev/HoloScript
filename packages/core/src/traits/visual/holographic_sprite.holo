@@ -1,0 +1,24 @@
+@trait {
+  name: "@holographic_sprite",
+  category: "visual",
+  description: "Meta-trait that composes @segment + @depth_estimation + @displacement + @billboard to convert 2D media (video, image) into immersive 3D holographic composites with depth-based parallax and background removal. Pipeline is aspirational (sub-traits not fully wired in runtime). Port of HolographicSpriteTrait.ts (handler name: @holographic_sprite).",
+  props: {
+    image_source_prop: string = "imageSource",
+    segment_method: enum("background-removal" | "sam2") = "background-removal",
+    depth_mode: enum("on-demand" | "continuous" | "interval") = "continuous",
+    depth_interval_ms: number = 100,
+    displacement_scale: number = 1.0,
+    billboard_type: enum("planar" | "spherical" | "cylindrical") = "spherical",
+    mode: enum("portrait" | "product" | "scene") = "portrait",
+    cache_db: string = "holographic-sprite-cache",
+    smooth_mask_edges: boolean = true
+  },
+  events: {
+    attached: "holographic_sprite_attached",
+    detached: "holographic_sprite_detached",
+    on_frame_update: "holographic:frame-update",
+    on_composite_ready: "holographic_sprite_ready",
+    update: "holographic_sprite_update"
+  },
+  behaviors: ["@volumetric", "@animation", "@multiview_gaussian_renderer"]
+}

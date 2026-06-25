@@ -1,0 +1,28 @@
+@trait {
+  name: "@interactive_graph",
+  category: "visual",
+  description: "Spatial interaction for codebase graph visualizations: hover highlighting, click selection, edge tracing, and camera focus. Raycasts pointer events to graph nodes, supports multi-select, and fly-to camera animation. Port of InteractiveGraphTrait.ts (handler name: interactive_graph).",
+  props: {
+    hover_highlight: boolean = true,
+    click_inspect: boolean = true,
+    edge_highlight: boolean = true,
+    multi_select: boolean = true,
+    tooltip_delay: number = 300,
+    raycast_distance: number = 100,
+    hover_scale: number = 1.15,
+    selected_emissive: number = 0.5,
+    fly_to_duration: number = 0.8
+  },
+  events: {
+    attached: "interactive_graph_attached",
+    detached: "interactive_graph_detached",
+    on_hover: "graph:hover",
+    on_select: "graph:select",
+    on_focus: "graph:focus",
+    on_edge_highlight: "graph:edge_highlight",
+    pointer_move: "interactive_graph_pointer_move",
+    pointer_click: "interactive_graph_pointer_click",
+    pointer_double_click: "interactive_graph_pointer_double_click"
+  },
+  behaviors: ["@heatmap_3d", "@grabbable", "@poi"]
+}

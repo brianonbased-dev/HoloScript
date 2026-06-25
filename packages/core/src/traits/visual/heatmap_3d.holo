@@ -1,0 +1,29 @@
+@trait {
+  name: "@heatmap_3d",
+  category: "visual",
+  description: "3D spatial heatmap overlay for visualizing scalar data on geometry. Supports viridis/plasma/inferno/magma/turbo/jet/hot/cool/rainbow color maps, nearest/linear/cubic interpolation, animated transitions, auto-ranging, optional legend, and height extrusion. Port of Heatmap3DTrait.ts (handler name: heatmap_3d).",
+  props: {
+    data_source: string = "",
+    color_map: enum("viridis" | "plasma" | "inferno" | "magma" | "turbo" | "jet" | "hot" | "cool" | "rainbow") = "viridis",
+    opacity: number = 0.7,
+    resolution: number = 32,
+    interpolation: enum("nearest" | "linear" | "cubic") = "linear",
+    range_min: number = 0.0,
+    range_max: number = 1.0,
+    auto_range: boolean = true,
+    animated: boolean = false,
+    animation_duration: number = 500,
+    legend: boolean = true,
+    legend_position: enum("top-left" | "top-right" | "bottom-left" | "bottom-right") = "bottom-right",
+    height_extrusion: number = 0.0
+  },
+  events: {
+    attached: "heatmap_3d_attached",
+    detached: "heatmap_3d_detached",
+    on_loaded: "heatmap_3d_loaded",
+    on_updated: "heatmap_3d_updated",
+    update: "heatmap_3d_update",
+    reload: "heatmap_3d_reload"
+  },
+  behaviors: ["@gaze_focus_analytics", "@spatial_profiler", "@webcam_gaze"]
+}
