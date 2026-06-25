@@ -1,0 +1,26 @@
+// @simple_reachability_analyzer — Lightweight dead-code finder using SimpleReferenceGraph.
+//
+// Native .hsplus surface for core/analysis/SimpleReachabilityAnalyzer.ts.
+//
+// analyze(graph, entryPoints) → SimpleDeadCodeResult { unreachableNodes[], totalNodes, reachableNodes }
+// Simpler alternative to ReachabilityAnalyzer for fast/incremental checks
+
+@trait simple_reachability_analyzer {
+  capability_tags: ["simple_reachability_analyzer", "fast_dead_code", "incremental_analysis", "core"]
+
+  @on_spawn => {
+    emit("simple_reachability_analyzer_ready", {})
+  }
+
+  @on_analyze(graph, entry_points) => {
+    result = simple_analyze_reachability(graph, entry_points)
+    emit("simple_reachability_done", { unreachable: result.unreachableNodes.length })
+    return result
+  }
+
+  @receipt simple_reachability_analyzer_config {
+    type: "SimpleReachabilityAnalyzerReceipt"
+    output: "SimpleDeadCodeResult { unreachableNodes[], totalNodes, reachableNodes }"
+    timestamp: now()
+  }
+}

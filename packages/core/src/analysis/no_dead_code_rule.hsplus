@@ -1,0 +1,27 @@
+// @no_dead_code_rule — Lint rule: detect unreferenced compositions, templates, functions, properties.
+//
+// Native .hsplus surface for core/analysis/NoDeadCodeRule.ts.
+//
+// check(files: Map<filepath, source>) → DeadCodeDiagnostic[]
+// DeadCodeDiagnostic: { kind, name, filePath, line?, message }
+// kind: composition | template | function | property
+
+@trait no_dead_code_rule {
+  capability_tags: ["no_dead_code_rule", "dead_code_detection", "lint_rule", "core"]
+
+  @on_spawn => {
+    emit("no_dead_code_rule_ready", {})
+  }
+
+  @on_check(files) => {
+    diagnostics = check_no_dead_code(files)
+    emit("dead_code_checked", { count: diagnostics.length })
+    return diagnostics
+  }
+
+  @receipt no_dead_code_rule_config {
+    type: "NoDeadCodeRuleReceipt"
+    kinds: ["composition", "template", "function", "property"]
+    timestamp: now()
+  }
+}

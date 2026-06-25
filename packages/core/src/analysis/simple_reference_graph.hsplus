@@ -1,0 +1,29 @@
+// @simple_reference_graph — Lightweight symbol reference graph for fast analysis.
+//
+// Native .hsplus surface for core/analysis/SimpleReferenceGraph.ts.
+//
+// SimpleGraphNode: { id, kind, name, filePath, line? }
+// addNode(node) / addEdge(from, to) / getNodes() / getEdges()
+// Paired with SimpleReachabilityAnalyzer for fast dead-code checks
+
+@trait simple_reference_graph {
+  capability_tags: ["simple_reference_graph", "lightweight_graph", "symbol_nodes", "core"]
+
+  @on_spawn => {
+    emit("simple_reference_graph_ready", {})
+  }
+
+  @on_add_node(node) => {
+    add_graph_node(node)
+  }
+
+  @on_add_edge(from_id, to_id) => {
+    add_graph_edge(from_id, to_id)
+  }
+
+  @receipt simple_reference_graph_config {
+    type: "SimpleReferenceGraphReceipt"
+    node_shape: "{ id, kind, name, filePath, line? }"
+    timestamp: now()
+  }
+}

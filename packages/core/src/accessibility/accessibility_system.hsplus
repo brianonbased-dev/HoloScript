@@ -1,0 +1,35 @@
+// @accessibility_system — Screen reader, contrast, font scaling, input remap, and focus management.
+//
+// Native .hsplus surface for core/accessibility/AccessibilitySystem.ts.
+//
+// ContrastMode: normal | high | inverted | deuteranopia | protanopia | tritanopia
+// setContrastMode(mode) / setFontScale(scale) / remapInput(from, to) / announceTo(text)
+// Integrated with VR and 2D surfaces
+
+@trait accessibility_system {
+  capability_tags: ["accessibility_system", "screen_reader", "contrast_mode", "font_scale", "input_remap", "core"]
+
+  @on_spawn => {
+    emit("accessibility_system_ready", {})
+  }
+
+  @on_set_contrast_mode(mode) => {
+    set_contrast_mode(mode)
+    emit("contrast_mode_changed", { mode })
+  }
+
+  @on_set_font_scale(scale) => {
+    set_font_scale(scale)
+    emit("font_scale_changed", { scale })
+  }
+
+  @on_announce(text) => {
+    announce_screen_reader(text)
+  }
+
+  @receipt accessibility_system_config {
+    type: "AccessibilitySystemReceipt"
+    contrast_modes: ["normal", "high", "inverted", "deuteranopia", "protanopia", "tritanopia"]
+    timestamp: now()
+  }
+}

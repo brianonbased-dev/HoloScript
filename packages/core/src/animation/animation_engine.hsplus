@@ -1,0 +1,32 @@
+// @animation_engine — Lightweight keyframe animation engine for HoloScript core.
+//
+// Native .hsplus surface for core/animation/AnimationEngine.ts.
+//
+// AnimClip: { id, property, duration, loop, pingPong, delay, keyframes: Keyframe[] }
+// Keyframe: { time, value }
+// play(clipId) / stop(clipId) / tick(deltaTime) → per-clip interpolated values
+// Loop and ping-pong modes; delay before first frame
+
+@trait animation_engine {
+  capability_tags: ["animation_engine", "keyframe_animation", "animation_clip", "ping_pong", "core"]
+
+  @on_spawn => {
+    emit("animation_engine_ready", {})
+  }
+
+  @on_play(clip_id) => {
+    play_animation_clip(clip_id)
+    emit("animation_playing", { clip_id })
+  }
+
+  @on_tick(delta_time) => {
+    values = tick_animation_engine(delta_time)
+    return values
+  }
+
+  @receipt animation_engine_config {
+    type: "AnimationEngineReceipt"
+    features: ["keyframe interpolation", "loop", "ping-pong", "delay"]
+    timestamp: now()
+  }
+}

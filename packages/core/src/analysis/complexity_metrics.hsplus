@@ -1,0 +1,27 @@
+// @complexity_metrics — Cyclomatic complexity, nesting depth, LOC, trait density analysis.
+//
+// Native .hsplus surface for core/analysis/ComplexityMetrics.ts.
+//
+// analyze(source) → ComplexityReport { cyclomaticComplexity, nestingDepth, loc, traitCount, score }
+// Overall complexity score (0-100) normalized across all dimensions
+// Used by holo_validate_quality and codebase health gates
+
+@trait complexity_metrics {
+  capability_tags: ["complexity_metrics", "cyclomatic", "nesting_depth", "code_quality", "core"]
+
+  @on_spawn => {
+    emit("complexity_metrics_ready", {})
+  }
+
+  @on_analyze(source) => {
+    report = analyze_complexity(source)
+    emit("complexity_analyzed", { score: report.score })
+    return report
+  }
+
+  @receipt complexity_metrics_config {
+    type: "ComplexityMetricsReceipt"
+    dimensions: ["cyclomatic complexity", "nesting depth", "LOC", "trait density", "overall score"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,27 @@
+// @reference_graph — Reference relationship graph from AST for dead-code detection.
+//
+// Native .hsplus surface for core/analysis/ReferenceGraph.ts.
+//
+// Tracks: all symbol definitions (orbs, templates, functions, properties) + all usages
+// buildFrom(ast) → ReferenceGraph with nodes and directed edges
+// Cross-file references supported; used by ReachabilityAnalyzer
+
+@trait reference_graph {
+  capability_tags: ["reference_graph", "symbol_tracking", "cross_file_refs", "dead_code", "core"]
+
+  @on_spawn => {
+    emit("reference_graph_ready", {})
+  }
+
+  @on_build(ast) => {
+    graph = build_reference_graph(ast)
+    emit("reference_graph_built", { nodes: graph.node_count, edges: graph.edge_count })
+    return graph
+  }
+
+  @receipt reference_graph_config {
+    type: "ReferenceGraphReceipt"
+    tracks: ["definitions", "references", "cross-file edges"]
+    timestamp: now()
+  }
+}

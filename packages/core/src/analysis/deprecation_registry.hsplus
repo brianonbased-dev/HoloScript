@@ -1,0 +1,27 @@
+// @deprecation_registry — Tracks deprecated symbols and checks for their usage in source.
+//
+// Native .hsplus surface for core/analysis/DeprecationRegistry.ts.
+//
+// DeprecationEntry: { name, kind, message, deprecatedIn?, removedIn?, replacement? }
+// kind: trait | template | property | composition
+// register(entry) / check(source) → DeprecationWarning[]
+
+@trait deprecation_registry {
+  capability_tags: ["deprecation_registry", "deprecated_symbols", "migration_warnings", "core"]
+
+  @on_spawn => {
+    emit("deprecation_registry_ready", {})
+  }
+
+  @on_check(source) => {
+    warnings = check_deprecations(source)
+    if warnings.length > 0 { emit("deprecations_found", { count: warnings.length }) }
+    return warnings
+  }
+
+  @receipt deprecation_registry_config {
+    type: "DeprecationRegistryReceipt"
+    kinds: ["trait", "template", "property", "composition"]
+    timestamp: now()
+  }
+}

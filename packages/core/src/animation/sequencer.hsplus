@@ -1,0 +1,29 @@
+// @sequencer — Pure keyframe-track interpolation: per-segment easing, Theatre.js convention.
+//
+// Native .hsplus surface for core/animation/sequencer.ts.
+//
+// sample(keyframes, t) → interpolated value at time t
+// Per-segment easing: destination keyframe's easing governs the arriving segment
+// (Theatre.js / CSS transition-timing-function convention)
+// Supports: spring | bounce | easeX easing via applyEasing
+// Consumed by studio TimelineDriver + __animatedTransform consumers
+
+@trait sequencer {
+  capability_tags: ["sequencer", "keyframe_interpolation", "theatre_js_convention", "timeline_driver", "core"]
+
+  @on_spawn => {
+    emit("sequencer_ready", {})
+  }
+
+  @on_sample(keyframes, t) => {
+    return sample_keyframe_track(keyframes, t)
+  }
+
+  @receipt sequencer_config {
+    type: "SequencerReceipt"
+    convention: "destination keyframe easing (Theatre.js / CSS)"
+    easing_types: ["spring", "bounce", "easeX"]
+    consumers: ["TimelineDriver", "__animatedTransform"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,27 @@
+// @stagger — Per-child animation timing distribution (anime.js stagger effect, native).
+//
+// Native .hsplus surface for core/animation/stagger.ts.
+//
+// computeStagger(nodes, staggerN) → per-child { edge0, edge1 } window shifts
+// Each child offset by index * staggerN from parent animation window
+// Feeds into AnimationEngine delay field; also shifts __animatedTransform edge0/edge1
+// Pure helpers — unit-testable independently of compiler and renderer
+
+@trait stagger {
+  capability_tags: ["stagger", "per_child_timing", "animation_ripple", "edge0_edge1", "core"]
+
+  @on_spawn => {
+    emit("stagger_ready", {})
+  }
+
+  @on_compute_stagger(nodes, stagger_n) => {
+    return compute_stagger_windows(nodes, stagger_n)
+  }
+
+  @receipt stagger_config {
+    type: "StaggerReceipt"
+    effect: "index * staggerN offset on __animatedTransform edge0/edge1"
+    note: "pure helper — feeds AnimationEngine delay + __animatedTransform"
+    timestamp: now()
+  }
+}

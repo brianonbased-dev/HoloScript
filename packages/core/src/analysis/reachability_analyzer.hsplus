@@ -1,0 +1,27 @@
+// @reachability_analyzer — Dead code detection via graph walk from entry points.
+//
+// Native .hsplus surface for core/analysis/ReachabilityAnalyzer.ts.
+//
+// analyze(graph, entryPoints) → ReachabilityReport { reachable, unreachable, suggestions }
+// Walks directed reference graph from entry nodes; marks reachable; reports unreachable
+// Categorizes dead code by type; provides removal suggestions
+
+@trait reachability_analyzer {
+  capability_tags: ["reachability_analyzer", "dead_code", "graph_walk", "entry_points", "core"]
+
+  @on_spawn => {
+    emit("reachability_analyzer_ready", {})
+  }
+
+  @on_analyze(graph, entry_points) => {
+    report = analyze_reachability(graph, entry_points)
+    emit("reachability_analyzed", { unreachable: report.unreachable.length })
+    return report
+  }
+
+  @receipt reachability_analyzer_config {
+    type: "ReachabilityAnalyzerReceipt"
+    algorithm: "directed graph walk from entry points"
+    timestamp: now()
+  }
+}

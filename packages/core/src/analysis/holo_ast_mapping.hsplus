@@ -1,0 +1,29 @@
+// @holo_ast_mapping — Maps HoloComposition AST onto ReferenceGraph node and edge kinds.
+//
+// Native .hsplus surface for core/analysis/HoloASTMapping.ts.
+//
+// Node kinds: composition | template | object | trait | property
+// Edge contexts: uses | extends | defines | references
+// Preserves SourceLocation for provenance; enables dead-code analysis
+// Used by ReachabilityAnalyzer and NoDeadCodeRule
+
+@trait holo_ast_mapping {
+  capability_tags: ["holo_ast_mapping", "ast_to_reference_graph", "provenance", "dead_code", "core"]
+
+  @on_spawn => {
+    emit("holo_ast_mapping_ready", {})
+  }
+
+  @on_map(ast) => {
+    graph = map_ast_to_reference_graph(ast)
+    emit("ast_mapped", { node_count: graph.node_count })
+    return graph
+  }
+
+  @receipt holo_ast_mapping_config {
+    type: "HoloASTMappingReceipt"
+    node_kinds: ["composition", "template", "object", "trait", "property"]
+    edge_contexts: ["uses", "extends", "defines", "references"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,31 @@
+// @i18n_manager — Locale detection, string tables, pluralization, interpolation, fallback chains.
+//
+// Native .hsplus surface for core/accessibility/I18nManager.ts.
+//
+// t(key, vars?) → localized string with interpolation
+// plural(key, count) → pluralized string per PluralRule
+// setLocale(locale) → loads string table; falls back to default locale
+// Fallback chain: requested → default → key itself
+
+@trait i18n_manager {
+  capability_tags: ["i18n_manager", "localization", "pluralization", "string_table", "fallback_chain", "core"]
+
+  @on_spawn => {
+    emit("i18n_manager_ready", {})
+  }
+
+  @on_set_locale(locale) => {
+    set_locale(locale)
+    emit("locale_changed", { locale })
+  }
+
+  @on_translate(key, vars) => {
+    return translate_string(key, vars)
+  }
+
+  @receipt i18n_manager_config {
+    type: "I18nManagerReceipt"
+    features: ["locale detection", "string tables", "plural rules", "interpolation", "fallback chain"]
+    timestamp: now()
+  }
+}

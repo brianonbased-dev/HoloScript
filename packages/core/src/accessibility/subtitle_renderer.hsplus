@@ -1,0 +1,28 @@
+// @subtitle_renderer — Speech-to-text, speaker labels, positioning, styling, and queuing.
+//
+// Native .hsplus surface for core/accessibility/SubtitleRenderer.ts.
+//
+// SubtitlePosition: bottom | top | left | right | center
+// SubtitleStyle: fontSize, fontColor, backgroundColor, backgroundOpacity
+// queueSubtitle(text, speaker, durationMs) → void
+// clearQueue() / setPosition(pos) / setStyle(style)
+
+@trait subtitle_renderer {
+  capability_tags: ["subtitle_renderer", "speech_to_text", "speaker_labels", "subtitle_queue", "core"]
+
+  @on_spawn => {
+    emit("subtitle_renderer_ready", {})
+  }
+
+  @on_queue_subtitle(text, speaker, duration_ms) => {
+    queue_subtitle({ text, speaker, duration_ms })
+    emit("subtitle_queued", { speaker })
+  }
+
+  @receipt subtitle_renderer_config {
+    type: "SubtitleRendererReceipt"
+    positions: ["bottom", "top", "left", "right", "center"]
+    features: ["speech-to-text", "speaker labels", "styling", "queue management"]
+    timestamp: now()
+  }
+}
