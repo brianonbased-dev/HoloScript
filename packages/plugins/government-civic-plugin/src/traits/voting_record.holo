@@ -1,0 +1,23 @@
+@trait {
+  name: "@voting_record",
+  category: "government",
+  description: "Government voting session recorder. voteType: council_vote, ballot_measure, committee_motion, or referendum. motionText is the exact text of the motion being voted on. requiredMajority: simple (>50%), supermajority (≥⅔), or unanimous. eligibleVoters is the list of eligible voter IDs. Status: pending, open, closed, or certified. Port of VotingRecordTrait.ts (handler name: voting_record).",
+  props: {
+    vote_id: string = "",
+    vote_type: enum("council_vote" | "ballot_measure" | "committee_motion" | "referendum") = "council_vote",
+    title: string = "",
+    description: string = "",
+    motion_text: string = "",
+    required_majority: enum("simple" | "supermajority" | "unanimous") = "simple"
+  },
+  events: {
+    on_opened: "vote_opened",
+    on_vote_cast: "vote_cast",
+    on_closed: "vote_closed",
+    on_certified: "vote_certified",
+    open: "vote_open",
+    cast: "vote_cast_cmd",
+    close: "vote_close"
+  },
+  behaviors: ["@public_meeting", "@civic_compliance"]
+}

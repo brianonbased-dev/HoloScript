@@ -1,0 +1,23 @@
+@trait {
+  name: "@public_meeting",
+  category: "government",
+  description: "Government public meeting / open session management. meetingType: city_council, planning_commission, school_board, or committee. quorumRequired is the minimum members for a valid session. membersPresent tracks live attendance. publicCommentMinutesPerSpeaker caps per-speaker comment time (default: 3 min — Brown Act standard). Status: scheduled, in_session, adjourned, or cancelled. Port of PublicMeetingTrait.ts (handler name: public_meeting).",
+  props: {
+    meeting_type: enum("city_council" | "planning_commission" | "school_board" | "committee") = "city_council",
+    meeting_id: string = "",
+    title: string = "",
+    location: string = "",
+    quorum_required: number = 4,
+    members_present: number = 0,
+    public_comment_minutes_per_speaker: number = 3
+  },
+  events: {
+    on_convened: "meeting_convened",
+    on_quorum_reached: "meeting_quorum_reached",
+    on_adjourned: "meeting_adjourned",
+    on_public_comment: "meeting_public_comment",
+    convene: "meeting_convene",
+    adjourn: "meeting_adjourn"
+  },
+  behaviors: ["@civic_compliance", "@voting_record"]
+}

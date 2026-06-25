@@ -1,0 +1,23 @@
+@trait {
+  name: "@service_request",
+  category: "government",
+  description: "Citizen service request (311-style). category: pothole, graffiti, streetlight, tree, trash, noise, water, permit, or other. priority: low, medium, high, or critical — drives SLA targets via targetResolutionDays. department is the responsible government department (default: Public Works). Status: submitted, assigned, in_progress, resolved, or closed. Port of ServiceRequestTrait.ts (handler name: service_request).",
+  props: {
+    request_id: string = "",
+    category: enum("pothole" | "graffiti" | "streetlight" | "tree" | "trash" | "noise" | "water" | "permit" | "other") = "other",
+    description: string = "",
+    location: string = "",
+    priority: enum("low" | "medium" | "high" | "critical") = "medium",
+    target_resolution_days: number = 7,
+    department: string = "Public Works"
+  },
+  events: {
+    on_submitted: "service_request_submitted",
+    on_assigned: "service_request_assigned",
+    on_resolved: "service_request_resolved",
+    assign: "service_request_assign",
+    resolve: "service_request_resolve",
+    close: "service_request_close"
+  },
+  behaviors: ["@civic_compliance", "@permit"]
+}

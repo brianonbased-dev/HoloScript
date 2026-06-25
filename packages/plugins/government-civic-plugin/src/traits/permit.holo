@@ -1,0 +1,23 @@
+@trait {
+  name: "@permit",
+  category: "government",
+  description: "Government permit application lifecycle. permitType: building, electrical, plumbing, zoning, demolition, event, or business. applicationNumber is the official permit number. applicantName and projectAddress identify the filing. reviewDeadlineDays is the statutory review window (default: 30 days). showStatusBadge enables a public-facing status indicator. Status: draft, submitted, under_review, approved, denied, expired, or revoked. Port of PermitTrait.ts (handler name: permit).",
+  props: {
+    permit_type: enum("building" | "electrical" | "plumbing" | "zoning" | "demolition" | "event" | "business") = "building",
+    application_number: string = "",
+    applicant_name: string = "",
+    project_address: string = "",
+    review_deadline_days: number = 30,
+    show_status_badge: boolean = true
+  },
+  events: {
+    on_submitted: "permit_submitted",
+    on_approved: "permit_approved",
+    on_denied: "permit_denied",
+    on_expired: "permit_expired",
+    submit: "permit_submit",
+    approve: "permit_approve",
+    deny: "permit_deny"
+  },
+  behaviors: ["@civic_compliance", "@service_request"]
+}

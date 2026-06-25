@@ -1,0 +1,22 @@
+@trait {
+  name: "@civic_compliance",
+  category: "government",
+  description: "Government civic compliance tracker. entityType: service, facility, website, or program. frameworks is a list of compliance frameworks enforced (e.g., ADA, FOIA, WCAG). foiaEnabled activates FOIA request tracking. foiaResponseDaysLimit sets the statutory response deadline (default: 20 days — US federal standard). accessibilityStandard: WCAG_2_1_AA or WCAG_2_1_AAA. auditLogRetentionDays sets log retention (default: 2555 = 7 years). isPublicRecord flags the entity as subject to public records laws. Port of CivicComplianceTrait.ts (handler name: civic_compliance).",
+  props: {
+    entity_id: string = "",
+    entity_type: enum("service" | "facility" | "website" | "program") = "service",
+    foia_enabled: boolean = true,
+    foia_response_days_limit: number = 20,
+    accessibility_standard: enum("WCAG_2_1_AA" | "WCAG_2_1_AAA") = "WCAG_2_1_AA",
+    audit_log_retention_days: number = 2555,
+    is_public_record: boolean = true
+  },
+  events: {
+    on_foia_request: "foia_request_received",
+    on_foia_response_due: "foia_response_due",
+    on_audit_logged: "civic_audit_logged",
+    log_action: "civic_log_action",
+    respond_to_foia: "foia_respond"
+  },
+  behaviors: ["@voting_record", "@public_meeting"]
+}
