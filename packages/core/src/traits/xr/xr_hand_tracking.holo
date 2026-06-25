@@ -1,0 +1,22 @@
+@trait {
+  name: "@xr_hand_tracking",
+  category: "xr",
+  description: "Markerless XR hand and finger tracking controller. Consumes WebXR hand-joints data for 25 skeletal joints per hand, drives rig hand bones via retargeting, exposes pinch/grip/spread strength values as events, and enables natural hand interaction with XR UI surfaces. Authored from XrHandTrackingTrait.ts.",
+  props: {
+    handedness: enum("left" | "right" | "both") = "both",
+    rig_entity_id: string = "",
+    pinch_threshold: number = 0.85,
+    grip_threshold: number = 0.85,
+    smooth: number = 0.3,
+    show_mesh: boolean = false
+  },
+  events: {
+    attached: "xr_hand_tracking_attached",
+    detached: "xr_hand_tracking_detached",
+    on_pinch_start: "xr_hand_tracking_pinch_start",
+    on_pinch_end: "xr_hand_tracking_pinch_end",
+    on_grip: "xr_hand_tracking_grip",
+    on_joint_update: "xr_hand_tracking_joint_update"
+  },
+  behaviors: ["@xr_controller", "@gesture_recognizer", "@skeleton"]
+}

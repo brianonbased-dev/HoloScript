@@ -1,0 +1,21 @@
+@trait {
+  name: "@weight_map",
+  category: "visual",
+  description: "Texture-based weight map for terrain blending and influence fields. Encodes per-texel scalar weights for up to four terrain layers or influence zones, sampled by the terrain shader for blend transitions, used by procedural scatter systems for density control, and exported as an R8/RGBA8 texture. Authored from WeightMapTrait.ts.",
+  props: {
+    resolution: number = 512,
+    channels: number = 4,
+    url: string = "",
+    format: enum("r8" | "rgba8" | "r16f") = "rgba8",
+    wrap: enum("clamp" | "repeat") = "clamp",
+    auto_normalize: boolean = true
+  },
+  events: {
+    attached: "weight_map_attached",
+    detached: "weight_map_detached",
+    on_update: "weight_map_update",
+    paint: "weight_map_trigger_paint",
+    export: "weight_map_trigger_export"
+  },
+  behaviors: ["@voxel_terrain", "@noise_field", "@texture_atlas"]
+}

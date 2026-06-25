@@ -1,0 +1,24 @@
+@trait {
+  name: "@xr_controller",
+  category: "xr",
+  description: "XR motion controller input mapper. Tracks a WebXR XRInputSource (left/right hand controller or screen-tap), exposes button/trigger/grip/thumbstick state as normalized events, forwards pose data to the entity transform each frame, and applies haptic feedback via the vibration actuator. Authored from XrControllerTrait.ts.",
+  props: {
+    handedness: enum("left" | "right" | "none") = "right",
+    profile_ids: list<string> = [],
+    haptic_intensity: number = 1.0,
+    pose_space: enum("grip" | "aim") = "grip",
+    ray_length_m: number = 3.0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "xr_controller_attached",
+    detached: "xr_controller_detached",
+    on_select: "xr_controller_select",
+    on_squeeze: "xr_controller_squeeze",
+    on_thumbstick: "xr_controller_thumbstick",
+    on_connected: "xr_controller_connected",
+    on_disconnected: "xr_controller_disconnected",
+    vibrate: "xr_controller_trigger_vibrate"
+  },
+  behaviors: ["@xr_ray_interactor", "@xr_hand_tracking", "@gesture_recognizer"]
+}

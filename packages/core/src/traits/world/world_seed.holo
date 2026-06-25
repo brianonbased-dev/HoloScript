@@ -1,0 +1,20 @@
+@trait {
+  name: "@world_seed",
+  category: "world",
+  description: "Composite world seed descriptor that combines a numeric seed with a world name, biome configuration URL, and procedural rule variant tag to produce a fully reproducible world configuration. All procedural generation traits read the active @world_seed on the root world entity to derive their own seeds via hashing. Authored from WorldSeedTrait.ts.",
+  props: {
+    seed: number = 0,
+    name: string = "",
+    biome_url: string = "",
+    rule_variant: string = "default",
+    version: number = 1,
+    expose_to_players: boolean = true
+  },
+  events: {
+    attached: "world_seed_attached",
+    detached: "world_seed_detached",
+    on_set: "world_seed_set",
+    set: "world_seed_trigger_set"
+  },
+  behaviors: ["@seed", "@dungeon_generator", "@voxel_terrain"]
+}
