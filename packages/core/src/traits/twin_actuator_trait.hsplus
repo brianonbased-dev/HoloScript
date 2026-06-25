@@ -1,0 +1,23 @@
+// @twin_actuator_trait — Digital twin actuator: sends commands to physical hardware from world twin.
+//
+// Native .hsplus surface for core/traits/TwinActuatorTrait.ts.
+
+@trait twin_actuator_trait {
+  capability_tags: ["twin_actuator", "physical_hardware_command", "digital_twin_actuate", "twin_earth", "core"]
+
+  @on_spawn(device_id) => {
+    init_twin_actuator(device_id)
+    emit("twin_actuator_ready", { device_id })
+  }
+
+  @on_actuate(command, params) => {
+    result = actuate_twin(command, params)
+    emit("twin_actuated", { command })
+    return result
+  }
+
+  @receipt twin_actuator_trait_config {
+    type: "TwinActuatorTraitReceipt"
+    timestamp: now()
+  }
+}

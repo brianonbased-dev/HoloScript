@@ -1,0 +1,22 @@
+// @stripe_trait — Stripe payment: charge, subscription, refund, webhook handling via Stripe API.
+//
+// Native .hsplus surface for core/traits/StripeTrait.ts.
+
+@trait stripe_trait {
+  capability_tags: ["stripe", "payment_subscription", "refund_webhook", "stripe_api", "core"]
+
+  @on_spawn(credentials_ref) => {
+    init_stripe(credentials_ref)
+    emit("stripe_ready", {})
+  }
+
+  @on_charge(amount_cents, currency, customer_id) => {
+    intent = charge_stripe(amount_cents, currency, customer_id)
+    return intent
+  }
+
+  @receipt stripe_trait_config {
+    type: "StripeTraitReceipt"
+    timestamp: now()
+  }
+}

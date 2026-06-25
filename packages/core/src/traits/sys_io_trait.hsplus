@@ -1,0 +1,25 @@
+// @sys_io_trait — System I/O: file read/write/watch with path sandboxing and permissions.
+//
+// Native .hsplus surface for core/traits/SysIoTrait.ts.
+
+@trait sys_io_trait {
+  capability_tags: ["sys_io", "file_read_write_watch", "path_sandbox", "system_io", "core"]
+
+  @on_spawn(allowed_paths) => {
+    init_sys_io(allowed_paths)
+    emit("sys_io_ready", {})
+  }
+
+  @on_read(path) => {
+    return read_sys_file(path)
+  }
+
+  @on_write(path, data) => {
+    write_sys_file(path, data)
+  }
+
+  @receipt sys_io_trait_config {
+    type: "SysIoTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @trigger_trait — Trigger volume: fires enter/exit/stay events when entities cross boundary.
+//
+// Native .hsplus surface for core/traits/TriggerTrait.ts.
+
+@trait trigger_trait {
+  capability_tags: ["trigger", "trigger_volume", "enter_exit_stay", "boundary_event", "core"]
+
+  @on_spawn(shape, layer_mask) => {
+    init_trigger(shape, layer_mask)
+    emit("trigger_ready", {})
+  }
+
+  @on_enter(entity_id) => {
+    emit("trigger_entered", { entity_id })
+  }
+
+  @on_exit(entity_id) => {
+    emit("trigger_exited", { entity_id })
+  }
+
+  @receipt trigger_trait_config {
+    type: "TriggerTraitReceipt"
+    events: ["enter", "stay", "exit"]
+    timestamp: now()
+  }
+}

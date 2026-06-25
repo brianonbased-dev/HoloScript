@@ -1,0 +1,23 @@
+// @telemetry_trait — OpenTelemetry: emits spans, metrics, and logs to OTLP collector.
+//
+// Native .hsplus surface for core/traits/TelemetryTrait.ts.
+
+@trait telemetry_trait {
+  capability_tags: ["telemetry", "otel_spans_metrics_logs", "otlp_collector", "opentelemetry", "core"]
+
+  @on_spawn(exporter_config) => {
+    init_telemetry(exporter_config)
+    emit("telemetry_ready", {})
+  }
+
+  @on_span(name, attrs, fn) => {
+    result = trace_span(name, attrs, fn)
+    return result
+  }
+
+  @receipt telemetry_trait_config {
+    type: "TelemetryTraitReceipt"
+    standard: "OpenTelemetry"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @vps_trait — Visual Positioning System: geospatial localization from visual scene matching.
+//
+// Native .hsplus surface for core/traits/VPSTrait.ts.
+
+@trait vps_trait {
+  capability_tags: ["vps", "visual_positioning", "geospatial_localize", "scene_match", "core"]
+
+  @on_spawn(map_id) => {
+    init_vps(map_id)
+    emit("vps_ready", { map_id })
+  }
+
+  @on_localize(query_image) => {
+    pose = localize_vps(query_image)
+    emit("vps_localized", {})
+    return pose
+  }
+
+  @receipt vps_trait_config {
+    type: "VPSTraitReceipt"
+    timestamp: now()
+  }
+}

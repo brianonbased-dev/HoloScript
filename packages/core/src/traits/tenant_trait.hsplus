@@ -1,0 +1,21 @@
+// @tenant_trait — Multi-tenancy: tenant-scoped data isolation and feature flag dispatch.
+//
+// Native .hsplus surface for core/traits/TenantTrait.ts.
+
+@trait tenant_trait {
+  capability_tags: ["tenant", "data_isolation", "feature_flag_dispatch", "multi_tenant", "core"]
+
+  @on_spawn(tenant_id) => {
+    init_tenant(tenant_id)
+    emit("tenant_ready", { tenant_id })
+  }
+
+  @on_resolve_feature(feature_key) => {
+    return resolve_tenant_feature(feature_key)
+  }
+
+  @receipt tenant_trait_config {
+    type: "TenantTraitReceipt"
+    timestamp: now()
+  }
+}

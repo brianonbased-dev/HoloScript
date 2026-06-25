@@ -1,0 +1,21 @@
+// @stream_trait — Data stream: async iterable transform pipeline for real-time data flows.
+//
+// Native .hsplus surface for core/traits/StreamTrait.ts.
+
+@trait stream_trait {
+  capability_tags: ["stream_trait", "async_iterable", "transform_pipeline", "real_time_flow", "core"]
+
+  @on_spawn(source, transforms) => {
+    init_stream(source, transforms)
+    emit("stream_ready", {})
+  }
+
+  @on_consume(handler) => {
+    consume_stream(handler)
+  }
+
+  @receipt stream_trait_config {
+    type: "StreamTraitReceipt"
+    timestamp: now()
+  }
+}

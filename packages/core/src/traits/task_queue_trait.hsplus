@@ -1,0 +1,22 @@
+// @task_queue_trait — Task queue: priority queue with worker concurrency and dead-letter handling.
+//
+// Native .hsplus surface for core/traits/TaskQueueTrait.ts.
+
+@trait task_queue_trait {
+  capability_tags: ["task_queue", "priority_queue", "worker_concurrency", "dead_letter", "core"]
+
+  @on_spawn(concurrency, dead_letter_ref) => {
+    init_task_queue(concurrency, dead_letter_ref)
+    emit("task_queue_ready", {})
+  }
+
+  @on_enqueue(task, priority) => {
+    task_id = enqueue_task(task, priority)
+    return task_id
+  }
+
+  @receipt task_queue_trait_config {
+    type: "TaskQueueTraitReceipt"
+    timestamp: now()
+  }
+}

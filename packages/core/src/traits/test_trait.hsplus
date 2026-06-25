@@ -1,0 +1,23 @@
+// @test_trait — Test harness: wraps any trait for unit testing with mocked dependencies.
+//
+// Native .hsplus surface for core/traits/TestTrait.ts.
+
+@trait test_trait {
+  capability_tags: ["test_trait", "unit_test_harness", "mocked_deps", "trait_test", "core"]
+
+  @on_spawn(target_trait, mocks) => {
+    init_test_trait(target_trait, mocks)
+    emit("test_trait_ready", {})
+  }
+
+  @on_run(test_fn) => {
+    result = run_test_trait(test_fn)
+    emit("test_complete", { passed: result.passed })
+    return result
+  }
+
+  @receipt test_trait_config {
+    type: "TestTraitReceipt"
+    timestamp: now()
+  }
+}

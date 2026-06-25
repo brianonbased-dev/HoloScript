@@ -1,0 +1,23 @@
+// @state_machine_trait — State machine: typed state graph with guarded transitions and entry/exit hooks.
+//
+// Native .hsplus surface for core/traits/StateMachineTrait.ts.
+
+@trait state_machine_trait {
+  capability_tags: ["state_machine", "typed_state_graph", "guarded_transitions", "entry_exit_hooks", "core"]
+
+  @on_spawn(states, transitions, initial) => {
+    init_state_machine(states, transitions, initial)
+    emit("state_machine_ready", {})
+  }
+
+  @on_transition(event, payload) => {
+    new_state = transition_state(event, payload)
+    emit("state_changed", { state: new_state })
+    return new_state
+  }
+
+  @receipt state_machine_trait_config {
+    type: "StateMachineTraitReceipt"
+    timestamp: now()
+  }
+}

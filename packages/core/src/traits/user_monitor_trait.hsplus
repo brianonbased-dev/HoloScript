@@ -1,0 +1,21 @@
+// @user_monitor_trait — User monitor: tracks user activity, presence, and engagement signals.
+//
+// Native .hsplus surface for core/traits/UserMonitorTrait.ts.
+
+@trait user_monitor_trait {
+  capability_tags: ["user_monitor", "activity_presence", "engagement_signals", "user_tracking", "core"]
+
+  @on_spawn(user_id) => {
+    init_user_monitor(user_id)
+    emit("user_monitor_ready", { user_id })
+  }
+
+  @on_event(event_type, payload) => {
+    record_user_event(event_type, payload)
+  }
+
+  @receipt user_monitor_trait_config {
+    type: "UserMonitorTraitReceipt"
+    timestamp: now()
+  }
+}

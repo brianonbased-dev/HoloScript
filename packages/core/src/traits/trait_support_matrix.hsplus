@@ -1,0 +1,20 @@
+// @trait_support_matrix — Trait support matrix: declares which traits are supported per compile target.
+//
+// Native .hsplus surface for core/traits/TraitSupportMatrix.ts.
+
+@trait trait_support_matrix {
+  capability_tags: ["trait_support_matrix", "compile_target_support", "trait_coverage", "target_matrix", "core"]
+
+  @on_spawn => {
+    emit("trait_support_matrix_ready", {})
+  }
+
+  @on_query(target, trait_name) => {
+    return query_support_matrix(target, trait_name)
+  }
+
+  @receipt trait_support_matrix_config {
+    type: "TraitSupportMatrixReceipt"
+    timestamp: now()
+  }
+}

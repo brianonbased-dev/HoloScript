@@ -1,0 +1,23 @@
+// @subtitle_trait — Subtitle/caption: SRT/VTT caption rendering with style and sync.
+//
+// Native .hsplus surface for core/traits/SubtitleTrait.ts.
+
+@trait subtitle_trait {
+  capability_tags: ["subtitle", "srt_vtt_caption", "caption_render", "timed_text", "core"]
+
+  @on_spawn(source_format) => {
+    init_subtitle(source_format)
+    emit("subtitle_ready", {})
+  }
+
+  @on_show(timestamp_ms) => {
+    cue = show_subtitle_at(timestamp_ms)
+    return cue
+  }
+
+  @receipt subtitle_trait_config {
+    type: "SubtitleTraitReceipt"
+    formats: ["SRT", "VTT"]
+    timestamp: now()
+  }
+}

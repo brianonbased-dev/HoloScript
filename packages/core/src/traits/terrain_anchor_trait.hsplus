@@ -1,0 +1,22 @@
+// @terrain_anchor_trait — Terrain anchor: pins entities to terrain heightmap with slope alignment.
+//
+// Native .hsplus surface for core/traits/TerrainAnchorTrait.ts.
+
+@trait terrain_anchor_trait {
+  capability_tags: ["terrain_anchor", "heightmap_pin", "slope_alignment", "terrain_snap", "core"]
+
+  @on_spawn(heightmap_id) => {
+    init_terrain_anchor(heightmap_id)
+    emit("terrain_anchor_ready", {})
+  }
+
+  @on_place(position) => {
+    anchored_pose = place_on_terrain(position)
+    return anchored_pose
+  }
+
+  @receipt terrain_anchor_trait_config {
+    type: "TerrainAnchorTraitReceipt"
+    timestamp: now()
+  }
+}

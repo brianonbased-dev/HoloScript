@@ -1,0 +1,25 @@
+// @transform_trait — Transform: position, rotation, scale in world/local space with decompose.
+//
+// Native .hsplus surface for core/traits/TransformTrait.ts.
+
+@trait transform_trait {
+  capability_tags: ["transform", "position_rotation_scale", "world_local_space", "decompose", "core"]
+
+  @on_spawn(initial_transform) => {
+    init_transform(initial_transform)
+    emit("transform_ready", {})
+  }
+
+  @on_set(position, rotation, scale) => {
+    set_transform(position, rotation, scale)
+  }
+
+  @on_world_matrix => {
+    return get_world_matrix()
+  }
+
+  @receipt transform_trait_config {
+    type: "TransformTraitReceipt"
+    timestamp: now()
+  }
+}

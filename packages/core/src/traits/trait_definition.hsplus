@@ -1,0 +1,20 @@
+// @trait_definition — Trait definition schema: the canonical metadata shape for all HoloScript traits.
+//
+// Native .hsplus surface for core/traits/TraitDefinition.ts.
+
+@trait trait_definition {
+  capability_tags: ["trait_definition", "trait_metadata_schema", "canonical_shape", "trait_registry", "core"]
+
+  @on_spawn => {
+    emit("trait_definition_ready", {})
+  }
+
+  @on_validate(trait_meta) => {
+    return validate_trait_definition(trait_meta)
+  }
+
+  @receipt trait_definition_config {
+    type: "TraitDefinitionReceipt"
+    timestamp: now()
+  }
+}

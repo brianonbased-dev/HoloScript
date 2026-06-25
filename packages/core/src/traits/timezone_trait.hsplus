@@ -1,0 +1,21 @@
+// @timezone_trait — Timezone: converts timestamps across timezones with DST awareness.
+//
+// Native .hsplus surface for core/traits/TimezoneTrait.ts.
+
+@trait timezone_trait {
+  capability_tags: ["timezone", "timestamp_conversion", "dst_aware", "tz_normalize", "core"]
+
+  @on_spawn(default_tz) => {
+    init_timezone(default_tz)
+    emit("timezone_ready", {})
+  }
+
+  @on_convert(timestamp_utc, target_tz) => {
+    return convert_timezone(timestamp_utc, target_tz)
+  }
+
+  @receipt timezone_trait_config {
+    type: "TimezoneTraitReceipt"
+    timestamp: now()
+  }
+}

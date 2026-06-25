@@ -1,0 +1,22 @@
+// @translation_trait — Translation: neural machine translation with locale pair and glossary override.
+//
+// Native .hsplus surface for core/traits/TranslationTrait.ts.
+
+@trait translation_trait {
+  capability_tags: ["translation_trait", "neural_mt", "locale_pair", "glossary_override", "core"]
+
+  @on_spawn(provider, source_locale, target_locale) => {
+    init_translation(provider, source_locale, target_locale)
+    emit("translation_ready", {})
+  }
+
+  @on_translate(text, glossary) => {
+    translated = translate_text(text, glossary)
+    return translated
+  }
+
+  @receipt translation_trait_config {
+    type: "TranslationTraitReceipt"
+    timestamp: now()
+  }
+}

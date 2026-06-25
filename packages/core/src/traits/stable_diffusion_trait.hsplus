@@ -1,0 +1,23 @@
+// @stable_diffusion_trait — Stable Diffusion: text/image→image generation via SD pipeline (Apache-2.0 models).
+//
+// Native .hsplus surface for core/traits/StableDiffusionTrait.ts.
+
+@trait stable_diffusion_trait {
+  capability_tags: ["stable_diffusion", "text_image_to_image", "sd_pipeline", "generative_image", "core"]
+
+  @on_spawn(model_id, sampler) => {
+    init_stable_diffusion(model_id, sampler)
+    emit("stable_diffusion_ready", {})
+  }
+
+  @on_generate(prompt, negative_prompt, opts) => {
+    image = generate_stable_diffusion(prompt, negative_prompt, opts)
+    return image
+  }
+
+  @receipt stable_diffusion_trait_config {
+    type: "StableDiffusionTraitReceipt"
+    doc: "D.101 carve-out: sovereign generative tech only (Apache-2.0)"
+    timestamp: now()
+  }
+}

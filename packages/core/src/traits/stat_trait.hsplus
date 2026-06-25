@@ -1,0 +1,22 @@
+// @stat_trait — Stat: named numeric stat with min/max, current value, and regen rate.
+//
+// Native .hsplus surface for core/traits/StatTrait.ts.
+
+@trait stat_trait {
+  capability_tags: ["stat_trait", "numeric_stat", "min_max_current", "regen_rate", "core"]
+
+  @on_spawn(stat_name, base, min, max, regen) => {
+    init_stat(stat_name, base, min, max, regen)
+    emit("stat_ready", { stat_name })
+  }
+
+  @on_modify(delta) => {
+    current = modify_stat(delta)
+    return current
+  }
+
+  @receipt stat_trait_config {
+    type: "StatTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @telescope_optics_trait — Telescope optics: long-range zoom view with aberration and diffraction effects.
+//
+// Native .hsplus surface for core/traits/TelescopeOpticsTrait.ts.
+
+@trait telescope_optics_trait {
+  capability_tags: ["telescope_optics", "long_range_zoom", "aberration_diffraction", "optics_simulation", "core"]
+
+  @on_spawn(focal_length, aperture) => {
+    init_telescope_optics(focal_length, aperture)
+    emit("telescope_optics_ready", {})
+  }
+
+  @on_render(scene, fov_deg) => {
+    frame = render_telescope_view(scene, fov_deg)
+    return frame
+  }
+
+  @receipt telescope_optics_trait_config {
+    type: "TelescopeOpticsTraitReceipt"
+    timestamp: now()
+  }
+}

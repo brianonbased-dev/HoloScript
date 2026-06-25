@@ -1,0 +1,23 @@
+// @tensor_rt_inference_trait — TensorRT inference: TRT-optimized engine for low-latency GPU inference on Jetson.
+//
+// Native .hsplus surface for core/traits/TensorRTInferenceTrait.ts.
+
+@trait tensor_rt_inference_trait {
+  capability_tags: ["tensor_rt_inference", "trt_engine", "low_latency_gpu", "jetson_inference", "core"]
+
+  @on_spawn(engine_path) => {
+    init_tensor_rt(engine_path)
+    emit("tensor_rt_ready", {})
+  }
+
+  @on_infer(inputs) => {
+    outputs = run_tensor_rt_inference(inputs)
+    return outputs
+  }
+
+  @receipt tensor_rt_inference_trait_config {
+    type: "TensorRTInferenceTraitReceipt"
+    platform: "Jetson TensorRT"
+    timestamp: now()
+  }
+}

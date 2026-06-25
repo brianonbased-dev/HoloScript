@@ -1,0 +1,22 @@
+// @usd_trait — USD scene: OpenUSD layer composition, sublayer, variant sets, and export.
+//
+// Native .hsplus surface for core/traits/USDTrait.ts.
+
+@trait usd_trait {
+  capability_tags: ["usd_trait", "openusd", "layer_composition", "sublayer_variant", "core"]
+
+  @on_spawn => {
+    emit("usd_ready", {})
+  }
+
+  @on_export(stage, output_path) => {
+    export_usd_stage(stage, output_path)
+    emit("usd_exported", { output_path })
+  }
+
+  @receipt usd_trait_config {
+    type: "USDTraitReceipt"
+    standard: "OpenUSD"
+    timestamp: now()
+  }
+}

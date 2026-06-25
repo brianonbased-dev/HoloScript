@@ -1,0 +1,24 @@
+// @vqe_runner_trait — VQE runner: variational quantum eigensolver for molecular energy minimization.
+//
+// Native .hsplus surface for core/traits/VQERunnerTrait.ts.
+
+@trait vqe_runner_trait {
+  capability_tags: ["vqe_runner", "variational_quantum_eigensolver", "molecular_energy", "quantum_chemistry", "core"]
+
+  @on_spawn(ansatz, optimizer) => {
+    init_vqe_runner(ansatz, optimizer)
+    emit("vqe_runner_ready", {})
+  }
+
+  @on_minimize(hamiltonian) => {
+    result = run_vqe(hamiltonian)
+    emit("vqe_complete", { energy: result.energy })
+    return result
+  }
+
+  @receipt vqe_runner_trait_config {
+    type: "VQERunnerTraitReceipt"
+    method: "VQE (variational quantum eigensolver)"
+    timestamp: now()
+  }
+}

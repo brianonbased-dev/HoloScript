@@ -1,0 +1,22 @@
+// @timeout_guard_trait — Timeout guard: enforces max execution time, fires timeout event on breach.
+//
+// Native .hsplus surface for core/traits/TimeoutGuardTrait.ts.
+
+@trait timeout_guard_trait {
+  capability_tags: ["timeout_guard", "max_execution_time", "timeout_event", "execution_gate", "core"]
+
+  @on_spawn(timeout_ms) => {
+    init_timeout_guard(timeout_ms)
+    emit("timeout_guard_ready", {})
+  }
+
+  @on_wrap(fn) => {
+    result = wrap_with_timeout(fn)
+    return result
+  }
+
+  @receipt timeout_guard_trait_config {
+    type: "TimeoutGuardTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @ui_traits — UI traits bundle: button, label, image, panel, input primitives for HoloScript surfaces.
+//
+// Native .hsplus surface for core/traits/UITraits.ts.
+
+@trait ui_traits {
+  capability_tags: ["ui_traits", "button_label_image_panel_input", "ui_primitives", "holoscript_ui", "core"]
+
+  @on_spawn(surface_id) => {
+    init_ui_traits(surface_id)
+    emit("ui_ready", {})
+  }
+
+  @on_render(ui_tree) => {
+    render_ui_traits(ui_tree)
+  }
+
+  @receipt ui_traits_config {
+    type: "UITraitsReceipt"
+    timestamp: now()
+  }
+}

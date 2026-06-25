@@ -1,0 +1,23 @@
+// @subscription_trait — Subscription: recurring billing with plan lifecycle, trial, proration.
+//
+// Native .hsplus surface for core/traits/SubscriptionTrait.ts.
+
+@trait subscription_trait {
+  capability_tags: ["subscription_trait", "recurring_billing", "plan_lifecycle", "trial_proration", "core"]
+
+  @on_spawn(billing_ref) => {
+    init_subscription(billing_ref)
+    emit("subscription_ready", {})
+  }
+
+  @on_subscribe(user_id, plan_id, trial_days) => {
+    sub = create_subscription(user_id, plan_id, trial_days)
+    emit("subscribed", { plan_id })
+    return sub
+  }
+
+  @receipt subscription_trait_config {
+    type: "SubscriptionTraitReceipt"
+    timestamp: now()
+  }
+}

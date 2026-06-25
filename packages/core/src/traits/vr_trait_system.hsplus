@@ -1,0 +1,17 @@
+// @vr_trait_system — VR trait system: initializes the full VR-specific trait registry for a XR session.
+//
+// Native .hsplus surface for core/traits/VRTraitSystem.ts.
+
+@trait vr_trait_system {
+  capability_tags: ["vr_trait_system", "vr_registry", "xr_session_init", "vr_trait_bundle", "core"]
+
+  @on_spawn(device_profile) => {
+    init_vr_trait_system(device_profile)
+    emit("vr_trait_system_ready", { device_profile })
+  }
+
+  @receipt vr_trait_system_config {
+    type: "VRTraitSystemReceipt"
+    timestamp: now()
+  }
+}

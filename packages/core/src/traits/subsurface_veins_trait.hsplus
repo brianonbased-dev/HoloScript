@@ -1,0 +1,22 @@
+// @subsurface_veins_trait — Subsurface veins: procedural vein/capillary pattern within SSS skin shader.
+//
+// Native .hsplus surface for core/traits/SubsurfaceVeinsTrait.ts.
+
+@trait subsurface_veins_trait {
+  capability_tags: ["subsurface_veins", "procedural_vein", "capillary_pattern", "sss_skin_detail", "core"]
+
+  @on_spawn(density, color) => {
+    init_subsurface_veins(density, color)
+    emit("subsurface_veins_ready", {})
+  }
+
+  @on_apply(uv, depth) => {
+    vein_mask = apply_subsurface_veins(uv, depth)
+    return vein_mask
+  }
+
+  @receipt subsurface_veins_trait_config {
+    type: "SubsurfaceVeinsTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @system_monitor_trait — System monitor: polls CPU/memory/disk/GPU with alert thresholds.
+//
+// Native .hsplus surface for core/traits/SystemMonitorTrait.ts.
+
+@trait system_monitor_trait {
+  capability_tags: ["system_monitor", "cpu_memory_disk_gpu", "alert_thresholds", "hardware_monitor", "core"]
+
+  @on_spawn(poll_interval_ms, thresholds) => {
+    init_system_monitor(poll_interval_ms, thresholds)
+    emit("system_monitor_ready", {})
+  }
+
+  @on_tick => {
+    metrics = poll_system_metrics()
+    if metrics.alert { emit("system_alert", { metrics }) }
+    return metrics
+  }
+
+  @receipt system_monitor_trait_config {
+    type: "SystemMonitorTraitReceipt"
+    timestamp: now()
+  }
+}

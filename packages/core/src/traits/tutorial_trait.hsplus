@@ -1,0 +1,23 @@
+// @tutorial_trait — Tutorial: step-gated interactive tutorial with hint suppression and skip.
+//
+// Native .hsplus surface for core/traits/TutorialTrait.ts.
+
+@trait tutorial_trait {
+  capability_tags: ["tutorial", "step_gated", "interactive_guide", "hint_skip", "core"]
+
+  @on_spawn(tutorial_id) => {
+    init_tutorial(tutorial_id)
+    emit("tutorial_ready", { tutorial_id })
+  }
+
+  @on_complete_step(step_id) => {
+    next = advance_tutorial_step(step_id)
+    emit("tutorial_step_complete", { step_id })
+    return next
+  }
+
+  @receipt tutorial_trait_config {
+    type: "TutorialTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @temporal_guard_trait — Temporal guard: rejects ops outside valid time window or before quorum.
+//
+// Native .hsplus surface for core/traits/TemporalGuardTrait.ts.
+
+@trait temporal_guard_trait {
+  capability_tags: ["temporal_guard", "time_window", "quorum_gate", "op_reject", "core"]
+
+  @on_spawn(valid_from, valid_until) => {
+    init_temporal_guard(valid_from, valid_until)
+    emit("temporal_guard_ready", {})
+  }
+
+  @on_check(op, timestamp) => {
+    allowed = check_temporal_guard(op, timestamp)
+    if !allowed { emit("temporal_rejected", { op, timestamp }) }
+    return allowed
+  }
+
+  @receipt temporal_guard_trait_config {
+    type: "TemporalGuardTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @unity_to_holoscript_converter — Unity→HoloScript converter: maps Unity component structure to .hsplus traits.
+//
+// Native .hsplus surface for core/traits/UnityToHoloScriptConverter.ts.
+
+@trait unity_to_holoscript_converter {
+  capability_tags: ["unity_to_holoscript", "unity_component_map", "hsplus_trait_output", "migration_tool", "core"]
+
+  @on_spawn => {
+    emit("unity_to_holoscript_converter_ready", {})
+  }
+
+  @on_convert(unity_go_json) => {
+    traits = convert_unity_to_holoscript(unity_go_json)
+    return traits
+  }
+
+  @receipt unity_to_holoscript_converter_config {
+    type: "UnityToHoloScriptConverterReceipt"
+    source: "Unity component JSON"
+    output: ".hsplus traits"
+    timestamp: now()
+  }
+}

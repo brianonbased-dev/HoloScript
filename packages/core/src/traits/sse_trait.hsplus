@@ -1,0 +1,21 @@
+// @sse_trait — SSE: Server-Sent Events stream for real-time push from server to client.
+//
+// Native .hsplus surface for core/traits/SseTrait.ts.
+
+@trait sse_trait {
+  capability_tags: ["sse", "server_sent_events", "real_time_push", "http_stream", "core"]
+
+  @on_spawn(endpoint) => {
+    init_sse(endpoint)
+    emit("sse_ready", { endpoint })
+  }
+
+  @on_publish(event_type, data) => {
+    publish_sse_event(event_type, data)
+  }
+
+  @receipt sse_trait_config {
+    type: "SseTraitReceipt"
+    timestamp: now()
+  }
+}

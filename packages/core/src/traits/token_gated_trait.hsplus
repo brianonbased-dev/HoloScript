@@ -1,0 +1,24 @@
+// @token_gated_trait — Token gate: requires ERC-721/ERC-1155 token holding to unlock content/action.
+//
+// Native .hsplus surface for core/traits/TokenGatedTrait.ts.
+
+@trait token_gated_trait {
+  capability_tags: ["token_gated", "erc721_erc1155", "token_holding_gate", "nft_access", "core"]
+
+  @on_spawn(contract_address, token_type) => {
+    init_token_gate(contract_address, token_type)
+    emit("token_gate_ready", {})
+  }
+
+  @on_verify(wallet_address) => {
+    holds = verify_token_holding(wallet_address)
+    if !holds { emit("token_gate_denied", { wallet_address }) }
+    return holds
+  }
+
+  @receipt token_gated_trait_config {
+    type: "TokenGatedTraitReceipt"
+    standards: ["ERC-721", "ERC-1155"]
+    timestamp: now()
+  }
+}

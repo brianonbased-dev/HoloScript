@@ -1,0 +1,23 @@
+// @subsurface_scattering_trait — Subsurface scattering: screen-space SSS for skin/wax/marble materials.
+//
+// Native .hsplus surface for core/traits/SubsurfaceScatteringTrait.ts.
+
+@trait subsurface_scattering_trait {
+  capability_tags: ["subsurface_scattering", "sss", "skin_wax_marble", "screen_space_sss", "core"]
+
+  @on_spawn(sss_profile) => {
+    init_subsurface_scattering(sss_profile)
+    emit("subsurface_scattering_ready", {})
+  }
+
+  @on_apply(surface_irradiance) => {
+    scattered = apply_sss(surface_irradiance)
+    return scattered
+  }
+
+  @receipt subsurface_scattering_trait_config {
+    type: "SubsurfaceScatteringTraitReceipt"
+    method: "Screen-space SSS"
+    timestamp: now()
+  }
+}

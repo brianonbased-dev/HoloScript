@@ -1,0 +1,24 @@
+// @tegra_monitor_trait — Tegra monitor: Jetson Tegra GPU/CPU/memory telemetry via tegrastats.
+//
+// Native .hsplus surface for core/traits/TegraMonitorTrait.ts.
+// Jetson Orin Nano Super target (R.022, W.755).
+
+@trait tegra_monitor_trait {
+  capability_tags: ["tegra_monitor", "jetson_tegra", "tegrastats", "jetson_telemetry", "core"]
+
+  @on_spawn(poll_interval_ms) => {
+    init_tegra_monitor(poll_interval_ms)
+    emit("tegra_monitor_ready", {})
+  }
+
+  @on_sample => {
+    stats = sample_tegrastats()
+    return stats
+  }
+
+  @receipt tegra_monitor_trait_config {
+    type: "TegraMonitorTraitReceipt"
+    platform: "Jetson Orin Nano Super"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @tensor_op_trait — Tensor operations: matmul, elementwise, reduce, reshape on typed tensors.
+//
+// Native .hsplus surface for core/traits/TensorOpTrait.ts.
+
+@trait tensor_op_trait {
+  capability_tags: ["tensor_op", "matmul_elementwise_reduce", "reshape", "typed_tensor", "core"]
+
+  @on_spawn(device) => {
+    init_tensor_ops(device)
+    emit("tensor_op_ready", { device })
+  }
+
+  @on_op(op_name, operands) => {
+    result = execute_tensor_op(op_name, operands)
+    return result
+  }
+
+  @receipt tensor_op_trait_config {
+    type: "TensorOpTraitReceipt"
+    ops: ["matmul", "elementwise", "reduce", "reshape"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @structured_logger_trait — Structured logger: JSON-serialized log lines with trace-id propagation.
+//
+// Native .hsplus surface for core/traits/StructuredLoggerTrait.ts.
+
+@trait structured_logger_trait {
+  capability_tags: ["structured_logger", "json_logs", "trace_id_propagation", "structured_logging", "core"]
+
+  @on_spawn(service_name, log_level) => {
+    init_structured_logger(service_name, log_level)
+    emit("structured_logger_ready", {})
+  }
+
+  @on_log(level, message, fields) => {
+    write_structured_log(level, message, fields)
+  }
+
+  @receipt structured_logger_trait_config {
+    type: "StructuredLoggerTraitReceipt"
+    format: "JSON + trace-id"
+    timestamp: now()
+  }
+}

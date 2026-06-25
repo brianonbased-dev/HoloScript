@@ -1,0 +1,22 @@
+// @tracking_topology_trait — Tracking topology: manages camera/sensor overlap graph for coverage analysis.
+//
+// Native .hsplus surface for core/traits/TrackingTopologyTrait.ts.
+
+@trait tracking_topology_trait {
+  capability_tags: ["tracking_topology", "camera_sensor_graph", "overlap_coverage", "topology_analysis", "core"]
+
+  @on_spawn(sensors) => {
+    init_tracking_topology(sensors)
+    emit("tracking_topology_ready", {})
+  }
+
+  @on_analyze_coverage => {
+    coverage = analyze_tracking_coverage()
+    return coverage
+  }
+
+  @receipt tracking_topology_trait_config {
+    type: "TrackingTopologyTraitReceipt"
+    timestamp: now()
+  }
+}

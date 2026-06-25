@@ -1,0 +1,23 @@
+// @trait_time_of_day — Time-of-day trait: adjusts entity behavior based on simulated world clock.
+//
+// Native .hsplus surface for core/traits/TraitTimeOfDay.ts.
+
+@trait trait_time_of_day {
+  capability_tags: ["trait_time_of_day", "world_clock", "behavior_by_hour", "diurnal_cycle", "core"]
+
+  @on_spawn(world_clock_ref) => {
+    init_time_of_day(world_clock_ref)
+    emit("time_of_day_ready", {})
+  }
+
+  @on_tick(world_time) => {
+    phase = evaluate_time_of_day_phase(world_time)
+    return phase
+  }
+
+  @receipt trait_time_of_day_config {
+    type: "TraitTimeOfDayReceipt"
+    phases: ["dawn", "day", "dusk", "night"]
+    timestamp: now()
+  }
+}

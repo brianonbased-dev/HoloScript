@@ -1,0 +1,26 @@
+// @time_travel_debug_trait — Time-travel debugger: records and replays entity state sequence for debugging.
+//
+// Native .hsplus surface for core/traits/TimeTravelDebugTrait.ts.
+
+@trait time_travel_debug_trait {
+  capability_tags: ["time_travel_debug", "state_record_replay", "entity_history", "debug_playback", "core"]
+
+  @on_spawn(buffer_size) => {
+    init_time_travel_debug(buffer_size)
+    emit("time_travel_debug_ready", {})
+  }
+
+  @on_record(entity_state) => {
+    record_time_travel_frame(entity_state)
+  }
+
+  @on_rewind(steps) => {
+    state = rewind_time_travel(steps)
+    return state
+  }
+
+  @receipt time_travel_debug_trait_config {
+    type: "TimeTravelDebugTraitReceipt"
+    timestamp: now()
+  }
+}

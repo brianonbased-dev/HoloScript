@@ -1,0 +1,22 @@
+// @urdf_robot_trait — URDF robot: parses URDF and provides joint control for ROS2-compatible robots.
+//
+// Native .hsplus surface for core/traits/URDFRobotTrait.ts.
+
+@trait urdf_robot_trait {
+  capability_tags: ["urdf_robot", "urdf_parse", "joint_control", "ros2_compatible", "core"]
+
+  @on_spawn(urdf_path) => {
+    init_urdf_robot(urdf_path)
+    emit("urdf_robot_ready", {})
+  }
+
+  @on_command(joint_name, value) => {
+    command_robot_joint(joint_name, value)
+  }
+
+  @receipt urdf_robot_trait_config {
+    type: "URDFRobotTraitReceipt"
+    standard: "URDF + ROS2"
+    timestamp: now()
+  }
+}

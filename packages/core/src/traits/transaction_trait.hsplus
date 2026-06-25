@@ -1,0 +1,27 @@
+// @transaction_trait — Transaction: ACID-safe multi-op group with commit/rollback.
+//
+// Native .hsplus surface for core/traits/TransactionTrait.ts.
+
+@trait transaction_trait {
+  capability_tags: ["transaction", "acid_safe", "commit_rollback", "multi_op_group", "core"]
+
+  @on_spawn => {
+    emit("transaction_ready", {})
+  }
+
+  @on_begin => {
+    tx_id = begin_transaction()
+    return tx_id
+  }
+
+  @on_commit(tx_id) => {
+    commit_transaction(tx_id)
+    emit("transaction_committed", { tx_id })
+  }
+
+  @receipt transaction_trait_config {
+    type: "TransactionTraitReceipt"
+    semantics: "ACID"
+    timestamp: now()
+  }
+}

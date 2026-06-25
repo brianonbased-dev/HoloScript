@@ -1,0 +1,22 @@
+// @sync_tier_trait — Sync tier: classifies entity sync frequency (realtime/near/eventual/on_demand).
+//
+// Native .hsplus surface for core/traits/SyncTierTrait.ts.
+
+@trait sync_tier_trait {
+  capability_tags: ["sync_tier", "realtime_near_eventual", "sync_classification", "entity_sync", "core"]
+
+  @on_spawn(tier) => {
+    init_sync_tier(tier)
+    emit("sync_tier_ready", { tier })
+  }
+
+  @on_sync(delta) => {
+    sync_entity_at_tier(delta)
+  }
+
+  @receipt sync_tier_trait_config {
+    type: "SyncTierTraitReceipt"
+    tiers: ["realtime", "near", "eventual", "on_demand"]
+    timestamp: now()
+  }
+}

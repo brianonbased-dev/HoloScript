@@ -1,0 +1,20 @@
+// @tenant_config_schema — Tenant config schema: typed schema for per-tenant configuration overrides.
+//
+// Native .hsplus surface for core/traits/TenantConfigSchema.ts.
+
+@trait tenant_config_schema {
+  capability_tags: ["tenant_config_schema", "per_tenant_config", "typed_overrides", "schema_definition", "core"]
+
+  @on_spawn => {
+    emit("tenant_config_schema_ready", {})
+  }
+
+  @on_validate(config) => {
+    return validate_tenant_config(config)
+  }
+
+  @receipt tenant_config_schema_config {
+    type: "TenantConfigSchemaReceipt"
+    timestamp: now()
+  }
+}
