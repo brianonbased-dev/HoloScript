@@ -1,0 +1,23 @@
+@trait {
+  name: "@gcode_slicer",
+  category: "fabrication",
+  description: "FDM 3D print G-code slicer for HoloScript objects. layerHeightMm controls print resolution (default: 0.2mm). infillPercent sets infill density (default: 20%). nozzleTempC and bedTempC set material temperatures. firstLayerNozzleBoostC adds extra heat for first-layer adhesion. adhesionLayerCount/adhesionLayerHeightMm/adhesionBrimMm configure brim settings. printSpeedMmS sets travel speed. Outputs G-code for FDM printers. Port of GCodeSlicerTrait.ts (handler name: gcode_slicer).",
+  props: {
+    layer_height_mm: number = 0.2,
+    infill_percent: number = 20,
+    nozzle_temp_c: number = 210,
+    bed_temp_c: number = 60,
+    first_layer_nozzle_boost_c: number = 10,
+    adhesion_layer_count: number = 3,
+    adhesion_layer_height_mm: number = 0.25,
+    adhesion_brim_mm: number = 2,
+    print_speed_mm_s: number = 50
+  },
+  events: {
+    on_slice_complete: "gcode_slice_complete",
+    on_slice_error: "gcode_slice_error",
+    slice: "gcode_slice",
+    preview: "gcode_preview"
+  },
+  behaviors: ["@structural_analysis", "@holomap_reconstruct"]
+}

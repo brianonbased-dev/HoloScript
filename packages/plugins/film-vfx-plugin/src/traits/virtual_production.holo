@@ -1,0 +1,16 @@
+@trait {
+  name: "@virtual_production",
+  category: "film",
+  description: "LED volume / virtual production stage controller. Manages multi-wall LED panels (layout, dimensions, resolution, pixel pitch, curve radius), camera frustum tracking (sensor, focal length, position for in-camera VFX parallax), and real-time content synchronization. stageId identifies the stage configuration. Drives @dmx_lighting for stage lighting and @cinematic_camera for tracking sync. Port of VirtualProductionTrait.ts (handler name: virtual_production).",
+  props: {
+    stage_id: string = "stage_main"
+  },
+  events: {
+    on_stage_ready: "virtual_production_ready",
+    on_wall_updated: "virtual_production_wall_updated",
+    on_tracking_synced: "virtual_production_tracking_synced",
+    update_content: "virtual_production_update_content",
+    sync_tracking: "virtual_production_sync_tracking"
+  },
+  behaviors: ["@director_ai", "@dmx_lighting", "@cinematic_camera"]
+}

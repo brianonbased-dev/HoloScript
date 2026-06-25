@@ -1,0 +1,20 @@
+@trait {
+  name: "@shot_list",
+  category: "film",
+  description: "Production shot record for film/virtual production. shotType: wide, medium, close_up, extreme_close_up, two_shot, or over_shoulder. duration is planned shot duration in seconds. lens.focalLength is the focal length in mm. movement: static, pan, tilt, dolly, crane, handheld, or drone. priority: essential, recommended, or bonus — drives coverage validation with @director_ai. Port of ShotListTrait.ts (handler name: shot_list).",
+  props: {
+    shot_id: string = "1A",
+    scene: number = 1,
+    shot_type: enum("wide" | "medium" | "close_up" | "extreme_close_up" | "two_shot" | "over_shoulder") = "medium",
+    duration: number = 5,
+    movement: enum("static" | "pan" | "tilt" | "dolly" | "crane" | "handheld" | "drone") = "static",
+    priority: enum("essential" | "recommended" | "bonus") = "essential"
+  },
+  events: {
+    on_shot_captured: "shot_list_captured",
+    on_shot_approved: "shot_list_approved",
+    capture: "shot_list_capture",
+    approve: "shot_list_approve"
+  },
+  behaviors: ["@director_ai", "@cinematic_camera"]
+}

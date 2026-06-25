@@ -1,0 +1,24 @@
+@trait {
+  name: "@cinematic_camera",
+  category: "film",
+  description: "Cinematic camera with real lens/sensor simulation. focalLengthMm: lens focal length (default: 50mm normal). sensorWidth/sensorHeight: sensor dimensions in mm (default: 36x24 = full-frame). tStop: lens transmission stop (default: 2.8 — controls bokeh radius). focusDistanceM: focus plane distance in meters. movement: static, pan, tilt, dolly, crane, handheld, or drone. shutterAngle: motion blur amount in degrees (180° = standard cinematic). iso: sensor gain. whiteBalanceK: color temperature in Kelvin (5600K = daylight). Port of CinematicCameraTrait.ts (handler name: cinematic_camera).",
+  props: {
+    focal_length_mm: number = 50,
+    sensor_width: number = 36,
+    sensor_height: number = 24,
+    t_stop: number = 2.8,
+    focus_distance_m: number = 3,
+    movement: enum("static" | "pan" | "tilt" | "dolly" | "crane" | "handheld" | "drone") = "static",
+    shutter_angle: number = 180,
+    iso: number = 800,
+    white_balance_k: number = 5600
+  },
+  events: {
+    on_focus_changed: "cinematic_camera_focus_changed",
+    on_movement_changed: "cinematic_camera_movement_changed",
+    set_focus: "cinematic_camera_set_focus",
+    set_exposure: "cinematic_camera_set_exposure",
+    cut: "cinematic_camera_cut"
+  },
+  behaviors: ["@shot_list", "@virtual_production"]
+}

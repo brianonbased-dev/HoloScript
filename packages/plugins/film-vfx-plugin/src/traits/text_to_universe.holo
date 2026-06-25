@@ -1,0 +1,19 @@
+@trait {
+  name: "@text_to_universe",
+  category: "film",
+  description: "Narrative-to-world generator. Converts a text prompt into a populated HoloScript world by spawning entities, setting scene parameters, and building narrative consistency across generated objects. llmProvider selects the LLM backend for world generation. autoSpawning immediately spawns generated entities. maxEntityCount caps the total generated entity count. narrativeConsistency: high (strict thematic coherence), medium, or low. gapsLodEnabled fills spatial gaps with LOD-appropriate filler objects. Port of TextToUniverseTrait.ts (handler name: text_to_universe).",
+  props: {
+    llm_provider: string = "claude-3-opus",
+    auto_spawning: boolean = true,
+    max_entity_count: number = 1000,
+    narrative_consistency: enum("high" | "medium" | "low") = "high",
+    gaps_lod_enabled: boolean = true
+  },
+  events: {
+    on_world_generated: "text_to_universe_generated",
+    on_entity_spawned: "text_to_universe_entity_spawned",
+    on_error: "text_to_universe_error",
+    generate: "text_to_universe_generate"
+  },
+  behaviors: ["@director_ai", "@virtual_production"]
+}
