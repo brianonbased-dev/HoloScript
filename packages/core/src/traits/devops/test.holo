@@ -1,0 +1,18 @@
+@trait {
+  name: "@test",
+  category: "devops",
+  description: "HoloScript declarative test runner. Compiles @test { name, setup, assert } blocks from trait comments to headless-native test cases. bail=true stops on first failure. debug=true emits verbose trace per assertion. timeout caps individual test case execution in ms. Each test case sets up node state (via $variable assignments in setup block) then evaluates assert expressions. Works on all compile targets (headless-native). Pairs with @script_test for script-level test blocks. Port of TestTrait.ts (handler name: test).",
+  props: {
+    bail: boolean = false,
+    debug: boolean = false,
+    timeout: number = 5000
+  },
+  events: {
+    on_pass: "test_passed",
+    on_fail: "test_failed",
+    on_suite_complete: "test_suite_complete",
+    run: "test_run",
+    run_single: "test_run_single"
+  },
+  behaviors: ["@gotcha", "@vulnerability_scanner"]
+}
