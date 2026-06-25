@@ -1,0 +1,18 @@
+@trait {
+  name: "@holo_map_splat_output",
+  category: "spatial",
+  description: "Declares that a HoloMap reconstruction session should emit a Gaussian splat representation alongside the point cloud. Listens for holomap:finalized and emits a splat bake request with format (splat/spz), SPZ version, max splat budget, and optional spherical harmonics baking. Feeds GaussianSplatTrait for rendering. Port of HoloMapSplatOutputTrait.ts (handler name: holomap_splat_output).",
+  props: {
+    format: enum("splat" | "spz") = "spz",
+    spz_version: enum("1.0" | "2.0") = "2.0",
+    max_splats: number = 500000,
+    bake_spherical_harmonics: boolean = false
+  },
+  events: {
+    on_registered: "holomap:splat_output_registered",
+    on_bake_requested: "holomap:splat_bake_requested",
+    on_baked: "holomap:splat_baked",
+    finalized: "holomap:finalized"
+  },
+  behaviors: ["@holo_map_reconstruction", "@gaussian_splat"]
+}

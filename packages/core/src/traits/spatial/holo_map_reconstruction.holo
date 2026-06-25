@@ -1,0 +1,19 @@
+@trait {
+  name: "@holo_map_reconstruct",
+  category: "spatial",
+  description: "Binds a node to the HoloMap WebGPU reconstruction runtime. Drives a full RGB→3D reconstruction session: start_session→init, frame→step+step_result, finalize→finalized. Sibling traits (camera_trajectory, anchor_context, drift_correction, splat_output) consume step_result/finalized events automatically. Port of HoloMapReconstructionTrait.ts (handler name: holomap_reconstruct).",
+  props: {
+    source: enum("webcam" | "video_url" | "frame_folder") = "webcam",
+    source_ref: string = "",
+    auto_finalize: boolean = true
+  },
+  events: {
+    on_step_result: "holomap:step_result",
+    on_finalized: "holomap:finalized",
+    on_error: "holomap:error",
+    start_session: "holomap:start_session",
+    frame: "holomap:frame",
+    finalize: "holomap:finalize"
+  },
+  behaviors: ["@holo_map_anchor_context", "@holo_map_drift_correction", "@holo_map_camera_trajectory", "@holo_map_splat_output"]
+}

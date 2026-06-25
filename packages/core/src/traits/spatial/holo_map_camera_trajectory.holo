@@ -1,0 +1,15 @@
+@trait {
+  name: "@holo_map_camera_trajectory",
+  category: "spatial",
+  description: "Exposes the per-frame camera pose stream from a HoloMap reconstruction session. Maintains a ring buffer of poses and keyframes, tracks estimated drift, and emits trajectory:tick events at a configurable frame interval for downstream timelines, replay, and Studio viewers. Port of HoloMapCameraTrajectoryTrait.ts (handler name: holomap_camera_trajectory).",
+  props: {
+    history_length: number = 1024,
+    emit_every_n: number = 15
+  },
+  events: {
+    on_tick: "trajectory:tick",
+    on_keyframe: "trajectory:keyframe",
+    step_result: "holomap:step_result"
+  },
+  behaviors: ["@holo_map_reconstruction", "@holo_map_drift_correction", "@holo_map_anchor_context"]
+}

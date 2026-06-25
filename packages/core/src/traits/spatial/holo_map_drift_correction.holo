@@ -1,0 +1,18 @@
+@trait {
+  name: "@holo_map_drift_correction",
+  category: "spatial",
+  description: "Declares drift-correction policy for a HoloMap reconstruction session. Monitors accumulated pose drift, triggers loop-closure detection when drift exceeds maxDriftMeters, and emits correction requests with configurable loop-closure confidence threshold and history-rewrite policy. Port of HoloMapDriftCorrectionTrait.ts (handler name: holomap_drift_correction).",
+  props: {
+    max_drift_meters: number = 1.0,
+    loop_closure_threshold: number = 0.92,
+    rewrite_history: boolean = false
+  },
+  events: {
+    on_monitor_start: "holomap:drift_monitor_start",
+    on_correction_requested: "holomap:drift_correction_requested",
+    on_corrected: "holomap:drift_corrected",
+    step_result: "holomap:step_result",
+    drift_update: "holomap:drift_update"
+  },
+  behaviors: ["@holo_map_reconstruction", "@holo_map_anchor_context", "@holo_map_camera_trajectory"]
+}
