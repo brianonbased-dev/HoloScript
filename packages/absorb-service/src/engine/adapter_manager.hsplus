@@ -1,0 +1,48 @@
+// @adapter_manager — Lazy-loading tree-sitter parser manager for multi-language Absorb.
+//
+// Native .hsplus surface for AdapterManager.ts (absorb-service/engine).
+//
+// Manages tree-sitter parser instances per SupportedLanguage.
+// Lazy-loads grammars on first use with native → WASM → graceful degradation.
+// Uses dynamic import() for ESM/CJS compatibility (esbuild __require breaks in ESM).
+//
+// AdapterManager (AdapterManager.ts):
+//   LanguageState { parser: TSParser|null, language, backend: native|wasm|none, error? }
+//   parse(source, language) → ParseTree|null (null if no grammar available)
+//   isAvailable(language) → Bool
+//   getBackend(language) → 'native'|'wasm'|'none'
+//
+// Fallback chain: native tree-sitter → tree-sitter WASM → none (graceful degradation).
+// Files with no grammar available fall through to regex extractLooseImports() in scanner.
+
+@trait adapter_manager {
+  capability_tags: ["adapter_manager", "tree_sitter", "lazy_load", "multi_language", "absorb_service", "parser_manager"]
+
+  @on_spawn => {
+    manager = init_adapter_manager()
+    emit("adapter_manager_ready", {})
+  }
+
+  // Parse source in a given language; returns null if grammar unavailable
+  @on_parse(source, language) => {
+    tree = manager.parse(source, language)
+    return tree
+  }
+
+  // Check if a grammar is available for a language
+  @on_is_available(language) => {
+    return manager.is_available(language)
+  }
+
+  // Get the backend type in use for a language
+  @on_get_backend(language) => {
+    return manager.get_backend(language)
+  }
+
+  @receipt adapter_manager_config {
+    type: "AdapterManagerReceipt"
+    fallback_chain: "native tree-sitter → WASM → none (graceful)"
+    esm_compat: "dynamic import() instead of require()"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,50 @@
+// @embedding_provider_factory — Create EmbeddingProvider instances (sovereign-by-default).
+//
+// Native .hsplus surface for EmbeddingProviderFactory.ts (absorb-service/engine/providers).
+//
+// F.106 SOVEREIGN-BY-DEFAULT: factory NEVER inspects env vars to auto-select providers.
+// Only dispatches on explicit opts.provider. OpenAI is OPT-IN ONLY (never auto-selected).
+//
+// createEmbeddingProvider(opts?) → EmbeddingProvider:
+//   'structural' (DEFAULT): 384-dim AST features, keyless, deterministic, 100% graph-topology recall (Paper 26 T1)
+//   'holoembed': 768-dim structural + char-trigram, keyless, ~50-70% NL recall@10 (Paper 26 T2)
+//   'ollama': requires running Ollama server, explicit server URL
+//   'xenova': local WASM (pnpm add @huggingface/transformers), no network
+//   'openai': EXPLICIT OPT-IN ONLY — pass provider:'openai' + openaiApiKey; mere env key presence NEVER routes here (F.106)
+//
+// All concrete providers lazy-loaded via dynamic import to keep optional deps truly optional.
+// Avoids circular deps between EmbeddingProvider.ts and concrete implementations.
+
+@trait embedding_provider_factory {
+  // Default provider (sovereign, keyless)
+  default_provider: String = "structural"
+
+  capability_tags: ["embedding_provider_factory", "sovereign_by_default", "f106", "lazy_load", "absorb_service", "embedding_providers"]
+
+  @on_spawn => {
+    factory = init_embedding_provider_factory({ default_provider: default_provider })
+    emit("embedding_provider_factory_ready", { default: default_provider })
+  }
+
+  // Create an EmbeddingProvider from options
+  // opts.provider: "structural" (default) | "holoembed" | "ollama" | "xenova" | "openai"
+  @on_create(opts) => {
+    provider = factory.create(opts ?? { provider: default_provider })
+    emit("embedding_provider_created", { provider: opts.provider ?? default_provider })
+    return provider
+  }
+
+  @receipt embedding_provider_factory_config {
+    type: "EmbeddingProviderFactoryReceipt"
+    default_provider: default_provider
+    providers: {
+      structural: "384-dim AST (keyless, deterministic, 100% graph-topology recall)",
+      holoembed: "768-dim structural+trigram (keyless, ~50-70% NL recall@10)",
+      ollama: "requires running Ollama server (explicit URL)",
+      xenova: "local WASM (requires @huggingface/transformers)",
+      openai: "OPT-IN ONLY (explicit provider:'openai' + apiKey required, F.106)"
+    }
+    f106: "NEVER auto-selects based on env vars; OPT-IN is the only path to openai"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,65 @@
+// @reference_graph — Directed symbol reference graph for dead-code detection.
+//
+// Native .hsplus surface for ReferenceGraph.ts (absorb-service/analysis).
+//
+// Sprint 5 Priority 1. Tracks symbol definitions + references across files.
+// Provides directed reference graph for callers/callees and dead-code analysis.
+//
+// ReferenceGraph (ReferenceGraph.ts):
+//   buildFromHoloComposition(composition, filePath) — native HoloComposition ingestion
+//     Preserves AST SourceRange (loc) on every definition (byte-precise).
+//     NORTH_STAR DT-14. SymbolLocation { start, end: {line, column} }.
+//   Tracked symbol kinds: orbs, templates, functions, properties
+//   Cross-file: symbol references track source file + target file
+//   finalize() — call after last file in multi-file batch ingest
+//
+// HoloSourceRangeLike { start: {line, column}, end?: {line, column} }
+// Dead-code rule: symbols with zero inbound references + not an entry point.
+//
+// Used by ingestHoloSource for .holo/.hsplus parsing (DT-14 canonical path).
+
+@trait reference_graph {
+  capability_tags: ["reference_graph", "dead_code_detection", "symbol_tracking", "dt14", "provenance_semiring", "absorb_service"]
+
+  @on_spawn => {
+    graph = init_reference_graph()
+    emit("reference_graph_ready", {})
+  }
+
+  // Ingest a HoloComposition AST (native path — DT-14)
+  @on_build_from_holo(composition, file_path) => {
+    graph.build_from_holo_composition(composition, file_path)
+    emit("holo_composition_ingested", { file: file_path })
+  }
+
+  // Add a symbol definition
+  @on_add_definition(symbol_id, file_path, loc) => {
+    graph.add_definition(symbol_id, file_path, loc)
+  }
+
+  // Add a symbol reference
+  @on_add_reference(from_id, to_id, file_path, loc) => {
+    graph.add_reference(from_id, to_id, file_path, loc)
+  }
+
+  // Find unreferenced symbols (dead code candidates)
+  @on_find_dead_code => {
+    dead = graph.find_dead_code()
+    emit("dead_code_found", { count: dead.size })
+    return dead
+  }
+
+  // Finalize graph after batch ingest (builds cross-file edges)
+  @on_finalize => {
+    graph.finalize()
+    emit("reference_graph_finalized", {})
+  }
+
+  @receipt reference_graph_config {
+    type: "ReferenceGraphReceipt"
+    sprint: "Sprint 5 Priority 1 (dead-code detection)"
+    symbol_kinds: ["orbs", "templates", "functions", "properties"]
+    provenance: "SourceRange (loc) preserved for provenance semiring (DT-14)"
+    timestamp: now()
+  }
+}

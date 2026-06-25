@@ -1,0 +1,56 @@
+// @structural_embedding_provider — 384-dim structural AST embeddings. No key, no net.
+//
+// Native .hsplus surface for StructuralEmbeddingProvider.ts (absorb-service/engine/providers).
+//
+// HoloGraph Phase 1. Deterministic: same symbol → same vector always.
+// Zero external dependency. Sovereign default for graph-topology queries.
+// Paper 26 Table 1: 100% recall for graph-topology queries.
+//
+// Embedding layout (StructuralEmbeddingProvider.ts), 384 dims, normalized [0,1]:
+//   Dims   0–127: File/package structural features
+//     0-9:  package membership (core, mcp-server, plugins, absorb-service, studio, r3f-renderer),
+//           test-file flag, traits/, adapters/, providers/ flags, file-depth (0-8)
+//     11-127: deterministic hash of file path → 117 dims
+//   Dims 128–191: Signature structure
+//     128: symbol type (function=1, method=0.8, class=0.6, interface=0.4, other=0.2)
+//     129: visibility (public=1, protected=0.5, private=0)
+//     130: is_exported; 131: param_count (0-10); 132: has_return_type
+//     133: LOC (0-200); 134: owner/class depth
+//     135-191: hash of signature text → 57 dims
+//   Dims 192–255: Call-graph features [populated via enrich()]
+//     192: fan-in (0-20); 193: fan-out (0-20)
+//     194-255: hash of docComment → 62 dims
+//   Dims 256–383: Event-chain features [populated via enrich()]
+//
+// Two methods: embed(symbol) → raw 384-dim; enrich(symbol, graph) → fills 192-383.
+
+@trait structural_embedding_provider {
+  capability_tags: ["structural_embedding_provider", "384_dim_embeddings", "holograph_phase1", "deterministic", "zero_dependency", "absorb_service", "paper_26"]
+
+  @on_spawn => {
+    provider = init_structural_embedding_provider()
+    emit("structural_embedding_provider_ready", { dim: 384 })
+  }
+
+  // Embed a symbol (dims 0-191 only; call enrich() to fill call-graph dims)
+  @on_embed(symbol) => {
+    embedding = provider.embed(symbol)
+    return embedding
+  }
+
+  // Enrich an embedding with call-graph and event-chain features (dims 192-383)
+  @on_enrich(symbol, graph) => {
+    enriched = provider.enrich(symbol, graph)
+    return enriched
+  }
+
+  @receipt structural_embedding_provider_config {
+    type: "StructuralEmbeddingProviderReceipt"
+    dim: 384
+    recall_at_10: "100% for graph-topology queries (Paper 26 Table 1)"
+    deterministic: true
+    dependencies: "none (zero API key, zero model, zero network)"
+    holograph_phase: "Phase 1"
+    timestamp: now()
+  }
+}
