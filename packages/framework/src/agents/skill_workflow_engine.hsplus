@@ -1,0 +1,101 @@
+// @skill_workflow_engine — DAG-based skill composition and parallel step execution.
+//
+// Native .hsplus surface for SkillWorkflowEngine.ts (HoloScript v5.5).
+// Validates workflow definitions, resolves inter-step data dependencies
+// via topological sort, and executes parallel step groups.
+//
+// WorkflowStep contract (SkillWorkflowEngine.ts):
+//   id          — unique step ID
+//   skill_id    — tool / skill to invoke
+//   inputs      — Record<paramName, WorkflowInput>
+//     literal   — a fixed value
+//     ref       — { stepId, outputKey } reference to prior step output
+//     context   — key from the workflow context object
+//   depends_on  — step IDs that must complete first (DAG edges)
+//   timeout_ms  — per-step timeout
+//   on_error    — "fail" | "skip" | "fallback"
+//   fallback    — alternative skill_id when on_error="fallback"
+//
+// Step groups with no mutual dependency run in parallel.
+// Error propagation follows on_error per step — "fail" halts the workflow.
+//
+// Related:
+//   @orchestrator_agent → EXECUTE phase calls run_workflow
+//   MicroPhaseDecomposer → topological sort pattern origin
+
+@trait skill_workflow_engine {
+  // Maximum steps per workflow
+  max_steps: Int = 64
+
+  // Default per-step timeout in milliseconds
+  default_timeout_ms: Int = 30000
+
+  // Maximum parallel steps in a single execution group
+  max_parallel: Int = 8
+
+  // Whether to emit progress events per step
+  emit_step_events: Bool = true
+
+  capability_tags: ["skill_workflow_engine", "dag_execution", "skill_composition", "parallel_steps", "topological_sort"]
+
+  @on_spawn => {
+    engine = init_workflow_engine({
+      max_steps: max_steps,
+      default_timeout_ms: default_timeout_ms,
+      max_parallel: max_parallel
+    })
+    emit("skill_workflow_engine_ready", {
+      max_steps: max_steps,
+      max_parallel: max_parallel
+    })
+  }
+
+  @on_validate(workflow) => {
+    if len(workflow.steps) > max_steps {
+      return { valid: false, error: "step_count_exceeds_max" }
+    }
+    sorted = topological_sort(workflow.steps)
+    if sorted.has_cycle {
+      return { valid: false, error: "cycle_detected", cycle: sorted.cycle }
+    }
+    unresolved = check_refs(workflow.steps, workflow.context)
+    if len(unresolved) > 0 {
+      return { valid: false, error: "unresolved_refs", refs: unresolved }
+    }
+    return { valid: true, sorted_steps: sorted.steps }
+  }
+
+  @on_run(workflow) => {
+    validation = on_validate(workflow)
+    if not validation.valid {
+      emit("workflow_failed", { id: workflow.id, reason: validation.error })
+      return { success: false, error: validation.error }
+    }
+    groups = build_parallel_groups(validation.sorted_steps, max_parallel)
+    results = {}
+    for each group in groups {
+      group_results = parallel_execute(group, workflow.context, results, default_timeout_ms)
+      for each r in group_results {
+        results[r.step_id] = r.output
+        if emit_step_events {
+          emit("step_complete", { workflow_id: workflow.id, step_id: r.step_id, success: r.success })
+        }
+        if not r.success and r.on_error == "fail" {
+          emit("workflow_failed", { id: workflow.id, failed_step: r.step_id })
+          return { success: false, failed_step: r.step_id, partial: results }
+        }
+      }
+    }
+    emit("workflow_complete", { id: workflow.id, step_count: len(workflow.steps) })
+    return { success: true, outputs: results }
+  }
+
+  @receipt skill_workflow_engine_config {
+    type: "SkillWorkflowEngineReceipt"
+    max_steps: max_steps
+    default_timeout_ms: default_timeout_ms
+    max_parallel: max_parallel
+    emit_step_events: emit_step_events
+    timestamp: now()
+  }
+}

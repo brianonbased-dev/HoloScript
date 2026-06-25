@@ -1,0 +1,155 @@
+// @orchestrator_agent — uAA2++ 7-phase protocol: the /infinity loop as a @trait.
+//
+// Native .hsplus surface for OrchestratorAgent.ts (HoloScript v5.5
+// "Agents as Universal Orchestrators"). This is the canonical behavioral
+// surface for the uAA2++ protocol — the loop that drives every HoloScript
+// agent brain.
+//
+// The 7 phases (mapped from OrchestratorAgent.ts):
+//   INTAKE    → discover available agents via @agent_registry
+//   REFLECT   → match capabilities to task requirements (@capability_matcher)
+//   EXECUTE   → delegate tasks or run workflows (@skill_workflow_engine)
+//   COMPRESS  → summarize execution results into memory
+//   DREAMING  → (legacy REINTAKE) check delegation results, update agent status
+//   GROW      → record delegation patterns (what worked / what failed)
+//   EVOLVE    → optimize routing preferences based on GROW data
+//
+// The /infinity skill description in CLAUDE.md reads:
+//   "INTAKE → REFLECT → EXECUTE → COMPRESS → GROW → RE-INTAKE → EVOLVE → AUTONOMIZE"
+// This trait is that loop expressed as HoloScript native data, not TS code.
+//
+// Related:
+//   D.033: RE-INTAKE precedence (shipped 2025-11-04, 6mo before Anthropic Dreaming)
+//   F.098: Agents propose, Joseph reacts
+//   I.001: Architecture reorg — "Agents as Universal Orchestrators"
+//   P.001: Autonomy audit
+
+@trait orchestrator_agent {
+  // Primary domain this orchestrator specializes in
+  domain: String = "holoscript"
+
+  // Seed URLs for federated agent discovery (A2A /.well-known/agent-card.json)
+  seed_urls: Array<String> = []
+
+  // Whether to auto-discover peers on INTAKE (default: true)
+  auto_discovery: Bool = true
+
+  // Discovery poll interval in seconds (0 = poll only on INTAKE)
+  discovery_interval_s: Int = 30
+
+  // Routing preference TTL: how long successful delegation patterns survive
+  pattern_ttl_s: Int = 3600
+
+  // Maximum concurrent delegations
+  max_concurrent_delegations: Int = 8
+
+  capability_tags: ["orchestrator_agent", "uaa2pp_protocol", "infinity_loop", "task_delegation", "federated_discovery", "capability_routing"]
+
+  @on_spawn => {
+    registry = init_agent_registry({ mode: "hybrid" })
+    matcher  = init_capability_matcher({ default_limit: 5 })
+    delegate = init_delegation_service({ max_concurrent: max_concurrent_delegations })
+    workflow  = init_skill_workflow_engine()
+    if auto_discovery and len(seed_urls) > 0 {
+      discover_peers(seed_urls)
+    }
+    if discovery_interval_s > 0 {
+      schedule_recurring(discovery_interval_s, "on_intake")
+    }
+    emit("orchestrator_ready", {
+      domain: domain,
+      seed_count: len(seed_urls),
+      auto_discovery: auto_discovery
+    })
+  }
+
+  // INTAKE — discover available agents
+  @on_intake => {
+    if auto_discovery {
+      agents = registry.list({ include_offline: false })
+      emit("intake_complete", { agent_count: len(agents) })
+    }
+  }
+
+  // REFLECT — match capabilities to incoming task requirements
+  @on_reflect(task) => {
+    matches = matcher.find({
+      type: task.required_capability_type,
+      domain: task.domain ?? domain,
+      tags: task.tags ?? []
+    })
+    best = select_by_pattern_history(matches, pattern_history)
+    emit("reflect_complete", {
+      task_id: task.id,
+      candidate_count: len(matches),
+      selected_agent: best.handle ?? "self"
+    })
+    return best
+  }
+
+  // EXECUTE — delegate or run locally
+  @on_execute(task, best_agent) => {
+    if best_agent and best_agent.handle != entity_id {
+      result = delegate.forward(task, best_agent)
+    } else {
+      result = workflow.run(task.workflow ?? build_default_workflow(task))
+    }
+    emit("execute_complete", {
+      task_id: task.id,
+      delegated_to: best_agent.handle ?? "self",
+      success: result.success
+    })
+    return result
+  }
+
+  // COMPRESS — summarize results into memory
+  @on_compress(result) => {
+    summary = summarize_result(result)
+    remember_outcome({
+      task_id: result.task_id,
+      summary: summary,
+      success: result.success,
+      duration_ms: result.duration_ms
+    })
+  }
+
+  // DREAMING — check async delegation results, update peer health
+  @on_dreaming => {
+    pending = delegate.check_pending()
+    for each r in pending {
+      record_delegation_outcome(r.agent_id, r.skill_id, r.success, r.duration_ms)
+    }
+  }
+
+  // GROW — record delegation patterns (what worked / what failed)
+  @on_grow(outcome) => {
+    upsert_pattern({
+      agent_id: outcome.agent_id,
+      skill_id: outcome.skill_id,
+      success: outcome.success,
+      duration_ms: outcome.duration_ms,
+      ttl_s: pattern_ttl_s
+    })
+  }
+
+  // EVOLVE — reweight routing preferences based on GROW patterns
+  @on_evolve => {
+    patterns = get_patterns({ min_uses: 3 })
+    routing_weights = compute_routing_weights(patterns)
+    update_matcher_preferences(routing_weights)
+    emit("evolve_complete", {
+      patterns_evaluated: len(patterns),
+      routing_updated: true
+    })
+  }
+
+  @receipt orchestrator_config {
+    type: "OrchestratorAgentReceipt"
+    domain: domain
+    seed_urls: seed_urls
+    auto_discovery: auto_discovery
+    discovery_interval_s: discovery_interval_s
+    max_concurrent_delegations: max_concurrent_delegations
+    timestamp: now()
+  }
+}

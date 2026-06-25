@@ -1,0 +1,125 @@
+// @agent_registry — Central registration, discovery, and health tracking for agents.
+//
+// Native .hsplus surface for AgentRegistry.ts (HoloScript v3.1 Agentic
+// Choreography). An entity carrying @agent_registry is the authority for
+// which agents are currently live, what their capabilities are, and whether
+// they have heartbeated within the offline threshold.
+//
+// Discovery modes (AgentRegistry.ts):
+//   central   — all registrations go through one authoritative registry
+//   broadcast — agents announce themselves to all peers
+//   hybrid    — local registry + cross-registry gossip
+//
+// Default config (AgentRegistry.ts DEFAULT_REGISTRY_CONFIG):
+//   TTL:               5 min
+//   healthCheckInterval: 10 s
+//   offlineThreshold:  30 s
+//   autoCleanup:       true
+//   cleanupInterval:   60 s
+//   maxAgents:         1000
+//
+// The registry is the root dependency for @orchestrator_agent (INTAKE) and
+// @capability_matcher (discovery). It emits presence events that @agent_mesh_city
+// gallery listens to for live topology visualization.
+
+@trait agent_registry {
+  // Discovery topology
+  mode: enum("central" | "broadcast" | "hybrid") = "central"
+
+  // Default registration TTL in seconds (0 = indefinite until despawn)
+  default_ttl_s: Int = 300
+
+  // Health check interval in seconds
+  health_check_interval_s: Int = 10
+
+  // Seconds before an un-heartbeated agent is marked offline
+  offline_threshold_s: Int = 30
+
+  // Remove offline agents automatically
+  auto_cleanup: Bool = true
+
+  // Cleanup scan interval in seconds
+  cleanup_interval_s: Int = 60
+
+  // Maximum agents in the registry
+  max_agents: Int = 1000
+
+  // Minimum trust level for registration
+  min_trust_for_registration: enum("verified" | "trusted" | "provisional" | "unknown" | "external") = "external"
+
+  capability_tags: ["agent_registry", "agent_discovery", "health_tracking", "capability_routing", "presence_authority"]
+
+  @on_spawn => {
+    registry = init_registry({
+      mode: mode,
+      default_ttl_s: default_ttl_s,
+      health_check_interval_s: health_check_interval_s,
+      offline_threshold_s: offline_threshold_s,
+      auto_cleanup: auto_cleanup,
+      cleanup_interval_s: cleanup_interval_s,
+      max_agents: max_agents,
+      min_trust: min_trust_for_registration
+    })
+    if auto_cleanup {
+      schedule_recurring(cleanup_interval_s, "on_cleanup_tick")
+    }
+    schedule_recurring(health_check_interval_s, "on_health_tick")
+    emit("agent_registry_active", {
+      mode: mode,
+      max_agents: max_agents,
+      min_trust: min_trust_for_registration
+    })
+  }
+
+  @on_register(manifest) => {
+    if not trust_passes(manifest.trust_level, min_trust_for_registration) {
+      return { success: false, reason: "trust_too_low" }
+    }
+    if registry.count() >= max_agents {
+      return { success: false, reason: "registry_full" }
+    }
+    registry.add(manifest, default_ttl_s)
+    emit("agent_registered", {
+      handle: manifest.handle ?? manifest.id,
+      trust_level: manifest.trust_level,
+      capability_count: len(manifest.capabilities)
+    })
+    return { success: true }
+  }
+
+  @on_deregister(agent_id) => {
+    registry.remove(agent_id)
+    emit("agent_deregistered", { agent_id: agent_id })
+  }
+
+  @on_health_tick => {
+    stale = registry.find({ last_seen_older_than_s: offline_threshold_s })
+    for each agent in stale {
+      registry.mark_offline(agent.id)
+      emit("agent_offline", { agent_id: agent.id })
+    }
+  }
+
+  @on_cleanup_tick => {
+    expired = registry.find({ status: "offline", offline_longer_than_s: default_ttl_s })
+    for each agent in expired {
+      registry.remove(agent.id)
+      emit("agent_evicted", { agent_id: agent.id })
+    }
+  }
+
+  @on_query(query) => {
+    return registry.match(query)
+  }
+
+  @receipt agent_registry_config {
+    type: "AgentRegistryReceipt"
+    mode: mode
+    default_ttl_s: default_ttl_s
+    health_check_interval_s: health_check_interval_s
+    offline_threshold_s: offline_threshold_s
+    auto_cleanup: auto_cleanup
+    max_agents: max_agents
+    timestamp: now()
+  }
+}
