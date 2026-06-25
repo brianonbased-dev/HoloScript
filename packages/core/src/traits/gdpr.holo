@@ -1,0 +1,15 @@
+@trait {
+  name: "@gdpr",
+  category: "compliance",
+  description: "GDPR request handler — processes subject access, erasure, portability, and rectification requests. retention_days is the default data retention period (default: 365). Port of GdprTrait.ts (handler name: gdpr).",
+  props: {
+    retention_days: number = 365
+  },
+  events: {
+    on_request: "gdpr:request",
+    on_completed: "gdpr:completed",
+    on_denied: "gdpr:denied",
+    request: "gdpr.request"
+  },
+  behaviors: ["@forget_policy", "@consent_management", "@audit_log"]
+}

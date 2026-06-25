@@ -1,0 +1,13 @@
+@trait {
+  name: "@holomap_camera_trajectory",
+  category: "reconstruction",
+  description: "HoloMap camera trajectory store — records the capture camera path for use in reconstruction pipeline. Port of HoloMapCameraTrajectoryTrait.ts (handler name: holomap_camera_trajectory).",
+  props: {},
+  events: {
+    on_frame_recorded: "holomap_camera_trajectory:frame_recorded",
+    on_complete: "holomap_camera_trajectory:complete",
+    record_frame: "holomap_camera_trajectory.record",
+    finalize: "holomap_camera_trajectory.finalize"
+  },
+  behaviors: ["@holomap_anchor_context", "@gaussian_train"]
+}

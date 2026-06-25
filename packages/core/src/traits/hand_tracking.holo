@@ -1,0 +1,17 @@
+@trait {
+  name: "@hand_tracking",
+  category: "xr",
+  description: "XR hand skeletal tracking. mode: skeletal (default), blob, gesture_only. pinch_threshold is the finger proximity ratio to trigger pinch [0,1] (default: 0.8). grip_threshold is the closure ratio to trigger grip [0,1] (default: 0.7). Port of HandTrackingTrait.ts (handler name: hand_tracking).",
+  props: {
+    mode: enum("skeletal" | "blob" | "gesture_only") = "skeletal",
+    pinch_threshold: number = 0.8,
+    grip_threshold: number = 0.7
+  },
+  events: {
+    on_pose: "hand_tracking:pose",
+    on_pinch: "hand_tracking:pinch",
+    on_grip: "hand_tracking:grip",
+    on_lost: "hand_tracking:lost"
+  },
+  behaviors: ["@body_tracking", "@gesture_recognition"]
+}

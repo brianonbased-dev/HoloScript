@@ -1,0 +1,17 @@
+@trait {
+  name: "@gesture_recognition",
+  category: "input",
+  description: "Touchscreen and hand gesture recognizer. enabled_gestures is the list of active gesture types (default: [swipe_left, swipe_right, pinch]). swipe_threshold is the minimum swipe distance in meters (default: 0.1). pinch_threshold is the pinch closeness ratio [0,1] (default: 0.9). debounce is the minimum ms between gesture events (default: 300ms). Port of GestureTrait.ts (handler name: gesture_recognition).",
+  props: {
+    swipe_threshold: number = 0.1,
+    pinch_threshold: number = 0.9,
+    debounce: number = 300
+  },
+  events: {
+    on_gesture: "gesture_recognition:gesture",
+    on_pinch: "gesture_recognition:pinch",
+    on_swipe: "gesture_recognition:swipe",
+    on_tap: "gesture_recognition:tap"
+  },
+  behaviors: ["@hand_tracking", "@controller"]
+}

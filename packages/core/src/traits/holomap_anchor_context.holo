@@ -1,0 +1,11 @@
+@trait {
+  name: "@holomap_anchor_context",
+  category: "reconstruction",
+  description: "HoloMap capture anchor context — stores the GPS/compass/XR session context for a reconstruction anchor. Port of HoloMapAnchorContextTrait.ts (handler name: holomap_anchor_context).",
+  props: {},
+  events: {
+    on_set: "holomap_anchor_context:set",
+    set_context: "holomap_anchor_context.set"
+  },
+  behaviors: ["@geospatial_anchor", "@persistent_anchor", "@gaussian_splat"]
+}

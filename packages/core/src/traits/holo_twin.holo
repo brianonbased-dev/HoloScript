@@ -1,0 +1,13 @@
+@trait {
+  name: "@holo_twin",
+  category: "iot",
+  description: "HoloTwin — binds a scene node to its Twin Earth digital twin registration. Bridges the physical-to-digital identity so changes in the physical world propagate to the hologram. Port of HoloTwinTrait.ts (handler name: holo_twin).",
+  props: {},
+  events: {
+    on_synced: "holo_twin:synced",
+    on_drift: "holo_twin:drift",
+    on_error: "holo_twin:error",
+    sync: "holo_twin.sync"
+  },
+  behaviors: ["@digital_twin", "@holomap_reconstruction"]
+}

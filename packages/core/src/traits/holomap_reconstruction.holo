@@ -1,0 +1,15 @@
+@trait {
+  name: "@holomap_reconstruct",
+  category: "reconstruction",
+  description: "HoloMap world reconstruction — runs the full 3DGS/NERF pipeline on captured frames to produce a renderable world twin. Port of HoloMapReconstructionTrait.ts (handler name: holomap_reconstruct).",
+  props: {},
+  events: {
+    on_started: "holomap_reconstruct:started",
+    on_progress: "holomap_reconstruct:progress",
+    on_complete: "holomap_reconstruct:complete",
+    on_error: "holomap_reconstruct:error",
+    reconstruct: "holomap_reconstruct.start",
+    cancel: "holomap_reconstruct.cancel"
+  },
+  behaviors: ["@gaussian_train", "@holomap_drift_correction"]
+}

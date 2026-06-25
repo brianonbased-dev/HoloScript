@@ -1,0 +1,16 @@
+@trait {
+  name: "@full_text_search",
+  category: "retrieval",
+  description: "Full-text search index. max_results is the maximum returned results (default: 50). Port of FullTextSearchTrait.ts (handler name: full_text_search).",
+  props: {
+    max_results: number = 50
+  },
+  events: {
+    on_indexed: "full_text_search:indexed",
+    on_results: "full_text_search:results",
+    index: "full_text_search.index",
+    search: "full_text_search.search",
+    remove: "full_text_search.remove"
+  },
+  behaviors: ["@faceted_search", "@embedding_search"]
+}

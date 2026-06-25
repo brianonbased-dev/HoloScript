@@ -1,0 +1,13 @@
+@trait {
+  name: "@grabbable",
+  category: "interaction",
+  description: "Makes this node physically grabbable by XR hands or controllers. Config is grab-type-dependent and passed through to the GrabbableTrait instance. Port of GrabbableTrait.ts (handler name: grabbable).",
+  props: {},
+  events: {
+    on_grabbed: "grabbable:grabbed",
+    on_released: "grabbable:released",
+    on_thrown: "grabbable:thrown",
+    on_hover: "grabbable:hover"
+  },
+  behaviors: ["@grab_feedback_profile", "@physics"]
+}

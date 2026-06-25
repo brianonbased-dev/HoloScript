@@ -1,0 +1,18 @@
+@trait {
+  name: "@hitl",
+  category: "agent",
+  description: "Human-in-the-loop gate — intercepts agent actions requiring human approval. mode: supervised (default), autonomous, audit. confidence_threshold is the minimum confidence to proceed without human approval (default: 0.8). risk_threshold is the risk score above which human approval is required (default: 0.5). always_approve_categories is the list of category tags that always require approval (default: [financial, admin, delete]). Port of HITLTrait.ts (handler name: hitl).",
+  props: {
+    mode: enum("supervised" | "autonomous" | "audit") = "supervised",
+    confidence_threshold: number = 0.8,
+    risk_threshold: number = 0.5
+  },
+  events: {
+    on_pending: "hitl:pending",
+    on_approved: "hitl:approved",
+    on_rejected: "hitl:rejected",
+    approve: "hitl.approve",
+    reject: "hitl.reject"
+  },
+  behaviors: ["@choreography", "@audit_log", "@consent_gate"]
+}

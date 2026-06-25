@@ -1,0 +1,14 @@
+@trait {
+  name: "@ui_hand_menu",
+  category: "xr",
+  description: "UI panel mounted on the user's wrist/hand — spring-animated show/hide, follows hand orientation. Config is layout-dependent and passed through to UIHandMenuTrait. Port of HandMenuTrait.ts (handler name: ui_hand_menu).",
+  props: {},
+  events: {
+    on_shown: "ui_hand_menu:shown",
+    on_hidden: "ui_hand_menu:hidden",
+    on_item_selected: "ui_hand_menu:item_selected",
+    show: "ui_hand_menu.show",
+    hide: "ui_hand_menu.hide"
+  },
+  behaviors: ["@accessible", "@haptic_cue"]
+}

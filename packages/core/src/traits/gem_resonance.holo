@@ -1,0 +1,17 @@
+@trait {
+  name: "@gem_resonance",
+  category: "audio",
+  description: "Gem proximity resonance — crystals and mineral objects emit spatial audio harmonics based on proximity. max_distance is the resonance range in meters (default: 0.5). base_frequencies: auto (default), or explicit Hz list. blend_mode: harmonic (default), additive, subtractive. output: spatial_audio (default), visual_only. Port of GemResonanceTrait.ts (handler name: gem_resonance).",
+  props: {
+    max_distance: number = 0.5,
+    base_frequencies: string = "auto",
+    blend_mode: enum("harmonic" | "additive" | "subtractive") = "harmonic",
+    output: enum("spatial_audio" | "visual_only") = "spatial_audio"
+  },
+  events: {
+    on_resonating: "gem_resonance:resonating",
+    on_silent: "gem_resonance:silent",
+    trigger: "gem_resonance.trigger"
+  },
+  behaviors: ["@positional", "@bioluminescent"]
+}

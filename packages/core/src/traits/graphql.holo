@@ -1,0 +1,15 @@
+@trait {
+  name: "@graphql",
+  category: "api",
+  description: "GraphQL server with depth-limited query execution. depth_limit is the maximum query depth (default: 10). Port of GraphqlTrait.ts (handler name: graphql).",
+  props: {
+    depth_limit: number = 10
+  },
+  events: {
+    on_query: "graphql:query",
+    on_mutation: "graphql:mutation",
+    on_error: "graphql:error",
+    execute: "graphql.execute"
+  },
+  behaviors: ["@data_binding", "@database"]
+}

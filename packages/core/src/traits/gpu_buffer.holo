@@ -1,0 +1,19 @@
+@trait {
+  name: "@gpu_buffer",
+  category: "compute",
+  description: "WebGPU buffer allocation and management. size is the buffer size in bytes (default: 1024). usage: storage (default), uniform, vertex, index, indirect. initial_data is optional base64-encoded initial data. shared enables cross-origin sharing (default: false). Port of GPUBufferTrait.ts (handler name: gpu_buffer).",
+  props: {
+    size: number = 1024,
+    usage: enum("storage" | "uniform" | "vertex" | "index" | "indirect") = "storage",
+    initial_data: string = "",
+    shared: boolean = false
+  },
+  events: {
+    on_allocated: "gpu_buffer:allocated",
+    on_written: "gpu_buffer:written",
+    on_read: "gpu_buffer:read",
+    write: "gpu_buffer.write",
+    read: "gpu_buffer.read"
+  },
+  behaviors: ["@compute_shader", "@gpu_particle"]
+}

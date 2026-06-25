@@ -1,0 +1,17 @@
+@trait {
+  name: "@gltf",
+  category: "asset",
+  description: "glTF 2.0 asset loader with compression support. source is the glTF/GLB file URL. draco_compression enables Draco mesh decompression (default: true). meshopt_compression enables MeshOpt decompression (default: false). ktx2_textures enables KTX2 texture decompression (default: false). Port of GLTFTrait.ts (handler name: gltf).",
+  props: {
+    source: string = "",
+    draco_compression: boolean = true,
+    meshopt_compression: boolean = false,
+    ktx2_textures: boolean = false
+  },
+  events: {
+    on_loaded: "gltf:loaded",
+    on_error: "gltf:error",
+    load: "gltf.load"
+  },
+  behaviors: ["@fbx", "@character"]
+}

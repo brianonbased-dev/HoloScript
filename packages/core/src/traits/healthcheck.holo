@@ -1,0 +1,16 @@
+@trait {
+  name: "@healthcheck",
+  category: "reliability",
+  description: "Periodic health probe for services and endpoints. auto_interval_ms is the health check cadence (default: 30,000ms). timeout_ms is the per-check timeout (default: 5,000ms). Port of HealthcheckTrait.ts (handler name: healthcheck).",
+  props: {
+    auto_interval_ms: number = 30000,
+    timeout_ms: number = 5000
+  },
+  events: {
+    on_healthy: "healthcheck:healthy",
+    on_unhealthy: "healthcheck:unhealthy",
+    on_degraded: "healthcheck:degraded",
+    check: "healthcheck.check"
+  },
+  behaviors: ["@circuit_breaker", "@alert"]
+}

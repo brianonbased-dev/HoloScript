@@ -1,0 +1,11 @@
+@trait {
+  name: "@holomap_drift_correction",
+  category: "reconstruction",
+  description: "HoloMap drift correction — aligns capture frames to correct GPS/IMU drift using loop closure. Port of HoloMapDriftCorrectionTrait.ts (handler name: holomap_drift_correction).",
+  props: {},
+  events: {
+    on_corrected: "holomap_drift_correction:corrected",
+    correct: "holomap_drift_correction.correct"
+  },
+  behaviors: ["@holomap_camera_trajectory", "@persistent_anchor"]
+}

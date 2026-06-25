@@ -1,0 +1,14 @@
+@trait {
+  name: "@global_illumination",
+  category: "render",
+  description: "Global illumination system. mode: sh_probes (spherical harmonics probe grid; default), ddgi (Dynamic Diffuse GI), lightmap, irradiance_volume, lumen. Mode-specific config (sh, ddgi, lightmap, etc.) is passed through as the mode sub-object. Port of GlobalIlluminationTrait.ts (handler name: global_illumination).",
+  props: {
+    mode: enum("sh_probes" | "ddgi" | "lightmap" | "irradiance_volume" | "lumen") = "sh_probes"
+  },
+  events: {
+    on_baked: "global_illumination:baked",
+    on_updated: "global_illumination:updated",
+    bake: "global_illumination.bake"
+  },
+  behaviors: ["@bloom", "@ambient_occlusion", "@advanced_lighting"]
+}
