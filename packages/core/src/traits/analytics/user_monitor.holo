@@ -1,0 +1,19 @@
+@trait {
+  name: "@user_monitor",
+  category: "analytics",
+  description: "Passive user behavioral signal monitor for XR. Samples head and hand position jitter to infer frustration, confusion, and engagement via EmotionDetector at a configurable update rate. Optionally triggers adaptive assistance interventions. Port of UserMonitorTrait.ts.",
+  props: {
+    update_rate: number = 0.2,
+    jitter_sensitivity: number = 0.5,
+    adaptive_assistance: boolean = false
+  },
+  events: {
+    attached: "user_monitor_attached",
+    detached: "user_monitor_detached",
+    on_inference: "user_monitor_inference",
+    on_frustration: "user_monitor_frustration",
+    on_confusion: "user_monitor_confusion",
+    on_engagement: "user_monitor_engagement"
+  },
+  behaviors: ["@gaze_focus_analytics", "@analytics", "@haptic_cue"]
+}

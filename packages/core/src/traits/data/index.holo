@@ -1,0 +1,17 @@
+@trait {
+  name: "@index",
+  category: "data",
+  description: "Secondary index for fast lookups by field value. Manages named multi-key inverted indices (indexName → key → Set<docId>) capped at max_indices. Accepts index:add, index:remove, and index:lookup commands. Port of IndexTrait.ts (handler name: index).",
+  props: {
+    max_indices: number = 50
+  },
+  events: {
+    attached: "index_attached",
+    detached: "index_detached",
+    on_result: "index_result",
+    add: "index_add",
+    remove: "index_remove",
+    lookup: "index_lookup"
+  },
+  behaviors: ["@database", "@sql_query", "@faceted_search"]
+}

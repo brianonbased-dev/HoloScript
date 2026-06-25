@@ -1,0 +1,20 @@
+@trait {
+  name: "@sse",
+  category: "integration",
+  description: "Server-Sent Events endpoint with client tracking. Manages a set of connected client IDs capped at max_clients, sends broadcast events to all clients, and responds to sse:get_status queries. Port of SseTrait.ts (handler name: sse).",
+  props: {
+    max_clients: number = 1000,
+    keepalive_ms: number = 30000
+  },
+  events: {
+    attached: "sse_attached",
+    detached: "sse_detached",
+    on_sent: "sse_sent",
+    on_status: "sse_status",
+    connect: "sse_connect",
+    disconnect: "sse_disconnect",
+    broadcast: "sse_broadcast",
+    get_status: "sse_get_status"
+  },
+  behaviors: ["@webhook_out", "@mqtt_source", "@world_heartbeat"]
+}
