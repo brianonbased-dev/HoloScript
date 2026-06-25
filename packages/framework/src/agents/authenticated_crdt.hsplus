@@ -1,0 +1,135 @@
+// @authenticated_crdt — DID-signed conflict-free state sync across devices.
+//
+// Native .hsplus surface for AuthenticatedCRDT.ts. Every CRDT operation is
+// signed with a DID (Decentralized Identifier), enabling trustworthy
+// cross-device state sync without a central authority.
+//
+// CRDT types implemented (AuthenticatedCRDT.ts):
+//   LWW-Register — Last-Writer-Wins for atomic values; ties broken by Lamport clock
+//   G-Counter    — Grow-only counter for monotonic metrics (no decrement)
+//   OR-Set       — Observed-Remove set; add wins over concurrent remove
+//
+// All operations carry:
+//   signer    — DID { id, deviceId, scope[], revoked }
+//   timestamp — Lamport logical clock (not wall-clock)
+//   signature — hash of { payload, signer.id, timestamp }
+//   scopeTag  — what the DID is authorized to modify
+//
+// Merge functions reject operations from:
+//   - revoked DIDs
+//   - DIDs whose scope doesn't include the scopeTag
+//   - timestamps older than the current Lamport clock (LWW)
+//
+// Merge overhead: ~0.1ms per operation (AuthenticatedCRDT.ts header).
+//
+// Usage:
+//   entity#agent_state @authenticated_crdt(
+//     did: "did:key:z6Mk..."
+//     device_id: "jetson-orin-super"
+//   ) { ... }
+
+@trait authenticated_crdt {
+  // This agent's Decentralized Identifier
+  did: String
+
+  // Device ID for the signing DID
+  device_id: String = "local"
+
+  // Capability scopes this DID is authorized to write
+  scope: Array<String> = []
+
+  // Which CRDT primitives to activate
+  enable_lww_register: Bool = true
+  enable_g_counter:    Bool = true
+  enable_or_set:       Bool = true
+
+  // Emit a sync event after each successful merge
+  emit_sync_events: Bool = true
+
+  capability_tags: ["authenticated_crdt", "did_signed", "conflict_free", "cross_device_sync", "lww_register", "g_counter", "or_set"]
+
+  @on_spawn => {
+    identity = build_did({
+      id: did,
+      device_id: device_id,
+      scope: scope,
+      revoked: false
+    })
+    store = init_authenticated_crdt_store({
+      did: identity,
+      enable_lww: enable_lww_register,
+      enable_counter: enable_g_counter,
+      enable_set: enable_or_set
+    })
+    emit("authenticated_crdt_ready", {
+      did: did,
+      device_id: device_id,
+      scope_count: len(scope)
+    })
+  }
+
+  @on_set(key, value) => {
+    if not enable_lww_register {
+      return { success: false, reason: "lww_disabled" }
+    }
+    op = sign_operation({ type: "lww_set", key: key, value: value }, did, device_id)
+    result = store.merge_lww(op)
+    if emit_sync_events and result.success {
+      emit("crdt_state_changed", { key: key, value: value })
+    }
+    return result
+  }
+
+  @on_increment(counter_id, delta) => {
+    if not enable_g_counter {
+      return { success: false, reason: "counter_disabled" }
+    }
+    op = sign_operation({ type: "g_increment", counter_id: counter_id, delta: delta ?? 1 }, did, device_id)
+    return store.merge_counter(op)
+  }
+
+  @on_add_to_set(set_id, element) => {
+    if not enable_or_set {
+      return { success: false, reason: "set_disabled" }
+    }
+    op = sign_operation({ type: "or_add", set_id: set_id, element: element }, did, device_id)
+    return store.merge_set(op)
+  }
+
+  @on_remove_from_set(set_id, element) => {
+    if not enable_or_set {
+      return { success: false, reason: "set_disabled" }
+    }
+    op = sign_operation({ type: "or_remove", set_id: set_id, element: element }, did, device_id)
+    return store.merge_set(op)
+  }
+
+  @on_merge_remote(remote_ops) => {
+    accepted = 0
+    rejected = 0
+    for each op in remote_ops {
+      if op.signer.revoked or not scope_allows(op.signer.scope, op.scope_tag) {
+        rejected = rejected + 1
+        continue
+      }
+      store.apply(op)
+      accepted = accepted + 1
+    }
+    if emit_sync_events {
+      emit("crdt_sync_complete", { accepted: accepted, rejected: rejected })
+    }
+  }
+
+  @receipt authenticated_crdt_config {
+    type: "AuthenticatedCRDTReceipt"
+    did: did
+    device_id: device_id
+    scope: scope
+    primitives: {
+      lww_register: enable_lww_register,
+      g_counter: enable_g_counter,
+      or_set: enable_or_set
+    }
+    timestamp: now()
+  }
+}

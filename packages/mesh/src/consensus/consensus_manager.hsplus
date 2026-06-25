@@ -1,0 +1,115 @@
+// @consensus_manager — Pluggable multi-agent consensus (majority | Raft | PBFT).
+//
+// Native .hsplus surface for ConsensusManager.ts (Sprint 4 Priority 5).
+// High-level manager that delegates to one of three consensus protocols:
+//   simple_majority — each node votes; majority wins (fastest, BFT-unsafe)
+//   raft            — strong consistency; leader election + log replication
+//                     (pairs with @raft_consensus trait for the per-node protocol)
+//   pbft            — Byzantine fault tolerant; requires 3f+1 nodes
+//
+// Events emitted (ConsensusManager.ts ConsensusManagerEvents):
+//   proposal:created    — a new proposal was submitted
+//   proposal:accepted   — quorum reached, proposal passed
+//   proposal:rejected   — quorum against, proposal failed
+//   proposal:timeout    — no quorum reached in timeout_ms
+//   vote:received       — one node voted (approve or reject)
+//   state:changed       — shared state key changed
+//   leader:elected      — a leader was chosen (Raft / PBFT)
+//   leader:lost         — current leader became unavailable
+//   node:joined/left    — cluster membership changed
+//
+// Pairs with @raft_consensus (per-node protocol) and @norm_engine (governance).
+
+@trait consensus_manager {
+  // Consensus protocol to use
+  protocol: enum("simple_majority" | "raft" | "pbft") = "simple_majority"
+
+  // Node ID for this entity in the cluster
+  node_id: String?
+
+  // Proposal timeout in milliseconds
+  proposal_timeout_ms: Int = 5000
+
+  // Quorum calculation mode
+  quorum_mode: enum("simple" | "super" | "unanimous") = "simple"
+
+  // Auto-join the cluster on spawn
+  auto_join: Bool = true
+
+  // Emit governance events for proposal outcomes
+  emit_governance_events: Bool = true
+
+  capability_tags: ["consensus_manager", "multi_agent_consensus", "leader_election", "proposal_voting", "governance"]
+
+  @on_spawn => {
+    manager = init_consensus_manager({
+      protocol: protocol,
+      node_id: node_id ?? entity_id,
+      proposal_timeout_ms: proposal_timeout_ms,
+      quorum_mode: quorum_mode
+    })
+    if auto_join {
+      manager.join_cluster()
+      emit("consensus_node_joined", {
+        node_id: node_id ?? entity_id,
+        protocol: protocol
+      })
+    }
+  }
+
+  @on_propose(proposal) => {
+    id = new_uuid()
+    p = manager.create_proposal({
+      id: id,
+      key: proposal.key,
+      value: proposal.value,
+      timeout_ms: proposal.timeout_ms ?? proposal_timeout_ms
+    })
+    emit("proposal_created", { proposal_id: id, key: proposal.key })
+    return id
+  }
+
+  @on_vote(proposal_id, approve) => {
+    manager.cast_vote(proposal_id, node_id ?? entity_id, approve)
+    emit("vote_cast", { proposal_id: proposal_id, approve: approve })
+  }
+
+  @on_proposal_accepted(result) => {
+    manager.apply_state(result.key, result.value)
+    if emit_governance_events {
+      emit("proposal_accepted", {
+        proposal_id: result.proposal_id,
+        key: result.key,
+        votes_for: result.votes_for,
+        votes_against: result.votes_against
+      })
+    }
+  }
+
+  @on_proposal_rejected(result) => {
+    if emit_governance_events {
+      emit("proposal_rejected", {
+        proposal_id: result.proposal_id,
+        reason: result.reason
+      })
+    }
+  }
+
+  @on_leader_elected(leader_id) => {
+    emit("consensus_leader", { leader_id: leader_id, protocol: protocol })
+  }
+
+  @on_despawn => {
+    manager.leave_cluster()
+    emit("consensus_node_left", { node_id: node_id ?? entity_id })
+  }
+
+  @receipt consensus_manager_config {
+    type: "ConsensusManagerReceipt"
+    protocol: protocol
+    node_id: node_id ?? entity_id
+    proposal_timeout_ms: proposal_timeout_ms
+    quorum_mode: quorum_mode
+    timestamp: now()
+  }
+}

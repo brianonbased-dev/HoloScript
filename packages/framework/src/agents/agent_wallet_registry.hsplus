@@ -1,0 +1,102 @@
+// @agent_wallet_registry — Base L2 wallet bindings for autonomous agent spend.
+//
+// Native .hsplus surface for AgentWalletRegistry.ts. Bridges agent entities
+// spawned via uaa2-service with Base L2 wallets so they can autonomously hold
+// funds and purchase traits on the HoloScript marketplace.
+//
+// AgentWallet contract (AgentWalletRegistry.ts):
+//   agent_id          — links this wallet to an agent entity
+//   wallet_address    — Base L2 address (0x...)
+//   network_id        — 8453 (Base mainnet)
+//   balance_threshold — minimum ETH before auto-refill is triggered (default 0.001)
+//
+// Signing is delegated to a Web3Connector implementation (viem-based, from
+// @holoscript/marketplace-api). This trait wires the entity to the registry
+// so the @cost_guard trait can enforce the $100/day wallet cap (§0 policy).
+//
+// Security rule (CLAUDE.md / §0): agents act autonomously within the
+// $100/day wallet cap. Above the cap → founder gate. This trait enforces
+// that cap locally via balance_threshold and daily_spend_limit_usd.
+//
+// NOTE: wallet_address is an identity anchor. NEVER rename it (F.119).
+// The private key NEVER appears as a literal here — resolved from HoloKey
+// vault at runtime (I.022 sovereign vault, W.749).
+
+@trait agent_wallet_registry {
+  // Base L2 wallet address for this agent (identity anchor — never rename)
+  wallet_address: String
+
+  // Agent ID to register (defaults to entity_id)
+  agent_id: String?
+
+  // Base L2 network ID (8453 = Base mainnet, 84532 = Base Sepolia testnet)
+  network_id: Int = 8453
+
+  // Minimum ETH balance before triggering auto-refill signal
+  balance_threshold_eth: Float = 0.001
+
+  // Daily USD spend cap enforced locally (§0 wallet cap policy)
+  daily_spend_limit_usd: Float = 100.0
+
+  // Emit a low_balance event when balance drops below threshold
+  emit_balance_alerts: Bool = true
+
+  capability_tags: ["agent_wallet_registry", "base_l2_wallet", "autonomous_spend", "marketplace", "spend_governance", "d051_t0"]
+
+  @on_spawn => {
+    effective_id = agent_id ?? entity_id
+    registry = get_agent_wallet_registry()
+    wallet = registry.register({
+      agent_id: effective_id,
+      wallet_address: wallet_address,
+      network_id: network_id,
+      balance_threshold: balance_threshold_eth
+    })
+    emit("agent_wallet_registered", {
+      agent_id: effective_id,
+      wallet_address: wallet_address,
+      network_id: network_id
+    })
+  }
+
+  @on_balance_check => {
+    balance = get_wallet_balance(wallet_address, network_id)
+    if emit_balance_alerts and balance < balance_threshold_eth {
+      emit("agent_wallet_low_balance", {
+        wallet_address: wallet_address,
+        balance_eth: balance,
+        threshold_eth: balance_threshold_eth
+      })
+    }
+    return balance
+  }
+
+  @on_spend_check(amount_usd) => {
+    spent_today = get_daily_spend_usd(wallet_address)
+    if spent_today + amount_usd > daily_spend_limit_usd {
+      emit("wallet_cap_exceeded", {
+        attempted_usd: amount_usd,
+        spent_today_usd: spent_today,
+        cap_usd: daily_spend_limit_usd
+      })
+      return { allowed: false, reason: "daily_cap_exceeded" }
+    }
+    return { allowed: true, remaining_usd: daily_spend_limit_usd - spent_today - amount_usd }
+  }
+
+  @on_despawn => {
+    registry = get_agent_wallet_registry()
+    registry.deregister(agent_id ?? entity_id)
+    emit("agent_wallet_deregistered", { wallet_address: wallet_address })
+  }
+
+  @receipt agent_wallet_config {
+    type: "AgentWalletRegistryReceipt"
+    agent_id: agent_id ?? entity_id
+    wallet_address: wallet_address
+    network_id: network_id
+    balance_threshold_eth: balance_threshold_eth
+    daily_spend_limit_usd: daily_spend_limit_usd
+    timestamp: now()
+  }
+}
