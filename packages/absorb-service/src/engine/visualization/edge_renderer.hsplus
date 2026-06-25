@@ -1,0 +1,76 @@
+// @edge_renderer — Generate 3D bezier curves for import/call graph edges.
+//
+// Native .hsplus surface for EdgeRenderer.ts (absorb-service/engine/visualization).
+//
+// Generates 3D bezier curves (4-point cubic) for import and call edges between
+// symbol nodes. Supports edge bundling for dense graphs.
+//
+// RenderedEdge (EdgeRenderer.ts):
+//   from: String, to: String, type: "import" | "call"
+//   points: [source, control1, control2, target] (EdgePoint {x,y,z})
+//   color: String, opacity: Float, width: Float
+//
+// EdgeRenderOptions:
+//   curve_height: Float = 0.3    (30% of source-target distance)
+//   import_color:   "#4a90d9"
+//   call_color:     "#e8a838"
+//   import_opacity: 0.4
+//   call_opacity:   0.6
+//   max_edges: Int = 500         (render budget cap)
+//   bundle_edges: Bool = true    (bundle parallel edges for clarity)
+
+@trait edge_renderer {
+  // Bezier arc height factor
+  curve_height: Float = 0.3
+
+  // Import edge color
+  import_color: String = "#4a90d9"
+
+  // Call edge color
+  call_color: String = "#e8a838"
+
+  // Import edge opacity
+  import_opacity: Float = 0.4
+
+  // Call edge opacity
+  call_opacity: Float = 0.6
+
+  // Maximum edges to render
+  max_edges: Int = 500
+
+  // Bundle parallel edges
+  bundle_edges: Bool = true
+
+  capability_tags: ["edge_renderer", "bezier_edges", "graph_visualization", "3d_edges", "edge_bundling", "absorb_service", "codebase_scene"]
+
+  @on_spawn => {
+    renderer = init_edge_renderer({
+      curve_height: curve_height,
+      import_color: import_color,
+      call_color: call_color,
+      import_opacity: import_opacity,
+      call_opacity: call_opacity,
+      max_edges: max_edges,
+      bundle_edges: bundle_edges
+    })
+    emit("edge_renderer_ready", { max_edges: max_edges, bundle_edges: bundle_edges })
+  }
+
+  // Render all edges between positioned nodes → RenderedEdge[]
+  @on_render(edges, node_positions, edge_type) => {
+    rendered = renderer.render(edges, node_positions, edge_type)
+    emit("edges_rendered", { count: rendered.size, type: edge_type })
+    return rendered
+  }
+
+  @receipt edge_renderer_config {
+    type: "EdgeRendererReceipt"
+    curve_height: curve_height
+    import_color: import_color
+    call_color: call_color
+    max_edges: max_edges
+    bundle_edges: bundle_edges
+    bezier: "4-point cubic (source, ctrl1, ctrl2, target)"
+    timestamp: now()
+  }
+}

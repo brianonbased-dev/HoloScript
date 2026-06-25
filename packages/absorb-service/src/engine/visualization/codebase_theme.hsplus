@@ -1,0 +1,62 @@
+// @codebase_theme — Map language/symbol/complexity to 3D visual styles for CodebaseScene.
+//
+// Native .hsplus surface for CodebaseTheme.ts (absorb-service/engine/visualization).
+//
+// Maps language, symbol type, and complexity metrics to VisualStyle:
+//   { color, emissive, emissive_intensity, scale, opacity, geometry }
+//
+// ThemeOptions (CodebaseTheme.ts):
+//   color_by: "language" | "type" | "community"
+//   size_by:  "loc" | "connections" | "complexity" | "uniform"
+//   base_scale: Float = 0.3
+//   max_scale:  Float = 2.0
+//
+// Language colors: typescript=#3178c6, javascript=#f7df1e, python=#3776ab,
+//   rust=#dea584, go=#00add8, holoscript=#00ff88
+// Type colors: class=#e74c3c, interface=#3498db, enum=#9b59b6, struct=#e67e22
+
+@trait codebase_theme {
+  // Color dimension
+  color_by: enum("language" | "type" | "community") = "language"
+
+  // Size dimension
+  size_by: enum("loc" | "connections" | "complexity" | "uniform") = "connections"
+
+  // Base scale multiplier for nodes
+  base_scale: Float = 0.3
+
+  // Maximum scale cap
+  max_scale: Float = 2.0
+
+  capability_tags: ["codebase_theme", "visualization_theme", "visual_style", "3d_coding_graph", "absorb_service", "codebase_scene"]
+
+  @on_spawn => {
+    theme = init_codebase_theme({
+      color_by: color_by,
+      size_by: size_by,
+      base_scale: base_scale,
+      max_scale: max_scale
+    })
+    emit("codebase_theme_ready", { color_by: color_by, size_by: size_by })
+  }
+
+  // Get visual style for a symbol
+  @on_style_for(symbol, community_id) => {
+    return theme.style_for(symbol, community_id)
+  }
+
+  // Get color for a specific language
+  @on_language_color(language) => {
+    return theme.language_color(language)
+  }
+
+  @receipt codebase_theme_config {
+    type: "CodebaseThemeReceipt"
+    color_by: color_by
+    size_by: size_by
+    base_scale: base_scale
+    max_scale: max_scale
+    holoscript_color: "#00ff88"
+    timestamp: now()
+  }
+}

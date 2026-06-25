@@ -1,0 +1,90 @@
+// @self_improve_harvester — Capture (instruction, output, test, quality) tuples as JSONL training data.
+//
+// Native .hsplus surface for SelfImproveHarvester.ts (absorb-service/self-improvement).
+//
+// Hooks into runImprovementCycle() to capture training examples from
+// the live self-improvement loop and write them as Alpaca-format JSONL.
+//
+// HarvestEntry (SelfImproveHarvester.ts):
+//   timestamp, instruction, output, test_result: "pass"|"fail"|"skip"|"error"
+//   quality_score, metadata
+//
+// HarvesterConfig:
+//   output_dir: String              — directory for JSONL files
+//   max_file_size: Int              — bytes before file rotation
+//   min_quality_score: Float        — filter below this threshold
+//   enable_auto_rotation: Bool
+//   enabled?: Bool                  — master on/off switch
+//   validate_syntax?: Bool          — parse check before accepting
+//   flush_interval?: Int            — entries before auto-flush
+//
+// AcceptedExample (Alpaca format):
+//   { instruction, input, output, metadata: { source, timestamp, quality_score,
+//     test_passed, pass_rate, filter_stages_passed[] } }
+//
+// FileWriter abstraction used for testability (no hard FS dependency).
+
+@trait self_improve_harvester {
+  // Output directory for JSONL training files
+  output_dir: String
+
+  // Max file size in bytes before rotation
+  max_file_size_bytes: Int = 10485760
+
+  // Minimum quality score to accept (0.0-1.0)
+  min_quality_score: Float = 0.6
+
+  // Enable file rotation when max size is reached
+  enable_auto_rotation: Bool = true
+
+  // Validate syntax before accepting example
+  validate_syntax: Bool = true
+
+  // Number of entries before auto-flush
+  flush_interval: Int = 100
+
+  // Master enable switch
+  enabled: Bool = true
+
+  capability_tags: ["self_improve_harvester", "training_data", "alpaca_jsonl", "quality_filter", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    harvester = init_self_improve_harvester({
+      output_dir: output_dir,
+      max_file_size_bytes: max_file_size_bytes,
+      min_quality_score: min_quality_score,
+      enable_auto_rotation: enable_auto_rotation,
+      validate_syntax: validate_syntax,
+      flush_interval: flush_interval,
+      enabled: enabled
+    })
+    emit("self_improve_harvester_ready", { output_dir: output_dir, enabled: enabled })
+  }
+
+  // Capture a harvest entry from a cycle result
+  @on_harvest(entry) => {
+    result = harvester.harvest(entry)
+    if result.accepted {
+      emit("harvest_entry_accepted", { quality_score: entry.quality_score })
+    } else {
+      emit("harvest_entry_rejected", { reason: result.rejection_reason })
+    }
+    return result
+  }
+
+  // Force flush pending entries to disk
+  @on_flush => {
+    harvester.flush()
+    emit("harvest_flushed", {})
+  }
+
+  @receipt self_improve_harvester_config {
+    type: "SelfImproveHarvesterReceipt"
+    output_dir: output_dir
+    min_quality_score: min_quality_score
+    format: "Alpaca-format JSONL (instruction/input/output/metadata)"
+    max_file_size_bytes: max_file_size_bytes
+    validate_syntax: validate_syntax
+    timestamp: now()
+  }
+}

@@ -1,0 +1,82 @@
+// @convergence_detector — Detect self-improvement pipeline convergence (quality plateau).
+//
+// Native .hsplus surface for ConvergenceDetector.ts (absorb-service/self-improvement).
+//
+// Convergence is declared when ALL of the following hold over the last `window_size` iterations:
+//   1. Absolute per-step delta < epsilon  (no meaningful improvement)
+//   2. Moving-average slope < slope_threshold  (near-zero or negative gradient)
+//   3. At least min_iterations total samples recorded  (prevents premature stop)
+//
+// Plateau condition (alternative trigger, either/or with the above):
+//   Score stays within plateau_band of the best-seen score for plateau_patience
+//   consecutive iterations → convergence even if small oscillations exist.
+//
+// ConvergenceConfig defaults (ConvergenceDetector.ts):
+//   min_iterations: 5, window_size: 5, epsilon: 0.005, slope_threshold: 0.002
+//   plateau_band: 0.01, plateau_patience: 8
+//
+// ConvergenceStatus:
+//   { converged, reason: "epsilon_window"|"plateau"|null,
+//     iterations, current_score, best_score, window_average }
+
+@trait convergence_detector {
+  // Minimum iterations before convergence can be declared
+  min_iterations: Int = 5
+
+  // Sliding window size for delta/slope analysis
+  window_size: Int = 5
+
+  // Max absolute per-step delta to consider converged
+  epsilon: Float = 0.005
+
+  // Max slope magnitude to consider converged
+  slope_threshold: Float = 0.002
+
+  // Width of plateau band around best score
+  plateau_band: Float = 0.01
+
+  // Iterations within plateau band to trigger convergence
+  plateau_patience: Int = 8
+
+  capability_tags: ["convergence_detector", "quality_plateau", "self_improvement", "training_convergence", "absorb_service", "grpo"]
+
+  @on_spawn => {
+    detector = init_convergence_detector({
+      min_iterations: min_iterations,
+      window_size: window_size,
+      epsilon: epsilon,
+      slope_threshold: slope_threshold,
+      plateau_band: plateau_band,
+      plateau_patience: plateau_patience
+    })
+    emit("convergence_detector_ready", {
+      min_iterations: min_iterations,
+      epsilon: epsilon
+    })
+  }
+
+  // Record a new quality score and check convergence
+  @on_record(score) => {
+    status = detector.record(score)
+    if status.converged {
+      emit("convergence_detected", { reason: status.reason, iterations: status.iterations })
+    }
+    return status
+  }
+
+  // Reset the detector (start of a new training run)
+  @on_reset => {
+    detector.reset()
+    emit("convergence_detector_reset", {})
+  }
+
+  @receipt convergence_config {
+    type: "ConvergenceDetectorReceipt"
+    conditions: ["abs_delta < epsilon over window", "slope < slope_threshold", "min_iterations met"]
+    plateau_condition: "score within plateau_band of best for plateau_patience iters"
+    epsilon: epsilon
+    slope_threshold: slope_threshold
+    plateau_band: plateau_band
+    timestamp: now()
+  }
+}
