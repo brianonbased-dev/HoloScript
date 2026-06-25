@@ -1,0 +1,21 @@
+// @motion_reduced_trait — Reduced motion: suppresses animations/transitions for vestibular accessibility.
+//
+// Native .hsplus surface for core/traits/MotionReducedTrait.ts.
+
+@trait motion_reduced_trait {
+  capability_tags: ["motion_reduced", "vestibular_accessibility", "suppress_animation", "accessibility", "core"]
+
+  @on_spawn => {
+    emit("motion_reduced_ready", {})
+  }
+
+  @on_toggle(enabled) => {
+    set_motion_reduced(enabled)
+    emit("motion_reduced_toggled", { enabled })
+  }
+
+  @receipt motion_reduced_trait_config {
+    type: "MotionReducedTraitReceipt"
+    timestamp: now()
+  }
+}

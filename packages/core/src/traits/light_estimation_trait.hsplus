@@ -1,0 +1,22 @@
+// @light_estimation_trait — AR light estimation: infers ambient light intensity/color from camera frames.
+//
+// Native .hsplus surface for core/traits/LightEstimationTrait.ts.
+
+@trait light_estimation_trait {
+  capability_tags: ["light_estimation", "ar_ambient_light", "intensity_color_infer", "ar_lighting", "core"]
+
+  @on_spawn(device_id) => {
+    init_light_estimation(device_id)
+    emit("light_estimation_ready", {})
+  }
+
+  @on_frame(camera_frame) => {
+    estimate = estimate_light(camera_frame)
+    return estimate
+  }
+
+  @receipt light_estimation_trait_config {
+    type: "LightEstimationTraitReceipt"
+    timestamp: now()
+  }
+}

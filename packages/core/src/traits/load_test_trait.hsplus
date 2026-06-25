@@ -1,0 +1,23 @@
+// @load_test_trait — Load test: ramps concurrent virtual users and measures throughput/latency/error rate.
+//
+// Native .hsplus surface for core/traits/LoadTestTrait.ts.
+
+@trait load_test_trait {
+  capability_tags: ["load_test", "virtual_users", "throughput_latency", "error_rate", "core"]
+
+  @on_spawn(target_url, max_users) => {
+    init_load_test(target_url, max_users)
+    emit("load_test_ready", {})
+  }
+
+  @on_run(duration_s) => {
+    results = run_load_test(duration_s)
+    emit("load_test_complete", { p99_ms: results.p99 })
+    return results
+  }
+
+  @receipt load_test_trait_config {
+    type: "LoadTestTraitReceipt"
+    timestamp: now()
+  }
+}

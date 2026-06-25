@@ -1,0 +1,23 @@
+// @local_llm_trait — Local LLM: runs GGUF/ONNX model via llama.cpp/onnxruntime on-device.
+//
+// Native .hsplus surface for core/traits/LocalLLMTrait.ts.
+
+@trait local_llm_trait {
+  capability_tags: ["local_llm", "gguf_onnx", "llamacpp", "on_device_llm", "core"]
+
+  @on_spawn(model_path, backend) => {
+    init_local_llm(model_path, backend)
+    emit("local_llm_ready", {})
+  }
+
+  @on_generate(prompt, opts) => {
+    result = generate_local_llm(prompt, opts)
+    return result
+  }
+
+  @receipt local_llm_trait_config {
+    type: "LocalLLMTraitReceipt"
+    backends: ["llama.cpp", "onnxruntime"]
+    timestamp: now()
+  }
+}

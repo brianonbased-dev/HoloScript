@@ -1,0 +1,23 @@
+// @multi_agent_trait — Multi-agent coordinator: spawns and coordinates N sub-agents on a shared task.
+//
+// Native .hsplus surface for core/traits/MultiAgentTrait.ts.
+
+@trait multi_agent_trait {
+  capability_tags: ["multi_agent", "sub_agent_spawn", "task_coordination", "swarm_coord", "core"]
+
+  @on_spawn(agent_count, task_spec) => {
+    init_multi_agent(agent_count, task_spec)
+    emit("multi_agent_ready", {})
+  }
+
+  @on_run(task) => {
+    results = run_multi_agent(task)
+    emit("multi_agent_complete", {})
+    return results
+  }
+
+  @receipt multi_agent_trait_config {
+    type: "MultiAgentTraitReceipt"
+    timestamp: now()
+  }
+}

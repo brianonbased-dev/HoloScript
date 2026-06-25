@@ -1,0 +1,23 @@
+// @mfa_trait — Multi-factor auth: TOTP/WebAuthn second-factor validation.
+//
+// Native .hsplus surface for core/traits/MfaTrait.ts.
+
+@trait mfa_trait {
+  capability_tags: ["mfa", "totp_webauthn", "second_factor", "multi_factor_auth", "core"]
+
+  @on_spawn(method) => {
+    init_mfa(method)
+    emit("mfa_ready", { method })
+  }
+
+  @on_verify(user_id, code) => {
+    result = verify_mfa(user_id, code)
+    return result
+  }
+
+  @receipt mfa_trait_config {
+    type: "MfaTraitReceipt"
+    methods: ["TOTP", "WebAuthn"]
+    timestamp: now()
+  }
+}

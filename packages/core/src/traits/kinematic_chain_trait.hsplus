@@ -1,0 +1,22 @@
+// @kinematic_chain_trait — Kinematic chain: forward kinematics joint chain for robotics/character.
+//
+// Native .hsplus surface for core/traits/KinematicChainTrait.ts.
+
+@trait kinematic_chain_trait {
+  capability_tags: ["kinematic_chain", "forward_kinematics", "joint_chain", "robotics_character", "core"]
+
+  @on_spawn(joints) => {
+    init_kinematic_chain(joints)
+    emit("kinematic_chain_ready", {})
+  }
+
+  @on_fk(joint_angles) => {
+    end_effector = compute_forward_kinematics(joint_angles)
+    return end_effector
+  }
+
+  @receipt kinematic_chain_trait_config {
+    type: "KinematicChainTraitReceipt"
+    timestamp: now()
+  }
+}

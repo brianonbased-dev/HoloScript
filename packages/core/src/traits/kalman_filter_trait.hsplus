@@ -1,0 +1,23 @@
+// @kalman_filter_trait — Kalman filter: linear/EKF state estimation for noisy sensor fusion.
+//
+// Native .hsplus surface for core/traits/KalmanFilterTrait.ts.
+
+@trait kalman_filter_trait {
+  capability_tags: ["kalman_filter", "state_estimation", "sensor_fusion", "ekf", "core"]
+
+  @on_spawn(state_dim, obs_dim) => {
+    init_kalman_filter(state_dim, obs_dim)
+    emit("kalman_filter_ready", {})
+  }
+
+  @on_update(observation, control) => {
+    state = update_kalman_filter(observation, control)
+    return state
+  }
+
+  @receipt kalman_filter_trait_config {
+    type: "KalmanFilterTraitReceipt"
+    variants: ["linear", "EKF"]
+    timestamp: now()
+  }
+}

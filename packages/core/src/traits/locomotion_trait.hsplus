@@ -1,0 +1,23 @@
+// @locomotion_trait — Character locomotion: walk/run/crouch/jump state machine with root motion.
+//
+// Native .hsplus surface for core/traits/LocomotionTrait.ts.
+
+@trait locomotion_trait {
+  capability_tags: ["locomotion", "walk_run_crouch_jump", "state_machine", "root_motion", "core"]
+
+  @on_spawn(speed_profile) => {
+    init_locomotion(speed_profile)
+    emit("locomotion_ready", {})
+  }
+
+  @on_move(input_vector, dt) => {
+    state = update_locomotion(input_vector, dt)
+    return state
+  }
+
+  @receipt locomotion_trait_config {
+    type: "LocomotionTraitReceipt"
+    states: ["idle", "walk", "run", "crouch", "jump"]
+    timestamp: now()
+  }
+}

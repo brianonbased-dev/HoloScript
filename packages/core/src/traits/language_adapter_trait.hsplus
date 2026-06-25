@@ -1,0 +1,22 @@
+// @language_adapter_trait — Language adapter: bridges HoloScript IR to target-language code generation.
+//
+// Native .hsplus surface for core/traits/LanguageAdapterTrait.ts.
+
+@trait language_adapter_trait {
+  capability_tags: ["language_adapter", "ir_to_target_lang", "code_generation", "compiler_bridge", "core"]
+
+  @on_spawn(target_lang) => {
+    init_language_adapter(target_lang)
+    emit("language_adapter_ready", { target_lang })
+  }
+
+  @on_emit(ir_node) => {
+    code = emit_target_code(ir_node)
+    return code
+  }
+
+  @receipt language_adapter_trait_config {
+    type: "LanguageAdapterTraitReceipt"
+    timestamp: now()
+  }
+}

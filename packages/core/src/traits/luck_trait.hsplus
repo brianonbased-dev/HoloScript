@@ -1,0 +1,22 @@
+// @luck_trait — Luck stat: modifies random outcome probabilities for loot, crit, encounter chance.
+//
+// Native .hsplus surface for core/traits/LuckTrait.ts.
+
+@trait luck_trait {
+  capability_tags: ["luck", "random_outcome_modifier", "loot_crit_encounter", "stat", "core"]
+
+  @on_spawn(base_luck) => {
+    init_luck(base_luck)
+    emit("luck_ready", {})
+  }
+
+  @on_roll(base_probability) => {
+    modified = apply_luck_modifier(base_probability)
+    return modified
+  }
+
+  @receipt luck_trait_config {
+    type: "LuckTraitReceipt"
+    timestamp: now()
+  }
+}

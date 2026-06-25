@@ -1,0 +1,21 @@
+// @markdown_render_trait — Markdown renderer: parses and renders Markdown text to display surface.
+//
+// Native .hsplus surface for core/traits/MarkdownRenderTrait.ts.
+
+@trait markdown_render_trait {
+  capability_tags: ["markdown_render", "markdown_parse", "display_surface", "rich_text", "core"]
+
+  @on_spawn => {
+    emit("markdown_render_ready", {})
+  }
+
+  @on_render(markdown_text) => {
+    html = render_markdown(markdown_text)
+    return html
+  }
+
+  @receipt markdown_render_trait_config {
+    type: "MarkdownRenderTraitReceipt"
+    timestamp: now()
+  }
+}

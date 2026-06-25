@@ -1,0 +1,24 @@
+// @multi_target_tracking_trait — Multi-target tracking: high-level trait wrapping tracker with emit/filter.
+//
+// Native .hsplus surface for core/traits/MultiTargetTrackingTrait.ts.
+// (Wraps MultiTargetTracker with entity lifecycle management.)
+
+@trait multi_target_tracking_trait {
+  capability_tags: ["multi_target_tracking", "tracker_wrapper", "entity_lifecycle", "tracking_entities", "core"]
+
+  @on_spawn(detector_id) => {
+    init_multi_target_tracking(detector_id)
+    emit("multi_target_tracking_ready", {})
+  }
+
+  @on_frame(frame_data) => {
+    active_tracks = process_tracking_frame(frame_data)
+    emit("tracks_updated", { count: active_tracks.length })
+    return active_tracks
+  }
+
+  @receipt multi_target_tracking_trait_config {
+    type: "MultiTargetTrackingTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @marketplace_trait — HoloScript native marketplace: list, price, purchase, royalty distribution.
+//
+// Native .hsplus surface for core/traits/MarketplaceTrait.ts.
+
+@trait marketplace_trait {
+  capability_tags: ["marketplace_trait", "list_price_purchase", "royalty_distribution", "native_market", "core"]
+
+  @on_spawn(team_id) => {
+    init_marketplace(team_id)
+    emit("marketplace_ready", {})
+  }
+
+  @on_purchase(listing_id, buyer_wallet) => {
+    receipt = process_marketplace_purchase(listing_id, buyer_wallet)
+    emit("marketplace_purchased", { listing_id })
+    return receipt
+  }
+
+  @receipt marketplace_trait_config {
+    type: "MarketplaceTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @mqtt_sink_trait — MQTT sink: subscribes to topic and writes messages to entity or store.
+//
+// Native .hsplus surface for core/traits/MQTTSinkTrait.ts.
+
+@trait mqtt_sink_trait {
+  capability_tags: ["mqtt_sink", "mqtt_subscribe", "iot_sink", "topic_to_entity", "core"]
+
+  @on_spawn(broker_url, topic) => {
+    init_mqtt_sink(broker_url, topic)
+    emit("mqtt_sink_ready", { topic })
+  }
+
+  @on_message(payload) => {
+    sink_mqtt_message(payload)
+  }
+
+  @receipt mqtt_sink_trait_config {
+    type: "MQTTSinkTraitReceipt"
+    timestamp: now()
+  }
+}

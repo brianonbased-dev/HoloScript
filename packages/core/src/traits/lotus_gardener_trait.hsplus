@@ -1,0 +1,23 @@
+// @lotus_gardener_trait — Lotus gardener: orchestrates Lotus genesis lifecycle, monitors 16-paper gate.
+//
+// Native .hsplus surface for core/traits/LotusGardenerTrait.ts.
+
+@trait lotus_gardener_trait {
+  capability_tags: ["lotus_gardener", "genesis_lifecycle", "16_paper_gate", "lotus_monitor", "core"]
+
+  @on_spawn => {
+    emit("lotus_gardener_ready", {})
+  }
+
+  @on_tick => {
+    status = tick_lotus_gardener()
+    if status.gate_triggered { emit("lotus_genesis_triggered", {}) }
+    return status
+  }
+
+  @receipt lotus_gardener_trait_config {
+    type: "LotusGardenerTraitReceipt"
+    doc: "I.007 — fires when 16 papers have real benchmarks"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @log_aggregator_trait — Log aggregator: collects, buffers, and flushes structured logs to sink.
+//
+// Native .hsplus surface for core/traits/LogAggregatorTrait.ts.
+
+@trait log_aggregator_trait {
+  capability_tags: ["log_aggregator", "structured_logs", "buffer_flush", "log_sink", "core"]
+
+  @on_spawn(sink_config) => {
+    init_log_aggregator(sink_config)
+    emit("log_aggregator_ready", {})
+  }
+
+  @on_log(level, message, fields) => {
+    aggregate_log(level, message, fields)
+  }
+
+  @receipt log_aggregator_trait_config {
+    type: "LogAggregatorTraitReceipt"
+    timestamp: now()
+  }
+}

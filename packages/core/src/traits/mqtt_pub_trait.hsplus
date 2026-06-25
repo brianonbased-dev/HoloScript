@@ -1,0 +1,23 @@
+// @mqtt_pub_trait — MQTT publisher: publishes entity events to broker topic with QoS config.
+//
+// Native .hsplus surface for core/traits/MqttPubTrait.ts.
+// (Distinct from MQTTSourceTrait which is the generic source wrapper.)
+
+@trait mqtt_pub_trait {
+  capability_tags: ["mqtt_pub", "broker_publish", "qos_config", "iot_publisher", "core"]
+
+  @on_spawn(broker_url, topic, qos) => {
+    init_mqtt_pub(broker_url, topic, qos)
+    emit("mqtt_pub_ready", { topic })
+  }
+
+  @on_publish(payload) => {
+    publish_mqtt_with_qos(payload)
+  }
+
+  @receipt mqtt_pub_trait_config {
+    type: "MqttPubTraitReceipt"
+    qos_levels: [0, 1, 2]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @motion_source_trait — Motion source: streams position/orientation/velocity from tracking device.
+//
+// Native .hsplus surface for core/traits/MotionSourceTrait.ts.
+
+@trait motion_source_trait {
+  capability_tags: ["motion_source", "position_orientation_velocity", "tracking_stream", "xr_motion", "core"]
+
+  @on_spawn(device_id) => {
+    init_motion_source(device_id)
+    emit("motion_source_ready", { device_id })
+  }
+
+  @on_sample => {
+    return sample_motion_source()
+  }
+
+  @receipt motion_source_trait_config {
+    type: "MotionSourceTraitReceipt"
+    timestamp: now()
+  }
+}

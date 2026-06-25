@@ -1,0 +1,23 @@
+// @mesh_detection_trait — AR mesh detection: detects surfaces from XR passthrough and emits mesh.
+//
+// Native .hsplus surface for core/traits/MeshDetectionTrait.ts.
+
+@trait mesh_detection_trait {
+  capability_tags: ["mesh_detection", "ar_surface_detect", "passthrough_mesh", "xr_environment", "core"]
+
+  @on_spawn(device_id) => {
+    init_mesh_detection(device_id)
+    emit("mesh_detection_ready", {})
+  }
+
+  @on_update(frame_data) => {
+    meshes = detect_environment_meshes(frame_data)
+    emit("meshes_updated", { count: meshes.length })
+    return meshes
+  }
+
+  @receipt mesh_detection_trait_config {
+    type: "MeshDetectionTraitReceipt"
+    timestamp: now()
+  }
+}

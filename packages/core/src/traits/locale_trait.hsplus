@@ -1,0 +1,21 @@
+// @locale_trait — Locale: i18n string lookup, number/date formatting, RTL layout flag.
+//
+// Native .hsplus surface for core/traits/LocaleTrait.ts.
+
+@trait locale_trait {
+  capability_tags: ["locale", "i18n_strings", "number_date_format", "rtl", "core"]
+
+  @on_spawn(locale_code) => {
+    init_locale(locale_code)
+    emit("locale_ready", { locale_code })
+  }
+
+  @on_translate(key, params) => {
+    return translate_locale(key, params)
+  }
+
+  @receipt locale_trait_config {
+    type: "LocaleTraitReceipt"
+    timestamp: now()
+  }
+}

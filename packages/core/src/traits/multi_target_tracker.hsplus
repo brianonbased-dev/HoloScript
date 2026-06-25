@@ -1,0 +1,21 @@
+// @multi_target_tracker — Multi-target tracker core: data association, track maintenance for N objects.
+//
+// Native .hsplus surface for core/traits/MultiTargetTracker.ts.
+
+@trait multi_target_tracker {
+  capability_tags: ["multi_target_tracker", "data_association", "track_maintenance", "n_object_tracking", "core"]
+
+  @on_spawn => {
+    emit("multi_target_tracker_ready", {})
+  }
+
+  @on_update(detections) => {
+    tracks = update_multi_target_tracker(detections)
+    return tracks
+  }
+
+  @receipt multi_target_tracker_config {
+    type: "MultiTargetTrackerReceipt"
+    timestamp: now()
+  }
+}

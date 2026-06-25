@@ -1,0 +1,24 @@
+// @lotus_genesis_trigger_trait — Lotus genesis trigger: fires when 16 papers with benchmarks are met (I.007).
+//
+// Native .hsplus surface for core/traits/LotusGenesisTriggerTrait.ts.
+
+@trait lotus_genesis_trigger_trait {
+  capability_tags: ["lotus_genesis_trigger", "16_paper_gate", "benchmark_gate", "genesis_trigger", "core"]
+
+  @on_spawn => {
+    emit("lotus_genesis_trigger_ready", {})
+  }
+
+  @on_check(paper_count, with_benchmarks) => {
+    triggered = check_lotus_trigger(paper_count, with_benchmarks)
+    if triggered { emit("lotus_genesis_triggered", {}) }
+    return triggered
+  }
+
+  @receipt lotus_genesis_trigger_trait_config {
+    type: "LotusGenesisTriggerTraitReceipt"
+    threshold: 16
+    doc: "I.007 — NOT public"
+    timestamp: now()
+  }
+}

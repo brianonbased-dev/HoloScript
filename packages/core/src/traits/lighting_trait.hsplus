@@ -1,0 +1,22 @@
+// @lighting_trait — Scene lighting: directional, point, spot, area light with shadow casting.
+//
+// Native .hsplus surface for core/traits/LightingTrait.ts.
+
+@trait lighting_trait {
+  capability_tags: ["lighting", "directional_point_spot_area", "shadow_casting", "scene_light", "core"]
+
+  @on_spawn(light_type, color, intensity) => {
+    init_lighting(light_type, color, intensity)
+    emit("lighting_ready", {})
+  }
+
+  @on_set_position(position, direction) => {
+    update_light_position(position, direction)
+  }
+
+  @receipt lighting_trait_config {
+    type: "LightingTraitReceipt"
+    types: ["directional", "point", "spot", "area"]
+    timestamp: now()
+  }
+}

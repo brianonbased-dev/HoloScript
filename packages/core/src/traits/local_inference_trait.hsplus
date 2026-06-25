@@ -1,0 +1,24 @@
+// @local_inference_trait — Local inference: routes to on-device model (Jetson/laptop) without API call.
+//
+// Native .hsplus surface for core/traits/LocalInferenceTrait.ts.
+
+@trait local_inference_trait {
+  capability_tags: ["local_inference", "on_device", "jetson_laptop", "no_api_call", "core"]
+
+  @on_spawn(model_path) => {
+    init_local_inference(model_path)
+    emit("local_inference_ready", {})
+  }
+
+  @on_infer(prompt, opts) => {
+    result = run_local_inference(prompt, opts)
+    return result
+  }
+
+  @receipt local_inference_trait_config {
+    type: "LocalInferenceTraitReceipt"
+    priority: "Jetson Orin > laptop GPU"
+    doc: "W.755 Jetson storage placement"
+    timestamp: now()
+  }
+}

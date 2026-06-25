@@ -1,0 +1,22 @@
+// @mock_trait — Test mock: intercepts trait calls and records them for assertion in tests.
+//
+// Native .hsplus surface for core/traits/MockTrait.ts.
+
+@trait mock_trait {
+  capability_tags: ["mock_trait", "test_mock", "intercept_record", "trait_stub", "core"]
+
+  @on_spawn(target_trait) => {
+    init_mock_trait(target_trait)
+    emit("mock_ready", { target_trait })
+  }
+
+  @on_call(method, args) => {
+    record_mock_call(method, args)
+    return get_mock_return(method)
+  }
+
+  @receipt mock_trait_config {
+    type: "MockTraitReceipt"
+    timestamp: now()
+  }
+}

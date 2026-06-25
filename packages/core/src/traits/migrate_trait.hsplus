@@ -1,0 +1,23 @@
+// @migrate_trait — Schema/data migration: versioned up/down with rollback safety.
+//
+// Native .hsplus surface for core/traits/MigrateTrait.ts.
+
+@trait migrate_trait {
+  capability_tags: ["migrate", "schema_migration", "versioned_up_down", "rollback_safe", "core"]
+
+  @on_spawn(current_version) => {
+    init_migration(current_version)
+    emit("migrate_ready", { current_version })
+  }
+
+  @on_up(target_version) => {
+    result = run_migration_up(target_version)
+    emit("migrated_up", { version: target_version })
+    return result
+  }
+
+  @receipt migrate_trait_config {
+    type: "MigrateTraitReceipt"
+    timestamp: now()
+  }
+}

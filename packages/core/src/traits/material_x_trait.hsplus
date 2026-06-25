@@ -1,0 +1,23 @@
+// @material_x_trait — MaterialX material: node-graph shading with MaterialX spec compliance.
+//
+// Native .hsplus surface for core/traits/MaterialXTrait.ts.
+
+@trait material_x_trait {
+  capability_tags: ["material_x", "node_graph_shading", "materialx_spec", "surface_shader", "core"]
+
+  @on_spawn(mtlx_path) => {
+    init_material_x(mtlx_path)
+    emit("material_x_ready", {})
+  }
+
+  @on_compile(target_backend) => {
+    shader = compile_materialx(target_backend)
+    return shader
+  }
+
+  @receipt material_x_trait_config {
+    type: "MaterialXTraitReceipt"
+    spec: "MaterialX 1.38+"
+    timestamp: now()
+  }
+}

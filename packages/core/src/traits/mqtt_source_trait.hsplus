@@ -1,0 +1,21 @@
+// @mqtt_source_trait — MQTT source: publishes entity state changes to MQTT broker topic.
+//
+// Native .hsplus surface for core/traits/MQTTSourceTrait.ts.
+
+@trait mqtt_source_trait {
+  capability_tags: ["mqtt_source", "mqtt_publish", "iot_source", "entity_to_topic", "core"]
+
+  @on_spawn(broker_url, topic) => {
+    init_mqtt_source(broker_url, topic)
+    emit("mqtt_source_ready", { topic })
+  }
+
+  @on_publish(payload) => {
+    publish_mqtt_message(payload)
+  }
+
+  @receipt mqtt_source_trait_config {
+    type: "MQTTSourceTraitReceipt"
+    timestamp: now()
+  }
+}

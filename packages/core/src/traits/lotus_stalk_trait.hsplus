@@ -1,0 +1,22 @@
+// @lotus_stalk_trait — Lotus stalk: connector segment linking root to petals in genesis architecture.
+//
+// Native .hsplus surface for core/traits/LotusStalkTrait.ts.
+
+@trait lotus_stalk_trait {
+  capability_tags: ["lotus_stalk", "genesis_connector", "root_to_petal", "lotus_arch", "core"]
+
+  @on_spawn(stalk_id, root_id) => {
+    init_lotus_stalk(stalk_id, root_id)
+    emit("lotus_stalk_ready", {})
+  }
+
+  @on_grow(length, direction) => {
+    grow_stalk(length, direction)
+  }
+
+  @receipt lotus_stalk_trait_config {
+    type: "LotusStalkTraitReceipt"
+    doc: "I.007"
+    timestamp: now()
+  }
+}

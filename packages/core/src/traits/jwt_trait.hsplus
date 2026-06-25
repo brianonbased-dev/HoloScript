@@ -1,0 +1,27 @@
+// @jwt_trait — JWT sign/verify: HS256/RS256, expiry, claims, refresh token rotation.
+//
+// Native .hsplus surface for core/traits/JwtTrait.ts.
+
+@trait jwt_trait {
+  capability_tags: ["jwt", "hs256_rs256", "expiry_claims", "refresh_rotation", "core"]
+
+  @on_spawn(secret_ref, algorithm) => {
+    init_jwt(secret_ref, algorithm)
+    emit("jwt_ready", {})
+  }
+
+  @on_sign(claims, ttl_s) => {
+    token = sign_jwt(claims, ttl_s)
+    return token
+  }
+
+  @on_verify(token) => {
+    return verify_jwt(token)
+  }
+
+  @receipt jwt_trait_config {
+    type: "JwtTraitReceipt"
+    algorithms: ["HS256", "RS256"]
+    timestamp: now()
+  }
+}

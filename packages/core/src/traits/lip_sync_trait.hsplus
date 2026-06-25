@@ -1,0 +1,21 @@
+// @lip_sync_trait — Lip sync: drives avatar jaw/viseme blend shapes from audio phoneme stream.
+//
+// Native .hsplus surface for core/traits/LipSyncTrait.ts.
+
+@trait lip_sync_trait {
+  capability_tags: ["lip_sync", "viseme_blend", "phoneme_stream", "avatar_mouth", "core"]
+
+  @on_spawn(avatar_id) => {
+    init_lip_sync(avatar_id)
+    emit("lip_sync_ready", {})
+  }
+
+  @on_audio_frame(phoneme_data, timestamp) => {
+    apply_lip_sync(phoneme_data, timestamp)
+  }
+
+  @receipt lip_sync_trait_config {
+    type: "LipSyncTraitReceipt"
+    timestamp: now()
+  }
+}

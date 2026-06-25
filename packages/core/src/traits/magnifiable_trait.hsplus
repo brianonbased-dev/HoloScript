@@ -1,0 +1,21 @@
+// @magnifiable_trait — Magnifiable: entity supports pinch-zoom magnification in XR/AR view.
+//
+// Native .hsplus surface for core/traits/MagnifiableTrait.ts.
+
+@trait magnifiable_trait {
+  capability_tags: ["magnifiable", "pinch_zoom", "xr_magnification", "ar_zoom", "core"]
+
+  @on_spawn(min_scale, max_scale) => {
+    init_magnifiable(min_scale, max_scale)
+    emit("magnifiable_ready", {})
+  }
+
+  @on_zoom(scale_delta) => {
+    apply_magnification(scale_delta)
+  }
+
+  @receipt magnifiable_trait_config {
+    type: "MagnifiableTraitReceipt"
+    timestamp: now()
+  }
+}

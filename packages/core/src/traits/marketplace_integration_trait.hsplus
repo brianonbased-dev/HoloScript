@@ -1,0 +1,22 @@
+// @marketplace_integration_trait — External marketplace integration: syncs listings/sales with third-party markets.
+//
+// Native .hsplus surface for core/traits/MarketplaceIntegrationTrait.ts.
+
+@trait marketplace_integration_trait {
+  capability_tags: ["marketplace_integration", "external_market", "listing_sync", "sales_bridge", "core"]
+
+  @on_spawn(marketplace_id, credentials_ref) => {
+    init_marketplace_integration(marketplace_id, credentials_ref)
+    emit("marketplace_integration_ready", { marketplace_id })
+  }
+
+  @on_sync => {
+    sync_marketplace_listings()
+    emit("marketplace_synced", {})
+  }
+
+  @receipt marketplace_integration_trait_config {
+    type: "MarketplaceIntegrationTraitReceipt"
+    timestamp: now()
+  }
+}

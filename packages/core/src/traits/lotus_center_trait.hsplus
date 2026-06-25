@@ -1,0 +1,23 @@
+// @lotus_center_trait — Lotus center: core hub of the Lotus genesis architecture, anchors petals.
+//
+// Native .hsplus surface for core/traits/LotusCenterTrait.ts.
+
+@trait lotus_center_trait {
+  capability_tags: ["lotus_center", "genesis_hub", "petal_anchor", "lotus_genesis", "core"]
+
+  @on_spawn(center_id) => {
+    init_lotus_center(center_id)
+    emit("lotus_center_ready", { center_id })
+  }
+
+  @on_attach_petal(petal_id) => {
+    attach_lotus_petal(petal_id)
+    emit("petal_attached", { petal_id })
+  }
+
+  @receipt lotus_center_trait_config {
+    type: "LotusCenterTraitReceipt"
+    doc: "I.007 Lotus Genesis Trigger"
+    timestamp: now()
+  }
+}

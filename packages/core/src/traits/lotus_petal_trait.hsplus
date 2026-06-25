@@ -1,0 +1,23 @@
+// @lotus_petal_trait — Lotus petal: individual content/world node in the Lotus genesis ring.
+//
+// Native .hsplus surface for core/traits/LotusPetalTrait.ts.
+
+@trait lotus_petal_trait {
+  capability_tags: ["lotus_petal", "content_node", "genesis_ring", "lotus_arch", "core"]
+
+  @on_spawn(petal_id, center_id) => {
+    init_lotus_petal(petal_id, center_id)
+    emit("lotus_petal_ready", { petal_id })
+  }
+
+  @on_bloom => {
+    bloom_petal()
+    emit("petal_bloomed", {})
+  }
+
+  @receipt lotus_petal_trait_config {
+    type: "LotusPetalTraitReceipt"
+    doc: "I.007"
+    timestamp: now()
+  }
+}

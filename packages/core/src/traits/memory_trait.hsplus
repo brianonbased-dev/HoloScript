@@ -1,0 +1,25 @@
+// @memory_trait — Agent memory: stores, recalls, and forgets episodic and semantic facts.
+//
+// Native .hsplus surface for core/traits/MemoryTrait.ts.
+
+@trait memory_trait {
+  capability_tags: ["memory_trait", "episodic_semantic", "store_recall_forget", "agent_memory", "core"]
+
+  @on_spawn(agent_id) => {
+    init_agent_memory(agent_id)
+    emit("memory_ready", {})
+  }
+
+  @on_store(fact, tags) => {
+    store_memory(fact, tags)
+  }
+
+  @on_recall(query, limit) => {
+    return recall_memory(query, limit)
+  }
+
+  @receipt memory_trait_config {
+    type: "MemoryTraitReceipt"
+    timestamp: now()
+  }
+}

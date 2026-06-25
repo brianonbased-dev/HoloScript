@@ -1,0 +1,22 @@
+// @mome_trait_database — MoME trait database: stores mixture-of-expert trait weights and routing.
+//
+// Native .hsplus surface for core/traits/MoMETraitDatabase.ts.
+
+@trait mome_trait_database {
+  capability_tags: ["mome_trait_database", "mixture_of_experts", "trait_weights", "expert_routing", "core"]
+
+  @on_spawn(expert_count) => {
+    init_mome_database(expert_count)
+    emit("mome_database_ready", {})
+  }
+
+  @on_route(input_features) => {
+    expert_id = route_mome_expert(input_features)
+    return expert_id
+  }
+
+  @receipt mome_trait_database_config {
+    type: "MoMETraitDatabaseReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @memory_crystal_trait — Memory crystal: world artifact storing agent memory shards readable on-scene.
+//
+// Native .hsplus surface for core/traits/MemoryCrystalTrait.ts.
+
+@trait memory_crystal_trait {
+  capability_tags: ["memory_crystal", "world_artifact", "memory_shard", "agent_memory_object", "core"]
+
+  @on_spawn(crystal_id, owner_wallet) => {
+    init_memory_crystal(crystal_id, owner_wallet)
+    emit("memory_crystal_ready", { crystal_id })
+  }
+
+  @on_imprint(memory_shard) => {
+    imprint_memory_crystal(memory_shard)
+    emit("crystal_imprinted", {})
+  }
+
+  @receipt memory_crystal_trait_config {
+    type: "MemoryCrystalTraitReceipt"
+    timestamp: now()
+  }
+}

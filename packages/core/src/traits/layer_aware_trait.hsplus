@@ -1,0 +1,21 @@
+// @layer_aware_trait — Layer awareness: entity knows its render/interaction layer and respects masks.
+//
+// Native .hsplus surface for core/traits/LayerAwareTrait.ts.
+
+@trait layer_aware_trait {
+  capability_tags: ["layer_aware", "render_layer", "interaction_mask", "layer_filter", "core"]
+
+  @on_spawn(layer_id) => {
+    init_layer_aware(layer_id)
+    emit("layer_aware_ready", {})
+  }
+
+  @on_set_layer(layer_id) => {
+    set_entity_layer(layer_id)
+  }
+
+  @receipt layer_aware_trait_config {
+    type: "LayerAwareTraitReceipt"
+    timestamp: now()
+  }
+}

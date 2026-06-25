@@ -1,0 +1,23 @@
+// @model_load_trait — AI model loader: loads GGUF/ONNX/safetensors to inference runtime.
+//
+// Native .hsplus surface for core/traits/ModelLoadTrait.ts.
+
+@trait model_load_trait {
+  capability_tags: ["model_load", "gguf_onnx_safetensors", "inference_runtime", "model_loader", "core"]
+
+  @on_spawn => {
+    emit("model_load_ready", {})
+  }
+
+  @on_load(model_path, runtime) => {
+    handle = load_model(model_path, runtime)
+    emit("model_loaded", { path: model_path })
+    return handle
+  }
+
+  @receipt model_load_trait_config {
+    type: "ModelLoadTraitReceipt"
+    formats: ["GGUF", "ONNX", "safetensors"]
+    timestamp: now()
+  }
+}

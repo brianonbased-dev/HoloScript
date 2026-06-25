@@ -1,0 +1,22 @@
+// @material_trait — PBR material: albedo, metalness, roughness, normal, emissive, alpha.
+//
+// Native .hsplus surface for core/traits/MaterialTrait.ts.
+
+@trait material_trait {
+  capability_tags: ["material", "pbr", "albedo_metalness_roughness", "normal_emissive", "core"]
+
+  @on_spawn(material_def) => {
+    init_material(material_def)
+    emit("material_ready", {})
+  }
+
+  @on_set_property(prop, value) => {
+    set_material_property(prop, value)
+  }
+
+  @receipt material_trait_config {
+    type: "MaterialTraitReceipt"
+    standard: "PBR"
+    timestamp: now()
+  }
+}

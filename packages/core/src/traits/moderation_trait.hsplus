@@ -1,0 +1,23 @@
+// @moderation_trait — Content moderation: LLM+rule classifier gates harmful/spam content.
+//
+// Native .hsplus surface for core/traits/ModerationTrait.ts.
+
+@trait moderation_trait {
+  capability_tags: ["moderation", "content_classification", "harm_gate", "spam_filter", "core"]
+
+  @on_spawn(policy_id) => {
+    init_moderation(policy_id)
+    emit("moderation_ready", {})
+  }
+
+  @on_check(content, context) => {
+    result = check_moderation(content, context)
+    if result.blocked { emit("content_blocked", { reason: result.reason }) }
+    return result
+  }
+
+  @receipt moderation_trait_config {
+    type: "ModerationTraitReceipt"
+    timestamp: now()
+  }
+}

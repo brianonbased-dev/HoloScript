@@ -1,0 +1,21 @@
+// @morph_trait — Shape morph: blend-shape / morph-target animation weights on mesh.
+//
+// Native .hsplus surface for core/traits/MorphTrait.ts.
+
+@trait morph_trait {
+  capability_tags: ["morph", "blend_shape", "morph_target", "mesh_deform", "core"]
+
+  @on_spawn(morph_targets) => {
+    init_morph_targets(morph_targets)
+    emit("morph_ready", {})
+  }
+
+  @on_set_weight(target_name, weight) => {
+    set_morph_weight(target_name, weight)
+  }
+
+  @receipt morph_trait_config {
+    type: "MorphTraitReceipt"
+    timestamp: now()
+  }
+}

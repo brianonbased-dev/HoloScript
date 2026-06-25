@@ -1,0 +1,23 @@
+// @llm_agent_trait — LLM-driven agent brain: system prompt, tool binding, memory recall, goal execution.
+//
+// Native .hsplus surface for core/traits/LLMAgentTrait.ts.
+
+@trait llm_agent_trait {
+  capability_tags: ["llm_agent", "system_prompt", "tool_binding", "memory_recall", "core"]
+
+  @on_spawn(system_prompt, tools) => {
+    init_llm_agent(system_prompt, tools)
+    emit("llm_agent_ready", {})
+  }
+
+  @on_task(task, context) => {
+    result = run_llm_agent_task(task, context)
+    emit("llm_agent_task_complete", {})
+    return result
+  }
+
+  @receipt llm_agent_trait_config {
+    type: "LLMAgentTraitReceipt"
+    timestamp: now()
+  }
+}

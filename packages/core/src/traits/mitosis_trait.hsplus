@@ -1,0 +1,23 @@
+// @mitosis_trait — Mitosis swarm: entity self-replicates under trigger, spawning child agents.
+//
+// Native .hsplus surface for core/traits/MitosisTrait.ts.
+
+@trait mitosis_trait {
+  capability_tags: ["mitosis", "self_replicate", "child_agent_spawn", "swarm_growth", "core"]
+
+  @on_spawn(max_children) => {
+    init_mitosis(max_children)
+    emit("mitosis_ready", {})
+  }
+
+  @on_divide(context) => {
+    child_ids = divide_entity(context)
+    emit("mitosis_occurred", { children: child_ids.length })
+    return child_ids
+  }
+
+  @receipt mitosis_trait_config {
+    type: "MitosisTraitReceipt"
+    timestamp: now()
+  }
+}

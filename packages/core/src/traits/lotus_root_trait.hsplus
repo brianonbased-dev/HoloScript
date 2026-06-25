@@ -1,0 +1,23 @@
+// @lotus_root_trait — Lotus root: persistent substrate anchoring the Lotus genesis world.
+//
+// Native .hsplus surface for core/traits/LotusRootTrait.ts.
+
+@trait lotus_root_trait {
+  capability_tags: ["lotus_root", "genesis_substrate", "persistent_anchor", "lotus_arch", "core"]
+
+  @on_spawn(root_id) => {
+    init_lotus_root(root_id)
+    emit("lotus_root_ready", { root_id })
+  }
+
+  @on_anchor(world_id) => {
+    anchor_lotus_root(world_id)
+    emit("lotus_root_anchored", {})
+  }
+
+  @receipt lotus_root_trait_config {
+    type: "LotusRootTraitReceipt"
+    doc: "I.007"
+    timestamp: now()
+  }
+}

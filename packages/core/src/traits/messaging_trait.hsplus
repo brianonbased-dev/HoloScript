@@ -1,0 +1,21 @@
+// @messaging_trait — Agent messaging: send/receive typed messages between agents via HoloMesh.
+//
+// Native .hsplus surface for core/traits/MessagingTrait.ts.
+
+@trait messaging_trait {
+  capability_tags: ["messaging", "agent_messaging", "typed_messages", "holomesh_transport", "core"]
+
+  @on_spawn(agent_id) => {
+    init_messaging(agent_id)
+    emit("messaging_ready", {})
+  }
+
+  @on_send(to_agent, message_type, payload) => {
+    send_agent_message(to_agent, message_type, payload)
+  }
+
+  @receipt messaging_trait_config {
+    type: "MessagingTraitReceipt"
+    timestamp: now()
+  }
+}

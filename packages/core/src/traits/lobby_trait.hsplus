@@ -1,0 +1,28 @@
+// @lobby_trait — Game lobby: matchmaking queue, player list, ready-check, session handoff.
+//
+// Native .hsplus surface for core/traits/LobbyTrait.ts.
+
+@trait lobby_trait {
+  capability_tags: ["lobby", "matchmaking", "player_list", "ready_check", "core"]
+
+  @on_spawn(session_id) => {
+    init_lobby(session_id)
+    emit("lobby_ready", { session_id })
+  }
+
+  @on_join(player_id) => {
+    join_lobby(player_id)
+    emit("lobby_joined", { player_id })
+  }
+
+  @on_start => {
+    session = start_lobby_session()
+    emit("lobby_started", {})
+    return session
+  }
+
+  @receipt lobby_trait_config {
+    type: "LobbyTraitReceipt"
+    timestamp: now()
+  }
+}

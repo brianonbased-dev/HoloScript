@@ -1,0 +1,23 @@
+// @mood_trait — Entity mood: persistent emotional baseline influencing behavior decisions.
+//
+// Native .hsplus surface for core/traits/MoodTrait.ts.
+
+@trait mood_trait {
+  capability_tags: ["mood", "emotional_baseline", "behavior_influence", "persistent_affect", "core"]
+
+  @on_spawn(initial_mood) => {
+    init_mood(initial_mood)
+    emit("mood_ready", {})
+  }
+
+  @on_update(delta_valence, delta_arousal) => {
+    new_mood = update_mood(delta_valence, delta_arousal)
+    return new_mood
+  }
+
+  @receipt mood_trait_config {
+    type: "MoodTraitReceipt"
+    model: "valence/arousal"
+    timestamp: now()
+  }
+}
