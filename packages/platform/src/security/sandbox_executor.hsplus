@@ -1,0 +1,117 @@
+// @sandbox_executor — Sandboxed execution with memory/CPU/filesystem limits.
+//
+// Native .hsplus surface for SandboxExecutor.ts (v9.0.0, Sprint 9 Security
+// Hardening). Provides an isolated execution environment for HoloScript code
+// with resource tracking and hard policy limits.
+//
+// SandboxState machine (SandboxExecutor.ts):
+//   idle → running → (timeout | error | destroyed)
+//
+// Resource enforcement:
+//   memory_limit_bytes — hard ceiling; execution aborted on breach
+//   cpu_time_limit_ms  — wall-time ceiling per execution call
+//   file_system_access — "none" | "read_only" | "scoped"
+//   network_access     — Bool (if false, all net syscalls fail)
+//
+// SandboxExecutionResult:
+//   success, result?, error?, memory_used, cpu_time_used
+//
+// GOLD security principles encoded:
+//
+//   W.GOLD.035 (Agentic Constitutional Security — Compiler-Level Lexical
+//   Firewalling): The sandbox enforces restrictions at the GRAMMAR layer —
+//   disallowed constructs are rejected before execution, not caught at runtime.
+//   `dangerous_api` violations (eval, Function constructor, process.exit) are
+//   lexically blocked; runtime traps are the fallback, not the primary gate.
+//
+//   W.GOLD.039 (Sapir-Whorf Security — The Compiler as the Limit of the
+//   Possible): What the HoloScript grammar cannot express cannot be exploited.
+//   The sandbox's lexical allowlist IS the threat model — a pattern not in
+//   the grammar simply does not exist in a HoloScript agent's world.
+//
+//   W.GOLD.193 (Threat-Model-Driven Defaults — When Secure-by-Default Is Wrong):
+//   Default policy is NOT maximum restriction — it is THREAT-MODEL-APPROPRIATE
+//   restriction. An edge agent sandbox has different defaults from a
+//   marketplace-execution sandbox. Use policy objects, not boolean flags.
+
+@trait sandbox_executor {
+  // Memory limit in bytes (0 = use policy default)
+  memory_limit_bytes: Int = 0
+
+  // CPU time limit in milliseconds per execution call (0 = use policy default)
+  cpu_time_limit_ms: Int = 0
+
+  // Filesystem access level
+  file_system_access: enum("none" | "read_only" | "scoped") = "none"
+
+  // Allow network access (false = all net syscalls fail; threat-model default W.GOLD.193)
+  network_access: Bool = false
+
+  // Lexical pre-scan before execution (W.GOLD.035 compiler-level gate)
+  lexical_prescan: Bool = true
+
+  // Maximum sandboxes alive simultaneously (0 = unbounded)
+  max_concurrent_sandboxes: Int = 4
+
+  capability_tags: ["sandbox_executor", "sandboxed_execution", "resource_limits", "lexical_firewalling", "w_gold_035", "w_gold_039", "sprint9_security"]
+
+  @on_spawn => {
+    executor = init_sandbox_executor({
+      memory_limit_bytes: memory_limit_bytes,
+      cpu_time_limit_ms: cpu_time_limit_ms,
+      file_system_access: file_system_access,
+      network_access: network_access,
+      max_concurrent: max_concurrent_sandboxes
+    })
+    emit("sandbox_executor_ready", {
+      file_system_access: file_system_access,
+      network_access: network_access,
+      lexical_prescan: lexical_prescan
+    })
+  }
+
+  @on_execute(code, policy) => {
+    // W.GOLD.035: lexical gate BEFORE runtime execution
+    if lexical_prescan {
+      scan = lexical_scan(code)
+      if scan.has_violations {
+        emit("sandbox_execution_blocked", {
+          reason: "lexical_prescan_failed",
+          violations: scan.violations
+        })
+        return { success: false, error: "lexical_prescan_failed", violations: scan.violations }
+      }
+    }
+    sandbox_id = new_uuid()
+    result = executor.run(sandbox_id, code, {
+      memory_limit_bytes: policy.memory_limit_bytes ?? memory_limit_bytes,
+      cpu_time_limit_ms:  policy.cpu_time_limit_ms  ?? cpu_time_limit_ms,
+      file_system_access: policy.file_system_access ?? file_system_access,
+      network_access:     policy.network_access     ?? network_access
+    })
+    emit("sandbox_execution_complete", {
+      sandbox_id: sandbox_id,
+      success: result.success,
+      memory_used: result.memory_used,
+      cpu_time_used: result.cpu_time_used
+    })
+    return result
+  }
+
+  @on_destroy(sandbox_id) => {
+    executor.destroy(sandbox_id)
+    emit("sandbox_destroyed", { sandbox_id: sandbox_id })
+  }
+
+  @receipt sandbox_executor_config {
+    type: "SandboxExecutorReceipt"
+    memory_limit_bytes: memory_limit_bytes
+    cpu_time_limit_ms: cpu_time_limit_ms
+    file_system_access: file_system_access
+    network_access: network_access
+    lexical_prescan: lexical_prescan
+    security_model: "lexical_first_runtime_fallback"
+    gold_refs: ["W.GOLD.035", "W.GOLD.039", "W.GOLD.193"]
+    timestamp: now()
+  }
+}

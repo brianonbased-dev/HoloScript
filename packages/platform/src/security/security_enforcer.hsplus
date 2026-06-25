@@ -1,0 +1,117 @@
+// @security_enforcer — Static analysis security validator for compositions and source.
+//
+// Native .hsplus surface for SecurityEnforcer.ts (v9.0.0, Sprint 9 Security
+// Hardening). Validates HoloScript compositions and source code against a
+// SecurityPolicy before execution or deployment.
+//
+// ViolationCategory (SecurityEnforcer.ts):
+//   object_count       — scene has more objects than policy allows
+//   trait_depth        — trait nesting exceeds policy maximum
+//   disallowed_trait   — a banned @trait appears in the composition
+//   network_access     — composition declares outbound network access
+//   code_injection     — eval / Function constructor / dynamic code path
+//   dangerous_api      — process.exit, fs.unlink, or other destructive APIs
+//   script_injection   — raw <script> or eval() strings
+//   prototype_pollution — __proto__ / Object.setPrototypeOf patterns
+//
+// ViolationSeverity: error (blocks) | warning (logs) | info (audit only)
+//
+// GOLD security principles encoded:
+//
+//   W.GOLD.035 (Agentic Constitutional Security): SecurityEnforcer IS the
+//   lexical firewall gate. It runs on the COMPOSITION (the data, before any
+//   code runs). This is the compiler-level gate — not a runtime catch.
+//
+//   W.GOLD.039 (Sapir-Whorf Security): disallowed traits named here simply
+//   cannot be expressed in a policy-gated deployment — the enforcer is the
+//   grammar limit made executable.
+//
+//   W.GOLD.193 (Threat-Model-Driven Defaults): `disallowed_traits` defaults
+//   to empty (not a universal blocklist). The deployer chooses what to block
+//   based on their threat model — marketplace gets `["eval_trait", "raw_fs"]`;
+//   edge compute sandbox gets `["network_access_trait"]`.
+
+@trait security_enforcer {
+  // Severity threshold: violations at or above this level block execution
+  block_on_severity: enum("error" | "warning" | "info") = "error"
+
+  // Traits explicitly banned by this deployment's threat model
+  disallowed_traits: Array<String> = []
+
+  // Maximum object count in a composition (0 = unlimited)
+  max_object_count: Int = 0
+
+  // Maximum trait nesting depth (0 = unlimited)
+  max_trait_depth: Int = 0
+
+  // Whether to scan for prototype pollution patterns
+  check_prototype_pollution: Bool = true
+
+  // Emit a detailed scan_report event for audit on every validate call
+  emit_audit_events: Bool = true
+
+  capability_tags: ["security_enforcer", "static_analysis", "policy_validation", "lexical_firewall", "w_gold_035", "sprint9_security"]
+
+  @on_spawn => {
+    enforcer = init_security_enforcer({
+      block_on_severity: block_on_severity,
+      disallowed_traits: disallowed_traits,
+      max_object_count: max_object_count,
+      max_trait_depth: max_trait_depth,
+      check_prototype_pollution: check_prototype_pollution
+    })
+    emit("security_enforcer_ready", {
+      block_on_severity: block_on_severity,
+      disallowed_trait_count: len(disallowed_traits)
+    })
+  }
+
+  @on_validate(composition) => {
+    violations = []
+
+    // Object count gate
+    if max_object_count > 0 and composition.object_count > max_object_count {
+      violations.push({ category: "object_count", severity: "error",
+        message: "object count " + composition.object_count + " exceeds limit " + max_object_count })
+    }
+
+    // Disallowed traits gate (W.GOLD.039)
+    for each trait in composition.traits {
+      if trait in disallowed_traits {
+        violations.push({ category: "disallowed_trait", severity: "error",
+          message: "trait '" + trait + "' is blocked by deployment policy" })
+      }
+    }
+
+    // Code injection gates (W.GOLD.035)
+    if composition.has_eval { violations.push({ category: "code_injection", severity: "error", message: "eval() detected" }) }
+    if composition.has_function_constructor { violations.push({ category: "code_injection", severity: "error", message: "Function() constructor detected" }) }
+    if check_prototype_pollution and composition.has_proto_mutation {
+      violations.push({ category: "prototype_pollution", severity: "error", message: "__proto__ mutation detected" })
+    }
+
+    blocking = filter(violations, v => v.severity == "error" or
+      (block_on_severity == "warning" and v.severity == "warning"))
+    passed = len(blocking) == 0
+
+    if emit_audit_events {
+      emit("security_scan_complete", {
+        passed: passed,
+        violation_count: len(violations),
+        blocking_count: len(blocking)
+      })
+    }
+    return { passed: passed, violations: violations }
+  }
+
+  @receipt security_enforcer_config {
+    type: "SecurityEnforcerReceipt"
+    block_on_severity: block_on_severity
+    disallowed_trait_count: len(disallowed_traits)
+    max_object_count: max_object_count
+    max_trait_depth: max_trait_depth
+    check_prototype_pollution: check_prototype_pollution
+    gold_refs: ["W.GOLD.035", "W.GOLD.039", "W.GOLD.193"]
+    timestamp: now()
+  }
+}

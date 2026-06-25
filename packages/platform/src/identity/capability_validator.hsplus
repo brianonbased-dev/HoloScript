@@ -1,0 +1,107 @@
+// @capability_validator — DID-scoped capability token validation for cross-reality ops.
+//
+// Native .hsplus surface for CapabilityValidator.ts (identity module).
+// Validates that a CapabilityToken authorizes a requested (resource, action) pair.
+//
+// Validation gates (CapabilityValidator.ts):
+//   1. Token expiry       — expiresAt must be > now
+//   2. Nonce replay       — nonce must not have been seen before (single-use)
+//   3. Explicit revocation — token must not be in the revocation registry
+//   4. Scope matching     — (resource, action) must match at least one scope;
+//                           optional constraints (maxPayloadBytes, allowedFormFactors,
+//                           expiresAt per-scope) must also pass
+//
+// CapabilityScope fields:
+//   resource                — e.g. "mvc.decisionHistory", "spatial.object.123"
+//   actions                 — ("read" | "write" | "delete")[]
+//   constraints (optional)  — { maxPayloadBytes, allowedFormFactors, expiresAt }
+//
+// CapabilityToken fields:
+//   issuer, subject (DIDs), scopes[], issuedAt, expiresAt, nonce
+//
+// The MVC cross-reality handoff (framework/agents/cross_reality_handoff.hsplus)
+// relies on this trait to validate that a receiving surface has the right token
+// before transferring decision history, spatial context, and trust graph.
+
+@trait capability_validator {
+  // Time skew tolerance in milliseconds (tokens expiring within this window are still accepted)
+  clock_skew_tolerance_ms: Int = 5000
+
+  // Maximum nonce cache size (LRU eviction after this limit)
+  max_nonce_cache: Int = 10000
+
+  // Emit an audit event for every validation attempt (pass or fail)
+  emit_audit_events: Bool = true
+
+  // Treat revoked tokens as expired (vs. issuing a distinct revoked error)
+  merge_revoked_into_expired: Bool = false
+
+  capability_tags: ["capability_validator", "did_scoped", "capability_token", "nonce_replay", "cross_reality_auth"]
+
+  @on_spawn => {
+    validator = init_capability_validator({
+      clock_skew_tolerance_ms: clock_skew_tolerance_ms,
+      max_nonce_cache: max_nonce_cache
+    })
+    emit("capability_validator_ready", {
+      clock_skew_tolerance_ms: clock_skew_tolerance_ms
+    })
+  }
+
+  @on_validate(token, resource, action, context) => {
+    now = now_ms()
+
+    // Gate 1: expiry
+    if token.expires_at + clock_skew_tolerance_ms < now {
+      result = { valid: false, reason: "token_expired" }
+      if emit_audit_events { emit("capability_validation", { resource: resource, action: action, valid: false, reason: "token_expired" }) }
+      return result
+    }
+
+    // Gate 2: nonce replay
+    if validator.nonce_seen(token.nonce) {
+      result = { valid: false, reason: "nonce_replay" }
+      if emit_audit_events { emit("capability_validation", { resource: resource, action: action, valid: false, reason: "nonce_replay" }) }
+      return result
+    }
+
+    // Gate 3: explicit revocation
+    if validator.is_revoked(token.nonce) {
+      reason = merge_revoked_into_expired ? "token_expired" : "token_revoked"
+      result = { valid: false, reason: reason }
+      if emit_audit_events { emit("capability_validation", { resource: resource, action: action, valid: false, reason: reason }) }
+      return result
+    }
+
+    // Gate 4: scope matching
+    matched = filter(token.scopes, s =>
+      s.resource == resource and action in s.actions and
+      scope_constraints_pass(s.constraints, context))
+
+    if len(matched) == 0 {
+      result = { valid: false, reason: "scope_mismatch" }
+      if emit_audit_events { emit("capability_validation", { resource: resource, action: action, valid: false, reason: "scope_mismatch" }) }
+      return result
+    }
+
+    // All gates passed — record nonce as consumed
+    validator.record_nonce(token.nonce)
+    result = { valid: true, matched_scopes: matched }
+    if emit_audit_events { emit("capability_validation", { resource: resource, action: action, valid: true, matched_scope_count: len(matched) }) }
+    return result
+  }
+
+  @on_revoke(nonce) => {
+    validator.revoke(nonce)
+    emit("capability_revoked", { nonce: nonce })
+  }
+
+  @receipt capability_validator_config {
+    type: "CapabilityValidatorReceipt"
+    clock_skew_tolerance_ms: clock_skew_tolerance_ms
+    max_nonce_cache: max_nonce_cache
+    emit_audit_events: emit_audit_events
+    validation_gates: ["expiry", "nonce_replay", "revocation", "scope_matching"]
+    timestamp: now()
+  }
+}
