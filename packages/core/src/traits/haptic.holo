@@ -1,0 +1,20 @@
+@trait {
+  name: "@haptic",
+  category: "xr",
+  description: "Haptic feedback driver. intensity is the vibration intensity 0–1 (default: 0.5). proximity_enabled activates proximity-triggered haptics (default: false). proximity_distance is the trigger radius in meters (default: 0.5m). collision_pattern selects the collision pattern preset: soft (default). hands: dominant (default), non_dominant, both. duration is the haptic pulse duration in ms (default: 100ms). Port of HapticTrait.ts (handler name: haptic).",
+  props: {
+    intensity: number = 0.5,
+    proximity_enabled: boolean = false,
+    proximity_distance: number = 0.5,
+    collision_pattern: enum("soft" | "hard" | "metal" | "glass" | "heartbeat" | "rumble") = "soft",
+    hands: enum("dominant" | "non_dominant" | "both") = "dominant",
+    duration: number = 100
+  },
+  events: {
+    on_pulse: "haptic:pulse",
+    on_pattern_complete: "haptic:pattern_complete",
+    play: "haptic.play",
+    stop: "haptic.stop"
+  },
+  behaviors: ["@hand_tracking", "@openxr_hal", "@pressable"]
+}

@@ -1,0 +1,12 @@
+@trait {
+  name: "@a_i_driver",
+  category: "ai",
+  description: "AI finite-state driver. Manages AI agent states (Idle, Patrol, Chase, Attack, Flee) with transitions and metadata tracking. Config is AI-task-dependent. Port of AIDriverTrait.ts (handler name: a_i_driver).",
+  props: {},
+  events: {
+    on_state_entered: "a_i_driver:state_entered",
+    on_state_exited: "a_i_driver:state_exited",
+    transition: "a_i_driver.transition"
+  },
+  behaviors: ["@state_machine", "@npc_ai", "@neural_link"]
+}
