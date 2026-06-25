@@ -1,0 +1,20 @@
+@trait {
+  name: "@emotion_engine",
+  category: "cognitive",
+  description: "Agent affective state engine. Maintains a valence-arousal emotion state derived from a weighted sum of incoming positive/negative stimuli (reward, threat, social cues), decays toward a neutral baseline over time, and maps the current state to expression and behavioral modifiers consumed by @expression and @npc_brain. Authored from EmotionEngineTrait.ts.",
+  props: {
+    valence: number = 0.0,
+    arousal: number = 0.5,
+    decay_rate: number = 0.05,
+    stimulus_scale: number = 1.0,
+    dominant_emotion: enum("neutral" | "joy" | "fear" | "anger" | "sadness" | "surprise") = "neutral",
+    broadcast: boolean = false
+  },
+  events: {
+    attached: "emotion_engine_attached",
+    detached: "emotion_engine_detached",
+    on_emotion_change: "emotion_engine_change",
+    stimulus: "emotion_engine_trigger_stimulus"
+  },
+  behaviors: ["@expression", "@npc_brain", "@autonomous_agenda"]
+}

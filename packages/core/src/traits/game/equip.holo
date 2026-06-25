@@ -1,0 +1,20 @@
+@trait {
+  name: "@equip",
+  category: "game",
+  description: "Equipment slot and loadout manager. Maintains a set of named equipment slots (weapon, offhand, helm, chest, etc.) and the item entity currently filling each, applies slot-specific stat modifiers to the owner entity, and fires equip/unequip events for visual attachment and sound. Authored from EquipTrait.ts.",
+  props: {
+    slots: list<{ id: string, label: string, allowed_tags: list<string> }> = [],
+    equipped: dict<string, string> = {},
+    restrict_duplicates: boolean = true,
+    auto_equip_on_pickup: boolean = false
+  },
+  events: {
+    attached: "equip_attached",
+    detached: "equip_detached",
+    on_equip: "equip_equip",
+    on_unequip: "equip_unequip",
+    equip: "equip_trigger_equip",
+    unequip: "equip_trigger_unequip"
+  },
+  behaviors: ["@inventory", "@collectable", "@player_state"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@emote",
+  category: "social",
+  description: "Player avatar emote animation player. Manages a named emote catalog, plays the selected animation clip on the avatar rig (full-body or upper-body layer), broadcasts the emote ID to all zone peers for synchronized social reactions, and returns to idle after the clip completes. Authored from EmoteTrait.ts.",
+  props: {
+    catalog_url: string = "",
+    current_emote_id: string = "",
+    loop: boolean = false,
+    broadcast: boolean = true,
+    layer: enum("full_body" | "upper_body") = "full_body",
+    blend_in_ms: number = 150
+  },
+  events: {
+    attached: "emote_attached",
+    detached: "emote_detached",
+    on_play: "emote_play",
+    on_stop: "emote_stop",
+    play: "emote_trigger_play",
+    stop: "emote_trigger_stop"
+  },
+  behaviors: ["@avatar", "@expression", "@animation_blender"]
+}

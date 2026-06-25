@@ -1,0 +1,23 @@
+@trait {
+  name: "@event_replay",
+  category: "devops",
+  description: "Deterministic event log recorder and replayer. Records a timestamped sequence of entity events to a compact binary log, and on replay feeds events back into the entity's event system at the original cadence (or at a scaled sim_speed), enabling regression testing, demo recording, and LLM trace generation. Authored from EventReplayTrait.ts.",
+  props: {
+    mode: enum("record" | "replay" | "idle") = "idle",
+    log_url: string = "",
+    events_filter: list<string> = [],
+    playback_speed: number = 1.0,
+    loop: boolean = false,
+    compress: boolean = true
+  },
+  events: {
+    attached: "event_replay_attached",
+    detached: "event_replay_detached",
+    on_start: "event_replay_start",
+    on_stop: "event_replay_stop",
+    on_complete: "event_replay_complete",
+    start: "event_replay_trigger_start",
+    stop: "event_replay_trigger_stop"
+  },
+  behaviors: ["@tracker", "@audit_log", "@sim_speed"]
+}
