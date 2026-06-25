@@ -1,0 +1,30 @@
+// @absorb_scanner — Framework scans its own codebase for improvements via knowledge store + TODO markers.
+//
+// Native .hsplus surface for framework/self-improve/absorb-scanner.ts.
+//
+// scanFramework(config) → ScanResult { files, insights }
+// scanImprovementMarkers(dir) → ImprovementTask[] — scans for TODO/FIXME
+// Does NOT require absorb service — orchestrator knowledge store is SSOT
+// Config: orchestratorUrl, mcpApiKey, workspaceId (default: ai-ecosystem)
+
+@trait absorb_scanner {
+  capability_tags: ["absorb_scanner", "self_scan", "todo_fixme", "knowledge_store_query", "self_improve", "framework"]
+
+  @on_spawn => {
+    emit("absorb_scanner_ready", {})
+  }
+
+  @on_scan(config) => {
+    result = scan_framework(config)
+    markers = scan_improvement_markers(config.dir)
+    emit("scan_complete", { insights: result.insights.length, markers: markers.length })
+    return { result, markers }
+  }
+
+  @receipt absorb_scanner_config {
+    type: "AbsorbScannerReceipt"
+    sources: ["MCP Orchestrator knowledge store", "local TODO/FIXME markers"]
+    note: "orchestrator knowledge store is SSOT; absorb service NOT required"
+    timestamp: now()
+  }
+}

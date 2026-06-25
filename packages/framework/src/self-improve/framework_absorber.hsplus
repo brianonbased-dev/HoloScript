@@ -1,0 +1,30 @@
+// @framework_absorber — Class-based wrapper for absorb-service integration + knowledge store fallback.
+//
+// Native .hsplus surface for framework/self-improve/framework-absorber.ts (EXPERIMENTAL).
+//
+// scan(config) → ExtractedKnowledge — wraps absorb.holoscript.net; falls back to orchestrator KS
+// Experimental scaffold: requires absorb service connection + LLM provider for production
+// Fallback path: scanFramework(config) from absorb-scanner when absorb service unreachable
+
+@trait framework_absorber {
+  capability_tags: ["framework_absorber", "absorb_service", "extracted_knowledge", "self_improve", "experimental", "framework"]
+
+  @on_spawn => {
+    absorber = init_framework_absorber()
+    emit("framework_absorber_ready", {})
+  }
+
+  @on_scan(config) => {
+    knowledge = absorber.scan(config)
+    emit("knowledge_extracted", {})
+    return knowledge
+  }
+
+  @receipt framework_absorber_config {
+    type: "FrameworkAbsorberReceipt"
+    status: "experimental scaffold"
+    primary: "absorb.holoscript.net"
+    fallback: "MCP Orchestrator knowledge store"
+    timestamp: now()
+  }
+}

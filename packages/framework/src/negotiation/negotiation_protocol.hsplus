@@ -1,0 +1,36 @@
+// @negotiation_protocol — Multi-agent negotiation session lifecycle management.
+//
+// Native .hsplus surface for framework/negotiation/NegotiationProtocol.ts.
+//
+// initiate({ topic, participants, votingMechanism, timeout }) → NegotiationSession
+// propose(sessionId, agentId, proposal) → ProposalResult
+// resolve(sessionId) → ConsensusResult { accepted, proposal, votes }
+// VotingMechanisms: majority | supermajority | weighted | consensus | ranked_choice | approval | borda
+// Part of HoloScript v3.1 Agentic Choreography
+
+@trait negotiation_protocol {
+  capability_tags: ["negotiation_protocol", "consensus", "multi_agent_voting", "agentic_choreography", "framework"]
+
+  @on_spawn => {
+    protocol = init_negotiation_protocol()
+    emit("negotiation_protocol_ready", {})
+  }
+
+  @on_initiate(topic, participants, voting_mechanism, timeout) => {
+    session = protocol.initiate(topic, participants, voting_mechanism, timeout)
+    emit("negotiation_started", { id: session.id, topic })
+    return session
+  }
+
+  @on_resolve(session_id) => {
+    result = protocol.resolve(session_id)
+    emit("negotiation_resolved", { id: session_id, accepted: result.accepted })
+    return result
+  }
+
+  @receipt negotiation_protocol_config {
+    type: "NegotiationProtocolReceipt"
+    mechanisms: ["majority", "supermajority", "weighted", "consensus", "ranked_choice", "approval", "borda"]
+    timestamp: now()
+  }
+}

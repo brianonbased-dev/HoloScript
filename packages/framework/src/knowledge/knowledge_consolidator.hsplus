@@ -1,0 +1,30 @@
+// @knowledge_consolidator — Tiered sleep/wake consolidation orchestrator (FW-0.5).
+//
+// Native .hsplus surface for framework/knowledge/knowledge-consolidator.ts.
+//
+// Tiers: hot | warm | cold
+// Adds: cross-domain pattern surfacing + contradiction detection + provenance chain tracking
+// Builds on KnowledgeStore (persistence) + ConsolidationEngine (pure state machine)
+// tick(now) → runs sleep/wake pipeline across tiers
+
+@trait knowledge_consolidator {
+  capability_tags: ["knowledge_consolidator", "tiered_consolidation", "provenance_chain", "contradiction_detection", "cross_domain_patterns", "framework"]
+
+  @on_spawn => {
+    consolidator = init_knowledge_consolidator()
+    emit("knowledge_consolidator_ready", {})
+  }
+
+  @on_tick(now) => {
+    result = consolidator.tick(now)
+    emit("consolidation_tick", { contradictions: result.contradictions, patterns: result.patterns })
+    return result
+  }
+
+  @receipt knowledge_consolidator_config {
+    type: "KnowledgeConsolidatorReceipt"
+    tiers: ["hot", "warm", "cold"]
+    features: ["cross-domain patterns", "contradiction detection", "provenance chain"]
+    timestamp: now()
+  }
+}

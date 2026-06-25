@@ -1,0 +1,28 @@
+// @semantic_clusterer — Compresses temporal episodic buffers into distilled density nodes.
+//
+// Native .hsplus surface for framework/learning/SemanticClusterer.ts.
+//
+// distill(events) → EpisodicEvent[] — squashes sequentially repeating abstract patterns
+// Reduces database storage loads across vector boundaries
+// Aggregated density nodes replace repeating trivial structures (Idle loops, ping-pong actions)
+
+@trait semantic_clusterer {
+  capability_tags: ["semantic_clusterer", "episodic_distillation", "density_nodes", "vector_compression", "learning", "framework"]
+
+  @on_spawn => {
+    emit("semantic_clusterer_ready", {})
+  }
+
+  @on_distill(events) => {
+    distilled = distill_episodic_events(events)
+    emit("events_distilled", { before: events.length, after: distilled.length })
+    return distilled
+  }
+
+  @receipt semantic_clusterer_config {
+    type: "SemanticClustererReceipt"
+    algorithm: "sequential run-length squash → aggregate density nodes"
+    goal: "reduce storage while preserving semantically distinct episodes"
+    timestamp: now()
+  }
+}

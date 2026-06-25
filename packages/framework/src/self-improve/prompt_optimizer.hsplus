@@ -1,0 +1,29 @@
+// @prompt_optimizer — A/B test prompt variants for self-evolution (EXPERIMENTAL, FW-1.0).
+//
+// Native .hsplus surface for framework/self-improve/prompt-optimizer.ts.
+//
+// runABTest(variants, config) → ABTestResult { winner, scores[] }
+// Criteria: quality + relevance (default) + custom EvaluationCriteria
+// Runs N trials per variant; LLM-judged scoring
+
+@trait prompt_optimizer {
+  capability_tags: ["prompt_optimizer", "ab_test", "prompt_evolution", "llm_judge", "self_improve", "experimental", "framework"]
+
+  @on_spawn => {
+    emit("prompt_optimizer_ready", {})
+  }
+
+  @on_run_ab_test(variants, config) => {
+    result = run_ab_test(variants, config)
+    emit("ab_test_complete", { winner: result.winner })
+    return result
+  }
+
+  @receipt prompt_optimizer_config {
+    type: "PromptOptimizerReceipt"
+    status: "experimental scaffold; requires LLM provider"
+    criteria: ["quality", "relevance"]
+    note: "FW-1.0 self-evolution: framework optimizes its own prompts"
+    timestamp: now()
+  }
+}

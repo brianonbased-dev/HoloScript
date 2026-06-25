@@ -1,0 +1,35 @@
+// @skill_md_bridge — Bidirectional .hsplus ↔ SKILL.md conversion for OpenClaw/HoloClaw interop.
+//
+// Native .hsplus surface for framework/skills/skill-md-bridge.ts.
+//
+// Forward: .hsplus → SKILL.md (YAML frontmatter + Markdown steps + @economy/@rate_limiter/@timeout_guard)
+// Reverse: SKILL.md → .hsplus (YAML front-matter parsed to composition metadata + BT sequence nodes)
+// Enables cross-platform skill sharing between HoloClaw native .hsplus and ClawHub/OpenClaw format
+
+@trait skill_md_bridge {
+  capability_tags: ["skill_md_bridge", "holoclaw_interop", "openclaw", "skill_format_conversion", "yaml_frontmatter", "framework"]
+
+  @on_spawn => {
+    bridge = init_skill_md_bridge()
+    emit("skill_md_bridge_ready", {})
+  }
+
+  @on_to_skill_md(hsplus_source) => {
+    md = bridge.to_skill_md(hsplus_source)
+    emit("skill_md_exported", {})
+    return md
+  }
+
+  @on_from_skill_md(skill_md) => {
+    hsplus = bridge.from_skill_md(skill_md)
+    emit("skill_md_imported", {})
+    return hsplus
+  }
+
+  @receipt skill_md_bridge_config {
+    type: "SkillMdBridgeReceipt"
+    directions: ["hsplus → SKILL.md (with @economy/@rate_limiter/@timeout_guard)", "SKILL.md → hsplus (BT sequence nodes)"]
+    compat: "ClawHub / OpenClaw compatible"
+    timestamp: now()
+  }
+}

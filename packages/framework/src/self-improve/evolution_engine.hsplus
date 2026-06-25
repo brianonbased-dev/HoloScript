@@ -1,0 +1,29 @@
+// @evolution_engine — Framework improves itself: scan → propose → vote → execute → compound.
+//
+// Native .hsplus surface for framework/self-improve/evolution-engine.ts.
+//
+// Pipeline: SCAN → PROPOSE → VOTE → EXECUTE → COMPOUND (knowledge feedsback to store)
+// v1.0 singularity point: agents propose, vote on, and ship improvements to themselves
+// Uses: AbsorbScanner (scan), Team.vote (vote), board.addTask (execute), KnowledgeStore.sync (compound)
+
+@trait evolution_engine {
+  capability_tags: ["evolution_engine", "self_improvement", "propose_vote_execute", "singularity_pipeline", "self_improve", "framework"]
+
+  @on_spawn => {
+    engine = init_evolution_engine(config)
+    emit("evolution_engine_ready", {})
+  }
+
+  @on_run_cycle => {
+    result = engine.run_cycle()
+    emit("evolution_cycle_complete", { tasks_created: result.tasks_created, compounded: result.compounded })
+    return result
+  }
+
+  @receipt evolution_engine_config {
+    type: "EvolutionEngineReceipt"
+    pipeline: ["SCAN", "PROPOSE", "VOTE", "EXECUTE", "COMPOUND"]
+    note: "v1.0 singularity — agents improve themselves"
+    timestamp: now()
+  }
+}

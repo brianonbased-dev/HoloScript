@@ -1,0 +1,29 @@
+// @test_generator — Auto-generates vitest tests for framework source files via LLM (EXPERIMENTAL, FW-1.0).
+//
+// Native .hsplus surface for framework/self-improve/test-generator.ts.
+//
+// generate(sourceFile, config) → string — LLM-authored vitest test file
+// Config: model, maxTokens, coverageTargets?
+// Experimental scaffold: framework writes its own tests (requires LLM provider)
+
+@trait test_generator {
+  capability_tags: ["test_generator", "auto_test", "vitest", "llm_codegen", "self_improve", "experimental", "framework"]
+
+  @on_spawn => {
+    emit("test_generator_ready", {})
+  }
+
+  @on_generate(source_file, config) => {
+    test_code = generate_tests(source_file, config)
+    emit("tests_generated", { file: source_file })
+    return test_code
+  }
+
+  @receipt test_generator_config {
+    type: "TestGeneratorReceipt"
+    status: "experimental scaffold; requires LLM provider"
+    output: "vitest test file as string"
+    note: "FW-1.0: framework writes its own tests"
+    timestamp: now()
+  }
+}

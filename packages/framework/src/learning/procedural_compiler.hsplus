@@ -1,0 +1,29 @@
+// @procedural_compiler — Safety-wraps raw LLM-authored pseudo-code into agent behavior scaffolds.
+//
+// Native .hsplus surface for framework/learning/ProceduralCompiler.ts.
+//
+// ProceduralSkill { id, name, description?, code? }
+// compile(skill) → string — wraps skill.code lines in ensure_safety() + agent behavior block
+// MVP: preserves code lines, no grammar/noise-field/L-system expansion
+// Safety wrapper: potentially risky primitives get ensure_safety() guards
+
+@trait procedural_compiler {
+  capability_tags: ["procedural_compiler", "safety_wrapper", "llm_code_scaffold", "agent_behavior", "learning", "framework"]
+
+  @on_spawn => {
+    emit("procedural_compiler_ready", {})
+  }
+
+  @on_compile(skill) => {
+    scaffold = compile_procedural_skill(skill)
+    emit("skill_compiled", { id: skill.id })
+    return scaffold
+  }
+
+  @receipt procedural_compiler_config {
+    type: "ProceduralCompilerReceipt"
+    output: "agent behavior block with ensure_safety() guards around risky primitives"
+    note: "MVP — no grammar/L-system/PCG expansion"
+    timestamp: now()
+  }
+}

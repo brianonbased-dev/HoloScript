@@ -1,0 +1,30 @@
+// @aco_engine — Ant Colony Optimization for path-finding and task sequencing.
+//
+// Native .hsplus surface for framework/swarm/ACOEngine.ts.
+//
+// Config: antCount, maxIterations, convergenceThreshold, alpha (pheromone), beta (heuristic),
+//         evaporationRate, q (deposit factor), elitistWeight
+// solve(graph) → ACOResult { bestPath, bestCost, iterations }
+// Uses pheromone trails to find optimal choreography step ordering
+
+@trait aco_engine {
+  capability_tags: ["aco_engine", "ant_colony_optimization", "pheromone_trail", "path_finding", "swarm", "framework"]
+
+  @on_spawn => {
+    aco = init_aco_engine(config)
+    emit("aco_engine_ready", {})
+  }
+
+  @on_solve(graph) => {
+    result = aco.solve(graph)
+    emit("aco_solved", { best_cost: result.best_cost, iterations: result.iterations })
+    return result
+  }
+
+  @receipt aco_engine_config {
+    type: "ACOEngineReceipt"
+    params: ["antCount", "alpha (pheromone importance)", "beta (heuristic importance)", "evaporationRate", "elitistWeight"]
+    use: "optimal ordering of choreography steps"
+    timestamp: now()
+  }
+}

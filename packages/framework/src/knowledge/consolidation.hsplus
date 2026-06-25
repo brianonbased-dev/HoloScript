@@ -1,0 +1,29 @@
+// @consolidation — 6-phase neuroscience-inspired memory consolidation engine (pure state machine).
+//
+// Native .hsplus surface for framework/knowledge/consolidation.ts.
+//
+// Phases: REPLAY (TTL+corroboration filter) → SANITIZE (injection rejection) → CLUSTER (dedup)
+//         → MERGE (combine corroborations) → DOWNSCALE (synaptic homeostasis) → PROMOTE → PRUNE
+// No CRDT / HTTP / persistence deps — pure function over hot buffer + cold store
+// Absorbed from mcp-server/src/holomesh/crdt-sync.ts (V9 consolidation cycle)
+
+@trait consolidation {
+  capability_tags: ["consolidation", "memory_consolidation", "hot_cold_promotion", "sanitize_injection", "synaptic_homeostasis", "framework"]
+
+  @on_spawn => {
+    emit("consolidation_ready", {})
+  }
+
+  @on_run(hot_buffer, cold_store, config) => {
+    result = run_consolidation_cycle(hot_buffer, cold_store, config)
+    emit("consolidation_cycle_complete", { promoted: result.promoted, pruned: result.pruned })
+    return result
+  }
+
+  @receipt consolidation_config {
+    type: "ConsolidationReceipt"
+    phases: ["REPLAY", "SANITIZE", "CLUSTER", "MERGE", "DOWNSCALE", "PROMOTE", "PRUNE"]
+    note: "pure state machine; no side effects — caller owns persistence"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,29 @@
+// @implementations — Canonical home for protocol phases, BaseAgent, BaseService; absorbed from @holoscript/agent-protocol.
+//
+// Native .hsplus surface for framework/protocol/implementations.ts.
+//
+// ProtocolPhase: INTAKE(0) | REFLECT(1) | EXECUTE(2) | COMPRESS(3) | REINTAKE/DREAMING(4) | GROW(5) | EVOLVE(6) | AUTONOMIZE(7)
+// PHASE_DISPLAY_NAMES: canonicalizes REINTAKE as DREAMING (ABI-stable key)
+// BaseAgent: abstract phase-runner; step(phase) dispatches to handler
+// BaseService: lifecycle (start/stop/health) for team-managed services
+
+@trait implementations {
+  capability_tags: ["protocol_phases", "base_agent", "base_service", "infinity_loop", "phase_runner", "framework"]
+
+  @on_spawn => {
+    emit("implementations_ready", {})
+  }
+
+  @on_step(agent, phase) => {
+    result = agent.step(phase)
+    emit("agent_phase_step", { phase })
+    return result
+  }
+
+  @receipt implementations_config {
+    type: "ImplementationsReceipt"
+    phases: ["INTAKE", "REFLECT", "EXECUTE", "COMPRESS", "DREAMING", "GROW", "EVOLVE", "AUTONOMIZE"]
+    note: "REINTAKE key retained for ABI; display name is DREAMING"
+    timestamp: now()
+  }
+}

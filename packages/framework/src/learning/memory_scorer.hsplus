@@ -1,0 +1,29 @@
+// @memory_scorer — Importance scalar for episodic events: prune noise, archive high-value.
+//
+// Native .hsplus surface for framework/learning/MemoryScorer.ts.
+//
+// EpisodicEvent { agentId, timestamp, action, context, outcome }
+// score(event) → -100 (Absolute Noise) ... 100 (Critical Experience)
+// Aggressive pruning of trivial loops (Idle) vs permanent archive of critical events (Combat)
+// Threshold: score < -50 → prune; score > 75 → archive immediately
+
+@trait memory_scorer {
+  capability_tags: ["memory_scorer", "importance_scalar", "episodic_pruning", "learning", "framework"]
+
+  @on_spawn => {
+    emit("memory_scorer_ready", {})
+  }
+
+  @on_score(event) => {
+    importance = score_episodic_event(event)
+    if importance > 75 { emit("high_value_event", { action: event.action, score: importance }) }
+    return importance
+  }
+
+  @receipt memory_scorer_config {
+    type: "MemoryScorerReceipt"
+    range: "-100 (Absolute Noise) to 100 (Critical Experience)"
+    pruning: "score < -50 → drop; score > 75 → immediate archive"
+    timestamp: now()
+  }
+}

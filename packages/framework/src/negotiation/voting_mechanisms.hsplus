@@ -1,0 +1,28 @@
+// @voting_mechanisms — Voting algorithm implementations for agent negotiation.
+//
+// Native .hsplus surface for framework/negotiation/VotingMechanisms.ts.
+//
+// Supported: Majority, Supermajority (2/3), Weighted (by trust), Consensus (all agree),
+//            RankedChoice (instant runoff), Approval (multi-yes), BordaCount (point ranking)
+// vote(mechanism, ballots, participants) → VoteResult { winner, votes, quorum }
+// Part of HoloScript v3.1 Agentic Choreography (Sprint v3.1 March 2026)
+
+@trait voting_mechanisms {
+  capability_tags: ["voting_mechanisms", "majority", "supermajority", "ranked_choice", "borda_count", "approval", "framework"]
+
+  @on_spawn => {
+    emit("voting_mechanisms_ready", {})
+  }
+
+  @on_tally(mechanism, ballots, participants) => {
+    result = tally_votes(mechanism, ballots, participants)
+    emit("votes_tallied", { mechanism, winner: result.winner })
+    return result
+  }
+
+  @receipt voting_mechanisms_config {
+    type: "VotingMechanismsReceipt"
+    algorithms: ["majority", "supermajority", "weighted", "consensus", "ranked_choice", "approval", "borda"]
+    timestamp: now()
+  }
+}

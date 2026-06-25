@@ -1,0 +1,30 @@
+// @pso_engine — Particle Swarm Optimization for agent-task assignment optimization.
+//
+// Native .hsplus surface for framework/swarm/PSOEngine.ts.
+//
+// Config: populationSize, maxIterations, convergenceThreshold, inertiaWeight,
+//         cognitiveWeight (personal best), socialWeight (global best), velocityClamp
+// Particle { position, velocity, personalBest, personalBestScore }
+// solve(taskCount, agentCount) → PSOResult { bestAssignment, bestScore, iterations }
+
+@trait pso_engine {
+  capability_tags: ["pso_engine", "particle_swarm", "agent_task_assignment", "optimization", "swarm", "framework"]
+
+  @on_spawn => {
+    pso = init_pso_engine(config)
+    emit("pso_engine_ready", {})
+  }
+
+  @on_solve(task_count, agent_count) => {
+    result = pso.solve(task_count, agent_count)
+    emit("pso_solved", { best_score: result.best_score, iterations: result.iterations })
+    return result
+  }
+
+  @receipt pso_engine_config {
+    type: "PSOEngineReceipt"
+    params: ["inertiaWeight", "cognitiveWeight (personal best)", "socialWeight (global best)", "velocityClamp"]
+    use: "agent-task assignment optimization"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @memory_consolidator — Consolidates episodic memories into semantic facts via LLM or heuristic fallback.
+//
+// Native .hsplus surface for framework/learning/MemoryConsolidator.ts.
+//
+// EpisodicMemory { id, timestamp, action, outcome, entitiesInvolved, semanticVector? }
+// SemanticFact { id, fact, confidence, sourceEpisodes, lastAccessed, accessCount }
+// consolidate(episodics) → SemanticFact[] — extracts durable patterns from event stream
+// Uses @holoscript/llm-provider; heuristic fallback when LLM unavailable
+
+@trait memory_consolidator {
+  capability_tags: ["memory_consolidator", "episodic_to_semantic", "llm_fallback", "semantic_fact", "learning", "framework"]
+
+  @on_spawn => {
+    consolidator = init_memory_consolidator(config)
+    emit("memory_consolidator_ready", {})
+  }
+
+  @on_consolidate(episodics) => {
+    facts = consolidator.consolidate(episodics)
+    emit("memories_consolidated", { fact_count: facts.length })
+    return facts
+  }
+
+  @receipt memory_consolidator_config {
+    type: "MemoryConsolidatorReceipt"
+    output: "SemanticFact[] — durable patterns from episodic event stream"
+    fallback: "heuristic consolidation when LLM unavailable"
+    timestamp: now()
+  }
+}

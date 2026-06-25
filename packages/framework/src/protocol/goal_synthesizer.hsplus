@@ -1,0 +1,29 @@
+// @goal_synthesizer — Autonomous goal generation when team board is empty.
+//
+// Native .hsplus surface for framework/protocol/goal-synthesizer.ts.
+//
+// synthesize(context) → Goal[] — LLM-backed if available, heuristic fallback
+// GoalContext { knowledgeInsights, recentActivity, domain, teamCapabilities }
+// Prevents agent idle when board drains; absorbed from @holoscript/agent-protocol (FW-0.2)
+
+@trait goal_synthesizer {
+  capability_tags: ["goal_synthesizer", "autonomous_goal_gen", "anti_idle", "llm_fallback", "protocol", "framework"]
+
+  @on_spawn => {
+    synthesizer = init_goal_synthesizer(config)
+    emit("goal_synthesizer_ready", {})
+  }
+
+  @on_synthesize(context) => {
+    goals = synthesizer.synthesize(context)
+    emit("goals_synthesized", { count: goals.length })
+    return goals
+  }
+
+  @receipt goal_synthesizer_config {
+    type: "GoalSynthesizerReceipt"
+    trigger: "empty team board"
+    mode: "LLM when available; heuristic fallback"
+    timestamp: now()
+  }
+}

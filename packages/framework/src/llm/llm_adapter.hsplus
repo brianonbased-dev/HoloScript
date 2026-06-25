@@ -1,0 +1,28 @@
+// @llm_adapter — Provider-agnostic LLM dispatch: Anthropic, OpenAI, xAI, OpenRouter.
+//
+// Native .hsplus surface for framework/llm/llm-adapter.ts.
+//
+// callLLM(messages, modelConfig) → LLMResponse — routes via @holoscript/llm-provider adapters
+// ModelConfig { provider: anthropic|openai|openrouter|xai, model, maxTokens, temperature }
+// All adapters inherit withRetry (exponential backoff + Retry-After honoring on 429/5xx)
+// Each agent can use a different provider/model; migrated B1b from inline fetch() calls
+
+@trait llm_adapter {
+  capability_tags: ["llm_adapter", "provider_agnostic", "anthropic", "openai", "xai", "openrouter", "retry_backoff", "framework"]
+
+  @on_spawn => {
+    emit("llm_adapter_ready", {})
+  }
+
+  @on_call(messages, model_config) => {
+    response = call_llm(messages, model_config)
+    return response
+  }
+
+  @receipt llm_adapter_config {
+    type: "LLMAdapterReceipt"
+    providers: ["anthropic", "openai", "openrouter", "xai"]
+    retry: "exponential backoff + Retry-After on 429/5xx (withRetry from BaseLLMAdapter)"
+    timestamp: now()
+  }
+}

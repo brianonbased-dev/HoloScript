@@ -1,0 +1,30 @@
+// @micro_phase_decomposer — LLM-powered parallel task decomposition into wave-based execution plan (FW-0.2).
+//
+// Native .hsplus surface for framework/protocol/micro-phase-decomposer.ts.
+//
+// decompose(task, modelConfig) → MicroPlan { waves: MicroPhase[][], totalEstimate }
+// decomposeManual(phases) → MicroPlan — deterministic; no LLM (testing / static use)
+// Wave = set of independent micro-phases that run in parallel; inter-wave deps define ordering
+// Wired into Team: complex tasks decomposed before sub-phase distribution to agents
+
+@trait micro_phase_decomposer {
+  capability_tags: ["micro_phase_decomposer", "wave_parallel", "task_decomposition", "llm_planning", "team_integration", "framework"]
+
+  @on_spawn => {
+    decomposer = init_micro_phase_decomposer()
+    emit("micro_phase_decomposer_ready", {})
+  }
+
+  @on_decompose(task, model_config) => {
+    plan = decomposer.decompose(task, model_config)
+    emit("task_decomposed", { waves: plan.waves.length })
+    return plan
+  }
+
+  @receipt micro_phase_decomposer_config {
+    type: "MicroPhaseDecomposerReceipt"
+    output: "wave-based MicroPlan; each wave runs in parallel"
+    modes: ["LLM-powered (decompose)", "manual (decomposeManual — deterministic)"]
+    timestamp: now()
+  }
+}
