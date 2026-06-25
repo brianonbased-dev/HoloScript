@@ -1,0 +1,28 @@
+@trait {
+  name: "@wallet",
+  category: "economics",
+  description: "Web3 wallet connection and identity. Manages wallet provider connection (MetaMask, WalletConnect, Coinbase, Phantom, Rainbow, injected), ENS name/avatar resolution, chain enforcement, and balance display. Port of WalletTrait.ts.",
+  props: {
+    supported_wallets: list<enum("metamask" | "walletconnect" | "coinbase" | "phantom" | "rainbow" | "injected")> = ["metamask", "walletconnect", "coinbase"],
+    auto_connect: boolean = false,
+    display_address: boolean = false,
+    display_ens: boolean = true,
+    sign_message_prompt: string = "Sign to verify your identity",
+    network: enum("mainnet" | "goerli" | "sepolia" | "polygon" | "arbitrum" | "optimism" | "base") = "mainnet",
+    chain_id: number = 1,
+    required_chain: boolean = false
+  },
+  events: {
+    attached: "wallet_attached",
+    detached: "wallet_detached",
+    on_auto_connect: "wallet_auto_connect",
+    on_connect: "wallet_connect",
+    on_disconnect: "wallet_disconnect",
+    on_chain_change: "wallet_chain_change",
+    on_wrong_chain: "wallet_wrong_chain",
+    connect: "wallet_trigger_connect",
+    disconnect: "wallet_trigger_disconnect",
+    sign: "wallet_trigger_sign"
+  },
+  behaviors: ["@identity", "@wallet_display", "@trading_post"]
+}

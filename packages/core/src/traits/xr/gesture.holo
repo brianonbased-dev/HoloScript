@@ -1,0 +1,22 @@
+@trait {
+  name: "@gesture",
+  category: "xr",
+  description: "Hand gesture recogniser. Detects swipe (left/right/up/down), pinch, and palm-open gestures from VR hand tracking data, debouncing events and emitting typed gesture events. Port of GestureTrait.ts (handler name: gesture_recognition).",
+  props: {
+    enabled_gestures: list<enum("swipe_left" | "swipe_right" | "swipe_up" | "swipe_down" | "pinch" | "palm_open")> = ["swipe_left", "swipe_right", "pinch"],
+    swipe_threshold_m: number = 0.1,
+    pinch_threshold: number = 0.9,
+    debounce_ms: number = 300
+  },
+  events: {
+    attached: "gesture_attached",
+    detached: "gesture_detached",
+    on_swipe_left: "gesture_swipe_left",
+    on_swipe_right: "gesture_swipe_right",
+    on_swipe_up: "gesture_swipe_up",
+    on_swipe_down: "gesture_swipe_down",
+    on_pinch: "gesture_pinch",
+    on_palm_open: "gesture_palm_open"
+  },
+  behaviors: ["@grabbable", "@force_feedback", "@haptic_cue"]
+}

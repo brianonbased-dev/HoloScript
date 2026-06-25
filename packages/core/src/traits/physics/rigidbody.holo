@@ -1,0 +1,31 @@
+@trait {
+  name: "@rigidbody",
+  category: "physics",
+  description: "Physics simulation body. Enables mass, drag, gravity, and collision detection for the entity. Supports dynamic (force-driven), kinematic (transform-driven), and static body types. Port of RigidbodyTrait.ts.",
+  props: {
+    body_type: enum("dynamic" | "kinematic" | "static") = "dynamic",
+    mass: number = 1.0,
+    drag: number = 0.0,
+    angular_drag: number = 0.05,
+    use_gravity: boolean = true,
+    collision_detection: enum("discrete" | "continuous" | "continuous-dynamic" | "continuous-speculative") = "discrete",
+    interpolation: enum("none" | "interpolate" | "extrapolate") = "none",
+    freeze_position_x: boolean = false,
+    freeze_position_y: boolean = false,
+    freeze_position_z: boolean = false,
+    freeze_rotation_x: boolean = false,
+    freeze_rotation_y: boolean = false,
+    freeze_rotation_z: boolean = false
+  },
+  events: {
+    attached: "rigidbody_attached",
+    detached: "rigidbody_detached",
+    on_collision_enter: "rigidbody_collision_enter",
+    on_collision_exit: "rigidbody_collision_exit",
+    on_trigger_enter: "rigidbody_trigger_enter",
+    on_trigger_exit: "rigidbody_trigger_exit",
+    add_force: "rigidbody_trigger_add_force",
+    add_impulse: "rigidbody_trigger_add_impulse"
+  },
+  behaviors: ["@anchor_constraint", "@air_resistance", "@ragdoll"]
+}

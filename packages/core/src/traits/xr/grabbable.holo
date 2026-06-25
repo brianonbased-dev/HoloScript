@@ -1,0 +1,23 @@
+@trait {
+  name: "@grabbable",
+  category: "xr",
+  description: "VR hand grab interaction. Makes the entity grabbable by a pinch gesture within reach distance, attaching it via a physics joint to the grabbing hand, supporting two-handed scale/rotate manipulation and velocity-based throw on release. Port of GrabbableTrait.ts.",
+  props: {
+    reach_m: number = 0.1,
+    pinch_grab_threshold: number = 0.9,
+    pinch_release_threshold: number = 0.5,
+    two_handed_scale: boolean = true,
+    two_handed_rotate: boolean = true,
+    throw_on_release: boolean = true,
+    max_throw_velocity: number = 20
+  },
+  events: {
+    attached: "grabbable_attached",
+    detached: "grabbable_detached",
+    on_grab: "physics_grab",
+    on_release: "physics_release",
+    on_configure: "grabbable_configure",
+    configured: "grabbable_configured"
+  },
+  behaviors: ["@rigidbody", "@haptic_cue", "@force_feedback"]
+}
