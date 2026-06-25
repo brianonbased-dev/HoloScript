@@ -1,0 +1,26 @@
+// @migration_assistant — Assists schema migrations: detects breaking changes, generates migration scripts.
+//
+// Native .hsplus surface for core/migration/MigrationAssistant.ts.
+//
+// analyze(fromSchema, toSchema) → MigrationPlan / execute(plan) → MigrationResult
+// Generates safe SQL/JSON migration scripts; validates rollback path
+
+@trait migration_assistant {
+  capability_tags: ["migration_assistant", "schema_migration", "breaking_change_detection", "rollback_path", "core"]
+
+  @on_spawn => {
+    emit("migration_assistant_ready", {})
+  }
+
+  @on_analyze(from_schema, to_schema) => {
+    plan = analyze_migration(from_schema, to_schema)
+    emit("migration_analyzed", { breaking_changes: plan.breakingChanges.length })
+    return plan
+  }
+
+  @receipt migration_assistant_config {
+    type: "MigrationAssistantReceipt"
+    features: ["breaking change detection", "migration script generation", "rollback validation"]
+    timestamp: now()
+  }
+}

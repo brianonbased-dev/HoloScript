@@ -1,0 +1,26 @@
+// @contract_audit — paper-13 tolerance-band verification harness for neural rendering.
+//
+// Native .hsplus surface for core/neural-rendering/ContractAudit.ts.
+//
+// audit(asset, contract) → AuditResult { pass, violations[] }
+// Verifies neural rendering output stays within contract tolerance bands
+
+@trait contract_audit {
+  capability_tags: ["contract_audit", "neural_rendering", "tolerance_band", "paper_13", "core"]
+
+  @on_spawn => {
+    emit("contract_audit_ready", {})
+  }
+
+  @on_audit(asset, contract) => {
+    result = audit_neural_contract(asset, contract)
+    if !result.pass { emit("contract_audit_fail", { violations: result.violations.length }) }
+    return result
+  }
+
+  @receipt contract_audit_config {
+    type: "ContractAuditReceipt"
+    paper: "paper-13"
+    timestamp: now()
+  }
+}

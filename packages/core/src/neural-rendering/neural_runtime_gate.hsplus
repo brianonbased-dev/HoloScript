@@ -1,0 +1,27 @@
+// @neural_runtime_gate — paper-13 load-time threshold check and fallback dispatch for neural rendering.
+//
+// Native .hsplus surface for core/neural-rendering/NeuralRuntimeGate.ts.
+//
+// gate(asset) → pass | fallback
+// Checks tier threshold at load time; dispatches fallback renderer if below threshold
+
+@trait neural_runtime_gate {
+  capability_tags: ["neural_runtime_gate", "load_time_gate", "fallback_dispatch", "paper_13", "core"]
+
+  @on_spawn => {
+    emit("neural_runtime_gate_ready", {})
+  }
+
+  @on_gate(asset) => {
+    result = gate_neural_asset(asset)
+    if result.fallback { emit("neural_fallback_dispatched", {}) }
+    return result
+  }
+
+  @receipt neural_runtime_gate_config {
+    type: "NeuralRuntimeGateReceipt"
+    paper: "paper-13"
+    gate: "load-time threshold check; fallback on fail"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @mcp_orchestrator — MCP agent orchestration: route tasks to registered agents via capability matching.
+//
+// Native .hsplus surface for core/mcp/MCPOrchestrator.ts.
+//
+// register(agent, capabilities[]) / dispatch(task) → AgentResult
+// Matches task to highest-capability agent; load-balances across instances
+
+@trait mcp_orchestrator {
+  capability_tags: ["mcp_orchestrator", "agent_orchestration", "capability_matching", "load_balance", "core"]
+
+  @on_spawn => {
+    emit("mcp_orchestrator_ready", {})
+  }
+
+  @on_dispatch(task) => {
+    result = dispatch_mcp_task(task)
+    emit("mcp_task_dispatched", {})
+    return result
+  }
+
+  @receipt mcp_orchestrator_config {
+    type: "MCPOrchestratorReceipt"
+    routing: "capability matching + load balancing"
+    timestamp: now()
+  }
+}

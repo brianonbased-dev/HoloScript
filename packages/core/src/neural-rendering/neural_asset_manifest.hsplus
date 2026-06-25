@@ -1,0 +1,21 @@
+// @neural_asset_manifest — paper-13 tier schema for neural rendering assets under contract.
+//
+// Native .hsplus surface for core/neural-rendering/NeuralAssetManifest.ts.
+//
+// NeuralAsset { tier: T0|T1|T2, schema, toleranceBands, fallback }
+// Used by NeuralRuntimeGate to select the correct tier at load time
+
+@trait neural_asset_manifest {
+  capability_tags: ["neural_asset_manifest", "tier_schema", "neural_rendering", "paper_13", "core"]
+
+  @on_spawn => {
+    emit("neural_asset_manifest_ready", {})
+  }
+
+  @receipt neural_asset_manifest_config {
+    type: "NeuralAssetManifestReceipt"
+    tiers: ["T0", "T1", "T2"]
+    paper: "paper-13"
+    timestamp: now()
+  }
+}

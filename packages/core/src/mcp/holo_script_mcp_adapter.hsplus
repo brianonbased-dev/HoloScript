@@ -1,0 +1,26 @@
+// @holo_script_mcp_adapter — Adapts HoloScript tools to MCP tool call format.
+//
+// Native .hsplus surface for core/mcp/HoloScriptMCPAdapter.ts.
+//
+// adapt(tool) → MCPTool / execute(toolName, params) → MCPResult
+// Converts HoloScript compile/generate/validate tools to JSON-RPC MCP tools
+
+@trait holo_script_mcp_adapter {
+  capability_tags: ["holo_script_mcp_adapter", "mcp_tool_adapter", "json_rpc", "tool_format", "core"]
+
+  @on_spawn => {
+    emit("holo_script_mcp_adapter_ready", {})
+  }
+
+  @on_execute(tool_name, params) => {
+    result = execute_mcp_tool(tool_name, params)
+    emit("mcp_tool_executed", { tool_name })
+    return result
+  }
+
+  @receipt holo_script_mcp_adapter_config {
+    type: "HoloScriptMCPAdapterReceipt"
+    format: "JSON-RPC MCP tool call"
+    timestamp: now()
+  }
+}

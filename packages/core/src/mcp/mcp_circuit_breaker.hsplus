@@ -1,0 +1,29 @@
+// @mcp_circuit_breaker — Resilient MCP tool calls with circuit breaker: open/half-open/closed.
+//
+// Native .hsplus surface for core/mcp/MCPCircuitBreaker.ts.
+//
+// call(tool, params) → Result — wrapped with circuit breaker
+// Opens on failure threshold; half-opens after recovery timeout; emits state transitions
+
+@trait mcp_circuit_breaker {
+  capability_tags: ["mcp_circuit_breaker", "circuit_breaker", "resilient_mcp", "failure_threshold", "core"]
+
+  @on_spawn => {
+    emit("mcp_circuit_breaker_ready", {})
+  }
+
+  @on_call(tool, params) => {
+    result = mcp_circuit_call(tool, params)
+    return result
+  }
+
+  @on_state_change(from_state, to_state) => {
+    emit("circuit_breaker_state_changed", { from_state, to_state })
+  }
+
+  @receipt mcp_circuit_breaker_config {
+    type: "MCPCircuitBreakerReceipt"
+    states: ["closed", "open", "half-open"]
+    timestamp: now()
+  }
+}

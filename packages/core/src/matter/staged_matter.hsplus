@@ -1,0 +1,26 @@
+// @staged_matter — Provenance-preserving spatial consolidation (D.059). Stage 1 assembly.
+//
+// Native .hsplus surface for core/matter/StagedMatter.ts + staged-matter.ts.
+//
+// consolidate(fragments[]) → ConsolidatedMatter { content, provenanceGraph }
+// Each fragment keeps its authorship chain; consolidation is additive, never destructive
+
+@trait staged_matter {
+  capability_tags: ["staged_matter", "provenance_preserving", "spatial_consolidation", "d059", "core"]
+
+  @on_spawn => {
+    emit("staged_matter_ready", {})
+  }
+
+  @on_consolidate(fragments) => {
+    result = consolidate_matter_fragments(fragments)
+    emit("matter_consolidated", { fragment_count: fragments.length })
+    return result
+  }
+
+  @receipt staged_matter_config {
+    type: "StagedMatterReceipt"
+    direction: "D.059 — additive, never destructive"
+    timestamp: now()
+  }
+}

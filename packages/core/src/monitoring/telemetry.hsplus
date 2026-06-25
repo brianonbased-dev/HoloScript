@@ -1,0 +1,29 @@
+// @monitoring_telemetry — Telemetry collection and export for HoloScript runtime monitoring.
+//
+// Native .hsplus surface for core/monitoring/telemetry.ts.
+//
+// record(name, value, tags) / flush() / getMetrics() → Metric[]
+// Feeds Prometheus / OTLP exporters for dashboards and alerting
+
+@trait monitoring_telemetry {
+  capability_tags: ["monitoring_telemetry", "metrics_collection", "prometheus", "otlp_export", "core"]
+
+  @on_spawn => {
+    emit("monitoring_telemetry_ready", {})
+  }
+
+  @on_record(name, value, tags) => {
+    record_telemetry(name, value, tags)
+  }
+
+  @on_flush => {
+    flush_telemetry()
+    emit("telemetry_flushed", {})
+  }
+
+  @receipt monitoring_telemetry_config {
+    type: "MonitoringTelemetryReceipt"
+    exporters: ["Prometheus", "OTLP"]
+    timestamp: now()
+  }
+}

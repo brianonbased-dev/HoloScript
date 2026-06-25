@@ -1,0 +1,21 @@
+// @register_with_orchestrator — Registers this MCP server with the central MCP orchestrator on startup.
+//
+// Native .hsplus surface for core/mcp/registerWithOrchestrator.ts.
+//
+// register(serverUrl, capabilities[]) → RegistrationToken
+// Called once at boot; retries with exponential backoff on orchestrator unavailability
+
+@trait register_with_orchestrator {
+  capability_tags: ["register_with_orchestrator", "orchestrator_registration", "startup_hook", "exponential_backoff", "core"]
+
+  @on_spawn => {
+    register_mcp_with_orchestrator()
+    emit("orchestrator_registration_done", {})
+  }
+
+  @receipt register_with_orchestrator_config {
+    type: "RegisterWithOrchestratorReceipt"
+    retry: "exponential backoff on orchestrator unavailability"
+    timestamp: now()
+  }
+}

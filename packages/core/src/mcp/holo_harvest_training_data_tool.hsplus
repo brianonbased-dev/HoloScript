@@ -1,0 +1,26 @@
+// @holo_harvest_training_data_tool — MCP tool: harvests training data from HoloScript traces.
+//
+// Native .hsplus surface for core/mcp/HoloHarvestTrainingDataTool.ts.
+//
+// harvest(traceIds[], filter) → TrainingDataset
+// Filters live traces by grader-pass gate before harvest (close the poison vector)
+
+@trait holo_harvest_training_data_tool {
+  capability_tags: ["holo_harvest_training_data_tool", "training_data_harvest", "grader_pass_gate", "trace_filter", "core"]
+
+  @on_spawn => {
+    emit("holo_harvest_training_data_tool_ready", {})
+  }
+
+  @on_harvest(trace_ids, filter) => {
+    dataset = harvest_training_data(trace_ids, filter)
+    emit("training_data_harvested", { count: dataset.length })
+    return dataset
+  }
+
+  @receipt holo_harvest_training_data_tool_config {
+    type: "HoloHarvestTrainingDataToolReceipt"
+    gate: "grader-pass filter before harvest — poison vector closed"
+    timestamp: now()
+  }
+}

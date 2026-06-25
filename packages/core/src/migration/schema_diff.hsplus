@@ -1,0 +1,26 @@
+// @schema_diff — Schema diff engine for hot-reload: detects field add/remove/rename/type-change.
+//
+// Native .hsplus surface for core/migration/SchemaDiff.ts.
+//
+// diff(a, b) → SchemaDiff { added[], removed[], renamed[], typeChanged[] }
+// Used by hot-reload to decide patch-in-place vs full-reinit
+
+@trait schema_diff {
+  capability_tags: ["schema_diff", "hot_reload", "field_diff", "patch_or_reinit", "core"]
+
+  @on_spawn => {
+    emit("schema_diff_ready", {})
+  }
+
+  @on_diff(schema_a, schema_b) => {
+    diff = diff_schemas(schema_a, schema_b)
+    emit("schema_diff_done", { changes: diff.total })
+    return diff
+  }
+
+  @receipt schema_diff_config {
+    type: "SchemaDiffReceipt"
+    use_case: "hot-reload — patch-in-place vs full-reinit decision"
+    timestamp: now()
+  }
+}

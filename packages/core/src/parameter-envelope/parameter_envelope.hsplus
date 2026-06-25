@@ -1,0 +1,26 @@
+// @parameter_envelope — First-class valid-parameter domain for simulation receipts.
+//
+// Native .hsplus surface for core/parameter-envelope/ParameterEnvelope.ts.
+//
+// ParameterEnvelope { min, max, step, unit, validator }
+// Simulation parameters carry their valid domain; compiler enforces at build time
+
+@trait parameter_envelope {
+  capability_tags: ["parameter_envelope", "valid_parameter_domain", "simulation_receipts", "compiler_enforced", "core"]
+
+  @on_spawn => {
+    emit("parameter_envelope_ready", {})
+  }
+
+  @on_validate(param, value) => {
+    valid = validate_parameter_envelope(param, value)
+    if !valid { emit("parameter_envelope_violation", { param }) }
+    return valid
+  }
+
+  @receipt parameter_envelope_config {
+    type: "ParameterEnvelopeReceipt"
+    enforcement: "compiler enforces domain bounds at build time"
+    timestamp: now()
+  }
+}
