@@ -1,0 +1,75 @@
+// @quality_score — Composite quality score for the HoloScript self-improvement pipeline.
+//
+// Native .hsplus surface for QualityScore.ts (absorb-service/self-improvement).
+//
+// Weighted multi-dimensional quality formula (QualityScore.ts):
+//   score = test_pass_rate         * 0.30
+//         + coverage               * 0.25
+//         + type_check_pass        * 0.20
+//         + lint_score             * 0.10
+//         + circuit_breaker_health * 0.15
+//
+// Each dimension is normalized to [0, 1] before weighting.
+//
+// QualityMetrics (raw inputs):
+//   tests_passed, tests_total          — test pass count
+//   coverage_percent (0-100)           — statement/line coverage
+//   type_check_passed: Bool            — TypeScript type check clean
+//   lint_issues, lint_files_total      — ESLint issues/files (→ 1 - issues/files)
+//   circuit_breaker_health (0-100)     — circuit breaker health from CB metrics
+//
+// QualityReport: score (0-1), score_percent (0-100), per-dimension breakdown, timestamp
+
+@trait quality_score {
+  // Dimension weights (must sum to 1.0)
+  weight_test_pass_rate: Float = 0.30
+  weight_coverage: Float = 0.25
+  weight_type_check: Float = 0.20
+  weight_lint: Float = 0.10
+  weight_circuit_breaker: Float = 0.15
+
+  capability_tags: ["quality_score", "self_improvement", "composite_metric", "quality_dimensions", "absorb_service", "grpo_reward"]
+
+  @on_spawn => {
+    scorer = init_quality_scorer({
+      weights: {
+        test_pass_rate: weight_test_pass_rate,
+        coverage: weight_coverage,
+        type_check: weight_type_check,
+        lint: weight_lint,
+        circuit_breaker: weight_circuit_breaker
+      }
+    })
+    emit("quality_scorer_ready", {})
+  }
+
+  // Compute QualityReport from raw QualityMetrics
+  @on_compute(metrics) => {
+    report = scorer.compute(metrics)
+    emit("quality_score_computed", {
+      score: report.score,
+      score_percent: report.score_percent
+    })
+    return report
+  }
+
+  // Compare two QualityReports → delta per dimension
+  @on_compare(before, after) => {
+    delta = scorer.compare(before, after)
+    emit("quality_compared", { delta: after.score - before.score })
+    return delta
+  }
+
+  @receipt quality_score_formula {
+    type: "QualityScoreReceipt"
+    formula: "score = 0.30*test + 0.25*cov + 0.20*type + 0.10*lint + 0.15*cb"
+    weights: {
+      test_pass_rate: weight_test_pass_rate,
+      coverage: weight_coverage,
+      type_check: weight_type_check,
+      lint: weight_lint,
+      circuit_breaker: weight_circuit_breaker
+    }
+    timestamp: now()
+  }
+}

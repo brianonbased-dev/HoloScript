@@ -1,0 +1,89 @@
+// @pipeline_orchestrator — Sequence L0→L1→L2 layers with feedback loops + budget gates.
+//
+// Native .hsplus surface for pipelineOrchestrator.ts (absorb-service/pipeline).
+//
+// Data flow:   L0 (Code Fixer) → feedback → L1 (Strategy) → feedback → L2 (Skills)
+// Control:     L2 → strategy → L1 → focus/profile → L0 → code  (bidirectional)
+//
+// Constants (pipelineOrchestrator.ts):
+//   GLOBAL_BUDGET_CAP         = $10.00 USD
+//   L1_ACTIVATION_THRESHOLD   = 2 L0 cycles before L1 activates
+//   L2_ACTIVATION_THRESHOLD   = 2 L1 cycles before L2 activates
+//   COST_ESTIMATE_MULTIPLIER  = 1.5x historical average
+//   FALLBACK_COST_ESTIMATE    = $1.50
+//   REVIEW_POLL_INTERVAL      = 2000ms
+//
+// Human review gates block layer execution until approved or rejected.
+// Budget gates block if estimated cost exceeds remaining budget.
+//
+// PipelineStoreAdapter interface: decoupled from Zustand for testability.
+// Events flow through AgentEventBus.
+
+@trait pipeline_orchestrator {
+  // USD budget cap for the entire pipeline run
+  global_budget_cap: Float = 10.0
+
+  // Minimum L0 cycles before L1 activates
+  l1_activation_threshold: Int = 2
+
+  // Minimum L1 cycles before L2 activates
+  l2_activation_threshold: Int = 2
+
+  // Human review gate poll interval in ms
+  review_poll_interval_ms: Int = 2000
+
+  // Cost multiplier over historical average
+  cost_estimate_multiplier: Float = 1.5
+
+  capability_tags: ["pipeline_orchestrator", "l0_l1_l2", "feedback_loop", "budget_gate", "review_gate", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    orchestrator = init_pipeline_orchestrator({
+      global_budget_cap: global_budget_cap,
+      l1_activation_threshold: l1_activation_threshold,
+      l2_activation_threshold: l2_activation_threshold,
+      review_poll_interval_ms: review_poll_interval_ms,
+      cost_estimate_multiplier: cost_estimate_multiplier
+    })
+    emit("pipeline_orchestrator_ready", {
+      global_budget_cap: global_budget_cap
+    })
+  }
+
+  // Run the full L0→L1→L2 pipeline until convergence or budget exhaustion
+  @on_run(store, deps, mode) => {
+    result = orchestrator.run(store, deps, mode)
+    emit("pipeline_run_complete", {
+      cycles: result.total_cycles,
+      cost_usd: result.total_cost_usd,
+      converged: result.converged
+    })
+    return result
+  }
+
+  // Step a single layer cycle
+  @on_step_layer(layer_id, store, deps) => {
+    result = orchestrator.step_layer(layer_id, store, deps)
+    emit("pipeline_layer_stepped", { layer_id: layer_id, success: result.ok })
+    return result
+  }
+
+  // Check if budget allows the next layer cycle
+  @on_check_budget(store) => {
+    ok = orchestrator.check_budget(store)
+    if not ok {
+      emit("pipeline_budget_gate_blocked", {})
+    }
+    return ok
+  }
+
+  @receipt pipeline_orchestrator_config {
+    type: "PipelineOrchestratorReceipt"
+    global_budget_cap_usd: global_budget_cap
+    data_flow: "L0 → feedback → L1 → feedback → L2"
+    control_flow: "L2 → strategy → L1 → focus → L0"
+    l1_activation_threshold: l1_activation_threshold
+    l2_activation_threshold: l2_activation_threshold
+    timestamp: now()
+  }
+}

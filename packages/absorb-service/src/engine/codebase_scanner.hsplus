@@ -1,0 +1,74 @@
+// @codebase_scanner — Walk a project directory and parse all files into a CodebaseGraph.
+//
+// Native .hsplus surface for CodebaseScanner.ts (absorb-service/engine).
+//
+// Walks a project directory, detects language, parses via tree-sitter adapters
+// (TypeScript, Python, Rust, Go, and .holo/.hsplus via HoloAdapter),
+// and collects normalized symbols/imports/calls into a ScanResult.
+//
+// Respects .gitignore; default exclusions: node_modules, .git, dist, build, out,
+// target, .next, .nuxt, __pycache__, vendor, venv, .idea, .vscode, etc.
+//
+// Uses WorkerPool for parallel parsing where available (Node.js threads);
+// falls back to single-threaded parsing in browser/WASM/old Node.
+//
+// ScanResult { files: ScannedFile[], stats: ScanStats, errors: ScanError[] }
+// ScannedFile { path, language, symbols[], imports: ImportEdge[], calls: CallEdge[], doc? }
+// SupportedLanguage: "typescript"|"javascript"|"python"|"rust"|"go"|"holo"
+//
+// Languages are auto-detected by file extension.
+
+@trait codebase_scanner {
+  // Directories to exclude (merged with DEFAULT_EXCLUDE)
+  exclude_patterns: Array<String> = []
+
+  // Max file size in bytes to attempt parsing (0 = unlimited)
+  max_file_bytes: Int = 0
+
+  // Concurrency for worker-pool parsing (0 = auto)
+  worker_concurrency: Int = 0
+
+  // Include .holo/.hsplus files via HoloAdapter
+  include_holo: Bool = true
+
+  capability_tags: ["codebase_scanner", "tree_sitter", "ast_parser", "absorb_service", "language_detection", "codebase_graph"]
+
+  @on_spawn => {
+    scanner = init_codebase_scanner({
+      exclude_patterns: exclude_patterns,
+      max_file_bytes: max_file_bytes,
+      worker_concurrency: worker_concurrency,
+      include_holo: include_holo
+    })
+    emit("codebase_scanner_ready", {
+      include_holo: include_holo,
+      worker_concurrency: worker_concurrency
+    })
+  }
+
+  // Scan a project root directory → ScanResult
+  @on_scan(root_path, options) => {
+    result = scanner.scan(root_path, options)
+    emit("codebase_scan_complete", {
+      file_count: result.files.size,
+      error_count: result.errors.size,
+      languages: result.stats.by_language
+    })
+    return result
+  }
+
+  // Scan a single file → ScannedFile
+  @on_scan_file(file_path) => {
+    result = scanner.scan_file(file_path)
+    emit("codebase_file_scanned", { path: file_path, language: result.language })
+    return result
+  }
+
+  @receipt codebase_scanner_config {
+    type: "CodebaseScannerReceipt"
+    include_holo: include_holo
+    supported_languages: ["typescript", "javascript", "python", "rust", "go", "holo"]
+    worker_pool: "Node.js threads; falls back to single-threaded in browser/WASM"
+    timestamp: now()
+  }
+}
