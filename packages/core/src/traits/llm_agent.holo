@@ -1,0 +1,19 @@
+@trait {
+  name: "@llm_agent",
+  category: "agent",
+  description: "LLM-powered agent brain. model is the LLM model ID (default: gpt-4). system_prompt is the agent system prompt. context_window is the token context size (default: 4096). temperature is the sampling temperature [0,2] (default: 0.7). tools is the list of tool names available to this agent. Port of LLMAgentTrait.ts (handler name: llm_agent).",
+  props: {
+    model: string = "gpt-4",
+    system_prompt: string = "",
+    context_window: number = 4096,
+    temperature: number = 0.7
+  },
+  events: {
+    on_response: "llm_agent:response",
+    on_tool_call: "llm_agent:tool_call",
+    on_error: "llm_agent:error",
+    chat: "llm_agent.chat",
+    reset_context: "llm_agent.reset_context"
+  },
+  behaviors: ["@agent_memory", "@inference", "@local_llm"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@load_test",
+  category: "testing",
+  description: "Load test runner. max_vus is the maximum virtual users (default: 100). default_duration_ms is the test duration in ms (default: 30,000ms). Port of LoadTestTrait.ts (handler name: load_test).",
+  props: {
+    max_vus: number = 100,
+    default_duration_ms: number = 30000
+  },
+  events: {
+    on_started: "load_test:started",
+    on_result: "load_test:result",
+    on_stopped: "load_test:stopped",
+    start: "load_test.start",
+    stop: "load_test.stop"
+  },
+  behaviors: ["@chaos_test", "@fixture", "@healthcheck"]
+}

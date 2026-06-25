@@ -1,0 +1,20 @@
+@trait {
+  name: "@head_tracked_audio",
+  category: "audio",
+  description: "Head-motion-tracked spatial audio. source is the audio file URL. anchor_mode: world (default), head, node. tracking_latency_compensation corrects prediction lag (default: true). stabilization is the stabilization filter strength [0,1] (default: 0.5). bypass_spatialization plays audio without spatialization (default: false). volume is the playback volume [0,1] (default: 1.0). Port of HeadTrackedAudioTrait.ts (handler name: head_tracked_audio).",
+  props: {
+    source: string = "",
+    anchor_mode: enum("world" | "head" | "node") = "world",
+    tracking_latency_compensation: boolean = true,
+    stabilization: number = 0.5,
+    bypass_spatialization: boolean = false,
+    volume: number = 1.0
+  },
+  events: {
+    on_started: "head_tracked_audio:started",
+    on_stopped: "head_tracked_audio:stopped",
+    play: "head_tracked_audio.play",
+    stop: "head_tracked_audio.stop"
+  },
+  behaviors: ["@hrtf", "@positional"]
+}

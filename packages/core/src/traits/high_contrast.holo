@@ -1,0 +1,18 @@
+@trait {
+  name: "@high_contrast",
+  category: "accessibility",
+  description: "High-contrast mode for visual accessibility. mode: auto (follows system setting; default), force, off. outline_width is the forced outline thickness in px (default: 2). outline_color is the outline color in high-contrast (default: #FFFFFF). forced_colors enables CSS forced-colors emulation (default: false). Port of HighContrastTrait.ts (handler name: high_contrast).",
+  props: {
+    mode: enum("auto" | "force" | "off") = "auto",
+    outline_width: number = 2,
+    outline_color: string = "#FFFFFF",
+    forced_colors: boolean = false,
+    foreground_color: string = "#FFFFFF",
+    background_color: string = "#000000"
+  },
+  events: {
+    on_applied: "high_contrast:applied",
+    on_removed: "high_contrast:removed"
+  },
+  behaviors: ["@accessible"]
+}

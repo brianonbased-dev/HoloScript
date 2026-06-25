@@ -1,0 +1,15 @@
+@trait {
+  name: "@hungarian_assignment",
+  category: "algorithms",
+  description: "Hungarian algorithm optimal assignment solver — matches agents to tasks minimizing total cost. association_threshold is the maximum cost to accept an assignment (default: 0.5). max_matrix_size is the maximum N×M to solve (default: 64). pad_cost is the cost of unassigned rows/columns (default: 1.0). Port of HungarianAssignmentTrait.ts (handler name: hungarian_assignment).",
+  props: {
+    association_threshold: number = 0.5,
+    max_matrix_size: number = 64,
+    pad_cost: number = 1.0
+  },
+  events: {
+    on_assigned: "hungarian_assignment:assigned",
+    solve: "hungarian_assignment.solve"
+  },
+  behaviors: ["@formation_control", "@blackboard"]
+}

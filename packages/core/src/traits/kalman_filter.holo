@@ -1,0 +1,19 @@
+@trait {
+  name: "@kalman_filter",
+  category: "sensing",
+  description: "Kalman filter for sensor fusion and pose smoothing. update_rate_hz is the filter update frequency (default: 90Hz). process_noise is the process noise covariance Q (default: 0.05). measurement_noise is the measurement noise covariance R (default: 0.1). initial_covariance is the initial error covariance P (default: 1.0). max_dt_seconds is the maximum time step before filter reset (default: 1.0s). Port of KalmanFilterTrait.ts (handler name: kalman_filter).",
+  props: {
+    update_rate_hz: number = 90,
+    process_noise: number = 0.05,
+    measurement_noise: number = 0.1,
+    initial_covariance: number = 1.0,
+    max_dt_seconds: number = 1.0
+  },
+  events: {
+    on_updated: "kalman_filter:updated",
+    on_reset: "kalman_filter:reset",
+    update: "kalman_filter.update",
+    reset: "kalman_filter.reset"
+  },
+  behaviors: ["@body_tracking", "@hand_tracking", "@face_tracking"]
+}

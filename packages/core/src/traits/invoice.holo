@@ -1,0 +1,16 @@
+@trait {
+  name: "@invoice",
+  category: "economy",
+  description: "Invoice manager — creates and tracks payment invoices. auto_number assigns sequential invoice numbers automatically (default: true). Port of InvoiceTrait.ts (handler name: invoice).",
+  props: {
+    auto_number: boolean = true
+  },
+  events: {
+    on_created: "invoice:created",
+    on_paid: "invoice:paid",
+    on_overdue: "invoice:overdue",
+    create: "invoice.create",
+    mark_paid: "invoice.mark_paid"
+  },
+  behaviors: ["@economy", "@audit_log"]
+}

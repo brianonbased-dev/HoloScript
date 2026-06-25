@@ -1,0 +1,16 @@
+@trait {
+  name: "@index",
+  category: "data",
+  description: "Multi-index store — maintains typed secondary indices over entity properties. max_indices is the maximum index count (default: 50). Port of IndexTrait.ts (handler name: index).",
+  props: {
+    max_indices: number = 50
+  },
+  events: {
+    on_indexed: "index:indexed",
+    on_removed: "index:removed",
+    add: "index.add",
+    remove: "index.remove",
+    query: "index.query"
+  },
+  behaviors: ["@database", "@full_text_search"]
+}

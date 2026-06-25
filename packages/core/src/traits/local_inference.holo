@@ -1,0 +1,19 @@
+@trait {
+  name: "@local_inference",
+  category: "ml",
+  description: "Local Ollama-backed LLM inference on the edge node. ollama_url is the Ollama API base URL (default: http://localhost:11434). model is the Ollama model name (default: qwen3:4b). context_length is the context window in tokens (default: 8192). tool_calling enables tool-call parsing (default: true — Ollama native API required). timeout_s is the inference timeout in seconds (default: 120). native_ollama_api uses Ollama native /api/chat (default: true — correctly parses tool_calls per 3311a4d4c). Port of LocalInferenceTrait.ts.",
+  props: {
+    ollama_url: string = "http://localhost:11434",
+    model: string = "qwen3:4b",
+    context_length: number = 8192,
+    tool_calling: boolean = true,
+    timeout_s: number = 120,
+    native_ollama_api: boolean = true
+  },
+  events: {
+    on_result: "local_inference:result",
+    on_error: "local_inference:error",
+    infer: "local_inference.infer"
+  },
+  behaviors: ["@jetson_gpu", "@inference", "@llm_agent"]
+}

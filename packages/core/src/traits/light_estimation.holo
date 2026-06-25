@@ -1,0 +1,17 @@
+@trait {
+  name: "@light_estimation",
+  category: "xr",
+  description: "Real-world light estimation for XR scenes. mode: ambient_intensity (default), directional, extended. auto_apply propagates estimates to scene lights automatically (default: true). update_rate is the estimation update frequency in Hz (default: 30). shadow_estimation enables shadow direction estimation (default: false). color_temperature estimates color temperature (default: true). Port of LightEstimationTrait.ts (handler name: light_estimation).",
+  props: {
+    mode: enum("ambient_intensity" | "directional" | "extended") = "ambient_intensity",
+    auto_apply: boolean = true,
+    update_rate: number = 30,
+    shadow_estimation: boolean = false,
+    color_temperature: boolean = true
+  },
+  events: {
+    on_estimate: "light_estimation:estimate",
+    on_applied: "light_estimation:applied"
+  },
+  behaviors: ["@global_illumination", "@anchor"]
+}

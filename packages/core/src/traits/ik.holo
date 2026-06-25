@@ -1,0 +1,12 @@
+@trait {
+  name: "@i_k",
+  category: "animation",
+  description: "Inverse kinematics solver. Config is solver-type-dependent and passed through to IKTrait instance. Port of IKTrait.ts (handler name: i_k).",
+  props: {},
+  events: {
+    on_solved: "i_k:solved",
+    on_failed: "i_k:failed",
+    solve: "i_k.solve"
+  },
+  behaviors: ["@kinematic_chain", "@body_tracking"]
+}

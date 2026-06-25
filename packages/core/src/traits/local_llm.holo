@@ -1,0 +1,23 @@
+@trait {
+  name: "@local_llm",
+  category: "ml",
+  description: "Local LLM provider. model: llama3 (default), mistral, phi3, custom. backend: ollama (default), llamacpp, mlx. base_url is the server base URL (default: http://localhost:11434). temperature is the sampling temperature (default: 0.7). max_tokens is the generation cap (default: 2048). stream enables streaming responses (default: true). system_prompt is the system prompt. context_length is the context size in tokens (default: 4096). Port of LocalLLMTrait.ts (handler name: local_llm).",
+  props: {
+    model: string = "llama3",
+    backend: enum("ollama" | "llamacpp" | "mlx") = "ollama",
+    base_url: string = "http://localhost:11434",
+    temperature: number = 0.7,
+    max_tokens: number = 2048,
+    stream: boolean = true,
+    system_prompt: string = "You are a helpful AI embedded in a HoloScript spatial scene.",
+    context_length: number = 4096
+  },
+  events: {
+    on_token: "local_llm:token",
+    on_complete: "local_llm:complete",
+    on_error: "local_llm:error",
+    generate: "local_llm.generate",
+    stop: "local_llm.stop"
+  },
+  behaviors: ["@local_inference", "@llm_agent", "@jetson_gpu"]
+}

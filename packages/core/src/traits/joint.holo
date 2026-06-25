@@ -1,0 +1,12 @@
+@trait {
+  name: "@joint",
+  category: "physics",
+  description: "Physics constraint joint (hinge, ball, slider, etc.). Config is joint-type-dependent and passed through to JointTrait instance. Port of JointTrait.ts (handler name: joint).",
+  props: {},
+  events: {
+    on_broken: "joint:broken",
+    on_limit_reached: "joint:limit_reached",
+    break_joint: "joint.break"
+  },
+  behaviors: ["@kinematic_chain", "@physics"]
+}

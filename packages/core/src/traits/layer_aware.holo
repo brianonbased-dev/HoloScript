@@ -1,0 +1,13 @@
+@trait {
+  name: "@layer_aware",
+  category: "render",
+  description: "Multi-layer visibility control — shows/hides this node based on the active render layer. layers is the list of layer names this node is visible on (default: [all]). fallback is the behavior when the active layer is not in the list: hidden (default), visible, wireframe. Port of LayerAwareTrait.ts (handler name: layer_aware).",
+  props: {
+    fallback: enum("hidden" | "visible" | "wireframe") = "hidden"
+  },
+  events: {
+    on_shown: "layer_aware:shown",
+    on_hidden: "layer_aware:hidden"
+  },
+  behaviors: ["@accessible", "@canary"]
+}

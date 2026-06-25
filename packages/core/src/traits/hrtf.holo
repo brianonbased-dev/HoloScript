@@ -1,0 +1,18 @@
+@trait {
+  name: "@hrtf",
+  category: "audio",
+  description: "Head-Related Transfer Function (HRTF) personalized binaural audio. profile: generic (default), cipic, listen, measured. database: cipic (default), ircam, sadie. custom_sofa_url is the path to a custom SOFA HRTF file. interpolation: bilinear (default), nearest, spherical. crossfade_time is the transition time in ms on head movement (default: 50ms). head_radius is the head radius in meters (default: 0.0875). Port of HRTFTrait.ts (handler name: hrtf).",
+  props: {
+    profile: enum("generic" | "cipic" | "listen" | "measured") = "generic",
+    database: enum("cipic" | "ircam" | "sadie") = "cipic",
+    custom_sofa_url: string = "",
+    interpolation: enum("bilinear" | "nearest" | "spherical") = "bilinear",
+    crossfade_time: number = 50,
+    head_radius: number = 0.0875
+  },
+  events: {
+    on_loaded: "hrtf:loaded",
+    on_updated: "hrtf:updated"
+  },
+  behaviors: ["@positional", "@spatial_voice"]
+}

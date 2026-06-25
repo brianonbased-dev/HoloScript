@@ -1,0 +1,12 @@
+@trait {
+  name: "@lighting",
+  category: "render",
+  description: "Scene lighting system. Config is light-type-dependent and passed through to LightingTrait instance (point, directional, spot, area, etc.). Port of LightingTrait.ts (handler name: lighting).",
+  props: {},
+  events: {
+    on_attached: "lighting_attached",
+    set: "lighting.set",
+    update: "lighting.update"
+  },
+  behaviors: ["@global_illumination", "@god_rays", "@bloom"]
+}

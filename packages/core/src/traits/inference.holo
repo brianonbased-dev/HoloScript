@@ -1,0 +1,16 @@
+@trait {
+  name: "@inference",
+  category: "ml",
+  description: "Model inference runner — executes a model run with timeout and token budget. timeout_ms is the inference timeout (default: 30,000ms). max_tokens is the token budget per run (default: 4096). Port of InferenceTrait.ts (handler name: inference).",
+  props: {
+    timeout_ms: number = 30000,
+    max_tokens: number = 4096
+  },
+  events: {
+    on_result: "inference:result",
+    on_timeout: "inference:timeout",
+    on_error: "inference:error",
+    run: "inference.run"
+  },
+  behaviors: ["@llm_agent", "@local_llm"]
+}

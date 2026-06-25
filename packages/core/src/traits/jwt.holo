@@ -1,0 +1,18 @@
+@trait {
+  name: "@jwt",
+  category: "security",
+  description: "JWT sign and verify. algorithm: HS256 (default), RS256, ES256. default_expiry_s is the token lifetime in seconds (default: 3600 — 1 hour). Port of JwtTrait.ts (handler name: jwt). NOTE: Use secret from .env, never inline.",
+  props: {
+    algorithm: enum("HS256" | "RS256" | "ES256") = "HS256",
+    default_expiry_s: number = 3600
+  },
+  events: {
+    on_issued: "jwt:issued",
+    on_verified: "jwt:verified",
+    on_expired: "jwt:expired",
+    on_invalid: "jwt:invalid",
+    sign: "jwt.sign",
+    verify: "jwt.verify"
+  },
+  behaviors: ["@encryption", "@consent_gate"]
+}

@@ -1,0 +1,19 @@
+@trait {
+  name: "@http",
+  category: "network",
+  description: "HTTP client. base_url is the base URL for all requests. method: GET (default), POST, PUT, DELETE, PATCH. timeout_ms is the request timeout (default: 30,000ms). response_type: json (default), text, blob. Port of HttpClientTrait.ts (handler name: http).",
+  props: {
+    base_url: string = "",
+    method: enum("GET" | "POST" | "PUT" | "DELETE" | "PATCH") = "GET",
+    timeout_ms: number = 30000,
+    response_type: enum("json" | "text" | "blob") = "json"
+  },
+  events: {
+    on_response: "http:response",
+    on_error: "http:error",
+    request: "http.request",
+    get: "http.get",
+    post: "http.post"
+  },
+  behaviors: ["@graphql", "@data_binding"]
+}

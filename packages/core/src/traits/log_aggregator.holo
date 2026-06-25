@@ -1,0 +1,17 @@
+@trait {
+  name: "@log_aggregator",
+  category: "observability",
+  description: "Structured log aggregator. max_entries is the ring-buffer size (default: 5000). min_level filters logs below this severity: info (default), warn, error, debug. Port of LogAggregatorTrait.ts (handler name: log_aggregator).",
+  props: {
+    max_entries: number = 5000,
+    min_level: enum("debug" | "info" | "warn" | "error") = "info"
+  },
+  events: {
+    on_log: "log_aggregator:log",
+    on_overflow: "log_aggregator:overflow",
+    log: "log_aggregator.log",
+    flush: "log_aggregator.flush",
+    clear: "log_aggregator.clear"
+  },
+  behaviors: ["@audit_log", "@healthcheck"]
+}

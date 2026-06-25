@@ -1,0 +1,13 @@
+@trait {
+  name: "@locale",
+  category: "i18n",
+  description: "Locale and i18n context. default_locale is the fallback locale (default: en-US). supported is the list of supported locale codes. Port of LocaleTrait.ts (handler name: locale).",
+  props: {
+    default_locale: string = "en-US"
+  },
+  events: {
+    on_changed: "locale:changed",
+    set: "locale.set"
+  },
+  behaviors: ["@env_config", "@feature_flag"]
+}
