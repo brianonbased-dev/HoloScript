@@ -1,0 +1,68 @@
+// @isolation_enforcer — Strict cross-tenant resource isolation enforcement.
+//
+// Native .hsplus surface for IsolationEnforcer.ts (platform/tenancy, v3.9.0,
+// Sprint 9: Multi-Tenant Isolation).
+//
+// Invariant (IsolationEnforcer.ts):
+//   context.tenantId MUST equal resourceTenantId for any resource access.
+//   Any mismatch is a TenantIsolationError — hard failure, not a warning.
+//   There are no "trusted cross-tenant" paths in this enforcer.
+//
+// Isolation model:
+//   Each tenant gets a namespace prefix: "tenant:<tenantId>:"
+//   All resource keys are scoped under this prefix.
+//   Execution is isolated by passing the namespace prefix to the function —
+//   it cannot address resources outside its prefix.
+//
+// TenantIsolationError fields:
+//   requesting_tenant_id, resource_tenant_id, detail?
+
+@trait isolation_enforcer {
+  // Whether to emit an audit event on EVERY access check (pass or fail)
+  emit_all_checks: Bool = false
+
+  // Whether to emit an audit event on isolation violations only
+  emit_violations: Bool = true
+
+  capability_tags: ["isolation_enforcer", "multi_tenant", "resource_isolation", "namespace_scoping", "sprint9_isolation"]
+
+  @on_spawn => {
+    enforcer = init_isolation_enforcer()
+    emit("isolation_enforcer_ready", {})
+  }
+
+  @on_validate_access(context, resource_tenant_id) => {
+    if context.tenant_id != resource_tenant_id {
+      if emit_violations {
+        emit("tenant_isolation_violation", {
+          requesting_tenant: context.tenant_id,
+          resource_tenant: resource_tenant_id
+        })
+      }
+      return {
+        allowed: false,
+        error: "TenantIsolationError",
+        requesting_tenant: context.tenant_id,
+        resource_tenant: resource_tenant_id
+      }
+    }
+    if emit_all_checks {
+      emit("isolation_check_passed", { tenant: context.tenant_id })
+    }
+    return { allowed: true }
+  }
+
+  @on_run_isolated(context, task) => {
+    namespace_prefix = "tenant:" + context.tenant_id + ":"
+    result = enforcer.run_with_namespace(context, namespace_prefix, task)
+    return result
+  }
+
+  @receipt isolation_enforcer_config {
+    type: "IsolationEnforcerReceipt"
+    emit_all_checks: emit_all_checks
+    emit_violations: emit_violations
+    isolation_model: "tenant_namespace_prefix"
+    timestamp: now()
+  }
+}

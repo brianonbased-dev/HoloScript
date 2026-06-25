@@ -1,0 +1,130 @@
+// @economic_primitives — Math + types for virtual economy self-regulation.
+//
+// Native .hsplus surface for EconomicPrimitives.ts (std/traits, v1.0.0).
+//
+// Research foundations (EconomicPrimitives.ts header):
+//   P.030.01: Dual-Loop PID Economy Controller (Alter Aeon model)
+//   P.030.02: Bonding Curve Marketplace (DeFi AMM adaptation)
+//   P.030.03: Progressive Wealth Recycling (logarithmic tax + UBI)
+//   W.031: Faucet-Sink Ratio Is the Master Variable
+//   W.032: Dual-Loop Feedback Control Solves Long-Term Stability
+//   W.034: Wealth Tax > Income Tax for Virtual Gini Reduction
+//   W.035: Bonding Curves Provide Intrinsic Price Discovery
+//
+// EconomicError codes:
+//   INSUFFICIENT_FUNDS | UNAUTHORIZED | INVALID_AMOUNT | BELOW_MINIMUM
+//   | ABOVE_MAXIMUM | ITEM_DESTROYED | TRANSFER_BLOCKED | CURVE_EXHAUSTED
+//   | PID_DIVERGED | TAX_EXEMPT | INVALID_PARAMETER
+//
+// EconomicPermission (RBAC-mapped):
+//   economy.trade | economy.mint | economy.burn | economy.set_price
+//   | economy.tax | economy.redistribute | economy.tune_pid | economy.audit
+//
+// PID controller: Kp/Ki/Kd terms; faucet-sink ratio = the master variable (W.031)
+// Bonding curve: price = reserve * supply^exponent (AMM intrinsic price discovery)
+// Wealth tax: logarithmic progressive — wealth_tax > income_tax for Gini (W.034)
+
+@trait economic_primitives {
+  // PID controller: proportional gain (Kp)
+  pid_kp: Float = 0.1
+
+  // PID controller: integral gain (Ki)
+  pid_ki: Float = 0.01
+
+  // PID controller: derivative gain (Kd)
+  pid_kd: Float = 0.001
+
+  // Bonding curve exponent (1.0 = linear; > 1 = convex price growth)
+  bonding_curve_exponent: Float = 1.5
+
+  // Wealth tax base rate (logarithmic multiplier)
+  wealth_tax_base_rate: Float = 0.01
+
+  // UBI distribution amount per agent per cycle
+  ubi_per_cycle: Float = 0.0
+
+  // Faucet-sink ratio target (W.031 — master variable)
+  target_faucet_sink_ratio: Float = 1.0
+
+  capability_tags: ["economic_primitives", "pid_economy", "bonding_curve", "wealth_tax", "faucet_sink", "virtual_economy", "p030"]
+
+  @on_spawn => {
+    engine = init_economic_engine({
+      pid: { kp: pid_kp, ki: pid_ki, kd: pid_kd },
+      bonding_curve_exponent: bonding_curve_exponent,
+      wealth_tax_base_rate: wealth_tax_base_rate,
+      ubi_per_cycle: ubi_per_cycle,
+      target_faucet_sink_ratio: target_faucet_sink_ratio
+    })
+    emit("economic_primitives_ready", {
+      pid_kp: pid_kp,
+      bonding_curve_exponent: bonding_curve_exponent,
+      target_faucet_sink_ratio: target_faucet_sink_ratio
+    })
+  }
+
+  // PID controller tick — adjusts faucet/sink based on current vs target ratio (W.032)
+  @on_economy_tick(current_supply, target_supply) => {
+    error = target_supply - current_supply
+    adjustment = engine.pid_step(error)
+    if adjustment > 0 { engine.faucet(adjustment) }
+    if adjustment < 0 { engine.sink(-adjustment) }
+    emit("economy_tick", {
+      current_supply: current_supply,
+      target_supply: target_supply,
+      adjustment: adjustment
+    })
+    return { adjustment: adjustment, ratio: engine.faucet_sink_ratio() }
+  }
+
+  // Bonding curve price discovery (W.035)
+  @on_get_price(reserve, supply) => {
+    price = reserve * pow(supply, bonding_curve_exponent)
+    return { price: price }
+  }
+
+  // Trade with RBAC check and curve pricing
+  @on_trade(buyer_id, seller_id, item_id, context) => {
+    if not has_permission(context, "economy.trade") {
+      return { ok: false, error: "UNAUTHORIZED" }
+    }
+    result = engine.execute_trade(buyer_id, seller_id, item_id)
+    emit("trade_executed", { buyer: buyer_id, seller: seller_id, item: item_id, ok: result.ok })
+    return result
+  }
+
+  // Progressive logarithmic wealth tax (W.034)
+  @on_tax_wealth(agent_id, wealth, context) => {
+    if not has_permission(context, "economy.tax") {
+      return { ok: false, error: "UNAUTHORIZED" }
+    }
+    tax = wealth_tax_base_rate * log(1 + wealth)
+    engine.collect_tax(agent_id, tax)
+    emit("wealth_taxed", { agent: agent_id, tax: tax })
+    return { ok: true, value: { tax_collected: tax } }
+  }
+
+  // Redistribute collected taxes as UBI (W.034)
+  @on_redistribute(agent_ids, context) => {
+    if not has_permission(context, "economy.redistribute") {
+      return { ok: false, error: "UNAUTHORIZED" }
+    }
+    if ubi_per_cycle > 0 {
+      for each agent in agent_ids { engine.distribute_ubi(agent, ubi_per_cycle) }
+      emit("ubi_distributed", { count: len(agent_ids), amount_each: ubi_per_cycle })
+    }
+    return { ok: true }
+  }
+
+  @receipt economic_primitives_config {
+    type: "EconomicPrimitivesReceipt"
+    pid_kp: pid_kp
+    pid_ki: pid_ki
+    pid_kd: pid_kd
+    bonding_curve_exponent: bonding_curve_exponent
+    wealth_tax_base_rate: wealth_tax_base_rate
+    ubi_per_cycle: ubi_per_cycle
+    target_faucet_sink_ratio: target_faucet_sink_ratio
+    timestamp: now()
+  }
+}

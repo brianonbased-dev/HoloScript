@@ -1,0 +1,128 @@
+// @iot_traits — IoT sensor binding and physical actuator control traits.
+//
+// Native .hsplus surface for IoTTraits.ts (std/traits).
+// Defines traits for real-world physical sensor mapping and hardware actuator
+// integration inside the HoloScript engine.
+//
+// Trait surfaces (IoTTraits.ts):
+//   @sensor_stream — binds a virtual digital twin property to a real-world
+//                    IoT telemetry stream. Telemetry types: temperature,
+//                    pressure, heart_rate, spo2, motion, custom.
+//   @actuator       — defines a node as a control schema that can send physical
+//                    actions back to real-world mechanisms. action_range clamps
+//                    values to prevent hardware damage.
+//
+// Design:
+//   Sensor streams are pull-based (poll at update_hz) OR push-based (MQTT/WebSocket
+//   topic subscription). The trait adapts to what the platform provides.
+//   Actuator commands are validated against action_range before transmission.
+//   Both traits surface their data in the digital twin via Loro CRDT state
+//   (same W.156 Tier1 at ~10Hz; burst hardware events via Tier2 binary).
+
+@trait iot_sensor_stream {
+  // Hardware sensor identifier (MAC, IP, or cloud UUID)
+  sensor_id: String
+
+  // Telemetry type
+  telemetry_type: enum("temperature" | "pressure" | "heart_rate" | "spo2" | "motion" | "custom") = "custom"
+
+  // Target refresh rate in Hz (0 = subscription-push mode, no polling)
+  update_hz: Int = 10
+
+  // Digital twin property name to bind (entity field to write on each update)
+  twin_property: String?
+
+  // Alert if sensor goes silent for this many seconds (0 = no watchdog)
+  watchdog_timeout_s: Int = 0
+
+  capability_tags: ["iot_sensor_stream", "digital_twin", "sensor_binding", "telemetry", "iot"]
+
+  @on_spawn => {
+    sensor = connect_sensor({
+      sensor_id: sensor_id,
+      telemetry_type: telemetry_type,
+      update_hz: update_hz
+    })
+    if watchdog_timeout_s > 0 {
+      schedule_recurring(watchdog_timeout_s, "on_watchdog_tick")
+    }
+    emit("sensor_connected", { sensor_id: sensor_id, telemetry_type: telemetry_type })
+  }
+
+  @on_telemetry(reading) => {
+    if twin_property {
+      set_property(entity_id, twin_property, reading.value)
+    }
+    emit("sensor_reading", {
+      sensor_id: sensor_id,
+      type: telemetry_type,
+      value: reading.value,
+      timestamp: reading.timestamp
+    })
+  }
+
+  @on_watchdog_tick => {
+    last = sensor.last_reading_age_s()
+    if last > watchdog_timeout_s {
+      emit("sensor_silent", { sensor_id: sensor_id, silent_for_s: last })
+    }
+  }
+
+  @on_despawn => {
+    sensor.disconnect()
+    emit("sensor_disconnected", { sensor_id: sensor_id })
+  }
+
+  @receipt iot_sensor_config {
+    type: "IoTSensorStreamReceipt"
+    sensor_id: sensor_id
+    telemetry_type: telemetry_type
+    update_hz: update_hz
+    twin_property: twin_property
+    timestamp: now()
+  }
+}
+
+@trait iot_actuator {
+  // Physical actuator device identifier
+  device_id: String
+
+  // Action range [min, max] or discrete states list — prevents hardware damage
+  action_range: Array<Float> = []
+
+  // Require acknowledgment from device before emitting "action_sent"
+  require_ack: Bool = false
+
+  capability_tags: ["iot_actuator", "digital_twin", "hardware_control", "actuator", "iot"]
+
+  @on_spawn => {
+    actuator = connect_actuator({ device_id: device_id, action_range: action_range })
+    emit("actuator_connected", { device_id: device_id })
+  }
+
+  @on_command(value) => {
+    // Clamp to action_range if provided (hardware damage prevention)
+    safe_value = value
+    if len(action_range) == 2 {
+      safe_value = clamp(value, action_range[0], action_range[1])
+    }
+    if safe_value != value {
+      emit("actuator_clamped", { device_id: device_id, requested: value, clamped: safe_value })
+    }
+    result = actuator.send_command(safe_value, require_ack: require_ack)
+    emit("actuator_command_sent", { device_id: device_id, value: safe_value, ack: result.acked })
+    return result
+  }
+
+  @on_despawn => {
+    actuator.disconnect()
+    emit("actuator_disconnected", { device_id: device_id })
+  }
+
+  @receipt iot_actuator_config {
+    type: "IoTActuatorReceipt"
+    device_id: device_id
+    require_ack: require_ack
+    timestamp: now()
+  }
+}

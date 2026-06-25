@@ -1,0 +1,92 @@
+// @web3_connector — Pluggable web3 protocol bridge for wallet/NFT/token-gate ops.
+//
+// Native .hsplus surface for Web3Connector.ts (platform/web3).
+//
+// Protocol (Web3Connector.ts):
+//   Core traits (WalletTrait, NFTTrait, TokenGatedTrait) EMIT request events;
+//   the connector FULFILLS them and dispatches responses back via context.emit().
+//   Production implementation: marketplace-api via viem.
+//   Test implementation: MockWeb3Connector (zero dependencies).
+//
+// Web3ConnectorConfig: { chain?, rpcUrl? }
+//
+// Operations:
+//   connect_wallet     — connect a wallet by provider + chainId
+//   verify_nft         — on-chain NFT ownership check (ERC-721 / ERC-1155)
+//   check_token_balance — ERC-20 / ERC-1155 balance for token-gating
+//   resolve_ens        — ENS name + avatar resolution (optional)
+//   get_token_metadata — NFT metadata (name, description, image, attributes)
+//
+// Chain identity notes (I.022 / NORTH_STAR_HARDWARE):
+//   Agent wallet addresses are Base L2. This connector routes by chain field —
+//   never hardcode a chain; always pass the chain from the trait's config.
+
+@trait web3_connector {
+  // Default chain (e.g. "base", "ethereum", "polygon")
+  chain: String = "base"
+
+  // Optional RPC endpoint override (empty = use connector default)
+  rpc_url: String? = null
+
+  // Connector implementation name (injected at spawn)
+  connector_name: String = "viem"
+
+  capability_tags: ["web3_connector", "wallet", "nft_verification", "token_gate", "ens_resolution", "base_l2"]
+
+  @on_spawn => {
+    connector = init_web3_connector({
+      chain: chain,
+      rpc_url: rpc_url,
+      connector_name: connector_name
+    })
+    emit("web3_connector_ready", {
+      chain: chain,
+      connector: connector_name
+    })
+  }
+
+  @on_connect_wallet(provider, chain_id) => {
+    result = connector.connect_wallet({ provider: provider, chain_id: chain_id })
+    emit("wallet_connected", { address: result.address, chain_id: result.chain_id })
+    return result
+  }
+
+  @on_verify_nft(contract_address, token_id, standard) => {
+    result = connector.verify_nft_ownership({
+      chain: chain,
+      contract_address: contract_address,
+      token_id: token_id,
+      standard: standard ?? "ERC-721",
+      rpc_endpoint: rpc_url
+    })
+    emit("nft_verified", {
+      contract: contract_address,
+      token_id: token_id,
+      owner: result.owner_address
+    })
+    return result
+  }
+
+  @on_check_token_balance(contract_address, address, token_type, token_id) => {
+    result = connector.check_token_balance({
+      chain: chain,
+      contract_address: contract_address,
+      token_id: token_id,
+      token_type: token_type,
+      address: address
+    })
+    return result
+  }
+
+  @on_resolve_ens(address) => {
+    result = connector.resolve_ens({ address: address })
+    return result
+  }
+
+  @receipt web3_connector_config {
+    type: "Web3ConnectorReceipt"
+    chain: chain
+    connector_name: connector_name
+    timestamp: now()
+  }
+}
