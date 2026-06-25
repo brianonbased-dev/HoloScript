@@ -1,0 +1,39 @@
+// @provision — Device-flow provisioning + broker integration for AI surfaces.
+//
+// Native .hsplus surface for provision.ts (secrets-broker).
+//
+// Generalises per-brain HOLOMESH_API_KEY_<HANDLE>_X402 pattern into a public service:
+// pair once → server holds wallets/bearers → any surface gets short-lived scoped capabilities.
+//
+// This module defines the INTERFACE for x402+broker provisioning. A concrete adapter
+// (e.g. @holoscript/holoscript-agent/provision or cloud HSM) implements provision_agent.
+//
+// ProvisionSurfaceInput (provision.ts):
+//   handle, surface: mobile|desktop|headless|web, mesh_api_base?, founder_bearer, auto_join_team_id?
+//
+// ProvisionAdapter { provision_agent(input, opts: { execute, force? }) → DeviceFlowProvisionResult }
+//
+// SECURITY: secret material (private key, bearer token) NEVER leaves the trusted context.
+// @needs_key applies to the founder_bearer field — transient reference only.
+
+@trait provision {
+  capability_tags: ["provision", "device_flow", "x402", "surface_provisioning", "secrets_broker"]
+
+  @on_spawn(adapter) => {
+    provisioner = init_provision({ adapter: adapter })
+    emit("provision_ready", {})
+  }
+
+  @on_provision_surface(input, options) => {
+    result = provisioner.provision_surface(input, options)
+    emit("surface_provisioned", { handle: input.handle, surface: input.surface })
+    return result
+  }
+
+  @receipt provision_config {
+    type: "ProvisionReceipt"
+    pattern: "pair once; server holds wallets/bearers; surface gets scoped short-lived capabilities"
+    secret_material: "NEVER leaves trusted context"
+    timestamp: now()
+  }
+}

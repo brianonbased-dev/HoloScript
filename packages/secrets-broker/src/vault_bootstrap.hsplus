@@ -1,0 +1,49 @@
+// @vault_bootstrap — Assembles the HoloKey vault from config (flag-gated, fail-safe).
+//
+// Native .hsplus surface for vault-bootstrap.ts (secrets-broker).
+//
+// Phase 0 of the operational-secret migration. The factory assembles:
+//   SecretStore + Postgres/in-memory backend + KEK provider + SecretResolver
+// → a single HoloKeyVault that agents/services can put/get/resolve at runtime.
+//
+// FLAG-GATED: no KEK configured → returns null (caller falls back to prior behavior).
+// A misconfigured prod KEK (dev KEK under NODE_ENV=production) → logs and returns null (no throw).
+// Wiring createHoloKeyVault() into a server bootstrap is purely additive — absent config = prior behavior.
+//
+// Bootstrap secret model:
+//   ONE KEK (Railway managed/sealed var) + DB URL → decrypts every other secret from vault at runtime.
+//   N plaintext keys per service → 1 rotatable KEK.
+//
+// HoloKeyVault (vault-bootstrap.ts):
+//   store:    SecretStore           — encrypt/store/delete/rotate
+//   resolver: SecretResolver        — fail-closed, audited value resolution
+//   kek_grade: "production" | "dev" — KMS/scoped-keyring vs env KEK
+//   backend:  "postgres" | "in-memory"
+//
+// PROD_KEK_CURRENT_ENV = "HOLOKEY_PROD_KEK_CURRENT"
+// createHoloKeyVault({ env?, query? }) → HoloKeyVault | null
+
+@trait vault_bootstrap {
+  capability_tags: ["vault_bootstrap", "holokey", "flag_gated", "fail_safe", "production", "secrets_broker"]
+
+  @on_spawn(opts) => {
+    vault = create_holo_key_vault(opts)
+    if vault != null {
+      emit("vault_bootstrap_ready", { kek_grade: vault.kek_grade, backend: vault.backend })
+    } else {
+      emit("vault_bootstrap_skipped", { reason: "no KEK configured or misconfigured" })
+    }
+  }
+
+  @on_get_vault => {
+    return vault
+  }
+
+  @receipt vault_bootstrap_config {
+    type: "VaultBootstrapReceipt"
+    flag_gated: "returns null when no KEK configured — caller must handle null"
+    fail_safe: "misconfigured prod KEK → null + log (never throws)"
+    prod_kek_env: "HOLOKEY_PROD_KEK_CURRENT"
+    timestamp: now()
+  }
+}

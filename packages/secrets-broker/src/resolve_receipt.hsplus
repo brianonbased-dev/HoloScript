@@ -1,0 +1,48 @@
+// @resolve_receipt — SHA-256 hash-chained audit receipts for the HoloKey resolve log.
+//
+// Native .hsplus surface for resolve-receipt.ts (secrets-broker).
+//
+// Seals each SecretResolveAudit into a hash-chained receipt — SHA-256 over the audit
+// content + prevHash — making the log append-only and tamper-evident. Any edit,
+// deletion, or reorder breaks the chain (detected by verifyResolveReceiptChain).
+//
+// This is HoloKey's contribution to HoloGate's audit-receipt-chain (`verify_cael_trace`):
+// the `log` step in identify → authorize → scope → admit → log.
+//
+// SecretResolveReceipt (resolve-receipt.ts):
+//   extends SecretResolveAudit
+//   prev_hash: String | null  — null at genesis
+//   receipt_hash: "sha256:<hex>" — SHA-256 over [event, owner_id, ref, purpose, outcome, reason, at, prev_hash]
+//
+// ZERO secret material — only owner, ref, outcome, reason, time, and hashes.
+// Additive and side-effect-free: the resolver is untouched; an audit sink seals + persists.
+//
+// Functions: sealResolveReceipt(audit, prevHash) → SecretResolveReceipt
+//            verifyResolveReceiptChain(receipts) → { valid, brokenAt? }
+
+@trait resolve_receipt {
+  capability_tags: ["resolve_receipt", "audit_chain", "hash_chain", "hologate_log", "secrets_broker"]
+
+  @on_spawn => {
+    sealer = init_resolve_receipt_sealer()
+    emit("resolve_receipt_ready", {})
+  }
+
+  @on_seal(audit, prev_hash) => {
+    receipt = sealer.seal(audit, prev_hash)
+    emit("receipt_sealed", { owner_id: audit.owner_id, ref: audit.ref, outcome: audit.outcome })
+    return receipt
+  }
+
+  @on_verify_chain(receipts) => {
+    return sealer.verify_chain(receipts)
+  }
+
+  @receipt resolve_receipt_config {
+    type: "ResolveReceiptReceipt"
+    hash: "SHA-256 over [event,owner_id,ref,purpose,outcome,reason,at,prev_hash]"
+    no_secret_material: true
+    hologate_axis: "log step: identify→authorize→scope→admit→log"
+    timestamp: now()
+  }
+}

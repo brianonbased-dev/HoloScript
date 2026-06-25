@@ -1,0 +1,49 @@
+// @postgres_lease_adapter — Production Postgres-backed lease adapter for the secrets broker.
+//
+// Native .hsplus surface for postgres-lease-adapter.ts (secrets-broker).
+//
+// resolveLease answers ONLY: "may this agent read this ref under this lease?"
+// NEVER returns secret material — that's the SecretStore's job AFTER lease check passes.
+//
+// Decoupling: takes an INJECTED query runner (not a hardcoded pg.Pool).
+// Compatible with pg.Pool#query (the in-repo pattern from mcp-server + holomesh stores).
+// No driver runtime dep — only `node:crypto` (randomUUID for lease IDs).
+//
+// Lease schema: `secret_leases` table (SECRET_LEASES_DDL in postgres-lease-adapter.ts).
+//
+// LeaseQueryRunner { query(sql, params) → { rows } }
+// PostgresLeaseAdapterDeps { query }
+// createPostgresLeaseAdapter(deps) → LeaseAdapter
+// SECRET_LEASES_DDL — table DDL to run before first use
+
+@trait postgres_lease_adapter {
+  capability_tags: ["postgres_lease_adapter", "vault_lease", "postgres", "production", "secrets_broker"]
+
+  @on_spawn(query_runner) => {
+    adapter = create_postgres_lease_adapter({ query: query_runner })
+    emit("postgres_lease_adapter_ready", {})
+  }
+
+  @on_issue_lease(task_id, agent_id, scope, duration_ms) => {
+    result = adapter.issue_lease({ task_id: task_id, agent_id: agent_id, scope: scope, duration_ms: duration_ms })
+    emit("lease_issued", { lease_id: result.lease_id })
+    return result
+  }
+
+  @on_resolve_lease(lease_id, ref) => {
+    return adapter.resolve_lease({ lease_id: lease_id, ref: ref })
+  }
+
+  @on_revoke_lease(lease_id) => {
+    adapter.revoke_lease({ lease_id: lease_id })
+    emit("lease_revoked", { lease_id: lease_id })
+  }
+
+  @receipt postgres_lease_adapter_config {
+    type: "PostgresLeaseAdapterReceipt"
+    backend: "Postgres (durable, production)"
+    no_secret_values: "resolveLease = boolean gate only; secret fetched separately by SecretStore"
+    driver_dep: "none — injected query runner only"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,53 @@
+// @lease_adapter — Interface + in-memory implementation for vault-lease adapters.
+//
+// Native .hsplus surface for lease-adapter.ts (secrets-broker).
+//
+// The broker NEVER stores leases directly — it delegates to an adapter.
+// Adapters wrap a vault implementation (HoloMesh vault-lease-registry,
+// HashiCorp Vault, AWS Secrets Manager, or in-memory mock for tests).
+//
+// LeaseAdapter (types.ts contract):
+//   issue_lease(params) → { lease_id, expires_at }
+//   resolve_lease(params) → { ok, reason? }
+//   revoke_lease(params) → void
+//
+// MemoryLeaseAdapter (lease-adapter.ts):
+//   createMemoryLeaseAdapter() → LeaseAdapter
+//   NOT for production — leases evaporate on process exit.
+//   Default duration: 15 minutes.
+//
+// @needs_key: secret values NEVER flow through the lease adapter — only handles.
+
+@trait lease_adapter {
+  default_duration_ms: Int = 900000
+
+  capability_tags: ["lease_adapter", "vault_lease", "in_memory", "test_only", "secrets_broker"]
+
+  @on_spawn => {
+    adapter = create_memory_lease_adapter({ default_duration_ms: default_duration_ms })
+    emit("lease_adapter_ready", { backend: "memory" })
+  }
+
+  @on_issue_lease(task_id, agent_id, scope, duration_ms) => {
+    result = adapter.issue_lease({ task_id: task_id, agent_id: agent_id, scope: scope, duration_ms: duration_ms })
+    emit("lease_issued", { lease_id: result.lease_id, expires_at: result.expires_at })
+    return result
+  }
+
+  @on_resolve_lease(lease_id, ref) => {
+    return adapter.resolve_lease({ lease_id: lease_id, ref: ref })
+  }
+
+  @on_revoke_lease(lease_id) => {
+    adapter.revoke_lease({ lease_id: lease_id })
+    emit("lease_revoked", { lease_id: lease_id })
+  }
+
+  @receipt lease_adapter_config {
+    type: "LeaseAdapterReceipt"
+    backend: "memory (test/dev ONLY — not production)"
+    default_duration_ms: default_duration_ms
+    no_secret_values: "lease adapter NEVER touches secret values — handles only"
+    timestamp: now()
+  }
+}
