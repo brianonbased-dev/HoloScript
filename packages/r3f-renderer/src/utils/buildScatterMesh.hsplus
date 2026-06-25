@@ -1,0 +1,10 @@
+// @build_scatter_mesh — Build scatter mesh: constructs instanced scatter mesh geometry from .holo scatter declarations.
+//
+// Native .hsplus surface for r3f-renderer/src/utils/buildScatterMesh.ts.
+
+@trait build_scatter_mesh {
+  capability_tags: ["build_scatter_mesh", "holo_scatter_instanced", "r3f_scatter_geometry", "r3f_renderer"]
+  @on_spawn => { emit("build_scatter_mesh_ready", {}) }
+  @on_build(scatter_spec) => { mesh = build_scatter_instance_mesh(scatter_spec); return mesh }
+  @receipt build_scatter_mesh_config { type: "BuildScatterMeshReceipt"; timestamp: now() }
+}

@@ -1,0 +1,9 @@
+// @neural_activity_types — Neural activity types: type definitions for neural activity visualization state.
+//
+// Native .hsplus surface for snn-webgpu/src/neural-activity/types.ts.
+
+@trait neural_activity_types {
+  capability_tags: ["neural_activity_types", "neural_activity_schema", "neural_viz_types", "snn_webgpu"]
+  @on_spawn => { emit("neural_activity_types_ready", {}) }
+  @receipt neural_activity_types_config { type: "NeuralActivityTypesReceipt"; timestamp: now() }
+}

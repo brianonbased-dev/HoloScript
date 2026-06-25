@@ -1,0 +1,9 @@
+// @snn_experiments_index — SNN experiments index: entry point for WebGPU SNN experiment runners.
+//
+// Native .hsplus surface for snn-webgpu/src/experiments/index.ts.
+
+@trait snn_experiments_index {
+  capability_tags: ["snn_experiments_index", "snn_experiment_entry", "webgpu_snn_experiments", "snn_webgpu"]
+  @on_spawn => { emit("snn_experiments_index_ready", {}) }
+  @receipt snn_experiments_index_config { type: "SnnExperimentsIndexReceipt"; timestamp: now() }
+}

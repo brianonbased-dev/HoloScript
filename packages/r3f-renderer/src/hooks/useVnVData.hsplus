@@ -1,0 +1,10 @@
+// @use_vnv_data — useVnVData hook: fetches Verification and Validation trace data for R3F debug overlays.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useVnVData.ts.
+
+@trait use_vnv_data {
+  capability_tags: ["use_vnv_data", "vnv_trace_data", "r3f_debug_overlay", "r3f_renderer"]
+  @on_spawn => { emit("use_vnv_data_ready", {}) }
+  @on_fetch(trace_id) => { data = fetch_vnv_trace_data(trace_id); return data }
+  @receipt use_vnv_data_config { type: "UseVnVDataReceipt"; timestamp: now() }
+}

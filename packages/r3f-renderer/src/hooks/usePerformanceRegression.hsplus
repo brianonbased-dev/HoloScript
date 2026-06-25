@@ -1,0 +1,10 @@
+// @use_performance_regression — usePerformanceRegression hook: monitors R3F renderer performance and detects regressions.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/usePerformanceRegression.ts.
+
+@trait use_performance_regression {
+  capability_tags: ["use_performance_regression", "r3f_perf_monitor", "renderer_regression_detect", "r3f_renderer"]
+  @on_spawn => { emit("use_performance_regression_ready", {}) }
+  @on_sample(frame_metrics) => { regression = detect_performance_regression(frame_metrics); return regression }
+  @receipt use_performance_regression_config { type: "UsePerformanceRegressionReceipt"; timestamp: now() }
+}

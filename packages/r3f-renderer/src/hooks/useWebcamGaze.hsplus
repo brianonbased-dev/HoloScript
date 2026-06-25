@@ -1,0 +1,10 @@
+// @use_webcam_gaze — useWebcamGaze hook: tracks user gaze direction via webcam for R3F gaze-based interactions.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useWebcamGaze.ts.
+
+@trait use_webcam_gaze {
+  capability_tags: ["use_webcam_gaze", "webcam_gaze_tracking", "r3f_gaze_interaction", "r3f_renderer"]
+  @on_spawn => { emit("use_webcam_gaze_ready", {}) }
+  @on_update(webcam_frame) => { gaze = estimate_webcam_gaze(webcam_frame); return gaze }
+  @receipt use_webcam_gaze_config { type: "UseWebcamGazeReceipt"; timestamp: now() }
+}

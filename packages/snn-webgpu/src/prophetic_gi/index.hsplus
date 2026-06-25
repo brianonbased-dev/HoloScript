@@ -1,0 +1,9 @@
+// @prophetic_gi_index — Prophetic GI index: entry point for SNN-driven prophetic global illumination system.
+//
+// Native .hsplus surface for snn-webgpu/src/prophetic-gi/index.ts.
+
+@trait prophetic_gi_index {
+  capability_tags: ["prophetic_gi_index", "prophetic_gi_entry", "snn_global_illumination", "snn_webgpu"]
+  @on_spawn => { emit("prophetic_gi_index_ready", {}) }
+  @receipt prophetic_gi_index_config { type: "PropheticGiIndexReceipt"; timestamp: now() }
+}

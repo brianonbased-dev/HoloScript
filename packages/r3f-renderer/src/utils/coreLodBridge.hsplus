@@ -1,0 +1,10 @@
+// @core_lod_bridge — Core LOD bridge: bridges @holoscript/core LOD declarations to R3F LOD component hierarchy.
+//
+// Native .hsplus surface for r3f-renderer/src/utils/coreLodBridge.ts.
+
+@trait core_lod_bridge {
+  capability_tags: ["core_lod_bridge", "core_to_r3f_lod", "lod_component_bridge", "r3f_renderer"]
+  @on_spawn => { emit("core_lod_bridge_ready", {}) }
+  @on_bridge(lod_spec) => { r3f_lod = bridge_core_lod(lod_spec); return r3f_lod }
+  @receipt core_lod_bridge_config { type: "CoreLodBridgeReceipt"; timestamp: now() }
+}

@@ -1,0 +1,9 @@
+// @snn_poc_index — SNN PoC index: entry point for proof-of-concept SNN implementations.
+//
+// Native .hsplus surface for snn-webgpu/src/poc/index.ts.
+
+@trait snn_poc_index {
+  capability_tags: ["snn_poc_index", "snn_proof_of_concept_entry", "snn_poc", "snn_webgpu"]
+  @on_spawn => { emit("snn_poc_index_ready", {}) }
+  @receipt snn_poc_index_config { type: "SnnPocIndexReceipt"; timestamp: now() }
+}

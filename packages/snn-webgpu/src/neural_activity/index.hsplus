@@ -1,0 +1,9 @@
+// @neural_activity_index — Neural activity index: entry point for WebGPU neural activity visualization.
+//
+// Native .hsplus surface for snn-webgpu/src/neural-activity/index.ts.
+
+@trait neural_activity_index {
+  capability_tags: ["neural_activity_index", "neural_activity_viz_entry", "webgpu_neural_activity", "snn_webgpu"]
+  @on_spawn => { emit("neural_activity_index_ready", {}) }
+  @receipt neural_activity_index_config { type: "NeuralActivityIndexReceipt"; timestamp: now() }
+}

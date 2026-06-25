@@ -1,0 +1,10 @@
+// @use_holo_textures — useHoloTextures hook: loads and manages .holo-compiled texture assets for R3F materials.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useHoloTextures.ts.
+
+@trait use_holo_textures {
+  capability_tags: ["use_holo_textures", "holo_texture_loading", "r3f_texture_management", "r3f_renderer"]
+  @on_spawn => { emit("use_holo_textures_ready", {}) }
+  @on_load(texture_refs) => { textures = load_holo_textures(texture_refs); return textures }
+  @receipt use_holo_textures_config { type: "UseHoloTexturesReceipt"; timestamp: now() }
+}

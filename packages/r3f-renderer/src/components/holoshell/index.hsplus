@@ -1,0 +1,9 @@
+// @holoshell_r3f_index — HoloShell R3F component index: entry point for HoloShell R3F integration components.
+//
+// Native .hsplus surface for r3f-renderer/src/components/holoshell/index.ts.
+
+@trait holoshell_r3f_index {
+  capability_tags: ["holoshell_r3f_index", "holoshell_r3f_components", "holoshell_renderer_entry", "r3f_renderer"]
+  @on_spawn => { emit("holoshell_r3f_index_ready", {}) }
+  @receipt holoshell_r3f_index_config { type: "HoloshellR3FIndexReceipt"; timestamp: now() }
+}

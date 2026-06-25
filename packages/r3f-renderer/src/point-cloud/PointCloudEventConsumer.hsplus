@@ -1,0 +1,10 @@
+// @point_cloud_event_consumer — Point cloud event consumer: consumes live point cloud events for R3F real-time visualization.
+//
+// Native .hsplus surface for r3f-renderer/src/point-cloud/PointCloudEventConsumer.ts.
+
+@trait point_cloud_event_consumer {
+  capability_tags: ["point_cloud_event_consumer", "live_point_cloud", "r3f_point_cloud_viz", "r3f_renderer"]
+  @on_spawn => { emit("point_cloud_event_consumer_ready", {}) }
+  @on_event(point_cloud_event) => { consume_point_cloud_event(point_cloud_event) }
+  @receipt point_cloud_event_consumer_config { type: "PointCloudEventConsumerReceipt"; timestamp: now() }
+}

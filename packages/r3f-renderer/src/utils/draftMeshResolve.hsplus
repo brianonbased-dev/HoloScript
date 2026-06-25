@@ -1,0 +1,10 @@
+// @draft_mesh_resolve — Draft mesh resolve: resolves draft/placeholder mesh references to final geometry in R3F.
+//
+// Native .hsplus surface for r3f-renderer/src/utils/draftMeshResolve.ts.
+
+@trait draft_mesh_resolve {
+  capability_tags: ["draft_mesh_resolve", "draft_mesh_to_geometry", "r3f_placeholder_resolve", "r3f_renderer"]
+  @on_spawn => { emit("draft_mesh_resolve_ready", {}) }
+  @on_resolve(draft_ref) => { geo = resolve_draft_mesh(draft_ref); return geo }
+  @receipt draft_mesh_resolve_config { type: "DraftMeshResolveReceipt"; timestamp: now() }
+}

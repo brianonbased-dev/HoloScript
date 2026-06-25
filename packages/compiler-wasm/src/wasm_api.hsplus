@@ -1,0 +1,11 @@
+// @wasm_api — WASM API: public API surface for the compiler-wasm Rust+WASM parser/compiler bridge.
+//
+// Native .hsplus surface for compiler-wasm/src/wasm-api.ts.
+
+@trait wasm_api {
+  capability_tags: ["wasm_api", "rust_wasm_parser_bridge", "compiler_wasm_public", "compiler_wasm"]
+  @on_spawn => { emit("wasm_api_ready", {}) }
+  @on_parse(source) => { result = wasm_parse(source); return result }
+  @on_compile(ast, target) => { result = wasm_compile(ast, target); return result }
+  @receipt wasm_api_config { type: "WasmApiReceipt"; timestamp: now() }
+}

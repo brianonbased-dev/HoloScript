@@ -1,0 +1,10 @@
+// @gap_handler — Gap handler: handles spatial rendering gaps and missing geometry in R3F scenes.
+//
+// Native .hsplus surface for r3f-renderer/src/components/spatial-tools/GapHandler.ts.
+
+@trait gap_handler {
+  capability_tags: ["gap_handler", "spatial_gap_fill", "missing_geometry_handler", "r3f_renderer"]
+  @on_spawn => { emit("gap_handler_ready", {}) }
+  @on_fill(gap_region) => { fill = handle_spatial_gap(gap_region); return fill }
+  @receipt gap_handler_config { type: "GapHandlerReceipt"; timestamp: now() }
+}

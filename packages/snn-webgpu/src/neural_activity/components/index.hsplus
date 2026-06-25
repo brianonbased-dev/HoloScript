@@ -1,0 +1,9 @@
+// @neural_activity_components_index — Neural activity components index: entry point for neural activity React components.
+//
+// Native .hsplus surface for snn-webgpu/src/neural-activity/components/index.ts.
+
+@trait neural_activity_components_index {
+  capability_tags: ["neural_activity_components_index", "neural_viz_components_entry", "webgpu_neural_components", "snn_webgpu"]
+  @on_spawn => { emit("neural_activity_components_index_ready", {}) }
+  @receipt neural_activity_components_index_config { type: "NeuralActivityComponentsIndexReceipt"; timestamp: now() }
+}

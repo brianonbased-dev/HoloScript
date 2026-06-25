@@ -1,0 +1,10 @@
+// @partition_studio_children — Partition studio children: partitions R3F children into renderable and non-renderable groups for Studio.
+//
+// Native .hsplus surface for r3f-renderer/src/utils/partitionStudioChildren.ts.
+
+@trait partition_studio_children {
+  capability_tags: ["partition_studio_children", "r3f_studio_partition", "studio_child_grouping", "r3f_renderer"]
+  @on_spawn => { emit("partition_studio_children_ready", {}) }
+  @on_partition(children) => { groups = partition_studio_children_fn(children); return groups }
+  @receipt partition_studio_children_config { type: "PartitionStudioChildrenReceipt"; timestamp: now() }
+}

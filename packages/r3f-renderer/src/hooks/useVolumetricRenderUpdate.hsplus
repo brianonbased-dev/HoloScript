@@ -1,0 +1,10 @@
+// @use_volumetric_render_update — useVolumetricRenderUpdate hook: drives per-frame volumetric rendering updates in R3F.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useVolumetricRenderUpdate.ts.
+
+@trait use_volumetric_render_update {
+  capability_tags: ["use_volumetric_render_update", "volumetric_frame_update", "r3f_volumetric", "r3f_renderer"]
+  @on_spawn => { emit("use_volumetric_render_update_ready", {}) }
+  @on_frame(frame_data) => { update_volumetric_render(frame_data) }
+  @receipt use_volumetric_render_update_config { type: "UseVolumetricRenderUpdateReceipt"; timestamp: now() }
+}

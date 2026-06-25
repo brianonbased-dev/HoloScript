@@ -1,0 +1,10 @@
+// @domain_taxonomy — Domain taxonomy: spatial domain taxonomy tree for R3F renderer tool classification.
+//
+// Native .hsplus surface for r3f-renderer/src/components/spatial-tools/DomainTaxonomy.ts.
+
+@trait domain_taxonomy {
+  capability_tags: ["domain_taxonomy", "spatial_domain_taxonomy", "tool_classification_tree", "r3f_renderer"]
+  @on_spawn => { emit("domain_taxonomy_ready", {}) }
+  @on_classify(tool_name) => { domain = classify_tool_domain(tool_name); return domain }
+  @receipt domain_taxonomy_config { type: "DomainTaxonomyReceipt"; timestamp: now() }
+}

@@ -1,0 +1,9 @@
+// @snn_webgpu_index — SNN-WebGPU package index: entry point surface for spiking neural network WebGPU exports.
+//
+// Native .hsplus surface for snn-webgpu/src/index.ts.
+
+@trait snn_webgpu_index {
+  capability_tags: ["snn_webgpu_index", "snn_package_entry", "webgpu_snn_exports", "snn_webgpu"]
+  @on_spawn => { emit("snn_webgpu_index_ready", {}) }
+  @receipt snn_webgpu_index_config { type: "SnnWebgpuIndexReceipt"; timestamp: now() }
+}

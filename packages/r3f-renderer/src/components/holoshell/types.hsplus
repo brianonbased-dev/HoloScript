@@ -1,0 +1,9 @@
+// @holoshell_r3f_types — HoloShell R3F types: type definitions for HoloShell R3F component integration.
+//
+// Native .hsplus surface for r3f-renderer/src/components/holoshell/types.ts.
+
+@trait holoshell_r3f_types {
+  capability_tags: ["holoshell_r3f_types", "holoshell_r3f_schema", "holoshell_component_types", "r3f_renderer"]
+  @on_spawn => { emit("holoshell_r3f_types_ready", {}) }
+  @receipt holoshell_r3f_types_config { type: "HoloshellR3FTypesReceipt"; timestamp: now() }
+}

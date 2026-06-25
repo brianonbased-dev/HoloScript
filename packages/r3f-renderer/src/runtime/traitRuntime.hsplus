@@ -1,0 +1,10 @@
+// @trait_runtime — Trait runtime: R3F runtime that executes .hsplus trait behavior declarations in a live scene.
+//
+// Native .hsplus surface for r3f-renderer/src/runtime/traitRuntime.ts.
+
+@trait trait_runtime {
+  capability_tags: ["trait_runtime", "hsplus_trait_execution", "r3f_trait_live", "r3f_renderer"]
+  @on_spawn => { emit("trait_runtime_ready", {}) }
+  @on_exec(trait_def, scene_ctx) => { result = execute_trait_in_r3f(trait_def, scene_ctx); return result }
+  @receipt trait_runtime_config { type: "TraitRuntimeReceipt"; timestamp: now() }
+}

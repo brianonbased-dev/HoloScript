@@ -1,0 +1,10 @@
+// @use_gpu_splat_sort — useGpuSplatSort hook: GPU-accelerated depth sorting for Gaussian splat rendering.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useGpuSplatSort.ts.
+
+@trait use_gpu_splat_sort {
+  capability_tags: ["use_gpu_splat_sort", "gpu_splat_depth_sort", "gaussian_splat_sort", "r3f_renderer"]
+  @on_spawn => { emit("use_gpu_splat_sort_ready", {}) }
+  @on_sort(splat_data, camera) => { sorted = gpu_sort_splats(splat_data, camera); return sorted }
+  @receipt use_gpu_splat_sort_config { type: "UseGpuSplatSortReceipt"; timestamp: now() }
+}

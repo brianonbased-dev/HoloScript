@@ -1,0 +1,9 @@
+// @neural_activity_hooks_index — Neural activity hooks index: entry point for WebGPU neural activity React hooks.
+//
+// Native .hsplus surface for snn-webgpu/src/neural-activity/hooks/index.ts.
+
+@trait neural_activity_hooks_index {
+  capability_tags: ["neural_activity_hooks_index", "neural_viz_hooks_entry", "webgpu_neural_hooks", "snn_webgpu"]
+  @on_spawn => { emit("neural_activity_hooks_index_ready", {}) }
+  @receipt neural_activity_hooks_index_config { type: "NeuralActivityHooksIndexReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @dumb_glass_wgsl — Dumb glass WGSL: minimal WebGPU glass/transparency shader implementation for R3F.
+//
+// Native .hsplus surface for r3f-renderer/src/utils/dumb-glass-wgsl.ts.
+
+@trait dumb_glass_wgsl {
+  capability_tags: ["dumb_glass_wgsl", "webgpu_glass_shader", "r3f_transparency", "r3f_renderer"]
+  @on_spawn => { emit("dumb_glass_wgsl_ready", {}) }
+  @on_get_shader => { return get_dumb_glass_wgsl_shader() }
+  @receipt dumb_glass_wgsl_config { type: "DumbGlassWgslReceipt"; timestamp: now() }
+}

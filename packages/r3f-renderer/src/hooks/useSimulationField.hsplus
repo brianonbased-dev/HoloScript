@@ -1,0 +1,10 @@
+// @use_simulation_field — useSimulationField hook: subscribes to .holo simulation field data for R3F visualization.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useSimulationField.ts.
+
+@trait use_simulation_field {
+  capability_tags: ["use_simulation_field", "holo_simulation_field", "r3f_physics_viz", "r3f_renderer"]
+  @on_spawn => { emit("use_simulation_field_ready", {}) }
+  @on_tick(sim_state) => { field = update_simulation_field(sim_state); return field }
+  @receipt use_simulation_field_config { type: "UseSimulationFieldReceipt"; timestamp: now() }
+}

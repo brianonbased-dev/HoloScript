@@ -1,0 +1,10 @@
+// @scene_reconstruction_consumer — Scene reconstruction consumer: consumes 3D scene reconstruction data for R3F mesh updates.
+//
+// Native .hsplus surface for r3f-renderer/src/reconstruction/SceneReconstructionConsumer.ts.
+
+@trait scene_reconstruction_consumer {
+  capability_tags: ["scene_reconstruction_consumer", "3d_scene_reconstruction", "r3f_mesh_update", "r3f_renderer"]
+  @on_spawn => { emit("scene_reconstruction_consumer_ready", {}) }
+  @on_event(reconstruction_event) => { consume_scene_reconstruction_event(reconstruction_event) }
+  @receipt scene_reconstruction_consumer_config { type: "SceneReconstructionConsumerReceipt"; timestamp: now() }
+}

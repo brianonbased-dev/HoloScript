@@ -1,0 +1,9 @@
+// @r3f_renderer_index — R3F renderer index: package entry point for React Three Fiber renderer exports.
+//
+// Native .hsplus surface for r3f-renderer/src/index.ts.
+
+@trait r3f_renderer_index {
+  capability_tags: ["r3f_renderer_index", "r3f_package_entry", "react_three_fiber_renderer", "r3f_renderer"]
+  @on_spawn => { emit("r3f_renderer_index_ready", {}) }
+  @receipt r3f_renderer_index_config { type: "R3FRendererIndexReceipt"; timestamp: now() }
+}

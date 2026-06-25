@@ -1,0 +1,10 @@
+// @procedural_textures — Procedural textures: runtime generation of procedural texture maps for R3F materials.
+//
+// Native .hsplus surface for r3f-renderer/src/runtime/proceduralTextures.ts.
+
+@trait procedural_textures {
+  capability_tags: ["procedural_textures", "runtime_procedural_texture", "r3f_texture_generation", "r3f_renderer"]
+  @on_spawn => { emit("procedural_textures_ready", {}) }
+  @on_generate(spec) => { tex = generate_runtime_procedural_texture(spec); return tex }
+  @receipt procedural_textures_config { type: "ProceduralTexturesReceipt"; timestamp: now() }
+}

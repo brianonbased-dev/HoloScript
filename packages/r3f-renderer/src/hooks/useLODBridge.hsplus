@@ -1,0 +1,10 @@
+// @use_lod_bridge — useLODBridge hook: bridges .holo LOD (Level of Detail) declarations to R3F scene management.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useLODBridge.ts.
+
+@trait use_lod_bridge {
+  capability_tags: ["use_lod_bridge", "holo_lod_bridge", "r3f_lod_management", "r3f_renderer"]
+  @on_spawn => { emit("use_lod_bridge_ready", {}) }
+  @on_update(lod_state) => { r3f_lod = bridge_lod_to_r3f(lod_state); return r3f_lod }
+  @receipt use_lod_bridge_config { type: "UseLODBridgeReceipt"; timestamp: now() }
+}

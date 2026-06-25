@@ -1,0 +1,10 @@
+// @volumetric_render_update_consumer — Volumetric render update consumer: consumes volumetric rendering update events for R3F.
+//
+// Native .hsplus surface for r3f-renderer/src/volumetric/VolumetricRenderUpdateConsumer.ts.
+
+@trait volumetric_render_update_consumer {
+  capability_tags: ["volumetric_render_update_consumer", "volumetric_event_consume", "r3f_volumetric_update", "r3f_renderer"]
+  @on_spawn => { emit("volumetric_render_update_consumer_ready", {}) }
+  @on_event(volumetric_event) => { consume_volumetric_render_update(volumetric_event) }
+  @receipt volumetric_render_update_consumer_config { type: "VolumetricRenderUpdateConsumerReceipt"; timestamp: now() }
+}

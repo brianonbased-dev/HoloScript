@@ -1,0 +1,9 @@
+// @prophetic_gi_types — Prophetic GI types: type definitions for SNN-driven global illumination state.
+//
+// Native .hsplus surface for snn-webgpu/src/prophetic-gi/types.ts.
+
+@trait prophetic_gi_types {
+  capability_tags: ["prophetic_gi_types", "prophetic_gi_schema", "snn_gi_types", "snn_webgpu"]
+  @on_spawn => { emit("prophetic_gi_types_ready", {}) }
+  @receipt prophetic_gi_types_config { type: "PropheticGiTypesReceipt"; timestamp: now() }
+}

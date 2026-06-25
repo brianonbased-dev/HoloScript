@@ -1,0 +1,10 @@
+// @use_hologram_mcp_content — useHologramMcpContent hook: fetches hologram content via MCP for R3F display.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useHologramMcpContent.ts.
+
+@trait use_hologram_mcp_content {
+  capability_tags: ["use_hologram_mcp_content", "hologram_mcp_fetch", "r3f_hologram_content", "r3f_renderer"]
+  @on_spawn => { emit("use_hologram_mcp_content_ready", {}) }
+  @on_fetch(hologram_id) => { content = fetch_hologram_mcp_content(hologram_id); return content }
+  @receipt use_hologram_mcp_content_config { type: "UseHologramMcpContentReceipt"; timestamp: now() }
+}

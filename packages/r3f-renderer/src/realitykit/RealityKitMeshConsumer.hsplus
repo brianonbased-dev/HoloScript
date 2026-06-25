@@ -1,0 +1,10 @@
+// @reality_kit_mesh_consumer — RealityKit mesh consumer: consumes RealityKit mesh events for R3F scene updates.
+//
+// Native .hsplus surface for r3f-renderer/src/realitykit/RealityKitMeshConsumer.ts.
+
+@trait reality_kit_mesh_consumer {
+  capability_tags: ["reality_kit_mesh_consumer", "realitykit_mesh_event", "r3f_realitykit_bridge", "r3f_renderer"]
+  @on_spawn => { emit("reality_kit_mesh_consumer_ready", {}) }
+  @on_event(mesh_event) => { consume_realitykit_mesh_event(mesh_event) }
+  @receipt reality_kit_mesh_consumer_config { type: "RealityKitMeshConsumerReceipt"; timestamp: now() }
+}

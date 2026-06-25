@@ -1,0 +1,10 @@
+// @shader_chunks — Shader chunks: GLSL/WGSL shader chunk library for R3F material augmentation.
+//
+// Native .hsplus surface for r3f-renderer/src/runtime/shaderChunks.ts.
+
+@trait shader_chunks {
+  capability_tags: ["shader_chunks", "glsl_wgsl_chunks", "r3f_material_augment", "r3f_renderer"]
+  @on_spawn => { emit("shader_chunks_ready", {}) }
+  @on_get(chunk_name) => { chunk = get_shader_chunk(chunk_name); return chunk }
+  @receipt shader_chunks_config { type: "ShaderChunksReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @compiled_material — Compiled material: runtime surface for .holo-compiled PBR material application in R3F.
+//
+// Native .hsplus surface for r3f-renderer/src/runtime/compiledMaterial.ts.
+
+@trait compiled_material {
+  capability_tags: ["compiled_material", "holo_compiled_pbr", "r3f_material_runtime", "r3f_renderer"]
+  @on_spawn => { emit("compiled_material_ready", {}) }
+  @on_apply(material_spec) => { mat = apply_compiled_material(material_spec); return mat }
+  @receipt compiled_material_config { type: "CompiledMaterialReceipt"; timestamp: now() }
+}

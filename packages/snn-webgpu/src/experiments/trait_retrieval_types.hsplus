@@ -1,0 +1,9 @@
+// @trait_retrieval_types — Trait retrieval types: type definitions for SNN-based trait knowledge retrieval.
+//
+// Native .hsplus surface for snn-webgpu/src/experiments/trait-retrieval-types.ts.
+
+@trait trait_retrieval_types {
+  capability_tags: ["trait_retrieval_types", "snn_trait_retrieval_schema", "knowledge_retrieval_types", "snn_webgpu"]
+  @on_spawn => { emit("trait_retrieval_types_ready", {}) }
+  @receipt trait_retrieval_types_config { type: "TraitRetrievalTypesReceipt"; timestamp: now() }
+}

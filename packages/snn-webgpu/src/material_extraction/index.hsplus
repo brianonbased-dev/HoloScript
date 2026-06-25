@@ -1,0 +1,9 @@
+// @material_extraction_index — Material extraction index: entry point for SNN-based material property extraction.
+//
+// Native .hsplus surface for snn-webgpu/src/material-extraction/index.ts.
+
+@trait material_extraction_index {
+  capability_tags: ["material_extraction_index", "material_property_extraction_entry", "snn_material_extract", "snn_webgpu"]
+  @on_spawn => { emit("material_extraction_index_ready", {}) }
+  @receipt material_extraction_index_config { type: "MaterialExtractionIndexReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @spatial_toolkit — Spatial toolkit: collection of R3F spatial manipulation and inspection tools.
+//
+// Native .hsplus surface for r3f-renderer/src/components/spatial-tools/SpatialToolkit.ts.
+
+@trait spatial_toolkit {
+  capability_tags: ["spatial_toolkit", "r3f_spatial_tools", "spatial_manipulation", "r3f_renderer"]
+  @on_spawn => { emit("spatial_toolkit_ready", {}) }
+  @on_use(tool_name, params) => { result = use_spatial_tool(tool_name, params); return result }
+  @receipt spatial_toolkit_config { type: "SpatialToolkitReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @room_mesh_provider — Room mesh provider: provides real-time room mesh geometry for mixed reality R3F rendering.
+//
+// Native .hsplus surface for r3f-renderer/src/room-mesh/RoomMeshProvider.ts.
+
+@trait room_mesh_provider {
+  capability_tags: ["room_mesh_provider", "real_time_room_mesh", "mixed_reality_room_geometry", "r3f_renderer"]
+  @on_spawn => { emit("room_mesh_provider_ready", {}) }
+  @on_update(room_scan) => { mesh = provide_room_mesh(room_scan); return mesh }
+  @receipt room_mesh_provider_config { type: "RoomMeshProviderReceipt"; timestamp: now() }
+}

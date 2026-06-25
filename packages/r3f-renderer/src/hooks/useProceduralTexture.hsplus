@@ -1,0 +1,10 @@
+// @use_procedural_texture — useProceduralTexture hook: generates and caches procedural textures via WebGPU for R3F materials.
+//
+// Native .hsplus surface for r3f-renderer/src/hooks/useProceduralTexture.ts.
+
+@trait use_procedural_texture {
+  capability_tags: ["use_procedural_texture", "webgpu_procedural_texture", "r3f_material_texture", "r3f_renderer"]
+  @on_spawn => { emit("use_procedural_texture_ready", {}) }
+  @on_generate(spec) => { texture = generate_procedural_texture(spec); return texture }
+  @receipt use_procedural_texture_config { type: "UseProceduralTextureReceipt"; timestamp: now() }
+}

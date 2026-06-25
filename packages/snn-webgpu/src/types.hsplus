@@ -1,0 +1,9 @@
+// @snn_types — SNN types: shared type definitions for the spiking neural network WebGPU package.
+//
+// Native .hsplus surface for snn-webgpu/src/types.ts.
+
+@trait snn_types {
+  capability_tags: ["snn_types", "snn_type_defs", "webgpu_snn_schema", "snn_webgpu"]
+  @on_spawn => { emit("snn_types_ready", {}) }
+  @receipt snn_types_config { type: "SnnTypesReceipt"; timestamp: now() }
+}
