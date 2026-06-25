@@ -1,0 +1,21 @@
+@trait {
+  name: "@jepa_objective",
+  category: "cognitive",
+  description: "Joint Embedding Predictive Architecture (JEPA) self-supervised learning objective. Predicts latent-space representations of masked regions from context embeddings. latentDim is the shared embedding space size (default: 128). condDim=0 means unconditional predictor; >0 enables class/condition injection. sigregWeight controls VICReg-style spectral regularizer strength (prevents collapse). sigregProjections/sigregSigma tune the kernel estimate. embeddingModel selects the context encoder backbone. Port of JEPAObjective.ts (handler name: jepa_objective).",
+  props: {
+    latent_dim: number = 128,
+    cond_dim: number = 0,
+    sigreg_weight: number = 0.05,
+    sigreg_projections: number = 64,
+    sigreg_sigma: number = 1.0,
+    embedding_model: string = "jepa-context-encoder"
+  },
+  events: {
+    on_step: "jepa_step_complete",
+    on_loss: "jepa_loss",
+    on_embedding: "jepa_embedding",
+    step: "jepa_step",
+    reset: "jepa_reset"
+  },
+  behaviors: ["@quantum_inspired", "@snn_webgpu"]
+}

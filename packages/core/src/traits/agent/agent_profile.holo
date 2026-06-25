@@ -1,0 +1,23 @@
+@trait {
+  name: "@agent_profile",
+  category: "agent",
+  description: "HoloMesh social identity profile for agents. did is the decentralized identifier (DID). display_name, bio (capped at 500 chars), avatar URL, and custom_title are display fields. avatar_type: procedural (generated) or uploaded. visibility: public/private/contacts. pinned_entries is a list of content IDs to pin on the profile feed. links is a map of platform name to URL for external social accounts. Port of HolomeshSocialTraits.ts agentProfileHandler (handler name: agent_profile).",
+  props: {
+    did: string = "",
+    display_name: string = "Agent",
+    bio: string = "",
+    avatar: string = "",
+    avatar_type: enum("procedural" | "uploaded") = "procedural",
+    custom_title: string = "",
+    visibility: enum("public" | "private" | "contacts") = "public"
+  },
+  events: {
+    attached: "agent_profile_ready",
+    on_profile_updated: "agent_profile_updated",
+    on_follow: "agent_profile_followed",
+    on_unfollow: "agent_profile_unfollowed",
+    update: "agent_profile_update",
+    follow: "agent_profile_follow"
+  },
+  behaviors: ["@economy", "@trait_marketplace"]
+}

@@ -1,0 +1,13 @@
+@trait {
+  name: "@generated_mesh",
+  category: "agent",
+  description: "Metadata marker for procedurally or AI-generated meshes. Attaches generation provenance (topology, generatedAt timestamp) to a node for downstream pipeline tracking. topology='provider-native' means the mesh was generated in the native format of whatever generation backend was used. Companion auto_rig handler (auto_rig — same file) wraps generated meshes with a rig-compatible topology for animation. Port of AutoRigTrait.ts generatedMeshHandler (handler name: generated_mesh).",
+  props: {
+    topology: string = "provider-native"
+  },
+  events: {
+    attached: "generated_mesh_attached",
+    detached: "generated_mesh_detached"
+  },
+  behaviors: ["@auto_rig", "@holomap_splat_output"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@hsm_integration",
+  category: "devops",
+  description: "Hardware Security Module (HSM) integration for secure key storage and cryptographic operations. Providers: aws_cloudhsm, azure_keyvault, google_cloud_hsm, pkcs11, tpm, secure_enclave (tpm/secure_enclave do not support multi_region). Key types: aes, rsa, ecdsa, ed25519. Compliance levels: fips_140_2_level_2/3, fips_140_3_level_4, common_criteria_eal4plus. enable_key_rotation is strongly recommended; rotation_period_days sets the interval. audit_logging required for most compliance regimes. Compiles to node/rust/ios/android targets. Port of HSMIntegrationTrait.ts (handler name: hsm_integration — no defaultConfig; hsm_provider and key_type required).",
+  props: {
+    hsm_provider: enum("aws_cloudhsm" | "azure_keyvault" | "google_cloud_hsm" | "pkcs11" | "tpm" | "secure_enclave") = "pkcs11",
+    key_type: enum("aes" | "rsa" | "ecdsa" | "ed25519") = "ecdsa",
+    compliance_level: enum("fips_140_2_level_2" | "fips_140_2_level_3" | "fips_140_3_level_4" | "common_criteria_eal4plus") = "fips_140_2_level_3",
+    key_size: number = 256,
+    enable_key_rotation: boolean = true,
+    rotation_period_days: number = 90,
+    audit_logging: boolean = true,
+    multi_region: boolean = false
+  },
+  events: {
+    on_key_generated: "hsm_key_generated",
+    on_key_rotated: "hsm_key_rotated",
+    on_sign: "hsm_sign_complete",
+    on_error: "hsm_error",
+    generate_key: "hsm_generate_key",
+    sign: "hsm_sign",
+    rotate_key: "hsm_rotate_key"
+  },
+  behaviors: ["@sso_saml", "@vulnerability_scanner"]
+}
