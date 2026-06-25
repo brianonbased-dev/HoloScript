@@ -1,0 +1,15 @@
+@trait {
+  name: "@slack",
+  category: "integration",
+  description: "Slack webhook / incoming message integration. On slack:send command posts to the configured webhook URL with the given channel, text, and optional blocks. Emits slack:sent on success or slack:error on failure. Port of SlackTrait.ts (handler name: slack).",
+  props: {
+    webhook_url: string = "",
+    default_channel: string = "#general"
+  },
+  events: {
+    on_sent: "slack:sent",
+    on_error: "slack:error",
+    send: "slack:send"
+  },
+  behaviors: ["@webhook_out", "@structured_logger", "@pagerduty"]
+}

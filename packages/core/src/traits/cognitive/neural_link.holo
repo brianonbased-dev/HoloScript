@@ -1,0 +1,28 @@
+@trait {
+  name: "@neural_link",
+  category: "cognitive",
+  description: "Connects a HoloScript agent to local GGUF model weights for on-device inference. Manages inference timeout (neural_link_timeout after inference_timeout_ms), heartbeat keepalive (neural_link_heartbeat every heartbeat_interval_ms), and optional mesh sync pulses. Port of NeuralLinkTrait.ts (handler name: neural_link).",
+  props: {
+    model: string = "brittney-v4.gguf",
+    temperature: number = 0.7,
+    max_tokens: number = 2048,
+    sync: enum("local" | "mesh") = "local",
+    personality_anchor: string = "",
+    inference_timeout_ms: number = 30000,
+    heartbeat_interval_ms: number = 5000,
+    sync_interval_ms: number = 10000
+  },
+  events: {
+    attached: "neural_link_attached",
+    detached: "neural_link_detached",
+    on_connected: "neural_link_connected",
+    on_response: "neural_link_response",
+    on_heartbeat: "neural_link_heartbeat",
+    on_timeout: "neural_link_timeout",
+    on_sync: "neural_link_sync",
+    on_error: "neural_link_error",
+    execute: "neural_link_execute",
+    disconnect: "neural_link_disconnect"
+  },
+  behaviors: ["@memory", "@memory_crystal", "@cognitive_vm"]
+}

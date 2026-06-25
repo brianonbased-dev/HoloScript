@@ -1,0 +1,21 @@
+@trait {
+  name: "@system_monitor",
+  category: "devops",
+  description: "Generic edge device health monitor. Polls CPU load averages, RAM, and disk stats at a configurable interval and exposes a /health HTTP endpoint. Fires alerts when load or free RAM cross thresholds. Extended by @jetson_gpu for Jetson-specific GPU/power stats. Consumed by EdgeCompiler monitor.py. Port of SystemMonitorTrait.ts (handler name: system_monitor).",
+  props: {
+    port: number = 9090,
+    poll_interval_s: number = 5,
+    include_disk: boolean = true,
+    include_process_list: boolean = false,
+    load_alert_threshold: number = 4.0,
+    mem_alert_threshold_mb: number = 256
+  },
+  events: {
+    attached: "system_monitor_attached",
+    detached: "system_monitor_detached",
+    on_health: "system_monitor_health",
+    on_alert: "system_monitor_alert",
+    poll: "system_monitor_trigger_poll"
+  },
+  behaviors: ["@watcher", "@structured_logger", "@jetson_gpu"]
+}

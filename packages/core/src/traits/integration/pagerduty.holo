@@ -1,0 +1,15 @@
+@trait {
+  name: "@pagerduty",
+  category: "integration",
+  description: "PagerDuty incident alerting. Responds to pagerduty:trigger with a new incident ID and configured severity, and to pagerduty:resolve to close an incident by ID. Port of PagerdutyTrait.ts (handler name: pagerduty).",
+  props: {
+    severity: string = "critical"
+  },
+  events: {
+    on_triggered: "pagerduty:triggered",
+    on_resolved: "pagerduty:resolved",
+    trigger: "pagerduty:trigger",
+    resolve: "pagerduty:resolve"
+  },
+  behaviors: ["@slack", "@structured_logger", "@webhook_out"]
+}
