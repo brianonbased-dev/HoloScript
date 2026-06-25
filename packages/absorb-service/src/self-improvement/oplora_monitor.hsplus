@@ -1,0 +1,86 @@
+// @oplora_monitor — Comprehensive OPLoRA training health monitor for Brittney 7B.
+//
+// Native .hsplus surface for OPLoRAMonitor.ts (absorb-service/self-improvement).
+//
+// Tracks catastrophic forgetting and training health during GRPO training of
+// the Brittney 7B model under OPLoRA (Orthogonal Projection LoRA) constraints.
+//
+// Tracked dimensions (OPLoRAMonitor.ts):
+//   BenchmarkScore:   { step, benchmark, score, timestamp }
+//                     benchmarks: humaneval | mbpp | holoscript_eval | <custom>
+//   ModuleWeightRatio: { moduleName, step, loraDeltaNorm, baseWeightNorm, ratio }
+//                      monitored modules: q_proj, v_proj, k_proj, o_proj, etc.
+//   ConstraintSatisfaction: { step, satisfactionPct, perModule: Record<str, Float> }
+//                           satisfactionPct = 0–100; drops signal constraint violation
+//   AlertSeverity: info | warning | critical
+//
+// Full training history is stored for dashboard visualization.
+// Rich query API: getAlert(), getBenchmarkTrend(), getWeightRatioTrend(), etc.
+// Compare ForgettingDetector (lean per-step early-warning) vs this (comprehensive dashboard).
+
+@trait oplora_monitor {
+  // Alert threshold for constraint satisfaction drop (percentage points)
+  constraint_alert_threshold: Float = 85.0
+
+  // Alert threshold for weight magnitude ratio spike
+  weight_ratio_alert_threshold: Float = 0.1
+
+  capability_tags: ["oplora_monitor", "catastrophic_forgetting", "oplora", "grpo_training", "brittney_7b", "benchmark_tracking", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    monitor = init_oplora_monitor({
+      constraint_alert_threshold: constraint_alert_threshold,
+      weight_ratio_alert_threshold: weight_ratio_alert_threshold
+    })
+    emit("oplora_monitor_ready", {})
+  }
+
+  // Record a benchmark score at a training step
+  @on_record_benchmark(step, benchmark_name, score) => {
+    alert = monitor.record_benchmark(step, benchmark_name, score)
+    if alert {
+      emit("oplora_alert", {
+        severity: alert.severity,
+        benchmark: benchmark_name,
+        score: score,
+        step: step
+      })
+    }
+    return alert
+  }
+
+  // Record per-module weight ratios
+  @on_record_weight_ratio(step, module_name, lora_delta_norm, base_weight_norm) => {
+    ratio = lora_delta_norm / base_weight_norm
+    alert = monitor.record_weight_ratio(step, module_name, ratio)
+    if alert { emit("oplora_weight_alert", { module: module_name, ratio: ratio }) }
+    return alert
+  }
+
+  // Record orthogonal constraint satisfaction
+  @on_record_constraint(step, satisfaction_pct, per_module) => {
+    alert = monitor.record_constraint(step, satisfaction_pct, per_module)
+    if alert { emit("oplora_constraint_alert", { pct: satisfaction_pct, step: step }) }
+    return alert
+  }
+
+  // Get current training health summary for dashboard
+  @on_get_health_summary => {
+    return monitor.get_health_summary()
+  }
+
+  // Get benchmark trend for a named benchmark
+  @on_get_benchmark_trend(benchmark_name) => {
+    return monitor.get_benchmark_trend(benchmark_name)
+  }
+
+  @receipt oplora_monitor_config {
+    type: "OPLoRAMonitorReceipt"
+    model: "Brittney 7B"
+    benchmarks: ["humaneval", "mbpp", "holoscript_eval"]
+    constraint_alert_threshold: constraint_alert_threshold
+    weight_ratio_alert_threshold: weight_ratio_alert_threshold
+    distinction: "Comprehensive dashboard monitor (vs ForgettingDetector = lean per-step early-warning)"
+    timestamp: now()
+  }
+}

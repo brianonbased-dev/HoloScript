@@ -1,0 +1,62 @@
+// @base_adapter — Shared tree-sitter traversal utilities for all language adapters.
+//
+// Native .hsplus surface for BaseAdapter.ts (absorb-service/engine/adapters).
+//
+// Provides depth-first AST walking, doc comment extraction, and position mapping
+// used by all concrete language adapters (TypeScript, Python, Go, Rust, Holo).
+//
+// BaseAdapter.ts exports:
+//   walkTree(root, visitor)     — iterative depth-first via stack; visitor returns
+//                                 false to skip children of current node
+//   extractDocComment(node)     — detects and strips JSDoc (/**..*/), Python docstrings
+//                                 (triple-quoted), Rust (///) and Go (//) doc comments;
+//                                 returns clean text or undefined
+//   getPreviousSibling(node)    — sibling traversal helper
+//   nodeToSymbol(node, ...)     — maps SyntaxNode → ExternalSymbolDefinition
+//   getFieldText(node, field)   — safe field text extraction
+//   extractVisibility(node)     — public/private/protected from modifiers
+//
+// NodeVisitor: (node: SyntaxNode) => boolean | void
+//   Return false → skip children of that node
+
+@trait base_adapter {
+  capability_tags: ["base_adapter", "tree_sitter", "ast_walking", "doc_comment", "language_adapter", "absorb_service"]
+
+  @on_spawn => {
+    adapter = init_base_adapter()
+    emit("base_adapter_ready", {})
+  }
+
+  // Depth-first walk of a tree-sitter syntax tree
+  @on_walk_tree(root, visitor_id) => {
+    results = adapter.walk_tree(root, visitor_id)
+    return results
+  }
+
+  // Extract a doc comment preceding a syntax node
+  @on_extract_doc_comment(node) => {
+    return adapter.extract_doc_comment(node)
+  }
+
+  // Map a SyntaxNode to an ExternalSymbolDefinition
+  @on_node_to_symbol(node, file_path, lang) => {
+    return adapter.node_to_symbol(node, file_path, lang)
+  }
+
+  // Get the text of a named field on a node
+  @on_get_field_text(node, field) => {
+    return adapter.get_field_text(node, field)
+  }
+
+  // Extract visibility modifier (public/private/protected)
+  @on_extract_visibility(node) => {
+    return adapter.extract_visibility(node)
+  }
+
+  @receipt base_adapter_config {
+    type: "BaseAdapterReceipt"
+    doc_comment_formats: ["JSDoc (/**...*/)", "Python docstrings (triple-quoted)", "Rust (///)", "Go (//)"]
+    walk_strategy: "iterative depth-first; visitor(node) == false → skip children"
+    timestamp: now()
+  }
+}

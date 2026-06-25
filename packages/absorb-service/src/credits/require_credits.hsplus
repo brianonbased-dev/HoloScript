@@ -1,0 +1,50 @@
+// @require_credits — Framework-agnostic credit guard for Absorb Service API routes.
+//
+// Native .hsplus surface for requireCredits.ts (absorb-service/credits).
+//
+// Returns CreditGateResult on success or CreditError on failure.
+// Callers (Express, Next.js, etc.) map CreditError to their own response format.
+//
+// Double-billing prevention (requireCredits.ts):
+//   orchestratorGated: true → MCPMe orchestrator already billed for this operation
+//   → skip internal credit deduction → return zero-cost CreditGateResult
+//
+// CreditGateResult { userId, costCents, operationType, orchestratorBilled? }
+// CreditError      { error, status, required?, balance?, description?, purchaseUrl? }
+//
+// Uses:
+//   creditService.checkBalance(userId)
+//   pricing.OPERATION_COSTS[operationType] (1 credit = 1 cent USD)
+
+@trait require_credits {
+  capability_tags: ["require_credits", "credit_guard", "middleware", "double_billing_prevention", "absorb_service", "credits"]
+
+  @on_spawn => {
+    guard = init_require_credits()
+    emit("require_credits_ready", {})
+  }
+
+  // Check that a user has sufficient credits for an operation
+  // Returns CreditGateResult on success or CreditError on failure
+  @on_check(user_id, operation_type, orchestrator_gated) => {
+    if orchestrator_gated {
+      // Upstream MCPMe orchestrator already billed — skip internal deduction
+      emit("credit_check_skipped_orchestrator_gated", { user_id: user_id })
+      return { user_id: user_id, cost_cents: 0, operation_type: operation_type, orchestrator_billed: true }
+    }
+    result = guard.require_credits(user_id, operation_type)
+    if result.error {
+      emit("credit_check_failed", { user_id: user_id, operation_type: operation_type })
+    } else {
+      emit("credit_check_passed", { user_id: user_id, cost_cents: result.cost_cents })
+    }
+    return result
+  }
+
+  @receipt require_credits_config {
+    type: "RequireCreditsReceipt"
+    double_billing_prevention: "orchestrator_gated=true skips internal deduction"
+    error_fields: ["error", "status", "required", "balance", "description", "purchaseUrl"]
+    timestamp: now()
+  }
+}

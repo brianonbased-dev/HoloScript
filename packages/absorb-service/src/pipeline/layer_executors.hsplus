@@ -1,0 +1,70 @@
+// @layer_executors — L0/L1/L2 pipeline layer execution logic.
+//
+// Native .hsplus surface for layerExecutors.ts (absorb-service/pipeline).
+//
+// Three-layer self-improvement pipeline (layerExecutors.ts):
+//   L0 Code Fixer:       Runs runDaemonJob; captures typed results + quality delta
+//   L1 Strategy Opt.:    Analyzes L0 trend via LLM; proposes focus/profile/budget changes
+//   L2 Meta-Strategist:  Generates new skills + wisdom entries from L1/L0 combined data
+//
+// L1 output contract (JSON-only, <200 word rationale):
+//   { focusRotationChange: String[]|null,   // MUST include "absorb" first when set
+//     profileChange: "quick"|"balanced"|"deep"|null,
+//     passesChange: String[]|null,
+//     budgetAdjustment: {maxCycles: Int}|null,  // can only increase by 1, never decrease
+//     rationale: String }
+//
+// Uses feedbackEngine.generateFeedbackSignals, selfTargetConfig.HOLOSCRIPT_SELF_DNA.
+// All executors: consume feedback from below, produce typed LayerCycleResult.
+
+@trait layer_executors {
+  capability_tags: ["layer_executors", "l0_code_fixer", "l1_strategy", "l2_meta", "grpo_pipeline", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    executors = init_layer_executors()
+    emit("layer_executors_ready", {})
+  }
+
+  // Run L0 Code Fixer cycle
+  @on_run_l0(config, profile, dna, bus, feedback_signals) => {
+    result = executors.run_l0(config, profile, dna, bus, feedback_signals)
+    emit("l0_cycle_complete", { cycle_id: result.cycle_id, quality_delta: result.quality_delta })
+    return result
+  }
+
+  // Run L1 Strategy Optimizer cycle
+  @on_run_l1(config, trend_summary, bus, budget) => {
+    result = executors.run_l1(config, trend_summary, bus, budget)
+    emit("l1_cycle_complete", {
+      cycle_id: result.cycle_id,
+      focus_change: result.output.focus_rotation_change
+    })
+    return result
+  }
+
+  // Run L2 Meta-Strategist cycle
+  @on_run_l2(config, l0_results, l1_results, bus, budget) => {
+    result = executors.run_l2(config, l0_results, l1_results, bus, budget)
+    emit("l2_cycle_complete", {
+      cycle_id: result.cycle_id,
+      skills_generated: result.output.skills.size,
+      wisdom_captured: result.output.wisdom.size
+    })
+    return result
+  }
+
+  @receipt layer_executors_config {
+    type: "LayerExecutorsReceipt"
+    layers: {
+      L0: "Code Fixer — wraps runDaemonJob, produces quality delta",
+      L1: "Strategy Optimizer — LLM trend analysis, adjusts focus/profile/budget",
+      L2: "Meta-Strategist — generates skills + wisdom from combined layer data"
+    }
+    l1_constraints: [
+      "focusRotationChange MUST include 'absorb' first when set",
+      "budgetAdjustment can only increase maxCycles by 1",
+      "rationale under 200 words"
+    ]
+    timestamp: now()
+  }
+}
