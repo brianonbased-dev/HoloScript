@@ -1,0 +1,97 @@
+// @mesh_node_integrator — WebRTC CRDT sync + economic interceptor + agent presence.
+//
+// Native .hsplus surface for MeshNodeIntegrator.ts (crdt-spatial).
+//
+// Purpose: bridges Loro CRDT state (via LoroWebRTCProvider) with:
+//   1. HoloMesh agent presence heartbeat
+//   2. Economic state change interception (loroBatchTouchesEconomicTrait)
+//   3. X402 micropayment facilitator for economic CRDT events
+//
+// Design (MeshNodeIntegrator.ts):
+//   - One LoroDoc per room; WebRTC provider maintains peer connections
+//   - Signaling server: mcp.holoscript.net/signaling/v1 (HoloMesh bearer auth)
+//   - Economic interceptor fires on every Loro event batch that touches
+//     an economic trait (@tradeable, @depreciating, @bonding_curved, etc.)
+//   - Presence heartbeat posts to HoloMesh team presence endpoint
+//
+// G.GOLD.016: wallet_address is NEVER hardcoded — configured at spawn from
+// the sovereign vault (I.022). The stub placeholder in MeshNodeIntegrator.ts
+// (`0x000...`) is a test/dev value ONLY.
+//
+// Signaling auth: HoloMesh bearer token is resolved from vault at spawn;
+// NEVER inlined as a field literal (F.106 / W.721 leak prevention).
+
+@trait mesh_node_integrator {
+  // Room name for WebRTC peer discovery
+  room: String
+
+  // HoloMesh team ID
+  team_id: String
+
+  // Wallet address for X402 economic events (resolved from vault, NEVER literal)
+  wallet_address: String
+
+  // Chain for X402 facilitator
+  chain: String = "base"
+
+  // Presence heartbeat interval in seconds
+  presence_interval_s: Int = 30
+
+  capability_tags: ["mesh_node_integrator", "webrtc_crdt", "economic_interceptor", "agent_presence", "x402", "loro_crdt"]
+
+  @on_spawn => {
+    doc = loro_doc_new()
+    // Bearer resolved from vault — never from literal (G.GOLD.016 / F.106)
+    bearer = resolve_vault_bearer(team_id)
+    provider = init_loro_webrtc_provider({
+      doc: doc,
+      room: room,
+      signaling_url: "wss://mcp.holoscript.net/signaling/v1",
+      bearer: bearer
+    })
+    x402 = init_x402_facilitator({
+      recipient_address: wallet_address,
+      chain: chain
+    })
+    provider.connect()
+    doc.subscribe("on_loro_event_batch")
+    schedule_recurring(presence_interval_s, "on_presence_tick")
+    emit("mesh_node_integrator_ready", { room: room, team_id: team_id })
+  }
+
+  @on_loro_event_batch(batch) => {
+    has_economic = loro_batch_touches_economic_trait(doc, batch)
+    if has_economic {
+      stats = x402.get_ledger().get_stats()
+      emit("economic_crdt_event", {
+        room: room,
+        ledger_stats: stats,
+        doc_version: doc.version()
+      })
+    }
+  }
+
+  @on_presence_tick => {
+    bearer = resolve_vault_bearer(team_id)
+    post_presence({
+      team_id: team_id,
+      bearer: bearer,
+      status: "active",
+      capabilities: ["webrtc_crdt_sync", "economic_intercept"]
+    })
+  }
+
+  @on_despawn => {
+    doc.unsubscribe_all()
+    emit("mesh_node_integrator_disconnected", { room: room })
+  }
+
+  @receipt mesh_node_integrator_config {
+    type: "MeshNodeIntegratorReceipt"
+    room: room
+    team_id: team_id
+    chain: chain
+    presence_interval_s: presence_interval_s
+    timestamp: now()
+  }
+}

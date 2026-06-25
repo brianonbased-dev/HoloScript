@@ -1,0 +1,107 @@
+// @loro_native_spatial_adapter — Native Loro WASM Tree CRDT for scene graph sync.
+//
+// Native .hsplus surface for LoroNativeSpatialAdapter.ts (crdt-spatial, v1.0.0).
+//
+// DISTINCT FROM LoroSpatialAdapter (packages/crdt/src/sync/):
+//   That adapter uses plain JS Maps to simulate Loro behavior.
+//   This adapter uses actual loro-crdt WASM: LoroDoc, LoroTree, LoroMap.
+//   Binary export/import produces Loro-native wire format for peer sync.
+//
+// Architecture: three-tier timing (same as LoroSpatialAdapter):
+//   Render tier (<11ms)  — local interpolation ONLY, no CRDT ops
+//   Sync tier (50-100ms) — LoroDoc export/import with peers
+//   Audit tier (1000ms+) — DID verification + integrity check
+//
+// Scene graph: Loro Tree CRDT with Kleppmann cycle-safe move algorithm.
+//   Each tree node stores transform data in its node `data` LoroMap.
+//   Fractional indexing (Loro native) maintains sibling ordering.
+//
+// NativeSceneNodeSnapshot (LoroNativeSpatialAdapter.ts):
+//   tree_id, name, transform: SpatialTransform, fractional_index?, metadata
+//
+// AuditMetadata (audit tier):
+//   signer_did, verified_at (Lamport), integrity_hash
+//
+// G.GOLD.001: all map reads/writes via root LoroDoc.getMap() only.
+
+@trait loro_native_spatial_adapter {
+  // DID for audit tier signing
+  signer_did: String?
+
+  // Enable the audit tier (DID verification)
+  enable_audit: Bool = false
+
+  // Sync tier interval in milliseconds
+  sync_interval_ms: Int = 75
+
+  // Audit tier interval in milliseconds
+  audit_interval_ms: Int = 1000
+
+  capability_tags: ["loro_native_spatial_adapter", "loro_tree_crdt", "kleppmann_cycle_safe", "scene_graph_crdt", "native_loro_wasm", "fractional_indexing"]
+
+  @on_spawn => {
+    // Uses actual loro-crdt WASM (LoroDoc, LoroTree, LoroMap)
+    doc = loro_doc_new()
+    tree = doc.get_tree("scene")
+    adapter = init_loro_native_spatial_adapter({
+      doc: doc,
+      tree: tree,
+      signer_did: signer_did,
+      sync_interval_ms: sync_interval_ms
+    })
+    if enable_audit and signer_did {
+      schedule_recurring(audit_interval_ms / 1000, "on_audit_tick")
+    }
+    emit("loro_native_adapter_ready", {
+      sync_interval_ms: sync_interval_ms,
+      enable_audit: enable_audit
+    })
+  }
+
+  // Create or move a node in the Loro Tree (Kleppmann cycle-safe)
+  @on_upsert_node(node_id, parent_id, transform, metadata) => {
+    node = adapter.upsert_node({
+      node_id: node_id,
+      parent_id: parent_id,
+      transform: transform,
+      metadata: metadata
+    })
+    return node.tree_id
+  }
+
+  // Render tier: local interpolation ONLY — no LoroDoc operations
+  @on_render_tick(node_id, local_transform) => {
+    adapter.interpolate_local(node_id, local_transform)
+  }
+
+  // Sync tier: export Loro binary state + push to peers
+  @on_sync_tick => {
+    state = doc.export({ mode: "update" })
+    adapter.push_sync(state)
+  }
+
+  // Receive and merge a remote Loro binary update
+  @on_peer_update(binary_update) => {
+    doc.import(binary_update)
+    emit("scene_graph_merged", {})
+  }
+
+  // Audit tier: DID-signed integrity verification
+  @on_audit_tick => {
+    if not enable_audit or not signer_did { return }
+    snapshot = adapter.snapshot()
+    hash = compute_integrity_hash(snapshot)
+    adapter.write_audit({ signer_did: signer_did, verified_at: lamport_now(), integrity_hash: hash })
+    emit("scene_graph_audited", { hash: hash })
+  }
+
+  @receipt loro_native_adapter_config {
+    type: "LoroNativeSpatialAdapterReceipt"
+    signer_did: signer_did
+    enable_audit: enable_audit
+    sync_interval_ms: sync_interval_ms
+    crdt_lib: "loro-crdt-wasm"
+    tree_algo: "kleppmann_cycle_safe_move"
+    timestamp: now()
+  }
+}

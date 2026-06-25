@@ -1,0 +1,102 @@
+// @rbac_conflict_resolver — AgentRBAC-aware CRDT conflict resolution.
+//
+// Native .hsplus surface for RBACConflictResolver.ts (crdt/auth, v1.0.0).
+//
+// Purpose: integrates HoloScript's AgentRBAC permission system into CRDT merge
+// operations so that agent identity and permission level are respected when
+// resolving concurrent conflicting operations.
+//
+// AgentPermissionLevel (RBACConflictResolver.ts):
+//   read | write | execute | admin
+//
+// AgentRole fields:
+//   did, permission_level, scope? (specific NPCs, zones), priority? (0-∞)
+//
+// Conflict resolution rules:
+//   1. Admin always wins over lower tiers
+//   2. If equal tier, use priority weight (if set)
+//   3. If equal priority, fall back to timestamp (LWW)
+//   4. If actor lacks permission for op type → reject (don't merge)
+//
+// PermissionChecker: checkPermission(actorDid, operation) → bool
+//                    getPermissionLevel(actorDid) → AgentPermissionLevel
+//                    getPriority(actorDid) → number
+
+@trait rbac_conflict_resolver {
+  // CRDT document ID
+  crdt_id: String
+
+  // DID of this agent (local actor)
+  local_did: String
+
+  capability_tags: ["rbac_conflict_resolver", "crdt_auth", "agent_rbac", "conflict_resolution", "permission_aware_merge"]
+
+  @on_spawn => {
+    resolver = init_rbac_conflict_resolver({
+      crdt_id: crdt_id,
+      local_did: local_did
+    })
+    emit("rbac_conflict_resolver_ready", { crdt_id: crdt_id })
+  }
+
+  @on_resolve_conflict(op_a, op_b) => {
+    // Check permissions for both operations
+    a_allowed = resolver.check_permission(op_a.actor_did, op_a)
+    b_allowed = resolver.check_permission(op_b.actor_did, op_b)
+
+    if not a_allowed and not b_allowed {
+      emit("conflict_both_rejected", { crdt_id: crdt_id })
+      return { winner: null, reason: "both_unauthorized" }
+    }
+    if not a_allowed {
+      emit("conflict_resolved", { winner: "b", reason: "a_unauthorized" })
+      return { winner: op_b, reason: "a_unauthorized" }
+    }
+    if not b_allowed {
+      emit("conflict_resolved", { winner: "a", reason: "b_unauthorized" })
+      return { winner: op_a, reason: "b_unauthorized" }
+    }
+
+    // Both authorized — resolve by permission tier, then priority, then timestamp
+    level_a = resolver.get_permission_level(op_a.actor_did)
+    level_b = resolver.get_permission_level(op_b.actor_did)
+    if level_a != level_b {
+      winner = level_a > level_b ? op_a : op_b
+      emit("conflict_resolved", { winner: winner.id, reason: "permission_tier" })
+      return { winner: winner, reason: "permission_tier" }
+    }
+
+    prio_a = resolver.get_priority(op_a.actor_did)
+    prio_b = resolver.get_priority(op_b.actor_did)
+    if prio_a != prio_b {
+      winner = prio_a > prio_b ? op_a : op_b
+      emit("conflict_resolved", { winner: winner.id, reason: "priority_weight" })
+      return { winner: winner, reason: "priority_weight" }
+    }
+
+    // LWW fallback
+    winner = op_a.timestamp >= op_b.timestamp ? op_a : op_b
+    emit("conflict_resolved", { winner: winner.id, reason: "lww_timestamp" })
+    return { winner: winner, reason: "lww_timestamp" }
+  }
+
+  @on_validate_op(signed_op) => {
+    allowed = resolver.check_permission(signed_op.operation.actor_did, signed_op.operation)
+    if not allowed {
+      emit("op_rejected", {
+        crdt_id: crdt_id,
+        actor_did: signed_op.operation.actor_did,
+        op_type: signed_op.operation.type
+      })
+    }
+    return { allowed: allowed }
+  }
+
+  @receipt rbac_conflict_resolver_config {
+    type: "RBACConflictResolverReceipt"
+    crdt_id: crdt_id
+    local_did: local_did
+    resolution_strategy: "admin_tier_then_priority_then_lww"
+    timestamp: now()
+  }
+}

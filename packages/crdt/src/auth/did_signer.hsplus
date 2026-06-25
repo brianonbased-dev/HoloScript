@@ -1,0 +1,79 @@
+// @did_signer — DID-based JWT signing and verification for authenticated CRDT ops.
+//
+// Native .hsplus surface for DIDSigner.ts (crdt/auth, v1.0.0).
+//
+// Uses ES256K secp256k1 JWT signatures (did-jwt library) to ensure cryptographic
+// authenticity and non-repudiation for all CRDT operations.
+//
+// CRDTOperationType (DIDSigner.ts):
+//   lww_set | or_set_add | or_set_remove | g_counter_increment
+//
+// CRDTOperation fields:
+//   id (UUID), type (CRDTOperationType), crdt_id, actor_did,
+//   timestamp (logical clock), data (unknown), causality? (vector clock)
+//
+// SignedOperation:
+//   operation: CRDTOperation, jwt: string (ES256K JWT)
+//
+// SECURITY: private key is NEVER authored as a literal here.
+// The signer is initialized from a key resolved at runtime from the
+// HoloKey vault (I.022 sovereign vault posture). The did_key field
+// holds the key handle/reference, not the raw key material.
+
+@trait did_signer {
+  // Actor DID for all signed operations
+  actor_did: String
+
+  // Key handle (vault key ID or "env:HOLOKEY_*" reference)
+  // NEVER a raw private key literal — resolved from HoloKey vault at spawn
+  did_key_handle: String
+
+  capability_tags: ["did_signer", "crdt_auth", "jwt_signing", "es256k", "non_repudiation", "did_based"]
+
+  @on_spawn => {
+    // Key resolved from HoloKey vault — never from literal
+    signer = init_did_signer({
+      actor_did: actor_did,
+      key_handle: did_key_handle
+    })
+    emit("did_signer_ready", { actor_did: actor_did })
+  }
+
+  @on_sign(crdt_id, op_type, data, causality) => {
+    op = {
+      id: new_uuid(),
+      type: op_type,
+      crdt_id: crdt_id,
+      actor_did: actor_did,
+      timestamp: lamport_now(),
+      data: data,
+      causality: causality
+    }
+    jwt = signer.sign(op)
+    emit("crdt_op_signed", {
+      op_id: op.id,
+      crdt_id: crdt_id,
+      type: op_type,
+      actor_did: actor_did
+    })
+    return { operation: op, jwt: jwt }
+  }
+
+  @on_verify(signed_op) => {
+    result = signer.verify(signed_op.jwt)
+    emit("crdt_op_verified", {
+      op_id: signed_op.operation.id,
+      valid: result.valid,
+      actor_did: signed_op.operation.actor_did
+    })
+    return result
+  }
+
+  @receipt did_signer_config {
+    type: "DIDSignerReceipt"
+    actor_did: actor_did
+    algorithm: "ES256K"
+    key_source: "holokey_vault"
+    timestamp: now()
+  }
+}
