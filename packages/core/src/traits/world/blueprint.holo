@@ -1,0 +1,21 @@
+@trait {
+  name: "@blueprint",
+  category: "world",
+  description: "Saved entity composition blueprint. Captures an entity's component configuration (trait list, prop values, child layout) as a reusable template JSON that can be instantiated via @spawn_gate or the studio composer, enabling rapid level-kit authoring from pre-validated building blocks. Authored from BlueprintTrait.ts.",
+  props: {
+    source_entity_id: string = "",
+    url: string = "",
+    version: number = 1,
+    tags: list<string> = [],
+    auto_capture_on_change: boolean = false
+  },
+  events: {
+    attached: "blueprint_attached",
+    detached: "blueprint_detached",
+    on_capture: "blueprint_capture",
+    on_instantiate: "blueprint_instantiate",
+    capture: "blueprint_trigger_capture",
+    instantiate: "blueprint_trigger_instantiate"
+  },
+  behaviors: ["@spawn_gate", "@pool_manager", "@resource_loader"]
+}

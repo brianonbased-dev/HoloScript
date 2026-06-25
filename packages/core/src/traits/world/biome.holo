@@ -1,0 +1,22 @@
+@trait {
+  name: "@biome",
+  category: "world",
+  description: "Spatial biome definition entity. Defines the environmental parameters for a named biome region (temperature, humidity, altitude range, tile palette, scatter density, ambient audio, sky preset) consumed by procedural terrain, scatter, and atmosphere systems. Authored from BiomeTrait.ts.",
+  props: {
+    name: string = "",
+    temperature: number = 15,
+    humidity: number = 0.5,
+    altitude_min_m: number = 0,
+    altitude_max_m: number = 512,
+    tile_palette_url: string = "",
+    ambient_url: string = "",
+    sky_preset: string = ""
+  },
+  events: {
+    attached: "biome_attached",
+    detached: "biome_detached",
+    on_enter: "biome_enter",
+    on_exit: "biome_exit"
+  },
+  behaviors: ["@world_seed", "@atmosphere", "@voxel_terrain"]
+}

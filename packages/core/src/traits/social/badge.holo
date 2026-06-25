@@ -1,0 +1,17 @@
+@trait {
+  name: "@badge",
+  category: "social",
+  description: "Achievement badge display and unlock tracker. Holds a catalog of named badge definitions with unlock conditions, tracks which badges have been awarded to the entity, fires award events for HUD display, and exposes the badge list to the social profile. Authored from BadgeTrait.ts.",
+  props: {
+    badges: list<{ id: string, name: string, icon_url: string, unlocked: boolean }> = [],
+    show_on_profile: boolean = true,
+    announce_on_unlock: boolean = true
+  },
+  events: {
+    attached: "badge_attached",
+    detached: "badge_detached",
+    on_unlock: "badge_unlock",
+    unlock: "badge_trigger_unlock"
+  },
+  behaviors: ["@avatar", "@leaderboard", "@loyalty_points"]
+}

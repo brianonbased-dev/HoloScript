@@ -1,0 +1,23 @@
+@trait {
+  name: "@breakable",
+  category: "game",
+  description: "Destructible entity breakable controller. Tracks structural integrity as a health value, responds to damage events with material and physics changes, spawns a fracture visual on break, and optionally replaces the entity with a debris composition after a configurable impulse delay. Authored from BreakableTrait.ts.",
+  props: {
+    max_integrity: number = 100,
+    current_integrity: number = 100,
+    break_threshold: number = 0,
+    fracture_url: string = "",
+    debris_entity_id: string = "",
+    debris_impulse: number = 5.0,
+    respawn_after_s: number = 0
+  },
+  events: {
+    attached: "breakable_attached",
+    detached: "breakable_detached",
+    on_damage: "breakable_damage",
+    on_break: "breakable_break",
+    on_respawn: "breakable_respawn",
+    damage: "breakable_trigger_damage"
+  },
+  behaviors: ["@physics_body", "@unstable_surface", "@spawn_gate"]
+}
