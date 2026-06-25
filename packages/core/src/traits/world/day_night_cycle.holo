@@ -1,0 +1,23 @@
+@trait {
+  name: "@day_night_cycle",
+  category: "world",
+  description: "Real-time day/night sky and lighting cycle controller. Advances a normalized time-of-day value at a configurable rate, driving sun/moon directional light azimuth and elevation, sky color gradient, ambient intensity curve, and fog density based on an artist-authored keyframe schedule. Authored from DayNightCycleTrait.ts.",
+  props: {
+    time_of_day: number = 0.5,
+    speed_multiplier: number = 1.0,
+    real_time_sync: boolean = false,
+    longitude: number = 0,
+    latitude: number = 0,
+    enable_moon: boolean = true,
+    keyframes_url: string = ""
+  },
+  events: {
+    attached: "day_night_cycle_attached",
+    detached: "day_night_cycle_detached",
+    on_sunrise: "day_night_cycle_sunrise",
+    on_sunset: "day_night_cycle_sunset",
+    on_tick: "day_night_cycle_tick",
+    set_time: "day_night_cycle_trigger_set_time"
+  },
+  behaviors: ["@atmosphere", "@skybox", "@moon_phase"]
+}

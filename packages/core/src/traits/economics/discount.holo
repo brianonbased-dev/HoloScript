@@ -1,0 +1,21 @@
+@trait {
+  name: "@discount",
+  category: "economics",
+  description: "Price discount rule applicator. Evaluates a set of discount rules (percentage off, fixed reduction, BOGO, bundle tier) against a transaction context at checkout, selecting and stacking applicable discounts up to a configured cap, and emitting the final discounted price for receipt generation. Authored from DiscountTrait.ts.",
+  props: {
+    rules: list<{ id: string, type: enum("pct" | "fixed" | "bogo" | "bundle"), value: number, condition: string }> = [],
+    stack_limit: number = 1,
+    max_discount_pct: number = 80,
+    currency: string = "USD",
+    valid_from: string = "",
+    valid_until: string = ""
+  },
+  events: {
+    attached: "discount_attached",
+    detached: "discount_detached",
+    on_apply: "discount_apply",
+    on_expire: "discount_expire",
+    apply: "discount_trigger_apply"
+  },
+  behaviors: ["@price_oracle", "@loyalty_points", "@subscription"]
+}

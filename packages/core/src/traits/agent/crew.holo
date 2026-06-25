@@ -1,0 +1,22 @@
+@trait {
+  name: "@crew",
+  category: "agent",
+  description: "Multi-agent crew coordinator. Maintains a named roster of agent handles sharing a common mission, broadcasts goal and context updates to all crew members via the mesh, tracks member readiness and progress, and resolves crew-level consensus on split decisions using a configurable quorum threshold. Authored from CrewTrait.ts.",
+  props: {
+    mission_id: string = "",
+    member_handles: list<string> = [],
+    quorum_pct: number = 0.6,
+    broadcast_interval_s: number = 10,
+    allow_hot_join: boolean = true,
+    max_size: number = 8
+  },
+  events: {
+    attached: "crew_attached",
+    detached: "crew_detached",
+    on_member_join: "crew_join",
+    on_member_leave: "crew_leave",
+    on_consensus: "crew_consensus",
+    broadcast: "crew_trigger_broadcast"
+  },
+  behaviors: ["@fan_out", "@election", "@autonomous_agenda"]
+}

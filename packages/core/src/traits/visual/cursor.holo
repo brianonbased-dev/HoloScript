@@ -1,0 +1,21 @@
+@trait {
+  name: "@cursor",
+  category: "visual",
+  description: "Custom pointer cursor overlay for 2D and XR UI surfaces. Replaces the default OS cursor with a configurable sprite or animated icon, tracking pointer position relative to the UI canvas, supporting hit-test-highlight mode changes (default, hover, grab, crosshair), and hiding during idle periods. Authored from CursorTrait.ts.",
+  props: {
+    icon_url: string = "",
+    hotspot: { x: number, y: number } = { x: 0, y: 0 },
+    mode: enum("default" | "crosshair" | "grab" | "none") = "default",
+    hide_after_idle_s: number = 2,
+    scale: number = 1.0,
+    color: string = "#ffffff"
+  },
+  events: {
+    attached: "cursor_attached",
+    detached: "cursor_detached",
+    on_show: "cursor_show",
+    on_hide: "cursor_hide",
+    set_mode: "cursor_trigger_set_mode"
+  },
+  behaviors: ["@ui_controller", "@xr_ray_interactor", "@visibility"]
+}
