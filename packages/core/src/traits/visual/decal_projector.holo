@@ -1,0 +1,19 @@
+@trait {
+  name: "@decal_projector",
+  category: "visual",
+  description: "Box-projection decal renderer. Projects a texture and normal map onto all surfaces within the entity's oriented bounding box using deferred decal rendering, supporting tiling, rotation, opacity, and per-material masking, used for logos, graffiti, dirt, and damage overlays. Authored from DecalProjectorTrait.ts.",
+  props: {
+    texture_url: string = "",
+    normal_url: string = "",
+    size: { x: number, y: number, z: number } = { x: 1, y: 1, z: 0.5 },
+    opacity: number = 1.0,
+    rotation_deg: number = 0,
+    tile: { x: number, y: number } = { x: 1, y: 1 },
+    fade_at_angle: boolean = true
+  },
+  events: {
+    attached: "decal_projector_attached",
+    detached: "decal_projector_detached"
+  },
+  behaviors: ["@surface_decal", "@blood_decal", "@material"]
+}

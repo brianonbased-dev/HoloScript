@@ -1,0 +1,22 @@
+@trait {
+  name: "@diegetic_ui",
+  category: "visual",
+  description: "World-space diegetic UI panel. Renders a 2D UI canvas as a physical plane in the 3D world (on a monitor, tablet, billboard, or wristband), receiving pointer and hand-ray interactions, auto-scaling to match a target world size in metres, and supporting curved-surface projection for immersive VR screens. Authored from DiegeticUiTrait.ts.",
+  props: {
+    canvas_url: string = "",
+    width_m: number = 0.4,
+    height_m: number = 0.3,
+    curvature: number = 0,
+    emissive_intensity: number = 0.8,
+    interactive: boolean = true,
+    double_sided: boolean = false
+  },
+  events: {
+    attached: "diegetic_ui_attached",
+    detached: "diegetic_ui_detached",
+    on_pointer_enter: "diegetic_ui_pointer_enter",
+    on_pointer_exit: "diegetic_ui_pointer_exit",
+    on_click: "diegetic_ui_click"
+  },
+  behaviors: ["@billboard", "@ui_frame", "@annotation"]
+}

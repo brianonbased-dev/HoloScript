@@ -1,0 +1,25 @@
+@trait {
+  name: "@dialogue_wheel",
+  category: "interaction",
+  description: "Radial dialogue choice wheel. Displays up to eight labelled response options in a radial HUD around the cursor or gaze point when an NPC conversation is active, mapping gamepad face-buttons and analogue stick to choices, and emitting the selected option ID on confirm. Authored from DialogueWheelTrait.ts.",
+  props: {
+    max_options: number = 6,
+    radius_px: number = 120,
+    icon_size_px: number = 48,
+    background_color: string = "#000000aa",
+    highlight_color: string = "#4488ff",
+    font_size: number = 14,
+    confirm_on_release: boolean = true,
+    visible: boolean = false
+  },
+  events: {
+    attached: "dialogue_wheel_attached",
+    detached: "dialogue_wheel_detached",
+    on_open: "dialogue_wheel_open",
+    on_select: "dialogue_wheel_select",
+    on_cancel: "dialogue_wheel_cancel",
+    open: "dialogue_wheel_trigger_open",
+    close: "dialogue_wheel_trigger_close"
+  },
+  behaviors: ["@menu_system", "@npc_schedule", "@story_beat"]
+}
