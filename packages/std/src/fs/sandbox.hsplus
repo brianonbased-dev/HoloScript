@@ -1,0 +1,56 @@
+// @std_fs_sandbox — Path boundary enforcement for HoloScript fs access (A-003 R-02).
+//
+// Native .hsplus surface for fs/sandbox.ts (std, v0.2.0).
+//
+// Closes A-003 R-02 P1 finding: without a boundary, a .hsplus scene could call
+// readText("../../etc/passwd") and read host files. vm2 confines the JS runtime
+// but trusts std/fs as a privileged bridge — this trait adds the lexical gate.
+//
+// Two modes (sandbox.ts):
+//   disabled: HOLOSCRIPT_FS_SANDBOX_ROOT env var unset → pass-through (existing tests valid)
+//   enabled:  HOLOSCRIPT_FS_SANDBOX_ROOT set → every path resolved against root;
+//             paths outside → PathBoundaryError (code: ERR_PATH_BOUNDARY)
+//
+// Opt-in via env var: runtime loader sets HOLOSCRIPT_FS_SANDBOX_ROOT to project root
+// when loading a .hsplus; flipping the switch enables enforcement fleet-wide.
+//
+// Symlinks: lexical boundary only — vm2 + filesystem permissions handle symlink escapes.
+
+@trait std_fs_sandbox {
+  // Whether to enforce path boundary (false = pass-through mode for existing tests)
+  enforce: Bool = true
+
+  capability_tags: ["std_fs_sandbox", "path_boundary", "fs_security", "a003_r02", "sandbox_enforcement", "holoscript_std"]
+
+  @on_spawn => {
+    sandbox = init_std_fs_sandbox({ enforce: enforce })
+    emit("std_fs_sandbox_ready", { enforce: enforce })
+  }
+
+  // Validate a user-supplied path. Returns the resolved absolute path (enforce=true)
+  // or the path unchanged (enforce=false). Throws PathBoundaryError on violation.
+  @on_enforce_path(path) => {
+    if not enforce { return path }
+    result = sandbox.enforce_path_boundary(path)
+    if not result.ok {
+      emit("std_fs_sandbox_violation", { path: path, reason: result.reason })
+    }
+    return result.resolved_path
+  }
+
+  @on_get_sandbox_root => {
+    return sandbox.get_sandbox_root()
+  }
+
+  @on_is_enabled => {
+    return enforce and sandbox.is_enabled()
+  }
+
+  @receipt std_fs_sandbox_config {
+    type: "StdFSSandboxReceipt"
+    enforce: enforce
+    env_var: "HOLOSCRIPT_FS_SANDBOX_ROOT"
+    error_code: "ERR_PATH_BOUNDARY"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,95 @@
+// @std_fs_watch — File and directory watching utilities (chokidar-backed).
+//
+// Native .hsplus surface for fs/watch.ts (std, v0.2.0).
+//
+// WatchEventType (watch.ts):
+//   add | change | unlink | addDir | unlinkDir | error | ready
+//
+// WatchEvent: { type: WatchEventType, path: String, stats?: { size, mtime } }
+//
+// WatchOptions (watch.ts):
+//   ignored?: String[] (glob patterns)
+//   use_polling: Bool = false (native events vs polling)
+//   interval_ms: Int = 100 (polling interval)
+//   emit_initial: Bool = false (events for existing files on start)
+//   follow_symlinks: Bool = true
+//   depth?: Int (watch recursion depth)
+//   persistent: Bool = true (keep process alive while watching)
+//   debounce_ms: Int = 50
+
+@trait std_fs_watch {
+  // Glob patterns or paths to watch
+  paths: Array<String>
+
+  // Glob patterns to ignore (e.g. ["**/node_modules/**", "**/.git/**"])
+  ignored: Array<String> = []
+
+  // Use polling instead of native fs events
+  use_polling: Bool = false
+
+  // Emit events for initial files on watcher start
+  emit_initial: Bool = false
+
+  // Debounce delay in ms to coalesce rapid events
+  debounce_ms: Int = 50
+
+  // Keep process alive while watching
+  persistent: Bool = true
+
+  capability_tags: ["std_fs_watch", "file_watch", "chokidar", "fs_events", "holoscript_std"]
+
+  @on_spawn => {
+    watcher = init_chokidar_watcher({
+      paths: paths,
+      ignored: ignored,
+      use_polling: use_polling,
+      emit_initial: emit_initial,
+      debounce_ms: debounce_ms,
+      persistent: persistent
+    })
+    watcher.on("all", "on_fs_event")
+    watcher.on("ready", "on_ready")
+    watcher.on("error", "on_error")
+    emit("std_fs_watch_ready", { watching: paths })
+  }
+
+  @on_fs_event(event_type, path, stats) => {
+    emit("std_fs_event", {
+      type: event_type,
+      path: path,
+      stats: stats
+    })
+  }
+
+  @on_ready => {
+    emit("std_fs_watch_initial_scan_complete", { paths: paths })
+  }
+
+  @on_error(error) => {
+    emit("std_fs_watch_error", { error: error })
+  }
+
+  @on_add_path(path) => {
+    watcher.add(path)
+    emit("std_fs_watch_path_added", { path: path })
+  }
+
+  @on_remove_path(path) => {
+    watcher.unwatch(path)
+    emit("std_fs_watch_path_removed", { path: path })
+  }
+
+  @on_despawn => {
+    watcher.close()
+    emit("std_fs_watch_closed", { paths: paths })
+  }
+
+  @receipt std_fs_watch_config {
+    type: "StdFSWatchReceipt"
+    paths: paths
+    use_polling: use_polling
+    debounce_ms: debounce_ms
+    backend: "chokidar"
+    timestamp: now()
+  }
+}
