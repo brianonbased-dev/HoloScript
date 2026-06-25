@@ -1,0 +1,24 @@
+@trait {
+  name: "@i_k",
+  category: "physics",
+  description: "Inverse Kinematics for skeletal chains. Solvers: fabrik (Forward and Backward Reaching IK — stable, no singularity), ccd (Cyclic Coordinate Descent — fast, may over-rotate), two-bone (analytic elbow/knee), full-body (FBIK). Chain: named bone chain or inline IKChain definition. target (entity ID) or targetPosition drives end-effector; poleTarget/polePosition hints elbow direction. Weight 0-1 blends IK result with existing animation. Port of IKTrait.ts (handler name: i_k — defaultConfig={}, all props optional).",
+  props: {
+    chain: string = "",
+    target: string = "",
+    pole_target: string = "",
+    chain_length: number = 0,
+    iterations: number = 10,
+    tolerance: number = 0.001,
+    weight: number = 1.0,
+    solver: enum("fabrik" | "ccd" | "two-bone" | "full-body") = "fabrik"
+  },
+  events: {
+    attached: "i_k_attached",
+    detached: "i_k_detached",
+    on_solved: "i_k_solved",
+    on_target_changed: "i_k_target_changed",
+    solve: "i_k_solve",
+    set_target: "i_k_set_target"
+  },
+  behaviors: ["@physics_body", "@kinematic_chain", "@advanced_cloth"]
+}

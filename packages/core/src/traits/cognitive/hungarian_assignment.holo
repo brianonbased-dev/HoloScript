@@ -1,0 +1,17 @@
+@trait {
+  name: "@hungarian_assignment",
+  category: "cognitive",
+  description: "O(n³) Kuhn-Munkres optimal assignment solver for multi-object tracking. Receives a cost matrix (tracks × detections) via hungarian:solve event; pads non-square inputs to square; returns matched_pairs, unmatched_tracks, new_detections, total_cost. Cells with cost > association_threshold are forced unmatched post-solve. max_matrix_size caps matrix edge to bound memory. pad_cost fills virtual rows/cols added during square-padding. Lifted from uaa2-service mtt-algorithm-panel.hsplus. Port of HungarianAssignmentTrait.ts (handler name: hungarian_assignment).",
+  props: {
+    association_threshold: number = 0.5,
+    max_matrix_size: number = 64,
+    pad_cost: number = 1.0
+  },
+  events: {
+    attached: "hungarian_assignment_ready",
+    on_result: "hungarian:result",
+    on_error: "hungarian:error",
+    solve: "hungarian:solve"
+  },
+  behaviors: ["@spatial_awareness", "@ecs_world"]
+}
