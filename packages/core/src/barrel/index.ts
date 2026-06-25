@@ -99,6 +99,8 @@ export { provenanceHandler } from '../traits/ProvenanceTrait';
 export type { ProvenanceTraitConfig } from '../traits/ProvenanceTrait';
 export { provenanceDensifyHandler } from '../traits/ProvenanceDensifyTrait';
 export type { ProvenanceDensifyConfig } from '../traits/ProvenanceDensifyTrait';
+export { evolveProgramHandler } from '../traits/EvolveProgramTrait';
+export type { EvolveProgramConfig } from '../traits/EvolveProgramTrait';
 
 // Reconstruction provenance primitives — the observed-vs-invented moat. Exposed
 // on the public barrel so other packages (e.g. the ssja FidelityEvalContract)
@@ -124,6 +126,18 @@ export type {
   DensifyResult,
   GenerativeDensifierBackend,
 } from '../reconstruction/densifyByInterpolation';
+// Gated evolutionary self-improvement — the @evolve_program trait's executor backend.
+export { runEvolution, makeOllamaProposer } from '../evolution/EvolveProgramBackend';
+export type {
+  EvolvePolicy,
+  EvolveCandidate,
+  Proposer,
+  Gate,
+  EvolveIO,
+  EvolveOutcome,
+  EvolveReceipt,
+  EvolveResult,
+} from '../evolution/EvolveProgramBackend';
 export type {
   AutoRigConfig,
   AutoRigPose,

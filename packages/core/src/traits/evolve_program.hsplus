@@ -1,0 +1,69 @@
+// @evolve_program — gated evolutionary self-improvement, authored as DATA.
+//
+// Declares the policy for evolving a target program/artifact toward a measured
+// fitness, under a HARD correctness gate. The loop is verifier-gated: a candidate
+// that fails the gate is DISCARDED (never kept); fitness (lower-is-better) selects
+// among survivors; a Darwin-style archive keeps diverse parents to escape local
+// optima; every candidate is recorded for provenance. Bounded by `generations`
+// (the compute guardrail). It PROPOSES — a human promotes; it never self-ships.
+//
+// The guardrail IS the engine: the gate is the selection pressure that makes
+// self-improvement converge instead of rot. Runs on local metal (a sovereign
+// proposer model). Executed by EvolveProgramBackend — the trait's backend,
+// mirroring @provenance_densify + GenerativeDensifierBackend.
+
+@trait evolve_program {
+  // What to evolve (a path/handle the backend resolves).
+  target: String
+
+  // Natural-language objective handed to the proposer each generation.
+  goal: String
+
+  // Correctness + fitness ORACLE: an EXISTING gate command that returns pass/fail
+  // and a numeric score (lower-is-better). Reused, never new tooling (D.101).
+  fitness_gate: String
+
+  // Sovereign proposer model on local metal. NEVER a blacklisted qwen2.5 (W.738).
+  proposer_model: String = "brittney-edge:v0-4"
+
+  // Bounded search — the compute/spend guardrail.
+  generations: Int = 8
+  population: Int = 4
+  archive_size: Int = 8
+
+  capability_tags: ["self_improvement", "gated_evolution", "sovereign_local_metal", "verifier_gated", "language_work"]
+
+  @on_attach => {
+    declare_evolution({
+      target: target,
+      goal: goal,
+      fitness_gate: fitness_gate,
+      proposer_model: proposer_model,
+      generations: generations,
+      population: population
+    })
+    emit("evolve_program_declared", {
+      target: target,
+      proposer_model: proposer_model,
+      gated: true,
+      self_ships: false
+    })
+  }
+
+  @on_detach => {
+    clear_evolution()
+  }
+
+  // Provenance receipt — the auditable trail of the gated search.
+  @receipt evolve_provenance {
+    type: "EvolveProgramReceipt"
+    target: target
+    goal: goal
+    proposer_model: proposer_model
+    fitness_gate: fitness_gate
+    generations: generations
+    verifier_gated: true
+    self_ships: false
+    timestamp: now()
+  }
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@evolve_program",
+  category: "self-improvement",
+  description: "Gated evolutionary self-improvement of a target program/artifact toward a measured fitness under a HARD correctness gate. Verifier-gated (failing candidates discarded, never kept), Darwin-style archive, sovereign local-metal proposer, full provenance receipt; it PROPOSES and never self-ships. Executed by EvolveProgramBackend (the trait backend, mirroring @provenance_densify + GenerativeDensifierBackend). D.101 language work: a trait + named backend reusing EXISTING gates as fitness — no new tooling. Authored from EvolveProgramTrait.ts.",
+  props: {
+    target: string = "",
+    goal: string = "",
+    fitness_gate: string = "",
+    proposer_model: string = "brittney-edge:v0-4",
+    generations: number = 8,
+    population: number = 4,
+    archive_size: number = 8
+  },
+  events: {
+    on_declared: "evolve_program_declared",
+    on_generation: "evolve_program_generation",
+    on_complete: "evolve_program_complete"
+  },
+  behaviors: ["@provenance"]
+}

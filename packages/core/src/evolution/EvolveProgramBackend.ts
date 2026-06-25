@@ -1,0 +1,291 @@
+/**
+ * EvolveProgramBackend — the gated evolutionary executor behind the
+ * `@evolve_program` trait (mirrors how `GenerativeDensifierBackend` backs
+ * `@provenance_densify`).
+ *
+ * The thesis, in code: **the verifier-gate IS the engine.** A candidate that
+ * fails the correctness gate is DISCARDED — never archived (line: `if
+ * (!gate.passed) continue`). Fitness (lower-is-better) selects among survivors;
+ * a Darwin-style archive keeps diverse parents so the search escapes local
+ * optima; every candidate is recorded for provenance. The search is bounded by
+ * `generations` (the compute guardrail). It PROPOSES — `runEvolution` surfaces a
+ * winning candidate's code only when it genuinely beat the seed; promotion to the
+ * live tree is a caller/human decision. It NEVER self-ships.
+ *
+ * Pure + injectable: {@link runEvolution} takes `propose` (a sovereign
+ * local-metal LLM) and `gate` (an EXISTING fitness command) as inputs, so the
+ * loop is deterministic and unit-testable with mocks. {@link makeOllamaProposer}
+ * wires the default sovereign proposer to local metal (e.g. the Jetson Ollama
+ * endpoint) — no cloud dependency.
+ *
+ * D.101: this is the named backend of a trait, reusing existing gates as fitness
+ * — language work, not standalone tooling (the @provenance_densify precedent).
+ *
+ * @package @holoscript/core/evolution
+ */
+
+/** The evolution policy (the runtime shape of the `@evolve_program` trait data). */
+export interface EvolvePolicy {
+  /** Natural-language objective handed to the proposer each generation. */
+  goal: string;
+  /** Bounded search depth — the compute guardrail. */
+  generations: number;
+  /** Candidates proposed per generation. */
+  population: number;
+  /** Darwin-archive size (diverse parents to escape local optima). */
+  archiveSize: number;
+  /** Sovereign proposer model on local metal (recorded in the receipt). */
+  proposerModel: string;
+}
+
+/** One evaluated candidate — the provenance unit. */
+export interface EvolveCandidate {
+  id: number;
+  gen: number;
+  parentId: number | null;
+  /** Did it pass the correctness gate? A `false` candidate is discarded. */
+  passed: boolean;
+  /** Fitness, lower-is-better. `Infinity` for a failed/un-scored candidate. */
+  score: number;
+  /** Byte length of the candidate (a cheap secondary signal). */
+  bytes: number;
+  /** Short note on what happened to this candidate. */
+  note: string;
+}
+
+/** Proposes a mutation: returns the FULL revised program (no diff applier exists). */
+export type Proposer = (parentCode: string, goal: string, policy: EvolvePolicy) => Promise<string>;
+
+/** The correctness + fitness oracle. `passed` is the hard gate; `score` is lower-is-better. */
+export type Gate = (candidateCode: string) => Promise<{ passed: boolean; score: number }>;
+
+/** Injected effects, so the loop is pure + deterministic under test. */
+export interface EvolveIO {
+  propose: Proposer;
+  gate: Gate;
+  /** ISO timestamp source (injected for deterministic tests). */
+  now?: () => string;
+}
+
+export type EvolveOutcome = 'IMPROVED' | 'NO_IMPROVEMENT' | 'SEED_INVALID';
+
+/** The auditable receipt — the native `{result, traceJSONL, verifyUrl}` envelope. */
+export interface EvolveReceipt {
+  result: EvolveOutcome;
+  generations: number;
+  /** Candidates that reached the gate (excludes empty/unchanged/propose-error). */
+  evaluated: number;
+  /** Candidates that PASSED the gate (the archived survivors, incl. seed). */
+  survivors: number;
+  /** Candidates DISCARDED by the gate (the guardrail at work). */
+  discarded: number;
+  seedScore: number | null;
+  bestScore: number | null;
+  improvementPct: number | null;
+  proposerModel: string;
+  /** Always true — there is no ungated path. */
+  verifierGated: true;
+  /** Always false — the loop proposes; a human promotes. */
+  selfShips: false;
+  /** Newline-delimited per-candidate JSON records (the full provenance trail). */
+  traceJSONL: string;
+  /** Content anchor over the trace: `cael:sha256:<hex>`. */
+  verifyUrl: string;
+  ts: string;
+}
+
+export interface EvolveResult {
+  /** The winning candidate's code — ONLY when it genuinely beat the seed; else null. */
+  bestCode: string | null;
+  receipt: EvolveReceipt;
+}
+
+interface Member {
+  cand: EvolveCandidate;
+  code: string;
+}
+
+async function sha256Hex(s: string): Promise<string> {
+  const bytes = new TextEncoder().encode(s);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
+ * Run the gated evolutionary search over `seedCode` under `policy`. Returns the
+ * winning code (only if it beat the seed) plus a full provenance receipt.
+ *
+ * Guarantees:
+ *  - the seed must PASS the gate, else `SEED_INVALID` (you cannot evolve from an
+ *    invalid baseline);
+ *  - a candidate that FAILS the gate is discarded, never archived;
+ *  - `bestCode` is non-null only when `bestScore < seedScore` (propose-not-ship).
+ */
+export async function runEvolution(
+  seedCode: string,
+  policy: EvolvePolicy,
+  io: EvolveIO,
+): Promise<EvolveResult> {
+  const now = io.now ?? (() => new Date().toISOString());
+  const trace: EvolveCandidate[] = [];
+  let nextId = 0;
+  let evaluated = 0;
+  let discarded = 0;
+  const push = (c: EvolveCandidate): EvolveCandidate => {
+    trace.push(c);
+    return c;
+  };
+
+  const finalize = async (
+    result: EvolveOutcome,
+    seedScore: number | null,
+    bestScore: number | null,
+  ): Promise<EvolveReceipt> => {
+    const traceJSONL = trace.map((c) => JSON.stringify(c)).join('\n');
+    const improvementPct =
+      seedScore !== null && bestScore !== null && seedScore > 0
+        ? Math.round(((seedScore - bestScore) / seedScore) * 1000) / 10
+        : null;
+    return {
+      result,
+      generations: policy.generations,
+      evaluated,
+      survivors: trace.filter((c) => c.passed).length,
+      discarded,
+      seedScore,
+      bestScore,
+      improvementPct,
+      proposerModel: policy.proposerModel,
+      verifierGated: true,
+      selfShips: false,
+      traceJSONL,
+      verifyUrl: `cael:sha256:${await sha256Hex(traceJSONL)}`,
+      ts: now(),
+    };
+  };
+
+  // Seed must pass the gate — you cannot evolve from an invalid baseline.
+  const seedGate = await io.gate(seedCode);
+  evaluated++;
+  const seed = push({
+    id: nextId++,
+    gen: 0,
+    parentId: null,
+    passed: seedGate.passed,
+    score: seedGate.passed ? seedGate.score : Infinity,
+    bytes: seedCode.length,
+    note: 'seed',
+  });
+  if (!seedGate.passed) {
+    discarded++;
+    return { bestCode: null, receipt: await finalize('SEED_INVALID', null, null) };
+  }
+
+  const archive: Member[] = [{ cand: seed, code: seedCode }];
+  let best: Member = { cand: seed, code: seedCode };
+  let propIdx = 0;
+
+  for (let gen = 1; gen <= policy.generations; gen++) {
+    for (let p = 0; p < policy.population; p++) {
+      // Round-robin parent selection over the score-sorted archive: deterministic,
+      // biased toward the best (index 0) but cycling for diversity.
+      const parent = archive[propIdx % archive.length];
+      propIdx++;
+
+      let code: string;
+      try {
+        code = (await io.propose(parent.code, policy.goal, policy)).trim();
+      } catch (err) {
+        push({
+          id: nextId++,
+          gen,
+          parentId: parent.cand.id,
+          passed: false,
+          score: Infinity,
+          bytes: 0,
+          note: `propose_error:${(err as Error).message}`,
+        });
+        continue;
+      }
+
+      // Cheap pre-gate filter: skip empty or no-op mutations (not a gate failure).
+      if (!code || code === parent.code) {
+        push({
+          id: nextId++,
+          gen,
+          parentId: parent.cand.id,
+          passed: false,
+          score: Infinity,
+          bytes: code.length,
+          note: 'empty_or_unchanged',
+        });
+        continue;
+      }
+
+      const g = await io.gate(code);
+      evaluated++;
+      const cand = push({
+        id: nextId++,
+        gen,
+        parentId: parent.cand.id,
+        passed: g.passed,
+        score: g.passed ? g.score : Infinity,
+        bytes: code.length,
+        note: g.passed ? 'gated_pass' : 'gated_fail_discarded',
+      });
+
+      // THE GUARDRAIL: a candidate that fails correctness is discarded, never kept.
+      if (!g.passed) {
+        discarded++;
+        continue;
+      }
+
+      // Survivor → archive; keep the top `archiveSize` by score (lower is better).
+      archive.push({ cand, code });
+      archive.sort((a, b) => a.cand.score - b.cand.score);
+      if (archive.length > policy.archiveSize) archive.length = policy.archiveSize;
+      if (cand.score < best.cand.score) best = { cand, code };
+    }
+  }
+
+  const improved = best.cand.id !== seed.id && best.cand.score < seed.score;
+  return {
+    // Propose-not-ship: only surface code that genuinely beat the seed.
+    bestCode: improved ? best.code : null,
+    receipt: await finalize(
+      improved ? 'IMPROVED' : 'NO_IMPROVEMENT',
+      seed.score,
+      best.cand.score === Infinity ? null : best.cand.score,
+    ),
+  };
+}
+
+/**
+ * Default sovereign proposer wired to a local Ollama endpoint (local metal — e.g.
+ * the Jetson at `http://holojetson.local:11434`). Asks for the FULL revised
+ * program (no diff applier exists in the repo) and strips markdown fences. The
+ * caller chooses the model; never pass a blacklisted qwen2.5 (W.738).
+ */
+export function makeOllamaProposer(endpoint: string, model: string): Proposer {
+  const base = endpoint.replace(/\/+$/, '');
+  return async (parentCode, goal) => {
+    const prompt =
+      `You are improving a program toward a goal. GOAL: ${goal}\n\n` +
+      `Return ONLY the full revised program — no prose, no explanation, no markdown code fences.\n\n` +
+      `--- CURRENT PROGRAM ---\n${parentCode}\n--- END ---`;
+    const res = await fetch(`${base}/api/generate`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model, prompt, stream: false, options: { temperature: 0.7 } }),
+    });
+    if (!res.ok) throw new Error(`ollama ${res.status}`);
+    const body = (await res.json()) as { response?: string };
+    return (body.response ?? '')
+      .trim()
+      .replace(/^```[a-z]*\n?/i, '')
+      .replace(/\n?```$/i, '')
+      .trim();
+  };
+}
