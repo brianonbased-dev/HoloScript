@@ -1,0 +1,82 @@
+// @service_connector — Abstract base for external MCP service connectors.
+//
+// Native .hsplus surface for ServiceConnector.ts (connector-core).
+//
+// ServiceConnector (ServiceConnector.ts):
+//   Abstract base class — concrete connectors extend this to wrap external APIs.
+//   Lifecycle: connect() → listTools() → executeTool() → disconnect()
+//   Health: health() → Bool (true = fully operational)
+//
+// MCP integration: listTools() returns MCP SDK Tool[] — each connector
+// exposes its service APIs as discoverable MCP tools.
+//
+// Implemented by: connector-vscode, and any domain-specific connectors.
+
+@trait service_connector {
+  // Human-readable name for this connector (for health + logging)
+  connector_name: String
+
+  // Auto-connect on spawn
+  auto_connect: Bool = true
+
+  // Health check interval in ms (0 = no periodic check)
+  health_check_interval_ms: Int = 30000
+
+  capability_tags: ["service_connector", "mcp_tools", "external_service", "connector_core", "lifecycle"]
+
+  @on_spawn => {
+    connector = init_service_connector({ connector_name: connector_name })
+    if auto_connect {
+      connect_result = connector.connect()
+      if connect_result.ok {
+        emit("service_connector_connected", { connector_name: connector_name })
+        if health_check_interval_ms > 0 {
+          schedule_recurring("on_health_check", health_check_interval_ms)
+        }
+      } else {
+        emit("service_connector_error", { connector_name: connector_name, reason: connect_result.reason })
+      }
+    }
+  }
+
+  @on_connect => {
+    result = connector.connect()
+    if result.ok {
+      emit("service_connector_connected", { connector_name: connector_name })
+    } else {
+      emit("service_connector_error", { connector_name: connector_name, reason: result.reason })
+    }
+    return result.ok
+  }
+
+  @on_disconnect => {
+    connector.disconnect()
+    emit("service_connector_disconnected", { connector_name: connector_name })
+  }
+
+  @on_health_check => {
+    healthy = connector.health()
+    emit("service_connector_health", { connector_name: connector_name, healthy: healthy })
+    return healthy
+  }
+
+  // List MCP tools exposed by this connector
+  @on_list_tools => {
+    return connector.list_tools()
+  }
+
+  // Route a tool call to the underlying service API
+  @on_execute_tool(tool_name, args) => {
+    result = connector.execute_tool(tool_name, args)
+    emit("service_tool_executed", { connector_name: connector_name, tool_name: tool_name })
+    return result
+  }
+
+  @receipt service_connector_config {
+    type: "ServiceConnectorReceipt"
+    connector_name: connector_name
+    auto_connect: auto_connect
+    health_check_interval_ms: health_check_interval_ms
+    timestamp: now()
+  }
+}

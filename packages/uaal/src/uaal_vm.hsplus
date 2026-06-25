@@ -1,0 +1,92 @@
+// @uaal_vm — uAAL Virtual Machine: stack-based bytecode execution for the 7-phase protocol.
+//
+// Native .hsplus surface for vm.ts (uaal).
+//
+// The uAAL VM is the standalone open-source execution core for uAA2++ agents.
+// Custom opcode handlers injected via register_handler() by the host application.
+//
+// Architecture (vm.ts):
+//   Stack:      operand stack (push/pop values)
+//   PC:         program counter
+//   Context:    key-value metadata (agent session + cognitive state)
+//   Handlers:   pluggable opcode implementations (injected at host level)
+//
+// VMState  { stack, pc, context, is_halted }
+// VMResult { task_status: RUNNING|HALTED|SUSPENDED|ERROR|IDLE, stack_top, state }
+// VMProxy  { push, pop, peek, get_state }
+//
+// UAALVMOptions:
+//   enable_logging: Bool (default false)
+//   max_stack_size: Int  (default 1024)
+//   max_instructions: Int (safeguard against infinite loops)
+//
+// The 7 cognitive opcodes (0x10–0x17) drive the uAA2++ loop:
+//   INTAKE → REFLECT → COMPRESS → EXECUTE → REINTAKE → GROW → EVOLVE
+
+@trait uaal_vm {
+  // Whether to log opcode execution
+  enable_logging: Bool = false
+
+  // Max operand stack depth
+  max_stack_size: Int = 1024
+
+  // Max instructions per run (loop safeguard)
+  max_instructions: Int = 100000
+
+  capability_tags: ["uaal_vm", "uaal_bytecode", "stack_machine", "uaa2_protocol", "cognitive_vm", "agent_runtime"]
+
+  @on_spawn => {
+    vm = init_uaal_vm({
+      enable_logging: enable_logging,
+      max_stack_size: max_stack_size,
+      max_instructions: max_instructions
+    })
+    emit("uaal_vm_ready", { max_stack_size: max_stack_size })
+  }
+
+  // Execute a full bytecode program to completion
+  @on_run(bytecode) => {
+    emit("uaal_vm_run_started", {})
+    result = vm.run(bytecode)
+    emit("uaal_vm_run_complete", { task_status: result.task_status })
+    return result
+  }
+
+  // Execute one instruction (stepped execution for debuggers)
+  @on_step => {
+    result = vm.step()
+    if enable_logging {
+      emit("uaal_vm_step", { pc: result.state.pc, task_status: result.task_status })
+    }
+    return result
+  }
+
+  // Register a custom opcode handler (pluggable cognitive extension)
+  @on_register_handler(opcode, handler_id) => {
+    vm.register_handler(opcode, handler_id)
+    emit("uaal_handler_registered", { opcode: opcode, handler_id: handler_id })
+  }
+
+  // Read/write VM context (cognitive state key-value store)
+  @on_set_context(key, value) => {
+    vm.set_context(key, value)
+  }
+
+  @on_get_context(key) => {
+    return vm.get_context(key)
+  }
+
+  @on_reset => {
+    vm.reset()
+    emit("uaal_vm_reset", {})
+  }
+
+  @receipt uaal_vm_config {
+    type: "UAALVMReceipt"
+    enable_logging: enable_logging
+    max_stack_size: max_stack_size
+    max_instructions: max_instructions
+    cognitive_protocol: "uAA2++ 7-phase (INTAKE→REFLECT→COMPRESS→EXECUTE→REINTAKE→GROW→EVOLVE)"
+    timestamp: now()
+  }
+}

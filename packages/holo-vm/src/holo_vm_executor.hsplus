@@ -1,0 +1,97 @@
+// @holo_vm_executor — HOLO VM: spatial scene bytecode execution at 90fps.
+//
+// Native .hsplus surface for executor.ts (holo-vm).
+//
+// The HOLO VM is the .holob bytecode executor for spatial scene simulation.
+// It runs compiled .holo scenes at 90fps — the target frame rate for VR.
+//
+// Architecture (executor.ts):
+//   ECS World    — entity/component storage
+//   Stack        — operand stack per call frame
+//   Registers    — local variable storage per function
+//   Call Stack   — function call frames
+//   Event Queue  — deferred event dispatch
+//   Timer Queue  — scheduled delayed actions
+//
+// ECS Components (executor.ts):
+//   Transform  { position: Vec3, rotation: Quat, scale: Vec3 }
+//   Geometry   { type: GeometryType, params: Map<String, Float> }
+//   Material   { color, metalness, roughness, emissive, opacity }
+//   RigidBody  { mass, body_type, velocity: Vec3, angular_velocity: Vec3 }
+//
+// VMResult: { task_status: RUNNING|HALTED|SUSPENDED|ERROR|IDLE, stack_top, state }
+// Tick: single 90fps frame execution step
+
+@trait holo_vm_executor {
+  // Target tick rate in Hz (default 90fps for VR)
+  target_tick_hz: Int = 90
+
+  // Max entities in the ECS world
+  max_entities: Int = 10000
+
+  // Enable event queue dispatch (deferred events)
+  enable_event_queue: Bool = true
+
+  // Enable timer queue (delayed/scheduled actions)
+  enable_timer_queue: Bool = true
+
+  capability_tags: ["holo_vm_executor", "holo_vm", "ecs_world", "spatial_scene", "holob_bytecode", "90fps", "vr_runtime"]
+
+  @on_spawn => {
+    executor = init_holo_vm({
+      target_tick_hz: target_tick_hz,
+      max_entities: max_entities,
+      enable_event_queue: enable_event_queue,
+      enable_timer_queue: enable_timer_queue
+    })
+    emit("holo_vm_ready", { target_tick_hz: target_tick_hz })
+  }
+
+  // Load a compiled .holob bytecode program
+  @on_load(bytecode) => {
+    executor.load(bytecode)
+    emit("holo_vm_loaded", { entity_count: bytecode.entity_defs.size })
+  }
+
+  // Execute one 90fps tick
+  @on_tick(delta_ms) => {
+    result = executor.tick(delta_ms)
+    return result
+  }
+
+  // Spawn an entity with components
+  @on_spawn_entity(entity_def) => {
+    entity_id = executor.spawn_entity(entity_def)
+    emit("holo_entity_spawned", { entity_id: entity_id })
+    return entity_id
+  }
+
+  // Destroy an entity and its components
+  @on_destroy_entity(entity_id) => {
+    executor.destroy_entity(entity_id)
+    emit("holo_entity_destroyed", { entity_id: entity_id })
+  }
+
+  // Get a component by entity id and component type
+  @on_get_component(entity_id, component_type) => {
+    return executor.get_component(entity_id, component_type)
+  }
+
+  // Set a component value
+  @on_set_component(entity_id, component_type, value) => {
+    executor.set_component(entity_id, component_type, value)
+  }
+
+  // Enqueue an event for deferred dispatch
+  @on_queue_event(event_type, payload, target_entity_id) => {
+    executor.queue_event({ type: event_type, payload: payload, target: target_entity_id })
+  }
+
+  @receipt holo_vm_config {
+    type: "HoloVMExecutorReceipt"
+    target_tick_hz: target_tick_hz
+    max_entities: max_entities
+    ecs_components: ["Transform", "Geometry", "Material", "RigidBody"]
+    timestamp: now()
+  }
+}

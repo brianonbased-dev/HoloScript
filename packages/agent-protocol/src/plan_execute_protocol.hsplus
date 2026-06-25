@@ -1,0 +1,75 @@
+// @plan_execute_protocol — Plan-and-Execute agent: Plan → Step → Replan on failure.
+//
+// Native .hsplus surface for plan-execute-protocol.ts (agent-protocol).
+//
+// Two-phase agentic protocol:
+//   1. Plan phase: LLM generates a sequence of PlanSteps for the goal
+//   2. Execute phase: steps executed sequentially (with dependency ordering)
+//   3. On failure: replans from current state (up to max_replans times)
+//
+// Types (plan-execute-protocol.ts):
+//   PlanStep    { id, description, action, input, dependencies: String[] }
+//   Plan        { goal, steps: PlanStep[], reasoning }
+//   StepResult  { step_id, status: success|failure|timeout|skipped, output, error?, duration_ms }
+//   PlanExecResult { goal, plans[], step_results[], status: complete|partial|failed,
+//                    replans_used, total_duration_ms }
+//
+// Adapters wired at runtime:
+//   PlanLLMAdapter   — plan(goal, context?) where context = { failed_steps, previous_plan }
+//   PlanStepExecutor — execute_step(step) → StepResult
+
+@trait plan_execute_protocol {
+  // Max replanning cycles on step failure
+  max_replans: Int = 3
+
+  // Timeout per step in ms
+  step_timeout_ms: Int = 60000
+
+  // Timeout for the plan generation phase in ms
+  plan_timeout_ms: Int = 30000
+
+  capability_tags: ["plan_execute_protocol", "plan_and_execute", "replanning", "agentic_protocol", "agent_protocol"]
+
+  @on_spawn => {
+    planner = init_plan_execute_agent({
+      max_replans: max_replans,
+      step_timeout_ms: step_timeout_ms,
+      plan_timeout_ms: plan_timeout_ms
+    })
+    emit("plan_execute_ready", { max_replans: max_replans })
+  }
+
+  // Run the full plan→execute→replan loop for a goal
+  @on_run(goal) => {
+    emit("plan_execute_started", { goal: goal })
+    result = planner.run(goal)
+    emit("plan_execute_complete", {
+      status: result.status,
+      replans_used: result.replans_used,
+      total_duration_ms: result.total_duration_ms
+    })
+    return result
+  }
+
+  // Generate a plan only (no execution)
+  @on_plan(goal, failed_steps, previous_plan) => {
+    plan = planner.plan(goal, { failed_steps: failed_steps, previous_plan: previous_plan })
+    emit("plan_generated", { goal: goal, step_count: plan.steps.size })
+    return plan
+  }
+
+  // Execute a single plan step
+  @on_execute_step(step) => {
+    result = planner.execute_step(step)
+    emit("plan_step_executed", { step_id: step.id, status: result.status, duration_ms: result.duration_ms })
+    return result
+  }
+
+  @receipt plan_execute_config {
+    type: "PlanExecuteProtocolReceipt"
+    max_replans: max_replans
+    step_timeout_ms: step_timeout_ms
+    plan_timeout_ms: plan_timeout_ms
+    timestamp: now()
+  }
+}
