@@ -1,0 +1,17 @@
+@trait {
+  name: "@spatial_profiler",
+  category: "devops",
+  description: "Spatial performance profiler. Records FPS and draw-call samples in a rolling buffer during a recording session started by prof:start. Emits a prof:report with sample count and average FPS when stopped. Port of SpatialProfilerTrait.ts (handler name: spatial_profiler).",
+  props: {
+    sample_rate_ms: number = 16
+  },
+  events: {
+    on_started: "prof:started",
+    on_sampled: "prof:sampled",
+    on_report: "prof:report",
+    start: "prof:start",
+    sample: "prof:sample",
+    stop: "prof:stop"
+  },
+  behaviors: ["@analytics", "@system_monitor", "@watcher"]
+}

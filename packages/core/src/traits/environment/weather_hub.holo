@@ -1,0 +1,27 @@
+@trait {
+  name: "@weather",
+  category: "environment",
+  description: "World weather hub that owns a shared blackboard read by @volumetric_clouds, @god_rays, @wind, and other consumer traits each frame. Drives a day-night cycle with a configurable day length and sun latitude, auto-cycles weather types, and writes wind force + wetness friction to the physics blackboard. Port of WeatherHubTrait.ts (handler name: weather).",
+  props: {
+    day_length_seconds: number = 1200,
+    start_time: number = 12,
+    latitude: number = 45,
+    initial_weather: string = "clear",
+    auto_cycle: boolean = true,
+    cycle_min_duration: number = 120,
+    cycle_max_duration: number = 600,
+    transition_duration: number = 10,
+    wind_physics_scale: number = 1.0,
+    wetness_friction_modifier: number = 0.7,
+    wind_direction: { x: number, y: number, z: number } = { x: 1, y: 0, z: 0.3 },
+    wind_speed: number = 2.0
+  },
+  events: {
+    attached: "weather_attached",
+    detached: "weather_detached",
+    on_change: "weather_change",
+    on_tick: "weather_tick",
+    set_weather: "weather_set"
+  },
+  behaviors: ["@volumetric_clouds", "@god_rays", "@wind"]
+}

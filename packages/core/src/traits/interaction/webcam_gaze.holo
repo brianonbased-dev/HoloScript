@@ -1,0 +1,25 @@
+@trait {
+  name: "@webcam_gaze",
+  category: "interaction",
+  description: "Consumer-webcam gaze adapter for foveated rendering and avatar intent. Uses MediaPipe FaceLandmarker iris landmarks in-browser to compute normalized viewport gaze coordinates and optional eye_gaze_update bridge events. Pure math layer keeps gaze computation testable in Node. Port of WebcamGazeTrait.ts (handler name: webcam_gaze).",
+  props: {
+    auto_start: boolean = false,
+    video_width: number = 640,
+    video_height: number = 480,
+    sample_rate_hz: number = 30,
+    confidence_threshold: number = 0.35,
+    wasm_base_path: string = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",
+    model_asset_path: string = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+    gaze_gain_x: number = 1.35,
+    gaze_gain_y: number = 1.8,
+    max_ray_angle_degrees: number = 10
+  },
+  events: {
+    on_ready: "webcam_gaze_ready",
+    on_sample: "webcam_gaze_sample",
+    on_error: "webcam_gaze_error",
+    start: "webcam_gaze_start",
+    stop: "webcam_gaze_stop"
+  },
+  behaviors: ["@user_monitor", "@gaze_focus_analytics", "@multiview_gaussian_renderer"]
+}

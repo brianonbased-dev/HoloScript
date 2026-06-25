@@ -1,0 +1,23 @@
+@trait {
+  name: "@zero_knowledge_proof",
+  category: "compliance",
+  description: "zk-SNARKs, zk-STARKs, Bulletproofs, PLONK, and Groth16 for privacy-preserving verification. Validates that Groth16/PLONK require a trusted setup, warns that zk-STARKs do not, and warns on circuit sizes > 1M. Port of ZeroKnowledgeProofTrait.ts (handler name: zero_knowledge_proof).",
+  props: {
+    proof_system: enum("zk_snark" | "zk_stark" | "bulletproofs" | "plonk" | "groth16") = "zk_snark",
+    curve: enum("bn254" | "bls12_381" | "ed25519" | "secp256k1") = "bn254",
+    circuit_size: number = 0,
+    trusted_setup_required: boolean = true,
+    recursive_proof: boolean = false,
+    batch_verification: boolean = false,
+    commitment_scheme: enum("pedersen" | "poseidon" | "sha256") = "pedersen"
+  },
+  events: {
+    attached: "zero_knowledge_proof_attached",
+    on_proved: "zero_knowledge_proof_proved",
+    on_verified: "zero_knowledge_proof_verified",
+    on_error: "zero_knowledge_proof_error",
+    prove: "zero_knowledge_proof_prove",
+    verify: "zero_knowledge_proof_verify"
+  },
+  behaviors: ["@gdpr", "@consent_management", "@provenance"]
+}
