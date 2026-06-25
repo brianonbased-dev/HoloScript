@@ -1,0 +1,90 @@
+// @cost_guard — per-tick spend ceiling for agent entities.
+//
+// Wraps the cost-guard module (cost-guard.ts) as a declarative .hsplus trait.
+// When the entity's tick pushes cumulative spend above the ceiling, the
+// runner halts and emits a cost_guard_tripped event — the entity becomes
+// effectively idle until the next tick window resets the counter.
+//
+// Local fleet (Jetson + laptop GPU) is always FREE / uncapped — the pricer
+// for local_llm returns 0, so a cost guard on a Jetson entity never trips
+// (unless you override the pricer). Only external APIs (Anthropic, OpenAI,
+// xAI, OpenRouter) incur tracked spend.
+//
+// The founder dual-cap policy (NORTH_STAR §0 / F.129):
+//   - GPU fleet: >$100/day → escalate to founder
+//   - Wallet/on-chain: >$100/day → escalate to founder
+//   - Within each cap: autonomous, no per-action approval needed
+//
+// Usage:
+//   entity#expensive_agent @cost_guard(
+//     daily_usd_ceiling: 50.0
+//     alert_at_fraction: 0.8
+//   ) { ... }
+
+@trait cost_guard {
+  // Hard daily spend ceiling in USD (tripped = tick halted for the window)
+  daily_usd_ceiling: Float = 100.0
+
+  // Emit a cost_guard_warning when spend reaches this fraction of the ceiling
+  alert_at_fraction: Float = 0.8
+
+  // Which provider cost model to use (local_llm = always $0)
+  provider_pricing: enum("anthropic" | "openai" | "xai" | "local_llm" | "openrouter") = "anthropic"
+
+  // Write cumulative cost state to this path across restarts (optional)
+  state_path: String?
+
+  // Reset window: "daily" (midnight UTC) or "per_session"
+  reset_window: enum("daily" | "per_session") = "daily"
+
+  capability_tags: ["cost_guard", "spend_ceiling", "budget_enforcement", "autonomous_within_cap"]
+
+  @on_spawn => {
+    guard = init_cost_guard({
+      daily_usd_ceiling: daily_usd_ceiling,
+      alert_at_fraction: alert_at_fraction,
+      provider_pricing: provider_pricing,
+      state_path: state_path,
+      reset_window: reset_window
+    })
+    emit("cost_guard_active", {
+      daily_usd_ceiling: daily_usd_ceiling,
+      alert_at_fraction: alert_at_fraction,
+      provider_pricing: provider_pricing,
+      reset_window: reset_window
+    })
+  }
+
+  @on_tick => {
+    state = guard.current_state()
+    fraction = state.spent_usd / daily_usd_ceiling
+    if fraction >= alert_at_fraction {
+      emit("cost_guard_warning", {
+        spent_usd: state.spent_usd,
+        ceiling_usd: daily_usd_ceiling,
+        fraction: fraction
+      })
+    }
+    if fraction >= 1.0 {
+      emit("cost_guard_tripped", {
+        spent_usd: state.spent_usd,
+        ceiling_usd: daily_usd_ceiling
+      })
+      halt_tick()
+    }
+  }
+
+  @on_despawn => {
+    guard.flush_state()
+  }
+
+  @receipt cost_guard_config {
+    type: "CostGuardReceipt"
+    daily_usd_ceiling: daily_usd_ceiling
+    alert_at_fraction: alert_at_fraction
+    provider_pricing: provider_pricing
+    reset_window: reset_window
+    state_persisted: state_path != null
+    timestamp: now()
+  }
+}

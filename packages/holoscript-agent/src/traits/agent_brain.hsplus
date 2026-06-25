@@ -1,0 +1,81 @@
+// @agent_brain — attaches a .hsplus brain file to a HoloScript entity.
+//
+// This is the native-authoring surface for brain binding. When an entity
+// carries @agent_brain, the AgentRunner loads the .hsplus brain from
+// brain_path, extracts the identity block, wires the cognitive verbs from
+// behavior on_task, and runs the reflect gate post-artifact.
+//
+// The brain_path value is resolved relative to the consuming package root at
+// compile time (compile_to_edge / compile_to_agent_inference). It is NOT a URL.
+//
+// The capability_provider field selects the LLM provider to run the brain.
+// When omitted, the runtime's capability router (capability-router.ts) picks
+// based on the brain's own identity.requires / identity.prefers.
+//
+// Lifecycle: on_spawn wires the brain; on_despawn releases it so the agent
+// runner cleans up any lingering timers or subscription state.
+//
+// Usage:
+//   entity#my_agent @agent_brain(
+//     brain_path: "./brains/holoscript-engineer.hsplus"
+//     scope_tier: "t1"
+//   ) { ... }
+
+@trait agent_brain {
+  // Path to the .hsplus brain file, relative to the consuming package root
+  brain_path: String
+
+  // T0=founder / T1=senior-agent / T2=agent / T3=observer (D.051)
+  scope_tier: enum("t0" | "t1" | "t2" | "t3") = "t2"
+
+  // Override the LLM provider; omit to let the capability router decide
+  provider: String?
+
+  // Maximum USD spend per tick (default: enforced by host cost-guard)
+  max_cost_usd: Float?
+
+  // Whether to run the reflect gate post-artifact
+  reflect_enabled: Bool = true
+
+  // Tick cadence in seconds (0 = event-driven, no polling)
+  tick_interval_s: Int = 0
+
+  capability_tags: ["agent_brain", "cognitive_runtime", "brain_binding", "on_task_wired"]
+
+  @on_spawn => {
+    brain = load_brain(brain_path)
+    identity = brain.identity()
+    verbs = brain.on_task_verbs()
+    provider = provider ?? route_provider(identity.requires, identity.prefers, identity.avoids)
+    runner = bind_runner({
+      brain: brain,
+      provider: provider,
+      scope_tier: scope_tier,
+      reflect_enabled: reflect_enabled,
+      tick_interval_s: tick_interval_s,
+      max_cost_usd: max_cost_usd
+    })
+    emit("agent_brain_bound", {
+      brain_path: brain_path,
+      domain: identity.domain,
+      capability_tags: identity.capability_tags,
+      provider: provider,
+      verb_count: len(verbs)
+    })
+  }
+
+  @on_despawn => {
+    release_runner()
+    emit("agent_brain_released", { brain_path: brain_path })
+  }
+
+  @receipt agent_brain_binding {
+    type: "AgentBrainBindingReceipt"
+    brain_path: brain_path
+    scope_tier: scope_tier
+    reflect_enabled: reflect_enabled
+    tick_interval_s: tick_interval_s
+    max_cost_usd: max_cost_usd ?? "host-default"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,92 @@
+// @delegated_authority — declares an entity's scope tier and autonomy limits.
+//
+// Maps to the delegated-authority module (delegated-authority.ts) and the
+// sovereign seat hierarchy (D.051: T0>T1>T2>T3). Every agent entity that
+// makes decisions should carry this trait so its autonomy is expressed as
+// data, not code — the trait becomes the authoritative record consulted by
+// the runner's DECIDE→EXECUTE→ANNOUNCE loop.
+//
+// Scope tier semantics (D.051):
+//   T0 = Founder — ecosystem-level irreversibles, treasury, governance
+//   T1 = Senior agent — cross-team decisions, architecture calls, $100/day cap
+//   T2 = Agent — within-team decisions, local mutations, reversible ops
+//   T3 = Observer — read-only, can propose but not execute
+//
+// The three-condition AND for founder escalation (NORTH_STAR §0):
+//   1. Irreversible at ecosystem level (Trezor seed, treasury, governance)
+//   2. Exceeds cap (>$100/day GPU fleet OR >$100/day wallet/on-chain)
+//   3. /founder skill explicitly escalated
+//
+// If any of the three is missing → DECIDE and proceed. This trait records
+// which tier the entity operates at and its per-action autonomy defaults.
+//
+// Usage:
+//   entity#my_agent @delegated_authority(
+//     scope_tier: "t2"
+//     can_push_to_main: true
+//     can_sign_wallet_ops: true
+//   ) { ... }
+
+@trait delegated_authority {
+  // Scope tier per D.051 sovereign seat hierarchy
+  scope_tier: enum("t0" | "t1" | "t2" | "t3") = "t2"
+
+  // Whether this entity may commit and push to main (F.089: direct to main)
+  can_push_to_main: Bool = true
+
+  // Whether this entity may sign and broadcast wallet ops (up to daily cap)
+  can_sign_wallet_ops: Bool = false
+
+  // Daily wallet/on-chain spend cap in USD (>cap → escalate)
+  wallet_daily_cap_usd: Float = 100.0
+
+  // Daily GPU fleet compute cap in USD (>cap → escalate)
+  gpu_daily_cap_usd: Float = 100.0
+
+  // Escalation target when any cap is exceeded
+  escalation_target: String = "founder"
+
+  capability_tags: ["delegated_authority", "scope_tier", "autonomy_policy", "founder_gate_aware"]
+
+  @on_spawn => {
+    register_authority({
+      scope_tier: scope_tier,
+      can_push_to_main: can_push_to_main,
+      can_sign_wallet_ops: can_sign_wallet_ops,
+      wallet_daily_cap_usd: wallet_daily_cap_usd,
+      gpu_daily_cap_usd: gpu_daily_cap_usd,
+      escalation_target: escalation_target
+    })
+    emit("authority_registered", {
+      scope_tier: scope_tier,
+      can_push_to_main: can_push_to_main,
+      can_sign_wallet_ops: can_sign_wallet_ops
+    })
+  }
+
+  @on_action_check(action) => {
+    allowed = check_authority(action, scope_tier, {
+      wallet_daily_cap_usd: wallet_daily_cap_usd,
+      gpu_daily_cap_usd: gpu_daily_cap_usd
+    })
+    if not allowed.proceed {
+      emit("authority_escalation_required", {
+        action: action.type,
+        reason: allowed.reason,
+        escalation_target: escalation_target
+      })
+      invoke_skill("founder", action.description)
+    }
+    return allowed
+  }
+
+  @receipt authority_grant {
+    type: "DelegatedAuthorityReceipt"
+    scope_tier: scope_tier
+    can_push_to_main: can_push_to_main
+    can_sign_wallet_ops: can_sign_wallet_ops
+    wallet_daily_cap_usd: wallet_daily_cap_usd
+    gpu_daily_cap_usd: gpu_daily_cap_usd
+    timestamp: now()
+  }
+}

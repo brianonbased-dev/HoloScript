@@ -1,0 +1,85 @@
+// @council_seat — marks an entity as a participant in council convergence.
+//
+// The council cognitive verb (council.ts / W.752) implements reasoning by
+// structured agent-to-agent questioning: N peers with diverse lenses answer
+// the same question; citation-grounding.ts derives a corroborated verdict.
+//
+// This trait declares an entity's seat identity and lens in a council round.
+// A "seat" is a reasoning perspective: BUILDER sees the build path, SKEPTIC
+// probes failure modes, STRATEGIST considers ecosystem fit, SCIENTIST demands
+// evidence. Custom lenses are also supported for domain-specific debates.
+//
+// The corroboration tiers (council.ts):
+//   CORROBORATED  — citation verified AND raised by ≥2 distinct peers
+//   SINGLE-SOURCE — citation verified, raised by 1 peer
+//   CONFABULATED  — citation resolves to nothing (never trusted)
+//
+// Corroboration is DERIVED from citation-grounding, never asserted — a peer
+// that invents agreement can't manufacture corroboration if the cited ID is
+// absent from the knowledge corpus.
+//
+// Usage:
+//   entity#skeptic_seat @council_seat(
+//     lens: "skeptic"
+//     max_retries: 2
+//   ) { ... }
+
+@trait council_seat {
+  // The reasoning lens this seat takes in a council round
+  lens: enum("builder" | "skeptic" | "strategist" | "scientist" | "custom") = "skeptic"
+
+  // Custom lens name when lens="custom"
+  custom_lens_name: String?
+
+  // How many re-attempts to make if grounding finds all citations confabulated
+  max_retries: Int = 1
+
+  // Timeout for this seat's answer in seconds
+  timeout_s: Int = 30
+
+  capability_tags: ["council_seat", "structured_debate", "citation_grounding", "multi_peer_reasoning"]
+
+  @on_spawn => {
+    register_council_seat({
+      entity_id: entity_id,
+      lens: custom_lens_name ?? lens,
+      max_retries: max_retries,
+      timeout_s: timeout_s
+    })
+    emit("council_seat_registered", {
+      lens: custom_lens_name ?? lens,
+      entity_id: entity_id
+    })
+  }
+
+  @on_council_call(question, corpus) => {
+    answer = answer_as_lens({
+      lens: custom_lens_name ?? lens,
+      question: question,
+      corpus: corpus
+    })
+    grounding = ground_citations(answer, corpus)
+    if len(grounding.corroborated) == 0 and len(grounding.grounded) == 0 {
+      retry = 0
+      while retry < max_retries and len(grounding.grounded) == 0 {
+        answer = answer_as_lens({ lens: custom_lens_name ?? lens, question: question, corpus: corpus })
+        grounding = ground_citations(answer, corpus)
+        retry = retry + 1
+      }
+    }
+    emit("council_seat_answered", {
+      lens: custom_lens_name ?? lens,
+      grounded_count: len(grounding.grounded),
+      confabulated_count: len(grounding.confabulated)
+    })
+    return { peer: custom_lens_name ?? lens, answer: answer }
+  }
+
+  @receipt council_seat_participation {
+    type: "CouncilSeatReceipt"
+    lens: custom_lens_name ?? lens
+    max_retries: max_retries
+    timeout_s: timeout_s
+    timestamp: now()
+  }
+}
