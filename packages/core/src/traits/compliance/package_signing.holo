@@ -1,0 +1,22 @@
+@trait {
+  name: "@package_signing",
+  category: "compliance",
+  description: "Code signing and signature verification with Ed25519 (recommended), ECDSA P-256/secp256k1, and RSA-PSS. Supports detached/embedded signature format, optional RFC 3161 timestamps, and chain-of-trust certificate validation. Compiles to Web (SubtleCrypto), Node.js (crypto), and Solidity targets. Port of PackageSigningTrait.ts (handler name: package_signing).",
+  props: {
+    signature_algorithm: enum("ed25519" | "ecdsa_p256" | "ecdsa_secp256k1" | "rsa_pss") = "ed25519",
+    digest_algorithm: enum("sha256" | "sha384" | "sha512" | "blake2b") = "sha256",
+    include_timestamp: boolean = false,
+    chain_of_trust: boolean = false,
+    code_signing_certificate: string = "",
+    timestamp_authority_url: string = "",
+    signature_format: enum("detached" | "embedded") = "detached"
+  },
+  events: {
+    on_signed: "package:signed",
+    on_verified: "package:verified",
+    on_error: "package:sign_error",
+    sign: "package:sign",
+    verify: "package:verify"
+  },
+  behaviors: ["@marketplace_integration", "@zero_knowledge_proof"]
+}

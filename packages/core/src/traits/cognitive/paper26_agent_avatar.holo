@@ -1,0 +1,17 @@
+@trait {
+  name: "@paper26_agent_avatar",
+  category: "cognitive",
+  description: "Humanoid avatar for a uAAL simulation agent (Paper 26 — uAAL Collective). Maps live CogVM metrics → avatar appearance: γ→glow intensity+posture, lifecycle→animation state, totalLoss→facial tension, diversityRatio→particle aura. Floating HUD shows agent_id, γ%, lifecycle, loss, diversity. Compilation targets: OpenXR (Quest 3), VisionOS, Web/R3F. Port of Paper26AgentAvatarTrait.ts (handler name: paper26_agent_avatar).",
+  props: {
+    agent_id: string = "",
+    position: list<number> = [0.0, 0.0, 0.0],
+    ring: number = 0,
+    sycophantic: boolean = false
+  },
+  events: {
+    attached: "avatar:attached",
+    on_render_state: "avatar:render-state",
+    metrics_update: "avatar:metrics-update"
+  },
+  behaviors: ["@animated", "@gpu_particle", "@paper26_quantum_assignment"]
+}

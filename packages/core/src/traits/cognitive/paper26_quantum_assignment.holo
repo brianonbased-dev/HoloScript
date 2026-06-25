@@ -1,0 +1,20 @@
+@trait {
+  name: "@paper26_quantum_assignment",
+  category: "cognitive",
+  description: "QAOA-based agent task assignment for the uAAL Collective simulation (Paper 26). Partitions agents per ring via Max-Cut QAOA (rings 0-1, ≤24 agents) or classical greedy bisection (rings 2-3, >24 agents). Accumulates per-agent γ from avatar:metrics-update events; reruns assignment every N ticks; emits avatar:group-assignment per agent. OVERCLAIM NOTE: 64% of agents use classical greedy, not quantum. Port of Paper26QuantumAssignmentTrait.ts (handler name: paper26_quantum_assignment).",
+  props: {
+    agent_ids: list<string> = [],
+    ring: number = 0,
+    rerun_interval_ticks: number = 50,
+    qaoa_p: number = 1,
+    use_real_hardware: boolean = false
+  },
+  events: {
+    on_attached: "quantum:assignment-attached",
+    on_result: "quantum:assignment-result",
+    on_group_assignment: "avatar:group-assignment",
+    on_error: "quantum:assignment-error",
+    metrics_update: "avatar:metrics-update"
+  },
+  behaviors: ["@paper26_agent_avatar", "@vqe_runner"]
+}

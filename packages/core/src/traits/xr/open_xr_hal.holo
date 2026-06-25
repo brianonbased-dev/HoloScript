@@ -1,0 +1,28 @@
+@trait {
+  name: "@open_xr_hal",
+  category: "xr",
+  description: "Hardware Abstraction Layer for OpenXR devices. Manages session lifecycle, device profiles (Quest 3/Pro, Vision Pro, Valve Index, HTC Vive XR Elite), passthrough, hand tracking, eye tracking, haptics, and input source mapping. Falls back to simulation mode when no device is present. Port of OpenXRHALTrait.ts (handler name: openxr_hal).",
+  props: {
+    preferred_refresh_rate: number = 0,
+    enable_passthrough: boolean = false,
+    enable_hand_tracking: boolean = true,
+    enable_eye_tracking: boolean = false,
+    performance_mode: enum("latency" | "balanced" | "quality") = "balanced",
+    fallback_mode: enum("simulate" | "fail") = "simulate",
+    simulate_haptics: boolean = true
+  },
+  events: {
+    attached: "openxr_hal_attached",
+    detached: "openxr_hal_detached",
+    on_initialized: "openxr_hal_initialized",
+    on_session_started: "openxr_hal_session_started",
+    on_session_ended: "openxr_hal_session_ended",
+    on_frame: "openxr_hal_frame",
+    on_input: "openxr_hal_input",
+    on_hand: "openxr_hal_hand",
+    on_eye: "openxr_hal_eye",
+    on_haptic: "openxr_hal_haptic",
+    on_error: "openxr_hal_error"
+  },
+  behaviors: ["@xr_layer", "@hand_mesh_ai", "@fara_hands"]
+}
