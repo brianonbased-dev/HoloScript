@@ -1,0 +1,29 @@
+// @x402_boundary_schemas — Runtime Zod boundary validation for x402 payment payloads.
+//
+// Native .hsplus surface for framework/economy/x402-boundary-schemas.ts.
+//
+// Rejects: malformed headers, prototype pollution, trait-injected extra fields
+// Validated before BigInt/facilitator logic runs — critical security boundary
+// Settlement chains: base | base-sepolia | solana | solana-devnet
+// X402_VERSION: must match x402-facilitator.ts constant
+
+@trait x402_boundary_schemas {
+  capability_tags: ["x402_boundary_schemas", "zod_validation", "prototype_pollution_guard", "runtime_boundary", "security", "framework"]
+
+  @on_spawn => {
+    emit("x402_boundary_schemas_ready", {})
+  }
+
+  @on_validate(payload) => {
+    result = validate_x402_payload(payload)
+    if !result.success { emit("x402_payload_rejected", { error: result.error }) }
+    return result
+  }
+
+  @receipt x402_boundary_schemas_config {
+    type: "X402BoundarySchemasReceipt"
+    chains: ["base", "base-sepolia", "solana", "solana-devnet"]
+    security: "rejects malformed headers, prototype pollution, extra trait-injected fields BEFORE BigInt logic"
+    timestamp: now()
+  }
+}

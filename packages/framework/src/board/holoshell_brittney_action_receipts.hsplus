@@ -1,0 +1,20 @@
+// @holoshell_brittney_action_receipts — Receipt contracts for Brittney NPC action traces in HoloLand.
+//
+// Native .hsplus surface for framework/board/holoshell-brittney-action-receipts.ts.
+//
+// BrittneyActionReceipt: typed envelope for Brittney NPC scripted/agentic action provenance
+// Captures: intent, action parameters, outcome, HoloLand shard context, policy gates
+
+@trait holoshell_brittney_action_receipts {
+  capability_tags: ["holoshell_brittney_action_receipts", "brittney_npc", "action_trace", "hololand_npc", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_brittney_action_receipts_ready", {})
+  }
+
+  @receipt holoshell_brittney_action_receipts_config {
+    type: "BrittneyActionReceipt"
+    captures: ["intent", "action parameters", "outcome", "shard context", "policy gates"]
+    timestamp: now()
+  }
+}

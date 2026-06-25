@@ -1,0 +1,35 @@
+// @voting_round — Manages voting on contributions in collective intelligence hive sessions.
+//
+// Native .hsplus surface for framework/swarm/VotingRound.ts.
+//
+// Vote: { contributionId, voterId, vote: support|oppose, weight, timestamp }
+// VotingRound: opens/closes voting; tallies weighted votes per contribution
+// VotingResult: { contributionId, supportWeight, opposeWeight, winner? }
+// Used by CollectiveIntelligence before ContributionSynthesizer runs
+
+@trait voting_round {
+  capability_tags: ["voting_round", "weighted_vote", "hive_session_voting", "collective_intelligence", "swarm", "framework"]
+
+  @on_spawn => {
+    round = init_voting_round()
+    emit("voting_round_ready", {})
+  }
+
+  @on_cast(vote) => {
+    round.cast(vote)
+    emit("vote_cast", { contribution_id: vote.contribution_id, voter: vote.voter_id })
+  }
+
+  @on_tally => {
+    result = round.tally()
+    emit("votes_tallied", { winner: result.winner })
+    return result
+  }
+
+  @receipt voting_round_config {
+    type: "VotingRoundReceipt"
+    vote_types: ["support", "oppose"]
+    weighted: true
+    timestamp: now()
+  }
+}

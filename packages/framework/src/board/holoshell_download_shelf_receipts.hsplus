@@ -1,0 +1,20 @@
+// @holoshell_download_shelf_receipts — Receipt contracts for download shelf management operations.
+//
+// Native .hsplus surface for framework/board/holoshell-download-shelf-receipts.ts.
+//
+// DownloadShelfReceipt: { items[], destination, totalBytes, verificationHashes, completedAt }
+// Tracks: download source, destination, integrity hashes, completion
+
+@trait holoshell_download_shelf_receipts {
+  capability_tags: ["holoshell_download_shelf_receipts", "download_shelf", "file_integrity", "download_tracking", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_download_shelf_receipts_ready", {})
+  }
+
+  @receipt holoshell_download_shelf_receipts_config {
+    type: "DownloadShelfReceipt"
+    fields: ["items", "destination", "totalBytes", "verificationHashes", "completedAt"]
+    timestamp: now()
+  }
+}

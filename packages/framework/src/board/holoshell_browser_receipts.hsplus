@@ -1,0 +1,23 @@
+// @holoshell_browser_receipts — Receipt contracts for browser automation absorbed into HoloScript (Pilot).
+//
+// Native .hsplus surface for framework/board/holoshell-browser-receipts.ts.
+//
+// BrowserReceipt: { screenshots[], networkLogs, cookieAudit, sessionAudit, provenanceLinks[] }
+// Trust floor: external (legacy-absorption-paths.md Browser Automation path)
+// Target: native API/MCP when vendor ships first-party surface; may migrate to @holoshell/browser
+
+@trait holoshell_browser_receipts {
+  capability_tags: ["holoshell_browser_receipts", "playwright_agent", "screenshot_proof", "network_log", "external_trust", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_browser_receipts_ready", {})
+  }
+
+  @receipt holoshell_browser_receipts_config {
+    type: "BrowserReceipt"
+    trust: "external (policy envelope over Playwright/Chrome)"
+    evidence: ["screenshots", "network logs", "cookie/session audit"]
+    note: "Phase 1 pilot; upgrade path to native API/MCP when available"
+    timestamp: now()
+  }
+}

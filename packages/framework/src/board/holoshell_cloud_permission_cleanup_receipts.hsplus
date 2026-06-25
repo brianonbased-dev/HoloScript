@@ -1,0 +1,21 @@
+// @holoshell_cloud_permission_cleanup_receipts — Receipt contracts for cloud OAuth/permission revocation.
+//
+// Native .hsplus surface for framework/board/holoshell-cloud-permission-cleanup-receipts.ts.
+//
+// CloudPermissionCleanupReceipt: { provider, appId, permissionsRevoked[], revokedAt, verificationUrl }
+// Proves: specific OAuth grants were explicitly revoked; irreversibility flag
+
+@trait holoshell_cloud_permission_cleanup_receipts {
+  capability_tags: ["holoshell_cloud_permission_cleanup_receipts", "oauth_revoke", "permission_cleanup", "irreversibility", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_cloud_permission_cleanup_receipts_ready", {})
+  }
+
+  @receipt holoshell_cloud_permission_cleanup_receipts_config {
+    type: "CloudPermissionCleanupReceipt"
+    fields: ["provider", "appId", "permissionsRevoked", "revokedAt", "verificationUrl"]
+    note: "irreversible ops; explicit list required before execution"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,35 @@
+// @subscription_manager — Recurring subscription lifecycle: create → renew → cancel → suspend → reactivate.
+//
+// Native .hsplus surface for framework/economy/SubscriptionManager.ts.
+//
+// create(planId, customerId, trialDays?) → Subscription
+// renew(subscriptionId) → RenewalResult — calls X402PaymentGateway; grace period on failure
+// cancel(subscriptionId) → void; suspend(id) → void; reactivate(id) → void
+// Part of HoloScript v5.8 "Live Economy"
+
+@trait subscription_manager {
+  capability_tags: ["subscription_manager", "recurring_billing", "grace_period", "trial_period", "live_economy", "framework"]
+
+  @on_spawn => {
+    sm = init_subscription_manager()
+    emit("subscription_manager_ready", {})
+  }
+
+  @on_create(plan_id, customer_id, trial_days) => {
+    sub = sm.create(plan_id, customer_id, trial_days)
+    emit("subscription_created", { id: sub.id })
+    return sub
+  }
+
+  @on_renew(subscription_id) => {
+    result = sm.renew(subscription_id)
+    if !result.success { emit("renewal_failed_grace_period", { id: subscription_id }) }
+    return result
+  }
+
+  @receipt subscription_manager_config {
+    type: "SubscriptionManagerReceipt"
+    lifecycle: ["create", "renew (grace on fail)", "cancel", "suspend", "reactivate"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @holoshell_slow_computer_clinic_receipts — Receipt contracts for slow-computer diagnostics and repair.
+//
+// Native .hsplus surface for framework/board/holoshell-slow-computer-clinic-receipts.ts.
+//
+// SlowComputerClinicReceipt: { diagnostics[], rootCauses[], actionsApplied[], beforeMetrics, afterMetrics }
+// Proves: root causes identified; actions applied; measurable improvement
+// beforeMetrics / afterMetrics: CPU, memory, disk I/O, boot time
+
+@trait holoshell_slow_computer_clinic_receipts {
+  capability_tags: ["holoshell_slow_computer_clinic_receipts", "performance_diagnostics", "root_cause_analysis", "before_after_metrics", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_slow_computer_clinic_receipts_ready", {})
+  }
+
+  @receipt holoshell_slow_computer_clinic_receipts_config {
+    type: "SlowComputerClinicReceipt"
+    fields: ["diagnostics", "rootCauses", "actionsApplied", "beforeMetrics", "afterMetrics"]
+    timestamp: now()
+  }
+}

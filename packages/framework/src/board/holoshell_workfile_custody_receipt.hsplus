@@ -1,0 +1,27 @@
+// @holoshell_workfile_custody_receipt — Receipt for work file custody chain tracking.
+//
+// Native .hsplus surface for framework/board/holoshell-workfile-custody-receipt.ts.
+//
+// WorkfileCustodyReceipt: { fileId, custodyChain: CustodyEvent[], currentOwner, contentHash, lockedUntil? }
+// CustodyEvent: { agent, action: claim|transfer|release, at }
+// Prevents concurrent mutation; lock optional for single-writer surfaces
+
+@trait holoshell_workfile_custody_receipt {
+  capability_tags: ["holoshell_workfile_custody_receipt", "file_custody", "custody_chain", "concurrent_mutation_prevention", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_workfile_custody_receipt_ready", {})
+  }
+
+  @on_claim(file_id, agent) => {
+    receipt = claim_file_custody(file_id, agent)
+    emit("file_custody_claimed", { file_id, agent })
+    return receipt
+  }
+
+  @receipt holoshell_workfile_custody_receipt_config {
+    type: "WorkfileCustodyReceipt"
+    chain: "CustodyEvent[] { agent, action: claim|transfer|release, at }"
+    timestamp: now()
+  }
+}

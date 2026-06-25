@@ -1,0 +1,30 @@
+// @payment_webhook_service — Processes payment provider webhooks with HMAC-SHA256 verification.
+//
+// Native .hsplus surface for framework/economy/PaymentWebhookService.ts.
+//
+// process(webhookPayload, signature) → PaymentWebhookResult
+// HMAC-SHA256 signature verification before processing
+// Updates LedgerEntry settlement status; emits telemetry events
+// Part of HoloScript v5.8 "Live Economy"
+
+@trait payment_webhook_service {
+  capability_tags: ["payment_webhook_service", "hmac_verification", "ledger_settlement", "webhook_processing", "live_economy", "framework"]
+
+  @on_spawn => {
+    service = init_payment_webhook_service(config)
+    emit("payment_webhook_service_ready", {})
+  }
+
+  @on_process(payload, signature) => {
+    result = service.process(payload, signature)
+    emit("webhook_processed", { settlement_id: result.ledger_entry_id })
+    return result
+  }
+
+  @receipt payment_webhook_service_config {
+    type: "PaymentWebhookServiceReceipt"
+    verification: "HMAC-SHA256 signature before processing"
+    on_success: "LedgerEntry settlement status updated + telemetry emitted"
+    timestamp: now()
+  }
+}

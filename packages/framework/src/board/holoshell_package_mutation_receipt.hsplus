@@ -1,0 +1,21 @@
+// @holoshell_package_mutation_receipt — Receipt for package install/upgrade/remove operations.
+//
+// Native .hsplus surface for framework/board/holoshell-package-mutation-receipt.ts.
+//
+// PackageMutationReceipt: { manager, operation: install|upgrade|remove, packageName, version, lockfileHash }
+// Proves: exact package change; lockfile state before/after; prevents silent drift
+
+@trait holoshell_package_mutation_receipt {
+  capability_tags: ["holoshell_package_mutation_receipt", "package_mutation", "lockfile_hash", "dependency_provenance", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_package_mutation_receipt_ready", {})
+  }
+
+  @receipt holoshell_package_mutation_receipt_config {
+    type: "PackageMutationReceipt"
+    operations: ["install", "upgrade", "remove"]
+    fields: ["manager", "packageName", "version", "lockfileHash before/after"]
+    timestamp: now()
+  }
+}

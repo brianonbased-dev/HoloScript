@@ -1,0 +1,26 @@
+// @holoshell_target_device_proof_receipts — Receipt proving the correct target device is connected and ready.
+//
+// Native .hsplus surface for framework/board/holoshell-target-device-proof-receipts.ts.
+//
+// TargetDeviceProofReceipt: { deviceId, expectedModel, actualModel, firmwareVersion, connectionType, proofAt }
+// Blocks deployment to wrong device; model mismatch → proof fails
+
+@trait holoshell_target_device_proof_receipts {
+  capability_tags: ["holoshell_target_device_proof_receipts", "device_identity_proof", "firmware_version", "deployment_gate", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_target_device_proof_receipts_ready", {})
+  }
+
+  @on_prove(expected_model) => {
+    proof = prove_target_device(expected_model)
+    if !proof.model_match { emit("device_mismatch", { expected: expected_model, actual: proof.actual_model }) }
+    return proof
+  }
+
+  @receipt holoshell_target_device_proof_receipts_config {
+    type: "TargetDeviceProofReceipt"
+    fields: ["deviceId", "expectedModel", "actualModel", "firmwareVersion", "connectionType", "proofAt"]
+    timestamp: now()
+  }
+}

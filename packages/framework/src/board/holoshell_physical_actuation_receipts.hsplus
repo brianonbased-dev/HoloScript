@@ -1,0 +1,22 @@
+// @holoshell_physical_actuation_receipts — Receipt contracts for hardware physical actuation operations.
+//
+// Native .hsplus surface for framework/board/holoshell-physical-actuation-receipts.ts.
+//
+// PhysicalActuationReceipt: { deviceId, commandType, simulationProof, safeStopProof, rollbackLimit, replayHash }
+// HoloLand owns operator UX; HoloScript owns this receipt vocabulary (simulation→safety→receipt chain)
+// Depends on: DeviceActionReceipt + HoloShellDeviceSafetyReceiptPack from device-safety-receipts
+
+@trait holoshell_physical_actuation_receipts {
+  capability_tags: ["holoshell_physical_actuation_receipts", "hardware_actuation", "simulation_proof", "safe_stop", "rollback_limit", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_physical_actuation_receipts_ready", {})
+  }
+
+  @receipt holoshell_physical_actuation_receipts_config {
+    type: "PhysicalActuationReceipt"
+    chain: "simulation proof → safe-stop proof → rollback limit → replay hash"
+    note: "HoloLand owns operator UX; HoloScript owns the receipt vocabulary"
+    timestamp: now()
+  }
+}

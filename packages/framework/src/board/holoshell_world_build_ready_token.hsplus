@@ -1,0 +1,28 @@
+// @holoshell_world_build_ready_token — Token proving a world build is ready for deployment to HoloLand.
+//
+// Native .hsplus surface for framework/board/holoshell-world-build-ready-token.ts.
+//
+// WorldBuildReadyToken: { worldId, buildHash, validatedAt, gatesPass: Gate[], expiresAt }
+// Gate: compile_ok | asset_integrity | shard_schema | playability_score
+// Token expires; replay requires fresh gate pass
+
+@trait holoshell_world_build_ready_token {
+  capability_tags: ["holoshell_world_build_ready_token", "world_build_token", "deployment_gate", "playability_gate", "hololand", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_world_build_ready_token_ready", {})
+  }
+
+  @on_issue(world_id, build_hash, gates_pass) => {
+    token = issue_world_build_ready_token(world_id, build_hash, gates_pass)
+    emit("world_build_token_issued", { world_id, expires_at: token.expires_at })
+    return token
+  }
+
+  @receipt holoshell_world_build_ready_token_config {
+    type: "WorldBuildReadyToken"
+    gates: ["compile_ok", "asset_integrity", "shard_schema", "playability_score"]
+    note: "expires; fresh gate pass required for replay"
+    timestamp: now()
+  }
+}

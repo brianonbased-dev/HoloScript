@@ -1,0 +1,22 @@
+// @holoshell_device_safety_receipts — Receipt pack for device safety checks before physical actions.
+//
+// Native .hsplus surface for framework/board/holoshell-device-safety-receipts.ts.
+//
+// DeviceActionReceipt: single device operation with safety verdict + rollback
+// HoloShellDeviceSafetyReceiptPack: batched safety verdict across 14-point gate
+// ReplayLessonReceipt: post-action learning record for safety improvement
+// Used by robot-dispatcher as upstream safety requirement
+
+@trait holoshell_device_safety_receipts {
+  capability_tags: ["holoshell_device_safety_receipts", "device_safety", "14_point_gate", "rollback_receipt", "replay_lesson", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_device_safety_receipts_ready", {})
+  }
+
+  @receipt holoshell_device_safety_receipts_config {
+    type: "HoloShellDeviceSafetyReceiptPack"
+    contents: ["DeviceActionReceipt (single op + verdict)", "HoloShellDeviceSafetyReceiptPack (14-gate batch)", "ReplayLessonReceipt (post-action learning)"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @holoshell_downloads_shelf_receipts — Receipt contracts for downloads shelf batch operations.
+//
+// Native .hsplus surface for framework/board/holoshell-downloads-shelf-receipts.ts.
+//
+// Variant of download-shelf covering multi-item batch download operations
+// DownloadsShelfBatchReceipt: { batchId, items[], quarantinedCount, approvedCount }
+// Includes quarantine status per item for policy-gate enforcement
+
+@trait holoshell_downloads_shelf_receipts {
+  capability_tags: ["holoshell_downloads_shelf_receipts", "batch_download", "quarantine_gate", "policy_enforcement", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_downloads_shelf_receipts_ready", {})
+  }
+
+  @receipt holoshell_downloads_shelf_receipts_config {
+    type: "DownloadsShelfBatchReceipt"
+    fields: ["batchId", "items", "quarantinedCount", "approvedCount"]
+    timestamp: now()
+  }
+}

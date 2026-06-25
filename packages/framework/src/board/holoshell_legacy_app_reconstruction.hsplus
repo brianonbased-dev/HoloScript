@@ -1,0 +1,27 @@
+// @holoshell_legacy_app_reconstruction — Reconstruction plan and receipt for migrating legacy app surfaces.
+//
+// Native .hsplus surface for framework/board/holoshell-legacy-app-reconstruction.ts.
+//
+// LegacyAppReconstructionPlan: { appId, targetSurface, migrationPhases[], riskLevel }
+// ReconstructionReceipt: completed migration phase evidence
+// Pairs with LegacyAppReality to form the complete migration pipeline
+
+@trait holoshell_legacy_app_reconstruction {
+  capability_tags: ["holoshell_legacy_app_reconstruction", "migration_plan", "reconstruction_receipt", "surface_upgrade", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_legacy_app_reconstruction_ready", {})
+  }
+
+  @on_plan(app_id, target_surface) => {
+    plan = plan_legacy_reconstruction(app_id, target_surface)
+    emit("reconstruction_planned", { app_id, phases: plan.migration_phases.length })
+    return plan
+  }
+
+  @receipt holoshell_legacy_app_reconstruction_config {
+    type: "LegacyAppReconstructionReceipt"
+    pairs: "LegacyAppReality (source) + migration phases → completed phase evidence"
+    timestamp: now()
+  }
+}

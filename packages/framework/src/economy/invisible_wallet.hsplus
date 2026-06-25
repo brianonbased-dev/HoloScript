@@ -1,0 +1,21 @@
+// @invisible_wallet — Zero-friction wallet abstraction interface stub for framework consumers.
+//
+// Native .hsplus surface for framework/economy/InvisibleWallet.ts.
+//
+// Framework stub: type-compatible interface without viem/blockchain deps
+// Full impl lives in @holoscript/marketplace-api
+// FW-0.6: wallet interface moved into framework for framework-level consumers
+
+@trait invisible_wallet {
+  capability_tags: ["invisible_wallet", "wallet_abstraction", "zero_friction", "type_compatible_stub", "framework"]
+
+  @on_spawn => {
+    emit("invisible_wallet_ready", {})
+  }
+
+  @receipt invisible_wallet_config {
+    type: "InvisibleWalletReceipt"
+    note: "framework stub — type-compatible without viem/blockchain; full impl = @holoscript/marketplace-api"
+    timestamp: now()
+  }
+}

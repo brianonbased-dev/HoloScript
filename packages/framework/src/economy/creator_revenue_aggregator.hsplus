@@ -1,0 +1,32 @@
+// @creator_revenue_aggregator — Tracks creator earnings by plugin and period; calculates revenue shares.
+//
+// Native .hsplus surface for framework/economy/CreatorRevenueAggregator.ts.
+//
+// recordRevenue(creatorId, pluginId, amount, ledgerEntry) → void
+// getEarnings(creatorId, period) → EarningsSummary { total, byPlugin, payoutHistory }
+// calcShare(amount, splitConfig) → SharedAmount
+// Part of HoloScript v5.8 "Live Economy"; uses LedgerEntry from x402-facilitator
+
+@trait creator_revenue_aggregator {
+  capability_tags: ["creator_revenue_aggregator", "earnings_tracking", "revenue_share", "ledger_entry", "live_economy", "framework"]
+
+  @on_spawn => {
+    aggregator = init_creator_revenue_aggregator()
+    emit("creator_revenue_aggregator_ready", {})
+  }
+
+  @on_record(creator_id, plugin_id, amount, ledger_entry) => {
+    aggregator.record_revenue(creator_id, plugin_id, amount, ledger_entry)
+    emit("revenue_recorded", { creator_id, plugin_id, amount })
+  }
+
+  @on_get_earnings(creator_id, period) => {
+    return aggregator.get_earnings(creator_id, period)
+  }
+
+  @receipt creator_revenue_aggregator_config {
+    type: "CreatorRevenueAggregatorReceipt"
+    outputs: ["EarningsSummary { total, byPlugin, payoutHistory }"]
+    timestamp: now()
+  }
+}

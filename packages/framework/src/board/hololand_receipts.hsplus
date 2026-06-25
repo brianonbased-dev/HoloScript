@@ -1,0 +1,28 @@
+// @hololand_receipts — Hardware capture, replay, and agent-action receipt types for HoloLand shards.
+//
+// Native .hsplus surface for framework/board/hololand-receipts.ts.
+//
+// HardwareReceipt: validates real device capture (camera/sensor provenance)
+// ReplayInputReceipt / ReplayOutcomeReceipt: deterministic replay proofs
+// AgentActionReceipt: typed envelope for what an agent steward decided to do
+// ValidationReceipt: post-action world-state consistency proof
+// All layered on ArtifactReceipt-style provenance/verification core
+
+@trait hololand_receipts {
+  capability_tags: ["hololand_receipts", "hardware_capture", "replay_proof", "agent_action_receipt", "provenance_envelope", "framework"]
+
+  @on_spawn => {
+    emit("hololand_receipts_ready", {})
+  }
+
+  @on_validate_hardware(receipt) => {
+    return validate_hardware_receipt(receipt)
+  }
+
+  @receipt hololand_receipts_config {
+    type: "HoloLandReceiptsReceipt"
+    receipt_types: ["HardwareReceipt", "ReplayInputReceipt", "ReplayOutcomeReceipt", "AgentActionReceipt", "ValidationReceipt"]
+    base: "ArtifactReceipt-style provenance; works with validateArtifactReceipt + attachTaskArtifacts"
+    timestamp: now()
+  }
+}

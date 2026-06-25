@@ -1,0 +1,20 @@
+// @holoshell_permission_gate_receipts — Receipt for permission evaluation gates before privileged operations.
+//
+// Native .hsplus surface for framework/board/holoshell-permission-gate-receipts.ts.
+//
+// PermissionGateReceipt: { resourceId, requestedPermissions[], grantedPermissions[], gatePassed, denialReasons[] }
+// Proves: permissions were explicitly evaluated; denial reasons recorded; no silent grant
+
+@trait holoshell_permission_gate_receipts {
+  capability_tags: ["holoshell_permission_gate_receipts", "permission_gate", "explicit_grant", "denial_record", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_permission_gate_receipts_ready", {})
+  }
+
+  @receipt holoshell_permission_gate_receipts_config {
+    type: "PermissionGateReceipt"
+    fields: ["resourceId", "requestedPermissions", "grantedPermissions", "gatePassed", "denialReasons"]
+    timestamp: now()
+  }
+}

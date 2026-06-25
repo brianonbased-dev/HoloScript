@@ -1,0 +1,28 @@
+// @holoshell_legacy_app_reality — Describes the current operational reality of a legacy app under migration.
+//
+// Native .hsplus surface for framework/board/holoshell-legacy-app-reality.ts.
+//
+// LegacyAppReality: { appId, version, platform, trustTier, absorptionStatus, limitations[] }
+// TrustTier: native | wrapper | browser_automation | external
+// Used by migration planner to understand what reality each legacy surface actually provides
+
+@trait holoshell_legacy_app_reality {
+  capability_tags: ["holoshell_legacy_app_reality", "legacy_app_migration", "trust_tier", "absorption_status", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_legacy_app_reality_ready", {})
+  }
+
+  @on_describe(app_id) => {
+    reality = describe_legacy_app_reality(app_id)
+    emit("legacy_app_reality_described", { app_id, trust_tier: reality.trust_tier })
+    return reality
+  }
+
+  @receipt holoshell_legacy_app_reality_config {
+    type: "LegacyAppRealityReceipt"
+    tiers: ["native", "wrapper", "browser_automation", "external"]
+    purpose: "migration planner input — what reality does this surface actually provide"
+    timestamp: now()
+  }
+}

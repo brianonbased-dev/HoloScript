@@ -1,0 +1,29 @@
+// @trait_mappings — Maps TrainingMonkey trait names to canonical @holoscript/core trait IDs.
+//
+// Native .hsplus surface for framework/training/trait-mappings.ts.
+//
+// TrainingMetadata: training hints that extend a trait definition
+// traitMappings: Map { trainingMonkeyName → holoscriptCoreTraitId }
+// validateCoverage(mappings) → CoverageReport { covered, missing, total }
+// Used by TrainingPipelineConfig to ensure training data targets valid trait IDs
+
+@trait trait_mappings {
+  capability_tags: ["trait_mappings", "training_monkey_ids", "core_trait_ids", "coverage_validation", "training", "framework"]
+
+  @on_spawn => {
+    emit("trait_mappings_ready", {})
+  }
+
+  @on_validate_coverage => {
+    report = validate_coverage(TRAIT_MAPPINGS)
+    emit("coverage_validated", { covered: report.covered, total: report.total })
+    return report
+  }
+
+  @receipt trait_mappings_config {
+    type: "TraitMappingsReceipt"
+    mapping: "TrainingMonkey name → @holoscript/core trait ID"
+    coverage: "validateCoverage checks all mapped IDs exist in core"
+    timestamp: now()
+  }
+}

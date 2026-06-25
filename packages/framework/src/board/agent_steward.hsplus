@@ -1,0 +1,37 @@
+// @agent_steward — Accountability envelope for agent mutations to live HoloLand world state.
+//
+// Native .hsplus surface for framework/board/agent-steward.ts.
+//
+// AgentSteward: { identity, role, scope, capabilities, governanceLimits }
+// StewardProposal: proposed world mutation + rollback plan + expected impact + required evidence
+// propose(steward, mutation) → StewardProposal
+// execute(proposal) → StewardReceipt — gated by SafetyVerdict from twin-earth-substrate
+// Fills the gap between hololand-receipts (what happened) and agent decisions (what to do next)
+
+@trait agent_steward {
+  capability_tags: ["agent_steward", "world_mutation", "accountability", "steward_proposal", "governance_limits", "framework"]
+
+  @on_spawn => {
+    steward = init_agent_steward(config)
+    emit("agent_steward_ready", {})
+  }
+
+  @on_propose(mutation) => {
+    proposal = steward.propose(mutation)
+    emit("steward_proposal_created", { role: steward.role })
+    return proposal
+  }
+
+  @on_execute(proposal) => {
+    receipt = steward.execute(proposal)
+    emit("steward_action_executed", { approved: receipt.approved })
+    return receipt
+  }
+
+  @receipt agent_steward_config {
+    type: "AgentStewardReceipt"
+    roles: "identity + role + scope + capabilities + governance self-binding"
+    proposal: "mutation + rollback plan + expected impact + required evidence"
+    timestamp: now()
+  }
+}

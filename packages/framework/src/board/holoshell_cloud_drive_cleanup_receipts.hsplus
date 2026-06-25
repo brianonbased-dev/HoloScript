@@ -1,0 +1,20 @@
+// @holoshell_cloud_drive_cleanup_receipts — Receipt contracts for cloud drive cleanup operations.
+//
+// Native .hsplus surface for framework/board/holoshell-cloud-drive-cleanup-receipts.ts.
+//
+// CloudDriveCleanupReceipt: { provider, filesDeleted, bytesFreed, dryRun, verificationUrl }
+// Provenance: explicit deletion list + reversibility status + dryRun gate
+
+@trait holoshell_cloud_drive_cleanup_receipts {
+  capability_tags: ["holoshell_cloud_drive_cleanup_receipts", "cloud_cleanup", "dry_run_gate", "storage_freed", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_cloud_drive_cleanup_receipts_ready", {})
+  }
+
+  @receipt holoshell_cloud_drive_cleanup_receipts_config {
+    type: "CloudDriveCleanupReceipt"
+    fields: ["provider", "filesDeleted", "bytesFreed", "dryRun", "verificationUrl"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,20 @@
+// @holoshell_local_codebase_snapshot_receipt — Receipt for local codebase snapshot capture.
+//
+// Native .hsplus surface for framework/board/holoshell-local-codebase-snapshot-receipt.ts.
+//
+// LocalCodebaseSnapshotReceipt: { repoPath, commitHash, branch, snapshotAt, fileCount, sizeBytes }
+// Proves: exact codebase state at time of snapshot; used for before/after comparison and audit
+
+@trait holoshell_local_codebase_snapshot_receipt {
+  capability_tags: ["holoshell_local_codebase_snapshot_receipt", "codebase_snapshot", "commit_hash", "audit_trail", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_local_codebase_snapshot_receipt_ready", {})
+  }
+
+  @receipt holoshell_local_codebase_snapshot_receipt_config {
+    type: "LocalCodebaseSnapshotReceipt"
+    fields: ["repoPath", "commitHash", "branch", "snapshotAt", "fileCount", "sizeBytes"]
+    timestamp: now()
+  }
+}

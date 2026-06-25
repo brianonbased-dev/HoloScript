@@ -1,0 +1,20 @@
+// @holoshell_provider_export_repair_receipts — Receipt contracts for repairing corrupt/incomplete provider exports.
+//
+// Native .hsplus surface for framework/board/holoshell-provider-export-repair-receipts.ts.
+//
+// ProviderExportRepairReceipt: { exportId, repairActions[], corruptedCount, repairedCount, verificationHash }
+// Pairs with AccountExportReceipt; triggered when export archive fails integrity check
+
+@trait holoshell_provider_export_repair_receipts {
+  capability_tags: ["holoshell_provider_export_repair_receipts", "export_repair", "integrity_recovery", "archive_verification", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_provider_export_repair_receipts_ready", {})
+  }
+
+  @receipt holoshell_provider_export_repair_receipts_config {
+    type: "ProviderExportRepairReceipt"
+    fields: ["exportId", "repairActions", "corruptedCount", "repairedCount", "verificationHash"]
+    timestamp: now()
+  }
+}

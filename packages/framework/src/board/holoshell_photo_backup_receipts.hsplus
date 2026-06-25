@@ -1,0 +1,20 @@
+// @holoshell_photo_backup_receipts — Receipt contracts for photo library backup operations.
+//
+// Native .hsplus surface for framework/board/holoshell-photo-backup-receipts.ts.
+//
+// PhotoBackupReceipt: { sourceProvider, destinationPath, photoCount, bytesTransferred, hashManifest }
+// Covers: provider identity, destination, integrity manifest, completion timestamp
+
+@trait holoshell_photo_backup_receipts {
+  capability_tags: ["holoshell_photo_backup_receipts", "photo_backup", "hash_manifest", "provider_identity", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_photo_backup_receipts_ready", {})
+  }
+
+  @receipt holoshell_photo_backup_receipts_config {
+    type: "PhotoBackupReceipt"
+    fields: ["sourceProvider", "destinationPath", "photoCount", "bytesTransferred", "hashManifest"]
+    timestamp: now()
+  }
+}

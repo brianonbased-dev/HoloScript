@@ -1,0 +1,21 @@
+// @holoshell_managed_service_restart_receipts — Receipt contracts for managed service restart operations.
+//
+// Native .hsplus surface for framework/board/holoshell-managed-service-restart-receipts.ts.
+//
+// ManagedServiceRestartReceipt: { serviceId, restartedAt, previousUptime, healthCheckUrl, postRestartStatus }
+// Proves: service was restarted intentionally; health gate passed after restart
+
+@trait holoshell_managed_service_restart_receipts {
+  capability_tags: ["holoshell_managed_service_restart_receipts", "service_restart", "health_check_gate", "uptime_tracking", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_managed_service_restart_receipts_ready", {})
+  }
+
+  @receipt holoshell_managed_service_restart_receipts_config {
+    type: "ManagedServiceRestartReceipt"
+    fields: ["serviceId", "restartedAt", "previousUptime", "healthCheckUrl", "postRestartStatus"]
+    gate: "health check must pass after restart"
+    timestamp: now()
+  }
+}

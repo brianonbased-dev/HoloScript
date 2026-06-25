@@ -1,0 +1,21 @@
+// @holoshell_cli_receipts — Receipt contracts for CLI command execution provenance.
+//
+// Native .hsplus surface for framework/board/holoshell-cli-receipts.ts.
+//
+// CLICommandReceipt: { command, args, exitCode, stdout, stderr, workingDir, durationMs }
+// Proves: command ran, its exact parameters, and its output
+// Used by: automation traces, task evidence chains, HoloShell command logs
+
+@trait holoshell_cli_receipts {
+  capability_tags: ["holoshell_cli_receipts", "cli_execution", "command_provenance", "exit_code", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_cli_receipts_ready", {})
+  }
+
+  @receipt holoshell_cli_receipts_config {
+    type: "CLICommandReceipt"
+    fields: ["command", "args", "exitCode", "stdout", "stderr", "workingDir", "durationMs"]
+    timestamp: now()
+  }
+}

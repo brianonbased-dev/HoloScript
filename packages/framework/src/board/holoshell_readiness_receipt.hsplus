@@ -1,0 +1,28 @@
+// @holoshell_readiness_receipt — Receipt proving a surface is ready for a given operation.
+//
+// Native .hsplus surface for framework/board/holoshell-readiness-receipt.ts.
+//
+// ReadinessReceipt: { targetSurface, checks: ProbeCheck[], overallStatus: pass|warn|fail }
+// Consumed by: startup-gate, device-lab, deploy pipelines before execution
+// Pairs with device-lab-warning-tokens for UI representation
+
+@trait holoshell_readiness_receipt {
+  capability_tags: ["holoshell_readiness_receipt", "surface_readiness", "probe_check", "startup_gate", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_readiness_receipt_ready", {})
+  }
+
+  @on_check(target_surface) => {
+    receipt = check_readiness(target_surface)
+    emit("readiness_checked", { surface: target_surface, status: receipt.overall_status })
+    return receipt
+  }
+
+  @receipt holoshell_readiness_receipt_config {
+    type: "ReadinessReceipt"
+    statuses: ["pass", "warn", "fail"]
+    consumers: ["startup-gate", "device-lab", "deploy pipeline"]
+    timestamp: now()
+  }
+}

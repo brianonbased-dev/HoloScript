@@ -1,0 +1,20 @@
+// @holoshell_asset_shard_receipts — Receipt contracts for asset shard creation and verification operations.
+//
+// Native .hsplus surface for framework/board/holoshell-asset-shard-receipts.ts.
+//
+// AssetShardReceipt: provenance envelope for shard content hashing, distribution, and replay
+// Layered on ArtifactReceiptBase with ArtifactHashAlgorithm + ArtifactProvenanceLink
+
+@trait holoshell_asset_shard_receipts {
+  capability_tags: ["holoshell_asset_shard_receipts", "asset_shard", "content_hash", "shard_distribution", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_asset_shard_receipts_ready", {})
+  }
+
+  @receipt holoshell_asset_shard_receipts_config {
+    type: "AssetShardReceipt"
+    purpose: "provenance for shard creation: hash + distribution + replay"
+    timestamp: now()
+  }
+}

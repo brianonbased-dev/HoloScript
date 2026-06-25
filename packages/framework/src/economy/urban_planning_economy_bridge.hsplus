@@ -1,0 +1,28 @@
+// @urban_planning_economy_bridge — Maps urban planning parcel/density workloads to USDC economy amounts.
+//
+// Native .hsplus surface for framework/economy/urbanPlanningEconomyBridge.ts.
+//
+// UrbanPlanningDensityClass: low | medium | high | very_high
+// recordUrbanPlanningSimulationRevenue(input, aggregator) → void
+// Maps plugin density workloads to USDC base-unit gross amounts for CreatorRevenueAggregator.recordRevenue
+// Keeps @holoscript/plugin-urban-planning from depending on framework types
+
+@trait urban_planning_economy_bridge {
+  capability_tags: ["urban_planning_economy_bridge", "density_class", "usdc_revenue_mapping", "plugin_bridge", "framework"]
+
+  @on_spawn => {
+    emit("urban_planning_economy_bridge_ready", {})
+  }
+
+  @on_record_revenue(input, aggregator) => {
+    record_urban_planning_simulation_revenue(input, aggregator)
+    emit("urban_planning_revenue_recorded", { density: input.density_class })
+  }
+
+  @receipt urban_planning_economy_bridge_config {
+    type: "UrbanPlanningEconomyBridgeReceipt"
+    density_classes: ["low", "medium", "high", "very_high"]
+    plugin_id: "@holoscript/plugin-urban-planning"
+    timestamp: now()
+  }
+}

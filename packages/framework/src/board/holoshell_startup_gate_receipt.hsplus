@@ -1,0 +1,27 @@
+// @holoshell_startup_gate_receipt — Receipt proving startup gate passed for a given service or surface.
+//
+// Native .hsplus surface for framework/board/holoshell-startup-gate-receipt.ts.
+//
+// StartupGateReceipt: { serviceId, readinessReceiptId, gateChecks[], passed, blockers[] }
+// Consumed by: service launch, deploy pipeline; blocks launch when passed=false
+// References ReadinessReceipt by id
+
+@trait holoshell_startup_gate_receipt {
+  capability_tags: ["holoshell_startup_gate_receipt", "startup_gate", "launch_block", "service_readiness", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_startup_gate_receipt_ready", {})
+  }
+
+  @on_gate(service_id, readiness_receipt_id) => {
+    receipt = evaluate_startup_gate(service_id, readiness_receipt_id)
+    if !receipt.passed { emit("startup_blocked", { service_id, blockers: receipt.blockers }) }
+    return receipt
+  }
+
+  @receipt holoshell_startup_gate_receipt_config {
+    type: "StartupGateReceipt"
+    fields: ["serviceId", "readinessReceiptId", "gateChecks", "passed", "blockers"]
+    timestamp: now()
+  }
+}

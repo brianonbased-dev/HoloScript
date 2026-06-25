@@ -1,0 +1,29 @@
+// @frontier_shard — Canonical content primitives for HoloLand: Shard, Zone, Encounter, Quest, Item, Skill, LootTable.
+//
+// Native .hsplus surface for framework/board/frontier-shard.ts.
+//
+// Shard: unit of playable, validatable HoloLand content; bootstrap Shard 0
+// Zone: spatial regions; Encounter: scripted moments; Quest: multi-step objectives
+// Item: collectible payloads; Skill: agent capability gates; LootTable: probabilistic reward bindings
+// Layered on ArtifactReceipt + ValidationReceipt infrastructure (board-types.ts)
+
+@trait frontier_shard {
+  capability_tags: ["frontier_shard", "hololand_content", "playable_content", "quest", "loot_table", "framework"]
+
+  @on_spawn => {
+    emit("frontier_shard_ready", {})
+  }
+
+  @on_validate_shard(shard) => {
+    result = validate_shard(shard)
+    emit("shard_validated", { shard_id: shard.id, valid: result.valid })
+    return result
+  }
+
+  @receipt frontier_shard_config {
+    type: "FrontierShardReceipt"
+    primitives: ["Shard", "Zone", "Encounter", "Quest", "Item", "Skill", "LootTable"]
+    base: "Shard 0 — bootstrap schema; all later shards inherit"
+    timestamp: now()
+  }
+}

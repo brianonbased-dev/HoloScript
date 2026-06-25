@@ -1,0 +1,22 @@
+// @holoshell_account_export_receipts — Substrate contracts for browser/provider account export operations.
+//
+// Native .hsplus surface for framework/board/holoshell-account-export-receipts.ts.
+//
+// AccountExportReceipt: { provider, plan, exportFormat, localArchivePath, hashAlgorithm, verificationCommand }
+// Covers: account boundary, provider plan, async wait state, local archive verification, replay
+// Providers enumerated in ACCOUNT_EXPORT_PROVIDERS constant
+
+@trait holoshell_account_export_receipts {
+  capability_tags: ["holoshell_account_export_receipts", "account_export", "archive_verification", "provenance", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_account_export_receipts_ready", {})
+  }
+
+  @receipt holoshell_account_export_receipts_config {
+    type: "AccountExportReceipt"
+    fields: ["provider", "plan", "exportFormat", "localArchivePath", "hashAlgorithm", "verificationCommand"]
+    note: "deterministic HoloShell operation; explicit account boundary"
+    timestamp: now()
+  }
+}

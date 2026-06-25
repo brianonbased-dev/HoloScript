@@ -1,0 +1,21 @@
+// @holoshell_build_custody_receipt — Receipt for build artifact custody handoff.
+//
+// Native .hsplus surface for framework/board/holoshell-build-custody-receipt.ts.
+//
+// BuildCustodyReceipt: { artifactHash, buildTarget, builtAt, custodian, verificationCommand }
+// Proves: artifact produced deterministically; custody transferred from CI/build to deploy surface
+// Used by: deploy gates, provenance chains, attestation endpoints
+
+@trait holoshell_build_custody_receipt {
+  capability_tags: ["holoshell_build_custody_receipt", "build_artifact", "custody_handoff", "deploy_gate", "framework"]
+
+  @on_spawn => {
+    emit("holoshell_build_custody_receipt_ready", {})
+  }
+
+  @receipt holoshell_build_custody_receipt_config {
+    type: "BuildCustodyReceipt"
+    fields: ["artifactHash", "buildTarget", "builtAt", "custodian", "verificationCommand"]
+    timestamp: now()
+  }
+}

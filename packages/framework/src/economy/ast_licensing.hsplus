@@ -1,0 +1,29 @@
+// @ast_licensing — Decentralized licensing for HoloScript AST assets via x402 + EIP-191 signed manifest.
+//
+// Native .hsplus surface for framework/economy/ast-licensing.ts.
+//
+// ASTAssetLicense: metadata schema any AST node can carry via @license(...) directive
+// LicensedASTAsset: parsed AST + content hash + license metadata + optional EIP-191 signed manifest
+// Layered on x402 facilitator; @license directive parsed by @holoscript/core (F.014 compliant)
+
+@trait ast_licensing {
+  capability_tags: ["ast_licensing", "ast_asset_license", "eip191_manifest", "x402_licensing", "framework"]
+
+  @on_spawn => {
+    emit("ast_licensing_ready", {})
+  }
+
+  @on_license(ast_node, license_meta) => {
+    licensed = attach_license(ast_node, license_meta)
+    emit("ast_node_licensed", { node_id: ast_node.id })
+    return licensed
+  }
+
+  @receipt ast_licensing_config {
+    type: "ASTLicensingReceipt"
+    schema: "ASTAssetLicense metadata on any AST node via @license(...) directive"
+    signing: "optional EIP-191 signed manifest"
+    note: "F.014: @license parsed by @holoscript/core, not framework"
+    timestamp: now()
+  }
+}

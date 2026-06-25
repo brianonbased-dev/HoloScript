@@ -1,0 +1,35 @@
+// @unified_budget_optimizer — Bridges economy (USDC) and rendering budgets via equimarginal allocation.
+//
+// Native .hsplus surface for framework/economy/UnifiedBudgetOptimizer.ts.
+//
+// Oracle Cycle 6 finding: AgentBudgetEnforcer (1D USDC) and ResourceBudgetAnalyzer (10D LOD) were silos
+// traitUtility(trait, resources) → value/cost ratio
+// equimarginalLOD(budget, traits) → drop lowest value/cost ratio first (not greedy)
+// resourceCostFloor(resource) → minimum price to prevent economic denial-of-rendering
+// unifiedQuery() → combined economy + rendering pressure view
+
+@trait unified_budget_optimizer {
+  capability_tags: ["unified_budget_optimizer", "equimarginal_lod", "value_cost_ratio", "rendering_budget", "economy_rendering_bridge", "framework"]
+
+  @on_spawn => {
+    optimizer = init_unified_budget_optimizer()
+    emit("unified_budget_optimizer_ready", {})
+  }
+
+  @on_unified_query => {
+    return optimizer.unified_query()
+  }
+
+  @on_equimarginal_lod(budget, traits) => {
+    allocation = optimizer.equimarginal_lod(budget, traits)
+    emit("lod_allocated", { dropped: allocation.dropped.length })
+    return allocation
+  }
+
+  @receipt unified_budget_optimizer_config {
+    type: "UnifiedBudgetOptimizerReceipt"
+    algorithms: ["trait utility function", "equimarginal LOD allocation", "resource cost floor pricing"]
+    note: "Oracle Cycle 6: AgentBudgetEnforcer + ResourceBudgetAnalyzer unified"
+    timestamp: now()
+  }
+}

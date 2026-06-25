@@ -1,0 +1,27 @@
+// @urban_planning_simulation_tick — Per-step economy driver for urban planning zoning simulations.
+//
+// Native .hsplus surface for framework/economy/urbanPlanningSimulationTick.ts.
+//
+// UrbanPlanningSimulationEconomyDriver(aggregator, creatorId, payerId) — binds creator/payer ids
+// tick(parcelCount, densityClass) → void — one call per zoning simulation step
+// Delegates to recordUrbanPlanningSimulationRevenue via urbanPlanningEconomyBridge
+
+@trait urban_planning_simulation_tick {
+  capability_tags: ["urban_planning_simulation_tick", "simulation_tick", "zoning_economics", "per_step_economy", "framework"]
+
+  @on_spawn => {
+    driver = init_urban_planning_simulation_economy_driver(config)
+    emit("urban_planning_simulation_tick_ready", {})
+  }
+
+  @on_tick(parcel_count, density_class) => {
+    driver.tick(parcel_count, density_class)
+    emit("simulation_tick_recorded", { parcels: parcel_count, density: density_class })
+  }
+
+  @receipt urban_planning_simulation_tick_config {
+    type: "UrbanPlanningSimulationTickReceipt"
+    call: "once per zoning simulation step with parcelCount + densityClass"
+    timestamp: now()
+  }
+}
