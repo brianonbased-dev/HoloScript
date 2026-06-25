@@ -1,0 +1,21 @@
+@trait {
+  name: "@field_of_view",
+  category: "xr",
+  description: "Dynamic field-of-view controller for VR comfort and cinematics. Adjusts the rendering FOV of the active camera or XR frame at runtime, applying smooth interpolation during locomotion speed changes to reduce VR sickness, and exposing user-calibratable FOV multiplier for accessibility. Authored from FieldOfViewTrait.ts.",
+  props: {
+    base_fov_deg: number = 90,
+    min_fov_deg: number = 60,
+    max_fov_deg: number = 120,
+    reduce_on_move: boolean = true,
+    reduce_to_pct: number = 0.8,
+    transition_ms: number = 200,
+    user_multiplier: number = 1.0
+  },
+  events: {
+    attached: "field_of_view_attached",
+    detached: "field_of_view_detached",
+    on_change: "field_of_view_change",
+    set: "field_of_view_trigger_set"
+  },
+  behaviors: ["@vignette", "@virtual_camera", "@fullscreen_mode"]
+}

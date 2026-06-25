@@ -1,0 +1,20 @@
+@trait {
+  name: "@font_loader",
+  category: "visual",
+  description: "Web font and SDF atlas loader. Fetches a font family from a URL or Google Fonts API, generates an SDF glyph atlas for fast GPU text rendering, and registers it under a named alias consumed by text/label/speech-bubble traits. Authored from FontLoaderTrait.ts.",
+  props: {
+    family: string = "Inter",
+    url: string = "",
+    weights: list<number> = [400, 700],
+    sdf_size: number = 64,
+    cache: boolean = true,
+    fallback: string = "sans-serif"
+  },
+  events: {
+    attached: "font_loader_attached",
+    detached: "font_loader_detached",
+    on_load: "font_loader_load",
+    on_error: "font_loader_error"
+  },
+  behaviors: ["@ui_theme", "@typewriter", "@speech_bubble"]
+}

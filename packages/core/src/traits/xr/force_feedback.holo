@@ -1,0 +1,19 @@
+@trait {
+  name: "@force_feedback",
+  category: "xr",
+  description: "XR haptic force-feedback orchestrator. Maps game events (collision, impact, heartbeat, ambient hum) to vibration patterns on the active XR controller actuators, supporting pulse, ramp, and envelope waveforms, with per-channel amplitude, frequency, and duration controls. Authored from ForceFeedbackTrait.ts.",
+  props: {
+    enabled: boolean = true,
+    global_amplitude: number = 1.0,
+    patterns: list<{ event: string, waveform: enum("pulse" | "ramp" | "envelope"), duration_ms: number, amplitude: number, frequency_hz: number }> = [],
+    channels: enum("both" | "left" | "right") = "both"
+  },
+  events: {
+    attached: "force_feedback_attached",
+    detached: "force_feedback_detached",
+    on_play: "force_feedback_play",
+    play: "force_feedback_trigger_play",
+    stop: "force_feedback_trigger_stop"
+  },
+  behaviors: ["@xr_controller", "@gesture_recognizer", "@vignette"]
+}

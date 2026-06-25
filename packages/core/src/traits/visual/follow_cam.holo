@@ -1,0 +1,22 @@
+@trait {
+  name: "@follow_cam",
+  category: "visual",
+  description: "Third-person follow camera controller. Positions the camera behind and above the target entity at a configurable arm length, smoothly interpolates toward the target with spring damping, and applies collision avoidance to prevent the camera clipping into scene geometry. Authored from FollowCamTrait.ts.",
+  props: {
+    target_entity_id: string = "",
+    arm_length_m: number = 4.0,
+    height_offset_m: number = 1.5,
+    pitch_deg: number = -15,
+    spring_k: number = 10.0,
+    spring_damping: number = 0.7,
+    collision_avoid: boolean = true,
+    fov_deg: number = 70
+  },
+  events: {
+    attached: "follow_cam_attached",
+    detached: "follow_cam_detached",
+    on_target_change: "follow_cam_target_change",
+    set_target: "follow_cam_trigger_set_target"
+  },
+  behaviors: ["@orbit_camera", "@virtual_camera", "@follow_target"]
+}
