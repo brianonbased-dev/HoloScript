@@ -1,0 +1,45 @@
+// @no_dead_code_rule — Regex-based dead code checker for HoloScript compositions.
+//
+// Native .hsplus surface for NoDeadCodeRule.ts (absorb-service/analysis).
+//
+// Lightweight text-based dead code detection (complement to ReferenceGraph/ReachabilityAnalyzer).
+// Works on raw source strings without an AST; suitable for quick pre-parse checks.
+//
+// NoDeadCodeRule (NoDeadCodeRule.ts):
+//   check(files: Map<filePath, source>) → DeadCodeDiagnostic[]
+//   formatReport(diagnostics) → String
+//
+// DeadCodeDiagnostic { kind: composition|template|function|property, name, filePath, line?, message }
+//
+// Detection strategy:
+//   Definitions: regex for `template "Name"` and `function Name`
+//   References:  `using "Name"` + identifiers followed by `(`, `.`, `[`
+//   Dead = defined but name not in any reference set
+
+@trait no_dead_code_rule {
+  capability_tags: ["no_dead_code_rule", "dead_code", "regex_check", "absorb_service", "sprint5"]
+
+  @on_spawn => {
+    rule = init_no_dead_code_rule()
+    emit("no_dead_code_rule_ready", {})
+  }
+
+  // Check a map of source files for dead code
+  @on_check(files) => {
+    diagnostics = rule.check(files)
+    emit("dead_code_checked", { issue_count: diagnostics.size })
+    return diagnostics
+  }
+
+  // Format diagnostics into a human-readable report
+  @on_format_report(diagnostics) => {
+    return rule.format_report(diagnostics)
+  }
+
+  @receipt no_dead_code_rule_config {
+    type: "NoDeadCodeRuleReceipt"
+    approach: "regex-based (text, no AST); complement to ReferenceGraph/ReachabilityAnalyzer"
+    diagnostic_kinds: ["composition", "template", "function", "property"]
+    timestamp: now()
+  }
+}

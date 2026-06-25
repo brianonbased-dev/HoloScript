@@ -1,0 +1,62 @@
+// @self_improve_command — Autonomous self-improvement loop orchestrator.
+//
+// Native .hsplus surface for SelfImproveCommand.ts (absorb-service/self-improvement).
+//
+// Orchestrates the 5-step autonomous self-improvement cycle:
+//   1. Absorb      — scan codebase, build knowledge graph
+//   2. Query       — GraphRAG query for untested / low-coverage code
+//   3. Generate    — produce vitest test file for identified target
+//   4. Test        — run vitest on the generated test
+//   5. Commit      — commit if test passes
+// Repeats until QualityScore plateaus (ConvergenceDetector) or max iterations.
+//
+// SelfImproveIO (SelfImproveCommand.ts) — all I/O injected for testability:
+//   absorb(rootDir) → AbsorbResult
+//   queryUntested(query) → UntestedTarget[]
+//   generateTest(target) → GeneratedTest
+//   writeFile(path, content)
+//   runVitest(testFile) → VitestResult
+//   runFullVitest() → VitestSuiteResult
+//   runTypeCheck() → Bool
+//   runLint() → LintResult
+//
+// Uses QualityScore + ConvergenceDetector for plateau detection.
+
+@trait self_improve_command {
+  // Max iterations before forced stop
+  max_iterations: Int = 50
+
+  capability_tags: ["self_improve_command", "autonomous_loop", "absorb_query_generate_test_commit", "convergence", "absorb_service", "self_improvement"]
+
+  @on_spawn(io) => {
+    command = init_self_improve_command(io, { max_iterations: max_iterations })
+    emit("self_improve_command_ready", { max_iterations: max_iterations })
+  }
+
+  // Run the full autonomous improvement loop from a root directory
+  @on_run(root_dir, query) => {
+    result = command.run(root_dir, query)
+    emit("self_improve_loop_complete", {
+      iterations: result.iterations,
+      converged: result.converged,
+      quality_delta: result.quality_delta
+    })
+    return result
+  }
+
+  // Run a single iteration (for testing/debugging)
+  @on_run_once(root_dir, query) => {
+    result = command.run_once(root_dir, query)
+    emit("self_improve_iteration", { passed: result.test_passed })
+    return result
+  }
+
+  @receipt self_improve_command_config {
+    type: "SelfImproveCommandReceipt"
+    steps: ["absorb", "query", "generate", "test", "commit"]
+    stop_conditions: ["QualityScore plateau (ConvergenceDetector)", "max_iterations reached"]
+    max_iterations: max_iterations
+    io_injectable: true
+    timestamp: now()
+  }
+}

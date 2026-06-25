@@ -1,0 +1,63 @@
+// @synthetic_graph_factory — Deterministic synthetic CodebaseGraph for Paper 26 benchmarks.
+//
+// Native .hsplus surface for SyntheticGraphFactory.ts (absorb-service/engine/benchmark).
+//
+// HoloGraph Phase 3 / Paper 26 evidence layer.
+// Generates controlled event-chain graphs with known ground truth for recall measurement.
+//
+// SyntheticGraphOptions (SyntheticGraphFactory.ts):
+//   num_files:          500   — total source files distributed across domain packages
+//   num_events:          50   — distinct events (namespaced as domain:action)
+//   listeners_per_event:  3   — listener files per event
+//   syms_per_file:        4   — exported symbols per file
+//   seed:    "holograph-paper26"  — deterministic generation seed
+//
+// EventGroundTruth { event_name, emitter_file, listener_files[] }
+// build() → { graph: CodebaseGraph, ground_truth: Map<eventName, EventGroundTruth> }
+// Used by Paper26Benchmark to compute recall@K for event-chain traversal.
+
+@trait synthetic_graph_factory {
+  num_files: Int = 500
+  num_events: Int = 50
+  listeners_per_event: Int = 3
+  syms_per_file: Int = 4
+  seed: String = "holograph-paper26"
+
+  capability_tags: ["synthetic_graph_factory", "benchmark", "holograph_phase3", "paper_26", "event_chain", "ground_truth", "absorb_service"]
+
+  @on_spawn => {
+    factory = init_synthetic_graph_factory({
+      num_files: num_files,
+      num_events: num_events,
+      listeners_per_event: listeners_per_event,
+      syms_per_file: syms_per_file,
+      seed: seed
+    })
+    emit("synthetic_graph_factory_ready", {
+      num_files: num_files,
+      num_events: num_events
+    })
+  }
+
+  // Build a synthetic graph with ground-truth event map
+  @on_build => {
+    result = factory.build()
+    emit("synthetic_graph_built", {
+      files: num_files,
+      events: num_events
+    })
+    return result
+  }
+
+  @receipt synthetic_graph_factory_config {
+    type: "SyntheticGraphFactoryReceipt"
+    holograph_phase: "Phase 3"
+    paper: "Paper 26 (HoloGraph event-chain recall benchmark)"
+    num_files: num_files
+    num_events: num_events
+    listeners_per_event: listeners_per_event
+    seed: seed
+    event_naming: "domain:action (e.g. snn:spike)"
+    timestamp: now()
+  }
+}

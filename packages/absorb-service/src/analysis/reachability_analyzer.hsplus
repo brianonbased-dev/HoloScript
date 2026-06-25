@@ -1,0 +1,48 @@
+// @reachability_analyzer — Graph-walk dead code detection for HoloScript (Sprint 5 Priority 1).
+//
+// Native .hsplus surface for ReachabilityAnalyzer.ts (absorb-service/analysis).
+//
+// Walks a ReferenceGraph from known entry points, marks reachable nodes,
+// and reports unreachable symbols as dead code with severity + fix suggestions.
+//
+// DeadCodeType (ReachabilityAnalyzer.ts):
+//   unused-orb | unused-template | unused-function |
+//   unused-property | unused-variable | unreachable-code
+//
+// DeadCodeItem { type, symbol, reason, severity: error|warning|info, suggestion, canAutoFix }
+// ReachabilityResult { reachable[], unreachable[], deadCode: DeadCodeItem[], stats: ReachabilityStats }
+//
+// canAutoFix: true → automated removal is safe for this symbol type
+// Entry points: exported compositions, main templates, top-level functions marked as entrypoint
+
+@trait reachability_analyzer {
+  capability_tags: ["reachability_analyzer", "dead_code_detection", "graph_walk", "entry_points", "absorb_service", "sprint5"]
+
+  @on_spawn(graph_ref) => {
+    analyzer = init_reachability_analyzer(graph_ref)
+    emit("reachability_analyzer_ready", {})
+  }
+
+  // Walk from entry points and classify all reachable vs unreachable symbols
+  @on_analyze(entry_points) => {
+    result = analyzer.analyze(entry_points)
+    emit("reachability_analyzed", {
+      reachable: result.reachable.size,
+      dead_code: result.dead_code.size
+    })
+    return result
+  }
+
+  // Get only auto-fixable dead code items
+  @on_get_auto_fixable => {
+    return analyzer.get_auto_fixable()
+  }
+
+  @receipt reachability_analyzer_config {
+    type: "ReachabilityAnalyzerReceipt"
+    sprint: "Sprint 5 Priority 1 (dead-code detection)"
+    dead_code_types: ["unused-orb", "unused-template", "unused-function", "unused-property", "unused-variable", "unreachable-code"]
+    severities: ["error", "warning", "info"]
+    timestamp: now()
+  }
+}
