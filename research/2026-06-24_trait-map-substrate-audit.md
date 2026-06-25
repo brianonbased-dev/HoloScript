@@ -20,13 +20,13 @@ The first-pass inventory listed **131 name-based "substrate" picks**. The audit 
 | | First pass (name-based) | After per-handler audit |
 |---|---:|---:|
 | Entries | 131 | **128 unique** (3 were duplicates) |
-| **REAL** (genuine solver/computation + checkable contract) | — | **11** |
+| **REAL** (genuine solver/computation + checkable contract) | — | **13** (11 audit + 2 fixes shipped) |
 | **THIN** (real capability nearby; this name skeleton/delegated/config-mode) | — | **33** |
-| **OVERCLAIMED** (vocabulary only / does nothing checkable) → demote to skin | — | **84** |
+| **OVERCLAIMED** (vocabulary only / does nothing checkable) → demote to skin | — | **82** (84 − 2 fixed) |
 
-**The name-based pass overcounted substrate by ~3×.** Of 128 candidates, **84 (66%) prove nothing**
-and are demoted to skin; only **11 are unambiguously proof-carrying** (~0.47% of the 2,352-name
-catalog, ~8.6% of the candidate set). The "verified substrate floor" (REAL + THIN) is **44** — and even
+**The name-based pass overcounted substrate by ~3×.** Of 128 candidates, **82 (64%) prove nothing**
+and are demoted to skin; only **13 are unambiguously proof-carrying** (~0.55% of the 2,352-name
+catalog, ~10.2% of the candidate set). The "verified substrate floor" (REAL + THIN) is **46** — and even
 that counts 33 traits whose proof lives in a parent solver, not the trait itself.
 
 This is the honesty boundary made measurable, applied recursively to our own map (GOLD W.GOLD.534,
@@ -38,7 +38,7 @@ name-based spine suggested. Surfacing exactly which 11 carry proof is the point.
 
 ---
 
-## 2. The verified proof-carrying core (11 REAL)
+## 2. The verified proof-carrying core (13 REAL)
 
 These are the traits whose handler genuinely runs a solver/computation with a checkable contract:
 
@@ -71,11 +71,15 @@ The demotions are not random — they cluster into five named failure modes, eac
    wiring fixes that would turn 3 overclaims into 3 REAL substrate traits** — a pure win the handoff's
    gap-trait list didn't name. (Distinct from deep-ratchet's "echo-stub" family: here the math exists
    but is unreachable.)
-   > **SHIPPED (this commit):** `granular_material` is fixed and promoted to REAL — `onUpdate` now falls
-   > back to `step(dt)` (with `step?` added to `TraitInstanceDelegate`), and `GranularMaterialTrait.test.ts`
-   > proves a particle falls under gravity through the trait lifecycle. Verified count is now **12 REAL / 33
-   > THIN / 83 OVERCLAIMED**. `fluid_simulation` (swap `new SpatialHash` → `new FluidSimulationSystem` + the
-   > same step fallback) and the non-fix `voronoi_fracture` (event-driven + fake voronoi) remain queued.
+   > **SHIPPED (granular_material, 4ed8a9f09):** `granular_material` fixed and promoted to REAL — `onUpdate`
+   > falls back to `step(dt)` (with `step?` added to `TraitInstanceDelegate`), and `GranularMaterialTrait.test.ts`
+   > proves a particle falls under gravity through the trait lifecycle. Count after: **12 REAL / 33 THIN / 83 OVERCLAIMED**.
+   >
+   > **SHIPPED (fluid_simulation, 28a455696):** `fluid_simulation` fixed and promoted to REAL — `onAttach` now
+   > constructs `FluidSimulationSystem(config)` (not `SpatialHash(config)`), and `onUpdate` falls back to
+   > `step(dt)`. `FluidSimulationTrait.test.ts` proves a particle falls under SPH gravity through the trait
+   > lifecycle. Count after: **13 REAL / 33 THIN / 82 OVERCLAIMED**. `voronoi_fracture` (event-driven + fake
+   > voronoi) is explicitly a non-fix and remains OVERCLAIMED.
 2. **Deprecated dead stub, zero listeners** (`cloth`, `chain`). `cloth` self-declares DEPRECATED in its
    header; `chain.onUpdate` is an explicit no-op. Emit-only shells; real engines exist elsewhere, unwired.
 3. **Visualization-as-substrate** (`scalar_field_overlay`, `colormap_jet/viridis/turbo/inferno/coolwarm`).
