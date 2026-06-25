@@ -1,0 +1,18 @@
+@trait {
+  name: "@role",
+  category: "security",
+  description: "Role definition for RBAC. role_id is the role identifier (default: user). permissions is the granted permission list (default: [interact]). display_badge shows a badge on the avatar (default: false). badge_color is the badge hex color (default: #888888). inherits_from is the parent role to inherit permissions from (default: empty). Port of RoleTrait.ts (handler name: role).",
+  props: {
+    role_id: string = "user",
+    display_badge: boolean = false,
+    badge_color: string = "#888888",
+    inherits_from: string = ""
+  },
+  events: {
+    on_granted: "role:granted",
+    on_revoked: "role:revoked",
+    grant: "role.grant",
+    revoke: "role.revoke"
+  },
+  behaviors: ["@permission", "@oauth", "@reputation_ledger"]
+}

@@ -1,0 +1,19 @@
+@trait {
+  name: "@rope",
+  category: "physics",
+  description: "Verlet rope physics. length is the rope length in meters (default: 5m). segments is the simulation segment count (default: 20). stiffness is the position constraint strength [0,1] (default: 0.9). damping is the velocity damping coefficient (default: 0.02). radius is the collision radius in meters (default: 0.02m). Port of RopeTrait.ts (handler name: rope).",
+  props: {
+    length: number = 5,
+    segments: number = 20,
+    stiffness: number = 0.9,
+    damping: number = 0.02,
+    radius: number = 0.02
+  },
+  events: {
+    on_taut: "rope:taut",
+    on_slack: "rope:slack",
+    attach: "rope.attach",
+    detach: "rope.detach"
+  },
+  behaviors: ["@cloth", "@rigidbody", "@softbody"]
+}

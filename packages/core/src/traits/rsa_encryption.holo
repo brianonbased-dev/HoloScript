@@ -1,0 +1,15 @@
+@trait {
+  name: "@rsa_encryption",
+  category: "security",
+  description: "RSA asymmetric encryption. Config is key-size-dependent. Port of RSAEncryptionTrait.ts (handler name: rsa_encryption).",
+  props: {},
+  events: {
+    on_encrypted: "rsa_encryption:encrypted",
+    on_decrypted: "rsa_encryption:decrypted",
+    on_error: "rsa_encryption:error",
+    encrypt: "rsa_encryption.encrypt",
+    decrypt: "rsa_encryption.decrypt",
+    generate_keys: "rsa_encryption.generate_keys"
+  },
+  behaviors: ["@hsm_integration", "@package_signing"]
+}

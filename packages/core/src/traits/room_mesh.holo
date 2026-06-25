@@ -1,0 +1,17 @@
+@trait {
+  name: "@room_mesh",
+  category: "xr",
+  description: "Whole-room mesh reconstruction. resolution: low, medium (default), high. update_rate is the mesh update frequency in Hz (default: 5Hz). semantic_labeling annotates surfaces with room labels (default: true). room_boundary_detection identifies room boundaries (default: true). physics_collider generates a physics collider (default: true). Port of RoomMeshTrait.ts (handler name: room_mesh).",
+  props: {
+    resolution: enum("low" | "medium" | "high") = "medium",
+    update_rate: number = 5,
+    semantic_labeling: boolean = true,
+    room_boundary_detection: boolean = true,
+    physics_collider: boolean = true
+  },
+  events: {
+    on_built: "room_mesh:built",
+    on_updated: "room_mesh:updated"
+  },
+  behaviors: ["@mesh_detection", "@plane_detection", "@rigidbody"]
+}

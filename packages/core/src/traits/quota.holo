@@ -1,0 +1,19 @@
+@trait {
+  name: "@quota",
+  category: "ops",
+  description: "Per-tenant resource quota enforcement. tenant_id identifies the quota account. enabled toggles enforcement (default: true). scene_count is the maximum scene count (default: 3). gaussian_budget is the maximum Gaussian splat points (default: 100,000). render_credits is the render credit allotment (default: 100). Port of QuotaTrait.ts (handler name: quota).",
+  props: {
+    tenant_id: string = "",
+    enabled: boolean = true,
+    scene_count: number = 3,
+    gaussian_budget: number = 100000,
+    render_credits: number = 100
+  },
+  events: {
+    on_exceeded: "quota:exceeded",
+    on_warning: "quota:warning",
+    check: "quota.check",
+    consume: "quota.consume"
+  },
+  behaviors: ["@resource_accounting", "@subscription", "@audit_log"]
+}

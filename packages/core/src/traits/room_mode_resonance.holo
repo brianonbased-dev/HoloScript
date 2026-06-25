@@ -1,0 +1,13 @@
+@trait {
+  name: "@room_mode_resonance",
+  category: "audio",
+  description: "Room mode acoustic resonance simulator — models standing waves in a rectangular room. room_dimensions is the [W,D,H] room size in meters (default: [10.0, 7.0, 4.0]). mode_order is the maximum resonant mode order (default: 3). Port of RoomModeResonanceTrait.ts (handler name: room_mode_resonance).",
+  props: {
+    mode_order: number = 3
+  },
+  events: {
+    on_resonated: "room_mode_resonance:resonated",
+    compute: "room_mode_resonance.compute"
+  },
+  behaviors: ["@reverb_zone", "@ambisonics", "@hrtf"]
+}

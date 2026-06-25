@@ -1,0 +1,18 @@
+@trait {
+  name: "@rag_knowledge",
+  category: "ml",
+  description: "Retrieval-augmented generation knowledge base. chunk_size is the document chunk size in tokens (default: 512). overlap is the chunk overlap in tokens (default: 128). retrieval_k is the number of retrieved chunks per query (default: 5). rerank enables cross-encoder reranking (default: true). Port of RAGKnowledgeTrait.ts (handler name: rag_knowledge).",
+  props: {
+    chunk_size: number = 512,
+    overlap: number = 128,
+    retrieval_k: number = 5,
+    rerank: boolean = true
+  },
+  events: {
+    on_indexed: "rag_knowledge:indexed",
+    on_retrieved: "rag_knowledge:retrieved",
+    index: "rag_knowledge.index",
+    query: "rag_knowledge.query"
+  },
+  behaviors: ["@embedding_search", "@memory_crystal", "@llm_agent"]
+}

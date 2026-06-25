@@ -1,0 +1,17 @@
+@trait {
+  name: "@quantum_inspired",
+  category: "ml",
+  description: "Quantum-inspired spiking neural network. num_neurons is the neuron count (default: 128). learning_rate is the weight update rate (default: 0.01). snn_timesteps is the temporal integration steps per inference (default: 50). accelerator_provider: null (default), webgpu, cuda — use the device-native accelerator. Port of QuantumInspiredTrait.ts (handler name: quantumInspired).",
+  props: {
+    num_neurons: number = 128,
+    learning_rate: number = 0.01,
+    snn_timesteps: number = 50
+  },
+  events: {
+    on_trained: "quantumInspired:trained",
+    on_inferred: "quantumInspired:inferred",
+    train: "quantumInspired.train",
+    infer: "quantumInspired.infer"
+  },
+  behaviors: ["@onnx_runtime", "@jetson_gpu", "@inference"]
+}

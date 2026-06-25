@@ -1,0 +1,15 @@
+@trait {
+  name: "@rest_endpoint",
+  category: "integration",
+  description: "REST API endpoint registry. base_path is the route prefix (default: /api). Port of RestEndpointTrait.ts (handler name: rest_endpoint).",
+  props: {
+    base_path: string = "/api"
+  },
+  events: {
+    on_request: "rest_endpoint:request",
+    on_response: "rest_endpoint:response",
+    register: "rest_endpoint.register",
+    unregister: "rest_endpoint.unregister"
+  },
+  behaviors: ["@http", "@rpc", "@graphql"]
+}

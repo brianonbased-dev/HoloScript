@@ -1,0 +1,15 @@
+@trait {
+  name: "@rollout",
+  category: "ops",
+  description: "Progressive feature rollout (canary/percentage). default_percentage is the default rollout percentage [0,100] (default: 0 = off). Port of RolloutTrait.ts (handler name: rollout).",
+  props: {
+    default_percentage: number = 0
+  },
+  events: {
+    on_enabled: "rollout:enabled",
+    on_disabled: "rollout:disabled",
+    set_percentage: "rollout.set_percentage",
+    is_enabled: "rollout.is_enabled"
+  },
+  behaviors: ["@feature_flag", "@permission"]
+}

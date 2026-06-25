@@ -1,0 +1,15 @@
+@trait {
+  name: "@rollback",
+  category: "data",
+  description: "Versioned rollback history for undo operations. max_history is the maximum checkpoint count (default: 20). Port of RollbackTrait.ts (handler name: rollback).",
+  props: {
+    max_history: number = 20
+  },
+  events: {
+    on_saved: "rollback:saved",
+    on_restored: "rollback:restored",
+    save: "rollback.save",
+    restore: "rollback.restore"
+  },
+  behaviors: ["@versioned_state", "@snapshot"]
+}

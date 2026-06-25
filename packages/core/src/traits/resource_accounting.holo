@@ -1,0 +1,17 @@
+@trait {
+  name: "@resource_accounting",
+  category: "ops",
+  description: "Resource usage accounting with audit trail. enabled toggles accounting (default: true). tolerance is the overage string value (default: 0). emit_audit_log emits audit events per operation (default: true). Port of ResourceAccountingTrait.ts (handler name: resource_accounting).",
+  props: {
+    enabled: boolean = true,
+    tolerance: string = "0",
+    emit_audit_log: boolean = true
+  },
+  events: {
+    on_charged: "resource_accounting:charged",
+    on_exceeded: "resource_accounting:exceeded",
+    charge: "resource_accounting.charge",
+    balance: "resource_accounting.balance"
+  },
+  behaviors: ["@quota", "@economy", "@audit_log"]
+}

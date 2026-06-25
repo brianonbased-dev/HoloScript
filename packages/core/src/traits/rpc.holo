@@ -1,0 +1,15 @@
+@trait {
+  name: "@rpc",
+  category: "integration",
+  description: "Remote procedure call registry. timeout_ms is the call timeout in ms (default: 5000ms). Port of RpcTrait.ts (handler name: rpc).",
+  props: {
+    timeout_ms: number = 5000
+  },
+  events: {
+    on_called: "rpc:called",
+    on_error: "rpc:error",
+    register: "rpc.register",
+    call: "rpc.call"
+  },
+  behaviors: ["@rest_endpoint", "@graphql", "@websocket"]
+}

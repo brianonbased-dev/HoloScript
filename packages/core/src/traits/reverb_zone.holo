@@ -1,0 +1,17 @@
+@trait {
+  name: "@reverb_zone",
+  category: "audio",
+  description: "Acoustic reverb zone. preset: room (default), hall, cave, outdoor, plate, bathroom, spring. size is the zone radius in meters (default: 10m). decay_time is the reverb tail length in seconds (default: 1.5s). damping is the high-frequency absorption (default: 0.5). diffusion is the scattering density (default: 0.7). Port of ReverbZoneTrait.ts (handler name: reverb_zone).",
+  props: {
+    preset: enum("room" | "hall" | "cave" | "outdoor" | "plate" | "bathroom" | "spring") = "room",
+    size: number = 10,
+    decay_time: number = 1.5,
+    damping: number = 0.5,
+    diffusion: number = 0.7
+  },
+  events: {
+    on_entered: "reverb_zone:entered",
+    on_exited: "reverb_zone:exited"
+  },
+  behaviors: ["@ambisonics", "@room_mode_resonance", "@audio_material"]
+}

@@ -1,0 +1,19 @@
+@trait {
+  name: "@render_network",
+  category: "render",
+  description: "Distributed render network adapter (Octane, Redshift cloud). default_quality: production (default), preview, final. default_engine: octane (default), redshift, cycles. output_format: png (default), exr, jpg. Port of RenderNetworkTrait.ts (handler name: render_network). api_key and wallet_address come from env — never inline.",
+  props: {
+    api_key: string = "",
+    wallet_address: string = "",
+    default_quality: enum("preview" | "production" | "final") = "production",
+    default_engine: enum("octane" | "redshift" | "cycles") = "octane",
+    output_format: enum("png" | "exr" | "jpg") = "png"
+  },
+  events: {
+    on_submitted: "render_network:submitted",
+    on_complete: "render_network:complete",
+    on_error: "render_network:error",
+    render: "render_network.render"
+  },
+  behaviors: ["@render_pipeline", "@gpu_particle"]
+}

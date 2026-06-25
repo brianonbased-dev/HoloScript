@@ -1,0 +1,17 @@
+@trait {
+  name: "@reputation_ledger",
+  category: "agent",
+  description: "Agent reputation ledger — tracks trust scores and behavioral facts for a subject within a world. world_id is the reputation scope. subject_id is the tracked agent. initial_trust is the starting trust score (default: 50). Port of ReputationLedgerTrait.ts (handler name: reputation_ledger).",
+  props: {
+    world_id: string = "",
+    subject_id: string = "",
+    initial_trust: number = 50
+  },
+  events: {
+    on_updated: "reputation_ledger:updated",
+    on_flagged: "reputation_ledger:flagged",
+    record: "reputation_ledger.record",
+    query: "reputation_ledger.query"
+  },
+  behaviors: ["@faction", "@negotiation", "@audit_log"]
+}

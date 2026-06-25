@@ -1,0 +1,15 @@
+@trait {
+  name: "@render_pipeline",
+  category: "render",
+  description: "Configurable render pipeline with multi-pass composition. max_passes is the maximum render pass count (default: 8). Port of RenderPipelineTrait.ts (handler name: render_pipeline).",
+  props: {
+    max_passes: number = 8
+  },
+  events: {
+    on_pass_added: "render_pipeline:pass_added",
+    on_complete: "render_pipeline:complete",
+    add_pass: "render_pipeline.add_pass",
+    execute: "render_pipeline.execute"
+  },
+  behaviors: ["@post_process", "@global_illumination"]
+}

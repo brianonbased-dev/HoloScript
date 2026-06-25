@@ -1,0 +1,17 @@
+@trait {
+  name: "@reactive_store",
+  category: "data",
+  description: "Reactive key-value store with subscriber notifications. max_keys is the store size cap (default: 500). Port of ReactiveStoreTrait.ts (handler name: reactive_store).",
+  props: {
+    max_keys: number = 500
+  },
+  events: {
+    on_changed: "reactive_store:changed",
+    on_deleted: "reactive_store:deleted",
+    set: "reactive_store.set",
+    get: "reactive_store.get",
+    delete: "reactive_store.delete",
+    subscribe: "reactive_store.subscribe"
+  },
+  behaviors: ["@data_binding", "@crdt_room", "@persistent"]
+}

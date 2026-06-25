@@ -1,0 +1,18 @@
+@trait {
+  name: "@rooftop_anchor",
+  category: "xr",
+  description: "Rooftop-mounted geospatial anchor. latitude/longitude is the GPS position (default: 0,0). elevation_offset is the height above ground in meters (default: 0). building_id is the optional building identifier. auto_resolve resolves the anchor on attach (default: true). Port of RooftopAnchorTrait.ts (handler name: rooftop_anchor).",
+  props: {
+    latitude: number = 0,
+    longitude: number = 0,
+    elevation_offset: number = 0,
+    building_id: string = "",
+    auto_resolve: boolean = true
+  },
+  events: {
+    on_resolved: "rooftop_anchor:resolved",
+    on_error: "rooftop_anchor:error",
+    resolve: "rooftop_anchor.resolve"
+  },
+  behaviors: ["@geospatial_anchor", "@persistent_anchor"]
+}

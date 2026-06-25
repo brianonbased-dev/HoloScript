@@ -1,0 +1,13 @@
+@trait {
+  name: "@rigidbody",
+  category: "physics",
+  description: "Rigid body physics — mass, collider, forces, constraints. Config is physics-engine-dependent and passed through to RigidbodyTrait instance. Port of RigidbodyTrait.ts (handler name: rigidbody).",
+  props: {},
+  events: {
+    on_collision: "rigidbody:collision",
+    on_trigger: "rigidbody:trigger",
+    apply_force: "rigidbody.apply_force",
+    apply_impulse: "rigidbody.apply_impulse"
+  },
+  behaviors: ["@physics", "@softbody", "@gpu_physics"]
+}

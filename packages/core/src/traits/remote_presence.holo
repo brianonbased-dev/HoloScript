@@ -1,0 +1,18 @@
+@trait {
+  name: "@remote_presence",
+  category: "multiplayer",
+  description: "Remote presence — streams avatar state, voice, and optional video to remote peers. avatar_type: head_hands (default), full_body, voice_only. voice_enabled enables spatial audio (default: true). video_enabled enables video stream (default: false). latency_compensation applies client-side prediction (default: true). quality_adaptive dynamically reduces quality on poor connections (default: true). Port of RemotePresenceTrait.ts (handler name: remote_presence).",
+  props: {
+    avatar_type: enum("head_hands" | "full_body" | "voice_only") = "head_hands",
+    voice_enabled: boolean = true,
+    video_enabled: boolean = false,
+    latency_compensation: boolean = true,
+    quality_adaptive: boolean = true
+  },
+  events: {
+    on_connected: "remote_presence:connected",
+    on_disconnected: "remote_presence:disconnected",
+    on_state_received: "remote_presence:state_received"
+  },
+  behaviors: ["@networked_avatar", "@spatial_voice", "@co_located"]
+}
