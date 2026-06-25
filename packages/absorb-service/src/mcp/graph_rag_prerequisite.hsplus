@@ -1,0 +1,33 @@
+// @graph_rag_prerequisite — Shared prerequisite error messages for MCP / GraphRAG tools.
+//
+// Native .hsplus surface for graph-rag-prerequisite.ts (absorb-service/mcp).
+//
+// Pure constants module — no classes, no side effects.
+// Ensures agents see consistent "call holo_absorb_repo first" messaging.
+//
+// Constants (graph-rag-prerequisite.ts):
+//   ABSORB_HOLO_ABSORB_REPO_HINT    — general hint to call holo_absorb_repo
+//   ABSORB_CODEBASE_LOAD_ERROR      — no codebase graph in memory or disk cache
+//   ABSORB_GRAPH_RAG_ENGINE_ERROR   — no GraphRAG engine initialized (post-absorb)
+//   ABSORB_EMBEDDING_INDEX_ERROR    — no embedding index (allow creation to complete)
+
+@trait graph_rag_prerequisite {
+  capability_tags: ["graph_rag_prerequisite", "mcp", "prerequisite_errors", "graph_rag", "absorb_service"]
+
+  @on_spawn => {
+    prereq = init_graph_rag_prerequisite()
+    emit("graph_rag_prerequisite_ready", {})
+  }
+
+  // Get the prerequisite hint/error string by key
+  @on_get(key) => {
+    return prereq.get(key)
+  }
+
+  @receipt graph_rag_prerequisite_config {
+    type: "GraphRagPrerequisiteReceipt"
+    constants: ["holo_absorb_repo_hint", "codebase_load_error", "graph_rag_engine_error", "embedding_index_error"]
+    pure_module: true
+    timestamp: now()
+  }
+}

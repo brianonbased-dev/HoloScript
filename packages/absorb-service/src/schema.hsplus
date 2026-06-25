@@ -1,0 +1,34 @@
+// @absorb_schema — Drizzle ORM schema for absorb-service credit and project tables.
+//
+// Native .hsplus surface for schema.ts (absorb-service).
+//
+// Self-contained schema extracted from Studio to keep absorb-service independent.
+// userId columns reference users.id from Studio schema — FK NOT declared here
+// (prevents circular dep on @holoscript/studio; enforced at DB level via migrations).
+//
+// Tables (schema.ts):
+//   credit_accounts (userId UUID PK, balance_cents, lifetime_spent_cents,
+//     lifetime_purchased_cents, tier='free', free_credits_used_cents, createdAt, updatedAt)
+//
+//   credit_transactions (id UUID random PK, userId, type, amount_cents,
+//     balance_after_cents, description, metadata jsonb, stripe_session_id, createdAt)
+//     Indexes: userId / type / createdAt
+//
+// 1 credit = 1 cent USD.
+
+@trait absorb_schema {
+  capability_tags: ["absorb_schema", "drizzle_orm", "credit_system", "schema", "absorb_service"]
+
+  @on_spawn => {
+    schema = init_absorb_schema()
+    emit("absorb_schema_ready", {})
+  }
+
+  @receipt absorb_schema_config {
+    type: "AbsorbSchemaReceipt"
+    tables: ["credit_accounts", "credit_transactions", "absorb_projects"]
+    credit_unit: "1 credit = 1 cent USD"
+    fk_note: "userId → users.id NOT declared (prevents circular dep on @holoscript/studio)"
+    timestamp: now()
+  }
+}

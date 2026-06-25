@@ -1,0 +1,41 @@
+// @embedding_worker — Parallel worker thread for embedding generation (Phase 9 Extension).
+//
+// Native .hsplus surface for embedding-worker.ts (absorb-service/engine/workers).
+//
+// Speeds up embedding generation 4-8x via parallel worker_threads.
+// Handles structural/holoembed/openai/ollama/xenova providers in worker context.
+//
+// EmbeddingJob (embedding-worker.ts):
+//   job_id: String
+//   texts: String[]
+//   provider: { name: structural|holoembed|openai|ollama|xenova,
+//               config: { api_key?, model?, ollama_url?, ollama_model?, xenova_model? } }
+//
+// EmbeddingResult { job_id, embeddings?: Float[][], error?: { message } }
+// Communicates via worker_threads parentPort (post/on message).
+// Provider instances created lazily per job inside the worker.
+// Parallelism: 4-8x speedup on embedding generation for large codebases.
+
+@trait embedding_worker {
+  capability_tags: ["embedding_worker", "worker_threads", "parallel_embeddings", "phase9", "absorb_service"]
+
+  @on_spawn => {
+    worker = init_embedding_worker()
+    emit("embedding_worker_ready", {})
+  }
+
+  // Process an embedding job and return the result
+  @on_process_job(job) => {
+    result = worker.process(job)
+    emit("embedding_job_complete", { job_id: job.job_id })
+    return result
+  }
+
+  @receipt embedding_worker_config {
+    type: "EmbeddingWorkerReceipt"
+    phase: "Phase 9 Extension"
+    parallelism: "4-8x speedup via worker_threads"
+    providers: ["structural", "holoembed", "openai", "ollama", "xenova"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,45 @@
+// @daemon_prompt_profiles — Per-provider prompt context and style guides for daemon actions.
+//
+// Native .hsplus surface for daemon-prompt-profiles.ts (absorb-service/daemon).
+//
+// Shapes prompts per-provider so each model gets style-appropriate instructions.
+//
+// DaemonProvider (daemon-prompt-profiles.ts):
+//   openrouter | anthropic | xai | openai | ollama
+//
+// DaemonToolProfile: claude-hsplus | grok-hsplus | standard
+// DaemonPromptAction: coverage | docs | typefix
+//
+// DaemonPromptContext { provider, tool_profile, model_style_guide, tool_guide }
+//
+// HOLOSCRIPT_IDENTITY: entities + composable traits, 3 formats (.holo/.hs/.hsplus), deterministic compiler
+// HOLOSCRIPT_WISDOM:   traits=WHAT; compilers=HOW; semantic intent over syntax tricks
+// HOLOSCRIPT_GOTCHAS:  cross-target portability, no hidden imperative rewrites, minimal edits
+//
+// Per-provider style guides:
+//   anthropic/openrouter: high-precision, constrained minimal edits
+//   xai: compact explicit .hsplus edits, no speculative refactors
+//   openai: strict JSON patch, minimal variation
+//   ollama: conservative/simple (local model reliability)
+
+@trait daemon_prompt_profiles {
+  capability_tags: ["daemon_prompt_profiles", "prompt_engineering", "per_provider", "daemon", "absorb_service"]
+
+  @on_spawn => {
+    profiles = init_daemon_prompt_profiles()
+    emit("daemon_prompt_profiles_ready", {})
+  }
+
+  // Get a DaemonPromptContext for a given provider + tool_profile + action
+  @on_get_context(provider, tool_profile, action) => {
+    return profiles.get_context(provider, tool_profile, action)
+  }
+
+  @receipt daemon_prompt_profiles_config {
+    type: "DaemonPromptProfilesReceipt"
+    providers: ["openrouter", "anthropic", "xai", "openai", "ollama"]
+    tool_profiles: ["claude-hsplus", "grok-hsplus", "standard"]
+    actions: ["coverage", "docs", "typefix"]
+    timestamp: now()
+  }
+}
