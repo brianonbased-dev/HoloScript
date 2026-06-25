@@ -1,0 +1,17 @@
+@trait {
+  name: "@cast_shadow",
+  category: "visual",
+  description: "Shadow casting and reception configuration. Controls whether the entity casts a shadow into the scene, receives shadows from other objects, or both, with LOD-aware cutoff distance and a bias parameter to eliminate self-shadowing acne on textured surfaces. Authored from CastShadowTrait.ts.",
+  props: {
+    cast: boolean = true,
+    receive: boolean = true,
+    bias: number = 0.001,
+    cutoff_distance_m: number = 50,
+    lod_cutoff_level: number = 2
+  },
+  events: {
+    attached: "cast_shadow_attached",
+    detached: "cast_shadow_detached"
+  },
+  behaviors: ["@material", "@lod_controller", "@light"]
+}

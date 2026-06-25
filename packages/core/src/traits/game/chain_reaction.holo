@@ -1,0 +1,19 @@
+@trait {
+  name: "@chain_reaction",
+  category: "game",
+  description: "Proximity chain-reaction propagator. When the entity is triggered (damaged, activated, or exploded) it searches for other chain-reaction entities within a radius and triggers them with a staggered delay, enabling domino-style sequential explosions, puzzle chains, and combo mechanics. Authored from ChainReactionTrait.ts.",
+  props: {
+    trigger_radius_m: number = 5,
+    trigger_delay_ms: number = 200,
+    max_chain_depth: number = 10,
+    trigger_on: string = "entity_damaged",
+    propagate_event: string = "chain_reaction_trigger"
+  },
+  events: {
+    attached: "chain_reaction_attached",
+    detached: "chain_reaction_detached",
+    on_trigger: "chain_reaction_trigger",
+    on_propagate: "chain_reaction_propagate"
+  },
+  behaviors: ["@explosion", "@breakable", "@puzzle_lock"]
+}

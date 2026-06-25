@@ -1,0 +1,24 @@
+@trait {
+  name: "@build_timer",
+  category: "game",
+  description: "Construction progress timer for build-phase game loops. Counts down or up while a build action is active, blocking placement until complete, displaying a radial progress indicator, and supporting builder-count acceleration where each additional builder reduces the remaining time multiplicatively. Authored from BuildTimerTrait.ts.",
+  props: {
+    duration_s: number = 5,
+    current_progress: number = 0,
+    builder_count: number = 1,
+    builder_acceleration: number = 0.5,
+    cancel_on_interrupt: boolean = true,
+    show_indicator: boolean = true,
+    indicator_color: string = "#00ff88"
+  },
+  events: {
+    attached: "build_timer_attached",
+    detached: "build_timer_detached",
+    on_start: "build_timer_start",
+    on_complete: "build_timer_complete",
+    on_cancel: "build_timer_cancel",
+    start: "build_timer_trigger_start",
+    cancel: "build_timer_trigger_cancel"
+  },
+  behaviors: ["@placement_validator", "@round_timer", "@progress_bar"]
+}

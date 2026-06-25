@@ -1,0 +1,26 @@
+@trait {
+  name: "@card_deck",
+  category: "game",
+  description: "Card deck and hand manager for card-game mechanics. Maintains a typed deck of card IDs, a draw pile, discard pile, and player hand, supporting shuffle, draw, play, and discard operations, with networked replication for multiplayer card games. Authored from CardDeckTrait.ts.",
+  props: {
+    deck: list<string> = [],
+    hand: list<string> = [],
+    discard: list<string> = [],
+    hand_size: number = 5,
+    draw_on_start: boolean = true,
+    shuffle_on_init: boolean = true,
+    replicated: boolean = true
+  },
+  events: {
+    attached: "card_deck_attached",
+    detached: "card_deck_detached",
+    on_draw: "card_deck_draw",
+    on_play: "card_deck_play",
+    on_discard: "card_deck_discard",
+    on_shuffle: "card_deck_shuffle",
+    draw: "card_deck_trigger_draw",
+    play: "card_deck_trigger_play",
+    shuffle: "card_deck_trigger_shuffle"
+  },
+  behaviors: ["@inventory", "@loot_table", "@replication_policy"]
+}
