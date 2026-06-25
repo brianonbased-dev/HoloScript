@@ -1,0 +1,84 @@
+// @holo_emitter — Generate .holo composition source text from a CodebaseGraph.
+//
+// Native .hsplus surface for HoloEmitter.ts (absorb-service/engine).
+//
+// Generates valid HoloScript .holo composition source from a CodebaseGraph.
+// Groups symbols by community/directory, assigns 3D positions via layouts,
+// and emits spatial/agent-mode .holo text.
+//
+// EmitOptions (HoloEmitter.ts):
+//   name?: String               — composition name (defaults to directory)
+//   layout: "force" | "layered" — default "force" (Barnes-Hut 3D layout)
+//   skybox: String = "dark-grid"
+//   ambient_light: Float = 0.4
+//   include_call_edges: Bool = true   — emit logic flows
+//   include_import_edges: Bool = true — emit connections
+//   min_visibility: "public" | "protected" | "internal" | "private" = "public"
+//   max_symbols_per_group: Int = 50
+//
+//   Agent-mode (for_agent: Bool):
+//     depth: "shallow" | "medium" | "deep" (default "deep")
+//     "shallow" = manifest + search_index only
+//     "medium"  = + public API spatial groups + cross-community logic
+//     "deep"    = + all symbol detail
+//   package_meta: { name?, version?, description?, scripts? }
+
+@trait holo_emitter {
+  // Layout algorithm
+  layout: enum("force" | "layered") = "force"
+
+  // Skybox preset
+  skybox: String = "dark-grid"
+
+  // Ambient light intensity
+  ambient_light: Float = 0.4
+
+  // Include call edges as logic flows
+  include_call_edges: Bool = true
+
+  // Include import edges as connections
+  include_import_edges: Bool = true
+
+  // Minimum symbol visibility to emit
+  min_visibility: enum("public" | "protected" | "internal" | "private") = "public"
+
+  // Max symbols per spatial group before collapsing
+  max_symbols_per_group: Int = 50
+
+  capability_tags: ["holo_emitter", "holo_source_gen", "codebase_graph", "holo_composition", "agent_mode", "absorb_service"]
+
+  @on_spawn => {
+    emitter = init_holo_emitter({
+      layout: layout,
+      skybox: skybox,
+      ambient_light: ambient_light,
+      include_call_edges: include_call_edges,
+      include_import_edges: include_import_edges,
+      min_visibility: min_visibility,
+      max_symbols_per_group: max_symbols_per_group
+    })
+    emit("holo_emitter_ready", { layout: layout })
+  }
+
+  // Emit 3D spatial .holo composition source from graph
+  @on_emit(graph, name, package_meta) => {
+    source = emitter.emit(graph, { name: name, package_meta: package_meta })
+    emit("holo_source_emitted", { name: name, layout: layout })
+    return source
+  }
+
+  // Emit agent-optimized manifest (no 3D positions; adds search_index)
+  @on_emit_agent(graph, depth, name) => {
+    source = emitter.emit_agent(graph, { depth: depth ?? "deep", name: name })
+    emit("holo_agent_manifest_emitted", { depth: depth ?? "deep" })
+    return source
+  }
+
+  @receipt holo_emitter_config {
+    type: "HoloEmitterReceipt"
+    layout: layout
+    min_visibility: min_visibility
+    agent_depths: ["shallow", "medium", "deep"]
+    timestamp: now()
+  }
+}

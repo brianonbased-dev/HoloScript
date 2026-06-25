@@ -1,0 +1,56 @@
+// @brain_coord_node_mapper — Map CodebaseGraph symbols to MNI152 brain coordinates.
+//
+// Native .hsplus surface for BrainCoordNodeMapper.ts (absorb-service/engine).
+//
+// Paper 33 (Brain-Geometry Storage Topology): PillarDomains map to MNI152
+// coordinates derived from fMRI meta-analyses of analogous cognitive operations.
+//
+// PillarDomain → MNI152 seed table (mirrors BrainCoordMapper.ts):
+//   physics      → Superior Parietal Lobule  (30, -50, 60)  — spatial reasoning
+//   language     → Wernicke's area           (-52, -32, 8)  — language processing
+//   compiler     → DLPFC                     (44, 36, 20)   — rule application
+//   rendering    → Visual cortex             (-45, -68, 5)  — visual output
+//   integrity    → ACC                       (0, 20, 30)    — conflict monitoring
+//
+// Hot/cold routing via GyriSulciPartitioner:
+//   gyrus → HOT (in-memory):  physics, compiler, language, rendering, agent
+//   sulcus → COLD (disk):     coordination, truth_approval, storage, init, shutdown
+//
+// populate(graph) fills graph.nodePositions + returns { hot_count, cold_count }.
+// BrainCoordSurfaceType: "gyrus" | "sulcus" | "unknown"
+// CacheTier: "hot" | "cold"
+
+@trait brain_coord_node_mapper {
+  capability_tags: ["brain_coord_node_mapper", "mni152", "brain_geometry", "cache_routing", "hot_cold", "codebase_graph", "absorb_service", "paper_33"]
+
+  @on_spawn => {
+    mapper = init_brain_coord_node_mapper()
+    emit("brain_coord_mapper_ready", {})
+  }
+
+  // Populate graph.nodePositions with MNI152 coords + return hot/cold stats
+  @on_populate(graph) => {
+    stats = mapper.populate(graph)
+    emit("brain_coords_populated", {
+      hot_count: stats.hot_count,
+      cold_count: stats.cold_count,
+      unknown_count: stats.unknown_count
+    })
+    return stats
+  }
+
+  // Lookup the brain coordinate for a single domain name
+  @on_lookup_domain(domain_name) => {
+    return mapper.lookup_domain(domain_name)
+  }
+
+  @receipt brain_coord_mapper_config {
+    type: "BrainCoordNodeMapperReceipt"
+    paper: "Paper 33 — Brain-Geometry Storage Topology"
+    coordinate_space: "MNI152"
+    hot_domains: ["physics", "compiler", "language", "rendering", "agent"]
+    cold_domains: ["coordination", "truth_approval", "storage", "init", "shutdown"]
+    ssot: "packages/core/src/traits/pillar/BrainCoordMapper.ts"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,60 @@
+// @provenance_integrity_guard — Validate file:line citations in GraphRAG answers.
+//
+// Native .hsplus surface for ProvenanceIntegrityGuard.ts (absorb-service/engine).
+//
+// Protects Absorb's core value proposition: answers grounded in real file:line
+// citations (F.069). Validates that every cited span resolves to an absorbed
+// codebase symbol — drops fabricated or stale citations.
+//
+// Resolution rules (ProvenanceIntegrityGuard.ts):
+//   1. The file must exist in the absorbed CodebaseGraph.
+//   2. Cited line must fall within [symbol.line, symbol.endLine ?? symbol.line].
+//   3. No endLine available → exact line match required.
+//
+// ProvenanceGuardResult:
+//   citations: ValidatedCitation[]  — all citations annotated with resolved status
+//   resolved: ValidatedCitation[]   — citations that matched real spans
+//   unresolved: ValidatedCitation[] — fabricated / stale / wrong citations (dropped)
+//   resolved_count, unresolved_count
+//   passed: Bool                    — true if ≥1 resolved citation (else answer rejected)
+//   rejection_reason?: String
+//
+// Citation: { name, file, line }
+// ValidatedCitation extends Citation: { resolved, matched_symbol? }
+
+@trait provenance_integrity_guard {
+  capability_tags: ["provenance_integrity_guard", "citation_validation", "graph_rag", "hallucination_guard", "file_line_provenance", "absorb_service"]
+
+  @on_spawn => {
+    guard = init_provenance_integrity_guard()
+    emit("provenance_guard_ready", {})
+  }
+
+  // Validate a list of citations against the absorbed codebase graph
+  @on_validate(citations, graph) => {
+    result = guard.validate(citations, graph)
+    emit("provenance_validated", {
+      resolved_count: result.resolved_count,
+      unresolved_count: result.unresolved_count,
+      passed: result.passed
+    })
+    return result
+  }
+
+  // Quick check: does a single citation resolve?
+  @on_check_citation(citation, graph) => {
+    return guard.check_citation(citation, graph)
+  }
+
+  @receipt provenance_guard_config {
+    type: "ProvenanceIntegrityGuardReceipt"
+    pass_condition: "at least 1 resolved citation"
+    resolution_rules: [
+      "file must exist in absorbed CodebaseGraph",
+      "cited line within [symbol.line, symbol.endLine]",
+      "no endLine = exact line match"
+    ]
+    reference: "F.069"
+    timestamp: now()
+  }
+}
