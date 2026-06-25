@@ -1,0 +1,90 @@
+// @rate_limit_tiers — Predefined token-bucket tier configs for free/pro/enterprise.
+//
+// Native .hsplus surface for RateLimitTiers.ts (platform/ratelimit, v9.4.0,
+// Sprint 9: Rate Limiting & Quotas).
+//
+// Token bucket algorithm (RateLimiter.ts):
+//   Bucket state: { tokens, lastRefillTime, minuteTokens, minuteWindowStart }
+//   Check result: { allowed, remaining, retryAfterMs, limit }
+//
+// Tier configurations (RateLimitTiers.ts):
+//   free       — 2/s, 10/min, burst 5
+//   pro        — 20/s, 100/min, burst 50
+//   enterprise — 200/s, 1000/min, burst 500
+//
+// Quota tiers (QuotaManager.ts, -1 = unlimited):
+//   compilations_per_hour, storage_bytes, projects, deployments_per_day
+//
+// RateLimitResult:
+//   allowed, remaining, retry_after_ms, limit
+
+@trait rate_limit_tiers {
+  // Active tier for this deployment/tenant
+  tier: enum("free" | "pro" | "enterprise") = "free"
+
+  // Whether to emit a rate_limit_hit event when a request is denied
+  emit_limit_events: Bool = true
+
+  // Whether to emit a usage_stats event every N requests (0 = never)
+  stats_every_n: Int = 0
+
+  capability_tags: ["rate_limit_tiers", "token_bucket", "quota_management", "free_pro_enterprise", "sprint9_ratelimit"]
+
+  @on_spawn => {
+    tier_config = {
+      free:       { tokens_per_second: 2,   tokens_per_minute: 10,   burst_size: 5   },
+      pro:        { tokens_per_second: 20,  tokens_per_minute: 100,  burst_size: 50  },
+      enterprise: { tokens_per_second: 200, tokens_per_minute: 1000, burst_size: 500 }
+    }
+    active_config = tier_config[tier]
+    limiter = init_token_bucket_rate_limiter(active_config)
+    emit("rate_limit_tiers_ready", {
+      tier: tier,
+      burst_size: active_config.burst_size
+    })
+  }
+
+  @on_check(key) => {
+    result = limiter.check(key)
+    if not result.allowed and emit_limit_events {
+      emit("rate_limit_hit", {
+        key: key,
+        tier: tier,
+        retry_after_ms: result.retry_after_ms
+      })
+    }
+    return result
+  }
+
+  @on_consume(key, tokens) => {
+    result = limiter.consume(key, tokens ?? 1)
+    return result
+  }
+
+  @on_check_quota(tenant_id, resource, amount) => {
+    quota_tiers = {
+      free:       { compilations_per_hour: 100,   storage_bytes: 104857600,     projects: 3,   deployments_per_day: 5   },
+      pro:        { compilations_per_hour: 1000,  storage_bytes: 1073741824,    projects: 50,  deployments_per_day: 100  },
+      enterprise: { compilations_per_hour: 10000, storage_bytes: 10737418240,   projects: 500, deployments_per_day: 1000 }
+    }
+    quota = quota_tiers[tier][resource]
+    if quota == -1 { return { allowed: true, remaining: -1 } }
+    used = get_quota_usage(tenant_id, resource)
+    allowed = used + amount <= quota
+    emit("quota_check", {
+      tenant_id: tenant_id,
+      resource: resource,
+      used: used,
+      limit: quota,
+      allowed: allowed
+    })
+    return { allowed: allowed, remaining: quota - used - (allowed ? amount : 0) }
+  }
+
+  @receipt rate_limit_tier_config {
+    type: "RateLimitTierReceipt"
+    tier: tier
+    emit_limit_events: emit_limit_events
+    timestamp: now()
+  }
+}

@@ -1,0 +1,98 @@
+// @agent_output_schema_validator — Schema gate for agent-generated outputs.
+//
+// Native .hsplus surface for AgentOutputSchemaValidator.ts (platform/identity).
+//
+// Purpose: validates that agent-produced compositions conform to the expected
+// output schema for each compiler target BEFORE the output reaches that target.
+// Extends the RBAC confabulation risk layer (AgentRBAC) with structured type
+// checking and risk scoring.
+//
+// SchemaValueType (AgentOutputSchemaValidator.ts):
+//   string | number | boolean | array | object | vector2 | vector3 | vector4
+//   | quaternion | color | enum | null | any
+//
+// Validation targets (AgentOutputSchemaValidator.ts):
+//   r3f — React Three Fiber scene graph
+//   gltf — GLTF 2.0 export
+//   unity — Unity scene
+//   unreal — Unreal Engine scene
+//
+// Risk scoring:
+//   Each schema deviation adds to a risk_score [0-1].
+//   At >= risk_block_threshold, the output is blocked.
+//   At >= risk_warn_threshold, a warning is emitted.
+
+@trait agent_output_schema_validator {
+  // Target compiler the output is destined for
+  target: enum("r3f" | "gltf" | "unity" | "unreal" | "custom") = "r3f"
+
+  // Risk score threshold above which the output is BLOCKED
+  risk_block_threshold: Float = 0.8
+
+  // Risk score threshold above which a warning is emitted (below block)
+  risk_warn_threshold: Float = 0.3
+
+  // Whether to emit a detailed risk_report event on every validation
+  emit_risk_reports: Bool = true
+
+  // Allow compositions with type "any" fields (relaxed mode for prototyping)
+  allow_any_type: Bool = false
+
+  capability_tags: ["agent_output_schema_validator", "schema_validation", "confabulation_risk", "agent_rbac", "compiler_target_gate"]
+
+  @on_spawn => {
+    validator = init_agent_output_schema_validator({
+      target: target,
+      risk_block_threshold: risk_block_threshold,
+      risk_warn_threshold: risk_warn_threshold,
+      allow_any_type: allow_any_type
+    })
+    emit("agent_output_schema_validator_ready", { target: target })
+  }
+
+  @on_validate(composition, agent_context) => {
+    result = validator.validate(composition, {
+      target: target,
+      agent_did: agent_context.did,
+      agent_trust_level: agent_context.trust_level
+    })
+
+    if result.risk_score >= risk_block_threshold {
+      emit("agent_output_blocked", {
+        agent_did: agent_context.did,
+        target: target,
+        risk_score: result.risk_score,
+        violations: result.violations
+      })
+      return { allowed: false, risk_score: result.risk_score, violations: result.violations }
+    }
+
+    if result.risk_score >= risk_warn_threshold {
+      emit("agent_output_warned", {
+        agent_did: agent_context.did,
+        target: target,
+        risk_score: result.risk_score
+      })
+    }
+
+    if emit_risk_reports {
+      emit("agent_output_risk_report", {
+        agent_did: agent_context.did,
+        target: target,
+        risk_score: result.risk_score,
+        violation_count: len(result.violations)
+      })
+    }
+
+    return { allowed: true, risk_score: result.risk_score }
+  }
+
+  @receipt agent_output_schema_config {
+    type: "AgentOutputSchemaValidatorReceipt"
+    target: target
+    risk_block_threshold: risk_block_threshold
+    risk_warn_threshold: risk_warn_threshold
+    allow_any_type: allow_any_type
+    timestamp: now()
+  }
+}

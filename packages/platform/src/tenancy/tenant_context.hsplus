@@ -1,0 +1,87 @@
+// @tenant_context — Request-scoped ambient tenant context for multi-tenant isolation.
+//
+// Native .hsplus surface for TenantContext.ts (platform/tenancy, v3.9.0,
+// Sprint 9: Multi-Tenant Isolation).
+//
+// Mechanism (TenantContext.ts):
+//   Uses AsyncLocalStorage so any code running inside a tenant scope
+//   inherits the context without explicit parameter threading. The tenant
+//   context is set once at the request boundary and propagated automatically.
+//
+// TenantContext (TenantManager.ts):
+//   tenantId, userId?, sessionId (generated), permissions: TenantPermission[]
+//
+// TenantPermission: "read" | "write" | "admin" | "compile" | "deploy" | "publish"
+//
+// ResourceDescriptor (TenantContext.ts):
+//   tenantId, type, name
+//
+// Security note: tenantId is required and trimmed — empty string throws.
+// Default permission for a new context is ["read"] (principle of least privilege).
+
+@trait tenant_context {
+  // Default permissions when none are explicitly provided
+  default_permissions: Array<String> = ["read"]
+
+  // Whether to emit an audit event on context creation
+  emit_context_events: Bool = false
+
+  // Whether to enforce strict tenantId validation (non-empty, no whitespace-only)
+  strict_tenant_id: Bool = true
+
+  capability_tags: ["tenant_context", "multi_tenant", "request_scoped", "async_local_storage", "sprint9_isolation"]
+
+  @on_spawn => {
+    context_mgr = init_tenant_context_manager({
+      default_permissions: default_permissions,
+      strict_tenant_id: strict_tenant_id
+    })
+    emit("tenant_context_ready", {})
+  }
+
+  @on_run_scoped(tenant_id, user_id, permissions, task) => {
+    if strict_tenant_id and (not tenant_id or len(trim(tenant_id)) == 0) {
+      emit("tenant_context_error", { reason: "empty_tenant_id" })
+      return { success: false, reason: "empty_tenant_id" }
+    }
+    ctx = context_mgr.create_context(
+      trim(tenant_id),
+      user_id,
+      permissions ?? default_permissions
+    )
+    result = context_mgr.run_with_context(ctx, task)
+    if emit_context_events {
+      emit("tenant_context_used", { tenant_id: trim(tenant_id), session_id: ctx.session_id })
+    }
+    return result
+  }
+
+  @on_validate_permission(required_permission, resource) => {
+    ctx = context_mgr.get_current()
+    if not ctx {
+      emit("tenant_permission_denied", { reason: "no_context", resource: resource })
+      return { allowed: false, reason: "no_context" }
+    }
+    if ctx.tenant_id != resource.tenant_id {
+      emit("tenant_permission_denied", { reason: "tenant_mismatch", resource: resource })
+      return { allowed: false, reason: "tenant_mismatch" }
+    }
+    if required_permission not in ctx.permissions and "admin" not in ctx.permissions {
+      emit("tenant_permission_denied", {
+        reason: "insufficient_permissions",
+        required: required_permission,
+        has: ctx.permissions
+      })
+      return { allowed: false, reason: "insufficient_permissions" }
+    }
+    return { allowed: true }
+  }
+
+  @receipt tenant_context_config {
+    type: "TenantContextReceipt"
+    default_permissions: default_permissions
+    strict_tenant_id: strict_tenant_id
+    emit_context_events: emit_context_events
+    timestamp: now()
+  }
+}

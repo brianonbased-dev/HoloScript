@@ -1,0 +1,95 @@
+// @package_signer — Ed25519 digital signature for HoloScript packages.
+//
+// Native .hsplus surface for PackageSigner.ts (platform/security, v9.0.0,
+// Sprint 9: Security Hardening).
+//
+// Ed25519 signing (PackageSigner.ts):
+//   Key pair: { publicKey: base64, privateKey: base64 }
+//   Keys are GENERATED at spawn via platform crypto — NEVER authored as literals.
+//   WHY: Literals in .hsplus source are permanennt secrets (F.106 leak pattern).
+//
+// SigningManifest:
+//   name, version, files[], contentHash (SHA-256 hex), createdAt (ISO 8601)
+//
+// SignedPackage:
+//   manifest: SigningManifest, signature: base64 ed25519 signature
+//
+// Signing flow:
+//   1. Build manifest from (name, version, files[])
+//   2. SHA-256 hash canonical manifest JSON → contentHash
+//   3. ed25519 sign(contentHash, privateKey) → signature
+//   4. Return SignedPackage { manifest, signature }
+//
+// Verification flow:
+//   1. Reconstruct canonical manifest JSON from manifest fields
+//   2. SHA-256 hash → expected contentHash
+//   3. ed25519 verify(signature, expectedHash, publicKey)
+//
+// SECURITY: private_key field is NEVER serialized — it lives only in memory
+// until despawn. The KeyPair returned from @on_generate_keypair must be stored
+// in HoloKey vault by the caller — NEVER logged, committed, or emitted in events.
+
+@trait package_signer {
+  // If set, sign packages automatically on @on_build_manifest
+  auto_sign: Bool = false
+
+  // Whether to verify the signature immediately after signing (self-check)
+  verify_after_sign: Bool = true
+
+  capability_tags: ["package_signer", "ed25519", "package_signing", "supply_chain_integrity", "sprint9_security"]
+
+  @on_spawn => {
+    signer = init_package_signer()
+    emit("package_signer_ready", {})
+  }
+
+  // NOTE: private_key from the returned keypair goes to HoloKey vault ONLY
+  @on_generate_keypair => {
+    keypair = signer.generate_ed25519_keypair()
+    emit("keypair_generated", { public_key: keypair.public_key })
+    return { public_key: keypair.public_key, private_key: keypair.private_key }
+  }
+
+  @on_build_manifest(name, version, files) => {
+    manifest = {
+      name: name,
+      version: version,
+      files: files,
+      content_hash: signer.sha256_canonical(name, version, files),
+      created_at: iso8601_now()
+    }
+    return manifest
+  }
+
+  @on_sign(manifest, private_key) => {
+    signed = signer.sign_manifest(manifest, private_key)
+    if verify_after_sign {
+      valid = signer.verify(signed.manifest, signed.signature, signer.derive_public_key(private_key))
+      if not valid {
+        emit("package_sign_verification_failed", { name: manifest.name, version: manifest.version })
+        return { success: false, reason: "post_sign_verify_failed" }
+      }
+    }
+    emit("package_signed", { name: manifest.name, version: manifest.version })
+    return { success: true, signed_package: signed }
+  }
+
+  @on_verify(signed_package, public_key) => {
+    valid = signer.verify(signed_package.manifest, signed_package.signature, public_key)
+    emit("package_verified", {
+      name: signed_package.manifest.name,
+      version: signed_package.manifest.version,
+      valid: valid
+    })
+    return { valid: valid }
+  }
+
+  @receipt package_signer_config {
+    type: "PackageSignerReceipt"
+    auto_sign: auto_sign
+    verify_after_sign: verify_after_sign
+    algorithm: "ed25519"
+    hash: "sha256"
+    timestamp: now()
+  }
+}
