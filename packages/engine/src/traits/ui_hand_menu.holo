@@ -1,0 +1,18 @@
+@trait {
+  name: "@ui_hand_menu",
+  category: "xr",
+  description: "XR hand-menu UI. hand: left (default), right. trigger: palm_up (default), pinch, wrist_tap. offset is the menu offset from wrist in meters (default: [0, 0.2, 0]). scale is the menu scale (default: 1). Port of engine HandMenuTrait.ts (handler name: ui_hand_menu).",
+  props: {
+    hand: enum("left" | "right") = "left",
+    trigger: enum("palm_up" | "pinch" | "wrist_tap") = "palm_up",
+    scale: number = 1
+  },
+  events: {
+    on_opened: "ui_hand_menu:opened",
+    on_closed: "ui_hand_menu:closed",
+    on_item_selected: "ui_hand_menu:item_selected",
+    open: "ui_hand_menu.open",
+    close: "ui_hand_menu.close"
+  },
+  behaviors: ["@hand_tracking", "@openxr_hal", "@pressable"]
+}

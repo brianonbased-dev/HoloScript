@@ -1,0 +1,18 @@
+@trait {
+  name: "@flow_field",
+  category: "physics",
+  description: "Flow-field navigation. destinationId is the target node ID. speed is the agent speed in m/s (default: 3.0). steeringWeight is the steering blend weight (default: 0.8). stopDistance is the arrival radius in meters (default: 0.5m). Port of engine FlowFieldTrait.ts (handler name: flow_field).",
+  props: {
+    destinationId: string = "",
+    speed: number = 3.0,
+    steeringWeight: number = 0.8,
+    stopDistance: number = 0.5
+  },
+  events: {
+    on_arrived: "flow_field:arrived",
+    on_blocked: "flow_field:blocked",
+    on_rerouted: "flow_field:rerouted",
+    set_destination: "flow_field.set_destination"
+  },
+  behaviors: ["@navmesh_solver", "@npc_ai", "@crowd_sim"]
+}

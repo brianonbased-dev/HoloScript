@@ -1,0 +1,12 @@
+@trait {
+  name: "@events",
+  category: "events",
+  description: "Event bus adapter. listen maps event names to node property paths. emitOnAttach fires a named event when the trait attaches. Config is event-schema-dependent. Port of EventTrait.ts (handler name: events).",
+  props: {},
+  events: {
+    on_fired: "events:fired",
+    emit: "events.emit",
+    listen: "events.listen"
+  },
+  behaviors: ["@stream", "@trigger", "@reactive_store"]
+}

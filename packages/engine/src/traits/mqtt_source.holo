@@ -1,0 +1,19 @@
+@trait {
+  name: "@mqtt_source",
+  category: "integration",
+  description: "MQTT subscribe source. broker is the MQTT broker URL (default: mqtt://localhost:1883). topic is the MQTT topic filter (default: #). qos is the QoS level 0/1/2 (default: 0). parseJson deserializes JSON payloads (default: true). stateField is the JSON field to map to node state (default: value). autoConnect connects on attach (default: true). Port of engine MQTTSourceTrait.ts (handler name: mqtt_source).",
+  props: {
+    broker: string = "mqtt://localhost:1883",
+    topic: string = "#",
+    qos: number = 0,
+    parseJson: boolean = true,
+    stateField: string = "value",
+    autoConnect: boolean = true
+  },
+  events: {
+    on_message: "mqtt_source:message",
+    on_connected: "mqtt_source:connected",
+    on_error: "mqtt_source:error"
+  },
+  behaviors: ["@mqtt_sink", "@wot_thing", "@stream"]
+}

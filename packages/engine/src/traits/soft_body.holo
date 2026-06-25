@@ -1,0 +1,22 @@
+@trait {
+  name: "@soft_body",
+  category: "physics",
+  description: "Soft body physics. stiffness is the structural stiffness 0–1 (default: 0.5). damping is the velocity damping 0–1 (default: 0.05). mass is the body mass in kg (default: 1.0). pressure is the volume pressure (default: 1.0). volume_conservation is the volume preservation 0–1 (default: 0.9). collision_margin is the contact margin in meters (default: 0.01). solver_iterations is the constraint iterations per step (default: 10). tetrahedral uses volumetric FEM (default: false). surface_stiffness is the surface constraint stiffness (default: 0.5). bending_stiffness is the bending constraint stiffness (default: 0.3). Port of engine SoftBodyTrait.ts (handler name: soft_body).",
+  props: {
+    stiffness: number = 0.5,
+    damping: number = 0.05,
+    mass: number = 1.0,
+    pressure: number = 1.0,
+    volume_conservation: number = 0.9,
+    collision_margin: number = 0.01,
+    solver_iterations: number = 10,
+    tetrahedral: boolean = false,
+    surface_stiffness: number = 0.5,
+    bending_stiffness: number = 0.3
+  },
+  events: {
+    on_deformed: "soft_body:deformed",
+    on_settled: "soft_body:settled"
+  },
+  behaviors: ["@gpu_physics", "@soft_body_pro", "@voronoi_fracture"]
+}

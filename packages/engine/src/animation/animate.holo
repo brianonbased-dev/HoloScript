@@ -1,0 +1,20 @@
+@trait {
+  name: "@animate",
+  category: "animation",
+  description: "Property animation engine. clips is the list of animation clip definitions (default: []). springs is the list of spring-driven property configs (default: []). autoPlay starts all clips on attach (default: true). Port of engine AnimationTrait.ts (handler name: animate).",
+  props: {
+    clips: array = [],
+    springs: array = [],
+    autoPlay: boolean = true
+  },
+  events: {
+    on_started: "animate:started",
+    on_finished: "animate:finished",
+    on_frame: "animate:frame",
+    play: "animate.play",
+    pause: "animate.pause",
+    stop: "animate.stop",
+    seek: "animate.seek"
+  },
+  behaviors: ["@skeleton", "@morph", "@auto_rig"]
+}

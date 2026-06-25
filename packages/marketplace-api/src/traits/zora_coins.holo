@@ -1,0 +1,23 @@
+@trait {
+  name: "@zora_coins",
+  category: "web3",
+  description: "Zora Coins ERC-20 creator coin. creator_wallet is the minting wallet address. default_chain: base (default), zora, optimism. auto_mint mints on asset creation (default: false). default_distribution: bonding_curve (default). default_royalty is the secondary sale royalty % (default: 5). default_initial_supply (default: 1,000). default_max_supply (default: 10,000). default_initial_price in ETH (default: 0.001). default_license: cc-by (default). Port of ZoraCoinsTrait.ts (handler name: zora_coins).",
+  props: {
+    creator_wallet: string = "",
+    default_chain: enum("base" | "zora" | "optimism") = "base",
+    auto_mint: boolean = false,
+    default_distribution: string = "bonding_curve",
+    default_royalty: number = 5,
+    default_initial_supply: number = 1000,
+    default_max_supply: number = 10000,
+    default_initial_price: string = "0.001",
+    default_license: string = "cc-by"
+  },
+  events: {
+    on_minted: "zora_coins:minted",
+    on_transferred: "zora_coins:transferred",
+    mint: "zora_coins.mint",
+    transfer: "zora_coins.transfer"
+  },
+  behaviors: ["@nft", "@wallet", "@economy"]
+}

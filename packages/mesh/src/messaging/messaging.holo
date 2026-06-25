@@ -1,0 +1,14 @@
+@trait {
+  name: "@MessagingTrait",
+  category: "networking",
+  description: "Agent messaging backbone — creates/joins channels, sends messages, broadcasts. Config is agent-context-dependent. Port of mesh MessagingTrait.ts (handler name: MessagingTrait — PascalCase).",
+  props: {},
+  events: {
+    on_message: "MessagingTrait:message",
+    on_channel_created: "MessagingTrait:channel_created",
+    on_channel_joined: "MessagingTrait:channel_joined",
+    send: "MessagingTrait.send",
+    broadcast: "MessagingTrait.broadcast"
+  },
+  behaviors: ["@stream", "@networked", "@shared_world"]
+}

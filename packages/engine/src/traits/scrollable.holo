@@ -1,0 +1,18 @@
+@trait {
+  name: "@scrollable",
+  category: "ui",
+  description: "Scrollable container. contentHeight is the total content height in meters (default: 1.0m). viewportHeight is the visible window height in meters (default: 0.5m). friction is the scroll deceleration (default: 0.95). elasticity is the spring-back strength (default: 0.1). useSpringBounce enables spring boundary bounce (default: true). Port of engine ScrollableTrait.ts (handler name: scrollable).",
+  props: {
+    contentHeight: number = 1.0,
+    viewportHeight: number = 0.5,
+    friction: number = 0.95,
+    elasticity: number = 0.1,
+    useSpringBounce: boolean = true
+  },
+  events: {
+    on_scroll: "scrollable:scroll",
+    on_end: "scrollable:end",
+    scroll_to: "scrollable.scroll_to"
+  },
+  behaviors: ["@slidable", "@pressable", "@gesture_recognition"]
+}

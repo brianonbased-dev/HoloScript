@@ -1,0 +1,11 @@
+@trait {
+  name: "@orbital",
+  category: "simulation",
+  description: "Orbital body physics — Keplerian orbit integration. Config contains semi-major axis, eccentricity, inclination, longitude of ascending node, argument of periapsis, and mean anomaly. Port of engine OrbitalTrait.ts (handler name: orbital).",
+  props: {},
+  events: {
+    on_tick: "orbital:tick",
+    on_periapsis: "orbital:periapsis"
+  },
+  behaviors: ["@gpu_physics", "@twin_actuator", "@simulation"]
+}

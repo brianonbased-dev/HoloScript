@@ -1,0 +1,26 @@
+@trait {
+  name: "@audio",
+  category: "audio",
+  description: "Audio source. soundId is the asset ID. volume is the linear volume (default: 1). loop enables looping (default: false). spatialize positions the sound in 3D space (default: true). maxDistance is the audio cutoff distance in meters (default: 50m). refDistance is the reference distance for rolloff in meters (default: 1m). rolloffFactor is the rolloff exponent (default: 1). channel routes to a named mixer channel (default: master). autoPlay starts playback on attach (default: true). pitch is the playback rate multiplier (default: 1). Port of engine AudioTrait.ts (handler name: audio).",
+  props: {
+    soundId: string = "",
+    volume: number = 1,
+    loop: boolean = false,
+    spatialize: boolean = true,
+    maxDistance: number = 50,
+    refDistance: number = 1,
+    rolloffFactor: number = 1,
+    channel: string = "master",
+    autoPlay: boolean = true,
+    pitch: number = 1
+  },
+  events: {
+    on_played: "audio:played",
+    on_paused: "audio:paused",
+    on_ended: "audio:ended",
+    play: "audio.play",
+    pause: "audio.pause",
+    stop: "audio.stop"
+  },
+  behaviors: ["@ambisonics", "@spatial_voice", "@audio_occlusion"]
+}

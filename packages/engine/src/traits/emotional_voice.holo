@@ -1,0 +1,16 @@
+@trait {
+  name: "@emotional_voice",
+  category: "audio",
+  description: "TTS emotional voice synthesis. defaultEmotion is the baseline emotion (default: neutral). defaultIntensity is the emotion intensity 0–1 (default: 0.5). cacheEnabled caches synthesized audio (default: true). Port of engine EmotionalVoiceTrait.ts (handler name: emotional_voice).",
+  props: {
+    defaultEmotion: enum("neutral" | "happy" | "sad" | "angry" | "fearful" | "surprised" | "disgusted") = "neutral",
+    defaultIntensity: number = 0.5,
+    cacheEnabled: boolean = true
+  },
+  events: {
+    on_synthesized: "emotional_voice:synthesized",
+    on_cached: "emotional_voice:cached",
+    speak: "emotional_voice.speak"
+  },
+  behaviors: ["@voice_output", "@lipsync", "@neural_link"]
+}

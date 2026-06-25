@@ -1,0 +1,20 @@
+@trait {
+  name: "@volumetric_clouds",
+  category: "rendering",
+  description: "Engine-layer volumetric clouds — adds phase_g, max_steps, wind_scale, coverage, and use_weather integration. altitude (default: 500m). thickness (default: 200m). absorption_coeff (default: 0.04). scattering_coeff (default: 0.06). phase_g is the Henyey-Greenstein anisotropy (default: 0.3). max_steps is the raymarching steps (default: 64). wind_scale scales wind influence (default: 1.0). coverage is the cloud coverage 0–1 (default: 0.5). use_weather ties to weather system (default: true). See core/traits/volumetric_clouds.holo for canonical config. Port of engine VolumetricCloudsTrait.ts (handler name: volumetric_clouds).",
+  props: {
+    altitude: number = 500,
+    thickness: number = 200,
+    absorption_coeff: number = 0.04,
+    scattering_coeff: number = 0.06,
+    phase_g: number = 0.3,
+    max_steps: number = 64,
+    wind_scale: number = 1.0,
+    coverage: number = 0.5,
+    use_weather: boolean = true
+  },
+  events: {
+    on_updated: "volumetric_clouds:updated"
+  },
+  behaviors: ["@weather", "@god_rays", "@global_illumination"]
+}

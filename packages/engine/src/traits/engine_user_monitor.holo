@@ -1,0 +1,15 @@
+@trait {
+  name: "@user_monitor",
+  category: "ai",
+  description: "Engine-layer user monitor — head pose + engagement tracking. update_rate is the monitoring rate per second (default: 0.2). jitter_sensitivity is the head-jitter detection threshold (default: 0.5). adaptive_assistance adjusts scene complexity for the user (default: true). See core/traits/user_monitor.holo for canonical config. Port of engine UserMonitorTrait.ts (handler name: user_monitor).",
+  props: {
+    update_rate: number = 0.2,
+    jitter_sensitivity: number = 0.5,
+    adaptive_assistance: boolean = true
+  },
+  events: {
+    on_engaged: "user_monitor:engaged",
+    on_fatigued: "user_monitor:fatigued"
+  },
+  behaviors: ["@pose_estimation", "@vision", "@webcam_gaze"]
+}

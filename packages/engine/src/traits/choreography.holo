@@ -1,0 +1,25 @@
+@trait {
+  name: "@choreography",
+  category: "agent",
+  description: "Multi-agent choreography executor. mode: participant (default), orchestrator, observer. auto_start begins execution on attach (default: true). max_concurrent_plans caps parallel plans (default: 4). default_step_timeout is the per-step timeout in ms (default: 30,000ms). event_history_limit is the event log cap (default: 100). hitl_auto_pause pauses for human-in-the-loop steps (default: true). execute_fallback runs fallback on step failure (default: true). verbose emits debug events (default: false). Port of engine ChoreographyTrait.ts (handler name: choreography).",
+  props: {
+    mode: enum("participant" | "orchestrator" | "observer") = "participant",
+    auto_start: boolean = true,
+    max_concurrent_plans: number = 4,
+    default_step_timeout: number = 30000,
+    event_history_limit: number = 100,
+    hitl_auto_pause: boolean = true,
+    execute_fallback: boolean = true,
+    verbose: boolean = false
+  },
+  events: {
+    on_plan_started: "choreography:plan_started",
+    on_step_completed: "choreography:step_completed",
+    on_plan_completed: "choreography:plan_completed",
+    on_hitl_pause: "choreography:hitl_pause",
+    start: "choreography.start",
+    pause: "choreography.pause",
+    resume: "choreography.resume"
+  },
+  behaviors: ["@workflow", "@multi_agent", "@state_machine"]
+}

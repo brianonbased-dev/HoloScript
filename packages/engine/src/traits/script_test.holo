@@ -1,0 +1,16 @@
+@trait {
+  name: "@script_test",
+  category: "testing",
+  description: "Headless HoloScript unit test. name is the test name. timeout is the per-test timeout in ms (default: 5,000ms). skip bypasses the test (default: false). Port of engine ScriptTestTrait.ts (handler name: script_test).",
+  props: {
+    name: string = "",
+    timeout: number = 5000,
+    skip: boolean = false
+  },
+  events: {
+    on_pass: "script_test:pass",
+    on_fail: "script_test:fail",
+    run: "script_test.run"
+  },
+  behaviors: ["@test", "@snapshot_test", "@chaos_test"]
+}

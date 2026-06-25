@@ -1,0 +1,16 @@
+@trait {
+  name: "@sync",
+  category: "networking",
+  description: "Network state sync. syncProperties is the list of properties to sync (default: [position, rotation]). syncRate is the sync frequency in Hz (default: 20). interpolate applies client-side interpolation (default: true). authority: owner (default), server, all. Port of mesh SyncTrait.ts (handler name: sync).",
+  props: {
+    syncProperties: array = ["position", "rotation"],
+    syncRate: number = 20,
+    interpolate: boolean = true,
+    authority: enum("owner" | "server" | "all") = "owner"
+  },
+  events: {
+    on_synced: "sync:synced",
+    on_conflict: "sync:conflict"
+  },
+  behaviors: ["@networked", "@shared_world", "@versioned_state"]
+}

@@ -1,0 +1,25 @@
+@trait {
+  name: "@fluid",
+  category: "simulation",
+  description: "MLS-MPM fluid simulation. method: mls_mpm (default), sph. particle_count (default: 50,000). viscosity (default: 0.01). surface_tension (default: 0.07). density in kg/m³ (default: 1000). render_mode: ssfr (default), particles, mesh. kernel_radius (default: 0.04). time_step (default: 0.001s). collision_damping (default: 0.3). grid_resolution (default: 128). resolution_scale (default: 0.5). domain_size in meters (default: 10). wind_sensitivity (default: 1.0). Port of engine FluidTrait.ts (handler name: fluid).",
+  props: {
+    method: enum("mls_mpm" | "sph") = "mls_mpm",
+    particle_count: number = 50000,
+    viscosity: number = 0.01,
+    surface_tension: number = 0.07,
+    density: number = 1000,
+    render_mode: enum("ssfr" | "particles" | "mesh") = "ssfr",
+    kernel_radius: number = 0.04,
+    time_step: number = 0.001,
+    collision_damping: number = 0.3,
+    grid_resolution: number = 128,
+    resolution_scale: number = 0.5,
+    domain_size: number = 10,
+    wind_sensitivity: number = 1.0
+  },
+  events: {
+    on_settled: "fluid:settled",
+    on_splash: "fluid:splash"
+  },
+  behaviors: ["@gpu_physics", "@soft_body", "@volumetric"]
+}

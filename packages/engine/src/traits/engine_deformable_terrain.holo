@@ -1,0 +1,17 @@
+@trait {
+  name: "@deformable_terrain",
+  category: "simulation",
+  description: "Engine-layer deformable terrain — hydraulic erosion heightmap, CPU/GPU deformation. See core/traits/deformable_terrain.holo for canonical config. Port of engine DeformableTerrainTrait.ts (handler name: deformable_terrain).",
+  props: {
+    resolution: number = 256,
+    scale: number = 100,
+    displacement_scale: number = 5.0,
+    erosion_rate: number = 0.01,
+    sediment_capacity: number = 0.02
+  },
+  events: {
+    on_deformed: "deformable_terrain:deformed",
+    deform: "deformable_terrain.deform"
+  },
+  behaviors: ["@soft_body", "@gpu_physics", "@room_mesh"]
+}

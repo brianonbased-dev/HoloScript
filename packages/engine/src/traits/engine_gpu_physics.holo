@@ -1,0 +1,18 @@
+@trait {
+  name: "@gpu_physics",
+  category: "physics",
+  description: "Engine-layer GPU physics. Adds shape, shapeParams, friction, restitution, linearDamping, angularDamping, isTrigger, category, mask, kinematic, and use_weather. See core/traits/gpu_physics.holo for canonical config. Port of engine GPUPhysicsTrait.ts (handler name: gpu_physics).",
+  props: {
+    sim_type: enum("rigid_body" | "soft_body" | "fluid" | "cloth") = "rigid_body",
+    method: enum("pbd" | "xpbd" | "sph") = "pbd",
+    substeps: number = 4,
+    mass: number = 1.0,
+    shape: enum("box" | "sphere" | "capsule" | "convex" | "mesh") = "box",
+    friction: number = 0.5
+  },
+  events: {
+    on_collision: "gpu_physics:collision",
+    on_settled: "gpu_physics:settled"
+  },
+  behaviors: ["@rigidbody", "@soft_body", "@fluid"]
+}

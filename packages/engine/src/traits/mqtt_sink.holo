@@ -1,0 +1,22 @@
+@trait {
+  name: "@mqtt_sink",
+  category: "integration",
+  description: "MQTT publish sink. broker is the MQTT broker URL (default: mqtt://localhost:1883). topic is the MQTT topic template (default: holoscript/{nodeId}/state). retain enables the retained flag (default: false). qos is the QoS level 0/1/2 (default: 0). onChangeOnly publishes only when state changes (default: true). autoConnect connects on attach (default: true). serializeJson serializes state as JSON (default: true). includeTimestamp adds a timestamp field (default: false). Port of engine MQTTSinkTrait.ts (handler name: mqtt_sink).",
+  props: {
+    broker: string = "mqtt://localhost:1883",
+    topic: string = "holoscript/{nodeId}/state",
+    retain: boolean = false,
+    qos: number = 0,
+    onChangeOnly: boolean = true,
+    autoConnect: boolean = true,
+    serializeJson: boolean = true,
+    includeTimestamp: boolean = false
+  },
+  events: {
+    on_published: "mqtt_sink:published",
+    on_connected: "mqtt_sink:connected",
+    on_error: "mqtt_sink:error",
+    publish: "mqtt_sink.publish"
+  },
+  behaviors: ["@mqtt_source", "@wot_thing", "@telemetry"]
+}

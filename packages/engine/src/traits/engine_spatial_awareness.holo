@@ -1,0 +1,12 @@
+@trait {
+  name: "@spatial_awareness",
+  category: "xr",
+  description: "Engine-layer spatial awareness — XR scene understanding (plane detection, mesh reconstruction, scene anchors). Config is device-and-platform-dependent. See core/traits/spatial_awareness.holo for canonical config. Port of engine SpatialAwarenessTrait.ts (handler name: spatial_awareness).",
+  props: {},
+  events: {
+    on_plane_detected: "spatial_awareness:plane_detected",
+    on_mesh_updated: "spatial_awareness:mesh_updated",
+    on_anchor_created: "spatial_awareness:anchor_created"
+  },
+  behaviors: ["@room_mesh", "@scene_reconstruction", "@openxr_hal"]
+}

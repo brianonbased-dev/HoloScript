@@ -1,0 +1,17 @@
+@trait {
+  name: "@weather",
+  category: "world",
+  description: "Engine-layer weather/day-night hub. Drives volumetric_clouds, god_rays, and environmental_audio. day_length_seconds (default: 1200s). start_time in 24h (default: 12). latitude affects sun angle (default: 45°). initial_weather: clear (default). Port of engine WeatherHubTrait.ts (handler name: weather).",
+  props: {
+    day_length_seconds: number = 1200,
+    start_time: number = 12,
+    latitude: number = 45,
+    initial_weather: enum("clear" | "rain" | "fog" | "storm" | "snow") = "clear"
+  },
+  events: {
+    on_weather_changed: "weather:weather_changed",
+    on_time_changed: "weather:time_changed",
+    set_weather: "weather.set_weather"
+  },
+  behaviors: ["@volumetric_clouds", "@environmental_audio", "@global_illumination"]
+}

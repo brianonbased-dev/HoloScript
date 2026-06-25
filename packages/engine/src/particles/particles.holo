@@ -1,0 +1,18 @@
+@trait {
+  name: "@particles",
+  category: "rendering",
+  description: "Particle system. preset selects a built-in affector preset: sparks (default), fire, smoke, rain, snow, confetti, magic. followNode attaches the emitter to the node position (default: true). autoStart begins emission on attach (default: true). Port of engine ParticleTrait.ts (handler name: particles).",
+  props: {
+    preset: enum("sparks" | "fire" | "smoke" | "rain" | "snow" | "confetti" | "magic") = "sparks",
+    followNode: boolean = true,
+    autoStart: boolean = true
+  },
+  events: {
+    on_emitted: "particles:emitted",
+    on_exhausted: "particles:exhausted",
+    start: "particles.start",
+    stop: "particles.stop",
+    burst: "particles.burst"
+  },
+  behaviors: ["@gpu_particle", "@volumetric", "@shader"]
+}

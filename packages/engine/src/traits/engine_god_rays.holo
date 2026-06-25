@@ -1,0 +1,17 @@
+@trait {
+  name: "@god_rays",
+  category: "rendering",
+  description: "Engine-layer god rays — adds use_weather and light_position integration. decay (default: 0.96). weight (default: 0.5). exposure (default: 0.3). samples (default: 100). density (default: 1.0). use_weather ties light position to the weather system (default: true). light_position is the fallback light origin (default: [100,200,100]). See core/traits/god_rays.holo for canonical config. Port of engine GodRaysTrait.ts (handler name: god_rays).",
+  props: {
+    decay: number = 0.96,
+    weight: number = 0.5,
+    exposure: number = 0.3,
+    samples: number = 100,
+    density: number = 1.0,
+    use_weather: boolean = true
+  },
+  events: {
+    on_updated: "god_rays:updated"
+  },
+  behaviors: ["@volumetric_clouds", "@post_process", "@global_illumination"]
+}
