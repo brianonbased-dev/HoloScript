@@ -1,0 +1,24 @@
+@trait {
+  name: "@teleport",
+  category: "xr",
+  description: "Arc-based locomotion teleport controller for VR. Casts a parabolic arc from the controller, renders a reticle on a valid NavMesh surface, and on trigger-release moves the player smoothly (with optional fade to black blink transition) to the target position. Authored from TeleportTrait.ts.",
+  props: {
+    arc_velocity: number = 6.5,
+    max_distance_m: number = 15,
+    valid_layers: list<string> = [],
+    transition: enum("instant" | "blink" | "slide") = "blink",
+    blink_duration_ms: number = 150,
+    reticle_color: string = "#00ff88",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "teleport_attached",
+    detached: "teleport_detached",
+    on_aim: "teleport_aim",
+    on_cancel: "teleport_cancel",
+    on_teleport: "teleport_teleport",
+    aim: "teleport_trigger_aim",
+    execute: "teleport_trigger_execute"
+  },
+  behaviors: ["@xr_ray_interactor", "@pathfind", "@fullscreen_mode"]
+}

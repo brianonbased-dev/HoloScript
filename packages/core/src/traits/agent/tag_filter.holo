@@ -1,0 +1,18 @@
+@trait {
+  name: "@tag_filter",
+  category: "agent",
+  description: "Entity tag-based event and query filter. Restricts emitted events or spatial queries to entities that match an include/exclude tag set, enabling efficient component-system scoping without scanning all entities. Authored from TagFilterTrait.ts.",
+  props: {
+    include_tags: list<string> = [],
+    exclude_tags: list<string> = [],
+    mode: enum("any" | "all") = "any",
+    scope: enum("world" | "zone" | "entity_group") = "world"
+  },
+  events: {
+    attached: "tag_filter_attached",
+    detached: "tag_filter_detached",
+    on_match: "tag_filter_match",
+    on_no_match: "tag_filter_no_match"
+  },
+  behaviors: ["@event_filter", "@owner_tag", "@networked"]
+}

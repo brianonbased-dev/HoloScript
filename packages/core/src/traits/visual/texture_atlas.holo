@@ -1,0 +1,22 @@
+@trait {
+  name: "@texture_atlas",
+  category: "visual",
+  description: "Sprite texture atlas manager. Parses a packed texture atlas and frame JSON descriptor, resolves individual sprite frames by name or index, and provides UV crop data to billboard and 2D sprite renderers for efficient batched rendering. Authored from TextureAtlasTrait.ts.",
+  props: {
+    atlas_url: string = "",
+    descriptor_url: string = "",
+    current_frame: string = "",
+    frame_rate: number = 0,
+    loop: boolean = true,
+    filter: enum("nearest" | "linear" | "mipmap") = "nearest",
+    premultiplied_alpha: boolean = false
+  },
+  events: {
+    attached: "texture_atlas_attached",
+    detached: "texture_atlas_detached",
+    on_load: "texture_atlas_load",
+    on_frame: "texture_atlas_frame",
+    set_frame: "texture_atlas_trigger_set_frame"
+  },
+  behaviors: ["@billboard", "@particle_burst", "@static_mesh"]
+}

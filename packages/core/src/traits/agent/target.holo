@@ -1,0 +1,23 @@
+@trait {
+  name: "@target",
+  category: "agent",
+  description: "Soft-lock targeting component. Maintains a reference to the currently locked-on entity, providing smoothed world-space direction and distance to the target for aiming, look-at, and attack behaviors, with range-based auto-acquire and auto-release logic. Authored from TargetTrait.ts.",
+  props: {
+    entity_id: string = "",
+    acquire_range_m: number = 20,
+    release_range_m: number = 25,
+    auto_acquire: boolean = false,
+    preferred_tags: list<string> = [],
+    lock_pitch: boolean = false,
+    smoothing: number = 0.15
+  },
+  events: {
+    attached: "target_attached",
+    detached: "target_detached",
+    on_acquire: "target_acquire",
+    on_release: "target_release",
+    set: "target_trigger_set",
+    clear: "target_trigger_clear"
+  },
+  behaviors: ["@follow_target", "@orbit_camera", "@npc_brain"]
+}
