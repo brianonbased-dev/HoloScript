@@ -1,0 +1,21 @@
+@trait {
+  name: "@network_diagnostics",
+  category: "devops",
+  description: "Runtime network diagnostics panel. Samples RTT, packet loss, jitter, and bandwidth to the session server, renders a live graph overlay, fires alerts on threshold crossings, and exports a diagnostics JSON report for support tickets. Authored from NetworkDiagnosticsTrait.ts.",
+  props: {
+    sample_interval_ms: number = 500,
+    rtt_alert_ms: number = 200,
+    loss_alert_pct: number = 5,
+    visible: boolean = false,
+    log_to_url: string = "",
+    history_s: number = 60
+  },
+  events: {
+    attached: "network_diagnostics_attached",
+    detached: "network_diagnostics_detached",
+    on_alert: "network_diagnostics_alert",
+    on_export: "network_diagnostics_export",
+    export: "network_diagnostics_trigger_export"
+  },
+  behaviors: ["@stats", "@sync_clock", "@inspector"]
+}

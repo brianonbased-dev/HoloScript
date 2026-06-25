@@ -1,0 +1,21 @@
+@trait {
+  name: "@mission_tracker",
+  category: "game",
+  description: "Active mission objective tracker HUD. Maintains a list of mission objectives with completion state and optional map-pin references, rendering them as a sorted checklist in screen space with waypoint arrows and distance readouts. Authored from MissionTrackerTrait.ts.",
+  props: {
+    mission_id: string = "",
+    objectives: list<{ id: string, label: string, done: boolean, optional: boolean, marker_entity_id: string }> = [],
+    show_distance: boolean = true,
+    show_arrows: boolean = true,
+    visible: boolean = true,
+    position: { x: number, y: number } = { x: 16, y: 80 }
+  },
+  events: {
+    attached: "mission_tracker_attached",
+    detached: "mission_tracker_detached",
+    on_complete: "mission_tracker_complete",
+    on_objective_done: "mission_tracker_objective_done",
+    set_mission: "mission_tracker_trigger_set"
+  },
+  behaviors: ["@quest_tracker", "@map_marker", "@ui_frame"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@music_composer",
+  category: "audio",
+  description: "Procedural adaptive music layer composer. Layers stem tracks from a manifest, cross-fading between intensity tiers based on entity state or game events, applying horizontal re-sequencing to maintain rhythmic continuity. Authored from MusicComposerTrait.ts.",
+  props: {
+    manifest_url: string = "",
+    intensity: number = 0.0,
+    crossfade_ms: number = 1500,
+    volume: number = 1.0,
+    loop: boolean = true,
+    bpm: number = 120,
+    auto_play: boolean = true
+  },
+  events: {
+    attached: "music_composer_attached",
+    detached: "music_composer_detached",
+    on_tier_change: "music_composer_tier_change",
+    set_intensity: "music_composer_trigger_intensity"
+  },
+  behaviors: ["@spatial_audio", "@voice_cloner", "@stream"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@mount_point",
+  category: "world",
+  description: "Hierarchical socket attachment point. Exposes a named socket on the entity's transform hierarchy where child entities can be parented and offset, supporting dynamic mount/dismount with configurable snap behavior, and broadcasting occupancy state. Authored from MountPointTrait.ts.",
+  props: {
+    socket_name: string = "default",
+    local_offset: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 },
+    local_rotation: { x: number, y: number, z: number, w: number } = { x: 0, y: 0, z: 0, w: 1 },
+    max_occupants: number = 1,
+    snap_on_mount: boolean = true,
+    occupied: boolean = false
+  },
+  events: {
+    attached: "mount_point_attached",
+    detached: "mount_point_detached",
+    on_mount: "mount_point_mount",
+    on_dismount: "mount_point_dismount",
+    mount: "mount_point_trigger_mount",
+    dismount: "mount_point_trigger_dismount"
+  },
+  behaviors: ["@follow_target", "@hologram_preview", "@vehicle"]
+}
