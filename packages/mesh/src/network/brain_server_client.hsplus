@@ -1,0 +1,104 @@
+// @brain_server_client — Batched HTTP inference client for GPU brain servers.
+//
+// Native .hsplus surface for BrainServerClient.ts (P.NET.04). Queues agent
+// inference requests and flushes them in configurable batch sizes to a
+// dedicated GPU inference server (vLLM, llama.cpp, Jetson TensorRT).
+//
+// BrainServerClient.ts usage pattern:
+//   brain.queue_inference('agent_42', { goal: 'patrol', observation: '...' })
+//   results = await brain.flush()
+//
+// Key config (BrainServerClient.ts BrainServerConfig):
+//   url            — e.g. 'http://brain-server:8000/v1/batch'
+//   max_concurrent — parallelism cap (default: 100)
+//   batch_size     — requests per flush (default: 16)
+//   timeout_ms     — per-batch timeout (default: 3000)
+//   model          — model name (e.g. 'tinyllama-1.1b')
+//
+// On the Jetson Orin Super (I.022): this is how edge agents with on-device
+// GPU can serve small-model inference to multiple HoloScript agent entities
+// in parallel without burning the $100/day GPU fleet cap.
+//
+// Hardware note (W.755): Jetson model store is on the Samsung 990 NVMe;
+// laptop is NOT a model store. Route brain_server_client to the Jetson
+// inference endpoint for on-device models.
+
+@trait brain_server_client {
+  // GPU inference server URL
+  server_url: String
+
+  // Model name to use for inference
+  model: String = "tinyllama-1.1b"
+
+  // Maximum concurrent in-flight requests
+  max_concurrent: Int = 100
+
+  // Requests per flush call
+  batch_size: Int = 16
+
+  // Per-batch timeout in milliseconds
+  timeout_ms: Int = 3000
+
+  // Auto-flush when queue reaches batch_size
+  auto_flush: Bool = true
+
+  // Emit inference_complete events per batch flush
+  emit_events: Bool = true
+
+  capability_tags: ["brain_server_client", "gpu_inference", "batched_http", "vllm", "edge_inference", "p_net_04"]
+
+  @on_spawn => {
+    client = init_brain_server_client({
+      url: server_url,
+      model: model,
+      max_concurrent: max_concurrent,
+      batch_size: batch_size,
+      timeout_ms: timeout_ms
+    })
+    emit("brain_server_client_ready", {
+      server_url: server_url,
+      model: model,
+      batch_size: batch_size
+    })
+  }
+
+  @on_queue_inference(agent_id, context) => {
+    client.queue({
+      agent_id: agent_id,
+      context: context,
+      queued_at: now_ms()
+    })
+    if auto_flush and client.queue_length() >= batch_size {
+      on_flush()
+    }
+  }
+
+  @on_flush => {
+    batch = client.drain(batch_size)
+    if len(batch) == 0 {
+      return { responses: [], total_latency_ms: 0, batch_size: 0 }
+    }
+    start = now_ms()
+    results = client.send_batch(batch, timeout_ms)
+    total_ms = now_ms() - start
+    if emit_events {
+      emit("batch_flushed", {
+        batch_size: len(batch),
+        total_latency_ms: total_ms,
+        success_count: len(filter(results, r => r.success))
+      })
+    }
+    return { responses: results, total_latency_ms: total_ms, batch_size: len(batch) }
+  }
+
+  @receipt brain_server_config {
+    type: "BrainServerClientReceipt"
+    server_url: server_url
+    model: model
+    max_concurrent: max_concurrent
+    batch_size: batch_size
+    timeout_ms: timeout_ms
+    auto_flush: auto_flush
+    timestamp: now()
+  }
+}

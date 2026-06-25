@@ -1,0 +1,113 @@
+// @agent_messaging — Secure AES-256-GCM + ECDH validated inter-agent messaging.
+//
+// Native .hsplus surface for AgentMessaging.ts (Sprint 4 Priority 6 —
+// Agent Communication Channels). Provides encrypted, priority-queued, schema-
+// validated message passing between agents across channels.
+//
+// Encryption (AgentMessaging.ts EncryptionService):
+//   AES-256-GCM with ECDH key exchange (P-256). Each channel establishes an
+//   ECDH shared secret at setup time; all subsequent messages encrypt with
+//   the derived AES-256 key. IV (12 bytes) + authTag (16 bytes) prepended.
+//
+// MessagePriority: critical > high > normal > low
+//   critical — delivered before all others; never dropped on backpressure
+//   high     — delivered before normal/low
+//   normal   — default
+//   low      — delivered last; may be dropped under backpressure
+//
+// Channel types: broadcast (one→all in scope), direct (one→one)
+//
+// Usage:
+//   entity#my_agent @agent_messaging(
+//     encryption: "aes_256_gcm"
+//     default_priority: "normal"
+//   ) { ... }
+
+@trait agent_messaging {
+  // Encryption mode
+  encryption: enum("aes_256_gcm" | "e2e_ecdh" | "none") = "aes_256_gcm"
+
+  // Default message priority
+  default_priority: enum("critical" | "high" | "normal" | "low") = "normal"
+
+  // Maximum queued messages before backpressure kicks in
+  queue_depth: Int = 512
+
+  // Validate message schema before delivery (drops malformed messages)
+  validate_schema: Bool = true
+
+  // Emit a message_delivered receipt on every successful send
+  emit_receipts: Bool = false
+
+  capability_tags: ["agent_messaging", "encrypted_channels", "aes_256_gcm", "ecdh", "priority_queue", "secure_communication"]
+
+  @on_spawn => {
+    messenger = init_agent_messenger({
+      encryption: encryption,
+      queue_depth: queue_depth,
+      validate_schema: validate_schema
+    })
+    emit("agent_messaging_ready", {
+      encryption: encryption,
+      queue_depth: queue_depth
+    })
+  }
+
+  @on_channel_open(config) => {
+    channel = messenger.open_channel({
+      channel_id: config.channel_id,
+      type: config.type ?? "direct",
+      encryption_key: config.encryption_key,
+      members: config.members ?? []
+    })
+    emit("channel_opened", {
+      channel_id: config.channel_id,
+      type: config.type ?? "direct",
+      member_count: len(config.members ?? [])
+    })
+    return channel
+  }
+
+  @on_send(msg) => {
+    if validate_schema and not schema_valid(msg) {
+      return { success: false, reason: "invalid_schema" }
+    }
+    priority = msg.priority ?? default_priority
+    result = messenger.enqueue(msg.channel_id, msg.payload, priority, encryption)
+    if emit_receipts and result.success {
+      emit("message_delivered", {
+        channel_id: msg.channel_id,
+        message_id: result.message_id,
+        priority: priority
+      })
+    }
+    return result
+  }
+
+  @on_receive(raw) => {
+    decrypted = messenger.decrypt(raw, encryption)
+    if validate_schema and not schema_valid(decrypted) {
+      return
+    }
+    emit("message_received", {
+      channel_id: raw.channel_id,
+      message_id: raw.message_id,
+      priority: raw.priority
+    })
+    return decrypted
+  }
+
+  @on_channel_close(channel_id) => {
+    messenger.close_channel(channel_id)
+    emit("channel_closed", { channel_id: channel_id })
+  }
+
+  @receipt agent_messaging_config {
+    type: "AgentMessagingReceipt"
+    encryption: encryption
+    default_priority: default_priority
+    queue_depth: queue_depth
+    validate_schema: validate_schema
+    timestamp: now()
+  }
+}

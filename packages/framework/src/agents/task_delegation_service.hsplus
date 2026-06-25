@@ -1,0 +1,107 @@
+// @task_delegation_service — Cross-agent task forwarding with retry and history.
+//
+// Native .hsplus surface for TaskDelegationService.ts (HoloScript v5.5
+// "Agents as Universal Orchestrators"). Forwards tasks to local (in-process)
+// or remote (A2A JSON-RPC) agents with exponential backoff retry and a
+// bounded LRU history of delegation outcomes.
+//
+// DelegationResult status values (TaskDelegationService.ts):
+//   completed — agent returned a result within timeout
+//   failed    — agent returned an error
+//   timeout   — no response within timeout_ms
+//   rejected  — target agent explicitly refused the task
+//
+// History is used by @orchestrator_agent GROW/EVOLVE phases to tune routing.
+// The CAEL trace (W.107) captures delegation outcomes as L3 events.
+//
+// Usage:
+//   entity#my_orchestrator @task_delegation_service(
+//     default_timeout_ms: 30000
+//     max_history: 1000
+//   ) { ... }
+
+@trait task_delegation_service {
+  // Default timeout per delegation in milliseconds
+  default_timeout_ms: Int = 30000
+
+  // LRU history capacity
+  max_history: Int = 1000
+
+  // Default retry count on failure (0 = no retry)
+  default_retries: Int = 0
+
+  // Base delay for exponential backoff in milliseconds
+  backoff_base_ms: Int = 500
+
+  // Emit a CAEL delegation event per completed task
+  emit_cael_events: Bool = true
+
+  capability_tags: ["task_delegation_service", "a2a_jsonrpc", "cross_agent_delegation", "retry_backoff", "delegation_history"]
+
+  @on_spawn => {
+    service = init_delegation_service({
+      default_timeout_ms: default_timeout_ms,
+      max_history: max_history,
+      backoff_base_ms: backoff_base_ms
+    })
+    emit("task_delegation_service_ready", {
+      default_timeout_ms: default_timeout_ms,
+      max_history: max_history
+    })
+  }
+
+  @on_delegate(request) => {
+    task_id = new_uuid()
+    timeout = request.timeout_ms ?? default_timeout_ms
+    retries = request.retries ?? default_retries
+    attempt = 0
+    start = now_ms()
+
+    while attempt <= retries {
+      result = service.forward({
+        task_id: task_id,
+        target_agent_id: request.target_agent_id,
+        skill_id: request.skill_id,
+        arguments: request.arguments,
+        timeout_ms: timeout
+      })
+      if result.status == "completed" or result.status == "rejected" {
+        break
+      }
+      if attempt < retries {
+        sleep_ms(backoff_base_ms * (2 ^ attempt))
+      }
+      attempt = attempt + 1
+    }
+
+    outcome = {
+      task_id: task_id,
+      status: result.status,
+      result: result.result,
+      error: result.error,
+      duration_ms: now_ms() - start,
+      delegated_to: { agent_id: request.target_agent_id, attempts: attempt + 1 }
+    }
+
+    service.record_history(outcome, max_history)
+
+    if emit_cael_events {
+      emit("delegation_complete", outcome)
+    }
+    return outcome
+  }
+
+  @on_check_pending => {
+    return service.flush_completed_async()
+  }
+
+  @receipt task_delegation_config {
+    type: "TaskDelegationServiceReceipt"
+    default_timeout_ms: default_timeout_ms
+    max_history: max_history
+    default_retries: default_retries
+    backoff_base_ms: backoff_base_ms
+    emit_cael_events: emit_cael_events
+    timestamp: now()
+  }
+}
