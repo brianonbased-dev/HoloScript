@@ -1,0 +1,28 @@
+// @composition_parser — Pure language-level AST traversal for .holo and .hsplus compositions.
+//
+// Native .hsplus surface for core/composition/CompositionParser.ts.
+//
+// parse(source, format: holo|hsplus) → CompositionAST
+// Pure: no runtime, no fs, no platform dependencies
+// Produces normalized platform-independent intermediate data
+
+@trait composition_parser {
+  capability_tags: ["composition_parser", "ast_traversal", "holo_hsplus_parse", "pure_parser", "core"]
+
+  @on_spawn => {
+    emit("composition_parser_ready", {})
+  }
+
+  @on_parse(source, format) => {
+    ast = parse_composition(source, format)
+    emit("composition_parsed", { format })
+    return ast
+  }
+
+  @receipt composition_parser_config {
+    type: "CompositionParserReceipt"
+    formats: ["holo", "hsplus"]
+    constraint: "pure — no runtime, no fs, no platform"
+    timestamp: now()
+  }
+}

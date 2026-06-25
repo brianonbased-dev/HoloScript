@@ -1,0 +1,30 @@
+// @object_tracking_coordinator — Consumer-bus for object tracking lifecycle events.
+//
+// Native .hsplus surface for core/coordinators/ObjectTrackingCoordinator.ts.
+//
+// Listens for: tracking:lost, tracking:acquired, tracking:updated
+// Routes to downstream: UI overlays, physics sync, occlusion management
+// Accepts any event source matching { on(event, handler) }
+
+@trait object_tracking_coordinator {
+  capability_tags: ["object_tracking_coordinator", "object_tracking", "consumer_bus", "core"]
+
+  @on_spawn => {
+    emit("object_tracking_coordinator_ready", {})
+  }
+
+  @on_event("tracking:acquired", payload) => {
+    route_tracking_acquired(payload)
+  }
+
+  @on_event("tracking:lost", payload) => {
+    route_tracking_lost(payload)
+    emit("tracking_loss_routed", { objectId: payload.objectId })
+  }
+
+  @receipt object_tracking_coordinator_config {
+    type: "ObjectTrackingCoordinatorReceipt"
+    events: ["tracking:lost", "tracking:acquired", "tracking:updated"]
+    timestamp: now()
+  }
+}

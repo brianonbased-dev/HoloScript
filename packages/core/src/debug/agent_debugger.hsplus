@@ -1,0 +1,31 @@
+// @agent_debugger — Main debugger interface: inspect, trace, and debug HoloScript agents.
+//
+// Native .hsplus surface for core/debug/AgentDebugger.ts. Sprint 4 Priority 8.
+//
+// attach(agentId) / detach() / step() / inspect(agentId) → AgentSnapshot
+// Supports: breakpoints, step-through, state snapshot, trace replay
+
+@trait agent_debugger {
+  capability_tags: ["agent_debugger", "breakpoints", "step_through", "agent_trace", "core"]
+
+  @on_spawn => {
+    emit("agent_debugger_ready", {})
+  }
+
+  @on_attach(agent_id) => {
+    attach_debugger(agent_id)
+    emit("debugger_attached", { agent_id })
+  }
+
+  @on_step => {
+    result = debugger_step()
+    emit("debugger_stepped", { result })
+    return result
+  }
+
+  @receipt agent_debugger_config {
+    type: "AgentDebuggerReceipt"
+    features: ["breakpoints", "step-through", "state snapshot", "trace replay"]
+    timestamp: now()
+  }
+}

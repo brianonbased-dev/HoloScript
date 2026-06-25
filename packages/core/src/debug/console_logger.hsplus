@@ -1,0 +1,25 @@
+// @console_logger — Structured logging: severity levels, tag filters, formatted output, log history.
+//
+// Native .hsplus surface for core/debug/ConsoleLogger.ts.
+//
+// log(level, tag, message, data?) / filter(tag) / history(n) → LogEntry[]
+// Levels: debug | info | warn | error | fatal
+// Tag filters: per-system log isolation
+
+@trait console_logger {
+  capability_tags: ["console_logger", "structured_logging", "severity_levels", "tag_filters", "core"]
+
+  @on_spawn => {
+    emit("console_logger_ready", {})
+  }
+
+  @on_log(level, tag, message, data) => {
+    write_log(level, tag, message, data)
+  }
+
+  @receipt console_logger_config {
+    type: "ConsoleLoggerReceipt"
+    levels: ["debug", "info", "warn", "error", "fatal"]
+    timestamp: now()
+  }
+}

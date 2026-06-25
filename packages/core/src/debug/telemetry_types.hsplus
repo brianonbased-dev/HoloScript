@@ -1,0 +1,22 @@
+// @telemetry_types — Type definitions for telemetry and debugging infrastructure. Sprint 4.
+//
+// Native .hsplus surface for core/debug/TelemetryTypes.ts.
+//
+// TelemetryEvent: { type, agentId, traceId, spanId, timestamp, data }
+// EventKind: trace | metric | log | error | custom
+// Shared across TelemetryCollector, StructuredLogger, OTLPExporter
+
+@trait telemetry_types {
+  capability_tags: ["telemetry_types", "telemetry_event_schema", "trace_span", "core"]
+
+  @on_spawn => {
+    emit("telemetry_types_ready", {})
+  }
+
+  @receipt telemetry_types_config {
+    type: "TelemetryTypesReceipt"
+    event_shape: "{ type, agentId, traceId, spanId, timestamp, data }"
+    event_kinds: ["trace", "metric", "log", "error", "custom"]
+    timestamp: now()
+  }
+}

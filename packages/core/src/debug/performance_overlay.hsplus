@@ -1,0 +1,26 @@
+// @performance_overlay — FPS, draw calls, memory usage, and frame graph overlay.
+//
+// Native .hsplus surface for core/debug/PerformanceOverlay.ts.
+//
+// show() / hide() / update(frameData)
+// Renders: FPS counter, draw call count, memory bar, rolling frame graph
+// Dev-only overlay; toggled via dev keyboard shortcut
+
+@trait performance_overlay {
+  capability_tags: ["performance_overlay", "fps_counter", "draw_calls", "frame_graph", "core"]
+
+  @on_spawn => {
+    emit("performance_overlay_ready", {})
+  }
+
+  @on_update(frame_data) => {
+    update_performance_overlay(frame_data)
+  }
+
+  @receipt performance_overlay_config {
+    type: "PerformanceOverlayReceipt"
+    displays: ["FPS", "draw calls", "memory bar", "frame graph"]
+    scope: "dev-only"
+    timestamp: now()
+  }
+}

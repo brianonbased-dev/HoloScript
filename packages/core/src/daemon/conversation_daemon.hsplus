@@ -1,0 +1,27 @@
+// @conversation_daemon — The user's personal daemon face: tap/click/speak companion surface.
+//
+// Native .hsplus surface for core/daemon/ConversationDaemon.ts.
+//
+// NOT Brittney; NOT the field. Daemon = visible companion that receives turn receipts.
+// speak(input) → turn receipt → Brittney rehydrates context and responds
+// Daemon manages: persona, memory, session continuity, and turn receipts
+
+@trait conversation_daemon {
+  capability_tags: ["conversation_daemon", "user_companion", "turn_receipts", "brittney_bridge", "core"]
+
+  @on_spawn => {
+    emit("conversation_daemon_ready", {})
+  }
+
+  @on_speak(input) => {
+    receipt = daemon_turn(input)
+    emit("turn_receipt_created", { receipt })
+    return receipt
+  }
+
+  @receipt conversation_daemon_config {
+    type: "ConversationDaemonReceipt"
+    note: "daemon is the face; Brittney is the field that rehydrates"
+    timestamp: now()
+  }
+}

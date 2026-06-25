@@ -1,0 +1,29 @@
+// @debug_renderer — Debug visualization: wireframe shapes, gizmos, bounding boxes, ray/line drawing, labels.
+//
+// Native .hsplus surface for core/debug/DebugRenderer.ts.
+//
+// drawWireframe(mesh) / drawBounds(aabb) / drawRay(origin, dir) / drawLabel(pos, text)
+// Dev-only; stripped from production builds; renders into overlay pass
+
+@trait debug_renderer {
+  capability_tags: ["debug_renderer", "wireframe", "gizmos", "bounding_box", "debug_visualization", "core"]
+
+  @on_spawn => {
+    emit("debug_renderer_ready", {})
+  }
+
+  @on_draw_wireframe(mesh) => {
+    debug_draw_wireframe(mesh)
+  }
+
+  @on_draw_label(position, text) => {
+    debug_draw_label(position, text)
+  }
+
+  @receipt debug_renderer_config {
+    type: "DebugRendererReceipt"
+    primitives: ["wireframe", "gizmos", "bounding box", "ray/line", "text label"]
+    scope: "dev-only; overlay pass"
+    timestamp: now()
+  }
+}

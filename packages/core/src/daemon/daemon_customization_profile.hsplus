@@ -1,0 +1,29 @@
+// @daemon_customization_profile — User-facing daemon configuration: shape/style separate from permissions.
+//
+// Native .hsplus surface for core/daemon/DaemonCustomizationProfile.ts.
+// D.053 ruling: "shape your local daemon, never customize Brittney; store permissions separately from style."
+//
+// setStyle(style) / setPersona(persona) / setPermissions(perms)
+// Permissions are isolated from style — separate storage paths
+
+@trait daemon_customization_profile {
+  capability_tags: ["daemon_customization_profile", "daemon_style", "daemon_permissions", "core"]
+
+  @on_spawn => {
+    emit("daemon_customization_profile_ready", {})
+  }
+
+  @on_set_style(style) => {
+    set_daemon_style(style)
+  }
+
+  @on_set_permissions(perms) => {
+    set_daemon_permissions(perms)
+  }
+
+  @receipt daemon_customization_profile_config {
+    type: "DaemonCustomizationProfileReceipt"
+    constraint: "D.053 — style and permissions in separate stores; Brittney not customized here"
+    timestamp: now()
+  }
+}

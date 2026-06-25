@@ -1,0 +1,30 @@
+// @asset_load_coordinator — Consumer-bus for GLTFTrait/USDTrait/FBXTrait asset-loading lifecycle events.
+//
+// Native .hsplus surface for core/coordinators/AssetLoadCoordinator.ts.
+// Pattern E remediation (/stub-audit Phase 3.5 2026-04-27).
+//
+// Listens for asset:load_started, asset:load_complete, asset:load_failed
+// Routes to downstream consumers (progress UI, cache, error recovery)
+
+@trait asset_load_coordinator {
+  capability_tags: ["asset_load_coordinator", "pattern_e_remediation", "asset_lifecycle", "consumer_bus", "core"]
+
+  @on_spawn => {
+    emit("asset_load_coordinator_ready", {})
+  }
+
+  @on_event("asset:load_complete", payload) => {
+    route_asset_load_complete(payload)
+  }
+
+  @on_event("asset:load_failed", payload) => {
+    route_asset_load_failed(payload)
+    emit("asset_load_error_routed", { id: payload.id })
+  }
+
+  @receipt asset_load_coordinator_config {
+    type: "AssetLoadCoordinatorReceipt"
+    events: ["asset:load_started", "asset:load_complete", "asset:load_failed"]
+    timestamp: now()
+  }
+}

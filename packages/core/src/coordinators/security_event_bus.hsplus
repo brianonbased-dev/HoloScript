@@ -1,0 +1,30 @@
+// @security_event_bus — Consumer-bus for RBAC/SSO/Quota/Tenant/AuditLog/ForgetPolicy lifecycle events.
+//
+// Native .hsplus surface for core/coordinators/SecurityEventBus.ts.
+// Pattern E remediation: ~75 distinct event types across 6 traits had zero downstream listeners.
+//
+// Routes: auth_denied → audit; quota_exceeded → throttle; forget_requested → GDPR handler
+
+@trait security_event_bus {
+  capability_tags: ["security_event_bus", "pattern_e_remediation", "rbac", "sso", "gdpr_forget", "consumer_bus", "core"]
+
+  @on_spawn => {
+    emit("security_event_bus_ready", {})
+  }
+
+  @on_event("security:auth_denied", payload) => {
+    route_auth_denied(payload)
+  }
+
+  @on_event("security:forget_requested", payload) => {
+    route_gdpr_forget(payload)
+    emit("gdpr_forget_routed", { subjectId: payload.subjectId })
+  }
+
+  @receipt security_event_bus_config {
+    type: "SecurityEventBusReceipt"
+    traits: ["RBAC", "SSO", "Quota", "Tenant", "AuditLog", "ForgetPolicy"]
+    event_count: "~75 distinct event types"
+    timestamp: now()
+  }
+}

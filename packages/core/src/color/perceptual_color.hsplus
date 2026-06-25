@@ -1,0 +1,29 @@
+// @perceptual_color — Perceptual color difference, metric-derived neutral axis, perceptual interpolation.
+//
+// Native .hsplus surface for core/color/perceptualColor.ts.
+// Sovereign color-science: Schrodinger color theory, non-Riemannian, D1 spike.
+//
+// deltaE(c1, c2) → perceptual difference; lerp(c1, c2, t) → perceptual blend
+// neutralAxis(palette) → achromatic spine; gamutMap(c, space) → in-gamut
+
+@trait perceptual_color {
+  capability_tags: ["perceptual_color", "color_science", "delta_e", "perceptual_interpolation", "core"]
+
+  @on_spawn => {
+    emit("perceptual_color_ready", {})
+  }
+
+  @on_delta_e(c1, c2) => {
+    return perceptual_delta_e(c1, c2)
+  }
+
+  @on_lerp(c1, c2, t) => {
+    return perceptual_color_lerp(c1, c2, t)
+  }
+
+  @receipt perceptual_color_config {
+    type: "PerceptualColorReceipt"
+    grounding: "Schrodinger color theory (non-Riemannian)"
+    timestamp: now()
+  }
+}

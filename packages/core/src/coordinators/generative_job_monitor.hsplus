@@ -1,0 +1,30 @@
+// @generative_job_monitor — Consumer-bus for AiInpainting/AiTextureGen/ControlNet/DiffusionRealtime lifecycle events.
+//
+// Native .hsplus surface for core/coordinators/GenerativeJobMonitor.ts.
+// Pattern E remediation: ~23 lifecycle events across 4 traits had zero downstream listeners.
+//
+// Monitors: job_queued, job_started, job_progress, job_complete, job_failed
+// Routes to: progress overlay, result cache, retry scheduler
+
+@trait generative_job_monitor {
+  capability_tags: ["generative_job_monitor", "pattern_e_remediation", "ai_job_lifecycle", "consumer_bus", "core"]
+
+  @on_spawn => {
+    emit("generative_job_monitor_ready", {})
+  }
+
+  @on_event("generative:job_complete", payload) => {
+    route_generative_job_complete(payload)
+  }
+
+  @on_event("generative:job_failed", payload) => {
+    route_generative_job_failed(payload)
+    emit("generative_job_failure_routed", { jobId: payload.jobId })
+  }
+
+  @receipt generative_job_monitor_config {
+    type: "GenerativeJobMonitorReceipt"
+    traits: ["AiInpainting", "AiTextureGen", "ControlNet", "DiffusionRealtime"]
+    timestamp: now()
+  }
+}

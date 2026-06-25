@@ -1,0 +1,33 @@
+// @profiler — Performance profiling: frame timing, named system scopes, flame graph export.
+//
+// Native .hsplus surface for core/debug/Profiler.ts.
+//
+// begin(scope) / end(scope) / getFlameGraph() → FlameGraphData
+// Named scopes: CPU timings per system per frame
+// Flame graph output consumed by Studio profiler panel
+
+@trait profiler {
+  capability_tags: ["profiler", "frame_timing", "named_scopes", "flame_graph", "core"]
+
+  @on_spawn => {
+    emit("profiler_ready", {})
+  }
+
+  @on_begin(scope) => {
+    profiler_begin(scope)
+  }
+
+  @on_end(scope) => {
+    profiler_end(scope)
+  }
+
+  @on_get_flame_graph => {
+    return get_profiler_flame_graph()
+  }
+
+  @receipt profiler_config {
+    type: "ProfilerReceipt"
+    features: ["frame timing", "named scopes", "flame graph", "memory tracking"]
+    timestamp: now()
+  }
+}

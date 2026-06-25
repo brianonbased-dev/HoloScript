@@ -1,0 +1,26 @@
+// @otlp_exporter — OTLP/HTTP trace exporter: batch flush, gzip, retry with exponential backoff.
+//
+// Native .hsplus surface for core/debug/OTLPExporter.ts.
+//
+// export(spans[]) → void (async batch)
+// Exports to OTLP/HTTP endpoint in JSON format
+// Retry: exponential backoff; gzip compression; configurable endpoint
+
+@trait otlp_exporter {
+  capability_tags: ["otlp_exporter", "opentelemetry", "trace_export", "batch_flush", "core"]
+
+  @on_spawn => {
+    emit("otlp_exporter_ready", {})
+  }
+
+  @on_export(spans) => {
+    export_otlp_spans(spans)
+  }
+
+  @receipt otlp_exporter_config {
+    type: "OTLPExporterReceipt"
+    format: "OTLP/HTTP JSON"
+    features: ["batch flush", "gzip compression", "exponential backoff retry"]
+    timestamp: now()
+  }
+}

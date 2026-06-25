@@ -1,0 +1,29 @@
+// @session_presence_coordinator — Consumer-bus for SharePlay/SpatialVoice/WorldHeartbeat/Messaging events.
+//
+// Native .hsplus surface for core/coordinators/SessionPresenceCoordinator.ts.
+// Pattern E remediation: 26 distinct events across 4 multiplayer-presence traits had zero downstream listeners.
+//
+// Routes: presence:joined/left → roster; voice:speaking → UI; heartbeat:missed → disconnect
+
+@trait session_presence_coordinator {
+  capability_tags: ["session_presence_coordinator", "pattern_e_remediation", "multiplayer_presence", "consumer_bus", "core"]
+
+  @on_spawn => {
+    emit("session_presence_coordinator_ready", {})
+  }
+
+  @on_event("presence:joined", payload) => {
+    route_presence_joined(payload)
+  }
+
+  @on_event("heartbeat:missed", payload) => {
+    route_heartbeat_missed(payload)
+    emit("disconnect_triggered", { peerId: payload.peerId })
+  }
+
+  @receipt session_presence_coordinator_config {
+    type: "SessionPresenceCoordinatorReceipt"
+    traits: ["SharePlay", "SpatialVoice", "WorldHeartbeat", "Messaging"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @entity_inspector — Live entity browser with component viewer for HoloScript entities.
+//
+// Native .hsplus surface for core/debug/EntityInspector.ts.
+//
+// listEntities() → Entity[] / inspectEntity(id) → EntityDetails { traits, props, state }
+// Component viewer: expand/collapse traits, live prop values, event log
+
+@trait entity_inspector {
+  capability_tags: ["entity_inspector", "entity_browser", "component_viewer", "live_props", "core"]
+
+  @on_spawn => {
+    emit("entity_inspector_ready", {})
+  }
+
+  @on_inspect(entity_id) => {
+    details = inspect_entity(entity_id)
+    return details
+  }
+
+  @receipt entity_inspector_config {
+    type: "EntityInspectorReceipt"
+    output: "{ traits, props, state } per entity"
+    timestamp: now()
+  }
+}

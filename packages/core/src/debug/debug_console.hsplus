@@ -1,0 +1,27 @@
+// @debug_console — REPL with command history, autocomplete, and variable watch.
+//
+// Native .hsplus surface for core/debug/DebugConsole.ts.
+//
+// eval(expr) → result / history() → string[] / watch(varName)
+// Supports: multi-line input, autocomplete, variable watch sidebar
+// Embedded in Studio dev panel
+
+@trait debug_console {
+  capability_tags: ["debug_console", "repl", "autocomplete", "variable_watch", "core"]
+
+  @on_spawn => {
+    emit("debug_console_ready", {})
+  }
+
+  @on_eval(expr) => {
+    result = debug_console_eval(expr)
+    emit("debug_console_evaluated", {})
+    return result
+  }
+
+  @receipt debug_console_config {
+    type: "DebugConsoleReceipt"
+    features: ["REPL", "command history", "autocomplete", "variable watch"]
+    timestamp: now()
+  }
+}

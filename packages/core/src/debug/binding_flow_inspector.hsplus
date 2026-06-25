@@ -1,0 +1,26 @@
+// @binding_flow_inspector — Inspects data binding flows between traits and their sources.
+//
+// Native .hsplus surface for core/debug/BindingFlowInspector.ts.
+//
+// BindingInfo: { id, sourceId, targetId, value, timestamp }
+// getBindings(entityId) → BindingInfo[]
+// Visualizes binding update chains for debugging reactive state
+
+@trait binding_flow_inspector {
+  capability_tags: ["binding_flow_inspector", "binding_debug", "reactive_state", "flow_visualization", "core"]
+
+  @on_spawn => {
+    emit("binding_flow_inspector_ready", {})
+  }
+
+  @on_get_bindings(entity_id) => {
+    bindings = get_entity_bindings(entity_id)
+    return bindings
+  }
+
+  @receipt binding_flow_inspector_config {
+    type: "BindingFlowInspectorReceipt"
+    output: "BindingInfo[] { id, sourceId, targetId, value, timestamp }"
+    timestamp: now()
+  }
+}

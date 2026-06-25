@@ -1,0 +1,29 @@
+// @trace_context_propagator — W3C Trace Context (traceparent/tracestate) injection and extraction.
+//
+// Native .hsplus surface for core/debug/TraceContextPropagator.ts.
+//
+// inject(headers, context) → headers with traceparent/tracestate
+// extract(headers) → TraceContext { traceId, spanId, flags }
+// Enables end-to-end distributed tracing across agent delegations
+
+@trait trace_context_propagator {
+  capability_tags: ["trace_context_propagator", "w3c_trace_context", "traceparent", "distributed_tracing", "core"]
+
+  @on_spawn => {
+    emit("trace_context_propagator_ready", {})
+  }
+
+  @on_inject(headers, context) => {
+    return inject_trace_context(headers, context)
+  }
+
+  @on_extract(headers) => {
+    return extract_trace_context(headers)
+  }
+
+  @receipt trace_context_propagator_config {
+    type: "TraceContextPropagatorReceipt"
+    standard: "W3C Trace Context (traceparent/tracestate)"
+    timestamp: now()
+  }
+}

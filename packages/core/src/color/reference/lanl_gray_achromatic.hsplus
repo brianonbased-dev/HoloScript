@@ -1,0 +1,20 @@
+// @lanl_gray_achromatic — Reference data source for LANL gray achromatic dataset.
+//
+// Native .hsplus surface for core/color/reference/lanlGrayAchromatic.ts.
+//
+// LANL_GRAY_ACHROMATIC_SOURCE: { repo, dataUrl } — pointer to Gray_Experiment dataset
+// Used by perceptual_color to ground the neutral axis in empirical achromatic data
+
+@trait lanl_gray_achromatic {
+  capability_tags: ["lanl_gray_achromatic", "achromatic_dataset", "color_reference", "core"]
+
+  @on_spawn => {
+    emit("lanl_gray_achromatic_ready", {})
+  }
+
+  @receipt lanl_gray_achromatic_config {
+    type: "LanlGrayAchromaticReceipt"
+    source: "LANL Gray_Experiment dataset (Gray_Experiment/data/gray_complete_data_release.csv)"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @structured_logger — JSON log entries with W3C trace correlation (traceId, spanId) and multiple sinks.
+//
+// Native .hsplus surface for core/debug/StructuredLogger.ts.
+//
+// log(level, message, context) → structured JSON with traceId + spanId
+// Sinks: console (dev) | json-file (prod) | noop (test)
+// W3C trace correlation enables end-to-end distributed tracing
+
+@trait structured_logger {
+  capability_tags: ["structured_logger", "w3c_trace", "json_logging", "multiple_sinks", "core"]
+
+  @on_spawn => {
+    emit("structured_logger_ready", {})
+  }
+
+  @on_log(level, message, context) => {
+    write_structured_log(level, message, context)
+  }
+
+  @receipt structured_logger_config {
+    type: "StructuredLoggerReceipt"
+    format: "JSON with W3C trace correlation (traceId, spanId)"
+    sinks: ["console", "json-file", "noop"]
+    timestamp: now()
+  }
+}

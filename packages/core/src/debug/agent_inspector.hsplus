@@ -1,0 +1,25 @@
+// @agent_inspector — Real-time inspection of agent states and activities. Sprint 4.
+//
+// Native .hsplus surface for core/debug/AgentInspector.ts.
+//
+// inspect(agentId) → AgentState { traits, memory, events, pendingTasks }
+// subscribe(agentId, cb) → unsubscribe; live view of running agents
+
+@trait agent_inspector {
+  capability_tags: ["agent_inspector", "real_time_inspection", "agent_state", "live_view", "core"]
+
+  @on_spawn => {
+    emit("agent_inspector_ready", {})
+  }
+
+  @on_inspect(agent_id) => {
+    state = inspect_agent(agent_id)
+    return state
+  }
+
+  @receipt agent_inspector_config {
+    type: "AgentInspectorReceipt"
+    output: "{ traits, memory, events, pendingTasks }"
+    timestamp: now()
+  }
+}

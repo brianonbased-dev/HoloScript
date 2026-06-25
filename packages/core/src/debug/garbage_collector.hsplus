@@ -1,0 +1,28 @@
+// @garbage_collector — Simulated GC: mark-sweep, generational buckets, finalization, defragmentation.
+//
+// Native .hsplus surface for core/debug/GarbageCollector.ts.
+//
+// collect(generation?) / registerFinalizer(id, fn) / defragment()
+// Generations: young | old | permanent
+// Used for debugging memory lifecycle in long-running HoloScript scenes
+
+@trait garbage_collector {
+  capability_tags: ["garbage_collector", "mark_sweep", "generational_gc", "finalization", "core"]
+
+  @on_spawn => {
+    emit("garbage_collector_ready", {})
+  }
+
+  @on_collect(generation) => {
+    result = run_gc(generation)
+    emit("gc_collected", { freed: result.freed, generation })
+    return result
+  }
+
+  @receipt garbage_collector_config {
+    type: "GarbageCollectorReceipt"
+    generations: ["young", "old", "permanent"]
+    features: ["mark-sweep", "finalization callbacks", "defragmentation"]
+    timestamp: now()
+  }
+}

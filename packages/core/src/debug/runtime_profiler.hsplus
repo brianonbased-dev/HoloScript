@@ -1,0 +1,26 @@
+// @runtime_profiler — Runtime profiling: named scope markers, flame graph, percentile stats, sampling.
+//
+// Native .hsplus surface for core/debug/RuntimeProfiler.ts.
+//
+// mark(scope) / sample() / getStats(scope) → { p50, p95, p99, mean }
+// Sampling mode: low-overhead periodic snapshot
+// Pairs with Profiler; RuntimeProfiler adds percentile stats and sampling
+
+@trait runtime_profiler {
+  capability_tags: ["runtime_profiler", "percentile_stats", "sampling", "flame_graph", "core"]
+
+  @on_spawn => {
+    emit("runtime_profiler_ready", {})
+  }
+
+  @on_get_stats(scope) => {
+    return get_runtime_profiler_stats(scope)
+  }
+
+  @receipt runtime_profiler_config {
+    type: "RuntimeProfilerReceipt"
+    stats: ["p50", "p95", "p99", "mean"]
+    modes: ["frame marking", "periodic sampling"]
+    timestamp: now()
+  }
+}

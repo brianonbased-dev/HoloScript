@@ -1,0 +1,30 @@
+// @telemetry_collector — Collects, buffers, and exports telemetry events from agents. Sprint 4.
+//
+// Native .hsplus surface for core/debug/TelemetryCollector.ts.
+//
+// collect(event) / flush() → exported to OTLP or local sink
+// Buffers events in memory; batches on flush or max-buffer-size
+// Consumed by OTLPExporter for external ingestion
+
+@trait telemetry_collector {
+  capability_tags: ["telemetry_collector", "event_buffering", "batch_export", "agent_telemetry", "core"]
+
+  @on_spawn => {
+    emit("telemetry_collector_ready", {})
+  }
+
+  @on_collect(event) => {
+    collect_telemetry_event(event)
+  }
+
+  @on_flush => {
+    count = flush_telemetry_buffer()
+    emit("telemetry_flushed", { count })
+  }
+
+  @receipt telemetry_collector_config {
+    type: "TelemetryCollectorReceipt"
+    features: ["event buffering", "batch flush", "OTLP export"]
+    timestamp: now()
+  }
+}

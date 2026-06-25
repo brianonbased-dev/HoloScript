@@ -1,0 +1,26 @@
+// @prometheus_metrics — Prometheus metrics registry: counters, gauges, histograms; exposition format.
+//
+// Native .hsplus surface for core/debug/PrometheusMetrics.ts.
+//
+// counter(name, labels?) / gauge(name, labels?) / histogram(name, buckets, labels?)
+// expose() → Prometheus text format string
+// Auto-records from HoloScript runtime metrics
+
+@trait prometheus_metrics {
+  capability_tags: ["prometheus_metrics", "counters", "gauges", "histograms", "exposition_format", "core"]
+
+  @on_spawn => {
+    emit("prometheus_metrics_ready", {})
+  }
+
+  @on_expose => {
+    return expose_prometheus_metrics()
+  }
+
+  @receipt prometheus_metrics_config {
+    type: "PrometheusMetricsReceipt"
+    metric_types: ["counter", "gauge", "histogram"]
+    format: "Prometheus exposition text"
+    timestamp: now()
+  }
+}

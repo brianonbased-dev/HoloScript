@@ -1,0 +1,28 @@
+// @trace_waterfall_renderer — Converts distributed trace spans into a waterfall visualization data structure.
+//
+// Native .hsplus surface for core/debug/TraceWaterfallRenderer.ts.
+//
+// render(spans[]) → WaterfallData { rows[], criticalPath, totalDuration }
+// Suitable for: Studio dev panels, dev server overlays
+// Highlights critical path; groups by service/agent
+
+@trait trace_waterfall_renderer {
+  capability_tags: ["trace_waterfall_renderer", "trace_visualization", "waterfall_chart", "distributed_tracing", "core"]
+
+  @on_spawn => {
+    emit("trace_waterfall_renderer_ready", {})
+  }
+
+  @on_render(spans) => {
+    waterfall = render_trace_waterfall(spans)
+    emit("trace_waterfall_rendered", { rows: waterfall.rows.length })
+    return waterfall
+  }
+
+  @receipt trace_waterfall_renderer_config {
+    type: "TraceWaterfallRendererReceipt"
+    output: "WaterfallData { rows[], criticalPath, totalDuration }"
+    consumers: ["Studio dev panel", "dev server overlay"]
+    timestamp: now()
+  }
+}

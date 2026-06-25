@@ -1,0 +1,31 @@
+// @memory_tracker — Allocation tagging, budget enforcement, leak detection, heap snapshots.
+//
+// Native .hsplus surface for core/debug/MemoryTracker.ts.
+//
+// tag(allocationId, label) / enforce(budget) / takeSnapshot() → HeapSnapshot
+// leak detection: flags allocations not freed within TTL
+// Budget enforcement: emits memory:over_budget when exceeded
+
+@trait memory_tracker {
+  capability_tags: ["memory_tracker", "allocation_tagging", "leak_detection", "heap_snapshot", "core"]
+
+  @on_spawn => {
+    emit("memory_tracker_ready", {})
+  }
+
+  @on_take_snapshot => {
+    snapshot = take_heap_snapshot()
+    emit("heap_snapshot_taken", { bytes: snapshot.totalBytes })
+    return snapshot
+  }
+
+  @on_event("memory:over_budget", payload) => {
+    emit("memory_budget_exceeded", { budget: payload.budget, used: payload.used })
+  }
+
+  @receipt memory_tracker_config {
+    type: "MemoryTrackerReceipt"
+    features: ["allocation tagging", "budget enforcement", "leak detection", "heap snapshots"]
+    timestamp: now()
+  }
+}

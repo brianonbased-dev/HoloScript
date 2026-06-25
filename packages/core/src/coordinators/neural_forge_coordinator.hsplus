@@ -1,0 +1,25 @@
+// @neural_forge_coordinator — Consumer-bus for NeuralForgeTrait lifecycle events.
+//
+// Native .hsplus surface for core/coordinators/NeuralForgeCoordinator.ts.
+// Pattern E remediation: neural_forge emitted 5 events with zero downstream listeners.
+//
+// Listens for: forge:started, forge:layer_complete, forge:finished, forge:failed
+// Routes to: progress display, result store, error recovery
+
+@trait neural_forge_coordinator {
+  capability_tags: ["neural_forge_coordinator", "pattern_e_remediation", "neural_forge", "consumer_bus", "core"]
+
+  @on_spawn => {
+    emit("neural_forge_coordinator_ready", {})
+  }
+
+  @on_event("forge:finished", payload) => {
+    route_forge_result(payload)
+  }
+
+  @receipt neural_forge_coordinator_config {
+    type: "NeuralForgeCoordinatorReceipt"
+    events: ["forge:started", "forge:layer_complete", "forge:finished", "forge:failed"]
+    timestamp: now()
+  }
+}
