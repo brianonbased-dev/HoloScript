@@ -1,0 +1,90 @@
+// @capability_matcher — finds agents by capability type, domain, latency, and trust.
+//
+// Native .hsplus surface for CapabilityMatcher.ts (HoloScript v3.1 Agentic
+// Choreography). An entity carrying @capability_matcher can issue structured
+// queries to discover which live agents offer a given capability.
+//
+// Query dimensions (from CapabilityMatcher.ts CapabilityQuery):
+//   type         — e.g. "compute", "inference", "sensor", "actuator"
+//   domain       — e.g. "robotics", "medical", "language", "vision"
+//   maxLatency   — "realtime" (<10ms), "interactive" (<100ms), "batch" (<10s)
+//   minTrust     — "verified", "trusted", "provisional", "unknown"
+//   spatial      — WGS84 bounding box, max_distance_km, requires_colocation
+//   tags         — custom tags the agent must declare
+//   limit        — max results (default: 5)
+//   sortBy       — "latency" | "trust" | "priority" | "name"
+//   includeOffline — whether to include agents not currently heartbeating
+//
+// The result is a ranked list of AgentManifest entries. The caller then
+// routes `ask_peer` / `delegate_task` / `council` to the matched peers.
+//
+// D.100 Axis-2 ("can delegate, can't find WHOM"): this trait resolves the
+// "find WHOM" half — peer registry handles the routing, capability matcher
+// handles the discovery.
+//
+// Usage:
+//   entity#my_orchestrator @capability_matcher(
+//     default_max_latency: "interactive"
+//     default_min_trust: "trusted"
+//   ) { ... }
+
+@trait capability_matcher {
+  // Default max latency for queries issued by this entity
+  default_max_latency: enum("realtime" | "interactive" | "batch") = "interactive"
+
+  // Default minimum trust level for queries
+  default_min_trust: enum("verified" | "trusted" | "provisional" | "unknown") = "provisional"
+
+  // Default result limit
+  default_limit: Int = 5
+
+  // Whether to include offline agents by default
+  include_offline: Bool = false
+
+  // Spatial scope for location-aware discovery (empty = global)
+  spatial_scope: String?
+
+  capability_tags: ["capability_matcher", "agent_discovery", "d100_axis2", "agentic_choreography", "peer_routing"]
+
+  @on_spawn => {
+    matcher = init_capability_matcher({
+      default_max_latency: default_max_latency,
+      default_min_trust: default_min_trust,
+      default_limit: default_limit,
+      include_offline: include_offline
+    })
+    emit("capability_matcher_ready", {
+      default_max_latency: default_max_latency,
+      default_min_trust: default_min_trust
+    })
+  }
+
+  @on_discover(query) => {
+    results = matcher.find({
+      type: query.type,
+      domain: query.domain,
+      max_latency: query.max_latency ?? default_max_latency,
+      min_trust: query.min_trust ?? default_min_trust,
+      tags: query.tags ?? [],
+      spatial: query.spatial ?? spatial_scope,
+      limit: query.limit ?? default_limit,
+      include_offline: query.include_offline ?? include_offline,
+      sort_by: query.sort_by ?? "trust"
+    })
+    emit("capability_match_result", {
+      query_type: query.type,
+      match_count: len(results),
+      top_match: results[0].handle ?? "none"
+    })
+    return results
+  }
+
+  @receipt capability_matcher_config {
+    type: "CapabilityMatcherReceipt"
+    default_max_latency: default_max_latency
+    default_min_trust: default_min_trust
+    default_limit: default_limit
+    include_offline: include_offline
+    timestamp: now()
+  }
+}

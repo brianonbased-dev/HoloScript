@@ -1,0 +1,119 @@
+// @crdt_document — Yjs-backed CRDT collaborative editing for .hsplus/.holo files.
+//
+// Native .hsplus surface for CRDTDocument.ts. Maps a HoloScript source file
+// (`.hsplus`, `.holo`, or `.hs`) to one Yjs Doc, enabling conflict-free
+// real-time co-editing between multiple agents or human+agent pairs in VR
+// or IDE.
+//
+// Key design decisions (CRDTDocument.ts):
+//   - Text-level CRDT (not AST-level) — simpler, proven, Yjs excels at this
+//   - Awareness protocol for cursor/selection/presence per peer
+//   - File-level granularity (one Yjs Doc per file path)
+//   - Integrates with HoloScriptHotReloader via change events
+//
+// Peer awareness fields (CRDTDocument.ts PeerAwareness):
+//   peerId, displayName, color, cursor (line/col), selection (range)
+//
+// The document emits:
+//   content_changed    — any text edit (with diff)
+//   peer_joined        — a new peer opened the document
+//   peer_left          — a peer closed the document
+//   cursor_moved       — a peer's cursor moved
+//
+// Usage:
+//   entity#my_file @crdt_document(
+//     file_path: "packages/core/src/traits/my_trait.hsplus"
+//     workspace_id: "holoscript"
+//   ) { ... }
+
+@trait crdt_document {
+  // Absolute or relative path to the file being collaboratively edited
+  file_path: String
+
+  // Workspace/project scope (allows multi-project collaboration)
+  workspace_id: String = "holoscript"
+
+  // Awareness color for this entity's cursor (hex)
+  cursor_color: String = "#4080ff"
+
+  // Display name for this entity's cursor presence
+  display_name: String?
+
+  // Maximum undo history depth
+  undo_limit: Int = 100
+
+  // Emit a hot-reload signal on every save
+  hot_reload_on_save: Bool = true
+
+  capability_tags: ["crdt_document", "collaborative_editing", "yjs", "conflict_free", "real_time_co_edit"]
+
+  @on_spawn => {
+    doc = init_crdt_doc({
+      file_path: file_path,
+      workspace_id: workspace_id,
+      undo_limit: undo_limit
+    })
+    awareness = register_peer_awareness({
+      peer_id: entity_id,
+      display_name: display_name ?? entity_id,
+      color: cursor_color
+    })
+    emit("crdt_document_opened", {
+      file_path: file_path,
+      workspace_id: workspace_id
+    })
+  }
+
+  @on_edit(delta) => {
+    doc.apply_delta(delta)
+    emit("content_changed", {
+      file_path: file_path,
+      delta_length: delta.length,
+      cursor: awareness.cursor
+    })
+    if hot_reload_on_save and delta.is_save {
+      trigger_hot_reload(file_path)
+    }
+  }
+
+  @on_cursor_move(position) => {
+    awareness.update_cursor(position)
+    emit("cursor_moved", {
+      peer_id: entity_id,
+      file_path: file_path,
+      line: position.line,
+      column: position.column
+    })
+  }
+
+  @on_peer_joined(peer) => {
+    emit("peer_joined", {
+      file_path: file_path,
+      peer_id: peer.peer_id,
+      display_name: peer.display_name
+    })
+  }
+
+  @on_peer_left(peer) => {
+    emit("peer_left", {
+      file_path: file_path,
+      peer_id: peer.peer_id
+    })
+  }
+
+  @on_despawn => {
+    doc.flush()
+    deregister_peer_awareness(entity_id)
+    emit("crdt_document_closed", { file_path: file_path })
+  }
+
+  @receipt crdt_document_config {
+    type: "CRDTDocumentReceipt"
+    file_path: file_path
+    workspace_id: workspace_id
+    cursor_color: cursor_color
+    undo_limit: undo_limit
+    hot_reload_on_save: hot_reload_on_save
+    timestamp: now()
+  }
+}
