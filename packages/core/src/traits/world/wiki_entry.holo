@@ -1,0 +1,23 @@
+@trait {
+  name: "@wiki_entry",
+  category: "world",
+  description: "In-world knowledge base wiki article node. Stores a titled markdown article with tags, category, and author wallet, publishing it to the HoloMesh knowledge store on commit, supporting versioning, diff views, and cross-linking to other wiki entries by ID. Authored from WikiEntryTrait.ts.",
+  props: {
+    entry_id: string = "",
+    title: string = "",
+    body_markdown: string = "",
+    category: string = "",
+    tags: list<string> = [],
+    author_wallet: string = "",
+    version: number = 1,
+    public: boolean = true
+  },
+  events: {
+    attached: "wiki_entry_attached",
+    detached: "wiki_entry_detached",
+    on_publish: "wiki_entry_publish",
+    on_edit: "wiki_entry_edit",
+    publish: "wiki_entry_trigger_publish"
+  },
+  behaviors: ["@lore_entry", "@knowledge_base", "@profile"]
+}

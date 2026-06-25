@@ -1,0 +1,22 @@
+@trait {
+  name: "@zone_capture",
+  category: "game",
+  description: "Capturable control-point zone. Tracks the faction presence within a radius, advancing a capture progress bar toward the majority faction, awarding the zone and triggering events on completion, and neutralizing if ownership flips. Authored from ZoneCaptureTrait.ts.",
+  props: {
+    capture_radius_m: number = 8,
+    capture_rate: number = 0.5,
+    neutralize_rate: number = 0.3,
+    owner_faction: string = "",
+    capture_progress: number = 0,
+    score_per_second: number = 1,
+    visual_color: string = "#888888"
+  },
+  events: {
+    attached: "zone_capture_attached",
+    detached: "zone_capture_detached",
+    on_capture: "zone_capture_capture",
+    on_neutralize: "zone_capture_neutralize",
+    on_contest: "zone_capture_contest"
+  },
+  behaviors: ["@penalty_zone", "@team_spawner", "@objective"]
+}

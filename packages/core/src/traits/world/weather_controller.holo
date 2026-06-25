@@ -1,0 +1,20 @@
+@trait {
+  name: "@weather_controller",
+  category: "world",
+  description: "Dynamic weather state machine. Transitions the world between weather presets (clear, cloudy, rain, storm, fog, snow) by cross-fading sky, volumetric fog, rain particle system, wind vector, and ambient light intensity, supporting real-time-linked weather data feeds. Authored from WeatherControllerTrait.ts.",
+  props: {
+    current_preset: enum("clear" | "cloudy" | "rain" | "storm" | "fog" | "snow") = "clear",
+    transition_s: number = 30,
+    wind_speed_m_s: number = 0,
+    wind_direction_deg: number = 0,
+    real_time_feed_url: string = "",
+    cycle_enabled: boolean = false
+  },
+  events: {
+    attached: "weather_controller_attached",
+    detached: "weather_controller_detached",
+    on_change: "weather_controller_change",
+    set_preset: "weather_controller_trigger_set_preset"
+  },
+  behaviors: ["@day_night_cycle", "@volumetric_fog", "@skybox"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@xp_multiplier",
+  category: "game",
+  description: "Timed XP gain multiplier buff. Applies a multiplicative bonus to all XP-earn events on the target entity for a duration — from a daily event, premium item, or seasonal reward — stacking additively with other XP sources and logging the bonus to the economy ledger. Authored from XpMultiplierTrait.ts.",
+  props: {
+    multiplier: number = 2.0,
+    duration_s: number = 3600,
+    stackable: boolean = false,
+    log_to_url: string = "",
+    source: string = ""
+  },
+  events: {
+    attached: "xp_multiplier_attached",
+    detached: "xp_multiplier_detached",
+    on_activate: "xp_multiplier_activate",
+    on_expire: "xp_multiplier_expire",
+    activate: "xp_multiplier_trigger_activate"
+  },
+  behaviors: ["@player_stats", "@powerup", "@discount"]
+}
