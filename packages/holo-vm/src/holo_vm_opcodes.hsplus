@@ -1,0 +1,86 @@
+// @holo_vm_opcodes — HOLO VM opcode substrate: 8 families, ~60 spatial opcodes.
+//
+// Native .hsplus surface for opcodes.ts (holo-vm).
+//
+// 8 opcode families for spatial scene execution (opcodes.ts):
+//   0x01–0x0F  Entity Operations   SPAWN/DESPAWN/CLONE/SET_COMPONENT/GET_COMPONENT/
+//                                   REMOVE_COMPONENT/SET_PARENT/QUERY
+//   0x10–0x1F  Spatial Operations  TRANSFORM/TRANSLATE/ROTATE/LOOK_AT/RAYCAST/
+//                                   QUERY_BOX/QUERY_SPHERE/FIND_PATH/GET_ZONE
+//   0x20–0x2F  Physics Operations  ADD_RIGIDBODY/APPLY_FORCE/...
+//   0x30–0x3F  Rendering Hints     (material, LOD, visibility, culling)
+//   0x40–0x4F  Trait Operations    (attach/detach/query traits)
+//   0x50–0x5F  I/O & Networking    (event emit/receive, WebSocket)
+//   0x60–0x6F  Control Flow        (JUMP/CALL/RET/conditional)
+//   0x70–0x7F  Agent Bridge        (uAAL interop, agent handoff)
+//
+// Each opcode is 1 byte; operands are variable-length per opcode definition.
+// GeometryType enum + ComponentType enum also live in this module.
+
+@trait holo_vm_opcodes {
+  // VM version this opcode table targets
+  vm_version: String = "1.0"
+
+  capability_tags: ["holo_vm_opcodes", "holo_vm", "spatial_opcodes", "ecs", "physics", "agent_bridge", "holob"]
+
+  @on_spawn => {
+    opcode_table = load_holo_vm_opcode_table({ vm_version: vm_version })
+    emit("holo_vm_opcodes_ready", {
+      vm_version: vm_version,
+      family_count: 8
+    })
+  }
+
+  // Decode opcode byte → mnemonic + operand schema
+  @on_decode(opcode_byte) => {
+    return holo_decode_opcode(opcode_byte, vm_version)
+  }
+
+  // Validate bytecode sequence
+  @on_validate(bytecode) => {
+    result = holo_validate_bytecode(bytecode, vm_version)
+    if not result.ok {
+      emit("holo_vm_bytecode_invalid", { reason: result.reason, offset: result.offset })
+    }
+    return result
+  }
+
+  // List all entity operation opcodes (0x01–0x0F)
+  @on_entity_ops => {
+    return [
+      { opcode: 0x01, mnemonic: "SPAWN",            desc: "create entity with archetype" },
+      { opcode: 0x02, mnemonic: "DESPAWN",          desc: "remove entity from world" },
+      { opcode: 0x03, mnemonic: "CLONE",            desc: "deep-copy entity" },
+      { opcode: 0x04, mnemonic: "SET_COMPONENT",    desc: "attach/update component" },
+      { opcode: 0x05, mnemonic: "GET_COMPONENT",    desc: "read component data" },
+      { opcode: 0x06, mnemonic: "REMOVE_COMPONENT", desc: "detach component" },
+      { opcode: 0x07, mnemonic: "SET_PARENT",       desc: "set parent in scene graph" },
+      { opcode: 0x08, mnemonic: "QUERY",            desc: "ECS archetype query" }
+    ]
+  }
+
+  // List all spatial operation opcodes (0x10–0x18)
+  @on_spatial_ops => {
+    return [
+      { opcode: 0x10, mnemonic: "TRANSFORM",    desc: "set world transform" },
+      { opcode: 0x11, mnemonic: "TRANSLATE",    desc: "relative move" },
+      { opcode: 0x12, mnemonic: "ROTATE",       desc: "set rotation (quaternion)" },
+      { opcode: 0x13, mnemonic: "LOOK_AT",      desc: "orient toward target" },
+      { opcode: 0x14, mnemonic: "RAYCAST",      desc: "ray spatial query → hits" },
+      { opcode: 0x15, mnemonic: "QUERY_BOX",    desc: "AABB spatial query" },
+      { opcode: 0x16, mnemonic: "QUERY_SPHERE", desc: "sphere spatial query" },
+      { opcode: 0x17, mnemonic: "FIND_PATH",    desc: "navigation pathfinding" },
+      { opcode: 0x18, mnemonic: "GET_ZONE",     desc: "zone lookup by position" }
+    ]
+  }
+
+  @receipt holo_vm_opcodes_config {
+    type: "HoloVMOpcodesReceipt"
+    vm_version: vm_version
+    opcode_families: 8
+    entity_range: "0x01-0x0F"
+    spatial_range: "0x10-0x1F"
+    agent_bridge_range: "0x70-0x7F"
+    timestamp: now()
+  }
+}

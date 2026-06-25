@@ -1,0 +1,78 @@
+// @a2a_hsnap_bridge — A2A ↔ HSNAP compatibility bridge.
+//
+// Native .hsplus surface for A2AHSNAPBridge.ts (agent-protocol).
+//
+// Translates between three canonical task envelope representations:
+//   1. CanonicalTaskEnvelope — internal normalized form
+//   2. A2A sendMessage JSON-RPC payload (A2ASendMessageRequest)
+//   3. HSNAP source string (HoloScript Native Agent Protocol)
+//
+// Bridge methods (A2AHSNAPBridge.ts):
+//   to_canonical(task)         — HSNAPTaskMetadata → CanonicalTaskEnvelope
+//   to_a2a_message(env, opts)  — CanonicalTaskEnvelope → A2ASendMessageRequest
+//   from_a2a_message(payload)  — A2ASendMessageRequest → CanonicalTaskEnvelope | null
+//   to_hsnap_source(env, opts) — CanonicalTaskEnvelope → HSNAP String
+//   from_hsnap_source(src)     — HSNAP String → CanonicalTaskEnvelope
+//   translate_a2a_to_hsnap(p)  — A2A payload → HSNAP String | null (full pipeline)
+//
+// BridgeEnvelopeOptions: request_id?, timestamp?, composition_name?
+
+@trait a2a_hsnap_bridge {
+  // Default request_id prefix when not provided
+  default_request_id: String = "a2a-hsnap-bridge"
+
+  capability_tags: ["a2a_hsnap_bridge", "a2a_protocol", "hsnap", "canonical_task", "agent_interop", "protocol_bridge"]
+
+  @on_spawn => {
+    bridge = init_a2a_hsnap_bridge({ default_request_id: default_request_id })
+    emit("a2a_hsnap_bridge_ready", {})
+  }
+
+  // HSNAPTaskMetadata → CanonicalTaskEnvelope
+  @on_to_canonical(task) => {
+    return bridge.to_canonical(task)
+  }
+
+  // CanonicalTaskEnvelope → A2A sendMessage JSON-RPC payload
+  @on_to_a2a_message(envelope, request_id, timestamp) => {
+    return bridge.to_a2a_message(envelope, {
+      request_id: request_id ?? default_request_id,
+      timestamp: timestamp
+    })
+  }
+
+  // A2A payload → CanonicalTaskEnvelope (returns null on malformed input)
+  @on_from_a2a_message(payload) => {
+    result = bridge.from_a2a_message(payload)
+    if not result {
+      emit("a2a_hsnap_bridge_parse_error", { source: "a2a_message" })
+    }
+    return result
+  }
+
+  // CanonicalTaskEnvelope → HSNAP source string
+  @on_to_hsnap_source(envelope, composition_name) => {
+    return bridge.to_hsnap_source(envelope, { composition_name: composition_name })
+  }
+
+  // HSNAP source string → CanonicalTaskEnvelope
+  @on_from_hsnap_source(source) => {
+    return bridge.from_hsnap_source(source)
+  }
+
+  // Full pipeline: A2A payload → HSNAP source (returns null on malformed input)
+  @on_translate_a2a_to_hsnap(payload, composition_name) => {
+    result = bridge.translate_a2a_to_hsnap(payload, { composition_name: composition_name })
+    if result {
+      emit("a2a_hsnap_translated", {})
+    }
+    return result
+  }
+
+  @receipt a2a_hsnap_bridge_config {
+    type: "A2AHSNAPBridgeReceipt"
+    default_request_id: default_request_id
+    formats: ["CanonicalTaskEnvelope", "A2ASendMessageRequest", "HSNAPSource"]
+    timestamp: now()
+  }
+}

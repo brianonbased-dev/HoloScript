@@ -1,0 +1,80 @@
+// @uaal_compiler — uAAL compiler v2.0: Intent DSL → UAALBytecode.
+//
+// Native .hsplus surface for compiler.ts (uaal).
+//
+// The uAAL compiler takes structured intent declarations and emits
+// UAAL bytecode for the uAAL VM to execute.
+//
+// Intent language (compiler.ts, v2.0.0):
+//   INTAKE("source")         → INTAKE opcode; absorb knowledge from source
+//   REFLECT                  → REFLECT opcode; evaluate current state
+//   EXECUTE("task")          → EXECUTE opcode; perform action
+//   COMPRESS                 → COMPRESS opcode; consolidate patterns
+//   DREAMING / REINTAKE      → REINTAKE opcode (legacy alias); re-evaluate
+//   GROW                     → GROW opcode; learn new patterns
+//   EVOLVE                   → EVOLVE opcode; adapt behavior
+//   CYCLE("task")            → emit all 7 cognitive phase opcodes in sequence
+//   IF condition THEN ... END → conditional branch (JUMP_IF)
+//   PARALLEL { ... }         → concurrent execution block
+//   INVOKE_LLM("prompt")     → external LLM call opcode
+//   SPAWN_AGENT("name")      → create child agent opcode
+//   SHARE_WISDOM("topic")    → publish to knowledge mesh
+//   ANCHOR                   → create temporal snapshot
+//   DELAY(ms)                → OP_DELAY opcode
+//
+// Compilation pipeline: tokenize → parse → codegen → UAALBytecode
+
+@trait uaal_compiler {
+  // Strict mode: reject unknown keywords vs silently skip
+  strict_mode: Bool = true
+
+  // Max instruction count (compile-time limit on PARALLEL/CYCLE nesting)
+  max_instructions: Int = 10000
+
+  capability_tags: ["uaal_compiler", "uaal_intent_dsl", "bytecode_codegen", "cognitive_protocol", "uaa2_phases", "language_compiler"]
+
+  @on_spawn => {
+    compiler = init_uaal_compiler({
+      strict_mode: strict_mode,
+      max_instructions: max_instructions
+    })
+    emit("uaal_compiler_ready", { strict_mode: strict_mode })
+  }
+
+  // Compile intent source string → UAALBytecode
+  @on_compile(source) => {
+    result = compiler.compile(source)
+    if result.ok {
+      emit("uaal_compile_success", { instruction_count: result.bytecode.instructions.size })
+    } else {
+      emit("uaal_compile_error", { reason: result.reason, line: result.line })
+    }
+    return result
+  }
+
+  // Compile a 7-phase CYCLE: emits INTAKE→REFLECT→COMPRESS→EXECUTE→REINTAKE→GROW→EVOLVE
+  @on_compile_cycle(task) => {
+    source = "CYCLE(\"" + task + "\")"
+    return compiler.compile(source)
+  }
+
+  // Validate source without emitting bytecode
+  @on_validate(source) => {
+    result = compiler.validate(source)
+    return result
+  }
+
+  // Disassemble UAALBytecode back to human-readable intent form
+  @on_disassemble(bytecode) => {
+    return compiler.disassemble(bytecode)
+  }
+
+  @receipt uaal_compiler_config {
+    type: "UAALCompilerReceipt"
+    strict_mode: strict_mode
+    max_instructions: max_instructions
+    version: "2.0.0"
+    cognitive_keywords: ["INTAKE", "REFLECT", "EXECUTE", "COMPRESS", "DREAMING", "GROW", "EVOLVE", "CYCLE"]
+    timestamp: now()
+  }
+}
