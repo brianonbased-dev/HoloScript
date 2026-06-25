@@ -1,0 +1,65 @@
+// @interactive_scene_enricher — Add hover/click/edge interaction to a compiled CodebaseScene.
+//
+// Native .hsplus surface for InteractiveSceneEnricher.ts (absorb-service/engine/visualization).
+//
+// Post-processes a SceneComposition from CodebaseSceneCompiler to add
+// interactive capabilities: hover highlighting, click selection, edge tracing,
+// tooltips, and camera fly-to.
+//
+// Generates InteractionEvent handlers for:
+//   graph:hover  → highlight node + show tooltip
+//   graph:select → highlight node + connected edges
+//   graph:focus  → fly camera to node (double-click)
+//
+// InteractionAction types (InteractiveSceneEnricher.ts):
+//   highlight     — { color?, emissive_intensity?, scale? }
+//   tooltip       — { content: String[] }
+//   edge_highlight — { edge_type: "import"|"call"|"all", color?, width? }
+//   camera_fly_to — { offset?: {x,y,z}, duration? }
+//   select        — { multi_select?: Bool }
+//
+// EnricherOptions: hover_highlight, click_select, edge_highlight, camera_fly_to
+// Output: InteractiveSceneComposition { ...SceneComposition, interaction_events, traits }
+
+@trait interactive_scene_enricher {
+  // Enable hover highlighting
+  hover_highlight: Bool = true
+
+  // Enable click selection
+  click_select: Bool = true
+
+  // Enable edge highlighting on hover/select
+  edge_highlight: Bool = true
+
+  // Enable camera fly-to on double-click
+  camera_fly_to: Bool = true
+
+  capability_tags: ["interactive_scene_enricher", "scene_interaction", "hover_highlight", "edge_highlight", "camera_fly_to", "absorb_service", "codebase_visualization"]
+
+  @on_spawn => {
+    enricher = init_interactive_scene_enricher({
+      hover_highlight: hover_highlight,
+      click_select: click_select,
+      edge_highlight: edge_highlight,
+      camera_fly_to: camera_fly_to
+    })
+    emit("interactive_scene_enricher_ready", {})
+  }
+
+  // Enrich a SceneComposition with interaction handlers → InteractiveSceneComposition
+  @on_enrich(scene) => {
+    interactive_scene = enricher.enrich(scene)
+    emit("scene_enriched", { event_count: interactive_scene.interaction_events.size })
+    return interactive_scene
+  }
+
+  @receipt interactive_enricher_config {
+    type: "InteractiveSceneEnricherReceipt"
+    hover_highlight: hover_highlight
+    click_select: click_select
+    edge_highlight: edge_highlight
+    camera_fly_to: camera_fly_to
+    events: ["graph:hover", "graph:select", "graph:focus"]
+    timestamp: now()
+  }
+}

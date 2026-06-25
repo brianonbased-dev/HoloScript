@@ -1,0 +1,62 @@
+// @typescript_adapter — tree-sitter language adapter for TypeScript/JavaScript source files.
+//
+// Native .hsplus surface for TypeScriptAdapter.ts (absorb-service/engine/adapters).
+//
+// Extracts symbols, imports, and call edges from TypeScript and JavaScript
+// source files via tree-sitter-typescript / tree-sitter-javascript.
+//
+// TypeScriptAdapter (TypeScriptAdapter.ts):
+//   language: "typescript"
+//   extensions: [.ts, .tsx, .js, .jsx, .mts, .cts, .mjs, .cjs]
+//   grammarPackage: "tree-sitter-typescript"
+//
+//   Extracted symbol types: class, abstract_class, interface, function,
+//   arrow_function, variable, enum, type_alias, namespace, decorator
+//
+//   extractSymbols(tree, filePath)  → ExternalSymbolDefinition[]
+//   extractImports(tree, filePath)  → ImportEdge[]
+//   extractCalls(tree, filePath)    → CallEdge[]
+//   extractClassMembers: methods + fields from class bodies
+//   exportedNames: tracks ESM export statements (hasExportModifier)
+//
+// Uses BaseAdapter helpers: walkTree, nodeToSymbol, getFieldText, extractVisibility.
+
+@trait typescript_adapter {
+  capability_tags: ["typescript_adapter", "tree_sitter", "language_adapter", "symbol_extraction", "typescript", "javascript", "absorb_service"]
+
+  @on_spawn => {
+    adapter = init_typescript_adapter()
+    emit("typescript_adapter_ready", {
+      language: "typescript",
+      extensions: [".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]
+    })
+  }
+
+  // Extract all symbols from a TypeScript/JavaScript file
+  @on_extract_symbols(tree, file_path) => {
+    symbols = adapter.extract_symbols(tree, file_path)
+    emit("ts_symbols_extracted", { file: file_path, count: symbols.size })
+    return symbols
+  }
+
+  // Extract all import edges
+  @on_extract_imports(tree, file_path) => {
+    imports = adapter.extract_imports(tree, file_path)
+    return imports
+  }
+
+  // Extract all call edges
+  @on_extract_calls(tree, file_path) => {
+    calls = adapter.extract_calls(tree, file_path)
+    return calls
+  }
+
+  @receipt typescript_adapter_config {
+    type: "TypeScriptAdapterReceipt"
+    language: "typescript"
+    extensions: [".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"]
+    grammar: "tree-sitter-typescript"
+    symbol_types: ["class", "interface", "function", "enum", "type_alias", "variable", "namespace"]
+    timestamp: now()
+  }
+}

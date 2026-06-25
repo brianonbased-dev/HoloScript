@@ -1,0 +1,88 @@
+// @forgetting_detector — Real-time catastrophic forgetting detection during OPLoRA GRPO training.
+//
+// Native .hsplus surface for ForgettingDetector.ts (absorb-service/self-improvement).
+//
+// Focused real-time algorithm called after every evaluation step in the GRPO
+// training loop. Unlike OPLoRAMonitor (comprehensive dashboard), this is a
+// lean, early-warning detector.
+//
+// ForgettingDetectorConfig (ForgettingDetector.ts):
+//   window_size: Int = 10            — sliding window over benchmark scores
+//   absolute_threshold: Float = 2.0  — alert when baseline - current > 2.0 (pct points)
+//   relative_threshold: Float = 0.05 — alert when drop/baseline > 5%
+//   min_data_points: Int = 3         — minimum before trend analysis activates
+//
+// Detection features:
+//   1. Sliding window trend analysis
+//   2. Configurable absolute and relative drop thresholds
+//   3. Linear regression slope for early-warning (negative trend before threshold crossed)
+//   4. Multi-benchmark independent tracking per benchmark name
+//
+// Called after every eval step. Returns ForgettingAlert if any condition triggered.
+
+@trait forgetting_detector {
+  // Sliding window size over evaluation steps
+  window_size: Int = 10
+
+  // Absolute score drop threshold (percentage points)
+  absolute_threshold: Float = 2.0
+
+  // Relative score drop threshold (fraction of baseline)
+  relative_threshold: Float = 0.05
+
+  // Minimum data points before trend analysis activates
+  min_data_points: Int = 3
+
+  capability_tags: ["forgetting_detector", "catastrophic_forgetting", "oplora", "grpo_training", "benchmark_monitoring", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    detector = init_forgetting_detector({
+      window_size: window_size,
+      absolute_threshold: absolute_threshold,
+      relative_threshold: relative_threshold,
+      min_data_points: min_data_points
+    })
+    emit("forgetting_detector_ready", {
+      window_size: window_size,
+      absolute_threshold: absolute_threshold
+    })
+  }
+
+  // Record a benchmark score for a named benchmark
+  @on_record(benchmark_name, score) => {
+    alert = detector.record(benchmark_name, score)
+    if alert {
+      emit("forgetting_alert", {
+        benchmark: benchmark_name,
+        score: score,
+        condition: alert.condition
+      })
+    }
+    return alert
+  }
+
+  // Get current state for all tracked benchmarks
+  @on_state => {
+    return detector.get_state()
+  }
+
+  // Reset all benchmark tracking
+  @on_reset => {
+    detector.reset()
+    emit("forgetting_detector_reset", {})
+  }
+
+  @receipt forgetting_detector_config {
+    type: "ForgettingDetectorReceipt"
+    window_size: window_size
+    absolute_threshold: absolute_threshold
+    relative_threshold: relative_threshold
+    min_data_points: min_data_points
+    alert_conditions: [
+      "baseline - current > absolute_threshold",
+      "(baseline - current) / baseline > relative_threshold",
+      "linear regression slope is negative (early warning)"
+    ]
+    timestamp: now()
+  }
+}
