@@ -1,0 +1,17 @@
+@trait {
+  name: "@image_resize",
+  category: "devops",
+  description: "Image resize, crop, and format conversion. On image:resize command clamps requested dimensions to max_width/max_height and emits image:resized with the output dimensions, quality, and format. Port of ImageResizeTrait.ts (handler name: image_resize).",
+  props: {
+    max_width: number = 2048,
+    max_height: number = 2048,
+    quality: number = 85
+  },
+  events: {
+    attached: "image_resize_attached",
+    detached: "image_resize_detached",
+    on_resized: "image:resized",
+    resize: "image:resize"
+  },
+  behaviors: ["@video_transcode", "@database"]
+}

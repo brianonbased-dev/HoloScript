@@ -1,0 +1,28 @@
+@trait {
+  name: "@voronoi_fracture",
+  category: "physics",
+  description: "Procedural destruction via 3D Voronoi cell generation. Simulates stress-based damage accumulation, crack propagation to neighbors, fragment pooling, and progressive LOD for distant shards. Config is fully optional — all defaults come from VoronoiFractureSystem. Port of VoronoiFractureTrait.ts (handler name: voronoi_fracture).",
+  props: {
+    voronoi_sites: number = 32,
+    bounds_min: { x: number, y: number, z: number } = { x: -1, y: -1, z: -1 },
+    bounds_max: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 },
+    destruction_threshold: number = 0.5,
+    max_health: number = 100.0,
+    enable_crack_propagation: boolean = true,
+    crack_propagation_speed: number = 10.0,
+    enable_lod: boolean = true,
+    lod_distances: { x: number, y: number, z: number } = { x: 10, y: 20, z: 40 },
+    enable_pooling: boolean = true,
+    max_pooled_fragments: number = 256
+  },
+  events: {
+    attached: "voronoi_fracture_attached",
+    detached: "voronoi_fracture_detached",
+    configure: "voronoi_fracture_configure",
+    on_configured: "voronoi_fracture_configured",
+    on_fracture: "voronoi_fracture_fractured",
+    on_fragment_destroyed: "voronoi_fracture_fragment_destroyed",
+    apply_damage: "voronoi_fracture_apply_damage"
+  },
+  behaviors: ["@rigidbody", "@granular_material", "@physics/joint"]
+}

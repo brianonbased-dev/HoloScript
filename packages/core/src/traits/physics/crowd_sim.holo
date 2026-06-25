@@ -1,0 +1,27 @@
+@trait {
+  name: "@crowd_sim",
+  category: "physics",
+  description: "GPU crowd simulation with BOIDS flocking (goal-seeking, separation, alignment, cohesion), configurable avoidance radius, and LOD rendering. Current runtime uses an in-memory agent map; GPU spatial-hash dispatch is aspirational. Port of CrowdSimTrait.ts (handler name: crowd_sim).",
+  props: {
+    max_agents: number = 1000,
+    speed: number = 1.5,
+    avoidance_radius: number = 1.0,
+    goal_weight: number = 1.0,
+    separation_weight: number = 1.5,
+    alignment_weight: number = 1.0,
+    cohesion_weight: number = 0.8,
+    lod_levels: number = 3,
+    use_gpu: boolean = true
+  },
+  events: {
+    attached: "crowd_sim_attached",
+    detached: "crowd_sim_detached",
+    on_agent_added: "crowd_sim_agent_added",
+    on_agent_removed: "crowd_sim_agent_removed",
+    on_goal_set: "crowd_sim_goal_set",
+    add_agent: "crowd_sim_trigger_add",
+    remove_agent: "crowd_sim_trigger_remove",
+    set_goal: "crowd_sim_trigger_set_goal"
+  },
+  behaviors: ["@navmesh_solver", "@walkable", "@hungarian_assignment"]
+}

@@ -1,0 +1,28 @@
+@trait {
+  name: "@granular_material",
+  category: "physics",
+  description: "Particle-based DEM (Discrete Element Method) granular simulation for sand, gravel, soil, and debris. Computes frictional contact forces, cohesion for wet/sticky materials, and spatial-hash collision detection. Config is fully optional — all defaults come from GranularMaterialSystem. Port of GranularMaterialTrait.ts (handler name: granular_material).",
+  props: {
+    gravity: { x: number, y: number, z: number } = { x: 0, y: -9.81, z: 0 },
+    bounds_min: { x: number, y: number, z: number } = { x: -10, y: -10, z: -10 },
+    bounds_max: { x: number, y: number, z: number } = { x: 10, y: 10, z: 10 },
+    density: number = 1500.0,
+    restitution: number = 0.3,
+    friction: number = 0.5,
+    cohesion: number = 0.0,
+    stiffness: number = 1000.0,
+    damping: number = 0.3,
+    enable_collision: boolean = true,
+    grid_cell_size: number = 0.1,
+    max_particles: number = 10000
+  },
+  events: {
+    attached: "granular_material_attached",
+    detached: "granular_material_detached",
+    configure: "granular_material_configure",
+    on_configured: "granular_material_configured",
+    add_particle: "granular_material_add_particle",
+    step: "granular_material_step"
+  },
+  behaviors: ["@rigidbody", "@physics/slidable", "@gpu_physics"]
+}
