@@ -1,0 +1,54 @@
+// @tenant_manager — Core tenant CRUD for multi-tenant HoloScript isolation (Sprint 9).
+//
+// Native .hsplus surface for tenancy/TenantManager.ts (platform).
+//
+// QuotaConfig (TenantManager.ts):
+//   { max_compilations_per_hour, max_storage_bytes, max_projects_per_tenant, max_deployments_per_day }
+//
+// TenantPlan: free | pro | enterprise
+//
+// TenantSettings { max_users, max_projects, max_storage_bytes, allowed_features, custom_domain? }
+//
+// Tenant { id, name, plan, quotas, settings, created_at, metadata }
+//
+// TenantPermission: read | write | admin | compile | deploy | publish
+//
+// TenantContext { tenant_id, user_id?, session_id, permissions: TenantPermission[] }
+//
+// Operations:
+//   createTenant(name, plan, quotas, settings) → Tenant
+//   getTenant(id) → Tenant | null
+//   updateTenant(id, updates) → Tenant
+//   deleteTenant(id) → void
+//   checkPermission(tenant_id, user_id, permission) → Bool
+
+@trait tenant_manager {
+  capability_tags: ["tenant_manager", "multi_tenancy", "tenant_crud", "sprint_9", "platform"]
+
+  @on_spawn(storage) => {
+    manager = init_tenant_manager(storage)
+    emit("tenant_manager_ready", {})
+  }
+
+  @on_create_tenant(name, plan, quotas, settings) => {
+    tenant = manager.create_tenant(name, plan, quotas, settings)
+    emit("tenant_created", { id: tenant.id, plan: tenant.plan })
+    return tenant
+  }
+
+  @on_get_tenant(id) => {
+    return manager.get_tenant(id)
+  }
+
+  @on_check_permission(tenant_id, user_id, permission) => {
+    return manager.check_permission(tenant_id, user_id, permission)
+  }
+
+  @receipt tenant_manager_config {
+    type: "TenantManagerReceipt"
+    sprint: "Sprint 9 — Multi-Tenant Isolation"
+    plans: ["free", "pro", "enterprise"]
+    permissions: ["read", "write", "admin", "compile", "deploy", "publish"]
+    timestamp: now()
+  }
+}

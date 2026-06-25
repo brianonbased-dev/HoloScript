@@ -1,0 +1,48 @@
+// @local_registry — In-process package registry for testing and local development.
+//
+// Native .hsplus surface for registry/LocalRegistry.ts (platform).
+//
+// In-memory; no remote registry dependency.
+// LocalPackageInput { name, version, description?, author?, tags?, content? }
+// LocalVersionEntry { version, description?, content?, checksum (SHA-256), publishedAt: ISO }
+// LocalPackageManifest { name, description?, author?, tags?, latest, downloads, versions[] }
+//
+// LocalRegistry operations (LocalRegistry.ts):
+//   publish(input) → LocalVersionEntry   — adds version, SHA-256 checksums content
+//   list() → LocalPackageManifest[]
+//   search(query) → LocalPackageManifest[]
+//   get(name) → LocalPackageManifest | undefined
+//   getVersion(name, version) → LocalVersionEntry | undefined
+//   clear() → void
+//   size: Int
+
+@trait local_registry {
+  capability_tags: ["local_registry", "package_registry", "in_memory", "test_dev", "platform"]
+
+  @on_spawn => {
+    registry = init_local_registry()
+    emit("local_registry_ready", {})
+  }
+
+  @on_publish(input) => {
+    entry = registry.publish(input)
+    emit("package_published", { name: input.name, version: input.version })
+    return entry
+  }
+
+  @on_search(query) => {
+    return registry.search(query)
+  }
+
+  @on_get(name) => {
+    return registry.get(name)
+  }
+
+  @receipt local_registry_config {
+    type: "LocalRegistryReceipt"
+    backend: "in-memory (not durable)"
+    intended_for: "testing and local development"
+    checksum: "SHA-256 per content string"
+    timestamp: now()
+  }
+}

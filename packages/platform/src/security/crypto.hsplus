@@ -1,0 +1,49 @@
+// @security_crypto — Web Crypto API utilities: SHA-256/512, HMAC-SHA256, ECDH, AES-GCM.
+//
+// Native .hsplus surface for security/crypto.ts (platform).
+//
+// Production-grade async crypto using Web Crypto API (crypto.subtle).
+// Replaces placeholder crypto implementations (Sprint 3).
+//
+// Functions (security/crypto.ts):
+//   sha256(data: String | ArrayBuffer) → Promise<String (hex)>
+//   sha512(data: String | ArrayBuffer) → Promise<String (hex)>
+//   hmacSha256(data: String, secret: String) → Promise<String (hex)>
+//   generateECDHKeyPair() → Promise<CryptoKeyPair>
+//   deriveSharedSecret(privateKey, publicKey) → Promise<CryptoKey>
+//   encryptAESGCM(data: String, key: CryptoKey) → Promise<{ ciphertext, iv }>
+//   decryptAESGCM(ciphertext, iv, key) → Promise<String>
+//   bufferToHex(buffer: ArrayBuffer) → String
+
+@trait security_crypto {
+  capability_tags: ["security_crypto", "web_crypto", "sha256", "aes_gcm", "ecdh", "platform"]
+
+  @on_spawn => {
+    crypto_util = init_security_crypto()
+    emit("security_crypto_ready", {})
+  }
+
+  @on_sha256(data) => {
+    return crypto_util.sha256(data)
+  }
+
+  @on_hmac_sha256(data, secret) => {
+    return crypto_util.hmac_sha256(data, secret)
+  }
+
+  @on_encrypt_aes_gcm(data, key) => {
+    return crypto_util.encrypt_aes_gcm(data, key)
+  }
+
+  @on_decrypt_aes_gcm(ciphertext, iv, key) => {
+    return crypto_util.decrypt_aes_gcm(ciphertext, iv, key)
+  }
+
+  @receipt security_crypto_config {
+    type: "SecurityCryptoReceipt"
+    engine: "Web Crypto API (crypto.subtle)"
+    sprint: "Sprint 3 — Safety & Testing"
+    algorithms: ["SHA-256", "SHA-512", "HMAC-SHA256", "ECDH", "AES-GCM"]
+    timestamp: now()
+  }
+}

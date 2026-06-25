@@ -1,0 +1,45 @@
+// @rate_limiter — Token bucket rate limiter (Sprint 9).
+//
+// Native .hsplus surface for ratelimit/RateLimiter.ts (platform).
+//
+// Token bucket algorithm: tokens accumulate up to burst_size; consumed per request.
+//
+// RateLimitConfig (RateLimiter.ts):
+//   tokens_per_second: Int  — max sustained rate
+//   tokens_per_minute: Int  — soft cap for sustained usage
+//   burst_size: Int         — max accumulated tokens (burst capacity)
+//
+// RateLimitResult { allowed, remaining, retry_after_ms (0 if allowed), limit (=burst_size) }
+//
+// Bucket state { tokens, last_refill_time, minute_tokens, minute_window_start }
+
+@trait rate_limiter {
+  tokens_per_second: Int = 10
+  tokens_per_minute: Int = 100
+  burst_size: Int = 20
+
+  capability_tags: ["rate_limiter", "token_bucket", "sprint_9", "platform"]
+
+  @on_spawn(config) => {
+    limiter = init_rate_limiter(config ?? {
+      tokens_per_second: tokens_per_second,
+      tokens_per_minute: tokens_per_minute,
+      burst_size: burst_size
+    })
+    emit("rate_limiter_ready", {})
+  }
+
+  @on_check(key) => {
+    result = limiter.check(key)
+    emit("rate_limit_checked", { allowed: result.allowed, remaining: result.remaining })
+    return result
+  }
+
+  @receipt rate_limiter_config {
+    type: "RateLimiterReceipt"
+    algorithm: "token bucket"
+    sprint: "Sprint 9 — Rate Limiting & Quotas"
+    burst_size: burst_size
+    timestamp: now()
+  }
+}

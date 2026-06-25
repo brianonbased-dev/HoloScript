@@ -1,0 +1,52 @@
+// @hybrid_crypto_provider — Post-quantum crypto (ML-KEM + ML-DSA) hybrid with classical ECDSA.
+//
+// Native .hsplus surface for crypto/HybridCryptoProvider.ts (platform).
+//
+// Defense-in-depth: if EITHER classical or post-quantum algorithm is broken, the other holds.
+// Uses @noble/post-quantum library.
+//
+// ClassicalAlgorithm (HybridCryptoProvider.ts):
+//   ecdsa-p256 | ecdsa-p384 | ed25519 | x25519
+//
+// PQAlgorithm:
+//   ml-kem-768 | ml-kem-1024  (NIST ML-KEM / Kyber — key encapsulation)
+//   ml-dsa-65  | ml-dsa-87   (NIST ML-DSA / Dilithium — signatures)
+//
+// HybridKeyPair { id, classical_public_key, classical_private_key, pq_public_key, pq_private_key,
+//                 classical_algorithm, pq_algorithm, created_at }
+// HybridSignature — classical + PQ signature combined
+
+@trait hybrid_crypto_provider {
+  default_classical: String = "ed25519"
+  default_pq: String = "ml-dsa-65"
+
+  capability_tags: ["hybrid_crypto_provider", "post_quantum", "ml_kem", "ml_dsa", "ecdsa", "platform"]
+
+  @on_spawn => {
+    provider = init_hybrid_crypto_provider({ classical: default_classical, pq: default_pq })
+    emit("hybrid_crypto_provider_ready", { classical: default_classical, pq: default_pq })
+  }
+
+  @on_generate_key_pair(classical_algorithm, pq_algorithm) => {
+    key_pair = provider.generate_key_pair(classical_algorithm, pq_algorithm)
+    emit("key_pair_generated", { id: key_pair.id, classical: classical_algorithm, pq: pq_algorithm })
+    return key_pair
+  }
+
+  @on_sign(data, key_pair) => {
+    return provider.sign(data, key_pair)
+  }
+
+  @on_verify(data, signature, key_pair) => {
+    return provider.verify(data, signature, key_pair)
+  }
+
+  @receipt hybrid_crypto_provider_config {
+    type: "HybridCryptoProviderReceipt"
+    lib: "@noble/post-quantum"
+    kem_algorithms: ["ml-kem-768", "ml-kem-1024"]
+    dsa_algorithms: ["ml-dsa-65", "ml-dsa-87"]
+    defense: "hybrid classical+PQ: either can hold if other is broken"
+    timestamp: now()
+  }
+}

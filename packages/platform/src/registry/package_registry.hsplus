@@ -1,0 +1,48 @@
+// @package_registry — HoloScript package registry with private packages + ACL (Sprint 5+6).
+//
+// Native .hsplus surface for registry/PackageRegistry.ts (platform).
+//
+// Provides package management:
+//   package.holo.json manifest, registry client, dependency resolution,
+//   semver version management, org-scoped private packages, token auth.
+//
+// SemVer { major, minor, patch, prerelease?, build? }
+// PackageDependency { name, version (semver range), optional?, dev? }
+// PackageManifest { name (scoped or unscoped), version, description?, keywords?, author?, license?, ... }
+//
+// PackageRegistry operations (PackageRegistry.ts):
+//   publish(manifest, content, token) → PackageEntry
+//   search(query, opts?) → PackageSearchResult[]
+//   resolve(name, versionRange?) → ResolvedPackage
+//   download(name, version) → PackageContent
+//   checkAccess(name, userId, level) → Bool
+
+@trait package_registry {
+  capability_tags: ["package_registry", "semver", "private_packages", "access_control", "platform"]
+
+  @on_spawn(config) => {
+    registry = init_package_registry(config)
+    emit("package_registry_ready", {})
+  }
+
+  @on_publish(manifest, content, token) => {
+    entry = registry.publish(manifest, content, token)
+    emit("package_published", { name: manifest.name, version: manifest.version })
+    return entry
+  }
+
+  @on_search(query, opts) => {
+    return registry.search(query, opts)
+  }
+
+  @on_resolve(name, version_range) => {
+    return registry.resolve(name, version_range)
+  }
+
+  @receipt package_registry_config {
+    type: "PackageRegistryReceipt"
+    sprint: "Sprint 5 (MVP) + Sprint 6 (private packages)"
+    features: ["semver", "org-scopes", "access-control", "token-auth"]
+    timestamp: now()
+  }
+}

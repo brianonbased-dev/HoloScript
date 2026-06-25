@@ -1,0 +1,54 @@
+// @tokens — Bearer token manager for registry authentication (Sprint 6).
+//
+// Native .hsplus surface for tokens.ts (platform).
+//
+// Generates, validates, and revokes scoped bearer tokens for registry auth.
+// Tokens are org-scoped and carry permission levels.
+//
+// TokenPermission: read | publish | admin
+//
+// TokenRecord (tokens.ts):
+//   { id, token, name, org_scope, permissions[], created_at, expires_at?, last_used_at?, readonly?, revoked }
+//
+// CreateTokenOptions { name, org_scope, permissions?, readonly?, expires_in_seconds? }
+//
+// ValidateResult { valid, record?: TokenRecord, reason? }
+//
+// TokenManager operations:
+//   create(options) → { token: String, record: TokenRecord }
+//   validate(token) → ValidateResult
+//   revoke(token) → void
+//   list(orgScope) → TokenRecord[]
+//   rotate(oldToken) → { token: String, record: TokenRecord }
+
+@trait tokens {
+  capability_tags: ["tokens", "bearer_token", "registry_auth", "org_scoped", "sprint_6", "platform"]
+
+  @on_spawn => {
+    manager = init_token_manager()
+    emit("tokens_ready", {})
+  }
+
+  @on_create(options) => {
+    result = manager.create(options)
+    emit("token_created", { name: options.name, org_scope: options.org_scope })
+    return result
+  }
+
+  @on_validate(token) => {
+    return manager.validate(token)
+  }
+
+  @on_revoke(token) => {
+    manager.revoke(token)
+    emit("token_revoked", {})
+  }
+
+  @receipt tokens_config {
+    type: "TokensReceipt"
+    sprint: "Sprint 6 — Private Packages & CI Token Auth"
+    permissions: ["read", "publish", "admin"]
+    hash: "SHA-256 (createHash) + cryptoRandomBytes for token generation"
+    timestamp: now()
+  }
+}

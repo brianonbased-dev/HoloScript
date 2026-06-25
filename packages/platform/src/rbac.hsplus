@@ -1,0 +1,39 @@
+// @rbac — RBAC stubs for compiler identity (avoids circular deps with core).
+//
+// Native .hsplus surface for rbac.ts (platform).
+//
+// Platform-level stubs for types/functions the compiler system imports.
+// Duplicated from core/compiler/identity to avoid circular dependencies.
+//
+// ResourceType (rbac.ts):
+//   source_file | ast | ir | code | output
+//
+// WorkflowStep:
+//   parse_tokens | build_ast | analyze_ast | apply_transforms
+//   select_instructions | emit_code | optimize | link
+//
+// AccessDecision { allowed: Bool, reason?: String, requiredPermission?: String }
+// AgentRBAC interface { checkAccess(resource, action) → AccessDecision }
+// CapabilityRBAC — capability-aware wrapper (permissive stub; real impl in core/compiler/identity)
+// getRBAC() → AgentRBAC (permissive default)
+// getCapabilityRBAC() → CapabilityRBAC
+
+@trait rbac {
+  capability_tags: ["rbac", "compiler_identity", "access_control", "stub", "platform"]
+
+  @on_spawn => {
+    rbac = init_rbac()
+    emit("rbac_ready", {})
+  }
+
+  @on_check_access(resource, action) => {
+    return rbac.check_access(resource, action)
+  }
+
+  @receipt rbac_config {
+    type: "RBACReceipt"
+    note: "platform stubs — permissive defaults; real impl in core/compiler/identity"
+    resource_types: ["source_file", "ast", "ir", "code", "output"]
+    timestamp: now()
+  }
+}

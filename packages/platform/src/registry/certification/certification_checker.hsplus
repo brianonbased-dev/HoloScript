@@ -1,0 +1,43 @@
+// @certification_checker — Automated package certification (Sprint 9).
+//
+// Native .hsplus surface for registry/certification/CertificationChecker.ts (platform).
+//
+// Certified packages receive a badge and are featured in the registry.
+//
+// CheckCategory: code_quality | documentation | security | maintenance
+// CheckStatus: passed | failed | warning | skipped
+//
+// CheckResult { id, name, category, status, message, details?, required }
+//
+// CertificationResult (CertificationChecker.ts):
+//   { packageName, packageVersion, timestamp, certified, score, maxScore,
+//     grade: A|B|C|D|F, checks: CheckResult[], summary: { passed, failed, warnings, skipped },
+//     expiresAt?, certificateId? }
+
+@trait certification_checker {
+  capability_tags: ["certification_checker", "package_quality", "badge", "sprint_9", "platform"]
+
+  @on_spawn => {
+    checker = init_certification_checker()
+    emit("certification_checker_ready", {})
+  }
+
+  @on_certify(package_name, package_version, manifest) => {
+    result = checker.certify(package_name, package_version, manifest)
+    emit("package_certified", {
+      package_name: package_name,
+      certified: result.certified,
+      grade: result.grade,
+      score: result.score
+    })
+    return result
+  }
+
+  @receipt certification_checker_config {
+    type: "CertificationCheckerReceipt"
+    categories: ["code_quality", "documentation", "security", "maintenance"]
+    grades: ["A", "B", "C", "D", "F"]
+    certified_threshold: "all required checks passed"
+    timestamp: now()
+  }
+}

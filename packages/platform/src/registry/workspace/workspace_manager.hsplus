@@ -1,0 +1,44 @@
+// @workspace_manager — Team workspaces with RBAC, secrets management, and activity feeds.
+//
+// Native .hsplus surface for registry/workspace/WorkspaceManager.ts (platform).
+//
+// WorkspaceRole: owner | admin | developer | viewer
+//
+// ROLE_PERMISSIONS (WorkspaceManager.ts):
+//   owner:     workspace:delete + settings + billing:manage + members:manage + packages:publish/read + secrets:manage/read
+//   admin:     workspace:settings + members:manage + packages:publish/read + secrets:manage/read
+//   developer: packages:publish/read + secrets:read
+//   viewer:    packages:read only
+//
+// WorkspaceManager operations:
+//   createWorkspace(name, ownerId) → Workspace
+//   addMember(workspaceId, userId, role) → void
+//   removeMember(workspaceId, userId) → void
+//   checkPermission(workspaceId, userId, permission) → Bool
+//   listMembers(workspaceId) → WorkspaceMember[]
+
+@trait workspace_manager {
+  capability_tags: ["workspace_manager", "team_workspace", "rbac", "secrets_mgmt", "platform"]
+
+  @on_spawn => {
+    manager = init_workspace_manager()
+    emit("workspace_manager_ready", {})
+  }
+
+  @on_create_workspace(name, owner_id) => {
+    ws = manager.create_workspace(name, owner_id)
+    emit("workspace_created", { id: ws.id, name: ws.name, owner_id: owner_id })
+    return ws
+  }
+
+  @on_check_permission(workspace_id, user_id, permission) => {
+    return manager.check_permission(workspace_id, user_id, permission)
+  }
+
+  @receipt workspace_manager_config {
+    type: "WorkspaceManagerReceipt"
+    roles: ["owner", "admin", "developer", "viewer"]
+    features: ["rbac", "secrets-management", "activity-feeds"]
+    timestamp: now()
+  }
+}

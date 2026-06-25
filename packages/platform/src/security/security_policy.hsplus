@@ -1,0 +1,43 @@
+// @security_policy — Sandbox, network, and code execution policies (Sprint 9).
+//
+// Native .hsplus surface for security/SecurityPolicy.ts (platform).
+//
+// SecurityPolicy (SecurityPolicy.ts):
+//   sandbox:
+//     enabled, memory_limit_mb, cpu_time_limit_s, syscall_allowlist, file_system_access
+//     FileSystemAccess: none | readonly | workspace
+//   network:
+//     allowed_hosts, max_connections, rate_limit_per_second
+//   code:
+//     max_object_count, max_trait_depth, disallowed_traits, require_signed_packages
+//
+// Factory functions: createDefaultPolicy(), createStrictPolicy(), mergePolicy(base, overrides)
+
+@trait security_policy {
+  capability_tags: ["security_policy", "sandbox", "network_policy", "sprint_9", "platform"]
+
+  @on_spawn(config) => {
+    policy = init_security_policy(config)
+    emit("security_policy_ready", {})
+  }
+
+  @on_create_default => {
+    return security_policy.create_default()
+  }
+
+  @on_create_strict => {
+    return security_policy.create_strict()
+  }
+
+  @on_merge(base, overrides) => {
+    return security_policy.merge(base, overrides)
+  }
+
+  @receipt security_policy_config {
+    type: "SecurityPolicyReceipt"
+    sprint: "Sprint 9 — Security Hardening"
+    file_system_access_options: ["none", "readonly", "workspace"]
+    factories: ["createDefaultPolicy", "createStrictPolicy", "mergePolicy"]
+    timestamp: now()
+  }
+}

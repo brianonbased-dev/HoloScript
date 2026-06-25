@@ -1,0 +1,50 @@
+// @badge — HMAC-signed certification badges for the package registry.
+//
+// Native .hsplus surface for registry/certification/Badge.ts (platform).
+//
+// Generates and validates HoloScript certification badges.
+// Badge signature uses HMAC to prevent forgery.
+//
+// BadgeFormat: text | markdown | html | svg | json
+// BadgeStyle: flat | flat-square | plastic | for-the-badge
+//
+// Certificate (Badge.ts):
+//   { id, packageName, packageVersion, issuedAt, expiresAt, grade: A|B, score, issuer }
+//
+// BadgeOptions { format, style?, includeExpiry?, includeGrade? }
+//
+// Functions:
+//   generateBadge(result: CertificationResult, options: BadgeOptions) → String
+//   validateBadge(badgeData: String, secret: String) → Bool
+//   issueCertificate(result: CertificationResult, issuer: String) → Certificate
+
+@trait badge {
+  capability_tags: ["badge", "certification", "hmac", "package_registry", "platform"]
+
+  @on_spawn => {
+    badger = init_badge()
+    emit("badge_ready", {})
+  }
+
+  @on_generate(result, options) => {
+    return badger.generate(result, options)
+  }
+
+  @on_issue_certificate(result, issuer) => {
+    cert = badger.issue_certificate(result, issuer)
+    emit("certificate_issued", { id: cert.id, package_name: cert.package_name, grade: cert.grade })
+    return cert
+  }
+
+  @on_validate(badge_data, secret) => {
+    return badger.validate(badge_data, secret)
+  }
+
+  @receipt badge_config {
+    type: "BadgeReceipt"
+    signature: "HMAC (createHmac)"
+    grades: ["A", "B"]
+    formats: ["text", "markdown", "html", "svg", "json"]
+    timestamp: now()
+  }
+}

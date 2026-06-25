@@ -1,0 +1,46 @@
+// @thing_description_generator — W3C WoT Thing Description 1.1 JSON generator.
+//
+// Native .hsplus surface for wot/ThingDescriptionGenerator.ts (platform).
+//
+// Generates W3C TD 1.1 JSON from HoloScript objects with @wot_thing trait.
+// @see https://www.w3.org/TR/wot-thing-description11/
+//
+// SecurityScheme (ThingDescriptionGenerator.ts):
+//   NoSecurityScheme  { scheme: "nosec" }
+//   BasicSecurityScheme { scheme: "basic", in?, name? }
+//   BearerSecurityScheme { scheme: "bearer", in?, name?, authorization?, alg?, format? }
+//   OAuth2SecurityScheme { scheme: "oauth2", flow: code|client|implicit|device, authorization?, token?, scopes? }
+//   APIKeySecurityScheme { scheme: "apikey", in: header|query|cookie, name? }
+//
+// ThingDescriptionGenerator operations:
+//   generate(hsNode: HSPlusNode) → ThingDescription (W3C TD 1.1 JSON)
+//   generateFromDirective(directive: HSPlusDirective) → ThingDescription
+//
+// Depends on: @holoscript/core-types/ast (HSPlusDirective, HSPlusNode)
+
+@trait thing_description_generator {
+  capability_tags: ["thing_description_generator", "w3c_wot", "td_1_1", "iot", "wot_thing", "platform"]
+
+  @on_spawn => {
+    generator = init_thing_description_generator()
+    emit("thing_description_generator_ready", {})
+  }
+
+  @on_generate(hs_node) => {
+    td = generator.generate(hs_node)
+    emit("thing_description_generated", { id: td.id })
+    return td
+  }
+
+  @on_generate_from_directive(directive) => {
+    return generator.generate_from_directive(directive)
+  }
+
+  @receipt thing_description_generator_config {
+    type: "ThingDescriptionGeneratorReceipt"
+    spec: "W3C WoT Thing Description 1.1"
+    input: "@wot_thing trait on HSPlusNode"
+    security_schemes: ["nosec", "basic", "bearer", "oauth2", "apikey"]
+    timestamp: now()
+  }
+}

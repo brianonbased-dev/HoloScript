@@ -1,0 +1,50 @@
+// @namespace_manager — Tenant-isolated namespaces for resource organization (Sprint 9).
+//
+// Native .hsplus surface for tenancy/NamespaceManager.ts (platform).
+//
+// Each tenant's namespaces are fully isolated from other tenants.
+// Double-map structure: tenantId → (name → Namespace).
+//
+// Namespace (NamespaceManager.ts):
+//   { tenant_id, name, created_at: Date, data: Map<String, unknown> }
+//
+// NamespaceInfo (for listings):
+//   { tenant_id, name, created_at, data_key_count }
+//
+// Operations:
+//   createNamespace(tenantId, name) → Namespace  — throws if already exists
+//   getNamespace(tenantId, name) → Namespace | null
+//   listNamespaces(tenantId) → NamespaceInfo[]
+//   deleteNamespace(tenantId, name) → void
+//   setData(tenantId, name, key, value) → void
+//   getData(tenantId, name, key) → unknown | null
+
+@trait namespace_manager {
+  capability_tags: ["namespace_manager", "tenant_isolation", "multi_tenancy", "sprint_9", "platform"]
+
+  @on_spawn => {
+    manager = init_namespace_manager()
+    emit("namespace_manager_ready", {})
+  }
+
+  @on_create_namespace(tenant_id, name) => {
+    ns = manager.create_namespace(tenant_id, name)
+    emit("namespace_created", { tenant_id: tenant_id, name: name })
+    return ns
+  }
+
+  @on_get_namespace(tenant_id, name) => {
+    return manager.get_namespace(tenant_id, name)
+  }
+
+  @on_list_namespaces(tenant_id) => {
+    return manager.list_namespaces(tenant_id)
+  }
+
+  @receipt namespace_manager_config {
+    type: "NamespaceManagerReceipt"
+    sprint: "Sprint 9 — Multi-Tenant Isolation"
+    isolation: "double-map: tenantId → (name → Namespace)"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,53 @@
+// @access_control — Org scopes + per-package ACL (Sprint 6 private packages).
+//
+// Native .hsplus surface for access-control.ts (platform).
+//
+// Types use AC suffix to avoid name conflicts with PackageRegistry.ts exports.
+//
+// OrgRoleAC: owner | admin | member
+// PackageAccessAC: read | write | admin
+// PackageVisibilityAC: public | private
+//
+// AccessControl operations (access-control.ts):
+//   createOrg(name, ownerId, displayName?) → OrganizationAC
+//   addOrgMember(orgId, userId, role) → OrgMembershipAC
+//   removeOrgMember(orgId, userId) → void
+//   getMemberRole(orgId, userId) → OrgRoleAC | null
+//   grantPackageAccess(packageName, userId, access, grantedBy) → PackagePermissionAC
+//   revokePackageAccess(packageName, userId) → void
+//   checkAccess(packageName, userId) → PackageAccessAC | null
+//   setPackageVisibility(packageName, visibility, orgScope?) → void
+//   getPackageVisibility(packageName) → PackageVisibilityRecordAC | null
+
+@trait access_control {
+  capability_tags: ["access_control", "org_scopes", "package_acl", "sprint_6", "platform"]
+
+  @on_spawn => {
+    acl = init_access_control()
+    emit("access_control_ready", {})
+  }
+
+  @on_create_org(name, owner_id, display_name) => {
+    org = acl.create_org(name, owner_id, display_name)
+    emit("org_created", { org_id: org.id, owner_id: owner_id })
+    return org
+  }
+
+  @on_check_access(package_name, user_id) => {
+    return acl.check_access(package_name, user_id)
+  }
+
+  @on_grant_package_access(package_name, user_id, access, granted_by) => {
+    acl.grant_package_access(package_name, user_id, access, granted_by)
+    emit("package_access_granted", { package_name: package_name, user_id: user_id, access: access })
+  }
+
+  @receipt access_control_config {
+    type: "AccessControlReceipt"
+    sprint: "Sprint 6 — private packages + org scopes"
+    roles: ["owner", "admin", "member"]
+    package_access: ["read", "write", "admin"]
+    visibility: ["public", "private"]
+    timestamp: now()
+  }
+}

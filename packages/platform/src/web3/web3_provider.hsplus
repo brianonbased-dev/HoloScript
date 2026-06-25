@@ -1,0 +1,52 @@
+// @web3_provider — Web3Provider legacy compat stub (migrated to @holoscript/marketplace-api).
+//
+// Native .hsplus surface for web3/Web3Provider.ts (platform).
+//
+// Original Web3Provider migrated to @holoscript/marketplace-api. This stub
+// satisfies legacy internal deps (MarketplacePanel.ts, Sprint21 acceptance tests).
+//
+// Singleton pattern (Web3Provider.getInstance()).
+// chainId: 8453 (Base Mainnet).
+//
+// NFTAsset (Web3Provider.ts):
+//   { id, name, contract_address, token_id, image_url, model_url?, chain_id }
+//
+// Web3Provider operations:
+//   connect() → wallet_address: String
+//   disconnect() → void
+//   getMyAssets() → NFTAsset[]
+//   isConnected: Bool
+//   walletAddress: String | null
+
+@trait web3_provider {
+  chain_id: Int = 8453
+
+  capability_tags: ["web3_provider", "legacy_compat", "base_mainnet", "nft", "platform"]
+
+  @on_spawn => {
+    provider = init_web3_provider({ chain_id: chain_id })
+    emit("web3_provider_ready", { chain_id: chain_id })
+  }
+
+  @on_connect => {
+    address = provider.connect()
+    emit("web3_connected", { address: address })
+    return address
+  }
+
+  @on_disconnect => {
+    provider.disconnect()
+    emit("web3_disconnected", {})
+  }
+
+  @on_get_my_assets => {
+    return provider.get_my_assets()
+  }
+
+  @receipt web3_provider_config {
+    type: "Web3ProviderReceipt"
+    status: "legacy compat stub — real impl in @holoscript/marketplace-api"
+    chain_id: chain_id
+    timestamp: now()
+  }
+}

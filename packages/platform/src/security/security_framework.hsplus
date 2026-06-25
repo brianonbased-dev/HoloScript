@@ -1,0 +1,40 @@
+// @security_framework — Production-grade cryptographic + authorization utilities (Sprint v3.1).
+//
+// Native .hsplus surface for security/SecurityFramework.ts (platform).
+//
+// Token hashing: PBKDF2 + SHA256 (100,000 iterations, 64-byte output).
+// Constant-time comparison (crypto.timingSafeEqual) prevents timing attacks.
+// Zod validation for structured security inputs.
+//
+// Functions (SecurityFramework.ts):
+//   secureHashToken(token, salt?, iterations=100_000) → { hash: hex, salt: hex }
+//   verifyToken(token, storedHash, storedSalt, iterations=100_000) → Bool
+//   (additional: rate limiting, CSP header generation, CORS validation, JWT verification)
+
+@trait security_framework {
+  hash_iterations: Int = 100000
+
+  capability_tags: ["security_framework", "pbkdf2", "timing_safe", "sprint_v3_1", "platform"]
+
+  @on_spawn => {
+    framework = init_security_framework({ hash_iterations: hash_iterations })
+    emit("security_framework_ready", { hash_iterations: hash_iterations })
+  }
+
+  @on_hash_token(token, salt) => {
+    return framework.secure_hash_token(token, salt)
+  }
+
+  @on_verify_token(token, stored_hash, stored_salt) => {
+    return framework.verify_token(token, stored_hash, stored_salt)
+  }
+
+  @receipt security_framework_config {
+    type: "SecurityFrameworkReceipt"
+    hash_fn: "PBKDF2+SHA256"
+    iterations: hash_iterations
+    comparison: "crypto.timingSafeEqual (constant-time)"
+    sprint: "v3.1 Security Hardening"
+    timestamp: now()
+  }
+}

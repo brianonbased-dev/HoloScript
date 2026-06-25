@@ -1,0 +1,49 @@
+// @trait_behavioral_contract — Design-by-contract specification for HoloScript traits.
+//
+// Native .hsplus surface for contracts/TraitBehavioralContract.ts (platform).
+//
+// Enables:
+//   - Design-by-contract programming for spatial compositions
+//   - Automatic runtime validation in debug builds
+//   - Static analysis for LSP/linter
+//   - Confabulation detection (AI-generated configs that violate contracts)
+//
+// ContractCondition (TraitBehavioralContract.ts):
+//   description: String
+//   evaluate(props: Record<String, unknown>) → Bool
+//   error_message?: String
+//   severity: "error" (blocks execution) | "warning" (logs, continues)
+//
+// TraitContract:
+//   trait_name: String
+//   preconditions: ContractCondition[]   — must be true BEFORE the trait is applied
+//   postconditions: ContractCondition[]  — must be true AFTER
+//   invariants?: ContractCondition[]     — must remain true throughout lifetime
+
+@trait trait_behavioral_contract {
+  capability_tags: ["trait_behavioral_contract", "design_by_contract", "confabulation_detection", "lsp", "platform"]
+
+  @on_spawn => {
+    contract_engine = init_trait_behavioral_contract()
+    emit("trait_behavioral_contract_ready", {})
+  }
+
+  @on_check_preconditions(contract, props) => {
+    return contract_engine.check(contract.preconditions, props)
+  }
+
+  @on_check_postconditions(contract, props) => {
+    return contract_engine.check(contract.postconditions, props)
+  }
+
+  @on_check_invariants(contract, props) => {
+    return contract_engine.check(contract.invariants ?? [], props)
+  }
+
+  @receipt trait_behavioral_contract_config {
+    type: "TraitBehavioralContractReceipt"
+    severity_options: ["error", "warning"]
+    use_cases: ["runtime-validation", "static-analysis", "confabulation-detection"]
+    timestamp: now()
+  }
+}

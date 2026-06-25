@@ -1,0 +1,43 @@
+// @quota_manager — Daily + monthly usage quota tracking (Sprint 9).
+//
+// Native .hsplus surface for ratelimit/QuotaManager.ts (platform).
+//
+// Production-grade with automatic period rotation.
+// Use -1 for unlimited quotas.
+//
+// RateLimitQuotaConfig (QuotaManager.ts):
+//   daily:   { parseOperations, compileOperations, generateOperations }
+//   monthly: { totalBytes, apiCalls }
+//
+// QuotaOperation: parseOperations | compileOperations | generateOperations | totalBytes | apiCalls
+//
+// QuotaResult { allowed, currentUsage, limit, remaining, resetsAt: ISO String }
+//   remaining = Infinity when limit = -1 (unlimited)
+
+@trait quota_manager {
+  capability_tags: ["quota_manager", "daily_quota", "monthly_quota", "sprint_9", "platform"]
+
+  @on_spawn(config) => {
+    manager = init_quota_manager(config)
+    emit("quota_manager_ready", {})
+  }
+
+  @on_check_quota(key, operation) => {
+    result = manager.check_quota(key, operation)
+    emit("quota_checked", { allowed: result.allowed, remaining: result.remaining })
+    return result
+  }
+
+  @on_record_usage(key, operation, amount) => {
+    manager.record_usage(key, operation, amount)
+    emit("quota_usage_recorded", { operation: operation, amount: amount })
+  }
+
+  @receipt quota_manager_config {
+    type: "QuotaManagerReceipt"
+    sprint: "Sprint 9 — Rate Limiting & Quotas"
+    operations: ["parseOperations", "compileOperations", "generateOperations", "totalBytes", "apiCalls"]
+    unlimited_sentinel: -1
+    timestamp: now()
+  }
+}
