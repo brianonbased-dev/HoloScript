@@ -1,0 +1,75 @@
+// @wallet_coherence — boot-time self-heal for the W.820 stray-key incident.
+//
+// An agent has TWO identity claims never cross-checked until this module:
+//   - DECLARED wallet (HOLOSCRIPT_AGENT_WALLET — what the mesh registered)
+//   - SIGNING key (HOLOSCRIPT_AGENT_WALLET_PRIVATE_KEY — real signing authority)
+//
+// When they diverge (mis-pasted key, shared .env — the holojetson incident),
+// the agent silently signed as the WRONG wallet. This trait catches it at boot.
+//
+// Coherence decisions (wallet-coherence.ts):
+//   coherent → proceed normally; key matches declared wallet
+//   mismatch + bearer present → degrade-to-bearer-only: the bearer carries
+//     the true declared identity; NEVER sign with the stray key; signing
+//     is cleanly unavailable until the correct key is installed (honest absence,
+//     not a false signature)
+//   mismatch + no bearer → HALT: nothing to carry the declared identity;
+//     booting would mean operating as the stray wallet; refuse
+//   HOLOSCRIPT_AGENT_WALLET_COHERENCE_HALT=1 → HALT on any mismatch (CI/strict)
+//
+// CRITICAL principle: the KEY is NOT automatically the truth. The declared
+// wallet is what the mesh registered (with its memories). A stray key must
+// be rejected, not adopted.
+
+@trait wallet_coherence {
+  // Halt on any mismatch even when a bearer is present (strict/CI mode)
+  halt_on_any_mismatch: Bool = false
+
+  // Emit a warning receipt even when coherent (for audit trails)
+  always_emit_receipt: Bool = true
+
+  capability_tags: ["wallet_coherence", "boot_integrity", "self_heal", "stray_key_guard", "anchor_coherent"]
+
+  @on_spawn => {
+    derived_address = derive_address_from_signing_key()
+    declared_wallet = env("HOLOSCRIPT_AGENT_WALLET")
+    has_bearer = bearer_is_available()
+    halt_flag = halt_on_any_mismatch or env_bool("HOLOSCRIPT_AGENT_WALLET_COHERENCE_HALT")
+
+    decision = check_wallet_coherence({
+      derived_address: derived_address,
+      declared_wallet: declared_wallet,
+      has_bearer: has_bearer,
+      halt: halt_flag
+    })
+
+    if decision.coherent {
+      if always_emit_receipt {
+        emit("wallet_coherence_ok", {
+          declared_wallet: declared_wallet,
+          derived_matches: true
+        })
+      }
+    } else if decision.action == "degrade-to-bearer-only" {
+      drop_signing_key()
+      emit("wallet_coherence_degraded", {
+        action: "degrade-to-bearer-only",
+        reason: decision.reason,
+        declared_wallet: declared_wallet
+      })
+    } else {
+      emit("wallet_coherence_halt", {
+        reason: decision.reason,
+        declared_wallet: declared_wallet
+      })
+      halt_boot(decision.reason)
+    }
+  }
+
+  @receipt wallet_coherence_check {
+    type: "WalletCoherenceReceipt"
+    halt_on_any_mismatch: halt_on_any_mismatch
+    always_emit_receipt: always_emit_receipt
+    timestamp: now()
+  }
+}

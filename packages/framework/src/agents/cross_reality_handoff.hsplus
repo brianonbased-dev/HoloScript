@@ -1,0 +1,94 @@
+// @cross_reality_handoff — Minimum Viable Continuity (MVC) handoff protocol.
+//
+// Implements the cross-device agent handoff schema from CrossRealityHandoff.ts.
+// When an agent transitions from one platform (Jetson, Quest 3, phone, browser)
+// to another, this trait bundles exactly 5 typed objects into a <10KB payload
+// that bootstraps continuity on the target device. Full context loads lazily.
+//
+// The 5 MVC payload objects:
+//   1. decisions       — agent decision history (what was decided and why)
+//   2. spatial_context — WGS84 anchor + heading (universal spatial reference)
+//   3. active_goals    — in-flight tasks the agent was pursuing
+//   4. trust_graph     — which peers the agent trusts and at what level
+//   5. identity_proof  — wallet address + bearer proof for re-authentication
+//
+// Handoff protocol (CrossRealityHandoff.ts):
+//   1. Capability negotiation (source → target)
+//   2. MVC transfer (<10KB payload)
+//   3. Embodiment adaptation (Avatar3D ↔ VoiceHUD ↔ UI2D)
+//   4. Lazy context loading (background, after transition)
+//
+// Embodiment mapping (from CrossRealityHandoff.ts embodimentFor()):
+//   quest3 / pcvr  → Avatar3D
+//   android-auto   → VoiceHUD
+//   anything else  → UI2D
+//
+// D.102: the portable agent mind is THE point — this trait is the transfer
+// layer for that mind across substrates.
+
+@trait cross_reality_handoff {
+  // Target platform for this handoff
+  target_platform: enum("quest3" | "pcvr" | "android" | "ios" | "android-auto" | "browser" | "edge") = "browser"
+
+  // Maximum payload size in KB (hard limit — trim decisions/goals if needed)
+  max_payload_kb: Int = 10
+
+  // Number of recent decisions to include in the payload
+  decision_history_limit: Int = 5
+
+  // Whether to include the full trust graph or only top-N peers
+  trust_graph_limit: Int = 10
+
+  // Lazy-load full context after transition completes
+  lazy_context_load: Bool = true
+
+  capability_tags: ["cross_reality_handoff", "mvc_protocol", "platform_transition", "d102_carry", "embodiment_adaptation"]
+
+  @on_handoff_requested(target_platform_override) => {
+    platform = target_platform_override ?? target_platform
+    embodiment = select_embodiment(platform)
+    capabilities = query_platform_capabilities(platform)
+
+    payload = build_mvc_payload({
+      decisions: recall_recent_decisions(decision_history_limit),
+      spatial_context: current_spatial_anchor(),
+      active_goals: current_active_goals(),
+      trust_graph: top_trusted_peers(trust_graph_limit),
+      identity_proof: current_identity_proof()
+    })
+    if payload_size_kb(payload) > max_payload_kb {
+      payload = trim_payload(payload, max_payload_kb)
+    }
+
+    emit("handoff_prepared", {
+      target_platform: platform,
+      embodiment: embodiment,
+      payload_kb: payload_size_kb(payload),
+      lazy_load: lazy_context_load
+    })
+    transfer_payload(payload, platform)
+  }
+
+  @on_handoff_received(payload) => {
+    restore_from_mvc(payload)
+    if lazy_context_load {
+      background_load_full_context()
+    }
+    emit("handoff_received", {
+      source_platform: payload.source_platform,
+      decisions_restored: len(payload.decisions),
+      goals_restored: len(payload.active_goals),
+      spatial_anchor_present: payload.spatial_context != null
+    })
+  }
+
+  @receipt handoff_receipt {
+    type: "CrossRealityHandoffReceipt"
+    target_platform: target_platform
+    max_payload_kb: max_payload_kb
+    decision_history_limit: decision_history_limit
+    trust_graph_limit: trust_graph_limit
+    lazy_context_load: lazy_context_load
+    timestamp: now()
+  }
+}

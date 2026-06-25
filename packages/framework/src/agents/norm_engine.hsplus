@@ -1,0 +1,101 @@
+// @norm_engine — CRSEC norm lifecycle for an agent entity.
+//
+// Implements the 5-phase norm lifecycle from NormEngine.ts:
+//   C — Creation:    agents propose new norms
+//   R — Representation: norms stored as structured objects
+//   S — Spreading:  norms propagate through agent populations
+//   E — Evaluation: agents assess norm compliance
+//   C — Compliance: enforcement and feedback loops
+//
+// Key research findings encoded here (NormEngine.ts):
+//   - Critical mass: 2% of population → weak norm change;
+//     25-67% → strong norm change (metanorm tipping)
+//   - Metanorms: norms about enforcing norms (cultural ratchet)
+//   - Model identity as cultural DNA: different base models → different cultures
+//   - Governance Goldilocks Zone: structure without content
+//
+// Built-in norms (from NormEngine.ts BUILTIN_NORMS):
+//   no_griefing      — safety, hard, activation threshold 0.1
+//   resource_sharing — cooperation, soft, activation threshold 0.5
+//   fair_trade       — economy, soft, activation threshold 0.3
+//
+// Minab constraint (D.044): civilian-harm prevention is structurally
+// impossible in HS action loops — the norm engine enforces this by treating
+// harm-to-civilians as a forbidden effect that cannot be voted away by any
+// quorum, regardless of critical mass (hardcoded hard norm, bypass-blocked).
+
+@trait norm_engine {
+  // Which norm categories this entity monitors (empty = all)
+  active_categories: Array<String> = ["safety", "cooperation", "economy", "governance"]
+
+  // Population fraction needed for weak norm shift
+  weak_critical_mass: Float = 0.02
+
+  // Population fraction needed for strong norm shift
+  strong_critical_mass: Float = 0.25
+
+  // Whether to emit governance signals when metanorm tipping occurs
+  emit_governance_signals: Bool = true
+
+  // Allow this entity to propose new norms
+  allow_norm_proposals: Bool = true
+
+  // Base model identity for cultural DNA tagging
+  model_family: String?
+
+  capability_tags: ["norm_engine", "crsec_lifecycle", "governance", "metanorms", "cultural_dna"]
+
+  @on_spawn => {
+    engine = init_norm_engine({
+      active_categories: active_categories,
+      weak_critical_mass: weak_critical_mass,
+      strong_critical_mass: strong_critical_mass,
+      model_family: model_family,
+      builtin_norms: load_builtin_norms()
+    })
+    emit("norm_engine_active", {
+      active_categories: active_categories,
+      builtin_norm_count: len(load_builtin_norms()),
+      model_family: model_family ?? "unspecified"
+    })
+  }
+
+  @on_norm_proposal(proposal) => {
+    if not allow_norm_proposals { return }
+    result = engine.propose_norm({
+      proposed_by: entity_id,
+      norm: proposal,
+      cultural_dna: model_family
+    })
+    emit("norm_proposed", {
+      norm_id: proposal.id,
+      category: proposal.category,
+      enforcement: proposal.enforcement
+    })
+    return result
+  }
+
+  @on_tick => {
+    compliance_report = engine.evaluate_compliance()
+    if compliance_report.metanorm_tipping_detected and emit_governance_signals {
+      emit("metanorm_tipping", {
+        affected_norms: compliance_report.tipping_norms,
+        population_fraction: compliance_report.fraction
+      })
+    }
+    if compliance_report.violations {
+      enforce_norms(compliance_report.violations)
+    }
+  }
+
+  @receipt norm_engine_config {
+    type: "NormEngineReceipt"
+    active_categories: active_categories
+    weak_critical_mass: weak_critical_mass
+    strong_critical_mass: strong_critical_mass
+    allow_norm_proposals: allow_norm_proposals
+    model_family: model_family ?? "unspecified"
+    minab_civilian_harm: "hardcoded-blocked"
+    timestamp: now()
+  }
+}
