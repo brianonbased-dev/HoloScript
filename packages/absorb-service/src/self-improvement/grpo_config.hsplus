@@ -1,0 +1,41 @@
+// @grpo_config — GRPO hyperparameters for HoloScript model training (Brittney 7B).
+//
+// Native .hsplus surface for GRPOConfig.ts (absorb-service/self-improvement).
+//
+// Key insight: the self-improve loop IS the GRPO training loop.
+// QualityScore dimensions → GRPO reward functions.
+// ConvergenceDetector → GRPO KL divergence monitoring.
+//
+// Sources: DeepSeek-R1 (GRPO fundamentals), TRL GRPOTrainer, W.006/W.007/W.009, Brittney v3.
+//
+// GRPOTrainingConfig (GRPOConfig.ts):
+//   grpo:          GRPOHyperparameters (learningRate, beta=0.04 KL coeff matching DeepSeek-R1)
+//   vllm:          VLLMConfig
+//   oplora:        OPLoRAConfig (catastrophic forgetting prevention)
+//   reward_weights: from GRPORewardFunctions (test=0.40, type=0.20, lint=0.15, cov=0.15, cb=0.10)
+//   schedule:      TrainingSchedule
+//   hardware:      HardwareConfig
+
+@trait grpo_config {
+  // KL divergence coefficient matching DeepSeek-R1
+  beta: Float = 0.04
+
+  capability_tags: ["grpo_config", "grpo", "brittney_7b", "training", "absorb_service", "w006_w007_w009"]
+
+  @on_spawn => {
+    config = init_grpo_config({ beta: beta })
+    emit("grpo_config_ready", { beta: beta })
+  }
+
+  @on_get_training_config => {
+    return config.get_training_config()
+  }
+
+  @receipt grpo_config_receipt {
+    type: "GRPOConfigReceipt"
+    key_insight: "self-improve loop IS the GRPO training loop"
+    beta: beta
+    sources: ["DeepSeek-R1", "TRL GRPOTrainer", "W.006/W.007/W.009", "Brittney v3 empirical"]
+    timestamp: now()
+  }
+}

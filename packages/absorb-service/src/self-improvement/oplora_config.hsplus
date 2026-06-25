@@ -1,0 +1,43 @@
+// @oplora_config — Extended OPLoRA config for catastrophic forgetting prevention.
+//
+// Native .hsplus surface for OPLoRAConfig.ts (absorb-service/self-improvement).
+//
+// OPLoRA (Orthogonal Projection LoRA) — constrains LoRA weight updates to the
+// null space of pre-trained weight matrices' dominant singular directions.
+// Preserves base model (general coding) while learning HoloScript-specific tasks.
+//
+// Mechanism: SVD of each target module's pre-trained weights → identify top-k
+// singular directions ("knowledge subspace") → project LoRA updates orthogonal.
+//
+// ExtendedOPLoRAConfig (OPLoRAConfig.ts):
+//   rank: Int = 16      — low-rank dims (good balance for 7B)
+//   alpha: Int = 32     — scaling factor; effective = alpha/rank*lr = 2x
+//   top_k: Int          — dominant singular values to protect ("knowledge subspace")
+//
+// References: Hu et al. 2021 (LoRA), OPLoRA null-space projection, W.006/W.007/W.009.
+
+@trait oplora_config {
+  rank: Int = 16
+  alpha: Int = 32
+
+  capability_tags: ["oplora_config", "oplora", "catastrophic_forgetting", "lora", "brittney_7b", "absorb_service"]
+
+  @on_spawn => {
+    config = init_oplora_config({ rank: rank, alpha: alpha })
+    emit("oplora_config_ready", { rank: rank, alpha: alpha })
+  }
+
+  @on_get_config => {
+    return config.get_config()
+  }
+
+  @receipt oplora_config_receipt {
+    type: "OPLoRAConfigReceipt"
+    mechanism: "SVD → knowledge_subspace → null-space projection of LoRA updates"
+    rank: rank
+    alpha: alpha
+    scaling_factor: "alpha/rank = 2x"
+    references: ["Hu et al. 2021 LoRA", "OPLoRA null-space projection", "W.006/W.007/W.009"]
+    timestamp: now()
+  }
+}
