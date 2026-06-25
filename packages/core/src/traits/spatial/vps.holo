@@ -1,0 +1,27 @@
+@trait {
+  name: "@vps",
+  category: "spatial",
+  description: "Visual Positioning System for high-accuracy AR localization. Supports ARCore/ARKit/Niantic/6DOF/custom providers with coverage checking, configurable quality threshold, continuous tracking, and auto-retry on localization failure. Port of VPSTrait.ts (handler name: vps).",
+  props: {
+    provider: enum("arcore" | "arkit" | "niantic" | "6dai" | "custom") = "arcore",
+    coverage_check: boolean = true,
+    localization_timeout: number = 30000,
+    continuous_tracking: boolean = true,
+    quality_threshold: number = 0.7,
+    auto_localize: boolean = true,
+    max_attempts: number = 5,
+    retry_interval: number = 3000
+  },
+  events: {
+    attached: "vps_attached",
+    detached: "vps_detached",
+    on_localized: "vps_localized",
+    on_tracking: "vps_tracking",
+    on_limited: "vps_limited",
+    on_unavailable: "vps_unavailable",
+    on_error: "vps_error",
+    localize: "vps_localize",
+    stop: "vps_stop"
+  },
+  behaviors: ["@geospatial_anchor", "@geospatial_env", "@holo_map_anchor_context"]
+}

@@ -1,0 +1,27 @@
+@trait {
+  name: "@geospatial",
+  category: "environment",
+  description: "GPS/lat-lon world-scale environment manager for outdoor AR. Establishes the global geospatial coordinate frame (origin + altitude model), manages initialization and localization state, and coordinates VPS integration and heading alignment. Port of GeospatialEnvTrait.ts (handler name: geospatial).",
+  props: {
+    latitude: number = 0.0,
+    longitude: number = 0.0,
+    altitude: number = 0.0,
+    altitude_type: enum("terrain" | "wgs84" | "egm96") = "terrain",
+    heading: number = 0.0,
+    heading_alignment: boolean = true,
+    accuracy_threshold: number = 5.0,
+    auto_initialize: boolean = true,
+    use_vps: boolean = true,
+    compass_smoothing: number = 0.8
+  },
+  events: {
+    attached: "geospatial_env_attached",
+    detached: "geospatial_env_detached",
+    on_localized: "geospatial_env_localized",
+    on_limited: "geospatial_env_limited",
+    on_unavailable: "geospatial_env_unavailable",
+    on_heading: "geospatial_env_heading",
+    initialize: "geospatial_env_initialize"
+  },
+  behaviors: ["@geospatial_anchor", "@vps", "@terrain_anchor"]
+}

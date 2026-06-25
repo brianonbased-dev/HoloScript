@@ -1,0 +1,27 @@
+@trait {
+  name: "@geospatial_anchor",
+  category: "spatial",
+  description: "Lat/lon/alt world anchoring for outdoor AR. Resolves a GPS coordinate to a local AR pose using ARCore/ARKit geospatial APIs. Supports terrain/rooftop/absolute/relative_to_ground altitude types, visual indicator, retry-on-lost, and accuracy thresholding. Port of GeospatialAnchorTrait.ts (handler name: geospatial_anchor).",
+  props: {
+    latitude: number = 0.0,
+    longitude: number = 0.0,
+    altitude: number = 0.0,
+    altitude_type: enum("terrain" | "rooftop" | "absolute" | "relative_to_ground") = "terrain",
+    heading: number = 0.0,
+    accuracy_threshold: number = 10.0,
+    visual_indicator: boolean = false,
+    auto_resolve: boolean = true,
+    retry_on_lost: boolean = true,
+    max_retries: number = 3
+  },
+  events: {
+    attached: "geospatial_anchor_attached",
+    detached: "geospatial_anchor_detached",
+    on_resolved: "geospatial_anchor_resolved",
+    on_tracking: "geospatial_anchor_tracking",
+    on_lost: "geospatial_anchor_lost",
+    on_error: "geospatial_anchor_error",
+    resolve: "geospatial_anchor_resolve"
+  },
+  behaviors: ["@terrain_anchor", "@vps", "@geospatial_env"]
+}

@@ -1,0 +1,16 @@
+@trait {
+  name: "@holo_map_anchor_context",
+  category: "spatial",
+  description: "Declares the coordinate-frame anchor used by a HoloMap reconstruction session. Exposes AnchorContextState to manifest export, provenance UI, and Studio viewers. Responds to holomap:anchor_update and holomap:drift_update events; auto-reanchors on drift when autoReanchor=true. Port of HoloMapAnchorContextTrait.ts (handler name: holomap_anchor_context).",
+  props: {
+    auto_reanchor: boolean = true
+  },
+  events: {
+    on_ready: "holomap:anchor_ready",
+    on_state_changed: "holomap:anchor_state_changed",
+    on_reanchored: "holomap:reanchored",
+    anchor_update: "holomap:anchor_update",
+    drift_update: "holomap:drift_update"
+  },
+  behaviors: ["@holo_map_drift_correction", "@terrain_anchor", "@geospatial_anchor"]
+}
