@@ -1,0 +1,83 @@
+// @std_event_bus — Typed event bus with on/once/off/emit/wildcard support.
+//
+// Native .hsplus surface for events.ts (std, v0.2.0).
+//
+// EventBus (events.ts):
+//   on(event, handler) → unsubscribe(): void
+//   once(event, handler) → unsubscribe(): void
+//   off(event, handler): void
+//   emit(event, data?): void — fires specific + wildcard listeners
+//   onAny(handler) → unsubscribe(): wildcard listener ({event, data})
+//   clear(event?): void — clear one or all events
+//
+// Listener internals:
+//   { handler: EventHandler, once: bool }
+//   once=true listeners are removed after first fire
+//   Wildcards receive { event, data } envelope on every emit
+
+@trait std_event_bus {
+  // Max listeners per event before warning (0 = no limit)
+  max_listeners_per_event: Int = 100
+
+  capability_tags: ["std_event_bus", "event_driven", "typed_events", "wildcard_listeners", "holoscript_std"]
+
+  @on_spawn => {
+    bus = init_std_event_bus({ max_per_event: max_listeners_per_event })
+    emit("std_event_bus_ready", {})
+  }
+
+  @on_on(event_name, handler_id) => {
+    bus.register(event_name, handler_id, { once: false })
+    // Returns unsubscribe token
+    return { unsubscribe_token: event_name + ":" + handler_id }
+  }
+
+  @on_once(event_name, handler_id) => {
+    bus.register(event_name, handler_id, { once: true })
+    return { unsubscribe_token: event_name + ":" + handler_id }
+  }
+
+  @on_off(event_name, handler_id) => {
+    bus.unregister(event_name, handler_id)
+  }
+
+  @on_emit(event_name, data) => {
+    // Fire specific listeners; drop once-listeners after first call
+    listeners = bus.get_listeners(event_name)
+    remaining = []
+    for listener in listeners {
+      bus.invoke(listener.handler_id, data)
+      if not listener.once { remaining.push(listener) }
+    }
+    bus.set_listeners(event_name, remaining)
+    // Fire wildcard listeners with { event, data } envelope
+    for wc in bus.get_wildcard_listeners() {
+      bus.invoke(wc.handler_id, { event: event_name, data: data })
+    }
+    emit("std_event_bus_emitted", { event: event_name })
+  }
+
+  @on_on_any(handler_id) => {
+    bus.register_wildcard(handler_id)
+    return { unsubscribe_token: "*:" + handler_id }
+  }
+
+  @on_clear(event_name) => {
+    if event_name {
+      bus.clear_event(event_name)
+    } else {
+      bus.clear_all()
+    }
+    emit("std_event_bus_cleared", { event: event_name ?? "all" })
+  }
+
+  @on_listener_count(event_name) => {
+    return bus.listener_count(event_name)
+  }
+
+  @receipt std_event_bus_config {
+    type: "StdEventBusReceipt"
+    max_listeners_per_event: max_listeners_per_event
+    timestamp: now()
+  }
+}

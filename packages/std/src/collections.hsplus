@@ -1,0 +1,101 @@
+// @std_collections — Immutable List, Map, Set with functional operations.
+//
+// Native .hsplus surface for collections.ts (std, v0.2.0).
+//
+// Immutable collection types used in HoloScript Plus programs.
+// All mutating operations return new instances (persistent data structures).
+//
+// List<T> (collections.ts):
+//   Constructors: of(...items), from(iterable), range(start, end, step), repeat(value, count)
+//   Functional: map, flatMap, filter, reduce, sort, reverse, zip, chunk
+//   Access: get(index), first, last, length, isEmpty, contains, indexOf
+//   Conversion: toArray, toSet, join(sep)
+//
+// HoloMap<K,V> (collections.ts):
+//   set, get, has, delete, keys, values, entries, map, filter, merge
+//
+// HoloSet<T> (collections.ts):
+//   add, has, delete, union, intersection, difference, toArray, size
+
+@trait std_list {
+  capability_tags: ["std_collections", "immutable_list", "functional_ops", "holoscript_std"]
+
+  @on_spawn => {
+    list_lib = get_std_collections_lib()
+    emit("std_list_ready", {})
+  }
+
+  @on_of(items) => { return list_lib.list_of(items) }
+  @on_from(iterable) => { return list_lib.list_from(iterable) }
+  @on_range(start, end, step) => { return list_lib.list_range(start, end, step ?? 1) }
+  @on_repeat(value, count) => { return list_lib.list_repeat(value, count) }
+
+  @on_map(lst, fn) => { return list_lib.list_map(lst, fn) }
+  @on_flat_map(lst, fn) => { return list_lib.list_flat_map(lst, fn) }
+  @on_filter(lst, predicate) => { return list_lib.list_filter(lst, predicate) }
+  @on_reduce(lst, fn, initial) => { return list_lib.list_reduce(lst, fn, initial) }
+  @on_sort(lst, comparator) => { return list_lib.list_sort(lst, comparator) }
+  @on_reverse(lst) => { return list_lib.list_reverse(lst) }
+  @on_zip(lst_a, lst_b) => { return list_lib.list_zip(lst_a, lst_b) }
+  @on_chunk(lst, size) => { return list_lib.list_chunk(lst, size) }
+  @on_flatten(lst) => { return list_lib.list_flatten(lst) }
+  @on_unique(lst) => { return list_lib.list_unique(lst) }
+
+  @on_get(lst, index) => { return list_lib.list_get(lst, index) }
+  @on_first(lst) => { return list_lib.list_first(lst) }
+  @on_last(lst) => { return list_lib.list_last(lst) }
+  @on_contains(lst, item) => { return list_lib.list_contains(lst, item) }
+  @on_index_of(lst, item) => { return list_lib.list_index_of(lst, item) }
+  @on_length(lst) => { return list_lib.list_length(lst) }
+  @on_is_empty(lst) => { return list_lib.list_is_empty(lst) }
+
+  @on_to_array(lst) => { return list_lib.list_to_array(lst) }
+  @on_to_set(lst) => { return list_lib.list_to_set(lst) }
+  @on_join(lst, sep) => { return list_lib.list_join(lst, sep ?? ",") }
+}
+
+@trait std_map {
+  capability_tags: ["std_collections", "immutable_map", "functional_ops", "holoscript_std"]
+
+  @on_spawn => {
+    map_lib = get_std_collections_lib()
+    emit("std_map_ready", {})
+  }
+
+  @on_set(m, key, value) => { return map_lib.map_set(m, key, value) }
+  @on_get(m, key) => { return map_lib.map_get(m, key) }
+  @on_has(m, key) => { return map_lib.map_has(m, key) }
+  @on_delete(m, key) => { return map_lib.map_delete(m, key) }
+  @on_keys(m) => { return map_lib.map_keys(m) }
+  @on_values(m) => { return map_lib.map_values(m) }
+  @on_entries(m) => { return map_lib.map_entries(m) }
+  @on_map_values(m, fn) => { return map_lib.map_map_values(m, fn) }
+  @on_filter_entries(m, predicate) => { return map_lib.map_filter(m, predicate) }
+  @on_merge(m_a, m_b) => { return map_lib.map_merge(m_a, m_b) }
+  @on_size(m) => { return map_lib.map_size(m) }
+}
+
+@trait std_set {
+  capability_tags: ["std_collections", "immutable_set", "set_operations", "holoscript_std"]
+
+  @on_spawn => {
+    set_lib = get_std_collections_lib()
+    emit("std_set_ready", {})
+  }
+
+  @on_add(s, item) => { return set_lib.set_add(s, item) }
+  @on_has(s, item) => { return set_lib.set_has(s, item) }
+  @on_delete(s, item) => { return set_lib.set_delete(s, item) }
+  @on_union(s_a, s_b) => { return set_lib.set_union(s_a, s_b) }
+  @on_intersection(s_a, s_b) => { return set_lib.set_intersection(s_a, s_b) }
+  @on_difference(s_a, s_b) => { return set_lib.set_difference(s_a, s_b) }
+  @on_to_array(s) => { return set_lib.set_to_array(s) }
+  @on_size(s) => { return set_lib.set_size(s) }
+
+  @receipt std_collections_config {
+    type: "StdCollectionsReceipt"
+    traits: ["std_list", "std_map", "std_set"]
+    immutable: true
+    timestamp: now()
+  }
+}

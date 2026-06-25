@@ -1,0 +1,113 @@
+// @operation_log — Tamper-proof authenticated CRDT operation log.
+//
+// Native .hsplus surface for OperationLog.ts (crdt/auth, v1.0.0).
+//
+// Maintains a cryptographically verified audit trail for all CRDT operations.
+// Every entry is a SignedOperation (ES256K JWT). Causal ordering is optionally
+// enforced — operations arriving out of causal order are held until causality
+// is satisfied (strict_causal_ordering = true).
+//
+// LogEntry (OperationLog.ts):
+//   signed_op, verified: Bool, logged_at (Lamport), actor_did,
+//   applied: Bool, rejection_reason?: String
+//
+// Features:
+//   - Replay attack prevention via operation_ids Set
+//   - Max log size with LRU garbage collection (max_log_size)
+//   - Causal ordering enforcement (strict_causal_ordering)
+//   - Permission-based filtering (via RBAC gate before apply)
+
+@trait operation_log {
+  // CRDT document ID this log tracks
+  crdt_id: String
+
+  // Maximum log entries before GC (0 = unlimited)
+  max_log_size: Int = 10000
+
+  // Enforce strict causal ordering
+  strict_causal_ordering: Bool = false
+
+  capability_tags: ["operation_log", "crdt_audit", "tamper_proof", "replay_protection", "causal_ordering", "did_auth"]
+
+  @on_spawn => {
+    log = init_operation_log({
+      crdt_id: crdt_id,
+      max_log_size: max_log_size,
+      strict_causal_ordering: strict_causal_ordering
+    })
+    emit("operation_log_ready", { crdt_id: crdt_id })
+  }
+
+  @on_append(signed_op) => {
+    op_id = signed_op.operation.id
+
+    // Replay attack prevention
+    if log.has_seen(op_id) {
+      emit("operation_log_replay_rejected", { op_id: op_id, crdt_id: crdt_id })
+      return { ok: false, reason: "replay_attack" }
+    }
+
+    // Causal ordering check
+    if strict_causal_ordering and not log.causality_satisfied(signed_op.operation.causality) {
+      log.hold_pending(signed_op)
+      emit("operation_log_held_pending", { op_id: op_id, crdt_id: crdt_id })
+      return { ok: false, reason: "causality_not_satisfied" }
+    }
+
+    // Verify JWT signature
+    result = log.verify(signed_op)
+    entry = {
+      signed_op: signed_op,
+      verified: result.valid,
+      logged_at: lamport_now(),
+      actor_did: signed_op.operation.actor_did,
+      applied: false,
+      rejection_reason: result.valid ? null : result.reason
+    }
+    log.append(op_id, entry)
+
+    // GC if over max
+    if max_log_size > 0 and log.size() > max_log_size {
+      log.gc_lru()
+    }
+
+    emit("operation_log_appended", {
+      op_id: op_id,
+      crdt_id: crdt_id,
+      verified: result.valid,
+      actor_did: signed_op.operation.actor_did
+    })
+    return { ok: true, entry: entry }
+  }
+
+  @on_mark_applied(op_id) => {
+    log.mark_applied(op_id)
+  }
+
+  @on_mark_rejected(op_id, reason) => {
+    log.mark_rejected(op_id, reason)
+    emit("operation_log_rejected", { op_id: op_id, reason: reason, crdt_id: crdt_id })
+  }
+
+  @on_get_entries(filter) => {
+    return log.get_entries(filter)
+  }
+
+  @on_get_stats => {
+    return {
+      total: log.size(),
+      verified: log.count_verified(),
+      applied: log.count_applied(),
+      rejected: log.count_rejected(),
+      pending: log.count_pending()
+    }
+  }
+
+  @receipt operation_log_config {
+    type: "OperationLogReceipt"
+    crdt_id: crdt_id
+    max_log_size: max_log_size
+    strict_causal_ordering: strict_causal_ordering
+    timestamp: now()
+  }
+}

@@ -1,0 +1,103 @@
+// @loro_webrtc_provider — WebRTC mesh sync for Loro CRDT with volumetric budget guard.
+//
+// Native .hsplus surface for LoroWebRTCProvider.ts (crdt-spatial).
+//
+// "Hardened multiplayer semantic canvas" — multiplexes Loro CRDT binary updates
+// over WebRTC data channels to a signaling-server-coordinated peer mesh.
+//
+// Key design points (LoroWebRTCProvider.ts):
+//   - Subscribes to LoroDoc local changes; broadcasts on every local update
+//   - Volumetric budget cap: updates > MAX_VOLUMETRIC_WEBRTC_SYNC_BYTES are
+//     skipped with a warning — caller must use chunk APIs for large volumetrics
+//   - Pre-initializes film3d volumetrics root + legal document contracts root
+//     at t=0 so they are included in all exports (including empty state)
+//   - Manages multiple RTCPeerConnections + RTCDataChannels per room
+//   - Auto-reconnect via reconnect_interval on disconnect
+//
+// Default signaling: wss://signaling.holoscript.net
+// STUN: stun.l.google.com:19302 (two servers)
+// Sync interval: 50ms (incremental LoroDoc export)
+
+@trait loro_webrtc_provider {
+  // Room name for signaling coordination
+  room: String
+
+  // Signaling server WebSocket URL
+  signaling_url: String = "wss://signaling.holoscript.net"
+
+  // Incremental sync interval in ms (Loro export mode: "update")
+  sync_interval_ms: Int = 50
+
+  // Maximum bytes per outbound sync update (volumetric WebRTC budget)
+  max_sync_bytes: Int = 262144
+
+  // Whether to auto-reconnect on signaling disconnect
+  auto_reconnect: Bool = true
+
+  capability_tags: ["loro_webrtc_provider", "webrtc_crdt", "volumetric_budget", "film3d_crdt", "legal_document_crdt", "loro_mesh_sync"]
+
+  @on_spawn => {
+    doc = loro_doc_ref()
+    provider = init_loro_webrtc_provider({
+      doc: doc,
+      room: room,
+      signaling_url: signaling_url,
+      ice_servers: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"],
+      sync_interval_ms: sync_interval_ms
+    })
+    // Pre-initialize domain roots at t=0 so they appear in all exports
+    provider.ensure_film3d_volumetrics_root(doc)
+    provider.ensure_legal_document_contracts_root(doc)
+    // Subscribe to local Loro changes for broadcast
+    doc.subscribe("on_loro_local_change")
+    emit("loro_webrtc_provider_ready", { room: room, signaling_url: signaling_url })
+  }
+
+  @on_loro_local_change(batch) => {
+    if batch.by != "local" { return }
+    update = doc.export({ mode: "update" })
+    // Volumetric budget guard — skip + warn if too large; caller uses chunk APIs
+    if update.byte_length > max_sync_bytes {
+      emit("loro_webrtc_budget_exceeded", {
+        room: room,
+        byte_length: update.byte_length,
+        max_sync_bytes: max_sync_bytes,
+        hint: "use_chunk_apis_for_large_volumetrics"
+      })
+      return
+    }
+    provider.broadcast(update)
+  }
+
+  @on_peer_message(peer_id, data) => {
+    doc.import(data)
+    emit("loro_webrtc_peer_synced", { room: room, peer_id: peer_id })
+  }
+
+  @on_peer_connected(peer_id) => {
+    emit("loro_webrtc_peer_connected", { room: room, peer_id: peer_id })
+    // Send current full state to new peer
+    full_state = doc.export({ mode: "snapshot" })
+    provider.send_to(peer_id, full_state)
+  }
+
+  @on_peer_disconnected(peer_id) => {
+    provider.remove_peer(peer_id)
+    emit("loro_webrtc_peer_disconnected", { room: room, peer_id: peer_id })
+  }
+
+  @on_despawn => {
+    provider.disconnect_all()
+    emit("loro_webrtc_provider_disconnected", { room: room })
+  }
+
+  @receipt loro_webrtc_provider_config {
+    type: "LoroWebRTCProviderReceipt"
+    room: room
+    signaling_url: signaling_url
+    sync_interval_ms: sync_interval_ms
+    max_sync_bytes: max_sync_bytes
+    domain_roots: ["film3d_volumetrics", "legal_document_contracts"]
+    timestamp: now()
+  }
+}
