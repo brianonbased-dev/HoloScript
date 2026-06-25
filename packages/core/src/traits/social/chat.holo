@@ -1,0 +1,22 @@
+@trait {
+  name: "@chat",
+  category: "social",
+  description: "Zone or global text chat endpoint. Sends and receives text messages scoped to a named channel (zone, global, team, direct), enforcing rate limits, profanity filter toggling, and moderation commands for mute/kick, with message history backed by a configurable store. Authored from ChatTrait.ts.",
+  props: {
+    channel: string = "zone",
+    max_history: number = 100,
+    rate_limit_per_min: number = 30,
+    profanity_filter: boolean = true,
+    persist: boolean = false,
+    show_badges: boolean = true
+  },
+  events: {
+    attached: "chat_attached",
+    detached: "chat_detached",
+    on_message: "chat_message",
+    on_moderation: "chat_moderation",
+    send: "chat_trigger_send",
+    clear: "chat_trigger_clear"
+  },
+  behaviors: ["@networked", "@rate_limit", "@badge"]
+}

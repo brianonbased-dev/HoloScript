@@ -1,0 +1,22 @@
+@trait {
+  name: "@city_generator",
+  category: "world",
+  description: "Procedural city and street layout generator. Places roads on a configurable grid or organic graph, assigns block parcels to building archetypes by zone type (residential/commercial/industrial), and instantiates building prefabs from a palette URL, seeded from @world_seed. Authored from CityGeneratorTrait.ts.",
+  props: {
+    seed: number = 0,
+    grid_size_m: number = 50,
+    city_radius_m: number = 500,
+    block_algorithm: enum("grid" | "organic" | "radial") = "grid",
+    building_palette_url: string = "",
+    road_width_m: number = 8,
+    density: number = 0.7
+  },
+  events: {
+    attached: "city_generator_attached",
+    detached: "city_generator_detached",
+    on_generate: "city_generator_generate",
+    on_complete: "city_generator_complete",
+    generate: "city_generator_trigger_generate"
+  },
+  behaviors: ["@world_seed", "@dungeon_generator", "@blueprint"]
+}

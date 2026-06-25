@@ -1,0 +1,20 @@
+@trait {
+  name: "@camera_shake",
+  category: "visual",
+  description: "Procedural camera shake injector. Applies configurable trauma-decay shake to the active camera using Perlin-noise offsets on position and rotation, triggered by impact, explosion, or custom events, with separate frequency and amplitude controls for each axis. Authored from CameraShakeTrait.ts.",
+  props: {
+    trauma: number = 0,
+    decay_rate: number = 0.8,
+    max_offset_m: number = 0.05,
+    max_rotation_deg: number = 2.0,
+    frequency_hz: number = 25,
+    axis_mask: enum("xyz" | "xy" | "z_only") = "xyz"
+  },
+  events: {
+    attached: "camera_shake_attached",
+    detached: "camera_shake_detached",
+    on_shake: "camera_shake_shake",
+    add_trauma: "camera_shake_trigger_add_trauma"
+  },
+  behaviors: ["@virtual_camera", "@orbit_camera", "@motion_blur"]
+}

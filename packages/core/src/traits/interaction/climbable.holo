@@ -1,0 +1,21 @@
+@trait {
+  name: "@climbable",
+  category: "interaction",
+  description: "Climbable surface controller for ladders, ropes, and rock walls. Marks the entity's collider as a climbable surface, accepting player grab events to switch locomotion to vertical-climb mode, controlling ascent/descent speed and grip points, and returning to normal locomotion on release or top dismount. Authored from ClimbableTrait.ts.",
+  props: {
+    climb_speed_m_s: number = 1.5,
+    surface_type: enum("ladder" | "rope" | "wall" | "vine") = "ladder",
+    top_dismount_offset_m: number = 0.5,
+    auto_align_player: boolean = true,
+    grip_interval_m: number = 0.5,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "climbable_attached",
+    detached: "climbable_detached",
+    on_grab: "climbable_grab",
+    on_release: "climbable_release",
+    on_top_reach: "climbable_top_reach"
+  },
+  behaviors: ["@ladder", "@xr_ray_interactor", "@kinematic"]
+}
