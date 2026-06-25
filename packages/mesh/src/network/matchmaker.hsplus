@@ -1,0 +1,34 @@
+// @matchmaker — Skill-based matchmaking with configurable rating windows + region selection.
+//
+// Native .hsplus surface for mesh/network/Matchmaker.ts.
+//
+// enqueue(player: MatchmakingPlayer) / dequeue(playerId)
+// tick() — expands rating window over time; forms matches when window satisfied
+// selectRegion(players) → best region by latency/count heuristic
+// MatchResult { players, region, gameMode }
+
+@trait matchmaker {
+  capability_tags: ["matchmaker", "skill_based_mm", "rating_window", "region_selection", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    mm = init_matchmaker()
+    emit("matchmaker_ready", {})
+  }
+
+  @on_enqueue(player) => {
+    mm.enqueue(player)
+    emit("player_queued", { player_id: player.id })
+  }
+
+  @on_tick => {
+    matches = mm.tick()
+    if matches.length > 0 { emit("matches_formed", { count: matches.length }) }
+    return matches
+  }
+
+  @receipt matchmaker_config {
+    type: "MatchmakerReceipt"
+    pattern: "enqueue → expanding rating window tick → region-filtered match"
+    timestamp: now()
+  }
+}

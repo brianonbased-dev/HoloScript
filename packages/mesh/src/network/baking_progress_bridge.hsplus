@@ -1,0 +1,43 @@
+// @baking_progress_bridge — Pure adapter: BakingProgressTracker events → NeuralStreamingTransport packets.
+//
+// Native .hsplus surface for mesh/network/BakingProgressBridge.ts.
+//
+// Design: caller owns subscription slots (bridge does NOT chain .on() internally).
+// Events: progress / stageTransition / complete / error → one packet each (no fan-out).
+// Optional history buffer (historyLimit, default off) for late-joining viewer replay.
+// Never touches wire when transport disconnected; only records to history if enabled.
+// Reconnect replay = caller's responsibility (getHistory() + re-broadcast).
+
+@trait baking_progress_bridge {
+  capability_tags: ["baking_progress_bridge", "3dgs_training", "neural_streaming", "history_buffer", "mesh"]
+
+  @on_spawn => {
+    bridge = init_baking_progress_bridge()
+    emit("baking_progress_bridge_ready", {})
+  }
+
+  @on_progress(progress_event) => {
+    bridge.emit_packet("progress", progress_event)
+  }
+
+  @on_stage_transition(stage_event) => {
+    bridge.emit_packet("stageTransition", stage_event)
+  }
+
+  @on_complete(result) => {
+    bridge.emit_packet("complete", result)
+    emit("baking_complete", {})
+  }
+
+  @on_get_history => {
+    return bridge.get_history()
+  }
+
+  @receipt baking_progress_bridge_config {
+    type: "BakingProgressBridgeReceipt"
+    design: "pure adapter — caller owns subscription slots"
+    events: ["progress", "stageTransition", "complete", "error"]
+    history_buffer: "optional, configurable historyLimit"
+    timestamp: now()
+  }
+}

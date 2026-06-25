@@ -1,0 +1,33 @@
+// @spatial_sharder — Divides 3D space into 100m³ cubic sectors for O(1) traffic filtering.
+//
+// Native .hsplus surface for mesh/network/SpatialSharder.ts.
+//
+// SHARD_SIZE = 100 (meters)
+// getShardId(x, y, z) → "shard_sx_sy_sz" — floor(pos / 100) per axis
+// getOverlappingShards(x, y, z, radius) → string[] — shards touched by bounding sphere
+// Enables server to drop all traffic outside a node's shard boundaries without distance math.
+
+@trait spatial_sharder {
+  capability_tags: ["spatial_sharder", "spatial_partitioning", "traffic_filtering", "100m_sectors", "mesh"]
+
+  @on_spawn => {
+    sharder = init_spatial_sharder()
+    emit("spatial_sharder_ready", {})
+  }
+
+  @on_get_shard_id(x, y, z) => {
+    return sharder.get_shard_id(x, y, z)
+  }
+
+  @on_get_overlapping(x, y, z, radius) => {
+    return sharder.get_overlapping_shards(x, y, z, radius)
+  }
+
+  @receipt spatial_sharder_config {
+    type: "SpatialSharderReceipt"
+    shard_size_m: 100
+    id_format: "shard_{sx}_{sy}_{sz}"
+    pattern: "O(1) shard lookup — no per-entity distance iteration"
+    timestamp: now()
+  }
+}

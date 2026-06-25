@@ -1,0 +1,38 @@
+// @net_entity_sync — ECS-aware network replication with ownership + delta compression.
+//
+// Native .hsplus surface for mesh/network/NetEntitySync.ts.
+//
+// SyncAuthority: server | owner | shared
+// registerComponent(entityId, componentType, authority, ownerId)
+// syncUpdate(entityId, componentType, data) — dirties component, increments version
+// getSnapshot(entityId) → SyncSnapshot — delta-compressed components
+// resolveConflict(local, remote) → winner by authority + version
+
+@trait net_entity_sync {
+  capability_tags: ["net_entity_sync", "ecs_replication", "ownership_transfer", "delta_compression", "priority", "mesh"]
+
+  @on_spawn => {
+    sync = init_net_entity_sync()
+    emit("net_entity_sync_ready", {})
+  }
+
+  @on_register(entity_id, component_type, authority, owner_id) => {
+    sync.register_component(entity_id, component_type, authority, owner_id)
+  }
+
+  @on_update(entity_id, component_type, data) => {
+    sync.sync_update(entity_id, component_type, data)
+    emit("component_dirty", { entity_id, component_type })
+  }
+
+  @on_get_snapshot(entity_id) => {
+    return sync.get_snapshot(entity_id)
+  }
+
+  @receipt net_entity_sync_config {
+    type: "NetEntitySyncReceipt"
+    authorities: ["server", "owner", "shared"]
+    pattern: "dirty-flag → version → delta snapshot → conflict resolve by authority+version"
+    timestamp: now()
+  }
+}

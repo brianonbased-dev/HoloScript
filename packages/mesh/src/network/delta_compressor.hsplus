@@ -1,0 +1,30 @@
+// @delta_compressor — Field-level diff engine: old state → new state → minimal StateDelta[].
+//
+// Native .hsplus surface for mesh/network/DeltaCompressor.ts.
+//
+// computeDeltas(entityId, oldState, newState) → StateDelta[] — flat atomic changes
+// CRDT-aware: skips fields where isCRDT(value) is true (CRDT has own merge)
+// applyDeltas(state, deltas) → merged state
+
+@trait delta_compressor {
+  capability_tags: ["delta_compressor", "diff_engine", "state_delta", "bandwidth_reduction", "crdt_aware", "mesh"]
+
+  @on_spawn => {
+    compressor = init_delta_compressor()
+    emit("delta_compressor_ready", {})
+  }
+
+  @on_compute_deltas(entity_id, old_state, new_state) => {
+    return compressor.compute_deltas(entity_id, old_state, new_state)
+  }
+
+  @on_apply_deltas(state, deltas) => {
+    return compressor.apply_deltas(state, deltas)
+  }
+
+  @receipt delta_compressor_config {
+    type: "DeltaCompressorReceipt"
+    pattern: "field-level diff → atomic StateDelta[]; CRDT fields skipped"
+    timestamp: now()
+  }
+}

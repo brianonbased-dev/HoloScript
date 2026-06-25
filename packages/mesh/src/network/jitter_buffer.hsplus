@@ -1,0 +1,34 @@
+// @jitter_buffer — Reorder out-of-sequence network states; hold for configurable jitter window.
+//
+// Native .hsplus surface for mesh/network/JitterBuffer.ts.
+//
+// insert(state) → returns states ready to apply (in-sequence, no hold remaining)
+// tick(now) → returns states whose holdTimeMs expired (timeout-driven flush per render frame)
+// Config: holdTimeMs, maxSize (default 64), skipGapAfter multiplier
+// Two-step flow: insert on receive, tick once per frame.
+
+@trait jitter_buffer {
+  capability_tags: ["jitter_buffer", "reorder", "hold_time", "network_smoothing", "mesh"]
+
+  @on_spawn => {
+    buffer = init_jitter_buffer()
+    emit("jitter_buffer_ready", {})
+  }
+
+  @on_insert(state) => {
+    ready = buffer.insert(state)
+    return ready
+  }
+
+  @on_tick(now) => {
+    flushed = buffer.tick(now)
+    return flushed
+  }
+
+  @receipt jitter_buffer_config {
+    type: "JitterBufferReceipt"
+    pattern: "insert on receive → tick per frame → in-sequence emission"
+    defaults: { max_size: 64 }
+    timestamp: now()
+  }
+}

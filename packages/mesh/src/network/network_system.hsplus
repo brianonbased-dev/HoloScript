@@ -1,0 +1,38 @@
+// @network_system — EngineSystem for real-time multiplayer networking.
+//
+// Native .hsplus surface for mesh/network/NetworkSystem.ts.
+//
+// Implements EngineSystem lifecycle: init / update(dt) / destroy
+// Responsibilities: delta compression, interest management (spatial filter),
+//   client-side prediction, entity interpolation.
+// Integrates with entity registry; tracks networked entity states per-frame.
+
+@trait network_system {
+  capability_tags: ["network_system", "engine_system", "delta_compression", "interest_management", "entity_interpolation", "mesh"]
+
+  @on_spawn => {
+    system = init_network_system()
+    emit("network_system_ready", {})
+  }
+
+  @on_init => {
+    system.init()
+    emit("network_system_initialized", {})
+  }
+
+  @on_update(dt) => {
+    system.update(dt)
+  }
+
+  @on_destroy => {
+    system.destroy()
+    emit("network_system_destroyed", {})
+  }
+
+  @receipt network_system_config {
+    type: "NetworkSystemReceipt"
+    lifecycle: ["init", "update(dt)", "destroy"]
+    features: ["delta_compression", "spatial_interest_management", "client_prediction", "entity_interpolation"]
+    timestamp: now()
+  }
+}

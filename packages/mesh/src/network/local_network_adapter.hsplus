@@ -1,0 +1,39 @@
+// @local_network_adapter — Cross-tab state sync via BroadcastChannel for local browser instances.
+//
+// Native .hsplus surface for mesh/network/LocalNetworkAdapter.ts.
+//
+// connect(channelName) — opens BroadcastChannel; auto-generates senderId
+// send(update: NetworkUpdate) — broadcasts to all other tabs; echoes to self are filtered
+// onUpdate(cb) / offUpdate(cb)
+// disconnect() — closes channel
+// NetworkUpdate { entityId, senderId, type: property|state|event, payload, timestamp }
+
+@trait local_network_adapter {
+  capability_tags: ["local_network_adapter", "broadcast_channel", "cross_tab_sync", "local_dev", "mesh"]
+
+  @on_spawn => {
+    adapter = init_local_network_adapter()
+    emit("local_network_adapter_ready", {})
+  }
+
+  @on_connect(project_id) => {
+    adapter.connect(project_id)
+    emit("channel_opened", { project_id })
+  }
+
+  @on_send(update) => {
+    adapter.send(update)
+  }
+
+  @on_disconnect => {
+    adapter.disconnect()
+    emit("channel_closed", {})
+  }
+
+  @receipt local_network_adapter_config {
+    type: "LocalNetworkAdapterReceipt"
+    transport: "BroadcastChannel (same-origin tabs)"
+    pattern: "send filter own senderId → no echo"
+    timestamp: now()
+  }
+}

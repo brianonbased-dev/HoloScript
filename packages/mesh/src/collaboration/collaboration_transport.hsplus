@@ -1,0 +1,40 @@
+// @collaboration_transport — CRDT binary update bridge to NetworkTransport.
+//
+// Native .hsplus surface for mesh/collaboration/CollaborationTransport.ts.
+//
+// TransportState: closed | connecting | open | closing
+// connect(sessionId, peerId) → opens WebSocket + heartbeat
+// send(update: Uint8Array) → framed binary CRDT update
+// disconnect() → graceful teardown
+// Compression: gzip above configurable threshold bytes.
+
+@trait collaboration_transport {
+  capability_tags: ["collaboration_transport", "crdt_bridge", "network_transport", "websocket", "mesh"]
+
+  @on_spawn => {
+    transport = init_collaboration_transport()
+    emit("collaboration_transport_ready", {})
+  }
+
+  @on_connect(session_id, peer_id) => {
+    transport.connect(session_id, peer_id)
+    emit("transport_connected", { session_id, peer_id })
+  }
+
+  @on_send(crdt_update) => {
+    transport.send(crdt_update)
+  }
+
+  @on_disconnect => {
+    transport.disconnect()
+    emit("transport_closed", {})
+  }
+
+  @receipt collaboration_transport_config {
+    type: "CollaborationTransportReceipt"
+    framing: "binary CRDT Uint8Array over WebSocket"
+    compression: "gzip above threshold bytes"
+    states: ["closed", "connecting", "open", "closing"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,40 @@
+// @state_synchronizer_impl — Synchronized state entries with ownership, versioning, conflict resolution.
+//
+// Native .hsplus surface for mesh/network/StateSynchronizerImpl.ts.
+//
+// Implements IStateSynchronizer interface.
+// setState(key, value, origin: local|remote) → ISyncStateEntry with version
+// getState(key) → ISyncStateEntry | undefined
+// getSnapshot() → IStateSnapshot — all entries at current versions
+// onChange(key, handler) / offChange(key, handler)
+// Conflict: remote wins unless local is newer version by SYNC_DEFAULTS threshold.
+
+@trait state_synchronizer_impl {
+  capability_tags: ["state_synchronizer_impl", "ownership", "versioning", "conflict_resolution", "mesh"]
+
+  @on_spawn => {
+    sync_impl = init_state_synchronizer_impl()
+    emit("state_synchronizer_impl_ready", {})
+  }
+
+  @on_set(key, value, origin) => {
+    entry = sync_impl.set_state(key, value, origin)
+    emit("state_set", { key, origin })
+    return entry
+  }
+
+  @on_get(key) => {
+    return sync_impl.get_state(key)
+  }
+
+  @on_get_snapshot => {
+    return sync_impl.get_snapshot()
+  }
+
+  @receipt state_synchronizer_impl_config {
+    type: "StateSynchronizerImplReceipt"
+    origins: ["local", "remote"]
+    conflict: "remote wins unless local version newer by threshold"
+    timestamp: now()
+  }
+}

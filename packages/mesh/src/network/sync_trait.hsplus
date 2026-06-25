@@ -1,0 +1,33 @@
+// @sync_trait — Declarative network sync: which properties sync, at what rate, with what authority.
+//
+// Native .hsplus surface for mesh/network/SyncTrait.ts.
+//
+// SyncTraitConfig { syncProperties: string[], syncRate: Hz, interpolate: bool, authority: string, ownerId? }
+// Registers a TraitHandler for @holoscript/core HSPlusNode.
+// On-spawn: attaches interval timer; sends property snapshots to NetworkManager at syncRate.
+// On-receive: applies remote values; interpolates if enabled.
+
+@trait sync_trait {
+  capability_tags: ["sync_trait", "declarative_sync", "property_sync", "sync_rate", "authority", "mesh"]
+
+  @on_spawn => {
+    syncer = init_sync_trait()
+    emit("sync_trait_ready", {})
+  }
+
+  @on_configure(config) => {
+    syncer.configure(config)
+    emit("sync_configured", { properties: config.sync_properties, rate_hz: config.sync_rate })
+  }
+
+  @on_receive_remote(entity_id, values) => {
+    syncer.apply_remote(entity_id, values)
+  }
+
+  @receipt sync_trait_config {
+    type: "SyncTraitReceipt"
+    config_fields: ["syncProperties", "syncRate (Hz)", "interpolate", "authority", "ownerId"]
+    pattern: "interval timer → snapshot syncProperties → NetworkManager; receive → apply/interpolate"
+    timestamp: now()
+  }
+}

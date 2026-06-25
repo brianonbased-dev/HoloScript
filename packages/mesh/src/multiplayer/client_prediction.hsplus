@@ -1,0 +1,34 @@
+// @client_prediction — Input buffering, predictive state, server reconciliation + rollback.
+//
+// Native .hsplus surface for mesh/multiplayer/ClientPrediction.ts.
+//
+// InputFrame { sequence, deltaTime, actions: Record<string, number> }
+// PredictedState { x, y, z, vx, vy, vz }
+// applyInput(state, input, predictFn) → PredictedState
+// reconcile(serverState, serverSeq) → rolls back pending inputs post-serverSeq and replays
+// misprediction metric tracked per-frame
+
+@trait client_prediction {
+  capability_tags: ["client_prediction", "input_buffering", "server_reconciliation", "rollback", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    predictor = init_client_prediction()
+    emit("client_prediction_ready", {})
+  }
+
+  @on_apply_input(input_frame) => {
+    predictor.apply_input(input_frame)
+    emit("input_predicted", { sequence: input_frame.sequence })
+  }
+
+  @on_reconcile(server_state, server_seq) => {
+    predictor.reconcile(server_state, server_seq)
+    emit("reconciled", { server_seq })
+  }
+
+  @receipt client_prediction_config {
+    type: "ClientPredictionReceipt"
+    pattern: "input buffer → predict → server reconcile → rollback → replay"
+    timestamp: now()
+  }
+}

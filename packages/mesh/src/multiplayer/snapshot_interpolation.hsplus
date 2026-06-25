@@ -1,0 +1,32 @@
+// @snapshot_interpolation — Buffered snapshot lerp with jitter buffer and extrapolation fallback.
+//
+// Native .hsplus surface for mesh/multiplayer/SnapshotInterpolation.ts.
+//
+// insert(snapshot: Snapshot) — buffers timestamped entity positions
+// interpolate(renderTime: number) → InterpolatedEntity[] — lerp between flanking snapshots;
+//   falls back to extrapolation when only one snapshot available
+// renderDelay: configurable presentation delay for jitter absorption
+
+@trait snapshot_interpolation {
+  capability_tags: ["snapshot_interpolation", "lerp", "jitter_buffer", "extrapolation", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    si = init_snapshot_interpolation()
+    emit("snapshot_interpolation_ready", {})
+  }
+
+  @on_insert(snapshot) => {
+    si.insert(snapshot)
+  }
+
+  @on_interpolate(render_time) => {
+    entities = si.interpolate(render_time)
+    return entities
+  }
+
+  @receipt snapshot_interpolation_config {
+    type: "SnapshotInterpolationReceipt"
+    pattern: "buffer sorted snapshots → lerp flanking pair; extrapolate when one side missing"
+    timestamp: now()
+  }
+}

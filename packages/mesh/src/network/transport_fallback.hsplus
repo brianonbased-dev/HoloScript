@@ -1,0 +1,38 @@
+// @transport_fallback — Automatic failover: WebRTC → WebSocket → LocalBroadcast.
+//
+// Native .hsplus surface for mesh/network/TransportFallback.ts.
+//
+// connect() — tries WebRTC first; on failure falls back to WebSocket; then LocalBroadcast
+// Priority: 1=ProductionWebRTC, 2=WebSocket, 3=LocalBroadcast
+// Automatic upgrade: periodically retries higher-priority transports after fallback
+// Unified send(message) API regardless of active transport
+
+@trait transport_fallback {
+  capability_tags: ["transport_fallback", "webrtc_fallback", "websocket_fallback", "auto_upgrade", "resilient_transport", "mesh"]
+
+  @on_spawn => {
+    fallback = init_transport_fallback()
+    emit("transport_fallback_ready", {})
+  }
+
+  @on_connect(config) => {
+    fallback.connect(config)
+    emit("transport_fallback_connecting", {})
+  }
+
+  @on_send(message) => {
+    fallback.send(message)
+  }
+
+  @on_disconnect => {
+    fallback.disconnect()
+    emit("transport_fallback_disconnected", {})
+  }
+
+  @receipt transport_fallback_config {
+    type: "TransportFallbackReceipt"
+    priority: ["1=ProductionWebRTC", "2=WebSocket", "3=LocalBroadcast"]
+    upgrade: "periodic retry of higher-priority transport after fallback"
+    timestamp: now()
+  }
+}

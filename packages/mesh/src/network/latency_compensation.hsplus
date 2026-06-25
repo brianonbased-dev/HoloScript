@@ -1,0 +1,35 @@
+// @latency_compensation — Three-tier prediction + smooth correction for 0-500ms+ RTT.
+//
+// Native .hsplus surface for mesh/network/LatencyCompensation.ts.
+//
+// Tier 1 (0-100ms):  Standard client-side prediction + server reconciliation
+// Tier 2 (100-300ms): Input prediction (locomotion RNN-like heuristic on recent inputs)
+// Tier 3 (300ms+):    Intent prediction (proximity, gaze direction, trajectory)
+// Correction thresholds: <0.1m invisible; <0.5m exponential 200ms; <2.0m Bezier 300ms; >2.0m snap
+
+@trait latency_compensation {
+  capability_tags: ["latency_compensation", "three_tier_prediction", "input_prediction", "intent_prediction", "correction_blend", "mesh"]
+
+  @on_spawn => {
+    compensator = init_latency_compensation()
+    emit("latency_compensation_ready", {})
+  }
+
+  @on_predict(peer_id, rtt_ms) => {
+    tier = compensator.select_tier(rtt_ms)
+    prediction = compensator.predict(peer_id, tier)
+    emit("predicted", { peer_id, tier })
+    return prediction
+  }
+
+  @on_apply_correction(current, server, error_m) => {
+    return compensator.apply_correction(current, server, error_m)
+  }
+
+  @receipt latency_compensation_config {
+    type: "LatencyCompensationReceipt"
+    tiers: ["0-100ms standard", "100-300ms input-pattern", "300ms+ intent"]
+    correction_modes: ["invisible (<0.1m)", "exponential 200ms (<0.5m)", "Bezier 300ms (<2.0m)", "snap+smooth (>2.0m)"]
+    timestamp: now()
+  }
+}

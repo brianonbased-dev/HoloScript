@@ -1,0 +1,32 @@
+// @spatial_websocket_transport — WebSocket transport variant with spatial-aware routing.
+//
+// Native .hsplus surface for mesh/network/SpatialWebSocketTransport.ts.
+//
+// Extends NetworkTransport. Connects to WebSocket server (default ws://127.0.0.1:8080).
+// Attaches spatial metadata to outgoing messages so server can route by shard.
+// connect(peerId) → opens WebSocket → registers as peer on open
+
+@trait spatial_websocket_transport {
+  capability_tags: ["spatial_websocket_transport", "websocket", "spatial_routing", "shard_metadata", "mesh"]
+
+  @on_spawn => {
+    transport = init_spatial_websocket_transport()
+    emit("spatial_websocket_transport_ready", {})
+  }
+
+  @on_connect(peer_id, url) => {
+    transport.connect(peer_id, url)
+    emit("spatial_ws_connecting", { peer_id })
+  }
+
+  @on_send(message) => {
+    transport.send(message)
+  }
+
+  @receipt spatial_websocket_transport_config {
+    type: "SpatialWebSocketTransportReceipt"
+    default_url: "ws://127.0.0.1:8080"
+    extension: "NetworkTransport + spatial shard metadata on outgoing messages"
+    timestamp: now()
+  }
+}

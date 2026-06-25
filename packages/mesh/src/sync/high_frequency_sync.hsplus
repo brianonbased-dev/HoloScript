@@ -1,0 +1,37 @@
+// @high_frequency_sync — 60Hz spatial sync with quantization and smallest-three quaternion compression.
+//
+// Native .hsplus surface for mesh/sync/HighFrequencySync.ts.
+//
+// Batch window: 16.67ms (60 FPS)
+// Position: 16-bit fixed-point quantization
+// Rotation: smallest-three quaternion encoding (3 smallest components + index of largest)
+// Priority-based update scheduling (gaze-target entities get more frequent slots)
+// Jitter buffer for smooth playback; delta-only for static objects
+
+@trait high_frequency_sync {
+  capability_tags: ["high_frequency_sync", "60hz", "position_quantization", "smallest_three", "jitter_buffer", "delta_only", "mesh"]
+
+  @on_spawn => {
+    hfsync = init_high_frequency_sync()
+    emit("high_frequency_sync_ready", {})
+  }
+
+  @on_submit(entity_id, position, rotation, priority) => {
+    hfsync.submit(entity_id, position, rotation, priority)
+  }
+
+  @on_flush(now) => {
+    batch = hfsync.flush(now)
+    emit("batch_flushed", { entity_count: batch.length })
+    return batch
+  }
+
+  @receipt high_frequency_sync_config {
+    type: "HighFrequencySyncReceipt"
+    batch_window_ms: 16.67
+    position_encoding: "16-bit fixed-point"
+    rotation_encoding: "smallest-three quaternion"
+    features: ["priority scheduling", "jitter buffer", "delta-only for static"]
+    timestamp: now()
+  }
+}

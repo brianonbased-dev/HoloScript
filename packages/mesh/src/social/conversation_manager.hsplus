@@ -1,0 +1,39 @@
+// @conversation_manager — Peer-to-peer chat over WebRTC; per-conversation message history.
+//
+// Native .hsplus surface for mesh/social/ConversationManager.ts.
+//
+// sendMessage(peerId, text) — sends over WebRTC transport; stores locally
+// getMessages(peerId) → SocialMessage[] — full history for that peer
+// markRead(peerId, messageId)
+// onMessage(handler) — listener for incoming messages
+// SocialMessage { id, senderId, timestamp, text, read }
+// Integrates SocialGraph + FriendManager for permission checks
+
+@trait conversation_manager {
+  capability_tags: ["conversation_manager", "p2p_chat", "message_history", "webrtc_social", "mesh"]
+
+  @on_spawn => {
+    conv = init_conversation_manager()
+    emit("conversation_manager_ready", {})
+  }
+
+  @on_send(peer_id, text) => {
+    conv.send_message(peer_id, text)
+    emit("message_sent", { peer_id })
+  }
+
+  @on_get_messages(peer_id) => {
+    return conv.get_messages(peer_id)
+  }
+
+  @on_mark_read(peer_id, message_id) => {
+    conv.mark_read(peer_id, message_id)
+  }
+
+  @receipt conversation_manager_config {
+    type: "ConversationManagerReceipt"
+    transport: "WebRTC"
+    deps: ["SocialGraph", "FriendManager"]
+    timestamp: now()
+  }
+}

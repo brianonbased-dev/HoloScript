@@ -1,0 +1,40 @@
+// @network_manager — Multiplayer network layer: connections, serialization, AOI filtering.
+//
+// Native .hsplus surface for mesh/network/NetworkManager.ts.
+//
+// W.NET.02: AOI-filtered broadcast via spatial hash grid.
+// P.NET.04: Brain Server config for batched agent inference.
+// W.NET.01: Server-authority model for 100+ player scale.
+// attachTransport(transport) — swaps real WS/WebRTC transport
+// sendMessage(type, payload, targetId?) — routes via AOI or direct
+// MessageTypes: state_sync | event | rpc | handshake | heartbeat | agent_state
+
+@trait network_manager {
+  capability_tags: ["network_manager", "aoi_filtering", "spatial_hash", "server_authority", "brain_server", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    manager = init_network_manager()
+    emit("network_manager_ready", {})
+  }
+
+  @on_attach_transport(transport) => {
+    manager.attach_transport(transport)
+    emit("transport_attached", {})
+  }
+
+  @on_send(msg_type, payload, target_id) => {
+    manager.send_message(msg_type, payload, target_id)
+  }
+
+  @on_broadcast_aoi(payload, origin, radius) => {
+    manager.broadcast_aoi(payload, origin, radius)
+  }
+
+  @receipt network_manager_config {
+    type: "NetworkManagerReceipt"
+    aoi: "spatial hash grid (100m cells)"
+    scale: "100+ players via server-authority"
+    message_types: ["state_sync", "event", "rpc", "handshake", "heartbeat", "agent_state"]
+    timestamp: now()
+  }
+}

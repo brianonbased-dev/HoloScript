@@ -1,0 +1,40 @@
+// @entity_authority — Ownership and authority transfer for networked entities.
+//
+// Native .hsplus surface for mesh/multiplayer/EntityAuthority.ts.
+//
+// AuthorityLevel: owner | shared | server | none
+// AuthorityRecord { entityId, ownerId, authorityLevel, transferable, lastTransferTime, lockExpiry }
+// requestTransfer(entityId, requesterId, reason) → TransferRequest
+// approveTransfer / denyTransfer / lockEntity(ttlMs)
+// hasAuthority(entityId, peerId) → bool
+
+@trait entity_authority {
+  capability_tags: ["entity_authority", "ownership", "authority_transfer", "networked_entities", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    authority = init_entity_authority()
+    emit("entity_authority_ready", {})
+  }
+
+  @on_request_transfer(entity_id, requester_id, reason) => {
+    req = authority.request_transfer(entity_id, requester_id, reason)
+    emit("transfer_requested", { entity_id, requester_id })
+    return req
+  }
+
+  @on_approve_transfer(transfer_id) => {
+    authority.approve_transfer(transfer_id)
+    emit("transfer_approved", { transfer_id })
+  }
+
+  @on_lock_entity(entity_id, ttl_ms) => {
+    authority.lock_entity(entity_id, ttl_ms)
+  }
+
+  @receipt entity_authority_config {
+    type: "EntityAuthorityReceipt"
+    levels: ["owner", "shared", "server", "none"]
+    transfer_reasons: ["interaction", "proximity", "force", "timeout"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,36 @@
+// @sync_protocol — Real-time sync protocol: delta encoding, interest management, conflict resolution.
+//
+// Native .hsplus surface for mesh/network/SyncProtocol.ts.
+//
+// TransportType: websocket | webrtc | quic | local
+// SerializationType: json | msgpack | cbor
+// ConflictStrategy: last-write-wins | server-authority | merge | custom
+// createProtocol(config) → SyncProtocol — manages transport, serialization, rooms
+// Exports: WebSocketTransport, LocalBroadcastTransport as concrete Transport impls
+
+@trait sync_protocol {
+  capability_tags: ["sync_protocol", "delta_encoding", "interest_management", "conflict_strategy", "multi_transport", "mesh"]
+
+  @on_spawn => {
+    protocol = init_sync_protocol()
+    emit("sync_protocol_ready", {})
+  }
+
+  @on_create(config) => {
+    proto = protocol.create(config)
+    emit("protocol_created", { transport: config.transport, room: config.room_id })
+    return proto
+  }
+
+  @on_sync(entity_id, state) => {
+    protocol.sync(entity_id, state)
+  }
+
+  @receipt sync_protocol_config {
+    type: "SyncProtocolReceipt"
+    transports: ["websocket", "webrtc", "quic", "local"]
+    serialization: ["json", "msgpack", "cbor"]
+    conflict_strategies: ["last-write-wins", "server-authority", "merge", "custom"]
+    timestamp: now()
+  }
+}

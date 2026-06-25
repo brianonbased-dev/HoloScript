@@ -1,0 +1,39 @@
+// @room_manager — Multiplayer room/session lifecycle: create, join, leave, player tracking.
+//
+// Native .hsplus surface for mesh/network/RoomManager.ts.
+//
+// createRoom(config: RoomConfig) → Room { id, config, hostId, players, createdAt, metadata }
+// joinRoom(roomId, playerId) / leaveRoom(roomId, playerId)
+// getRoom(roomId) / listRooms()
+// password-protected rooms supported via config.password
+
+@trait room_manager {
+  capability_tags: ["room_manager", "session_lifecycle", "password_rooms", "player_tracking", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    rooms = init_room_manager()
+    emit("room_manager_ready", {})
+  }
+
+  @on_create(config) => {
+    room = rooms.create_room(config)
+    emit("room_created", { room_id: room.id })
+    return room
+  }
+
+  @on_join(room_id, player_id) => {
+    rooms.join_room(room_id, player_id)
+    emit("player_joined_room", { room_id, player_id })
+  }
+
+  @on_leave(room_id, player_id) => {
+    rooms.leave_room(room_id, player_id)
+    emit("player_left_room", { room_id, player_id })
+  }
+
+  @receipt room_manager_config {
+    type: "RoomManagerReceipt"
+    config: { name: "string", maxPlayers: "number", isPublic: "bool", password: "optional" }
+    timestamp: now()
+  }
+}

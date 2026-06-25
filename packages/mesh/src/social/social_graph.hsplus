@@ -1,0 +1,40 @@
+// @social_graph — Core social network graph: users, relationships, status.
+//
+// Native .hsplus surface for mesh/social/SocialGraph.ts.
+//
+// addUser(user: SocialUser) / removeUser(userId) / getUser(userId)
+// addRelationship(userId, targetId, type: friend|blocked|pending)
+// getRelationship(userId, targetId) → RelationshipType | null
+// getFriends(userId) → SocialUser[]
+// SocialUser { id, username, displayName, avatarUrl?, status, lastSeen, currentActivity? }
+// UserStatus: online | offline | away | busy | playing
+
+@trait social_graph {
+  capability_tags: ["social_graph", "user_registry", "relationships", "friend_list", "status_tracking", "mesh"]
+
+  @on_spawn => {
+    graph = init_social_graph()
+    emit("social_graph_ready", {})
+  }
+
+  @on_add_user(user) => {
+    graph.add_user(user)
+    emit("user_added", { user_id: user.id })
+  }
+
+  @on_add_relationship(user_id, target_id, rel_type) => {
+    graph.add_relationship(user_id, target_id, rel_type)
+    emit("relationship_added", { user_id, target_id, rel_type })
+  }
+
+  @on_get_friends(user_id) => {
+    return graph.get_friends(user_id)
+  }
+
+  @receipt social_graph_config {
+    type: "SocialGraphReceipt"
+    relationship_types: ["friend", "blocked", "pending"]
+    statuses: ["online", "offline", "away", "busy", "playing"]
+    timestamp: now()
+  }
+}

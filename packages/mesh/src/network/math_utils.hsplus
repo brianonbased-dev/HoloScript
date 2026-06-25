@@ -1,0 +1,31 @@
+// @math_utils — Higher-order interpolation for network sync: Catmull-Rom, Hermite, cubic Bezier.
+//
+// Native .hsplus surface for mesh/network/MathUtils.ts.
+//
+// vec3Add / vec3Sub / vec3Scale / vec3Lerp / vec3Length / vec3Normalize
+// catmullRom(p0, p1, p2, p3, t) → IVector3 — smooth position curves
+// hermiteInterpolate(p0, p1, tan0, tan1, t) → IVector3 — velocity-aware
+// cubicBezier(p0, c0, c1, p3, t) → IVector3 — correction arc
+
+@trait math_utils {
+  capability_tags: ["math_utils", "catmull_rom", "hermite", "cubic_bezier", "vec3_ops", "network_math", "mesh"]
+
+  @on_spawn => {
+    math = init_math_utils()
+    emit("math_utils_ready", {})
+  }
+
+  @on_catmull_rom(p0, p1, p2, p3, t) => {
+    return math.catmull_rom(p0, p1, p2, p3, t)
+  }
+
+  @on_bezier(p0, c0, c1, p3, t) => {
+    return math.cubic_bezier(p0, c0, c1, p3, t)
+  }
+
+  @receipt math_utils_config {
+    type: "MathUtilsReceipt"
+    functions: ["catmullRom", "hermiteInterpolate", "cubicBezier", "vec3Add/Sub/Scale/Lerp/Length/Normalize"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,33 @@
+// @replication_manager — High-level replication for complex objects (vehicles, ragdolls).
+//
+// Native .hsplus surface for mesh/multiplayer/ReplicationManager.ts.
+//
+// Manages snapshot frequency, priority scoring, delta compression per entity.
+// ReplicationPolicy { snapshotHz, priority, deltaOnly, maxStalenessMs }
+// register(entityId, policy) / unregister(entityId)
+// tick(now) → generates and enqueues delta-compressed snapshots by priority
+
+@trait replication_manager {
+  capability_tags: ["replication_manager", "snapshot_replication", "delta_compression", "priority_queue", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    replicator = init_replication_manager()
+    emit("replication_manager_ready", {})
+  }
+
+  @on_register(entity_id, policy) => {
+    replicator.register(entity_id, policy)
+  }
+
+  @on_tick(now) => {
+    snapshots = replicator.tick(now)
+    emit("snapshots_ready", { count: snapshots.length })
+    return snapshots
+  }
+
+  @receipt replication_manager_config {
+    type: "ReplicationManagerReceipt"
+    pattern: "policy-per-entity → priority-sorted tick → delta-compressed snapshot queue"
+    timestamp: now()
+  }
+}

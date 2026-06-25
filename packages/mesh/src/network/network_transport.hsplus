@@ -1,0 +1,43 @@
+// @network_transport — Base transport: client/server connection, message framing, bandwidth tracking.
+//
+// Native .hsplus surface for mesh/network/NetworkTransport.ts.
+//
+// ConnectionState: disconnected | connecting | connected | disconnecting
+// TransportMode: client | server | host
+// connect(peerId) / disconnect() / send(msg) / broadcast(msg, excludeId?)
+// simulateLatency(minMs, maxMs, lossRate) — dev/test mode
+// bandwidth: bytesIn / bytesOut / packetsIn / packetsOut
+
+@trait network_transport {
+  capability_tags: ["network_transport", "connection_lifecycle", "message_framing", "bandwidth_tracking", "latency_simulation", "mesh"]
+
+  @on_spawn => {
+    transport = init_network_transport()
+    emit("network_transport_ready", {})
+  }
+
+  @on_connect(peer_id) => {
+    transport.connect(peer_id)
+    emit("peer_connected", { peer_id })
+  }
+
+  @on_send(message) => {
+    transport.send(message)
+  }
+
+  @on_broadcast(message, exclude_id) => {
+    transport.broadcast(message, exclude_id)
+  }
+
+  @on_simulate_latency(min_ms, max_ms, loss_rate) => {
+    transport.simulate_latency(min_ms, max_ms, loss_rate)
+  }
+
+  @receipt network_transport_config {
+    type: "NetworkTransportReceipt"
+    modes: ["client", "server", "host"]
+    states: ["disconnected", "connecting", "connected", "disconnecting"]
+    metrics: ["bytesIn", "bytesOut", "packetsIn", "packetsOut"]
+    timestamp: now()
+  }
+}

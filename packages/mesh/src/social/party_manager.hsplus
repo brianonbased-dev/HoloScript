@@ -1,0 +1,41 @@
+// @party_manager — Group management: create/join/leave party, leader role, ready state.
+//
+// Native .hsplus surface for mesh/social/PartyManager.ts.
+//
+// createParty(maxSize) / joinParty(partyId, userId) / leaveParty(partyId, userId)
+// setLeader(partyId, userId) / setReady(partyId, userId, ready)
+// Party { id, members: PartyMember[], maxSize }
+// PartyMember { id, isLeader, ready }
+// Integrates SocialGraph; sends real-time updates over WebRTC transport
+
+@trait party_manager {
+  capability_tags: ["party_manager", "group_play", "leader_role", "ready_state", "social", "mesh"]
+
+  @on_spawn => {
+    party = init_party_manager()
+    emit("party_manager_ready", {})
+  }
+
+  @on_create(max_size) => {
+    p = party.create_party(max_size)
+    emit("party_created", { party_id: p.id })
+    return p
+  }
+
+  @on_join(party_id, user_id) => {
+    party.join_party(party_id, user_id)
+    emit("party_joined", { party_id, user_id })
+  }
+
+  @on_leave(party_id, user_id) => {
+    party.leave_party(party_id, user_id)
+    emit("party_left", { party_id, user_id })
+  }
+
+  @receipt party_manager_config {
+    type: "PartyManagerReceipt"
+    structure: "Party { id, members: PartyMember[], maxSize }"
+    deps: ["SocialGraph", "WebRTCTransport"]
+    timestamp: now()
+  }
+}

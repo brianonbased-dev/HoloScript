@@ -1,0 +1,42 @@
+// @network_client_impl — Client for networked state sync: connection, messaging, peer discovery.
+//
+// Native .hsplus surface for mesh/network/NetworkClientImpl.ts.
+//
+// Implements INetworkClient: connect/disconnect, send(message, target), broadcast
+// ConnectionState: disconnected | connecting | connected | disconnecting
+// Peer discovery via gossip; auto-generates peerId on first connect
+// MessageHandler registered per event type; NetworkEventCallback for lifecycle events
+
+@trait network_client_impl {
+  capability_tags: ["network_client_impl", "peer_discovery", "connection_management", "state_sync", "mesh"]
+
+  @on_spawn => {
+    client = init_network_client_impl()
+    emit("network_client_ready", {})
+  }
+
+  @on_connect(config) => {
+    client.connect(config)
+    emit("connecting", { config })
+  }
+
+  @on_send(message, target) => {
+    client.send(message, target)
+  }
+
+  @on_broadcast(message) => {
+    client.broadcast(message)
+  }
+
+  @on_disconnect => {
+    client.disconnect()
+    emit("disconnected", {})
+  }
+
+  @receipt network_client_impl_config {
+    type: "NetworkClientImplReceipt"
+    states: ["disconnected", "connecting", "connected", "disconnecting"]
+    pattern: "gossip peer discovery; auto-generated peerId"
+    timestamp: now()
+  }
+}

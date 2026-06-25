@@ -1,0 +1,37 @@
+// @websocket_signaler — Concrete ISignalingBridge over WebSocket for WebRTC negotiation.
+//
+// Native .hsplus surface for mesh/network/WebSocketSignaler.ts.
+//
+// Connects to WebRTCSignalingServer on mcp-server via dedicated WebSocket.
+// Queues NeuralSignalPayload (offer/answer/ice-candidate) until connected.
+// send(payload) / onReceive(handler) — bidirectional signaling channel
+// targetPeerId set at construction for per-connection isolation
+
+@trait websocket_signaler {
+  capability_tags: ["websocket_signaler", "signaling_bridge", "webrtc_negotiation", "queued_signals", "mesh"]
+
+  @on_spawn => {
+    signaler = init_websocket_signaler()
+    emit("websocket_signaler_ready", {})
+  }
+
+  @on_connect(endpoint_url, local_peer_id, target_peer_id) => {
+    signaler.connect(endpoint_url, local_peer_id, target_peer_id)
+    emit("signaler_connecting", { target_peer_id })
+  }
+
+  @on_send(payload) => {
+    signaler.send(payload)
+  }
+
+  @on_receive(handler) => {
+    signaler.on_receive(handler)
+  }
+
+  @receipt websocket_signaler_config {
+    type: "WebSocketSignalerReceipt"
+    server: "mcp-server WebRTCSignalingServer"
+    queuing: "NeuralSignalPayload queued until connected"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,40 @@
+// @production_webrtc_transport — Full-featured WebRTC peer connection with trickle ICE + data channel pooling.
+//
+// Native .hsplus surface for mesh/network/ProductionWebRTCTransport.ts.
+//
+// ICE servers: 4 Google STUN defaults; injectable TURN
+// Trickle ICE; automatic reconnection; data channel pooling (reliable + unreliable)
+// connect(signaler) → gather ICE → exchange SDP → open data channels
+// send(msg: SyncMessage) → routes to appropriate channel by reliability
+// onMessage(handler) / onStateChange(handler)
+
+@trait production_webrtc_transport {
+  capability_tags: ["production_webrtc_transport", "trickle_ice", "data_channel_pool", "stun_turn", "automatic_reconnect", "mesh"]
+
+  @on_spawn => {
+    webrtc = init_production_webrtc_transport()
+    emit("production_webrtc_ready", {})
+  }
+
+  @on_connect(signaler) => {
+    webrtc.connect(signaler)
+    emit("webrtc_connecting", {})
+  }
+
+  @on_send(message) => {
+    webrtc.send(message)
+  }
+
+  @on_disconnect => {
+    webrtc.disconnect()
+    emit("webrtc_disconnected", {})
+  }
+
+  @receipt production_webrtc_transport_config {
+    type: "ProductionWebRTCTransportReceipt"
+    ice_servers: "4 Google STUN defaults + injectable TURN"
+    channels: ["reliable", "unreliable"]
+    features: ["trickle ICE", "auto-reconnect", "data channel pooling"]
+    timestamp: now()
+  }
+}

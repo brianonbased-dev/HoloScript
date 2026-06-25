@@ -1,0 +1,31 @@
+// @signaling_protocol — Message types and utilities for WebRTC connection negotiation.
+//
+// Native .hsplus surface for mesh/network/signaling/SignalingProtocol.ts.
+//
+// SignalingMessageType: join | leave | offer | answer | ice-candidate | peer-joined | peer-left | room-state | error | ping | pong
+// createSignalingMessage(type, payload) → SignalingMessage
+// parseSignalingMessage(raw) → SignalingMessage | null
+// serializeSignalingMessage(msg) → string
+
+@trait signaling_protocol {
+  capability_tags: ["signaling_protocol", "message_types", "sdp_protocol", "ice_protocol", "serialization", "mesh"]
+
+  @on_spawn => {
+    proto = init_signaling_protocol()
+    emit("signaling_protocol_ready", {})
+  }
+
+  @on_create_message(msg_type, payload) => {
+    return proto.create_message(msg_type, payload)
+  }
+
+  @on_parse(raw) => {
+    return proto.parse(raw)
+  }
+
+  @receipt signaling_protocol_config {
+    type: "SignalingProtocolReceipt"
+    message_types: ["join", "leave", "offer", "answer", "ice-candidate", "peer-joined", "peer-left", "room-state", "error", "ping", "pong"]
+    timestamp: now()
+  }
+}

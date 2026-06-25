@@ -1,0 +1,33 @@
+// @neural_streaming_transport — WebRTC/WebSocket transport for neural + splat streaming payloads.
+//
+// Native .hsplus surface for mesh/network/NeuralStreamingTransport.ts.
+//
+// ISignalingBridge: send(payload: NeuralSignalPayload) / onReceive(handler)
+// NeuralSignalPayload: type (offer | answer | ice-candidate), sdp?, candidate?
+// chunkSize: default 16KB for UDP-safe transmission over DataChannels
+// WebSocketSignaler implements ISignalingBridge out-of-band via HoloMesh A2A messaging
+
+@trait neural_streaming_transport {
+  capability_tags: ["neural_streaming_transport", "webrtc_signaling", "ice_candidate", "sdp_exchange", "data_channel", "mesh"]
+
+  @on_spawn => {
+    transport = init_neural_streaming_transport()
+    emit("neural_streaming_transport_ready", {})
+  }
+
+  @on_send(payload) => {
+    transport.send(payload)
+  }
+
+  @on_receive(handler) => {
+    transport.on_receive(handler)
+  }
+
+  @receipt neural_streaming_transport_config {
+    type: "NeuralStreamingTransportReceipt"
+    signaling: "NeuralSignalPayload (offer|answer|ice-candidate)"
+    chunk_size_bytes: 16384
+    signaling_impl: "WebSocketSignaler via HoloMesh A2A"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,34 @@
+// @network_interpolation — Smooth lerp/extrapolation for networked entities at 90fps VR.
+//
+// Native .hsplus surface for mesh/multiplayer/NetworkInterpolation.ts.
+//
+// W.NET.04: async ring buffer — render thread samples via interpolation, network I/O never blocks.
+// G.NET.03: bufferTimeMs capped at 100ms for VR (60ms ideal).
+// P.NET.03: foveated interpolation priority — gaze targets get higher quality.
+// insert(entityId, snapshot) → buffers state
+// sample(entityId, renderTime) → IVector3 — lerp between bracketing snapshots or extrapolate
+
+@trait network_interpolation {
+  capability_tags: ["network_interpolation", "lerp", "dead_reckoning", "jitter_buffer", "vr_90fps", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    interpolator = init_network_interpolation()
+    emit("network_interpolation_ready", {})
+  }
+
+  @on_insert(entity_id, snapshot) => {
+    interpolator.insert(entity_id, snapshot)
+  }
+
+  @on_sample(entity_id, render_time) => {
+    return interpolator.sample(entity_id, render_time)
+  }
+
+  @receipt network_interpolation_config {
+    type: "NetworkInterpolationReceipt"
+    buffer_cap_ms: 100
+    ideal_buffer_ms: 60
+    pattern: "ring buffer → bracketing snapshots → lerp; extrapolate on gap"
+    timestamp: now()
+  }
+}

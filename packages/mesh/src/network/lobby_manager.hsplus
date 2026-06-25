@@ -1,0 +1,46 @@
+// @lobby_manager — Room creation, player slots, ready state, host selection + host migration.
+//
+// Native .hsplus surface for mesh/network/LobbyManager.ts.
+//
+// createRoom(config) / joinRoom(roomId, playerId) / leaveRoom(roomId, playerId)
+// setReady(roomId, playerId, ready) / startGame(roomId) → validates all ready
+// migrateHost(roomId) — selects new host when current host disconnects (oldest join time)
+// LobbyRoom { id, config, hostId, players, state: waiting|starting|in_game|ended }
+
+@trait lobby_manager {
+  capability_tags: ["lobby_manager", "room_creation", "host_migration", "ready_state", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    lobby = init_lobby_manager()
+    emit("lobby_manager_ready", {})
+  }
+
+  @on_create_room(config) => {
+    room = lobby.create_room(config)
+    emit("room_created", { room_id: room.id })
+    return room
+  }
+
+  @on_join_room(room_id, player_id) => {
+    lobby.join_room(room_id, player_id)
+    emit("player_joined", { room_id, player_id })
+  }
+
+  @on_leave_room(room_id, player_id) => {
+    lobby.leave_room(room_id, player_id)
+    emit("player_left", { room_id, player_id })
+  }
+
+  @on_migrate_host(room_id) => {
+    new_host = lobby.migrate_host(room_id)
+    emit("host_migrated", { room_id, new_host_id: new_host })
+    return new_host
+  }
+
+  @receipt lobby_manager_config {
+    type: "LobbyManagerReceipt"
+    states: ["waiting", "starting", "in_game", "ended"]
+    host_selection: "oldest join time on host disconnect"
+    timestamp: now()
+  }
+}

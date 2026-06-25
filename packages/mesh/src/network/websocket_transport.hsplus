@@ -1,0 +1,38 @@
+// @websocket_transport — Reliable bidirectional WebSocket transport with reconnect + message queue.
+//
+// Native .hsplus surface for mesh/network/WebSocketTransport.ts.
+//
+// Config { serverUrl, roomId, peerId?, heartbeatInterval?, reconnectMaxAttempts?, messageQueueMax? }
+// connect() → sends join message; heartbeat keepalive
+// send(message) → queues if disconnected; drains on reconnect
+// onMessage(handler) / onStateChange(handler)
+// Exponential backoff reconnection; room-based message isolation
+
+@trait websocket_transport {
+  capability_tags: ["websocket_transport", "message_queue", "heartbeat", "room_isolation", "reconnect_backoff", "mesh"]
+
+  @on_spawn => {
+    ws = init_websocket_transport()
+    emit("websocket_transport_ready", {})
+  }
+
+  @on_connect(config) => {
+    ws.connect(config)
+    emit("ws_connecting", { room_id: config.room_id })
+  }
+
+  @on_send(message) => {
+    ws.send(message)
+  }
+
+  @on_disconnect => {
+    ws.disconnect()
+    emit("ws_disconnected", {})
+  }
+
+  @receipt websocket_transport_config {
+    type: "WebSocketTransportReceipt"
+    features: ["message queue on disconnect + drain on reconnect", "heartbeat keepalive", "room isolation", "exponential backoff"]
+    timestamp: now()
+  }
+}

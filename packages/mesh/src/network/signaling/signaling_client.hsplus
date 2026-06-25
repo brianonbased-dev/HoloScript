@@ -1,0 +1,43 @@
+// @signaling_client — WebSocket-based WebRTC signaling: room join, SDP exchange, ICE trickle.
+//
+// Native .hsplus surface for mesh/network/signaling/SignalingClient.ts.
+//
+// connect(serverUrl) / disconnect()
+// joinRoom(roomId, peerId) → JoinMessage
+// sendOffer(targetPeerId, sdp) / sendAnswer(targetPeerId, sdp)
+// sendIceCandidate(targetPeerId, candidate)
+// onPeerJoined / onPeerLeft / onOffer / onAnswer / onIceCandidate handlers
+
+@trait signaling_client {
+  capability_tags: ["signaling_client", "sdp_exchange", "ice_trickle", "webrtc_negotiation", "room_join", "mesh"]
+
+  @on_spawn => {
+    client = init_signaling_client()
+    emit("signaling_client_ready", {})
+  }
+
+  @on_connect(server_url) => {
+    client.connect(server_url)
+    emit("signaling_connecting", { server_url })
+  }
+
+  @on_join_room(room_id, peer_id) => {
+    client.join_room(room_id, peer_id)
+    emit("room_joined", { room_id, peer_id })
+  }
+
+  @on_send_offer(target, sdp) => {
+    client.send_offer(target, sdp)
+  }
+
+  @on_send_ice(target, candidate) => {
+    client.send_ice_candidate(target, candidate)
+  }
+
+  @receipt signaling_client_config {
+    type: "SignalingClientReceipt"
+    protocol: "WebSocket-based WebRTC signaling"
+    events: ["peer-joined", "peer-left", "offer", "answer", "ice-candidate", "room-state"]
+    timestamp: now()
+  }
+}

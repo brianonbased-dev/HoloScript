@@ -1,0 +1,36 @@
+// @net_event_bus — Reliable/unreliable/ordered network event channels.
+//
+// Native .hsplus surface for mesh/network/NetEventBus.ts.
+//
+// ChannelReliability: reliable | unreliable | ordered
+// createChannel(id, reliability) / destroyChannel(id)
+// on(channel, event, handler) / off(channel, event, handler)
+// emit(channel, event, payload, senderId) — dispatches NetMessage to all handlers on channel
+
+@trait net_event_bus {
+  capability_tags: ["net_event_bus", "event_channels", "reliable", "unreliable", "ordered", "mesh"]
+
+  @on_spawn => {
+    bus = init_net_event_bus()
+    emit("net_event_bus_ready", {})
+  }
+
+  @on_create_channel(channel_id, reliability) => {
+    bus.create_channel(channel_id, reliability)
+  }
+
+  @on_subscribe(channel_id, event, handler) => {
+    bus.on(channel_id, event, handler)
+  }
+
+  @on_emit(channel_id, event, payload, sender_id) => {
+    bus.emit(channel_id, event, payload, sender_id)
+  }
+
+  @receipt net_event_bus_config {
+    type: "NetEventBusReceipt"
+    reliability_modes: ["reliable", "unreliable", "ordered"]
+    tracking: "messageCount + bytesTransferred per channel"
+    timestamp: now()
+  }
+}

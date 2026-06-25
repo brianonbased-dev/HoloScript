@@ -1,0 +1,36 @@
+// @mesh_logger — Zero-dependency console-backed logger; removes core runtime dep from mesh.
+//
+// Native .hsplus surface for mesh/utils/logger.ts.
+//
+// W.667: mesh imported logger from @holoscript/core, breaking cold external consumers.
+// This standalone logger removes that runtime edge; mesh can be installed alone.
+// MeshLogger { info, warn, error, debug } — console-backed; debug noop in prod.
+// LOG_LEVEL env-gated: debug enabled only when LOG_LEVEL=debug.
+
+@trait mesh_logger {
+  capability_tags: ["mesh_logger", "zero_dep_logger", "console_backed", "standalone", "mesh"]
+
+  @on_spawn => {
+    logger = init_mesh_logger()
+    emit("mesh_logger_ready", {})
+  }
+
+  @on_info(args) => {
+    logger.info(args)
+  }
+
+  @on_warn(args) => {
+    logger.warn(args)
+  }
+
+  @on_error(args) => {
+    logger.error(args)
+  }
+
+  @receipt mesh_logger_config {
+    type: "MeshLoggerReceipt"
+    rationale: "W.667 — removes @holoscript/core runtime dep from @holoscript/mesh"
+    levels: ["info", "warn", "error", "debug (LOG_LEVEL=debug only)"]
+    timestamp: now()
+  }
+}

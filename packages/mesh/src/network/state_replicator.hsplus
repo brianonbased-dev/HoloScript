@@ -1,0 +1,38 @@
+// @state_replicator — Snapshot/delta replication with authority management and conflict resolution.
+//
+// Native .hsplus surface for mesh/network/StateReplicator.ts.
+//
+// AuthorityMode: server | owner | shared
+// setProperty(entityId, key, value) — marks dirty; resolves authority
+// getSnapshot(entityId) → StateSnapshot { entityId, properties, version, timestamp }
+// applyRemoteSnapshot(snapshot) — merges with conflict resolution by authority
+// interpolate(entityId, t) → interpolated property values
+
+@trait state_replicator {
+  capability_tags: ["state_replicator", "snapshot_delta", "authority_management", "conflict_resolution", "interpolation", "mesh"]
+
+  @on_spawn => {
+    replicator = init_state_replicator()
+    emit("state_replicator_ready", {})
+  }
+
+  @on_set_property(entity_id, key, value) => {
+    replicator.set_property(entity_id, key, value)
+    emit("property_dirty", { entity_id, key })
+  }
+
+  @on_get_snapshot(entity_id) => {
+    return replicator.get_snapshot(entity_id)
+  }
+
+  @on_apply_remote(snapshot) => {
+    replicator.apply_remote_snapshot(snapshot)
+  }
+
+  @receipt state_replicator_config {
+    type: "StateReplicatorReceipt"
+    authority_modes: ["server", "owner", "shared"]
+    conflict_resolution: "authority + version wins"
+    timestamp: now()
+  }
+}

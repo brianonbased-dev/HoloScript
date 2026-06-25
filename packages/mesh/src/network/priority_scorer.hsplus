@@ -1,0 +1,32 @@
+// @priority_scorer — Score StateDelta fields 0 (critical) → 100 (low) for network budget management.
+//
+// Native .hsplus surface for mesh/network/PriorityScorer.ts.
+//
+// score(delta: StateDelta) → ScoredDelta { ...delta, priority: 0-100 }
+// Heuristics: position fields (x/y/z) → priority 10; velocity → 20; other transform → 30;
+//   health/combat → 15; non-essential visual → 80+
+// Used by replication layer to drop/delay low-priority updates under load.
+
+@trait priority_scorer {
+  capability_tags: ["priority_scorer", "delta_priority", "bandwidth_budget", "saliency_heuristic", "mesh"]
+
+  @on_spawn => {
+    scorer = init_priority_scorer()
+    emit("priority_scorer_ready", {})
+  }
+
+  @on_score(delta) => {
+    return scorer.score(delta)
+  }
+
+  @on_score_batch(deltas) => {
+    return deltas.map(d => scorer.score(d))
+  }
+
+  @receipt priority_scorer_config {
+    type: "PriorityScorerReceipt"
+    scale: "0 = critical, 100 = low"
+    heuristics: { "x/y/z position": 10, "velocity": 20, "transform": 30, "visual non-essential": 80 }
+    timestamp: now()
+  }
+}

@@ -1,0 +1,37 @@
+// @anti_cheat — Server authority validation and cheat detection for multiplayer.
+//
+// Native .hsplus surface for mesh/network/AntiCheat.ts.
+//
+// Violation types: speed | teleport | rate_limit | invalid_action
+// Severity: warning | kick | ban
+// validateMovement(playerId, newPos, deltaT) → Violation | null
+// validateAction(playerId, action) → bool
+// banPlayer(playerId) / unbanPlayer(playerId)
+
+@trait anti_cheat {
+  capability_tags: ["anti_cheat", "server_authority", "cheat_detection", "speed_check", "teleport_check", "mesh"]
+
+  @on_spawn => {
+    checker = init_anti_cheat()
+    emit("anti_cheat_ready", {})
+  }
+
+  @on_validate_movement(player_id, new_pos, delta_t) => {
+    violation = checker.validate_movement(player_id, new_pos, delta_t)
+    if violation { emit("violation_detected", { player_id, violation }) }
+    return violation
+  }
+
+  @on_validate_action(player_id, action) => {
+    valid = checker.validate_action(player_id, action)
+    if !valid { emit("invalid_action", { player_id, action }) }
+    return valid
+  }
+
+  @receipt anti_cheat_config {
+    type: "AntiCheatReceipt"
+    violations: ["speed", "teleport", "rate_limit", "invalid_action"]
+    severities: ["warning", "kick", "ban"]
+    timestamp: now()
+  }
+}

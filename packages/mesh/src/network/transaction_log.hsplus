@@ -1,0 +1,39 @@
+// @transaction_log — Append-only WAL for CRDT mutations; enables crash recovery from .wal file.
+//
+// Native .hsplus surface for mesh/network/TransactionLog.ts.
+//
+// append(delta: StateDelta) → queued async write to .data/state_transaction.wal
+// replay(filePath) → StateDelta[] — line-by-line parse of WAL for state rebuild
+// clear() — truncates log after successful checkpoint
+// sequenceId incremented per entry for ordering
+
+@trait transaction_log {
+  capability_tags: ["transaction_log", "write_ahead_log", "wal", "crash_recovery", "crdt_mutations", "mesh"]
+
+  @on_spawn => {
+    wal = init_transaction_log()
+    emit("transaction_log_ready", {})
+  }
+
+  @on_append(delta) => {
+    wal.append(delta)
+  }
+
+  @on_replay(file_path) => {
+    deltas = wal.replay(file_path)
+    emit("wal_replayed", { count: deltas.length })
+    return deltas
+  }
+
+  @on_clear => {
+    wal.clear()
+    emit("wal_cleared", {})
+  }
+
+  @receipt transaction_log_config {
+    type: "TransactionLogReceipt"
+    default_path: ".data/state_transaction.wal"
+    pattern: "append-only async queue → line-per-delta → replay for state rebuild"
+    timestamp: now()
+  }
+}

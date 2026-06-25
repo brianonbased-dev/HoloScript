@@ -1,0 +1,39 @@
+// @friend_manager — Friend requests, accept/reject, and blocking; emits events for UI/system.
+//
+// Native .hsplus surface for mesh/social/FriendManager.ts.
+//
+// sendRequest(targetUserId) / acceptRequest(requesterId) / rejectRequest(requesterId)
+// removeFriend(userId) / blockUser(userId) / unblockUser(userId)
+// Operates on SocialGraph; optional WebRTC transport for real-time notification
+// Emits events: friend_request_sent, friend_accepted, friend_removed, user_blocked
+
+@trait friend_manager {
+  capability_tags: ["friend_manager", "friend_requests", "blocking", "social_events", "social_graph", "mesh"]
+
+  @on_spawn => {
+    friends = init_friend_manager()
+    emit("friend_manager_ready", {})
+  }
+
+  @on_send_request(target_id) => {
+    friends.send_request(target_id)
+    emit("friend_request_sent", { target_id })
+  }
+
+  @on_accept(requester_id) => {
+    friends.accept_request(requester_id)
+    emit("friend_accepted", { requester_id })
+  }
+
+  @on_block(user_id) => {
+    friends.block_user(user_id)
+    emit("user_blocked", { user_id })
+  }
+
+  @receipt friend_manager_config {
+    type: "FriendManagerReceipt"
+    operations: ["sendRequest", "acceptRequest", "rejectRequest", "removeFriend", "blockUser", "unblockUser"]
+    deps: ["SocialGraph", "WebRTCTransport (optional)"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,34 @@
+// @neural_streaming_service — Cognitive state + Gaussian splat streaming for thin-device clients.
+//
+// Native .hsplus surface for mesh/network/NeuralStreamingService.ts.
+//
+// Pillar 2: Native Neural Streaming.
+// Integrates UAALVirtualMachine cognitive state (NeuralPacket) + GaussianSplatSorter visual topology.
+// Routes over WebRTC DataChannel or WebSocket fallback.
+// sendNeuralPacket(packet) — cognitive state to remote viewer
+// sendSplatFrame(sorterOutput) — visual topology for thin-client rendering
+
+@trait neural_streaming_service {
+  capability_tags: ["neural_streaming_service", "neural_packet", "gaussian_splat_streaming", "thin_client", "webrtc", "mesh"]
+
+  @on_spawn => {
+    service = init_neural_streaming_service()
+    emit("neural_streaming_service_ready", {})
+  }
+
+  @on_send_neural_packet(packet) => {
+    service.send_neural_packet(packet)
+  }
+
+  @on_send_splat_frame(sorter_output) => {
+    service.send_splat_frame(sorter_output)
+  }
+
+  @receipt neural_streaming_service_config {
+    type: "NeuralStreamingServiceReceipt"
+    pillar: "2 — Native Neural Streaming"
+    data_types: ["NeuralPacket (cognitive state)", "GaussianSplatFrame (visual topology)"]
+    transport: "WebRTC DataChannel; WebSocket fallback"
+    timestamp: now()
+  }
+}

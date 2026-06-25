@@ -1,0 +1,34 @@
+// @lag_compensation — Server-side history rewind for hit verification.
+//
+// Native .hsplus surface for mesh/multiplayer/LagCompensation.ts.
+//
+// HistoryState { timestamp, entities: Map<id, {x,y,z,radius}> }
+// recordState(snapshot) — ring-buffer of past states
+// verifyHit(query: HitQuery) → HitResult — rewinds to clientTimestamp - clientLatency,
+//   tests ray vs entity bounding sphere, returns { hit, distance, hitEntityId }
+// estimateLatency(samples: number[]) → p50 / p75 / p95
+
+@trait lag_compensation {
+  capability_tags: ["lag_compensation", "history_rewind", "hit_verification", "latency_estimation", "multiplayer", "mesh"]
+
+  @on_spawn => {
+    compensator = init_lag_compensation()
+    emit("lag_compensation_ready", {})
+  }
+
+  @on_record_state(snapshot) => {
+    compensator.record_state(snapshot)
+  }
+
+  @on_verify_hit(query) => {
+    result = compensator.verify_hit(query)
+    emit("hit_verified", { hit: result.hit, entity: result.hit_entity_id })
+    return result
+  }
+
+  @receipt lag_compensation_config {
+    type: "LagCompensationReceipt"
+    pattern: "ring-buffer history → rewind to clientTimestamp-latency → sphere test"
+    timestamp: now()
+  }
+}

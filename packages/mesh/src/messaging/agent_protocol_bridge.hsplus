@@ -1,0 +1,32 @@
+// @agent_protocol_bridge — Interface for mapping external agent protocols (UAA2, etc.) to HoloScript messages.
+//
+// Native .hsplus surface for mesh/messaging/AgentProtocolBridge.ts.
+//
+// IAgentProtocolBridge:
+//   toHoloScript(msg: GenericAgentMessage, channelId) → Message
+//   fromHoloScript(msg: Message) → GenericAgentMessage
+//   supportsProtocol(protocol: string) → boolean
+
+@trait agent_protocol_bridge {
+  capability_tags: ["agent_protocol_bridge", "uaa2_bridge", "protocol_adapter", "messaging", "mesh"]
+
+  @on_spawn => {
+    bridge = init_agent_protocol_bridge()
+    emit("agent_protocol_bridge_ready", {})
+  }
+
+  @on_to_holoscript(external_msg, channel_id) => {
+    return bridge.to_holoscript(external_msg, channel_id)
+  }
+
+  @on_from_holoscript(mesh_msg) => {
+    return bridge.from_holoscript(mesh_msg)
+  }
+
+  @receipt agent_protocol_bridge_config {
+    type: "AgentProtocolBridgeReceipt"
+    protocols: ["UAA2", "generic"]
+    direction: "bidirectional (GenericAgentMessage ↔ Message<any>)"
+    timestamp: now()
+  }
+}

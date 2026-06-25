@@ -1,0 +1,29 @@
+// @crdt_network — Network-layer CRDT primitives for swarm state: LWW-Register, G-Counter, OR-Set.
+//
+// Native .hsplus surface for mesh/network/CRDT.ts.
+//
+// Distinct from crdt/CRDTPrimitives.ts — this module is the network-layer variant
+// used by DeltaCompressor.isCRDT() to detect CRDT-typed fields during diffing.
+// LWWRegister<T>: value + timestamp; deterministic lexical tiebreak on equal timestamps.
+// GCounter: per-node increment map, value = sum of all counts.
+// ORSet: add-wins observed-remove set via unique tokens.
+
+@trait crdt_network {
+  capability_tags: ["crdt_network", "lww_register", "g_counter", "or_set", "delta_compressor_compat", "mesh"]
+
+  @on_spawn => {
+    registry = init_crdt_network()
+    emit("crdt_network_ready", {})
+  }
+
+  @on_is_crdt(value) => {
+    return registry.is_crdt(value)
+  }
+
+  @receipt crdt_network_config {
+    type: "CRDTNetworkReceipt"
+    types: ["LWWRegister (lexical tiebreak)", "GCounter (sum)", "ORSet (add-wins)"]
+    purpose: "network-layer CRDT; also used by DeltaCompressor.isCRDT"
+    timestamp: now()
+  }
+}

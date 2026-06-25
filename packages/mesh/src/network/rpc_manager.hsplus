@@ -1,0 +1,40 @@
+// @rpc_manager — Remote procedure call system: registration, reliability modes, timeout handling.
+//
+// Native .hsplus surface for mesh/network/RPCManager.ts.
+//
+// ReliabilityMode: unreliable | reliable | reliableOrdered
+// RPCTarget: server | client | all | others
+// register(method, handler) / unregister(method)
+// call(method, args, target, reliability) → Promise — tracked call with configurable timeout
+// receive(rpcCall) — dispatches to registered handler
+
+@trait rpc_manager {
+  capability_tags: ["rpc_manager", "remote_procedure_call", "reliable_ordered", "timeout", "call_tracking", "mesh"]
+
+  @on_spawn => {
+    rpc = init_rpc_manager()
+    emit("rpc_manager_ready", {})
+  }
+
+  @on_register(method, handler) => {
+    rpc.register(method, handler)
+  }
+
+  @on_call(method, args, target, reliability) => {
+    result = rpc.call(method, args, target, reliability)
+    emit("rpc_called", { method, target })
+    return result
+  }
+
+  @on_receive(rpc_call) => {
+    rpc.receive(rpc_call)
+  }
+
+  @receipt rpc_manager_config {
+    type: "RPCManagerReceipt"
+    reliability_modes: ["unreliable", "reliable", "reliableOrdered"]
+    targets: ["server", "client", "all", "others"]
+    pattern: "register → call with timeout → tracked Promise → receive dispatch"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,39 @@
+// @webrtc_transport — P2P WebRTC transport for networked traits; fallback when WebSocket unavailable.
+//
+// Native .hsplus surface for mesh/network/WebRTCTransport.ts.
+//
+// ICE negotiation, SDP exchange via WebSocket signaling
+// Data channel for message passing (reliable ordered)
+// connect(peerId, signalServerUrl) / disconnect()
+// sendSocialMessage(msg) / onSocialMessage(handler) — social overlay channel
+// Roadmap: spatial partitioning (100m cells), interest management (500m radius), relay for 50+ peers
+
+@trait webrtc_transport {
+  capability_tags: ["webrtc_transport", "p2p", "ice_negotiation", "data_channel", "social_overlay", "mesh"]
+
+  @on_spawn => {
+    rtc = init_webrtc_transport()
+    emit("webrtc_transport_ready", {})
+  }
+
+  @on_connect(peer_id, signal_url) => {
+    rtc.connect(peer_id, signal_url)
+    emit("rtc_connecting", { peer_id })
+  }
+
+  @on_send_social(message) => {
+    rtc.send_social_message(message)
+  }
+
+  @on_social_handler(handler) => {
+    rtc.on_social_message(handler)
+  }
+
+  @receipt webrtc_transport_config {
+    type: "WebRTCTransportReceipt"
+    channels: ["reliable ordered data channel"]
+    social: "social overlay channel (sendSocialMessage/onSocialMessage)"
+    roadmap: "spatial partitioning + interest management + relay for 50+ peers"
+    timestamp: now()
+  }
+}

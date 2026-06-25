@@ -1,0 +1,38 @@
+// @dead_reckoning_bridge — Physics-aware dead reckoning bridging @rigidbody and @networked.
+//
+// Native .hsplus surface for mesh/network/DeadReckoningBridge.ts.
+//
+// Track 3A: Physics + Networking convergence.
+// extractSnapshot(rigidbody) → compact network-serializable physics snapshot
+// predict(snapshot, deltaT) → semi-implicit Euler with damping + gravity (20Hz tolerance, masks 50ms gaps)
+// blendCorrection(current, server) → invisible | smooth Bezier | snap based on error threshold
+// resolveAuthority(entityId, peerId) → physics ownership transfer
+
+@trait dead_reckoning_bridge {
+  capability_tags: ["dead_reckoning_bridge", "physics_networking", "extrapolation", "correction_blend", "authority_transfer", "mesh"]
+
+  @on_spawn => {
+    bridge = init_dead_reckoning_bridge()
+    emit("dead_reckoning_bridge_ready", {})
+  }
+
+  @on_extract(rigidbody) => {
+    return bridge.extract_snapshot(rigidbody)
+  }
+
+  @on_predict(snapshot, delta_t) => {
+    return bridge.predict(snapshot, delta_t)
+  }
+
+  @on_blend_correction(current, server) => {
+    return bridge.blend_correction(current, server)
+  }
+
+  @receipt dead_reckoning_bridge_config {
+    type: "DeadReckoningBridgeReceipt"
+    integration: "semi-implicit Euler with damping + gravity"
+    sync_rate_tolerance_ms: 50
+    correction_modes: ["invisible (<0.1m)", "smooth Bezier (<2.0m)", "snap (>2.0m)"]
+    timestamp: now()
+  }
+}

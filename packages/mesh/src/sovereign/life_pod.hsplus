@@ -1,0 +1,43 @@
+// @life_pod — Cryptographically signed portable state snapshots for sovereign agent identity.
+//
+// Native .hsplus surface for mesh/sovereign/LifePod.ts.
+//
+// schema: 'holomesh.lifepod.snapshot.v1'
+// createSnapshot(lifePodId, createdBy, state) → LifePodSnapshot — JSON-serializable state
+// signSnapshot(snapshot, privateKeyPem) → signed snapshot with ECDSA signature
+// verifySnapshot(snapshot, publicKeyPem) → bool
+// generateKeyPair() → LifePodSigningKeyPair { privateKeyPem, publicKeyPem }
+
+@trait life_pod {
+  capability_tags: ["life_pod", "sovereign_identity", "signed_snapshots", "portable_state", "ecdsa", "mesh"]
+
+  @on_spawn => {
+    pod = init_life_pod()
+    emit("life_pod_ready", {})
+  }
+
+  @on_create_snapshot(life_pod_id, created_by, state) => {
+    snapshot = pod.create_snapshot(life_pod_id, created_by, state)
+    emit("snapshot_created", { life_pod_id })
+    return snapshot
+  }
+
+  @on_sign_snapshot(snapshot) => {
+    signed = pod.sign_snapshot(snapshot)
+    return signed
+  }
+
+  @on_verify_snapshot(snapshot) => {
+    valid = pod.verify_snapshot(snapshot)
+    emit("snapshot_verified", { valid })
+    return valid
+  }
+
+  @receipt life_pod_config {
+    type: "LifePodReceipt"
+    schema: "holomesh.lifepod.snapshot.v1"
+    signing: "ECDSA (node:crypto)"
+    pattern: "create → sign → verify; state is JSON-serializable LifePodJsonValue"
+    timestamp: now()
+  }
+}

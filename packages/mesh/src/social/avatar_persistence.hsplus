@@ -1,0 +1,35 @@
+// @avatar_persistence — Save/load avatar configurations: appearance, personality, IK mode, tracking source.
+//
+// Native .hsplus surface for mesh/social/AvatarPersistence.ts.
+//
+// save(userId, config: AvatarConfig) → persists to in-memory store (swappable backend)
+// load(userId) → AvatarConfig | null
+// AvatarConfig { appearance { modelUrl, primaryColor, secondaryColor, accessories, height },
+//   personality, ikMode: full|upper_body|look_at|none, trackingSource: hmd|fullbody|hand|none }
+
+@trait avatar_persistence {
+  capability_tags: ["avatar_persistence", "avatar_config", "ik_mode", "tracking_source", "social", "mesh"]
+
+  @on_spawn => {
+    store = init_avatar_persistence()
+    emit("avatar_persistence_ready", {})
+  }
+
+  @on_save(user_id, config) => {
+    store.save(user_id, config)
+    emit("avatar_saved", { user_id })
+  }
+
+  @on_load(user_id) => {
+    config = store.load(user_id)
+    return config
+  }
+
+  @receipt avatar_persistence_config {
+    type: "AvatarPersistenceReceipt"
+    ik_modes: ["full", "upper_body", "look_at", "none"]
+    tracking_sources: ["hmd", "fullbody", "hand", "none"]
+    backend: "in-memory (swappable)"
+    timestamp: now()
+  }
+}

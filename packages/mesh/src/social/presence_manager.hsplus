@@ -1,0 +1,39 @@
+// @presence_manager — Local user presence (Online/Away/Busy) + friend status tracking.
+//
+// Native .hsplus surface for mesh/social/PresenceManager.ts.
+//
+// setLocalStatus(status: UserStatus) — broadcasts to friends via WebRTC heartbeat
+// getFriendStatus(userId) → UserStatus
+// startHeartbeat(intervalMs) / stopHeartbeat()
+// UserStatus: online | offline | away | busy | playing
+// Integrates SocialGraph for friend list; optional WebRTC transport for real-time broadcast
+
+@trait presence_manager {
+  capability_tags: ["presence_manager", "user_status", "heartbeat", "friend_status", "social", "mesh"]
+
+  @on_spawn => {
+    presence = init_presence_manager()
+    emit("presence_manager_ready", {})
+  }
+
+  @on_set_local_status(status) => {
+    presence.set_local_status(status)
+    emit("local_status_changed", { status })
+  }
+
+  @on_get_friend_status(user_id) => {
+    return presence.get_friend_status(user_id)
+  }
+
+  @on_start_heartbeat(interval_ms) => {
+    presence.start_heartbeat(interval_ms)
+  }
+
+  @receipt presence_manager_config {
+    type: "PresenceManagerReceipt"
+    statuses: ["online", "offline", "away", "busy", "playing"]
+    broadcast: "WebRTC heartbeat to friends"
+    deps: ["SocialGraph", "WebRTCTransport (optional)"]
+    timestamp: now()
+  }
+}

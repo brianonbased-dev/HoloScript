@@ -1,0 +1,32 @@
+// @websocket_reconnection_handler — Exponential backoff + jitter reconnection for WebSocket transient failures.
+//
+// Native .hsplus surface for mesh/network/WebSocketReconnectionHandler.ts.
+//
+// ReconnectionConfig { initialDelayMs, maxDelayMs, backoffMultiplier, maxAttempts (-1=infinite), jitter }
+// scheduleReconnect(attemptFn) → delays and calls attemptFn with exponential backoff
+// reset() — clears attempt count and delay state
+// Jitter prevents thundering herd on server restart
+
+@trait websocket_reconnection_handler {
+  capability_tags: ["websocket_reconnection_handler", "exponential_backoff", "jitter", "reconnection", "resilience", "mesh"]
+
+  @on_spawn => {
+    handler = init_websocket_reconnection_handler()
+    emit("ws_reconnection_handler_ready", {})
+  }
+
+  @on_schedule_reconnect(attempt_fn) => {
+    handler.schedule_reconnect(attempt_fn)
+  }
+
+  @on_reset => {
+    handler.reset()
+  }
+
+  @receipt websocket_reconnection_handler_config {
+    type: "WSReconnectionHandlerReceipt"
+    config_fields: ["initialDelayMs", "maxDelayMs", "backoffMultiplier", "maxAttempts", "jitter"]
+    jitter_purpose: "prevent thundering herd on server restart"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,34 @@
+// @crdt_primitives — Standard CRDT building blocks: LWW-Register, G-Counter, OR-Set.
+//
+// Native .hsplus surface for mesh/crdt/CRDTPrimitives.ts.
+//
+// LWWRegister<T>: get/set/merge — last-writer-wins by timestamp + nodeId tiebreak
+// GCounter: increment/value/merge — grow-only counter, per-node map, sum on read
+// ORSet<T>: add/remove/has/elements/merge — observed-remove set (add-wins semantics)
+
+@trait crdt_primitives {
+  capability_tags: ["crdt_primitives", "lww_register", "g_counter", "or_set", "crdt", "mesh"]
+
+  @on_spawn => {
+    registry = init_crdt_primitives()
+    emit("crdt_primitives_ready", {})
+  }
+
+  @on_create_lww(node_id, initial) => {
+    return registry.create_lww(node_id, initial)
+  }
+
+  @on_create_counter(node_id) => {
+    return registry.create_counter(node_id)
+  }
+
+  @on_create_orset => {
+    return registry.create_orset()
+  }
+
+  @receipt crdt_primitives_config {
+    type: "CRDTPrimitivesReceipt"
+    types: ["LWWRegister (timestamp+nodeId tiebreak)", "GCounter (grow-only, sum on read)", "ORSet (add-wins)"]
+    timestamp: now()
+  }
+}
