@@ -1,0 +1,20 @@
+@trait {
+  name: "@performance_review",
+  category: "hr",
+  description: "Employee performance review cycle. cycle: annual, semi_annual, or quarterly. goals is a list of goal definitions (id, description, target, weight). selfAssessment enables the employee to submit a self-rating. peerReview enables 360-degree peer ratings. Status: draft, self_review, manager_review, or complete. Port of PerformanceReviewTrait.ts (handler name: performance_review).",
+  props: {
+    employee_id: string = "",
+    reviewer_id: string = "",
+    cycle: enum("annual" | "semi_annual" | "quarterly") = "annual",
+    self_assessment: boolean = true,
+    peer_review: boolean = false
+  },
+  events: {
+    on_submitted: "review_submitted",
+    on_approved: "review_approved",
+    on_completed: "review_completed",
+    submit: "review_submit",
+    approve: "review_approve"
+  },
+  behaviors: ["@payroll"]
+}

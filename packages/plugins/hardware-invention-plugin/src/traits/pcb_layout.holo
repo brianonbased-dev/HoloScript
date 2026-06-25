@@ -1,0 +1,22 @@
+@trait {
+  name: "@pcb_layout",
+  category: "hardware",
+  description: "PCB layout definition for DRC and BOM generation. widthMm/heightMm set the board outline. layers is the copper layer count (2, 4, or 6). copperWeightOz is the copper weight in oz (1 or 2). minTraceWidthMm is the minimum trace width (default: 0.15mm). minClearanceMm is the minimum clearance between copper features (default: 0.15mm). pads and traces are the component and routing data. Port of PCBLayoutTrait.ts (handler name: pcb_layout).",
+  props: {
+    width_mm: number = 100,
+    height_mm: number = 100,
+    layers: number = 2,
+    copper_weight_oz: number = 1,
+    min_trace_width_mm: number = 0.15,
+    min_clearance_mm: number = 0.15
+  },
+  events: {
+    on_drc_passed: "pcb_drc_passed",
+    on_drc_failed: "pcb_drc_failed",
+    on_exported: "pcb_exported",
+    run_drc: "pcb_run_drc",
+    export_gerber: "pcb_export_gerber",
+    export_bom: "pcb_export_bom"
+  },
+  behaviors: ["@component_library", "@firmware_flash"]
+}

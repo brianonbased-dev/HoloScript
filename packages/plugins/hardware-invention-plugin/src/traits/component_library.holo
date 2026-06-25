@@ -1,0 +1,15 @@
+@trait {
+  name: "@component_library",
+  category: "hardware",
+  description: "Electronic component library. components is a list of component definitions (mpn, description, footprint, value, category, datasheet). preferredSuppliers is a list of preferred supplier names/IDs. Acts as the catalog for @pcb_layout BOM generation and @firmware_flash MCU lookup. Port of ComponentLibraryTrait.ts (handler name: component_library).",
+  props: {
+    category_filter: string = ""
+  },
+  events: {
+    on_loaded: "component_library_loaded",
+    on_added: "component_added",
+    add: "component_library_add",
+    search: "component_library_search"
+  },
+  behaviors: ["@pcb_layout", "@firmware_flash"]
+}

@@ -1,0 +1,19 @@
+@trait {
+  name: "@payroll",
+  category: "hr",
+  description: "Employee payroll record. baseSalary is the annual base in the given currency. frequency: weekly (52), biweekly (26), semimonthly (24), or monthly (12) — controls pay period calculation. taxRate is the effective withholding rate (0-1). benefits is a list of benefit plan IDs enrolled. Port of PayrollTrait.ts (handler name: payroll).",
+  props: {
+    employee_id: string = "",
+    base_salary: number = 0,
+    currency: string = "USD",
+    frequency: enum("weekly" | "biweekly" | "semimonthly" | "monthly") = "biweekly",
+    tax_rate: number = 0.25
+  },
+  events: {
+    on_payslip_generated: "payroll_payslip",
+    on_tax_withheld: "payroll_tax_withheld",
+    generate_payslip: "payroll_generate_payslip",
+    update_salary: "payroll_update_salary"
+  },
+  behaviors: ["@performance_review"]
+}

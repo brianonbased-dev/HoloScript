@@ -1,0 +1,23 @@
+@trait {
+  name: "@firmware_flash",
+  category: "hardware",
+  description: "Microcontroller firmware flash controller. targetMCU is the MCU identifier (e.g., STM32F4, ESP32). protocol: uart, spi, jtag, swd, or usb_dfu. baudRate is the flash baud rate (default: 115200). firmwarePath is the path to the binary/hex/elf file. firmwareVersion is the semver version string. verifyAfterFlash reads back and verifies the flash. backupFirst saves the existing firmware before flashing. Port of FirmwareFlashTrait.ts (handler name: firmware_flash).",
+  props: {
+    target_mcu: string = "",
+    protocol: enum("uart" | "spi" | "jtag" | "swd" | "usb_dfu") = "uart",
+    baud_rate: number = 115200,
+    firmware_path: string = "",
+    firmware_version: string = "0.0.0",
+    verify_after_flash: boolean = true,
+    backup_first: boolean = true
+  },
+  events: {
+    on_started: "firmware_flash_started",
+    on_progress: "firmware_flash_progress",
+    on_complete: "firmware_flash_complete",
+    on_failed: "firmware_flash_failed",
+    flash: "firmware_flash_run",
+    verify: "firmware_flash_verify"
+  },
+  behaviors: ["@component_library", "@pcb_layout"]
+}
