@@ -1,0 +1,41 @@
+// @simple_reachability_analyzer — Lightweight AST-based dead code detection.
+//
+// Native .hsplus surface for SimpleReachabilityAnalyzer.ts (absorb-service/analysis).
+//
+// Companion to ReachabilityAnalyzer (graph-based). Works directly from an AnalysisAST
+// without a full CodebaseGraph — faster for small scopes or pre-parse checks.
+//
+// SimpleReachabilityAnalyzer.analyze(ast, entryPoints?) (SimpleReachabilityAnalyzer.ts):
+//   Builds a SimpleReferenceGraph, walks BFS from entry points.
+//   Default entry points = all compositions in the AST.
+//   Returns SimpleDeadCodeResult { unreachable_nodes, total_nodes, reachable_nodes }
+//
+// AnalysisAST { compositions[], templates[], functions[], references: [{from,to}] }
+// Node IDs: 'comp:Name' / 'tmpl:Name' / 'fn:Name'
+
+@trait simple_reachability_analyzer {
+  capability_tags: ["simple_reachability_analyzer", "dead_code", "ast_based", "lightweight", "absorb_service", "sprint5"]
+
+  @on_spawn => {
+    analyzer = init_simple_reachability_analyzer()
+    emit("simple_reachability_analyzer_ready", {})
+  }
+
+  // Analyze an AST for dead code
+  @on_analyze(ast, entry_points) => {
+    result = analyzer.analyze(ast, entry_points)
+    emit("simple_reachability_analyzed", {
+      total: result.total_nodes,
+      unreachable: result.unreachable_nodes.size
+    })
+    return result
+  }
+
+  @receipt simple_reachability_analyzer_config {
+    type: "SimpleReachabilityAnalyzerReceipt"
+    algorithm: "BFS from entry points; default entries = all compositions"
+    node_id_prefixes: ["comp:", "tmpl:", "fn:"]
+    vs_full: "uses SimpleReferenceGraph (no full CodebaseGraph needed)"
+    timestamp: now()
+  }
+}

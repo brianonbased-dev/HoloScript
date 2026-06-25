@@ -1,0 +1,48 @@
+// @openai_embedding_provider — OpenAI remote embedding provider (explicit opt-in, F.106).
+//
+// Native .hsplus surface for OpenAIEmbeddingProvider.ts (absorb-service/engine/providers).
+//
+// Uses OpenAI text-embedding-3-small (1536-dim) via the official SDK.
+// Explicit opt-in ONLY — never auto-selected (F.106, W.GOLD.005).
+// Secret resolved transiently at embed-time; NEVER in durable state (@needs_key).
+//
+// OpenAIEmbeddingProvider (OpenAIEmbeddingProvider.ts):
+//   name: "openai"
+//   model: "text-embedding-3-small" (1536-dim) — default
+//   alt model: "text-embedding-3-large" (3072-dim)
+//
+// Lazy-loads SDK client (clientPromise). Batched request per call.
+// Retry with exponential backoff on rate limits (max_retries=5).
+// Throws if `openai` pkg absent, key missing, or endpoint errors after retries.
+// API key: constructor arg > OPENAI_API_KEY env (NOT a bandaid — fallback is legitimate here).
+
+@trait openai_embedding_provider {
+  model: String = "text-embedding-3-small"
+  max_retries: Int = 5
+
+  capability_tags: ["openai_embedding_provider", "remote_embeddings", "openai", "absorb_service", "f106_opt_in"]
+
+  // @needs_key openai_api_key — resolved transiently; NEVER stored in durable state
+  @on_spawn => {
+    provider = init_openai_embedding_provider({
+      model: model,
+      max_retries: max_retries
+    })
+    emit("openai_embedding_provider_ready", { model: model })
+  }
+
+  @on_get_embeddings(texts) => {
+    embeddings = provider.get_embeddings(texts)
+    return embeddings
+  }
+
+  @receipt openai_embedding_provider_config {
+    type: "OpenAIEmbeddingProviderReceipt"
+    name: "openai"
+    model: model
+    dimensions: "1536 (small) or 3072 (large)"
+    opt_in: "explicit opt-in only; never auto-selected (F.106)"
+    max_retries: max_retries
+    timestamp: now()
+  }
+}

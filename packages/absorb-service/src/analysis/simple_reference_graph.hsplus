@@ -1,0 +1,45 @@
+// @simple_reference_graph — Minimal directed graph for lightweight dead-code analysis.
+//
+// Native .hsplus surface for SimpleReferenceGraph.ts (absorb-service/analysis).
+//
+// Stores forward and reverse edge sets per node.
+// Used by SimpleReachabilityAnalyzer; does NOT require a full CodebaseGraph.
+//
+// SimpleGraphNode (SimpleReferenceGraph.ts):
+//   id: String       — 'comp:Name' / 'tmpl:Name' / 'fn:Name'
+//   kind: String
+//   name: String
+//   file_path: String
+//   line?: Int
+//
+// Operations: add_node, add_reference(fromId, toId), get_references, get_referenced_by,
+//   get_all_nodes, get_unreachable(entryPoints) — BFS walk.
+// get_unreachable returns nodes NOT visited starting from the given entry-point IDs.
+
+@trait simple_reference_graph {
+  capability_tags: ["simple_reference_graph", "directed_graph", "dead_code", "lightweight", "absorb_service"]
+
+  @on_spawn => {
+    graph = init_simple_reference_graph()
+    emit("simple_reference_graph_ready", {})
+  }
+
+  @on_add_node(node) => {
+    graph.add_node(node)
+  }
+
+  @on_add_reference(from_id, to_id) => {
+    graph.add_reference(from_id, to_id)
+  }
+
+  @on_get_unreachable(entry_points) => {
+    return graph.get_unreachable(entry_points)
+  }
+
+  @receipt simple_reference_graph_config {
+    type: "SimpleReferenceGraphReceipt"
+    algorithm: "BFS from entry points; forward + reverse edge sets"
+    used_by: "SimpleReachabilityAnalyzer"
+    timestamp: now()
+  }
+}

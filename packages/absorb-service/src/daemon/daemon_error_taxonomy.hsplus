@@ -1,0 +1,56 @@
+// @daemon_error_taxonomy — TS diagnostic code → semantic failure category mapping (G.ARCH.002).
+//
+// Native .hsplus surface for daemon-error-taxonomy.ts (absorb-service/daemon).
+//
+// Enables the daemon to learn WHY fixes fail, not just THAT they fail.
+// Pure module — no side effects, no I/O.
+//
+// ErrorCategory (daemon-error-taxonomy.ts):
+//   missing_symbol        — TS2304: Cannot find name
+//   type_mismatch         — TS2345: Argument not assignable
+//   missing_property      — TS2339: Property does not exist on type
+//   missing_member        — TS2741: Property missing in type (required)
+//   wrong_arity           — TS2554: Expected N arguments, got M
+//   incompatible_types    — TS2322: Type X not assignable to type Y
+//   import_resolution     — TS2307: Cannot find module
+//   generic_constraint    — TS2344: Type does not satisfy constraint
+//   null_safety           — TS2531/TS18047: Object possibly null/undefined
+//   abstract_incomplete   — TS2515: Non-abstract class missing abstract member
+//   overload_mismatch     — TS2769: No overload matches this call
+//   readonly_violation    — TS2540: Cannot assign to read-only property
+//   lint_issue            — Non-TS lint errors
+//   unknown
+//
+// SemanticError { code, category, symbol?, file, line?, message }
+// FailurePattern { category, count, files[], symbols[] }
+// Used by: daemon-actions (diagnose→blackboard) + compress_knowledge + pattern detection.
+
+@trait daemon_error_taxonomy {
+  capability_tags: ["daemon_error_taxonomy", "error_taxonomy", "semantic_errors", "daemon", "g_arch_002", "absorb_service"]
+
+  @on_spawn => {
+    taxonomy = init_daemon_error_taxonomy()
+    emit("daemon_error_taxonomy_ready", {})
+  }
+
+  // Classify a TS diagnostic code into a semantic error category
+  @on_classify(code, message) => {
+    return taxonomy.classify(code, message)
+  }
+
+  // Aggregate a list of SemanticErrors into FailurePatterns
+  @on_aggregate_patterns(errors) => {
+    patterns = taxonomy.aggregate_patterns(errors)
+    emit("error_patterns_aggregated", { category_count: patterns.size })
+    return patterns
+  }
+
+  @receipt daemon_error_taxonomy_config {
+    type: "DaemonErrorTaxonomyReceipt"
+    directive: "G.ARCH.002"
+    purpose: "WHY fixes fail (semantic), not just THAT they fail"
+    categories: 14
+    pure_module: true
+    timestamp: now()
+  }
+}
