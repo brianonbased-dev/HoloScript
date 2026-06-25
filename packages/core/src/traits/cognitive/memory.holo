@@ -1,0 +1,28 @@
+@trait {
+  name: "@memory",
+  category: "cognitive",
+  description: "Persistent agent memory with episodic, semantic, and procedural banks. Supports importance-weighted storage, relevance/recency/importance retrieval modes, temporal decay, working-memory window, and cross-session persistence. Port of MemoryTrait.ts.",
+  props: {
+    memory_type: enum("episodic" | "semantic" | "procedural") = "episodic",
+    capacity: number = 100,
+    decay_rate: number = 0.01,
+    decay_interval: number = 3600,
+    importance_threshold: number = 0.1,
+    retrieval_mode: enum("relevance" | "recency" | "importance") = "relevance",
+    working_memory_size: number = 7,
+    persist_across_sessions: boolean = true,
+    consolidation_interval: number = 86400
+  },
+  events: {
+    attached: "memory_attached",
+    detached: "memory_detached",
+    on_store: "memory_store",
+    on_retrieve: "memory_retrieve",
+    on_forget: "memory_forget",
+    on_consolidate: "memory_consolidate",
+    store: "memory_trigger_store",
+    retrieve: "memory_trigger_retrieve",
+    forget: "memory_trigger_forget"
+  },
+  behaviors: ["@journal", "@persona", "@agent_memory"]
+}

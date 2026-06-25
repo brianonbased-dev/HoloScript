@@ -1,0 +1,27 @@
+@trait {
+  name: "@voice_input",
+  category: "interaction",
+  description: "Speech recognition and voice command dispatcher. Listens via Web Speech API in continuous, push-to-talk, or always-listening mode, matching transcripts against registered command phrases and aliases at a configurable confidence threshold, with multi-language support and audio feedback. Port of VoiceInputTrait.ts.",
+  props: {
+    mode: enum("continuous" | "push-to-talk" | "always-listening") = "push-to-talk",
+    confidence_threshold: number = 0.8,
+    languages: list<string> = ["en-US"],
+    commands: list<{ phrase: string, aliases: list<string>, confidence: number, action: string }> = [],
+    show_transcript: boolean = false,
+    audio_feedback: boolean = true,
+    timeout_ms: number = 5000
+  },
+  events: {
+    attached: "voice_input_attached",
+    detached: "voice_input_detached",
+    on_start: "voice_input_start",
+    on_interim: "voice_input_interim",
+    on_final: "voice_input_final",
+    on_command: "voice_input_command",
+    on_error: "voice_input_error",
+    on_timeout: "voice_input_timeout",
+    start: "voice_input_trigger_start",
+    stop: "voice_input_trigger_stop"
+  },
+  behaviors: ["@gesture", "@spatial_audio_cue", "@notification_manager"]
+}

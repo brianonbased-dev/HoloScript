@@ -1,0 +1,25 @@
+@trait {
+  name: "@animation",
+  category: "visual",
+  description: "Animation clip playback coordinator with state machine. Manages named clips, crossfade transitions, blend layers, parameters, and frame events. Delegates state/transition logic to AnimationStateMachine. Port of AnimationTrait.ts + AnimationStateMachine.ts.",
+  props: {
+    clips: list<{ name: string, asset: string, loop: boolean, speed: number, wrap_mode: enum("once" | "loop" | "ping_pong" | "clamp_forever") }> = [],
+    default_clip: string = "",
+    apply_root_motion: boolean = false,
+    update_mode: enum("normal" | "animate_physics" | "unscaled_time") = "normal",
+    culling_mode: enum("always_animate" | "cull_update_transforms" | "cull_completely") = "always_animate"
+  },
+  events: {
+    attached: "animation_attached",
+    detached: "animation_detached",
+    on_clip_start: "animation_clip_start",
+    on_clip_end: "animation_clip_end",
+    on_clip_loop: "animation_clip_loop",
+    on_frame_event: "animation_frame_event",
+    play: "animation_trigger_play",
+    stop: "animation_trigger_stop",
+    crossfade: "animation_trigger_crossfade",
+    set_parameter: "animation_trigger_set_parameter"
+  },
+  behaviors: ["@skeleton_pose", "@blend_shape", "@keyframe"]
+}

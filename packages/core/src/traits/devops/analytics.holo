@@ -1,0 +1,41 @@
+@trait {
+  name: "@analytics",
+  category: "devops",
+  description: "Scene performance metrics and OpenTelemetry trace export. Collects FPS, draw calls, Gaussian splat count, memory usage, load time, and user engagement (no PII). Supports OTLP/Zipkin/Jaeger export and a real-time dashboard pipeline. Port of AnalyticsTrait.ts.",
+  props: {
+    enabled: boolean = true,
+    scene_id: string = "",
+    privacy_level: enum("strict" | "balanced" | "permissive") = "balanced",
+    sampling_strategy: enum("all" | "fixed_rate" | "adaptive") = "adaptive",
+    sampling_rate: number = 1.0,
+    aggregation_window: enum("1s" | "5s" | "10s" | "30s" | "1m" | "5m") = "10s",
+    max_samples: number = 1000,
+    max_spans: number = 500,
+    export_format: enum("otlp_json" | "otlp_proto" | "zipkin" | "jaeger" | "console") = "otlp_json",
+    otlp_endpoint: string = "",
+    service_name: string = "holoscript",
+    collect_fps: boolean = true,
+    collect_draw_calls: boolean = true,
+    collect_gaussians: boolean = true,
+    collect_memory: boolean = true,
+    collect_load_time: boolean = true,
+    collect_engagement: boolean = true,
+    collect_heatmap: boolean = false,
+    heatmap_resolution: number = 10,
+    enable_dashboard: boolean = false,
+    dashboard_flush_interval: number = 5000,
+    custom_tags: dict<string, string> = {}
+  },
+  events: {
+    attached: "analytics_attached",
+    detached: "analytics_detached",
+    on_sample: "analytics_sample",
+    on_aggregate: "analytics_aggregate",
+    on_flush: "analytics_flush",
+    on_span_complete: "analytics_span_complete",
+    flush: "analytics_trigger_flush",
+    start_span: "analytics_trigger_start_span",
+    end_span: "analytics_trigger_end_span"
+  },
+  behaviors: ["@stats", "@tracker", "@journal"]
+}
