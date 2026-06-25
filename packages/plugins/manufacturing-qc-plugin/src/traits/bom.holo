@@ -1,0 +1,17 @@
+@trait {
+  name: "@bom",
+  category: "manufacturing",
+  description: "Bill of Materials (BOM) for product manufacturing. items is a list of BOM line items (partNumber, description, quantity, unit, costPerUnit, leadTimeDays, supplier). revision is the BOM version string. product is the finished product name. Computes totalCost, itemCount, and longestLeadTime on attach. Port of BOMTrait.ts (handler name: bom).",
+  props: {
+    revision: string = "1.0",
+    product: string = ""
+  },
+  events: {
+    on_loaded: "bom_loaded",
+    on_item_added: "bom_item_added",
+    on_cost_updated: "bom_cost_updated",
+    add_item: "bom_add_item",
+    export_csv: "bom_export_csv"
+  },
+  behaviors: ["@production_line", "@quality_gate"]
+}

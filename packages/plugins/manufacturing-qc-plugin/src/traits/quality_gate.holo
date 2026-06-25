@@ -1,0 +1,17 @@
+@trait {
+  name: "@quality_gate",
+  category: "manufacturing",
+  description: "Quality inspection gate at a production station. criteria is a list of inspection criteria objects (id, name, type, limitLow, limitHigh). passThreshold is the minimum pass rate percentage (default: 95%). autoReject automatically rejects units that fail any mandatory criterion. stationId links this gate to a production line station. Port of QualityGateTrait.ts (handler name: quality_gate).",
+  props: {
+    pass_threshold: number = 95,
+    auto_reject: boolean = true,
+    station_id: string = ""
+  },
+  events: {
+    on_passed: "quality_gate_passed",
+    on_failed: "quality_gate_failed",
+    on_rejected: "quality_gate_rejected",
+    inspect: "quality_gate_inspect"
+  },
+  behaviors: ["@defect_tracking", "@production_line"]
+}

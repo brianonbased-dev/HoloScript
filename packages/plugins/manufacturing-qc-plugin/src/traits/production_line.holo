@@ -1,0 +1,18 @@
+@trait {
+  name: "@production_line",
+  category: "manufacturing",
+  description: "Manufacturing production line configuration. stations is an ordered list of workstation definitions (id, name, cycleTimeSec, operatorCount). targetUnitsPerHour is the production rate goal. shiftDurationH is the shift length in hours (default: 8h). product is the item being produced. OEE (Overall Equipment Effectiveness) is computed from availability, performance, and quality. Port of ProductionLineTrait.ts (handler name: production_line).",
+  props: {
+    target_units_per_hour: number = 60,
+    shift_duration_h: number = 8,
+    product: string = ""
+  },
+  events: {
+    on_shift_started: "production_shift_started",
+    on_shift_ended: "production_shift_ended",
+    on_line_stop: "production_line_stop",
+    start_shift: "production_start_shift",
+    end_shift: "production_end_shift"
+  },
+  behaviors: ["@bom", "@defect_tracking", "@quality_gate"]
+}

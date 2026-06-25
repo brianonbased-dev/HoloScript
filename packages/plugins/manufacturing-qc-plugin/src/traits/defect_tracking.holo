@@ -1,0 +1,18 @@
+@trait {
+  name: "@defect_tracking",
+  category: "manufacturing",
+  description: "Production defect tracking and escalation. categories is the list of defect categories (default: dimensional, surface, functional, material). autoEscalateCritical automatically escalates critical defects to quality hold. maxOpenDefects is the open-defect limit before triggering a line stop (default: 50). Status: open, investigating, resolved, or closed. Port of DefectTrackingTrait.ts (handler name: defect_tracking).",
+  props: {
+    auto_escalate_critical: boolean = true,
+    max_open_defects: number = 50
+  },
+  events: {
+    on_defect_logged: "defect_logged",
+    on_escalated: "defect_escalated",
+    on_line_stop: "defect_line_stop",
+    on_resolved: "defect_resolved",
+    log: "defect_log",
+    resolve: "defect_resolve"
+  },
+  behaviors: ["@quality_gate", "@production_line"]
+}
