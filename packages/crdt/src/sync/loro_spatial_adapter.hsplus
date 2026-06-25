@@ -1,0 +1,117 @@
+// @loro_spatial_adapter — Loro CRDT wrapper for distributed spatial transform sync.
+//
+// Native .hsplus surface for LoroSpatialAdapter.ts (v1.0.0).
+//
+// Architecture: Three-tier timing system (from LoroSpatialAdapter.ts):
+//   Render tier  (<11ms)    — local interpolation ONLY; no CRDT operations
+//   Sync tier    (50-100ms) — Loro state updates and peer synchronization
+//   Audit tier   (1000ms+)  — DID verification, integrity hash, audit log
+//
+// Key design decisions (encoded from LoroSpatialAdapter.ts + GOLD):
+//   - STATE-based CRDTs (not operation-based) per W.057:
+//     Quaternion multiplication is non-commutative → operation-based CRDTs
+//     produce divergent results; state-based LWW is deterministic.
+//   - Quaternion stored as Vec4 [x,y,z,w] with LWW timestamp semantics.
+//   - Scene graph hierarchy via Loro Tree CRDT (Kleppmann cycle-safe move).
+//   - Position / scale via LoroMap (commutative atomic values).
+//
+// GOLD gotchas (G.GOLD.001 / G.GOLD.019):
+//   NEVER call getMap/getList on a child node — only on the ROOT LoroDoc.
+//   Accessing nested containers via a child LoroMap ref instead of the doc
+//   root is a V5-V8 source of silent data loss and divergent state.
+//   This trait enforces "all reads/writes go through doc.getMap(key)" only.
+//
+// SpatialTransform fields:
+//   position  — Vec3 { x, y, z }
+//   rotation  — Quaternion { x, y, z, w }  (LWW-only)
+//   scale     — Vec3 { x, y, z }
+//
+// AuditMetadata (audit tier only):
+//   signer_did, verified_at (Lamport), integrity_hash
+
+@trait loro_spatial_adapter {
+  // Sync tier interval in milliseconds
+  sync_interval_ms: Int = 50
+
+  // Audit tier interval in milliseconds
+  audit_interval_ms: Int = 1000
+
+  // DID for signing audit tier operations
+  signer_did: String?
+
+  // Node ID in the Loro Tree CRDT (Loro TreeID format: "peerId:counter")
+  node_id: String?
+
+  // Enable periodic DID-signed integrity audit
+  enable_audit_tier: Bool = false
+
+  capability_tags: ["loro_spatial_adapter", "spatial_crdt", "distributed_sync", "three_tier_timing", "state_based_crdt"]
+
+  @on_spawn => {
+    // G.GOLD.001: access maps ONLY via doc root, never via child node ref
+    doc = get_loro_doc()
+    transform_map = doc.get_map("spatial:" + (node_id ?? entity_id))
+    adapter = init_loro_spatial_adapter({
+      doc: doc,
+      transform_map: transform_map,
+      sync_interval_ms: sync_interval_ms,
+      node_id: node_id ?? entity_id
+    })
+    if enable_audit_tier {
+      schedule_recurring(audit_interval_ms / 1000, "on_audit_tick")
+    }
+    emit("loro_spatial_adapter_ready", {
+      node_id: node_id ?? entity_id,
+      sync_interval_ms: sync_interval_ms
+    })
+  }
+
+  // RENDER tier: local interpolation only — no CRDT writes
+  @on_render_tick(local_transform) => {
+    adapter.interpolate_local(local_transform)
+  }
+
+  // SYNC tier: commit state to Loro doc and push to peers
+  @on_sync_tick(transform) => {
+    // G.GOLD.001: all writes go through the root doc map key
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("pos_x", transform.position.x)
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("pos_y", transform.position.y)
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("pos_z", transform.position.z)
+    // Quaternion: LWW semantics — state-based, not operation-based (W.057)
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("rot_x", transform.rotation.x)
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("rot_y", transform.rotation.y)
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("rot_z", transform.rotation.z)
+    doc.get_map("spatial:" + (node_id ?? entity_id)).set("rot_w", transform.rotation.w)
+    adapter.push_sync()
+  }
+
+  // AUDIT tier: DID-signed integrity verification
+  @on_audit_tick => {
+    if not enable_audit_tier or not signer_did {
+      return
+    }
+    state = adapter.snapshot()
+    hash = compute_integrity_hash(state)
+    adapter.write_audit_metadata({
+      signer_did: signer_did,
+      verified_at: lamport_now(),
+      integrity_hash: hash
+    })
+    emit("spatial_audit_complete", { node_id: node_id ?? entity_id, hash: hash })
+  }
+
+  @on_peer_update(remote_state) => {
+    adapter.merge_remote(remote_state)
+  }
+
+  @receipt loro_spatial_config {
+    type: "LoroSpatialAdapterReceipt"
+    node_id: node_id ?? entity_id
+    sync_interval_ms: sync_interval_ms
+    audit_interval_ms: audit_interval_ms
+    enable_audit_tier: enable_audit_tier
+    crdt_strategy: "state_based_lww"
+    rotation_model: "quaternion_vec4_lww"
+    timestamp: now()
+  }
+}

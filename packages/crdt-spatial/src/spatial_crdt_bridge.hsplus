@@ -1,0 +1,127 @@
+// @spatial_crdt_bridge — Strategy C hybrid rotation CRDT: LWW base + counter deltas.
+//
+// Native .hsplus surface for SpatialCRDTBridge.ts (crdt-spatial).
+//
+// The "Frankenstein quaternion" problem (SpatialCRDTBridge.ts header):
+//   If two peers each update different quaternion components concurrently
+//   (e.g. peer A updates x+y, peer B updates z+w), the LWW merge produces
+//   a quaternion assembled from different sources — not a valid rotation.
+//   Operation-based CRDTs have the same problem (non-commutative multiply).
+//
+// Strategy C solution (SpatialCRDTBridge.ts):
+//   BASE quaternion — stored in LoroMap with LWW timestamp
+//                     (explicit placement, teleport, physics snap)
+//   DELTA yaw/pitch/roll — stored in LoroCounter (commutative additive)
+//                     (continuous rotation; each peer's contribution sums)
+//   CHECKPOINT — every checkpoint_interval_s, deltas are collapsed into
+//                the base quaternion and counters are reset to 0
+//                ("delta → base fold")
+//
+// Position and scale use LoroMap with LWW semantics (no delta trick needed —
+// they ARE commutative in the use cases HoloScript cares about).
+//
+// GOLD gotchas (G.GOLD.001):
+//   Bridge MUST access LoroCounter via doc.getCounter(key), not via a
+//   child LoroMap container reference. The daemon gotcha V5-V8 (G.GOLD.019)
+//   applies specifically to counter resets after peer merge — always read
+//   after merge before resetting to avoid collapsing a peer's in-flight delta.
+
+@trait spatial_crdt_bridge {
+  // Entity or node ID in the Loro document
+  node_id: String?
+
+  // Seconds between delta→base quaternion checkpoints (0 = manual only)
+  checkpoint_interval_s: Int = 30
+
+  // Rotation delta accumulation limit before forcing a checkpoint
+  max_delta_radians: Float = 6.283185
+
+  // Apply a small epsilon-normalize after every merge to keep quaternions unit
+  normalize_on_merge: Bool = true
+
+  capability_tags: ["spatial_crdt_bridge", "hybrid_rotation_crdt", "strategy_c", "loro_counter", "frankenstein_prevention", "checkpoint_collapse"]
+
+  @on_spawn => {
+    effective_id = node_id ?? entity_id
+    // G.GOLD.001: all container accesses via root doc
+    doc = get_loro_doc()
+    base_map     = doc.get_map("spatial:" + effective_id + ":base")
+    delta_yaw    = doc.get_counter("spatial:" + effective_id + ":delta_yaw")
+    delta_pitch  = doc.get_counter("spatial:" + effective_id + ":delta_pitch")
+    delta_roll   = doc.get_counter("spatial:" + effective_id + ":delta_roll")
+    pos_map      = doc.get_map("spatial:" + effective_id + ":pos")
+    scale_map    = doc.get_map("spatial:" + effective_id + ":scale")
+    bridge = init_spatial_crdt_bridge({
+      base_map: base_map,
+      delta_counters: { yaw: delta_yaw, pitch: delta_pitch, roll: delta_roll },
+      pos_map: pos_map,
+      scale_map: scale_map,
+      normalize_on_merge: normalize_on_merge
+    })
+    if checkpoint_interval_s > 0 {
+      schedule_recurring(checkpoint_interval_s, "on_checkpoint")
+    }
+    emit("spatial_crdt_bridge_ready", {
+      node_id: effective_id,
+      checkpoint_interval_s: checkpoint_interval_s
+    })
+  }
+
+  // Continuous rotation: additive delta via LoroCounter (commutative)
+  @on_rotate_delta(yaw_rad, pitch_rad, roll_rad) => {
+    doc.get_counter("spatial:" + (node_id ?? entity_id) + ":delta_yaw").increment(yaw_rad * 10000)
+    doc.get_counter("spatial:" + (node_id ?? entity_id) + ":delta_pitch").increment(pitch_rad * 10000)
+    doc.get_counter("spatial:" + (node_id ?? entity_id) + ":delta_roll").increment(roll_rad * 10000)
+  }
+
+  // Explicit placement: overwrite base quaternion with LWW (teleport / physics snap)
+  @on_set_rotation(quaternion) => {
+    base = doc.get_map("spatial:" + (node_id ?? entity_id) + ":base")
+    base.set("qx", quaternion.x)
+    base.set("qy", quaternion.y)
+    base.set("qz", quaternion.z)
+    base.set("qw", quaternion.w)
+    // Reset deltas so we don't re-apply them on top of the new base
+    on_checkpoint()
+  }
+
+  // CHECKPOINT: fold accumulated deltas into base quaternion and reset counters
+  // G.GOLD.019: read current counter value AFTER peer merge before resetting
+  @on_checkpoint => {
+    effective_id = node_id ?? entity_id
+    base = doc.get_map("spatial:" + effective_id + ":base")
+    yaw   = doc.get_counter("spatial:" + effective_id + ":delta_yaw").value   / 10000.0
+    pitch = doc.get_counter("spatial:" + effective_id + ":delta_pitch").value / 10000.0
+    roll  = doc.get_counter("spatial:" + effective_id + ":delta_roll").value  / 10000.0
+    base_q = { x: base.get("qx") ?? 0, y: base.get("qy") ?? 0, z: base.get("qz") ?? 0, w: base.get("qw") ?? 1 }
+    delta_q = euler_to_quaternion(yaw, pitch, roll)
+    folded  = quaternion_multiply(base_q, delta_q)
+    if normalize_on_merge { folded = normalize_quaternion(folded) }
+    base.set("qx", folded.x)
+    base.set("qy", folded.y)
+    base.set("qz", folded.z)
+    base.set("qw", folded.w)
+    // Reset counters to 0 (subtract current value)
+    doc.get_counter("spatial:" + effective_id + ":delta_yaw").increment(-yaw * 10000)
+    doc.get_counter("spatial:" + effective_id + ":delta_pitch").increment(-pitch * 10000)
+    doc.get_counter("spatial:" + effective_id + ":delta_roll").increment(-roll * 10000)
+    emit("checkpoint_complete", { node_id: effective_id })
+  }
+
+  @on_set_position(pos) => {
+    p = doc.get_map("spatial:" + (node_id ?? entity_id) + ":pos")
+    p.set("x", pos.x)
+    p.set("y", pos.y)
+    p.set("z", pos.z)
+  }
+
+  @receipt spatial_crdt_bridge_config {
+    type: "SpatialCRDTBridgeReceipt"
+    node_id: node_id ?? entity_id
+    strategy: "C_hybrid_LWW_base_plus_counter_delta"
+    checkpoint_interval_s: checkpoint_interval_s
+    normalize_on_merge: normalize_on_merge
+    frankenstein_prevention: "delta_counter_fold"
+    timestamp: now()
+  }
+}

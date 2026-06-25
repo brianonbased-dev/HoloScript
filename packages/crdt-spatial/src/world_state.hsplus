@@ -1,0 +1,113 @@
+// @world_state — Loro CRDT document for persistent full world state.
+//
+// Native .hsplus surface for WorldState.ts (crdt-spatial). Extends spatial
+// transform sync to the complete world state: objects, terrain, NPC memory,
+// inventories, weather, and world metadata.
+//
+// Two-Tier Sync (W.156 from WorldState.ts):
+//   Tier 1: This trait — CRDT for high-level state (~10Hz, ~100ms interval)
+//   Tier 2: Raw binary WebRTC — physics particles (~60Hz, NOT in CRDT)
+//   WHY: Mixing 60Hz physics into CRDT state causes Loro doc bloat and peer
+//   divergence — physics particles are ephemeral and must stay in binary.
+//
+// World state domains (WorldState.ts):
+//   objects    — ObjectState { position[3], rotation[4], scale[3], mesh, traits, owner }
+//   terrain    — heightmap delta appends (persistent erosion via LoroList)
+//   npc_memory — hierarchical knowledge tree { timestamp, type, content, decay, source }
+//   inventory  — player item maps
+//   weather    — { wind_speed, cloud_cover, precipitation, time_of_day }
+//   metadata   — { world_id, version, created_at, seed }
+//
+// GOLD gotchas (G.GOLD.001):
+//   All Loro map/list/text accesses go through doc.getMap/getList/getText
+//   called on the ROOT LoroDoc only — never on a child container reference.
+//   Accessing via child ref after JSON round-trip returns the wrong container.
+//
+// NPC memory type: "observation" | "interaction" | "emotion" | "fact"
+
+@trait world_state {
+  // World identifier
+  world_id: String
+
+  // How often to commit CRDT state and sync to peers (milliseconds)
+  sync_interval_ms: Int = 100
+
+  // Maximum NPC memory entries before oldest are pruned (0 = unlimited)
+  max_npc_memory_entries: Int = 500
+
+  // Whether to emit a world_snapshot event on every sync tick
+  emit_snapshots: Bool = false
+
+  capability_tags: ["world_state", "loro_crdt", "full_world_state", "terrain_crdt", "npc_memory", "inventory_crdt"]
+
+  @on_spawn => {
+    // G.GOLD.001: obtain all containers from root doc only
+    doc = get_loro_doc()
+    objects_map  = doc.get_map("world:" + world_id + ":objects")
+    terrain_list = doc.get_list("world:" + world_id + ":terrain")
+    npc_map      = doc.get_map("world:" + world_id + ":npc_memory")
+    inventory    = doc.get_map("world:" + world_id + ":inventory")
+    weather_map  = doc.get_map("world:" + world_id + ":weather")
+    meta_map     = doc.get_map("world:" + world_id + ":meta")
+    state = init_world_state({
+      doc: doc,
+      world_id: world_id,
+      max_npc_memory: max_npc_memory_entries
+    })
+    emit("world_state_ready", {
+      world_id: world_id,
+      sync_interval_ms: sync_interval_ms
+    })
+  }
+
+  @on_sync_tick => {
+    state.commit_batch()
+    if emit_snapshots {
+      emit("world_snapshot", { world_id: world_id, version: state.version() })
+    }
+  }
+
+  @on_object_update(object_id, object_state) => {
+    // G.GOLD.001: write via root doc map key
+    doc.get_map("world:" + world_id + ":objects").set(object_id, object_state)
+  }
+
+  @on_terrain_delta(delta) => {
+    // Terrain erosion is append-only: deltas accumulate in LoroList
+    doc.get_list("world:" + world_id + ":terrain").push(delta)
+  }
+
+  @on_npc_remember(npc_id, memory) => {
+    key = npc_id + ":" + memory.timestamp
+    doc.get_map("world:" + world_id + ":npc_memory").set(key, {
+      timestamp: memory.timestamp,
+      type: memory.type,
+      content: memory.content,
+      decay: memory.decay,
+      source: memory.source
+    })
+    state.prune_npc_memory_if_needed(npc_id, max_npc_memory_entries)
+  }
+
+  @on_weather_update(weather) => {
+    w = doc.get_map("world:" + world_id + ":weather")
+    w.set("wind_speed",   weather.wind_speed)
+    w.set("cloud_cover",  weather.cloud_cover)
+    w.set("precipitation", weather.precipitation)
+    w.set("time_of_day",  weather.time_of_day)
+  }
+
+  @on_peer_update(remote_snapshot) => {
+    state.merge_remote(remote_snapshot)
+  }
+
+  @receipt world_state_config {
+    type: "WorldStateReceipt"
+    world_id: world_id
+    sync_interval_ms: sync_interval_ms
+    max_npc_memory_entries: max_npc_memory_entries
+    tier1_crdt_hz: 1000 / sync_interval_ms
+    tier2_note: "physics particles via raw binary WebRTC — NOT in CRDT (W.156)"
+    timestamp: now()
+  }
+}
