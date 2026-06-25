@@ -1,0 +1,32 @@
+// @spatial_training_data_generator — Generates labeled spatial reasoning JSONL for LLM fine-tuning.
+//
+// Native .hsplus surface for framework/training/SpatialTrainingDataGenerator.ts.
+//
+// SpatialRelationshipType: spatial_adjacent | spatial_contains | spatial_reachable
+// SpatialDifficulty: basic | intermediate | advanced
+// generate(config) → SpatialTrainingExample[] — 12+ instruction templates per relationship (G.002)
+// Output: JSONL instruction-response pairs; positive + negative examples per type
+// Config: object counts, positions, scales, relationships randomized per scene
+
+@trait spatial_training_data_generator {
+  capability_tags: ["spatial_training_data_generator", "spatial_reasoning", "jsonl_training", "llm_fine_tuning", "positive_negative_examples", "framework"]
+
+  @on_spawn => {
+    generator = init_spatial_training_data_generator()
+    emit("spatial_training_data_generator_ready", {})
+  }
+
+  @on_generate(config) => {
+    examples = generator.generate(config)
+    emit("spatial_examples_generated", { count: examples.length, difficulty: config.difficulty })
+    return examples
+  }
+
+  @receipt spatial_training_data_generator_config {
+    type: "SpatialTrainingDataGeneratorReceipt"
+    relationships: ["spatial_adjacent", "spatial_contains", "spatial_reachable"]
+    templates: "12+ instruction templates per relationship type (G.002)"
+    examples: "positive + negative per type"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @training_monkey_integration — Convert HoloScript spatial JSONL to TrainingMonkey Alpaca format.
+//
+// Native .hsplus surface for framework/training/trainingmonkey/TrainingMonkeyIntegration.ts.
+//
+// Pipeline: JSONL parse → Alpaca format → SoftDedup reweighting → stratified 90/10 split → upload-ready output
+// AlpacaEntry: { instruction, input, output }; WeightedAlpacaEntry adds samplingWeight
+// W.006 hyperparameters baked into TrainingMonkeyConfig
+// integrate(jsonlPath, config) → IntegrationResult { trainSet, valSet, stats }
+
+@trait training_monkey_integration {
+  capability_tags: ["training_monkey_integration", "alpaca_format", "jsonl_conversion", "stratified_split", "training", "framework"]
+
+  @on_spawn => {
+    integrator = init_training_monkey_integration(config)
+    emit("training_monkey_integration_ready", {})
+  }
+
+  @on_integrate(jsonl_path) => {
+    result = integrator.integrate(jsonl_path)
+    emit("integration_complete", { train: result.train_set.length, val: result.val_set.length })
+    return result
+  }
+
+  @receipt training_monkey_integration_config {
+    type: "TrainingMonkeyIntegrationReceipt"
+    pipeline: ["JSONL parse", "Alpaca convert", "SoftDedup reweight", "90/10 stratified split", "upload-ready output"]
+    splits: "90% train / 10% validation (stratified)"
+    timestamp: now()
+  }
+}

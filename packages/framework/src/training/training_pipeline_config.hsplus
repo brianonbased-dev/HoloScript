@@ -1,0 +1,29 @@
+// @training_pipeline_config — Unified training pipeline configuration (W.004/W.006/W.007/W.008/W.009/W.010).
+//
+// Native .hsplus surface for framework/training/TrainingPipelineConfig.ts.
+//
+// Pipeline order: Quality Filter (W.010) → Hard Dedup (W.004) → SoftDedup (W.008) → Training
+// TrainingPipelineConfig: QualityScoringConfig + SoftDedupConfig + LRSchedulerConfig + hyperparams
+// Hyperparams (W.006/W.007): baseLR, batchSize, epochs, warmupRatio
+// DEFAULT_PIPELINE_CONFIG exports all tuned defaults
+
+@trait training_pipeline_config {
+  capability_tags: ["training_pipeline_config", "unified_config", "pipeline_order", "hyperparams", "training", "framework"]
+
+  @on_spawn => {
+    emit("training_pipeline_config_ready", {})
+  }
+
+  @on_build(overrides) => {
+    config = build_pipeline_config(overrides)
+    emit("pipeline_config_built", {})
+    return config
+  }
+
+  @receipt training_pipeline_config_config {
+    type: "TrainingPipelineConfigReceipt"
+    order: ["Quality Filter W.010", "Hard Dedup W.004", "SoftDedup W.008", "Training"]
+    hyperparams: "W.006 baseLR + W.007 batchSize/epochs + W.009 warmup+cosine"
+    timestamp: now()
+  }
+}
