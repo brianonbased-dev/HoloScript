@@ -1,0 +1,88 @@
+// @codebase_scene_compiler — CodebaseGraph → HoloComposition AST for 3D visualization.
+//
+// Native .hsplus surface for CodebaseSceneCompiler.ts (absorb-service/engine/visualization).
+//
+// Transforms a CodebaseGraph + layout into a HoloComposition AST that feeds
+// directly into the existing compilers (WebGPU, Babylon, R3F) without changes.
+//
+// SceneCompilerOptions (CodebaseSceneCompiler.ts):
+//   name?: String               — composition name
+//   layout: "force" | "layered" — default "force" (Barnes-Hut); "layered" = Sugiyama
+//   theme?: ThemeOptions        — color/size/glow by language/symbol/complexity
+//   edges?: EdgeRenderOptions   — bezier curves with bundling support
+//   skybox: String = "dark-grid"
+//   ambient_light: Float = 0.4
+//   fog: Bool = true
+//   min_visibility: "public" | "protected" | "internal" | "private" = "public"
+//   max_symbols_per_group: Int = 50
+//   interactive: Bool           — hover/click/selection/edge-highlight
+//   rag_highlights?: { nodeIds, type: "search" | "impact" | "trace" }
+//   prev_positions?             — warm-start for incremental layout
+//
+// Delegates to: CodebaseTheme, EdgeRenderer, InteractiveSceneEnricher, layouts.
+
+@trait codebase_scene_compiler {
+  // Layout algorithm
+  layout: enum("force" | "layered") = "force"
+
+  // Skybox preset
+  skybox: String = "dark-grid"
+
+  // Ambient light intensity
+  ambient_light: Float = 0.4
+
+  // Enable volumetric fog
+  fog: Bool = true
+
+  // Minimum symbol visibility to include in scene
+  min_visibility: enum("public" | "protected" | "internal" | "private") = "public"
+
+  // Max symbols rendered per community group
+  max_symbols_per_group: Int = 50
+
+  // Enable interactive 3D (hover, click, selection, edge highlighting)
+  interactive: Bool = true
+
+  capability_tags: ["codebase_scene_compiler", "holo_composition", "codebase_visualization", "graph_3d", "webgpu_render", "absorb_service", "scene_compiler"]
+
+  @on_spawn => {
+    compiler = init_codebase_scene_compiler({
+      layout: layout,
+      skybox: skybox,
+      ambient_light: ambient_light,
+      fog: fog,
+      min_visibility: min_visibility,
+      max_symbols_per_group: max_symbols_per_group,
+      interactive: interactive
+    })
+    emit("codebase_scene_compiler_ready", { layout: layout })
+  }
+
+  // Compile a CodebaseGraph → HoloComposition AST
+  @on_compile(graph, name, theme, edges, rag_highlights, prev_positions) => {
+    scene = compiler.compile(graph, {
+      name: name,
+      theme: theme,
+      edges: edges,
+      rag_highlights: rag_highlights,
+      prev_positions: prev_positions
+    })
+    emit("codebase_scene_compiled", {
+      composition_name: name,
+      object_count: scene.objects.size
+    })
+    return scene
+  }
+
+  @receipt codebase_scene_config {
+    type: "CodebaseSceneCompilerReceipt"
+    layout: layout
+    skybox: skybox
+    ambient_light: ambient_light
+    fog: fog
+    min_visibility: min_visibility
+    interactive: interactive
+    targets: ["WebGPU", "Babylon", "R3F"]
+    timestamp: now()
+  }
+}

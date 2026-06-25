@@ -1,0 +1,82 @@
+// @embedding_index — Vector index for Graph RAG with cosine similarity search.
+//
+// Native .hsplus surface for EmbeddingIndex.ts (absorb-service/engine).
+//
+// Builds a vector index over symbol signatures for semantic search.
+// Backs GraphRAGEngine's top-K retrieval step.
+//
+// EmbeddingIndexOptions (EmbeddingIndex.ts):
+//   provider: EmbeddingProvider
+//     — default "structural" (keyless, offline, 384-dim AST-based)
+//     — "holoembed" recommended (768-dim, best NL→code recall, no API key)
+//     — "openai" is OPT-IN ONLY, NOT the default (F.106: key leak risk)
+//     — "ollama" local fallback
+//   batch_size: Int = 32                  — embedding request batch size
+//   use_workers: Bool = true              — parallel batches via Node.js threads
+//   concurrent_batches: Int = 4           — max(4, CPU-2) parallel embedding workers
+//
+// Supports: cosine similarity search, incremental updates, serialization.
+// Workers degrade gracefully in browser/WASM environments.
+//
+// IndexedSymbol { symbol: ExternalSymbolDefinition, embedding: Float[], id? }
+
+@trait embedding_index {
+  // Embedding provider name: "structural" | "holoembed" | "ollama" | "openai"
+  // WARNING: openai requires API key (F.106) — use structural or holoembed by default
+  provider_name: String = "structural"
+
+  // Batch size for embedding requests
+  batch_size: Int = 32
+
+  // Use worker threads for parallel embedding generation
+  use_workers: Bool = true
+
+  // Max concurrent embedding batches (0 = auto: min(4, CPU-2))
+  concurrent_batches: Int = 0
+
+  capability_tags: ["embedding_index", "vector_index", "graph_rag", "cosine_similarity", "semantic_search", "absorb_service"]
+
+  @on_spawn => {
+    index = init_embedding_index({
+      provider_name: provider_name,
+      batch_size: batch_size,
+      use_workers: use_workers,
+      concurrent_batches: concurrent_batches
+    })
+    emit("embedding_index_ready", { provider_name: provider_name })
+  }
+
+  // Build index from a CodebaseGraph
+  @on_build(graph) => {
+    result = index.build(graph)
+    emit("embedding_index_built", { symbol_count: result.symbol_count, duration_ms: result.duration_ms })
+    return result
+  }
+
+  // Cosine similarity search → top-K IndexedSymbol matches
+  @on_search(query, top_k, language_filter, type_filter, file_prefix) => {
+    results = index.search(query, {
+      top_k: top_k ?? 20,
+      language: language_filter,
+      type: type_filter,
+      file: file_prefix
+    })
+    emit("embedding_search_complete", { matches: results.size })
+    return results
+  }
+
+  // Add or update symbols incrementally
+  @on_update(symbols) => {
+    index.update(symbols)
+    emit("embedding_index_updated", { count: symbols.size })
+  }
+
+  @receipt embedding_index_config {
+    type: "EmbeddingIndexReceipt"
+    provider_name: provider_name
+    provider_note: "openai is opt-in only (F.106); default=structural (offline 384-dim)"
+    batch_size: batch_size
+    use_workers: use_workers
+    timestamp: now()
+  }
+}

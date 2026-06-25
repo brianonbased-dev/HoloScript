@@ -1,0 +1,96 @@
+// @daemon_actions — BT action handlers for the HoloScript self-improvement daemon.
+//
+// Native .hsplus surface for daemon-actions.ts (absorb-service/daemon).
+//
+// Maps Behavior Tree action names → host operations (shell exec, file I/O, LLM calls).
+// Used by the `holoscript daemon` CLI subcommand.
+//
+// Each handler receives (params, blackboard, context) → Bool.
+// The blackboard is the BT's shared state, passed by the native action bridge.
+//
+// DaemonConfig (daemon-actions.ts):
+//   repo_root, commit: Bool, model: String, provider: DaemonProvider,
+//   tool_profile: DaemonToolProfile, verbose: Bool, trial?: Int,
+//   focus_rotation: String[], state_dir: String, cycle_focus?: String,
+//   daemon_file?: String, quarantine_threshold?: Int, quality_before?: Float,
+//   committed_files?: String[], failed_files?: Record<String, Int>
+//
+// Security: uses HMAC + timingSafeEqual (crypto) for request auth.
+//   Uses StdlibPolicy (isPathAllowed, StdlibPolicy) from @holoscript/core for path enforcement.
+//   Uses resolveRepoRelativePath — all file ops relative to repo_root.
+// LLM calls: buildDaemonPromptContext + getDaemonSystemPrompt from daemon-prompt-profiles.
+// Error taxonomy: parseTscOutput + aggregatePatterns (ErrorCategory) for learning.
+
+@trait daemon_actions {
+  // Root of the repository the daemon is operating on
+  repo_root: String
+
+  // Auto-commit successful fixes
+  commit: Bool = true
+
+  // LLM model identifier for the daemon
+  model: String
+
+  // LLM provider: "claude" | "openai" | "ollama" | ...
+  provider: String = "claude"
+
+  // Verbosity for shell output
+  verbose: Bool = false
+
+  // Files quarantined after repeated failures
+  quarantine_threshold: Int = 3
+
+  capability_tags: ["daemon_actions", "behavior_tree", "daemon_host", "shell_exec", "llm_host", "file_io", "self_improvement", "absorb_service"]
+
+  @on_spawn => {
+    actions = init_daemon_actions({
+      repo_root: repo_root,
+      commit: commit,
+      model: model,
+      provider: provider,
+      verbose: verbose,
+      quarantine_threshold: quarantine_threshold
+    })
+    emit("daemon_actions_ready", {
+      repo_root: repo_root,
+      model: model,
+      provider: provider
+    })
+  }
+
+  // Execute a BT action by name
+  @on_execute(action_name, params, blackboard, context) => {
+    ok = actions.execute(action_name, params, blackboard, context)
+    if ok {
+      emit("daemon_action_succeeded", { action: action_name })
+    } else {
+      emit("daemon_action_failed", { action: action_name })
+    }
+    return ok
+  }
+
+  // Run a shell command inside repo_root (path-checked via StdlibPolicy)
+  @on_exec_shell(command, cwd_relative) => {
+    result = actions.exec_shell(command, cwd_relative)
+    emit("daemon_shell_exec", { exit_code: result.exit_code })
+    return result
+  }
+
+  // Read a file relative to repo_root (path-checked via StdlibPolicy)
+  @on_read_file(relative_path) => {
+    content = actions.read_file(relative_path)
+    return content
+  }
+
+  @receipt daemon_actions_config {
+    type: "DaemonActionsReceipt"
+    repo_root: repo_root
+    model: model
+    provider: provider
+    commit: commit
+    quarantine_threshold: quarantine_threshold
+    path_policy: "StdlibPolicy from @holoscript/core (isPathAllowed)"
+    auth: "HMAC + timingSafeEqual (crypto)"
+    timestamp: now()
+  }
+}
