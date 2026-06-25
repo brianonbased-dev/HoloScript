@@ -1,0 +1,23 @@
+@trait {
+  name: "@dmx_lighting",
+  category: "film",
+  description: "DMX512/RDM lighting control for film/virtual production. universe is the DMX universe (1-based). channel is the starting DMX channel (1-512). channelCount is the number of DMX channels this fixture uses. fixtureType: led_panel, fresnel, par, moving_head, or strobe. intensity 0-255 (DMX value) or 0.0-1.0 (normalized, see intensityUnit). color is [R,G,B] in 0-255. dimmerCurve: linear, square, or s_curve. protocol: dmx512 or rdm. Port of DMXLightingTrait.ts (handler name: dmx_lighting).",
+  props: {
+    universe: number = 1,
+    channel: number = 1,
+    channel_count: number = 6,
+    fixture_type: enum("led_panel" | "fresnel" | "par" | "moving_head" | "strobe") = "led_panel",
+    intensity: number = 255,
+    intensity_unit: enum("dmx" | "normalized") = "dmx",
+    dimmer_curve: enum("linear" | "square" | "s_curve") = "linear",
+    protocol: enum("dmx512" | "rdm") = "dmx512"
+  },
+  events: {
+    on_channel_changed: "dmx_channel_changed",
+    on_fixture_ready: "dmx_fixture_ready",
+    set_intensity: "dmx_set_intensity",
+    set_color: "dmx_set_color",
+    blackout: "dmx_blackout"
+  },
+  behaviors: ["@director_ai", "@time_of_day"]
+}

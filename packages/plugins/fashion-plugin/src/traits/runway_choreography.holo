@@ -1,0 +1,18 @@
+@trait {
+  name: "@runway_choreography",
+  category: "fashion",
+  description: "Fashion runway show choreography sequencer. segments is an ordered list of runway segment definitions (model, timing, position, turn marks). runwayLengthM is the physical runway length in meters (default: 20m). totalDurationS is the full show runtime in seconds (default: 600s = 10 min). musicPlaylist is an ordered list of music track IDs synced to segments. Port of RunwayChoreographyTrait.ts (handler name: runway_choreography).",
+  props: {
+    runway_length_m: number = 20,
+    total_duration_s: number = 600
+  },
+  events: {
+    on_segment_start: "runway_segment_start",
+    on_segment_end: "runway_segment_end",
+    on_show_complete: "runway_show_complete",
+    start: "runway_start",
+    pause: "runway_pause",
+    reset: "runway_reset"
+  },
+  behaviors: ["@fabric_simulation", "@time_of_day"]
+}

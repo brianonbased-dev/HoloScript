@@ -1,0 +1,18 @@
+@trait {
+  name: "@director_ai",
+  category: "film",
+  description: "AI-assisted film directing for blocking, emotional beats, and coverage. sceneId identifies the scene being directed. blocking is a list of actor marks (position/facing/time). motivation maps character ID to motivation notes. emotionalBeats is a timed sequence of emotional states (emotion, intensity, transition). coverage is a list of required shot types (master, single, two_shot, over_shoulder, insert, reaction). autoSuggestShots generates shot suggestions from blocking + emotional beats. Integrates with @shot_list and @virtual_production. Port of DirectorAITrait.ts (handler name: director_ai).",
+  props: {
+    scene_id: string = "scene_001",
+    auto_suggest_shots: boolean = true
+  },
+  events: {
+    on_shot_suggested: "director_ai_shot_suggested",
+    on_coverage_validated: "director_ai_coverage_validated",
+    on_pacing_analyzed: "director_ai_pacing_analyzed",
+    suggest_shots: "director_ai_suggest",
+    validate_coverage: "director_ai_validate",
+    analyze_pacing: "director_ai_analyze_pacing"
+  },
+  behaviors: ["@shot_list", "@dmx_lighting", "@virtual_production"]
+}

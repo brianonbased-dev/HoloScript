@@ -1,0 +1,23 @@
+@trait {
+  name: "@fabric_simulation",
+  category: "fashion",
+  description: "Position-based dynamics fabric simulation. fabricType: woven, knit, leather, or synthetic. stiffness controls resistance to bending (0-1). elasticity controls stretch recovery (0-1). drapeCoefficient controls how the fabric falls under gravity (0=stiff board, 1=liquid drape). windResistance scales aerodynamic force (0-1). gravityScale multiplies gravity (1.0=normal). collisionMargin is the collision detection buffer in meters. vertexCount is the cloth mesh resolution (higher=more accurate, more GPU cost). Port of FabricSimulationTrait.ts (handler name: fabric_simulation).",
+  props: {
+    fabric_type: enum("woven" | "knit" | "leather" | "synthetic") = "woven",
+    stiffness: number = 0.5,
+    elasticity: number = 0.3,
+    drape_coefficient: number = 0.7,
+    wind_resistance: number = 0.2,
+    gravity_scale: number = 1.0,
+    collision_margin: number = 0.01,
+    vertex_count: number = 1000
+  },
+  events: {
+    attached: "fabric_simulation_ready",
+    on_torn: "fabric_torn",
+    on_wind: "fabric_wind_applied",
+    apply_wind: "fabric_apply_wind",
+    reset: "fabric_reset"
+  },
+  behaviors: ["@gpu_physics", "@advanced_cloth"]
+}
