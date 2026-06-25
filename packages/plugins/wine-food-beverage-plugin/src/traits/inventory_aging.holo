@@ -1,0 +1,18 @@
+@trait {
+  name: "@inventory_aging",
+  category: "beverage",
+  description: "Wine/beverage cellar inventory with aging tracking. items is a list of cellar items (id, name, vintage, quantity, peakWindowStart, peakWindowEnd, purchasePrice). cellarCapacity is the total bottle capacity (default: 100). optimalTempC is the ideal storage temperature in Celsius (default: 13°C). optimalHumidityPercent is the ideal relative humidity (default: 70%). Port of InventoryAgingTrait.ts (handler name: inventory_aging).",
+  props: {
+    cellar_capacity: number = 100,
+    optimal_temp_c: number = 13,
+    optimal_humidity_percent: number = 70
+  },
+  events: {
+    on_item_added: "cellar_item_added",
+    on_peak_window: "cellar_peak_window",
+    on_temp_alert: "cellar_temp_alert",
+    add: "cellar_add",
+    consume: "cellar_consume"
+  },
+  behaviors: ["@pairing_engine", "@tasting_profile"]
+}

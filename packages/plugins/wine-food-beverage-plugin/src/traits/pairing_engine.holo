@@ -1,0 +1,15 @@
+@trait {
+  name: "@pairing_engine",
+  category: "beverage",
+  description: "Wine/food pairing recommendation engine. rules is a list of pairing rules (beverage profile attributes, food attributes, compatibility score). flavorProfiles maps item IDs to their flavor profile objects. maxSuggestions caps the number of pairing recommendations returned (default: 5). Port of PairingEngineTrait.ts (handler name: pairing_engine).",
+  props: {
+    max_suggestions: number = 5
+  },
+  events: {
+    on_suggestions_ready: "pairing_suggestions",
+    on_rule_added: "pairing_rule_added",
+    suggest: "pairing_suggest",
+    add_rule: "pairing_add_rule"
+  },
+  behaviors: ["@inventory_aging", "@tasting_profile"]
+}

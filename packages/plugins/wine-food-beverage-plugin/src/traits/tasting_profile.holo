@@ -1,0 +1,17 @@
+@trait {
+  name: "@tasting_profile",
+  category: "beverage",
+  description: "Structured tasting note and sensory profile. productName is the item name. category: wine, beer, spirits, coffee, or tea. appearance, aroma, taste, and finish are lists of descriptor strings. overallScore is a 0-100 rating. Port of TastingProfileTrait.ts (handler name: tasting_profile).",
+  props: {
+    product_name: string = "",
+    category: enum("wine" | "beer" | "spirits" | "coffee" | "tea") = "wine",
+    overall_score: number = 0
+  },
+  events: {
+    on_scored: "tasting_scored",
+    on_shared: "tasting_shared",
+    score: "tasting_score",
+    share: "tasting_share"
+  },
+  behaviors: ["@inventory_aging", "@pairing_engine"]
+}
