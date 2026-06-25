@@ -1,0 +1,26 @@
+@trait {
+  name: "@walkable",
+  category: "spatial",
+  description: "Point-cloud navmesh builder for real-estate tours and scanned interiors. Derives a deterministic collision navmesh from XYZ/E57 point clouds: floors walkable, walls collidable, door openings passable, stairs as reachability edges. Sovereign HoloScript-native; no engine bridge required. Port of WalkableTrait.ts.",
+  props: {
+    source_format: enum("xyz" | "e57" | "points") = "xyz",
+    point_cloud_uri: string = "",
+    physics_engine: enum("cannon-es") = "cannon-es",
+    emit_reachability_graph: boolean = true,
+    up_axis: enum("y" | "z") = "y",
+    cell_size_m: number = 0.5,
+    plane_tolerance_m: number = 0.08,
+    min_plane_points: number = 3,
+    max_step_height_m: number = 0.28,
+    wall_height_m: number = 2.4,
+    normal_floor_threshold: number = 0.85
+  },
+  events: {
+    attached: "walkable_attached",
+    detached: "walkable_detached",
+    on_navmesh_ready: "walkable_navmesh_ready",
+    on_navmesh_error: "walkable_navmesh_error",
+    build: "walkable_trigger_build"
+  },
+  behaviors: ["@navmesh_solver", "@collision", "@path_follower"]
+}

@@ -1,0 +1,22 @@
+@trait {
+  name: "@watcher",
+  category: "devops",
+  description: "File, state, and event change watcher with debouncing. File watching uses Node.js fs.watch in headless/server contexts; state and event modes subscribe to the composition's state store and event bus. Port of WatcherTrait.ts (handler name: watcher).",
+  props: {
+    watch_type: enum("file" | "state" | "event") = "event",
+    patterns: list<string> = [],
+    debounce_ms: number = 200,
+    recursive: boolean = false,
+    auto_start: boolean = true
+  },
+  events: {
+    attached: "watcher_attached",
+    detached: "watcher_detached",
+    on_ready: "watcher_ready",
+    on_change: "watcher_change",
+    on_error: "watcher_error",
+    start: "watcher_start",
+    stop: "watcher_stop"
+  },
+  behaviors: ["@snapshot_test", "@journal", "@stat"]
+}

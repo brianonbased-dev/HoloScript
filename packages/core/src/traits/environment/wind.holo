@@ -1,0 +1,25 @@
+@trait {
+  name: "@wind",
+  category: "environment",
+  description: "Wind force field with Perlin-noise turbulence, random gusts, and distance falloff. Drives force on tagged rigidbodies within a radius at each simulation tick. Port of WindTrait.ts (handler name: wind).",
+  props: {
+    direction: { x: number, y: number, z: number } = { x: 1, y: 0, z: 0 },
+    strength: number = 5.0,
+    turbulence: number = 0.3,
+    turbulence_frequency: number = 1.0,
+    pulse: boolean = false,
+    pulse_frequency: number = 0.5,
+    falloff: enum("none" | "linear" | "quadratic") = "none",
+    radius: number = 100.0,
+    affects: list<string> = [],
+    gust_chance: number = 0.01,
+    gust_multiplier: number = 2.0
+  },
+  events: {
+    attached: "wind_attached",
+    detached: "wind_detached",
+    on_gust: "wind_gust",
+    on_tick: "wind_tick"
+  },
+  behaviors: ["@rigidbody", "@particle_system", "@foliage_bend"]
+}
