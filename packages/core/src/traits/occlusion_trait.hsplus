@@ -1,0 +1,21 @@
+// @occlusion_trait — AR occlusion: depth-mask hides virtual objects behind real-world surfaces.
+//
+// Native .hsplus surface for core/traits/OcclusionTrait.ts.
+
+@trait occlusion_trait {
+  capability_tags: ["occlusion", "depth_mask", "ar_occlusion", "real_world_hide", "core"]
+
+  @on_spawn(depth_source_id) => {
+    init_occlusion(depth_source_id)
+    emit("occlusion_ready", {})
+  }
+
+  @on_update(depth_frame) => {
+    update_occlusion_mask(depth_frame)
+  }
+
+  @receipt occlusion_trait_config {
+    type: "OcclusionTraitReceipt"
+    timestamp: now()
+  }
+}

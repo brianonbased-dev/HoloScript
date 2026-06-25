@@ -1,0 +1,21 @@
+// @pdf_generate_trait — PDF generation: template+data → styled PDF with tables, charts, signature.
+//
+// Native .hsplus surface for core/traits/PdfGenerateTrait.ts.
+
+@trait pdf_generate_trait {
+  capability_tags: ["pdf_generate", "template_to_pdf", "tables_charts", "signature", "core"]
+
+  @on_spawn => {
+    emit("pdf_generate_ready", {})
+  }
+
+  @on_generate(template_id, data) => {
+    pdf_bytes = generate_pdf(template_id, data)
+    return pdf_bytes
+  }
+
+  @receipt pdf_generate_trait_config {
+    type: "PdfGenerateTraitReceipt"
+    timestamp: now()
+  }
+}

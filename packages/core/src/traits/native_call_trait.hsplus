@@ -1,0 +1,23 @@
+// @native_call_trait — Native call bridge: invokes platform-native functions (iOS/Android/Desktop).
+//
+// Native .hsplus surface for core/traits/NativeCallTrait.ts.
+
+@trait native_call_trait {
+  capability_tags: ["native_call", "platform_native", "ios_android_desktop", "bridge_call", "core"]
+
+  @on_spawn(platform) => {
+    init_native_call(platform)
+    emit("native_call_ready", { platform })
+  }
+
+  @on_call(fn_name, args) => {
+    result = invoke_native_call(fn_name, args)
+    return result
+  }
+
+  @receipt native_call_trait_config {
+    type: "NativeCallTraitReceipt"
+    platforms: ["iOS", "Android", "Desktop"]
+    timestamp: now()
+  }
+}

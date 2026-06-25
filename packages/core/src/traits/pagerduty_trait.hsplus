@@ -1,0 +1,23 @@
+// @pagerduty_trait — PagerDuty integration: trigger, resolve, and escalate incidents via PD API.
+//
+// Native .hsplus surface for core/traits/PagerdutyTrait.ts.
+
+@trait pagerduty_trait {
+  capability_tags: ["pagerduty", "trigger_resolve_escalate", "incident_api", "on_call", "core"]
+
+  @on_spawn(api_key_ref) => {
+    init_pagerduty(api_key_ref)
+    emit("pagerduty_ready", {})
+  }
+
+  @on_trigger(service_key, summary, severity) => {
+    incident_key = trigger_pagerduty(service_key, summary, severity)
+    emit("pagerduty_triggered", { incident_key })
+    return incident_key
+  }
+
+  @receipt pagerduty_trait_config {
+    type: "PagerdutyTraitReceipt"
+    timestamp: now()
+  }
+}

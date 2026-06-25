@@ -1,0 +1,23 @@
+// @negotiation_trait — Agent negotiation: offer-counteroffer protocol between agent parties.
+//
+// Native .hsplus surface for core/traits/NegotiationTrait.ts.
+
+@trait negotiation_trait {
+  capability_tags: ["negotiation", "offer_counteroffer", "agent_protocol", "bilateral_negotiation", "core"]
+
+  @on_spawn(strategy) => {
+    init_negotiation(strategy)
+    emit("negotiation_ready", {})
+  }
+
+  @on_offer(offer, context) => {
+    response = evaluate_offer(offer, context)
+    emit("offer_evaluated", { accepted: response.accepted })
+    return response
+  }
+
+  @receipt negotiation_trait_config {
+    type: "NegotiationTraitReceipt"
+    timestamp: now()
+  }
+}

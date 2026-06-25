@@ -1,0 +1,22 @@
+// @networked_trait — Networked entity: replicates component state to all peers over Colyseus/WebRTC.
+//
+// Native .hsplus surface for core/traits/NetworkedTrait.ts.
+
+@trait networked_trait {
+  capability_tags: ["networked_trait", "component_replication", "colyseus_webrtc", "multiplayer_entity", "core"]
+
+  @on_spawn(room_id) => {
+    init_networked_entity(room_id)
+    emit("networked_ready", {})
+  }
+
+  @on_sync(delta) => {
+    replicate_state_delta(delta)
+  }
+
+  @receipt networked_trait_config {
+    type: "NetworkedTraitReceipt"
+    transport: "Colyseus / WebRTC"
+    timestamp: now()
+  }
+}

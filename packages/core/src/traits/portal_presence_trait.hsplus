@@ -1,0 +1,22 @@
+// @portal_presence_trait — Portal presence: entity emits presence signal through a cross-world portal.
+//
+// Native .hsplus surface for core/traits/PortalPresenceTrait.ts.
+
+@trait portal_presence_trait {
+  capability_tags: ["portal_presence", "cross_world_portal", "presence_signal", "world_bridge", "core"]
+
+  @on_spawn(portal_id) => {
+    init_portal_presence(portal_id)
+    emit("portal_presence_ready", { portal_id })
+  }
+
+  @on_enter(entity_id) => {
+    broadcast_portal_entry(entity_id)
+    emit("portal_entered", { entity_id })
+  }
+
+  @receipt portal_presence_trait_config {
+    type: "PortalPresenceTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @neural_expression_trait — Neural expression: drives facial blend shapes from neural emotion state.
+//
+// Native .hsplus surface for core/traits/NeuralExpressionTrait.ts.
+
+@trait neural_expression_trait {
+  capability_tags: ["neural_expression", "facial_blend_shapes", "neural_emotion", "expression_synthesis", "core"]
+
+  @on_spawn(model_id) => {
+    init_neural_expression(model_id)
+    emit("neural_expression_ready", {})
+  }
+
+  @on_synthesize(emotion_state) => {
+    weights = synthesize_expression_weights(emotion_state)
+    return weights
+  }
+
+  @receipt neural_expression_trait_config {
+    type: "NeuralExpressionTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @offline_sync_trait — Offline sync: queues ops offline, replays on reconnect with conflict resolve.
+//
+// Native .hsplus surface for core/traits/OfflineSyncTrait.ts.
+
+@trait offline_sync_trait {
+  capability_tags: ["offline_sync", "op_queue", "replay_on_reconnect", "conflict_resolve", "core"]
+
+  @on_spawn => {
+    emit("offline_sync_ready", {})
+  }
+
+  @on_op(op) => {
+    enqueue_offline_op(op)
+  }
+
+  @on_reconnect => {
+    replayed = replay_offline_ops()
+    emit("offline_synced", { ops: replayed })
+    return replayed
+  }
+
+  @receipt offline_sync_trait_config {
+    type: "OfflineSyncTraitReceipt"
+    timestamp: now()
+  }
+}

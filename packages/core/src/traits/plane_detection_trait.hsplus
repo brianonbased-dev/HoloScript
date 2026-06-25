@@ -1,0 +1,24 @@
+// @plane_detection_trait — Plane detection: detects horizontal/vertical surfaces in AR environment.
+//
+// Native .hsplus surface for core/traits/PlaneDetectionTrait.ts.
+
+@trait plane_detection_trait {
+  capability_tags: ["plane_detection", "horizontal_vertical", "ar_surface", "xr_planes", "core"]
+
+  @on_spawn(device_id) => {
+    init_plane_detection(device_id)
+    emit("plane_detection_ready", {})
+  }
+
+  @on_update(frame_data) => {
+    planes = detect_planes(frame_data)
+    emit("planes_updated", { count: planes.length })
+    return planes
+  }
+
+  @receipt plane_detection_trait_config {
+    type: "PlaneDetectionTraitReceipt"
+    types: ["horizontal", "vertical"]
+    timestamp: now()
+  }
+}

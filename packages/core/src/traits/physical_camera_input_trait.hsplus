@@ -1,0 +1,21 @@
+// @physical_camera_input_trait — Physical camera input: maps real camera intrinsics to virtual camera for AR.
+//
+// Native .hsplus surface for core/traits/PhysicalCameraInputTrait.ts.
+
+@trait physical_camera_input_trait {
+  capability_tags: ["physical_camera_input", "camera_intrinsics", "ar_camera_map", "real_to_virtual", "core"]
+
+  @on_spawn(device_id) => {
+    init_physical_camera_input(device_id)
+    emit("physical_camera_input_ready", {})
+  }
+
+  @on_calibrate(intrinsics) => {
+    set_camera_intrinsics(intrinsics)
+  }
+
+  @receipt physical_camera_input_trait_config {
+    type: "PhysicalCameraInputTraitReceipt"
+    timestamp: now()
+  }
+}

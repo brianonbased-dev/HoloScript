@@ -1,0 +1,24 @@
+// @photogrammetry_trait — Photogrammetry: structure-from-motion + MVS dense reconstruction from photos.
+//
+// Native .hsplus surface for core/traits/PhotogrammetryTrait.ts.
+
+@trait photogrammetry_trait {
+  capability_tags: ["photogrammetry", "structure_from_motion", "mvs_dense", "photo_reconstruction", "core"]
+
+  @on_spawn(config) => {
+    init_photogrammetry(config)
+    emit("photogrammetry_ready", {})
+  }
+
+  @on_reconstruct(image_set) => {
+    mesh = run_photogrammetry(image_set)
+    emit("photogrammetry_complete", {})
+    return mesh
+  }
+
+  @receipt photogrammetry_trait_config {
+    type: "PhotogrammetryTraitReceipt"
+    pipeline: "SfM + MVS"
+    timestamp: now()
+  }
+}

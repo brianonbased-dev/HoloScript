@@ -1,0 +1,21 @@
+// @networked_avatar_trait — Networked avatar: syncs avatar pose/expression across connected peers.
+//
+// Native .hsplus surface for core/traits/NetworkedAvatarTrait.ts.
+
+@trait networked_avatar_trait {
+  capability_tags: ["networked_avatar", "pose_expression_sync", "peer_sync", "multiplayer_avatar", "core"]
+
+  @on_spawn(avatar_id, session_id) => {
+    init_networked_avatar(avatar_id, session_id)
+    emit("networked_avatar_ready", {})
+  }
+
+  @on_tick(local_pose) => {
+    broadcast_avatar_pose(local_pose)
+  }
+
+  @receipt networked_avatar_trait_config {
+    type: "NetworkedAvatarTraitReceipt"
+    timestamp: now()
+  }
+}

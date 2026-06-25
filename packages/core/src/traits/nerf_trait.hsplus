@@ -1,0 +1,23 @@
+// @nerf_trait — NeRF: neural radiance field novel-view synthesis from image set.
+//
+// Native .hsplus surface for core/traits/NerfTrait.ts.
+
+@trait nerf_trait {
+  capability_tags: ["nerf", "neural_radiance_field", "novel_view_synthesis", "3d_reconstruction", "core"]
+
+  @on_spawn(model_config) => {
+    init_nerf(model_config)
+    emit("nerf_ready", {})
+  }
+
+  @on_render(camera_pose) => {
+    image = render_nerf(camera_pose)
+    return image
+  }
+
+  @receipt nerf_trait_config {
+    type: "NerfTraitReceipt"
+    method: "NeRF / Instant-NGP"
+    timestamp: now()
+  }
+}

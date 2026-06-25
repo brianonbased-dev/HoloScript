@@ -1,0 +1,23 @@
+// @pressable_trait — Pressable button: finger/ray press interaction with pressed/hover/idle states.
+//
+// Native .hsplus surface for core/traits/PressableTrait.ts.
+
+@trait pressable_trait {
+  capability_tags: ["pressable", "finger_ray_press", "pressed_hover_idle", "xr_button", "core"]
+
+  @on_spawn(press_threshold) => {
+    init_pressable(press_threshold)
+    emit("pressable_ready", {})
+  }
+
+  @on_press(contact_point, pressure) => {
+    handle_press(contact_point, pressure)
+    emit("pressed", { pressure })
+  }
+
+  @receipt pressable_trait_config {
+    type: "PressableTraitReceipt"
+    states: ["idle", "hover", "pressed"]
+    timestamp: now()
+  }
+}

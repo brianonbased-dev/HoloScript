@@ -1,0 +1,23 @@
+// @portable_trait — Portable entity: carries wallet-keyed identity/memory across substrate changes (D.102).
+//
+// Native .hsplus surface for core/traits/PortableTrait.ts.
+
+@trait portable_trait {
+  capability_tags: ["portable_trait", "wallet_keyed_identity", "cross_substrate", "portable_mind", "core"]
+
+  @on_spawn(wallet_address) => {
+    init_portable_entity(wallet_address)
+    emit("portable_ready", { wallet_address })
+  }
+
+  @on_migrate(target_substrate) => {
+    migrate_portable_entity(target_substrate)
+    emit("entity_migrated", { target: target_substrate })
+  }
+
+  @receipt portable_trait_config {
+    type: "PortableTraitReceipt"
+    doc: "D.102 portable agent mind"
+    timestamp: now()
+  }
+}

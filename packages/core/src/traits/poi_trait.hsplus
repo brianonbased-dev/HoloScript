@@ -1,0 +1,21 @@
+// @poi_trait — Point of interest: geospatial POI label with LOD visibility and category.
+//
+// Native .hsplus surface for core/traits/POITrait.ts.
+
+@trait poi_trait {
+  capability_tags: ["poi", "point_of_interest", "geospatial_label", "lod_visibility", "core"]
+
+  @on_spawn(poi_id, location, category) => {
+    init_poi(poi_id, location, category)
+    emit("poi_ready", { poi_id })
+  }
+
+  @on_lod_update(camera_distance) => {
+    set_poi_visibility(camera_distance)
+  }
+
+  @receipt poi_trait_config {
+    type: "POITraitReceipt"
+    timestamp: now()
+  }
+}

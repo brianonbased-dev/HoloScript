@@ -1,0 +1,22 @@
+// @npc_ai_trait — NPC AI: perception, decision, action loop with LLM-enriched dialogue.
+//
+// Native .hsplus surface for core/traits/NPCAITrait.ts.
+
+@trait npc_ai_trait {
+  capability_tags: ["npc_ai", "perception_decision_action", "llm_dialogue", "npc_brain", "core"]
+
+  @on_spawn(npc_id, persona) => {
+    init_npc_ai(npc_id, persona)
+    emit("npc_ai_ready", { npc_id })
+  }
+
+  @on_tick(world_state) => {
+    action = tick_npc_ai(world_state)
+    return action
+  }
+
+  @receipt npc_ai_trait_config {
+    type: "NPCAITraitReceipt"
+    timestamp: now()
+  }
+}

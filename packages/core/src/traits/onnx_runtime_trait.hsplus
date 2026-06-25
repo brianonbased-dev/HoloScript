@@ -1,0 +1,23 @@
+// @onnx_runtime_trait — ONNX runtime: loads and executes .onnx models on CPU/GPU/NPU.
+//
+// Native .hsplus surface for core/traits/OnnxRuntimeTrait.ts.
+
+@trait onnx_runtime_trait {
+  capability_tags: ["onnx_runtime", "onnx_model", "cpu_gpu_npu", "inference_backend", "core"]
+
+  @on_spawn(model_path, execution_provider) => {
+    init_onnx_runtime(model_path, execution_provider)
+    emit("onnx_runtime_ready", {})
+  }
+
+  @on_run(inputs) => {
+    outputs = run_onnx_session(inputs)
+    return outputs
+  }
+
+  @receipt onnx_runtime_trait_config {
+    type: "OnnxRuntimeTraitReceipt"
+    providers: ["CPU", "CUDA", "CoreML", "DirectML"]
+    timestamp: now()
+  }
+}

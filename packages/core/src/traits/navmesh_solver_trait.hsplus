@@ -1,0 +1,23 @@
+// @navmesh_solver_trait — Navmesh pathfinding: A* over navmesh with dynamic obstacle avoidance.
+//
+// Native .hsplus surface for core/traits/NavmeshSolverTrait.ts.
+
+@trait navmesh_solver_trait {
+  capability_tags: ["navmesh_solver", "astar_navmesh", "obstacle_avoidance", "pathfinding", "core"]
+
+  @on_spawn(navmesh_id) => {
+    init_navmesh_solver(navmesh_id)
+    emit("navmesh_solver_ready", {})
+  }
+
+  @on_find_path(start, goal) => {
+    path = solve_navmesh_path(start, goal)
+    return path
+  }
+
+  @receipt navmesh_solver_trait_config {
+    type: "NavmeshSolverTraitReceipt"
+    algorithm: "A*"
+    timestamp: now()
+  }
+}

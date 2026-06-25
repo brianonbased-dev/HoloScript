@@ -1,0 +1,22 @@
+// @orm_entity_trait — ORM entity: maps HoloScript entity fields to database columns with migrations.
+//
+// Native .hsplus surface for core/traits/OrmEntityTrait.ts.
+
+@trait orm_entity_trait {
+  capability_tags: ["orm_entity", "entity_to_db_columns", "orm_mapping", "db_migrations", "core"]
+
+  @on_spawn(schema) => {
+    init_orm_entity(schema)
+    emit("orm_entity_ready", {})
+  }
+
+  @on_save(entity) => {
+    save_orm_entity(entity)
+    emit("entity_saved", {})
+  }
+
+  @receipt orm_entity_trait_config {
+    type: "OrmEntityTraitReceipt"
+    timestamp: now()
+  }
+}

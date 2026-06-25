@@ -1,0 +1,23 @@
+// @neural_forge_trait — Neural forge: on-device model fine-tune-lite for rapid domain adaptation.
+//
+// Native .hsplus surface for core/traits/NeuralForgeTrait.ts.
+
+@trait neural_forge_trait {
+  capability_tags: ["neural_forge", "on_device_finetune", "domain_adaptation", "rapid_train", "core"]
+
+  @on_spawn(base_model_id) => {
+    init_neural_forge(base_model_id)
+    emit("neural_forge_ready", {})
+  }
+
+  @on_adapt(examples, iterations) => {
+    adapted_model = forge_adapt(examples, iterations)
+    emit("neural_forge_complete", {})
+    return adapted_model
+  }
+
+  @receipt neural_forge_trait_config {
+    type: "NeuralForgeTraitReceipt"
+    timestamp: now()
+  }
+}

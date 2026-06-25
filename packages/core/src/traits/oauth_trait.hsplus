@@ -1,0 +1,23 @@
+// @oauth_trait — OAuth 2.0: authorization code + PKCE, token refresh, revocation.
+//
+// Native .hsplus surface for core/traits/OauthTrait.ts.
+
+@trait oauth_trait {
+  capability_tags: ["oauth", "authorization_code_pkce", "token_refresh", "revocation", "core"]
+
+  @on_spawn(provider, credentials_ref) => {
+    init_oauth(provider, credentials_ref)
+    emit("oauth_ready", {})
+  }
+
+  @on_exchange(code, verifier) => {
+    tokens = exchange_oauth_code(code, verifier)
+    return tokens
+  }
+
+  @receipt oauth_trait_config {
+    type: "OauthTraitReceipt"
+    standard: "OAuth 2.0 + PKCE"
+    timestamp: now()
+  }
+}

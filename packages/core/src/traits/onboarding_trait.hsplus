@@ -1,0 +1,23 @@
+// @onboarding_trait — User onboarding: step-by-step tutorial flow with progress tracking.
+//
+// Native .hsplus surface for core/traits/OnboardingTrait.ts.
+
+@trait onboarding_trait {
+  capability_tags: ["onboarding", "tutorial_flow", "step_progress", "user_onboarding", "core"]
+
+  @on_spawn(flow_id) => {
+    init_onboarding(flow_id)
+    emit("onboarding_ready", { flow_id })
+  }
+
+  @on_complete_step(step_id) => {
+    next_step = advance_onboarding(step_id)
+    emit("onboarding_step_complete", { step_id })
+    return next_step
+  }
+
+  @receipt onboarding_trait_config {
+    type: "OnboardingTraitReceipt"
+    timestamp: now()
+  }
+}

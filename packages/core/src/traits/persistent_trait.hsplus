@@ -1,0 +1,25 @@
+// @persistent_trait — Persistent entity: survives world session restarts via durable storage.
+//
+// Native .hsplus surface for core/traits/PersistentTrait.ts.
+
+@trait persistent_trait {
+  capability_tags: ["persistent_trait", "durable_storage", "session_survive", "entity_persistence", "core"]
+
+  @on_spawn(storage_key) => {
+    init_persistent_entity(storage_key)
+    emit("persistent_ready", {})
+  }
+
+  @on_save(state) => {
+    persist_entity_state(state)
+  }
+
+  @on_load => {
+    return load_persistent_state()
+  }
+
+  @receipt persistent_trait_config {
+    type: "PersistentTraitReceipt"
+    timestamp: now()
+  }
+}

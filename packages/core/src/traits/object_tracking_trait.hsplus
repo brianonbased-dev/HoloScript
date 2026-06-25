@@ -1,0 +1,23 @@
+// @object_tracking_trait — Object tracking: visual object tracking (SORT/DeepSORT) in video frames.
+//
+// Native .hsplus surface for core/traits/ObjectTrackingTrait.ts.
+
+@trait object_tracking_trait {
+  capability_tags: ["object_tracking", "sort_deepsort", "visual_tracking", "video_frame", "core"]
+
+  @on_spawn(tracker_config) => {
+    init_object_tracking(tracker_config)
+    emit("object_tracking_ready", {})
+  }
+
+  @on_update(detections, frame_id) => {
+    tracks = update_object_tracker(detections, frame_id)
+    return tracks
+  }
+
+  @receipt object_tracking_trait_config {
+    type: "ObjectTrackingTraitReceipt"
+    algorithms: ["SORT", "DeepSORT"]
+    timestamp: now()
+  }
+}

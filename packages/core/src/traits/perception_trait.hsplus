@@ -1,0 +1,22 @@
+// @perception_trait — Agent perception: senses nearby entities within range/angle cone filter.
+//
+// Native .hsplus surface for core/traits/PerceptionTrait.ts.
+
+@trait perception_trait {
+  capability_tags: ["perception", "entity_sensing", "range_angle_filter", "agent_senses", "core"]
+
+  @on_spawn(range, fov_degrees) => {
+    init_perception(range, fov_degrees)
+    emit("perception_ready", {})
+  }
+
+  @on_tick(world_state) => {
+    visible = scan_perception(world_state)
+    return visible
+  }
+
+  @receipt perception_trait_config {
+    type: "PerceptionTraitReceipt"
+    timestamp: now()
+  }
+}

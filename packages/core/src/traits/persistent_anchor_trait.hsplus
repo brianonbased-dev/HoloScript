@@ -1,0 +1,27 @@
+// @persistent_anchor_trait — Persistent AR anchor: saves and restores world-locked anchor across sessions.
+//
+// Native .hsplus surface for core/traits/PersistentAnchorTrait.ts.
+
+@trait persistent_anchor_trait {
+  capability_tags: ["persistent_anchor", "world_locked", "session_restore", "ar_anchor", "core"]
+
+  @on_spawn(anchor_id) => {
+    init_persistent_anchor(anchor_id)
+    emit("persistent_anchor_ready", { anchor_id })
+  }
+
+  @on_save => {
+    save_persistent_anchor()
+    emit("anchor_saved", {})
+  }
+
+  @on_restore => {
+    pose = restore_persistent_anchor()
+    return pose
+  }
+
+  @receipt persistent_anchor_trait_config {
+    type: "PersistentAnchorTraitReceipt"
+    timestamp: now()
+  }
+}

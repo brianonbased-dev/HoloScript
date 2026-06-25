@@ -1,0 +1,21 @@
+// @point_cloud_trait — Point cloud: renders and processes LiDAR/depth-sensor point clouds.
+//
+// Native .hsplus surface for core/traits/PointCloudTrait.ts.
+
+@trait point_cloud_trait {
+  capability_tags: ["point_cloud", "lidar_depth", "point_render", "3d_scan", "core"]
+
+  @on_spawn => {
+    emit("point_cloud_ready", {})
+  }
+
+  @on_ingest(points) => {
+    ingest_point_cloud(points)
+    emit("point_cloud_updated", { count: points.length })
+  }
+
+  @receipt point_cloud_trait_config {
+    type: "PointCloudTraitReceipt"
+    timestamp: now()
+  }
+}

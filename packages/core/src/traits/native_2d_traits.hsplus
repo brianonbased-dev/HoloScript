@@ -1,0 +1,21 @@
+// @native_2d_traits — Native 2D trait set: rect, text, image, button primitives for 2D HoloScript surfaces.
+//
+// Native .hsplus surface for core/traits/Native2DTraits.ts.
+
+@trait native_2d_traits {
+  capability_tags: ["native_2d", "rect_text_image_button", "2d_surface", "holoscript_2d", "core"]
+
+  @on_spawn(surface_id) => {
+    init_native_2d(surface_id)
+    emit("native_2d_ready", {})
+  }
+
+  @on_layout(tree) => {
+    layout_native_2d(tree)
+  }
+
+  @receipt native_2d_traits_config {
+    type: "Native2DTraitsReceipt"
+    timestamp: now()
+  }
+}

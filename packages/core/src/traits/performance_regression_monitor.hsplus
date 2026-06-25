@@ -1,0 +1,23 @@
+// @performance_regression_monitor — Performance regression monitor: tracks metric baselines and alerts on regressions.
+//
+// Native .hsplus surface for core/traits/PerformanceRegressionMonitor.ts.
+
+@trait performance_regression_monitor {
+  capability_tags: ["performance_regression_monitor", "metric_baseline", "regression_alert", "ci_perf_gate", "core"]
+
+  @on_spawn(baseline_ref) => {
+    init_perf_regression_monitor(baseline_ref)
+    emit("performance_regression_monitor_ready", {})
+  }
+
+  @on_measure(metric_name, value) => {
+    result = check_regression(metric_name, value)
+    if result.regressed { emit("perf_regression_detected", { metric: metric_name, delta: result.delta }) }
+    return result
+  }
+
+  @receipt performance_regression_monitor_config {
+    type: "PerformanceRegressionMonitorReceipt"
+    timestamp: now()
+  }
+}

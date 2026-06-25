@@ -1,0 +1,22 @@
+// @pipeline_trait — Data/render pipeline: ordered stage execution with typed input/output per stage.
+//
+// Native .hsplus surface for core/traits/PipelineTrait.ts.
+
+@trait pipeline_trait {
+  capability_tags: ["pipeline_trait", "ordered_stages", "typed_io", "stage_execution", "core"]
+
+  @on_spawn(stages) => {
+    init_pipeline(stages)
+    emit("pipeline_ready", {})
+  }
+
+  @on_run(input) => {
+    result = run_pipeline(input)
+    return result
+  }
+
+  @receipt pipeline_trait_config {
+    type: "PipelineTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @phyllotaxis_trait — Phyllotaxis: golden-angle spiral layout for procedural botanical structures.
+//
+// Native .hsplus surface for core/traits/PhyllotaxisTrait.ts.
+
+@trait phyllotaxis_trait {
+  capability_tags: ["phyllotaxis", "golden_angle_spiral", "botanical_layout", "procedural_pattern", "core"]
+
+  @on_spawn(count, scale) => {
+    init_phyllotaxis(count, scale)
+    emit("phyllotaxis_ready", {})
+  }
+
+  @on_generate => {
+    positions = generate_phyllotaxis_positions()
+    return positions
+  }
+
+  @receipt phyllotaxis_trait_config {
+    type: "PhyllotaxisTraitReceipt"
+    angle: "137.5° golden angle"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @post_process_trait — Post-process: bloom, SSAO, tone-map, chromatic aberration, vignette.
+//
+// Native .hsplus surface for core/traits/PostProcessTrait.ts.
+
+@trait post_process_trait {
+  capability_tags: ["post_process", "bloom_ssao_tonemapping", "chromatic_vignette", "render_pass", "core"]
+
+  @on_spawn(effects) => {
+    init_post_process(effects)
+    emit("post_process_ready", {})
+  }
+
+  @on_apply(render_target) => {
+    apply_post_process(render_target)
+  }
+
+  @receipt post_process_trait_config {
+    type: "PostProcessTraitReceipt"
+    effects: ["bloom", "SSAO", "tone-map", "chromatic-aberration", "vignette"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @multiview_gaussian_renderer_trait — Multi-view Gaussian renderer: renders 3DGS from multiple camera views.
+//
+// Native .hsplus surface for core/traits/MultiviewGaussianRendererTrait.ts.
+
+@trait multiview_gaussian_renderer_trait {
+  capability_tags: ["multiview_gaussian_renderer", "3dgs_multiview", "multi_camera_render", "splat_multiview", "core"]
+
+  @on_spawn(cameras) => {
+    init_multiview_gaussian_renderer(cameras)
+    emit("multiview_gaussian_renderer_ready", {})
+  }
+
+  @on_render(splat_id, view_matrix_array) => {
+    frames = render_multiview_gaussian(splat_id, view_matrix_array)
+    return frames
+  }
+
+  @receipt multiview_gaussian_renderer_trait_config {
+    type: "MultiviewGaussianRendererTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @nft_trait — NFT: mint, transfer, provenance anchor for HoloScript entities on Base.
+//
+// Native .hsplus surface for core/traits/NFTTrait.ts.
+
+@trait nft_trait {
+  capability_tags: ["nft", "mint_transfer", "provenance_anchor", "base_chain", "core"]
+
+  @on_spawn(contract_ref) => {
+    init_nft(contract_ref)
+    emit("nft_ready", {})
+  }
+
+  @on_mint(owner_wallet, metadata) => {
+    token_id = mint_nft(owner_wallet, metadata)
+    emit("nft_minted", { token_id })
+    return token_id
+  }
+
+  @receipt nft_trait_config {
+    type: "NFTTraitReceipt"
+    chain: "Base"
+    timestamp: now()
+  }
+}

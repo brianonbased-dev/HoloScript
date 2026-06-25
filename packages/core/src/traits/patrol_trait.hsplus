@@ -1,0 +1,23 @@
+// @patrol_trait — Patrol behavior: NPC waypoint loop with alert-on-detect state transition.
+//
+// Native .hsplus surface for core/traits/PatrolTrait.ts.
+
+@trait patrol_trait {
+  capability_tags: ["patrol", "waypoint_loop", "alert_on_detect", "npc_behavior", "core"]
+
+  @on_spawn(waypoints, alert_radius) => {
+    init_patrol(waypoints, alert_radius)
+    emit("patrol_ready", {})
+  }
+
+  @on_tick(world_state) => {
+    state = tick_patrol(world_state)
+    if state.alerted { emit("patrol_alerted", {}) }
+    return state
+  }
+
+  @receipt patrol_trait_config {
+    type: "PatrolTraitReceipt"
+    timestamp: now()
+  }
+}

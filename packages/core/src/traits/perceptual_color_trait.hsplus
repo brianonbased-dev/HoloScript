@@ -1,0 +1,22 @@
+// @perceptual_color_trait — Perceptual color: LCH/Oklab color operations for perceptually uniform gradients.
+//
+// Native .hsplus surface for core/traits/PerceptualColorTrait.ts.
+
+@trait perceptual_color_trait {
+  capability_tags: ["perceptual_color", "lch_oklab", "perceptually_uniform", "color_ops", "core"]
+
+  @on_spawn(color_space) => {
+    init_perceptual_color(color_space)
+    emit("perceptual_color_ready", {})
+  }
+
+  @on_mix(color_a, color_b, t) => {
+    return mix_perceptual_color(color_a, color_b, t)
+  }
+
+  @receipt perceptual_color_trait_config {
+    type: "PerceptualColorTraitReceipt"
+    spaces: ["LCH", "Oklab"]
+    timestamp: now()
+  }
+}

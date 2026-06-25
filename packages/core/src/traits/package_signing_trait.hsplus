@@ -1,0 +1,23 @@
+// @package_signing_trait — Package signing: Ed25519 signs package bundles with seat wallet provenance.
+//
+// Native .hsplus surface for core/traits/PackageSigningTrait.ts.
+
+@trait package_signing_trait {
+  capability_tags: ["package_signing", "ed25519", "bundle_sign", "seat_wallet_provenance", "core"]
+
+  @on_spawn(signing_key_ref) => {
+    init_package_signing(signing_key_ref)
+    emit("package_signing_ready", {})
+  }
+
+  @on_sign(package_hash) => {
+    sig = sign_package(package_hash)
+    return sig
+  }
+
+  @receipt package_signing_trait_config {
+    type: "PackageSigningTraitReceipt"
+    algorithm: "Ed25519"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @neural_animation_trait — Neural animation: ML-driven motion synthesis from control signals.
+//
+// Native .hsplus surface for core/traits/NeuralAnimationTrait.ts.
+
+@trait neural_animation_trait {
+  capability_tags: ["neural_animation", "ml_motion_synthesis", "control_signal", "motion_model", "core"]
+
+  @on_spawn(model_id) => {
+    init_neural_animation(model_id)
+    emit("neural_animation_ready", {})
+  }
+
+  @on_control(control_signal, dt) => {
+    pose = synthesize_neural_animation(control_signal, dt)
+    return pose
+  }
+
+  @receipt neural_animation_trait_config {
+    type: "NeuralAnimationTraitReceipt"
+    method: "neural motion synthesis"
+    timestamp: now()
+  }
+}

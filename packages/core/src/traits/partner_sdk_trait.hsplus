@@ -1,0 +1,21 @@
+// @partner_sdk_trait — Partner SDK adapter: wraps third-party SDK with HoloScript trait interface.
+//
+// Native .hsplus surface for core/traits/PartnerSDKTrait.ts.
+
+@trait partner_sdk_trait {
+  capability_tags: ["partner_sdk", "sdk_adapter", "third_party_wrap", "trait_interface", "core"]
+
+  @on_spawn(sdk_id, config_ref) => {
+    init_partner_sdk(sdk_id, config_ref)
+    emit("partner_sdk_ready", { sdk_id })
+  }
+
+  @on_call(method, params) => {
+    return invoke_partner_sdk(method, params)
+  }
+
+  @receipt partner_sdk_trait_config {
+    type: "PartnerSDKTraitReceipt"
+    timestamp: now()
+  }
+}

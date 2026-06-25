@@ -1,0 +1,23 @@
+// @neural_link_trait — Neural link: direct BCI/neural interface data ingestion for agent control.
+//
+// Native .hsplus surface for core/traits/NeuralLinkTrait.ts.
+
+@trait neural_link_trait {
+  capability_tags: ["neural_link", "bci", "neural_interface", "brain_computer", "core"]
+
+  @on_spawn(device_id) => {
+    init_neural_link(device_id)
+    emit("neural_link_ready", {})
+  }
+
+  @on_signal(neural_signal) => {
+    command = decode_neural_signal(neural_signal)
+    emit("neural_command", { command })
+    return command
+  }
+
+  @receipt neural_link_trait_config {
+    type: "NeuralLinkTraitReceipt"
+    timestamp: now()
+  }
+}

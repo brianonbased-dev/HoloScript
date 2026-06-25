@@ -1,0 +1,23 @@
+// @permission_trait — Permission system: role-based access control for entity actions and resources.
+//
+// Native .hsplus surface for core/traits/PermissionTrait.ts.
+
+@trait permission_trait {
+  capability_tags: ["permission_trait", "rbac", "action_resource_gate", "access_control", "core"]
+
+  @on_spawn(policy) => {
+    init_permission_system(policy)
+    emit("permission_ready", {})
+  }
+
+  @on_check(principal, action, resource) => {
+    allowed = check_permission(principal, action, resource)
+    return allowed
+  }
+
+  @receipt permission_trait_config {
+    type: "PermissionTraitReceipt"
+    model: "RBAC"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @pid_controller_trait — PID controller: standalone P/I/D with anti-windup and derivative filter.
+//
+// Native .hsplus surface for core/traits/PIDControllerTrait.ts.
+// (Distinct from ControlLoopTrait which is the generic control loop.)
+
+@trait pid_controller_trait {
+  capability_tags: ["pid_controller", "anti_windup", "derivative_filter", "standalone_pid", "core"]
+
+  @on_spawn(kp, ki, kd, clamp) => {
+    init_pid_controller(kp, ki, kd, clamp)
+    emit("pid_controller_ready", {})
+  }
+
+  @on_step(error, dt) => {
+    output = step_pid(error, dt)
+    return output
+  }
+
+  @receipt pid_controller_trait_config {
+    type: "PIDControllerTraitReceipt"
+    features: ["anti-windup", "derivative filter"]
+    timestamp: now()
+  }
+}

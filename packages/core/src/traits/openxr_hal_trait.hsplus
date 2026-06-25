@@ -1,0 +1,23 @@
+// @openxr_hal_trait — OpenXR HAL: hardware abstraction for OpenXR session, swapchain, input.
+//
+// Native .hsplus surface for core/traits/OpenXRHALTrait.ts.
+
+@trait openxr_hal_trait {
+  capability_tags: ["openxr_hal", "openxr_session", "swapchain", "input_hal", "core"]
+
+  @on_spawn(system_id) => {
+    init_openxr_hal(system_id)
+    emit("openxr_hal_ready", {})
+  }
+
+  @on_frame => {
+    frame_state = begin_openxr_frame()
+    return frame_state
+  }
+
+  @receipt openxr_hal_trait_config {
+    type: "OpenXRHALTraitReceipt"
+    standard: "OpenXR 1.0"
+    timestamp: now()
+  }
+}

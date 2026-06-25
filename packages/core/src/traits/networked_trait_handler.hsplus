@@ -1,0 +1,21 @@
+// @networked_trait_handler — Handler binding for NetworkedTrait: routes network ops to execution backend.
+//
+// Native .hsplus surface for core/traits/NetworkedTraitHandler.ts.
+
+@trait networked_trait_handler {
+  capability_tags: ["networked_trait_handler", "network_op_routing", "replication_backend", "handler_binding", "core"]
+
+  @on_spawn(room_id) => {
+    init_networked_trait_handler(room_id)
+    emit("networked_trait_handler_ready", {})
+  }
+
+  @on_receive(peer_id, delta) => {
+    apply_networked_delta(peer_id, delta)
+  }
+
+  @receipt networked_trait_handler_config {
+    type: "NetworkedTraitHandlerReceipt"
+    timestamp: now()
+  }
+}

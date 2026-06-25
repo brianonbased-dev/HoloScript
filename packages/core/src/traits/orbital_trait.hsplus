@@ -1,0 +1,22 @@
+// @orbital_trait — Orbital mechanics: Keplerian orbit, gravitational N-body, maneuver planning.
+//
+// Native .hsplus surface for core/traits/OrbitalTrait.ts.
+
+@trait orbital_trait {
+  capability_tags: ["orbital", "keplerian_orbit", "n_body", "maneuver_planning", "core"]
+
+  @on_spawn(body_mass, initial_orbit) => {
+    init_orbital(body_mass, initial_orbit)
+    emit("orbital_ready", {})
+  }
+
+  @on_propagate(dt) => {
+    state = propagate_orbit(dt)
+    return state
+  }
+
+  @receipt orbital_trait_config {
+    type: "OrbitalTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @pose_estimation_trait — Human pose estimation: 2D/3D joint keypoints from image frame.
+//
+// Native .hsplus surface for core/traits/PoseEstimationTrait.ts.
+
+@trait pose_estimation_trait {
+  capability_tags: ["pose_estimation", "joint_keypoints", "2d_3d_pose", "human_pose", "core"]
+
+  @on_spawn(model_id) => {
+    init_pose_estimation(model_id)
+    emit("pose_estimation_ready", {})
+  }
+
+  @on_estimate(image) => {
+    keypoints = estimate_pose(image)
+    return keypoints
+  }
+
+  @receipt pose_estimation_trait_config {
+    type: "PoseEstimationTraitReceipt"
+    output: "joint keypoints (2D/3D)"
+    timestamp: now()
+  }
+}

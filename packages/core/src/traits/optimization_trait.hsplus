@@ -1,0 +1,23 @@
+// @optimization_trait — Numerical optimization: gradient-free / gradient-based solver for objectives.
+//
+// Native .hsplus surface for core/traits/OptimizationTrait.ts.
+
+@trait optimization_trait {
+  capability_tags: ["optimization", "numerical_solver", "gradient_free_based", "objective_minimize", "core"]
+
+  @on_spawn(solver_type, bounds) => {
+    init_optimization(solver_type, bounds)
+    emit("optimization_ready", {})
+  }
+
+  @on_minimize(objective_fn, x0) => {
+    result = minimize_objective(objective_fn, x0)
+    return result
+  }
+
+  @receipt optimization_trait_config {
+    type: "OptimizationTraitReceipt"
+    solvers: ["LBFGS", "Adam", "Nelder-Mead"]
+    timestamp: now()
+  }
+}

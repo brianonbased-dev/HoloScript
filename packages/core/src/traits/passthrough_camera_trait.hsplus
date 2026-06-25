@@ -1,0 +1,21 @@
+// @passthrough_camera_trait — Passthrough camera: routes device camera frames into XR scene compositor.
+//
+// Native .hsplus surface for core/traits/PassthroughCameraTrait.ts.
+
+@trait passthrough_camera_trait {
+  capability_tags: ["passthrough_camera", "device_camera", "xr_compositor", "mixed_reality", "core"]
+
+  @on_spawn(device_id) => {
+    init_passthrough_camera(device_id)
+    emit("passthrough_camera_ready", {})
+  }
+
+  @on_frame(raw_frame) => {
+    composite_passthrough_frame(raw_frame)
+  }
+
+  @receipt passthrough_camera_trait_config {
+    type: "PassthroughCameraTraitReceipt"
+    timestamp: now()
+  }
+}
