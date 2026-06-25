@@ -1,0 +1,86 @@
+// @holob_bytecode — .holob binary format substrate for compiled HoloScript scenes.
+//
+// Native .hsplus surface for bytecode.ts (holo-vm).
+//
+// .holob is the compiled binary format for HoloScript spatial programs.
+//
+// File format (bytecode.ts):
+//   Magic: "HOLB" (0x484f4c42) | Version: u16 | Flags: u16
+//
+//   Sections:
+//     String Table   — interned strings (entity names, component keys)
+//     Asset Table    — referenced assets (glTF, textures, audio) by URI
+//     Trait Table    — trait definitions and their dependency graph
+//     Code Section   — function bytecode (HoloInstruction[])
+//     Init Section   — entity spawn instructions executed at load
+//     Event Table    — event name → handler function mappings
+//
+//   HolobFlags: None(0) | Debug(1) | SIMD(2) | Threads(4) | Networking(8) | Physics(16)
+//
+//   HoloInstruction { opcode: HoloOpCode, operands: HoloOperand[] }
+//   HoloOperand: Int | Float | String | Bool | Int[] | null
+
+@trait holob_bytecode {
+  // Whether to emit debug section (larger file, human-readable symbols)
+  debug: Bool = false
+
+  // Feature flags to embed in the header
+  enable_simd: Bool = false
+  enable_threads: Bool = false
+  enable_networking: Bool = false
+  enable_physics: Bool = true
+
+  capability_tags: ["holob_bytecode", "holo_vm", "compiled_holoscript", "binary_format", "ecs_scene", "holob"]
+
+  @on_spawn => {
+    flags = holob_compute_flags({
+      debug: debug,
+      simd: enable_simd,
+      threads: enable_threads,
+      networking: enable_networking,
+      physics: enable_physics
+    })
+    emit("holob_bytecode_ready", {
+      magic: "HOLB",
+      version: 1,
+      flags: flags
+    })
+  }
+
+  // Validate a .holob binary (magic + version check)
+  @on_validate(bytes) => {
+    result = holob_validate(bytes)
+    if not result.ok {
+      emit("holob_invalid", { reason: result.reason })
+    }
+    return result
+  }
+
+  // Parse .holob bytes → HoloBytecode structure
+  @on_parse(bytes) => {
+    result = holob_parse(bytes)
+    if result.ok {
+      emit("holob_parsed", { function_count: result.bytecode.functions.size })
+    } else {
+      emit("holob_parse_error", { reason: result.reason })
+    }
+    return result
+  }
+
+  // Serialize HoloBytecode → .holob bytes
+  @on_serialize(bytecode) => {
+    bytes = holob_serialize(bytecode, { debug: debug })
+    emit("holob_serialized", { byte_count: bytes.size })
+    return bytes
+  }
+
+  @receipt holob_bytecode_config {
+    type: "HolobBytecodeReceipt"
+    magic: "HOLB"
+    version: 1
+    debug: debug
+    enable_physics: enable_physics
+    sections: ["StringTable", "AssetTable", "TraitTable", "CodeSection", "InitSection", "EventTable"]
+    timestamp: now()
+  }
+}

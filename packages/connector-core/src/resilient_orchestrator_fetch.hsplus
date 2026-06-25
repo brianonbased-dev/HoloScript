@@ -1,0 +1,81 @@
+// @resilient_orchestrator_fetch — Circuit Breaker + failover for MCP orchestrator calls.
+//
+// Native .hsplus surface for ResilientOrchestratorFetch.ts (connector-core).
+//
+// Cascading failover through a prioritized URL list with per-endpoint
+// circuit breakers (Circuit Breaker pattern).
+//
+// CircuitBreakerState: CLOSED | OPEN | HALF_OPEN
+//
+// Default URL cascade (ResilientOrchestratorFetch.ts):
+//   1. MCP_ORCHESTRATOR_URL (env)
+//   2. MCP_ORCHESTRATOR_INTERNAL_URL (Railway internal)
+//   3. MCP_ORCHESTRATOR_PUBLIC_URL (public Railway app)
+//   4. MCP_ORCHESTRATOR_LOCAL_URL (localhost:3001)
+//
+// Options:
+//   urls?: String[]        — override default cascade
+//   failure_threshold: Int  — consecutive failures before OPEN (default 3)
+//   reset_timeout_ms: Int   — wait before probing downed endpoint (default 30000)
+//
+// fetch_with_failover(path, opts) → tries URLs in order, skips OPEN circuits.
+// Deduplicates and strips trailing slashes from URLs.
+
+@trait resilient_orchestrator_fetch {
+  // Number of consecutive failures before opening circuit
+  failure_threshold: Int = 3
+
+  // Time in ms before probing a downed endpoint (OPEN → HALF_OPEN)
+  reset_timeout_ms: Int = 30000
+
+  // Custom URL override (empty = use default cascade from env)
+  custom_urls: Array<String> = []
+
+  capability_tags: ["resilient_orchestrator_fetch", "circuit_breaker", "failover", "mcp_orchestrator", "connector_core"]
+
+  @on_spawn => {
+    fetcher = init_resilient_orchestrator_fetch({
+      urls: custom_urls,
+      failure_threshold: failure_threshold,
+      reset_timeout_ms: reset_timeout_ms
+    })
+    emit("resilient_fetch_ready", {
+      failure_threshold: failure_threshold,
+      reset_timeout_ms: reset_timeout_ms
+    })
+  }
+
+  // Execute a resilient HTTP request with circuit breaker + failover
+  @on_fetch(path, method, body, headers) => {
+    result = fetcher.fetch_with_failover(path, {
+      method: method ?? "GET",
+      body: body,
+      headers: headers ?? {}
+    })
+    if result.ok {
+      emit("resilient_fetch_success", { path: path, url_used: result.url_used })
+    } else {
+      emit("resilient_fetch_all_failed", { path: path, reason: result.reason })
+    }
+    return result
+  }
+
+  // Get the current circuit breaker state for each endpoint
+  @on_circuit_states => {
+    return fetcher.get_circuit_states()
+  }
+
+  // Reset all circuit breakers (manual recovery)
+  @on_reset_circuits => {
+    fetcher.reset_all()
+    emit("resilient_fetch_circuits_reset", {})
+  }
+
+  @receipt resilient_orchestrator_fetch_config {
+    type: "ResilientOrchestratorFetchReceipt"
+    failure_threshold: failure_threshold
+    reset_timeout_ms: reset_timeout_ms
+    default_cascade: ["MCP_ORCHESTRATOR_URL", "internal", "public_railway", "localhost:3001"]
+    timestamp: now()
+  }
+}

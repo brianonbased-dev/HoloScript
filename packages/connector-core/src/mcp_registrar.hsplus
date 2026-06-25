@@ -1,0 +1,73 @@
+// @mcp_registrar — Discover and register service connector tools with the MCP orchestrator.
+//
+// Native .hsplus surface for McpRegistrar.ts (connector-core).
+//
+// Discovers tool names from a ServiceConnector and registers them with the
+// MCP mesh orchestrator via POST /register.
+//
+// OrchestratorRegistration (McpRegistrar.ts):
+//   name: String    — connector display name
+//   url: String     — service endpoint URL
+//   tools: String[] — tool names exposed by the connector
+//
+// registerFromServiceConnector(connector, meta):
+//   1. calls connector.listTools()
+//   2. extracts tool names (non-empty only)
+//   3. calls register(payload) → POST /register via ResilientOrchestratorFetch
+//
+// register(payload): POST /register with JSON body → Bool (success)
+// Uses ResilientOrchestratorFetch for circuit-breaker + failover.
+
+@trait mcp_registrar {
+  // Connector name used in the orchestrator registration
+  connector_name: String
+
+  // Service endpoint URL registered with the orchestrator
+  service_url: String
+
+  // Auto-register on spawn
+  auto_register: Bool = true
+
+  capability_tags: ["mcp_registrar", "orchestrator_registration", "mcp_mesh", "connector_core", "circuit_breaker_fetch"]
+
+  @on_spawn => {
+    registrar = init_mcp_registrar()
+    if auto_register {
+      // Caller must provide connector ref via on_register_connector
+      emit("mcp_registrar_ready", { connector_name: connector_name })
+    }
+  }
+
+  // Discover tools from a ServiceConnector and register with orchestrator
+  @on_register_connector(connector) => {
+    ok = registrar.register_from_service_connector(connector, {
+      name: connector_name,
+      url: service_url
+    })
+    if ok {
+      emit("mcp_registrar_registered", { connector_name: connector_name, url: service_url })
+    } else {
+      emit("mcp_registrar_failed", { connector_name: connector_name })
+    }
+    return ok
+  }
+
+  // Register a pre-built OrchestratorRegistration payload
+  @on_register(payload) => {
+    ok = registrar.register(payload)
+    if ok {
+      emit("mcp_registrar_registered", { name: payload.name, tool_count: payload.tools.size })
+    } else {
+      emit("mcp_registrar_failed", { name: payload.name })
+    }
+    return ok
+  }
+
+  @receipt mcp_registrar_config {
+    type: "McpRegistrarReceipt"
+    connector_name: connector_name
+    service_url: service_url
+    auto_register: auto_register
+    timestamp: now()
+  }
+}
