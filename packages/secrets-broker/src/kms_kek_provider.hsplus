@@ -1,0 +1,78 @@
+// @kms_kek_provider — KMS-backed production KEK provider for HoloKey (Phase-3 gate).
+//
+// Native .hsplus surface for kms-kek-provider.ts (secrets-broker).
+//
+// The production alternative to @env_kek_provider (which stores the KEK in
+// an env var — a single point of total compromise on the shared deploy surface).
+// This provider sources the KEK from a vendor-agnostic KMS/secret-manager keyring:
+//   AWS KMS / GCP Secret Manager / HashiCorp Vault / Railway-scoped secret
+//
+// Vendor-agnostic by construction (kms-kek-provider.ts):
+//   Inject a KmsKeyring adapter implementing:
+//     resolve_kek_bytes(kek_id) → 32 bytes from KMS (never echoed)
+//     current_kek_id()          → String (current KEK epoch)
+//   No vendor SDK dependency in this module.
+//   productionGrade: true — SecretStore's requireProductionGradeKek gate accepts it.
+//
+// SECURITY:
+//   - KEK bytes resolved into app memory at use-time (scoped secret manager pattern)
+//   - Key access audited by the KMS manager
+//   - Stronger future variant: KmsDekWrapper (KMS wraps/unwraps per-secret DEK
+//     so KEK never leaves HSM) — separate seam, not this provider
+//   - NEVER echo or emit KEK bytes; 32-byte validation only
+//   - KmsKekError thrown on malformed material (carries no key bytes)
+
+@trait kms_kek_provider {
+  // KMS keyring handle ID — resolved by the injected adapter at spawn
+  keyring_handle: String
+
+  capability_tags: ["kms_kek_provider", "kms", "production_kek", "holokey", "phase3_gate", "vendor_agnostic"]
+
+  @on_spawn => {
+    keyring = resolve_kms_keyring(keyring_handle)
+    if not keyring {
+      emit("kms_kek_error", { reason: "keyring_not_found", keyring_handle: keyring_handle })
+      return
+    }
+    provider = init_kms_kek_provider({ keyring: keyring })
+    emit("kms_kek_provider_ready", {
+      current_kek_id: provider.current_kek_id(),
+      production_grade: true
+    })
+  }
+
+  // Retrieve the current KEK id
+  @on_get_current_kek_id => {
+    return provider.current_kek_id()
+  }
+
+  // Resolve KEK bytes from KMS (for use in AES-256 wrapping — bytes never emitted)
+  @on_load_kek(kek_id) => {
+    result = provider.load_kek(kek_id)
+    if not result.ok {
+      emit("kms_kek_error", { reason: result.reason, kek_id: kek_id })
+      return null
+    }
+    // 32-byte AES-256 material in secure memory — NEVER in events or receipts
+    return result.bytes
+  }
+
+  @on_rotate(new_kek_id) => {
+    emit("kms_kek_rotation_started", { new_kek_id: new_kek_id })
+    result = provider.rotate(new_kek_id)
+    if result.ok {
+      emit("kms_kek_rotation_complete", { new_kek_id: new_kek_id })
+    } else {
+      emit("kms_kek_error", { reason: result.reason, context: "rotation" })
+    }
+  }
+
+  @receipt kms_kek_config {
+    type: "KmsKekProviderReceipt"
+    keyring_handle: keyring_handle
+    production_grade: true
+    kek_bytes_in_receipt: false
+    phase3_note: "PRODUCTION replacement for env_kek_provider — KEK audited by KMS manager"
+    timestamp: now()
+  }
+}

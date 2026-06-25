@@ -1,0 +1,78 @@
+// @scene_snapshot — Cognitive ↔ spatial hand-off bridge (gap G5).
+//
+// Native .hsplus surface for scene-snapshot.ts (holo-vm).
+//
+// The HOLO VM runs the spatial world (entities/transforms/physics).
+// The uAAL VM runs agent cognition.
+// The bridge is a SceneSnapshot: the spatial VM serializes its world to a
+// JSON-safe object the cognitive VM consumes as PERCEPTION, reasons over,
+// and acts back on (despawn/setComponent). Before this, no serializer
+// existed — the two VMs were never joined in a runnable loop.
+//
+//   HOLO world → scene_snapshot() → SceneSnapshot → uAAL VM (perception)
+//        ^                                                   |
+//        +------------------ act (despawn/setComponent) ←---+
+//
+// SceneSnapshot (scene-snapshot.ts):
+//   entity_count: Int
+//   entities: Array<SceneSnapshotEntity>
+//
+// SceneSnapshotEntity:
+//   id: Int, name: String
+//   components: Map<String, Any>  (component-type-number → raw data)
+//
+// JSON-serializable — must cross VM and process boundaries:
+//   (Jetson spatial world state perceived by laptop brain)
+// See docs/spec/spec-vs-reality-gap.md G5.
+
+@trait scene_snapshot {
+  // Whether to include detailed component data (false = entity ids + names only)
+  include_components: Bool = true
+
+  // Max entities to include (0 = no limit)
+  max_entities: Int = 0
+
+  capability_tags: ["scene_snapshot", "cognitive_spatial_bridge", "g5_gap", "perception", "uaal_holo_vm_interop", "json_serializable"]
+
+  @on_spawn => {
+    emit("scene_snapshot_ready", {
+      include_components: include_components,
+      max_entities: max_entities
+    })
+  }
+
+  // Serialize ECS world → SceneSnapshot for uAAL perception
+  @on_capture(world) => {
+    snapshot = scene_snapshot_serialize(world, {
+      include_components: include_components,
+      max_entities: max_entities
+    })
+    emit("scene_snapshot_captured", {
+      entity_count: snapshot.entity_count
+    })
+    return snapshot
+  }
+
+  // Apply a uAAL cognitive action back to the HOLO world
+  @on_apply_action(action, world) => {
+    result = scene_snapshot_apply_action(action, world)
+    emit("scene_snapshot_action_applied", {
+      action_type: action.type,
+      target_entity: action.entity_id
+    })
+    return result
+  }
+
+  // Diff two snapshots to produce a delta (for incremental perception)
+  @on_diff(snapshot_before, snapshot_after) => {
+    return scene_snapshot_diff(snapshot_before, snapshot_after)
+  }
+
+  @receipt scene_snapshot_config {
+    type: "SceneSnapshotReceipt"
+    include_components: include_components
+    max_entities: max_entities
+    bridge: "HOLO world → uAAL perception → act back (G5 gap closed)"
+    timestamp: now()
+  }
+}
