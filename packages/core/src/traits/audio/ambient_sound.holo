@@ -1,0 +1,24 @@
+@trait {
+  name: "@ambient_sound",
+  category: "audio",
+  description: "Non-positional ambient soundscape player. Loops a background audio track or randomized biome soundscape without 3D positioning, blending between multiple ambient layers based on zone, time-of-day, or weather state to create immersive environmental audio. Authored from AmbientSoundTrait.ts.",
+  props: {
+    url: string = "",
+    volume: number = 0.5,
+    fade_in_ms: number = 2000,
+    fade_out_ms: number = 2000,
+    loop: boolean = true,
+    random_delay_ms: number = 0,
+    duck_when_voice: boolean = true,
+    duck_volume: number = 0.3
+  },
+  events: {
+    attached: "ambient_sound_attached",
+    detached: "ambient_sound_detached",
+    on_start: "ambient_sound_start",
+    on_stop: "ambient_sound_stop",
+    play: "ambient_sound_trigger_play",
+    stop: "ambient_sound_trigger_stop"
+  },
+  behaviors: ["@music", "@spatial_audio", "@lipsync"]
+}

@@ -1,0 +1,24 @@
+@trait {
+  name: "@xr_ray_interactor",
+  category: "xr",
+  description: "XR ray-cast interactor that projects a visual ray from a controller or hand pointer, performs physics raycasts against interactable entities, highlights hovered targets, and triggers select/grab events on button press. Supports hover enter/exit highlighting, distance-grab snapping, and curved arc rendering. Authored from XrRayInteractorTrait.ts.",
+  props: {
+    length_m: number = 3.0,
+    arc_mode: boolean = false,
+    arc_velocity: number = 5.0,
+    highlight_color: string = "#00ff88",
+    grab_snap_distance_m: number = 0.1,
+    layer_mask: list<string> = [],
+    enabled: boolean = true
+  },
+  events: {
+    attached: "xr_ray_interactor_attached",
+    detached: "xr_ray_interactor_detached",
+    on_hover_enter: "xr_ray_interactor_hover_enter",
+    on_hover_exit: "xr_ray_interactor_hover_exit",
+    on_select: "xr_ray_interactor_select",
+    on_grab: "xr_ray_interactor_grab",
+    on_release: "xr_ray_interactor_release"
+  },
+  behaviors: ["@xr_controller", "@teleport", "@ui_controller"]
+}

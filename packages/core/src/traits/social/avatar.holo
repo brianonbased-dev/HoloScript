@@ -1,0 +1,21 @@
+@trait {
+  name: "@avatar",
+  category: "social",
+  description: "Player and agent avatar configuration entity. Holds the identity display data (display name, avatar GLB URL, color, badge list) and synchronizes it to all connected peers in the zone, driving name-tag and avatar-body instantiation. Authored from AvatarTrait.ts.",
+  props: {
+    display_name: string = "",
+    model_url: string = "",
+    body_scale: number = 1.0,
+    color: string = "#6366f1",
+    show_name_tag: boolean = true,
+    hide_from_self: boolean = true,
+    lod_distance_m: number = 20
+  },
+  events: {
+    attached: "avatar_attached",
+    detached: "avatar_detached",
+    on_load: "avatar_load",
+    on_change: "avatar_change"
+  },
+  behaviors: ["@profile", "@networked", "@visibility"]
+}
