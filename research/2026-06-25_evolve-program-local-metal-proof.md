@@ -22,7 +22,7 @@ carve-out needed):
 - **`@evolve_program` trait** (3 native layers): `evolve_program.hsplus`
   (authoring surface — the policy as DATA), `evolve_program.holo` (IR),
   `EvolveProgramTrait.ts` (ECS handler). Registered in the barrel + `VRTraitSystem`.
-  Trait-parity gate: ✓ 101 traits covered.
+  Trait-parity gate green (`node scripts/holo-ci/check-trait-parity.mjs`).
 - **`EvolveProgramBackend.ts`** (`packages/core/src/evolution/`): the gated
   executor. `runEvolution(seed, policy, {propose, gate})` is pure + injectable;
   `makeOllamaProposer(endpoint, model)` is the default **sovereign local-metal**
@@ -142,3 +142,56 @@ brittney-edge continue-train) → eval (held-out) → promote → serve back to 
 Jetson as `brittney-edge:v0-5`. Reproduce the data step:
 `EVOLVE_LOCAL_METAL_PROOF=1 pnpm --filter @holoscript/core exec vitest run
 src/evolution/__tests__/EvolveProgramBackend.local-metal.test.ts`.
+
+---
+
+## Strategic corpus accrual — first batch (quality / unique / strategic)
+
+To accrue training data that is QUALITY, UNIQUE, and STRATEGIC (founder bar), the
+accrual harness (`EvolveProgramBackend.accrue.test.ts`) runs the gated loop across
+a portfolio of **real, diverse, HoloScript-native seeds** with **native parse
+gates**, deduped:
+- **Quality** = the gate is a real parser (`parseHolo` / HSPlus `parse`) PLUS a
+  preserved-construct check — "pass" means valid + intact, not merely non-empty.
+- **Unique** = a content-hash dedup sink drops repeats (reports the dedup ratio).
+- **Strategic** = 5 real repo seeds spanning the surface the ecosystem needs the
+  model to author (D.104/D.108): the `provenance_densify` + `evolve_program`
+  `@trait` definitions, a `@state_machine` brain, and two `.holo` worlds.
+
+**First clean batch on the Jetson (`brittney-edge:v0-4`):**
+```
+5 targets, ALL 5 seeds parsed | gated=8  UNIQUE=7  deduped=1
+chosen/SFT=7  rejected/DPO=0  | quality(pass)=~100%  formats=2 (.holo + .hsplus)
+IMPROVED: 3 (provenance_densify, evolve_program, brittney) | NO_IMPROVEMENT: 2
+```
+
+**The headline:** on *native* targets the local model didn't just produce valid
+candidates — it found **3 genuine improvements** (denser, parse-clean,
+construct-preserved HoloScript), where on the JS toy it found 0/6. Native targets
+match the HoloScript-tuned model's competence → quality data *and* real wins. The
+dedup sink caught 1 duplicate (uniqueness), 2 formats (diversity).
+
+**Findings this iteration (honest):**
+1. *Format is by CONSTRUCT, not extension.* `@trait {…}` files parse via
+   `parseHolo`; `composition + @state_machine` via the HSPlus `parse` — regardless
+   of the `.hsplus` extension (F.120, two parsers). My first labels were inverted
+   (3/5 SEED_INVALID); a fast in-process seed-parseability diagnostic caught it and
+   is now a permanent regression check.
+2. *Big native seeds are slow.* The model regenerates the WHOLE 60–90-line file
+   per proposal (~60s on the Jetson). A 5-target interactive batch stays small —
+   so the **real corpus must grow via SCHEDULED/background accrual on the Jetson**,
+   not interactive runs (free, but slow per step).
+3. *Low DPO contrast.* With parse+preserve gates the tuned model passed everything
+   (great SFT, 0 rejected). Richer DPO/negative data needs harder gates or harder
+   targets — a fitness/gate-tightening follow-up.
+
+Reproduce: `EVOLVE_ACCRUE=1 pnpm --filter @holoscript/core exec vitest run
+src/evolution/__tests__/EvolveProgramBackend.accrue.test.ts` (writes deduped
+REC-SHAPE rows to `EVOLVE_CORPUS_DIR`, default `.scratch/evolve-corpus`).
+
+### Next: continuous accrual → fine-tune
+The interactive batch PROVES the corpus generator. The corpus grows by scheduling
+the accrual on the Jetson (free local metal) — e.g. `/scheduler` or a systemd timer
+running the portfolio nightly, accumulating REC-SHAPE rows into
+`HOLOSCRIPT_AGENT_TRACE_DIR`. When the corpus is large enough, the staged HoloTune
+fine-tune (Vast fleet, GPU-spend gated) closes the loop to `brittney-edge:v0-5`.
