@@ -1,0 +1,20 @@
+@trait {
+  name: "@consensus",
+  category: "data",
+  description: "Distributed consensus participation for HoloScript entities. Lazily loads @holoscript/mesh ConsensusManager (optional peer dep). Supports simple_majority, raft, pBFT, and custom consensus mechanisms. Entities participate in proposals and receive state-change events on consensus. Port of ConsensusTrait.ts (handler name: consensus).",
+  props: {
+    node_id: string = "",
+    mechanism: enum("simple_majority" | "raft" | "pbft" | "custom") = "simple_majority",
+    timeout_ms: number = 5000
+  },
+  events: {
+    on_state_change: "consensus:state_changed",
+    on_proposal_accepted: "consensus:accepted",
+    on_proposal_rejected: "consensus:rejected",
+    on_error: "consensus:error",
+    propose: "consensus:propose",
+    join: "consensus:join",
+    leave: "consensus:leave"
+  },
+  behaviors: ["@collaborative_world", "@crdt_room"]
+}

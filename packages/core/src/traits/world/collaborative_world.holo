@@ -1,0 +1,32 @@
+@trait {
+  name: "@collaborative_world",
+  category: "world",
+  description: "Transform-level collaboration semantics for 3D world authoring: entity selection locks (selection/transform/exclusive modes), scene-space presence cursors with actor IDs and colors, Lamport-ordered transform operations, and an Unreal Concert bridge descriptor. Conflict resolution: lock_required/lamport_merge/last_write_wins/reject_remote. Port of CollaborativeWorldTrait.ts (handler name: collaborative_world).",
+  props: {
+    room_name: string = "Untitled Collaborative World",
+    sync_rate_hz: number = 60,
+    conflict_resolution: enum("lock_required" | "lamport_merge" | "last_write_wins" | "reject_remote") = "lock_required",
+    selection_locks: boolean = true,
+    lock_ttl_ms: number = 3000,
+    presence_cursors: boolean = true,
+    cursor_frame: enum("world" | "viewport") = "world",
+    presence_timeout_ms: number = 5000,
+    concert_bridge: boolean = true,
+    debug_ghosts: boolean = true,
+    op_log_limit: number = 2048
+  },
+  events: {
+    attached: "collaborative_world_joined",
+    detached: "collaborative_world_left",
+    on_lock_acquired: "collaborative_world_lock_acquired",
+    on_lock_released: "collaborative_world_lock_released",
+    on_transform_applied: "collaborative_world_transform_applied",
+    on_conflict: "collaborative_world_conflict",
+    on_cursor_updated: "collaborative_world_cursor_updated",
+    acquire_lock: "collaborative_world_acquire_lock",
+    release_lock: "collaborative_world_release_lock",
+    apply_transform: "collaborative_world_apply_transform",
+    update_cursor: "collaborative_world_update_cursor"
+  },
+  behaviors: ["@crdt_room", "@consensus", "@world_heartbeat"]
+}

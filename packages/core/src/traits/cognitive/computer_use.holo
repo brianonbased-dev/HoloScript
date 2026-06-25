@@ -1,0 +1,30 @@
+@trait {
+  name: "@computer_use",
+  category: "cognitive",
+  description: "Browser automation and system access for HoloScript agents (Playwright-backed). Vision-aware: screenshot → LLM → understand and act loop. Actions: navigate/click/type/screenshot/extract_text/wait/wait_for/scroll/evaluate/close. Domain allowlist, shell command gate, configurable viewport, user-agent, screenshot quality, and action session cap. Port of ComputerUseTrait.ts (handler name: computer_use).",
+  props: {
+    headless: boolean = true,
+    viewport_width: number = 1280,
+    viewport_height: number = 720,
+    user_agent: string = "HoloScript-Agent/4.0 (compatible; AppleWebKit)",
+    max_actions_per_session: number = 100,
+    allowed_domains: list<string> = [],
+    allow_shell: boolean = false,
+    screenshot_quality: number = 80,
+    default_timeout_ms: number = 10000,
+    verbose: boolean = false
+  },
+  events: {
+    on_browser_ready: "browser_ready",
+    on_navigated: "browser_navigated",
+    on_screenshot: "screenshot_captured",
+    on_element_found: "element_found",
+    on_element_not_found: "element_not_found",
+    on_text_extracted: "text_extracted",
+    on_action: "action_executed",
+    on_closed: "browser_closed",
+    on_error: "computer_use_error",
+    execute: "computer_use_execute"
+  },
+  behaviors: ["@shell", "@native_call"]
+}

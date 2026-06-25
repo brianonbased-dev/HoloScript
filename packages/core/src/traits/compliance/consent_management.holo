@@ -1,0 +1,17 @@
+@trait {
+  name: "@consent_management",
+  category: "compliance",
+  description: "Consent collection and per-user purpose tracking. Accepts consent:grant (userId, purpose) and consent:revoke events; answers consent:check queries. Tracks per-user Map<purpose, boolean>. Default required consents: analytics and marketing. Port of ConsentManagementTrait.ts (handler name: consent_management).",
+  props: {
+    required_consents: list<string> = ["analytics", "marketing"]
+  },
+  events: {
+    on_granted: "consent:granted",
+    on_revoked: "consent:revoked",
+    on_status: "consent:status",
+    grant: "consent:grant",
+    revoke: "consent:revoke",
+    check: "consent:check"
+  },
+  behaviors: ["@abtest", "@package_signing"]
+}
