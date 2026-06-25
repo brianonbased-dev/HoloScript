@@ -1,0 +1,19 @@
+@trait {
+  name: "@subsurface_veins",
+  category: "visual",
+  description: "Procedural subsurface vein renderer for skin materials and anatomical visualization. Synthesizes a branching vascular tree with configurable segment count (max 500K), heartbeat pulse control (BPM), branch factor, tube radius, color tint, and emissive intensity. Port of SubsurfaceVeinsTrait.ts (handler name: subsurface_veins).",
+  props: {
+    segment_count: number = 10000,
+    pulse_bpm: number = 72.0,
+    branch_factor: number = 2.1,
+    radius: number = 0.0008,
+    color: { r: number, g: number, b: number } = { r: 0.22, g: 0.08, b: 0.1 },
+    intensity: number = 0.35
+  },
+  events: {
+    attached: "subsurface_veins_attached",
+    on_pulse: "subsurface_veins_pulse",
+    on_error: "subsurface_veins_error"
+  },
+  behaviors: ["@volumetric", "@gpu_particle"]
+}

@@ -1,0 +1,16 @@
+@trait {
+  name: "@sys_io",
+  category: "devops",
+  description: "System I/O operations: file reads and optionally writes, gated by allow_write. Responds to sysio:read (always permitted) and sysio:write (gated) events; tracks read/write counts. Port of SysIoTrait.ts (handler name: sys_io).",
+  props: {
+    allow_write: boolean = false
+  },
+  events: {
+    on_data: "sysio:data",
+    on_written: "sysio:written",
+    on_denied: "sysio:denied",
+    read: "sysio:read",
+    write: "sysio:write"
+  },
+  behaviors: ["@shell", "@native_call"]
+}

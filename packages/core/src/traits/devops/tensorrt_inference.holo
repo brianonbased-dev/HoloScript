@@ -1,0 +1,21 @@
+@trait {
+  name: "@tensorrt_inference",
+  category: "devops",
+  description: "NVIDIA TensorRT quantized inference trait for Jetson edge nodes. Declares a TensorRT optimized model engine (FP32/FP16/INT8) for accelerated GPU inference. Triggers EdgeCompiler to emit tensorrt_loader.py with engine load/build helpers. Engines are device-specific — build per device via trtexec. Port of TensorRTInferenceTrait.ts (handler name: tensorrt_inference).",
+  props: {
+    engine_path: string = "/opt/holoscript/engines/model.fp16.trt",
+    precision: enum("fp32" | "fp16" | "int8") = "fp16",
+    onnx_path: string = "/opt/holoscript/models/model.onnx",
+    max_batch_size: number = 1,
+    workspace_mb: number = 4096,
+    cache_engine: boolean = true
+  },
+  events: {
+    on_loaded: "tensorrt_inference_loaded",
+    on_inferred: "tensorrt_inference_result",
+    on_error: "tensorrt_inference_error",
+    load: "tensorrt_inference_load",
+    infer: "tensorrt_inference_infer"
+  },
+  behaviors: ["@jetson_gpu", "@sys_io"]
+}
