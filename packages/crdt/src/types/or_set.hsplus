@@ -1,0 +1,88 @@
+// @or_set — Observed-Remove Set CRDT with full causal consistency.
+//
+// Native .hsplus surface for ORSet.ts (crdt/types, v1.0.0).
+//
+// OR-Set semantics: an element is IN the set if it has at least one add-tag
+// that has NOT been removed. Each add operation gets a unique tag (UUID), so
+// concurrent adds of the same element are preserved separately.
+//
+// AddTag fields (ORSet.ts):
+//   operation_id (UUID), actor_did, timestamp
+//
+// ORSetElement fields:
+//   value, add_tags (Set<operationId>), remove_tags (Set<operationId>),
+//   tag_metadata (Map<operationId, AddTag>)
+//
+// CRDT properties:
+//   Strong Eventual Consistency — all replicas converge
+//   Add-biased — concurrent add/remove → add wins (ORSet design)
+//   Causal — remove only removes tags the actor has observed
+//   Authenticated — all operations DID-signed
+//
+// Wire protocol: CRDTOperationType.OR_SET_ADD / OR_SET_REMOVE
+
+@trait or_set {
+  // CRDT document ID
+  crdt_id: String
+
+  // Actor DID for signing operations
+  actor_did: String
+
+  capability_tags: ["or_set", "crdt_or_set", "observed_remove_set", "did_signed", "causal_consistency", "add_biased"]
+
+  @on_spawn => {
+    set_crdt = init_or_set({
+      crdt_id: crdt_id,
+      actor_did: actor_did
+    })
+    emit("or_set_ready", { crdt_id: crdt_id, actor_did: actor_did })
+  }
+
+  @on_add(element) => {
+    op = set_crdt.add(element)
+    emit("or_set_added", {
+      crdt_id: crdt_id,
+      actor_did: actor_did,
+      operation_id: op.operation_id
+    })
+    return op
+  }
+
+  @on_remove(element) => {
+    // OR-Set: removes ALL currently-observed add-tags for this element
+    op = set_crdt.remove(element)
+    emit("or_set_removed", {
+      crdt_id: crdt_id,
+      actor_did: actor_did,
+      operation_id: op.operation_id
+    })
+    return op
+  }
+
+  @on_merge_remote(signed_op) => {
+    accepted = set_crdt.merge_remote(signed_op)
+    emit("or_set_merged", {
+      crdt_id: crdt_id,
+      remote_actor: signed_op.actor_did,
+      accepted: accepted
+    })
+    return accepted
+  }
+
+  @on_has(element) => {
+    return set_crdt.has(element)
+  }
+
+  @on_get_all => {
+    return set_crdt.values()
+  }
+
+  @receipt or_set_config {
+    type: "ORSetReceipt"
+    crdt_id: crdt_id
+    actor_did: actor_did
+    crdt_type: "OR_SET"
+    conflict_policy: "add_wins"
+    timestamp: now()
+  }
+}

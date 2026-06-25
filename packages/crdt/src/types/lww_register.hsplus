@@ -1,0 +1,74 @@
+// @lww_register — Last-Write-Wins Register CRDT with DID-signed operations.
+//
+// Native .hsplus surface for LWWRegister.ts (crdt/types, v1.0.0).
+//
+// LWW semantics: concurrent writes are resolved by timestamp (last wins).
+// Tie-breaking: actor DID used as deterministic tiebreaker when timestamps equal.
+//
+// LWWValue<T> fields (LWWRegister.ts):
+//   value, timestamp (Lamport ms), actor_did (string), operation_id (string)
+//
+// CRDT properties:
+//   Strong Eventual Consistency — all replicas converge
+//   Commutative — operations apply in any order
+//   Idempotent — same operation applied twice = same result
+//   Authenticated — all operations DID-signed
+//
+// Wire protocol: `SignedOperation` (CRDTOperationType.LWW_SET)
+
+@trait lww_register {
+  // CRDT document ID (unique per register)
+  crdt_id: String
+
+  // Actor DID for signing operations
+  actor_did: String
+
+  // Optional initial value (serialized as JSON string, empty = null register)
+  initial_value: String? = null
+
+  capability_tags: ["lww_register", "crdt_lww", "last_write_wins", "did_signed", "strong_eventual_consistency"]
+
+  @on_spawn => {
+    register = init_lww_register({
+      crdt_id: crdt_id,
+      actor_did: actor_did,
+      initial_value: initial_value
+    })
+    emit("lww_register_ready", { crdt_id: crdt_id, actor_did: actor_did })
+  }
+
+  @on_set(value) => {
+    op = register.set(value)
+    emit("lww_register_set", {
+      crdt_id: crdt_id,
+      actor_did: actor_did,
+      operation_id: op.operation_id,
+      timestamp: op.timestamp
+    })
+    return op
+  }
+
+  @on_merge_remote(signed_op) => {
+    // Merge: keep the value with higher timestamp; tie → lexicographically higher DID wins
+    accepted = register.merge_remote(signed_op)
+    emit("lww_register_merged", {
+      crdt_id: crdt_id,
+      accepted: accepted,
+      remote_actor: signed_op.actor_did
+    })
+    return accepted
+  }
+
+  @on_get => {
+    return register.get()
+  }
+
+  @receipt lww_register_config {
+    type: "LWWRegisterReceipt"
+    crdt_id: crdt_id
+    actor_did: actor_did
+    crdt_type: "LWW_REGISTER"
+    tiebreaker: "actor_did_lexicographic"
+    timestamp: now()
+  }
+}

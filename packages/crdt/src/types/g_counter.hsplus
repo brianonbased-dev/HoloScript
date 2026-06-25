@@ -1,0 +1,74 @@
+// @g_counter — Grow-only Counter CRDT with per-actor vector clock.
+//
+// Native .hsplus surface for GCounter.ts (crdt/types, v1.0.0).
+//
+// G-Counter: each actor maintains its own counter; total = sum of all actors.
+// WHY per-actor design: ensures commutativity — increments from concurrent actors
+// can be applied in any order and converge to the same total.
+//
+// ActorCount fields (GCounter.ts):
+//   actor_did, count, last_operation_id, last_timestamp
+//
+// CRDT properties:
+//   Monotonic — value only increases (no decrements)
+//   Commutative — order doesn't matter
+//   Idempotent — duplicate ops are safe (last_operation_id check)
+//   Authenticated — all increments DID-signed (CRDTOperationType.G_COUNTER_INCREMENT)
+//
+// Total = sum(counter.count for all actors in vector clock)
+
+@trait g_counter {
+  // CRDT document ID
+  crdt_id: String
+
+  // Actor DID for this agent's counter
+  actor_did: String
+
+  capability_tags: ["g_counter", "crdt_g_counter", "grow_only_counter", "did_signed", "strong_eventual_consistency", "monotonic"]
+
+  @on_spawn => {
+    counter = init_g_counter({
+      crdt_id: crdt_id,
+      actor_did: actor_did
+    })
+    emit("g_counter_ready", { crdt_id: crdt_id, actor_did: actor_did })
+  }
+
+  @on_increment(amount) => {
+    op = counter.increment(amount ?? 1)
+    emit("g_counter_incremented", {
+      crdt_id: crdt_id,
+      actor_did: actor_did,
+      amount: amount ?? 1,
+      operation_id: op.operation_id
+    })
+    return op
+  }
+
+  @on_merge_remote(signed_op) => {
+    // Idempotent: if last_operation_id matches, skip (already applied)
+    accepted = counter.merge_remote(signed_op)
+    emit("g_counter_merged", {
+      crdt_id: crdt_id,
+      remote_actor: signed_op.actor_did,
+      accepted: accepted
+    })
+    return accepted
+  }
+
+  @on_get_total => {
+    return counter.total()
+  }
+
+  @on_get_state => {
+    return counter.get_state()
+  }
+
+  @receipt g_counter_config {
+    type: "GCounterReceipt"
+    crdt_id: crdt_id
+    actor_did: actor_did
+    crdt_type: "G_COUNTER"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,207 @@
+// @economic_traits — Five economic primitive traits for HoloScript compositions.
+//
+// Native .hsplus surface for EconomicTraits.ts (std/traits, v1.0.0).
+//
+// Five traits (EconomicTraits.ts + P.030.01-03):
+//
+//   @tradeable       — ownership, transfer, lock/unlock for escrow (P.030.04)
+//                      RBAC: economy.trade | economy.audit
+//
+//   @depreciating    — time-based value decay (hard sink mechanic)
+//                      RBAC: economy.burn | economy.audit
+//
+//   @bonding_curved  — autonomous price discovery via bonding curve (P.030.02 / W.035)
+//                      RBAC: economy.set_price | economy.audit
+//
+//   @taxable_wealth  — progressive logarithmic wealth tax + redistribution (P.030.03 / W.034)
+//                      RBAC: economy.tax | economy.redistribute | economy.audit
+//
+//   @pid_controlled  — dual-loop PID for faucet/sink regulation (P.030.01 / W.031 / W.032)
+//                      RBAC: economy.mint | economy.burn | economy.tune_pid | economy.audit
+//
+// EconomicLayer (9-layer architecture):
+//   tradeable=1, depreciating=2, bonding_curved=3, taxable_wealth=4, pid_controlled=5
+
+@trait tradeable {
+  // Initial owner agent ID
+  initial_owner: String
+
+  // Whether the item is currently locked (escrow / auction hold)
+  locked: Bool = false
+
+  // Transaction history depth to retain (0 = unlimited)
+  history_depth: Int = 10
+
+  capability_tags: ["tradeable", "economic", "ownership", "transfer", "escrow", "economy_layer_1"]
+
+  @on_spawn => {
+    ownership = init_tradeable({
+      initial_owner: initial_owner,
+      locked: locked,
+      history_depth: history_depth
+    })
+    emit("tradeable_ready", { owner: initial_owner })
+  }
+
+  @on_transfer(to_agent, tx_hash, context) => {
+    if not has_permission(context, "economy.trade") {
+      return { ok: false, error: "UNAUTHORIZED" }
+    }
+    if locked {
+      return { ok: false, error: "TRANSFER_BLOCKED" }
+    }
+    result = ownership.transfer(to_agent, tx_hash)
+    emit("ownership_transferred", { from: result.from, to: to_agent, tx_hash: tx_hash })
+    return { ok: true, value: result }
+  }
+
+  @on_lock(reason) => {
+    locked = true
+    emit("tradeable_locked", { reason: reason })
+  }
+
+  @on_unlock => {
+    locked = false
+    emit("tradeable_unlocked", {})
+  }
+}
+
+@trait depreciating {
+  // Initial value
+  initial_value: Float = 1.0
+
+  // Depreciation rate per tick (fraction of current value, 0-1)
+  rate_per_tick: Float = 0.01
+
+  // Tick interval in seconds
+  tick_interval_s: Int = 3600
+
+  // Minimum value floor (item is "destroyed" at or below this)
+  min_value: Float = 0.0
+
+  capability_tags: ["depreciating", "economic", "value_decay", "sink_mechanic", "economy_layer_2"]
+
+  @on_spawn => {
+    state = { value: initial_value }
+    schedule_recurring(tick_interval_s, "on_depreciation_tick")
+    emit("depreciating_ready", { initial_value: initial_value, rate: rate_per_tick })
+  }
+
+  @on_depreciation_tick => {
+    state.value = state.value * (1.0 - rate_per_tick)
+    if state.value <= min_value {
+      state.value = min_value
+      emit("item_destroyed", { entity_id: entity_id })
+    } else {
+      emit("value_decayed", { entity_id: entity_id, new_value: state.value })
+    }
+  }
+}
+
+@trait bonding_curved {
+  // Initial reserve in the bonding curve
+  reserve: Float = 100.0
+
+  // Bonding curve exponent (1.0 = linear, > 1 = convex growth)
+  exponent: Float = 1.5
+
+  capability_tags: ["bonding_curved", "economic", "price_discovery", "amm", "deFi", "economy_layer_3"]
+
+  @on_spawn => {
+    curve = init_bonding_curve({ reserve: reserve, exponent: exponent })
+    emit("bonding_curve_ready", { reserve: reserve, exponent: exponent })
+  }
+
+  @on_get_price(supply) => {
+    price = reserve * pow(supply, exponent)
+    return { price: price }
+  }
+
+  @on_buy(supply, context) => {
+    if not has_permission(context, "economy.set_price") {
+      return { ok: false, error: "UNAUTHORIZED" }
+    }
+    result = curve.buy(supply)
+    emit("bonding_curve_bought", { supply: supply, price: result.price })
+    return { ok: true, value: result }
+  }
+}
+
+@trait taxable_wealth {
+  // Base wealth tax rate (logarithmic multiplier)
+  base_rate: Float = 0.01
+
+  // Cycle interval in seconds
+  tax_cycle_s: Int = 86400
+
+  capability_tags: ["taxable_wealth", "economic", "wealth_tax", "progressive_tax", "ubi", "economy_layer_4"]
+
+  @on_spawn => {
+    tax = init_wealth_tax({ base_rate: base_rate })
+    schedule_recurring(tax_cycle_s, "on_tax_cycle")
+    emit("taxable_wealth_ready", { base_rate: base_rate })
+  }
+
+  @on_tax_cycle => {
+    for each agent in get_all_agents() {
+      wealth = get_balance(agent.id)
+      levy = base_rate * log(1 + wealth)
+      if levy > 0 {
+        deduct_balance(agent.id, levy)
+        tax.collect(agent.id, levy)
+        emit("wealth_taxed", { agent: agent.id, levy: levy })
+      }
+    }
+    pool = tax.pool()
+    if pool > 0 {
+      agents = get_all_agents()
+      ubi = pool / len(agents)
+      for each agent in agents { add_balance(agent.id, ubi) }
+      emit("ubi_distributed", { amount_each: ubi, recipients: len(agents) })
+      tax.clear_pool()
+    }
+  }
+}
+
+@trait pid_controlled {
+  // PID gains
+  kp: Float = 0.1
+  ki: Float = 0.01
+  kd: Float = 0.001
+
+  // Target faucet/sink ratio (W.031: master variable)
+  target_ratio: Float = 1.0
+
+  // Tick interval in seconds
+  tick_interval_s: Int = 60
+
+  capability_tags: ["pid_controlled", "economic", "pid_controller", "faucet_sink", "dual_loop", "economy_layer_5"]
+
+  @on_spawn => {
+    pid = init_pid_controller({ kp: kp, ki: ki, kd: kd })
+    schedule_recurring(tick_interval_s, "on_pid_tick")
+    emit("pid_controlled_ready", { kp: kp, ki: ki, kd: kd, target_ratio: target_ratio })
+  }
+
+  @on_pid_tick => {
+    current_ratio = get_faucet_sink_ratio()
+    error = target_ratio - current_ratio
+    output = pid.step(error)
+    if output > 0 { faucet(output) }
+    if output < 0 { sink(-output) }
+    emit("pid_tick", {
+      current_ratio: current_ratio,
+      error: error,
+      adjustment: output
+    })
+  }
+
+  @on_tune(new_kp, new_ki, new_kd, context) => {
+    if not has_permission(context, "economy.tune_pid") {
+      return { ok: false, error: "UNAUTHORIZED" }
+    }
+    pid.update_gains(new_kp, new_ki, new_kd)
+    emit("pid_tuned", { kp: new_kp, ki: new_ki, kd: new_kd })
+    return { ok: true }
+  }
+}
