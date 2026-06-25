@@ -1,0 +1,24 @@
+// @script_vm — HoloScript VM: executes compiled script bytecode in a sandboxed environment.
+//
+// Native .hsplus surface for core/scripting/ScriptVM.ts.
+//
+// load(bytecode) / run(ctx) → Result / reset()
+
+@trait script_vm {
+  capability_tags: ["script_vm", "bytecode_execution", "sandboxed_vm", "scripting_execution", "core"]
+
+  @on_spawn => {
+    emit("script_vm_ready", {})
+  }
+
+  @on_run(ctx) => {
+    result = run_script_vm(ctx)
+    return result
+  }
+
+  @receipt script_vm_config {
+    type: "ScriptVMReceipt"
+    execution: "sandboxed bytecode"
+    timestamp: now()
+  }
+}

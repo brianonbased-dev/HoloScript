@@ -1,0 +1,26 @@
+// @digital_twin_gateway — Gateway between HoloScript world and external digital twin backends.
+//
+// Native .hsplus surface for core/services/DigitalTwinGateway.ts.
+//
+// sync(world, backend) → SyncResult / subscribe(entityId, cb)
+// D.007: any data → .holo → any device
+
+@trait digital_twin_gateway {
+  capability_tags: ["digital_twin_gateway", "twin_sync", "external_backend", "domain_bridge", "core"]
+
+  @on_spawn => {
+    emit("digital_twin_gateway_ready", {})
+  }
+
+  @on_sync(world, backend) => {
+    result = sync_digital_twin(world, backend)
+    emit("twin_synced", {})
+    return result
+  }
+
+  @receipt digital_twin_gateway_config {
+    type: "DigitalTwinGatewayReceipt"
+    direction: "D.007: any data → .holo → any device"
+    timestamp: now()
+  }
+}

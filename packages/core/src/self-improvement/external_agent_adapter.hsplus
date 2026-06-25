@@ -1,0 +1,26 @@
+// @external_agent_adapter — Adapter bridging external LLM agents into the HoloScript self-improvement loop.
+//
+// Native .hsplus surface for core/self-improvement/ExternalAgentAdapter.ts.
+//
+// propose(prompt) → Proposal / evaluate(proposal) → Score
+// Wraps sovereign-first client (Anthropic fallback); feeds OutcomeLoop
+
+@trait external_agent_adapter {
+  capability_tags: ["external_agent_adapter", "llm_bridge", "sovereign_first", "self_improvement_loop", "core"]
+
+  @on_spawn => {
+    emit("external_agent_adapter_ready", {})
+  }
+
+  @on_propose(prompt) => {
+    proposal = external_agent_propose(prompt)
+    return proposal
+  }
+
+  @receipt external_agent_adapter_config {
+    type: "ExternalAgentAdapterReceipt"
+    model_priority: "sovereign-first → Anthropic fallback"
+    consumer: "OutcomeLoop"
+    timestamp: now()
+  }
+}

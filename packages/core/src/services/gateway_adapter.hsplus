@@ -1,0 +1,24 @@
+// @gateway_adapter — Protocol adapter for HoloGate: bridges HoloScript worlds to A2A/REST/WS backends.
+//
+// Native .hsplus surface for core/services/GatewayAdapter.ts.
+//
+// adapt(request, protocol) → AdaptedRequest / respond(result, protocol) → Response
+
+@trait gateway_adapter {
+  capability_tags: ["gateway_adapter", "protocol_adapter", "holoGate", "a2a_rest_ws", "core"]
+
+  @on_spawn => {
+    emit("gateway_adapter_ready", {})
+  }
+
+  @on_adapt(request, protocol) => {
+    adapted = adapt_gateway_request(request, protocol)
+    return adapted
+  }
+
+  @receipt gateway_adapter_config {
+    type: "GatewayAdapterReceipt"
+    protocols: ["A2A", "REST", "WebSocket"]
+    timestamp: now()
+  }
+}

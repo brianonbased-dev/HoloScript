@@ -1,0 +1,23 @@
+// @capability_matrix — Maps trait capability_tags to compile targets and platform support.
+//
+// Native .hsplus surface for core/semantics/CapabilityMatrix.ts.
+//
+// query(tag) → TargetSet / supported(tag, target) → bool
+
+@trait capability_matrix {
+  capability_tags: ["capability_matrix", "tag_to_target", "platform_support", "compile_target_map", "core"]
+
+  @on_spawn => {
+    emit("capability_matrix_ready", {})
+  }
+
+  @on_query(tag) => {
+    targets = query_capability_matrix(tag)
+    return targets
+  }
+
+  @receipt capability_matrix_config {
+    type: "CapabilityMatrixReceipt"
+    timestamp: now()
+  }
+}

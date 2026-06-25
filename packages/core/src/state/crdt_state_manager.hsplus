@@ -1,0 +1,30 @@
+// @crdt_state_manager — Loro CRDT state manager: conflict-free replicated world state.
+//
+// Native .hsplus surface for core/state/CRDTStateManager.ts.
+//
+// set(key, value) / get(key) / merge(remote) / snapshot() → CRDTDoc
+// Loro CRDT; used for multi-user world state sync
+
+@trait crdt_state_manager {
+  capability_tags: ["crdt_state_manager", "loro_crdt", "conflict_free", "multi_user_sync", "core"]
+
+  @on_spawn => {
+    emit("crdt_state_manager_ready", {})
+  }
+
+  @on_set(key, value) => {
+    crdt_state_set(key, value)
+  }
+
+  @on_merge(remote) => {
+    merge_crdt_state(remote)
+    emit("crdt_merged", {})
+  }
+
+  @receipt crdt_state_manager_config {
+    type: "CRDTStateManagerReceipt"
+    implementation: "Loro CRDT"
+    use_case: "multi-user world state sync"
+    timestamp: now()
+  }
+}

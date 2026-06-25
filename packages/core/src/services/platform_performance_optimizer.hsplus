@@ -1,0 +1,23 @@
+// @platform_performance_optimizer — Tunes render and compute settings per detected platform capability.
+//
+// Native .hsplus surface for core/services/PlatformPerformanceOptimizer.ts.
+//
+// optimize(platform) → OptimizedSettings / apply(settings, world)
+
+@trait platform_performance_optimizer {
+  capability_tags: ["platform_performance_optimizer", "render_tuning", "platform_capability", "settings_optimization", "core"]
+
+  @on_spawn => {
+    emit("platform_performance_optimizer_ready", {})
+  }
+
+  @on_optimize(platform) => {
+    settings = optimize_platform_performance(platform)
+    return settings
+  }
+
+  @receipt platform_performance_optimizer_config {
+    type: "PlatformPerformanceOptimizerReceipt"
+    timestamp: now()
+  }
+}

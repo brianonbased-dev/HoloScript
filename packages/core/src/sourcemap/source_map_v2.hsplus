@@ -1,0 +1,23 @@
+// @source_map_v2 — HoloScript source map v2: maps compiled output positions back to .holo/.hsplus source.
+//
+// Native .hsplus surface for core/sourcemap/SourceMapV2.ts.
+//
+// generate(ast, compiled) → SourceMapV2 / lookup(pos) → SourcePosition
+
+@trait source_map_v2 {
+  capability_tags: ["source_map_v2", "compiled_to_source", "position_mapping", "debug_sourcemap", "core"]
+
+  @on_spawn => {
+    emit("source_map_v2_ready", {})
+  }
+
+  @on_lookup(pos) => {
+    return lookup_source_position(pos)
+  }
+
+  @receipt source_map_v2_config {
+    type: "SourceMapV2Receipt"
+    maps: "compiled output → .holo/.hsplus source"
+    timestamp: now()
+  }
+}

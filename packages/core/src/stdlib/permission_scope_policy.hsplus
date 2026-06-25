@@ -1,0 +1,26 @@
+// @permission_scope_policy — StdlibPolicy: capability scope declarations for stdlib actions.
+//
+// Native .hsplus surface for core/stdlib/PermissionScopePolicy.ts.
+//
+// PermissionScopePolicy { allowed[], denied[], auditLog }
+// Enforced by StdlibActions before execution; gate-checked at construction
+
+@trait permission_scope_policy {
+  capability_tags: ["permission_scope_policy", "stdlib_policy", "capability_scope", "audit_log", "core"]
+
+  @on_spawn => {
+    emit("permission_scope_policy_ready", {})
+  }
+
+  @on_check(action, context) => {
+    allowed = check_stdlib_permission(action, context)
+    if !allowed { emit("stdlib_permission_denied", { action }) }
+    return allowed
+  }
+
+  @receipt permission_scope_policy_config {
+    type: "PermissionScopePolicyReceipt"
+    enforcement: "gate-checked at construction"
+    timestamp: now()
+  }
+}

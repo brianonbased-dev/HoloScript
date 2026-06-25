@@ -1,0 +1,24 @@
+// @persona_loader — Loads agent persona definitions from .hsplus brain files at runtime.
+//
+// Native .hsplus surface for core/services/PersonaLoader.ts.
+//
+// load(personaId) → PersonaDef / list() → PersonaDef[]
+
+@trait persona_loader {
+  capability_tags: ["persona_loader", "agent_persona", "brain_file_load", "persona_def", "core"]
+
+  @on_spawn => {
+    emit("persona_loader_ready", {})
+  }
+
+  @on_load(persona_id) => {
+    def = load_persona_def(persona_id)
+    return def
+  }
+
+  @receipt persona_loader_config {
+    type: "PersonaLoaderReceipt"
+    source: ".hsplus brain files"
+    timestamp: now()
+  }
+}

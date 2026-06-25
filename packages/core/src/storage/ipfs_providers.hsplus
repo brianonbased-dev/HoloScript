@@ -1,0 +1,20 @@
+// @ipfs_providers — IPFS provider registry: Pinata, Infura, local node, w3s configuration.
+//
+// Native .hsplus surface for core/storage/IPFSProviders.ts.
+//
+// IPFSProvider { name, gateway, pinEndpoint, credentials }
+// Consumed by IPFSService to route uploads to the configured provider
+
+@trait ipfs_providers {
+  capability_tags: ["ipfs_providers", "provider_registry", "pinata_infura_w3s", "ipfs_config", "core"]
+
+  @on_spawn => {
+    emit("ipfs_providers_ready", {})
+  }
+
+  @receipt ipfs_providers_config {
+    type: "IPFSProvidersReceipt"
+    providers: ["Pinata", "Infura", "local node", "w3s"]
+    timestamp: now()
+  }
+}

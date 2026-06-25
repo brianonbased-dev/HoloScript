@@ -1,0 +1,19 @@
+// @semantic_annotation — Base semantic annotation type for HoloScript AST nodes.
+//
+// Native .hsplus surface for core/semantics/SemanticAnnotation.ts.
+//
+// SemanticAnnotation { kind, value, sourceSpan }
+
+@trait semantic_annotation {
+  capability_tags: ["semantic_annotation", "ast_annotation", "annotation_base", "semantic_metadata", "core"]
+
+  @on_spawn => {
+    emit("semantic_annotation_ready", {})
+  }
+
+  @receipt semantic_annotation_config {
+    type: "SemanticAnnotationReceipt"
+    fields: ["kind", "value", "sourceSpan"]
+    timestamp: now()
+  }
+}

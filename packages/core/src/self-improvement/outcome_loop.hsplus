@@ -1,0 +1,26 @@
+// @outcome_loop — Gated self-improvement loop: propose → verify-gate → accrue or discard.
+//
+// Native .hsplus surface for core/self-improvement/OutcomeLoop.ts.
+//
+// run(seed) → LoopResult { improved, receipt, accrued }
+// Gate IS the engine (I.023): mutations not passing verifier are discarded, never shipped
+
+@trait outcome_loop {
+  capability_tags: ["outcome_loop", "gated_self_improvement", "propose_verify_accrue", "i023_engine", "core"]
+
+  @on_spawn => {
+    emit("outcome_loop_ready", {})
+  }
+
+  @on_run(seed) => {
+    result = run_outcome_loop(seed)
+    emit("outcome_loop_tick", { improved: result.improved })
+    return result
+  }
+
+  @receipt outcome_loop_config {
+    type: "OutcomeLoopReceipt"
+    invariant: "verifier-gate IS the engine — mutations not passing gate are discarded"
+    timestamp: now()
+  }
+}

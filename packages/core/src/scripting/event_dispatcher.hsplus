@@ -1,0 +1,24 @@
+// @event_dispatcher_scripting — Scripting-layer event dispatcher: routes typed events to script handlers.
+//
+// Native .hsplus surface for core/scripting/EventDispatcher.ts.
+//
+// on(type, handler) / off(id) / dispatch(type, payload) → handlerCount
+
+@trait event_dispatcher_scripting {
+  capability_tags: ["event_dispatcher_scripting", "typed_events", "script_handlers", "scripting_layer", "core"]
+
+  @on_spawn => {
+    emit("event_dispatcher_scripting_ready", {})
+  }
+
+  @on_dispatch(type, payload) => {
+    count = dispatch_scripting_event(type, payload)
+    return count
+  }
+
+  @receipt event_dispatcher_scripting_config {
+    type: "EventDispatcherScriptingReceipt"
+    scope: "scripting layer — distinct from events/EventBus runtime"
+    timestamp: now()
+  }
+}

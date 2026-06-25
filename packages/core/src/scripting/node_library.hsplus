@@ -1,0 +1,22 @@
+// @node_library — Catalogue of built-in node types available in the visual scripting editor.
+//
+// Native .hsplus surface for core/scripting/NodeLibrary.ts.
+//
+// register(def) / resolve(type) → NodeDef? / listByCategory(cat) → NodeDef[]
+
+@trait node_library {
+  capability_tags: ["node_library", "builtin_node_types", "visual_scripting", "node_catalogue", "core"]
+
+  @on_spawn => {
+    emit("node_library_ready", {})
+  }
+
+  @on_resolve(type) => {
+    return resolve_node_def(type)
+  }
+
+  @receipt node_library_config {
+    type: "NodeLibraryReceipt"
+    timestamp: now()
+  }
+}

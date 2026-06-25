@@ -1,0 +1,28 @@
+// @command_buffer — Deferred command queue for batching scripting operations per frame.
+//
+// Native .hsplus surface for core/scripting/CommandBuffer.ts.
+//
+// enqueue(cmd) / flush(world) — all commands execute atomically at frame end
+
+@trait command_buffer {
+  capability_tags: ["command_buffer", "deferred_commands", "frame_batch", "atomic_flush", "core"]
+
+  @on_spawn => {
+    emit("command_buffer_ready", {})
+  }
+
+  @on_enqueue(cmd) => {
+    enqueue_scripting_command(cmd)
+  }
+
+  @on_flush(world) => {
+    flush_command_buffer(world)
+    emit("command_buffer_flushed", {})
+  }
+
+  @receipt command_buffer_config {
+    type: "CommandBufferReceipt"
+    pattern: "enqueue per tick; flush atomically at frame end"
+    timestamp: now()
+  }
+}

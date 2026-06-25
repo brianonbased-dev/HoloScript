@@ -1,0 +1,27 @@
+// @self_improve_harvester — Harvests verifier-labeled candidates into the SFT/DPO corpus (I.023 loop 2).
+//
+// Native .hsplus surface for core/self-improvement/SelfImproveHarvester.ts.
+//
+// harvest(candidate, label) → CorpusRow / flush() → CorpusRow[]
+// passed→SFT row; failed→DPO row; content-hash dedup prevents duplicates
+
+@trait self_improve_harvester {
+  capability_tags: ["self_improve_harvester", "sft_dpo_corpus", "content_hash_dedup", "i023_loop2", "core"]
+
+  @on_spawn => {
+    emit("self_improve_harvester_ready", {})
+  }
+
+  @on_harvest(candidate, label) => {
+    row = harvest_self_improve(candidate, label)
+    emit("corpus_row_harvested", { label })
+    return row
+  }
+
+  @receipt self_improve_harvester_config {
+    type: "SelfImproveHarvesterReceipt"
+    schema: "passed → SFT; failed → DPO"
+    dedup: "content-hash"
+    timestamp: now()
+  }
+}

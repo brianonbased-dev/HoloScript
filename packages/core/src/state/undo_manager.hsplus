@@ -1,0 +1,29 @@
+// @undo_manager — Undo/redo stack backed by CRDT snapshots.
+//
+// Native .hsplus surface for core/state/UndoManager.ts.
+//
+// push(snapshot) / undo() → snapshot / redo() → snapshot / clear()
+
+@trait undo_manager {
+  capability_tags: ["undo_manager", "undo_redo_stack", "crdt_snapshots", "edit_history", "core"]
+
+  @on_spawn => {
+    emit("undo_manager_ready", {})
+  }
+
+  @on_push(snapshot) => {
+    push_undo_snapshot(snapshot)
+  }
+
+  @on_undo => {
+    snapshot = undo_state()
+    emit("state_undone", {})
+    return snapshot
+  }
+
+  @receipt undo_manager_config {
+    type: "UndoManagerReceipt"
+    backing: "CRDT snapshots"
+    timestamp: now()
+  }
+}

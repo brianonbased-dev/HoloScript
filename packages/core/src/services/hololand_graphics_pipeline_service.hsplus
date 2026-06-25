@@ -1,0 +1,25 @@
+// @hololand_graphics_pipeline_service — Service coordinating HoloLand graphics pipeline: compile→render→deliver.
+//
+// Native .hsplus surface for core/services/HololandGraphicsPipelineService.ts.
+//
+// submit(composition) → PipelineReceipt { renderUrl, assetHash, deliveredAt }
+
+@trait hololand_graphics_pipeline_service {
+  capability_tags: ["hololand_graphics_pipeline_service", "compile_render_deliver", "graphics_pipeline", "hololand", "core"]
+
+  @on_spawn => {
+    emit("hololand_graphics_pipeline_service_ready", {})
+  }
+
+  @on_submit(composition) => {
+    receipt = submit_graphics_pipeline(composition)
+    emit("pipeline_submitted", { hash: receipt.assetHash })
+    return receipt
+  }
+
+  @receipt hololand_graphics_pipeline_service_config {
+    type: "HololandGraphicsPipelineServiceReceipt"
+    pipeline: "compile → render → deliver"
+    timestamp: now()
+  }
+}

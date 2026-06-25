@@ -1,0 +1,28 @@
+// @ipfs_service — IPFS content-addressed storage: pin, retrieve, unpin via configured provider.
+//
+// Native .hsplus surface for core/storage/IPFSService.ts.
+//
+// pin(data) → CID / retrieve(cid) → Uint8Array / unpin(cid)
+
+@trait ipfs_service {
+  capability_tags: ["ipfs_service", "content_addressed_storage", "pin_retrieve", "cid", "core"]
+
+  @on_spawn => {
+    emit("ipfs_service_ready", {})
+  }
+
+  @on_pin(data) => {
+    cid = pin_ipfs_data(data)
+    emit("ipfs_pinned", { cid })
+    return cid
+  }
+
+  @on_retrieve(cid) => {
+    return retrieve_ipfs_data(cid)
+  }
+
+  @receipt ipfs_service_config {
+    type: "IPFSServiceReceipt"
+    timestamp: now()
+  }
+}

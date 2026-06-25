@@ -1,0 +1,26 @@
+// @hologram_mcp — MCP tool surface for hologram creation, upload, and delivery.
+//
+// Native .hsplus surface for core/spatial/hologram-mcp.ts.
+//
+// Exposes: holo_hologram_render, holo_hologram_upload_bundle, holo_hologram_send
+// Entry for MCP-routed hologram operations
+
+@trait hologram_mcp {
+  capability_tags: ["hologram_mcp", "mcp_hologram_tools", "render_upload_send", "spatial_mcp", "core"]
+
+  @on_spawn => {
+    emit("hologram_mcp_ready", {})
+  }
+
+  @on_render(composition, opts) => {
+    result = render_hologram_mcp(composition, opts)
+    emit("hologram_rendered", {})
+    return result
+  }
+
+  @receipt hologram_mcp_config {
+    type: "HologramMCPReceipt"
+    tools: ["holo_hologram_render", "holo_hologram_upload_bundle", "holo_hologram_send"]
+    timestamp: now()
+  }
+}

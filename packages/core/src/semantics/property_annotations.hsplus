@@ -1,0 +1,23 @@
+// @property_annotations — Property-level semantic annotations: @range, @unit, @readonly, @deprecated.
+//
+// Native .hsplus surface for core/semantics/PropertyAnnotations.ts.
+//
+// annotate(prop, annotation) / getAnnotations(prop) → Annotation[]
+
+@trait property_annotations {
+  capability_tags: ["property_annotations", "range_unit_readonly", "property_metadata", "semantic_annotations", "core"]
+
+  @on_spawn => {
+    emit("property_annotations_ready", {})
+  }
+
+  @on_annotate(prop, annotation) => {
+    annotate_property(prop, annotation)
+  }
+
+  @receipt property_annotations_config {
+    type: "PropertyAnnotationsReceipt"
+    annotations: ["@range", "@unit", "@readonly", "@deprecated"]
+    timestamp: now()
+  }
+}

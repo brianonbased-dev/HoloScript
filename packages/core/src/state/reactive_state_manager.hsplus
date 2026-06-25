@@ -1,0 +1,23 @@
+// @reactive_state_manager — Reactive state manager: proxy-based mutation tracking, subscriber notification.
+//
+// Native .hsplus surface for core/state/ReactiveState.ts.
+//
+// create(initial) → ReactiveState / subscribe(path, cb) / set(path, value)
+
+@trait reactive_state_manager {
+  capability_tags: ["reactive_state_manager", "proxy_mutation", "subscriber_notification", "reactive_state", "core"]
+
+  @on_spawn => {
+    emit("reactive_state_manager_ready", {})
+  }
+
+  @on_set(path, value) => {
+    set_reactive_state(path, value)
+  }
+
+  @receipt reactive_state_manager_config {
+    type: "ReactiveStateManagerReceipt"
+    mechanism: "Proxy-based mutation tracking"
+    timestamp: now()
+  }
+}

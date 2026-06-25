@@ -1,0 +1,27 @@
+// @scale_bridge — Bridges state across HoloScript scale tiers (T0→T1→T2→T3).
+//
+// Native .hsplus surface for core/state/ScaleBridge.ts.
+//
+// promote(state, fromTier, toTier) / demote(state, fromTier, toTier)
+// D.051: T0>T1>T2>T3 sovereign seat hierarchy; scale-bridge enforces tier transitions
+
+@trait scale_bridge {
+  capability_tags: ["scale_bridge", "tier_transition", "t0_t1_t2_t3", "sovereign_hierarchy", "core"]
+
+  @on_spawn => {
+    emit("scale_bridge_ready", {})
+  }
+
+  @on_promote(state, from_tier, to_tier) => {
+    result = promote_state_tier(state, from_tier, to_tier)
+    emit("state_promoted", { from_tier, to_tier })
+    return result
+  }
+
+  @receipt scale_bridge_config {
+    type: "ScaleBridgeReceipt"
+    hierarchy: "T0 > T1 > T2 > T3"
+    doc: "D.051"
+    timestamp: now()
+  }
+}

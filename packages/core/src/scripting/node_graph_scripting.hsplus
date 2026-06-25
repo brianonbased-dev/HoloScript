@@ -1,0 +1,27 @@
+// @node_graph_scripting — Scripting-layer node graph: mutable graph state for editor/runtime sync.
+//
+// Native .hsplus surface for core/scripting/NodeGraph.ts.
+//
+// addNode(node) / connect(fromId, toId) / removeNode(id) / execute(inputs) → outputs
+
+@trait node_graph_scripting {
+  capability_tags: ["node_graph_scripting", "mutable_graph", "editor_runtime_sync", "scripting_graph", "core"]
+
+  @on_spawn => {
+    emit("node_graph_scripting_ready", {})
+  }
+
+  @on_add_node(node) => {
+    add_scripting_node(node)
+  }
+
+  @on_execute(inputs) => {
+    outputs = execute_scripting_graph(inputs)
+    return outputs
+  }
+
+  @receipt node_graph_scripting_config {
+    type: "NodeGraphScriptingReceipt"
+    timestamp: now()
+  }
+}

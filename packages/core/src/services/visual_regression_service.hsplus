@@ -1,0 +1,24 @@
+// @visual_regression_service — CI visual regression: renders composition, diffs against baseline image.
+//
+// Native .hsplus surface for core/services/VisualRegressionService.ts.
+//
+// capture(composition) → Screenshot / diff(a, b) → DiffResult { pass, pixelDelta }
+
+@trait visual_regression_service {
+  capability_tags: ["visual_regression_service", "ci_visual_regression", "screenshot_diff", "baseline_comparison", "core"]
+
+  @on_spawn => {
+    emit("visual_regression_service_ready", {})
+  }
+
+  @on_diff(a, b) => {
+    result = diff_visual_regression(a, b)
+    if !result.pass { emit("visual_regression_failed", { delta: result.pixelDelta }) }
+    return result
+  }
+
+  @receipt visual_regression_service_config {
+    type: "VisualRegressionServiceReceipt"
+    timestamp: now()
+  }
+}

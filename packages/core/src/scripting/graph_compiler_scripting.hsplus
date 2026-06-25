@@ -1,0 +1,25 @@
+// @graph_compiler_scripting — Compiles visual node graph to HoloScript+ output.
+//
+// Native .hsplus surface for core/scripting/GraphCompiler.ts.
+//
+// compile(graph) → HSPlusSource — distinct from logic/NodeGraphCompiler; scripting-layer variant
+
+@trait graph_compiler_scripting {
+  capability_tags: ["graph_compiler_scripting", "node_graph_to_hsplus", "scripting_compiler", "visual_to_native", "core"]
+
+  @on_spawn => {
+    emit("graph_compiler_scripting_ready", {})
+  }
+
+  @on_compile(graph) => {
+    source = compile_scripting_graph(graph)
+    emit("scripting_graph_compiled", {})
+    return source
+  }
+
+  @receipt graph_compiler_scripting_config {
+    type: "GraphCompilerScriptingReceipt"
+    output: "HoloScript+ source"
+    timestamp: now()
+  }
+}

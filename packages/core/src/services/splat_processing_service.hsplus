@@ -1,0 +1,25 @@
+// @splat_processing_service — Processes Gaussian splat assets: load, sort, cull, upload to GPU.
+//
+// Native .hsplus surface for core/services/SplatProcessingService.ts.
+//
+// process(splatPath) → SplatGPUHandle / update(handle, camera)
+
+@trait splat_processing_service {
+  capability_tags: ["splat_processing_service", "gaussian_splat", "splat_sort_cull", "gpu_upload", "core"]
+
+  @on_spawn => {
+    emit("splat_processing_service_ready", {})
+  }
+
+  @on_process(splat_path) => {
+    handle = process_splat_asset(splat_path)
+    emit("splat_processed", {})
+    return handle
+  }
+
+  @receipt splat_processing_service_config {
+    type: "SplatProcessingServiceReceipt"
+    pipeline: "load → sort → cull → GPU upload"
+    timestamp: now()
+  }
+}

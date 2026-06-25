@@ -1,0 +1,20 @@
+// @spatial_context — Spatial execution context: world frame, active anchor, scale tier.
+//
+// Native .hsplus surface for core/spatial/spatial-context.ts.
+//
+// SpatialContext { worldFrame, anchor?, scaleTier, timestamp }
+// Injected into every spatial execution; used by transform and reconstruction
+
+@trait spatial_context {
+  capability_tags: ["spatial_context", "world_frame", "anchor", "scale_tier", "core"]
+
+  @on_spawn => {
+    emit("spatial_context_ready", {})
+  }
+
+  @receipt spatial_context_config {
+    type: "SpatialContextReceipt"
+    fields: ["worldFrame", "anchor", "scaleTier", "timestamp"]
+    timestamp: now()
+  }
+}

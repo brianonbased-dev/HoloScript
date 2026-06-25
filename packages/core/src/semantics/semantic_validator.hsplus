@@ -1,0 +1,25 @@
+// @semantic_validator — Validates semantic correctness of HoloScript AST: types, scopes, annotations.
+//
+// Native .hsplus surface for core/semantics/SemanticValidator.ts.
+//
+// validate(ast) → SemanticError[] / validateAnnotations(node) → AnnotationError[]
+
+@trait semantic_validator {
+  capability_tags: ["semantic_validator", "type_scope_validation", "annotation_errors", "semantic_correctness", "core"]
+
+  @on_spawn => {
+    emit("semantic_validator_ready", {})
+  }
+
+  @on_validate(ast) => {
+    errors = validate_semantic_ast(ast)
+    if errors.length > 0 { emit("semantic_errors", { count: errors.length }) }
+    return errors
+  }
+
+  @receipt semantic_validator_config {
+    type: "SemanticValidatorReceipt"
+    checks: ["types", "scopes", "annotations"]
+    timestamp: now()
+  }
+}

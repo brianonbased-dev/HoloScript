@@ -1,0 +1,22 @@
+// @data_binding_schema — JSON Schema for HoloScript data binding declarations.
+//
+// Native .hsplus surface for core/semantics/DataBindingSchema.ts.
+//
+// validate(binding) → ValidationResult / toAnnotation(binding) → SemanticAnnotation
+
+@trait data_binding_schema {
+  capability_tags: ["data_binding_schema", "binding_json_schema", "semantic_annotation", "data_binding", "core"]
+
+  @on_spawn => {
+    emit("data_binding_schema_ready", {})
+  }
+
+  @on_validate(binding) => {
+    return validate_data_binding_schema(binding)
+  }
+
+  @receipt data_binding_schema_config {
+    type: "DataBindingSchemaReceipt"
+    timestamp: now()
+  }
+}

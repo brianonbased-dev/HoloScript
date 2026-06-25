@@ -1,0 +1,22 @@
+// @hololand_roadmap_service — Tracks HoloLand feature roadmap: milestones, status, blockers.
+//
+// Native .hsplus surface for core/services/HololandRoadmapService.ts.
+//
+// list() → Milestone[] / update(id, status) / getBlockers(id) → Blocker[]
+
+@trait hololand_roadmap_service {
+  capability_tags: ["hololand_roadmap_service", "milestone_tracking", "roadmap_status", "blocker_tracking", "core"]
+
+  @on_spawn => {
+    emit("hololand_roadmap_service_ready", {})
+  }
+
+  @on_list => {
+    return list_roadmap_milestones()
+  }
+
+  @receipt hololand_roadmap_service_config {
+    type: "HololandRoadmapServiceReceipt"
+    timestamp: now()
+  }
+}

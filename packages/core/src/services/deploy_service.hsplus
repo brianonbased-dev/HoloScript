@@ -1,0 +1,25 @@
+// @deploy_service — HoloScript composition deploy service: validates, packages, and deploys to target.
+//
+// Native .hsplus surface for core/services/DeployService.ts.
+//
+// deploy(composition, target) → DeployReceipt { url, hash, deployedAt }
+
+@trait deploy_service {
+  capability_tags: ["deploy_service", "composition_deploy", "validate_package_deploy", "deploy_receipt", "core"]
+
+  @on_spawn => {
+    emit("deploy_service_ready", {})
+  }
+
+  @on_deploy(composition, target) => {
+    receipt = deploy_composition(composition, target)
+    emit("composition_deployed", { target, hash: receipt.hash })
+    return receipt
+  }
+
+  @receipt deploy_service_config {
+    type: "DeployServiceReceipt"
+    fields: ["url", "hash", "deployedAt"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @stdlib_actions — HoloScript standard library actions: built-in verbs available to all compositions.
+//
+// Native .hsplus surface for core/stdlib/StdlibActions.ts.
+//
+// math, string, list, map, date, random — all permission-scoped via PermissionScopePolicy
+
+@trait stdlib_actions {
+  capability_tags: ["stdlib_actions", "builtin_verbs", "stdlib_math_string_list", "permission_scoped", "core"]
+
+  @on_spawn => {
+    emit("stdlib_actions_ready", {})
+  }
+
+  @on_invoke(verb, args, context) => {
+    result = invoke_stdlib_action(verb, args, context)
+    return result
+  }
+
+  @receipt stdlib_actions_config {
+    type: "StdlibActionsReceipt"
+    categories: ["math", "string", "list", "map", "date", "random"]
+    gate: "PermissionScopePolicy"
+    timestamp: now()
+  }
+}

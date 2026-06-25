@@ -1,0 +1,17 @@
+// @ipfs_types — IPFS type definitions: CID, PinResult, RetrieveOptions, IPFSConfig.
+//
+// Native .hsplus surface for core/storage/IPFSTypes.ts.
+
+@trait ipfs_types {
+  capability_tags: ["ipfs_types", "cid", "pin_result", "ipfs_config", "core"]
+
+  @on_spawn => {
+    emit("ipfs_types_ready", {})
+  }
+
+  @receipt ipfs_types_config {
+    type: "IPFSTypesReceipt"
+    types: ["CID", "PinResult", "RetrieveOptions", "IPFSConfig"]
+    timestamp: now()
+  }
+}
