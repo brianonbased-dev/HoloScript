@@ -1,0 +1,27 @@
+// @smart_asset_loader — Intelligent asset loading: platform awareness, auto-optimization, streaming, memory management.
+//
+// Native .hsplus surface for core/assets/SmartAssetLoader.ts.
+//
+// load(id, { platform, qualityLevel }) → optimal-format asset
+// Selects best format per platform (Quest=KTX2, Web=WebP, etc.)
+// Auto-degrades quality under memory pressure; streams progressively
+
+@trait smart_asset_loader {
+  capability_tags: ["smart_asset_loader", "platform_aware", "auto_optimization", "streaming", "core"]
+
+  @on_spawn => {
+    emit("smart_asset_loader_ready", {})
+  }
+
+  @on_load(id, context) => {
+    result = smart_load_asset(id, context)
+    emit("smart_asset_loaded", { id, platform: context.platform })
+    return result
+  }
+
+  @receipt smart_asset_loader_config {
+    type: "SmartAssetLoaderReceipt"
+    features: ["platform selection", "quality degradation under pressure", "progressive streaming"]
+    timestamp: now()
+  }
+}

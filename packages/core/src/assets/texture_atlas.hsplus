@@ -1,0 +1,27 @@
+// @texture_atlas — Sprite sheet / texture atlas packing and UV lookup.
+//
+// Native .hsplus surface for core/assets/TextureAtlas.ts.
+//
+// pack(textures[]) → Atlas { texture, uvMap: Record<id, UVRect> }
+// lookup(atlasId, textureId) → UVRect
+// Efficient bin packing; power-of-two output sizes; GPU-optimal layout
+
+@trait texture_atlas {
+  capability_tags: ["texture_atlas", "sprite_packing", "uv_mapping", "bin_packing", "core"]
+
+  @on_spawn => {
+    emit("texture_atlas_ready", {})
+  }
+
+  @on_pack(textures) => {
+    atlas = pack_texture_atlas(textures)
+    emit("atlas_packed", { texture_count: textures.length })
+    return atlas
+  }
+
+  @receipt texture_atlas_config {
+    type: "TextureAtlasReceipt"
+    algorithm: "bin packing; power-of-two output"
+    timestamp: now()
+  }
+}

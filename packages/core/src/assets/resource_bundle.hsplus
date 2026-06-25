@@ -1,0 +1,33 @@
+// @resource_bundle — Resource bundle packing, streaming chunks, priority queues, and preloading.
+//
+// Native .hsplus surface for core/assets/ResourceBundle.ts.
+//
+// pack(resources[]) → Bundle { chunks, totalSize, manifest }
+// stream(bundleId, priority) → chunk iterator
+// preload(bundleId) → Promise-like resolve
+// Priority queue ensures critical assets load first
+
+@trait resource_bundle {
+  capability_tags: ["resource_bundle", "streaming_chunks", "priority_queue", "preload", "core"]
+
+  @on_spawn => {
+    emit("resource_bundle_ready", {})
+  }
+
+  @on_pack(resources) => {
+    bundle = pack_resource_bundle(resources)
+    emit("bundle_packed", { size: bundle.totalSize })
+    return bundle
+  }
+
+  @on_preload(bundle_id) => {
+    preload_resource_bundle(bundle_id)
+    emit("bundle_preloading", { bundle_id })
+  }
+
+  @receipt resource_bundle_config {
+    type: "ResourceBundleReceipt"
+    features: ["streaming chunks", "priority queue", "preload"]
+    timestamp: now()
+  }
+}

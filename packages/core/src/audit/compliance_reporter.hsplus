@@ -1,0 +1,35 @@
+// @compliance_reporter — Generates SOC2 and GDPR compliance reports from audit events.
+//
+// Native .hsplus surface for core/audit/ComplianceReporter.ts.
+// Sprint 9: Audit Logging and Compliance (v3.3.0)
+//
+// generateSOC2Report(period) → SOC2Report { controls, evidence, period }
+// generateGDPRReport(period) → GDPRReport { subjects, retention, consent, period }
+// Structured JSON; sourced from AuditLogger; provenance-traceable
+
+@trait compliance_reporter {
+  capability_tags: ["compliance_reporter", "soc2", "gdpr", "audit_report", "core"]
+
+  @on_spawn => {
+    emit("compliance_reporter_ready", {})
+  }
+
+  @on_generate_soc2(period) => {
+    report = generate_soc2_report(period)
+    emit("soc2_report_generated", { period })
+    return report
+  }
+
+  @on_generate_gdpr(period) => {
+    report = generate_gdpr_report(period)
+    emit("gdpr_report_generated", { period })
+    return report
+  }
+
+  @receipt compliance_reporter_config {
+    type: "ComplianceReporterReceipt"
+    standards: ["SOC2", "GDPR"]
+    output: "structured JSON report with evidence"
+    timestamp: now()
+  }
+}

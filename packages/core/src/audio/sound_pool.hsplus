@@ -1,0 +1,30 @@
+// @sound_pool — Pooled audio clips with category, loop, and volume metadata.
+//
+// Native .hsplus surface for core/audio/SoundPool.ts.
+//
+// SoundDef: { id, name, duration, category, volume, loop }
+// register(def) / play(id) / stopAll(category?)
+// Pool prevents spawning unbounded AudioSource instances for frequent SFX
+
+@trait sound_pool {
+  capability_tags: ["sound_pool", "audio_pooling", "sfx_management", "category_control", "core"]
+
+  @on_spawn => {
+    emit("sound_pool_ready", {})
+  }
+
+  @on_register(def) => {
+    register_sound(def)
+  }
+
+  @on_play(id) => {
+    play_pooled_sound(id)
+    emit("sound_played", { id })
+  }
+
+  @receipt sound_pool_config {
+    type: "SoundPoolReceipt"
+    sound_shape: "{ id, name, duration, category, volume, loop }"
+    timestamp: now()
+  }
+}

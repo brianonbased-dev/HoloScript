@@ -1,0 +1,27 @@
+// @model_importer — glTF/OBJ mesh parsing and material extraction.
+//
+// Native .hsplus surface for core/assets/ModelImporter.ts.
+//
+// import(source) → ImportResult { meshes, materials, skeleton?, animations? }
+// Uses AssimpAdapter internally; feeds ImportPipeline
+// Handles multi-mesh scenes, material groups, optional skeleton and animations
+
+@trait model_importer {
+  capability_tags: ["model_importer", "gltf_obj_parsing", "material_extraction", "mesh_import", "core"]
+
+  @on_spawn => {
+    emit("model_importer_ready", {})
+  }
+
+  @on_import(source) => {
+    result = import_model(source)
+    emit("model_imported", { meshes: result.meshes.length })
+    return result
+  }
+
+  @receipt model_importer_config {
+    type: "ModelImporterReceipt"
+    output: "{ meshes, materials, skeleton?, animations? }"
+    timestamp: now()
+  }
+}

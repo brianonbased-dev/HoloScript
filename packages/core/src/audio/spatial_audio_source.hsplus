@@ -1,0 +1,31 @@
+// @spatial_audio_source — Positional audio source: position, volume, refDistance, playback state.
+//
+// Native .hsplus surface for core/audio/SpatialAudioSource.ts.
+//
+// SpatialAudioSourceConfig: { position: [x,y,z], volume?, refDistance? }
+// play() / stop() / setPosition(vec3) / setVolume(v)
+// Web Audio API PannerNode under the hood; attenuates by distance
+
+@trait spatial_audio_source {
+  capability_tags: ["spatial_audio_source", "positional_audio", "web_audio_panner", "distance_attenuation", "core"]
+
+  @on_spawn(config) => {
+    init_spatial_audio_source(config)
+    emit("spatial_audio_source_ready", {})
+  }
+
+  @on_play => {
+    play_spatial_audio()
+    emit("spatial_audio_playing", {})
+  }
+
+  @on_set_position(position) => {
+    set_spatial_audio_position(position)
+  }
+
+  @receipt spatial_audio_source_config {
+    type: "SpatialAudioSourceReceipt"
+    features: ["3D position", "distance attenuation", "PannerNode"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,27 @@
+// @import_pipeline — Multi-stage asset import with validation and batch processing.
+//
+// Native .hsplus surface for core/assets/ImportPipeline.ts.
+//
+// Stages: ModelImporter → TextureProcessor → validation → receipt
+// run(inputs[]) → ImportPipelineResult[]
+// Batch processing; per-stage receipts; failure isolation per asset
+
+@trait import_pipeline {
+  capability_tags: ["import_pipeline", "multi_stage_import", "batch_processing", "asset_validation", "core"]
+
+  @on_spawn => {
+    emit("import_pipeline_ready", {})
+  }
+
+  @on_run(inputs) => {
+    results = run_import_pipeline(inputs)
+    emit("import_pipeline_done", { count: results.length })
+    return results
+  }
+
+  @receipt import_pipeline_config {
+    type: "ImportPipelineReceipt"
+    stages: ["ModelImporter", "TextureProcessor", "validation", "receipt"]
+    timestamp: now()
+  }
+}

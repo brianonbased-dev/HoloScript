@@ -1,0 +1,34 @@
+// @asset_registry — Central singleton registry for asset discovery, caching, and lifecycle management.
+//
+// Native .hsplus surface for core/assets/AssetRegistry.ts.
+//
+// register(metadata) / get(id) / list(type?) / evict(id)
+// Singleton interface for all asset operations across the runtime
+
+@trait asset_registry {
+  capability_tags: ["asset_registry", "asset_lifecycle", "singleton_cache", "discovery", "core"]
+
+  @on_spawn => {
+    emit("asset_registry_ready", {})
+  }
+
+  @on_register(metadata) => {
+    register_asset_entry(metadata)
+    emit("asset_registered", { id: metadata.id })
+  }
+
+  @on_get(id) => {
+    return get_asset(id)
+  }
+
+  @on_evict(id) => {
+    evict_asset(id)
+    emit("asset_evicted", { id })
+  }
+
+  @receipt asset_registry_config {
+    type: "AssetRegistryReceipt"
+    pattern: "singleton; all asset operations route through here"
+    timestamp: now()
+  }
+}

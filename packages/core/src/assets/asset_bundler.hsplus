@@ -1,0 +1,33 @@
+// @asset_bundler — Groups assets into downloadable bundles with dependency tracking and incremental updates.
+//
+// Native .hsplus surface for core/assets/AssetBundler.ts.
+//
+// bundle(assetIds[]) → Bundle { id, assets, totalSize, dependencies }
+// incrementalUpdate(bundleId, changed[]) → updated Bundle
+// Computes sizes, resolves deps, supports streaming chunks
+
+@trait asset_bundler {
+  capability_tags: ["asset_bundler", "asset_grouping", "incremental_bundle", "dependency_tracking", "core"]
+
+  @on_spawn => {
+    emit("asset_bundler_ready", {})
+  }
+
+  @on_bundle(asset_ids) => {
+    bundle = create_asset_bundle(asset_ids)
+    emit("bundle_created", { id: bundle.id, size: bundle.totalSize })
+    return bundle
+  }
+
+  @on_incremental_update(bundle_id, changed) => {
+    bundle = update_asset_bundle(bundle_id, changed)
+    emit("bundle_updated", { id: bundle_id })
+    return bundle
+  }
+
+  @receipt asset_bundler_config {
+    type: "AssetBundlerReceipt"
+    features: ["dependency resolution", "size tracking", "incremental update", "streaming chunks"]
+    timestamp: now()
+  }
+}

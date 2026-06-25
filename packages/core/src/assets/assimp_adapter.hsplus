@@ -1,0 +1,28 @@
+// @assimp_adapter — Bridges @holoscript/assimp-plugin to ModelImporter pipeline.
+//
+// Native .hsplus surface for core/assets/AssimpAdapter.ts.
+//
+// convertAssimpSceneToImportResult(scene) → ImportResult
+// Converts AssimpScene (from plugin) into the shape ModelImporter and ImportPipeline expect
+// Handles node hierarchy, mesh extraction, material mapping
+
+@trait assimp_adapter {
+  capability_tags: ["assimp_adapter", "assimp_bridge", "model_import", "format_conversion", "core"]
+
+  @on_spawn => {
+    emit("assimp_adapter_ready", {})
+  }
+
+  @on_convert(scene) => {
+    result = convert_assimp_scene(scene)
+    emit("assimp_converted", { meshes: result.meshes.length })
+    return result
+  }
+
+  @receipt assimp_adapter_config {
+    type: "AssimpAdapterReceipt"
+    input: "AssimpScene from @holoscript/assimp-plugin"
+    output: "ImportResult for ModelImporter/ImportPipeline"
+    timestamp: now()
+  }
+}

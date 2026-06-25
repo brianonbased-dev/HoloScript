@@ -1,0 +1,28 @@
+// @import_normalization_spine — Assimp + MSF/OpenUSD/glTF normalization spine for legacy format ingest.
+//
+// Native .hsplus surface for core/assets/ImportNormalizationSpine.ts.
+//
+// normalize(input, format) → NormalizationResult { glb, semanticSidecars, receipt }
+// Formats: FBX, OBJ, DAE, 3DS, STEP, IFC, USD/USDA/USDC/USDZ, glTF
+// Produces GLB + semantic sidecars + provenance receipt
+
+@trait import_normalization_spine {
+  capability_tags: ["import_normalization_spine", "legacy_format_ingest", "usda_usdz", "glb_normalization", "core"]
+
+  @on_spawn => {
+    emit("import_normalization_spine_ready", {})
+  }
+
+  @on_normalize(input, format) => {
+    result = normalize_asset_format(input, format)
+    emit("asset_normalized", { format, sidecar_count: result.semanticSidecars.length })
+    return result
+  }
+
+  @receipt import_normalization_spine_config {
+    type: "ImportNormalizationReceipt"
+    formats: ["FBX", "OBJ", "DAE", "3DS", "STEP", "IFC", "USD/USDA/USDC/USDZ", "glTF"]
+    output: "GLB + semantic sidecars + provenance receipt"
+    timestamp: now()
+  }
+}

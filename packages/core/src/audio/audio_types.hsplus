@@ -1,0 +1,22 @@
+// @audio_types — MIDI/frequency utilities and audio factory helpers.
+//
+// Native .hsplus surface for core/audio/AudioTypes.ts.
+//
+// midiToFrequency(note) → Hz
+// noteToFrequency(name: 'C4' | 'A3') → Hz
+// Vec3: { x, y, z } — used for spatial audio positions
+// Shared types across AudioEngine and SpatialAudioSource
+
+@trait audio_types {
+  capability_tags: ["audio_types", "midi_frequency", "note_conversion", "audio_vec3", "core"]
+
+  @on_spawn => {
+    emit("audio_types_ready", {})
+  }
+
+  @receipt audio_types_config {
+    type: "AudioTypesReceipt"
+    utilities: ["midiToFrequency", "noteToFrequency", "Vec3 spatial position"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,32 @@
+// @resource_loader — Async resource loading: dependency graphs, progress tracking, cancellation, error handling.
+//
+// Native .hsplus surface for core/assets/ResourceLoader.ts.
+//
+// load(id, options?) → ResourceResult
+// loadMany(ids[]) → ResourceResult[]
+// cancel(id) / onProgress(cb)
+// Respects dependency order from AssetDependencyGraph
+
+@trait resource_loader {
+  capability_tags: ["resource_loader", "async_loading", "progress_tracking", "cancellation", "core"]
+
+  @on_spawn => {
+    emit("resource_loader_ready", {})
+  }
+
+  @on_load(id, options) => {
+    result = load_resource(id, options)
+    return result
+  }
+
+  @on_cancel(id) => {
+    cancel_resource_load(id)
+    emit("resource_load_cancelled", { id })
+  }
+
+  @receipt resource_loader_config {
+    type: "ResourceLoaderReceipt"
+    features: ["dependency-ordered loading", "progress callbacks", "cancellation", "error handling"]
+    timestamp: now()
+  }
+}

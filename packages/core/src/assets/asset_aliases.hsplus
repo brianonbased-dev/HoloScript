@@ -1,0 +1,27 @@
+// @asset_aliases — Semantic mapping: AI/descriptive names → asset IDs, paths, or URLs.
+//
+// Native .hsplus surface for core/assets/AssetAliases.ts.
+//
+// resolve(alias) → assetId | path | url
+// Decouples AI generation from physical asset storage
+// Enables "generate a tree" → tree_mesh_01 without hardcoding paths
+
+@trait asset_aliases {
+  capability_tags: ["asset_aliases", "semantic_asset_resolution", "ai_decoupling", "core"]
+
+  @on_spawn => {
+    emit("asset_aliases_ready", {})
+  }
+
+  @on_resolve(alias) => {
+    result = resolve_asset_alias(alias)
+    emit("alias_resolved", { alias, result })
+    return result
+  }
+
+  @receipt asset_aliases_config {
+    type: "AssetAliasesReceipt"
+    purpose: "semantic alias → physical asset ID/path/URL"
+    timestamp: now()
+  }
+}

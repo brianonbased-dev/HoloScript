@@ -1,0 +1,30 @@
+// @asset_manifest — Central catalog for all project assets: metadata, discovery, validation, platform optimization.
+//
+// Native .hsplus surface for core/assets/AssetManifest.ts.
+//
+// register(metadata) / discover(filter) → AssetMetadata[]
+// validate() → ValidationResult
+// Platform-aware: selects optimal format per target (Quest/iOS/Web)
+
+@trait asset_manifest {
+  capability_tags: ["asset_manifest", "asset_catalog", "discovery", "platform_optimization", "core"]
+
+  @on_spawn => {
+    emit("asset_manifest_ready", {})
+  }
+
+  @on_register(metadata) => {
+    register_asset(metadata)
+    emit("asset_registered", { id: metadata.id })
+  }
+
+  @on_discover(filter) => {
+    return discover_assets(filter)
+  }
+
+  @receipt asset_manifest_config {
+    type: "AssetManifestReceipt"
+    features: ["discovery", "platform-aware selection", "validation", "dependency resolution"]
+    timestamp: now()
+  }
+}

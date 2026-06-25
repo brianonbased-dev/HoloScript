@@ -1,0 +1,34 @@
+// @audit_logger — Append-only audit event logging with query, export, and retention management.
+//
+// Native .hsplus surface for core/audit/AuditLogger.ts.
+// Sprint 9: Audit Logging and Compliance (v3.3.0)
+//
+// log(event) / query(filter) → AuditEvent[] / export(format: json|csv)
+// Append-only (immutable after write); retention policy per event type
+// Feeds ComplianceReporter for SOC2 / GDPR
+
+@trait audit_logger {
+  capability_tags: ["audit_logger", "append_only_log", "compliance", "retention", "core"]
+
+  @on_spawn => {
+    emit("audit_logger_ready", {})
+  }
+
+  @on_log(event) => {
+    append_audit_event(event)
+  }
+
+  @on_query(filter) => {
+    return query_audit_events(filter)
+  }
+
+  @on_export(format) => {
+    return export_audit_log(format)
+  }
+
+  @receipt audit_logger_config {
+    type: "AuditLoggerReceipt"
+    features: ["append-only", "query API", "export json/csv", "retention policy"]
+    timestamp: now()
+  }
+}

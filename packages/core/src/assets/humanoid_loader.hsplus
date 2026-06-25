@@ -1,0 +1,27 @@
+// @humanoid_loader — Unified loader for humanoid avatars: Ready Player Me and VRM formats.
+//
+// Native .hsplus surface for core/assets/HumanoidLoader.ts.
+//
+// load(url, format: rpm|vrm) → HumanoidAvatar
+// Integrates with HoloScript humanoid traits: skeleton, face, expressive, blendshapes
+
+@trait humanoid_loader {
+  capability_tags: ["humanoid_loader", "ready_player_me", "vrm", "avatar_loading", "core"]
+
+  @on_spawn => {
+    emit("humanoid_loader_ready", {})
+  }
+
+  @on_load(url, format) => {
+    avatar = load_humanoid_avatar(url, format)
+    emit("humanoid_loaded", { format })
+    return avatar
+  }
+
+  @receipt humanoid_loader_config {
+    type: "HumanoidLoaderReceipt"
+    formats: ["rpm (Ready Player Me)", "vrm"]
+    traits_integrated: ["skeleton", "face", "expressive", "blendshapes"]
+    timestamp: now()
+  }
+}

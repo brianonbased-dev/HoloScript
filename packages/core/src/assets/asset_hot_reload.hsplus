@@ -1,0 +1,29 @@
+// @asset_hot_reload — Live asset hot-reloading: watches for changes, invalidates caches, notifies subscribers.
+//
+// Native .hsplus surface for core/assets/AssetHotReload.ts.
+//
+// watch(assetId) / unwatch(assetId) / onChanged(cb)
+// Invalidates cached versions on change; editor-only; production uses static bundles
+
+@trait asset_hot_reload {
+  capability_tags: ["asset_hot_reload", "live_reload", "cache_invalidation", "editor_only", "core"]
+
+  @on_spawn => {
+    emit("asset_hot_reload_ready", {})
+  }
+
+  @on_watch(asset_id) => {
+    watch_asset(asset_id)
+  }
+
+  @on_asset_changed(asset_id) => {
+    invalidate_asset_cache(asset_id)
+    emit("asset_hot_reloaded", { asset_id })
+  }
+
+  @receipt asset_hot_reload_config {
+    type: "AssetHotReloadReceipt"
+    scope: "editor-only (production uses static bundles)"
+    timestamp: now()
+  }
+}

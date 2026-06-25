@@ -1,0 +1,26 @@
+// @asset_validator — Validates asset metadata, compatibility, and completeness; suggests optimizations.
+//
+// Native .hsplus surface for core/assets/AssetValidator.ts.
+//
+// validate(metadata) → ValidationResult { valid, errors[], warnings[], suggestions[] }
+// Checks: required fields, format support on platforms, size limits, checksum
+
+@trait asset_validator {
+  capability_tags: ["asset_validator", "metadata_validation", "compatibility_check", "optimization_hints", "core"]
+
+  @on_spawn => {
+    emit("asset_validator_ready", {})
+  }
+
+  @on_validate(metadata) => {
+    result = validate_asset(metadata)
+    if !result.valid { emit("asset_invalid", { id: metadata.id, errors: result.errors }) }
+    return result
+  }
+
+  @receipt asset_validator_config {
+    type: "AssetValidatorReceipt"
+    checks: ["required fields", "platform compatibility", "size limits", "checksum"]
+    timestamp: now()
+  }
+}

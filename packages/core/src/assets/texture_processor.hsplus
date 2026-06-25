@@ -1,0 +1,28 @@
+// @texture_processor — Resize, format conversion, mipmap generation, and atlas packing for textures.
+//
+// Native .hsplus surface for core/assets/TextureProcessor.ts.
+//
+// process(input, options) → ProcessedTexture
+// TextureFormat: rgba8 | rgb8 | bc1 | bc3 | bc7 | astc | etc2
+// Mipmap chain generation; GPU-compressed output for platform targets
+
+@trait texture_processor {
+  capability_tags: ["texture_processor", "format_conversion", "mipmap_generation", "gpu_compression", "core"]
+
+  @on_spawn => {
+    emit("texture_processor_ready", {})
+  }
+
+  @on_process(input, options) => {
+    result = process_texture(input, options)
+    emit("texture_processed", { format: options.format })
+    return result
+  }
+
+  @receipt texture_processor_config {
+    type: "TextureProcessorReceipt"
+    formats: ["rgba8", "rgb8", "bc1", "bc3", "bc7", "astc", "etc2"]
+    features: ["resize", "format conversion", "mipmap chain", "atlas packing"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @audio_mixer — Channel-based audio mixing: master volume, per-channel volume, mute.
+//
+// Native .hsplus surface for core/audio/AudioMixer.ts.
+//
+// setMasterVolume(v) / setChannelVolume(name, v) / muteChannel(name) / unmuteChannel(name)
+// Channels: music, sfx, voice, ambient
+// All output routes through mixer before AudioEngine dispatch
+
+@trait audio_mixer {
+  capability_tags: ["audio_mixer", "channel_mixing", "master_volume", "mute", "core"]
+
+  @on_spawn => {
+    emit("audio_mixer_ready", {})
+  }
+
+  @on_set_master_volume(volume) => {
+    set_master_volume(volume)
+  }
+
+  @on_mute_channel(name) => {
+    mute_audio_channel(name)
+    emit("channel_muted", { name })
+  }
+
+  @receipt audio_mixer_config {
+    type: "AudioMixerReceipt"
+    channels: ["music", "sfx", "voice", "ambient"]
+    timestamp: now()
+  }
+}

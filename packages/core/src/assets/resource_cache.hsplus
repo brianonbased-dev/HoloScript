@@ -1,0 +1,30 @@
+// @resource_cache — LRU eviction, reference counting, TTL expiry, memory pressure management.
+//
+// Native .hsplus surface for core/assets/ResourceCache.ts.
+//
+// get(id) / set(id, resource) / evict(id) / trim(memoryBudgetBytes)
+// LRU eviction when capacity exceeded; TTL expiry for stale assets
+// Reference counting prevents eviction of in-use resources
+
+@trait resource_cache {
+  capability_tags: ["resource_cache", "lru_eviction", "reference_counting", "ttl_expiry", "core"]
+
+  @on_spawn => {
+    emit("resource_cache_ready", {})
+  }
+
+  @on_get(id) => {
+    return get_cached_resource(id)
+  }
+
+  @on_trim(memory_budget_bytes) => {
+    evicted = trim_resource_cache(memory_budget_bytes)
+    emit("cache_trimmed", { evicted })
+  }
+
+  @receipt resource_cache_config {
+    type: "ResourceCacheReceipt"
+    strategy: "LRU + TTL + reference counting"
+    timestamp: now()
+  }
+}

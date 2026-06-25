@@ -1,0 +1,27 @@
+// @audit_query_builder — Fluent chainable query builder for audit event filters.
+//
+// Native .hsplus surface for core/audit/AuditQueryBuilder.ts.
+// Sprint 9: Audit Logging and Compliance (v3.3.0)
+//
+// where(field, op, value).and(...).build() → AuditFilter
+// Operators: eq | ne | gt | gte | lt | lte | in | contains
+
+@trait audit_query_builder {
+  capability_tags: ["audit_query_builder", "fluent_query", "audit_filter", "compliance", "core"]
+
+  @on_spawn => {
+    emit("audit_query_builder_ready", {})
+  }
+
+  @on_build(clauses) => {
+    filter = build_audit_filter(clauses)
+    return filter
+  }
+
+  @receipt audit_query_builder_config {
+    type: "AuditQueryBuilderReceipt"
+    operators: ["eq", "ne", "gt", "gte", "lt", "lte", "in", "contains"]
+    pattern: "fluent chainable builder"
+    timestamp: now()
+  }
+}

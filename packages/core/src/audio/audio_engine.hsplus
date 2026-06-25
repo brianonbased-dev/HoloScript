@@ -1,0 +1,31 @@
+// @audio_engine — Core audio playback engine with spatial (3D positional) audio support.
+//
+// Native .hsplus surface for core/audio/AudioEngine.ts.
+//
+// play(id, options?) / stop(id) / setPosition(id, vec3)
+// Spatialize=true → 3D positional audio via Web Audio API panning
+// Shared by SpatialAudioSource and SoundPool
+
+@trait audio_engine {
+  capability_tags: ["audio_engine", "positional_audio", "web_audio", "3d_sound", "core"]
+
+  @on_spawn => {
+    emit("audio_engine_ready", {})
+  }
+
+  @on_play(id, options) => {
+    play_audio(id, options)
+    emit("audio_playing", { id, spatialize: options.spatialize })
+  }
+
+  @on_stop(id) => {
+    stop_audio(id)
+    emit("audio_stopped", { id })
+  }
+
+  @receipt audio_engine_config {
+    type: "AudioEngineReceipt"
+    features: ["positional audio", "volume control", "Web Audio API"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @asset_metadata — Rich metadata schema for smart asset management: AI optimization, platform loading, semantic discovery.
+//
+// Native .hsplus surface for core/assets/AssetMetadata.ts.
+//
+// AssetMetadata: { id, type, format, platforms, tags, size, checksum, ... }
+// AssetFormat: gltf | glb | png | jpg | webp | ktx2 | ...
+// AssetType: model | texture | audio | animation | material | ...
+// Enables AI-driven optimization and cross-platform asset selection
+
+@trait asset_metadata {
+  capability_tags: ["asset_metadata", "asset_schema", "platform_aware", "ai_optimization", "core"]
+
+  @on_spawn => {
+    emit("asset_metadata_ready", {})
+  }
+
+  @receipt asset_metadata_config {
+    type: "AssetMetadataReceipt"
+    asset_types: ["model", "texture", "audio", "animation", "material"]
+    formats: ["gltf", "glb", "png", "jpg", "webp", "ktx2"]
+    timestamp: now()
+  }
+}

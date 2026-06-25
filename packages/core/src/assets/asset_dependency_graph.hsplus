@@ -1,0 +1,32 @@
+// @asset_dependency_graph — Tracks and resolves asset dependencies; detects circular deps; topological sort.
+//
+// Native .hsplus surface for core/assets/AssetDependencyGraph.ts.
+//
+// addEdge(from, to) / resolve(root) → topological order
+// detectCycles() → CyclicDependencyError[]
+// Used by AssetBundler and ResourceLoader for load-order guarantees
+
+@trait asset_dependency_graph {
+  capability_tags: ["asset_dependency_graph", "topological_sort", "cycle_detection", "load_order", "core"]
+
+  @on_spawn => {
+    emit("asset_dependency_graph_ready", {})
+  }
+
+  @on_resolve(root_id) => {
+    order = resolve_asset_deps(root_id)
+    return order
+  }
+
+  @on_detect_cycles => {
+    cycles = detect_asset_cycles()
+    if cycles.length > 0 { emit("cycles_detected", { count: cycles.length }) }
+    return cycles
+  }
+
+  @receipt asset_dependency_graph_config {
+    type: "AssetDependencyGraphReceipt"
+    features: ["topological sort", "circular dependency detection", "incremental add"]
+    timestamp: now()
+  }
+}
