@@ -1,0 +1,30 @@
+// @protocol_agent — Concrete BaseAgent: 7-phase uAA2++ lifecycle backed by LLM calls.
+//
+// Native .hsplus surface for framework/protocol-agent.ts.
+//
+// 7 phases: INTAKE → REFLECT → EXECUTE → COMPRESS → DREAMING → GROW → EVOLVE
+// Lightweight phases (reflect/compress/grow/evolve) use haiku-tier model.
+// Execute phase uses agent's configured model.
+// runCycle(task) → CycleResult with per-phase PhaseResult
+
+@trait protocol_agent {
+  capability_tags: ["protocol_agent", "uaa2_lifecycle", "llm_backed", "haiku_lightweight_phases", "cycle_result", "framework"]
+
+  @on_spawn => {
+    agent = init_protocol_agent(config)
+    emit("protocol_agent_ready", { name: config.name })
+  }
+
+  @on_run_cycle(task) => {
+    result = agent.run_cycle(task)
+    emit("cycle_complete", { phase_count: result.phases.length })
+    return result
+  }
+
+  @receipt protocol_agent_config {
+    type: "ProtocolAgentReceipt"
+    phases: ["INTAKE", "REFLECT", "EXECUTE", "COMPRESS", "DREAMING", "GROW", "EVOLVE"]
+    llm_strategy: "haiku for lightweight phases; agent model for EXECUTE"
+    timestamp: now()
+  }
+}

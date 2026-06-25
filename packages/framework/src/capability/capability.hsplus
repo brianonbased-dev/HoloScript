@@ -1,0 +1,31 @@
+// @capability — Unified canonical Capability interface unifying fragmented shapes across HoloScript.
+//
+// Native .hsplus surface for framework/capability/Capability.ts.
+//
+// Resolves fragmentation: AgentManifest.AgentCapability (12 fields) vs mesh MeshCapability (3 fields)
+// vs board StewardCapability vs .hsplus capability blocks.
+// Single base Capability { id, type, domain, trustLevel, resourceCost, latencyProfile }
+// Context extensions: SpatialCapability, NetworkCapability, CognitiveCapability
+// validate(capability) → { valid, errors[] }
+
+@trait capability {
+  capability_tags: ["capability", "unified_capability_schema", "capability_validation", "trust_level", "framework"]
+
+  @on_spawn => {
+    emit("capability_ready", {})
+  }
+
+  @on_validate(cap) => {
+    result = validate_capability(cap)
+    if !result.valid { emit("capability_invalid", { errors: result.errors }) }
+    return result
+  }
+
+  @receipt capability_config {
+    type: "CapabilityReceipt"
+    base_fields: ["id", "type", "domain", "trustLevel", "resourceCost", "latencyProfile"]
+    extensions: ["SpatialCapability", "NetworkCapability", "CognitiveCapability"]
+    resolves: "AgentCapability/MeshCapability/StewardCapability name collision"
+    timestamp: now()
+  }
+}

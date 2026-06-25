@@ -1,0 +1,29 @@
+// @ai_adapters — Concrete AI provider adapters: Anthropic, OpenAI, OpenRouter, xAI, Gemini, Local.
+//
+// Native .hsplus surface for framework/ai/adapters.ts.
+//
+// All implement IAIAdapter: generateHoloScript, generateText, embed (optional)
+// Providers: AnthropicAdapter, OpenAIAdapter, OpenRouterAdapter, XAIAdapter, GeminiAdapter, LocalLLMAdapter
+// Each delegates to @holoscript/llm-provider with withRetry (exponential backoff, 429/5xx)
+// createAdapter(provider, apiKey) → IAIAdapter — factory function
+
+@trait ai_adapters {
+  capability_tags: ["ai_adapters", "anthropic_adapter", "openai_adapter", "xai_adapter", "gemini_adapter", "local_llm", "framework"]
+
+  @on_spawn => {
+    emit("ai_adapters_ready", {})
+  }
+
+  @on_create(provider, api_key) => {
+    adapter = create_ai_adapter(provider, api_key)
+    emit("adapter_created", { provider })
+    return adapter
+  }
+
+  @receipt ai_adapters_config {
+    type: "AIAdaptersReceipt"
+    providers: ["anthropic", "openai", "openrouter", "xai", "gemini", "local"]
+    retry: "exponential backoff on 429/5xx via llm-provider withRetry"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,37 @@
+// @distributed_claimer — Optimistic CAS-based task claiming across machines via gossip.
+//
+// Native .hsplus surface for framework/distributed-claimer.ts.
+//
+// claim(taskId, agentId, priority) → ClaimResult { success, taskId, claimedBy, priority }
+// Conflict resolution: priority + monotonic first-writer-wins timestamp
+// Uses MeshDiscovery gossip layer for distributed state propagation
+// release(taskId, agentId) — voluntarily release a claim
+// FW-0.6 — Distributed task claiming across machines
+
+@trait distributed_claimer {
+  capability_tags: ["distributed_claimer", "cas_claiming", "gossip_layer", "priority_resolution", "distributed_state", "framework"]
+
+  @on_spawn => {
+    claimer = init_distributed_claimer()
+    emit("distributed_claimer_ready", {})
+  }
+
+  @on_claim(task_id, agent_id, priority) => {
+    result = claimer.claim(task_id, agent_id, priority)
+    if result.success { emit("task_claimed", { task_id, agent_id }) }
+    else { emit("claim_lost", { task_id, holder: result.claimed_by }) }
+    return result
+  }
+
+  @on_release(task_id, agent_id) => {
+    claimer.release(task_id, agent_id)
+    emit("claim_released", { task_id })
+  }
+
+  @receipt distributed_claimer_config {
+    type: "DistributedClaimerReceipt"
+    algorithm: "optimistic CAS + monotonic timestamp"
+    transport: "MeshDiscovery gossip layer"
+    timestamp: now()
+  }
+}

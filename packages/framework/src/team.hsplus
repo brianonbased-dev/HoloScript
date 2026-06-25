@@ -1,0 +1,38 @@
+// @team — Central orchestrator: agents claim tasks, execute, publish knowledge, and grow.
+//
+// Native .hsplus surface for framework/team.ts.
+//
+// Team { config, runCycle() → CycleResult, propose(idea) → ProposalResult }
+// AgentRuntime: claimed task → execute → commit result → publish knowledge
+// ConsensusMode: vote | lead-follow | unanimous
+// Reputation tiers gating contribution visibility
+// Local-first: fully in-process; optional remote board/knowledge
+
+@trait team {
+  capability_tags: ["team", "agent_orchestration", "cycle_result", "consensus", "reputation", "knowledge_publishing", "framework"]
+
+  @on_spawn => {
+    team = init_team(config)
+    emit("team_ready", { name: config.name })
+  }
+
+  @on_run_cycle => {
+    result = team.run_cycle()
+    emit("cycle_complete", { tasks_done: result.completed.length })
+    return result
+  }
+
+  @on_propose(idea) => {
+    proposal = team.propose(idea)
+    emit("proposal_submitted", { id: proposal.id })
+    return proposal
+  }
+
+  @receipt team_config {
+    type: "TeamReceipt"
+    modes: ["ConsensusMode: vote | lead-follow | unanimous"]
+    reputation: "tier-gated contribution visibility"
+    features: ["local-first", "optional remote board/knowledge"]
+    timestamp: now()
+  }
+}

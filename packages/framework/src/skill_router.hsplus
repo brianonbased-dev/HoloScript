@@ -1,0 +1,31 @@
+// @skill_router — Skill-based task routing: match task requirements to agent capabilities.
+//
+// Native .hsplus surface for framework/skill-router.ts.
+//
+// route(task, agents) → RoutingResult { agent, score, candidates, reason }
+// Scoring: required skill match (required > preferred), overlap count 0-100
+// ScoredCandidate { agent, score, matchedRequired, matchedPreferred }
+// selectBest(candidates) → highest-score agent respecting slot availability
+// FW-0.6 — Skill-based routing via agent capabilities
+
+@trait skill_router {
+  capability_tags: ["skill_router", "capability_routing", "required_preferred_skills", "scored_candidate", "framework"]
+
+  @on_spawn => {
+    router = init_skill_router()
+    emit("skill_router_ready", {})
+  }
+
+  @on_route(task, agents) => {
+    result = router.route(task, agents)
+    emit("task_routed", { agent: result.agent?.name, score: result.score })
+    return result
+  }
+
+  @receipt skill_router_config {
+    type: "SkillRouterReceipt"
+    scoring: "required match > preferred; 0-100 overlap score"
+    output: "RoutingResult { agent, score, candidates, reason }"
+    timestamp: now()
+  }
+}

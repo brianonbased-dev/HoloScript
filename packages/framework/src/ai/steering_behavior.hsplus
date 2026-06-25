@@ -1,0 +1,35 @@
+// @steering_behavior — Single-agent weighted steering: seek/flee/arrive/wander/avoid/pursue/evade.
+//
+// Native .hsplus surface for framework/ai/SteeringBehavior.ts (singular).
+// Distinct from SteeringBehaviors.ts (multi-agent flocking).
+//
+// SteeringType: seek | flee | arrive | wander | avoid | pursue | evade
+// SteeringAgent { position, velocity, maxSpeed, maxForce, mass } — Vec3 tuples
+// SteeringOutput { force: Vec3, type, magnitude }
+// steer(agent, type, target?, params?) → SteeringOutput
+// blend(weights: {type, weight}[]) → combined SteeringOutput
+
+@trait steering_behavior {
+  capability_tags: ["steering_behavior", "seek_flee_arrive", "wander_avoid", "pursue_evade", "weighted_blend", "framework"]
+
+  @on_spawn => {
+    steerer = init_steering_behavior()
+    emit("steering_behavior_ready", {})
+  }
+
+  @on_steer(agent, type, target, params) => {
+    output = steerer.steer(agent, type, target, params)
+    return output
+  }
+
+  @on_blend(agent, weights) => {
+    return steerer.blend(agent, weights)
+  }
+
+  @receipt steering_behavior_config {
+    type: "SteeringBehaviorReceipt"
+    types: ["seek", "flee", "arrive", "wander", "avoid", "pursue", "evade"]
+    note: "single-agent; for flocking see steering_behaviors"
+    timestamp: now()
+  }
+}

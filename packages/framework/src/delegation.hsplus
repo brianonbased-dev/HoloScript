@@ -1,0 +1,31 @@
+// @delegation — Cross-team task delegation with chain tracking and loop prevention.
+//
+// Native .hsplus surface for framework/delegation.ts.
+//
+// delegateTask(taskId, fromTeam, toTeam, role?) → DelegationResult
+// DelegationResult { success, taskId, fromTeam, toTeam, depth }
+// Chain tracking prevents infinite delegation loops (max depth configurable)
+// Board-forwarding: cross-team visibility of delegated tasks
+// FW-0.6 — Cross-team delegation
+
+@trait delegation {
+  capability_tags: ["delegation", "cross_team", "delegation_chain", "loop_prevention", "board_forwarding", "framework"]
+
+  @on_spawn => {
+    delegator = init_delegation()
+    emit("delegation_ready", {})
+  }
+
+  @on_delegate(task_id, from_team, to_team, role) => {
+    result = delegator.delegate(task_id, from_team, to_team, role)
+    if result.success { emit("task_delegated", { task_id, from_team, to_team }) }
+    else { emit("delegation_rejected", { reason: result.reason }) }
+    return result
+  }
+
+  @receipt delegation_config {
+    type: "DelegationReceipt"
+    features: ["chain tracking", "loop prevention (max depth)", "board-forwarding"]
+    timestamp: now()
+  }
+}
