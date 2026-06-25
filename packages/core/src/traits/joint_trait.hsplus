@@ -1,0 +1,22 @@
+// @joint_trait — Physics joint: hinge, ball, prismatic, fixed constraints between rigid bodies.
+//
+// Native .hsplus surface for core/traits/JointTrait.ts.
+
+@trait joint_trait {
+  capability_tags: ["joint", "hinge_ball_prismatic", "rigid_body_constraint", "physics_joint", "core"]
+
+  @on_spawn(joint_type, body_a, body_b, anchor) => {
+    init_joint(joint_type, body_a, body_b, anchor)
+    emit("joint_ready", {})
+  }
+
+  @on_set_limits(min_angle, max_angle) => {
+    set_joint_limits(min_angle, max_angle)
+  }
+
+  @receipt joint_trait_config {
+    type: "JointTraitReceipt"
+    joint_types: ["hinge", "ball", "prismatic", "fixed"]
+    timestamp: now()
+  }
+}

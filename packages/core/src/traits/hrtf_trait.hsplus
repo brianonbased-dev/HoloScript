@@ -1,0 +1,22 @@
+// @hrtf_trait — HRTF spatialization: head-related transfer function for binaural 3D audio.
+//
+// Native .hsplus surface for core/traits/HRTFTrait.ts.
+
+@trait hrtf_trait {
+  capability_tags: ["hrtf", "binaural_audio", "3d_spatialization", "head_related_transfer", "core"]
+
+  @on_spawn(hrtf_dataset) => {
+    init_hrtf(hrtf_dataset)
+    emit("hrtf_ready", {})
+  }
+
+  @on_spatialize(source_id, position, listener) => {
+    spatialize_hrtf(source_id, position, listener)
+  }
+
+  @receipt hrtf_trait_config {
+    type: "HRTFTraitReceipt"
+    technique: "HRTF convolution"
+    timestamp: now()
+  }
+}

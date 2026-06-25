@@ -1,0 +1,22 @@
+// @holomesh_marketplace_trait — HoloMesh marketplace: list, discover, purchase digital assets on-mesh.
+//
+// Native .hsplus surface for core/traits/HolomeshMarketplaceTrait.ts.
+
+@trait holomesh_marketplace_trait {
+  capability_tags: ["holomesh_marketplace", "asset_listing", "discover_purchase", "on_mesh_economy", "core"]
+
+  @on_spawn(team_id) => {
+    init_holomesh_marketplace(team_id)
+    emit("holomesh_marketplace_ready", {})
+  }
+
+  @on_search(query) => {
+    results = search_marketplace(query)
+    return results
+  }
+
+  @receipt holomesh_marketplace_trait_config {
+    type: "HolomeshMarketplaceTraitReceipt"
+    timestamp: now()
+  }
+}

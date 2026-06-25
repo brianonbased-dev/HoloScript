@@ -1,0 +1,20 @@
+// @gotcha_trait — Gotcha registry: records known footguns in HoloScript patterns for agent lookup.
+//
+// Native .hsplus surface for core/traits/GotchaTrait.ts.
+
+@trait gotcha_trait {
+  capability_tags: ["gotcha_registry", "footgun_catalog", "pattern_warning", "agent_lookup", "core"]
+
+  @on_spawn => {
+    emit("gotcha_registry_ready", {})
+  }
+
+  @on_lookup(pattern) => {
+    return lookup_gotcha(pattern)
+  }
+
+  @receipt gotcha_trait_config {
+    type: "GotchaTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @hand_tracking_trait — Hand tracking: joint positions, confidence, pinch/grip gesture for XR.
+//
+// Native .hsplus surface for core/traits/HandTrackingTrait.ts.
+
+@trait hand_tracking_trait {
+  capability_tags: ["hand_tracking", "joint_positions", "pinch_grip", "xr_hands", "core"]
+
+  @on_spawn(device_id) => {
+    init_hand_tracking(device_id)
+    emit("hand_tracking_ready", {})
+  }
+
+  @on_frame(hand_data) => {
+    process_hand_tracking(hand_data)
+    emit("hand_updated", {})
+  }
+
+  @receipt hand_tracking_trait_config {
+    type: "HandTrackingTraitReceipt"
+    timestamp: now()
+  }
+}

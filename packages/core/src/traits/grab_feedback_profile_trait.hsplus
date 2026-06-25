@@ -1,0 +1,21 @@
+// @grab_feedback_profile_trait — Grab feedback profile: haptic and audio cues for object grab interactions.
+//
+// Native .hsplus surface for core/traits/GrabFeedbackProfileTrait.ts.
+
+@trait grab_feedback_profile_trait {
+  capability_tags: ["grab_feedback_profile", "haptic_audio_grab", "xr_interaction", "feedback_profile", "core"]
+
+  @on_spawn(profile_id) => {
+    init_grab_feedback_profile(profile_id)
+    emit("grab_feedback_profile_ready", {})
+  }
+
+  @on_grab(hand_id) => {
+    play_grab_feedback(hand_id)
+  }
+
+  @receipt grab_feedback_profile_trait_config {
+    type: "GrabFeedbackProfileTraitReceipt"
+    timestamp: now()
+  }
+}

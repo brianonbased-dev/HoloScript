@@ -1,0 +1,22 @@
+// @http_client_trait — HTTP client: typed GET/POST/PUT/DELETE with auth, retry, and circuit breaker.
+//
+// Native .hsplus surface for core/traits/HttpClientTrait.ts.
+
+@trait http_client_trait {
+  capability_tags: ["http_client", "get_post_put_delete", "auth_retry", "circuit_breaker_http", "core"]
+
+  @on_spawn(base_url, options) => {
+    init_http_client(base_url, options)
+    emit("http_client_ready", {})
+  }
+
+  @on_request(method, path, body, headers) => {
+    response = send_http_request(method, path, body, headers)
+    return response
+  }
+
+  @receipt http_client_trait_config {
+    type: "HttpClientTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @haptic_cue_trait — Haptic cue: named haptic pattern trigger mapped to interaction events.
+//
+// Native .hsplus surface for core/traits/HapticCueTrait.ts.
+
+@trait haptic_cue_trait {
+  capability_tags: ["haptic_cue", "haptic_pattern", "interaction_event", "xr_haptic", "core"]
+
+  @on_spawn(cue_map) => {
+    init_haptic_cues(cue_map)
+    emit("haptic_cue_ready", {})
+  }
+
+  @on_trigger(cue_name, controller_id) => {
+    play_haptic_cue(cue_name, controller_id)
+  }
+
+  @receipt haptic_cue_trait_config {
+    type: "HapticCueTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @hand_menu_trait — XR hand menu: palm-up-triggered radial or list menu for XR interactions.
+//
+// Native .hsplus surface for core/traits/HandMenuTrait.ts.
+
+@trait hand_menu_trait {
+  capability_tags: ["hand_menu", "palm_triggered", "radial_menu", "xr_interaction", "core"]
+
+  @on_spawn(menu_items) => {
+    init_hand_menu(menu_items)
+    emit("hand_menu_ready", {})
+  }
+
+  @on_show(hand_pose) => {
+    show_hand_menu(hand_pose)
+    emit("hand_menu_shown", {})
+  }
+
+  @receipt hand_menu_trait_config {
+    type: "HandMenuTraitReceipt"
+    trigger: "palm-up"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @geospatial_anchor_trait — Geospatial anchor: binds entity to GPS/WGS84 coordinate with heading.
+//
+// Native .hsplus surface for core/traits/GeospatialAnchorTrait.ts.
+
+@trait geospatial_anchor_trait {
+  capability_tags: ["geospatial_anchor", "gps_wgs84", "heading", "ar_anchor", "core"]
+
+  @on_spawn(lat, lon, alt, heading) => {
+    init_geospatial_anchor(lat, lon, alt, heading)
+    emit("geospatial_anchor_ready", {})
+  }
+
+  @on_update(lat, lon, alt) => {
+    update_geospatial_anchor(lat, lon, alt)
+  }
+
+  @receipt geospatial_anchor_trait_config {
+    type: "GeospatialAnchorTraitReceipt"
+    crs: "WGS84"
+    timestamp: now()
+  }
+}

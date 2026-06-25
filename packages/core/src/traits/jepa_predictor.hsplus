@@ -1,0 +1,22 @@
+// @jepa_predictor — JEPA predictor network: cross-attention over context tokens → target embedding.
+//
+// Native .hsplus surface for core/traits/JEPAPredictor.ts.
+
+@trait jepa_predictor {
+  capability_tags: ["jepa_predictor", "cross_attention", "context_to_target", "world_model", "core"]
+
+  @on_spawn(model_config) => {
+    init_jepa_predictor(model_config)
+    emit("jepa_predictor_ready", {})
+  }
+
+  @on_predict(context_embeddings, mask_tokens) => {
+    predicted = predict_jepa_targets(context_embeddings, mask_tokens)
+    return predicted
+  }
+
+  @receipt jepa_predictor_config {
+    type: "JEPAPredictorReceipt"
+    timestamp: now()
+  }
+}

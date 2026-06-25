@@ -1,0 +1,21 @@
+// @haptic_trait — Haptic feedback: amplitude/frequency waveform output to controller/suit actuators.
+//
+// Native .hsplus surface for core/traits/HapticTrait.ts.
+
+@trait haptic_trait {
+  capability_tags: ["haptic", "amplitude_frequency", "waveform_output", "controller_suit", "core"]
+
+  @on_spawn(device_id) => {
+    init_haptic(device_id)
+    emit("haptic_ready", {})
+  }
+
+  @on_play(amplitude, frequency, duration_ms) => {
+    play_haptic(amplitude, frequency, duration_ms)
+  }
+
+  @receipt haptic_trait_config {
+    type: "HapticTraitReceipt"
+    timestamp: now()
+  }
+}

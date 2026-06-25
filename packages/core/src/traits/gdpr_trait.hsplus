@@ -1,0 +1,22 @@
+// @gdpr_trait — GDPR compliance: consent ledger, right-to-erasure, data portability, DPA records.
+//
+// Native .hsplus surface for core/traits/GdprTrait.ts.
+
+@trait gdpr_trait {
+  capability_tags: ["gdpr", "consent_ledger", "right_to_erasure", "data_portability", "core"]
+
+  @on_spawn(controller_id) => {
+    init_gdpr(controller_id)
+    emit("gdpr_ready", {})
+  }
+
+  @on_erasure_request(user_id) => {
+    erase_user_data(user_id)
+    emit("gdpr_erasure_complete", { user_id })
+  }
+
+  @receipt gdpr_trait_config {
+    type: "GdprTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @invoice_trait — Invoice generation: line items, tax, total, PDF export, payment link.
+//
+// Native .hsplus surface for core/traits/InvoiceTrait.ts.
+
+@trait invoice_trait {
+  capability_tags: ["invoice", "line_items_tax_total", "pdf_export", "payment_link", "core"]
+
+  @on_spawn => {
+    emit("invoice_ready", {})
+  }
+
+  @on_generate(line_items, recipient) => {
+    invoice = generate_invoice(line_items, recipient)
+    emit("invoice_generated", { id: invoice.id })
+    return invoice
+  }
+
+  @receipt invoice_trait_config {
+    type: "InvoiceTraitReceipt"
+    timestamp: now()
+  }
+}

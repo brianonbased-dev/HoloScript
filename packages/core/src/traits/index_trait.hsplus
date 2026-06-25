@@ -1,0 +1,25 @@
+// @index_trait — Generic index: ordered key→value lookup with range scan and prefix query.
+//
+// Native .hsplus surface for core/traits/IndexTrait.ts.
+
+@trait index_trait {
+  capability_tags: ["index_trait", "key_value_lookup", "range_scan", "prefix_query", "core"]
+
+  @on_spawn(index_type) => {
+    init_generic_index(index_type)
+    emit("index_ready", {})
+  }
+
+  @on_put(key, value) => {
+    put_index(key, value)
+  }
+
+  @on_get(key) => {
+    return get_index(key)
+  }
+
+  @receipt index_trait_config {
+    type: "IndexTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @holo_map_drift_correction_trait — HoloMap drift correction: loop-closure and IMU drift compensation.
+//
+// Native .hsplus surface for core/traits/HoloMapDriftCorrectionTrait.ts.
+
+@trait holo_map_drift_correction_trait {
+  capability_tags: ["holomap_drift_correction", "loop_closure", "imu_drift", "slam_correction", "core"]
+
+  @on_spawn => {
+    emit("holomap_drift_correction_ready", {})
+  }
+
+  @on_detect_loop(current_pose, history) => {
+    correction = detect_loop_closure(current_pose, history)
+    if correction { emit("loop_closed", { correction }) }
+    return correction
+  }
+
+  @receipt holo_map_drift_correction_trait_config {
+    type: "HoloMapDriftCorrectionTraitReceipt"
+    technique: "loop closure + IMU"
+    timestamp: now()
+  }
+}

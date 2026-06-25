@@ -1,0 +1,22 @@
+// @grabbable_dispatch_policy — Routes grab events to the appropriate handler based on grabber type/context.
+//
+// Native .hsplus surface for core/traits/GrabbableDispatchPolicy.ts.
+
+@trait grabbable_dispatch_policy {
+  capability_tags: ["grabbable_dispatch", "grab_event_routing", "grabber_context", "xr_policy", "core"]
+
+  @on_spawn(policy_def) => {
+    init_grabbable_dispatch_policy(policy_def)
+    emit("grabbable_dispatch_policy_ready", {})
+  }
+
+  @on_grab_event(event) => {
+    handler = dispatch_grab_event(event)
+    return handler
+  }
+
+  @receipt grabbable_dispatch_policy_config {
+    type: "GrabbableDispatchPolicyReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @holographic_sprite_trait — Holographic sprite: billboard-locked sprite with emissive hologram effect.
+//
+// Native .hsplus surface for core/traits/HolographicSpriteTrait.ts.
+
+@trait holographic_sprite_trait {
+  capability_tags: ["holographic_sprite", "billboard_sprite", "emissive_hologram", "sprite_fx", "core"]
+
+  @on_spawn(texture_id, params) => {
+    init_holographic_sprite(texture_id, params)
+    emit("holographic_sprite_ready", {})
+  }
+
+  @on_render(camera) => {
+    render_holographic_sprite(camera)
+  }
+
+  @receipt holographic_sprite_trait_config {
+    type: "HolographicSpriteTraitReceipt"
+    timestamp: now()
+  }
+}

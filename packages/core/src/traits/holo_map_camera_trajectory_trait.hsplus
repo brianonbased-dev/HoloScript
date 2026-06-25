@@ -1,0 +1,20 @@
+// @holo_map_camera_trajectory_trait — HoloMap camera trajectory: records capture path for reconstruction quality.
+//
+// Native .hsplus surface for core/traits/HoloMapCameraTrajectoryTrait.ts.
+
+@trait holo_map_camera_trajectory_trait {
+  capability_tags: ["holomap_camera_trajectory", "capture_path", "reconstruction_quality", "twin_capture", "core"]
+
+  @on_spawn => {
+    emit("holomap_camera_trajectory_ready", {})
+  }
+
+  @on_record_pose(pose) => {
+    record_camera_pose(pose)
+  }
+
+  @receipt holo_map_camera_trajectory_trait_config {
+    type: "HoloMapCameraTrajectoryTraitReceipt"
+    timestamp: now()
+  }
+}

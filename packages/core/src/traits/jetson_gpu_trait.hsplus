@@ -1,0 +1,25 @@
+// @jetson_gpu_trait — Jetson Orin GPU trait: routes AI inference and compute to Jetson's GPU/DLA.
+//
+// Native .hsplus surface for core/traits/JetsonGPUTrait.ts.
+
+@trait jetson_gpu_trait {
+  capability_tags: ["jetson_gpu", "orin_inference", "dla_compute", "edge_gpu", "core"]
+
+  @on_spawn => {
+    init_jetson_gpu()
+    emit("jetson_gpu_ready", {})
+  }
+
+  @on_dispatch(task, backend) => {
+    result = dispatch_jetson_task(task, backend)
+    return result
+  }
+
+  @receipt jetson_gpu_trait_config {
+    type: "JetsonGPUTraitReceipt"
+    device: "Jetson Orin Nano Super"
+    backends: ["GPU", "DLA"]
+    doc: "I.022 / W.733"
+    timestamp: now()
+  }
+}

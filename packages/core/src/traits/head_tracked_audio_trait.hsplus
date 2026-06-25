@@ -1,0 +1,21 @@
+// @head_tracked_audio_trait — Head-tracked audio: pans audio source based on listener head rotation.
+//
+// Native .hsplus surface for core/traits/HeadTrackedAudioTrait.ts.
+
+@trait head_tracked_audio_trait {
+  capability_tags: ["head_tracked_audio", "listener_head_rotation", "pan_audio", "spatial_audio", "core"]
+
+  @on_spawn(source_id) => {
+    init_head_tracked_audio(source_id)
+    emit("head_tracked_audio_ready", {})
+  }
+
+  @on_head_update(head_quaternion) => {
+    update_head_tracked_audio(head_quaternion)
+  }
+
+  @receipt head_tracked_audio_trait_config {
+    type: "HeadTrackedAudioTraitReceipt"
+    timestamp: now()
+  }
+}

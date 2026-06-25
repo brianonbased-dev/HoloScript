@@ -1,0 +1,23 @@
+// @gesture_trait — Gesture recognition: hand/body gesture → named action mapping.
+//
+// Native .hsplus surface for core/traits/GestureTrait.ts.
+
+@trait gesture_trait {
+  capability_tags: ["gesture", "hand_body_gesture", "gesture_to_action", "gesture_recognition", "core"]
+
+  @on_spawn(gesture_map) => {
+    init_gesture_recognizer(gesture_map)
+    emit("gesture_ready", {})
+  }
+
+  @on_pose(pose_data) => {
+    action = recognize_gesture(pose_data)
+    if action { emit("gesture_recognized", { action }) }
+    return action
+  }
+
+  @receipt gesture_trait_config {
+    type: "GestureTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @inference_trait — LLM inference: route prompt to sovereign/API model with receipt.
+//
+// Native .hsplus surface for core/traits/InferenceTrait.ts.
+
+@trait inference_trait {
+  capability_tags: ["inference", "llm_inference", "sovereign_api_model", "prompt_receipt", "core"]
+
+  @on_spawn(model_id) => {
+    init_inference(model_id)
+    emit("inference_ready", {})
+  }
+
+  @on_infer(prompt, opts) => {
+    result = run_inference(prompt, opts)
+    return result
+  }
+
+  @receipt inference_trait_config {
+    type: "InferenceTraitReceipt"
+    priority: "sovereign → API"
+    timestamp: now()
+  }
+}

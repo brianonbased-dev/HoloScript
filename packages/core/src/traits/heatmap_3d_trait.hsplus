@@ -1,0 +1,21 @@
+// @heatmap_3d_trait — 3D heatmap: volumetric data intensity visualization as colored density cloud.
+//
+// Native .hsplus surface for core/traits/Heatmap3DTrait.ts.
+
+@trait heatmap_3d_trait {
+  capability_tags: ["heatmap_3d", "volumetric_intensity", "density_cloud", "data_viz_3d", "core"]
+
+  @on_spawn(grid_resolution) => {
+    init_heatmap_3d(grid_resolution)
+    emit("heatmap_3d_ready", {})
+  }
+
+  @on_add_sample(position, value) => {
+    add_heatmap_sample(position, value)
+  }
+
+  @receipt heatmap_3d_trait_config {
+    type: "Heatmap3DTraitReceipt"
+    timestamp: now()
+  }
+}

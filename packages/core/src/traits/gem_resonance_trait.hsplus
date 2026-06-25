@@ -1,0 +1,23 @@
+// @gem_resonance_trait — Gem resonance: crystal/gem material resonates with frequency-field stimuli.
+//
+// Native .hsplus surface for core/traits/GemResonanceTrait.ts.
+
+@trait gem_resonance_trait {
+  capability_tags: ["gem_resonance", "crystal_material", "frequency_field", "resonance_glow", "core"]
+
+  @on_spawn(gem_type, resonance_freq) => {
+    init_gem_resonance(gem_type, resonance_freq)
+    emit("gem_resonance_ready", {})
+  }
+
+  @on_stimulate(frequency, intensity) => {
+    response = compute_gem_resonance(frequency, intensity)
+    emit("gem_resonated", { response })
+    return response
+  }
+
+  @receipt gem_resonance_trait_config {
+    type: "GemResonanceTraitReceipt"
+    timestamp: now()
+  }
+}

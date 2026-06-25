@@ -1,0 +1,22 @@
+// @interactive_graph_trait — Interactive graph: node-link diagram with drag, zoom, select, expand.
+//
+// Native .hsplus surface for core/traits/InteractiveGraphTrait.ts.
+
+@trait interactive_graph_trait {
+  capability_tags: ["interactive_graph", "node_link_diagram", "drag_zoom_select", "graph_ui", "core"]
+
+  @on_spawn(graph_data) => {
+    init_interactive_graph(graph_data)
+    emit("interactive_graph_ready", {})
+  }
+
+  @on_interact(event_type, target_id) => {
+    handle_graph_interaction(event_type, target_id)
+    emit("graph_interacted", { event_type, target_id })
+  }
+
+  @receipt interactive_graph_trait_config {
+    type: "InteractiveGraphTraitReceipt"
+    timestamp: now()
+  }
+}

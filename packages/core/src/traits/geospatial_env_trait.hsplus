@@ -1,0 +1,22 @@
+// @geospatial_env_trait — Geospatial environment: world-scale terrain, elevation, tiling from tile services.
+//
+// Native .hsplus surface for core/traits/GeospatialEnvTrait.ts.
+
+@trait geospatial_env_trait {
+  capability_tags: ["geospatial_env", "world_scale_terrain", "elevation", "tile_service", "core"]
+
+  @on_spawn(center_lat, center_lon, radius_m) => {
+    init_geospatial_env(center_lat, center_lon, radius_m)
+    emit("geospatial_env_ready", {})
+  }
+
+  @on_load_tile(tile_id) => {
+    load_geo_tile(tile_id)
+    emit("geo_tile_loaded", { tile_id })
+  }
+
+  @receipt geospatial_env_trait_config {
+    type: "GeospatialEnvTraitReceipt"
+    timestamp: now()
+  }
+}

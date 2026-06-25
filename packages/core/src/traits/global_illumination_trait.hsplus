@@ -1,0 +1,23 @@
+// @global_illumination_trait — Global illumination: probe-based GI, light map bake, irradiance volumes.
+//
+// Native .hsplus surface for core/traits/GlobalIlluminationTrait.ts.
+
+@trait global_illumination_trait {
+  capability_tags: ["global_illumination", "probe_gi", "light_map", "irradiance_volume", "core"]
+
+  @on_spawn(gi_mode) => {
+    init_global_illumination(gi_mode)
+    emit("gi_ready", {})
+  }
+
+  @on_bake => {
+    bake_gi_lightmaps()
+    emit("gi_baked", {})
+  }
+
+  @receipt global_illumination_trait_config {
+    type: "GlobalIlluminationTraitReceipt"
+    modes: ["probe", "lightmap", "irradiance_volume"]
+    timestamp: now()
+  }
+}

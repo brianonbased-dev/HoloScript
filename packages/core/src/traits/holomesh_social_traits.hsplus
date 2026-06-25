@@ -1,0 +1,23 @@
+// @holomesh_social_traits — HoloMesh social layer: follow, react, feed, friend-list integration.
+//
+// Native .hsplus surface for core/traits/HolomeshSocialTraits.ts.
+
+@trait holomesh_social_traits {
+  capability_tags: ["holomesh_social", "follow_react_feed", "friend_list", "social_graph", "core"]
+
+  @on_spawn(agent_id) => {
+    init_holomesh_social(agent_id)
+    emit("holomesh_social_ready", {})
+  }
+
+  @on_follow(target_agent_id) => {
+    follow_holomesh_agent(target_agent_id)
+    emit("social_followed", { target: target_agent_id })
+  }
+
+  @receipt holomesh_social_traits_config {
+    type: "HolomeshSocialTraitsReceipt"
+    doc: "D.016 HoloMesh = Myspace-for-Agents"
+    timestamp: now()
+  }
+}

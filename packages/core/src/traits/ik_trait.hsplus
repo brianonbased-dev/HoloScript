@@ -1,0 +1,23 @@
+// @ik_trait — Inverse kinematics: FABRIK/CCD IK solver for skeleton chains.
+//
+// Native .hsplus surface for core/traits/IKTrait.ts.
+
+@trait ik_trait {
+  capability_tags: ["ik", "fabrik_ccd", "skeleton_chain", "inverse_kinematics", "core"]
+
+  @on_spawn(chain_id, algorithm) => {
+    init_ik_solver(chain_id, algorithm)
+    emit("ik_ready", {})
+  }
+
+  @on_solve(target_position, max_iters) => {
+    result = solve_ik(target_position, max_iters)
+    return result
+  }
+
+  @receipt ik_trait_config {
+    type: "IKTraitReceipt"
+    algorithms: ["FABRIK", "CCD"]
+    timestamp: now()
+  }
+}

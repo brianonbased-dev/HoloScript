@@ -1,0 +1,22 @@
+// @hungarian_assignment_trait — Hungarian algorithm: optimal assignment of N agents to N tasks.
+//
+// Native .hsplus surface for core/traits/HungarianAssignmentTrait.ts.
+
+@trait hungarian_assignment_trait {
+  capability_tags: ["hungarian_assignment", "optimal_assignment", "n_agents_n_tasks", "combinatorial", "core"]
+
+  @on_spawn => {
+    emit("hungarian_assignment_ready", {})
+  }
+
+  @on_solve(cost_matrix) => {
+    assignment = solve_hungarian(cost_matrix)
+    return assignment
+  }
+
+  @receipt hungarian_assignment_trait_config {
+    type: "HungarianAssignmentTraitReceipt"
+    complexity: "O(n^3)"
+    timestamp: now()
+  }
+}

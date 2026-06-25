@@ -1,0 +1,21 @@
+// @holo_map_anchor_context_trait — HoloMap anchor context: stores environment metadata at reconstruction anchor.
+//
+// Native .hsplus surface for core/traits/HoloMapAnchorContextTrait.ts.
+
+@trait holo_map_anchor_context_trait {
+  capability_tags: ["holomap_anchor_context", "environment_metadata", "reconstruction_anchor", "twin_world", "core"]
+
+  @on_spawn(anchor_id) => {
+    init_holomap_anchor_context(anchor_id)
+    emit("holomap_anchor_context_ready", { anchor_id })
+  }
+
+  @on_set_metadata(key, value) => {
+    set_anchor_metadata(key, value)
+  }
+
+  @receipt holo_map_anchor_context_trait_config {
+    type: "HoloMapAnchorContextTraitReceipt"
+    timestamp: now()
+  }
+}

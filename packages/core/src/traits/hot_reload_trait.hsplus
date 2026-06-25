@@ -1,0 +1,21 @@
+// @hot_reload_trait — Hot reload: applies code/asset changes to running world without full restart.
+//
+// Native .hsplus surface for core/traits/HotReloadTrait.ts.
+
+@trait hot_reload_trait {
+  capability_tags: ["hot_reload", "live_update", "code_asset_changes", "no_restart", "core"]
+
+  @on_spawn => {
+    emit("hot_reload_ready", {})
+  }
+
+  @on_change(module_id, new_code) => {
+    apply_hot_reload(module_id, new_code)
+    emit("hot_reloaded", { module_id })
+  }
+
+  @receipt hot_reload_trait_config {
+    type: "HotReloadTraitReceipt"
+    timestamp: now()
+  }
+}

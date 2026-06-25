@@ -1,0 +1,22 @@
+// @granular_material_trait — Granular material: sand/soil/grain simulation with pile and flow.
+//
+// Native .hsplus surface for core/traits/GranularMaterialTrait.ts.
+
+@trait granular_material_trait {
+  capability_tags: ["granular_material", "sand_soil_grain", "pile_flow", "granular_sim", "core"]
+
+  @on_spawn(grain_type, count) => {
+    init_granular_material(grain_type, count)
+    emit("granular_material_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_granular_material(dt)
+  }
+
+  @receipt granular_material_trait_config {
+    type: "GranularMaterialTraitReceipt"
+    grain_types: ["sand", "soil", "grain", "powder"]
+    timestamp: now()
+  }
+}

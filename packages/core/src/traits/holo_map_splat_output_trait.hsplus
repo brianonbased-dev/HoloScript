@@ -1,0 +1,22 @@
+// @holo_map_splat_output_trait — HoloMap splat output: exports reconstructed world twin as .ply splat.
+//
+// Native .hsplus surface for core/traits/HoloMapSplatOutputTrait.ts.
+
+@trait holo_map_splat_output_trait {
+  capability_tags: ["holomap_splat_output", "ply_export", "twin_world_splat", "3dgs_export", "core"]
+
+  @on_spawn => {
+    emit("holomap_splat_output_ready", {})
+  }
+
+  @on_export(reconstruction_id, output_path) => {
+    export_world_twin_splat(reconstruction_id, output_path)
+    emit("holomap_splat_exported", { output_path })
+  }
+
+  @receipt holo_map_splat_output_trait_config {
+    type: "HoloMapSplatOutputTraitReceipt"
+    output: ".ply"
+    timestamp: now()
+  }
+}

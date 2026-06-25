@@ -1,0 +1,23 @@
+// @jepa_objective — JEPA training objective: predict latent representation of masked world patches.
+//
+// Native .hsplus surface for core/traits/JEPAObjective.ts.
+
+@trait jepa_objective {
+  capability_tags: ["jepa_objective", "latent_prediction", "masked_patches", "self_supervised", "core"]
+
+  @on_spawn(encoder_id) => {
+    init_jepa_objective(encoder_id)
+    emit("jepa_objective_ready", {})
+  }
+
+  @on_compute(context_patches, target_patches) => {
+    loss = compute_jepa_loss(context_patches, target_patches)
+    return loss
+  }
+
+  @receipt jepa_objective_config {
+    type: "JEPAObjectiveReceipt"
+    method: "Joint Embedding Predictive Architecture"
+    timestamp: now()
+  }
+}

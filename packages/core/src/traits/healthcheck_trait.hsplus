@@ -1,0 +1,21 @@
+// @healthcheck_trait — Service health check: /health endpoint responder with status, latency, version.
+//
+// Native .hsplus surface for core/traits/HealthcheckTrait.ts.
+
+@trait healthcheck_trait {
+  capability_tags: ["healthcheck", "health_endpoint", "status_latency_version", "service_health", "core"]
+
+  @on_spawn => {
+    emit("healthcheck_ready", {})
+  }
+
+  @on_probe => {
+    status = run_healthcheck()
+    return status
+  }
+
+  @receipt healthcheck_trait_config {
+    type: "HealthcheckTraitReceipt"
+    timestamp: now()
+  }
+}

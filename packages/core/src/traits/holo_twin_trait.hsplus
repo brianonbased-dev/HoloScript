@@ -1,0 +1,23 @@
+// @holo_twin_trait — HoloTwin entity: top-level digital-twin wrapper combining HoloMap + HoloGram layers.
+//
+// Native .hsplus surface for core/traits/HoloTwinTrait.ts.
+
+@trait holo_twin_trait {
+  capability_tags: ["holo_twin", "digital_twin_wrapper", "holomap_hologram_layers", "twin_entity", "core"]
+
+  @on_spawn(twin_id) => {
+    init_holo_twin(twin_id)
+    emit("holo_twin_ready", { twin_id })
+  }
+
+  @on_sync(real_state) => {
+    sync_holo_twin(real_state)
+    emit("holo_twin_synced", {})
+  }
+
+  @receipt holo_twin_trait_config {
+    type: "HoloTwinTraitReceipt"
+    doc: "D.107 three-layer 3D model"
+    timestamp: now()
+  }
+}

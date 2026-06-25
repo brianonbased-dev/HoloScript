@@ -1,0 +1,23 @@
+// @incident_trait — Incident management: create, escalate, resolve, post-mortem for service incidents.
+//
+// Native .hsplus surface for core/traits/IncidentTrait.ts.
+
+@trait incident_trait {
+  capability_tags: ["incident", "create_escalate_resolve", "post_mortem", "service_incident", "core"]
+
+  @on_spawn => {
+    emit("incident_ready", {})
+  }
+
+  @on_create(severity, summary, affected) => {
+    incident_id = create_incident(severity, summary, affected)
+    emit("incident_created", { incident_id, severity })
+    return incident_id
+  }
+
+  @receipt incident_trait_config {
+    type: "IncidentTraitReceipt"
+    severities: ["P0", "P1", "P2", "P3"]
+    timestamp: now()
+  }
+}

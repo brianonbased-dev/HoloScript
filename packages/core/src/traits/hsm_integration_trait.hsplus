@@ -1,0 +1,23 @@
+// @hsm_integration_trait — Hardware security module integration: key operations via HSM API.
+//
+// Native .hsplus surface for core/traits/HSMIntegrationTrait.ts.
+
+@trait hsm_integration_trait {
+  capability_tags: ["hsm_integration", "hardware_security_module", "key_operations", "pkcs11", "core"]
+
+  @on_spawn(hsm_config) => {
+    init_hsm(hsm_config)
+    emit("hsm_ready", {})
+  }
+
+  @on_sign(key_ref, data) => {
+    signature = hsm_sign(key_ref, data)
+    return signature
+  }
+
+  @receipt hsm_integration_trait_config {
+    type: "HSMIntegrationTraitReceipt"
+    interface: "PKCS#11 / vendor API"
+    timestamp: now()
+  }
+}

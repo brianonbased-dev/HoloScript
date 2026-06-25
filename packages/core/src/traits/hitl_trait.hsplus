@@ -1,0 +1,23 @@
+// @hitl_trait — Human-in-the-loop: pauses agent action pipeline to await human review and approval.
+//
+// Native .hsplus surface for core/traits/HITLTrait.ts.
+
+@trait hitl_trait {
+  capability_tags: ["hitl", "human_in_the_loop", "action_pause", "human_review", "core"]
+
+  @on_spawn(reviewer_queue) => {
+    init_hitl(reviewer_queue)
+    emit("hitl_ready", {})
+  }
+
+  @on_submit(action, context) => {
+    ticket_id = submit_for_review(action, context)
+    emit("hitl_submitted", { ticket_id })
+    return ticket_id
+  }
+
+  @receipt hitl_trait_config {
+    type: "HITLTraitReceipt"
+    timestamp: now()
+  }
+}

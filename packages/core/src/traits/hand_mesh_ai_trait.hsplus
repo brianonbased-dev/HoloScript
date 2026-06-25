@@ -1,0 +1,24 @@
+// @hand_mesh_ai_trait — AI-driven hand mesh: neural-net hand pose estimation from sensor data.
+//
+// Native .hsplus surface for core/traits/HandMeshAITrait.ts.
+
+@trait hand_mesh_ai_trait {
+  capability_tags: ["hand_mesh_ai", "neural_hand_pose", "sensor_to_mesh", "hand_estimation", "core"]
+
+  @on_spawn(model_id) => {
+    init_hand_mesh_ai(model_id)
+    emit("hand_mesh_ai_ready", {})
+  }
+
+  @on_frame(sensor_data) => {
+    hand_mesh = estimate_hand_mesh(sensor_data)
+    emit("hand_mesh_updated", {})
+    return hand_mesh
+  }
+
+  @receipt hand_mesh_ai_trait_config {
+    type: "HandMeshAITraitReceipt"
+    method: "neural estimation"
+    timestamp: now()
+  }
+}

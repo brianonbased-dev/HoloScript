@@ -1,0 +1,22 @@
+// @god_rays_trait — God rays (volumetric light shafts): crepuscular light scattering post-process.
+//
+// Native .hsplus surface for core/traits/GodRaysTrait.ts.
+
+@trait god_rays_trait {
+  capability_tags: ["god_rays", "volumetric_light", "crepuscular_scatter", "post_process", "core"]
+
+  @on_spawn(light_source_id, params) => {
+    init_god_rays(light_source_id, params)
+    emit("god_rays_ready", {})
+  }
+
+  @on_render(camera) => {
+    render_god_rays(camera)
+  }
+
+  @receipt god_rays_trait_config {
+    type: "GodRaysTraitReceipt"
+    technique: "radial blur scattering"
+    timestamp: now()
+  }
+}

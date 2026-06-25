@@ -1,0 +1,21 @@
+// @gaze_focus_analytics_trait — Gaze focus analytics: dwell time, heat-map, attention funnel per object.
+//
+// Native .hsplus surface for core/traits/GazeFocusAnalyticsTrait.ts.
+
+@trait gaze_focus_analytics_trait {
+  capability_tags: ["gaze_focus_analytics", "dwell_time", "attention_heatmap", "xr_analytics", "core"]
+
+  @on_spawn(session_id) => {
+    init_gaze_focus_analytics(session_id)
+    emit("gaze_focus_analytics_ready", {})
+  }
+
+  @on_gaze_event(object_id, duration_ms) => {
+    record_gaze_focus(object_id, duration_ms)
+  }
+
+  @receipt gaze_focus_analytics_trait_config {
+    type: "GazeFocusAnalyticsTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @goal_oriented_trait — Goal-oriented agent: GOAP planner, goal stack, action selection by utility.
+//
+// Native .hsplus surface for core/traits/GoalOrientedTrait.ts.
+
+@trait goal_oriented_trait {
+  capability_tags: ["goal_oriented", "goap_planner", "goal_stack", "utility_action_selection", "core"]
+
+  @on_spawn(goal_set) => {
+    init_goal_planner(goal_set)
+    emit("goal_oriented_ready", {})
+  }
+
+  @on_tick(world_state) => {
+    action = select_goal_action(world_state)
+    emit("goal_action_selected", { action })
+    return action
+  }
+
+  @receipt goal_oriented_trait_config {
+    type: "GoalOrientedTraitReceipt"
+    planner: "GOAP"
+    timestamp: now()
+  }
+}

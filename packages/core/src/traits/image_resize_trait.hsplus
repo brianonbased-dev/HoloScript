@@ -1,0 +1,22 @@
+// @image_resize_trait — Image resize: scale, crop, format-convert images with quality control.
+//
+// Native .hsplus surface for core/traits/ImageResizeTrait.ts.
+
+@trait image_resize_trait {
+  capability_tags: ["image_resize", "scale_crop_format", "quality_control", "image_processing", "core"]
+
+  @on_spawn => {
+    emit("image_resize_ready", {})
+  }
+
+  @on_resize(image, width, height, mode) => {
+    result = resize_image(image, width, height, mode)
+    return result
+  }
+
+  @receipt image_resize_trait_config {
+    type: "ImageResizeTraitReceipt"
+    modes: ["fill", "fit", "crop"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @graphql_trait — GraphQL client: typed query, mutation, subscription over any GraphQL endpoint.
+//
+// Native .hsplus surface for core/traits/GraphqlTrait.ts.
+
+@trait graphql_trait {
+  capability_tags: ["graphql", "typed_query_mutation", "subscription", "graphql_client", "core"]
+
+  @on_spawn(endpoint) => {
+    init_graphql(endpoint)
+    emit("graphql_ready", {})
+  }
+
+  @on_query(operation, variables) => {
+    result = execute_graphql(operation, variables)
+    return result
+  }
+
+  @receipt graphql_trait_config {
+    type: "GraphqlTraitReceipt"
+    timestamp: now()
+  }
+}

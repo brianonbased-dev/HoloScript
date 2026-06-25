@@ -1,0 +1,24 @@
+// @holo_map_reconstruction_trait — HoloMap reconstruction: drives 3DGS/NeRF world twin from image capture.
+//
+// Native .hsplus surface for core/traits/HoloMapReconstructionTrait.ts.
+
+@trait holo_map_reconstruction_trait {
+  capability_tags: ["holomap_reconstruction", "3dgs_nerf_twin", "world_twin_capture", "twin_world", "core"]
+
+  @on_spawn(capture_session_id) => {
+    init_holomap_reconstruction(capture_session_id)
+    emit("holomap_reconstruction_ready", {})
+  }
+
+  @on_reconstruct(image_set) => {
+    result = run_holomap_reconstruction(image_set)
+    emit("holomap_reconstructed", { path: result.output_path })
+    return result
+  }
+
+  @receipt holo_map_reconstruction_trait_config {
+    type: "HoloMapReconstructionTraitReceipt"
+    doc: "D.107 three-layer 3D-asset model; layer 2 = HoloMap WORLDS"
+    timestamp: now()
+  }
+}

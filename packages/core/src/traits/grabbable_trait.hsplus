@@ -1,0 +1,27 @@
+// @grabbable_trait — Grabbable entity: pick-up, hold, throw, snap-to-hand physics for XR.
+//
+// Native .hsplus surface for core/traits/GrabbableTrait.ts.
+
+@trait grabbable_trait {
+  capability_tags: ["grabbable", "pick_up_hold_throw", "snap_to_hand", "xr_physics", "core"]
+
+  @on_spawn(physics_mode) => {
+    init_grabbable(physics_mode)
+    emit("grabbable_ready", {})
+  }
+
+  @on_grab(hand_id, attach_point) => {
+    attach_to_hand(hand_id, attach_point)
+    emit("grabbed", { hand_id })
+  }
+
+  @on_release(hand_id, velocity) => {
+    release_from_hand(hand_id, velocity)
+    emit("released", {})
+  }
+
+  @receipt grabbable_trait_config {
+    type: "GrabbableTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @high_contrast_trait — High contrast mode: accessibility color override for low-vision users.
+//
+// Native .hsplus surface for core/traits/HighContrastTrait.ts.
+
+@trait high_contrast_trait {
+  capability_tags: ["high_contrast", "accessibility", "color_override", "low_vision", "core"]
+
+  @on_spawn(scheme) => {
+    init_high_contrast(scheme)
+    emit("high_contrast_ready", {})
+  }
+
+  @on_toggle(enabled) => {
+    set_high_contrast(enabled)
+    emit("high_contrast_toggled", { enabled })
+  }
+
+  @receipt high_contrast_trait_config {
+    type: "HighContrastTraitReceipt"
+    timestamp: now()
+  }
+}
