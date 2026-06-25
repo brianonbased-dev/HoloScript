@@ -1,0 +1,17 @@
+@trait {
+  name: "@product_catalog",
+  category: "retail",
+  description: "E-commerce product catalog. products is a list of product definitions (id, sku, name, description, price, images, category, inventory). categories is the category taxonomy. sortBy: name, price, or relevance. pageSize controls pagination (default: 20). Port of ProductCatalogTrait.ts (handler name: product_catalog).",
+  props: {
+    sort_by: enum("name" | "price" | "relevance") = "name",
+    page_size: number = 20
+  },
+  events: {
+    on_loaded: "catalog_loaded",
+    on_product_added: "product_added",
+    on_inventory_updated: "product_inventory_updated",
+    search: "catalog_search",
+    filter: "catalog_filter"
+  },
+  behaviors: ["@cart", "@checkout"]
+}

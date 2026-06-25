@@ -1,0 +1,21 @@
+@trait {
+  name: "@return",
+  category: "retail",
+  description: "E-commerce return / RMA (Return Merchandise Authorization) lifecycle. orderId links to the original order. reason is the customer-provided return reason. refundAmount is the computed refund. returnWindowDays is the return eligibility window from order date (default: 30 days). Status: requested, approved, shipped, received, refunded, or rejected. Port of ReturnTrait.ts (handler name: return).",
+  props: {
+    order_id: string = "",
+    reason: string = "",
+    refund_amount: number = 0,
+    return_window_days: number = 30
+  },
+  events: {
+    on_requested: "return_requested",
+    on_approved: "return_approved",
+    on_refunded: "return_refunded",
+    on_rejected: "return_rejected",
+    approve: "return_approve",
+    refund: "return_refund",
+    reject: "return_reject"
+  },
+  behaviors: ["@checkout", "@product_catalog"]
+}

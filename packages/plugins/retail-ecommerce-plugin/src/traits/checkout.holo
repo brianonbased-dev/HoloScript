@@ -1,0 +1,19 @@
+@trait {
+  name: "@checkout",
+  category: "retail",
+  description: "E-commerce checkout flow. step: shipping, payment, review, or confirmation — tracks the current checkout stage. paymentMethod: credit_card, debit_card, paypal, crypto, or bank_transfer. shippingAddress and billingAddress are address objects. orderTotal and tax are computed from @cart. Port of CheckoutTrait.ts (handler name: checkout).",
+  props: {
+    step: enum("shipping" | "payment" | "review" | "confirmation") = "shipping",
+    payment_method: enum("credit_card" | "debit_card" | "paypal" | "crypto" | "bank_transfer") = "credit_card",
+    order_total: number = 0,
+    tax: number = 0
+  },
+  events: {
+    on_step_changed: "checkout_step_changed",
+    on_completed: "checkout_completed",
+    on_failed: "checkout_failed",
+    next_step: "checkout_next",
+    complete: "checkout_complete"
+  },
+  behaviors: ["@cart", "@shipping_rate", "@return"]
+}

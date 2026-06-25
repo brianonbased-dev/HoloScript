@@ -1,0 +1,21 @@
+@trait {
+  name: "@shipping_rate",
+  category: "retail",
+  description: "Shipping rate calculation. carrier is the shipping carrier name (e.g., UPS, FedEx, USPS). method: standard, express, overnight, or economy. weightKg is the shipment weight. origin and destination are address strings. rate is the computed shipping cost. estimatedDays is the transit time estimate (default: 5 business days). Port of ShippingRateTrait.ts (handler name: shipping_rate).",
+  props: {
+    carrier: string = "",
+    method: enum("standard" | "express" | "overnight" | "economy") = "standard",
+    weight_kg: number = 0,
+    origin: string = "",
+    destination: string = "",
+    rate: number = 0,
+    estimated_days: number = 5
+  },
+  events: {
+    on_rate_calculated: "shipping_rate_calculated",
+    on_shipment_created: "shipment_created",
+    calculate: "shipping_calculate",
+    create_shipment: "shipping_create"
+  },
+  behaviors: ["@checkout", "@return"]
+}

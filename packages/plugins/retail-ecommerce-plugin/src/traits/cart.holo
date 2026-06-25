@@ -1,0 +1,19 @@
+@trait {
+  name: "@cart",
+  category: "retail",
+  description: "E-commerce shopping cart. items is a list of CartItem objects (productId, sku, name, price, quantity, imageUrl). currency is the ISO 4217 currency code (default: USD). maxItems caps cart size (default: 99). taxRate is the base tax rate applied to subtotal (0-1). Computes subtotal/tax/total/itemCount reactively. Port of CartTrait.ts (handler name: cart).",
+  props: {
+    currency: string = "USD",
+    max_items: number = 99,
+    tax_rate: number = 0
+  },
+  events: {
+    on_item_added: "cart_item_added",
+    on_item_removed: "cart_item_removed",
+    on_cleared: "cart_cleared",
+    add: "cart_add",
+    remove: "cart_remove",
+    clear: "cart_clear"
+  },
+  behaviors: ["@checkout", "@product_catalog"]
+}
