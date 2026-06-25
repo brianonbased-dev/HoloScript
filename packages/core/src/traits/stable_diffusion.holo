@@ -1,0 +1,17 @@
+@trait {
+  name: "@stable_diffusion",
+  category: "ml",
+  description: "Stable Diffusion generative image. diffusion_model: sdxl (default), sd15, flux, lcm. prompt is the positive text prompt. negative_prompt is the exclusion prompt (default: blurry, low quality, artifacts). resolution is the output image size in pixels (default: 1024). Port of StableDiffusionTrait.ts (handler name: stable_diffusion).",
+  props: {
+    diffusion_model: enum("sdxl" | "sd15" | "flux" | "lcm") = "sdxl",
+    prompt: string = "",
+    negative_prompt: string = "blurry, low quality, artifacts",
+    resolution: number = 1024
+  },
+  events: {
+    on_generated: "stable_diffusion:generated",
+    on_error: "stable_diffusion:error",
+    generate: "stable_diffusion.generate"
+  },
+  behaviors: ["@diffusion_realtime", "@inference", "@control_net"]
+}

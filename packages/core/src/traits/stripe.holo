@@ -1,0 +1,16 @@
+@trait {
+  name: "@stripe",
+  category: "payments",
+  description: "Stripe payment processing. currency is the ISO 4217 currency code (default: usd). Port of StripeTrait.ts (handler name: stripe). API keys come from env — never inline.",
+  props: {
+    currency: string = "usd"
+  },
+  events: {
+    on_charged: "stripe:charged",
+    on_failed: "stripe:failed",
+    on_refunded: "stripe:refunded",
+    charge: "stripe.charge",
+    refund: "stripe.refund"
+  },
+  behaviors: ["@invoice", "@subscription", "@economy"]
+}

@@ -1,0 +1,14 @@
+@trait {
+  name: "@subscription",
+  category: "payments",
+  description: "Subscription plan manager. plans is the list of available plan names (default: [free, pro, enterprise]). Port of SubscriptionTrait.ts (handler name: subscription).",
+  props: {},
+  events: {
+    on_subscribed: "subscription:subscribed",
+    on_cancelled: "subscription:cancelled",
+    on_expired: "subscription:expired",
+    subscribe: "subscription.subscribe",
+    cancel: "subscription.cancel"
+  },
+  behaviors: ["@stripe", "@quota", "@token_gated"]
+}

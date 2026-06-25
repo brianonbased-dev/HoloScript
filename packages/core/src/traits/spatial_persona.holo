@@ -1,0 +1,16 @@
+@trait {
+  name: "@spatial_persona",
+  category: "avatar",
+  description: "Social spatial persona — avatar appearance and social cues. persona_style: realistic (default), stylized, robotic. visibility: always (default), on_proximity, hidden. spatial_audio enables directional voice (default: true). gesture_mirroring mirrors the user's gestures (default: true). Port of SpatialPersonaTrait.ts (handler name: spatial_persona).",
+  props: {
+    persona_style: enum("realistic" | "stylized" | "robotic") = "realistic",
+    visibility: enum("always" | "on_proximity" | "hidden") = "always",
+    spatial_audio: boolean = true,
+    gesture_mirroring: boolean = true
+  },
+  events: {
+    on_gesture: "spatial_persona:gesture",
+    on_expression: "spatial_persona:expression"
+  },
+  behaviors: ["@avatar_embodiment", "@emotion", "@spatial_voice"]
+}

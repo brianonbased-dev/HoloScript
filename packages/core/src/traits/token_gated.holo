@@ -1,0 +1,17 @@
+@trait {
+  name: "@token_gated",
+  category: "web3",
+  description: "Token gate — restricts access based on NFT/token ownership. chain: ethereum (default), base, polygon, solana. contract_address is the gating contract. token_id is a specific token to check (empty = any token). min_balance is the minimum token balance to pass (default: 1). Port of TokenGatedTrait.ts (handler name: token_gated).",
+  props: {
+    chain: enum("ethereum" | "base" | "polygon" | "solana") = "ethereum",
+    contract_address: string = "",
+    token_id: string = "",
+    min_balance: number = 1
+  },
+  events: {
+    on_granted: "token_gated:granted",
+    on_denied: "token_gated:denied",
+    check: "token_gated.check"
+  },
+  behaviors: ["@nft", "@permission", "@consent_gate"]
+}

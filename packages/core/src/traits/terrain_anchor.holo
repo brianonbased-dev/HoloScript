@@ -1,0 +1,16 @@
+@trait {
+  name: "@terrain_anchor",
+  category: "xr",
+  description: "Terrain-following geospatial anchor. latitude/longitude is the GPS position (default: 0,0). elevation_offset is the height above terrain in meters (default: 0). terrain_following keeps the anchor at ground level as terrain changes (default: true). Port of TerrainAnchorTrait.ts (handler name: terrain_anchor).",
+  props: {
+    latitude: number = 0,
+    longitude: number = 0,
+    elevation_offset: number = 0,
+    terrain_following: boolean = true
+  },
+  events: {
+    on_anchored: "terrain_anchor:anchored",
+    on_elevation_changed: "terrain_anchor:elevation_changed"
+  },
+  behaviors: ["@geospatial_anchor", "@rooftop_anchor"]
+}

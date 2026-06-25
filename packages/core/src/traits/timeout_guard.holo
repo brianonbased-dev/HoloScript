@@ -1,0 +1,16 @@
+@trait {
+  name: "@timeout_guard",
+  category: "safety",
+  description: "Operation timeout guard with configurable fallback. default_timeout_ms is the default timeout in ms (default: 30,000ms). default_fallback_action is the event name to emit on timeout (default: empty = throw). max_concurrent is the maximum concurrent guarded operations (default: 20). Port of TimeoutGuardTrait.ts (handler name: timeout_guard).",
+  props: {
+    default_timeout_ms: number = 30000,
+    default_fallback_action: string = "",
+    max_concurrent: number = 20
+  },
+  events: {
+    on_timeout: "timeout_guard:timeout",
+    on_completed: "timeout_guard:completed",
+    wrap: "timeout_guard.wrap"
+  },
+  behaviors: ["@temporal_guard", "@circuit_auto_reset", "@deadlock_free"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@spectator",
+  category: "multiplayer",
+  description: "Spectator camera mode. camera_mode: free (default), follow, orbit. follow_target is the target node ID to follow. can_interact allows spectators to interact with objects (default: false). visible_to_participants shows the spectator camera to participants (default: false). Port of SpectatorTrait.ts (handler name: spectator).",
+  props: {
+    camera_mode: enum("free" | "follow" | "orbit") = "free",
+    follow_target: string = "",
+    can_interact: boolean = false,
+    visible_to_participants: boolean = false
+  },
+  events: {
+    on_joined: "spectator:joined",
+    on_left: "spectator:left",
+    set_target: "spectator.set_target"
+  },
+  behaviors: ["@networked_avatar", "@shareplay"]
+}

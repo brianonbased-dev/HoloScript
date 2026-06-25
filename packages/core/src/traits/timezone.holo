@@ -1,0 +1,14 @@
+@trait {
+  name: "@timezone",
+  category: "data",
+  description: "Timezone-aware datetime utility. default_tz is the IANA timezone name (default: UTC). Port of TimezoneTrait.ts (handler name: timezone).",
+  props: {
+    default_tz: string = "UTC"
+  },
+  events: {
+    on_converted: "timezone:converted",
+    convert: "timezone.convert",
+    now: "timezone.now"
+  },
+  behaviors: ["@locale", "@data_transform"]
+}

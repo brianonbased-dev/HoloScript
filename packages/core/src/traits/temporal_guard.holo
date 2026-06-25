@@ -1,0 +1,15 @@
+@trait {
+  name: "@temporal_guard",
+  category: "safety",
+  description: "Temporal property guard — enforces time-bounded invariants on node properties. default_timeout_ms is the default guard window in ms (default: 5000ms). Port of TemporalGuardTrait.ts (handler name: temporal_guard).",
+  props: {
+    default_timeout_ms: number = 5000
+  },
+  events: {
+    on_violated: "temporal_guard:violated",
+    on_cleared: "temporal_guard:cleared",
+    guard: "temporal_guard.guard",
+    clear: "temporal_guard.clear"
+  },
+  behaviors: ["@timeout_guard", "@chaos_test", "@audit_log"]
+}

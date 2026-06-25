@@ -1,0 +1,14 @@
+@trait {
+  name: "@tensor_op",
+  category: "ml",
+  description: "Dense tensor operations. max_dimensions is the maximum tensor rank (default: 4). Port of TensorOpTrait.ts (handler name: tensor_op).",
+  props: {
+    max_dimensions: number = 4
+  },
+  events: {
+    on_computed: "tensor_op:computed",
+    op: "tensor_op.op",
+    reshape: "tensor_op.reshape"
+  },
+  behaviors: ["@onnx_runtime", "@quantum_inspired", "@gpu_particle"]
+}

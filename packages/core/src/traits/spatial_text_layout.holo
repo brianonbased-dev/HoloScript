@@ -1,0 +1,16 @@
+@trait {
+  name: "@spatial_text_layout",
+  category: "xr",
+  description: "3D spatial text layout. layout: cylinder (default), sphere, flat, arc. radius is the layout radius (default: 5). letter_spacing is the character gap multiplier (default: 1.1). line_height is the line gap multiplier (default: 1.5). Port of SpatialTextLayoutTrait.ts (handler name: spatial_text_layout).",
+  props: {
+    layout: enum("cylinder" | "sphere" | "flat" | "arc") = "cylinder",
+    radius: number = 5,
+    letter_spacing: number = 1.1,
+    line_height: number = 1.5
+  },
+  events: {
+    on_laid_out: "spatial_text_layout:laid_out",
+    layout: "spatial_text_layout.layout"
+  },
+  behaviors: ["@spatial_panel", "@accessible"]
+}
