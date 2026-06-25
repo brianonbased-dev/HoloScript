@@ -1,0 +1,24 @@
+@trait {
+  name: "@icon",
+  category: "visual",
+  description: "Billboard icon label for world-space entity markers, waypoints, and HUD indicators. Renders a sprite or SVG icon at a configurable world-space offset from the entity, facing the camera, with distance-based scale clamping and optional text label beneath. Authored from IconTrait.ts.",
+  props: {
+    url: string = "",
+    color: string = "#ffffff",
+    size_m: number = 0.3,
+    offset: { x: number, y: number, z: number } = { x: 0, y: 0.2, z: 0 },
+    label: string = "",
+    label_color: string = "#ffffff",
+    min_screen_size_px: number = 12,
+    max_distance_m: number = 50,
+    visible: boolean = true
+  },
+  events: {
+    attached: "icon_attached",
+    detached: "icon_detached",
+    on_click: "icon_click",
+    on_show: "icon_show",
+    on_hide: "icon_hide"
+  },
+  behaviors: ["@billboard", "@map_marker", "@visibility"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@hover_effect",
+  category: "visual",
+  description: "Entity hover highlight effect. Activates an outline, rim-light, or scale-pulse effect when the pointer enters the entity's hit bounds, providing visual affordance feedback for interactable objects in both 2D UI and XR spatial contexts. Authored from HoverEffectTrait.ts.",
+  props: {
+    effect: enum("outline" | "rim_light" | "scale_pulse" | "glow" | "color_shift") = "outline",
+    color: string = "#ffffff",
+    intensity: number = 1.0,
+    scale_delta: number = 0.05,
+    duration_ms: number = 150,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "hover_effect_attached",
+    detached: "hover_effect_detached",
+    on_hover_enter: "hover_effect_enter",
+    on_hover_exit: "hover_effect_exit"
+  },
+  behaviors: ["@xr_ray_interactor", "@visibility", "@easing"]
+}

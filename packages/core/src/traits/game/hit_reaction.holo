@@ -1,0 +1,21 @@
+@trait {
+  name: "@hit_reaction",
+  category: "game",
+  description: "Damage hit reaction animator. On receiving a damage event, plays a directional hit-flash shader effect, a stagger or flinch animation layer, a particle splat at the hit point, and an impact audio cue — all scaled by the incoming damage value, with a cooldown to prevent reaction spam. Authored from HitReactionTrait.ts.",
+  props: {
+    flash_color: string = "#ff4444",
+    flash_duration_ms: number = 80,
+    stagger_animation_id: string = "",
+    particle_url: string = "",
+    audio_url: string = "",
+    min_damage: number = 0,
+    cooldown_ms: number = 200
+  },
+  events: {
+    attached: "hit_reaction_attached",
+    detached: "hit_reaction_detached",
+    on_hit: "hit_reaction_hit",
+    damage: "hit_reaction_trigger_damage"
+  },
+  behaviors: ["@breakable", "@player_state", "@camera_shake"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@hologram_preview",
+  category: "visual",
+  description: "Holographic entity placement preview ghost. Renders a semi-transparent, edge-lit preview mesh at the cursor ray intersection to show where an object will be placed, switching color between valid (green) and invalid (red) placement zones and hiding when placement is cancelled. Authored from HologramPreviewTrait.ts.",
+  props: {
+    source_entity_id: string = "",
+    valid_color: string = "#00ff88",
+    invalid_color: string = "#ff4444",
+    opacity: number = 0.4,
+    edge_intensity: number = 1.5,
+    grid_snap_m: number = 0,
+    visible: boolean = false
+  },
+  events: {
+    attached: "hologram_preview_attached",
+    detached: "hologram_preview_detached",
+    on_show: "hologram_preview_show",
+    on_hide: "hologram_preview_hide",
+    on_place: "hologram_preview_place",
+    place: "hologram_preview_trigger_place"
+  },
+  behaviors: ["@spawn_gate", "@xr_ray_interactor", "@gizmo"]
+}
