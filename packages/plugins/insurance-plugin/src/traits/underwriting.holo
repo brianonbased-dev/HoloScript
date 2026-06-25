@@ -1,0 +1,20 @@
+@trait {
+  name: "@underwriting",
+  category: "insurance",
+  description: "Insurance underwriting decision engine. applicationId links to the insurance application. riskScore is the computed risk score from @risk_assessment. requestedCoverage is the coverage amount applied for. maxAutoCoverage is the auto-approve ceiling (default: $500,000). referralThreshold is the risk score above which the application is flagged for manual review (default: 70). declineThreshold is the risk score above which the application is auto-declined (default: 90). conditions is a list of coverage conditions or exclusions. Port of UnderwritingTrait.ts (handler name: underwriting).",
+  props: {
+    application_id: string = "",
+    risk_score: number = 0,
+    requested_coverage: number = 0,
+    max_auto_coverage: number = 500000,
+    referral_threshold: number = 70,
+    decline_threshold: number = 90
+  },
+  events: {
+    on_approved: "underwriting_approved",
+    on_referred: "underwriting_referred",
+    on_declined: "underwriting_declined",
+    decide: "underwriting_decide"
+  },
+  behaviors: ["@policy", "@risk_assessment", "@claim"]
+}

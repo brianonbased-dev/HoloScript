@@ -1,0 +1,17 @@
+@trait {
+  name: "@risk_assessment",
+  category: "insurance",
+  description: "Actuarial risk assessment engine. factors is a list of risk factor objects (name, value, maxValue, weight) whose weighted sum produces the risk score. baseRate is the base premium rate (default: 100). riskClass: preferred, standard, substandard, or declined — maps to underwriting disposition. maxRiskScore is the score ceiling (default: 100). Port of RiskAssessmentTrait.ts (handler name: risk_assessment).",
+  props: {
+    base_rate: number = 100,
+    risk_class: enum("preferred" | "standard" | "substandard" | "declined") = "standard",
+    max_risk_score: number = 100
+  },
+  events: {
+    on_assessed: "risk_assessed",
+    on_class_changed: "risk_class_changed",
+    assess: "risk_assess",
+    add_factor: "risk_add_factor"
+  },
+  behaviors: ["@policy", "@underwriting"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@claim",
+  category: "insurance",
+  description: "Insurance claim lifecycle. claimNumber is the official claim identifier. policyNumber links to the @policy. dateOfLoss is the ISO 8601 date of the insured event. claimAmount is the claimed loss amount. claimantName is the filing party. Status: filed, under_review, approved, denied, paid, or closed. Port of ClaimTrait.ts (handler name: claim).",
+  props: {
+    claim_number: string = "",
+    policy_number: string = "",
+    date_of_loss: string = "",
+    description: string = "",
+    claim_amount: number = 0,
+    claimant_name: string = ""
+  },
+  events: {
+    on_filed: "claim_filed",
+    on_approved: "claim_approved",
+    on_denied: "claim_denied",
+    on_paid: "claim_paid",
+    approve: "claim_approve",
+    deny: "claim_deny",
+    pay: "claim_pay"
+  },
+  behaviors: ["@policy", "@underwriting"]
+}

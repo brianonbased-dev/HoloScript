@@ -1,0 +1,24 @@
+@trait {
+  name: "@policy",
+  category: "insurance",
+  description: "Insurance policy record. type: auto, home, life, health, commercial, or liability. premium is the periodic premium amount. coverageAmount is the maximum payout. deductible is the insured's out-of-pocket amount per claim. effectiveDate and expirationDate are ISO 8601. Status: active, lapsed, cancelled, or expired. Port of PolicyTrait.ts (handler name: policy).",
+  props: {
+    policy_number: string = "",
+    type: enum("auto" | "home" | "life" | "health" | "commercial" | "liability") = "auto",
+    insured_name: string = "",
+    premium: number = 0,
+    coverage_amount: number = 0,
+    deductible: number = 0,
+    effective_date: string = "",
+    expiration_date: string = ""
+  },
+  events: {
+    on_issued: "policy_issued",
+    on_renewed: "policy_renewed",
+    on_cancelled: "policy_cancelled",
+    on_lapsed: "policy_lapsed",
+    renew: "policy_renew",
+    cancel: "policy_cancel"
+  },
+  behaviors: ["@claim", "@underwriting", "@risk_assessment"]
+}
