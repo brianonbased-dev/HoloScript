@@ -1,0 +1,27 @@
+@trait {
+  name: "@magnifiable",
+  category: "accessibility",
+  description: "Content scaling for low-vision users. Supports pinch/button/gaze/voice/gesture triggers, smooth zoom with configurable speed, and a windowed lens mode that magnifies a circular region of the view. Port of MagnifiableTrait.ts (handler name: magnifiable).",
+  props: {
+    min_scale: number = 1.0,
+    max_scale: number = 5.0,
+    trigger: enum("pinch" | "button" | "gaze" | "voice" | "gesture") = "pinch",
+    smooth_zoom: boolean = true,
+    zoom_speed: number = 2.0,
+    lens_mode: boolean = false,
+    lens_size: number = 0.3,
+    lens_border: boolean = true,
+    preserve_aspect: boolean = true
+  },
+  events: {
+    attached: "magnifiable_attached",
+    detached: "magnifiable_detached",
+    on_zoom_start: "magnifiable_zoom_start",
+    on_zoom_end: "magnifiable_zoom_end",
+    on_zoom_change: "magnifiable_zoom_change",
+    zoom_in: "magnifiable_trigger_zoom_in",
+    zoom_out: "magnifiable_trigger_zoom_out",
+    reset: "magnifiable_trigger_reset"
+  },
+  behaviors: ["@gesture", "@gaze_focus_analytics", "@layer_aware"]
+}

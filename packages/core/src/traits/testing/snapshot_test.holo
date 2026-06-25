@@ -1,0 +1,17 @@
+@trait {
+  name: "@snapshot_test",
+  category: "testing",
+  description: "Snapshot comparison testing. Captures named JSON snapshots via snapshot:capture, compares current values on snapshot:compare, and optionally updates stored snapshots on mismatch. Port of SnapshotTestTrait.ts (handler name: snapshot_test).",
+  props: {
+    update_on_mismatch: boolean = false
+  },
+  events: {
+    attached: "snapshot_test_attached",
+    detached: "snapshot_test_detached",
+    on_captured: "snapshot_captured",
+    on_result: "snapshot_result",
+    capture: "snapshot_capture",
+    compare: "snapshot_compare"
+  },
+  behaviors: ["@watcher", "@stat", "@journal"]
+}

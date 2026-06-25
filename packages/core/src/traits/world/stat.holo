@@ -1,0 +1,21 @@
+@trait {
+  name: "@stat",
+  category: "world",
+  description: "Named numeric attribute carrier for HoloLand entities. Tracks a base value with an ordered additive modifier stack and optional min/max clamp. Effective value = clamp(base + sum(modifiers), min, max). Consumers wire @luck, @encounter, @drop_table by passing stat values into event payloads. Port of StatTrait.ts.",
+  props: {
+    name: string = "stat",
+    value: number = 0.0,
+    min: number = 0.0,
+    max: number = 0.0
+  },
+  events: {
+    attached: "stat_ready",
+    detached: "stat_detached",
+    on_changed: "stat_changed",
+    on_value: "stat_value",
+    set: "stat_set",
+    modify: "stat_modify",
+    query: "stat_query"
+  },
+  behaviors: ["@persona", "@analytics"]
+}

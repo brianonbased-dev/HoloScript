@@ -1,0 +1,16 @@
+@trait {
+  name: "@bounce",
+  category: "physics",
+  description: "Legacy-friendly elasticity alias. Delegates to the same physics pipeline as @elastic via compileElasticityTraitContext. Port of BounceTrait.ts (handler name: bounce, created via createElasticityTraitHandler).",
+  props: {
+    restitution: number = 0.8,
+    threshold_velocity: number = 0.5,
+    dampen_factor: number = 1.0
+  },
+  events: {
+    attached: "bounce_attached",
+    detached: "bounce_detached",
+    on_bounce: "bounce_impact"
+  },
+  behaviors: ["@rigidbody", "@elastic"]
+}
