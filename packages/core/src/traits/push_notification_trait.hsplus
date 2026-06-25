@@ -1,0 +1,23 @@
+// @push_notification_trait — Push notification: sends APNs/FCM/Web-Push with delivery tracking.
+//
+// Native .hsplus surface for core/traits/PushNotificationTrait.ts.
+
+@trait push_notification_trait {
+  capability_tags: ["push_notification", "apns_fcm_webpush", "delivery_tracking", "mobile_push", "core"]
+
+  @on_spawn(provider) => {
+    init_push_notification(provider)
+    emit("push_notification_ready", {})
+  }
+
+  @on_send(device_token, title, body, data) => {
+    msg_id = send_push_notification(device_token, title, body, data)
+    return msg_id
+  }
+
+  @receipt push_notification_trait_config {
+    type: "PushNotificationTraitReceipt"
+    providers: ["APNs", "FCM", "Web-Push"]
+    timestamp: now()
+  }
+}

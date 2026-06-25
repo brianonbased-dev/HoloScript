@@ -1,0 +1,22 @@
+// @reputation_ledger_trait — Reputation ledger: stake-weighted reputation scores with decay and slash.
+//
+// Native .hsplus surface for core/traits/ReputationLedgerTrait.ts.
+
+@trait reputation_ledger_trait {
+  capability_tags: ["reputation_ledger", "stake_weighted", "decay_slash", "agent_reputation", "core"]
+
+  @on_spawn(decay_rate) => {
+    init_reputation_ledger(decay_rate)
+    emit("reputation_ledger_ready", {})
+  }
+
+  @on_update(agent_id, delta, reason) => {
+    new_score = update_reputation(agent_id, delta, reason)
+    return new_score
+  }
+
+  @receipt reputation_ledger_trait_config {
+    type: "ReputationLedgerTraitReceipt"
+    timestamp: now()
+  }
+}

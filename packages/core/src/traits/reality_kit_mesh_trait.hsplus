@@ -1,0 +1,22 @@
+// @reality_kit_mesh_trait — RealityKit mesh: maps HoloScript geometry to RealityKit MeshResource for visionOS.
+//
+// Native .hsplus surface for core/traits/RealityKitMeshTrait.ts.
+
+@trait reality_kit_mesh_trait {
+  capability_tags: ["reality_kit_mesh", "realitykit_meshresource", "visionos", "ar_mesh", "core"]
+
+  @on_spawn => {
+    emit("reality_kit_mesh_ready", {})
+  }
+
+  @on_compile(geometry) => {
+    mesh_resource = compile_reality_kit_mesh(geometry)
+    return mesh_resource
+  }
+
+  @receipt reality_kit_mesh_trait_config {
+    type: "RealityKitMeshTraitReceipt"
+    platform: "visionOS / RealityKit"
+    timestamp: now()
+  }
+}

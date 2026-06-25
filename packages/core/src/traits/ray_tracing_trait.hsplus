@@ -1,0 +1,23 @@
+// @ray_tracing_trait — GPU ray tracing: full pipeline with BVH, reflections, GI on WebGPU/DXR.
+//
+// Native .hsplus surface for core/traits/RayTracingTrait.ts.
+
+@trait ray_tracing_trait {
+  capability_tags: ["ray_tracing", "bvh", "reflections_gi", "webgpu_dxr", "core"]
+
+  @on_spawn(api) => {
+    init_ray_tracing(api)
+    emit("ray_tracing_ready", {})
+  }
+
+  @on_render(scene, camera) => {
+    frame = render_ray_traced(scene, camera)
+    return frame
+  }
+
+  @receipt ray_tracing_trait_config {
+    type: "RayTracingTraitReceipt"
+    apis: ["WebGPU", "DXR", "Metal RT"]
+    timestamp: now()
+  }
+}

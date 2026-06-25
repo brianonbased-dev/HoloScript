@@ -1,0 +1,23 @@
+// @rsa_encryption_trait — RSA encryption: RSA-OAEP encrypt/decrypt with key-pair management.
+//
+// Native .hsplus surface for core/traits/RSAEncryptionTrait.ts.
+
+@trait rsa_encryption_trait {
+  capability_tags: ["rsa_encryption", "rsa_oaep", "key_pair", "asymmetric_encrypt", "core"]
+
+  @on_spawn(key_size) => {
+    init_rsa_encryption(key_size)
+    emit("rsa_encryption_ready", {})
+  }
+
+  @on_encrypt(plaintext, public_key) => {
+    ciphertext = rsa_encrypt(plaintext, public_key)
+    return ciphertext
+  }
+
+  @receipt rsa_encryption_trait_config {
+    type: "RSAEncryptionTraitReceipt"
+    scheme: "RSA-OAEP"
+    timestamp: now()
+  }
+}

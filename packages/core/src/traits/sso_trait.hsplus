@@ -1,0 +1,23 @@
+// @sso_trait — SSO: SAML2/OIDC single-sign-on with attribute mapping and session management.
+//
+// Native .hsplus surface for core/traits/SSOTrait.ts.
+
+@trait sso_trait {
+  capability_tags: ["sso", "saml2_oidc", "single_sign_on", "attribute_mapping", "core"]
+
+  @on_spawn(provider, config_ref) => {
+    init_sso(provider, config_ref)
+    emit("sso_ready", { provider })
+  }
+
+  @on_authenticate(assertion, format) => {
+    session = authenticate_sso(assertion, format)
+    return session
+  }
+
+  @receipt sso_trait_config {
+    type: "SSOTraitReceipt"
+    protocols: ["SAML2", "OIDC"]
+    timestamp: now()
+  }
+}

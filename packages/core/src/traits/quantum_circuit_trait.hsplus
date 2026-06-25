@@ -1,0 +1,27 @@
+// @quantum_circuit_trait — Quantum circuit: builds and compiles quantum gate circuits to QASM.
+//
+// Native .hsplus surface for core/traits/QuantumCircuitTrait.ts.
+
+@trait quantum_circuit_trait {
+  capability_tags: ["quantum_circuit", "gate_circuit", "qasm_compile", "quantum_gate", "core"]
+
+  @on_spawn(qubit_count) => {
+    init_quantum_circuit(qubit_count)
+    emit("quantum_circuit_ready", {})
+  }
+
+  @on_add_gate(gate, qubits) => {
+    add_quantum_gate(gate, qubits)
+  }
+
+  @on_compile => {
+    qasm = compile_to_qasm()
+    return qasm
+  }
+
+  @receipt quantum_circuit_trait_config {
+    type: "QuantumCircuitTraitReceipt"
+    output: "QASM"
+    timestamp: now()
+  }
+}

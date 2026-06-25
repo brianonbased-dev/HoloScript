@@ -1,0 +1,25 @@
+// @scene_graph_trait — Scene graph: parent/child transform hierarchy with dirty-flag propagation.
+//
+// Native .hsplus surface for core/traits/SceneGraphTrait.ts.
+
+@trait scene_graph_trait {
+  capability_tags: ["scene_graph", "transform_hierarchy", "parent_child", "dirty_flag", "core"]
+
+  @on_spawn(root_id) => {
+    init_scene_graph(root_id)
+    emit("scene_graph_ready", {})
+  }
+
+  @on_attach(child_id, parent_id) => {
+    attach_scene_node(child_id, parent_id)
+  }
+
+  @on_update_transform(node_id, transform) => {
+    update_scene_graph_transform(node_id, transform)
+  }
+
+  @receipt scene_graph_trait_config {
+    type: "SceneGraphTraitReceipt"
+    timestamp: now()
+  }
+}

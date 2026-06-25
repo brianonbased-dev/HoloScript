@@ -1,0 +1,23 @@
+// @quantum_inspired_trait — Quantum-inspired optimizer: simulated annealing/QUBO for classical hardware.
+//
+// Native .hsplus surface for core/traits/QuantumInspiredTrait.ts.
+
+@trait quantum_inspired_trait {
+  capability_tags: ["quantum_inspired", "simulated_annealing", "qubo", "classical_optimizer", "core"]
+
+  @on_spawn(algorithm) => {
+    init_quantum_inspired(algorithm)
+    emit("quantum_inspired_ready", {})
+  }
+
+  @on_solve(problem) => {
+    solution = solve_quantum_inspired(problem)
+    return solution
+  }
+
+  @receipt quantum_inspired_trait_config {
+    type: "QuantumInspiredTraitReceipt"
+    algorithms: ["simulated annealing", "QUBO"]
+    timestamp: now()
+  }
+}

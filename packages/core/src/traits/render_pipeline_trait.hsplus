@@ -1,0 +1,22 @@
+// @render_pipeline_trait — Render pipeline: ordered GPU passes (depth, shadow, forward, post) with resource handles.
+//
+// Native .hsplus surface for core/traits/RenderPipelineTrait.ts.
+
+@trait render_pipeline_trait {
+  capability_tags: ["render_pipeline", "gpu_passes", "depth_shadow_forward_post", "resource_handles", "core"]
+
+  @on_spawn(passes) => {
+    init_render_pipeline(passes)
+    emit("render_pipeline_ready", {})
+  }
+
+  @on_execute(scene, camera) => {
+    execute_render_pipeline(scene, camera)
+  }
+
+  @receipt render_pipeline_trait_config {
+    type: "RenderPipelineTraitReceipt"
+    passes: ["depth", "shadow", "forward", "post"]
+    timestamp: now()
+  }
+}

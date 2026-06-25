@@ -1,0 +1,23 @@
+// @qr_decode_trait — QR decode: reads QR codes from image frame or camera stream.
+//
+// Native .hsplus surface for core/traits/QrDecodeTrait.ts.
+
+@trait qr_decode_trait {
+  capability_tags: ["qr_decode", "qr_from_image", "camera_stream_qr", "barcode_scan", "core"]
+
+  @on_spawn => {
+    emit("qr_decode_ready", {})
+  }
+
+  @on_scan(image_frame) => {
+    result = decode_qr(image_frame)
+    if result { emit("qr_decoded", { value: result }) }
+    return result
+  }
+
+  @receipt qr_decode_trait_config {
+    type: "QrDecodeTraitReceipt"
+    doc: "F.117 QR for headset links — generate LOCALLY via qrcode lib, never 3rd-party"
+    timestamp: now()
+  }
+}

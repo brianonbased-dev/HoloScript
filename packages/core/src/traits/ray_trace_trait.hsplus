@@ -1,0 +1,23 @@
+// @ray_trace_trait — Ray trace primitive: single-ray cast against scene for hit detection.
+//
+// Native .hsplus surface for core/traits/RayTraceTrait.ts.
+// (Primitive; RayTracingTrait wraps this for GPU pipeline.)
+
+@trait ray_trace_trait {
+  capability_tags: ["ray_trace", "single_ray_cast", "scene_hit_detection", "ray_primitive", "core"]
+
+  @on_spawn(scene_id) => {
+    init_ray_trace(scene_id)
+    emit("ray_trace_ready", {})
+  }
+
+  @on_cast(origin, direction, max_distance) => {
+    hit = ray_cast(origin, direction, max_distance)
+    return hit
+  }
+
+  @receipt ray_trace_trait_config {
+    type: "RayTraceTraitReceipt"
+    timestamp: now()
+  }
+}

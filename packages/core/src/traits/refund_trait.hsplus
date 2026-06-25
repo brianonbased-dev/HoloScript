@@ -1,0 +1,23 @@
+// @refund_trait — Payment refund: initiates and tracks refund flow with idempotency key.
+//
+// Native .hsplus surface for core/traits/RefundTrait.ts.
+
+@trait refund_trait {
+  capability_tags: ["refund", "payment_refund", "idempotency_key", "refund_flow", "core"]
+
+  @on_spawn(payment_provider_ref) => {
+    init_refund(payment_provider_ref)
+    emit("refund_ready", {})
+  }
+
+  @on_initiate(payment_id, amount, reason) => {
+    refund_id = initiate_refund(payment_id, amount, reason)
+    emit("refund_initiated", { refund_id })
+    return refund_id
+  }
+
+  @receipt refund_trait_config {
+    type: "RefundTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @rope_trait — Rope/cable physics: verlet-integrated inextensible rope with anchor points.
+//
+// Native .hsplus surface for core/traits/RopeTrait.ts.
+
+@trait rope_trait {
+  capability_tags: ["rope_trait", "verlet_rope", "inextensible", "anchor_cable", "core"]
+
+  @on_spawn(segments, stiffness) => {
+    init_rope(segments, stiffness)
+    emit("rope_ready", {})
+  }
+
+  @on_step(dt, external_forces) => {
+    step_rope(dt, external_forces)
+  }
+
+  @receipt rope_trait_config {
+    type: "RopeTraitReceipt"
+    integration: "Verlet"
+    timestamp: now()
+  }
+}

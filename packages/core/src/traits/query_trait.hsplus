@@ -1,0 +1,22 @@
+// @query_trait — Query builder: typed query DSL over entity/knowledge stores with filter/sort/page.
+//
+// Native .hsplus surface for core/traits/QueryTrait.ts.
+
+@trait query_trait {
+  capability_tags: ["query_trait", "typed_query_dsl", "filter_sort_page", "entity_store_query", "core"]
+
+  @on_spawn(store_id) => {
+    init_query(store_id)
+    emit("query_ready", {})
+  }
+
+  @on_execute(query_def) => {
+    results = execute_query(query_def)
+    return results
+  }
+
+  @receipt query_trait_config {
+    type: "QueryTraitReceipt"
+    timestamp: now()
+  }
+}

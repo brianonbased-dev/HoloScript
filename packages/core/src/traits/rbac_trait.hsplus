@@ -1,0 +1,22 @@
+// @rbac_trait — RBAC: role-based access control with role inheritance and permission cache.
+//
+// Native .hsplus surface for core/traits/RBACTrait.ts.
+
+@trait rbac_trait {
+  capability_tags: ["rbac_trait", "role_inheritance", "permission_cache", "access_control", "core"]
+
+  @on_spawn(policy) => {
+    init_rbac(policy)
+    emit("rbac_ready", {})
+  }
+
+  @on_check(principal, action, resource) => {
+    return check_rbac(principal, action, resource)
+  }
+
+  @receipt rbac_trait_config {
+    type: "RBACTraitReceipt"
+    features: ["role inheritance", "permission cache"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @remote_presence_trait — Remote presence: synchronizes remote user's position/gaze into local world.
+//
+// Native .hsplus surface for core/traits/RemotePresenceTrait.ts.
+
+@trait remote_presence_trait {
+  capability_tags: ["remote_presence", "position_gaze_sync", "remote_user", "co_presence", "core"]
+
+  @on_spawn(user_id, session_id) => {
+    init_remote_presence(user_id, session_id)
+    emit("remote_presence_ready", { user_id })
+  }
+
+  @on_update(pose) => {
+    broadcast_remote_pose(pose)
+  }
+
+  @receipt remote_presence_trait_config {
+    type: "RemotePresenceTraitReceipt"
+    timestamp: now()
+  }
+}

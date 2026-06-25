@@ -1,0 +1,25 @@
+// @profiler_trait — Performance profiler: samples CPU/GPU frame time with named spans.
+//
+// Native .hsplus surface for core/traits/ProfilerTrait.ts.
+
+@trait profiler_trait {
+  capability_tags: ["profiler", "cpu_gpu_sample", "named_spans", "frame_time", "core"]
+
+  @on_spawn(target_fps) => {
+    init_profiler(target_fps)
+    emit("profiler_ready", {})
+  }
+
+  @on_begin_span(name) => {
+    begin_profiler_span(name)
+  }
+
+  @on_end_span(name) => {
+    return end_profiler_span(name)
+  }
+
+  @receipt profiler_trait_config {
+    type: "ProfilerTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @rest_endpoint_trait — REST endpoint: exposes entity actions as typed HTTP REST handlers.
+//
+// Native .hsplus surface for core/traits/RestEndpointTrait.ts.
+
+@trait rest_endpoint_trait {
+  capability_tags: ["rest_endpoint", "typed_http_handlers", "entity_to_rest", "api_surface", "core"]
+
+  @on_spawn(route_prefix) => {
+    init_rest_endpoint(route_prefix)
+    emit("rest_endpoint_ready", { route_prefix })
+  }
+
+  @on_handle(method, path, body) => {
+    result = dispatch_rest_request(method, path, body)
+    return result
+  }
+
+  @receipt rest_endpoint_trait_config {
+    type: "RestEndpointTraitReceipt"
+    timestamp: now()
+  }
+}

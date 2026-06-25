@@ -1,0 +1,21 @@
+// @scene_reconstruction_trait — Scene reconstruction: incremental 3D reconstruction from RGBD stream.
+//
+// Native .hsplus surface for core/traits/SceneReconstructionTrait.ts.
+
+@trait scene_reconstruction_trait {
+  capability_tags: ["scene_reconstruction", "incremental_3d", "rgbd_stream", "live_reconstruction", "core"]
+
+  @on_spawn(voxel_size, max_volume) => {
+    init_scene_reconstruction(voxel_size, max_volume)
+    emit("scene_reconstruction_ready", {})
+  }
+
+  @on_integrate(rgbd_frame, pose) => {
+    integrate_reconstruction_frame(rgbd_frame, pose)
+  }
+
+  @receipt scene_reconstruction_trait_config {
+    type: "SceneReconstructionTraitReceipt"
+    timestamp: now()
+  }
+}

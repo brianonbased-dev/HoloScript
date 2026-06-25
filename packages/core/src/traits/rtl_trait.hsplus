@@ -1,0 +1,22 @@
+// @rtl_trait — RTL layout: right-to-left layout mirroring for Arabic/Hebrew i18n surfaces.
+//
+// Native .hsplus surface for core/traits/RtlTrait.ts.
+
+@trait rtl_trait {
+  capability_tags: ["rtl", "right_to_left", "arabic_hebrew", "layout_mirror", "core"]
+
+  @on_spawn => {
+    emit("rtl_ready", {})
+  }
+
+  @on_enable(locale_code) => {
+    enable_rtl(locale_code)
+    emit("rtl_enabled", { locale_code })
+  }
+
+  @receipt rtl_trait_config {
+    type: "RtlTraitReceipt"
+    locales: ["ar", "he", "fa", "ur"]
+    timestamp: now()
+  }
+}

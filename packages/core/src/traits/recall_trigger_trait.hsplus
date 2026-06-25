@@ -1,0 +1,23 @@
+// @recall_trigger_trait — Recall trigger: fires memory recall on spatial/temporal/event conditions.
+//
+// Native .hsplus surface for core/traits/RecallTriggerTrait.ts.
+
+@trait recall_trigger_trait {
+  capability_tags: ["recall_trigger", "memory_recall", "spatial_temporal_event", "trigger_recall", "core"]
+
+  @on_spawn(condition) => {
+    init_recall_trigger(condition)
+    emit("recall_trigger_ready", {})
+  }
+
+  @on_evaluate(context) => {
+    memories = evaluate_recall_trigger(context)
+    if memories.length > 0 { emit("recall_fired", { count: memories.length }) }
+    return memories
+  }
+
+  @receipt recall_trigger_trait_config {
+    type: "RecallTriggerTraitReceipt"
+    timestamp: now()
+  }
+}

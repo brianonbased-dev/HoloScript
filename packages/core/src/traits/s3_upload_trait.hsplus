@@ -1,0 +1,23 @@
+// @s3_upload_trait — S3 upload: multipart upload to S3-compatible store with progress and presigned URL.
+//
+// Native .hsplus surface for core/traits/S3UploadTrait.ts.
+
+@trait s3_upload_trait {
+  capability_tags: ["s3_upload", "multipart_upload", "s3_compatible", "presigned_url", "core"]
+
+  @on_spawn(bucket, credentials_ref) => {
+    init_s3_upload(bucket, credentials_ref)
+    emit("s3_upload_ready", { bucket })
+  }
+
+  @on_upload(key, data, content_type) => {
+    url = upload_to_s3(key, data, content_type)
+    emit("s3_uploaded", { key })
+    return url
+  }
+
+  @receipt s3_upload_trait_config {
+    type: "S3UploadTraitReceipt"
+    timestamp: now()
+  }
+}

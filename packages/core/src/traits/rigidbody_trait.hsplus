@@ -1,0 +1,21 @@
+// @rigidbody_trait — Rigidbody physics: mass, drag, forces, constraints for rigid-body simulation.
+//
+// Native .hsplus surface for core/traits/RigidbodyTrait.ts.
+
+@trait rigidbody_trait {
+  capability_tags: ["rigidbody", "mass_drag_forces", "rigid_body_sim", "physics_body", "core"]
+
+  @on_spawn(mass, drag, constraints) => {
+    init_rigidbody(mass, drag, constraints)
+    emit("rigidbody_ready", {})
+  }
+
+  @on_apply_force(force, point) => {
+    apply_rigidbody_force(force, point)
+  }
+
+  @receipt rigidbody_trait_config {
+    type: "RigidbodyTraitReceipt"
+    timestamp: now()
+  }
+}

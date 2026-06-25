@@ -1,0 +1,26 @@
+// @provenance_densify_trait — Provenance densifier: generative reconstruction fills provenance gaps (D.101 carve-out).
+//
+// Native .hsplus surface for core/traits/ProvenanceDensifyTrait.ts.
+// Carve-out: D.101 lift — "lift freeze on this as it helps boost the language".
+// Base model: Apache-2.0 Wan2.1 (NOT ArtiFixer non-commercial weights).
+
+@trait provenance_densify_trait {
+  capability_tags: ["provenance_densify", "generative_reconstruction", "provenance_gap_fill", "d101_carve_out", "core"]
+
+  @on_spawn(model_ref) => {
+    init_provenance_densify(model_ref)
+    emit("provenance_densify_ready", {})
+  }
+
+  @on_densify(sparse_provenance, context) => {
+    dense = densify_provenance(sparse_provenance, context)
+    return dense
+  }
+
+  @receipt provenance_densify_trait_config {
+    type: "ProvenanceDensifyTraitReceipt"
+    base_model: "Wan2.1 (Apache-2.0)"
+    doc: "D.101 carve-out + direction_build-the-language-only.md"
+    timestamp: now()
+  }
+}

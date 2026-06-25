@@ -1,0 +1,24 @@
+// @room_mesh_trait — Room mesh: Quest scene-understanding mesh for walls/floor/ceiling in XR.
+//
+// Native .hsplus surface for core/traits/RoomMeshTrait.ts.
+
+@trait room_mesh_trait {
+  capability_tags: ["room_mesh", "scene_understanding", "walls_floor_ceiling", "quest_xr", "core"]
+
+  @on_spawn(device_id) => {
+    init_room_mesh(device_id)
+    emit("room_mesh_ready", {})
+  }
+
+  @on_update(room_data) => {
+    mesh = update_room_mesh(room_data)
+    emit("room_mesh_updated", {})
+    return mesh
+  }
+
+  @receipt room_mesh_trait_config {
+    type: "RoomMeshTraitReceipt"
+    platform: "Quest / OpenXR scene understanding"
+    timestamp: now()
+  }
+}

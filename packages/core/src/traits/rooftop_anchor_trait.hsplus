@@ -1,0 +1,22 @@
+// @rooftop_anchor_trait — Rooftop anchor: geospatial anchor clamped to building roof surface in HoloMap.
+//
+// Native .hsplus surface for core/traits/RooftopAnchorTrait.ts.
+
+@trait rooftop_anchor_trait {
+  capability_tags: ["rooftop_anchor", "building_roof", "geospatial_clamp", "holomap_anchor", "core"]
+
+  @on_spawn(building_id) => {
+    init_rooftop_anchor(building_id)
+    emit("rooftop_anchor_ready", { building_id })
+  }
+
+  @on_place(lat, lng, height_m) => {
+    anchor_pose = place_rooftop_anchor(lat, lng, height_m)
+    return anchor_pose
+  }
+
+  @receipt rooftop_anchor_trait_config {
+    type: "RooftopAnchorTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @sandbox_execution_trait — Sandbox execution: runs untrusted code in isolated WASM/VM context.
+//
+// Native .hsplus surface for core/traits/SandboxExecutionTrait.ts.
+
+@trait sandbox_execution_trait {
+  capability_tags: ["sandbox_execution", "untrusted_code", "wasm_vm_isolation", "sandboxed_run", "core"]
+
+  @on_spawn(policy) => {
+    init_sandbox(policy)
+    emit("sandbox_ready", {})
+  }
+
+  @on_execute(code, inputs) => {
+    result = execute_sandboxed(code, inputs)
+    return result
+  }
+
+  @receipt sandbox_execution_trait_config {
+    type: "SandboxExecutionTraitReceipt"
+    isolation: "WASM / seccomp VM"
+    timestamp: now()
+  }
+}

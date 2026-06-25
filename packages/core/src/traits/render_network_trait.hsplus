@@ -1,0 +1,23 @@
+// @render_network_trait — Render network: distributes render jobs across fleet nodes with load balancing.
+//
+// Native .hsplus surface for core/traits/RenderNetworkTrait.ts.
+
+@trait render_network_trait {
+  capability_tags: ["render_network", "distributed_render", "fleet_nodes", "load_balance", "core"]
+
+  @on_spawn(fleet_config) => {
+    init_render_network(fleet_config)
+    emit("render_network_ready", {})
+  }
+
+  @on_submit(job) => {
+    job_id = submit_render_job(job)
+    emit("render_job_submitted", { job_id })
+    return job_id
+  }
+
+  @receipt render_network_trait_config {
+    type: "RenderNetworkTraitReceipt"
+    timestamp: now()
+  }
+}

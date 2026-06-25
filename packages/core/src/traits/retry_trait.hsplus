@@ -1,0 +1,23 @@
+// @retry_trait — Retry policy: exponential backoff with jitter and max-attempt cap.
+//
+// Native .hsplus surface for core/traits/RetryTrait.ts.
+
+@trait retry_trait {
+  capability_tags: ["retry", "exponential_backoff", "jitter", "max_attempts", "core"]
+
+  @on_spawn(max_attempts, base_delay_ms) => {
+    init_retry(max_attempts, base_delay_ms)
+    emit("retry_ready", {})
+  }
+
+  @on_execute(fn) => {
+    result = retry_with_backoff(fn)
+    return result
+  }
+
+  @receipt retry_trait_config {
+    type: "RetryTraitReceipt"
+    policy: "exponential backoff + jitter"
+    timestamp: now()
+  }
+}

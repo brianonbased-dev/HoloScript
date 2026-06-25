@@ -1,0 +1,22 @@
+// @reward_trait — Reward system: RL reward signal shaping for agent training curriculum.
+//
+// Native .hsplus surface for core/traits/RewardTrait.ts.
+
+@trait reward_trait {
+  capability_tags: ["reward_trait", "rl_reward_signal", "curriculum_shaping", "agent_training", "core"]
+
+  @on_spawn(reward_fn) => {
+    init_reward(reward_fn)
+    emit("reward_ready", {})
+  }
+
+  @on_compute(state, action, next_state) => {
+    reward = compute_reward(state, action, next_state)
+    return reward
+  }
+
+  @receipt reward_trait_config {
+    type: "RewardTraitReceipt"
+    timestamp: now()
+  }
+}

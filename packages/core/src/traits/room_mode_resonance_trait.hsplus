@@ -1,0 +1,22 @@
+// @room_mode_resonance_trait — Room mode resonance: acoustic standing-wave simulation for enclosed spaces.
+//
+// Native .hsplus surface for core/traits/RoomModeResonanceTrait.ts.
+
+@trait room_mode_resonance_trait {
+  capability_tags: ["room_mode_resonance", "standing_wave", "acoustic_simulation", "enclosed_space", "core"]
+
+  @on_spawn(room_geometry) => {
+    init_room_mode_resonance(room_geometry)
+    emit("room_mode_resonance_ready", {})
+  }
+
+  @on_compute_modes => {
+    modes = compute_room_modes()
+    return modes
+  }
+
+  @receipt room_mode_resonance_trait_config {
+    type: "RoomModeResonanceTraitReceipt"
+    timestamp: now()
+  }
+}

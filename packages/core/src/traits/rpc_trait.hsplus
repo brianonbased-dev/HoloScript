@@ -1,0 +1,22 @@
+// @rpc_trait — RPC: typed remote procedure call between agent entities over HoloMesh.
+//
+// Native .hsplus surface for core/traits/RpcTrait.ts.
+
+@trait rpc_trait {
+  capability_tags: ["rpc_trait", "typed_rpc", "agent_remote_call", "holomesh_rpc", "core"]
+
+  @on_spawn(target_agent) => {
+    init_rpc(target_agent)
+    emit("rpc_ready", {})
+  }
+
+  @on_call(method, params) => {
+    result = invoke_rpc(method, params)
+    return result
+  }
+
+  @receipt rpc_trait_config {
+    type: "RpcTraitReceipt"
+    timestamp: now()
+  }
+}

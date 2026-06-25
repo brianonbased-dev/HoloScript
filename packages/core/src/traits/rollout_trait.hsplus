@@ -1,0 +1,22 @@
+// @rollout_trait — Feature rollout: percentage-based canary release with automatic rollback gate.
+//
+// Native .hsplus surface for core/traits/RolloutTrait.ts.
+
+@trait rollout_trait {
+  capability_tags: ["rollout", "canary_release", "percentage_rollout", "auto_rollback_gate", "core"]
+
+  @on_spawn(feature_key, initial_pct) => {
+    init_rollout(feature_key, initial_pct)
+    emit("rollout_ready", { feature_key })
+  }
+
+  @on_check(user_id) => {
+    enabled = check_rollout(user_id)
+    return enabled
+  }
+
+  @receipt rollout_trait_config {
+    type: "RolloutTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @reverb_zone_trait — Reverb zone: spatial audio convolution reverb triggered by entity entry.
+//
+// Native .hsplus surface for core/traits/ReverbZoneTrait.ts.
+
+@trait reverb_zone_trait {
+  capability_tags: ["reverb_zone", "convolution_reverb", "spatial_audio", "zone_trigger", "core"]
+
+  @on_spawn(ir_path, blend_distance) => {
+    init_reverb_zone(ir_path, blend_distance)
+    emit("reverb_zone_ready", {})
+  }
+
+  @on_enter(entity_id, distance) => {
+    apply_reverb_zone(entity_id, distance)
+    emit("reverb_entered", { entity_id })
+  }
+
+  @receipt reverb_zone_trait_config {
+    type: "ReverbZoneTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @resource_accounting_trait — Resource accounting: tracks compute/memory/storage usage for billing.
+//
+// Native .hsplus surface for core/traits/ResourceAccountingTrait.ts.
+
+@trait resource_accounting_trait {
+  capability_tags: ["resource_accounting", "compute_memory_storage", "usage_billing", "metering", "core"]
+
+  @on_spawn(account_id) => {
+    init_resource_accounting(account_id)
+    emit("resource_accounting_ready", {})
+  }
+
+  @on_record(resource_type, amount, unit) => {
+    record_usage(resource_type, amount, unit)
+  }
+
+  @on_summary => {
+    return get_usage_summary()
+  }
+
+  @receipt resource_accounting_trait_config {
+    type: "ResourceAccountingTraitReceipt"
+    timestamp: now()
+  }
+}

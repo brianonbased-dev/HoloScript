@@ -1,0 +1,23 @@
+// @quota_trait — Resource quota: enforces per-user/team usage caps with overage gates.
+//
+// Native .hsplus surface for core/traits/QuotaTrait.ts.
+
+@trait quota_trait {
+  capability_tags: ["quota", "usage_cap", "overage_gate", "per_user_team", "core"]
+
+  @on_spawn(quota_config) => {
+    init_quota(quota_config)
+    emit("quota_ready", {})
+  }
+
+  @on_check(principal, resource, amount) => {
+    result = check_quota(principal, resource, amount)
+    if result.exceeded { emit("quota_exceeded", { principal, resource }) }
+    return result
+  }
+
+  @receipt quota_trait_config {
+    type: "QuotaTraitReceipt"
+    timestamp: now()
+  }
+}

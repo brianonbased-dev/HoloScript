@@ -1,0 +1,22 @@
+// @rag_knowledge_trait — RAG: retrieval-augmented generation with vector index + LLM synthesis.
+//
+// Native .hsplus surface for core/traits/RAGKnowledgeTrait.ts.
+
+@trait rag_knowledge_trait {
+  capability_tags: ["rag_knowledge", "retrieval_augmented", "vector_index", "llm_synthesis", "core"]
+
+  @on_spawn(index_id, llm_ref) => {
+    init_rag_knowledge(index_id, llm_ref)
+    emit("rag_knowledge_ready", {})
+  }
+
+  @on_query(question, top_k) => {
+    answer = rag_query(question, top_k)
+    return answer
+  }
+
+  @receipt rag_knowledge_trait_config {
+    type: "RAGKnowledgeTraitReceipt"
+    timestamp: now()
+  }
+}

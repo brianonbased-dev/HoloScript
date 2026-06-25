@@ -1,0 +1,21 @@
+// @rendering_trait — Core rendering: attach geometry+material+transform for draw-call submission.
+//
+// Native .hsplus surface for core/traits/RenderingTrait.ts.
+
+@trait rendering_trait {
+  capability_tags: ["rendering_trait", "geometry_material_transform", "draw_call", "core_render", "core"]
+
+  @on_spawn(geometry, material) => {
+    init_rendering(geometry, material)
+    emit("rendering_ready", {})
+  }
+
+  @on_draw(transform) => {
+    submit_draw_call(transform)
+  }
+
+  @receipt rendering_trait_config {
+    type: "RenderingTraitReceipt"
+    timestamp: now()
+  }
+}

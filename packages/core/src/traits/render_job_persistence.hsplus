@@ -1,0 +1,25 @@
+// @render_job_persistence — Render job persistence: saves and resumes distributed render job state.
+//
+// Native .hsplus surface for core/traits/RenderJobPersistence.ts.
+
+@trait render_job_persistence {
+  capability_tags: ["render_job_persistence", "distributed_render", "job_resume", "render_state_save", "core"]
+
+  @on_spawn(job_store) => {
+    init_render_job_persistence(job_store)
+    emit("render_job_persistence_ready", {})
+  }
+
+  @on_save(job_id, state) => {
+    save_render_job(job_id, state)
+  }
+
+  @on_load(job_id) => {
+    return load_render_job(job_id)
+  }
+
+  @receipt render_job_persistence_config {
+    type: "RenderJobPersistenceReceipt"
+    timestamp: now()
+  }
+}

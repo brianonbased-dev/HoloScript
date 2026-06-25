@@ -1,0 +1,22 @@
+// @role_trait — Role assignment: grants/revokes roles with temporal scope and audit log.
+//
+// Native .hsplus surface for core/traits/RoleTrait.ts.
+
+@trait role_trait {
+  capability_tags: ["role_trait", "role_grant_revoke", "temporal_scope", "audit_log", "core"]
+
+  @on_spawn(role_registry) => {
+    init_role_trait(role_registry)
+    emit("role_ready", {})
+  }
+
+  @on_grant(principal, role, expires_at) => {
+    grant_role(principal, role, expires_at)
+    emit("role_granted", { principal, role })
+  }
+
+  @receipt role_trait_config {
+    type: "RoleTraitReceipt"
+    timestamp: now()
+  }
+}

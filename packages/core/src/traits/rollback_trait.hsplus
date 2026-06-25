@@ -1,0 +1,26 @@
+// @rollback_trait — Rollback: snapshotted state revert for transactional operations.
+//
+// Native .hsplus surface for core/traits/RollbackTrait.ts.
+
+@trait rollback_trait {
+  capability_tags: ["rollback", "state_snapshot", "transactional_revert", "rollback_safety", "core"]
+
+  @on_spawn => {
+    emit("rollback_ready", {})
+  }
+
+  @on_snapshot(label) => {
+    snap_id = take_rollback_snapshot(label)
+    return snap_id
+  }
+
+  @on_revert(snap_id) => {
+    revert_to_snapshot(snap_id)
+    emit("rolled_back", { snap_id })
+  }
+
+  @receipt rollback_trait_config {
+    type: "RollbackTraitReceipt"
+    timestamp: now()
+  }
+}

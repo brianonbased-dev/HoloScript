@@ -1,0 +1,23 @@
+// @slo_monitor_trait — SLO monitor: tracks error-budget burn rate and fires alerts at thresholds.
+//
+// Native .hsplus surface for core/traits/SLOMonitorTrait.ts.
+
+@trait slo_monitor_trait {
+  capability_tags: ["slo_monitor", "error_budget", "burn_rate", "slo_alert", "core"]
+
+  @on_spawn(slo_config) => {
+    init_slo_monitor(slo_config)
+    emit("slo_monitor_ready", {})
+  }
+
+  @on_tick(good_events, total_events) => {
+    burn = update_slo_burn(good_events, total_events)
+    if burn.alert { emit("slo_burning", { rate: burn.rate }) }
+    return burn
+  }
+
+  @receipt slo_monitor_trait_config {
+    type: "SLOMonitorTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @provenance_trait — Provenance anchor: SHA-256 anchors artifact lineage to on-chain receipt.
+//
+// Native .hsplus surface for core/traits/ProvenanceTrait.ts.
+
+@trait provenance_trait {
+  capability_tags: ["provenance_trait", "sha256_anchor", "artifact_lineage", "on_chain_receipt", "core"]
+
+  @on_spawn => {
+    emit("provenance_ready", {})
+  }
+
+  @on_anchor(artifact_hash, metadata) => {
+    receipt = anchor_provenance(artifact_hash, metadata)
+    return receipt
+  }
+
+  @receipt provenance_trait_config {
+    type: "ProvenanceTraitReceipt"
+    doc: "R.016 provenance anchoring"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @roadmap_trait — Roadmap: hierarchical milestones, dependencies, and progress tracking.
+//
+// Native .hsplus surface for core/traits/RoadmapTrait.ts.
+
+@trait roadmap_trait {
+  capability_tags: ["roadmap", "milestones", "dependency_track", "progress_tracking", "core"]
+
+  @on_spawn(roadmap_id) => {
+    init_roadmap(roadmap_id)
+    emit("roadmap_ready", { roadmap_id })
+  }
+
+  @on_advance(milestone_id) => {
+    progress = advance_milestone(milestone_id)
+    emit("milestone_complete", { milestone_id })
+    return progress
+  }
+
+  @receipt roadmap_trait_config {
+    type: "RoadmapTraitReceipt"
+    timestamp: now()
+  }
+}

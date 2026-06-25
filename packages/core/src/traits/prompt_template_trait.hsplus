@@ -1,0 +1,21 @@
+// @prompt_template_trait — Prompt template: stores, versions, and renders LLM prompt templates.
+//
+// Native .hsplus surface for core/traits/PromptTemplateTrait.ts.
+
+@trait prompt_template_trait {
+  capability_tags: ["prompt_template", "version_render", "llm_prompt", "template_store", "core"]
+
+  @on_spawn => {
+    emit("prompt_template_ready", {})
+  }
+
+  @on_render(template_id, variables) => {
+    prompt = render_prompt_template(template_id, variables)
+    return prompt
+  }
+
+  @receipt prompt_template_trait_config {
+    type: "PromptTemplateTraitReceipt"
+    timestamp: now()
+  }
+}

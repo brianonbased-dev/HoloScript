@@ -1,0 +1,16 @@
+// @render_network_types — Render network type definitions: shared schemas for render job/result.
+//
+// Native .hsplus surface for core/traits/RenderNetworkTypes.ts.
+
+@trait render_network_types {
+  capability_tags: ["render_network_types", "render_schema", "job_result_types", "shared_types", "core"]
+
+  @on_spawn => {
+    emit("render_network_types_ready", {})
+  }
+
+  @receipt render_network_types_config {
+    type: "RenderNetworkTypesReceipt"
+    timestamp: now()
+  }
+}

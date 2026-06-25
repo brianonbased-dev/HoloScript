@@ -1,0 +1,22 @@
+// @reid_embedding_trait — ReID embedding: appearance embedding for person re-identification across cameras.
+//
+// Native .hsplus surface for core/traits/ReidEmbeddingTrait.ts.
+
+@trait reid_embedding_trait {
+  capability_tags: ["reid_embedding", "appearance_embedding", "person_reidentification", "cross_camera", "core"]
+
+  @on_spawn(model_id) => {
+    init_reid_embedding(model_id)
+    emit("reid_embedding_ready", {})
+  }
+
+  @on_encode(image_crop) => {
+    embedding = encode_reid(image_crop)
+    return embedding
+  }
+
+  @receipt reid_embedding_trait_config {
+    type: "ReidEmbeddingTraitReceipt"
+    timestamp: now()
+  }
+}

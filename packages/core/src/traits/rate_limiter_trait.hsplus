@@ -1,0 +1,24 @@
+// @rate_limiter_trait — Rate limiter: token-bucket or sliding-window request throttle per key.
+//
+// Native .hsplus surface for core/traits/RateLimiterTrait.ts.
+
+@trait rate_limiter_trait {
+  capability_tags: ["rate_limiter", "token_bucket", "sliding_window", "request_throttle", "core"]
+
+  @on_spawn(algorithm, rate, burst) => {
+    init_rate_limiter(algorithm, rate, burst)
+    emit("rate_limiter_ready", {})
+  }
+
+  @on_check(key) => {
+    result = check_rate_limit(key)
+    if result.throttled { emit("rate_limited", { key }) }
+    return result
+  }
+
+  @receipt rate_limiter_trait_config {
+    type: "RateLimiterTraitReceipt"
+    algorithms: ["token-bucket", "sliding-window"]
+    timestamp: now()
+  }
+}

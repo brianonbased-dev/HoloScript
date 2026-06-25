@@ -1,0 +1,23 @@
+// @reactive_store_trait — Reactive store: observable state container with subscriptions and derived state.
+//
+// Native .hsplus surface for core/traits/ReactiveStoreTrait.ts.
+
+@trait reactive_store_trait {
+  capability_tags: ["reactive_store", "observable_state", "subscriptions", "derived_state", "core"]
+
+  @on_spawn(initial_state) => {
+    init_reactive_store(initial_state)
+    emit("reactive_store_ready", {})
+  }
+
+  @on_update(patch) => {
+    new_state = update_reactive_store(patch)
+    emit("store_updated", {})
+    return new_state
+  }
+
+  @receipt reactive_store_trait_config {
+    type: "ReactiveStoreTraitReceipt"
+    timestamp: now()
+  }
+}
