@@ -1,0 +1,16 @@
+@trait {
+  name: "@layer_aware",
+  category: "interaction",
+  description: "Controls node visibility based on the active rendering layer (vr / vrr / ar / all). Hides or shows the node when the runtime layer switches; uses a fallback mode (hidden or placeholder) when the node is not targeted by the current layer. Port of LayerAwareTrait.ts (handler name: layer_aware).",
+  props: {
+    layers: list<enum("vr" | "vrr" | "ar" | "all")> = ["all"],
+    fallback: enum("hidden" | "placeholder") = "hidden"
+  },
+  events: {
+    attached: "layer_aware_attached",
+    detached: "layer_aware_detached",
+    on_layer_change: "layer_aware_layer_change",
+    layer_change: "layer_change"
+  },
+  behaviors: ["@spatial_anchor", "@ar_placement"]
+}

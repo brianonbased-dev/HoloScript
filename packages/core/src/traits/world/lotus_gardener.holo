@@ -1,0 +1,20 @@
+@trait {
+  name: "@lotus_gardener",
+  category: "world",
+  description: "Tending/maintenance trait for Brittney (the gardener mesh) in the lotus seedable artifact. Schedules emissive pulses and water-droplet emitter triggers on a deterministic interval modulated by aggregate bloom state — busiest when lotus is sealed/budding, idle when full, emergency mode when wilted. Uses splitmix32 keyed by pulse counter (never Math.random). Port of LotusGardenerTrait.ts (handler name: lotus_gardener).",
+  props: {
+    bloom_state_source: string = "lotus.api.bloom_state",
+    base_pulse_interval_s: number = 5.0,
+    base_pulse_intensity: number = 0.7,
+    base_droplet_count: number = 8,
+    emit_attach_event: boolean = true,
+    seed: string = "0x0000DEAD"
+  },
+  events: {
+    attached: "lotus_gardener_attached",
+    on_pulse: "lotus_gardener.pulse",
+    on_droplets: "lotus_gardener.droplets",
+    bloom_state: "lotus.bloom_state"
+  },
+  behaviors: ["@lotus_root", "@lotus_stalk", "@animated", "@gpu_particle"]
+}

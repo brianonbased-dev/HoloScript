@@ -1,0 +1,25 @@
+@trait {
+  name: "@holo_twin",
+  category: "world",
+  description: "IoT sensor → HoloScript scene → Looking Glass holographic display pipeline. Syncs physical device telemetry via MQTT/HTTP/WebSocket, applies sensor-to-property mappings, and auto-recompiles to a Looking Glass quilt. Extends DigitalTwin with real-time holographic rendering. Port of HoloTwinTrait.ts (handler name: holo_twin).",
+  props: {
+    physical_id: string = "",
+    connection_string: string = "",
+    protocol: enum("mqtt" | "http" | "websocket") = "mqtt",
+    display_device: enum("go" | "16inch" | "27inch" | "65inch") = "16inch",
+    auto_recompile: boolean = true,
+    recompile_interval_ms: number = 1000,
+    sensor_mappings: list<{ sensor_key: string, property_path: string, scale: number, offset: number }> = [],
+    poll_interval_ms: number = 5000,
+    simulation_mode: boolean = false
+  },
+  events: {
+    attached: "holo_twin_attached",
+    detached: "holo_twin_detached",
+    on_synced: "holo_twin_synced",
+    on_recompiled: "holo_twin_recompiled",
+    on_error: "holo_twin_error",
+    sync: "holo_twin_sync"
+  },
+  behaviors: ["@digital_twin", "@mqtt_source", "@quilt"]
+}

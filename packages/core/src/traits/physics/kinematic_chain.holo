@@ -1,0 +1,18 @@
+@trait {
+  name: "@kinematic_chain",
+  category: "physics",
+  description: "DH-parameter forward kinematics + damped Jacobian (Levenberg-Marquardt) inverse kinematics for serial kinematic chains. Domain-neutral: applies to robotics, animation, biomechanics, and any articulated structure. Exposes FK/IK via kinematic_chain.solve_fk / kinematic_chain.solve_ik events. Port of KinematicChainTrait.ts (handler name: kinematic_chain).",
+  props: {
+    links: list<{ a: number, alpha: number, d: number, theta: number }> = [],
+    joint_angles: list<number> = []
+  },
+  events: {
+    attached: "kinematic_chain_attached",
+    on_fk_result: "kinematic_chain.fk_result",
+    on_ik_result: "kinematic_chain.ik_result",
+    on_ik_failed: "kinematic_chain.ik_failed",
+    solve_fk: "kinematic_chain.solve_fk",
+    solve_ik: "kinematic_chain.solve_ik"
+  },
+  behaviors: ["@physics_body", "@urdf_joint"]
+}
