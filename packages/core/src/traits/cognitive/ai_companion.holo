@@ -1,0 +1,25 @@
+@trait {
+  name: "@ai_companion",
+  category: "cognitive",
+  description: "Hybrid AI NPC companion combining PPA (Procedural Personality Architecture), RAG retrieval-augmented knowledge, and SNN (Spiking Neural Network) emotion model. Configurable personality profile, interaction range, response latency, memory capacity, idle behavior (wander/patrol/stationary), and emotional decay rate. Port of AICompanionTrait.ts (handler name: ai_companion).",
+  props: {
+    personality: string = "friendly",
+    interaction_range: number = 10.0,
+    response_latency: number = 0.5,
+    memory_capacity: number = 100,
+    use_rag: boolean = true,
+    use_snn: boolean = true,
+    idle_behavior: enum("wander" | "patrol" | "stationary") = "wander",
+    emotion_decay: number = 0.01
+  },
+  events: {
+    attached: "ai_companion_ready",
+    detached: "ai_companion_removed",
+    on_greeting: "ai_companion_greeting",
+    on_response: "ai_companion_response",
+    on_emotion_changed: "ai_companion_emotion_changed",
+    on_memory_stored: "ai_companion_memory_stored",
+    interact: "ai_companion_interact"
+  },
+  behaviors: ["@caveman_drive", "@behavior_tree", "@neural_animation"]
+}

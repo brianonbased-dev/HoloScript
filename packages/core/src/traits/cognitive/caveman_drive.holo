@@ -1,0 +1,22 @@
+@trait {
+  name: "@caveman_drive",
+  category: "cognitive",
+  description: "Sovereign-LLM-driven NPC drive system for the caveman archetype. Five scalar drives [0..1]: hunger, thirst, fatigue, fear, curiosity. Pure-math drive update at 90%+ of ticks; LLM gate fires when any drive >= 0.8, attention_target changes, or action queue empties. AI-LOD tiers: near=full LLM, mid=reserved, far=LLM disabled (for NPCs beyond attention radius within a 50-NPC Jetson-scale fleet). Composes with @ai_driver, @behavior_tree, @neural_animation. Port of CavemanDriveTrait.ts (handler name: caveman_drive, static id).",
+  props: {
+    initial_hunger: number = 0.5,
+    initial_thirst: number = 0.5,
+    initial_fatigue: number = 0.3,
+    initial_fear: number = 0.0,
+    initial_curiosity: number = 0.5,
+    ai_lod: enum("near" | "mid" | "far") = "near",
+    llm_gate_threshold: number = 0.8
+  },
+  events: {
+    attached: "caveman_drive_initialized",
+    on_drive_updated: "caveman_drive_updated",
+    on_llm_called: "caveman_drive_llm_call",
+    on_action: "caveman_drive_action",
+    on_lod_changed: "caveman_drive_lod_changed"
+  },
+  behaviors: ["@ai_companion", "@behavior_tree", "@neural_animation"]
+}

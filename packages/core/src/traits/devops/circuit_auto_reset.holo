@@ -1,0 +1,22 @@
+@trait {
+  name: "@circuit_auto_reset",
+  category: "devops",
+  description: "Exponential backoff retry with circuit breaker pattern. Auto-resets after cooldown and successful probe. States: closed (normal) → open (failed) → half-open (probing). backoff_base must be >= 1 (seconds, exponentiated by attempt number), max_attempts >= 1, cooldown_ms before half-open probe, max_backoff_ms cap to prevent infinite waits. Guards against silent retries masking persistent failures and cascading outages. Port of CircuitAutoResetTrait.ts (handler name: circuit_auto_reset).",
+  props: {
+    backoff_base: number = 2.0,
+    max_attempts: number = 5,
+    cooldown_ms: number = 30000,
+    max_backoff_ms: number = 300000
+  },
+  events: {
+    on_initialized: "circuit_auto_initialized",
+    on_open: "circuit_open",
+    on_retry: "circuit_retry",
+    on_reset: "circuit_reset",
+    on_error: "circuit_auto_error",
+    attempt: "circuit_attempt",
+    succeed: "circuit_succeed",
+    fail: "circuit_fail"
+  },
+  behaviors: ["@world_heartbeat", "@mock"]
+}
