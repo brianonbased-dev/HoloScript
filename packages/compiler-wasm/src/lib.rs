@@ -292,6 +292,21 @@ mod tests {
         assert!(!validate(source));
     }
 
+    #[test]
+    fn test_validate_unclosed_brace_eof() {
+        // consume_braced_body_raw must return Err when depth > 0 at EOF
+        let source = r#"orb test { name: "x""#; // missing closing }
+        assert!(!validate(source));
+        let detail = validate_detailed(source);
+        assert!(detail.contains("\"valid\":false"), "expected valid:false got: {detail}");
+    }
+
+    #[test]
+    fn test_validate_nested_unclosed_brace() {
+        let source = r#"orb test { props: { x: 1 }"#; // outer brace unclosed
+        assert!(!validate(source));
+    }
+
     // ===== validate_detailed() tests =====
 
     #[test]

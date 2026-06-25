@@ -1169,6 +1169,9 @@ impl Parser {
             body.push_str(&t.value);
             self.advance();
         }
+        if depth > 0 {
+            return Err(self.error("Unclosed brace: missing '}'"));
+        }
         Ok(body.trim().to_string())
     }
 
