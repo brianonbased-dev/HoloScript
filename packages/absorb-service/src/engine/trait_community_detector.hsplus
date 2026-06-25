@@ -1,0 +1,44 @@
+// @trait_community_detector — HoloScript-semantic community detection (HoloGraph Phase 1).
+//
+// Native .hsplus surface for TraitCommunityDetector.ts (absorb-service/engine).
+//
+// Detects code communities using HoloScript-semantic boundaries, NOT file-level
+// import/call graph topology (Louvain). Semantic communities are explicit in
+// file paths, class names, and event names — no graph traversal or LLM needed.
+//
+// 6-pass algorithm (TraitCommunityDetector.ts):
+//   1. TRAIT PASS:    files with TraitHandler / in traits/    → trait:*   (e.g. trait:pillar)
+//   2. COMPILER PASS: files with *Compiler / compile_to_*     → compiler:* (e.g. compiler:vr)
+//   3. PLUGIN PASS:   packages/plugins/*                      → plugin:*  (e.g. plugin:robotics)
+//   4. EVENT PASS:    dominant event namespace in file         → events:*  (e.g. events:snn)
+//   5. TEST PASS:     __tests__/ files                        → <subject-community>:tests
+//   6. FALLBACK:      remaining files                         → file-level Louvain
+//
+// Each file belongs to exactly one community.
+// Returns Map<communityName, filePath[]> (semantic, interpretable — not numbered clusters).
+// Fallback to existing CommunityDetector (Louvain) for files that don't match passes 1-5.
+
+@trait trait_community_detector {
+  capability_tags: ["trait_community_detector", "semantic_communities", "holograph_phase1", "absorb_service", "community_detection"]
+
+  @on_spawn => {
+    detector = init_trait_community_detector()
+    emit("trait_community_detector_ready", {})
+  }
+
+  // Detect communities for a CodebaseGraph
+  @on_detect(graph) => {
+    communities = detector.detect(graph)
+    emit("trait_communities_detected", { community_count: communities.size })
+    return communities
+  }
+
+  @receipt trait_community_detector_config {
+    type: "TraitCommunityDetectorReceipt"
+    algorithm: "6-pass semantic: trait→compiler→plugin→event→test→Louvain fallback"
+    community_namespaces: ["trait:*", "compiler:*", "plugin:*", "events:*", "*:tests"]
+    holograph_phase: "Phase 1"
+    advantage: "semantic boundaries beat Louvain structural clustering for HoloScript"
+    timestamp: now()
+  }
+}

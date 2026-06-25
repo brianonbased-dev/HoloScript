@@ -1,0 +1,53 @@
+// @deprecation_registry — Registry of deprecated HoloScript symbols with usage scanning.
+//
+// Native .hsplus surface for DeprecationRegistry.ts (absorb-service/analysis).
+//
+// Sprint 5: Deprecation Warnings. Tracks deprecated symbols and scans source for their use.
+//
+// DeprecationEntry (DeprecationRegistry.ts):
+//   name: String
+//   kind: trait | template | property | composition
+//   message: String
+//   deprecated_in?: String  — version when deprecated
+//   removed_in?: String     — version when removed
+//   replacement?: String    — replacement symbol name
+//
+// DeprecationWarning { entry, file_path, line, column, usage_line }
+//
+// scanForUsages(source, filePath): searches for @symbolName patterns in source text
+// Operations: register, has, get, getAll, clear
+
+@trait deprecation_registry {
+  capability_tags: ["deprecation_registry", "deprecation_warnings", "symbol_scanning", "absorb_service", "sprint5"]
+
+  @on_spawn => {
+    registry = init_deprecation_registry()
+    emit("deprecation_registry_ready", {})
+  }
+
+  // Register a deprecated symbol
+  @on_register(entry) => {
+    registry.register(entry)
+    emit("deprecation_registered", { name: entry.name, kind: entry.kind })
+  }
+
+  // Scan source text for usages of registered deprecated symbols
+  @on_scan(source, file_path) => {
+    warnings = registry.scan_for_usages(source, file_path)
+    emit("deprecation_scan_complete", { file: file_path, warning_count: warnings.size })
+    return warnings
+  }
+
+  // Check if a symbol name is registered as deprecated
+  @on_has(name) => {
+    return registry.has(name)
+  }
+
+  @receipt deprecation_registry_config {
+    type: "DeprecationRegistryReceipt"
+    sprint: "Sprint 5 (Deprecation Warnings)"
+    kinds: ["trait", "template", "property", "composition"]
+    scan_pattern: "@symbolName occurrences in source text"
+    timestamp: now()
+  }
+}

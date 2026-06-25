@@ -1,0 +1,52 @@
+// @tree_sitter_trait_adapter — Data-driven generic LanguageAdapter from LanguageTrait config.
+//
+// Native .hsplus surface for TreeSitterTraitAdapter.ts (absorb-service/engine/adapters).
+//
+// Replaces bespoke per-language adapter code with a single adapter driven by DATA.
+// Reuses the same BaseAdapter machinery (walkTree/nodeToSymbol/getFieldText/extractVisibility).
+// Register a new language: registerAdapter(new TreeSitterTraitAdapter(SOME_TRAIT)).
+//
+// LanguageTrait (language-traits.ts):
+//   language: SupportedLanguage
+//   extensions: String[]
+//   grammar_package: String
+//   symbols: SymbolRule[] — { node_type, kind, name_field?, container?: Bool }
+//   imports?: ImportRule[] — { method_names: String[] }
+//
+// Constructor derives:
+//   symbolRulesByType: Map<nodeType, SymbolRule>
+//   containerTypes: Set<nodeType> (for owner detection)
+//   importMethodNames: Set<String>
+//
+// See docs/language-adapter-trait.md (sug_1780711395408_m35r).
+
+@trait tree_sitter_trait_adapter {
+  capability_tags: ["tree_sitter_trait_adapter", "data_driven", "language_adapter", "generic_adapter", "absorb_service"]
+
+  @on_spawn(language_trait) => {
+    adapter = init_tree_sitter_trait_adapter(language_trait)
+    emit("tree_sitter_trait_adapter_ready", {
+      language: language_trait.language,
+      extensions: language_trait.extensions
+    })
+  }
+
+  @on_extract_symbols(tree, file_path) => {
+    return adapter.extract_symbols(tree, file_path)
+  }
+
+  @on_extract_imports(tree, file_path) => {
+    return adapter.extract_imports(tree, file_path)
+  }
+
+  @on_extract_calls(tree, file_path) => {
+    return adapter.extract_calls(tree, file_path)
+  }
+
+  @receipt tree_sitter_trait_adapter_config {
+    type: "TreeSitterTraitAdapterReceipt"
+    pattern: "DATA-driven (LanguageTrait config); not bespoke per-language code"
+    registration: "registerAdapter(new TreeSitterTraitAdapter(TRAIT))"
+    timestamp: now()
+  }
+}

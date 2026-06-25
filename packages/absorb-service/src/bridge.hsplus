@@ -1,0 +1,55 @@
+// @absorb_pipeline_bridge — Connect absorb completion to recursive L0/L1/L2 pipeline.
+//
+// Native .hsplus surface for bridge.ts (absorb-service).
+//
+// Studio Integration Hub (W.171, P.STUDIO.02).
+// Workflow: Import repo → Absorb patterns → Auto-trigger pipeline
+//   → L0 fixes code → L1 optimizes strategy → L2 generates skills.
+//
+// AbsorbCompletionEvent (bridge.ts):
+//   project_path: String
+//   stats: { files_processed, patterns_detected, technologies_found[], confidence }
+//
+// PipelineTriggerConfig:
+//   mode: PipelineMode
+//   target_project: String
+//   auto_start: Bool = false (default — requires opt-in)
+//   notify_on_complete: Bool = true
+//
+// Dedup: 5000ms window per projectPath — prevents duplicate POSTs in rapid absorb cycles.
+// onAbsorbComplete(): skips if auto_start=false; otherwise triggers pipeline POST.
+
+@trait absorb_pipeline_bridge {
+  // Default: auto-start off (user must opt in)
+  auto_start: Bool = false
+  notify_on_complete: Bool = true
+  dedup_window_ms: Int = 5000
+
+  capability_tags: ["absorb_pipeline_bridge", "studio_integration", "pipeline_trigger", "absorb_service", "w171"]
+
+  @on_spawn => {
+    bridge = init_absorb_pipeline_bridge({
+      auto_start: auto_start,
+      notify_on_complete: notify_on_complete,
+      dedup_window_ms: dedup_window_ms
+    })
+    emit("absorb_pipeline_bridge_ready", {})
+  }
+
+  // Called when absorb completes; optionally triggers pipeline
+  @on_absorb_complete(event, config) => {
+    result = bridge.on_absorb_complete(event, config)
+    if result.success {
+      emit("pipeline_triggered", { pipeline_id: result.pipeline_id })
+    }
+    return result
+  }
+
+  @receipt absorb_pipeline_bridge_config {
+    type: "AbsorbPipelineBridgeReceipt"
+    default_auto_start: false
+    dedup_window_ms: dedup_window_ms
+    integration: "Studio Integration Hub (W.171, P.STUDIO.02)"
+    timestamp: now()
+  }
+}
