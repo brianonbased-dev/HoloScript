@@ -1,0 +1,25 @@
+@trait {
+  name: "@head_tracked_audio",
+  category: "xr",
+  description: "World-anchored audio that compensates for head rotation to maintain stable spatial positioning. Applies inverse quaternion rotation to keep sound sources fixed in world space as the listener moves. Supports world/head/hybrid anchor modes. Port of HeadTrackedAudioTrait.ts (handler name: head_tracked_audio).",
+  props: {
+    source: string = "",
+    anchor_mode: enum("world" | "head" | "hybrid") = "world",
+    tracking_latency_compensation: boolean = true,
+    stabilization: number = 0.5,
+    bypass_spatialization: boolean = false,
+    volume: number = 1.0,
+    loop: boolean = false,
+    autoplay: boolean = false
+  },
+  events: {
+    attached: "head_tracked_audio_attached",
+    detached: "head_tracked_audio_detached",
+    on_play: "head_tracked_audio_play",
+    on_stop: "head_tracked_audio_stop",
+    on_position_update: "head_tracked_audio_position_update",
+    play: "head_tracked_audio_trigger_play",
+    stop: "head_tracked_audio_trigger_stop"
+  },
+  behaviors: ["@spatial_audio_cue", "@voice_proximity", "@spatial_voice"]
+}

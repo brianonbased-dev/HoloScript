@@ -1,0 +1,27 @@
+@trait {
+  name: "@spatial_navigation",
+  category: "spatial",
+  description: "World-scale AR turn-by-turn navigation with path rendering, waypoints, and ETA overlaid on the physical environment. Integrates with geospatial anchors for outdoor walking/driving/cycling/indoor routing. Auto-recalculates when the user deviates beyond a threshold. Port of SpatialNavigationTrait.ts (handler name: spatial_navigation).",
+  props: {
+    navigation_mode: enum("walking" | "driving" | "cycling" | "indoor") = "walking",
+    path_visualization: enum("arrow" | "line" | "breadcrumb" | "holographic") = "arrow",
+    show_distance: boolean = true,
+    show_eta: boolean = true,
+    auto_recalculate: boolean = true,
+    recalculate_threshold_m: number = 5.0,
+    waypoint_radius_m: number = 2.0,
+    path_color: string = "#00aaff"
+  },
+  events: {
+    attached: "spatial_navigation_attached",
+    detached: "spatial_navigation_detached",
+    on_waypoint_reached: "spatial_navigation_waypoint_reached",
+    on_arrived: "spatial_navigation_arrived",
+    on_recalculate: "spatial_navigation_recalculate",
+    on_off_path: "spatial_navigation_off_path",
+    start: "spatial_navigation_trigger_start",
+    stop: "spatial_navigation_trigger_stop",
+    add_waypoint: "spatial_navigation_trigger_add_waypoint"
+  },
+  behaviors: ["@geospatial_anchor", "@navmesh_solver", "@poi"]
+}

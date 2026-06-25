@@ -1,0 +1,26 @@
+@trait {
+  name: "@spatial_voice",
+  category: "interaction",
+  description: "WebRTC spatial voice chat with HRTF 3D audio positioning. Manages peer stream connections within a configurable range using linear/inverse/exponential rolloff, voice activity detection, echo cancellation, and noise suppression. Port of SpatialVoiceTrait.ts (handler name: spatial_voice).",
+  props: {
+    range: number = 20.0,
+    rolloff: enum("linear" | "inverse" | "exponential") = "inverse",
+    rolloff_factor: number = 1.0,
+    hrtf: boolean = true,
+    vad_threshold: number = -40.0,
+    echo_cancellation: boolean = true,
+    noise_suppression: boolean = true,
+    max_streams: number = 8
+  },
+  events: {
+    attached: "spatial_voice_attached",
+    detached: "spatial_voice_detached",
+    on_peer_connect: "spatial_voice_peer_connect",
+    on_peer_disconnect: "spatial_voice_peer_disconnect",
+    on_speaking: "spatial_voice_speaking",
+    on_silent: "spatial_voice_silent",
+    connect_peer: "spatial_voice_trigger_connect",
+    disconnect_peer: "spatial_voice_trigger_disconnect"
+  },
+  behaviors: ["@voice_proximity", "@head_tracked_audio", "@voice_mesh"]
+}

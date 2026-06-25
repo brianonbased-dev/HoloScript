@@ -1,0 +1,23 @@
+@trait {
+  name: "@terrain_anchor",
+  category: "spatial",
+  description: "Ground-relative positioning using terrain elevation data. Resolves GPS coordinates to terrain height, aligns the entity to the surface normal, and updates continuously when terrain_following is enabled. Port of TerrainAnchorTrait.ts (handler name: terrain_anchor).",
+  props: {
+    latitude: number = 0.0,
+    longitude: number = 0.0,
+    elevation_offset: number = 0.0,
+    terrain_following: boolean = true,
+    surface_normal_alignment: boolean = true,
+    auto_resolve: boolean = true,
+    smoothing: number = 0.9
+  },
+  events: {
+    attached: "terrain_anchor_attached",
+    detached: "terrain_anchor_detached",
+    on_resolved: "terrain_anchor_resolved",
+    on_unavailable: "terrain_anchor_unavailable",
+    on_update: "terrain_anchor_update",
+    resolve: "terrain_anchor_trigger_resolve"
+  },
+  behaviors: ["@geospatial_anchor", "@geospatial_env", "@holo_map_drift_correction"]
+}
