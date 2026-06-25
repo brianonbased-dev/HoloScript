@@ -1,0 +1,41 @@
+// @spike_codec — Continuous spatial data ↔ spike trains via WebGPU compute shaders.
+//
+// Native .hsplus surface for snn-webgpu/spike-codec.ts.
+//
+// EncodingMode: Rate | Temporal | Delta
+// DecodingMode: Rate | Temporal
+// WGSL entry points:
+//   encode: encode_rate | encode_temporal | encode_delta
+//   decode: decode_rate | decode_temporal
+// Uniform layout: 8 fields × 4 bytes = 32 bytes (both encode + decode)
+//
+// SpikeCodec(ctx):
+//   encode(data, params) → spike_buffer (async)
+//   decode(spike_buffer, params) → data (async)
+
+@trait spike_codec {
+  capability_tags: ["spike_codec", "spike_encoding", "rate_coding", "temporal_coding", "webgpu_compute", "snn_webgpu"]
+
+  @on_spawn(ctx) => {
+    codec = init_spike_codec(ctx)
+    emit("spike_codec_ready", {})
+  }
+
+  @on_encode(data, params) => {
+    spikes = codec.encode(data, params)
+    return spikes
+  }
+
+  @on_decode(spikes, params) => {
+    data = codec.decode(spikes, params)
+    return data
+  }
+
+  @receipt spike_codec_config {
+    type: "SpikeCodecReceipt"
+    encoding_modes: ["Rate", "Temporal", "Delta"]
+    decoding_modes: ["Rate", "Temporal"]
+    uniform_bytes: 32
+    timestamp: now()
+  }
+}

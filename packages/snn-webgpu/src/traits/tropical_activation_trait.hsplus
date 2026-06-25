@@ -1,0 +1,36 @@
+// @tropical_activation_trait — SNN rate ↔ tropical/classical activation bridge.
+//
+// Native .hsplus surface for snn-webgpu/traits/TropicalActivationTrait.ts.
+//
+// TropicalActivationConfig { variant: max-plus | min-plus, gain, threshold }
+//   max-plus: gain * max(0, x - threshold)   — ReLU bridge
+//   min-plus: gain * min(0, x - threshold)   — cost-style dual
+//
+// TropicalActivationTrait:
+//   forward(spike_rates: Float32Array, config) → Float32Array
+//   toSpikeTiming(activations: Float32Array, max_time) → Float32Array
+//     activation > 0 → max_time / activation; else +∞
+
+@trait tropical_activation_trait {
+  capability_tags: ["tropical_activation_trait", "tropical_semiring", "relu_bridge", "spike_timing", "snn_webgpu"]
+
+  @on_spawn => {
+    trait = init_tropical_activation_trait()
+    emit("tropical_activation_trait_ready", {})
+  }
+
+  @on_forward(spike_rates, config) => {
+    return trait.forward(spike_rates, config)
+  }
+
+  @on_to_spike_timing(activations, max_time) => {
+    return trait.to_spike_timing(activations, max_time)
+  }
+
+  @receipt tropical_activation_trait_config {
+    type: "TropicalActivationTraitReceipt"
+    variants: ["max-plus (ReLU bridge)", "min-plus (cost-style dual)"]
+    spike_timing: "max_time / activation; +∞ if activation ≤ 0"
+    timestamp: now()
+  }
+}

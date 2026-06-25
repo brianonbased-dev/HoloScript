@@ -1,0 +1,35 @@
+// @pipeline_factory — WebGPU compute pipeline cache from WGSL shaders.
+//
+// Native .hsplus surface for snn-webgpu/pipeline-factory.ts.
+//
+// Handles shader module compilation, bind group layout creation, pipeline caching.
+// Shader entry points:
+//   LIF: lif_step | lif_step_batch
+//   Synaptic: compute_synaptic_current | compute_synaptic_current_tiled | stdp_weight_update
+//   Encoding: encode_rate | encode_temporal | encode_delta
+//   Decoding: decode_rate | decode_temporal
+//   Tropical: tropical_activation | tropical_gemm | tropical_spmv
+//   Large-scale: lif_step_partitioned | synaptic_current_shared_tiled
+//
+// WGSL imports: lif-neuron, synaptic-weights, spike-encode, spike-decode,
+//   tropical-activation, tropical-graph, lif-large-scale
+
+@trait pipeline_factory {
+  capability_tags: ["pipeline_factory", "wgsl_pipeline_cache", "compute_pipeline", "shader_compilation", "snn_webgpu"]
+
+  @on_spawn(ctx) => {
+    factory = init_pipeline_factory(ctx)
+    emit("pipeline_factory_ready", {})
+  }
+
+  @on_get_pipeline(entry_point) => {
+    pipeline = factory.get_pipeline(entry_point)
+    return pipeline
+  }
+
+  @receipt pipeline_factory_config {
+    type: "PipelineFactoryReceipt"
+    shader_sources: ["lif-neuron", "synaptic-weights", "spike-encode", "spike-decode", "tropical-activation", "tropical-graph", "lif-large-scale"]
+    timestamp: now()
+  }
+}

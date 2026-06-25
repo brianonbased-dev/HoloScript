@@ -1,0 +1,38 @@
+// @snn_retrieval_model — Spike-coded associative memory for VR trait property retrieval.
+//
+// Native .hsplus surface for snn-webgpu/experiments/snn-retrieval-model.ts.
+//
+// Architecture (LIF + STDP):
+//   Input Layer (N neurons, rate-coded, one per trait)
+//     → Hidden Layer (M LIF neurons with lateral inhibition)
+//     → Output Layer (6 neurons, one per property)
+//
+// Learning: modified Hebbian (pre/post spike correlation in time window = simplified STDP)
+// Inference: present input as spike train over T timesteps; decode output membrane potential
+// v1.1.0: lateral inhibition + structural abstention added
+
+@trait snn_retrieval_model {
+  capability_tags: ["snn_retrieval_model", "associative_memory", "lif_hebbian", "lateral_inhibition", "snn_webgpu"]
+
+  @on_spawn(config) => {
+    model = init_snn_retrieval_model(config)
+    emit("snn_retrieval_model_ready", {})
+  }
+
+  @on_train(train_facts) => {
+    metrics = model.train(train_facts)
+    emit("snn_trained", {})
+    return metrics
+  }
+
+  @on_retrieve(trait_id) => {
+    return model.retrieve(trait_id)
+  }
+
+  @receipt snn_retrieval_model_config {
+    type: "SNNRetrievalModelReceipt"
+    output_neurons: 6
+    learning: "modified Hebbian STDP (simplified)"
+    timestamp: now()
+  }
+}

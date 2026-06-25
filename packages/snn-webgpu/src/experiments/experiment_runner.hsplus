@@ -1,0 +1,36 @@
+// @experiment_runner — SNN vs Backprop experiment orchestrator (pure CPU-side).
+//
+// Native .hsplus surface for snn-webgpu/experiments/experiment-runner.ts.
+//
+// Full pipeline:
+//   1. build_trait_knowledge_base from HoloScript trait data
+//   2. split train/test
+//   3. train both SNN + backprop models
+//   4. evaluate on test set
+//   5. collect + compare metrics
+//   6. generate summary report
+//
+// No WebGPU required — uses CPU LIF math (same as snn-poc reference simulator).
+// For WebGPU-accelerated SNN, use holo_compile_nir MCP tool (Loihi 2, SpiNNaker 2).
+
+@trait experiment_runner {
+  capability_tags: ["experiment_runner", "snn_vs_backprop", "trait_retrieval_benchmark", "cpu_only", "snn_webgpu"]
+
+  @on_spawn(config) => {
+    runner = init_experiment_runner(config)
+    emit("experiment_runner_ready", {})
+  }
+
+  @on_run => {
+    results = runner.run()
+    emit("experiment_complete", { trial_count: results.trial_count })
+    return results
+  }
+
+  @receipt experiment_runner_config {
+    type: "ExperimentRunnerReceipt"
+    models: ["SNN (CPU LIF + Hebbian/STDP)", "Backprop (MLP + SGD)"]
+    neuromorphic_target: "holo_compile_nir MCP → Loihi 2 / SpiNNaker 2"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,32 @@
+// @tropical_graph_utils — CSR graph validation for tropical semiring shortest paths.
+//
+// Native .hsplus surface for snn-webgpu/graph/TropicalGraphUtils.ts.
+//
+// TROPICAL_INF = 1e30
+// WeightedEdge { from, to, weight }
+//
+// assertGraphShape(graph: TropicalCSRGraph) → void  (throws with actionable detail)
+//   Validates: rowPtr starts at 0, non-decreasing, last value = edge count
+//   Validates: colIdx.length === values.length
+//   Validates: all colIdx in [0, N)
+//   Also exports: edgesFromWeighted(edges, n) → TropicalCSRGraph
+
+@trait tropical_graph_utils {
+  capability_tags: ["tropical_graph_utils", "csr_graph", "tropical_semiring", "graph_validation", "snn_webgpu"]
+
+  @on_spawn => {
+    utils = init_tropical_graph_utils()
+    emit("tropical_graph_utils_ready", {})
+  }
+
+  @on_assert_shape(graph) => {
+    utils.assert_graph_shape(graph)
+  }
+
+  @receipt tropical_graph_utils_config {
+    type: "TropicalGraphUtilsReceipt"
+    tropical_inf: 1e30
+    csr_format: "rowPtr (n+1) + colIdx + values (Float32)"
+    timestamp: now()
+  }
+}

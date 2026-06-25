@@ -1,0 +1,38 @@
+// @prophecy_orchestrator — Prophetic GI pipeline: SNNNetwork + WGSL radiance pass.
+//
+// Native .hsplus surface for snn-webgpu/prophetic-gi/orchestrator.ts.
+// See RFC-PROPHETIC-GI.md for design.
+//
+// Pure compute — no React, no CRDT, no transport. Transports WRAP this.
+// Produces one ProphecyFrame per step() call.
+//
+// ProphecyConfig, ProphecyFrame, ProphecySceneContext, RadianceProbe
+// PROBE_STRIDE_BYTES = 32 (8 f32 per probe)
+// WORKGROUP_SIZE = 64
+//
+// ProphecyOrchestrator(ctx):
+//   initialize(config) → void
+//   step(scene_context) → ProphecyFrame (async)
+//   destroy() → void
+
+@trait prophecy_orchestrator {
+  capability_tags: ["prophecy_orchestrator", "prophetic_gi", "radiance_probes", "webgpu_compute", "snn_webgpu"]
+
+  @on_spawn(ctx) => {
+    orchestrator = init_prophecy_orchestrator(ctx)
+    emit("prophecy_orchestrator_ready", {})
+  }
+
+  @on_step(scene) => {
+    frame = orchestrator.step(scene)
+    emit("prophecy_frame", { probe_count: frame.probe_count })
+    return frame
+  }
+
+  @receipt prophecy_orchestrator_config {
+    type: "ProphecyOrchestratorReceipt"
+    probe_stride_bytes: 32
+    workgroup_size: 64
+    timestamp: now()
+  }
+}

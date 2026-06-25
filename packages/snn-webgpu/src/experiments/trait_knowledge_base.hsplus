@@ -1,0 +1,36 @@
+// @trait_knowledge_base — Fact-retrieval dataset from HoloScript VR trait system.
+//
+// Native .hsplus surface for snn-webgpu/experiments/trait-knowledge-base.ts.
+//
+// Each trait → (input_vector, property_vector) pair:
+//   input_vector: one-hot encoded trait identity (dim = total traits)
+//   property_vector: [category/10, physics, interactive, visual, auditory, complexity/2]
+//
+// Real trait data from @holoscript/core trait constants.
+// encodeTraitDense(trait_id, dim) → Float32Array
+// buildTraitKnowledgeBase() → TraitKnowledgeBase
+// splitTrainTest(kb, ratio) → { train, test }
+
+@trait trait_knowledge_base {
+  capability_tags: ["trait_knowledge_base", "vr_trait_dataset", "one_hot_encoding", "snn_webgpu"]
+
+  @on_spawn => {
+    kb = build_trait_knowledge_base()
+    emit("trait_knowledge_base_ready", { size: kb.size })
+  }
+
+  @on_split(ratio) => {
+    return kb.split_train_test(ratio)
+  }
+
+  @on_encode_dense(trait_id) => {
+    return kb.encode_trait_dense(trait_id)
+  }
+
+  @receipt trait_knowledge_base_config {
+    type: "TraitKnowledgeBaseReceipt"
+    property_vector: ["category/10", "physics", "interactive", "visual", "auditory", "complexity/2"]
+    source: "@holoscript/core trait constants"
+    timestamp: now()
+  }
+}

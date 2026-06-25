@@ -1,0 +1,33 @@
+// @botanical_lotus — Pixel-buffer botanical material extraction for Lotus/CAEL assets.
+//
+// Native .hsplus surface for snn-webgpu/material-extraction/botanical-lotus.ts.
+//
+// BotanicalReferenceRole: material | silhouette | leaf_context | unknown
+// BotanicalImageSample { id, width, height, data: Uint8Array, role?, provenance? }
+// BotanicalMaterialExtractionOptions { trait_name, captured_at, reference_manifest, source_kind }
+// BotanicalMaterialParams (PBR parameters: SSS, roughness, IOR, translucency, etc.)
+//
+// Browser callers: feed ImageData directly.
+// Node callers: any trusted decoder upstream.
+// Provenance, hashing, wallet signing remain EXTERNAL — extractor is deterministic.
+
+@trait botanical_lotus {
+  capability_tags: ["botanical_lotus", "pbr_material", "pixel_buffer_extraction", "provenance", "snn_webgpu"]
+
+  @on_spawn => {
+    extractor = init_botanical_lotus_extractor()
+    emit("botanical_lotus_ready", {})
+  }
+
+  @on_extract(sample, options) => {
+    params = extractor.extract(sample, options)
+    emit("lotus_extracted", { id: sample.id })
+    return params
+  }
+
+  @receipt botanical_lotus_config {
+    type: "BotanicalLotusReceipt"
+    output: "BotanicalMaterialParams (PBR: SSS, roughness, IOR, translucency, vein normal)"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,33 @@
+// @cpu_reference — CPU reference LIF simulator for WebGPU shader validation.
+//
+// Native .hsplus surface for snn-webgpu/poc/cpu-reference.ts.
+// Preserved from @holoscript/snn-poc (RFC-0042 PoC).
+//
+// Bit-exact (within f32 precision) reference for validating WebGPU compute output.
+//   V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]
+//   if V[t+1] >= V_thresh => spike=1, V=V_reset, refractory=2ms
+//
+// CPUNeuronState { membrane_v, refractory, spiked }
+// StepResult { total_spikes, spike_indices, step_time_ms, sim_time_ms }
+
+@trait cpu_reference {
+  capability_tags: ["cpu_reference", "lif_cpu", "determinism_validation", "snn_poc", "snn_webgpu"]
+
+  @on_spawn(params, neuron_count) => {
+    sim = init_cpu_reference(params, neuron_count)
+    emit("cpu_reference_ready", { neuron_count: neuron_count })
+  }
+
+  @on_step(synaptic_input) => {
+    result = sim.step(synaptic_input)
+    return result
+  }
+
+  @receipt cpu_reference_config {
+    type: "CPUReferenceReceipt"
+    purpose: "bit-exact reference for WebGPU shader validation"
+    lif_math: "V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]"
+    refractory_ms: 2
+    timestamp: now()
+  }
+}

@@ -1,0 +1,33 @@
+// @prophecy_transport_local — In-process prophetic GI transport (default).
+//
+// Native .hsplus surface for snn-webgpu/prophetic-gi/transport-local.ts.
+//
+// Runs prophetic GI pipeline in-process on the caller's GPUContext.
+// Default transport — HoloMesh transport wraps this and falls back here on failure.
+//
+// SpikeRateProvider: (scene, probe_count) → Float32Array | Promise<Float32Array>
+//   Caller injects bridge between upstream SNNNetwork and orchestrator.
+//   Phase 2.b: rate-decode pass on SNN spike buffer. For foundation: synthetic generator.
+//
+// LocalProphecyTransportOptions { ctx, spike_rate_provider?, config }
+// LocalProphecyTransport.step(scene) → ProphecyFrame (async)
+
+@trait prophecy_transport_local {
+  capability_tags: ["prophecy_transport_local", "prophetic_gi", "default_transport", "snn_webgpu"]
+
+  @on_spawn(options) => {
+    transport = init_local_prophecy_transport(options)
+    emit("local_transport_ready", {})
+  }
+
+  @on_step(scene) => {
+    frame = transport.step(scene)
+    return frame
+  }
+
+  @receipt prophecy_transport_local_config {
+    type: "ProphecyTransportLocalReceipt"
+    spike_rate_provider: "injectable (phase 2.b: rate-decode pass on SNN spikes)"
+    timestamp: now()
+  }
+}

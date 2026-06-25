@@ -1,0 +1,36 @@
+// @backprop_retrieval_model — MLP baseline for VR trait property retrieval (SGD).
+//
+// Native .hsplus surface for snn-webgpu/experiments/backprop-retrieval-model.ts.
+//
+// Architecture (MLP, CPU-side):
+//   Input (dense encoded trait, dim=64)
+//     → Hidden 1 (64 neurons, sigmoid)
+//     → Hidden 2 (32 neurons, sigmoid)
+//     → Output (6 neurons, sigmoid)
+//
+// Conventional baseline against SNN model; v1.0.0
+
+@trait backprop_retrieval_model {
+  capability_tags: ["backprop_retrieval_model", "mlp_baseline", "sgd", "sigmoid", "snn_webgpu"]
+
+  @on_spawn(config) => {
+    model = init_backprop_retrieval_model(config)
+    emit("backprop_retrieval_model_ready", {})
+  }
+
+  @on_train(train_facts) => {
+    metrics = model.train(train_facts)
+    emit("backprop_trained", {})
+    return metrics
+  }
+
+  @on_retrieve(trait_id) => {
+    return model.retrieve(trait_id)
+  }
+
+  @receipt backprop_retrieval_model_config {
+    type: "BackpropRetrievalModelReceipt"
+    architecture: "Input(64)→Hidden1(64,sigmoid)→Hidden2(32,sigmoid)→Output(6,sigmoid)"
+    timestamp: now()
+  }
+}

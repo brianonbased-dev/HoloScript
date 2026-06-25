@@ -1,0 +1,27 @@
+// @use_webgpu — React hook: WebGPU device initialization + canvas lifecycle.
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/hooks/useWebGPU.ts.
+//
+// useWebGPU(width, height) → UseWebGPUResult:
+//   gpu_context: WebGPUContext | null
+//   canvas_ref: React.RefObject<HTMLCanvasElement>
+//   is_supported: Bool
+//   error: String | null
+//   is_loading: Bool
+//
+// Handles adapter/device request, canvas GPUCanvasContext configuration, cleanup.
+
+@trait use_webgpu {
+  capability_tags: ["use_webgpu", "webgpu_hook", "canvas_context", "neural_activity", "snn_webgpu"]
+
+  @on_spawn(width, height) => {
+    hook = init_use_webgpu(width, height)
+    emit("use_webgpu_ready", {})
+  }
+
+  @receipt use_webgpu_config {
+    type: "UseWebGPUReceipt"
+    canvas_output: "WebGPUContext { device, context, format }"
+    timestamp: now()
+  }
+}

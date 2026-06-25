@@ -1,0 +1,40 @@
+// @lif_simulator — Leaky Integrate-and-Fire neuron population GPU simulator.
+//
+// Native .hsplus surface for snn-webgpu/lif-simulator.ts.
+//
+// LIF math (WGSL struct, 32 bytes / 8 f32-u32):
+//   V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]
+//   if V[t+1] >= V_thresh => spike=1, V=V_reset, refractory=2ms
+//
+// LIFParams { tau, v_threshold, v_reset, v_rest, dt, neuron_count }
+// LIFSimulator(ctx, params, neuron_count):
+//   initialize() → void
+//   step(synaptic_input) → void
+//   readSpikes() → ReadbackResult (async)
+//   destroy() → void
+
+@trait lif_simulator {
+  capability_tags: ["lif_simulator", "leaky_integrate_and_fire", "webgpu_compute", "spiking_neuron", "snn_webgpu"]
+
+  @on_spawn(ctx, params, neuron_count) => {
+    sim = init_lif_simulator(ctx, params, neuron_count)
+    emit("lif_simulator_ready", { neuron_count: neuron_count })
+  }
+
+  @on_step(synaptic_input) => {
+    sim.step(synaptic_input)
+    emit("lif_step", {})
+  }
+
+  @on_read_spikes => {
+    spikes = sim.read_spikes()
+    return spikes
+  }
+
+  @receipt lif_simulator_config {
+    type: "LIFSimulatorReceipt"
+    param_struct_bytes: 32
+    lif_math: "V[t+1] = V_rest + (V[t] - V_rest) * exp(-dt/tau) + I_syn[t]"
+    timestamp: now()
+  }
+}

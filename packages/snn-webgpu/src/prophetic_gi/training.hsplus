@@ -1,0 +1,36 @@
+// @prophecy_training — Trainable logistic readout for prophetic GI spike-rate seam.
+//
+// Native .hsplus surface for snn-webgpu/prophetic-gi/training.ts.
+//
+// Phase 2.b: turns LocalProphecyTransport spike-rate seam into trainable, serializable
+// rate-decoder. One logistic readout per probe over stable scene/probe features.
+// Offline training bridge; replaceable by deeper SNN while keeping SpikeRateProvider contract.
+//
+// PROPHECY_SPIKE_FEATURE_COUNT = 9
+// ProphecyTrainingSample { scene, target_spike_rates: Float32Array, weight? }
+// ProphecyTrainingOptions { probe_count, probe_positions: Float32Array, ... }
+
+@trait prophecy_training {
+  capability_tags: ["prophecy_training", "logistic_readout", "spike_rate_decoder", "prophetic_gi", "snn_webgpu"]
+
+  @on_spawn(options) => {
+    trainer = init_prophecy_training(options)
+    emit("prophecy_training_ready", { probe_count: options.probe_count })
+  }
+
+  @on_train(samples) => {
+    trainer.train(samples)
+    emit("prophecy_training_complete", { sample_count: samples.length })
+  }
+
+  @on_predict(scene) => {
+    return trainer.predict(scene)
+  }
+
+  @receipt prophecy_training_config {
+    type: "ProphecyTrainingReceipt"
+    spike_feature_count: 9
+    model_type: "logistic readout per probe (offline, serializable)"
+    timestamp: now()
+  }
+}

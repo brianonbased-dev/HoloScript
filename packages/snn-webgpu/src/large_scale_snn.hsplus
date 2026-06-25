@@ -1,0 +1,38 @@
+// @large_scale_snn — Hierarchical SNN for 10^6 neurons (Paper-2 NeurIPS §5.4).
+//
+// Native .hsplus surface for snn-webgpu/large-scale-snn.ts.
+//
+// Two optimized WGSL compute pipelines:
+//   lif_step_partitioned: NEURONS_PER_THREAD=4, 4× fewer dispatches
+//     For N=10^6: 977 workgroups vs 3,907 baseline
+//   synaptic_current_shared_tiled: var<workgroup> 256-element tile cache;
+//     all 256 threads per workgroup cooperate; reduces global mem traffic by ~TILE_SIZE
+//
+// HierarchicalSNN(ctx, { neuron_count, synaptic_input_count }):
+//   initialize() → void
+//   setPreSpikes(pre_spikes) → void
+//   step() → void  (async)
+//   readSpikes() → Uint32Array (async)
+
+@trait large_scale_snn {
+  capability_tags: ["large_scale_snn", "hierarchical_snn", "million_neurons", "shared_memory_tiling", "snn_webgpu"]
+
+  @on_spawn(ctx, config) => {
+    snn = init_hierarchical_snn(ctx, config)
+    emit("large_scale_snn_ready", { neuron_count: config.neuron_count })
+  }
+
+  @on_step(pre_spikes) => {
+    snn.set_pre_spikes(pre_spikes)
+    snn.step()
+    emit("large_scale_step", {})
+  }
+
+  @receipt large_scale_snn_config {
+    type: "LargeScaleSNNReceipt"
+    neurons_per_thread: 4
+    workgroup_tile_size: 256
+    target_scale: "10^6 neurons"
+    timestamp: now()
+  }
+}

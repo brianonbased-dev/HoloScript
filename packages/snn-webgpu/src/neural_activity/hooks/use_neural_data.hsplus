@@ -1,0 +1,27 @@
+// @use_neural_data — SNN snapshot buffering, time window tracking, playback control.
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/hooks/useNeuralData.ts.
+//
+// UseNeuralDataOptions { time_window_duration_ms, initial_speed, max_buffer_size }
+// UseNeuralDataResult:
+//   current_snapshot: SNNSnapshot | null
+//   visible_spikes: SpikeEvent[]   — within visible time window
+//   time_window: TimeWindow
+//   playback: PlaybackState
+//   push_snapshot(snapshot) → void
+//   set_playing(Bool) → void
+
+@trait use_neural_data {
+  capability_tags: ["use_neural_data", "snapshot_buffer", "time_window", "playback", "neural_activity", "snn_webgpu"]
+
+  @on_spawn(options) => {
+    hook = init_neural_data(options)
+    emit("neural_data_ready", {})
+  }
+
+  @receipt use_neural_data_config {
+    type: "UseNeuralDataReceipt"
+    outputs: ["current_snapshot", "visible_spikes", "time_window", "playback"]
+    timestamp: now()
+  }
+}

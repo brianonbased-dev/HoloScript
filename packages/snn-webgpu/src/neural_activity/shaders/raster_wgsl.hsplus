@@ -1,0 +1,21 @@
+// @raster_wgsl — WGSL shader strings for spike raster plot rendering.
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/shaders/raster.wgsl.ts.
+//
+// Renders spike events as a time × neuron-id raster plot.
+// Each spike is one pixel/quad at (time, neuron_id) coordinates.
+
+@trait raster_wgsl {
+  capability_tags: ["raster_wgsl", "wgsl_shader", "spike_raster", "neural_activity", "snn_webgpu"]
+
+  @on_spawn => {
+    shaders = init_raster_wgsl()
+    emit("raster_wgsl_ready", {})
+  }
+
+  @receipt raster_wgsl_config {
+    type: "RasterWGSLReceipt"
+    shader_type: "spike raster (time × neuron_id)"
+    timestamp: now()
+  }
+}

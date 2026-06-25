@@ -1,0 +1,38 @@
+// @gpu_context — WebGPU adapter/device acquisition + capability detection.
+//
+// Native .hsplus surface for snn-webgpu/gpu-context.ts.
+//
+// GPUContextOptions { power_preference: high-performance|low-power,
+//   required_features?, max_buffer_size: 256MB default,
+//   max_storage_buffer_binding_size: 128MB, enable_timestamps, label }
+//
+// GPUCapabilities { max_workgroup_size[3], max_workgroups_per_dimension,
+//   max_storage_buffer_binding_size, max_buffer_size }
+//
+// GPUContext.initialize() → void  (calls ensureNodeWebGpu internally)
+// GPUContext.device → GPUDevice
+// GPUContext.capabilities → GPUCapabilities
+// GPUContext.destroy() → void
+
+@trait gpu_context {
+  capability_tags: ["gpu_context", "webgpu_device", "adapter_acquisition", "snn_webgpu"]
+
+  default_max_buffer_size_mb: Int = 256
+  default_max_storage_binding_mb: Int = 128
+
+  @on_spawn(options) => {
+    ctx = init_gpu_context(options)
+    emit("gpu_context_ready", {})
+  }
+
+  @on_initialize => {
+    ctx.initialize()
+    emit("gpu_initialized", { power_preference: ctx.options.power_preference })
+  }
+
+  @receipt gpu_context_config {
+    type: "GPUContextReceipt"
+    power_preference_default: "high-performance"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @heatmap_wgsl — WGSL shader strings for membrane potential heatmap rendering.
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/shaders/heatmap.wgsl.ts.
+//
+// heatmapVertexShader: WGSL — renders 2D grid of neuron membrane voltages as colored quads
+//   Uniforms: { grid_rows, grid_cols, canvas_width, canvas_height }
+//   Bindings: voltages: array<f32>, color_map: array<vec4<f32>>
+// heatmapFragmentShader: passes through vertex color
+
+@trait heatmap_wgsl {
+  capability_tags: ["heatmap_wgsl", "wgsl_shader", "membrane_potential_viz", "neural_activity", "snn_webgpu"]
+
+  @on_spawn => {
+    shaders = init_heatmap_wgsl()
+    emit("heatmap_wgsl_ready", {})
+  }
+
+  @receipt heatmap_wgsl_config {
+    type: "HeatmapWGSLReceipt"
+    shader_type: "vertex + fragment"
+    input: "voltages: array<f32> + color_map: array<vec4<f32>>"
+    timestamp: now()
+  }
+}

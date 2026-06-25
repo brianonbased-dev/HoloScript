@@ -1,0 +1,39 @@
+// @buffer_manager — GPU buffer allocation, data transfer, async readback (pool-based).
+//
+// Native .hsplus surface for snn-webgpu/buffer-manager.ts.
+//
+// BufferCreateOptions { size_bytes, usage: GPUBufferUsageFlags, label?,
+//   initial_data?: Float32Array|Uint32Array, mapped_at_creation?: Bool }
+//
+// BufferManager(device: GPUDevice):
+//   create(options) → GPUBufferHandle
+//   upload(handle, data) → void
+//   readback(handle) → ReadbackResult (async)
+//   destroy(handle) → void
+//   destroyAll() → void
+
+@trait buffer_manager {
+  capability_tags: ["buffer_manager", "gpu_buffers", "async_readback", "webgpu", "snn_webgpu"]
+
+  @on_spawn(device) => {
+    manager = init_buffer_manager(device)
+    emit("buffer_manager_ready", {})
+  }
+
+  @on_create(options) => {
+    handle = manager.create(options)
+    emit("buffer_created", { label: options.label })
+    return handle
+  }
+
+  @on_readback(handle) => {
+    result = manager.readback(handle)
+    return result
+  }
+
+  @receipt buffer_manager_config {
+    type: "BufferManagerReceipt"
+    strategy: "pool-based — minimize allocation overhead"
+    timestamp: now()
+  }
+}

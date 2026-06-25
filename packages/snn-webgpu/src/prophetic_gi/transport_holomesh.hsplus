@@ -1,0 +1,37 @@
+// @prophecy_transport_holomesh — Prophetic GI over HoloMesh CRDT feed with fallback.
+//
+// Native .hsplus surface for snn-webgpu/prophetic-gi/transport-holomesh.ts.
+//
+// Sends scene context to peer agents over HoloMesh CRDT at crdt://holomesh/feed/ttu/<sessionId>.
+// REST/SSE shim:
+//   POST /api/holomesh/ttu/<session_id>/step   — submit scene, await frame
+//   POST /api/holomesh/ttu/<session_id>/publish — publish a frame
+//   GET  /api/holomesh/ttu/<session_id>/live    — SSE subscription
+//
+// Many agents may converge on the same session id (Phase 2: Multi-Agent Convergence).
+// On failure (network/timeout/non-2xx): falls back to local transport (source: 'fallback')
+// Without fallback: throws ProphecyNotImplementedError
+//
+// URL formats: crdt://holomesh/feed/ttu/<sid> | https://host/api/holomesh/ttu/<sid>
+//   | <host>/api/holomesh/ttu/<sid> | ttu://<host>/<sid>
+
+@trait prophecy_transport_holomesh {
+  capability_tags: ["prophecy_transport_holomesh", "prophetic_gi", "holomesh_crdt", "multi_agent_convergence", "snn_webgpu"]
+
+  @on_spawn(options) => {
+    transport = init_holomesh_prophecy_transport(options)
+    emit("holomesh_transport_ready", {})
+  }
+
+  @on_step(scene) => {
+    frame = transport.step(scene)
+    return frame
+  }
+
+  @receipt prophecy_transport_holomesh_config {
+    type: "ProphecyTransportHolomeshReceipt"
+    fallback: "LocalProphecyTransport (source='fallback')"
+    url_formats: ["crdt://holomesh/feed/ttu/<sid>", "ttu://<host>/<sid>"]
+    timestamp: now()
+  }
+}

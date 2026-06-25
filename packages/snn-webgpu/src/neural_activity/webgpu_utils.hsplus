@@ -1,0 +1,30 @@
+// @webgpu_utils — WebGPU device/shader/resource utilities for neural activity visualization.
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/webgpu-utils.ts.
+//
+// isWebGPUSupported() → Bool — checks typeof navigator + 'gpu' in navigator
+// requestDevice() → GPUDevice | null — requestAdapter → requestDevice
+// initWebGPU(canvas) → WebGPUContext | null
+// destroyWebGPUContext(ctx) → void
+// ColorMap type for heatmap rendering
+
+@trait webgpu_utils {
+  capability_tags: ["webgpu_utils", "device_init", "shader_utils", "neural_activity", "snn_webgpu"]
+
+  @on_spawn => {
+    utils = init_webgpu_utils()
+    emit("webgpu_utils_ready", {})
+  }
+
+  @on_init_canvas(canvas) => {
+    ctx = utils.init_webgpu(canvas)
+    emit("canvas_initialized", {})
+    return ctx
+  }
+
+  @receipt webgpu_utils_config {
+    type: "WebGPUUtilsReceipt"
+    functions: ["isWebGPUSupported", "requestDevice", "initWebGPU", "destroyWebGPUContext"]
+    timestamp: now()
+  }
+}

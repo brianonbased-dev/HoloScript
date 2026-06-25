@@ -1,0 +1,31 @@
+// @ensure_node_webgpu — Node.js WebGPU bootstrap via Dawn binding (idempotent).
+//
+// Native .hsplus surface for snn-webgpu/ensure-node-webgpu.ts.
+//
+// In browser/worker: navigator.gpu is already present — no-op.
+// In Node: populates globalThis.navigator.gpu from `webgpu` npm package (Dawn),
+//   installs WebGPU globals (GPU, GPUBuffer, etc.) so device detection finds
+//   a real adapter. `--experimental-webgpu` Node flag does NOT exist in Node >= 24.
+// Guards: _bootstrap_attempted (idempotent) + _bootstrap_result (cached Bool)
+
+@trait ensure_node_webgpu {
+  capability_tags: ["ensure_node_webgpu", "node_webgpu", "dawn_bootstrap", "snn_webgpu"]
+
+  @on_spawn => {
+    bootstrap = init_ensure_node_webgpu()
+    emit("node_webgpu_bootstrap_ready", {})
+  }
+
+  @on_ensure => {
+    result = bootstrap.ensure()
+    emit("node_webgpu_ensured", { available: result })
+    return result
+  }
+
+  @receipt ensure_node_webgpu_config {
+    type: "EnsureNodeWebGPUReceipt"
+    method: "webgpu npm package (Dawn) — NOT --experimental-webgpu"
+    idempotent: true
+    timestamp: now()
+  }
+}

@@ -1,0 +1,35 @@
+// @snn_network — Multi-layer SNN orchestrator: synaptic current + LIF updates + STDP.
+//
+// Native .hsplus surface for snn-webgpu/snn-network.ts.
+//
+// NetworkConfig { layers: LayerConfig[], connections: ConnectionConfig[], dt? }
+// LayerConfig { neuron_count, params?: LIFParams }
+// ConnectionConfig { from_layer, to_layer, weight_matrix: Float32Array, enable_stdp? }
+// SimulationStats { total_spikes, step_time_ms, layer_spike_rates }
+//
+// SNNNetwork(ctx, config):
+//   initialize() → void
+//   step(external_input?) → void  (async)
+//   readSpikes(layer_id) → ReadbackResult (async)
+//   getStats() → SimulationStats
+//   destroy() → void
+
+@trait snn_network {
+  capability_tags: ["snn_network", "multi_layer_snn", "stdp_learning", "synaptic_current", "snn_webgpu"]
+
+  @on_spawn(ctx, config) => {
+    network = init_snn_network(ctx, config)
+    emit("snn_network_ready", { layer_count: config.layers.length })
+  }
+
+  @on_step(external_input) => {
+    network.step(external_input)
+    emit("snn_step", {})
+  }
+
+  @receipt snn_network_config {
+    type: "SNNNetworkReceipt"
+    features: ["multi_layer", "stdp_learning", "async_readback", "simulation_stats"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,35 @@
+// @tropical_shortest_paths — GPU/CPU hybrid tropical APSP over CSR graphs.
+//
+// Native .hsplus surface for snn-webgpu/graph/TropicalShortestPaths.ts.
+//
+// TropicalCSRGraph { row_ptr: Uint32Array, col_idx: Uint32Array, values: Float32Array }
+// TropicalShortestPathsOptions { prefer_gpu: Bool=true,
+//   dense_cpu_threshold: Int=128, sparse_cpu_threshold: Int=256 }
+//
+// Falls back to CPU when matrix size < threshold.
+// GPU paths: tropical-gemm (dense GEMM WGSL, workgroup=16×16),
+//   tropical-spmv (sparse MV WGSL, workgroup=256)
+// Uniform: 16 bytes (3 u32 dims + pad)
+
+@trait tropical_shortest_paths {
+  capability_tags: ["tropical_shortest_paths", "tropical_semiring", "apsp", "gpu_graph", "csr", "snn_webgpu"]
+
+  dense_cpu_threshold: Int = 128
+  sparse_cpu_threshold: Int = 256
+
+  @on_spawn(ctx, options) => {
+    solver = init_tropical_shortest_paths(ctx, options)
+    emit("tropical_shortest_paths_ready", {})
+  }
+
+  @on_solve(graph) => {
+    result = solver.solve(graph)
+    return result
+  }
+
+  @receipt tropical_shortest_paths_config {
+    type: "TropicalShortestPathsReceipt"
+    gpu_kernels: ["tropical_gemm (dense, wg=16×16)", "tropical_spmv (sparse, wg=256)"]
+    timestamp: now()
+  }
+}

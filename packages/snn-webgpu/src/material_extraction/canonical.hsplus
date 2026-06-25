@@ -1,0 +1,34 @@
+// @canonical_botanical — Canonical material extraction envelope (schema v1).
+//
+// Native .hsplus surface for snn-webgpu/material-extraction/canonical.ts.
+//
+// CanonicalBotanicalExtractionStatus: signed | hashed | unsigned | pending_anchor
+// CanonicalBotanicalMaterial { subsurface_scattering, subsurface_radius_rgb[3],
+//   petal_translucency_base, petal_translucency_edge, roughness, ior,
+//   vein_normal_intensity, edge_curl_intensity, gravity_sag_outer }
+// CanonicalBotanicalMaterialExtraction {
+//   schema: 'holoscript.botanical.material-extract.canonical.v1',
+//   source_schema: 'holoscript.botanical.material-extract.v1',
+//   source_kind: pixel-buffer|photo-fixture, status, botanical_trait_target }
+
+@trait canonical_botanical {
+  capability_tags: ["canonical_botanical", "material_schema", "provenance", "snn_webgpu"]
+
+  @on_spawn => {
+    canonical = init_canonical_botanical()
+    emit("canonical_botanical_ready", {})
+  }
+
+  @on_canonicalize(raw_extraction) => {
+    result = canonical.canonicalize(raw_extraction)
+    emit("canonicalized", { schema: result.schema })
+    return result
+  }
+
+  @receipt canonical_botanical_config {
+    type: "CanonicalBotanicalReceipt"
+    schema: "holoscript.botanical.material-extract.canonical.v1"
+    statuses: ["signed", "hashed", "unsigned", "pending_anchor"]
+    timestamp: now()
+  }
+}

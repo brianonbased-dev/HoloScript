@@ -1,0 +1,33 @@
+// @botanical_material_extractor — Offline botanical photo-to-material extractor.
+//
+// Native .hsplus surface for snn-webgpu/botanical-material-extractor.ts.
+//
+// Converts signed anchor metadata + deterministic color-region fixtures
+// into renderer-ready material JSON. Raw media ingestion and wallet signing
+// remain EXTERNAL provenance steps — this module is deterministic and testable.
+//
+// BotanicalRegionName: petal_base|petal_mid|petal_inner|petal_rim|petal_shadow|
+//   vein|leaf|leaf_dark|water|stamen|stamen_tip|seed_pod|seed_pod_rim|silhouette_edge
+// BotanicalPhotoAnchor { id, label, role, status, content_hash, wallet_signature }
+// BotanicalColorInput: [r, g, b] | css_string
+
+@trait botanical_material_extractor {
+  capability_tags: ["botanical_material_extractor", "photo_to_material", "pbr_extraction", "provenance", "snn_webgpu"]
+
+  @on_spawn => {
+    extractor = init_botanical_material_extractor()
+    emit("botanical_extractor_ready", {})
+  }
+
+  @on_extract(anchor, color_fixtures) => {
+    material = extractor.extract(anchor, color_fixtures)
+    emit("material_extracted", { id: anchor.id })
+    return material
+  }
+
+  @receipt botanical_extractor_config {
+    type: "BotanicalMaterialExtractorReceipt"
+    regions: ["petal_base", "petal_mid", "petal_inner", "petal_rim", "petal_shadow", "vein", "leaf", "leaf_dark", "water", "stamen", "stamen_tip", "seed_pod", "seed_pod_rim", "silhouette_edge"]
+    timestamp: now()
+  }
+}

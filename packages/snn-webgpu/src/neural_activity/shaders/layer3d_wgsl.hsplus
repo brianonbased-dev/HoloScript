@@ -1,0 +1,21 @@
+// @layer3d_wgsl — WGSL shader strings for 3D SNN layer visualization.
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/shaders/layer3d.wgsl.ts.
+//
+// Renders 3D neuron positions as instanced point sprites.
+// Encodes spike state and membrane voltage as color/size.
+
+@trait layer3d_wgsl {
+  capability_tags: ["layer3d_wgsl", "wgsl_shader", "3d_layer_viz", "instanced_rendering", "neural_activity", "snn_webgpu"]
+
+  @on_spawn => {
+    shaders = init_layer3d_wgsl()
+    emit("layer3d_wgsl_ready", {})
+  }
+
+  @receipt layer3d_wgsl_config {
+    type: "Layer3DWGSLReceipt"
+    shader_type: "instanced vertex + fragment"
+    timestamp: now()
+  }
+}

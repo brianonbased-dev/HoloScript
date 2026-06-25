@@ -1,0 +1,22 @@
+// @use_animation_loop — requestAnimationFrame-based render loop hook (start/stop/cleanup).
+//
+// Native .hsplus surface for snn-webgpu/neural-activity/hooks/useAnimationLoop.ts.
+//
+// AnimationFrameInfo { elapsed_s, delta_s, frame_count }
+// UseAnimationLoopOptions { enabled: Bool, target_fps?: Int (0=uncapped) }
+// useAnimationLoop(callback: (info) → void, options) → void
+
+@trait use_animation_loop {
+  capability_tags: ["use_animation_loop", "raf_loop", "frame_timing", "neural_activity", "snn_webgpu"]
+
+  @on_spawn(callback, options) => {
+    loop = init_animation_loop(callback, options)
+    emit("animation_loop_ready", {})
+  }
+
+  @receipt use_animation_loop_config {
+    type: "UseAnimationLoopReceipt"
+    target_fps_default: 0
+    timestamp: now()
+  }
+}

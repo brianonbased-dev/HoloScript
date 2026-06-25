@@ -1,0 +1,40 @@
+// @stdp_navigation — Grid-world navigation with STDP (Paper-2 NeurIPS §5.4).
+//
+// Native .hsplus surface for snn-webgpu/experiments/stdp-navigation.ts.
+//
+// Architecture:
+//   Input: GRID_SIZE²(=64) place-cell neurons (one per grid cell)
+//   Output: 4 action neurons (up=0, down=1, right=2, left=3)
+//   Connection: input→output with optional STDP
+//
+// Learning: supervised signal injects strong post-synaptic current onto "correct"
+//   action neuron (greedy towards goal) → Hebbian co-firing → STDP weight update
+//
+// Metric: pathEfficiency = optimalPathLength / actualPathLength (capped at 1.0)
+//   Baseline (random, no learning): ~10-25% efficiency
+//   After STDP: measurably higher (Paper-2 §5.4)
+
+@trait stdp_navigation {
+  capability_tags: ["stdp_navigation", "grid_world", "stdp_learning", "snn_rl", "paper2", "snn_webgpu"]
+
+  grid_size: Int = 8
+
+  @on_spawn(ctx, config) => {
+    nav = init_stdp_navigation(ctx, config)
+    emit("stdp_navigation_ready", {})
+  }
+
+  @on_episode(start, goal, steps, enable_stdp) => {
+    result = nav.run_episode(start, goal, steps, enable_stdp)
+    emit("episode_complete", { efficiency: result.path_efficiency })
+    return result
+  }
+
+  @receipt stdp_navigation_config {
+    type: "STDPNavigationReceipt"
+    grid_size: 8
+    actions: ["up(y+1)", "down(y-1)", "right(x+1)", "left(x-1)"]
+    metric: "pathEfficiency = optimalPathLength / actualPathLength"
+    timestamp: now()
+  }
+}
