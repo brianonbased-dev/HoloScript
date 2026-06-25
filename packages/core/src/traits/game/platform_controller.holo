@@ -1,0 +1,21 @@
+@trait {
+  name: "@platform_controller",
+  category: "game",
+  description: "Moving platform motion controller. Moves a physics body platform between waypoints with configurable easing and wait delays, broadcasting a carry-velocity to any entity standing on the platform so they move with it without sliding. Authored from PlatformControllerTrait.ts.",
+  props: {
+    waypoints: list<{ x: number, y: number, z: number }> = [],
+    speed_m_s: number = 2,
+    wait_s: number = 1,
+    loop: boolean = true,
+    ping_pong: boolean = false,
+    easing: enum("linear" | "ease_in_out" | "spring") = "ease_in_out",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "platform_controller_attached",
+    detached: "platform_controller_detached",
+    on_depart: "platform_controller_depart",
+    on_arrive: "platform_controller_arrive"
+  },
+  behaviors: ["@kinematic_body", "@velocity", "@route_planner"]
+}

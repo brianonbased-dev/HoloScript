@@ -1,0 +1,21 @@
+@trait {
+  name: "@placement_validator",
+  category: "interaction",
+  description: "Entity placement validity checker. Tests whether a proposed entity position overlaps terrain, colliders, or exclusion zones before confirming a placement, returning a validity enum used by the hologram-preview to color the placement ghost red/green. Authored from PlacementValidatorTrait.ts.",
+  props: {
+    aabb_size: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 },
+    check_terrain: boolean = true,
+    check_colliders: boolean = true,
+    check_zones: boolean = true,
+    max_slope_deg: number = 45,
+    snap_to_floor: boolean = true
+  },
+  events: {
+    attached: "placement_validator_attached",
+    detached: "placement_validator_detached",
+    on_valid: "placement_validator_valid",
+    on_invalid: "placement_validator_invalid",
+    check: "placement_validator_trigger_check"
+  },
+  behaviors: ["@hologram_preview", "@spawn_gate", "@proximity_zone"]
+}

@@ -1,0 +1,20 @@
+@trait {
+  name: "@ping_indicator",
+  category: "network",
+  description: "Network latency ping display widget. Renders the current round-trip latency to the session server as a colored bar or numeric badge (green < 50ms, yellow < 150ms, red > 150ms) in screen space, updating at a configurable sample rate. Authored from PingIndicatorTrait.ts.",
+  props: {
+    sample_rate_hz: number = 1,
+    mode: enum("badge" | "bar" | "hidden") = "badge",
+    good_threshold_ms: number = 50,
+    bad_threshold_ms: number = 150,
+    position: { x: number, y: number } = { x: 8, y: 8 },
+    visible: boolean = true
+  },
+  events: {
+    attached: "ping_indicator_attached",
+    detached: "ping_indicator_detached",
+    on_update: "ping_indicator_update",
+    on_bad: "ping_indicator_bad"
+  },
+  behaviors: ["@network_diagnostics", "@stats", "@ui_frame"]
+}

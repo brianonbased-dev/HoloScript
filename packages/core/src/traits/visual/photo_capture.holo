@@ -1,0 +1,22 @@
+@trait {
+  name: "@photo_capture",
+  category: "visual",
+  description: "In-world camera photo capture tool. Triggers a high-resolution render of the scene from the entity's viewpoint, compositing a watermark or frame overlay, saving the result to the user's device gallery or a configured upload URL, with a shutter sound and flash effect. Authored from PhotoCaptureTrait.ts.",
+  props: {
+    resolution: { width: number, height: number } = { width: 2048, height: 1024 },
+    format: enum("jpeg" | "png" | "webp") = "jpeg",
+    quality: number = 0.92,
+    frame_url: string = "",
+    watermark_url: string = "",
+    upload_url: string = "",
+    shutter_sound: boolean = true
+  },
+  events: {
+    attached: "photo_capture_attached",
+    detached: "photo_capture_detached",
+    on_capture: "photo_capture_capture",
+    on_save: "photo_capture_save",
+    shoot: "photo_capture_trigger_shoot"
+  },
+  behaviors: ["@screen_capture", "@virtual_camera", "@media_recorder"]
+}
