@@ -1,0 +1,19 @@
+@trait {
+  name: "@contract_draft",
+  category: "legal",
+  description: "Contract drafting and clause management. contractType: service, employment, nda, lease, purchase, or partnership. parties is a list of party objects (role, name, signatoryEmail). clauses is an ordered list of clause definitions (id, title, body, type). effectiveDate and governingLaw identify the jurisdiction. Status: draft, review, negotiating, final, or executed. Port of ContractDraftTrait.ts (handler name: contract_draft).",
+  props: {
+    contract_type: enum("service" | "employment" | "nda" | "lease" | "purchase" | "partnership") = "service",
+    title: string = "",
+    effective_date: string = "",
+    governing_law: string = ""
+  },
+  events: {
+    on_drafted: "contract_drafted",
+    on_finalized: "contract_finalized",
+    on_executed: "contract_executed",
+    add_clause: "contract_add_clause",
+    finalize: "contract_finalize"
+  },
+  behaviors: ["@case_management", "@e_signature", "@programmable_law"]
+}

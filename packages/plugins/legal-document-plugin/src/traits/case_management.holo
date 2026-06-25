@@ -1,0 +1,22 @@
+@trait {
+  name: "@case_management",
+  category: "legal",
+  description: "Legal case lifecycle management. caseType identifies the matter type (e.g., litigation, contract, M&A, IP). clientId links to the client entity. opposingParty is the adverse party name. filingDate is the ISO 8601 date of initial filing. courtJurisdiction is the venue (e.g., USDC SDNY, Delaware Court of Chancery). Status: intake, active, discovery, trial, appeal, settled, or closed. Port of CaseManagementTrait.ts (handler name: case_management).",
+  props: {
+    case_number: string = "",
+    title: string = "",
+    client_id: string = "",
+    opposing_party: string = "",
+    case_type: string = "",
+    filing_date: string = "",
+    court_jurisdiction: string = ""
+  },
+  events: {
+    on_filed: "case_filed",
+    on_hearing_scheduled: "case_hearing_scheduled",
+    on_closed: "case_closed",
+    schedule_hearing: "case_schedule_hearing",
+    close: "case_close"
+  },
+  behaviors: ["@contract_draft", "@e_signature"]
+}

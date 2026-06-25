@@ -1,0 +1,21 @@
+@trait {
+  name: "@e_signature",
+  category: "legal",
+  description: "Electronic signature workflow. signers is an ordered list of signer objects (name, email, role). requireOrder enforces sequential signing order. expirationDays is the signing deadline from envelope creation (default: 30 days). reminderIntervalDays is how often to send reminder emails (default: 3 days). Status: pending, partial, complete, declined, or expired. Port of ESignatureTrait.ts (handler name: e_signature).",
+  props: {
+    document_id: string = "",
+    require_order: boolean = false,
+    expiration_days: number = 30,
+    reminder_interval_days: number = 3
+  },
+  events: {
+    on_sent: "esignature_sent",
+    on_signed: "esignature_signed",
+    on_completed: "esignature_completed",
+    on_declined: "esignature_declined",
+    on_expired: "esignature_expired",
+    send: "esignature_send",
+    void: "esignature_void"
+  },
+  behaviors: ["@contract_draft", "@case_management"]
+}

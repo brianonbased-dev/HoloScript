@@ -1,0 +1,19 @@
+@trait {
+  name: "@programmable_law",
+  category: "legal",
+  description: "Programmable law / smart legal contract enforcement layer. jurisdiction identifies the governing legal framework (default: GlobalSovereignMesh). enforceContractLaw automatically triggers breach detection and remediation. strictLiability removes the intent requirement for liability. maxLiabilityCapX402 is the maximum liability in x402 units (default: 1,000,000). Compiles to @contract_draft clauses that are machine-enforceable via the x402 payment protocol. Port of ProgrammableLawTrait.ts (handler name: programmable_law).",
+  props: {
+    jurisdiction: string = "GlobalSovereignMesh",
+    enforce_contract_law: boolean = true,
+    strict_liability: boolean = true,
+    max_liability_cap_x402: number = 1000000
+  },
+  events: {
+    on_breach_detected: "law_breach_detected",
+    on_remedy_executed: "law_remedy_executed",
+    on_liability_triggered: "law_liability_triggered",
+    check_breach: "law_check_breach",
+    execute_remedy: "law_execute_remedy"
+  },
+  behaviors: ["@contract_draft", "@foundation_dao"]
+}
