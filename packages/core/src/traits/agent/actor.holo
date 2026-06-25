@@ -1,7 +1,7 @@
 @trait {
   name: "@actor",
   category: "agent",
-  description: "Actor-model message-passing node with bounded mailbox, supervision policy, and lifecycle events. actor_id is the stable address used by peers to send messages; the runtime registers this in the local actor registry on attach and deregisters it on detach. mailbox_size caps the number of unprocessed messages queued before overflow is signalled — callers that enqueue while at capacity receive actor:overflow. supervisor names the actor_id of a parent supervisor; if empty the actor is a root actor with no supervisor restart chain. restart_policy governs how a crash inside the actor's handler propagates: one_for_one restarts only this actor, all_for_one restarts all siblings under the same supervisor, rest_for_one restarts this actor plus all siblings registered after it. timeout_ms is the per-message processing deadline; exceeding it fires actor:timeout and the message is dead-lettered. on_receive fires when a message is dequeued for processing, carrying the message payload and sender actor_id. on_crash fires when the handler throws, carrying the error and the message that triggered it. on_restart fires after a successful supervised restart, carrying restart count. on_stop fires when the actor is deliberately halted (not crashed). Research: ActorTrait.ts v5.1.",
+  description: "Actor-model message-passing node with bounded mailbox, supervision policy, and lifecycle events. actor_id is the stable address used by peers to send messages; the runtime registers this in the local actor registry on attach and deregisters it on detach. mailbox_size caps the number of unprocessed messages queued before overflow is signalled — callers that enqueue while at capacity receive actor:overflow. supervisor names the actor_id of a parent supervisor; if empty the actor is a root actor with no supervisor restart chain. restart_policy governs how a crash inside the actor's handler propagates: one_for_one restarts only this actor, all_for_one restarts all siblings under the same supervisor, rest_for_one restarts this actor plus all siblings registered after it. timeout_ms is the per-message processing deadline; exceeding it fires actor:timeout and the message is dead-lettered. on_receive fires when a message is dequeued for processing, carrying the message payload and sender actor_id. on_crash fires when the handler throws, carrying the error and the message that triggered it. on_restart fires after a successful supervised restart, carrying restart count. on_stop fires when the actor is deliberately halted (not crashed).",
   props: {
     actor_id: string = "",
     mailbox_size: number = 1000,
@@ -23,5 +23,6 @@
     on_send: "actor:send",
     on_process: "actor:process",
     on_stop: "actor:stop"
-  }
+  },
+  behaviors: []
 }
