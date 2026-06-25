@@ -1,0 +1,13 @@
+@trait {
+  name: "@sandbox_execution",
+  category: "security",
+  description: "Sandboxed code execution environment with syscall filtering. Config is sandbox-backend-dependent. Port of SandboxExecutionTrait.ts (handler name: sandbox_execution).",
+  props: {},
+  events: {
+    on_executed: "sandbox_execution:executed",
+    on_error: "sandbox_execution:error",
+    on_timeout: "sandbox_execution:timeout",
+    execute: "sandbox_execution.execute"
+  },
+  behaviors: ["@native_call", "@ffi", "@chaos_test"]
+}

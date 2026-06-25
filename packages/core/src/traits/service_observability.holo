@@ -1,0 +1,15 @@
+@trait {
+  name: "@service_observability",
+  category: "ops",
+  description: "Service observability — collects and correlates metrics, traces, and logs for a named service. service_name is the service being observed. Port of ServiceObservabilityTrait.ts (handler name: service_observability).",
+  props: {
+    service_name: string = ""
+  },
+  events: {
+    on_alert: "service_observability:alert",
+    on_metric: "service_observability:metric",
+    record: "service_observability.record",
+    query: "service_observability.query"
+  },
+  behaviors: ["@slo_monitor", "@profiler", "@log_aggregator"]
+}

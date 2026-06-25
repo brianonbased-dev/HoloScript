@@ -1,0 +1,19 @@
+@trait {
+  name: "@scene_graph",
+  category: "render",
+  description: "Scene graph manager. root_node is the root node ID. instancing enables geometry instancing (default: true). merge_strategy: merge (default), replace, append. coordinate_system: y_up (default), z_up. unit_scale is the world unit scale factor (default: 1.0). Port of SceneGraphTrait.ts (handler name: scene_graph).",
+  props: {
+    root_node: string = "",
+    instancing: boolean = true,
+    merge_strategy: enum("merge" | "replace" | "append") = "merge",
+    coordinate_system: enum("y_up" | "z_up") = "y_up",
+    unit_scale: number = 1.0
+  },
+  events: {
+    on_node_added: "scene_graph:node_added",
+    on_node_removed: "scene_graph:node_removed",
+    add: "scene_graph.add",
+    remove: "scene_graph.remove"
+  },
+  behaviors: ["@gltf", "@interactive_graph", "@render_pipeline"]
+}

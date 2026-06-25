@@ -1,0 +1,18 @@
+@trait {
+  name: "@scrollable",
+  category: "ux",
+  description: "Spatial scrollable panel. content_height is the virtual content height in meters (default: 1.0m). viewport_height is the visible height in meters (default: 0.5m). friction is the scrolling deceleration [0,1] (default: 0.95). elasticity is the overscroll bounce [0,1] (default: 0.1). use_spring_bounce enables spring physics at edges (default: true). Port of ScrollableTrait.ts (handler name: scrollable).",
+  props: {
+    content_height: number = 1.0,
+    viewport_height: number = 0.5,
+    friction: number = 0.95,
+    elasticity: number = 0.1,
+    use_spring_bounce: boolean = true
+  },
+  events: {
+    on_scrolled: "scrollable:scrolled",
+    on_end: "scrollable:end",
+    scroll_to: "scrollable.scroll_to"
+  },
+  behaviors: ["@spatial_panel", "@hand_menu", "@accessible"]
+}

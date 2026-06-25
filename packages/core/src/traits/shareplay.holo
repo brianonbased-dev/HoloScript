@@ -1,0 +1,20 @@
+@trait {
+  name: "@shareplay",
+  category: "multiplayer",
+  description: "Apple SharePlay group session. activity_title is the display name (default: Shared Experience). max_participants is the group size cap (default: 8). auto_join automatically joins SharePlay sessions (default: true). sync_policy: full_state (default), delta, custom. spatial_audio enables spatial audio in the group (default: true). Port of SharePlayTrait.ts (handler name: shareplay).",
+  props: {
+    activity_title: string = "Shared Experience",
+    max_participants: number = 8,
+    auto_join: boolean = true,
+    sync_policy: enum("full_state" | "delta" | "custom") = "full_state",
+    spatial_audio: boolean = true
+  },
+  events: {
+    on_joined: "shareplay:joined",
+    on_left: "shareplay:left",
+    on_state_synced: "shareplay:state_synced",
+    start: "shareplay.start",
+    end: "shareplay.end"
+  },
+  behaviors: ["@shared_world", "@remote_presence", "@co_located"]
+}

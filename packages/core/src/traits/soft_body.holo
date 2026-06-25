@@ -1,0 +1,18 @@
+@trait {
+  name: "@soft_body",
+  category: "physics",
+  description: "Soft body physics simulation. stiffness is the shape-match constraint strength [0,1] (default: 0.5). damping is the velocity damping coefficient (default: 0.05). mass is the total body mass in kg (default: 1.0). pressure is the internal pressure for cloth (default: 1.0). volume_conservation is the volume preservation factor [0,1] (default: 0.9). Port of SoftBodyTrait.ts (handler name: soft_body).",
+  props: {
+    stiffness: number = 0.5,
+    damping: number = 0.05,
+    mass: number = 1.0,
+    pressure: number = 1.0,
+    volume_conservation: number = 0.9
+  },
+  events: {
+    on_deformed: "soft_body:deformed",
+    on_torn: "soft_body:torn",
+    apply_force: "soft_body.apply_force"
+  },
+  behaviors: ["@cloth", "@rope", "@rigidbody"]
+}

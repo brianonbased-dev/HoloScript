@@ -1,0 +1,12 @@
+@trait {
+  name: "@screen_space_effects",
+  category: "render",
+  description: "Screen-space render effects (SSAO, SSR, SSGI, etc.). Config is effect-set-dependent. Port of ScreenSpaceEffectsTrait.ts (handler name: screen_space_effects).",
+  props: {},
+  events: {
+    on_applied: "screen_space_effects:applied",
+    set_effect: "screen_space_effects.set_effect",
+    remove_effect: "screen_space_effects.remove_effect"
+  },
+  behaviors: ["@post_process", "@global_illumination"]
+}

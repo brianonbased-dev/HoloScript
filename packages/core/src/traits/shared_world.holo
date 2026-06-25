@@ -1,0 +1,18 @@
+@trait {
+  name: "@shared_world",
+  category: "multiplayer",
+  description: "Shared multiplayer world state. authority_model: server (default), peer, hybrid. sync_rate is the state update rate in Hz (default: 20Hz). conflict_resolution: server_wins (default), last_write, merge. object_ownership enables per-object ownership (default: true). late_join_sync sends full state to late joiners (default: true). Port of SharedWorldTrait.ts (handler name: shared_world).",
+  props: {
+    authority_model: enum("server" | "peer" | "hybrid") = "server",
+    sync_rate: number = 20,
+    conflict_resolution: enum("server_wins" | "last_write" | "merge") = "server_wins",
+    object_ownership: boolean = true,
+    late_join_sync: boolean = true
+  },
+  events: {
+    on_joined: "shared_world:joined",
+    on_state_changed: "shared_world:state_changed",
+    on_conflict: "shared_world:conflict"
+  },
+  behaviors: ["@networked", "@crdt_room", "@collaborative_world"]
+}

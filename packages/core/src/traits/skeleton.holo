@@ -1,0 +1,13 @@
+@trait {
+  name: "@skeleton",
+  category: "animation",
+  description: "Skeletal animation controller with layered blend. Config is skeleton-rig-dependent and passed through to SkeletonTrait instance. Port of SkeletonTrait.ts (handler name: skeleton). IMPORTANT: HoloScript uses 55 bones (BONE_ORDER.length), NOT 65.",
+  props: {},
+  events: {
+    on_attached: "skeleton_attached",
+    on_pose_updated: "skeleton:pose_updated",
+    set_pose: "skeleton.set_pose",
+    blend: "skeleton.blend"
+  },
+  behaviors: ["@neural_animation", "@ik", "@auto_rig"]
+}

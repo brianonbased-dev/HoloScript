@@ -1,0 +1,19 @@
+@trait {
+  name: "@sso_saml",
+  category: "security",
+  description: "SAML 2.0 SSO federation. tenant_id is the IdP tenant. enabled activates SSO enforcement (default: false). enforce_sso blocks non-SSO logins when enabled (default: false). sp_entity_id is the Service Provider entity ID. acs_url is the Assertion Consumer Service URL. Port of SSOTrait.ts (handler name: sso_saml). IDP credentials come from env.",
+  props: {
+    tenant_id: string = "",
+    enabled: boolean = false,
+    enforce_sso: boolean = false,
+    sp_entity_id: string = "",
+    acs_url: string = ""
+  },
+  events: {
+    on_authenticated: "sso_saml:authenticated",
+    on_error: "sso_saml:error",
+    initiate: "sso_saml.initiate",
+    validate: "sso_saml.validate"
+  },
+  behaviors: ["@oauth", "@mfa", "@jwt"]
+}

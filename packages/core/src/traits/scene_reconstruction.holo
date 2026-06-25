@@ -1,0 +1,17 @@
+@trait {
+  name: "@scene_reconstruction",
+  category: "xr",
+  description: "Real-time XR scene reconstruction. reconstruction_mode: realtime (default), offline. mesh_detail: low, medium (default), high. semantic_labeling annotates surfaces (default: true). physics_collision generates collision geometry (default: true). occlusion_enabled enables AR occlusion (default: true). Port of SceneReconstructionTrait.ts (handler name: scene_reconstruction).",
+  props: {
+    reconstruction_mode: enum("realtime" | "offline") = "realtime",
+    mesh_detail: enum("low" | "medium" | "high") = "medium",
+    semantic_labeling: boolean = true,
+    physics_collision: boolean = true,
+    occlusion_enabled: boolean = true
+  },
+  events: {
+    on_built: "scene_reconstruction:built",
+    on_updated: "scene_reconstruction:updated"
+  },
+  behaviors: ["@room_mesh", "@occlusion", "@plane_detection"]
+}

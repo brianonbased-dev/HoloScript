@@ -1,0 +1,18 @@
+@trait {
+  name: "@session",
+  category: "security",
+  description: "Session management. ttl_ms is the session lifetime in ms (default: 86,400,000ms = 24h). max_sessions is the concurrent session cap (default: 1000). Port of SessionTrait.ts (handler name: session).",
+  props: {
+    ttl_ms: number = 86400000,
+    max_sessions: number = 1000
+  },
+  events: {
+    on_created: "session:created",
+    on_expired: "session:expired",
+    on_invalidated: "session:invalidated",
+    create: "session.create",
+    validate: "session.validate",
+    invalidate: "session.invalidate"
+  },
+  behaviors: ["@jwt", "@oauth", "@persistent"]
+}

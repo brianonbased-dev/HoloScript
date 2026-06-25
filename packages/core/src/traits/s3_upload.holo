@@ -1,0 +1,16 @@
+@trait {
+  name: "@s3_upload",
+  category: "storage",
+  description: "S3-compatible object upload. bucket is the target bucket name (default: default). max_size_mb is the per-upload size limit in MB (default: 100MB). Port of S3UploadTrait.ts (handler name: s3_upload). Credentials come from env — never inline.",
+  props: {
+    bucket: string = "default",
+    max_size_mb: number = 100
+  },
+  events: {
+    on_uploaded: "s3_upload:uploaded",
+    on_error: "s3_upload:error",
+    upload: "s3_upload.upload",
+    delete: "s3_upload.delete"
+  },
+  behaviors: ["@blob_store", "@pipeline"]
+}

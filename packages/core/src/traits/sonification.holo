@@ -1,0 +1,19 @@
+@trait {
+  name: "@sonification",
+  category: "audio",
+  description: "Data-to-sound sonification. data_source is the prop path or URL. mapping: pitch (default), volume, pan, timbre. min_freq/max_freq is the frequency mapping range (default: 200-2000Hz). min_value/max_value is the input data range. Port of SonificationTrait.ts (handler name: sonification).",
+  props: {
+    data_source: string = "",
+    mapping: enum("pitch" | "volume" | "pan" | "timbre") = "pitch",
+    min_freq: number = 200,
+    max_freq: number = 2000,
+    min_value: number = 0
+  },
+  events: {
+    on_played: "sonification:played",
+    on_data: "sonification:data",
+    play: "sonification.play",
+    stop: "sonification.stop"
+  },
+  behaviors: ["@ambisonics", "@sensor", "@emotional_voice"]
+}

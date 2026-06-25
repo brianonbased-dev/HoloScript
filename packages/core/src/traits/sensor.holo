@@ -1,0 +1,19 @@
+@trait {
+  name: "@sensor",
+  category: "iot",
+  description: "Generic IoT sensor adapter. protocol: rest (default), mqtt, websocket, serial, bluetooth. endpoint is the sensor data URL. topic is the MQTT/WS topic. data_type: number (default), boolean, object, array. update_interval is the poll interval in ms (default: 1000ms). Port of SensorTrait.ts (handler name: sensor).",
+  props: {
+    protocol: enum("rest" | "mqtt" | "websocket" | "serial" | "bluetooth") = "rest",
+    endpoint: string = "",
+    topic: string = "",
+    data_type: enum("number" | "boolean" | "object" | "array") = "number",
+    update_interval: number = 1000
+  },
+  events: {
+    on_reading: "sensor:reading",
+    on_error: "sensor:error",
+    read: "sensor.read",
+    subscribe: "sensor.subscribe"
+  },
+  behaviors: ["@mqtt_source", "@digital_twin_core", "@kalman_filter"]
+}

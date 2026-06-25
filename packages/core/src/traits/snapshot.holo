@@ -1,0 +1,17 @@
+@trait {
+  name: "@snapshot",
+  category: "data",
+  description: "State snapshot registry. max_snapshots is the snapshot count cap (default: 20). auto_capture_interval_ms is the auto-capture cadence in ms (0 = manual, default: 0). Port of SnapshotTrait.ts (handler name: snapshot).",
+  props: {
+    max_snapshots: number = 20,
+    auto_capture_interval_ms: number = 0
+  },
+  events: {
+    on_captured: "snapshot:captured",
+    on_restored: "snapshot:restored",
+    capture: "snapshot.capture",
+    restore: "snapshot.restore",
+    list: "snapshot.list"
+  },
+  behaviors: ["@rollback", "@versioned_state"]
+}

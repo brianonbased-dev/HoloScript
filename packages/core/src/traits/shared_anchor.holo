@@ -1,0 +1,20 @@
+@trait {
+  name: "@shared_anchor",
+  category: "xr",
+  description: "Shared spatial anchor for multi-user alignment. authority: creator (default), server, consensus. resolution_timeout is the anchor resolution timeout in ms (default: 10,000ms). max_users is the maximum co-located users (default: 10). sync_interval is the state sync cadence in ms (default: 1000ms). cloud_provider: arcore (default), asa, vps. Port of SharedAnchorTrait.ts (handler name: shared_anchor).",
+  props: {
+    authority: enum("creator" | "server" | "consensus") = "creator",
+    resolution_timeout: number = 10000,
+    max_users: number = 10,
+    sync_interval: number = 1000,
+    cloud_provider: enum("arcore" | "asa" | "vps") = "arcore"
+  },
+  events: {
+    on_resolved: "shared_anchor:resolved",
+    on_failed: "shared_anchor:failed",
+    on_synced: "shared_anchor:synced",
+    share: "shared_anchor.share",
+    resolve: "shared_anchor.resolve"
+  },
+  behaviors: ["@persistent_anchor", "@co_located", "@networked"]
+}

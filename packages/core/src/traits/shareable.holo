@@ -1,0 +1,17 @@
+@trait {
+  name: "@shareable",
+  category: "social",
+  description: "Social share capture — renders a shareable GIF/video of the scene. camera is the capture camera position (default: [5,2,5]). target is the look-at target (default: [0,0,0]). animation: rotate (default), orbit, fly. duration is the capture length in ms (default: 3000ms). format: gif (default), mp4, webm. Port of SocialTraits.ts (handler name: shareable).",
+  props: {
+    animation: enum("rotate" | "orbit" | "fly") = "rotate",
+    duration: number = 3000,
+    format: enum("gif" | "mp4" | "webm") = "gif"
+  },
+  events: {
+    on_captured: "shareable:captured",
+    on_shared: "shareable:shared",
+    capture: "shareable.capture",
+    share: "shareable.share"
+  },
+  behaviors: ["@social_link", "@nft"]
+}

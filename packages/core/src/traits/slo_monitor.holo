@@ -1,0 +1,16 @@
+@trait {
+  name: "@slo_monitor",
+  category: "ops",
+  description: "SLO budget tracker. alert_on_budget_breach triggers an alert when error budget is exhausted (default: true). Port of SLOMonitorTrait.ts (handler name: slo_monitor).",
+  props: {
+    alert_on_budget_breach: boolean = true
+  },
+  events: {
+    on_breach: "slo_monitor:breach",
+    on_warn: "slo_monitor:warn",
+    on_recovered: "slo_monitor:recovered",
+    define: "slo_monitor.define",
+    record: "slo_monitor.record"
+  },
+  behaviors: ["@pagerduty", "@service_observability", "@audit_log"]
+}

@@ -1,0 +1,12 @@
+@trait {
+  name: "@script_test",
+  category: "testing",
+  description: "Script-driven integration test runner. Config is test-suite-dependent and passed through to ScriptTestRunner instance. Port of ScriptTestTrait.ts (handler name: script_test).",
+  props: {},
+  events: {
+    on_passed: "script_test:passed",
+    on_failed: "script_test:failed",
+    run: "script_test.run"
+  },
+  behaviors: ["@chaos_test", "@snapshot_test", "@fixture"]
+}
