@@ -140,6 +140,10 @@ export type {
   EvolveTraceRecord,
   GradedTraceRow,
 } from '../evolution/EvolveProgramBackend';
+// The strategic seed portfolio + native gates + single-step accrual — the
+// reusable core the autonomous (Jetson idle-loop) accrual calls per tick.
+export { CORPUS_PORTFOLIO, parsesClean, makeSeedGate, accrueOneStep } from '../evolution/corpusPortfolio';
+export type { SeedFormat, EvolveSeed, AccrueStepResult } from '../evolution/corpusPortfolio';
 export type {
   AutoRigConfig,
   AutoRigPose,
