@@ -1,0 +1,20 @@
+@trait {
+  name: "@sync_clock",
+  category: "network",
+  description: "Authoritative synchronized clock for deterministic multiplayer simulation. Exchanges NTP-style round-trip time samples with a clock server to estimate local offset, broadcasts a shared tick counter to all peers, and provides a stable simulation-time API for lockstep and snapshot-interpolation networking. Authored from SyncClockTrait.ts.",
+  props: {
+    server_url: string = "",
+    sync_interval_s: number = 5,
+    tick_rate_hz: number = 20,
+    tolerance_ms: number = 50,
+    compensation_mode: enum("offset_adjust" | "time_dilation" | "step_skip") = "offset_adjust"
+  },
+  events: {
+    attached: "sync_clock_attached",
+    detached: "sync_clock_detached",
+    on_tick: "sync_clock_tick",
+    on_drift: "sync_clock_drift",
+    on_sync: "sync_clock_sync"
+  },
+  behaviors: ["@networked", "@event_bus", "@lag_compensate"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@stats",
+  category: "devops",
+  description: "Runtime performance and metrics stats panel. Samples frame time, draw calls, triangle count, memory usage, active entity count, and network RTT at a configurable interval and emits them as events for HUD overlays, logging, or Prometheus export. Authored from StatsTrait.ts.",
+  props: {
+    interval_ms: number = 1000,
+    include_fps: boolean = true,
+    include_draw_calls: boolean = true,
+    include_triangles: boolean = true,
+    include_memory: boolean = true,
+    include_network: boolean = false,
+    output: enum("event" | "hud_overlay" | "prometheus" | "log") = "event"
+  },
+  events: {
+    attached: "stats_attached",
+    detached: "stats_detached",
+    on_sample: "stats_sample",
+    on_warning: "stats_warning"
+  },
+  behaviors: ["@diagnostic", "@heartbeat", "@log_viewer"]
+}

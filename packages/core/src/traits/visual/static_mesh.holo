@@ -1,0 +1,21 @@
+@trait {
+  name: "@static_mesh",
+  category: "visual",
+  description: "Non-deforming static 3D mesh renderer. Attaches a GLB/GLTF or procedural mesh asset to the entity, applying a material override slot and participating in static batching and occlusion culling pipelines. Authored from StaticMeshTrait.ts.",
+  props: {
+    url: string = "",
+    material_url: string = "",
+    cast_shadows: boolean = true,
+    receive_shadows: boolean = true,
+    static_batching: boolean = true,
+    collision_shape: enum("none" | "box" | "sphere" | "convex_hull" | "mesh") = "none",
+    lod_auto: boolean = true
+  },
+  events: {
+    attached: "static_mesh_attached",
+    detached: "static_mesh_detached",
+    on_load: "static_mesh_load",
+    on_error: "static_mesh_error"
+  },
+  behaviors: ["@level_of_detail", "@mesh_optimizer", "@physics_body"]
+}

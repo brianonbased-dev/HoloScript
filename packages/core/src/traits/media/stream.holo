@@ -1,0 +1,25 @@
+@trait {
+  name: "@stream",
+  category: "media",
+  description: "Live media stream source and sink adapter. Connects an inbound RTMP/WebRTC/HLS stream or an outbound broadcast encoder to the entity's display surface, managing track negotiation, buffering, quality adaptation, and reconnect logic. Authored from StreamTrait.ts.",
+  props: {
+    mode: enum("inbound" | "outbound" | "relay") = "inbound",
+    url: string = "",
+    protocol: enum("webrtc" | "rtmp" | "hls" | "whip_whep") = "webrtc",
+    low_latency: boolean = true,
+    buffer_ms: number = 300,
+    auto_reconnect: boolean = true,
+    max_bitrate_kbps: number = 5000
+  },
+  events: {
+    attached: "stream_attached",
+    detached: "stream_detached",
+    on_start: "stream_start",
+    on_stop: "stream_stop",
+    on_error: "stream_error",
+    on_quality_change: "stream_quality_change",
+    start: "stream_trigger_start",
+    stop: "stream_trigger_stop"
+  },
+  behaviors: ["@display", "@encoding", "@recording_session"]
+}
