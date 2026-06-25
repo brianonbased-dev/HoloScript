@@ -1,0 +1,128 @@
+// @collaboration_session — Multi-peer workspace session bridging VR, IDE, and web.
+//
+// Native .hsplus surface for CollaborationSession.ts. Manages the lifecycle
+// of a collaborative editing session: peer connections, document coordination
+// across multiple @crdt_document entities, and the hot-reload bridge to the
+// live scene renderer.
+//
+// Architecture (CollaborationSession.ts):
+//   Peer A (VR) ←→ CollaborationSession ←→ Peer B (IDE)
+//                         ↓
+//                   CRDTDocument per file       (@crdt_document trait)
+//                         ↓
+//                   HoloScriptHotReloader
+//                         ↓
+//                   Live scene patch
+//
+// SessionPeer fields (CollaborationSession.ts):
+//   peerId, displayName, color, avatarId, openDocuments,
+//   connectionQuality (0-1), platform ("vr"|"ide"|"web"|"mobile"), joinedAt
+//
+// SessionState: disconnected → connecting → connected → reconnecting
+//
+// Usage:
+//   entity#session @collaboration_session(
+//     session_id: "my-room"
+//     workspace_id: "holoscript"
+//     max_peers: 8
+//   ) { ... }
+
+@trait collaboration_session {
+  // Unique room identifier
+  session_id: String
+
+  // Workspace scope (same as CRDTDocument.workspace_id)
+  workspace_id: String = "holoscript"
+
+  // Maximum number of simultaneous peers (0 = unlimited)
+  max_peers: Int = 0
+
+  // Which platform this entity represents
+  platform: enum("vr" | "ide" | "web" | "mobile") = "ide"
+
+  // Hot-reload: push live patches to scene renderer on every file change
+  hot_reload: Bool = true
+
+  // Reconnect attempts before giving up (0 = retry forever)
+  max_reconnect_attempts: Int = 5
+
+  // Cursor color for this peer in the collaboration UI
+  cursor_color: String = "#4080ff"
+
+  capability_tags: ["collaboration_session", "multi_peer", "crdt_coordination", "hot_reload_bridge", "real_time_coediting"]
+
+  @on_spawn => {
+    session = init_collaboration_session({
+      session_id: session_id,
+      workspace_id: workspace_id,
+      max_peers: max_peers,
+      platform: platform,
+      hot_reload: hot_reload,
+      max_reconnect_attempts: max_reconnect_attempts
+    })
+    peer = register_local_peer({
+      peer_id: entity_id,
+      cursor_color: cursor_color,
+      platform: platform
+    })
+    emit("collaboration_session_started", {
+      session_id: session_id,
+      workspace_id: workspace_id,
+      platform: platform
+    })
+  }
+
+  @on_peer_joined(peer) => {
+    if max_peers > 0 and session.peer_count >= max_peers {
+      reject_peer(peer.peer_id, "max_peers_reached")
+      return
+    }
+    session.add_peer(peer)
+    emit("peer_joined_session", {
+      session_id: session_id,
+      peer_id: peer.peer_id,
+      platform: peer.platform,
+      display_name: peer.display_name
+    })
+  }
+
+  @on_peer_left(peer) => {
+    session.remove_peer(peer.peer_id)
+    emit("peer_left_session", {
+      session_id: session_id,
+      peer_id: peer.peer_id
+    })
+  }
+
+  @on_document_change(change) => {
+    if hot_reload {
+      trigger_hot_reload(change.file_path)
+    }
+  }
+
+  @on_connection_lost => {
+    session.set_state("reconnecting")
+    emit("session_reconnecting", { session_id: session_id })
+  }
+
+  @on_reconnected => {
+    session.set_state("connected")
+    session.sync_all_documents()
+    emit("session_reconnected", { session_id: session_id })
+  }
+
+  @on_despawn => {
+    session.close()
+    emit("collaboration_session_closed", { session_id: session_id })
+  }
+
+  @receipt collaboration_session_config {
+    type: "CollaborationSessionReceipt"
+    session_id: session_id
+    workspace_id: workspace_id
+    platform: platform
+    hot_reload: hot_reload
+    max_peers: max_peers == 0 ? "unlimited" : max_peers
+    timestamp: now()
+  }
+}

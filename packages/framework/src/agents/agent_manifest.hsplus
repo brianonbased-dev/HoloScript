@@ -1,0 +1,107 @@
+// @agent_manifest — Self-description: capabilities, resources, trust, and spatial presence.
+//
+// Native .hsplus surface for AgentManifest.ts (HoloScript v3.1 Agentic
+// Choreography). Every agent entity that participates in the HoloMesh
+// capability discovery system carries @agent_manifest to declare what it
+// can do, at what cost, and where.
+//
+// Capability dimensions (AgentManifest.ts):
+//   type         — render | analyze | generate | approve | detect |
+//                  transform | store | retrieve | communicate | compute |
+//                  coordinate | simulate | monitor
+//   domain       — holoscript | spatial | temporal | social | scientific | …
+//   latency      — instant (<10ms) | fast (<100ms) | medium (<1s) |
+//                  slow (<10s) | background (∞)
+//   resource_cost — compute/memory/network scores (0-100), optional tokens
+//   trust_level  — verified | trusted | provisional | unknown
+//   tags         — free-form searchable strings
+//
+// The manifest is published to the team's capability registry on spawn
+// and withdrawn on despawn. The @capability_matcher trait queries against it.
+//
+// Usage:
+//   entity#my_agent @agent_manifest(
+//     display_name: "Jetson Edge Agent"
+//     capabilities: [{ type: "compute", domain: "edge", latency: "fast" }]
+//   ) { ... }
+
+@trait agent_manifest {
+  // Human-readable name for this agent in the registry
+  display_name: String?
+
+  // Semantic version string ("6.0.0", "3.1.0", etc.)
+  version: String = "6.0.0"
+
+  // Agent category (holoscript-native, assistant, tool-agent, etc.)
+  category: enum("holoscript-native" | "assistant" | "tool-agent" | "sensor" | "custom") = "holoscript-native"
+
+  // Declared capabilities — each one is a typed capability block
+  capabilities: Array<{
+    type: enum("render" | "analyze" | "generate" | "approve" | "detect" | "transform" | "store" | "retrieve" | "communicate" | "compute" | "coordinate" | "simulate" | "monitor")
+    domain: String
+    latency: enum("instant" | "fast" | "medium" | "slow" | "background") = "medium"
+    resource_cost: {
+      compute: Int = 50
+      memory:  Int = 50
+      network: Int = 10
+      tokens:  Int?
+    }
+    tags: Array<String> = []
+  }> = []
+
+  // Spatial presence for location-aware discovery (WGS84 or world-space)
+  spatial: {
+    latitude:  Float?
+    longitude: Float?
+    world_pos: Array<Float>?
+    zone_id:   String?
+  }?
+
+  // Trust level at registration time
+  trust_level: enum("verified" | "trusted" | "provisional" | "unknown") = "provisional"
+
+  // Heartbeat interval in seconds (0 = no heartbeat, removes on despawn only)
+  heartbeat_interval_s: Int = 30
+
+  capability_tags: ["agent_manifest", "capability_registry", "agentic_choreography", "peer_discovery", "holoscript_native"]
+
+  @on_spawn => {
+    manifest = build_manifest({
+      display_name: display_name ?? entity_id,
+      version: version,
+      category: category,
+      capabilities: capabilities,
+      trust_level: trust_level,
+      spatial: spatial
+    })
+    publish_manifest(manifest)
+    if heartbeat_interval_s > 0 {
+      schedule_heartbeat(heartbeat_interval_s, "refresh_manifest_presence")
+    }
+    emit("agent_manifest_registered", {
+      display_name: manifest.display_name,
+      capability_count: len(capabilities),
+      trust_level: trust_level
+    })
+  }
+
+  @on_heartbeat => {
+    refresh_manifest_presence(entity_id)
+  }
+
+  @on_despawn => {
+    withdraw_manifest(entity_id)
+    emit("agent_manifest_withdrawn", { entity_id: entity_id })
+  }
+
+  @receipt agent_manifest_config {
+    type: "AgentManifestReceipt"
+    display_name: display_name ?? entity_id
+    version: version
+    category: category
+    capability_count: len(capabilities)
+    trust_level: trust_level
+    heartbeat_interval_s: heartbeat_interval_s
+    timestamp: now()
+  }
+}
