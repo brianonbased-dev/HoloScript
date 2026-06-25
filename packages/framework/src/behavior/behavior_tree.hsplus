@@ -1,0 +1,34 @@
+// @behavior_tree — Lightweight tick-based behavior tree for NPC AI decision-making.
+//
+// Native .hsplus surface for framework/behavior/BehaviorTree.ts.
+//
+// Node types: Sequence (AND), Selector (OR), Inverter, Repeater, Action, Condition
+// BehaviorTree.tick(entity, deltaTime) → BTStatus: success | failure | running
+// Subtree mounting; conditional abort; debug trace mode
+
+@trait behavior_tree {
+  capability_tags: ["behavior_tree", "npc_ai", "tick_based", "bt_nodes", "sequence_selector", "framework"]
+
+  @on_spawn => {
+    emit("behavior_tree_ready", {})
+  }
+
+  @on_create(id, root_node, entity) => {
+    tree = create_behavior_tree(id, root_node, entity)
+    emit("bt_created", { id })
+    return tree
+  }
+
+  @on_tick(tree_id, delta_time) => {
+    status = tick_behavior_tree(tree_id, delta_time)
+    emit("bt_ticked", { tree_id, status })
+    return status
+  }
+
+  @receipt behavior_tree_config {
+    type: "BehaviorTreeReceipt"
+    node_types: ["Sequence (AND)", "Selector (OR)", "Inverter", "Repeater", "Action", "Condition"]
+    statuses: ["success", "failure", "running"]
+    timestamp: now()
+  }
+}

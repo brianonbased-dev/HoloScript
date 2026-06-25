@@ -1,0 +1,32 @@
+// @state_machine — FSM for game logic, NPC AI, and UI state management.
+//
+// Native .hsplus surface for framework/behavior/StateMachine.ts.
+//
+// Named states: { onEnter?, onUpdate?, onExit? }
+// Guarded transitions: condition must be true to fire
+// Transition actions: side effects on state change
+// StateMachine.tick(deltaTime) — advance current state's onUpdate
+
+@trait state_machine {
+  capability_tags: ["state_machine", "fsm", "guarded_transitions", "npc_ai", "game_logic", "framework"]
+
+  @on_spawn => {
+    emit("state_machine_ready", {})
+  }
+
+  @on_tick(delta_time) => {
+    tick_state_machine(delta_time)
+  }
+
+  @on_trigger(transition_id) => {
+    result = trigger_transition(transition_id)
+    if result.transitioned { emit("state_changed", { from: result.from, to: result.to }) }
+    return result
+  }
+
+  @receipt state_machine_config {
+    type: "StateMachineReceipt"
+    features: ["named states with enter/update/exit", "guarded transitions", "transition actions"]
+    timestamp: now()
+  }
+}
