@@ -1,0 +1,22 @@
+@trait {
+  name: "@robot_arm",
+  category: "world",
+  description: "Articulated robot arm joint chain controller. Drives a 6-DOF (or fewer) robot arm to a target end-effector pose via inverse kinematics, with joint limit enforcement, workspace clamping, and smooth trajectory interpolation for pick-and-place or welding simulation. Authored from RobotArmTrait.ts.",
+  props: {
+    joint_entity_ids: list<string> = [],
+    end_effector_entity_id: string = "",
+    target_entity_id: string = "",
+    max_reach_m: number = 1.0,
+    speed_deg_s: number = 60,
+    ik_iterations: number = 10,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "robot_arm_attached",
+    detached: "robot_arm_detached",
+    on_reach: "robot_arm_reach",
+    on_grasp: "robot_arm_grasp",
+    set_target: "robot_arm_trigger_set_target"
+  },
+  behaviors: ["@mount_point", "@kinematic_body", "@route_planner"]
+}

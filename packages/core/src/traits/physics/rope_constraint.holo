@@ -1,0 +1,23 @@
+@trait {
+  name: "@rope_constraint",
+  category: "physics",
+  description: "Position-based dynamics rope constraint. Links two entity anchor points with a simulated rope, resolving position constraints iteratively to satisfy length and bend stiffness, rendering the rope as a tube mesh or line, and supporting wind influence and damping. Authored from RopeConstraintTrait.ts.",
+  props: {
+    anchor_a_entity_id: string = "",
+    anchor_b_entity_id: string = "",
+    length_m: number = 5,
+    segments: number = 16,
+    stiffness: number = 0.8,
+    damping: number = 0.05,
+    thickness_m: number = 0.02,
+    wind_factor: number = 0
+  },
+  events: {
+    attached: "rope_constraint_attached",
+    detached: "rope_constraint_detached",
+    on_taut: "rope_constraint_taut",
+    on_slack: "rope_constraint_slack",
+    on_break: "rope_constraint_break"
+  },
+  behaviors: ["@velocity", "@kinematic_body", "@trail_emitter"]
+}

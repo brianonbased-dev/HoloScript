@@ -1,0 +1,24 @@
+@trait {
+  name: "@round_timer",
+  category: "game",
+  description: "Match round countdown/count-up timer with HUD display. Counts down from a configured duration, firing warning events at threshold intervals, ending the round when it reaches zero, and optionally locking player inputs during pre-round and post-round grace periods. Authored from RoundTimerTrait.ts.",
+  props: {
+    duration_s: number = 300,
+    count_up: boolean = false,
+    warning_thresholds_s: list<number> = [60, 30, 10],
+    auto_start: boolean = false,
+    lock_input_during_grace: boolean = true,
+    grace_period_s: number = 3
+  },
+  events: {
+    attached: "round_timer_attached",
+    detached: "round_timer_detached",
+    on_start: "round_timer_start",
+    on_warning: "round_timer_warning",
+    on_end: "round_timer_end",
+    start: "round_timer_trigger_start",
+    stop: "round_timer_trigger_stop",
+    reset: "round_timer_trigger_reset"
+  },
+  behaviors: ["@mission_tracker", "@notification_manager", "@scoreboard"]
+}

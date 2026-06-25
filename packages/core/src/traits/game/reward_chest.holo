@@ -1,0 +1,21 @@
+@trait {
+  name: "@reward_chest",
+  category: "game",
+  description: "Loot chest reward container. Opens on interact, resolves its loot table, spawns or awards items, plays an open animation and particle burst, then transitions to an empty locked state until the respawn timer resets it. Authored from RewardChestTrait.ts.",
+  props: {
+    loot_table_entity_id: string = "",
+    open_animation_id: string = "",
+    particle_url: string = "",
+    respawn_after_s: number = 300,
+    require_key_item_id: string = "",
+    opened: boolean = false
+  },
+  events: {
+    attached: "reward_chest_attached",
+    detached: "reward_chest_detached",
+    on_open: "reward_chest_open",
+    on_respawn: "reward_chest_respawn",
+    interact: "reward_chest_trigger_interact"
+  },
+  behaviors: ["@loot_table", "@collectable", "@proximity_zone"]
+}
