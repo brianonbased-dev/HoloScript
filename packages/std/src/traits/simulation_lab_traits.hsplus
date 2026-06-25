@@ -1,0 +1,34 @@
+// @simulation_lab_traits — @simulation_lab trait definition for hypothesis testing.
+//
+// Native .hsplus surface for std/traits/SimulationLabTraits.ts.
+//
+// Attaches scientific hypothesis testing to any HoloScript composition.
+// Enables parameter sweeps, multi-epoch execution, statistical analysis, exportable results.
+// Composes with all economic/VRR traits for economy stress testing.
+// Results are marketplace-sellable as verified simulation data.
+//
+// SimulationTraitDefinition extends TraitDefinition with:
+//   compiler_hints: { requires_runtime?, thread_safety: main_thread|worker_thread|any,
+//                     performance_budget_ms?, batch_mode? }
+//   composes_with: String[]
+//
+// @simulation_lab params (SimulationLabTraits.ts):
+//   hypothesis (required), epochs, parameter_sweep, metrics, export_format
+
+@trait simulation_lab_traits {
+  capability_tags: ["simulation_lab_traits", "hypothesis_testing", "parameter_sweep", "batch_mode", "std"]
+
+  @on_spawn => {
+    traits = init_simulation_lab_traits()
+    emit("simulation_lab_traits_ready", {})
+  }
+
+  @receipt simulation_lab_traits_config {
+    type: "SimulationLabTraitsReceipt"
+    trait_name: "@simulation_lab"
+    composes_with: ["economic_traits", "vrr_traits"]
+    thread_safety_options: ["main_thread", "worker_thread", "any"]
+    result_usage: "marketplace-sellable verified simulation data"
+    timestamp: now()
+  }
+}

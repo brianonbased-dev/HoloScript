@@ -1,0 +1,27 @@
+// @cn — Tailwind class merge utility (clsx + tailwind-merge).
+//
+// Native .hsplus surface for ui/src/utils/cn.ts.
+//
+// cn(...inputs: ClassValue[]) → String
+//   Merges Tailwind CSS classes via clsx + twMerge.
+//   twMerge resolves conflicting Tailwind utilities (last wins).
+
+@trait cn {
+  capability_tags: ["cn", "tailwind_merge", "clsx", "class_name_util", "ui"]
+
+  @on_spawn => {
+    util = init_cn()
+    emit("cn_ready", {})
+  }
+
+  @on_merge(inputs) => {
+    return util.merge(inputs)
+  }
+
+  @receipt cn_config {
+    type: "CnReceipt"
+    deps: ["clsx", "tailwind-merge"]
+    behavior: "conflicting Tailwind utilities: last wins (twMerge)"
+    timestamp: now()
+  }
+}

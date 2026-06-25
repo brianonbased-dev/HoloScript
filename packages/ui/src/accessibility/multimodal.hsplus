@@ -1,0 +1,47 @@
+// @multimodal — WCAG 2.1 cross-modal accessibility checker (visual↔language↔action).
+//
+// Native .hsplus surface for ui/src/accessibility/multimodal.ts.
+//
+// Validates visual ↔ language ↔ action coherence for UI components.
+// All three modalities must consistently represent the same semantic intent.
+//
+// VisualDescriptor (multimodal.ts):
+//   { alt_text, has_adequate_contrast (WCAG AA: 4.5:1 normal / 3:1 large),
+//     is_fully_hidden, has_focus_indicator }
+//
+// LanguageDescriptor:
+//   { accessible_name (aria-label/aria-labelledby/innerText),
+//     accessible_description (aria-describedby), role, lang }
+//
+// ActionDescriptor:
+//   { is_keyboard_focusable, is_screen_reader_accessible, has_sufficient_touch_target (44×44 px),
+//     interaction_type: "button"|"link"|"input"|"composite"|"none" }
+//
+// IssueSeverity: critical | serious | moderate | minor
+// AccessibilityIssue { wcag_criterion (e.g. "1.1.1"), severity, message, modality }
+//
+// checkCrossModalAlignment(visual, language, action) → AccessibilityIssue[]
+
+@trait multimodal {
+  capability_tags: ["multimodal", "wcag_21", "accessibility", "cross_modal_alignment", "ui"]
+
+  @on_spawn => {
+    checker = init_multimodal_checker()
+    emit("multimodal_ready", {})
+  }
+
+  @on_check(visual, language, action) => {
+    issues = checker.check_cross_modal_alignment(visual, language, action)
+    emit("accessibility_checked", { issue_count: issues.length })
+    return issues
+  }
+
+  @receipt multimodal_config {
+    type: "MultimodalReceipt"
+    standard: "WCAG 2.1"
+    modalities: ["visual", "language", "action"]
+    severity: ["critical", "serious", "moderate", "minor"]
+    touch_target_min: "44×44 CSS px (WCAG 2.5.5)"
+    timestamp: now()
+  }
+}

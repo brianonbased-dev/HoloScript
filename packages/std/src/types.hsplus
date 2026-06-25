@@ -1,0 +1,25 @@
+// @std_types — Core spatial and graphical primitive types for HoloScript std.
+//
+// Native .hsplus surface for std/types.ts.
+//
+// Fundamental types used throughout the language:
+//   Vec2 { x, y }
+//   Vec3 { x, y, z }     — the fundamental spatial type
+//   Vec4 { x, y, z, w }
+//   Vec2Array / Vec3Array / Vec4Array — tuple representations
+//   TraitDefinition { name, description, params, ... } — base for all trait definitions
+
+@trait std_types {
+  capability_tags: ["std_types", "vec2", "vec3", "vec4", "trait_definition", "std"]
+
+  @on_spawn => {
+    types = init_std_types()
+    emit("std_types_ready", {})
+  }
+
+  @receipt std_types_config {
+    type: "StdTypesReceipt"
+    types: ["Vec2", "Vec3", "Vec4", "Vec2Array", "Vec3Array", "Vec4Array", "TraitDefinition"]
+    timestamp: now()
+  }
+}
