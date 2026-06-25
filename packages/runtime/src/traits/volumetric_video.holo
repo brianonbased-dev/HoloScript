@@ -1,0 +1,20 @@
+@trait {
+  name: "@volumetric_video",
+  category: "render",
+  description: "Volumetric video playback — renders a 4D video stream on a world-space plane. src is the volumetric video URL. width/height are the display dimensions in meters (default: 4×3m). loop/autoplay control playback. Shows a placeholder plane if src is not provided. Port of RenderPassTraits.ts handler 'volumetric_video'.",
+  props: {
+    src: string = "",
+    width: number = 4,
+    height: number = 3,
+    loop: boolean = true,
+    autoplay: boolean = true
+  },
+  events: {
+    on_play: "volumetric_video:play",
+    on_pause: "volumetric_video:pause",
+    on_end: "volumetric_video:end",
+    play: "volumetric_video.play",
+    pause: "volumetric_video.pause"
+  },
+  behaviors: ["@volumetric"]
+}

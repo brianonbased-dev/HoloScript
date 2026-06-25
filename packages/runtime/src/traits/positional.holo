@@ -1,0 +1,26 @@
+@trait {
+  name: "@positional",
+  category: "audio",
+  description: "Positional mono audio source with Web Audio PannerNode (distance-based rolloff). src is the audio URL. volume is the gain (default: 1.0). ref_distance is the distance where volume is 1x (default: 1m). max_distance is the distance where volume is 0 (default: 100m). rolloff: inverse (default), linear, or exponential. loop enables looping (default: true). autoplay starts immediately on attach (default: false). cone_inner/outer/gain define the directional cone (default: 360° — omni). Port of SpatialAudioTraits.ts handler 'positional'.",
+  props: {
+    src: string = "",
+    volume: number = 1.0,
+    ref_distance: number = 1,
+    max_distance: number = 100,
+    rolloff: enum("inverse" | "linear" | "exponential") = "inverse",
+    loop: boolean = true,
+    autoplay: boolean = false,
+    cone_inner: number = 360,
+    cone_outer: number = 360,
+    cone_gain: number = 0
+  },
+  events: {
+    on_play: "positional:play",
+    on_pause: "positional:pause",
+    on_end: "positional:end",
+    play: "positional.play",
+    pause: "positional.pause",
+    stop: "positional.stop"
+  },
+  behaviors: ["@audio_occlusion", "@head_tracked_audio"]
+}

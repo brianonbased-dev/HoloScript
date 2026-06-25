@@ -1,0 +1,16 @@
+@trait {
+  name: "@head_tracked_audio",
+  category: "audio",
+  description: "Head-tracked audio listener — continuously updates the Web Audio listener orientation from the XR head pose or camera rotation. enabled activates tracking (default: true). update_rate is the listener update frequency in Hz (default: 60). xr_session_type is the target XR session type for pose queries (default: immersive-vr). Port of SpatialAudioTraits.ts handler 'head_tracked_audio'.",
+  props: {
+    enabled: boolean = true,
+    update_rate: number = 60,
+    xr_session_type: string = "immersive-vr"
+  },
+  events: {
+    on_pose_updated: "head_tracked_audio:pose_updated",
+    enable: "head_tracked_audio.enable",
+    disable: "head_tracked_audio.disable"
+  },
+  behaviors: ["@hrtf", "@ambisonics"]
+}

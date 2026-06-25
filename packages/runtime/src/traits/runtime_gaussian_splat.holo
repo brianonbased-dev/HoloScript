@@ -1,0 +1,15 @@
+@trait {
+  name: "@gaussian_splat",
+  category: "render",
+  description: "Gaussian splat scene render pass adapter (THREE.js runtime). src is the .ply/.splat file URL. scale is the splat display scale (default: 1.0). Shows a bounding-box placeholder if src is not provided. NOTE: this is the render-pass runtime adapter; @gaussian_train handles training-side configuration. Port of RenderPassTraits.ts handler 'gaussian_splat' (runtime layer).",
+  props: {
+    src: string = "",
+    scale: number = 1.0
+  },
+  events: {
+    on_loaded: "gaussian_splat:loaded",
+    on_error: "gaussian_splat:error",
+    reload: "gaussian_splat.reload"
+  },
+  behaviors: ["@gaussian_train"]
+}

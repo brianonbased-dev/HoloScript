@@ -1,0 +1,20 @@
+@trait {
+  name: "@ambisonics",
+  category: "audio",
+  description: "First-order ambisonics (FoA B-format 4-channel) spatial audio decoder. src is the 4-channel ambisonic audio file URL. volume is the output gain (default: 1.0). order is the ambisonic order (default: 1 — FoA). loop/autoplay control playback. Decodes W/X/Y/Z channels and head-locks rotation via the Web Audio listener. Port of SpatialAudioTraits.ts handler 'ambisonics'.",
+  props: {
+    src: string = "",
+    volume: number = 1.0,
+    order: number = 1,
+    loop: boolean = true,
+    autoplay: boolean = false
+  },
+  events: {
+    on_play: "ambisonics:play",
+    on_pause: "ambisonics:pause",
+    play: "ambisonics.play",
+    pause: "ambisonics.pause",
+    stop: "ambisonics.stop"
+  },
+  behaviors: ["@hrtf", "@head_tracked_audio"]
+}

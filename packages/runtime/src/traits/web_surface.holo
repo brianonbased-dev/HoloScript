@@ -1,0 +1,18 @@
+@trait {
+  name: "@web_surface",
+  category: "render",
+  description: "Live web page surface — renders a URL into a canvas texture on a world-space plane. url is the web page URL to render (default: empty). width/height are the display dimensions in meters (default: 4×3m). resolution is the canvas texture resolution in pixels (default: 1024). Port of RenderPassTraits.ts handler 'web_surface'.",
+  props: {
+    url: string = "",
+    width: number = 4,
+    height: number = 3,
+    resolution: number = 1024
+  },
+  events: {
+    on_loaded: "web_surface:loaded",
+    on_error: "web_surface:error",
+    navigate: "web_surface.navigate",
+    reload: "web_surface.reload"
+  },
+  behaviors: ["@spatial_panel"]
+}

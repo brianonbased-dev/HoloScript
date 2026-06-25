@@ -1,0 +1,21 @@
+@trait {
+  name: "@hrtf",
+  category: "audio",
+  description: "Binaural HRTF spatialized audio source via Web Audio PannerNode in HRTF mode. src is the audio URL. volume is the gain (default: 1.0). ref_distance/max_distance control attenuation (same as positional). loop/autoplay control playback. Uses the browser's built-in HRTF kernel for ear-matched binaural rendering. Port of SpatialAudioTraits.ts handler 'hrtf'.",
+  props: {
+    src: string = "",
+    volume: number = 1.0,
+    ref_distance: number = 1,
+    max_distance: number = 100,
+    loop: boolean = true,
+    autoplay: boolean = false
+  },
+  events: {
+    on_play: "hrtf:play",
+    on_pause: "hrtf:pause",
+    play: "hrtf.play",
+    pause: "hrtf.pause",
+    stop: "hrtf.stop"
+  },
+  behaviors: ["@positional", "@head_tracked_audio"]
+}

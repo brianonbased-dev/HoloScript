@@ -1,0 +1,21 @@
+@trait {
+  name: "@shareplay",
+  category: "xr",
+  description: "SharePlay / Group Activities session coordinator for visionOS / Apple XR. session_id is the active SharePlay session ID (default: empty). max_peers is the maximum participants (default: 8). channel is the HoloMesh coordination channel (default: shareplay). deep_link is the Universal Link for inviting peers. auto_join automatically joins an active session on discovery (default: false). Port of XRSensingTraits.ts handler 'shareplay'.",
+  props: {
+    session_id: string = "",
+    max_peers: number = 8,
+    channel: string = "shareplay",
+    deep_link: string = "",
+    auto_join: boolean = false
+  },
+  events: {
+    on_joined: "shareplay:joined",
+    on_left: "shareplay:left",
+    on_peer_joined: "shareplay:peer_joined",
+    on_peer_left: "shareplay:peer_left",
+    join: "shareplay.join",
+    leave: "shareplay.leave"
+  },
+  behaviors: ["@co_located", "@shared_anchor", "@spatial_voice"]
+}

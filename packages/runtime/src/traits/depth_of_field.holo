@@ -1,0 +1,15 @@
+@trait {
+  name: "@depth_of_field",
+  category: "render",
+  description: "Depth-of-field post-process (bokeh). focus_distance is the distance to the focus plane in meters (default: 10). focal_length is the camera focal length in meters (default: 0.02). bokeh_scale is the bokeh blur strength (default: 2.0). Port of RenderPassTraits.ts handler 'depth_of_field'.",
+  props: {
+    focus_distance: number = 10,
+    focal_length: number = 0.02,
+    bokeh_scale: number = 2.0
+  },
+  events: {
+    on_applied: "depth_of_field:applied",
+    set_focus: "depth_of_field.set_focus"
+  },
+  behaviors: ["@advanced_lighting"]
+}

@@ -1,0 +1,14 @@
+@trait {
+  name: "@chromatic_aberration",
+  category: "render",
+  description: "Chromatic aberration post-process — separates RGB channels at the image edges. offset is the color channel separation distance (default: 0.002). radial_modulation applies stronger separation toward the screen edges (default: false). Port of RenderPassTraits.ts handler 'chromatic_aberration'.",
+  props: {
+    offset: number = 0.002,
+    radial_modulation: boolean = false
+  },
+  events: {
+    on_applied: "chromatic_aberration:applied",
+    set_offset: "chromatic_aberration.set_offset"
+  },
+  behaviors: []
+}

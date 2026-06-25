@@ -1,0 +1,20 @@
+@trait {
+  name: "@spatial_voice",
+  category: "audio",
+  description: "Spatialized voice-chat channel — attaches the peer's microphone stream to a PannerNode that fades with distance. peer_id is the mesh peer wallet/ID to receive audio from (default: empty). near_distance is the distance at which volume is max_volume (default: 2m). far_distance is the silent cutoff (default: 20m). min_volume/max_volume control the gain range. muted silences this peer locally (default: false). Port of SpatialAudioTraits.ts handler 'spatial_voice'.",
+  props: {
+    peer_id: string = "",
+    near_distance: number = 2,
+    far_distance: number = 20,
+    min_volume: number = 0.05,
+    max_volume: number = 1.0,
+    muted: boolean = false
+  },
+  events: {
+    on_speaking: "spatial_voice:speaking",
+    on_silent: "spatial_voice:silent",
+    mute: "spatial_voice.mute",
+    unmute: "spatial_voice.unmute"
+  },
+  behaviors: ["@positional", "@audio_occlusion"]
+}

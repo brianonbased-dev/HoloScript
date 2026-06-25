@@ -1,0 +1,18 @@
+@trait {
+  name: "@shared_anchor",
+  category: "xr",
+  description: "Shared XR spatial anchor — broadcasts and receives persistent anchor poses across multiple devices for co-located AR. anchor_id is the shared anchor identifier. role is this device's participation role (creator or consumer; default: creator). channel is the HoloMesh topic for anchor exchange (default: shared_anchors). broadcast_rate is how often to re-broadcast in Hz (default: 1). Port of XRSensingTraits.ts handler 'shared_anchor'.",
+  props: {
+    anchor_id: string = "",
+    role: enum("creator" | "consumer") = "creator",
+    channel: string = "shared_anchors",
+    broadcast_rate: number = 1
+  },
+  events: {
+    on_shared: "shared_anchor:shared",
+    on_received: "shared_anchor:received",
+    on_aligned: "shared_anchor:aligned",
+    share: "shared_anchor.share"
+  },
+  behaviors: ["@persistent_anchor", "@co_located"]
+}

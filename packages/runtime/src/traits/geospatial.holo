@@ -1,0 +1,18 @@
+@trait {
+  name: "@geospatial",
+  category: "xr",
+  description: "Geospatial AR anchor — places this node at a real-world GPS coordinate in the XR scene. latitude/longitude/altitude define the WGS-84 position (defaults: 0,0,0). accuracy is the GPS accuracy in meters (default: 10m). auto_position automatically moves the object to the resolved world position when a GPS fix is acquired (default: true). Port of XRSensingTraits.ts handler 'geospatial'.",
+  props: {
+    latitude: number = 0,
+    longitude: number = 0,
+    altitude: number = 0,
+    accuracy: number = 10,
+    auto_position: boolean = true
+  },
+  events: {
+    on_fixed: "geospatial:fixed",
+    on_lost: "geospatial:lost",
+    on_drift: "geospatial:drift"
+  },
+  behaviors: ["@persistent_anchor"]
+}

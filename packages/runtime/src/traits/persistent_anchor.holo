@@ -1,0 +1,17 @@
+@trait {
+  name: "@persistent_anchor",
+  category: "xr",
+  description: "XR persistent spatial anchor — saves and restores a world-space pose that survives across XR sessions. anchor_id is the saved anchor identifier (default: empty — creates a new anchor on first run). auto_attach automatically repositions the object to the saved anchor pose on session start (default: true). Port of XRSensingTraits.ts handler 'persistent_anchor'.",
+  props: {
+    anchor_id: string = "",
+    auto_attach: boolean = true
+  },
+  events: {
+    on_saved: "persistent_anchor:saved",
+    on_restored: "persistent_anchor:restored",
+    on_lost: "persistent_anchor:lost",
+    save: "persistent_anchor.save",
+    restore: "persistent_anchor.restore"
+  },
+  behaviors: ["@shared_anchor", "@geospatial"]
+}

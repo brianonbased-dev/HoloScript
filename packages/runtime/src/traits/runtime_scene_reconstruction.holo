@@ -1,0 +1,15 @@
+@trait {
+  name: "@scene_reconstruction",
+  category: "render",
+  description: "Live scene reconstruction renderer (runtime layer) — periodically rebuilds a mesh from XR plane/mesh detection data. resolution is the reconstruction voxel resolution (default: 128). update_rate is the rebuild frequency in Hz (default: 5). NOTE: forensics-plugin has its own @scene_reconstruction for forensic spatial analysis; this is the runtime render-pass adapter. Port of RenderPassTraits.ts handler 'scene_reconstruction'.",
+  props: {
+    resolution: number = 128,
+    update_rate: number = 5
+  },
+  events: {
+    on_rebuilt: "scene_reconstruction:rebuilt",
+    on_ready: "scene_reconstruction:ready",
+    rebuild: "scene_reconstruction.rebuild"
+  },
+  behaviors: ["@mesh_detection", "@plane_detection"]
+}

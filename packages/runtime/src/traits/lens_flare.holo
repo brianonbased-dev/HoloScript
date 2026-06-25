@@ -1,0 +1,15 @@
+@trait {
+  name: "@lens_flare",
+  category: "render",
+  description: "Lens flare sprite at this node's world position. intensity is the flare brightness (default: 1.0). size is the sprite world-space size (default: 1.0). color is the flare tint (default: 0xffffff — white). Port of RenderPassTraits.ts handler 'lens_flare'.",
+  props: {
+    intensity: number = 1.0,
+    size: number = 1.0,
+    color: number = 16777215
+  },
+  events: {
+    on_applied: "lens_flare:applied",
+    set_intensity: "lens_flare.set_intensity"
+  },
+  behaviors: ["@god_rays", "@advanced_lighting"]
+}

@@ -1,0 +1,16 @@
+@trait {
+  name: "@point_cloud",
+  category: "render",
+  description: "Point cloud renderer. src is the point cloud file URL (LAS, PLY, XYZ). point_size is the rendered point diameter (default: 0.05). color is the fallback point color when the file has no per-point color (default: 0xffffff). points is an optional inline flat array of [x,y,z] values for small in-memory clouds. Port of RenderPassTraits.ts handler 'point_cloud'.",
+  props: {
+    src: string = "",
+    point_size: number = 0.05,
+    color: number = 16777215
+  },
+  events: {
+    on_loaded: "point_cloud:loaded",
+    on_error: "point_cloud:error",
+    reload: "point_cloud.reload"
+  },
+  behaviors: ["@volumetric", "@scene_reconstruction"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@god_rays",
+  category: "render",
+  description: "Volumetric god rays / light shafts post effect. intensity is the ray brightness (default: 1.0). decay is the falloff per sample (default: 0.97). density is the sample density (default: 0.96). weight is the ray contribution weight (default: 0.4). exposure is the exposure boost (default: 0.2). Attaches a PointLight at the node's world position as the light source. Port of RenderPassTraits.ts handler 'god_rays'.",
+  props: {
+    intensity: number = 1.0,
+    decay: number = 0.97,
+    density: number = 0.96,
+    weight: number = 0.4,
+    exposure: number = 0.2
+  },
+  events: {
+    on_applied: "god_rays:applied",
+    set_intensity: "god_rays.set_intensity"
+  },
+  behaviors: ["@bloom", "@advanced_lighting"]
+}

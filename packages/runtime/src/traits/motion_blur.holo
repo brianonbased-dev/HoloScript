@@ -1,0 +1,14 @@
+@trait {
+  name: "@motion_blur",
+  category: "render",
+  description: "Motion blur post-process. intensity is the blur strength (default: 0.5). samples is the number of velocity samples (default: 8). Port of RenderPassTraits.ts handler 'motion_blur'.",
+  props: {
+    intensity: number = 0.5,
+    samples: number = 8
+  },
+  events: {
+    on_applied: "motion_blur:applied",
+    set_intensity: "motion_blur.set_intensity"
+  },
+  behaviors: []
+}

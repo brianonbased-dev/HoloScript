@@ -1,0 +1,17 @@
+@trait {
+  name: "@plane_detection",
+  category: "xr",
+  description: "XR plane detection runtime adapter (THREE.js / WebXR). snap_to_plane snaps the object to detected plane surfaces (default: false). orientation filters planes by orientation (any, horizontal, vertical; default: any). visualize renders plane outlines for debugging (default: false). hit_test enables XR hit-testing against detected planes (default: true). NOTE: core package also has @plane_detection for ARKit/ARCore-direct; this is the THREE.js runtime layer. Port of XRSensingTraits.ts handler 'plane_detection'.",
+  props: {
+    snap_to_plane: boolean = false,
+    orientation: enum("any" | "horizontal" | "vertical") = "any",
+    visualize: boolean = false,
+    hit_test: boolean = true
+  },
+  events: {
+    on_detected: "plane_detection:detected",
+    on_lost: "plane_detection:lost",
+    on_hit: "plane_detection:hit"
+  },
+  behaviors: ["@persistent_anchor", "@runtime_scene_reconstruction"]
+}

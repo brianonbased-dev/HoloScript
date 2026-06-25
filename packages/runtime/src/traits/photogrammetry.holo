@@ -1,0 +1,16 @@
+@trait {
+  name: "@photogrammetry",
+  category: "render",
+  description: "Photogrammetry mesh renderer. src is the photogrammetry mesh URL (OBJ, GLB, PLY). cast_shadow controls whether the mesh casts shadows (default: true). receive_shadow controls shadow reception (default: true). Port of RenderPassTraits.ts handler 'photogrammetry'.",
+  props: {
+    src: string = "",
+    cast_shadow: boolean = true,
+    receive_shadow: boolean = true
+  },
+  events: {
+    on_loaded: "photogrammetry:loaded",
+    on_error: "photogrammetry:error",
+    reload: "photogrammetry.reload"
+  },
+  behaviors: ["@point_cloud", "@scene_reconstruction"]
+}

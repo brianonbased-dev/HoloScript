@@ -1,0 +1,15 @@
+@trait {
+  name: "@nerf",
+  category: "render",
+  description: "NeRF render pass adapter (THREE.js runtime). src is the trained NeRF checkpoint URL. steps is the number of ray-march samples (default: 128). Shows a volume placeholder sphere if src is not provided. NOTE: this is the runtime adapter; film3d-volumetrics-plugin @nerf handles the training-side configuration. Port of RenderPassTraits.ts handler 'nerf' (runtime layer).",
+  props: {
+    src: string = "",
+    steps: number = 128
+  },
+  events: {
+    on_loaded: "nerf:loaded",
+    on_error: "nerf:error",
+    reload: "nerf.reload"
+  },
+  behaviors: ["@volumetric"]
+}

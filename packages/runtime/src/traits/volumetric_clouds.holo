@@ -1,0 +1,16 @@
+@trait {
+  name: "@volumetric_clouds",
+  category: "render",
+  description: "Procedural volumetric cloud layer. coverage is the sky coverage fraction [0, 1] (default: 0.5). density controls cloud opacity (default: 0.8). altitude is the cloud layer height in meters (default: 50m). speed is the wind drift speed (default: 1.0). Cloud geometry is procedurally generated from merged billboard spheres. Port of RenderPassTraits.ts handler 'volumetric_clouds'.",
+  props: {
+    coverage: number = 0.5,
+    density: number = 0.8,
+    altitude: number = 50,
+    speed: number = 1.0
+  },
+  events: {
+    on_applied: "volumetric_clouds:applied",
+    set_coverage: "volumetric_clouds.set_coverage"
+  },
+  behaviors: ["@time_of_day", "@advanced_lighting"]
+}

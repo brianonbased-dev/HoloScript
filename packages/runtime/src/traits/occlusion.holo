@@ -1,0 +1,15 @@
+@trait {
+  name: "@occlusion",
+  category: "xr",
+  description: "XR depth-based occlusion — hides virtual objects behind real-world geometry using the XR device depth buffer. mode: auto (default — uses device capability), forced, or disabled. depth_near/depth_far set the depth test range in meters (default: 0.1–100m). Port of XRSensingTraits.ts handler 'occlusion'.",
+  props: {
+    mode: enum("auto" | "forced" | "disabled") = "auto",
+    depth_near: number = 0.1,
+    depth_far: number = 100
+  },
+  events: {
+    on_occluded: "occlusion:occluded",
+    on_visible: "occlusion:visible"
+  },
+  behaviors: ["@mesh_detection", "@runtime_plane_detection"]
+}

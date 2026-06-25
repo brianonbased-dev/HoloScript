@@ -1,0 +1,16 @@
+@trait {
+  name: "@co_located",
+  category: "xr",
+  description: "Co-location alignment verifier — confirms that multiple XR devices are physically co-located by comparing shared anchor offsets within a tolerance threshold. channel is the HoloMesh coordination topic (default: co_location). confirm_frames is the number of consecutive in-tolerance frames required to confirm co-location (default: 10). max_offset_m is the position tolerance in meters (default: 0.05m). Port of XRSensingTraits.ts handler 'co_located'.",
+  props: {
+    channel: string = "co_location",
+    confirm_frames: number = 10,
+    max_offset_m: number = 0.05
+  },
+  events: {
+    on_confirmed: "co_located:confirmed",
+    on_drifted: "co_located:drifted",
+    verify: "co_located.verify"
+  },
+  behaviors: ["@shared_anchor"]
+}

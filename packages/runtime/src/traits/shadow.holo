@@ -1,0 +1,14 @@
+@trait {
+  name: "@shadow",
+  category: "render",
+  description: "Shadow map configuration for this node and its mesh children. cast enables shadow casting (default: true). receive enables shadow receiving (default: true). map_size is the shadow map resolution in pixels (default: 1024). Port of RenderPassTraits.ts handler 'shadow'.",
+  props: {
+    cast: boolean = true,
+    receive: boolean = true,
+    map_size: number = 1024
+  },
+  events: {
+    on_applied: "shadow:applied"
+  },
+  behaviors: ["@advanced_lighting", "@bloom"]
+}

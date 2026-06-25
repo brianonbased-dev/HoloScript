@@ -1,0 +1,16 @@
+@trait {
+  name: "@bloom",
+  category: "render",
+  description: "Post-processing bloom effect. intensity is the bloom strength (default: 1.0). luminance_threshold is the minimum luminance to bloom (default: 0.1). luminance_smoothing is the soft-knee smoothing (default: 0.025). radius is the bloom spread radius (default: 0.4). Marks the object as an emissive contributor so the bloom pass picks it up. Port of RenderPassTraits.ts handler 'bloom'.",
+  props: {
+    intensity: number = 1.0,
+    luminance_threshold: number = 0.1,
+    luminance_smoothing: number = 0.025,
+    radius: number = 0.4
+  },
+  events: {
+    on_applied: "bloom:applied",
+    set_intensity: "bloom.set_intensity"
+  },
+  behaviors: ["@god_rays", "@advanced_lighting"]
+}

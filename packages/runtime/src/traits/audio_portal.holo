@@ -1,0 +1,16 @@
+@trait {
+  name: "@audio_portal",
+  category: "audio",
+  description: "Audio portal — bridges reverb zones across geometry (e.g. a doorway between a dry room and a wet room). partner_id is the ID of the paired portal on the other side (default: empty). blend_distance is the transition zone width in meters (default: 3m). max_distance is the maximum portal carry distance (default: 0.5m). gain is the portal output gain (default: 0.8). Port of SpatialAudioTraits.ts handler 'audio_portal'.",
+  props: {
+    partner_id: string = "",
+    blend_distance: number = 3,
+    max_distance: number = 0.5,
+    gain: number = 0.8
+  },
+  events: {
+    on_entered: "audio_portal:entered",
+    on_exited: "audio_portal:exited"
+  },
+  behaviors: ["@audio_occlusion"]
+}

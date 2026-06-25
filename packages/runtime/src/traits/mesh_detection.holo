@@ -1,0 +1,15 @@
+@trait {
+  name: "@mesh_detection",
+  category: "xr",
+  description: "XR environment mesh detection — builds a scene-mesh representation from the XR device's environment understanding. max_meshes is the maximum number of environment meshes tracked (default: 64). visualize renders the detected meshes as wireframes for debugging (default: false). Port of XRSensingTraits.ts handler 'mesh_detection'.",
+  props: {
+    max_meshes: number = 64,
+    visualize: boolean = false
+  },
+  events: {
+    on_added: "mesh_detection:added",
+    on_updated: "mesh_detection:updated",
+    on_removed: "mesh_detection:removed"
+  },
+  behaviors: ["@runtime_plane_detection", "@runtime_scene_reconstruction"]
+}

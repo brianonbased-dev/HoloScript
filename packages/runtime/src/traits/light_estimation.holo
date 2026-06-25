@@ -1,0 +1,15 @@
+@trait {
+  name: "@light_estimation",
+  category: "xr",
+  description: "XR ambient light estimation — reads the device's real-world light sensor data and applies it to the scene lighting. apply_ambient updates the ambient light intensity (default: true). apply_directional updates the directional light direction and intensity (default: true). intensity_scale scales the estimated intensity before application (default: 1). Port of XRSensingTraits.ts handler 'light_estimation'.",
+  props: {
+    apply_ambient: boolean = true,
+    apply_directional: boolean = true,
+    intensity_scale: number = 1
+  },
+  events: {
+    on_estimate: "light_estimation:estimate",
+    on_unavailable: "light_estimation:unavailable"
+  },
+  behaviors: ["@advanced_lighting", "@time_of_day"]
+}

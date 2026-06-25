@@ -1,0 +1,15 @@
+@trait {
+  name: "@ambient_occlusion",
+  category: "render",
+  description: "Screen-space ambient occlusion (SSAO) post-process. intensity is the AO darkness strength (default: 1.0). radius is the SSAO sample hemisphere radius in meters (default: 0.5). bias is the depth bias to avoid self-occlusion artifacts (default: 0.025). Port of RenderPassTraits.ts handler 'ambient_occlusion'.",
+  props: {
+    intensity: number = 1.0,
+    radius: number = 0.5,
+    bias: number = 0.025
+  },
+  events: {
+    on_applied: "ambient_occlusion:applied",
+    set_intensity: "ambient_occlusion.set_intensity"
+  },
+  behaviors: ["@shadow"]
+}

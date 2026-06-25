@@ -1,0 +1,18 @@
+@trait {
+  name: "@audio_occlusion",
+  category: "audio",
+  description: "Acoustic occlusion — attenuates volume and applies low-pass filter when geometry occludes the audio source. occlusion_factor is the current occlusion amount [0, 1] (default: 0 — fully open). max_attenuation is the maximum volume reduction in dB (default: -24 dB). cutoff_min/max is the LPF cutoff range in Hz (default: 400–20000 Hz). update_interval is the occlusion recalculation period in seconds (default: 0.1s). Port of SpatialAudioTraits.ts handler 'audio_occlusion'.",
+  props: {
+    occlusion_factor: number = 0,
+    max_attenuation: number = -24,
+    cutoff_min: number = 400,
+    cutoff_max: number = 20000,
+    update_interval: number = 0.1
+  },
+  events: {
+    on_occluded: "audio_occlusion:occluded",
+    on_cleared: "audio_occlusion:cleared",
+    set_occlusion: "audio_occlusion.set_occlusion"
+  },
+  behaviors: ["@positional", "@audio_portal"]
+}
