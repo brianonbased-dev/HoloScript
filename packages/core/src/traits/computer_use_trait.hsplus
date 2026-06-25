@@ -1,0 +1,21 @@
+// @computer_use_trait — Computer use: agent desktop automation via screenshot, click, type, scroll.
+//
+// Native .hsplus surface for core/traits/ComputerUseTrait.ts.
+
+@trait computer_use_trait {
+  capability_tags: ["computer_use", "desktop_automation", "screenshot_click_type", "agent_os", "core"]
+
+  @on_spawn => {
+    emit("computer_use_ready", {})
+  }
+
+  @on_action(action_type, params) => {
+    result = execute_computer_use(action_type, params)
+    return result
+  }
+
+  @receipt computer_use_trait_config {
+    type: "ComputerUseTraitReceipt"
+    timestamp: now()
+  }
+}

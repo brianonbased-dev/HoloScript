@@ -1,0 +1,21 @@
+// @co_located_trait — Co-location awareness: detects and tracks entities sharing the same physical space.
+//
+// Native .hsplus surface for core/traits/CoLocatedTrait.ts.
+
+@trait co_located_trait {
+  capability_tags: ["co_located", "physical_space_sharing", "colocation_detect", "mixed_reality", "core"]
+
+  @on_spawn(space_id) => {
+    init_co_location(space_id)
+    emit("co_located_ready", {})
+  }
+
+  @on_query => {
+    return get_co_located_entities()
+  }
+
+  @receipt co_located_trait_config {
+    type: "CoLocatedTraitReceipt"
+    timestamp: now()
+  }
+}

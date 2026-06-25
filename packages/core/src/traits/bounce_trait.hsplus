@@ -1,0 +1,22 @@
+// @bounce_trait — Bounce physics: restitution coefficient, bounce surface material, energy loss.
+//
+// Native .hsplus surface for core/traits/BounceTrait.ts.
+
+@trait bounce_trait {
+  capability_tags: ["bounce", "restitution", "surface_material", "energy_loss", "core"]
+
+  @on_spawn(restitution) => {
+    init_bounce(restitution)
+    emit("bounce_ready", {})
+  }
+
+  @on_impact(velocity, normal) => {
+    result = apply_bounce(velocity, normal)
+    return result
+  }
+
+  @receipt bounce_trait_config {
+    type: "BounceTraitReceipt"
+    timestamp: now()
+  }
+}

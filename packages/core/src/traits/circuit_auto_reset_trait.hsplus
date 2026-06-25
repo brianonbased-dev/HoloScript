@@ -1,0 +1,21 @@
+// @circuit_auto_reset_trait — Auto-resets open circuit breaker after timeout window.
+//
+// Native .hsplus surface for core/traits/CircuitAutoResetTrait.ts.
+
+@trait circuit_auto_reset_trait {
+  capability_tags: ["circuit_auto_reset", "circuit_breaker", "timeout_reset", "half_open", "core"]
+
+  @on_spawn(reset_after_ms) => {
+    init_circuit_auto_reset(reset_after_ms)
+    emit("circuit_auto_reset_ready", {})
+  }
+
+  @on_tick => {
+    check_and_reset_circuit()
+  }
+
+  @receipt circuit_auto_reset_trait_config {
+    type: "CircuitAutoResetTraitReceipt"
+    timestamp: now()
+  }
+}

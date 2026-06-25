@@ -1,0 +1,21 @@
+// @compute_trait — General compute: abstract CPU/GPU compute dispatch with result receipt.
+//
+// Native .hsplus surface for core/traits/ComputeTrait.ts.
+
+@trait compute_trait {
+  capability_tags: ["compute", "cpu_gpu_dispatch", "compute_result", "abstract_compute", "core"]
+
+  @on_spawn => {
+    emit("compute_trait_ready", {})
+  }
+
+  @on_dispatch(task) => {
+    result = dispatch_compute_task(task)
+    return result
+  }
+
+  @receipt compute_trait_config {
+    type: "ComputeTraitReceipt"
+    timestamp: now()
+  }
+}

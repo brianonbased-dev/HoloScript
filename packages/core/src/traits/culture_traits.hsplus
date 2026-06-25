@@ -1,0 +1,21 @@
+// @culture_traits — Cultural trait set: language pack, social norms, aesthetic preferences per culture.
+//
+// Native .hsplus surface for core/traits/CultureTraits.ts.
+
+@trait culture_traits {
+  capability_tags: ["culture_traits", "language_pack", "social_norms", "aesthetic_preference", "core"]
+
+  @on_spawn(culture_id) => {
+    init_culture_traits(culture_id)
+    emit("culture_traits_ready", { culture_id })
+  }
+
+  @on_adapt(context) => {
+    return adapt_culture_to_context(context)
+  }
+
+  @receipt culture_traits_config {
+    type: "CultureTraitsReceipt"
+    timestamp: now()
+  }
+}

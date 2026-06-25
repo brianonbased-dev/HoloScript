@@ -1,0 +1,23 @@
+// @compute_shader_trait — WebGPU compute shader: dispatch, buffer binding, barrier synchronization.
+//
+// Native .hsplus surface for core/traits/ComputeShaderTrait.ts.
+
+@trait compute_shader_trait {
+  capability_tags: ["compute_shader", "webgpu", "dispatch", "buffer_binding", "core"]
+
+  @on_spawn(shader_source) => {
+    init_compute_shader(shader_source)
+    emit("compute_shader_ready", {})
+  }
+
+  @on_dispatch(x, y, z) => {
+    dispatch_compute_shader(x, y, z)
+    emit("compute_dispatched", {})
+  }
+
+  @receipt compute_shader_trait_config {
+    type: "ComputeShaderTraitReceipt"
+    backend: "WebGPU"
+    timestamp: now()
+  }
+}

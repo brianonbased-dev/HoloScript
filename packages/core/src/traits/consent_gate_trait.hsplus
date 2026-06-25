@@ -1,0 +1,23 @@
+// @consent_gate_trait — Consent gate: blocks action execution until explicit user consent is recorded.
+//
+// Native .hsplus surface for core/traits/ConsentGateTrait.ts.
+
+@trait consent_gate_trait {
+  capability_tags: ["consent_gate", "explicit_consent", "action_block", "user_consent", "core"]
+
+  @on_spawn(scope, purpose) => {
+    init_consent_gate(scope, purpose)
+    emit("consent_gate_ready", {})
+  }
+
+  @on_check(user_id, action) => {
+    consented = check_consent(user_id, action)
+    if !consented { emit("consent_required", { action }) }
+    return consented
+  }
+
+  @receipt consent_gate_trait_config {
+    type: "ConsentGateTraitReceipt"
+    timestamp: now()
+  }
+}

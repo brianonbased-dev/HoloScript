@@ -1,0 +1,21 @@
+// @caveman_action_animation_bridge — Bridges Caveman NPC action events to animation state machine transitions.
+//
+// Native .hsplus surface for core/traits/CavemanActionAnimationBridge.ts.
+
+@trait caveman_action_animation_bridge {
+  capability_tags: ["caveman_animation_bridge", "npc_action_to_animation", "state_machine_bridge", "caveman", "core"]
+
+  @on_spawn(npc_id) => {
+    init_caveman_animation_bridge(npc_id)
+    emit("caveman_animation_bridge_ready", {})
+  }
+
+  @on_action(action_type, params) => {
+    bridge_caveman_action_to_animation(action_type, params)
+  }
+
+  @receipt caveman_action_animation_bridge_config {
+    type: "CavemanActionAnimationBridgeReceipt"
+    timestamp: now()
+  }
+}

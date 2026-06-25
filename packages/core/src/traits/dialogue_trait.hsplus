@@ -1,0 +1,25 @@
+// @dialogue_trait — NPC narrative dialogue: choice trees, branching conversation, voice line trigger.
+//
+// Native .hsplus surface for core/traits/DialogueTrait.ts.
+// (Distinct from DialogTrait which is a UI modal dialog box.)
+
+@trait dialogue_trait {
+  capability_tags: ["dialogue_trait", "npc_conversation", "choice_tree", "branching", "core"]
+
+  @on_spawn(dialogue_id) => {
+    init_dialogue_tree(dialogue_id)
+    emit("dialogue_ready", { dialogue_id })
+  }
+
+  @on_choice(player_id, choice_id) => {
+    next_node = advance_dialogue(player_id, choice_id)
+    emit("dialogue_advanced", { node: next_node })
+    return next_node
+  }
+
+  @receipt dialogue_trait_config {
+    type: "DialogueTraitReceipt"
+    scope: "NPC narrative — distinct from DialogTrait UI modal"
+    timestamp: now()
+  }
+}

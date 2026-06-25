@@ -1,0 +1,22 @@
+// @crowd_sim_trait — Crowd simulation: boids-based steering, flow fields, collision avoidance.
+//
+// Native .hsplus surface for core/traits/CrowdSimTrait.ts.
+
+@trait crowd_sim_trait {
+  capability_tags: ["crowd_sim", "boids", "flow_field", "collision_avoidance", "core"]
+
+  @on_spawn(agent_count, params) => {
+    init_crowd_sim(agent_count, params)
+    emit("crowd_sim_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_crowd_sim(dt)
+  }
+
+  @receipt crowd_sim_trait_config {
+    type: "CrowdSimTraitReceipt"
+    algorithm: "boids + flow fields"
+    timestamp: now()
+  }
+}

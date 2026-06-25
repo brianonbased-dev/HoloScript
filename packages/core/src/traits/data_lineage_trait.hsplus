@@ -1,0 +1,20 @@
+// @data_lineage_trait — Data lineage: records provenance chain for every data transformation.
+//
+// Native .hsplus surface for core/traits/DataLineageTrait.ts.
+
+@trait data_lineage_trait {
+  capability_tags: ["data_lineage", "provenance_chain", "transformation_audit", "lineage_graph", "core"]
+
+  @on_spawn => {
+    emit("data_lineage_ready", {})
+  }
+
+  @on_record(input_ids, output_id, transform) => {
+    record_lineage_step(input_ids, output_id, transform)
+  }
+
+  @receipt data_lineage_trait_config {
+    type: "DataLineageTraitReceipt"
+    timestamp: now()
+  }
+}

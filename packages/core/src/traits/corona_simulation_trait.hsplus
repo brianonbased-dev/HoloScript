@@ -1,0 +1,21 @@
+// @corona_simulation_trait — Solar corona plasma simulation: magnetic field, loop dynamics, emission.
+//
+// Native .hsplus surface for core/traits/CoronaSimulationTrait.ts.
+
+@trait corona_simulation_trait {
+  capability_tags: ["corona_simulation", "solar_plasma", "magnetic_field", "plasma_loop", "core"]
+
+  @on_spawn(params) => {
+    init_corona_simulation(params)
+    emit("corona_simulation_ready", {})
+  }
+
+  @on_tick(dt) => {
+    step_corona_simulation(dt)
+  }
+
+  @receipt corona_simulation_trait_config {
+    type: "CoronaSimulationTraitReceipt"
+    timestamp: now()
+  }
+}

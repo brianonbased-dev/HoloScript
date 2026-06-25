@@ -1,0 +1,23 @@
+// @data_quality_trait — Data quality scoring: completeness, accuracy, freshness, consistency checks.
+//
+// Native .hsplus surface for core/traits/DataQualityTrait.ts.
+
+@trait data_quality_trait {
+  capability_tags: ["data_quality", "completeness", "accuracy", "freshness", "core"]
+
+  @on_spawn(rules) => {
+    init_data_quality(rules)
+    emit("data_quality_ready", {})
+  }
+
+  @on_score(dataset) => {
+    score = score_data_quality(dataset)
+    return score
+  }
+
+  @receipt data_quality_trait_config {
+    type: "DataQualityTraitReceipt"
+    dimensions: ["completeness", "accuracy", "freshness", "consistency"]
+    timestamp: now()
+  }
+}

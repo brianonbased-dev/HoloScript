@@ -1,0 +1,21 @@
+// @character_trait — Character entity: combines skeleton, animation, locomotion, and AI brain.
+//
+// Native .hsplus surface for core/traits/CharacterTrait.ts.
+
+@trait character_trait {
+  capability_tags: ["character", "skeleton_animation", "locomotion", "ai_brain", "core"]
+
+  @on_spawn(character_def) => {
+    init_character(character_def)
+    emit("character_ready", {})
+  }
+
+  @on_tick(dt) => {
+    update_character(dt)
+  }
+
+  @receipt character_trait_config {
+    type: "CharacterTraitReceipt"
+    timestamp: now()
+  }
+}

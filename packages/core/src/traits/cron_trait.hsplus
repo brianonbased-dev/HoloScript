@@ -1,0 +1,22 @@
+// @cron_trait — Cron scheduler: time-based task execution with cron expression syntax.
+//
+// Native .hsplus surface for core/traits/CronTrait.ts.
+
+@trait cron_trait {
+  capability_tags: ["cron", "time_based_execution", "cron_expression", "scheduled_task", "core"]
+
+  @on_spawn => {
+    emit("cron_ready", {})
+  }
+
+  @on_schedule(expr, handler_name) => {
+    schedule_cron_job(expr, handler_name)
+    emit("cron_scheduled", { expr })
+  }
+
+  @receipt cron_trait_config {
+    type: "CronTraitReceipt"
+    syntax: "cron expression"
+    timestamp: now()
+  }
+}

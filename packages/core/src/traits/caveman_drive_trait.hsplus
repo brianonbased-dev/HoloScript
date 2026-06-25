@@ -1,0 +1,23 @@
+// @caveman_drive_trait — Caveman NPC motivational drive: hunger, fear, curiosity, territory.
+//
+// Native .hsplus surface for core/traits/CavemanDriveTrait.ts.
+
+@trait caveman_drive_trait {
+  capability_tags: ["caveman_drive", "hunger_fear_curiosity", "npc_motivation", "territory", "core"]
+
+  @on_spawn(npc_id) => {
+    init_caveman_drives(npc_id)
+    emit("caveman_drive_ready", {})
+  }
+
+  @on_tick(world_state) => {
+    dominant_drive = tick_caveman_drives(world_state)
+    return dominant_drive
+  }
+
+  @receipt caveman_drive_trait_config {
+    type: "CavemanDriveTraitReceipt"
+    drives: ["hunger", "fear", "curiosity", "territory"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @csp_channel_trait — CSP channel: typed message passing between concurrent agents (Go-style channels).
+//
+// Native .hsplus surface for core/traits/CspChannelTrait.ts.
+
+@trait csp_channel_trait {
+  capability_tags: ["csp_channel", "message_passing", "concurrent_agents", "go_style_channels", "core"]
+
+  @on_spawn(buffer_size) => {
+    init_csp_channel(buffer_size)
+    emit("csp_channel_ready", {})
+  }
+
+  @on_send(message) => {
+    send_csp_message(message)
+  }
+
+  @on_receive => {
+    return receive_csp_message()
+  }
+
+  @receipt csp_channel_trait_config {
+    type: "CspChannelTraitReceipt"
+    model: "CSP (Communicating Sequential Processes)"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @deadlock_free_trait — Deadlock prevention: ordered lock acquisition, timeout-based break.
+//
+// Native .hsplus surface for core/traits/DeadlockFreeTrait.ts.
+
+@trait deadlock_free_trait {
+  capability_tags: ["deadlock_free", "ordered_lock", "timeout_break", "concurrency_safety", "core"]
+
+  @on_spawn => {
+    emit("deadlock_free_ready", {})
+  }
+
+  @on_acquire(resources, timeout_ms) => {
+    result = acquire_deadlock_free(resources, timeout_ms)
+    if !result.acquired { emit("lock_timeout", { resources }) }
+    return result
+  }
+
+  @receipt deadlock_free_trait_config {
+    type: "DeadlockFreeTraitReceipt"
+    timestamp: now()
+  }
+}

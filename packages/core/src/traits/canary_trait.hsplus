@@ -1,0 +1,23 @@
+// @canary_trait — Canary deployment: routes a traffic fraction to new version; monitors error rate.
+//
+// Native .hsplus surface for core/traits/CanaryTrait.ts.
+
+@trait canary_trait {
+  capability_tags: ["canary", "traffic_fraction", "new_version", "error_rate_monitor", "core"]
+
+  @on_spawn(fraction, new_version) => {
+    init_canary_deployment(fraction, new_version)
+    emit("canary_ready", { fraction })
+  }
+
+  @on_check_health => {
+    result = check_canary_health()
+    if !result.healthy { emit("canary_unhealthy", {}) }
+    return result
+  }
+
+  @receipt canary_trait_config {
+    type: "CanaryTraitReceipt"
+    timestamp: now()
+  }
+}

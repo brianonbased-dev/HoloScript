@@ -1,0 +1,22 @@
+// @cloth_trait — Basic cloth: spring-mass simulation for fabric, flags, and drape effects.
+//
+// Native .hsplus surface for core/traits/ClothTrait.ts.
+
+@trait cloth_trait {
+  capability_tags: ["cloth", "spring_mass", "fabric_simulation", "drape", "core"]
+
+  @on_spawn(mesh_id, params) => {
+    init_cloth(mesh_id, params)
+    emit("cloth_ready", {})
+  }
+
+  @on_tick(dt, wind) => {
+    step_cloth_simulation(dt, wind)
+  }
+
+  @receipt cloth_trait_config {
+    type: "ClothTraitReceipt"
+    method: "spring-mass"
+    timestamp: now()
+  }
+}

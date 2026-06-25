@@ -1,0 +1,22 @@
+// @data_transform_trait — Data transformation pipeline: map, filter, reduce, reshape steps.
+//
+// Native .hsplus surface for core/traits/DataTransformTrait.ts.
+
+@trait data_transform_trait {
+  capability_tags: ["data_transform", "map_filter_reduce", "pipeline", "reshape", "core"]
+
+  @on_spawn(steps) => {
+    init_data_transform(steps)
+    emit("data_transform_ready", {})
+  }
+
+  @on_run(input) => {
+    result = run_data_transform(input)
+    return result
+  }
+
+  @receipt data_transform_trait_config {
+    type: "DataTransformTraitReceipt"
+    timestamp: now()
+  }
+}

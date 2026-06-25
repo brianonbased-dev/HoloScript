@@ -1,0 +1,22 @@
+// @controller_input_trait — XR/gamepad controller input: button, axis, trigger, haptic feedback.
+//
+// Native .hsplus surface for core/traits/ControllerInputTrait.ts.
+
+@trait controller_input_trait {
+  capability_tags: ["controller_input", "xr_gamepad", "button_axis_trigger", "haptic_feedback", "core"]
+
+  @on_spawn(device_id) => {
+    init_controller_input(device_id)
+    emit("controller_input_ready", {})
+  }
+
+  @on_input(event) => {
+    process_controller_input(event)
+    emit("controller_input_received", { event_type: event.type })
+  }
+
+  @receipt controller_input_trait_config {
+    type: "ControllerInputTraitReceipt"
+    timestamp: now()
+  }
+}

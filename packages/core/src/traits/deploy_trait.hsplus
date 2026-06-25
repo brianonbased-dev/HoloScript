@@ -1,0 +1,22 @@
+// @deploy_trait — Entity deploy: publishes entity state to target runtime (edge/fleet/Railway).
+//
+// Native .hsplus surface for core/traits/DeployTrait.ts.
+
+@trait deploy_trait {
+  capability_tags: ["deploy_trait", "entity_publish", "edge_fleet_railway", "deploy_receipt", "core"]
+
+  @on_spawn => {
+    emit("deploy_trait_ready", {})
+  }
+
+  @on_deploy(entity_id, target) => {
+    receipt = deploy_entity(entity_id, target)
+    emit("entity_deployed", { target })
+    return receipt
+  }
+
+  @receipt deploy_trait_config {
+    type: "DeployTraitReceipt"
+    timestamp: now()
+  }
+}

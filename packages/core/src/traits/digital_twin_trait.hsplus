@@ -1,0 +1,24 @@
+// @digital_twin_trait — Digital twin entity: mirrors real-world state, syncs deltas, divergence detection.
+//
+// Native .hsplus surface for core/traits/DigitalTwinTrait.ts.
+
+@trait digital_twin_trait {
+  capability_tags: ["digital_twin", "real_world_mirror", "state_sync", "divergence_detection", "core"]
+
+  @on_spawn(physical_entity_id) => {
+    init_digital_twin(physical_entity_id)
+    emit("digital_twin_ready", { physical_entity_id })
+  }
+
+  @on_sync(real_state) => {
+    divergence = sync_twin_state(real_state)
+    if divergence.detected { emit("twin_diverged", { delta: divergence.delta }) }
+    return divergence
+  }
+
+  @receipt digital_twin_trait_config {
+    type: "DigitalTwinTraitReceipt"
+    doc: "D.007 domain bridge"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @collaborative_world_trait — Collaborative world: multi-user real-time world editing with CRDT merge.
+//
+// Native .hsplus surface for core/traits/CollaborativeWorldTrait.ts.
+
+@trait collaborative_world_trait {
+  capability_tags: ["collaborative_world", "multi_user_editing", "real_time_crdt", "co_authoring", "core"]
+
+  @on_spawn(world_id, session_id) => {
+    init_collaborative_world(world_id, session_id)
+    emit("collaborative_world_ready", {})
+  }
+
+  @on_edit(op) => {
+    apply_collaborative_edit(op)
+    emit("world_edit_applied", {})
+  }
+
+  @receipt collaborative_world_trait_config {
+    type: "CollaborativeWorldTraitReceipt"
+    timestamp: now()
+  }
+}

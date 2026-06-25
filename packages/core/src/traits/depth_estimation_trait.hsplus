@@ -1,0 +1,23 @@
+// @depth_estimation_trait — Monocular depth estimation: infers depth map from single RGB image.
+//
+// Native .hsplus surface for core/traits/DepthEstimationTrait.ts.
+
+@trait depth_estimation_trait {
+  capability_tags: ["depth_estimation", "monocular_depth", "depth_map", "rgb_to_depth", "core"]
+
+  @on_spawn(model_id) => {
+    init_depth_estimation(model_id)
+    emit("depth_estimation_ready", {})
+  }
+
+  @on_estimate(image) => {
+    depth_map = estimate_depth(image)
+    return depth_map
+  }
+
+  @receipt depth_estimation_trait_config {
+    type: "DepthEstimationTraitReceipt"
+    method: "monocular"
+    timestamp: now()
+  }
+}

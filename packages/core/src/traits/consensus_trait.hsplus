@@ -1,0 +1,28 @@
+// @consensus_trait — Distributed consensus: propose/vote/commit protocol for multi-agent decisions.
+//
+// Native .hsplus surface for core/traits/ConsensusTrait.ts.
+
+@trait consensus_trait {
+  capability_tags: ["consensus", "propose_vote_commit", "multi_agent_decision", "distributed", "core"]
+
+  @on_spawn(quorum) => {
+    init_consensus(quorum)
+    emit("consensus_ready", {})
+  }
+
+  @on_propose(proposal) => {
+    ballot_id = propose_consensus(proposal)
+    return ballot_id
+  }
+
+  @on_vote(ballot_id, vote) => {
+    result = cast_consensus_vote(ballot_id, vote)
+    if result.committed { emit("consensus_committed", { ballot_id }) }
+    return result
+  }
+
+  @receipt consensus_trait_config {
+    type: "ConsensusTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @database_trait — Database adapter: CRUD, transaction, query over Postgres/SQLite/KV.
+//
+// Native .hsplus surface for core/traits/DatabaseTrait.ts.
+
+@trait database_trait {
+  capability_tags: ["database", "crud_transaction", "postgres_sqlite_kv", "query", "core"]
+
+  @on_spawn(connection_url) => {
+    init_database(connection_url)
+    emit("database_ready", {})
+  }
+
+  @on_query(sql, params) => {
+    result = execute_db_query(sql, params)
+    return result
+  }
+
+  @receipt database_trait_config {
+    type: "DatabaseTraitReceipt"
+    backends: ["Postgres", "SQLite", "KV"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @cinematic_seq_trait — Cinematic sequence player: timed camera cuts, audio, subtitle, and entity triggers.
+//
+// Native .hsplus surface for core/traits/CinematicSeqTrait.ts.
+
+@trait cinematic_seq_trait {
+  capability_tags: ["cinematic_seq", "camera_cuts", "audio_subtitle", "entity_trigger", "core"]
+
+  @on_spawn(seq_id) => {
+    init_cinematic_seq(seq_id)
+    emit("cinematic_seq_ready", { seq_id })
+  }
+
+  @on_play => {
+    play_cinematic_seq()
+    emit("cinematic_seq_playing", {})
+  }
+
+  @receipt cinematic_seq_trait_config {
+    type: "CinematicSeqTraitReceipt"
+    timestamp: now()
+  }
+}

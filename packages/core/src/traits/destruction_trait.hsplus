@@ -1,0 +1,23 @@
+// @destruction_trait — Procedural destruction: Voronoi fracture, physics shards, debris spawning.
+//
+// Native .hsplus surface for core/traits/DestructionTrait.ts.
+
+@trait destruction_trait {
+  capability_tags: ["destruction", "voronoi_fracture", "physics_shards", "debris_spawn", "core"]
+
+  @on_spawn(mesh_id, shard_count) => {
+    init_destruction(mesh_id, shard_count)
+    emit("destruction_ready", {})
+  }
+
+  @on_impact(force, contact_point) => {
+    spawn_destruction(force, contact_point)
+    emit("destruction_triggered", {})
+  }
+
+  @receipt destruction_trait_config {
+    type: "DestructionTraitReceipt"
+    method: "Voronoi fracture"
+    timestamp: now()
+  }
+}

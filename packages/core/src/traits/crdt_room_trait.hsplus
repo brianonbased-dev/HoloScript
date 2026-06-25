@@ -1,0 +1,22 @@
+// @crdt_room_trait — CRDT collaborative room: shared Loro doc, presence tracking, conflict-free merges.
+//
+// Native .hsplus surface for core/traits/CRDTRoomTrait.ts.
+
+@trait crdt_room_trait {
+  capability_tags: ["crdt_room", "loro_doc", "presence_tracking", "conflict_free", "core"]
+
+  @on_spawn(room_id) => {
+    init_crdt_room(room_id)
+    emit("crdt_room_ready", { room_id })
+  }
+
+  @on_merge(remote_doc) => {
+    merge_crdt_room(remote_doc)
+    emit("crdt_room_merged", {})
+  }
+
+  @receipt crdt_room_trait_config {
+    type: "CRDTRoomTraitReceipt"
+    timestamp: now()
+  }
+}

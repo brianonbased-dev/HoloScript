@@ -1,0 +1,22 @@
+// @deformable_terrain_trait — Deformable terrain: real-time height-map deformation, rut, crater.
+//
+// Native .hsplus surface for core/traits/DeformableTerrainTrait.ts.
+
+@trait deformable_terrain_trait {
+  capability_tags: ["deformable_terrain", "heightmap_deform", "rut_crater", "real_time_deform", "core"]
+
+  @on_spawn(terrain_id) => {
+    init_deformable_terrain(terrain_id)
+    emit("deformable_terrain_ready", {})
+  }
+
+  @on_deform(position, radius, depth) => {
+    deform_terrain(position, radius, depth)
+    emit("terrain_deformed", {})
+  }
+
+  @receipt deformable_terrain_trait_config {
+    type: "DeformableTerrainTraitReceipt"
+    timestamp: now()
+  }
+}

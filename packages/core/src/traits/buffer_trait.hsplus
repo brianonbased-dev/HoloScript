@@ -1,0 +1,22 @@
+// @buffer_trait — Ring buffer: fixed-capacity FIFO queue for streaming and time-window processing.
+//
+// Native .hsplus surface for core/traits/BufferTrait.ts.
+
+@trait buffer_trait {
+  capability_tags: ["buffer", "ring_buffer", "fifo_queue", "streaming", "core"]
+
+  @on_spawn(capacity) => {
+    init_ring_buffer(capacity)
+    emit("buffer_ready", {})
+  }
+
+  @on_push(item) => {
+    overflowed = push_buffer(item)
+    return overflowed
+  }
+
+  @receipt buffer_trait_config {
+    type: "BufferTraitReceipt"
+    timestamp: now()
+  }
+}

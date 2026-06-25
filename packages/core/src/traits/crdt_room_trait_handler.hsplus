@@ -1,0 +1,21 @@
+// @crdt_room_trait_handler — Handler binding for CRDTRoomTrait: routes CRDT ops to execution backend.
+//
+// Native .hsplus surface for core/traits/CRDTRoomTraitHandler.ts.
+
+@trait crdt_room_trait_handler {
+  capability_tags: ["crdt_room_handler", "crdt_op_routing", "execution_backend", "loro_handler", "core"]
+
+  @on_spawn(room_id) => {
+    init_crdt_room_handler(room_id)
+    emit("crdt_room_handler_ready", {})
+  }
+
+  @on_op(op) => {
+    apply_crdt_room_op(op)
+  }
+
+  @receipt crdt_room_trait_handler_config {
+    type: "CRDTRoomTraitHandlerReceipt"
+    timestamp: now()
+  }
+}

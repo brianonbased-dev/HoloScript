@@ -1,0 +1,23 @@
+// @circuit_breaker_trait — Circuit breaker: CLOSED/OPEN/HALF_OPEN, failure count, trip threshold.
+//
+// Native .hsplus surface for core/traits/CircuitBreakerTrait.ts.
+
+@trait circuit_breaker_trait {
+  capability_tags: ["circuit_breaker", "closed_open_half_open", "failure_threshold", "trip", "core"]
+
+  @on_spawn(threshold, window_ms) => {
+    init_circuit_breaker(threshold, window_ms)
+    emit("circuit_breaker_ready", {})
+  }
+
+  @on_call(fn, args) => {
+    result = call_through_circuit_breaker(fn, args)
+    return result
+  }
+
+  @receipt circuit_breaker_trait_config {
+    type: "CircuitBreakerTraitReceipt"
+    states: ["CLOSED", "OPEN", "HALF_OPEN"]
+    timestamp: now()
+  }
+}

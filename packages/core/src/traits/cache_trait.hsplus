@@ -1,0 +1,25 @@
+// @cache_trait — LRU cache: time-to-live eviction, hit/miss metrics, invalidation.
+//
+// Native .hsplus surface for core/traits/CacheTrait.ts.
+
+@trait cache_trait {
+  capability_tags: ["cache", "lru", "ttl_eviction", "hit_miss_metrics", "core"]
+
+  @on_spawn(max_size, ttl_ms) => {
+    init_cache(max_size, ttl_ms)
+    emit("cache_ready", {})
+  }
+
+  @on_get(key) => {
+    return cache_get(key)
+  }
+
+  @on_set(key, value) => {
+    cache_set(key, value)
+  }
+
+  @receipt cache_trait_config {
+    type: "CacheTraitReceipt"
+    timestamp: now()
+  }
+}

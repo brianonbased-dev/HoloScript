@@ -1,0 +1,22 @@
+// @chain_trait — Action chain: executes a sequence of actions with pass/fail propagation.
+//
+// Native .hsplus surface for core/traits/ChainTrait.ts.
+
+@trait chain_trait {
+  capability_tags: ["chain", "action_sequence", "pass_fail_propagation", "pipeline_execution", "core"]
+
+  @on_spawn(actions) => {
+    init_chain(actions)
+    emit("chain_ready", {})
+  }
+
+  @on_run(context) => {
+    result = run_chain(context)
+    return result
+  }
+
+  @receipt chain_trait_config {
+    type: "ChainTraitReceipt"
+    timestamp: now()
+  }
+}

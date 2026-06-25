@@ -1,0 +1,24 @@
+// @diffusion_realtime_trait — Real-time diffusion: streaming latent-diffusion output at interactive rates.
+//
+// Native .hsplus surface for core/traits/DiffusionRealtimeTrait.ts.
+
+@trait diffusion_realtime_trait {
+  capability_tags: ["diffusion_realtime", "streaming_diffusion", "interactive_generation", "latent_stream", "core"]
+
+  @on_spawn(model_id) => {
+    init_diffusion_realtime(model_id)
+    emit("diffusion_realtime_ready", {})
+  }
+
+  @on_generate(prompt, opts) => {
+    stream = start_diffusion_stream(prompt, opts)
+    emit("diffusion_streaming", {})
+    return stream
+  }
+
+  @receipt diffusion_realtime_trait_config {
+    type: "DiffusionRealtimeTraitReceipt"
+    mode: "streaming real-time"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @dialog_trait — UI dialog box: modal overlay with title, content, confirm/cancel actions.
+//
+// Native .hsplus surface for core/traits/DialogTrait.ts.
+// (Distinct from DialogueTrait which is NPC narrative dialogue.)
+
+@trait dialog_trait {
+  capability_tags: ["dialog_trait", "modal_overlay", "confirm_cancel", "ui_dialog", "core"]
+
+  @on_spawn => {
+    emit("dialog_trait_ready", {})
+  }
+
+  @on_show(title, content, actions) => {
+    show_dialog(title, content, actions)
+    emit("dialog_shown", {})
+  }
+
+  @receipt dialog_trait_config {
+    type: "DialogTraitReceipt"
+    scope: "UI dialog — distinct from DialogueTrait NPC narrative"
+    timestamp: now()
+  }
+}

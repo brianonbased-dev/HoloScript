@@ -1,0 +1,27 @@
+// @consent_management_trait — Consent management platform: records, revokes, audits user consent grants.
+//
+// Native .hsplus surface for core/traits/ConsentManagementTrait.ts.
+
+@trait consent_management_trait {
+  capability_tags: ["consent_management", "consent_record", "revocation", "gdpr_consent", "core"]
+
+  @on_spawn(policy_id) => {
+    init_consent_management(policy_id)
+    emit("consent_management_ready", {})
+  }
+
+  @on_grant(user_id, scope) => {
+    grant_consent(user_id, scope)
+    emit("consent_granted", { user_id, scope })
+  }
+
+  @on_revoke(user_id, scope) => {
+    revoke_consent(user_id, scope)
+    emit("consent_revoked", { user_id, scope })
+  }
+
+  @receipt consent_management_trait_config {
+    type: "ConsentManagementTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @chaos_test_trait — Chaos testing: injects random faults (latency, error, crash) for resilience probing.
+//
+// Native .hsplus surface for core/traits/ChaosTestTrait.ts.
+
+@trait chaos_test_trait {
+  capability_tags: ["chaos_test", "fault_injection", "latency_error_crash", "resilience_probing", "core"]
+
+  @on_spawn(fault_profile) => {
+    init_chaos_test(fault_profile)
+    emit("chaos_test_ready", {})
+  }
+
+  @on_inject(target, fault_type) => {
+    inject_chaos_fault(target, fault_type)
+    emit("chaos_fault_injected", { fault_type })
+  }
+
+  @receipt chaos_test_trait_config {
+    type: "ChaosTestTraitReceipt"
+    fault_types: ["latency", "error", "crash", "partition"]
+    timestamp: now()
+  }
+}

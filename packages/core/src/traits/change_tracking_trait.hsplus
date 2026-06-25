@@ -1,0 +1,24 @@
+// @change_tracking_trait — Entity change tracking: dirty-flag, diff, history, undo support.
+//
+// Native .hsplus surface for core/traits/ChangeTrackingTrait.ts.
+
+@trait change_tracking_trait {
+  capability_tags: ["change_tracking", "dirty_flag", "diff", "history", "core"]
+
+  @on_spawn => {
+    emit("change_tracking_ready", {})
+  }
+
+  @on_mark_dirty(field) => {
+    mark_field_dirty(field)
+  }
+
+  @on_diff => {
+    return compute_change_diff()
+  }
+
+  @receipt change_tracking_trait_config {
+    type: "ChangeTrackingTraitReceipt"
+    timestamp: now()
+  }
+}

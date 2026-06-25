@@ -1,0 +1,23 @@
+// @data_binding_trait — Runtime data binding: connects reactive state to entity properties bidirectionally.
+//
+// Native .hsplus surface for core/traits/DataBindingTrait.ts.
+// (Distinct from semantics/DataBindingSchema which is the JSON schema definition.)
+
+@trait data_binding_trait {
+  capability_tags: ["data_binding_trait", "reactive_state", "entity_property", "bidirectional_bind", "core"]
+
+  @on_spawn(entity_id) => {
+    init_data_binding(entity_id)
+    emit("data_binding_ready", {})
+  }
+
+  @on_bind(prop, state_path, direction) => {
+    bind_entity_property(prop, state_path, direction)
+  }
+
+  @receipt data_binding_trait_config {
+    type: "DataBindingTraitReceipt"
+    scope: "runtime binding — distinct from semantics/DataBindingSchema"
+    timestamp: now()
+  }
+}

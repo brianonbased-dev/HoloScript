@@ -1,0 +1,23 @@
+// @control_net_trait — ControlNet conditioning: structured control signals for diffusion generation.
+//
+// Native .hsplus surface for core/traits/ControlNetTrait.ts.
+
+@trait control_net_trait {
+  capability_tags: ["control_net", "diffusion_conditioning", "structured_control", "depth_pose_edge", "core"]
+
+  @on_spawn(model_id) => {
+    init_control_net(model_id)
+    emit("control_net_ready", {})
+  }
+
+  @on_condition(control_image, prompt) => {
+    result = run_control_net(control_image, prompt)
+    return result
+  }
+
+  @receipt control_net_trait_config {
+    type: "ControlNetTraitReceipt"
+    signals: ["depth", "pose", "edge", "normal"]
+    timestamp: now()
+  }
+}

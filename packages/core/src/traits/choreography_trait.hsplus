@@ -1,0 +1,22 @@
+// @choreography_trait — Multi-character choreography: synchronized motion scripts across N entities.
+//
+// Native .hsplus surface for core/traits/ChoreographyTrait.ts.
+
+@trait choreography_trait {
+  capability_tags: ["choreography", "synchronized_motion", "multi_character", "motion_script", "core"]
+
+  @on_spawn(script_id, participants) => {
+    init_choreography(script_id, participants)
+    emit("choreography_ready", {})
+  }
+
+  @on_play(timeline_pos) => {
+    step_choreography(timeline_pos)
+    emit("choreography_step", { pos: timeline_pos })
+  }
+
+  @receipt choreography_trait_config {
+    type: "ChoreographyTraitReceipt"
+    timestamp: now()
+  }
+}

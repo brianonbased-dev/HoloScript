@@ -1,0 +1,23 @@
+// @data_retention_trait — Data retention policy: enforces TTL deletion and archival for compliance.
+//
+// Native .hsplus surface for core/traits/DataRetentionTrait.ts.
+
+@trait data_retention_trait {
+  capability_tags: ["data_retention", "ttl_deletion", "archival", "compliance", "core"]
+
+  @on_spawn(policy) => {
+    init_data_retention(policy)
+    emit("data_retention_ready", {})
+  }
+
+  @on_enforce => {
+    deleted = enforce_data_retention()
+    emit("retention_enforced", { deleted })
+    return deleted
+  }
+
+  @receipt data_retention_trait_config {
+    type: "DataRetentionTraitReceipt"
+    timestamp: now()
+  }
+}

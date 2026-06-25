@@ -1,0 +1,23 @@
+// @control_loop_trait — PID/bang-bang control loop: sensor input → error → actuator output.
+//
+// Native .hsplus surface for core/traits/ControlLoopTrait.ts.
+
+@trait control_loop_trait {
+  capability_tags: ["control_loop", "pid", "bang_bang", "sensor_actuator", "core"]
+
+  @on_spawn(kp, ki, kd) => {
+    init_control_loop(kp, ki, kd)
+    emit("control_loop_ready", {})
+  }
+
+  @on_step(setpoint, measurement, dt) => {
+    output = step_control_loop(setpoint, measurement, dt)
+    return output
+  }
+
+  @receipt control_loop_trait_config {
+    type: "ControlLoopTraitReceipt"
+    algorithms: ["PID", "bang-bang"]
+    timestamp: now()
+  }
+}

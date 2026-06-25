@@ -1,0 +1,22 @@
+// @buoyancy_trait — Fluid buoyancy: Archimedes force, waterline, partial submersion.
+//
+// Native .hsplus surface for core/traits/BuoyancyTrait.ts.
+
+@trait buoyancy_trait {
+  capability_tags: ["buoyancy", "archimedes_force", "waterline", "fluid_simulation", "core"]
+
+  @on_spawn(fluid_density) => {
+    init_buoyancy(fluid_density)
+    emit("buoyancy_ready", {})
+  }
+
+  @on_tick(body_mass, submerged_volume) => {
+    force = compute_buoyancy_force(body_mass, submerged_volume)
+    return force
+  }
+
+  @receipt buoyancy_trait_config {
+    type: "BuoyancyTraitReceipt"
+    timestamp: now()
+  }
+}

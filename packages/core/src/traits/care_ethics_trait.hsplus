@@ -1,0 +1,23 @@
+// @care_ethics_trait — Care ethics gate: evaluates agent actions for care/harm balance before execution.
+//
+// Native .hsplus surface for core/traits/CareEthicsTrait.ts.
+
+@trait care_ethics_trait {
+  capability_tags: ["care_ethics", "harm_balance", "care_gate", "ethical_evaluation", "core"]
+
+  @on_spawn => {
+    emit("care_ethics_ready", {})
+  }
+
+  @on_evaluate(action, context) => {
+    result = evaluate_care_ethics(action, context)
+    if result.blocked { emit("care_ethics_blocked", { action }) }
+    return result
+  }
+
+  @receipt care_ethics_trait_config {
+    type: "CareEthicsTraitReceipt"
+    doc: "D.054 universal love care field"
+    timestamp: now()
+  }
+}
