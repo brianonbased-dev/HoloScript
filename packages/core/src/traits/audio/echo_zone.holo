@@ -1,0 +1,20 @@
+@trait {
+  name: "@echo_zone",
+  category: "audio",
+  description: "Spatial audio echo and reverb zone. Applies a convolution reverb preset to all audio sources within the trigger volume, blending between outdoor-dry and indoor-wet presets at the zone boundary, with per-axis early-reflection delay to simulate corridor and cave geometries. Authored from EchoZoneTrait.ts.",
+  props: {
+    preset: enum("small_room" | "large_room" | "hall" | "cave" | "outdoor" | "custom") = "small_room",
+    custom_ir_url: string = "",
+    dry_wet: number = 0.4,
+    decay_s: number = 1.2,
+    pre_delay_ms: number = 20,
+    trigger_radius_m: number = 15
+  },
+  events: {
+    attached: "echo_zone_attached",
+    detached: "echo_zone_detached",
+    on_enter: "echo_zone_enter",
+    on_exit: "echo_zone_exit"
+  },
+  behaviors: ["@ambient_audio", "@radio_channel", "@biome_zone"]
+}

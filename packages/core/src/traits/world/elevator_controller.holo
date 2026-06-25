@@ -1,0 +1,22 @@
+@trait {
+  name: "@elevator_controller",
+  category: "world",
+  description: "Multi-floor elevator platform controller. Moves a platform entity between a list of named floor stops along a vertical axis, opening/closing door entities at each stop, responding to call and go-to events from floor buttons, and supporting load-weight limits and emergency stop. Authored from ElevatorControllerTrait.ts.",
+  props: {
+    floors: list<{ name: string, y: number, door_entity_id: string }> = [],
+    current_floor: number = 0,
+    speed_m_s: number = 3,
+    door_wait_s: number = 2,
+    max_load_kg: number = 0,
+    emergency_stop: boolean = false
+  },
+  events: {
+    attached: "elevator_controller_attached",
+    detached: "elevator_controller_detached",
+    on_arrive: "elevator_controller_arrive",
+    on_depart: "elevator_controller_depart",
+    go_to_floor: "elevator_controller_trigger_go",
+    emergency: "elevator_controller_trigger_emergency"
+  },
+  behaviors: ["@platform_controller", "@door_controller", "@mount_point"]
+}

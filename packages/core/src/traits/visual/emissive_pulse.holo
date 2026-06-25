@@ -1,0 +1,21 @@
+@trait {
+  name: "@emissive_pulse",
+  category: "visual",
+  description: "Animated emissive material intensity pulser. Drives a sinusoidal or sawtooth oscillation on the emissive intensity of the entity's material between a min and max value at a configurable frequency, with optional color shift across a gradient — used for glowing alien devices, warning lights, and power conduits. Authored from EmissivePulseTrait.ts.",
+  props: {
+    min_intensity: number = 0.2,
+    max_intensity: number = 2.0,
+    frequency_hz: number = 1.0,
+    waveform: enum("sine" | "sawtooth" | "square" | "triangle") = "sine",
+    color_a: string = "#ffffff",
+    color_b: string = "#ffffff",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "emissive_pulse_attached",
+    detached: "emissive_pulse_detached",
+    enable: "emissive_pulse_trigger_enable",
+    disable: "emissive_pulse_trigger_disable"
+  },
+  behaviors: ["@dynamic_light", "@material", "@edge_glow"]
+}

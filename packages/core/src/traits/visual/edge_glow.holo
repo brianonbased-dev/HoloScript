@@ -1,0 +1,21 @@
+@trait {
+  name: "@edge_glow",
+  category: "visual",
+  description: "Screen-space edge-detection outline glow. Renders a coloured glow halo around the entity's silhouette edges using a post-process edge-detection pass, visible through occluders in x-ray mode, used for selection highlight, quest target marking, and enemy threat indicators. Authored from EdgeGlowTrait.ts.",
+  props: {
+    color: string = "#ffdd00",
+    width_px: number = 3,
+    intensity: number = 1.0,
+    xray: boolean = false,
+    xray_opacity: number = 0.4,
+    pulse_hz: number = 0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "edge_glow_attached",
+    detached: "edge_glow_detached",
+    enable: "edge_glow_trigger_enable",
+    disable: "edge_glow_trigger_disable"
+  },
+  behaviors: ["@hover_effect", "@beam_emitter", "@cast_shadow"]
+}
