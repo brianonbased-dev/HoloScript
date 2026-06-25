@@ -1,0 +1,15 @@
+@trait {
+  name: "@slack_alert",
+  category: "integration",
+  description: "Slack channel alerting via incoming webhook. Responds to slack_alert:send events with optional channel override, posts via HTTPS POST to the webhook URL. Emits slack_alert:sent on success or slack_alert:error on failure. Port of SlackAlertTrait.ts (handler name: slack_alert).",
+  props: {
+    webhook_url: string = "",
+    default_channel: string = "#alerts"
+  },
+  events: {
+    on_sent: "slack_alert:sent",
+    on_error: "slack_alert:error",
+    send: "slack_alert:send"
+  },
+  behaviors: ["@slack", "@pagerduty"]
+}

@@ -1,0 +1,24 @@
+@trait {
+  name: "@shell",
+  category: "devops",
+  description: "Subprocess execution for HoloScript compositions. Wraps child_process.spawn with timeout, output capture (stdout/stderr as events), environment configuration, and output buffer limits. Headless/server-only — not available in browser contexts. Port of ShellTrait.ts (handler name: shell).",
+  props: {
+    command: string = "",
+    args: list<string> = [],
+    cwd: string = ".",
+    timeout_ms: number = 30000,
+    capture_output: boolean = true,
+    env: dict<string,string> = {},
+    max_output_bytes: number = 1048576
+  },
+  events: {
+    on_start: "shell:start",
+    on_stdout: "shell:stdout",
+    on_stderr: "shell:stderr",
+    on_exit: "shell:exit",
+    on_timeout: "shell:timeout",
+    on_error: "shell:error",
+    exec: "shell:exec"
+  },
+  behaviors: ["@sys_io", "@native_call"]
+}

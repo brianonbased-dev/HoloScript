@@ -1,0 +1,23 @@
+@trait {
+  name: "@realitykit_mesh",
+  category: "xr",
+  description: "Integrates with Apple RealityKit mesh anchors for precise occlusion, physics, and semantic classification of the physical environment. Classifies mesh anchors as wall/floor/ceiling/table/seat/window/door/stairs/bed/counter/unknown and applies physics colliders with configurable margin. Port of RealityKitMeshTrait.ts (handler name: realitykit_mesh).",
+  props: {
+    mesh_classification: boolean = true,
+    physics_enabled: boolean = true,
+    occlusion_enabled: boolean = true,
+    collision_margin: number = 0.02,
+    update_frequency: number = 10,
+    max_anchor_distance: number = 8.0,
+    render_wireframe: boolean = false
+  },
+  events: {
+    attached: "realitykit_mesh_attached",
+    detached: "realitykit_mesh_detached",
+    on_anchor_added: "realitykit_mesh_anchor_added",
+    on_anchor_updated: "realitykit_mesh_anchor_updated",
+    on_anchor_removed: "realitykit_mesh_anchor_removed",
+    on_error: "realitykit_mesh_error"
+  },
+  behaviors: ["@open_xr_hal", "@terrain_anchor", "@ar_placement"]
+}

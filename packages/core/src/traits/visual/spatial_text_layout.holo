@@ -1,0 +1,20 @@
+@trait {
+  name: "@spatial_text_layout",
+  category: "visual",
+  description: "Projects text into 3D volumes: sphere, cylinder, wave, or spiral. Configurable radius, letter spacing, line height, and per-character hover effects (scale/glow/lift/none). Responds to spatial:rotate events for interactive rotation with dampening. Port of SpatialTextLayoutTrait.ts (handler name: spatial_text_layout).",
+  props: {
+    layout: enum("sphere" | "cylinder" | "wave" | "spiral") = "cylinder",
+    radius: number = 5.0,
+    letter_spacing: number = 1.1,
+    line_height: number = 1.5,
+    interactive: boolean = true,
+    hover_effect: enum("none" | "scale" | "glow" | "lift") = "scale"
+  },
+  events: {
+    attached: "spatial_text_layout_attached",
+    on_hover: "spatial_text_layout_hover",
+    on_rotate: "node:rotate",
+    rotate: "spatial:rotate"
+  },
+  behaviors: ["@text_3d", "@grabbable"]
+}
