@@ -1,0 +1,16 @@
+@trait {
+  name: "@anti_grief",
+  category: "safety",
+  description: "Anti-griefing scoring and enforcement. threshold is the grief score that triggers auto-action (default: 10). time_window is the rolling window in milliseconds for score accumulation (default: 30,000ms). auto_report automatically escalates when threshold is hit (default: false). Tracks kill/destruction/report timestamps in the rolling window. Port of ContentSafetyTraits.ts handler 'anti_grief'.",
+  props: {
+    threshold: number = 10,
+    time_window: number = 30000,
+    auto_report: boolean = false
+  },
+  events: {
+    on_threshold: "anti_grief:threshold",
+    on_escalated: "anti_grief:escalated",
+    report: "anti_grief.report"
+  },
+  behaviors: ["@moderation"]
+}

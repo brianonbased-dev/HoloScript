@@ -1,0 +1,18 @@
+@trait {
+  name: "@compute",
+  category: "gpu",
+  description: "General-purpose WebGPU compute dispatch. shader is the WGSL compute shader source or URL (default: null — no-op). workgroups is the 3D dispatch grid [X, Y, Z] (default: [1,1,1]). interval is the dispatch cadence in ms (default: 0 — every frame). Port of BehavioralTraits.ts handler 'compute'.",
+  props: {
+    shader: string = "",
+    workgroups_x: number = 1,
+    workgroups_y: number = 1,
+    workgroups_z: number = 1,
+    interval: number = 0
+  },
+  events: {
+    on_complete: "compute:complete",
+    on_error: "compute:error",
+    dispatch: "compute.dispatch"
+  },
+  behaviors: ["@gpu_physics", "@gpu_particle"]
+}

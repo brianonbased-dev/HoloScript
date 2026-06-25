@@ -1,0 +1,13 @@
+@trait {
+  name: "@sensor",
+  category: "sensing",
+  description: "Generic sensor node — abstract sensor binding that bridges physical or virtual sensor streams into the scene graph. Concrete sensor types (camera, microphone, accelerometer, lidar, ultrasonic) attach as sub-behaviors. Port of BehavioralTraits.ts handler 'sensor'.",
+  props: {},
+  events: {
+    on_reading: "sensor:reading",
+    on_calibrated: "sensor:calibrated",
+    on_error: "sensor:error",
+    calibrate: "sensor.calibrate"
+  },
+  behaviors: ["@sensor_sampling"]
+}

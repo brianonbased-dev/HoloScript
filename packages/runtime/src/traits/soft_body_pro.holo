@@ -1,0 +1,13 @@
+@trait {
+  name: "@soft_body_pro",
+  category: "physics",
+  description: "Position-based dynamics soft-body simulation (cloth, jelly, hair). Uses GPU-side PBD solver with configurable stretch/bend/collision constraints. Integrates with the scene's physics world for self-collision and rigid-body interaction. Port of BehavioralTraits.ts handler 'soft_body_pro'.",
+  props: {},
+  events: {
+    on_torn: "soft_body_pro:torn",
+    on_settled: "soft_body_pro:settled",
+    tear: "soft_body_pro.tear",
+    pin: "soft_body_pro.pin"
+  },
+  behaviors: ["@gpu_physics", "@fluid_simulation"]
+}

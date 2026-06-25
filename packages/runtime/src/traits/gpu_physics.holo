@@ -1,0 +1,17 @@
+@trait {
+  name: "@gpu_physics",
+  category: "physics",
+  description: "GPU-accelerated rigid-body physics. shape is the collision primitive (default: box). mass is the body mass in kg (default: 1.0). Uses WebGPU compute for broad-phase and narrow-phase collision detection. Port of BehavioralTraits.ts handler 'gpu_physics'.",
+  props: {
+    shape: enum("box" | "sphere" | "plane" | "convex" | "mesh") = "box",
+    mass: number = 1.0
+  },
+  events: {
+    on_collision: "gpu_physics:collision",
+    on_sleep: "gpu_physics:sleep",
+    on_wake: "gpu_physics:wake",
+    apply_force: "gpu_physics.apply_force",
+    apply_impulse: "gpu_physics.apply_impulse"
+  },
+  behaviors: ["@granular_material", "@fluid_simulation"]
+}

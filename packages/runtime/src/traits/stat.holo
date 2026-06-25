@@ -1,0 +1,20 @@
+@trait {
+  name: "@stat",
+  category: "hololand",
+  description: "HoloLand RPG stat — a named attribute with a base value, modifier stack, and optional clamping. name is the attribute name (e.g. strength, agility). value is the base unmodified value. min/max are optional clamps. modifiers is the initial StatModifier stack (additive and multiplicative). Emits stat:changed on every effective-value update. Port of HoloLandTraits.ts handler 'stat' (StatTrait core).",
+  props: {
+    stat_name: string = "strength",
+    value: number = 0,
+    min: number = 0,
+    max: number = 100
+  },
+  events: {
+    on_changed: "stat:changed",
+    on_maxed: "stat:maxed",
+    on_zeroed: "stat:zeroed",
+    set: "stat:set",
+    modify: "stat:modify",
+    reset: "stat:reset"
+  },
+  behaviors: ["@luck", "@encounter"]
+}

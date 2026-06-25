@@ -1,0 +1,16 @@
+@trait {
+  name: "@ai_companion",
+  category: "behavior",
+  description: "AI companion behavior — periodic thinking loop with personality-driven responses. think_interval is the time between think cycles in seconds (default: 3.0). personality is the companion personality archetype (default: friendly). Emits ai_companion:think events on each cycle; the LLM or behavior tree processes the think event and emits ai_companion:response. Port of BehavioralTraits.ts handler 'ai_companion'.",
+  props: {
+    think_interval: number = 3.0,
+    personality: string = "friendly"
+  },
+  events: {
+    on_think: "ai_companion:think",
+    on_response: "ai_companion:response",
+    on_emotion: "ai_companion:emotion",
+    set_personality: "ai_companion.set_personality"
+  },
+  behaviors: ["@follow", "@llm_agent", "@ai_npc_brain"]
+}

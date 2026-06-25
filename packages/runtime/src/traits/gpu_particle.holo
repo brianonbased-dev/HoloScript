@@ -1,0 +1,13 @@
+@trait {
+  name: "@gpu_particle",
+  category: "render",
+  description: "GPU-accelerated particle system via WebGPU compute shaders. Particle parameters (count, lifetime, velocity, spread, texture, blend mode, color gradient) are driven by the attached particle material and emitter config. Emits particles from this node's world position on each frame via a compute dispatch. Port of BehavioralTraits.ts handler 'gpu_particle'.",
+  props: {},
+  events: {
+    on_emit: "gpu_particle:emit",
+    on_expired: "gpu_particle:expired",
+    burst: "gpu_particle.burst",
+    stop: "gpu_particle.stop"
+  },
+  behaviors: ["@fluid_simulation"]
+}

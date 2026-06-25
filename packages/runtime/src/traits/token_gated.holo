@@ -1,0 +1,15 @@
+@trait {
+  name: "@token_gated",
+  category: "safety",
+  description: "Token-gated access control — verifies on-chain token ownership before granting access to this node/zone. fallback_behavior is the visibility/interaction policy while unverified (default: hide; options: hide, blur, disable). verify_interval is how often to re-verify in ms (default: 0 — only on attach). Port of ContentSafetyTraits.ts handler 'token_gated'.",
+  props: {
+    fallback_behavior: enum("hide" | "blur" | "disable" | "readonly") = "hide",
+    verify_interval: number = 0
+  },
+  events: {
+    on_granted: "token_gated:granted",
+    on_denied: "token_gated:denied",
+    verify: "token_gated.verify"
+  },
+  behaviors: ["@zk_private", "@moderation"]
+}

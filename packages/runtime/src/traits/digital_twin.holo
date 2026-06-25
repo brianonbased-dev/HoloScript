@@ -1,0 +1,13 @@
+@trait {
+  name: "@digital_twin",
+  category: "twin",
+  description: "Digital twin node — binds this scene-graph entity to a real-world physical asset and synchronizes state bidirectionally. State sync uses the HoloMesh world-state channel. Twin provenance is anchored via CAEL receipts. Port of BehavioralTraits.ts handler 'digital_twin'.",
+  props: {},
+  events: {
+    on_sync: "digital_twin:sync",
+    on_drift: "digital_twin:drift",
+    on_reconciled: "digital_twin:reconciled",
+    sync: "digital_twin.sync"
+  },
+  behaviors: ["@provenance", "@world_state", "@sensor"]
+}

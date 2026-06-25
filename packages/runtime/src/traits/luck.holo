@@ -1,0 +1,16 @@
+@trait {
+  name: "@luck",
+  category: "hololand",
+  description: "HoloLand luck trait — xorshift32 PRNG-backed success probability with additive luck bonuses. base_chance is the base success probability [0, 1]. luck_bonus is the additive shift per roll (positive = luckier; default: 0). seed is the PRNG seed (default: 1; 0 treated as 1). Emits luck:hit or luck:miss per roll. Port of HoloLandTraits.ts handler 'luck' (LuckTrait core).",
+  props: {
+    base_chance: number = 0.5,
+    luck_bonus: number = 0,
+    seed: number = 1
+  },
+  events: {
+    on_hit: "luck:hit",
+    on_miss: "luck:miss",
+    roll: "luck:roll"
+  },
+  behaviors: ["@stat", "@drop_table"]
+}

@@ -1,0 +1,17 @@
+@trait {
+  name: "@follow",
+  category: "behavior",
+  description: "Follow-target behavior — smoothly tracks the position of a named target node. speed is the maximum approach speed in m/s (default: 2.0). min_distance is the minimum distance maintained from the target (default: 1.5m). smoothing is the lerp factor applied per update (default: 0.1). target is the target node name/ID to follow (default: empty — no target, idle). Port of BehavioralTraits.ts handler 'follow'.",
+  props: {
+    speed: number = 2.0,
+    min_distance: number = 1.5,
+    smoothing: number = 0.1,
+    target: string = ""
+  },
+  events: {
+    on_reached: "follow:reached",
+    on_lost_target: "follow:lost_target",
+    set_target: "follow.set_target"
+  },
+  behaviors: ["@locomotion", "@ai_companion"]
+}

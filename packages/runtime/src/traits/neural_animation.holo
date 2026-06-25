@@ -1,0 +1,16 @@
+@trait {
+  name: "@neural_animation",
+  category: "animation",
+  description: "Neural motion-matching animation driver (runtime bridge). Instantiates a MotionMatchingEngine (default: SyntheticWalkCycleEngine) and drives bone quaternions per frame. model_id is passed to the default engine factory for model selection (default: empty — uses built-in walk cycle). target_velocity is the initial movement velocity vector {x,y,z}. energy_efficiency is forwarded to the engine inference call [0,1]. Emits foot contact events (foot_contact:left, foot_contact:right) on gait phase transitions. Port of NeuralAnimationHandler.ts handler 'neural_animation'.",
+  props: {
+    model_id: string = "",
+    energy_efficiency: number = 1.0
+  },
+  events: {
+    on_foot_contact_left: "foot_contact:left",
+    on_foot_contact_right: "foot_contact:right",
+    on_pose_inferred: "neural_animation:pose_inferred",
+    set_velocity: "neural_animation.set_velocity"
+  },
+  behaviors: ["@auto_rig", "@animation", "@locomotion"]
+}

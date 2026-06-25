@@ -1,0 +1,15 @@
+@trait {
+  name: "@object_tracking",
+  category: "sensing",
+  description: "Computer-vision object tracking — tracks a named target entity in the camera feed or scene graph. target is the target node name or class label (default: empty — no tracking). Emits object_tracking:found when the target enters frame and object_tracking:lost when it leaves. Port of BehavioralTraits.ts handler 'object_tracking'.",
+  props: {
+    target: string = ""
+  },
+  events: {
+    on_found: "object_tracking:found",
+    on_lost: "object_tracking:lost",
+    on_updated: "object_tracking:updated",
+    set_target: "object_tracking.set_target"
+  },
+  behaviors: ["@sensor", "@plane_detection"]
+}

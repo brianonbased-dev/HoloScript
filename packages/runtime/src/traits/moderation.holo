@@ -1,0 +1,16 @@
+@trait {
+  name: "@moderation",
+  category: "safety",
+  description: "Content moderation handler — tracks violation counts and applies progressive enforcement. default_action is the first-strike enforcement action (default: warn; options: warn, mute, kick, ban). Counts violations, applies cooldown expiry, and sets userData.moderated. Port of ContentSafetyTraits.ts handler 'moderation'.",
+  props: {
+    default_action: enum("warn" | "mute" | "kick" | "ban") = "warn"
+  },
+  events: {
+    on_violation: "moderation:violation",
+    on_muted: "moderation:muted",
+    on_cleared: "moderation:cleared",
+    report: "moderation.report",
+    clear: "moderation.clear"
+  },
+  behaviors: ["@anti_grief", "@token_gated"]
+}

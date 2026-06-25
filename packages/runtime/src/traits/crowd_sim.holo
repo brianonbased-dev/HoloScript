@@ -1,0 +1,17 @@
+@trait {
+  name: "@crowd_sim",
+  category: "behavior",
+  description: "Boids-style crowd simulation behavior (separation + cohesion + alignment + wander). max_speed is the maximum agent speed in m/s (default: 2.0). separation_radius is the avoidance radius in meters (default: 1.5). cohesion_radius is the grouping attraction radius in meters (default: 6.0). alignment_radius is the heading-matching radius in meters (default: 4.0). wander_strength is the random wander force magnitude (default: 0.5). Port of BehavioralTraits.ts handler 'crowd_sim'.",
+  props: {
+    max_speed: number = 2.0,
+    separation_radius: number = 1.5,
+    cohesion_radius: number = 6.0,
+    alignment_radius: number = 4.0,
+    wander_strength: number = 0.5
+  },
+  events: {
+    on_disperse: "crowd_sim:disperse",
+    on_converge: "crowd_sim:converge"
+  },
+  behaviors: ["@locomotion", "@formation_control"]
+}

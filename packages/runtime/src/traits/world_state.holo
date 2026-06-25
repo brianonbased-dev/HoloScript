@@ -1,0 +1,14 @@
+@trait {
+  name: "@world_state",
+  category: "sync",
+  description: "World-state CRDT synchronizer — persists and syncs this node's state across the collaborative world session via Loro CRDT. Manages version counter, autosave timer, and sync accumulator. Port of DataSyncTraits.ts handler 'world_state'.",
+  props: {},
+  events: {
+    on_synced: "world_state:synced",
+    on_conflict: "world_state:conflict",
+    on_version: "world_state:version",
+    save: "world_state.save",
+    restore: "world_state.restore"
+  },
+  behaviors: ["@collaborative_world", "@shared_world"]
+}

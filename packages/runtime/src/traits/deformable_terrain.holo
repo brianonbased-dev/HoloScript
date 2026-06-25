@@ -1,0 +1,13 @@
+@trait {
+  name: "@deformable_terrain",
+  category: "physics",
+  description: "Real-time terrain deformation — height-map modification driven by agent footprints, physics collisions, or explicit sculpt events. Terrain deformation is GPU-side via a compute shader that writes back to the height texture. Port of BehavioralTraits.ts handler 'deformable_terrain'.",
+  props: {},
+  events: {
+    on_deformed: "deformable_terrain:deformed",
+    on_restored: "deformable_terrain:restored",
+    sculpt: "deformable_terrain.sculpt",
+    restore: "deformable_terrain.restore"
+  },
+  behaviors: ["@gpu_physics", "@granular_material"]
+}

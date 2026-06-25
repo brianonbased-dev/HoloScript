@@ -1,0 +1,17 @@
+@trait {
+  name: "@orbit",
+  category: "behavior",
+  description: "Orbital motion behavior — circles an anchor point on a given axis. radius is the orbit radius in meters (default: 3.0). speed is the angular speed in radians per second (default: 1.0). axis is the rotation axis (x, y, or z; default: y). tilt is the inclination of the orbit plane in radians (default: 0 — flat equatorial). phase is the initial angle offset in radians (default: 0). Port of BehavioralTraits.ts handler 'orbit'.",
+  props: {
+    radius: number = 3.0,
+    speed: number = 1.0,
+    axis: enum("x" | "y" | "z") = "y",
+    tilt: number = 0,
+    phase: number = 0
+  },
+  events: {
+    on_lap: "orbit:lap",
+    set_speed: "orbit.set_speed"
+  },
+  behaviors: []
+}

@@ -1,0 +1,15 @@
+@trait {
+  name: "@shared_world",
+  category: "sync",
+  description: "Shared-world multiplayer coordinator — manages host/peer roles, sync accumulator, and pending update queue for real-time collaborative world sessions. Port of DataSyncTraits.ts handler 'shared_world'.",
+  props: {},
+  events: {
+    on_joined: "shared_world:joined",
+    on_left: "shared_world:left",
+    on_host_changed: "shared_world:host_changed",
+    on_sync: "shared_world:sync",
+    join: "shared_world.join",
+    leave: "shared_world.leave"
+  },
+  behaviors: ["@world_state", "@collaborative_world", "@networked_avatar"]
+}

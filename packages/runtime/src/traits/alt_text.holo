@@ -1,0 +1,12 @@
+@trait {
+  name: "@alt_text",
+  category: "accessibility",
+  description: "Alternative text description for screen reader / non-visual rendering. text is the short descriptive alt text. verbose is the long description for screen-reader detail mode. language is the BCP 47 language tag (default: en). Sets userData.altText/verbose/language on the object. Port of AccessibilityTraits.ts handler 'alt_text'.",
+  props: {
+    text: string = "",
+    verbose: string = "",
+    language: string = "en"
+  },
+  events: {},
+  behaviors: ["@accessible"]
+}

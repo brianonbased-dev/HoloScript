@@ -1,0 +1,15 @@
+@trait {
+  name: "@accessible",
+  category: "accessibility",
+  description: "ARIA accessibility annotation for XR nodes. role is the ARIA widget role (default: button). label is the accessible label string (default: empty). tab_index is the keyboard tab order index (default: 0). Sets userData.accessible=true and propagates role/label/tabIndex to the scene graph. Port of AccessibilityTraits.ts handler 'accessible'.",
+  props: {
+    role: string = "button",
+    label: string = "",
+    tab_index: number = 0
+  },
+  events: {
+    on_focused: "accessible:focused",
+    on_activated: "accessible:activated"
+  },
+  behaviors: ["@alt_text", "@high_contrast"]
+}

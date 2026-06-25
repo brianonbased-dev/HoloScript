@@ -1,0 +1,17 @@
+@trait {
+  name: "@ai_npc_brain",
+  category: "behavior",
+  description: "NPC brain state machine — patrol/idle/aggro/flee finite state machine. state_duration is the minimum time in a state before transitioning (seconds, default: 5.0). aggression_radius is the detection range that triggers aggro state (default: 8.0m). flee_radius is the distance below which the NPC flees (default: 2.0m). Port of BehavioralTraits.ts handler 'ai_npc_brain'.",
+  props: {
+    state_duration: number = 5.0,
+    aggression_radius: number = 8.0,
+    flee_radius: number = 2.0
+  },
+  events: {
+    on_state_changed: "ai_npc_brain:state_changed",
+    on_aggro: "ai_npc_brain:aggro",
+    on_flee: "ai_npc_brain:flee",
+    on_patrol: "ai_npc_brain:patrol"
+  },
+  behaviors: ["@behavior_tree", "@follow", "@locomotion"]
+}

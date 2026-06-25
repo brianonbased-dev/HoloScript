@@ -1,0 +1,15 @@
+@trait {
+  name: "@drop_table",
+  category: "hololand",
+  description: "HoloLand loot drop table — probabilistic item selection from a weighted entry list. table_id is the routing tag. entries is an ordered list of DropTableEntry {itemId, weight, rareModifier?}. respect_luck applies luck_bonus * rareModifier scaling when a @luck trait is present (default: false). Emits drop_table:roll with the selected item on each roll event. Port of HoloLandTraits.ts handler 'drop_table' (DropTableTrait core).",
+  props: {
+    table_id: string = "loot_01",
+    respect_luck: boolean = false
+  },
+  events: {
+    on_roll: "drop_table:roll",
+    on_empty: "drop_table:empty",
+    roll: "drop_table:roll"
+  },
+  behaviors: ["@luck", "@encounter"]
+}

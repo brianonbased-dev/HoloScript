@@ -1,0 +1,15 @@
+@trait {
+  name: "@data_binding",
+  category: "sync",
+  description: "Live data binding — connects this node's properties to an external data source URL. Refreshes on a configurable interval and applies the response to the bound property path. Port of DataSyncTraits.ts handler 'data_binding'.",
+  props: {},
+  events: {
+    on_connected: "data_binding:connected",
+    on_disconnected: "data_binding:disconnected",
+    on_updated: "data_binding:updated",
+    on_error: "data_binding:error",
+    refresh: "data_binding.refresh",
+    disconnect: "data_binding.disconnect"
+  },
+  behaviors: ["@world_state"]
+}

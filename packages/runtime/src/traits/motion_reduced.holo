@@ -1,0 +1,14 @@
+@trait {
+  name: "@motion_reduced",
+  category: "accessibility",
+  description: "Reduced-motion mode for vestibular / motion-sensitivity accessibility. max_velocity caps the maximum translation speed of this object (default: 2 m/s). auto_detect reads the OS prefers-reduced-motion media query and activates automatically (default: true). Port of AccessibilityTraits.ts handler 'motion_reduced'.",
+  props: {
+    max_velocity: number = 2,
+    auto_detect: boolean = true
+  },
+  events: {
+    on_activated: "motion_reduced:activated",
+    on_deactivated: "motion_reduced:deactivated"
+  },
+  behaviors: ["@accessible", "@locomotion"]
+}

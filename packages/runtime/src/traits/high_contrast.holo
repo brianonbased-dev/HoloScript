@@ -1,0 +1,12 @@
+@trait {
+  name: "@high_contrast",
+  category: "accessibility",
+  description: "High-contrast visual mode override for accessibility. mode: auto (follow OS/system preference), on (force), or off (disable). Sets userData.highContrast=true and highContrastMode on the object for the renderer to detect. Port of AccessibilityTraits.ts handler 'high_contrast'.",
+  props: {
+    mode: enum("auto" | "on" | "off") = "auto"
+  },
+  events: {
+    on_mode_changed: "high_contrast:mode_changed"
+  },
+  behaviors: ["@accessible"]
+}

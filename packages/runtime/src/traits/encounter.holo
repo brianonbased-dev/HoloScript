@@ -1,0 +1,21 @@
+@trait {
+  name: "@encounter",
+  category: "hololand",
+  description: "HoloLand encounter trigger — fires encounter events when a trigger condition is met. encounter_id is the routing tag emitted with the event. trigger_type is the trigger family (proximity, time_interval, state_change, interaction). cooldown_ms is the minimum gap between fires in ms (0 = no cooldown). Port of HoloLandTraits.ts handler 'encounter' (EncounterTrait core).",
+  props: {
+    encounter_id: string = "encounter_01",
+    trigger_type: enum("proximity" | "time_interval" | "state_change" | "interaction") = "proximity",
+    cooldown_ms: number = 0,
+    proximity_radius: number = 5,
+    proximity_target: string = "",
+    time_interval: number = 60000,
+    state_key: string = "",
+    check_interval: number = 200
+  },
+  events: {
+    on_fired: "encounter:fired",
+    on_cooldown: "encounter:cooldown",
+    check: "encounter:check"
+  },
+  behaviors: ["@stat", "@luck", "@drop_table"]
+}

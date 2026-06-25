@@ -1,0 +1,15 @@
+@trait {
+  name: "@llm_agent",
+  category: "behavior",
+  description: "LLM-powered agent brain — wraps an LLM inference call as a scene-graph behavior. model is the LLM model identifier to use (default: auto — resolved from the mesh seat's model SSOT). Receives llm_agent:prompt events with {prompt, context}; emits llm_agent:response with the completion. Integrates with the HoloMesh wallet-keyed x402 inference budget. Port of BehavioralTraits.ts handler 'llm_agent'.",
+  props: {
+    model: string = "auto"
+  },
+  events: {
+    on_response: "llm_agent:response",
+    on_error: "llm_agent:error",
+    prompt: "llm_agent:prompt",
+    cancel: "llm_agent.cancel"
+  },
+  behaviors: ["@ai_companion", "@ai_npc_brain"]
+}

@@ -1,0 +1,12 @@
+@trait {
+  name: "@chain",
+  category: "behavior",
+  description: "Kinematic chain behavior — links this node as a segment in a physics-simulated chain (rope/joint). Receives chain segment configuration from the parent chain root. Integrates with the kinematic solver to propagate forces through the joint hierarchy. Port of BehavioralTraits.ts handler 'chain'.",
+  props: {},
+  events: {
+    on_attached: "chain:attached",
+    on_detached: "chain:detached",
+    on_tension: "chain:tension"
+  },
+  behaviors: ["@kinematic_chain"]
+}
