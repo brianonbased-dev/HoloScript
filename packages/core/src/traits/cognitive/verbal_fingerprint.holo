@@ -1,0 +1,23 @@
+@trait {
+  name: "@verbal_fingerprint",
+  category: "cognitive",
+  description: "Post-generation constraint that verifies an agent's output carries a stable stylistic signature across LLM swaps. Computes a fingerprint over the generated text using a StyleConstraint (sentence-length bounds, forbidden/required phrases, tone). On mismatch emits a diagnostic; downstream can retry or route to a different model. Port of VerbalFingerprintTrait.ts (handler name: verbal_fingerprint).",
+  props: {
+    fingerprint_key: string = "default",
+    min_sentence_length: number = 5,
+    max_sentence_length: number = 40,
+    forbidden_phrases: list<string> = [],
+    required_phrases: list<string> = [],
+    tone: string = "neutral",
+    enforce: boolean = false,
+    rolling_window: number = 50
+  },
+  events: {
+    attached: "verbal_fingerprint_attached",
+    detached: "verbal_fingerprint_detached",
+    on_match: "verbal_fingerprint_match",
+    on_mismatch: "verbal_fingerprint_mismatch",
+    verify: "verbal_fingerprint_verify"
+  },
+  behaviors: ["@vocabulary_register", "@speech_aware_encounter", "@dialogue"]
+}

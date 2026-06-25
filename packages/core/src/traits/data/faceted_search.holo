@@ -1,0 +1,15 @@
+@trait {
+  name: "@faceted_search",
+  category: "data",
+  description: "Faceted / filtered search. Maintains a per-trait map of facet keys to value sets (capped at max_facets). Responds to facet:add to register a facet value and facet:filter to emit all current facet state. Port of FacetedSearchTrait.ts (handler name: faceted_search).",
+  props: {
+    max_facets: number = 20
+  },
+  events: {
+    on_added: "facet:added",
+    on_filtered: "facet:filtered",
+    add: "facet:add",
+    filter: "facet:filter"
+  },
+  behaviors: ["@query", "@index", "@vector_search"]
+}

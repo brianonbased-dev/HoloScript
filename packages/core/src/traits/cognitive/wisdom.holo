@@ -1,0 +1,18 @@
+@trait {
+  name: "@wisdom",
+  category: "cognitive",
+  description: "Meta-trait for declarative wisdom patterns. Captures battle-tested, reusable insights keyed to one or more traits or categories, making implicit knowledge explicit and queryable at the language level. A non-empty description is required. Port of WisdomTrait.ts (handler name: wisdom).",
+  props: {
+    description: string = "",
+    source: string = "community",
+    applies_to: list<string> = [],
+    examples: list<string> = []
+  },
+  events: {
+    on_registered: "wisdom_registered",
+    on_query_result: "wisdom_query_result",
+    on_error: "wisdom_error",
+    query: "wisdom_query"
+  },
+  behaviors: ["@vocabulary_register", "@memory_crystal", "@provenance"]
+}

@@ -1,0 +1,26 @@
+@trait {
+  name: "@world_foundation_model",
+  category: "world",
+  description: "Provenance companion for multimodal world synthesis. A generated world carries this trait to declare which foundation model, modalities, reconstruction session, semantic-node count, and collider count produced the scene graph. Emits a CAEL world_synthesis event on attach when emit_cael=true. Port of WorldFoundationModelTrait.ts (handler name: world_foundation_model).",
+  props: {
+    schema: string = "cael.world_foundation_model.v1",
+    synthesis_id: string = "uninitialized",
+    provider: string = "unknown",
+    model: string = "unknown",
+    generated_at: string = "1970-01-01T00:00:00.000Z",
+    prompt_hash: string = "unknown",
+    input_modalities: list<enum("text" | "image" | "video")> = ["text"],
+    semantic_node_count: number = 0,
+    collider_count: number = 0,
+    source_asset_urls: list<string> = [],
+    video_reconstruction_session_id: string = "",
+    replay_fingerprint: string = "",
+    receipt_hash: string = "unknown",
+    emit_cael: boolean = true
+  },
+  events: {
+    attached: "world_foundation_model_attached",
+    on_cael: "world_foundation_model_cael"
+  },
+  behaviors: ["@world_state", "@provenance", "@holo_map_reconstruction"]
+}
