@@ -899,14 +899,16 @@ export class AgentRunner {
     }
     this.idleTick++;
 
-    // Stall guard: if the model keeps deriving the same title without ever producing a
-    // real write artifact, suppress it for IDLE_SUPPRESS_CYCLES ticks so the idle
-    // director is forced to pick something different next cycle.
+    // Stall guard: if the model keeps deriving the same (or near-same) title without ever
+    // producing a real write artifact, suppress it for IDLE_SUPPRESS_CYCLES ticks.
+    // Use the first 60 chars as the stall key so suffix variants ("edge-native authoring"
+    // vs "edge-native parsing") map to the same bucket and don't reset the counter.
     const IDLE_STALL_LIMIT = 3;
     const IDLE_SUPPRESS_CYCLES = 10;
-    const suppressedUntil = this.idleTitleSuppressed.get(selfTitle);
+    const stallKey = selfTitle.slice(0, 60).toLowerCase().replace(/\s+/g, ' ').trim();
+    const suppressedUntil = this.idleTitleSuppressed.get(stallKey);
     if (suppressedUntil !== undefined && this.idleTick <= suppressedUntil) {
-      log({ ev: 'idle-skipped', reason: 'title-suppressed', title: selfTitle, suppressedUntil });
+      log({ ev: 'idle-skipped', reason: 'title-suppressed', title: selfTitle, stallKey, suppressedUntil });
       return {
         action: 'idle-skipped',
         spentUsd: spent(),
@@ -914,8 +916,8 @@ export class AgentRunner {
         message: `idle title suppressed for ${suppressedUntil - this.idleTick} more ticks: ${selfTitle}`,
       };
     } else if (suppressedUntil !== undefined) {
-      this.idleTitleSuppressed.delete(selfTitle);
-      this.idleTitleCounts.delete(selfTitle);
+      this.idleTitleSuppressed.delete(stallKey);
+      this.idleTitleCounts.delete(stallKey);
     }
 
     log({ ev: 'idle-derived', title: selfTitle });
@@ -1012,12 +1014,12 @@ export class AgentRunner {
     //    to record/file anything; idle work must never fabricate a deliverable.
     const wroteFile = toolsCalled.has('write_file') || toolsCalled.has('str_replace');
     if (productiveCallCount === 0) {
-      // Stall tracking: count consecutive no-artifact cycles for this title.
-      const stallCount = (this.idleTitleCounts.get(selfTitle) ?? 0) + 1;
-      this.idleTitleCounts.set(selfTitle, stallCount);
+      // Stall tracking: count consecutive no-artifact cycles for this stallKey prefix.
+      const stallCount = (this.idleTitleCounts.get(stallKey) ?? 0) + 1;
+      this.idleTitleCounts.set(stallKey, stallCount);
       if (stallCount >= IDLE_STALL_LIMIT) {
-        this.idleTitleSuppressed.set(selfTitle, this.idleTick + IDLE_SUPPRESS_CYCLES);
-        log({ ev: 'idle-title-suppressed', title: selfTitle, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
+        this.idleTitleSuppressed.set(stallKey, this.idleTick + IDLE_SUPPRESS_CYCLES);
+        log({ ev: 'idle-title-suppressed', title: selfTitle, stallKey, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
       }
       log({ ev: 'idle-skipped', reason: 'no-artifact', title: selfTitle, toolsCalled: [...toolsCalled] });
       this.recordTrace({
@@ -1035,19 +1037,19 @@ export class AgentRunner {
     }
 
     // Stall tracking: mcp_call alone (validate, etc.) without a file write still
-    // means no lasting artifact was produced — count toward suppression. A real
-    // write_file/str_replace clears the stall counter for this title.
+    // means no lasting artifact was produced — count toward suppression using the
+    // prefix stallKey so variants of the same stuck topic accumulate together.
     if (!wroteFile) {
-      const stallCount = (this.idleTitleCounts.get(selfTitle) ?? 0) + 1;
-      this.idleTitleCounts.set(selfTitle, stallCount);
+      const stallCount = (this.idleTitleCounts.get(stallKey) ?? 0) + 1;
+      this.idleTitleCounts.set(stallKey, stallCount);
       if (stallCount >= IDLE_STALL_LIMIT) {
-        this.idleTitleSuppressed.set(selfTitle, this.idleTick + IDLE_SUPPRESS_CYCLES);
-        log({ ev: 'idle-title-suppressed', title: selfTitle, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
+        this.idleTitleSuppressed.set(stallKey, this.idleTick + IDLE_SUPPRESS_CYCLES);
+        log({ ev: 'idle-title-suppressed', title: selfTitle, stallKey, stallCount, suppressedUntilTick: this.idleTick + IDLE_SUPPRESS_CYCLES });
       }
     } else {
-      // Real file write — clear stall state for this title.
-      this.idleTitleCounts.delete(selfTitle);
-      this.idleTitleSuppressed.delete(selfTitle);
+      // Real file write — clear stall state for this key.
+      this.idleTitleCounts.delete(stallKey);
+      this.idleTitleSuppressed.delete(stallKey);
     }
 
     // 4. CONTINUITY — record the outcome to the agent's private knowledge (free, best-effort).
