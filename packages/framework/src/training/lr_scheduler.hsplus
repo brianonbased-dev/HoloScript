@@ -1,0 +1,28 @@
+// @lr_scheduler — Learning rate schedule: linear warmup (10%) + cosine decay (W.009).
+//
+// Native .hsplus surface for framework/training/LRScheduler.ts.
+//
+// LRSchedulerConfig: baseLR, minLR, warmupSteps, totalSteps
+// getLR(step) → number — warmup phase ramps 0→baseLR; cosine phase decays baseLR→minLR
+// Default baseLR: 2e-4 (SFT, W.006); 1e-6 (GRPO)
+// Prevents early divergence; smooth convergence
+
+@trait lr_scheduler {
+  capability_tags: ["lr_scheduler", "cosine_decay", "warmup", "training_schedule", "framework"]
+
+  @on_spawn => {
+    scheduler = init_lr_scheduler(config)
+    emit("lr_scheduler_ready", {})
+  }
+
+  @on_get_lr(step) => {
+    return scheduler.get_lr(step)
+  }
+
+  @receipt lr_scheduler_config {
+    type: "LRSchedulerReceipt"
+    phases: ["linear warmup (10% of total steps)", "cosine decay → minLR"]
+    defaults: "baseLR=2e-4 (SFT) or 1e-6 (GRPO) per W.006"
+    timestamp: now()
+  }
+}

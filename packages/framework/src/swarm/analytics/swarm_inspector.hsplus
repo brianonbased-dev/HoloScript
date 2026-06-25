@@ -1,0 +1,34 @@
+// @swarm_inspector — Debugging and introspection for swarms: snapshots, topology, diagnostics.
+//
+// Native .hsplus surface for framework/swarm/analytics/SwarmInspector.ts.
+//
+// IAgentSnapshot: { id, swarmId?, state, position[3]?, velocity[3]?, health, load, lastActive }
+// snapshot(agentIds) → IAgentSnapshot[] — live state capture
+// topology(swarmId) → SwarmTopology { leader, members, connections }
+// diagnose(swarmId) → DiagnosticReport { issues, recommendations }
+
+@trait swarm_inspector {
+  capability_tags: ["swarm_inspector", "agent_snapshot", "topology_view", "diagnostics", "swarm_analytics", "framework"]
+
+  @on_spawn => {
+    inspector = init_swarm_inspector()
+    emit("swarm_inspector_ready", {})
+  }
+
+  @on_snapshot(agent_ids) => {
+    snapshots = inspector.snapshot(agent_ids)
+    return snapshots
+  }
+
+  @on_diagnose(swarm_id) => {
+    report = inspector.diagnose(swarm_id)
+    emit("diagnosis_complete", { issue_count: report.issues.length })
+    return report
+  }
+
+  @receipt swarm_inspector_config {
+    type: "SwarmInspectorReceipt"
+    outputs: ["IAgentSnapshot[]", "SwarmTopology", "DiagnosticReport"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @formation_controller — Geometric swarm formations with slot assignment and movement.
+//
+// Native .hsplus surface for framework/swarm/spatial/FormationController.ts.
+//
+// FormationType: line | circle | grid | wedge | diamond | sphere | custom
+// IFormationSlot: { index, agentId? }
+// assign(formation, agents) → IFormationSlot[] — assigns agents to geometric slots
+// move(formation, target) → void — translates entire formation to new anchor
+// HoloScript v3.2 Autonomous Agent Swarms
+
+@trait formation_controller {
+  capability_tags: ["formation_controller", "geometric_formation", "slot_assignment", "swarm_movement", "spatial_swarm", "framework"]
+
+  @on_spawn => {
+    fc = init_formation_controller()
+    emit("formation_controller_ready", {})
+  }
+
+  @on_assign(formation_type, agents) => {
+    slots = fc.assign(formation_type, agents)
+    emit("formation_assigned", { type: formation_type, slots: slots.length })
+    return slots
+  }
+
+  @receipt formation_controller_config {
+    type: "FormationControllerReceipt"
+    types: ["line", "circle", "grid", "wedge", "diamond", "sphere", "custom"]
+    timestamp: now()
+  }
+}

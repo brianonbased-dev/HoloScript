@@ -1,0 +1,29 @@
+// @flocking_behavior — Craig Reynolds Boids: separation, alignment, cohesion for swarm movement.
+//
+// Native .hsplus surface for framework/swarm/spatial/FlockingBehavior.ts.
+//
+// IBoid: { id, position: Vector3, velocity: Vector3, acceleration: Vector3, mass, maxSpeed, maxForce }
+// update(boids, delta) → IBoid[] — applies 3 rules per boid per tick
+// Rules: Separation (avoid crowding) + Alignment (avg heading) + Cohesion (avg position)
+// perceptionRadius controls neighbor search; weights tune emergent behavior
+
+@trait flocking_behavior {
+  capability_tags: ["flocking_behavior", "boids", "separation_alignment_cohesion", "spatial_swarm", "framework"]
+
+  @on_spawn => {
+    flock = init_flocking_behavior(config)
+    emit("flocking_behavior_ready", {})
+  }
+
+  @on_update(boids, delta) => {
+    updated = flock.update(boids, delta)
+    return updated
+  }
+
+  @receipt flocking_behavior_config {
+    type: "FlockingBehaviorReceipt"
+    rules: ["separation", "alignment", "cohesion"]
+    note: "Craig Reynolds Boids algorithm"
+    timestamp: now()
+  }
+}

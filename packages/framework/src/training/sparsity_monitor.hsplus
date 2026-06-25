@@ -1,0 +1,34 @@
+// @sparsity_monitor — Monitors SNN activation sparsity; alerts on regime violations (W.041 >= 93%).
+//
+// Native .hsplus surface for framework/training/SparsityMonitor.ts.
+//
+// recordLayerActivity(layerId, activity) → void
+// getSparsityReport() → SparsityReport { layers, meetsThreshold, averageSparsity }
+// W.041: SNN layers must maintain >= 93% activation sparsity
+// Integrates with SelfImproveHarvester + quality-history.json
+
+@trait sparsity_monitor {
+  capability_tags: ["sparsity_monitor", "snn_sparsity", "activation_threshold", "energy_efficiency", "training", "framework"]
+
+  @on_spawn => {
+    monitor = init_sparsity_monitor(config)
+    emit("sparsity_monitor_ready", {})
+  }
+
+  @on_record_layer(layer_id, activity) => {
+    monitor.record_layer_activity(layer_id, activity)
+  }
+
+  @on_report => {
+    report = monitor.get_report()
+    if !report.meets_threshold { emit("sparsity_violation", { avg: report.average_sparsity }) }
+    return report
+  }
+
+  @receipt sparsity_monitor_config {
+    type: "SparsityMonitorReceipt"
+    threshold: ">=93% activation sparsity per W.041"
+    integrates: ["SelfImproveHarvester", "quality-history.json"]
+    timestamp: now()
+  }
+}

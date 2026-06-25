@@ -1,0 +1,34 @@
+// @swarm_membership — Agent join/leave protocol with quorum enforcement and heartbeat tracking.
+//
+// Native .hsplus surface for framework/swarm/SwarmMembership.ts.
+//
+// join(request) → MemberInfo | null (quorum gate via QuorumPolicy)
+// leave(agentId) → void; heartbeat(agentId) → void
+// MemberInfo: { agentId, joinedAt, role: leader|member|observer, status: active|inactive|leaving }
+// MembershipEvent: join | leave | role_change | status_change
+
+@trait swarm_membership {
+  capability_tags: ["swarm_membership", "join_leave_protocol", "heartbeat", "quorum_gate", "swarm", "framework"]
+
+  @on_spawn => {
+    membership = init_swarm_membership(config)
+    emit("swarm_membership_ready", {})
+  }
+
+  @on_join(request) => {
+    member = membership.join(request)
+    if member { emit("member_joined", { agent_id: request.agent_id }) }
+    return member
+  }
+
+  @on_heartbeat(agent_id) => {
+    membership.heartbeat(agent_id)
+  }
+
+  @receipt swarm_membership_config {
+    type: "SwarmMembershipReceipt"
+    roles: ["leader", "member", "observer"]
+    events: ["join", "leave", "role_change", "status_change"]
+    timestamp: now()
+  }
+}

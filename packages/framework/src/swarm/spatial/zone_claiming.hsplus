@@ -1,0 +1,30 @@
+// @zone_claiming — Territory awareness: claim, contest, and defend spatial zones for swarm agents.
+//
+// Native .hsplus surface for framework/swarm/spatial/ZoneClaiming.ts.
+//
+// ZoneState: unclaimed | contested | claimed | defended
+// IZoneClaim: { agentId, swarmId? }
+// claim(zoneId, agentId, swarmId?) → ClaimResult { state, contested }
+// defend(zoneId, agentId) → void; contest(zoneId, challengerId) → ContestResult
+// HoloScript v3.2 Autonomous Agent Swarms
+
+@trait zone_claiming {
+  capability_tags: ["zone_claiming", "territory_awareness", "contested_zones", "spatial_swarm", "framework"]
+
+  @on_spawn => {
+    zc = init_zone_claiming()
+    emit("zone_claiming_ready", {})
+  }
+
+  @on_claim(zone_id, agent_id, swarm_id) => {
+    result = zc.claim(zone_id, agent_id, swarm_id)
+    emit("zone_claim_attempt", { zone_id, state: result.state })
+    return result
+  }
+
+  @receipt zone_claiming_config {
+    type: "ZoneClaimingReceipt"
+    states: ["unclaimed", "contested", "claimed", "defended"]
+    timestamp: now()
+  }
+}

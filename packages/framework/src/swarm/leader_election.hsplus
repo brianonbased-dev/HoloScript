@@ -1,0 +1,31 @@
+// @leader_election — Raft-inspired fault-tolerant leader election for agent clusters.
+//
+// Native .hsplus surface for framework/swarm/LeaderElection.ts.
+//
+// ElectionRole: leader | follower | candidate
+// ElectionState: { term, currentLeader?, votedFor, role }
+// startElection() → ElectionResult (async)
+// ElectionConfig: electionTimeoutMin/Max, heartbeatInterval, quorumSize?
+// Automatic failover on leader heartbeat loss
+
+@trait leader_election {
+  capability_tags: ["leader_election", "raft_consensus", "fault_tolerant", "failover", "swarm", "framework"]
+
+  @on_spawn => {
+    le = init_leader_election(config)
+    emit("leader_election_ready", {})
+  }
+
+  @on_start_election => {
+    result = le.start_election()
+    emit("election_complete", { leader: result.leader_id, term: result.term })
+    return result
+  }
+
+  @receipt leader_election_config {
+    type: "LeaderElectionReceipt"
+    algorithm: "Raft-inspired; randomized election timeout; heartbeat-based liveness"
+    roles: ["leader", "follower", "candidate"]
+    timestamp: now()
+  }
+}

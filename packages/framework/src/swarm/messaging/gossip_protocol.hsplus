@@ -1,0 +1,29 @@
+// @gossip_protocol — Epidemic-style message propagation for decentralized swarms.
+//
+// Native .hsplus surface for framework/swarm/messaging/GossipProtocol.ts.
+//
+// IGossipMessage: { id, originId, content, type: data|heartbeat|membership|custom, version, ttl, hops, path[] }
+// spread(message) → void — epidemic fan-out; TTL-based termination
+// receive(agentId, message) → ProcessResult — dedup by id; check path for loops
+// HoloScript v3.2 Autonomous Agent Swarms
+
+@trait gossip_protocol {
+  capability_tags: ["gossip_protocol", "epidemic_spread", "decentralized", "ttl_termination", "swarm_messaging", "framework"]
+
+  @on_spawn => {
+    gossip = init_gossip_protocol(config)
+    emit("gossip_protocol_ready", {})
+  }
+
+  @on_spread(message) => {
+    gossip.spread(message)
+    emit("gossip_spread", { id: message.id, type: message.type })
+  }
+
+  @receipt gossip_protocol_config {
+    type: "GossipProtocolReceipt"
+    message_types: ["data", "heartbeat", "membership", "custom"]
+    termination: "TTL + hop count; loop detection via path[]"
+    timestamp: now()
+  }
+}

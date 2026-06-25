@@ -1,0 +1,33 @@
+// @swarm_metrics — Real-time swarm performance metrics collection and aggregation.
+//
+// Native .hsplus surface for framework/swarm/analytics/SwarmMetrics.ts.
+//
+// MetricType: counter | gauge | histogram | summary
+// IMetricValue: { value, timestamp, labels? }
+// record(metric, value, labels?) → void
+// aggregate(metric, window) → AggregatedMetric { min, max, avg, p95 }
+// HoloScript v3.2 Autonomous Agent Swarms
+
+@trait swarm_metrics {
+  capability_tags: ["swarm_metrics", "counter_gauge", "histogram", "real_time_monitoring", "swarm_analytics", "framework"]
+
+  @on_spawn => {
+    metrics = init_swarm_metrics()
+    emit("swarm_metrics_ready", {})
+  }
+
+  @on_record(metric_name, value, labels) => {
+    metrics.record(metric_name, value, labels)
+  }
+
+  @on_aggregate(metric_name, window) => {
+    return metrics.aggregate(metric_name, window)
+  }
+
+  @receipt swarm_metrics_config {
+    type: "SwarmMetricsReceipt"
+    types: ["counter", "gauge", "histogram", "summary"]
+    outputs: ["min", "max", "avg", "p95"]
+    timestamp: now()
+  }
+}

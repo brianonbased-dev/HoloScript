@@ -1,0 +1,35 @@
+// @swarm_manager — Swarm formation, disbandment, and lifecycle orchestration.
+//
+// Native .hsplus surface for framework/swarm/SwarmManager.ts.
+//
+// form(name, objective, createdBy) → SwarmInfo
+// disband(swarmId) → void
+// SwarmInfo: { id, name, objective, createdAt, createdBy, status }
+// Status: forming | active | disbanding | disbanded
+// Delegates membership to SwarmMembership; quorum via QuorumPolicy
+
+@trait swarm_manager {
+  capability_tags: ["swarm_manager", "swarm_lifecycle", "formation", "disbandment", "swarm", "framework"]
+
+  @on_spawn => {
+    manager = init_swarm_manager()
+    emit("swarm_manager_ready", {})
+  }
+
+  @on_form(name, objective, created_by) => {
+    swarm = manager.form(name, objective, created_by)
+    emit("swarm_formed", { id: swarm.id, name })
+    return swarm
+  }
+
+  @on_disband(swarm_id) => {
+    manager.disband(swarm_id)
+    emit("swarm_disbanded", { id: swarm_id })
+  }
+
+  @receipt swarm_manager_config {
+    type: "SwarmManagerReceipt"
+    statuses: ["forming", "active", "disbanding", "disbanded"]
+    timestamp: now()
+  }
+}

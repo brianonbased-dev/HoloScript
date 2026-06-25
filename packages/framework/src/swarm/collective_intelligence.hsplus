@@ -1,0 +1,36 @@
+// @collective_intelligence — Collaborative problem-solving via hive sessions and voting rounds.
+//
+// Native .hsplus surface for framework/swarm/CollectiveIntelligence.ts.
+//
+// openSession(topic, participants) → IHiveSession
+// contribute(sessionId, agentId, contribution) → void
+// vote(sessionId) → VotingResult
+// synthesize(sessionId) → SynthesisResult — delegates to ContributionSynthesizer
+// Config: maxParticipants, votingThreshold, synthesisMinContributions, autoCloseOnResolution
+
+@trait collective_intelligence {
+  capability_tags: ["collective_intelligence", "hive_session", "voting_round", "problem_solving", "swarm", "framework"]
+
+  @on_spawn => {
+    ci = init_collective_intelligence(config)
+    emit("collective_intelligence_ready", {})
+  }
+
+  @on_open_session(topic, participants) => {
+    session = ci.open_session(topic, participants)
+    emit("hive_session_opened", { id: session.id, topic })
+    return session
+  }
+
+  @on_synthesize(session_id) => {
+    result = ci.synthesize(session_id)
+    emit("synthesis_complete", { confidence: result.confidence })
+    return result
+  }
+
+  @receipt collective_intelligence_config {
+    type: "CollectiveIntelligenceReceipt"
+    synthesis_methods: ["merge", "consensus", "weighted", "hierarchical"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @vector3 — 3D vector math for spatial swarm calculations; tuple + named-field dual access.
+//
+// Native .hsplus surface for framework/swarm/spatial/Vector3.ts.
+//
+// Vector3(x, y, z): supports v.x/v.y/v.z AND v[0]/v[1]/v[2] (numeric indexers via Object.defineProperty)
+// Operations: add, sub, scale, dot, cross, magnitude, normalize, distance, lerp
+// Used by: FlockingBehavior, FormationController, ZoneClaiming
+
+@trait vector3 {
+  capability_tags: ["vector3", "3d_math", "tuple_dual_access", "spatial_ops", "spatial_swarm", "framework"]
+
+  @on_spawn => {
+    emit("vector3_ready", {})
+  }
+
+  @on_normalize(v) => {
+    return normalize(v)
+  }
+
+  @receipt vector3_config {
+    type: "Vector3Receipt"
+    access: "v.x/v.y/v.z (named) AND v[0]/v[1]/v[2] (numeric index)"
+    ops: ["add", "sub", "scale", "dot", "cross", "magnitude", "normalize", "distance", "lerp"]
+    timestamp: now()
+  }
+}

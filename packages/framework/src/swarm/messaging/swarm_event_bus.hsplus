@@ -1,0 +1,29 @@
+// @swarm_event_bus — Decoupled pub/sub event coordination for swarm components.
+//
+// Native .hsplus surface for framework/swarm/messaging/SwarmEventBus.ts.
+//
+// EventPriority: low | normal | high | critical
+// ISwarmEvent: { id, type, source, target?, priority, payload, timestamp }
+// emit(event) → void
+// on(eventType, handler) → Unsubscribe; once(eventType, handler) → Unsubscribe
+// Priority queue: critical events pre-empt low-priority in delivery order
+
+@trait swarm_event_bus {
+  capability_tags: ["swarm_event_bus", "priority_pub_sub", "decoupled_events", "swarm_messaging", "framework"]
+
+  @on_spawn => {
+    bus = init_swarm_event_bus()
+    emit("swarm_event_bus_ready", {})
+  }
+
+  @on_emit(event) => {
+    bus.emit(event)
+  }
+
+  @receipt swarm_event_bus_config {
+    type: "SwarmEventBusReceipt"
+    priorities: ["low", "normal", "high", "critical"]
+    model: "priority-ordered pub/sub; decoupled between swarm components"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @quality_scoring_pipeline — Compiler-based quality scoring for training data (W.010).
+//
+// Native .hsplus surface for framework/training/QualityScoringPipeline.ts.
+//
+// QualityScore: { syntaxValidity, schemaCompliance, semanticCorrectness, compositeScore, details[] }
+// score(sample) → QualityScore — multi-dimensional; gate at compositeScore >= threshold
+// Config weights: syntaxWeight + schemaWeight + semanticWeight = 1.0
+// Pipeline position: first stage (Quality Filter → Hard Dedup → SoftDedup → Training)
+
+@trait quality_scoring_pipeline {
+  capability_tags: ["quality_scoring_pipeline", "syntax_validity", "schema_compliance", "semantic_correctness", "training", "framework"]
+
+  @on_spawn => {
+    pipeline = init_quality_scoring_pipeline(config)
+    emit("quality_scoring_pipeline_ready", {})
+  }
+
+  @on_score(sample) => {
+    score = pipeline.score(sample)
+    if score.composite_score < config.threshold { emit("sample_filtered", { score: score.composite_score }) }
+    return score
+  }
+
+  @receipt quality_scoring_pipeline_config {
+    type: "QualityScoringPipelineReceipt"
+    dimensions: ["syntaxValidity", "schemaCompliance", "semanticCorrectness"]
+    position: "stage 1 of Quality Filter → Hard Dedup → SoftDedup → Training"
+    timestamp: now()
+  }
+}

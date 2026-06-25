@@ -1,0 +1,30 @@
+// @soft_dedup — N-gram commonness reweighting: reduce sampling weight of near-duplicates (W.008).
+//
+// Native .hsplus surface for framework/training/SoftDedup.ts.
+//
+// reweight(samples) → SoftDedupResult { samples with samplingWeight, commonness[] }
+// High-frequency n-gram samples → lower weight (not deleted; still trained on)
+// Benefit (W.008): 26% faster training + 1.77% accuracy vs hard dedup alone
+// Pipeline position: after Hard Dedup (W.004); before Training
+
+@trait soft_dedup {
+  capability_tags: ["soft_dedup", "ngram_reweighting", "near_duplicate", "sampling_weight", "training", "framework"]
+
+  @on_spawn => {
+    dedup = init_soft_dedup(config)
+    emit("soft_dedup_ready", {})
+  }
+
+  @on_reweight(samples) => {
+    result = dedup.reweight(samples)
+    emit("soft_dedup_complete", { sample_count: samples.length })
+    return result
+  }
+
+  @receipt soft_dedup_config {
+    type: "SoftDedupReceipt"
+    effect: "reweight, not delete; high-freq n-gram samples get lower samplingWeight"
+    benefit: "26% faster training + 1.77% accuracy vs hard dedup"
+    timestamp: now()
+  }
+}

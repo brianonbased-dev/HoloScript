@@ -1,0 +1,29 @@
+// @quorum_policy — Enforces minimum swarm size requirements for safe operations.
+//
+// Native .hsplus surface for framework/swarm/QuorumPolicy.ts.
+//
+// QuorumConfig: minimumSize(2), optimalSize(5), maximumSize(50), quorumPercentage(0.5)
+// check(memberCount) → QuorumState { hasQuorum, currentSize, recommendation }
+// Operations gate on hasQuorum when requireQuorumForOperations=true
+
+@trait quorum_policy {
+  capability_tags: ["quorum_policy", "swarm_safety", "membership_gate", "swarm", "framework"]
+
+  @on_spawn => {
+    qp = init_quorum_policy(config)
+    emit("quorum_policy_ready", {})
+  }
+
+  @on_check(member_count) => {
+    state = qp.check(member_count)
+    if !state.has_quorum { emit("quorum_lost", { size: member_count }) }
+    return state
+  }
+
+  @receipt quorum_policy_config {
+    type: "QuorumPolicyReceipt"
+    defaults: "min=2, optimal=5, max=50, quorumPct=0.5"
+    gate: "requireQuorumForOperations blocks ops when quorum is absent"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,29 @@
+// @broadcast_channel — Named messaging channels for targeted swarm group communication.
+//
+// Native .hsplus surface for framework/swarm/messaging/BroadcastChannel.ts.
+//
+// IChannelMessage: { id, channelId, senderId, content, timestamp, replyTo?, metadata? }
+// open(channelId) → Channel
+// publish(channelId, message) → void
+// subscribe(channelId, handler) → Unsubscribe
+// HoloScript v3.2 Autonomous Agent Swarms
+
+@trait broadcast_channel {
+  capability_tags: ["broadcast_channel", "named_channel", "group_messaging", "pub_sub", "swarm_messaging", "framework"]
+
+  @on_spawn => {
+    channels = init_broadcast_channel()
+    emit("broadcast_channel_ready", {})
+  }
+
+  @on_publish(channel_id, message) => {
+    channels.publish(channel_id, message)
+    emit("message_broadcast", { channel_id, sender: message.sender_id })
+  }
+
+  @receipt broadcast_channel_config {
+    type: "BroadcastChannelReceipt"
+    model: "named pub/sub channels; targeted group delivery"
+    timestamp: now()
+  }
+}

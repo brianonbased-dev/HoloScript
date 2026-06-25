@@ -1,0 +1,29 @@
+// @swarm_coordinator — Agent-task optimization coordinator: PSO, ACO, and hybrid algorithms.
+//
+// Native .hsplus surface for framework/swarm/SwarmCoordinator.ts.
+//
+// coordinate(agents, tasks, algorithm) → ISwarmResult { assignment, score }
+// Algorithm: pso | aco | hybrid (PSO-seed + ACO-refine)
+// AgentInfo: { id, capacity, load }; TaskInfo: { id, complexity, requirements? }
+// Implements ISwarmCoordinator from @holoscript/core
+
+@trait swarm_coordinator {
+  capability_tags: ["swarm_coordinator", "pso_aco_hybrid", "task_assignment", "agent_optimization", "swarm", "framework"]
+
+  @on_spawn => {
+    coordinator = init_swarm_coordinator()
+    emit("swarm_coordinator_ready", {})
+  }
+
+  @on_coordinate(agents, tasks, algorithm) => {
+    result = coordinator.coordinate(agents, tasks, algorithm)
+    emit("swarm_coordinated", { algorithm, score: result.score })
+    return result
+  }
+
+  @receipt swarm_coordinator_config {
+    type: "SwarmCoordinatorReceipt"
+    algorithms: ["pso", "aco", "hybrid (PSO-seed + ACO-refine)"]
+    timestamp: now()
+  }
+}

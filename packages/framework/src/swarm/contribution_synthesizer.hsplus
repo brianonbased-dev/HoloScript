@@ -1,0 +1,29 @@
+// @contribution_synthesizer — Synthesizes multiple hive contributions into unified insights.
+//
+// Native .hsplus surface for framework/swarm/ContributionSynthesizer.ts.
+//
+// synthesize(contributions, session) → SynthesisResult
+// SynthesisResult: synthesizedContent, sourceContributions, method, confidence, metadata
+// Methods: merge | consensus | weighted | hierarchical
+// Metadata: ideaCount, critiqueCount, consensusCount, solutionCount, averageConfidence
+
+@trait contribution_synthesizer {
+  capability_tags: ["contribution_synthesizer", "hive_synthesis", "consensus_merge", "swarm", "framework"]
+
+  @on_spawn => {
+    synth = init_contribution_synthesizer()
+    emit("contribution_synthesizer_ready", {})
+  }
+
+  @on_synthesize(contributions, session) => {
+    result = synth.synthesize(contributions, session)
+    emit("synthesis_done", { method: result.synthesis_method, confidence: result.confidence })
+    return result
+  }
+
+  @receipt contribution_synthesizer_config {
+    type: "ContributionSynthesizerReceipt"
+    methods: ["merge", "consensus", "weighted", "hierarchical"]
+    timestamp: now()
+  }
+}
