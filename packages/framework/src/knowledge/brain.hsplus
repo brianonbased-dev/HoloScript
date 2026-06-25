@@ -1,0 +1,33 @@
+// @brain — Domain-specific knowledge consolidation: excitability, half-lives, decay.
+//
+// Native .hsplus surface for framework/knowledge/brain.ts.
+//
+// KnowledgeDomain: security | rendering | agents | compilation | general
+// applyHalfLifeDecay(entry, now) → entry with decayed confidence
+// computeExcitability(entry, accessPattern) → 0-1 score for search ranking
+// MemoryRetentionState: candidate | retained | quarantined | rejected
+// Neuroscience model V9/V11 absorbed from holomesh/types.ts
+
+@trait brain {
+  capability_tags: ["brain", "knowledge_decay", "excitability", "half_life", "retention_state", "framework"]
+
+  @on_spawn => {
+    emit("brain_ready", {})
+  }
+
+  @on_decay(entry, now) => {
+    return apply_half_life_decay(entry, now)
+  }
+
+  @on_excitability(entry, access_pattern) => {
+    return compute_excitability(entry, access_pattern)
+  }
+
+  @receipt brain_config {
+    type: "BrainReceipt"
+    domains: ["security", "rendering", "agents", "compilation", "general"]
+    retention_states: ["candidate", "retained", "quarantined", "rejected"]
+    model: "V9/V11 neuroscience (half-life decay + excitability ranking)"
+    timestamp: now()
+  }
+}

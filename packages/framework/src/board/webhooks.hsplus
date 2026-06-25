@@ -1,0 +1,28 @@
+// @webhooks — Board webhook event types and ordering guarantees.
+//
+// Native .hsplus surface for framework/board/webhooks.ts.
+//
+// Events: task.created | task.claimed | task.done | task.failed | outcome.completed | memory.promoted | policy.violation
+// Delivery: at-least-once; per-taskId ordering; cross-task best-effort
+// Consumers: treat event.id as idempotent; fetch latest state by fetchById URL when ordering ambiguous
+
+@trait webhooks {
+  capability_tags: ["webhooks", "board_events", "at_least_once", "task_events", "idempotent_delivery", "framework"]
+
+  @on_spawn => {
+    emit("webhooks_ready", {})
+  }
+
+  @on_subscribe(endpoint, event_types) => {
+    webhook = register_webhook(endpoint, event_types)
+    emit("webhook_registered", { id: webhook.id })
+    return webhook
+  }
+
+  @receipt webhooks_config {
+    type: "WebhooksReceipt"
+    event_types: ["task.created", "task.claimed", "task.done", "task.failed", "outcome.completed", "memory.promoted", "policy.violation"]
+    delivery: "at-least-once; per-taskId ordered; cross-task best-effort"
+    timestamp: now()
+  }
+}

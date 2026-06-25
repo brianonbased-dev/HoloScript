@@ -1,0 +1,33 @@
+// @usage_meter — Per-tool-call cost tracking: free-tier allowances and paid overage.
+//
+// Native .hsplus surface for framework/economy/UsageMeter.ts.
+//
+// AggregationPeriod: hourly | daily | weekly | monthly
+// record(agentId, toolId, cost) — appends to usage history
+// aggregate(agentId, period) → UsageSummary { totalCost, toolBreakdown, freeTierUsed, overage }
+// Integrates TelemetryCollector for emit pipeline
+
+@trait usage_meter {
+  capability_tags: ["usage_meter", "per_tool_cost", "free_tier", "overage_tracking", "aggregation", "framework"]
+
+  @on_spawn => {
+    meter = init_usage_meter()
+    emit("usage_meter_ready", {})
+  }
+
+  @on_record(agent_id, tool_id, cost) => {
+    meter.record(agent_id, tool_id, cost)
+  }
+
+  @on_aggregate(agent_id, period) => {
+    summary = meter.aggregate(agent_id, period)
+    return summary
+  }
+
+  @receipt usage_meter_config {
+    type: "UsageMeterReceipt"
+    periods: ["hourly", "daily", "weekly", "monthly"]
+    outputs: ["totalCost", "toolBreakdown", "freeTierUsed", "overage"]
+    timestamp: now()
+  }
+}

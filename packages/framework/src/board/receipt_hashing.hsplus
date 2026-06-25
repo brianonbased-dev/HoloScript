@@ -1,0 +1,33 @@
+// @receipt_hashing — Deterministic receipt body hashing for provenance verification.
+//
+// Native .hsplus surface for framework/board/receipt-hashing.ts.
+//
+// canonicalReceiptBody(receipt) → stable JSON string (keys sorted, undefined stripped)
+// hashReceipt(receipt) → SHA-256 hex digest
+// verifyReceiptHash(receipt) → boolean — re-hashes body and compares to stored .hash
+
+@trait receipt_hashing {
+  capability_tags: ["receipt_hashing", "sha256", "canonical_json", "provenance_hash", "framework"]
+
+  @on_spawn => {
+    emit("receipt_hashing_ready", {})
+  }
+
+  @on_hash(receipt) => {
+    hash = hash_receipt(receipt)
+    return hash
+  }
+
+  @on_verify(receipt) => {
+    valid = verify_receipt_hash(receipt)
+    if !valid { emit("receipt_hash_mismatch", {}) }
+    return valid
+  }
+
+  @receipt receipt_hashing_config {
+    type: "ReceiptHashingReceipt"
+    algorithm: "SHA-256 of canonical JSON (keys sorted, undefined stripped)"
+    function: "canonicalReceiptBody → hashReceipt → verifyReceiptHash"
+    timestamp: now()
+  }
+}

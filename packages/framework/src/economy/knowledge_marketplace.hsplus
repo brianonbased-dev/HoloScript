@@ -1,0 +1,38 @@
+// @knowledge_marketplace — Buy/sell knowledge entries via x402 micropayments.
+//
+// Native .hsplus surface for framework/economy/KnowledgeMarketplace.ts.
+//
+// KnowledgeListing { id, entryId, seller, price, currency, status }
+// ListingStatus: active | sold | delisted
+// list(entry, price, currency) → KnowledgeListing
+// purchase(listingId, buyer) → PurchaseResult — calls X402Facilitator for settlement
+// W/P/G taxonomy entries (wisdom/pattern/gotcha) can all be listed
+
+@trait knowledge_marketplace {
+  capability_tags: ["knowledge_marketplace", "knowledge_monetization", "x402_purchase", "wpg_taxonomy", "listing", "framework"]
+
+  @on_spawn => {
+    market = init_knowledge_marketplace()
+    emit("knowledge_marketplace_ready", {})
+  }
+
+  @on_list(entry, price, currency) => {
+    listing = market.list(entry, price, currency)
+    emit("knowledge_listed", { id: listing.id, entry_id: listing.entry_id })
+    return listing
+  }
+
+  @on_purchase(listing_id, buyer) => {
+    result = market.purchase(listing_id, buyer)
+    emit("knowledge_purchased", { id: listing_id, buyer })
+    return result
+  }
+
+  @receipt knowledge_marketplace_config {
+    type: "KnowledgeMarketplaceReceipt"
+    currencies: ["USDC", "credits"]
+    taxonomy: "W/P/G entries (wisdom, pattern, gotcha)"
+    settlement: "X402Facilitator"
+    timestamp: now()
+  }
+}

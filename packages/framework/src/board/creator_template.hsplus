@@ -1,0 +1,35 @@
+// @creator_template — Creator playable-template pipeline for HoloLand content authoring.
+//
+// Native .hsplus surface for framework/board/creator-template.ts.
+//
+// CreatorTemplate → compileTemplateToChallenge() → PlayableChallenge
+// PlayableChallenge: validated as PLAYABLE not decorative; playability score gate
+// PublishReview: gate before challenge becomes visible HoloLand product slice
+// submitForReview(challenge) / approveChallenge(reviewId) → published product slice
+
+@trait creator_template {
+  capability_tags: ["creator_template", "playable_challenge", "publish_review", "hololand_authoring", "content_pipeline", "framework"]
+
+  @on_spawn => {
+    emit("creator_template_ready", {})
+  }
+
+  @on_compile(template) => {
+    challenge = compile_template_to_challenge(template)
+    emit("challenge_compiled", { playability_score: challenge.playability_score })
+    return challenge
+  }
+
+  @on_submit_for_review(challenge) => {
+    review = submit_for_review(challenge)
+    emit("review_submitted", { id: review.id })
+    return review
+  }
+
+  @receipt creator_template_config {
+    type: "CreatorTemplateReceipt"
+    pipeline: "CreatorTemplate → PlayableChallenge → PublishReview → approved product slice"
+    gate: "playability score; no decorative-only slices"
+    timestamp: now()
+  }
+}

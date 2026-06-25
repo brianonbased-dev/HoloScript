@@ -1,0 +1,33 @@
+// @receipt_capability_registry — Map capability keywords → receipt types; backbone for holo_query_receipts.
+//
+// Native .hsplus surface for framework/board/receipt-capability-registry.ts.
+//
+// ReceiptCapabilityEntry { capability, description, receiptType, validator?, examples? }
+// register(entry) — adds capability → receipt mapping
+// lookup(capability) → ReceiptCapabilityEntry | null
+// listCapabilities() → string[] — all known capability keywords
+// Powers the holo_query_receipts MCP tool
+
+@trait receipt_capability_registry {
+  capability_tags: ["receipt_capability_registry", "capability_keyword_routing", "receipt_type_lookup", "mcp_query_receipts", "framework"]
+
+  @on_spawn => {
+    registry = init_receipt_capability_registry()
+    emit("receipt_capability_registry_ready", {})
+  }
+
+  @on_lookup(capability) => {
+    return registry.lookup(capability)
+  }
+
+  @on_list => {
+    return registry.list_capabilities()
+  }
+
+  @receipt receipt_capability_registry_config {
+    type: "ReceiptCapabilityRegistryReceipt"
+    routing: "capability keyword → ReceiptCapabilityEntry"
+    powers: "holo_query_receipts MCP tool"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,31 @@
+// @revenue_splitter — Deterministic revenue splitting via bigint arithmetic (no rounding leakage).
+//
+// Native .hsplus surface for framework/economy/RevenueSplitter.ts.
+//
+// SplitRecipient { id, basisPoints } — basis points (1/10000), sum must = 10000
+// split(totalAmount, recipients) → SplitResult[] { id, amount } — exact sum invariant
+// Remainder (from integer division) added to first recipient
+// bigint throughout: sum(shares) === total guaranteed
+
+@trait revenue_splitter {
+  capability_tags: ["revenue_splitter", "bigint_arithmetic", "basis_points", "exact_sum", "deterministic", "framework"]
+
+  @on_spawn => {
+    splitter = init_revenue_splitter()
+    emit("revenue_splitter_ready", {})
+  }
+
+  @on_split(total_amount, recipients) => {
+    splits = splitter.split(total_amount, recipients)
+    emit("revenue_split", { recipient_count: splits.length })
+    return splits
+  }
+
+  @receipt revenue_splitter_config {
+    type: "RevenueSplitterReceipt"
+    invariant: "sum(shares) === totalAmount (no rounding leakage)"
+    arithmetic: "bigint; basis points (1/10000)"
+    remainder: "added to first recipient"
+    timestamp: now()
+  }
+}

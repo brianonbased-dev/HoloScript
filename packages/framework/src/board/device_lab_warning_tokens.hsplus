@@ -1,0 +1,29 @@
+// @device_lab_warning_tokens — Transform device-lab receipt gotchas into actionable warning tokens.
+//
+// Native .hsplus surface for framework/board/device-lab-warning-tokens.ts.
+//
+// ProbeStatus: pass | warn | fail | skipped
+// ProbeCheck { id, label, status, detail, evidence? }
+// toWarningTokens(checks) → WarningToken[] { id, label, action: attach|skip, whyItMatters }
+// Consumed by HoloShell UI for device-lab readiness display
+
+@trait device_lab_warning_tokens {
+  capability_tags: ["device_lab_warning_tokens", "probe_check", "warning_token", "holoshell_ui", "device_readiness", "framework"]
+
+  @on_spawn => {
+    emit("device_lab_warning_tokens_ready", {})
+  }
+
+  @on_to_tokens(checks) => {
+    tokens = to_warning_tokens(checks)
+    emit("warning_tokens_generated", { count: tokens.length })
+    return tokens
+  }
+
+  @receipt device_lab_warning_tokens_config {
+    type: "DeviceLabWarningTokensReceipt"
+    statuses: ["pass", "warn", "fail", "skipped"]
+    token_actions: ["attach", "skip"]
+    timestamp: now()
+  }
+}

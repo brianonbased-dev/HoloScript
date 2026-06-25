@@ -1,0 +1,29 @@
+// @audit — Done-log audit: commit proof verification, duplicate detection, monotonic timestamps.
+//
+// Native .hsplus surface for framework/board/audit.ts.
+//
+// auditDoneLog(entries) → AuditResult { total, proofRequiredTotal, nonProofEntries, violations }
+// DoneLogAuditor class: richer stats, per-agent breakdown, Team integration
+// AuditViolation: duplicate_id | missing_proof | non_monotonic | stale_commit
+// FW-0.3
+
+@trait audit {
+  capability_tags: ["audit", "done_log_audit", "commit_proof", "duplicate_detection", "monotonic_check", "framework"]
+
+  @on_spawn => {
+    auditor = init_done_log_auditor()
+    emit("audit_ready", {})
+  }
+
+  @on_audit(entries) => {
+    result = auditor.audit(entries)
+    if result.violations.length > 0 { emit("audit_violations", { count: result.violations.length }) }
+    return result
+  }
+
+  @receipt audit_config {
+    type: "AuditReceipt"
+    checks: ["commit_proof", "duplicate_id", "monotonic_timestamps", "stale_commit"]
+    timestamp: now()
+  }
+}

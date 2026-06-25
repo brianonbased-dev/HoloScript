@@ -1,0 +1,30 @@
+// @spatial_logic — Spatial Logic Framework (SLF): declarative rule engine for HoloLand world manifests.
+//
+// Native .hsplus surface for framework/board/spatial-logic.ts.
+//
+// Predicates: in_zone | has_item | quest_progress | time_window | entity_count | proximity
+// Actions: spawn_entity | despawn_entity | grant_item | trigger_event | modify_stat | zone_lock
+// SLFRule { id, predicate, action, priority, cooldownMs? }
+// evaluate(shard, entities) → fires rules whose predicates hold; actions execute atomically
+
+@trait spatial_logic {
+  capability_tags: ["spatial_logic", "slf_rule_engine", "world_manifest", "predicate_action", "hololand", "framework"]
+
+  @on_spawn => {
+    slf = init_spatial_logic()
+    emit("spatial_logic_ready", {})
+  }
+
+  @on_evaluate(shard, entities) => {
+    fired = slf.evaluate(shard, entities)
+    if fired.length > 0 { emit("slf_rules_fired", { count: fired.length }) }
+    return fired
+  }
+
+  @receipt spatial_logic_config {
+    type: "SpatialLogicReceipt"
+    predicates: ["in_zone", "has_item", "quest_progress", "time_window", "entity_count", "proximity"]
+    actions: ["spawn_entity", "despawn_entity", "grant_item", "trigger_event", "modify_stat", "zone_lock"]
+    timestamp: now()
+  }
+}

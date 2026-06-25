@@ -1,0 +1,29 @@
+// @holoweb_network_reality — HoloWeb network reality: redacted local snapshot for agents and handlers.
+//
+// Native .hsplus surface for framework/board/holoweb-network-reality.ts.
+//
+// HoloWebNetworkRealitySchemaVersion: 'hololand.holoshell.network-reality.v0.1.0'
+// NetworkReality { interfaces, connections, bandwidth, latency, redactedCount }
+// snapshot() → HoloWebNetworkReality — current local network state (no log reads)
+// Consumed by REST/RPC/MCP handlers without parsing HoloShell logs
+
+@trait holoweb_network_reality {
+  capability_tags: ["holoweb_network_reality", "network_snapshot", "redacted_local", "hololand", "framework"]
+
+  @on_spawn => {
+    emit("holoweb_network_reality_ready", {})
+  }
+
+  @on_snapshot => {
+    reality = capture_network_reality()
+    emit("network_reality_captured", { interface_count: reality.interfaces.length })
+    return reality
+  }
+
+  @receipt holoweb_network_reality_config {
+    type: "HoloWebNetworkRealityReceipt"
+    schema_version: "hololand.holoshell.network-reality.v0.1.0"
+    note: "redacted; local-only; no log parsing"
+    timestamp: now()
+  }
+}

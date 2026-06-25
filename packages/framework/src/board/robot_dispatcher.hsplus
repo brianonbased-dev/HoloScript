@@ -1,0 +1,31 @@
+// @robot_dispatcher — Wiring between Twin Earth safety substrate and physical/sim robot actuation.
+//
+// Native .hsplus surface for framework/board/robot-dispatcher.ts.
+//
+// gatedDispatch(safetyVerdict, command, backend) → DispatchReceipt
+// Backend: stub | ros2 | mqtt | deterministic_sim
+// Structurally enforces: evaluateActuation (allowed verdict) THEN dispatch THEN receipt.
+// Cannot obtain success receipt without prior allowed verdict from safety substrate.
+
+@trait robot_dispatcher {
+  capability_tags: ["robot_dispatcher", "twin_earth_safety", "ros2", "mqtt", "gated_dispatch", "framework"]
+
+  @on_spawn => {
+    dispatcher = init_robot_dispatcher()
+    emit("robot_dispatcher_ready", {})
+  }
+
+  @on_gated_dispatch(safety_verdict, command, backend) => {
+    if !safety_verdict.allowed { emit("dispatch_blocked", { reason: safety_verdict.reason }); return null }
+    receipt = dispatcher.dispatch(command, backend)
+    emit("actuation_dispatched", { backend, real: receipt.is_real })
+    return receipt
+  }
+
+  @receipt robot_dispatcher_config {
+    type: "RobotDispatcherReceipt"
+    backends: ["stub", "ros2", "mqtt", "deterministic_sim"]
+    safety: "evaluateActuation must return allowed=true before dispatch"
+    timestamp: now()
+  }
+}

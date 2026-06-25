@@ -1,0 +1,35 @@
+// @knowledge_store — Local-first knowledge store with remote federation via MCP Orchestrator.
+//
+// Native .hsplus surface for framework/knowledge/knowledge-store.ts.
+//
+// Local mode: in-memory Map + optional JSON persistence
+// Remote mode: MCP Orchestrator knowledge/query + knowledge/sync
+// W/P/G taxonomy (wisdom/pattern/gotcha); StoredEntry shape aligns with MeshKnowledgeEntry
+// query(search, limit) → StoredEntry[] — applies half-life decay + excitability ranking
+// sync(entry) → pushes to remote knowledge/sync; integrates KnowledgeMarketplace
+
+@trait knowledge_store {
+  capability_tags: ["knowledge_store", "local_first", "remote_federation", "wpg_taxonomy", "half_life_ranking", "framework"]
+
+  @on_spawn => {
+    store = init_knowledge_store(config)
+    emit("knowledge_store_ready", { mode: config.mode })
+  }
+
+  @on_query(search, limit) => {
+    results = store.query(search, limit)
+    return results
+  }
+
+  @on_sync(entry) => {
+    store.sync(entry)
+    emit("knowledge_synced", { id: entry.id })
+  }
+
+  @receipt knowledge_store_config {
+    type: "KnowledgeStoreReceipt"
+    modes: ["local (in-memory + optional JSON)", "remote (MCP Orchestrator)"]
+    ranking: "half-life decay + excitability score from brain module"
+    timestamp: now()
+  }
+}

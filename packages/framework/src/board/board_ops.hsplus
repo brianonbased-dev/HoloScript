@@ -1,0 +1,41 @@
+// @board_ops — Pure state machine logic for task and suggestion lifecycle.
+//
+// Native .hsplus surface for framework/board/board-ops.ts.
+//
+// Absorbed from mcp-server holomesh HTTP routes; pure functions with no side effects.
+// addTask(board, task) / claimTask(board, taskId, agentId) / completeTask(board, taskId, evidence)
+// addSuggestion / voteOnSuggestion / ArtifactReceipt attachment
+// HTTP layer calls these; persistence is the caller's responsibility.
+
+@trait board_ops {
+  capability_tags: ["board_ops", "task_lifecycle", "suggestion_lifecycle", "pure_state_machine", "artifact_receipt", "framework"]
+
+  @on_spawn => {
+    emit("board_ops_ready", {})
+  }
+
+  @on_add_task(board, task) => {
+    new_board = add_task(board, task)
+    emit("task_added", { id: task.id })
+    return new_board
+  }
+
+  @on_claim(board, task_id, agent_id) => {
+    result = claim_task(board, task_id, agent_id)
+    emit("task_claimed", { task_id, agent_id })
+    return result
+  }
+
+  @on_complete(board, task_id, evidence) => {
+    result = complete_task(board, task_id, evidence)
+    emit("task_completed", { task_id })
+    return result
+  }
+
+  @receipt board_ops_config {
+    type: "BoardOpsReceipt"
+    operations: ["addTask", "claimTask", "completeTask", "addSuggestion", "voteOnSuggestion"]
+    note: "pure functions; no persistence — HTTP layer owns that"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,36 @@
+// @x402_facilitator — x402 HTTP 402 payment protocol: EIP-712 gasless auth + on-chain settlement.
+//
+// Native .hsplus surface for framework/economy/x402-facilitator.ts.
+//
+// Flow: GET resource → 402 + PaymentRequired → client signs EIP-712 → retry with X-PAYMENT header → settle
+// Dual-mode: in-memory ledger (<$0.10, instant) | on-chain USDC on Base or Solana (>=$0.10)
+// Optimistic: proceeds on valid auth; verifies settlement async; reverts on failure
+// MicroPaymentLedger: tracks in-memory balances without gas
+
+@trait x402_facilitator {
+  capability_tags: ["x402_facilitator", "http_402", "eip712_gasless", "usdc_base_solana", "micropayment_ledger", "framework"]
+
+  @on_spawn => {
+    facilitator = init_x402_facilitator()
+    emit("x402_facilitator_ready", {})
+  }
+
+  @on_require_payment(resource, price_usdc) => {
+    req = facilitator.require_payment(resource, price_usdc)
+    emit("payment_required", { resource, price_usdc })
+    return req
+  }
+
+  @on_settle(x_payment_header) => {
+    result = facilitator.settle(x_payment_header)
+    emit("payment_settled", { mode: result.mode })
+    return result
+  }
+
+  @receipt x402_facilitator_config {
+    type: "X402FacilitatorReceipt"
+    modes: ["in-memory ledger <$0.10 (instant)", "on-chain USDC >=$.10 (Base/Solana)"]
+    execution: "optimistic; async settlement verify; revert on failure"
+    timestamp: now()
+  }
+}

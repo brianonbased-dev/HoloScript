@@ -1,0 +1,27 @@
+// @founder_reversibility — SSOT for founder-approval reversibility verb classification.
+//
+// Native .hsplus surface for framework/board/founder-reversibility.ts.
+//
+// FounderActionType: code | spatial | service_rental | mobility_coordination
+// classifyAction(intent) → FounderActionType + reversible: boolean
+// Used by BOTH: mcp-server/routes (authority) and studio/api (chip filter)
+// Divergence between the two would cause silent UX failure — single source prevents this.
+
+@trait founder_reversibility {
+  capability_tags: ["founder_reversibility", "verb_classification", "reversibility_policy", "ssot", "framework"]
+
+  @on_spawn => {
+    emit("founder_reversibility_ready", {})
+  }
+
+  @on_classify(intent) => {
+    return classify_founder_action(intent)
+  }
+
+  @receipt founder_reversibility_config {
+    type: "FounderReversibilityReceipt"
+    action_types: ["code", "spatial", "service_rental", "mobility_coordination"]
+    consumers: ["mcp-server authority", "studio chip filter"]
+    timestamp: now()
+  }
+}

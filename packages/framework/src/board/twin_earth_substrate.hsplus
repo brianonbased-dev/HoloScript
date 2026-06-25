@@ -1,0 +1,31 @@
+// @twin_earth_substrate — Twin Earth robot/AI substrate contract: safety, identity, action ceiling.
+//
+// Native .hsplus surface for framework/board/twin-earth-substrate.ts.
+//
+// ParticipationMode: local | BYOK | managed
+// evaluateActuation(command, identity, safetyEnvelope) → { allowed, reason, checks: 14-check gate }
+// SubstrateRole determines action ceiling (observe | suggest | act-gated | act-free)
+// Contract: research/2026-05-13_twin-earth-substrate-contract.md
+
+@trait twin_earth_substrate {
+  capability_tags: ["twin_earth_substrate", "safety_gate", "robot_actuation", "14_check_gate", "substrate_role", "framework"]
+
+  @on_spawn => {
+    substrate = init_twin_earth_substrate()
+    emit("twin_earth_substrate_ready", {})
+  }
+
+  @on_evaluate_actuation(command, identity, safety_envelope) => {
+    verdict = substrate.evaluate_actuation(command, identity, safety_envelope)
+    emit("actuation_evaluated", { allowed: verdict.allowed })
+    return verdict
+  }
+
+  @receipt twin_earth_substrate_config {
+    type: "TwinEarthSubstrateReceipt"
+    modes: ["local", "BYOK", "managed"]
+    roles: ["observe", "suggest", "act-gated", "act-free"]
+    safety: "14-check gate; evaluateActuation always runs before dispatch"
+    timestamp: now()
+  }
+}

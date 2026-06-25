@@ -1,0 +1,36 @@
+// @agent_budget_enforcer — Per-agent budget caps with warn/soft/hard enforcement and circuit breaker.
+//
+// Native .hsplus surface for framework/economy/AgentBudgetEnforcer.ts.
+//
+// EnforcementMode: warn | soft | hard
+// BudgetPeriod: hourly | daily | weekly | monthly
+// track(agentId, amount, toolId) — records spend
+// check(agentId) → EnforcementResult { allowed, mode, spent, cap, pct }
+// Circuit breaker: trips on consecutive failures or overspend threshold
+
+@trait agent_budget_enforcer {
+  capability_tags: ["agent_budget_enforcer", "spend_tracking", "hard_cap", "circuit_breaker", "enforcement_mode", "framework"]
+
+  @on_spawn => {
+    enforcer = init_agent_budget_enforcer()
+    emit("agent_budget_enforcer_ready", {})
+  }
+
+  @on_track(agent_id, amount, tool_id) => {
+    enforcer.track(agent_id, amount, tool_id)
+  }
+
+  @on_check(agent_id) => {
+    result = enforcer.check(agent_id)
+    if !result.allowed { emit("budget_exceeded", { agent_id, pct: result.pct }) }
+    return result
+  }
+
+  @receipt agent_budget_enforcer_config {
+    type: "AgentBudgetEnforcerReceipt"
+    modes: ["warn", "soft", "hard"]
+    periods: ["hourly", "daily", "weekly", "monthly"]
+    circuit_breaker: "trips on consecutive failures or overspend threshold"
+    timestamp: now()
+  }
+}

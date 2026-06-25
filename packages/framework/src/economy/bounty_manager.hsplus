@@ -1,0 +1,38 @@
+// @bounty_manager — Task-based incentive system: create, claim, and settle bounties.
+//
+// Native .hsplus surface for framework/economy/BountyManager.ts.
+//
+// BountyCurrency: USDC | credits
+// BountyStatus: open | claimed | completed | expired | disputed
+// createBounty(taskId, reward, expiresAt) → Bounty
+// claimBounty(bountyId, agentId) → ClaimResult
+// settleBounty(bountyId, proofHash) → SettlementResult — calls X402Facilitator
+// Integrates: X402Facilitator (on-chain/in-memory payout) + MicroPaymentLedger
+
+@trait bounty_manager {
+  capability_tags: ["bounty_manager", "usdc_payout", "credit_payout", "task_incentive", "x402_settlement", "framework"]
+
+  @on_spawn => {
+    bm = init_bounty_manager()
+    emit("bounty_manager_ready", {})
+  }
+
+  @on_create(task_id, reward, expires_at) => {
+    bounty = bm.create_bounty(task_id, reward, expires_at)
+    emit("bounty_created", { id: bounty.id, amount: reward.amount })
+    return bounty
+  }
+
+  @on_settle(bounty_id, proof_hash) => {
+    result = bm.settle_bounty(bounty_id, proof_hash)
+    emit("bounty_settled", { id: bounty_id, currency: result.currency })
+    return result
+  }
+
+  @receipt bounty_manager_config {
+    type: "BountyManagerReceipt"
+    currencies: ["USDC", "credits"]
+    statuses: ["open", "claimed", "completed", "expired", "disputed"]
+    timestamp: now()
+  }
+}
