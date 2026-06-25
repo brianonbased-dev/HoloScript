@@ -1,0 +1,82 @@
+// @self_improvement_pipeline — Capture failed HoloScript generations → training data.
+//
+// Native .hsplus surface for SelfImprovementPipeline.ts (absorb-service/self-improvement).
+//
+// Captures failed HoloScript code generations and transforms them into
+// Alpaca-format JSONL training data for TrainingMonkey.
+//
+// Self-improvement loop:
+//   AI generates .holo/.hsplus → (if error) → pipeline captures
+//   → auto-correct attempted → B3 gate: validate via parseHolo() (DT-14)
+//   → Alpaca-format JSONL → TrainingMonkey curriculum → better model
+//
+// B3 gate (2026-04-17): every auto-corrected candidate is validated by
+// parseHolo() BEFORE entering the training set. Regex-fixed-but-still-broken
+// outputs are rejected here to prevent training-data poisoning.
+//
+// FailureCategory: parse-error|validation-error|runtime-error|generation-error|compilation-error
+// DifficultyLevel: beginner|intermediate|advanced|expert
+//
+// FailedGeneration:
+//   id, timestamp, prompt, generated_code, corrected_code?,
+//   errors[], file_type, difficulty, category, metadata?
+
+@trait self_improvement_pipeline {
+  // Output path for JSONL training data
+  output_path: String
+
+  // Minimum auto-correct confidence (0.0-1.0) to write to training set
+  min_confidence: Float = 0.7
+
+  // Reject corrections that fail parseHolo() (B3 gate, DT-14)
+  enforce_b3_gate: Bool = true
+
+  capability_tags: ["self_improvement_pipeline", "training_data", "alpaca_jsonl", "training_monkey", "b3_gate", "parse_validation", "absorb_service", "self_improvement"]
+
+  @on_spawn => {
+    pipeline = init_self_improvement_pipeline({
+      output_path: output_path,
+      min_confidence: min_confidence,
+      enforce_b3_gate: enforce_b3_gate
+    })
+    emit("self_improvement_pipeline_ready", {
+      output_path: output_path,
+      b3_gate: enforce_b3_gate
+    })
+  }
+
+  // Capture a failed generation attempt
+  @on_capture(failed_generation) => {
+    result = pipeline.capture(failed_generation)
+    emit("generation_captured", { id: failed_generation.id, category: failed_generation.category })
+    return result
+  }
+
+  // Attempt auto-correction and write to training set if B3 gate passes
+  @on_auto_correct_and_train(failed_generation) => {
+    result = pipeline.auto_correct_and_train(failed_generation)
+    if result.accepted {
+      emit("training_record_written", {
+        id: failed_generation.id,
+        difficulty: result.difficulty
+      })
+    } else {
+      emit("training_record_rejected", {
+        id: failed_generation.id,
+        reason: result.rejection_reason
+      })
+    }
+    return result
+  }
+
+  @receipt self_improvement_config {
+    type: "SelfImprovementPipelineReceipt"
+    output_format: "Alpaca-format JSONL (instruction/input/output)"
+    b3_gate: enforce_b3_gate
+    b3_gate_note: "parseHolo() validates all corrections — rejects poisoned training data"
+    min_confidence: min_confidence
+    failure_categories: ["parse-error", "validation-error", "runtime-error", "generation-error", "compilation-error"]
+    difficulty_levels: ["beginner", "intermediate", "advanced", "expert"]
+    timestamp: now()
+  }
+}

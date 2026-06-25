@@ -1,0 +1,64 @@
+// @git_change_detector — Detect changed files since stored commit for incremental absorb.
+//
+// Native .hsplus surface for GitChangeDetector.ts (absorb-service/engine).
+//
+// Wraps git diff commands to identify added/modified/deleted files since
+// a stored commit hash. Skips re-parsing unchanged files in the incremental
+// absorb pipeline.
+//
+// GitChangeResult (GitChangeDetector.ts):
+//   head_commit: String      — current HEAD commit hash
+//   added: String[]          — files added since stored commit
+//   modified: String[]       — files modified since stored commit
+//   deleted: String[]        — files deleted since stored commit
+//   not_git_repo: Bool       — directory is not a git repository
+//   stored_commit_missing: Bool — stored commit no longer exists (force push / rebase)
+//
+// FileContentHash { file_path: String, hash: String } — SHA-256 of file content
+//
+// Uses: execFileSync (child_process) + crypto.createHash(SHA-256)
+
+@trait git_change_detector {
+  // Project root directory
+  root_dir: String
+
+  capability_tags: ["git_change_detector", "incremental_absorb", "git_diff", "change_detection", "absorb_service"]
+
+  @on_spawn => {
+    detector = init_git_change_detector({ root_dir: root_dir })
+    emit("git_change_detector_ready", { root_dir: root_dir })
+  }
+
+  // Detect files changed since stored_commit → GitChangeResult
+  @on_detect(stored_commit) => {
+    result = detector.detect(stored_commit)
+    emit("git_changes_detected", {
+      head_commit: result.head_commit,
+      added: result.added.size,
+      modified: result.modified.size,
+      deleted: result.deleted.size,
+      not_git_repo: result.not_git_repo,
+      stored_commit_missing: result.stored_commit_missing
+    })
+    return result
+  }
+
+  // Check if root_dir is inside a git repository
+  @on_is_git_repo => {
+    return detector.is_git_repo()
+  }
+
+  // Compute SHA-256 content hashes for a list of files
+  @on_hash_files(file_paths) => {
+    hashes = detector.hash_files(file_paths)
+    emit("git_files_hashed", { count: hashes.size })
+    return hashes
+  }
+
+  @receipt git_change_detector_config {
+    type: "GitChangeDetectorReceipt"
+    root_dir: root_dir
+    hash_algorithm: "SHA-256"
+    timestamp: now()
+  }
+}

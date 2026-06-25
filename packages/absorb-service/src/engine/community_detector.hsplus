@@ -1,0 +1,54 @@
+// @community_detector — Louvain module-boundary detection on the import/call graph.
+//
+// Native .hsplus surface for CommunityDetector.ts (absorb-service/engine).
+//
+// Implements a simplified Louvain algorithm on the import/call graph to
+// automatically detect module communities (coherent subsystems).
+//
+// CommunityDetector.ts:
+//   SPARSE_THRESHOLD = 0.5 (edges-per-node ratio; below this → directory grouping)
+//   MAX_ITERATIONS   = 50  (Louvain convergence cap)
+//
+//   detect(files, imports, calls) → Map<communityLabel, filePaths[]>
+//   Sparse/disconnected graphs (<3 nodes or density<0.5) fall back to
+//   directory-based grouping (parent directory = community).
+//
+//   Used by: GraphRAGEngine (community enrichment), KnowledgeExtractor (W entries),
+//            CodebaseSceneCompiler (spatial grouping), TraitCommunityDetector.
+
+@trait community_detector {
+  // Minimum edge-density before falling back to directory grouping
+  sparse_threshold: Float = 0.5
+
+  // Max Louvain iterations before forced stop
+  max_iterations: Int = 50
+
+  capability_tags: ["community_detector", "louvain", "module_boundaries", "graph_clustering", "codebase_graph", "absorb_service"]
+
+  @on_spawn => {
+    detector = init_community_detector({
+      sparse_threshold: sparse_threshold,
+      max_iterations: max_iterations
+    })
+    emit("community_detector_ready", {
+      sparse_threshold: sparse_threshold,
+      max_iterations: max_iterations
+    })
+  }
+
+  // Detect communities from file-level import + call edges
+  // Returns Map<communityLabel, filePaths[]>
+  @on_detect(files, imports, calls) => {
+    communities = detector.detect(files, imports, calls)
+    emit("communities_detected", { count: communities.size, file_count: files.size })
+    return communities
+  }
+
+  @receipt community_detector_config {
+    type: "CommunityDetectorReceipt"
+    algorithm: "simplified Louvain; directory fallback for sparse/tiny graphs"
+    sparse_threshold: sparse_threshold
+    max_iterations: max_iterations
+    timestamp: now()
+  }
+}
