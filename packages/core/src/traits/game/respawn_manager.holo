@@ -1,0 +1,22 @@
+@trait {
+  name: "@respawn_manager",
+  category: "game",
+  description: "Player/agent respawn lifecycle manager. On receiving a death event, starts a countdown, teleports the entity to the nearest active spawn point (or a specific anchor), restores health/ammo to initial state, and grants temporary post-spawn invincibility. Authored from RespawnManagerTrait.ts.",
+  props: {
+    countdown_s: number = 5,
+    spawn_anchor_id: string = "",
+    respawn_mode: enum("nearest" | "anchor" | "last_checkpoint") = "nearest",
+    invincibility_s: number = 3,
+    restore_health: boolean = true,
+    restore_ammo: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "respawn_manager_attached",
+    detached: "respawn_manager_detached",
+    on_die: "respawn_manager_die",
+    on_respawn: "respawn_manager_respawn",
+    die: "respawn_manager_trigger_die"
+  },
+  behaviors: ["@player_state", "@powerup", "@spawn_gate"]
+}

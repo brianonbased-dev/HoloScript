@@ -1,0 +1,23 @@
+@trait {
+  name: "@ragdoll",
+  category: "physics",
+  description: "Animated-to-ragdoll physics switcher. Transitions the entity's skeleton from keyframe/procedural animation to fully simulated rigid-body ragdoll physics on a trigger event (death, heavy impact), blending between the two states over a configurable duration. Authored from RagdollTrait.ts.",
+  props: {
+    blend_duration_ms: number = 200,
+    mass_kg: number = 70,
+    angular_damping: number = 0.1,
+    linear_damping: number = 0.05,
+    settle_threshold: number = 0.01,
+    auto_settle_s: number = 10,
+    keep_ragdoll: boolean = false
+  },
+  events: {
+    attached: "ragdoll_attached",
+    detached: "ragdoll_detached",
+    on_activate: "ragdoll_activate",
+    on_settle: "ragdoll_settle",
+    activate: "ragdoll_trigger_activate",
+    deactivate: "ragdoll_trigger_deactivate"
+  },
+  behaviors: ["@velocity", "@kinematic_body", "@hit_reaction"]
+}

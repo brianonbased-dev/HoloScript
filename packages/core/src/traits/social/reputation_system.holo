@@ -1,0 +1,20 @@
+@trait {
+  name: "@reputation_system",
+  category: "social",
+  description: "Per-entity reputation tracking across multiple factions or communities. Maintains a dict of faction → score, fires tier-change events when thresholds are crossed, and exposes the faction standing for UI display and access-control checks. Authored from ReputationSystemTrait.ts.",
+  props: {
+    factions: dict<string, number> = {},
+    tiers: list<{ name: string, min_score: number, max_score: number }> = [],
+    decay_rate: number = 0,
+    max_score: number = 1000,
+    min_score: number = -1000
+  },
+  events: {
+    attached: "reputation_system_attached",
+    detached: "reputation_system_detached",
+    on_change: "reputation_system_change",
+    on_tier_change: "reputation_system_tier_change",
+    adjust: "reputation_system_trigger_adjust"
+  },
+  behaviors: ["@badge", "@leaderboard", "@access_control"]
+}

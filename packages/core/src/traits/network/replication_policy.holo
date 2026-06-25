@@ -1,0 +1,20 @@
+@trait {
+  name: "@replication_policy",
+  category: "network",
+  description: "Entity state replication governor. Configures how the entity's props are replicated across sessions — which props sync, at what tick rate, with what authority model (server-authoritative, owner-authoritative, or all-write), and when delta compression is applied. Authored from ReplicationPolicyTrait.ts.",
+  props: {
+    authority: enum("server" | "owner" | "all") = "server",
+    sync_rate_hz: number = 20,
+    sync_props: list<string> = [],
+    compress: boolean = true,
+    jitter_buffer_ms: number = 50,
+    always_sync: boolean = false
+  },
+  events: {
+    attached: "replication_policy_attached",
+    detached: "replication_policy_detached",
+    on_sync: "replication_policy_sync",
+    on_conflict: "replication_policy_conflict"
+  },
+  behaviors: ["@sync_clock", "@reactive_store", "@receive"]
+}
