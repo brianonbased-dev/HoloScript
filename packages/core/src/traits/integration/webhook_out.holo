@@ -1,0 +1,17 @@
+@trait {
+  name: "@webhook_out",
+  category: "integration",
+  description: "Outbound webhook delivery with exponential retry and per-request timeout. Posts JSON payloads via webhook:send command; emits webhook:sent on success and webhook:error on exhausted retries. Port of WebhookOutTrait.ts (handler name: webhook_out).",
+  props: {
+    max_retries: number = 3,
+    timeout_ms: number = 5000
+  },
+  events: {
+    attached: "webhook_out_attached",
+    detached: "webhook_out_detached",
+    on_sent: "webhook_sent",
+    on_error: "webhook_error",
+    send: "webhook_send"
+  },
+  behaviors: ["@slack_alert", "@pagerduty", "@sse"]
+}

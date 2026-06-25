@@ -1,0 +1,28 @@
+@trait {
+  name: "@structured_logger",
+  category: "devops",
+  description: "Structured logging sink with level filtering, log rotation, optional console output, and default metadata fields. Accepts logger:log/debug/info/warn/error commands and responds to logger:get_logs and logger:get_status queries. Port of StructuredLoggerTrait.ts (handler name: structured_logger).",
+  props: {
+    min_level: enum("debug" | "info" | "warn" | "error") = "info",
+    max_entries: number = 1000,
+    rotation_count: number = 100,
+    emit_events: boolean = true,
+    console_output: boolean = false,
+    default_fields: dict<string, string> = {}
+  },
+  events: {
+    attached: "logger_attached",
+    detached: "logger_detached",
+    on_entry: "logger_entry",
+    on_rotated: "logger_rotated",
+    log: "logger_log",
+    debug: "logger_debug",
+    info: "logger_info",
+    warn: "logger_warn",
+    error: "logger_error",
+    get_logs: "logger_get_logs",
+    clear: "logger_clear",
+    get_status: "logger_get_status"
+  },
+  behaviors: ["@analytics", "@stat", "@journal"]
+}

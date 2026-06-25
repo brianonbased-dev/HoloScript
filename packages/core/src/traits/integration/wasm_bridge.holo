@@ -1,0 +1,18 @@
+@trait {
+  name: "@wasm_bridge",
+  category: "integration",
+  description: "WebAssembly module loader and call bridge. Accepts wasm:load to register module IDs and wasm:call to dispatch function calls, tracking call counts per session. Port of WasmBridgeTrait.ts (handler name: wasm_bridge).",
+  props: {
+    max_memory_pages: number = 256
+  },
+  events: {
+    attached: "wasm_bridge_attached",
+    detached: "wasm_bridge_detached",
+    on_loaded: "wasm_loaded",
+    on_result: "wasm_result",
+    on_error: "wasm_error",
+    load: "wasm_load",
+    call: "wasm_call"
+  },
+  behaviors: ["@compute", "@native_call", "@sys_io"]
+}

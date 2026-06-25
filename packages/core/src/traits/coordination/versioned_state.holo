@@ -1,0 +1,22 @@
+@trait {
+  name: "@versioned_state",
+  category: "coordination",
+  description: "Branchable state history with CRDT or manual merge strategy. Enables fork/merge workflows for collaborative editing and undo trees. Guards against merge conflict cascades via auto_merge_lww fallback. Port of VersionedStateTrait.ts (handler name: versioned_state).",
+  props: {
+    strategy: enum("crdt" | "manual") = "crdt",
+    branches: number = 4,
+    auto_merge_lww: boolean = true
+  },
+  events: {
+    attached: "versioned_state_initialized",
+    detached: "versioned_state_detached",
+    on_branch_created: "state_branch_created",
+    on_merged: "state_merged",
+    on_conflict: "state_conflict",
+    on_error: "versioned_state_error",
+    branch: "versioned_state_trigger_branch",
+    merge: "versioned_state_trigger_merge",
+    restore: "versioned_state_trigger_restore"
+  },
+  behaviors: ["@world_state", "@collaborative_world", "@consensus"]
+}
