@@ -1,0 +1,90 @@
+// @simulation_lab_primitives — Math and types for scientific hypothesis testing.
+//
+// Native .hsplus surface for SimulationLabPrimitives.ts (std/traits, v1.0.0).
+//
+// "The universe gets one sample. HoloScript gives you infinite."
+//
+// Architecture: run N epochs with parameter sweeps, collect metrics per epoch,
+// then perform statistical analysis to prove/disprove a Hypothesis.
+//
+// Hypothesis (SimulationLabPrimitives.ts):
+//   description, null_hypothesis, alternative_hypothesis,
+//   direction: "greater" | "less" | "different" | "equal",
+//   alpha: significance threshold (default 0.05)
+//
+// Parameter sweep types:
+//   ParameterRange  — { name, min, max, step }
+//   ParameterSet    — { name, values[] }
+//
+// SimulationStatus: "pending" | "running" | "completed" | "failed"
+//
+// Output per epoch: metric measurements + p-value + hypothesis verdict.
+
+@trait simulation_lab_primitives {
+  // Maximum number of epochs per run
+  max_epochs: Int = 100
+
+  // Significance threshold (can be overridden per-hypothesis)
+  default_alpha: Float = 0.05
+
+  // Whether to emit a progress event after every epoch
+  emit_epoch_progress: Bool = false
+
+  // Whether to fail-fast when a run encounters an error (vs skip-epoch)
+  fail_fast: Bool = true
+
+  capability_tags: ["simulation_lab", "hypothesis_testing", "parameter_sweep", "statistical_analysis", "simulation"]
+
+  @on_spawn => {
+    lab = init_simulation_lab({
+      max_epochs: max_epochs,
+      default_alpha: default_alpha,
+      fail_fast: fail_fast
+    })
+    emit("simulation_lab_ready", { max_epochs: max_epochs })
+  }
+
+  @on_run(hypothesis, parameter_sweep, world_fn) => {
+    run_id = new_uuid()
+    lab.set_status(run_id, "running")
+    epoch = 0
+    metrics = []
+
+    for each param_set in lab.expand_sweep(parameter_sweep) {
+      if epoch >= max_epochs { break }
+      try {
+        reading = world_fn(param_set)
+        metrics.push({ epoch: epoch, params: param_set, value: reading })
+        if emit_epoch_progress {
+          emit("epoch_complete", { run_id: run_id, epoch: epoch })
+        }
+      } catch err {
+        if fail_fast {
+          lab.set_status(run_id, "failed")
+          emit("simulation_failed", { run_id: run_id, epoch: epoch, error: err })
+          return { ok: false, run_id: run_id, error: err }
+        }
+      }
+      epoch = epoch + 1
+    }
+
+    result = lab.analyze(hypothesis, metrics, hypothesis.alpha ?? default_alpha)
+    lab.set_status(run_id, "completed")
+    emit("simulation_complete", {
+      run_id: run_id,
+      epochs: epoch,
+      p_value: result.p_value,
+      rejected: result.rejected,
+      direction: hypothesis.direction
+    })
+    return { ok: true, run_id: run_id, result: result }
+  }
+
+  @receipt simulation_lab_config {
+    type: "SimulationLabPrimitivesReceipt"
+    max_epochs: max_epochs
+    default_alpha: default_alpha
+    fail_fast: fail_fast
+    timestamp: now()
+  }
+}

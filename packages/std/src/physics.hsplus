@@ -1,0 +1,144 @@
+// @physics — Physics collider and rigidbody primitives.
+//
+// Native .hsplus surface for physics.ts (std, v0.2.0).
+//
+// Collider shapes (physics.ts):
+//   box | sphere | capsule | mesh | convex | cylinder | heightfield
+//
+// ColliderConfig:
+//   shape, is_trigger: Bool, friction, restitution
+//   shape-specific: radius?, half_extents?, height?, mesh_asset?
+//
+// Material presets (materials.ts reference):
+//   friction/restitution pairs should match the material — e.g.
+//   rubber = high friction (0.95) + low restitution; glass = low friction + low restitution.
+//
+// Rigidbody (physics.ts):
+//   mass, linear_damping, angular_damping, gravity_scale, is_kinematic
+//
+// Joint types (physics.ts):
+//   fixed | hinge | ball | slider
+//   Connected entities share the joint constraint; anchor_a/anchor_b = local offset.
+
+@trait physics_collider {
+  // Collider shape type
+  shape: enum("box" | "sphere" | "capsule" | "mesh" | "convex" | "cylinder" | "heightfield") = "box"
+
+  // Whether this collider is a trigger (no physical response, only events)
+  is_trigger: Bool = false
+
+  // Surface friction coefficient [0, ∞)
+  friction: Float = 0.5
+
+  // Restitution (bounciness) coefficient [0, 1]
+  restitution: Float = 0.0
+
+  // Shape-specific: sphere/capsule radius in meters
+  radius: Float? = null
+
+  // Shape-specific: box half-extents [x, y, z] in meters
+  half_extents: Array<Float>? = null
+
+  // Shape-specific: capsule/cylinder height in meters
+  height: Float? = null
+
+  // Shape-specific: mesh asset path for mesh/convex shapes
+  mesh_asset: String? = null
+
+  capability_tags: ["physics_collider", "physics", "collider", "rigidbody", "trigger"]
+
+  @on_spawn => {
+    collider = create_collider({
+      shape: shape,
+      is_trigger: is_trigger,
+      friction: friction,
+      restitution: restitution,
+      radius: radius,
+      half_extents: half_extents,
+      height: height,
+      mesh_asset: mesh_asset
+    })
+    attach_collider(entity_id, collider)
+    emit("collider_attached", { entity_id: entity_id, shape: shape, is_trigger: is_trigger })
+  }
+
+  @on_collision_enter(other_entity, contact) => {
+    if is_trigger {
+      emit("trigger_enter", { entity_id: entity_id, other: other_entity })
+    } else {
+      emit("collision_enter", { entity_id: entity_id, other: other_entity, contact: contact })
+    }
+  }
+
+  @on_collision_exit(other_entity) => {
+    if is_trigger {
+      emit("trigger_exit", { entity_id: entity_id, other: other_entity })
+    } else {
+      emit("collision_exit", { entity_id: entity_id, other: other_entity })
+    }
+  }
+
+  @on_despawn => {
+    detach_collider(entity_id)
+  }
+
+  @receipt physics_collider_config {
+    type: "PhysicsColliderReceipt"
+    shape: shape
+    is_trigger: is_trigger
+    friction: friction
+    restitution: restitution
+    timestamp: now()
+  }
+}
+
+@trait physics_rigidbody {
+  // Mass in kilograms (0 = static/infinite mass)
+  mass: Float = 1.0
+
+  // Linear velocity damping coefficient (drag)
+  linear_damping: Float = 0.0
+
+  // Angular velocity damping coefficient (rotational drag)
+  angular_damping: Float = 0.05
+
+  // Gravity scale multiplier (1.0 = normal, 0.0 = zero-g, -1.0 = anti-grav)
+  gravity_scale: Float = 1.0
+
+  // Kinematic bodies are moved by script, not by physics forces
+  is_kinematic: Bool = false
+
+  capability_tags: ["physics_rigidbody", "physics", "rigidbody", "dynamics"]
+
+  @on_spawn => {
+    rb = create_rigidbody({
+      mass: mass,
+      linear_damping: linear_damping,
+      angular_damping: angular_damping,
+      gravity_scale: gravity_scale,
+      is_kinematic: is_kinematic
+    })
+    attach_rigidbody(entity_id, rb)
+    emit("rigidbody_attached", { entity_id: entity_id, mass: mass, is_kinematic: is_kinematic })
+  }
+
+  @on_apply_force(force, mode) => {
+    apply_force(entity_id, force, mode ?? "force")
+  }
+
+  @on_apply_impulse(impulse) => {
+    apply_force(entity_id, impulse, "impulse")
+  }
+
+  @on_despawn => {
+    detach_rigidbody(entity_id)
+  }
+
+  @receipt physics_rigidbody_config {
+    type: "PhysicsRigidbodyReceipt"
+    mass: mass
+    gravity_scale: gravity_scale
+    is_kinematic: is_kinematic
+    timestamp: now()
+  }
+}

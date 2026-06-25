@@ -1,0 +1,108 @@
+// @materials — PBR and unlit material definitions for HoloScript scene objects.
+//
+// Native .hsplus surface for materials.ts (std, v0.2.0).
+// Maps to HoloScript material_block grammar constructs.
+//
+// PBRMaterial fields (materials.ts):
+//   base_color (hex), roughness [0-1], metallic [0-1], emissive_color?,
+//   emissive_intensity?, opacity [0-1]?, ior? (glass ~1.5, water ~1.33),
+//   subsurface?, clearcoat?, clearcoat_roughness?
+//   Texture maps: albedo, normal, roughness, metallic, emission, ao,
+//                 height, opacity, displacement
+//
+// Material presets (MATERIAL_PRESETS):
+//   metal   — roughness 0.2, metallic 1.0
+//   wood    — roughness 0.85, metallic 0.0, base_color #8B6914
+//   glass   — roughness 0.05, opacity 0.3, ior 1.5
+//   plastic — roughness 0.4, metallic 0.0
+//   concrete — roughness 0.95, metallic 0.0, base_color #808080
+//   fabric  — roughness 0.9, subsurface 0.2
+//   water   — roughness 0.05, opacity 0.7, ior 1.33
+//   rubber  — roughness 0.95, base_color #222222
+
+@trait pbr_material {
+  // Base color as hex string
+  base_color: String = "#FFFFFF"
+
+  // Perceptual roughness [0 = mirror, 1 = fully rough]
+  roughness: Float = 0.5
+
+  // Metallic factor [0 = dielectric, 1 = metal]
+  metallic: Float = 0.0
+
+  // Optional emissive color (hex)
+  emissive_color: String? = null
+
+  // Emissive intensity multiplier
+  emissive_intensity: Float = 1.0
+
+  // Opacity [0 = transparent, 1 = opaque]
+  opacity: Float = 1.0
+
+  // Index of refraction (glass ~1.5, water ~1.33, air ~1.0)
+  ior: Float = 1.5
+
+  // Subsurface scattering weight [0-1]
+  subsurface: Float = 0.0
+
+  // Clearcoat layer weight [0-1]
+  clearcoat: Float = 0.0
+
+  // Optional preset to initialize from (applied first; individual fields override)
+  preset: enum("none" | "metal" | "wood" | "glass" | "plastic" | "concrete" | "fabric" | "water" | "rubber") = "none"
+
+  // Texture map asset paths (optional)
+  albedo_map: String? = null
+  normal_map: String? = null
+  roughness_map: String? = null
+  metallic_map: String? = null
+  emission_map: String? = null
+  ao_map: String? = null
+
+  capability_tags: ["pbr_material", "material", "pbr", "rendering", "holoscript_std"]
+
+  @on_spawn => {
+    presets = {
+      metal:    { roughness: 0.2,  metallic: 1.0, base_color: base_color },
+      wood:     { roughness: 0.85, metallic: 0.0, base_color: "#8B6914"  },
+      glass:    { roughness: 0.05, metallic: 0.0, opacity: 0.3, ior: 1.5 },
+      plastic:  { roughness: 0.4,  metallic: 0.0, base_color: base_color },
+      concrete: { roughness: 0.95, metallic: 0.0, base_color: "#808080"  },
+      fabric:   { roughness: 0.9,  metallic: 0.0, subsurface: 0.2, base_color: base_color },
+      water:    { roughness: 0.05, metallic: 0.0, opacity: 0.7, ior: 1.33 },
+      rubber:   { roughness: 0.95, metallic: 0.0, base_color: "#222222"  }
+    }
+    base = preset != "none" ? merge_material_preset(presets[preset], {
+      base_color: base_color, roughness: roughness, metallic: metallic,
+      emissive_color: emissive_color, emissive_intensity: emissive_intensity,
+      opacity: opacity, ior: ior, subsurface: subsurface, clearcoat: clearcoat
+    }) : {
+      base_color: base_color, roughness: roughness, metallic: metallic,
+      emissive_color: emissive_color, emissive_intensity: emissive_intensity,
+      opacity: opacity, ior: ior, subsurface: subsurface, clearcoat: clearcoat,
+      albedo_map: albedo_map, normal_map: normal_map, roughness_map: roughness_map,
+      metallic_map: metallic_map, emission_map: emission_map, ao_map: ao_map
+    }
+    mat = create_pbr_material(base)
+    set_material(entity_id, mat)
+    emit("pbr_material_applied", { entity_id: entity_id, preset: preset })
+  }
+
+  @on_set_color(hex_color) => {
+    update_material_property(entity_id, "base_color", hex_color)
+  }
+
+  @on_set_roughness(value) => {
+    update_material_property(entity_id, "roughness", clamp(value, 0.0, 1.0))
+  }
+
+  @receipt pbr_material_config {
+    type: "PBRMaterialReceipt"
+    preset: preset
+    base_color: base_color
+    roughness: roughness
+    metallic: metallic
+    opacity: opacity
+    timestamp: now()
+  }
+}

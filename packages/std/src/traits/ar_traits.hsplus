@@ -1,0 +1,112 @@
+// @ar_traits — Augmented reality overlay and physical world anchoring traits.
+//
+// Native .hsplus surface for ARTraits.ts (std/traits).
+// Defines traits for AR overlays and real-world physical anchoring in HoloScript.
+//
+// Trait surfaces (ARTraits.ts):
+//   @ar_beacon — binds a UI or 3D overlay to a physical reality marker
+//                Types: qr | image | nfc | ble | gps
+//                physical_size (meters) used for image/qr pose estimation
+//   @overlay   — marks a panel or object as a pass-through viewport overlay
+//                Anchor modes: viewport | surface | plane | face | hand
+//                Opacity-tracking: fade based on distance/occlusion
+//
+// Both traits must be allowed on any HoloScript node type (Zone, Object, UI).
+
+@trait ar_beacon {
+  // Physical beacon type
+  beacon_type: enum("qr" | "image" | "nfc" | "ble" | "gps") = "qr"
+
+  // Unique identifier the beacon broadcasts or visually represents
+  beacon_id: String
+
+  // Expected physical size of image/marker in meters (for pose estimation)
+  physical_size_m: Float? = null
+
+  // Whether to emit presence events when the beacon enters/exits field of view
+  emit_presence: Bool = true
+
+  capability_tags: ["ar_beacon", "ar", "physical_anchor", "qr", "nfc", "ble", "gps", "augmented_reality"]
+
+  @on_spawn => {
+    beacon = register_ar_beacon({
+      type: beacon_type,
+      id: beacon_id,
+      physical_size_m: physical_size_m
+    })
+    emit("ar_beacon_registered", {
+      beacon_id: beacon_id,
+      beacon_type: beacon_type
+    })
+  }
+
+  @on_beacon_detected(pose) => {
+    set_transform(entity_id, {
+      position: pose.position,
+      rotation: pose.rotation,
+      scale: pose.scale
+    })
+    if emit_presence {
+      emit("ar_beacon_in_view", { beacon_id: beacon_id, pose: pose })
+    }
+  }
+
+  @on_beacon_lost => {
+    if emit_presence {
+      emit("ar_beacon_lost", { beacon_id: beacon_id })
+    }
+  }
+
+  @on_despawn => {
+    unregister_ar_beacon(beacon_id)
+  }
+
+  @receipt ar_beacon_config {
+    type: "ARBeaconReceipt"
+    beacon_id: beacon_id
+    beacon_type: beacon_type
+    physical_size_m: physical_size_m
+    timestamp: now()
+  }
+}
+
+@trait ar_overlay {
+  // How the overlay anchors to the AR pass-through feed
+  anchor: enum("viewport" | "surface" | "plane" | "face" | "hand") = "viewport"
+
+  // Render priority (higher = drawn on top of other overlays)
+  render_priority: Int = 0
+
+  // Fade opacity when occluded by real-world objects (0.0 = invisible)
+  occlusion_fade_opacity: Float = 0.0
+
+  capability_tags: ["ar_overlay", "ar", "pass_through", "viewport_overlay", "augmented_reality"]
+
+  @on_spawn => {
+    overlay = register_ar_overlay({
+      anchor: anchor,
+      render_priority: render_priority,
+      occlusion_fade_opacity: occlusion_fade_opacity
+    })
+    emit("ar_overlay_registered", { entity_id: entity_id, anchor: anchor })
+  }
+
+  @on_occlusion_changed(opacity) => {
+    set_property(entity_id, "opacity", max(opacity, occlusion_fade_opacity))
+  }
+
+  @on_anchor_lost => {
+    emit("ar_overlay_anchor_lost", { entity_id: entity_id, anchor: anchor })
+  }
+
+  @on_despawn => {
+    unregister_ar_overlay(entity_id)
+  }
+
+  @receipt ar_overlay_config {
+    type: "AROverlayReceipt"
+    anchor: anchor
+    render_priority: render_priority
+    timestamp: now()
+  }
+}
