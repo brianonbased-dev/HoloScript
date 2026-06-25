@@ -151,3 +151,38 @@ export async function accrueOneStep(opts: {
   );
   return { target: seed.name, rows };
 }
+
+/**
+ * Filter graded rows against an existing corpus for content uniqueness over TIME — the
+ * cross-run dedup an autonomous accrual loop applies before persisting, so a fixed portfolio
+ * re-run accrues only NEW candidates instead of piling up duplicates. Keyed on the candidate
+ * program (`row.target`). Pure + browser-safe (no fs/crypto) — the caller owns the file IO
+ * (e.g. the node AgentRunner reads/appends the corpus JSONL); this owns the dedup logic so it
+ * is unit-testable without a filesystem.
+ */
+export function dedupRows(
+  existingCorpus: string,
+  rows: readonly GradedTraceRow[],
+): { fresh: GradedTraceRow[]; deduped: number } {
+  const seen = new Set<string>();
+  for (const line of existingCorpus.split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      const prior = JSON.parse(line) as { target?: string };
+      if (typeof prior.target === 'string') seen.add(prior.target);
+    } catch {
+      /* skip a malformed corpus line */
+    }
+  }
+  const fresh: GradedTraceRow[] = [];
+  let deduped = 0;
+  for (const row of rows) {
+    if (seen.has(row.target)) {
+      deduped++;
+      continue;
+    }
+    seen.add(row.target);
+    fresh.push(row);
+  }
+  return { fresh, deduped };
+}
