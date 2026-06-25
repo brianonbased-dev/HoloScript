@@ -1,0 +1,125 @@
+// @session_manager — Multiplayer session lifecycle, reconnection, and state recovery.
+//
+// Native .hsplus surface for SessionManager.ts (v1.0.0). Manages the full
+// lifecycle of a multiplayer session: player join/leave, reconnection logic,
+// heartbeat-based health, session snapshot export for state recovery.
+//
+// SessionState machine (SessionManager.ts):
+//   idle → connecting → connected → reconnecting → disconnected → ended
+//
+// SessionPlayer fields:
+//   id, name, connected_at, last_seen_at, reconnect_attempts,
+//   state: "connected" | "disconnected" | "reconnecting"
+//
+// Default config (SessionManager.ts DEFAULT):
+//   max_reconnect_attempts: 3
+//   reconnect_window_ms:    30000
+//   heartbeat_interval_ms:  5000
+//   session_timeout_ms:     300000 (5 minutes)
+//
+// SessionSnapshot: exported on demand for state-recovery handoffs.
+// Pairs with @collaboration_session for file-level CRDT sync.
+
+@trait session_manager {
+  // Maximum reconnect attempts per player before they are evicted
+  max_reconnect_attempts: Int = 3
+
+  // Milliseconds within which a reconnect counts against the attempt limit
+  reconnect_window_ms: Int = 30000
+
+  // Heartbeat interval in milliseconds
+  heartbeat_interval_ms: Int = 5000
+
+  // Session inactivity timeout in milliseconds (all players gone → session ends)
+  session_timeout_ms: Int = 300000
+
+  // Emit a session_snapshot event on every player join/leave
+  snapshot_on_change: Bool = false
+
+  capability_tags: ["session_manager", "multiplayer_lifecycle", "reconnect_logic", "state_recovery", "heartbeat"]
+
+  @on_spawn => {
+    manager = init_session_manager({
+      max_reconnect_attempts: max_reconnect_attempts,
+      reconnect_window_ms: reconnect_window_ms,
+      heartbeat_interval_ms: heartbeat_interval_ms,
+      session_timeout_ms: session_timeout_ms
+    })
+    schedule_recurring(heartbeat_interval_ms / 1000, "on_heartbeat_tick")
+    emit("session_manager_ready", {
+      heartbeat_interval_ms: heartbeat_interval_ms,
+      session_timeout_ms: session_timeout_ms
+    })
+  }
+
+  @on_session_start(session_id) => {
+    manager.start(session_id)
+    emit("session_started", { session_id: session_id, started_at: now_ms() })
+  }
+
+  @on_player_join(player) => {
+    manager.add_player({
+      id: player.id,
+      name: player.name,
+      connected_at: now_ms(),
+      last_seen_at: now_ms(),
+      reconnect_attempts: 0,
+      state: "connected"
+    })
+    emit("player_joined", { player_id: player.id, name: player.name })
+    if snapshot_on_change {
+      emit("session_snapshot", { snapshot: manager.snapshot() })
+    }
+  }
+
+  @on_player_leave(player_id) => {
+    manager.mark_disconnected(player_id)
+    emit("player_left", { player_id: player_id })
+    if manager.player_count() == 0 {
+      schedule_once(session_timeout_ms / 1000, "on_session_timeout")
+    }
+    if snapshot_on_change {
+      emit("session_snapshot", { snapshot: manager.snapshot() })
+    }
+  }
+
+  @on_player_reconnect(player_id) => {
+    player = manager.get_player(player_id)
+    if player.reconnect_attempts >= max_reconnect_attempts {
+      manager.evict_player(player_id)
+      emit("player_evicted", { player_id: player_id, reason: "max_reconnects_exceeded" })
+      return { accepted: false }
+    }
+    manager.mark_reconnected(player_id)
+    emit("player_reconnected", { player_id: player_id })
+    return { accepted: true }
+  }
+
+  @on_heartbeat_tick => {
+    stale = manager.find_stale_players(heartbeat_interval_ms * 3)
+    for each player in stale {
+      manager.mark_disconnected(player.id)
+      emit("player_timed_out", { player_id: player.id })
+    }
+  }
+
+  @on_session_timeout => {
+    if manager.player_count() == 0 {
+      manager.end()
+      emit("session_ended", { reason: "all_players_left" })
+    }
+  }
+
+  @on_snapshot_request => {
+    return manager.snapshot()
+  }
+
+  @receipt session_manager_config {
+    type: "SessionManagerReceipt"
+    max_reconnect_attempts: max_reconnect_attempts
+    reconnect_window_ms: reconnect_window_ms
+    heartbeat_interval_ms: heartbeat_interval_ms
+    session_timeout_ms: session_timeout_ms
+    timestamp: now()
+  }
+}

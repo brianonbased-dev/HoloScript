@@ -1,0 +1,108 @@
+// @delegation_trace_hooks — Agent-to-agent delegation chain tracing and replay.
+//
+// Native .hsplus surface for DelegationTraceHooks.ts (HoloScript v6.0
+// Agent Orchestration). Traces which agent delegated work to which other
+// agent and assembles the full delegation TREE for debugging and replay.
+//
+// DelegationEvent contract (DelegationTraceHooks.ts):
+//   id                — unique event ID
+//   from_agent        — initiating agent
+//   to_agent          — receiving agent
+//   task_id           — links to @task_delegation_service history
+//   timestamp         — ISO-8601
+//   payload           — { skill_id, args }
+//   parent_delegation — null for root; parent event ID for nested chains
+//   status            — pending | in_progress | completed | failed | timeout | replaying
+//   duration_ms       — set after completion
+//
+// DelegationTrace = tree of DelegationEvents rooted at a single root event.
+// Useful for: debugging multi-hop chains, auditing who authorized what,
+// replaying a failed chain from a known-good checkpoint.
+//
+// CAEL (W.107): delegation events are L3 records in the 7-layer chain.
+// Root delegation = chain root; nested delegations extend the chain.
+
+@trait delegation_trace_hooks {
+  // Maximum events to retain in memory (LRU eviction)
+  max_trace_events: Int = 500
+
+  // Whether to emit a trace event to CAEL on every delegation
+  emit_to_cael: Bool = true
+
+  // Whether to persist traces to the knowledge store
+  persist_to_knowledge: Bool = false
+
+  // Minimum duration in ms for a delegation to be flagged as slow
+  slow_delegation_threshold_ms: Int = 5000
+
+  capability_tags: ["delegation_trace_hooks", "delegation_audit", "chain_replay", "cael_l3", "debugging"]
+
+  @on_spawn => {
+    tracer = init_delegation_tracer({
+      max_events: max_trace_events,
+      slow_threshold_ms: slow_delegation_threshold_ms
+    })
+    emit("delegation_trace_active", {
+      max_events: max_trace_events,
+      emit_to_cael: emit_to_cael
+    })
+  }
+
+  @on_delegation_started(event) => {
+    tracer.record({
+      id: event.id,
+      from_agent: event.from_agent,
+      to_agent: event.to_agent,
+      task_id: event.task_id,
+      timestamp: now_iso(),
+      payload: event.payload,
+      parent_delegation: event.parent_delegation,
+      status: "in_progress"
+    })
+    if emit_to_cael {
+      emit("cael_l3_delegation", {
+        event_id: event.id,
+        from: event.from_agent,
+        to: event.to_agent,
+        task_id: event.task_id
+      })
+    }
+  }
+
+  @on_delegation_complete(event_id, result) => {
+    tracer.update(event_id, {
+      status: result.success ? "completed" : result.status,
+      duration_ms: result.duration_ms,
+      error: result.error
+    })
+    if result.duration_ms > slow_delegation_threshold_ms {
+      emit("slow_delegation_detected", {
+        event_id: event_id,
+        duration_ms: result.duration_ms,
+        threshold_ms: slow_delegation_threshold_ms
+      })
+    }
+  }
+
+  @on_get_trace(root_id) => {
+    return tracer.get_tree(root_id)
+  }
+
+  @on_replay(root_id) => {
+    trace = tracer.get_tree(root_id)
+    for each event in trace.events_topological {
+      tracer.mark_status(event.id, "replaying")
+    }
+    emit("trace_replay_started", { root_id: root_id, event_count: len(trace.events) })
+    return trace
+  }
+
+  @receipt delegation_trace_config {
+    type: "DelegationTraceHooksReceipt"
+    max_trace_events: max_trace_events
+    emit_to_cael: emit_to_cael
+    persist_to_knowledge: persist_to_knowledge
+    slow_threshold_ms: slow_delegation_threshold_ms
+    timestamp: now()
+  }
+}

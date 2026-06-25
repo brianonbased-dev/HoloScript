@@ -1,0 +1,109 @@
+// @channel_manager — Agent communication channel lifecycle and membership.
+//
+// Native .hsplus surface for ChannelManager.ts (Sprint 4 Priority 6).
+// Creates, updates, and closes agent communication channels. Manages
+// membership (join/leave/kick) and per-channel encryption key distribution.
+//
+// ChannelManagerEvents (ChannelManager.ts):
+//   channel:created  — a new channel was opened
+//   channel:closed   — a channel was closed and all members removed
+//   channel:updated  — channel metadata changed (name, config)
+//   member:joined    — an agent joined a channel
+//   member:left      — an agent left a channel
+//   member:kicked    — an agent was removed by the channel owner
+//
+// ChannelState internal shape:
+//   channel          — AgentChannel (id, type, config)
+//   members          — Map<agentId, ChannelMember>
+//   encryption_keys  — Map<agentId, publicKey> (for E2E channels)
+//
+// Pairs with @agent_messaging (send/receive) and @collaboration_session
+// (file-level CRDT) to form the full real-time communication stack.
+
+@trait channel_manager {
+  // Maximum channels this entity may own simultaneously (0 = unlimited)
+  max_owned_channels: Int = 0
+
+  // Default channel type when creating without a specified type
+  default_channel_type: enum("direct" | "broadcast" | "group") = "direct"
+
+  // Maximum members per channel (0 = unlimited)
+  max_members_per_channel: Int = 0
+
+  // Emit a membership snapshot on every join/leave event
+  emit_membership_snapshots: Bool = false
+
+  capability_tags: ["channel_manager", "messaging_lifecycle", "membership_management", "encryption_key_distribution", "agent_communication"]
+
+  @on_spawn => {
+    manager = init_channel_manager({
+      max_owned: max_owned_channels,
+      max_members: max_members_per_channel,
+      default_type: default_channel_type
+    })
+    emit("channel_manager_ready", {
+      max_owned: max_owned_channels,
+      default_type: default_channel_type
+    })
+  }
+
+  @on_create_channel(config) => {
+    if max_owned_channels > 0 and manager.owned_count() >= max_owned_channels {
+      return { success: false, reason: "max_owned_channels_exceeded" }
+    }
+    channel = manager.create({
+      type: config.type ?? default_channel_type,
+      name: config.name,
+      encryption: config.encryption,
+      members: config.initial_members ?? []
+    })
+    emit("channel_created", {
+      channel_id: channel.id,
+      type: channel.type,
+      member_count: len(config.initial_members ?? [])
+    })
+    return { success: true, channel_id: channel.id }
+  }
+
+  @on_join(channel_id, agent_id, public_key) => {
+    state = manager.get_channel(channel_id)
+    if not state {
+      return { success: false, reason: "channel_not_found" }
+    }
+    if max_members_per_channel > 0 and len(state.members) >= max_members_per_channel {
+      return { success: false, reason: "channel_full" }
+    }
+    manager.add_member(channel_id, agent_id, public_key)
+    emit("member_joined", { channel_id: channel_id, agent_id: agent_id })
+    if emit_membership_snapshots {
+      emit("membership_snapshot", { channel_id: channel_id, members: manager.member_ids(channel_id) })
+    }
+    return { success: true }
+  }
+
+  @on_leave(channel_id, agent_id) => {
+    manager.remove_member(channel_id, agent_id)
+    emit("member_left", { channel_id: channel_id, agent_id: agent_id })
+    if emit_membership_snapshots {
+      emit("membership_snapshot", { channel_id: channel_id, members: manager.member_ids(channel_id) })
+    }
+  }
+
+  @on_kick(channel_id, agent_id, reason) => {
+    manager.remove_member(channel_id, agent_id)
+    emit("member_kicked", { channel_id: channel_id, agent_id: agent_id, reason: reason })
+  }
+
+  @on_close_channel(channel_id) => {
+    manager.close(channel_id)
+    emit("channel_closed", { channel_id: channel_id })
+  }
+
+  @receipt channel_manager_config {
+    type: "ChannelManagerReceipt"
+    max_owned_channels: max_owned_channels
+    default_channel_type: default_channel_type
+    max_members_per_channel: max_members_per_channel
+    timestamp: now()
+  }
+}
