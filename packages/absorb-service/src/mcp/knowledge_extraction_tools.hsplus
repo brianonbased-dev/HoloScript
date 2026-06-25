@@ -1,0 +1,59 @@
+// @knowledge_extraction_tools — MCP tool: absorb_extract_knowledge (W/P/G from absorbed graph).
+//
+// Native .hsplus surface for knowledge-extraction-tools.ts (absorb-service/mcp).
+//
+// Bridge between absorb_run_absorb and knowledge_publish.
+// Turns raw CodebaseGraph data into publishable W/P/G marketplace entries.
+//
+// Tool: absorb_extract_knowledge (knowledge-extraction-tools.ts):
+//   Params:
+//     min_confidence:    Float = 0.5  — lower = more speculative entries
+//     max_per_type:      Int   = 20   — per wisdom|pattern|gotcha
+//     include_speculative: Bool = false
+//     workspace_id:      String = "auto"
+//   Returns: ExtractionResult (entries ready for knowledge_publish)
+//
+// Uses KnowledgeExtractor. Shares graph state with graph-rag-tools (absorb service state).
+// W/P/G = Wisdom (community structure) / Pattern (naming/architecture) / Gotcha (fan-in/circular)
+
+@trait knowledge_extraction_tools {
+  min_confidence: Float = 0.5
+  max_per_type: Int = 20
+  include_speculative: Bool = false
+
+  capability_tags: ["knowledge_extraction_tools", "mcp_tool", "wpg_extraction", "knowledge_publish", "absorb_service"]
+
+  @on_spawn => {
+    tools = init_knowledge_extraction_tools({
+      min_confidence: min_confidence,
+      max_per_type: max_per_type,
+      include_speculative: include_speculative
+    })
+    emit("knowledge_extraction_tools_ready", {})
+  }
+
+  // Run W/P/G extraction on the active absorbed graph
+  @on_extract(workspace_id) => {
+    result = tools.extract({
+      min_confidence: min_confidence,
+      max_per_type: max_per_type,
+      include_speculative: include_speculative,
+      workspace_id: workspace_id ?? "auto"
+    })
+    emit("knowledge_extracted", {
+      wisdom: result.wisdom.size,
+      patterns: result.patterns.size,
+      gotchas: result.gotchas.size
+    })
+    return result
+  }
+
+  @receipt knowledge_extraction_tools_config {
+    type: "KnowledgeExtractionToolsReceipt"
+    mcp_tool: "absorb_extract_knowledge"
+    min_confidence: min_confidence
+    max_per_type: max_per_type
+    entry_types: ["wisdom (community structure)", "pattern (naming/architecture)", "gotcha (fan-in/circular)"]
+    timestamp: now()
+  }
+}

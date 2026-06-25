@@ -1,0 +1,55 @@
+// @language_traits — Language declarations as data, not bespoke adapter classes.
+//
+// Native .hsplus surface for language-traits.ts (absorb-service/engine/adapters).
+//
+// Runtime, code-shaped form of @language_adapter declarations.
+// Proof of sug_1780711395408_m35r step 2 (Ruby added as pure data, zero extraction code).
+// Migration: per-language, never big-bang — hand-written adapters stay until trait reproduces parity.
+//
+// LanguageTrait (language-traits.ts):
+//   language: SupportedLanguage
+//   extensions: String[]
+//   grammar_package: String
+//   symbols: SymbolRule[]         — { nodeType, kind, nameField?, container? }
+//   imports?: ImportRule[]        — { callNodeType, methodField, methodNames[] }
+//   calls?: CallRule[]            — { callNodeType, methodField, receiverField? }
+//
+// SymbolRule.container = true → that node's name becomes `owner` of descendants.
+// TreeSitterTraitAdapter consumes one LanguageTrait → full LanguageAdapter contract.
+// See docs/language-adapter-trait.md.
+
+@trait language_traits {
+  capability_tags: ["language_traits", "data_driven", "tree_sitter", "language_adapter", "sug_1780711395408", "absorb_service"]
+
+  @on_spawn => {
+    registry = init_language_traits_registry()
+    emit("language_traits_ready", {})
+  }
+
+  // Register a language trait
+  @on_register(language_trait) => {
+    registry.register(language_trait)
+    emit("language_trait_registered", {
+      language: language_trait.language,
+      symbol_rules: language_trait.symbols.size
+    })
+  }
+
+  // Get a language trait by language name
+  @on_get(language) => {
+    return registry.get(language)
+  }
+
+  // List all registered language names
+  @on_list => {
+    return registry.list()
+  }
+
+  @receipt language_traits_config {
+    type: "LanguageTraitsReceipt"
+    pattern: "language-as-data: LanguageTrait config → TreeSitterTraitAdapter"
+    migration: "per-language; hand-written adapters stay until trait reaches parity"
+    first_proof: "Ruby (zero bespoke extraction code)"
+    timestamp: now()
+  }
+}

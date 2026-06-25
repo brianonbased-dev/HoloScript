@@ -1,0 +1,55 @@
+// @daemon_grpo_runner — Bridge GRPO reward scoring into the daemon absorb→diagnose→validate pipeline.
+//
+// Native .hsplus surface for daemon-grpo-runner.ts (absorb-service/daemon).
+//
+// D.012 lights-out improvement. Source: idea-run-13 Pattern B.
+// Adds a GRPO scoring sub-phase after daemon generates completions.
+//
+// DaemonGRPOConfig (daemon-grpo-runner.ts):
+//   root_dir: String            — monorepo root
+//   glob?: String               — file glob for prompt extraction
+//   max_prompts?: Int
+//   max_rouge_l_similarity?: Float  — dedup threshold
+//   weights?: GRPOOrchestratorConfig.weights  — custom reward weights
+//   parallel?: Bool
+//   batch_timeout?: Int          — ms
+//   per_completion_timeout?: Int — ms
+//
+// Pipeline: GRPOPromptExtractor → GRPORewardOrchestrator → composite rewards.
+// Uses createNodeFS for file-system abstraction.
+
+@trait daemon_grpo_runner {
+  parallel: Bool = true
+  batch_timeout_ms: Int = 120000
+  per_completion_timeout_ms: Int = 30000
+
+  capability_tags: ["daemon_grpo_runner", "grpo", "daemon", "lights_out", "d012", "idea_run_13", "absorb_service"]
+
+  @on_spawn => {
+    runner = init_daemon_grpo_runner({
+      parallel: parallel,
+      batch_timeout_ms: batch_timeout_ms,
+      per_completion_timeout_ms: per_completion_timeout_ms
+    })
+    emit("daemon_grpo_runner_ready", {})
+  }
+
+  // Run a GRPO scoring pass from a root directory
+  @on_run(config) => {
+    result = runner.run(config)
+    emit("daemon_grpo_run_complete", {
+      prompts: result.prompt_count,
+      scored: result.scored_count
+    })
+    return result
+  }
+
+  @receipt daemon_grpo_runner_config {
+    type: "DaemonGRPORunnerReceipt"
+    directive: "D.012 lights-out improvement"
+    source: "idea-run-13 Pattern B"
+    pipeline: "GRPOPromptExtractor → GRPORewardOrchestrator → composite rewards"
+    parallel: parallel
+    timestamp: now()
+  }
+}

@@ -1,0 +1,41 @@
+// @xenova_embedding_provider — Local WASM semantic embeddings via @huggingface/transformers.
+//
+// Native .hsplus surface for XenovaEmbeddingProvider.ts (absorb-service/engine/providers).
+//
+// Real semantic embeddings locally via WASM. No API key, no Ollama, no server.
+// Explicit opt-in only — never auto-selected (F.106, W.GOLD.005).
+//
+// XenovaEmbeddingProvider (XenovaEmbeddingProvider.ts):
+//   name: "xenova"
+//   model: "Xenova/all-MiniLM-L6-v2" (default, 384-dim, ~25MB, fast)
+//   alternative: "Xenova/all-mpnet-base-v2" (768-dim, higher quality)
+//
+// Requires: pnpm add @huggingface/transformers (optional dep — throws if absent)
+// Model downloaded once from HuggingFace Hub, cached locally.
+// Lazy pipeline load on first use. Mean-pools + L2-normalizes → cosine-similarity ready.
+
+@trait xenova_embedding_provider {
+  model: String = "Xenova/all-MiniLM-L6-v2"
+
+  capability_tags: ["xenova_embedding_provider", "wasm_embeddings", "local_inference", "huggingface", "absorb_service", "f106_opt_in"]
+
+  @on_spawn => {
+    provider = init_xenova_embedding_provider({ model: model })
+    emit("xenova_embedding_provider_ready", { model: model })
+  }
+
+  @on_get_embeddings(texts) => {
+    embeddings = provider.get_embeddings(texts)
+    return embeddings
+  }
+
+  @receipt xenova_embedding_provider_config {
+    type: "XenovaEmbeddingProviderReceipt"
+    name: "xenova"
+    model: model
+    backend: "WASM (@huggingface/transformers, optional dep)"
+    opt_in: "explicit opt-in only; never auto-selected (F.106)"
+    normalisation: "mean-pool + L2-normalize; cosine-similarity ready"
+    timestamp: now()
+  }
+}
