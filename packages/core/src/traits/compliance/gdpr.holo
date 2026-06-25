@@ -1,0 +1,19 @@
+@trait {
+  name: "@gdpr",
+  category: "compliance",
+  description: "GDPR data subject rights management. Tracks access, erasure, and portability requests by request ID, emitting lifecycle events for each. Port of GdprTrait.ts (handler name: gdpr).",
+  props: {
+    retention_days: number = 365
+  },
+  events: {
+    attached: "gdpr_attached",
+    detached: "gdpr_detached",
+    on_access_requested: "gdpr_access_requested",
+    on_erasure_requested: "gdpr_erasure_requested",
+    on_export_requested: "gdpr_export_requested",
+    access: "gdpr_access",
+    delete: "gdpr_delete",
+    export: "gdpr_export"
+  },
+  behaviors: ["@consent_management", "@user_monitor", "@audit_log"]
+}

@@ -1,0 +1,23 @@
+@trait {
+  name: "@compute",
+  category: "webgpu",
+  description: "GPU compute shader execution for parallel processing. Binds WGSL shader source to structured buffer groups, dispatches workgroups on demand or each update tick, and reads back results. Port of ComputeTrait.ts (handler name: compute).",
+  props: {
+    workgroup_size: { x: number, y: number, z: number } = { x: 64, y: 1, z: 1 },
+    dispatch: { x: number, y: number, z: number } = { x: 1, y: 1, z: 1 },
+    shader_source: string = "",
+    auto_dispatch: boolean = false,
+    dispatch_on_update: boolean = false,
+    shared_memory_size: number = 0
+  },
+  events: {
+    attached: "compute_attached",
+    detached: "compute_detached",
+    on_ready: "compute_ready",
+    on_complete: "compute_complete",
+    on_error: "compute_error",
+    dispatch: "compute_trigger_dispatch",
+    read_buffer: "compute_trigger_read_buffer"
+  },
+  behaviors: ["@gpu_physics", "@tensor_rt_inference", "@jetson_gpu"]
+}

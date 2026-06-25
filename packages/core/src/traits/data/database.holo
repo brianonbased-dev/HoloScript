@@ -1,0 +1,23 @@
+@trait {
+  name: "@database",
+  category: "data",
+  description: "Key-value / document store with CRUD lifecycle events. In-memory collections with optional persistence snapshot on detach. Responds to database:put, database:get, database:delete, and database:clear commands. Port of DatabaseTrait.ts (handler name: database).",
+  props: {
+    default_collection: string = "default",
+    max_entries: number = 10000,
+    persist_on_detach: boolean = false
+  },
+  events: {
+    attached: "database_attached",
+    detached: "database_detached",
+    on_put: "database_put",
+    on_result: "database_result",
+    on_cleared: "database_cleared",
+    on_snapshot: "database_snapshot",
+    put: "database_put",
+    get: "database_get",
+    delete: "database_delete",
+    clear: "database_clear"
+  },
+  behaviors: ["@vector_db", "@sql_query", "@index"]
+}

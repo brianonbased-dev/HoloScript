@@ -1,0 +1,18 @@
+@trait {
+  name: "@slidable",
+  category: "physics",
+  description: "Physical slider or lever via a prismatic constraint. Constrains the entity along one world axis within a track length, emitting normalized value changes (0–1) as the physics body moves. Port of SlidableTrait.ts (name: slidable).",
+  props: {
+    axis: enum("x" | "y" | "z") = "x",
+    length: number = 0.1,
+    value: number = 0.0
+  },
+  events: {
+    attached: "slidable_attached",
+    detached: "slidable_detached",
+    on_value_change: "slidable_value_change",
+    on_limit_reach: "slidable_limit_reach",
+    set_value: "slidable_trigger_set_value"
+  },
+  behaviors: ["@rigidbody", "@joint", "@haptic_cue"]
+}
