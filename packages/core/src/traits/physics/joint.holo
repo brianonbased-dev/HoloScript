@@ -1,0 +1,33 @@
+@trait {
+  name: "@joint",
+  category: "physics",
+  description: "Physics joint constraints between rigid bodies. Supports fixed, hinge, ball, slider, spring, distance, and configurable joints with angular/linear limits, motor drives, break thresholds, and optional spring configs. Port of JointTrait.ts.",
+  props: {
+    joint_type: enum("fixed" | "hinge" | "ball" | "slider" | "spring" | "distance" | "configurable") = "fixed",
+    connected_body: string = "",
+    anchor: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 },
+    connected_anchor: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 },
+    axis: { x: number, y: number, z: number } = { x: 0, y: 1, z: 0 },
+    angular_limit_min: number = 0.0,
+    angular_limit_max: number = 120.0,
+    angular_bounciness: number = 0.0,
+    linear_limit_min: number = 0.0,
+    linear_limit_max: number = 1.0,
+    spring_stiffness: number = 100.0,
+    spring_damping: number = 10.0,
+    motor_target_velocity: number = 0.0,
+    motor_max_force: number = 0.0,
+    break_force: number = 0.0,
+    break_torque: number = 0.0,
+    enable_collision: boolean = false,
+    mass_scale: number = 1.0,
+    connected_mass_scale: number = 1.0
+  },
+  events: {
+    attached: "joint_attached",
+    detached: "joint_detached",
+    on_break: "joint_break",
+    on_limit_reach: "joint_limit_reach"
+  },
+  behaviors: ["@rigidbody", "@kinematic_chain", "@ragdoll"]
+}

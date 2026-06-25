@@ -1,0 +1,24 @@
+@trait {
+  name: "@volumetric",
+  category: "visual",
+  description: "Gaussian Splatting, NeRF, and volumetric cloud rendering with automatic LOD, opacity clipping, and spatial anchors. Loads splat data via SplatProcessingService and supports GPU compute sorting. Port of VolumetricTrait.ts (handler name: volumetric).",
+  props: {
+    src: string = "",
+    render_mode: enum("splat" | "nerf" | "cloud") = "splat",
+    point_size: number = 1.0,
+    opacity: number = 1.0,
+    lod_auto: boolean = true,
+    max_points: number = 1000000,
+    use_gpu_compute: boolean = true
+  },
+  events: {
+    attached: "volumetric_attached",
+    detached: "volumetric_detached",
+    on_loaded: "volumetric_loaded",
+    on_error: "volumetric_error",
+    on_lod_change: "volumetric_lod_change",
+    load: "volumetric_trigger_load",
+    clip: "volumetric_trigger_clip"
+  },
+  behaviors: ["@multiview_gaussian_renderer", "@spatial_awareness", "@holo_twin"]
+}

@@ -1,0 +1,18 @@
+@trait {
+  name: "@navmesh_solver",
+  category: "spatial",
+  description: "Navigation mesh solver backed by WalkableNavmeshBuilder. Accepts a point cloud via the nav:build event to derive a real navmesh, then answers nav:query pathfinding requests via the reachability graph. Same real seam as @walkable. Port of NavmeshSolverTrait.ts (handler name: navmesh_solver).",
+  props: {
+    cell_size: number = 0.5
+  },
+  events: {
+    attached: "navmesh_solver_attached",
+    detached: "navmesh_solver_detached",
+    on_built: "nav_built",
+    on_path: "nav_path",
+    on_error: "nav_error",
+    build: "nav_build",
+    query: "nav_query"
+  },
+  behaviors: ["@walkable", "@path_follower", "@crowd_sim"]
+}

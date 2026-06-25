@@ -1,0 +1,24 @@
+@trait {
+  name: "@haptic_cue",
+  category: "xr",
+  description: "Non-visual haptic feedback for XR interactions and accessibility. Fires built-in patterns (pulse/buzz/click/double_click/long_press/success/warning/error) or a custom intensity/duration sequence, with repeat support and optional spatial-direction encoding. Port of HapticCueTrait.ts (handler name: haptic_cue).",
+  props: {
+    pattern: enum("pulse" | "buzz" | "click" | "double_click" | "long_press" | "success" | "warning" | "error" | "custom") = "pulse",
+    intensity: number = 0.5,
+    duration: number = 100,
+    repeat: number = 0,
+    repeat_delay: number = 200,
+    spatial_direction: boolean = false,
+    trigger_on: string = "interact",
+    custom_pattern: list<number> = []
+  },
+  events: {
+    attached: "haptic_cue_attached",
+    detached: "haptic_cue_detached",
+    on_play: "haptic_cue_play",
+    on_stop: "haptic_cue_stop",
+    play: "haptic_cue_trigger_play",
+    stop: "haptic_cue_trigger_stop"
+  },
+  behaviors: ["@grabbable", "@gesture", "@force_feedback"]
+}
