@@ -1,0 +1,100 @@
+// @cael_trace — CAEL provenance chain declaration for an agent entity.
+//
+// CAEL (Cryptographic Agent Execution Ledger) is the 7-layer provenance
+// record emitted by the AgentRunner on every tick. Each layer is a sha256
+// hash of a distinct tick stage, enabling a downstream consumer to verify
+// any one layer in isolation (from cael-builder.ts):
+//
+//   L0 brain_state      — sha256(brain.systemPrompt)
+//   L1 tick_input       — sha256(taskId|title|description)
+//   L2 messages         — sha256(JSON of final message thread)
+//   L3 response         — sha256(finalText)
+//   L4 usage            — sha256(JSON of aggregated TokenUsage)
+//   L5 cost             — sha256(costUsd|spentUsd)
+//   L6 composite        — sha256(L0|L1|L2|L3|L4|L5)
+//
+// fnv1a_chain extends across records: chain_n = sha256(chain_{n-1} | L6_n).
+// First tick emits prev_hash=null; subsequent ticks chain from the previous
+// record's fnv1a_chain — building a tamper-evident log.
+//
+// trust_epoch field (cael-builder.ts W.107 gate):
+//   Records without this field are pre-W.107 (implicitly untrusted — the
+//   mesh-worker-02 hallucination class lives there). Filter by
+//   trust_epoch == "post-w107" before using CAEL as evidence of real work.
+//
+// Usage:
+//   entity#my_agent @cael_trace(
+//     emit_to: "holomesh"
+//     chain_persist_path: ".cael/chain.jsonl"
+//   ) { ... }
+
+@trait cael_trace {
+  // Where to emit records: "holomesh" (HoloMesh audit endpoint) | "local" | "both"
+  emit_to: enum("holomesh" | "local" | "both") = "holomesh"
+
+  // Local JSONL path for chained records (required when emit_to != "holomesh")
+  chain_persist_path: String?
+
+  // Brain class label for the ablation matrix (optional)
+  brain_class: String?
+
+  // Whether to auto-tag records with trust_epoch="post-w107"
+  tag_trust_epoch: Bool = true
+
+  // Emit records even on failed ticks (budget-exhausted, crash)
+  include_failure_records: Bool = true
+
+  capability_tags: ["cael_trace", "provenance_chain", "tamper_evident", "trust_epoch", "audit_ledger"]
+
+  @on_spawn => {
+    chain = init_cael_chain({
+      emit_to: emit_to,
+      chain_persist_path: chain_persist_path,
+      brain_class: brain_class,
+      tag_trust_epoch: tag_trust_epoch,
+      include_failure_records: include_failure_records
+    })
+    emit("cael_chain_started", {
+      emit_to: emit_to,
+      persisted: chain_persist_path != null,
+      trust_epoch_tagged: tag_trust_epoch
+    })
+  }
+
+  @on_tick_complete(tick_result) => {
+    record = build_cael_record({
+      tick_result: tick_result,
+      brain_class: brain_class,
+      trust_epoch: tag_trust_epoch ? "post-w107" : null,
+      prev_chain: chain.last_fnv1a
+    })
+    chain.emit(record)
+    emit("cael_record_emitted", {
+      layer_count: 7,
+      trust_epoch: record.trust_epoch,
+      fnv1a_chain: record.fnv1a_chain
+    })
+  }
+
+  @on_tick_failed(error) => {
+    if include_failure_records {
+      record = build_cael_failure_record({
+        error: error,
+        trust_epoch: tag_trust_epoch ? "post-w107" : null,
+        prev_chain: chain.last_fnv1a
+      })
+      chain.emit(record)
+    }
+  }
+
+  @receipt cael_chain_config {
+    type: "CaelTraceReceipt"
+    emit_to: emit_to
+    persisted: chain_persist_path != null
+    brain_class: brain_class ?? "unclassified"
+    trust_epoch_tagged: tag_trust_epoch
+    include_failure_records: include_failure_records
+    layer_count: 7
+    timestamp: now()
+  }
+}

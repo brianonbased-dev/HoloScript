@@ -1,0 +1,293 @@
+// ============================================================================
+// Memory Palace — A walkable architecture of one agent's private knowledge
+// ============================================================================
+// Every entry in private:<wallet> becomes a room in this palace. The rooms
+// cluster by semantic similarity — all architecture memories in one wing,
+// research insights in another, hardware facts in a third. The corridors
+// between wings glow when two memories are strongly linked.
+//
+// Entering a room shows the memory in full. The walls display the semantic
+// neighborhood — other memories that scored above 0.8 similarity. The room
+// color encodes recency: cold blue for old memories, warm amber for recent.
+//
+// The palace grows taller as the agent accumulates knowledge. A new memory
+// is a bright flash at the ceiling that slowly settles into a room below.
+// ============================================================================
+
+#version 6.0.0
+#target WebGPU, R3F
+#mode single_agent
+
+@environment {
+  type: "interior_baroque",
+  background: "#04020d",
+  ambient_light: "#0a0520",
+  lighting: "candle_array",
+  ceiling_height: 12,
+  room_scale: 4.0
+}
+
+// ============================================================================
+// PALACE FLOOR PLAN — Rooms generated from private:<wallet> memory clusters
+// ============================================================================
+object MemoryRooms {
+  type: "procedural_room_field"
+  position: [0, 0, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/private_knowledge",
+    cluster_by: "semantic_embedding",
+    cluster_count: 12,
+    map: {
+      room_x: "cluster_centroid_x * 8",
+      room_z: "cluster_centroid_z * 8",
+      room_size: "sqrt(cluster_entry_count) * 2",
+      room_color: "age_gradient(cluster_avg_age, '#1a3a8f', '#8f4a1a')",
+      room_label: "cluster_dominant_topic"
+    }
+  }
+
+  @room_geometry {
+    floor_height: 0,
+    wall_height: 4,
+    wall_thickness: 0.3,
+    doorway_width: 1.5,
+    doorway_height: 2.5,
+    arch_type: "gothic_pointed"
+  }
+
+  @material {
+    walls: {
+      type: "pbr_metallic",
+      base_color_from: "data.room_color",
+      roughness: 0.8,
+      metalness: 0.2,
+      emissive_from: "data.room_color",
+      emissive_intensity: 0.15
+    },
+    floor: {
+      type: "pbr_metallic",
+      base_color: "#0a0615",
+      roughness: 0.3,
+      metalness: 0.6
+    },
+    ceiling: {
+      type: "emissive_paneled",
+      emissive: "#0a0832",
+      emissive_intensity: 0.4
+    }
+  }
+}
+
+// ============================================================================
+// MEMORY ORBS — One per knowledge entry, floating in its room
+// ============================================================================
+object MemoryOrbs {
+  type: "instanced_field"
+  position: [0, 1.5, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/private_knowledge",
+    map: {
+      x: "room_x + local_x * 1.5",
+      y: "1.5 + local_index_y * 0.4",
+      z: "room_z + local_z * 1.5",
+      size: "0.08 + importance_score * 0.12",
+      color: "age_gradient(age_seconds, '#3060ff', '#ff8030')",
+      opacity: "clamp(1.0 - age_days * 0.02, 0.3, 1.0)"
+    }
+  }
+
+  @instanced_mesh {
+    geometry: "sphere",
+    base_scale: [1.0, 1.0, 1.0]
+  }
+
+  @material {
+    type: "emissive_glass",
+    color_from: "data.color",
+    opacity_from: "data.opacity",
+    emissive_intensity: 1.4,
+    roughness: 0.0,
+    metalness: 0.0,
+    refraction: 0.9,
+    bloom: true
+  }
+
+  @interaction {
+    click: {
+      effect: "expand_memory",
+      show_fields: ["content", "created_at", "importance_score", "semantic_neighbors"]
+    },
+    hover: {
+      effect: "highlight_neighbors",
+      neighbor_threshold: 0.8
+    }
+  }
+}
+
+// ============================================================================
+// SEMANTIC CORRIDORS — Glowing paths between linked memories
+// ============================================================================
+object SemanticCorridors {
+  type: "dynamic_graph_edges"
+  position: [0, 0.2, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/private_knowledge_links",
+    filter: "similarity > 0.8",
+    map: {
+      source_pos: "source_orb.position",
+      target_pos: "target_orb.position",
+      strength: "similarity - 0.8"
+    }
+  }
+
+  @render {
+    type: "straight_beam",
+    beam_width: 0.02,
+    emissive_intensity: 0.6,
+    emissive_color: "#4060ff",
+    opacity_from: "data.strength * 2.0",
+    fade_ends: true
+  }
+}
+
+// ============================================================================
+// INCOMING MEMORY FLASH — New memories appear at ceiling, fall into place
+// ============================================================================
+object NewMemoryFlash {
+  type: "particle_emitter"
+  position: [0, 11, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/private_knowledge",
+    filter: "created_at > now() - 5",
+    limit: 3,
+    map: {
+      x: "target_room_x",
+      color: "age_gradient(age_seconds, '#fffae0', '#ff8030')"
+    }
+  }
+
+  @particles {
+    count: 40,
+    emission_rate: 8,
+    lifetime: 4,
+    gravity: [0, -0.8, 0],
+    spread: 0.5,
+    speed: 2.0
+  }
+
+  @material {
+    type: "emissive_point",
+    color_from: "data.color",
+    size: 0.05,
+    emissive_intensity: 3.0,
+    bloom: true
+  }
+}
+
+// ============================================================================
+// ROOM LABELS — Topic cluster names above each doorway
+// ============================================================================
+object RoomLabels {
+  type: "instanced_text_field"
+  position: [0, 0, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/private_knowledge",
+    cluster_by: "semantic_embedding",
+    cluster_count: 12,
+    map: {
+      x: "cluster_centroid_x * 8",
+      y: "2.8",
+      z: "cluster_centroid_z * 8 - 2.5",
+      text: "cluster_dominant_topic",
+      color: "age_gradient(cluster_avg_age, '#6080ff', '#ff9050')"
+    }
+  }
+
+  @text {
+    font: "holoscript_serif",
+    size: 0.18,
+    align: "center",
+    emissive: true,
+    emissive_intensity: 0.9
+  }
+}
+
+// ============================================================================
+// CANDLE SCONCES — Wall lighting in every room
+// ============================================================================
+object CandleSconces {
+  type: "instanced_field"
+  position: [0, 0, 0]
+
+  @data_source {
+    endpoint: "crdt://holomesh/private_knowledge",
+    cluster_by: "semantic_embedding",
+    cluster_count: 12,
+    map: {
+      x: "cluster_centroid_x * 8 + 1.8",
+      y: 1.8,
+      z: "cluster_centroid_z * 8"
+    }
+  }
+
+  @light {
+    type: "point",
+    color: "#ff9040",
+    intensity: 2.0,
+    distance: 5.0,
+    flicker: { enabled: true, speed: 0.8, amplitude: 0.3 }
+  }
+}
+
+// ============================================================================
+// CAMERA — Walk the palace as an agent's memory journey
+// ============================================================================
+@camera {
+  type: "first_person",
+  height: 1.7,
+  speed: 2.5,
+  collision: true,
+  fov: 85
+}
+
+// ============================================================================
+// POST-PROCESSING — Low-lit interior atmosphere
+// ============================================================================
+@post_process {
+  bloom: {
+    enabled: true,
+    threshold: 0.5,
+    intensity: 0.9,
+    radius: 0.6,
+    levels: 5
+  },
+  tone_mapping: {
+    type: "aces_filmic",
+    exposure: 0.7
+  },
+  ambient_occlusion: {
+    enabled: true,
+    radius: 0.8,
+    intensity: 0.6,
+    samples: 16
+  },
+  vignette: {
+    enabled: true,
+    intensity: 0.6,
+    smoothness: 0.7
+  }
+}
+
+@metadata {
+  title: "Memory Palace",
+  description: "A walkable architecture of an agent's private knowledge. Each room is a semantic cluster of memories. Orbs represent individual entries — warm for recent, cool for old. Corridors glow between strongly-linked memories. New facts flash at the ceiling and settle into their cluster.",
+  tags: ["holomesh", "private-memory", "semantic-clustering", "agent-cognition", "spatial-knowledge"],
+  data_sources: ["crdt://holomesh/private_knowledge", "crdt://holomesh/private_knowledge_links"],
+  created: "2026-06-25",
+  license: "CC-BY-4.0"
+}

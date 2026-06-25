@@ -1,0 +1,102 @@
+// @audit_log — structured event log for an agent entity.
+//
+// Wraps the audit-log module (audit-log.ts) as a declarative .hsplus trait.
+// When an entity carries @audit_log, every task execution, budget exhaustion,
+// crash, and ablation cell event is appended to a JSONL file and/or emitted
+// to the HoloMesh audit endpoint.
+//
+// Event kinds (from audit-log.ts):
+//   task-executed    — a tick ran to completion
+//   ablation-cell    — an ablation matrix cell was recorded
+//   budget-exhausted — the cost guard tripped
+//   agent-crash      — an unhandled error terminated the tick
+//
+// Each event captures: agent handle/surface/wallet/provider/model/brainPath,
+// task id/title/tags, token counts, cost, duration, finish reason, commit hash.
+//
+// Rotation: when the JSONL reaches max_size_mb, it is renamed to audit-{ts}.jsonl
+// and a fresh log is started — preserving history without unbounded growth.
+//
+// Usage:
+//   entity#my_agent @audit_log(
+//     log_path: ".audit/agent.jsonl"
+//     max_size_mb: 10
+//     emit_to_mesh: true
+//   ) { ... }
+
+@trait audit_log {
+  // Path to the JSONL audit log (required when emit_to_mesh is false or both)
+  log_path: String?
+
+  // Maximum size in MB before the log rotates
+  max_size_mb: Float = 50.0
+
+  // Emit events to the HoloMesh audit endpoint in addition to (or instead of) local log
+  emit_to_mesh: Bool = true
+
+  // Which event kinds to capture (default: all)
+  include_kinds: Array<String> = ["task-executed", "ablation-cell", "budget-exhausted", "agent-crash"]
+
+  // Whether to include token-level detail (cost, promptTokens, completionTokens)
+  include_token_detail: Bool = true
+
+  capability_tags: ["audit_log", "event_capture", "observability", "jsonl_log", "mesh_audit"]
+
+  @on_spawn => {
+    logger = init_audit_log({
+      log_path: log_path,
+      max_size_mb: max_size_mb,
+      emit_to_mesh: emit_to_mesh,
+      include_kinds: include_kinds,
+      include_token_detail: include_token_detail
+    })
+    emit("audit_log_active", {
+      log_path: log_path ?? "none",
+      emit_to_mesh: emit_to_mesh,
+      include_kinds: include_kinds
+    })
+  }
+
+  @on_tick_complete(tick_result) => {
+    if "task-executed" in include_kinds {
+      logger.record({
+        kind: "task-executed",
+        task: tick_result.task,
+        execution: tick_result.execution,
+        result: tick_result.result
+      })
+    }
+  }
+
+  @on_budget_exhausted(state) => {
+    if "budget-exhausted" in include_kinds {
+      logger.record({
+        kind: "budget-exhausted",
+        execution: { costUsd: state.spent_usd }
+      })
+    }
+  }
+
+  @on_crash(error) => {
+    if "agent-crash" in include_kinds {
+      logger.record({
+        kind: "agent-crash",
+        result: { errorMessage: error.message }
+      })
+    }
+  }
+
+  @on_despawn => {
+    logger.flush()
+  }
+
+  @receipt audit_log_config {
+    type: "AuditLogReceipt"
+    log_path: log_path ?? "mesh-only"
+    max_size_mb: max_size_mb
+    emit_to_mesh: emit_to_mesh
+    include_kinds: include_kinds
+    include_token_detail: include_token_detail
+    timestamp: now()
+  }
+}
