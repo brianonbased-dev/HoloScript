@@ -1,0 +1,34 @@
+// @vscode_tools — MCP tool definitions for the VSCode connector.
+//
+// Native .hsplus surface for connector-vscode/tools.ts.
+//
+// MCP tools exposed by the VSCode connector (tools.ts):
+//   vscode_extension_status  — check if extension is running and connected
+//   vscode_file_open         — open a file in VSCode (path, line?)
+//   vscode_preview_open      — open HoloScript live preview panel (.holo/.hsplus file)
+//   vscode_sync_push         — push composition from Studio to VSCode workspace (path, content)
+//   vscode_run_terminal      — run a terminal command in the VSCode integrated terminal
+//   vscode_get_diagnostics   — get LSP diagnostics for a file
+
+@trait vscode_tools {
+  capability_tags: ["vscode_tools", "mcp_tools", "vscode_connector", "lsp_diagnostics", "connector_vscode"]
+
+  @on_spawn => {
+    tools = init_vscode_tools()
+    emit("vscode_tools_ready", { tool_count: 6 })
+  }
+
+  @receipt vscode_tools_config {
+    type: "VSCodeToolsReceipt"
+    tools: [
+      "vscode_extension_status",
+      "vscode_file_open",
+      "vscode_preview_open",
+      "vscode_sync_push",
+      "vscode_run_terminal",
+      "vscode_get_diagnostics"
+    ]
+    transport: "@modelcontextprotocol/sdk Tool[]"
+    timestamp: now()
+  }
+}

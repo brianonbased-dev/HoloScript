@@ -1,0 +1,48 @@
+// @deployment_pipeline — Compile→target→deploy→verify pipeline interface.
+//
+// Native .hsplus surface for connector-core/DeploymentPipeline.ts.
+//
+// DeploymentPipeline (DeploymentPipeline.ts):
+//   compile(projectPath) → artifact: String
+//   selectTarget(tier: low|med|high|ultra) → void
+//   deploy(artifact) → deploymentId: String
+//   verify(deploymentId) → Bool
+
+@trait deployment_pipeline {
+  capability_tags: ["deployment_pipeline", "compile_deploy", "quality_tiers", "connector_core"]
+
+  @on_spawn(impl) => {
+    pipeline = impl
+    emit("deployment_pipeline_ready", {})
+  }
+
+  @on_compile(project_path) => {
+    artifact = pipeline.compile(project_path)
+    emit("compiled", { project_path: project_path })
+    return artifact
+  }
+
+  @on_select_target(tier) => {
+    pipeline.select_target(tier)
+    emit("target_selected", { tier: tier })
+  }
+
+  @on_deploy(artifact) => {
+    deployment_id = pipeline.deploy(artifact)
+    emit("deployed", { deployment_id: deployment_id })
+    return deployment_id
+  }
+
+  @on_verify(deployment_id) => {
+    ok = pipeline.verify(deployment_id)
+    emit("verified", { deployment_id: deployment_id, ok: ok })
+    return ok
+  }
+
+  @receipt deployment_pipeline_config {
+    type: "DeploymentPipelineReceipt"
+    tiers: ["low", "med", "high", "ultra"]
+    stages: ["compile", "selectTarget", "deploy", "verify"]
+    timestamp: now()
+  }
+}

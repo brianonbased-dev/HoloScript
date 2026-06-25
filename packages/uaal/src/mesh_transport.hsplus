@@ -1,0 +1,55 @@
+// @mesh_transport — uAAL fleet mesh: makes peer opcodes real via pluggable MeshTransport.
+//
+// Native .hsplus surface for mesh-transport.ts (uaal).
+//
+// The uAAL ISA ships peer opcodes as inert extension points:
+//   CALL_NODE (0x21): request/response to peer
+//   OP_OFFLOAD (0x23): fire-and-forget to peer
+//   OP_SYNC (0x24): broadcast to all peers
+//
+// This module registers handlers on a UAALVirtualMachine — turning inert opcodes
+// into real fleet mesh calls through any MeshTransport implementation.
+//
+// MeshTransport (mesh-transport.ts):
+//   self_node: String — this node's mesh identity (e.g. "jetson-orin-01")
+//   request(to_node, payload) → UAALOperand   — CALL_NODE: request + await reply
+//   offload(to_node, payload) → void          — OP_OFFLOAD: fire-and-forget
+//   sync(payload) → void (optional)           — OP_SYNC: broadcast gossip
+//
+// InMemoryMeshRouter — in-process router for tests / single-process fleets
+// Production adapter: HoloMesh ask_peer/send_message/gossip (lives in edge/agent package)
+//
+// registerMeshHandlers(vm, transport) → void  — wires handlers onto the VM
+
+@trait mesh_transport {
+  capability_tags: ["mesh_transport", "uaal_mesh", "fleet_peers", "call_node", "op_offload", "op_sync", "uaal"]
+
+  @on_spawn(vm, transport) => {
+    register_mesh_handlers(vm, transport)
+    emit("mesh_transport_ready", { self_node: transport.self_node })
+  }
+
+  @on_request(to_node, payload) => {
+    return transport.request(to_node, payload)
+  }
+
+  @on_offload(to_node, payload) => {
+    transport.offload(to_node, payload)
+    emit("mesh_offloaded", { to_node: to_node })
+  }
+
+  @on_sync(payload) => {
+    if transport.sync != null {
+      transport.sync(payload)
+      emit("mesh_synced", {})
+    }
+  }
+
+  @receipt mesh_transport_config {
+    type: "MeshTransportReceipt"
+    opcodes: ["CALL_NODE(0x21)", "OP_OFFLOAD(0x23)", "OP_SYNC(0x24)"]
+    in_memory_router: "InMemoryMeshRouter (tests/single-process)"
+    production: "HoloMesh ask_peer/send_message/gossip (edge/agent package)"
+    timestamp: now()
+  }
+}

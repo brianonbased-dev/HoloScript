@@ -1,0 +1,60 @@
+// @vscode_connector — Studio↔VSCode extension bidirectional bridge.
+//
+// Native .hsplus surface for connector-vscode/VSCodeConnector.ts.
+//
+// Connection model:
+//   1. VSCode extension runs a local HTTP bridge (default port: 17420)
+//   2. This connector discovers the extension via bridge health check
+//   3. Studio sends commands (open file, push content, run terminal, etc.)
+//   4. Extension pushes events to Studio via SSE activity stream
+//
+// VSCodeConnectorCredentials { bridge_url?: String }
+// Default bridge: http://localhost:17420
+// Env override: VSCODE_BRIDGE_URL (legacy/server use)
+// Per-instance injected bridge_url preferred (multi-tenant safe)
+//
+// VSCodeConnector extends ServiceConnector (connector-core):
+//   connect() → void   — health check via /ping
+//   disconnect() → void
+//   openFile(path, line?) → void
+//   syncPush(path, content) → void
+//   runTerminal(command) → String
+
+@trait vscode_connector {
+  default_bridge_port: Int = 17420
+
+  capability_tags: ["vscode_connector", "studio_bridge", "vscode_extension", "sse", "connector_vscode"]
+
+  @on_spawn(credentials) => {
+    connector = init_vscode_connector(credentials)
+    emit("vscode_connector_ready", {})
+  }
+
+  @on_connect => {
+    connector.connect()
+    emit("vscode_connected", { bridge_url: connector.bridge_url })
+  }
+
+  @on_disconnect => {
+    connector.disconnect()
+    emit("vscode_disconnected", {})
+  }
+
+  @on_open_file(path, line) => {
+    connector.open_file(path, line)
+    emit("vscode_file_opened", { path: path })
+  }
+
+  @on_sync_push(path, content) => {
+    connector.sync_push(path, content)
+    emit("vscode_sync_pushed", { path: path })
+  }
+
+  @receipt vscode_connector_config {
+    type: "VSCodeConnectorReceipt"
+    default_bridge: "http://localhost:17420"
+    env_override: "VSCODE_BRIDGE_URL"
+    extends: "ServiceConnector (connector-core)"
+    timestamp: now()
+  }
+}
