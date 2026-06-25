@@ -1,0 +1,21 @@
+@trait {
+  name: "@collectable",
+  category: "game",
+  description: "Player-collectable pickup item. Detects player proximity via trigger zone, awards the configured item or resource delta to the collecting entity, plays a collect effect, and self-destructs or respawns after a configurable cooldown. Authored from CollectableTrait.ts.",
+  props: {
+    item_id: string = "",
+    quantity: number = 1,
+    collect_radius_m: number = 0.75,
+    auto_collect: boolean = true,
+    effect_url: string = "",
+    respawn_after_s: number = 0,
+    unique: boolean = false
+  },
+  events: {
+    attached: "collectable_attached",
+    detached: "collectable_detached",
+    on_collect: "collectable_collect",
+    on_respawn: "collectable_respawn"
+  },
+  behaviors: ["@inventory", "@spawn_gate", "@objective"]
+}

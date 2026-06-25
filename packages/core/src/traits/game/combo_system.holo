@@ -1,0 +1,22 @@
+@trait {
+  name: "@combo_system",
+  category: "game",
+  description: "Attack and skill combo chain tracker. Accumulates sequential input events into named combo strings within a timing window, fires a matched-combo event when an input sequence matches a registered pattern, and tracks combo multiplier for damage and score amplification. Authored from ComboSystemTrait.ts.",
+  props: {
+    window_ms: number = 600,
+    patterns: list<{ id: string, sequence: list<string>, multiplier: number }> = [],
+    reset_on_miss: boolean = true,
+    max_chain: number = 12,
+    current_chain: number = 0,
+    current_multiplier: number = 1.0
+  },
+  events: {
+    attached: "combo_system_attached",
+    detached: "combo_system_detached",
+    on_combo: "combo_system_combo",
+    on_miss: "combo_system_miss",
+    on_chain_update: "combo_system_chain_update",
+    input: "combo_system_trigger_input"
+  },
+  behaviors: ["@input_map", "@player_state", "@objective"]
+}

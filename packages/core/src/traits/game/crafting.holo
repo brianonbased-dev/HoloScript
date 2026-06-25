@@ -1,0 +1,21 @@
+@trait {
+  name: "@crafting",
+  category: "game",
+  description: "Item crafting station controller. Holds a recipe book URL defining ingredient lists and output items, validates the player's inventory against a selected recipe, consumes ingredients and adds the output on craft confirmation, and fires progress events for crafting timers. Authored from CraftingTrait.ts.",
+  props: {
+    recipes_url: string = "",
+    craft_time_s: number = 0,
+    require_proximity_m: number = 2.0,
+    auto_craft: boolean = false,
+    station_type: enum("any" | "forge" | "kitchen" | "lab" | "workbench") = "any"
+  },
+  events: {
+    attached: "crafting_attached",
+    detached: "crafting_detached",
+    on_craft_start: "crafting_start",
+    on_craft_complete: "crafting_complete",
+    on_fail: "crafting_fail",
+    craft: "crafting_trigger_craft"
+  },
+  behaviors: ["@inventory", "@collectable", "@objective"]
+}

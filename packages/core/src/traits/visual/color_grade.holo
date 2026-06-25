@@ -1,0 +1,22 @@
+@trait {
+  name: "@color_grade",
+  category: "visual",
+  description: "Full-screen color grading post-process. Applies a 3D LUT texture or parametric tone-map (lift/gamma/gain, saturation, contrast, hue rotation) to the final rendered frame, supporting runtime LUT crossfade between grade presets for cinematic look-dev and mood-shift transitions. Authored from ColorGradeTrait.ts.",
+  props: {
+    lut_url: string = "",
+    lut_intensity: number = 1.0,
+    saturation: number = 1.0,
+    contrast: number = 1.0,
+    brightness: number = 0.0,
+    hue_shift_deg: number = 0.0,
+    temperature: number = 0.0,
+    tint: number = 0.0
+  },
+  events: {
+    attached: "color_grade_attached",
+    detached: "color_grade_detached",
+    on_change: "color_grade_change",
+    set_lut: "color_grade_trigger_set_lut"
+  },
+  behaviors: ["@image_effect", "@vignette", "@global_illumination"]
+}
