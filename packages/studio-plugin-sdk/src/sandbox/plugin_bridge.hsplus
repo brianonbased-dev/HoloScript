@@ -1,0 +1,38 @@
+// @plugin_bridge — Host-side postMessage handler: permission validation + rate limiting.
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/PluginBridge.ts.
+//
+// Security responsibilities:
+//   1. Permission validation — every API call checked against manifest
+//   2. Rate limiting — prevents abuse from misbehaving plugins
+//   3. Input validation — sanitizes and validates all arguments
+//   4. Network policy enforcement — validates fetch URLs against allowed domains
+//   5. Audit logging — records all API calls for security review
+//
+// NAMESPACE_PERMISSION_MAP: scene.read→['scene:read'], scene.write→['scene:write'],
+//   editor.selection→['editor:selection'], ui.panel→['ui:panel'], etc.
+
+@trait plugin_bridge {
+  capability_tags: ["plugin_bridge", "sandbox_host", "permission_validation", "rate_limiting", "audit_logging", "studio_plugin_sdk"]
+
+  @on_spawn(sandbox) => {
+    bridge = init_plugin_bridge(sandbox)
+    emit("plugin_bridge_ready", {})
+  }
+
+  @on_api_call(plugin_id, namespace, method, args) => {
+    result = bridge.handle_api_call(plugin_id, namespace, method, args)
+    emit("plugin_api_call", { plugin_id: plugin_id, namespace: namespace, method: method })
+    return result
+  }
+
+  @on_network_policy_check(url, policy) => {
+    return bridge.check_network_policy(url, policy)
+  }
+
+  @receipt plugin_bridge_config {
+    type: "PluginBridgeReceipt"
+    security_layers: ["permission_validation", "rate_limiting", "input_validation", "network_policy", "audit_logging"]
+    timestamp: now()
+  }
+}

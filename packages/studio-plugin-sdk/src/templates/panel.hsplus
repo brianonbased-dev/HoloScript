@@ -1,0 +1,24 @@
+// @plugin_template_panel — Panel plugin scaffold (adds a custom UI panel to Studio).
+//
+// Native .hsplus surface for studio-plugin-sdk/templates/panel.ts.
+//
+// Template variables: {{pluginName}}, {{pluginId}}, {{pluginDisplayName}},
+//   {{pluginDescription}}, {{authorName}}, {{authorEmail}},
+//   {{panelComponentName}}, {{panelId}}, {{panelLabel}}, {{iconName}}, {{keyboardShortcut}}
+//
+// Panel config: { id, label, icon, position: 'right', width: 400, component, shortcut }
+
+@trait plugin_template_panel {
+  capability_tags: ["plugin_template_panel", "plugin_scaffold", "custom_panel", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    template = init_plugin_template_panel()
+    emit("plugin_template_panel_ready", {})
+  }
+
+  @receipt plugin_template_panel_config {
+    type: "PluginTemplatePanelReceipt"
+    panel_defaults: { position: "right", width: 400 }
+    timestamp: now()
+  }
+}

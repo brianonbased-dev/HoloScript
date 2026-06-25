@@ -1,0 +1,30 @@
+// @plugin_template_sandboxed — Sandboxed plugin scaffold (iframe-isolated, third-party safe).
+//
+// Native .hsplus surface for studio-plugin-sdk/templates/sandboxed.ts.
+//
+// Sandbox manifest defaults:
+//   permissions: ['scene:read', 'ui:panel', 'ui:notification', 'storage:local']
+//   trust_level: 'sandboxed' — runs in iframe isolation
+//   memory_budget: 64 MB
+//   cpu_budget: 16 ms/frame
+//
+// Template variables: {{pluginName}}, {{pluginId}}, {{pluginDisplayName}},
+//   {{pluginDescription}}, {{authorName}}, {{authorEmail}}
+
+@trait plugin_template_sandboxed {
+  capability_tags: ["plugin_template_sandboxed", "plugin_scaffold", "sandbox_isolation", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    template = init_plugin_template_sandboxed()
+    emit("plugin_template_sandboxed_ready", {})
+  }
+
+  @receipt plugin_template_sandboxed_config {
+    type: "PluginTemplateSandboxedReceipt"
+    default_permissions: ["scene:read", "ui:panel", "ui:notification", "storage:local"]
+    trust_level: "sandboxed"
+    memory_budget_mb: 64
+    cpu_budget_ms_per_frame: 16
+    timestamp: now()
+  }
+}

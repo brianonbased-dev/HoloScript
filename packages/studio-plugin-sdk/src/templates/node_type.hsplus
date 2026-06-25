@@ -1,0 +1,24 @@
+// @plugin_template_node_type — Node type plugin scaffold (custom workflow/behavior tree nodes).
+//
+// Native .hsplus surface for studio-plugin-sdk/templates/nodeType.ts.
+//
+// Template variables: {{pluginName}}, {{pluginId}}, {{pluginDisplayName}},
+//   {{pluginDescription}}, {{authorName}}, {{authorEmail}},
+//   {{nodeType}}, {{nodeLabel}}, {{nodeCategory}}, {{nodeIcon}}, {{nodeDescription}}
+//
+// Adds custom nodes to the Studio workflow/behavior tree panel.
+
+@trait plugin_template_node_type {
+  capability_tags: ["plugin_template_node_type", "plugin_scaffold", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    template = init_plugin_template_node_type()
+    emit("plugin_template_node_type_ready", {})
+  }
+
+  @receipt plugin_template_node_type_config {
+    type: "PluginTemplateNodeTypeReceipt"
+    extends: "basic plugin metadata + nodeTypes.workflow[]"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,44 @@
+// @plugin_iframe_security — HTML/script injection hardening for plugin iframe srcdoc.
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/pluginIframeSecurity.ts.
+//
+// Prevents injection when manifest fields are attacker-controlled.
+// All three functions are pure string sanitizers — no I/O.
+//
+// escapeHtmlTextContent(value) → String
+//   Escapes &, <, >, ", ' — for content inside HTML elements (e.g. <title>)
+//
+// escapeHtmlDoubleQuotedAttr(value) → String
+//   Escapes &, ", < — for strings in double-quoted HTML attributes
+//
+// assertSafePluginModuleUrl(raw) → String (throws on invalid)
+//   Requires absolute http(s) URL; rejects: empty, ASCII whitespace (U+0000-U+0020), ", ', <, >
+//   No credentials in URL (auth info stripped)
+
+@trait plugin_iframe_security {
+  capability_tags: ["plugin_iframe_security", "html_injection_prevention", "url_validation", "srcdoc_hardening", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    sec = init_plugin_iframe_security()
+    emit("plugin_iframe_security_ready", {})
+  }
+
+  @on_escape_text(value) => {
+    return sec.escape_html_text_content(value)
+  }
+
+  @on_escape_attr(value) => {
+    return sec.escape_html_double_quoted_attr(value)
+  }
+
+  @on_assert_safe_url(raw) => {
+    return sec.assert_safe_plugin_module_url(raw)
+  }
+
+  @receipt plugin_iframe_security_config {
+    type: "PluginIframeSecurityReceipt"
+    functions: ["escapeHtmlTextContent", "escapeHtmlDoubleQuotedAttr", "assertSafePluginModuleUrl"]
+    url_constraints: "absolute http(s) only; no whitespace, quotes, angle brackets, no credentials"
+    timestamp: now()
+  }
+}

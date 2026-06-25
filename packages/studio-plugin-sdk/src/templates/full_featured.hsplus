@@ -1,0 +1,24 @@
+// @plugin_template_full_featured — Full-capability plugin scaffold (all lifecycle hooks + panels + nodes).
+//
+// Native .hsplus surface for studio-plugin-sdk/templates/fullFeatured.ts.
+//
+// Template variables: {{pluginName}}, {{pluginId}}, {{pluginDisplayName}},
+//   {{pluginDescription}}, {{authorName}}, {{authorEmail}}, {{authorUrl}},
+//   {{homepage}}, {{iconName}}, {{keywords}}, {{panelComponentName}}
+//
+// Includes: onLoad/onUnload/onActivate/onDeactivate, panels, nodeTypes, theme
+
+@trait plugin_template_full_featured {
+  capability_tags: ["plugin_template_full_featured", "plugin_scaffold", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    template = init_plugin_template_full_featured()
+    emit("plugin_template_full_featured_ready", {})
+  }
+
+  @receipt plugin_template_full_featured_config {
+    type: "PluginTemplateFullFeaturedReceipt"
+    template_vars: ["pluginName", "pluginId", "pluginDisplayName", "pluginDescription", "authorName", "authorEmail", "authorUrl", "homepage", "iconName", "keywords", "panelComponentName"]
+    timestamp: now()
+  }
+}

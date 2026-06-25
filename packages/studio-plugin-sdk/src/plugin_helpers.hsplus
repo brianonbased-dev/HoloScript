@@ -1,0 +1,34 @@
+// @plugin_helpers — createPlugin + validatePluginMetadata for plugin development.
+//
+// Native .hsplus surface for studio-plugin-sdk/helpers.ts.
+//
+// createPlugin(plugin: HoloScriptPlugin) → HoloScriptPlugin — type-safe builder
+// validatePluginMetadata(metadata: PluginMetadata) → { valid: Bool, errors: String[] }
+//   id: lowercase letters, numbers, hyphens only (/^[a-z0-9-]+$/)
+//   name: required; version: required semver; description: required
+//   compatibleWith: optional engine range
+
+@trait plugin_helpers {
+  capability_tags: ["plugin_helpers", "create_plugin", "validate_metadata", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    helpers = init_plugin_helpers()
+    emit("plugin_helpers_ready", {})
+  }
+
+  @on_create_plugin(plugin) => {
+    return helpers.create_plugin(plugin)
+  }
+
+  @on_validate_metadata(metadata) => {
+    result = helpers.validate_plugin_metadata(metadata)
+    emit("metadata_validated", { valid: result.valid })
+    return result
+  }
+
+  @receipt plugin_helpers_config {
+    type: "PluginHelpersReceipt"
+    id_pattern: "/^[a-z0-9-]+$/"
+    timestamp: now()
+  }
+}

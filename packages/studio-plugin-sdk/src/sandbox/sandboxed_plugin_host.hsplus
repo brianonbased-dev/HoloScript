@@ -1,0 +1,47 @@
+// @sandboxed_plugin_host — Top-level manager for ALL sandboxed plugins in Studio.
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/SandboxedPluginHost.ts.
+//
+// Manages full plugin lifecycle: install, load, run, broadcast, unload, shutdown.
+// Maintains registry of all installed plugins, their sandbox instances, and bridges.
+//
+// SandboxedPluginHost({ on_api_call, on_storage, on_fetch }):
+//   load_plugin({ plugin_id, plugin_url, manifest, has_ui, container }) → void
+//   unload_plugin(plugin_id) → void
+//   broadcast_event(namespace, event, data) → void — delivers to ALL loaded plugins
+//   shutdown() → void — clean teardown of ALL plugins
+
+@trait sandboxed_plugin_host {
+  capability_tags: ["sandboxed_plugin_host", "plugin_lifecycle", "broadcast_events", "studio_plugin_sdk"]
+
+  @on_spawn(options) => {
+    host = init_sandboxed_plugin_host(options)
+    emit("sandboxed_plugin_host_ready", {})
+  }
+
+  @on_load_plugin(config) => {
+    host.load_plugin(config)
+    emit("plugin_loaded", { plugin_id: config.plugin_id })
+  }
+
+  @on_unload_plugin(plugin_id) => {
+    host.unload_plugin(plugin_id)
+    emit("plugin_unloaded", { plugin_id: plugin_id })
+  }
+
+  @on_broadcast_event(namespace, event, data) => {
+    host.broadcast_event(namespace, event, data)
+    emit("event_broadcast", { namespace: namespace, event: event })
+  }
+
+  @on_shutdown => {
+    host.shutdown()
+    emit("host_shutdown", {})
+  }
+
+  @receipt sandboxed_plugin_host_config {
+    type: "SandboxedPluginHostReceipt"
+    lifecycle: ["install", "load", "run", "broadcast", "unload", "shutdown"]
+    timestamp: now()
+  }
+}

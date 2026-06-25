@@ -1,0 +1,26 @@
+// @use_responsive_layout — React hook: breakpoint/orientation/touch detection.
+//
+// Native .hsplus surface for studio-plugin-sdk/responsive/useResponsiveLayout.ts.
+//
+// Breakpoints (px): mobile≤767, tablet 768-1024, desktop 1025-1439, wide≥1440
+// ResponsiveLayoutState:
+//   breakpoint: mobile|tablet|desktop|wide
+//   orientation: portrait|landscape
+//   is_touch_device, has_keyboard, viewport_width, viewport_height, is_tablet
+
+@trait use_responsive_layout {
+  capability_tags: ["use_responsive_layout", "breakpoint", "responsive", "studio_plugin_sdk"]
+
+  default_breakpoints: Object = { mobile: 767, tablet: 1024, desktop: 1439, wide: 1440 }
+
+  @on_spawn(options) => {
+    hook = init_responsive_layout(options)
+    emit("responsive_layout_ready", {})
+  }
+
+  @receipt use_responsive_layout_config {
+    type: "ResponsiveLayoutReceipt"
+    breakpoints: { mobile: 767, tablet: 1024, desktop: 1439, wide: 1440 }
+    timestamp: now()
+  }
+}

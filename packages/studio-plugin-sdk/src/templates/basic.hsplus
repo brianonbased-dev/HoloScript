@@ -1,0 +1,23 @@
+// @plugin_template_basic — Basic plugin scaffold (metadata + onLoad/onUnload).
+//
+// Native .hsplus surface for studio-plugin-sdk/templates/basic.ts.
+//
+// Exports: basicPluginTemplate (TS source string), basicPluginPackageJson (JSON string)
+// Template variables: {{pluginName}}, {{pluginId}}, {{pluginDisplayName}},
+//   {{pluginDescription}}, {{authorName}}, {{authorEmail}}
+
+@trait plugin_template_basic {
+  capability_tags: ["plugin_template_basic", "plugin_scaffold", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    template = init_plugin_template_basic()
+    emit("plugin_template_basic_ready", {})
+  }
+
+  @receipt plugin_template_basic_config {
+    type: "PluginTemplateBasicReceipt"
+    template_vars: ["pluginName", "pluginId", "pluginDisplayName", "pluginDescription", "authorName", "authorEmail"]
+    license: "MIT"
+    timestamp: now()
+  }
+}

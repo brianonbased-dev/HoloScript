@@ -1,0 +1,41 @@
+// @plugin_message_bus — Typed pub/sub bus for sandbox postMessage communication.
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/PluginMessageBus.ts.
+//
+// Features:
+//   topic-based pub/sub with wildcard support ('scene.*', 'ui.panel.*', '*')
+//   request/response correlation with timeouts
+//   message deduplication (idempotency by MessageId)
+//   backpressure via queue depth limits
+//   serialization validation (structured clone safety)
+//
+// TopicPattern = String (wildcards supported)
+// Subscription { id, topic, ... }
+// subscribe(topic, handler) → Subscription
+// unsubscribe(subscription_id) → void
+// publish(topic, message) → void
+// request(topic, payload, timeout_ms) → reply
+
+@trait plugin_message_bus {
+  capability_tags: ["plugin_message_bus", "pubsub", "wildcard_topics", "idempotent_delivery", "studio_plugin_sdk"]
+
+  @on_spawn => {
+    bus = init_plugin_message_bus()
+    emit("plugin_message_bus_ready", {})
+  }
+
+  @on_subscribe(topic, handler) => {
+    sub = bus.subscribe(topic, handler)
+    return sub
+  }
+
+  @on_publish(topic, message) => {
+    bus.publish(topic, message)
+  }
+
+  @receipt plugin_message_bus_config {
+    type: "PluginMessageBusReceipt"
+    features: ["wildcard_topics", "request_response", "deduplication", "backpressure", "structured_clone_safe"]
+    timestamp: now()
+  }
+}

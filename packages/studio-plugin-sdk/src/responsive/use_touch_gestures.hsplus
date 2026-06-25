@@ -1,0 +1,29 @@
+// @use_touch_gestures — React hook: swipe/pinch/long-press/double-tap recognition.
+//
+// Native .hsplus surface for studio-plugin-sdk/responsive/useTouchGestures.ts.
+//
+// Thresholds:
+//   swipe: 50px min distance, 30° tolerance
+//   pinch: 0.1 scale delta
+//   long_press: 500ms hold without movement
+//   double_tap: 300ms between taps, 30px proximity
+//   touch_target: 44×44 CSS px (WCAG 2.1 SC 2.5.5)
+//
+// TouchGestureType: swipe_left|swipe_right|swipe_up|swipe_down|pinch|long_press|double_tap
+// TouchGestureState { is_gesturing, active_gesture }
+
+@trait use_touch_gestures {
+  capability_tags: ["use_touch_gestures", "swipe", "pinch", "long_press", "double_tap", "studio_plugin_sdk"]
+
+  @on_spawn(options) => {
+    hook = init_touch_gestures(options)
+    emit("touch_gestures_ready", {})
+  }
+
+  @receipt use_touch_gestures_config {
+    type: "TouchGesturesReceipt"
+    gestures: ["swipe_left", "swipe_right", "swipe_up", "swipe_down", "pinch", "long_press", "double_tap"]
+    touch_target_min: "44×44 CSS px (WCAG 2.1 SC 2.5.5)"
+    timestamp: now()
+  }
+}

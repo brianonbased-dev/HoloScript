@@ -1,0 +1,40 @@
+// @plugin_sandbox — Core iframe isolation for Studio plugins (5-layer security model).
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/PluginSandbox.ts.
+//
+// Security model:
+//   1. iframe sandbox attribute — no top navigation, no forms, no popups by default
+//   2. CSP — restricts what resources the iframe can load
+//   3. Origin isolation — prevents direct DOM access to host
+//   4. postMessage only — all communication through validated channel
+//   5. Resource limits — memory + CPU budget monitored and enforced
+//
+// SandboxState: idle | loading | running | suspended | terminated
+// SandboxHealthMetrics { memory_mb, cpu_ms_per_frame, message_queue_depth, uptime_ms }
+// SandboxAuditEntry { timestamp, plugin_id, event, details }
+
+@trait plugin_sandbox {
+  capability_tags: ["plugin_sandbox", "iframe_isolation", "csp", "resource_limits", "studio_plugin_sdk"]
+
+  @on_spawn(create_options) => {
+    sandbox = init_plugin_sandbox(create_options)
+    emit("plugin_sandbox_created", { plugin_id: create_options.plugin_id })
+  }
+
+  @on_load(plugin_url, manifest) => {
+    sandbox.load(plugin_url, manifest)
+    emit("sandbox_loading", { plugin_url: plugin_url })
+  }
+
+  @on_terminate(reason) => {
+    sandbox.terminate(reason)
+    emit("sandbox_terminated", { reason: reason })
+  }
+
+  @receipt plugin_sandbox_config {
+    type: "PluginSandboxReceipt"
+    security_layers: 5
+    states: ["idle", "loading", "running", "suspended", "terminated"]
+    timestamp: now()
+  }
+}

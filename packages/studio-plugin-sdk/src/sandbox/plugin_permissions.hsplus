@@ -1,0 +1,39 @@
+// @plugin_permissions — Runtime least-privilege enforcement for sandboxed plugins.
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/PluginPermissions.ts.
+//
+// Security model:
+//   plugins declare required permissions in manifest
+//   host grants SUBSET of requested permissions
+//   every API call validated against granted permissions
+//   violations logged; can trigger termination
+//
+// PermissionRiskLevel: low | medium | high | critical
+// PermissionMetadata { permission, label, description, risk_level, category, requires_user_approval }
+//
+// validatePermission(permission, granted_set) → Bool
+// getPermissionMetadata(permission) → PermissionMetadata
+// expandPermissions(requested, policy) → granted[]
+
+@trait plugin_permissions {
+  capability_tags: ["plugin_permissions", "least_privilege", "permission_enforcement", "studio_plugin_sdk"]
+
+  @on_spawn(manifest) => {
+    enforcer = init_plugin_permissions(manifest)
+    emit("plugin_permissions_ready", {})
+  }
+
+  @on_validate(permission, granted_set) => {
+    ok = enforcer.validate_permission(permission, granted_set)
+    if !ok {
+      emit("permission_denied", { permission: permission })
+    }
+    return ok
+  }
+
+  @receipt plugin_permissions_config {
+    type: "PluginPermissionsReceipt"
+    risk_levels: ["low", "medium", "high", "critical"]
+    timestamp: now()
+  }
+}

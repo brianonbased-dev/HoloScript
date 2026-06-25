@@ -1,0 +1,36 @@
+// @plugin_guest_sdk — SDK running inside sandboxed iframe (plugin-author API surface).
+//
+// Native .hsplus surface for studio-plugin-sdk/sandbox/PluginGuestSDK.ts.
+//
+// Plugin code NEVER directly accesses host DOM or APIs — all operations
+// are serialized as messages and sent to the host for validation and execution.
+//
+// PluginGuestSDK(plugin_id, version):
+//   on_init(handler)    — called with { granted_permissions, settings }
+//   on_shutdown(reason) — called before iframe teardown
+//   scene.getNodes()    — read scene data (requires scene:read)
+//   on(ns, event, cb)   — subscribe to host events
+//   storage.set/get     — persist plugin data
+//   fetch(url, opts)    — proxied through host (network policy enforced)
+//   ready()             — signals plugin is fully initialized
+
+@trait plugin_guest_sdk {
+  capability_tags: ["plugin_guest_sdk", "sandbox_guest", "postmessage_bridge", "studio_plugin_sdk"]
+
+  @on_spawn(plugin_id, version) => {
+    sdk = init_plugin_guest_sdk(plugin_id, version)
+    emit("plugin_guest_sdk_ready", { plugin_id: plugin_id })
+  }
+
+  @on_guest_ready => {
+    sdk.ready()
+    emit("plugin_ready", {})
+  }
+
+  @receipt plugin_guest_sdk_config {
+    type: "PluginGuestSDKReceipt"
+    apis: ["scene", "on", "storage", "fetch", "ready"]
+    isolation: "iframe — no direct host DOM/API access"
+    timestamp: now()
+  }
+}
