@@ -1,0 +1,15 @@
+@trait {
+  name: "@exercise_library",
+  category: "fitness",
+  description: "Exercise definition library. exercises is the list of exercise definitions (id, name, muscle groups, equipment, instructions). categories is the list of category names (e.g., strength, cardio, flexibility). Acts as the data source for @rep_counter and @progress_tracker. Port of ExerciseLibraryTrait.ts (handler name: exercise_library).",
+  props: {
+    category_filter: string = ""
+  },
+  events: {
+    on_loaded: "library_loaded",
+    on_exercise_added: "exercise_added",
+    add_exercise: "exercise_library_add",
+    search: "exercise_library_search"
+  },
+  behaviors: ["@rep_counter", "@progress_tracker"]
+}

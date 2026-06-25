@@ -1,0 +1,20 @@
+@trait {
+  name: "@rep_counter",
+  category: "fitness",
+  description: "Real-time rep counting for exercise sets. targetReps is the set goal. exerciseName identifies the movement. formCheckEnabled triggers form analysis on each rep (uses pose estimation if available). tempoUp is the concentric phase duration in seconds (default: 2s). tempoDown is the eccentric phase duration in seconds (default: 3s). Port of RepCounterTrait.ts (handler name: rep_counter).",
+  props: {
+    target_reps: number = 10,
+    exercise_name: string = "",
+    form_check_enabled: boolean = true,
+    tempo_up: number = 2,
+    tempo_down: number = 3
+  },
+  events: {
+    on_rep: "rep_counted",
+    on_set_complete: "set_complete",
+    on_form_alert: "form_alert",
+    start: "rep_counter_start",
+    reset: "rep_counter_reset"
+  },
+  behaviors: ["@exercise_library", "@progress_tracker"]
+}

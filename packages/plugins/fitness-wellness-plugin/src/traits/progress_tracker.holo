@@ -1,0 +1,16 @@
+@trait {
+  name: "@progress_tracker",
+  category: "fitness",
+  description: "Fitness progress tracking over a measurement period. userId ties measurements to a user. metrics is the list of tracked metric keys (e.g., weight, body_fat, bench_press_1rm). goalValues maps metric key to goal value. trackingPeriodDays is the analysis window (default: 90 days). Emits progress events when metrics are recorded. Port of ProgressTrackerTrait.ts (handler name: progress_tracker).",
+  props: {
+    user_id: string = "",
+    tracking_period_days: number = 90
+  },
+  events: {
+    on_metric_recorded: "progress_metric_recorded",
+    on_goal_reached: "progress_goal_reached",
+    record: "progress_record",
+    get_trend: "progress_get_trend"
+  },
+  behaviors: ["@exercise_library", "@rep_counter"]
+}
