@@ -1,0 +1,23 @@
+// @system_executors — Executors for HoloScript system nodes: timer, schedule, world_tick, physics_step.
+//
+// Native .hsplus surface for core/runtime/system-executors.ts.
+//
+// executeTimer(node, ctx) / executeSchedule(node, ctx) / executeWorldTick(node, ctx)
+
+@trait system_executors {
+  capability_tags: ["system_executors", "timer_schedule", "world_tick", "physics_step", "core"]
+
+  @on_spawn => {
+    emit("system_executors_ready", {})
+  }
+
+  @on_execute_timer(node, ctx) => {
+    return execute_timer_node(node, ctx)
+  }
+
+  @receipt system_executors_config {
+    type: "SystemExecutorsReceipt"
+    nodes: ["timer", "schedule", "world_tick", "physics_step"]
+    timestamp: now()
+  }
+}

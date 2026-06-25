@@ -1,0 +1,30 @@
+// @replay_recorder — Records simulation sessions: entity states, events, camera at each tick.
+//
+// Native .hsplus surface for core/replay/ReplayRecorder.ts.
+//
+// start() / record(tick) / stop() → ReplayData
+
+@trait replay_recorder {
+  capability_tags: ["replay_recorder", "session_recording", "entity_state_capture", "tick_recording", "core"]
+
+  @on_spawn => {
+    emit("replay_recorder_ready", {})
+  }
+
+  @on_start => {
+    start_replay_recording()
+    emit("replay_recording_started", {})
+  }
+
+  @on_stop => {
+    data = stop_replay_recording()
+    emit("replay_recording_stopped", {})
+    return data
+  }
+
+  @receipt replay_recorder_config {
+    type: "ReplayRecorderReceipt"
+    captures: ["entity states", "events", "camera", "per tick"]
+    timestamp: now()
+  }
+}

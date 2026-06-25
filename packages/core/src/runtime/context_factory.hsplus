@@ -1,0 +1,24 @@
+// @context_factory — Creates HoloScript execution context: scope chain, bindings, parent link.
+//
+// Native .hsplus surface for core/runtime/context-factory.ts.
+//
+// create(parent?, bindings?) → ExecutionContext / fork(ctx, bindings) → ExecutionContext
+
+@trait context_factory {
+  capability_tags: ["context_factory", "execution_context", "scope_chain", "bindings", "core"]
+
+  @on_spawn => {
+    emit("context_factory_ready", {})
+  }
+
+  @on_create(parent, bindings) => {
+    ctx = create_execution_context(parent, bindings)
+    return ctx
+  }
+
+  @receipt context_factory_config {
+    type: "ContextFactoryReceipt"
+    features: ["scope chain", "parent link", "fork"]
+    timestamp: now()
+  }
+}

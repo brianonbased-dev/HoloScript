@@ -1,0 +1,23 @@
+// @trait_binder — Binds .hsplus trait implementations to runtime entity components.
+//
+// Native .hsplus surface for core/runtime/TraitBinder.ts.
+//
+// bind(entity, traitName) / unbind(entity, traitName) / getActive(entity) → TraitImpl[]
+
+@trait trait_binder {
+  capability_tags: ["trait_binder", "trait_entity_binding", "component_binding", "runtime_traits", "core"]
+
+  @on_spawn => {
+    emit("trait_binder_ready", {})
+  }
+
+  @on_bind(entity, trait_name) => {
+    bind_trait_to_entity(entity, trait_name)
+    emit("trait_bound", { entity, trait_name })
+  }
+
+  @receipt trait_binder_config {
+    type: "TraitBinderReceipt"
+    timestamp: now()
+  }
+}

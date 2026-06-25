@@ -1,0 +1,24 @@
+// @graph_executors — Node graph execution: topological sort, data propagation, lazy evaluation.
+//
+// Native .hsplus surface for core/runtime/graph-executors.ts.
+//
+// executeGraph(graph, inputs) → outputs — drives NodeGraph visual logic at runtime
+
+@trait graph_executors {
+  capability_tags: ["graph_executors", "topological_execution", "data_propagation", "node_graph_runtime", "core"]
+
+  @on_spawn => {
+    emit("graph_executors_ready", {})
+  }
+
+  @on_execute(graph, inputs) => {
+    outputs = execute_node_graph(graph, inputs)
+    return outputs
+  }
+
+  @receipt graph_executors_config {
+    type: "GraphExecutorsReceipt"
+    consumer: "NodeGraph visual logic"
+    timestamp: now()
+  }
+}

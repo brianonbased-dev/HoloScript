@@ -1,0 +1,23 @@
+// @simple_executors — Simple/leaf node executors: literals, identifiers, unary ops, binary ops.
+//
+// Native .hsplus surface for core/runtime/simple-executors.ts.
+//
+// executeLiteral(node) / executeIdentifier(node, ctx) / executeBinaryOp(node, ctx)
+
+@trait simple_executors {
+  capability_tags: ["simple_executors", "literal_identifier", "unary_binary_op", "leaf_nodes", "core"]
+
+  @on_spawn => {
+    emit("simple_executors_ready", {})
+  }
+
+  @on_execute_literal(node) => {
+    return execute_literal_node(node)
+  }
+
+  @receipt simple_executors_config {
+    type: "SimpleExecutorsReceipt"
+    nodes: ["literal", "identifier", "unary op", "binary op"]
+    timestamp: now()
+  }
+}

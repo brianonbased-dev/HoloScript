@@ -1,0 +1,24 @@
+// @holo_statement_executor — Executor for HoloScript statement nodes: assign, emit, call, spawn.
+//
+// Native .hsplus surface for core/runtime/holo-statement-executor.ts.
+//
+// executeStatement(node, ctx) → StatementResult
+
+@trait holo_statement_executor {
+  capability_tags: ["holo_statement_executor", "statement_execution", "assign_emit_call", "spawn_statement", "core"]
+
+  @on_spawn => {
+    emit("holo_statement_executor_ready", {})
+  }
+
+  @on_execute(node, ctx) => {
+    result = execute_holo_statement(node, ctx)
+    return result
+  }
+
+  @receipt holo_statement_executor_config {
+    type: "HoloStatementExecutorReceipt"
+    nodes: ["assign", "emit", "call", "spawn", "return"]
+    timestamp: now()
+  }
+}

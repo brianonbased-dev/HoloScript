@@ -1,0 +1,26 @@
+// @particle_effects_runtime — Runtime particle system: emit, simulate, cull particles per tick.
+//
+// Native .hsplus surface for core/runtime/particle-effects.ts.
+//
+// emit(emitter, count) / simulate(dt) / cull(camera)
+
+@trait particle_effects_runtime {
+  capability_tags: ["particle_effects_runtime", "particle_emit", "particle_simulate", "particle_cull", "core"]
+
+  @on_spawn => {
+    emit("particle_effects_runtime_ready", {})
+  }
+
+  @on_emit_particles(emitter, count) => {
+    emit_particle_batch(emitter, count)
+  }
+
+  @on_simulate(dt) => {
+    simulate_particles(dt)
+  }
+
+  @receipt particle_effects_runtime_config {
+    type: "ParticleEffectsRuntimeReceipt"
+    timestamp: now()
+  }
+}

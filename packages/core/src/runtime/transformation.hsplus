@@ -1,0 +1,24 @@
+// @transformation_runtime — Applies HoloScript transform nodes: translate, rotate, scale, parent.
+//
+// Native .hsplus surface for core/runtime/transformation.ts.
+//
+// applyTransform(entity, transform, ctx) → WorldMatrix
+
+@trait transformation_runtime {
+  capability_tags: ["transformation_runtime", "translate_rotate_scale", "parent_transform", "world_matrix", "core"]
+
+  @on_spawn => {
+    emit("transformation_runtime_ready", {})
+  }
+
+  @on_apply(entity, transform, ctx) => {
+    matrix = apply_runtime_transform(entity, transform, ctx)
+    return matrix
+  }
+
+  @receipt transformation_runtime_config {
+    type: "TransformationRuntimeReceipt"
+    ops: ["translate", "rotate", "scale", "parent"]
+    timestamp: now()
+  }
+}

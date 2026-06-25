@@ -1,0 +1,23 @@
+// @holo_value — HoloScript runtime value type: number, string, bool, entity, list, map, nil.
+//
+// Native .hsplus surface for core/runtime/holo-value.ts.
+//
+// HoloValue tagged union; coerce(v, type) / isTruthy(v) / toString(v)
+
+@trait holo_value {
+  capability_tags: ["holo_value", "runtime_value_type", "tagged_union", "coercion", "core"]
+
+  @on_spawn => {
+    emit("holo_value_ready", {})
+  }
+
+  @on_coerce(value, target_type) => {
+    return coerce_holo_value(value, target_type)
+  }
+
+  @receipt holo_value_config {
+    type: "HoloValueReceipt"
+    variants: ["number", "string", "bool", "entity", "list", "map", "nil"]
+    timestamp: now()
+  }
+}

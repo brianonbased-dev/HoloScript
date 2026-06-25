@@ -1,0 +1,27 @@
+// @animation_system — Skeletal and property animation runtime: clip blending, state machine, IK.
+//
+// Native .hsplus surface for core/runtime/animation-system.ts.
+//
+// play(entity, clip) / blend(a, b, weight) / update(dt)
+
+@trait animation_system {
+  capability_tags: ["animation_system", "skeletal_animation", "clip_blending", "animation_state_machine", "core"]
+
+  @on_spawn => {
+    emit("animation_system_ready", {})
+  }
+
+  @on_play(entity, clip) => {
+    play_animation_clip(entity, clip)
+  }
+
+  @on_update(dt) => {
+    update_animation_system(dt)
+  }
+
+  @receipt animation_system_config {
+    type: "AnimationSystemReceipt"
+    features: ["clip blending", "state machine", "IK"]
+    timestamp: now()
+  }
+}

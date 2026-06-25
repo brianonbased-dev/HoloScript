@@ -1,0 +1,24 @@
+// @npc_manager — NPC lifecycle management: spawn, update, despawn, dialogue routing.
+//
+// Native .hsplus surface for core/runtime/NPCManager.ts.
+//
+// spawn(def) → NPCInstance / update(dt) / despawn(id) / triggerDialogue(id, trigger)
+
+@trait npc_manager {
+  capability_tags: ["npc_manager", "npc_lifecycle", "dialogue_routing", "hololand_npc", "core"]
+
+  @on_spawn => {
+    emit("npc_manager_ready", {})
+  }
+
+  @on_spawn_npc(def) => {
+    instance = spawn_npc(def)
+    emit("npc_spawned", { id: instance.id })
+    return instance
+  }
+
+  @receipt npc_manager_config {
+    type: "NPCManagerReceipt"
+    timestamp: now()
+  }
+}

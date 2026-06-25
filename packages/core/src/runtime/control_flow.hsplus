@@ -1,0 +1,27 @@
+// @control_flow — HoloScript control flow executor: if/else, when, loop, break, continue, return.
+//
+// Native .hsplus surface for core/runtime/control-flow.ts.
+//
+// executeIf(node, ctx) / executeLoop(node, ctx) / executeReturn(node, ctx)
+
+@trait control_flow {
+  capability_tags: ["control_flow", "if_else", "when_loop", "break_continue_return", "core"]
+
+  @on_spawn => {
+    emit("control_flow_ready", {})
+  }
+
+  @on_execute_if(node, ctx) => {
+    return execute_control_if(node, ctx)
+  }
+
+  @on_execute_loop(node, ctx) => {
+    return execute_control_loop(node, ctx)
+  }
+
+  @receipt control_flow_config {
+    type: "ControlFlowReceipt"
+    constructs: ["if/else", "when", "loop", "break", "continue", "return"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @skills_directives — Runtime executors for HoloScript skill and directive nodes.
+//
+// Native .hsplus surface for core/runtime/skills-directives.ts.
+//
+// executeSkill(node, ctx) / executeDirective(node, ctx) → SkillResult
+
+@trait skills_directives {
+  capability_tags: ["skills_directives", "skill_execution", "directive_execution", "runtime_skills", "core"]
+
+  @on_spawn => {
+    emit("skills_directives_ready", {})
+  }
+
+  @on_execute_skill(node, ctx) => {
+    return execute_skill_node(node, ctx)
+  }
+
+  @receipt skills_directives_config {
+    type: "SkillsDirectivesReceipt"
+    timestamp: now()
+  }
+}

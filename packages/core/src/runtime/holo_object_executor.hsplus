@@ -1,0 +1,22 @@
+// @holo_object_executor — Executor for HoloScript object and entity creation at runtime.
+//
+// Native .hsplus surface for core/runtime/holo-object-executor.ts.
+//
+// executeObject(node, ctx) / executeEntity(node, ctx) → EntityId
+
+@trait holo_object_executor {
+  capability_tags: ["holo_object_executor", "object_creation", "entity_creation", "runtime_entities", "core"]
+
+  @on_spawn => {
+    emit("holo_object_executor_ready", {})
+  }
+
+  @on_execute_object(node, ctx) => {
+    return execute_holo_object(node, ctx)
+  }
+
+  @receipt holo_object_executor_config {
+    type: "HoloObjectExecutorReceipt"
+    timestamp: now()
+  }
+}

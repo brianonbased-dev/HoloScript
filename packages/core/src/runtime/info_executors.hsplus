@@ -1,0 +1,23 @@
+// @info_executors — Executors for HoloScript info/inspect nodes: log, debug, describe, trace.
+//
+// Native .hsplus surface for core/runtime/info-executors.ts.
+//
+// executeLog(node, ctx) / executeDescribe(node, ctx)
+
+@trait info_executors {
+  capability_tags: ["info_executors", "log_debug_trace", "inspect_nodes", "runtime_diagnostics", "core"]
+
+  @on_spawn => {
+    emit("info_executors_ready", {})
+  }
+
+  @on_execute_log(node, ctx) => {
+    execute_info_log(node, ctx)
+  }
+
+  @receipt info_executors_config {
+    type: "InfoExecutorsReceipt"
+    nodes: ["log", "debug", "describe", "trace"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,27 @@
+// @state_invalidation — Reactive state invalidation: marks dirty, queues re-evaluation on mutation.
+//
+// Native .hsplus surface for core/runtime/state-invalidation.ts.
+//
+// invalidate(stateId) / isDirty(stateId) → bool / flush()
+
+@trait state_invalidation {
+  capability_tags: ["state_invalidation", "dirty_marking", "reactive_re_evaluation", "state_mutation", "core"]
+
+  @on_spawn => {
+    emit("state_invalidation_ready", {})
+  }
+
+  @on_invalidate(state_id) => {
+    mark_state_dirty(state_id)
+  }
+
+  @on_flush => {
+    flush_dirty_state()
+    emit("dirty_state_flushed", {})
+  }
+
+  @receipt state_invalidation_config {
+    type: "StateInvalidationReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @rule_forge — Composable rule builder for HoloScript behavioral rules.
+//
+// Native .hsplus surface for core/rules/RuleForge.ts.
+//
+// forge(conditions[], action) → Rule / compose(rules[]) → CompositeRule
+// Used by ContentPolicyGate and AgentHierarchy for declarative behavior guards
+
+@trait rule_forge {
+  capability_tags: ["rule_forge", "composable_rules", "behavior_guards", "declarative_rules", "core"]
+
+  @on_spawn => {
+    emit("rule_forge_ready", {})
+  }
+
+  @on_forge(conditions, action) => {
+    rule = forge_rule(conditions, action)
+    return rule
+  }
+
+  @on_compose(rules) => {
+    composite = compose_rules(rules)
+    return composite
+  }
+
+  @receipt rule_forge_config {
+    type: "RuleForgeReceipt"
+    consumers: ["ContentPolicyGate", "AgentHierarchy"]
+    timestamp: now()
+  }
+}

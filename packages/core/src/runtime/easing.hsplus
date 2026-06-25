@@ -1,0 +1,23 @@
+// @easing — Easing functions for animation and UI transitions.
+//
+// Native .hsplus surface for core/runtime/easing.ts.
+//
+// easeInOut(t) / easeIn(t) / easeOut(t) / linear(t) / spring(t, tension, friction)
+
+@trait easing {
+  capability_tags: ["easing", "animation_easing", "ui_transitions", "spring", "core"]
+
+  @on_spawn => {
+    emit("easing_ready", {})
+  }
+
+  @on_apply(name, t, opts) => {
+    return apply_easing(name, t, opts)
+  }
+
+  @receipt easing_config {
+    type: "EasingReceipt"
+    functions: ["easeInOut", "easeIn", "easeOut", "linear", "spring"]
+    timestamp: now()
+  }
+}

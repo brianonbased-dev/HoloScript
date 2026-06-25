@@ -1,0 +1,23 @@
+// @plugin_trait_registrar — Registers plugin-provided traits into the runtime TraitRegistry.
+//
+// Native .hsplus surface for core/runtime/plugin-trait-registrar.ts.
+//
+// register(plugin, traits[]) / unregister(pluginId)
+
+@trait plugin_trait_registrar {
+  capability_tags: ["plugin_trait_registrar", "plugin_trait_registration", "runtime_trait_registry", "plugin_integration", "core"]
+
+  @on_spawn => {
+    emit("plugin_trait_registrar_ready", {})
+  }
+
+  @on_register(plugin, traits) => {
+    register_plugin_traits(plugin, traits)
+    emit("plugin_traits_registered", { plugin: plugin.id, count: traits.length })
+  }
+
+  @receipt plugin_trait_registrar_config {
+    type: "PluginTraitRegistrarReceipt"
+    timestamp: now()
+  }
+}

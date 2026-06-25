@@ -1,0 +1,23 @@
+// @ui_commands_runtime — Executors for HoloScript UI command nodes: show, hide, navigate, toast.
+//
+// Native .hsplus surface for core/runtime/ui-commands.ts.
+//
+// executeShow(node, ctx) / executeHide(node, ctx) / executeNavigate(node, ctx)
+
+@trait ui_commands_runtime {
+  capability_tags: ["ui_commands_runtime", "show_hide", "navigate_toast", "ui_node_execution", "core"]
+
+  @on_spawn => {
+    emit("ui_commands_runtime_ready", {})
+  }
+
+  @on_execute_show(node, ctx) => {
+    execute_ui_show(node, ctx)
+  }
+
+  @receipt ui_commands_runtime_config {
+    type: "UICommandsRuntimeReceipt"
+    nodes: ["show", "hide", "navigate", "toast"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @narrative_executors — Executors for HoloScript narrative nodes: speak, choose, branch, condition.
+//
+// Native .hsplus surface for core/runtime/narrative-executors.ts.
+//
+// executeSpeak(node, ctx) / executeChoose(node, ctx) → Choice / executeBranch(node, ctx)
+
+@trait narrative_executors {
+  capability_tags: ["narrative_executors", "speak_choose_branch", "dialogue_tree", "interactive_narrative", "core"]
+
+  @on_spawn => {
+    emit("narrative_executors_ready", {})
+  }
+
+  @on_execute_speak(node, ctx) => {
+    return execute_narrative_speak(node, ctx)
+  }
+
+  @receipt narrative_executors_config {
+    type: "NarrativeExecutorsReceipt"
+    nodes: ["speak", "choose", "branch", "condition"]
+    timestamp: now()
+  }
+}

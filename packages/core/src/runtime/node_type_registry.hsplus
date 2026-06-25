@@ -1,0 +1,22 @@
+// @node_type_registry — Registry of all HoloScript AST node types and their executor mappings.
+//
+// Native .hsplus surface for core/runtime/node-type-registry.ts.
+//
+// register(nodeType, executor) / dispatch(node, ctx) → Result
+
+@trait node_type_registry {
+  capability_tags: ["node_type_registry", "ast_node_dispatch", "executor_mapping", "runtime_dispatch", "core"]
+
+  @on_spawn => {
+    emit("node_type_registry_ready", {})
+  }
+
+  @on_dispatch(node, ctx) => {
+    return dispatch_node_type(node, ctx)
+  }
+
+  @receipt node_type_registry_config {
+    type: "NodeTypeRegistryReceipt"
+    timestamp: now()
+  }
+}

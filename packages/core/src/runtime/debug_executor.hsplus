@@ -1,0 +1,24 @@
+// @debug_executor — Debug-mode HoloScript executor: step-through, breakpoints, value inspection.
+//
+// Native .hsplus surface for core/runtime/debug-executor.ts.
+//
+// step() / continue() / setBreakpoint(node) / inspect(ctx, expr) → Value
+
+@trait debug_executor {
+  capability_tags: ["debug_executor", "step_through", "breakpoints", "value_inspection", "core"]
+
+  @on_spawn => {
+    emit("debug_executor_ready", {})
+  }
+
+  @on_step => {
+    step_debug_executor()
+    emit("debug_stepped", {})
+  }
+
+  @receipt debug_executor_config {
+    type: "DebugExecutorReceipt"
+    features: ["step-through", "breakpoints", "value inspection"]
+    timestamp: now()
+  }
+}

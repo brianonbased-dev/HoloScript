@@ -1,0 +1,25 @@
+// @headless_runtime — Headless HoloScript runtime: runs compositions without a display context.
+//
+// Native .hsplus surface for core/runtime/HeadlessRuntime.ts.
+//
+// run(composition, opts) → RuntimeResult — CI, server-side, Jetson edge execution
+
+@trait headless_runtime {
+  capability_tags: ["headless_runtime", "no_display", "server_side_execution", "ci_runtime", "core"]
+
+  @on_spawn => {
+    emit("headless_runtime_ready", {})
+  }
+
+  @on_run(composition, opts) => {
+    result = run_headless_composition(composition, opts)
+    emit("headless_run_complete", {})
+    return result
+  }
+
+  @receipt headless_runtime_config {
+    type: "HeadlessRuntimeReceipt"
+    contexts: ["CI", "server-side", "Jetson edge"]
+    timestamp: now()
+  }
+}

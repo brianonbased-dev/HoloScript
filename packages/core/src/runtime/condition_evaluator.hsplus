@@ -1,0 +1,24 @@
+// @condition_evaluator — Evaluates HoloScript conditional expressions at runtime.
+//
+// Native .hsplus surface for core/runtime/condition-evaluator.ts.
+//
+// evaluate(condition, context) → bool — used by control-flow for if/when/unless
+
+@trait condition_evaluator {
+  capability_tags: ["condition_evaluator", "condition_expressions", "control_flow", "runtime_eval", "core"]
+
+  @on_spawn => {
+    emit("condition_evaluator_ready", {})
+  }
+
+  @on_evaluate(condition, context) => {
+    result = evaluate_condition(condition, context)
+    return result
+  }
+
+  @receipt condition_evaluator_config {
+    type: "ConditionEvaluatorReceipt"
+    consumers: ["control-flow", "state machine", "rules"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @declaration_executors — Executors for HoloScript declaration nodes: let, const, trait, world, object.
+//
+// Native .hsplus surface for core/runtime/declaration-executors.ts.
+//
+// executeLet(node, ctx) / executeConst(node, ctx) / executeTrait(node, ctx)
+
+@trait declaration_executors {
+  capability_tags: ["declaration_executors", "let_const", "trait_declaration", "world_object_decl", "core"]
+
+  @on_spawn => {
+    emit("declaration_executors_ready", {})
+  }
+
+  @on_execute_let(node, ctx) => {
+    return execute_let_declaration(node, ctx)
+  }
+
+  @receipt declaration_executors_config {
+    type: "DeclarationExecutorsReceipt"
+    nodes: ["let", "const", "trait", "world", "object"]
+    timestamp: now()
+  }
+}

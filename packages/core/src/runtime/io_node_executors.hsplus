@@ -1,0 +1,23 @@
+// @io_node_executors — Executors for HoloScript I/O nodes: read_file, write_file, fetch, emit_event.
+//
+// Native .hsplus surface for core/runtime/io-node-executors.ts.
+//
+// executeReadFile(node, ctx) / executeWriteFile(node, ctx) / executeFetch(node, ctx)
+
+@trait io_node_executors {
+  capability_tags: ["io_node_executors", "file_io", "fetch", "emit_event", "core"]
+
+  @on_spawn => {
+    emit("io_node_executors_ready", {})
+  }
+
+  @on_execute_fetch(node, ctx) => {
+    return execute_io_fetch(node, ctx)
+  }
+
+  @receipt io_node_executors_config {
+    type: "IONodeExecutorsReceipt"
+    nodes: ["read_file", "write_file", "fetch", "emit_event"]
+    timestamp: now()
+  }
+}

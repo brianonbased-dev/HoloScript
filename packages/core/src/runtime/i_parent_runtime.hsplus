@@ -1,0 +1,20 @@
+// @i_parent_runtime — IParentRuntime interface: minimal contract for runtime host implementations.
+//
+// Native .hsplus surface for core/runtime/IParentRuntime.ts.
+//
+// IParentRuntime { emit, read, schedule, tick } — implemented by HeadlessRuntime and Studio
+
+@trait i_parent_runtime {
+  capability_tags: ["i_parent_runtime", "runtime_host_interface", "minimal_contract", "host_implementations", "core"]
+
+  @on_spawn => {
+    emit("i_parent_runtime_ready", {})
+  }
+
+  @receipt i_parent_runtime_config {
+    type: "IParentRuntimeReceipt"
+    surface: ["emit", "read", "schedule", "tick"]
+    implementors: ["HeadlessRuntime", "Studio runtime"]
+    timestamp: now()
+  }
+}

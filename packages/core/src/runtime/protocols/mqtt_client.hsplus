@@ -1,0 +1,29 @@
+// @mqtt_client_runtime — MQTT client for HoloScript IoT/edge runtime protocols.
+//
+// Native .hsplus surface for core/runtime/protocols/MQTTClient.ts.
+//
+// connect(broker, opts) / subscribe(topic) / publish(topic, payload) / disconnect()
+
+@trait mqtt_client_runtime {
+  capability_tags: ["mqtt_client_runtime", "mqtt", "iot_edge", "runtime_protocol", "core"]
+
+  @on_spawn => {
+    emit("mqtt_client_runtime_ready", {})
+  }
+
+  @on_connect(broker, opts) => {
+    connect_mqtt(broker, opts)
+    emit("mqtt_connected", { broker })
+  }
+
+  @on_publish(topic, payload) => {
+    publish_mqtt(topic, payload)
+  }
+
+  @receipt mqtt_client_runtime_config {
+    type: "MQTTClientRuntimeReceipt"
+    protocol: "MQTT"
+    use_case: "IoT / edge runtime"
+    timestamp: now()
+  }
+}

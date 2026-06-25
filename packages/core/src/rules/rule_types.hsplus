@@ -1,0 +1,19 @@
+// @rule_types — Type definitions for the HoloScript rules system.
+//
+// Native .hsplus surface for core/rules/types.ts.
+//
+// RuleCondition, RuleAction, Rule, CompositeRule, RuleEvaluationResult
+
+@trait rule_types {
+  capability_tags: ["rule_types", "rule_definitions", "type_definitions", "rules_system", "core"]
+
+  @on_spawn => {
+    emit("rule_types_ready", {})
+  }
+
+  @receipt rule_types_config {
+    type: "RuleTypesReceipt"
+    types: ["RuleCondition", "RuleAction", "Rule", "CompositeRule", "RuleEvaluationResult"]
+    timestamp: now()
+  }
+}

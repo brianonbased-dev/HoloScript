@@ -1,0 +1,24 @@
+// @event_system_runtime — HoloScript runtime event dispatch: entity events, world events, lifecycle hooks.
+//
+// Native .hsplus surface for core/runtime/event-system.ts.
+// (Distinct from events/EventBus — this is the runtime execution-layer event dispatch.)
+//
+// fire(entity, event, payload) / subscribe(event, handler) / unsubscribe(id)
+
+@trait event_system_runtime {
+  capability_tags: ["event_system_runtime", "entity_events", "world_events", "lifecycle_hooks", "core"]
+
+  @on_spawn => {
+    emit("event_system_runtime_ready", {})
+  }
+
+  @on_fire(entity, event, payload) => {
+    fire_runtime_event(entity, event, payload)
+  }
+
+  @receipt event_system_runtime_config {
+    type: "EventSystemRuntimeReceipt"
+    scope: "runtime execution layer — distinct from events/EventBus"
+    timestamp: now()
+  }
+}

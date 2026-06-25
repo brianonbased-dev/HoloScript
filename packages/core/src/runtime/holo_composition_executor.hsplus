@@ -1,0 +1,25 @@
+// @holo_composition_executor — Top-level executor for HoloComposition AST nodes.
+//
+// Native .hsplus surface for core/runtime/holo-composition-executor.ts.
+//
+// execute(composition, ctx) → Result — entry for all .holo runtime execution
+
+@trait holo_composition_executor {
+  capability_tags: ["holo_composition_executor", "composition_ast_execution", "holo_runtime_entry", "top_level_executor", "core"]
+
+  @on_spawn => {
+    emit("holo_composition_executor_ready", {})
+  }
+
+  @on_execute(composition, ctx) => {
+    result = execute_holo_composition(composition, ctx)
+    emit("composition_executed", {})
+    return result
+  }
+
+  @receipt holo_composition_executor_config {
+    type: "HoloCompositionExecutorReceipt"
+    entry: "all .holo runtime execution"
+    timestamp: now()
+  }
+}

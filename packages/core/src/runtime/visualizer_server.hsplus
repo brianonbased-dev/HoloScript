@@ -1,0 +1,26 @@
+// @visualizer_server — Dev-mode runtime visualizer server: streams entity/event state to browser debugger.
+//
+// Native .hsplus surface for core/runtime/visualizer-server.ts.
+//
+// start(port) / push(snapshot) / stop()
+// Streams JSON snapshots over WebSocket; consumed by Studio debugger panel
+
+@trait visualizer_server {
+  capability_tags: ["visualizer_server", "dev_mode_stream", "entity_event_snapshot", "studio_debugger", "core"]
+
+  @on_spawn(port) => {
+    start_visualizer_server(port)
+    emit("visualizer_server_ready", { port })
+  }
+
+  @on_push(snapshot) => {
+    push_visualizer_snapshot(snapshot)
+  }
+
+  @receipt visualizer_server_config {
+    type: "VisualizerServerReceipt"
+    transport: "WebSocket JSON snapshots"
+    consumer: "Studio debugger panel"
+    timestamp: now()
+  }
+}

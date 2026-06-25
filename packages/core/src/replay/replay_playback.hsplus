@@ -1,0 +1,28 @@
+// @replay_playback — Plays back recorded sessions: entity states, events, camera at recorded timestamps.
+//
+// Native .hsplus surface for core/replay/ReplayPlayback.ts.
+//
+// load(replay) / play() / pause() / seek(t) / speed(x)
+
+@trait replay_playback {
+  capability_tags: ["replay_playback", "session_playback", "entity_replay", "seek_speed", "core"]
+
+  @on_spawn => {
+    emit("replay_playback_ready", {})
+  }
+
+  @on_play => {
+    start_replay_playback()
+    emit("replay_playing", {})
+  }
+
+  @on_seek(t) => {
+    seek_replay(t)
+  }
+
+  @receipt replay_playback_config {
+    type: "ReplayPlaybackReceipt"
+    features: ["play", "pause", "seek", "speed control"]
+    timestamp: now()
+  }
+}

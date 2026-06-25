@@ -1,0 +1,23 @@
+// @primitives_runtime — Primitive HoloValue operations: type checks, conversions, comparisons.
+//
+// Native .hsplus surface for core/runtime/primitives.ts.
+//
+// isNumber(v) / asString(v) / equals(a, b) / compare(a, b) → -1|0|1
+
+@trait primitives_runtime {
+  capability_tags: ["primitives_runtime", "type_checks", "value_conversions", "holo_value_ops", "core"]
+
+  @on_spawn => {
+    emit("primitives_runtime_ready", {})
+  }
+
+  @on_compare(a, b) => {
+    return compare_holo_primitives(a, b)
+  }
+
+  @receipt primitives_runtime_config {
+    type: "PrimitivesRuntimeReceipt"
+    ops: ["isNumber", "asString", "equals", "compare"]
+    timestamp: now()
+  }
+}

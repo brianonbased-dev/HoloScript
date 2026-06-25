@@ -1,0 +1,24 @@
+// @resilience_patterns — Library of HoloScript resilience patterns: bulkhead, timeout, retry, fallback.
+//
+// Native .hsplus surface for core/resilience/ResiliencePatterns.ts.
+//
+// bulkhead(fn, limit) / withTimeout(fn, ms) / retryN(fn, n) / withFallback(fn, fb)
+
+@trait resilience_patterns {
+  capability_tags: ["resilience_patterns", "bulkhead", "timeout", "retry", "fallback"]
+
+  @on_spawn => {
+    emit("resilience_patterns_ready", {})
+  }
+
+  @on_apply(pattern, fn, opts) => {
+    result = apply_resilience_pattern(pattern, fn, opts)
+    return result
+  }
+
+  @receipt resilience_patterns_config {
+    type: "ResiliencePatternsReceipt"
+    patterns: ["bulkhead", "timeout", "retryN", "withFallback"]
+    timestamp: now()
+  }
+}

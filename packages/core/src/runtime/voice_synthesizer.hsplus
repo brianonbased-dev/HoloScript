@@ -1,0 +1,23 @@
+// @voice_synthesizer — Runtime voice synthesis for NPC dialogue and agent speech.
+//
+// Native .hsplus surface for core/runtime/VoiceSynthesizer.ts.
+//
+// synthesize(text, voice) → AudioBuffer / play(buffer)
+
+@trait voice_synthesizer {
+  capability_tags: ["voice_synthesizer", "tts", "npc_dialogue", "agent_speech", "core"]
+
+  @on_spawn => {
+    emit("voice_synthesizer_ready", {})
+  }
+
+  @on_synthesize(text, voice) => {
+    buffer = synthesize_voice(text, voice)
+    return buffer
+  }
+
+  @receipt voice_synthesizer_config {
+    type: "VoiceSynthesizerReceipt"
+    timestamp: now()
+  }
+}

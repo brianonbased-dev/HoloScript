@@ -1,0 +1,23 @@
+// @physics_math_runtime — Runtime physics math helpers: forces, impulses, collision response.
+//
+// Native .hsplus surface for core/runtime/physics-math.ts.
+//
+// applyForce(body, force) / applyImpulse(body, impulse) / resolveCollision(a, b)
+
+@trait physics_math_runtime {
+  capability_tags: ["physics_math_runtime", "forces_impulses", "collision_response", "runtime_physics", "core"]
+
+  @on_spawn => {
+    emit("physics_math_runtime_ready", {})
+  }
+
+  @on_apply_force(body, force) => {
+    apply_runtime_force(body, force)
+  }
+
+  @receipt physics_math_runtime_config {
+    type: "PhysicsMathRuntimeReceipt"
+    ops: ["applyForce", "applyImpulse", "resolveCollision"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @orb_executor — Executor for HoloScript orb nodes: autonomous agent orb lifecycle at runtime.
+//
+// Native .hsplus surface for core/runtime/orb-executor.ts.
+//
+// spawnOrb(node, ctx) → OrbInstance / tickOrb(orb, dt) / despawnOrb(orb)
+
+@trait orb_executor {
+  capability_tags: ["orb_executor", "agent_orb", "orb_lifecycle", "autonomous_orb", "core"]
+
+  @on_spawn => {
+    emit("orb_executor_ready", {})
+  }
+
+  @on_spawn_orb(node, ctx) => {
+    orb = spawn_orb_instance(node, ctx)
+    emit("orb_spawned", { id: orb.id })
+    return orb
+  }
+
+  @receipt orb_executor_config {
+    type: "OrbExecutorReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @system_variables — HoloScript built-in system variables: @time, @frame, @world, @self, @camera.
+//
+// Native .hsplus surface for core/runtime/system-variables.ts.
+//
+// resolve(name, ctx) → HoloValue — resolves system var names to current runtime values
+
+@trait system_variables {
+  capability_tags: ["system_variables", "builtin_system_vars", "time_frame_world_self", "runtime_context", "core"]
+
+  @on_spawn => {
+    emit("system_variables_ready", {})
+  }
+
+  @on_resolve(name, ctx) => {
+    return resolve_system_variable(name, ctx)
+  }
+
+  @receipt system_variables_config {
+    type: "SystemVariablesReceipt"
+    vars: ["@time", "@frame", "@world", "@self", "@camera"]
+    timestamp: now()
+  }
+}

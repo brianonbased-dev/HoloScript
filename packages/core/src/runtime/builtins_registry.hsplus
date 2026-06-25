@@ -1,0 +1,22 @@
+// @builtins_registry — Registry of HoloScript built-in functions available to all compositions.
+//
+// Native .hsplus surface for core/runtime/builtins-registry.ts.
+//
+// register(name, fn) / resolve(name) → BuiltinFn? / listAll() → string[]
+
+@trait builtins_registry {
+  capability_tags: ["builtins_registry", "builtin_functions", "composition_stdlib", "function_registry", "core"]
+
+  @on_spawn => {
+    emit("builtins_registry_ready", {})
+  }
+
+  @on_resolve(name) => {
+    return resolve_builtin(name)
+  }
+
+  @receipt builtins_registry_config {
+    type: "BuiltinsRegistryReceipt"
+    timestamp: now()
+  }
+}

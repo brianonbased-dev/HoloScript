@@ -1,0 +1,24 @@
+// @pattern_match_runtime — HoloScript pattern matching executor: match/case/wildcard/guard.
+//
+// Native .hsplus surface for core/runtime/pattern-match.ts.
+//
+// match(value, cases[], ctx) → MatchResult
+
+@trait pattern_match_runtime {
+  capability_tags: ["pattern_match_runtime", "match_case", "wildcard_guard", "destructuring_match", "core"]
+
+  @on_spawn => {
+    emit("pattern_match_runtime_ready", {})
+  }
+
+  @on_match(value, cases, ctx) => {
+    result = match_pattern(value, cases, ctx)
+    return result
+  }
+
+  @receipt pattern_match_runtime_config {
+    type: "PatternMatchRuntimeReceipt"
+    constructs: ["match", "case", "wildcard", "guard", "destructure"]
+    timestamp: now()
+  }
+}

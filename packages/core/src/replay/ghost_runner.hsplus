@@ -1,0 +1,29 @@
+// @ghost_runner — Runs ghost entities from replay data alongside live simulation.
+//
+// Native .hsplus surface for core/replay/GhostRunner.ts.
+//
+// start(replayData) / tick(dt) / stop()
+// Spawns ghost entities at recorded poses; used for race ghosts and debugging
+
+@trait ghost_runner {
+  capability_tags: ["ghost_runner", "ghost_entity", "replay_ghost", "race_debug", "core"]
+
+  @on_spawn => {
+    emit("ghost_runner_ready", {})
+  }
+
+  @on_start(replay_data) => {
+    start_ghost_runner(replay_data)
+    emit("ghost_runner_started", {})
+  }
+
+  @on_tick(dt) => {
+    tick_ghost_runner(dt)
+  }
+
+  @receipt ghost_runner_config {
+    type: "GhostRunnerReceipt"
+    use_case: "race ghosts + replay debugging"
+    timestamp: now()
+  }
+}

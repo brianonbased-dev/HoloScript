@@ -1,0 +1,24 @@
+// @holo_expression — HoloScript expression evaluator: arithmetic, comparisons, member access, calls.
+//
+// Native .hsplus surface for core/runtime/holo-expression.ts.
+//
+// evaluate(expr, ctx) → HoloValue
+
+@trait holo_expression {
+  capability_tags: ["holo_expression", "expression_evaluator", "arithmetic", "member_access", "core"]
+
+  @on_spawn => {
+    emit("holo_expression_ready", {})
+  }
+
+  @on_evaluate(expr, ctx) => {
+    value = evaluate_holo_expression(expr, ctx)
+    return value
+  }
+
+  @receipt holo_expression_config {
+    type: "HoloExpressionReceipt"
+    nodes: ["arithmetic", "comparison", "member access", "call", "literal"]
+    timestamp: now()
+  }
+}
