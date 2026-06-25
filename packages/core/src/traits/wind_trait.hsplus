@@ -1,0 +1,22 @@
+// @wind_trait — Wind field: directional wind force applied to cloth, foliage, and particles.
+//
+// Native .hsplus surface for core/traits/WindTrait.ts.
+
+@trait wind_trait {
+  capability_tags: ["wind", "directional_wind_force", "cloth_foliage_particles", "atmosphere_physics", "core"]
+
+  @on_spawn(direction, strength, gust_freq) => {
+    init_wind(direction, strength, gust_freq)
+    emit("wind_ready", {})
+  }
+
+  @on_step(dt) => {
+    wind_force = step_wind(dt)
+    return wind_force
+  }
+
+  @receipt wind_trait_config {
+    type: "WindTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @vector_search_trait — Vector search: semantic similarity search over entity embeddings.
+//
+// Native .hsplus surface for core/traits/VectorSearchTrait.ts.
+
+@trait vector_search_trait {
+  capability_tags: ["vector_search", "semantic_similarity", "entity_embeddings", "ann_search", "core"]
+
+  @on_spawn(index_ref) => {
+    init_vector_search(index_ref)
+    emit("vector_search_ready", {})
+  }
+
+  @on_search(query, top_k, filter) => {
+    results = search_vectors(query, top_k, filter)
+    return results
+  }
+
+  @receipt vector_search_trait_config {
+    type: "VectorSearchTraitReceipt"
+    timestamp: now()
+  }
+}

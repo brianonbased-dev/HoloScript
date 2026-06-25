@@ -1,0 +1,23 @@
+// @wasm_bridge_trait — WASM bridge: calls into compiled WASM modules from the HoloScript runtime.
+//
+// Native .hsplus surface for core/traits/WasmBridgeTrait.ts.
+
+@trait wasm_bridge_trait {
+  capability_tags: ["wasm_bridge", "wasm_module_call", "holoscript_runtime", "compiler_wasm", "core"]
+
+  @on_spawn(wasm_module_path) => {
+    init_wasm_bridge(wasm_module_path)
+    emit("wasm_bridge_ready", {})
+  }
+
+  @on_call(fn_name, args) => {
+    result = call_wasm_fn(fn_name, args)
+    return result
+  }
+
+  @receipt wasm_bridge_trait_config {
+    type: "WasmBridgeTraitReceipt"
+    runtime: "packages/compiler-wasm (Rust+WASM)"
+    timestamp: now()
+  }
+}

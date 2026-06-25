@@ -1,0 +1,23 @@
+// @voice_input_trait — Voice input: STT transcription from mic with VAD and language detection.
+//
+// Native .hsplus surface for core/traits/VoiceInputTrait.ts.
+
+@trait voice_input_trait {
+  capability_tags: ["voice_input", "stt_transcription", "vad", "language_detection", "core"]
+
+  @on_spawn(model_id, language) => {
+    init_voice_input(model_id, language)
+    emit("voice_input_ready", {})
+  }
+
+  @on_transcribe(audio_frame) => {
+    text = transcribe_voice(audio_frame)
+    emit("voice_transcribed", { text })
+    return text
+  }
+
+  @receipt voice_input_trait_config {
+    type: "VoiceInputTraitReceipt"
+    timestamp: now()
+  }
+}

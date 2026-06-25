@@ -1,0 +1,21 @@
+// @runtime_parity_noop_classification — Parity-noop classification: tags traits as runtime no-ops per target.
+//
+// Native .hsplus surface for core/traits/runtime-parity-noop-classification.ts.
+
+@trait runtime_parity_noop_classification {
+  capability_tags: ["runtime_parity_noop", "per_target_noop", "trait_classification", "target_parity", "core"]
+
+  @on_spawn => {
+    emit("runtime_parity_noop_classification_ready", {})
+  }
+
+  @on_classify(trait_name, target) => {
+    is_noop = classify_parity_noop(trait_name, target)
+    return is_noop
+  }
+
+  @receipt runtime_parity_noop_classification_config {
+    type: "RuntimeParityNoopClassificationReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @verbal_fingerprint_trait — Verbal fingerprint: speaker identity from speech style embedding.
+//
+// Native .hsplus surface for core/traits/VerbalFingerprintTrait.ts.
+
+@trait verbal_fingerprint_trait {
+  capability_tags: ["verbal_fingerprint", "speaker_identity", "speech_style_embedding", "voice_identity", "core"]
+
+  @on_spawn => {
+    emit("verbal_fingerprint_ready", {})
+  }
+
+  @on_enroll(speaker_id, audio_samples) => {
+    enroll_verbal_fingerprint(speaker_id, audio_samples)
+  }
+
+  @on_identify(audio) => {
+    result = identify_verbal_fingerprint(audio)
+    return result
+  }
+
+  @receipt verbal_fingerprint_trait_config {
+    type: "VerbalFingerprintTraitReceipt"
+    timestamp: now()
+  }
+}

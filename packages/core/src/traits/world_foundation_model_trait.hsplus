@@ -1,0 +1,22 @@
+// @world_foundation_model_trait — World foundation model: video→world-state prediction using a VFM.
+//
+// Native .hsplus surface for core/traits/WorldFoundationModelTrait.ts.
+
+@trait world_foundation_model_trait {
+  capability_tags: ["world_foundation_model", "vfm", "video_world_state", "world_prediction", "core"]
+
+  @on_spawn(model_id) => {
+    init_world_foundation_model(model_id)
+    emit("world_foundation_model_ready", {})
+  }
+
+  @on_predict(video_frames, context) => {
+    world_state = predict_world_state(video_frames, context)
+    return world_state
+  }
+
+  @receipt world_foundation_model_trait_config {
+    type: "WorldFoundationModelTraitReceipt"
+    timestamp: now()
+  }
+}

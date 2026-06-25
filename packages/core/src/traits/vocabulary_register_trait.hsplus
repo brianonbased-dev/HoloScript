@@ -1,0 +1,25 @@
+// @vocabulary_register_trait — Vocabulary register: domain-specific term registry for NLP/LLM contexts.
+//
+// Native .hsplus surface for core/traits/VocabularyRegisterTrait.ts.
+
+@trait vocabulary_register_trait {
+  capability_tags: ["vocabulary_register", "domain_term_registry", "nlp_context", "glossary_register", "core"]
+
+  @on_spawn(domain) => {
+    init_vocabulary_register(domain)
+    emit("vocabulary_register_ready", { domain })
+  }
+
+  @on_register(term, definition) => {
+    register_vocabulary_term(term, definition)
+  }
+
+  @on_lookup(term) => {
+    return lookup_vocabulary_term(term)
+  }
+
+  @receipt vocabulary_register_trait_config {
+    type: "VocabularyRegisterTraitReceipt"
+    timestamp: now()
+  }
+}

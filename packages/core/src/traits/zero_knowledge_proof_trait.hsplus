@@ -1,0 +1,28 @@
+// @zero_knowledge_proof_trait — ZK proof: generates and verifies zk-SNARK/STARK proofs for computations.
+//
+// Native .hsplus surface for core/traits/ZeroKnowledgeProofTrait.ts.
+
+@trait zero_knowledge_proof_trait {
+  capability_tags: ["zero_knowledge_proof", "zk_snark_stark", "proof_generate_verify", "zk_compute", "core"]
+
+  @on_spawn(circuit, proving_key_ref) => {
+    init_zero_knowledge_proof(circuit, proving_key_ref)
+    emit("zk_proof_ready", {})
+  }
+
+  @on_prove(witness) => {
+    proof = generate_zk_proof(witness)
+    return proof
+  }
+
+  @on_verify(proof, public_inputs) => {
+    valid = verify_zk_proof(proof, public_inputs)
+    return valid
+  }
+
+  @receipt zero_knowledge_proof_trait_config {
+    type: "ZeroKnowledgeProofTraitReceipt"
+    systems: ["zk-SNARK", "zk-STARK"]
+    timestamp: now()
+  }
+}

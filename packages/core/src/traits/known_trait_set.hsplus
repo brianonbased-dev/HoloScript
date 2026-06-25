@@ -1,0 +1,20 @@
+// @known_trait_set — Known trait set: canonical registry of all trait names for runtime validation.
+//
+// Native .hsplus surface for core/traits/knownTraitSet.ts.
+
+@trait known_trait_set {
+  capability_tags: ["known_trait_set", "trait_name_registry", "runtime_validation", "canonical_registry", "core"]
+
+  @on_spawn => {
+    emit("known_trait_set_ready", {})
+  }
+
+  @on_is_known(trait_name) => {
+    return is_known_trait(trait_name)
+  }
+
+  @receipt known_trait_set_config {
+    type: "KnownTraitSetReceipt"
+    timestamp: now()
+  }
+}

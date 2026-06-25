@@ -1,0 +1,24 @@
+// @world_generator_trait — World generator: PCG-driven .holo world creation from seed and biome config.
+//
+// Native .hsplus surface for core/traits/WorldGeneratorTrait.ts.
+
+@trait world_generator_trait {
+  capability_tags: ["world_generator", "pcg_world", "holo_world_create", "biome_seed", "core"]
+
+  @on_spawn(seed, biomes) => {
+    init_world_generator(seed, biomes)
+    emit("world_generator_ready", {})
+  }
+
+  @on_generate(size, opts) => {
+    world = generate_world(size, opts)
+    return world
+  }
+
+  @receipt world_generator_trait_config {
+    type: "WorldGeneratorTraitReceipt"
+    output: ".holo world"
+    doc: "D.106 sovereign native photorealism"
+    timestamp: now()
+  }
+}

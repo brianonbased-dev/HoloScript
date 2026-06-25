@@ -1,0 +1,23 @@
+// @world_heartbeat_trait — World heartbeat: periodic world-state sync and dead-session cleanup.
+//
+// Native .hsplus surface for core/traits/WorldHeartbeatTrait.ts.
+
+@trait world_heartbeat_trait {
+  capability_tags: ["world_heartbeat", "world_state_sync", "dead_session_cleanup", "world_tick", "core"]
+
+  @on_spawn(world_id, interval_ms) => {
+    init_world_heartbeat(world_id, interval_ms)
+    emit("world_heartbeat_ready", { world_id })
+  }
+
+  @on_tick => {
+    pulse = pulse_world_heartbeat()
+    emit("world_pulsed", { tick: pulse.tick })
+    return pulse
+  }
+
+  @receipt world_heartbeat_trait_config {
+    type: "WorldHeartbeatTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @wot_thing_trait — W3C WoT Thing: exposes a device as a WoT Thing Description with affordances.
+//
+// Native .hsplus surface for core/traits/WoTThingTrait.ts.
+
+@trait wot_thing_trait {
+  capability_tags: ["wot_thing", "w3c_wot", "thing_description", "iot_affordances", "core"]
+
+  @on_spawn(td_config) => {
+    init_wot_thing(td_config)
+    emit("wot_thing_ready", {})
+  }
+
+  @on_expose => {
+    td = expose_wot_thing()
+    return td
+  }
+
+  @receipt wot_thing_trait_config {
+    type: "WoTThingTraitReceipt"
+    standard: "W3C WoT (Web of Things)"
+    timestamp: now()
+  }
+}

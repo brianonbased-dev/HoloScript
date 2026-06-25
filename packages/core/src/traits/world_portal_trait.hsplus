@@ -1,0 +1,22 @@
+// @world_portal_trait — World portal: renderable gateway that transits users between .holo worlds.
+//
+// Native .hsplus surface for core/traits/WorldPortalTrait.ts.
+
+@trait world_portal_trait {
+  capability_tags: ["world_portal", "world_gateway", "cross_world_transit", "portal_render", "core"]
+
+  @on_spawn(source_world, target_world) => {
+    init_world_portal(source_world, target_world)
+    emit("world_portal_ready", {})
+  }
+
+  @on_transit(entity_id) => {
+    transit_entity_through_portal(entity_id)
+    emit("portal_transit", { entity_id, target_world })
+  }
+
+  @receipt world_portal_trait_config {
+    type: "WorldPortalTraitReceipt"
+    timestamp: now()
+  }
+}

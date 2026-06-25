@@ -1,0 +1,20 @@
+// @constraint_config — Constraint config: typed config schema for physics/logic constraint parameters.
+//
+// Native .hsplus surface for core/traits/constraintConfig.ts.
+
+@trait constraint_config {
+  capability_tags: ["constraint_config", "typed_config_schema", "physics_logic_params", "constraint_definition", "core"]
+
+  @on_spawn => {
+    emit("constraint_config_ready", {})
+  }
+
+  @on_validate(config) => {
+    return validate_constraint_config(config)
+  }
+
+  @receipt constraint_config_receipt {
+    type: "ConstraintConfigReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,24 @@
+// @wallet_trait — Wallet: EIP-712 signer for on-chain transactions, x402 payments, and seat anchoring.
+//
+// Native .hsplus surface for core/traits/WalletTrait.ts.
+// Wallet address is an identity anchor — NEVER override it with a literal key (G.GOLD.016).
+
+@trait wallet_trait {
+  capability_tags: ["wallet", "eip712_signer", "x402_payments", "seat_anchoring", "core"]
+
+  @on_spawn(wallet_ref) => {
+    init_wallet(wallet_ref)
+    emit("wallet_ready", {})
+  }
+
+  @on_sign(typed_data) => {
+    sig = sign_wallet(typed_data)
+    return sig
+  }
+
+  @receipt wallet_trait_config {
+    type: "WalletTraitReceipt"
+    doc: "G.GOLD.016 — NEVER overwrite wallet address or key literal"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @volumetric_trait — Volumetric renderer: 3D voxel/field rendering for fire, smoke, fluid.
+//
+// Native .hsplus surface for core/traits/VolumetricTrait.ts.
+
+@trait volumetric_trait {
+  capability_tags: ["volumetric", "voxel_field_render", "fire_smoke_fluid", "volumetric_render", "core"]
+
+  @on_spawn(grid_size) => {
+    init_volumetric(grid_size)
+    emit("volumetric_ready", {})
+  }
+
+  @on_simulate(dt) => {
+    step_volumetric(dt)
+  }
+
+  @receipt volumetric_trait_config {
+    type: "VolumetricTraitReceipt"
+    rendering: "raymarched 3D field"
+    timestamp: now()
+  }
+}

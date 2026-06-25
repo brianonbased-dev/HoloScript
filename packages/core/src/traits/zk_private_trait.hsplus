@@ -1,0 +1,21 @@
+// @zk_private_trait — ZK private: zero-knowledge private attributes with selective disclosure proofs.
+//
+// Native .hsplus surface for core/traits/ZKPrivateTrait.ts.
+
+@trait zk_private_trait {
+  capability_tags: ["zk_private", "zk_private_attr", "selective_disclosure", "zk_proof", "core"]
+
+  @on_spawn => {
+    emit("zk_private_ready", {})
+  }
+
+  @on_disclose(attribute, proof) => {
+    result = verify_zk_private_disclosure(attribute, proof)
+    return result
+  }
+
+  @receipt zk_private_trait_config {
+    type: "ZKPrivateTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @video_transcode_trait — Video transcode: codec conversion (H.264/H.265/AV1/VP9) with FFmpeg pipeline.
+//
+// Native .hsplus surface for core/traits/VideoTranscodeTrait.ts.
+
+@trait video_transcode_trait {
+  capability_tags: ["video_transcode", "codec_conversion", "ffmpeg_pipeline", "h264_h265_av1", "core"]
+
+  @on_spawn(encoder) => {
+    init_video_transcode(encoder)
+    emit("video_transcode_ready", {})
+  }
+
+  @on_transcode(input_path, output_path, opts) => {
+    result = transcode_video(input_path, output_path, opts)
+    return result
+  }
+
+  @receipt video_transcode_trait_config {
+    type: "VideoTranscodeTraitReceipt"
+    codecs: ["H.264", "H.265", "AV1", "VP9"]
+    timestamp: now()
+  }
+}

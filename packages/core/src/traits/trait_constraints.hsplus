@@ -1,0 +1,22 @@
+// @trait_constraints — Trait constraints: declares composability rules between traits (requires/excludes).
+//
+// Native .hsplus surface for core/traits/traitConstraints.ts.
+
+@trait trait_constraints {
+  capability_tags: ["trait_constraints", "requires_excludes_rules", "composability", "trait_conflict", "core"]
+
+  @on_spawn => {
+    emit("trait_constraints_ready", {})
+  }
+
+  @on_check(trait_a, trait_b) => {
+    compat = check_trait_constraint(trait_a, trait_b)
+    if !compat.ok { emit("trait_conflict", { trait_a, trait_b }) }
+    return compat
+  }
+
+  @receipt trait_constraints_config {
+    type: "TraitConstraintsReceipt"
+    timestamp: now()
+  }
+}

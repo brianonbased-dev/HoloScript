@@ -1,0 +1,22 @@
+// @zone_world_constraints — Zone world constraints: per-zone physics/behavior overrides in a shared world.
+//
+// Native .hsplus surface for core/traits/ZoneWorldConstraints.ts.
+
+@trait zone_world_constraints {
+  capability_tags: ["zone_world_constraints", "per_zone_physics", "behavior_override", "world_zone", "core"]
+
+  @on_spawn(zone_id, constraints) => {
+    init_zone_world_constraints(zone_id, constraints)
+    emit("zone_world_constraints_ready", {})
+  }
+
+  @on_enter(entity_id) => {
+    apply_zone_constraints(entity_id)
+    emit("zone_constraints_applied", { entity_id })
+  }
+
+  @receipt zone_world_constraints_config {
+    type: "ZoneWorldConstraintsReceipt"
+    timestamp: now()
+  }
+}

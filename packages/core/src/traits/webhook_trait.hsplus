@@ -1,0 +1,23 @@
+// @webhook_trait — Webhook receiver: validates and routes inbound webhook POSTs from external services.
+//
+// Native .hsplus surface for core/traits/WebhookTrait.ts.
+
+@trait webhook_trait {
+  capability_tags: ["webhook", "inbound_webhook", "payload_validation", "event_route", "core"]
+
+  @on_spawn(secret_ref, events) => {
+    init_webhook(secret_ref, events)
+    emit("webhook_ready", {})
+  }
+
+  @on_receive(headers, body) => {
+    validated = receive_webhook(headers, body)
+    if validated { emit("webhook_received", { event: validated.event }) }
+    return validated
+  }
+
+  @receipt webhook_trait_config {
+    type: "WebhookTraitReceipt"
+    timestamp: now()
+  }
+}

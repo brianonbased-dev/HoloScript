@@ -1,0 +1,23 @@
+// @wisdom_trait — Wisdom: distills recurring agent learnings into durable knowledge entries.
+//
+// Native .hsplus surface for core/traits/WisdomTrait.ts.
+
+@trait wisdom_trait {
+  capability_tags: ["wisdom", "agent_learning_distill", "durable_knowledge", "knowledge_pipeline", "core"]
+
+  @on_spawn => {
+    emit("wisdom_ready", {})
+  }
+
+  @on_distill(observation, context) => {
+    entry = distill_wisdom(observation, context)
+    emit("wisdom_distilled", {})
+    return entry
+  }
+
+  @receipt wisdom_trait_config {
+    type: "WisdomTraitReceipt"
+    pipeline: "MEMORY.md → Room → KS → GOLD"
+    timestamp: now()
+  }
+}

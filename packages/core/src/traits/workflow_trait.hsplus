@@ -1,0 +1,24 @@
+// @workflow_trait — Workflow: declarative multi-step agent workflow with branching and retry.
+//
+// Native .hsplus surface for core/traits/WorkflowTrait.ts.
+
+@trait workflow_trait {
+  capability_tags: ["workflow", "multi_step_agent", "branching_retry", "declarative_flow", "core"]
+
+  @on_spawn(steps, opts) => {
+    init_workflow(steps, opts)
+    emit("workflow_ready", {})
+  }
+
+  @on_run(input) => {
+    result = run_workflow(input)
+    emit("workflow_complete", {})
+    return result
+  }
+
+  @receipt workflow_trait_config {
+    type: "WorkflowTraitReceipt"
+    doc: "D.048 workflow is product"
+    timestamp: now()
+  }
+}

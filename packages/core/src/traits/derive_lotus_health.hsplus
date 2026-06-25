@@ -1,0 +1,22 @@
+// @derive_lotus_health — Lotus health derivation: computes ecosystem health score from Lotus metrics.
+//
+// Native .hsplus surface for core/traits/deriveLotusHealth.ts.
+
+@trait derive_lotus_health {
+  capability_tags: ["derive_lotus_health", "lotus_health_score", "ecosystem_health", "lotus_metrics", "core"]
+
+  @on_spawn => {
+    emit("derive_lotus_health_ready", {})
+  }
+
+  @on_derive(metrics) => {
+    score = derive_lotus_health_score(metrics)
+    return score
+  }
+
+  @receipt derive_lotus_health_config {
+    type: "DeriveLotusHealthReceipt"
+    doc: "I.007 Lotus Genesis Trigger"
+    timestamp: now()
+  }
+}

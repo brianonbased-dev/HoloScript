@@ -1,0 +1,17 @@
+// @walkable_trait — Walkable surface: marks geometry as agent-traversable in navmesh generation.
+//
+// Native .hsplus surface for core/traits/WalkableTrait.ts.
+
+@trait walkable_trait {
+  capability_tags: ["walkable", "agent_traversable", "navmesh_gen", "surface_tag", "core"]
+
+  @on_spawn(walkable_flag) => {
+    init_walkable(walkable_flag)
+    emit("walkable_ready", {})
+  }
+
+  @receipt walkable_trait_config {
+    type: "WalkableTraitReceipt"
+    timestamp: now()
+  }
+}

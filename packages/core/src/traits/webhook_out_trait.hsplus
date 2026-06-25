@@ -1,0 +1,22 @@
+// @webhook_out_trait — Outgoing webhook: POSTs signed JSON payloads to registered external URLs.
+//
+// Native .hsplus surface for core/traits/WebhookOutTrait.ts.
+
+@trait webhook_out_trait {
+  capability_tags: ["webhook_out", "outgoing_webhook", "signed_json_post", "event_notify", "core"]
+
+  @on_spawn(target_url, secret_ref) => {
+    init_webhook_out(target_url, secret_ref)
+    emit("webhook_out_ready", {})
+  }
+
+  @on_fire(event_type, payload) => {
+    status = fire_webhook_out(event_type, payload)
+    return status
+  }
+
+  @receipt webhook_out_trait_config {
+    type: "WebhookOutTraitReceipt"
+    timestamp: now()
+  }
+}

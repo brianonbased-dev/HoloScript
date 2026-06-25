@@ -1,0 +1,21 @@
+// @voice_mesh_trait — Voice mesh: multi-room peer voice routing with spatial mixing.
+//
+// Native .hsplus surface for core/traits/VoiceMeshTrait.ts.
+
+@trait voice_mesh_trait {
+  capability_tags: ["voice_mesh", "multi_room_voice", "peer_routing", "spatial_mixing", "core"]
+
+  @on_spawn(mesh_id) => {
+    init_voice_mesh(mesh_id)
+    emit("voice_mesh_ready", { mesh_id })
+  }
+
+  @on_publish(room_id, audio_frame) => {
+    publish_voice_mesh(room_id, audio_frame)
+  }
+
+  @receipt voice_mesh_trait_config {
+    type: "VoiceMeshTraitReceipt"
+    timestamp: now()
+  }
+}

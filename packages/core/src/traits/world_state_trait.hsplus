@@ -1,0 +1,23 @@
+// @world_state_trait — World state: authoritative CRDT-backed state container for a HoloScript world.
+//
+// Native .hsplus surface for core/traits/WorldStateTrait.ts.
+
+@trait world_state_trait {
+  capability_tags: ["world_state", "crdt_state", "authoritative_container", "holo_world_state", "core"]
+
+  @on_spawn(world_id) => {
+    init_world_state(world_id)
+    emit("world_state_ready", { world_id })
+  }
+
+  @on_mutate(op) => {
+    apply_world_state_op(op)
+    emit("world_mutated", {})
+  }
+
+  @receipt world_state_trait_config {
+    type: "WorldStateTraitReceipt"
+    crdt: "Loro"
+    timestamp: now()
+  }
+}

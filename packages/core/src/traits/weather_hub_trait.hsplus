@@ -1,0 +1,23 @@
+// @weather_hub_trait — Weather hub: real-time weather data feed driving world atmosphere parameters.
+//
+// Native .hsplus surface for core/traits/WeatherHubTrait.ts.
+
+@trait weather_hub_trait {
+  capability_tags: ["weather_hub", "real_time_weather", "atmosphere_params", "world_weather", "core"]
+
+  @on_spawn(location, api_ref) => {
+    init_weather_hub(location, api_ref)
+    emit("weather_hub_ready", {})
+  }
+
+  @on_fetch => {
+    weather = fetch_weather()
+    emit("weather_updated", { weather })
+    return weather
+  }
+
+  @receipt weather_hub_trait_config {
+    type: "WeatherHubTraitReceipt"
+    timestamp: now()
+  }
+}

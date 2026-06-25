@@ -1,0 +1,21 @@
+// @watcher_trait — File/resource watcher: emits change events on path mutation or expiry.
+//
+// Native .hsplus surface for core/traits/WatcherTrait.ts.
+
+@trait watcher_trait {
+  capability_tags: ["watcher", "file_resource_watch", "change_events", "path_mutation", "core"]
+
+  @on_spawn(paths, opts) => {
+    init_watcher(paths, opts)
+    emit("watcher_ready", {})
+  }
+
+  @on_change(path, event_type) => {
+    emit("file_changed", { path, event_type })
+  }
+
+  @receipt watcher_trait_config {
+    type: "WatcherTraitReceipt"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,22 @@
+// @voice_output_trait — Voice output: TTS synthesis with voice cloning and prosody control.
+//
+// Native .hsplus surface for core/traits/VoiceOutputTrait.ts.
+
+@trait voice_output_trait {
+  capability_tags: ["voice_output", "tts_synthesis", "voice_cloning", "prosody_control", "core"]
+
+  @on_spawn(voice_id) => {
+    init_voice_output(voice_id)
+    emit("voice_output_ready", {})
+  }
+
+  @on_speak(text, prosody) => {
+    audio = synthesize_voice_output(text, prosody)
+    return audio
+  }
+
+  @receipt voice_output_trait_config {
+    type: "VoiceOutputTraitReceipt"
+    timestamp: now()
+  }
+}

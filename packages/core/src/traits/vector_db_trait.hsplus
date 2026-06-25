@@ -1,0 +1,25 @@
+// @vector_db_trait — Vector DB: persists and queries high-dimensional embeddings with ANN index.
+//
+// Native .hsplus surface for core/traits/VectorDBTrait.ts.
+
+@trait vector_db_trait {
+  capability_tags: ["vector_db", "embedding_persist", "ann_index", "high_dimensional_search", "core"]
+
+  @on_spawn(collection, dim) => {
+    init_vector_db(collection, dim)
+    emit("vector_db_ready", {})
+  }
+
+  @on_upsert(id, vector, metadata) => {
+    upsert_vector(id, vector, metadata)
+  }
+
+  @on_query(query_vector, top_k) => {
+    return query_vector_db(query_vector, top_k)
+  }
+
+  @receipt vector_db_trait_config {
+    type: "VectorDBTraitReceipt"
+    timestamp: now()
+  }
+}

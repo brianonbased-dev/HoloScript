@@ -1,0 +1,22 @@
+// @webcam_gaze_trait — Webcam gaze: pupil-tracking gaze estimation from 2D webcam feed.
+//
+// Native .hsplus surface for core/traits/WebcamGazeTrait.ts.
+
+@trait webcam_gaze_trait {
+  capability_tags: ["webcam_gaze", "pupil_tracking", "gaze_estimation", "webcam_eye_track", "core"]
+
+  @on_spawn(camera_id) => {
+    init_webcam_gaze(camera_id)
+    emit("webcam_gaze_ready", {})
+  }
+
+  @on_sample => {
+    gaze = sample_webcam_gaze()
+    return gaze
+  }
+
+  @receipt webcam_gaze_trait_config {
+    type: "WebcamGazeTraitReceipt"
+    timestamp: now()
+  }
+}

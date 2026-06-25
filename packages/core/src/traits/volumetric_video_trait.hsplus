@@ -1,0 +1,23 @@
+// @volumetric_video_trait — Volumetric video: 4D capture playback with dynamic mesh per frame.
+//
+// Native .hsplus surface for core/traits/VolumetricVideoTrait.ts.
+
+@trait volumetric_video_trait {
+  capability_tags: ["volumetric_video", "4d_capture", "dynamic_mesh_frame", "holofilm", "core"]
+
+  @on_spawn(sequence_ref) => {
+    init_volumetric_video(sequence_ref)
+    emit("volumetric_video_ready", {})
+  }
+
+  @on_seek(frame_index) => {
+    mesh = seek_volumetric_video(frame_index)
+    return mesh
+  }
+
+  @receipt volumetric_video_trait_config {
+    type: "VolumetricVideoTraitReceipt"
+    format: "4D capture sequence"
+    timestamp: now()
+  }
+}

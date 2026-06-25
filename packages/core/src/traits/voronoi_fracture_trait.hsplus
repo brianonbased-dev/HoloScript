@@ -1,0 +1,23 @@
+// @voronoi_fracture_trait — Voronoi fracture: shatters mesh into physics-driven fragments on impact.
+//
+// Native .hsplus surface for core/traits/VoronoiFractureTrait.ts.
+
+@trait voronoi_fracture_trait {
+  capability_tags: ["voronoi_fracture", "mesh_shatter", "physics_fragments", "destructible", "core"]
+
+  @on_spawn(cell_count, seed) => {
+    init_voronoi_fracture(cell_count, seed)
+    emit("voronoi_fracture_ready", {})
+  }
+
+  @on_fracture(impact_pos, impulse) => {
+    fragments = fracture_voronoi(impact_pos, impulse)
+    emit("fractured", { fragment_count: fragments.length })
+    return fragments
+  }
+
+  @receipt voronoi_fracture_trait_config {
+    type: "VoronoiFractureTraitReceipt"
+    timestamp: now()
+  }
+}

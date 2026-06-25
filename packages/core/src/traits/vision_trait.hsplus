@@ -1,0 +1,23 @@
+// @vision_trait — Computer vision: object detection, segmentation, classification via vision model.
+//
+// Native .hsplus surface for core/traits/VisionTrait.ts.
+
+@trait vision_trait {
+  capability_tags: ["vision", "object_detection", "segmentation_classification", "computer_vision", "core"]
+
+  @on_spawn(model_id) => {
+    init_vision(model_id)
+    emit("vision_ready", {})
+  }
+
+  @on_infer(image) => {
+    results = run_vision_inference(image)
+    return results
+  }
+
+  @receipt vision_trait_config {
+    type: "VisionTraitReceipt"
+    tasks: ["detection", "segmentation", "classification"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @volumetric_window_trait — Volumetric window: XR portal cutout showing a 3D content layer behind wall.
+//
+// Native .hsplus surface for core/traits/VolumetricWindowTrait.ts.
+
+@trait volumetric_window_trait {
+  capability_tags: ["volumetric_window", "xr_portal_cutout", "3d_content_layer", "mixed_reality_window", "core"]
+
+  @on_spawn(size, depth) => {
+    init_volumetric_window(size, depth)
+    emit("volumetric_window_ready", {})
+  }
+
+  @on_set_content(world_id) => {
+    set_volumetric_window_content(world_id)
+  }
+
+  @receipt volumetric_window_trait_config {
+    type: "VolumetricWindowTraitReceipt"
+    timestamp: now()
+  }
+}

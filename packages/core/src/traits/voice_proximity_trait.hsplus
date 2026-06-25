@@ -1,0 +1,22 @@
+// @voice_proximity_trait — Voice proximity: attenuates voice volume by distance from listener.
+//
+// Native .hsplus surface for core/traits/VoiceProximityTrait.ts.
+
+@trait voice_proximity_trait {
+  capability_tags: ["voice_proximity", "distance_attenuation", "spatial_voice_range", "proximity_audio", "core"]
+
+  @on_spawn(max_range) => {
+    init_voice_proximity(max_range)
+    emit("voice_proximity_ready", {})
+  }
+
+  @on_compute_gain(speaker_pos, listener_pos) => {
+    gain = compute_proximity_gain(speaker_pos, listener_pos)
+    return gain
+  }
+
+  @receipt voice_proximity_trait_config {
+    type: "VoiceProximityTraitReceipt"
+    timestamp: now()
+  }
+}

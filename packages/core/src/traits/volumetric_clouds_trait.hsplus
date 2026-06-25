@@ -1,0 +1,22 @@
+// @volumetric_clouds_trait — Volumetric clouds: raymarched cloud layer with wind and density control.
+//
+// Native .hsplus surface for core/traits/VolumetricCloudsTrait.ts.
+
+@trait volumetric_clouds_trait {
+  capability_tags: ["volumetric_clouds", "raymarched_clouds", "wind_density_control", "atmosphere", "core"]
+
+  @on_spawn(params) => {
+    init_volumetric_clouds(params)
+    emit("volumetric_clouds_ready", {})
+  }
+
+  @on_set_weather(coverage, density, wind_dir) => {
+    set_cloud_weather(coverage, density, wind_dir)
+  }
+
+  @receipt volumetric_clouds_trait_config {
+    type: "VolumetricCloudsTraitReceipt"
+    method: "raymarched volume"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,21 @@
+// @elasticity_core — Elasticity core: shared spring/damper math used by soft-body and cloth traits.
+//
+// Native .hsplus surface for core/traits/elasticityCore.ts.
+
+@trait elasticity_core {
+  capability_tags: ["elasticity_core", "spring_damper_math", "soft_body_cloth_shared", "physics_math", "core"]
+
+  @on_spawn => {
+    emit("elasticity_core_ready", {})
+  }
+
+  @on_compute(rest_length, current_length, k, damping, velocity) => {
+    force = compute_elasticity_force(rest_length, current_length, k, damping, velocity)
+    return force
+  }
+
+  @receipt elasticity_core_config {
+    type: "ElasticityCoreReceipt"
+    timestamp: now()
+  }
+}

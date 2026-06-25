@@ -1,0 +1,26 @@
+// @versioned_state_trait — Versioned state: immutable state tree with merkle-proof history.
+//
+// Native .hsplus surface for core/traits/VersionedStateTrait.ts.
+
+@trait versioned_state_trait {
+  capability_tags: ["versioned_state", "immutable_state_tree", "merkle_proof_history", "state_versioning", "core"]
+
+  @on_spawn => {
+    emit("versioned_state_ready", {})
+  }
+
+  @on_commit(delta) => {
+    version = commit_versioned_state(delta)
+    return version
+  }
+
+  @on_checkout(version_id) => {
+    state = checkout_versioned_state(version_id)
+    return state
+  }
+
+  @receipt versioned_state_trait_config {
+    type: "VersionedStateTraitReceipt"
+    timestamp: now()
+  }
+}
