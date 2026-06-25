@@ -1,0 +1,19 @@
+@trait {
+  name: "@velocity",
+  category: "physics",
+  description: "Explicit linear and angular velocity controller for physics bodies. Applies a direct velocity override or impulse to the physics body each frame, bypassing force integration — suitable for kinematic characters, projectiles, and networked position extrapolation. Authored from VelocityTrait.ts.",
+  props: {
+    linear: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 },
+    angular: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 },
+    apply_mode: enum("set" | "add" | "impulse") = "set",
+    max_speed_m_s: number = 0,
+    damping: number = 0
+  },
+  events: {
+    attached: "velocity_attached",
+    detached: "velocity_detached",
+    on_change: "velocity_change",
+    set: "velocity_trigger_set"
+  },
+  behaviors: ["@physics_body", "@kinematic", "@magnetism"]
+}

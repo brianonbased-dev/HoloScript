@@ -1,0 +1,21 @@
+@trait {
+  name: "@version_check",
+  category: "devops",
+  description: "Service and package version compatibility checker. Polls a version manifest endpoint and compares discovered versions against required semver ranges, emitting out-of-date or incompatible-version events to alerting channels and blocking dependent operations when strict mode is on. Authored from VersionCheckTrait.ts.",
+  props: {
+    manifest_url: string = "",
+    check_interval_s: number = 300,
+    strict: boolean = false,
+    packages: list<{ name: string, range: string }> = [],
+    alert_channel: string = ""
+  },
+  events: {
+    attached: "version_check_attached",
+    detached: "version_check_detached",
+    on_up_to_date: "version_check_ok",
+    on_outdated: "version_check_outdated",
+    on_incompatible: "version_check_incompatible",
+    check: "version_check_trigger_check"
+  },
+  behaviors: ["@heartbeat", "@deploy_gate", "@diagnostic"]
+}

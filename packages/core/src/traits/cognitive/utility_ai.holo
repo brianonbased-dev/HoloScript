@@ -1,0 +1,19 @@
+@trait {
+  name: "@utility_ai",
+  category: "cognitive",
+  description: "Utility-theory AI decision maker. Evaluates a set of named actions by scoring each against a weighted set of consideration curves (distance, health, time, resource), selects the highest-scoring action each tick, and fires the corresponding behavior event. Authored from UtilityAiTrait.ts.",
+  props: {
+    actions: list<{ id: string, base_score: number }> = [],
+    tick_rate_hz: number = 5,
+    top_n: number = 1,
+    noise: number = 0.05,
+    debug_draw: boolean = false
+  },
+  events: {
+    attached: "utility_ai_attached",
+    detached: "utility_ai_detached",
+    on_decide: "utility_ai_decide",
+    on_change: "utility_ai_change"
+  },
+  behaviors: ["@npc_brain", "@expert_system", "@autonomous_agenda"]
+}

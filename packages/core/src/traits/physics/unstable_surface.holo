@@ -1,0 +1,21 @@
+@trait {
+  name: "@unstable_surface",
+  category: "physics",
+  description: "Dynamically unstable surface controller for trap floors, crumbling platforms, and pressure tiles. Detects entity contact mass, starts a configurable countdown to structural failure, breaks the collider after the countdown, and optionally respawns the surface after a reset delay. Authored from UnstableSurfaceTrait.ts.",
+  props: {
+    trigger_mass_kg: number = 50,
+    countdown_s: number = 2,
+    break_effect_url: string = "",
+    respawn_after_s: number = 5,
+    disable_after_n: number = 0,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "unstable_surface_attached",
+    detached: "unstable_surface_detached",
+    on_trigger: "unstable_surface_trigger",
+    on_break: "unstable_surface_break",
+    on_respawn: "unstable_surface_respawn"
+  },
+  behaviors: ["@physics_body", "@force_field", "@spawn_gate"]
+}
