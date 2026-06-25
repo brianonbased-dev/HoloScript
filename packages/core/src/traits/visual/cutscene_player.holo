@@ -1,0 +1,22 @@
+@trait {
+  name: "@cutscene_player",
+  category: "visual",
+  description: "Scripted cutscene sequence player. Drives a timed sequence of camera cuts, character animations, dialogue triggers, and world events defined in a cutscene manifest JSON, automatically restoring the gameplay camera and re-enabling player input when the sequence ends or is skipped. Authored from CutscenePlayerTrait.ts.",
+  props: {
+    manifest_url: string = "",
+    skip_enabled: boolean = true,
+    lock_input: boolean = true,
+    show_cinematic_bars: boolean = true,
+    auto_play: boolean = false
+  },
+  events: {
+    attached: "cutscene_player_attached",
+    detached: "cutscene_player_detached",
+    on_start: "cutscene_player_start",
+    on_end: "cutscene_player_end",
+    on_skip: "cutscene_player_skip",
+    play: "cutscene_player_trigger_play",
+    skip: "cutscene_player_trigger_skip"
+  },
+  behaviors: ["@cinematic_bar", "@timeline_director", "@story_beat"]
+}

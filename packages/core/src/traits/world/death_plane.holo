@@ -1,0 +1,20 @@
+@trait {
+  name: "@death_plane",
+  category: "world",
+  description: "Out-of-bounds death and respawn trigger plane. Any entity crossing the Y threshold (falling below the world floor) is immediately killed or respawned at its last checkpoint, with an optional fade-to-black transition, damage ramp in the approach zone, and a visual warning grid at a configurable warning height. Authored from DeathPlaneTrait.ts.",
+  props: {
+    y_threshold: number = -50,
+    warning_y: number = -30,
+    action: enum("kill" | "respawn" | "warp") = "respawn",
+    fade_transition: boolean = true,
+    warning_grid: boolean = true,
+    damage_per_s: number = 0
+  },
+  events: {
+    attached: "death_plane_attached",
+    detached: "death_plane_detached",
+    on_warning: "death_plane_warning",
+    on_trigger: "death_plane_trigger"
+  },
+  behaviors: ["@penalty_zone", "@respawn_manager", "@checkpoint"]
+}

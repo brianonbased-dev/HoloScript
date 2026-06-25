@@ -1,0 +1,21 @@
+@trait {
+  name: "@damage_number",
+  category: "visual",
+  description: "Floating combat damage number popup. Spawns a world-space text label at the entity position on each damage or heal event, animating it upward with a fade-out over a configurable duration, color-coding by damage type and flagging critical hits with a scale burst. Authored from DamageNumberTrait.ts.",
+  props: {
+    font_size: number = 24,
+    float_height_m: number = 1.5,
+    duration_ms: number = 1200,
+    damage_color: string = "#ff4444",
+    heal_color: string = "#44ff88",
+    crit_color: string = "#ffdd00",
+    crit_scale: number = 1.5,
+    show_on: list<string> = []
+  },
+  events: {
+    attached: "damage_number_attached",
+    detached: "damage_number_detached",
+    on_spawn: "damage_number_spawn"
+  },
+  behaviors: ["@combat_log", "@hit_reaction", "@ui_frame"]
+}
