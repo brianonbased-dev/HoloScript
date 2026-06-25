@@ -1,0 +1,29 @@
+@trait {
+  name: "@marketplace_integration",
+  category: "world",
+  description: "Trait publishing and asset management through the HoloScript marketplace from within running scenes. Enables creators to package, publish, price, and manage trait bundles, track revenue and analytics, manage semantic versioning, install/uninstall remote traits, and manage reviews. Port of MarketplaceIntegrationTrait.ts (handler name: marketplace_integration).",
+  props: {
+    marketplace_url: string = "https://marketplace.holoscript.net",
+    publisher_id: string = "",
+    publisher_name: string = "",
+    default_category: enum("interaction" | "visual" | "audio" | "physics" | "ai" | "networking" | "utility") = "utility",
+    default_pricing: enum("free" | "one_time" | "subscription" | "pay_what_you_want") = "free",
+    default_price: number = 0.0,
+    default_currency: string = "USD",
+    auto_update_installed: boolean = true,
+    max_package_size_mb: number = 50,
+    require_review: boolean = true
+  },
+  events: {
+    attached: "marketplace_integration_attached",
+    on_published: "marketplace:published",
+    on_unpublished: "marketplace:unpublished",
+    on_installed: "marketplace:installed",
+    on_uninstalled: "marketplace:uninstalled",
+    on_revenue: "marketplace:revenue",
+    publish: "marketplace:publish",
+    install: "marketplace:install",
+    uninstall: "marketplace:uninstall"
+  },
+  behaviors: ["@marketplace", "@nft", "@package_signing"]
+}

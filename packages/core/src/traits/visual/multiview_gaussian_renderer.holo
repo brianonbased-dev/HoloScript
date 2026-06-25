@@ -1,0 +1,23 @@
+@trait {
+  name: "@multiview_gaussian_renderer",
+  category: "visual",
+  description: "Shared preprocessing with per-user foveated blending for multi-user VR Gaussian splat rendering. Maintains per-user view configs (eye position/direction, foveation center/radius, IPD), runs shared sort once, blends foveated quality (inner/outer radius + quality + peripheral decimation) per view via a uint32 visibility bitmask (≤32 views). Port of MultiviewGaussianRendererTrait.ts (handler name: multiview_gaussian_renderer).",
+  props: {
+    inner_radius: number = 0.15,
+    outer_radius: number = 0.6,
+    inner_quality: number = 1.0,
+    outer_quality: number = 0.25,
+    peripheral_decimation: number = 0.5
+  },
+  events: {
+    attached: "multiview_gaussian_renderer_attached",
+    detached: "multiview_gaussian_renderer_detached",
+    on_render_complete: "multiview_gaussian_renderer_done",
+    add_view: "multiview_gaussian_renderer_add_view",
+    remove_view: "multiview_gaussian_renderer_remove_view",
+    update_view: "multiview_gaussian_renderer_update_view",
+    preprocess: "multiview_gaussian_renderer_preprocess",
+    render: "multiview_gaussian_renderer_render"
+  },
+  behaviors: ["@gaussian_splat", "@xr_layer"]
+}

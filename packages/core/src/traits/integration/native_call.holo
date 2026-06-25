@@ -1,0 +1,13 @@
+@trait {
+  name: "@native_call",
+  category: "integration",
+  description: "Native platform call bridge. Responds to native:invoke events with api/method params and emits native:result with sandboxing status and call count. Sandbox mode (default true) constrains the call surface for security. Port of NativeCallTrait.ts (handler name: native_call).",
+  props: {
+    sandbox: boolean = true
+  },
+  events: {
+    on_result: "native:result",
+    invoke: "native:invoke"
+  },
+  behaviors: ["@sys_io", "@shell"]
+}

@@ -1,0 +1,19 @@
+@trait {
+  name: "@mock",
+  category: "devops",
+  description: "Mock object/function creation for testing. Tracks call counts and return values per named mock via mock:create/mock:call/mock:verify events. Strict mode (default) requires explicit mock registration before calling. Port of MockTrait.ts (handler name: mock).",
+  props: {
+    strict: boolean = true
+  },
+  events: {
+    on_created: "mock:created",
+    on_called: "mock:called",
+    on_verified: "mock:verified",
+    on_reset: "mock:reset_done",
+    create: "mock:create",
+    call: "mock:call",
+    verify: "mock:verify",
+    reset: "mock:reset"
+  },
+  behaviors: []
+}
