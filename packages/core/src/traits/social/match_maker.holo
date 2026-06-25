@@ -1,0 +1,24 @@
+@trait {
+  name: "@match_maker",
+  category: "social",
+  description: "Session matchmaking controller. Submits a join-or-create request to the HoloMesh matchmaking service with skill, latency, and game-mode preferences, polls for a match ticket, and on success transitions the entity to the matched session shard. Authored from MatchMakerTrait.ts.",
+  props: {
+    mode: string = "casual",
+    max_latency_ms: number = 150,
+    min_players: number = 2,
+    max_players: number = 8,
+    skill_range: number = 200,
+    timeout_s: number = 60,
+    region: string = "auto"
+  },
+  events: {
+    attached: "match_maker_attached",
+    detached: "match_maker_detached",
+    on_searching: "match_maker_searching",
+    on_match: "match_maker_match",
+    on_timeout: "match_maker_timeout",
+    search: "match_maker_trigger_search",
+    cancel: "match_maker_trigger_cancel"
+  },
+  behaviors: ["@session_manager", "@leaderboard", "@spawn_gate"]
+}

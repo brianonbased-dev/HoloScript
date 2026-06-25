@@ -1,0 +1,25 @@
+@trait {
+  name: "@media_recorder",
+  category: "media",
+  description: "In-scene audio/video capture recorder. Records the entity's associated WebRTC stream or canvas output to a MediaRecorder, chunking to a blob store or directly to a URL, with configurable bitrate, codec, and segment duration for replay or export. Authored from MediaRecorderTrait.ts.",
+  props: {
+    source: enum("canvas" | "webrtc" | "microphone") = "canvas",
+    video_codec: string = "vp9",
+    audio_codec: string = "opus",
+    video_bitrate_kbps: number = 2500,
+    audio_bitrate_kbps: number = 128,
+    segment_s: number = 10,
+    output_url: string = "",
+    auto_start: boolean = false
+  },
+  events: {
+    attached: "media_recorder_attached",
+    detached: "media_recorder_detached",
+    on_start: "media_recorder_start",
+    on_segment: "media_recorder_segment",
+    on_stop: "media_recorder_stop",
+    start: "media_recorder_trigger_start",
+    stop: "media_recorder_trigger_stop"
+  },
+  behaviors: ["@stream", "@screen_capture", "@voice_cloner"]
+}

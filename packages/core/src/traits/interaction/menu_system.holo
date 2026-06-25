@@ -1,0 +1,23 @@
+@trait {
+  name: "@menu_system",
+  category: "interaction",
+  description: "Hierarchical menu tree controller. Manages a stack of named menu screens, each containing a list of labeled actions, supporting keyboard, gamepad, and XR pointer navigation, with back-stack history and animated screen transitions. Authored from MenuSystemTrait.ts.",
+  props: {
+    root_screen: string = "main",
+    screens: list<{ id: string, title: string, items: list<{ label: string, action: string }> }> = [],
+    input_mode: enum("keyboard" | "gamepad" | "xr_pointer") = "keyboard",
+    transition: enum("slide" | "fade" | "zoom") = "slide",
+    transition_ms: number = 200,
+    visible: boolean = false
+  },
+  events: {
+    attached: "menu_system_attached",
+    detached: "menu_system_detached",
+    on_open: "menu_system_open",
+    on_close: "menu_system_close",
+    on_select: "menu_system_select",
+    open: "menu_system_trigger_open",
+    close: "menu_system_trigger_close"
+  },
+  behaviors: ["@ui_controller", "@ui_frame", "@transition"]
+}
