@@ -1,0 +1,37 @@
+// @command_system — Undo/redo stack, command batching, macro recording, and execution history.
+//
+// Native .hsplus surface for core/events/CommandSystem.ts.
+//
+// execute(cmd) / undo() / redo() / batch(cmds[]) / record(name) → macro
+// Commands are reversible; batches are atomic; macros replay recorded sequences
+
+@trait command_system {
+  capability_tags: ["command_system", "undo_redo", "command_batching", "macro_recording", "core"]
+
+  @on_spawn => {
+    emit("command_system_ready", {})
+  }
+
+  @on_execute(cmd) => {
+    execute_command(cmd)
+    emit("command_executed", {})
+  }
+
+  @on_undo => {
+    cmd = undo_command()
+    emit("command_undone", {})
+    return cmd
+  }
+
+  @on_redo => {
+    cmd = redo_command()
+    emit("command_redone", {})
+    return cmd
+  }
+
+  @receipt command_system_config {
+    type: "CommandSystemReceipt"
+    features: ["undo/redo", "batch", "macro recording", "execution history"]
+    timestamp: now()
+  }
+}

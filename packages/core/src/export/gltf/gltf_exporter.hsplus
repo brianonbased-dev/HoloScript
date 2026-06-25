@@ -1,0 +1,32 @@
+// @gltf_exporter — Converts HoloScript scene graphs to GLTF 2.0 / GLB format.
+//
+// Native .hsplus surface for core/export/gltf/GLTFExporter.ts.
+//
+// export(scene) → GLTFDocument / exportBinary(scene) → GLBBuffer
+// Applies KTX2+Draco compression via AdvancedCompression; MaterialX materials
+
+@trait gltf_exporter {
+  capability_tags: ["gltf_exporter", "gltf_2_0", "glb", "scene_export", "core"]
+
+  @on_spawn => {
+    emit("gltf_exporter_ready", {})
+  }
+
+  @on_export(scene) => {
+    doc = export_scene_to_gltf(scene)
+    emit("gltf_exported", {})
+    return doc
+  }
+
+  @on_export_binary(scene) => {
+    buf = export_scene_to_glb(scene)
+    emit("glb_exported", { bytes: buf.byteLength })
+    return buf
+  }
+
+  @receipt gltf_exporter_config {
+    type: "GLTFExporterReceipt"
+    compression: ["KTX2", "Draco"]
+    timestamp: now()
+  }
+}

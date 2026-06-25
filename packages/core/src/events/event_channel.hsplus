@@ -1,0 +1,30 @@
+// @event_channel — Typed, isolated pub/sub channels with filtering, throttling, and replay buffer.
+//
+// Native .hsplus surface for core/events/EventChannel.ts.
+//
+// create(name) → Channel / channel.on(type, fn) / channel.bridge(other)
+// Isolated from global bus; replay buffer for late subscribers; cross-channel bridging
+
+@trait event_channel {
+  capability_tags: ["event_channel", "typed_pubsub", "replay_buffer", "channel_bridge", "core"]
+
+  @on_spawn => {
+    emit("event_channel_ready", {})
+  }
+
+  @on_create(channel_name, opts) => {
+    channel = create_event_channel(channel_name, opts)
+    return channel
+  }
+
+  @on_bridge(channel_a, channel_b) => {
+    bridge_channels(channel_a, channel_b)
+    emit("channels_bridged", {})
+  }
+
+  @receipt event_channel_config {
+    type: "EventChannelReceipt"
+    features: ["typed", "filtering", "throttling", "replay buffer", "cross-channel bridge"]
+    timestamp: now()
+  }
+}

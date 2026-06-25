@@ -1,0 +1,27 @@
+// @usdz_exporter — Exports HoloScript scene graphs to USDZ for Apple Vision Pro and AR Quick Look.
+//
+// Native .hsplus surface for core/export/usdz/USDZExporter.ts.
+//
+// export(scene) → USDZPackage
+// Pipeline: GLTF IR → USD conversion → MaterialX materials → USDZ package
+
+@trait usdz_exporter {
+  capability_tags: ["usdz_exporter", "usdz_apple", "vision_pro", "materialx", "core"]
+
+  @on_spawn => {
+    emit("usdz_exporter_ready", {})
+  }
+
+  @on_export(scene) => {
+    pkg = export_scene_to_usdz(scene)
+    emit("usdz_exported", {})
+    return pkg
+  }
+
+  @receipt usdz_exporter_config {
+    type: "USDZExporterReceipt"
+    pipeline: "GLTF IR → USD → MaterialX → USDZ package"
+    targets: ["Apple Vision Pro", "AR Quick Look"]
+    timestamp: now()
+  }
+}

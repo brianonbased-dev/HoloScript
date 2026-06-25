@@ -1,0 +1,26 @@
+// @compression_quality_validator — Evaluates all export targets for compression quality and lossy detection.
+//
+// Native .hsplus surface for core/export/compression/CompressionQualityValidator.ts.
+//
+// validate(target, result) → QualityReport { lossyStages[], metrics{}, pass }
+// Flags lossy stages with quality metrics; used by CI to gate export quality
+
+@trait compression_quality_validator {
+  capability_tags: ["compression_quality_validator", "lossy_detection", "export_quality_gate", "ci_gate", "core"]
+
+  @on_spawn => {
+    emit("compression_quality_validator_ready", {})
+  }
+
+  @on_validate(target, result) => {
+    report = validate_compression_quality(target, result)
+    if !report.pass { emit("compression_quality_fail", { target }) }
+    return report
+  }
+
+  @receipt compression_quality_validator_config {
+    type: "CompressionQualityValidatorReceipt"
+    scope: "all export targets"
+    timestamp: now()
+  }
+}

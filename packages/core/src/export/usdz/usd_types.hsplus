@@ -1,0 +1,21 @@
+// @usd_types — USD/USDZ type definitions for Apple Vision Pro and AR Quick Look.
+//
+// Native .hsplus surface for core/export/usdz/USDTypes.ts.
+//
+// USDPrimitive, USDMaterial, USDStage, USDZPackage
+// Used by USDZExporter; MaterialX → USD material mapping types
+
+@trait usd_types {
+  capability_tags: ["usd_types", "usd_usdz", "apple_vision_pro", "ar_quick_look", "core"]
+
+  @on_spawn => {
+    emit("usd_types_ready", {})
+  }
+
+  @receipt usd_types_config {
+    type: "USDTypesReceipt"
+    targets: ["Apple Vision Pro", "AR Quick Look"]
+    types: ["USDPrimitive", "USDMaterial", "USDStage", "USDZPackage"]
+    timestamp: now()
+  }
+}

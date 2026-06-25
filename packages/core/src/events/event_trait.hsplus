@@ -1,0 +1,20 @@
+// @event_trait — Declarative event wiring for HoloScript+ nodes via the global EventBus.
+//
+// Native .hsplus surface for core/events/EventTrait.ts.
+//
+// @event_listener / @event_emitter decorators on nodes
+// Nodes declare events they emit and listen to — wired at spawn via EventBus
+
+@trait event_trait {
+  capability_tags: ["event_trait", "declarative_event_wiring", "holoscript_plus_nodes", "event_bus_wired", "core"]
+
+  @on_spawn => {
+    emit("event_trait_ready", {})
+  }
+
+  @receipt event_trait_config {
+    type: "EventTraitReceipt"
+    wiring: "declarative — nodes declare emit/listen; bus wires at spawn"
+    timestamp: now()
+  }
+}

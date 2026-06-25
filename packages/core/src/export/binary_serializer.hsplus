@@ -1,0 +1,31 @@
+// @binary_serializer — High-performance binary serialization for scene graphs.
+//
+// Native .hsplus surface for core/export/BinarySerializer.ts.
+//
+// serialize(scene) → ArrayBuffer / deserialize(buffer) → SceneGraph
+// Platform-agnostic binary format; used before export pipeline for compact wire format
+
+@trait binary_serializer {
+  capability_tags: ["binary_serializer", "scene_graph_binary", "high_performance", "compact_wire", "core"]
+
+  @on_spawn => {
+    emit("binary_serializer_ready", {})
+  }
+
+  @on_serialize(scene) => {
+    buffer = serialize_scene_to_binary(scene)
+    emit("scene_serialized", { bytes: buffer.byteLength })
+    return buffer
+  }
+
+  @on_deserialize(buffer) => {
+    scene = deserialize_scene_from_binary(buffer)
+    return scene
+  }
+
+  @receipt binary_serializer_config {
+    type: "BinarySerializerReceipt"
+    format: "platform-agnostic binary; compact wire format for export pipeline"
+    timestamp: now()
+  }
+}

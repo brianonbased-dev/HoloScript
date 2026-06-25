@@ -1,0 +1,26 @@
+// @a2a_handshake — A2A protocol handshake at HoloGate portal threshold.
+//
+// Native .hsplus surface for core/export/agent-card/A2AHandshake.ts.
+//
+// handshake(entity, portal) → HandshakeResult { allowed, agentCard?, redirect? }
+// Determines cross-portal transit permission via A2A protocol
+
+@trait a2a_handshake {
+  capability_tags: ["a2a_handshake", "a2a_protocol", "hologate_portal", "portal_transit", "core"]
+
+  @on_spawn => {
+    emit("a2a_handshake_ready", {})
+  }
+
+  @on_handshake(entity_id, portal_id) => {
+    result = execute_a2a_handshake(entity_id, portal_id)
+    emit("a2a_handshake_complete", { allowed: result.allowed })
+    return result
+  }
+
+  @receipt a2a_handshake_config {
+    type: "A2AHandshakeReceipt"
+    protocol: "A2A (Agent-to-Agent) Protocol"
+    timestamp: now()
+  }
+}

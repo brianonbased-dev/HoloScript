@@ -1,0 +1,26 @@
+// @snn_vs_backprop_experiment — SNN vs backprop confabulation-rate comparison per RFC-0042.
+//
+// Native .hsplus surface for core/experiments/SNNvsBackpropExperiment.ts.
+//
+// run(config) → ExperimentResult { snn_confabulation_rate, bp_confabulation_rate, delta }
+// Governed by RFC-0042; results feed into snn-webgpu research track
+
+@trait snn_vs_backprop_experiment {
+  capability_tags: ["snn_vs_backprop_experiment", "confabulation_rate", "rfc_0042", "experimental", "core"]
+
+  @on_spawn => {
+    emit("snn_vs_backprop_experiment_ready", {})
+  }
+
+  @on_run(config) => {
+    result = run_snn_vs_backprop(config)
+    emit("experiment_done", { delta: result.delta })
+    return result
+  }
+
+  @receipt snn_vs_backprop_experiment_config {
+    type: "SNNvsBackpropExperimentReceipt"
+    governing_rfc: "RFC-0042"
+    timestamp: now()
+  }
+}

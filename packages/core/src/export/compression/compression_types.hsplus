@@ -1,0 +1,19 @@
+// @compression_types — Type definitions for KTX2 texture and Draco mesh compression.
+//
+// Native .hsplus surface for core/export/compression/CompressionTypes.ts.
+//
+// KTX2Options { quality, mipLevels, format } / DracoOptions { compressionLevel, preserveNormals }
+
+@trait compression_types {
+  capability_tags: ["compression_types", "ktx2_options", "draco_options", "type_definitions", "core"]
+
+  @on_spawn => {
+    emit("compression_types_ready", {})
+  }
+
+  @receipt compression_types_config {
+    type: "CompressionTypesReceipt"
+    types: ["KTX2Options", "DracoOptions", "CompressionQualityReport"]
+    timestamp: now()
+  }
+}

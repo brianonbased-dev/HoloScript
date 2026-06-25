@@ -1,0 +1,32 @@
+// @advanced_compression — KTX2 texture compression + Draco mesh compression for GLTF export.
+//
+// Native .hsplus surface for core/export/compression/AdvancedCompression.ts.
+//
+// compressTexture(texture, ktx2Opts) → KTX2 / compressMesh(mesh, dracoOpts) → DracoMesh
+// Used by GLTFExporter for lossy/lossless compression stages
+
+@trait advanced_compression {
+  capability_tags: ["advanced_compression", "ktx2_texture", "draco_mesh", "gltf_compression", "core"]
+
+  @on_spawn => {
+    emit("advanced_compression_ready", {})
+  }
+
+  @on_compress_texture(texture, opts) => {
+    result = compress_texture_ktx2(texture, opts)
+    emit("texture_compressed", {})
+    return result
+  }
+
+  @on_compress_mesh(mesh, opts) => {
+    result = compress_mesh_draco(mesh, opts)
+    emit("mesh_compressed", {})
+    return result
+  }
+
+  @receipt advanced_compression_config {
+    type: "AdvancedCompressionReceipt"
+    formats: ["KTX2 (textures)", "Draco (mesh)"]
+    timestamp: now()
+  }
+}

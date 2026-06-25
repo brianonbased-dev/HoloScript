@@ -1,0 +1,21 @@
+// @gltf_types — GLTF 2.0 type definitions per the official glTF 2.0 specification.
+//
+// Native .hsplus surface for core/export/gltf/GLTFTypes.ts.
+//
+// GLTFDocument, GLTFNode, GLTFMesh, GLTFMaterial, GLTFTexture, GLTFAnimation
+// Matches spec at https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
+
+@trait gltf_types {
+  capability_tags: ["gltf_types", "gltf_2_0_spec", "type_definitions", "core"]
+
+  @on_spawn => {
+    emit("gltf_types_ready", {})
+  }
+
+  @receipt gltf_types_config {
+    type: "GLTFTypesReceipt"
+    spec: "glTF 2.0 (Khronos)"
+    types: ["GLTFDocument", "GLTFNode", "GLTFMesh", "GLTFMaterial", "GLTFTexture", "GLTFAnimation"]
+    timestamp: now()
+  }
+}

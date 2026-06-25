@@ -1,0 +1,25 @@
+// @data_binding — Reactive data binding: observable properties, computed values, watchers, two-way sync.
+//
+// Native .hsplus surface for core/events/DataBinding.ts.
+//
+// observable(value) / computed(fn) / watch(obs, fn) / bind(a, b) — two-way sync
+// Fine-grained reactivity — only re-runs what changed
+
+@trait data_binding {
+  capability_tags: ["data_binding", "reactive_properties", "computed_values", "two_way_sync", "core"]
+
+  @on_spawn => {
+    emit("data_binding_ready", {})
+  }
+
+  @on_bind(source, target) => {
+    bind_two_way(source, target)
+    emit("binding_created", {})
+  }
+
+  @receipt data_binding_config {
+    type: "DataBindingReceipt"
+    features: ["observable", "computed", "watch", "two-way bind"]
+    timestamp: now()
+  }
+}

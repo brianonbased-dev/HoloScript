@@ -1,0 +1,20 @@
+// @entries_interop — Sub-barrel surface: Python/JS interop bindings + MCP circuit breaker.
+//
+// Native .hsplus surface for core/entries/interop.ts.
+//
+// Exposes: python_js_interop, mcp_circuit_breaker, resilience modules
+// Used as the /interop sub-entry in package.json exports map
+
+@trait entries_interop {
+  capability_tags: ["entries_interop", "sub_barrel", "python_js_interop", "circuit_breaker_entry", "core"]
+
+  @on_spawn => {
+    emit("entries_interop_ready", {})
+  }
+
+  @receipt entries_interop_config {
+    type: "EntriesInteropReceipt"
+    exports: ["python_js_interop", "mcp_circuit_breaker", "resilience"]
+    timestamp: now()
+  }
+}

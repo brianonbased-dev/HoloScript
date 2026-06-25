@@ -1,0 +1,26 @@
+// @scene_graph — Platform-agnostic scene IR for export to GLTF, USDZ, Unity, Unreal, WebGPU, etc.
+//
+// Native .hsplus surface for core/export/SceneGraph.ts.
+//
+// SceneNode { id, transform, children[], mesh?, material?, lights[] }
+// Intermediate representation used by all export targets
+// Vector3 duck-typed for engine independence
+
+@trait scene_graph {
+  capability_tags: ["scene_graph", "scene_ir", "platform_agnostic", "export_intermediate", "core"]
+
+  @on_spawn => {
+    emit("scene_graph_ready", {})
+  }
+
+  @on_create_node(opts) => {
+    node = create_scene_node(opts)
+    return node
+  }
+
+  @receipt scene_graph_config {
+    type: "SceneGraphReceipt"
+    role: "intermediate representation — consumed by all export targets"
+    timestamp: now()
+  }
+}

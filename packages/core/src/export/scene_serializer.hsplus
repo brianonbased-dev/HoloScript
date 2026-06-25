@@ -1,0 +1,30 @@
+// @scene_serializer_export — Serialize HoloScript scenes to/from the SceneGraph IR: JSON and binary.
+//
+// Native .hsplus surface for core/export/SceneSerializer.ts.
+//
+// toJSON(scene) → string / fromJSON(json) → SceneGraph
+// toBinary(scene) → ArrayBuffer / fromBinary(buf) → SceneGraph
+// Roundtrip-safe; used by editor persistence and export pipeline
+
+@trait scene_serializer_export {
+  capability_tags: ["scene_serializer_export", "scene_roundtrip", "json_binary", "export_pipeline", "core"]
+
+  @on_spawn => {
+    emit("scene_serializer_export_ready", {})
+  }
+
+  @on_to_json(scene) => {
+    return serialize_scene_to_json(scene)
+  }
+
+  @on_to_binary(scene) => {
+    return serialize_scene_to_binary(scene)
+  }
+
+  @receipt scene_serializer_export_config {
+    type: "SceneSerializerExportReceipt"
+    formats: ["JSON", "binary"]
+    constraint: "roundtrip-safe"
+    timestamp: now()
+  }
+}

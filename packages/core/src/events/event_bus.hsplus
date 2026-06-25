@@ -1,0 +1,28 @@
+// @event_bus — Global pub/sub for decoupled inter-system communication.
+//
+// Native .hsplus surface for core/events/EventBus.ts.
+//
+// on(event, handler) / off(event, handler) / emit(event, payload)
+// Used for: FSM → Animation, Particle → Audio, Gesture → UI cross-system routing
+
+@trait event_bus {
+  capability_tags: ["event_bus", "global_pubsub", "inter_system", "decoupled", "core"]
+
+  @on_spawn => {
+    emit("event_bus_ready", {})
+  }
+
+  @on_subscribe(event_name, handler_ref) => {
+    subscribe_event_bus(event_name, handler_ref)
+  }
+
+  @on_publish(event_name, payload) => {
+    publish_event_bus(event_name, payload)
+  }
+
+  @receipt event_bus_config {
+    type: "EventBusReceipt"
+    pattern: "global pub/sub — decoupled; no direct reference between systems"
+    timestamp: now()
+  }
+}

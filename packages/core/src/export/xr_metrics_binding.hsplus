@@ -1,0 +1,27 @@
+// @xr_metrics_binding — Persists Film3D XR metrics into Loro map with merge law after XR verification.
+//
+// Native .hsplus surface for core/export/XrMetricsBinding.ts.
+//
+// Sync boundary: after film3dXrVerification, before GistPublicationManifest.sign()
+// bind(film3dMetrics, loroMap) → LoroMap with merged XR metrics
+// Merge law ensures CRDT correctness across concurrent XR sessions
+
+@trait xr_metrics_binding {
+  capability_tags: ["xr_metrics_binding", "film3d_metrics", "loro_crdt", "xr_verification", "core"]
+
+  @on_spawn => {
+    emit("xr_metrics_binding_ready", {})
+  }
+
+  @on_bind(film3d_metrics, loro_map) => {
+    result = bind_xr_metrics_to_loro(film3d_metrics, loro_map)
+    emit("xr_metrics_bound", {})
+    return result
+  }
+
+  @receipt xr_metrics_binding_config {
+    type: "XrMetricsBindingReceipt"
+    sync_boundary: "after film3dXrVerification, before GistPublicationManifest.sign()"
+    timestamp: now()
+  }
+}

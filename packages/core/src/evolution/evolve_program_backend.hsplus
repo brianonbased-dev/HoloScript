@@ -1,0 +1,27 @@
+// @evolve_program_backend — Gated evolutionary executor backing @evolve_program trait.
+//
+// Native .hsplus surface for core/evolution/EvolveProgramBackend.ts.
+//
+// The verifier-gate IS the engine: candidates that fail formal verification are culled
+// Mirrors GenerativeDensifierBackend pattern — trait is data, backend is executor
+// Runs evolutionary search (mutation + selection) over formal-verified candidate space
+
+@trait evolve_program_backend {
+  capability_tags: ["evolve_program_backend", "evolutionary_executor", "verifier_gate", "formal_verification", "core"]
+
+  @on_spawn => {
+    emit("evolve_program_backend_ready", {})
+  }
+
+  @on_evolve(program, fitness_fn, budget) => {
+    result = evolve_with_verification_gate(program, fitness_fn, budget)
+    emit("evolution_done", { generations: result.generations, best_score: result.best_score })
+    return result
+  }
+
+  @receipt evolve_program_backend_config {
+    type: "EvolveProgramBackendReceipt"
+    gate: "verifier-gate culls candidates — not optional"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @safe_json_parse — Zod-backed safe JSON parse: no silent crashes, schema validation.
+//
+// Native .hsplus surface for core/errors/safeJsonParse.ts. Wave 2 audit W2-T1.
+//
+// parse(schema, input) → { ok: true, value } | { ok: false, error }
+// Never throws; returns discriminated union; uses Zod for schema validation
+
+@trait safe_json_parse {
+  capability_tags: ["safe_json_parse", "zod_validation", "error_safe", "discriminated_union", "core"]
+
+  @on_spawn => {
+    emit("safe_json_parse_ready", {})
+  }
+
+  @on_parse(schema, input) => {
+    result = safe_parse_json(schema, input)
+    return result
+  }
+
+  @receipt safe_json_parse_config {
+    type: "SafeJsonParseReceipt"
+    constraint: "never throws — returns discriminated union"
+    timestamp: now()
+  }
+}

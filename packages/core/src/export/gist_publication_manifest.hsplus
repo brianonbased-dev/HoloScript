@@ -1,0 +1,28 @@
+// @gist_publication_manifest — Binds Door 1 (semantic graph/Loro provenance) to Door 3 (x402 economic anchor).
+//
+// Native .hsplus surface for core/export/GistPublicationManifest.ts.
+//
+// sign(room, loroVersion, x402Anchor?) → GistManifest { provenance_semiring_digest, ... }
+// provenance_semiring_digest = v0 SHA-256 over canonical JSON
+// Used in cross-door provenance binding before publishing
+
+@trait gist_publication_manifest {
+  capability_tags: ["gist_publication_manifest", "provenance_semiring", "door1_door3", "x402_anchor", "core"]
+
+  @on_spawn => {
+    emit("gist_publication_manifest_ready", {})
+  }
+
+  @on_sign(room, loro_version, x402_anchor) => {
+    manifest = sign_gist_manifest(room, loro_version, x402_anchor)
+    emit("manifest_signed", {})
+    return manifest
+  }
+
+  @receipt gist_publication_manifest_config {
+    type: "GistPublicationManifestReceipt"
+    digest: "v0 SHA-256 over canonical JSON"
+    doors: ["Door 1: semantic/Loro", "Door 3: x402 economic"]
+    timestamp: now()
+  }
+}

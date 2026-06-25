@@ -1,0 +1,20 @@
+// @entries_scripting — Sub-barrel surface: headless runtime + @script_test trait + scripting layer.
+//
+// Native .hsplus surface for core/entries/scripting.ts.
+//
+// Exposes: headless_runtime, script_test, scripting layer modules
+// Used as the /scripting sub-entry in package.json exports map
+
+@trait entries_scripting {
+  capability_tags: ["entries_scripting", "sub_barrel", "headless_runtime", "script_test", "core"]
+
+  @on_spawn => {
+    emit("entries_scripting_ready", {})
+  }
+
+  @receipt entries_scripting_config {
+    type: "EntriesScriptingReceipt"
+    exports: ["headless_runtime", "script_test", "scripting layer"]
+    timestamp: now()
+  }
+}

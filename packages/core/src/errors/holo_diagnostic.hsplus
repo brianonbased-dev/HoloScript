@@ -1,0 +1,26 @@
+// @holo_diagnostic — Unified error schema for parser, compiler, and runtime errors.
+//
+// Native .hsplus surface for core/errors/HoloDiagnostic.ts.
+//
+// HoloDiagnostic { code, message, span, severity, hints[] }
+// Single format surfaced in Studio, MCP, LSP, and CLI
+
+@trait holo_diagnostic {
+  capability_tags: ["holo_diagnostic", "unified_error_schema", "parser_error", "compiler_error", "core"]
+
+  @on_spawn => {
+    emit("holo_diagnostic_ready", {})
+  }
+
+  @on_create(code, message, span, severity) => {
+    diag = create_holo_diagnostic(code, message, span, severity)
+    return diag
+  }
+
+  @receipt holo_diagnostic_config {
+    type: "HoloDiagnosticReceipt"
+    consumers: ["Studio", "MCP", "LSP", "CLI"]
+    severity_levels: ["error", "warning", "info", "hint"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @agent_card_exporter — Maps HoloScript VR trait definitions to Google A2A Agent Card schema.
+//
+// Native .hsplus surface for core/export/agent-card/AgentCardExporter.ts.
+//
+// export(composition) → A2AAgentCard — discoverable agent representation
+// Each composition → an agent card; capability_tags → A2A capabilities
+
+@trait agent_card_exporter {
+  capability_tags: ["agent_card_exporter", "a2a_agent_card", "compile_to_a2a", "discoverable", "core"]
+
+  @on_spawn => {
+    emit("agent_card_exporter_ready", {})
+  }
+
+  @on_export(composition) => {
+    card = export_composition_to_a2a_card(composition)
+    emit("agent_card_exported", {})
+    return card
+  }
+
+  @receipt agent_card_exporter_config {
+    type: "AgentCardExporterReceipt"
+    target: "Google A2A Protocol Agent Card schema"
+    timestamp: now()
+  }
+}
