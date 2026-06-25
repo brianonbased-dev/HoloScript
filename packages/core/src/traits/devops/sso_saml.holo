@@ -1,0 +1,29 @@
+@trait {
+  name: "@sso_saml",
+  category: "devops",
+  description: "SAML 2.0 Single Sign-On for HoloScript enterprise multi-tenant deployments. Supports Okta, Azure AD, OneLogin, and any SAML 2.0 IdP. Manages IdP metadata, session lifecycle (active/expired/revoked/pending_mfa), JIT user provisioning (jitDefaultRole on first login), role sync on every login, and MFA challenge escalation. sessionTimeoutMinutes caps session length. maxSessionsPerUser limits concurrent sessions. allowedRedirectUris whitelist post-auth redirects. Companion handler sso_oidc (same file) covers Google/Auth0/Keycloak. Port of SSOTrait.ts (handler name: sso_saml).",
+  props: {
+    tenant_id: string = "",
+    enabled: boolean = false,
+    enforce_sso: boolean = false,
+    sp_entity_id: string = "",
+    acs_url: string = "",
+    session_timeout_minutes: number = 480,
+    max_sessions_per_user: number = 5,
+    jit_provisioning_enabled: boolean = true,
+    jit_default_role: string = "viewer",
+    sync_roles_on_login: boolean = true,
+    require_mfa_after_sso: boolean = false
+  },
+  events: {
+    attached: "sso_saml_ready",
+    on_login: "sso_login_success",
+    on_logout: "sso_logout",
+    on_error: "sso_error",
+    on_session_expired: "sso_session_expired",
+    on_mfa_required: "sso_mfa_required",
+    login: "sso_initiate_login",
+    logout: "sso_initiate_logout"
+  },
+  behaviors: ["@security_policy", "@hsm_integration"]
+}

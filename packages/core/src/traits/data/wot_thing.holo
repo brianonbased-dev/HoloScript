@@ -1,0 +1,18 @@
+@trait {
+  name: "@wot_thing",
+  category: "data",
+  description: "W3C Web of Things Thing Description (WoT TD 1.1) generator. Marks a HoloScript object as a WoT Thing for automatic TD generation from @state blocks and event handlers. Security schemes: nosec, basic, bearer, oauth2, apikey. auto_generate triggers TD generation on attach. output_path writes TD JSON to disk. id should follow URN format. Compiled TD is cached and reused until invalidated. Enables interoperability with WoT-compatible IoT platforms and DT ecosystems. Port of WoTThingTrait.ts (handler name: wot_thing).",
+  props: {
+    title: string = "",
+    security: enum("nosec" | "basic" | "bearer" | "oauth2" | "apikey") = "nosec",
+    auto_generate: boolean = false,
+    output_path: string = ""
+  },
+  events: {
+    on_td_generated: "wot_td_generated",
+    on_td_error: "wot_td_error",
+    generate: "wot_generate_td",
+    validate: "wot_validate_td"
+  },
+  behaviors: ["@mqtt_source", "@mqtt_sink", "@graphql"]
+}

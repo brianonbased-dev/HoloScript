@@ -1,0 +1,16 @@
+@trait {
+  name: "@roadmap_node",
+  category: "world",
+  description: "Binds a spatial object to a project milestone for Phase 5 Spatial Governance. Syncs visual state (color, text, progress bar) with the roadmapService milestone record on attach and periodic update. milestone_id identifies the Sprint record in HololandRoadmapService. show_progress renders a progress widget. interactive enables user interaction to expand detail panels. Port of RoadmapTrait.ts (handler name: roadmap_node).",
+  props: {
+    milestone_id: string = "",
+    show_progress: boolean = true,
+    interactive: boolean = true
+  },
+  events: {
+    attached: "roadmap_node_attached",
+    on_progress_updated: "roadmap_node_progress",
+    click: "roadmap_node_clicked"
+  },
+  behaviors: ["@holomap_anchor_context"]
+}
