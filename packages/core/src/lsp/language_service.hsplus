@@ -1,0 +1,28 @@
+// @language_service — HoloScript language service: hover, rename, find-references, format.
+//
+// Native .hsplus surface for core/lsp/LanguageService.ts.
+//
+// hover(doc, pos) / rename(doc, pos, name) / findRefs(doc, pos) / format(doc)
+// Provides IDE-quality language features for .holo, .hs, .hsplus
+
+@trait language_service {
+  capability_tags: ["language_service", "hover", "rename", "find_references", "core"]
+
+  @on_spawn => {
+    emit("language_service_ready", {})
+  }
+
+  @on_hover(doc, pos) => {
+    return get_lsp_hover(doc, pos)
+  }
+
+  @on_find_refs(doc, pos) => {
+    return find_lsp_references(doc, pos)
+  }
+
+  @receipt language_service_config {
+    type: "LanguageServiceReceipt"
+    features: ["hover", "rename", "find-references", "format"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,26 @@
+// @interop_binding_generator — Generates Python/JS interop bindings from HoloScript trait definitions.
+//
+// Native .hsplus surface for core/interop/InteropBindingGenerator.ts.
+//
+// generate(trait) → { python: BindingFile, js: BindingFile }
+// Produces type-safe stubs for trait consumption from Python and JavaScript
+
+@trait interop_binding_generator {
+  capability_tags: ["interop_binding_generator", "python_js_bindings", "type_safe_stubs", "trait_bridge", "core"]
+
+  @on_spawn => {
+    emit("interop_binding_generator_ready", {})
+  }
+
+  @on_generate(trait_def) => {
+    bindings = generate_interop_bindings(trait_def)
+    emit("interop_bindings_generated", {})
+    return bindings
+  }
+
+  @receipt interop_binding_generator_config {
+    type: "InteropBindingGeneratorReceipt"
+    targets: ["Python", "JavaScript"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,30 @@
+// @continual_learning — Continual learning for HoloScript trait library: online updates without catastrophic forgetting.
+//
+// Native .hsplus surface for core/learning/continual.ts.
+//
+// update(traitId, feedback) / consolidate() / snapshot() → ModelCheckpoint
+// Elastic weight consolidation (EWC) strategy to prevent forgetting
+
+@trait continual_learning {
+  capability_tags: ["continual_learning", "online_updates", "ewc", "catastrophic_forgetting", "core"]
+
+  @on_spawn => {
+    emit("continual_learning_ready", {})
+  }
+
+  @on_update(trait_id, feedback) => {
+    update_trait_online(trait_id, feedback)
+    emit("continual_update_done", { trait_id })
+  }
+
+  @on_consolidate => {
+    consolidate_learning()
+    emit("learning_consolidated", {})
+  }
+
+  @receipt continual_learning_config {
+    type: "ContinualLearningReceipt"
+    strategy: "Elastic Weight Consolidation (EWC)"
+    timestamp: now()
+  }
+}

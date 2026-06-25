@@ -1,0 +1,26 @@
+// @holoscript_lsp — HoloScript Language Server Protocol service: wires all LSP providers.
+//
+// Native .hsplus surface for core/lsp/HoloScriptLSP.ts.
+//
+// start(transport) / shutdown()
+// Coordinates: CompletionProvider, DiagnosticProvider, ImportResolver, LanguageService
+
+@trait holoscript_lsp {
+  capability_tags: ["holoscript_lsp", "language_server", "lsp_coordinator", "vscode_jetbrains", "core"]
+
+  @on_spawn(transport) => {
+    start_lsp_server(transport)
+    emit("holoscript_lsp_ready", {})
+  }
+
+  @on_shutdown => {
+    shutdown_lsp_server()
+    emit("holoscript_lsp_shutdown", {})
+  }
+
+  @receipt holoscript_lsp_config {
+    type: "HoloScriptLSPReceipt"
+    providers: ["CompletionProvider", "DiagnosticProvider", "ImportResolver", "LanguageService"]
+    timestamp: now()
+  }
+}

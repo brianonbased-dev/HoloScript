@@ -1,0 +1,25 @@
+// @diagnostic_provider — LSP diagnostic provider: surfaces HoloDiagnostic errors/warnings in editors.
+//
+// Native .hsplus surface for core/lsp/DiagnosticProvider.ts.
+//
+// getDiagnostics(doc) → HoloDiagnostic[]
+// Runs parser + type checker on the active document; maps spans to LSP ranges
+
+@trait diagnostic_provider {
+  capability_tags: ["diagnostic_provider", "lsp_diagnostics", "real_time_errors", "span_mapping", "core"]
+
+  @on_spawn => {
+    emit("diagnostic_provider_ready", {})
+  }
+
+  @on_get_diagnostics(doc) => {
+    diags = get_lsp_diagnostics(doc)
+    return diags
+  }
+
+  @receipt diagnostic_provider_config {
+    type: "DiagnosticProviderReceipt"
+    pipeline: "parser + type checker → span mapping → LSP ranges"
+    timestamp: now()
+  }
+}

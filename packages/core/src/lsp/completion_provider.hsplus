@@ -1,0 +1,25 @@
+// @completion_provider — LSP completion provider for .holo, .hs, and .hsplus files.
+//
+// Native .hsplus surface for core/lsp/CompletionProvider.ts.
+//
+// getCompletions(doc, position) → CompletionItem[]
+// Trait, keyword, capability_tag, and symbol completions
+
+@trait completion_provider {
+  capability_tags: ["completion_provider", "lsp_completion", "trait_completion", "symbol_completion", "core"]
+
+  @on_spawn => {
+    emit("completion_provider_ready", {})
+  }
+
+  @on_get_completions(doc, position) => {
+    items = get_lsp_completions(doc, position)
+    return items
+  }
+
+  @receipt completion_provider_config {
+    type: "CompletionProviderReceipt"
+    completions: ["traits", "keywords", "capability_tags", "symbols"]
+    timestamp: now()
+  }
+}

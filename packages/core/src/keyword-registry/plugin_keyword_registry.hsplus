@@ -1,0 +1,29 @@
+// @plugin_keyword_registry — Runtime-injectable .hs verb table (H2 language-extension seam).
+//
+// Native .hsplus surface for core/keyword-registry/PluginKeywordRegistry.ts.
+//
+// register(verb, handler) / resolve(verb) → Handler?
+// Plugins inject new .hs verbs at runtime; parser consults this registry
+
+@trait plugin_keyword_registry {
+  capability_tags: ["plugin_keyword_registry", "runtime_verb_table", "h2_language_seam", "hs_extension", "core"]
+
+  @on_spawn => {
+    emit("plugin_keyword_registry_ready", {})
+  }
+
+  @on_register(verb, handler) => {
+    register_hs_verb(verb, handler)
+    emit("hs_verb_registered", { verb })
+  }
+
+  @on_resolve(verb) => {
+    return resolve_hs_verb(verb)
+  }
+
+  @receipt plugin_keyword_registry_config {
+    type: "PluginKeywordRegistryReceipt"
+    seam: "H2 language-extension — runtime-injectable .hs verb table"
+    timestamp: now()
+  }
+}

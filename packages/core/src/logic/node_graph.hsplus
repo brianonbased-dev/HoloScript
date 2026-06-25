@@ -1,0 +1,26 @@
+// @node_graph_logic — Node graph runtime: node types, edges, value propagation, execution order.
+//
+// Native .hsplus surface for core/logic/NodeGraph.ts.
+//
+// addNode(type, opts) / connect(fromId, port, toId, port) / execute() → outputs
+// Topological execution order; lazy value propagation; used by NodeGraphPanel
+
+@trait node_graph_logic {
+  capability_tags: ["node_graph_logic", "value_propagation", "topological_execution", "visual_logic", "core"]
+
+  @on_spawn => {
+    emit("node_graph_logic_ready", {})
+  }
+
+  @on_execute => {
+    outputs = execute_node_graph()
+    emit("node_graph_executed", {})
+    return outputs
+  }
+
+  @receipt node_graph_logic_config {
+    type: "NodeGraphLogicReceipt"
+    execution: "topological order, lazy value propagation"
+    timestamp: now()
+  }
+}

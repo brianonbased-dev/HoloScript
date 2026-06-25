@@ -1,0 +1,23 @@
+// @curve_editor — Bezier/hermite curve editor for animation and easing in HoloScript.
+//
+// Native .hsplus surface for core/math/CurveEditor.ts.
+//
+// addPoint(t, value, tangents) / evaluate(t) → value / toKeyframes() → KeyframeTrack[]
+
+@trait curve_editor {
+  capability_tags: ["curve_editor", "bezier", "hermite", "animation_easing", "core"]
+
+  @on_spawn => {
+    emit("curve_editor_ready", {})
+  }
+
+  @on_evaluate(t) => {
+    return evaluate_curve(t)
+  }
+
+  @receipt curve_editor_config {
+    type: "CurveEditorReceipt"
+    curves: ["Bezier", "Hermite"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,25 @@
+// @holo_logger — Structured logger for HoloScript runtime: levels, context enrichment, OTLP export.
+//
+// Native .hsplus surface for core/logging/HoloLogger.ts.
+//
+// log(level, message, ctx) / child(ctx) → Logger / flush()
+// Used by all subsystems; routes to OTLP via telemetry_collector
+
+@trait holo_logger {
+  capability_tags: ["holo_logger", "structured_logging", "context_enrichment", "otlp_export", "core"]
+
+  @on_spawn => {
+    emit("holo_logger_ready", {})
+  }
+
+  @on_log(level, message, ctx) => {
+    log_structured(level, message, ctx)
+  }
+
+  @receipt holo_logger_config {
+    type: "HoloLoggerReceipt"
+    levels: ["debug", "info", "warn", "error"]
+    export: "OTLP via telemetry_collector"
+    timestamp: now()
+  }
+}

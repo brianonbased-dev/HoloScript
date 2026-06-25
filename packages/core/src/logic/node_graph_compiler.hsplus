@@ -1,0 +1,27 @@
+// @node_graph_compiler — Compiles visual node graphs to HoloScript v3.0 executable output.
+//
+// Native .hsplus surface for core/logic/NodeGraphCompiler.ts. v3.0.
+//
+// compile(graph) → HoloScript output string
+// Used by Studio node graph execution bridge for live preview
+
+@trait node_graph_compiler {
+  capability_tags: ["node_graph_compiler", "visual_to_holoscript", "v3_0", "studio_bridge", "core"]
+
+  @on_spawn => {
+    emit("node_graph_compiler_ready", {})
+  }
+
+  @on_compile(graph) => {
+    output = compile_node_graph_to_holoscript(graph)
+    emit("node_graph_compiled", {})
+    return output
+  }
+
+  @receipt node_graph_compiler_config {
+    type: "NodeGraphCompilerReceipt"
+    version: "v3.0"
+    output: "HoloScript executable"
+    timestamp: now()
+  }
+}

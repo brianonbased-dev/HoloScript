@@ -1,0 +1,23 @@
+// @spline_path — Catmull-Rom and bezier spline paths for entity movement and camera rails.
+//
+// Native .hsplus surface for core/math/SplinePath.ts.
+//
+// addControlPoint(p) / evaluate(t) → Vec3 / length() → float
+
+@trait spline_path {
+  capability_tags: ["spline_path", "catmull_rom", "bezier_path", "camera_rail", "core"]
+
+  @on_spawn => {
+    emit("spline_path_ready", {})
+  }
+
+  @on_evaluate(t) => {
+    return evaluate_spline(t)
+  }
+
+  @receipt spline_path_config {
+    type: "SplinePathReceipt"
+    types: ["Catmull-Rom", "Bezier"]
+    timestamp: now()
+  }
+}

@@ -1,0 +1,29 @@
+// @holo_script_io — Core language serialization: read/write .holo, .hs, .hsplus files.
+//
+// Native .hsplus surface for core/io/HoloScriptIO.ts.
+//
+// read(path) → HoloAST / write(path, ast) / parseText(text) → HoloAST
+
+@trait holo_script_io {
+  capability_tags: ["holo_script_io", "language_serialization", "file_io", "ast_roundtrip", "core"]
+
+  @on_spawn => {
+    emit("holo_script_io_ready", {})
+  }
+
+  @on_read(path) => {
+    ast = read_holo_file(path)
+    return ast
+  }
+
+  @on_write(path, ast) => {
+    write_holo_file(path, ast)
+    emit("holo_file_written", { path })
+  }
+
+  @receipt holo_script_io_config {
+    type: "HoloScriptIOReceipt"
+    formats: [".holo", ".hs", ".hsplus"]
+    timestamp: now()
+  }
+}

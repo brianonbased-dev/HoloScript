@@ -1,0 +1,24 @@
+// @log_middleware — Log pipeline middleware: sampling, throttling, and structured context enrichment.
+//
+// Native .hsplus surface for core/logging/LogMiddleware.ts.
+//
+// use(middleware) / sample(rate) / throttle(ms) / enrich(ctxFn)
+// Composes middleware chain for log processing before emission
+
+@trait log_middleware {
+  capability_tags: ["log_middleware", "sampling", "throttling", "context_enrichment", "core"]
+
+  @on_spawn => {
+    emit("log_middleware_ready", {})
+  }
+
+  @on_use(middleware) => {
+    register_log_middleware(middleware)
+  }
+
+  @receipt log_middleware_config {
+    type: "LogMiddlewareReceipt"
+    features: ["sampling", "throttling", "context enrichment"]
+    timestamp: now()
+  }
+}

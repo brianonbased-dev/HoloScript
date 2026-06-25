@@ -1,0 +1,25 @@
+// @import_resolver — LSP import resolver: resolves .holo/.hs/.hsplus import paths to file locations.
+//
+// Native .hsplus surface for core/lsp/ImportResolver.ts.
+//
+// resolve(importPath, fromFile) → ResolvedPath? / getAll(fromFile) → ResolvedPath[]
+// Used by LSP for go-to-definition and diagnostic import error reporting
+
+@trait import_resolver {
+  capability_tags: ["import_resolver", "lsp_import", "go_to_definition", "path_resolution", "core"]
+
+  @on_spawn => {
+    emit("import_resolver_ready", {})
+  }
+
+  @on_resolve(import_path, from_file) => {
+    resolved = resolve_import_path(import_path, from_file)
+    return resolved
+  }
+
+  @receipt import_resolver_config {
+    type: "ImportResolverReceipt"
+    consumers: ["go-to-definition", "diagnostic import errors"]
+    timestamp: now()
+  }
+}

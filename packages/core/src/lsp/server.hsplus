@@ -1,0 +1,22 @@
+// @lsp_server — HoloScript LSP server entry for .holo/.hsplus files — stdio and socket transports.
+//
+// Native .hsplus surface for core/lsp/server.ts.
+//
+// listen(transport: stdio | socket) / stop()
+// Entry point for the standalone LSP process used by VS Code and JetBrains plugins
+
+@trait lsp_server {
+  capability_tags: ["lsp_server", "standalone_lsp", "stdio_socket", "vscode_jetbrains", "core"]
+
+  @on_spawn(transport) => {
+    start_lsp_server_process(transport)
+    emit("lsp_server_ready", { transport })
+  }
+
+  @receipt lsp_server_config {
+    type: "LSPServerReceipt"
+    transports: ["stdio", "socket"]
+    consumers: ["VS Code extension", "JetBrains plugin"]
+    timestamp: now()
+  }
+}

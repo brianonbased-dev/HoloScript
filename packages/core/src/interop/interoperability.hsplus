@@ -1,0 +1,25 @@
+// @interoperability — Core interoperability layer: cross-runtime message passing and type coercion.
+//
+// Native .hsplus surface for core/interop/Interoperability.ts.
+//
+// bridge(source, target) → Bridge / coerce(value, targetType) → coerced value
+// Handles runtime type coercion between HoloScript, Python, and JS value types
+
+@trait interoperability {
+  capability_tags: ["interoperability", "cross_runtime", "message_passing", "type_coercion", "core"]
+
+  @on_spawn => {
+    emit("interoperability_ready", {})
+  }
+
+  @on_bridge(source, target) => {
+    bridge = create_interop_bridge(source, target)
+    return bridge
+  }
+
+  @receipt interoperability_config {
+    type: "InteroperabilityReceipt"
+    runtimes: ["HoloScript", "Python", "JavaScript"]
+    timestamp: now()
+  }
+}

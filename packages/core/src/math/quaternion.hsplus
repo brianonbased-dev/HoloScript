@@ -1,0 +1,19 @@
+// @quaternion — Quaternion math: multiply, slerp, toEuler, fromAxisAngle, normalize.
+//
+// Native .hsplus surface for core/math/Quaternion.ts.
+//
+// Quat { x, y, z, w } / slerp(a, b, t) / multiply(a, b) / toEuler(q) → Vec3
+
+@trait quaternion {
+  capability_tags: ["quaternion", "rotation_math", "slerp", "from_axis_angle", "core"]
+
+  @on_spawn => {
+    emit("quaternion_ready", {})
+  }
+
+  @receipt quaternion_config {
+    type: "QuaternionReceipt"
+    ops: ["multiply", "slerp", "normalize", "toEuler", "fromAxisAngle"]
+    timestamp: now()
+  }
+}

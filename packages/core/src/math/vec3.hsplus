@@ -1,0 +1,19 @@
+// @vec3 — 3D vector math utilities: add, sub, scale, dot, cross, normalize, lerp.
+//
+// Native .hsplus surface for core/math/vec3.ts.
+//
+// Vec3 { x, y, z } / add / sub / scale / dot / cross / normalize / lerp
+
+@trait vec3 {
+  capability_tags: ["vec3", "3d_vector_math", "normalize", "lerp", "core"]
+
+  @on_spawn => {
+    emit("vec3_ready", {})
+  }
+
+  @receipt vec3_config {
+    type: "Vec3Receipt"
+    ops: ["add", "sub", "scale", "dot", "cross", "normalize", "lerp", "distance"]
+    timestamp: now()
+  }
+}

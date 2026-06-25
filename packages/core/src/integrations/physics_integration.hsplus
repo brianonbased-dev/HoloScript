@@ -1,0 +1,25 @@
+// @physics_integration — Physics engine integration adapter for HoloScript ECS worlds.
+//
+// Native .hsplus surface for core/integrations/PhysicsIntegration.ts.
+//
+// init(world, engineConfig) / step(deltaTime) / addBody(entity, shape)
+// Bridges ECS entity transforms to physics simulation bodies
+
+@trait physics_integration {
+  capability_tags: ["physics_integration", "physics_adapter", "ecs_bridge", "simulation_bodies", "core"]
+
+  @on_spawn(world, engine_config) => {
+    init_physics_integration(world, engine_config)
+    emit("physics_integration_ready", {})
+  }
+
+  @on_step(delta_time) => {
+    step_physics_simulation(delta_time)
+  }
+
+  @receipt physics_integration_config {
+    type: "PhysicsIntegrationReceipt"
+    bridge: "ECS entity transforms ↔ physics simulation bodies"
+    timestamp: now()
+  }
+}

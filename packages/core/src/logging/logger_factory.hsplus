@@ -1,0 +1,25 @@
+// @logger_factory — Named logger creation and global log configuration for HoloScript subsystems.
+//
+// Native .hsplus surface for core/logging/LoggerFactory.ts.
+//
+// create(name, opts?) → HoloLogger / configure(globalOpts)
+// All subsystems get named loggers; global config sets level/format/transport
+
+@trait logger_factory {
+  capability_tags: ["logger_factory", "named_loggers", "global_config", "subsystem_logging", "core"]
+
+  @on_spawn => {
+    emit("logger_factory_ready", {})
+  }
+
+  @on_create(name, opts) => {
+    logger = create_named_logger(name, opts)
+    return logger
+  }
+
+  @receipt logger_factory_config {
+    type: "LoggerFactoryReceipt"
+    features: ["named loggers", "global config", "level/format/transport"]
+    timestamp: now()
+  }
+}

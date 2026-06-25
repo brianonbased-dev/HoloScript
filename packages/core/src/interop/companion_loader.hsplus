@@ -1,0 +1,26 @@
+// @companion_loader — Loads companion scripts (Python/JS) alongside HoloScript compositions.
+//
+// Native .hsplus surface for core/interop/CompanionLoader.ts.
+//
+// load(companionPath) → CompanionHandle / attach(composition, handle)
+// Companion scripts run in sandboxed runtime; communicate via interop bindings
+
+@trait companion_loader {
+  capability_tags: ["companion_loader", "companion_scripts", "python_js_companion", "sandboxed_runtime", "core"]
+
+  @on_spawn => {
+    emit("companion_loader_ready", {})
+  }
+
+  @on_load(companion_path) => {
+    handle = load_companion_script(companion_path)
+    emit("companion_loaded", {})
+    return handle
+  }
+
+  @receipt companion_loader_config {
+    type: "CompanionLoaderReceipt"
+    sandbox: "companion scripts sandboxed; communicate via interop bindings"
+    timestamp: now()
+  }
+}

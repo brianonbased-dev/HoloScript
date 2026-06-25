@@ -1,0 +1,25 @@
+// @tropical_spmv — Tropical (min-plus) sparse matrix-vector multiply on CSR graphs.
+//
+// Native .hsplus surface for core/math/tropicalSpmv.ts.
+//
+// spmv(csr, vec) → result vector — min-plus semiring; used for shortest-path distance propagation
+
+@trait tropical_spmv {
+  capability_tags: ["tropical_spmv", "min_plus", "csr_graph", "shortest_path", "core"]
+
+  @on_spawn => {
+    emit("tropical_spmv_ready", {})
+  }
+
+  @on_multiply(csr, vec) => {
+    result = tropical_spmv_compute(csr, vec)
+    return result
+  }
+
+  @receipt tropical_spmv_config {
+    type: "TropicalSpmvReceipt"
+    semiring: "min-plus (tropical)"
+    use_case: "shortest-path distance propagation on CSR graphs"
+    timestamp: now()
+  }
+}

@@ -1,0 +1,23 @@
+// @spline_follower — Moves an entity along a SplinePath at constant speed or parameterized T.
+//
+// Native .hsplus surface for core/math/SplineFollower.ts.
+//
+// follow(entity, spline, speed) / seek(t) → position / loop(bool)
+
+@trait spline_follower {
+  capability_tags: ["spline_follower", "entity_path", "constant_speed", "loop_support", "core"]
+
+  @on_spawn => {
+    emit("spline_follower_ready", {})
+  }
+
+  @on_tick(delta_time) => {
+    advance_spline_follower(delta_time)
+  }
+
+  @receipt spline_follower_config {
+    type: "SplineFollowerReceipt"
+    modes: ["constant speed", "parameterized T", "loop"]
+    timestamp: now()
+  }
+}
