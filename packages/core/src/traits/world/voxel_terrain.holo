@@ -1,0 +1,23 @@
+@trait {
+  name: "@voxel_terrain",
+  category: "world",
+  description: "Editable voxel terrain chunk generator. Fills a configurable chunk grid with isosurface-meshed voxels driven by a layered noise heightmap and biome palette, supporting runtime dig/place edits, multi-LOD chunk streaming, and export to collision meshes. Authored from VoxelTerrainTrait.ts.",
+  props: {
+    chunk_size: number = 32,
+    view_distance_chunks: number = 4,
+    height_scale_m: number = 64,
+    sea_level_m: number = 16,
+    biome_url: string = "",
+    seed: number = 0,
+    meshing: enum("marching_cubes" | "surface_nets" | "dual_contouring") = "surface_nets"
+  },
+  events: {
+    attached: "voxel_terrain_attached",
+    detached: "voxel_terrain_detached",
+    on_chunk_load: "voxel_terrain_chunk_load",
+    on_edit: "voxel_terrain_edit",
+    dig: "voxel_terrain_trigger_dig",
+    place: "voxel_terrain_trigger_place"
+  },
+  behaviors: ["@world_seed", "@dungeon_generator", "@static_mesh"]
+}

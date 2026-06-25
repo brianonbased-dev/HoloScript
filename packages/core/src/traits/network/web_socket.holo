@@ -1,0 +1,25 @@
+@trait {
+  name: "@web_socket",
+  category: "network",
+  description: "WebSocket client connection manager. Opens and maintains a persistent WebSocket connection to a remote server, dispatching inbound messages as entity events, queuing outbound messages with buffering during reconnects, and supporting binary or text frame modes. Authored from WebSocketTrait.ts.",
+  props: {
+    url: string = "",
+    protocols: list<string> = [],
+    frame_mode: enum("text" | "binary" | "auto") = "text",
+    reconnect: boolean = true,
+    reconnect_interval_s: number = 3,
+    max_reconnect_attempts: number = 10,
+    ping_interval_s: number = 30
+  },
+  events: {
+    attached: "web_socket_attached",
+    detached: "web_socket_detached",
+    on_open: "web_socket_open",
+    on_message: "web_socket_message",
+    on_close: "web_socket_close",
+    on_error: "web_socket_error",
+    send: "web_socket_trigger_send",
+    close: "web_socket_trigger_close"
+  },
+  behaviors: ["@live_data", "@event_bus", "@receive"]
+}

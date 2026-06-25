@@ -1,0 +1,21 @@
+@trait {
+  name: "@volumetric_fog",
+  category: "visual",
+  description: "Volumetric light-scattering fog volume. Defines a bounded foggy atmosphere using Henyey-Greenstein light scattering, configurable density distribution (uniform, gradient, or noise-based), and directional light shaft contribution, applied as a full-screen ray-march post-process pass. Authored from VolumetricFogTrait.ts.",
+  props: {
+    density: number = 0.02,
+    color: string = "#c0d8f0",
+    extinction: number = 0.01,
+    scattering: number = 0.01,
+    g_factor: number = 0.3,
+    noise_scale: number = 5.0,
+    max_distance_m: number = 100,
+    light_shafts: boolean = false
+  },
+  events: {
+    attached: "volumetric_fog_attached",
+    detached: "volumetric_fog_detached",
+    on_change: "volumetric_fog_change"
+  },
+  behaviors: ["@atmosphere", "@global_illumination", "@noise_field"]
+}

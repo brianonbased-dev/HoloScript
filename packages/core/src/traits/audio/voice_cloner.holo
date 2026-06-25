@@ -1,0 +1,23 @@
+@trait {
+  name: "@voice_cloner",
+  category: "audio",
+  description: "Neural voice cloning and TTS adapter. Accepts a reference audio clip URL, registers it with a voice cloning backend to derive a speaker embedding, and synthesizes speech for arbitrary text prompts using that speaker identity, streaming the result to the entity's audio source. Authored from VoiceClonerTrait.ts.",
+  props: {
+    reference_url: string = "",
+    backend: enum("holoscript" | "remote_api" | "on_device") = "holoscript",
+    api_secret: string = "",
+    language: string = "en",
+    speed: number = 1.0,
+    pitch_shift: number = 0.0,
+    streaming: boolean = true
+  },
+  events: {
+    attached: "voice_cloner_attached",
+    detached: "voice_cloner_detached",
+    on_ready: "voice_cloner_ready",
+    on_synthesize: "voice_cloner_synthesize",
+    on_error: "voice_cloner_error",
+    synthesize: "voice_cloner_trigger_synthesize"
+  },
+  behaviors: ["@lipsync", "@speech_bubble", "@audio_source"]
+}
