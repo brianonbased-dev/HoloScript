@@ -1,0 +1,10 @@
+// @dungeon_instance_pool_compiler — Dungeon instance pool compiler: compiles .holo dungeons to pooled instance runtime.
+//
+// Native .hsplus surface for core/src/compiler/DungeonInstancePoolCompiler.ts.
+
+@trait dungeon_instance_pool_compiler {
+  capability_tags: ["dungeon_instance_pool_compiler", "pooled_dungeon_instance", "dungeon", "compiler", "core"]
+  @on_spawn => { emit("dungeon_instance_pool_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_dungeon_instance(ast); return result }
+  @receipt dungeon_instance_pool_compiler_config { type: "DungeonInstancePoolCompilerReceipt"; timestamp: now() }
+}

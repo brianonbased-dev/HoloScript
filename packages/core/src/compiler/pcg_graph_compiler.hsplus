@@ -1,0 +1,10 @@
+// @pcg_graph_compiler — PCG graph compiler: compiles .holo procedural content graphs to PCG executors.
+//
+// Native .hsplus surface for core/src/compiler/PCGGraphCompiler.ts.
+
+@trait pcg_graph_compiler {
+  capability_tags: ["pcg_graph_compiler", "procedural_content_graph", "pcg_executor", "compiler", "core"]
+  @on_spawn => { emit("pcg_graph_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_pcg_graph(ast); return result }
+  @receipt pcg_graph_compiler_config { type: "PCGGraphCompilerReceipt"; timestamp: now() }
+}

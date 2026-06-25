@@ -1,0 +1,10 @@
+// @module_resolver — Module resolver: resolves .holo/.hs/.hsplus import paths to canonical file locations.
+//
+// Native .hsplus surface for core/src/compiler/ModuleResolver.ts.
+
+@trait module_resolver {
+  capability_tags: ["module_resolver", "holo_import_path_resolve", "canonical_file", "compiler", "core"]
+  @on_spawn => { emit("module_resolver_ready", {}) }
+  @on_resolve(import_path, from_file) => { return resolve_module(import_path, from_file) }
+  @receipt module_resolver_config { type: "ModuleResolverReceipt"; timestamp: now() }
+}

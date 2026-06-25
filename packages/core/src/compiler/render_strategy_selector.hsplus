@@ -1,0 +1,10 @@
+// @render_strategy_selector — Render strategy selector: picks raster/raytraced/splat/SDF strategy per scene.
+//
+// Native .hsplus surface for core/src/compiler/RenderStrategySelector.ts.
+
+@trait render_strategy_selector {
+  capability_tags: ["render_strategy_selector", "raster_rt_splat_sdf_pick", "render_strategy", "compiler", "core"]
+  @on_spawn => { emit("render_strategy_selector_ready", {}) }
+  @on_select(ast, device_caps) => { return select_render_strategy(ast, device_caps) }
+  @receipt render_strategy_selector_config { type: "RenderStrategySelectorReceipt"; timestamp: now() }
+}

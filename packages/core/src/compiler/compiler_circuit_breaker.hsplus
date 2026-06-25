@@ -1,0 +1,20 @@
+// @compiler_circuit_breaker — Compiler circuit breaker: wraps compiler invocations with fault tolerance.
+//
+// Native .hsplus surface for core/src/compiler/CircuitBreaker.ts.
+
+@trait compiler_circuit_breaker {
+  capability_tags: ["compiler_circuit_breaker", "compiler_fault_tolerance", "circuit_breaker", "compiler", "core"]
+  @state_machine {
+    states: ["closed", "open", "half_open"]
+    initial: "closed"
+    transitions: [
+      { from: "closed", to: "open", on: "threshold_exceeded" },
+      { from: "open", to: "half_open", on: "reset_timeout" },
+      { from: "half_open", to: "closed", on: "probe_success" },
+      { from: "half_open", to: "open", on: "probe_failure" }
+    ]
+  }
+  @on_spawn => { emit("compiler_circuit_breaker_ready", {}) }
+  @on_call(compiler_fn) => { return circuit_breaker_call_compiler(compiler_fn) }
+  @receipt compiler_circuit_breaker_config { type: "CompilerCircuitBreakerReceipt"; timestamp: now() }
+}

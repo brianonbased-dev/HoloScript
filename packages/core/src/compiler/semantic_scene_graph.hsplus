@@ -1,0 +1,10 @@
+// @semantic_scene_graph — Semantic scene graph: typed semantic graph for .holo scene compositions.
+//
+// Native .hsplus surface for core/src/compiler/SemanticSceneGraph.ts.
+
+@trait semantic_scene_graph {
+  capability_tags: ["semantic_scene_graph", "typed_scene_graph", "composition_graph", "compiler", "core"]
+  @on_spawn => { emit("semantic_scene_graph_ready", {}) }
+  @on_build(ast) => { graph = build_semantic_scene_graph(ast); return graph }
+  @receipt semantic_scene_graph_config { type: "SemanticSceneGraphReceipt"; timestamp: now() }
+}

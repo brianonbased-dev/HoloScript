@@ -1,0 +1,11 @@
+// @compiler_bridge — Compiler bridge: cross-compiler adapter for sovereign↔bridge target routing.
+//
+// Native .hsplus surface for core/src/compiler/CompilerBridge.ts.
+// D.006: sovereign+bridge compiler split.
+
+@trait compiler_bridge {
+  capability_tags: ["compiler_bridge", "sovereign_bridge_routing", "compiler_adapter", "compiler", "core"]
+  @on_spawn => { emit("compiler_bridge_ready", {}) }
+  @on_route(ast, target) => { result = route_compiler_bridge(ast, target); return result }
+  @receipt compiler_bridge_config { type: "CompilerBridgeReceipt"; doc: "D.006 sovereign+bridge split"; timestamp: now() }
+}

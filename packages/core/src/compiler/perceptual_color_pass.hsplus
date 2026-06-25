@@ -1,0 +1,10 @@
+// @perceptual_color_pass — Perceptual color pass: normalizes color values to perceptually-uniform space.
+//
+// Native .hsplus surface for core/src/compiler/PerceptualColorPass.ts.
+
+@trait perceptual_color_pass {
+  capability_tags: ["perceptual_color_pass", "perceptual_uniform_color", "color_normalize", "compiler", "core"]
+  @on_spawn => { emit("perceptual_color_pass_ready", {}) }
+  @on_run(ast) => { result = run_perceptual_color_pass(ast); return result }
+  @receipt perceptual_color_pass_config { type: "PerceptualColorPassReceipt"; timestamp: now() }
+}

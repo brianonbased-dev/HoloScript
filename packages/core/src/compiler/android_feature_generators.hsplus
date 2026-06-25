@@ -1,0 +1,10 @@
+// @android_feature_generators — Android feature generators: per-feature codegen for Android compiler.
+//
+// Native .hsplus surface for core/src/compiler/AndroidFeatureGenerators.ts.
+
+@trait android_feature_generators {
+  capability_tags: ["android_feature_generators", "android_feature_codegen", "codegen", "compiler", "core"]
+  @on_spawn => { emit("android_feature_generators_ready", {}) }
+  @on_generate(feature, ast) => { return generate_android_feature(feature, ast) }
+  @receipt android_feature_generators_config { type: "AndroidFeatureGeneratorsReceipt"; timestamp: now() }
+}

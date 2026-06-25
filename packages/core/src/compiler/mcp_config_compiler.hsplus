@@ -1,0 +1,10 @@
+// @mcp_config_compiler — MCP config compiler: compiles .holo service descriptors to MCP config JSON.
+//
+// Native .hsplus surface for core/src/compiler/MCPConfigCompiler.ts.
+
+@trait mcp_config_compiler {
+  capability_tags: ["mcp_config_compiler", "mcp_config_json", "service_descriptor", "compiler", "core"]
+  @on_spawn => { emit("mcp_config_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_mcp_config(ast); return result }
+  @receipt mcp_config_compiler_config { type: "MCPConfigCompilerReceipt"; timestamp: now() }
+}

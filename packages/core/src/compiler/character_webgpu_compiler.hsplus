@@ -1,0 +1,11 @@
+// @character_webgpu_compiler — Character WebGPU compiler: compiles .holo characters to native WebGPU draw calls.
+//
+// Native .hsplus surface for core/src/compiler/CharacterWebGPUCompiler.ts.
+// I.021: native WebGPU character structures — NOT R3F.
+
+@trait character_webgpu_compiler {
+  capability_tags: ["character_webgpu_compiler", "native_webgpu_drawcall", "character_render", "compiler", "core"]
+  @on_spawn => { emit("character_webgpu_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_character_webgpu(ast); return result }
+  @receipt character_webgpu_compiler_config { type: "CharacterWebGPUCompilerReceipt"; doc: "I.021 native WebGPU character structures"; timestamp: now() }
+}

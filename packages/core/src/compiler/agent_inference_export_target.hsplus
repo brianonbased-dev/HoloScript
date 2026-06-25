@@ -1,0 +1,10 @@
+// @agent_inference_export_target — Agent inference export: packages agent brains as inference-ready bundles.
+//
+// Native .hsplus surface for core/src/compiler/AgentInferenceExportTarget.ts.
+
+@trait agent_inference_export_target {
+  capability_tags: ["agent_inference_export_target", "inference_bundle", "brain_export", "compiler", "core"]
+  @on_spawn => { emit("agent_inference_export_target_ready", {}) }
+  @on_compile(ast) => { result = compile_to_agent_inference(ast); return result }
+  @receipt agent_inference_export_target_config { type: "AgentInferenceExportTargetReceipt"; timestamp: now() }
+}

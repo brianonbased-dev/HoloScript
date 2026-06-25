@@ -1,0 +1,10 @@
+// @quest_world_emit — Quest world emit: emits world-level initialization and scene setup calls for Quest VR runtime.
+//
+// Native .hsplus surface for core/src/compiler/quest-world-emit.ts.
+
+@trait quest_world_emit {
+  capability_tags: ["quest_world_emit", "quest_world_init", "vr_scene_emit", "compiler", "core"]
+  @on_spawn => { emit("quest_world_emit_ready", {}) }
+  @on_emit(world) => { init_calls = emit_quest_world(world); return init_calls }
+  @receipt quest_world_emit_config { type: "QuestWorldEmitReceipt"; timestamp: now() }
+}

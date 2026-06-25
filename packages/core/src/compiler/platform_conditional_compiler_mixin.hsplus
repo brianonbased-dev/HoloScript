@@ -1,0 +1,10 @@
+// @platform_conditional_compiler_mixin — Platform conditional mixin: injects #if platform guards into compiled output.
+//
+// Native .hsplus surface for core/src/compiler/PlatformConditionalCompilerMixin.ts.
+
+@trait platform_conditional_compiler_mixin {
+  capability_tags: ["platform_conditional_compiler_mixin", "platform_if_guard", "conditional_compile", "compiler", "core"]
+  @on_spawn => { emit("platform_conditional_compiler_mixin_ready", {}) }
+  @on_apply(compiler, platform) => { return apply_platform_conditional_mixin(compiler, platform) }
+  @receipt platform_conditional_compiler_mixin_config { type: "PlatformConditionalCompilerMixinReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @build_cache — Build cache: content-hash keyed artifact cache for incremental compilation.
+//
+// Native .hsplus surface for core/src/compiler/BuildCache.ts.
+
+@trait build_cache {
+  capability_tags: ["build_cache", "artifact_content_hash", "incremental_compile", "compiler", "core"]
+  @on_spawn => { emit("build_cache_ready", {}) }
+  @on_get(key) => { return get_build_cache(key) }
+  @on_set(key, artifact) => { set_build_cache(key, artifact) }
+  @receipt build_cache_config { type: "BuildCacheReceipt"; timestamp: now() }
+}

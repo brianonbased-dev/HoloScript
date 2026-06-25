@@ -1,0 +1,10 @@
+// @ios_ar_generators — iOS AR generators: ARKit anchor/plane code generators for iOS compiler.
+//
+// Native .hsplus surface for core/src/compiler/IOSARGenerators.ts.
+
+@trait ios_ar_generators {
+  capability_tags: ["ios_ar_generators", "arkit_anchor_plane", "ios_ar", "compiler", "core"]
+  @on_spawn => { emit("ios_ar_generators_ready", {}) }
+  @on_generate(trait_node) => { return generate_ios_ar(trait_node) }
+  @receipt ios_ar_generators_config { type: "IOSARGeneratorsReceipt"; timestamp: now() }
+}

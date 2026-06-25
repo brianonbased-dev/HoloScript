@@ -1,0 +1,11 @@
+// @dialect_registry — Dialect registry: registers named .hs dialects for domain-specific syntax extensions.
+//
+// Native .hsplus surface for core/src/compiler/DialectRegistry.ts.
+
+@trait dialect_registry {
+  capability_tags: ["dialect_registry", "hs_dialect_extension", "domain_syntax", "compiler", "core"]
+  @on_spawn => { emit("dialect_registry_ready", {}) }
+  @on_register(name, dialect) => { register_dialect(name, dialect) }
+  @on_resolve(name) => { return resolve_dialect(name) }
+  @receipt dialect_registry_config { type: "DialectRegistryReceipt"; timestamp: now() }
+}

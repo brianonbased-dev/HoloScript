@@ -1,0 +1,10 @@
+// @android_compiler — Android compiler: compiles .holo compositions to Android Kotlin/Jetpack.
+//
+// Native .hsplus surface for core/src/compiler/AndroidCompiler.ts.
+
+@trait android_compiler {
+  capability_tags: ["android_compiler", "android_kotlin_jetpack", "android", "compiler", "core"]
+  @on_spawn => { emit("android_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_android(ast); return result }
+  @receipt android_compiler_config { type: "AndroidCompilerReceipt"; timestamp: now() }
+}

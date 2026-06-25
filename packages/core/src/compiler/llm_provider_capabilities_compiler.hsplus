@@ -1,0 +1,10 @@
+// @llm_provider_capabilities_compiler — LLM provider capabilities compiler: compiles provider capability manifests.
+//
+// Native .hsplus surface for core/src/compiler/LLMProviderCapabilitiesCompiler.ts.
+
+@trait llm_provider_capabilities_compiler {
+  capability_tags: ["llm_provider_capabilities_compiler", "provider_capability_manifest", "llm_provider", "compiler", "core"]
+  @on_spawn => { emit("llm_provider_capabilities_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_llm_provider_capabilities(ast); return result }
+  @receipt llm_provider_capabilities_compiler_config { type: "LLMProviderCapabilitiesCompilerReceipt"; timestamp: now() }
+}

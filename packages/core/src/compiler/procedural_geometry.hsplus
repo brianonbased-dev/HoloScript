@@ -1,0 +1,10 @@
+// @procedural_geometry — Procedural geometry: parametric mesh generators used by SDF/splat compilers.
+//
+// Native .hsplus surface for core/src/compiler/ProceduralGeometry.ts.
+
+@trait procedural_geometry {
+  capability_tags: ["procedural_geometry", "parametric_mesh_gen", "sdf_splat_support", "compiler", "core"]
+  @on_spawn => { emit("procedural_geometry_ready", {}) }
+  @on_generate(params) => { mesh = generate_procedural_geometry(params); return mesh }
+  @receipt procedural_geometry_config { type: "ProceduralGeometryReceipt"; timestamp: now() }
+}

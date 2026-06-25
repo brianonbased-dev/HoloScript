@@ -1,0 +1,10 @@
+// @nextjs_api_compiler — Next.js API compiler: compiles .holo service traits to Next.js API route handlers.
+//
+// Native .hsplus surface for core/src/compiler/NextJSAPICompiler.ts.
+
+@trait nextjs_api_compiler {
+  capability_tags: ["nextjs_api_compiler", "nextjs_api_route", "nextjs", "compiler", "core"]
+  @on_spawn => { emit("nextjs_api_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_nextjs_api(ast); return result }
+  @receipt nextjs_api_compiler_config { type: "NextJSAPICompilerReceipt"; timestamp: now() }
+}

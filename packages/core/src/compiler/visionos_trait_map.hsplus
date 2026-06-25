@@ -1,0 +1,10 @@
+// @visionos_trait_map — visionOS trait map: maps HoloScript trait capabilities to visionOS / RealityKit component equivalents.
+//
+// Native .hsplus surface for core/src/compiler/VisionOSTraitMap.ts.
+
+@trait visionos_trait_map {
+  capability_tags: ["visionos_trait_map", "realitykit_trait_map", "visionos_component_map", "compiler", "core"]
+  @on_spawn => { emit("visionos_trait_map_ready", {}) }
+  @on_map(trait_name) => { component = map_trait_to_visionos(trait_name); return component }
+  @receipt visionos_trait_map_config { type: "VisionOSTraitMapReceipt"; timestamp: now() }
+}

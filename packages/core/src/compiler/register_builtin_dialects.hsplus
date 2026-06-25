@@ -1,0 +1,12 @@
+// @register_builtin_dialects — Register builtin dialects: registers all built-in HoloScript compiler dialects at startup.
+//
+// Native .hsplus surface for core/src/compiler/registerBuiltinDialects.ts.
+
+@trait register_builtin_dialects {
+  capability_tags: ["register_builtin_dialects", "compiler_dialect_registration", "builtin_dialects", "compiler", "core"]
+  @on_spawn => {
+    register_all_builtin_dialects()
+    emit("register_builtin_dialects_ready", {})
+  }
+  @receipt register_builtin_dialects_config { type: "RegisterBuiltinDialectsReceipt"; timestamp: now() }
+}

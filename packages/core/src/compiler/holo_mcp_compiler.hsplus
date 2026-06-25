@@ -1,0 +1,11 @@
+// @holo_mcp_compiler — HoloMCP compiler: compiles @param-annotated .hsplus traits to MCP server tools.
+//
+// Native .hsplus surface for core/src/compiler/HoloMCPCompiler.ts.
+// W.739: HoloMCPCompiler P0-P5 shipped; @param annotation meta-trait.
+
+@trait holo_mcp_compiler {
+  capability_tags: ["holo_mcp_compiler", "trait_to_mcp_tool", "param_annotation", "compiler", "core"]
+  @on_spawn => { emit("holo_mcp_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_mcp_server(ast); return result }
+  @receipt holo_mcp_compiler_config { type: "HoloMCPCompilerReceipt"; doc: "W.739 P0-P5 shipped"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @crdt_protocol_handler — CRDT protocol handler: handles Loro CRDT sync during compilation pipeline.
+//
+// Native .hsplus surface for core/src/compiler/CRDTProtocolHandler.ts.
+
+@trait crdt_protocol_handler {
+  capability_tags: ["crdt_protocol_handler", "loro_crdt_sync", "compile_pipeline", "compiler", "core"]
+  @on_spawn => { emit("crdt_protocol_handler_ready", {}) }
+  @on_merge(local_doc, remote_update) => { return merge_crdt(local_doc, remote_update) }
+  @receipt crdt_protocol_handler_config { type: "CRDTProtocolHandlerReceipt"; crdt: "Loro"; timestamp: now() }
+}

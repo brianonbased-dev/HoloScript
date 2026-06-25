@@ -1,0 +1,9 @@
+// @node_toy_mapping — NodeToy mapping: maps TSL shader nodes to NodeToy visual shader format.
+//
+// Native .hsplus surface for core/src/compiler/NodeToyMapping.ts.
+
+@trait node_toy_mapping {
+  capability_tags: ["node_toy_mapping", "tsl_to_nodetoy", "visual_shader", "compiler", "core"]
+  @on_spawn => { emit("node_toy_mapping_ready", {}) }
+  @receipt node_toy_mapping_config { type: "NodeToyMappingReceipt"; timestamp: now() }
+}

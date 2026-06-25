@@ -1,0 +1,10 @@
+// @pipeline_node_compiler — Pipeline node compiler: compiles individual .holo pipeline nodes to target code.
+//
+// Native .hsplus surface for core/src/compiler/PipelineNodeCompiler.ts.
+
+@trait pipeline_node_compiler {
+  capability_tags: ["pipeline_node_compiler", "pipeline_node_codegen", "node_compile", "compiler", "core"]
+  @on_spawn => { emit("pipeline_node_compiler_ready", {}) }
+  @on_compile(node) => { result = compile_pipeline_node(node); return result }
+  @receipt pipeline_node_compiler_config { type: "PipelineNodeCompilerReceipt"; timestamp: now() }
+}

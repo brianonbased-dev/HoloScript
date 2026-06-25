@@ -1,0 +1,10 @@
+// @wasm_compiler — WASM compiler: compiles .holo logic modules to WebAssembly binary format.
+//
+// Native .hsplus surface for core/src/compiler/WASMCompiler.ts.
+
+@trait wasm_compiler {
+  capability_tags: ["wasm_compiler", "webassembly_output", "wasm_binary", "compiler", "core"]
+  @on_spawn => { emit("wasm_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_wasm(ast); return result }
+  @receipt wasm_compiler_config { type: "WASMCompilerReceipt"; timestamp: now() }
+}

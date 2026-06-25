@@ -1,0 +1,10 @@
+// @gas_optimization_analyzer — Gas optimization analyzer: estimates and minimizes on-chain gas for compiled contracts.
+//
+// Native .hsplus surface for core/src/compiler/GasOptimizationAnalyzer.ts.
+
+@trait gas_optimization_analyzer {
+  capability_tags: ["gas_optimization_analyzer", "onchain_gas_estimate", "contract_optimize", "compiler", "core"]
+  @on_spawn => { emit("gas_optimization_analyzer_ready", {}) }
+  @on_analyze(contract_ast) => { return analyze_gas_optimization(contract_ast) }
+  @receipt gas_optimization_analyzer_config { type: "GasOptimizationAnalyzerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @gaussian_train_compiler — Gaussian train compiler: compiles capture sessions to Gaussian training jobs.
+//
+// Native .hsplus surface for core/src/compiler/GaussianTrainCompiler.ts.
+
+@trait gaussian_train_compiler {
+  capability_tags: ["gaussian_train_compiler", "capture_to_training_job", "gaussian_train", "compiler", "core"]
+  @on_spawn => { emit("gaussian_train_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_gaussian_train(ast); return result }
+  @receipt gaussian_train_compiler_config { type: "GaussianTrainCompilerReceipt"; timestamp: now() }
+}

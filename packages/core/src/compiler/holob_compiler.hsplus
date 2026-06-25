@@ -1,0 +1,11 @@
+// @holob_compiler — HoloB compiler: compiles .holo IR to HoloB bytecode for the HoloVM.
+//
+// Native .hsplus surface for core/src/compiler/HolobCompiler.ts.
+// P.017: .holo→HolobCompiler→HoloVM→renderer is wired + e2e-tested.
+
+@trait holob_compiler {
+  capability_tags: ["holob_compiler", "holo_to_holob_bytecode", "holo_vm", "compiler", "core"]
+  @on_spawn => { emit("holob_compiler_ready", {}) }
+  @on_compile(holo_ast) => { bytecode = compile_to_holob(holo_ast); return bytecode }
+  @receipt holob_compiler_config { type: "HolobCompilerReceipt"; doc: "P.017 holo→holob→holo-vm pipeline"; timestamp: now() }
+}

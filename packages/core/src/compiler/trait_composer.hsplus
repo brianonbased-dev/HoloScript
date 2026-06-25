@@ -1,0 +1,10 @@
+// @trait_composer — Trait composer: composes multiple .hsplus traits into a merged capability surface.
+//
+// Native .hsplus surface for core/src/compiler/TraitComposer.ts.
+
+@trait trait_composer {
+  capability_tags: ["trait_composer", "trait_merge_capability", "composition", "compiler", "core"]
+  @on_spawn => { emit("trait_composer_ready", {}) }
+  @on_compose(trait_list) => { merged = compose_traits(trait_list); return merged }
+  @receipt trait_composer_config { type: "TraitComposerReceipt"; timestamp: now() }
+}

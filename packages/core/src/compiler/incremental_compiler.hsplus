@@ -1,0 +1,10 @@
+// @incremental_compiler — Incremental compiler: recompiles only changed subtrees using build cache.
+//
+// Native .hsplus surface for core/src/compiler/IncrementalCompiler.ts.
+
+@trait incremental_compiler {
+  capability_tags: ["incremental_compiler", "changed_subtree_recompile", "build_cache", "compiler", "core"]
+  @on_spawn => { emit("incremental_compiler_ready", {}) }
+  @on_compile(changed_files, full_ast) => { result = compile_incremental(changed_files, full_ast); return result }
+  @receipt incremental_compiler_config { type: "IncrementalCompilerReceipt"; timestamp: now() }
+}

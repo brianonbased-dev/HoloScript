@@ -1,0 +1,10 @@
+// @unity_compiler — Unity compiler: compiles .holo scenes and behaviors to Unity C# + scene assets.
+//
+// Native .hsplus surface for core/src/compiler/UnityCompiler.ts.
+
+@trait unity_compiler {
+  capability_tags: ["unity_compiler", "unity_csharp_output", "unity_scene_assets", "compiler", "core"]
+  @on_spawn => { emit("unity_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_unity(ast); return result }
+  @receipt unity_compiler_config { type: "UnityCompilerReceipt"; timestamp: now() }
+}

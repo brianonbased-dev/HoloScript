@@ -1,0 +1,10 @@
+// @cross_reality_validator — Cross-reality validator: validates .holo scenes across VR/AR/web targets.
+//
+// Native .hsplus surface for core/src/compiler/CrossRealityValidator.ts.
+
+@trait cross_reality_validator {
+  capability_tags: ["cross_reality_validator", "vr_ar_web_validate", "cross_reality", "compiler", "core"]
+  @on_spawn => { emit("cross_reality_validator_ready", {}) }
+  @on_validate(ast, targets) => { errors = validate_cross_reality(ast, targets); return errors }
+  @receipt cross_reality_validator_config { type: "CrossRealityValidatorReceipt"; timestamp: now() }
+}

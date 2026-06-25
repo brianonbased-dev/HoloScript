@@ -1,0 +1,10 @@
+// @gaussian_budget_analyzer — Gaussian budget analyzer: estimates splat count and memory for Gaussian scenes.
+//
+// Native .hsplus surface for core/src/compiler/GaussianBudgetAnalyzer.ts.
+
+@trait gaussian_budget_analyzer {
+  capability_tags: ["gaussian_budget_analyzer", "splat_count_memory", "gaussian_budget", "compiler", "core"]
+  @on_spawn => { emit("gaussian_budget_analyzer_ready", {}) }
+  @on_analyze(scene_ast) => { return analyze_gaussian_budget(scene_ast) }
+  @receipt gaussian_budget_analyzer_config { type: "GaussianBudgetAnalyzerReceipt"; timestamp: now() }
+}

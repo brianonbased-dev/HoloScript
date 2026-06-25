@@ -1,0 +1,10 @@
+// @code_editor_compiler — Code editor compiler: compiles .holo UIs to embedded code-editor components.
+//
+// Native .hsplus surface for core/src/compiler/CodeEditorCompiler.ts.
+
+@trait code_editor_compiler {
+  capability_tags: ["code_editor_compiler", "embedded_code_editor", "ui_compiler", "compiler", "core"]
+  @on_spawn => { emit("code_editor_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_code_editor(ast); return result }
+  @receipt code_editor_compiler_config { type: "CodeEditorCompilerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @nir_compiler — NIR compiler: compiles .holo shader graphs to Node Intermediate Representation.
+//
+// Native .hsplus surface for core/src/compiler/NIRCompiler.ts.
+
+@trait nir_compiler {
+  capability_tags: ["nir_compiler", "shader_graph_nir", "node_ir", "compiler", "core"]
+  @on_spawn => { emit("nir_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_nir(ast); return result }
+  @receipt nir_compiler_config { type: "NIRCompilerReceipt"; timestamp: now() }
+}

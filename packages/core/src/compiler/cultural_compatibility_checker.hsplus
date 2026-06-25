@@ -1,0 +1,10 @@
+// @cultural_compatibility_checker — Cultural compatibility checker: flags locale/cultural issues in compiled output.
+//
+// Native .hsplus surface for core/src/compiler/CulturalCompatibilityChecker.ts.
+
+@trait cultural_compatibility_checker {
+  capability_tags: ["cultural_compatibility_checker", "locale_culture_flag", "i18n_compile", "compiler", "core"]
+  @on_spawn => { emit("cultural_compatibility_checker_ready", {}) }
+  @on_check(ast, locale) => { return check_cultural_compatibility(ast, locale) }
+  @receipt cultural_compatibility_checker_config { type: "CulturalCompatibilityCheckerReceipt"; timestamp: now() }
+}

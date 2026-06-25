@@ -1,0 +1,10 @@
+// @bundle_splitter — Bundle splitter: splits compiled output by entry point and lazy boundary.
+//
+// Native .hsplus surface for core/src/compiler/BundleSplitter.ts.
+
+@trait bundle_splitter {
+  capability_tags: ["bundle_splitter", "entry_point_split", "lazy_boundary", "compiler", "core"]
+  @on_spawn => { emit("bundle_splitter_ready", {}) }
+  @on_split(bundle, strategy) => { return split_bundle(bundle, strategy) }
+  @receipt bundle_splitter_config { type: "BundleSplitterReceipt"; timestamp: now() }
+}

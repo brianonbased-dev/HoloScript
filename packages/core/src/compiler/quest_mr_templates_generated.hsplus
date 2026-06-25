@@ -1,0 +1,10 @@
+// @quest_mr_templates_generated — Quest MR templates (generated): generated template code for Quest mixed reality scene assembly.
+//
+// Native .hsplus surface for core/src/compiler/quest-mr-templates.generated.ts.
+
+@trait quest_mr_templates_generated {
+  capability_tags: ["quest_mr_templates_generated", "quest_mr_scene_templates", "generated_mr_templates", "compiler", "core"]
+  @on_spawn => { emit("quest_mr_templates_generated_ready", {}) }
+  @on_get(template_key) => { template = get_quest_mr_template(template_key); return template }
+  @receipt quest_mr_templates_generated_config { type: "QuestMRTemplatesGeneratedReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @scene_ir_compiler — Scene IR compiler: lowers .holo AST to SceneIR (target-neutral intermediate rep).
+//
+// Native .hsplus surface for core/src/compiler/SceneIRCompiler.ts.
+
+@trait scene_ir_compiler {
+  capability_tags: ["scene_ir_compiler", "holo_ast_to_scene_ir", "target_neutral_ir", "compiler", "core"]
+  @on_spawn => { emit("scene_ir_compiler_ready", {}) }
+  @on_compile(holo_ast) => { ir = compile_to_scene_ir(holo_ast); return ir }
+  @receipt scene_ir_compiler_config { type: "SceneIRCompilerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @android_xr_compiler — Android XR compiler: compiles .holo to Android XR spatial sessions.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRCompiler.ts.
+
+@trait android_xr_compiler {
+  capability_tags: ["android_xr_compiler", "android_xr_spatial", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_android_xr(ast); return result }
+  @receipt android_xr_compiler_config { type: "AndroidXRCompilerReceipt"; timestamp: now() }
+}

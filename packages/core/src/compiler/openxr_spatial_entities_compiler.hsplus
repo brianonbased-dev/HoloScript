@@ -1,0 +1,10 @@
+// @openxr_spatial_entities_compiler — OpenXR spatial entities compiler: anchors and spatial mesh codegen.
+//
+// Native .hsplus surface for core/src/compiler/OpenXRSpatialEntitiesCompiler.ts.
+
+@trait openxr_spatial_entities_compiler {
+  capability_tags: ["openxr_spatial_entities_compiler", "xr_anchor_spatial_mesh", "openxr", "compiler", "core"]
+  @on_spawn => { emit("openxr_spatial_entities_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_openxr_spatial_entities(ast); return result }
+  @receipt openxr_spatial_entities_compiler_config { type: "OpenXRSpatialEntitiesCompilerReceipt"; timestamp: now() }
+}

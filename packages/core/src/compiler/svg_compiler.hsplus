@@ -1,0 +1,10 @@
+// @svg_compiler — SVG compiler: compiles .holo 2D scenes to SVG vector graphics output.
+//
+// Native .hsplus surface for core/src/compiler/SVGCompiler.ts.
+
+@trait svg_compiler {
+  capability_tags: ["svg_compiler", "svg_vector_output", "2d_compile", "compiler", "core"]
+  @on_spawn => { emit("svg_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_svg(ast); return result }
+  @receipt svg_compiler_config { type: "SVGCompilerReceipt"; timestamp: now() }
+}

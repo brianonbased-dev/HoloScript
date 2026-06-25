@@ -1,0 +1,10 @@
+// @compiler_state_monitor — Compiler state monitor: tracks in-flight compile jobs and error rates.
+//
+// Native .hsplus surface for core/src/compiler/CompilerStateMonitor.ts.
+
+@trait compiler_state_monitor {
+  capability_tags: ["compiler_state_monitor", "inflight_compile_track", "error_rate", "compiler", "core"]
+  @on_spawn => { emit("compiler_state_monitor_ready", {}) }
+  @on_status => { return get_compiler_state() }
+  @receipt compiler_state_monitor_config { type: "CompilerStateMonitorReceipt"; timestamp: now() }
+}

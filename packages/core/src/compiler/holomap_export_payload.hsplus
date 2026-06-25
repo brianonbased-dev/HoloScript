@@ -1,0 +1,10 @@
+// @holomap_export_payload — HoloMap export payload: typed payload for HoloMap world-export bundles.
+//
+// Native .hsplus surface for core/src/compiler/HolomapExportPayload.ts.
+// D.107: HoloMap = twin WORLDS (real-environment capture).
+
+@trait holomap_export_payload {
+  capability_tags: ["holomap_export_payload", "world_export_bundle", "holomap", "compiler", "core"]
+  @on_spawn => { emit("holomap_export_payload_ready", {}) }
+  @receipt holomap_export_payload_config { type: "HolomapExportPayloadReceipt"; doc: "D.107 HoloMap=twin worlds"; timestamp: now() }
+}

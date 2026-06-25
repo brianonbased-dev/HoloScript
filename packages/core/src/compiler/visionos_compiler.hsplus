@@ -1,0 +1,10 @@
+// @visionos_compiler — visionOS compiler: compiles .holo spatial scenes to Apple visionOS / RealityKit.
+//
+// Native .hsplus surface for core/src/compiler/VisionOSCompiler.ts.
+
+@trait visionos_compiler {
+  capability_tags: ["visionos_compiler", "apple_visionos", "realitykit_output", "compiler", "core"]
+  @on_spawn => { emit("visionos_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_visionos(ast); return result }
+  @receipt visionos_compiler_config { type: "VisionOSCompilerReceipt"; timestamp: now() }
+}

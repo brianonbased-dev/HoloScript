@@ -1,0 +1,10 @@
+// @open_api_compiler — OpenAPI compiler: compiles .holo service contracts to OpenAPI 3.x specs.
+//
+// Native .hsplus surface for core/src/compiler/OpenAPICompiler.ts.
+
+@trait open_api_compiler {
+  capability_tags: ["open_api_compiler", "openapi3_spec", "service_contract", "compiler", "core"]
+  @on_spawn => { emit("open_api_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_openapi(ast); return result }
+  @receipt open_api_compiler_config { type: "OpenAPICompilerReceipt"; timestamp: now() }
+}

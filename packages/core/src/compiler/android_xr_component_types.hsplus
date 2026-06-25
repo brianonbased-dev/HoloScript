@@ -1,0 +1,9 @@
+// @android_xr_component_types — Android XR component types: typed component descriptors for XR panels/volumes.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRComponentTypes.ts.
+
+@trait android_xr_component_types {
+  capability_tags: ["android_xr_component_types", "xr_panel_volume_types", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_component_types_ready", {}) }
+  @receipt android_xr_component_types_config { type: "AndroidXRComponentTypesReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @node_service_compiler — Node service compiler: compiles .holo services to Node.js/Express server bundles.
+//
+// Native .hsplus surface for core/src/compiler/NodeServiceCompiler.ts.
+
+@trait node_service_compiler {
+  capability_tags: ["node_service_compiler", "nodejs_express_bundle", "node_service", "compiler", "core"]
+  @on_spawn => { emit("node_service_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_node_service(ast); return result }
+  @receipt node_service_compiler_config { type: "NodeServiceCompilerReceipt"; timestamp: now() }
+}

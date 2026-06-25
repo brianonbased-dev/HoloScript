@@ -1,0 +1,10 @@
+// @webgpu_compiler — WebGPU compiler: compiles .holo GPU compute and render graphs to WebGPU pipeline descriptors.
+//
+// Native .hsplus surface for core/src/compiler/WebGPUCompiler.ts.
+
+@trait webgpu_compiler {
+  capability_tags: ["webgpu_compiler", "webgpu_pipeline", "gpu_render_compile", "compiler", "core"]
+  @on_spawn => { emit("webgpu_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_webgpu(ast); return result }
+  @receipt webgpu_compiler_config { type: "WebGPUCompilerReceipt"; timestamp: now() }
+}

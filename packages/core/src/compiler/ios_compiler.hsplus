@@ -1,0 +1,10 @@
+// @ios_compiler — iOS compiler: compiles .holo compositions to Swift/SwiftUI source.
+//
+// Native .hsplus surface for core/src/compiler/IOSCompiler.ts.
+
+@trait ios_compiler {
+  capability_tags: ["ios_compiler", "swift_swiftui", "ios", "compiler", "core"]
+  @on_spawn => { emit("ios_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_ios(ast); return result }
+  @receipt ios_compiler_config { type: "IOSCompilerReceipt"; timestamp: now() }
+}

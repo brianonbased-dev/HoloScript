@@ -1,0 +1,10 @@
+// @quantum_circuit_compiler — Quantum circuit compiler: compiles .holo quantum circuits to QASM/OpenQASM.
+//
+// Native .hsplus surface for core/src/compiler/QuantumCircuitCompiler.ts.
+
+@trait quantum_circuit_compiler {
+  capability_tags: ["quantum_circuit_compiler", "qasm_openqasm", "quantum_circuit", "compiler", "core"]
+  @on_spawn => { emit("quantum_circuit_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_qasm(ast); return result }
+  @receipt quantum_circuit_compiler_config { type: "QuantumCircuitCompilerReceipt"; timestamp: now() }
+}

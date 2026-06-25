@@ -1,0 +1,10 @@
+// @trait_dependency_graph — Trait dependency graph: builds and traverses trait dependency DAG for ordering.
+//
+// Native .hsplus surface for core/src/compiler/TraitDependencyGraph.ts.
+
+@trait trait_dependency_graph {
+  capability_tags: ["trait_dependency_graph", "trait_dag", "dependency_order", "compiler", "core"]
+  @on_spawn => { emit("trait_dependency_graph_ready", {}) }
+  @on_build(traits) => { dag = build_trait_dependency_graph(traits); return dag }
+  @receipt trait_dependency_graph_config { type: "TraitDependencyGraphReceipt"; timestamp: now() }
+}

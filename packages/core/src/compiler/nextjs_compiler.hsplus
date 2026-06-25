@@ -1,0 +1,10 @@
+// @nextjs_compiler — Next.js compiler: compiles .holo UIs to Next.js pages and components.
+//
+// Native .hsplus surface for core/src/compiler/NextJSCompiler.ts.
+
+@trait nextjs_compiler {
+  capability_tags: ["nextjs_compiler", "nextjs_pages_components", "nextjs", "compiler", "core"]
+  @on_spawn => { emit("nextjs_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_nextjs(ast); return result }
+  @receipt nextjs_compiler_config { type: "NextJSCompilerReceipt"; timestamp: now() }
+}

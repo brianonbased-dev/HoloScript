@@ -1,0 +1,10 @@
+// @type_inference_pass — Type inference pass: compiler pass that infers types for untyped AST nodes.
+//
+// Native .hsplus surface for core/src/compiler/TypeInferencePass.ts.
+
+@trait type_inference_pass {
+  capability_tags: ["type_inference_pass", "compiler_type_infer", "ast_type_annotation", "compiler", "core"]
+  @on_spawn => { emit("type_inference_pass_ready", {}) }
+  @on_run(ast) => { typed_ast = run_type_inference_pass(ast); return typed_ast }
+  @receipt type_inference_pass_config { type: "TypeInferencePassReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @reference_exporters — Reference exporters: exports .holo scene cross-references to external format.
+//
+// Native .hsplus surface for core/src/compiler/ReferenceExporters.ts.
+
+@trait reference_exporters {
+  capability_tags: ["reference_exporters", "cross_reference_export", "scene_reference", "compiler", "core"]
+  @on_spawn => { emit("reference_exporters_ready", {}) }
+  @on_export(ast, format) => { return export_references(ast, format) }
+  @receipt reference_exporters_config { type: "ReferenceExportersReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @native_2d_compiler — Native 2D compiler: compiles .holo 2D scenes to native vector/canvas output.
+//
+// Native .hsplus surface for core/src/compiler/Native2DCompiler.ts.
+
+@trait native_2d_compiler {
+  capability_tags: ["native_2d_compiler", "native_vector_canvas", "2d_compile", "compiler", "core"]
+  @on_spawn => { emit("native_2d_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_native_2d(ast); return result }
+  @receipt native_2d_compiler_config { type: "Native2DCompilerReceipt"; timestamp: now() }
+}

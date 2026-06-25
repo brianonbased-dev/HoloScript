@@ -1,0 +1,10 @@
+// @ios_spatial_generators — iOS spatial generators: RealityKit/ARKit spatial entity codegen.
+//
+// Native .hsplus surface for core/src/compiler/IOSSpatialGenerators.ts.
+
+@trait ios_spatial_generators {
+  capability_tags: ["ios_spatial_generators", "realitykit_arkit_codegen", "ios_spatial", "compiler", "core"]
+  @on_spawn => { emit("ios_spatial_generators_ready", {}) }
+  @on_generate(node) => { return generate_ios_spatial(node) }
+  @receipt ios_spatial_generators_config { type: "IOSSpatialGeneratorsReceipt"; timestamp: now() }
+}

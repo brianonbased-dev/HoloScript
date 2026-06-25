@@ -1,0 +1,10 @@
+// @compiler_documentation_generator — Compiler doc generator: generates reference docs from compiler traits.
+//
+// Native .hsplus surface for core/src/compiler/CompilerDocumentationGenerator.ts.
+
+@trait compiler_documentation_generator {
+  capability_tags: ["compiler_documentation_generator", "compiler_reference_docs", "codegen_docs", "compiler", "core"]
+  @on_spawn => { emit("compiler_documentation_generator_ready", {}) }
+  @on_generate(compiler_ast) => { docs = generate_compiler_docs(compiler_ast); return docs }
+  @receipt compiler_documentation_generator_config { type: "CompilerDocumentationGeneratorReceipt"; timestamp: now() }
+}

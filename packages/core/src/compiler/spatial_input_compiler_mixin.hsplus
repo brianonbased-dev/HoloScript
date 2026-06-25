@@ -1,0 +1,10 @@
+// @spatial_input_compiler_mixin — Spatial input mixin: injects hand/controller/gaze input handlers into XR compilers.
+//
+// Native .hsplus surface for core/src/compiler/SpatialInputCompilerMixin.ts.
+
+@trait spatial_input_compiler_mixin {
+  capability_tags: ["spatial_input_compiler_mixin", "hand_controller_gaze", "xr_input_inject", "compiler", "core"]
+  @on_spawn => { emit("spatial_input_compiler_mixin_ready", {}) }
+  @on_apply(compiler, input_schema) => { return apply_spatial_input_mixin(compiler, input_schema) }
+  @receipt spatial_input_compiler_mixin_config { type: "SpatialInputCompilerMixinReceipt"; timestamp: now() }
+}

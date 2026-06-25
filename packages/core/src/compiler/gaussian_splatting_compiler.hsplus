@@ -1,0 +1,11 @@
+// @gaussian_splatting_compiler — Gaussian splatting compiler: compiles .holo scenes to 3DGS splat bundles.
+//
+// Native .hsplus surface for core/src/compiler/GaussianSplattingCompiler.ts.
+// D.106: sovereign photorealism via splat renderer.
+
+@trait gaussian_splatting_compiler {
+  capability_tags: ["gaussian_splatting_compiler", "3dgs_splat_bundle", "gaussian_splat", "compiler", "core"]
+  @on_spawn => { emit("gaussian_splatting_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_3dgs(ast); return result }
+  @receipt gaussian_splatting_compiler_config { type: "GaussianSplattingCompilerReceipt"; doc: "D.106 sovereign photorealism"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @sdf_compiler — SDF compiler: compiles .holo geometry to signed-distance-field WGSL shaders.
+//
+// Native .hsplus surface for core/src/compiler/SDFCompiler.ts.
+// D.106: sovereign photorealism; SDF→GLB pipeline.
+
+@trait sdf_compiler {
+  capability_tags: ["sdf_compiler", "sdf_wgsl_shader", "sdf_geometry", "compiler", "core"]
+  @on_spawn => { emit("sdf_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_sdf(ast); return result }
+  @receipt sdf_compiler_config { type: "SDFCompilerReceipt"; doc: "D.106 sovereign photorealism SDF→GLB"; timestamp: now() }
+}

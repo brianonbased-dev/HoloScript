@@ -1,0 +1,11 @@
+// @sovereign_targets — Sovereign targets: registry of sovereign (non-cloud) compile targets for local-first deployment.
+//
+// Native .hsplus surface for core/src/compiler/sovereign-targets.ts.
+
+@trait sovereign_targets {
+  capability_tags: ["sovereign_targets", "local_first_targets", "sovereign_compile_registry", "compiler", "core"]
+  @on_spawn => { emit("sovereign_targets_ready", {}) }
+  @on_list => { return list_sovereign_targets() }
+  @on_get(target_id) => { return get_sovereign_target(target_id) }
+  @receipt sovereign_targets_config { type: "SovereignTargetsReceipt"; timestamp: now() }
+}

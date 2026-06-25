@@ -1,0 +1,10 @@
+// @android_xr_glasses_generators — Android XR glasses generators: wearable lens overlay codegen.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRGlassesGenerators.ts.
+
+@trait android_xr_glasses_generators {
+  capability_tags: ["android_xr_glasses_generators", "lens_overlay_codegen", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_glasses_generators_ready", {}) }
+  @on_generate(node) => { return generate_android_xr_glasses(node) }
+  @receipt android_xr_glasses_generators_config { type: "AndroidXRGlassesGeneratorsReceipt"; timestamp: now() }
+}

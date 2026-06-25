@@ -1,0 +1,9 @@
+// @android_kotlin_helpers — Android Kotlin helpers: utility code builders for Android Kotlin output.
+//
+// Native .hsplus surface for core/src/compiler/AndroidKotlinHelpers.ts.
+
+@trait android_kotlin_helpers {
+  capability_tags: ["android_kotlin_helpers", "kotlin_code_builder", "android_helpers", "compiler", "core"]
+  @on_spawn => { emit("android_kotlin_helpers_ready", {}) }
+  @receipt android_kotlin_helpers_config { type: "AndroidKotlinHelpersReceipt"; timestamp: now() }
+}

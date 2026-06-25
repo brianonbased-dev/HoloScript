@@ -1,0 +1,10 @@
+// @ai_glasses_compiler — AI glasses compiler: compiles .holo scenes to AI wearable glasses display.
+//
+// Native .hsplus surface for core/src/compiler/AIGlassesCompiler.ts.
+
+@trait ai_glasses_compiler {
+  capability_tags: ["ai_glasses_compiler", "wearable_glasses_display", "ai_glasses", "compiler", "core"]
+  @on_spawn => { emit("ai_glasses_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_ai_glasses(ast); return result }
+  @receipt ai_glasses_compiler_config { type: "AIGlassesCompilerReceipt"; timestamp: now() }
+}

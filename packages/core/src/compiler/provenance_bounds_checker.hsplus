@@ -1,0 +1,10 @@
+// @provenance_bounds_checker — Provenance bounds checker: validates cael:sha256 receipt chains are within scope.
+//
+// Native .hsplus surface for core/src/compiler/ProvenanceBoundsChecker.ts.
+
+@trait provenance_bounds_checker {
+  capability_tags: ["provenance_bounds_checker", "cael_sha256_receipt", "receipt_scope", "compiler", "core"]
+  @on_spawn => { emit("provenance_bounds_checker_ready", {}) }
+  @on_check(receipt_chain, scope) => { return check_provenance_bounds(receipt_chain, scope) }
+  @receipt provenance_bounds_checker_config { type: "ProvenanceBoundsCheckerReceipt"; timestamp: now() }
+}

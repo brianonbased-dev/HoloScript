@@ -1,0 +1,9 @@
+// @ai_glasses_trait_map — AI glasses trait map: maps .hsplus traits to AI glasses display primitives.
+//
+// Native .hsplus surface for core/src/compiler/AIGlassesTraitMap.ts.
+
+@trait ai_glasses_trait_map {
+  capability_tags: ["ai_glasses_trait_map", "glasses_primitive_map", "trait_dispatch", "compiler", "core"]
+  @on_spawn => { emit("ai_glasses_trait_map_ready", {}) }
+  @receipt ai_glasses_trait_map_config { type: "AIGlassesTraitMapReceipt"; timestamp: now() }
+}

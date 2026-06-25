@@ -1,0 +1,10 @@
+// @vector_2d_compiler — Vector 2D compiler: compiles .holo 2D scene graphs to scalable vector output.
+//
+// Native .hsplus surface for core/src/compiler/Vector2DCompiler.ts.
+
+@trait vector_2d_compiler {
+  capability_tags: ["vector_2d_compiler", "2d_vector_output", "scalable_vector", "compiler", "core"]
+  @on_spawn => { emit("vector_2d_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_vector_2d(ast); return result }
+  @receipt vector_2d_compiler_config { type: "Vector2DCompilerReceipt"; timestamp: now() }
+}

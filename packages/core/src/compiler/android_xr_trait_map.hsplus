@@ -1,0 +1,9 @@
+// @android_xr_trait_map — Android XR trait map: maps .hsplus trait tags to XR component generators.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRTraitMap.ts.
+
+@trait android_xr_trait_map {
+  capability_tags: ["android_xr_trait_map", "xr_component_map", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_trait_map_ready", {}) }
+  @receipt android_xr_trait_map_config { type: "AndroidXRTraitMapReceipt"; timestamp: now() }
+}

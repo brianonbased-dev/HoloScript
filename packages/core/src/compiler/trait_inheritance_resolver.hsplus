@@ -1,0 +1,10 @@
+// @trait_inheritance_resolver — Trait inheritance resolver: resolves inherited capability chains across trait hierarchies.
+//
+// Native .hsplus surface for core/src/compiler/TraitInheritanceResolver.ts.
+
+@trait trait_inheritance_resolver {
+  capability_tags: ["trait_inheritance_resolver", "trait_hierarchy_resolve", "inheritance_chain", "compiler", "core"]
+  @on_spawn => { emit("trait_inheritance_resolver_ready", {}) }
+  @on_resolve(trait_def) => { chain = resolve_trait_inheritance(trait_def); return chain }
+  @receipt trait_inheritance_resolver_config { type: "TraitInheritanceResolverReceipt"; timestamp: now() }
+}

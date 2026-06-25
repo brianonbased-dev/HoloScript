@@ -1,0 +1,10 @@
+// @sdf_ray_march_compiler — SDF ray-march compiler: emits per-pixel ray-marching WGSL from SDF IR.
+//
+// Native .hsplus surface for core/src/compiler/SDFRayMarchCompiler.ts.
+
+@trait sdf_ray_march_compiler {
+  capability_tags: ["sdf_ray_march_compiler", "ray_march_wgsl", "sdf_ir", "compiler", "core"]
+  @on_spawn => { emit("sdf_ray_march_compiler_ready", {}) }
+  @on_compile(sdf_ir) => { wgsl = compile_sdf_ray_march(sdf_ir); return wgsl }
+  @receipt sdf_ray_march_compiler_config { type: "SDFRayMarchCompilerReceipt"; timestamp: now() }
+}

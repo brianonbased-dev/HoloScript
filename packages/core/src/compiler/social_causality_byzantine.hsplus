@@ -1,0 +1,10 @@
+// @social_causality_byzantine — Social causality Byzantine: Byzantine fault-tolerant causal ordering for multi-agent social state.
+//
+// Native .hsplus surface for core/src/compiler/social-causality-byzantine.ts.
+
+@trait social_causality_byzantine {
+  capability_tags: ["social_causality_byzantine", "byzantine_causal_order", "fault_tolerant_social", "compiler", "core"]
+  @on_spawn => { emit("social_causality_byzantine_ready", {}) }
+  @on_order(events) => { ordered = order_social_causality_byzantine(events); return ordered }
+  @receipt social_causality_byzantine_config { type: "SocialCausalityByzantineReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @android_peripheral_generators — Android peripheral generators: Bluetooth/NFC peripheral codegen.
+//
+// Native .hsplus surface for core/src/compiler/AndroidPeripheralGenerators.ts.
+
+@trait android_peripheral_generators {
+  capability_tags: ["android_peripheral_generators", "bluetooth_nfc_codegen", "android_peripheral", "compiler", "core"]
+  @on_spawn => { emit("android_peripheral_generators_ready", {}) }
+  @on_generate(peripheral, ast) => { return generate_android_peripheral(peripheral, ast) }
+  @receipt android_peripheral_generators_config { type: "AndroidPeripheralGeneratorsReceipt"; timestamp: now() }
+}

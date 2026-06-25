@@ -1,0 +1,9 @@
+// @canvas2d_game_compiler_target — Canvas2D game target: MCP-registered target descriptor for canvas2d game.
+//
+// Native .hsplus surface for core/src/compiler/Canvas2DGameCompilerTarget.ts.
+
+@trait canvas2d_game_compiler_target {
+  capability_tags: ["canvas2d_game_compiler_target", "canvas2d_target_descriptor", "compiler_target", "compiler", "core"]
+  @on_spawn => { emit("canvas2d_game_compiler_target_ready", {}) }
+  @receipt canvas2d_game_compiler_target_config { type: "Canvas2DGameCompilerTargetReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @vrchat_compiler — VRChat compiler: compiles .holo worlds and avatars to VRChat SDK / Udon assembly.
+//
+// Native .hsplus surface for core/src/compiler/VRChatCompiler.ts.
+
+@trait vrchat_compiler {
+  capability_tags: ["vrchat_compiler", "vrchat_sdk", "udon_assembly", "compiler", "core"]
+  @on_spawn => { emit("vrchat_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_vrchat(ast); return result }
+  @receipt vrchat_compiler_config { type: "VRChatCompilerReceipt"; timestamp: now() }
+}

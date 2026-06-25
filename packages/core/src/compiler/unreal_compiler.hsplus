@@ -1,0 +1,10 @@
+// @unreal_compiler — Unreal compiler: compiles .holo scenes and behaviors to Unreal Engine Blueprint + C++.
+//
+// Native .hsplus surface for core/src/compiler/UnrealCompiler.ts.
+
+@trait unreal_compiler {
+  capability_tags: ["unreal_compiler", "unreal_blueprint_output", "unreal_cpp_output", "compiler", "core"]
+  @on_spawn => { emit("unreal_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_unreal(ast); return result }
+  @receipt unreal_compiler_config { type: "UnrealCompilerReceipt"; timestamp: now() }
+}

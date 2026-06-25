@@ -1,0 +1,10 @@
+// @trait_composition_compiler — Trait composition compiler: compiles composed trait trees to target output.
+//
+// Native .hsplus surface for core/src/compiler/TraitCompositionCompiler.ts.
+
+@trait trait_composition_compiler {
+  capability_tags: ["trait_composition_compiler", "composed_trait_tree_compile", "trait_compile", "compiler", "core"]
+  @on_spawn => { emit("trait_composition_compiler_ready", {}) }
+  @on_compile(composition_ast) => { result = compile_trait_composition(composition_ast); return result }
+  @receipt trait_composition_compiler_config { type: "TraitCompositionCompilerReceipt"; timestamp: now() }
+}

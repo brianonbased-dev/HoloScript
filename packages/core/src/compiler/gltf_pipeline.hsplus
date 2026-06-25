@@ -1,0 +1,10 @@
+// @gltf_pipeline — GLTF pipeline: converts .holo geometry to glTF 2.0 binary meshes.
+//
+// Native .hsplus surface for core/src/compiler/GLTFPipeline.ts.
+
+@trait gltf_pipeline {
+  capability_tags: ["gltf_pipeline", "gltf2_binary_mesh", "geometry_convert", "compiler", "core"]
+  @on_spawn => { emit("gltf_pipeline_ready", {}) }
+  @on_process(ast) => { glb = process_gltf_pipeline(ast); return glb }
+  @receipt gltf_pipeline_config { type: "GLTFPipelineReceipt"; timestamp: now() }
+}

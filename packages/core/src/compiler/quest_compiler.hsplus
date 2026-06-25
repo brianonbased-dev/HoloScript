@@ -1,0 +1,11 @@
+// @quest_compiler — Quest compiler: compiles .holo scenes to Meta Quest OpenXR APK entry points.
+//
+// Native .hsplus surface for core/src/compiler/QuestCompiler.ts.
+// I.021: Quest XR on-device run target.
+
+@trait quest_compiler {
+  capability_tags: ["quest_compiler", "meta_quest_openxr", "quest_apk", "compiler", "core"]
+  @on_spawn => { emit("quest_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_quest(ast); return result }
+  @receipt quest_compiler_config { type: "QuestCompilerReceipt"; doc: "I.021 Quest XR on-device run"; timestamp: now() }
+}

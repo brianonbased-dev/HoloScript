@@ -1,0 +1,10 @@
+// @remotion_bridge — Remotion bridge: bridges .holo animations to Remotion video render pipeline.
+//
+// Native .hsplus surface for core/src/compiler/RemotionBridge.ts.
+
+@trait remotion_bridge {
+  capability_tags: ["remotion_bridge", "remotion_video_render", "animation_bridge", "compiler", "core"]
+  @on_spawn => { emit("remotion_bridge_ready", {}) }
+  @on_compile(ast) => { result = compile_to_remotion(ast); return result }
+  @receipt remotion_bridge_config { type: "RemotionBridgeReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @scm_compiler — SCM compiler: compiles .holo supply-chain models to SCM interchange format.
+//
+// Native .hsplus surface for core/src/compiler/SCMCompiler.ts.
+
+@trait scm_compiler {
+  capability_tags: ["scm_compiler", "supply_chain_interchange", "scm", "compiler", "core"]
+  @on_spawn => { emit("scm_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_scm(ast); return result }
+  @receipt scm_compiler_config { type: "SCMCompilerReceipt"; timestamp: now() }
+}

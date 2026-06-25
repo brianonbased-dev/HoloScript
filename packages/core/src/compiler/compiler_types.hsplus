@@ -1,0 +1,9 @@
+// @compiler_types — Compiler types: typed schema for AST nodes, compile targets, and receipts.
+//
+// Native .hsplus surface for core/src/compiler/CompilerTypes.ts.
+
+@trait compiler_types {
+  capability_tags: ["compiler_types", "ast_target_schema", "compiler_receipt_types", "compiler", "core"]
+  @on_spawn => { emit("compiler_types_ready", {}) }
+  @receipt compiler_types_config { type: "CompilerTypesReceipt"; timestamp: now() }
+}

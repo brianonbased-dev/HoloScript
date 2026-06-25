@@ -1,0 +1,10 @@
+// @social_causality — Social causality: causal ordering and consistency model for multi-agent social interaction state.
+//
+// Native .hsplus surface for core/src/compiler/social-causality.ts.
+
+@trait social_causality {
+  capability_tags: ["social_causality", "causal_social_order", "multi_agent_consistency", "compiler", "core"]
+  @on_spawn => { emit("social_causality_ready", {}) }
+  @on_order(events) => { ordered = order_social_causality(events); return ordered }
+  @receipt social_causality_config { type: "SocialCausalityReceipt"; timestamp: now() }
+}

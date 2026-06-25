@@ -1,0 +1,11 @@
+// @daimon_seed_compiler — Daimōn seed compiler: compiles .hsplus brains into daimōn seed bundles.
+//
+// Native .hsplus surface for core/src/compiler/DaimonSeedCompiler.ts.
+// D.051: sovereign seat hierarchy; daimōns are T1 sovereign agents.
+
+@trait daimon_seed_compiler {
+  capability_tags: ["daimon_seed_compiler", "daimon_brain_bundle", "sovereign_agent_seed", "compiler", "core"]
+  @on_spawn => { emit("daimon_seed_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_daimon_seed(ast); return result }
+  @receipt daimon_seed_compiler_config { type: "DaimonSeedCompilerReceipt"; doc: "D.051 T1 sovereign agents"; timestamp: now() }
+}

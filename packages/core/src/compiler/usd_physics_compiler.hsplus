@@ -1,0 +1,10 @@
+// @usd_physics_compiler — USD physics compiler: compiles .holo physics definitions to USD Physics schema.
+//
+// Native .hsplus surface for core/src/compiler/USDPhysicsCompiler.ts.
+
+@trait usd_physics_compiler {
+  capability_tags: ["usd_physics_compiler", "usd_physics_schema", "pixar_usd_physics", "compiler", "core"]
+  @on_spawn => { emit("usd_physics_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_usd_physics(ast); return result }
+  @receipt usd_physics_compiler_config { type: "USDPhysicsCompilerReceipt"; timestamp: now() }
+}

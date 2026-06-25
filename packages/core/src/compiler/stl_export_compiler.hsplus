@@ -1,0 +1,10 @@
+// @stl_export_compiler — STL export compiler: compiles .holo meshes to binary STL for 3D printing.
+//
+// Native .hsplus surface for core/src/compiler/STLExportCompiler.ts.
+
+@trait stl_export_compiler {
+  capability_tags: ["stl_export_compiler", "binary_stl_3d_print", "stl_export", "compiler", "core"]
+  @on_spawn => { emit("stl_export_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_stl_export(ast); return result }
+  @receipt stl_export_compiler_config { type: "STLExportCompilerReceipt"; timestamp: now() }
+}

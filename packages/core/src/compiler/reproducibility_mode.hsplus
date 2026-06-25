@@ -1,0 +1,9 @@
+// @reproducibility_mode — Reproducibility mode: pins compiler seeds for deterministic byte-identical output.
+//
+// Native .hsplus surface for core/src/compiler/ReproducibilityMode.ts.
+
+@trait reproducibility_mode {
+  capability_tags: ["reproducibility_mode", "deterministic_compiler_output", "pinned_seed", "compiler", "core"]
+  @on_spawn(seed) => { init_reproducibility_mode(seed); emit("reproducibility_mode_ready", {}) }
+  @receipt reproducibility_mode_config { type: "ReproducibilityModeReceipt"; timestamp: now() }
+}

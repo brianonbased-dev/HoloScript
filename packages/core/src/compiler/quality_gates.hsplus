@@ -1,0 +1,10 @@
+// @quality_gates — Quality gates: G1-G7 compile-time quality gates enforced before output.
+//
+// Native .hsplus surface for core/src/compiler/QualityGates.ts.
+
+@trait quality_gates {
+  capability_tags: ["quality_gates", "g1_g7_compile_gate", "quality_enforce", "compiler", "core"]
+  @on_spawn => { emit("quality_gates_ready", {}) }
+  @on_run(ast) => { results = run_quality_gates(ast); return results }
+  @receipt quality_gates_config { type: "QualityGatesReceipt"; gates: ["G1", "G2", "G3", "G4", "G5", "G6", "G7"]; timestamp: now() }
+}

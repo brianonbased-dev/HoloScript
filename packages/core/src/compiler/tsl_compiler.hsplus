@@ -1,0 +1,10 @@
+// @tsl_compiler — TSL compiler: compiles .holo shader graphs to Three.js Shader Language (TSL) nodes.
+//
+// Native .hsplus surface for core/src/compiler/TSLCompiler.ts.
+
+@trait tsl_compiler {
+  capability_tags: ["tsl_compiler", "threejs_shader_language", "tsl_nodes", "compiler", "core"]
+  @on_spawn => { emit("tsl_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_tsl(ast); return result }
+  @receipt tsl_compiler_config { type: "TSLCompilerReceipt"; timestamp: now() }
+}

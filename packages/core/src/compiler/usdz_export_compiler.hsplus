@@ -1,0 +1,10 @@
+// @usdz_export_compiler — USDZ export compiler: compiles .holo scenes to USDZ format for AR Quick Look.
+//
+// Native .hsplus surface for core/src/compiler/USDZExportCompiler.ts.
+
+@trait usdz_export_compiler {
+  capability_tags: ["usdz_export_compiler", "ar_quick_look", "usdz_package", "compiler", "core"]
+  @on_spawn => { emit("usdz_export_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_usdz(ast); return result }
+  @receipt usdz_export_compiler_config { type: "USDZExportCompilerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @scene_presets — Scene presets: built-in scene preset configurations for common .holo world archetypes.
+//
+// Native .hsplus surface for core/src/compiler/scene-presets.ts.
+
+@trait scene_presets {
+  capability_tags: ["scene_presets", "world_archetype_presets", "scene_preset_config", "compiler", "core"]
+  @on_spawn => { emit("scene_presets_ready", {}) }
+  @on_get(preset_name) => { preset = get_scene_preset(preset_name); return preset }
+  @receipt scene_presets_config { type: "ScenePresetsReceipt"; timestamp: now() }
+}

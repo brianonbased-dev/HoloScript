@@ -1,0 +1,10 @@
+// @three_d_tiles_compiler — 3D Tiles compiler: compiles .holo worlds to OGC 3D Tiles streaming format.
+//
+// Native .hsplus surface for core/src/compiler/ThreeDTilesCompiler.ts.
+
+@trait three_d_tiles_compiler {
+  capability_tags: ["three_d_tiles_compiler", "ogc_3dtiles_stream", "3d_tiles", "compiler", "core"]
+  @on_spawn => { emit("three_d_tiles_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_3dtiles(ast); return result }
+  @receipt three_d_tiles_compiler_config { type: "ThreeDTilesCompilerReceipt"; timestamp: now() }
+}

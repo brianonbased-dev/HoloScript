@@ -1,0 +1,10 @@
+// @export_manager — Export manager: orchestrates multi-target export runs across compiler fleet.
+//
+// Native .hsplus surface for core/src/compiler/ExportManager.ts.
+
+@trait export_manager {
+  capability_tags: ["export_manager", "multi_target_export", "compiler_fleet", "compiler", "core"]
+  @on_spawn => { emit("export_manager_ready", {}) }
+  @on_export(ast, targets) => { results = export_to_targets(ast, targets); return results }
+  @receipt export_manager_config { type: "ExportManagerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,11 @@
+// @semantic_cache — Semantic cache: caches compiled output keyed by semantic content-hash of input AST.
+//
+// Native .hsplus surface for core/src/compiler/SemanticCache.ts.
+
+@trait semantic_cache {
+  capability_tags: ["semantic_cache", "semantic_content_hash", "compile_output_cache", "compiler", "core"]
+  @on_spawn => { emit("semantic_cache_ready", {}) }
+  @on_get(semantic_hash) => { return get_semantic_cache(semantic_hash) }
+  @on_set(semantic_hash, output) => { set_semantic_cache(semantic_hash, output) }
+  @receipt semantic_cache_config { type: "SemanticCacheReceipt"; timestamp: now() }
+}

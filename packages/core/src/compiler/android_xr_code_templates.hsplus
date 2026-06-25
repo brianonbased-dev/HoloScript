@@ -1,0 +1,9 @@
+// @android_xr_code_templates — Android XR code templates: string template library for AndroidXR output.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRCodeTemplates.ts.
+
+@trait android_xr_code_templates {
+  capability_tags: ["android_xr_code_templates", "xr_template_library", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_code_templates_ready", {}) }
+  @receipt android_xr_code_templates_config { type: "AndroidXRCodeTemplatesReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @colyseus_compiler — Colyseus compiler: compiles .holo multiplayer rooms to Colyseus server schema.
+//
+// Native .hsplus surface for core/src/compiler/ColyseusCompiler.ts.
+
+@trait colyseus_compiler {
+  capability_tags: ["colyseus_compiler", "multiplayer_room_schema", "colyseus", "compiler", "core"]
+  @on_spawn => { emit("colyseus_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_colyseus(ast); return result }
+  @receipt colyseus_compiler_config { type: "ColyseusCompilerReceipt"; timestamp: now() }
+}

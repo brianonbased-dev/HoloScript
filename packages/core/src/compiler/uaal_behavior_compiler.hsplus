@@ -1,0 +1,10 @@
+// @uaal_behavior_compiler — UAAL behavior compiler: compiles .hsplus agent behavior into UAAL cognitive instruction sequences.
+//
+// Native .hsplus surface for core/src/compiler/UaalBehaviorCompiler.ts.
+
+@trait uaal_behavior_compiler {
+  capability_tags: ["uaal_behavior_compiler", "cognitive_instruction", "agent_behavior_compile", "compiler", "core"]
+  @on_spawn => { emit("uaal_behavior_compiler_ready", {}) }
+  @on_compile(behavior_ast) => { instructions = compile_to_uaal_behavior(behavior_ast); return instructions }
+  @receipt uaal_behavior_compiler_config { type: "UaalBehaviorCompilerReceipt"; timestamp: now() }
+}

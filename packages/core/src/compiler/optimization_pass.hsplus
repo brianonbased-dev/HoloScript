@@ -1,0 +1,10 @@
+// @optimization_pass — Optimization pass: dead-code elimination and constant-folding pass over compiled AST.
+//
+// Native .hsplus surface for core/src/compiler/OptimizationPass.ts.
+
+@trait optimization_pass {
+  capability_tags: ["optimization_pass", "dead_code_eliminate", "constant_fold", "compiler", "core"]
+  @on_spawn => { emit("optimization_pass_ready", {}) }
+  @on_run(ast) => { optimized = run_optimization_pass(ast); return optimized }
+  @receipt optimization_pass_config { type: "OptimizationPassReceipt"; timestamp: now() }
+}

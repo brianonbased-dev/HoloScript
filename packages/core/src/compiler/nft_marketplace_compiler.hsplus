@@ -1,0 +1,10 @@
+// @nft_marketplace_compiler — NFT marketplace compiler: compiles .holo assets to ERC-721/1155 metadata bundles.
+//
+// Native .hsplus surface for core/src/compiler/NFTMarketplaceCompiler.ts.
+
+@trait nft_marketplace_compiler {
+  capability_tags: ["nft_marketplace_compiler", "erc721_1155_metadata", "nft_marketplace", "compiler", "core"]
+  @on_spawn => { emit("nft_marketplace_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_nft_marketplace(ast); return result }
+  @receipt nft_marketplace_compiler_config { type: "NFTMarketplaceCompilerReceipt"; timestamp: now() }
+}

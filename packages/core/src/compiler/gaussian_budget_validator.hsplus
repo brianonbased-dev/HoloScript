@@ -1,0 +1,10 @@
+// @gaussian_budget_validator — Gaussian budget validator: gates compilation if splat budget exceeds device limits.
+//
+// Native .hsplus surface for core/src/compiler/GaussianBudgetValidator.ts.
+
+@trait gaussian_budget_validator {
+  capability_tags: ["gaussian_budget_validator", "splat_budget_gate", "device_limit", "compiler", "core"]
+  @on_spawn => { emit("gaussian_budget_validator_ready", {}) }
+  @on_validate(budget, device_caps) => { return validate_gaussian_budget(budget, device_caps) }
+  @receipt gaussian_budget_validator_config { type: "GaussianBudgetValidatorReceipt"; timestamp: now() }
+}

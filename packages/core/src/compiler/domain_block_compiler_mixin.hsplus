@@ -1,0 +1,10 @@
+// @domain_block_compiler_mixin — Domain block compiler mixin: injects domain-block codegen into any compiler.
+//
+// Native .hsplus surface for core/src/compiler/DomainBlockCompilerMixin.ts.
+
+@trait domain_block_compiler_mixin {
+  capability_tags: ["domain_block_compiler_mixin", "domain_block_codegen_mixin", "compiler_mixin", "compiler", "core"]
+  @on_spawn => { emit("domain_block_compiler_mixin_ready", {}) }
+  @on_apply(compiler, domain_block) => { return apply_domain_block_mixin(compiler, domain_block) }
+  @receipt domain_block_compiler_mixin_config { type: "DomainBlockCompilerMixinReceipt"; timestamp: now() }
+}

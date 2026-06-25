@@ -1,0 +1,10 @@
+// @norm_lifecycle_compiler_mixin — Norm lifecycle mixin: injects @on_spawn/@on_destroy lifecycle into compiler output.
+//
+// Native .hsplus surface for core/src/compiler/NormLifecycleCompilerMixin.ts.
+
+@trait norm_lifecycle_compiler_mixin {
+  capability_tags: ["norm_lifecycle_compiler_mixin", "spawn_destroy_inject", "lifecycle_mixin", "compiler", "core"]
+  @on_spawn => { emit("norm_lifecycle_compiler_mixin_ready", {}) }
+  @on_apply(compiler, ast) => { return apply_norm_lifecycle_mixin(compiler, ast) }
+  @receipt norm_lifecycle_compiler_mixin_config { type: "NormLifecycleCompilerMixinReceipt"; timestamp: now() }
+}

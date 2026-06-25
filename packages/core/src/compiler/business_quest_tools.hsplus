@@ -1,0 +1,9 @@
+// @business_quest_tools — Business quest tools: quest-type codegen helpers for commerce/business workflows.
+//
+// Native .hsplus surface for core/src/compiler/BusinessQuestTools.ts.
+
+@trait business_quest_tools {
+  capability_tags: ["business_quest_tools", "commerce_workflow_codegen", "business_quest", "compiler", "core"]
+  @on_spawn => { emit("business_quest_tools_ready", {}) }
+  @receipt business_quest_tools_config { type: "BusinessQuestToolsReceipt"; timestamp: now() }
+}

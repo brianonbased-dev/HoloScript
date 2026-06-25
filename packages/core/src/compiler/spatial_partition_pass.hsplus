@@ -1,0 +1,10 @@
+// @spatial_partition_pass — Spatial partition pass: BVH/octree partitioning pass over compiled scene IR.
+//
+// Native .hsplus surface for core/src/compiler/SpatialPartitionPass.ts.
+
+@trait spatial_partition_pass {
+  capability_tags: ["spatial_partition_pass", "bvh_octree_partition", "scene_ir_pass", "compiler", "core"]
+  @on_spawn => { emit("spatial_partition_pass_ready", {}) }
+  @on_run(scene_ir) => { partitioned = run_spatial_partition_pass(scene_ir); return partitioned }
+  @receipt spatial_partition_pass_config { type: "SpatialPartitionPassReceipt"; timestamp: now() }
+}

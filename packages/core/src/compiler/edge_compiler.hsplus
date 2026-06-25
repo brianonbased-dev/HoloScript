@@ -1,0 +1,11 @@
+// @edge_compiler — Edge compiler: compiles .holo agents for sovereign edge deployment (Jetson, Brittney).
+//
+// Native .hsplus surface for core/src/compiler/EdgeCompiler.ts.
+// D.110: frontier families build the runway; edge fleet = Jetson nodes + Brittney.
+
+@trait edge_compiler {
+  capability_tags: ["edge_compiler", "sovereign_edge_deploy", "jetson_brittney", "compiler", "core"]
+  @on_spawn => { emit("edge_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_edge(ast); return result }
+  @receipt edge_compiler_config { type: "EdgeCompilerReceipt"; doc: "D.110 sovereign edge fleet"; timestamp: now() }
+}

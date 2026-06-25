@@ -1,0 +1,10 @@
+// @canvas2d_game_compiler — Canvas2D game compiler: compiles .holo game scenes to Canvas2D game loop.
+//
+// Native .hsplus surface for core/src/compiler/Canvas2DGameCompiler.ts.
+
+@trait canvas2d_game_compiler {
+  capability_tags: ["canvas2d_game_compiler", "canvas2d_game_loop", "canvas2d", "compiler", "core"]
+  @on_spawn => { emit("canvas2d_game_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_canvas2d_game(ast); return result }
+  @receipt canvas2d_game_compiler_config { type: "Canvas2DGameCompilerReceipt"; timestamp: now() }
+}

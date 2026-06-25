@@ -1,0 +1,10 @@
+// @gltf_pipeline_mcp_tool — GLTF pipeline MCP tool: exposes GLTF pipeline as MCP compile_to_gltf tool.
+//
+// Native .hsplus surface for core/src/compiler/GLTFPipelineMCPTool.ts.
+
+@trait gltf_pipeline_mcp_tool {
+  capability_tags: ["gltf_pipeline_mcp_tool", "compile_to_gltf_tool", "mcp_tool", "compiler", "core"]
+  @on_spawn => { emit("gltf_pipeline_mcp_tool_ready", {}) }
+  @on_invoke(params) => { result = invoke_gltf_pipeline_mcp(params); return result }
+  @receipt gltf_pipeline_mcp_tool_config { type: "GLTFPipelineMCPToolReceipt"; timestamp: now() }
+}

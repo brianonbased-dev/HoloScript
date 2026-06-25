@@ -1,0 +1,10 @@
+// @usdz_pipeline — USDZ pipeline: orchestrates multi-stage USDZ asset assembly and packaging.
+//
+// Native .hsplus surface for core/src/compiler/USDZPipeline.ts.
+
+@trait usdz_pipeline {
+  capability_tags: ["usdz_pipeline", "usdz_assembly", "usdz_packaging", "compiler", "core"]
+  @on_spawn => { emit("usdz_pipeline_ready", {}) }
+  @on_run(scene) => { package = run_usdz_pipeline(scene); return package }
+  @receipt usdz_pipeline_config { type: "USDZPipelineReceipt"; timestamp: now() }
+}

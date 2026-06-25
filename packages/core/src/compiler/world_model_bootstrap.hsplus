@@ -1,0 +1,10 @@
+// @world_model_bootstrap — World model bootstrap: initializes the world model with seed state and compile-time defaults.
+//
+// Native .hsplus surface for core/src/compiler/WorldModelBootstrap.ts.
+
+@trait world_model_bootstrap {
+  capability_tags: ["world_model_bootstrap", "world_seed_state", "compile_time_defaults", "compiler", "core"]
+  @on_spawn => { emit("world_model_bootstrap_ready", {}) }
+  @on_bootstrap(seed) => { model = bootstrap_world_model(seed); return model }
+  @receipt world_model_bootstrap_config { type: "WorldModelBootstrapReceipt"; timestamp: now() }
+}

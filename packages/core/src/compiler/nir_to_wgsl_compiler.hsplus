@@ -1,0 +1,10 @@
+// @nir_to_wgsl_compiler — NIR→WGSL compiler: lowers NIR shader IR to WGSL source for WebGPU.
+//
+// Native .hsplus surface for core/src/compiler/NIRToWGSLCompiler.ts.
+
+@trait nir_to_wgsl_compiler {
+  capability_tags: ["nir_to_wgsl_compiler", "nir_lower_wgsl", "webgpu_shader", "compiler", "core"]
+  @on_spawn => { emit("nir_to_wgsl_compiler_ready", {}) }
+  @on_compile(nir_ast) => { wgsl = compile_nir_to_wgsl(nir_ast); return wgsl }
+  @receipt nir_to_wgsl_compiler_config { type: "NIRToWGSLCompilerReceipt"; timestamp: now() }
+}

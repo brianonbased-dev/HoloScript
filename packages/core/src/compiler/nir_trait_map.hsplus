@@ -1,0 +1,9 @@
+// @nir_trait_map — NIR trait map: maps .hsplus shader traits to NIR node descriptors.
+//
+// Native .hsplus surface for core/src/compiler/NIRTraitMap.ts.
+
+@trait nir_trait_map {
+  capability_tags: ["nir_trait_map", "shader_trait_nir_node", "trait_dispatch", "compiler", "core"]
+  @on_spawn => { emit("nir_trait_map_ready", {}) }
+  @receipt nir_trait_map_config { type: "NIRTraitMapReceipt"; timestamp: now() }
+}

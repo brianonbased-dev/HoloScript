@@ -1,0 +1,10 @@
+// @state_compiler — State compiler: compiles .holo @state_machine blocks to typed state machine code.
+//
+// Native .hsplus surface for core/src/compiler/StateCompiler.ts.
+
+@trait state_compiler {
+  capability_tags: ["state_compiler", "state_machine_codegen", "typed_state", "compiler", "core"]
+  @on_spawn => { emit("state_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_state(ast); return result }
+  @receipt state_compiler_config { type: "StateCompilerReceipt"; timestamp: now() }
+}

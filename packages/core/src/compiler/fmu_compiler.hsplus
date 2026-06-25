@@ -1,0 +1,10 @@
+// @fmu_compiler — FMU compiler: compiles .holo simulations to FMI/FMU co-simulation packages.
+//
+// Native .hsplus surface for core/src/compiler/FMUCompiler.ts.
+
+@trait fmu_compiler {
+  capability_tags: ["fmu_compiler", "fmi_cosimulation", "fmu_package", "compiler", "core"]
+  @on_spawn => { emit("fmu_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_fmu(ast); return result }
+  @receipt fmu_compiler_config { type: "FMUCompilerReceipt"; timestamp: now() }
+}

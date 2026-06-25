@@ -1,0 +1,10 @@
+// @lens_studio_compiler — Lens Studio compiler: compiles .holo lenses to Snap Lens Studio packages.
+//
+// Native .hsplus surface for core/src/compiler/LensStudioCompiler.ts.
+
+@trait lens_studio_compiler {
+  capability_tags: ["lens_studio_compiler", "snap_lens_package", "lens_studio", "compiler", "core"]
+  @on_spawn => { emit("lens_studio_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_lens_studio(ast); return result }
+  @receipt lens_studio_compiler_config { type: "LensStudioCompilerReceipt"; timestamp: now() }
+}

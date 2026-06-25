@@ -1,0 +1,10 @@
+// @context_compiler — Context compiler: injects runtime context (wallet, locale, device) into compiled output.
+//
+// Native .hsplus surface for core/src/compiler/ContextCompiler.ts.
+
+@trait context_compiler {
+  capability_tags: ["context_compiler", "runtime_context_inject", "wallet_locale_device", "compiler", "core"]
+  @on_spawn => { emit("context_compiler_ready", {}) }
+  @on_compile(ast, ctx) => { result = compile_with_context(ast, ctx); return result }
+  @receipt context_compiler_config { type: "ContextCompilerReceipt"; timestamp: now() }
+}

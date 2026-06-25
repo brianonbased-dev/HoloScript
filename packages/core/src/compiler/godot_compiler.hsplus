@@ -1,0 +1,10 @@
+// @godot_compiler — Godot compiler: compiles .holo scenes to Godot 4 GDScript/resource files.
+//
+// Native .hsplus surface for core/src/compiler/GodotCompiler.ts.
+
+@trait godot_compiler {
+  capability_tags: ["godot_compiler", "godot4_gdscript", "godot_resource", "compiler", "core"]
+  @on_spawn => { emit("godot_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_godot(ast); return result }
+  @receipt godot_compiler_config { type: "GodotCompilerReceipt"; timestamp: now() }
+}

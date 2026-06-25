@@ -1,0 +1,10 @@
+// @coco_exporter — COCO exporter: exports .holo scene annotations to COCO JSON format.
+//
+// Native .hsplus surface for core/src/compiler/COCOExporter.ts.
+
+@trait coco_exporter {
+  capability_tags: ["coco_exporter", "coco_json_annotations", "dataset_export", "compiler", "core"]
+  @on_spawn => { emit("coco_exporter_ready", {}) }
+  @on_export(ast) => { result = export_to_coco(ast); return result }
+  @receipt coco_exporter_config { type: "COCOExporterReceipt"; timestamp: now() }
+}

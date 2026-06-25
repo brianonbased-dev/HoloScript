@@ -1,0 +1,11 @@
+// @object_pool — Object pool: pre-allocated compiler AST node pool for low-GC compilation.
+//
+// Native .hsplus surface for core/src/compiler/ObjectPool.ts.
+
+@trait object_pool {
+  capability_tags: ["object_pool", "pre_allocated_ast_pool", "low_gc_compile", "compiler", "core"]
+  @on_spawn(capacity) => { init_object_pool(capacity); emit("object_pool_ready", {}) }
+  @on_acquire(type) => { return acquire_object_pool(type) }
+  @on_release(obj) => { release_object_pool(obj) }
+  @receipt object_pool_config { type: "ObjectPoolReceipt"; timestamp: now() }
+}

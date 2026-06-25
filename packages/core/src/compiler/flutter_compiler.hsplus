@@ -1,0 +1,10 @@
+// @flutter_compiler — Flutter compiler: compiles .holo compositions to Flutter/Dart widget trees.
+//
+// Native .hsplus surface for core/src/compiler/FlutterCompiler.ts.
+
+@trait flutter_compiler {
+  capability_tags: ["flutter_compiler", "flutter_dart_widget", "flutter", "compiler", "core"]
+  @on_spawn => { emit("flutter_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_flutter(ast); return result }
+  @receipt flutter_compiler_config { type: "FlutterCompilerReceipt"; timestamp: now() }
+}

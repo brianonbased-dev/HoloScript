@@ -1,0 +1,10 @@
+// @circuit_breaker_monitor — Circuit breaker monitor: exposes compiler CB state for health dashboards.
+//
+// Native .hsplus surface for core/src/compiler/CircuitBreakerMonitor.ts.
+
+@trait circuit_breaker_monitor {
+  capability_tags: ["circuit_breaker_monitor", "cb_state_health", "compiler_monitor", "compiler", "core"]
+  @on_spawn => { emit("circuit_breaker_monitor_ready", {}) }
+  @on_status => { return get_compiler_cb_status() }
+  @receipt circuit_breaker_monitor_config { type: "CircuitBreakerMonitorReceipt"; timestamp: now() }
+}

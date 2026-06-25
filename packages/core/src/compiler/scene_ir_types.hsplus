@@ -1,0 +1,9 @@
+// @scene_ir_types — Scene IR types: type definitions for the scene intermediate representation used across compilers.
+//
+// Native .hsplus surface for core/src/compiler/scene-ir-types.ts.
+
+@trait scene_ir_types {
+  capability_tags: ["scene_ir_types", "scene_ir_type_defs", "compiler_ir_schema", "compiler", "core"]
+  @on_spawn => { emit("scene_ir_types_ready", {}) }
+  @receipt scene_ir_types_config { type: "SceneIRTypesReceipt"; timestamp: now() }
+}

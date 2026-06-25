@@ -1,0 +1,10 @@
+// @ios_peripheral_generators — iOS peripheral generators: CoreBluetooth/NFC codegen for iOS compiler.
+//
+// Native .hsplus surface for core/src/compiler/IOSPeripheralGenerators.ts.
+
+@trait ios_peripheral_generators {
+  capability_tags: ["ios_peripheral_generators", "corebluetooth_nfc_codegen", "ios_peripheral", "compiler", "core"]
+  @on_spawn => { emit("ios_peripheral_generators_ready", {}) }
+  @on_generate(peripheral, ast) => { return generate_ios_peripheral(peripheral, ast) }
+  @receipt ios_peripheral_generators_config { type: "IOSPeripheralGeneratorsReceipt"; timestamp: now() }
+}

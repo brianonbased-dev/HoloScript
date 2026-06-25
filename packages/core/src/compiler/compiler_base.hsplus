@@ -1,0 +1,10 @@
+// @compiler_base — Compiler base: abstract base class for all HoloScript compile-to-* targets.
+//
+// Native .hsplus surface for core/src/compiler/CompilerBase.ts.
+
+@trait compiler_base {
+  capability_tags: ["compiler_base", "compile_target_base", "abstract_compiler", "compiler", "core"]
+  @on_spawn => { emit("compiler_base_ready", {}) }
+  @on_compile(ast, target) => { result = compile_base(ast, target); return result }
+  @receipt compiler_base_config { type: "CompilerBaseReceipt"; timestamp: now() }
+}

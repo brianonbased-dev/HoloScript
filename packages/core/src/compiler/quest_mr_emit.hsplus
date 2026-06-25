@@ -1,0 +1,10 @@
+// @quest_mr_emit — Quest MR emit: emits mixed reality anchor and passthrough calls for Quest MR compositions.
+//
+// Native .hsplus surface for core/src/compiler/quest-mr-emit.ts.
+
+@trait quest_mr_emit {
+  capability_tags: ["quest_mr_emit", "quest_mixed_reality", "mr_anchor_emit", "compiler", "core"]
+  @on_spawn => { emit("quest_mr_emit_ready", {}) }
+  @on_emit(mr_scene) => { calls = emit_quest_mr_anchors(mr_scene); return calls }
+  @receipt quest_mr_emit_config { type: "QuestMREmitReceipt"; timestamp: now() }
+}

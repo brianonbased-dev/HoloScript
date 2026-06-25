@@ -1,0 +1,10 @@
+// @android_scene_view_feature_generators — Android SceneView feature generators: ARCore SceneView codegen.
+//
+// Native .hsplus surface for core/src/compiler/AndroidSceneViewFeatureGenerators.ts.
+
+@trait android_scene_view_feature_generators {
+  capability_tags: ["android_scene_view_feature_generators", "arcore_sceneview", "android_ar", "compiler", "core"]
+  @on_spawn => { emit("android_scene_view_feature_generators_ready", {}) }
+  @on_generate(feature, ast) => { return generate_android_scene_view_feature(feature, ast) }
+  @receipt android_scene_view_feature_generators_config { type: "AndroidSceneViewFeatureGeneratorsReceipt"; timestamp: now() }
+}

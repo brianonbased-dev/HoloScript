@@ -1,0 +1,10 @@
+// @bot_swarm_compiler — Bot swarm compiler: compiles .holo agent fleets to coordinated bot-swarm config.
+//
+// Native .hsplus surface for core/src/compiler/BotSwarmCompiler.ts.
+
+@trait bot_swarm_compiler {
+  capability_tags: ["bot_swarm_compiler", "agent_fleet_config", "bot_swarm", "compiler", "core"]
+  @on_spawn => { emit("bot_swarm_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_bot_swarm(ast); return result }
+  @receipt bot_swarm_compiler_config { type: "BotSwarmCompilerReceipt"; timestamp: now() }
+}

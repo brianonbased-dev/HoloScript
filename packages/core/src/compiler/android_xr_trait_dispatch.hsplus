@@ -1,0 +1,10 @@
+// @android_xr_trait_dispatch — Android XR trait dispatch: routes .hsplus trait nodes to XR generators.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRTraitDispatch.ts.
+
+@trait android_xr_trait_dispatch {
+  capability_tags: ["android_xr_trait_dispatch", "xr_trait_router", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_trait_dispatch_ready", {}) }
+  @on_dispatch(trait_node) => { return dispatch_android_xr_trait(trait_node) }
+  @receipt android_xr_trait_dispatch_config { type: "AndroidXRTraitDispatchReceipt"; timestamp: now() }
+}

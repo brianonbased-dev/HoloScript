@@ -1,0 +1,10 @@
+// @dtdl_compiler — DTDL compiler: compiles .holo digital twins to Azure Digital Twins Definition Language.
+//
+// Native .hsplus surface for core/src/compiler/DTDLCompiler.ts.
+
+@trait dtdl_compiler {
+  capability_tags: ["dtdl_compiler", "azure_digital_twin_dtdl", "digital_twin", "compiler", "core"]
+  @on_spawn => { emit("dtdl_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_dtdl(ast); return result }
+  @receipt dtdl_compiler_config { type: "DTDLCompilerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @godot_acoustic_bus — Godot acoustic bus: generates Godot AudioBus layout for .holo acoustic zone definitions.
+//
+// Native .hsplus surface for core/src/compiler/godot-acoustic-bus.ts.
+
+@trait godot_acoustic_bus {
+  capability_tags: ["godot_acoustic_bus", "godot_audio_bus", "acoustic_zone_compile", "compiler", "core"]
+  @on_spawn => { emit("godot_acoustic_bus_ready", {}) }
+  @on_generate(acoustic_zones) => { bus_layout = generate_godot_acoustic_bus(acoustic_zones); return bus_layout }
+  @receipt godot_acoustic_bus_config { type: "GodotAcousticBusReceipt"; timestamp: now() }
+}

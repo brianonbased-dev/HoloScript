@@ -1,0 +1,10 @@
+// @shard_registry_compiler — Shard registry compiler: compiles .holo world shards to registry manifests.
+//
+// Native .hsplus surface for core/src/compiler/ShardRegistryCompiler.ts.
+
+@trait shard_registry_compiler {
+  capability_tags: ["shard_registry_compiler", "world_shard_manifest", "shard_registry", "compiler", "core"]
+  @on_spawn => { emit("shard_registry_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_world_shard(ast); return result }
+  @receipt shard_registry_compiler_config { type: "ShardRegistryCompilerReceipt"; timestamp: now() }
+}

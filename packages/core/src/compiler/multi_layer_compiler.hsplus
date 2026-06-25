@@ -1,0 +1,10 @@
+// @multi_layer_compiler — Multi-layer compiler: compiles .holo compositions through stacked target layers.
+//
+// Native .hsplus surface for core/src/compiler/MultiLayerCompiler.ts.
+
+@trait multi_layer_compiler {
+  capability_tags: ["multi_layer_compiler", "stacked_target_layers", "multi_layer", "compiler", "core"]
+  @on_spawn => { emit("multi_layer_compiler_ready", {}) }
+  @on_compile(ast, layer_stack) => { result = compile_to_multi_layer(ast, layer_stack); return result }
+  @receipt multi_layer_compiler_config { type: "MultiLayerCompilerReceipt"; timestamp: now() }
+}

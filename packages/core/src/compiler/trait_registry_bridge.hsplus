@@ -1,0 +1,10 @@
+// @trait_registry_bridge — Trait registry bridge: bridges trait registry lookups between compile-time and runtime surfaces.
+//
+// Native .hsplus surface for core/src/compiler/TraitRegistryBridge.ts.
+
+@trait trait_registry_bridge {
+  capability_tags: ["trait_registry_bridge", "registry_bridge", "trait_lookup", "compiler", "core"]
+  @on_spawn => { emit("trait_registry_bridge_ready", {}) }
+  @on_lookup(trait_name) => { result = bridge_trait_registry_lookup(trait_name); return result }
+  @receipt trait_registry_bridge_config { type: "TraitRegistryBridgeReceipt"; timestamp: now() }
+}

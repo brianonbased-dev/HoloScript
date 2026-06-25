@@ -1,0 +1,10 @@
+// @android_xr_generators — Android XR generators: XR session/subspace codegen for AndroidXR compiler.
+//
+// Native .hsplus surface for core/src/compiler/AndroidXRGenerators.ts.
+
+@trait android_xr_generators {
+  capability_tags: ["android_xr_generators", "xr_session_subspace", "android_xr", "compiler", "core"]
+  @on_spawn => { emit("android_xr_generators_ready", {}) }
+  @on_generate(node) => { return generate_android_xr(node) }
+  @receipt android_xr_generators_config { type: "AndroidXRGeneratorsReceipt"; timestamp: now() }
+}

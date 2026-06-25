@@ -1,0 +1,10 @@
+// @openxr_compiler — OpenXR compiler: compiles .holo XR scenes to OpenXR session/action manifests.
+//
+// Native .hsplus surface for core/src/compiler/OpenXRCompiler.ts.
+
+@trait openxr_compiler {
+  capability_tags: ["openxr_compiler", "openxr_session_manifest", "openxr", "compiler", "core"]
+  @on_spawn => { emit("openxr_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_openxr(ast); return result }
+  @receipt openxr_compiler_config { type: "OpenXRCompilerReceipt"; timestamp: now() }
+}

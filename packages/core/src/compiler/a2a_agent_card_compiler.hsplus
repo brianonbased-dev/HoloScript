@@ -1,0 +1,10 @@
+// @a2a_agent_card_compiler — A2A agent card compiler: compiles .holo agents to A2A agent-card JSON.
+//
+// Native .hsplus surface for core/src/compiler/A2AAgentCardCompiler.ts.
+
+@trait a2a_agent_card_compiler {
+  capability_tags: ["a2a_agent_card_compiler", "agent_card_json", "a2a_protocol", "compiler", "core"]
+  @on_spawn => { emit("a2a_agent_card_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_a2a_agent_card(ast); return result }
+  @receipt a2a_agent_card_compiler_config { type: "A2AAgentCardCompilerReceipt"; timestamp: now() }
+}

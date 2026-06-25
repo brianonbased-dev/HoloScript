@@ -1,0 +1,10 @@
+// @bundle_analyzer — Bundle analyzer: reports size and dependency breakdown of compiled bundles.
+//
+// Native .hsplus surface for core/src/compiler/BundleAnalyzer.ts.
+
+@trait bundle_analyzer {
+  capability_tags: ["bundle_analyzer", "bundle_size_deps", "bundle_report", "compiler", "core"]
+  @on_spawn => { emit("bundle_analyzer_ready", {}) }
+  @on_analyze(bundle) => { return analyze_bundle(bundle) }
+  @receipt bundle_analyzer_config { type: "BundleAnalyzerReceipt"; timestamp: now() }
+}

@@ -1,0 +1,10 @@
+// @android_ar_generators — Android AR generators: generates ARCore anchor/plane code for Android compiler.
+//
+// Native .hsplus surface for core/src/compiler/AndroidARGenerators.ts.
+
+@trait android_ar_generators {
+  capability_tags: ["android_ar_generators", "arcore_anchor_plane", "android_ar", "compiler", "core"]
+  @on_spawn => { emit("android_ar_generators_ready", {}) }
+  @on_generate(trait_node) => { return generate_android_ar(trait_node) }
+  @receipt android_ar_generators_config { type: "AndroidARGeneratorsReceipt"; timestamp: now() }
+}

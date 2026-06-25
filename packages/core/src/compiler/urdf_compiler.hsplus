@@ -1,0 +1,10 @@
+// @urdf_compiler — URDF compiler: compiles .holo robot definitions to Unified Robot Description Format (URDF).
+//
+// Native .hsplus surface for core/src/compiler/URDFCompiler.ts.
+
+@trait urdf_compiler {
+  capability_tags: ["urdf_compiler", "robot_description_format", "ros_urdf", "compiler", "core"]
+  @on_spawn => { emit("urdf_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_urdf(ast); return result }
+  @receipt urdf_compiler_config { type: "URDFCompilerReceipt"; timestamp: now() }
+}

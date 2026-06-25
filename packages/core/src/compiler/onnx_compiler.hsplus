@@ -1,0 +1,10 @@
+// @onnx_compiler — ONNX compiler: compiles .holo neural network graphs to ONNX model format.
+//
+// Native .hsplus surface for core/src/compiler/ONNXCompiler.ts.
+
+@trait onnx_compiler {
+  capability_tags: ["onnx_compiler", "neural_network_onnx", "model_export", "compiler", "core"]
+  @on_spawn => { emit("onnx_compiler_ready", {}) }
+  @on_compile(ast) => { result = compile_to_onnx(ast); return result }
+  @receipt onnx_compiler_config { type: "ONNXCompilerReceipt"; timestamp: now() }
+}
