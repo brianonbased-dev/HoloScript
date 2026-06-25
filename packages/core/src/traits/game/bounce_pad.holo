@@ -1,0 +1,20 @@
+@trait {
+  name: "@bounce_pad",
+  category: "game",
+  description: "Physics launch pad. Applies an impulse to any dynamic body entering its trigger volume, launching it upward and optionally forward at configurable launch force and direction, with a spring animation, sound, and particle burst on activation. Authored from BouncePadTrait.ts.",
+  props: {
+    launch_force: number = 12,
+    launch_angle_deg: number = 80,
+    cooldown_ms: number = 500,
+    forward_boost: number = 0,
+    sound_url: string = "",
+    particle_url: string = "",
+    enabled: boolean = true
+  },
+  events: {
+    attached: "bounce_pad_attached",
+    detached: "bounce_pad_detached",
+    on_launch: "bounce_pad_launch"
+  },
+  behaviors: ["@trigger_volume", "@knockback", "@platform_controller"]
+}

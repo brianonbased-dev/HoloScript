@@ -1,0 +1,20 @@
+@trait {
+  name: "@blood_decal",
+  category: "visual",
+  description: "Projected surface impact and blood-splatter decal spawner. On receiving a damage or death event it casts a decal onto the nearest surface at the entity position, selecting from a pool of splatter textures, scaling by damage amount, and fading out after a configurable lifetime. Authored from BloodDecalTrait.ts.",
+  props: {
+    texture_urls: list<string> = [],
+    min_scale_m: number = 0.1,
+    max_scale_m: number = 0.8,
+    lifetime_s: number = 60,
+    fade_out_s: number = 5,
+    max_concurrent: number = 20,
+    trigger_event: string = "entity_damaged"
+  },
+  events: {
+    attached: "blood_decal_attached",
+    detached: "blood_decal_detached",
+    on_spawn: "blood_decal_spawn"
+  },
+  behaviors: ["@surface_decal", "@particle_system", "@combat_state"]
+}

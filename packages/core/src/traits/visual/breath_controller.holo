@@ -1,0 +1,17 @@
+@trait {
+  name: "@breath_controller",
+  category: "visual",
+  description: "Character idle breath animation driver. Applies a subtle procedural chest-rise and shoulder-sway oscillation to the skeleton idle pose, modulating amplitude and rate based on the character's stamina and activity state — heavier after sprinting, slow at rest. Authored from BreathControllerTrait.ts.",
+  props: {
+    rate_hz: number = 0.25,
+    amplitude: number = 0.008,
+    shoulder_sway: number = 0.003,
+    exertion_scale: number = 2.5,
+    blend_weight: number = 1.0
+  },
+  events: {
+    attached: "breath_controller_attached",
+    detached: "breath_controller_detached"
+  },
+  behaviors: ["@animated", "@stamina_system", "@skeleton_pose"]
+}
