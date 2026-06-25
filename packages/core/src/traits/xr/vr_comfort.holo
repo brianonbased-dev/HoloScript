@@ -1,0 +1,20 @@
+@trait {
+  name: "@vr_comfort",
+  category: "xr",
+  description: "VR comfort settings aggregate. Bundles snap-turn angle, continuous-turn speed, FOV vignette intensity during locomotion, comfort mode (teleport-only, continuous, hybrid), and height offset into a single config trait, writing persisted preferences per session and exposing an in-VR settings panel. Authored from VrComfortTrait.ts.",
+  props: {
+    locomotion: enum("teleport" | "continuous" | "hybrid") = "hybrid",
+    snap_turn_deg: number = 45,
+    turn_speed: number = 60,
+    vignette_intensity: number = 0.6,
+    height_offset_m: number = 0,
+    persist: boolean = true
+  },
+  events: {
+    attached: "vr_comfort_attached",
+    detached: "vr_comfort_detached",
+    on_change: "vr_comfort_change",
+    apply: "vr_comfort_trigger_apply"
+  },
+  behaviors: ["@immersion_layer", "@vignette", "@teleport"]
+}

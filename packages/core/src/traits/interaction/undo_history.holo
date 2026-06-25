@@ -1,0 +1,21 @@
+@trait {
+  name: "@undo_history",
+  category: "interaction",
+  description: "Entity prop change undo/redo stack. Records prop mutations as invertible operations, maintaining a bounded history stack that can be traversed forward and backward, enabling non-destructive editing workflows in the Studio canvas and builder tools. Authored from UndoHistoryTrait.ts.",
+  props: {
+    max_depth: number = 50,
+    track_props: list<string> = [],
+    compress: boolean = true,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "undo_history_attached",
+    detached: "undo_history_detached",
+    on_push: "undo_history_push",
+    on_undo: "undo_history_undo",
+    on_redo: "undo_history_redo",
+    undo: "undo_history_trigger_undo",
+    redo: "undo_history_trigger_redo"
+  },
+  behaviors: ["@inspector", "@event_replay", "@reactive_store"]
+}

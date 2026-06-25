@@ -1,0 +1,21 @@
+@trait {
+  name: "@wallet_display",
+  category: "economics",
+  description: "Wallet balance and transaction history HUD panel. Displays the connected wallet's token balances, recent transaction list, and pending x402 claims in a floating spatial or screen-space panel, with refresh-on-focus and QR export for the wallet address. Authored from WalletDisplayTrait.ts.",
+  props: {
+    wallet_address: string = "",
+    tokens: list<string> = ["ETH", "USDC"],
+    show_history: boolean = true,
+    history_count: number = 10,
+    position: enum("screen" | "spatial") = "screen",
+    auto_refresh_s: number = 30
+  },
+  events: {
+    attached: "wallet_display_attached",
+    detached: "wallet_display_detached",
+    on_refresh: "wallet_display_refresh",
+    on_tx: "wallet_display_tx",
+    refresh: "wallet_display_trigger_refresh"
+  },
+  behaviors: ["@identity", "@discount", "@trading_post"]
+}
