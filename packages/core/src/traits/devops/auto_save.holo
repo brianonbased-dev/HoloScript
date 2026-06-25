@@ -1,0 +1,22 @@
+@trait {
+  name: "@auto_save",
+  category: "devops",
+  description: "Periodic auto-save trigger for editor and builder contexts. Fires a save event at a configurable interval, debounced after the last prop mutation, writing a snapshot to local storage or a remote endpoint and maintaining a rolling backup window. Authored from AutoSaveTrait.ts.",
+  props: {
+    interval_s: number = 30,
+    debounce_ms: number = 1500,
+    storage: enum("local" | "remote" | "both") = "both",
+    remote_url: string = "",
+    backup_count: number = 5,
+    enabled: boolean = true
+  },
+  events: {
+    attached: "auto_save_attached",
+    detached: "auto_save_detached",
+    on_save: "auto_save_save",
+    on_restore: "auto_save_restore",
+    save_now: "auto_save_trigger_save",
+    restore: "auto_save_trigger_restore"
+  },
+  behaviors: ["@save_game", "@undo_history", "@inspector"]
+}

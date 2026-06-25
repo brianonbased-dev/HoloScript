@@ -1,0 +1,25 @@
+@trait {
+  name: "@backdrop",
+  category: "visual",
+  description: "Full-screen 2D/3D backdrop panel. Renders a flat colour, gradient, or image behind all world geometry in screen-space, commonly used for loading screens, menus, or photo-mode backgrounds — fading in and out with a configurable duration and optional blur of the captured scene behind it. Authored from BackdropTrait.ts.",
+  props: {
+    mode: enum("color" | "gradient" | "image") = "color",
+    color: string = "#000000",
+    gradient_top: string = "#000000",
+    gradient_bottom: string = "#333333",
+    image_url: string = "",
+    opacity: number = 1.0,
+    blur_scene: boolean = false,
+    fade_ms: number = 300,
+    visible: boolean = false
+  },
+  events: {
+    attached: "backdrop_attached",
+    detached: "backdrop_detached",
+    on_show: "backdrop_show",
+    on_hide: "backdrop_hide",
+    show: "backdrop_trigger_show",
+    hide: "backdrop_trigger_hide"
+  },
+  behaviors: ["@screen_shader", "@vignette", "@transition_manager"]
+}

@@ -1,0 +1,21 @@
+@trait {
+  name: "@asset_bundle",
+  category: "devops",
+  description: "Lazy-load asset bundle manager. Declares a named group of assets (textures, meshes, audio, etc.) to be downloaded together as a single compressed bundle, tracking load progress, exposing a ready event, and supporting differential updates when the bundle version changes. Authored from AssetBundleTrait.ts.",
+  props: {
+    bundle_url: string = "",
+    version: string = "latest",
+    assets: list<{ key: string, type: enum("texture" | "mesh" | "audio" | "font" | "shader" | "holo") }> = [],
+    preload: boolean = false,
+    unload_on_detach: boolean = true
+  },
+  events: {
+    attached: "asset_bundle_attached",
+    detached: "asset_bundle_detached",
+    on_progress: "asset_bundle_progress",
+    on_ready: "asset_bundle_ready",
+    on_error: "asset_bundle_error",
+    load: "asset_bundle_trigger_load"
+  },
+  behaviors: ["@level_loader", "@lod_controller", "@cache"]
+}

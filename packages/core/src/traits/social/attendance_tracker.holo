@@ -1,0 +1,21 @@
+@trait {
+  name: "@attendance_tracker",
+  category: "social",
+  description: "Session and event attendance recorder. Logs the join and leave timestamps for each participant wallet in a shard or scheduled event, persisting the ledger to a storage endpoint and emitting streak and milestone events for attendance-reward systems. Authored from AttendanceTrackerTrait.ts.",
+  props: {
+    event_id: string = "",
+    log_url: string = "",
+    streak_threshold_days: number = 7,
+    max_capacity: number = 0,
+    require_rsvp: boolean = false
+  },
+  events: {
+    attached: "attendance_tracker_attached",
+    detached: "attendance_tracker_detached",
+    on_join: "attendance_tracker_join",
+    on_leave: "attendance_tracker_leave",
+    on_streak: "attendance_tracker_streak",
+    on_full: "attendance_tracker_full"
+  },
+  behaviors: ["@online_presence", "@leaderboard", "@reputation_system"]
+}
